@@ -35,29 +35,28 @@
 
 #include "vessel/api/collectionHandler.h"
 #include "vessel/vesselImpl.h"
-#include "vessel/api/IQueryFilter.h"
+#include "interface/IRecordFilter.h"
 #include "vessel/scanCLCursor.h"
 #include "vessel/indexScanCursor.h"
+#include "utilSharedPtrMaker.hpp"
 
 namespace engine
 {
 namespace vessel
 {
    INT32 collectionHandler::createIndex(IExecutor *executor,
-                                        const strSlice &indexName,
-                                        const bson::BSONObj &keyPattern,
-                                        const indexParameters &params,
-                                        const createIndexOptions &options)
+                                        const dmsBuildIndexOptions &o,
+                                        const bson::BSONObj &adjunct)
    {
       INT32 rc = SDB_OK;
+
       if (!isOpen())
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
-      rc = _db->createIndex(executor, _gcid, indexName,
-                            keyPattern, params, options);
+      rc = _db->createIndex(executor, _gcid, o, adjunct);
       if (SDB_OK != rc)
       {
          goto error;
@@ -68,8 +67,9 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionHandler::listIndexes(IExecutor *executor,
-                                        ossPoolVector<bson::BSONObj> &indexes)
+
+   INT32 collectionHandler::listIndex(IExecutor *executor,
+                                      ossPoolVector<bson::BSONObj> &indexes)
    {
       INT32 rc = SDB_OK;
       if (!isOpen())
@@ -89,37 +89,30 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionHandler::insert(IExecutor *executor,
-                                   const slice &record,
-                                   STRIPING_ID striping,
-                                   const insertOptions &options,
-                                   utilInsertResult *res)
-   {
-      dmlInsertRequest request;
-      request.record = record;
-      request.stripingId = striping;
-      request.o = options;
-      return insert(executor, request, res);
-   }
-
-   INT32 collectionHandler::insert(IExecutor *executor,
-                                   const dmlInsertRequest &request,
-                                   utilInsertResult *res)
+   INT32 collectionHandler::insertRecord(IExecutor *executor,
+                                         const bson::BSONObj &record,
+                                         const dmsInsertRecordOptions &o,
+                                         utilInsertResult *result)
    {
       INT32 rc = SDB_OK;
-      if (!isOpen())
+      dmlInsertRequest request;
+
+      if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (NULL == executor ||
-               !request.isValid())
+      else if (OSS_UNLIKELY(NULL == executor ||
+                            !record.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = _db->insert(executor, _gcid, request, res);
+      request.record.reset(record.objsize(), record.objdata());
+      request.o = o;
+
+      rc = _db->insert(executor, _gcid, request, result);
       if (SDB_OK != rc)
       {
          goto error;
@@ -131,23 +124,42 @@ namespace vessel
    }
 
    INT32 collectionHandler::insertBatch(IExecutor *executor,
-                                        const dmlBatchInsertRequest &request,
-                                        utilInsertResult *res)
+                                        const ossPoolVector<bson::BSONObj> &batch,
+                                        const dmsInsertRecordOptions &o,
+                                        utilInsertResult *result)
    {
       INT32 rc = SDB_OK;
-      if (!isOpen())
+
+      dmlBatchInsertRequest request;
+
+      if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (NULL == executor ||
-               !request.isValid())
+      else if (OSS_UNLIKELY(NULL == executor ||
+                            batch.empty()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = _db->insertBatch(executor, _gcid, request, res);
+      request.batch.reserve(batch.size());
+      for (ossPoolVector<bson::BSONObj>::const_iterator itr = batch.cbegin();
+           itr != batch.cend(); ++itr)
+      {
+         if (!itr->isValid())
+         {
+            rc = SDB_INVALIDARG;
+            goto error;
+         }
+
+         request.batch.push_back(slice(itr->objsize(), itr->objdata()));
+      }
+
+      request.o = o;
+
+      rc = _db->insertBatch(executor, _gcid, request, result);
       if (SDB_OK != rc)
       {
          goto error;
@@ -155,172 +167,35 @@ namespace vessel
    done:
       return rc;
    error:
-      goto done;
-   }
- 
-   INT32 collectionHandler::openScanCursor(IExecutor *executor,
-                                           IQueryFilter *filter,
-                                           const collectionScanOptions &o,
-                                           cursorHandler &cursor,
-                                           const cursorOptions *co)
-   {
-      INT32 rc = SDB_OK;
-      scanCLCursor *kernal = NULL;
-      cursorOptions realOptions;
-      static constexpr INT32 _ROW_LIMIT = 1024;
-
-      if (OSS_UNLIKELY(NULL == executor))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (!isOpen())
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-
-      kernal = SDB_OSS_NEW scanCLCursor();
-      if (NULL == kernal)
-      {
-         rc = SDB_OOM;
-         PD_LOG(PDERROR, "failed to allocate mem");
-         goto error;
-      }
-
-      if (NULL != co)
-      {
-         realOptions.initBufSize = co->initBufSize;
-         realOptions.rowCountLimit = co->hasRowCountLimit() ?
-                                     co->rowCountLimit : _ROW_LIMIT;
-      }
-      else
-      {
-         realOptions.rowCountLimit = _ROW_LIMIT;
-      }
-
-      rc = kernal->open(_db, filter, &realOptions);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to open cursor:%d", rc);
-         goto error;
-      }
-
-      kernal->resetToScan(_gcid, o);
-
-      cursor = cursorHandler(kernal);
-   done:
-      return rc;
-   error:
-      SAFE_OSS_DELETE(kernal);
-      goto done;
-   }
-   
-
-   INT32 collectionHandler::getTotalRecordCountInPageHead(IExecutor *executor,
-                                                          UINT64 &count)
-   {
-      INT32 rc = SDB_OK;
-      if (!isOpen())
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(NULL == executor))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = _db->getTotalRecordCountInPageHead(executor, _gcid, count);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 collectionHandler::openIndexScanCursor(IExecutor *executor,
-                                                const strSlice &indexName,
-                                                const rtnPredicateList &predicate,
-                                                const indexScanOptions &o,
-                                                cursorHandler &cursor,
-                                                const cursorOptions *co)
-   {
-      INT32 rc = SDB_OK;
-      indexScanCursor *kernal = NULL;
-      cursorOptions realOptions;
-      static constexpr INT32 _ROW_LIMIT = 16;
-
-      if (OSS_UNLIKELY(NULL == executor ||
-                       indexName.empty()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-
-      kernal = SDB_OSS_NEW indexScanCursor(o, predicate, _gcid, indexName);
-      if (OSS_UNLIKELY(NULL == kernal))
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-
-      if (NULL != co)
-      {
-         realOptions.initBufSize = co->initBufSize;
-         realOptions.rowCountLimit = co->hasRowCountLimit() ?
-                                     co->rowCountLimit : _ROW_LIMIT;
-      }
-      else
-      {
-         realOptions.rowCountLimit = _ROW_LIMIT;
-      }
-
-      rc = kernal->open(_db, NULL, &realOptions);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to open cursor kernal:%d", rc);
-         goto error;
-      }
-
-      cursor = cursorHandler(kernal);
-   done:
-      return rc;
-   error:
-      SAFE_OSS_DELETE(kernal);
       goto done;
    }
 
    INT32 collectionHandler::updateRecord(IExecutor *executor,
-                                         const dmlUpdateRequest &request,
+                                         const dmsRecordID &rid,
                                          IRecordUpdater *updater,
-                                         utilUpdateResult *res)
+                                         const dmsUpdateRecordOptions &o,
+                                         utilUpdateResult *result)
    {
       INT32 rc = SDB_OK;
-      if (!isOpen())
+      dmlUpdateRequest request;
+
+      if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (NULL == executor ||
-               !request.isValid() ||
-               NULL == updater)
+      else if (OSS_UNLIKELY(NULL == executor ||
+                            !rid.isValid() ||
+                            NULL == updater))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = _db->update(executor, _gcid, request, updater, res);
+      request.rid.resetByDmsRid(rid);
+      request.o = o;
+
+      rc = _db->update(executor, _gcid, request, updater, result);
       if (SDB_OK != rc)
       {
          goto error;
@@ -332,23 +207,28 @@ namespace vessel
    }
 
    INT32 collectionHandler::deleteRecord(IExecutor *executor,
-                                         const dmlRemoveRequest &request,
-                                         utilDeleteResult *res)
+                                          const dmsRecordID &rid,
+                                          const dmsDeleteRecordOptions &o,
+                                          utilDeleteResult *result)
    {
       INT32 rc = SDB_OK;
-      if (!isOpen())
+      dmlRemoveRequest request;
+
+      if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (NULL == executor ||
-               !request.isValid())
+      else if (OSS_UNLIKELY(NULL == executor ||
+                            !rid.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = _db->remove(executor, _gcid, request, res);
+      request.rid.resetByDmsRid(rid);
+      request.o = o;
+      rc = _db->remove(executor, _gcid, request, result);
       if (SDB_OK != rc)
       {
          goto error;
@@ -356,6 +236,134 @@ namespace vessel
    done:
       return rc;
    error:
+      goto done;
+   }
+
+   INT32 collectionHandler::scan(IExecutor *executor,
+                                 const dmsScanOptions &o,
+                                 DATA_CURSOR_PTR &cursor)
+   {
+      INT32 rc = SDB_OK;
+
+      cursorOptions co;
+      scanCLCursor *impl = NULL;
+
+      cursor.reset();
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == executor))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      co.rowCountLimit = o.rowCountLimit;
+      co.stepSize = 1024;
+      co.initBufferSize = (INT32)128 << 10;
+
+      cursor = makeSharedPtrFromPool<scanCLCursor>();
+      if (!cursor)
+      {
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      impl = static_cast<scanCLCursor *>(cursor.get());
+      rc = impl->open(_db, &co);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      impl->resetToScan(_gcid, o);
+   done:
+      return rc;
+   error:
+      cursor.reset();
+      goto done;
+   }
+
+   INT32 collectionHandler::scanIndex(IExecutor *executor,
+                                       const CHAR *indexName,
+                                       const rtnPredicateList &predicate,
+                                       const dmsIndexScanOptions &o,
+                                       DATA_CURSOR_PTR &cursor)
+   {
+      INT32 rc = SDB_OK;
+
+      cursorOptions co;
+      indexScanCursor *impl = NULL;
+      strSlice indexNameSlice(indexName);
+
+      cursor.reset();
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == executor ||
+                            indexNameSlice.empty()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      co.rowCountLimit = o.rowCountLimit;
+      co.stepSize = 8;
+      co.initBufferSize = (INT32)32 << 10;
+
+      cursor = makeSharedPtrFromPool<indexScanCursor>(o, predicate,
+                                                      _gcid,
+                                                      indexNameSlice);
+      if (!cursor)
+      {
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      impl = static_cast<indexScanCursor *>(cursor.get());
+      rc = impl->open(_db, &co);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      cursor.reset();
+      goto done;
+   }
+
+   INT32 collectionHandler::getRecordCount(IExecutor *executor,
+                                           UINT64 &count)
+   {
+      INT32 rc = SDB_OK;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == executor))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = _db->count(executor, _gcid, count);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      count = 0;
       goto done;
    }
 }//namespace vessel

@@ -41,6 +41,7 @@
 #include "vessel/freeSpaceMapDef.h"
 #include "vessel/fsmCandidateBucket.h"
 #include "vessel/fsmCandidate.h"
+#include "dmsStripingId.hpp"
 
 namespace engine
 {
@@ -65,19 +66,16 @@ namespace vessel
             return _isOpen;
          }
 
-         /// min/max both be valid or invalid
          INT32 create(CL_MB_ID mbID,
                       UINT32 logicalID,
                       fsmFile *file,
-                      STRIPING_ID min,
-                      STRIPING_ID max);
+                      const dmsStripingRange &range);
 
          INT32 open(CL_MB_ID mbID,
                     UINT32 logicalID,
                     UINT32 pageCount,
                     fsmFile *file,
-                    STRIPING_ID min,
-                    STRIPING_ID max);
+                    const dmsStripingRange &range);
 
          void close();
 
@@ -89,7 +87,7 @@ namespace vessel
          /// Invalid candidate means no suitable candidate found.
          INT32 find(requestContext *context,
                     INT32 lvl,
-                    STRIPING_ID striping,
+                    const dmsStripingId &striping,
                     fsmCandidate &candidate);
 
          INT32 insertNewPages(UINT32 firstSeq,
@@ -106,7 +104,7 @@ namespace vessel
                            UINT32 bucketCapacity,
                            UINT32 bucketLatchCount);
 
-         UINT32 getBucketNoByStriping(STRIPING_ID striping)const;
+         UINT32 getBucketNoByStriping(const dmsStripingId &striping)const;
          UINT32 getBucketNoByEid(EDUID eid)const;
 
          OSS_INLINE ossXLatch *getBucketLatch(UINT32 bucketNo)
@@ -120,9 +118,9 @@ namespace vessel
 
          INT32 findFromNewPagePool(fsmCandidate &candidate);
 
-         OSS_INLINE BOOLEAN isSharded()const
+         OSS_INLINE BOOLEAN hasStipingRange()const
          {
-            return INVALID_STRIPING_ID != _minStriping;
+            return _stripingRange.isValid();
          }
 
          INT32 _find(UINT32 bucketNo,
@@ -141,8 +139,7 @@ namespace vessel
          
       private:
          BOOLEAN _isOpen = FALSE;
-         STRIPING_ID _minStriping = INVALID_STRIPING_ID;
-         STRIPING_ID _maxStriping = INVALID_STRIPING_ID;
+         dmsStripingRange _stripingRange;
          
          UINT32 _bucketCount = 0;
          UINT32 _bucketLatchCount = 0;

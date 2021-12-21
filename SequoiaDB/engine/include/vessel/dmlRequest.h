@@ -36,12 +36,10 @@
 #ifndef SDB_VESSEL_DML_REQUEST_H_
 #define SDB_VESSEL_DML_REQUEST_H_
 
-#include "vessel/vesselIdDef.h"
 #include "vessel/slice.h"
-#include "vessel/dmlOptions.h"
 #include "vessel/recordID.h"
 #include "ossMemPool.hpp"
-
+#include "dmsEngineOptions.hpp"
 
 namespace engine
 {
@@ -62,8 +60,7 @@ namespace vessel
          }
       public:
          slice record;
-         STRIPING_ID stripingId = INVALID_STRIPING_ID;
-         insertOptions o;
+         dmsInsertRecordOptions o;
 
    }; /// end of class dmlInsertRequest
 
@@ -82,8 +79,7 @@ namespace vessel
          }
       public:
          ossPoolVector<slice> batch;
-         STRIPING_ID stripingId = INVALID_STRIPING_ID;
-         insertOptions o;
+         dmsInsertRecordOptions o;
 
    }; /// end of class dmlInsertRequest
 
@@ -102,7 +98,8 @@ namespace vessel
          }
       public:
          recordID rid;
-         updateOptions o;
+         dmsUpdateRecordOptions o;
+         
 
    };//class dmlUpdateRequest
 
@@ -122,7 +119,7 @@ namespace vessel
 
       public:
          recordID rid;
-         removeOptions o;
+         dmsDeleteRecordOptions o;
    };//class dmlRemoveRequest
 
 }//namespace vessel

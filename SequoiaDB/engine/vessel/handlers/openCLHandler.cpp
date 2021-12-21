@@ -37,51 +37,54 @@
 #include "vessel/instanceEnv.h"
 #include "vessel/collection.h"
 #include "vessel/collectionSpace.h"
-#include "vessel/api/collectionHandler.h"
 #include "vessel/requestContext.h"
+#include "utilFullNameParser.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   INT32 openCLHandler::doit(vesselImpl *db,
-                             const strSlice &csName,
-                             const strSlice &clName,
-                             const openCLOptions &options,
-                             collectionHandler &clHandler)
+   INT32 openCLHandler::doit(const CHAR *fullName,
+                             globalCollectionId &id)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isInitialized(), "must be inited");
       collectionSpace *cs = NULL;
       collection *cl = NULL;
       requestContext context;
+      utilFullNameParser parser;
+      const CHAR *clName = NULL;
 
-      if (OSS_UNLIKELY(NULL== db))
+      id.reset();
+
+      if (OSS_UNLIKELY(!isInitialized()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isInitialized()))
+
+      if (!parser.parse(fullName, &clName))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      context.open(getExecutor(), getEnv(), getOuterResource());
+      context.open(getExecutor(), getEnv());
 
-      rc = getEnv()->dms.getCSByName(&context, csName, SHARED, &cs);
+      rc = getEnv()->dms.getCSByName(&context, strSlice(parser.getCSName()),
+                                     SHARED, &cs);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = cs->getCollectionByName(&context, clName, SHARED, &cl);
+      rc = cs->getCollectionByName(&context, strSlice(clName), SHARED, &cl);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      clHandler = collectionHandler(cl->getGlobalId(), db);
+      id = cl->getGlobalId();
    done:
       context.close();
       return rc;

@@ -87,6 +87,7 @@ namespace vessel
 
          /******* btree only begin   *******/
 
+         BOOLEAN btreeCompressionEnabled = FALSE;
          /// Max column count of prefix in btree prefix compression.
          /// It should be one unless there are a lot of duplicate index keys.
          UINT32 btreeMaxPrefixFields = 0;

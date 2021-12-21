@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexOptions.h
+   Source File Name = rtnHandler.hpp
 
    Descriptive Name =
 
@@ -33,54 +33,37 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INDEX_OPTIONS_H_
-#define VESSEL_INDEX_OPTIONS_H_
+#ifndef SDB_RTN_HANDLER_HPP_
+#define SDB_RTN_HANDLER_HPP_
 
-#include "core.hpp"
-#include "oss.hpp"
+#include "sdbInterface.hpp"
+#include "pmdEDU.hpp"
+#include "../bson/bson.hpp"
 
 namespace engine
 {
-namespace vessel
-{
-   class buildIndexOptions : public SDBObject
+   class _rtnHandler : public SDBObject
    {
       public:
-         buildIndexOptions(){}
-         ~buildIndexOptions(){}
-         buildIndexOptions(const buildIndexOptions &) = delete;
-         buildIndexOptions &operator=(const buildIndexOptions &o)
-         {
-            sortBufferSize = o.sortBufferSize;
-            blockDML = o.blockDML;
-            return *this;
-         }
+         _rtnHandler(){}
+         virtual ~_rtnHandler(){}
 
       public:
-         BOOLEAN isSortingDisabled()const
-         {
-            return 0 == sortBufferSize;
-         }
-      public:
-         UINT32 sortBufferSize = 64;//MB
-         BOOLEAN blockDML = FALSE;
-   };//class buildIndexOptions
+         virtual INT32 launch(pmdEDUCB *cb) = 0;
 
-   class createIndexOptions : public SDBObject
-   {
       public:
-         createIndexOptions(){}
-         ~createIndexOptions(){}
-         createIndexOptions(const createIndexOptions &) = delete;
-         createIndexOptions &operator=(const createIndexOptions &o)
+         OSS_INLINE void setAdjunct(const bson::BSONObj &o)
          {
-            build = o.build;
-            return *this;
+            _adjunct = o;
          }
-      public:
-         buildIndexOptions build;
-   };//class createIndexOptions
-}//namespace vessel
-}//namespace engine
 
-#endif//VESSEL_INDEX_OPTIONS_H_
+      protected:
+         bson::BSONObj _adjunct;
+
+   };//class _rtnHandler
+
+   typedef class _rtnHandler rtnHandler;
+} // namespace engine
+
+
+#endif//SDB_RTN_HANDLER_HPP_

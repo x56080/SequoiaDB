@@ -334,7 +334,7 @@ namespace vessel
 
          if (!upperBoundCLName(nameSlice, mbID))
          {
-            cursor->pushEnd();
+            cursor->setEOC();
             goto done;
          }
 
@@ -386,7 +386,7 @@ namespace vessel
             cursor->markLIdPushed(holder->getObj()->getLogicalID());
             cursor->setCLName(holder->getObj()->getName());
             context->unlockMB();
-            if (!cursor->isWaitingMorePushing())
+            if (cursor->noMorePushThisLoop())
             {
                break;
             }

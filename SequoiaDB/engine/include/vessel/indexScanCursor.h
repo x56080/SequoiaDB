@@ -37,13 +37,14 @@
 #define VESSEL_INDEX_SCAN_CURSOR_H_
 
 #include "vessel/cursorKernal.h"
-#include "vessel/collectionOptions.h"
 #include "rtnPredicate.hpp"
 #include "vessel/indexHandle.h"
 #include "vessel/strSlice.h"
 #include "vessel/unorderedRidSet.h"
 #include "vessel/slice.h"
 #include "vessel/objectIdentifier.h"
+#include "dmsEngineOptions.hpp"
+#include "../bson/util/builder.h"
 
 namespace engine
 {
@@ -53,7 +54,7 @@ namespace vessel
    {
       public:
          indexScanCursor() = delete;
-         indexScanCursor(const indexScanOptions &o,
+         indexScanCursor(const dmsIndexScanOptions &o,
                          const rtnPredicateList &predicateList,
                          const globalCollectionId &gcid,
                          const strSlice &indexName):
@@ -70,10 +71,7 @@ namespace vessel
          {
             return CURSOR_TYPE_INDEX_SCAN;
          }
-         
-         virtual INT32 getNextRow(IExecutor *executor,
-                                  cursorRow *row);
-
+   
       public:
          OSS_INLINE const strSlice &getIndexName()const
          {
@@ -106,32 +104,29 @@ namespace vessel
          {
             return &_predicate;
          }
-         OSS_INLINE const indexScanOptions &getOptions()const
+         OSS_INLINE const dmsIndexScanOptions &getOptions()const
          {
             return _o;
          }
 
-         INT32 saveEntry(const slice &entryData);
+         void saveEntry(const slice &entryData);
          OSS_INLINE BOOLEAN hasEntry()const
          {
-            return 0 < _entryData.getSize();
+            return 0 < _entry.len();
          }
-         OSS_INLINE slice getEntryData()const
-         {
-            return _entryData.getReadableSlice();
-         }
+         slice getEntryData()const;
 
          BOOLEAN markRidScanned(const recordID &rid);
          BOOLEAN testRidScanned(const recordID &rid)const;
 
       private:
-         indexScanOptions _o;
+         dmsIndexScanOptions _o;
          rtnPredicateListIterator _predicate;
          globalCollectionId _gcid;
          strSlice _indexName;
          indexHandle _handle;
          UNORDERED_RID_SET _scanned;
-         memoryBlock _entryData;
+         bson::StackBufBuilder _entry;
    };//class indexScanCursor
 } // namespace vessel
 

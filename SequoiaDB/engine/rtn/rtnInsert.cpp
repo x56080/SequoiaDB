@@ -46,6 +46,8 @@
 #include "rtnTrace.hpp"
 #include "utilInsertResult.hpp"
 
+#include "rtnDMLHandlers.hpp"
+
 using namespace bson;
 
 namespace engine
@@ -148,7 +150,7 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNINSERT1, "rtnInsert" )
+/*
    INT32 rtnInsert ( const CHAR *pCollectionName,
                      const BSONObj &objs, INT32 objNum,
                      INT32 flags, pmdEDUCB *cb, utilInsertResult *pResult )
@@ -166,6 +168,26 @@ namespace engine
       }
       rc = rtnInsert ( pCollectionName, objs, objNum, flags, cb,
                        dmsCB, dpsCB, 1, pResult ) ;
+      PD_TRACE_EXITRC ( SDB_RTNINSERT1, rc ) ;
+
+      return rc ;
+   }
+*/
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNINSERT1, "rtnInsert" )
+   INT32 rtnInsert ( const CHAR *pCollectionName,
+                     const BSONObj &objs, INT32 objNum,
+                     INT32 flags, pmdEDUCB *cb, utilInsertResult *pResult )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_RTNINSERT1 ) ;
+      rtnInsertHandler handler;
+
+      handler.init(pCollectionName,
+                   UTIL_UNIQUEID_NULL,
+                   objs, objNum);
+      handler.setResultPtr(pResult);
+
+      rc = handler.launch(cb);
       PD_TRACE_EXITRC ( SDB_RTNINSERT1, rc ) ;
 
       return rc ;
@@ -281,6 +303,7 @@ namespace engine
    error :
       goto done ;
    }
+   
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNREPLAYINERT, "rtnReplayInsert" )
    INT32 rtnReplayInsert( const CHAR *pCollectionName, const BSONObj &obj,

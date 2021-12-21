@@ -46,8 +46,7 @@
 #include "dpsLogRecord.hpp"
 #include "../bson/bson.hpp"
 #include "pd.hpp"
-#include "vessel/dataScanRow.h"
-#include "vessel/collectionOptions.h"
+#include "dmsCursorReader.hpp"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -107,7 +106,7 @@ TEST_F(insert_test, test1)
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
-   collectionHandler handler;
+
    utilInsertResult res;
    CHAR pad[1024] = {0};
 
@@ -116,54 +115,51 @@ TEST_F(insert_test, test1)
    builder.append("b", 2);
    builder.append("c", pad, 1024);
    bson::BSONObj obj = builder.obj();
-   slice record(obj.objsize(), obj.objdata());
 
    UINT32 count = 100;
    UINT64 recordCount = 0;
-   dataScanRow recordRow;
 
-   cursorHandler cursor;
+   DATA_COLLECTION_PTR handler;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions());
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar1", 1, createCLOptions());
+   rc = db.createCL(&session, "foo.bar1", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&session, "foo", "bar1", openCLOptions(), handler);
+   rc = db.openCL(&session, "foo.bar1", dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < count; ++i)
    {
-      rc = handler.insert(&session, record,
-                          INVALID_STRIPING_ID, insertOptions(), &res);
+      rc = handler->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
 
-   rc = handler.getTotalRecordCountInPageHead(&session, recordCount);
+   rc = handler->getRecordCount(&session, recordCount);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(count, recordCount);
    
-   rc = handler.openScanCursor(&session, NULL, collectionScanOptions(), cursor);
+   DATA_CURSOR_PTR cursor;
+   dmsBsonCursorReader reader;
+   rc = handler->scan(&session, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
+   reader.init(cursor, FALSE);
    for (UINT32 i = 0; i < count; ++i)
    {
-      recordRow.reset();
-      rc = cursor.getNextRow(&session, recordRow);
+      rc = reader.fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
-      bson::BSONObj obj(recordRow.getRecord().data());
-      ASSERT_EQ(1, obj.getIntField("a"));
-      ASSERT_EQ(2, obj.getIntField("b"));
+      const bson::BSONObj &r = reader.getRecord();
+      ASSERT_EQ(1, r.getIntField("a"));
+      ASSERT_EQ(2, r.getIntField("b"));
    }
-   rc = cursor.getNextRow(&session, recordRow);
-   ASSERT_EQ(SDB_VESSEL_EOC, rc);
+   rc = reader.fetchNext(&session);
+   ASSERT_EQ(SDB_DMS_EOC, rc);
 
-   cursor.close();
-   handler.close();
    rc = db.close(&session, closeDBOptions());
    ASSERT_EQ(SDB_OK, rc);
 }
@@ -177,8 +173,7 @@ TEST_F(insert_test, test2)
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
-   collectionHandler handler;
-   slice record;
+
    utilInsertResult res;
    CHAR pad[1024] = {0};
    bson::BSONObjBuilder builder;
@@ -186,90 +181,82 @@ TEST_F(insert_test, test2)
    builder.append("b", 2);
    builder.append("c", pad, 1024);
    bson::BSONObj obj = builder.obj();
-   record.reset(obj.objsize(), obj.objdata());
    UINT32 count = 100;
    UINT64 recordCount = 0;
-   dataScanRow recordRow;
 
-   cursorHandler cursor;
+   DATA_CURSOR_PTR cursor;
+   dmsBsonCursorReader reader;
+   DATA_COLLECTION_PTR cl;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions());
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar1", 1, createCLOptions());
+   rc = db.createCL(&session, "foo.bar1", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&session, "foo", "bar1", openCLOptions(), handler);
+   rc = db.openCL(&session, "foo.bar1", dmsOpenCLOptions(), cl);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < count; ++i)
    {
-      rc = handler.insert(&session, record,
-                          INVALID_STRIPING_ID,
-                          insertOptions(), &res);
+      rc = cl->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
 
-   rc = handler.getTotalRecordCountInPageHead(&session, recordCount);
+   rc = cl->getRecordCount(&session, recordCount);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(count, recordCount);
    
-   rc = handler.openScanCursor(&session, NULL, collectionScanOptions(), cursor);
+   rc = cl->scan(&session, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
+   reader.init(cursor, FALSE);
    for (UINT32 i = 0; i < count; ++i)
    {
-      recordRow.reset();
-      rc = cursor.getNextRow(&session, recordRow);
-      bson::BSONObj obj(recordRow.getRecord().data());
-      ASSERT_EQ(1, obj.getIntField("a"));
-      ASSERT_EQ(2, obj.getIntField("b"));
+      rc = reader.fetchNext(&session);
+      const bson::BSONObj &r = reader.getRecord();
+      ASSERT_EQ(1, r.getIntField("a"));
+      ASSERT_EQ(2, r.getIntField("b"));
    }
-   rc = cursor.getNextRow(&session, recordRow);
-   ASSERT_EQ(SDB_VESSEL_EOC, rc);
+   rc = reader.fetchNext(&session);
+   ASSERT_EQ(SDB_DMS_EOC, rc);
 
-   cursor.close();
-   handler.close();
    rc = db.close(&session, closeDBOptions());
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&session, "foo", "bar1", openCLOptions(), handler);
+   rc = db.openCL(&session, "foo.bar1", dmsOpenCLOptions(), cl);
    ASSERT_EQ(SDB_OK, rc);
 
-    rc = handler.getTotalRecordCountInPageHead(&session, recordCount);
+   rc = cl->getRecordCount(&session, recordCount);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(count, recordCount);
-
-   rc = handler.openScanCursor(&session, NULL, collectionScanOptions(), cursor);
+   
+   rc = cl->scan(&session, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   handler.close();
-
+   reader.init(cursor, FALSE);
    for (UINT32 i = 0; i < count; ++i)
    {
-      recordRow.reset();
-      rc = cursor.getNextRow(&session, recordRow);
-      ASSERT_EQ(SDB_OK, rc);
-      bson::BSONObj obj(recordRow.getRecord().data());
-      ASSERT_EQ(1, obj.getIntField("a"));
-      ASSERT_EQ(2, obj.getIntField("b"));
+      rc = reader.fetchNext(&session);
+      const bson::BSONObj &r = reader.getRecord();
+      ASSERT_EQ(1, r.getIntField("a"));
+      ASSERT_EQ(2, r.getIntField("b"));
    }
-   rc = cursor.getNextRow(&session, recordRow);
-   ASSERT_EQ(SDB_VESSEL_EOC, rc);
+   rc = reader.fetchNext(&session);
+   ASSERT_EQ(SDB_DMS_EOC, rc);
 
-   cursor.close();
    rc = db.close(&session, closeDBOptions());
    ASSERT_EQ(SDB_OK, rc);
 }
 
 void thread_insert(vesselImpl *db,
-                   const CHAR *csName, const CHAR *clName,
+                   const CHAR *fullName,
                    UINT32 count)
 {
    test_executor session;
@@ -279,22 +266,17 @@ void thread_insert(vesselImpl *db,
    builder.append("b", 2);
    builder.append("c", pad, 1024);
    bson::BSONObj obj = builder.obj();
-   slice record;
-   record.reset(obj.objsize(), obj.objdata());
 
-   collectionHandler handler;
-   INT32 rc = db->openCollection(&session, csName, clName, openCLOptions(), handler);
+   DATA_COLLECTION_PTR handler;
+   INT32 rc = db->openCL(&session, fullName, dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < count; ++i)
    {
       utilInsertResult res;
-      rc = handler.insert(&session, record, 
-                          INVALID_STRIPING_ID,
-                          insertOptions(), &res);
+      rc = handler->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
-   handler.close();
 }
 
 TEST_F(insert_test, test3_1)
@@ -309,14 +291,10 @@ TEST_F(insert_test, test3_1)
    options.path.lsmPath = LSM_PATH;
    options.cacheOptions.flush.flushDirtyListThreshold = 0.8;
    options.cacheOptions.freelist.maxChunkCount = 1024;
-   collectionHandler handler;
    UINT32 count = 6000000;
    static const UINT32 threadCount = 6;
    std::thread threads[threadCount];
    UINT32 countPerThread = count / threadCount;
-
-   createCSOptions csOptions;
-   csOptions.dataSegSize = STORAGE_FILE_SEGMENT_SIZE_32MB;
 
    closeDBOptions co;
    co.closeMode = closeDBOptions::CLOSE_MODE_IMMDIETE;
@@ -324,16 +302,16 @@ TEST_F(insert_test, test3_1)
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar1", 1, createCLOptions());
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < threadCount; ++i)
    {
       threads[i] = std::move(std::thread(thread_insert, &db,
-                                         "foo", "bar1", countPerThread));
+                                         "foo.bar", countPerThread));
    }
 
    for (UINT32 i = 0; i < threadCount; ++i)
@@ -356,14 +334,10 @@ TEST_F(insert_test, test3_2)
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
    options.cacheOptions.freelist.maxChunkCount = 64;
-   collectionHandler handler;
    UINT32 count = 6000000;
    static const UINT32 threadCount = 6;
    std::thread threads[threadCount];
    UINT32 countPerThread = count / threadCount;
-
-   createCSOptions csOptions;
-   csOptions.dataSegSize = STORAGE_FILE_SEGMENT_SIZE_32MB;
 
    closeDBOptions co;
    co.closeMode = closeDBOptions::CLOSE_MODE_IMMDIETE;
@@ -371,16 +345,16 @@ TEST_F(insert_test, test3_2)
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar1", 1, createCLOptions());
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < threadCount; ++i)
    {
       threads[i] = std::move(std::thread(thread_insert, &db, 
-                                         "foo", "bar1", countPerThread));
+                                         "foo.bar", countPerThread));
    }
 
    for (UINT32 i = 0; i < threadCount; ++i)
@@ -404,29 +378,29 @@ TEST_F(insert_test, test4)
    options.path.lsmPath = LSM_PATH;
 
    options.cacheOptions.freelist.maxChunkCount = 32;
-   collectionHandler handler;
    UINT32 count = 4000000;
    static const UINT32 threadCount = 4;
    std::thread threads[threadCount];
    UINT32 countPerThread = count / threadCount;
 
-   cursorHandler cursor;
    UINT64 recordCount = 0;
-   dataScanRow recordRow;
+   DATA_COLLECTION_PTR handler;
+   DATA_CURSOR_PTR cursor;
+   dmsBsonCursorReader reader;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions());
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar1", 1, createCLOptions());
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < threadCount; ++i)
    {
       threads[i] = std::move(std::thread(thread_insert, &db,
-                                         "foo", "bar1", countPerThread));
+                                         "foo.bar", countPerThread));
    }
 
    for (UINT32 i = 0; i < threadCount; ++i)
@@ -434,66 +408,59 @@ TEST_F(insert_test, test4)
       threads[i].join();
    }
 
-   rc = db.openCollection(&session, "foo", "bar1", openCLOptions(), handler);
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = handler.getTotalRecordCountInPageHead(&session, recordCount);
+   rc = handler->getRecordCount(&session, recordCount);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(count, recordCount);
    
-   rc = handler.openScanCursor(&session, NULL, collectionScanOptions(), cursor);
+   rc = handler->scan(&session, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
+   reader.init(cursor, FALSE);
    for (UINT32 i = 0; i < count; ++i)
    {
-      recordRow.reset();
-      rc = cursor.getNextRow(&session, recordRow);
-      bson::BSONObj obj(recordRow.getRecord().data());
-      ASSERT_EQ(1, obj.getIntField("a"));
-      ASSERT_EQ(2, obj.getIntField("b"));
+      rc = reader.fetchNext(&session);
+      ASSERT_EQ(1, reader.getRecord().getIntField("a"));
+      ASSERT_EQ(2, reader.getRecord().getIntField("b"));
    }
-   rc = cursor.getNextRow(&session, recordRow);
-   ASSERT_EQ(SDB_VESSEL_EOC, rc);
+   rc = reader.fetchNext(&session);
+   ASSERT_EQ(SDB_DMS_EOC, rc);
 
-   cursor.close();
-   handler.close();
+   handler.reset();
    rc = db.close(&session, closeDBOptions());
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&session, "foo", "bar1", openCLOptions(), handler);
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
-    rc = handler.getTotalRecordCountInPageHead(&session, recordCount);
+   rc = handler->getRecordCount(&session, recordCount);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(count, recordCount);
-
-   rc = handler.openScanCursor(&session, NULL, collectionScanOptions(), cursor);
+   
+   rc = handler->scan(&session, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   handler.close();
-
+   reader.init(cursor, FALSE);
    for (UINT32 i = 0; i < count; ++i)
    {
-      recordRow.reset();
-      rc = cursor.getNextRow(&session, recordRow);
-      ASSERT_EQ(SDB_OK, rc);
-      bson::BSONObj obj(recordRow.getRecord().data());
-      ASSERT_EQ(1, obj.getIntField("a"));
-      ASSERT_EQ(2, obj.getIntField("b"));
+      rc = reader.fetchNext(&session);
+      ASSERT_EQ(1, reader.getRecord().getIntField("a"));
+      ASSERT_EQ(2, reader.getRecord().getIntField("b"));
    }
-   rc = cursor.getNextRow(&session, recordRow);
-   ASSERT_EQ(SDB_VESSEL_EOC, rc);
+   rc = reader.fetchNext(&session);
+   ASSERT_EQ(SDB_DMS_EOC, rc);
 
-   cursor.close();
    rc = db.close(&session, closeDBOptions());
    ASSERT_EQ(SDB_OK, rc);
 }
 
 void thread_insert_striping(vesselImpl *db,
-                            const CHAR *csName, const CHAR *clName,
+                            const CHAR *fullName,
                             UINT32 count)
 {
    test_executor session;
@@ -503,24 +470,23 @@ void thread_insert_striping(vesselImpl *db,
    builder.append("b", 2);
    builder.append("c", pad, 1024);
    bson::BSONObj obj = builder.obj();
-   slice record;
-   record.reset(obj.objsize(), obj.objdata());
 
-   collectionHandler handler;
-   INT32 rc = db->openCollection(&session, csName, clName, openCLOptions(), handler);
+   DATA_COLLECTION_PTR handler;
+   INT32 rc = db->openCL(&session, fullName, dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < count; ++i)
    {
       utilInsertResult res;
-      rc = handler.insert(&session, record,
-                          ossRand() % 65535,
-                          insertOptions(), &res);
+      dmsInsertRecordOptions o;
+      o.stripingId = dmsStripingId(ossRand() % 65535);
+      rc = handler->insertRecord(&session, obj, o, &res);
       ASSERT_EQ(SDB_OK, rc);
    }
-   handler.close();
+   handler->close();
 }
 
+/*
 TEST_F(insert_test, test5)
 {
    INT32 rc = SDB_OK;
@@ -532,13 +498,11 @@ TEST_F(insert_test, test5)
    options.path.lsmPath = LSM_PATH;
    options.cacheOptions.flush.flushDirtyListThreshold = 0.8;
    options.cacheOptions.freelist.maxChunkCount = 1024;
-   collectionHandler handler;
+
    UINT32 count = 4000000;
    static const UINT32 threadCount = 4;
    std::thread threads[threadCount];
    UINT32 countPerThread = count / threadCount;
-
-   createCLOptions clOptions;
 
    closeDBOptions co;
    co.closeMode = closeDBOptions::CLOSE_MODE_IMMDIETE;
@@ -546,7 +510,7 @@ TEST_F(insert_test, test5)
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions());
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
    clOptions.minFreePercent = 0;
@@ -581,25 +545,24 @@ TEST_F(insert_test, test6)
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
-   collectionHandler handler;
    UINT32 count = 4000000;
    static const UINT32 threadCount = 4;
    std::thread threads[threadCount];
    UINT32 countPerThread = count / threadCount;
 
-   cursorHandler cursor;
    UINT64 recordCount = 0;
-   dataScanRow recordRow;
 
    createCLOptions clOptions;
    clOptions.minFreePercent = 0;
    clOptions.minStriping = 0;
    clOptions.maxStriping = 65534;
 
+   collectionSpaceId csid;
+
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions());
+   rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions(), csid);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.createCollection(&session, "foo", "bar1", 1, clOptions);
@@ -673,18 +636,18 @@ TEST_F(insert_test, test6)
    rc = db.close(&session, closeDBOptions());
    ASSERT_EQ(SDB_OK, rc);
 }
+*/
 
 void thread_insert_index(vesselImpl *db,
-                         const CHAR *csName, const CHAR *clName,
+                         const CHAR *fullName,
                          UINT32 count)
 {
    test_executor session;
    CHAR pad[1024] = {0};
    bson::BSONObjBuilder builder;
-
-
-   collectionHandler handler;
-   INT32 rc = db->openCollection(&session, csName, clName, openCLOptions(), handler);
+   
+   DATA_COLLECTION_PTR handler;
+   INT32 rc = db->openCL(&session, fullName, dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < count; ++i)
@@ -694,26 +657,22 @@ void thread_insert_index(vesselImpl *db,
       builder.append("b", 2);
       builder.append("c", pad, 1024);
       bson::BSONObj obj = builder.done();
-      slice record;
-      record.reset(obj.objsize(), obj.objdata());
       utilInsertResult res;
-      rc = handler.insert(&session, record,
-                          INVALID_STRIPING_ID,
-                          insertOptions(), &res);
+      rc = handler->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
-   handler.close();
+   handler->close();
 }
 
 void thread_insert_unique_index(vesselImpl *db,
-                         const CHAR *csName, const CHAR *clName,
-                         UINT32 begin, UINT32 count)
+                                 const CHAR *fullName,
+                                 UINT32 begin, UINT32 count)
 {
    test_executor session;
    CHAR pad[1024] = {0};
    bson::BSONObjBuilder builder;
-   collectionHandler handler;
-   INT32 rc = db->openCollection(&session, csName, clName, openCLOptions(), handler);
+   DATA_COLLECTION_PTR handler;
+   INT32 rc = db->openCL(&session, fullName, dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < count; ++i)
@@ -723,74 +682,11 @@ void thread_insert_unique_index(vesselImpl *db,
       builder.append("b", 2);
       builder.append("c", pad, 1024);
       bson::BSONObj obj = builder.done();
-      slice record;
-      record.reset(obj.objsize(), obj.objdata());
       utilInsertResult res;
-      rc = handler.insert(&session, record,
-                          INVALID_STRIPING_ID,
-                          insertOptions(), &res);
+      rc = handler->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
-   handler.close();
-}
-
-/// insert with index
-TEST_F(insert_test, test7)
-{
-   INT32 rc = SDB_OK;
-   vesselImpl db;
-   outerResource resource = test_outer_resource::getResource();
-   test_executor session;
-   openDBOptions options;
-
-   options.path.dataPath = DATA_PATH;
-   options.path.lsmPath = LSM_PATH;
-   collectionHandler handler;
-   UINT32 count = 10000;
-   bson::BSONObjBuilder builder;
-   static const UINT32 PAD_SIZE = 1024;
-   CHAR pad[PAD_SIZE];
-
-   createCSOptions csOptions;
-   csOptions.dataSegSize = STORAGE_FILE_SEGMENT_SIZE_32MB;
-
-   closeDBOptions co;
-
-   indexParameters params;
-   params.type = INDEX_TYPE_LSM;
-
-   rc = db.open(&session, &resource, options);
-   ASSERT_EQ(SDB_OK, rc);
-
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
-   ASSERT_EQ(SDB_OK, rc);
-
-   rc = db.createCollection(&session, "foo", "bar1", 1, createCLOptions());
-   ASSERT_EQ(SDB_OK, rc);
-
-   rc = db.openCollection(&session, "foo", "bar1", openCLOptions(), handler);
-   ASSERT_EQ(SDB_OK, rc);
-
-   rc = handler.createIndex(&session, strSlice("index1"),
-                              BSON("a" << 1), params, createIndexOptions());
-   ASSERT_EQ(SDB_OK, rc);                   
-
-   for (UINT32 i = 0; i < count; ++i)
-   {
-      utilInsertResult res;
-      builder.reset();
-      builder.append("a", i);
-      builder.append("b", pad, PAD_SIZE);
-      bson::BSONObj obj = builder.done();
-      slice record(obj.objsize(), obj.objdata());
-      rc = handler.insert(&session, record,
-                          INVALID_STRIPING_ID,
-                          insertOptions(), &res);
-      ASSERT_EQ(SDB_OK, rc);
-   }
-
-   rc = db.close(&session, co);
-   ASSERT_EQ(SDB_OK, rc);
+   handler->close();
 }
 
 void insert_test_nonunique_index(INDEX_TYPE type)
@@ -805,43 +701,37 @@ void insert_test_nonunique_index(INDEX_TYPE type)
    options.path.lsmPath = LSM_PATH;
    options.cacheOptions.flush.flushDirtyListThreshold = 0.8;
    options.cacheOptions.freelist.maxChunkCount = 1024;
-   collectionHandler handler;
+
    UINT32 count = 6000000;
    static const UINT32 threadCount = 6;
    std::thread threads[threadCount];
    UINT32 countPerThread = count / threadCount;
 
-   createCSOptions csOptions;
-   csOptions.dataSegSize = STORAGE_FILE_SEGMENT_SIZE_32MB;
-
    closeDBOptions co;
    co.closeMode = closeDBOptions::CLOSE_MODE_IMMDIETE;
 
-   collectionHandler clHandler;
-
-   indexParameters params;
-   params.type = type;
+   DATA_COLLECTION_PTR cl;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar1", 1, createCLOptions());
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&session, "foo", "bar1", openCLOptions(), clHandler);
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), cl);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = clHandler.createIndex(&session, strSlice("index1"),
-                              BSON("a" << 1), params, createIndexOptions());
+   rc = cl->createIndex(&session, dmsBuildIndexOptions(),
+                        indexTestUtil::createIndexObj(type, "index", FALSE, BSON("a" << 1)));
    ASSERT_EQ(SDB_OK, rc);                   
 
    for (UINT32 i = 0; i < threadCount; ++i)
    {
       threads[i] = std::move(std::thread(thread_insert_index, &db,
-                                         "foo", "bar1", countPerThread));
+                                         "foo.bar", countPerThread));
    }
 
    for (UINT32 i = 0; i < threadCount; ++i)
@@ -877,45 +767,38 @@ void insert_test_unique_index(INDEX_TYPE type)
    options.path.lsmPath = LSM_PATH;
    options.cacheOptions.flush.flushDirtyListThreshold = 0.8;
    options.cacheOptions.freelist.maxChunkCount = 1024;
-   collectionHandler handler;
+
    UINT32 count = 6000000;
    static const UINT32 threadCount = 6;
    std::thread threads[threadCount];
    UINT32 countPerThread = count / threadCount;
 
-   createCSOptions csOptions;
-   csOptions.dataSegSize = STORAGE_FILE_SEGMENT_SIZE_32MB;
-
    closeDBOptions co;
    co.closeMode = closeDBOptions::CLOSE_MODE_IMMDIETE;
 
-   collectionHandler clHandler;
-
-   indexParameters params;
-   params.type = type;
-   params.isUnique = TRUE;
+   DATA_COLLECTION_PTR clHandler;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar1", 1, createCLOptions());
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&session, "foo", "bar1", openCLOptions(), clHandler);
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), clHandler);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = clHandler.createIndex(&session, strSlice("index1"),
-                              BSON("a" << 1), params, createIndexOptions());
+   rc = clHandler->createIndex(&session, dmsBuildIndexOptions(),
+                        indexTestUtil::createIndexObj(type, "index", TRUE, BSON("a" << 1)));
    ASSERT_EQ(SDB_OK, rc);                   
 
    for (UINT32 i = 0; i < threadCount; ++i)
    {
       threads[i] = std::move(std::thread(thread_insert_unique_index,
                                          &db,
-                                         "foo", "bar1", i * countPerThread,
+                                         "foo.bar", i * countPerThread,
                                          countPerThread));
    }
 
@@ -940,8 +823,7 @@ TEST_F(insert_test, test8_2_2)
 }
 
 void death_thread_insert(vesselImpl *db,
-                         const CHAR *csName,
-                         const CHAR *clName,
+                         const CHAR *fullName,
                          UINT32 count,
                          UINT32 i,
                          atomic_int *counter)
@@ -954,23 +836,19 @@ void death_thread_insert(vesselImpl *db,
    builder.append("b", 2);
    builder.append("c", pad, 1024);
    bson::BSONObj obj = builder.obj();
-   slice record;
-   record.reset(obj.objsize(), obj.objdata());
 
-   collectionHandler handler;
-   INT32 rc = db->openCollection(&session, csName, clName, openCLOptions(), handler);
+   DATA_COLLECTION_PTR handler;
+   INT32 rc = db->openCL(&session, fullName, dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < count; ++i)
    {
       utilInsertResult res;
-      rc = handler.insert(&session, record, 
-                          INVALID_STRIPING_ID,
-                          insertOptions(), &res);
+      rc = handler->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
       counter->fetch_add(1, std::memory_order_relaxed);
    }
-   handler.close();
+   handler->close();
 }
 
 TEST_F(insert_test, DISABLED_death_test_1)
@@ -983,7 +861,7 @@ TEST_F(insert_test, DISABLED_death_test_1)
 
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
-   collectionHandler handler;
+   DATA_COLLECTION_PTR handler;
 
    constexpr UINT32 threadCount = 8;
    std::thread threads[threadCount];
@@ -991,23 +869,21 @@ TEST_F(insert_test, DISABLED_death_test_1)
    UINT32 countPerThread = 10000000;
    UINT32 count = 0;
 
-   createCSOptions csOptions;
-
    closeDBOptions co;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar1", 1, createCLOptions());
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < threadCount; ++i)
    {
       threads[i] = std::move(std::thread(death_thread_insert, &db,
-                                         "foo", "bar1", countPerThread,
+                                         "foo.bar", countPerThread,
                                          i, counters+i));
    }
 

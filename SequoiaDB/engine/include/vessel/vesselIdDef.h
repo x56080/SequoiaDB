@@ -55,9 +55,6 @@ namespace vessel
    const CL_MB_ID INVALID_CL_MB_ID = 65535;
    const CL_MB_ID MAX_CL_MB_COUNT = 65535;
 
-   typedef UINT16 STRIPING_ID;
-   const STRIPING_ID INVALID_STRIPING_ID = 65535;
-
    static const UINT32 INVALID_CL_PAGE_SEQ = 0xFFFFFFFF;
 
 } /// end of namespace vessel

@@ -39,7 +39,7 @@
 #include "vessel/cursorKernal.h"
 #include "ossMemPool.hpp"
 #include "dms.hpp"
-#include "vessel/vesselIdDef.h"
+#include "vessel/objectIdentifier.h"
 
 namespace engine
 {
@@ -48,13 +48,7 @@ namespace vessel
    class listCLCursor : public cursorKernal
    {
       public:
-         listCLCursor():
-         _csLogicalID(DMS_INVALID_LOGICCSID),
-         _sid(INVALID_SPACE_ID)
-         {
-            ossMemset(_clName, 0, sizeof(_clName));
-         }
-
+         listCLCursor(){}
          virtual ~listCLCursor(){}
 
       public:
@@ -63,20 +57,14 @@ namespace vessel
             return CURSOR_TYPE_LIST_COLLECTION;
          }
 
-         OSS_INLINE void setCollectionSpace(UINT32 lid, SPACE_ID sid)
+         OSS_INLINE void setCollectionSpace(const collectionSpaceId &id)
          {
-            _csLogicalID = lid;
-            _sid = sid;
+            _id = id;
          }
 
-         OSS_INLINE SPACE_ID getSpaceID()const
+         OSS_INLINE const collectionSpaceId &getIdentifier()const
          {
-            return _sid;
-         }
-
-         OSS_INLINE UINT32 getCSLogicalID()const
-         {
-            return _csLogicalID;
+            return _id;
          }
 
          OSS_INLINE void setCLName(const CHAR *name)
@@ -100,9 +88,8 @@ namespace vessel
          }
 
       private:
-         UINT32 _csLogicalID;
-         SPACE_ID _sid;
-         CHAR _clName[DMS_COLLECTION_NAME_SZ + 1];
+         collectionSpaceId _id;
+         CHAR _clName[DMS_COLLECTION_NAME_SZ + 1] = {};
          ossPoolSet<UINT32> _pushedLIds;
    };//class listCLCursor
 }//namespace vessel

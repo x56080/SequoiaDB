@@ -44,7 +44,7 @@
 #include "vessel/listCollectionsDef.h"
 #include "vessel/logRecordContext.h"
 #include "dpsLogRecord.hpp"
-
+#include "dmsCursorReader.hpp"
 #include <thread> // c++11
 
 
@@ -84,54 +84,58 @@ TEST_F(cl_ddl_test, test1)
 
    test_executor executor;
    openDBOptions options;
-   createCSOptions csOptions;
-   createCLOptions clOptions;
+
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
    options.path.lobMetaPath = DATA_PATH;
    options.path.lobPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
-   cursorHandler cursor;
-   slice slice;
+   
+   bson::BSONObj adjunct;
+   dmsCreateCSOptions csOptions;
+   dmsCreateCLOptions clOptions;
+   DATA_CURSOR_PTR cursor;
+   dmsBsonCursorReader reader;
    bson::BSONObj record;
-   collectionSpaceId identifier;
 
    rc = db.open(&executor, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&executor, "foo", 1, csOptions, identifier);
+   rc = db.createCS(&executor, "foo", 1, csOptions, adjunct);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&executor, "foo", "bar1", 1, clOptions);
+   rc = db.createCL(&executor, "foo.bar1", 1, clOptions, adjunct);
    ASSERT_EQ(SDB_OK, rc);
-   rc = db.createCollection(&executor, "foo", "bar1", 2, clOptions);
+   rc = db.createCL(&executor, "foo.bar1", 2, clOptions, adjunct);
    ASSERT_EQ(SDB_DMS_EXIST, rc);
-   rc = db.createCollection(&executor, "foo", "bar2", 1, clOptions);
+   rc = db.createCL(&executor, "foo.bar2", 1, clOptions, adjunct);
    ASSERT_EQ(SDB_DMS_EXIST, rc);
-   rc = db.createCollection(&executor, "foo", "bar2", 2, clOptions);
+   rc = db.createCL(&executor, "foo.bar2", 2, clOptions, adjunct);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.listCollections(&executor, "foo", NULL, cursor);
+   rc = db.listCL(&executor, "foo", cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = cursor.getNext(&executor, slice);
+   reader.init(cursor, TRUE);
+   rc = reader.fetchNext(&executor);
    ASSERT_EQ(SDB_OK, rc);
 
-   record = bson::BSONObj(slice.data());
+   record = reader.getRecord();
    ASSERT_EQ(0, record.getIntField(CL_DUMP_RECORD_FIELD_MB_ID));
    ASSERT_EQ(1, record.getIntField(CL_DUMP_RECORD_FIELD_INNER_ID));
    ASSERT_EQ(0, record.getIntField(CL_DUMP_RECORD_FIELD_CL_LOGICAL_ID));
    ASSERT_EQ(0, ossStrcmp("bar1", record.getStringField(CL_DUMP_RECORD_FIELD_NAME)));
 
-   rc = cursor.getNext(&executor, slice);
-   record = bson::BSONObj(slice.data());
+   rc = reader.fetchNext(&executor);
+   ASSERT_EQ(SDB_OK, rc);
+   record = reader.getRecord();
    ASSERT_EQ(1, record.getIntField(CL_DUMP_RECORD_FIELD_MB_ID));
    ASSERT_EQ(2, record.getIntField(CL_DUMP_RECORD_FIELD_INNER_ID));
    ASSERT_EQ(1, record.getIntField(CL_DUMP_RECORD_FIELD_CL_LOGICAL_ID));
    ASSERT_EQ(0, ossStrcmp("bar2", record.getStringField(CL_DUMP_RECORD_FIELD_NAME)));
 
-   rc = cursor.getNext(&executor, slice);
-   ASSERT_EQ(SDB_VESSEL_EOC, rc);
+   rc = reader.fetchNext(&executor);
+   ASSERT_EQ(SDB_DMS_EOC, rc);
 
    db.close(&executor, closeDBOptions());
 }
@@ -143,24 +147,21 @@ TEST_F(cl_ddl_test, test2)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   createCSOptions csOptions;
-   createCLOptions clOptions;
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
    options.path.lobMetaPath = DATA_PATH;
    options.path.lobPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
-   collectionSpaceId identifier;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions, identifier);
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar1", 1, clOptions);
+   rc = db.createCL(&session, "foo.bar1", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
-   rc = db.createCollection(&session, "foo", "bar2", 2, clOptions);
+   rc = db.createCL(&session, "foo.bar2", 2, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.close(&session, closeDBOptions());
@@ -169,11 +170,11 @@ TEST_F(cl_ddl_test, test2)
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar1", 3, clOptions);
+   rc = db.createCL(&session, "foo.bar1", 3, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_DMS_EXIST, rc);
-   rc = db.createCollection(&session, "foo", "bar2", 3, clOptions);
+   rc = db.createCL(&session, "foo.bar2", 3, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_DMS_EXIST, rc);
-   rc = db.createCollection(&session, "foo", "bar3", 3, clOptions);
+   rc = db.createCL(&session, "foo.bar3", 3, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.close(&session, closeDBOptions());
@@ -182,13 +183,13 @@ TEST_F(cl_ddl_test, test2)
     rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar1", 1, clOptions);
+   rc = db.createCL(&session, "foo.bar1", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_DMS_EXIST, rc);
-   rc = db.createCollection(&session, "foo", "bar2", 2, clOptions);
+   rc = db.createCL(&session, "foo.bar2", 2, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_DMS_EXIST, rc);
-   rc = db.createCollection(&session, "foo", "bar3", 3, clOptions);
+   rc = db.createCL(&session, "foo.bar3", 3, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_DMS_EXIST, rc);
-   rc = db.createCollection(&session, "foo", "bar4", 4, clOptions);
+   rc = db.createCL(&session, "foo.bar4", 4, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.close(&session, closeDBOptions());
@@ -203,8 +204,6 @@ TEST_F(cl_ddl_test, test3)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   createCSOptions csOptions;
-   createCLOptions clOptions;
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
    options.path.lobMetaPath = DATA_PATH;
@@ -212,26 +211,25 @@ TEST_F(cl_ddl_test, test3)
    options.path.lsmPath = LSM_PATH;
    UINT32 creatingCount = 65535;
    UINT32 count = 0;
-   collectionSpaceId identifier;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions, identifier);
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < creatingCount; ++i)
    {
       CHAR name[32] = {0};
-      sprintf(name, "%s%d", "bar", i);
-      rc = db.createCollection(&session, "foo", name, i + 1, clOptions);
+      sprintf(name, "%s%d", "foo.bar", i);
+      rc = db.createCL(&session, name, i + 1, dmsCreateCLOptions(), bson::BSONObj());
       ASSERT_EQ(SDB_OK, rc);
    }
 
-   rc = db.createCollection(&session, "foo", "bar65535", 65536, clOptions);
+   rc = db.createCL(&session, "foo.bar65535", 65536, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_VESSEL_OUT_OF_MBID_RESOURCE, rc);
 
-   rc = db.getCollectionCount(&session, "foo", count);
+   rc = db.getCLCount(&session, "foo", count);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(creatingCount, count);
    
@@ -242,7 +240,7 @@ TEST_F(cl_ddl_test, test3)
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
-   rc = db.getCollectionCount(&session, "foo", count);
+   rc = db.getCLCount(&session, "foo", count);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(creatingCount, count);
    
@@ -258,8 +256,8 @@ void thread_create_cl(vesselImpl *db, engine::IExecutor *session, UINT32 innerId
    for (UINT32 i = 0; i < count; ++i)
    {
       CHAR name[32] = {0};
-      sprintf(name, "%s%d", "bar", innerId + i);
-      rc = db->createCollection(session, "foo", name, innerId + i, clOptions);
+      sprintf(name, "%s%d", "foo.bar", innerId + i);
+      rc = db->createCL(session, name, innerId + i, dmsCreateCLOptions(), bson::BSONObj());
       ASSERT_EQ(SDB_OK, rc);
    }
 }
@@ -272,8 +270,8 @@ TEST_F(cl_ddl_test, test4)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   createCSOptions csOptions;
-   createCLOptions clOptions;
+   dmsCreateCSOptions csOptions;
+   dmsCreateCLOptions clOptions;
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
    options.path.lobMetaPath = DATA_PATH;
@@ -290,7 +288,7 @@ TEST_F(cl_ddl_test, test4)
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions, identifier);
+   rc = db.createCS(&session, "foo", 1, csOptions, bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < threadCount; ++i)
@@ -305,7 +303,7 @@ TEST_F(cl_ddl_test, test4)
       threads[i].join();
    }
 
-   rc = db.getCollectionCount(&session, "foo", count);
+   rc = db.getCLCount(&session, "foo", count);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(countPerThread * threadCount, count);
    
@@ -316,7 +314,7 @@ TEST_F(cl_ddl_test, test4)
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
-   rc = db.getCollectionCount(&session, "foo", count);
+   rc = db.getCLCount(&session, "foo", count);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(countPerThread * threadCount, count);
    

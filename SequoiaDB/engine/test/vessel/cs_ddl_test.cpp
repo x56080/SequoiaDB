@@ -44,6 +44,7 @@
 #include "vessel/listCollectionsDef.h"
 #include "vessel/logRecordContext.h"
 #include "dpsLogRecord.hpp"
+#include "dmsCursorReader.hpp"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -113,63 +114,49 @@ TEST_F(cs_ddl_test, base_createCS_1)
    test_executor session;
    vesselImpl db;
    openDBOptions options;
-   createCSOptions csOptions;
+    
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
    options.path.lobMetaPath = DATA_PATH;
    options.path.lobPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
-   collectionSpaceId identifier;
+   utilCSUniqueID uniqueId = UTIL_UNIQUEID_NULL;
+   bson::BSONObj adjunct;
+   dmsBsonCursorReader reader;
+   DATA_CURSOR_PTR cursor;
 
    UINT32 count = 0;
-
-   slice content;
-   bson::BSONObj record;
-   cursorHandler c;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.testCollectionSpace(&session, "foo", identifier);
-   ASSERT_EQ(SDB_DMS_CS_NOTEXIST, rc);
-
-   rc = db.getCollectionSpaceCount(&session, count);
-   ASSERT_EQ(SDB_OK, rc);
-   ASSERT_EQ(0, count);
-
-   rc = db.listCollectionSpace(&session, NULL, c);
-   ASSERT_EQ(SDB_OK, rc);
-
-   rc = c.getNext(&session, content);
-   ASSERT_EQ(SDB_VESSEL_EOC, rc);
-   c.close();
-
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), adjunct);
    ASSERT_EQ(SDB_OK, rc);
 
    // test if the collection space was created successfully
-   rc = db.testCollectionSpace(&session, "foo", identifier);
+   rc = db.testCS(&session, "foo", uniqueId);
    ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(1, uniqueId);
 
    // test collection space count
-   rc = db.getCollectionSpaceCount(&session, count);
+   rc = db.getCSCount(&session, count);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(1, count);
 
-   rc = db.listCollectionSpace(&session, NULL, c);
+   rc = db.listCS(&session, cursor);
    ASSERT_EQ(SDB_OK, rc);
 
+   reader.init(cursor, TRUE);
    // test the collection space's name and unique_id
-   rc = c.getNext(&session, content);
+   rc = reader.fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(content.isValid());
-   record = bson::BSONObj(content.data());
    ASSERT_EQ(0, ossStrcmp("foo", 
-                          record.getStringField(CS_DUMP_RECORD_FIELD_NAME)));
-   ASSERT_EQ(1, record.getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
+                          reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(1, reader.getRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
-   c.close();
+   rc = reader.fetchNext(&session);
+   ASSERT_EQ(SDB_DMS_EOC, rc);
    db.close(&session, closeDBOptions());
 }
 
@@ -192,39 +179,23 @@ TEST_F(cs_ddl_test, base_createCS_2)
    test_executor session;
    vesselImpl db;
    openDBOptions options;
-   createCSOptions csOptions;
+    
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
    options.path.lobMetaPath = DATA_PATH;
    options.path.lobPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
-   collectionSpaceId identifier;
-
+   utilCSUniqueID uniqueId = UTIL_UNIQUEID_NULL;
+   bson::BSONObj adjunct;
+   dmsBsonCursorReader reader;
+   DATA_CURSOR_PTR cursor;
    UINT32 count = 0;
-
-   slice content;
-   bson::BSONObj record;
-   cursorHandler c;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.testCollectionSpace(&session, "foo", identifier);
-   ASSERT_EQ(SDB_DMS_CS_NOTEXIST, rc);
-
-   rc = db.getCollectionSpaceCount(&session, count);
-   ASSERT_EQ(SDB_OK, rc);
-   ASSERT_EQ(0, count);
-
-   rc = db.listCollectionSpace(&session, NULL, c);
-   ASSERT_EQ(SDB_OK, rc);
-
-   rc = c.getNext(&session, content);
-   ASSERT_EQ(SDB_VESSEL_EOC, rc);
-   c.close();
-
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), adjunct);
    ASSERT_EQ(SDB_OK, rc);
 
    // reopen db
@@ -233,27 +204,28 @@ TEST_F(cs_ddl_test, base_createCS_2)
    ASSERT_EQ(SDB_OK, rc);
 
    // test if the collection space was created successfully
-   rc = db.testCollectionSpace(&session, "foo", identifier);
+   rc = db.testCS(&session, "foo", uniqueId);
    ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(1, uniqueId);
 
    // test collection space count
-   rc = db.getCollectionSpaceCount(&session, count);
+   rc = db.getCSCount(&session, count);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(1, count);
 
-   rc = db.listCollectionSpace(&session, NULL, c);
+   rc = db.listCS(&session, cursor);
    ASSERT_EQ(SDB_OK, rc);
 
+   reader.init(cursor, TRUE);
    // test the collection space's name and unique_id
-   rc = c.getNext(&session, content);
+   rc = reader.fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(content.isValid());
-   record = bson::BSONObj(content.data());
    ASSERT_EQ(0, ossStrcmp("foo", 
-                          record.getStringField(CS_DUMP_RECORD_FIELD_NAME)));
-   ASSERT_EQ(1, record.getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
+                          reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(1, reader.getRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
-   c.close();
+   rc = reader.fetchNext(&session);
+   ASSERT_EQ(SDB_DMS_EOC, rc);
    db.close(&session, closeDBOptions());
 }
 
@@ -276,109 +248,91 @@ TEST_F(cs_ddl_test, base_createCS_3)
    test_executor session;
    vesselImpl db;
    openDBOptions options;
-   createCSOptions csOptions;
+    
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
    options.path.lobMetaPath = DATA_PATH;
    options.path.lobPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
+   bson::BSONObj adjunct;
+   dmsBsonCursorReader reader;
+   DATA_CURSOR_PTR cursor;
    UINT32 count = 0;
-
-   slice content;
-   bson::BSONObj record;
-   cursorHandler c;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.getCollectionSpaceCount(&session, count);
-   ASSERT_EQ(SDB_OK, rc);
-   ASSERT_EQ(0, count);
-
-   rc = db.listCollectionSpace(&session, NULL, c);
+   rc = db.createCS(&session, "foo1", 1, dmsCreateCSOptions(), adjunct);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = c.getNext(&session, content);
-   ASSERT_EQ(SDB_VESSEL_EOC, rc);
-   c.close();
-
-   rc = db.createCollectionSpace(&session, "foo1", 1, csOptions);
+   rc = db.createCS(&session, "foo2", 2, dmsCreateCSOptions(), adjunct);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo2", 2, csOptions);
+   rc = db.createCS(&session, "foo3", 3, dmsCreateCSOptions(), adjunct);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo3", 3, csOptions);
-   ASSERT_EQ(SDB_OK, rc);
-
-   rc = db.getCollectionSpaceCount(&session, count);
+   rc = db.getCSCount(&session, count);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(3, count);
 
-   rc = db.listCollectionSpace(&session, NULL, c);
+   rc = db.listCS(&session, cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = c.getNext(&session, content);
+   reader.init(cursor, TRUE);
+   rc = reader.fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(content.isValid());
-   record = bson::BSONObj(content.data());
-   ASSERT_EQ(0, ossStrcmp("foo1", record.getStringField(CS_DUMP_RECORD_FIELD_NAME)));
-   ASSERT_EQ(1, record.getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
+   ASSERT_EQ(0, ossStrcmp("foo1", 
+                          reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(1, reader.getRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
-   rc = c.getNext(&session, content);
+   rc = reader.fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(content.isValid());
-   record = bson::BSONObj(content.data());
-   ASSERT_EQ(0, ossStrcmp("foo2", record.getStringField(CS_DUMP_RECORD_FIELD_NAME)));
-   ASSERT_EQ(2, record.getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
+   ASSERT_EQ(0, ossStrcmp("foo2", 
+                          reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(2, reader.getRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
-   rc = c.getNext(&session, content);
+   rc = reader.fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(content.isValid());
-   record = bson::BSONObj(content.data());
-   ASSERT_EQ(0, ossStrcmp("foo3", record.getStringField(CS_DUMP_RECORD_FIELD_NAME)));
-   ASSERT_EQ(3, record.getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
+   ASSERT_EQ(0, ossStrcmp("foo3", 
+                          reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(3, reader.getRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
-   rc = c.getNext(&session, content);
-   ASSERT_EQ(SDB_VESSEL_EOC, rc);
-   c.close();
+   rc = reader.fetchNext(&session);
+   ASSERT_EQ(SDB_DMS_EOC, rc);
 
    db.close(&session, closeDBOptions());
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
-   rc = db.getCollectionSpaceCount(&session, count);
+   rc = db.getCSCount(&session, count);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(3, count);
 
-   rc = db.listCollectionSpace(&session, NULL, c);
+   rc = db.listCS(&session, cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = c.getNext(&session, content);
+   reader.init(cursor, TRUE);
+   rc = reader.fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(content.isValid());
-   record = bson::BSONObj(content.data());
-   ASSERT_EQ(0, ossStrcmp("foo1", record.getStringField(CS_DUMP_RECORD_FIELD_NAME)));
-   ASSERT_EQ(1, record.getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
+   ASSERT_EQ(0, ossStrcmp("foo1", 
+                          reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(1, reader.getRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
-   rc = c.getNext(&session, content);
+   rc = reader.fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(content.isValid());
-   record = bson::BSONObj(content.data());
-   ASSERT_EQ(0, ossStrcmp("foo2", record.getStringField(CS_DUMP_RECORD_FIELD_NAME)));
-   ASSERT_EQ(2, record.getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
+   ASSERT_EQ(0, ossStrcmp("foo2", 
+                          reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(2, reader.getRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
-   rc = c.getNext(&session, content);
+   rc = reader.fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(content.isValid());
-   record = bson::BSONObj(content.data());
-   ASSERT_EQ(0, ossStrcmp("foo3", record.getStringField(CS_DUMP_RECORD_FIELD_NAME)));
-   ASSERT_EQ(3, record.getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
+   ASSERT_EQ(0, ossStrcmp("foo3", 
+                          reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(3, reader.getRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
-   rc = c.getNext(&session, content);
-   ASSERT_EQ(SDB_VESSEL_EOC, rc);
-   c.close();
+   rc = reader.fetchNext(&session);
+   ASSERT_EQ(SDB_DMS_EOC, rc);
 
    db.close(&session, closeDBOptions());
 }
@@ -403,7 +357,7 @@ TEST_F(cs_ddl_test, base_createCS_4)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   createCSOptions csOptions;
+    
    collectionSpaceId identifier;
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
@@ -411,34 +365,32 @@ TEST_F(cs_ddl_test, base_createCS_4)
    options.path.lobPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
+   utilCSUniqueID uniqueId = UTIL_UNIQUEID_NULL;
+   bson::BSONObj adjunct;
    UINT32 count = 0;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.getCollectionSpaceCount(&session, count);
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), adjunct);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_EQ(0, count);
-
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
-   ASSERT_EQ(SDB_OK, rc);
-   rc = db.getCollectionSpaceCount(&session, count);
+   rc = db.getCSCount(&session, count);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(1, count);
 
-   rc = db.createCollectionSpace(&session, "foo", 2, csOptions);
+   rc = db.createCS(&session, "foo", 2, dmsCreateCSOptions(), adjunct);
    ASSERT_EQ(SDB_DMS_CS_EXIST, rc);
 
-   rc = db.createCollectionSpace(&session, "foo1", 1, csOptions);
+   rc = db.createCS(&session, "foo1", 1, dmsCreateCSOptions(), adjunct);
    ASSERT_EQ(SDB_DMS_CS_EXIST, rc);
 
-   rc = db.testCollectionSpace(&session, "foo1", identifier);
+   rc = db.testCS(&session, "foo1", uniqueId);
    ASSERT_EQ(SDB_DMS_CS_NOTEXIST, rc);
 
-   rc = db.createCollectionSpace(&session, "bar", 2, csOptions); 
+   rc = db.createCS(&session, "bar", 2, dmsCreateCSOptions(), adjunct); 
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.getCollectionSpaceCount(&session, count);
+   rc = db.getCSCount(&session, count);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(2, count);
 
@@ -462,49 +414,25 @@ TEST_F(cs_ddl_test, base_createCS_5)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   createCSOptions csOptions;
+    
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
    options.path.lobMetaPath = DATA_PATH;
    options.path.lobPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
-
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
-   ASSERT_EQ(SDB_INVALIDARG, rc);
+   
+   bson::BSONObj adjunct;
+   dmsCreateCSOptions invalidOptions;
+   invalidOptions.dataPageSize = DMS_PAGE_SIZE32K + 1;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "", 1, csOptions);
+   rc = db.createCS(&session, "foo", 1, invalidOptions, adjunct);
    ASSERT_EQ(SDB_INVALIDARG, rc);
 
-   csOptions.dataPageSize = DMS_PAGE_SIZE32K + 1;
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
-   ASSERT_EQ(SDB_INVALIDARG, rc);
-
-   csOptions.dataPageSize = DMS_PAGE_SIZE32K;
-   csOptions.dataSegSize = STORAGE_FILE_SEGMENT_SIZE_32MB + 1;
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
-   ASSERT_EQ(SDB_INVALIDARG, rc);
-
-   csOptions.dataSegSize = STORAGE_FILE_SEGMENT_SIZE_32MB;
-   csOptions.idxPageSize = DMS_PAGE_SIZE32K + 1;
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
-   ASSERT_EQ(SDB_INVALIDARG, rc);
-
-   csOptions.idxPageSize = DMS_PAGE_SIZE32K;
-   csOptions.idxSegSize = STORAGE_FILE_SEGMENT_SIZE_32MB + 1;
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
-   ASSERT_EQ(SDB_INVALIDARG, rc);
-
-   csOptions.idxSegSize = STORAGE_FILE_SEGMENT_SIZE_32MB;
-   csOptions.lobPageSize = DMS_PAGE_SIZE256K + 1;
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
-   ASSERT_EQ(SDB_INVALIDARG, rc);
-
-   csOptions.lobPageSize = DMS_PAGE_SIZE256K;
-   csOptions.lobSegSize = STORAGE_FILE_SEGMENT_SIZE_128MB + 1;
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   invalidOptions.dataPageSize = DMS_PAGE_SIZE256K;
+   rc = db.createCS(&session, "foo", 1, invalidOptions, adjunct);
    ASSERT_EQ(SDB_INVALIDARG, rc);
 
    db.close(&session, closeDBOptions());
@@ -528,63 +456,57 @@ TEST_F(cs_ddl_test, base_listCS_1)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   createCSOptions csOptions;
+    
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
    options.path.lobMetaPath = DATA_PATH;
    options.path.lobPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
-   slice content;
-   bson::BSONObj record;
-   cursorHandler c;
+   DATA_CURSOR_PTR cursor;
+   dmsBsonCursorReader reader;
+   bson::BSONObj adjunct;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.listCollectionSpace(&session, NULL, c);
+   rc = db.listCS(&session, cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = c.getNext(&session, content);
-   ASSERT_EQ(SDB_VESSEL_EOC, rc);
-   c.close();
+   reader.init(cursor, TRUE);
+   rc = reader.fetchNext(&session);
+   ASSERT_EQ(SDB_DMS_EOC, rc);
 
-   rc = db.createCollectionSpace(&session, "foo1", 1, csOptions);
+   rc = db.createCS(&session, "foo1", 1, dmsCreateCSOptions(), adjunct);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo2", 2, csOptions);
+   rc = db.createCS(&session, "foo2", 2, dmsCreateCSOptions(), adjunct);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo3", 3, csOptions);
+   rc = db.createCS(&session, "foo3", 3, dmsCreateCSOptions(), adjunct);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.listCollectionSpace(&session, NULL, c);
+   rc = db.listCS(&session, cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = c.getNext(&session, content);
+   reader.init(cursor, TRUE);
+   rc = reader.fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(content.isValid());
-   record = bson::BSONObj(content.data());
-   ASSERT_EQ(0, ossStrcmp("foo1", record.getStringField(CS_DUMP_RECORD_FIELD_NAME)));
-   ASSERT_EQ(1, record.getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
+   ASSERT_EQ(0, ossStrcmp("foo1", reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(1, reader.getRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
-   rc = c.getNext(&session, content);
+   rc = reader.fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(content.isValid());
-   record = bson::BSONObj(content.data());
-   ASSERT_EQ(0, ossStrcmp("foo2", record.getStringField(CS_DUMP_RECORD_FIELD_NAME)));
-   ASSERT_EQ(2, record.getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
+   ASSERT_EQ(0, ossStrcmp("foo2", reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(2, reader.getRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
-   rc = c.getNext(&session, content);
+   rc = reader.fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(content.isValid());
-   record = bson::BSONObj(content.data());
-   ASSERT_EQ(0, ossStrcmp("foo3", record.getStringField(CS_DUMP_RECORD_FIELD_NAME)));
-   ASSERT_EQ(3, record.getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
+   ASSERT_EQ(0, ossStrcmp("foo3", reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(3, reader.getRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
-   rc = c.getNext(&session, content);
-   ASSERT_EQ(SDB_VESSEL_EOC, rc);
-   c.close();
+   rc = reader.fetchNext(&session);
+   ASSERT_EQ(SDB_DMS_EOC, rc);
    
    db.close(&session, closeDBOptions());
 }
@@ -608,7 +530,7 @@ TEST_F(cs_ddl_test, base_getCount_1)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   createCSOptions csOptions;
+    
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
    options.path.lobMetaPath = DATA_PATH;
@@ -617,21 +539,17 @@ TEST_F(cs_ddl_test, base_getCount_1)
 
    UINT32 count = 0;
 
-   rc = db.getCollectionSpaceCount(&session, count);
-   ASSERT_EQ(SDB_INVALIDARG, rc);
-   ASSERT_EQ(0, count);
-
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.getCollectionSpaceCount(&session, count);
+   rc = db.getCSCount(&session, count);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(0, count);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.getCollectionSpaceCount(&session, count);
+   rc = db.getCSCount(&session, count);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(1, count);
 
@@ -643,7 +561,9 @@ void thread_create(vesselImpl *db, atomic<UINT32> &createdCount, UINT32 sum)
 {
    INT32 rc = SDB_OK;
    test_executor session;
-   createCSOptions options;
+     
+   collectionSpaceId identifier;
+
    for (;;)
    {  
       UINT32 tmpCount = createdCount.fetch_add(1);
@@ -653,7 +573,7 @@ void thread_create(vesselImpl *db, atomic<UINT32> &createdCount, UINT32 sum)
       }
       CHAR buf[6] = {0};
       ossSnprintf(buf, 6, "%d", tmpCount);
-      rc = db->createCollectionSpace(&session, buf, tmpCount, options);
+      rc = db->createCS(&session, buf, tmpCount, dmsCreateCSOptions(), bson::BSONObj());
       if (SDB_OK == rc)
       {
          continue;
@@ -676,12 +596,14 @@ void thread_confilix_create(vesselImpl *db, UINT32 sum)
 {
    INT32 rc = SDB_OK;
    test_executor session;
-   createCSOptions options;
+     
+   collectionSpaceId identifier;
+
    for (UINT32 i = 0; i < sum; ++i)
    {  
       CHAR buf[6] = {0};
       ossSnprintf(buf, 6, "%d", i);
-      rc = db->createCollectionSpace(&session, buf, i, options);
+      rc = db->createCS(&session, buf, i, dmsCreateCSOptions(), bson::BSONObj());
       if (SDB_OK == rc)
       {
          continue;
@@ -725,7 +647,7 @@ TEST_F(cs_ddl_test, advanced_createCS_1)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   createCSOptions csOptions;
+    
    collectionSpaceId identifier;
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
@@ -741,16 +663,8 @@ TEST_F(cs_ddl_test, advanced_createCS_1)
    thread threads[threadCount];
 
 
-   slice content;
-   bson::BSONObj record;
-   cursorHandler c;
-
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
-
-   rc = db.getCollectionSpaceCount(&session, count);
-   ASSERT_EQ(SDB_OK, rc);
-   ASSERT_EQ(0, count);
 
    for (UINT32 i = 0; i < threadCount; ++i)
    {
@@ -762,7 +676,7 @@ TEST_F(cs_ddl_test, advanced_createCS_1)
       threads[i].join();
    }
 
-   rc = db.getCollectionSpaceCount(&session, count);
+   rc = db.getCSCount(&session, count);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(createNum, count);
 
@@ -787,7 +701,7 @@ TEST_F(cs_ddl_test, advanced_createCS_2)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   createCSOptions csOptions;
+    
    collectionSpaceId identifier;
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
@@ -801,17 +715,8 @@ TEST_F(cs_ddl_test, advanced_createCS_2)
    UINT32 threadCount = 4;
    thread threads[threadCount];
 
-
-   slice content;
-   bson::BSONObj record;
-   cursorHandler c;
-
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
-
-   rc = db.getCollectionSpaceCount(&session, count);
-   ASSERT_EQ(SDB_OK, rc);
-   ASSERT_EQ(0, count);
 
    for (UINT32 i = 0; i < threadCount; ++i)
    {
@@ -823,7 +728,7 @@ TEST_F(cs_ddl_test, advanced_createCS_2)
       threads[i].join();
    }
 
-   rc = db.getCollectionSpaceCount(&session, count);
+   rc = db.getCSCount(&session, count);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(createNum, count);
 
@@ -847,7 +752,7 @@ TEST_F(cs_ddl_test, death_createCS_1)
    test_executor session;
    vesselImpl db;
    openDBOptions options;
-   createCSOptions csOptions;
+    
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
    options.path.lobMetaPath = DATA_PATH;
@@ -857,6 +762,8 @@ TEST_F(cs_ddl_test, death_createCS_1)
    UINT32 count = 0;
    UINT32 createdCount = 0;
 
+   collectionSpaceId identifier;
+
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
@@ -865,7 +772,7 @@ TEST_F(cs_ddl_test, death_createCS_1)
       CHAR buf[6] = {0};
       ossSnprintf(buf, 6, "%d", i);
 
-      rc = db.createCollectionSpace(&session, buf, i, csOptions);
+      rc = db.createCS(&session, buf, i, dmsCreateCSOptions(), bson::BSONObj());
       if (SDB_OK == rc)
       {
          ++createdCount;
@@ -888,7 +795,7 @@ TEST_F(cs_ddl_test, death_createCS_1)
    {
       CHAR buf[6] = {0};
       ossSnprintf(buf, 6, "%d", MAX_SU_COUNT);
-      rc = db.createCollectionSpace(&session, buf, MAX_SU_COUNT, csOptions);
+      rc = db.createCS(&session, buf, MAX_SU_COUNT, dmsCreateCSOptions(), bson::BSONObj());
       ASSERT_EQ(SDB_DMS_SU_OUTRANGE, rc);
    }
 
@@ -897,7 +804,7 @@ TEST_F(cs_ddl_test, death_createCS_1)
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.getCollectionSpaceCount(&session, count);
+   rc = db.getCSCount(&session, count);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(count, createdCount);
 
@@ -919,7 +826,7 @@ TEST_F(cs_ddl_test, DISABLED_death_createCS_2)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   createCSOptions csOptions;
+    
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
    options.path.lobMetaPath = DATA_PATH;
@@ -932,6 +839,8 @@ TEST_F(cs_ddl_test, DISABLED_death_createCS_2)
 
    UINT32 threadCount = 4;
    thread threads[threadCount];
+
+   collectionSpaceId identifier;
    
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
@@ -950,7 +859,7 @@ TEST_F(cs_ddl_test, DISABLED_death_createCS_2)
    {
       CHAR buf[6] = {0};
       ossSnprintf(buf, 6, "%d", MAX_SU_COUNT);
-      rc = db.createCollectionSpace(&session, buf, MAX_SU_COUNT, csOptions);
+      rc = db.createCS(&session, buf, MAX_SU_COUNT, dmsCreateCSOptions(), bson::BSONObj());
       ASSERT_EQ(SDB_DMS_SU_OUTRANGE, rc);
    }
    db.close(&session, closeDBOptions());
@@ -958,7 +867,7 @@ TEST_F(cs_ddl_test, DISABLED_death_createCS_2)
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.getCollectionSpaceCount(&session, count);
+   rc = db.getCSCount(&session, count);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(count, createdCount);
 

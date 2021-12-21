@@ -43,6 +43,12 @@ namespace vessel
    constexpr UINT32 CANDIDATE_BUCKET_COUNT = 16;
    constexpr UINT32 CANDIDATE_BUCKET_CAPACITY = 2;
 
+   static UINT32 _getCanddiateBucketLatchCount()
+   {
+      UINT32 count = CANDIDATE_BUCKET_COUNT / 2;
+      return 0 == count ? 1 : count;
+   }
+
    freeSpaceMap::freeSpaceMap()
    {
       
@@ -56,8 +62,7 @@ namespace vessel
    void freeSpaceMap::fini()
    {
       _isOpen = FALSE;
-      _minStriping = INVALID_STRIPING_ID;
-      _maxStriping = INVALID_STRIPING_ID;
+      _stripingRange.reset();
       if (NULL != _buckets)
       {
          SDB_OSS_DEL []_buckets;
@@ -106,8 +111,7 @@ namespace vessel
    INT32 freeSpaceMap::create(CL_MB_ID mbID,
                               UINT32 logicalID,
                               fsmFile *file,
-                              STRIPING_ID min,
-                              STRIPING_ID max)
+                              const dmsStripingRange &range)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!isOpen(), "already open");
@@ -122,20 +126,11 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if((INVALID_STRIPING_ID != min || INVALID_STRIPING_ID != max )
-              &&
-              ((INVALID_STRIPING_ID == min || INVALID_STRIPING_ID == max) ||
-               max < min))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
 
       _isOpen = TRUE;
-      _minStriping = min;
-      _maxStriping = max;
+      _stripingRange = range;
 
-      latchCount = CANDIDATE_BUCKET_COUNT / 2;
+      latchCount = _getCanddiateBucketLatchCount();
       bucketCount = CANDIDATE_BUCKET_COUNT;
       bucketCapacity = CANDIDATE_BUCKET_CAPACITY;
 
@@ -165,8 +160,7 @@ namespace vessel
                             UINT32 logicalID,
                             UINT32 pageCount,
                             fsmFile *file,
-                            STRIPING_ID min,
-                            STRIPING_ID max)
+                            const dmsStripingRange &range)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!isOpen(), "already open");
@@ -182,20 +176,11 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if((INVALID_STRIPING_ID != min || INVALID_STRIPING_ID != max )
-              &&
-              ((INVALID_STRIPING_ID == min || INVALID_STRIPING_ID == max) ||
-               max < min))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
 
       _isOpen = TRUE;
-      _minStriping = min;
-      _maxStriping = max;
+      _stripingRange = range;
 
-      latchCount = CANDIDATE_BUCKET_COUNT / 2;
+      latchCount = _getCanddiateBucketLatchCount();
       bucketCount = CANDIDATE_BUCKET_COUNT;
       bucketCapacity = CANDIDATE_BUCKET_CAPACITY;
 
@@ -224,7 +209,7 @@ namespace vessel
 
    INT32 freeSpaceMap::find(requestContext *context,
                             INT32 lvl,
-                            STRIPING_ID striping,
+                            const dmsStripingId &striping,
                             fsmCandidate &candidate)
    {
       INT32 rc = SDB_OK;
@@ -241,13 +226,13 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (isSharded() && INVALID_STRIPING_ID == striping)
+      else if (hasStipingRange() && !striping.isValid())
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      if (isSharded())
+      if (hasStipingRange())
       {
          bucketNo = getBucketNoByStriping(striping);
       }
@@ -559,12 +544,12 @@ namespace vessel
       goto done;
    }
 
-   UINT32 freeSpaceMap::getBucketNoByStriping(STRIPING_ID striping)const
+   UINT32 freeSpaceMap::getBucketNoByStriping(const dmsStripingId &striping)const
    {
       SDB_ASSERT(0 < _bucketCount, "can not be invalid");
-      SDB_ASSERT(INVALID_STRIPING_ID != striping, "can not be invalid");
-      SDB_ASSERT(_minStriping <= striping, "can not be invalid");
-      SDB_ASSERT(striping <= _maxStriping, "can not be invalid");
+      SDB_ASSERT(striping.isValid(), "can not be invalid");
+      SDB_ASSERT(_stripingRange.isValid(), "can not be invalid");
+      SDB_ASSERT(_stripingRange.contains(striping), "out of bound");
 
       UINT32 bucketNo = 0;
       UINT32 totalStripingCount = 0;
@@ -573,22 +558,23 @@ namespace vessel
       {
          return 0;
       }
-      if (striping == _maxStriping)
+      if (striping == _stripingRange.getHigh())
       {
          return _bucketCount - 1;
       }
 
-      totalStripingCount = _maxStriping - _minStriping + 1;
+      totalStripingCount = _stripingRange.getStripingCount();
       if (totalStripingCount < _bucketCount)
       {
-         bucketNo = (striping - _minStriping);
+         bucketNo = (striping.getValue() - _stripingRange.getLow().getValue());
       }
       else
       {
          UINT16 range = ossAlignX(totalStripingCount, _bucketCount) / _bucketCount;
-         bucketNo = (striping - _minStriping) / range;
-         SDB_ASSERT(bucketNo < _bucketCount, "impossible");
+         bucketNo = (striping.getValue() - _stripingRange.getLow().getValue()) / range;
       }
+
+      SDB_ASSERT(bucketNo < _bucketCount, "out of bound");
       return bucketNo;
    }
 

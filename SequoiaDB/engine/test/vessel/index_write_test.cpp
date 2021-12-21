@@ -88,14 +88,13 @@ class index_write_test : public testing::Test
 std::atomic_llong WRITING_COUNTER;
 
 static void thread_insert_index(vesselImpl *db,
-                                const CHAR *csName,
-                                const CHAR *clName,
+                                const CHAR *fullName,
                                 UINT32 count)
 {
    test_executor session;
    bson::BSONObjBuilder builder;
-   collectionHandler handler;
-   INT32 rc = db->openCollection(&session, csName, clName, openCLOptions(), handler);
+   DATA_COLLECTION_PTR handler;
+   INT32 rc = db->openCL(&session, fullName, dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
    CHAR pad[32] = {};
    ossMemset(pad, 'a', sizeof(pad) - 1);
@@ -109,16 +108,12 @@ static void thread_insert_index(vesselImpl *db,
       builder.reset();
       builder.append("a", pad);
       bson::BSONObj obj = builder.done();
-      slice record;
-      record.reset(obj.objsize(), obj.objdata());
       utilInsertResult res;
-      rc = handler.insert(&session, record,
-                          INVALID_STRIPING_ID,
-                          insertOptions(), &res);
+      rc = handler->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
       WRITING_COUNTER.fetch_add(1, std::memory_order_relaxed);
    }
-   handler.close();
+   handler->close();
 }
 
 static void insert_test_nonunique_index(INDEX_TYPE type)
@@ -131,44 +126,38 @@ static void insert_test_nonunique_index(INDEX_TYPE type)
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
    options.cacheOptions.flush.flushDirtyListThreshold = 0.8;
-   collectionHandler handler;
+   DATA_COLLECTION_PTR handler;
    UINT32 count = 10000000;
    static const UINT32 threadCount = 4;
    std::thread threads[threadCount];
    UINT32 countPerThread = count / threadCount;
 
-   createCSOptions csOptions;
-   csOptions.idxPageSize = 65536;
-   csOptions.idxSegSize = STORAGE_FILE_SEGMENT_SIZE_32MB;
-
    closeDBOptions co;
    co.closeMode = closeDBOptions::CLOSE_MODE_IMMDIETE;
 
-   collectionHandler clHandler;
-
    indexParameters params;
    params.type = type;
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj("index1", params, BSON("a" << 1));
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar1", 1, createCLOptions());
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&session, "foo", "bar1", openCLOptions(), clHandler);
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = clHandler.createIndex(&session, strSlice("index1"),
-                              BSON("a" << 1), params, createIndexOptions());
+   rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);                   
 
    for (UINT32 i = 0; i < threadCount; ++i)
    {
       threads[i] = std::move(std::thread(thread_insert_index, &db,
-                                         "foo", "bar1", countPerThread));
+                                         "foo.bar", countPerThread));
    }
 
    for (UINT32 i = 0; i < threadCount; ++i)

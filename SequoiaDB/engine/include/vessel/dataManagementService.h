@@ -54,7 +54,6 @@ namespace vessel
    class requestContext;
    class listCSCursor;
    class storageUnit;
-   class IQueryFilter;
    class storageFileLoader;
 
    class dataManagementService : public SDBObject

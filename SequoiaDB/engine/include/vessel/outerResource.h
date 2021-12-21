@@ -77,7 +77,16 @@ namespace vessel
                    !(!indexKeyGen) &&
                    NULL != transLockConsole;
          }
+         void reset()
+         {
+            logger = NULL;
+            executorPool = NULL;
+            indexKeyGen = indexKeyGenForBsonRecord;
+            transLockConsole = NULL;
+         }
 
+         /// expensive operation.
+         /// will loop scan all working executors' min running lsn.
          UINT64 getMinUncompletedLSN();
 
       public:

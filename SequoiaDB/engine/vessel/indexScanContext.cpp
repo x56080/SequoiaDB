@@ -68,7 +68,7 @@ namespace vessel
    }
 
 
-   const indexScanOptions &indexScanContext::getOptions()const
+   const dmsIndexScanOptions &indexScanContext::getOptions()const
    {
       SDB_ASSERT(isCursorAttached(), "must be attached");
       return _cursor->getOptions();

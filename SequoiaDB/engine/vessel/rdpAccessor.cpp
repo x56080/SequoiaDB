@@ -250,7 +250,7 @@ namespace vessel
          ossMemset((void *)(recordPtr + NORMAL_RECORD_HEAD_SIZE + request.record.getSize()),
                    0, rs.reserved);
       }
-      updatePageHeadWhenInsert(pos, rs, rh, request.stripingId);
+      updatePageHeadWhenInsert(pos, rs, rh, request.o.stripingId);
 
       rid.setPageID(_lpb->getLogicalPid());
       rid.setSlotID(pos);
@@ -344,7 +344,7 @@ namespace vessel
    void rdpAccessor::updatePageHeadWhenInsert(RECORD_SLOT_ID pos,
                                               const recordSlot &slot,
                                               const normalRecordHead &rh,
-                                              STRIPING_ID striping)
+                                              const dmsStripingId &striping)
    {
       SDB_ASSERT(NULL != _lpb && _lpb->isWritable(), "can not be null");
       SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
@@ -404,22 +404,22 @@ namespace vessel
    }
 
    void rdpAccessor::updateStripingInfo(recordDataPageHead *head,
-                                        STRIPING_ID striping)
+                                        const dmsStripingId &striping)
    {
       SDB_ASSERT(NULL != head, "can not be null");
 
-      if (INVALID_STRIPING_ID != striping)
+      if (striping.isValid())
       {
-         if (INVALID_STRIPING_ID == head->minStriping ||
-             striping < head->minStriping)
+         dmsStripingId min(head->minStriping);
+         if (!min.isValid() || striping < min)
          {
-            head->minStriping = striping;
+            head->minStriping = striping.getValue();
          }
 
-         if (INVALID_STRIPING_ID == head->maxStriping ||
-             striping > head->maxStriping)
+         dmsStripingId max(head->maxStriping);
+         if (!max.isValid() || max < striping)
          {
-            head->maxStriping = striping;
+            head->maxStriping = striping.getValue();
          } 
       }
    }
@@ -631,7 +631,7 @@ namespace vessel
 
    INT32 rdpAccessor::updateNormalRecord(dmlContext *context,
                                          RECORD_SLOT_ID pos,
-                                         STRIPING_ID striping,
+                                         const dmsStripingId &striping,
                                          const slice &newRowData,
                                          BOOLEAN &outOfSpace)
    {
@@ -711,7 +711,7 @@ namespace vessel
 
    INT32 rdpAccessor::inplaceUpdate(dmlContext *context,
                                     RECORD_SLOT_ID pos,
-                                    STRIPING_ID striping,
+                                    const dmsStripingId &striping,
                                     const slice &row)
    {
       INT32 rc = SDB_OK;

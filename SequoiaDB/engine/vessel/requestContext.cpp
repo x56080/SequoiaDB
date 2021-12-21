@@ -39,7 +39,6 @@
 #include "vessel/atomicOperationList.h"
 #include "vessel/objectLatchHelper.hpp"
 #include "vessel/runtimeMbContext.h"
-#include "vessel/outerResource.h"
 
 namespace engine
 {
@@ -53,18 +52,16 @@ namespace vessel
    }
 
    void requestContext::open(IExecutor *executor,
-                              instanceEnv *env,
-                              outerResource *outer)
+                              instanceEnv *env)
    {
       SDB_ASSERT(NULL != executor, "can not be null");
       SDB_ASSERT(NULL != env, "can not be null");
-      SDB_ASSERT(NULL != outer, "can not be null");
+      SDB_ASSERT(env->resource.isValid(), "can not be invalid");
       SDB_ASSERT(NULL == _executor, "do not reinit");
       _close();
 
       _executor = executor;
       _env = env;
-      _outerResource = outer;
       return;
    }
 
@@ -90,7 +87,6 @@ namespace vessel
 
       _executor = NULL;
       _env = NULL;
-      _outerResource = NULL;
       
       _sba.clearBufferAllocated();
       _oplist = NULL;
@@ -98,6 +94,12 @@ namespace vessel
       
    done:
      return;
+   }
+
+   outerResource *requestContext::getOuterResource()const
+   {
+      SDB_ASSERT(NULL != _env, "can not be null");
+      return &(_env->resource);
    }
 
    CHAR *requestContext::allocateBuffer(UINT32 size)
@@ -831,12 +833,19 @@ namespace vessel
       console = getOuterResource()->transLockConsole;
       dmsRid = rid.toDMSRid();
       lockId = dpsTransLockId(_sid, _mbID, &dmsRid);
-      rc = console->tryAcquire(getExecutor(), lockId, mode, NULL, NULL, locked);
-      if (SDB_OK != rc)
+      rc = console->tryAcquire(getExecutor(), lockId, mode, NULL, NULL);
+      if (SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc)
+      {
+         rc = SDB_OK;
+         goto done;
+      }
+      else if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock rid:%s, rc:%d", rid.toString().c_str(), rc);
          goto error;
       }
+
+      locked = TRUE;
 
    done:
       return rc;

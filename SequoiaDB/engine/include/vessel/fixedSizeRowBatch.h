@@ -46,7 +46,10 @@ namespace vessel
    {
       public:
          fixedSizeRowBatch(){}
-         virtual ~fixedSizeRowBatch(){}
+         virtual ~fixedSizeRowBatch();
+
+      public:
+         void init(UINT32 bufferSize, BOOLEAN adaptFirstRow=FALSE);
 
       public:
          virtual UINT32 getRowCount()const;
@@ -58,6 +61,31 @@ namespace vessel
          virtual void clearRows();
 
       private:
+         INT32 reallocBuffer(UINT32 size);
+
+      private:
+#pragma pack(4)
+         struct _tag
+         {
+            UINT32 offset = 0;
+            UINT32 size = 0;
+         };//struct _tag
+#pragma pack()
+         OSS_INLINE UINT32 getFrontOffset()const
+         {
+            return _rowCount << 3;
+         }
+         OSS_INLINE UINT32 getSavingSize(UINT32 rowSize)const
+         {
+            return sizeof(_tag) + rowSize;
+         }
+         OSS_INLINE BOOLEAN isOverSizeRow(UINT32 rowSize)const
+         {
+            return _bufferSize < getSavingSize(rowSize);
+         }
+
+      private:
+         BOOLEAN _adaptFirstRow = FALSE;
          UINT32 _bufferSize = 0;
          CHAR *_buffer = NULL;
          UINT32 _rowCount = 0;

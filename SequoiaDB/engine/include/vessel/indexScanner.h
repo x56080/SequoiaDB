@@ -40,7 +40,6 @@
 #include "vessel/indexObject.h"
 #include "vessel/recordID.h"
 #include "vessel/indexIterator.h"
-#include "vessel/collectionOptions.h"
 
 namespace engine
 {

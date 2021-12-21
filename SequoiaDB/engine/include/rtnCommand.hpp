@@ -621,6 +621,7 @@ namespace engine
          INT32                      _pageSize ;
          INT32                      _lobPageSize ;
          DMS_STORAGE_TYPE           _storageType ;
+         bson::BSONObj              _options;
    };
 
    class _rtnCreateIndex : public _rtnCommand

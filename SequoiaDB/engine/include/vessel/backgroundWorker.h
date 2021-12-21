@@ -62,12 +62,10 @@ namespace vessel
       public:
          BOOLEAN isValid()const
          {
-            return NULL != _outer &&
-                   NULL != _env &&
+            return NULL != _env &&
                    NULL != _el;
          }
-         void init(outerResource *outer,
-                   instanceEnv *env,
+         void init(instanceEnv *env,
                    autoEventList<backgroundEvent> *el,
                    std::atomic_int *counter);
 
@@ -84,7 +82,6 @@ namespace vessel
                                        backgroundEvent &event);
 
       private:
-         outerResource *_outer = NULL;
          instanceEnv *_env = NULL;
          autoEventList<backgroundEvent> *_el = NULL;
          ossEvent _attachEvent;

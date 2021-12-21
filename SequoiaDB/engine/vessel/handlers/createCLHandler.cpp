@@ -39,6 +39,7 @@
 #include "vessel/createCLHandler.h"
 #include "vessel/instanceEnv.h"
 #include "vessel/collectionSpace.h"
+#include "utilFullNameParser.hpp"
 
 namespace engine
 {
@@ -54,37 +55,52 @@ namespace vessel
       
    }
 
-   INT32 createCLHandler::doit(const strSlice &csName,
-                               const strSlice &clName,
-                               utilCLInnerID innerID,
-                               const createCLOptions &options)
+   INT32 createCLHandler::doit(const CHAR *fullName,
+                               const utilCLUniqueID &uniqueId,
+                               const dmsCreateCLOptions &o,
+                               const bson::BSONObj &adjunct)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isInitialized(), "can not be null");
       collectionSpace *csObj = NULL;
       requestContext context;
+      utilFullNameParser parser;
+      const CHAR *clName = NULL;
+      strSlice clNameSlice;
+      strSlice csName;
+      createCLOptions options;
 
-      rc = validateOptions(csName, clName, options);
-      if (SDB_OK != rc)
+      if (OSS_UNLIKELY(!isInitialized()))
       {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
-      if (OSS_UNLIKELY(!isInitialized()))
+      if (!parser.parse(fullName, &clName))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      context.open(getExecutor(), getEnv(), getOuterResource());
+      clNameSlice.reset(clName);
+      if (DMS_COLLECTION_NAME_SZ < clNameSlice.strLen())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
 
+      options.compressionType = o.compressor;
+
+      context.open(getExecutor(), getEnv());
+      csName.reset(parser.getCSName());
       rc = getEnv()->dms.getCSByName(&context, csName, SHARED, &csObj);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = csObj->createCL(&context, clName, innerID, options);
+      rc = csObj->createCL(&context, clNameSlice,
+                           utilGetCLInnerID(uniqueId), options);
       if (SDB_OK != rc)
       {
          goto error;
@@ -100,35 +116,5 @@ namespace vessel
       goto done;
    }
 
-   INT32 createCLHandler::validateOptions(const strSlice &csName,
-                                          const strSlice &clName,
-                                          const createCLOptions &options)
-   {
-      INT32 rc = SDB_OK;
-      if (csName.empty())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (clName.empty())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (DMS_COLLECTION_NAME_SZ < clName.strLen())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (!options.isValid())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
 }//namespace vessel
 }//namespace engine

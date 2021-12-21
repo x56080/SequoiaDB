@@ -41,68 +41,37 @@
 #include "pdTrace.hpp"
 #include "vessel/instanceEnv.h"
 
-
-
 namespace engine
 {
 namespace vessel
 {
    INT32 createIndexHandler::doit(const globalCollectionId &gcid,
-                                  const strSlice &indexName,
-                                  const bson::BSONObj &keyPattern,
-                                  const indexParameters &params,
-                                  const createIndexOptions &options)
+                                  const dmsBuildIndexOptions &options,
+                                  const bson::BSONObj &adjunct)
    {
       INT32 rc = SDB_OK;
-      collectionSpace *cs = NULL;
-      collection *cl = NULL;
+      COLLECTION_PTR cl;
       requestContext context;
-      indexKeyPattern pattern;
 
       if (OSS_UNLIKELY(!isInitialized()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (!gcid.isValid())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (indexName.empty() ||
-               keyPattern.isEmpty() ||
-               !params.isValid())
+      else if (!gcid.isValid() || adjunct.isEmpty())
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = pattern.set(keyPattern);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to build key pattern from obj[%s], rc%d",
-                keyPattern.toString().c_str(), rc);
-         goto error;
-      }
-      
-      context.open(getExecutor(), getEnv(), getOuterResource());
-      rc = getEnv()->dms.getCSBySpaceID(&context,
-                                        gcid.getSpaceId(),
-                                        gcid.getCSLid(),
-                                        SHARED, &cs);
+      context.open(getExecutor(), getEnv());
+      rc = requestHandler::getCollectionObject(&context, gcid, SHARED, cl);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = cs->getCollectionByMBID(&context, gcid.getMbId(),
-                                   gcid.getCLLid(), SHARED, &cl);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = cl->createIndex(&context, indexName, pattern, params, options);
+      rc = cl->createIndex(&context, options, adjunct);
       if (SDB_OK != rc)
       {
          goto error;

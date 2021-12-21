@@ -42,6 +42,7 @@
 #include "vessel/slice.h"
 #include "vessel/strictBuffer.h"
 #include "vessel/dmlRequest.h"
+#include "dmsStripingId.hpp"
 
 namespace engine
 {
@@ -71,7 +72,7 @@ namespace vessel
 
          INT32 updateNormalRecord(dmlContext *context,
                                   RECORD_SLOT_ID pos,
-                                  STRIPING_ID striping,
+                                  const dmsStripingId &striping,
                                   const slice &newRowData,
                                   BOOLEAN &outOfSpace);
 
@@ -103,10 +104,10 @@ namespace vessel
          void updatePageHeadWhenInsert(RECORD_SLOT_ID pos,
                                        const recordSlot &slot,
                                        const normalRecordHead &rh,
-                                       STRIPING_ID striping);
+                                       const dmsStripingId &striping);
 
          void updateStripingInfo(recordDataPageHead *head,
-                                 STRIPING_ID striping);
+                                 const dmsStripingId &striping);
          void updateMaxTransSN(recordDataPageHead *head,
                                UINT64 transSN);
 
@@ -125,7 +126,7 @@ namespace vessel
       private:
          INT32 inplaceUpdate(dmlContext *context,
                              RECORD_SLOT_ID pos,
-                             STRIPING_ID striping,
+                             const dmsStripingId &striping,
                              const slice &row);
 
       private:

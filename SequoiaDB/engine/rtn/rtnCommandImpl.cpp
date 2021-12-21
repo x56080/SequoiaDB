@@ -54,6 +54,7 @@
 #include "rtnContextDel.hpp"
 #include "ossMemPool.hpp"
 #include "rtnTSClt.hpp"
+#include "dmsEngineCB.hpp"
 
 using namespace bson ;
 

@@ -40,9 +40,8 @@
 #include "vessel/indexHandle.h"
 #include "rtnPredicate.hpp"
 #include "vessel/unorderedRidSet.h"
-#include "vessel/collectionOptions.h"
 #include "vessel/slice.h"
-#include "vessel/indexContext.h"
+#include "dmsEngineOptions.hpp"
 
 namespace engine
 {
@@ -61,7 +60,7 @@ namespace vessel
          const indexHandle &getHandle()const;
          rtnPredicateListIterator *getPredicate()const;
 
-         const indexScanOptions &getOptions()const;
+         const dmsIndexScanOptions &getOptions()const;
          const indexScanCursor *getCursor()const
          {
             return _cursor;

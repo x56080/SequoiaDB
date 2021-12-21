@@ -145,11 +145,9 @@ INT32 dummyTransLockConsole::tryAcquire(IExecutor *executor,
                                        const dpsTransLockId &lockId,
                                        const DPS_TRANSLOCK_TYPE &mode,
                                        dpsTransRetInfo *pdpsTxResInfo,
-                                       _dpsITransLockCallback *callback,
-                                       BOOLEAN &locked)
+                                       _dpsITransLockCallback *callback)
 {
    INT32 rc = SDB_OK;
-   locked = FALSE;
    ossSharedLatchMode m;
    test_executor *te = dynamic_cast<test_executor *>(executor);
    if (NULL == te)
@@ -188,14 +186,15 @@ INT32 dummyTransLockConsole::tryAcquire(IExecutor *executor,
       }
 
 
-      locked = o.getValue().tryLockWith(m);
-      if (locked)
+      if (o.getValue().tryLockWith(m))
       {
          te->_locked[lockId] = m;
       }
       else
       {
          _lm.release(o);
+         rc = SDB_DPS_TRANS_LOCK_INCOMPATIBLE;
+         goto error;
       }
    }
 done:
@@ -210,8 +209,7 @@ INT32 dummyTransLockConsole::testAcquire(IExecutor *executor,
                                  BOOLEAN preemptMode,
                                  dpsTransRetInfo *pdpsTxResInfo,
                                  _dpsITransLockCallback *callback,
-                                 BOOLEAN intentLock,
-                                 BOOLEAN &compatible)
+                                 BOOLEAN intentLock)
 {
    SDB_ASSERT(FALSE, "not implemented");
    return SDB_VESSEL_INTERNAL_ERR;

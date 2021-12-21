@@ -44,7 +44,6 @@
 #include "vessel/listCollectionsDef.h"
 #include "utilInsertResult.hpp"
 #include "vessel/freeSpaceMap.h"
-#include "vessel/indexOptions.h"
 #include "vessel/indexKeyPattern.h"
 #include "vessel/collectionOptions.h"
 #include "vessel/indexParameters.h"
@@ -67,7 +66,6 @@ namespace vessel
    class requestContext;
    class insertContext;
    class scanCLCursor;
-   class IQueryFilter;
    class dmlContext;
    class buildingIndexContext;
    class indexScanContext;
@@ -130,10 +128,8 @@ namespace vessel
 
       public:
          INT32 createIndex(requestContext *context,
-                           const strSlice &indexName,
-                           const indexKeyPattern &keyPattern,
-                           const indexParameters &params,
-                           const createIndexOptions &options);
+                           const dmsBuildIndexOptions &o,
+                           const bson::BSONObj &adjunct);
 
          INT32 listIndexes(requestContext *context,
                            ossPoolVector<bson::BSONObj> &indexes);
@@ -241,12 +237,12 @@ namespace vessel
 
          INT32 updateRecordData(dmlContext *context,
                                 const modifyRecordContext *mrc,
-                                STRIPING_ID stripingId,
+                                const dmsStripingId &striping,
                                 const slice &newRecord);
 
          INT32 updateNormalRecord(dmlContext *context,
                                   const recordID &rid,
-                                  STRIPING_ID stripingId,
+                                  const dmsStripingId &striping,
                                   const slice &newRecord);
 
          INT32 removeRecordData(dmlContext *context,
@@ -258,7 +254,7 @@ namespace vessel
       private:
          INT32 findCandidate(requestContext *context,
                              INT32 lvl,
-                             STRIPING_ID striping,
+                             const dmsStripingId &striping,
                              fsmCandidate &candidate);
          
          /// user should hold _extendingLatch first
@@ -331,7 +327,7 @@ namespace vessel
          INT32 buildIndexInContext(requestContext *context,
                                    INT32 indexSlot,
                                    INDEX_TYPE type,
-                                   const buildIndexOptions &o);
+                                   const dmsBuildIndexOptions &o);
 
          /// unstable context must be created first.
          INT32 onlineBuildIndex(requestContext *context,

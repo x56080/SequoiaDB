@@ -40,6 +40,7 @@
 #include "dms.hpp"
 #include "xxHashInc.h"
 #include "ossMemPool.hpp"
+#include "pdTrace.hpp"
 
 namespace engine
 {
@@ -154,19 +155,21 @@ namespace vessel
             return dmsRecordID();
          }
 
-         OSS_INLINE void reset(const dmsRecordID &rid)
+         OSS_INLINE void resetByDmsRid(const dmsRecordID &rid)
          {
-            if (rid.isValid())
+            reset();
+            if (rid.isValid() && rid._offset < 65535)
             {
-               SDB_ASSERT(rid._offset < INVALID_RECORD_SLOT_ID, "out of bound");
                _page = rid._extent;
                _slot = rid._offset;
             }
-            else
-            {
-               _page = INVALID_PAGE_ID;
-               _slot = INVALID_RECORD_SLOT_ID;
-            }
+            return;
+         }
+
+         OSS_INLINE void reset()
+         {
+            _page = INVALID_PAGE_ID;
+            _slot = INVALID_RECORD_SLOT_ID;
          }
 
          OSS_INLINE UINT32 hash()const

@@ -46,6 +46,7 @@
 #include "vessel/lsm/lsmDB.hpp"
 #include "vessel/backgroundWorkers.h"
 #include "vessel/liteCacheWatcher.h"
+#include "vessel/outerResource.h"
 
 namespace engine
 {
@@ -73,6 +74,8 @@ namespace vessel
          lsmDB *lsm = NULL;
          liteCacheWatcher cacheWatcher;
          backgroundWorkers workers;
+
+         outerResource resource;
 
    }; /// end of class instanceEnv
 } /// end of namespace vessel

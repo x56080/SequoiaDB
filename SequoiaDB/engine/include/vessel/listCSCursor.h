@@ -39,6 +39,7 @@
 #include "vessel/cursorKernal.h"
 #include "ossMemPool.hpp"
 #include "dms.hpp"
+#include "interface/IRecordFilter.h"
 
 namespace engine
 {

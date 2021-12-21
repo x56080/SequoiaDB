@@ -39,6 +39,7 @@
 #include "dms.hpp"
 #include "vessel/storageFileDef.h"
 #include "../bson/bson.hpp"
+#include "dmsEngineOptions.hpp"
 
 namespace engine
 {
@@ -55,6 +56,7 @@ namespace vessel
          BOOLEAN isValid()const;
          bson::BSONObj toBson()const;
          BOOLEAN loadFromBson(const bson::BSONObj &obj);
+         void init(const dmsCreateCSOptions &o);
 
       public:
          UINT32 dataPageSize = DMS_PAGE_SIZE32K;

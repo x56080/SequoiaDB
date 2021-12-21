@@ -66,21 +66,29 @@ namespace vessel
    void indexParameters::exportToBson(bson::BSONObjBuilder &builder)const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
-      builder.append(VESSEL_INDEX_FIELD_NAME_TYPE, type);
+      if (INDEX_TYPE_LSM == type)
+      {
+         builder.append(IXM_TYPE_FIELD, IXM_LSM_FIELD);
+      }
+      else if (INDEX_TYPE_BTREE == type)
+      {
+         builder.append(IXM_TYPE_FIELD, IXM_BTREE_FIELD);
+      }
+      
       builder.appendBool(IXM_UNIQUE_FIELD, isUnique);
       builder.appendBool(IXM_ENFORCED_FIELD, enforeced);
       builder.appendBool(IXM_NOTNULL_FIELD, notNull);
       builder.appendBool(IXM_NOTARRAY_FIELD, notArray);
       if (INDEX_TYPE_BTREE == type)
       {
-         builder.append(VESSEL_INDEX_FIELD_NAME_BTREE_MAX_PREFIX_FIELDS,
+         builder.append(IXM_MAX_PREFIX_FIELD,
                         btreeMaxPrefixFields);
-         builder.append(VESSEL_INDEX_FIELD_NAME_BTREE_MIN_COMPRESSION_DEPTH,
+         builder.append(IXM_BTREE_MIN_COMPRESSION_DELTH_FIELD,
                         btreeMinCompressionDepth);
       }
       if (INDEX_TYPE_LSM == type)
       {
-         builder.append(VESSEL_INDEX_FIELD_NAME_COLUMN_FAMILY, columnFamily);
+         builder.append(IXM_COLUMN_FAMILY_FIELD, columnFamily);
       }
       return;
    }
@@ -95,13 +103,24 @@ namespace vessel
          goto done;
       }
 
-      ele = obj.getField(VESSEL_INDEX_FIELD_NAME_TYPE);
-      if (bson::NumberInt != ele.type())
+      ele = obj.getField(IXM_TYPE_FIELD);
+      if (ele.eoo())
+      {
+         type = INDEX_TYPE_LSM;
+      }
+      else if (String != ele.type())
       {
          goto done;
       }
-      type = ele.Int();
-      if (INDEX_TYPE_LSM != type && INDEX_TYPE_BTREE != type)
+      else if (0 == ossStrcmp(ele.valuestr(), IXM_BTREE_FIELD))
+      {
+         type = INDEX_TYPE_BTREE;
+      }
+      else if (0 == ossStrcmp(ele.valuestr(), IXM_LSM_FIELD))
+      {
+         type = INDEX_TYPE_LSM;
+      }
+      else
       {
          goto done;
       }
@@ -111,31 +130,49 @@ namespace vessel
       notNull = obj.getBoolField(IXM_NOTNULL_FIELD);
       notArray = obj.getBoolField(IXM_NOTARRAY_FIELD);
 
-      if (INDEX_TYPE_LSM == type)
-      {
-         ele = obj.getField(VESSEL_INDEX_FIELD_NAME_COLUMN_FAMILY);
-         if (!ele.isNumber())
-         {
-            goto done;
-         }
-         columnFamily = ele.Number();
-      }
-
       if (INDEX_TYPE_BTREE == type)
       {
-         ele = obj.getField(VESSEL_INDEX_FIELD_NAME_BTREE_MAX_PREFIX_FIELDS);
-         if (!ele.isNumber())
+         ele = obj.getField(IXM_BTREE_COMPRESSION_FIELD);
+         if (ele.eoo())
+         {
+            btreeCompressionEnabled = FALSE;
+         }
+         else if (!ele.isBoolean())
          {
             goto done;
          }
-         btreeMaxPrefixFields = ele.Number();
+         else
+         {
+            btreeCompressionEnabled = ele.booleanSafe();
+         }
 
-         ele = obj.getField(VESSEL_INDEX_FIELD_NAME_BTREE_MIN_COMPRESSION_DEPTH);
-         if (!ele.isNumber())
+         if (btreeCompressionEnabled)
          {
-            goto done;
+            ele = obj.getField(IXM_MAX_PREFIX_FIELD);
+            if (ele.eoo())
+            {
+               btreeMaxPrefixFields = 0;
+            }
+            else if (!ele.isNumber())
+            {
+               goto done;
+            }
+            btreeMaxPrefixFields = ele.numberInt();
+
+            ele = obj.getField(IXM_BTREE_MIN_COMPRESSION_DELTH_FIELD);
+            if (ele.eoo())
+            {
+               btreeMinCompressionDepth = 2;
+            }
+            else if (!ele.isNumber())
+            {
+               goto done;
+            }
+            else
+            {
+               btreeMinCompressionDepth = ele.numberInt();
+            }
          }
-         btreeMinCompressionDepth = ele.Number();
       }
 
       r = isValid();
@@ -149,8 +186,7 @@ namespace vessel
 
    BOOLEAN indexParameters::isPrefixCompressionEnabled()const
    {
-      SDB_ASSERT(isValid(), "can not be invalid");
-      return 0 < btreeMaxPrefixFields;
+      return btreeCompressionEnabled;
    }
 }//namespace vessel
 }//namespace engine

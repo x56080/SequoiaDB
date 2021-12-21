@@ -46,6 +46,8 @@
 #include "ossAtomic.hpp"
 #include "ossRWMutex.hpp"
 
+#include "interface/ITransLockConsole.h"
+
 namespace engine
 {
    class _dpsTransExecutor ;
@@ -69,7 +71,7 @@ namespace engine
 
    #define DPS_LOCK_INVALID_BUCKET_SLOT  ( (UINT32) -1 )
 
-   class dpsTransLockManager : public SDBObject
+   class dpsTransLockManager : public ITransLockConsole
    {
       friend class _dpsTransExecutor ;
    public:
@@ -226,6 +228,36 @@ namespace engine
 
       // search LRB header list by lockId to get dpsLRBExtData pointer
       dpsLRBExtData * getExtDataHdlByLockId( const dpsTransLockId &lockId ) ;
+
+   public:
+      virtual INT32 acquire(IExecutor *executor,
+                            const dpsTransLockId &lockId,
+                            const DPS_TRANSLOCK_TYPE &mode,
+                            _IContext * pContext,
+                            dpsTransRetInfo *pdpsTxResInfo,
+                            _dpsITransLockCallback *callback);
+
+      virtual void release(IExecutor *executor,
+                           const dpsTransLockId &lockId,
+                           BOOLEAN bForceRelease,
+                           _dpsITransLockCallback * callback);
+
+      virtual void releaseAll(IExecutor *executor,
+                              _dpsITransLockCallback *callback);
+
+      virtual INT32 tryAcquire(IExecutor *executor,
+                                 const dpsTransLockId &lockId,
+                                 const DPS_TRANSLOCK_TYPE &mode,
+                                 dpsTransRetInfo *pdpsTxResInfo,
+                                 _dpsITransLockCallback *callback);
+
+      virtual INT32 testAcquire(IExecutor *executor,
+                                 const dpsTransLockId &lockId,
+                                 const DPS_TRANSLOCK_TYPE &mode,
+                                 BOOLEAN preemptMode,
+                                 dpsTransRetInfo *pdpsTxResInfo,
+                                 _dpsITransLockCallback *callback,
+                                 BOOLEAN intentLock);
 
    private:
       // Latch for normal lock operation ( acquire, tryAcquire,

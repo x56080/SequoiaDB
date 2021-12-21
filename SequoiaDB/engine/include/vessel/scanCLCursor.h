@@ -37,9 +37,9 @@
 #define VESSEL_SCAN_CL_CURSOR_H_
 
 #include "vessel/cursorKernal.h"
-#include "vessel/collectionOptions.h"
 #include "vessel/scanEntry.h"
 #include "vessel/objectIdentifier.h"
+#include "dmsEngineOptions.hpp"
 
 namespace engine
 {
@@ -58,7 +58,7 @@ namespace vessel
          }
 
          void resetToScan(const globalCollectionId &gcid,
-                          const collectionScanOptions &options)
+                          const dmsScanOptions &options)
          {
             _gcid = gcid;
             _options = options;
@@ -70,7 +70,7 @@ namespace vessel
          {
             return _gcid;
          }
-         OSS_INLINE const collectionScanOptions &getOptions()const
+         OSS_INLINE const dmsScanOptions &getOptions()const
          {
             return _options;
          }
@@ -97,12 +97,8 @@ namespace vessel
             return _toScan;
          }
 
-      public:
-         virtual INT32 getNextRow(IExecutor *executor,
-                                  cursorRow *row);
-
       private:
-         collectionScanOptions _options;
+         dmsScanOptions _options;
          globalCollectionId _gcid;
          PAGE_ID _lpid = INVALID_PAGE_ID;
          scanEntry _toScan;

@@ -316,10 +316,10 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(rid.isValid(), "can not be invalid");
-      const indexScanOptions &o = _context->getCursor()->getOptions();
+      const dmsIndexScanOptions &o = _context->getCursor()->getOptions();
       locked = FALSE;
 
-      if (o.base.isScanForNone())
+      if (DMS_SCAN_FOR_NONE == o.scanFor)
       {
          ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
          rc = _context->tryLockRid(rid, mode, locked);
@@ -329,7 +329,7 @@ namespace vessel
             goto error;
          }
       }
-      else if (o.base.isScanForUpdate())
+      else if (DMS_SCAN_FOR_UPDATE == o.scanFor)
       {
          rc = _context->tryAcquireTransLock(rid, DPS_TRANSLOCK_U, locked);
          if (SDB_OK != rc)
@@ -360,13 +360,13 @@ namespace vessel
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(rid.isValid(), "can not be invalid");
       
-      const indexScanOptions &o = _context->getCursor()->getOptions();
+      const dmsIndexScanOptions &o = _context->getCursor()->getOptions();
 
-      if (o.base.isScanForNone())
+      if (DMS_SCAN_FOR_NONE == o.scanFor)
       {
          _context->waitRid(rid, ossSharedLatchMode(OSS_SHARED_LATCH_MODE_ENUM_SHARED));
       }
-      else if (o.base.isScanForUpdate())
+      else if (DMS_SCAN_FOR_UPDATE == o.scanFor)
       {
          rc = _context->acquireTransLock(rid, DPS_TRANSLOCK_U);
          if (SDB_OK != rc)

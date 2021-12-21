@@ -76,8 +76,7 @@ namespace vessel
       }
 
       context.open(getExecutor(),
-                   getEnv(),
-                   getOuterResource());
+                   getEnv());
 
       rc = getEnv()->dms.getCSByCollectionSpaceId(&context,
                                                    cursor->getCollectionId().getCSIdentifier(),

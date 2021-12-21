@@ -34,7 +34,6 @@
 ******************************************************************************/
 
 #include "vessel/indexScanCursor.h"
-#include "vessel/dataScanRow.h"
 
 namespace engine
 {
@@ -45,75 +44,19 @@ namespace vessel
       
    }
 
-   INT32 indexScanCursor::getNextRow(IExecutor *executor,
-                                     cursorRow *row)
+   void indexScanCursor::saveEntry(const slice &entryData)
    {
-      INT32 rc = SDB_OK;
-      slice content;
-      const recordID *rid = NULL;
-      const DPS_TRANS_ID *transID = NULL;
-      slice record;
-      dataScanRow *dsr = NULL;
+      SDB_ASSERT(isOpen() && entryData.isValid(), "can not be invalid");
 
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(NULL == row ||
-                             CURSOR_ROW_TYPE_SCAN != row->getType()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      dsr = static_cast<dataScanRow *>(row);
-
-      rc = cursorKernal::getNext(executor, content);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      if (content.getSize() < dataScanRow::MIN_CONTENT_SIZE)
-      {
-         PD_LOG(PDERROR, "invalid content len:%d", content.getSize());
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      rid = (const recordID *)(content.data());
-      transID = (const DPS_TRANS_ID *)((ossValuePtr)(content.data()) + sizeof(recordID));
-      record.reset(content.getSize() - dataScanRow::MIN_CONTENT_SIZE,
-                      (const CHAR *)((ossValuePtr)(content.data()) +
-                       dataScanRow::MIN_CONTENT_SIZE));
-      dsr->shallowCopy(*rid, *transID, record);
-
-   done:
-      return rc;
-   error:
-      goto done;
+      _entry.reset();
+      _entry.appendBuf(entryData.data(), entryData.getSize());
+      return;
    }
 
-   INT32 indexScanCursor::saveEntry(const slice &entryData)
+   slice indexScanCursor::getEntryData()const
    {
-      INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!entryData.isValid()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = _entryData.copy(entryData.getSize(), entryData.data());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to copy entry data:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
+      SDB_ASSERT(isOpen() && hasEntry(), "can not be invalid");
+      return slice(_entry.len(), _entry.buf());
    }
 
    BOOLEAN indexScanCursor::markRidScanned(const recordID &rid)

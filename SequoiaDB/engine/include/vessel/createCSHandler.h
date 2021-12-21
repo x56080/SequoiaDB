@@ -37,10 +37,10 @@
 #define VESSEL_CREATE_CS_HANDLER_H_
 
 #include "vessel/requestHandler.h"
-#include "vessel/requestContext.h"
-#include "vessel/collectionSpaceOptions.h"
 #include "vessel/strSlice.h"
 #include "vessel/objectIdentifier.h"
+#include "dmsEngineOptions.hpp"
+#include "../bson/bson.hpp"
 
 namespace engine
 {
@@ -53,9 +53,10 @@ namespace vessel
          virtual ~createCSHandler();
 
       public:
-         INT32 doit(const CHAR *name,
+         INT32 doit(const strSlice &name,
                     utilCSUniqueID uniqueId,
-                    const createCSOptions &options,
+                    const dmsCreateCSOptions &o,
+                    const bson::BSONObj &adjunct,
                     collectionSpaceId &identifier);
 
       private:

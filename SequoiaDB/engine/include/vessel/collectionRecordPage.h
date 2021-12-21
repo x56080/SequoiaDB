@@ -41,6 +41,7 @@
 #include "vessel/pageDef.h"
 #include "utilCompression.hpp"
 #include "vessel/indexDef.h"
+#include "dmsStripingId.hpp"
 
 namespace engine
 {
@@ -90,7 +91,7 @@ namespace vessel
 
       OSS_INLINE BOOLEAN isStripingMode()const
       {
-         return INVALID_STRIPING_ID != minStriping;
+         return DMS_INVALID_STRIPING_ID != minStriping;
       }
 
       void reset()
@@ -101,8 +102,8 @@ namespace vessel
          innerID = UTIL_UNIQUEID_NULL;
          logicalCLID = DMS_INVALID_LOGICCLID;
          flags = 0;
-         minStriping = INVALID_STRIPING_ID;
-         maxStriping = INVALID_STRIPING_ID;
+         minStriping = DMS_INVALID_STRIPING_ID;
+         maxStriping = DMS_INVALID_STRIPING_ID;
          ossMemset(name, 0, sizeof(name));
          ossMemset(routePages, 0xFF, sizeof(routePages));
          compressionType = UTIL_COMPRESSOR_INVALID;
@@ -117,8 +118,8 @@ namespace vessel
       UINT32 flags = 0;
       UINT32 routePages[COLLECTION_ROUTE_PAGE_SLOT_COUNT] =
       {INVALID_PAGE_ID,INVALID_PAGE_ID, INVALID_PAGE_ID,INVALID_PAGE_ID};
-      UINT16 minStriping = INVALID_STRIPING_ID;
-      UINT16 maxStriping = INVALID_STRIPING_ID;
+      INT32 minStriping = DMS_INVALID_STRIPING_ID;
+      INT32 maxStriping = DMS_INVALID_STRIPING_ID;
       CHAR name[DMS_COLLECTION_NAME_SZ + 1] = {};
       UINT8 compressionType = UTIL_COMPRESSOR_INVALID;
       UINT8 minFreePercent = 0;

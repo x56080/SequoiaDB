@@ -39,7 +39,7 @@
 #include "ossLikely.hpp"
 #include "vessel/requestContext.h"
 #include "vessel/handlers.h"
-#include "vessel/api/IQueryFilter.h"
+#include "interface/IRecordFilter.h"
 #include "vessel/listCSCursor.h"
 #include "vessel/listCLCursor.h"
 #include "vessel/diskIOJob.h"
@@ -49,6 +49,8 @@
 #include "vessel/spaceIDLockHelper.h"
 #include "vessel/indexScanCursor.h"
 #include "vessel/lsm/lsmDB.hpp"
+#include "utilSharedPtrMaker.hpp"
+#include "vessel/api/collectionHandler.h"
 
 namespace engine
 {
@@ -75,10 +77,9 @@ namespace vessel
          goto error;
       }
 
-      context.open(executor, &_env, &_outerResource);
       _open = TRUE;
-      _outerResource = *resource;
       _env.options = options;
+      _env.resource = *resource;
       VESSEL_FILE_GLOBAL_OPTIONS::setSparseExtending(options.sparseExtendingFile);
 
       rc = _env.spaceLocker.init();
@@ -124,6 +125,7 @@ namespace vessel
          goto error;
       }
 
+      context.open(executor, &_env);
       rc = _env.dms.open(&context);
       if (SDB_OK != rc)
       {
@@ -135,7 +137,7 @@ namespace vessel
          backgroundWorkers::options o;
          o.cacheCleaner = options.cacheCleanerCount;
          o.commonWorker = options.commonBackgroundWorkers;
-         rc = _env.workers.init(&_outerResource, &_env, o);
+         rc = _env.workers.init(&_env, o);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to init background workers:%d", rc);
@@ -143,7 +145,7 @@ namespace vessel
          }
       }
 
-      rc = _env.cacheWatcher.init(&_env, &_outerResource);
+      rc = _env.cacheWatcher.init(&_env);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init cache watcher:%d", rc);
@@ -162,7 +164,7 @@ namespace vessel
       if (isOpen() && closeDBOptions::CLOSE_MODE_NORMAL == options.closeMode)
       {
          requestContext context;
-         context.open(executor, &_env, &_outerResource);
+         context.open(executor, &_env);
 
          _env.cacheWatcher.fini();
          if (NULL != _env.lsm)
@@ -182,50 +184,12 @@ namespace vessel
       goto done;
    }
 
-   INT32 vesselImpl::listCollectionSpace(IExecutor *executor,
-                                         IQueryFilter *filter,
-                                         cursorHandler &cursor)
+   INT32 vesselImpl::getCSCount(IExecutor *executor,
+                                UINT32 &count)
    {
       INT32 rc = SDB_OK;
-      listCSCursor *listCursor = NULL;
-      if (OSS_UNLIKELY(NULL == executor))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
+      count = 0;
 
-      listCursor = SDB_OSS_NEW listCSCursor();
-      if (NULL == listCursor)
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-
-      rc = listCursor->open(this, filter);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      
-      cursor = cursorHandler(listCursor);
-      listCursor = NULL;
-   done:
-      return rc;
-   error:
-      SAFE_OSS_DELETE(listCursor);
-      goto done;
-   }
-
-   INT32 vesselImpl::getCollectionSpaceCount(IExecutor *executor,
-                                             UINT32 &count)
-   {
-      INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_INVALIDARG;
@@ -239,24 +203,17 @@ namespace vessel
       goto done;
    }
 
-   INT32 vesselImpl::createCollectionSpace(IExecutor *executor,
-                                             const CHAR *name,
-                                             utilCSUniqueID uniqueId,
-                                             const createCSOptions &options)
-   {
-      collectionSpaceId identifier;
-      return createCollectionSpace(executor, name, uniqueId, options, identifier);
-   }
-
-   INT32 vesselImpl::createCollectionSpace(IExecutor *executor,
-                                           const CHAR *name,
-                                           utilCSUniqueID uniqueId,
-                                           const createCSOptions &options,
-                                           collectionSpaceId &identifier)
+   INT32 vesselImpl::createCS(IExecutor *executor,
+                              const CHAR *name,
+                              const utilCSUniqueID &uniqueId,
+                              const dmsCreateCSOptions &o,
+                              const bson::BSONObj &adjunct)
    {
       INT32 rc = SDB_OK;
       createCSHandler handler;
-
+      collectionSpaceId identifier;
+      strSlice csName;
+      
       if (OSS_UNLIKELY(NULL == executor ||
                        NULL == name))
       {
@@ -269,9 +226,10 @@ namespace vessel
          goto error;
       }
 
-      handler.init(&_env, executor, &_outerResource);
+      handler.init(&_env, executor);
+      csName.reset(name);
 
-      rc = handler.doit(name, uniqueId, options, identifier);
+      rc = handler.doit(csName, uniqueId, o, adjunct, identifier);
       if (SDB_OK != rc)
       {
          goto error;
@@ -283,13 +241,14 @@ namespace vessel
       goto done;
    }
 
-   INT32 vesselImpl::testCollectionSpace(IExecutor *executor,
-                                         const CHAR *name,
-                                         collectionSpaceId &identifier)
+   INT32 vesselImpl::testCS(IExecutor *executor,
+                            const CHAR *name,
+                            utilCSUniqueID &uniqueId)
    {
       INT32 rc = SDB_OK;
 
       requestContext context;
+      collectionSpaceId identifier;
 
       if (OSS_UNLIKELY(NULL == executor ||
                        NULL == name))
@@ -303,62 +262,86 @@ namespace vessel
          goto error;
       }
 
-      context.open(executor, &_env, &_outerResource);
+      context.open(executor, &_env);
       rc = _env.dms.testCS(&context, strSlice(name), identifier);
       if (SDB_OK != rc)
       {
          goto error;
       }
+
+      uniqueId = identifier.getUniqueId();
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 vesselImpl::dropCollectionSpace(IExecutor *executor,
-                                         const CHAR *name,
-                                         UINT32 logicalID,
-                                         const dropCSOptions &options)
+   INT32 vesselImpl::testCS(IExecutor *executor,
+                            const utilCSUniqueID &uniqueId)
+   {
+      SDB_ASSERT(FALSE, "TODO");
+      return SDB_OK;
+   }
+
+   INT32 vesselImpl::listCS(IExecutor *executor,
+                            DATA_CURSOR_PTR &cursor)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(NULL == executor ||
-          NULL == name ||
-          DMS_COLLECTION_SPACE_NAME_SZ < ossStrlen(name) ||
-          DMS_INVALID_LOGICCSID == logicalID))
+      listCSCursor *listCursor = NULL;
+      cursor.reset();
+
+      if (OSS_UNLIKELY(NULL == executor))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      if (OSS_UNLIKELY(!isOpen()))
+      cursor = makeSharedPtrFromPool<listCSCursor>();
+      if (!cursor)
       {
-         rc = SDB_INVALIDARG;
+         PD_LOG(PDERROR, "failed to allocate mem.");
+         rc = SDB_OOM;
          goto error;
       }
+
+      listCursor = static_cast<listCSCursor *>(cursor.get());
+      rc = listCursor->open(this);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+      
    done:
       return rc;
    error:
+      cursor.reset();
       goto done;
    }
 
-   INT32 vesselImpl::createCollection(IExecutor *executor,
-                                        const CHAR *csName,
-                                        const CHAR* clName,
-                                        utilCLInnerID innerID,
-                                        const createCLOptions &options)
-   {
+   INT32 vesselImpl::createCL(IExecutor *executor,
+                              const CHAR *fullName,
+                              const utilCLUniqueID &uniqueId,
+                              const dmsCreateCLOptions &o,
+                              const bson::BSONObj &adjunct)
+{
       INT32 rc = SDB_OK;
       createCLHandler handler;
 
-      if (OSS_UNLIKELY(!isOpen()))
+      if (OSS_UNLIKELY(!isOpen() ||
+                       NULL == fullName))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
-      handler.init(&_env, executor, &_outerResource);
+      handler.init(&_env, executor);
 
-      rc = handler.doit(strSlice(csName), strSlice(clName), innerID, options);
+      rc = handler.doit(fullName, uniqueId, o, adjunct);
       if (SDB_OK != rc)
       {
          goto error;
@@ -370,15 +353,15 @@ namespace vessel
       goto done;
    }
 
-   INT32 vesselImpl::listCollections(IExecutor *executor,
-                                     const CHAR *csName,
-                                     IQueryFilter *filter,
-                                     cursorHandler &cursor)
+   INT32 vesselImpl::listCL(IExecutor *executor,
+                            const CHAR *csName,
+                            DATA_CURSOR_PTR &cursor)
    {
       INT32 rc = SDB_OK;
       listCLCursor *listCursor = NULL;
       requestContext context;
       collectionSpaceId identifier;
+      cursor.reset();
 
       if (OSS_UNLIKELY(NULL == executor || NULL == csName))
       {
@@ -391,47 +374,46 @@ namespace vessel
          goto error;
       }
 
-      context.open(executor, &_env, &_outerResource);
+      context.open(executor, &_env);
       rc = _env.dms.testCS(&context, strSlice(csName), identifier);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      listCursor = SDB_OSS_NEW listCLCursor();
-      if (NULL == listCursor)
+      cursor = makeSharedPtrFromPool<listCLCursor>();
+      if (OSS_UNLIKELY(!cursor))
       {
-         PD_LOG(PDERROR, "failed to allocate mem");
+         PD_LOG(PDERROR, "failed to allocate mem.");
          rc = SDB_OOM;
          goto error;
       }
 
-      rc = listCursor->open(this, filter);
+      listCursor = static_cast<listCLCursor *>(cursor.get());
+
+      rc = listCursor->open(this);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      listCursor->setCollectionSpace(identifier.getLid(), identifier.getSpaceId());
-
-      cursor = cursorHandler(listCursor);
-
-      listCursor = NULL;
+      listCursor->setCollectionSpace(identifier);
    done:
       context.close();
       return rc;
    error:
-      SAFE_OSS_DELETE(listCursor);
+      cursor.reset();
       goto done;
    }
 
-   INT32 vesselImpl::getCollectionCount(IExecutor *executor,
-                                        const CHAR *csName,
-                                        UINT32 &count)
+   INT32 vesselImpl::getCLCount(IExecutor *executor,
+                                const CHAR *csName,
+                                UINT32 &count)
    {
       INT32 rc = SDB_OK;
       requestContext context;
       collectionSpace *obj = NULL;
+      count = 0;
 
       if (OSS_UNLIKELY(NULL == executor || NULL == csName))
       {
@@ -444,7 +426,7 @@ namespace vessel
          goto error;
       }
 
-      context.open(executor, &_env, &_outerResource);
+      context.open(executor, &_env);
 
       rc = _env.dms.getCSByName(&context, strSlice(csName), SHARED, &obj);
       if (SDB_OK != rc)
@@ -453,25 +435,27 @@ namespace vessel
       }
 
       count = obj->getCollectionCount();
-      context.unlockSpaceID();
    done:
+      context.close();
       return rc;
    error:
       goto done;
    }
 
-   INT32 vesselImpl::openCollection(IExecutor *executor,
-                                    const CHAR *csName,
-                                    const CHAR *clName,
-                                    const openCLOptions &options,
-                                    collectionHandler &handler)
+   INT32 vesselImpl::openCL(IExecutor *executor,
+                            const CHAR *fullName,
+                            const dmsOpenCLOptions &o,
+                            DATA_COLLECTION_PTR &ptr)
    {
       INT32 rc = SDB_OK;
       openCLHandler h;
+      globalCollectionId gcid;
+      collectionHandler *clHandler = NULL;
+
+      ptr.reset();
       
       if (OSS_UNLIKELY(NULL == executor ||
-                       NULL == csName ||
-                       NULL == clName))
+                       NULL == fullName))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -482,19 +466,75 @@ namespace vessel
          goto error;
       }
 
-      h.init(&_env, executor, &_outerResource);
+      ptr = makeSharedPtrFromPool<collectionHandler>();
+      if (!ptr)
+      {
+         PD_LOG(PDERROR, "failed to allocate mem.");
+         rc = SDB_OOM;
+         goto error;
+      }
 
-      rc = h.doit(this, strSlice(csName), strSlice(clName), options, handler);
+      clHandler = static_cast<collectionHandler *>(ptr.get());
+
+      h.init(&_env, executor);
+
+      rc = h.doit(fullName, gcid);
       if (SDB_OK != rc)
       {
          goto error;
       }
+
+      *clHandler = collectionHandler(this, gcid);
+   done:
+      return rc;
+   error:
+      ptr.reset();
+      goto done;
+   }
+
+   INT32 vesselImpl::testCL(IExecutor *executor,
+                            const CHAR *fullName,
+                            utilCLUniqueID &uniqueId)
+   {
+      INT32 rc = SDB_OK;
+      openCLHandler h;
+      globalCollectionId gcid;
+
+      uniqueId = UTIL_UNIQUEID_NULL;
+
+      if (OSS_UNLIKELY(NULL == executor ||
+                       NULL == fullName))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      h.init(&_env, executor);
+
+      rc = h.doit(fullName, gcid);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      uniqueId = gcid.getUniqueId();
    done:
       return rc;
    error:
       goto done;
    }
 
+   INT32 vesselImpl::testCL(IExecutor *executor,
+                            const utilCLUniqueID &uniqueId)
+   {
+      SDB_ASSERT(FALSE, "TODO");
+      return SDB_OK;
+   }
 
    INT32 vesselImpl::pushMoreToCursor(IExecutor *executor,
                                       cursorKernal *cursor)
@@ -514,7 +554,7 @@ namespace vessel
       case CURSOR_TYPE_LIST_COLLECTION_SPACE:
       {
          listCollectionSpaceHandler handler;
-         handler.init(&_env, executor, &_outerResource);
+         handler.init(&_env, executor);
 
          rc = handler.doit(static_cast<listCSCursor*>(cursor));
          if (SDB_OK != rc)
@@ -527,7 +567,7 @@ namespace vessel
       case CURSOR_TYPE_LIST_COLLECTION:
       {
          listCollectionsHandler handler;
-         handler.init(&_env, executor, &_outerResource);
+         handler.init(&_env, executor);
 
          rc = handler.doit(static_cast<listCLCursor*>(cursor));
          if (SDB_OK != rc)
@@ -539,7 +579,7 @@ namespace vessel
       case CURSOR_TYPE_SCAN_COLLECTION:
       {
          scanCLHandler handler;
-         handler.init(&_env, executor, &_outerResource);
+         handler.init(&_env, executor);
          rc = handler.doit(static_cast<scanCLCursor*>(cursor));
          if (SDB_OK != rc)
          {
@@ -550,7 +590,7 @@ namespace vessel
       case CURSOR_TYPE_INDEX_SCAN:
       {
          indexScanHandler handler;
-         handler.init(&_env, executor, &_outerResource);
+         handler.init(&_env, executor);
 
          rc = handler.doit(static_cast<indexScanCursor*>(cursor));
          if (SDB_OK != rc)
@@ -571,10 +611,8 @@ namespace vessel
 
    INT32 vesselImpl::createIndex(IExecutor *executor,
                                  const globalCollectionId &gcid,
-                                 const strSlice &indexName,
-                                 const bson::BSONObj &keyPattern,
-                                 const indexParameters &params,
-                                 const createIndexOptions &options)
+                                 const dmsBuildIndexOptions &o,
+                                 const bson::BSONObj &adjunct)
    {
       INT32 rc = SDB_OK;
       createIndexHandler handler;
@@ -590,9 +628,9 @@ namespace vessel
          goto error;
       }
 
-      handler.init(&_env, executor, &_outerResource);
+      handler.init(&_env, executor);
 
-      rc = handler.doit(gcid, indexName, keyPattern, params, options);
+      rc = handler.doit(gcid, o, adjunct);
       if (SDB_OK != rc)
       {
          goto error;
@@ -625,7 +663,7 @@ namespace vessel
          goto error;
       }
 
-      context.open(executor, &_env, &_outerResource);
+      context.open(executor, &_env);
       rc = lh.lock(gcid.getSpaceId(), SHARED);
       if (SDB_OK != rc)
       {
@@ -683,7 +721,7 @@ namespace vessel
          goto error;
       }
 
-      handler.init(&_env, executor, &_outerResource);
+      handler.init(&_env, executor);
 
       rc = handler.insert(gcid, request, res);
       if (SDB_OK != rc)
@@ -716,7 +754,7 @@ namespace vessel
          goto error;
       }
 
-      handler.init(&_env, executor, &_outerResource);
+      handler.init(&_env, executor);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          PD_LOG(PDERROR, "failed to init handler:%d", rc);
@@ -757,7 +795,7 @@ namespace vessel
          goto error;
       }
 
-      handler.init(&_env, executor, &_outerResource);
+      handler.init(&_env, executor);
       rc = handler.update(gcid, request, updater, res);
       if (SDB_OK != rc)
       {
@@ -790,7 +828,7 @@ namespace vessel
          goto error;
       }
 
-      handler.init(&_env, executor, &_outerResource);
+      handler.init(&_env, executor);
       rc = handler.remove(gcid, request, res);
       if (SDB_OK != rc)
       {
@@ -802,14 +840,17 @@ namespace vessel
       goto done;
    }
 
-   INT32 vesselImpl::getTotalRecordCountInPageHead(IExecutor *executor,
-                                                   const globalCollectionId &gcid,
-                                                   UINT64 &count)
+   INT32 vesselImpl::count(IExecutor *executor,
+                           const globalCollectionId &gcid,
+                           UINT64 &count)
    {
       INT32 rc = SDB_OK;
       countCLHandler handler;
 
-      if (OSS_UNLIKELY(NULL == executor))
+      count = 0;
+
+      if (OSS_UNLIKELY(NULL == executor ||
+                       !gcid.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -820,7 +861,7 @@ namespace vessel
          goto error;
       }
 
-      handler.init(&_env, executor, &_outerResource);
+      handler.init(&_env, executor);
 
       rc = handler.doit(gcid, count);
       if (SDB_OK != rc)
@@ -923,7 +964,7 @@ namespace vessel
             SDB_OSS_DEL _env.lsm;
             _env.lsm = NULL;
          }
-         _outerResource.logger = NULL;
+         _env.resource.reset();
       }
       return;
    }

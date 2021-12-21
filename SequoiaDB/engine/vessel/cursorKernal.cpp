@@ -43,21 +43,107 @@ namespace engine
 {
 namespace vessel
 {
-   UINT32 CURSOR_FLAG_IS_OPEN = 0x01;
-   UINT32 CURSOR_FLAG_HIT_THE_END = 0x02;
+   constexpr UINT32 CURSOR_FLAG_IS_OPEN = 0x01;
+   constexpr UINT32 CURSOR_FLAG_HIT_THE_END = 0x02;
 
    cursorKernal::~cursorKernal()
    {
-      _mb.release();
+      _close();
    }
 
    BOOLEAN cursorKernal::isOpen()const
    {
-      return OSS_BIT_TEST(_flags, CURSOR_FLAG_IS_OPEN);
+      return 0 != OSS_BIT_TEST(_flags, CURSOR_FLAG_IS_OPEN);
+   }
+
+   BOOLEAN cursorKernal::isClosed()const
+   {
+      return !isOpen();
+   }
+
+   void cursorKernal::close()
+   {
+      _close();
+   }
+
+   INT32 cursorKernal::fetchNext(IExecutor *executor)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(NULL == executor))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      if (hasMoreInBatch())
+      {
+         ++_pos;
+      }
+      else if (hitTheEnd())
+      {
+         rc = SDB_DMS_EOC;
+         goto error;
+      }
+      else
+      {
+         _pos = -1;
+         _batch.clearRows();
+         UINT32 step = _options.stepSize;
+         if (_options.hasRowCountLimit())
+         {
+            SDB_ASSERT(_fetched < _options.rowCountLimit, "impossible");
+            INT64 maxRow = _options.rowCountLimit - _fetched;
+            if (maxRow < (INT64)step)
+            {
+               step = (UINT32)maxRow;
+            }
+         }
+
+         _batch.setRowLimit(step);
+         rc = _db->pushMoreToCursor(executor, this);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+
+         if (_batch.isEmpty())
+         {
+            if (!hitTheEnd())
+            {
+               PD_LOG(PDERROR, "pushed nothing but flag not hit the end");
+               rc = SDB_VESSEL_INTERNAL_ERR;
+            }
+            else
+            {
+               rc = SDB_DMS_EOC;
+            }
+
+            goto error;
+         }
+         else
+         {
+            _pos = 0;
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   slice cursorKernal::getFetchedData()const
+   {
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(_pos < (INT32)_batch.getRowCount(), "out of bound");
+      return _batch.getRow(_pos);
    }
 
    INT32 cursorKernal::open(vesselImpl *db,
-                            IQueryFilter *filter,
                             const cursorOptions *o)
    {
       INT32 rc = SDB_OK;
@@ -74,23 +160,23 @@ namespace vessel
          close();
       }
 
+      if (NULL != o &&
+          (o->stepSize == 0 ||
+           o->initBufferSize <= 0))
+      {
+         SDB_ASSERT(FALSE, "invalid options");
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
       OSS_BIT_SET(_flags, CURSOR_FLAG_IS_OPEN);
       if (NULL != o)
       {
          _options = *o;
       }
       _db = db;
-      _filter = filter;
-
-      if (0 < _options.initBufSize)
-      {
-         rc = _mb.reserve(_options.initBufSize);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to reserve memory:%d", rc);
-            goto error;
-         }
-      }  
+      _batch.setBufferSizeLimit(_options.hardBufferSizeLimit);
+      _batch.init(_options.initBufferSize, TRUE);
    done:
       return rc;
    error:
@@ -98,92 +184,31 @@ namespace vessel
       goto done;
    }
 
-   void cursorKernal::close()
+   void cursorKernal::_close()
    {
       _options = cursorOptions();
       _flags = 0;
-      _mb.release();
-      _read = 0;
-      _db = NULL;
-      _filter = NULL;
-   
+      _fetched = 0;
+      _batch.fini();
+      _pos = -1;
       return;
    }
 
-   INT32 cursorKernal::getNext(IExecutor *executor, slice &content)
+   BOOLEAN cursorKernal::noMorePushThisLoop()const
    {
-      INT32 rc = SDB_OK;
-      UINT32 size = 0;
-
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-
-      if (!hasMoreDataToFetch())
-      {
-         if (hitTheEnd())
-         {
-            rc = SDB_VESSEL_EOC;
-            goto error;
-         }
-
-         _pushedThisLoop = 0;
-         _read = 0;
-         _mb.resize(0);
-         rc = _db->pushMoreToCursor(executor, this);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-
-         if (!hasMoreDataToFetch())
-         {
-            if (!hitTheEnd())
-            {
-               PD_LOG(PDERROR, "pushed nothing but flag not hit the end");
-               rc = SDB_VESSEL_INTERNAL_ERR;
-            }
-            else
-            {
-               rc = SDB_VESSEL_EOC;
-            }
-
-            goto error;
-         }
-      }
-      
-      SDB_ASSERT((_read + sizeof(UINT32)) < _mb.getSize(), "impossible");
-      size = *((const UINT32 *)((ossValuePtr)(_mb.getBuffer()) + _read));
-      _read += sizeof(UINT32);
-
-      SDB_ASSERT((_read + size) <= _mb.getSize(), "impossible");
-      content.reset(size, (const CHAR *)(_mb.getBuffer()) + _read);
-      _read += size;
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   BOOLEAN cursorKernal::isWaitingMorePushing()const
-   {
-      return !hitTheEnd() &&
-             (!_options.hasRowCountLimit() ||
-             ((INT32)_pushedThisLoop < _options.rowCountLimit));
-             
+      SDB_ASSERT(isOpen(), "can not be invalid");
+      return hitTheEnd() ||
+             !_batch.isFreeToPush(0);
    }
 
    BOOLEAN cursorKernal::hitTheEnd()const
    {
-      return (0 != OSS_BIT_TEST(_flags, CURSOR_FLAG_HIT_THE_END));
+      return 0 != OSS_BIT_TEST(_flags, CURSOR_FLAG_HIT_THE_END);
    }
 
    INT32 cursorKernal::pushData(UINT32 len, const CHAR *data)
    {
       INT32 rc = SDB_OK;
-      UINT32 oldSize = 0;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -195,36 +220,30 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (!isWaitingMorePushing())
+      else if (hitTheEnd())
       {
          rc = SDB_VESSEL_CURSOR_NO_SPACE;
          goto error;
       }
 
-      rc = allocateSpaceForPushing(len);
-      if (SDB_OK != rc)
+      rc = _batch.pushRow(slice(len, data));
+      if (SDB_VESSEL_ROW_BATCH_LIMITS == rc)
       {
-         PD_LOG(PDERROR, "failed to allocate space for pushing:%d", rc);
+         rc = SDB_VESSEL_CURSOR_NO_SPACE;
+         goto error;
+      }
+      else if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to push data into batch:%d", rc);
          goto error;
       }
 
-      oldSize = _mb.getSize();
-      rc = _mb.append(sizeof(UINT32), &len);
-      if (SDB_OK != rc)
+      ++_fetched;
+      if (_options.hasRowCountLimit() &&
+          _fetched == _options.rowCountLimit)
       {
-         PD_LOG(PDERROR, "failed to append size:%d", rc);
-         goto error;
+         setEOC();
       }
-
-      rc = _mb.append(len, data);
-      if (SDB_OK != rc)
-      {
-         _mb.resize(oldSize);
-         PD_LOG(PDERROR, "failed to append data:%d", rc);
-         goto error;
-      }
-
-      ++_pushedThisLoop;
    done:
       return rc;
    error:
@@ -234,92 +253,40 @@ namespace vessel
    INT32 cursorKernal::pushDataFragments(std::initializer_list<slice> il)
    {
       INT32 rc = SDB_OK;
-      UINT32 len = 0;
-      UINT32 oldSize = 0;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (!isWaitingMorePushing())
+      else if (OSS_UNLIKELY(0 == il.size()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (hitTheEnd())
       {
          rc = SDB_VESSEL_CURSOR_NO_SPACE;
          goto error;
       }
 
-      for (auto i = il.begin(); i != il.end(); ++i)
+      rc = _batch.pushRowFragments(il);
+      if (SDB_VESSEL_ROW_BATCH_LIMITS == rc)
       {
-         if (!i->isValid())
-         {
-            SDB_ASSERT(FALSE, "invalid fragment");
-            rc = SDB_INVALIDARG;
-            goto error;
-         }
-         len += i->getSize();
-      }
-
-      rc = allocateSpaceForPushing(len);
-      if (SDB_OK != rc)
-      {
-         if (SDB_VESSEL_CURSOR_NO_SPACE != rc)
-         {
-            PD_LOG(PDERROR, "failed to allocate space for pushing:%d", rc);
-         }
-         goto error;
-      }
-
-      oldSize = _mb.getSize();
-      rc = _mb.append(sizeof(UINT32), &len);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to append size:%d", rc);
-         goto error;
-      }
-
-      for (auto i = il.begin(); i != il.end(); ++i)
-      {
-         rc = _mb.append(i->getSize(), i->data());
-         if (SDB_OK != rc)
-         {
-            _mb.resize(oldSize);
-            PD_LOG(PDERROR, "failed to append data:%d", rc);
-            goto error;
-         }
-      }
-      
-      ++_pushedThisLoop;
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 cursorKernal::allocateSpaceForPushing(UINT32 dataLen)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(isOpen(), "must be open");
-
-      UINT32 needSize = getRealBufSizeOfSlice(dataLen);
-      UINT32 extendingSize = 0;
-      
-      if (needSize <= _mb.getFreeCapacity())
-      {
-         goto done;
-      }
-
-      extendingSize = needSize - _mb.getFreeCapacity();
-      if (!_mb.isEmpty())
-      {
-         /// Extend buffer only at the first pushing of current loop.
          rc = SDB_VESSEL_CURSOR_NO_SPACE;
          goto error;
       }
-
-      rc = _mb.reserve(extendingSize);
-      if (SDB_OK != rc)
+      else if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to push data into batch:%d", rc);
          goto error;
+      }
+
+      ++_fetched;
+      if (_options.hasRowCountLimit() &&
+          _fetched == _options.rowCountLimit)
+      {
+         setEOC();
       }
    done:
       return rc;
@@ -327,12 +294,11 @@ namespace vessel
       goto done;
    }
 
-   void cursorKernal::pushEnd()
+   void cursorKernal::setEOC()
    {
-      if (OSS_LIKELY(isOpen()))
-      {
-         OSS_BIT_SET(_flags, CURSOR_FLAG_HIT_THE_END);
-      }
+      SDB_ASSERT(0 != OSS_BIT_TEST(_flags, CURSOR_FLAG_IS_OPEN),
+                 "must be open");
+      OSS_BIT_SET(_flags, CURSOR_FLAG_HIT_THE_END);
       return;
    }
 }//namespace vessel

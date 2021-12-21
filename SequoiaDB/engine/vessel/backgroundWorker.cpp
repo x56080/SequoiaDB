@@ -37,7 +37,6 @@
 #include "pdTrace.hpp"
 #include "vessel/instanceEnv.h"
 #include "vessel/requestContext.h"
-#include "vessel/outerResource.h"
 #include "vessel/diskIOTask.h"
 #include "vessel/diskIOJob.h"
 
@@ -45,16 +44,13 @@ namespace engine
 {
 namespace vessel
 {
-   void backgroundWorker::init(outerResource *outer,
-                               instanceEnv *env,
+   void backgroundWorker::init(instanceEnv *env,
                                autoEventList<backgroundEvent> *el,
                                std::atomic_int *counter)
    {
-      SDB_ASSERT(NULL != outer, "can not be null");
       SDB_ASSERT(NULL != env, "can not be null");
       SDB_ASSERT(NULL != el, "can not be null");
 
-      _outer = outer;
       _env = env;
       _el = el;
       _workingCounter = counter;
@@ -63,7 +59,6 @@ namespace vessel
 
    void backgroundWorker::waitAttaching()
    {
-      SDB_ASSERT(NULL != _outer, "can not be null");
       _attachEvent.wait();
       return;
    }
@@ -71,7 +66,7 @@ namespace vessel
    void backgroundWorker::activeEntry(IExecutor *executor)
    {
       SDB_ASSERT(NULL != executor, "can not be null");
-      SDB_ASSERT(NULL != _outer, "can not be null");
+      SDB_ASSERT(NULL != _env, "can not be null");
       backgroundEvent event;
       _attachEvent.signalAll();
 
@@ -141,7 +136,7 @@ namespace vessel
       SDB_ASSERT(backgroundEvent::EVENT_TYPE_CACHE_TASK == event.getType(),
                  "can not be other type");
       requestContext context;
-      context.open(executor, _env, _outer);
+      context.open(executor, _env);
       liteCache &cache = context.getEnv()->cacheConsole.get32KBCache();
       diskIOTask task = *((const diskIOTask *)(event.getEventMsg()));
 
@@ -176,7 +171,7 @@ namespace vessel
       SDB_ASSERT(backgroundEvent::EVENT_TYPE_LPS_CHECKPOINT == event.getType(),
                  "can not be other type");
       requestContext context;
-      context.open(executor, _env, _outer);
+      context.open(executor, _env);
       logicalPageSpace *lps = NULL;
       const lpsCheckpointApplying *msg = (const lpsCheckpointApplying *)(event.getEventMsg());
       
@@ -231,7 +226,7 @@ namespace vessel
       //PD_LOG(PDDEBUG, "begin to sync segments[%d, %d]", msg->_segmentId, count);
 
       requestContext context;
-      context.open(executor, _env, _outer);
+      context.open(executor, _env);
       rc = context.lockSpaceID(msg->_sid, SHARED);
       if (SDB_OK != rc)
       {

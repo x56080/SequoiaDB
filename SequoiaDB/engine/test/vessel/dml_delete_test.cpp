@@ -41,7 +41,6 @@
 #include "vessel/IRedoLogger.h"
 #include "../bson/bson.hpp"
 #include "pd.hpp"
-#include "vessel/dataScanRow.h"
 #include "vessel/collectionOptions.h"
 #include "vessel/builtinRecordUpdater.h"
 
@@ -101,22 +100,24 @@ TEST_F(dml_delete_test, base_delete_test1)
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
-   collectionHandler handler;
+
    INT32 rc = SDB_OK;
    bson::BSONObjBuilder builder;
    UINT32 count = 10000;
-   cursorHandler cursor;
-   ossPoolVector<recordID> rids;
+   ossPoolVector<dmsRecordID> rids;
+
+   DATA_COLLECTION_PTR cl;
+
    rc = db.open(&executor, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&executor, "foo", 1, createCSOptions());
+   rc = db.createCS(&executor, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&executor, "foo", "bar", 1, createCLOptions());
+   rc = db.createCL(&executor, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&executor, "foo", "bar", openCLOptions(), handler);
+   rc = db.openCL(&executor, "foo.bar", dmsOpenCLOptions(), cl);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < count; ++i)
@@ -125,16 +126,15 @@ TEST_F(dml_delete_test, base_delete_test1)
       /// insert a as even number.
       builder.append("a", i);
       builder.append("b", i);
-      bson::BSONObj obj = builder.done();
-      slice record(obj.objsize(), obj.objdata());
+
       insertRes.enableReturnIDInfo();
-      rc = handler.insert(&executor, record,
-                          INVALID_STRIPING_ID, insertOptions(), &insertRes);
+      rc = cl->insertRecord(&executor, builder.done(),
+                            dmsInsertRecordOptions(), &insertRes);
       ASSERT_EQ(SDB_OK, rc);
 
       INT32 page, slot;
       insertRes.getInsertLoc(page, slot);
-      recordID rid(page, slot);
+      dmsRecordID rid(page, slot);
       rids.push_back(rid);
       builder.reset();
    }
@@ -143,33 +143,32 @@ TEST_F(dml_delete_test, base_delete_test1)
    {
 
       utilDeleteResult deleteRes;
-      const recordID &rid = rids[i];
-      dmlRemoveRequest request;
-      request.rid = rid;
-      rc = handler.deleteRecord(&executor, request, &deleteRes);
+      const dmsRecordID &rid = rids[i];
+      rc = cl->deleteRecord(&executor, rid, dmsDeleteRecordOptions(), &deleteRes);
       ASSERT_EQ(SDB_OK, rc);
    }
 
    UINT64 currentCount = 0;
-   rc = handler.getTotalRecordCountInPageHead(&executor, currentCount);
+   rc = cl->getRecordCount(&executor, currentCount);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(0, currentCount);
 
-   rc = handler.openScanCursor(&executor, NULL, collectionScanOptions(), cursor);
+   DATA_CURSOR_PTR cursor;
+   rc = cl->scan(&executor, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
-   dataScanRow row;
-   rc = cursor.getNextRow(&executor, row);
-   ASSERT_EQ(SDB_VESSEL_EOC, rc);
+
+   rc = cursor->fetchNext(&executor);
+   ASSERT_EQ(SDB_DMS_EOC, rc);
 
    db.close(&executor, closeDBOptions());
 
    rc = db.open(&executor, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&executor, "foo", "bar", openCLOptions(), handler);
+   rc = db.openCL(&executor, "foo.bar", dmsOpenCLOptions(), cl);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = handler.getTotalRecordCountInPageHead(&executor, currentCount);
+   rc = cl->getRecordCount(&executor, currentCount);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(0, currentCount);
 

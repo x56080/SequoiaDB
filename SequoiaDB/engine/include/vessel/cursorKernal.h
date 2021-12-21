@@ -36,44 +36,39 @@
 #ifndef VESSEL_CURSOR_KERNAL_H_
 #define VESSEL_CURSOR_KERNAL_H_
 
-#include "vessel/cursorOptions.h"
 #include "vessel/slice.h"
-#include "vessel/memoryBlock.h"
 #include <initializer_list>
-#include "vessel/localThreadSharedPointer.h"
 #include "vessel/cursorDef.h"
-#include "vessel/cursorRow.h"
 #include "sdbInterface.hpp"
+#include "interface/IDataCursor.h"
+#include "vessel/fixedSizeRowBatch.h"
+#include "vessel/cursorOptions.h"
 
 namespace engine
 {
 namespace vessel
 {
    class vesselImpl;
-   class IQueryFilter;
 
-   class cursorKernal : public localThreadSharedCounter
+   class cursorKernal : public IDataCursor
    {
       public:
          cursorKernal(){}
          virtual ~cursorKernal();
-         cursorKernal(const cursorKernal &) = delete;
-         cursorKernal &operator=(const cursorKernal &) = delete;
+
+      public:
+         virtual BOOLEAN isClosed()const;
+         virtual void close();
+         virtual INT32 fetchNext(IExecutor *executor);
+         virtual slice getFetchedData()const;
 
       public:
          virtual CURSOR_TYPE getType()const = 0;
 
-         virtual INT32 getNextRow(IExecutor *executor,
-                                  cursorRow *row){return SDB_VESSEL_INTERNAL_ERR;}
-
       public:
          BOOLEAN isOpen()const;
          INT32 open(vesselImpl *db,
-                    IQueryFilter *filter, 
                     const cursorOptions *o=NULL);
-         void close();
-         ///return SDB_VESSEL_END_OF_CURSOR when hit the end.
-         INT32 getNext(IExecutor *executor, slice &content);
          
          /// push completed record
          INT32 pushData(UINT32 len, const CHAR *data);
@@ -81,46 +76,33 @@ namespace vessel
          /// push "ONE RECORD" with multi memory fragments
          INT32 pushDataFragments(std::initializer_list<slice> il);
 
-         /// mark cursor as SDB_VESSEL_EOC
-         void pushEnd();
+         void setEOC();
 
-         OSS_INLINE IQueryFilter *getFilter()
-         {
-            return _filter;
-         }
+         BOOLEAN noMorePushThisLoop()const;
 
-         BOOLEAN isWaitingMorePushing()const;
-
-         OSS_INLINE BOOLEAN hasRowLimit()const
+      public:
+         OSS_INLINE const cursorOptions &getBaseOptions()const
          {
-            return _options.hasRowCountLimit();
-         }
-         OSS_INLINE INT32 getRowLimit()const
-         {
-            return _options.rowCountLimit;
+            return _options;
          }
       
       private:
-         INT32 allocateSpaceForPushing(UINT32 dataLen);
+         void _close();
          
          BOOLEAN hitTheEnd()const;
-         OSS_INLINE UINT32 getRealBufSizeOfSlice(UINT32 dataLen)const
+         OSS_INLINE BOOLEAN hasMoreInBatch()const
          {
-            return sizeof(UINT32) + dataLen;
-         }
-         OSS_INLINE BOOLEAN hasMoreDataToFetch()const
-         {
-            return _read < _mb.getSize();
+            return (_pos + 1) < (INT32)_batch.getRowCount();
          }
       
       private:
          cursorOptions _options;
          UINT32 _flags = 0;
-         memoryBlock _mb;
-         UINT32 _pushedThisLoop = 0;
-         UINT32 _read = 0; /// buffer size read.
          vesselImpl *_db = NULL;
-         IQueryFilter *_filter = NULL;
+
+         INT64 _fetched = 0;
+         fixedSizeRowBatch _batch;
+         INT32 _pos = -1;
    };//class cursorKernal
 }//namespace vessel
 }//namespace engine

@@ -60,8 +60,7 @@ namespace vessel
          liteCacheWatcher &operator=(const liteCacheWatcher &) = delete;
 
       public:
-         INT32 init(instanceEnv *env,
-                    outerResource *outer);
+         INT32 init(instanceEnv *env);
 
          void fini();
          
@@ -113,7 +112,6 @@ namespace vessel
          };//struct _JOB_CONTEXT
       private:
          instanceEnv *_env = NULL;
-         outerResource *_outer = NULL;
          UINT64 _lastFlushDirtyListTime = 0;
          autoEventList<backgroundEvent> _list;
          _JOB_CONTEXT _jobs[_JOG_ID_COUNT];

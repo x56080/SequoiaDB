@@ -43,7 +43,6 @@
 #include "vessel/requestContext.h"
 #include "vessel/collection.h"
 
-
 namespace engine
 {
 namespace vessel
@@ -65,8 +64,7 @@ namespace vessel
 
       public:
          void init(instanceEnv *env,
-                   IExecutor *executor,
-                   outerResource *outer);
+                   IExecutor *executor);
 
          BOOLEAN isInitialized()const;
 
@@ -79,10 +77,6 @@ namespace vessel
          {
             return _executor;
          }
-         OSS_INLINE outerResource *getOuterResource()
-         {
-            return _outerResource;
-         }
 
       protected:
          
@@ -93,8 +87,6 @@ namespace vessel
       private:
          IExecutor *_executor = NULL;
          instanceEnv *_env = NULL;
-         outerResource *_outerResource = NULL;
-         
    };//class requestHandler
 }//namespace vessel
 }//namespace engine

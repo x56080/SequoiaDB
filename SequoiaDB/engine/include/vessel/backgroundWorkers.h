@@ -67,8 +67,7 @@ namespace vessel
          };//class options
 
       public:
-         INT32 init(outerResource *resource,
-                    instanceEnv *env,
+         INT32 init(instanceEnv *env,
                     const options &o);
          void fini();
 
@@ -76,7 +75,7 @@ namespace vessel
 
          OSS_INLINE BOOLEAN isReady()const
          {
-            return NULL != _or;
+            return NULL != _env;
          }
 
          OSS_INLINE BOOLEAN isCommonFamilyBusy()const
@@ -100,7 +99,6 @@ namespace vessel
          };
 
       private:
-         outerResource *_or = NULL;
          instanceEnv *_env = NULL;
          _workerFamily _cache;
          _workerFamily _common;

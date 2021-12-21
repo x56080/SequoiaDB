@@ -39,9 +39,9 @@
 #include "vessel/api/vessel.h"
 #include "vessel/instanceEnv.h"
 #include "vessel/outerResource.h"
-#include "vessel/indexOptions.h"
 #include "vessel/indexKeyPattern.h"
 #include "vessel/indexParameters.h"
+#include "vessel/dmlRequest.h"
 
 namespace engine
 {
@@ -56,7 +56,7 @@ namespace vessel
          vesselImpl(){}
          virtual ~vesselImpl();
       public:
-         virtual BOOLEAN isOpen(){return _open;}
+         OSS_INLINE BOOLEAN isOpen()const {return _open;}
 
          virtual INT32 open(IExecutor *executor,
                             const outerResource *resource,
@@ -65,62 +65,62 @@ namespace vessel
          virtual INT32 close(IExecutor *executor,
                              const closeDBOptions &options);
 
-         virtual INT32 listCollectionSpace(IExecutor *executor,
-                                           IQueryFilter *filter,
-                                           cursorHandler &cursor);
+      /// IDataStorageEngine begin
+      public: 
+         virtual INT32 createCS(IExecutor *executor,
+                                const CHAR *name,
+                                const utilCSUniqueID &uniqueId,
+                                const dmsCreateCSOptions &o,
+                                const bson::BSONObj &adjunct);
 
-         virtual INT32 getCollectionSpaceCount(IExecutor *executor,
-                                               UINT32 &count);
+         virtual INT32 testCS(IExecutor *executor,
+                              const CHAR *name,
+                              utilCSUniqueID &uniqueId);
 
-         virtual INT32 createCollectionSpace(IExecutor *executor,
-                                             const CHAR *name,
-                                             utilCSUniqueID uniqueId,
-                                             const createCSOptions &options,
-                                             collectionSpaceId &identifier);
+         virtual INT32 testCS(IExecutor *executor,
+                              const utilCSUniqueID &uniqueId);
 
-         /// lazy to modify all unit tests after add identifier in createCollectionSpace
-         INT32 createCollectionSpace(IExecutor *executor,
-                                             const CHAR *name,
-                                             utilCSUniqueID uniqueId,
-                                             const createCSOptions &options);
+         virtual INT32 listCS(IExecutor *executor,
+                              DATA_CURSOR_PTR &cursor);
 
-         virtual INT32 testCollectionSpace(IExecutor *executor,
-                                           const CHAR *name,
-                                           collectionSpaceId &identifier);
+         virtual INT32 getCSCount(IExecutor *executor,
+                                  UINT32 &countt); 
 
-         virtual INT32 dropCollectionSpace(IExecutor *executor,
-                                           const CHAR *name,
-                                           UINT32 logicalID,
-                                           const dropCSOptions &options);
+      public:
 
-         virtual INT32 createCollection(IExecutor *executor,
-                                        const CHAR *csName,
-                                        const CHAR* clName,
-                                        utilCLInnerID innerID,
-                                        const createCLOptions &options);
-                                        
-         virtual INT32 listCollections(IExecutor *executor,
-                                       const CHAR *csName,
-                                       IQueryFilter *filter,
-                                       cursorHandler &cursor);
+         virtual INT32 createCL(IExecutor *executor,
+                                const CHAR *fullName,
+                                const utilCLUniqueID &uniqueId,
+                                const dmsCreateCLOptions &o,
+                                const bson::BSONObj &adjunct);
 
-         virtual INT32 getCollectionCount(IExecutor *executor,
-                                          const CHAR *csName,
-                                          UINT32 &count);
+         virtual INT32 testCL(IExecutor *executor,
+                              const CHAR *fullName,
+                              utilCLUniqueID &uniqueId);
+                        
+         virtual INT32 testCL(IExecutor *executor,
+                              const utilCLUniqueID &uniqueId);
 
-         virtual INT32 openCollection(IExecutor *executor,
-                                      const CHAR *csName,
-                                      const CHAR *clName,
-                                      const openCLOptions &options,
-                                      collectionHandler &handler);
+         virtual INT32 listCL(IExecutor *executor,
+                              const CHAR *csName,
+                              DATA_CURSOR_PTR &cursor);
+
+         virtual INT32 openCL(IExecutor *executor,
+                              const CHAR *fullName,
+                              const dmsOpenCLOptions &o,
+                              DATA_COLLECTION_PTR &ptr);
+
+         virtual INT32 getCLCount(IExecutor *executor,
+                                  const CHAR *csName,
+                                  UINT32 &count);
+
+      /// IDataStorageEngine end
 
       public:
          INT32 createIndex(IExecutor *executor,
                            const globalCollectionId &gcid,
-                           const strSlice &indexName,
-                           const bson::BSONObj &keyPattern,
-                           const indexParameters &params,
-                           const createIndexOptions &options);
+                           const dmsBuildIndexOptions &o,
+                           const bson::BSONObj &adjunct);
 
          INT32 listIndexes(IExecutor *executor,
                            const globalCollectionId &gcid,
@@ -149,9 +149,9 @@ namespace vessel
                       const dmlRemoveRequest &request,
                       utilDeleteResult *res);
 
-         INT32 getTotalRecordCountInPageHead(IExecutor *executor,
-                                             const globalCollectionId &gcid,
-                                             UINT64 &count);
+         INT32 count(IExecutor *executor,
+                     const globalCollectionId &gcid,
+                     UINT64 &count);
 
       public:
          INT32 pushMoreToCursor(IExecutor *executor,
@@ -166,7 +166,6 @@ namespace vessel
       private:
          BOOLEAN _open = FALSE;
          instanceEnv _env;
-         outerResource _outerResource;
    }; /// end of class vesselImpl 
 
 

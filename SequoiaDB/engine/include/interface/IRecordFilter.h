@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dmlOptions.h
+   Source File Name = IRecordFilter.h
 
    Descriptive Name =
 
@@ -33,65 +33,33 @@
 
 ******************************************************************************/
 
-#ifndef SDB_VESSEL_DML_OPTIONS_H_
-#define SDB_VESSEL_DML_OPTIONS_H_
+#ifndef SDB_I_RECORD_FILTER_H_
+#define SDB_I_RECORD_FILTER_H_
 
 #include "core.hpp"
 #include "oss.hpp"
+#include "../../bson/bson.hpp"
 
 namespace engine
 {
-namespace vessel
-{
-   class insertOptions : public SDBObject
+   class IRecordFilter : public SDBObject
    {
       public:
-         OSS_INLINE insertOptions(){}
+         IRecordFilter(){}
+         virtual ~IRecordFilter(){}
+         IRecordFilter(const IRecordFilter &) = delete;
+         IRecordFilter &operator=(const IRecordFilter &) = delete;
 
-         OSS_INLINE ~insertOptions(){}
-
-         insertOptions(const insertOptions &o) = delete;
-
-         insertOptions &operator=(const insertOptions &o)
-         {
-            return *this;
-         }
       public:
-   }; /// end of class insertOptions
+         virtual INT32 filter(UINT32 size,
+                              const CHAR *data,
+                              BOOLEAN &filtered)const = 0;
 
-   class updateOptions : public SDBObject
-   {
-      public:
-         OSS_INLINE updateOptions(){}
+         virtual INT32 filter(const bson::BSONObj &record,
+                              BOOLEAN &filtered)const = 0;
 
-         OSS_INLINE ~updateOptions(){}
+   };//class IRecordFilter
+} // namespace engine
 
-         updateOptions(const updateOptions &o) = delete;
 
-         updateOptions &operator=(const updateOptions &o)
-         {
-            return *this;
-         }
-      public:
-   }; /// end of class updateOptions
-
-   class removeOptions
-   {
-      public:
-         OSS_INLINE removeOptions(){}
-
-         OSS_INLINE ~removeOptions(){}
-
-         removeOptions(const removeOptions &o) = delete;
-
-         removeOptions &operator=(const removeOptions &o)
-         {
-            return *this;
-         }
-      public:
-   };//class removeOptions
-
-}//namespace vessel
-}//namespace engine
-
-#endif//SDB_VESSEL_DML_OPTIONS_H_
+#endif//SDB_I_RECORD_FILTER_H_

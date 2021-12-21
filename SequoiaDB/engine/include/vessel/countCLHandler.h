@@ -39,13 +39,12 @@
 #include "vessel/requestHandler.h"
 #include "vessel/objectIdentifier.h"
 #include "vessel/scanCLOptions.h"
+#include "interface/IRecordFilter.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class IQueryFilter;
-
    class countCLHandler : public requestHandler
    {
       public:

@@ -40,7 +40,7 @@
 #include "vessel/memoryBlock.h"
 #include "vessel/recordID.h"
 #include "vessel/logicalPageBuffer.h"
-#include "vessel/collectionOptions.h"
+#include "dmsEngineOptions.hpp"
 
 namespace engine
 {
@@ -60,12 +60,12 @@ namespace vessel
                ~options(){}
                options(const options &o):
                endBound(o.endBound),
-               scanOptions(o.scanOptions),
+               so(o.so),
                nolockWhenScanForNone(o.nolockWhenScanForNone){}
                options &operator=(const options &o)
                {
                   endBound = o.endBound;
-                  scanOptions = o.scanOptions;
+                  so = o.so;
                   nolockWhenScanForNone = o.nolockWhenScanForNone;
                   return *this;
                }
@@ -73,7 +73,7 @@ namespace vessel
             public:
                /// exclusive end
                RECORD_SLOT_ID endBound = INVALID_RECORD_SLOT_ID;
-               baseScanOptions scanOptions;
+               dmsScanOptions so;
 
                /// do not hold rid latch when scan for none
                BOOLEAN nolockWhenScanForNone = FALSE;

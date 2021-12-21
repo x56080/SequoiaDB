@@ -37,9 +37,7 @@
 #define VESSEL_OPEN_CL_HANDLER_H_
 
 #include "vessel/requestHandler.h"
-#include "vessel/strSlice.h"
-#include "vessel/vesselOptions.h"
-#include "vessel/api/collectionHandler.h"
+#include "vessel/objectIdentifier.h"
 
 namespace engine
 {
@@ -53,11 +51,8 @@ namespace vessel
          virtual ~openCLHandler(){}
 
       public:
-         INT32 doit(vesselImpl *db,
-                    const strSlice &csName,
-                    const strSlice &clName,
-                    const openCLOptions &options,
-                    collectionHandler &clHandler);
+         INT32 doit(const CHAR *fullName,
+                    globalCollectionId &id);
    };//class openCLHandler
 }//namespace vessel
 }//namespace engine

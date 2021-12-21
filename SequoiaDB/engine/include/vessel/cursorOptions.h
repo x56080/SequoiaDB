@@ -50,12 +50,17 @@ namespace vessel
          cursorOptions(){}
           ~cursorOptions(){}
          cursorOptions(const cursorOptions &o):
-         initBufSize(o.initBufSize),
-         rowCountLimit(o.rowCountLimit){}
+         rowCountLimit(o.rowCountLimit),
+         stepSize(o.stepSize),
+         hardBufferSizeLimit(o.hardBufferSizeLimit),
+         initBufferSize(o.initBufferSize)
+         {}
          cursorOptions &operator=(const cursorOptions &o)
          {
-            initBufSize = o.initBufSize;
             rowCountLimit = o.rowCountLimit;
+            stepSize = o.stepSize;
+            hardBufferSizeLimit = o.hardBufferSizeLimit;
+            initBufferSize = o.initBufferSize;
             return *this;
          }
 
@@ -64,12 +69,11 @@ namespace vessel
             return 0 <= rowCountLimit;
          }
 
-         ///cursor will try to extend buf only when the buf can not hold at
-         /// least one row.
-         UINT64 initBufSize = 65536;   /// 64KB
-
-         /// max row count for each loop
-         INT32 rowCountLimit = -1;
+      public:
+         INT64 rowCountLimit = -1;
+         UINT32 stepSize = 1024;
+         INT32 hardBufferSizeLimit = (INT32)16 << 20;
+         INT32 initBufferSize = (INT32)32 << 10; /// 32KB
    };
 }//namespace vessel
 }//namespace engine

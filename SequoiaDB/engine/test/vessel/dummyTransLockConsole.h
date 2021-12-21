@@ -70,8 +70,7 @@ class dummyTransLockConsole : public ITransLockConsole
                                  const dpsTransLockId &lockId,
                                  const DPS_TRANSLOCK_TYPE &mode,
                                  dpsTransRetInfo *pdpsTxResInfo,
-                                 _dpsITransLockCallback *callback,
-                                 BOOLEAN &locked);
+                                 _dpsITransLockCallback *callback);
 
       virtual INT32 testAcquire(IExecutor *executor,
                                  const dpsTransLockId &lockId,
@@ -79,8 +78,7 @@ class dummyTransLockConsole : public ITransLockConsole
                                  BOOLEAN preemptMode,
                                  dpsTransRetInfo *pdpsTxResInfo,
                                  _dpsITransLockCallback *callback,
-                                 BOOLEAN intentLock,
-                                 BOOLEAN &compatible) ;
+                                 BOOLEAN intentLock) ;
 
       static dummyTransLockConsole *instance()
       {

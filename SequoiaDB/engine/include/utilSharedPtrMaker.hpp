@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = IQueryFilter.h
+   Source File Name = utilSharedPtrMaker.hpp
 
    Descriptive Name =
 
@@ -31,25 +31,28 @@
 
    Last Changed =
 
-******************************************************************************/
+*******************************************************************************/
 
-#ifndef VESSEL_I_QUERY_FILTER_H_
-#define VESSEL_I_QUERY_FILTER_H_
+#ifndef SDB_UTIL_SHARED_PTR_MAKER_HPP_
+#define SDB_UTIL_SHARED_PTR_MAKER_HPP_
 
-#include "core.hpp"
-#include "oss.hpp"
+#include "ossMemPool.hpp"
+#include <memory> // c++ 11
 
 namespace engine
 {
-namespace vessel
-{
-   class IQueryFilter : public SDBObject
-   {
-      public:
-         IQueryFilter(){}
-         virtual ~IQueryFilter(){}
-   };//class IQueryFilter
-}//class vessel
-}//class engine
+   /// allocate_shared can avoid twice memory allocating(obj and control block).
 
-#endif//VESSEL_I_QUERY_FILTER_H_
+   /// for now, our allocator is under c++98 standard.
+   /// args to construct class may not be working.
+   /// users better to init class outside.
+   template<class T, class ... Args>
+   std::shared_ptr<T> makeSharedPtrFromPool(Args &&... args)
+   {
+      typename ossPoolAllocator<T>::Type alloc;
+      return std::allocate_shared<T>(alloc, args...);
+   }
+} // namespace engine
+
+
+#endif//SDB_UTIL_SHARED_PTR_MAKER_HPP_

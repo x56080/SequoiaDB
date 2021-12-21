@@ -41,10 +41,10 @@
 #include "vessel/IRedoLogger.h"
 #include "../bson/bson.hpp"
 #include "pd.hpp"
-#include "vessel/dataScanRow.h"
 #include "vessel/collectionOptions.h"
 #include "vessel/builtinRecordUpdater.h"
 #include "mthMatchTree.hpp"
+#include "dmsCursorReader.hpp"
 
 #include <boost/filesystem.hpp>
 
@@ -117,32 +117,32 @@ void delete_test1(INDEX_TYPE type)
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
-   ossPoolVector<recordID> rids;
+   ossPoolVector<dmsRecordID> rids;
 
-   collectionHandler handler;
+   DATA_COLLECTION_PTR handler;
    UINT32 count = 10000;
 
    indexParameters params;
    params.type = type;
 
    bson::BSONObj pattern = BSON("a" << 1);
-   strSlice indexName("idx");
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj("index", params, pattern);
+
    bson::BSONObjBuilder builder;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions());
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar", 1, createCLOptions());
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&session, "foo", "bar", openCLOptions(), handler);
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = handler.createIndex(&session, indexName,
-                            pattern, params, createIndexOptions());
+   rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);
 
    // insert records
@@ -153,21 +153,19 @@ void delete_test1(INDEX_TYPE type)
       builder.append("a", i);
       builder.append("b", i + 1);
       bson::BSONObj obj = builder.done();
-      slice record(obj.objsize(), obj.objdata());
-      rc = handler.insert(&session, record,
-                          INVALID_STRIPING_ID,
-                          insertOptions(), &res);
+
+      rc = handler->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
 
       INT32 page, slot;
       res.getInsertLoc(page, slot);
-      recordID rid(page, slot);
+      dmsRecordID rid(page, slot);
       rids.push_back(rid);
       builder.reset();
    }
 
    UINT64 currentCount = 0;
-   rc = handler.getTotalRecordCountInPageHead(&session, currentCount);
+   rc = handler->getRecordCount(&session, currentCount);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ((UINT64)count, currentCount);
 
@@ -175,14 +173,13 @@ void delete_test1(INDEX_TYPE type)
    for (UINT32 i = 0; i < count; ++i)
    {
       utilDeleteResult deleteRes;
-      dmlRemoveRequest request;
-      const recordID &rid = rids[i];
-      request.rid = rid;
-      rc = handler.deleteRecord(&session, request, &deleteRes);
+      const dmsRecordID &rid = rids[i];
+      rc = handler->deleteRecord(&session, rid, dmsDeleteRecordOptions(), &deleteRes);
       ASSERT_EQ(SDB_OK, rc);
    }
 
-   rc = handler.getTotalRecordCountInPageHead(&session, currentCount);
+   currentCount = 0;
+   rc = handler->getRecordCount(&session, currentCount);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(0, currentCount);
 
@@ -225,32 +222,31 @@ void delete_test2(INDEX_TYPE type)
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
-   ossPoolVector<recordID> rids;
+   ossPoolVector<dmsRecordID> rids;
 
-   collectionHandler handler;
+   DATA_COLLECTION_PTR handler;
    INT32 count = 10000;
 
    indexParameters params;
    params.type = type;
 
    bson::BSONObj pattern = BSON("a" << 1);
-   strSlice indexName("idx");
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj("index", params, pattern);
    bson::BSONObjBuilder builder;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions());
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar", 1, createCLOptions());
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&session, "foo", "bar", openCLOptions(), handler);
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = handler.createIndex(&session, indexName,
-                            pattern, params, createIndexOptions());
+   rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);
 
    // insert records
@@ -261,28 +257,26 @@ void delete_test2(INDEX_TYPE type)
       builder.append("a", i);
       builder.append("b", i + 1);
       bson::BSONObj obj = builder.done();
-      slice record(obj.objsize(), obj.objdata());
-      rc = handler.insert(&session, record,
-                          INVALID_STRIPING_ID,
-                          insertOptions(), &res);
+      rc = handler->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
 
       INT32 page, slot;
       res.getInsertLoc(page, slot);
-      recordID rid(page, slot);
+      dmsRecordID rid(page, slot);
       rids.push_back(rid);
       builder.reset();
    }
    UINT64 currentCount = 0;
-   rc = handler.getTotalRecordCountInPageHead(&session, currentCount);
+   rc = handler->getRecordCount(&session, currentCount);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(count, currentCount);
 
    // index scan
    mthMatchTree mt;
-   indexScanOptions o;
-   for (UINT32 i = 0; i < count; ++i)
+   dmsIndexScanOptions o;
+   for (INT32 i = 0; i < count; ++i)
    {
+      dmsBsonCursorReader reader;
       builder.reset();
       builder.append("a", i);
       rc = mt.loadPattern(builder.done(), FALSE);
@@ -294,52 +288,46 @@ void delete_test2(INDEX_TYPE type)
       UINT32 lvl = 0;
       rc = predicates.initialize(ps, pattern, 1, lvl);
       ASSERT_EQ(SDB_OK, rc);
-      cursorHandler cursor;
-      rc = handler.openIndexScanCursor(&session, indexName,
-                                       predicates, o, cursor);
+      DATA_CURSOR_PTR cursor;
+      rc = handler->scanIndex(&session, "index", predicates, o, cursor);
       ASSERT_EQ(SDB_OK, rc);
 
-      dataScanRow row;
-      rc = cursor.getNextRow(&session, row);
+      reader.init(cursor, FALSE);
+      rc = reader.fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
-      bson::BSONObj recordObj(row.getRecord().data());
-      ASSERT_EQ(i, recordObj.getIntField("a"));
-
+      ASSERT_EQ(i, reader.getRecord().getIntField("a"));
+      
+      cursor->close();
       mt.clear();
-      cursor.close();
    }
 
    // delete records
-   for (UINT32 i = 0; i < count; ++i)
+   for (INT32 i = 0; i < count; ++i)
    {
-      dmlRemoveRequest request;
       utilDeleteResult deleteRes;
-      const recordID &rid = rids[i];
-      request.rid = rid;
-      rc = handler.deleteRecord(&session, request, &deleteRes);
+      const dmsRecordID &rid = rids[i];
+      rc = handler->deleteRecord(&session, rid, dmsDeleteRecordOptions(), &deleteRes);
       ASSERT_EQ(SDB_OK, rc);
    }
-   rc = handler.getTotalRecordCountInPageHead(&session, currentCount);
+   rc = handler->getRecordCount(&session, currentCount);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(0, currentCount);
 
    //re-insert records
-   for (UINT32 i = 0; i < count; ++i)
+   rids.clear();
+   for (INT32 i = 0; i < count; ++i)
    {
       utilInsertResult res;
       builder.reset();
       builder.append("a", i);
       builder.append("b", i + 1);
       bson::BSONObj obj = builder.done();
-      slice record(obj.objsize(), obj.objdata());
-      rc = handler.insert(&session, record,
-                          INVALID_STRIPING_ID,
-                          insertOptions(), &res);
+      rc = handler->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
 
       INT32 page, slot;
       res.getInsertLoc(page, slot);
-      recordID rid(page, slot);
+      dmsRecordID rid(page, slot);
       rids.push_back(rid);
       builder.reset();
    }
@@ -361,20 +349,18 @@ void delete_test2(INDEX_TYPE type)
    rc = predicates.initialize(ps, pattern, 1, lvl);
    ASSERT_EQ(SDB_OK, rc);
 
-   cursorHandler cursor;
-   rc = handler.openIndexScanCursor(&session, indexName,
-                                    predicates, o, cursor);
+   DATA_CURSOR_PTR cursor;
+   rc = handler->scanIndex(&session, "index", predicates, o, cursor);
    ASSERT_EQ(SDB_OK, rc);
-
-   for (UINT32 i = 0; i < count; ++i)
+   dmsBsonCursorReader reader;
+   reader.init(cursor, FALSE);
+   for (INT32 i = 0; i < count; ++i)
    {
-      dataScanRow row;
-      rc = cursor.getNextRow(&session, row);
+      rc = reader.fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
-      bson::BSONObj recordObj(row.getRecord().data());
-      ASSERT_EQ(i, recordObj.getIntField("a"));
+      ASSERT_EQ(i, reader.getRecord().getIntField("a"));
    }
-   cursor.close();
+   cursor->close();
    mt.clear();
 
    rc = db.close(&session, closeDBOptions());
@@ -415,30 +401,32 @@ void partial_delete(INDEX_TYPE type)
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
-   ossPoolVector<recordID> rids;
+   ossPoolVector<dmsRecordID> rids;
 
-   collectionHandler handler;
+   DATA_COLLECTION_PTR handler;
    UINT32 count = 10000;
    indexParameters params;
    params.type = type;
    bson::BSONObj pattern = BSON("a" << 1);
-   strSlice indexName("idx");
+   const CHAR *indexName = "index";
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName,
+                                                          params, pattern);
+
    bson::BSONObjBuilder builder;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions());
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar", 1, createCLOptions());
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&session, "foo", "bar", openCLOptions(), handler);
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = handler.createIndex(&session, indexName,
-                            pattern, params, createIndexOptions());
+   rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);
 
    // insert records
@@ -449,20 +437,17 @@ void partial_delete(INDEX_TYPE type)
       builder.append("a", i);
       builder.append("b", i + 1);
       bson::BSONObj obj = builder.done();
-      slice record(obj.objsize(), obj.objdata());
-      rc = handler.insert(&session, record,
-                          INVALID_STRIPING_ID,
-                          insertOptions(), &res);
+      rc = handler->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
 
       INT32 page, slot;
       res.getInsertLoc(page, slot);
-      recordID rid(page, slot);
+      dmsRecordID rid(page, slot);
       rids.push_back(rid);
       builder.reset();
    }
    UINT64 currentCount = 0;
-   rc = handler.getTotalRecordCountInPageHead(&session, currentCount);
+   rc = handler->getRecordCount(&session, currentCount);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(count, currentCount);
 
@@ -470,19 +455,18 @@ void partial_delete(INDEX_TYPE type)
    for (UINT32 i = 0; i < count; i += 2)
    {
       utilDeleteResult deleteRes;
-      dmlRemoveRequest request;
-      const recordID &rid = rids[i];
-      request.rid = rid;
-      rc = handler.deleteRecord(&session, request, &deleteRes);
+
+      const dmsRecordID &rid = rids[i];
+      rc = handler->deleteRecord(&session, rid, dmsDeleteRecordOptions(), &deleteRes);
       ASSERT_EQ(SDB_OK, rc);
    }
-   rc = handler.getTotalRecordCountInPageHead(&session, currentCount);
+   rc = handler->getRecordCount(&session, currentCount);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ((UINT64)count / 2, currentCount);
 
    // index scan
    mthMatchTree mt;
-   indexScanOptions o;
+   dmsIndexScanOptions o;
 
    builder.reset();
    bson::BSONObjBuilder subBuilder(builder.subobjStart("a"));
@@ -500,20 +484,18 @@ void partial_delete(INDEX_TYPE type)
    rc = predicates.initialize(ps, pattern, 1, lvl);
    ASSERT_EQ(SDB_OK, rc);
 
-   cursorHandler cursor;
-   rc = handler.openIndexScanCursor(&session, indexName,
-                                    predicates, o, cursor);
+   DATA_CURSOR_PTR cursor;
+   rc = handler->scanIndex(&session, indexName, predicates, o, cursor);
    ASSERT_EQ(SDB_OK, rc);
-
+   dmsBsonCursorReader reader;
+   reader.init(cursor, FALSE);
    for (UINT32 i = 1; i < count; i+=2)
    {
-      dataScanRow row;
-      rc = cursor.getNextRow(&session, row);
+      rc = reader.fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
-      bson::BSONObj recordObj(row.getRecord().data());
-      ASSERT_EQ(i, recordObj.getIntField("a"));
+      ASSERT_EQ(i, reader.getRecord().getIntField("a"));
    }
-   cursor.close();
+   cursor->close();
    mt.clear();
 
    rc = db.close(&session, closeDBOptions());
@@ -555,10 +537,10 @@ void backward_delete(INDEX_TYPE type)
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
-   collectionHandler handler;
+   DATA_COLLECTION_PTR handler;
    INT32 count = 10000;
 
-   ossPoolVector<recordID> rids;
+   ossPoolVector<dmsRecordID> rids;
 
    indexParameters params;
    params.type = type;
@@ -566,22 +548,23 @@ void backward_delete(INDEX_TYPE type)
    bson::BSONObjBuilder builder;
 
    bson::BSONObj pattern = BSON("a" << 1);
-   strSlice indexName("idx");
+   const CHAR *indexName = "index";
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName, params, pattern);
+   
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions());
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar", 1, createCLOptions());
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&session, "foo", "bar", openCLOptions(), handler);
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = handler.createIndex(&session, indexName,
-                              pattern, params, createIndexOptions());
+   rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);
 
    // insert records
@@ -592,21 +575,18 @@ void backward_delete(INDEX_TYPE type)
       builder.append("a", i);
       builder.append("b", i + 1);
       bson::BSONObj obj = builder.done();
-      slice record(obj.objsize(), obj.objdata());
-      rc = handler.insert(&session, record,
-                          INVALID_STRIPING_ID,
-                          insertOptions(), &res);
+      rc = handler->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
 
       INT32 page, slot;
       res.getInsertLoc(page, slot);
-      recordID rid(page, slot);
+      dmsRecordID rid(page, slot);
       rids.push_back(rid);
       builder.reset();
    }
 
    UINT64 currentCount = 0;
-   rc = handler.getTotalRecordCountInPageHead(&session, currentCount);
+   rc = handler->getRecordCount(&session, currentCount);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(count, currentCount);
 
@@ -614,18 +594,16 @@ void backward_delete(INDEX_TYPE type)
    for (INT32 i = count - 1; i >= count / 2; --i)
    {
       utilDeleteResult deleteRes;
-      dmlRemoveRequest request;
-      const recordID &rid = rids[i];
-      request.rid = rid;
-      rc = handler.deleteRecord(&session, request, &deleteRes);
+      const dmsRecordID &rid = rids[i];
+      rc = handler->deleteRecord(&session, rid, dmsDeleteRecordOptions(), &deleteRes);
       ASSERT_EQ(SDB_OK, rc);
    }
-   rc = handler.getTotalRecordCountInPageHead(&session, currentCount);
+   rc = handler->getRecordCount(&session, currentCount);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ((UINT64)count / 2, currentCount);
 
    mthMatchTree mt;
-   indexScanOptions o;
+   dmsIndexScanOptions o;
    o.forward = FALSE;
    // scan
    {
@@ -645,25 +623,22 @@ void backward_delete(INDEX_TYPE type)
       rc = predicates.initialize(ps, pattern, -1, lvl);
       ASSERT_EQ(SDB_OK, rc);
 
-      cursorHandler cursor;
-      rc = handler.openIndexScanCursor(&session, indexName,
-                                       predicates, o, cursor);
+      DATA_CURSOR_PTR cursor;
+      rc = handler->scanIndex(&session, indexName, predicates, o, cursor);
       ASSERT_EQ(SDB_OK, rc);
+
+      dmsBsonCursorReader reader;
+      reader.init(cursor, FALSE);
 
       for (INT32 i = count / 2 - 1; i >= 0; --i)
       {
-         dataScanRow row;
-         rc = cursor.getNextRow(&session, row);
+         rc = reader.fetchNext(&session);
          ASSERT_EQ(SDB_OK, rc);
-         bson::BSONObj recordObj(row.getRecord().data());
-         ASSERT_EQ(i, recordObj.getIntField("a"));
+         ASSERT_EQ(i, reader.getRecord().getIntField("a"));
       }
-      for (INT32 i = count - 1; i >= count / 2; --i)
-      {
-         dataScanRow row;
-         rc = cursor.getNextRow(&session, row);
-         ASSERT_EQ(SDB_VESSEL_EOC, rc);
-      }
+      rc = reader.fetchNext(&session);
+      ASSERT_EQ(SDB_DMS_EOC, rc);
+   
       mt.clear();
    }
 

@@ -54,6 +54,8 @@
 #include "rtnRollbackManager.hpp"
 #include "utilBSON.hpp"
 
+#include "rtnHandlers.hpp"
+
 
 #if defined (_DEBUG)
 // for qgmDebugQuery function
@@ -813,11 +815,18 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNCREATECL_DOIT ) ;
 
+/*
       rc = rtnCreateCollectionCommand ( _collectionName, _shardingKey,
                                         _attributes, cb, dmsCB, dpsCB,
                                         _clUniqueID, _compressorType, 0, FALSE,
                                         ( _extOptions.isEmpty() ?
                                          NULL : &_extOptions ) ) ;
+*/
+
+      dmsCreateCLOptions o;
+      rtnCreateCLHandler handler;
+      handler.init(_collectionName, _clUniqueID, o);
+      rc = handler.launch(cb);
 
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
@@ -925,9 +934,33 @@ namespace engine
                                            const CHAR * pOrderByBuff,
                                            const CHAR * pHintBuff)
    {
+      INT32 rc = SDB_OK;
+      BOOLEAN capped = FALSE ;
       BSONObj matcher ( pMatcherBuff ) ;
 
-      INT32 rc = rtnGetIntElement ( matcher, FIELD_NAME_PAGE_SIZE,
+      const CHAR *engineType = NULL;
+
+      rc = rtnGetStringElement ( matcher, FIELD_NAME_NAME, &_spaceName ) ;
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+      
+      rc = rtnGetStringElement(matcher, FIELD_NAME_ENGINE_TYPE, &engineType);
+      if (SDB_OK == rc)
+      {
+         if (0 != ossStrcmp(FIELD_NAME_ENGINE_VESSEL, engineType))
+         {
+            rc = SDB_INVALIDARG;
+            goto error;
+         }
+
+         _storageType = DMS_STORAGE_VESSEL;
+         _options = matcher;
+         goto done;
+      }
+
+      rc = rtnGetIntElement ( matcher, FIELD_NAME_PAGE_SIZE,
                                     _pageSize ) ;
       if ( SDB_OK != rc )
       {
@@ -940,10 +973,7 @@ namespace engine
       {
          _lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ ;
       }
-
       
-
-      BOOLEAN capped = FALSE ;
       rc = rtnGetBooleanElement( matcher, FIELD_NAME_CAPPED, capped ) ;
       if ( SDB_OK == rc && capped  )
       {
@@ -953,8 +983,10 @@ namespace engine
       {
          _storageType = DMS_STORAGE_NORMAL ;
       }
-
-      return rtnGetStringElement ( matcher, FIELD_NAME_NAME, &_spaceName ) ;
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCREATECS_DOIT, "_rtnCreateCollectionspace::doit" )
@@ -965,10 +997,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNCREATECS_DOIT ) ;
 
-      rc = rtnCreateCollectionSpaceCommand ( _spaceName, cb, dmsCB,
-                                                dpsCB, _csUniqueID, _pageSize,
-                                                _lobPageSize, _storageType ) ;
-
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          /// AUDIT
@@ -977,6 +1005,22 @@ namespace engine
                            "PageSize:%u, LobPageSize:%u",
                            _pageSize, _lobPageSize ) ;
       }
+
+      if (DMS_STORAGE_VESSEL != _storageType)
+      {
+         rc = rtnCreateCollectionSpaceCommand ( _spaceName, cb, dmsCB,
+                                                   dpsCB, _csUniqueID, _pageSize,
+                                                   _lobPageSize, _storageType ) ;
+      }
+      else
+      {
+         dmsCreateCSOptions o;
+         rtnCreateCSHandler handler;
+         handler.init(_spaceName, _csUniqueID, o);
+         handler.setAdjunct(_options);
+         rc = handler.launch(cb);
+      }
+      
 
       PD_TRACE_EXITRC ( SDB__RTNCREATECS_DOIT, rc ) ;
       return rc ;
@@ -2290,8 +2334,12 @@ namespace engine
                                     SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
                                     INT16 w , INT64 *pContextID )
    {
-      return rtnTestCollectionCommand ( _objName, dmsCB ) ;
+      //return rtnTestCollectionCommand ( _objName, dmsCB ) ;
+      rtnTestCLHandler handler;
+      handler.init(_objName, UTIL_UNIQUEID_NULL);
+      return handler.launch(cb);
    }
+
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnTestCollectionspace)
    _rtnTestCollectionspace::_rtnTestCollectionspace ()
@@ -2316,7 +2364,10 @@ namespace engine
                                          SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
                                          INT16 w , INT64 *pContextID )
    {
-      return rtnTestCollectionSpaceCommand ( _objName, dmsCB ) ;
+      //return rtnTestCollectionSpaceCommand ( _objName, dmsCB ) ;
+      rtnTestCSHandler handler;
+      handler.init(_objName, UTIL_UNIQUEID_NULL);
+      return handler.launch(cb);
    }
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnSetPDLevel)

@@ -39,7 +39,8 @@
 #include "vessel/vesselIdDef.h"
 #include "vessel/collectionRecordPage.h"
 #include "../bson/bson.hpp"
-#include "vessel/cursorOptions.h"
+#include "dmsEngineDef.hpp"
+#include "dmsStripingId.hpp"
 
 namespace engine
 {
@@ -69,84 +70,9 @@ namespace vessel
          UINT16 type = COLLECTION_TYPE_NORMAL;
          UINT16 minFreePercent = 10; ///valid range [0, 50]
          UTIL_COMPRESSOR_TYPE compressionType = UTIL_COMPRESSOR_INVALID;
-         STRIPING_ID minStriping = INVALID_STRIPING_ID;
-         STRIPING_ID maxStriping = INVALID_STRIPING_ID;
+         dmsStripingRange stripingRange;
          //UINT32 stripingBucketCount = 1;
    };// class createCLOptions
-
-   class baseScanOptions : public SDBObject
-   {
-      public:
-         baseScanOptions(){}
-         ~baseScanOptions(){}
-         baseScanOptions(const baseScanOptions &o):
-         _sf(o._sf)
-         {}
-         baseScanOptions &operator=(const baseScanOptions &o)
-         {
-            _sf = o._sf;
-            return *this;
-         }
-
-      public:
-         enum SCAN_FOR
-         {
-            SCAN_FOR_NONE = 0,
-            SCAN_FOR_SHARE = 1,
-            SCAN_FOR_UPDATE = 2,
-         };//enum _SCAN_FOR
-
-      public:
-         OSS_INLINE void setScanForShare() {_sf = SCAN_FOR_SHARE;}
-         OSS_INLINE void setScanForUpdate() {_sf = SCAN_FOR_UPDATE;}
-         OSS_INLINE void setScanForNone() {_sf = SCAN_FOR_NONE;}
-         OSS_INLINE BOOLEAN isScanForNone()const {return SCAN_FOR_NONE == _sf;}
-         OSS_INLINE BOOLEAN isScanForUpdate()const {return SCAN_FOR_UPDATE == _sf;}
-         OSS_INLINE BOOLEAN isScanForShare()const {return SCAN_FOR_SHARE == _sf;}
-
-      public:
-         SCAN_FOR _sf = SCAN_FOR_NONE;
-   };//class baseScanOptions
-
-   class collectionScanOptions : public SDBObject
-   {
-      public:
-         collectionScanOptions(){}
-         ~collectionScanOptions(){}
-         collectionScanOptions(const collectionScanOptions &o):
-         base(o.base){}
-         collectionScanOptions &operator=(const collectionScanOptions &o)
-         {
-            base = o.base;
-            return *this;
-         }
-
-      public:
-          baseScanOptions base;
-   };//class collectionScanOptions
-
-   class indexScanOptions : public SDBObject
-   {
-      public:
-         indexScanOptions(){}
-         ~indexScanOptions(){}
-         indexScanOptions(const indexScanOptions &o):
-         base(o.base),
-         indexCoverd(o.indexCoverd),
-         forward(o.forward){}
-         indexScanOptions &operator=(const indexScanOptions &o)
-         {
-            base = o.base;
-            indexCoverd = o.indexCoverd;
-            forward = o.forward;
-            return *this;
-         }
-
-      public:
-         baseScanOptions base;
-         BOOLEAN indexCoverd = FALSE;
-         BOOLEAN forward = TRUE;
-   };//class indexScanOptions
 }//namespace vessel
 }//namespace engine
 

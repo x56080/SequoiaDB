@@ -49,6 +49,8 @@ namespace vessel
    {
       _tags.clear();
       _builder.kill();
+      _rowLimit = -1;
+      _bufferSizeLimit = -1;
    }
 
    void stackAllocatorRowBatch::clearRows()
@@ -135,22 +137,8 @@ namespace vessel
 
    BOOLEAN stackAllocatorRowBatch::isFreeToPush(UINT32 rowSize)const
    {
-      BOOLEAN r = TRUE;
-      if (0 <= _bufferSizeLimit &&
-         (INT64)(_builder.len() + rowSize) > _bufferSizeLimit)
-      {
-         r = FALSE;
-         goto done;
-      }
-
-      if (0 <= _rowLimit && (INT32)(_tags.size()) == _rowLimit)
-      {
-         r = FALSE;
-         goto done;
-      }
-
-   done:
-      return r;
+      return (!hasRowLimit() || (INT32)_tags.size() < _rowLimit) &&
+             (!hasBufferSizeLimit() || ((_builder.len() + (INT32)rowSize) <= _bufferSizeLimit));
    }
 
 } // namespace vessel

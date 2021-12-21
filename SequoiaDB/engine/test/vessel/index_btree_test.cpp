@@ -38,6 +38,7 @@
 #include "vessel/vesselImpl.h"
 #include <gtest/gtest.h>
 #include "ixm_common.hpp"
+#include "dmsCursorReader.hpp"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -102,25 +103,27 @@ TEST_F(index_btree_test, test1)
    options.path.lobPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
-   createIndexOptions indexOptions;
    indexParameters indexParams;
    indexParams.type = INDEX_TYPE_BTREE;
-   collectionHandler cl;
+   
+   DATA_COLLECTION_PTR cl;
    
    ossPoolVector<bson::BSONObj> indexes;
 
    UINT32 count = 64;
 
+   collectionSpaceId id;
+
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar", 1, clOptions);
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&session, "foo", "bar", openCLOptions(), cl);
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), cl);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < count; ++i)
@@ -128,9 +131,10 @@ TEST_F(index_btree_test, test1)
       std::stringstream ss;
       ss << "index" << i;
       std::string indexName = ss.str();
-      strSlice nameSlice(indexName.c_str(), indexName.size());
       bson::BSONObj patternObj = BSON(indexName.c_str() << 1);
-      rc = cl.createIndex(&session, nameSlice, patternObj, indexParams, indexOptions);
+      bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName.c_str(),
+                                                             indexParams, patternObj);
+      rc = cl->createIndex(&session, dmsBuildIndexOptions(), indexDef);
       ASSERT_EQ(SDB_OK, rc);
    }
 
@@ -138,50 +142,52 @@ TEST_F(index_btree_test, test1)
       std::stringstream ss;
       ss << "index" << 64;
       std::string indexName = ss.str();
-      strSlice nameSlice(indexName.c_str(), indexName.size());
       bson::BSONObj patternObj = BSON(indexName.c_str() << 1);
-      rc = cl.createIndex(&session, nameSlice, patternObj, indexParams, indexOptions);
+      bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName.c_str(),
+                                                             indexParams, patternObj);
+      rc = cl->createIndex(&session, dmsBuildIndexOptions(), indexDef);
       ASSERT_EQ(SDB_DMS_MAX_INDEX, rc);
    }
 
-   rc = cl.listIndexes(&session, indexes);
+   rc = cl->listIndex(&session, indexes);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(count, indexes.size());
 
    for (UINT32 i = 0; i < count; ++i)
    {
       const bson::BSONObj &obj = indexes.at(i);
-      ASSERT_EQ(INDEX_TYPE_BTREE, obj.getIntField(VESSEL_INDEX_FIELD_NAME_TYPE));
+      ASSERT_EQ(0, ossStrcmp(IXM_BTREE_FIELD, obj.getStringField(IXM_TYPE_FIELD)));
       std::stringstream ss;
       ss << "index" << i;
       ASSERT_EQ(0, ss.str().compare(obj.getStringField(IXM_NAME_FIELD)));
       ASSERT_EQ(INDEX_STATUS_NORMAL, obj.getIntField(VESSEL_INDEX_FIELD_NAME_STATUS));
    }
 
-   cl.close();
+   cl->close();
    db.close(&session, closeDBOptions());
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&session, "foo", "bar", openCLOptions(), cl);
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), cl);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = cl.listIndexes(&session, indexes);
+   indexes.clear();
+   rc = cl->listIndex(&session, indexes);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(count, indexes.size());
 
    for (UINT32 i = 0; i < count; ++i)
    {
       const bson::BSONObj &obj = indexes.at(i);
-      ASSERT_EQ(INDEX_TYPE_BTREE, obj.getIntField(VESSEL_INDEX_FIELD_NAME_TYPE));
+      ASSERT_EQ(0, ossStrcmp(IXM_BTREE_FIELD, obj.getStringField(IXM_TYPE_FIELD)));
       std::stringstream ss;
       ss << "index" << i;
       ASSERT_EQ(0, ss.str().compare(obj.getStringField(IXM_NAME_FIELD)));
       ASSERT_EQ(INDEX_STATUS_NORMAL, obj.getIntField(VESSEL_INDEX_FIELD_NAME_STATUS));
    }
 
-   cl.close();
+   cl->close();
    db.close(&session, closeDBOptions());
 }
 
@@ -200,31 +206,29 @@ TEST_F(index_btree_test, test2)
    options.path.lobPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
-   createIndexOptions indexOptions;
    indexParameters indexParams;
    indexParams.type = INDEX_TYPE_BTREE;
-   collectionHandler cl;
+
+   DATA_COLLECTION_PTR cl;
    bson::BufBuilder builder;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar", 1, clOptions);
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&session, "foo", "bar", openCLOptions(), cl);
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), cl);
    ASSERT_EQ(SDB_OK, rc);
 
    const CHAR *indexName = "a0";
-   strSlice nameSlice(indexName);
    bson::BSONObj patternObj = BSON(indexName << 1);
-   rc = cl.createIndex(&session, nameSlice, patternObj, indexParams, indexOptions);
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName, indexParams, patternObj);
+   rc = cl->createIndex(&session, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);
-
-   insertOptions o;
 
    for (UINT32 i = 0; i < 10000; ++i)
    {
@@ -233,16 +237,15 @@ TEST_F(index_btree_test, test2)
       bson::BSONObjBuilder recordBuilder(builder);
       recordBuilder.append(indexName, ossRand());
       bson::BSONObj obj = recordBuilder.done();
-      slice record(obj.objsize(), obj.objdata());
-      rc = cl.insert(&session, record, INVALID_STRIPING_ID, o, &result);
+      rc = cl->insertRecord(&session, obj, dmsInsertRecordOptions(), &result);
       ASSERT_EQ(SDB_OK, rc);
    }
 
-   cl.close();
+   cl->close();
    db.close(&session, closeDBOptions());
    }
 
-   TEST_F(index_btree_test, test3)
+TEST_F(index_btree_test, test3)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
@@ -257,31 +260,29 @@ TEST_F(index_btree_test, test2)
    options.path.lobPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
-   createIndexOptions indexOptions;
    indexParameters indexParams;
    indexParams.type = INDEX_TYPE_BTREE;
-   collectionHandler cl;
+   DATA_COLLECTION_PTR cl;
    bson::BufBuilder builder;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar", 1, clOptions);
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&session, "foo", "bar", openCLOptions(), cl);
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), cl);
    ASSERT_EQ(SDB_OK, rc);
 
    const CHAR *indexName = "a0";
-   strSlice nameSlice(indexName);
    bson::BSONObj patternObj = BSON(indexName << 1);
-   rc = cl.createIndex(&session, nameSlice, patternObj, indexParams, indexOptions);
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName, indexParams, patternObj);
+   rc = cl->createIndex(&session, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);
 
-   insertOptions o;
    std::stringstream ss;
    CHAR keyPad[128] = {};
    ossMemset(keyPad, 'a', sizeof(keyPad) - 1);
@@ -296,11 +297,10 @@ TEST_F(index_btree_test, test2)
       bson::BSONObjBuilder recordBuilder(builder);
       recordBuilder.append(indexName, ss.str().c_str());
       bson::BSONObj obj = recordBuilder.done();
-      slice record(obj.objsize(), obj.objdata());
-      rc = cl.insert(&session, record, INVALID_STRIPING_ID, o, &result);
+      rc = cl->insertRecord(&session, obj, dmsInsertRecordOptions(), &result);
       ASSERT_EQ(SDB_OK, rc);
    }
 
-   cl.close();
+   cl->close();
    db.close(&session, closeDBOptions());
    }

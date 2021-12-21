@@ -64,7 +64,7 @@ namespace vessel
          goto error;
       }
 
-      context.open(getExecutor(), getEnv(), getOuterResource());
+      context.open(getExecutor(), getEnv());
 
       rc = getCollectionObject(&context, gcid, SHARED, cl);
       if (SDB_OK != rc)
@@ -118,7 +118,7 @@ namespace vessel
          }
       }
 
-      context.open(getExecutor(), getEnv(), getOuterResource());
+      context.open(getExecutor(), getEnv());
       rc = getCollectionObject(&context, gcid, SHARED, cl);
       if (SDB_OK != rc)
       {
@@ -130,7 +130,6 @@ namespace vessel
          dmlInsertRequest req;
          req.o = request.o;
          req.record = request.batch[i];
-         req.stripingId = request.stripingId;
 
          rc = cl->insert(&context, req, res);
          if (SDB_OK != rc)
@@ -171,7 +170,7 @@ namespace vessel
          goto error;
       }
 
-      context.open(getExecutor(), getEnv(), getOuterResource());
+      context.open(getExecutor(), getEnv());
       rc = getCollectionObject(&context, gcid, SHARED, cl);
       if (SDB_OK != rc)
       {
@@ -210,7 +209,7 @@ namespace vessel
          goto error;
       }
 
-      context.open(getExecutor(), getEnv(), getOuterResource());
+      context.open(getExecutor(), getEnv());
       rc = getCollectionObject(&context, gcid, SHARED, cl);
       if (SDB_OK != rc)
       {

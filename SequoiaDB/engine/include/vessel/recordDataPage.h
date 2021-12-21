@@ -41,6 +41,7 @@
 #include "vessel/recordID.h"
 #include "vessel/vesselIdDef.h"
 #include "dms.hpp"
+#include "dmsStripingId.hpp"
 
 namespace engine
 {
@@ -65,9 +66,7 @@ namespace vessel
 
       OSS_INLINE BOOLEAN hasValidStripingRange()const
       {
-         return INVALID_STRIPING_ID != minStriping &&
-                INVALID_STRIPING_ID != maxStriping &&
-                minStriping <= maxStriping;
+         return dmsStripingRange(minStriping, maxStriping).isValid();
       }
 
       UINT32 version = INVALID_RDP_VERSION;
@@ -78,8 +77,8 @@ namespace vessel
       UINT16 totalFreeSpace = 0;
       UINT16 backOffset = 0;
       UINT16 firstFreeSlot = INVALID_RECORD_SLOT_ID;
-      UINT16 minStriping = INVALID_STRIPING_ID;
-      UINT16 maxStriping = INVALID_STRIPING_ID;
+      INT32 minStriping = DMS_INVALID_STRIPING_ID;
+      INT32 maxStriping = DMS_INVALID_STRIPING_ID;
       UINT64 transSN = DPS_INVALID_TRANSID_SN;
       CHAR pad[24] = {};
    };//struct recordDataPageHead

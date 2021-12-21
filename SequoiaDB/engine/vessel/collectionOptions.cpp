@@ -50,19 +50,6 @@ namespace vessel
       {
          goto done;
       }
-      else if (INVALID_STRIPING_ID != minStriping ||
-               INVALID_STRIPING_ID != maxStriping)
-      {
-         if (INVALID_STRIPING_ID == minStriping ||
-             INVALID_STRIPING_ID == maxStriping)
-         {
-            goto done;
-         }
-         else if (maxStriping < minStriping)
-         {
-            goto done;
-         }
-      }
 
       r = TRUE;
    done:
@@ -75,8 +62,8 @@ namespace vessel
       builder.append(CRT_CL_OPTIONS_FIELD_TYPE, type)
              .append(CRT_CL_OPTIONS_FIELD_MIN_FREE_PERCENT, minFreePercent)
              .append(CRT_CL_OPTIONS_FIELD_COMPRESSION, compressionType)
-             .append(CRT_CL_OPTIONS_FIELD_MIN_STRIPING, minStriping)
-             .append(CRT_CL_OPTIONS_FIELD_MAX_STRIPING, maxStriping);
+             .append(CRT_CL_OPTIONS_FIELD_MIN_STRIPING, stripingRange.getLow().getValue())
+             .append(CRT_CL_OPTIONS_FIELD_MAX_STRIPING, stripingRange.getHigh().getValue());
       return builder.obj();
    }
 }//namespace vessel

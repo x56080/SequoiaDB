@@ -36,7 +36,6 @@
 #ifndef VESSEL_INDEX_CONSOLE_H_
 #define VESSEL_INDEX_CONSOLE_H_
 
-#include "vessel/indexOptions.h"
 #include "vessel/indexKeyPattern.h"
 #include "vessel/slice.h"
 #include "vessel/strSlice.h"

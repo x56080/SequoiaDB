@@ -44,14 +44,16 @@
 #include "dpsLogRecord.hpp"
 #include "../bson/bson.hpp"
 #include "pd.hpp"
-#include "vessel/collectionOptions.h"
+#include "interface/IDataCollection.h"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
 
 
-static const CHAR *CSNAME = "foo";
-static const CHAR *CLNAME = "bar";
+constexpr CHAR *CSNAME = "foo";
+constexpr CHAR *CLNAME = "bar";
+constexpr CHAR *FULLNAME = "foo.bar";
+
 std::atomic<UINT32> quitThreadCount(0);
 
 void printCountPerSecond(UINT32 recordcount, 
@@ -78,7 +80,7 @@ void printCountPerSecond(UINT32 recordcount,
 }
 
 INT32 normal_insert(vesselImpl *db,
-                    const CHAR *csName, const CHAR *clName,
+                    const CHAR *fullName,
                     UINT32 count, std::atomic<UINT32> insertCounts[], UINT32 x)
 {
    INT32 rc = SDB_OK;
@@ -90,11 +92,9 @@ INT32 normal_insert(vesselImpl *db,
    builder.append("b", 2);
    builder.append("c", pad, 1024);
    bson::BSONObj obj = builder.obj();
-   slice record;
-   record.reset(obj.objsize(), obj.objdata());
 
-   collectionHandler handler;
-   rc = db->openCollection(&session, csName, clName, openCLOptions(), handler);
+   DATA_COLLECTION_PTR handler;
+   rc = db->openCL(&session, fullName, dmsOpenCLOptions(), handler);
    if (SDB_OK != rc)
    {
       goto error;
@@ -103,16 +103,14 @@ INT32 normal_insert(vesselImpl *db,
    for (UINT32 i = 0; i < count; ++i)
    {
       utilInsertResult res;
-      rc = handler.insert(&session, record, 
-                          INVALID_STRIPING_ID,
-                          insertOptions(), &res);
+      rc = handler->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
       if (SDB_OK != rc)
       {
          goto error;
       }
       ++insertCounts[x];
    }
-   handler.close();
+   handler->close();
 
 done:
    --quitThreadCount;
@@ -144,6 +142,8 @@ void insertTest(CHAR *datapath, CHAR *lsmpath, CHAR *logpath,
    builder.append("c", pad, 1024);
    bson::BSONObj obj = builder.obj();
 
+   bson::BSONObj adjunct;
+
    std::thread threads[threadcount];
    UINT32 countPerThread = recordcount / threadcount;
    UINT32 mod = 0;
@@ -163,12 +163,12 @@ void insertTest(CHAR *datapath, CHAR *lsmpath, CHAR *logpath,
    {
       goto error;
    }
-   rc = db.createCollectionSpace(&session, CSNAME, 1, createCSOptions());
+   rc = db.createCS(&session, CSNAME, 1, dmsCreateCSOptions(), adjunct);
    if (SDB_OK != rc)
    {
       goto error;
    }
-   rc = db.createCollection(&session, CSNAME, CLNAME, 1, createCLOptions());
+   rc = db.createCL(&session, FULLNAME, 1, dmsCreateCLOptions(), adjunct);
    if (SDB_OK != rc)
    {
       goto error;
@@ -181,7 +181,7 @@ void insertTest(CHAR *datapath, CHAR *lsmpath, CHAR *logpath,
          countPerThread += mod;
       }
       threads[i] = std::move(std::thread(normal_insert, &db, 
-                                         CSNAME, CLNAME, countPerThread, 
+                                         FULLNAME, countPerThread, 
                                          insertCounts, i));
    }
    printCountPerSecond(recordcount, threadcount, insertCounts);
@@ -211,9 +211,10 @@ INT32 index_insert(vesselImpl *db,
    ossMemset(randStr, 'a', sizeof(randStr) - 1);
    randStr[31] = '\0';
    bson::BSONObjBuilder builder;
-   collectionHandler handler;
+   DATA_COLLECTION_PTR handler;
+   dmsInsertRecordOptions options;
 
-   rc = db->openCollection(&session, csName, clName, openCLOptions(), handler);
+   rc = db->openCL(&session, FULLNAME, dmsOpenCLOptions(), handler);
    if (SDB_OK != rc)
    {
       goto error;
@@ -231,12 +232,9 @@ INT32 index_insert(vesselImpl *db,
       builder.append("b", 2);
       builder.append("c", pad, 1024);
       bson::BSONObj obj = builder.done();
-      slice record;
-      record.reset(obj.objsize(), obj.objdata());
       utilInsertResult res;
-      rc = handler.insert(&session, record,
-                          INVALID_STRIPING_ID,
-                          insertOptions(), &res);
+      rc = handler->insertRecord(&session, obj,
+                                 options, &res);
       if (SDB_OK != rc)
       {
          goto error;
@@ -244,8 +242,10 @@ INT32 index_insert(vesselImpl *db,
       ++insertCounts[x];
    }
 
+   handler->close();
+
 done:   
-   handler.close();
+   
    --quitThreadCount;
    return rc;
 error:
@@ -265,7 +265,7 @@ void insertTestwithIndex(CHAR *datapath, CHAR *lsmpath, CHAR *logpath,
    openDBOptions options;
    options.path.dataPath = datapath;
    options.path.lsmPath = lsmpath;
-   collectionHandler handler;
+   DATA_COLLECTION_PTR handler;
    std::thread threads[threadcount];
    UINT32 countPerThread = recordcount / threadcount;
    UINT32 mod = 0;
@@ -274,6 +274,9 @@ void insertTestwithIndex(CHAR *datapath, CHAR *lsmpath, CHAR *logpath,
       mod = recordcount % threadcount;
    }
 
+   bson::BSONObj indexDef;
+   bson::BSONObj adjunct;
+
    std::atomic<UINT32> *insertCounts = new std::atomic<UINT32>[threadcount];
    for (UINT32 i = 0; i < threadcount; ++i)
    {
@@ -281,40 +284,36 @@ void insertTestwithIndex(CHAR *datapath, CHAR *lsmpath, CHAR *logpath,
    }
    quitThreadCount = threadcount;
 
-   createCSOptions csOptions;
-   csOptions.dataSegSize = STORAGE_FILE_SEGMENT_SIZE_32MB;
-
    closeDBOptions co;
    co.closeMode = closeDBOptions::CLOSE_MODE_IMMDIETE;
 
-   collectionHandler clHandler;
-
-   indexParameters params;
-   params.type = INDEX_TYPE_BTREE;
-   params.isUnique = TRUE;
+   dmsBuildIndexOptions buildOptions;
 
    rc = db.open(&session, &resource, options);
    if (SDB_OK != rc)
    {
       goto error;
    }
-   rc = db.createCollectionSpace(&session, CSNAME, 1, csOptions);
+   rc = db.createCS(&session, CSNAME, 1, dmsCreateCSOptions(), adjunct);
    if (SDB_OK != rc)
    {
       goto error;
    }
-   rc = db.createCollection(&session, CSNAME, CLNAME, 1, createCLOptions());
+   rc = db.createCL(&session, FULLNAME, 1, dmsCreateCLOptions(), adjunct);
    if (SDB_OK != rc)
    {
       goto error;
    }
-   rc = db.openCollection(&session, CSNAME, CLNAME, openCLOptions(), clHandler);
+   rc = db.openCL(&session, FULLNAME, dmsOpenCLOptions(), handler);
    if (SDB_OK != rc)
    {
       goto error;
    }
-   rc = clHandler.createIndex(&session, strSlice("index1"),
-                         BSON("a" << 1), params, createIndexOptions());
+
+   indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_BTREE,
+                                            "index1",
+                                            FALSE, BSON("a" << 1));
+   rc = handler->createIndex(&session, buildOptions, indexDef);
    if (SDB_OK != rc)
    {
       goto error;

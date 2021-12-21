@@ -81,8 +81,7 @@ namespace vessel
 
       public:
          void open(IExecutor *executor,
-                   instanceEnv *env,
-                   outerResource *outer);
+                   instanceEnv *env);
          virtual void close()
          {
             _close();
@@ -103,10 +102,7 @@ namespace vessel
             return _env;
          }
 
-         OSS_INLINE outerResource *getOuterResource()const
-         {
-            return _outerResource;
-         }
+         outerResource *getOuterResource()const;
 
       public:
          CHAR *allocateBuffer(UINT32 size);
@@ -264,7 +260,6 @@ namespace vessel
       private:
          IExecutor *_executor = NULL;
          instanceEnv *_env = NULL;
-         outerResource *_outerResource = NULL;
 
          SPACE_ID _sid = INVALID_SPACE_ID;
          OSS_LATCH_MODE _sidMode = SHARED;

@@ -113,6 +113,7 @@ namespace engine
    class _authCB ;
    class aggrBuilder ;
    class _spdFMPMgr ;
+   class _dmsEngineCB;
 
    /*
     * Kernel Control Block
@@ -250,6 +251,8 @@ namespace engine
       // RESERVED FOR NOW, can be used to jump out sleep in the future
       BOOLEAN        _keepSleep ;
 
+
+
    public :
       pmdEDUMgr* getEDUMgr ()
       {
@@ -303,6 +306,10 @@ namespace engine
       {
          return &_svcTaskMgr ;
       }
+      OSS_INLINE _dmsEngineCB *getDMSEngineCB()
+      {
+         return (_dmsEngineCB *)getOrgPointByType(SDB_CB_DMS_ENGINE);
+      } 
       void setMonCB( monConfigCB & monCB )
       {
          _monCfgCB = monCB ;

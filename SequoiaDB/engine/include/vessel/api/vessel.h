@@ -36,21 +36,15 @@
 #ifndef VESSEL_VESSEL_H_
 #define VESSEL_VESSEL_H_
 
+#include "interface/IDataStorageEngine.h"
 #include "vessel/vesselOptions.h"
-#include "vessel/strSlice.h"
-#include "utilUniqueID.hpp"
-#include "vessel/api/cursorHandler.h"
-#include "vessel/api/collectionHandler.h"
 #include "vessel/outerResource.h"
-#include "sdbInterface.hpp"
-#include "vessel/api/IQueryFilter.h"
-#include "vessel/objectIdentifier.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class IVessel : public SDBObject
+   class IVessel : public IDataStorageEngine
    {
       public:
          IVessel(){}
@@ -59,8 +53,6 @@ namespace vessel
          IVessel &operator=(const IVessel &) = delete;
 
       public:
-         virtual BOOLEAN isOpen() = 0;
-
          virtual INT32 open(IExecutor *executor,
                             const outerResource *resource,
                             const openDBOptions &options) = 0;
@@ -68,54 +60,6 @@ namespace vessel
          
          virtual INT32 close(IExecutor *executor,
                              const closeDBOptions &options) = 0;
-         
-
-         virtual INT32 createCollectionSpace(IExecutor *executor,
-                                             const CHAR *name,
-                                             utilCSUniqueID uniqueId,
-                                             const createCSOptions &options,
-                                             collectionSpaceId &identifier) = 0;
-
-         virtual INT32 testCollectionSpace(IExecutor *executor,
-                                           const CHAR *name,
-                                           collectionSpaceId &identifier) = 0;
-
-         /// cursor's mem managed by user.
-         /// filter's mem managed by user.
-         virtual INT32 listCollectionSpace(IExecutor *executor,
-                                           IQueryFilter *filter,
-                                           cursorHandler &cursor) = 0;
-
-         virtual INT32 getCollectionSpaceCount(IExecutor *executor,
-                                               UINT32 &count) = 0;
-
-
-         virtual INT32 dropCollectionSpace(IExecutor *executor,
-                                           const CHAR *name,
-                                           UINT32 logicalID,
-                                           const dropCSOptions &options) = 0;
-
-         virtual INT32 createCollection(IExecutor *executor,
-                                        const CHAR *csName,
-                                        const CHAR* clName,
-                                        utilCLInnerID innerID,
-                                        const createCLOptions &options) = 0;
-
-         virtual INT32 listCollections(IExecutor *executor,
-                                       const CHAR *csName,
-                                       IQueryFilter *filter,
-                                       cursorHandler &cursor) = 0;
-
-         virtual INT32 getCollectionCount(IExecutor *executor,
-                                          const CHAR *csName,
-                                          UINT32 &count) = 0;
-
-         ///obj's mem managed by user
-         virtual INT32 openCollection(IExecutor *executor,
-                                      const CHAR *csName,
-                                      const CHAR *clName,
-                                      const openCLOptions &options,
-                                      collectionHandler &handler) = 0;
 
    }; /// end of class IVessel
 } /// end of namespace vessel

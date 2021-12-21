@@ -45,26 +45,21 @@ namespace engine
 namespace vessel
 {
    void requestHandler::init(instanceEnv *env,
-                               IExecutor *executor,
-                               outerResource *resource)
+                               IExecutor *executor)
    {
       SDB_ASSERT(NULL != env, "can not be null");
+      SDB_ASSERT(env->resource.isValid(), "can not be invalid");
       SDB_ASSERT(NULL != executor, "can not be null");
-      SDB_ASSERT(NULL != resource && resource->isValid(), "can not be null");
       
       _env = env;
       _executor = executor;
-      _outerResource = resource;
       return;
    }
 
    BOOLEAN requestHandler::isInitialized()const
    {         
       return NULL != _env &&
-             NULL != _executor &&
-             NULL != _outerResource &&
-             _outerResource->isValid();
-         
+             NULL != _executor;
    }
 
    INT32 requestHandler::getCollectionObject(requestContext *context,

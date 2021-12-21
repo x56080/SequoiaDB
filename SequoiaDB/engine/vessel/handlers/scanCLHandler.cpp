@@ -50,7 +50,6 @@ namespace vessel
       collectionSpace *cs = NULL;
       collection *cl = NULL;
       requestContext context;
-      const globalCollectionId *gcid = NULL;
 
       if (OSS_UNLIKELY(NULL == cursor ||
                        !cursor->isOpen()))
@@ -69,17 +68,16 @@ namespace vessel
          goto error;
       }
 
-      context.open(getExecutor(), getEnv(), getOuterResource());
-      gcid = &(cursor->getCollectionId());
-      rc = getEnv()->dms.getCSBySpaceID(&context, gcid->getSpaceId(),
-                                        gcid->getCSLid(), SHARED, &cs);
+      context.open(getExecutor(), getEnv());
+      rc = getEnv()->dms.getCSBySpaceID(&context, cursor->getCollectionId().getSpaceId(),
+                                        cursor->getCollectionId().getCSLid(), SHARED, &cs);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = cs->getCollectionByMBID(&context, gcid->getMbId(),
-                                   gcid->getCLLid(),
+      rc = cs->getCollectionByMBID(&context, cursor->getCollectionId().getMbId(),
+                                   cursor->getCollectionId().getCLLid(),
                                    SHARED, &cl);
       if (SDB_OK != rc)
       {

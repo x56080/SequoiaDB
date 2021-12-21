@@ -75,6 +75,8 @@ namespace engine
 
       SDB_CB_STP,
 
+      SDB_CB_DMS_ENGINE,
+
       // THE MAX CB TYPE
       SDB_CB_MAX
    } ;

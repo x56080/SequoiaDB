@@ -47,6 +47,7 @@
 #include "rtnPredicate.hpp"
 #include "vessel/indexScanContext.h"
 #include "vessel/rowBatch.h"
+#include "vessel/indexContext.h"
 
 namespace engine
 {

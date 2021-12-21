@@ -63,8 +63,7 @@ namespace vessel
       }
 
       context.open(getExecutor(),
-                        getEnv(),
-                        getOuterResource());
+                        getEnv());
 
       rc = getEnv()->dms.getCSBySpaceID(&context,
                                         gcid.getSpaceId(),

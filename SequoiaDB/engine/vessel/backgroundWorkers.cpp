@@ -66,15 +66,12 @@ namespace vessel
       fini();
    }
 
-   INT32 backgroundWorkers::init(outerResource *resource,
-                                instanceEnv *env,
-                                const options &o)
+   INT32 backgroundWorkers::init(instanceEnv *env,
+                                 const options &o)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL == _or, "do not reinit");
 
-      if (OSS_UNLIKELY(NULL == resource ||
-                       NULL == env ||
+      if (OSS_UNLIKELY(NULL == env ||
                        0 == o.cacheCleaner ||
                        0 == o.commonWorker))
       {
@@ -82,7 +79,6 @@ namespace vessel
          goto error;
       }
 
-      _or = resource;
       _env = env;
 
       rc = _active(o);
@@ -101,7 +97,6 @@ namespace vessel
    INT32 backgroundWorkers::_active(const options &o)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != _or, "can not be null");
       SDB_ASSERT(0 != o.cacheCleaner, "can not be zero");
       SDB_ASSERT(0 != o.commonWorker, "can not be zero");
       SDB_ASSERT(_cache._workers.empty(), "must be empty");
@@ -117,9 +112,9 @@ namespace vessel
             goto error;
          }
 
-         worker->init(_or, _env, &_cache._el, &_cache._workingCounter);
-         rc = _or->executorPool->startEDU(EDU_TYPE_VESSEL_WORKER,
-                                          worker);
+         worker->init(_env, &_cache._el, &_cache._workingCounter);
+         rc = _env->resource.executorPool->startEDU(EDU_TYPE_VESSEL_WORKER,
+                                                    worker);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to start new worker:%d", rc);
@@ -142,9 +137,9 @@ namespace vessel
             goto error;
          }
 
-         worker->init(_or, _env, &_common._el, &_common._workingCounter);
-         rc = _or->executorPool->startEDU(EDU_TYPE_VESSEL_WORKER,
-                                          worker);
+         worker->init(_env, &_common._el, &_common._workingCounter);
+         rc = _env->resource.executorPool->startEDU(EDU_TYPE_VESSEL_WORKER,
+                                                    worker);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to start new worker:%d", rc);
@@ -165,12 +160,11 @@ namespace vessel
 
    void backgroundWorkers::fini()
    {
-      if (NULL != _or)
+      if (NULL != _env)
       {
          _deactive();
          SDB_ASSERT(_cache._el.isEmpty(), "must be empty");
          SDB_ASSERT(_common._el.isEmpty(), "must be empty");
-         _or = NULL;
          _env = NULL;
       }
       return;
@@ -178,7 +172,7 @@ namespace vessel
 
    void backgroundWorkers::pushEvent(const backgroundEvent &event)
    {
-      SDB_ASSERT(NULL != _or, "not inited");
+      SDB_ASSERT(NULL != _env, "not inited");
       SDB_ASSERT(backgroundEvent::EVENT_TYPE_INVALID != event.getType(),
                  "can not be invalid");
       SDB_ASSERT(!event.isQuitEvent(), "can not be quit");
@@ -196,7 +190,7 @@ namespace vessel
 
    void backgroundWorkers::_deactive()
    {
-      SDB_ASSERT(NULL != _or, "can not be null");
+      SDB_ASSERT(NULL != _env, "can not be null");
       backgroundEvent event;
       autoEventList<backgroundEvent> finishList;
       event.setType(backgroundEvent::EVENT_TYPE_QUIT);

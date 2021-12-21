@@ -46,20 +46,17 @@ namespace engine
 {
 namespace vessel
 {
-   INT32 liteCacheWatcher::init(instanceEnv *env,
-                                outerResource *outer)
+   INT32 liteCacheWatcher::init(instanceEnv *env)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL == _env, "do not reinit");
-      if (OSS_UNLIKELY(NULL == env ||
-                       NULL == outer))
+      if (OSS_UNLIKELY(NULL == env))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
       _env = env;
-      _outer = outer;
 
       rc = _active();
       if (SDB_OK != rc)
@@ -89,12 +86,12 @@ namespace vessel
    INT32 liteCacheWatcher::_active()
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != _outer, "can not be null");
+      SDB_ASSERT(NULL != _env, "can not be null");
       SDB_ASSERT(!_actived, "do not reactive");
 
       _attachEvent.reset();
-      rc = _outer->executorPool->startEDU(EDU_TYPE_VESSEL_CACHE_WATCHER,
-                                          this);
+      rc = _env->resource.executorPool->startEDU(EDU_TYPE_VESSEL_CACHE_WATCHER,
+                                                this);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to start new watcher:%d", rc);
@@ -116,7 +113,7 @@ namespace vessel
       SDB_ASSERT(!_actived, "already been actived");
 
       requestContext context;
-      context.open(executor, _env, _outer);
+      context.open(executor, _env);
       UINT32 millis = 10;
       backgroundEvent event;
       diskIOJob _job;
@@ -225,7 +222,6 @@ namespace vessel
       _lastFlushDirtyListTime = 0;
       _attachEvent.reset();
       _actived = FALSE;
-      _outer = NULL;
       _env = NULL;
       _notifyFlag.clear();
    }

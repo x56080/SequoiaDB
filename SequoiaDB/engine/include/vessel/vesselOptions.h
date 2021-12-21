@@ -246,20 +246,6 @@ namespace vessel
    {
 
    }; // class dropCLOptions;
-
-   class openCLOptions : public SDBObject
-   {
-      public:
-         OSS_INLINE openCLOptions()
-         {}
-
-         OSS_INLINE ~openCLOptions()
-         {}
-
-      public:
-   };
-
-
    
 } /// end of namespace vessel
 } /// end of namespace engine

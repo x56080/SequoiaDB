@@ -207,7 +207,8 @@ utilFiles = [
       "util/utilSectionMgr.cpp",
       "util/utilCipher.c",
       "util/utilBSON.cpp",
-      "util/utilAuthSCRAMSHA.cpp"
+      "util/utilAuthSCRAMSHA.cpp",
+      "util/utilFullNameParser.cpp"
       ]
 
 rtnFiles = [
@@ -303,7 +304,10 @@ rtnFiles = [
       "rtn/rtnLobLockSectionMgr.cpp",
       "rtn/rtnLocalTaskMgr.cpp",
       "rtn/rtnLocalTaskFactory.cpp",
-      "rtn/rtnLocalTask.cpp"
+      "rtn/rtnLocalTask.cpp",
+      "rtn/rtnCSHandlers.cpp",
+      "rtn/rtnCLHandlers.cpp",
+      "rtn/rtnDMLHandlers.cpp"
       ]
 
 msgFiles = [
@@ -351,7 +355,9 @@ dmsFiles = [
       "dms/dmsTransLockCallback.cpp",
       "dms/dmsSUCache.cpp",
       "dms/dmsLightJob.cpp",
-      "dms/dmsRBSGCJob.cpp"
+      "dms/dmsRBSGCJob.cpp",
+      "dms/dmsEngineCB.cpp",
+      "dms/dmsCursorReader.cpp"
       ]
 
 ixmFiles = [
@@ -929,7 +935,6 @@ vesselFiles = [
       "vessel/handlers/countCLHandler.cpp",
       "vessel/handlers/createIndexHandler.cpp",
       "vessel/handlers/indexScanHandler.cpp",
-      "vessel/api/cursorHandler.cpp",
       "vessel/api/collectionHandler.cpp",
       "vessel/api/vesselFactroy.cpp",
       "vessel/index/indexConsole.cpp",
@@ -969,13 +974,13 @@ vesselFiles = [
       "vessel/rdpAccessor.cpp", 
       "vessel/utils/redoLogUtil.cpp",
       "vessel/utils/bitmapUtils.cpp",
-      "vessel/utils/localThreadSharedPointer.cpp",
       "vessel/utils/storageUtils.cpp",
       "vessel/utils/indexUtils.cpp",
       "vessel/utils/bitmapScanner.cpp",
       "vessel/utils/strictBuffer.cpp",
       "vessel/utils/stackAllocatorRowBatch.cpp",
       "vessel/utils/simpleBufferAllocator.cpp",
+      "vessel/utils/fixedSizeRowBatch.cpp",
       "vessel/cursorKernal.cpp",
       "vessel/diskIOJob.cpp",
       "vessel/diskIOTask.cpp",
@@ -1012,7 +1017,6 @@ vesselFiles = [
       "vessel/backgroundWorker.cpp",
       "vessel/backgroundWorkers.cpp",
       "vessel/rdpRecordScanner.cpp",
-      "vessel/scanCLCursor.cpp",
       "vessel/indexScanCursor.cpp",
       "vessel/btreeNodePageIniter.cpp",
       "vessel/outerResource.cpp",

@@ -66,9 +66,9 @@ namespace vessel
          goto error;
       }
 
-      context.open(getExecutor(), getEnv(), getOuterResource());
-      sid = cursor->getSpaceID();
-      logicalID = cursor->getCSLogicalID();
+      context.open(getExecutor(), getEnv());
+      sid = cursor->getIdentifier().getSpaceId();
+      logicalID = cursor->getIdentifier().getLid();
 
       rc = context.lockSpaceID(sid, SHARED);
       if (SDB_OK != rc)

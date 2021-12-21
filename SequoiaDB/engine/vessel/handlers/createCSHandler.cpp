@@ -55,18 +55,19 @@ namespace vessel
 
    }
 
-   INT32 createCSHandler::doit(const CHAR *name,
+   INT32 createCSHandler::doit(const strSlice &name,
                                utilCSUniqueID uniqueId,
-                               const createCSOptions &options,
+                               const dmsCreateCSOptions &o,
+                               const bson::BSONObj &adjunct,
                                collectionSpaceId &identifier)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isInitialized(), "can not be null");
 
       requestContext context;
-      strSlice nameSlice;
+      createCSOptions options;
 
-      if (OSS_UNLIKELY(NULL == name))
+      if (OSS_UNLIKELY(name.empty()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -77,16 +78,15 @@ namespace vessel
          goto error;
       }
 
-      context.open(getExecutor(), getEnv(), getOuterResource());
-
-      nameSlice.reset(name);
-      rc = validateOptions(nameSlice, options);
+      options.init(o);
+      rc = validateOptions(name, options);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = getEnv()->dms.createCS(&context, nameSlice,
+      context.open(getExecutor(), getEnv());
+      rc = getEnv()->dms.createCS(&context, name,
                                   uniqueId, options,
                                   identifier);
       if (SDB_OK != rc)

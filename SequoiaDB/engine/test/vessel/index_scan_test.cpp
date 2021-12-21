@@ -43,10 +43,10 @@
 #include "dpsLogRecord.hpp"
 #include "../bson/bson.hpp"
 #include "pd.hpp"
-#include "vessel/dataScanRow.h"
 #include "vessel/collectionOptions.h"
 #include "mthMatchTree.hpp"
 #include <iostream>
+#include "dmsCursorReader.hpp"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -96,14 +96,14 @@ class index_scan_test : public testing::Test
 };
 
 static void thread_insert(vesselImpl *db,
-                   const CHAR *csName, const CHAR *clName,
+                   const CHAR *fullName,
                    UINT32 count)
 {
    test_executor session;
    CHAR pad[1024] = {0};
    bson::BSONObjBuilder builder;
-   collectionHandler handler;
-   INT32 rc = db->openCollection(&session, csName, clName, openCLOptions(), handler);
+   DATA_COLLECTION_PTR handler;
+   INT32 rc = db->openCL(&session, fullName, dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < count; ++i)
@@ -114,14 +114,11 @@ static void thread_insert(vesselImpl *db,
       builder.append("b", 2);
       builder.append("c", pad, 1024);
       bson::BSONObj obj = builder.obj();
-      slice record;
-      record.reset(obj.objsize(), obj.objdata());     
-      rc = handler.insert(&session, record,
-                          INVALID_STRIPING_ID,
-                          insertOptions(), &res);
+    
+      rc = handler->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
-   handler.close();
+   handler->close();
 }
 
 void test1(INDEX_TYPE type)
@@ -135,29 +132,30 @@ void test1(INDEX_TYPE type)
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
-   collectionHandler handler;
+   DATA_COLLECTION_PTR handler;
    UINT32 count = 1000;
 
    indexParameters params;
    params.type = type;
 
    bson::BSONObj pattern = BSON("a" << 1);
-   strSlice indexName("index1");
+   const CHAR *indexName = "index";
+
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName, params, pattern);
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions());
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar1", 1, createCLOptions());
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&session, "foo", "bar1", openCLOptions(), handler);
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = handler.createIndex(&session, indexName,
-                              pattern, params, createIndexOptions());
+   rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);
 
    bson::BSONObjBuilder builder;
@@ -168,20 +166,18 @@ void test1(INDEX_TYPE type)
       builder.append("a", i);
       builder.append("b", i+1);
       bson::BSONObj obj = builder.done();
-      slice record(obj.objsize(), obj.objdata());
-      rc = handler.insert(&session, record,
-                          INVALID_STRIPING_ID,
-                          insertOptions(), &res);
+
+      rc = handler->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
 
 
    mthMatchTree mt;
-   indexScanOptions o;
-   o.indexCoverd = FALSE;
-
+   dmsIndexScanOptions o;
+   
    for (UINT32 i = 0; i < count; ++i)
    {
+      dmsBsonCursorReader reader;
       builder.reset();
       builder.append("a", i);
       rc = mt.loadPattern(builder.done(), FALSE);
@@ -193,19 +189,17 @@ void test1(INDEX_TYPE type)
       UINT32 lvl = 0;
       rc = predicates.initialize(ps, pattern, 1, lvl);
       ASSERT_EQ(SDB_OK, rc);
-      cursorHandler cursor;
-      rc = handler.openIndexScanCursor(&session, indexName,
-                                       predicates, o, cursor);
+      DATA_CURSOR_PTR cursor;
+      rc = handler->scanIndex(&session, indexName, predicates, o, cursor);
       ASSERT_EQ(SDB_OK, rc);
 
-      dataScanRow row;
-      rc = cursor.getNextRow(&session, row);
+      reader.init(cursor, FALSE);
+      rc = reader.fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
-      bson::BSONObj recordObj(row.getRecord().data());
-      ASSERT_EQ(i, recordObj.getIntField("a"));
+      ASSERT_EQ(i, reader.getRecord().getIntField("a"));
 
-      rc = cursor.getNextRow(&session, row);
-      ASSERT_EQ(SDB_VESSEL_EOC, rc);
+      rc = reader.fetchNext(&session);
+      ASSERT_EQ(SDB_DMS_EOC, rc);
       mt.clear();
    }
 
@@ -215,11 +209,12 @@ void test1(INDEX_TYPE type)
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&session, "foo", "bar1", openCLOptions(), handler);
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < count; ++i)
    {
+      dmsBsonCursorReader reader;
       builder.reset();
       builder.append("a", i);
       rc = mt.loadPattern(builder.done(), FALSE);
@@ -231,20 +226,18 @@ void test1(INDEX_TYPE type)
       UINT32 lvl = 0;
       rc = predicates.initialize(ps, pattern, 1, lvl);
       ASSERT_EQ(SDB_OK, rc);
-      cursorHandler cursor;
-      rc = handler.openIndexScanCursor(&session, indexName,
-                                       predicates, o, cursor);
+      DATA_CURSOR_PTR cursor;
+      rc = handler->scanIndex(&session, indexName, predicates, o, cursor);
       ASSERT_EQ(SDB_OK, rc);
 
-      dataScanRow row;
-      rc = cursor.getNextRow(&session, row);
+      reader.init(cursor, FALSE);
+      rc = reader.fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
-      bson::BSONObj recordObj(row.getRecord().data());
-      ASSERT_EQ(i, recordObj.getIntField("a"));
+      ASSERT_EQ(i, reader.getRecord().getIntField("a"));
 
-      rc = cursor.getNextRow(&session, row);
-      ASSERT_EQ(SDB_VESSEL_EOC, rc);
-      mt.clear(); 
+      rc = reader.fetchNext(&session);
+      ASSERT_EQ(SDB_DMS_EOC, rc);
+      mt.clear();
    }
 
    rc = db.close(&session, closeDBOptions());
@@ -272,25 +265,27 @@ void test2(INDEX_TYPE type)
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
-   collectionHandler handler;
+   DATA_COLLECTION_PTR handler;
    UINT32 count = 1000000;
 
    indexParameters params;
    params.type = type;
 
    bson::BSONObj pattern = BSON("a" << 1);
-   strSlice indexName("index1");
+   const CHAR *indexName = "index1";
+
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName, params, pattern);
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions());
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar1", 1, createCLOptions());
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&session, "foo", "bar1", openCLOptions(), handler);
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
    bson::BSONObjBuilder builder;
@@ -301,25 +296,22 @@ void test2(INDEX_TYPE type)
       builder.append("a", i);
       builder.append("b", i+1);
       bson::BSONObj obj = builder.done();
-      slice record(obj.objsize(), obj.objdata());
-      rc = handler.insert(&session, record,
-                          INVALID_STRIPING_ID,
-                          insertOptions(), &res);
+
+      rc = handler->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
 
-   rc = handler.createIndex(&session, indexName,
-                              pattern, params, createIndexOptions());
+   rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);
 
 
    mthMatchTree mt;
-   indexScanOptions o;
-   o.indexCoverd = FALSE;
+   dmsIndexScanOptions o;
 
    UINT64 begin = ossGetCurrentMilliseconds();
    for (UINT32 i = 0; i < count; ++i)
    {
+      dmsBsonCursorReader reader;
       builder.reset();
       builder.append("a", i);
       rc = mt.loadPattern(builder.done(), FALSE);
@@ -331,19 +323,17 @@ void test2(INDEX_TYPE type)
       UINT32 lvl = 0;
       rc = predicates.initialize(ps, pattern, 1, lvl);
       ASSERT_EQ(SDB_OK, rc);
-      cursorHandler cursor;
-      rc = handler.openIndexScanCursor(&session, indexName,
-                                       predicates, o, cursor);
+      DATA_CURSOR_PTR cursor;
+      rc = handler->scanIndex(&session, indexName,
+                              predicates, o, cursor);
       ASSERT_EQ(SDB_OK, rc);
 
-      dataScanRow row;
-      rc = cursor.getNextRow(&session, row);
+      reader.init(cursor, FALSE);
+      rc = reader.fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
-      bson::BSONObj recordObj(row.getRecord().data());
-      ASSERT_EQ(i, recordObj.getIntField("a"));
-      rc = cursor.getNextRow(&session, row);
-      ASSERT_EQ(SDB_VESSEL_EOC, rc);
-      cursor.close();
+      ASSERT_EQ(i, reader.getRecord().getIntField("a"));
+      rc = reader.fetchNext(&session);
+      ASSERT_EQ(SDB_DMS_EOC, rc);
       mt.clear();
    }
    UINT64 end = ossGetCurrentMilliseconds();
@@ -374,29 +364,29 @@ void test3(INDEX_TYPE type)
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
-   collectionHandler handler;
+   DATA_COLLECTION_PTR handler;
    UINT32 count = 100000;
 
    indexParameters params;
    params.type = type;
 
    bson::BSONObj pattern = BSON("a" << 1);
-   strSlice indexName("index1");
+   const CHAR *indexName = "index1";
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName, params, pattern);
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions());
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar1", 1, createCLOptions());
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&session, "foo", "bar1", openCLOptions(), handler);
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = handler.createIndex(&session, indexName,
-                              pattern, params, createIndexOptions());
+   rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);
 
    bson::BSONObjBuilder builder;
@@ -407,21 +397,18 @@ void test3(INDEX_TYPE type)
       builder.append("a", i);
       builder.append("b", i+1);
       bson::BSONObj obj = builder.done();
-      slice record(obj.objsize(), obj.objdata());
-      rc = handler.insert(&session, record,
-                          INVALID_STRIPING_ID,
-                          insertOptions(), &res);
+      rc = handler->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
 
 
    mthMatchTree mt;
-   indexScanOptions o;
-   o.indexCoverd = FALSE;
+   dmsIndexScanOptions o;
 
    /// {"a":{"$gte":i, "$lt":i + 2}}
    for (UINT32 i = 0; i < count; ++i)
    {
+      dmsBsonCursorReader reader;
       builder.reset();
       bson::BSONObjBuilder subBuilder(builder.subobjStart("a"));
       subBuilder.append("$gte", i);
@@ -438,27 +425,25 @@ void test3(INDEX_TYPE type)
       UINT32 lvl = 0;
       rc = predicates.initialize(ps, pattern, 1, lvl);
       ASSERT_EQ(SDB_OK, rc);
-      cursorHandler cursor;
-      rc = handler.openIndexScanCursor(&session, indexName,
-                                       predicates, o, cursor);
+      DATA_CURSOR_PTR cursor;
+      rc = handler->scanIndex(&session, indexName,
+                              predicates, o, cursor);
       ASSERT_EQ(SDB_OK, rc);
 
-      dataScanRow row;
-      rc = cursor.getNextRow(&session, row);
+      reader.init(cursor, FALSE);
+      rc = reader.fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
-      bson::BSONObj recordObj(row.getRecord().data());
-      ASSERT_EQ(i, recordObj.getIntField("a"));
+      ASSERT_EQ(i, reader.getRecord().getIntField("a"));
 
       if ((i + 1) < count)
       {
-         rc = cursor.getNextRow(&session, row);
+         rc = reader.fetchNext(&session);
          ASSERT_EQ(SDB_OK, rc);
-         recordObj = bson::BSONObj(row.getRecord().data());
-         ASSERT_EQ(i + 1, recordObj.getIntField("a"));
+         ASSERT_EQ(i + 1, reader.getRecord().getIntField("a"));
       }
 
-      rc = cursor.getNextRow(&session, row);
-      ASSERT_EQ(SDB_VESSEL_EOC, rc);
+      rc = reader.fetchNext(&session);
+      ASSERT_EQ(SDB_DMS_EOC, rc);
       mt.clear();
    }
 
@@ -487,29 +472,29 @@ void test4(INDEX_TYPE type)
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
-   collectionHandler handler;
+   DATA_COLLECTION_PTR handler;
    UINT32 count = 100000;
 
    indexParameters params;
    params.type = type;
 
    bson::BSONObj pattern = BSON("a" << 1);
-   strSlice indexName("index1");
+   const CHAR *indexName = "index1";
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName, params, pattern);
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions());
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar1", 1, createCLOptions());
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&session, "foo", "bar1", openCLOptions(), handler);
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = handler.createIndex(&session, indexName,
-                              pattern, params, createIndexOptions());
+   rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);
 
    bson::BSONObjBuilder builder;
@@ -520,20 +505,18 @@ void test4(INDEX_TYPE type)
       builder.append("a", i);
       builder.append("b", i+1);
       bson::BSONObj obj = builder.done();
-      slice record(obj.objsize(), obj.objdata());
-      rc = handler.insert(&session, record,
-                          INVALID_STRIPING_ID,
-                          insertOptions(), &res);
+      rc = handler->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
 
 
    mthMatchTree mt;
-   indexScanOptions o;
-   o.indexCoverd = FALSE;
+   dmsIndexScanOptions o;
+   o.indexCovered = FALSE;
    o.forward = FALSE;
 
    {
+      dmsBsonCursorReader reader;
       builder.reset();
       bson::BSONObjBuilder subBuilder(builder.subobjStart("a"));
       subBuilder.append("$lt", count);
@@ -549,23 +532,21 @@ void test4(INDEX_TYPE type)
       UINT32 lvl = 0;
       rc = predicates.initialize(ps, pattern, -1, lvl);
       ASSERT_EQ(SDB_OK, rc);
-      cursorHandler cursor;
-      rc = handler.openIndexScanCursor(&session, indexName,
-                                       predicates, o, cursor);
+      DATA_CURSOR_PTR cursor;
+      rc = handler->scanIndex(&session, indexName,
+                              predicates, o, cursor);
       ASSERT_EQ(SDB_OK, rc);
 
-      dataScanRow row;
+      reader.init(cursor, FALSE);
       for (INT32 i = count - 1; i >= 0; --i)
       {
-         dataScanRow row;
-         rc = cursor.getNextRow(&session, row);
+         rc = reader.fetchNext(&session);
          ASSERT_EQ(SDB_OK, rc);
-         bson::BSONObj recordObj(row.getRecord().data());
-         ASSERT_EQ(i, recordObj.getIntField("a"));
+         ASSERT_EQ(i, reader.getRecord().getIntField("a"));
       }
 
-      rc = cursor.getNextRow(&session, row);
-      ASSERT_EQ(SDB_VESSEL_EOC, rc);
+      rc = reader.fetchNext(&session);
+      ASSERT_EQ(SDB_DMS_EOC, rc);
       mt.clear();
    }
 
@@ -595,29 +576,29 @@ void test5(INDEX_TYPE type)
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
-   collectionHandler handler;
+   DATA_COLLECTION_PTR handler;
    UINT32 count = 100000;
 
    indexParameters params;
    params.type = type;
 
    bson::BSONObj pattern = BSON("a" << 1);
-   strSlice indexName("index1");
+   const CHAR *indexName = "index1";
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName, params, pattern);
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions());
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar1", 1, createCLOptions());
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&session, "foo", "bar1", openCLOptions(), handler);
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = handler.createIndex(&session, indexName,
-                              pattern, params, createIndexOptions());
+   rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);
 
    bson::BSONObjBuilder builder;
@@ -628,20 +609,18 @@ void test5(INDEX_TYPE type)
       builder.append("a", i);
       builder.append("b", i+1);
       bson::BSONObj obj = builder.done();
-      slice record(obj.objsize(), obj.objdata());
-      rc = handler.insert(&session, record,
-                          INVALID_STRIPING_ID,
-                          insertOptions(), &res);
+      rc = handler->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
 
 
    mthMatchTree mt;
-   indexScanOptions o;
-   o.indexCoverd = TRUE;
+   dmsIndexScanOptions o;
+   o.indexCovered = TRUE;
 
    for (UINT32 i = 0; i < count; ++i)
    {
+      dmsBsonCursorReader reader;
       builder.reset();
       builder.append("a", i);
       rc = mt.loadPattern(builder.done(), FALSE);
@@ -653,19 +632,19 @@ void test5(INDEX_TYPE type)
       UINT32 lvl = 0;
       rc = predicates.initialize(ps, pattern, 1, lvl);
       ASSERT_EQ(SDB_OK, rc);
-      cursorHandler cursor;
-      rc = handler.openIndexScanCursor(&session, indexName,
-                                       predicates, o, cursor);
+      DATA_CURSOR_PTR cursor;
+
+      rc = handler->scanIndex(&session, indexName,
+                              predicates, o, cursor);
       ASSERT_EQ(SDB_OK, rc);
 
-      dataScanRow row;
-      rc = cursor.getNextRow(&session, row);
+      reader.init(cursor, FALSE);
+      rc = reader.fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
-      bson::BSONObj recordObj(row.getRecord().data());
-      ASSERT_EQ(i, recordObj.getIntField("a"));
+      ASSERT_EQ(i, reader.getRecord().getIntField("a"));
 
-      rc = cursor.getNextRow(&session, row);
-      ASSERT_EQ(SDB_VESSEL_EOC, rc);
+      rc = reader.fetchNext(&session);
+      ASSERT_EQ(SDB_DMS_EOC, rc);
       mt.clear();
    }
 

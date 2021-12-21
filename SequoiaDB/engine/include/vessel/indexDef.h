@@ -80,13 +80,6 @@ namespace vessel
       INDEX_STATUS_ABNORMAL = 5,
    };// enum INDEX_STATUS
 
-   static const CHAR * const VESSEL_INDEX_FIELD_NAME_TYPE = "type";
-   static const CHAR * const VESSEL_INDEX_FIELD_NAME_BTREE_OPTIONS = "btree";
-   static const CHAR * const VESSEL_INDEX_FIELD_NAME_LSM_OPTIONS = "lsm";
-   static const CHAR * const VESSEL_INDEX_FIELD_NAME_BTREE_MAX_PREFIX_FIELDS = "BtreeMaxPrefixFields";
-   static const CHAR * const VESSEL_INDEX_FIELD_NAME_BTREE_MIN_COMPRESSION_DEPTH = "BtreeMinCompressionDepth";
-   static const CHAR * const VESSEL_INDEX_FIELD_NAME_COLUMN_FAMILY = "ColumnFamily";
-
    static const CHAR * const VESSEL_INDEX_FIELD_NAME_INDEX_ID = "LogicalIndexId";
    static const CHAR * const VESSEL_INDEX_FIELD_NAME_INDEX_SLOT = "IndexSlot";
    static const CHAR * const VESSEL_INDEX_FIELD_NAME_STATUS = "status";

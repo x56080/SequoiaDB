@@ -76,11 +76,14 @@ namespace vessel
       BOOLEAN r = FALSE;
       bson::BSONElement e;
       e = obj.getField(CS_OPTION_DATA_PAGE_SIZE);
-      if (e.eoo() || bson::NumberInt != e.type())
+      if (bson::NumberInt == e.type())
+      {
+         dataPageSize = e.Int();
+      }
+      else
       {
          goto error;
       }
-      dataPageSize = e.Int();
 
       e = obj.getField(CS_OPTION_DATA_SEG_SIZE);
       if (e.eoo() || bson::NumberInt != e.type())
@@ -127,7 +130,6 @@ namespace vessel
    done:
       return r;
    error:
-      dataPageSize = 0;
       goto done;
    }
 
@@ -167,6 +169,17 @@ namespace vessel
       r = TRUE;
    done:
       return r;
+   }
+
+   void createCSOptions::init(const dmsCreateCSOptions &o)
+   {
+      dataPageSize = o.dataPageSize;
+      dataSegSize = STORAGE_FILE_SEGMENT_SIZE_32MB;
+      idxPageSize = o.idxPageSize;
+      idxSegSize = STORAGE_FILE_SEGMENT_SIZE_32MB;
+      lobPageSize = o.lobPageSize;
+      lobSegSize = STORAGE_FILE_SEGMENT_SIZE_128MB;
+      return;
    }
 }//namespace vessel
 }//namespace engine

@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = cursorRow.h
+   Source File Name = utilFullNameParser.hpp
 
    Descriptive Name =
 
@@ -33,30 +33,27 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_CURSOR_ROW_H_
-#define VESSEL_CURSOR_ROW_H_
+#ifndef SDB_UTIL_FULL_NAME_PARSER_HPP_
+#define SDB_UTIL_FULL_NAME_PARSER_HPP_
 
-#include "vessel/cursorDef.h"
+#include "dms.hpp"
 
 namespace engine
 {
-namespace vessel
-{
-   enum CURSOR_ROW_TYPE
-   {
-      CURSOR_ROW_TYPE_SCAN = 0,
-   };//enum CURSOR_ROW_TYPE
-
-   class cursorRow : public SDBObject
+   class utilFullNameParser : public SDBObject
    {
       public:
-         cursorRow(){}
-         virtual ~cursorRow(){}
-         
-      public:
-         virtual CURSOR_ROW_TYPE getType()const = 0;
-   };//class cursorRow
-}//namespace vessel
-}//namespace engine
+         utilFullNameParser(){}
+         ~utilFullNameParser(){}
 
-#endif//VESSEL_CURSOR_ROW_H_
+      public:
+         BOOLEAN parse(const CHAR *fullName, const CHAR **clName);
+         OSS_INLINE const CHAR *getCSName()const {return _csName;}
+
+      private:
+         CHAR _csName[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {};
+   };//class utilFullNameParser
+} // namespace engine
+
+
+#endif//SDB_UTIL_FULL_NAME_PARSER_HPP_

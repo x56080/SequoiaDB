@@ -63,6 +63,7 @@
 #include "vessel/runtimeMbContext.h"
 #include "vessel/stackAllocatorRowBatch.h"
 #include "vessel/indexScanEntry.h"
+#include "ixm_common.hpp"
 
 namespace engine
 {
@@ -114,8 +115,8 @@ namespace vessel
                      record.logicalCLID,
                      _totalRdpCount,
                      file,
-                     record.minStriping,
-                     record.maxStriping);
+                     dmsStripingRange(record.minStriping,
+                                      record.maxStriping));
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open free space map of cl[%d], rc:%d",
@@ -188,16 +189,16 @@ namespace vessel
       _record.type = options.type;
       _record.logicalCLID = logicalID;
       _record.minFreePercent = options.minFreePercent;
-      _record.minStriping = options.minStriping;
-      _record.maxStriping = options.maxStriping;
+      _record.minStriping = options.stripingRange.getLow().getValue();
+      _record.maxStriping = options.stripingRange.getHigh().getValue();
       ossMemcpy(_record.name, clName.str(), clName.strLen());
       _record.compressionType = options.compressionType;
 
       fsm = cs->getSU()->getMainDataSpace().getFsmFile();
       rc = _fsm.create(context->getMBID(),
                        logicalID, fsm,
-                       options.minStriping,
-                       options.maxStriping);
+                       dmsStripingRange(_record.minStriping,
+                                        _record.maxStriping));
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create free space map of mb[%d], rc:%d",
@@ -229,14 +230,15 @@ namespace vessel
    }
 
    INT32 collection::createIndex(requestContext *context,
-                                 const strSlice &indexName,
-                                 const indexKeyPattern &keyPattern,
-                                 const indexParameters &params,
-                                 const createIndexOptions &options)
+                                 const dmsBuildIndexOptions &o,
+                                 const bson::BSONObj &adjunct)
    {
       INT32 rc = SDB_OK;
       INT32 indexSlot = -1;
       runtimeMbContext mbContext;
+      strSlice indexName;
+      indexParameters params;
+      indexKeyPattern keyPattern;
 
       if (!isOpen())
       {
@@ -250,23 +252,27 @@ namespace vessel
          goto error;
       }
 
-      rc = dmsCheckIndexName(indexName.str(), FALSE);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      else if (!keyPattern.isValid())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (!params.isValid())
+      indexName.reset(adjunct.getStringField(IXM_NAME_FIELD));
+      if (indexName.empty())
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
+      if (!params.extractFromBson(adjunct))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = keyPattern.set(adjunct.getObjectField(IXM_KEY_FIELD));
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
       if (INDEX_TYPE_BTREE == params.type &&
+          params.isPrefixCompressionEnabled() &&
           keyPattern.getKeyCount() < params.btreeMaxPrefixFields)
       {
          rc = SDB_INVALIDARG;
@@ -283,7 +289,7 @@ namespace vessel
          goto error;
       }
 
-      rc = buildIndexInContext(context, indexSlot, params.type, options.build);
+      rc = buildIndexInContext(context, indexSlot, params.type, o);
       if (SDB_OK != rc)
       {
          if (SDB_VESSEL_INDEX_BUILDING_TERMINATED != rc)
@@ -433,7 +439,7 @@ namespace vessel
          goto error;
       }
       else if (_record.isStripingMode() &&
-               INVALID_STRIPING_ID == request.stripingId)
+               !request.o.stripingId.isValid())
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -610,7 +616,7 @@ namespace vessel
 
       newRecord.reset(updater->getResultRecordSize(), updater->getResultRecord());
 
-      rc = updateRecordData(context, &mrc, INVALID_STRIPING_ID, newRecord);
+      rc = updateRecordData(context, &mrc, request.o.stripingId, newRecord);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to update record on disk:%d", rc);
@@ -756,10 +762,12 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
-      count = 0;
+      
       IExecutor *executor = context->getExecutor();
       const static UINT32 _QUIT_CHECK = 7;
       runtimeMbContext mbContext;
+
+      count = 0;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -917,7 +925,7 @@ namespace vessel
 
          if (_totalRdpCount <= cursor->getToScanEntry().getSeq())
          {
-            cursor->pushEnd();
+            cursor->setEOC();
             goto done;
          }
 
@@ -1014,7 +1022,7 @@ namespace vessel
 
       rdpRecordScanner scanner;
       rdpRecordScanner::options o;
-      o.scanOptions = cursor->getOptions().base;
+      o.so = cursor->getOptions();
 
       rc = scanner.open(context, cursor->getLpid(),
                         cursor->getToScanEntry().getSlot(),
@@ -1028,22 +1036,23 @@ namespace vessel
       while (scanner.isReadyToRead())
       {
          slice record;
-         recordID rid;
+         dmsRecordID rid;
          DPS_TRANS_ID transId;
 
-         rid = scanner.getCurrentRid();
+         rid = scanner.getCurrentRid().toDMSRid();
          transId = scanner.getCurrentTransID();
          record = scanner.getCurrentRecord();
-         cursor->setToScanSlot(rid.getSlotID());
+         cursor->setToScanSlot(scanner.getCurrentRid().getSlotID());
 
-         rc = cursor->pushDataFragments({slice(sizeof(recordID), &rid),
+         rc = cursor->pushDataFragments({slice(sizeof(dmsRecordID), &rid),
                                          slice(sizeof(DPS_TRANS_ID), &transId),
                                          record});
          if (SDB_OK != rc)
          {
-            if (!o.scanOptions.isScanForNone())
+            /// is scan for none, will release rids at last
+            if (DMS_SCAN_FOR_NONE != o.so.scanFor)
             {
-               context->releaseTransLock(rid);
+               context->releaseTransLock(scanner.getCurrentRid());
             }
 
             if (SDB_VESSEL_CURSOR_NO_SPACE != rc)
@@ -1053,9 +1062,9 @@ namespace vessel
 
             goto error;
          }
-         cursor->setToScanSlot(rid.getSlotID() + 1);
+         cursor->setToScanSlot(scanner.getCurrentRid().getSlotID() + 1);
 
-         if (!cursor->isWaitingMorePushing())
+         if (cursor->noMorePushThisLoop())
          {
             goto done;
          }
@@ -1181,7 +1190,7 @@ namespace vessel
       {
          BOOLEAN outOfSpace = FALSE;
          rc = findCandidate(context, targetLvl,
-                            request.stripingId,
+                            request.o.stripingId,
                             candidate);
          if (SDB_OK != rc)
          {
@@ -1304,7 +1313,7 @@ namespace vessel
 
    INT32 collection::findCandidate(requestContext *context,
                                    INT32 lvl,
-                                   STRIPING_ID striping,
+                                   const dmsStripingId &striping,
                                    fsmCandidate &candidate)
    {
       INT32 rc = SDB_OK;
@@ -2446,7 +2455,7 @@ namespace vessel
    INT32 collection::buildIndexInContext(requestContext *context,
                                          INT32 indexSlot,
                                          INDEX_TYPE type,
-                                         const buildIndexOptions &o)
+                                         const dmsBuildIndexOptions &o)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
@@ -3743,18 +3752,16 @@ namespace vessel
       SDB_ASSERT(NULL != ic && ic->isNormal(), "must be normal");
       SDB_ASSERT(context->getMbContext()->getRidLatchContext().isEmpty(), "must be empty");
 
-      const indexScanOptions &o = context->getOptions();
+      const dmsIndexScanOptions &o = context->getOptions();
       indexScanCursor *cursor = context->getCursor();
       indexScanner scanner;
       bson::BSONObjBuilder keyObjBuilder;
       UINT32 pushed = 0;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
       stackAllocatorRowBatch batch;
-      BOOLEAN scanForNone = cursor->getOptions().base.isScanForNone();
-      if (cursor->hasRowLimit())
-      {
-         batch.setLimits(-1, cursor->getRowLimit());
-      }
+      BOOLEAN scanForNone = (DMS_SCAN_FOR_NONE == o.scanFor);
+      
+      batch.setRowLimit(cursor->getBaseOptions().stepSize);
 
       rc = scanner.open(context, ic);
       if (SDB_OK != rc)
@@ -3767,7 +3774,7 @@ namespace vessel
       if (SDB_IXM_EOC == rc)
       {
          rc = SDB_OK;
-         cursor->pushEnd();
+         cursor->setEOC();
          goto done;
       }
       else if (SDB_OK != rc)
@@ -3781,7 +3788,7 @@ namespace vessel
       SDB_ASSERT(!batch.isEmpty(), "impossible");
       for (UINT32 i = 0; i < batch.getRowCount(); ++i)
       {
-         recordID rid;
+         dmsRecordID rid;
          DPS_TRANS_ID transID;
          rdpRecordScanner recordScanner;
          slice recordBody;
@@ -3793,9 +3800,9 @@ namespace vessel
             goto error;
          }
 
-         rid = entry.getRid();
+         rid = entry.getRid().toDMSRid();
 
-         if (o.indexCoverd)
+         if (o.indexCovered)
          {
             transID = entry.getTransID();
             bson::BSONObj recordObj;
@@ -3813,11 +3820,11 @@ namespace vessel
          }
          else
          {
-            rc = recordScanner.openToRead(context, rid);
+            rc = recordScanner.openToRead(context, entry.getRid());
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to read record[%s], rc:%d",
-                     rid.toString().c_str(), rc);
+                      entry.getRid().toString().c_str(), rc);
                goto error;
             }
 
@@ -3826,7 +3833,7 @@ namespace vessel
             recordBody = recordScanner.getCurrentRecord();
          }
 
-         rc = cursor->pushDataFragments({slice(sizeof(recordID), &rid),
+         rc = cursor->pushDataFragments({slice(sizeof(dmsRecordID), &rid),
                                          slice(sizeof(DPS_TRANS_ID), &transID),
                                          recordBody});
          if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
@@ -3843,7 +3850,7 @@ namespace vessel
          recordScanner.close();
          if (scanForNone)
          {
-            context->unlockRid(rid);
+            context->unlockRid(entry.getRid());
          }
          ++pushed;
       }
@@ -3855,26 +3862,28 @@ namespace vessel
          goto error;
       }
 
-      rc = context->getCursor()->saveEntry(batch[pushed - 1]);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to save last entry to cursor:%d", rc);
-         goto error;
-      }
+      context->getCursor()->saveEntry(batch[pushed - 1]);
+
    done:
       scanner.close();
-      context->unlockRids();
-      for (UINT32 i = pushed; i < batch.getRowCount(); ++i)
+      if (scanForNone)
       {
-         indexScanEntry entry;
-         rc = entry.init(ic->getObj().getParams().type, batch[i]);
-         if (SDB_OK != rc)
+         context->unlockRids();
+      }
+      else
+      {
+         for (UINT32 i = pushed; i < batch.getRowCount(); ++i)
          {
-            PD_LOG(PDERROR, "failed to parse index scan entry:%d", rc);
-            continue;
-         }
+            indexScanEntry entry;
+            rc = entry.init(ic->getObj().getParams().type, batch[i]);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to parse index scan entry:%d", rc);
+               continue;
+            }
 
-         context->releaseTransLock(entry.getRid());
+            context->releaseTransLock(entry.getRid());
+         }
       }
       return rc;
    error:
@@ -3937,7 +3946,7 @@ namespace vessel
 
    INT32 collection::updateRecordData(dmlContext *context,
                                       const modifyRecordContext *mrc,
-                                      STRIPING_ID stripingId,
+                                      const dmsStripingId &striping,
                                       const slice &newRecord)
    {
       INT32 rc = SDB_OK;
@@ -3956,7 +3965,7 @@ namespace vessel
       }
       else
       {
-         rc = updateNormalRecord(context, mrc->getRid(), stripingId, newRecord);
+         rc = updateNormalRecord(context, mrc->getRid(), striping, newRecord);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to update record:%d", rc);
@@ -3972,7 +3981,7 @@ namespace vessel
 
    INT32 collection::updateNormalRecord(dmlContext *context,
                                         const recordID &rid,
-                                        STRIPING_ID stripingId,
+                                        const dmsStripingId &striping,
                                         const slice &newRecord)
    {
       INT32 rc = SDB_OK;
@@ -4000,7 +4009,7 @@ namespace vessel
       }
 
       rc = accessor.updateNormalRecord(context, rid.getSlotID(),
-                                       stripingId, newRecord,
+                                       striping, newRecord,
                                        outOfSpace);
       if (SDB_OK != rc)
       {

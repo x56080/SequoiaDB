@@ -37,11 +37,9 @@
 #define VESSEL_CREATE_INDEX_HANDLER_H_
 
 #include "vessel/requestHandler.h"
-#include "vessel/indexOptions.h"
 #include "vessel/strSlice.h"
-#include "vessel/indexKeyPattern.h"
-#include "vessel/indexParameters.h"
 #include "vessel/objectIdentifier.h"
+#include "dmsEngineOptions.hpp"
 
 namespace engine
 {
@@ -55,10 +53,8 @@ namespace vessel
 
       public:
          INT32 doit(const globalCollectionId &gcid,
-                    const strSlice &indexName,
-                    const bson::BSONObj &keyPattern,
-                    const indexParameters &params,
-                    const createIndexOptions &options);
+                    const dmsBuildIndexOptions &options,
+                    const bson::BSONObj &adjunct);
    };//class createIndexHandler
 }//namespace vessel
 }//namespace engine

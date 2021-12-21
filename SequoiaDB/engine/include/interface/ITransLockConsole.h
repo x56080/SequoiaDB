@@ -68,8 +68,7 @@ namespace engine
                                   const dpsTransLockId &lockId,
                                   const DPS_TRANSLOCK_TYPE &mode,
                                   dpsTransRetInfo *pdpsTxResInfo,
-                                  _dpsITransLockCallback *callback,
-                                  BOOLEAN &locked) = 0;
+                                  _dpsITransLockCallback *callback) = 0;
 
          virtual INT32 testAcquire(IExecutor *executor,
                                    const dpsTransLockId &lockId,
@@ -77,8 +76,7 @@ namespace engine
                                    BOOLEAN preemptMode,
                                    dpsTransRetInfo *pdpsTxResInfo,
                                    _dpsITransLockCallback *callback,
-                                   BOOLEAN intentLock,
-                                   BOOLEAN &compatible) = 0;
+                                   BOOLEAN intentLock) = 0;
    };//class class ITransLockConsole
 } // namespace engine
 

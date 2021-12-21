@@ -41,11 +41,11 @@
 #include "vessel/IRedoLogger.h"
 #include "../bson/bson.hpp"
 #include "pd.hpp"
-#include "vessel/dataScanRow.h"
-#include "vessel/collectionOptions.h"
 #include "vessel/builtinRecordUpdater.h"
+#include "dmsCursorReader.hpp"
 
 #include "mthMatchTree.hpp"
+#include "interface/IDataStorageEngine.h"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -103,14 +103,14 @@ TEST_F(update_test, base_update_test1)
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
-   collectionHandler handler;
+   DATA_COLLECTION_PTR handler;
    INT32 rc = SDB_OK;
    bson::BSONObjBuilder builder;
    UINT32 count = 10000;
-   ossPoolVector<recordID> rids;
+   ossPoolVector<dmsRecordID> rids;
    bson::BSONObj pattern = BSON("$inc" << BSON("a" << 1));
    bsonRecordUpdater updater;
-   cursorHandler cursor;
+   DATA_CURSOR_PTR cursor;
 
    rc = updater.init(pattern);
    ASSERT_EQ(SDB_OK, rc);
@@ -118,13 +118,13 @@ TEST_F(update_test, base_update_test1)
    rc = db.open(&executor, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&executor, "foo", 1, createCSOptions());
+   rc = db.createCS(&executor, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&executor, "foo", "bar", 1, createCLOptions());
+   rc = db.createCL(&executor, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&executor, "foo", "bar", openCLOptions(), handler);
+   rc = db.openCL(&executor, "foo.bar", dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < count; ++i)
@@ -134,15 +134,13 @@ TEST_F(update_test, base_update_test1)
       builder.append("a", i * 2);
       builder.append("b", i);
       bson::BSONObj obj = builder.done();
-      slice record(obj.objsize(), obj.objdata());
       insertRes.enableReturnIDInfo();
-      rc = handler.insert(&executor, record,
-                          INVALID_STRIPING_ID, insertOptions(), &insertRes);
+      rc = handler->insertRecord(&executor, obj, dmsInsertRecordOptions(), &insertRes);
       ASSERT_EQ(SDB_OK, rc);
 
       INT32 page, slot;
       insertRes.getInsertLoc(page, slot);
-      recordID rid(page, slot);
+      dmsRecordID rid(page, slot);
       rids.push_back(rid);
       builder.reset();
    }
@@ -151,42 +149,43 @@ TEST_F(update_test, base_update_test1)
    {
       /// update a to odd number.
       utilUpdateResult updateRes;
-      dmlUpdateRequest request;
-      request.rid = rids[i];
-      rc = handler.updateRecord(&executor, request, &updater, &updateRes);
+      rc = handler->updateRecord(&executor, rids[i], &updater,
+                                 dmsUpdateRecordOptions(), &updateRes);
       ASSERT_EQ(SDB_OK, rc);
    }
 
-   rc = handler.openScanCursor(&executor, NULL, collectionScanOptions(), cursor);
+   rc = handler->scan(&executor, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
+   dmsBsonCursorReader reader;
+   reader.init(cursor, FALSE);
    for (UINT32 i = 0; i < count; ++i)
    {
-      dataScanRow recordRow;
-      rc = cursor.getNextRow(&executor, recordRow);
+      rc = reader.fetchNext(&executor);
       ASSERT_EQ(SDB_OK, rc);
-      bson::BSONObj obj(recordRow.getRecord().data());
-      ASSERT_EQ(obj.getIntField("a"), obj.getIntField("b") * 2 + 1);
+      const bson::BSONObj  &r = reader.getRecord();
+      ASSERT_EQ(r.getIntField("a"), r.getIntField("b") * 2 + 1);
    }
 
+   reader.fini();
    db.close(&executor, closeDBOptions());
 
    rc = db.open(&executor, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&executor, "foo", "bar", openCLOptions(), handler);
+   rc = db.openCL(&executor, "foo.bar", dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = handler.openScanCursor(&executor, NULL, collectionScanOptions(), cursor);
+   rc = handler->scan(&executor, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
+   reader.init(cursor, FALSE);
    for (UINT32 i = 0; i < count; ++i)
    {
-      dataScanRow recordRow;
-      rc = cursor.getNextRow(&executor, recordRow);
+      rc = reader.fetchNext(&executor);
       ASSERT_EQ(SDB_OK, rc);
-      bson::BSONObj obj(recordRow.getRecord().data());
-      ASSERT_EQ(obj.getIntField("a"), obj.getIntField("b") * 2 + 1);
+      const bson::BSONObj  &r = reader.getRecord();
+      ASSERT_EQ(r.getIntField("a"), r.getIntField("b") * 2 + 1);
    }
 
    db.close(&executor, closeDBOptions());
@@ -201,16 +200,17 @@ TEST_F(update_test, base_update_test2)
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
-   collectionHandler handler;
+   DATA_COLLECTION_PTR handler;
    INT32 rc = SDB_OK;
    bson::BSONObjBuilder builder;
    UINT32 count = 10000;
-   ossPoolVector<recordID> rids;
+   ossPoolVector<dmsRecordID> rids;
    bson::BSONObj pattern = BSON("$inc" << BSON("a" << 1));
    bsonRecordUpdater updater;
-   cursorHandler cursor;
+   DATA_CURSOR_PTR cursor;
    indexParameters params;
    params.type = INDEX_TYPE_BTREE;
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj("index", params, BSON("a" << 1));
 
    rc = updater.init(pattern);
    ASSERT_EQ(SDB_OK, rc);
@@ -218,17 +218,16 @@ TEST_F(update_test, base_update_test2)
    rc = db.open(&executor, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&executor, "foo", 1, createCSOptions());
+   rc = db.createCS(&executor, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&executor, "foo", "bar", 1, createCLOptions());
+   rc = db.createCL(&executor, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&executor, "foo", "bar", openCLOptions(), handler);
+   rc = db.openCL(&executor, "foo.bar", dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = handler.createIndex(&executor, strSlice("index"),
-                            BSON("a" << 1), params, createIndexOptions());
+   rc = handler->createIndex(&executor, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < count; ++i)
@@ -238,15 +237,13 @@ TEST_F(update_test, base_update_test2)
       builder.append("a", i * 2);
       builder.append("b", i);
       bson::BSONObj obj = builder.done();
-      slice record(obj.objsize(), obj.objdata());
       insertRes.enableReturnIDInfo();
-      rc = handler.insert(&executor, record,
-                          INVALID_STRIPING_ID, insertOptions(), &insertRes);
+      rc = handler->insertRecord(&executor, obj, dmsInsertRecordOptions(), &insertRes);
       ASSERT_EQ(SDB_OK, rc);
 
       INT32 page, slot;
       insertRes.getInsertLoc(page, slot);
-      recordID rid(page, slot);
+      dmsRecordID rid(page, slot);
       rids.push_back(rid);
       builder.reset();
    }
@@ -255,43 +252,47 @@ TEST_F(update_test, base_update_test2)
    {
       /// update a to odd number.
       utilUpdateResult updateRes;
-      dmlUpdateRequest request;
-      request.rid = rids[i];
-      rc = handler.updateRecord(&executor, request, &updater, &updateRes);
+      rc = handler->updateRecord(&executor, rids[i],
+                                 &updater, dmsUpdateRecordOptions(), &updateRes);
       ASSERT_EQ(SDB_OK, rc);
    }
 
-   rc = handler.openScanCursor(&executor, NULL, collectionScanOptions(), cursor);
+   rc = handler->scan(&executor, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
+   dmsBsonCursorReader reader;
+   reader.init(cursor, FALSE);
    for (UINT32 i = 0; i < count; ++i)
    {
-      dataScanRow recordRow;
-      rc = cursor.getNextRow(&executor, recordRow);
+      rc = reader.fetchNext(&executor);
       ASSERT_EQ(SDB_OK, rc);
-      bson::BSONObj obj(recordRow.getRecord().data());
-      ASSERT_EQ(obj.getIntField("a"), obj.getIntField("b") * 2 + 1);
+      const bson::BSONObj &r = reader.getRecord();
+      ASSERT_EQ(r.getIntField("a"), r.getIntField("b") * 2 + 1);
    }
 
+   reader.fini();
+   handler->close();
    db.close(&executor, closeDBOptions());
 
    rc = db.open(&executor, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCollection(&executor, "foo", "bar", openCLOptions(), handler);
+   rc = db.openCL(&executor, "foo.bar", dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = handler.openScanCursor(&executor, NULL, collectionScanOptions(), cursor);
+   rc = handler->scan(&executor, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
+   reader.init(cursor, FALSE);
    for (UINT32 i = 0; i < count; ++i)
    {
-      dataScanRow recordRow;
-      rc = cursor.getNextRow(&executor, recordRow);
+      rc = reader.fetchNext(&executor);
       ASSERT_EQ(SDB_OK, rc);
-      bson::BSONObj obj(recordRow.getRecord().data());
-      ASSERT_EQ(obj.getIntField("a"), obj.getIntField("b") * 2 + 1);
+      const bson::BSONObj &r = reader.getRecord();
+      ASSERT_EQ(r.getIntField("a"), r.getIntField("b") * 2 + 1);
    }
 
+   reader.fini();
+   handler->close();
    db.close(&executor, closeDBOptions());
 }
