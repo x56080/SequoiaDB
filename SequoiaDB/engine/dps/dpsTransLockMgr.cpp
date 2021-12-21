@@ -3944,5 +3944,127 @@ nextLock:
       _releaseOpLatch( bktIdx ) ;
    }
 
+   INT32 dpsTransLockManager::acquire(IExecutor *executor,
+                                      const dpsTransLockId &lockId,
+                                      const DPS_TRANSLOCK_TYPE &mode,
+                                      _IContext * pContext,
+                                      dpsTransRetInfo *pdpsTxResInfo,
+                                      _dpsITransLockCallback *callback)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != executor, "can not be null");
+      pmdEDUCB *cb = dynamic_cast<pmdEDUCB *>(executor);
+      if (NULL == cb)
+      {
+         PD_LOG(PDERROR, "failed to cast executor to educb");
+         rc = SDB_SYS;
+         goto error;
+      }
 
+      rc = acquire(cb->getTransExecutor(), lockId, mode,
+                   pContext, pdpsTxResInfo, callback);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void dpsTransLockManager::release(IExecutor *executor,
+                                     const dpsTransLockId &lockId,
+                                     BOOLEAN bForceRelease,
+                                     _dpsITransLockCallback * callback)  
+   {
+      SDB_ASSERT(NULL != executor, "can not be null");
+      pmdEDUCB *cb = dynamic_cast<pmdEDUCB *>(executor);
+      if (NULL == cb)
+      {
+         PD_LOG(PDERROR, "failed to cast executor to educb");
+         goto done;
+      }
+
+      release(cb->getTransExecutor(), lockId, bForceRelease, callback);
+
+   done:
+      return;
+   }
+
+   void dpsTransLockManager::releaseAll(IExecutor *executor,
+                                        _dpsITransLockCallback *callback)
+   {
+      SDB_ASSERT(NULL != executor, "can not be null");
+      pmdEDUCB *cb = dynamic_cast<pmdEDUCB *>(executor);
+      if (NULL == cb)
+      {
+         PD_LOG(PDERROR, "failed to cast executor to educb");
+         goto done;
+      }
+
+      releaseAll(cb->getTransExecutor(), callback);
+
+   done:
+      return;
+   }
+
+   INT32 dpsTransLockManager::tryAcquire(IExecutor *executor,
+                                         const dpsTransLockId &lockId,
+                                         const DPS_TRANSLOCK_TYPE &mode,
+                                         dpsTransRetInfo *pdpsTxResInfo,
+                                         _dpsITransLockCallback *callback)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != executor, "can not be null");
+      pmdEDUCB *cb = dynamic_cast<pmdEDUCB *>(executor);
+      if (NULL == cb)
+      {
+         PD_LOG(PDERROR, "failed to cast executor to educb");
+         rc = SDB_SYS;
+         goto error;
+      }
+
+      rc = tryAcquire(cb->getTransExecutor(), lockId, mode,
+                      pdpsTxResInfo, callback);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 dpsTransLockManager::testAcquire(IExecutor *executor,
+                                          const dpsTransLockId &lockId,
+                                          const DPS_TRANSLOCK_TYPE &mode,
+                                          BOOLEAN preemptMode,
+                                          dpsTransRetInfo *pdpsTxResInfo,
+                                          _dpsITransLockCallback *callback,
+                                          BOOLEAN intentLock)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != executor, "can not be null");
+      pmdEDUCB *cb = dynamic_cast<pmdEDUCB *>(executor);
+      if (NULL == cb)
+      {
+         PD_LOG(PDERROR, "failed to cast executor to educb");
+         rc = SDB_SYS;
+         goto error;
+      }
+
+      rc = testAcquire(cb->getTransExecutor(), lockId, mode,
+                       preemptMode, pdpsTxResInfo,
+                       callback, intentLock);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 }  // namespace engine

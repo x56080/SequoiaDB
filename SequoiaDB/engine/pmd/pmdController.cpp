@@ -45,6 +45,7 @@
 #include "ossProc.hpp"
 #include "utilMemListPool.hpp"
 #include "coordResource.hpp"
+#include "dmsEngineCB.hpp"
 
 namespace engine
 {
@@ -408,6 +409,7 @@ namespace engine
       PMD_REGISTER_CB( sdbGetSQLCB() ) ;           // SQL
       PMD_REGISTER_CB( sdbGetAggrCB() ) ;          // AGGR
       PMD_REGISTER_CB( sdbGetPMDController() ) ;   // CONTROLLER
+      PMD_REGISTER_CB( sdbGetDMSEngineCB() ) ;     /// DMS ENGINE
    }
 
    void _pmdController::detachSessionInfo( restSessionInfo * pSessionInfo )

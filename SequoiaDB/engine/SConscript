@@ -208,7 +208,11 @@ utilFiles = [
       "util/utilCipher.c",
       "util/utilBSON.cpp",
       "util/utilAuthSCRAMSHA.cpp",
+<<<<<<< HEAD
       "util/utilFullNameParser.cpp"
+=======
+      "util/utilCRC.cpp"
+>>>>>>> c295a6a25bb189b9b1eb8ba613ba8421ce5056d5
       ]
 
 rtnFiles = [

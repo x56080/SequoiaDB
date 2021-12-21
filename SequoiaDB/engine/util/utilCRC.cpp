@@ -16,12 +16,9 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = utilCRC.hpp
+   Source File Name = utilCRC.cpp
 
    Descriptive Name =
-
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
 
    Dependencies: N/A
 
@@ -30,22 +27,27 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          09/08/2020  WY  Initial Draft
+          11/08/2021  LYC  Initial Draft
 
    Last Changed =
 
 ******************************************************************************/
-
-#ifndef UTIL_CRC_HPP_
-#define UTIL_CRC_HPP_
-
-#include "core.hpp"
-#include "oss.hpp"
-#include <boost/crc.hpp>
+#include "utilCRC.hpp"
+#include "pd.hpp"
 
 namespace engine
 {
-   UINT32 utilCRC32(const void *buf, UINT32 len);
-}
+   UINT32 utilCRC32(const void *buf, UINT32 len)
+   {
+      SDB_ASSERT(NULL != buf, "can not be null");
+      SDB_ASSERT(0 != len, "can not be zero");
 
-#endif//UTIL_CRC_HPP_
+      boost::crc_32_type v;
+      if (NULL == buf || 0 == len)
+      {
+         return 0;
+      }
+      v.process_bytes(buf, len);
+      return v.checksum();
+   }
+}
