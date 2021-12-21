@@ -164,7 +164,7 @@ public class Fulltext15844 extends FullTestBase {
                     cursor.getNext();
                     count++;
                 }
-                Assert.assertEquals( count, ( int ) cl.getCount() );
+                Assert.assertEquals( count, ( int ) cl.getCount(), "受SEQUOIADBMAINSTREAM-5121影响，删除索引和全文检索并发时返回的记录数不对");
             } catch ( BaseException e ) {
                 if ( -6 != e.getErrorCode() && -52 != e.getErrorCode() ) {
                     Assert.fail( "actual exception: " + e.getErrorCode() );
