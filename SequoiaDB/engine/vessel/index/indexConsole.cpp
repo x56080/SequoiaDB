@@ -822,7 +822,7 @@ namespace vessel
             lsmIndexValue vl;
             ke.shallowCopy(key, context->getRid(), context->getDmlLSN(),
                            context->getExecutor()->getTransID());
-            vl.reset(LSM_ENTRY_FLAG_NORMAL);
+            vl.reset(LSM_VALUE_TYPE_INSERT);
             rc = lsmBatch.put(meta, ke, &vl);
             if (SDB_OK != rc)
             {
@@ -830,7 +830,7 @@ namespace vessel
                goto error;
             }
          }
-
+         
          itr = ir->getKeysToRemove().begin();
          for (; itr != ir->getKeysToRemove().end(); ++itr)
          {
@@ -839,7 +839,7 @@ namespace vessel
             lsmIndexValue vl;
             ke.shallowCopy(key, context->getRid(), context->getDmlLSN(),
                            context->getExecutor()->getTransID());
-            vl.reset(LSM_ENTRY_FLAG_DELETED);
+            vl.reset(LSM_VALUE_TYPE_DELETE);
             rc = lsmBatch.put(meta, ke, &vl);
             if (SDB_OK != rc)
             {

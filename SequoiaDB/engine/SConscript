@@ -1030,6 +1030,7 @@ vesselFiles = [
       "vessel/lsm/lsmInsertBatch.cpp",
       "vessel/lsm/lsmIndexIterator.cpp",
       "vessel/lsm/lsmScanEntryParser.cpp",
+      "vessel/lsm/lsmCompactionFilter.cpp"
 ]
 #vesselend
 
@@ -1051,7 +1052,8 @@ vesselTestFiles = [
       "test/vessel/lc_freelist_test.cpp",
       "test/vessel/update_test.cpp",
       "test/vessel/dml_delete_test.cpp",
-      "test/vessel/index_delete_test.cpp"
+      "test/vessel/index_delete_test.cpp",
+      "test/vessel/lsm_compaction_filter_test.cpp"
 ]
 
 vesselUnitTestCommonFiles = [

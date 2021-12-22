@@ -374,6 +374,9 @@ namespace vessel
       // use "snapshot" after this call.
       void ReleaseSnapshot(const rocksdb::Snapshot* snapshot );
 
+      rocksdb::Status CompactRange(rocksdb::CompactRangeOptions &options,
+                                   rocksdb::Slice *begin,
+                                   rocksdb::Slice *end);
    protected:
       LSM_DB_TYPE      _dbType ;
       std::string      _dbPath ;
