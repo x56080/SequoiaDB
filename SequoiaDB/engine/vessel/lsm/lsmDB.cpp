@@ -1,5 +1,6 @@
 #include "vessel/lsm/lsmDB.hpp"
 #include "vessel/lsm/lsmIdxKey.hpp"
+#include "vessel/lsm/lsmCompactionFilter.hpp"
 #include "pd.hpp"
 #include "rocksdb/status.h"
 #include "rocksdb/slice_transform.h"
@@ -376,6 +377,13 @@ void LSMDB::ReleaseSnapshot(const rocksdb::Snapshot* snapshot )
    }
 }
 
+rocksdb::Status LSMDB::CompactRange(rocksdb::CompactRangeOptions &options,
+                                    rocksdb::Slice *begin, rocksdb::Slice *end)
+{
+   SDB_ASSERT(_lsmDB, "database must be opened");
+   return _lsmDB->CompactRange(options, begin, end);
+
+}
 
 ////////////////////////////////////////////////////////////////////
 // lsmDB, LSMDB interface implementation, read and write mode
@@ -426,6 +434,9 @@ void lsmDB::initLsmDB( const LSMConfig & config )
       // Default: 0 ( disabled )
       _lsmOption.db_write_buffer_size = config.db_write_buffer_size ;
    }
+
+   // Initialize Compaction Filter Factory
+   _lsmOption.compaction_filter_factory = createCompactionFilterFactory();
 
    // Initialize WriteOption
    _lsmWriteOpt.sync = (config.writeSync) ? true : false ;

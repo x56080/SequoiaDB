@@ -94,10 +94,11 @@ namespace vessel
 #define LSM_ENTRY_TYPE_CKPT    ((UINT8)0x1)  /* checkpoint */
 #define LSM_ENTRY_TYPE_INVALID ((UINT8)0xFF)
 
-// LSM entry flag
-#define LSM_ENTRY_FLAG_NORMAL  ((UINT8)0x0)
-#define LSM_ENTRY_FLAG_DELETED  ((UINT8)0x1)
-#define LSM_ENTRY_FLAG_INVALID ((UINT8)0xFF)
+// LSM value type
+constexpr UINT8 LSM_VALUE_TYPE_INVALID = 0;
+constexpr UINT8 LSM_VALUE_TYPE_INSERT = 1;
+constexpr UINT8 LSM_VALUE_TYPE_DELETE = 2;
+constexpr UINT8 LSM_VALUE_TYPE_OLD_VER_INSERT = 3;
 
 
 // calculate the length of full data key( i.e., with all fields/elements )

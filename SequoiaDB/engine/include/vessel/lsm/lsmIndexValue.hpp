@@ -51,15 +51,15 @@ namespace vessel
          ~lsmIndexValue(){}
 
          lsmIndexValue(const lsmIndexValue &o):
+         _type(o._type),
          _flags(o._flags),
-         _pad(o._pad),
          _rbsOffsetCL(o._rbsOffsetCL),
          _rbsOffsetLid(o._rbsOffsetLid){}
 
          lsmIndexValue &operator=(const lsmIndexValue &o)
          {
+            _type = o._type;
             _flags = o._flags;
-            _pad = o._pad;
             _rbsOffsetCL = o._rbsOffsetCL;
             _rbsOffsetLid = o._rbsOffsetLid;
             return *this;
@@ -68,17 +68,17 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return (LSM_ENTRY_FLAG_NORMAL == _flags ||
-                    LSM_ENTRY_FLAG_DELETED == _flags) &&
-                    0 == _pad; 
+            return  LSM_VALUE_TYPE_INVALID != _type &&
+                    (LSM_VALUE_TYPE_INSERT == _type ||
+                     LSM_VALUE_TYPE_DELETE == _type ||
+                     LSM_VALUE_TYPE_OLD_VER_INSERT == _type);
          }
          OSS_INLINE BOOLEAN isDeleted()const
          {
             SDB_ASSERT(isValid(), "must be valid");
-            return 0 != OSS_BIT_TEST(_flags, LSM_ENTRY_FLAG_DELETED);
+            return LSM_VALUE_TYPE_DELETE == _type;
          }
-
-         OSS_INLINE UINT16 getFlags()const
+         OSS_INLINE UINT8 getFlags()const
          {
             return _flags;
          }
@@ -90,24 +90,30 @@ namespace vessel
          {
             return _rbsOffsetLid;
          }
-         OSS_INLINE void reset(UINT16 flags = 0,
+         OSS_INLINE rocksdb::Slice getSlice()const
+         {
+            return rocksdb::Slice((const CHAR *)this, sizeof(lsmIndexValue));
+         }
+         OSS_INLINE void reset(UINT8 type = LSM_VALUE_TYPE_INVALID,
+                               UINT8 flags = 0,
                                UINT16 rbsOffsetCL = DMS_INVALID_CLID,
                                INT16 rbsOffsetLid = -1)
          {
+            _type = type;
             _flags = flags;
-            _pad = 0;
             _rbsOffsetCL = rbsOffsetCL;
             _rbsOffsetLid = rbsOffsetLid;
             return;
          }
 
       private:
-         UINT8 _flags = LSM_ENTRY_FLAG_INVALID;
-         UINT8 _pad = 0;
+         UINT8 _type = LSM_VALUE_TYPE_INVALID;
+         UINT8 _flags = 0;
          UINT16 _rbsOffsetCL = DMS_INVALID_CLID;
          INT64 _rbsOffsetLid = -1;
    };//class lsmIndexValue
 
+   constexpr UINT32 LSM_VALUE_SIZE = sizeof(lsmIndexValue);
 #pragma pack()
 }//namespace vessel
 }//namespace engine
