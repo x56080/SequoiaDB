@@ -2099,6 +2099,7 @@ namespace engine
       dmsExtentID mbExExtent  = DMS_INVALID_EXTENT ;
       dmsExtentID mbOptExtent = DMS_INVALID_EXTENT ;
       dmsMetaExtent *mbExtent = NULL ;
+      INT32 testTransLockRC   = SDB_OK ;
 
       SDB_ASSERT( pName, "Collection name cat't be NULL" ) ;
 
@@ -2177,6 +2178,37 @@ namespace engine
       {
          if ( DMS_IS_MB_FREE ( _dmsMME->_mbList[i]._flag ) )
          {
+            // trans lock
+            if ( cb && cb->getTransExecutor()->useTransLock() )
+            {
+               dpsTransRetInfo lockConflict ;
+               // NOTE: acquired meta lock and su lock,
+               // no need to test upper lock
+               testTransLockRC = pTransCB->transLockTestX( cb,
+                                                           _logicalCSID,
+                                                           i,
+                                                           NULL,
+                                                           &lockConflict,
+                                                           NULL,
+                                                           FALSE ) ;
+               if ( SDB_OK != testTransLockRC )
+               {
+                  PD_LOG( PDDEBUG,
+                          "Failed to test X lock on collection slot, "
+                          "rc: %d"OSS_NEWLINE
+                          "Conflict( representative ):"OSS_NEWLINE
+                          "   EDUID:  %llu"OSS_NEWLINE
+                          "   TID:    %u"OSS_NEWLINE
+                          "   LockId: %s"OSS_NEWLINE
+                          "   Mode:   %s"OSS_NEWLINE,
+                          testTransLockRC,
+                          lockConflict._eduID,
+                          lockConflict._tid,
+                          lockConflict._lockID.toString().c_str(),
+                          lockModeToString( lockConflict._lockType ) ) ;
+                  continue ;
+               }
+            }
             newCollectionID = i ;
             break ;
          }
@@ -2184,8 +2216,17 @@ namespace engine
       // make sure we find free collection id
       if ( DMS_INVALID_MBID == newCollectionID )
       {
-         PD_LOG ( PDERROR, "Unable to find free collection id" ) ;
-         rc = SDB_SYS ;
+         if ( SDB_OK != testTransLockRC )
+         {
+            PD_LOG( PDERROR, "Failed to test transaction on free slots, "
+                    "rc: %d", testTransLockRC ) ;
+            rc = testTransLockRC ;
+         }
+         else
+         {
+           PD_LOG ( PDERROR, "Unable to find free collection id" ) ;
+           rc = SDB_SYS ;
+         }
          goto error ;
       }
 
