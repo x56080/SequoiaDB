@@ -1103,6 +1103,7 @@ namespace engine
          else if (0 == ossStrcmp(ele.fieldName(), CAT_ENGINE_TYPE))
          {
             /// do nothing.
+            ++expected ;
          }
          else
          {
