@@ -26,7 +26,6 @@
 #include "../bson/lib/md5.h"
 #include "fmpDef.h"
 #include "utilCipher.h"
-#include "clientDef_internal.h"
 
 #if defined( _LINUX ) || defined (_AIX)
 #include <arpa/inet.h>
@@ -214,6 +213,7 @@ if ( handle )                        \
         } while ( FALSE )
 
 #define LOB_ALIGNED_LEN 524288
+#define CLIENT_SQL_MAX_LEN 127
 
 static BOOLEAN _sdbIsSrand = FALSE ;
 static ERROR_ON_REPLY_FUNC _sdbErrorOnReplyCallback = NULL ;

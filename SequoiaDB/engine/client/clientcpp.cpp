@@ -51,13 +51,13 @@
 #include "ossSSLWrapper.h"
 #endif
 #include "msg.hpp"
-#include "clientDef_internal.h"
 
 using namespace std ;
 using namespace bson ;
 
 #define SDB_MD5_VALUE_BUF_LEN  (SDB_MD5_DIGEST_LENGTH * 2 + 1)
 #define LOB_ALIGNED_LEN 524288
+#define CLIENT_SQL_MAX_LEN 127
 
 namespace sdbclient
 {
