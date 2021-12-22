@@ -3123,14 +3123,6 @@
       </code>
 
       <code>
-         <name>SDB_VESSEL_EOC</name>
-         <description>
-            <en>hit the end of data collection to read</en>
-            <cn>到达待访问数据集的结尾</cn>
-         </description>
-      </code>
-
-      <code>
          <name>SDB_VESSEL_CURSOR_NO_SPACE</name>
          <description>
             <en>not enough space in cursor buf</en>

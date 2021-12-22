@@ -818,10 +818,11 @@ namespace engine
          ossTimestampToString( commitTm, strTime ) ;
 
          PD_LOG( PDEVENT, "Storage file[%s] is %s[%u], CommitLSN: %lld, "
-                 "CommitTime: %s[%llu]", _suFileName,
+                 "CommitTime: %s[%llu], Storage Type:%d", _suFileName,
                  ( _isCrash ? "Invalid" : "Valid" ), _commitFlag,
                  _dmsHeader->_commitLsn,
-                 strTime, _dmsHeader->_commitTime ) ;
+                 strTime, _dmsHeader->_commitTime,
+                  _pStorageInfo->_type) ;
       }
 
       // SME, 16MB
@@ -1327,6 +1328,7 @@ namespace engine
 
    void _dmsStorageBase::_initHeader( dmsStorageUnitHeader * pHeader )
    {
+      SDB_ASSERT(NULL != _pStorageInfo, "can not be null");
       ossStrncpy( pHeader->_eyeCatcher, _getEyeCatcher(),
                   DMS_HEADER_EYECATCHER_LEN ) ;
       pHeader->_version = _curVersion() ;

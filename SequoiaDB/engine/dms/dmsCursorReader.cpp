@@ -123,7 +123,7 @@ namespace engine
    done:
       return rc;
    error:
-      fini();
+      fini(TRUE);
       goto done;
    }
 

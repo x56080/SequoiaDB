@@ -48,6 +48,8 @@
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
 #include "pmdController.hpp"
+#include "dmsEngineCB.hpp"
+#include "dmsCursorReader.hpp"
 
 using namespace bson ;
 
@@ -111,6 +113,8 @@ namespace engine
          _queryModifier = NULL ;
          _dmsCB->writeDown( pmdGetThreadEDUCB() ) ;
       }
+
+      _cursor.reset();
    }
 
    const CHAR* _rtnContextData::name() const
@@ -242,24 +246,51 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNCONTEXTDATA_OPTBSC );
 
-      if ( blockObj )
+      if (DMS_STORAGE_VESSEL != su->type())
       {
-         rc = _parseSegments( *blockObj, _segments ) ;
-         PD_RC_CHECK( rc, PDERROR, "Parse segments[%s] failed, rc: %d",
-                      blockObj->toString().c_str(), rc ) ;
+         if ( blockObj )
+         {
+            rc = _parseSegments( *blockObj, _segments ) ;
+            PD_RC_CHECK( rc, PDERROR, "Parse segments[%s] failed, rc: %d",
+                        blockObj->toString().c_str(), rc ) ;
 
-         _segmentScan = TRUE ;
-         _extentID = _segments.size() > 0 ? *_segments.begin() :
-                     DMS_INVALID_EXTENT ;
+            _segmentScan = TRUE ;
+            _extentID = _segments.size() > 0 ? *_segments.begin() :
+                        DMS_INVALID_EXTENT ;
+         }
+         else
+         {
+            _extentID = mbContext->mb()->_firstExtentID ;
+         }
+
+         if ( DMS_INVALID_EXTENT == _extentID )
+         {
+            _hitEnd = TRUE ;
+         }
       }
       else
       {
-         _extentID = mbContext->mb()->_firstExtentID ;
-      }
+         ossPoolString fullName;
+         fullName.append(su->CSName()).append(".")
+                 .append(mbContext->mb()->_collectionName);
+         IDataStorageEngine *engine = pmdGetKRCB()->getDMSEngineCB()->getEngine();
+         DATA_COLLECTION_PTR cl;
+         dmsScanOptions o;
+         o.rowCountLimit = returnOptions.getLimit();
 
-      if ( DMS_INVALID_EXTENT == _extentID )
-      {
-         _hitEnd = TRUE ;
+         rc = engine->openCL(cb, fullName.c_str(), dmsOpenCLOptions(), cl);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to open cl[%s] in engine:%d", fullName.c_str(), rc);
+            goto error;
+         }
+
+         rc = cl->scan(cb, o, _cursor);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to open cursor on cl[%s], rc:%d", fullName.c_str(), rc);
+            goto error;
+         }
       }
 
    done:
@@ -318,8 +349,16 @@ namespace engine
       }
       else if ( IXSCAN == _planRuntime.getScanType() )
       {
-         rc = _openIXScan( su, mbContext, cb, returnOptions,
-                           blockObj, direction ) ;
+         if (DMS_STORAGE_VESSEL == su->type())
+         {
+            rc = _openIXScanCursor(su, mbContext, cb,
+                                   returnOptions, direction);
+         }
+         else
+         {
+            rc = _openIXScan( su, mbContext, cb, returnOptions,
+                              blockObj, direction ) ;
+         }
          PD_RC_CHECK( rc, PDERROR, "Failed to open ixscan, rc: %d", rc ) ;
 
          mbContext->mbStat()->_crudCB.increaseIxScan( 1 ) ;
@@ -587,11 +626,15 @@ namespace engine
 
       if ( TBSCAN == _scanType )
       {
-         rc = _prepareByTBScan( cb, accessType, dollarList ) ;
+         rc = _cursor ?
+               _prepareByScanCursor(cb) :
+               _prepareByTBScan( cb, accessType, dollarList ) ;
       }
       else if ( IXSCAN == _scanType )
       {
-         rc = _prepareByIXScan( cb, accessType, dollarList ) ;
+         rc = _cursor ?
+              _prepareByScanCursor(cb) :
+              _prepareByIXScan( cb, accessType, dollarList ) ;
       }
       else
       {
@@ -1285,6 +1328,171 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 _rtnContextData::_openIXScanCursor(_dmsStorageUnit *su,
+                                             _dmsMBContext *mbContext,
+                                             _pmdEDUCB *cb,
+                                             const rtnReturnOptions &returnOptions,
+                                             INT32 direction)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(DMS_STORAGE_VESSEL == su->type(), "can not be other types");
+      SDB_ASSERT(NULL != _planRuntime.getPlan(), "can not be null");
+      ossPoolString fullName;
+      fullName.append(su->CSName()).append(".")
+               .append(mbContext->mb()->_collectionName);
+      IDataStorageEngine *engine = pmdGetKRCB()->getDMSEngineCB()->getEngine();
+      DATA_COLLECTION_PTR cl;
+      dmsIndexScanOptions o;
+
+      o.rowCountLimit = returnOptions.getLimit();
+      SDB_ASSERT(0 != _planRuntime.getPlan()->getDirection(), "invalid direction");
+      o.forward = 0 < _planRuntime.getPlan()->getDirection();
+
+      ixmIndexCB indexCB ( _planRuntime.getIndexCBExtent(),
+                           su->index(),
+                           NULL ) ;
+      if ( !indexCB.isInitialized() )
+      {
+         PD_LOG ( PDERROR, "unable to get proper index control block" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+      if ( indexCB.getLogicalID() != _planRuntime.getIndexLID() )
+      {
+         PD_LOG( PDERROR, "Index[extent id: %d] logical id[%d] is not "
+                 "expected[%d]", _planRuntime.getIndexCBExtent(),
+                 indexCB.getLogicalID(), _planRuntime.getIndexLID() ) ;
+         rc = SDB_IXM_NOTEXIST ;
+         goto error ;
+      }
+
+      rc = engine->openCL(cb, fullName.c_str(), dmsOpenCLOptions(), cl);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open cl[%s] in engine:%d", fullName.c_str(), rc);
+         goto error;
+      }
+
+      SDB_ASSERT(NULL != _planRuntime.getPredList(), "can not be null");
+      rc = cl->scanIndex(cb, indexCB.getName(),
+                         *_planRuntime.getPredList(),
+                         o, _cursor);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open index scan cursor:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 _rtnContextData::_prepareByScanCursor(pmdEDUCB *cb)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != cb, "can not be null");
+      SDB_ASSERT(NULL != _cursor.get(), "not inited");
+
+      constexpr UINT32 _BUFFER_LIMIT = (UINT32)128 << 10;
+
+      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
+      mthMatchRuntime *matchRuntime = _planRuntime.getMatchRuntime( TRUE ) ;
+      _mthMatchTreeContext mthContext;
+      dmsBsonCursorReader reader;
+      reader.init(_cursor, FALSE);
+      UINT32 pushed = 0;
+
+      while (pushed < _BUFFER_LIMIT)
+      {
+         bson::BSONObj record;
+      
+         rc = reader.fetchNext(cb);
+         if (SDB_DMS_EOC == rc)
+         {
+            rc = SDB_OK;
+            _hitEnd = TRUE;
+            break;
+         }
+         else if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to fetch next record:%d", rc);
+            goto error;
+         }
+
+         if (NULL != matchRuntime && NULL != matchRuntime->getMatchTree())
+         {
+            BOOLEAN matched = FALSE;
+            _mthMatchTree *matcher = matchRuntime->getMatchTree() ;
+            rtnParamList *parameters = matchRuntime->getParametersPointer() ;
+            mthContext.clearRecordInfo() ;
+
+            rc = matcher->matches(reader.getRecord(), matched,
+                                  &mthContext, parameters);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "Failed to match record, rc: %d", rc ) ;
+               goto error ;
+            }
+            else if (!matched)
+            {
+               continue;
+            }
+         }
+
+         if (0 < _numToSkip)
+         {
+            --_numToSkip;
+            continue;
+         }
+         
+         if (_selector.isInitialized())
+         {
+            rc = _selector.select(reader.getRecord(), record);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to build projection:%d", rc);
+               goto error;
+            }
+         }
+         else
+         {
+            record = reader.getRecord();
+         }
+
+         rc = append(record);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to append record to buffer:%d", rc);
+            goto error;
+         }
+
+         pushed += record.objsize();
+         DMS_MON_OP_COUNT_INC( pMonAppCB, MON_SELECT, 1 ) ;
+         if (_numToReturn > 0)
+         {
+            if (0 == --_numToReturn)
+            {
+               break;
+            }
+         }
+      }
+
+      if ( !isEmpty() )
+      {
+         rc = SDB_OK ;
+      }
+      else
+      {
+         rc = SDB_DMS_EOC ;
+         goto error ;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    /*

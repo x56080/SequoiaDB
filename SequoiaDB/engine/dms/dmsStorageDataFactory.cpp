@@ -56,6 +56,9 @@ namespace engine
          data = SDB_OSS_NEW dmsStorageDataCapped( suFileName, info,
                                                   pEventHolder ) ;
          break ;
+      case DMS_STORAGE_VESSEL:
+         data = SDB_OSS_NEW dmsStorageData( suFileName, info, pEventHolder ) ;
+         break ;
       default:
          data = NULL ;
          goto error ;

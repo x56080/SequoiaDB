@@ -48,6 +48,9 @@
 #include "pmdStartup.hpp"
 #include "dmsStorageDataFactory.hpp"
 #include "dmsTransContext.hpp"
+#include "interface/IDataStorageEngine.h"
+#include "dmsEngineCB.hpp"
+#include "interface/IDataCollection.h"
 
 namespace engine
 {
@@ -1254,6 +1257,15 @@ namespace engine
          goto error ;
       }
 
+      if (createNew && DMS_STORAGE_VESSEL == _storageInfo._type)
+      {
+         rc = createCSInDataEngine();
+         if (SDB_OK != rc)
+         {
+            SDB_ASSERT(FALSE, "TODO");
+            goto error;
+         }
+      }
    done:
       PD_TRACE_EXITRC ( SDB__DMSSU_OPEN, rc ) ;
       return rc ;
@@ -1623,8 +1635,16 @@ namespace engine
          cb->registerMonCRUDCB( &( context->mbStat()->_crudCB ) ) ;
       }
 
-      rc = _pDataSu->insertRecord( context, record, cb, dpscb, mustOID,
-                                   canUnLock, position, insertResult ) ;
+      if (DMS_STORAGE_VESSEL != _storageInfo._type)
+      {
+         rc = _pDataSu->insertRecord( context, record, cb, dpscb, mustOID,
+                                    canUnLock, position, insertResult ) ;
+      }
+      else
+      {
+         rc = insertRecordToEngine(cb, context, record, insertResult);
+      }
+
       if ( rc )
       {
          goto error ;
@@ -1832,6 +1852,7 @@ namespace engine
    {
       INT32 rc                     = SDB_OK ;
       BOOLEAN getContext           = FALSE ;
+      BOOLEAN rollback = FALSE;
       PD_TRACE_ENTRY ( SDB__DMSSU_CREATEINDEX ) ;
       if ( NULL == context )
       {
@@ -1851,6 +1872,17 @@ namespace engine
          goto error ;
       }
 
+      rollback = TRUE;
+
+      if (DMS_STORAGE_VESSEL == _storageInfo._type)
+      {
+         rc = createIndexInDataEngine(cb, context, index);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+      }
+
    done :
       if ( context && getContext )
       {
@@ -1859,6 +1891,11 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__DMSSU_CREATEINDEX, rc ) ;
       return rc ;
    error :
+      if (rollback)
+      {
+         _pIndexSu->dropIndex(context, index.getStringField(IXM_NAME_FIELD),
+                              cb, dpscb, isSys);
+      }
       goto done ;
    }
 
@@ -3870,6 +3907,10 @@ namespace engine
       {
          type = DMS_STORAGE_CAPPED ;
       }
+      else if (0 == ossStrcmp(DMS_DATASU_VESSEL_EYECATCHER, eyeCatcher))
+      {
+         type = DMS_STORAGE_VESSEL;
+      }
       else
       {
          rc = SDB_SYS ;
@@ -3885,6 +3926,113 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 _dmsStorageUnit::createCSInDataEngine()
+   {
+      INT32 rc = SDB_OK;
+      IDataStorageEngine *engine = pmdGetKRCB()->getDMSEngineCB()->getEngine();
+      rc = engine->createCS(pmdGetThreadEDUCB(),
+                            _storageInfo._suName,
+                            _storageInfo._csUniqueID,
+                            dmsCreateCSOptions(),
+                            bson::BSONObj());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create cs in data engine:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 _dmsStorageUnit::createIndexInDataEngine(pmdEDUCB *cb,
+                                                  dmsMBContext *context,
+                                                  const bson::BSONObj &indexDef)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(DMS_STORAGE_VESSEL == _storageInfo._type, "can not be other types");
+      IDataStorageEngine *engine = pmdGetKRCB()->getDMSEngineCB()->getEngine();
+      DATA_COLLECTION_PTR cl;
+
+      ossPoolString fullName;
+      BOOLEAN locked = FALSE;
+      rc = context->mbLock(SHARED);
+      PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
+      locked = TRUE;
+
+      fullName.append(_storageInfo._suName).append(".")
+              .append(context->mb()->_collectionName);
+
+      rc = engine->openCL(cb, fullName.c_str(), dmsOpenCLOptions(), cl);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open cl[%s] in engine:%d",
+                fullName.c_str(), rc);
+         goto error;
+      }
+
+      rc = cl->createIndex(cb, dmsBuildIndexOptions(), indexDef);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create index in engine:%d", rc);
+         goto error;
+      }
+   done:
+      if (locked)
+      {
+         context->mbUnlock();
+      }
+      cl.reset();
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 _dmsStorageUnit::insertRecordToEngine(pmdEDUCB *cb,
+                                               dmsMBContext *context,
+                                               const bson::BSONObj &record,
+                                               utilInsertResult *result)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(DMS_STORAGE_VESSEL == _storageInfo._type, "can not be other types");
+      IDataStorageEngine *engine = pmdGetKRCB()->getDMSEngineCB()->getEngine();
+      DATA_COLLECTION_PTR cl;
+
+      ossPoolString fullName;
+      BOOLEAN locked = FALSE;
+      rc = context->mbLock(SHARED);
+      PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
+      locked = TRUE;
+
+      fullName.append(_storageInfo._suName).append(".")
+              .append(context->mb()->_collectionName);
+
+      rc = engine->openCL(cb, fullName.c_str(), dmsOpenCLOptions(), cl);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open cl[%s] in engine:%d",
+                fullName.c_str(), rc);
+         goto error;
+      }
+
+      rc = cl->insertRecord(cb, record, dmsInsertRecordOptions(), result);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to insert record into cl:%d", rc);
+         goto error;
+      }
+   done:
+      if (locked)
+      {
+         context->mbUnlock();
+      }
+      cl.reset();
+      return rc;
+   error:
+      goto done;
    }
 }  // namespace engine
 

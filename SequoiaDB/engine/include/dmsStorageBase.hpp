@@ -54,6 +54,7 @@
 #include "pmdEnv.hpp"
 #include "sdbIPersistence.hpp"
 #include "dmsExtDataHandler.hpp"
+#include "dmsEngineDef.hpp"
 
 #include <string>
 

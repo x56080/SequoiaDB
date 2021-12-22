@@ -1269,7 +1269,7 @@ namespace engine
                                            INT32 pageSize,
                                            INT32 lobPageSize,
                                            DMS_STORAGE_TYPE type,
-                                           BOOLEAN sysCall )
+                                           BOOLEAN sysCall)
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNCREATECSCOMMAND ) ;

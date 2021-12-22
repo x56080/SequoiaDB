@@ -773,6 +773,7 @@ namespace engine
 
    #define DMS_MME_OFFSET                 ( DMS_SME_OFFSET + DMS_SME_SZ )
    #define DMS_DATASU_EYECATCHER          "SDBDATA"
+   #define DMS_DATASU_VESSEL_EYECATCHER   "SDBVSSL"
 
    // History of data version change:
    // Version  Update in which version    Reason
@@ -1219,6 +1220,10 @@ namespace engine
                                         IDmsOprHandler *pOprHandle,
                                         utilWriteResult *insertResult,
                                         dpsUnqIdxHashArray *pUnqIdxHashArray ) ;
+
+      private:
+         INT32 createCLInEngine(pmdEDUCB * cb,
+                                dmsMBContext *context);
 
       //private:
       protected:

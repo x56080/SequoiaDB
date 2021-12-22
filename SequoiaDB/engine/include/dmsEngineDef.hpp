@@ -46,9 +46,6 @@ namespace engine
       DMS_SCAN_FOR_SHARE = 1,
       DMS_SCAN_FOR_UPDATE = 2,
    };//enum DMS_SCAN_FOR
-
-   
-
 } // namespace engine
 
 

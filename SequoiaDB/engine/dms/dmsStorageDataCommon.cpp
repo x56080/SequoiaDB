@@ -53,6 +53,8 @@
 #include "dmsLightJob.hpp"
 #include "utilInsertResult.hpp"
 #include "dpsUtil.hpp"
+#include "interface/IDataStorageEngine.h"
+#include "dmsEngineCB.hpp"
 
 using namespace bson ;
 
@@ -2367,21 +2369,24 @@ namespace engine
       /// set compressor when snappy
       _setCompressor( context ) ;
 
-      // allocate new extent
-      if ( 0 != initPages )
+      if (DMS_STORAGE_VESSEL != _pStorageInfo->_type)
       {
-         rc = _allocateExtent( context, initPages, TRUE, FALSE, NULL ) ;
-         PD_RC_CHECK( rc, PDERROR, "Allocate new %u pages of collection[%s] "
-                      "failed, rc: %d", initPages, pName, rc ) ;
-      }
+         // allocate new extent
+         if ( 0 != initPages )
+         {
+            rc = _allocateExtent( context, initPages, TRUE, FALSE, NULL ) ;
+            PD_RC_CHECK( rc, PDERROR, "Allocate new %u pages of collection[%s] "
+                        "failed, rc: %d", initPages, pName, rc ) ;
+         }
 
-      // create $id index[s_idKeyObj]
-      if ( !OSS_BIT_TEST( attributes, DMS_MB_ATTR_NOIDINDEX ) )
-      {
-         rc = _pIdxSU->createIndex( context, ixmGetIDIndexDefine(),
-                                    cb, NULL, TRUE ) ;
-         PD_RC_CHECK( rc, PDERROR, "Create $id index failed in collection[%s], "
-                      "rc: %d", pName, rc ) ;
+         // create $id index[s_idKeyObj]
+         if ( !OSS_BIT_TEST( attributes, DMS_MB_ATTR_NOIDINDEX ) )
+         {
+            rc = _pIdxSU->createIndex( context, ixmGetIDIndexDefine(),
+                                       cb, NULL, TRUE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Create $id index failed in collection[%s], "
+                        "rc: %d", pName, rc ) ;
+         }
       }
 
       if ( logicID )
@@ -2402,6 +2407,15 @@ namespace engine
                                 context->mbID(),
                                 context->clLID() ) ;
          _pEventHolder->onCreateCL( DMS_EVENT_MASK_ALL, clItem, cb, dpscb ) ;
+      }
+
+      if (DMS_STORAGE_VESSEL == getStorageType())
+      {
+         rc = createCLInEngine(cb, context);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
       }
 
    done:
@@ -5006,6 +5020,35 @@ namespace engine
       }
 
       PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON__DECMBSTAT ) ;
+   }
+
+   INT32 _dmsStorageDataCommon::createCLInEngine(pmdEDUCB * cb,
+                                                 dmsMBContext *context)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != cb, "can not be null");
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(NULL != _pStorageInfo, "can not be null");
+      SDB_ASSERT(DMS_STORAGE_VESSEL == getStorageType(), "can not be invalid");
+
+      ossPoolString fullName;
+      fullName.append(_pStorageInfo->_suName).append(".")
+              .append(context->mb()->_collectionName);
+      IDataStorageEngine *engine = pmdGetKRCB()->getDMSEngineCB()->getEngine();
+
+      rc = engine->createCL(cb, fullName.c_str(),
+                            context->mb()->_clUniqueID,
+                            dmsCreateCLOptions(), bson::BSONObj());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create cl[%s] in engine:%d",
+                fullName.c_str(), rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    /*

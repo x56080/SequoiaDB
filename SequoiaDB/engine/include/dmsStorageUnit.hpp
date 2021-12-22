@@ -568,6 +568,16 @@ namespace engine
          INT32 _getTypeFromFile( const CHAR *dataPath,
                                  DMS_STORAGE_TYPE &type ) ;
 
+      private:
+         INT32 createCSInDataEngine();
+         INT32 createIndexInDataEngine(pmdEDUCB *cb,
+                                       dmsMBContext *context,
+                                       const bson::BSONObj &indexDef);
+         INT32 insertRecordToEngine(pmdEDUCB *cb,
+                                    dmsMBContext *context,
+                                    const bson::BSONObj &record,
+                                    utilInsertResult *result);
+
       private :
          dmsStorageDataCommon                *_pDataSu ;
          dmsStorageIndex                     *_pIndexSu ;

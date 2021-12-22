@@ -44,6 +44,7 @@
 #include "rtnQueryModifier.hpp"
 #include "rtnResultSetFilter.hpp"
 #include "optAccessPlanRuntime.hpp"
+#include "interface/IDataStorageEngine.h"
 
 namespace engine
 {
@@ -159,6 +160,15 @@ namespace engine
 
          INT32    _evalIndexCover( IXM_FIELD_NAME_SET &selectSet ) ;
 
+      private:
+         INT32 _openIXScanCursor(_dmsStorageUnit *su,
+                                 _dmsMBContext *mbContext,
+                                 _pmdEDUCB *cb,
+                                 const rtnReturnOptions &returnOptions,
+                                 INT32 direction);
+         INT32 _prepareByScanCursor(pmdEDUCB *cb);
+      
+
       protected:
          _SDB_DMSCB                 *_dmsCB ;
          _dmsStorageUnit            *_su ;
@@ -192,6 +202,8 @@ namespace engine
          rtnQueryModifier*          _queryModifier ;
 
          BOOLEAN                    _indexCover ;
+
+         DATA_CURSOR_PTR            _cursor;
    } ;
 
    typedef _rtnContextData rtnContextData ;

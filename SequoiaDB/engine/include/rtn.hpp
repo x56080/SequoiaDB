@@ -241,7 +241,7 @@ namespace engine
                                            INT32 pageSize = DMS_PAGE_SIZE_DFT,
                                            INT32 lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ,
                                            DMS_STORAGE_TYPE type = DMS_STORAGE_NORMAL,
-                                           BOOLEAN sysCall = FALSE ) ;
+                                           BOOLEAN sysCall = FALSE) ;
 
    INT32 rtnCreateCollectionCommand ( const CHAR *pCollection,
                                       UINT32 attributes,

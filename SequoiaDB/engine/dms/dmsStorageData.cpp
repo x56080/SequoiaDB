@@ -1288,7 +1288,16 @@ namespace engine
 
    const CHAR* _dmsStorageData::_getEyeCatcher() const
    {
-      return DMS_DATASU_EYECATCHER ;
+      const CHAR *ec = NULL;
+      if (DMS_STORAGE_NORMAL == _pStorageInfo->_type)
+      {
+         ec = DMS_DATASU_EYECATCHER ;
+      }
+      else
+      {
+         ec = DMS_DATASU_VESSEL_EYECATCHER;
+      }
+      return ec;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA_POSTEXTLOAD, "_dmsStorageData::postLoadExt" )

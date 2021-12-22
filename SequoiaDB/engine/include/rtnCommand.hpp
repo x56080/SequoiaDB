@@ -620,8 +620,7 @@ namespace engine
          utilCSUniqueID             _csUniqueID ;
          INT32                      _pageSize ;
          INT32                      _lobPageSize ;
-         DMS_STORAGE_TYPE           _storageType ;
-         bson::BSONObj              _options;
+         DMS_STORAGE_TYPE           _storageType ;    
    };
 
    class _rtnCreateIndex : public _rtnCommand
