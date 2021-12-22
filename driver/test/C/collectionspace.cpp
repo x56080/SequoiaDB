@@ -193,3 +193,103 @@ TEST(collectonspace,sdbGetCSName)
    sdbReleaseConnection ( connection ) ;
 }
 
+TEST( collectonspace, sdbCSListCollections )
+{
+   sdbConnectionHandle connection = 0 ;
+   sdbCSHandle collectionspace    = 0 ;
+   sdbCursorHandle cursor         = 0 ;
+   INT32 rc                       = SDB_OK ;
+   INT64 num                      = 0 ;
+   CHAR pCSName[ NAME_LEN + 1 ]   = { 0 } ;
+   
+   rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // connect to database
+   rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = getCollectionSpace ( connection,
+                             COLLECTION_SPACE_NAME,
+                             &collectionspace ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   // case 1: cs exists, cl exists
+   rc = sdbCSListCollections( collectionspace, &cursor ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   num = getRecordNum( cursor ) ;
+   ASSERT_EQ( 1, num ) ;
+
+   // case 2: cs exists, cl does not exist
+   rc = sdbDropCollection( collectionspace, COLLECTION_NAME ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbCSListCollections( collectionspace, &cursor ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   num = getRecordNum( cursor ) ;
+   ASSERT_EQ( 0, num ) ;
+   
+   sdbDisconnect ( connection ) ; 
+   sdbReleaseCS ( collectionspace ) ;
+   sdbReleaseCursor( cursor ) ;
+   sdbReleaseConnection ( connection ) ;
+}
+
+TEST( collectonspace, sdbCSGetDomainName )
+{
+   sdbConnectionHandle connection = 0 ;
+   sdbDomainHandle dom            = 0 ;
+   sdbCSHandle collectionspace    = 0 ;
+   const CHAR *pDomain            = "domain1" ;
+   INT32 rc                       = SDB_OK ;
+   CHAR pResult[ NAME_LEN + 1 ]   = { 0 } ;
+   bson opt ;
+   bson domObj ;
+
+   rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // connect to database
+   rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get cs
+   rc = getCollectionSpace ( connection,
+                             COLLECTION_SPACE_NAME,
+                             &collectionspace ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   
+   // case 1: domain does not exists
+   rc = sdbCSGetDomainName ( collectionspace, pResult, NAME_LEN ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_EQ( '\0', pResult[0] ) ;
+
+   // case 2: domain exists
+   // create domain
+   bson_init( &domObj ) ;
+   bson_append_start_array( &domObj, "Groups" ) ;
+   bson_append_string( &domObj, "0", GROUPNAME1 ) ;
+   bson_append_string( &domObj, "1", GROUPNAME2 ) ;
+   bson_append_string( &domObj, "2", GROUPNAME3 ) ;
+   bson_append_finish_array( &domObj ) ;
+   bson_finish( &domObj ) ;
+   rc = sdbCreateDomain( connection,  pDomain, &domObj, &dom ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // set domain
+   bson_init( &opt ) ;
+   bson_append_string( &opt, "Domain", pDomain ) ;
+   bson_finish( &opt ) ;
+   rc = sdbCSSetDomain( collectionspace, &opt ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get domain name
+   rc = sdbCSGetDomainName ( collectionspace, pResult, NAME_LEN ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_EQ( 0, strcmp( pResult, pDomain ) ) ;
+
+   //clear the environment
+   rc = sdbDropCollectionSpace ( connection, COLLECTION_SPACE_NAME ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbDropDomain( connection, pDomain ) ;
+   ASSERT_EQ( rc, SDB_OK ) ;
+   bson_destroy( &opt ) ;
+   bson_destroy( &domObj ) ;
+   sdbDisconnect ( connection ) ;
+   sdbReleaseCS ( collectionspace ) ;
+   sdbReleaseConnection ( connection ) ;
+   sdbReleaseDomain ( dom ) ;
+}

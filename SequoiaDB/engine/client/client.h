@@ -1320,6 +1320,18 @@ SDB_EXPORT INT32 sdbAlterCollectionSpace ( sdbCSHandle cHandle,
 SDB_EXPORT INT32 sdbCSSetDomain ( sdbCSHandle cHandle,
                                   bson * options ) ;
 
+/** \fn INT32 sdbCSGetDomainName( sdbCSHandle cHandle,
+                                  CHAR *pResult, INT32 size )
+    \brief Get the domain name which the collection space belongs to
+    \param [in] cHandle The collection space handle
+    \param [in] pResult The result for output domain name
+    \param [in] size The size of the buffer
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbCSGetDomainName ( sdbCSHandle cHandle,
+                                      CHAR *pResult, INT32 size ) ;
+
 /** \fn INT32 sdbCSRemoveDomain( sdbCSHandle cHandle )
     \brief Alter the specified collection space to remove domain
     \param [in] cHandle The collection space handle
@@ -1358,6 +1370,17 @@ SDB_EXPORT INT32 sdbCSDisableCapped ( sdbCSHandle cHandle ) ;
 */
 SDB_EXPORT INT32 sdbCSSetAttributes ( sdbCSHandle cHandle,
                                       bson * options ) ;
+
+/** \fn INT32 sdbCSListCollections ( sdbCSHandle cHandle,
+                                     sdbCursorHandle *handle )
+    \brief List all the collection of current collection space
+    \param [in] cHandle The collection space handle
+    \param [out] handle The cursor handle of returns
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbCSListCollections ( sdbCSHandle cHandle,
+                                        sdbCursorHandle *handle ) ;
 
 /** \fn INT32 sdbGetCLName ( sdbCollectionHandle cHandle,
                              CHAR *pCLName, INT32 size )
