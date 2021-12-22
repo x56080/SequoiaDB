@@ -1100,6 +1100,10 @@ namespace engine
                            DMS_STORAGE_CAPPED : DMS_STORAGE_NORMAL ;
             ++expected ;
          }
+         else if (0 == ossStrcmp(ele.fieldName(), CAT_ENGINE_TYPE))
+         {
+            /// do nothing.
+         }
          else
          {
             PD_RC_CHECK ( SDB_INVALIDARG, PDERROR,
