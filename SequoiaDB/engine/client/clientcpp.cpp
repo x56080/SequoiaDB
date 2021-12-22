@@ -49,6 +49,8 @@
 #ifdef SDB_SSL
 #include "ossSSLWrapper.h"
 #endif
+#include "msg.hpp"
+#include "clientDef_internal.h"
 
 using namespace std ;
 using namespace bson ;
@@ -5341,18 +5343,18 @@ do                                                            \
                                                   INT32 resultLen )
    {
       INT32 rc = SDB_OK ;
-      CHAR sql[ CLIENT_CS_NAMESZ + 50 ] = { '\0' } ;
+      CHAR sql[ CLIENT_SQL_MAX_LEN + CLIENT_CS_NAMESZ + 1 ] = { 0 } ;
       sdbCursor cursor ;
       BSONObj   tempObj ;
 
-      if ( !_connection || '\0' == _collectionSpaceName[0] || resultLen <= 0 )
+      if ( !_connection || '\0' == _collectionSpaceName[0] || 0 >= resultLen || NULL == result )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-
+      ossMemset( result, 0, resultLen ) ;      
       // build sql
-      ossSnprintf( sql, CLIENT_CS_NAMESZ + 50, 
+      ossSnprintf( sql, CLIENT_SQL_MAX_LEN + CLIENT_CS_NAMESZ, 
                    "select Domain from $LIST_CS where Name = '%s'", 
                    _collectionSpaceName ) ;
 
@@ -5379,7 +5381,7 @@ do                                                            \
       {
          ossStrncpy( result, 
                      tempObj.getStringField( "Domain" ),
-                     resultLen ) ;
+                     resultLen - 1 ) ;
       }
       else
       {
