@@ -33,18 +33,18 @@ function test ( testPara )
       throw new Error( "The expAccessNodes do not include the node: " + actAccessNode );
    }
 
-   //preferedPeriod为2
-   db.setSessionAttr( { PreferedPeriod: 2 } )
+   //preferedPeriod为10
+   db.setSessionAttr( { PreferedPeriod: 10 } )
    insertData( testPara.testCL );
 
    actAccessNode = testPara.testCL.find().explain().current().toObj().NodeName;
    if( actAccessNode !== primaryNode )
    {
-      throw new Error( "The expected result is " + expAccessNode + ", but the actual result is " + primaryNode );
+      throw new Error( "The expected result is " + expAccessNodes + ", but the actual result is " + primaryNode );
    }
 
-   //2s后检查会话访问节点为备节点
-   sleep( 2000 );
+   //10s后检查会话访问节点为备节点
+   sleep( 10000 );
 
    actAccessNode = testPara.testCL.find().explain().current().toObj().NodeName;
    if( expAccessNodes.indexOf( actAccessNode ) === -1 )
