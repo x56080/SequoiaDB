@@ -13,6 +13,7 @@
 
 using namespace bson;
 
+#define OSS_MAX_NAMESIZE   NAME_MAX
 
 #define LISTEN_PORT  "11742"
 #define ROOT_ID 1

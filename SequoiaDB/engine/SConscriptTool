@@ -769,7 +769,8 @@ toolEnv.StaticLibrary('ssh2', ssh2Files)
 toolEnv.StaticLibrary('mon', monFiles)
 toolEnv.StaticLibrary('stpCommon', stpCommonFiles)
 #fs
-toolEnv.StaticLibrary('fs', sequoiaFSComFiles)
+if linux64:
+   toolEnv.StaticLibrary('fs', sequoiaFSComFiles)
 
 #Export Executable
 sdbimprt = toolEnv.Program("sdbimprt", importFiles,
