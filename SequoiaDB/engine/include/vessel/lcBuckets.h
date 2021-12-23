@@ -66,6 +66,9 @@ namespace vessel
          BOOLEAN getTagAndIncUsage(const GLOBAL_PAGE_ID &id,
                                    lcPageTagHolder &holder);
 
+         void discardAndPinTags(SPACE_ID sid,
+                                ossPoolList<liteCachePageTag *> &tags);
+
       private:
          void getBucketAndLatch(const GLOBAL_PAGE_ID &id,
                                 _ossSpinXLatch *&latch,

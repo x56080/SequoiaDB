@@ -46,6 +46,9 @@ namespace engine
 {
 namespace vessel
 {
+
+#pragma pack(4)
+
 class globalPageID
 {
    public:
@@ -224,6 +227,7 @@ class globalPageID
       PAGE_ID _pid = INVALID_PAGE_ID;
 }; /// end of globalPageID
 
+#pragma pack()
 static const UINT32 GLOBAL_PAGE_ID_SIZE = sizeof(globalPageID);
 
 typedef globalPageID GLOBAL_PAGE_ID;

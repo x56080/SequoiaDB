@@ -140,6 +140,15 @@ namespace vessel
       goto done;
    }
 
+   INT32 collectionSpace::destory(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    void collectionSpace::close()
    {
       fini();
@@ -664,6 +673,28 @@ namespace vessel
          PD_LOG(PDERROR, "failed to create checkpoint on is:%d", rc);
          goto error;
       }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collectionSpace::waitIfCheckpointCreating(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (NULL == context)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      _su->getMainDataSpace().waitCheckpoint();
+      _su->getIndexSpace().waitCheckpoint();
    done:
       return rc;
    error:

@@ -479,6 +479,78 @@ namespace vessel
       return;
    }
 
+   INT32 liteCache::discardSpace(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      OSS_LATCH_MODE mode = SHARED;
+      ossPoolList<liteCachePageTag *> tags;
+
+      if (OSS_UNLIKELY(NULL == context))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (!context->isSpaceIdLocked(&mode) ||
+               EXCLUSIVE != mode)
+      {
+         rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
+         goto error;
+      }
+
+      _buckets->discardAndPinTags(context->getSpaceID(), tags);
+      discardPinnedTags(context, tags);
+      SDB_ASSERT(tags.empty(), "must be empty");
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void liteCache::discardPinnedTags(requestContext *context,
+                                     ossPoolList<liteCachePageTag *> &tags)
+   {
+      SDB_ASSERT(NULL != context, "can not be null");
+      PD_LOG(PDDEBUG, "begin to discard tags[%d] in pool[%d]", tags.size(), _poolNo);
+      while (!tags.empty())
+      {
+         ossPoolList<liteCachePageTag *>::iterator itr = tags.begin();
+         while (itr != tags.end())
+         {
+            liteCachePageTag *tag = *itr;
+            lcPageTagHolder holder;
+            holder.reset(tag);
+
+            if (tag->isPendingWrite() ||
+                !holder.tryLock())
+            {
+               ++itr;
+            }
+            else
+            {
+               tag->setMaxMemDirtyLSN(DPS_INVALID_LSN_OFFSET);
+               if (tag->isInDirtyList())
+               {
+                  _dl->remove(holder);
+               }
+               holder.autoUnlock();
+               tag->decUsageCnt();
+               itr = tags.erase(itr);
+            }
+         }
+
+         /// waiting for io pending
+         ossSleepmillis(10);
+      }
+
+      PD_LOG(PDDEBUG, "end to discard tags in pool[%d]", _poolNo);
+      return;
+   }
+
    INT32 liteCache::tryToUpdateLRU(lcPageTagHolder &holder)
    {
       return _lru->tryToUpdate(holder);

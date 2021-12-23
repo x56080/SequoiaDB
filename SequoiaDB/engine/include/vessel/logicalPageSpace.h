@@ -168,6 +168,7 @@ namespace vessel
 
          INT32 blockCheckpoint(requestContext *context);
          INT32 tryToBlockCheckpoint(requestContext *context, BOOLEAN &blocked);
+         void waitCheckpoint();
 
       private:
          virtual INT32 prepareToCreateCheckpoint(requestContext *context,

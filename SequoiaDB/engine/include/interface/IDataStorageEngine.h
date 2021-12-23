@@ -79,6 +79,9 @@ namespace engine
          virtual INT32 getCSCount(IExecutor *executor,
                                   UINT32 &countt) = 0;
 
+         virtual INT32 removeCS(IExecutor *executor,
+                                const CHAR *csName) = 0;
+
       public:
 
          virtual INT32 createCL(IExecutor *executor,

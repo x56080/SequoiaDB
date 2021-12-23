@@ -41,6 +41,7 @@
 #include "ossMemPool.hpp"
 #include "vessel/mmapPagePointer.h"
 #include "vessel/lcBucketInnerIndex.h"
+#include "ossMemPool.hpp"
 
 namespace engine
 {
@@ -64,6 +65,9 @@ namespace vessel
 
          BOOLEAN getTagAndIncUsage(const GLOBAL_PAGE_ID &id,
                                    lcPageTagHolder &holder);
+
+         void discardAndPinTags(SPACE_ID sid,
+                                ossPoolList<liteCachePageTag *> &tags);
       private:                           
          INT32 insertTag(const GLOBAL_PAGE_ID &id,
                          const mmapPagePointer &ptr,

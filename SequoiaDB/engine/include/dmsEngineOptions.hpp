@@ -49,18 +49,18 @@ namespace engine
          UINT32 dataPageSize = DMS_PAGE_SIZE32K;
          UINT32 idxPageSize = DMS_PAGE_SIZE32K;
          UINT32 lobPageSize = DMS_PAGE_SIZE256K;
-   };//class createCSOptions
+   };//class dmsCreateCSOptions
 
    class dmsCreateCLOptions : public SDBObject
    {
       public:
          UTIL_COMPRESSOR_TYPE compressor = UTIL_COMPRESSOR_INVALID;
-   };//class createCLOptions
+   };//class dmsCreateCLOptions
 
    class dmsOpenCLOptions : public SDBObject
    {
 
-   };////class createCLOptions
+   };////class dmsOpenCLOptions
 
    class dmsBuildIndexOptions : public SDBObject
    {

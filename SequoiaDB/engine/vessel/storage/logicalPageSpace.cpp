@@ -685,6 +685,18 @@ namespace vessel
       goto done;
    }
 
+   void logicalPageSpace::waitCheckpoint()
+   {
+      SDB_ASSERT(isOpen(), "can not be closed");
+      _checkpointContext.getLatch()->lock_r();
+      while (_checkpointContext.isRunning())
+      {
+         ossSleepmillis(100);
+      }
+      _checkpointContext.getLatch()->release_r();
+      return;
+   }
+
    INT32 logicalPageSpace::getLogicalPageBuffer(requestContext *context,
                                                 PAGE_ID lpid,
                                                 const ossSharedLatchMode &mode,

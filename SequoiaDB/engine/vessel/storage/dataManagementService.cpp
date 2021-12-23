@@ -284,7 +284,7 @@ namespace vessel
       /// 1. Ensure name and uid unique.
       /// 2. Allocate sid and logical id.
       /// 3. Add name and uid to tmp index.
-      rc = precreateCS(csName, uniqueID, logicalID, sid);
+      rc = reserveCSForCreating(csName, uniqueID, logicalID, sid);
       if (SDB_OK != rc)
       {
          goto error;
@@ -326,10 +326,11 @@ namespace vessel
       lh.unlock();
       if (INVALID_SPACE_ID != sid)
       {
-         rollbackPrecreating(csName, uniqueID, logicalID, sid);
+         clearReservedCSInfo(csName, uniqueID, logicalID, sid);
       }
       goto done;
    }
+   
 
    INT32 dataManagementService::createSU(requestContext *context,
                                          const createCSOptions &options,
@@ -575,6 +576,77 @@ namespace vessel
       {
          _latch.release_r();
       }
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 dataManagementService::removeCS(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      collectionSpace *space = NULL;
+      OSS_LATCH_MODE mode = SHARED;
+      storageUnit *su = NULL;
+      utilCSUniqueID uniqueId = UTIL_UNIQUEID_NULL;
+      CHAR csName[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {};
+      strSlice csNameSlice;
+
+      if (OSS_UNLIKELY(NULL == context))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      if (!context->isSpaceIdLocked(&mode) ||
+          EXCLUSIVE != mode)
+      {
+         rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
+         goto error;
+      }
+      
+      space = getCS(context->getSpaceID());
+      if (NULL == space)
+      {
+         PD_LOG(PDERROR, "failed to get cs obj of sid[%d]", context->getSpaceID());
+         rc = SDB_DMS_CS_NOTEXIST;
+         goto error;
+      }
+
+      csNameSlice = space->getCSNameSlice();
+      ossMemcpy(csName, csNameSlice.str(), csNameSlice.strLen());
+      csNameSlice.reset(csName, csNameSlice.strLen());
+      uniqueId = space->getSpaceId();
+      PD_LOG(PDINFO, "begin to remove cs[%s, %d]", csNameSlice.str(), context->getSpaceID());
+
+      prepareToDropCS(csNameSlice, uniqueId, context->getSpaceID());
+
+      su = space->getSU();
+      space->close();
+      SDB_OSS_DEL space;
+      space = NULL;
+
+      rc = su->destroy(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDSEVERE, "failed to destroy storage unit[%d], rc:%d",
+                context->getSpaceID(), rc);
+         /// do not goto error, just go on to clear last info.
+         rc = SDB_OK;
+      }
+
+      _sus.release(context->getSpaceID());
+
+      /// logical id will not be recycled when dropping.
+      clearReservedCSInfo(csNameSlice, uniqueId,
+                          DMS_INVALID_LOGICCSID,
+                          context->getSpaceID());
+      PD_LOG(PDINFO, "end to remove cs[%d]", context->getSpaceID());
+   done:
       return rc;
    error:
       goto done;
@@ -1319,16 +1391,16 @@ namespace vessel
       goto done;
    }
 
-   INT32 dataManagementService::precreateCS(const strSlice &csName,
-                                            utilCSUniqueID uniqueID,
-                                            UINT32 &logicalID,
-                                            SPACE_ID &sid)
+   INT32 dataManagementService::reserveCSForCreating(const strSlice &csName,
+                                                     utilCSUniqueID uniqueID,
+                                                     UINT32 &logicalID,
+                                                     SPACE_ID &sid)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!csName.empty(), "can not be empty");
       UINT32 newSpaceId = 0;
-      BOOLEAN rollbackName = FALSE;
-      BOOLEAN rollbackUid = FALSE;
+      ossPoolString name;
+      name.assign(csName.str(), csName.strLen());
       ossScopedRWLock guard(&_latch, EXCLUSIVE);
 
       if (_nextLogicalID == DMS_INVALID_LOGICCSID)
@@ -1338,66 +1410,48 @@ namespace vessel
          goto error;
       }
 
-      if (0 < _nameIndex.count(csName.str()))
+      if (0 < _nameIndex.count(csName.str()) ||
+          0 < _unformalNameIndex.count(name))
       {
          rc = SDB_DMS_CS_EXIST;
          goto error;
       }
       else if (UTIL_IS_VALID_CSUNIQUEID(uniqueID))
       {
-         if (0 < _uidIndex.count(uniqueID))
+         if (0 < _uidIndex.count(uniqueID) ||
+             0 < _unformalUidIndex.count(uniqueID))
          {
             rc = SDB_DMS_CS_EXIST;
             goto error;
          }
-      }
-
-      if (!_unformalNameIndex.insert(csName.str()).second)
-      {
-         rc = SDB_DMS_CS_EXIST;
-         goto error;
-      }
-      rollbackName = TRUE;
-
-      if (UTIL_IS_VALID_CSUNIQUEID(uniqueID))
-      {
-         if (!_unformalUidIndex.insert(uniqueID).second)
-         {
-            rc = SDB_DMS_CS_EXIST;
-            goto error;
-         }
-         rollbackUid = TRUE;
       }
 
       rc = _suAllocator.allocateBits(1, &newSpaceId, 1);
-      if (SDB_OK == rc)
-      {
-         SDB_ASSERT(newSpaceId <= MAX_SPACE_ID, "impossible");
-      }
-      else if (SDB_VESSEL_OUT_OF_RESOURCE == rc)
+      if (SDB_VESSEL_OUT_OF_RESOURCE == rc)
       {
          rc = SDB_DMS_SU_OUTRANGE;
          goto error;
       }
-      else
+      else if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to allocate space id:%d", rc);
          goto error;
       }
+      else
+      {
+         SDB_ASSERT(newSpaceId <= MAX_SPACE_ID, "impossible");
+         if (UTIL_IS_VALID_CSUNIQUEID(uniqueID))
+         {
+            _unformalUidIndex.insert(uniqueID);
+         }
+         _unformalNameIndex.insert(std::move(name));
+         logicalID = _nextLogicalID++;
+         sid = newSpaceId;
+      }
 
-      logicalID = _nextLogicalID++;
-      sid = newSpaceId;
    done:
       return rc;
    error:
-      if (rollbackUid)
-      {
-         _unformalUidIndex.erase(uniqueID);
-      }
-      if (rollbackName)
-      {
-         _unformalNameIndex.erase(csName.str());
-      }
       goto done;
    }
 
@@ -1425,13 +1479,12 @@ namespace vessel
       return;
    }
 
-   void dataManagementService::rollbackPrecreating(const strSlice &csName,
+   void dataManagementService::clearReservedCSInfo(const strSlice &csName,
                                                    utilCSUniqueID uniqueID,
                                                    UINT32 logicalID,
                                                    SPACE_ID sid)
    {
       SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
-      SDB_ASSERT(DMS_INVALID_LOGICCSID != logicalID, "can not be invalid");
       ossScopedRWLock guard(&_latch, EXCLUSIVE);
 
       _unformalNameIndex.erase(csName.str());
@@ -1440,7 +1493,8 @@ namespace vessel
          _unformalUidIndex.erase(uniqueID);
       }
       _suAllocator.release(sid);
-      if (_nextLogicalID == (logicalID + 1))
+      if (DMS_INVALID_LOGICCSID != logicalID &&
+          _nextLogicalID == (logicalID + 1))
       {
          --_nextLogicalID;
       }
@@ -1619,18 +1673,42 @@ namespace vessel
       goto done;
    }
 
-    storageUnit *dataManagementService::getStorageUnit(SPACE_ID sid)
-    {
-       SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
-       SDB_ASSERT(isOpen(), "must be open");
-       storageUnit *su = NULL;
-       INT32 rc = _sus.get(sid, &su);
-       if (SDB_OK != rc)
-       {
-          PD_LOG(PDERROR, "failed to get su[%d], rc:%d", sid, rc);
-       }
+   storageUnit *dataManagementService::getStorageUnit(SPACE_ID sid)
+   {
+      SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
+      SDB_ASSERT(isOpen(), "must be open");
+      storageUnit *su = NULL;
+      INT32 rc = _sus.get(sid, &su);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get su[%d], rc:%d", sid, rc);
+      }
 
-       return su;
-    }
+      return su;
+   }
+
+   void dataManagementService::prepareToDropCS(const strSlice &csName,
+                                               utilCSUniqueID uniqueID,
+                                               SPACE_ID sid)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(!csName.empty(), "can not be empty");
+      SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
+      
+      ossPoolString name(csName.str());
+      SDB_ASSERT(0 == _unformalNameIndex.count(name), "impossible");
+      if (UTIL_IS_VALID_CSUNIQUEID(uniqueID))
+      {
+         SDB_ASSERT(0 == _unformalUidIndex.count(uniqueID), "impossible");
+         _unformalUidIndex.insert(uniqueID);
+         _uidIndex.erase(uniqueID);
+      }
+      _unformalNameIndex.insert(std::move(name));
+      _nameIndex.erase(csName.str());
+
+      _mainIndex.erase(sid);
+      
+      return;
+   }
 }//namespace vessel
 }//namespace engine

@@ -80,6 +80,8 @@ namespace vessel
                         const createCSOptions &options,
                         collectionSpaceId &identifier);
 
+         INT32 removeCS(requestContext *context);
+
          INT32 listCollectionSpaces(requestContext *context,
                                     listCSCursor *cursor);
 
@@ -165,17 +167,21 @@ namespace vessel
       private:
          INT32 occupySpaceId(SPACE_ID sid);
          
-         INT32 precreateCS(const strSlice &csName,
-                           utilCSUniqueID uniqueID,
-                           UINT32 &logicalID,
-                           SPACE_ID &sid);
+         INT32 reserveCSForCreating(const strSlice &csName,
+                                    utilCSUniqueID uniqueID,
+                                    UINT32 &logicalID,
+                                    SPACE_ID &sid);
 
-         void rollbackPrecreating(const strSlice &csName,
+         void clearReservedCSInfo(const strSlice &csName,
                                   utilCSUniqueID uniqueID,
                                   UINT32 logicalID,
                                   SPACE_ID sid); 
 
          void endToCreateCS(collectionSpace *obj);
+
+         void prepareToDropCS(const strSlice &csName,
+                              utilCSUniqueID uniqueID,
+                              SPACE_ID sid);
 
          INT32 createSU(requestContext *context,
                         const createCSOptions &options,
@@ -187,12 +193,6 @@ namespace vessel
                         UINT32 logicalID,
                         const createCSOptions &options,
                         collectionSpace **out);
-
-         void rollbackPrecreating(requestContext *context,
-                                  const strSlice &csName,
-                                  utilCSUniqueID uniqueID,
-                                  UINT32 logicalID,
-                                  SPACE_ID sid);
 
          INT32 _getCSByName(requestContext *context,
                             const strSlice &nameSlice,
@@ -239,7 +239,7 @@ namespace vessel
          typedef ossPoolMap<SPACE_ID, collectionSpace *> _SPACE_ID_INDEX;
 
          typedef ossPoolSet<utilCSUniqueID> _UID_SET;
-         typedef ossPoolSet<const CHAR *, _NAME_LESS> _NAME_SET;
+         typedef ossPoolSet<ossPoolString> _NAME_SET;
 
 
       private:

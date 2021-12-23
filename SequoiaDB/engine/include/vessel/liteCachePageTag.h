@@ -49,14 +49,15 @@ namespace engine
 {
 namespace vessel
 {
-   const UINT16 LC_TAG_STATUS_INVALID = 0;
-   const UINT16 LC_TAG_STATUS_NORMAL = 1;
+   constexpr UINT16 LC_TAG_STATUS_INVALID = 0;
+   constexpr UINT16 LC_TAG_STATUS_NORMAL = 1;
+   constexpr UINT16 LC_TAG_STATUS_DISCARDED = 2;
 
-   const UINT16 LC_TAG_FAST_FLAG_IO_PENDING_WRITE = 0x01;
+   constexpr UINT16 LC_TAG_FAST_FLAG_IO_PENDING_WRITE = 0x01;
 
-   const UINT32 LC_TAG_FLAG_IN_BUCKET = 0x01;
-   const UINT32 LC_TAG_FLAG_IN_DIRTY_LIST = 0x02;
-   const UINT32 LC_TAG_FLAG_IN_LRU_LIST = 0x04;
+   constexpr UINT32 LC_TAG_FLAG_IN_BUCKET = 0x01;
+   constexpr UINT32 LC_TAG_FLAG_IN_DIRTY_LIST = 0x02;
+   constexpr UINT32 LC_TAG_FLAG_IN_LRU_LIST = 0x04;
 
    class liteCachePageTag : public _utilPooledObject
    {
@@ -190,6 +191,14 @@ namespace vessel
             return 0 != OSS_BIT_TEST(_flags, LC_TAG_FLAG_IN_BUCKET);
          }
 
+         OSS_INLINE void removeFromBucket()
+         {
+            _preInBucket = NULL;
+            _nextInBucket = NULL;
+            OSS_BIT_CLEAR(_flags, LC_TAG_FLAG_IN_BUCKET);
+            _bucketItr = LC_BUCKET_INNER_INDEX_ITERATOR();
+         }
+
       public:
          OSS_INLINE BOOLEAN isInLruList()const
          {
@@ -312,6 +321,7 @@ namespace vessel
          /// WARNING: lock can be set as false only when first created.
          OSS_INLINE BOOLEAN incUsageCnt(BOOLEAN lock=TRUE);
          OSS_INLINE void decUsageCnt();
+         OSS_INLINE BOOLEAN discardAndIncUsageCnt();
          /** get tag in bucket end **/
 
          /** remove tag from bucket begin **/
@@ -357,7 +367,7 @@ namespace vessel
          {
             BOOLEAN r = FALSE;
             ossSpinGuard guard(&_pinLatch);
-            if (!_isPendingWrite())
+            if (_ts.isNormal() && !_isPendingWrite())
             {
                OSS_BIT_SET(_ts.flags, LC_TAG_FAST_FLAG_IO_PENDING_WRITE);
                r = TRUE;
@@ -388,6 +398,12 @@ namespace vessel
          {
             OSS_INLINE _TagState(){}
             OSS_INLINE ~_TagState(){}
+            _TagState &operator=(const _TagState &) = delete;
+
+            OSS_INLINE BOOLEAN isNormal()const
+            {
+               return LC_TAG_STATUS_NORMAL == status;
+            }
 
             UINT16 status = LC_TAG_STATUS_INVALID;
             UINT16 flags = 0;
@@ -431,10 +447,9 @@ namespace vessel
    OSS_INLINE BOOLEAN liteCachePageTag::incUsageCnt(BOOLEAN lock)
    {
       BOOLEAN r = FALSE;
-      SDB_ASSERT(LC_TAG_STATUS_NORMAL == _ts.status, "must be normal");
       ossSpinLatch *latch = lock ? &_pinLatch : NULL;
       ossSpinGuard guard(latch);
-      if (LC_TAG_STATUS_NORMAL == _ts.status)
+      if (_ts.isNormal())
       {
          ++_ts.usageCnt;
          r = TRUE;
@@ -444,10 +459,36 @@ namespace vessel
 
    OSS_INLINE void liteCachePageTag::decUsageCnt()
    {
-      SDB_ASSERT(LC_TAG_STATUS_NORMAL == _ts.status, "must be normal");
       ossSpinGuard guard(&_pinLatch);
-      --_ts.usageCnt;
+      if (OSS_LIKELY(0 < _ts.usageCnt))
+      {
+         --_ts.usageCnt;
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "can not dec zero usage count");
+      }
       return;
+   }
+
+   OSS_INLINE BOOLEAN liteCachePageTag::discardAndIncUsageCnt()
+   {
+      BOOLEAN r = FALSE;
+      ossSpinGuard guard(&_pinLatch);
+      SDB_ASSERT(0 == _ts.usageCnt, "must ensure no one accessing buffer first");
+      /// WARNING: before discarding cache page, user should ensure that
+      /// no one is accessing page except io workers.
+      /// in fact, user should always hold exclusive sid latch first to
+      /// avoid new requests coming.
+
+      if (_ts.isNormal())
+      {
+         _ts.status = LC_TAG_STATUS_DISCARDED;
+         ++_ts.usageCnt;
+         r = TRUE;
+      }
+
+      return r;
    }
 } /// end of namespace vessel
 } /// end of namespace engine

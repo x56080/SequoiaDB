@@ -1357,6 +1357,16 @@ namespace engine
                       "data file, rc: %d", CSName(), rc ) ;
       }
 
+      if (DMS_STORAGE_VESSEL == type())
+      {
+         rc = removeCSInENgin(pmdGetThreadEDUCB());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to remove cs in data engine:%d", rc);
+            goto error;
+         }
+      }
+
       PD_LOG( PDEVENT, "Remove collection space[%s] files succeed", CSName() ) ;
 
    done:
@@ -2004,33 +2014,48 @@ namespace engine
             rc = SDB_OK ;
          }
       }*/
-      if ( !context->isMBLock() )
-      {
-         rc = context->mbLock( SHARED ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to lock dms mb context[%s], rc: %d",
-                      context->toString().c_str(), rc ) ;
-      }
-      if ( ( cb->isTransRC() || cb->isTransRS() || cb->isTransRR() ) &&
-           cb->getTransExecutor()->isTransRCCount() )
-      {
-         // NOTE: actually for RC only
-         // for RS should consider locking the whole table or need MVCC,
-         // this may cause unmatched results between count() and find() with
-         // deleting from other transactions ( phantom read ? )
 
-         // no need collection IS lock to protect CL against being dropped
-         // since we already have mblatch S
-         if ( !cb->getTransExecutor()->getMBTotalRecords(
-                                                context->mb()->_clUniqueID,
-                                                (UINT64 &)recordNum ) )
+      if (DMS_STORAGE_VESSEL == type())
+      {
+         UINT64 count = 0;
+         rc = getRecordCountInEngine(cb, context, count);
+         if (SDB_OK != rc)
          {
-            recordNum =
-                  (INT64)context->mbStat()->_rcTotalRecords.fetch() ;
+            goto error;
          }
+
+         recordNum = (INT64)count;
       }
       else
       {
-         recordNum = context->mbStat()->_totalRecords ;
+         if ( !context->isMBLock() )
+         {
+            rc = context->mbLock( SHARED ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to lock dms mb context[%s], rc: %d",
+                        context->toString().c_str(), rc ) ;
+         }
+         if ( ( cb->isTransRC() || cb->isTransRS() || cb->isTransRR() ) &&
+            cb->getTransExecutor()->isTransRCCount() )
+         {
+            // NOTE: actually for RC only
+            // for RS should consider locking the whole table or need MVCC,
+            // this may cause unmatched results between count() and find() with
+            // deleting from other transactions ( phantom read ? )
+
+            // no need collection IS lock to protect CL against being dropped
+            // since we already have mblatch S
+            if ( !cb->getTransExecutor()->getMBTotalRecords(
+                                                   context->mb()->_clUniqueID,
+                                                   (UINT64 &)recordNum ) )
+            {
+               recordNum =
+                     (INT64)context->mbStat()->_rcTotalRecords.fetch() ;
+            }
+         }
+         else
+         {
+            recordNum = context->mbStat()->_totalRecords ;
+         }
       }
 
    done :
@@ -3948,6 +3973,21 @@ namespace engine
       goto done;
    }
 
+   INT32 _dmsStorageUnit::removeCSInENgin(pmdEDUCB *cb)
+   {
+      INT32 rc = SDB_OK;
+      IDataStorageEngine *engine = pmdGetKRCB()->getDMSEngineCB()->getEngine();
+      rc = engine->removeCS(cb, _storageInfo._suName);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 _dmsStorageUnit::createIndexInDataEngine(pmdEDUCB *cb,
                                                   dmsMBContext *context,
                                                   const bson::BSONObj &indexDef)
@@ -3963,8 +4003,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
       locked = TRUE;
 
-      fullName.append(_storageInfo._suName).append(".")
-              .append(context->mb()->_collectionName);
+      fullName = getFullName(context);
 
       rc = engine->openCL(cb, fullName.c_str(), dmsOpenCLOptions(), cl);
       if (SDB_OK != rc)
@@ -4007,8 +4046,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
       locked = TRUE;
 
-      fullName.append(_storageInfo._suName).append(".")
-              .append(context->mb()->_collectionName);
+      fullName = getFullName(context);
 
       rc = engine->openCL(cb, fullName.c_str(), dmsOpenCLOptions(), cl);
       if (SDB_OK != rc)
@@ -4033,6 +4071,60 @@ namespace engine
       return rc;
    error:
       goto done;
+   }
+
+   INT32 _dmsStorageUnit::getRecordCountInEngine(pmdEDUCB *cb,
+                                                 dmsMBContext *context,
+                                                 UINT64 &count)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(DMS_STORAGE_VESSEL == _storageInfo._type, "can not be other types");
+      IDataStorageEngine *engine = pmdGetKRCB()->getDMSEngineCB()->getEngine();
+      DATA_COLLECTION_PTR cl;
+
+      ossPoolString fullName;
+      BOOLEAN locked = FALSE;
+      count = 0;
+
+      rc = context->mbLock(SHARED);
+      PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
+      locked = TRUE;
+
+      fullName = getFullName(context);
+      rc = engine->openCL(cb, fullName.c_str(), dmsOpenCLOptions(), cl);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open cl[%s] in engine:%d",
+                fullName.c_str(), rc);
+         goto error;
+      }
+
+      rc = cl->getRecordCount(cb, count);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get record count in cl[%s], rc:%d",
+                fullName.c_str(), rc);
+         goto error;
+      }
+   done:
+      if (locked)
+      {
+         context->mbUnlock();
+      }
+      return rc;
+   error:
+      goto done;
+   }
+
+   ossPoolString _dmsStorageUnit::getFullName(dmsMBContext *context)
+   {
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(context->isMBLock(), "must be locked");
+      ossPoolString fullName;
+      fullName.reserve(128);
+      fullName.append(_storageInfo._suName).append(".");
+      fullName.append(context->mb()->_collectionName);
+      return std::move(fullName);
    }
 }  // namespace engine
 

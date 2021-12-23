@@ -94,6 +94,8 @@ class liteCache : public SDBObject
       void commit(UINT64 lsn,
                   liteCacheTuple &tuple);
 
+      INT32 discardSpace(requestContext *context);
+
    public:/// only for callback
       INT32 allocateMemPageAndInsertIntoLRU(requestContext *context,
                                             BOOLEAN initFromDisk,
@@ -148,6 +150,9 @@ class liteCache : public SDBObject
 
       void notifyWatcherIfNecessary(requestContext *context,
                                     UINT32 lruSize);
+
+      void discardPinnedTags(requestContext *context,
+                             ossPoolList<liteCachePageTag *> &tags);
 
    private:
       INT32 _poolNo = -1;

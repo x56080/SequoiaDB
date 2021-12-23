@@ -390,7 +390,7 @@ namespace vessel
             SDB_OSS_DEL file;
          }
       }
-      _close();
+      _files.fini();
       return;
    }
 

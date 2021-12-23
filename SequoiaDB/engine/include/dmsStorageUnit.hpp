@@ -578,6 +578,14 @@ namespace engine
                                     const bson::BSONObj &record,
                                     utilInsertResult *result);
 
+         INT32 getRecordCountInEngine(pmdEDUCB *cb,
+                                      dmsMBContext *context,
+                                      UINT64 &count);
+
+         ossPoolString getFullName(dmsMBContext *context);
+
+         INT32 removeCSInENgin(pmdEDUCB *cb);
+
       private :
          dmsStorageDataCommon                *_pDataSu ;
          dmsStorageIndex                     *_pIndexSu ;

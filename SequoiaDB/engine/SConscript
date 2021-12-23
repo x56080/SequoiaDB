@@ -936,6 +936,7 @@ vesselFiles = [
       "vessel/handlers/countCLHandler.cpp",
       "vessel/handlers/createIndexHandler.cpp",
       "vessel/handlers/indexScanHandler.cpp",
+      "vessel/handlers/removeCSHandler.cpp",
       "vessel/api/collectionHandler.cpp",
       "vessel/api/vesselFactroy.cpp",
       "vessel/index/indexConsole.cpp",

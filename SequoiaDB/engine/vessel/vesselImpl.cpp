@@ -241,6 +241,37 @@ namespace vessel
       goto done;
    }
 
+   INT32 vesselImpl::removeCS(IExecutor *executor,
+                              const CHAR *name)
+   {
+      INT32 rc = SDB_OK;
+      strSlice nameSlice(name);
+      removeCSHandler handler;
+
+      if (OSS_UNLIKELY(NULL == executor ||
+                       nameSlice.empty()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      handler.init(&_env, executor);
+      rc = handler.doit(nameSlice);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 vesselImpl::testCS(IExecutor *executor,
                             const CHAR *name,
                             utilCSUniqueID &uniqueId)

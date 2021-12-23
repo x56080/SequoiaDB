@@ -126,6 +126,54 @@ namespace vessel
       return r;
    }
 
+   void lcBucket::discardAndPinTags(SPACE_ID sid,
+                                    ossPoolList<liteCachePageTag *> &tags)
+   {
+      SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
+      GLOBAL_PAGE_ID gpid;
+      gpid.reset(sid, 0, 0, 0);
+      LC_BUCKET_INNER_INDEX_CONST_ITERATOR lower = _tagIndex.lower_bound(gpid);
+      while (lower != _tagIndex.end())
+      {
+         if (sid != lower->first.space())
+         {
+            break;
+         }
+
+         liteCachePageTag *tag = lower->second;
+         if (tag->fastTestIfCanBeRecycled(FALSE) &&
+             tag->getAccessingLatch().tryLock())
+         {
+            if (tag->fastTestIfCanBeRecycled(FALSE))
+            {
+               tag->getAccessingLatch().unlock();
+               removeFromList(tag);
+               lower = _tagIndex.erase(tag->getBucketIterator());
+
+               /// do not access lower in this loop any more.
+               tag->reset();
+               SDB_OSS_DEL tag;
+               continue;
+            }
+            else
+            {
+               tag->getAccessingLatch().unlock();
+               ///failed to recycle tag, continue to discard it.
+            }
+         }
+
+         if (tag->discardAndIncUsageCnt())
+         {
+            tags.push_back(tag);
+         }
+         
+         ++lower;
+         continue;
+      }
+
+      return;
+   }
+
    INT32 lcBucket::insertTag(const GLOBAL_PAGE_ID &id,
                              const mmapPagePointer &ptr,
                              lcPageTagHolder &holder)
@@ -206,8 +254,6 @@ namespace vessel
    void lcBucket::removeFromList(liteCachePageTag *tag)
    {
       SDB_ASSERT(NULL != tag, "can not be null");
-      SDB_ASSERT((NULL != tag->getPreInBucket() || NULL != tag->getNextInBucket()),
-                 "must be in list");
 
       liteCachePageTag *pre = tag->getPreInBucket();
       liteCachePageTag *next = tag->getNextInBucket();
@@ -297,11 +343,13 @@ namespace vessel
             else
             {
                tag->getAccessingLatch().unlock();
-               /// do not continue, we must insert tag back to list.
+               pushFront(tag);
             }
          }
-
-         pushFront(tag);
+         else
+         {
+            pushFront(tag);
+         }
       }
       
    done:

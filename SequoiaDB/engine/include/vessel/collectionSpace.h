@@ -82,6 +82,10 @@ namespace vessel
          {
             return _recordInMem.name;
          }
+         OSS_INLINE strSlice getCSNameSlice()const
+         {
+            return strSlice(_recordInMem.name);
+         }
          OSS_INLINE UINT32 getUniqueID()const
          {
             return _recordInMem.uniqueID; 
@@ -120,6 +124,8 @@ namespace vessel
                       storageUnit *su,
                       const createCSOptions &options);
 
+         INT32 destory(requestContext *context);
+
          INT32 open(requestContext *context,
                     storageUnit *su);
 
@@ -127,6 +133,8 @@ namespace vessel
 
          INT32 createCheckpoint(requestContext *context,
                                 BOOLEAN forceFullCheckpoint);
+
+         INT32 waitIfCheckpointCreating(requestContext *context);
 
          INT32 createCL(requestContext *context,
                         const strSlice &clName, 

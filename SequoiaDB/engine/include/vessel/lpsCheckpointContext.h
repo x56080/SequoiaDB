@@ -72,6 +72,10 @@ namespace vessel
          {
             return _status.load(std::memory_order_relaxed);
          }
+         OSS_INLINE BOOLEAN isRunning()const
+         {
+            return STATUS::NONE != peekStatus();
+         }
          
          OSS_INLINE const LPS_CHECKPOINT &getCheckpoint()const
          {

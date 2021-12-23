@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = handlers.h
+   Source File Name = removeCSHandler.h
 
    Descriptive Name =
 
@@ -33,19 +33,27 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_HANDLERS_H_
-#define VESSEL_HANDLERS_H_
+#ifndef VESSEL_REMOVE_CS_HANDLER_H_
+#define VESSEL_REMOVE_CS_HANDLER_H_
 
-#include "vessel/createCSHandler.h"
-#include "vessel/listCollectionSpaceHandler.h"
-#include "vessel/listCollectionsHandler.h"
-#include "vessel/createCLHandler.h"
-#include "vessel/dmlHandler.h"
-#include "vessel/openCLHandler.h"
-#include "vessel/scanCLHandler.h"
-#include "vessel/countCLHandler.h"
-#include "vessel/createIndexHandler.h"
-#include "vessel/indexScanHandler.h"
-#include "vessel/removeCSHandler.h"
+#include "requestHandler.h"
 
-#endif//VESSEL_HANDLERS_H_
+namespace engine
+{
+namespace vessel
+{
+   class removeCSHandler : public requestHandler
+   { 
+      public:
+         removeCSHandler(){}
+         virtual ~removeCSHandler(){}
+
+      public:
+         INT32 doit(const strSlice &name);
+
+   };//class removeCSHandler
+} //namespace vessel
+} // namespace engine
+
+
+#endif//VESSEL_REMOVE_CS_HANDLER_H_

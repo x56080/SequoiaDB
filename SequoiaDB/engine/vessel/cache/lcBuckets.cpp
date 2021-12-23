@@ -133,6 +133,19 @@ namespace vessel
       return bucket->getTagAndIncUsage(id, holder);
    }
 
+   void lcBuckets::discardAndPinTags(SPACE_ID sid,
+                                     ossPoolList<liteCachePageTag *> &tags)
+   {
+      for (UINT32 i = 0; i < _bucketCount; ++i)
+      {
+         UINT32 latchNO = (i & (_latchCount - 1));
+         _ossSpinXLatch *latch = _latches + latchNO;
+         ossScopedLock guard(latch);
+         _buckets[i].discardAndPinTags(sid, tags);
+      }
+      return;
+   }
+
    void lcBuckets::getBucketAndLatch(const GLOBAL_PAGE_ID &id,
                                     _ossSpinXLatch *&mutex,
                                     lcBucket *&bucket)

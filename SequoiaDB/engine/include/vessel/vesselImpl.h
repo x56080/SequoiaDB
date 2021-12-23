@@ -86,6 +86,9 @@ namespace vessel
          virtual INT32 getCSCount(IExecutor *executor,
                                   UINT32 &countt); 
 
+         virtual INT32 removeCS(IExecutor *executor,
+                                const CHAR *csName);
+
       public:
 
          virtual INT32 createCL(IExecutor *executor,
