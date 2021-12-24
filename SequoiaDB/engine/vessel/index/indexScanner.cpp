@@ -62,6 +62,8 @@ namespace vessel
                             indexContext *ic)
    {
       INT32 rc = SDB_OK;
+      indexIterator::options o(FALSE, 
+                               context->getCursor()->getOptions().forward);   
       close();
 
       if (OSS_UNLIKELY(NULL == context ||
@@ -83,7 +85,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _iterator->open(context, ic);
+      rc = _iterator->open(context, ic, o);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open iterator of index[%s], rc:%d",
@@ -190,8 +192,7 @@ namespace vessel
          }
          else if (0 <= res)
          {
-            indexIterator::options o(predicate->after(),
-                                     cursor->getOptions().forward);
+            indexIterator::seekOptions o(predicate->after());
             rc = _iterator->fastNext(keyObj, rc, predicate->cmp(),
                                      predicate->inc(), o);
             if (SDB_OK != rc)
@@ -404,8 +405,7 @@ namespace vessel
       if (_context->getCursor()->hasEntry())
       {
          slice entry = _context->getCursor()->getEntryData();
-         rc = _iterator->moveToTheNextOfEntry(entry,
-                                 _context->getCursor()->getOptions().forward);
+         rc = _iterator->moveToTheNextOfEntry(entry);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to seek entry:%d", rc);
@@ -415,7 +415,7 @@ namespace vessel
       else
       {
          const rtnPredicateListIterator *predicate = _context->getCursor()->getPredicate();
-         indexIterator::options o(TRUE, _context->getCursor()->getOptions().forward);
+         indexIterator::seekOptions o(TRUE);
 
          rc = _iterator->seek(bson::BSONObj(),
                               0, predicate->cmp(),
@@ -437,7 +437,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(_iterator->isReadyToRead(), "must be ready to read");
-      rc = _iterator->next(_context->getCursor()->getOptions().forward);
+      rc = _iterator->next();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get next:%d", rc);
