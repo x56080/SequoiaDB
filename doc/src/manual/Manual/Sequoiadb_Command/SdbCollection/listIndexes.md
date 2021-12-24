@@ -1,6 +1,6 @@
 ##名称##
 
-listIndexes - 枚举集合下的索引信息
+listIndexes - 列举集合的索引信息
 
 ##语法##
 
@@ -12,7 +12,7 @@ SdbCollection
 
 ##描述##
 
-该函数用于枚举[索引][index]，执行此方法会将指定集合下的索引信息全部显示出来。
+该函数用于列举指定集合的全部[索引][index]信息。用户通过协调节点执行该函数，将从编目节点获取索引信息；通过数据节点执行该函数，将从该数据节点获取索引信息。
 
 ##参数##
 
@@ -33,7 +33,8 @@ SdbCollection
 | NotNull   | boolean   | 索引的任意一个字段是否允许为 null 或者不存在 <br> "true"：不允许为 null 或者不存在 <br> "false"：允许为 null 或不存在    |
 | IndexFlag | string    | 索引当前状态 <br> "Normal"：正常 <br> "Creating"：正在创建 <br> "Dropping"：正在删除 <br> "Truncating"：正在清空 <br> "Invalid"：无效                                                        |
 | Type      | string    | 索引类型 <br> "Positive"：正序索引 <br> "Reverse"：逆序索引 <br> "Text"：全文索引                                       |
-| NotArray| boolean   | 索引的任意一个字段是否允许为数组 <br> "true"：不允许为数组 <br> "false"：允许为数组    |
+| NotArray  | boolean   | 索引的任意一个字段是否允许为数组 <br> "true"：不允许为数组 <br> "false"：允许为数组    |
+| Standalone| boolean   | 是否为独立索引 |
 
 函数执行失败时，将抛异常并输出错误信息。
 
@@ -52,11 +53,15 @@ v2.0 及以上版本
 ```lang-javascript
 > db.sample.employee.listIndexes()
 {
+  "_id": {
+    "$oid": "6098e71a820799d22f1f2165"
+  },
   "IndexDef": {
     "name": "$id",
     "_id": {
-      "$oid": "5e9e91bccf4f1e7370e4074d"
+      "$oid": "6098e71a820799d22f1f2164"
     },
+    "UniqueID": 4037269258240,
     "key": {
       "_id": 1
     },
@@ -64,8 +69,10 @@ v2.0 及以上版本
     "unique": true,
     "dropDups": false,
     "enforced": true,
-    "NotNull": false，
-    "NotArray": false
+    "NotNull": false,
+    "NotArray": true,
+    "Global": false,
+    "Standalone": false
   },
   "IndexFlag": "Normal",
   "Type": "Positive"
@@ -74,11 +81,11 @@ v2.0 及以上版本
 
 [^_^]:
      本文使用的所有引用及链接
+[index]:manual/Distributed_Engine/Architecture/Data_Model/index.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
-
 [SDB_SNAP_INDEXSTATS]:manual/Manual/Snapshot/SDB_SNAP_INDEXSTATS.md
 [index]:manual/Distributed_Engine/Architecture/Data_Model/index.md
 [indexDef]:manual/Manual/Sequoiadb_Command/SdbCollection/createIndex.md

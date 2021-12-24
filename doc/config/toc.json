@@ -1566,6 +1566,12 @@
                            "file": "split_merge",
                            "cn": "容灾切换合并工具",
                            "en": "Split Merge Tool"
+                        },
+                        {
+                           "id": 1599730476,
+                           "file": "upgrade_index",
+                           "cn": "索引升级工具",
+                           "en": "Upgrade Index Tool"
                         }
                      ]
                   },
@@ -2750,6 +2756,12 @@
                            "en": "getSpareRG()"
                         },
                         {
+                           "id": 1620788843,
+                           "file": "getTask",
+                           "cn": "getTask()",
+                           "en": "getTask()"
+                        },
+                        {
                            "id": 1432190792,
                            "file": "invalidateCache",
                            "cn": "invalidateCache()",
@@ -3108,6 +3120,18 @@
                            "en": "attachCL()"
                         },
                         {
+                           "id": 1541039123,
+                           "file": "copyIndex",
+                           "cn": "copyIndex()",
+                           "en": "copyIndex()"
+                        },
+                        {
+                           "id": 1541039124,
+                           "file": "copyIndexAsync",
+                           "cn": "copyIndexAsync()",
+                           "en": "copyIndexAsync()"
+                        },
+                        {
                            "id": 1432190828,
                            "file": "count",
                            "cn": "count()",
@@ -3130,6 +3154,12 @@
                            "file": "createIndex",
                            "cn": "createIndex()",
                            "en": "createIndex()"
+                        },
+                        {
+                           "id": 1563882539,
+                           "file": "createIndexAsync",
+                           "cn": "createIndexAsync()",
+                           "en": "createIndexAsync()"
                         },
                         {
                            "id": 1563882538,
@@ -3178,6 +3208,12 @@
                            "file": "dropIndex",
                            "cn": "dropIndex()",
                            "en": "dropIndex()"
+                        },
+                        {
+                           "id": 1620787944,
+                           "file": "dropIndexAsync",
+                           "cn": "dropIndexAsync()",
+                           "en": "dropIndexAsync()"
                         },
                         {
                            "id": 1524019502,
@@ -3268,6 +3304,12 @@
                            "file": "setAttributes",
                            "cn": "setAttributes()",
                            "en": "setAttributes()"
+                        },
+                        {
+                           "id": 1524019505,
+                           "file": "snapshotIndexes",
+                           "cn": "snapshotIndexes()",
+                           "en": "snapshotIndexes()"
                         },
                         {
                            "id": 1432190844,
@@ -5942,6 +5984,12 @@
                      "en": "SYSNODES"
                   },
                   {
+                     "id": 1519625798,
+                     "file": "SYSINDEXES",
+                     "cn": "SYSINDEXES集合",
+                     "en": "SYSINDEXES"
+                  },
+                  {
                      "id": 1519625795,
                      "file": "SYSTASKS",
                      "cn": "SYSTASKS集合",
@@ -6098,6 +6146,12 @@
                      "file": "SDB_SNAP_INDEXSTATS",
                      "cn": "索引统计信息快照",
                      "en": "SDB_SNAP_INDEXSTATS"
+                  },
+                  {
+                     "id": 1592467467,
+                     "file": "SDB_SNAP_TASKS",
+                     "cn": "任务快照",
+                     "en": "SDB_SNAP_TASKS"
                   },
                   {
                      "id": 1631066558,

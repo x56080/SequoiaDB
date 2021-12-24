@@ -18,11 +18,15 @@ This function is used to get the specified index from current collection.
 
 name ( *string, required* )
 
-Index name, the length cannot exceed 127B, and cannot be an empty string, dot(.) or dollar sign($).
+Specify the index name to be obtained.
+
+> **Note**
+>
+> * Index name should not contain null string, "." or "$". The length of it should not be greater than 127B.
 
 ##RETURN VALUE##
 
-When the function executes successfully, it will return an object of type BSONObj. Users can get a list of collection details through this object. For field descriptions, refer to [SDB_SNAP_INDEXSTATS][SDB_SNAP_INDEXSTATS].
+When the function executes successfully, it will return an object of type BSONObj. Users can get the index details through this object. For field descriptions, refer to [SYSINDEXES][SYSINDEXES].
 
 When the function fails, an exception will be thrown and an error message will be printed.
 
@@ -42,30 +46,31 @@ v1.10 and above
 
 ##EXAMPLES##
 
-Get the index named ageIndex from the "sample.employee" collection.
+Get the index named "$id" from the sample.employee collection.
 
 ```lang-javascript
-> db.sample.employee.getIndex("ageIndex")
-```
-
-The result is as follows:
-
-```lang-json
+> db.sample.employee.getIndex("$id")
 {
- "IndexDef": {
-     "name": "ageIndex",
-     "_id": {
-       "$oid": "5f4f3b938f5a48a0c3a5f3ad"
-     },
-     "key": {
-       "age": 1
-     },
-     "v": 0,
+  "_id": {
+    "$oid": "6098e71a820799d22f1f2165"
+  },
+  "IndexDef": {
+    "name": "$id",
+    "_id": {
+      "$oid": "6098e71a820799d22f1f2164"
+    },
+    "UniqueID": 4037269258240,
+    "key": {
+      "_id": 1
+    },
+    "v": 0,
     "unique": true,
-     "dropDups": false,
-     "enforced": false,
-     "NotNull": false,
-     "NotArray": false
+    "dropDups": false,
+    "enforced": true,
+    "NotNull": false,
+    "NotArray": true,
+    "Global": false,
+    "Standalone": false
   },
   "IndexFlag": "Normal",
   "Type": "Positive"
@@ -77,5 +82,4 @@ The result is as follows:
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
-[SDB_SNAP_INDEXSTATS]:manual/Manual/Snapshot/SDB_SNAP_INDEXSTATS.md
-
+[SYSINDEXES]:manual/Manual/Catalog_Table/SYSINDEXES.md

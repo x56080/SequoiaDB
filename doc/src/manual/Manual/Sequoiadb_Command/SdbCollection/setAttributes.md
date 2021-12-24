@@ -12,7 +12,7 @@ SdbCollection
 
 ##描述##
 
-该函数用于当集合的属性不符合预期时，用户可以使用该函数修改集合的属性。
+该函数用于修改集合的属性。
 
 ##参数##
 
@@ -92,11 +92,21 @@ options ( *object，必填* )
     > - 分区集合不能修改与分区相关的属性，如 ShardingKey、Partition 等。
     > - EnsureShardingIndex 和 AutoSplit 仅对当前该次操作生效，仅当修改分区属性，如 ShardingKey 等时有效。
 
+- AutoIndexId ( *Bool* )：标识是否创建 $id 索引，默认值是 true
+
+    格式：`AutoIndexId: true | false`
+    
+    > **Note:**
+    >
+    > - 各个选项的具体使用方式见 [db.collectionspace.createCL()][createCL]。
+    > - 分区集合不能修改与分区相关的属性，如 ShardingKey、Partition 等。
+    > - EnsureShardingIndex 和 AutoSplit 仅对当前该次操作生效，仅当修改分区属性，如 ShardingKey 等时有效。
+
 ##返回值##
 
 函数执行成功时，无返回值。
 
-函数执行失败时，将抛出异常并输出错误信息。
+函数执行失败时，将抛异常并输出错误信息。
 
 ##错误##
 
@@ -114,28 +124,28 @@ v2.10 及以上版本
 
 ##示例##
 
-- 创建一个普通集合后将该集合修改为分区集合
+1. 创建一个普通集合，然后将该集合修改为分区集合。
 
     ```lang-javascript
     > db.sample.createCL('employee')
     > db.sample.employee.setAttributes({ShardingKey: {a: 1}, ShardingType: "hash"})
     ```
 
-- 创建一个普通集合后将该集合修改为分区集合，并且自动切分
+2. 创建一个普通集合，然后将该集合修改为分区集合，并且自动切分：
 
     ```lang-javascript
     > db.sample.createCL('employee')
     > db.sample.employee.setAttributes({ShardingKey: {a: 1}, ShardingType: "hash", AutoSplit: true})
     ```
 
-- 创建一个普通集合后将该集合修改为 snappy 压缩
+3. 创建一个普通集合，然后将该集合修改为 snappy 压缩
 
     ```lang-javascript
     > db.sample.createCL('employee')
     > db.sample.employee.setAttributes({CompressionType: 'snappy'})
     ```
 
-- 创建一个有自增字段的集合后修改其自增起始值
+4. 创建一个有自增字段的集合，修改其自增起始值
 
     ```lang-javascript
     > db.sample.createCL('employee', {AutoIncrement: {Field: "studentID"}})
@@ -144,9 +154,10 @@ v2.10 及以上版本
 
 
 [^_^]:
-    本文使用的所有引用及链接
+    本文使用的所有引用和链接
 [sequence]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md
 [createCL]:manual/Manual/Sequoiadb_Command/SdbCS/createCL.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [faq]:manual/FAQ/faq_sdb.md

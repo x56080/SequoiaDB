@@ -8,9 +8,11 @@
 createIndex \- 创建索引
 .SH 语法
 .PP
-\f[B]db.collectionspace.collection.createIndex(<name>,<indexDef>,[isUnique],[enforced],[sortBufferSize])\f[]
+\f[B]db.collectionspace.collection.createIndex(<name>, <indexDef>, [isUnique],
+[enforced], [sortBufferSize])\f[]
 .PP
-\f[B]db.collectionspace.collection.createIndex(<name>,<indexDef>,[options])\f[]
+\f[B]db.collectionspace.collection.createIndex(<name>, <indexDef>, [indexAttr],
+[option])\f[]
 .SH 类别
 .PP
 SdbCollection
@@ -27,7 +29,7 @@ T{
 T}@T{
 参数名
 T}@T{
-参数类型
+类型
 T}@T{
 描述
 T}@T{
@@ -56,7 +58,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-必须唯一。
+必须唯一
 T}@T{
 T}
 T{
@@ -64,7 +66,7 @@ T{
 T}@T{
 indexDef
 T}@T{
-Json 对象
+object
 T}@T{
 索引键，包含一
 T}@T{
@@ -88,7 +90,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-对象。类型值 1
+对象类型值 1
 T}@T{
 T}
 T{
@@ -124,7 +126,7 @@ T{
 T}@T{
 isUnique
 T}@T{
-Boolean
+boolean
 T}@T{
 索引是否唯一，
 T}@T{
@@ -134,21 +136,28 @@ T{
 T}@T{
 T}@T{
 T}@T{
-默认 false。设置
+默认为 false
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-为 true 时代表该
+设置为 true 时代
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-索引为唯一索引。
+表该索引为唯一
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+索引
 T}@T{
 T}
 T{
@@ -156,7 +165,7 @@ T{
 T}@T{
 enforced
 T}@T{
-Boolean
+boolean
 T}@T{
 索引是否强制唯
 T}@T{
@@ -187,42 +196,42 @@ T{
 T}@T{
 T}@T{
 T}@T{
-false。设置为 true
+false 设置为
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-时代表该索引在
+true 时代表该索引
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-isUnique 为 true 的
+在 isUnique 为 true
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-前提下，不可存
+的前提下，不可
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-在一个以上全空
+存在一个以上全
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-的索引键。
+空的索引键
 T}@T{
 T}
 T{
@@ -230,7 +239,7 @@ T{
 T}@T{
 sortBufferSize
 T}@T{
-int
+number
 T}@T{
 创建索引时使用
 T}@T{
@@ -247,38 +256,38 @@ T{
 T}@T{
 T}@T{
 T}@T{
-小，单位为MB。取
+小，默认为 64，
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-值为0时表示不使
+单位为 MB 取值
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-用排序缓存。默
+为 0 时表示不使
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-认为64。
+用排序缓存
 T}@T{
 T}
 T{
 6
 T}@T{
-options
+indexAttr
 T}@T{
-Json 对象
+object
 T}@T{
-可选项，详见
+索引属性，选项
 T}@T{
 否
 T}
@@ -286,12 +295,44 @@ T{
 T}@T{
 T}@T{
 T}@T{
-options 选项说明。
+可参考 indexAttr 选
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+项说明
+T}@T{
+T}
+T{
+7
+T}@T{
+option
+T}@T{
+object
+T}@T{
+控制参数，选项
+T}@T{
+否
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+可参考 option 选项
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+说明
 T}@T{
 T}
 .TE
 .PP
-options 选项：
+indexAttr 选项：
 .PP
 .TS
 tab(@);
@@ -301,7 +342,7 @@ T{
 T}@T{
 属性名
 T}@T{
-参数类型
+类型
 T}@T{
 描述
 T}@T{
@@ -313,9 +354,9 @@ T{
 T}@T{
 Unique
 T}@T{
-Boolean
+boolean
 T}@T{
-索引是否唯一。
+索引是否唯一
 T}@T{
 false
 T}
@@ -324,7 +365,7 @@ T{
 T}@T{
 Enforced
 T}@T{
-Boolean
+boolean
 T}@T{
 索引是否强制唯
 T}@T{
@@ -334,7 +375,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-一。
+一
 T}@T{
 T}
 T{
@@ -342,7 +383,7 @@ T{
 T}@T{
 NotNull
 T}@T{
-Boolean
+boolean
 T}@T{
 索引的任意一个
 T}@T{
@@ -359,15 +400,70 @@ T{
 T}@T{
 T}@T{
 T}@T{
-null 或者不存在。
+null 或者不存在
 T}@T{
 T}
 T{
 4
 T}@T{
+NotArray
+T}@T{
+boolean
+T}@T{
+索引的任意一个
+T}@T{
+false
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+字段是否允许为
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+数组
+T}@T{
+T}
+T{
+5
+T}@T{
+Standalone
+T}@T{
+boolean
+T}@T{
+是否为独立索引
+T}@T{
+false
+T}
+.TE
+.PP
+option 选项：
+.PP
+.TS
+tab(@);
+l l l l l.
+T{
+0
+T}@T{
+属性名
+T}@T{
+类型
+T}@T{
+描述
+T}@T{
+默认值
+T}
+_
+T{
+1
+T}@T{
 SortBufferSize
 T}@T{
-int
+number
 T}@T{
 创建索引时使用
 T}@T{
@@ -384,32 +480,124 @@ T{
 T}@T{
 T}@T{
 T}@T{
-小。
+小
 T}@T{
 T}
 T{
-5
+2
 T}@T{
-NotArray
+NodeName
 T}@T{
-Boolean
+string/array
 T}@T{
-索引的任意一个
+指定创建独立索
 T}@T{
-false
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-字段是否允许为
-T}@T{
+\-
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-数组。
+引的数据节点名，
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+格式为 <hostname>:
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+<svcname> , 如：
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+sdbserver:11820
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+与参数 Standalone
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+配合使用
+T}@T{
+T}
+T{
+3
+T}@T{
+NodeID
+T}@T{
+string/array
+T}@T{
+指定创建独立索
+T}@T{
+\-
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+引的数据节点 ID，
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+与参数 Standalone
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+配合使用
+T}@T{
+T}
+T{
+4
+T}@T{
+InstanceID
+T}@T{
+string/array
+T}@T{
+指定创建独立索
+T}@T{
+\-
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+引的数据实例 ID，
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+与参数 Standalone
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+配合使用
 T}@T{
 T}
 .TE
@@ -421,9 +609,12 @@ T}
 .IP \[bu] 2
 索引名限制、索引字段的最大数量、索引键的最大长度请参考限制。
 .IP \[bu] 2
-在集合记录数据量较大时（大于1000万条记录）适当增大排序缓存大小可以提高创建索引的速度。
+在集合记录数据量较大时（大于 1000
+万条记录），适当增大排序缓存大小可以提高创建索引的速度。
 .IP \[bu] 2
 对于全文索引，参数 isUnique、enforced 及 sortBufferSize 无意义。
+.IP \[bu] 2
+独立索引可以有选择地指定创建在数据主节点或备节点。
 .RE
 .SH 返回值
 .PP
@@ -439,8 +630,8 @@ T}
 v2.0 及以上版本
 .SH 示例
 .IP \[bu] 2
-在集合 employee 下为字段名 age 创建名为 ageIndex 的唯一索引，记录按 age
-字段值的升序排序。
+在集合 sample.employee 下为字段名 age 创建名为 ageIndex 的唯一索引，记录按 age
+字段值的升序排序
 .RS 2
 .IP
 .nf
@@ -450,7 +641,7 @@ v2.0 及以上版本
 .fi
 .RE
 .IP \[bu] 2
-集合 employee 创建唯一索引，并且索引字段不允许为 null 或者不存在 。
+集合 sample.employee 创建唯一索引，并且索引字段不允许为 null 或者不存在
 .RS 2
 .IP
 .nf
@@ -461,19 +652,17 @@ v2.0 及以上版本
 > db.sample.employee.insert( { a: 1, b: null } )
 sdb.js:625 uncaught exception: \-339
 Any field of index key should exist and cannot be null
-Takes 0.002531s.
 > 
 > // b 字段不存在，插入索引时报错
 > db.sample.employee.insert( { a: 1 } )
 sdb.js:625 uncaught exception: \-339
 Any field of index key should exist and cannot be null
-Takes 0.002531s.
 \f[]
 .fi
 .RE
 .IP \[bu] 2
-在集合 employee 中的 address 及 tags
-字段上建立全文索引，用于对这两个字段进行全文检索。
+在集合 sample.employee 中的 address 及 tags
+字段上建立全文索引，用于对这两个字段进行全文检索
 .RS 2
 .IP
 .nf
@@ -483,7 +672,7 @@ Takes 0.002531s.
 .fi
 .RE
 .IP \[bu] 2
-集合 employee 创建索引，并且索引字段不允许为数组 。
+集合 sample.employee 创建索引，并且索引字段不允许为数组
 .RS 2
 .IP
 .nf
@@ -494,7 +683,17 @@ Takes 0.002531s.
 > db.sample.employee.insert( { a: [1],b: 10 } )
 sdb.js:645 uncaught exception: \-364
 Any field of index key cannot be array
-Takes 0.001760s.
+\f[]
+.fi
+.RE
+.IP \[bu] 2
+假设集合 sample.employee 在数据组 group1 上，节点 \f[C]sdbserver:11850\f[] 属于
+group1，在该节点上创建独立索引
+.RS 2
+.IP
+.nf
+\f[C]
+> db.sample.employee.createIndex( "a", { a: 1 }, { Standalone: true }, { NodeName: "sdbserver:11850" } )
 \f[]
 .fi
 .RE

@@ -18,11 +18,15 @@ SdbCollection
 
 name（ *string，必填* ）
 
-索引名，长度不能超过 127B，且不能是空串、含点（.）或含美元符号（$）
+指定需要获取的索引名
+
+> **Note:**
+>
+> 索引名不能是空串，含点（.）或者美元符号（$），且长度不超过127B。
 
 ##返回值##
 
-函数执行成功时，将返回一个 BSONObj 类型的对象。通过该对象获取集合详细信息列表，字段说明可参考[索引统计信息快照][SDB_SNAP_INDEXSTATS]。
+函数执行成功时，将返回一个 BSONObj 类型的对象。通过该对象获取集合详细信息列表，字段说明可参考 [SYSINDEXES 集合][SYSINDEXES]。
 
 函数执行失败时，将抛异常并输出错误信息。
 
@@ -42,30 +46,31 @@ v1.10 及以上版本
 
 ##示例##
 
-获取集合 sample.employee 下名为 ageIndex 的索引信息，假设 ageIndex 已存在
+获取集合 sample.employee 下名为“$id”的索引信息
 
 ```lang-javascript
-> db.sample.employee.getIndex("ageIndex")
-```
-
-结果如下：
-
-```lang-json
+> db.sample.employee.getIndex("$id")
 {
- "IndexDef": {
-     "name": "ageIndex",
-     "_id": {
-       "$oid": "5f4f3b938f5a48a0c3a5f3ad"
-     },
-     "key": {
-       "age": 1
-     },
-     "v": 0,
+  "_id": {
+    "$oid": "6098e71a820799d22f1f2165"
+  },
+  "IndexDef": {
+    "name": "$id",
+    "_id": {
+      "$oid": "6098e71a820799d22f1f2164"
+    },
+    "UniqueID": 4037269258240,
+    "key": {
+      "_id": 1
+    },
+    "v": 0,
     "unique": true,
-     "dropDups": false,
-     "enforced": false,
-     "NotNull": false,
-     "NotArray": false
+    "dropDups": false,
+    "enforced": true,
+    "NotNull": false,
+    "NotArray": true,
+    "Global": false,
+    "Standalone": false
   },
   "IndexFlag": "Normal",
   "Type": "Positive"
@@ -78,4 +83,4 @@ v1.10 及以上版本
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
-[SDB_SNAP_INDEXSTATS]:manual/Manual/Snapshot/SDB_SNAP_INDEXSTATS.md
+[SYSINDEXES]:manual/Manual/Catalog_Table/SYSINDEXES.md

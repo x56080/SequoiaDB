@@ -5,7 +5,7 @@
 .hy
 .SH 名称
 .PP
-listIndexes \- 枚举集合下的索引信息
+listIndexes \- 列举集合的索引信息
 .SH 语法
 .PP
 \f[B]db.collectionspace.collection.listIndexes()\f[]
@@ -14,7 +14,7 @@ listIndexes \- 枚举集合下的索引信息
 SdbCollection
 .SH 描述
 .PP
-该函数用于枚举索引，执行此方法会将指定集合下的索引信息全部显示出来。
+该函数用于列举指定集合的全部索引信息。用户通过协调节点执行该函数，将从编目节点获取索引信息；通过数据节点执行该函数，将从该数据节点获取索引信息。
 .SH 参数
 .PP
 无
@@ -324,6 +324,15 @@ T}@T{
 T}@T{
 组
 T}
+T{
+11
+T}@T{
+Standalone
+T}@T{
+boolean
+T}@T{
+是否为独立索引
+T}
 .TE
 .PP
 函数执行失败时，将抛异常并输出错误信息。
@@ -342,11 +351,15 @@ v2.0 及以上版本
 \f[C]
 > db.sample.employee.listIndexes()
 {
+  "_id": {
+    "$oid": "6098e71a820799d22f1f2165"
+  },
   "IndexDef": {
     "name": "$id",
     "_id": {
-      "$oid": "5e9e91bccf4f1e7370e4074d"
+      "$oid": "6098e71a820799d22f1f2164"
     },
+    "UniqueID": 4037269258240,
     "key": {
       "_id": 1
     },
@@ -354,8 +367,10 @@ v2.0 及以上版本
     "unique": true,
     "dropDups": false,
     "enforced": true,
-    "NotNull": false，
-    "NotArray": false
+    "NotNull": false,
+    "NotArray": true,
+    "Global": false,
+    "Standalone": false
   },
   "IndexFlag": "Normal",
   "Type": "Positive"

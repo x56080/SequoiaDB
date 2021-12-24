@@ -85,6 +85,10 @@ options ( *object，必填* )
     - 修改属性后，字段值将可能不唯一。如需保证修改后值唯一，建议使用唯一索引。
 
     格式：`AutoIncrement: <option>`
+    
+- AutoIndexId ( *Bool* )：标识是否创建 $id 索引，默认值是 true
+
+    格式：`AutoIndexId: true | false`
 
     > **Note:**
     >

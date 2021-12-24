@@ -11,15 +11,15 @@ getIndex \- get the specified index
 \f[B]db.collectionspace.collection.getIndex(<name>)\f[]
 .SH CATEGORY
 .PP
-Collection
+SdbCollection
 .SH DESCRIPTION
 .PP
-Get the specified index from current collection.
+This function is used to get the specified index from current collection.
 .SH PARAMETERS
-.IP \[bu] 2
-name ( \f[I]String\f[], \f[I]Required\f[] )
 .PP
-Name of the specified index.
+name ( \f[I]string, required\f[] )
+.PP
+Specify the index name to be obtained.
 .RS
 .PP
 \f[B]Note\f[]
@@ -29,8 +29,10 @@ The length of it should not be greater than 127B.
 .RE
 .SH RETURN VALUE
 .PP
-When the function executes successfully, it will return a specified index whose
-type is BSONObj.
+When the function executes successfully, it will return an object of type
+BSONObj.
+Users can get the index details through this object.
+For field descriptions, refer to SYSINDEXES.
 .PP
 When the function fails, an exception will be thrown and an error message will
 be printed.
@@ -80,7 +82,36 @@ For more details, refer to Troubleshooting.
 .PP
 v1.10 and above
 .SH EXAMPLES
-.IP \[bu] 2
-Get the index named ageIndex from the sample.employee collection.
 .PP
-\f[C]> db.sample.employee.getIndex( "ageIndex" )\f[]
+Get the index named "$id" from the sample.employee collection.
+.IP
+.nf
+\f[C]
+> db.sample.employee.getIndex("$id")
+{
+  "_id": {
+    "$oid": "6098e71a820799d22f1f2165"
+  },
+  "IndexDef": {
+    "name": "$id",
+    "_id": {
+      "$oid": "6098e71a820799d22f1f2164"
+    },
+    "UniqueID": 4037269258240,
+    "key": {
+      "_id": 1
+    },
+    "v": 0,
+    "unique": true,
+    "dropDups": false,
+    "enforced": true,
+    "NotNull": false,
+    "NotArray": true,
+    "Global": false,
+    "Standalone": false
+  },
+  "IndexFlag": "Normal",
+  "Type": "Positive"
+}
+\f[]
+.fi

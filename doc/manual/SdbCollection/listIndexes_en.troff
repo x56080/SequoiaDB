@@ -370,11 +370,15 @@ Return all index information under the collection "sample.employee".
 \f[C]
 > db.sample.employee.listIndexes()
 {
+  "_id": {
+    "$oid": "6098e71a820799d22f1f2165"
+  },
   "IndexDef": {
     "name": "$id",
     "_id": {
-      "$oid": "5e9e91bccf4f1e7370e4074d"
+      "$oid": "6098e71a820799d22f1f2164"
     },
+    "UniqueID": 4037269258240,
     "key": {
       "_id": 1
     },
@@ -382,8 +386,10 @@ Return all index information under the collection "sample.employee".
     "unique": true,
     "dropDups": false,
     "enforced": true,
-    "NotNull": false，
-    "NotArray": false
+    "NotNull": false,
+    "NotArray": true,
+    "Global": false,
+    "Standalone": false
   },
   "IndexFlag": "Normal",
   "Type": "Positive"

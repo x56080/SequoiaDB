@@ -4,30 +4,31 @@
 .hy
 .SH NAME
 .PP
-createIndex \- Create an index for the collection to accelerate query.
+createIndex \- create index
 .SH SYNOPSIS
 .PP
-\f[B]db.collectionspace.collection.createIndex( <name>, <indexDef>, [isUnique],
-[enfored], [sortBufferSize] )\f[]
+\f[B]db.collectionspace.collection.createIndex(<name>, <indexDef>, [isUnique],
+[enforced], [sortBufferSize])\f[]
 .PP
-\f[B]db.collectionspace.collection.createIndex( <name>, <indexDef>, [options]
-)\f[]
+\f[B]db.collectionspace.collection.createIndex(<name>, <indexDef>, [indexAttr],
+[option])\f[]
 .SH CATEGORY
 .PP
-Collection
+SdbCollection
 .SH DESCRIPTION
 .PP
-Create an index for the collection to accelerate query.
+This function is used to create an index for the collection to improve query
+speed.
 .SH PARAMETERS
 .IP \[bu] 2
-\f[C]name\f[] ( \f[I]String\f[], \f[I]Required\f[] )
+name ( \f[I]string, required\f[] )
 .RS 2
 .PP
 Index name.
 It should be unique in a collection.
 .RE
 .IP \[bu] 2
-\f[C]indexDef\f[] ( \f[I]Json Object\f[], \f[I]Required\f[] )
+indexDef ( \f[I]object, required\f[] )
 .RS 2
 .PP
 Index key.
@@ -36,7 +37,7 @@ It contains one or more objects that specify index fields and order direction.
 "\-1" means descending order.
 .RE
 .IP \[bu] 2
-\f[C]isUnique\f[] ( \f[I]Boolean\f[], \f[I]Optional\f[] )
+isUnique ( \f[I]boolean, optional\f[] )
 .RS 2
 .PP
 Whether the index is unique.
@@ -44,7 +45,7 @@ The default value is "false".
 When it is "true", the index is unique.
 .RE
 .IP \[bu] 2
-\f[C]enforced\f[] ( \f[I]Boolean\f[], \f[I]Optional\f[] )
+enforced ( \f[I]boolean, optional\f[] )
 .RS 2
 .PP
 Whether the index is mandatorily unique or not.
@@ -52,62 +53,113 @@ Its default value is false, and it becomes effective when "isUnique" is true.
 When it is true, it means that there can be no more than one empty index key.
 .RE
 .IP \[bu] 2
-\f[C]sortBufferSize\f[] ( \f[I]Int\f[], \f[I]Optional\f[] )
+sortBufferSize ( \f[I]number, optional\f[] )
 .RS 2
 .PP
 The size of sort buffer used when creating index, the unit is MB, zero means
 don\[aq]t use sort buffer, the default value is 64.
 .RE
 .IP \[bu] 2
-\f[C]options\f[] ( \f[I]Json Object\f[], \f[I]Optional\f[] )
+indexAttr ( \f[I]object, optional\f[] )
 .RS 2
 .PP
-Options for creating index.
-Can be the follow options:
+Index attributes can be set through the parameter:
 .IP \[bu] 2
-Unique (Boolean): Whether the index is unique.
+Unique ( \f[I]boolean\f[] ): Whether the index is unique.
+The defalut value is false.
 .IP \[bu] 2
-Enforced (Boolean): Whether the index is enforced unique.
+Enforced ( \f[I]boolean\f[] ): Whether the index is mandatorily unique.
+The defalut value is false.
 .IP \[bu] 2
-NotNull (Boolean): Whether any filed of index can be null or not exist.
+NotNull ( \f[I]boolean\f[] ): Whether any field of index is allowed to be null
+or not\-existent.
+The defalut value is false.
 .IP \[bu] 2
-SortBufferSize (Int): The size of sort buffer used when creating index.
+NotArray ( \f[I]boolean\f[] ): Whether any field of index is allowed tobe an
+array.
+The defalut value is false.
 .IP \[bu] 2
-NotArray(Boolean): Whether any filed of index can array.
+Standalone ( \f[I]boolean\f[] ): Whether it is a standalone index.
+The defalut value is false.
 .RE
+.IP \[bu] 2
+options ( \f[I]object, optional\f[] )
+.RS 2
+.PP
+Other optional parameters can be set through the options parameter:
+.IP \[bu] 2
+SortBufferSize ( \f[I]number\f[] ): The size of sort buffer used when creating
+index.
+The defalut value is 64 MB.
+.IP \[bu] 2
+NodeName ( \f[I]string/array\f[] ): Specify the name of data node when a
+standalone index is created.
+The format is <hostname>:<svcname>.
+Used in conjunction with the parameter Standalone.
+.RE
+.IP \[bu] 2
+NodeID ( \f[I]number/array\f[] ): Specify the ID of data node when a standalone
+index is created.
+Used in conjunction with the parameter Standalone.
+.RS 2
+.IP \[bu] 2
+InstanceID ( \f[I]number/array\f[] ): Specify the ID of instance when a
+standalone index is created.
+Used in conjunction with the parameter Standalone.
+.RE
+.RS
 .PP
 \f[B]Note:\f[]
-.IP "1." 3
+.IP \[bu] 2
 There should not be any exactly same records in the fields that are specified by
 the unique index in a collection.
-.IP "2." 3
+.IP \[bu] 2
 Index name should not be null string.
 It should not contain "." or "$".
 The length of it should be no more than 127B.
-.IP "3." 3
-IndexPageSize 4096 / 8192 / 16384 / 32768 / 65536 bytes, the maximum index value
-is 1024 / 2048 / 4096 / 4096 / 4096 bytes.
-.IP "4." 3
-The number of the index fields should be no more than 32.
+.IP \[bu] 2
+When the collection record data volume is large(more than 10 million records),
+appropriately increasing the sort cache size can increase the speed of index
+creation.
+.IP \[bu] 2
+For text index, the parameters isUnique, enforced and sortBufferSize are
+meaningless.
+.IP \[bu] 2
+Standalone index can be selectively designated to be created on the primary or
+secondary data node.
+.RE
 .SH RETURN VALUE
 .PP
-On success, return void.
+When the function executes successfully, there is no return value.
 .PP
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will
+be printed.
+.SH ERRORS
+.PP
+When the exception happens, use getLastErrMsg() to get the error message or use
+getLastError() to get the error code.
+For more details, refer to Troubleshooting.
+.SH VERSION
+.PP
+v2.0 and above
 .SH EXAMPLES
-.IP "1." 3
+.IP \[bu] 2
 Create an unique index named "ageIndex" on the field "age" in collection
-"employee".
+sample.employee.
 The records are in ascending order on the field "age".
+.RS 2
+.IP
 .nf
 \f[C]
 > db.sample.employee.createIndex( "ageIndex", { age: 1 }, true )
 \f[]
 .fi
 .RE
-.IP "2." 3
-Create an unique index in collection "employee", and any field of index should
-exist and cannot be null.
+.IP \[bu] 2
+Create an unique index in collection sample.employee, and any field of index
+should exist and cannot be null.
+.RS 2
+.IP
 .nf
 \f[C]
 > db.sample.employee.createIndex( "ab", { a: 1, b: 1 }, { Unique: true, NotNull: true } )
@@ -116,25 +168,30 @@ exist and cannot be null.
 > db.sample.employee.insert( { a: 1, b: null } )
 sdb.js:625 uncaught exception: \-339
 Any field of index key should exist and cannot be null
-Takes 0.002531s.
 > 
 > // "b" field does not exist. Insert will throw error.
 > db.sample.employee.insert( { a: 1 } )
 sdb.js:625 uncaught exception: \-339
 Any field of index key should exist and cannot be null
-Takes 0.002531s
 \f[]
 .fi
 .RE
-.IP "3." 3
+.IP \[bu] 2
 Create a text index named "addr_tag" on field "address" and "tags" in collection
 "bar", which will be used for full text search.
-.RS 4
-\f[C]lang\-javascript  > db.foo.bar.createIndex( "addr_tags", { address: "text", tags: "text" } )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+> db.foo.bar.createIndex( "addr_tags", { address: "text", tags: "text" } )
+\f[]
+.fi
 .RE
-.IP "4." 3
-Create an unique index in collection "employee", and any field of index not
+.IP \[bu] 2
+Create an unique index in collection sample.employee, and any field of index not
 support array.
+.RS 2
+.IP
 .nf
 \f[C]
 > db.sample.employee.createIndex( "ab", { a: 1, b: 1 }, { NotArray: true} )
@@ -143,7 +200,18 @@ support array.
 > db.sample.employee.insert( { a: [1],b: 10 } )
 sdb.js:645 uncaught exception: \-364
 Any field of index key cannot be array
-Takes 0.001760s.
+\f[]
+.fi
+.RE
+.IP \[bu] 2
+Assuming that the collection sample.employee is in the data group
+\[aq]group1\[aq], and the node \f[C]sdbserver:11850\f[] belongs to
+\[aq]group1\[aq], create a standalone index on this node.
+.RS 2
+.IP
+.nf
+\f[C]
+> db.sample.employee.createIndex( "a", { a: 1 }, { Standalone: true }, { NodeName: "sdbserver:11850" } )
 \f[]
 .fi
 .RE

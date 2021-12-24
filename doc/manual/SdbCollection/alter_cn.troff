@@ -119,6 +119,12 @@ Generated。属性具体功能请参考自增字段介绍。
 修改属性后，字段值将可能不唯一。如需保证修改后值唯一，建议使用唯一索引。
 .PP
 格式：\f[C]AutoIncrement: <option>\f[]
+.RE
+.IP \[bu] 2
+AutoIndexId ( \f[I]Bool\f[] )：标识是否创建 $id 索引，默认值是 true
+.RS 2
+.PP
+格式：\f[C]AutoIndexId: true | false\f[]
 .RS
 .PP
 \f[B]Note:\f[]
