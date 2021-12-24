@@ -288,6 +288,8 @@ namespace vessel
       recordID rid;
       BOOLEAN locked = FALSE;
 
+      clearDataCached();
+
       while (pos < _o.endBound &&
              pos < _accessor.getTotalSlotCount())
       {

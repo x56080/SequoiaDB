@@ -46,6 +46,11 @@
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
 #include "dmsScanner.hpp"
+#include "utilFullNameParser.hpp"
+#include "vessel/builtinRecordUpdater.h"
+#include "interface/IDataStorageEngine.h"
+#include "dmsEngineCB.hpp"
+#include "dmsCursorReader.hpp"
 
 using namespace bson ;
 
@@ -94,6 +99,152 @@ namespace engine
                       shardingKey, logWriteMod ) ;
       PD_TRACE_EXITRC( SDB_RTNUPDATE2, rc ) ;
       return rc ;
+   }
+
+   static INT32 _rtnUpdateInEngine(rtnQueryOptions &options,
+                                   const BSONObj &updator,
+                                   pmdEDUCB *cb,
+                                   dmsStorageUnit *su,
+                                   utilUpdateResult *pResult)
+   {
+      INT32 rc = SDB_OK;
+
+      dmsMBContext *mbContext = NULL;
+      optAccessPlanManager *apm = pmdGetKRCB()->getRTNCB()->getAPM();
+      optAccessPlanRuntime planRuntime;
+      mthMatchRuntime *matchRuntime = NULL;
+      _mthMatchTreeContext mthContext;
+      utilFullNameParser parser;
+      const CHAR *clName = NULL;
+      mthModifier modifier;
+      vessel::bsonRecordUpdater recordUpdater;
+
+      IDataStorageEngine *engine = NULL;
+      DATA_COLLECTION_PTR cl;
+      DATA_CURSOR_PTR cursor;
+      dmsBsonCursorReader reader;
+
+      dpsTransCB *transCB = sdbGetTransCB() ;
+
+      if (!parser.parse(options.getCLFullName(), &clName))
+      {
+         PD_LOG(PDERROR, "failed to parse fullName");
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = su->data()->getMBContext( &mbContext, clName, -1 ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] mb context, "
+                   "rc: %d", options.getCLFullName(), rc ) ;
+
+      rc = modifier.loadPattern(updator);
+      PD_RC_CHECK( rc, PDERROR, "Invalid pattern is detected for updator: "
+                      "%s", updator.toString().c_str() ) ;
+
+      recordUpdater.setModifier(&modifier);
+
+      rc = mbContext->mbLock(SHARED);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock mb context:%d", rc);
+         goto error;
+      }      
+
+      rc = apm->getAccessPlan( options, FALSE, su, mbContext, planRuntime ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s for update, "
+                     "rc: %d", options.getCLFullName(), rc ) ;
+      matchRuntime = planRuntime.getMatchRuntime(TRUE) ;
+
+      engine = pmdGetKRCB()->getDMSEngineCB()->getEngine();
+      rc = engine->openCL(cb, options.getCLFullName(), dmsOpenCLOptions(), cl);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open cl[%s], rc:%d", options.getCLFullName(), rc);
+         goto error;
+      }
+
+      if (planRuntime.getScanType() == IXSCAN)
+      {
+         dmsIndexScanOptions o;
+         o.scanFor = DMS_SCAN_FOR_UPDATE;
+
+         rc = cl->scanIndex(cb, planRuntime.getIndexName(),
+                            *(planRuntime.getMatchRuntime()->getPredList()),
+                            o, cursor);
+      }
+      else
+      {
+         dmsScanOptions o;
+         o.scanFor = DMS_SCAN_FOR_UPDATE;
+         rc = cl->scan(cb, o, cursor);
+      }
+
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open cursor:%d", rc);
+         goto error;
+      }
+
+      reader.init(cursor, FALSE);
+      do
+      {
+         rc = reader.fetchNext(cb);
+         if (SDB_DMS_EOC == rc)
+         {
+            rc = SDB_OK;
+            break;
+         }
+         else if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to fetch next:%d", rc);
+            goto error;
+         }
+         else if (NULL != matchRuntime && NULL != matchRuntime->getMatchTree())
+         {
+            BOOLEAN matched = FALSE;
+            _mthMatchTree *matcher = matchRuntime->getMatchTree() ;
+            rtnParamList *parameters = matchRuntime->getParametersPointer() ;
+            mthContext.clearRecordInfo();
+            rc = matcher->matches(reader.getRecord(), matched,
+                                  &mthContext, parameters);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "Failed to match record, rc: %d", rc ) ;
+               goto error ;
+            }
+            else if (!matched)
+            {
+               continue;
+            }
+         }
+
+         if (NULL != pResult)
+         {
+            pResult->incUpdatedNum();
+         }
+         rc = cl->updateRecord(cb, reader.getRid(), &recordUpdater,
+                               dmsUpdateRecordOptions(), pResult);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to update record:%d", rc);
+            goto error;
+         }
+      } while (TRUE);
+      
+   done:
+      transCB->transLockReleaseAll(cb);
+      if (NULL != mbContext)
+      {
+         if (mbContext->isMBLock())
+         {
+            mbContext->mbUnlock();
+         }
+
+         su->data()->releaseMBContext(mbContext) ;
+      }
+      return rc;
+   error:
+      goto done;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNUPDATE_OPTIONS, "rtnUpdate" )
@@ -151,6 +302,18 @@ namespace engine
                                              suID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s, rc: %d",
                    options.getCLFullName(), rc ) ;
+
+      if (DMS_STORAGE_VESSEL == su->type())
+      {
+         rc = _rtnUpdateInEngine(options, updator,
+                                 cb, su, pResult);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+
+         goto done;
+      }
 
       // get mb context
       rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;

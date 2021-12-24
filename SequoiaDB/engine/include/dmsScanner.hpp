@@ -118,10 +118,7 @@ namespace engine
                        DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH ) ;
          virtual ~_dmsScanner () ;
 
-         BOOLEAN  isReadOnly() const
-         {
-            return SHARED == _mbLockType ? TRUE : FALSE ;
-         }
+         BOOLEAN  isReadOnly() const;
 
          virtual dmsTransLockCallback*       callbackHandler() = 0 ;
          virtual const dmsTransRecordInfo*   recordInfo() const = 0 ;

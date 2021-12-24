@@ -276,7 +276,7 @@ namespace engine
          IDataStorageEngine *engine = pmdGetKRCB()->getDMSEngineCB()->getEngine();
          DATA_COLLECTION_PTR cl;
          dmsScanOptions o;
-         o.rowCountLimit = returnOptions.getLimit();
+         //o.rowCountLimit = returnOptions.getLimit();
 
          rc = engine->openCL(cb, fullName.c_str(), dmsOpenCLOptions(), cl);
          if (SDB_OK != rc)
@@ -1346,7 +1346,7 @@ namespace engine
       DATA_COLLECTION_PTR cl;
       dmsIndexScanOptions o;
 
-      o.rowCountLimit = returnOptions.getLimit();
+      //o.rowCountLimit = returnOptions.getLimit();
       SDB_ASSERT(0 != _planRuntime.getPlan()->getDirection(), "invalid direction");
       o.forward = 0 < _planRuntime.getPlan()->getDirection();
 
@@ -1405,7 +1405,7 @@ namespace engine
       reader.init(_cursor, FALSE);
       UINT32 pushed = 0;
 
-      while (pushed < _BUFFER_LIMIT)
+      while (0 != _numToReturn && pushed < _BUFFER_LIMIT)
       {
          bson::BSONObj record;
       

@@ -56,6 +56,8 @@
 #include "interface/IDataStorageEngine.h"
 #include "dmsEngineCB.hpp"
 #include "utilFullNameParser.hpp"
+#include "interface/IRecordUpdater.h"
+#include "vessel/builtinRecordUpdater.h"
 
 using namespace bson ;
 
@@ -3225,7 +3227,7 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORD, "_dmsStorageDataCommon::insertRecordToMmap" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORD, "_dmsStorageDataCommon::insertRecord" )
    INT32 _dmsStorageDataCommon::insertRecord(dmsMBContext *context,
                                              const BSONObj &record,
                                              pmdEDUCB *cb,
@@ -3260,7 +3262,7 @@ namespace engine
       goto done;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORDMMAP, "_dmsStorageDataCommon::insertRecord" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORDMMAP, "_dmsStorageDataCommon::insertRecordToMmap" )
    INT32 _dmsStorageDataCommon::insertRecordToMmap (dmsMBContext *context,
                                                     const BSONObj &record,
                                                     pmdEDUCB *cb,
@@ -4279,7 +4281,38 @@ namespace engine
                                               IDmsOprHandler *pHandler,
                                               utilUpdateResult *pResult )
    {
+      INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_UPDATERECORD ) ;
+
+      if (DMS_STORAGE_VESSEL == getStorageType())
+      {
+         rc = updateRecordInEngine(cb, context, modifier, recordID, pResult);
+      }
+      else
+      {
+         rc = updateRecordOnMmap(context, recordID, updatedDataPtr,
+                                 cb, dpscb, modifier, newRecord,
+                                 pHandler, pResult);
+      }
+   done:
+      PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_UPDATERECORD, rc ) ;
+      return rc;
+   error:
+      goto done;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_UPDATERECORDONMMP, "_dmsStorageDataCommon::updateRecordOnMmap" )
+   INT32 _dmsStorageDataCommon::updateRecordOnMmap(dmsMBContext *context,
+                                                   const dmsRecordID &recordID,
+                                                   ossValuePtr updatedDataPtr,
+                                                   pmdEDUCB *cb,
+                                                   SDB_DPSCB *dpscb,
+                                                   _mthModifier &modifier,
+                                                   BSONObj* newRecord,
+                                                   IDmsOprHandler *pHandler,
+                                                   utilUpdateResult *pResult )
+   {
+      PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_UPDATERECORDONMMP ) ;
       INT32            rc          = SDB_OK ;
       monAppCB        *pMonAppCB   = cb ? cb->getMonAppCB() : NULL ;
       BSONObj          oldMatch, oldChg ;
@@ -4629,7 +4662,7 @@ namespace engine
             }
          }
       }
-      PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_UPDATERECORD, rc ) ;
+      PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_UPDATERECORDONMMP, rc ) ;
       return rc ;
    error :
       if ( handler )
@@ -5136,6 +5169,64 @@ namespace engine
       {
          context->mbUnlock();
       }
+      cl.reset();
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 _dmsStorageDataCommon::updateRecordInEngine(_pmdEDUCB *cb,
+                                                     dmsMBContext *context,
+                                                     _mthModifier &modifier,
+                                                     const dmsRecordID &rid,
+                                                     utilUpdateResult *pResult)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != cb, "can not be null");
+      SDB_ASSERT(DMS_STORAGE_VESSEL == getStorageType(), "can not be other types");
+      IDataStorageEngine *engine = pmdGetKRCB()->getDMSEngineCB()->getEngine();
+      DATA_COLLECTION_PTR cl;
+      monAppCB *pMonAppCB = cb->getMonAppCB();
+      CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {};
+      BOOLEAN locked = FALSE;
+      vessel::bsonRecordUpdater updater;
+
+      rc = context->mbLock(SHARED);
+      PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
+      locked = TRUE;
+      
+
+      if ( !dmsAccessAndFlagCompatiblity(context->mb()->_flag,
+                                         DMS_ACCESS_TYPE_UPDATE))
+      {
+         PD_LOG ( PDERROR, "Incompatible collection mode: %d",
+                  context->mb()->_flag ) ;
+         rc = SDB_DMS_INCOMPATIBLE_MODE ;
+         goto error ;
+      }
+
+      updater.setModifier(&modifier);
+      _clFullName(context->mb()->_collectionName, fullName,
+                  sizeof(fullName));
+      rc = engine->openCL(cb, fullName, dmsOpenCLOptions(), cl);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open cl[%s] in engine:%d",
+                fullName, rc);
+         goto error;
+      }
+
+      rc = cl->updateRecord(cb, rid, &updater, dmsUpdateRecordOptions(), pResult);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      // increase update counter
+      DMS_MON_OP_COUNT_INC( pMonAppCB, MON_UPDATE, 1 ) ;
+      _incWriteRecord();
+
+   done:
       cl.reset();
       return rc;
    error:

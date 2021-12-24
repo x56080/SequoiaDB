@@ -118,6 +118,12 @@ namespace engine
       _pSu        = NULL ;
    }
 
+   BOOLEAN _dmsScanner::isReadOnly()const
+   {
+      SDB_ASSERT(DMS_ACCESS_TYPE_NULL != _accessType, "can not be invalid");
+      return !DMS_IS_WRITE_OPR(_accessType);
+   }
+
    void _dmsScanner::_saveAdvancedRecrodID( const dmsRecordID &recordID,
                                             INT32 rc )
    {

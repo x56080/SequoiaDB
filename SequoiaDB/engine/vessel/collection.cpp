@@ -1062,7 +1062,7 @@ namespace vessel
 
             goto error;
          }
-         cursor->setToScanSlot(scanner.getCurrentRid().getSlotID() + 1);
+         cursor->incToScanSlot();
 
          if (cursor->noMorePushThisLoop())
          {

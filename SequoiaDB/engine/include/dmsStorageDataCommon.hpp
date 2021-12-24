@@ -1231,6 +1231,16 @@ namespace engine
                                   INT64 position,
                                   utilInsertResult *insertResult );
 
+         INT32 updateRecordOnMmap(dmsMBContext *context,
+                                 const dmsRecordID &recordID,
+                                 ossValuePtr updatedDataPtr,
+                                 pmdEDUCB *cb,
+                                 SDB_DPSCB *dpscb,
+                                 _mthModifier &modifier,
+                                 BSONObj* newRecord,
+                                 IDmsOprHandler *pHandler,
+                                 utilUpdateResult *pResult);
+
       private:
          INT32 createCLInEngine(pmdEDUCB * cb,
                                 dmsMBContext *context);
@@ -1238,6 +1248,12 @@ namespace engine
                                     dmsMBContext *context,
                                     const bson::BSONObj &record,
                                     utilInsertResult *result);
+
+         INT32 updateRecordInEngine(_pmdEDUCB *cb,
+                                    dmsMBContext *context,
+                                    _mthModifier &modifier,
+                                    const dmsRecordID &rid,
+                                    utilUpdateResult *pResult);
 
       //private:
       protected:

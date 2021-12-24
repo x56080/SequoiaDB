@@ -87,6 +87,10 @@ namespace vessel
          {
             _toScan.reset(_toScan.getSeq(), slot);
          }
+         OSS_INLINE void incToScanSlot()
+         {
+            _toScan.incSlot();
+         }
 
          OSS_INLINE void setLpid(PAGE_ID lpid)
          {
