@@ -69,32 +69,28 @@ namespace vessel
          {
             public:
                options(){}
-               explicit options(BOOLEAN inclusive, BOOLEAN forward):
-                        _inclusive(inclusive),
+               explicit options(BOOLEAN mvccOn, BOOLEAN forward):
+                        _mvccOn(mvccOn),
                         _forward(forward){}
                ~options(){}
                options(const options &b):
-               _inclusive(b._inclusive),
+               _mvccOn(b._mvccOn),
                _forward(b._forward){}
                options &operator=(const options &b)
                {
-                  _inclusive = b._inclusive;
+                  _mvccOn = b._mvccOn;
                   _forward = b._forward;
                   return *this;
                }
             
             public:
-               OSS_INLINE BOOLEAN isInclusive()const
+               OSS_INLINE BOOLEAN isMultipleVersions()const
                {
-                  return _inclusive;
+                  return _mvccOn;
                }
                OSS_INLINE BOOLEAN isForward()const
                {
                   return _forward;
-               }
-               OSS_INLINE void setInclusive(BOOLEAN inclusive)
-               {
-                  _inclusive = inclusive;
                }
                OSS_INLINE INT32 getDirection()const
                {
@@ -102,13 +98,43 @@ namespace vessel
                }
 
             private:
-               BOOLEAN _inclusive = TRUE;
+               BOOLEAN _mvccOn = FALSE;
                BOOLEAN _forward = TRUE;
          };//class options
 
+         class seekOptions : public SDBObject
+         {
+            public:
+               seekOptions(){}
+               explicit seekOptions(BOOLEAN inclusive):
+                        _inclusive(inclusive){}
+               ~seekOptions(){}
+               seekOptions(const seekOptions &b):
+               _inclusive(b._inclusive){}
+
+               seekOptions &operator=(const seekOptions &b)
+               {
+                  _inclusive = b._inclusive;
+                  return *this;
+               }
+
+            public:
+               OSS_INLINE BOOLEAN isInclusive()const
+               {
+                  return _inclusive;
+               }
+               OSS_INLINE void setInclusive(BOOLEAN inclusive)
+               {
+                  _inclusive = inclusive;
+               }
+            private:
+               BOOLEAN _inclusive = TRUE;
+         };//class seekOptions
+
       public:
          virtual INT32 open(requestContext *context,
-                            indexContext *ic) = 0;
+                            indexContext *ic,
+                            const options &o) = 0;
 
          virtual BOOLEAN isOpen()const = 0;
 
@@ -118,18 +144,18 @@ namespace vessel
                             INT32 fieldCountToCmpInPrev,
                             const VEC_ELE_CMP &matchEles,
                             const inclusiveVec &matchInclusive,
-                            const options &o) = 0;
+                            const seekOptions &o) = 0;
 
          virtual INT32 seekKey(const ixmKey &key,
-                               const options &o) = 0;
+                               const seekOptions &o) = 0;
 
-         virtual INT32 next(BOOLEAN forward) = 0;
+         virtual INT32 next() = 0;
 
          virtual INT32 fastNext(const bson::BSONObj &prevKey,
                                 INT32 fieldCountToCmpInPrev,
                                 const VEC_ELE_CMP &matchEles,
                                 const inclusiveVec &matchInclusive,
-                                const options &o) = 0;
+                                const seekOptions &o) = 0;
 
          virtual BOOLEAN isReadyToRead()const = 0;
 
@@ -137,8 +163,7 @@ namespace vessel
 
          virtual INT32 contains(const ixmKey &key, recordID &rid) = 0;
 
-         virtual INT32 moveToTheNextOfEntry(const slice &entry,
-                                            BOOLEAN forward) = 0;
+         virtual INT32 moveToTheNextOfEntry(const slice &entry) = 0;
 
       public:
          /// The functions to access current tuple saved in iterator.

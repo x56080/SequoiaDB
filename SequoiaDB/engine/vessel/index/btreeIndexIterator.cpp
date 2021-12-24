@@ -62,7 +62,8 @@ namespace vessel
    }
 
    INT32 btreeIndexIterator::open(requestContext *context,
-                                  indexContext *ic)
+                                  indexContext *ic,
+                                  const options &o)
    {
       INT32 rc = SDB_OK;
       logicalPageSpace *lps = NULL;
@@ -84,7 +85,7 @@ namespace vessel
          PD_LOG(PDERROR, "failed to get lps[%d], rc:%d", context->getSpaceID(), rc);
          goto error;
       }
-
+      _forward = o.isForward();
       _context = context;
       _bac.init(ic, context, static_cast<indexSpace *>(lps));
    done:
@@ -103,7 +104,7 @@ namespace vessel
                                       INT32 fieldCountToCmpInPrev,
                                       const VEC_ELE_CMP &matchEles,
                                       const inclusiveVec &matchInclusive,
-                                      const options &o)
+                                      const seekOptions &o)
    {
       INT32 rc = SDB_OK;
 
@@ -127,7 +128,7 @@ namespace vessel
       }
       else if (isCurrentItemMarkedDeleted())
       {
-         rc = next(o.isForward());
+         rc = next();
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get next:%d", rc);
@@ -154,7 +155,7 @@ namespace vessel
    INT32 btreeIndexIterator::contains(const ixmKey &key, recordID &rid)
    {
       INT32 rc = SDB_OK;
-      indexIterator::options o(TRUE, TRUE);
+      indexIterator::seekOptions o(TRUE);
       rid = recordID();
 
       rc = seekKey(key, o);
@@ -180,7 +181,7 @@ namespace vessel
    }
 
    INT32 btreeIndexIterator::seekKey(const ixmKey &key,
-                                     const options &o)
+                                     const seekOptions &o)
    {
       INT32 rc = SDB_OK;
       recordID rid;
@@ -201,7 +202,7 @@ namespace vessel
          goto done;
       }
 
-      if (o.isForward())
+      if (_forward)
       {
          rid = o.isInclusive() ?
                recordID::createMinRid() :
@@ -226,11 +227,11 @@ namespace vessel
          goto done;
       }
 
-      if (o.isForward())
+      if (_forward)
       {
          if (isCurrentItemMarkedDeleted())
          {
-            rc = next(o.isForward());
+            rc = next();
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to get next item:%d", rc);
@@ -249,7 +250,7 @@ namespace vessel
       }
       else
       {
-         rc = next(o.isForward());
+         rc = next();
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get next item:%d", rc);
@@ -267,7 +268,7 @@ namespace vessel
                                   INT32 fieldCountToCmpInPrev,
                                   const VEC_ELE_CMP &matchEles,
                                   const inclusiveVec &matchInclusive,
-                                  const options &o)
+                                  const seekOptions &o)
    {
       INT32 rc = SDB_OK;
 
@@ -297,7 +298,7 @@ namespace vessel
       SDB_ASSERT(!_bac.isPathEmpty(), "can not be empty");
       if (isCurrentItemMarkedDeleted())
       {
-         rc = next(o.isForward());
+         rc = next();
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get next item:%d", rc);
@@ -320,8 +321,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeIndexIterator::moveToTheNextOfEntry(const slice &entry,
-                                                  BOOLEAN forward)
+   INT32 btreeIndexIterator::moveToTheNextOfEntry(const slice &entry)
    {
       INT32 rc = SDB_OK;
       btreeScanEntryParser parser;
@@ -354,9 +354,9 @@ namespace vessel
          goto done;
       }
 
-      if (location.identical || !forward || isCurrentItemMarkedDeleted())
+      if (location.identical || !_forward || isCurrentItemMarkedDeleted())
       {
-         rc = next(forward);
+         rc = next();
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get next item:%d", rc);
@@ -387,7 +387,7 @@ namespace vessel
       return;
    }
 
-   INT32 btreeIndexIterator::next(BOOLEAN forward)
+   INT32 btreeIndexIterator::next()
    {
       INT32 rc = SDB_OK;
       if (!hasLocation())
@@ -405,7 +405,7 @@ namespace vessel
          BOOLEAN obstructed = FALSE;
          if (_bac.getEndNodeInPath().isLeaf())
          {
-            rc = nextAtLeaf(forward, obstructed);
+            rc = nextAtLeaf(obstructed);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to get next when end node is leaf:%d", rc);
@@ -414,7 +414,7 @@ namespace vessel
          }
          else
          {
-            rc = nextAtNonLeaf(forward, obstructed);
+            rc = nextAtNonLeaf(obstructed);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to get next when end node is non-leaf:%d", rc);
@@ -455,7 +455,7 @@ namespace vessel
                goto done;
             }
 
-            if (location.identical || !forward)
+            if (location.identical || !_forward)
             {
                /// must move to next
                continue;
@@ -524,8 +524,7 @@ namespace vessel
       return;
    }
 
-   INT32 btreeIndexIterator::nextAtNonLeaf(BOOLEAN forward,
-                                           BOOLEAN &obstructed)
+   INT32 btreeIndexIterator::nextAtNonLeaf(BOOLEAN &obstructed)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(hasLocation(), "can not be invalid");
@@ -536,8 +535,8 @@ namespace vessel
       SDB_ASSERT(!node.isLeaf(), "can not be leaf");
       SDB_ASSERT(_pos < node.getItemCount(), "out of bound");
 
-      INT32 direction = forward ? 1 : -1;
-      INT32 adjust = forward ? 0 : 1;
+      INT32 direction = _forward ? 1 : -1;
+      INT32 adjust = _forward ? 0 : 1;
       INT32 pos = (INT32)_pos + direction;
       PAGE_ID childLpid = node.getChild((RECORD_SLOT_ID)(pos + adjust));
 
@@ -548,7 +547,7 @@ namespace vessel
          location.identical = FALSE;
          location.slotPos = (RECORD_SLOT_ID)(pos + adjust);
          location.isUpperBound = (location.slotPos == node.getItemCount());
-         rc = traverseDownToBottom(forward, location);
+         rc = traverseDownToBottom(location);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to traverse down:%d", rc);
@@ -563,7 +562,7 @@ namespace vessel
       }
       else
       {
-         rc = goBackToAncestor(forward, obstructed);
+         rc = goBackToAncestor(obstructed);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to go back to ancestor:%d", rc);
@@ -577,7 +576,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeIndexIterator::nextAtLeaf(BOOLEAN forward, BOOLEAN &obstructed)
+   INT32 btreeIndexIterator::nextAtLeaf(BOOLEAN &obstructed)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(hasLocation(), "can not be invalid");
@@ -585,11 +584,11 @@ namespace vessel
       SDB_ASSERT(node.isLeaf(), "must be leaf");
       obstructed = FALSE;
 
-      if (forward && ((UINT32)(_pos + 1) < node.getItemCount()))
+      if (_forward && ((UINT32)(_pos + 1) < node.getItemCount()))
       {
          resetPositionOfCurrentNode(_pos + 1);
       }
-      else if (!forward && 0 < _pos)
+      else if (!_forward && 0 < _pos)
       {
          resetPositionOfCurrentNode(_pos - 1);
       }
@@ -600,7 +599,7 @@ namespace vessel
       }
       else
       {
-         rc = goBackToAncestor(forward, obstructed);
+         rc = goBackToAncestor(obstructed);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to go back to ancestor from leaf:%d", rc);
@@ -614,8 +613,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeIndexIterator::goBackToAncestor(BOOLEAN forward,
-                                              BOOLEAN &obstructed)
+   INT32 btreeIndexIterator::goBackToAncestor(BOOLEAN &obstructed)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!_bac.isPathEmpty(), "can not be empty");
@@ -627,7 +625,7 @@ namespace vessel
       BOOLEAN footPrintIsFaithful = FALSE;
       RECORD_SLOT_ID ancestorPos = INVALID_RECORD_SLOT_ID;
 
-      rc = prepareToGoBackToAncestors(forward, obstructed,
+      rc = prepareToGoBackToAncestors(obstructed,
                                       ancestorDepth,
                                       footPrintIsFaithful);
       if (SDB_OK != rc)
@@ -659,7 +657,7 @@ namespace vessel
       }
 
       _bac.popEnds(_bac.getPathSize() - ancestorDepth - 1);
-      resetPositionOfCurrentNode(forward ? ancestorPos : (ancestorPos - 1));
+      resetPositionOfCurrentNode(_forward ? ancestorPos : (ancestorPos - 1));
       SDB_ASSERT(_pos < _bac.getEndNodeInPath().getItemCount(), "out of bound");
    done:
       return rc;
@@ -667,8 +665,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeIndexIterator::prepareToGoBackToAncestors(BOOLEAN forward,
-                                                        BOOLEAN &obstructed,
+   INT32 btreeIndexIterator::prepareToGoBackToAncestors(BOOLEAN &obstructed,
                                                         INT32 &ancestorDepth,
                                                         BOOLEAN &footPrintIsFaithful)
    {
@@ -696,8 +693,8 @@ namespace vessel
          }
 
          SDB_ASSERT(pn.getChildFootprint().isValid(), "footprint missed");
-         if ((forward && pn.getChildFootprint().isUpperBound()) ||
-              (!forward && (0 == pn.getChildFootprint().getPos())))
+         if ((_forward && pn.getChildFootprint().isUpperBound()) ||
+              (!_forward && (0 == pn.getChildFootprint().getPos())))
          {
             /// skip this node
             --depth;
@@ -866,7 +863,7 @@ namespace vessel
                                              INT32 fieldCountToCmpInPrev,
                                              const VEC_ELE_CMP &matchEles,
                                              const inclusiveVec &matchInclusive,
-                                             const options &o)
+                                             const seekOptions &o)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(_bac.isValid(), "can not be invalid");
@@ -913,7 +910,7 @@ namespace vessel
                                                 INT32 fieldCountToCmpInPrev,
                                                 const VEC_ELE_CMP &matchEles,
                                                 const inclusiveVec &matchInclusive,
-                                                const options &o)
+                                                const seekOptions &o)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(_bac.isValid(), "can not be invalid");
@@ -932,7 +929,7 @@ namespace vessel
          btreeItemLocation locd; /// location of current depth
          rc = node.keyLocate(prevKey, fieldCountToCmpInPrev,
                              matchEles, matchInclusive,
-                             !o.isInclusive(), o.isForward(),
+                             !o.isInclusive(), _forward,
                              locd, outOfBound, &_builder);
          if (SDB_OK != rc)
          {
@@ -1152,8 +1149,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeIndexIterator::traverseDownToBottom(BOOLEAN forward,
-                                                  const btreeItemLocation &location)
+   INT32 btreeIndexIterator::traverseDownToBottom(const btreeItemLocation &location)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(location.isValid(), "must be valid");
@@ -1183,16 +1179,16 @@ namespace vessel
          SDB_ASSERT(0 < node.getItemCount(), "can not be empty");
          if (node.isLeaf())
          {
-            pos = forward ? 0 : (node.getItemCount() - 1);
+            pos = _forward ? 0 : (node.getItemCount() - 1);
             resetPositionOfCurrentNode(pos);
             goto done;
          }
          else
          {
-            nextChild = forward ? node.getLeftChild(0) : node.getRightChild();
+            nextChild = _forward ? node.getLeftChild(0) : node.getRightChild();
             if (INVALID_PAGE_ID == nextChild)
             {
-               pos = forward ? 0 : (node.getItemCount() - 1);
+               pos = _forward ? 0 : (node.getItemCount() - 1);
                resetPositionOfCurrentNode(pos);
                goto done;
             }
@@ -1200,8 +1196,8 @@ namespace vessel
             {
                prev.child = nextChild;
                prev.identical = FALSE;
-               prev.slotPos = forward ? 0 : node.getItemCount();
-               prev.isUpperBound = !forward;
+               prev.slotPos = _forward ? 0 : node.getItemCount();
+               prev.isUpperBound = !_forward;
                continue;
             }
          }
@@ -1218,7 +1214,7 @@ namespace vessel
                                               INT32 fieldCountToCmpInPrev,
                                               const VEC_ELE_CMP &matchEles,
                                               const inclusiveVec &matchInclusive,
-                                              const options &o)
+                                              const seekOptions &o)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(_bac.isValid(), "can not be invalid");
@@ -1234,7 +1230,7 @@ namespace vessel
 
          rc = node.keyAdvance(currentPos, prevKey, fieldCountToCmpInPrev,
                               matchEles, matchInclusive, !o.isInclusive(),
-                              o.isForward(), back,
+                              _forward, back,
                               locd, &_builder);
          if (SDB_OK != rc)
          {
@@ -1254,8 +1250,8 @@ namespace vessel
                break;
             }
 
-            rc = prepareToGoBackToAncestors(o.isForward(), obstructed,
-                                            ancestorDepth, footPrintIsFaithful);
+            rc = prepareToGoBackToAncestors(obstructed, ancestorDepth,
+                                            footPrintIsFaithful);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to prepare to go back:%d", rc);

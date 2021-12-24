@@ -61,7 +61,8 @@ namespace vessel
          
       public:
          virtual INT32 open(requestContext *context,
-                            indexContext *ic);
+                            indexContext *ic,
+                            const options &o);
 
          virtual BOOLEAN isOpen()const;
 
@@ -73,25 +74,24 @@ namespace vessel
                             INT32 fieldCountToCmpInPrev,
                             const VEC_ELE_CMP &matchEles,
                             const inclusiveVec &matchInclusive,
-                            const options &o);
+                            const seekOptions &o);
 
          virtual INT32 seekKey(const ixmKey &key,
-                               const options &o);
+                               const seekOptions &o);
 
          virtual INT32 fastNext(const bson::BSONObj &prevKey,
                                 INT32 fieldCountToCmpInPrev,
                                 const VEC_ELE_CMP &matchEles,
                                 const inclusiveVec &matchInclusive,
-                                const options &o);
+                                const seekOptions &o);
 
-         virtual INT32 next(BOOLEAN forward);
+         virtual INT32 next();
 
          virtual void pause();
 
          virtual INT32 contains(const ixmKey &key, recordID &rid);
 
-         virtual INT32 moveToTheNextOfEntry(const slice &entry,
-                                            BOOLEAN forward);
+         virtual INT32 moveToTheNextOfEntry(const slice &entry);
       public:
          virtual DPS_LSN_OFFSET getLSN()const;
          virtual bson::BSONObj getKeyObj(bson::BufBuilder *builder)const;
@@ -102,7 +102,7 @@ namespace vessel
          virtual INT32 pushCurrentEntryToBatch(rowBatch &batch)const;
          virtual UINT32 getCurrentEntrySize()const;
       private:
-         INT32 seekFullKey(const rocksdb::Slice &fullKey, BOOLEAN forPrev);
+         INT32 seekFullKey(const rocksdb::Slice &fullKey);
 
          INT32 moveIterator(BOOLEAN forward);
 
@@ -110,9 +110,10 @@ namespace vessel
 
          INT32 ensureBackwardToVisiblePosition();
 
-         INT32 moveToNextVisiblePosition(BOOLEAN forward);
+         INT32 moveToNextVisiblePosition();
 
-         INT32 ensureVisiblePosition(BOOLEAN forward);
+         INT32 ensureVisiblePosition();
+
 
       private:
          rocksdb::Slice packFullKey(const ixmKey &key,
@@ -140,6 +141,7 @@ namespace vessel
          lsmKeyEntry _currentEntry;
          bson::BufBuilder _builder;
          memoryBlock _backwardCurrentEntryCache;
+         BOOLEAN _forward;
    };//class lsmIndexIterator
 }//namespace vessel
 }//namespace engine

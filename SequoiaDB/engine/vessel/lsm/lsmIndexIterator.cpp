@@ -94,11 +94,12 @@ namespace vessel
    }
 
    INT32 lsmIndexIterator::open(requestContext *context,
-                                indexContext *ic)
+                                indexContext *ic,
+                                const options &o)
    {
       INT32 rc = SDB_OK;
       CHAR minKey = 1;
-      rocksdb::ReadOptions o;
+      rocksdb::ReadOptions opt;
       globalIndexID indexId;
       globalIndexID upperIndexId;
       StackBufBuilder minKeyBuilder;
@@ -160,15 +161,16 @@ namespace vessel
          goto error;
       }
 
+      _forward = o.isForward();
       _globalId = indexId;
       _lsmDB = context->getEnv()->lsm;
       _lowKey = rocksdb::Slice(_lowBoundKey, LSM_MIN_FULL_KEY_SIZE - 1 + minKeyBuilder.len());
       _upKey = rocksdb::Slice(_upperBoundKey, LSM_MIN_FULL_KEY_SIZE);
-      o = context->getEnv()->lsm->getReadOpt();
-      o.iterate_lower_bound = &_lowKey;
-      o.iterate_upper_bound = &_upKey;
-      o.auto_prefix_mode = TRUE;
-      _itr = _lsmDB->NewIterator(o, LSM_CF_INDEX);
+      opt = context->getEnv()->lsm->getReadOpt();
+      opt.iterate_lower_bound = &_lowKey;
+      opt.iterate_upper_bound = &_upKey;
+      opt.auto_prefix_mode = TRUE;
+      _itr = _lsmDB->NewIterator(opt, LSM_CF_INDEX);
       if (NULL == _itr)
       {
          PD_LOG(PDERROR, "failed to allocate new itr");
@@ -187,7 +189,7 @@ namespace vessel
                                     INT32 fieldCountToCmpInPrev,
                                     const VEC_ELE_CMP &matchEles,
                                     const inclusiveVec &matchInclusive,
-                                    const options &o)
+                                    const seekOptions &o)
    {
       return seek(prevKey, fieldCountToCmpInPrev,
                   matchEles, matchInclusive, o);
@@ -197,11 +199,11 @@ namespace vessel
                                 INT32 fieldCountToCmpInPrev,
                                 const VEC_ELE_CMP &matchEles,
                                 const inclusiveVec &matchInclusive,
-                                const options &o)
+                                const seekOptions &o)
    {
       INT32 rc = SDB_OK;
       bson::BSONObj keyObj;
-      options so(o);
+      seekOptions so(o);
       so.setInclusive(o.isInclusive() && matchInclusive.allInclusive());
       
       _builder.reset();
@@ -224,7 +226,7 @@ namespace vessel
    INT32 lsmIndexIterator::contains(const ixmKey &key, recordID &rid)
    {
       INT32 rc = SDB_OK;
-      options o(TRUE, TRUE);
+      seekOptions o(TRUE);
       rid = recordID();
 
       if (OSS_UNLIKELY(!key.isValid()))
@@ -263,7 +265,7 @@ namespace vessel
    }
 
    INT32 lsmIndexIterator::seekKey(const ixmKey &key,
-                                   const options &o)
+                                   const seekOptions &o)
    {
       INT32 rc = SDB_OK;
       rocksdb::Slice fullKey;
@@ -282,7 +284,7 @@ namespace vessel
          goto error;
       }
 
-      if (o.isForward())
+      if (_forward)
       {
          rid = o.isInclusive() ?
                recordID::createMinRid() :
@@ -303,14 +305,14 @@ namespace vessel
          goto error;
       }
 
-      rc = seekFullKey(fullKey, !o.isForward());
+      rc = seekFullKey(fullKey);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to seek full key:%d", rc);
          goto error;
       }
 
-      rc = ensureVisiblePosition(o.isForward());
+      rc = ensureVisiblePosition();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to ensure visible position:%d", rc);
@@ -326,8 +328,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 lsmIndexIterator::moveToTheNextOfEntry(const slice &entry,
-                                                BOOLEAN forward)
+   INT32 lsmIndexIterator::moveToTheNextOfEntry(const slice &entry)
    {
       INT32 rc = SDB_OK;
       rocksdb::Slice fullKey;
@@ -350,7 +351,7 @@ namespace vessel
          goto error;
       }
 
-      if (forward)
+      if (_forward)
       {
          lsn = 0;
       }
@@ -367,14 +368,14 @@ namespace vessel
          goto error;
       }
 
-      rc = seekFullKey(fullKey, !forward);
+      rc = seekFullKey(fullKey);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to seek full key:%d", rc);
          goto error;
       }
 
-      rc = ensureVisiblePosition(forward);
+      rc = ensureVisiblePosition();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to ensure visible position:%d", rc);
@@ -388,21 +389,20 @@ namespace vessel
       goto done;
    }
 
-   INT32 lsmIndexIterator::seekFullKey(const rocksdb::Slice &fullKey,
-                                       BOOLEAN forPrev)
+   INT32 lsmIndexIterator::seekFullKey(const rocksdb::Slice &fullKey)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != _itr, "can not be null");
       SDB_ASSERT(0 < fullKey.size(), "can not be empty");
       _currentEntry.reset();
 
-      if (forPrev)
+      if (_forward)
       {
-         _itr->SeekForPrev(fullKey);
+         _itr->Seek(fullKey);
       }
       else
       {
-         _itr->Seek(fullKey);
+         _itr->SeekForPrev(fullKey);
       }
       
       if (_itr->Valid())
@@ -567,7 +567,7 @@ namespace vessel
       return;
    }
 
-   INT32 lsmIndexIterator::next(BOOLEAN forward)
+   INT32 lsmIndexIterator::next()
    {
       INT32 rc = SDB_OK;
       if (!_isReadyToRead())
@@ -576,7 +576,7 @@ namespace vessel
          goto error;
       }
 
-      rc = moveToNextVisiblePosition(forward);
+      rc = moveToNextVisiblePosition();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to move to next visible:%d", rc);
@@ -773,13 +773,13 @@ namespace vessel
 
    }
 
-   INT32 lsmIndexIterator::moveToNextVisiblePosition(BOOLEAN forward)
+   INT32 lsmIndexIterator::moveToNextVisiblePosition()
    {
       INT32 rc = SDB_OK;
 
       if (_itr->Valid())
       {
-         if (forward)
+         if (_forward)
          {
             rc = forwardToNextVisiblePostion();
             if (SDB_OK != rc)
@@ -810,13 +810,13 @@ namespace vessel
       goto done;
    }
 
-   INT32 lsmIndexIterator::ensureVisiblePosition(BOOLEAN forward)
+   INT32 lsmIndexIterator::ensureVisiblePosition()
    {
       INT32 rc = SDB_OK;
 
       if (_itr->Valid())
       {
-         if (forward)
+         if (_forward)
          {
             _currentEntry.shallowCopy(_itr->key());
             if (SDB_OK != rc)
@@ -825,7 +825,9 @@ namespace vessel
                goto error;
             }
 
-            if (_isMarkedRemoved(_itr))
+            if (_isMarkedRemoved(_itr) || 
+                _context->getTransIDWithoutTag().getSN() < 
+                _currentEntry.getTransID().getSN())
             {
                rc = forwardToNextVisiblePostion();
                if (SDB_OK != rc)

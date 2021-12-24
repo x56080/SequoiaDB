@@ -914,10 +914,10 @@ namespace vessel
       SDB_ASSERT(key.isValid(), "can not be invalid");
 
       ixmKeyOwned ownedKey(key);
-      indexIterator::options o(TRUE, TRUE);
+      indexIterator::options o(FALSE, TRUE);
       rid = recordID();
 
-      rc = iterator->open(context, ic);
+      rc = iterator->open(context, ic, o);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open index iterator:%d", rc);
