@@ -40,6 +40,7 @@
 
 #include "pmdOptionsMgr.hpp"
 #include "utilStr.hpp"
+#include "sequoiaFSCommon.hpp"
 
 #define SDB_SEQUOIAFS_EXE_FILE_NAME    "sequoiafs"
 #define SDB_SEQUOIAFS_CFG_FILE_NAME    SDB_SEQUOIAFS_EXE_FILE_NAME".conf"
@@ -52,6 +53,8 @@
 #define SDB_SEQUOIAFS_HOSTS           "hosts"
 #define SDB_SEQUOIAFS_USERNAME        "username"
 #define SDB_SEQUOIAFS_PASSWD          "passwd"
+#define SDB_SEQUOIAFS_CIPHERFILE      "cipherfile"
+#define SDB_SEQUOIAFS_TOKEN           "token"
 #define SDB_SEQUOIAFS_COLLECTION      "collection"
 #define SDB_SEQUOIAFS_META_DIR_CL     "metadircollection"
 #define SDB_SEQUOIAFS_META_FILE_CL    "metafilecollection"
@@ -117,6 +120,8 @@ namespace sequoiafs
          const CHAR *getHosts()const{return _hosts ;}
          const CHAR *getUserName()const{return _userName ;}
          const CHAR *getPasswd()const{return _passwd ;}
+         const CHAR *getCipherFile()const{return _cipherFile ;}
+         const CHAR *getToken()const{return _token ;}
          const INT32 getConnNum()const{return _connectionNum ;}
          const INT32 getDiagMaxNUm()const{return _diagnum ;}
          const CHAR *getCollection()const{return _collection ;}
@@ -148,9 +153,11 @@ namespace sequoiafs
          CHAR _hosts[OSS_MAX_PATHSIZE + 1] ;
          CHAR _userName[OSS_MAX_PATHSIZE + 1] ;
          CHAR _passwd[OSS_MAX_PATHSIZE + 1] ;
+         CHAR _cipherFile[OSS_MAX_PATHSIZE + 1] ;
+         CHAR _token[OSS_MAX_NAMESIZE + 1] ;
          CHAR _collection[OSS_MAX_PATHSIZE + 1] ;
          CHAR _mountpoint[OSS_MAX_PATHSIZE + 1] ;
-         CHAR _alias[OSS_MAX_PATHSIZE + 1] ;
+         CHAR _alias[OSS_MAX_NAMESIZE + 1] ;
          CHAR _metaFileCollection[OSS_MAX_PATHSIZE + 1] ;
          CHAR _metaDirCollection[OSS_MAX_PATHSIZE + 1] ;
          INT32 _connectionNum ;

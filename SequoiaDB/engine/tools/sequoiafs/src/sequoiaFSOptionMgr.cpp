@@ -52,6 +52,8 @@ using namespace sequoiafs;
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_HOSTS,          ",i" ), po::value<std::string>() , "Host addresses( hostname:svcname ), separated by ',', such as 'localhost:11810,localhost:11910', default:'localhost:11810'" ) \
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_USERNAME,       ",u" ), po::value<std::string>() , "User name of source sdb" ) \
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_PASSWD,         ",p" ), po::value<std::string>() , "User password of source sdb" ) \
+     ( SDB_SEQUOIAFS_CIPHERFILE, po::value<std::string>() , "Cipher file of source sdb" ) \
+     ( SDB_SEQUOIAFS_TOKEN, po::value<std::string>() , "Encryption token for cipher file" ) \
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_COLLECTION,     ",l" ), po::value<std::string>() , "The target collection that be mounted" ) \
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_META_DIR_CL,    ",d" ), po::value<std::string>() , "The dir meta collection" ) \
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_META_FILE_CL,   ",f" ), po::value<std::string>() , "The file meta collection" ) \
@@ -376,6 +378,12 @@ INT32 _sequoiafsOptionMgr::doDataExchange(pmdCfgExchange *pEX)
    //--passwd
    rdxString(pEX, SDB_SEQUOIAFS_PASSWD, _passwd, sizeof(_passwd), FALSE,
              PMD_CFG_CHANGE_FORBIDDEN, SDB_SEQUOIAFS_USER_DEFAULT_PASSWD);
+   //--cipherfile
+   rdxString(pEX, SDB_SEQUOIAFS_CIPHERFILE, _cipherFile, sizeof(_cipherFile), FALSE,
+             PMD_CFG_CHANGE_FORBIDDEN, "");    
+   //--token
+   rdxString(pEX, SDB_SEQUOIAFS_TOKEN, _token, sizeof(_token), FALSE,
+             PMD_CFG_CHANGE_FORBIDDEN, "");
    //--mountpoint
    rdxString(pEX, SDB_SEQUOIAFS_MOUNTPOINT, _mountpoint, sizeof(_mountpoint), FALSE,
              PMD_CFG_CHANGE_FORBIDDEN, "");

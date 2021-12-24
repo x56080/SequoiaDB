@@ -165,9 +165,14 @@ namespace sequoiafs
                          const BSONObj &condition = _sdbStaticObject,
                          const BSONObj &hint = _sdbStaticObject);
       void setDataSourceConf(const CHAR * userName,
-                             const CHAR *passwd, const INT32 connNum);
+                             const CHAR *passwd, 
+                             const CHAR* cipherFile,
+                             const CHAR* token,
+                             const INT32 connNum);
       int initDataSource(const CHAR * userName,
                          const CHAR *passwd,
+                         const CHAR* cipherFile,
+                         const CHAR* token,
                          const INT32 connNum);
 
       void closeDataSource();

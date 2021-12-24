@@ -291,11 +291,20 @@ sequoiafsOptionMgr * sequoiaFS::getOptionMgr()
    return &_optionMgr;
 }
 
-void sequoiaFS::setDataSourceConf(const CHAR * userName,
-                                  const CHAR *passwd,
+void sequoiaFS::setDataSourceConf(const CHAR* userName,
+                                  const CHAR* passwd,
+                                  const CHAR* cipherFile,
+                                  const CHAR* token,
                                   const INT32 connNum)
 {
-   _conf.setAuthInfo(userName, passwd);
+   if(ossStrlen(cipherFile) > 0)
+   {
+      _conf.setAuthInfo(userName, cipherFile, token);
+   }
+   else 
+   {
+      _conf.setAuthInfo(userName, passwd);
+   }
    _conf.setConnCntInfo(50, 10, 20, connNum);
    _conf.setCheckIntervalInfo( 60*1000, 0 );
    _conf.setSyncCoordInterval( 60*1000 );
@@ -306,13 +315,15 @@ void sequoiaFS::setDataSourceConf(const CHAR * userName,
 
 INT32 sequoiaFS::initDataSource(const CHAR *userName,
                                 const CHAR *passwd,
+                                const CHAR* cipherFile,
+                                const CHAR* token,
                                 const INT32 connNum)
 {
    INT32 rc = SDB_OK;
 
    PD_LOG(PDDEBUG, "Called: initCoonPool()");
 
-   setDataSourceConf(userName, passwd, connNum);
+   setDataSourceConf(userName, passwd, cipherFile, token, connNum);
 
    // init sdbConnectionPool
    getCoordHost();
@@ -1071,6 +1082,8 @@ INT32 sequoiaFS::init()
    //3. init datasource
    rc= initDataSource(_optionMgr.getUserName(), 
                       _optionMgr.getPasswd(), 
+                      _optionMgr.getCipherFile(),
+                      _optionMgr.getToken(),
                       _optionMgr.getConnNum());
    if(SDB_OK != rc)
    {
