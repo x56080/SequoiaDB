@@ -51,6 +51,10 @@
 #include "dmsIndexBuilder.hpp"
 #include "dmsTransLockCallback.hpp"
 
+#include "interface/IDataStorageEngine.h"
+#include "dmsEngineCB.hpp"
+#include "utilFullNameParser.hpp"
+
 using namespace bson ;
 
 #define DMS_MAX_TEXT_IDX_NUM        1
@@ -719,6 +723,15 @@ namespace engine
                             indexType, cb, dpscb, isSys, sortBufferSize,
                             pResult, forceTransCallback ) ;
          PD_RC_CHECK (rc, PDERROR, "Create index failed, rc: %d", rc ) ;
+
+         if (DMS_STORAGE_VESSEL == getStorageType())
+         {
+            rc = createIndexInDataEngine(cb, context, index);
+            if (SDB_OK != rc)
+            {
+               goto error;
+            }
+         }
       }
 
    done :
@@ -3303,6 +3316,43 @@ namespace engine
       {
          _pDataSu->_mbStatInfo[mbID]._totalIndexFreeSpace -= size ;
       }
+   }
+
+   INT32 _dmsStorageIndex::createIndexInDataEngine(_pmdEDUCB *cb,
+                                                   _dmsMBContext *context,
+                                                   const bson::BSONObj &indexDef)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != cb, "can not be null");
+      SDB_ASSERT(NULL != context && context->isMBLock(), "can not be invalid");
+      SDB_ASSERT(DMS_STORAGE_VESSEL == getStorageType(), "can not be other types");
+
+      ossPoolString fullName;
+      IDataStorageEngine *engine = pmdGetKRCB()->getDMSEngineCB()->getEngine();
+      DATA_COLLECTION_PTR cl;
+
+      fullName = utilFullNameParser::buildFullName(getSuName(),
+                                                   context->mb()->_collectionName);
+
+      rc = engine->openCL(cb, fullName.c_str(), dmsOpenCLOptions(), cl);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open cl[%s] in engine:%d",
+                fullName.c_str(), rc);
+         goto error;
+      }
+
+      rc = cl->createIndex(cb, dmsBuildIndexOptions(), indexDef);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create index in engine:%d", rc);
+         goto error;
+      }
+   done:
+      cl.reset();
+      return rc;
+   error:
+      goto done;
    }
 }
 

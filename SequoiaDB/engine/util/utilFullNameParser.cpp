@@ -79,4 +79,14 @@ namespace engine
    done:
       return r;
    }
+
+   ossPoolString utilFullNameParser::buildFullName(const CHAR *csName,
+                                                   const CHAR *clName)
+   {
+      SDB_ASSERT(NULL != csName && NULL != clName, "can not be null");
+      ossPoolString fullName;
+      fullName.reserve(128);
+      fullName.assign(csName).append(".").append(clName);
+      return std::move(fullName);
+   }
 } // namespace engine

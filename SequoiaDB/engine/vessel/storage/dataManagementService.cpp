@@ -1691,7 +1691,6 @@ namespace vessel
                                                utilCSUniqueID uniqueID,
                                                SPACE_ID sid)
    {
-      INT32 rc = SDB_OK;
       SDB_ASSERT(!csName.empty(), "can not be empty");
       SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
       

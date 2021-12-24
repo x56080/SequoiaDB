@@ -37,6 +37,7 @@
 #define SDB_UTIL_FULL_NAME_PARSER_HPP_
 
 #include "dms.hpp"
+#include "ossMemPool.hpp"
 
 namespace engine
 {
@@ -49,6 +50,8 @@ namespace engine
       public:
          BOOLEAN parse(const CHAR *fullName, const CHAR **clName);
          OSS_INLINE const CHAR *getCSName()const {return _csName;}
+         static ossPoolString buildFullName(const CHAR *csName,
+                                            const CHAR *clName);
 
       private:
          CHAR _csName[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {};

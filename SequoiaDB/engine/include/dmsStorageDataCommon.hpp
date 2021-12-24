@@ -1222,8 +1222,22 @@ namespace engine
                                         dpsUnqIdxHashArray *pUnqIdxHashArray ) ;
 
       private:
+         INT32 insertRecordToMmap(dmsMBContext *context,
+                                  const BSONObj &record,
+                                  pmdEDUCB *cb,
+                                  SDB_DPSCB *dpscb,
+                                  BOOLEAN mustOID,
+                                  BOOLEAN canUnLock,
+                                  INT64 position,
+                                  utilInsertResult *insertResult );
+
+      private:
          INT32 createCLInEngine(pmdEDUCB * cb,
                                 dmsMBContext *context);
+         INT32 insertRecordToEngine(pmdEDUCB *cb,
+                                    dmsMBContext *context,
+                                    const bson::BSONObj &record,
+                                    utilInsertResult *result);
 
       //private:
       protected:

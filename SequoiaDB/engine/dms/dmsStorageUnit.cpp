@@ -51,6 +51,7 @@
 #include "interface/IDataStorageEngine.h"
 #include "dmsEngineCB.hpp"
 #include "interface/IDataCollection.h"
+#include "utilFullNameParser.hpp"
 
 namespace engine
 {
@@ -1359,7 +1360,7 @@ namespace engine
 
       if (DMS_STORAGE_VESSEL == type())
       {
-         rc = removeCSInENgin(pmdGetThreadEDUCB());
+         rc = removeCSInEngine(pmdGetThreadEDUCB());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to remove cs in data engine:%d", rc);
@@ -1645,16 +1646,9 @@ namespace engine
          cb->registerMonCRUDCB( &( context->mbStat()->_crudCB ) ) ;
       }
 
-      if (DMS_STORAGE_VESSEL != _storageInfo._type)
-      {
-         rc = _pDataSu->insertRecord( context, record, cb, dpscb, mustOID,
-                                    canUnLock, position, insertResult ) ;
-      }
-      else
-      {
-         rc = insertRecordToEngine(cb, context, record, insertResult);
-      }
 
+      rc = _pDataSu->insertRecord( context, record, cb, dpscb, mustOID,
+                                 canUnLock, position, insertResult ) ;
       if ( rc )
       {
          goto error ;
@@ -1862,7 +1856,6 @@ namespace engine
    {
       INT32 rc                     = SDB_OK ;
       BOOLEAN getContext           = FALSE ;
-      BOOLEAN rollback = FALSE;
       PD_TRACE_ENTRY ( SDB__DMSSU_CREATEINDEX ) ;
       if ( NULL == context )
       {
@@ -1882,17 +1875,6 @@ namespace engine
          goto error ;
       }
 
-      rollback = TRUE;
-
-      if (DMS_STORAGE_VESSEL == _storageInfo._type)
-      {
-         rc = createIndexInDataEngine(cb, context, index);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-      }
-
    done :
       if ( context && getContext )
       {
@@ -1901,11 +1883,6 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__DMSSU_CREATEINDEX, rc ) ;
       return rc ;
    error :
-      if (rollback)
-      {
-         _pIndexSu->dropIndex(context, index.getStringField(IXM_NAME_FIELD),
-                              cb, dpscb, isSys);
-      }
       goto done ;
    }
 
@@ -3973,7 +3950,7 @@ namespace engine
       goto done;
    }
 
-   INT32 _dmsStorageUnit::removeCSInENgin(pmdEDUCB *cb)
+   INT32 _dmsStorageUnit::removeCSInEngine(pmdEDUCB *cb)
    {
       INT32 rc = SDB_OK;
       IDataStorageEngine *engine = pmdGetKRCB()->getDMSEngineCB()->getEngine();
@@ -3983,91 +3960,6 @@ namespace engine
          goto error;
       }
    done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 _dmsStorageUnit::createIndexInDataEngine(pmdEDUCB *cb,
-                                                  dmsMBContext *context,
-                                                  const bson::BSONObj &indexDef)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(DMS_STORAGE_VESSEL == _storageInfo._type, "can not be other types");
-      IDataStorageEngine *engine = pmdGetKRCB()->getDMSEngineCB()->getEngine();
-      DATA_COLLECTION_PTR cl;
-
-      ossPoolString fullName;
-      BOOLEAN locked = FALSE;
-      rc = context->mbLock(SHARED);
-      PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
-      locked = TRUE;
-
-      fullName = getFullName(context);
-
-      rc = engine->openCL(cb, fullName.c_str(), dmsOpenCLOptions(), cl);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to open cl[%s] in engine:%d",
-                fullName.c_str(), rc);
-         goto error;
-      }
-
-      rc = cl->createIndex(cb, dmsBuildIndexOptions(), indexDef);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to create index in engine:%d", rc);
-         goto error;
-      }
-   done:
-      if (locked)
-      {
-         context->mbUnlock();
-      }
-      cl.reset();
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 _dmsStorageUnit::insertRecordToEngine(pmdEDUCB *cb,
-                                               dmsMBContext *context,
-                                               const bson::BSONObj &record,
-                                               utilInsertResult *result)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(DMS_STORAGE_VESSEL == _storageInfo._type, "can not be other types");
-      IDataStorageEngine *engine = pmdGetKRCB()->getDMSEngineCB()->getEngine();
-      DATA_COLLECTION_PTR cl;
-
-      ossPoolString fullName;
-      BOOLEAN locked = FALSE;
-      rc = context->mbLock(SHARED);
-      PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
-      locked = TRUE;
-
-      fullName = getFullName(context);
-
-      rc = engine->openCL(cb, fullName.c_str(), dmsOpenCLOptions(), cl);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to open cl[%s] in engine:%d",
-                fullName.c_str(), rc);
-         goto error;
-      }
-
-      rc = cl->insertRecord(cb, record, dmsInsertRecordOptions(), result);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to insert record into cl:%d", rc);
-         goto error;
-      }
-   done:
-      if (locked)
-      {
-         context->mbUnlock();
-      }
-      cl.reset();
       return rc;
    error:
       goto done;
@@ -4090,7 +3982,8 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
       locked = TRUE;
 
-      fullName = getFullName(context);
+      fullName = utilFullNameParser::buildFullName(_storageInfo._suName,
+                                                   context->mb()->_collectionName);
       rc = engine->openCL(cb, fullName.c_str(), dmsOpenCLOptions(), cl);
       if (SDB_OK != rc)
       {
@@ -4114,17 +4007,7 @@ namespace engine
       return rc;
    error:
       goto done;
-   }
 
-   ossPoolString _dmsStorageUnit::getFullName(dmsMBContext *context)
-   {
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(context->isMBLock(), "must be locked");
-      ossPoolString fullName;
-      fullName.reserve(128);
-      fullName.append(_storageInfo._suName).append(".");
-      fullName.append(context->mb()->_collectionName);
-      return std::move(fullName);
    }
 }  // namespace engine
 

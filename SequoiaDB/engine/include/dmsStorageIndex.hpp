@@ -65,7 +65,8 @@ namespace engine
 
    class _dmsExtraRecord : public SDBObject
    {
-   public:
+   public
+:
       _dmsExtraRecord( const CHAR *clName, BSONObj record, BOOLEAN isInsert )
       {
          _clName = clName ;
@@ -357,6 +358,11 @@ namespace engine
                                const CHAR *indexName,
                                const BSONObj &index,
                                INT32 &indexID ) ;
+
+      private:
+         INT32 createIndexInDataEngine(_pmdEDUCB *cb,
+                                       _dmsMBContext *context,
+                                       const bson::BSONObj &indexDef);
 
       private:
          _dmsStorageData         *_pDataSu ;

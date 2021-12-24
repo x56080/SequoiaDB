@@ -55,6 +55,7 @@
 #include "dpsUtil.hpp"
 #include "interface/IDataStorageEngine.h"
 #include "dmsEngineCB.hpp"
+#include "utilFullNameParser.hpp"
 
 using namespace bson ;
 
@@ -3224,18 +3225,53 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORD, "_dmsStorageDataCommon::insertRecord" )
-   INT32 _dmsStorageDataCommon::insertRecord ( dmsMBContext *context,
-                                               const BSONObj &record,
-                                               pmdEDUCB *cb,
-                                               SDB_DPSCB *dpscb,
-                                               BOOLEAN mustOID,
-                                               BOOLEAN canUnLock,
-                                               INT64 position,
-                                               utilInsertResult *insertResult )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORD, "_dmsStorageDataCommon::insertRecordToMmap" )
+   INT32 _dmsStorageDataCommon::insertRecord(dmsMBContext *context,
+                                             const BSONObj &record,
+                                             pmdEDUCB *cb,
+                                             SDB_DPSCB *dpscb,
+                                             BOOLEAN mustOID,
+                                             BOOLEAN canUnLock,
+                                             INT64 position,
+                                             utilInsertResult *insertResult )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORD ) ;
+
+      if (DMS_STORAGE_VESSEL == getStorageType())
+      {
+         rc = insertRecordToEngine(cb, context, record, insertResult);
+      }
+      else
+      {
+         rc = insertRecordToMmap(context, record, cb, dpscb,
+                                 mustOID, canUnLock, position,
+                                 insertResult);
+      }
+
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORD, rc ) ;
+      return rc;
+   error:
+      goto done;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORDMMAP, "_dmsStorageDataCommon::insertRecord" )
+   INT32 _dmsStorageDataCommon::insertRecordToMmap (dmsMBContext *context,
+                                                    const BSONObj &record,
+                                                    pmdEDUCB *cb,
+                                                    SDB_DPSCB *dpscb,
+                                                    BOOLEAN mustOID,
+                                                    BOOLEAN canUnLock,
+                                                    INT64 position,
+                                                    utilInsertResult *insertResult )
    {
       INT32 rc                      = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORD ) ;
+      PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORDMMAP ) ;
       UINT32         dmsRecordSize  = 0 ;
       CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
       BSONObj        insertObj      = record ;
@@ -3291,6 +3327,16 @@ namespace engine
       if ( !dpscb && !isTransSupport() )
       {
          highConcurrentMode = TRUE ;
+      }
+
+      if (DMS_STORAGE_VESSEL == getStorageType())
+      {
+         rc = insertRecordToEngine(cb, context, record, insertResult);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+         goto done;
       }
 
       try
@@ -3709,7 +3755,7 @@ namespace engine
       {
          cb->releaseBuff( pMergedData ) ;
       }
-      PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORD, rc ) ;
+      PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORDMMAP, rc ) ;
       return rc ;
    error:
       ctrlAssist.switchToUndo() ;
@@ -5031,9 +5077,8 @@ namespace engine
       SDB_ASSERT(NULL != _pStorageInfo, "can not be null");
       SDB_ASSERT(DMS_STORAGE_VESSEL == getStorageType(), "can not be invalid");
 
-      ossPoolString fullName;
-      fullName.append(_pStorageInfo->_suName).append(".")
-              .append(context->mb()->_collectionName);
+      ossPoolString fullName = utilFullNameParser::buildFullName(_pStorageInfo->_suName,
+                                                                 context->mb()->_collectionName);
       IDataStorageEngine *engine = pmdGetKRCB()->getDMSEngineCB()->getEngine();
 
       rc = engine->createCL(cb, fullName.c_str(),
@@ -5046,6 +5091,62 @@ namespace engine
          goto error;
       }
    done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 _dmsStorageDataCommon::insertRecordToEngine(pmdEDUCB *cb,
+                                                     dmsMBContext *context,
+                                                     const bson::BSONObj &record,
+                                                     utilInsertResult *result)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != cb, "can not be null");
+      SDB_ASSERT(DMS_STORAGE_VESSEL == getStorageType(), "can not be other types");
+      IDataStorageEngine *engine = pmdGetKRCB()->getDMSEngineCB()->getEngine();
+      DATA_COLLECTION_PTR cl;
+      monAppCB *pMonAppCB = cb->getMonAppCB();
+      CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {};
+      BOOLEAN locked = FALSE;
+      rc = context->mbLock(SHARED);
+      PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
+      locked = TRUE;
+
+      if ( !dmsAccessAndFlagCompatiblity ( context->mb()->_flag,
+                                          DMS_ACCESS_TYPE_INSERT ) )
+      {
+         PD_LOG ( PDERROR, "Incompatible collection mode: %d",
+                  context->mb()->_flag ) ;
+         rc = SDB_DMS_INCOMPATIBLE_MODE ;
+         goto error ;
+      }
+
+      _clFullName(context->mb()->_collectionName, fullName,
+                  sizeof(fullName));
+      rc = engine->openCL(cb, fullName, dmsOpenCLOptions(), cl);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open cl[%s] in engine:%d",
+                fullName, rc);
+         goto error;
+      }
+
+      rc = cl->insertRecord(cb, record, dmsInsertRecordOptions(), result);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to insert record into cl:%d", rc);
+         goto error;
+      }
+
+      DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INSERT, 1 ) ;
+      _incWriteRecord() ;
+   done:
+      if (locked)
+      {
+         context->mbUnlock();
+      }
+      cl.reset();
       return rc;
    error:
       goto done;

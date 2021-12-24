@@ -570,21 +570,10 @@ namespace engine
 
       private:
          INT32 createCSInDataEngine();
-         INT32 createIndexInDataEngine(pmdEDUCB *cb,
-                                       dmsMBContext *context,
-                                       const bson::BSONObj &indexDef);
-         INT32 insertRecordToEngine(pmdEDUCB *cb,
-                                    dmsMBContext *context,
-                                    const bson::BSONObj &record,
-                                    utilInsertResult *result);
-
          INT32 getRecordCountInEngine(pmdEDUCB *cb,
                                       dmsMBContext *context,
                                       UINT64 &count);
-
-         ossPoolString getFullName(dmsMBContext *context);
-
-         INT32 removeCSInENgin(pmdEDUCB *cb);
+         INT32 removeCSInEngine(pmdEDUCB *cb);
 
       private :
          dmsStorageDataCommon                *_pDataSu ;
