@@ -1957,7 +1957,7 @@
       <code>
          <name>SDB_TASK_HAS_CANCELED</name>
          <description>
-            <en>Task is canceled</en>
+            <en>Task has been canceled</en>
             <cn>后台任务被取消</cn>
          </description>
       </code>
@@ -2993,7 +2993,7 @@
             <cn>事务中不能操作数据源</cn>
          </description>
       </code>
-
+      
       <code>
          <name>SDB_DPS_CONTEXT_NUM_UP_TO_LIMIT</name>
          <description>
@@ -3015,6 +3015,62 @@
          <description>
             <en>Transaction has occupied too much log space</en>
             <cn>事务使用的日志空间达到上限</cn>
+         </description>
+      </code>
+      
+      <code>
+         <name>SDB_MAINCL_NOIDX_NOSUB</name>
+         <description>
+            <en>Main-collection has no index or sub-collection</en>
+            <cn>主表下无索引或者无子表</cn>
+         </description>
+      </code>
+      
+      <code>
+         <name>SDB_TASK_CANNOT_CANCEL</name>
+         <description>
+            <en>The task cannot be canceled</en>
+            <cn>该任务不能被取消</cn>
+         </description>
+      </code>
+      
+      <code>
+         <name>SDB_IDX_UNIQUEID_EXCEEDED</name>
+         <description>
+            <en>Index uniqueID exceeds the maximum</en>
+            <cn>索引的UniqueID达到上限</cn>
+         </description>
+      </code>
+      
+      <code>
+         <name>SDB_IXM_DROP_STANDALONE_ONLY</name>
+         <description>
+            <en>Only standalone index can be dropped</en>
+            <cn>只能删除独立索引</cn>
+         </description>
+      </code>
+      
+      <code>
+         <name>SDB_CL_NOT_EXIST_ON_NODE</name>
+         <description>
+            <en>The collection does not exist on the specified node</en>
+            <cn>集合在指定节点中不存在</cn>
+         </description>
+      </code>
+      
+      <code>
+         <name>SDB_CLS_IDXTASK_EXCEEDED</name>
+         <description>
+            <en>The number of index tasks exceeds the maximum</en>
+            <cn>索引任务的数量达到上限</cn>
+         </description>
+      </code>
+      
+      <code>
+         <name>SDB_CAT_TASK_STATUS_ERROR</name>
+         <description>
+            <en>Task status error</en>
+            <cn>任务状态错误</cn>
          </description>
       </code>
 

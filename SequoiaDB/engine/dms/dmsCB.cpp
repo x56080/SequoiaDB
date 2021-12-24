@@ -1696,15 +1696,103 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_CHGIDXUID, "_SDB_DMSCB::_changeIndexUniqueID" )
+   INT32 _SDB_DMSCB::_changeIndexUniqueID( _dmsStorageUnit* su,
+                                           const ossPoolVector<ossPoolString>& changedClVec,
+                                           const ossPoolVector<BSONObj>& idxInfoVec,
+                                           pmdEDUCB* cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__SDB_DMSCB_CHGIDXUID ) ;
+
+      // convert index info which is from catalog
+      MAP_CLNAME_IDX clIdxMap ;
+      utilBson2IdxNameId( idxInfoVec, clIdxMap ) ;
+
+      // loop every collection
+      for ( ossPoolVector<ossPoolString>::const_iterator itr = changedClVec.begin() ;
+            itr != changedClVec.end() ; itr++ )
+      {
+         MAP_IDXNAME_DEF idxDefMap ;
+         const CHAR* clShortName = itr->c_str() ;
+         CHAR clFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+         ossSnprintf( clFullName, sizeof( clFullName ),
+                      "%s.%s", su->CSName(), clShortName ) ;
+
+         MAP_CLNAME_IDX::iterator it = clIdxMap.find( clFullName ) ;
+         if ( it != clIdxMap.end() )
+         {
+            idxDefMap = it->second ;
+         }
+
+         // get indexes from local
+         MON_IDX_LIST localIdxList ;
+         rc = su->getIndexes( clShortName, localIdxList ) ;
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to get collection[%s]'s indexes, rc: %d",
+                      clFullName, rc ) ;
+
+         // loop every index
+         for ( MON_IDX_LIST::iterator it = localIdxList.begin() ;
+               it != localIdxList.end() ; it++ )
+         {
+            const CHAR* idxName = it->getIndexName() ;
+            // Use local index definition ( filter out UniqueID ) to assign
+            // initial value to "idxDefToCreate". If the index doesn't exist on
+            // catalog, we also need to call createIndex(). The createIndex()
+            // function will check whether the index UniqueID is valid or not,
+            // if it's invalid, a new UniqueID will be generated for the index.
+            BSONObj idxDefToCreate = it->_indexDef.filterFieldsUndotted(
+                                BSON( IXM_FIELD_NAME_UNIQUEID << 1 ), false ) ;
+
+            // if the index has unique id at catalog, use it
+            MAP_IDXNAME_DEF::iterator i = idxDefMap.find( idxName ) ;
+            if ( i != idxDefMap.end() )
+            {
+               if ( ixmIsSameDef( i->second, idxDefToCreate, TRUE ) )
+               {
+                  idxDefToCreate = i->second ;
+               }
+            }
+
+            // change unique id by createIndex()
+            rc = su->createIndex( clShortName, idxDefToCreate,
+                                  cb, NULL, TRUE, NULL,
+                                  SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE,
+                                  NULL, NULL, FALSE, FALSE ) ;
+            if ( rc )
+            {
+               PD_LOG( PDWARNING,
+                       "Failed to upgrade index's unique id, rc: %d",
+                       rc ) ;
+            }
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__SDB_DMSCB_CHGIDXUID, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // input: clInfoObj
    // [
    //    { "Name": "bar1", "UniqueID": 2667174690817 } ,
    //    { "Name": "bar2", "UniqueID": 2667174690818 }
    // ]
+   // input: pIdxInfoVec
+   // [
+   //   { Collection: "foo.bar", IndexDef: {xxx} },
+   //   { Collection: "foo.ba1", IndexDef: {xxx} }
+   // ]
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_CHGUID, "_SDB_DMSCB::changeUniqueID" )
    INT32 _SDB_DMSCB::changeUniqueID( const CHAR* csname,
                                      utilCSUniqueID csUniqueID,
                                      const BSONObj& clInfoObj,
+                                     BOOLEAN changeOtherCL,
+                                     const ossPoolVector<BSONObj>* pIdxInfoVec,
+                                     BOOLEAN changeIdx,
                                      pmdEDUCB* cb,
                                      SDB_DPSCB* dpsCB,
                                      BOOLEAN isLoadCS )
@@ -1724,6 +1812,7 @@ namespace engine
       dmsStorageUnit* su = NULL ;
       dmsStorageUnit* suTmp = NULL ;
       BOOLEAN isMetaLocked = FALSE ;
+      ossPoolVector<ossPoolString> changedCLVec ;
 
       _mutex.get_shared () ;
       rc = _CSCBNameLookup( csname, &cscb, &suID, TRUE ) ;
@@ -1747,8 +1836,8 @@ namespace engine
          logRecSize = record.alignedLen() ;
          rc = pTransCB->reservedLogSpace( logRecSize, cb );
          PD_RC_CHECK( rc, PDERROR,
-                     "Failed to reserved log space(length=%u)",
-                     logRecSize );
+                      "Failed to reserved log space(length=%u)",
+                      logRecSize ) ;
          isReserved = TRUE ;
       }
 
@@ -1765,12 +1854,19 @@ namespace engine
          goto error ;
       }
 
-      su->data()->changeCLUniqueID( utilBson2ClNameId( clInfoObj ),
-                                    csUniqueID, isLoadCS ) ;
+      rc = su->data()->changeCLUniqueID( utilBson2ClNameId( clInfoObj ),
+                                         changeOtherCL, csUniqueID,
+                                         isLoadCS, changedCLVec ) ;
+      if ( rc )
+      {
+         // ignore error
+         PD_LOG( PDWARNING, "Failed to change collection unique id, rc: %d",
+                 rc ) ;
+      }
 
-      suUnlock ( suID ) ;
+      suUnlock ( suTmpID ) ;
 
-      // get meta lock
+      // change cs unique id
       _mutex.get() ;
       isMetaLocked = TRUE ;
 
@@ -1787,7 +1883,6 @@ namespace engine
          goto error ;
       }
 
-      // change cs unique id
       rc = changeCSUniqueID( su, csUniqueID ) ;
       PD_RC_CHECK ( rc, PDERROR,
                     "Failed to change cs unique id, rc: %d",
@@ -1806,6 +1901,40 @@ namespace engine
          isMetaLocked = FALSE ;
 
          dpsCB->writeData( info ) ;
+      }
+
+      if ( isMetaLocked )
+      {
+         _mutex.release() ;
+         isMetaLocked = FALSE ;
+      }
+
+      if ( changeIdx )
+      {
+         rc = nameToSUAndLock( su->CSName(), suTmpID, &suTmp, SHARED ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         else if ( suTmpID != suID )
+         {
+            suUnlock ( suTmpID ) ;
+            rc = SDB_DMS_CS_NOTEXIST ;
+            goto error ;
+         }
+
+         ossPoolVector<BSONObj> emptyVec ;
+         INT32 rc1 = _changeIndexUniqueID( su, changedCLVec,
+                                           pIdxInfoVec ? *pIdxInfoVec : emptyVec,
+                                           cb ) ;
+         if ( rc1 )
+         {
+            // ignore error
+            PD_LOG( PDWARNING, "Failed to change index unique id, rc: %d",
+                    rc1 ) ;
+         }
+
+         suUnlock ( suTmpID ) ;
       }
 
    done :

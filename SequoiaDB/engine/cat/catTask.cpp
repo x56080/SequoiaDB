@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = catSplit.cpp
+   Source File Name = catTask.cpp
 
    Dependencies: N/A
 
@@ -31,7 +31,7 @@
 
 *******************************************************************************/
 
-#include "catSplit.hpp"
+#include "catTask.hpp"
 #include "catCommon.hpp"
 #include "pdTrace.hpp"
 #include "catTrace.hpp"
@@ -669,8 +669,9 @@ namespace engine
                       rc ) ;
 
          // check task conflict
-         match = splitTask.toBson( CLS_SPLIT_MASK_CLNAME |
-                                   CLS_SPLIT_MASK_TYPE ) ;
+         match = BSON( CAT_COLLECTION_NAME << splitTask.collectionName() <<
+                       CAT_STATUS_NAME <<
+                       BSON( "$ne" << CLS_TASK_STATUS_FINISH ) ) ;
          rc = _catSplitCheckConflict( match, splitTask, conflict, cb ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Check task conflict failed, rc: %d",
@@ -705,44 +706,290 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATSPLITSTART, "catSplitStart" )
-   INT32 catSplitStart ( UINT64 taskID, pmdEDUCB * cb, INT16 w )
+   static INT32 _chgMetaInTask( const BSONObj& taskObj,
+                                BOOLEAN removeSrcGroup, BOOLEAN addDstGroup,
+                                const CHAR* srcGroupName,
+                                const CHAR* dstGroupName,
+                                pmdEDUCB* cb, INT16 w )
    {
       INT32 rc = SDB_OK ;
+      BSONObj updator, matcher, selector, dummyObj, groupObj, mainObj ;
+      clsTask* pTask = NULL ;
+      clsTask* pMainTask = NULL ;
+      clsIdxTask* pIdxTask = NULL ;
+      clsIdxTask* pMainIdxTask = NULL ;
+      ossPoolVector<BSONObj> subTaskInfoList ;
+      INT64 contextID = -1 ;
+      pmdKRCB* krcb = pmdGetKRCB() ;
+      SDB_DMSCB* dmsCB = krcb->getDMSCB() ;
+      SDB_RTNCB* rtnCB = krcb->getRTNCB() ;
 
-      PD_TRACE_ENTRY ( SDB_CATSPLITSTART ) ;
-
-      INT32 status = CLS_TASK_STATUS_READY ;
-
-      PD_CHECK( taskID != CLS_INVALID_TASKID,
-                SDB_INVALIDARG, error, PDERROR,
-                "Invalid task ID for split task" ) ;
-
-      /// Check the status of task
-      rc = catGetTaskStatus( taskID, status, cb ) ;
+      // 1. new task
+      rc = clsNewTask( taskObj, pTask ) ;
       PD_RC_CHECK( rc, PDERROR,
-                   "Get task[%llu] status failed, rc: %d",
-                   taskID, rc ) ;
+                   "Failed to initial task, rc: %d",
+                   rc ) ;
+      PD_CHECK( CLS_TASK_CREATE_IDX == pTask->taskType() ||
+                CLS_TASK_DROP_IDX   == pTask->taskType(),
+                SDB_SYS, error, PDERROR,
+                "Invalid task type: %d", pTask->taskType() ) ;
 
-      if ( CLS_TASK_STATUS_READY == status ||
-           CLS_TASK_STATUS_PAUSE == status )
+      pIdxTask = (clsIdxTask*)pTask ;
+
+      // 2. remove/add group in this task
+      //    Add group before remove group, because remove group may cause group
+      //    count to be 0, so task status will change to Finished.
+      if ( addDstGroup )
       {
-         rc = catUpdateTaskStatus( taskID, CLS_TASK_STATUS_RUN, cb, w ) ;
+         matcher = BSONObj() ;
+         updator = BSONObj() ;
+
+         rc = pIdxTask->buildAddGroup( dstGroupName, updator, matcher ) ;
          PD_RC_CHECK( rc, PDERROR,
-                      "Failed to update task[%llu] status [%d] -> [%d], rc: %d",
-                      taskID, status, CLS_TASK_STATUS_RUN, rc ) ;
+                      "Failed to add group[%s] in task[%d], rc: %d",
+                      dstGroupName, pTask->taskID(), rc ) ;
+
+         rc = catUpdateTask( matcher, updator, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to update task, rc: %d",
+                      rc ) ;
+         PD_LOG( PDDEBUG,
+                 "add group, update task, matcher: %s, updator: %s",
+                 matcher.toString().c_str(), updator.toString().c_str() ) ;
       }
-      else if ( CLS_TASK_STATUS_CANCELED == status )
+      if ( removeSrcGroup )
       {
-         rc = SDB_TASK_HAS_CANCELED ;
-         goto error ;
+         matcher = BSONObj() ;
+         updator = BSONObj() ;
+
+         rc = pIdxTask->buildRemoveGroup( srcGroupName, updator, matcher ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to remove group[%s] in task[%d], rc: %d",
+                      srcGroupName, pTask->taskID(), rc ) ;
+
+         rc = catUpdateTask( matcher, updator, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to update task, rc: %d",
+                      rc ) ;
+         PD_LOG( PDDEBUG,
+                 "remove group, update task, matcher: %s, updator: %s",
+                 matcher.toString().c_str(), updator.toString().c_str() ) ;
       }
 
-      PD_LOG( PDDEBUG,
-              "Finished split start step on task [%llu]",
-              taskID ) ;
+      // 3. remove/add group in this task's main-task
+      if ( pTask->hasMainTask() )
+      {
+         // 3.1 new main-task
+         rc = catGetTask( pTask->mainTaskID(), mainObj, cb ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get task[%llu] object, rc: %d",
+                      pTask->mainTaskID(), rc ) ;
+
+         rc = clsNewTask( mainObj, pMainTask ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to initial task[%llu], rc: %d",
+                      pTask->mainTaskID(), rc ) ;
+         PD_CHECK( CLS_TASK_CREATE_IDX == pTask->taskType() ||
+                   CLS_TASK_DROP_IDX   == pTask->taskType() ||
+                   CLS_TASK_COPY_IDX   == pTask->taskType(),
+                   SDB_SYS, error, PDERROR,
+                   "Invalid task type: %d", pTask->taskType() ) ;
+
+         pMainIdxTask = (clsIdxTask*)pMainTask ;
+
+         // 3.2 add group
+         if ( addDstGroup )
+         {
+            matcher = BSONObj() ;
+            updator = BSONObj() ;
+
+            rc = pMainIdxTask->buildAddGroupBy( pTask, dstGroupName,
+                                                updator, matcher ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                      "Failed to remove group[%s] in task[%d], rc: %d",
+                      dstGroupName, pMainTask->taskID(), rc ) ;
+
+            rc = catUpdateTask( matcher, updator, cb, w ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to update task, rc: %d",
+                         rc ) ;
+            PD_LOG( PDDEBUG,
+                    "add group, update task, matcher: %s, updator: %s",
+                    matcher.toString().c_str(), updator.toString().c_str() ) ;
+         }
+
+         // 3.3 remove group
+         if ( removeSrcGroup )
+         {
+            matcher = BSONObj() ;
+
+            try
+            {
+               groupObj = BSON( FIELD_NAME_GROUPNAME << srcGroupName ) ;
+            }
+            catch( std::exception &e )
+            {
+               rc = ossException2RC( &e ) ;
+               PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+            }
+
+            rc = pMainTask->buildQuerySubTasks( groupObj, matcher, selector ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get subtask's matcher and selector, rc: %d",
+                         rc ) ;
+
+            // query sub-task info
+            if ( !matcher.isEmpty() )
+            {
+               rc = rtnQuery( CAT_TASK_INFO_COLLECTION, selector, matcher,
+                              dummyObj, dummyObj, 0, cb, 0, -1, dmsCB, rtnCB,
+                              contextID ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to query collection[%s]: "
+                            "matcher: %s, rc: %d", CAT_TASK_INFO_COLLECTION,
+                            matcher.toString().c_str(), rc ) ;
+            }
+
+            // get more
+            while ( TRUE )
+            {
+               rtnContextBuf contextBuf ;
+               rc = rtnGetMore( contextID, 1, contextBuf, cb, rtnCB ) ;
+               if ( SDB_DMS_EOC == rc )
+               {
+                  rc = SDB_OK ;
+                  break ;
+               }
+               PD_RC_CHECK( rc, PDERROR, "Get more failed, rc: %d", rc ) ;
+
+               try
+               {
+                  BSONObj obj( contextBuf.data() ) ;
+                  subTaskInfoList.push_back( obj.getOwned() ) ;
+               }
+               catch( std::exception &e )
+               {
+                  rc = ossException2RC( &e ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+               }
+            }
+
+            matcher = BSONObj() ;
+            updator = BSONObj() ;
+
+            rc = pMainIdxTask->buildRemoveGroupBy( pTask, subTaskInfoList,
+                                                   srcGroupName,
+                                                   updator, matcher ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                      "Failed to remove group[%s] in task[%d], rc: %d",
+                      srcGroupName, pMainTask->taskID(), rc ) ;
+
+            rc = catUpdateTask( matcher, updator, cb, w ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to update task, rc: %d",
+                         rc ) ;
+            PD_LOG( PDDEBUG,
+                    "remove group, update task, matcher: %s, updator: %s",
+                    matcher.toString().c_str(), updator.toString().c_str() ) ;
+         }
+      }
+
    done :
-      PD_TRACE_EXITRC ( SDB_CATSPLITSTART, rc ) ;
+      if ( pTask )
+      {
+         clsReleaseTask( pTask ) ;
+      }
+      if ( pMainTask )
+      {
+         clsReleaseTask( pMainTask ) ;
+      }
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   static INT32 _chgMetaInOtherTasks( const clsCatalogSet& cataSet,
+                                      BOOLEAN orgInSrcGroup,
+                                      BOOLEAN orgInDstGroup,
+                                      UINT32 srcGroupID, const CHAR* srcName,
+                                      UINT32 dstGroupID, const CHAR* dstName,
+                                      pmdEDUCB* cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj matcher, dummyObj, taskObj ;
+      INT64 contextID = -1 ;
+      BOOLEAN removeSrcGroup = FALSE ;
+      BOOLEAN addDstGroup = FALSE ;
+      pmdKRCB* krcb = pmdGetKRCB() ;
+      SDB_DMSCB* dmsCB = krcb->getDMSCB() ;
+      SDB_RTNCB* rtnCB = krcb->getRTNCB() ;
+
+      if ( orgInSrcGroup && !cataSet.isInGroup( srcGroupID ) )
+      {
+         removeSrcGroup = TRUE ;
+      }
+      if ( !orgInDstGroup && cataSet.isInGroup( dstGroupID ) )
+      {
+         addDstGroup = TRUE ;
+      }
+      if ( !removeSrcGroup && !addDstGroup )
+      {
+         // do nothing
+         goto done ;
+      }
+
+      // query all relative tasks
+      try
+      {
+         matcher = BSON( FIELD_NAME_NAME << cataSet.name() <<
+                         FIELD_NAME_STATUS <<
+                         BSON( "$ne" << CLS_TASK_STATUS_FINISH ) <<
+                         FIELD_NAME_TASKTYPE <<
+                         BSON( "$in" << BSON_ARRAY( CLS_TASK_CREATE_IDX <<
+                                                    CLS_TASK_DROP_IDX ) ) ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+      rc = rtnQuery( CAT_TASK_INFO_COLLECTION, dummyObj, matcher,
+                     dummyObj, dummyObj, 0, cb, 0, -1, dmsCB, rtnCB,
+                     contextID ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to query collection[%s], matcher: %s, rc: %d",
+                   CAT_TASK_INFO_COLLECTION, matcher.toString().c_str(), rc ) ;
+
+      // loop every task
+      while ( TRUE )
+      {
+         rtnContextBuf contextBuf ;
+         rc = rtnGetMore( contextID, 1, contextBuf, cb, rtnCB ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_OK ;
+            break ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Get more failed, rc: %d", rc ) ;
+
+         try
+         {
+            taskObj = BSONObj( contextBuf.data() ) ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+         }
+
+         rc = _chgMetaInTask( taskObj, removeSrcGroup, addDstGroup,
+                              srcName, dstName, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to change collection metadata for task, rc: %d",
+                      rc ) ;
+      }
+
+   done :
       return rc ;
    error :
       goto done ;
@@ -762,7 +1009,8 @@ namespace engine
          std::string srcName, dstName ;
          UINT32 srcGroupID = CAT_INVALID_GROUPID ;
          UINT32 dstGroupID = CAT_INVALID_GROUPID ;
-
+         BOOLEAN clInSrcGroup = FALSE ;
+         BOOLEAN clInDstGroup = FALSE ;
          BSONObj taskObj ;
          BSONObj cataInfo ;
          clsSplitTask splitTask( taskID ) ;
@@ -774,10 +1022,12 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR,
                       "Get task [%llu] failed, rc: %d",
                       taskID, rc ) ;
+         taskObj = splitTask.toBson() ;
 
          // already finished
-         if ( CLS_TASK_STATUS_META == splitTask.status() ||
-              CLS_TASK_STATUS_FINISH == splitTask.status() )
+         if ( CLS_TASK_STATUS_META    == splitTask.status() ||
+              CLS_TASK_STATUS_CLEANUP == splitTask.status() ||
+              CLS_TASK_STATUS_FINISH  == splitTask.status() )
          {
             goto done ;
          }
@@ -788,7 +1038,7 @@ namespace engine
          }
 
          PD_CHECK( CLS_TASK_STATUS_RUN == splitTask.status(),
-                   SDB_SYS, error, PDERROR,
+                   SDB_CAT_TASK_STATUS_ERROR, error, PDERROR,
                    "Split task status error, task: %s",
                    taskObj.toString().c_str() ) ;
 
@@ -800,11 +1050,11 @@ namespace engine
                       MSG_CAT_SPLIT_PREPARE_REQ, CAT_COLLECTION_NAME,
                       splitInfo.toString().c_str() ) ;
 
-         PD_CHECK( 0 == clName.compare( splitTask.clFullName() ),
+         PD_CHECK( 0 == clName.compare( splitTask.collectionName() ),
                    SDB_SYS, error, PDERROR,
                    "Task [%llu] split on different collection [%s] from "
                    "previous phase [%s]",
-                   taskID, splitTask.clFullName(), clName.c_str() ) ;
+                   taskID, splitTask.collectionName(), clName.c_str() ) ;
 
          // Initialize catalog set
          clsCatalogSet cataSet( clName.c_str() ) ;
@@ -814,6 +1064,10 @@ namespace engine
                                              cataSet, splitInfo, cb,
                                              srcGroupID, srcName,
                                              dstGroupID, dstName, FALSE ) ;
+
+         clInSrcGroup = cataSet.isInGroup( splitTask.sourceID() ) ;
+         clInDstGroup = cataSet.isInGroup( splitTask.dstID() ) ;
+
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to check and lock collections and groups, rc: %d",
                       rc ) ;
@@ -883,6 +1137,16 @@ namespace engine
                       "Failed to update task status, rc: %d",
                       rc ) ;
 
+         // change collection metadata on relative tasks
+         rc = _chgMetaInOtherTasks( cataSet,
+                                    clInSrcGroup, clInDstGroup,
+                                    splitTask.sourceID(), splitTask.sourceName(),
+                                    splitTask.dstID(), splitTask.dstName(),
+                                    cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to change collection metadata for relative tasks, "
+                      "rc: %d", rc ) ;
+
          PD_LOG( PDDEBUG,
                  "Finished split chgmeta step on task [%llu]",
                  taskID ) ;
@@ -922,12 +1186,12 @@ namespace engine
 
       if ( CLS_TASK_STATUS_META == status )
       {
-         rc = catUpdateTaskStatus( taskID, CLS_TASK_STATUS_FINISH, cb, w ) ;
+         rc = catUpdateTaskStatus( taskID, CLS_TASK_STATUS_CLEANUP, cb, w ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to update task[%llu] status [%d] -> [%d], rc: %d",
-                      taskID, status, CLS_TASK_STATUS_FINISH, rc ) ;
+                      taskID, status, CLS_TASK_STATUS_CLEANUP, rc ) ;
       }
-      else if ( CLS_TASK_STATUS_FINISH == status )
+      else if ( CLS_TASK_STATUS_CLEANUP == status )
       {
          // do nothing
       }
@@ -941,7 +1205,7 @@ namespace engine
          PD_LOG( PDERROR,
                  "Task[%llu] status error in clean up step [%d]",
                  taskID, status ) ;
-         rc = SDB_SYS ;
+         rc = SDB_CAT_TASK_STATUS_ERROR ;
          goto error ;
       }
 
@@ -960,17 +1224,43 @@ namespace engine
    INT32 catSplitFinish ( UINT64 taskID, pmdEDUCB * cb, INT16 w )
    {
       INT32 rc = SDB_OK ;
-
+      INT32 status = CLS_TASK_STATUS_READY ;
       PD_TRACE_ENTRY ( SDB_CATSPLITFINISH ) ;
 
       PD_CHECK( taskID != CLS_INVALID_TASKID,
                 SDB_INVALIDARG, error, PDERROR,
                 "Invalid task ID for split task" ) ;
 
-      // remove task
-      rc = catRemoveTask( taskID, TRUE, cb, w ) ;
-      PD_RC_CHECK( rc, PDERROR, "Remove task[%llu] failed, rc: %d",
+      /// Check the status of task
+      rc = catGetTaskStatus( taskID, status, cb ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Get task[%llu] status failed, rc: %d",
                    taskID, rc ) ;
+
+      if ( CLS_TASK_STATUS_CLEANUP == status )
+      {
+         rc = catUpdateTask2Finish( taskID, SDB_OK, cb ,w ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to update task[%llu] status [%d] -> [%d], rc: %d",
+                      taskID, status, CLS_TASK_STATUS_FINISH, rc ) ;
+      }
+      else if ( CLS_TASK_STATUS_FINISH == status )
+      {
+         // do nothing
+      }
+      else if ( CLS_TASK_STATUS_CANCELED == status )
+      {
+         rc = SDB_TASK_HAS_CANCELED ;
+         goto error ;
+      }
+      else
+      {
+         PD_LOG( PDERROR,
+                 "Task[%llu] status error in clean up step [%d]",
+                 taskID, status ) ;
+         rc = SDB_CAT_TASK_STATUS_ERROR ;
+         goto error ;
+      }
 
       PD_LOG( PDDEBUG, "Finished split finish step on task [%llu]",
               taskID ) ;
@@ -982,115 +1272,244 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATSPLITCANCEL, "catSplitCancel" )
-   INT32 catSplitCancel ( const BSONObj & splitInfo, pmdEDUCB * cb,
-                          UINT64 &taskID, INT16 w, UINT32 &returnGroupID )
+   static INT32 _getAndNewTask( UINT64 taskID, pmdEDUCB* cb, clsTask*& pTask )
    {
       INT32 rc = SDB_OK ;
-      INT32 tmpGrpID = CAT_INVALID_GROUPID ;
+      BSONObj taskObj ;
 
-      PD_TRACE_ENTRY ( SDB_CATSPLITCANCEL ) ;
+      rc = catGetTask( taskID, taskObj, cb ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get task[%llu] object, rc: %d",
+                   taskID, rc ) ;
 
-      BSONElement ele = splitInfo.getField( CAT_TASKID_NAME ) ;
+      rc = clsNewTask( taskObj, pTask ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to initial task[%llu], rc: %d",
+                   taskID, rc ) ;
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATTASKSTART, "catTaskStart" )
+   INT32 catTaskStart ( const BSONObj &boQuery, pmdEDUCB *cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATTASKSTART ) ;
+      UINT64 taskID = CLS_INVALID_TASKID ;
+      clsTask* pTask = NULL ;
+      clsTask* pMainTask = NULL ;
+      BSONObj matcher, updator ;
 
-      // split cancel has two case :
-      //   1): has task id
-      //   2): no task id
+      // 1. get taskID from message
+      rc = rtnGetNumberLongElement( boQuery, FIELD_NAME_TASKID,
+                                    (INT64 &)taskID ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get the field[%s] from query[%s]",
+                   FIELD_NAME_TASKID, boQuery.toString().c_str() ) ;
 
-      if ( !ele.eoo() )
+      // 2. get and init task
+      rc = _getAndNewTask( taskID, cb, pTask ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get and initial task[%llu], rc: %d",
+                   taskID, rc ) ;
+
+      // 3. start task
+      rc = pTask->buildStartTask( boQuery, updator, matcher ) ;
+      PD_CHECK( SDB_OK == rc, rc, error_on_start, PDERROR,
+                "Failed to start task[%llu], rc: %d",
+                pTask->taskID(), rc ) ;
+
+      if ( updator.isEmpty() )
       {
-         INT32 status = CLS_TASK_STATUS_READY ;
-         BSONObj taskObj ;
-
-         PD_CHECK( ele.isNumber(),
-                   SDB_INVALIDARG, error, PDERROR,
-                   "Failed to get the field [%s] from query, type: %d",
-                   CAT_TASKID_NAME, ele.type() ) ;
-         taskID = ( UINT64 )ele.numberLong() ;
-
-         PD_LOG( PDDEBUG,
-                 "Split cancel: got task ID [%llu]",
-                 taskID ) ;
-
-         rc = catGetTask( taskID, taskObj, cb ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to get task [%llu], rc: %d",
-                      taskID, rc ) ;
-
-         rc = rtnGetIntElement( taskObj, CAT_STATUS_NAME, status ) ;
-         PD_RC_CHECK( rc, PDWARNING,
-                      "Failed to get the field [%s] from task [%llu], rc: %d",
-                      CAT_STATUS_NAME, taskID, rc ) ;
-
-         rc = rtnGetIntElement( taskObj, CAT_TARGETID_NAME, tmpGrpID ) ;
-         PD_RC_CHECK( rc, PDWARNING,
-                      "Failed to get the field [%s] from task [%llu], rc: %d",
-                      CAT_TARGETID_NAME, taskID, rc ) ;
-         returnGroupID = (UINT32)tmpGrpID ;
-
-         PD_LOG( PDDEBUG,
-                 "Split cancel: got target group ID [%u]",
-                 returnGroupID ) ;
-
-         // can't cancel finish status
-         if ( CLS_TASK_STATUS_META == status ||
-              CLS_TASK_STATUS_FINISH == status )
-         {
-            rc = SDB_TASK_ALREADY_FINISHED ;
-            goto error ;
-         }
-         else if ( CLS_TASK_STATUS_READY == status )
-         {
-            rc = catRemoveTask( taskID, TRUE, cb ,w ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to remove task [%llu] failed, rc: %d",
-                         taskID, rc ) ;
-         }
-         else if ( CLS_TASK_STATUS_CANCELED != status )
-         {
-            rc = catUpdateTaskStatus( taskID, CLS_TASK_STATUS_CANCELED,
-                                      cb, w ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to update data task [%llu] to canceled, rc: %d",
-                         taskID, rc ) ;
-         }
-
-         PD_LOG( PDDEBUG,
-                 "Finished split cancel step on task [%llu]",
-                 taskID ) ;
+         // nothing changed, just goto done
+         goto done ;
       }
-      else
+
+      rc = catUpdateTask( matcher, updator, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to update task[%llu], rc: %d",
+                   taskID, rc ) ;
+
+      // 4. process it's main-task
+      if ( pTask->hasMainTask() )
       {
-         BSONObjBuilder matchBuilder ;
-         matchBuilder.append( CAT_TASKTYPE_NAME, CLS_TASK_SPLIT ) ;
-         matchBuilder.append( splitInfo.getField( CAT_COLLECTION_NAME ) ) ;
-         matchBuilder.append( splitInfo.getField( CAT_SOURCE_NAME ) ) ;
-         matchBuilder.append( splitInfo.getField( CAT_TARGET_NAME ) ) ;
+         matcher = BSONObj() ;
+         updator = BSONObj() ;
 
-         BSONElement splitKeyEle = splitInfo.getField( CAT_SPLITVALUE_NAME ) ;
-         if ( splitKeyEle.eoo() ||
-              splitKeyEle.embeddedObject().isEmpty() )
-         {
-            matchBuilder.append( splitInfo.getField( CAT_SPLITPERCENT_NAME ) ) ;
-         }
-         else
-         {
-            matchBuilder.append( splitKeyEle ) ;
-         }
-
-         BSONObj match = matchBuilder.obj() ;
-
-         rc = catRemoveTask( match, TRUE, cb, w ) ;
+         rc = _getAndNewTask( pTask->mainTaskID(), cb, pMainTask ) ;
          PD_RC_CHECK( rc, PDERROR,
-                      "Failed to remove task [%s], rc: %d",
-                      splitInfo.toString().c_str(), rc ) ;
+                      "Failed to get task[%llu], rc: %d",
+                      pTask->mainTaskID(), rc ) ;
+
+         rc = pMainTask->buildStartTaskBy( pTask, boQuery, updator, matcher ) ;
+         PD_CHECK( SDB_OK == rc, rc, error_on_start, PDERROR,
+                   "Failed to start task[%llu], rc: %d",
+                   pMainTask->taskID(), rc ) ;
+
+         rc = catUpdateTask( matcher, updator, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to update task[%llu], rc: %d",
+                      pMainTask->taskID(), rc ) ;
       }
 
    done :
-      PD_TRACE_EXITRC ( SDB_CATSPLITCANCEL, rc ) ;
+      if ( pTask )
+      {
+         clsReleaseTask( pTask ) ;
+      }
+      if ( pMainTask )
+      {
+         clsReleaseTask( pMainTask ) ;
+      }
+      PD_TRACE_EXITRC ( SDB_CATTASKSTART, rc ) ;
       return rc ;
+   error_on_start :
+      if ( !updator.isEmpty() )
+      {
+         // rollback transaction before set task to finish + -243 error.
+         rc = catTransEnd( rc, cb, sdbGetDPSCB() ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to end transaction, rc: %d",
+                      rc ) ;
+
+         rc = catUpdateTask( matcher, updator, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to update task[%llu], rc: %d",
+                      taskID, rc ) ;
+      }
+      goto done ;
    error :
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATTASKCANCEL, "catTaskCancel" )
+   INT32 catTaskCancel ( const BSONObj &boQuery, pmdEDUCB *cb,
+                         INT16 w, UINT32 &returnGroupID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATTASKCANCEL ) ;
+      UINT64 taskID = CLS_INVALID_TASKID ;
+      clsTask* pTask = NULL ;
+      clsTask* pMainTask = NULL ;
+      clsTask* pSubTask = NULL ;
+      BSONObj matcher, updator ;
+
+      // 1. get task ID from message
+      rc = rtnGetNumberLongElement( boQuery, CAT_TASKID_NAME,
+                                    (INT64 &)taskID ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get the field[%s] from query",
+                   CAT_TASKID_NAME ) ;
+
+      // 2. get and init task
+      rc = _getAndNewTask( taskID, cb, pTask ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get and initial task[%llu], rc: %d",
+                   taskID, rc ) ;
+
+      // 3. cancel task
+      rc = pTask->buildCancelTask( boQuery, updator, matcher ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to cancel task[%llu], rc: %d",
+                   pTask->taskID(), rc ) ;
+
+      if ( updator.isEmpty() )
+      {
+         // nothing changed, just goto done
+         goto done ;
+      }
+
+      rc = catUpdateTask( matcher, updator, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to update task[%llu], rc: %d",
+                   pTask->taskID(), rc ) ;
+
+      // 4. process it's main-task
+      if ( pTask->hasMainTask() )
+      {
+         matcher = BSONObj() ;
+         updator = BSONObj() ;
+
+         rc = _getAndNewTask( pTask->mainTaskID(), cb, pMainTask ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get task[%llu], rc: %d",
+                      pTask->mainTaskID(), rc ) ;
+
+         rc = pMainTask->buildCancelTaskBy( pTask, updator, matcher ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to cancel task[%llu], rc: %d",
+                      pMainTask->taskID(), rc ) ;
+
+         rc = catUpdateTask( matcher, updator, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to update task[%llu], rc: %d",
+                      pMainTask->taskID(), rc ) ;
+      }
+
+      // 5. process it's sub-tasks
+      if ( pTask->isMainTask() )
+      {
+         ossPoolVector<UINT64> subTaskList ;
+         rc = pTask->getSubTasks( subTaskList ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get task[llu]'s sub-tasks, rc: %d",
+                      pTask->taskID(), rc ) ;
+
+         for( ossPoolVector<UINT64>::iterator it = subTaskList.begin() ;
+              it != subTaskList.end() ; ++it )
+         {
+            matcher = BSONObj() ;
+            updator = BSONObj() ;
+
+            rc = _getAndNewTask( *it, cb, pSubTask ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get task[%llu], rc: %d",
+                         *it, rc ) ;
+
+            rc = pSubTask->buildCancelTask( boQuery, updator, matcher ) ;
+            if ( SDB_TASK_ALREADY_FINISHED == rc ||
+                 SDB_TASK_HAS_CANCELED == rc ||
+                 SDB_TASK_ROLLBACK == rc )
+            {
+               // ignore error
+               rc = SDB_OK ;
+            }
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to cancel task[%llu], rc: %d",
+                         pSubTask->taskID(), rc ) ;
+
+            rc = catUpdateTask( matcher, updator, cb, w ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to update task[%llu], rc: %d",
+                         pSubTask->taskID(), rc ) ;
+
+            clsReleaseTask( pSubTask ) ;
+         }
+      }
+
+      // 6. get target id for split task
+      if ( CLS_TASK_SPLIT == pTask->taskType() )
+      {
+         returnGroupID = ((clsSplitTask*)pTask)->dstID() ;
+      }
+
+   done :
+      if ( pTask )
+      {
+         clsReleaseTask( pTask ) ;
+      }
+      if ( pMainTask )
+      {
+         clsReleaseTask( pMainTask ) ;
+      }
+      if ( pSubTask )
+      {
+         clsReleaseTask( pSubTask ) ;
+      }
+      PD_TRACE_EXITRC ( SDB_CATTASKCANCEL, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
 }

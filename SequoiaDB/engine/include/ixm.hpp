@@ -49,6 +49,7 @@
 #include "ixmIndexKey.hpp"
 #include "msgDef.h"
 #include "../bson/ordering.h"
+#include "sdbInterface.hpp"
 
 using namespace std ;
 using namespace bson ;
@@ -204,10 +205,6 @@ namespace engine
       #define SET_ENFORCED1_INITED()         ( _fieldInitedFlag |= 0x00000040 )
       #define NOTNULL_IS_INITED()            ( _fieldInitedFlag &  0x00000080 )
       #define SET_NOTNULL_INITED()           ( _fieldInitedFlag |= 0x00000080 )
-      #define GLOBAL_IS_INITED()             ( _fieldInitedFlag &  0x00000100 )
-      #define SET_GLOBAL_INITED()            ( _fieldInitedFlag |= 0x00000100 )
-      #define GLOBAL_OPTION_IS_INITED()      ( _fieldInitedFlag &  0x00000200 )
-      #define SET_GLOBAL_OPTION_INITED()     ( _fieldInitedFlag |= 0x00000200 )
       #define DROPDUPS_IS_INITED()           ( _fieldInitedFlag &  0x00000400 )
       #define SET_DROPDUPS_INITED()          ( _fieldInitedFlag |= 0x00000400 )
       #define NOTARRAY_IS_INITED()           ( _fieldInitedFlag &  0x00000800 )
@@ -224,6 +221,8 @@ namespace engine
       #define SET_REBUILD_TIME_INITED()      ( _fieldInitedFlag |= 0x00010000 )
       #define GLOB_INDEX_IS_INITED()         ( _fieldInitedFlag &  0x00020000 )
       #define SET_GLOB_INDEX_INITED()        ( _fieldInitedFlag |= 0x00020000 )
+      #define UNIQUEID_IS_INITED()           ( _fieldInitedFlag &  0x00040000 )
+      #define SET_UNIQUEID_INITED()          ( _fieldInitedFlag |= 0x00040000 )
 
    private:
 #pragma pack(1)
@@ -266,6 +265,8 @@ namespace engine
       mutable BOOLEAN _isGlobalIndex ;
       mutable utilCLUniqueID _indexCLUID ;
       mutable const CHAR * _indexCLName ;
+
+      mutable utilIdxUniqueID _idxUniqID ;
 
       mutable UINT8 _indexObjVersion ;
       mutable BSONObj _keyPattern ;
@@ -526,28 +527,55 @@ namespace engine
          return _indexObjVersion ;
       }
 
-      /// generate index type from input bsonobj.
-      static BOOLEAN generateIndexType( const BSONObj &obj, UINT16 &type )
+      static INT32 generateIndexType( const BSONObj &obj, UINT16 &type )
       {
-         BOOLEAN rc = TRUE ;
+         INT32 rc = SDB_OK ;
+
          try
          {
-            BSONObj keyPattern = obj.getObjectField( IXM_KEY_FIELD ) ;
-            if ( keyPattern.isEmpty() )
+            BSONElement ele = obj.getField( IXM_KEY_FIELD ) ;
+            if ( ele.type() != Object )
             {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Invalid index key type[%d], rc: %d",
+                       ele.type(), rc ) ;
+               goto error ;
+            }
+            rc = generateIndexTypeByKey( ele.embeddedObject(), type ) ;
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+         }
+
+      done:
+         return rc ;
+      error:
+         goto done ;
+      }
+
+      /// generate index type from input bsonobj.
+      static INT32 generateIndexTypeByKey( const BSONObj &keyObj, UINT16 &type )
+      {
+         INT32 rc = SDB_OK ;
+
+         try
+         {
+            if ( keyObj.isEmpty() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "IndexDef can't be empty: %s",
+                           keyObj.toString().c_str() ) ;
                goto error ;
             }
             {
             BOOLEAN hasGeo = FALSE ;
             BOOLEAN hasOther = FALSE ;
-            BSONObjIterator i( keyPattern ) ;
+            BSONObjIterator i( keyObj ) ;
             while ( i.more() )
             {
                BSONElement ele = i.next() ;
-               if ( ele.eoo() )
-               {
-                  goto error ;
-               }
                if ( ele.isNumber() )
                {
                   if ( IXM_POSITIVE_KEY_TYPE == ele.Number() )
@@ -560,6 +588,10 @@ namespace engine
                   }
                   else
                   {
+                     rc = SDB_INVALIDARG ;
+                     PD_LOG_MSG( PDERROR,
+                                 "Index key value should be 1/-1 or 'text': %s",
+                                 keyObj.toString().c_str() ) ;
                      goto error ;
                   }
                   hasOther = TRUE ;
@@ -583,11 +615,19 @@ namespace engine
                   }
                   else
                   {
+                     rc = SDB_INVALIDARG ;
+                     PD_LOG_MSG( PDERROR,
+                                 "Index key value should be 1/-1 or 'text': %s",
+                                 keyObj.toString().c_str() ) ;
                      goto error ;
                   }
                }
                else
                {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR,
+                              "Index key value should be 1/-1 or 'text': %s",
+                              keyObj.toString().c_str() ) ;
                   goto error ;
                }
             }
@@ -595,44 +635,61 @@ namespace engine
          }
          catch ( std::exception &e )
          {
-            PD_LOG ( PDERROR, "Failed to generate type from index: %s. "
-                     "index:%s", e.what(), obj.toString().c_str() ) ;
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
             goto error ;
          }
 
          if ( ( IXM_EXTENT_TYPE_TEXT & type ) &&
               ( ~IXM_EXTENT_TYPE_TEXT & type ) )
          {
-            PD_LOG( PDERROR, "Text index can not mix with other kinds of "
-                    "indices:%s", obj.toString().c_str() ) ;
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Text index can not mix with other kinds of "
+                        "indices: %s", keyObj.toString().c_str() ) ;
             goto error ;
          }
 
       done:
          return rc ;
       error:
-         rc = FALSE ;
          goto done ;
       }
 
-      static BOOLEAN isValidKey( const bson::BSONObj &obj )
+      static INT32 checkIndexKey( const bson::BSONObj &obj )
       {
+         INT32 rc = SDB_OK ;
+
          if ( obj.isEmpty() )
          {
-            return FALSE ;
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Index key can't be empty: %s",
+                        obj.toString().c_str() ) ;
+            goto error ;
          }
 
+         {
          BSONObjIterator i( obj ) ;
          while ( i.more() )
          {
             BSONElement e = i.next() ;
             const CHAR *fieldName = e.fieldName() ;
-            if ( NULL == fieldName ||
-                 '\0' == fieldName[0] ||
-                 NULL != ossStrchr( fieldName, '$' ) )
+            if ( NULL == fieldName || '\0' == fieldName[0] )
             {
-               return FALSE ;
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR,
+                           "The field name in index key can't be empty: %s",
+                           obj.toString().c_str() ) ;
+               goto error ;
             }
+            else if ( NULL != ossStrchr( fieldName, '$' ) )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "Field name[%s] in index key can't contain "
+                           "special symbol '$': %s", fieldName,
+                           obj.toString().c_str() ) ;
+               goto error ;
+            }
+         }
          }
 
          try
@@ -640,27 +697,37 @@ namespace engine
             // index key obj shouldn't has more than 32 field
             Ordering::make ( obj ) ;
          }
-         catch( std::exception &e )
+         catch( ... )
          {
-            PD_LOG( PDERROR, "Occur exception: %s, index obj: %s",
-                    e.what(), obj.toString().c_str() ) ;
-            return FALSE ;
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "The number of fields in composite index"
+                        " can't exceed 32: %s", obj.toString().c_str() ) ;
+            goto error ;
          }
 
-         return TRUE ;
+      done:
+         return rc ;
+      error:
+         goto done ;
       }
 
       // check whether a given object is valid, usually this is called before
       // creating index
-      static BOOLEAN validateKey ( const BSONObj &obj, BOOLEAN isSys = FALSE )
+      static INT32 checkIndexDef ( const BSONObj &obj, BOOLEAN isSys = FALSE )
       {
+         INT32 rc = SDB_OK ;
          INT32 fieldCount = 0 ;
          BOOLEAN isUniq = FALSE ;
          BOOLEAN enforced = FALSE ;
+         UINT16 type = 0 ;
+         BSONObj indexKey ;
+         const CHAR* indexName = NULL ;
+         BSONElement ele ;
 
          // make sure the object contains key and name field, and may include
          // "v", "dropDups", "unique" fields, and not include any other fields
 
+         // '_id' field
          if ( obj.hasField( DMS_ID_KEY_NAME ) )
          {
             fieldCount ++ ;
@@ -668,41 +735,66 @@ namespace engine
          else
          {
             // make sure the index def is not too large
-            if ( obj.objsize() + sizeof(_IDToInsert) +
-                 IXM_INDEX_CB_EXTENT_METADATA_SIZE >= IXM_PAGE_SIZE4K )
+            INT32 defSize = obj.objsize() + sizeof(_IDToInsert) ;
+            if ( defSize + IXM_INDEX_CB_EXTENT_METADATA_SIZE >= IXM_PAGE_SIZE4K )
             {
-               return FALSE ;
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "The size of index definition[%d] is "
+                           "too large", defSize ) ;
+               goto error ;
             }
          }
 
-         UINT16 type = 0 ;
-         if ( !generateIndexType( obj, type ) )
+         // 'UniqueID' field
+         if ( obj.hasField( FIELD_NAME_UNIQUEID ) )
          {
-            // if the key field is not object or not valid.
-            return FALSE ;
-         }
-         fieldCount ++ ;
-         if ( !isValidKey( obj.getObjectField( IXM_KEY_FIELD ) ) )
-         {
-            PD_LOG( PDERROR, "index key is invalid:%s",
-                    obj.toString( FALSE, TRUE ).c_str() ) ;
-            return FALSE ;
+            fieldCount ++ ;
          }
 
-         INT32 nameLen = ossStrlen( obj.getStringField( IXM_NAME_FIELD ) ) ;
-         if ( nameLen == 0 || nameLen >= IXM_INDEX_NAME_SIZE )
+         // 'key' field
+         ele = obj.getField( IXM_KEY_FIELD ) ;
+         if ( ele.type() != Object )
          {
-            // name field should be string, and can't be too long
-            return FALSE ;
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid index key type[%d] in obj[%s], rc: %d",
+                    ele.type(), obj.toString().c_str(), rc ) ;
+            goto error ;
+         }
+         indexKey = ele.embeddedObject() ;
+         rc = generateIndexTypeByKey( indexKey, type ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to get index type by key[%s], rc: %d",
+                    indexKey.toString().c_str(), rc ) ;
+            goto error ;
+         }
+         rc = checkIndexKey( indexKey ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to check index key[%s], rc: %d",
+                    indexKey.toString().c_str(), rc ) ;
+            goto error ;
          }
          fieldCount ++ ;
-         // validate index name, only sys index can start with $
-         if ( SDB_OK != dmsCheckIndexName( obj.getStringField( IXM_NAME_FIELD ),
-                                           isSys ) )
-         {
-            return FALSE ;
-         }
 
+         // 'name' field
+         ele = obj.getField( IXM_NAME_FIELD ) ;
+         if ( ele.type() != String )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid index name type[%d] in obj[%s], rc: %d",
+                    ele.type(), obj.toString().c_str(), rc ) ;
+            goto error ;
+         }
+         indexName = ele.valuestr() ;
+         rc = dmsCheckIndexName( indexName, isSys ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         fieldCount ++ ;
+
+         // other filed
          if ( obj.hasField ( IXM_V_FIELD ) )
          {
             fieldCount ++ ;
@@ -743,9 +835,11 @@ namespace engine
             ele = obj.getField( IXM_GLOBAL_OPTION_FIELD ) ;
             if ( Object != ele.type() )
             {
-               PD_LOG( PDERROR, "Invalid field(%s) of index(%s)",
-                       IXM_GLOBAL_OPTION_FIELD, obj.toString().c_str() ) ;
-               return FALSE ;
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR,
+                           "The type of field[%s] in index definition is "
+                           "invalid: %d", IXM_GLOBAL_OPTION_FIELD, ele.type() ) ;
+               goto error ;
             }
 
             globalOptions = ele.embeddedObject() ;
@@ -753,10 +847,11 @@ namespace engine
             ele = globalOptions.getField( FIELD_NAME_CL_UNIQUEID ) ;
             if ( NumberLong != ele.type() )
             {
-               PD_LOG( PDERROR, "Invalid field(%s) of options(%s)",
-                       FIELD_NAME_CL_UNIQUEID,
-                       globalOptions.toString().c_str() ) ;
-               return FALSE ;
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR,
+                           "The type of field[%s] in index definition is "
+                           "invalid: %d", FIELD_NAME_CL_UNIQUEID, ele.type() ) ;
+               goto error ;
             }
 
             fieldCount++ ;
@@ -769,20 +864,32 @@ namespace engine
          {
             fieldCount ++ ;
          }
-//         return fieldCount == obj.nFields() ;
+         if ( obj.hasField( IXM_STANDALONE_FIELD ) )
+         {
+            fieldCount++ ;
+         }
+
          // make sure no other fields, unless it is a geo index.
          if ( fieldCount != obj.nFields() )
          {
-            return FALSE ;
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR,
+                        "Index definition has unrecognized field" ) ;
+            goto error ;
          }
 
          if ( !isUniq && enforced )
          {
-            PD_LOG( PDERROR, "should not specify \"enforced\" as true in an"
-                    " non-unique index" ) ;
-            return FALSE ;
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Can't specify \"enforced\" as true in an"
+                        " non-unique index" ) ;
+            goto error ;
          }
-         return TRUE ;
+
+      done:
+         return rc ;
+      error:
+         goto done ;
       }
 
       // get the uniqueness
@@ -844,6 +951,39 @@ namespace engine
 
          return _indexCLName ;
       }
+
+      utilIdxUniqueID getUniqueID() const
+      {
+         SDB_ASSERT ( _isInitialized,
+                      "index details must be initialized first" ) ;
+         if( !UNIQUEID_IS_INITED() )
+         {
+            try
+            {
+               BSONElement ele = _infoObj.getField( IXM_UNIQUEID_FIELD ) ;
+               if ( ele.isNumber() )
+               {
+                  _idxUniqID = (utilIdxUniqueID)ele.numberLong() ;
+                  SET_UNIQUEID_INITED() ;
+               }
+               else if ( !ele.eoo() )
+               {
+                  PD_LOG( PDERROR,
+                          "Invalid field[%s] type[%d] from index obj[%s]",
+                          IXM_UNIQUEID_FIELD, ele.type(),
+                          _infoObj.toString().c_str() ) ;
+               }
+            }
+            catch( std::exception &e )
+            {
+               PD_LOG( PDERROR, "Unable to extract index unqiue id from "
+                       "index pattern: %s", e.what() ) ;
+            }
+         }
+         return _idxUniqID ;
+      }
+
+      INT32 changeUniqueID( utilIdxUniqueID uniqueID ) ;
 
       // get enforcement
       BOOLEAN enforced() const
@@ -911,6 +1051,14 @@ namespace engine
             SET_NOTARRY_INITED() ;
          }
          return _notArray ;
+      }
+
+      BOOLEAN standalone() const
+      {
+         SDB_ASSERT ( _isInitialized,
+                      "index details must be initialized first" ) ;
+         return ( getUniqueID() != UTIL_UNIQUEID_NULL &&
+                  utilIsStandaloneIdx( getUniqueID() ) ) ;
       }
 
       /** return true if dropDups was set when building index (if any
@@ -1008,7 +1156,8 @@ namespace engine
          return curOID == oid ;
       }
 
-      INT32 truncate ( BOOLEAN removeRoot, UINT16 indexFlag ) ;
+      INT32 truncate ( BOOLEAN removeRoot, UINT16 indexFlag,
+                       UINT64 *pDelKeyCnt = NULL ) ;
 
       BOOLEAN isSameDef( const BSONObj &defObj,
                          BOOLEAN strict = FALSE ) const ;
@@ -1064,6 +1213,7 @@ namespace engine
    typedef class _ixmIndexCB ixmIndexCB ;
 
    bson::BSONObj ixmGetIDIndexDefine () ;
+   bson::BSONObj ixmGetIDIndexDefine( UINT64 idxUniqueID ) ;
 }
 
 #endif /* IXM_HPP_ */

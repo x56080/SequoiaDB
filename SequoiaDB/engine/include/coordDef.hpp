@@ -328,12 +328,7 @@ namespace engine
          return _catlogSet.findLobSubCLNamesByMatcher( matcher, subCLList ) ;
       }
 
-      INT32 getGlobalIndexes( CLS_GINDEX_LIST &globalIndexes )
-      {
-         return _catlogSet.getGlobalIndexes( globalIndexes ) ;
-      }
-
-      INT64 getDataSourceID() const
+      UINT32 getDataSourceID() const
       {
          return _catlogSet.getDataSourceID() ;
       }

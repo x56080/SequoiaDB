@@ -157,8 +157,6 @@ namespace engine
          }
       }
 
-      PD_LOG( PDDEBUG, "GTS active msg job: %d, msg num: %d", _activeJobNum, msgNum ) ;
-
       PD_TRACE_EXIT( SDB_GTS_MSG_HANDLER_CHECK_LOAD ) ;
    }
 

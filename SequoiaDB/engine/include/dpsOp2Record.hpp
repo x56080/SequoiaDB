@@ -269,6 +269,7 @@ namespace engine
                           const UINT32 &attribute,
                           const UINT8 &compressorType,
                           const BSONObj *extOptions,
+                          const BSONObj *idIdxDef,
                           dpsLogRecord &record ) ;
 
    INT32 dpsRecord2CLCrt( const CHAR *logRecord,
@@ -276,7 +277,8 @@ namespace engine
                           utilCLUniqueID &clUniqueID,
                           UINT32 &attribute,
                           UINT8 &compressorType,
-                          BSONObj &extOptions ) ;
+                          BSONObj &extOptions,
+                          BSONObj &idIdxDef ) ;
 
    INT32 dpsCLDel2Record( const CHAR *fullName,
                           dpsLogRecord &record ) ;
@@ -286,19 +288,23 @@ namespace engine
 
    INT32 dpsIXCrt2Record( const CHAR *fullName,
                           const BSONObj &index,
+                          const BSONObj &option,
                           dpsLogRecord &record ) ;
 
    INT32 dpsRecord2IXCrt( const CHAR *logRecord,
                           const CHAR **fullName,
-                          BSONObj &index ) ;
+                          BSONObj &index,
+                          BSONObj &option ) ;
 
    INT32 dpsIXDel2Record( const CHAR *fullName,
                           const BSONObj &index,
+                          const BSONObj &option,
                           dpsLogRecord &record ) ;
 
    INT32 dpsRecord2IXDel( const CHAR *logRecord,
                           const CHAR **fullName,
-                          BSONObj &index ) ;
+                          BSONObj &index,
+                          BSONObj &option ) ;
 
    INT32 dpsCLRename2Record( const CHAR *csName,
                              const CHAR *clOldName,

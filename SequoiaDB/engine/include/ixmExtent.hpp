@@ -409,7 +409,8 @@ namespace engine
                      ixmIndexCB *indexCB,
                      utilWriteResult *pResult = NULL ) ;
       // wipe out everything in the extent and all child extents
-      void truncate ( ixmIndexCB *indexCB, dmsExtentID parent, BOOLEAN &valid) ;
+      void truncate ( ixmIndexCB *indexCB, dmsExtentID parent, BOOLEAN &valid,
+                      UINT64 *pDelKeyCnt = NULL ) ;
       // get the total number of elements in the index node and all children
       UINT64 count() const ;
 

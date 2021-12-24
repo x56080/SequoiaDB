@@ -56,6 +56,7 @@
 #include "coordRemoteSession.hpp"
 #include "pmdController.hpp"
 #include "clsResourceContainer.hpp"
+#include "clsIndexJob.hpp"
 
 using namespace bson ;
 
@@ -66,7 +67,6 @@ namespace engine
    #define MAX_SHD_SESSION_CATCH_DEQ_SIZE          (1000)
 
    #define CLS_WAIT_CB_ATTACH_TIMEOUT              ( 300 * OSS_ONE_SEC )
-
 
    /*
       _clsShardSessionMgr implement
@@ -547,7 +547,7 @@ namespace engine
     _shardServiceID ( MSG_ROUTE_SHARD_SERVCIE ),
     _replServiceID ( MSG_ROUTE_REPL_SERVICE ),
     _taskMgr( 0x7FFFFFFF ),
-    _taskID ( 0 ),
+    _requestID ( 0 ),
      _regTimerID ( CLS_INVALID_TIMERID ),
     _regFailedTimes( 0 ),
     _oneSecTimerID ( CLS_INVALID_TIMERID )
@@ -1221,9 +1221,7 @@ namespace engine
             }
 
             // start query task
-            BSONObj match = BSON ( CAT_TARGETID_NAME <<
-                                   _selfNodeID.columns.groupID ) ;
-            startTaskCheck( match ) ;
+            startAllTaskCheck() ;
          }
          else
          {
@@ -1291,6 +1289,10 @@ namespace engine
    _clsTaskMgr* _clsMgr::getTaskMgr()
    {
       return &_taskMgr ;
+   }
+   ossEvent* _clsMgr::getTaskEvent()
+   {
+      return &_taskEvent ;
    }
    BOOLEAN _clsMgr::isPrimary ()
    {
@@ -1520,6 +1522,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR_STARTINSN, "_clsMgr::startInnerSession" )
    INT32 _clsMgr::startInnerSession ( INT32 type, INT32 innerTID, void *data )
    {
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSMGR_STARTINSN );
       ossScopedLock lock ( &_clsLatch, EXCLUSIVE ) ;
 
@@ -1530,10 +1533,18 @@ namespace engine
       info.data = data ;
       info.sessionID = ossPack32To64 ( _selfNodeID.columns.nodeID, innerTID ) ;
 
-      _vecInnerSessionParam.push_back ( info ) ;
+      try
+      {
+         _vecInnerSessionParam.push_back ( info ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
 
       PD_TRACE_EXIT ( SDB__CLSMGR_STARTINSN );
-      return SDB_OK ;
+      return rc ;
    }
 
    // Start a background task check request
@@ -1551,9 +1562,134 @@ namespace engine
       else
       {
          ossScopedLock lock ( &_clsLatch, EXCLUSIVE ) ;
-         _mapTaskQuery[++_taskID] = match.copy() ;
+         try
+         {
+            BSONObjBuilder builder ;
+            builder.appendElements( match ) ;
+            // ignore finished task
+            builder.append( FIELD_NAME_STATUS,
+                            BSON( "$ne" << CLS_TASK_STATUS_FINISH ) ) ;
+            // ignore main task, because main task is logical task
+            builder.append( FIELD_NAME_IS_MAINTASK,
+                            BSON( "$exists" << 0 ) ) ;
+            _mapTaskQuery[++_requestID] = builder.obj() ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+         }
       }
       PD_TRACE_EXIT ( SDB__CLSMGR_STARTTSKCHK );
+      return rc ;
+   }
+
+   INT32 _clsMgr::startTaskCheck( UINT64 taskID, BOOLEAN isMainTask )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+         // group name
+         BSONArrayBuilder arrBuilder( builder.subarrayStart( "$or" ) ) ;
+         arrBuilder << BSON( FIELD_NAME_GROUPS "." FIELD_NAME_GROUPNAME <<
+                             pmdGetKRCB()->getGroupName() ) ;
+         arrBuilder << BSON( FIELD_NAME_TARGETID <<
+                             _selfNodeID.columns.groupID ) ;
+         arrBuilder.done() ;
+         // task id
+         if ( isMainTask )
+         {
+            builder.append( FIELD_NAME_MAIN_TASKID, (INT64)taskID ) ;
+         }
+         else
+         {
+            builder.append( FIELD_NAME_TASKID, (INT64)taskID ) ;
+         }
+
+         rc = startTaskCheck( builder.done() ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+      }
+
+      return rc ;
+   }
+
+   INT32 _clsMgr::startIdxTaskCheck( UINT64 taskID, BOOLEAN isMainTask )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+         if ( isMainTask )
+         {
+            builder.append( FIELD_NAME_MAIN_TASKID, (INT64)taskID ) ;
+         }
+         else
+         {
+            builder.append( FIELD_NAME_TASKID, (INT64)taskID ) ;
+         }
+         builder.append( FIELD_NAME_GROUPS "." FIELD_NAME_GROUPNAME,
+                         pmdGetKRCB()->getGroupName() ) ;
+
+         rc = startTaskCheck( builder.done() ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+      }
+
+      return rc ;
+   }
+
+   INT32 _clsMgr::startIdxTaskCheckByCL( utilCLUniqueID clUniqID )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+         builder.append( FIELD_NAME_UNIQUEID, (INT64)clUniqID ) ;
+         builder.append( FIELD_NAME_GROUPS "." FIELD_NAME_GROUPNAME,
+                         pmdGetKRCB()->getGroupName() ) ;
+
+         rc = startTaskCheck( builder.done() ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+      }
+
+      return rc ;
+   }
+
+   INT32 _clsMgr::startAllTaskCheck()
+   {
+      // pull all tasks related to this node from catalog
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObj match1 = BSON( CAT_TARGETID_NAME <<
+                                _selfNodeID.columns.groupID ) ;
+         BSONObj match2 = BSON( FIELD_NAME_GROUPS "." FIELD_NAME_GROUPNAME <<
+                                pmdGetKRCB()->getGroupName() ) ;
+
+         rc = startTaskCheck( BSON( "$or" << BSON_ARRAY( match1 << match2 ) ) ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
       return rc ;
    }
 
@@ -1570,9 +1706,21 @@ namespace engine
 
    INT32 _clsMgr::addTask( UINT64 taskID, UINT32 locationID )
    {
+      INT32 rc = SDB_OK ;
+
       ossScopedLock lock ( &_clsLatch, EXCLUSIVE ) ;
-      _mapTaskID[ taskID ] = locationID ;
-      return SDB_OK ;
+
+      try
+      {
+         _mapTaskID[ taskID ] = locationID ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+      }
+
+      return rc ;
    }
 
    // remove the task from local
@@ -1739,98 +1887,363 @@ namespace engine
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR__ADDTSKINSN, "_clsMgr::_addTaskInnerSession" )
-   INT32 _clsMgr::_addTaskInnerSession ( const CHAR * objdata )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR_STARTTSKTH, "_clsMgr::startTaskThread" )
+   INT32 _clsMgr::startTaskThread ( const BSONObj &taskObj, UINT64 &taskID )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__CLSMGR__ADDTSKINSN );
-      INT32 jobType = CLS_TASK_UNKNOWN ;
-      _clsSplitTask *pTask = NULL ;
+      PD_TRACE_ENTRY ( SDB__CLSMGR_STARTTSKTH ) ;
+
+      _clsTask *pTask = NULL ;
+      BOOLEAN alreadyExist = FALSE ;
       UINT32 locationID = CLS_INVALID_LOCATIONID ;
-      INT32 type = CLS_SHARD ;
-      UINT64 taskID = CLS_INVALID_TASKID ;
+      BOOLEAN addTaskDone1 = FALSE ;
+      BOOLEAN addTaskDone2 = FALSE ;
 
-      try
-      {
-         BSONObj resultObj ( objdata ) ;
-         BSONElement ele = resultObj.getField( CAT_TASKTYPE_NAME ) ;
-         PD_CHECK ( ele.type() == NumberInt, SDB_INVALIDARG, error, PDERROR,
-                    "Field[%s] invalid in task[%s]", CAT_TASKTYPE_NAME,
-                    resultObj.toString().c_str() ) ;
-         jobType = ele.numberInt () ;
+      // new clsTask
+      rc = clsNewTask( taskObj, pTask ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to new task, rc: %d",
+                   rc ) ;
+      taskID = pTask->taskID() ;
 
-         rc = rtnGetNumberLongElement( resultObj, FIELD_NAME_TASKID,
-                                       (INT64&) taskID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Field[%s] invalid in task[%s]",
-                      FIELD_NAME_TASKID, resultObj.toString().c_str() ) ;
-      }
-      catch ( std::exception &e )
+      if ( CLS_TASK_STATUS_FINISH == pTask->status() )
       {
-         PD_LOG ( PDERROR, "addTaskInnerSession exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
+         PD_LOG( PDINFO,
+                 "Task[%llu] has been finished, do not start thread",
+                 taskID ) ;
+         goto done ;
       }
 
-      switch ( jobType )
+      // add to clsTaskMgr and clsMgr
+      locationID = _taskMgr.getLocationID() ;
+
+      rc = _taskMgr.addTask( pTask, locationID, &alreadyExist ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to add task[%llu] to manager, location ID: %u, "
+                   "rc: %d", taskID, locationID, rc ) ;
+      addTaskDone1 = TRUE ;
+
+      PD_CHECK( !alreadyExist, SDB_CLS_MUTEX_TASK_EXIST, error, PDERROR,
+                "Failed to add task[%llu] to manager, location ID: %u, rc: %d",
+                taskID, locationID, rc ) ;
+
+      rc = addTask( taskID, locationID ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to add task[%llu] to map, location ID: %u, rc: %d",
+                   taskID, locationID, rc ) ;
+      addTaskDone2 = TRUE ;
+
+      // start session
+      switch ( pTask->taskType() )
       {
          case CLS_TASK_SPLIT :
-            // memory will be freed in clsTaskMgr destructor
-            pTask = SDB_OSS_NEW _clsSplitTask ( taskID ) ;
-            type = CLS_SHARD ;
+         {
+            rc = startInnerSession ( CLS_SHARD, locationID, (void *)pTask ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to start inner session for task[%llu], rc: %d",
+                         taskID, rc ) ;
             break ;
+         }
+         case CLS_TASK_CREATE_IDX :
+         {
+            rc = clsStartIndexJob( RTN_JOB_CREATE_INDEX, locationID,
+                                   (clsIdxTask*)pTask ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to start index job for task[%llu], rc: %d",
+                         taskID, rc ) ;
+            break ;
+         }
+         case CLS_TASK_DROP_IDX :
+         {
+            rc = clsStartIndexJob( RTN_JOB_DROP_INDEX, locationID,
+                                   (clsIdxTask*)pTask ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to start index job for task[%llu], rc: %d",
+                         taskID, rc ) ;
+            break ;
+         }
          default :
-            PD_LOG ( PDERROR, "Unknow job type[%d]", jobType ) ;
-            rc = SDB_INVALIDARG ;
+         {
+            PD_CHECK( FALSE, SDB_SYS, error, PDERROR,
+                      "Unknown task type[%d]", pTask->taskType() ) ;
             break ;
+         }
       }
 
-      if ( SDB_OK == rc && !pTask )
-      {
-         PD_LOG ( PDERROR, "Failed to alloc memory for task[type:%d]",
-                  jobType ) ;
-         rc = SDB_OOM ;
-         goto error ;
-      }
-      else if ( !pTask )
-      {
-         goto error ;
-      }
-
-      rc = pTask->init( objdata ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG ( PDERROR, "Init task failed[rc:%d]", rc ) ;
-         goto error ;
-      }
-
-      //add to taskMgr, the task will delete in taskMgr whether suc or failed
-      locationID = _taskMgr.getLocationID() ;
-      rc = _taskMgr.addTask( pTask, locationID ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG ( PDERROR, "Failed to add task, rc = %d", rc ) ;
-         pTask = NULL ;
-         goto error ;
-      }
-
-      addTask( pTask->taskID(), locationID ) ;
-
-      //start inner session
-      rc = startInnerSession ( type, locationID, (void *)pTask ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to start inner session, rc = %d",
-                  rc ) ;
-         pTask = NULL ;
-         goto error ;
-      }
    done:
-      PD_TRACE_EXITRC ( SDB__CLSMGR__ADDTSKINSN, rc );
+      PD_TRACE_EXITRC ( SDB__CLSMGR_STARTTSKTH, rc );
       return rc ;
    error:
-      if ( pTask )
       {
-         SDB_OSS_DEL pTask ;
+         if ( addTaskDone2 )
+         {
+            removeTask( taskID ) ;
+         }
+         BOOLEAN hasReleased = FALSE ;
+         if ( addTaskDone1 )
+         {
+            _taskMgr.removeTask( locationID, &hasReleased ) ;
+         }
+         if ( pTask && FALSE == hasReleased )
+         {
+            clsReleaseTask( pTask ) ;
+         }
+      }
+      goto done ;
+   }
+
+   BOOLEAN _clsMgr::_findAndCheckTaskStatus( UINT64 taskID,
+                                             dmsTaskStatusPtr &statusPtr,
+                                             BOOLEAN &needRollback )
+   {
+      dmsTaskStatusMgr *pStatMgr = sdbGetRTNCB()->getTaskStatusMgr() ;
+      needRollback = FALSE ;
+
+      BOOLEAN foundOut = pStatMgr->findItem( taskID, statusPtr ) ;
+      if ( foundOut )
+      {
+         if ( DMS_TASK_STATUS_ROLLBACK == statusPtr->status() ||
+              DMS_TASK_STATUS_CANCELED == statusPtr->status() )
+         {
+            needRollback = FALSE ;
+         }
+         else if ( DMS_TASK_STATUS_FINISH == statusPtr->status() )
+         {
+            // If resultCode is OK, it need rollback
+            if ( SDB_OK == statusPtr->resultCode() )
+            {
+               needRollback = TRUE ;
+            }
+            else
+            {
+               needRollback = FALSE ;
+            }
+         }
+         else if ( DMS_TASK_STATUS_RUN   == statusPtr->status() ||
+                   DMS_TASK_STATUS_READY == statusPtr->status() )
+         {
+            // If local task is ready, maybe group status of catalog task is
+            // run, so we also need to rollback.
+            needRollback = TRUE ;
+         }
+         else
+         {
+            needRollback = FALSE ;
+         }
+      }
+
+      return foundOut ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR_STRBTH, "_clsMgr::startRollbackTaskThread" )
+   INT32 _clsMgr::startRollbackTaskThread ( UINT64 taskID,
+                                            BOOLEAN isCancel )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__CLSMGR_STRBTH );
+
+      CLS_TASK_TYPE taskType = CLS_TASK_UNKNOWN ;
+      _clsTask *pTask = NULL ;
+      BOOLEAN alreadyExist = FALSE ;
+      BSONObj taskObj ;
+      BOOLEAN addTaskDone = FALSE ;
+      UINT32 locationID = CLS_INVALID_LOCATIONID ;
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      BOOLEAN foundOut = FALSE ;
+      BOOLEAN needRollback = FALSE ;
+
+      PD_LOG( PDINFO, "Start rollback thread for task[%llu]", taskID ) ;
+
+      // find out idxTaskStatus
+      dmsTaskStatusPtr statusPtr ;
+      foundOut = _findAndCheckTaskStatus( taskID, statusPtr, needRollback ) ;
+      PD_CHECK( foundOut, SDB_SYS, error, PDERROR,
+                "Failed to find task status[%llu]", taskID ) ;
+      if ( !needRollback )
+      {
+         goto done ;
+      }
+
+      // we cann't rollback drop index, only can rollback create index
+      PD_CHECK( statusPtr->taskType() == DMS_TASK_CREATE_IDX,
+                SDB_SYS, error, PDERROR,
+                "Invalid task type[%d]", statusPtr->taskType() ) ;
+      taskType = CLS_TASK_DROP_IDX ;
+
+      {
+      dmsIdxTaskStatusPtr idxStatPtr =
+                     boost::dynamic_pointer_cast<dmsIdxTaskStatus>(statusPtr) ;
+      PD_CHECK( idxStatPtr, SDB_SYS, error, PDERROR,
+                "Failed to convert task status pointer" ) ;
+
+      // new task
+      while( !idxStatPtr->isInitialized() )
+      {
+         if ( cb && cb->isInterrupted() )
+         {
+            rc = SDB_APP_INTERRUPT ;
+            goto error ;
+         }
+         ossSleep( OSS_ONE_SEC ) ;
+      }
+      taskObj = idxStatPtr->toBSON() ;
+
+      rc = clsNewTask( taskType, taskObj, pTask ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to new task[type: %d], rc: %d",
+                   taskType, rc ) ;
+
+      // add to taskMgr, NOT need to add to _mapTaskID
+      locationID = idxStatPtr->locationID() ;
+
+      rc = _taskMgr.addTask( pTask, locationID, &alreadyExist ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to add task[%llu] to manager, location ID: %u, "
+                   "rc: %d", taskID, locationID, rc ) ;
+      addTaskDone = TRUE ;
+
+      if ( alreadyExist )
+      {
+         // pTask is NOT added to map, it is useless, so release it
+         clsReleaseTask( pTask ) ;
+      }
+
+      // start session
+      rc = clsStartRollbackIndexJob( RTN_JOB_DROP_INDEX, idxStatPtr, isCancel ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to start rollback thread[%s], rc: %d",
+                 taskObj.toString().c_str(), rc ) ;
+         goto error ;
+      }
+      PD_LOG( PDINFO, "Start rollback thread, taskID[%llu] taskObj[%s]",
+              taskID, taskObj.toString().c_str() ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB__CLSMGR_STRBTH, rc );
+      return rc ;
+   error:
+      {
+         BOOLEAN hasReleased = FALSE ;
+         if ( addTaskDone )
+         {
+            _taskMgr.removeTask( locationID, &hasReleased ) ;
+         }
+         if ( pTask && FALSE == hasReleased )
+         {
+            clsReleaseTask( pTask ) ;
+         }
+      }
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR_RESTRTH, "_clsMgr::restartTaskThread" )
+   INT32 _clsMgr::restartTaskThread ( UINT64 taskID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__CLSMGR_RESTRTH );
+
+      CLS_TASK_TYPE taskType = CLS_TASK_UNKNOWN ;
+      _clsTask *pTask = NULL ;
+      BOOLEAN alreadyExist = FALSE ;
+      BSONObj taskObj ;
+      BOOLEAN addTaskDone = FALSE ;
+      UINT32 locationID = CLS_INVALID_LOCATIONID ;
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      BOOLEAN foundOut = FALSE ;
+      dmsTaskStatusMgr *pStatMgr = sdbGetRTNCB()->getTaskStatusMgr() ;
+      RTN_JOB_TYPE jobType = RTN_JOB_MAX ;
+
+      PD_LOG( PDINFO, "Restart thread for task[%llu]", taskID ) ;
+
+      // find out idxTaskStatus
+      dmsTaskStatusPtr statusPtr ;
+      foundOut = pStatMgr->findItem( taskID, statusPtr ) ;
+      PD_CHECK( foundOut, SDB_SYS, error, PDERROR,
+                "Failed to find task status[%llu]", taskID ) ;
+
+      PD_CHECK( statusPtr->taskType() == DMS_TASK_CREATE_IDX ||
+                statusPtr->taskType() == DMS_TASK_DROP_IDX,
+                SDB_SYS, error, PDERROR,
+                "Invalid task type[%d]", statusPtr->taskType() ) ;
+
+      if ( DMS_TASK_CREATE_IDX == statusPtr->taskType() )
+      {
+         jobType = RTN_JOB_CREATE_INDEX ;
+         taskType = CLS_TASK_CREATE_IDX ;
+      }
+      else if ( DMS_TASK_DROP_IDX == statusPtr->taskType() )
+      {
+         jobType = RTN_JOB_DROP_INDEX ;
+         taskType = CLS_TASK_DROP_IDX ; ;
+      }
+
+      {
+      dmsIdxTaskStatusPtr idxStatPtr =
+                     boost::dynamic_pointer_cast<dmsIdxTaskStatus>(statusPtr) ;
+      PD_CHECK( idxStatPtr, SDB_SYS, error, PDERROR,
+                "Failed to convert task status pointer" ) ;
+
+      // new task
+      while( !idxStatPtr->isInitialized() )
+      {
+         if ( cb && cb->isInterrupted() )
+         {
+            rc = SDB_APP_INTERRUPT ;
+            goto error ;
+         }
+         ossSleep( OSS_ONE_SEC ) ;
+      }
+      taskObj = idxStatPtr->toBSON() ;
+
+      rc = clsNewTask( taskType, taskObj, pTask ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to new task[type: %d], rc: %d",
+                   taskType, rc ) ;
+
+      // add to taskMgr, NOT need to add to _mapTaskID
+      locationID = idxStatPtr->locationID() ;
+
+      rc = _taskMgr.addTask( pTask, locationID, &alreadyExist ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to add task[%llu] to manager, location ID: %u, "
+                   "rc: %d", taskID, locationID, rc ) ;
+      addTaskDone = TRUE ;
+
+      if ( alreadyExist )
+      {
+         // pTask is NOT added to map, it is useless, so release it
+         clsReleaseTask( pTask ) ;
+      }
+
+      // start session
+      rc = clsRestartIndexJob( jobType, idxStatPtr ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR,
+                 "Failed to restart thread for task[%llu], taskObj[%s], rc: %d",
+                 taskID, taskObj.toString().c_str(), rc ) ;
+         goto error ;
+      }
+      PD_LOG( PDINFO, "Restart thread for task[%llu], taskObj[%s]",
+              taskID, taskObj.toString().c_str() ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB__CLSMGR_RESTRTH, rc );
+      return rc ;
+   error:
+      {
+         BOOLEAN hasReleased = FALSE ;
+         if ( addTaskDone )
+         {
+            _taskMgr.removeTask( locationID, &hasReleased ) ;
+         }
+         if ( pTask && FALSE == hasReleased )
+         {
+            clsReleaseTask( pTask ) ;
+         }
       }
       goto done ;
    }
@@ -1959,8 +2372,9 @@ namespace engine
 
       // send msg
       rc = sendToCatlog( msg ) ;
-      PD_LOG ( PDDEBUG, "Send MSG_CAT_QUERY_TASK_REQ[%s] to catalog[rc:%d]",
-               match->toString().c_str(), rc ) ;
+      PD_LOG ( PDDEBUG,
+               "Send MSG_CAT_QUERY_TASK_REQ[%s] requestID[%llu] to catalog"
+               "[rc:%d]", match->toString().c_str(), requestID, rc ) ;
    done:
       if ( pBuff )
       {
@@ -2148,7 +2562,7 @@ namespace engine
                                         _selfNodeID.columns.groupID ) ;
                if ( 0 != queryAll.woCompare( it->second ) )
                {
-                  _mapTaskQuery[ ++_taskID ] = queryAll ;
+                  _mapTaskQuery[ ++_requestID ] = queryAll ;
                }
             }
          }
@@ -2189,17 +2603,15 @@ namespace engine
          PD_LOG ( PDINFO, "The query task[%lld] has %d jobs", msg->requestID,
                   numReturned ) ;
 
-         // add task inner session
+         // start task thread
+         for ( UINT32 i = 0 ; i < objList.size() ; i++ )
          {
-            UINT32 index = 0 ;
-            while ( index < objList.size() )
+            UINT64 taskID = CLS_INVALID_TASKID ;
+            rc = startTaskThread ( objList[i], taskID ) ;
+
+            if ( rc && SDB_CLS_MUTEX_TASK_EXIST != rc )
             {
-               rc = _addTaskInnerSession ( objList[index].objdata() ) ;
-               if ( rc && SDB_CLS_MUTEX_TASK_EXIST != rc )
-               {
-                  startTaskCheck( objList[index] ) ;
-               }
-               ++index ;
+               startTaskCheck( taskID ) ;
             }
          }
       }

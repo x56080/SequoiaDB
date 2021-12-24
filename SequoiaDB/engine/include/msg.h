@@ -171,20 +171,19 @@ enum MSG_TYPE
    MSG_CAT_SPLIT_READY_REQ             = 3108,
    MSG_CAT_SPLIT_READY_RSP             = MAKE_REPLY_TYPE(MSG_CAT_SPLIT_READY_REQ),
 
-   // split cancel request need 1 or more arguments
-   // by task id :
+   // task cancel request need 1 arguments
    // 1) CAT_TASKID_NAME for task id
-   // else :
-   // the same param with MSG_CAT_SPLIT_READY_REQ
-   MSG_CAT_SPLIT_CANCEL_REQ            = 3109,
-   MSG_CAT_SPLIT_CANCEL_RSP            = MAKE_REPLY_TYPE(MSG_CAT_SPLIT_CANCEL_REQ),
+   MSG_CAT_TASK_CANCEL_REQ             = 3109,
+   MSG_CAT_TASK_CANCEL_RSP             = MAKE_REPLY_TYPE(MSG_CAT_TASK_CANCEL_REQ),
 
-   // split start/chgmeta/cleanup/finish request need 2 arguments
+   // task start request need 1 arguments
+   // 1) CAT_TASKID_NAME for task id
+   MSG_CAT_TASK_START_REQ              = 3110,
+   MSG_CAT_TASK_START_REP              = MAKE_REPLY_TYPE(MSG_CAT_TASK_START_REQ),
+
+   // split chgmeta/cleanup/finish request need 2 arguments
    // 1) CAT_COLLECTION_NAME for collection string
    // 2) CAT_TASKID_NAME for target group name string
-   MSG_CAT_SPLIT_START_REQ             = 3110,
-   MSG_CAT_SPLIT_START_RSP             = MAKE_REPLY_TYPE(MSG_CAT_SPLIT_START_REQ),
-
    MSG_CAT_SPLIT_CHGMETA_REQ           = 3111,
    MSG_CAT_SPLIT_CHGMETA_RSP           = MAKE_REPLY_TYPE(MSG_CAT_SPLIT_CHGMETA_REQ),
 
@@ -234,6 +233,8 @@ enum MSG_TYPE
    // create index
    MSG_CAT_CREATE_IDX_REQ             = 3139,
    MSG_CAT_CREATE_IDX_RSP             = MAKE_REPLY_TYPE(MSG_CAT_CREATE_IDX_REQ),
+
+   // drop index
    MSG_CAT_DROP_IDX_REQ               = 3140,
    MSG_CAT_DROP_IDX_RSP               = MAKE_REPLY_TYPE(MSG_CAT_DROP_IDX_REQ),
 

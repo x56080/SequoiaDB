@@ -322,17 +322,24 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_DMSCHKINXNM );
-      INT32 indexLen = 0 ;
-      indexLen = ossStrlen ( indexName ) ;
-      if ( IXM_INDEX_NAME_SIZE < indexLen || 0 >= indexLen )
+      INT32 indexLen = ossStrlen ( indexName ) ;
+
+      if ( indexLen == 0 )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG ( PDERROR,
-                      "index name length is not valid: %s",
-                      indexName ) ;
+         PD_LOG_MSG ( PDERROR, "Index name can't be empty"  ) ;
 
          goto error ;
       }
+      if ( indexLen >= IXM_INDEX_NAME_SIZE )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG ( PDERROR, "The length of index name is too large: %d",
+                      indexLen ) ;
+         goto error ;
+      }
+
+      // only sys index can start with $
       if ( !sys && dmsIsSysIndexName(indexName) )
       {
          rc = SDB_INVALIDARG ;

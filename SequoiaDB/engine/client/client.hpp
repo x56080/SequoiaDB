@@ -474,7 +474,22 @@ namespace sdbclient
                                   INT32 sortBufferSize ) = 0 ;
       virtual INT32 createIndex ( const bson::BSONObj &indexDef,
                                   const CHAR *pName,
-                                  const bson::BSONObj &options ) = 0 ;
+                                  const bson::BSONObj &indexAttr = _sdbStaticObject,
+                                  const bson::BSONObj &option = _sdbStaticObject
+                                ) = 0 ;
+      virtual INT32 createIndexAsync ( SINT64 &taskID,
+                                       const bson::BSONObj &indexDef,
+                                       const CHAR *pName,
+                                       const bson::BSONObj &indexAttr = _sdbStaticObject,
+                                       const bson::BSONObj &option = _sdbStaticObject
+                                     ) = 0 ;
+      virtual INT32 snapshotIndexes ( _sdbCursor **cursor,
+                                      const bson::BSONObj &condition = _sdbStaticObject,
+                                      const bson::BSONObj &selector = _sdbStaticObject,
+                                      const bson::BSONObj &orderby = _sdbStaticObject,
+                                      const bson::BSONObj &hint = _sdbStaticObject,
+                                      INT64 numToSkip = 0,
+                                      INT64 numToReturn = -1 ) = 0 ;
       virtual INT32 getIndexes ( _sdbCursor **cursor,
                                  const CHAR *pName ) = 0 ;
       virtual INT32 getIndexes ( sdbCursor &cursor,
@@ -482,6 +497,13 @@ namespace sdbclient
       virtual INT32 getIndexes ( std::vector<bson::BSONObj> &infos ) = 0 ;
       virtual INT32 getIndex ( const CHAR *pIndexName, bson::BSONObj &info ) = 0 ;
       virtual INT32 dropIndex ( const CHAR *pIndexName ) = 0 ;
+      virtual INT32 dropIndexAsync ( SINT64 &taskID,
+                                     const CHAR *pIndexName ) = 0 ;
+      virtual INT32 copyIndex ( const CHAR *subClFullName,
+                                const CHAR *pIndexName ) = 0 ;
+      virtual INT32 copyIndexAsync ( SINT64 &taskID,
+                                     const CHAR *subClFullName,
+                                     const CHAR *pIndexName ) = 0 ;
       virtual INT32 create () = 0 ;
       virtual INT32 drop () = 0 ;
       virtual const CHAR *getCollectionName () = 0 ;
@@ -1529,31 +1551,111 @@ namespace sdbclient
 
       /** \fn INT32 createIndex ( const bson::BSONObj &indexDef,
                                   const CHAR *pIndexName,
+                                  const bson::BSONObj &indexAttr,
                                   const bson::BSONObj &options )
           \brief Create the index in current collection
           \param [in] indexDef The bson structure of index element, e.g. {name:1, age:-1}
           \param [in] pIndexName The index name
-          \param [in] options The options are as below:
+          \param [in] indexAttr The attributes are as below:
 
               Unique:    Whether the index elements are unique or not
               Enforced:  Whether the index is enforced unique.
                          This element is meaningful when Unique is true
               NotNull:   Any field of index key should exist and cannot be null when NotNull is true
+              NotArray:  Any field of index not support array when NotArray is true
+          \param [in] option The options are as below:
+
               SortBufferSize: The size of sort buffer used when creating index.
                               Unit is MB. Zero means don't use sort buffer
-              NotArray:  Any field of index not support array when NotArray is true
+              Other options:  Some of other options are as below: (please visit the official website to
+                              search "Location Elements" for more detail.)
+                              NodeID     :INT32,
+                              NodeName   :String,
+                              InstanceID :INT32,
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
       INT32 createIndex ( const bson::BSONObj &indexDef,
                           const CHAR *pIndexName,
-                          const bson::BSONObj &options )
+                          const bson::BSONObj &indexAttr = _sdbStaticObject,
+                          const bson::BSONObj &option = _sdbStaticObject )
+      {
+         if ( !pCollection )
+            return SDB_NOT_CONNECTED ;
+         return pCollection->createIndex ( indexDef, pIndexName,
+                                           indexAttr, option ) ;
+      }
+
+      /** \fn INT32 createIndexAsync ( SINT64 &taskID,
+                                       const bson::BSONObj &indexDef,
+                                       const CHAR *pIndexName,
+                                       const bson::BSONObj &indexAttr,
+                                       const bson::BSONObj &option )
+          \brief Create the index in current collection
+          \param [out] taskID The id of current task
+          \param [in] indexDef The bson structure of index element, e.g. {name:1, age:-1}
+          \param [in] pIndexName The index name
+          \param [in] indexAttr The attributes are as below:
+
+              Unique:    Whether the index elements are unique or not
+              Enforced:  Whether the index is enforced unique.
+                         This element is meaningful when Unique is true
+              NotNull:   Any field of index key should exist and cannot be null when NotNull is true
+          \param [in] option The options are as below:
+
+              SortBufferSize: The size of sort buffer used when creating index.
+                              Unit is MB. Zero means don't use sort buffer
+          \param [out] taskID The id of index task
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 createIndexAsync ( SINT64 &taskID,
+                               const bson::BSONObj &indexDef,
+                               const CHAR *pIndexName,
+                               const bson::BSONObj &indexAttr = _sdbStaticObject,
+                               const bson::BSONObj &option = _sdbStaticObject )
       {
          if ( !pCollection )
          {
             return SDB_NOT_CONNECTED ;
          }
-         return pCollection->createIndex ( indexDef, pIndexName, options ) ;
+         return pCollection->createIndexAsync ( taskID, indexDef, pIndexName,
+                                                indexAttr, option ) ;
+      }
+
+      /* \fn INT32 snapshotIndexes ( _sdbCursor **cursor,
+                                     const bson::BSONObj &condition = _sdbStaticObject,
+                                     const bson::BSONObj &selector = _sdbStaticObject,
+                                     const bson::BSONObj &orderby = _sdbStaticObject,
+                                     const bson::BSONObj &hint = _sdbStaticObject,
+                                     INT64 numToSkip = 0,
+                                     INT64 numToReturn = -1 )
+          \brief Snapshot all of or one of the indexes in current collection
+          \param [out] cursor The cursor of all the result for current query
+          \param [in] condition The matching rule, match all the documents if not provided.
+          \param [in] select The selective rule, return the whole document if not provided.
+          \param [in] orderBy The ordered rule, result set is unordered if not provided.
+          \param [in] hint The options provided for specific snapshot type
+          \param [in] numToSkip Skip the first numToSkip documents, default is 0
+          \param [in] numToReturn Only return numToReturn documents, default is -1 for returning all results
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 snapshotIndexes ( _sdbCursor **cursor,
+                              const bson::BSONObj &condition = _sdbStaticObject,
+                              const bson::BSONObj &selector = _sdbStaticObject,
+                              const bson::BSONObj &orderby = _sdbStaticObject,
+                              const bson::BSONObj &hint = _sdbStaticObject,
+                              INT64 numToSkip = 0,
+                              INT64 numToReturn = -1 )
+      {
+         if ( !pCollection )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pCollection->snapshotIndexes ( cursor, condition,
+                                               selector, orderby, hint,
+                                               numToSkip, numToReturn ) ;
       }
 
       /* \fn INT32 getIndexes ( _sdbCursor **cursor,
@@ -1638,6 +1740,55 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pCollection->dropIndex ( pIndexName ) ;
+      }
+
+      /** \fn INT32 dropIndexAsync ( SINT64 &taskID,
+                                     const CHAR *pIndexName )
+          \brief Drop the index in current collection
+          \param [out] taskID The id of current task
+          \param [in] pIndexName The index name
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 dropIndexAsync ( SINT64 &taskID, const CHAR *pIndexName )
+      {
+         if ( !pCollection )
+            return SDB_NOT_CONNECTED ;
+         return pCollection->dropIndexAsync ( taskID, pIndexName ) ;
+      }
+
+      /** \fn INT32 copyIndex ( const CHAR *subClFullName,
+                                const CHAR *pIndexName )
+          \brief copy indexes from main-collection to sub-collection
+          \param [in] subClFullName The sub-collection name
+          \param [in] pIndexName The index name
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 copyIndex ( const CHAR *subClFullName, const CHAR *pIndexName )
+      {
+         if ( !pCollection )
+            return SDB_NOT_CONNECTED ;
+         return pCollection->copyIndex ( subClFullName, pIndexName ) ;
+      }
+
+      /** \fn INT32 copyIndexAsync ( SINT64 &taskID,
+                                     const CHAR *subClFullName,
+                                     const CHAR *pIndexName )
+          \brief copy indexes from main-collection to sub-collection
+          \param [out] taskID The id of current task
+          \param [in] subClFullName The sub-collection name
+          \param [in] pIndexName The index name
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 copyIndexAsync ( SINT64 &taskID, const CHAR *subClFullName,
+                             const CHAR *pIndexName )
+      {
+         if ( !pCollection )
+            return SDB_NOT_CONNECTED ;
+         return pCollection->copyIndexAsync ( taskID, subClFullName,
+                                              pIndexName ) ;
       }
 
       /** \fn INT32 create ()
@@ -1821,7 +1972,7 @@ namespace sdbclient
       }
 
       /** \fn INT32 attachCollection ( const CHAR *subClFullName,
-                                            const bson::BSONObj &options)
+                                       const bson::BSONObj &options )
           \brief Attach the specified collection.
           \param [in] subClFullName The name of the subcollection
           \param [in] options Partition range
@@ -1834,7 +1985,7 @@ namespace sdbclient
           \retval Others Operation Fail
       */
       INT32 attachCollection ( const CHAR *subClFullName,
-                               const bson::BSONObj &options)
+                               const bson::BSONObj &options )
       {
          if ( !pCollection )
          {
@@ -1849,7 +2000,7 @@ namespace sdbclient
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
-      INT32 detachCollection ( const CHAR *subClFullName)
+      INT32 detachCollection ( const CHAR *subClFullName )
       {
          if ( !pCollection )
          {

@@ -273,6 +273,7 @@ namespace engine
       _rtnLocalTaskMgr     *_pLTMgr ;
 
       CHAR                 _clFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
+      CHAR                 _newCLFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
       CHAR                 _clShortName[ DMS_COLLECTION_NAME_SZ + 1 ] ;
       CHAR                 _newCLShortName[ DMS_COLLECTION_NAME_SZ + 1 ] ;
 

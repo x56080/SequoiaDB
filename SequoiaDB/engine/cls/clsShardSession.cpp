@@ -1751,18 +1751,21 @@ namespace engine
                                              const CHAR *pParent,
                                              BOOLEAN mustOnSelf )
    {
-      INT32 rc                = SDB_OK ;
-      UINT32 attribute        = 0 ;
-      BOOLEAN isMainCL        = FALSE;
-      UINT32 groupCount       = 0 ;
-      BSONObj shardingKey ;
-      CLS_SUBCL_LIST subCLList ;
-      utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
+      INT32 rc                      = SDB_OK ;
+      UINT32 attribute              = 0 ;
+      BOOLEAN isMainCL              = FALSE;
+      UINT32 groupCount             = 0 ;
+      utilCLUniqueID clUniqueID     = UTIL_UNIQUEID_NULL ;
       UTIL_COMPRESSOR_TYPE compType = UTIL_COMPRESSOR_INVALID ;
+      BOOLEAN createNewCL           = FALSE ;
+      BSONObj idIdxDef ;
+      CLS_SUBCL_LIST subCLList ;
       BSONObj extOptions ;
       BSONObjBuilder builder ;
+      ossPoolVector<BSONObj> indexList ;
+      ossPoolVector<BSONObj>::iterator itIdx ;
 
-      /// get sharding key
+      /// update collection's catalog info
    retry:
       _pCatAgent->lock_r() ;
       clsCatalogSet *set = _pCatAgent->collectionSet( clFullName ) ;
@@ -1782,11 +1785,6 @@ namespace engine
                     clFullName, rc ) ;
             goto error ;
          }
-      }
-
-      if ( set->isSharding() && set->ensureShardingIndex() )
-      {
-         shardingKey = set->getShardingKey().getOwned() ;
       }
 
       attribute = set->getAttribute() ;
@@ -1809,6 +1807,30 @@ namespace engine
 
       _pCatAgent->release_r() ;
 
+      /// update collection's index info
+      if ( !isMainCL )
+      {
+         rc = _getIndexInfoFromCatalog( clUniqueID, indexList ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR,
+                    "Failed to get collection[%llu]'s index info, rc: %d",
+                    clUniqueID, rc ) ;
+            goto error ;
+         }
+
+         for( itIdx = indexList.begin() ; itIdx != indexList.end() ; itIdx++ )
+         {
+            if ( 0 == ossStrcmp( itIdx->getStringField( IXM_FIELD_NAME_NAME ),
+                                 IXM_ID_KEY_NAME ) )
+            {
+               idIdxDef = *itIdx ;
+               break ;
+            }
+         }
+      }
+
+      /// create collection
       if ( isMainCL )
       {
          CLS_SUBCL_LIST_IT iter = subCLList.begin() ;
@@ -1843,9 +1865,10 @@ namespace engine
             goto error ;
          }
 
-         rc = rtnCreateCollectionCommand( clFullName, shardingKey, attribute,
+         rc = rtnCreateCollectionCommand( clFullName, attribute,
                                           _pEDUCB, _pDmsCB, _pDpsCB, clUniqueID,
-                                          compType, 0, FALSE, &extOptions ) ;
+                                          compType, 0, FALSE, &extOptions,
+                                          &idIdxDef ) ;
          if ( SDB_DMS_EXIST == rc )
          {
             rc = SDB_OK ;
@@ -1886,6 +1909,7 @@ namespace engine
          }
          else
          {
+            createNewCL = TRUE ;
             if ( NULL == pParent )
             {
                PD_LOG( PDEVENT, "Session[%s]: Create collection[%s] by "
@@ -1900,7 +1924,132 @@ namespace engine
          }
       }
 
+      /// create index, except $id index
+      if ( !createNewCL )
+      {
+         goto done ;
+      }
+
+      for( itIdx = indexList.begin() ; itIdx != indexList.end() ; itIdx++ )
+      {
+         const CHAR* idxName = itIdx->getStringField( IXM_FIELD_NAME_NAME ) ;
+
+         if ( 0 == ossStrcmp( idxName, IXM_ID_KEY_NAME ) )
+         {
+            // $id index already created when creating collection
+            continue ;
+         }
+
+         rc = rtnCreateIndexCommand( clUniqueID, *itIdx,
+                                     _pEDUCB, _pDmsCB, _pDpsCB, TRUE ) ;
+         if ( SDB_IXM_REDEF == rc )
+         {
+            rc = SDB_OK ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDERROR, "Create index[%s] for collection[%s] failed, "
+                    "rc: %d", idxName, clFullName, rc ) ;
+            if ( SDB_DMS_CS_NOTEXIST == rc || SDB_DMS_NOTEXIST == rc )
+            {
+               // The collection has been recreated, just skip creating indexes
+               break ;
+            }
+         }
+         else
+         {
+            PD_LOG( PDEVENT, "Create index[%s] for collection[%s] by catalog "
+                    "succeed", idxName, clFullName ) ;
+         }
+      }
+
    done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsShdSession::_getIndexInfoFromCatalog( utilCLUniqueID clUniqID,
+                                                   ossPoolVector<BSONObj> &indexInfo )
+   {
+      INT32 rc = SDB_OK ;
+      IRemoteOperator *pRemoteOpr = NULL ;
+      INT64 contextID = -1 ;
+      BSONObj matcher, dummyObj ;
+
+      // get & set index's unique id
+      rc = _pEDUCB->getOrCreateRemoteOperator( &pRemoteOpr ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get remote operator, rc: %d",
+                   rc ) ;
+
+      try
+      {
+         matcher = BSON( FIELD_NAME_CL_UNIQUEID << (INT64)clUniqID ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+      rc = pRemoteOpr->list( contextID,
+                             CMD_ADMIN_PREFIX CMD_NAME_LIST_INDEXES,
+                             matcher, dummyObj, dummyObj, dummyObj ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to snapshot index by remote operator, rc: %d",
+                   rc ) ;
+
+      if ( contextID == -1 )
+      {
+         goto done ;
+      }
+
+      while ( TRUE )
+      {
+         rtnContextBuf buf ;
+         rc = rtnGetMore( contextID, -1, buf, _pEDUCB, _pRtnCB ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            contextID = -1 ;
+            rc = SDB_OK ;
+            break ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to get more, rc: %d", rc ) ;
+
+         while ( !buf.eof() )
+         {
+            BSONObj obj ;
+            try
+            {
+               rc = buf.nextObj( obj ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to get obj from obj buf, rc: %d", rc ) ;
+
+               BSONObj def = obj.getObjectField( IXM_FIELD_NAME_INDEX_DEF ) ;
+               if ( def.isEmpty() )
+               {
+                  PD_LOG( PDWARNING, "Invalid index info[%s]",
+                          obj.toString().c_str() ) ;
+               }
+               else
+               {
+                  indexInfo.push_back( def.getOwned() ) ;
+               }
+            }
+            catch( std::exception &e )
+            {
+               rc = ossException2RC( &e ) ;
+               PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+            }
+         }
+      }
+
+   done:
+      if ( contextID != -1 )
+      {
+         rtnKillContexts( 1, &contextID, _pEDUCB, _pRtnCB ) ;
+      }
       return rc ;
    error:
       goto done ;
@@ -2900,22 +3049,11 @@ namespace engine
          if ( CMD_LOAD_COLLECTIONSPACE == pCommand->type() )
          {
             _rtnLoadCollectionSpace *pLoadcs = (_rtnLoadCollectionSpace*)pCommand ;
-            utilCSUniqueID csUniqueID = UTIL_UNIQUEID_NULL ;
-            BSONObj clInfoObj ;
 
-            rc = _pShdMgr->rGetCSInfo( pLoadcs->spaceName(), csUniqueID,
-                                       NULL, NULL, NULL, &clInfoObj ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDERROR, "Session[%s]: Get collection space[%s] unique "
-                       "id from catalog failed, rc: %d", sessionName(),
-                       pLoadcs->spaceName(), rc ) ;
-               goto error ;
-            }
-
-            pLoadcs = (_rtnLoadCollectionSpace*)pCommand ;
-            pLoadcs->setCSUniqueID( csUniqueID ) ;
-            pLoadcs->setCLInfo( clInfoObj ) ;
+            rc = _getCSInfoWhenLoadCS( pLoadcs ) ;
+            PD_RC_CHECK( rc, PDERROR, "Session[%s]: Get collection space[%s] "
+                         "information from catalog failed, rc: %d",
+                         sessionName(), pLoadcs->spaceName(), rc ) ;
          }
 
          PD_LOG ( PDDEBUG, "Command: %s", pCommand->name () ) ;
@@ -3017,6 +3155,90 @@ namespace engine
          rtnReleaseCommand( &pCommand ) ;
       }
       PD_TRACE_EXITRC ( SDB__CLSSHDSESS__ONQYREQMSG, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsShdSession::_getCSInfoWhenLoadCS( _rtnLoadCollectionSpace* pCommand )
+   {
+      SDB_ASSERT( pCommand, "command can't be null" ) ;
+
+      INT32 rc = SDB_OK ;
+      utilCSUniqueID csUniqueID = UTIL_UNIQUEID_NULL ;
+      IRemoteOperator *pRemoteOpr = NULL ;
+      INT64 contextID = -1 ;
+      BSONObj clInfoObj ;
+      ossPoolVector<BSONObj>& indexVec = pCommand->getIndexVector() ;
+
+      // get & set collection space and collection's unique id
+      rc = _pShdMgr->rGetCSInfo( pCommand->spaceName(), csUniqueID,
+                                 NULL, NULL, NULL, &clInfoObj ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get collection space[%s] unique id from catalog, "
+                   "rc: %d", pCommand->spaceName(), rc ) ;
+
+      rc = pCommand->setUniqueID( csUniqueID, clInfoObj ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to set uniqueid for loadCS command, rc: %d",
+                   pCommand->spaceName(), rc ) ;
+
+      // get & set index's unique id
+      rc = _pEDUCB->getOrCreateRemoteOperator( &pRemoteOpr ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get remote operator, rc: %d",
+                   rc ) ;
+
+      rc = pRemoteOpr->listCSIndexes( contextID, csUniqueID ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to snapshot index by remote operator, rc: %d",
+                   rc ) ;
+
+      if ( contextID == -1 )
+      {
+         goto done ;
+      }
+
+      while ( TRUE )
+      {
+         rtnContextBuf buf ;
+         rc = rtnGetMore( contextID, -1, buf, _pEDUCB, _pRtnCB ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            contextID = -1 ;
+            rc = SDB_OK ;
+            break ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to get more, rc: %d", rc ) ;
+            goto error ;
+         }
+
+         while ( !buf.eof() )
+         {
+            BSONObj obj ;
+            try
+            {
+               rc = buf.nextObj( obj ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to get obj from obj buf, rc: %d", rc ) ;
+
+               indexVec.push_back( obj.getOwned() ) ;
+            }
+            catch( std::exception &e )
+            {
+               rc = ossException2RC( &e ) ;
+               PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+            }
+         }
+      }
+
+   done:
+      if ( contextID != -1 )
+      {
+         rtnKillContexts( 1, &contextID, _pEDUCB, _pRtnCB ) ;
+      }
       return rc ;
    error:
       goto done ;
@@ -4765,56 +4987,66 @@ namespace engine
    {
       INT32 rc = SDB_OK;
       BOOLEAN writable = FALSE ;
-      SDB_ASSERT( pCommandName && pCommand, "pCommand can't be null!" );
+      SDB_ASSERT( pCommandName && pCommand, "pCommand can't be null!" ) ;
       switch( pCommand->type() )
       {
       case CMD_GET_COUNT:
-      case CMD_GET_INDEXES:
       case CMD_LIST_LOB:
       case CMD_GET_CL_DETAIL:
       case CMD_GET_INDEX_STAT:
+      case CMD_SNAPSHOT_INDEXES :
          rc = _getOnMainCL( pCommandName, pCommand->collectionFullName(),
                             flags, numToSkip, numToReturn, pQuery, pField,
-                            pOrderBy, pHint, w, contextID );
-         break;
+                            pOrderBy, pHint, w, contextID ) ;
+         break ;
 
       case CMD_CREATE_INDEX:
          writable = TRUE ;
          rc = _createIndexOnMainCL( pCommandName,
                                     pCommand->collectionFullName(),
-                                    pQuery, pHint, w, contextID, FALSE,
-                                    pBuilder );
-         break;
+                                    pQuery, pHint, w, pBuilder ) ;
+         break ;
+
+      case CMD_COPY_INDEX:
+         writable = TRUE ;
+         rc = _copyIndexOnMainCL( pCommandName,
+                                  pCommand->collectionFullName(),
+                                  pQuery, pHint, w ) ;
+         break ;
 
       case CMD_ALTER_COLLECTION :
          writable = TRUE ;
          rc = _alterMainCL( pCommand, _pEDUCB, _pDpsCB, pBuilder ) ;
          break ;
+
       case CMD_DROP_INDEX:
          writable = TRUE ;
-         rc = _dropIndexOnMainCL( pCommandName, pCommand->collectionFullName(),
-                                  pQuery, w, contextID );
-         break;
+         rc = _dropIndexOnMainCL( pCommandName,
+                                  pCommand->collectionFullName(),
+                                  pQuery, pHint, w ) ;
+         break ;
+
       case CMD_TEST_COLLECTION:
          rc = _testMainCollection( pCommand->collectionFullName() ) ;
          break ;
+
       case CMD_LINK_COLLECTION:
       case CMD_UNLINK_COLLECTION:
          rc = rtnRunCommand( pCommand, CMD_SPACE_SERVICE_SHARD,
                              _pEDUCB, _pDmsCB, _pRtnCB,
                              _pDpsCB, w, &contextID ) ;
-         break;
+         break ;
 
       case CMD_DROP_COLLECTION:
          /// wait sync in context, not set writable
          rc = _dropMainCL( pCommand->collectionFullName(), w,
-                           contextID );
-         break;
+                           contextID ) ;
+         break ;
 
       case CMD_RENAME_COLLECTION:
          /// wait sync in context, not set writable
-         rc = _renameMainCL( pCommand->collectionFullName(), w, contextID );
-         break;
+         rc = _renameMainCL( pCommand->collectionFullName(), w, contextID ) ;
+         break ;
 
       case CMD_TRUNCATE:
          writable = TRUE ;
@@ -4833,7 +5065,7 @@ namespace engine
 
       default:
          rc = SDB_MAIN_CL_OP_ERR;
-         break;
+         break ;
       }
       PD_RC_CHECK( rc, PDERROR,
                    "failed to run command on main-collection(rc=%d)",
@@ -4856,7 +5088,7 @@ namespace engine
       goto done;
    }
 
-   INT32 _clsShdSession::_getOnMainCL( const CHAR *pCommand,
+   INT32 _clsShdSession::_getOnMainCL( const CHAR *pCommandName,
                                        const CHAR *pCollection,
                                        INT32 flags,
                                        INT64 numToSkip,
@@ -4881,7 +5113,7 @@ namespace engine
       _rtnCommand *pCommandTmp = NULL;
       INT64 subNumToReturn = numToReturn ;
       INT64 subNumToSkip = 0 ;
-      SDB_ASSERT( pCommand, "pCommand can't be null!" );
+      SDB_ASSERT( pCommandName, "pCommandName can't be null!" );
       SDB_ASSERT( pCollection,
                   "collection name can't be null!"  );
 
@@ -4969,11 +5201,11 @@ namespace engine
 
          do
          {
-            rc = rtnParserCommand( pCommand, &pCommandTmp );
+            rc = rtnParserCommand( pCommandName, &pCommandTmp );
             if ( rc )
             {
                PD_LOG( PDERROR, "Session[%s]: Parse command[%s] failed, "
-                       "rc: %d", sessionName(), pCommand, rc ) ;
+                       "rc: %d", sessionName(), pCommandName, rc ) ;
                break ;
             }
 
@@ -4984,7 +5216,7 @@ namespace engine
             if ( rc )
             {
                PD_LOG( PDERROR, "Session[%s]: Failed to init command[%s], "
-                       "rc: %d", sessionName(), pCommand, rc ) ;
+                       "rc: %d", sessionName(), pCommandName, rc ) ;
                break ;
             }
 
@@ -4995,8 +5227,8 @@ namespace engine
             if ( rc )
             {
                PD_LOG( PDERROR, "Session[%s]: Failed to run command[%s] on "
-                       "sub-collection[%s], rc: %d", sessionName(), pCommand,
-                       pSubCLName, rc ) ;
+                       "sub-collection[%s], rc: %d",
+                       sessionName(), pCommandName, pSubCLName, rc ) ;
                break ;
             }
          } while( FALSE ) ;
@@ -5031,73 +5263,94 @@ namespace engine
       goto done;
    }
 
-   INT32 _clsShdSession::_createIndexOnMainCL( const CHAR *pCommand,
-                                               const CHAR *pCollection,
-                                               const CHAR *pQuery,
-                                               const CHAR *pHint,
-                                               INT16 w,
-                                               SINT64 &contextID,
-                                               BOOLEAN syscall,
-                                               BSONObjBuilder *pBuilder )
+   INT32 _clsShdSession::_createConsistentIndex( const BSONObj &boMatcher,
+                                                 const BSONObj &boHint )
+   {
+      INT32 rc = SDB_OK ;
+      UINT64 taskID = CLS_INVALID_TASKID ;
+      BOOLEAN lockDms = FALSE ;
+      BSONObj match ;
+
+      // extract message
+      rc = rtnGetNumberLongElement( boHint, FIELD_NAME_TASKID,
+                                    (INT64&)taskID ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get field[%s] from hint[%s]",
+                   FIELD_NAME_TASKID, boHint.toString().c_str() ) ;
+
+      // we need to check dms writable when invalidate cata/plan/statistics
+      rc = pmdGetKRCB()->getDMSCB()->writable ( _pEDUCB ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Database is not writable, rc: %d",
+                   rc ) ;
+      lockDms = TRUE ;
+
+      // task check
+      rc = sdbGetClsCB()->startIdxTaskCheck( taskID, TRUE ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to start task check, rc: %d",
+                   rc ) ;
+
+   done:
+      if ( lockDms )
+      {
+         _pDmsCB->writeDown( _pEDUCB ) ;
+         lockDms = FALSE ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsShdSession::_createStandaloneIndex( const CHAR *pCollection,
+                                                 const BSONObj &boMatcher,
+                                                 const BSONObj &boHint,
+                                                 BSONObjBuilder *pBuilder )
    {
       INT32 rc = SDB_OK;
       const CHAR *pSubCLName = NULL ;
-      BSONObj boMatcher ;
       BSONObj boNewMatcher ;
       BSONObj boIndex ;
-      BSONObj boHint ;
       CLS_SUBCL_LIST strSubCLList ;
       CLS_SUBCL_LIST_IT iter ;
       INT32 sortBufferSize = SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE ;
       BOOLEAN lockDms = FALSE ;
       utilWriteResult wrResult ;
+      dmsIdxTaskStatusPtr statusPtr ;
+      BOOLEAN nextCL = TRUE ;
+      dmsTaskStatusMgr* statMgr = _pRtnCB->getTaskStatusMgr() ;
 
-      try
+      rc = rtnGetObjElement( boMatcher, FIELD_NAME_INDEX, boIndex ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get field[%s] from matcher[%s]",
+                   FIELD_NAME_INDEX, boMatcher.toString().c_str() ) ;
+
+      rc = rtnConvertIndexDef( boIndex ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to convert index definition" ) ;
+
+      rc = rtnGetIntElement( boMatcher, IXM_FIELD_NAME_SORT_BUFFER_SIZE,
+                             sortBufferSize ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
       {
-         boMatcher = BSONObj( pQuery ) ;
-         boHint = BSONObj( pHint ) ;
-
-         rc = rtnGetObjElement( boMatcher, FIELD_NAME_INDEX, boIndex ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get object index, rc: %d", rc ) ;
-
-         rc = rtnConvertIndexDef( boIndex ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to convert index definition" ) ;
-
-         if ( boMatcher.hasField( IXM_FIELD_NAME_SORT_BUFFER_SIZE ) )
+         rc = rtnGetIntElement( boHint, IXM_FIELD_NAME_SORT_BUFFER_SIZE,
+                                sortBufferSize ) ;
+         if ( SDB_FIELD_NOT_EXIST == rc )
          {
-            rc = rtnGetIntElement( boMatcher, IXM_FIELD_NAME_SORT_BUFFER_SIZE,
-                                   sortBufferSize ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG ( PDERROR, "Failed to get index sort buffer, matcher: %s",
-                        boMatcher.toString().c_str() ) ;
-               goto error ;
-            }
-         }
-         else if ( boHint.hasField( IXM_FIELD_NAME_SORT_BUFFER_SIZE ) )
-         {
-            rc = rtnGetIntElement( boHint, IXM_FIELD_NAME_SORT_BUFFER_SIZE,
-                                   sortBufferSize ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG ( PDERROR, "Failed to get index sort buffer, hint: %s",
-                        boHint.toString().c_str() ) ;
-               goto error ;
-            }
-         }
-         if ( sortBufferSize < 0 )
-         {
-            PD_LOG ( PDERROR, "invalid index sort buffer size: %d",
-                     sortBufferSize ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
+            rc = SDB_OK ;
          }
       }
-      catch( std::exception &e )
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get field[%s] from matcher[%s] or hint[%s]",
+                   IXM_FIELD_NAME_SORT_BUFFER_SIZE,
+                   boMatcher.toString().c_str(), boHint.toString().c_str() ) ;
+
+      if ( sortBufferSize < 0 )
       {
-         PD_RC_CHECK( SDB_INVALIDARG, PDERROR,
-                      "occur unexpected error(%s)",
-                      e.what() );
+         PD_LOG ( PDERROR, "invalid index sort buffer size: %d",
+                  sortBufferSize ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
       }
 
       // we need to check dms writable when invalidate cata/plan/statistics
@@ -5105,6 +5358,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
       lockDms = TRUE ;
 
+      // get sub collection
       rc = _getAndChkSubCL( boMatcher, pCollection, TRUE, FALSE, boNewMatcher,
                             strSubCLList, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get sub-collection list, rc: %d",
@@ -5115,23 +5369,41 @@ namespace engine
       {
          INT32 rcTmp = SDB_OK ;
          pSubCLName = iter->c_str() ;
-
          wrResult.resetInfo() ;
-         rcTmp = rtnCreateIndexCommand( pSubCLName, boIndex, _pEDUCB,
-                                        _pDmsCB, _pDpsCB, syscall,
-                                        sortBufferSize,
-                                        &wrResult ) ;
-         if ( rcTmp )
+
+         // create an index task status
+         if ( nextCL )
          {
-            rcTmp = _processSubCLResult( rcTmp, pSubCLName,
-                                         pCollection ) ;
+            rc = statMgr->createIdxItem( DMS_TASK_CREATE_IDX, statusPtr ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to create task status, rc: %d", rc ) ;
+
+            rc = statusPtr->init( pSubCLName, boIndex, sortBufferSize ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to initialize task status, rc: %d",
+                         rc ) ;
+
+            statusPtr->setStatus( DMS_TASK_STATUS_RUN ) ;
+         }
+
+         // standalone index don't write dps log
+         rcTmp = rtnCreateIndexCommand( pSubCLName, boIndex, _pEDUCB,
+                                        _pDmsCB, NULL, FALSE, sortBufferSize,
+                                        &wrResult, statusPtr.get() ) ;
+         if ( SDB_OK != rcTmp )
+         {
+            rcTmp = _processSubCLResult( rcTmp, pSubCLName, pCollection ) ;
             if ( SDB_OK == rcTmp )
             {
+               nextCL = FALSE ;
                continue ;
             }
          }
 
-         if ( rcTmp && SDB_OK != rcTmp && SDB_IXM_REDEF != rcTmp )
+         const CHAR* detail = _pEDUCB ? _pEDUCB->getInfo(EDU_INFO_ERROR) : NULL ;
+         statusPtr->setStatus2Finish( rcTmp, detail, &wrResult ) ;
+
+         if ( SDB_OK != rcTmp && SDB_IXM_REDEF != rcTmp )
          {
             PD_LOG( PDERROR, "Session[%s]: Create index[%s] for "
                     "sub-collection[%s] of main-collection[%s] failed, "
@@ -5147,6 +5419,8 @@ namespace engine
                rc = rcTmp ;
             }
          }
+
+         nextCL = TRUE ;
          ++iter ;
       }
 
@@ -5169,16 +5443,109 @@ namespace engine
       goto done ;
    }
 
-   INT32 _clsShdSession::_dropIndexOnMainCL( const CHAR *pCommand,
-                                             const CHAR *pCollection,
-                                             const CHAR *pQuery,
-                                             INT16 w,
-                                             SINT64 &contextID,
-                                             BOOLEAN syscall )
+   INT32 _clsShdSession::_createIndexOnMainCL( const CHAR *pCommandName,
+                                               const CHAR *pCollection,
+                                               const CHAR *pQuery,
+                                               const CHAR *pHint,
+                                               INT16 w,
+                                               BSONObjBuilder *pBuilder )
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN isStandaloneIdx = FALSE ;
+
+      try
+      {
+         BSONObj boMatcher( pQuery ) ;
+         BSONObj boHint( pHint ) ;
+         BSONObj boIndex ;
+
+         // extract message
+         rc = rtnGetObjElement( boMatcher, FIELD_NAME_INDEX, boIndex ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get field[%s] from matcher[%s]",
+                      FIELD_NAME_INDEX, boMatcher.toString().c_str() ) ;
+
+         rc = rtnGetBooleanElement( boIndex, IXM_FIELD_NAME_STANDALONE,
+                                    isStandaloneIdx ) ;
+         if ( SDB_FIELD_NOT_EXIST == rc )
+         {
+            rc = SDB_OK ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] from index[%s]",
+                      IXM_FIELD_NAME_STANDALONE, boIndex.toString().c_str() ) ;
+
+         // do it
+         if ( isStandaloneIdx )
+         {
+            rc = _createStandaloneIndex( pCollection, boMatcher, boHint,
+                                         pBuilder ) ;
+         }
+         else
+         {
+            rc = _createConsistentIndex( boMatcher, boHint ) ;
+         }
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsShdSession::_dropConsistentIndex( const BSONObj &boMatcher,
+                                               const BSONObj &boHint )
+   {
+      INT32 rc = SDB_OK ;
+      UINT64 taskID = CLS_INVALID_TASKID ;
+      BOOLEAN lockDms = FALSE ;
+      BSONObj match ;
+
+      // extract message
+      rc = rtnGetNumberLongElement( boHint, FIELD_NAME_TASKID,
+                                    (INT64&)taskID ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get field[%s] from hint[%s]",
+                   FIELD_NAME_TASKID, boHint.toString().c_str() ) ;
+
+      // we need to check dms writable when invalidate cata/plan/statistics
+      rc = _pDmsCB->writable ( _pEDUCB ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Database is not writable, rc: %d",
+                   rc ) ;
+      lockDms = TRUE ;
+
+      // task check
+      rc = sdbGetClsCB()->startIdxTaskCheck( taskID, TRUE ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to start task check, rc: %d",
+                   rc ) ;
+
+   done:
+      if ( lockDms )
+      {
+         _pDmsCB->writeDown( _pEDUCB ) ;
+         lockDms = FALSE ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsShdSession::_dropStandaloneIndex( const CHAR *pCollection,
+                                               const BSONObj &boMatcher,
+                                               const BSONObj &boHint )
    {
       INT32 rc = SDB_OK ;
       const CHAR *pSubCLName = NULL ;
-      BSONObj boMatcher ;
       BSONObj boNewMatcher ;
       BSONObj boIndex ;
       CLS_SUBCL_LIST strSubCLList ;
@@ -5186,22 +5553,15 @@ namespace engine
       BSONElement ele;
       BOOLEAN isExist = FALSE ;
       BOOLEAN lockDms = FALSE ;
+      dmsIdxTaskStatusPtr statusPtr ;
+      BOOLEAN nextCL = TRUE ;
+      dmsTaskStatusMgr* statMgr = _pRtnCB->getTaskStatusMgr() ;
 
-      try
-      {
-         boMatcher = BSONObj( pQuery );
-         rc = rtnGetObjElement( boMatcher, FIELD_NAME_INDEX,
-                                boIndex );
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to get object index(rc=%d)", rc );
-         ele = boIndex.firstElement() ;
-      }
-      catch( std::exception &e )
-      {
-         PD_RC_CHECK( SDB_INVALIDARG, PDERROR,
-                      "occur unexpected error(%s)",
-                      e.what() );
-      }
+      rc = rtnGetObjElement( boMatcher, FIELD_NAME_INDEX, boIndex ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get get field[%s] from matcher[%s]",
+                   FIELD_NAME_INDEX, boMatcher.toString().c_str() ) ;
+      ele = boIndex.firstElement() ;
 
       // we need to check dms writable when invalidate cata/plan/statistics
       rc = _pDmsCB->writable ( _pEDUCB ) ;
@@ -5219,16 +5579,37 @@ namespace engine
          INT32 rcTmp = SDB_OK ;
          pSubCLName = iter->c_str() ;
 
+         // create an index task status
+         if ( nextCL )
+         {
+            rc = statMgr->createIdxItem( DMS_TASK_DROP_IDX, statusPtr ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to create task status, rc: %d",
+                         rc ) ;
+
+            rc = statusPtr->init( pSubCLName, boIndex ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to initialize task status, rc: %d",
+                         rc ) ;
+
+            statusPtr->setStatus( DMS_TASK_STATUS_RUN ) ;
+         }
+
+         // standalone index don't write dps log
          rcTmp = rtnDropIndexCommand( pSubCLName, ele, _pEDUCB,
-                                      _pDmsCB, _pDpsCB, syscall ) ;
+                                      _pDmsCB, NULL, FALSE, statusPtr.get() ) ;
          if ( rcTmp )
          {
             rcTmp = _processSubCLResult( rcTmp, pSubCLName, pCollection ) ;
             if ( SDB_OK == rcTmp )
             {
+               nextCL = FALSE ;
                continue ;
             }
          }
+
+         const CHAR* detail = _pEDUCB ? _pEDUCB->getInfo(EDU_INFO_ERROR) : NULL ;
+         statusPtr->setStatus2Finish( rcTmp, detail ) ;
 
          if ( SDB_OK == rcTmp )
          {
@@ -5245,6 +5626,8 @@ namespace engine
                     "failed, rc: %d", sessionName(), ele.toString().c_str(),
                     pSubCLName, _pCollectionName, rcTmp ) ;
          }
+
+         nextCL = TRUE ;
          ++iter ;
       }
 
@@ -5260,6 +5643,108 @@ namespace engine
 
       // Tell secondary nodes to clear cached main-collection plans
       sdbGetClsCB()->invalidatePlan( _pCollectionName ) ;
+
+   done:
+      if ( lockDms )
+      {
+         _pDmsCB->writeDown( _pEDUCB ) ;
+         lockDms = FALSE ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsShdSession::_dropIndexOnMainCL( const CHAR *pCommandName,
+                                             const CHAR *pCollection,
+                                             const CHAR *pQuery,
+                                             const CHAR *pHint,
+                                             INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN isStandaloneIdx = FALSE ;
+
+      try
+      {
+         BSONObj boMatcher( pQuery ) ;
+         BSONObj boHint( pHint ) ;
+
+         // extract message
+         rc = rtnGetBooleanElement( boHint, IXM_FIELD_NAME_STANDALONE,
+                                    isStandaloneIdx ) ;
+         if ( SDB_FIELD_NOT_EXIST == rc )
+         {
+            rc = SDB_OK ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] from hint[%s]",
+                      IXM_FIELD_NAME_STANDALONE, boHint.toString().c_str() ) ;
+
+         // do it
+         if ( isStandaloneIdx )
+         {
+            rc = _dropStandaloneIndex( pCollection, boMatcher, boHint ) ;
+         }
+         else
+         {
+            rc = _dropConsistentIndex( boMatcher, boHint ) ;
+         }
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsShdSession::_copyIndexOnMainCL( const CHAR *pCommandName,
+                                             const CHAR *pCollection,
+                                             const CHAR *pQuery,
+                                             const CHAR *pHint,
+                                             INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+      UINT64 taskID = CLS_INVALID_TASKID ;
+      BOOLEAN lockDms = FALSE ;
+      BSONObj boHint ;
+
+      try
+      {
+         // extract message
+         boHint = BSONObj( pHint ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+      rc = rtnGetNumberLongElement( boHint, FIELD_NAME_TASKID,
+                                    (INT64&)taskID ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get field[%s] from hint[%s], rc: %d",
+                   FIELD_NAME_TASKID, boHint.toString().c_str(), rc ) ;
+
+      // we need to check dms writable when invalidate cata/plan/statistics
+      rc = _pDmsCB->writable ( _pEDUCB ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Database is not writable, rc: %d",
+                   rc ) ;
+      lockDms = TRUE ;
+
+      // task check
+      rc = sdbGetClsCB()->startIdxTaskCheck( taskID, TRUE ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to start task check, rc: %d",
+                   rc ) ;
 
    done:
       if ( lockDms )
@@ -6274,6 +6759,7 @@ namespace engine
       const RTN_ALTER_TASK_LIST & alterTasks = alterJob->getAlterTasks() ;
       const rtnAlterOptions * options = alterJob->getOptions() ;
       const CHAR * collectionName = alterJob->getObjectName() ;
+      const rtnAlterInfo * alterInfo = alterJob->getAlterInfo() ;
 
       BSONObj matcher = alterJob->getJobObject() ;
       BSONObj newMatcher ;
@@ -6310,15 +6796,27 @@ namespace engine
          {
             INT32 rcTmp = SDB_OK ;
             const CHAR * subCLName = iterCL->c_str() ;
-
+            BSONObj indexInfo ;
+            rtnAlterInfo newInfo ;
             wrResult.resetInfo() ;
-            rcTmp = rtnAlter( subCLName, task, options, cb, dpsCB, &wrResult ) ;
-            if ( rcTmp )
+
+            rcTmp = alterInfo->getIndexInfoByCL( subCLName, indexInfo ) ;
+            if ( SDB_OK == rcTmp )
             {
-               rcTmp = _processSubCLResult( rcTmp, subCLName, collectionName ) ;
+               rcTmp = newInfo.init( indexInfo ) ;
                if ( SDB_OK == rcTmp )
                {
-                  continue ;
+                  rcTmp = rtnAlter( subCLName, task, &newInfo, options,
+                                    cb, dpsCB, &wrResult ) ;
+                  if ( rcTmp )
+                  {
+                     rcTmp = _processSubCLResult( rcTmp, subCLName,
+                                                  collectionName ) ;
+                     if ( SDB_OK == rcTmp )
+                     {
+                        continue ;
+                     }
+                  }
                }
             }
 
@@ -6687,6 +7185,7 @@ namespace engine
          setWrite = TRUE ;
       }
 
+      // Some write command can be executed on slave node
       rc = _checkPrimaryStatus() ;
       if ( SDB_OK != rc )
       {

@@ -3,13 +3,13 @@
 
 #include "versionGeneratorBase.hpp"
 
-class versionGenForCrontask : public versionGeneratorBase
+class versionGenForTools : public versionGeneratorBase
 {
 DECLARE_GENERATOR_AUTO_REGISTER() ;
 
 public:
-   versionGenForCrontask() ;
-   ~versionGenForCrontask() ;
+   versionGenForTools() ;
+   ~versionGenForTools() ;
 
    bool hasNext() ;
    int outputFile( int id, fileOutStream &fout,
@@ -21,8 +21,8 @@ private:
                        char *gitVersion, char *time ) ;
 
 private:
-   bool _ctlDone ;    // sdbtaskctl
-   bool _daemonDone ; // sdbtaskdaemon
+   vector<string> _fileList ;
+   int _i ;
 } ;
 
 #endif

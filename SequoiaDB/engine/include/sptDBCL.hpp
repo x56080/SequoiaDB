@@ -84,6 +84,10 @@ namespace engine
                          _sptReturnVal &rval,
                         bson::BSONObj &detail ) ;
 
+      INT32 createIndexAsync( const _sptArguments &arg,
+                              _sptReturnVal &rval,
+                              bson::BSONObj &detail ) ;
+
       INT32 getIndexes( const _sptArguments &arg,
                         _sptReturnVal &rval,
                         bson::BSONObj &detail ) ;
@@ -91,6 +95,18 @@ namespace engine
       INT32 dropIndex( const _sptArguments &arg,
                        _sptReturnVal &rval,
                        bson::BSONObj &detail ) ;
+
+      INT32 dropIndexAsync( const _sptArguments &arg,
+                            _sptReturnVal &rval,
+                            bson::BSONObj &detail ) ;
+
+      INT32 copyIndex( const _sptArguments &arg,
+                       _sptReturnVal &rval,
+                       bson::BSONObj &detail ) ;
+
+      INT32 copyIndexAsync( const _sptArguments &arg,
+                            _sptReturnVal &rval,
+                            bson::BSONObj &detail ) ;
 
       INT32 bulkInsert( const _sptArguments &arg,
                          _sptReturnVal &rval,
@@ -107,6 +123,10 @@ namespace engine
       INT32 aggregate( const _sptArguments &arg,
                        _sptReturnVal &rval,
                        bson::BSONObj &detail ) ;
+
+      INT32 snapshotIndexes( const _sptArguments &arg,
+                             _sptReturnVal &rval,
+                             bson::BSONObj &detail ) ;
 
       INT32 alter( const _sptArguments &arg,
                    _sptReturnVal &rval,
@@ -227,6 +247,22 @@ namespace engine
    private:
       INT32 _parseInsertOptions( const _sptArguments &arg, SINT32 &flags,
                                  bson::BSONObj &detail ) ;
+
+      INT32 _createIndex( const _sptArguments &arg,
+                          _sptReturnVal &rval,
+                          bson::BSONObj &detail,
+                          BOOLEAN isAsync ) ;
+
+      INT32 _dropIndex( const _sptArguments &arg,
+                        _sptReturnVal &rval,
+                        bson::BSONObj &detail,
+                        BOOLEAN isAsync ) ;
+
+      INT32 _copyIndex( const _sptArguments &arg,
+                        _sptReturnVal &rval,
+                        bson::BSONObj &detail,
+                        BOOLEAN isAsync ) ;
+
    private:
       sdbCollection _cl ;
    } ;

@@ -45,6 +45,8 @@ using namespace bson ;
 
 namespace engine
 {
+   BOOLEAN        ixmIsTextIndex( const BSONObj& indexDef ) ;
+
    INT32          ixmGetIndexType( const BSONObj& indexDef,
                                    UINT16 &type ) ;
 

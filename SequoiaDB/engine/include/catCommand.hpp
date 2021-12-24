@@ -254,6 +254,7 @@ namespace engine
       const CHAR*       _pCSName ;
       utilCSUniqueID    _csUniqueID ;
       utilCLUniqueID    _clUniqueHWM ;
+      utilIdxUniqueID   _idxUniqueHWM ;
       INT32             _pageSize ;
       const CHAR*       _domainName ;
       INT32             _lobPageSize ;
@@ -272,6 +273,7 @@ namespace engine
          _pCSName = NULL ;
          _csUniqueID = UTIL_UNIQUEID_NULL ;
          _clUniqueHWM = UTIL_UNIQUEID_NULL ;
+         _idxUniqueHWM = UTIL_UNIQUEID_NULL ;
          _pageSize = DMS_PAGE_SIZE_DFT ;
          _domainName = NULL ;
          _lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ ;
@@ -287,6 +289,7 @@ namespace engine
          builder.append( CAT_COLLECTION_SPACE_NAME, _pCSName ) ;
          builder.append( CAT_CS_UNIQUEID, _csUniqueID ) ;
          builder.append( CAT_CS_CLUNIQUEHWM, (INT64)_clUniqueHWM ) ;
+         builder.append( FIELD_NAME_IDXUNIQUEHWM, (INT64)_idxUniqueHWM ) ;
          builder.append( CAT_PAGE_SIZE_NAME, _pageSize ) ;
          if ( _domainName )
          {
@@ -359,12 +362,11 @@ namespace engine
 
       INT32 _checkTaskConflict( _pmdEDUCB *cb ) ;
 
-      INT32 _dropGlobalIdxCL( const CHAR* clName,
+      INT32 _dropGlobalIdxCL( const CHAR *clName,
                               _pmdEDUCB *cb ) ;
 
    private:
-      INT32 _checkTaskConflict( const BSONObj& otherIdxObj,
-                                BOOLEAN& conflict ) ;
+      INT32 _checkTaskConflict( const BSONObj &otherIdxObj ) ;
    protected:
       clsCatalogSet*  _pCataSet ;
 
@@ -386,6 +388,7 @@ namespace engine
    class _catCMDCreateIndex : public _catCMDIndexHelper
    {
       CAT_DECLARE_CMD_AUTO_REGISTER()
+      friend class _catCMDCopyIndex ;
    public:
       _catCMDCreateIndex( BOOLEAN sysCall = FALSE ) ;
       virtual ~_catCMDCreateIndex() {}
@@ -487,6 +490,64 @@ namespace engine
    typedef _catCMDDropIndex catCMDDropIndex ;
 
    /*
+      catCMDCopyIndex define
+   */
+   class _catCMDCopyIndex : public _catCMDBase
+   {
+      CAT_DECLARE_CMD_AUTO_REGISTER()
+   protected:
+      typedef ossPoolVector<catCMDCreateIndex*>           VEC_CMD ;
+      typedef ossPoolVector<catCMDCreateIndex*>::iterator VEC_CMD_IT ;
+
+   public:
+      _catCMDCopyIndex() ;
+      virtual ~_catCMDCopyIndex() ;
+
+      virtual INT32 init( const CHAR *pQuery,
+                          const CHAR *pSelector = NULL,
+                          const CHAR *pOrderBy = NULL,
+                          const CHAR *pHint = NULL,
+                          INT32 flags = 0,
+                          INT64 numToSkip = 0,
+                          INT64 numToReturn = -1 ) ;
+      virtual INT32 doit( _pmdEDUCB *cb,
+                          rtnContextBuf &ctxBuf,
+                          INT64 &contextID ) ;
+
+      virtual const CHAR *name() const { return CMD_NAME_COPY_INDEX ; }
+      virtual BOOLEAN needCheckPrimary() const { return TRUE ; }
+      virtual BOOLEAN needCheckDCStatus() const { return TRUE ; }
+
+   private:
+      INT32 _check( _pmdEDUCB *cb ) ;
+      INT32 _execute( _pmdEDUCB *cb ) ;
+      INT32 _makeReply( UINT64 taskID, rtnContextBuf &ctxBuf ) ;
+
+      INT32 _checkMainSubCL( _pmdEDUCB *cb,
+                             BSONObj& boCollection ) ;
+      INT32 _buildCommand( const CHAR *collectionName,
+                           const BSONObj &indexDef,
+                           _pmdEDUCB *cb ) ;
+      INT32 _buildCommands( _pmdEDUCB *cb ) ;
+
+   protected:
+      clsCatalogSet*            _pCataSet ;
+
+      const CHAR*               _pCollection ;
+      const CHAR*               _pSubCollection ;
+      const CHAR*               _pIndexName ;
+
+      ossPoolSet<ossPoolString> _subCLSet ;
+      ossPoolSet<ossPoolString> _indexSet ;
+      ossPoolSet<ossPoolString> _groupSet ;
+
+      clsCopyIdxTask*           _pMainTask ;
+      VEC_CMD                   _commandList ;
+      ossPoolVector<BSONObj>    _matcherList ;
+   };
+   typedef _catCMDCopyIndex catCMDCopyIndex ;
+
+   /*
       catCMDReportTaskProgress define
    */
    class _catCMDReportTaskProgress : public _catCMDBase
@@ -511,6 +572,7 @@ namespace engine
       {
          return CMD_NAME_REPORT_TASK_PROGRESS ;
       }
+
       virtual BOOLEAN needCheckPrimary() const  { return TRUE ; }
       virtual BOOLEAN needCheckDCStatus() const { return FALSE ; }
 

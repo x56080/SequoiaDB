@@ -307,7 +307,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSDSBS__ERSDFTINX, "_clsDataSrcBaseSession::_eraseDefaultIndex" )
-   void _clsDataSrcBaseSession::_eraseDefaultIndex ()
+   void _clsDataSrcBaseSession::_eraseDefaultIndex ( BSONObj& idIdxDef )
    {
       PD_TRACE_ENTRY ( SDB__CLSDSBS__ERSDFTINX );
       MON_IDX_LIST::iterator itr = _indexs.begin() ;
@@ -317,6 +317,7 @@ namespace engine
          BSONElement nameE = itr->_indexDef.getField ( IXM_NAME_FIELD ) ;
          if ( ossStrcmp( nameE.str().c_str(), IXM_ID_KEY_NAME ) == 0 )
          {
+            idIdxDef = itr->_indexDef ;
             itr = _indexs.erase( itr ) ;
             continue ;
          }
@@ -489,6 +490,7 @@ namespace engine
                                                 const CHAR *cs,
                                                 const CHAR *collection,
                                                 utilCLUniqueID clUniqueID,
+                                                const BSONObj idIdxDef,
                                                 _dmsStorageUnit *su )
    {
       PD_TRACE_ENTRY ( SDB__CLSDSBS__CONSTMETA );
@@ -527,6 +529,10 @@ namespace engine
       if ( !extOptions.isEmpty() )
       {
          builder1.append( CLS_FS_EXT_OPTION, extOptions ) ;
+      }
+      if ( !idIdxDef.isEmpty() )
+      {
+         builder1.append( CLS_FS_IDIDX_DEF, idIdxDef ) ;
       }
 
       builder1.append( CLS_FS_LOB_PAGE_SIZE, su->getLobPageSize() ) ;
@@ -1203,6 +1209,7 @@ namespace engine
       UINT32 csLID = DMS_INVALID_LOGICCSID ;
       UINT16 mbID = DMS_INVALID_MBID ;
       utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
+      BSONObj idIdxDef ;
 
       MsgClsFSMetaRes res ;
       res.header.header.TID = header->TID ;
@@ -1242,6 +1249,7 @@ namespace engine
                  obj.toString().c_str() ) ;
          CHAR cs[DMS_COLLECTION_SPACE_NAME_SZ + 1] = { 0 } ;
          CHAR collection[DMS_COLLECTION_NAME_SZ + 1] = { 0 } ;
+         BOOLEAN excludeStandIdx = TRUE ;
 
          if ( SDB_OK != ( rc = _getCSName( obj, cs,
                                DMS_COLLECTION_SPACE_NAME_SZ + 1) ) )
@@ -1298,7 +1306,11 @@ namespace engine
          curCollection = ossPack32To64 ( su->LogicalCSID(),
                                          mbContext->clLID() ) ;
          /// get indexes
-         rc = su->getIndexes( mbContext, _indexs ) ;
+         if ( SDB_ROLE_CATALOG == pmdGetDBRole() )
+         {
+            excludeStandIdx = FALSE ;
+         }
+         rc = su->getIndexes( mbContext, _indexs, excludeStandIdx ) ;
          if ( rc )
          {
             PD_LOG( PDWARNING, "Session[%s]:Failed to get indexs of "
@@ -1314,7 +1326,7 @@ namespace engine
             su->data()->releaseMBContext( mbContext ) ;
 
             /// erase index of "_id"
-            _eraseDefaultIndex() ;
+            _eraseDefaultIndex( idIdxDef ) ;
 
             // must release su lock, because _openContext will get lock again
             dmsCB->suUnlock ( suID ) ;
@@ -1334,7 +1346,7 @@ namespace engine
             _curCSLID = csLID ;
             _curMBID = mbID ;
          }
-         _constructMeta( meta, cs, collection, clUniqueID, su ) ;
+         _constructMeta( meta, cs, collection, clUniqueID, idIdxDef, su ) ;
          PD_LOG( PDDEBUG, "Session[%s]: get meta [%s]", sessionName(),
                  meta.toString().c_str() ) ;
          res.header.header.messageLength = sizeof( MsgClsFSMetaRes ) +
@@ -3666,9 +3678,17 @@ namespace engine
       _clsTaskMgr *taskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
       UINT32 locationID = taskMgr->getLocationID() ;
       _clsDummyTask *pTask = SDB_OSS_NEW _clsDummyTask ( CLS_INVALID_TASKID ) ;
-      if ( pTask && SDB_OK == taskMgr->addTask( pTask, locationID ) )
+      if ( pTask )
       {
-         _locationID = locationID ;
+         if ( SDB_OK == taskMgr->addTask( pTask, locationID ) )
+         {
+            _locationID = locationID ;
+         }
+         else
+         {
+            SDB_OSS_DEL pTask ;
+            _quit = TRUE ;
+         }
       }
       else
       {

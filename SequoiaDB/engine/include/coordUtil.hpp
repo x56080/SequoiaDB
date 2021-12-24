@@ -110,6 +110,12 @@ namespace engine
                              BSONObj *pNewObj = NULL,
                              BOOLEAN strictCheck = FALSE ) ;
 
+   INT32 coordGetCLDataSource( const CHAR *collection,
+                               pmdEDUCB *cb,
+                               coordResource *pResource,
+                               BOOLEAN &isDataSourceCL,
+                               BOOLEAN &isHighErrLevel ) ;
+
 }
 
 #endif // COORD_UTIL_HPP__

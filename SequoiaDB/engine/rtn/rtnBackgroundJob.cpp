@@ -53,13 +53,16 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINDEXJOB__RTNINDEXJOB, "_rtnIndexJob::_rtnIndexJob" )
    _rtnIndexJob::_rtnIndexJob ( RTN_JOB_TYPE type, const CHAR *pCLName,
-                                const BSONObj & indexObj, SDB_DPSCB * dpsCB,
-                                UINT64 offset, BOOLEAN isRollBack )
+                                const BSONObj &indexObj, SDB_DPSCB *dpsCB,
+                                UINT64 lsnOffset, BOOLEAN isRollBackLog,
+                                INT32 sortBufSize, UINT64 taskID,
+                                UINT64 mainTaskID )
    {
       PD_TRACE_ENTRY ( SDB__RTNINDEXJOB__RTNINDEXJOB ) ;
       _type = type ;
       ossStrncpy ( _clFullName, pCLName, DMS_COLLECTION_FULL_NAME_SZ ) ;
       _clFullName[DMS_COLLECTION_FULL_NAME_SZ] = 0 ;
+      _clUniqID = UTIL_UNIQUEID_NULL ;
       _indexObj = indexObj.copy() ;
       _hasAddUnique = FALSE ;
       _hasAddGlobal = FALSE ;
@@ -67,10 +70,34 @@ namespace engine
       _clLID = DMS_INVALID_LOGICCLID ;
       _dpsCB = dpsCB ;
       _dmsCB = pmdGetKRCB()->getDMSCB() ;
-      _lsn = offset ;
-      _isRollback = isRollBack ;
+      _lsn = lsnOffset ;
+      _isRollbackLog = isRollBackLog ;
       _regCLJob = FALSE ;
+      _sortBufSize = sortBufSize ;
+      _taskID = taskID ;
+      _locationID = 0 ;
+      _mainTaskID = mainTaskID ;
       PD_TRACE_EXIT ( SDB__RTNINDEXJOB__RTNINDEXJOB ) ;
+   }
+
+   _rtnIndexJob::_rtnIndexJob ()
+   {
+      _type = RTN_JOB_CREATE_INDEX ;
+      ossMemset( _clFullName, 0, sizeof( _clFullName ) ) ;
+      _clUniqID = UTIL_UNIQUEID_NULL ;
+      _hasAddUnique = FALSE ;
+      _hasAddGlobal = FALSE ;
+      _csLID = DMS_INVALID_LOGICCSID ;
+      _clLID = DMS_INVALID_LOGICCLID ;
+      _dpsCB = pmdGetKRCB()->getDPSCB() ;
+      _dmsCB = pmdGetKRCB()->getDMSCB() ;
+      _lsn = DPS_INVALID_LSN_OFFSET ;
+      _isRollbackLog = FALSE ;
+      _regCLJob = FALSE ;
+      _sortBufSize = 0 ;
+      _taskID = DMS_INVALID_TASKID ;
+      _locationID = 0 ;
+      _mainTaskID = DMS_INVALID_TASKID ;
    }
 
    _rtnIndexJob::~_rtnIndexJob ()
@@ -201,6 +228,44 @@ namespace engine
       goto done ;
    }
 
+   INT32 _rtnIndexJob::_buildJobName()
+   {
+      INT32 rc = SDB_OK ;
+
+      // build index name, job name
+      if ( RTN_JOB_CREATE_INDEX == _type )
+      {
+         _jobName = "CreateIndex-" ;
+         _indexName = _indexObj.getStringField( IXM_NAME_FIELD ) ;
+      }
+      else if ( RTN_JOB_DROP_INDEX == _type )
+      {
+         _jobName = "DropIndex-" ;
+         _indexEle = _indexObj.getField( IXM_NAME_FIELD ) ;
+         if ( _indexEle.eoo() )
+         {
+            _indexEle = _indexObj.firstElement () ;
+         }
+         _indexName = _indexEle.str() ;
+      }
+      else
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG ( PDERROR, "Index job not support this type[%d]", _type ) ;
+         goto error ;
+      }
+
+      _jobName += _clFullName ;
+      _jobName += "[" ;
+      _jobName += _indexName ;
+      _jobName += "]" ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINDEXJOB_INIT, "_rtnIndexJob::init" )
    INT32 _rtnIndexJob::init ()
    {
@@ -210,11 +275,19 @@ namespace engine
       dmsStorageUnit *su = NULL ;
       dmsMBContext *mbContext = NULL ;
       const CHAR *pCLShortName = NULL ;
+      dmsTaskStatusMgr* taskStatMgr = sdbGetRTNCB()->getTaskStatusMgr() ;
+      DMS_TASK_TYPE taskType = DMS_TASK_UNKNOWN ;
+
+      rc = _buildJobName() ;
+      if ( rc )
+      {
+         goto error ;
+      }
 
       rc = rtnResolveCollectionNameAndLock ( _clFullName, _dmsCB,
                                              &su, &pCLShortName,
                                              suID ) ;
-      if ( SDB_OK != rc )
+      if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to resolve collection name %s",
                   _clFullName ) ;
@@ -228,15 +301,11 @@ namespace engine
             BOOLEAN isUnique = _indexObj.getBoolField( IXM_UNIQUE_FIELD ) ;
             BOOLEAN isGlobal = _indexObj.getBoolField( IXM_GLOBAL_FIELD ) ;
 
-            _jobName = "CreateIndex-" ;
-            // need to get the index name
-            _indexName = _indexObj.getStringField( IXM_NAME_FIELD ) ;
-
             if ( isUnique || isGlobal )
             {
                rc = su->data()->getMBContext( &mbContext, pCLShortName,
                                               EXCLUSIVE ) ;
-               if ( SDB_OK != rc )
+               if ( rc )
                {
                   PD_LOG ( PDERROR, "Lock collection[%s] failed, rc = %d",
                            _clFullName, rc ) ;
@@ -256,87 +325,57 @@ namespace engine
                _csLID = su->LogicalCSID() ;
                _clLID = mbContext->clLID() ;
             }
+            else
+            {
+               rc = su->data()->getMBContext( &mbContext, pCLShortName,
+                                              SHARED ) ;
+               if ( SDB_OK != rc )
+               {
+                  PD_LOG ( PDERROR, "Lock collection[%s] failed, rc = %d",
+                           _clFullName, rc ) ;
+                  goto error ;
+               }
+            }
+
+            taskType = DMS_TASK_CREATE_IDX ;
             break ;
          }
          case RTN_JOB_DROP_INDEX :
          {
             dmsExtentID idxExtent = DMS_INVALID_EXTENT ;
-            _jobName = "DropIndex-" ;
-            // need to get the index name
-            _indexEle = _indexObj.getField( IXM_NAME_FIELD ) ;
-            if ( _indexEle.eoo() )
-            {
-               _indexEle = _indexObj.firstElement () ;
-            }
-
             rc = su->data()->getMBContext( &mbContext, pCLShortName,
                                            EXCLUSIVE ) ;
-            if ( SDB_OK != rc )
+            if ( rc )
             {
                PD_LOG ( PDERROR, "Lock collection[%s] failed, rc = %d",
                         _clFullName, rc ) ;
                goto error ;
             }
 
-            if ( jstOID == _indexEle.type() )
+            // get index extent
+            rc = su->index()->getIndexCBExtent( mbContext,
+                                                _indexName.c_str(),
+                                                idxExtent ) ;
+            if ( rc )
             {
-               OID oid ;
-               _indexEle.Val( oid ) ;
-               // get index extent
-               rc = su->index()->getIndexCBExtent( mbContext, oid,
-                                                   idxExtent ) ;
-               if ( rc )
-               {
-                  PD_LOG ( PDWARNING, "Get collection[%s] indexCB[%s] extent "
-                           "failed, rc: %d", _clFullName,
-                           oid.str().c_str(), rc ) ;
-                  /// ignore the error
-                  rc = SDB_OK ;
-               }
-               else
-               {
-                  ixmIndexCB indexCB ( idxExtent, su->index(), mbContext ) ;
-                  if ( indexCB.isInitialized() )
-                  {
-                     _indexName = indexCB.getName() ;
-                     /// first set index flag to IXM_INDEX_FLAG_INVALID
-                     indexCB.setFlag( IXM_INDEX_FLAG_INVALID ) ;
-                  }
-                  else
-                  {
-                     PD_LOG( PDWARNING, "Failed to initialize collection[%s]'s "
-                             "index[%s]", _clFullName, oid.str().c_str() ) ;
-                  }
-               }
+               PD_LOG( PDWARNING, "Get collection[%s] indexCB[%s] extent "
+                       "failed, rc: %d", _clFullName,
+                       _indexName.c_str(), rc ) ;
+               /// ignore the error
+               rc = SDB_OK ;
             }
             else
             {
-               _indexName = _indexEle.str () ;
-               // get index extent
-               rc = su->index()->getIndexCBExtent( mbContext,
-                                                   _indexName.c_str(),
-                                                   idxExtent ) ;
-               if ( rc )
+               ixmIndexCB indexCB ( idxExtent, su->index(), mbContext ) ;
+               if ( indexCB.isInitialized() )
                {
-                  PD_LOG( PDWARNING, "Get collection[%s] indexCB[%s] extent "
-                          "failed, rc: %d", _clFullName,
-                          _indexName.c_str(), rc ) ;
-                  /// ignore the error
-                  rc = SDB_OK ;
+                  /// first set index flag to IXM_INDEX_FLAG_INVALID
+                  indexCB.setFlag( IXM_INDEX_FLAG_INVALID ) ;
                }
                else
                {
-                  ixmIndexCB indexCB ( idxExtent, su->index(), mbContext ) ;
-                  if ( indexCB.isInitialized() )
-                  {
-                     /// first set index flag to IXM_INDEX_FLAG_INVALID
-                     indexCB.setFlag( IXM_INDEX_FLAG_INVALID ) ;
-                  }
-                  else
-                  {
-                     PD_LOG( PDWARNING, "Failed to initialize collection[%s]'s "
-                             "index[%s]", _clFullName, _indexName.c_str() ) ;
-                  }
+                  PD_LOG( PDWARNING, "Failed to initialize collection[%s]'s "
+                          "index[%s]", _clFullName, _indexName.c_str() ) ;
                }
             }
 
@@ -346,23 +385,41 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Failed to register drop index job "
                          "for collection [%s], rc: %d", _clFullName, rc ) ;
             _regCLJob = TRUE ;
-             break ;
+
+            taskType = DMS_TASK_DROP_IDX ;
+            break ;
          }
          default :
          {
-            _jobName = "UnknowIndexJob" ;
-            PD_LOG ( PDERROR, "Index job not support this type[%d]", _type ) ;
-            rc = SDB_INVALIDARG ;
+            PD_CHECK( FALSE, SDB_SYS, error, PDERROR,
+                      "Invalid job type[%d]", _type ) ;
             break ;
          }
       }
 
-      if ( SDB_OK == rc )
+      // get collection unique id
+      _clUniqID = mbContext->mb()->_clUniqueID ;
+
+      // unlock mb and su
+      su->data()->releaseMBContext( mbContext ) ;
+      mbContext = NULL ;
+      _dmsCB->suUnlock( suID ) ;
+      suID = DMS_INVALID_SUID ;
+
+      // create task status
+      if ( _taskID != DMS_INVALID_TASKID )
       {
-         _jobName += _clFullName ;
-         _jobName += "[" ;
-         _jobName += _indexName ;
-         _jobName += "]" ;
+         rc = taskStatMgr->createIdxItem( taskType, _taskStatusPtr,
+                                          _taskID, _locationID, _mainTaskID ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to create task status, rc: %d",
+                      rc ) ;
+
+         rc = _taskStatusPtr->init( _clFullName, _indexObj, _sortBufSize,
+                                    _clUniqID ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to initialize task status, rc: %d",
+                      rc ) ;
       }
 
    done:
@@ -433,31 +490,109 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNINDEXJOB_DOIT ) ;
+      pmdEDUCB *cb = eduCB() ;
+      utilWriteResult wResult ;
 
       if ( !_dpsCB )
       {
-         eduCB()->insertLsn( _lsn, _isRollback ) ;
+         cb->insertLsn( _lsn, _isRollbackLog ) ;
       }
 
-      switch ( _type )
+      if ( _taskStatusPtr.get() &&
+           DMS_TASK_STATUS_READY == _taskStatusPtr->status() )
       {
-         case RTN_JOB_CREATE_INDEX :
-            rc = rtnCreateIndexCommand( _clFullName, _indexObj, eduCB(),
-                                        _dmsCB, _dpsCB, TRUE,
-                                        SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE ) ;
+         // in rollback thread, task status is rollback / canceled
+         _taskStatusPtr->setStatus( DMS_TASK_STATUS_RUN ) ;
+      }
+
+      while ( !cb->isForced() )
+      {
+         if ( RTN_JOB_CREATE_INDEX == _type )
+         {
+            if ( UTIL_IS_VALID_CLUNIQUEID( _clUniqID ) )
+            {
+               rc = rtnCreateIndexCommand( _clUniqID, _indexObj,
+                                           cb, _dmsCB, _dpsCB,
+                                           TRUE, _sortBufSize,
+                                           &wResult, _taskStatusPtr.get(),
+                                           _dpsCB ? TRUE : FALSE ) ;
+            }
+            else
+            {
+               rc = rtnCreateIndexCommand( _clFullName, _indexObj,
+                                           cb, _dmsCB, _dpsCB,
+                                           TRUE, _sortBufSize,
+                                           &wResult, _taskStatusPtr.get(),
+                                           _dpsCB ? TRUE : FALSE ) ;
+            }
+         }
+         else if ( RTN_JOB_DROP_INDEX == _type )
+         {
+            if ( UTIL_IS_VALID_CLUNIQUEID( _clUniqID ) )
+            {
+               rc = rtnDropIndexCommand( _clUniqID, _indexEle,
+                                         cb, _dmsCB, _dpsCB, TRUE,
+                                         _taskStatusPtr.get() ) ;
+            }
+            else
+            {
+               rc = rtnDropIndexCommand( _clFullName, _indexEle,
+                                         cb, _dmsCB, _dpsCB, TRUE,
+                                         _taskStatusPtr.get() ) ;
+            }
+         }
+
+         INT32 rcTmp = _onDoit( rc ) ;
+         if ( SDB_OK == rc )
+         {
+            rc = rcTmp ;
+         }
+
+         if ( !_needRetry( rc ) )
+         {
             break ;
-         case RTN_JOB_DROP_INDEX :
-            rc = rtnDropIndexCommand( _clFullName, _indexEle, eduCB(),
-                                      _dmsCB, _dpsCB, TRUE ) ;
-            break ;
-         default :
-            PD_LOG ( PDERROR, "Index job not support this type[%d]", _type ) ;
-            rc = SDB_INVALIDARG ;
-            break ;
+         }
+      }
+
+      // we should set finish after _onDoit()
+      if ( _taskStatusPtr.get() )
+      {
+         const CHAR* detail = cb ? cb->getInfo(EDU_INFO_ERROR) : NULL ;
+         _taskStatusPtr->setStatus2Finish( rc, detail, &wResult ) ;
       }
 
       PD_TRACE_EXITRC ( SDB__RTNINDEXJOB_DOIT, rc ) ;
       return rc ;
+   }
+
+   BOOLEAN _rtnIndexJob::_needRetry( INT32 rc )
+   {
+      BOOLEAN needRetry = FALSE ;
+
+      // Primary node should throw error immediately, so that user can intervene
+      // as soon as possible.
+      if ( NULL == _dpsCB )
+      {
+         if ( SDB_OOM == rc ||
+              SDB_NOSPC == rc ||
+              SDB_TOO_MANY_OPEN_FD == rc )
+         {
+            needRetry = TRUE ;
+         }
+      }
+
+      if ( needRetry )
+      {
+         if ( _taskStatusPtr.get() )
+         {
+            _taskStatusPtr->incRetryCnt() ;
+         }
+         ossSleep( OSS_ONE_SEC ) ;
+         PD_LOG ( PDWARNING, "Retry index job[%s] when failed[rc: %d]",
+                  name(), rc ) ;
+      }
+
+      return needRetry ;
    }
 
    /*
@@ -486,10 +621,7 @@ namespace engine
 
          PD_LOG( PDDEBUG, "Start job[%s]", name() ) ;
 
-         SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
-         dmsIdxTaskStatusMgr *pIdxStatMgr = rtnCB->getIdxStatusMgr() ;
-
-         pIdxStatMgr->cleanOutOfDate( pmdIsPrimary() ) ;
+         sdbGetRTNCB()->getTaskStatusMgr()->cleanOutOfDate( pmdIsPrimary() ) ;
       }
 
       return SDB_OK ;

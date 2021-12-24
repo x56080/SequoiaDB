@@ -91,6 +91,10 @@ namespace engine
          {
             _subCLOFMainCL = TRUE ;
          }
+         OSS_INLINE const ossPoolList<BSONObj>& getIndexes () const
+         {
+            return _createIdxList ;
+         }
 
       protected :
          virtual INT32 _checkInternal ( _pmdEDUCB * cb,
@@ -217,17 +221,36 @@ namespace engine
                                     _pmdEDUCB * cb,
                                     INT16 w ) ;
 
-      protected :
          // Helper functions
          INT32 _checkAutoSplit ( const clsCatalogSet & cataSet,
                                  const rtnCLShardingArgument & argument,
                                  _pmdEDUCB * cb,
                                  catCtxLockMgr & lockMgr ) ;
 
+         INT32 _checkSysIndex( const clsCatalogSet& cataSet,
+                               _pmdEDUCB* cb ) ;
+
+         INT32 _buildSysIndexInfo( const CHAR* collection,
+                                   const CHAR* indexName,
+                                   const BSONObj& indexDef,
+                                   _pmdEDUCB * cb ) ;
+
+         INT32 _checkTaskConflict( const CHAR *collection,
+                                   const BSONObj &indexDef,
+                                   _pmdEDUCB *cb ) ;
+
+         INT32 _executeSysIndex( const CHAR* collection,
+                                 _pmdEDUCB* cb,
+                                 INT16 w ) ;
+
       protected :
          ossPoolList< UINT64 >   _postTasks ;
-
          BOOLEAN                 _postAutoSplit ;
+
+         ossPoolList< BSONObj >  _createIdxList ;
+         BOOLEAN                 _dropIdIdx ;
+         BOOLEAN                 _dropShardIdx ;
+
          rtnCLShardingArgument   _rollbackShardArgument ;
 
          BOOLEAN                 _subCLOFMainCL ;

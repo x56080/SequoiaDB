@@ -67,6 +67,106 @@ namespace engine
       return FALSE ;
    }
 
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnSnapshotTasks)
+
+   BOOLEAN _rtnSnapshotTasks::_isCurrent() const
+   {
+      return FALSE ;
+   }
+
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnSnapshotTasksInner )
+
+   BOOLEAN _rtnSnapshotTasksInner::_isCurrent() const
+   {
+      return FALSE ;
+   }
+
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnSnapshotIndexes)
+
+   const CHAR* _rtnSnapshotIndexes::collectionFullName()
+   {
+      if ( !_clInited )
+      {
+         try
+         {
+            BSONObj hintObj( _hintBuff ) ;
+            BSONElement ele = hintObj.getField( FIELD_NAME_COLLECTION ) ;
+            if ( String == ele.type() )
+            {
+               _collection = ele.valuestr() ;
+            }
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         }
+         _clInited = TRUE ;
+      }
+      return _collection ;
+   }
+
+   BOOLEAN _rtnSnapshotIndexes::_isCurrent() const
+   {
+      return FALSE ;
+   }
+
+   BSONObj _rtnSnapshotIndexes::_getOptObj() const
+   {
+      try
+      {
+         BSONObj hintObj( _hintBuff ) ;
+         return hintObj ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+      return BSONObj() ;
+   }
+
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnSnapshotIndexesInner )
+
+   const CHAR* _rtnSnapshotIndexesInner::collectionFullName()
+   {
+      if ( !_clInited )
+      {
+         try
+         {
+            BSONObj hintObj( _hintBuff ) ;
+            BSONElement ele = hintObj.getField( FIELD_NAME_COLLECTION ) ;
+            if ( String == ele.type() )
+            {
+               _collection = ele.valuestr() ;
+            }
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         }
+         _clInited = TRUE ;
+      }
+      return _collection ;
+   }
+
+   BOOLEAN _rtnSnapshotIndexesInner::_isCurrent() const
+   {
+      return FALSE ;
+   }
+
+   BSONObj _rtnSnapshotIndexesInner::_getOptObj() const
+   {
+      try
+      {
+         BSONObj hintObj( _hintBuff ) ;
+         return hintObj ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+      return BSONObj() ;
+   }
+
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnSnapshotContexts)
 
    BOOLEAN _rtnSnapshotContexts::_isCurrent() const

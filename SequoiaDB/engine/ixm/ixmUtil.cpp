@@ -51,16 +51,39 @@ namespace engine
       ossStrncat( pBuffer, flagStr, bufSize - ossStrlen( pBuffer ) ) ;
    }
 
+   BOOLEAN ixmIsTextIndex( const BSONObj& indexDef )
+   {
+      UINT16 type = 0 ;
+      BOOLEAN isText = FALSE ;
+
+      if ( SDB_OK == ixmGetIndexType( indexDef, type ) )
+      {
+         if ( OSS_BIT_TEST( type, IXM_EXTENT_TYPE_TEXT ) )
+         {
+            isText = TRUE ;
+         }
+      }
+      else
+      {
+         // ignore error, so clear info
+         IExecutor *cb = sdbGetThreadExecutor() ;
+         if ( cb )
+         {
+            cb->resetInfo ( EDU_INFO_ERROR ) ;
+         }
+      }
+
+      return isText ;
+   }
+
    INT32 ixmGetIndexType( const BSONObj& indexDef, UINT16 &type )
    {
       INT32 rc = SDB_OK ;
       UINT16 indexType = IXM_EXTENT_TYPE_NONE ;
-      if ( !ixmIndexCB::generateIndexType( indexDef, indexType ) )
-      {
-         PD_LOG( PDERROR, "Get index type from definition failed" ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
+      rc = ixmIndexCB::generateIndexType( indexDef, indexType ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get index type from definition[%s], rc: %d",
+                   indexDef.toString().c_str(), rc ) ;
 
       if ( IXM_EXTENT_HAS_TYPE( indexType, IXM_EXTENT_TYPE_POSITIVE ) )
       {
@@ -219,8 +242,24 @@ namespace engine
             goto done ;
          }
 
-         lValue = defObj1.getBoolField( IXM_NOTARRAY_FIELD ) ;
-         rValue = defObj2.getBoolField( IXM_NOTARRAY_FIELD ) ;
+         lEle = defObj1.getField( IXM_NAME_FIELD ) ;
+         rEle = defObj2.getField( IXM_NAME_FIELD ) ;
+         if ( 0 == ossStrcmp( lEle.valuestrsafe(), IXM_ID_KEY_NAME ) )
+         {
+            lValue = TRUE ;
+         }
+         else
+         {
+            lValue = defObj1.getBoolField( IXM_NOTARRAY_FIELD ) ;
+         }
+         if ( 0 == ossStrcmp( rEle.valuestrsafe(), IXM_ID_KEY_NAME ) )
+         {
+            rValue = TRUE ;
+         }
+         else
+         {
+            rValue = defObj2.getBoolField( IXM_NOTARRAY_FIELD ) ;
+         }
          if( lValue != rValue )
          {
             rs = FALSE ;

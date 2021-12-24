@@ -342,7 +342,7 @@ dmsFiles = [
       "dms/dmsLobDirectInBuffer.cpp",
       "dms/dmsLobDirectOutBuffer.cpp",
       "dms/dmsIndexBuilder.cpp",
-      "dms/dmsIdxTaskStatus.cpp",
+      "dms/dmsTaskStatus.cpp",
       "dms/dmsIndexBuilderImpl.cpp",
       "dms/dmsStatSUMgr.cpp",
       "dms/dmsStatUnit.cpp",
@@ -482,7 +482,8 @@ clsFiles = [
       "cls/clsAdapterJob.cpp",
       "cls/clsMainCLMonAggregator.cpp",
       "cls/clsRemoteOperator.cpp",
-      "cls/clsResourceContainer.cpp"
+      "cls/clsResourceContainer.cpp",
+      "cls/clsIndexJob.cpp"
       ]
 
 dpsFiles = [
@@ -559,7 +560,6 @@ catFiles = [
       "cat/catCatalogManager.cpp",
       "cat/catDCManager.cpp",
       "cat/catLevelLock.cpp",
-      "cat/catSplit.cpp",
       "cat/catDCLogMgr.cpp",
       "cat/catContext.cpp",
       "cat/catContextData.cpp",
@@ -573,7 +573,8 @@ catFiles = [
       "cat/catSequenceManager.cpp",
       "cat/catCMDBase.cpp",
       "cat/catGlobTransManager.cpp",
-      "cat/catCommand.cpp"
+      "cat/catCommand.cpp",
+      "cat/catTask.cpp"
       ]
 
 coordFiles = [

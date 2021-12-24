@@ -449,6 +449,38 @@ namespace engine
    typedef _coordCmdListTaskIntr coordCmdListTaskIntr ;
 
    /*
+      _coordCmdListIndexes define
+   */
+   class _coordCmdListIndexes : public _coordCMDQueryBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCmdListIndexes() ;
+         virtual ~_coordCmdListIndexes() ;
+      protected:
+         virtual INT32 _preProcess( rtnQueryOptions &queryOpt,
+                                    string &clName,
+                                    BSONObj &outSelector ) ;
+   } ;
+   typedef _coordCmdListIndexes coordCmdListIndexes ;
+
+   /*
+      _coordCmdListIndexesIntr define
+   */
+   class _coordCmdListIndexesIntr : public _coordCmdListIndexes
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCmdListIndexesIntr() ;
+         virtual ~_coordCmdListIndexesIntr() ;
+      protected:
+         virtual INT32 _preProcess( rtnQueryOptions &queryOpt,
+                                    string &clName,
+                                    BSONObj &outSelector ) ;
+   } ;
+   typedef _coordCmdListIndexesIntr coordCmdListIndexesIntr ;
+
+   /*
       _coordCMDListProcedures define
    */
    class _coordCMDListProcedures : public _coordCMDQueryBase

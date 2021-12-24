@@ -320,5 +320,27 @@
                                        {$match:{$and:[{Collection:{$isnull:0}},\
                                                       {Index:{$isnull:0}}]}}"
 
+#define COORD_SNAPSHOTIDX_INPUT        "{$project:{\
+                                             IndexName:\"$IndexDef.name\",\
+                                             IndexDef:1,\
+                                             IndexFlag:1,\
+                                             Type:1,\
+                                             ExtDataName:1,\
+                                             Node:{NodeName:1,GroupName:1}\
+                                             }\
+                                        }\n\
+                                        {$group:{\
+                                             _id:{IndexName:\"$IndexName\"},\
+                                             IndexDef:{$first:\"$IndexDef\"},\
+                                             IndexFlag:{$first:\"$IndexFlag\"},\
+                                             Type:{$first:\"$Type\"},\
+                                             ExtDataName:{$first:\"$ExtDataName\"},\
+                                             Nodes:{$addtoset:\"$Node\"}\
+                                             }\
+                                        }\n\
+                                        {$match:\
+                                             {$and:[{IndexDef:{$exists:1}},\
+                                                    {IndexDef:{$ne:null}}]}\
+                                        }"
 
 #endif // COORD_SNAPSHOT_DEF_HPP__

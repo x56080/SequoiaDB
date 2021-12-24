@@ -71,8 +71,10 @@
 #define SDB_SNAP_INDEXSTATS       21
 /** reserved */
 #define SDB_SNAP_RESERVED3        22
-
-
+/** snapshot of tasks */
+#define SDB_SNAP_TASKS            23
+/** snapshot of indexes */
+#define SDB_SNAP_INDEXES          24
 /** snapshot of transaction waits */
 #define SDB_SNAP_TRANSWAITS       25
 /** snapshot of transaction deadlock */
@@ -109,9 +111,9 @@
 #define SDB_LIST_SVCTASKS         14
 /** list of sequences */
 #define SDB_LIST_SEQUENCES        15
-/** list users */
+/** list of users */
 #define SDB_LIST_USERS            16
-/** list backups */
+/** list of backups */
 #define SDB_LIST_BACKUPS          17
 /** reserved */
 #define SDB_LIST_RESERVED1        18
@@ -120,10 +122,14 @@
 #define SDB_LIST_RESERVED4        21
 /** list data source */
 #define SDB_LIST_DATASOURCES      22
-
 /** reserved */
-#define SDB_LIST_RESERVED5        25
-#define SDB_LIST_RESERVED6        26
+#define SDB_LIST_RESERVED5        23
+/** #define SDB_LIST_INDEXES 24, for internal use only */
+#define SDB_LIST_RESERVED6        24
+/** reserved */
+#define SDB_LIST_RESERVED7        25
+/** reserved */
+#define SDB_LIST_RESERVED8        26
 
 // reserved
 #define SDB_LIST_CL_IN_DOMAIN     129

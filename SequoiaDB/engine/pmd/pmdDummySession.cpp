@@ -47,12 +47,14 @@ namespace engine
    {
       _pEDUCB = cb ;
       _eduID  = cb->getID() ;
+      _pEDUCB->attachSession( this ) ;
       _client.attachCB( _pEDUCB ) ;
    }
 
    void _pmdDummySession::detachCB ()
    {
-      _pEDUCB = NULL ;
       _client.detachCB() ;
+      _pEDUCB->detachSession() ;
+      _pEDUCB = NULL ;
    }
 }

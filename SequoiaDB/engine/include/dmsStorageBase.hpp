@@ -79,7 +79,7 @@ namespace engine
                                                    // _sequence
       UINT32      _sequence ;
       UINT64      _secretValue ;
-      UINT32       _lobdPageSize ;
+      UINT32      _lobdPageSize ;
 
       UINT32      _overflowRatio ;
       UINT32      _extentThreshold ;
@@ -145,7 +145,8 @@ namespace engine
       UINT64 _commitTime ;                               // commit timestamp
       utilCSUniqueID _csUniqueID ;                       // cs unique id
       UINT32 _segmentSize ;                              // segment size
-      CHAR   _pad [ 65328 ] ;
+      utilIdxInnerID _idxInnerHWM ;                      // index InnerID hwm
+      CHAR   _pad [ 65324 ] ;
 
       _dmsStorageUnitHeader()
       {

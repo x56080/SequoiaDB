@@ -246,6 +246,67 @@ namespace engine
    typedef _coordCMDSnapshotHealthIntr coordCMDSnapshotHealthIntr ;
 
    /*
+      _coordCMDSnapshotTasks define
+   */
+   class _coordCMDSnapshotTasks: public _coordCMDMonBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDSnapshotTasks() ;
+         virtual ~_coordCMDSnapshotTasks() ;
+      private:
+         virtual const CHAR *getIntrCMDName() ;
+         virtual const CHAR *getInnerAggrContent() ;
+   } ;
+   typedef _coordCMDSnapshotTasks coordCMDSnapshotTasks ;
+
+   /*
+      _coordCMDSnapshotTasksIntr define
+   */
+   class _coordCMDSnapshotTasksIntr : public _coordCMDSnapshotIntrBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDSnapshotTasksIntr() ;
+         virtual ~_coordCMDSnapshotTasksIntr() ;
+         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
+   } ;
+   typedef _coordCMDSnapshotTasksIntr coordCMDSnapshotTasksIntr ;
+
+   /*
+      _coordCMDSnapshotIndexes define
+   */
+   class _coordCMDSnapshotIndexes: public _coordCMDMonBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDSnapshotIndexes() ;
+         virtual ~_coordCMDSnapshotIndexes() ;
+      private:
+         virtual const CHAR *getIntrCMDName() ;
+         virtual const CHAR *getInnerAggrContent() ;
+   } ;
+   typedef _coordCMDSnapshotIndexes coordCMDSnapshotIndexes ;
+
+   /*
+      _coordCMDSnapshotIndexesIntr define
+   */
+   class _coordCMDSnapshotIndexesIntr : public _coordCMDSnapshotIntrBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDSnapshotIndexesIntr() ;
+         virtual ~_coordCMDSnapshotIndexesIntr() ;
+         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
+      protected:
+         virtual INT32 _preExcute( MsgHeader *pMsg,
+                                   pmdEDUCB *cb,
+                                   coordCtrlParam &ctrlParam,
+                                   SET_RC &ignoreRCList ) ;
+   } ;
+   typedef _coordCMDSnapshotIndexesIntr coordCMDSnapshotIndexesIntr ;
+
+   /*
       _coordCMDSnapshotCollections define
    */
    class _coordCMDSnapshotCollections: public _coordCMDMonBase

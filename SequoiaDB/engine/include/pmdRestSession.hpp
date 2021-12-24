@@ -483,6 +483,9 @@ namespace engine
          INT32       _convertSnapshotIndexStats( restAdaptor * pAdaptor,
                                                  restRequest &request,
                                                  MsgHeader ** msg ) ;
+         INT32       _convertSnapshotTasks ( restAdaptor * pAdaptor,
+                                             restRequest &request,
+                                             MsgHeader ** msg ) ;
          INT32       _convertSnapshotTransWaits ( restAdaptor * pAdaptor,
                                                   restRequest &request,
                                                   MsgHeader ** msg ) ;

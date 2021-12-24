@@ -228,8 +228,8 @@ namespace sdbclient
       // flag ( optional )
       // pResult ( optional )
       INT32 update ( const BSONObj &rule,
-                     const BSONObj &condition   = _sdbStaticObject,
-                     const BSONObj &hint        = _sdbStaticObject,
+                     const BSONObj &condition = _sdbStaticObject,
+                     const BSONObj &hint = _sdbStaticObject,
                      INT32 flag                 = 0,
                      BSONObj *pResult           = NULL
                    ) ;
@@ -257,7 +257,7 @@ namespace sdbclient
       // hint ( optional )
       // flag ( optional )
       // pResult ( optional )
-      INT32 del    ( const BSONObj &condition   = _sdbStaticObject,
+      INT32 del    ( const BSONObj &condition = _sdbStaticObject,
                      const BSONObj &hint        = _sdbStaticObject,
                      INT32 flag                 = 0,
                      BSONObj *pResult           = NULL
@@ -370,7 +370,20 @@ namespace sdbclient
                           INT32 sortBufferSize ) ;
       INT32 createIndex ( const BSONObj &indexDef,
                           const CHAR *pIndexName,
-                          const BSONObj &options ) ;
+                          const BSONObj &indexAttr = _sdbStaticObject,
+                          const BSONObj &option = _sdbStaticObject ) ;
+      INT32 createIndexAsync ( SINT64 &taskID,
+                               const BSONObj &indexDef,
+                               const CHAR *pIndexName,
+                               const BSONObj &indexAttr = _sdbStaticObject,
+                               const BSONObj &option = _sdbStaticObject ) ;
+      INT32 snapshotIndexes ( _sdbCursor **cursor,
+                              const BSONObj &condition = _sdbStaticObject,
+                              const BSONObj &selector = _sdbStaticObject,
+                              const BSONObj &orderby = _sdbStaticObject,
+                              const BSONObj &hint = _sdbStaticObject,
+                              INT64 numToSkip = 0,
+                              INT64 numToReturn = -1 ) ;
       INT32 getIndexes ( _sdbCursor **cursor,
                          const CHAR *pName ) ;
       INT32 getIndexes ( sdbCursor &cursor,
@@ -381,7 +394,12 @@ namespace sdbclient
       }
       INT32 getIndexes ( std::vector<bson::BSONObj> &infos ) ;
       INT32 getIndex ( const CHAR *pName, bson::BSONObj &info ) ;
-      INT32 dropIndex ( const CHAR *pName ) ;
+      INT32 dropIndex ( const CHAR *pIndexName ) ;
+      INT32 dropIndexAsync ( SINT64 &taskID, const CHAR *pIndexName ) ;
+      INT32 copyIndex ( const CHAR *subClFullName,
+                        const CHAR *pIndexName ) ;
+      INT32 copyIndexAsync ( SINT64 &taskID, const CHAR *subClFullName,
+                             const CHAR *pIndexName ) ;
       INT32 create () ;
       INT32 drop () ;
       const CHAR *getCollectionName ()
@@ -587,9 +605,17 @@ namespace sdbclient
       INT32 _alterCollection2( const bson::BSONObj &options ) ;
       INT32 _createIndex ( const BSONObj &indexDef, const CHAR *pName,
                            BOOLEAN isUnique, BOOLEAN isEnforced,
-                           INT32 sortBufferSize ) ;
+                           INT32 sortBufferSize,
+                           SINT64 *pTaskID = NULL ) ;
       INT32 _createIndex ( const BSONObj &indexDef, const CHAR *pIndexName,
-                           const BSONObj &options ) ;
+                           const BSONObj &indexAttr,
+                           const BSONObj &option,
+                           SINT64 *pTaskID = NULL ) ;
+      INT32 _dropIndex ( const CHAR *pIndexName,
+                         SINT64 *pTaskID = NULL ) ;
+      INT32 _copyIndex ( const CHAR *subClFullName,
+                         const CHAR *pIndexName,
+                         SINT64 *pTaskID = NULL ) ;
 
       INT32 _alterInternal ( const CHAR * taskName,
                              const bson::BSONObj * argument,

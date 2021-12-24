@@ -61,6 +61,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__IXMINXCB1 );
       _isGlobalIndex = FALSE;
       _indexCLUID = UTIL_UNIQUEID_NULL ;
+      _idxUniqID = UTIL_UNIQUEID_NULL ;
       _isInitialized = FALSE ;
       _pIndexSu = pIndexSu ;
       _pContext = context ;
@@ -94,6 +95,7 @@ namespace engine
 
       _isGlobalIndex = FALSE;
       _indexCLUID = UTIL_UNIQUEID_NULL ;
+      _idxUniqID = UTIL_UNIQUEID_NULL ;
       ixmIndexCBExtent *pExtent = NULL ;
       _isInitialized = FALSE ;
       dmsExtRW extRW ;
@@ -129,7 +131,7 @@ namespace engine
       }
 
       pExtent->_type = IXM_EXTENT_TYPE_NONE ;
-      if ( !generateIndexType( infoObj, pExtent->_type ) )
+      if ( SDB_OK != generateIndexType( infoObj, pExtent->_type ) )
       {
          goto error ;
       }
@@ -302,7 +304,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMINXCB_TRUNC, "_ixmIndexCB::truncate" )
-   INT32 _ixmIndexCB::truncate ( BOOLEAN removeRoot, UINT16 indexFlag )
+   INT32 _ixmIndexCB::truncate ( BOOLEAN removeRoot, UINT16 indexFlag,
+                                 UINT64 *pDelKeyCnt )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMINXCB_TRUNC );
@@ -314,7 +317,8 @@ namespace engine
       {
          BOOLEAN valid = TRUE ;
          ixmExtent rootExtent ( root, _pIndexSu ) ;
-         rootExtent.truncate ( this, DMS_INVALID_EXTENT, valid ) ;
+         UINT16 keyCnt = rootExtent.getNumKeyNode() ;
+         rootExtent.truncate ( this, DMS_INVALID_EXTENT, valid, pDelKeyCnt ) ;
          if ( valid && removeRoot )
          {
             UINT16 mbID = rootExtent.getMBID() ;
@@ -327,6 +331,10 @@ namespace engine
                _pIndexSu->addStatFreeSpace( mbID, freeSize ) ;
                PD_LOG ( PDERROR, "Failed to free extent %d", root ) ;
                goto error ;
+            }
+            if ( pDelKeyCnt )
+            {
+               (*pDelKeyCnt) += keyCnt ;
             }
          }
       }
@@ -434,6 +442,7 @@ namespace engine
 
          _infoObj = BSONObj( ( (const CHAR *)_extent ) +
                              IXM_INDEX_CB_EXTENT_METADATA_SIZE ) ;
+         _fieldInitedFlag = 0 ;
       }
       catch ( exception &e )
       {
@@ -603,6 +612,66 @@ namespace engine
       _isGlobalIndex = FALSE ;
       _indexCLUID = UTIL_UNIQUEID_NULL ;
       _indexCLName = NULL ;
+   goto done ;
+   }
+
+   INT32 _ixmIndexCB::changeUniqueID( utilIdxUniqueID uniqueID )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder builder ;
+      BSONObj newDef ;
+      dmsExtRW extRW ;
+      ixmIndexCBExtent *pExtent = NULL ;
+
+      try
+      {
+         // build new index definition
+         BSONObjIterator it( _infoObj ) ;
+         while( it.more() )
+         {
+            BSONElement e = it.next() ;
+            if ( 0 != ossStrcmp( e.fieldName(), IXM_FIELD_NAME_UNIQUEID ) )
+            {
+               builder.append( e ) ;
+            }
+         }
+         builder.append( IXM_FIELD_NAME_UNIQUEID, (INT64)uniqueID ) ;
+         newDef = builder.done() ;
+
+         // check new index definition
+         if ( newDef.objsize() + IXM_INDEX_CB_EXTENT_METADATA_SIZE >=
+              (UINT32)_pageSize )
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "index object is too big, size: %d, object: %s",
+                    newDef.objsize(), newDef.toString().c_str() ) ;
+            goto error ;
+         }
+
+         // get extent
+         extRW = _pIndexSu->extent2RW( _extentID, _extent->_mbID ) ;
+         pExtent = extRW.writePtr<ixmIndexCBExtent>( 0, (UINT32)_pageSize ) ;
+
+         // write index definition
+         ossMemcpy( ((CHAR*)pExtent) + IXM_INDEX_CB_EXTENT_METADATA_SIZE,
+                    newDef.objdata(), (size_t)newDef.objsize() ) ;
+         _infoObj = BSONObj( ((const CHAR*)pExtent) +
+                             IXM_INDEX_CB_EXTENT_METADATA_SIZE ) ;
+         _fieldInitedFlag = 0 ;
+
+         _idxUniqID = uniqueID ;
+         SET_UNIQUEID_INITED() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "occur unexpected error(%s)", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
       goto done ;
    }
 
@@ -613,11 +682,38 @@ namespace engine
                                      IXM_FIELD_NAME_NAME << IXM_ID_KEY_NAME <<
                                      IXM_FIELD_NAME_UNIQUE << true <<
                                      IXM_FIELD_NAME_V << 0 <<
-                                     IXM_FIELD_NAME_ENFORCED << true ) ;
+                                     IXM_FIELD_NAME_ENFORCED << true <<
+                                     IXM_FIELD_NAME_NOTARRAY << true ) ;
 
    BSONObj ixmGetIDIndexDefine ()
    {
       return s_idKeyObj ;
+   }
+
+   BSONObj ixmGetIDIndexDefine( UINT64 idxUniqueID )
+   {
+      BSONObj obj ;
+
+      try
+      {
+         if ( UTIL_UNIQUEID_NULL == idxUniqueID )
+         {
+            obj = s_idKeyObj ;
+         }
+         else
+         {
+            BSONObjBuilder builder ;
+            builder.appendElements( s_idKeyObj ) ;
+            builder.append( IXM_FIELD_NAME_UNIQUEID, (INT64)idxUniqueID ) ;
+            obj = builder.obj() ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+      return obj ;
    }
 
    /*
@@ -647,5 +743,4 @@ namespace engine
       }
       return "Unknown" ;
    }
-
 }

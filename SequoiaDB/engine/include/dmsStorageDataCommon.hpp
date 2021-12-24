@@ -1010,7 +1010,9 @@ namespace engine
                                BOOLEAN sysCollection = FALSE,
                                UINT8 compressionType = UTIL_COMPRESSOR_INVALID,
                                UINT32 *logicID = NULL,
-                               const BSONObj *extOptions = NULL ) ;
+                               const BSONObj *extOptions = NULL,
+                               const BSONObj *pIdIdxDef = NULL,
+                               BOOLEAN addIdxIDIfNotExist = FALSE ) ;
 
          INT32 dropCollection ( const CHAR *pName,
                                 _pmdEDUCB *cb,
@@ -1029,9 +1031,11 @@ namespace engine
          INT32 truncateCollectionLoads( const CHAR *pName,
                                         dmsMBContext *context = NULL ) ;
 
-         INT32 changeCLUniqueID( const MAP_CLNAME_ID& clInfo,
+         INT32 changeCLUniqueID( const MAP_CLNAME_ID& modifyCl,
+                                 BOOLEAN changeOtherCL,
                                  utilCSUniqueID csUniqueID,
-                                 BOOLEAN isLoadCS = FALSE ) ;
+                                 BOOLEAN isLoadCS,
+                                 ossPoolVector<ossPoolString>& clVec ) ;
 
          INT32 renameCollection ( const CHAR *oldName, const CHAR *newName,
                                   _pmdEDUCB *cb, SDB_DPSCB *dpscb,

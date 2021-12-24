@@ -80,12 +80,12 @@ namespace engine
       RTN_FETCH_HEALTH,                /// node health check
       RTN_FETCH_CONFIGS,               /// config
       RTN_FETCH_SVCTASKS,              /// svc tasks
-
       RTN_FETCH_VCL_SESSIONINFO,       /// VCL session info
       RTN_FETCH_QUERIES,               /// queries
       RTN_FETCH_LATCHWAITS,            /// latch waits
       RTN_FETCH_LOCKWAITS,             /// lock waits
       RTN_FETCH_INDEXSTATS,            /// index statistics
+      RTN_FETCH_TASKS,                 /// tasks
 
       RTN_FETCH_DATASET,               /// fetch from inner data set
 

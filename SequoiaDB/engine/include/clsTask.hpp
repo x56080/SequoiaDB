@@ -44,7 +44,7 @@
 #include <string>
 #include <map>
 #include "../bson/bson.h"
-#include "dmsIdxTaskStatus.hpp"
+#include "dmsTaskStatus.hpp"
 
 using namespace bson ;
 
@@ -118,8 +118,12 @@ namespace engine
    #define CLS_IDX_MASK_ENDTIME              0x00000100
    #define CLS_IDX_MASK_OPINFO               0x00000200
    #define CLS_IDX_MASK_RETRYCNT             0x00000400
-   #define CLS_IDX_MASK_TOTALSZ              0x00000800
-   #define CLS_IDX_MASK_PROCESSSZ            0x00001000
+   #define CLS_IDX_MASK_TOTALREC             0x00000800
+   #define CLS_IDX_MASK_PCSEDREC             0x00001000
+   // pull_by/push one group / subtask
+   #define CLS_IDX_MASK_PULL_GROUP           0x00002000
+   #define CLS_IDX_MASK_PULL_SUBTASK         0x00004000
+   #define CLS_IDX_MASK_PUSH_GROUP           0x00008000
 
    const CHAR* clsTaskTypeStr( CLS_TASK_TYPE taskType ) ;
    const CHAR* clsTaskStatusStr( CLS_TASK_STATUS taskStatus ) ;
@@ -159,20 +163,36 @@ namespace engine
          virtual INT32       init( const CHAR* objdata ) = 0 ;
          virtual BSONObj     toBson ( UINT32 mask = CLS_MASK_ALL ) = 0 ;
 
-         virtual INT32       updateTaskInfo( const CHAR* objdata,
+         virtual INT32       buildStartTask( const BSONObj& obj,
                                              BSONObj& updator,
                                              BSONObj& matcher ) ;
-         virtual INT32       updateMainTaskInfo( _clsTask *pSubTask,
-                                                 const ossPoolVector<BSONObj>& subTaskInfoList,
-                                                 BSONObj& updator,
-                                                 BSONObj& matcher ) ;
-         virtual INT32       querySubTasks( const CHAR* objdata,
-                                            BSONObj& matcher,
-                                            BSONObj& selector ) ;
-         virtual INT32       removeSubTask( UINT64 taskID,
-                                            const ossPoolVector<BSONObj>& otherSubTasks,
-                                            BSONObj& updator,
-                                            BSONObj& matcher ) ;
+         virtual INT32       buildStartTaskBy( const _clsTask* pSubTask,
+                                               const BSONObj& obj,
+                                               BSONObj& updator,
+                                               BSONObj& matcher ) ;
+
+         virtual INT32       buildCancelTask( const BSONObj& obj,
+                                              BSONObj& updator,
+                                              BSONObj& matcher ) ;
+         virtual INT32       buildCancelTaskBy( const _clsTask* pSubTask,
+                                                BSONObj& updator,
+                                                BSONObj& matcher ) ;
+
+         virtual INT32       buildReportTask( const BSONObj& obj,
+                                              BSONObj& updator,
+                                              BSONObj& matcher ) ;
+         virtual INT32       buildReportTaskBy( const _clsTask* pSubTask,
+                                                const ossPoolVector<BSONObj>& subTaskInfoList,
+                                                BSONObj& updator,
+                                                BSONObj& matcher ) ;
+
+         virtual INT32       buildQuerySubTasks( const BSONObj& obj,
+                                                 BSONObj& matcher,
+                                                 BSONObj& selector ) ;
+         virtual INT32       buildRemoveTaskBy( UINT64 taskID,
+                                                const ossPoolVector<BSONObj>& otherSubTasks,
+                                                BSONObj& updator,
+                                                BSONObj& matcher ) ;
 
       protected:
          UINT64                  _taskID ;
@@ -206,6 +226,9 @@ namespace engine
 
    class _clsTaskMgr : public SDBObject
    {
+      private:
+         // < task point, refrence count >
+         typedef std::pair<_clsTask*, INT32> PAIR_TASK_CNT ;
       public:
          _clsTaskMgr ( UINT32 maxLocationID ) ;
          ~_clsTaskMgr () ;
@@ -221,8 +244,10 @@ namespace engine
          INT32       waitTaskEvent( INT64 millisec = OSS_ONE_SEC ) ;
 
          INT32       addTask ( _clsTask *pTask,
-                               UINT32 locationID ) ;
-         INT32       removeTask ( UINT32 locationID ) ;
+                               UINT32 locationID,
+                               BOOLEAN *pAlreadyExist = NULL ) ;
+         INT32       removeTask ( UINT32 locationID,
+                                  BOOLEAN *pDeleted = NULL ) ;
          _clsTask*   findTask ( UINT32 locationID ) ;
          void        stopTask ( UINT32 locationID ) ;
 
@@ -234,10 +259,10 @@ namespace engine
          UINT32      getRegCount( const string &clName,
                                   BOOLEAN noLatch = FALSE ) ;
 
-         string      dumpTasks( CLS_TASK_TYPE type = CLS_TASK_UNKNOWN ) ;
+         ossPoolString dumpTasks( CLS_TASK_TYPE type = CLS_TASK_UNKNOWN ) ;
 
       private:
-         std::map<UINT32, _clsTask*>         _taskMap ; // key is location ID
+         std::map<UINT32, PAIR_TASK_CNT>     _taskMap ; // key is location ID
          ossSpinSLatch                       _taskLatch ;
          ossAutoEvent                        _taskEvent ;
 
@@ -259,6 +284,14 @@ namespace engine
          virtual INT32 init ( const CHAR *objdata ) ;
          virtual BSONObj toBson ( UINT32 mask = CLS_MASK_ALL ) ;
 
+         virtual INT32 buildStartTask( const BSONObj& obj,
+                                       BSONObj& updator,
+                                       BSONObj& matcher ) ;
+
+         virtual INT32 buildCancelTask( const BSONObj& obj,
+                                        BSONObj& updator,
+                                        BSONObj& matcher ) ;
+
          INT32   init ( const CHAR *clFullName, INT32 sourceID,
                         const CHAR *sourceName, INT32 dstID,
                         const CHAR *dstName, const BSONObj &bKey,
@@ -269,7 +302,7 @@ namespace engine
                                      FLOAT64 percent, BSONObj &bKey,
                                      BSONObj &eKey ) ;
 
-         BOOLEAN                 isHashSharding() const ;
+         BOOLEAN isHashSharding() const ;
 
       public:
          virtual const CHAR*     taskName () const ;
@@ -279,8 +312,7 @@ namespace engine
          virtual BOOLEAN         muteXOn ( const _clsTask *pOther ) ;
 
       public:
-         const CHAR*             clFullName () const ;
-         utilCLUniqueID          clUniqueID () const ;
+         utilCLUniqueID          clUniqueID() const ;
          const CHAR*             shardingType () const ;
          const CHAR*             sourceName () const ;
          const CHAR*             dstName () const ;
@@ -336,6 +368,7 @@ namespace engine
       }
 
       INT32 init( const CHAR *objdata ) ;
+      BSONObj toBson() ;
 
       UINT64          taskID ;
       CLS_TASK_TYPE   taskType ;
@@ -354,18 +387,18 @@ namespace engine
       void clear()
       {
          groupName.clear() ;
-         taskID               = CLS_INVALID_TASKID ;
-         status               = CLS_TASK_STATUS_READY ;
-         resultCode           = 0 ;
-         resultInfo           = BSONObj() ;
+         taskID      = CLS_INVALID_TASKID ;
+         status      = CLS_TASK_STATUS_READY ;
+         resultCode  = SDB_OK ;
+         resultInfo  = BSONObj() ;
          opInfo.clear() ;
-         retryCnt             = 0 ;
-         progress             = 0 ;
-         speed                = 0.0 ;
-         timeSpent            = 0.0 ;
-         timeLeft             = 0.0 ;
-         totalSize            = 0 ;
-         processedSize        = 0 ;
+         retryCnt    = 0 ;
+         progress    = 0 ;
+         speed       = 0 ;
+         timeSpent   = 0.0 ;
+         timeLeft    = 0.0 ;
+         totalRecNum = 0 ;
+         pcsedRecNum = 0 ;
       }
 
       ossPoolString toString() const
@@ -379,6 +412,7 @@ namespace engine
       }
 
       INT32 init( const CHAR *objdata ) ;
+      BSONObj toBson() ;
 
       ossPoolString           groupName ;
 
@@ -393,13 +427,13 @@ namespace engine
 
       // progress
       UINT32                  progress ;
-      FLOAT64                 speed ;
+      UINT64                  speed ;
       FLOAT64                 timeSpent ;
       FLOAT64                 timeLeft ;
 
       // page
-      INT64                   totalSize ;
-      INT64                   processedSize ;
+      UINT64                  totalRecNum ;
+      UINT64                  pcsedRecNum ;
    };
    typedef _clsIdxTaskGroupUnit clsIdxTaskGroupUnit ;
 
@@ -425,21 +459,40 @@ namespace engine
          virtual BSONObj     toBson( UINT32 mask = CLS_MASK_ALL ) ;
 
          virtual INT32       getSubTasks( ossPoolVector<UINT64>& list ) ;
-         virtual INT32       removeSubTask( UINT64 taskID,
-                                            const ossPoolVector<BSONObj>& otherSubTasks,
-                                            BSONObj& updator,
-                                            BSONObj& matcher ) ;
 
-         virtual INT32       updateTaskInfo( const CHAR* objdata,
+         virtual INT32       buildRemoveTaskBy( UINT64 taskID,
+                                                const ossPoolVector<BSONObj>& otherSubTasks,
+                                                BSONObj& updator,
+                                                BSONObj& matcher ) ;
+
+         virtual INT32       buildStartTask( const BSONObj& obj,
                                              BSONObj& updator,
                                              BSONObj& matcher ) ;
-         virtual INT32       updateMainTaskInfo( clsTask *pSubTask,
-                                                 const ossPoolVector<BSONObj>& subTaskInfoList,
-                                                 BSONObj& updator,
-                                                 BSONObj& matcher ) ;
-         virtual INT32       querySubTasks( const CHAR* objdata,
-                                            BSONObj& matcher,
-                                            BSONObj& selector ) ;
+         virtual INT32       buildStartTaskBy( const _clsTask* pSubTask,
+                                               const BSONObj& obj,
+                                               BSONObj& updator,
+                                               BSONObj& matcher ) ;
+
+         virtual INT32       buildCancelTask( const BSONObj& obj,
+                                              BSONObj& updator,
+                                              BSONObj& matcher ) ;
+         virtual INT32       buildCancelTaskBy( const _clsTask* pSubTask,
+                                                BSONObj& updator,
+                                                BSONObj& matcher ) ;
+
+         virtual INT32       buildReportTask( const BSONObj& obj,
+                                              BSONObj& updator,
+                                              BSONObj& matcher ) ;
+         virtual INT32       buildReportTaskBy( const _clsTask* pSubTask,
+                                                const ossPoolVector<BSONObj>& subTaskInfoList,
+                                                BSONObj& updator,
+                                                BSONObj& matcher ) ;
+
+         virtual INT32       buildQuerySubTasks( const BSONObj& obj,
+                                                 BSONObj& matcher,
+                                                 BSONObj& selector ) ;
+
+         utilCLUniqueID  clUniqueID() const ;
 
          const BSONObj&  resultInfo() const ;
 
@@ -448,10 +501,27 @@ namespace engine
 
          void            setRun() ;
          void            setFinish( INT32 resultCode = SDB_OK,
-                                    const BSONObj &resultInfo = BSONObj() ) ;
+                                    const BSONObj& resultInfo = BSONObj() ) ;
 
-         INT32           countGroup() ;
-         INT32           countSubTask() ;
+         INT32           countGroup() const ;
+         INT32           countSubTask() const ;
+
+         INT32           buildAddGroup( const CHAR* groupName,
+                                        BSONObj& updator,
+                                        BSONObj& matcher ) ;
+         INT32           buildAddGroupBy( const _clsTask* pSubTask,
+                                          const CHAR* groupName,
+                                          BSONObj& updator,
+                                          BSONObj& matcher ) ;
+
+         INT32           buildRemoveGroup( const CHAR* groupName,
+                                           BSONObj& updator,
+                                           BSONObj& matcher ) ;
+         INT32           buildRemoveGroupBy( const _clsTask* pSubTask,
+                                             const ossPoolVector<BSONObj>& subTaskInfoList,
+                                             const CHAR* groupName,
+                                             BSONObj& updator,
+                                             BSONObj& matcher ) ;
 
       protected:
          virtual INT32 _init( const CHAR *objdata ) = 0 ;
@@ -460,79 +530,92 @@ namespace engine
          void  _makeName() ;
          void  _calculate() ;
 
-         void  _updateSubTask( clsSubTaskUnit& orgSubTask,
+         void  _updateSubTask( clsSubTaskUnit& curSubTask,
                                const clsSubTaskUnit& newSubTask ) ;
-         void  _updateGroup( clsIdxTaskGroupUnit& orgGroupInfo,
+         void  _updateGroup( clsIdxTaskGroupUnit& curGroupInfo,
                              const clsIdxTaskGroupUnit& newGroupInfo ) ;
          INT32 _buildNewGroupInfo( const ossPoolVector<BSONObj> &subTaskInfoList,
                                    clsIdxTaskGroupUnit &newGroupInfo ) ;
          void  _updateOtherByGroupInfo() ;
          void  _updateOtherBySubTaskInfo() ;
+
          void  _clearChangedMask() ;
          void  _toChangeOtherObj( BSONObjBuilder& matcherB,
                                   BSONObjBuilder& setB ) ;
          void  _toChangeSubtaskObj( BSONObjBuilder& matcherB,
                                     BSONObjBuilder& setB,
                                     const clsSubTaskUnit& subTask ) ;
-         void  _toPullSubtaskObj( BSONObjBuilder& matcherB,
-                                  BSONObjBuilder& updatorB,
-                                  UINT64 taskID ) ;
          void  _toChangeGroupObj( BSONObjBuilder& matcherB,
                                   BSONObjBuilder& setB,
                                   const clsIdxTaskGroupUnit& group ) ;
          void  _toChangeGroupObj( BSONObjBuilder& matcherB,
                                   BSONObjBuilder& setB ) ;
-         INT32 _toChangedObj( const clsIdxTaskGroupUnit& group,
-                              const clsSubTaskUnit& subTask,
+         INT32 _toChangedObj( const clsIdxTaskGroupUnit* group,
+                              const clsSubTaskUnit* subTask,
                               BSONObj& matcher,
                               BSONObj& updator ) ;
-         INT32 _toChangedObj( const clsIdxTaskGroupUnit& group,
-                              BSONObj& matcher,
+         INT32 _toChangedObj( BSONObj& matcher,
                               BSONObj& updator ) ;
-         INT32 _toChangedObj( UINT64 subTaskID,
-                              BSONObj& matcher,
-                              BSONObj& updator ) ;
+
+         INT32 _extractAndSetErrInfo( const BSONObj &errInfoArr,
+                                      BSONObjBuilder &matcherBuilder,
+                                      BSONObjBuilder &setBuilder ) ;
+
+         INT32 _buildStartTask( const clsTask* pSubTask,
+                                const BSONObj& obj,
+                                BSONObj& updator,
+                                BSONObj& matcher ) ;
+
+         BOOLEAN _isSucceedGroup( const clsIdxTaskGroupUnit& groupInfo ) ;
+         BOOLEAN _isSucceedTask( const clsSubTaskUnit& subTaskInfo ) ;
+         BOOLEAN _isSucceed( CLS_TASK_TYPE taskType,
+                             CLS_TASK_STATUS status,
+                             INT32 resultCode ) ;
+
       protected:
 
          // name
-         ossPoolString          _taskName ;
+         ossPoolString         _taskName ;
 
-         CHAR                   _clFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
-         CHAR                   _csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] ;
-         CHAR                   _indexName[ IXM_INDEX_NAME_SIZE + 1 ] ;
+         CHAR                  _clFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
+         utilCLUniqueID        _clUniqueID ;
+         CHAR                  _csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] ;
+         CHAR                  _indexName[ IXM_INDEX_NAME_SIZE + 1 ] ;
 
          // result
-         BSONObj                _resultInfo ;
+         BSONObj               _resultInfo ;
 
          // progress
-         UINT32                 _progress ;
-         FLOAT64                _speed ;     // unit: MB/s
-         FLOAT64                _timeSpent ;
-         FLOAT64                _timeLeft ;
+         UINT32                _progress ;
+         UINT64                _speed ;
+         FLOAT64               _timeSpent ;
+         FLOAT64               _timeLeft ;
 
          // group details
-         MAP_GROUP_INFO         _mapGroupInfo ;
-         UINT32                 _totalGroups ;
-         UINT32                 _succeededGroups ;
-         UINT32                 _failedGroups ;
+         MAP_GROUP_INFO        _mapGroupInfo ;
+         UINT32                _totalGroups ;
+         UINT32                _succeededGroups ;
+         UINT32                _failedGroups ;
 
          // if this task is a main-task
-         MAP_SUBTASK            _mapSubTask ;
-         UINT32                 _totalTasks ;
-         UINT32                 _succeededTasks ;
-         UINT32                 _failedTasks ;
+         MAP_SUBTASK           _mapSubTask ;
+         UINT32                _totalTasks ;
+         UINT32                _succeededTasks ;
+         UINT32                _failedTasks ;
 
          // timestamp
-         ossTimestamp           _createTS ;
-         ossTimestamp           _beginTS ;
-         ossTimestamp           _endTS ;
+         ossTimestamp          _createTS ;
+         ossTimestamp          _beginTS ;
+         ossTimestamp          _endTS ;
 
          // changed info
          INT32                 _changedMask ;
          INT32                 _changedGroupMask ;
-         INT32                 _changedTaskMask ;
-         clsIdxTaskGroupUnit   _changedGroup ;
-         clsSubTaskUnit        _changedSubtask ;
+         INT32                 _changedSubtaskMask ;
+         UINT32                _i ; // eg: number 1 in "SubTasks.$1.TaskID"
+         UINT64                _pullSubTaskID ;
+         ossPoolString         _pullGroupName ;
+         ossPoolString         _pushGroupName ;
    };
    typedef _clsIdxTask clsIdxTask ;
 
@@ -547,13 +630,17 @@ namespace engine
          virtual ~_clsCreateIdxTask() {}
 
          INT32 initTask( const CHAR *clFullName,
+                         utilCLUniqueID clUniqID,
                          const BSONObj &index,
+                         UINT64 idxUniqID,
                          const vector<string> &groupList,
                          INT32 sortBufSize,
                          UINT64 mainTaskID = CLS_INVALID_TASKID ) ;
 
          INT32 initMainTask( const CHAR *clFullName,
+                             utilCLUniqueID clUniqID,
                              const BSONObj &index,
+                             UINT64 idxUniqID,
                              const ossPoolSet<ossPoolString> &groupList,
                              const ossPoolVector<UINT64> &subTaskList ) ;
 
@@ -586,11 +673,13 @@ namespace engine
          virtual ~_clsDropIdxTask() {}
 
          INT32 initTask( const CHAR *clFullName,
+                         utilCLUniqueID clUniqID,
                          const CHAR *indexName,
                          const vector<string> &groupList,
                          UINT64 mainTaskID = CLS_INVALID_TASKID ) ;
 
          INT32 initMainTask( const CHAR *clFullName,
+                             utilCLUniqueID clUniqID,
                              const CHAR *indexName,
                              const ossPoolSet<ossPoolString> &groupList,
                              const ossPoolVector<UINT64> &subTaskList ) ;
@@ -614,6 +703,7 @@ namespace engine
          virtual ~_clsCopyIdxTask() {}
 
          INT32 initMainTask( const CHAR *clFullName,
+                             utilCLUniqueID clUniqID,
                              const ossPoolSet<ossPoolString> &subCLList,
                              const ossPoolSet<ossPoolString> &indexList,
                              const ossPoolSet<ossPoolString> &groupList,

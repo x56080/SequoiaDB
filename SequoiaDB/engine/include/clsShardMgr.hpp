@@ -370,7 +370,6 @@ namespace engine
                            UINT32 *lobPageSize = NULL,
                            DMS_STORAGE_TYPE *type = NULL,
                            BSONObj *clInfo = NULL,
-                           string *newCSName = NULL,
                            INT64 waitMillSec = CLS_SHARD_TIMEOUT ) ;
 
          INT32 updateDCBaseInfo() ;

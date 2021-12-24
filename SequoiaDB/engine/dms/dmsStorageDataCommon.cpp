@@ -2228,13 +2228,15 @@ namespace engine
                                                BOOLEAN sysCollection,
                                                UINT8 compressionType,
                                                UINT32 *logicID,
-                                               const BSONObj *extOptions )
+                                               const BSONObj *extOptions,
+                                               const BSONObj *pIdIdxDef,
+                                               BOOLEAN addIdxIDIfNotExist )
    {
       INT32 rc                = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_ADDCOLLECTION ) ;
       dpsMergeInfo info ;
       dpsLogRecord &record    = info.getMergeBlock().record() ;
-      UINT32 logRecSize       = 0;
+      UINT32 logRecSize       = 0 ;
       dpsTransCB *pTransCB    = pmdGetKRCB()->getTransCB() ;
       CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
       UINT16 newCollectionID  = DMS_INVALID_MBID ;
@@ -2264,7 +2266,7 @@ namespace engine
       {
          rc = dpsCLCrt2Record( _clFullName(pName, fullName, sizeof(fullName)),
                                clUniqueID, attributes, compressionType,
-                               extOptions, record ) ;
+                               extOptions, pIdIdxDef, record ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build record, rc: %d", rc ) ;
 
          rc = dpscb->checkSyncControl( record.alignedLen(), cb ) ;
@@ -2465,8 +2467,11 @@ namespace engine
       // create $id index[s_idKeyObj]
       if ( !OSS_BIT_TEST( attributes, DMS_MB_ATTR_NOIDINDEX ) )
       {
-         rc = _pIdxSU->createIndex( context, ixmGetIDIndexDefine(),
-                                    cb, NULL, TRUE ) ;
+         rc = _pIdxSU->createIndex( context,
+                                    pIdIdxDef ? *pIdIdxDef : ixmGetIDIndexDefine(),
+                                    cb, NULL, TRUE,
+                                    SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE,
+                                    NULL, NULL, FALSE, addIdxIDIfNotExist ) ;
          PD_RC_CHECK( rc, PDERROR, "Create $id index failed in collection[%s], "
                       "rc: %d", pName, rc ) ;
       }
@@ -2527,7 +2532,7 @@ namespace engine
          if ( rc1 )
          {
             PD_LOG( PDSEVERE, "Failed to clean up bad collection creation[%s], "
-                    "rc: %d", pName, rc ) ;
+                    "rc: %d", pName, rc1 ) ;
          }
       }
       goto done ;
@@ -3002,9 +3007,12 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_CHGUID, "_dmsStorageDataCommon::changeCLUniqueID" )
    INT32 _dmsStorageDataCommon::changeCLUniqueID( const MAP_CLNAME_ID& modifyCl,
+                                                  BOOLEAN changeOtherCL,
                                                   utilCSUniqueID csUniqueID,
-                                                  BOOLEAN isLoadCS )
+                                                  BOOLEAN isLoadCS,
+                                                  ossPoolVector<ossPoolString>& clVec )
    {
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON_CHGUID ) ;
       BOOLEAN hasChanged = FALSE ;
 
@@ -3013,7 +3021,7 @@ namespace engine
       COLNAME_MAP_IT it = _collectionNameMap.begin() ;
       while ( it != _collectionNameMap.end() )
       {
-         string clName ( it->first ) ;
+         const CHAR* clName = it->first ;
          UINT16 mbID = it->second ;
          it++ ;
 
@@ -3031,16 +3039,30 @@ namespace engine
          }
          else
          {
+            if ( !changeOtherCL )
+            {
+               continue ;
+            }
             if ( isLoadCS )
             {
                newClUniqueID = utilBuildCLUniqueID( csUniqueID,
-                                                    UTIL_CLINNERID_LOADCS );
+                                                    UTIL_CLINNERID_LOADCS ) ;
             }
             else
             {
                utilCLInnerID orgInnerID = utilGetCLInnerID( orgClUniqueID ) ;
                newClUniqueID = utilBuildCLUniqueID( csUniqueID, orgInnerID ) ;
             }
+         }
+
+         try
+         {
+            clVec.push_back( clName ) ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
          }
 
          // skip when old id equals to new id
@@ -3053,12 +3075,12 @@ namespace engine
          // set new unique id
          _dmsMME->_mbList[mbID]._clUniqueID = newClUniqueID ;
 
-         _collectionRemove ( clName.c_str(), orgClUniqueID ) ;
-         _collectionInsert ( clName.c_str(), mbID, newClUniqueID ) ;
+         _collectionRemove ( clName, orgClUniqueID ) ;
+         _collectionInsert ( clName, mbID, newClUniqueID ) ;
 
          PD_LOG( PDEVENT,
                  "Change cl[%s.%s] unique id from [%llu] to [%llu]",
-                 _dmsHeader->_name, clName.c_str(),
+                 _dmsHeader->_name, clName,
                  orgClUniqueID, newClUniqueID ) ;
 
       }
@@ -3068,8 +3090,11 @@ namespace engine
          flushMME( isSyncDeep() ) ;
       }
 
+   done:
       PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON_CHGUID ) ;
-      return SDB_OK ;
+      return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_RENAMECOLLECTION, "_dmsStorageDataCommon::renameCollection" )

@@ -818,22 +818,6 @@ namespace engine
       goto done ;
    }
 
-   INT32 rtnLoadCollectionSpace ( const CHAR *pCSName,
-                                  const CHAR *dataPath,
-                                  const CHAR *indexPath,
-                                  const CHAR *lobPath,
-                                  const CHAR *lobMetaPath,
-                                  pmdEDUCB *cb,
-                                  SDB_DMSCB *dmsCB,
-                                  BOOLEAN checkOnly )
-   {
-      utilCSUniqueID *csUniqueIDInCata = NULL ;
-      BSONObj clInfoInCata ;
-      return rtnLoadCollectionSpace( pCSName, dataPath, indexPath, lobPath,
-                                     lobMetaPath, cb, dmsCB, checkOnly,
-                                     csUniqueIDInCata, clInfoInCata ) ;
-   }
-
    // load a single collection name from given path
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNLOADCS, "rtnLoadCollectionSpace" )
    INT32 rtnLoadCollectionSpace ( const CHAR *pCSName,
@@ -844,8 +828,9 @@ namespace engine
                                   pmdEDUCB *cb,
                                   SDB_DMSCB *dmsCB,
                                   BOOLEAN checkOnly,
-                                  utilCSUniqueID *csUniqueIDInCata,
-                                  const BSONObj& clInfoInCata )
+                                  utilCSUniqueID *csUniqueIDInCat,
+                                  const BSONObj *clInfoInCat,
+                                  const ossPoolVector<BSONObj> *idxInfoInCat )
    {
       SDB_ASSERT ( pCSName, "pCSName can't be NULL" ) ;
       SDB_ASSERT ( dataPath, "data path can't be NULL" ) ;
@@ -942,7 +927,7 @@ namespace engine
                                        "space[%s] because it's already exist",
                                        csName ) ;
                               // reset the rc
-                              rc = SDB_OK; 
+                              rc = SDB_OK;
                            }
                            else
                            {
@@ -955,12 +940,11 @@ namespace engine
                         storageUnit = NULL ;
 
                         /// db.loadCS() may need to set unique id
-                        if ( csUniqueIDInCata )
+                        if ( csUniqueIDInCat )
                         {
-                           rc = dmsCB->changeUniqueID( csName,
-                                                       *csUniqueIDInCata,
-                                                       clInfoInCata,
-                                                       cb, NULL, TRUE ) ;
+                           rc = dmsCB->changeUniqueID( csName, *csUniqueIDInCat,
+                                  clInfoInCat ? *clInfoInCat: BSONObj(), TRUE,
+                                  idxInfoInCat, TRUE, cb, NULL, TRUE ) ;
                            PD_RC_CHECK( rc, PDERROR,
                                         "Failed to change unique id, rc: %d",
                                         rc ) ;
@@ -1807,7 +1791,7 @@ namespace engine
       rtnScannerFactory    f ;
       // choose merge scanner if in transaction
 
-      IXScannerType scanType = cb->isTransaction() ? SCANNER_TYPE_MERGE : 
+      IXScannerType scanType = cb->isTransaction() ? SCANNER_TYPE_MERGE :
                                                      SCANNER_TYPE_DISK ;
 
       // delete and update should also use scanner properly
@@ -2442,6 +2426,27 @@ namespace engine
       goto done ;
    }
 
+   BOOLEAN rtnCollectionInTheSpace ( const CHAR *pCLName, const CHAR *pCSName )
+   {
+      SDB_ASSERT( pCLName && pCSName, "name can't be null" ) ;
+      BOOLEAN isIn = FALSE ;
+
+      if ( pCLName && pCSName )
+      {
+         INT32 csNameLen = ossStrlen( pCSName ) ;
+         if ( 0 == ossStrncmp( pCLName, pCSName, csNameLen ) )
+         {
+            if ( pCLName[csNameLen]   == '.' &&
+                 pCLName[csNameLen+1] != '\0' )
+            {
+               isIn = TRUE ;
+            }
+         }
+      }
+
+      return isIn ;
+   }
+
    void rtnUnsetTransContext( _pmdEDUCB * cb,SDB_RTNCB *rtnCB )
    {
       if ( cb->contextNum() > 0 )
@@ -2477,46 +2482,53 @@ namespace engine
          BSONObjIterator i( indexDef ) ;
          while ( i.more() )
          {
-            BSONElement e = i.next();
-            // convert { Unique: true } => { unique: true }
-            if ( 0 == ossStrcmp( e.fieldName(), IXM_UNIQUE_FIELD1 ) )
+            BSONElement e = i.next() ;
+            BOOLEAN hasAppend = FALSE ;
+
+            if ( 0 == ossStrcmp( e.fieldName(), IXM_UNIQUE_FIELD ) ||
+                 0 == ossStrcmp( e.fieldName(), IXM_ENFORCED_FIELD ) ||
+                 0 == ossStrcmp( e.fieldName(), IXM_NOTNULL_FIELD ) ||
+                 0 == ossStrcmp( e.fieldName(), IXM_NOTARRAY_FIELD ) ||
+                 0 == ossStrcmp( e.fieldName(), IXM_GLOBAL_FIELD ) ||
+                 0 == ossStrcmp( e.fieldName(), IXM_STANDALONE_FIELD ) )
             {
-               builder.append( IXM_UNIQUE_FIELD, e.trueValue() ) ;
-            }
-            else if ( 0 == ossStrcmp( e.fieldName(), IXM_ENFORCED_FIELD1 ) )
-            {
-               builder.append( IXM_ENFORCED_FIELD, e.trueValue() ) ;
-            }
-            // convert { unique: 1 } => { unique: true }
-            else if ( 0 == ossStrcmp( e.fieldName(), IXM_UNIQUE_FIELD ) )
-            {
-               builder.append( IXM_UNIQUE_FIELD, e.trueValue() ) ;
-            }
-            else if ( 0 == ossStrcmp( e.fieldName(), IXM_ENFORCED_FIELD ) )
-            {
-               builder.append( IXM_ENFORCED_FIELD, e.trueValue() ) ;
-            }
-            else if ( 0 == ossStrcmp( e.fieldName(), IXM_NOTNULL_FIELD ) )
-            {
-               builder.append( IXM_NOTNULL_FIELD, e.trueValue() ) ;
-            }
-            else if ( 0 == ossStrcmp( e.fieldName(), IXM_GLOBAL_FIELD ) )
-            {
-               builder.append( IXM_GLOBAL_FIELD, e.trueValue() ) ;
-            }
-            else if ( 0 == ossStrcmp( e.fieldName(), IXM_NOTARRAY_FIELD ) )
-            {
-               if( 0 == ossStrcmp( indexDef.getStringField( IXM_NAME_FIELD ),
-                                   IXM_ID_KEY_NAME ) )
+               if ( e.isNumber() &&
+                    ( 1 == e.number() || 0 == e.number() ) )
                {
-                  builder.append( IXM_NOTARRAY_FIELD, true ) ;
+                  // convert { unique: 1 } => { unique: true }
+                  builder.append( e.fieldName(), e.trueValue() ) ;
+                  hasAppend = TRUE ;
+               }
+            }
+            else if ( 0 == ossStrcmp( e.fieldName(), IXM_UNIQUE_FIELD1 ) )
+            {
+               // convert { Unique: true } => { unique: true }
+               if ( e.isNumber() &&
+                    ( 1 == e.number() || 0 == e.number() ) )
+               {
+                  builder.append( IXM_UNIQUE_FIELD, e.trueValue() ) ;
                }
                else
                {
-                  builder.append( IXM_NOTARRAY_FIELD, e.trueValue() ) ;
+                  builder.appendAs( e, IXM_UNIQUE_FIELD ) ;
                }
+               hasAppend = TRUE ;
             }
-            else
+            else if ( 0 == ossStrcmp( e.fieldName(), IXM_ENFORCED_FIELD1 ) )
+            {
+               // convert { Enforced: true } => { enforce: true }
+               if ( e.isNumber() &&
+                    ( 1 == e.number() || 0 == e.number() ) )
+               {
+                  builder.append( IXM_ENFORCED_FIELD, e.trueValue() ) ;
+               }
+               else
+               {
+                  builder.appendAs( e, IXM_ENFORCED_FIELD ) ;
+               }
+               hasAppend = TRUE ;
+            }
+            if ( !hasAppend )
             {
                builder.append( e ) ;
             }

@@ -1,7 +1,8 @@
-#include "versionGenForCrontask.hpp"
+#include "versionGenForTools.hpp"
 #include "../ver_conf.h"
 #include "ossVer.h"
 #include <time.h>
+#include <fstream>
 
 #define VERSION_BUFFER_SIZE 64
 
@@ -14,105 +15,90 @@
 #define TASK_CTL_FILE       CRONTASK_PATH"sdbtaskctl"
 #define TASK_DAEMON_FILE    CRONTASK_PATH"sdbtaskdaemon"
 
-#if defined (GENERAL_VER_CRONTASK_FILE)
-IMPLEMENT_GENERATOR_AUTO_REGISTER( versionGenForCrontask, GENERAL_VER_CRONTASK_FILE ) ;
+#define UPGRADE_PATH        TOOLS_PATH"upgrade/"
+#define UPGRADE_IDX_FILE    UPGRADE_PATH"sdbupgradeidx"
+
+#if defined (GENERAL_VER_TOOLS_FILE)
+IMPLEMENT_GENERATOR_AUTO_REGISTER( versionGenForTools, GENERAL_VER_TOOLS_FILE ) ;
 #endif
 
-versionGenForCrontask::versionGenForCrontask()
-: _ctlDone( false ), _daemonDone( false )
+versionGenForTools::versionGenForTools()
+: _i( 0 )
+{
+   _fileList.push_back( TASK_CTL_FILE ) ;
+   _fileList.push_back( TASK_DAEMON_FILE ) ;
+   _fileList.push_back( UPGRADE_IDX_FILE ) ;
+}
+
+versionGenForTools::~versionGenForTools()
 {
 }
 
-versionGenForCrontask::~versionGenForCrontask()
+bool versionGenForTools::hasNext()
 {
+   return _i >= _fileList.size() ? false : true ;
 }
 
-bool versionGenForCrontask::hasNext()
-{
-   if ( _ctlDone && _daemonDone )
-   {
-      return false ;
-   }
-   return true ;
-}
-
-int versionGenForCrontask::outputFile( int id, fileOutStream &fout,
-                                       string &outputPath )
+int versionGenForTools::outputFile( int id, fileOutStream &fout,
+                                    string &outputPath )
 {
    int rc = 0 ;
    string content, newContent ;
-   vector<string> lines ;
    char version[ VERSION_BUFFER_SIZE ] = { 0 } ;
    char release[ VERSION_BUFFER_SIZE ] = { 0 } ;
    char gitVersion[ VERSION_BUFFER_SIZE ] = { 0 } ;
    char time[ VERSION_BUFFER_SIZE ] = { 0 } ;
    const char* fileName = NULL ;
 
-   // we need to process 2 file: sdbtaskctl, sdbtaskdaemon
-   if ( !_ctlDone )
-   {
-      fileName = TASK_CTL_FILE ;
-      _ctlDone = true ;
-   }
-   else if ( !_daemonDone )
-   {
-      fileName = TASK_DAEMON_FILE ;
-      _daemonDone = true ;
-   }
+   fileName = _fileList[ _i ].c_str() ;
+   _i++ ;
 
    outputPath = utilGetRealPath2( fileName ) ;
-
-   // read content from file
-   rc = utilGetFileContent( fileName, content ) ;
-   if ( rc )
-   {
-      printLog( PD_ERROR ) << "Failed to get file content: path = "
-                           << outputPath << endl ;
-      goto error ;
-   }
 
    // build version info
    _buildVersion( version, release, gitVersion, time ) ;
 
-   // replace version info
-   lines = stringSplit( content, "\n" ) ;
-   for( int i = 0; i < lines.size() ; ++i )
+   // read content from file, replace version info
+   ifstream fin( fileName, ifstream::in ) ;
+   while( fin.good() )
    {
-      const char* oneLine = lines.at( i ).c_str() ;
-      if ( 0 == strncmp( oneLine,
+      string oneLine ;
+      getline( fin, oneLine ) ; // getline can read empty line
+      if ( 0 == strncmp( oneLine.c_str(),
                          REPLACE_VERSION,
                          strlen( REPLACE_VERSION ) ) )
       {
          newContent += version ;
-         newContent += "\n" ;
       }
-      else if ( 0 == strncmp( oneLine,
+      else if ( 0 == strncmp( oneLine.c_str(),
                               REPLACE_RELEASE,
                               strlen( REPLACE_RELEASE ) ) )
       {
          newContent += release ;
-         newContent += "\n" ;
       }
-      else if ( 0 == strncmp( oneLine,
+      else if ( 0 == strncmp( oneLine.c_str(),
                               REPLACE_GIT_VER,
                               strlen( REPLACE_GIT_VER ) ) )
       {
          newContent += gitVersion ;
-         newContent += "\n" ;
       }
-      else if ( 0 == strncmp( oneLine,
+      else if ( 0 == strncmp( oneLine.c_str(),
                               REPLACE_BUILD_TIME,
                               strlen( REPLACE_BUILD_TIME ) ) )
       {
          newContent += time ;
-         newContent += "\n" ;
       }
       else
       {
          newContent += oneLine ;
+      }
+      // add newline if it is not last line
+      if ( fin.good() )
+      {
          newContent += "\n" ;
       }
    }
+   fin.close() ;
 
    fout << newContent ;
 
@@ -122,8 +108,8 @@ error:
    goto done ;
 }
 
-void versionGenForCrontask::_buildVersion( char *version, char *release,
-                                           char *gitVersion, char *time )
+void versionGenForTools::_buildVersion( char *version, char *release,
+                                        char *gitVersion, char *time )
 {
    // VERSION="3.4.1"
 #ifdef SDB_ENGINE_FIXVERSION_CURRENT

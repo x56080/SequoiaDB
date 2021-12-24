@@ -252,7 +252,18 @@ namespace engine
 
          INT32  startInnerSession ( INT32 type, INT32 innerTID,
                                     void *data = NULL ) ;
+
+         INT32  startTaskThread ( const BSONObj &taskObj, UINT64 &taskID ) ;
+         INT32  startRollbackTaskThread ( UINT64 taskID,
+                                          BOOLEAN isCancel = FALSE ) ;
+         INT32  restartTaskThread ( UINT64 taskID ) ;
+
          INT32  startTaskCheck ( const BSONObj& match ) ;
+         INT32  startTaskCheck( UINT64 taskID, BOOLEAN isMainTask = FALSE ) ;
+         INT32  startIdxTaskCheck( UINT64 taskID, BOOLEAN isMainTask = FALSE ) ;
+         INT32  startIdxTaskCheckByCL( utilCLUniqueID clUniqID ) ;
+         INT32  startAllTaskCheck() ;
+
          INT32  stopTask ( UINT64 taskID ) ;
          INT32  addTask( UINT64 taskID, UINT32 locationID ) ;
          INT32  removeTask( UINT64 taskID ) ;
@@ -265,6 +276,7 @@ namespace engine
          nodeMgrAgent* getNodeMgrAgent () ;
          shdMsgHandler* getShardMsgHandle() ;
          _clsTaskMgr*  getTaskMgr () ;
+         ossEvent* getTaskEvent() ;
          BOOLEAN  isPrimary () ;
          INT32    clearAllData () ;
          INT32    invalidateCache ( const CHAR *name, UINT8 type ) ;
@@ -291,7 +303,7 @@ namespace engine
          INT32       _startInnerSession ( INT32 type,
                                           pmdAsycSessionMgr *pSessionMgr ) ;
          INT32       _prepareTask () ;
-         INT32       _addTaskInnerSession ( const CHAR *objdata ) ;
+
          INT32       _initRemoteSession( _netRouteAgent *netRouteAgent ) ;
 
       //msg and event function
@@ -300,6 +312,9 @@ namespace engine
          INT32 _onCatQueryTaskRes ( NET_HANDLE handle, MsgHeader* msg ) ;
          INT32 _onStepDown( pmdEDUEvent *event ) ;
          INT32 _onStepUp( pmdEDUEvent *event ) ;
+         BOOLEAN _findAndCheckTaskStatus( UINT64 taskID,
+                                          dmsTaskStatusPtr &statusPtr,
+                                          BOOLEAN &needRollback ) ;
 
       private:
          clsShardSessionMgr            _shardSessionMgr ;
@@ -317,9 +332,11 @@ namespace engine
 
          VECINNERPARAM                 _vecInnerSessionParam ;
          MAPTASKQUERY                  _mapTaskQuery ;
-         UINT64                        _taskID ;
+         UINT64                        _requestID ;
          map< UINT64, UINT32 >         _mapTaskID ; // < taskID, locationID >
          ossSpinSLatch                 _clsLatch ;
+         // update task progress to catalog
+         ossEvent                      _taskEvent ;
 
          UINT64                        _regTimerID ;
          UINT32                        _regFailedTimes ;

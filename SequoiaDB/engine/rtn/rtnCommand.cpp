@@ -61,9 +61,6 @@
 using namespace bson ;
 using namespace std ;
 
-// Default size of capped collection for text index. The unit is MB. So its 30G.
-#define TEXT_INDEX_DATA_BUFF_DEFAULT_SIZE  ( 30 * 1024 )
-
 #define RTN_MIN_TRACE_BUFFER_SIZE 1
 #define RTN_MAX_TRACE_BUFFER_SIZE 1024
 
@@ -553,7 +550,7 @@ namespace engine
                                      const CHAR * pMatcherBuff,
                                      const CHAR * pSelectBuff,
                                      const CHAR * pOrderByBuff,
-                                     const CHAR * pHintBuff)
+                                     const CHAR * pHintBuff )
    {
       INT32 rc = SDB_OK ;
       BOOLEAN enSureShardIdx = TRUE ;
@@ -565,8 +562,10 @@ namespace engine
       BOOLEAN capped = FALSE ;
       const CHAR *compressionType = NULL ;
       PD_TRACE_ENTRY ( SDB__RTNCREATECL_INIT ) ;
-      BSONObj matcher ( pMatcherBuff ) ;
+      BSONObj matcher( pMatcherBuff ) ;
+      BSONObj hint( pHintBuff ) ;
       BSONElement ele ;
+      BSONObj indexArray ;
 
       rc = rtnGetStringElement ( matcher, FIELD_NAME_NAME,
                                  &_collectionName ) ;
@@ -792,6 +791,65 @@ namespace engine
          goto error ;
       }
 
+      // get indexes info
+      rc = rtnGetArrayElement( hint, FIELD_NAME_INDEX, indexArray ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
+      {
+         rc = SDB_OK ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         PD_LOG ( PDERROR, "Failed to get array[%s], rc: %d",
+                  FIELD_NAME_INDEX, rc ) ;
+         goto error ;
+      }
+      else
+      {
+         BSONObjIterator i( indexArray ) ;
+         while ( i.more() )
+         {
+            BSONObj idxObj ;
+            const CHAR* idxName = NULL ;
+
+            BSONElement ele = i.next() ;
+            PD_CHECK( ele.type() == Object, SDB_INVALIDARG, error, PDERROR,
+                      "Invalid field type[%s] in obj[%s], expect Object",
+                      ele.type(), indexArray.toString().c_str() ) ;
+
+            // get index name
+            idxObj = ele.Obj() ;
+            rc = rtnGetStringElement( idxObj, FIELD_NAME_NAME, &idxName ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get field[%s] in obj[%s], rc: %d",
+                         FIELD_NAME_NAME, idxObj.toString().c_str(), rc ) ;
+
+            // get index definition if it is system index
+            if ( 0 == ossStrcmp( idxName, IXM_ID_KEY_NAME ) )
+            {
+               rc = rtnGetObjElement( idxObj, IXM_FIELD_NAME_INDEX_DEF,
+                                      _idIdxDef ) ;
+            }
+            else if ( 0 == ossStrcmp( idxName, IXM_SHARD_KEY_NAME ) )
+            {
+               rc = rtnGetObjElement( idxObj, IXM_FIELD_NAME_INDEX_DEF,
+                                      _shardIdxDef ) ;
+            }
+            PD_RC_CHECK( rc, PDERROR,
+                            "Failed to get field[%s] in obj[%s], rc: %d",
+                            IXM_FIELD_NAME_INDEX_DEF,
+                            idxObj.toString().c_str(), rc ) ;
+         }
+      }
+
+      // if there is nothing about shard index, we build index definition by
+      // ourself
+      if ( _shardIdxDef.isEmpty() && !_shardingKey.isEmpty() )
+      {
+         _shardIdxDef = BSON( IXM_FIELD_NAME_KEY << _shardingKey <<
+                              IXM_FIELD_NAME_NAME << IXM_SHARD_KEY_NAME <<
+                              IXM_FIELD_NAME_V << 0 ) ;
+      }
+
       rc = SDB_OK ;
    done :
       PD_TRACE_EXITRC ( SDB__RTNCREATECL_INIT, rc ) ;
@@ -813,11 +871,28 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNCREATECL_DOIT ) ;
 
-      rc = rtnCreateCollectionCommand ( _collectionName, _shardingKey,
+      BOOLEAN addIdxIDIfNotExist = FALSE ;
+      BSONObj* pExtOptions = NULL ;
+      BSONObj* pIdIdxDef = NULL ;
+      if ( !_extOptions.isEmpty() )
+      {
+         pExtOptions = &_extOptions ;
+      }
+      if ( !_idIdxDef.isEmpty() )
+      {
+         pIdIdxDef = &_idIdxDef ;
+      }
+      if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
+      {
+         addIdxIDIfNotExist = TRUE ;
+      }
+
+      rc = rtnCreateCollectionCommand ( _collectionName,
+                                        _shardIdxDef,
                                         _attributes, cb, dmsCB, dpsCB,
-                                        _clUniqueID, _compressorType, 0, FALSE,
-                                        ( _extOptions.isEmpty() ?
-                                         NULL : &_extOptions ) ) ;
+                                        _clUniqueID, _compressorType,
+                                        0, FALSE, pExtOptions, pIdIdxDef,
+                                        addIdxIDIfNotExist ) ;
 
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
@@ -977,237 +1052,6 @@ namespace engine
 
       PD_TRACE_EXITRC ( SDB__RTNCREATECS_DOIT, rc ) ;
       return rc ;
-   }
-
-   IMPLEMENT_CMD_AUTO_REGISTER(_rtnCreateIndex)
-
-   _rtnCreateIndex::_rtnCreateIndex ()
-   : _collectionName ( NULL ),
-     _sortBufferSize ( SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE ),
-     _textIdx( FALSE ),
-     _isGlobal( FALSE )
-   {
-   }
-
-   _rtnCreateIndex::~_rtnCreateIndex ()
-   {
-   }
-
-   const CHAR *_rtnCreateIndex::name ()
-   {
-      return NAME_CREATE_INDEX ;
-   }
-
-   RTN_COMMAND_TYPE _rtnCreateIndex::type ()
-   {
-      return CMD_CREATE_INDEX ;
-   }
-
-   BOOLEAN _rtnCreateIndex::writable ()
-   {
-      return TRUE ;
-   }
-
-   const CHAR *_rtnCreateIndex::collectionFullName ()
-   {
-      return _collectionName ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCREATEINDEX_INIT, "_rtnCreateIndex::init" )
-   INT32 _rtnCreateIndex::init ( INT32 flags, INT64 numToSkip,
-                                 INT64 numToReturn,
-                                 const CHAR * pMatcherBuff,
-                                 const CHAR * pSelectBuff,
-                                 const CHAR * pOrderByBuff,
-                                 const CHAR * pHintBuff )
-   {
-      PD_TRACE_ENTRY ( SDB__RTNCREATEINDEX_INIT ) ;
-      BSONObj arg ( pMatcherBuff ) ;
-      BSONObj hint ( pHintBuff ) ;
-      BOOLEAN hasSortBufSz = FALSE ;
-
-      INT32 rc = rtnGetStringElement ( arg, FIELD_NAME_COLLECTION,
-                                       &_collectionName ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG ( PDERROR, "Failed to get string [collection] " ) ;
-         goto error ;
-      }
-
-      rc = rtnGetObjElement ( arg, FIELD_NAME_INDEX, _index ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG ( PDERROR, "Failed to get object index " ) ;
-         goto error ;
-      }
-
-      rc = rtnConvertIndexDef( _index ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG ( PDERROR, "Failed to convert index definition" ) ;
-         goto error ;
-      }
-
-      rc = _validateDef( _index ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG ( PDERROR, "Failed to validate index definition: %s, rc: %d",
-                  _index.toString().c_str(), rc ) ;
-         goto error ;
-      }
-
-      if ( _index.hasField( IXM_FIELD_NAME_GLOBAL ) )
-      {
-         rc = rtnGetBooleanElement( _index, IXM_FIELD_NAME_GLOBAL,
-                                    _isGlobal ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get field(%s):index=%s,rc=%d",
-                      IXM_FIELD_NAME_GLOBAL, _index.toString().c_str(), rc ) ;
-      }
-
-      if ( arg.hasField( IXM_FIELD_NAME_SORT_BUFFER_SIZE ) )
-      {
-         hasSortBufSz = TRUE ;
-         rc = rtnGetIntElement( arg, IXM_FIELD_NAME_SORT_BUFFER_SIZE,
-                                _sortBufferSize ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG ( PDERROR, "Failed to get index sort buffer, arg: %s",
-                     arg.toString().c_str() ) ;
-            goto error ;
-         }
-      }
-      else if ( hint.hasField( IXM_FIELD_NAME_SORT_BUFFER_SIZE ) )
-      {
-         hasSortBufSz = TRUE ;
-         rc = rtnGetIntElement( hint, IXM_FIELD_NAME_SORT_BUFFER_SIZE,
-                                _sortBufferSize ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG ( PDERROR, "Failed to get index sort buffer, hint: %s",
-                     hint.toString().c_str() ) ;
-            goto error ;
-         }
-      }
-      if ( _sortBufferSize < 0 )
-      {
-         PD_LOG ( PDERROR, "invalid index sort buffer size: %d",
-                  _sortBufferSize ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      if ( !hasSortBufSz )
-      {
-         // For text index, the "sort buffer size" is actually used as the 'Size'
-         // option for the corresponding capped collection.
-         if ( _textIdx )
-         {
-            _sortBufferSize = TEXT_INDEX_DATA_BUFF_DEFAULT_SIZE ;
-         }
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB__RTNCREATEINDEX_INIT, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCREATEINDEX_DOIT, "_rtnCreateIndex::doit" )
-   INT32 _rtnCreateIndex::doit ( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
-                                 SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
-                                 INT16 w , INT64 *pContextID )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__RTNCREATEINDEX_DOIT ) ;
-      BOOLEAN isSys = FALSE ;
-
-      // Currently only support text index in cluster.
-      if ( _textIdx && ( CMD_SPACE_SERVICE_SHARD != getFromService() ) )
-      {
-         PD_LOG( PDERROR, "Text index is only supported in cluster" ) ;
-         rc = SDB_OPERATION_INCOMPATIBLE ;
-         goto error ;
-      }
-
-      // Currently only support global index in cluster.
-      if ( _isGlobal && ( CMD_SPACE_SERVICE_SHARD != getFromService() ) )
-      {
-         PD_LOG( PDERROR, "Global index is only supported in cluster" ) ;
-         rc = SDB_OPERATION_INCOMPATIBLE ;
-         goto error ;
-      }
-
-      if ( !pmdGetOptionCB()->authEnabled() )
-      {
-         isSys = TRUE ;
-      }
-
-      rc = rtnCreateIndexCommand ( _collectionName, _index, cb,
-                                   dmsCB, dpsCB, isSys, _sortBufferSize,
-                                   &_writeResult ) ;
-
-      if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
-      {
-         /// AUDIT
-         PD_AUDIT_COMMAND( AUDIT_DDL, name(), AUDIT_OBJ_CL,
-                           _collectionName, rc,
-                           "IndexDef:%s, SortBuffSize:%d",
-                           _index.toString().c_str(), _sortBufferSize ) ;
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB__RTNCREATEINDEX_DOIT, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // Check if there is mixed use of normal index and text index.
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCREATEINDEX__VALIDATEDEF, "_rtnCreateIndex::_validateDef" )
-   INT32 _rtnCreateIndex::_validateDef( const BSONObj &index )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNCREATEINDEX__VALIDATEDEF ) ;
-      BOOLEAN hasText = FALSE ;
-      const string textFieldVal = "text" ;
-      BSONObj idxDef = index.getObjectField( IXM_FIELD_NAME_KEY ) ;
-      BSONObjIterator itr( idxDef ) ;
-
-      while ( itr.more() )
-      {
-         BSONElement ele = itr.next() ;
-         if ( ele.eoo() )
-         {
-            PD_LOG( PDERROR, "Index definition ended unexpected. "
-                    "Definition: %s", idxDef.toString().c_str() ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-
-         if ( String == ele.type() && textFieldVal == ele.String() )
-         {
-            hasText = TRUE ;
-         }
-         else
-         {
-            if ( hasText )
-            {
-               PD_LOG( PDERROR, "Text index can only contain fields specified "
-                       "as text. Definition: %s", idxDef.toString().c_str() ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-         }
-      }
-
-      _textIdx = hasText ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__RTNCREATEINDEX__VALIDATEDEF, rc ) ;
-      return rc ;
-   error:
-      goto done ;
    }
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnDropCollection)
@@ -1432,95 +1276,6 @@ namespace engine
       goto done;
    }
 
-   IMPLEMENT_CMD_AUTO_REGISTER(_rtnDropIndex)
-
-   _rtnDropIndex::_rtnDropIndex ()
-   :_collectionName ( NULL )
-   {
-   }
-
-   _rtnDropIndex::~_rtnDropIndex ()
-   {
-   }
-
-   const CHAR *_rtnDropIndex::name ()
-   {
-      return NAME_DROP_INDEX ;
-   }
-
-   RTN_COMMAND_TYPE _rtnDropIndex::type ()
-   {
-      return CMD_DROP_INDEX ;
-   }
-
-   const CHAR *_rtnDropIndex::collectionFullName ()
-   {
-      return _collectionName ;
-   }
-
-   BOOLEAN _rtnDropIndex::writable ()
-   {
-      return TRUE ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDROPINDEX_INIT, "_rtnDropIndex::init" )
-   INT32 _rtnDropIndex::init ( INT32 flags, INT64 numToSkip,
-                               INT64 numToReturn,
-                               const CHAR * pMatcherBuff,
-                               const CHAR * pSelectBuff,
-                               const CHAR * pOrderByBuff,
-                               const CHAR * pHintBuff )
-   {
-      PD_TRACE_ENTRY ( SDB__RTNDROPINDEX_INIT ) ;
-      BSONObj arg ( pMatcherBuff ) ;
-      INT32 rc = rtnGetStringElement ( arg, FIELD_NAME_COLLECTION,
-                                       &_collectionName ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG ( PDERROR, "Failed to get string[collection]" ) ;
-         goto error ;
-      }
-
-      rc = rtnGetObjElement ( arg, FIELD_NAME_INDEX, _index ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG ( PDERROR, "Failed to get index object " ) ;
-         goto error ;
-      }
-   done:
-      PD_TRACE_EXITRC ( SDB__RTNDROPINDEX_INIT, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDROPINDEX_DOIT, "_rtnDropIndex::doit" )
-   INT32 _rtnDropIndex::doit ( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
-                               SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
-                               INT16 w , INT64 *pContextID )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__RTNDROPINDEX_DOIT ) ;
-      BOOLEAN isSys = FALSE ;
-      BSONElement ele = _index.firstElement() ;
-
-      if ( !pmdGetOptionCB()->authEnabled() )
-      {
-         isSys = TRUE ;
-      }
-      rc = rtnDropIndexCommand ( _collectionName, ele, cb, dmsCB,
-                                 dpsCB, isSys ) ;
-      if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
-      {
-         /// AUDIT
-         PD_AUDIT_COMMAND( AUDIT_DDL, name(), AUDIT_OBJ_CL,
-                           _collectionName, rc, "IndexDef:%s",
-                           _index.toString().c_str() ) ;
-      }
-      PD_TRACE_EXITRC ( SDB__RTNDROPINDEX_DOIT, rc ) ;
-      return rc ;
-   }
-
    _rtnGet::_rtnGet ()
    : _options(),
      _hintExist( FALSE )
@@ -1615,25 +1370,6 @@ namespace engine
    RTN_COMMAND_TYPE _rtnGetCount::type ()
    {
       return CMD_GET_COUNT ;
-   }
-
-   IMPLEMENT_CMD_AUTO_REGISTER(_rtnGetIndexes)
-   _rtnGetIndexes::_rtnGetIndexes ()
-   {
-   }
-
-   _rtnGetIndexes::~_rtnGetIndexes ()
-   {
-   }
-
-   const CHAR *_rtnGetIndexes::name ()
-   {
-      return NAME_GET_INDEXES ;
-   }
-
-   RTN_COMMAND_TYPE _rtnGetIndexes::type ()
-   {
-      return CMD_GET_INDEXES ;
    }
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnGetDatablocks)
@@ -4591,7 +4327,7 @@ error:
    IMPLEMENT_CMD_AUTO_REGISTER( _rtnLoadCollectionSpace )
    _rtnLoadCollectionSpace::_rtnLoadCollectionSpace()
    : _csName( NULL ),
-     _needChangeID( FALSE ),
+     _needChgID( FALSE ),
      _csUniqueID( UTIL_CSUNIQUEID_LOADCS )
    {
    }
@@ -4651,26 +4387,15 @@ error:
          goto error ;
       }
 
-      if ( _needChangeID )
-      {
-         rc = rtnLoadCollectionSpace( _csName,
-                                      pmdGetOptionCB()->getDbPath(),
-                                      pmdGetOptionCB()->getIndexPath(),
-                                      pmdGetOptionCB()->getLobPath(),
-                                      pmdGetOptionCB()->getLobMetaPath(),
-                                      cb, dmsCB, FALSE,
-                                      &_csUniqueID, _clInfoObj ) ;
-      }
-      else
-      {
-         rc = rtnLoadCollectionSpace( _csName,
-                                      pmdGetOptionCB()->getDbPath(),
-                                      pmdGetOptionCB()->getIndexPath(),
-                                      pmdGetOptionCB()->getLobPath(),
-                                      pmdGetOptionCB()->getLobMetaPath(),
-                                      cb, dmsCB, FALSE ) ;
-      }
-
+      rc = rtnLoadCollectionSpace( _csName,
+                                   pmdGetOptionCB()->getDbPath(),
+                                   pmdGetOptionCB()->getIndexPath(),
+                                   pmdGetOptionCB()->getLobPath(),
+                                   pmdGetOptionCB()->getLobMetaPath(),
+                                   cb, dmsCB, FALSE,
+                                   _needChgID ? &_csUniqueID : NULL,
+                                   _needChgID ? &_clInfoObj : NULL,
+                                   _needChgID ? &_idxInfoVector : NULL ) ;
    done:
       if ( SDB_OK == rc )
       {
@@ -4681,15 +4406,24 @@ error:
       goto done ;
    }
 
-   void _rtnLoadCollectionSpace::setCSUniqueID( utilCSUniqueID csUniqueID )
+   INT32 _rtnLoadCollectionSpace::setUniqueID( utilCSUniqueID csUniqueID,
+                                               const BSONObj& clInfoObj )
    {
-      _csUniqueID = csUniqueID ;
-      _needChangeID = TRUE ;
-   }
+      INT32 rc = SDB_OK ;
 
-   void _rtnLoadCollectionSpace::setCLInfo ( const BSONObj& clInfoObj )
-   {
-      _clInfoObj = clInfoObj.getOwned() ;
+      try
+      {
+         _csUniqueID = csUniqueID ;
+         _clInfoObj = clInfoObj.getOwned() ;
+         _needChgID = TRUE ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+      return rc ;
    }
 
    IMPLEMENT_CMD_AUTO_REGISTER( _rtnUnloadCollectionSpace )

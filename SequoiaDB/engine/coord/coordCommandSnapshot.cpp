@@ -425,6 +425,127 @@ namespace engine
    }
 
    /*
+      _coordCMDSnapshotTasks implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotTasks,
+                                      CMD_NAME_SNAPSHOT_TASKS,
+                                      TRUE ) ;
+   _coordCMDSnapshotTasks::_coordCMDSnapshotTasks()
+   {
+   }
+
+   _coordCMDSnapshotTasks::~_coordCMDSnapshotTasks()
+   {
+   }
+
+   const CHAR* _coordCMDSnapshotTasks::getIntrCMDName()
+   {
+      return CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TASKS_INTR ;
+   }
+
+   const CHAR* _coordCMDSnapshotTasks::getInnerAggrContent()
+   {
+      return NULL ;
+   }
+
+   /*
+      _coordCMDSnapshotTasksIntr implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotTasksIntr,
+                                      CMD_NAME_SNAPSHOT_TASKS_INTR,
+                                      TRUE ) ;
+   _coordCMDSnapshotTasksIntr::_coordCMDSnapshotTasksIntr()
+   {
+   }
+
+   _coordCMDSnapshotTasksIntr::~_coordCMDSnapshotTasksIntr()
+   {
+   }
+
+   void _coordCMDSnapshotTasksIntr::_preSet( pmdEDUCB *cb,
+                                              coordCtrlParam &ctrlParam )
+   {
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
+   }
+
+   /*
+      _coordCMDSnapshotIndexes implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotIndexes,
+                                      CMD_NAME_SNAPSHOT_INDEXES,
+                                      TRUE ) ;
+   _coordCMDSnapshotIndexes::_coordCMDSnapshotIndexes()
+   {
+   }
+
+   _coordCMDSnapshotIndexes::~_coordCMDSnapshotIndexes()
+   {
+   }
+
+   const CHAR* _coordCMDSnapshotIndexes::getIntrCMDName()
+   {
+      return CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_INDEXES_INTR ;
+   }
+
+   const CHAR* _coordCMDSnapshotIndexes::getInnerAggrContent()
+   {
+      return COORD_SNAPSHOTIDX_INPUT ;
+   }
+
+   /*
+      _coordCMDSnapshotIndexesIntr implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotIndexesIntr,
+                                      CMD_NAME_SNAPSHOT_INDEXES_INTR,
+                                      TRUE ) ;
+   _coordCMDSnapshotIndexesIntr::_coordCMDSnapshotIndexesIntr()
+   {
+   }
+
+   _coordCMDSnapshotIndexesIntr::~_coordCMDSnapshotIndexesIntr()
+   {
+   }
+
+   void _coordCMDSnapshotIndexesIntr::_preSet( pmdEDUCB *cb,
+                                               coordCtrlParam &ctrlParam )
+   {
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
+   }
+
+   INT32 _coordCMDSnapshotIndexesIntr::_preExcute( MsgHeader *pMsg,
+                                                   pmdEDUCB *cb,
+                                                   coordCtrlParam &ctrlParam,
+                                                   SET_RC &ignoreRCList )
+   {
+      INT32 rc = SDB_OK ;
+      const CHAR *collection = NULL ;
+      const CHAR *hint = NULL ;
+
+      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
+                            NULL, NULL, NULL, &hint ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Extract message failed, rc: %d",
+                   rc ) ;
+
+      rc = rtnGetStringElement( BSONObj( hint ), FIELD_NAME_COLLECTION,
+                                &collection ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Get field[%s] failed, rc: %d",
+                   FIELD_NAME_COLLECTION, rc ) ;
+
+      rc = _getCLGrps( pMsg, collection, cb, ctrlParam ) ;
+      PD_RC_CHECK( rc, PDERROR, "Get groups of collection[%s], rc: %d",
+                   collection, rc ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
       _coordCMDSnapshotCollections implement
    */
    COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotCollections,

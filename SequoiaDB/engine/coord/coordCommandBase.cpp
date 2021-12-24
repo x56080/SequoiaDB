@@ -952,6 +952,13 @@ namespace engine
          }
          *pFilterObj = newFilterObj ;
       }
+      else
+      {
+         if ( ctrlParam._useSpecialGrp )
+         {
+            expectGrpLst = ctrlParam._specialGrps ;
+         }
+      }
 
    parseNode:
       /// 5. parse nodes

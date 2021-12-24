@@ -116,32 +116,61 @@ namespace engine
       return SDB_OK ;
    }
 
-   INT32 _clsTask::updateTaskInfo( const CHAR* objdata,
+   INT32 _clsTask::buildStartTask( const BSONObj& obj,
                                    BSONObj& updator,
                                    BSONObj& matcher )
    {
       return SDB_OK ;
    }
 
-   INT32 _clsTask::updateMainTaskInfo( _clsTask *pSubTask,
-                                       const ossPoolVector<BSONObj>& subTaskInfoList,
-                                       BSONObj& updator,
-                                       BSONObj& matcher )
+   INT32 _clsTask::buildStartTaskBy( const clsTask* pSubTask,
+                                     const BSONObj& obj,
+                                     BSONObj& updator,
+                                     BSONObj& matcher )
    {
       return SDB_OK ;
    }
 
-   INT32 _clsTask::querySubTasks( const CHAR* objdata,
-                                  BSONObj& matcher,
-                                  BSONObj& selector )
+   INT32 _clsTask::buildCancelTask( const BSONObj& obj,
+                                    BSONObj& updator,
+                                    BSONObj& matcher )
    {
       return SDB_OK ;
    }
 
-   INT32 _clsTask::removeSubTask( UINT64 taskID,
-                                  const ossPoolVector<BSONObj>& otherSubTasks,
-                                  BSONObj& updator,
-                                  BSONObj& matcher )
+   INT32 _clsTask::buildCancelTaskBy( const clsTask* pSubTask,
+                                      BSONObj& updator,
+                                      BSONObj& matcher )
+   {
+      return SDB_OK ;
+   }
+
+   INT32 _clsTask::buildReportTask( const BSONObj& obj,
+                                    BSONObj& updator,
+                                    BSONObj& matcher )
+   {
+      return SDB_OK ;
+   }
+
+   INT32 _clsTask::buildReportTaskBy( const clsTask* pSubTask,
+                                      const ossPoolVector<BSONObj>& subTaskInfoList,
+                                      BSONObj& updator,
+                                      BSONObj& matcher )
+   {
+      return SDB_OK ;
+   }
+
+   INT32 _clsTask::buildQuerySubTasks( const BSONObj& obj,
+                                       BSONObj& matcher,
+                                       BSONObj& selector )
+   {
+      return SDB_OK ;
+   }
+
+   INT32 _clsTask::buildRemoveTaskBy( UINT64 taskID,
+                                      const ossPoolVector<BSONObj>& otherSubTasks,
+                                      BSONObj& updator,
+                                      BSONObj& matcher )
    {
       return SDB_OK ;
    }
@@ -218,6 +247,11 @@ namespace engine
    done:
       return rc ;
    error:
+      if ( pTask )
+      {
+         SDB_OSS_DEL pTask ;
+         pTask = NULL ;
+      }
       goto done ;
    }
 
@@ -241,10 +275,10 @@ namespace engine
 
    _clsTaskMgr::~_clsTaskMgr ()
    {
-      std::map<UINT32, _clsTask*>::iterator it = _taskMap.begin() ;
+      std::map<UINT32, PAIR_TASK_CNT>::iterator it = _taskMap.begin() ;
       while ( it != _taskMap.end() )
       {
-         SDB_OSS_DEL it->second ;
+         SDB_OSS_DEL it->second.first ;
          ++it ;
       }
       _taskMap.clear() ;
@@ -274,10 +308,10 @@ namespace engine
 
       ossScopedLock lock ( &_taskLatch, SHARED ) ;
 
-      std::map<UINT32, _clsTask*>::iterator it = _taskMap.begin() ;
+      std::map<UINT32, PAIR_TASK_CNT>::iterator it = _taskMap.begin() ;
       while ( it != _taskMap.end() )
       {
-         clsTask *pTask = it->second ;
+         clsTask *pTask = it->second.first ;
          if ( type == pTask->taskType() )
          {
             ++taskCount ;
@@ -294,10 +328,10 @@ namespace engine
 
       ossScopedLock lock ( &_taskLatch, SHARED ) ;
 
-      std::map<UINT32, _clsTask*>::iterator it = _taskMap.begin() ;
+      std::map<UINT32, PAIR_TASK_CNT>::iterator it = _taskMap.begin() ;
       while ( it != _taskMap.end() )
       {
-         clsTask *pTask = it->second ;
+         clsTask *pTask = it->second.first ;
          if ( pTask->collectionName() &&
               '\0' != pTask->collectionName()[0] &&
               0 == ossStrcmp( pCLName, pTask->collectionName() ) )
@@ -316,10 +350,10 @@ namespace engine
 
       ossScopedLock lock ( &_taskLatch, SHARED ) ;
 
-      std::map<UINT32, _clsTask*>::iterator it = _taskMap.begin() ;
+      std::map<UINT32, PAIR_TASK_CNT>::iterator it = _taskMap.begin() ;
       while ( it != _taskMap.end() )
       {
-         clsTask *pTask = it->second ;
+         clsTask *pTask = it->second.first ;
          if ( pTask->collectionSpaceName() &&
               0 == ossStrcmp( pCSName, pTask->collectionSpaceName() ) )
          {
@@ -336,64 +370,136 @@ namespace engine
       return _taskEvent.wait( millisec ) ;
    }
 
+   #define CLS_IDXTASK_MAX ( 10 )
+
    PD_TRACE_DECLARE_FUNCTION ( SDB__CLSTKMGR_ADDTK, "_clsTaskMgr::addTask" )
-   INT32 _clsTaskMgr::addTask ( _clsTask * pTask, UINT32 locationID )
+   INT32 _clsTaskMgr::addTask ( _clsTask *pTask, UINT32 locationID,
+                                BOOLEAN *pAlreadyExist )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSTKMGR_ADDTK ) ;
-      _clsTask *indexTask = NULL ;
+      INT32 referenceCnt = 0 ;
+      INT32 idxTaskCnt = 0 ;
+      BOOLEAN addIdxTask = FALSE ;
+
+      if ( pAlreadyExist )
+      {
+         *pAlreadyExist = FALSE ;
+      }
+      if ( CLS_TASK_CREATE_IDX == pTask->taskType() ||
+           CLS_TASK_DROP_IDX   == pTask->taskType() )
+      {
+         addIdxTask = TRUE ;
+      }
 
       ossScopedLock lock ( &_taskLatch, EXCLUSIVE ) ;
 
-      std::map<UINT32, _clsTask*>::iterator it = _taskMap.begin () ;
-      while ( it != _taskMap.end() )
+      // check other tasks in map conflict with the task
+      std::map<UINT32, PAIR_TASK_CNT>::iterator it ;
+      for ( it = _taskMap.begin() ; it != _taskMap.end() ; it++ )
       {
-         indexTask = it->second ;
+         _clsTask *tmpTask = it->second.first ;
 
-         if ( locationID == it->first ||
-              ( pTask->taskID() != CLS_INVALID_TASKID &&
-                pTask->taskID() == indexTask->taskID() ) ||
-              pTask->muteXOn( indexTask ) || indexTask->muteXOn( pTask ) )
+         if ( locationID == it->first &&
+              pTask->taskID() == tmpTask->taskID() )
          {
-            PD_LOG ( PDWARNING, "Exist task[%lld,%s] mutex with new task[%lld,%s]",
-                     indexTask->taskID(), indexTask->taskName(),
+            // skip same task
+            continue ;
+         }
+         if ( addIdxTask )
+         {
+            if ( CLS_TASK_CREATE_IDX == tmpTask->taskType() ||
+                 CLS_TASK_DROP_IDX   == tmpTask->taskType() )
+            {
+               idxTaskCnt++ ;
+               if ( idxTaskCnt >= CLS_IDXTASK_MAX )
+               {
+                  rc = SDB_CLS_IDXTASK_EXCEEDED ;
+                  PD_LOG( PDWARNING,
+                          "The number of index tasks exceeds the maximum: %u",
+                          CLS_IDXTASK_MAX ) ;
+                  goto error ;
+               }
+            }
+         }
+         if ( pTask->muteXOn( tmpTask ) || tmpTask->muteXOn( pTask ) )
+         {
+            PD_LOG ( PDWARNING,
+                     "Exist task[%lld,%s] mutex with new task[%lld,%s]",
+                     tmpTask->taskID(), tmpTask->taskName(),
                      pTask->taskID(), pTask->taskName() ) ;
             rc = SDB_CLS_MUTEX_TASK_EXIST ;
             goto error ;
          }
-         ++it ;
       }
-      // add to map
-      try
+
+      // if the task already exists in map, just increase reference count,
+      // if not, add the task to map
+      it = _taskMap.find( locationID ) ;
+      if ( it != _taskMap.end() )
       {
-         _taskMap[ locationID ] = pTask ;
+         SDB_ASSERT( it->second.first->taskID() == pTask->taskID(),
+                     "Unexpected task id" ) ;
+         if ( pAlreadyExist )
+         {
+            *pAlreadyExist = TRUE ;
+         }
+         referenceCnt = ++(it->second.second) ;
       }
-      catch( std::exception &e )
+      else
       {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = SDB_OOM ;
-         goto error ;
+         try
+         {
+            _taskMap[ locationID ] = std::make_pair( pTask, 1 ) ;
+            referenceCnt = 1 ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+         }
       }
+
+      PD_LOG( PDDEBUG,
+              "Add task: locationID[%u], taskID[%llu], referenceCnt[%d]",
+              locationID, pTask->taskID(), referenceCnt ) ;
 
    done:
       PD_TRACE_EXITRC ( SDB__CLSTKMGR_ADDTK, rc ) ;
       return rc ;
    error:
-      SDB_OSS_DEL pTask ;
       goto done ;
    }
 
    PD_TRACE_DECLARE_FUNCTION ( SDB__CLSTKMGR_RVTK1, "_clsTaskMgr::removeTask" )
-   INT32 _clsTaskMgr::removeTask ( UINT32 locationID )
+   INT32 _clsTaskMgr::removeTask ( UINT32 locationID, BOOLEAN *pDeleted )
    {
       PD_TRACE_ENTRY ( SDB__CLSTKMGR_RVTK1 ) ;
+
+      if ( pDeleted )
+      {
+         *pDeleted = FALSE ;
+      }
+
       ossScopedLock lock ( &_taskLatch, EXCLUSIVE ) ;
-      std::map<UINT32, _clsTask*>::iterator it = _taskMap.find ( locationID ) ;
+      std::map<UINT32, PAIR_TASK_CNT>::iterator it =
+                                                _taskMap.find ( locationID ) ;
       if ( it != _taskMap.end() )
       {
-         SDB_OSS_DEL it->second ;
-         _taskMap.erase ( it ) ;
-         _taskEvent.signal() ;
+         INT32 referenceCnt = --(it->second.second) ;
+         if ( referenceCnt <= 0 )
+         {
+            SDB_OSS_DEL it->second.first ;
+            if ( pDeleted )
+            {
+               *pDeleted = TRUE ;
+            }
+            _taskMap.erase( it ) ;
+            _taskEvent.signal() ;
+         }
+
+         PD_LOG( PDDEBUG, "Remove task: locationID[%u], referenceCnt[%d]",
+                 locationID, referenceCnt ) ;
       }
 
       PD_TRACE_EXIT ( SDB__CLSTKMGR_RVTK1 ) ;
@@ -403,10 +509,11 @@ namespace engine
    _clsTask* _clsTaskMgr::findTask ( UINT32 locationID )
    {
       ossScopedLock lock ( &_taskLatch, SHARED ) ;
-      std::map<UINT32, _clsTask*>::iterator it = _taskMap.find ( locationID ) ;
+      std::map<UINT32, PAIR_TASK_CNT>::iterator it =
+                                                _taskMap.find ( locationID ) ;
       if ( it != _taskMap.end() )
       {
-         return it->second ;
+         return it->second.first ;
       }
       return NULL ;
    }
@@ -414,31 +521,33 @@ namespace engine
    void _clsTaskMgr::stopTask( UINT32 locationID )
    {
       ossScopedLock lock ( &_taskLatch, SHARED ) ;
-      std::map<UINT32, _clsTask*>::iterator it = _taskMap.find ( locationID ) ;
+      std::map<UINT32, PAIR_TASK_CNT>::iterator it =
+                                                _taskMap.find ( locationID ) ;
       if ( it != _taskMap.end() )
       {
-         return it->second->setStatus( CLS_TASK_STATUS_CANCELED ) ;
+         return it->second.first->setStatus( CLS_TASK_STATUS_CANCELED ) ;
       }
    }
 
-   string _clsTaskMgr::dumpTasks( CLS_TASK_TYPE type )
+   ossPoolString _clsTaskMgr::dumpTasks( CLS_TASK_TYPE type )
    {
-      string taskStr ;
+      ossPoolString taskStr ;
 
       ossScopedLock lock ( &_taskLatch, SHARED ) ;
 
-      std::map<UINT32, _clsTask*>::iterator it = _taskMap.begin() ;
+      std::map<UINT32, PAIR_TASK_CNT>::iterator it = _taskMap.begin() ;
       while ( it != _taskMap.end() )
       {
-         clsTask *pTask = it->second ;
+         clsTask *pTask = it->second.first ;
          if ( CLS_TASK_UNKNOWN == type ||
               type == pTask->taskType() )
          {
-            taskStr += "[ taskName: " ;
-            taskStr += pTask->taskName() ? pTask->taskName() : "" ;
-            taskStr += " collectionName: " ;
-            taskStr += pTask->collectionName() ? pTask->collectionName() : "" ;
-            taskStr += " ]" ;
+            CHAR tmp[512] = { 0 } ;
+            ossSnprintf( tmp, sizeof( tmp ),
+                         "[ taskName: %s, taskID: %llu, localtionID: %u ]",
+                         pTask->taskName() ? pTask->taskName() : "",
+                         pTask->taskID(), it->first ) ;
+            taskStr += tmp ;
          }
          ++it ;
          if ( it != _taskMap.end() )
@@ -862,14 +971,19 @@ namespace engine
       if ( mask & CLS_SPLIT_MASK_TYPE )
       {
          builder.append( CAT_TASKTYPE_NAME, (INT32)_taskType ) ;
+         builder.append( FIELD_NAME_TASKTYPEDESC, clsTaskTypeStr(_taskType) ) ;
       }
       if ( mask & CLS_SPLIT_MASK_STATUS )
       {
          builder.append( CAT_STATUS_NAME, (INT32)_status ) ;
+         builder.append( FIELD_NAME_STATUSDESC, clsTaskStatusStr(_status) ) ;
       }
       if ( mask & CLS_SPLIT_MASK_RESULTCODE )
       {
          builder.append( FIELD_NAME_RESULTCODE, _resultCode ) ;
+         builder.append( FIELD_NAME_RESULTCODEDESC,
+                         CLS_TASK_STATUS_FINISH == _status ?
+                         getErrDesp( _resultCode ) : "" ) ;
       }
       if ( mask & CLS_SPLIT_MASK_CLNAME )
       {
@@ -930,6 +1044,100 @@ namespace engine
       }
 
       return builder.obj() ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSSPLITTASK_BSTARTTASK, "_clsSplitTask::buildStartTask" )
+   INT32 _clsSplitTask::buildStartTask( const BSONObj& obj,
+                                        BSONObj& updator,
+                                        BSONObj& matcher )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CLSSPLITTASK_BSTARTTASK ) ;
+
+      try
+      {
+         if ( CLS_TASK_STATUS_READY == _status ||
+              CLS_TASK_STATUS_PAUSE == _status )
+         {
+            matcher = BSON( FIELD_NAME_TASKID << (INT64)_taskID ) ;
+            updator = BSON( "$set" <<
+                            BSON( FIELD_NAME_STATUS << CLS_TASK_STATUS_RUN <<
+                                  FIELD_NAME_STATUSDESC << VALUE_NAME_RUNNING ) ) ;
+         }
+         else if ( CLS_TASK_STATUS_CANCELED == _status )
+         {
+            rc = SDB_TASK_HAS_CANCELED ;
+
+            matcher = BSON( FIELD_NAME_TASKID << (INT64)_taskID ) ;
+            updator = BSON( "$set" <<
+                            BSON( FIELD_NAME_STATUS << CLS_TASK_STATUS_FINISH <<
+                                  FIELD_NAME_STATUSDESC << VALUE_NAME_FINISH <<
+                                  FIELD_NAME_RESULTCODE << rc <<
+                                  FIELD_NAME_RESULTCODEDESC << getErrDesp(rc) ) ) ;
+
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CLSSPLITTASK_BSTARTTASK, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSSPLITTASK_BCANCELTASK, "_clsSplitTask::buildCancelTask" )
+   INT32 _clsSplitTask::buildCancelTask( const BSONObj& obj,
+                                         BSONObj& updator,
+                                         BSONObj& matcher )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CLSSPLITTASK_BCANCELTASK ) ;
+
+      try
+      {
+         // can't cancel finish status
+         if ( CLS_TASK_STATUS_META == _status ||
+              CLS_TASK_STATUS_FINISH == _status )
+         {
+            rc = SDB_TASK_ALREADY_FINISHED ;
+            goto error ;
+         }
+         else if ( CLS_TASK_STATUS_READY == _status )
+         {
+            matcher = BSON( FIELD_NAME_TASKID << (INT64)_taskID ) ;
+            updator = BSON( "$set" <<
+                            BSON( FIELD_NAME_STATUS << CLS_TASK_STATUS_FINISH <<
+                                  FIELD_NAME_STATUSDESC << VALUE_NAME_FINISH <<
+                                  FIELD_NAME_RESULTCODE << rc <<
+                                  FIELD_NAME_RESULTCODEDESC << getErrDesp(rc) ) ) ;
+         }
+         else if ( CLS_TASK_STATUS_CANCELED != _status )
+         {
+            matcher = BSON( FIELD_NAME_TASKID << (INT64)_taskID ) ;
+            updator = BSON( "$set" <<
+                            BSON( FIELD_NAME_STATUS << CLS_TASK_STATUS_CANCELED <<
+                                  FIELD_NAME_STATUSDESC << VALUE_NAME_CANCELED ) ) ;
+
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CLSSPLITTASK_BCANCELTASK, rc ) ;
+      return rc ;
+   error:
+      goto done ;
    }
 
    INT32 _clsSplitTask::calcHashPartition( clsCatalogSet & cataSet,
@@ -1032,7 +1240,7 @@ namespace engine
       {
          _clsSplitTask *pOtherSplit = ( _clsSplitTask*)pOther ;
 
-         if ( 0 != ossStrcmp ( clFullName (), pOtherSplit->clFullName () ) )
+         if ( 0 != ossStrcmp ( collectionName (), pOtherSplit->collectionName () ) )
          {
             goto done ;
          }
@@ -1088,11 +1296,6 @@ namespace engine
    done :
       PD_TRACE_EXIT ( SDB__CLSSPLITTK_MXON ) ;
       return ret ;
-   }
-
-   const CHAR* _clsSplitTask::clFullName () const
-   {
-      return _clFullName.c_str() ;
    }
 
    utilCLUniqueID _clsSplitTask::clUniqueID () const
@@ -1221,6 +1424,17 @@ namespace engine
       goto done ;
    }
 
+   BSONObj _clsSubTaskUnit::toBson()
+   {
+      BSONObjBuilder b ;
+      b.append( FIELD_NAME_TASKID,     (INT64)taskID ) ;
+      b.append( FIELD_NAME_TASKTYPE,   (INT32)taskType ) ;
+      b.append( FIELD_NAME_STATUS,     (INT32)status ) ;
+      b.append( FIELD_NAME_STATUSDESC, clsTaskStatusStr(status) ) ;
+      b.append( FIELD_NAME_RESULTCODE, resultCode ) ;
+      return b.obj() ;
+   }
+
    /*
       _clsIdxTaskGroupUnit : implement
    */
@@ -1276,7 +1490,7 @@ namespace engine
                PD_CHECK ( e.isNumber(), SDB_INVALIDARG, error, PDERROR,
                           "Field[%s] invalid in task[%s]",
                           FIELD_NAME_SPEED, obj.toString().c_str() ) ;
-               speed = e.numberDouble() ;
+               speed = (UINT64)e.numberLong() ;
             }
             else if ( 0 == ossStrcmp( e.fieldName(), FIELD_NAME_TIMESPENT ) )
             {
@@ -1320,20 +1534,20 @@ namespace engine
                           FIELD_NAME_RETRY_COUNT, obj.toString().c_str() ) ;
                retryCnt = e.numberInt() ;
             }
-            else if ( 0 == ossStrcmp( e.fieldName(), FIELD_NAME_TOTAL_SIZE ) )
+            else if ( 0 == ossStrcmp( e.fieldName(), FIELD_NAME_TOTAL_RECORDS ) )
             {
                PD_CHECK ( e.isNumber(), SDB_INVALIDARG, error, PDERROR,
                           "Field[%s] invalid in task[%s]",
-                          FIELD_NAME_TOTAL_SIZE, obj.toString().c_str() ) ;
-               totalSize = e.numberLong() ;
+                          FIELD_NAME_TOTAL_RECORDS, obj.toString().c_str() ) ;
+               totalRecNum = (UINT64)e.numberLong() ;
             }
             else if ( 0 == ossStrcmp( e.fieldName(),
-                                      FIELD_NAME_PROCESSED_SIZE ) )
+                                      FIELD_NAME_PROCESSED_RECORDS ) )
             {
                PD_CHECK ( e.isNumber(), SDB_INVALIDARG, error, PDERROR,
                           "Field[%s] invalid in task[%s]",
-                          FIELD_NAME_PROCESSED_SIZE, obj.toString().c_str() ) ;
-               processedSize = e.numberLong() ;
+                          FIELD_NAME_PROCESSED_RECORDS, obj.toString().c_str() ) ;
+               pcsedRecNum = (UINT64)e.numberLong() ;
             }
          }
       }
@@ -1348,7 +1562,27 @@ namespace engine
       goto done ;
    }
 
-   #define CLS_BYTE_TO_MBYTE     ( 1048576.0 )
+   BSONObj _clsIdxTaskGroupUnit::toBson()
+   {
+      BSONObjBuilder b ;
+      b.append( FIELD_NAME_GROUPNAME,      groupName.c_str() ) ;
+      b.append( FIELD_NAME_STATUS,         status ) ;
+      b.append( FIELD_NAME_STATUSDESC,     clsTaskStatusStr(status) ) ;
+      b.append( FIELD_NAME_RESULTCODE,     resultCode ) ;
+      b.append( FIELD_NAME_RESULTCODEDESC, CLS_TASK_STATUS_FINISH == status ?
+                                           getErrDesp( resultCode ) : "" ) ;
+      b.append( FIELD_NAME_RESULTINFO,        resultInfo ) ;
+      b.append( FIELD_NAME_OPINFO,            opInfo.c_str() ) ;
+      b.append( FIELD_NAME_RETRY_COUNT,       retryCnt ) ;
+      b.append( FIELD_NAME_PROGRESS,          progress ) ;
+      b.append( FIELD_NAME_SPEED,             (INT64)speed ) ;
+      b.append( FIELD_NAME_TIMESPENT,         timeSpent ) ;
+      b.append( FIELD_NAME_TIMELEFT,          timeLeft ) ;
+      b.append( FIELD_NAME_TOTAL_RECORDS,     (INT64)totalRecNum ) ;
+      b.append( FIELD_NAME_PROCESSED_RECORDS, (INT64)pcsedRecNum ) ;
+      return b.obj() ;
+   }
+
    #define CLS_TASK_PROGRESS_100 ( 100 )
 
    /*
@@ -1356,10 +1590,11 @@ namespace engine
    */
    _clsIdxTask::_clsIdxTask ( UINT64 taskID )
    : _clsTask ( taskID ),
-     _progress( 0 ), _speed( 0.0 ), _timeSpent( 0.0 ), _timeLeft( 0.0 ),
+     _progress( 0 ), _speed( 0 ), _timeSpent( 0.0 ), _timeLeft( 0.0 ),
      _totalGroups( 0 ), _succeededGroups( 0 ), _failedGroups( 0 ),
      _totalTasks( 0 ), _succeededTasks( 0 ), _failedTasks( 0 ),
-     _changedMask( 0 ), _changedGroupMask( 0 ), _changedTaskMask( 0 )
+     _changedMask( 0 ), _changedGroupMask( 0 ), _changedSubtaskMask( 0 ),
+     _i( 1 ), _pullSubTaskID( CLS_INVALID_TASKID )
    {
       ossMemset( _clFullName, 0, DMS_COLLECTION_FULL_NAME_SZ + 1 ) ;
       ossMemset( _csName,     0, DMS_COLLECTION_SPACE_NAME_SZ + 1 ) ;
@@ -1395,6 +1630,11 @@ namespace engine
    const CHAR* _clsIdxTask::indexName() const
    {
       return _indexName ;
+   }
+
+   utilCLUniqueID _clsIdxTask::clUniqueID() const
+   {
+      return _clUniqueID ;
    }
 
    const BSONObj& _clsIdxTask::resultInfo() const
@@ -1438,10 +1678,20 @@ namespace engine
       }
       setEndTimestamp() ;
 
-      // result
-      _resultCode = resultCode ;
-      _resultInfo = resultInfo.getOwned() ;
-      _changedMask |= CLS_IDX_MASK_RESULT ;
+      // result code may have been set, eg: cancel task
+      if ( SDB_OK == _resultCode )
+      {
+         _resultCode = resultCode ;
+         _resultInfo = resultInfo.getOwned() ;
+         _changedMask |= CLS_IDX_MASK_RESULT ;
+      }
+
+      // progress
+      if ( _progress != CLS_TASK_PROGRESS_100 )
+      {
+         _progress = CLS_TASK_PROGRESS_100 ;
+         _changedMask |= CLS_IDX_MASK_PROGRESS ;
+      }
 
       // status
       setStatus( CLS_TASK_STATUS_FINISH ) ;
@@ -1452,8 +1702,8 @@ namespace engine
       /*
       * Update TimeSpent / TimeLeft / Speed / Progress field
       */
-      INT64 allTotalSize = 0 ;           // unit: B
-      INT64 allProcessSize = 0 ;         // unit: B
+      UINT64 allRecNum = 0 ;
+      UINT64 allPcsNum = 0 ;
       UINT32 timeLeft = 0 ;
 
       _changedMask |= CLS_IDX_MASK_PROGRESS ;
@@ -1464,8 +1714,8 @@ namespace engine
            it++ )
       {
          const _clsIdxTaskGroupUnit& groupUnit = it->second ;
-         allTotalSize += groupUnit.totalSize ;
-         allProcessSize += groupUnit.processedSize ;
+         allRecNum += groupUnit.totalRecNum ;
+         allPcsNum += groupUnit.pcsedRecNum ;
          if ( groupUnit.timeLeft > timeLeft )
          {
             timeLeft = groupUnit.timeLeft ;
@@ -1496,9 +1746,9 @@ namespace engine
       }
       else
       {
-         if ( allTotalSize != 0 )
+         if ( allRecNum != 0 )
          {
-            _progress = (FLOAT32)allProcessSize / allTotalSize * 100 ;
+            _progress = (FLOAT64)allPcsNum / allRecNum * 100 ;
          }
          else
          {
@@ -1514,11 +1764,11 @@ namespace engine
       // speed
       if ( _timeSpent != 0 )
       {
-         _speed = allProcessSize / CLS_BYTE_TO_MBYTE / _timeSpent ;
+         _speed = allPcsNum / _timeSpent ;
       }
       else
       {
-         _speed = 0.0 ;
+         _speed = 0 ;
       }
    }
 
@@ -1563,7 +1813,14 @@ namespace engine
                        "Field[%s] invalid in task[%s]", CAT_COLLECTION_NAME,
                        obj.toString().c_str() ) ;
             ossStrncpy( _clFullName, ele.valuestr(),
-                        DMS_COLLECTION_FULL_NAME_SZ );
+                        DMS_COLLECTION_FULL_NAME_SZ ) ;
+         }
+         else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_UNIQUEID ) )
+         {
+            PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDERROR,
+                       "Field[%s] invalid in task[%s]", FIELD_NAME_STATUS,
+                       obj.toString().c_str() ) ;
+            _clUniqueID = (utilCLUniqueID)ele.numberLong() ;
          }
          else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_INDEXNAME ) )
          {
@@ -1618,25 +1875,25 @@ namespace engine
             _failedGroups = (UINT32)ele.numberInt() ;
          }
          // task count
-         else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALTASKS ) )
+         else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALSUBTASK ) )
          {
             PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error,
                        PDERROR, "Field[%s] invalid in task[%s]",
-                       FIELD_NAME_TOTALTASKS, obj.toString().c_str() ) ;
+                       FIELD_NAME_TOTALSUBTASK, obj.toString().c_str() ) ;
             _totalTasks = (UINT32)ele.numberInt() ;
          }
-         else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_SUCCEEDTASKS ) )
+         else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_SUCCEEDSUBTASK ) )
          {
             PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error,
                        PDERROR, "Field[%s] invalid in task[%s]",
-                       FIELD_NAME_SUCCEEDTASKS, obj.toString().c_str() ) ;
+                       FIELD_NAME_SUCCEEDSUBTASK, obj.toString().c_str() ) ;
             _succeededTasks = (UINT32)ele.numberInt() ;
          }
-         else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_FAILTASKS ) )
+         else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_FAILSUBTASK ) )
          {
             PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error,
                        PDERROR, "Field[%s] invalid in task[%s]",
-                       FIELD_NAME_FAILTASKS, obj.toString().c_str() ) ;
+                       FIELD_NAME_FAILSUBTASK, obj.toString().c_str() ) ;
             _failedTasks = (UINT32)ele.numberInt() ;
          }
          // progress info
@@ -1652,7 +1909,7 @@ namespace engine
             PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDERROR,
                        "Field[%s] invalid in task[%s]", FIELD_NAME_SPEED,
                        obj.toString().c_str() ) ;
-            _speed = ele.numberDouble() ;
+            _speed = (UINT64)ele.numberLong() ;
          }
          else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TIMESPENT ) )
          {
@@ -1797,6 +2054,7 @@ namespace engine
 
       // collection index
       builder.append( CAT_COLLECTION_NAME, _clFullName ) ;
+      builder.append( FIELD_NAME_UNIQUEID, (INT64)_clUniqueID ) ;
       if ( indexName() )
       {
          builder.append( FIELD_NAME_INDEXNAME, indexName() ) ;
@@ -1811,7 +2069,7 @@ namespace engine
 
       // progress
       builder.append( FIELD_NAME_PROGRESS,  _progress ) ;
-      builder.append( FIELD_NAME_SPEED,     _speed ) ;
+      builder.append( FIELD_NAME_SPEED,     (INT64)_speed ) ;
       builder.append( FIELD_NAME_TIMESPENT, _timeSpent ) ;
       builder.append( FIELD_NAME_TIMELEFT,  _timeLeft ) ;
 
@@ -1820,25 +2078,7 @@ namespace engine
       for( MAP_GROUP_INFO_IT it = _mapGroupInfo.begin() ;
            it != _mapGroupInfo.end() ; ++it )
       {
-         const _clsIdxTaskGroupUnit& group = it->second ;
-         BSONObjBuilder b ;
-         b.append( FIELD_NAME_GROUPNAME,  group.groupName.c_str() ) ;
-         b.append( FIELD_NAME_STATUS,     group.status ) ;
-         b.append( FIELD_NAME_STATUSDESC, clsTaskStatusStr(group.status) ) ;
-         b.append( FIELD_NAME_RESULTCODE, group.resultCode ) ;
-         b.append( FIELD_NAME_RESULTCODEDESC,
-                   CLS_TASK_STATUS_FINISH == group.status ?
-                   getErrDesp( group.resultCode ) : "" ) ;
-         b.append( FIELD_NAME_RESULTINFO,      group.resultInfo ) ;
-         b.append( FIELD_NAME_OPINFO,          group.opInfo.c_str() ) ;
-         b.append( FIELD_NAME_RETRY_COUNT,     group.retryCnt ) ;
-         b.append( FIELD_NAME_PROGRESS,        group.progress ) ;
-         b.append( FIELD_NAME_SPEED,           group.speed ) ;
-         b.append( FIELD_NAME_TIMESPENT,       group.timeSpent ) ;
-         b.append( FIELD_NAME_TIMELEFT,        group.timeLeft ) ;
-         b.append( FIELD_NAME_TOTAL_SIZE,      group.totalSize ) ;
-         b.append( FIELD_NAME_PROCESSED_SIZE,  group.processedSize ) ;
-         arr.append( b.obj() ) ;
+         arr.append( it->second.toBson() ) ;
       }
       arr.done() ;
 
@@ -1855,20 +2095,13 @@ namespace engine
          for( MAP_SUBTASK_IT it = _mapSubTask.begin() ;
               it != _mapSubTask.end() ; it++ )
          {
-            clsSubTaskUnit subTask = it->second ;
-            BSONObjBuilder b ;
-            b.append( FIELD_NAME_TASKID,     (INT64)subTask.taskID ) ;
-            b.append( FIELD_NAME_TASKTYPE,   (INT32)subTask.taskType ) ;
-            b.append( FIELD_NAME_STATUS,     (INT32)subTask.status ) ;
-            b.append( FIELD_NAME_STATUSDESC, clsTaskStatusStr(subTask.status) ) ;
-            b.append( FIELD_NAME_RESULTCODE, subTask.resultCode ) ;
-            arr.append( b.obj() ) ;
+            arr.append( it->second.toBson() ) ;
          }
          arr.done() ;
 
-         builder.append( FIELD_NAME_TOTALTASKS,   _totalTasks ) ;
-         builder.append( FIELD_NAME_SUCCEEDTASKS, _succeededTasks ) ;
-         builder.append( FIELD_NAME_FAILTASKS,    _failedGroups ) ;
+         builder.append( FIELD_NAME_TOTALSUBTASK,   _totalTasks ) ;
+         builder.append( FIELD_NAME_SUCCEEDSUBTASK, _succeededTasks ) ;
+         builder.append( FIELD_NAME_FAILSUBTASK,    _failedGroups ) ;
       }
 
       // timestamp
@@ -1939,9 +2172,8 @@ namespace engine
          _taskName = "Index-" ;
       }
       _taskName += _clFullName ;
-      _taskName += "[" ;
+      _taskName += "-" ;
       _taskName += _indexName ;
-      _taskName += "]" ;
    }
 
    BOOLEAN _clsIdxTask::muteXOn ( const _clsTask* pOther )
@@ -1956,11 +2188,6 @@ namespace engine
       }
 
       pOtherIdx = (clsIdxTask*)pOther ;
-
-      if ( pOtherIdx->isMainTask() )
-      {
-         goto done ;
-      }
 
       if ( 0 != ossStrcmp ( collectionName(), pOtherIdx->collectionName() ) )
       {
@@ -1977,28 +2204,27 @@ namespace engine
       return ret ;
    }
 
-   INT32 _clsIdxTask::countGroup()
+   INT32 _clsIdxTask::countGroup() const
    {
       return _mapGroupInfo.size() ;
    }
 
-   INT32 _clsIdxTask::countSubTask()
+   INT32 _clsIdxTask::countSubTask() const
    {
       return _mapSubTask.size() ;
    }
 
-   INT32 _clsIdxTask::querySubTasks( const CHAR* objdata,
-                                     BSONObj& matcher,
-                                     BSONObj& selector )
+   INT32 _clsIdxTask::buildQuerySubTasks( const BSONObj& obj,
+                                          BSONObj& matcher,
+                                          BSONObj& selector )
    {
       INT32 rc = SDB_OK ;
       const CHAR* groupName = NULL ;
 
       try
       {
-         if ( objdata )
+         if ( !obj.isEmpty() )
          {
-            BSONObj obj( objdata ) ;
             BSONElement ele = obj.getField( FIELD_NAME_GROUPNAME ) ;
             PD_CHECK( ele.type() == String, SDB_INVALIDARG, error, PDERROR,
                       "Field[%s] invalid in obj[%s]",
@@ -2060,10 +2286,10 @@ namespace engine
       goto done ;
    }
 
-   INT32 _clsIdxTask::removeSubTask( UINT64 taskID,
-                                     const ossPoolVector<BSONObj>& otherSubTasks,
-                                     BSONObj& updator,
-                                     BSONObj& matcher )
+   INT32 _clsIdxTask::buildRemoveTaskBy( UINT64 taskID,
+                                         const ossPoolVector<BSONObj>& otherSubTasks,
+                                         BSONObj& updator,
+                                         BSONObj& matcher )
    {
       SDB_ASSERT( _isMainTask, "should be main-task" ) ;
 
@@ -2073,7 +2299,7 @@ namespace engine
 
       _clearChangedMask() ;
 
-      // erase SubTasks, decrease SucceededTasks of FailedTasks
+      // erase SubTasks, decrease SucceededSubTasks/FailedSubTasks/TotalSubTasks
       MAP_SUBTASK_IT it = _mapSubTask.find( taskID ) ;
       if ( _mapSubTask.end() == it )
       {
@@ -2082,7 +2308,7 @@ namespace engine
 
       if ( CLS_TASK_STATUS_FINISH == it->second.status )
       {
-         if ( SDB_OK == it->second.resultCode )
+         if ( _isSucceedTask( it->second ) )
          {
             _succeededTasks-- ;
          }
@@ -2095,7 +2321,8 @@ namespace engine
       _changedMask |= CLS_IDX_MASK_TASKCOUNT ;
 
       _mapSubTask.erase( it ) ;
-      _changedMask |= CLS_IDX_MASK_SUBTASKS ;
+      _changedMask |= CLS_IDX_MASK_PULL_SUBTASK ;
+      _pullSubTaskID = taskID ;
 
       // build Groups
       for( ossPoolVector<BSONObj>::const_iterator it = otherSubTasks.begin() ;
@@ -2152,7 +2379,7 @@ namespace engine
          _mapGroupInfo[ newGroup.groupName ] = newGroup ;
          if ( CLS_TASK_STATUS_FINISH == newGroup.status )
          {
-            if ( SDB_OK == newGroup.resultCode )
+            if ( _isSucceedGroup( newGroup ) )
             {
                _succeededGroups++ ;
             }
@@ -2168,7 +2395,7 @@ namespace engine
       // other field
       _updateOtherBySubTaskInfo() ;
 
-      rc = _toChangedObj( taskID, matcher, updator ) ;
+      rc = _toChangedObj( matcher, updator ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build changed bson", rc ) ;
 
    done:
@@ -2177,31 +2404,748 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSIDXTASK_UPDTASKINFO, "_clsIdxTask::updateTaskInfo" )
-   INT32 _clsIdxTask::updateTaskInfo( const CHAR* objdata,
-                                      BSONObj& updator,
-                                      BSONObj& matcher )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSIDXTASK_BADDGROUP, "_clsIdxTask::buildAddGroup" )
+   INT32 _clsIdxTask::buildAddGroup( const CHAR* groupName,
+                                     BSONObj& updator,
+                                     BSONObj& matcher )
    {
-      SDB_ASSERT( !_isMainTask, "cann't be used by main-task" ) ;
-      PD_TRACE_ENTRY( SDB_CLSIDXTASK_UPDTASKINFO ) ;
+      SDB_ASSERT( groupName, "group name can't be null" ) ;
+      SDB_ASSERT( !_isMainTask, "can't be used by main-task" ) ;
 
       INT32 rc = SDB_OK ;
-      clsIdxTaskGroupUnit newGroupInfo ;
-      MAP_GROUP_INFO_IT it ;
+      PD_TRACE_ENTRY( SDB_CLSIDXTASK_BADDGROUP ) ;
 
-      if ( !objdata )
+      if ( CLS_TASK_STATUS_FINISH == _status )
       {
-         rc = SDB_INVALIDARG ;
-         goto error ;
+         PD_LOG( PDWARNING, "Task[%llu] has already finished", _taskID ) ;
+         goto done ;
       }
+      if ( _mapGroupInfo.find( groupName ) != _mapGroupInfo.end() )
+      {
+         PD_LOG( PDWARNING, "Group[%s] has already exist in task[%llu]",
+                 groupName, _taskID ) ;
+         goto done ;
+      }
+
+      _clearChangedMask() ;
+
+      // add to Groups, increase TotalGroups
+      {
+         clsIdxTaskGroupUnit oneGroup ;
+         oneGroup.groupName = groupName ;
+         _mapGroupInfo[ oneGroup.groupName ] = oneGroup ;
+      }
+      _changedMask |= CLS_IDX_MASK_PUSH_GROUP ;
+      _pushGroupName = groupName ;
+
+      _totalGroups++ ;
+      _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
+
+      // change other field
+      _updateOtherByGroupInfo() ;
+
+      // to bson
+      rc = _toChangedObj( NULL, NULL, matcher, updator ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build changed bson", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CLSIDXTASK_BADDGROUP, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSIDXTASK_BADDGROUPBY, "_clsIdxTask::buildAddGroupBy" )
+   INT32 _clsIdxTask::buildAddGroupBy( const _clsTask* pSubTask,
+                                       const CHAR* groupName,
+                                       BSONObj& updator,
+                                       BSONObj& matcher )
+   {
+      SDB_ASSERT( pSubTask, "pSubTask cann't be null" ) ;
+      SDB_ASSERT( groupName, "group name can't be null" ) ;
+      SDB_ASSERT( _isMainTask, "should be used by main-task" ) ;
+
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CLSIDXTASK_BADDGROUPBY ) ;
+      MAP_GROUP_INFO::iterator itGroup ;
+      MAP_SUBTASK::iterator itTask ;
+
       if ( CLS_TASK_STATUS_FINISH == _status )
       {
          PD_LOG( PDWARNING, "Task[%llu] has already finished", _taskID ) ;
          goto done ;
       }
 
+      _clearChangedMask() ;
+
+      /// find out group unit from Groups List
+      itGroup = _mapGroupInfo.find( groupName ) ;
+      if ( itGroup == _mapGroupInfo.end() )
+      {
+         clsIdxTaskGroupUnit oneGroup ;
+         oneGroup.groupName = groupName ;
+         _mapGroupInfo[ oneGroup.groupName ] = oneGroup ;
+         _changedMask |= CLS_IDX_MASK_PUSH_GROUP ;
+         _pushGroupName = groupName ;
+      }
+      else
+      {
+         PD_LOG( PDWARNING, "Group[%s] already exist in task[%llu]",
+                 groupName, _taskID ) ;
+         goto done ;
+      }
+
+      /// find out sub-task in SubTasks list
+      itTask = _mapSubTask.find( pSubTask->taskID() ) ;
+      if ( itTask != _mapSubTask.end() )
+      {
+         clsSubTaskUnit& curSubTask = itTask->second ;
+         if ( CLS_TASK_STATUS_FINISH != curSubTask.status )
+         {
+            /// generate new sub-task info
+            clsSubTaskUnit newSubTask ;
+            newSubTask.taskID     = pSubTask->taskID() ;
+            newSubTask.taskType   = pSubTask->taskType() ;
+            newSubTask.status     = pSubTask->status() ;
+            newSubTask.resultCode = pSubTask->resultCode() ;
+
+            _updateSubTask( curSubTask, newSubTask ) ;
+
+            _updateOtherBySubTaskInfo() ;
+         }
+         else
+         {
+            PD_LOG( PDWARNING, "Sub-task[%u] in task[%llu] has already finished",
+                    pSubTask->taskID(), _taskID ) ;
+         }
+      }
+      else
+      {
+         PD_LOG( PDWARNING, "Sub-task[%u] doesn't exist in task[%llu]",
+                 pSubTask->taskID(), _taskID ) ;
+      }
+
+      // to bson
+      rc = _toChangedObj( NULL, &(itTask->second), matcher, updator ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build changed bson", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CLSIDXTASK_BADDGROUPBY, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSIDXTASK_BRMGROUP, "_clsIdxTask::buildRemoveGroup" )
+   INT32 _clsIdxTask::buildRemoveGroup( const CHAR* groupName,
+                                        BSONObj& updator,
+                                        BSONObj& matcher )
+   {
+      SDB_ASSERT( groupName, "group name can't be null" ) ;
+      SDB_ASSERT( !_isMainTask, "can't be used by main-task" ) ;
+
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CLSIDXTASK_BRMGROUP ) ;
+      MAP_GROUP_INFO_IT it ;
+
+      if ( CLS_TASK_STATUS_FINISH == _status )
+      {
+         PD_LOG( PDWARNING, "Task[%llu] has already finished", _taskID ) ;
+         goto done ;
+      }
+      it = _mapGroupInfo.find( groupName ) ;
+      if ( _mapGroupInfo.end() == it )
+      {
+         PD_LOG( PDWARNING, "Group[%s] doesn't exist in task[%llu]",
+                 groupName, _taskID ) ;
+         goto done ;
+      }
+
+      _clearChangedMask() ;
+
+      // erase Groups, decrease SucceededGroups/FailedGroups/TotalGroups
+      if ( CLS_TASK_STATUS_FINISH == it->second.status )
+      {
+         if ( _isSucceedGroup( it->second ) )
+         {
+            _succeededGroups-- ;
+         }
+         else
+         {
+            _failedGroups-- ;
+         }
+      }
+      _totalGroups-- ;
+      _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
+
+      _mapGroupInfo.erase( it ) ;
+      _changedMask |= CLS_IDX_MASK_PULL_GROUP ;
+      _pullGroupName = groupName ;
+
+      // change other field
+      _updateOtherByGroupInfo() ;
+
+      // to bson
+      rc = _toChangedObj( &(it->second), NULL, matcher, updator ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build changed bson", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CLSIDXTASK_BRMGROUP, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSIDXTASK_BRMGROUPBY, "_clsIdxTask::buildRemoveGroupBy" )
+   INT32 _clsIdxTask::buildRemoveGroupBy( const _clsTask* pSubTask,
+                                          const ossPoolVector<BSONObj>& subTaskInfoList,
+                                          const CHAR* groupName,
+                                          BSONObj& updator,
+                                          BSONObj& matcher )
+   {
+      SDB_ASSERT( pSubTask, "pSubTask cann't be null" ) ;
+      SDB_ASSERT( groupName, "group name can't be null" ) ;
+      SDB_ASSERT( _isMainTask, "should be used by main-task" ) ;
+
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CLSIDXTASK_BRMGROUPBY ) ;
+      ossPoolMap<UINT64, clsSubTaskUnit>::iterator itTask ;
+      MAP_GROUP_INFO_IT itGroup ;
+
+      if ( CLS_TASK_STATUS_FINISH == _status )
+      {
+         PD_LOG( PDWARNING, "Task[%llu] has already finished", _taskID ) ;
+         goto done ;
+      }
+
+      _clearChangedMask() ;
+
+      /// find out group unit from Groups List
+      itGroup = _mapGroupInfo.find( groupName ) ;
+      if ( itGroup != _mapGroupInfo.end() )
+      {
+         clsIdxTaskGroupUnit& curGroupInfo = itGroup->second ;
+         if ( CLS_TASK_STATUS_FINISH != curGroupInfo.status )
+         {
+            if ( subTaskInfoList.empty() )
+            {
+               /// just remove this group
+               if ( CLS_TASK_STATUS_FINISH == curGroupInfo.status )
+               {
+                  if ( _isSucceedGroup( curGroupInfo ) )
+                  {
+                     _succeededGroups-- ;
+                  }
+                  else
+                  {
+                     _failedGroups-- ;
+                  }
+               }
+               _totalGroups-- ;
+               _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
+
+               _mapGroupInfo.erase( itGroup ) ;
+               _changedMask |= CLS_IDX_MASK_PULL_GROUP ;
+               _pullGroupName = curGroupInfo.groupName ;
+            }
+            else
+            {
+               /// update this group info by sub-tasks
+               clsIdxTaskGroupUnit newGroupInfo ;
+               rc = _buildNewGroupInfo( subTaskInfoList, newGroupInfo ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to build new group info",
+                            rc ) ;
+               _updateGroup( curGroupInfo, newGroupInfo ) ;
+            }
+         }
+         else
+         {
+            PD_LOG( PDWARNING, "Group[%s] in task[%llu] has already finished",
+                    groupName, _taskID ) ;
+            goto done ;
+         }
+      }
+      else
+      {
+         PD_LOG( PDWARNING, "Group[%s] doesn't exist in task[%llu]",
+                 groupName, _taskID ) ;
+         goto done ;
+      }
+
+      /// find out sub-task in SubTasks list
+      itTask = _mapSubTask.find( pSubTask->taskID() ) ;
+      if ( itTask != _mapSubTask.end() )
+      {
+         clsSubTaskUnit& curSubTask = itTask->second ;
+         if ( CLS_TASK_STATUS_FINISH != curSubTask.status )
+         {
+            /// generate new sub-task info
+            clsSubTaskUnit newSubTask ;
+            newSubTask.taskID     = pSubTask->taskID() ;
+            newSubTask.taskType   = pSubTask->taskType() ;
+            newSubTask.status     = pSubTask->status() ;
+            newSubTask.resultCode = pSubTask->resultCode() ;
+
+            _updateSubTask( curSubTask, newSubTask ) ;
+
+            _updateOtherBySubTaskInfo() ;
+         }
+         else
+         {
+            PD_LOG( PDWARNING, "Sub-task[%u] in task[%llu] has already finished",
+                    pSubTask->taskID(), _taskID ) ;
+         }
+      }
+      else
+      {
+         PD_LOG( PDWARNING, "Sub-task[%u] doesn't exist in task[%llu]",
+                 pSubTask->taskID(), _taskID ) ;
+      }
+
+      rc = _toChangedObj( &(itGroup->second), &(itTask->second),
+                          matcher, updator ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build changed bson", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CLSIDXTASK_BRMGROUPBY, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsIdxTask::buildStartTask( const BSONObj& obj,
+                                      BSONObj& updator,
+                                      BSONObj& matcher )
+   {
+      SDB_ASSERT( !_isMainTask, "can't be used by main-task" ) ;
+      return _buildStartTask( NULL, obj, updator, matcher ) ;
+   }
+
+   INT32 _clsIdxTask::buildStartTaskBy( const clsTask* pSubTask,
+                                        const BSONObj& obj,
+                                        BSONObj& updator,
+                                        BSONObj& matcher )
+   {
+      SDB_ASSERT( pSubTask, "pSubTask cann't be null" ) ;
+      SDB_ASSERT( _isMainTask, "should be used by main-task" ) ;
+      return _buildStartTask( pSubTask, obj, updator, matcher ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSIDXTASK_BSTARTTASK, "_clsIdxTask::_buildStartTask" )
+   INT32 _clsIdxTask::_buildStartTask( const clsTask* pSubTask,
+                                       const BSONObj& obj,
+                                       BSONObj& updator,
+                                       BSONObj& matcher )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CLSIDXTASK_BSTARTTASK ) ;
+
+      if ( CLS_TASK_STATUS_FINISH == _status )
+      {
+         rc = SDB_TASK_ALREADY_FINISHED ;
+         goto error ;
+      }
+      else if ( CLS_TASK_STATUS_CANCELED == _status )
+      {
+         rc = SDB_TASK_HAS_CANCELED ;
+         goto error ;
+      }
+      else if ( CLS_TASK_STATUS_ROLLBACK == _status )
+      {
+         rc = SDB_TASK_ROLLBACK ;
+         goto error ;
+      }
+      else if ( CLS_TASK_STATUS_READY == _status ||
+                CLS_TASK_STATUS_RUN   == _status )
+      {
+         const CHAR* groupName = NULL ;
+         clsIdxTaskGroupUnit* groupUnit = NULL ;
+         clsSubTaskUnit* subTaskUnit = NULL ;
+
+         // clear mask
+         _clearChangedMask() ;
+
+         // change task's status
+         if ( CLS_TASK_STATUS_READY == _status )
+         {
+            setRun() ;
+         }
+
+         // change group's status
+         rc = rtnGetStringElement( obj, FIELD_NAME_GROUPNAME, &groupName ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get field[%s], rc: %d",
+                      FIELD_NAME_GROUPNAME, rc ) ;
+
+         MAP_GROUP_INFO_IT it = _mapGroupInfo.find( groupName ) ;
+         PD_CHECK( it != _mapGroupInfo.end(), SDB_SYS, error, PDERROR,
+                   "Failed to find out group[%s] from task[%llu]",
+                   groupName, _taskID ) ;
+
+         groupUnit = &(it->second) ;
+
+         if ( CLS_TASK_STATUS_READY == groupUnit->status )
+         {
+            groupUnit->status = CLS_TASK_STATUS_RUN ;
+            _changedGroupMask |= CLS_IDX_MASK_STATUS ;
+            _changedMask |= CLS_IDX_MASK_GROUPS ;
+         }
+
+         // change sub-task's status
+         if ( _isMainTask )
+         {
+            SDB_ASSERT( pSubTask, "pSubTask cann't be null" ) ;
+
+            MAP_SUBTASK_IT itTask = _mapSubTask.find( pSubTask->taskID() ) ;
+            PD_CHECK( itTask != _mapSubTask.end(), SDB_SYS, error, PDERROR,
+                      "Failed to find out sub-task[%llu] from main task[%llu]",
+                      pSubTask->taskID(), _taskID ) ;
+
+            subTaskUnit = &(itTask->second) ;
+
+            if ( CLS_TASK_STATUS_READY == subTaskUnit->status )
+            {
+               subTaskUnit->status = CLS_TASK_STATUS_RUN ;
+               _changedSubtaskMask |= CLS_IDX_MASK_STATUS ;
+               _changedMask |= CLS_IDX_MASK_SUBTASKS ;
+            }
+         }
+
+         // to bson
+         rc = _toChangedObj( groupUnit, subTaskUnit, matcher, updator ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build changed bson", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CLSIDXTASK_BSTARTTASK, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsIdxTask::_extractAndSetErrInfo( const BSONObj &errInfoArr,
+                                             BSONObjBuilder &matcherBuilder,
+                                             BSONObjBuilder &setBuilder )
+   {
+      INT32 rc = SDB_OK ;
+
+      /* errInfoArr formate as below:
+         [ { "GroupName": "db1", "ResultCode": -129, "Detail": "xxx" },
+           ... ]
+      */
+      try
+      {
+         BSONObjIterator iter( errInfoArr ) ;
+         while ( iter.more() )
+         {
+            clsIdxTaskGroupUnit* pGroup = NULL ;
+            INT32 resultCode = SDB_OK ;
+            const CHAR* groupName = NULL ;
+            const CHAR* detail = NULL ;
+
+            BSONElement ele = iter.next() ;
+            PD_CHECK( ele.type() == Object, SDB_SYS, error,
+                      PDERROR, "Invalid element type[%d]", ele.type() ) ;
+
+            // get group name, result code, result detail
+            BSONObj obj = ele.embeddedObject() ;
+            rc = rtnGetStringElement( obj, FIELD_NAME_GROUPNAME, &groupName ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get field[%s] from obj[%s], rc: %d",
+                         FIELD_NAME_GROUPNAME, obj.toString().c_str(), rc ) ;
+
+            rc = rtnGetIntElement( obj, FIELD_NAME_RESULTCODE, resultCode ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get field[%s] from obj[%s], rc: %d",
+                         FIELD_NAME_RESULTCODE, obj.toString().c_str(), rc ) ;
+
+            rc = rtnGetStringElement( obj, FIELD_NAME_DETAIL, &detail ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get field[%s] from obj[%s], rc: %d",
+                         FIELD_NAME_DETAIL, obj.toString().c_str(), rc ) ;
+
+            // find the group from map
+            MAP_GROUP_INFO_IT it = _mapGroupInfo.find( groupName ) ;
+            PD_CHECK( it != _mapGroupInfo.end(), SDB_SYS, error, PDERROR,
+                      "Failed to find out group[%s] from task[%llu]",
+                      groupName, _taskID ) ;
+
+            pGroup = &(it->second) ;
+
+            // clear mask
+            _changedGroupMask = 0 ;
+
+            // set result code
+            if ( CLS_TASK_STATUS_READY == pGroup->status )
+            {
+               pGroup->resultCode = resultCode ;
+               if ( detail && detail[0] != 0 )
+               {
+                  pGroup->resultInfo = BSON( FIELD_NAME_DETAIL << detail ) ;
+               }
+               _changedGroupMask |= CLS_IDX_MASK_RESULT ;
+               _changedMask |= CLS_IDX_MASK_GROUPS ;
+            }
+
+            // to bson
+            _toChangeGroupObj( matcherBuilder, setBuilder, *pGroup ) ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSIDXTASK_BCANCELTASK, "_clsIdxTask::buildCancelTask" )
+   INT32 _clsIdxTask::buildCancelTask( const BSONObj& obj,
+                                       BSONObj& updator,
+                                       BSONObj& matcher )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CLSIDXTASK_BCANCELTASK ) ;
+      INT32 resultCode = SDB_TASK_HAS_CANCELED ;
+      BOOLEAN hasResultCode = TRUE ;
+      BSONObj errInfoArr ;
+      BSONObjBuilder matcherBuilder, setBuilder ;
+
+      if ( CLS_TASK_STATUS_FINISH == _status )
+      {
+         rc = SDB_TASK_ALREADY_FINISHED ;
+         goto error ;
+      }
+      else if ( CLS_TASK_STATUS_CANCELED == _status )
+      {
+         rc = SDB_TASK_HAS_CANCELED ;
+         goto error ;
+      }
+      else if ( CLS_TASK_STATUS_ROLLBACK == _status )
+      {
+         rc = SDB_TASK_ROLLBACK ;
+         goto error ;
+      }
+      else if ( CLS_TASK_STATUS_RUN == _status )
+      {
+         if ( CLS_TASK_DROP_IDX == _taskType )
+         {
+            // When drop index is running, we can't cancel it.
+            PD_LOG_MSG( PDERROR, "Cannot cancel drop index task[%llu] while "
+                        "it is running", _taskID ) ;
+            rc = SDB_TASK_CANNOT_CANCEL ;
+            goto error ;
+         }
+      }
+
+      // Internal cancellation, has ResultCode and ErrInfo, while user
+      // cancellation doesn't has them.
+      rc = rtnGetIntElement( obj, FIELD_NAME_RESULTCODE, resultCode ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
+      {
+         hasResultCode = FALSE ;
+         rc = SDB_OK ;
+      }
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get the field[%s] from query",
+                   FIELD_NAME_RESULTCODE ) ;
+
+      rc = rtnGetArrayElement( obj, FIELD_NAME_ERROR_INFO, errInfoArr ) ;
+      rc = SDB_FIELD_NOT_EXIST == rc ? SDB_OK : rc ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get the field[%s] from query",
+                   FIELD_NAME_ERROR_INFO ) ;
+
+      /// clear mask
+      _clearChangedMask() ;
+
+      /// change Groups
+      if ( !errInfoArr.isEmpty() )
+      {
+         rc = _extractAndSetErrInfo( errInfoArr, matcherBuilder, setBuilder ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+
+      if ( CLS_TASK_STATUS_READY == _status )
+      {
+         /// change task's status
+         setFinish( resultCode ) ;
+         _toChangeOtherObj( matcherBuilder, setBuilder ) ;
+      }
+      else if ( CLS_TASK_STATUS_RUN == _status )
+      {
+         if ( !_isMainTask )
+         {
+            /// change task's status, result code
+            setStatus( CLS_TASK_STATUS_CANCELED ) ;
+            if ( hasResultCode )
+            {
+               // If ResultCode is not set here, task ResultCode will be -243
+               // when task is finished. But it is an internal cancellation,
+               // -243 ResultCode is not suitable.
+               _resultCode = resultCode ;
+               _changedMask |= CLS_IDX_MASK_RESULT ;
+            }
+         }
+         else
+         {
+            /// change SubTasks status
+            UINT32 cntFinish = 0 ;
+            ossPoolMap<UINT64, clsSubTaskUnit>::iterator it ;
+            for( it = _mapSubTask.begin() ; it != _mapSubTask.end() ; it++ )
+            {
+               clsSubTaskUnit &subTask = it->second ;
+               if ( CLS_TASK_STATUS_FINISH == subTask.status )
+               {
+                  cntFinish++ ;
+               }
+               if ( CLS_TASK_STATUS_READY != subTask.status &&
+                    CLS_TASK_STATUS_RUN != subTask.status )
+               {
+                  continue ;
+               }
+
+               // clear mask
+               _changedSubtaskMask = 0 ;
+
+               // change status, resultCode
+               if ( CLS_TASK_STATUS_READY == subTask.status )
+               {
+                  subTask.status = CLS_TASK_STATUS_FINISH ;
+                  subTask.resultCode = SDB_TASK_HAS_CANCELED ;
+                  _changedSubtaskMask |= CLS_IDX_MASK_STATUS ;
+                  _changedSubtaskMask |= CLS_IDX_MASK_RESULT ;
+                  cntFinish++ ;
+               }
+               else if ( CLS_TASK_STATUS_RUN == subTask.status )
+               {
+                  subTask.status = CLS_TASK_STATUS_CANCELED ;
+                  _changedSubtaskMask |= CLS_IDX_MASK_STATUS ;
+               }
+               _changedMask |= CLS_IDX_MASK_SUBTASKS ;
+
+               // to bson
+               _toChangeSubtaskObj( matcherBuilder, setBuilder, subTask ) ;
+            }
+
+            /// change task's status, result code
+            if ( cntFinish == _mapSubTask.size() )
+            {
+               // Subtasks which already finished don't need to rolled back.
+               setFinish( resultCode ) ;
+            }
+            else
+            {
+               setStatus( CLS_TASK_STATUS_CANCELED ) ;
+               if ( hasResultCode )
+               {
+                  _resultCode = resultCode ;
+                  _changedMask |= CLS_IDX_MASK_RESULT ;
+               }
+            }
+         }
+
+         _toChangeOtherObj( matcherBuilder, setBuilder ) ;
+      }
+
+      /// to bson
+      matcher = matcherBuilder.obj() ;
+      updator = BSON( "$set" << setBuilder.obj() ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CLSIDXTASK_BCANCELTASK, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSIDXTASK_BCANCELTASKBY, "_clsIdxTask::buildCancelTaskBy" )
+   INT32 _clsIdxTask::buildCancelTaskBy( const clsTask* pSubTask,
+                                         BSONObj& updator,
+                                         BSONObj& matcher )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CLSIDXTASK_BCANCELTASKBY ) ;
+      clsSubTaskUnit* subTaskUnit = NULL ;
+
+      SDB_ASSERT( pSubTask, "pSubTask cann't be null" ) ;
+      SDB_ASSERT( _isMainTask, "should be used by main-task" ) ;
+
+      // clear mask
+      _clearChangedMask() ;
+
+      // change SubTasks status and result code
+      MAP_SUBTASK_IT itTask = _mapSubTask.find( pSubTask->taskID() ) ;
+      PD_CHECK( itTask != _mapSubTask.end(), SDB_SYS, error, PDERROR,
+                "Failed to find out sub-task[%llu] from main task[%llu]",
+                pSubTask->taskID(), _taskID ) ;
+
+      subTaskUnit = &(itTask->second) ;
+
+      if ( subTaskUnit->status != pSubTask->status() )
+      {
+         subTaskUnit->status = pSubTask->status() ;
+         _changedSubtaskMask |= CLS_IDX_MASK_STATUS ;
+      }
+      if ( subTaskUnit->resultCode != pSubTask->resultCode() )
+      {
+         subTaskUnit->resultCode = pSubTask->resultCode() ;
+         _changedSubtaskMask |= CLS_IDX_MASK_RESULT ;
+      }
+
+      // change task status
+      _updateOtherBySubTaskInfo() ;
+
+      // to bson
+      _changedMask |= CLS_IDX_MASK_SUBTASKS ;
+
+      rc = _toChangedObj( NULL, subTaskUnit, matcher, updator ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build changed bson", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CLSIDXTASK_BCANCELTASKBY, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSIDXTASK_BRPTTASK, "_clsIdxTask::buildReportTask" )
+   INT32 _clsIdxTask::buildReportTask( const BSONObj& obj,
+                                       BSONObj& updator,
+                                       BSONObj& matcher )
+   {
+      SDB_ASSERT( !_isMainTask, "cann't be used by main-task" ) ;
+      PD_TRACE_ENTRY( SDB_CLSIDXTASK_BRPTTASK ) ;
+
+      INT32 rc = SDB_OK ;
+      clsIdxTaskGroupUnit newGroupInfo ;
+      MAP_GROUP_INFO_IT it ;
+
+      if ( CLS_TASK_STATUS_FINISH == _status )
+      {
+         PD_LOG( PDWARNING, "Task[%llu] has already finished", _taskID ) ;
+         goto done ;
+      }
+      if ( _status != CLS_TASK_STATUS_RUN &&
+           _status != CLS_TASK_STATUS_CANCELED &&
+           _status != CLS_TASK_STATUS_ROLLBACK )
+      {
+         rc = SDB_CAT_TASK_STATUS_ERROR ;
+         PD_LOG( PDERROR, "Task[%llu] status[%s] error",
+                 _taskID, clsTaskStatusStr(_status) ) ;
+         goto error ;
+      }
+
       /// init group unit
-      rc = newGroupInfo.init( objdata ) ;
+      rc = newGroupInfo.init( obj.objdata() ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to init group info, rc: %d",
                    rc ) ;
@@ -2228,25 +3172,25 @@ namespace engine
 
       _updateOtherByGroupInfo() ;
 
-      rc = _toChangedObj( newGroupInfo, matcher, updator ) ;
+      rc = _toChangedObj( &(it->second), NULL, matcher, updator ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build changed bson", rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB_CLSIDXTASK_UPDTASKINFO, rc ) ;
+      PD_TRACE_EXITRC( SDB_CLSIDXTASK_BRPTTASK, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSIDXTASK_UPDMAINTASKINFO, "_clsIdxTask::updateMainTaskInfo" )
-   INT32 _clsIdxTask::updateMainTaskInfo( clsTask *pSubTask,
-                                          const ossPoolVector<BSONObj>& subTaskInfoList,
-                                          BSONObj& updator,
-                                          BSONObj& matcher )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSIDXTASK_BRPTTASKBY, "_clsIdxTask::buildReportTaskBy" )
+   INT32 _clsIdxTask::buildReportTaskBy( const clsTask* pSubTask,
+                                         const ossPoolVector<BSONObj>& subTaskInfoList,
+                                         BSONObj& updator,
+                                         BSONObj& matcher )
    {
       SDB_ASSERT( pSubTask, "pSubTask cann't be null" ) ;
       SDB_ASSERT( _isMainTask, "should be used by main-task" ) ;
-      PD_TRACE_ENTRY( SDB_CLSIDXTASK_UPDMAINTASKINFO ) ;
+      PD_TRACE_ENTRY( SDB_CLSIDXTASK_BRPTTASKBY ) ;
 
       INT32 rc = SDB_OK ;
       BOOLEAN needChangeGroup = TRUE ;
@@ -2254,7 +3198,6 @@ namespace engine
       const clsIdxTask* pTask = NULL ;
       ossPoolMap<UINT64, clsSubTaskUnit>::iterator itTask ;
       MAP_GROUP_INFO_IT itGroup ;
-      clsSubTaskUnit newSubTask ;
       clsIdxTaskGroupUnit newGroupInfo ;
 
       if ( CLS_TASK_STATUS_FINISH == _status )
@@ -2266,12 +3209,6 @@ namespace engine
       pTask = dynamic_cast<const clsIdxTask*>( pSubTask ) ;
       PD_CHECK( NULL != pTask, SDB_INVALIDARG, error, PDERROR,
                 "Failed to get index task" ) ;
-
-      /// generate new sub-task info
-      newSubTask.taskID     = pTask->taskID() ;
-      newSubTask.taskType   = pTask->taskType() ;
-      newSubTask.status     = pTask->status() ;
-      newSubTask.resultCode = pTask->resultCode() ;
 
       /// find out sub-task in SubTasks list
       itTask = _mapSubTask.find( pTask->taskID() ) ;
@@ -2319,23 +3256,31 @@ namespace engine
 
          if ( needChangeSubtask )
          {
+            /// generate new sub-task info
+            clsSubTaskUnit newSubTask ;
+            newSubTask.taskID     = pTask->taskID() ;
+            newSubTask.taskType   = pTask->taskType() ;
+            newSubTask.status     = pTask->status() ;
+            newSubTask.resultCode = pTask->resultCode() ;
+
             _updateSubTask( itTask->second, newSubTask ) ;
 
             _updateOtherBySubTaskInfo() ;
          }
 
-         rc = _toChangedObj( newGroupInfo, newSubTask, matcher, updator ) ;
+         rc = _toChangedObj( &(itGroup->second), &(itTask->second),
+                             matcher, updator ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build changed bson", rc ) ;
       }
 
    done:
-      PD_TRACE_EXITRC( SDB_CLSIDXTASK_UPDMAINTASKINFO, rc ) ;
+      PD_TRACE_EXITRC( SDB_CLSIDXTASK_BRPTTASKBY, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-   void _clsIdxTask::_updateSubTask( clsSubTaskUnit& orgSubTask,
+   void _clsIdxTask::_updateSubTask( clsSubTaskUnit& curSubTask,
                                      const clsSubTaskUnit& newSubTask )
    {
       /*
@@ -2345,39 +3290,38 @@ namespace engine
       BOOLEAN hasChangeSubtask = FALSE ;
       BOOLEAN change2Finish = FALSE ; // run -> finish
 
-      if ( CLS_TASK_STATUS_FINISH == orgSubTask.status )
+      if ( CLS_TASK_STATUS_FINISH == curSubTask.status )
       {
          goto done ;
       }
 
       /// update SubTasks element
-      if ( orgSubTask.status != newSubTask.status )
+      if ( curSubTask.status != newSubTask.status )
       {
-         orgSubTask.status = newSubTask.status ;
-         _changedTaskMask |= CLS_IDX_MASK_STATUS ;
+         curSubTask.status = newSubTask.status ;
+         _changedSubtaskMask |= CLS_IDX_MASK_STATUS ;
          hasChangeSubtask = TRUE ;
          if ( CLS_TASK_STATUS_FINISH == newSubTask.status )
          {
             change2Finish = TRUE ;
          }
       }
-      if ( change2Finish || orgSubTask.resultCode != newSubTask.resultCode )
+      if ( change2Finish || curSubTask.resultCode != newSubTask.resultCode )
       {
-         orgSubTask.resultCode = newSubTask.resultCode ;
-         _changedTaskMask |= CLS_IDX_MASK_RESULT ;
+         curSubTask.resultCode = newSubTask.resultCode ;
+         _changedSubtaskMask |= CLS_IDX_MASK_RESULT ;
          hasChangeSubtask = TRUE ;
       }
 
       if ( hasChangeSubtask )
       {
-         _changedSubtask = newSubTask ;
          _changedMask |= CLS_IDX_MASK_SUBTASKS ;
       }
 
       // increase sub-task count
       if ( CLS_TASK_STATUS_FINISH == newSubTask.status )
       {
-         if ( SDB_OK == newSubTask.resultCode )
+         if ( _isSucceedTask( newSubTask ) )
          {
             _succeededTasks++ ;
          }
@@ -2392,7 +3336,51 @@ namespace engine
       return ;
    }
 
-   void _clsIdxTask::_updateGroup( clsIdxTaskGroupUnit& orgGroupInfo,
+
+   BOOLEAN _clsIdxTask::_isSucceedGroup( const clsIdxTaskGroupUnit& groupInfo )
+   {
+      return _isSucceed( _taskType, groupInfo.status, groupInfo.resultCode ) ;
+   }
+
+   BOOLEAN _clsIdxTask::_isSucceedTask( const clsSubTaskUnit& subTaskInfo )
+   {
+      return _isSucceed( subTaskInfo.taskType, subTaskInfo.status,
+                         subTaskInfo.resultCode ) ;
+   }
+
+   BOOLEAN _clsIdxTask::_isSucceed( CLS_TASK_TYPE taskType,
+                                    CLS_TASK_STATUS status,
+                                    INT32 resultCode )
+   {
+      BOOLEAN isSucc = FALSE ;
+
+      SDB_ASSERT( CLS_TASK_STATUS_FINISH == status,
+                  "Group status must be finished") ;
+
+      if ( SDB_OK == resultCode )
+      {
+         isSucc = TRUE ;
+      }
+      else if ( SDB_IXM_REDEF == resultCode )
+      {
+         if ( CLS_TASK_CREATE_IDX == taskType ||
+              CLS_TASK_COPY_IDX   == taskType )
+         {
+            isSucc = TRUE ;
+         }
+      }
+      else if ( SDB_IXM_NOTEXIST == resultCode )
+      {
+         if ( CLS_TASK_DROP_IDX == taskType )
+         {
+            isSucc = TRUE ;
+         }
+      }
+
+      return isSucc ;
+   }
+
+   void _clsIdxTask::_updateGroup( clsIdxTaskGroupUnit& curGroupInfo,
                                    const clsIdxTaskGroupUnit& newGroupInfo )
    {
       /*
@@ -2403,19 +3391,19 @@ namespace engine
       BOOLEAN change2Finish = FALSE ; // run -> finish
 
       /// increase group count
-      if ( CLS_TASK_STATUS_FINISH == orgGroupInfo.status &&
+      if ( CLS_TASK_STATUS_FINISH == curGroupInfo.status &&
            CLS_TASK_STATUS_FINISH == newGroupInfo.status )
       {
          // 'finish + ok' can convert to 'finish + -243',
          // we should DECREASE _succeededGroups
-         if ( SDB_OK == orgGroupInfo.resultCode &&
-              SDB_OK != newGroupInfo.resultCode )
+         if (  _isSucceedGroup( curGroupInfo ) &&
+              !_isSucceedGroup( newGroupInfo ) )
          {
             _succeededGroups-- ;
             _failedGroups++ ;
          }
-         else if ( SDB_OK != orgGroupInfo.resultCode &&
-                   SDB_OK == newGroupInfo.resultCode )
+         else if ( !_isSucceedGroup( curGroupInfo ) &&
+                    _isSucceedGroup( newGroupInfo ) )
          {
             _failedGroups-- ;
             _succeededGroups++ ;
@@ -2424,7 +3412,7 @@ namespace engine
       }
       else if ( CLS_TASK_STATUS_FINISH == newGroupInfo.status )
       {
-         if ( SDB_OK == newGroupInfo.resultCode )
+         if ( _isSucceedGroup( newGroupInfo ) )
          {
             _succeededGroups++ ;
          }
@@ -2436,9 +3424,9 @@ namespace engine
       }
 
       /// update Groups element
-      if ( orgGroupInfo.status != newGroupInfo.status )
+      if ( curGroupInfo.status != newGroupInfo.status )
       {
-         orgGroupInfo.status = newGroupInfo.status ;
+         curGroupInfo.status = newGroupInfo.status ;
          _changedGroupMask |= CLS_IDX_MASK_STATUS ;
          hasChangedGroup = TRUE ;
          if ( CLS_TASK_STATUS_FINISH == newGroupInfo.status )
@@ -2446,44 +3434,44 @@ namespace engine
             change2Finish = TRUE ;
          }
       }
-      if ( change2Finish || orgGroupInfo.resultCode != newGroupInfo.resultCode )
+      if ( change2Finish || curGroupInfo.resultCode != newGroupInfo.resultCode )
       {
-         orgGroupInfo.resultCode = newGroupInfo.resultCode ;
-         orgGroupInfo.resultInfo= newGroupInfo.resultInfo ;
+         curGroupInfo.resultCode = newGroupInfo.resultCode ;
+         curGroupInfo.resultInfo= newGroupInfo.resultInfo ;
          _changedGroupMask |= CLS_IDX_MASK_RESULT ;
          hasChangedGroup = TRUE ;
       }
-      if ( orgGroupInfo.opInfo != newGroupInfo.opInfo )
+      if ( curGroupInfo.opInfo != newGroupInfo.opInfo )
       {
-         orgGroupInfo.opInfo = newGroupInfo.opInfo;
+         curGroupInfo.opInfo = newGroupInfo.opInfo;
          _changedGroupMask |= CLS_IDX_MASK_OPINFO ;
          hasChangedGroup = TRUE ;
       }
-      if ( orgGroupInfo.retryCnt != newGroupInfo.retryCnt )
+      if ( curGroupInfo.retryCnt != newGroupInfo.retryCnt )
       {
-         orgGroupInfo.retryCnt = newGroupInfo.retryCnt ;
+         curGroupInfo.retryCnt = newGroupInfo.retryCnt ;
          _changedGroupMask |= CLS_IDX_MASK_RETRYCNT ;
          hasChangedGroup = TRUE ;
       }
-      if ( orgGroupInfo.timeSpent != newGroupInfo.timeSpent )
+      if ( curGroupInfo.timeSpent != newGroupInfo.timeSpent )
       {
-         orgGroupInfo.progress = newGroupInfo.progress ;
-         orgGroupInfo.speed = newGroupInfo.speed ;
-         orgGroupInfo.timeSpent = newGroupInfo.timeSpent ;
-         orgGroupInfo.timeLeft = newGroupInfo.timeLeft ;
+         curGroupInfo.progress = newGroupInfo.progress ;
+         curGroupInfo.speed = newGroupInfo.speed ;
+         curGroupInfo.timeSpent = newGroupInfo.timeSpent ;
+         curGroupInfo.timeLeft = newGroupInfo.timeLeft ;
          _changedGroupMask |= CLS_IDX_MASK_PROGRESS ;
          hasChangedGroup = TRUE ;
       }
-      if ( orgGroupInfo.totalSize != newGroupInfo.totalSize )
+      if ( curGroupInfo.totalRecNum != newGroupInfo.totalRecNum )
       {
-         orgGroupInfo.totalSize = newGroupInfo.totalSize ;
-         _changedGroupMask |= CLS_IDX_MASK_TOTALSZ ;
+         curGroupInfo.totalRecNum = newGroupInfo.totalRecNum ;
+         _changedGroupMask |= CLS_IDX_MASK_TOTALREC ;
          hasChangedGroup = TRUE ;
       }
-      if ( orgGroupInfo.processedSize != newGroupInfo.processedSize )
+      if ( curGroupInfo.pcsedRecNum != newGroupInfo.pcsedRecNum )
       {
-         orgGroupInfo.processedSize = newGroupInfo.processedSize ;
-         _changedGroupMask |= CLS_IDX_MASK_PROCESSSZ ;
+         curGroupInfo.pcsedRecNum = newGroupInfo.pcsedRecNum ;
+         _changedGroupMask |= CLS_IDX_MASK_PCSEDREC ;
          hasChangedGroup = TRUE ;
       }
 
@@ -2567,10 +3555,10 @@ namespace engine
          }
 
          // TotalSize ProcessedSize RetryCnt Speed
-         newGroupInfo.totalSize     += groupUnit.totalSize ;
-         newGroupInfo.processedSize += groupUnit.processedSize ;
-         newGroupInfo.retryCnt      += groupUnit.retryCnt ;
-         newGroupInfo.speed         += groupUnit.speed ;
+         newGroupInfo.totalRecNum += groupUnit.totalRecNum ;
+         newGroupInfo.pcsedRecNum += groupUnit.pcsedRecNum ;
+         newGroupInfo.retryCnt    += groupUnit.retryCnt ;
+         newGroupInfo.speed       += groupUnit.speed ;
 
          // TimeSpent TimeLeft
          if ( groupUnit.timeSpent > newGroupInfo.timeSpent )
@@ -2605,8 +3593,8 @@ namespace engine
       }
 
       // Progress
-      newGroupInfo.progress = (FLOAT32)newGroupInfo.processedSize /
-                                       newGroupInfo.totalSize * 100 ;
+      newGroupInfo.progress = (FLOAT64)newGroupInfo.pcsedRecNum /
+                                       newGroupInfo.totalRecNum * 100 ;
 
    done:
       return rc ;
@@ -2619,13 +3607,14 @@ namespace engine
       /*
       * Update other fields except Groups / SucceedGroups / FailedGroups
       */
-
+      SDB_ASSERT( !_isMainTask, "cann't be used by main-task" ) ;
       UINT32 cntTotalGroup = _mapGroupInfo.size() ;
       UINT32 cntReadyGroup = 0 ;
       UINT32 cntSucGroup = 0 ;
       UINT32 cntFailGroup = 0 ;
       UINT32 cntRedefineIdx = 0 ;
       UINT32 cntNotExistIdx = 0 ;
+      UINT32 cntIgnoreError = 0 ;
       INT32 firstResultCode = SDB_OK ;
       BSONObj firstResultInfo ;
 
@@ -2645,35 +3634,36 @@ namespace engine
             {
                cntSucGroup++ ;
             }
-            else if ( SDB_IXM_REDEF == localGroup.resultCode &&
-                      CLS_TASK_CREATE_IDX == _taskType )
-            {
-               // ignore -247 error when create index
-               cntSucGroup++ ;
-               cntRedefineIdx++ ;
-            }
-            else if ( SDB_IXM_NOTEXIST == localGroup.resultCode &&
-                      CLS_TASK_DROP_IDX == _taskType )
-            {
-               // ignore -47 error when drop index
-               cntSucGroup++ ;
-               cntNotExistIdx++ ;
-            }
             else
             {
                cntFailGroup++ ;
-               // When one group failed, other groups will be rolled back( error
-               // code is SDB_TASK_ROLLBACK ). So we looks up other error code
-               // besides SDB_TASK_ROLLBACK.
-               if ( SDB_OK == firstResultCode ||
-                    SDB_TASK_ROLLBACK == firstResultCode )
+               if ( SDB_IXM_REDEF == localGroup.resultCode &&
+                    CLS_TASK_CREATE_IDX == _taskType )
                {
-                  firstResultCode = localGroup.resultCode ;
-                  firstResultInfo = localGroup.resultInfo ;
+                  cntRedefineIdx++ ;
+               }
+               else if ( SDB_IXM_NOTEXIST == localGroup.resultCode &&
+                         CLS_TASK_DROP_IDX == _taskType )
+               {
+                  cntNotExistIdx++ ;
+               }
+               else
+               {
+                  // When one group failed, other groups will be rolled back
+                  // ( error code is SDB_TASK_ROLLBACK ). So we looks up other
+                  // error code besides SDB_TASK_ROLLBACK.
+                  if ( SDB_OK == firstResultCode ||
+                       SDB_TASK_ROLLBACK == firstResultCode )
+                  {
+                     firstResultCode = localGroup.resultCode ;
+                     firstResultInfo = localGroup.resultInfo ;
+                  }
                }
             }
          }
       }
+
+      cntIgnoreError = cntRedefineIdx + cntNotExistIdx ;
 
       // set first resultCode
       if ( cntTotalGroup != 0 )
@@ -2699,24 +3689,48 @@ namespace engine
       }
       else if ( CLS_TASK_STATUS_READY == _status )
       {
-         setRun() ;
+         // If buildAddGroup() add another Ready group, just keep Ready status
+         if ( cntReadyGroup < cntTotalGroup )
+         {
+            setRun() ;
+         }
       }
       else if ( CLS_TASK_STATUS_RUN == _status )
       {
-         if ( cntSucGroup == cntTotalGroup ||
-              cntReadyGroup + cntFailGroup == cntTotalGroup )
+         if ( cntRedefineIdx == cntTotalGroup )
          {
-            setFinish( firstResultCode, firstResultInfo ) ;
+            // all groups report error -247
+            setFinish( SDB_IXM_REDEF ) ;
          }
-         else if ( cntFailGroup > 0 )
+         else if ( cntNotExistIdx == cntTotalGroup )
          {
-            setStatus( CLS_TASK_STATUS_ROLLBACK ) ;
+            // all groups report error -47
+            setFinish( SDB_IXM_NOTEXIST ) ;
+         }
+         else if ( cntSucGroup + cntIgnoreError == cntTotalGroup )
+         {
+            // all groups succeed( may include -247/-47 )
+            setFinish() ;
+         }
+         else if ( cntFailGroup - cntIgnoreError > 0 )
+         {
+            // some groups failed
+            if ( cntReadyGroup + cntFailGroup == cntTotalGroup )
+            {
+               // none of groups did it, so just finish task
+               setFinish( firstResultCode, firstResultInfo ) ;
+            }
+            else
+            {
+               setStatus( CLS_TASK_STATUS_ROLLBACK ) ;
+            }
          }
       }
       else if ( CLS_TASK_STATUS_ROLLBACK == _status )
       {
          if ( cntReadyGroup + cntFailGroup == cntTotalGroup )
          {
+            // none of groups did it, so just finish task
             setFinish( firstResultCode, firstResultInfo ) ;
          }
       }
@@ -2724,6 +3738,7 @@ namespace engine
       {
          if ( cntReadyGroup + cntFailGroup == cntTotalGroup )
          {
+            // none of groups did it, so just finish task
             setFinish( SDB_TASK_HAS_CANCELED ) ;
          }
       }
@@ -2740,9 +3755,9 @@ namespace engine
    {
       /*
       * Update other fields except Groups / SucceedGroups / FailedGroups /
-                                   SubTasks / SucceedTasks / FailedTasks
+      *                            SubTasks / SucceedTasks / FailedTasks
       */
-
+      SDB_ASSERT( _isMainTask, "should be used by main-task" ) ;
       UINT32 cntFinished = 0 ;
       UINT32 cntTotal = _mapSubTask.size() ;
       UINT32 cntRedefineIdx = 0 ;
@@ -2826,9 +3841,11 @@ namespace engine
    {
       _changedMask = 0 ;
       _changedGroupMask = 0 ;
-      _changedTaskMask = 0 ;
-      _changedGroup.clear() ;
-      _changedSubtask.clear() ;
+      _changedSubtaskMask = 0 ;
+      _i = 1 ;
+      _pullSubTaskID = CLS_INVALID_TASKID ;
+      _pullGroupName.clear() ;
+      _pushGroupName.clear() ;
    }
 
    void _clsIdxTask::_toChangeOtherObj( BSONObjBuilder& matcherB,
@@ -2850,7 +3867,7 @@ namespace engine
       if ( _changedMask & CLS_IDX_MASK_PROGRESS )
       {
          setB.append( FIELD_NAME_PROGRESS, _progress ) ;
-         setB.append( FIELD_NAME_SPEED, _speed ) ;
+         setB.append( FIELD_NAME_SPEED, (INT64)_speed ) ;
          setB.append( FIELD_NAME_TIMESPENT, _timeSpent ) ;
          setB.append( FIELD_NAME_TIMELEFT, _timeLeft ) ;
       }
@@ -2862,9 +3879,9 @@ namespace engine
       }
       if ( _changedMask & CLS_IDX_MASK_TASKCOUNT )
       {
-         setB.append( FIELD_NAME_TOTALTASKS, _totalTasks ) ;
-         setB.append( FIELD_NAME_SUCCEEDTASKS, _succeededTasks ) ;
-         setB.append( FIELD_NAME_FAILTASKS, _failedTasks ) ;
+         setB.append( FIELD_NAME_TOTALSUBTASK, _totalTasks ) ;
+         setB.append( FIELD_NAME_SUCCEEDSUBTASK, _succeededTasks ) ;
+         setB.append( FIELD_NAME_FAILSUBTASK, _failedTasks ) ;
       }
       if ( _changedMask & CLS_IDX_MASK_BEGINTIME )
       {
@@ -2886,35 +3903,28 @@ namespace engine
    {
       if ( _changedMask & CLS_IDX_MASK_SUBTASKS )
       {
-         matcherB.append( FIELD_NAME_SUBTASKS ".$2." FIELD_NAME_TASKID,
-                          (INT64)subTask.taskID ) ;
+         CHAR tmp[64] = { 0 } ;
+         _i++ ;
 
-         if ( _changedTaskMask & CLS_IDX_MASK_STATUS )
-         {
-            setB.append( FIELD_NAME_SUBTASKS ".$2." FIELD_NAME_STATUS,
-                         subTask.status ) ;
-            setB.append( FIELD_NAME_SUBTASKS ".$2." FIELD_NAME_STATUSDESC,
-                         clsTaskStatusStr( subTask.status ) ) ;
-         }
-         if ( _changedTaskMask & CLS_IDX_MASK_RESULT )
-         {
-            setB.append( FIELD_NAME_SUBTASKS ".$2." FIELD_NAME_RESULTCODE,
-                         subTask.resultCode ) ;
-            setB.append( FIELD_NAME_SUBTASKS ".$2." FIELD_NAME_RESULTCODEDESC,
-                         getErrDesp( subTask.resultCode ) ) ;
-         }
-      }
-   }
+         ossSnprintf( tmp, 64, "%s.$%u.%s",
+                      FIELD_NAME_SUBTASKS, _i, FIELD_NAME_TASKID ) ;
+         matcherB.append( tmp, (INT64)subTask.taskID ) ;
 
-   void _clsIdxTask::_toPullSubtaskObj( BSONObjBuilder& matcherB,
-                                        BSONObjBuilder& updatorB,
-                                        UINT64 taskID )
-   {
-      if ( _changedMask & CLS_IDX_MASK_SUBTASKS )
-      {
-         updatorB.append( "$pull_by",
-                          BSON( FIELD_NAME_SUBTASKS <<
-                                BSON( FIELD_NAME_TASKID << (INT64)taskID ) ) ) ;
+         if ( _changedSubtaskMask & CLS_IDX_MASK_STATUS )
+         {
+            ossSnprintf( tmp, 64, "%s.$%u.%s",
+                         FIELD_NAME_SUBTASKS, _i, FIELD_NAME_STATUS ) ;
+            setB.append( tmp, subTask.status ) ;
+            ossSnprintf( tmp, 64, "%s.$%u.%s",
+                         FIELD_NAME_SUBTASKS, _i, FIELD_NAME_STATUSDESC ) ;
+            setB.append( tmp, clsTaskStatusStr( subTask.status ) ) ;
+         }
+         if ( _changedSubtaskMask & CLS_IDX_MASK_RESULT )
+         {
+            ossSnprintf( tmp, 64, "%s.$%u.%s",
+                         FIELD_NAME_SUBTASKS, _i, FIELD_NAME_RESULTCODE ) ;
+            setB.append( tmp, subTask.resultCode ) ;
+         }
       }
    }
 
@@ -2924,55 +3934,78 @@ namespace engine
    {
       if ( _changedMask & CLS_IDX_MASK_GROUPS )
       {
-         matcherB.append( FIELD_NAME_GROUPS ".$1." FIELD_NAME_GROUPNAME,
-                          group.groupName.c_str() ) ;
+         CHAR tmp[64] = { 0 } ;
+         _i++ ;
+
+         ossSnprintf( tmp, 64, "%s.$%u.%s",
+                      FIELD_NAME_GROUPS, _i, FIELD_NAME_GROUPNAME ) ;
+         matcherB.append( tmp, group.groupName.c_str() ) ;
 
          if ( _changedGroupMask & CLS_IDX_MASK_STATUS )
          {
-            setB.append( FIELD_NAME_GROUPS ".$1." FIELD_NAME_STATUS,
-                         group.status ) ;
-            setB.append( FIELD_NAME_GROUPS ".$1." FIELD_NAME_STATUSDESC,
-                         clsTaskStatusStr( group.status ) ) ;
+            ossSnprintf( tmp, 64, "%s.$%u.%s",
+                         FIELD_NAME_GROUPS, _i, FIELD_NAME_STATUS ) ;
+            setB.append( tmp, group.status ) ;
+
+            ossSnprintf( tmp, 64, "%s.$%u.%s",
+                         FIELD_NAME_GROUPS, _i, FIELD_NAME_STATUSDESC ) ;
+            setB.append( tmp, clsTaskStatusStr( group.status ) ) ;
          }
          if ( _changedGroupMask & CLS_IDX_MASK_RESULT )
          {
-            setB.append( FIELD_NAME_GROUPS ".$1." FIELD_NAME_RESULTCODE,
-                         group.resultCode ) ;
-            setB.append( FIELD_NAME_GROUPS ".$1." FIELD_NAME_RESULTCODEDESC,
-                         getErrDesp( group.resultCode ) ) ;
-            setB.append( FIELD_NAME_GROUPS ".$1." FIELD_NAME_RESULTINFO,
-                         group.resultInfo ) ;
+            ossSnprintf( tmp, 64, "%s.$%u.%s",
+                         FIELD_NAME_GROUPS, _i, FIELD_NAME_RESULTCODE ) ;
+            setB.append( tmp, group.resultCode ) ;
+
+            ossSnprintf( tmp, 64, "%s.$%u.%s",
+                         FIELD_NAME_GROUPS, _i, FIELD_NAME_RESULTCODEDESC ) ;
+            setB.append( tmp, getErrDesp( group.resultCode ) ) ;
+
+            ossSnprintf( tmp, 64, "%s.$%u.%s",
+                         FIELD_NAME_GROUPS, _i, FIELD_NAME_RESULTINFO ) ;
+            setB.append( tmp, group.resultInfo ) ;
          }
          if ( _changedGroupMask & CLS_IDX_MASK_OPINFO )
          {
-            setB.append( FIELD_NAME_GROUPS ".$1." FIELD_NAME_OPINFO,
-                         group.opInfo.c_str() ) ;
+            ossSnprintf( tmp, 64, "%s.$%u.%s",
+                         FIELD_NAME_GROUPS, _i, FIELD_NAME_OPINFO ) ;
+            setB.append( tmp, group.opInfo.c_str() ) ;
          }
          if ( _changedGroupMask & CLS_IDX_MASK_RETRYCNT )
          {
-            setB.append( FIELD_NAME_GROUPS ".$1." FIELD_NAME_RETRY_COUNT,
-                         group.retryCnt ) ;
+            ossSnprintf( tmp, 64, "%s.$%u.%s",
+                         FIELD_NAME_GROUPS, _i, FIELD_NAME_RETRY_COUNT ) ;
+            setB.append( tmp, group.retryCnt ) ;
          }
          if ( _changedGroupMask & CLS_IDX_MASK_PROGRESS )
          {
-            setB.append( FIELD_NAME_GROUPS ".$1." FIELD_NAME_PROGRESS,
-                         group.progress ) ;
-            setB.append( FIELD_NAME_GROUPS ".$1." FIELD_NAME_SPEED,
-                         group.speed ) ;
-            setB.append( FIELD_NAME_GROUPS ".$1." FIELD_NAME_TIMESPENT,
-                         group.timeSpent ) ;
-            setB.append( FIELD_NAME_GROUPS ".$1." FIELD_NAME_TIMELEFT,
-                         group.timeLeft ) ;
+            ossSnprintf( tmp, 64, "%s.$%u.%s",
+                         FIELD_NAME_GROUPS, _i, FIELD_NAME_PROGRESS ) ;
+            setB.append( tmp, group.progress ) ;
+
+            ossSnprintf( tmp, 64, "%s.$%u.%s",
+                         FIELD_NAME_GROUPS, _i, FIELD_NAME_SPEED ) ;
+            setB.append( tmp, (INT64)group.speed ) ;
+
+            ossSnprintf( tmp, 64, "%s.$%u.%s",
+                         FIELD_NAME_GROUPS, _i, FIELD_NAME_TIMESPENT ) ;
+            setB.append( tmp, group.timeSpent ) ;
+
+            ossSnprintf( tmp, 64, "%s.$%u.%s",
+                         FIELD_NAME_GROUPS, _i, FIELD_NAME_TIMELEFT ) ;
+            setB.append( tmp, group.timeLeft ) ;
          }
-         if ( _changedGroupMask & CLS_IDX_MASK_TOTALSZ )
+         if ( _changedGroupMask & CLS_IDX_MASK_TOTALREC )
          {
-            setB.append( FIELD_NAME_GROUPS ".$1." FIELD_NAME_TOTAL_SIZE,
-                         group.totalSize ) ;
+            ossSnprintf( tmp, 64, "%s.$%u.%s",
+                         FIELD_NAME_GROUPS, _i, FIELD_NAME_TOTAL_RECORDS ) ;
+            setB.append( tmp, (INT64)group.totalRecNum ) ;
          }
-         if ( _changedGroupMask & CLS_IDX_MASK_PROCESSSZ )
+         if ( _changedGroupMask & CLS_IDX_MASK_PCSEDREC )
          {
-            setB.append( FIELD_NAME_GROUPS ".$1." FIELD_NAME_PROCESSED_SIZE,
-                         group.processedSize ) ;
+            ossSnprintf( tmp, 64, "%s.$%u.%s",
+                         FIELD_NAME_GROUPS, _i, FIELD_NAME_PROCESSED_RECORDS ) ;
+            setB.append( tmp, (INT64)group.pcsedRecNum ) ;
          }
       }
    }
@@ -2995,77 +4028,23 @@ namespace engine
             b.append( FIELD_NAME_RESULTCODEDESC,
                       CLS_TASK_STATUS_FINISH == group.status ?
                       getErrDesp( group.resultCode ) : "" ) ;
-            b.append( FIELD_NAME_RESULTINFO,      group.resultInfo ) ;
-            b.append( FIELD_NAME_OPINFO,          group.opInfo.c_str() ) ;
-            b.append( FIELD_NAME_RETRY_COUNT,     group.retryCnt ) ;
-            b.append( FIELD_NAME_PROGRESS,        group.progress ) ;
-            b.append( FIELD_NAME_SPEED,           group.speed ) ;
-            b.append( FIELD_NAME_TIMESPENT,       group.timeSpent ) ;
-            b.append( FIELD_NAME_TIMELEFT,        group.timeLeft ) ;
-            b.append( FIELD_NAME_TOTAL_SIZE,      group.totalSize ) ;
-            b.append( FIELD_NAME_PROCESSED_SIZE,  group.processedSize ) ;
+            b.append( FIELD_NAME_RESULTINFO,        group.resultInfo ) ;
+            b.append( FIELD_NAME_OPINFO,            group.opInfo.c_str() ) ;
+            b.append( FIELD_NAME_RETRY_COUNT,       group.retryCnt ) ;
+            b.append( FIELD_NAME_PROGRESS,          group.progress ) ;
+            b.append( FIELD_NAME_SPEED,             (INT64)group.speed ) ;
+            b.append( FIELD_NAME_TIMESPENT,         group.timeSpent ) ;
+            b.append( FIELD_NAME_TIMELEFT,          group.timeLeft ) ;
+            b.append( FIELD_NAME_TOTAL_RECORDS,     (INT64)group.totalRecNum ) ;
+            b.append( FIELD_NAME_PROCESSED_RECORDS, (INT64)group.pcsedRecNum ) ;
             arr.append( b.obj() ) ;
          }
          arr.done() ;
       }
    }
 
-   INT32 _clsIdxTask::_toChangedObj( const clsIdxTaskGroupUnit& group,
-                                     const clsSubTaskUnit& subTask,
-                                     BSONObj& matcher,
-                                     BSONObj& updator )
-   {
-      /* cl.update( { "$set": { Status: xxx, ...,
-      *                         "Groups.$1.Status": xxx, ...,
-      *                         "SubTasks.$2.Status": xxx, ... } },
-      *             { TaskID: 1,
-      *               "Groups.$1.GroupName": "db1",
-      *               "SubTasks.$2.TaskID": 2 } )
-      */
-      INT32 rc = SDB_OK ;
-
-      try
-      {
-         BSONObjBuilder matcherBuilder, setBuilder ;
-         _toChangeOtherObj( matcherBuilder, setBuilder ) ;
-         _toChangeGroupObj( matcherBuilder, setBuilder, group ) ;
-         _toChangeSubtaskObj( matcherBuilder, setBuilder, subTask ) ;
-         matcher = matcherBuilder.obj() ;
-         updator = BSON( "$set" << setBuilder.obj() ) ;
-      }
-      catch( std::exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-      }
-
-      return rc ;
-   }
-
-   INT32 _clsIdxTask::_toChangedObj( const clsIdxTaskGroupUnit& group,
-                                     BSONObj& matcher,
-                                     BSONObj& updator )
-   {
-      INT32 rc = SDB_OK ;
-
-      try
-      {
-         BSONObjBuilder matcherBuilder, setBuilder ;
-         _toChangeOtherObj( matcherBuilder, setBuilder ) ;
-         _toChangeGroupObj( matcherBuilder, setBuilder, group ) ;
-         matcher = matcherBuilder.obj() ;
-         updator = BSON( "$set" << setBuilder.obj() ) ;
-      }
-      catch( std::exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-      }
-
-      return rc ;
-   }
-
-   INT32 _clsIdxTask::_toChangedObj( UINT64 subTaskID,
+   INT32 _clsIdxTask::_toChangedObj( const clsIdxTaskGroupUnit* group,
+                                     const clsSubTaskUnit* subTask,
                                      BSONObj& matcher,
                                      BSONObj& updator )
    {
@@ -3074,12 +4053,86 @@ namespace engine
       try
       {
          BSONObjBuilder matcherBuilder, updatorBuilder, setBuilder ;
+
+         _toChangeOtherObj( matcherBuilder, setBuilder ) ;
+         if ( group )
+         {
+            _toChangeGroupObj( matcherBuilder, setBuilder, *group ) ;
+         }
+         if ( subTask )
+         {
+            _toChangeSubtaskObj( matcherBuilder, setBuilder, *subTask ) ;
+         }
+
+         BSONObj setObj = setBuilder.done() ;
+         if ( !setObj.isEmpty() )
+         {
+            updatorBuilder.append( "$set", setObj ) ;
+         }
+
+         if ( _changedMask & CLS_IDX_MASK_PULL_GROUP )
+         {
+            updatorBuilder.append( "$pull_by",
+                                   BSON( FIELD_NAME_GROUPS <<
+                                         BSON( FIELD_NAME_GROUPNAME <<
+                                               _pullGroupName.c_str() ) ) ) ;
+         }
+         if ( _changedMask & CLS_IDX_MASK_PULL_SUBTASK )
+         {
+            updatorBuilder.append( "$pull_by",
+                                   BSON( FIELD_NAME_SUBTASKS <<
+                                         BSON( FIELD_NAME_TASKID <<
+                                               (INT64)_pullSubTaskID ) ) ) ;
+         }
+         if ( _changedMask & CLS_IDX_MASK_PUSH_GROUP )
+         {
+            clsIdxTaskGroupUnit oneGroup ;
+            oneGroup.groupName = _pushGroupName ;
+            updatorBuilder.append( "$push", BSON( FIELD_NAME_GROUPS <<
+                                                  oneGroup.toBson() ) ) ;
+         }
+
+         updator = updatorBuilder.obj() ;
+         matcher = matcherBuilder.obj() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+      return rc ;
+   }
+
+   INT32 _clsIdxTask::_toChangedObj( BSONObj& matcher, BSONObj& updator )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObjBuilder matcherBuilder, updatorBuilder, setBuilder ;
+
          _toChangeOtherObj( matcherBuilder, setBuilder ) ;
          _toChangeGroupObj( matcherBuilder, setBuilder ) ;
-         _toPullSubtaskObj( matcherBuilder, updatorBuilder, subTaskID ) ;
-         matcher = matcherBuilder.obj() ;
+
          updatorBuilder.append( "$set", setBuilder.done() ) ;
+         if ( _changedMask & CLS_IDX_MASK_PULL_GROUP )
+         {
+            updatorBuilder.append( "$pull_by",
+                                   BSON( FIELD_NAME_GROUPS <<
+                                         BSON( FIELD_NAME_GROUPNAME <<
+                                               _pullGroupName.c_str() ) ) ) ;
+         }
+         if ( _changedMask & CLS_IDX_MASK_PULL_SUBTASK )
+         {
+            updatorBuilder.append( "$pull_by",
+                                   BSON( FIELD_NAME_SUBTASKS <<
+                                         BSON( FIELD_NAME_TASKID <<
+                                               (INT64)_pullSubTaskID ) ) ) ;
+         }
+
          updator = updatorBuilder.obj() ;
+         matcher = matcherBuilder.obj() ;
       }
       catch( std::exception &e )
       {
@@ -3169,7 +4222,9 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSCRTIDXTASK_INITTASK, "_clsCreateIdxTask::initTask" )
    INT32 _clsCreateIdxTask::initTask( const CHAR *clFullName,
+                                      utilCLUniqueID clUniqID,
                                       const BSONObj &index,
+                                      UINT64 idxUniqID,
                                       const vector<string> &groupList,
                                       INT32 sortBufSize,
                                       UINT64 mainTaskID )
@@ -3179,39 +4234,52 @@ namespace engine
 
       INT32 rc = SDB_OK ;
 
-      // collection
-      ossStrncpy( _clFullName, clFullName, DMS_COLLECTION_FULL_NAME_SZ ) ;
-
-      // idxDef: { "name": "aIdx", "key": { "a": 1 }, ... }
-      BSONObjBuilder builder ;
-      builder.append( DMS_ID_KEY_NAME, OID::gen() ) ;
-      builder.appendElements( index ) ;
-      _indexDef = builder.obj() ;
-
-      BSONElement ele = _indexDef.getField( IXM_FIELD_NAME_NAME ) ;
-      PD_CHECK ( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
-                 "Field[%s] invalid in index def[%s]",
-                 IXM_FIELD_NAME_NAME, _indexDef.toString().c_str() ) ;
-      ossStrncpy( _indexName, ele.valuestr(), IXM_INDEX_NAME_SIZE ) ;
-
-      _sortBufferSize = sortBufSize ;
-
-      // group list
-      for(  vector<string>::const_iterator it = groupList.begin();
-            it != groupList.end() ;
-            it++ )
+      try
       {
-         clsIdxTaskGroupUnit oneGroup ;
-         oneGroup.groupName = it->c_str() ;
-         _mapGroupInfo[ oneGroup.groupName ]= oneGroup ;
+         // collection
+         ossStrncpy( _clFullName, clFullName, DMS_COLLECTION_FULL_NAME_SZ ) ;
+         _clUniqueID = clUniqID ;
+
+         // idxDef: { "name": "aIdx", "key": { "a": 1 }, ... }
+         BSONObjBuilder builder ;
+         if ( !index.hasField( DMS_ID_KEY_NAME ) )
+         {
+            builder.append( DMS_ID_KEY_NAME, OID::gen() ) ;
+         }
+         builder.append( FIELD_NAME_UNIQUEID, (INT64)idxUniqID ) ;
+         builder.appendElementsUnique( index ) ;
+         _indexDef = builder.obj() ;
+
+         BSONElement ele = _indexDef.getField( IXM_FIELD_NAME_NAME ) ;
+         PD_CHECK ( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                    "Field[%s] invalid in index def[%s]",
+                    IXM_FIELD_NAME_NAME, _indexDef.toString().c_str() ) ;
+         ossStrncpy( _indexName, ele.valuestr(), IXM_INDEX_NAME_SIZE ) ;
+
+         _sortBufferSize = sortBufSize ;
+
+         // group list
+         for(  vector<string>::const_iterator it = groupList.begin();
+               it != groupList.end() ;
+               it++ )
+         {
+            clsIdxTaskGroupUnit oneGroup ;
+            oneGroup.groupName = it->c_str() ;
+            _mapGroupInfo[ oneGroup.groupName ]= oneGroup ;
+         }
+
+         _totalGroups = groupList.size() ;
+
+         // other
+         _mainTaskID = mainTaskID ;
+
+         _makeName() ;
       }
-
-      _totalGroups = groupList.size() ;
-
-      // other
-      _mainTaskID = mainTaskID ;
-
-      _makeName() ;
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB_CLSCRTIDXTASK_INITTASK, rc ) ;
@@ -3222,7 +4290,9 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSCRTIDXTASK_INITMAINTASK, "_clsCreateIdxTask::initMainTask" )
    INT32 _clsCreateIdxTask::initMainTask( const CHAR *clFullName,
+                                          utilCLUniqueID clUniqID,
                                           const BSONObj &index,
+                                          UINT64 idxUniqID,
                                           const ossPoolSet<ossPoolString> &groupList,
                                           const ossPoolVector<UINT64> &subTaskList )
    {
@@ -3231,49 +4301,62 @@ namespace engine
 
       INT32 rc = SDB_OK ;
 
-      // collection
-      ossStrncpy( _clFullName, clFullName, DMS_COLLECTION_FULL_NAME_SZ ) ;
-
-      // idxDef: { "name": "aIdx", "key": { "a": 1 }, ... }
-      BSONObjBuilder builder ;
-      builder.append( DMS_ID_KEY_NAME, OID::gen() ) ;
-      builder.appendElements( index ) ;
-      _indexDef = builder.obj() ;
-
-      BSONElement ele = _indexDef.getField( IXM_FIELD_NAME_NAME ) ;
-      PD_CHECK ( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
-                 "Field[%s] invalid in index def[%s]",
-                 IXM_FIELD_NAME_NAME, _indexDef.toString().c_str() ) ;
-      ossStrncpy( _indexName, ele.valuestr(), IXM_INDEX_NAME_SIZE ) ;
-
-      // group list
-      for(  ossPoolSet<ossPoolString>::const_iterator it = groupList.begin();
-            it != groupList.end() ;
-            it++ )
+      try
       {
-         clsIdxTaskGroupUnit oneGroup ;
-         oneGroup.groupName = it->c_str() ;
-         _mapGroupInfo[ oneGroup.groupName ]= oneGroup ;
+         // collection
+         ossStrncpy( _clFullName, clFullName, DMS_COLLECTION_FULL_NAME_SZ ) ;
+         _clUniqueID = clUniqID ;
+
+         // idxDef: { "name": "aIdx", "key": { "a": 1 }, ... }
+         BSONObjBuilder builder ;
+         if ( !index.hasField( DMS_ID_KEY_NAME ) )
+         {
+            builder.append( DMS_ID_KEY_NAME, OID::gen() ) ;
+         }
+         builder.append( FIELD_NAME_UNIQUEID, (INT64)idxUniqID ) ;
+         builder.appendElementsUnique( index ) ;
+         _indexDef = builder.obj() ;
+
+         BSONElement ele = _indexDef.getField( IXM_FIELD_NAME_NAME ) ;
+         PD_CHECK ( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                    "Field[%s] invalid in index def[%s]",
+                    IXM_FIELD_NAME_NAME, _indexDef.toString().c_str() ) ;
+         ossStrncpy( _indexName, ele.valuestr(), IXM_INDEX_NAME_SIZE ) ;
+
+         // group list
+         for(  ossPoolSet<ossPoolString>::const_iterator it = groupList.begin();
+               it != groupList.end() ;
+               it++ )
+         {
+            clsIdxTaskGroupUnit oneGroup ;
+            oneGroup.groupName = it->c_str() ;
+            _mapGroupInfo[ oneGroup.groupName ]= oneGroup ;
+         }
+
+         _totalGroups = groupList.size() ;
+
+         // sub-task list
+         _isMainTask = TRUE ;
+
+         for(  ossPoolVector<UINT64>::const_iterator it = subTaskList.begin() ;
+               it != subTaskList.end() ;
+               it++ )
+         {
+            UINT64 taskID = *it ;
+            _clsSubTaskUnit oneSubTask( taskID, CLS_TASK_CREATE_IDX ) ;
+            _mapSubTask[ taskID ] = oneSubTask ;
+         }
+
+         _totalTasks = subTaskList.size() ;
+
+         // other
+         _makeName() ;
       }
-
-      _totalGroups = groupList.size() ;
-
-      // sub-task list
-      _isMainTask = TRUE ;
-
-      for(  ossPoolVector<UINT64>::const_iterator it = subTaskList.begin() ;
-            it != subTaskList.end() ;
-            it++ )
+      catch( std::exception &e )
       {
-         UINT64 taskID = *it ;
-         _clsSubTaskUnit oneSubTask( taskID, CLS_TASK_CREATE_IDX ) ;
-         _mapSubTask[ taskID ] = oneSubTask ;
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
       }
-
-      _totalTasks = subTaskList.size() ;
-
-      // other
-      _makeName() ;
 
    done:
       PD_TRACE_EXITRC( SDB_CLSCRTIDXTASK_INITMAINTASK, rc ) ;
@@ -3343,6 +4426,7 @@ namespace engine
    */
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSDROPIDXTASK_INITTASK, "_clsDropIdxTask::initTask" )
    INT32 _clsDropIdxTask::initTask( const CHAR *clFullName,
+                                    utilCLUniqueID clUniqID,
                                     const CHAR *indexName,
                                     const vector<string> &groupList,
                                     UINT64 mainTaskID )
@@ -3354,6 +4438,7 @@ namespace engine
 
       // collection
       ossStrncpy( _clFullName, clFullName, DMS_COLLECTION_FULL_NAME_SZ ) ;
+      _clUniqueID = clUniqID ;
 
       // index
       ossStrncpy( _indexName, indexName, IXM_INDEX_NAME_SIZE ) ;
@@ -3365,7 +4450,15 @@ namespace engine
       {
          clsIdxTaskGroupUnit oneGroup ;
          oneGroup.groupName = it->c_str() ;
-         _mapGroupInfo[ oneGroup.groupName ] = oneGroup ;
+         try
+         {
+            _mapGroupInfo[ oneGroup.groupName ] = oneGroup ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+         }
       }
 
       _totalGroups = groupList.size() ;
@@ -3375,12 +4468,16 @@ namespace engine
 
       _makeName() ;
 
+   done:
       PD_TRACE_EXITRC( SDB_CLSDROPIDXTASK_INITTASK, rc ) ;
       return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSDROPIDXTASK_INITMAINTASK, "_clsDropIdxTask::initMainTask" )
    INT32 _clsDropIdxTask::initMainTask( const CHAR *clFullName,
+                                        utilCLUniqueID clUniqID,
                                         const CHAR *indexName,
                                         const ossPoolSet<ossPoolString> &groupList,
                                         const ossPoolVector<UINT64> &subTaskList )
@@ -3392,6 +4489,7 @@ namespace engine
 
       // collection
       ossStrncpy( _clFullName, clFullName, DMS_COLLECTION_FULL_NAME_SZ ) ;
+      _clUniqueID = clUniqID ;
 
       // index
       ossStrncpy( _indexName, indexName, IXM_INDEX_NAME_SIZE ) ;
@@ -3403,7 +4501,15 @@ namespace engine
       {
          clsIdxTaskGroupUnit oneGroup ;
          oneGroup.groupName = it->c_str() ;
-         _mapGroupInfo[ oneGroup.groupName ] = oneGroup ;
+         try
+         {
+            _mapGroupInfo[ oneGroup.groupName ] = oneGroup ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+         }
       }
 
       _totalGroups = groupList.size() ;
@@ -3425,8 +4531,11 @@ namespace engine
       // other
       _makeName() ;
 
+   done:
       PD_TRACE_EXITRC( SDB_CLSDROPIDXTASK_INITMAINTASK, rc ) ;
       return rc ;
+   error:
+      goto done ;
    }
 
    const CHAR* _clsDropIdxTask::commandName() const
@@ -3448,6 +4557,7 @@ namespace engine
    */
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSCOPYIDXTASK_INITMAINTASK, "_clsCopyIdxTask::initMainTask" )
    INT32 _clsCopyIdxTask::initMainTask( const CHAR *clFullName,
+                                        utilCLUniqueID clUniqID,
                                         const ossPoolSet<ossPoolString> &subCLList,
                                         const ossPoolSet<ossPoolString> &indexList,
                                         const ossPoolSet<ossPoolString> &groupList,
@@ -3460,6 +4570,7 @@ namespace engine
 
       // collection index
       ossStrncpy( _clFullName, clFullName, DMS_COLLECTION_FULL_NAME_SZ ) ;
+      _clUniqueID = clUniqID ;
 
       _subCLList = subCLList ;
       _indexList = indexList ;
@@ -3471,7 +4582,15 @@ namespace engine
       {
          clsIdxTaskGroupUnit oneGroup ;
          oneGroup.groupName = it->c_str() ;
-         _mapGroupInfo[ oneGroup.groupName ] = oneGroup ;
+         try
+         {
+            _mapGroupInfo[ oneGroup.groupName ] = oneGroup ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+         }
       }
 
       _totalGroups = groupList.size() ;
@@ -3485,7 +4604,15 @@ namespace engine
       {
          UINT64 taskID = *it ;
          _clsSubTaskUnit oneSubTask( taskID, CLS_TASK_CREATE_IDX ) ;
-         _mapSubTask[ taskID ] = oneSubTask ;
+         try
+         {
+            _mapSubTask[ taskID ] = oneSubTask ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+         }
       }
 
       _totalTasks = subTaskList.size() ;
@@ -3493,8 +4620,11 @@ namespace engine
       // other
       _makeName() ;
 
+   done:
       PD_TRACE_EXITRC( SDB_CLSCOPYIDXTASK_INITMAINTASK, rc ) ;
       return rc ;
+   error:
+      goto done ;
    }
 
    INT32 _clsCopyIdxTask::_init( const CHAR *objdata )

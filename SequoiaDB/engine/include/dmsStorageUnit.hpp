@@ -381,10 +381,12 @@ namespace engine
                                   dmsMBContext *context = NULL ) ;
 
          INT32    getIndexes ( dmsMBContext *context,
-                               MON_IDX_LIST &resultIndexes ) ;
+                               MON_IDX_LIST &resultIndexes,
+                               BOOLEAN excludeStandalone = FALSE ) ;
 
          INT32    getIndexes ( const CHAR *pName,
-                               MON_IDX_LIST &resultIndexes ) ;
+                               MON_IDX_LIST &resultIndexes,
+                               BOOLEAN excludeStandalone = FALSE ) ;
 
          INT32    getIndex ( dmsMBContext *context,
                              const CHAR *pIndexName,
@@ -401,7 +403,8 @@ namespace engine
                                 UINT16 mbID ) ;
 
          INT32    _getIndexes ( const dmsMB *mb,
-                                MON_IDX_LIST &resultIndexes ) ;
+                                MON_IDX_LIST &resultIndexes,
+                                BOOLEAN excludeStandalone = FALSE ) ;
 
          INT32    _getIndex ( const dmsMB *mb,
                               const CHAR *pIndexName,
@@ -471,17 +474,48 @@ namespace engine
                                 dmsMBContext *context = NULL,
                                 INT32 sortBufferSize = SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE,
                                 utilWriteResult *pResult = NULL,
-                                BOOLEAN forceTransCallback = FALSE ) ;
+                                dmsIdxTaskStatus *pIdxStatus = NULL,
+                                BOOLEAN forceTransCallback = FALSE,
+                                BOOLEAN addUIDIfNotExist = TRUE ) ;
+
+         INT32    createIndex ( utilCLUniqueID clUniqID,
+                                const BSONObj &index,
+                                _pmdEDUCB * cb, SDB_DPSCB *dpscb,
+                                BOOLEAN isSys = FALSE,
+                                dmsMBContext *context = NULL,
+                                INT32 sortBufferSize = SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE,
+                                utilWriteResult *pResult = NULL,
+                                dmsIdxTaskStatus *pIdxStatus = NULL,
+                                BOOLEAN forceTransCallback = FALSE,
+                                BOOLEAN addUIDIfNotExist = TRUE ) ;
 
          INT32    dropIndex( const CHAR *pName, const CHAR *indexName,
                              _pmdEDUCB * cb, SDB_DPSCB *dpscb,
                              BOOLEAN isSys = FALSE,
-                             dmsMBContext *context = NULL ) ;
+                             dmsMBContext *context = NULL,
+                             dmsIdxTaskStatus *pIdxStatus = NULL,
+                             BOOLEAN onlyStandalone = FALSE ) ;
 
          INT32    dropIndex( const CHAR *pName, OID &indexOID,
                              _pmdEDUCB * cb, SDB_DPSCB *dpscb,
                              BOOLEAN isSys = FALSE,
-                             dmsMBContext *context = NULL ) ;
+                             dmsMBContext *context = NULL,
+                             dmsIdxTaskStatus *pIdxStatus = NULL,
+                             BOOLEAN onlyStandalone = FALSE ) ;
+
+         INT32    dropIndex( utilCLUniqueID clUniqID, const CHAR *indexName,
+                             _pmdEDUCB * cb, SDB_DPSCB *dpscb,
+                             BOOLEAN isSys = FALSE,
+                             dmsMBContext *context = NULL,
+                             dmsIdxTaskStatus *pIdxStatus = NULL,
+                             BOOLEAN onlyStandalone = FALSE ) ;
+
+         INT32    dropIndex( utilCLUniqueID clUniqID, OID &indexOID,
+                             _pmdEDUCB * cb, SDB_DPSCB *dpscb,
+                             BOOLEAN isSys = FALSE,
+                             dmsMBContext *context = NULL,
+                             dmsIdxTaskStatus *pIdxStatus = NULL,
+                             BOOLEAN onlyStandalone = FALSE ) ;
 
          INT32    countCollection ( const CHAR *pName,
                                     INT64 &recordNum,

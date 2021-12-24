@@ -1302,11 +1302,12 @@ namespace engine
          }
       }
 
-      // set CSUniqueHWM, get cs unique id
+      // get unique id
       rc = catUpdateCSUniqueID( cb, w, _csInfo._csUniqueID ) ;
       PD_RC_CHECK( rc, PDERROR, "Fail to get cs unique id, rc: %d.", rc ) ;
 
       _csInfo._clUniqueHWM = utilBuildCLUniqueID( _csInfo._csUniqueID, 0 ) ;
+      _csInfo._idxUniqueHWM = utilBuildIdxUniqueID( _csInfo._csUniqueID, 0 ) ;
 
       // insert new Collection Space record
       {
@@ -1338,7 +1339,7 @@ namespace engine
    }
 
    static INT32 catNewCataset( const CHAR* collection,
-                               _pmdEDUCB *cb,
+                               _pmdEDUCB* cb,
                                clsCatalogSet*& pCataSet )
    {
       INT32 rc = SDB_OK ;
@@ -1560,6 +1561,71 @@ namespace engine
       goto done ;
    }
 
+   static INT32 catIsDataSourceCL( const CHAR *collection, _pmdEDUCB *cb,
+                                   BOOLEAN &isDataSourceCL,
+                                   BOOLEAN &isHighErrLevel )
+   {
+      INT32 rc = SDB_OK ;
+      UTIL_DS_UID dataSourceID = UTIL_INVALID_DS_UID ;
+      BSONObj boCollection ;
+
+      isDataSourceCL = FALSE ;
+      isHighErrLevel = FALSE ;
+
+      rc = catGetCollection( collection, boCollection, cb ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get the collection[%s], rc: %d",
+                   collection, rc ) ;
+
+      rc = rtnGetIntElement( boCollection, FIELD_NAME_DATASOURCE_ID,
+                             (INT32&)dataSourceID ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
+      {
+         rc = SDB_OK ;
+      }
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get data source id, rc: %d",
+                   rc ) ;
+
+      if ( dataSourceID != UTIL_INVALID_DS_UID )
+      {
+         isDataSourceCL = TRUE ;
+
+         BSONObj empty, matcher, result ;
+         const CHAR* level = NULL ;
+
+         try
+         {
+            matcher = BSON( FIELD_NAME_ID << dataSourceID ) ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+         }
+         rc = catGetOneObj( CAT_DATASOURCE_COLLECTION, empty, matcher, empty,
+                            cb, result ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get data source[%u], rc: %d",
+                      dataSourceID, rc ) ;
+
+         rc = rtnGetStringElement( result, FIELD_NAME_ERRORCTLLEVEL, &level ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get field[%s] from obj, rc: %d",
+                      FIELD_NAME_ERRORCTLLEVEL, result.toString().c_str(), rc ) ;
+
+         if ( 0 == ossStrcasecmp( level, VALUE_NAME_HIGH ) )
+         {
+            isHighErrLevel = TRUE ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
 
    /*
       catCMDIndex implement
@@ -1595,14 +1661,10 @@ namespace engine
       INT32 rc = SDB_OK ;
       BSONObjBuilder replyBuild ;
 
-      // reply: { TaskID: xxx,
-      //          Group: [ { GroupID: 1000, GroupName: "db1" }, ... ] }
+      // reply: { TaskID: xxx }
       try
       {
-         if ( CLS_INVALID_TASKID != taskID )
-         {
-            replyBuild.append( CAT_TASKID_NAME, (INT64)taskID ) ;
-         }
+         replyBuild.append( FIELD_NAME_TASKID, (INT64)taskID ) ;
 
          vector<string> groupNameList ;
          for ( ossPoolSet<ossPoolString>::iterator it = _groupSet.begin() ;
@@ -1628,7 +1690,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMDIDX_DROPGIDXCL, "_catCMDIndexHelper::_dropGlobalIdxCL" )
-   INT32 _catCMDIndexHelper::_dropGlobalIdxCL( const CHAR* clName,
+   INT32 _catCMDIndexHelper::_dropGlobalIdxCL( const CHAR *clName,
                                                _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
@@ -1678,7 +1740,6 @@ namespace engine
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
       BSONObj dummyObj, matcher ;
       INT64 contextID = -1 ;
-      BOOLEAN hasConflictTask = FALSE ;
 
       // query tasks
       if ( _pCataSet->isMainCL() )
@@ -1699,7 +1760,7 @@ namespace engine
       PD_RC_CHECK ( rc, PDERROR, "Failed to perform query, rc = %d", rc ) ;
 
       // loop every index task
-      while ( !hasConflictTask )
+      while ( TRUE )
       {
          rtnContextBuf contextBuf ;
 
@@ -1712,17 +1773,11 @@ namespace engine
          }
          PD_RC_CHECK( rc, PDERROR, "Failed to retreive record, rc: %d", rc ) ;
 
-         rc = _checkTaskConflict( BSONObj( contextBuf.data() ),
-                                  hasConflictTask ) ;
+         rc = _checkTaskConflict( BSONObj( contextBuf.data() ) ) ;
          if ( rc )
          {
             goto error ;
          }
-      }
-
-      if ( hasConflictTask )
-      {
-         rc = SDB_CLS_MUTEX_TASK_EXIST ;
       }
 
    done:
@@ -1737,14 +1792,12 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMDIDX_CHKTASKCONF2, "_catCMDIndexHelper::_checkTaskConflict" )
-   INT32 _catCMDIndexHelper::_checkTaskConflict( const BSONObj& otherIdxObj,
-                                                 BOOLEAN& conflict )
+   INT32 _catCMDIndexHelper::_checkTaskConflict( const BSONObj &otherIdxObj )
    {
       PD_TRACE_ENTRY( SDB_CATCMDIDX_CHKTASKCONF2 ) ;
 
       INT32 rc = SDB_OK ;
       clsTask *pOtherTask = NULL ;
-      conflict = FALSE ;
 
       rc = clsNewTask( otherIdxObj, pOtherTask ) ;
       PD_RC_CHECK( rc, PDERROR,
@@ -1763,12 +1816,28 @@ namespace engine
               pCurTask->muteXOn( pOtherTask ) ||
               pOtherTask->muteXOn( pCurTask ) )
          {
-            conflict = TRUE ;
+            rc = SDB_CLS_MUTEX_TASK_EXIST ;
+         }
+         else if ( CLS_TASK_CREATE_IDX == pOtherTask->taskType() &&
+                   CLS_TASK_CREATE_IDX == pCurTask->taskType() )
+         {
+            if ( 0 == ossStrcmp( pOtherTask->collectionName(),
+                                 pCurTask->collectionName() ) )
+            {
+               if ( ixmIsSameDef( ((clsCreateIdxTask*)pOtherTask)->indexDef(),
+                                  ((clsCreateIdxTask*)pCurTask)->indexDef() ) )
+               {
+                  rc = SDB_CLS_MUTEX_TASK_EXIST ;
+               }
+            }
+         }
+         if ( rc )
+         {
             PD_LOG_MSG( PDERROR,
                         "New task[%s] conflict with an existing task[%llu,%s]",
                         pCurTask->taskName(),
                         pOtherTask->taskID(), pOtherTask->taskName() ) ;
-            goto done ;
+            goto error ;
          }
       }
 
@@ -1949,6 +2018,30 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_CATCMDCRTIDX_DOIT ) ;
 
+      BOOLEAN isDataSourceCL = TRUE ;
+      BOOLEAN isHighErrLevel = TRUE ;
+
+      rc = catIsDataSourceCL( _pCollection, cb,
+                              isDataSourceCL, isHighErrLevel ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to check collection[%s] is mapped to a data source "
+                   "or not, rc: %d", _pCollection, rc ) ;
+      if ( isDataSourceCL )
+      {
+         if ( isHighErrLevel )
+         {
+            rc = SDB_OPERATION_INCOMPATIBLE ;
+            PD_LOG_MSG( PDERROR, "The collection[%s] mapped to a data source "
+                        "can't do %s", _pCollection, name() ) ;
+            goto error ;
+         }
+         else
+         {
+            _makeReply( CLS_INVALID_TASKID, ctxBuf ) ;
+            goto done ;
+         }
+      }
+
       rc = _check( cb ) ;
       if ( rc )
       {
@@ -2029,6 +2122,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_CATCMDCRTIDX_CHK ) ;
+      catCtxLockMgr lockMgr ;
 
       // get catalog set first
       rc = catNewCataset( _pCollection, cb, _pCataSet ) ;
@@ -2037,13 +2131,10 @@ namespace engine
                    _pCollection, rc ) ;
 
       // check index key {a:1}
-      if ( !ixmIndexCB::isValidKey( _key ) )
-      {
-         PD_LOG_MSG( PDERROR, "index key is invalid:%s",
-                     _boIdx.toString().c_str() ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
+      rc = ixmIndexCB::checkIndexDef( _boIdx, FALSE ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to check index key[%s], rc: %d",
+                   _boIdx.toString().c_str(), rc ) ;
 
       // check index name 'aIdx'
       rc = dmsCheckIndexName( _pIndexName, _sysCall ) ;
@@ -2071,6 +2162,13 @@ namespace engine
          }
       }
 
+      // lock collection, create/drop index and rename cs/cl are mutually
+      // exclusive
+      PD_CHECK( lockMgr.tryLockCollection( _pCollection, SHARED ),
+                SDB_LOCK_FAILED, error, PDERROR,
+                "Failed to lock collection[%s], rc: %d",
+                _pCollection, rc ) ;
+
       // check index exist and build tasks
       if ( _pCataSet->isMainCL() )
       {
@@ -2096,7 +2194,9 @@ namespace engine
       }
       else
       {
-         rc = catCheckIndexExist( _pCollection, _pIndexName, _boIdx, cb ) ;
+         BSONObj idxObjInSysCL ;
+         rc = catCheckIndexExist( _pCollection, _pIndexName, _boIdx,
+                                  cb, FALSE, &idxObjInSysCL ) ;
          if ( rc )
          {
             goto error ;
@@ -2168,13 +2268,21 @@ namespace engine
       {
          BSONObjBuilder builder ;
          const CHAR* indexName = _boIdx.getStringField( IXM_FIELD_NAME_NAME ) ;
+         INT16 w = sdbGetCatalogueCB()->majoritySize() ;
+         UINT64 idxUniqID = 0 ;
+
+         rc = catGetAndIncIdxUniqID( _globalIdxCLName, cb, w, idxUniqID ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get index unique id, collection: %s, rc: %d",
+                      _globalIdxCLName, rc ) ;
+
+         builder.append( IXM_FIELD_NAME_UNIQUEID, (INT64)idxUniqID ) ;
          builder.append( IXM_FIELD_NAME_NAME, indexName ) ;
          builder.append( IXM_FIELD_NAME_KEY, _key ) ;
          builder.appendBool( IXM_FIELD_NAME_UNIQUE, _isUnique ) ;
          builder.appendBool( IXM_FIELD_NAME_ENFORCED, _isEnforced ) ;
 
-         rc = catAddIndex( _globalIdxCLName, builder.done(),
-                           cb, sdbGetCatalogueCB()->majoritySize() ) ;
+         rc = catAddIndex( _globalIdxCLName, builder.done(), cb, w ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to create index[%s] for cl[%s], rc: %d",
                       indexName, _globalIdxCLName, rc ) ;
@@ -2290,10 +2398,10 @@ namespace engine
          goto done ;
       }
 
-      PD_CHECK( _ixmIndexCB::generateIndexType( _boIdx, indexType ),
-                SDB_INVALIDARG, error, PDERROR,
-                "Failed to parse indexType:index=%s,rc=%d",
-                _boIdx.toString().c_str(), rc ) ;
+      rc = _ixmIndexCB::generateIndexTypeByKey( _key, indexType ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to parse indexType:index=%s,rc=%d",
+                   _boIdx.toString().c_str(), rc ) ;
 
       PD_CHECK( !IXM_EXTENT_HAS_TYPE(IXM_EXTENT_TYPE_TEXT, indexType ),
                 SDB_INVALIDARG, error, PDERROR, "Global index can't support"
@@ -2353,6 +2461,8 @@ namespace engine
       clsCreateIdxTask* pMainTask = NULL ;
       ossPoolVector<UINT64> subTaskList ;
       CLS_SUBCL_LIST subclList ;
+      UINT64 idxUniqID = 0 ;
+      INT16 w = sdbGetCatalogueCB()->majoritySize() ;
 
       /// 1. new main task
       mainTaskID = sdbGetCatalogueCB()->getCatlogueMgr()->assignTaskID() ;
@@ -2371,6 +2481,29 @@ namespace engine
       {
          const CHAR* subclName = (*it).c_str() ;
          UINT64 subTaskID = CLS_INVALID_TASKID ;
+         BOOLEAN isDataSourceCL = TRUE ;
+         BOOLEAN isHighErrLevel = TRUE ;
+
+         // If it is data source collection, ignore it or report error
+         rc = catIsDataSourceCL( subclName, cb,
+                                 isDataSourceCL, isHighErrLevel ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to check collection[%s] is mapped to a data "
+                      "source or not, rc: %d", subclName, rc ) ;
+         if ( isDataSourceCL )
+         {
+            if ( isHighErrLevel )
+            {
+               rc = SDB_OPERATION_INCOMPATIBLE ;
+               PD_LOG_MSG( PDERROR, "The collection[%s] mapped to a data "
+                           "source can't do %s", subclName, name() ) ;
+               goto error ;
+            }
+            else
+            {
+               continue ;
+            }
+         }
 
          rc = catCheckIndexExist( subclName, _pIndexName, _boIdx, cb ) ;
          if ( SDB_IXM_REDEF == rc )
@@ -2415,7 +2548,13 @@ namespace engine
       }
 
       /// 4. build main task
-      rc = pMainTask->initMainTask( _pCollection, _boIdx,
+      rc = catGetAndIncIdxUniqID( _pCollection, cb, w, idxUniqID ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get index unique id, collection: %s, rc: %d",
+                   _pCollection, rc ) ;
+
+      rc = pMainTask->initMainTask( _pCollection, _pCataSet->clUniqueID(),
+                                    _boIdx, idxUniqID,
                                     _groupSet, subTaskList ) ;
       if ( rc )
       {
@@ -2458,6 +2597,9 @@ namespace engine
       vector<UINT32> groupIDList ;
       vector<string> groupNameList ;
       UINT64 taskID = sdbGetCatalogueCB()->getCatlogueMgr()->assignTaskID() ;
+      UINT64 idxUniqID = 0 ;
+      INT16 w = sdbGetCatalogueCB()->majoritySize() ;
+      utilCLUniqueID clUniqID = UTIL_UNIQUEID_NULL ;
 
       // new task
       pTask = SDB_OSS_NEW clsCreateIdxTask( taskID ) ;
@@ -2474,6 +2616,7 @@ namespace engine
                    "Failed to collect groups for collection [%s], rc: %d",
                    collectionName, rc ) ;
 
+      // filter duplicate data group
       for( vector<string>::const_iterator it = groupNameList.begin() ;
            it != groupNameList.end() ; it++ )
       {
@@ -2487,12 +2630,31 @@ namespace engine
          }
       }
 
+      // get cl unique id
+      if ( 0 == ossStrcmp( collectionName, _pCataSet->name() ) )
+      {
+         clUniqID = _pCataSet->clUniqueID() ;
+      }
+      else
+      {
+         rc = rtnGetNumberLongElement( boCollection, FIELD_NAME_UNIQUEID,
+                                       (INT64&)clUniqID ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get cl unique id, rc: %d",
+                      rc ) ;
+      }
+
       // build task
-      rc = pTask->initTask( collectionName, _boIdx, groupNameList,
-                            _sortBufSz, mainTaskID ) ;
+      rc = catGetAndIncIdxUniqID( collectionName, cb, w, idxUniqID ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get index unique id, collection: %s, rc: %d",
+                   collectionName, rc ) ;
+
+      rc = pTask->initTask( collectionName, clUniqID, _boIdx, idxUniqID,
+                            groupNameList, _sortBufSz, mainTaskID ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Initialize index task failed, rc: %d",
-                   rc );
+                   rc ) ;
 
       try
       {
@@ -2584,6 +2746,10 @@ namespace engine
                     "Failed to check index key[%s] on collection[%s], rc: %d",
                     _boIdx.toString().c_str(), subCL, rc ) ;
             goto error ;
+         }
+         else
+         {
+            catReleaseCataset( subCataSet ) ;
          }
       }
 
@@ -2720,6 +2886,30 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_CATCMDDROPIDX_DOIT ) ;
 
+      BOOLEAN isDataSourceCL = TRUE ;
+      BOOLEAN isHighErrLevel = TRUE ;
+
+      rc = catIsDataSourceCL( _pCollection, cb,
+                              isDataSourceCL, isHighErrLevel ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to check collection[%s] is mapped to a data source "
+                   "or not, rc: %d", _pCollection, rc ) ;
+      if ( isDataSourceCL )
+      {
+         if ( isHighErrLevel )
+         {
+            rc = SDB_OPERATION_INCOMPATIBLE ;
+            PD_LOG_MSG( PDERROR, "The collection[%s] mapped to a data source "
+                        "can't do %s", _pCollection, name() ) ;
+            goto error ;
+         }
+         else
+         {
+            _makeReply( CLS_INVALID_TASKID, ctxBuf ) ;
+            goto done ;
+         }
+      }
+
       rc = _check( cb ) ;
       if ( rc )
       {
@@ -2809,6 +2999,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_CATCMDDROPIDX_CHK ) ;
+      catCtxLockMgr lockMgr ;
 
       // get catalog set first
       rc = catNewCataset( _pCollection, cb, _pCataSet ) ;
@@ -2831,6 +3022,13 @@ namespace engine
          rc = SDB_IXM_DROP_SHARD ;
          goto error ;
       }
+
+      // lock collection, create/drop index and rename cs/cl are mutually
+      // exclusive
+      PD_CHECK( lockMgr.tryLockCollection( _pCollection, SHARED ),
+                SDB_LOCK_FAILED, error, PDERROR,
+                "Failed to lock collection[%s], rc: %d",
+                _pCollection, rc ) ;
 
       // check index exist, and build tasks
       if ( _pCataSet->isMainCL() )
@@ -2985,6 +3183,29 @@ namespace engine
       {
          const CHAR* subclName = (*it).c_str() ;
          UINT64 subTaskID = CLS_INVALID_TASKID ;
+         BOOLEAN isDataSourceCL = TRUE ;
+         BOOLEAN isHighErrLevel = TRUE ;
+
+         // If it is data source collection, ignore it or report error
+         rc = catIsDataSourceCL( subclName, cb,
+                                 isDataSourceCL, isHighErrLevel ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to check collection[%s] is mapped to a data "
+                      "source or not, rc: %d", subclName, rc ) ;
+         if ( isDataSourceCL )
+         {
+            if ( isHighErrLevel )
+            {
+               rc = SDB_OPERATION_INCOMPATIBLE ;
+               PD_LOG_MSG( PDERROR, "The collection[%s] mapped to a data "
+                           "source can't do %s", subclName, name() ) ;
+               goto error ;
+            }
+            else
+            {
+               continue ;
+            }
+         }
 
          rc = _checkIndexExist( subclName, _pIndexName, cb ) ;
          if ( SDB_IXM_NOTEXIST == rc )
@@ -3028,8 +3249,8 @@ namespace engine
       }
 
       /// 4. build main task
-      rc = pMainTask->initMainTask( _pCollection, _pIndexName,
-                                    _groupSet, subTaskList ) ;
+      rc = pMainTask->initMainTask( _pCollection, _pCataSet->clUniqueID(),
+                                    _pIndexName, _groupSet, subTaskList ) ;
       if ( rc )
       {
          goto error ;
@@ -3071,6 +3292,7 @@ namespace engine
       vector<UINT32> groupIDList ;
       vector<string> groupNameList ;
       UINT64 taskID = sdbGetCatalogueCB()->getCatlogueMgr()->assignTaskID() ;
+      utilCLUniqueID clUniqID = UTIL_UNIQUEID_NULL ;
 
       // new task
       pTask = SDB_OSS_NEW clsDropIdxTask( taskID ) ;
@@ -3098,8 +3320,22 @@ namespace engine
          }
       }
 
+      // get cl unique id
+      if ( 0 == ossStrcmp( collectionName, _pCataSet->name() ) )
+      {
+         clUniqID = _pCataSet->clUniqueID() ;
+      }
+      else
+      {
+         rc = rtnGetNumberLongElement( boCollection, FIELD_NAME_UNIQUEID,
+                                       (INT64&)clUniqID ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get cl unique id, rc: %d",
+                      rc ) ;
+      }
+
       // build task
-      rc = pTask->initTask( collectionName, _pIndexName,
+      rc = pTask->initTask( collectionName, clUniqID, _pIndexName,
                             groupNameList, mainTaskID ) ;
       PD_RC_CHECK( rc, PDERROR, "Initialize index task failed, rc: %d", rc );
 
@@ -3127,6 +3363,579 @@ namespace engine
          SDB_OSS_DEL pTask ;
          pTask = NULL ;
       }
+      goto done ;
+   }
+
+   /*
+      catCMDCopyIndex implement
+   */
+   CAT_IMPLEMENT_CMD_AUTO_REGISTER(_catCMDCopyIndex)
+   _catCMDCopyIndex::_catCMDCopyIndex()
+   : _pCataSet( NULL ),
+     _pCollection( NULL ),
+     _pSubCollection( NULL ),
+     _pIndexName( NULL ),
+     _pMainTask( NULL )
+   {
+   }
+
+   _catCMDCopyIndex::~_catCMDCopyIndex()
+   {
+      for( VEC_CMD_IT it = _commandList.begin() ;
+           it != _commandList.end() ;
+           it++ )
+      {
+         if ( *it )
+         {
+            SDB_OSS_DEL *it ;
+            *it = NULL ;
+         }
+      }
+      _commandList.clear() ;
+
+      if ( _pMainTask )
+      {
+         SDB_OSS_DEL _pMainTask ;
+         _pMainTask = NULL ;
+      }
+
+      if ( _pCataSet )
+      {
+         catReleaseCataset( _pCataSet ) ;
+      }
+   }
+
+   INT32 _catCMDCopyIndex::init( const CHAR *pQuery,
+                                 const CHAR *pSelector,
+                                 const CHAR *pOrderBy,
+                                 const CHAR *pHint,
+                                 INT32 flags,
+                                 INT64 numToSkip,
+                                 INT64 numToReturn )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObj boQuery ;
+         if ( pQuery )
+         {
+            boQuery = BSONObj( pQuery ) ;
+         }
+
+         // get collection name
+         rc = rtnGetStringElement( boQuery, CAT_COLLECTION_NAME,
+                                   &_pCollection ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get field[%s] for obj[%s], rc: %d",
+                      CAT_COLLECTION_NAME, boQuery.toString().c_str(), rc ) ;
+
+         // get sub-collection name
+         rc = rtnGetStringElement( boQuery, CAT_SUBCL_NAME, &_pSubCollection ) ;
+         if ( SDB_OK == rc )
+         {
+            if ( _pSubCollection[0] == 0 )
+            {
+               _pSubCollection = NULL ;
+            }
+         }
+         else if ( SDB_FIELD_NOT_EXIST == rc )
+         {
+            rc = SDB_OK ;
+         }
+         else
+         {
+            PD_LOG( PDERROR,
+                    "Failed to get field[%s] for obj[%s], rc: %d",
+                    CAT_SUBCL_NAME, boQuery.toString().c_str(), rc ) ;
+            goto error ;
+         }
+
+
+         // get index name
+         rc = rtnGetStringElement( boQuery, FIELD_NAME_INDEXNAME,
+                                   &_pIndexName ) ;
+         if ( SDB_OK == rc )
+         {
+            if ( _pIndexName[0] == 0 )
+            {
+               _pIndexName = NULL ;
+            }
+         }
+         else if ( SDB_FIELD_NOT_EXIST == rc )
+         {
+            rc = SDB_OK ;
+         }
+         else
+         {
+            PD_LOG( PDERROR,
+                    "Failed to get field[%s] for obj[%s], rc: %d",
+                    FIELD_NAME_INDEXNAME, boQuery.toString().c_str(), rc ) ;
+            goto error ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         PD_RC_CHECK( SDB_SYS, PDERROR, "Exception occurred: %s", e.what() ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _catCMDCopyIndex::doit( _pmdEDUCB *cb, rtnContextBuf &ctxBuf,
+                                 INT64 &contextID )
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = _check( cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = _execute( cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = _makeReply( _pMainTask->taskID(), ctxBuf ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _catCMDCopyIndex::_checkMainSubCL( _pmdEDUCB *cb,
+                                            BSONObj& boCollection )
+   {
+      INT32 rc = SDB_OK ;
+      vector<string> groupNameList ;
+
+      // get main-collection info
+      rc = catGetCollection( _pCollection, boCollection, cb ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get the collection[%s], rc: %d",
+                   _pCollection, rc ) ;
+
+      // check main-collection
+      rc = catCheckMainCollection( boCollection, TRUE ) ;
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR,
+                     "Collection[%s] is not a main-collection",
+                     _pCollection ) ;
+         goto error ;
+      }
+
+      // check sub-collection if it is specified
+      if ( _pSubCollection )
+      {
+         string tmpMainCLName ;
+         BSONObj boSubCollection ;
+
+         rc = catGetCollection( _pSubCollection, boSubCollection, cb ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get the collection[%s], rc: %d",
+                      _pSubCollection, rc ) ;
+
+         rc = catCheckMainCollection( boSubCollection, FALSE ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Collection [%s] could not be a main-collection, rc: %d",
+                      _pSubCollection, rc ) ;
+
+         rc = catCheckRelinkCollection ( boSubCollection, tmpMainCLName ) ;
+         if ( rc == SDB_RELINK_SUB_CL &&
+              0 == tmpMainCLName.compare( _pCollection ) )
+         {
+            rc = SDB_OK ;
+         }
+         else
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR,
+                    "Collection[%s] is not [%s]'s sub-collection",
+                    _pSubCollection, _pCollection, rc ) ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _catCMDCopyIndex::_buildCommand( const CHAR *collectionName,
+                                          const BSONObj &indexDef,
+                                          _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      catCMDCreateIndex *pCmd = NULL ;
+      BSONObj matcher ;
+
+      pCmd = SDB_OSS_NEW catCMDCreateIndex( TRUE ) ;
+      PD_CHECK( pCmd, SDB_OOM, error, PDERROR, "malloc failed" ) ;
+
+      // We should push BSONObj to vector, because command->_execute() will use
+      // this object in other function.
+      matcher = BSON( FIELD_NAME_COLLECTION << collectionName <<
+                      FIELD_NAME_INDEX << indexDef ) ;
+      try
+      {
+         _matcherList.push_back( matcher ) ;
+      }
+      catch( std::exception &e )
+      {
+         PD_RC_CHECK( SDB_OOM, PDERROR, "Exception occurred: %s", e.what() ) ;
+      }
+
+      rc = pCmd->init( _matcherList.back().objdata() ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to parse create index msg for collection[%s], "
+                   "rc: %d", collectionName, rc ) ;
+
+      rc = pCmd->_check( cb ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to check create index for collection[%s], "
+                   "rc: %d", collectionName, rc ) ;
+
+      try
+      {
+         _commandList.push_back( pCmd ) ;
+         pCmd = NULL ;
+      }
+      catch( std::exception &e )
+      {
+         PD_RC_CHECK( SDB_OOM, PDERROR, "Exception occurred: %s", e.what() ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      if ( pCmd )
+      {
+         SDB_OSS_DEL pCmd ;
+         pCmd = NULL ;
+      }
+      goto done ;
+   }
+
+   INT32 _catCMDCopyIndex::_buildCommands( _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      ossPoolVector<BSONObj> indexList ;
+      CLS_SUBCL_LIST subCLList ;
+
+      try
+      {
+         // get subcl list
+         if ( _pSubCollection )
+         {
+            subCLList.push_back( _pSubCollection ) ;
+         }
+         else
+         {
+            rc = _pCataSet->getSubCLList( subCLList );
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get sub-collections of collection[%s], rc: %d",
+                         _pCollection, rc ) ;
+
+            PD_CHECK( subCLList.size() > 0,
+                      SDB_MAINCL_NOIDX_NOSUB, error, PDERROR,
+                      "Main-collection[%s] has no sub-collection", _pCollection ) ;
+         }
+
+         // get index list
+         if ( _pIndexName )
+         {
+            BSONObj indexObj ;
+            rc = catGetIndex( _pCollection, _pIndexName, cb, indexObj ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get index[%s] of collection[%s], rc: %d",
+                         _pIndexName, _pCollection, rc ) ;
+
+            indexList.push_back( indexObj ) ;
+         }
+         else
+         {
+            rc = catGetCLIndexes( _pCollection, FALSE, cb, indexList ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get index of collection[%s], rc: %d",
+                         _pCollection, rc ) ;
+            PD_CHECK( indexList.size() > 0,
+                      SDB_MAINCL_NOIDX_NOSUB, error, PDERROR,
+                      "Main-collection[%s] has no index", _pCollection ) ;
+         }
+
+         // loop every sub-cl's every index
+         for ( CLS_SUBCL_LIST_IT it = subCLList.begin() ; it != subCLList.end() ;
+               ++it )
+         {
+            const CHAR* subCLName = it->c_str() ;
+            BOOLEAN isDataSourceCL = TRUE ;
+            BOOLEAN isHighErrLevel = TRUE ;
+
+            // If it is data source collection, ignore it or report error
+            rc = catIsDataSourceCL( subCLName, cb,
+                                    isDataSourceCL, isHighErrLevel ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to check collection[%s] is mapped to a data "
+                         "source or not, rc: %d", subCLName, rc ) ;
+            if ( isDataSourceCL )
+            {
+               if ( isHighErrLevel )
+               {
+                  rc = SDB_OPERATION_INCOMPATIBLE ;
+                  PD_LOG_MSG( PDERROR, "The collection[%s] mapped to a data "
+                              "source can't do %s", subCLName, name() ) ;
+                  goto error ;
+               }
+               else
+               {
+                  continue ;
+               }
+            }
+
+            for( ossPoolVector<BSONObj>::iterator itIdx = indexList.begin() ;
+                 itIdx != indexList.end() ; ++itIdx )
+            {
+               BSONObj def = itIdx->getObjectField( IXM_FIELD_NAME_INDEX_DEF ) ;
+               BSONObj filter = BSON( DMS_ID_KEY_NAME << 1 <<
+                                      IXM_FIELD_NAME_UNIQUEID << 1 ) ;
+               def = def.filterFieldsUndotted( filter, false ) ;
+               const CHAR* idxName = def.getStringField( IXM_FIELD_NAME_NAME ) ;
+               BOOLEAN isIndexExist = FALSE ;
+               BOOLEAN isSameDef = FALSE ;
+
+               rc = catCheckIndexExist( subCLName, def, cb, isIndexExist,
+                                        isSameDef ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to check index[%s:%s] exist, rc: %d",
+                            subCLName, idxName, rc ) ;
+
+               if ( isIndexExist && isSameDef )
+               {
+                  PD_LOG( PDWARNING, "Collection[%s] index[%s] already exists",
+                          subCLName, idxName ) ;
+                  continue ;
+               }
+
+               // build sub-collection command
+               rc = _buildCommand( subCLName, def, cb ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to build command for collection[%s], rc: "
+                            "%d", subCLName, rc ) ;
+            }
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _catCMDCopyIndex::_check( _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj boCollection ;
+
+      // get catalog set first
+      rc = catNewCataset( _pCollection, cb, _pCataSet ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get collection[%s]'s cata info, rc: %d",
+                   _pCollection, rc ) ;
+
+      // check main cl
+      rc = _checkMainSubCL( cb, boCollection ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      // build task
+      rc = _buildCommands( cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      // get subcl list, index list
+      for ( VEC_CMD_IT it = _commandList.begin() ; it != _commandList.end() ;
+            ++it )
+      {
+         catCMDCreateIndex *pCmd = *it ;
+         try
+         {
+            _subCLSet.insert( pCmd->collectionName() ) ;
+            _indexSet.insert( pCmd->indexName() ) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_RC_CHECK( SDB_OOM, PDERROR, "Exception occurred: %s", e.what() );
+         }
+      }
+
+      // get groups
+      for( ossPoolSet<ossPoolString>::iterator it = _subCLSet.begin() ;
+           it != _subCLSet.end() ; ++it )
+      {
+         const CHAR* subCLName = it->c_str() ;
+         vector<UINT32> groupIDList ;
+         vector<string> groupNameList ;
+
+         BSONObj bo ;
+         rc = catGetCollection( subCLName, bo, cb ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get the collection[%s], rc: %d",
+                      subCLName, rc ) ;
+
+         rc = catGetCollectionGroups( bo, groupIDList, groupNameList ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get groups of collection[%s], rc: %d",
+                      subCLName, rc ) ;
+
+         for( vector<string>::iterator it = groupNameList.begin() ;
+              it != groupNameList.end() ; ++it )
+         {
+            try
+            {
+               _groupSet.insert( it->c_str() ) ;
+            }
+            catch( std::exception &e )
+            {
+               PD_RC_CHECK( SDB_OOM, PDERROR,
+                            "Exception occurred: %s", e.what() );
+            }
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _catCMDCopyIndex::_execute( _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      sdbCatalogueCB* pCatCB = sdbGetCatalogueCB() ;
+      ossPoolVector<UINT64> subTaskList ;
+
+      // build main task
+      UINT64 mainTaskID = pCatCB->getCatlogueMgr()->assignTaskID() ;
+      _pMainTask = SDB_OSS_NEW clsCopyIdxTask( mainTaskID ) ;
+      PD_CHECK( _pMainTask, SDB_OOM, error, PDERROR, "malloc failed" ) ;
+
+      // loop every command, build tasks
+      for ( VEC_CMD_IT it = _commandList.begin() ; it != _commandList.end() ;
+            ++it )
+      {
+         catCMDCreateIndex *pCmd = *it ;
+         BSONObj ctxObj, setInfo ;
+         rtnContextBuf subCtxBuf ;
+         UINT64 subTaskID = CLS_INVALID_TASKID ;
+
+         // execute sub-collection task
+         rc = pCmd->_execute( cb, subCtxBuf ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to execute create index, rc: %d",
+                      rc ) ;
+
+         // get sub taskID
+         ctxObj = BSONObj( subCtxBuf.data() ) ;
+         rc = rtnGetNumberLongElement( ctxObj, CAT_TASKID_NAME,
+                                       (INT64&)subTaskID ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get field[%s] from obj[%s], rc: %d",
+                      CAT_TASKID_NAME, ctxObj.toString().c_str(), rc ) ;
+
+         // set MainTaskID in sub-task
+         setInfo = BSON( FIELD_NAME_MAIN_TASKID << (INT64&)mainTaskID ) ;
+         rc = catUpdateTask( subTaskID, &setInfo, NULL,
+                             cb, pCatCB->majoritySize() ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to update task[%llu], rc: %d",
+                      subTaskID, rc ) ;
+
+         try
+         {
+            subTaskList.push_back( subTaskID ) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_RC_CHECK( SDB_OOM, PDERROR, "Exception occurred: %s", e.what() ) ;
+         }
+      }
+
+      // init main task
+      rc = _pMainTask->initMainTask( _pCollection, _pCataSet->clUniqueID(),
+                                     _subCLSet, _indexSet,
+                                     _groupSet, subTaskList ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      // add main task
+      if ( 0 == _pMainTask->countSubTask() )
+      {
+         _pMainTask->setFinish() ;
+      }
+      rc = catAddTask( _pMainTask->toBson(), cb, pCatCB->majoritySize() ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to add main-task, rc: %d",
+                   rc ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _catCMDCopyIndex::_makeReply( UINT64 taskID, rtnContextBuf &ctxBuf )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder replyBuild ;
+
+      // reply: { TaskID: xxx,
+      //          Group: [ { GroupID: 1000, GroupName: "db1" }, ... ] }
+      try
+      {
+         replyBuild.append( CAT_TASKID_NAME, (INT64)taskID ) ;
+
+         vector<string> groupNameList ;
+         for( ossPoolSet<ossPoolString>::iterator it = _groupSet.begin() ;
+              it != _groupSet.end() ; ++it )
+         {
+            groupNameList.push_back( it->c_str() ) ;
+         }
+         sdbGetCatalogueCB()->makeGroupsObj( replyBuild, groupNameList, TRUE ) ;
+
+         ctxBuf = rtnContextBuf( replyBuild.obj() ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+   done:
+      return rc ;
+   error:
       goto done ;
    }
 
@@ -3215,7 +4024,7 @@ namespace engine
 
       {
          BSONObj updator, matcher ;
-         rc = pTask->updateTaskInfo( _query.objdata(), updator, matcher ) ;
+         rc = pTask->buildReportTask( _query, updator, matcher ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to update task[%llu] info by [%s], rc: %d",
                       taskID, _query.toString().c_str(), rc ) ;
@@ -3227,9 +4036,9 @@ namespace engine
          }
 
          rc = catUpdateTask( matcher, updator, cb, 1 ) ;
-         PD_RC_CHECK ( rc, PDERROR,
-                       "Failed to update task, rc: %d",
-                       rc ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to update task, rc: %d",
+                      rc ) ;
       }
 
       // 4. if task finish, then we may update metadata
@@ -3314,7 +4123,7 @@ namespace engine
          goto done ;
       }
 
-      rc = pMainTask->querySubTasks( _query.objdata(), matcher1, selector ) ;
+      rc = pMainTask->buildQuerySubTasks( _query, matcher1, selector ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get subtask's matcher and selector, rc: %d",
                    rc ) ;
@@ -3354,19 +4163,22 @@ namespace engine
       }
 
       // update
-      rc = pMainTask->updateMainTaskInfo( pSubTask, subTaskInfoList,
-                                          updator, matcher2 ) ;
+      rc = pMainTask->buildReportTaskBy( pSubTask, subTaskInfoList,
+                                            updator, matcher2 ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to update main task[%llu] info, rc: %d",
                    mainTaskID, rc ) ;
 
-      if ( !updator.isEmpty() )
+      if ( updator.isEmpty() )
       {
-         rc = catUpdateTask( matcher2, updator, cb, 1 ) ;
-         PD_RC_CHECK ( rc, PDERROR,
-                       "Failed to update task, rc: %d",
-                       rc ) ;
+         // nothing changed, just goto done
+         goto done ;
       }
+
+      rc = catUpdateTask( matcher2, updator, cb, 1 ) ;
+      PD_RC_CHECK ( rc, PDERROR,
+                    "Failed to update task, rc: %d",
+                    rc ) ;
 
       /// 4. if task finish, then we may update metadata
       if ( CLS_TASK_STATUS_FINISH == pMainTask->status() )

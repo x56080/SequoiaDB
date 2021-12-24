@@ -110,57 +110,6 @@ namespace engine
                              BOOLEAN pushExec = TRUE ) ;
    } ;
 
-#if !defined( SDB_INDEX_DEVELOPMENT )
-   /*
-    * _catCtxIndexMultiTask define
-    */
-   class _catCtxIndexMultiTask : public _catCtxDataMultiTaskBase
-   {
-   public :
-      _catCtxIndexMultiTask ( INT64 contextID, UINT64 eduID ) ;
-
-      virtual ~_catCtxIndexMultiTask () {}
-
-   protected :
-      INT32 _addCreateIdxTask ( const std::string &clName,
-                                const std::string &idxName,
-                                const BSONObj &boIdx,
-                                _catCtxCreateIdxTask **ppCtx,
-                                BOOLEAN pushExec = TRUE ) ;
-
-      INT32 _addDropIdxTask ( const std::string &clName,
-                              const std::string &idxName,
-                              _catCtxDropIdxTask **pCtx,
-                              BOOLEAN pushExec = TRUE ) ;
-
-      INT32 _addCreateIdxSubTasks ( _catCtxCreateIdxTask *pCreateIdxTask,
-                                    catCtxLockMgr &lockMgr,
-                                    _pmdEDUCB *cb ) ;
-
-      INT32 _addCreateIdxTasks ( const std::string &clName,
-                                 const std::string &idxName,
-                                 const BSONObj &boIdx,
-                                 BOOLEAN uniqueCheck,
-                                 _pmdEDUCB *cb ) ;
-
-      INT32 _addDropIdxSubTasks ( _catCtxDropIdxTask *pDropIdxTask,
-                                  catCtxLockMgr &lockMgr,
-                                  _pmdEDUCB *cb ) ;
-
-      INT32 _addDropIdxTasks ( const std::string &clName,
-                               const std::string &idxName,
-                               _pmdEDUCB *cb ) ;
-
-   protected:
-      BOOLEAN _isGlobalIndex ;
-      utilCLUniqueID _indexCLUID ;
-
-      // create index
-      std::string _indexCLName ;
-      std::string _domain ;
-   } ;
-#endif
-
    /*
     * _catCtxDropCS define
     */
@@ -214,13 +163,9 @@ namespace engine
                                   BOOLEAN pushExec = TRUE ) ;
 
    private:
-      INT32 _addIndexCL( const BSONObj &clObj ) ;
-
-   private:
       /* ensure collectionspace is empty or not */
       BOOLEAN _ensureEmpty ;
-
-      CLS_GINDEX_LIST _globalIndexList ;
+      ossPoolList<PAIR_CLNAME_ID> _globalIdxCLList ;
    } ;
 
    typedef class _catCtxDropCS catCtxDropCS ;
@@ -329,6 +274,8 @@ namespace engine
 
       virtual INT32 _executeInternal ( _pmdEDUCB *cb, INT16 w ) ;
 
+      virtual INT32 _makeReply ( rtnContextBuf &buffObj ) ;
+
       virtual INT32 _rollbackInternal ( _pmdEDUCB *cb, INT16 w ) ;
 
    protected :
@@ -362,12 +309,17 @@ namespace engine
                                     _pmdEDUCB * cb,
                                     std::vector<UINT32> & groupIDList ) ;
 
+      INT32 _createSysIndex( const catCollectionInfo& clInfo,
+                             ossPoolVector<BSONObj>& indexList,
+                             pmdEDUCB *cb, INT16 w ) ;
+
    private :
       utilCLUniqueID                _clUniqueID ;
       catCollectionInfo             _clInfo ;
       std::map<std::string, UINT32> _splitList ;
       UINT32                        _fieldMask ;
       vector<BSONObj>               _autoIncOptArr ;
+      ossPoolVector<BSONObj>        _indexList ;
    } ;
 
    typedef class _catCtxCreateCL catCtxCreateCL ;
@@ -417,6 +369,7 @@ namespace engine
 
    protected :
       INT32 _needUpdateCoord ;
+      ossPoolList<PAIR_CLNAME_ID> _globalIdxCLList ;
    } ;
 
    typedef class _catCtxDropCL catCtxDropCL ;
@@ -460,11 +413,7 @@ namespace engine
    /*
     * _catCtxAlterCL define
     */
-#if !defined( SDB_INDEX_DEVELOPMENT )
-   class _catCtxAlterCL : public _catCtxIndexMultiTask
-#else
    class _catCtxAlterCL : public _catCtxDataMultiTaskBase
-#endif
    {
       DECLARE_RTN_CTX_AUTO_REGISTER( _catCtxAlterCL )
    public :
@@ -502,7 +451,8 @@ namespace engine
       INT32 _addAlterTask ( const string & collection,
                             const rtnAlterTask * task,
                             catCtxAlterCLTask ** catTask,
-                            BOOLEAN pushExec ) ;
+                            BOOLEAN pushExec,
+                            BOOLEAN isSubCL ) ;
       INT32 _addAlterSubCLTask ( catCtxAlterCLTask * catTask,
                                  pmdEDUCB * cb,
                                  catCtxLockMgr & lockMgr,
@@ -608,77 +558,6 @@ namespace engine
    } ;
 
    typedef class _catCtxUnlinkCL catCtxUnlinkCL ;
-
-#if !defined( SDB_INDEX_DEVELOPMENT )
-   /*
-    * _catCtxCreateIdx define
-    */
-   class _catCtxCreateIdx : public _catCtxIndexMultiTask
-   {
-      DECLARE_RTN_CTX_AUTO_REGISTER( _catCtxCreateIdx )
-   public :
-      _catCtxCreateIdx ( INT64 contextID, UINT64 eduID ) ;
-
-      virtual ~_catCtxCreateIdx () ;
-
-      virtual const CHAR* name() const
-      {
-         return "CAT_CREATE_IDX" ;
-      }
-
-      virtual RTN_CONTEXT_TYPE getType () const
-      {
-         return RTN_CONTEXT_CAT_CREATE_IDX ;
-      }
-
-      virtual INT32 _parseQuery ( _pmdEDUCB *cb ) ;
-
-      virtual INT32 _checkInternal ( _pmdEDUCB *cb ) ;
-
-   protected :
-      virtual INT32 _makeReply ( rtnContextBuf &buffObj ) ;
-
-   protected :
-      std::string _idxName ;
-      BSONObj _boIdx ;
-   } ;
-
-   typedef class _catCtxCreateIdx catCtxCreateIdx ;
-
-   /*
-    * _catCtxDropIdx define
-    */
-   class _catCtxDropIdx : public _catCtxIndexMultiTask
-   {
-      DECLARE_RTN_CTX_AUTO_REGISTER( _catCtxDropIdx )
-   public :
-      _catCtxDropIdx ( INT64 contextID, UINT64 eduID ) ;
-
-      virtual ~_catCtxDropIdx () ;
-
-      virtual const CHAR* name() const
-      {
-         return "CAT_DROP_IDX" ;
-      }
-
-      virtual RTN_CONTEXT_TYPE getType () const
-      {
-         return RTN_CONTEXT_CAT_DROP_IDX ;
-      }
-
-      virtual INT32 _parseQuery ( _pmdEDUCB *cb ) ;
-
-      virtual INT32 _checkInternal ( _pmdEDUCB *cb ) ;
-
-   protected :
-      virtual INT32 _makeReply ( rtnContextBuf &buffObj ) ;
-
-   protected :
-      std::string _idxName ;
-   } ;
-
-   typedef class _catCtxDropIdx catCtxDropIdx ;
-#endif
 }
 
 #endif //CATCONTEXTDATA_HPP_

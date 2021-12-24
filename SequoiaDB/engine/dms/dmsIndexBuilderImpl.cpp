@@ -47,9 +47,11 @@ namespace engine
                                                    _pmdEDUCB* eduCB,
                                                    dmsExtentID indexExtentID,
                                                    dmsExtentID indexLogicID,
-                                                   dmsDupKeyProcessor *dkProcessor )
+                                                   dmsDupKeyProcessor *dkProcessor,
+                                                   dmsIdxTaskStatus* pIdxStatus )
    : _dmsIndexBuilder( indexSU, dataSU, mbContext,
-                       eduCB, indexExtentID, indexLogicID, dkProcessor )
+                       eduCB, indexExtentID, indexLogicID,
+                       dkProcessor, pIdxStatus )
    {
    }
 
@@ -61,6 +63,11 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       Ordering ordering = Ordering::make( _indexCB->keyPattern() ) ;
+
+      if ( _pIdxStatus )
+      {
+         _pIdxStatus->setOpInfo( OPINFO_SCAN_THEN_INSERT ) ;
+      }
 
       // loop through each extent
       while ( DMS_INVALID_EXTENT != _currentExtentID )
@@ -121,6 +128,10 @@ namespace engine
       }
 
    done:
+      if ( _pIdxStatus )
+      {
+         _pIdxStatus->resetOpInfo() ;
+      }
       _mbContext->mbUnlock() ;
       return rc ;
    error:
@@ -134,9 +145,11 @@ namespace engine
                                                      dmsExtentID indexExtentID,
                                                      dmsExtentID indexLogicID,
                                                      INT32 sortBufferSize,
-                                                     dmsDupKeyProcessor *dkProcessor )
+                                                     dmsDupKeyProcessor *dkProcessor,
+                                                     dmsIdxTaskStatus* pIdxStatus )
    : _dmsIndexBuilder( indexSU, dataSU, mbContext,
-                       eduCB, indexExtentID, indexLogicID, dkProcessor )
+                       eduCB, indexExtentID, indexLogicID,
+                       dkProcessor, pIdxStatus )
    {
       _sorter = NULL ;
       _eoc = FALSE ;
@@ -353,16 +366,31 @@ namespace engine
             goto error ;
          }
 
+         if ( _pIdxStatus )
+         {
+            _pIdxStatus->setOpInfo( OPINFO_SCAN_DATA ) ;
+         }
+
          rc = _fillSorter() ;
          if ( SDB_OK != rc )
          {
             goto error ;
          }
 
+         if ( _pIdxStatus )
+         {
+            _pIdxStatus->setOpInfo( OPINFO_SORT_DATA ) ;
+         }
+
          rc = _sorter->sort() ;
          if ( SDB_OK != rc )
          {
             goto error ;
+         }
+
+         if ( _pIdxStatus )
+         {
+            _pIdxStatus->setOpInfo( OPINFO_INSERT_KEY ) ;
          }
 
          rc = _insertKeys( ordering ) ;
@@ -375,6 +403,10 @@ namespace engine
       }
 
    done:
+      if ( _pIdxStatus )
+      {
+         _pIdxStatus->resetOpInfo() ;
+      }
       _mbContext->mbUnlock() ;
       return rc ;
    error:

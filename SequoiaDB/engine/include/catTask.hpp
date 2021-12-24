@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = catSplit.hpp
+   Source File Name = catTask.hpp
 
    Dependencies: N/A
 
@@ -31,8 +31,8 @@
 
 *******************************************************************************/
 
-#ifndef CAT_SPLIT_HPP__
-#define CAT_SPLIT_HPP__
+#ifndef CAT_TASK_HPP__
+#define CAT_TASK_HPP__
 
 #include "core.hpp"
 #include "pd.hpp"
@@ -56,8 +56,6 @@ namespace engine
                          BOOLEAN needLock, pmdEDUCB *cb, INT16 w,
                          UINT32 &returnGroupID, INT32 &returnVersion ) ;
 
-   INT32 catSplitStart ( UINT64 taskID, pmdEDUCB *cb, INT16 w ) ;
-
    INT32 catSplitChgMeta ( const BSONObj &splitInfo, UINT64 taskID,
                            pmdEDUCB * cb, INT16 w ) ;
 
@@ -65,11 +63,12 @@ namespace engine
 
    INT32 catSplitFinish ( UINT64 taskID, pmdEDUCB *cb, INT16 w ) ;
 
-   INT32 catSplitCancel ( const BSONObj &splitInfo, pmdEDUCB *cb,
-                          UINT64 &taskID, INT16 w, UINT32 &returnGroupID ) ;
+   INT32 catTaskStart ( const BSONObj &boQuery, pmdEDUCB *cb, INT16 w ) ;
 
+   INT32 catTaskCancel ( const BSONObj &boQuery, pmdEDUCB *cb,
+                         INT16 w, UINT32 &returnGroupID ) ;
 }
 
 
-#endif //CAT_SPLIT_HPP__
+#endif // CAT_TASK_HPP__
 

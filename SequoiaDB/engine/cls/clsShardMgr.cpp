@@ -3095,7 +3095,6 @@ namespace engine
                                    UINT32 *lobPageSize,
                                    DMS_STORAGE_TYPE *type,
                                    BSONObj *clInfo,
-                                   string *newCSName,
                                    INT64 waitMillSec )
    {
       INT32 rc = SDB_OK ;
@@ -3132,8 +3131,8 @@ namespace engine
       ++retryTimes ;
       needRetry = FALSE ;
       // send request
-      rc = _sendCSInfoReq( csName, csUniqueID, requestID, &(item->netHandle),
-                           waitMillSec ) ;
+      rc = _sendCSInfoReq( csName, csUniqueID, requestID,
+                           &(item->netHandle), waitMillSec ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to send cs info request, rc = %d", rc ) ;
@@ -3182,10 +3181,6 @@ namespace engine
       // sanity chekc for result
       PD_RC_CHECK( rc, PDWARNING, "Get collection space[%s] info failed, "
                    "rc: %d", csName, rc ) ;
-      if ( newCSName )
-      {
-         *newCSName = item->csName ;
-      }
       if ( UTIL_UNIQUEID_NULL == csUniqueID )
       {
          csUniqueID = item->csUniqueID ;
@@ -3474,8 +3469,10 @@ namespace engine
             }
 
             // eg:
-            // { "Collection": [ { "Name": "bar1", "UniqueID": 2667174690817 } ,
-            //                   { "Name": "bar2", "UniqueID": 2667174690818 } ] }
+            // { Collection: [ { "Name": "bar1", "UniqueID": 2667174690817 } ,
+            //                 { "Name": "bar2", "UniqueID": 2667174690818 }
+            //               ]
+            // }
             ele = objList[0].getField( CAT_COLLECTION ) ;
             if ( Array == ele.type() )
             {

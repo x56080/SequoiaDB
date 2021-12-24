@@ -49,6 +49,7 @@
 #include "pd.hpp"
 #include "utilRenameLogger.hpp"
 #include "utilInsertResult.hpp"
+#include "dmsTaskStatus.hpp"
 
 #define RTN_SORT_INDEX_NAME "sort"
 using namespace bson;
@@ -271,10 +272,12 @@ namespace engine
                                           UTIL_COMPRESSOR_INVALID,
                                       INT32 flags = 0,
                                       BOOLEAN sysCall = FALSE,
-                                      const BSONObj *extOptions = NULL ) ;
+                                      const BSONObj *extOptions = NULL,
+                                      const BSONObj *pIdIdxDef = NULL,
+                                      BOOLEAN addIdxIDIfNotExist = TRUE ) ;
 
    INT32 rtnCreateCollectionCommand ( const CHAR *pCollection,
-                                      const BSONObj &shardingKey,
+                                      const BSONObj &shardIdxDef,
                                       UINT32 attributes,
                                       _pmdEDUCB * cb,
                                       SDB_DMSCB *dmsCB,
@@ -284,7 +287,9 @@ namespace engine
                                           UTIL_COMPRESSOR_INVALID,
                                       INT32 flags = 0,
                                       BOOLEAN sysCall = FALSE,
-                                      const BSONObj *extOptions = NULL ) ;
+                                      const BSONObj *extOptions = NULL,
+                                      const BSONObj *pIdIdxDef = NULL,
+                                      BOOLEAN addIdxIDIfNotExist = FALSE ) ;
 
    INT32 rtnGetMore ( SINT64 contextID,            // input, context id
                       SINT32 maxNumToReturn,       // input, max record to read
@@ -315,18 +320,10 @@ namespace engine
                                   const CHAR *lobMetaPath,
                                   pmdEDUCB *cb,
                                   SDB_DMSCB *dmsCB,
-                                  BOOLEAN checkOnly = FALSE ) ;
-
-   INT32 rtnLoadCollectionSpace ( const CHAR *pCSName,
-                                  const CHAR *dataPath,
-                                  const CHAR *indexPath,
-                                  const CHAR *lobPath,
-                                  const CHAR *lobMetaPath,
-                                  pmdEDUCB *cb,
-                                  SDB_DMSCB *dmsCB,
                                   BOOLEAN checkOnly,
-                                  utilCSUniqueID *csUniqueIDInCata,
-                                  const BSONObj& clInfoInCata ) ;
+                                  utilCSUniqueID *csUniqueIDInCat = NULL,
+                                  const BSONObj *clInfoInCat = NULL,
+                                  const ossPoolVector<BSONObj> *idxInfoInCat = NULL ) ;
 
    INT32 rtnLoadCollectionSpaces ( const CHAR *dataPath,
                                    const CHAR *indexPath,
@@ -435,7 +432,19 @@ namespace engine
                                  SDB_DPSCB *dpsCB,
                                  BOOLEAN isSys = FALSE,
                                  INT32 sortBufferSize = SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE,
-                                 utilWriteResult *pResult = NULL ) ;
+                                 utilWriteResult *pResult = NULL,
+                                 dmsIdxTaskStatus *pIdxStatus = NULL,
+                                 BOOLEAN addUIDIfNotExist = TRUE ) ;
+   INT32 rtnCreateIndexCommand ( utilCLUniqueID clUniqID,
+                                 const BSONObj &indexObj,
+                                 _pmdEDUCB *cb,
+                                 SDB_DMSCB *dmsCB,
+                                 SDB_DPSCB *dpsCB,
+                                 BOOLEAN isSys,
+                                 INT32 sortBufferSize = SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE,
+                                 utilWriteResult *pResult = NULL,
+                                 dmsIdxTaskStatus *pIdxStatus = NULL,
+                                 BOOLEAN addUIDIfNotExist = TRUE ) ;
 
    INT32 rtnDropCollectionCommand ( const CHAR *pCollection,
                                     _pmdEDUCB *cb,
@@ -493,7 +502,17 @@ namespace engine
                                pmdEDUCB *cb,
                                SDB_DMSCB *dmsCB,
                                SDB_DPSCB *dpsCB,
-                               BOOLEAN sysCall = FALSE ) ;
+                               BOOLEAN sysCall = FALSE,
+                               dmsIdxTaskStatus *pIdxStatus = NULL,
+                               BOOLEAN onlyStandalone = FALSE ) ;
+   INT32 rtnDropIndexCommand ( utilCLUniqueID clUniqID,
+                               const BSONElement &identifier,
+                               pmdEDUCB *cb,
+                               SDB_DMSCB *dmsCB,
+                               SDB_DPSCB *dpsCB,
+                               BOOLEAN sysCall = FALSE,
+                               dmsIdxTaskStatus *pIdxStatus = NULL,
+                               BOOLEAN onlyStandalone = FALSE ) ;
 
    INT32 rtnGetCount ( const rtnQueryOptions & options,
                        SDB_DMSCB *dmsCB,
@@ -535,8 +554,7 @@ namespace engine
 
    INT32 rtnChangeUniqueID( const CHAR* csName, utilCSUniqueID csUniqueID,
                             const BSONObj& clInfoObj, pmdEDUCB* cb,
-                            SDB_DMSCB* dmsCB, SDB_DPSCB* dpsCB,
-                            BOOLEAN isLoadCS = FALSE ) ;
+                            SDB_DMSCB* dmsCB, SDB_DPSCB* dpsCB) ;
 
    INT32 rtnTestIndex( const CHAR *pCollection,
                        const CHAR *pIndexName,
@@ -698,6 +716,10 @@ namespace engine
    INT32 rtnCollectionsInSameSpace ( const CHAR *pCLNameA, UINT32 lengthA,
                                      const CHAR *pCLNameB, UINT32 lengthB,
                                      BOOLEAN &inSameSpace ) ;
+
+   /* Check whether the collections is in the space */
+   BOOLEAN rtnCollectionInTheSpace ( const CHAR *pCLName,
+                                     const CHAR *pCSName ) ;
 
    INT32 rtnConvertIndexDef( BSONObj& indexDef ) ;
 

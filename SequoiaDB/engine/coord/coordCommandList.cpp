@@ -46,6 +46,7 @@
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
 #include "catGTSDef.hpp"
+#include "coordUtil.hpp"
 
 using namespace bson ;
 
@@ -641,6 +642,120 @@ namespace engine
 
    _coordCmdListTaskIntr::~_coordCmdListTaskIntr()
    {
+   }
+
+   /*
+      _coordCmdListIndexes implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCmdListIndexes,
+                                      CMD_NAME_LIST_INDEXES,
+                                      TRUE ) ;
+   _coordCmdListIndexes::_coordCmdListIndexes()
+   {
+   }
+
+   _coordCmdListIndexes::~_coordCmdListIndexes()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORDLISTIDX_PREPCS, "_coordCmdListIndexes::_preProcess" )
+   INT32 _coordCmdListIndexes::_preProcess( rtnQueryOptions &queryOpt,
+                                            string &clName,
+                                            BSONObj &outSelector )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( COORDLISTIDX_PREPCS ) ;
+      const CHAR* collection = NULL ;
+      BOOLEAN isDataSourceCL = FALSE ;
+      BOOLEAN isHighErrLevel = FALSE ;
+      clName = CAT_INDEX_INFO_COLLECTION ;
+
+      try
+      {
+         /**
+          * Client msg: Matcher: { IndexDef.name: 'a' }
+          *             Hint:    { Collection: 'cs.cl' } ==>
+          * Coord msg : Matcher: { IndexDef.name: 'a', Collection: 'cs.cl' }
+          *             Hint:    {}
+          */
+         const BSONObj& matcher = queryOpt.getQuery() ;
+         const BSONObj& hint    = queryOpt.getHint() ;
+         BSONElement ele ;
+
+         if ( !matcher.hasField( FIELD_NAME_COLLECTION ) )
+         {
+            // reset matcher by hint's collection name
+            ele = hint.getField( FIELD_NAME_COLLECTION ) ;
+            if ( EOO != ele.type() )
+            {
+               collection = ele.valuestrsafe() ;
+
+               BSONObjBuilder builder ;
+               builder.appendElements( matcher ) ;
+               builder.appendAs( ele, FIELD_NAME_COLLECTION ) ;
+               queryOpt.setQuery( builder.obj() ) ;
+            }
+         }
+
+         queryOpt.setHint( BSONObj() ) ;
+
+         outSelector = queryOpt.getSelector() ;
+         queryOpt.setSelector( BSON( FIELD_NAME_COLLECTION <<
+                                     BSON( "$include" << 0 ) <<
+                                     FIELD_NAME_CL_UNIQUEID <<
+                                     BSON( "$include" << 0 ) <<
+                                     FIELD_NAME_NAME <<
+                                     BSON( "$include" << 0 ) ) ) ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+      }
+
+      // If it is data source collection, ignore it or report error
+      if ( collection && collection[0] != 0 )
+      {
+         rc = coordGetCLDataSource( collection, pmdGetThreadEDUCB(), _pResource,
+                                    isDataSourceCL, isHighErrLevel ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get collection[%s]'s data source, rc: %d",
+                      collection, rc ) ;
+         if ( isDataSourceCL & isHighErrLevel )
+         {
+            rc = SDB_OPERATION_INCOMPATIBLE ;
+            PD_LOG_MSG( PDERROR, "The collection[%s] mapped to a data source "
+                        "can't do %s", collection, getName() ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORDLISTIDX_PREPCS, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
+      _coordCmdListIndexesIntr implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCmdListIndexesIntr,
+                                      CMD_NAME_LIST_INDEXES_INTR,
+                                      TRUE ) ;
+   _coordCmdListIndexesIntr::_coordCmdListIndexesIntr()
+   {
+   }
+
+   _coordCmdListIndexesIntr::~_coordCmdListIndexesIntr()
+   {
+   }
+
+   INT32 _coordCmdListIndexesIntr::_preProcess( rtnQueryOptions &queryOpt,
+                                                string &clName,
+                                                BSONObj &outSelector )
+   {
+      clName = CAT_INDEX_INFO_COLLECTION ;
+      return SDB_OK ;
    }
 
    /*

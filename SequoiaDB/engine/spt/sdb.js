@@ -41,7 +41,8 @@ const SDB_SNAP_QUERIES             = 18 ;
 const SDB_SNAP_LATCHWAITS          = 19 ;
 const SDB_SNAP_LOCKWAITS           = 20 ;
 const SDB_SNAP_INDEXSTATS          = 21 ;
-
+const SDB_SNAP_TASKS               = 23 ;
+// const SDB_SNAP_INDEXES = 24, for internal use only
 const SDB_SNAP_TRANSWAITS          = 25 ;
 const SDB_SNAP_TRANSDEADLOCK       = 26 ;
 
@@ -63,6 +64,7 @@ const SDB_LIST_SEQUENCES           = 15 ;
 const SDB_LIST_USERS               = 16 ;
 const SDB_LIST_BACKUPS             = 17 ;
 const SDB_LIST_DATASOURCES         = 22 ;
+// const SDB_LIST_INDEXES = 24, for internal use only
 
 const SDB_INSERT_CONTONDUP         = 1 ;
 const SDB_INSERT_RETURN_ID         = 0x10000000 ;
@@ -597,7 +599,7 @@ SdbCollection.prototype.getIndex = function( name ) {
                      + "valid string" ) ;
       throw SDB_INVALIDARG ;
    }
-      
+
    var obj = this._getIndexes(name).next();
    if (undefined == obj)
    {
@@ -987,6 +989,28 @@ Sdb.prototype.listSequences = function() {
 
 Sdb.prototype.listReplicaGroups = function() {
    return this.list( SDB_LIST_GROUPS ) ;
+}
+
+Sdb.prototype.getTask = function( id ) {
+   if ( typeof( id ) == 'undefined' )
+   {
+      setLastErrMsg( "Task id must be config" ) ;
+      throw SDB_OUT_OF_BOUND ;
+   }
+   if ( typeof( id ) != 'number' )
+   {
+      setLastErrMsg( "Task id must be number" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   var obj = this.listTasks( { TaskID: id } ).next() ;
+   if (undefined == obj)
+   {
+      setLastError( SDB_CAT_TASK_NOTFOUND ) ;
+      setLastErrMsg( getErr( SDB_CAT_TASK_NOTFOUND ) ) ;
+      throw SDB_CAT_TASK_NOTFOUND ;
+   }
+   return obj ;
 }
 
 Sdb.prototype._resolveCS = function(csName) {

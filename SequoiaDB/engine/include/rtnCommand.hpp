@@ -600,6 +600,8 @@ namespace engine
          utilCLUniqueID          _clUniqueID ;
          UTIL_COMPRESSOR_TYPE    _compressorType ;
          BSONObj                 _extOptions ; // Store options accorrding to attributes.
+         BSONObj                 _idIdxDef ;
+         BSONObj                 _shardIdxDef ;
    };
 
    class _rtnCreateCollectionspace : public _rtnCommand
@@ -630,40 +632,6 @@ namespace engine
          INT32                      _pageSize ;
          INT32                      _lobPageSize ;
          DMS_STORAGE_TYPE           _storageType ;
-   };
-
-   class _rtnCreateIndex : public _rtnCommand
-   {
-      DECLARE_CMD_AUTO_REGISTER()
-
-      public:
-         _rtnCreateIndex () ;
-         virtual ~_rtnCreateIndex () ;
-
-         virtual const CHAR * name () ;
-         virtual RTN_COMMAND_TYPE type () ;
-         virtual BOOLEAN      writable () ;
-         virtual const CHAR * collectionFullName () ;
-         virtual utilResult* getResult() { return &_writeResult ; }
-
-         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
-                              const CHAR *pMatcherBuff,
-                              const CHAR *pSelectBuff,
-                              const CHAR *pOrderByBuff,
-                              const CHAR *pHintBuff ) ;
-         virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
-                              _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
-                              INT16 w = 1, INT64 *pContextID = NULL  ) ;
-      private:
-         INT32 _validateDef( const BSONObj &index ) ;
-      protected:
-         const CHAR              *_collectionName ;
-         BSONObj                 _index ;
-         INT32                   _sortBufferSize ;
-         BOOLEAN                 _textIdx ;
-         utilWriteResult         _writeResult ;
-
-         BOOLEAN                 _isGlobal ;
    };
 
    class _rtnDropCollection : public _rtnCommand
@@ -719,32 +687,6 @@ namespace engine
          BOOLEAN              _ensureEmpty ;
    };
 
-   class _rtnDropIndex : public _rtnCommand
-   {
-      DECLARE_CMD_AUTO_REGISTER()
-
-      public:
-         _rtnDropIndex () ;
-         virtual ~_rtnDropIndex () ;
-
-         virtual const CHAR * name () ;
-         virtual RTN_COMMAND_TYPE type () ;
-         virtual BOOLEAN      writable () ;
-         virtual const CHAR * collectionFullName () ;
-
-         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
-                              const CHAR *pMatcherBuff,
-                              const CHAR *pSelectBuff,
-                              const CHAR *pOrderByBuff,
-                              const CHAR *pHintBuff ) ;
-         virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
-                              _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
-                              INT16 w = 1, INT64 *pContextID = NULL  ) ;
-      protected:
-         const CHAR           *_collectionName ;
-         BSONObj              _index ;
-   };
-
    class _rtnGet : public _rtnCommand
    {
       protected:
@@ -778,18 +720,6 @@ namespace engine
       public:
          _rtnGetCount () ;
          virtual ~_rtnGetCount () ;
-
-         virtual const CHAR * name () ;
-         virtual RTN_COMMAND_TYPE type () ;
-   };
-
-   class _rtnGetIndexes : public _rtnGet
-   {
-      DECLARE_CMD_AUTO_REGISTER()
-
-      public:
-         _rtnGetIndexes () ;
-         virtual ~_rtnGetIndexes () ;
 
          virtual const CHAR * name () ;
          virtual RTN_COMMAND_TYPE type () ;
@@ -1566,14 +1496,16 @@ namespace engine
                            INT16 w = 1, INT64 *pContextID = NULL ) ;
 
       virtual const CHAR* spaceName () { return _csName ; }
-      void setCSUniqueID ( utilCSUniqueID csUniqueID ) ;
-      void setCLInfo ( const BSONObj& clInfoObj ) ;
+      INT32 setUniqueID( utilCSUniqueID csUniqueID,
+                         const BSONObj& clInfoObj ) ;
+      ossPoolVector<BSONObj>& getIndexVector() { return _idxInfoVector ; }
 
    protected:
-      const CHAR                 *_csName ;
-      BOOLEAN                    _needChangeID ;
+      const CHAR                *_csName ;
+      BOOLEAN                    _needChgID ;
       utilCSUniqueID             _csUniqueID ;
       BSONObj                    _clInfoObj ;
+      ossPoolVector<BSONObj>     _idxInfoVector ;
    } ;
 
    class _rtnUnloadCollectionSpace : public _rtnLoadCollectionSpace

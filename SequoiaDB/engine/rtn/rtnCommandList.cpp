@@ -89,6 +89,38 @@ namespace engine
       return FALSE ;
    }
 
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnListIndexes)
+   /*
+      _rtnListIndexes implement
+   */
+   BOOLEAN _rtnListIndexes::_isCurrent() const
+   {
+      return FALSE ;
+   }
+
+   BSONObj _rtnListIndexes::_getOptObj() const
+   {
+      try
+      {
+         BSONObj hintObj( _hintBuff ) ;
+         return hintObj ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+      return BSONObj() ;
+   }
+
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnListIndexesInner)
+   /*
+      _rtnListIndexesInner implement
+   */
+   BOOLEAN _rtnListIndexesInner::_isCurrent() const
+   {
+      return FALSE ;
+   }
+
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnListContexts)
    /*
       _rtnListContexts implement

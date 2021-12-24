@@ -79,24 +79,6 @@ namespace engine
    typedef _coordCMDStatisticsBase coordCMDStatisticsBase ;
 
    /*
-      _coordCMDGetIndexes define
-   */
-   class _coordCMDGetIndexes : public _coordCMDStatisticsBase
-   {
-      typedef ossPoolMap< string, BSONObj>      CoordIndexMap ;
-
-      COORD_DECLARE_CMD_AUTO_REGISTER() ;
-      public:
-         _coordCMDGetIndexes() ;
-         virtual ~_coordCMDGetIndexes() ;
-
-      private :
-         virtual INT32 generateResult( rtnContext *pContext,
-                                       pmdEDUCB *cb ) ;
-   } ;
-   typedef _coordCMDGetIndexes coordCMDGetIndexes ;
-
-   /*
       _coordCMDGetCount define
    */
    class _coordCMDGetCount : public _coordCMDStatisticsBase

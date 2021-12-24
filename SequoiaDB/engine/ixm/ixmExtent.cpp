@@ -2171,7 +2171,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_TRUNC, "_ixmExtent::truncate" )
    void _ixmExtent::truncate( ixmIndexCB *indexCB, dmsExtentID parent,
-                              BOOLEAN &valid )
+                              BOOLEAN &valid, UINT64 *pDelKeyCnt )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT_TRUNC );
@@ -2202,9 +2202,9 @@ namespace engine
                                             totalFreeSize ) ;
                try
                {
-                  ixmExtent( childExtentID, _pIndexSu ).truncate ( indexCB,
-                                                                   _me,
-                                                                   childValid) ;
+                  ixmExtent extent( childExtentID, _pIndexSu ) ;
+                  UINT16 keyCnt = extent.getNumKeyNode() ;
+                  extent.truncate( indexCB, _me, childValid, pDelKeyCnt ) ;
                   // If the child extent is invalid, it's safer not to release
                   // it, and its space will be lost...
                   // It happend that the child extent is the index CB extent,
@@ -2214,6 +2214,10 @@ namespace engine
                   {
                      indexCB->freeExtent ( childExtentID ) ;
                      pPageMap->rmItem( childExtentID ) ;
+                     if ( pDelKeyCnt )
+                     {
+                        (*pDelKeyCnt) += keyCnt ;
+                     }
                   }
                }
                catch ( std::exception &e )

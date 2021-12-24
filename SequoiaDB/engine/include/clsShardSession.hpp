@@ -405,7 +405,7 @@ namespace engine
                              SINT64 &contextID,
                              BSONObjBuilder *pBuilder );
 
-         INT32 _getOnMainCL( const CHAR *pCommand,
+         INT32 _getOnMainCL( const CHAR *pCommandName,
                              const CHAR *pCollection,
                              INT32 flags,
                              INT64 numToSkip,
@@ -417,21 +417,35 @@ namespace engine
                              INT16 w,
                              SINT64 &contextID );
 
-         INT32 _createIndexOnMainCL( const CHAR *pCommand,
+         INT32 _createIndexOnMainCL( const CHAR *pCommandName,
                                      const CHAR *pCollection,
                                      const CHAR *pQuery,
                                      const CHAR *pHint,
                                      INT16 w,
-                                     SINT64 &contextID,
-                                     BOOLEAN syscall = FALSE,
-                                     BSONObjBuilder *pBuilder = NULL );
+                                     BSONObjBuilder *pBuilder ) ;
+         INT32 _createConsistentIndex( const BSONObj &boMatcher,
+                                       const BSONObj &boHint ) ;
+         INT32 _createStandaloneIndex( const CHAR *pCollection,
+                                       const BSONObj &boMatcher,
+                                       const BSONObj &boHint,
+                                       BSONObjBuilder *pBuilder ) ;
 
-         INT32 _dropIndexOnMainCL( const CHAR *pCommand,
+         INT32 _dropIndexOnMainCL( const CHAR *pCommandName,
                                    const CHAR *pCollection,
                                    const CHAR *pQuery,
-                                   INT16 w,
-                                   SINT64 &contextID,
-                                   BOOLEAN syscall = FALSE ) ;
+                                   const CHAR *pHint,
+                                   INT16 w ) ;
+         INT32 _dropConsistentIndex( const BSONObj &boMatcher,
+                                     const BSONObj &boHint ) ;
+         INT32 _dropStandaloneIndex( const CHAR *pCollection,
+                                     const BSONObj &boMatcher,
+                                     const BSONObj &boHint ) ;
+
+         INT32 _copyIndexOnMainCL( const CHAR *pCommandName,
+                                   const CHAR *pCollection,
+                                   const CHAR *pQuery,
+                                   const CHAR *pHint,
+                                   INT16 w ) ;
 
          INT32 _dropMainCL( const CHAR *pCollection,
                            INT16 w,
@@ -583,6 +597,11 @@ namespace engine
             _cmdCollectionName.clear() ;
             _pCollectionName = NULL ;
          }
+
+         INT32 _getCSInfoWhenLoadCS( _rtnLoadCollectionSpace* pCommand ) ;
+
+         INT32 _getIndexInfoFromCatalog( utilCLUniqueID clUniqID,
+                                         ossPoolVector<BSONObj> &indexInfo ) ;
 
       protected:
          _clsReplicateSet       *_pReplSet ;

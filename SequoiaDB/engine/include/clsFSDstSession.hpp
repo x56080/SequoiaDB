@@ -105,6 +105,7 @@ namespace engine
          INT32  lobPageSize ;
          UTIL_COMPRESSOR_TYPE compType ;
          BSONObj extOptions ;
+         BSONObj idIdxDef ;
          const CHAR *dictionary ;
          UINT32 dictSize ;
 
@@ -315,9 +316,9 @@ namespace engine
                               // update catalog in local, and check it
          STEP_END_NTY ,       // notify the peer node to update catalog and
                               // check it
-         STEP_FINISH,         // notify catalog get all data, will to clean
+         STEP_PRE_CLEANUP,    // notify catalog to change status to cleanup
          STEP_CLEANUP ,       // notify the peer node to clean up data
-         STEP_REMOVE,         // remove notify to catalog
+         STEP_FINISH,         // notify catalog to finish
          STEP_END
       };
 

@@ -178,6 +178,7 @@ namespace engine
       clsCB *pClsCB = sdbGetClsCB() ;
       shardCB *pShdMgr = pClsCB->getShardCB() ;
       clsTaskMgr *pTaskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
+       dmsTaskStatusMgr *pTaskStatMgr = pRtnCB->getTaskStatusMgr() ;
       CLS_SUBCL_LIST subCLs ;
       CLS_SUBCL_LIST_IT it ;
       ossPoolSet< string > mainCLs ;
@@ -220,6 +221,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to drop cs in phase2(%d)", rc ) ;
          _status = DELCSPHASE_0 ;
+         pTaskStatMgr->dropCS( _name ) ;
          _clean( cb ) ;
       }
       else
@@ -327,11 +329,12 @@ namespace engine
 
    void _rtnContextDelCS::_clean( _pmdEDUCB *cb )
    {
-      INT32 rcTmp = SDB_OK;
-      rcTmp = _releaseLock( cb );
+      INT32 rcTmp = SDB_OK ;
+
+      rcTmp = _releaseLock( cb ) ;
       if ( rcTmp )
       {
-         PD_LOG( PDERROR, "releas lock failed, rc: %d", rcTmp );
+         PD_LOG( PDERROR, "releas lock failed, rc: %d", rcTmp ) ;
       }
       if ( _gotDmsCBWrite )
       {
@@ -340,7 +343,7 @@ namespace engine
       }
       if ( _gotLogSize > 0 )
       {
-         _pTransCB->releaseLogSpace( _gotLogSize, cb );
+         _pTransCB->releaseLogSpace( _gotLogSize, cb ) ;
          _gotLogSize = 0;
       }
    }
@@ -516,6 +519,7 @@ namespace engine
       SDB_RTNCB * pRtnCB = pmdGetKRCB()->getRTNCB() ;
       clsCB * pClsCB = pmdGetKRCB()->getClsCB() ;
       clsTaskMgr * pTaskMgr = pClsCB->getTaskMgr() ;
+      dmsTaskStatusMgr *pTaskStatMgr = pRtnCB->getTaskStatusMgr() ;
       CHAR mainCL[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { '\0' } ;
 
       _pCatAgent->lock_w () ;
@@ -556,6 +560,7 @@ namespace engine
 
       _hasDropped = TRUE ;
 
+      pTaskStatMgr->dropCL( _collectionName ) ;
       _clean( cb ) ;
       rc = SDB_DMS_EOC ;
 
@@ -1057,6 +1062,7 @@ namespace engine
       SDB_RTNCB *pRtnCB = sdbGetRTNCB() ;
       clsCB *pClsCB = sdbGetClsCB() ;
       shardCB *pShdMgr = pClsCB->getShardCB() ;
+      dmsTaskStatusMgr* pTaskStatMgr = sdbGetRTNCB()->getTaskStatusMgr() ;
       CLS_SUBCL_LIST subCLs ;
       CLS_SUBCL_LIST_IT it ;
       ossPoolSet< string > mainCLs ;
@@ -1117,6 +1123,8 @@ namespace engine
          {
             PD_LOG( PDWARNING, "Failed to clear rename info, rc: %d", rc ) ;
          }
+
+         pTaskStatMgr->renameCS( _oldName, _newName ) ;
 
          _status = RENAMECSPHASE_0 ;
          _releaseLock( cb ) ;
@@ -1415,6 +1423,7 @@ namespace engine
       ossMemset( _clShortName, 0, sizeof( _clShortName ) ) ;
       ossMemset( _newCLShortName, 0, sizeof( _newCLShortName ) ) ;
       ossMemset( _clFullName, 0, sizeof( _clFullName ) ) ;
+      ossMemset( _newCLFullName, 0, sizeof( _newCLFullName ) ) ;
    }
 
    _rtnContextRenameCL::~_rtnContextRenameCL()
@@ -1469,7 +1478,6 @@ namespace engine
       INT32 rcNew = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNCTXRENAMECL_OPEN ) ;
 
-      CHAR newCLFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
       rtnLTRename *pRenameTask = NULL ;
       utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
 
@@ -1503,13 +1511,13 @@ namespace engine
       ossStrncpy( _newCLShortName, newCLShortName, DMS_COLLECTION_NAME_SZ ) ;
       ossSnprintf( _clFullName, sizeof( _clFullName ),
                    "%s.%s", csName, clShortName ) ;
-      ossSnprintf( newCLFullName, sizeof( newCLFullName ),
+      ossSnprintf( _newCLFullName, sizeof( _newCLFullName ),
                    "%s.%s", csName, newCLShortName ) ;
 
       /// test collection space exist
       rc = rtnTestCollectionCommand( _clFullName, _pDmsCB, NULL, &clUniqueID ) ;
 
-      rcNew = rtnTestCollectionCommand( newCLFullName, _pDmsCB ) ;
+      rcNew = rtnTestCollectionCommand( _newCLFullName, _pDmsCB ) ;
 
       if ( SDB_DMS_NOTEXIST == rc && SDB_OK == rcNew )
       {
@@ -1519,7 +1527,7 @@ namespace engine
          _isOpened = TRUE ;
          rc = SDB_OK ;
          PD_LOG( PDINFO, "Old cl[%s] does not exist, but new cl[%s] "
-                 "already exists, ignore error", _clFullName, newCLFullName ) ;
+                 "already exists, ignore error", _clFullName, _newCLFullName ) ;
          goto done ;
       }
       if ( rc )
@@ -1532,7 +1540,7 @@ namespace engine
       {
          rc = SDB_DMS_EXIST ;
          PD_LOG( PDERROR, "Collection[%s] already exists, rc: %d",
-                 newCLFullName, rc ) ;
+                 _newCLFullName, rc ) ;
          goto error ;
       }
 
@@ -1559,7 +1567,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Alloc rename task failed, rc: %d", rc ) ;
 
          pRenameTask = ( rtnLTRename* )_taskPtr.get() ;
-         pRenameTask->setInfo( _clFullName, newCLFullName ) ;
+         pRenameTask->setInfo( _clFullName, _newCLFullName ) ;
 
          while( TRUE )
          {
@@ -1613,6 +1621,7 @@ namespace engine
 
       SDB_RTNCB * pRtnCB = pmdGetKRCB()->getRTNCB() ;
       clsCB * pClsCB = pmdGetKRCB()->getClsCB() ;
+      dmsTaskStatusMgr* pTaskStatMgr = sdbGetRTNCB()->getTaskStatusMgr() ;
       CHAR mainCL[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { '\0' } ;
 
       if ( _skipGetMore )
@@ -1643,6 +1652,8 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to rename collection from [%s] to [%s], rc: %d",
                    _clShortName, _newCLShortName, rc ) ;
+
+      pTaskStatMgr->renameCL( _clFullName, _newCLFullName ) ;
 
       _releaseLock( cb ) ;
 

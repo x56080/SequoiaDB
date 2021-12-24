@@ -56,12 +56,17 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, pop )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, count )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, createIndex )
+   JS_MEMBER_FUNC_DEFINE( _sptDBCL, createIndexAsync )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, getIndexes )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, dropIndex )
+   JS_MEMBER_FUNC_DEFINE( _sptDBCL, dropIndexAsync )
+   JS_MEMBER_FUNC_DEFINE( _sptDBCL, copyIndex )
+   JS_MEMBER_FUNC_DEFINE( _sptDBCL, copyIndexAsync )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, bulkInsert )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, split )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, splitAsync )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, aggregate )
+   JS_MEMBER_FUNC_DEFINE( _sptDBCL, snapshotIndexes )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, alter )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, attachCL )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, detachCL )
@@ -99,12 +104,17 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "pop", pop )
       JS_ADD_MEMBER_FUNC( "_count", count )
       JS_ADD_MEMBER_FUNC( "createIndex", createIndex )
+      JS_ADD_MEMBER_FUNC( "createIndexAsync", createIndexAsync )
       JS_ADD_MEMBER_FUNC( "_getIndexes", getIndexes )
       JS_ADD_MEMBER_FUNC( "dropIndex", dropIndex )
+      JS_ADD_MEMBER_FUNC( "dropIndexAsync", dropIndexAsync )
+      JS_ADD_MEMBER_FUNC( "copyIndex", copyIndex )
+      JS_ADD_MEMBER_FUNC( "copyIndexAsync", copyIndexAsync )
       JS_ADD_MEMBER_FUNC( "_bulkInsert", bulkInsert )
       JS_ADD_MEMBER_FUNC( "split", split )
       JS_ADD_MEMBER_FUNC( "splitAsync", splitAsync )
       JS_ADD_MEMBER_FUNC( "aggregate", aggregate )
+      JS_ADD_MEMBER_FUNC( "snapshotIndexes", snapshotIndexes )
       JS_ADD_MEMBER_FUNC( "alter", alter )
       JS_ADD_MEMBER_FUNC( "attachCL", attachCL )
       JS_ADD_MEMBER_FUNC( "detachCL", detachCL )
@@ -891,16 +901,15 @@ namespace engine
       goto done ;
    }
 
-   INT32 _sptDBCL::createIndex( const _sptArguments &arg,
-                                _sptReturnVal &rval,
-                                bson::BSONObj &detail )
+   INT32 _sptDBCL::_createIndex( const _sptArguments &arg,
+                                 _sptReturnVal &rval,
+                                 bson::BSONObj &detail,
+                                 BOOLEAN isAsync )
    {
       INT32 rc = SDB_OK ;
       BSONObj indexDef ;
       string indexName ;
-      INT32 isUnique = FALSE ;
-      INT32 isEnforced = FALSE ;
-      INT32 sortBufferSize = SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE ;
+      SINT64 taskID = -1 ;
 
       rc = arg.getString( 0, indexName ) ;
       if( SDB_OUT_OF_BOUND == rc )
@@ -926,58 +935,117 @@ namespace engine
          goto error ;
       }
 
-      // arg2 may be options object or native type
-      if ( arg.isObject( 2 ) )
+      if ( 2 == arg.argc() )
       {
-         BSONObj options ;
-         rc = arg.getBsonobj( 2, options ) ;
+         if ( isAsync )
+         {
+            rc = _cl.createIndexAsync( taskID, indexDef, indexName.c_str() ) ;
+         }
+         else
+         {
+            rc = _cl.createIndex( indexDef, indexName.c_str() ) ;
+         }
+      }
+      else if ( arg.isObject( 2 ) )
+      {
+         // Format 1:
+         //    cl.createIndex('aIdx', {a:1}, {unique:true}, {standalone:false})
+         BSONObj option, indexAttr ;
+
+         rc = arg.getBsonobj( 2, indexAttr ) ;
          if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
          {
-            detail = BSON( SPT_ERR << "Options must be obj" ) ;
+            detail = BSON( SPT_ERR << "IndexAttr must be obj" ) ;
             goto error ;
          }
 
-         rc = _cl.createIndex( indexDef, indexName.c_str(), options ) ;
-         if( SDB_OK != rc )
+         rc = arg.getBsonobj( 3, option ) ;
+         if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
          {
-            detail = BSON( SPT_ERR << "Failed to create index" ) ;
+            detail = BSON( SPT_ERR << "Option must be obj" ) ;
             goto error ;
          }
-         goto done ;
-      }
 
-      rc = arg.getNative( 2, &isUnique, SPT_NATIVE_INT32 ) ;
-      if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+         if ( isAsync )
+         {
+            rc = _cl.createIndexAsync( taskID, indexDef, indexName.c_str(),
+                                       indexAttr, option ) ;
+         }
+         else
+         {
+            rc = _cl.createIndex( indexDef, indexName.c_str(),
+                                  indexAttr, option ) ;
+         }
+      }
+      else
       {
-         detail = BSON( SPT_ERR << "IsUnique must be bool" ) ;
-         goto error ;
+         if ( isAsync )
+         {
+            rc = SDB_INVALIDARG ;
+            detail = BSON( SPT_ERR << "IndexAttr must be obj" ) ;
+            goto error ;
+         }
+
+         // Format 2:
+         //    cl.createIndex( 'aIdx', {a:1}, true, true, 512 )
+         INT32 isUnique = FALSE ;
+         INT32 isEnforced = FALSE ;
+         INT32 sortBufferSize = SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE ;
+
+         rc = arg.getNative( 2, &isUnique, SPT_NATIVE_INT32 ) ;
+         if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+         {
+            detail = BSON( SPT_ERR << "IsUnique must be bool" ) ;
+            goto error ;
+         }
+
+         rc = arg.getNative( 3, &isEnforced, SPT_NATIVE_INT32 ) ;
+         if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+         {
+            detail = BSON( SPT_ERR << "Enforced must be bool" ) ;
+            goto error ;
+         }
+
+         rc = arg.getNative( 4, &sortBufferSize, SPT_NATIVE_INT32 ) ;
+         if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+         {
+            detail = BSON( SPT_ERR << "SortBufferSize must be number" ) ;
+            goto error ;
+         }
+
+         rc = _cl.createIndex( indexDef, indexName.c_str(),
+                               isUnique, isEnforced,
+                               sortBufferSize ) ;
       }
 
-      rc = arg.getNative( 3, &isEnforced, SPT_NATIVE_INT32 ) ;
-      if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
-      {
-         detail = BSON( SPT_ERR << "Enforced must be bool" ) ;
-         goto error ;
-      }
-
-      rc = arg.getNative( 4, &sortBufferSize, SPT_NATIVE_INT32 ) ;
-      if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
-      {
-         detail = BSON( SPT_ERR << "SortBufferSize must be number" ) ;
-         goto error ;
-      }
-
-      rc = _cl.createIndex( indexDef, indexName.c_str(), isUnique,
-                             isEnforced, sortBufferSize ) ;
       if( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Failed to create index" ) ;
          goto error ;
       }
+      if ( isAsync )
+      {
+         // return taskid
+         rval.getReturnVal().setValue( taskID ) ;
+      }
    done:
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 _sptDBCL::createIndex( const _sptArguments &arg,
+                                _sptReturnVal &rval,
+                                bson::BSONObj &detail )
+   {
+      return _createIndex( arg, rval, detail, FALSE ) ;
+   }
+
+   INT32 _sptDBCL::createIndexAsync( const _sptArguments &arg,
+                                     _sptReturnVal &rval,
+                                     bson::BSONObj &detail )
+   {
+      return _createIndex( arg, rval, detail, TRUE ) ;
    }
 
    INT32 _sptDBCL::getIndexes( const _sptArguments &arg,
@@ -1013,12 +1081,15 @@ namespace engine
       goto done ;
    }
 
-   INT32 _sptDBCL::dropIndex( const _sptArguments &arg,
-                              _sptReturnVal &rval,
-                              bson::BSONObj &detail )
+   INT32 _sptDBCL::_dropIndex( const _sptArguments &arg,
+                               _sptReturnVal &rval,
+                               bson::BSONObj &detail,
+                               BOOLEAN isAsync )
    {
       INT32 rc = SDB_OK ;
       string name ;
+      INT64 taskID = -1 ;
+
       // Get index name
       rc = arg.getString( 0, name ) ;
       if( SDB_OUT_OF_BOUND == rc )
@@ -1031,16 +1102,121 @@ namespace engine
          detail = BSON( SPT_ERR << "Name must be string" ) ;
          goto error ;
       }
-      rc = _cl.dropIndex( name.c_str() ) ;
+
+      // drop index
+      if ( isAsync )
+      {
+         rc = _cl.dropIndexAsync( taskID, name.c_str() ) ;
+      }
+      else
+      {
+         rc = _cl.dropIndex( name.c_str() ) ;
+      }
       if( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Failed to drop index" ) ;
          goto error ;
       }
+
+      // return taskID
+      if ( isAsync )
+      {
+         rval.getReturnVal().setValue( taskID ) ;
+      }
    done:
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 _sptDBCL::dropIndex( const _sptArguments &arg,
+                              _sptReturnVal &rval,
+                              bson::BSONObj &detail )
+   {
+      return _dropIndex( arg, rval, detail, FALSE ) ;
+   }
+
+   INT32 _sptDBCL::dropIndexAsync( const _sptArguments &arg,
+                                   _sptReturnVal &rval,
+                                   bson::BSONObj &detail )
+   {
+      return _dropIndex( arg, rval, detail, TRUE ) ;
+   }
+
+   INT32 _sptDBCL::_copyIndex( const _sptArguments &arg,
+                               _sptReturnVal &rval,
+                               bson::BSONObj &detail,
+                               BOOLEAN isAsync )
+   {
+      INT32 rc = SDB_OK ;
+      string collectionStr, indexStr ;
+      const CHAR* collection = NULL ;
+      const CHAR* indexName = NULL ;
+      BSONObj option ;
+      INT64 taskID = 0 ;
+
+      // Get collection name
+      rc = arg.getString( 0, collectionStr ) ;
+      if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+      {
+         detail = BSON( SPT_ERR << "SubCLName must be string" ) ;
+         goto error ;
+      }
+      if ( !collectionStr.empty() )
+      {
+         collection = collectionStr.c_str() ;
+      }
+
+      // Get index name
+      rc = arg.getString( 1, indexStr ) ;
+      if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+      {
+         detail = BSON( SPT_ERR << "IndexName must be string" ) ;
+         goto error ;
+      }
+      if ( !indexStr.empty() )
+      {
+         indexName = indexStr.c_str() ;
+      }
+
+      // copy index
+      if ( isAsync )
+      {
+         rc = _cl.copyIndexAsync( taskID, collection, indexName ) ;
+      }
+      else
+      {
+         rc = _cl.copyIndex( collection, indexName ) ;
+      }
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to copy index" ) ;
+         goto error ;
+      }
+
+      // return taskID
+      if ( isAsync )
+      {
+         rval.getReturnVal().setValue( taskID ) ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBCL::copyIndex( const _sptArguments &arg,
+                              _sptReturnVal &rval,
+                              bson::BSONObj &detail )
+   {
+      return _copyIndex( arg, rval, detail, FALSE ) ;
+   }
+
+   INT32 _sptDBCL::copyIndexAsync( const _sptArguments &arg,
+                                   _sptReturnVal &rval,
+                                   bson::BSONObj &detail )
+   {
+      return _copyIndex( arg, rval, detail, TRUE ) ;
    }
 
    INT32 _sptDBCL::bulkInsert( const _sptArguments &arg,
@@ -1310,6 +1486,50 @@ namespace engine
          goto error ;
       }
       SPT_SET_CURSOR_TO_RETURNVAL( pCursor ) ;
+   done:
+      return rc ;
+   error:
+      SAFE_OSS_DELETE( pCursor ) ;
+      goto done ;
+   }
+
+   INT32 _sptDBCL::snapshotIndexes( const _sptArguments &arg,
+                                    _sptReturnVal &rval,
+                                    bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      _sdbCursor *pCursor = NULL ;
+      BSONObj matcher, selector, orderby ;
+
+      rc = arg.getBsonobj( 0, matcher, TRUE ) ;
+      if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+      {
+         detail = BSON( SPT_ERR << "Condition must be obj" ) ;
+         goto error ;
+      }
+
+      rc = arg.getBsonobj( 1, selector, TRUE ) ;
+      if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+      {
+         detail = BSON( SPT_ERR << "Selector must be obj" ) ;
+         goto error ;
+      }
+
+      rc = arg.getBsonobj( 2, orderby, TRUE ) ;
+      if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+      {
+         detail = BSON( SPT_ERR << "Orderby must be obj" ) ;
+         goto error ;
+      }
+
+      rc = _cl.snapshotIndexes( &pCursor, matcher, selector, orderby ) ;
+      if( SDB_OK != rc && SDB_DMS_EOC != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to snapshot indexes" ) ;
+         goto error ;
+      }
+      SPT_SET_CURSOR_TO_RETURNVAL( pCursor ) ;
+
    done:
       return rc ;
    error:

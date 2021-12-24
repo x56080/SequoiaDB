@@ -1003,6 +1003,8 @@ namespace engine
                                  &RestToMSGTransfer::_convertSnapshotLockWaits },
          { CMD_NAME_SNAPSHOT_INDEXSTATS,
                                  &RestToMSGTransfer::_convertSnapshotIndexStats },
+         { CMD_NAME_SNAPSHOT_TASKS,
+                                 &RestToMSGTransfer::_convertSnapshotTasks },
          { CMD_NAME_SNAPSHOT_TRANSWAITS,
                                  &RestToMSGTransfer::_convertSnapshotTransWaits },
          { CMD_NAME_SNAPSHOT_TRANSDEADLOCK,
@@ -3926,6 +3928,15 @@ namespace engine
                                                         MsgHeader** msg )
    {
       const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_INDEXSTATS ;
+
+      return  _convertSnapshotBase( pAdaptor, request, pCommand, msg ) ;
+   }
+
+   INT32 RestToMSGTransfer::_convertSnapshotTasks ( restAdaptor * pAdaptor,
+                                                    restRequest &request,
+                                                    MsgHeader ** msg )
+   {
+      const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TASKS ;
 
       return  _convertSnapshotBase( pAdaptor, request, pCommand, msg ) ;
    }

@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dmsIdxTaskStatus.cpp
+   Source File Name = dmsTaskStatus.cpp
 
    Dependencies: N/A
 
@@ -29,7 +29,7 @@
    Last Changed =
 
 *******************************************************************************/
-#include "dmsIdxTaskStatus.hpp"
+#include "dmsTaskStatus.hpp"
 #include "dmsTrace.hpp"
 #include "pd.hpp"
 #include "msgDef.hpp"
@@ -40,6 +40,10 @@ namespace engine
    {
       switch( taskType )
       {
+         case DMS_TASK_SPLIT :
+            return VALUE_NAME_SPLIT ;
+         case DMS_TASK_SEQUENCE :
+            return VALUE_NAME_ALTERSEQUENCE ;
          case DMS_TASK_CREATE_IDX :
             return VALUE_NAME_CREATEIDX ;
          case DMS_TASK_DROP_IDX :
@@ -54,6 +58,8 @@ namespace engine
    {
       switch( taskStatus )
       {
+         case DMS_TASK_STATUS_READY :
+            return VALUE_NAME_READY ;
          case DMS_TASK_STATUS_RUN :
             return VALUE_NAME_RUNNING ;
          case DMS_TASK_STATUS_PAUSE :
@@ -76,34 +82,61 @@ namespace engine
       return "Unknown" ;
    }
 
-   #define DMS_BYTE_TO_MBYTE     ( 1048576.0 )
-   #define DMS_TASK_PROGRESS_100 ( 100 ) // 100%
+   const CHAR* dmsOpInfoStr( DMS_OPINFO_TYPE infoType )
+   {
+      switch( infoType )
+      {
+         case OPINFO_SCAN_DATA :
+            return DMS_OPINFO_STR_SCANDATA ;
+         case OPINFO_SORT_DATA :
+            return DMS_OPINFO_STR_SORTDATA ;
+         case OPINFO_INSERT_KEY :
+            return DMS_OPINFO_STR_INSERTKEY ;
+         case OPINFO_SCAN_THEN_INSERT :
+            return DMS_OPINFO_STR_SCANTHENINSERT ;
+         default :
+            break ;
+      }
+      return "" ;
+   }
+
+   #define DMS_TASK_PROGRESS_100     ( 100 )      // 100%
+   #define DMS_TASK_EXPIRED_TIME     ( 1800 )     // second, 30 min
 
    _dmsIdxTaskStatus::_dmsIdxTaskStatus( DMS_TASK_TYPE taskType,
                                          UINT64 taskID,
                                          UINT32 locationID,
                                          UINT64 mainTaskID )
-   :_taskType( taskType ),
-    _taskID( taskID ),
+   :_dmsTaskStatus( taskID ),
+    _taskType( taskType ),
     _locationID( locationID ),
     _mainTaskID( mainTaskID ),
-    _cataTaskStatus( DMS_TASK_STATUS_RUN ),
-    _dataTaskStatus( DMS_TASK_STATUS_RUN ),
+    _taskStatus( DMS_TASK_STATUS_READY ),
+    _clUniqueID( UTIL_UNIQUEID_NULL ),
     _sortBufSize( SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE ),
     _isStandaloneIdx( FALSE ),
     _isGlobalIdx( FALSE ),
-    _totalPageNum( 0 ),
-    _processedPageNum( 0 ),
-    _pageSizeSquareRoot( 0 ),
-    _pcsPageNumLastTime( 0 ),
+    _totalRecNum( 0 ),
+    _pcsedRecNum( 0 ),
+    _pcsRecNumLastTime( 0 ),
     _retryCnt( 0 ),
     _resultCode( SDB_OK ),
+    _opInfo( OPINFO_UNKNOWN ),
     _progress( 0 ),
-    _speed( 0.0 ),
+    _speed( 0 ),
     _timeSpent( 0.0 ),
     _timeLeft( 0.0 ),
     _isInitialized( FALSE )
    {
+      if ( DMS_IS_DUMMY_CATTASKID( taskID ) )
+      {
+         _hasCatalogTask = FALSE ;
+      }
+      else
+      {
+         _hasCatalogTask = TRUE ;
+      }
+      _pauseReport = FALSE ;
       ossMemset( _clFullName, 0, DMS_COLLECTION_FULL_NAME_SZ + 1 ) ;
       ossMemset( _indexName,  0, IXM_INDEX_NAME_SIZE + 1 ) ;
       ossGetCurrentTime( _beginTimestamp ) ;
@@ -116,23 +149,25 @@ namespace engine
       _taskID = rhs._taskID ;
       _locationID = rhs._locationID ;
       _mainTaskID = rhs._mainTaskID ;
-      _cataTaskStatus = rhs._cataTaskStatus ;
-      _dataTaskStatus = rhs._dataTaskStatus ;
+      _hasCatalogTask = rhs._hasCatalogTask ;
+      _pauseReport = rhs._pauseReport ;
+      _taskStatus = rhs._taskStatus ;
       ossStrncpy( _clFullName, rhs._clFullName, DMS_COLLECTION_FULL_NAME_SZ ) ;
+      _clUniqueID = rhs._clUniqueID ;
       _indexDef = rhs._indexDef.getOwned() ;
       ossStrncpy( _indexName, rhs._indexName, IXM_INDEX_NAME_SIZE ) ;
       _sortBufSize = rhs._sortBufSize ;
       _isStandaloneIdx = rhs._isStandaloneIdx ;
       _isGlobalIdx = rhs._isGlobalIdx ;
-      _totalPageNum = rhs._totalPageNum ;
-      _processedPageNum = rhs._processedPageNum ;
-      _pageSizeSquareRoot = rhs._pageSizeSquareRoot ;
-      _pcsPageNumLastTime = rhs._pcsPageNumLastTime ;
+      _totalRecNum = rhs._totalRecNum ;
+      _pcsedRecNum = rhs._pcsedRecNum ;
+      _pcsRecNumLastTime = rhs._pcsRecNumLastTime ;
       _calculateTimestamp = rhs._calculateTimestamp ;
       _beginTimestamp = rhs._beginTimestamp ;
       _endTimestamp = rhs._endTimestamp ;
       _retryCnt = rhs._retryCnt ;
       _resultCode = rhs._resultCode ;
+      _opInfo = rhs._opInfo ;
       _progress = rhs._progress ;
       _speed = rhs._speed ;
       _timeSpent = rhs._timeSpent ;
@@ -143,13 +178,14 @@ namespace engine
 
    void _dmsIdxTaskStatus::setStatus( DMS_TASK_STATUS status )
    {
-      _dataTaskStatus = status ;
+      _taskStatus = status ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSIDXTASKSTAT_INIT, "_dmsIdxTaskStatus::init" )
    INT32 _dmsIdxTaskStatus::init( const CHAR* collectionName,
                                   const BSONObj& index,
-                                  INT32 sortBufSize )
+                                  INT32 sortBufSize,
+                                  utilCLUniqueID clUniqID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_DMSIDXTASKSTAT_INIT ) ;
@@ -161,6 +197,7 @@ namespace engine
 
       // colection
       ossStrncpy( _clFullName, collectionName, DMS_COLLECTION_FULL_NAME_SZ ) ;
+      _clUniqueID = clUniqID ;
 
       // index definition
       try
@@ -234,9 +271,9 @@ namespace engine
       }
       if ( DMS_TASK_MASK_STATUS & mask )
       {
-         builder.append( FIELD_NAME_STATUS, _dataTaskStatus ) ;
+         builder.append( FIELD_NAME_STATUS, _taskStatus ) ;
          builder.append( FIELD_NAME_STATUSDESC,
-                         dmsTaskStatusStr( _dataTaskStatus ) ) ;
+                         dmsTaskStatusStr( _taskStatus ) ) ;
       }
       if ( DMS_TASK_MASK_TASKTYPE & mask )
       {
@@ -247,6 +284,11 @@ namespace engine
       if ( DMS_TASK_MASK_CLNAME & mask )
       {
          builder.append( FIELD_NAME_NAME, _clFullName ) ;
+         // If collection unique id is not set, we don't display UniqueID field.
+         if ( _clUniqueID != UTIL_UNIQUEID_NULL )
+         {
+            builder.append( FIELD_NAME_UNIQUEID, (INT64)_clUniqueID ) ;
+         }
       }
       if ( DMS_TASK_MASK_IDXNAME & mask )
       {
@@ -270,7 +312,7 @@ namespace engine
       {
          builder.append( FIELD_NAME_RESULTCODE, _resultCode ) ;
          builder.append( FIELD_NAME_RESULTCODEDESC,
-                         DMS_TASK_STATUS_FINISH == _dataTaskStatus ?
+                         DMS_TASK_STATUS_FINISH == _taskStatus ?
                          getErrDesp( _resultCode ) : "" ) ;
       }
       if ( DMS_TASK_MASK_RESULTINFO & mask )
@@ -279,7 +321,7 @@ namespace engine
       }
       if ( DMS_TASK_MASK_OPINFO & mask )
       {
-         builder.append( FIELD_NAME_OPINFO, _opInfo.c_str() ) ;
+         builder.append( FIELD_NAME_OPINFO, dmsOpInfoStr( _opInfo ) ) ;
       }
       if ( DMS_TASK_MASK_RETRYCNT & mask )
       {
@@ -291,7 +333,7 @@ namespace engine
       }
       if ( DMS_TASK_MASK_SPEED & mask )
       {
-         builder.append( FIELD_NAME_SPEED, _speed ) ;
+         builder.append( FIELD_NAME_SPEED, (INT64)_speed ) ;
       }
       if ( DMS_TASK_MASK_TIMESPENT & mask )
       {
@@ -304,25 +346,23 @@ namespace engine
 
       if ( DMS_TASK_MASK_TOTALSZ & mask )
       {
-         INT64 totalSize = _totalPageNum << _pageSizeSquareRoot ;
-         builder.append( FIELD_NAME_TOTAL_SIZE, totalSize ) ;
+         builder.append( FIELD_NAME_TOTAL_RECORDS, (INT64)_totalRecNum ) ;
       }
       if ( DMS_TASK_MASK_PROCESSSZ & mask )
       {
-         INT64 pcsedSize = _processedPageNum << _pageSizeSquareRoot ;
-         builder.append( FIELD_NAME_PROCESSED_SIZE, pcsedSize ) ;
+         builder.append( FIELD_NAME_PROCESSED_RECORDS, (INT64)_pcsedRecNum ) ;
       }
 
       PD_TRACE_EXIT( SDB_DMSIDXTASKSTAT_TOBSON ) ;
       return builder.obj() ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSIDXTASKSTAT_CAL, "_dmsIdxTaskStatus::calculate" )
-   void _dmsIdxTaskStatus::calculate()
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSIDXTASKSTAT_UPPGS, "_dmsIdxTaskStatus::updateProgress" )
+   void _dmsIdxTaskStatus::updateProgress()
    {
-      PD_TRACE_ENTRY( SDB_DMSIDXTASKSTAT_CAL ) ;
+      PD_TRACE_ENTRY( SDB_DMSIDXTASKSTAT_UPPGS ) ;
 
-      BOOLEAN isFirstCalculate = _pcsPageNumLastTime == 0 ? TRUE : FALSE ;
+      BOOLEAN isFirstCalculate = _pcsRecNumLastTime == 0 ? TRUE : FALSE ;
       ossTimestamp currentTimestamp ;
       ossGetCurrentTime( currentTimestamp ) ;
 
@@ -356,14 +396,11 @@ namespace engine
 
          if ( calTimeInterval != 0.0 )
          {
-            UINT32 pcsNumThisTime = _processedPageNum - _pcsPageNumLastTime ;
-            UINT64 pcsSizeThisTime = (UINT64)pcsNumThisTime <<
-                                     _pageSizeSquareRoot ;
-            _speed = pcsSizeThisTime / DMS_BYTE_TO_MBYTE / calTimeInterval ;
+            _speed = ( _pcsedRecNum - _pcsRecNumLastTime ) / calTimeInterval ;
          }
          else
          {
-            _speed = 0.0 ;
+            _speed = 0 ;
          }
 
          UINT64 beginTime = _beginTimestamp.time * 1000000 +
@@ -375,9 +412,9 @@ namespace engine
       else
       {
          // progress
-         if ( _totalPageNum != 0 )
+         if ( _totalRecNum != 0 )
          {
-            FLOAT32 percentage = (FLOAT32)_processedPageNum / _totalPageNum ;
+            FLOAT64 percentage = (FLOAT64)_pcsedRecNum / _totalRecNum ;
             _progress = percentage * 100 ;
          }
          else
@@ -400,19 +437,17 @@ namespace engine
          // speed
          if ( calTimeInterval != 0.0 )
          {
-            UINT32 pcsNumThisTime = _processedPageNum - _pcsPageNumLastTime ;
-            UINT64 pcsSizeThisTime = (UINT64)pcsNumThisTime << _pageSizeSquareRoot ;
-            _speed = pcsSizeThisTime / DMS_BYTE_TO_MBYTE / calTimeInterval ;
+            _speed = ( _pcsedRecNum - _pcsRecNumLastTime ) / calTimeInterval ;
          }
          else
          {
-            _speed = 0.0 ;
+            _speed = 0 ;
          }
 
          // time left
-         if ( _speed != 0.0 )
+         if ( _speed != 0 )
          {
-            _timeLeft = ( _totalPageNum - _processedPageNum ) / _speed ;
+            _timeLeft = ( _totalRecNum - _pcsedRecNum ) / _speed ;
          }
          else if ( _progress != 0 )
          {
@@ -429,31 +464,31 @@ namespace engine
       }
 
       _calculateTimestamp = currentTimestamp ;
-      _pcsPageNumLastTime = _processedPageNum ;
+      _pcsRecNumLastTime = _pcsedRecNum ;
 
    done :
-      PD_TRACE_EXIT( SDB_DMSIDXTASKSTAT_CAL ) ;
+      PD_TRACE_EXIT( SDB_DMSIDXTASKSTAT_UPPGS ) ;
       return ;
    }
 
-   void _dmsIdxTaskStatus::setTotalPageNum( UINT32 pages )
+   void _dmsIdxTaskStatus::collectionRename( const CHAR* newCLName )
    {
-      _totalPageNum = pages ;
+      ossStrncpy( _clFullName, newCLName, DMS_COLLECTION_FULL_NAME_SZ ) ;
    }
 
-   void _dmsIdxTaskStatus::incProcessedPageNum( INT32 delta )
+   void _dmsIdxTaskStatus::setTotalRecNum( UINT64 num )
    {
-      _processedPageNum += delta ;
+      _totalRecNum = num ;
    }
 
-   void _dmsIdxTaskStatus::resetProcessedPageNum()
+   void _dmsIdxTaskStatus::incPcsedRecNum( UINT64 delta )
    {
-      _processedPageNum = 0 ;
+      _pcsedRecNum += delta ;
    }
 
-   void _dmsIdxTaskStatus::setPageSizeSquareRoot( UINT32 num )
+   void _dmsIdxTaskStatus::resetPcsedRecNum()
    {
-      _pageSizeSquareRoot = num ;
+      _pcsedRecNum = 0 ;
    }
 
    void _dmsIdxTaskStatus::incRetryCnt()
@@ -462,47 +497,93 @@ namespace engine
    }
 
    void _dmsIdxTaskStatus::setStatus2Finish( INT32 resultCode,
-                                             const BSONObj &resultInfo )
+                                             const CHAR* resultDetail,
+                                             utilWriteResult* wResultDetail )
    {
-      if ( DMS_TASK_STATUS_CANCELED == _dataTaskStatus )
+      // result code
+      if ( DMS_TASK_STATUS_CANCELED == _taskStatus )
       {
          _resultCode = SDB_TASK_HAS_CANCELED ;
       }
-      else if ( DMS_TASK_STATUS_ROLLBACK == _dataTaskStatus )
+      else if ( DMS_TASK_STATUS_ROLLBACK == _taskStatus )
       {
          _resultCode = SDB_TASK_ROLLBACK ;
       }
       else
       {
          _resultCode = resultCode ;
-         _resultInfo = resultInfo.getOwned() ;
       }
 
-      _dataTaskStatus = DMS_TASK_STATUS_FINISH ;
-
-      ossGetCurrentTime( _endTimestamp ) ;
-
-      resetOpInfo() ;
-
-      calculate() ;
-   }
-
-   void _dmsIdxTaskStatus::setCataStatus2Finish()
-   {
-      _cataTaskStatus = DMS_TASK_STATUS_FINISH ;
-   }
-
-   void _dmsIdxTaskStatus::setOpInfo( const CHAR* opInfo )
-   {
-      if ( opInfo )
+      // result info
+      if ( resultCode != SDB_OK )
       {
-         _opInfo = opInfo ;
+         try
+         {
+            if ( resultDetail )
+            {
+               _resultInfo = BSON( FIELD_NAME_DETAIL << resultDetail ) ;
+            }
+            else if ( wResultDetail )
+            {
+               BSONObj tmp = wResultDetail->toBSON() ;
+               if ( !tmp.isEmpty() )
+               {
+                  BSONObj filter = BSON( FIELD_NAME_INDEXNAME << 1 <<
+                                         FIELD_NAME_INDEX << 1 ) ;
+                  _resultInfo = tmp.filterFieldsUndotted( filter, false ) ;
+               }
+            }
+            if ( _resultInfo.isEmpty() )
+            {
+               if ( SDB_TASK_HAS_CANCELED == _resultCode ||
+                    SDB_TASK_ROLLBACK == _resultCode )
+               {
+                  _resultInfo = BSON( FIELD_NAME_INTERNAL_RESULTCODE <<
+                                      resultCode ) ;
+               }
+            }
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         }
       }
+
+      // other
+      _taskStatus = DMS_TASK_STATUS_FINISH ;
+      ossGetCurrentTime( _endTimestamp ) ;
+      resetOpInfo() ;
+      updateProgress() ;
+   }
+
+   const ossTimestamp& _dmsIdxTaskStatus::beginTimestamp() const
+   {
+      return _beginTimestamp ;
+   }
+
+   const ossTimestamp& _dmsIdxTaskStatus::endTimestamp() const
+   {
+      return _endTimestamp ;
+   }
+
+   BOOLEAN _dmsIdxTaskStatus::hasTaskInCatalog()
+   {
+      return _hasCatalogTask ;
+   }
+
+   void _dmsIdxTaskStatus::setHasTaskInCatalog( BOOLEAN has )
+   {
+      _hasCatalogTask = has ;
+   }
+
+   void _dmsIdxTaskStatus::setOpInfo( DMS_OPINFO_TYPE infoType )
+   {
+      _opInfo = infoType ;
    }
 
    void _dmsIdxTaskStatus::resetOpInfo()
    {
-      _opInfo.clear() ;
+      _opInfo = OPINFO_UNKNOWN ;
    }
 
    BOOLEAN _dmsIdxTaskStatus::isStandaloneIdx() const
@@ -549,6 +630,11 @@ namespace engine
       return rc ;
    }
 
+   const BSONObj& _dmsIdxTaskStatus::indexDef() const
+   {
+      return _indexDef ;
+   }
+
    INT32 _dmsIdxTaskStatus::setIndexDef( const BSONObj &indexDef )
    {
       INT32 rc = SDB_OK ;
@@ -566,15 +652,15 @@ namespace engine
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSIDXTASKMGR_CRT, "_dmsIdxTaskStatusMgr::createItem" )
-   INT32 _dmsIdxTaskStatusMgr::createItem( DMS_TASK_TYPE type,
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSTASKMGR_CRT, "_dmsTaskStatusMgr::createIdxItem" )
+   INT32 _dmsTaskStatusMgr::createIdxItem( DMS_TASK_TYPE type,
                                            dmsIdxTaskStatusPtr& statusPtr,
                                            UINT64 taskID,
                                            UINT32 locationID,
                                            UINT64 mainTaskID )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB_DMSIDXTASKMGR_CRT ) ;
+      PD_TRACE_ENTRY( SDB_DMSTASKMGR_CRT ) ;
       SDB_ASSERT( type == DMS_TASK_CREATE_IDX || type == DMS_TASK_DROP_IDX,
                   "Invalid task type" ) ;
 
@@ -595,9 +681,7 @@ namespace engine
          taskID = _dummyTaskHWM ;
       }
 
-      // new status, and add to map
-      ossScopedLock lock ( &_mapLatch, EXCLUSIVE ) ;
-
+      // new status
       _dmsIdxTaskStatus* pItem = SDB_OSS_NEW _dmsIdxTaskStatus( type,
                                                                 taskID,
                                                                 locationID,
@@ -609,33 +693,48 @@ namespace engine
          goto error ;
       }
 
-      statusPtr = dmsIdxTaskStatusPtr( pItem ) ;
-
+      // add to map
       try
       {
-         _mapIdxStatus[taskID] = statusPtr ;
+         ossScopedLock lock ( &_mapLatch, EXCLUSIVE ) ;
+
+         MAP_IDSTATUS_IT it = _mapStatus.find( taskID ) ;
+         if ( it == _mapStatus.end() )
+         {
+            statusPtr = dmsIdxTaskStatusPtr( pItem ) ;
+            _mapStatus[taskID] = statusPtr ;
+         }
+         else
+         {
+            statusPtr = boost::dynamic_pointer_cast<dmsIdxTaskStatus>(it->second) ;
+            statusPtr->setLocationID( locationID ) ;
+            SDB_OSS_DEL pItem ;
+         }
       }
       catch( std::exception &e )
       {
          rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
-         goto error ;
+         PD_RC_CHECK( rc, PDERROR, "Exception occurred: %s", e.what() ) ;
       }
 
    done:
-      PD_TRACE_EXITRC( SDB_DMSIDXTASKMGR_CRT, rc ) ;
+      PD_TRACE_EXITRC( SDB_DMSTASKMGR_CRT, rc ) ;
       return rc ;
    error:
+      if ( pItem )
+      {
+         SDB_OSS_DEL pItem ;
+      }
       goto done ;
    }
 
-   BOOLEAN _dmsIdxTaskStatusMgr::findItem( UINT64 taskID,
-                                           dmsIdxTaskStatusPtr& statusPtr )
+   BOOLEAN _dmsTaskStatusMgr::findItem( UINT64 taskID,
+                                        dmsTaskStatusPtr& statusPtr )
    {
       ossScopedLock lock ( &_mapLatch, SHARED ) ;
 
-      MAP_IDSTATUS_IT it = _mapIdxStatus.find( taskID ) ;
-      if ( it == _mapIdxStatus.end() )
+      MAP_IDSTATUS_IT it = _mapStatus.find( taskID ) ;
+      if ( it == _mapStatus.end() )
       {
          return FALSE ;
       }
@@ -646,153 +745,225 @@ namespace engine
       }
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSIDXTASKMGR_DUMP, "_dmsIdxTaskStatusMgr::dumpInfo" )
-   INT32 _dmsIdxTaskStatusMgr::dumpInfo( ossPoolMap<UINT64, _dmsIdxTaskStatus>& statusMap,
-                                         UINT32 idxType,
-                                         BOOLEAN excludeDummy,
-                                         BOOLEAN excludeCataFinished )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSTASKMGR_DUMP, "_dmsTaskStatusMgr::dumpInfo" )
+   INT32 _dmsTaskStatusMgr::dumpInfo( ossPoolMap<UINT64, BSONObj>& statusMap )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB_DMSIDXTASKMGR_DUMP ) ;
+      PD_TRACE_ENTRY( SDB_DMSTASKMGR_DUMP ) ;
 
       ossScopedLock lock ( &_mapLatch, SHARED ) ;
 
       MAP_IDSTATUS_IT it ;
-      for ( it = _mapIdxStatus.begin() ; it != _mapIdxStatus.end() ; ++it )
+      for ( it = _mapStatus.begin() ; it != _mapStatus.end() ; ++it )
       {
-         dmsIdxTaskStatusPtr pIdxTask = it->second ;
-         if ( excludeDummy &&
-              DMS_IS_DUMMY_CATTASKID( pIdxTask->taskID() ) )
+         dmsTaskStatusPtr statusPtr = it->second ;
+         try
          {
-            continue ;
+            statusMap.insert( std::pair<UINT64, BSONObj>( it->first,
+                              statusPtr->toBSON( DMS_TASK_MASK_SNAPSHOT ) ) ) ;
          }
-         if ( excludeCataFinished &&
-              DMS_TASK_STATUS_FINISH == pIdxTask->cataStatus() )
+         catch( std::exception &e )
          {
-            continue ;
-         }
-         BOOLEAN isStandIdx = pIdxTask->isStandaloneIdx() ;
-         if ( ( isStandIdx  && ( idxType & DMS_IDX_STANDALONE ) ) ||
-              ( !isStandIdx && ( idxType & DMS_IDX_NORMAL ) ) )
-         {
-            pIdxTask->calculate() ;
-            try
-            {
-               statusMap.insert( std::pair<UINT64, _dmsIdxTaskStatus>
-                                 ( it->first, *pIdxTask ) ) ;
-            }
-            catch( std::exception &e )
-            {
-               rc = ossException2RC( &e ) ;
-               PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
-            }
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
          }
       }
 
    done:
-      PD_TRACE_EXIT( SDB_DMSIDXTASKMGR_DUMP ) ;
+      PD_TRACE_EXIT( SDB_DMSTASKMGR_DUMP ) ;
       return rc ;
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSIDXTASKMGR_CNT, "_dmsIdxTaskStatusMgr::count" )
-   INT32 _dmsIdxTaskStatusMgr::count( UINT32 idxType,
-                                      BOOLEAN excludeDummy,
-                                      BOOLEAN excludeCataFinished )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSTASKMGR_DUMPREP, "_dmsTaskStatusMgr::dumpForReport" )
+   INT32 _dmsTaskStatusMgr::dumpForReport( ossPoolMap<UINT64, BSONObj>& statusMap )
    {
-      INT32 cnt = 0 ;
-      PD_TRACE_ENTRY( SDB_DMSIDXTASKMGR_CNT ) ;
-
-      ossScopedLock lock ( &_mapLatch, SHARED ) ;
-
-      if ( ( idxType & DMS_IDX_ALL ) && !excludeDummy && !excludeCataFinished )
-      {
-         cnt = _mapIdxStatus.size() ;
-      }
-      else
-      {
-         for ( MAP_IDSTATUS_IT it = _mapIdxStatus.begin() ;
-               it != _mapIdxStatus.end() ; ++it )
-         {
-            dmsIdxTaskStatusPtr pIdxTask = it->second ;
-            if ( excludeDummy &&
-                 DMS_IS_DUMMY_CATTASKID( pIdxTask->taskID() ) )
-            {
-               continue ;
-            }
-            if ( excludeCataFinished &&
-                 DMS_TASK_STATUS_FINISH == pIdxTask->cataStatus() )
-            {
-               continue ;
-            }
-            BOOLEAN isStandIdx = pIdxTask->isStandaloneIdx() ;
-            if ( ( isStandIdx  && ( idxType & DMS_IDX_STANDALONE ) ) ||
-                 ( !isStandIdx && ( idxType & DMS_IDX_NORMAL ) ) )
-            {
-               cnt++ ;
-            }
-         }
-      }
-
-      PD_TRACE_EXIT( SDB_DMSIDXTASKMGR_CNT ) ;
-      return cnt ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSIDXTASKMGR_CLEAN, "_dmsIdxTaskStatusMgr::cleanOutOfDate" )
-   void _dmsIdxTaskStatusMgr::cleanOutOfDate( BOOLEAN isPrimary )
-   {
-      PD_TRACE_ENTRY( SDB_DMSIDXTASKMGR_CLEAN ) ;
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_DMSTASKMGR_DUMPREP ) ;
 
       ossScopedLock lock ( &_mapLatch, EXCLUSIVE ) ;
 
-      MAP_IDSTATUS_IT it = _mapIdxStatus.begin() ;
-      while ( it != _mapIdxStatus.end() )
+      MAP_IDSTATUS_IT it ;
+      for ( it = _mapStatus.begin() ; it != _mapStatus.end() ; ++it )
       {
-         BOOLEAN needClean = FALSE ;
-         dmsIdxTaskStatusPtr pIdxTask = it->second ;
+         dmsTaskStatusPtr statusPtr = it->second ;
 
-         if ( DMS_IS_DUMMY_CATTASKID( pIdxTask->taskID() ) )
+         if ( DMS_TASK_STATUS_READY == statusPtr->status() ||
+              !statusPtr->hasTaskInCatalog() ||
+              statusPtr->pauseReport() )
          {
-            // task was generated by stanalone.createIndex or data.createIndex()
-            if ( DMS_TASK_STATUS_FINISH == pIdxTask->status() )
-            {
-               needClean = TRUE ;
-            }
-         }
-         else
-         {
-            // task was generated by coord.createIndex() or slave data node
-            // replay index log
-            if ( isPrimary )
-            {
-               if ( DMS_TASK_STATUS_FINISH == pIdxTask->cataStatus() )
-               {
-                  needClean = TRUE ;
-               }
-            }
-            else
-            {
-               if ( DMS_TASK_STATUS_FINISH == pIdxTask->status() )
-               {
-                  needClean = TRUE ;
-               }
-            }
+            // If this task hasn't run yet, or this task doesn't have a
+            // corresponding task on catalog, we needn't report its progress
+            // to catalog.
+            continue ;
          }
 
-         if ( needClean )
+         statusPtr->updateProgress() ;
+
+         try
          {
-            PD_LOG( PDINFO, "Clean up expired task[%s]",
-                    pIdxTask->toBSON().toString().c_str() ) ;
-            _mapIdxStatus.erase( it++ ) ;
+            statusMap.insert( std::pair<UINT64, BSONObj>( it->first,
+                              statusPtr->toBSON( DMS_TASK_MASK_REPORT ) ) ) ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXIT( SDB_DMSTASKMGR_DUMPREP ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   BOOLEAN _dmsTaskStatusMgr::hasTaskToReport()
+   {
+      ossScopedLock lock ( &_mapLatch, SHARED ) ;
+
+      for ( MAP_IDSTATUS_IT it = _mapStatus.begin() ;
+            it != _mapStatus.end() ; ++it )
+      {
+         // DON'T check READY status like dumpForReport(). Because if status is
+         // READY, it will soon switch to RUN status, and need to be reported.
+         if ( it->second->hasTaskInCatalog() )
+         {
+            return TRUE ;
+         }
+      }
+
+      return FALSE ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSTASKMGR_CLEAN, "_dmsTaskStatusMgr::cleanOutOfDate" )
+   void _dmsTaskStatusMgr::cleanOutOfDate( BOOLEAN isPrimary )
+   {
+      PD_TRACE_ENTRY( SDB_DMSTASKMGR_CLEAN ) ;
+
+      /*
+      * The primary node may be switched during index creation, so we need to
+      * known current node is primary or slave.
+      */
+      ossScopedLock lock ( &_mapLatch, EXCLUSIVE ) ;
+
+      MAP_IDSTATUS_IT it = _mapStatus.begin() ;
+      while ( it != _mapStatus.end() )
+      {
+         dmsTaskStatusPtr statPtr = it->second ;
+         if ( isPrimary && statPtr->hasTaskInCatalog() )
+         {
+            // Clean it after the corresponding catalog task was finished.
+            // When catalog task is canceled or rollback, current local task
+            // need to rollback.
+            it++ ;
+            continue ;
+         }
+         if ( DMS_TASK_STATUS_FINISH == statPtr->status() )
+         {
+            ossTimestamp curTS ;
+            ossGetCurrentTime( curTS ) ;
+            if ( curTS.time - statPtr->endTimestamp().time >
+                                                    DMS_TASK_EXPIRED_TIME )
+            {
+               PD_LOG( PDINFO, "Clean up expired task[%s]",
+                       statPtr->toBSON().toString().c_str() ) ;
+               _mapStatus.erase( it++ ) ;
+               continue ;
+            }
+         }
+         it++ ;
+      }
+
+      PD_TRACE_EXIT( SDB_DMSTASKMGR_CLEAN ) ;
+   }
+
+   void _dmsTaskStatusMgr::renameCS( const CHAR* oldCSName,
+                                     const CHAR* newCSName )
+   {
+      INT32 oldCSLen = ossStrlen( oldCSName ) ;
+
+      ossScopedLock lock ( &_mapLatch, EXCLUSIVE ) ;
+
+      for ( MAP_IDSTATUS_IT it = _mapStatus.begin() ;
+            it != _mapStatus.end() ; ++it )
+      {
+         dmsTaskStatusPtr statPtr = it->second ;
+         const CHAR* clFullName = statPtr->collectionName() ;
+
+         // if it is in the collection space
+         if ( 0 == ossStrncmp( clFullName, oldCSName, oldCSLen ) &&
+              clFullName[oldCSLen] == '.' )
+         {
+            // build new collection name
+            CHAR newCLFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+            ossStrcpy( newCLFullName, newCSName ) ;
+            ossStrncat( newCLFullName, clFullName + oldCSLen,
+                        ossStrlen( clFullName ) - oldCSLen ) ;
+            // rename
+            statPtr->collectionRename( newCLFullName ) ;
+         }
+      }
+   }
+
+   void _dmsTaskStatusMgr::renameCL( const CHAR* oldCLName,
+                                     const CHAR* newCLName )
+   {
+      ossScopedLock lock ( &_mapLatch, EXCLUSIVE ) ;
+
+      for ( MAP_IDSTATUS_IT it = _mapStatus.begin() ;
+            it != _mapStatus.end() ; ++it )
+      {
+         dmsTaskStatusPtr statPtr = it->second ;
+         if ( 0 == ossStrcmp( statPtr->collectionName(), oldCLName ) )
+         {
+            statPtr->collectionRename( newCLName ) ;
+         }
+      }
+   }
+
+   void _dmsTaskStatusMgr::dropCS( const CHAR* csName )
+   {
+      INT32 csLen = ossStrlen( csName ) ;
+
+      ossScopedLock lock ( &_mapLatch, EXCLUSIVE ) ;
+
+      MAP_IDSTATUS_IT it = _mapStatus.begin() ;
+      while ( it != _mapStatus.end() )
+      {
+         const CHAR* clFullName = it->second->collectionName() ;
+
+         // if it is in the collection space
+         if ( 0 == ossStrncmp( clFullName, csName, csLen ) &&
+              clFullName[csLen] == '.' )
+         {
+            _mapStatus.erase( it++ ) ;
          }
          else
          {
             it++ ;
          }
       }
+   }
 
-      PD_TRACE_EXIT( SDB_DMSIDXTASKMGR_CLEAN ) ;
+   void _dmsTaskStatusMgr::dropCL( const CHAR* collection )
+   {
+      ossScopedLock lock ( &_mapLatch, EXCLUSIVE ) ;
+
+      MAP_IDSTATUS_IT it = _mapStatus.begin() ;
+      while ( it != _mapStatus.end() )
+      {
+         if ( 0 == ossStrcmp( it->second->collectionName(), collection ) )
+         {
+            _mapStatus.erase( it++ ) ;
+         }
+         else
+         {
+            it++ ;
+         }
+      }
    }
 }
 

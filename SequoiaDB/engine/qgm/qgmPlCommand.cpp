@@ -533,8 +533,21 @@ namespace engine
          }
          else
          {
+            BSONObj shardIdx ;
+            try
+            {
+               shardIdx = BSON( IXM_FIELD_NAME_KEY << _partition <<
+                                IXM_FIELD_NAME_NAME << IXM_SHARD_KEY_NAME <<
+                                IXM_FIELD_NAME_V << 0 ) ;
+            }
+            catch( std::exception &e )
+            {
+               rc = ossException2RC( &e ) ;
+               PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+            }
+
             rc = rtnCreateCollectionCommand( _fullName.toString().c_str(),
-                                             _partition, 0,
+                                             shardIdx, 0,
                                              eduCB, dmsCB, dpsCB,
                                              UTIL_CLUNIQUEID_LOCAL ) ;
          }
@@ -546,43 +559,97 @@ namespace engine
       }
       else if ( SQL_GRAMMAR::CRTINDEX == _commandType )
       {
-         BSONObjBuilder builder ;
-         BSONObj index ;
-         qgmOPFieldVec::const_iterator itr = _indexColumns.begin() ;
-         for ( ; itr != _indexColumns.end(); itr++ )
+         dmsIdxTaskStatusPtr statusPtr ;
+         const CHAR* collection = _fullName.toString().c_str() ;
+         const CHAR* indexName = _indexName.toString().c_str() ;
+         INT32 sortBufSz = SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE ;
+
+         // build index obj
+         BSONObjBuilder keyBuilder, indexBuilder ;
+         BSONObj indexObj ;
+         try
          {
-            builder.append( itr->value.attr().toString(),
-                            SQL_GRAMMAR::ASC == itr->type?
-                            1 : -1 ) ;
+            qgmOPFieldVec::const_iterator itr = _indexColumns.begin() ;
+            for ( ; itr != _indexColumns.end(); itr++ )
+            {
+               keyBuilder.append( itr->value.attr().toString(),
+                                  SQL_GRAMMAR::ASC == itr->type? 1 : -1 ) ;
+            }
+            indexBuilder.append( IXM_FIELD_NAME_KEY, keyBuilder.done() ) ;
+            indexBuilder.append( IXM_FIELD_NAME_NAME, indexName ) ;
+            if ( _uniqIndex )
+            {
+               indexBuilder.append( IXM_FIELD_NAME_UNIQUE, true ) ;
+            }
+            indexObj = indexBuilder.obj() ;
          }
-         index = builder.obj() ;
-         if ( !_uniqIndex )
+         catch( std::exception &e )
          {
-            rc = rtnCreateIndexCommand( _fullName.toString().c_str(),
-                                        BSON( IXM_FIELD_NAME_KEY << index <<
-                                              IXM_FIELD_NAME_NAME << _indexName.toString() ),
-                                        eduCB, dmsCB, dpsCB ) ;
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
          }
-         else
-         {
-            BSONObjBuilder indexBuilder ;
-            indexBuilder.append( IXM_FIELD_NAME_KEY, index ) ;
-            indexBuilder.append( IXM_FIELD_NAME_NAME, _indexName.toString() ) ;
-            indexBuilder.appendBool( IXM_FIELD_NAME_UNIQUE, TRUE ) ;
-            rc =  rtnCreateIndexCommand( _fullName.toString().c_str(),
-                                         indexBuilder.obj(),
-                                         eduCB, dmsCB, dpsCB,
-                                         FALSE,
-                                         SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE,
-                                         &_wrResult ) ;
-         }
+
+         // create an index task status
+         rc = rtnCB->getTaskStatusMgr()->createIdxItem( DMS_TASK_CREATE_IDX,
+                                                        statusPtr ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to create task status, rc: %d", rc ) ;
+
+         rc = statusPtr->init( collection, indexObj, sortBufSz ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to initialize task status, rc: %d",
+                      rc ) ;
+
+         statusPtr->setStatus( DMS_TASK_STATUS_RUN ) ;
+
+         // create index
+         rc = rtnCreateIndexCommand( collection, indexObj,
+                                     eduCB, dmsCB, dpsCB, FALSE, sortBufSz,
+                                     &_wrResult, statusPtr.get() ) ;
+         const CHAR* rstDetail = eduCB ? eduCB->getInfo(EDU_INFO_ERROR) : NULL ;
+         statusPtr->setStatus2Finish( rc, rstDetail, &_wrResult ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to create index[%s] for collection[%s], rc: %d",
+                      indexName, collection, rc ) ;
       }
       else if ( SQL_GRAMMAR::DROPINDEX == _commandType )
       {
-         BSONObj identifier = BSON( IXM_FIELD_NAME_NAME << _indexName.toString() ) ;
-         BSONElement ele = identifier.firstElement() ;
-         rc = rtnDropIndexCommand( _fullName.toString().c_str(),
-                                   ele, eduCB, dmsCB, dpsCB ) ;
+         dmsIdxTaskStatusPtr statusPtr ;
+         const CHAR* collection = _fullName.toString().c_str() ;
+         const CHAR* indexName = _indexName.toString().c_str() ;
+         BSONObj identifier ;
+         try
+         {
+            identifier = BSON( IXM_FIELD_NAME_NAME << indexName ) ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+         }
+
+         // create an index task status
+         rc = rtnCB->getTaskStatusMgr()->createIdxItem( DMS_TASK_DROP_IDX,
+                                                        statusPtr ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to create task status, rc: %d",
+                      rc ) ;
+
+         rc = statusPtr->init( collection, BSON( "" << indexName ) ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to initialize task status, rc: %d",
+                      rc ) ;
+
+         statusPtr->setStatus( DMS_TASK_STATUS_RUN ) ;
+
+         // drop index
+         rc = rtnDropIndexCommand( collection, identifier.firstElement(),
+                                   eduCB, dmsCB, dpsCB, FALSE,
+                                   statusPtr.get() ) ;
+         const CHAR* rstDetail = eduCB ? eduCB->getInfo(EDU_INFO_ERROR) : NULL ;
+         statusPtr->setStatus2Finish( rc, rstDetail ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to drop index[%s] on collection[%s], rc: %d",
+                      indexName, collection, rc ) ;
       }
       else if ( SQL_GRAMMAR::LISTCS == _commandType )
       {

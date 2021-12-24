@@ -49,6 +49,7 @@
 #include "clsCatalogAgent.hpp"
 #include "rtnAlterJob.hpp"
 #include "utilDataSource.hpp"
+#include "catTask.hpp"
 #include "catCommand.hpp"
 
 using namespace bson;
@@ -246,37 +247,39 @@ namespace engine
       BSONObj boSpace ;
       BOOLEAN isExist = FALSE ;
       vector< UINT32 > groups ;
-      BSONObjBuilder builder ;
+      ossPoolVector< BSONObj > indexVec ;
+      BSONObj boQuery ;
 
       try
       {
-         BSONObj boQuery( pQuery ) ;
-         rc = rtnGetIntElement( boQuery, CAT_CS_UNIQUEID,
-                                (INT32&)csUniqueID ) ;
-         if ( SDB_FIELD_NOT_EXIST == rc )
-         {
-            rc = rtnGetStringElement( boQuery, CAT_COLLECTION_SPACE_NAME,
-                                      &csName ) ;
-         }
-         PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] or field[%s], "
-                      "rc: %d", CAT_COLLECTION_SPACE_NAME,
-                       CAT_CS_UNIQUEID, rc ) ;
-         rc = rtnGetBooleanElement( boQuery, CAT_INCLUDE_SUBCL,
-                                    includeSubCLGroup ) ;
-         if ( SDB_FIELD_NOT_EXIST == rc )
-         {
-            includeSubCLGroup = TRUE ; // default is true
-            rc = SDB_OK ;
-         }
-         PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
-                      CAT_INCLUDE_SUBCL, rc ) ;
+         boQuery = BSONObj( pQuery ) ;
       }
       catch ( std::exception &e )
       {
-         rc = SDB_INVALIDARG ;
-         PD_LOG ( PDERROR, "Occur exception: %s", e.what() ) ;
-         goto error ;
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
       }
+
+      rc = rtnGetIntElement( boQuery, CAT_CS_UNIQUEID,
+                             (INT32&)csUniqueID ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
+      {
+         rc = rtnGetStringElement( boQuery, CAT_COLLECTION_SPACE_NAME,
+                                   &csName ) ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] or field[%s], "
+                   "rc: %d", CAT_COLLECTION_SPACE_NAME,
+                    CAT_CS_UNIQUEID, rc ) ;
+
+      rc = rtnGetBooleanElement( boQuery, CAT_INCLUDE_SUBCL,
+                                 includeSubCLGroup ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
+      {
+         includeSubCLGroup = TRUE ; // default is true
+         rc = SDB_OK ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
+                   CAT_INCLUDE_SUBCL, rc ) ;
 
       PD_TRACE1 ( SDB_CATALOGMGR_QUERYSPACEINFO, PD_PACK_STRING ( csName ) ) ;
 
@@ -306,11 +309,18 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Get collection space[%s] all groups failed, "
                    "rc: %d", csName, rc ) ;
 
-      builder.appendElements( boSpace ) ;
-      // add group info
-      _pCatCB->makeGroupsObj( builder, groups, TRUE ) ;
-
-      ctxBuf = rtnContextBuf( builder.obj() ) ;
+      try
+      {
+         BSONObjBuilder builder ;
+         builder.appendElements( boSpace ) ;
+         _pCatCB->makeGroupsObj( builder, groups, TRUE ) ;
+         ctxBuf = rtnContextBuf( builder.obj() ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
 
    done:
       PD_TRACE_EXITRC ( SDB_CATALOGMGR_QUERYSPACEINFO, rc ) ;
@@ -600,7 +610,8 @@ namespace engine
          // If there's no task satisfy the request, let's return SDB_CAT_TASK_NOTFOUND,
          // otherwise return all tasks satisfy the request
          PD_CHECK ( pReply->numReturned >= 1, SDB_CAT_TASK_NOTFOUND, error,
-                    PDINFO, "Task does not exist" ) ;
+                    PDINFO, "Task[%s] does not exist",
+                    matcher.toString().c_str() ) ;
       }
       catch ( std::exception &e )
       {
@@ -732,10 +743,10 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR_CMDSPLIT, "catCatalogueManager::processCmdSplit" )
-   INT32 catCatalogueManager::processCmdSplit( const CHAR * pQuery,
-                                               INT32 opCode,
-                                               rtnContextBuf &ctxBuf )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR_CMDSPLIT, "catCatalogueManager::processCmdTask" )
+   INT32 catCatalogueManager::processCmdTask( const CHAR * pQuery,
+                                              INT32 opCode,
+                                              rtnContextBuf &ctxBuf )
    {
       INT32 rc = SDB_OK ;
       INT16 w = _majoritySize() ;
@@ -749,10 +760,8 @@ namespace engine
       try
       {
          BSONObj boQuery( pQuery ) ;
-         BSONObj boCollection ;
 
-         if ( MSG_CAT_SPLIT_START_REQ == opCode ||
-              MSG_CAT_SPLIT_CHGMETA_REQ == opCode ||
+         if ( MSG_CAT_SPLIT_CHGMETA_REQ == opCode ||
               MSG_CAT_SPLIT_CLEANUP_REQ == opCode ||
               MSG_CAT_SPLIT_FINISH_REQ == opCode )
          {
@@ -760,13 +769,9 @@ namespace engine
             rc = rtnGetNumberLongElement( boQuery, CAT_TASKID_NAME,
                                           (INT64 &)taskID ) ;
             PD_RC_CHECK( rc, PDERROR,
-                         "Failed to execute splitCL [%d]: "
-                         "failed to get the field [%s] from query",
+                         "Failed to process task [%d]: "
+                         "Failed to get the field [%s] from query",
                          opCode, CAT_TASKID_NAME ) ;
-
-            PD_LOG( PDDEBUG,
-                    "Split step [%d]: Got task ID [%llu]",
-                    opCode, taskID ) ;
          }
 
          // dispatch
@@ -785,8 +790,8 @@ namespace engine
             case MSG_CAT_SPLIT_CHGMETA_REQ :
                rc = catSplitChgMeta( boQuery, taskID, _pEduCB, w ) ;
                break ;
-            case MSG_CAT_SPLIT_START_REQ :
-               rc = catSplitStart( taskID, _pEduCB, w ) ;
+            case MSG_CAT_TASK_START_REQ :
+               rc = catTaskStart( boQuery, _pEduCB, w ) ;
                break ;
             case MSG_CAT_SPLIT_CLEANUP_REQ :
                rc = catSplitCleanup( taskID, _pEduCB, w ) ;
@@ -794,9 +799,8 @@ namespace engine
             case MSG_CAT_SPLIT_FINISH_REQ :
                rc = catSplitFinish( taskID, _pEduCB, w ) ;
                break ;
-            case MSG_CAT_SPLIT_CANCEL_REQ :
-               rc = catSplitCancel( boQuery, _pEduCB, taskID, w,
-                                    returnGroupID ) ;
+            case MSG_CAT_TASK_CANCEL_REQ :
+               rc = catTaskCancel( boQuery, _pEduCB, w, returnGroupID ) ;
                break ;
             default :
                rc = SDB_INVALIDARG ;
@@ -804,7 +808,7 @@ namespace engine
          }
 
          PD_RC_CHECK( rc, PDERROR,
-                      "Failed to split collection, opCode: %d, rc: %d",
+                      "Failed to process task, opCode: %d, rc: %d",
                       opCode, rc ) ;
 
          // Generate reply message
@@ -853,13 +857,12 @@ namespace engine
                     opCode, tmpRC ) ;
          }
 
-         PD_LOG( PDDEBUG, "Removing task [%llu]", taskID ) ;
-
-         tmpRC = catRemoveTask( taskID, TRUE, _pEduCB, 1 ) ;
+         tmpRC = catUpdateTask2Finish( taskID, SDB_TASK_HAS_CANCELED,
+                                      _pEduCB, 1 ) ;
          if ( SDB_OK != tmpRC )
          {
             PD_LOG( PDWARNING,
-                    "Failed to remove task [%lld], rc: %d",
+                    "Failed to update task [%lld] result code, rc: %d",
                     taskID, tmpRC ) ;
          }
       }
@@ -1257,8 +1260,8 @@ namespace engine
       case MSG_CAT_UNLINK_CL_REQ :
       case MSG_CAT_SPLIT_PREPARE_REQ :
       case MSG_CAT_SPLIT_READY_REQ :
-      case MSG_CAT_SPLIT_CANCEL_REQ :
-      case MSG_CAT_SPLIT_START_REQ :
+      case MSG_CAT_TASK_CANCEL_REQ :
+      case MSG_CAT_TASK_START_REQ :
       case MSG_CAT_SPLIT_CHGMETA_REQ :
       case MSG_CAT_SPLIT_CLEANUP_REQ :
       case MSG_CAT_SPLIT_FINISH_REQ :
@@ -1340,7 +1343,7 @@ namespace engine
       replyHeader.startFrom = 0 ;
       _fillRspHeader( &(replyHeader.header), &(pQueryReq->header) ) ;
 
-      if ( MSG_CAT_SPLIT_START_REQ == opCode ||
+      if ( MSG_CAT_TASK_START_REQ == opCode ||
            MSG_CAT_SPLIT_CHGMETA_REQ == opCode ||
            MSG_CAT_SPLIT_CLEANUP_REQ == opCode ||
            MSG_CAT_SPLIT_FINISH_REQ == opCode )
@@ -1388,16 +1391,15 @@ namespace engine
             break ;
          case MSG_CAT_SPLIT_PREPARE_REQ :
          case MSG_CAT_SPLIT_READY_REQ :
-         case MSG_CAT_SPLIT_CANCEL_REQ :
-         case MSG_CAT_SPLIT_START_REQ :
+         case MSG_CAT_TASK_CANCEL_REQ :
+         case MSG_CAT_TASK_START_REQ :
          case MSG_CAT_SPLIT_CHGMETA_REQ :
          case MSG_CAT_SPLIT_CLEANUP_REQ :
          case MSG_CAT_SPLIT_FINISH_REQ :
             // No delay for lock failed, since split task has lower priority to
             // process data, if lock failed the collection might be being dropped
             delayLockFailed = FALSE ;
-            rc = processCmdSplit( pQuery, pQueryReq->header.opCode,
-                                  ctxBuff ) ;
+            rc = processCmdTask( pQuery, pQueryReq->header.opCode, ctxBuff ) ;
             break ;
          case MSG_CAT_QUERY_SPACEINFO_REQ :
             rc = processCmdQuerySpaceInfo( pQuery, ctxBuff ) ;
@@ -1415,10 +1417,6 @@ namespace engine
          case MSG_CAT_ALTER_COLLECTION_REQ :
          case MSG_CAT_LINK_CL_REQ :
          case MSG_CAT_UNLINK_CL_REQ :
-#if !defined( SDB_INDEX_DEVELOPMENT )
-         case MSG_CAT_CREATE_IDX_REQ :
-         case MSG_CAT_DROP_IDX_REQ :
-#endif
          case MSG_CAT_RENAME_CS_REQ :
          case MSG_CAT_RENAME_CL_REQ :
          {
@@ -1444,14 +1442,12 @@ namespace engine
             }
             break;
          }
-#if defined( SDB_INDEX_DEVELOPMENT )
          case MSG_CAT_CREATE_IDX_REQ :
             rc = processCmdCreateIndex( pQuery, pHint, ctxBuff ) ;
             break ;
          case MSG_CAT_DROP_IDX_REQ :
             rc = processCmdDropIndex( pQuery, pHint, ctxBuff ) ;
             break ;
-#endif
          case MSG_CAT_CREATE_DOMAIN_REQ :
             rc = processCmdCreateDomain ( pQuery ) ;
             break ;
@@ -1462,7 +1458,7 @@ namespace engine
             rc = processCmdAlterDomain ( pQuery ) ;
             break ;
          case MSG_CAT_TRUNCATE_REQ :
-            rc = processCmdTruncate ( pQuery ) ;
+            rc = processCmdTruncate ( pQuery, ctxBuff ) ;
             break ;
          default :
             rc = SDB_INVALIDARG ;
@@ -1847,7 +1843,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR_TRUNCATE, "catCatalogueManager::processCmdTruncate" )
-   INT32 catCatalogueManager::processCmdTruncate ( const CHAR *pQuery )
+   INT32 catCatalogueManager::processCmdTruncate ( const CHAR *pQuery,
+                                                   rtnContextBuf &ctxBuf )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CATALOGMGR_TRUNCATE ) ;
@@ -1863,71 +1860,93 @@ namespace engine
          catSequenceManager   *pSeqMgr = NULL ;
          BSONElement          ele ;
          BSONObj              tmpObj ;
+         BOOLEAN              hasAutoInc = FALSE ;
+         ossPoolList<PAIR_CLNAME_ID> globalIdxCLList ;
 
          rc = rtnGetSTDStringElement( boQuery, FIELD_NAME_COLLECTION,
                                       clName ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get cl name, rc: %d", rc ) ;
+
          rc = catGetCollection( clName, boCollection, _pEduCB ) ;
-         if ( SDB_DMS_NOTEXIST == rc )
-         {
-            // Check if it's in a pure mapping collection space. If yes, return
-            // success directly.
-            BOOLEAN exist = FALSE ;
-            BSONObj csMeta ;
-            const CHAR *fullName = clName.c_str() ;
-            CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
-            const CHAR *dot = ossStrchr( fullName, '.' ) ;
-            ossStrncpy( csName, fullName, dot - fullName ) ;
-            rc = catCheckSpaceExist( csName, exist, csMeta, _pEduCB ) ;
-            PD_RC_CHECK( rc, PDERROR, "Check collection space[%s] existence "
-                         "failed[%d]", csName, rc ) ;
-            if ( csMeta.hasField( FIELD_NAME_DATASOURCE ) )
-            {
-               // The collection is in a pure mapping collection space. Nothing
-               // needs to be done locally.
-               goto done ;
-            }
-         }
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get cl info, rc: %d", rc ) ;
+
+         if ( boCollection.hasField( FIELD_NAME_DATASOURCE_ID ) )
+         {
+            // The collection is in a pure mapping collection space. Nothing
+            // needs to be done locally.
+            goto done ;
+         }
 
          beAutoInc = boCollection.getField( CAT_AUTOINCREMENT ) ;
          if ( EOO == beAutoInc.type() )
          {
-            goto done ;
+            hasAutoInc = FALSE ;
          }
-         if ( Array != beAutoInc.type() )
+         else if ( Array == beAutoInc.type() )
+         {
+            hasAutoInc = TRUE ;
+         }
+         else
          {
             PD_RC_CHECK( SDB_CAT_CORRUPTION, PDERROR,
                          "Wrong type[%d] of auto-increment info, rc: %d",
                          beAutoInc.type(), SDB_CAT_CORRUPTION ) ;
          }
 
-         pSeqMgr = _pCatCB->getCatGTSMgr()->getSequenceMgr() ;
-         boAutoInc = beAutoInc.embeddedObject() ;
-
-         BSONObjIterator it( boAutoInc ) ;
-         while ( it.more() )
+         // reset sequence
+         if ( hasAutoInc )
          {
-            ele = it.next() ;
-            if ( Object != ele.type() )
+            pSeqMgr = _pCatCB->getCatGTSMgr()->getSequenceMgr() ;
+            boAutoInc = beAutoInc.embeddedObject() ;
+
+            BSONObjIterator it( boAutoInc ) ;
+            while ( it.more() )
             {
-               PD_RC_CHECK( SDB_CAT_CORRUPTION, PDERROR,
-                            "Wrong type[%d] of auto-increment, rc: %d",
-                            ele.type(), SDB_CAT_CORRUPTION) ;
+               ele = it.next() ;
+               if ( Object != ele.type() )
+               {
+                  PD_RC_CHECK( SDB_CAT_CORRUPTION, PDERROR,
+                               "Wrong type[%d] of auto-increment, rc: %d",
+                               ele.type(), SDB_CAT_CORRUPTION) ;
+               }
+
+               tmpObj = ele.embeddedObject() ;
+               rc = rtnGetSTDStringElement( tmpObj, CAT_AUTOINC_SEQ,
+                                            seqName ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get sequence name, "
+                            "rc: %d", rc ) ;
+
+               rc = pSeqMgr->resetSequence( seqName, _pEduCB,
+                                            _majoritySize() ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to reset sequence[%s], "
+                            "rc: %d", seqName.c_str(), rc ) ;
             }
+         }
 
-            tmpObj = ele.embeddedObject() ;
-            rc = rtnGetSTDStringElement( tmpObj, CAT_AUTOINC_SEQ,
-                                         seqName ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to get sequence name, "
-                         "rc: %d", rc ) ;
+         // get collection's global index cl
+         rc = catGetCLGlobalIndexesInfo( clName.c_str(), _pEduCB,
+                                         globalIdxCLList ) ;
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to get collection[%s]'s global indexes, rc: %d",
+                      clName.c_str(), rc ) ;
 
-            rc = pSeqMgr->resetSequence( seqName, _pEduCB,
-                                         _majoritySize() ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to reset sequence[%s], "
-                         "rc: %d", seqName.c_str(), rc ) ;
+         // send global index's CLUID to coord
+         if ( globalIdxCLList.size() > 0 )
+         {
+            BSONObjBuilder builder ;
+            BSONArrayBuilder arrB( builder.subarrayStart( CAT_GLOBAL_INDEX ) ) ;
+            ossPoolList<PAIR_CLNAME_ID>::iterator it ;
+            for ( it = globalIdxCLList.begin() ;
+                  it != globalIdxCLList.end() ; it++ )
+            {
+               arrB.append( BSON( CAT_COLLECTION << it->first <<
+                                  CAT_GIDX_CL_UNIQUEID <<
+                                  (INT64)(it->second) ) ) ;
+            }
+            arrB.done() ;
+            ctxBuf = rtnContextBuf( builder.obj() ) ;
          }
 
          PD_LOG( PDDEBUG, "truncated cl[%s]", clName.c_str() ) ;

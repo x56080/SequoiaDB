@@ -134,9 +134,6 @@ namespace engine
                               " SU Name     : %s"OSS_NEWLINE,
                               header->_name ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " CS Unique ID: %d"OSS_NEWLINE,
-                              header->_csUniqueID ) ;
-         len += ossSnprintf ( outBuf + len, outSize - len,
                               " Sequence    : %d"OSS_NEWLINE,
                               header->_sequence ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
@@ -172,6 +169,9 @@ namespace engine
          len += ossSnprintf ( outBuf + len, outSize - len,
                               " Segment Size: %u"OSS_NEWLINE,
                               header->_segmentSize ) ;
+         len += ossSnprintf ( outBuf + len, outSize - len,
+                              " HWM of IdxInnerID: 0x%08x (%u)"OSS_NEWLINE,
+                              header->_idxInnerHWM, header->_idxInnerHWM ) ;
 
       }
       len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;
@@ -1974,21 +1974,21 @@ namespace engine
                            "  Logical ID     : %d"OSS_NEWLINE,
                            header->_logicID ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Root Ext    : 0x%08x (%d)"OSS_NEWLINE,
+                           "    Root Ext     : 0x%08x (%d)"OSS_NEWLINE,
                            header->_rootExtentID, header->_rootExtentID ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "Scan extent LID : 0x%08x (%d)"OSS_NEWLINE,
+                           "Scan extent LID  : 0x%08x (%d)"OSS_NEWLINE,
                            header->_scanExtLID, header->_scanExtLID ) ;
       ossStrncpy ( tmpBuff, ixmGetIndexTypeDesp(header->_type).c_str(),
                    DMS_DUMP_IXM_CB_FLAG_TEXT_LEN ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "     Type       : %d (%s)"OSS_NEWLINE,
+                           "     Type        : %d (%s)"OSS_NEWLINE,
                            header->_type, tmpBuff ) ;
       try
       {
          BSONObj indexDef ( ((CHAR*)inBuf+sizeof(ixmIndexCBExtent)) ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "    Index Def   : %s"OSS_NEWLINE,
+                              "    Index Def    : %s"OSS_NEWLINE,
                               indexDef.toString().c_str() ) ;
       }
       catch ( std::exception &e )

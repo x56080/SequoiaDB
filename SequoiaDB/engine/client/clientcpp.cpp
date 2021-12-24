@@ -2013,11 +2013,12 @@ do                                                            \
                                             const CHAR *pIndexName,
                                             BOOLEAN isUnique,
                                             BOOLEAN isEnforced,
-                                            INT32 sortBufferSize )
+                                            INT32 sortBufferSize,
+                                            SINT64 *pTaskID )
    {
       INT32 rc = SDB_OK ;
-      BSONObj indexObj ;
-      BSONObj matcher, hint ;
+      BSONObj matcher, hint, indexObj, countObj ;
+      _sdbCursor *cursor = NULL ;
 
       if ( _collectionFullName [0] == '\0' || !_connection ||
            !pIndexName )
@@ -2039,21 +2040,57 @@ do                                                            \
                      ) ;
 
       matcher = BSON( FIELD_NAME_COLLECTION << _collectionFullName <<
-                       FIELD_NAME_INDEX << indexObj <<
-                       IXM_FIELD_NAME_SORT_BUFFER_SIZE << sortBufferSize ) ;
+                      FIELD_NAME_INDEX << indexObj <<
+                      IXM_FIELD_NAME_SORT_BUFFER_SIZE << sortBufferSize <<
+                      FIELD_NAME_ASYNC << ( pTaskID ? true : false ) ) ;
 
       // For Compatibility with older engine( version <3.4 ), keep sort buffer
       // size in hint. After several versions, we can delete it.
       hint = BSON( IXM_FIELD_NAME_SORT_BUFFER_SIZE << sortBufferSize ) ;
 
       rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_CREATE_INDEX,
-                                     &matcher, NULL, NULL, &hint ) ;
+                                     &matcher, NULL, NULL, &hint,
+                                     0, 0, 0, -1, &cursor ) ;
       /// ignore update result
       updateCachedVersion( rc, _connection->_getCachedContainer(),
                           _collectionFullName, _version ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
+      }
+
+      // get task ID
+      if ( NULL == pTaskID )
+      {
+         goto done ;
+      }
+
+      if ( NULL == cursor )
+      {
+         rc = SDB_UNEXPECTED_RESULT ;
+         goto error ;
+      }
+      ((_sdbCursorImpl*)cursor)->_attachCollection ( this ) ;
+
+      rc = cursor->next( countObj ) ; // there should only 1 record read
+      if ( rc )
+      {
+         // if we didn't read anything, let't return unexpected
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_UNEXPECTED_RESULT ;
+         }
+         goto error ;
+      }
+      else
+      {
+         BSONElement ele = countObj.getField ( FIELD_NAME_TASKID ) ;
+         if ( ele.type() != NumberLong )
+         {
+            rc = SDB_UNEXPECTED_RESULT ;
+            goto error ;
+         }
+         *pTaskID = ele.numberLong () ;
       }
 
    done :
@@ -2064,11 +2101,15 @@ do                                                            \
 
    INT32 _sdbCollectionImpl::_createIndex ( const BSONObj &indexDef,
                                             const CHAR *pIndexName,
-                                            const BSONObj &options )
+                                            const BSONObj &indexAttr,
+                                            const BSONObj &option,
+                                            SINT64 *pTaskID )
    {
       INT32 rc = SDB_OK ;
-      BSONObj matcher, hint ;
+      BSONObj matcher, hint, countObj ;
       BSONObjBuilder indexBuild, matchBuilder, hintBuilder ;
+      BOOLEAN foundOutSort = FALSE ;
+      _sdbCursor *cursor = NULL ;
 
       if ( _collectionFullName [0] == '\0' || !_connection ||
            !pIndexName )
@@ -2081,7 +2122,7 @@ do                                                            \
       // macher: { Collection: "foo.bar",
       //           Index:{ key: {a:1}, name: 'aIdx', Unique: true,
       //                   Enforced: true, NotNull: true },
-      //           SortBufferSize: 1024 }
+      //           SortBufferSize: 1024, Async: true }
       // hint: { SortBufferSize: 1024 }
       // For Compatibility with older engine( version <3.4 ), keep sort buffer
       // size in hint. After several versions, we can delete it.
@@ -2090,13 +2131,14 @@ do                                                            \
       indexBuild.append( IXM_FIELD_NAME_NAME, pIndexName ) ;
 
       {
-         BSONObjIterator it( options );
+         BSONObjIterator it( indexAttr ) ;
          while( it.more() )
          {
-            BSONElement e = it.next();
+            BSONElement e = it.next() ;
             if ( 0 == ossStrcmp( e.fieldName(),
                                  IXM_FIELD_NAME_SORT_BUFFER_SIZE ) )
             {
+               foundOutSort = TRUE ;
                matchBuilder.append( e ) ;
                hintBuilder.append( e ) ;
             }
@@ -2106,21 +2148,66 @@ do                                                            \
             }
          }
       }
+      if ( !foundOutSort )
+      {
+         BSONElement e = option.getField( IXM_FIELD_NAME_SORT_BUFFER_SIZE ) ;
+         if ( !e.eoo() )
+         {
+            hintBuilder.append( e ) ;
+         }
+      }
 
       matchBuilder.append( FIELD_NAME_COLLECTION, _collectionFullName ) ;
       matchBuilder.append( FIELD_NAME_INDEX, indexBuild.obj() ) ;
+      matchBuilder.appendElements( option );
+      matchBuilder.append( FIELD_NAME_ASYNC, ( pTaskID ? true : false ) ) ;
       matcher = matchBuilder.obj() ;
 
       hint = hintBuilder.obj() ;
 
       rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_CREATE_INDEX,
-                                     &matcher, NULL, NULL, &hint ) ;
+                                     &matcher, NULL, NULL, &hint,
+                                     0, 0, 0, -1, &cursor ) ;
       /// ignore update result
       updateCachedVersion( rc, _connection->_getCachedContainer(),
                           _collectionFullName, _version ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
+      }
+
+      // get task ID
+      if ( NULL == pTaskID )
+      {
+         goto done ;
+      }
+
+      if ( NULL == cursor )
+      {
+         rc = SDB_UNEXPECTED_RESULT ;
+         goto error ;
+      }
+      ((_sdbCursorImpl*)cursor)->_attachCollection ( this ) ;
+
+      rc = cursor->next( countObj ) ; // there should only 1 record read
+      if ( rc )
+      {
+         // if we didn't read anything, let't return unexpected
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_UNEXPECTED_RESULT ;
+         }
+         goto error ;
+      }
+      else
+      {
+         BSONElement ele = countObj.getField ( FIELD_NAME_TASKID ) ;
+         if ( ele.type() != NumberLong )
+         {
+            rc = SDB_UNEXPECTED_RESULT ;
+            goto error ;
+         }
+         *pTaskID = ele.numberLong () ;
       }
 
    done :
@@ -2141,9 +2228,75 @@ do                                                            \
 
    INT32 _sdbCollectionImpl::createIndex ( const BSONObj &indexDef,
                                            const CHAR *pIndexName,
-                                           const BSONObj &options )
+                                           const BSONObj &indexAttr,
+                                           const BSONObj &option )
    {
-      return _createIndex( indexDef, pIndexName, options ) ;
+      return _createIndex( indexDef, pIndexName, indexAttr, option ) ;
+   }
+
+   INT32 _sdbCollectionImpl::createIndexAsync ( SINT64 &taskID,
+                                                const BSONObj &indexDef,
+                                                const CHAR *pIndexName,
+                                                const BSONObj &indexAttr,
+                                                const BSONObj &option )
+   {
+      return _createIndex( indexDef, pIndexName, indexAttr, option, &taskID ) ;
+   }
+
+   INT32 _sdbCollectionImpl::snapshotIndexes ( _sdbCursor **cursor,
+                                               const BSONObj &condition,
+                                               const BSONObj &selector,
+                                               const BSONObj &orderby,
+                                               const BSONObj &hint,
+                                               INT64 numToSkip,
+                                               INT64 numToReturn )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder hintBuilder ;
+
+      if ( _collectionFullName [0] == '\0' || !_connection || !cursor )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      {
+         BSONObjIterator it( hint ) ;
+         while( it.more() )
+         {
+            BSONElement e = it.next() ;
+            if ( 0 != ossStrcmp( e.fieldName(), FIELD_NAME_COLLECTION ) )
+            {
+               hintBuilder.append( e ) ;
+            }
+         }
+         hintBuilder.append( FIELD_NAME_COLLECTION, _collectionFullName ) ;
+      }
+
+      rc = _connection->getSnapshot( cursor, SDB_SNAP_INDEXES,
+                                     condition, selector, orderby,
+                                     hintBuilder.done(),
+                                     numToSkip, numToReturn ) ;
+
+      /// ignore update result
+      updateCachedObject( rc, _connection->_getCachedContainer(),
+                          _collectionFullName ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      ((_sdbCursorImpl*)*cursor)->_attachCollection ( this ) ;
+
+   done :
+      return rc ;
+   error :
+      if ( NULL != *cursor )
+      {
+         delete *cursor ;
+         *cursor = NULL ;
+      }
+      goto done ;
    }
 
    INT32 _sdbCollectionImpl::getIndexes ( _sdbCursor **cursor,
@@ -2252,10 +2405,12 @@ do                                                            \
       goto done ;
    }
 
-   INT32 _sdbCollectionImpl::dropIndex ( const CHAR *pIndexName )
+   INT32 _sdbCollectionImpl::_dropIndex ( const CHAR *pIndexName,
+                                          SINT64 *pTaskID )
    {
       INT32 rc = SDB_OK ;
-      BSONObj newObj ;
+      BSONObj countObj, matchObj ;
+      _sdbCursor *cursor = NULL ;
 
       if ( _collectionFullName [0] == '\0' || !_connection ||
            !pIndexName )
@@ -2264,11 +2419,14 @@ do                                                            \
          goto error ;
       }
 
-      newObj = BSON ( FIELD_NAME_COLLECTION << _collectionFullName <<
-                      FIELD_NAME_INDEX << BSON ( "" << pIndexName ) ) ;
+      matchObj = BSON( FIELD_NAME_COLLECTION << _collectionFullName <<
+                       FIELD_NAME_INDEX << BSON ( "" << pIndexName ) <<
+                       FIELD_NAME_ASYNC << ( pTaskID ? true : false ) ) ;
 
+      /// send message
       rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_DROP_INDEX,
-                                     &newObj ) ;
+                                     &matchObj, NULL, NULL, NULL,
+                                     0, 0, 0, -1, &cursor ) ;
       /// ignore update result
       updateCachedVersion( rc, _connection->_getCachedContainer(),
                           _collectionFullName, _version ) ;
@@ -2277,10 +2435,151 @@ do                                                            \
          goto error ;
       }
 
-    done :
+      // get task ID
+      if ( !pTaskID )
+      {
+         goto done ;
+      }
+
+      if ( NULL == cursor )
+      {
+         rc = SDB_UNEXPECTED_RESULT ;
+         goto error ;
+      }
+      ((_sdbCursorImpl*)cursor)->_attachCollection ( this ) ;
+
+      rc = cursor->next( countObj ) ; // there should only 1 record read
+      if ( rc )
+      {
+         // if we didn't read anything, let't return unexpected
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_UNEXPECTED_RESULT ;
+         }
+         goto error ;
+      }
+      else
+      {
+         BSONElement ele = countObj.getField ( FIELD_NAME_TASKID ) ;
+         if ( ele.type() != NumberLong )
+         {
+            rc = SDB_UNEXPECTED_RESULT ;
+            goto error ;
+         }
+         *pTaskID = ele.numberLong() ;
+      }
+
+   done :
       return rc ;
    error :
       goto done ;
+   }
+
+   INT32 _sdbCollectionImpl::dropIndex ( const CHAR *pIndexName )
+   {
+      return _dropIndex( pIndexName ) ;
+   }
+
+   INT32 _sdbCollectionImpl::dropIndexAsync ( SINT64 &taskID,
+                                              const CHAR *pIndexName )
+   {
+      return _dropIndex( pIndexName, &taskID ) ;
+   }
+
+   INT32 _sdbCollectionImpl::_copyIndex ( const CHAR *subClFullName,
+                                          const CHAR *pIndexName,
+                                          SINT64 *pTaskID )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj countObj, matchObj ;
+      BSONObjBuilder builder ;
+      _sdbCursor *cursor = NULL ;
+
+      if ( _collectionFullName [0] == '\0' || !_connection )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         builder.append( FIELD_NAME_NAME, _collectionFullName ) ;
+         builder.append( FIELD_NAME_ASYNC, ( pTaskID ? true : false ) ) ;
+         if ( subClFullName )
+         {
+            builder.append( FIELD_NAME_SUBCLNAME, subClFullName ) ;
+         }
+         if ( pIndexName )
+         {
+            builder.append( FIELD_NAME_INDEXNAME, pIndexName ) ;
+         }
+         matchObj = builder.obj() ;
+
+         /// send message
+         rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_COPY_INDEX,
+                                        &matchObj, NULL, NULL, NULL,
+                                        0, 0, 0, -1, &cursor ) ;
+         updateCachedObject( rc, _connection->_getCachedContainer(),
+                             _collectionFullName ) ; // ignore update result
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+
+         // get task ID
+         if ( !pTaskID )
+         {
+            goto done ;
+         }
+
+         ((_sdbCursorImpl*)cursor)->_attachCollection ( this ) ;
+
+         rc = cursor->next( countObj ) ; // there should only 1 record read
+         if ( rc )
+         {
+            // if we didn't read anything, let't return unexpected
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_UNEXPECTED_RESULT ;
+            }
+            goto error ;
+         }
+         else
+         {
+            BSONElement ele = countObj.getField ( FIELD_NAME_TASKID ) ;
+            if ( ele.type() != NumberLong )
+            {
+               rc = SDB_UNEXPECTED_RESULT ;
+               goto error ;
+            }
+            *pTaskID = ele.numberLong() ;
+         }
+
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   INT32 _sdbCollectionImpl::copyIndex ( const CHAR *subClFullName,
+                                         const CHAR *pIndexName )
+   {
+      return _copyIndex( subClFullName, pIndexName ) ;
+   }
+
+   INT32 _sdbCollectionImpl::copyIndexAsync ( SINT64 &taskID,
+                                              const CHAR *subClFullName,
+                                              const CHAR *pIndexName )
+   {
+      return _copyIndex( subClFullName, pIndexName, &taskID ) ;
    }
 
    INT32 _sdbCollectionImpl::create()
@@ -8993,6 +9292,12 @@ do                                                            \
       case SDB_SNAP_INDEXSTATS :
          p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_INDEXSTATS ;
          break ;
+      case SDB_SNAP_TASKS :
+         p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TASKS ;
+         break ;
+      case SDB_SNAP_INDEXES :
+         p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_INDEXES ;
+         break ;
       case SDB_SNAP_TRANSWAITS :
          p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSWAITS ;
          break ;
@@ -10589,7 +10894,7 @@ do                                                            \
                                const bson::BSONObj &condition,
                                const bson::BSONObj &selector,
                                const bson::BSONObj &orderBy,
-                               const bson::BSONObj &hint)
+                               const bson::BSONObj &hint )
 
    {
       return getList ( cursor, SDB_LIST_TASKS, condition, selector, orderBy ) ;

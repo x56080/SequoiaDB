@@ -311,6 +311,11 @@ namespace engine
 
       void _registerHandler ( _IDmsEventHandler *pHandler) ;
 
+      INT32 _changeIndexUniqueID( _dmsStorageUnit* su,
+                                  const ossPoolVector<ossPoolString>& changedClVec,
+                                  const ossPoolVector<BSONObj>& idxInfoObj,
+                                  pmdEDUCB* cb ) ;
+
    public:
       _SDB_DMSCB() ;
       virtual ~_SDB_DMSCB() ;
@@ -353,6 +358,9 @@ namespace engine
       INT32 changeUniqueID( const CHAR* csname,
                             utilCSUniqueID csUniqueID,
                             const BSONObj& clInfoObj,
+                            BOOLEAN changeOtherCL,
+                            const ossPoolVector<BSONObj>* pIdxInfoVec,
+                            BOOLEAN changeIdx,
                             pmdEDUCB* cb,
                             SDB_DPSCB* dpsCB,
                             BOOLEAN isLoadCS = FALSE ) ;

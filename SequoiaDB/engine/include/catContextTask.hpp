@@ -186,6 +186,11 @@ namespace engine
 
       INT32 getVersion () const { return _version ; }
 
+      const ossPoolList<PAIR_CLNAME_ID>& globalIndexCLList() const
+      {
+         return _globalIdxCLList ;
+      }
+
    protected :
       virtual INT32 _checkInternal ( _pmdEDUCB *cb, catCtxLockMgr &lockMgr ) ;
 
@@ -204,6 +209,7 @@ namespace engine
    protected :
       INT32 _version ;
       BOOLEAN _needUpdateCoord ;
+      ossPoolList<PAIR_CLNAME_ID> _globalIdxCLList ;
    } ;
 
    /*
@@ -251,110 +257,6 @@ namespace engine
       BOOLEAN _needUnlink ;
       std::string _mainCLName ;
    } ;
-
-#if !defined( SDB_INDEX_DEVELOPMENT )
-   /*
-    * _catCtxCreateIdxTask define
-    */
-   class _catCtxCreateIdxTask : public _catCtxDataTask
-   {
-   public :
-      _catCtxCreateIdxTask ( const std::string &clName,
-                             const std::string &idxName,
-                             const BSONObj &boIdx ) ;
-
-      virtual ~_catCtxCreateIdxTask () {}
-
-      INT32 checkIndexKey ( clsCatalogSet &cataSet,
-                            std::set<UINT32> &checkedKeyIDs ) ;
-
-      BOOLEAN needUniqueCheck () const
-      { return ( _uniqueCheck && _isSharding && _isUnique && !_isGlobal ) ; }
-
-      const std::string &getIdxName () const { return _idxName ; }
-
-      const BSONObj &getIdxObj () const { return _boIdx ; }
-
-      void disableUniqueCheck () { _uniqueCheck = FALSE ; }
-
-      void enableUniqueCheck () { _uniqueCheck = TRUE ; }
-
-      /* global index relate */
-      BOOLEAN isGlobalIndex() { return _isGlobal ; }
-      const std::string &getGIDXCLName() { return _indexCLName ; }
-      const std::string &getCSDomain() { return _domain ; }
-      /***********************/
-
-   protected :
-      virtual INT32 _checkInternal ( _pmdEDUCB *cb, catCtxLockMgr &lockMgr ) ;
-
-      virtual INT32 _executeInternal ( _pmdEDUCB *cb,
-                                       SDB_DMSCB *pDmsCB,
-                                       SDB_DPSCB *pDpsCB,
-                                       INT16 w ) ;
-
-      virtual INT32 _rollbackInternal ( _pmdEDUCB *cb,
-                                        SDB_DMSCB *pDmsCB,
-                                        SDB_DPSCB *pDpsCB,
-                                        INT16 w ) ;
-
-   protected :
-      std::string _idxName ;
-      BSONObj _boIdx ;
-      BSONObj _boIdxKey ;
-      BOOLEAN _isUnique ;
-      BOOLEAN _isEnforced ;
-      BOOLEAN _isSharding ;
-      BOOLEAN _uniqueCheck ;
-
-      BOOLEAN _isGlobal ;
-      BSONObj _gIndexInfo ;
-      BOOLEAN _hasAlterCata ;
-      std::string _indexCLName ;
-      std::string _domain ;
-   } ;
-
-   typedef class _catCtxCreateIdxTask catCtxCreateIdxTask ;
-
-   /*
-    * _catCtxDropIdxTask define
-    */
-   class _catCtxDropIdxTask : public _catCtxDataTask
-   {
-   public :
-      _catCtxDropIdxTask ( const std::string &clName,
-                           const std::string &idxName ) ;
-
-      virtual ~_catCtxDropIdxTask () {}
-
-      const std::string &getIdxName () const { return _idxName ; }
-
-      /* global index relate */
-      BOOLEAN isGlobalIndex() { return _isGlobalIndex ; }
-      utilCLUniqueID getIndexCLUID() { return _indexCLUID ; }
-      const std::string &getIndexCLName() { return _indexCLName ; }
-      /***********************/
-
-   protected :
-      virtual INT32 _checkInternal ( _pmdEDUCB *cb, catCtxLockMgr &lockMgr ) ;
-
-      virtual INT32 _executeInternal ( _pmdEDUCB *cb,
-                                       SDB_DMSCB *pDmsCB,
-                                       SDB_DPSCB *pDpsCB,
-                                       INT16 w ) ;
-
-   protected :
-      std::string _idxName ;
-      BSONObj _boIdx ;
-
-      BOOLEAN _isGlobalIndex ;
-      _clsCataGIndex _gIndexInfo ;
-      utilCLUniqueID _indexCLUID ;
-      std::string _indexCLName ;
-   } ;
-
-   typedef class _catCtxDropIdxTask catCtxDropIdxTask ;
-#endif
 
    /*
     * _catCtxDelCLsFromCSTask define

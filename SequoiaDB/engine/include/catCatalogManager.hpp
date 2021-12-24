@@ -39,7 +39,7 @@
 #define CATCATALOGUEMANAGER_HPP_
 
 #include "pmd.hpp"
-#include "catSplit.hpp"
+#include "catTask.hpp"
 #include "rtnContextBuff.hpp"
 #include "utilCompressor.hpp"
 #include "utilArguments.hpp"
@@ -164,9 +164,9 @@ namespace engine
       INT32 processCmdDropIndex( const CHAR *pQuery,
                                  const CHAR *pHint,
                                  rtnContextBuf &ctxBuf ) ;
-      INT32 processCmdSplit( const CHAR *pQuery,
-                             INT32 opCode,
-                             rtnContextBuf &ctxBuf ) ;
+      INT32 processCmdTask( const CHAR *pQuery,
+                            INT32 opCode,
+                            rtnContextBuf &ctxBuf ) ;
       INT32 processCmdQuerySpaceInfo( const CHAR *pQuery,
                                       rtnContextBuf &ctxBuf ) ;
       INT32 processQueryCatalogue ( const NET_HANDLE &handle,
@@ -177,7 +177,8 @@ namespace engine
       INT32 processCmdCreateDomain ( const CHAR *pQuery ) ;
       INT32 processCmdDropDomain ( const CHAR *pQuery ) ;
       INT32 processCmdAlterDomain ( const CHAR *pQuery ) ;
-      INT32 processCmdTruncate ( const CHAR *pQuery ) ;
+      INT32 processCmdTruncate ( const CHAR *pQuery,
+                                 rtnContextBuf &ctxBuf ) ;
 
    // tool functions
    protected:

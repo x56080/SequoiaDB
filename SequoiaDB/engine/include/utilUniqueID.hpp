@@ -46,11 +46,13 @@ namespace engine
    typedef UINT32 utilCSUniqueID ;
    typedef UINT64 utilCLUniqueID ;
    typedef UINT32 utilCLInnerID ;
+   typedef UINT64 utilIdxUniqueID ;
+   typedef UINT32 utilIdxInnerID ;
 
    /// cs unique id, valid values range from 1 to 4294967040
    #define UTIL_CSUNIQUEID_MAX       0xFFFFFF00
    /// cl unique id (64bit) = cs unqiue id (32bit) + cl inner id (32bit)
-   /// cl inner id: valid values range from 1 to u4294967040
+   /// cl inner id: valid values range from 1 to 4294967040
    #define UTIL_CLINNERID_MAX        0xFFFFFF00
 
    /// Before version 3.0.1, cs/cl has not its unique id. After the upgrade
@@ -110,10 +112,78 @@ namespace engine
 
    MAP_CLNAME_ID utilBson2ClNameId( const BSONObj& clInfoObj ) ;
 
-   MAP_CLID_NAME utilBson2ClIdName( const BSONObj& clInfoObj ) ;
-
    BSONObj utilSetUniqueID( const BSONObj& clInfoObj,
                             utilCLUniqueID setValue = UTIL_UNIQUEID_NULL ) ;
+
+   // idxUniqueID(64bit) = csUniqueID(32bit) + idxInnerID(32bit)
+   // The first bit of idxInnerID indicates whether it is standalone index or
+   // consistency index. The second bit of idxInnerID is reserved.
+   #define UTIL_FLAG_STANDALONE_IDX 0x80000000
+
+   #define UTIL_IDXINNERID_MAX      0x3FFFFFFF
+
+   OSS_INLINE utilCSUniqueID utilGetCSUniqIDFromIdx( utilIdxUniqueID idxUniqueID )
+   {
+      return idxUniqueID >> 32 ;
+   }
+
+   OSS_INLINE utilIdxInnerID utilGetIdxInnerID( utilIdxUniqueID idxUniqueID )
+   {
+      utilIdxInnerID inId = (utilIdxInnerID)idxUniqueID ;
+      OSS_BIT_CLEAR( inId, UTIL_FLAG_STANDALONE_IDX ) ;
+      return inId ;
+   }
+
+   OSS_INLINE BOOLEAN utilIsStandaloneIdx( utilIdxUniqueID idxUniqueID )
+   {
+      utilIdxInnerID inId = (utilIdxInnerID)idxUniqueID ;
+      return OSS_BIT_TEST( inId, UTIL_FLAG_STANDALONE_IDX ) ;
+   }
+
+   OSS_INLINE utilIdxUniqueID utilBuildIdxUniqueID( utilCSUniqueID csUniqueID,
+                                                    utilIdxInnerID idxInnerID,
+                                                    BOOLEAN isStandaloneIdx = FALSE )
+   {
+      if ( isStandaloneIdx )
+      {
+         OSS_BIT_SET( idxInnerID, UTIL_FLAG_STANDALONE_IDX ) ;
+      }
+      return ossPack32To64( csUniqueID, idxInnerID ) ;
+   }
+
+   OSS_INLINE BOOLEAN utilCheckIdxUniqueID( utilIdxUniqueID idxUniqueID,
+                                            utilCSUniqueID csUniqueID,
+                                            BOOLEAN isStandaloneIdx )
+   {
+
+      return ( utilGetCSUniqIDFromIdx( idxUniqueID ) == csUniqueID &&
+               utilIsStandaloneIdx( idxUniqueID ) == isStandaloneIdx ) ;
+   }
+
+   struct util_cmp_str
+   {
+      bool operator() (const char *a, const char *b) const
+      {
+         return std::strcmp(a,b)<0 ;
+      }
+   } ;
+   typedef ossPoolMap<const CHAR*, BSONObj, util_cmp_str> MAP_IDXNAME_DEF ;
+   typedef ossPoolMap<const CHAR*, MAP_IDXNAME_DEF, util_cmp_str> MAP_CLNAME_IDX ;
+
+   INT32 utilBson2IdxNameId( const ossPoolVector<BSONObj>& idxInfoVec,
+                             MAP_CLNAME_IDX& clMap ) ;
+
+   // get bounds to match collections within a collection space with
+   // specified unique ID
+   INT32 utilGetCSBounds( const CHAR *fieldName,
+                          utilCSUniqueID csUniqueID,
+                          bson::BSONObjBuilder &builder ) ;
+
+   // get bounds to match collections within a collection space with
+   // specified unique ID
+   INT32 utilGetCSBounds( const CHAR *fieldName,
+                          utilCSUniqueID csUniqueID,
+                          bson::BSONObj &matcher ) ;
 }
 
 #endif //UTIL_UNIQUEID_HPP_

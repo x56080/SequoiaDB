@@ -158,6 +158,94 @@ namespace engine
          virtual BOOLEAN _isCurrent() const ;
    } ;
 
+   class _rtnSnapshotTasks : public _rtnSnapshot
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public :
+         _rtnSnapshotTasks()
+            : _rtnSnapshot( NAME_SNAPSHOT_TASKS,
+                            CMD_NAME_SNAPSHOT_TASKS_INTR,
+                            CMD_SNAPSHOT_TASKS,
+                            RTN_FETCH_TASKS,
+                            MON_MASK_NODE_NAME )
+         {}
+         virtual ~_rtnSnapshotTasks () {}
+
+      protected:
+         virtual BOOLEAN _isCurrent() const ;
+   };
+
+   class _rtnSnapshotTasksInner : public _rtnSnapshotInner
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public:
+         _rtnSnapshotTasksInner()
+            : _rtnSnapshotInner( CMD_NAME_SNAPSHOT_TASKS_INTR,
+                                 CMD_SNAPSHOT_TASKS,
+                                 RTN_FETCH_TASKS,
+                                 MON_MASK_NODE_NAME )
+         {}
+         virtual ~_rtnSnapshotTasksInner() {}
+
+      protected:
+         virtual BOOLEAN _isCurrent() const ;
+   } ;
+
+   class _rtnSnapshotIndexes : public _rtnSnapshot
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public :
+         _rtnSnapshotIndexes()
+            : _rtnSnapshot( NAME_SNAPSHOT_INDEXES,
+                            CMD_NAME_SNAPSHOT_INDEXES_INTR,
+                            CMD_SNAPSHOT_INDEXES,
+                            RTN_FETCH_INDEX,
+                            MON_MASK_NODE_NAME | MON_MASK_GROUP_NAME ),
+              _collection( NULL ),
+              _clInited( FALSE )
+         {}
+         virtual ~_rtnSnapshotIndexes () {}
+
+         virtual const CHAR* collectionFullName() ;
+
+      protected:
+         virtual BOOLEAN _isCurrent() const ;
+         virtual BSONObj _getOptObj() const ;
+
+      protected:
+         const CHAR* _collection ;
+         BOOLEAN     _clInited ;
+   } ;
+
+   class _rtnSnapshotIndexesInner : public _rtnSnapshotInner
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public:
+         _rtnSnapshotIndexesInner()
+            : _rtnSnapshotInner( CMD_NAME_SNAPSHOT_INDEXES_INTR,
+                                 CMD_SNAPSHOT_INDEXES,
+                                 RTN_FETCH_INDEX,
+                                 MON_MASK_NODE_NAME | MON_MASK_GROUP_NAME ),
+              _collection( NULL ),
+              _clInited( FALSE )
+         {}
+         virtual ~_rtnSnapshotIndexesInner() {}
+
+         virtual const CHAR* collectionFullName() ;
+
+      protected:
+         virtual BOOLEAN _isCurrent() const ;
+         virtual BSONObj _getOptObj() const ;
+
+      protected:
+         const CHAR* _collection ;
+         BOOLEAN     _clInited ;
+   } ;
+
    class _rtnSnapshotContexts : public _rtnSnapshot
    {
       DECLARE_CMD_AUTO_REGISTER()
@@ -236,7 +324,7 @@ namespace engine
       public:
          _rtnSnapshotDatabase()
             : _rtnSnapshot( NAME_SNAPSHOT_DATABASE,
-                            CMD_NAME_SNAPSHOT_DATABASE_INTR, 
+                            CMD_NAME_SNAPSHOT_DATABASE_INTR,
                             CMD_SNAPSHOT_DATABASE,
                             RTN_FETCH_DATABASE,
                             MON_MASK_ALL)
@@ -271,7 +359,7 @@ namespace engine
       public:
          _rtnSnapshotCollections()
             : _rtnSnapshot( NAME_SNAPSHOT_COLLECTIONS,
-                            CMD_NAME_SNAPSHOT_COLLECTION_INTR, 
+                            CMD_NAME_SNAPSHOT_COLLECTION_INTR,
                             CMD_SNAPSHOT_COLLECTIONS,
                             RTN_FETCH_COLLECTION,
                             MON_MASK_NODE_NAME | MON_MASK_GROUP_NAME )
@@ -306,7 +394,7 @@ namespace engine
       public:
          _rtnSnapshotCollectionSpaces()
             : _rtnSnapshot( NAME_SNAPSHOT_COLLECTIONSPACES,
-                            CMD_NAME_SNAPSHOT_SPACE_INTR, 
+                            CMD_NAME_SNAPSHOT_SPACE_INTR,
                             CMD_SNAPSHOT_COLLECTIONSPACES,
                             RTN_FETCH_COLLECTIONSPACE,
                             MON_MASK_NODE_NAME | MON_MASK_GROUP_NAME )
@@ -375,7 +463,7 @@ namespace engine
       public:
          _rtnSnapshotSessions()
             : _rtnSnapshot( NAME_SNAPSHOT_SESSIONS,
-                            CMD_NAME_SNAPSHOT_SESSION_INTR, 
+                            CMD_NAME_SNAPSHOT_SESSION_INTR,
                             CMD_SNAPSHOT_SESSIONS,
                             RTN_FETCH_SESSION,
                             MON_MASK_NODE_NAME)
@@ -410,7 +498,7 @@ namespace engine
       public:
          _rtnSnapshotSessionsCurrent()
             : _rtnSnapshot( NAME_SNAPSHOT_SESSIONS_CURRENT,
-                            CMD_NAME_SNAPSHOT_SESSIONCUR_INTR, 
+                            CMD_NAME_SNAPSHOT_SESSIONCUR_INTR,
                             CMD_SNAPSHOT_SESSIONS_CURRENT,
                             RTN_FETCH_SESSION,
                             MON_MASK_NODE_NAME)
@@ -558,7 +646,7 @@ namespace engine
       public :
          _rtnSnapshotConfigs()
             : _rtnSnapshot( NAME_SNAPSHOT_CONFIGS,
-                            CMD_NAME_SNAPSHOT_CONFIGS_INTR, 
+                            CMD_NAME_SNAPSHOT_CONFIGS_INTR,
                             CMD_SNAPSHOT_CONFIGS,
                             RTN_FETCH_CONFIGS,
                             MON_MASK_NODE_NAME)

@@ -81,6 +81,34 @@ namespace engine
 
       virtual INT32           truncateCL( const CHAR *clName ) ;
 
+      virtual INT32           snapshot( INT64 &contextID,
+                                        const CHAR *pCommand,
+                                        const BSONObj &matcher = BSONObj(),
+                                        const BSONObj &selector = BSONObj(),
+                                        const BSONObj &orderBy = BSONObj(),
+                                        const BSONObj &hint = BSONObj(),
+                                        INT64 numToSkip = 0,
+                                        INT64 numToReturn = -1,
+                                        INT32 flag = 0 ) ;
+
+      virtual INT32           snapshotIndexes( INT64 &contextID,
+                                               const CHAR *clName,
+                                               const CHAR *indexName,
+                                               BOOLEAN rawData = FALSE ) ;
+
+      virtual INT32           list( INT64 &contextID,
+                                    const CHAR *pCommand,
+                                    const BSONObj &matcher = BSONObj(),
+                                    const BSONObj &selector = BSONObj(),
+                                    const BSONObj &orderBy = BSONObj(),
+                                    const BSONObj &hint = BSONObj(),
+                                    INT64 numToSkip = 0,
+                                    INT64 numToReturn = -1,
+                                    INT32 flag = 0 ) ;
+
+      virtual INT32           listCSIndexes( INT64 &contextID,
+                                             utilCSUniqueID csUniqID ) ;
+
       virtual UINT64          getSucCount() ;
 
       virtual UINT64          getFailureCount() ;
@@ -102,6 +130,9 @@ namespace engine
                                             INT32 *pResLen = NULL,
                                             INT32 *pResNum = NULL ) ;
       INT32                   _processMsg( MsgHeader* msg ) ;
+      INT32                   _processMsg( MsgHeader* msg,
+                                           rtnContextBuf& contextBuff,
+                                           INT64& contextID ) ;
       void                    _increaseCount( INT32 rc ) ;
 
    private:

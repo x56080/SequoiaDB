@@ -90,8 +90,6 @@ namespace engine
    INT32 monAppendDisk ( BSONObjBuilder &ob,
                          BOOLEAN appendDbPath = TRUE ) ;
 
-   INT32 monDumpIndexes( MON_IDX_LIST &indexes, rtnContextDump *context ) ;
-
    INT32 monDumpTraceStatus ( rtnContextDump *context ) ;
 
    INT32 monDumpDatablocks( std::vector<dmsExtentID> &datablocks,
@@ -409,6 +407,34 @@ namespace engine
    typedef _monHealthFetch monHealthFetch ;
 
    /*
+      _monTasksFetch define
+   */
+   class _monTasksFetch : public rtnFetchBase
+   {
+      DECLARE_FETCH_AUTO_REGISTER()
+
+      public:
+         _monTasksFetch() ;
+         virtual ~_monTasksFetch() ;
+
+         virtual INT32        init( pmdEDUCB *cb,
+                                    BOOLEAN isCurrent,
+                                    BOOLEAN isDetail,
+                                    UINT32 addInfoMask,
+                                    const BSONObj obj = BSONObj() ) ;
+
+         virtual const CHAR*  getName() const ;
+
+      public:
+         virtual INT32        fetch( BSONObj &obj ) ;
+
+      private:
+         UINT32                      _addInfoMask ;
+         ossPoolMap<UINT64, BSONObj> _mapInfo ;
+   } ;
+   typedef _monTasksFetch monTasksFetch ;
+
+   /*
       _monStorageUnitFetch define
    */
    class _monStorageUnitFetch : public rtnFetchBase
@@ -455,25 +481,27 @@ namespace engine
          _monIndexFetch() ;
          virtual ~_monIndexFetch() ;
 
-         virtual INT32        init( pmdEDUCB *cb,
-                                    BOOLEAN isCurrent,
-                                    BOOLEAN isDetail,
-                                    UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
+         virtual INT32       init( pmdEDUCB *cb,
+                                   BOOLEAN isCurrent,
+                                   BOOLEAN isDetail,
+                                   UINT32 addInfoMask,
+                                   const BSONObj obj = BSONObj() ) ;
 
-         virtual const CHAR*  getName() const ;
+         virtual const CHAR* getName() const ;
 
-      public:
-         virtual INT32     fetch( BSONObj &obj ) ;
-
-      protected:
-         INT32       _fetchNext( BSONObj &obj ) ;
+         virtual INT32       fetch( BSONObj &obj ) ;
 
       private:
-         UINT32                  _addInfoMask ;
+         INT32               _dumpIndexInfo( const CHAR* collection ) ;
+         void                _formatIndexInfo( const CHAR* collection,
+                                               const monIndex& index,
+                                               BSONObjBuilder& ob ) ;
 
-         UINT32                  _pos ;
-         MON_IDX_LIST            _indexInfo ;
+      private:
+         UINT32                       _addInfoMask ;
+         MON_IDX_LIST                 _indexList ;
+         const CHAR*                  _collection ;
+         MON_IDX_LIST::const_iterator _it ;
    } ;
    typedef _monIndexFetch monIndexFetch ;
 

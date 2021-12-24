@@ -259,386 +259,6 @@ namespace engine
       goto done ;
    }
 
-#if !defined( SDB_INDEX_DEVELOPMENT )
-   /*
-    * _catCtxIndexMultiTask implement
-    */
-   _catCtxIndexMultiTask::_catCtxIndexMultiTask ( INT64 contextID, UINT64 eduID )
-   : _catCtxDataMultiTaskBase( contextID, eduID )
-   {
-      _isGlobalIndex = FALSE ;
-      _indexCLUID = UTIL_UNIQUEID_NULL ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXINDEX_CREATEIDX_TASK, "_catCtxIndexMultiTask::_addCreateIdxTask" )
-   INT32 _catCtxIndexMultiTask::_addCreateIdxTask ( const std::string &clName,
-                                                    const std::string &idxName,
-                                                    const BSONObj &boIdx,
-                                                    _catCtxCreateIdxTask **ppCtx,
-                                                    BOOLEAN pushExec )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY ( SDB_CATCTXINDEX_CREATEIDX_TASK ) ;
-
-      _catCtxCreateIdxTask *pCtx = NULL ;
-      pCtx = SDB_OSS_NEW _catCtxCreateIdxTask( clName, idxName, boIdx ) ;
-      PD_CHECK( pCtx, SDB_SYS, error, PDERROR,
-                "Failed to add create index [%s/%s] task",
-                clName.c_str(), idxName.c_str() ) ;
-
-      _addTask( pCtx, pushExec ) ;
-      if ( ppCtx )
-      {
-         (*ppCtx) = pCtx ;
-      }
-
-   done :
-      PD_TRACE_EXITRC ( SDB_CATCTXINDEX_CREATEIDX_TASK, rc ) ;
-      return rc ;
-   error :
-      SAFE_OSS_DELETE( pCtx ) ;
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXINDEX_DROPIDX_TASK, "_catCtxIndexMultiTask::_addDropIdxTask" )
-   INT32 _catCtxIndexMultiTask::_addDropIdxTask ( const std::string &clName,
-                                                  const std::string &idxName,
-                                                  _catCtxDropIdxTask **ppCtx,
-                                                  BOOLEAN pushExec )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY ( SDB_CATCTXINDEX_DROPIDX_TASK ) ;
-
-      _catCtxDropIdxTask *pCtx = NULL ;
-      pCtx = SDB_OSS_NEW _catCtxDropIdxTask( clName, idxName ) ;
-      PD_CHECK( pCtx, SDB_SYS, error, PDERROR,
-                "Failed to add drop index [%s/%s] task",
-                clName.c_str(), idxName.c_str() ) ;
-
-      _addTask( pCtx, pushExec ) ;
-      if ( ppCtx )
-      {
-         (*ppCtx) = pCtx ;
-      }
-
-   done :
-      PD_TRACE_EXITRC ( SDB_CATCTXINDEX_DROPIDX_TASK, rc ) ;
-      return rc ;
-   error :
-      SAFE_OSS_DELETE( pCtx ) ;
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXINDEX_CREATEIDX_SUBTASK, "_catCtxIndexMultiTask::_addCreateIdxSubTasks" )
-   INT32 _catCtxIndexMultiTask::_addCreateIdxSubTasks ( _catCtxCreateIdxTask *pCreateIdxTask,
-                                                        catCtxLockMgr &lockMgr,
-                                                        _pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY ( SDB_CATCTXINDEX_CREATEIDX_SUBTASK ) ;
-
-      try
-      {
-         std::set<UINT32> checkedKeyIDs ;
-         BOOLEAN uniqueCheck = pCreateIdxTask->needUniqueCheck() ;
-         const std::string &clName = pCreateIdxTask->getDataName() ;
-         const std::string &idxName = pCreateIdxTask->getIdxName() ;
-         const BSONObj &boIdx = pCreateIdxTask->getIdxObj() ;
-         clsCatalogSet cataSet( clName.c_str() );
-
-         rc = cataSet.updateCatSet( pCreateIdxTask->getDataObj() ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to parse catalog info [%s], rc: %d",
-                      clName.c_str(), rc ) ;
-
-         if ( uniqueCheck )
-         {
-            rc = pCreateIdxTask->checkIndexKey( cataSet, checkedKeyIDs ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to check index key [%s] on collection [%s], "
-                         "rc: %d",
-                         boIdx.toString().c_str(),  clName.c_str(), rc ) ;
-         }
-
-         if ( cataSet.isMainCL() )
-         {
-            CLS_SUBCL_LIST subCLLst;
-            CLS_SUBCL_LIST_IT iterSubCL;
-
-            rc = cataSet.getSubCLList( subCLLst );
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to get sub-collection list of collection [%s], "
-                         "rc: %d",
-                         clName.c_str(), rc ) ;
-
-            iterSubCL = subCLLst.begin() ;
-            while ( iterSubCL != subCLLst.end() )
-            {
-               std::string subCLName = (*iterSubCL) ;
-               _catCtxCreateIdxTask *pSubCLTask = NULL ;
-
-               rc = _addCreateIdxTask( subCLName, idxName, boIdx, &pSubCLTask ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Failed to add create index [%s/%s] sub-task, "
-                            "rc: %d",
-                            subCLName.c_str(), idxName.c_str(), rc ) ;
-
-               rc = pSubCLTask->checkTask( cb, lockMgr ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Failed to check create index [%s/%s] sub-task, "
-                            "rc: %d",
-                            subCLName.c_str(), idxName.c_str(), rc ) ;
-
-               if ( uniqueCheck )
-               {
-                  clsCatalogSet subCataSet( subCLName.c_str() );
-
-                  rc = subCataSet.updateCatSet( pSubCLTask->getDataObj() ) ;
-                  PD_RC_CHECK( rc, PDERROR,
-                               "Failed to parse catalog info [%s], rc: %d",
-                               subCLName.c_str(), rc ) ;
-
-                  rc = pSubCLTask->checkIndexKey( subCataSet, checkedKeyIDs ) ;
-                  PD_RC_CHECK( rc, PDERROR,
-                               "Failed to check index key [%s] on collection [%s], "
-                               "rc: %d",
-                               boIdx.toString().c_str(), subCLName.c_str(), rc ) ;
-               }
-
-               rc = catGetCollectionGroupSet( pSubCLTask->getDataObj(),
-                                              _groupList ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Failed to collect groups for collection [%s], "
-                            "rc: %d",
-                            subCLName.c_str(), rc ) ;
-
-               ++iterSubCL ;
-            }
-
-            pCreateIdxTask->disableUpdate() ;
-         }
-         else
-         {
-            rc = catGetCollectionGroupSet( pCreateIdxTask->getDataObj(),
-                                           _groupList ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to collect groups for collection [%s], rc: %d",
-                         clName.c_str(), rc ) ;
-         }
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-   done :
-      PD_TRACE_EXITRC ( SDB_CATCTXINDEX_CREATEIDX_SUBTASK, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXINDEX_CREATEIDX_TASKS, "_catCtxIndexMultiTask::_addCreateIdxTasks" )
-   INT32 _catCtxIndexMultiTask::_addCreateIdxTasks ( const std::string &clName,
-                                                     const std::string &idxName,
-                                                     const BSONObj &boIdx,
-                                                     BOOLEAN uniqueCheck,
-                                                     _pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY ( SDB_CATCTXINDEX_CREATEIDX_TASKS ) ;
-
-      // Unlock immediately
-      catCtxLockMgr lockMgr ;
-      _catCtxCreateIdxTask *pCreateIdxTask = NULL ;
-
-      rc = _addCreateIdxTask( clName, idxName, boIdx,
-                              &pCreateIdxTask, FALSE ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to add create index [%s/%s] task, rc: %d",
-                   clName.c_str(), idxName.c_str(), rc ) ;
-
-      if ( uniqueCheck )
-      {
-         pCreateIdxTask->enableUniqueCheck() ;
-      }
-      else
-      {
-         pCreateIdxTask->disableUniqueCheck() ;
-      }
-
-      rc = pCreateIdxTask->checkTask( cb, lockMgr ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to check create index [%s/%s] task, rc: %d",
-                   clName.c_str(), idxName.c_str(), rc ) ;
-
-      rc = _addCreateIdxSubTasks( pCreateIdxTask, lockMgr, cb ) ;
-      PD_RC_CHECK( rc , PDERROR,
-                   "Failed to add sub-tasks for create index [%s/%s] task, "
-                   "rc: %d",
-                   clName.c_str(), idxName.c_str(), rc ) ;
-
-      rc = _pushExecTask( pCreateIdxTask ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to push collection task, rc: %d", rc ) ;
-
-      rc = catLockGroups( _groupList, cb, lockMgr, SHARED ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to lock groups, rc: %d", rc ) ;
-
-      _isGlobalIndex = pCreateIdxTask->isGlobalIndex() ;
-      if ( _isGlobalIndex )
-      {
-         _indexCLName = pCreateIdxTask->getGIDXCLName() ;
-         _domain = pCreateIdxTask->getCSDomain() ;
-      }
-
-   done :
-      PD_TRACE_EXITRC ( SDB_CATCTXINDEX_CREATEIDX_TASKS, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXINDEX_DROPIDX_SUBTASK, "_catCtxIndexMultiTask::_addDropIdxSubTasks" )
-   INT32 _catCtxIndexMultiTask::_addDropIdxSubTasks ( _catCtxDropIdxTask *pDropIdxTask,
-                                                      catCtxLockMgr &lockMgr,
-                                                      _pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY ( SDB_CATCTXINDEX_DROPIDX_SUBTASK ) ;
-
-      try
-      {
-         const std::string &clName = pDropIdxTask->getDataName() ;
-         const std::string &idxName = pDropIdxTask->getIdxName() ;
-         clsCatalogSet cataSet( clName.c_str() ) ;
-
-         rc = cataSet.updateCatSet( pDropIdxTask->getDataObj() ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to parse catalog info [%s], rc: %d",
-                      clName.c_str(), rc ) ;
-
-         if ( cataSet.isMainCL() )
-         {
-            CLS_SUBCL_LIST subCLLst ;
-            CLS_SUBCL_LIST_IT iterSubCL ;
-
-            rc = cataSet.getSubCLList( subCLLst );
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to get sub-collection list of collection [%s], "
-                         "rc: %d",
-                         clName.c_str(), rc ) ;
-
-            iterSubCL = subCLLst.begin() ;
-            while ( iterSubCL != subCLLst.end() )
-            {
-               std::string subCLName = (*iterSubCL) ;
-               _catCtxDropIdxTask *pSubCLTask = NULL ;
-
-               rc = _addDropIdxTask( subCLName, idxName, &pSubCLTask ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Failed to add drop index [%s/%s] sub-task, "
-                            "rc: %d",
-                            subCLName.c_str(), idxName.c_str(), rc ) ;
-
-               rc = pSubCLTask->checkTask( cb, lockMgr ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Failed to check drop index [%s/%s] sub-task, "
-                            "rc: %d",
-                            subCLName.c_str(), idxName.c_str(), rc ) ;
-
-               rc = catGetCollectionGroupSet ( pSubCLTask->getDataObj(),
-                                               _groupList ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Failed to collect groups for collection [%s], "
-                            "rc: %d",
-                            subCLName.c_str(), rc ) ;
-
-               ++iterSubCL ;
-            }
-
-            pDropIdxTask->disableUpdate() ;
-         }
-         else
-         {
-            rc = catGetCollectionGroupSet( pDropIdxTask->getDataObj(),
-                                           _groupList ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to collect groups for collection [%s], "
-                         "rc: %d",
-                         clName.c_str(), rc ) ;
-         }
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-   done :
-      PD_TRACE_EXITRC ( SDB_CATCTXINDEX_DROPIDX_SUBTASK, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXINDEX_DROPIDX_TASKS, "_catCtxIndexMultiTask::_addDropIdxTasks" )
-   INT32 _catCtxIndexMultiTask::_addDropIdxTasks ( const std::string &clName,
-                                                   const std::string &idxName,
-                                                   _pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY ( SDB_CATCTXINDEX_DROPIDX_TASKS ) ;
-
-      // Unlock immediately
-      catCtxLockMgr lockMgr ;
-      _catCtxDropIdxTask *pDropIdxTask = NULL ;
-
-      rc = _addDropIdxTask( clName, idxName, &pDropIdxTask, FALSE ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to add drop index [%s/%s] task, rc: %d",
-                   clName.c_str(), idxName.c_str(), rc ) ;
-
-      rc = pDropIdxTask->checkTask( cb, lockMgr ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to check drop index [%s/%s] task, rc: %d",
-                   clName.c_str(), idxName.c_str(), rc ) ;
-
-      rc = _addDropIdxSubTasks( pDropIdxTask, lockMgr, cb ) ;
-      PD_RC_CHECK( rc , PDERROR,
-                   "Failed to add sub-tasks for drop index [%s/%s], rc: %d",
-                   clName.c_str(), idxName.c_str(), rc ) ;
-
-      rc = _pushExecTask( pDropIdxTask ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to push collection task, rc: %d", rc ) ;
-
-      rc = catLockGroups( _groupList, cb, lockMgr, SHARED ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to lock groups, rc: %d", rc ) ;
-
-      if ( pDropIdxTask->isGlobalIndex() )
-      {
-         _isGlobalIndex = TRUE ;
-         _indexCLUID = pDropIdxTask->getIndexCLUID() ;
-      }
-
-   done :
-      PD_TRACE_EXITRC ( SDB_CATCTXINDEX_DROPIDX_TASKS, rc ) ;
-      return rc;
-   error :
-      goto done;
-   }
-#endif
-
    /*
     * _catCtxDropCS implement
     */
@@ -854,22 +474,6 @@ namespace engine
       goto done ;
    }
 
-   INT32 _catCtxDropCS::_addIndexCL( const BSONObj &clObj )
-   {
-      INT32 rc = SDB_OK ;
-      _clsCataGIndexGroup indexes ;
-      rc = indexes.init( clObj ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to parse global index:rc=%d", rc ) ;
-
-      rc = indexes.getIndexes( _globalIndexList ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to add indexes:rc=%d", rc ) ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXDROPCS__MAKEREPLY, "_catCtxDropCS::_makeReply" )
    INT32 _catCtxDropCS::_makeReply ( rtnContextBuf & buffObj )
    {
@@ -882,19 +486,25 @@ namespace engine
          {
             // send index's CLUID and grouplist to coord.
             BSONObjBuilder retObjBuilder ;
-            if ( _globalIndexList.size() > 0 )
+
+            if ( _globalIdxCLList.size() > 0 )
             {
                BSONArrayBuilder indexArrBuilder(
-                         retObjBuilder.subarrayStart(CAT_GLOBAL_INDEX) ) ;
+                         retObjBuilder.subarrayStart( CAT_GLOBAL_INDEX ) ) ;
 
-               CLS_GINDEX_LIST_ITER iter = _globalIndexList.begin() ;
-               while ( iter != _globalIndexList.end() )
+               ossPoolList<PAIR_CLNAME_ID>::iterator it ;
+               for ( it = _globalIdxCLList.begin() ;
+                     it != _globalIdxCLList.end() ; it++ )
                {
-                  _clsCataGIndex &index = *iter ;
-                  indexArrBuilder.append( BSON(CAT_GIDX_CL_UNIQUEID <<
-                                       (INT64)index.getIndexCollectionUID()) ) ;
+                  if ( !rtnCollectionInTheSpace( it->first.c_str(),
+                                                 _targetName.c_str() ) )
+                  {
+                     indexArrBuilder.append( BSON( CAT_COLLECTION <<
+                                                   it->first <<
+                                                   CAT_GIDX_CL_UNIQUEID <<
+                                                   (INT64)(it->second) ) ) ;
+                  }
 
-                  ++iter ;
                }
                indexArrBuilder.done() ;
             }
@@ -982,15 +592,19 @@ namespace engine
                             "Failed to check drop collection [%s] task, rc: %d",
                             clFullName.c_str(), rc ) ;
 
+               if ( pDropCLTask->globalIndexCLList().size() > 0 )
+               {
+                  _globalIdxCLList.insert( _globalIdxCLList.end(),
+                                 pDropCLTask->globalIndexCLList().begin(),
+                                 pDropCLTask->globalIndexCLList().end() ) ;
+               }
+
                rc = _addDropCLSubTasks( pDropCLTask, cb, externalMainCL ) ;
                PD_RC_CHECK( rc , PDERROR,
                             "Failed to add sub-tasks for drop collection [%s], "
                             "rc: %d",
                             clFullName.c_str(), rc ) ;
 
-               rc = _addIndexCL( pDropCLTask->getDataObj() ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to add global indexes:rc=%d",
-                            rc ) ;
             }
 
             PD_LOG ( PDDEBUG,
@@ -1324,7 +938,8 @@ namespace engine
                       _targetName.c_str(), rc ) ;
 
          // check task count of old cs
-         rc = catGetTaskCountByCS( _targetName.c_str(), cb, taskCount ) ;
+         rc = catGetCSTaskCountByType( _targetName.c_str(), CLS_TASK_SPLIT,
+                                       cb, taskCount ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get task count of cs[%s], rc: %d",
                       _targetName.c_str(), rc ) ;
@@ -1761,13 +1376,27 @@ namespace engine
       CHAR szSpace[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = {0} ;
       CHAR szCollection[ DMS_COLLECTION_NAME_SZ + 1 ] = {0} ;
       BSONObj boSpace, boDomain, boDummy ;
+      BOOLEAN inMappinCS = FALSE ;
 
       // Just check the existence of collection, no lock is needed
-      rc = catGetCollection( _targetName, boDummy, cb ) ;
-      PD_CHECK( SDB_DMS_NOTEXIST == rc,
-                SDB_DMS_EXIST, error, PDERROR,
-                "Create failed, the collection [%s] exists",
+      rc = catGetCollection( _targetName, boDummy, cb, &inMappinCS ) ;
+      if ( SDB_OK == rc && inMappinCS )
+      {
+         // The collection space is mapping to another collection space
+         // on a data source(pure mapping collection space). It's not
+         // allowed to create collection in this collection space.
+         rc = SDB_OPERATION_INCOMPATIBLE ;
+         PD_LOG( PDERROR, "Can not create collection on a data source "
+                 "mapping collection space[%s]", szSpace ) ;
+         goto error ;
+      }
+      else if ( SDB_DMS_NOTEXIST != rc )
+      {
+         rc = SDB_DMS_EXIST ;
+         PD_LOG( PDERROR, "Create failed, the collection [%s] exists",
                 _targetName.c_str() ) ;
+         goto error ;
+      }
 
       // split collection full name to csname and clname
       rc = rtnResolveCollectionName( _targetName.c_str(),
@@ -1789,21 +1418,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get the collection space [%s], rc: %d",
                    szSpace, rc ) ;
-      {
-         // Check if the collection space is mapping to another collection
-         // space on a data source(pure mapping collection space). If yes, it's
-         // not allowed to create collection in this collection space.
-         BSONElement dsEle = boSpace.getField( FIELD_NAME_DATASOURCE_ID ) ;
-         // For compatible reason, need to check if dsEle is eoo.
-         if ( !dsEle.eoo() &&
-              ( UTIL_INVALID_DS_UID != (UINT32)dsEle.numberInt() ) )
-         {
-            rc = SDB_OPERATION_INCOMPATIBLE ;
-            PD_LOG( PDERROR, "Can not create collection on a data source "
-                    "mapping collection space[%s]", szSpace ) ;
-            goto error ;
-         }
-      }
 
       // here we do not care what the values are
       // we care how many records in the specified collection space
@@ -1947,6 +1561,7 @@ namespace engine
 
       _boTarget = boNewObj.getOwned() ;
 
+      // create sequence
       if( _fieldMask & UTIL_CL_AUTOINC_FIELD )
       {
          rc = catCreateAutoIncSequences( _clInfo, cb, w ) ;
@@ -1955,6 +1570,7 @@ namespace engine
                       "rc: %d", _targetName.c_str(), rc ) ;
       }
 
+      // create cl
       rc = catCreateCLStep( _targetName, _clUniqueID, _boTarget,
                             cb, _pDmsCB, _pDpsCB, w ) ;
       PD_RC_CHECK( rc, PDERROR,
@@ -1963,11 +1579,129 @@ namespace engine
       PD_LOG( PDDEBUG, "Create collection[name: %s, id: %llu] succeed.",
               _targetName.c_str(), _clUniqueID ) ;
 
+      // create index: $id, $shard
+      rc = _createSysIndex( _clInfo, _indexList, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to create system index for collection[%s], "
+                   "rc: %d", _targetName.c_str(), rc ) ;
+
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXCREATECL_EXECUTE_INT, rc ) ;
       return rc ;
    error :
       goto done ;
+   }
+
+   INT32 _catCtxCreateCL::_createSysIndex( const catCollectionInfo& clInfo,
+                                           ossPoolVector<BSONObj>& indexList,
+                                           pmdEDUCB *cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN addNewIdx = FALSE ;
+      BSONObj indexObj ;
+      UINT64 idxUniqID = 0 ;
+
+      // main-collection doesn't have $id or $shard index
+      if ( clInfo._isMainCL )
+      {
+         goto done ;
+      }
+      // the collection which mapped to data source doesn't have index
+      if ( clInfo._dsUID != UTIL_INVALID_DS_UID )
+      {
+         goto done ;
+      }
+
+      // build $id index
+      if ( clInfo._autoIndexId )
+      {
+         rc = catGetAndIncIdxUniqID( clInfo._pCLName, cb, w, idxUniqID ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get index unique id, collection: %s, rc: %d",
+                      clInfo._pCLName, rc ) ;
+
+         BSONObj idIdx = BSON( IXM_FIELD_NAME_UNIQUEID << (INT64)idxUniqID <<
+                               IXM_FIELD_NAME_KEY << BSON( DMS_ID_KEY_NAME << 1 ) <<
+                               IXM_FIELD_NAME_NAME << IXM_ID_KEY_NAME <<
+                               IXM_FIELD_NAME_UNIQUE << true <<
+                               IXM_FIELD_NAME_ENFORCED << true ) ;
+
+         rc = catAddIndex( clInfo._pCLName, idIdx, cb, w,
+                           &addNewIdx, &indexObj ) ;
+         PD_RC_CHECK ( rc, PDERROR,
+                       "Failed to add index, rc: %d",
+                       rc ) ;
+
+         indexList.push_back( indexObj ) ;
+      }
+
+      if ( clInfo._isSharding && clInfo._enSureShardIndex )
+      {
+         if ( clInfo._autoIndexId &&
+              0 == clInfo._shardingKey.woCompare( BSON( DMS_ID_KEY_NAME << 1 ) ) )
+         {
+            PD_LOG( PDWARNING, "$shard index and $id index are the same "
+                    "definition. Skip creating $shard index" ) ;
+         }
+         else
+         {
+            rc = catGetAndIncIdxUniqID( clInfo._pCLName, cb, w, idxUniqID ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get index unique id, collection: %s, rc: %d",
+                         clInfo._pCLName, rc ) ;
+
+            BSONObj shardIdx = BSON( IXM_FIELD_NAME_UNIQUEID << (INT64)idxUniqID <<
+                                     IXM_FIELD_NAME_KEY << clInfo._shardingKey <<
+                                     IXM_FIELD_NAME_NAME << IXM_SHARD_KEY_NAME ) ;
+
+            rc = catAddIndex( clInfo._pCLName, shardIdx, cb, w,
+                              &addNewIdx, &indexObj ) ;
+            PD_RC_CHECK ( rc, PDERROR,
+                          "Failed to add index, rc: %d",
+                          rc ) ;
+
+            indexList.push_back( indexObj ) ;
+         }
+      }
+
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   INT32 _catCtxCreateCL::_makeReply ( rtnContextBuf &buffObj )
+   {
+      // reply eg:
+      // { Index: [ { Name: "cs.cl", IndexName: "$id", IndexDef: xxx, ... },
+      //            { Name: "cs.cl", IndexName: "$shard", IndexDef: xx, ... } ],
+      //   Group: [ { GroupID: 1000, GroupName: "db1" }, ... ] }
+
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObjBuilder retObjBuilder ;
+
+         ossPoolVector<BSONObj>::iterator it ;
+         BSONArrayBuilder arr( retObjBuilder.subarrayStart( FIELD_NAME_INDEX ) ) ;
+         for ( it = _indexList.begin() ; it != _indexList.end() ; it++ )
+         {
+            arr.append ( *it ) ;
+         }
+         arr.done() ;
+
+         _pCatCB->makeGroupsObj( retObjBuilder, _groupList, TRUE ) ;
+
+         buffObj = rtnContextBuf( retObjBuilder.obj() ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXCREATECL_ROLLBACK_INT, "_catCtxCreateCL::_rollbackInternal" )
@@ -2410,9 +2144,11 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to create drop collection task, rc: %d", rc ) ;
 
-      rc = pDropCLTask->checkTask (cb, _lockMgr) ;
+      rc = pDropCLTask->checkTask ( cb, _lockMgr ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to check collection task, rc: %d", rc ) ;
+
+      _globalIdxCLList = pDropCLTask->globalIndexCLList() ;
 
       rc = _addDropCLSubTasks ( pDropCLTask, cb ) ;
       PD_RC_CHECK( rc , PDERROR,
@@ -2457,6 +2193,23 @@ namespace engine
          else if ( !_groupList.empty() )
          {
             _pCatCB->makeGroupsObj( retObjBuilder, _groupList, TRUE ) ;
+         }
+
+         // send global index's cl name and unique id to coord.
+         if ( _globalIdxCLList.size() > 0 )
+         {
+            BSONArrayBuilder builder(
+                      retObjBuilder.subarrayStart( CAT_GLOBAL_INDEX ) ) ;
+
+            for ( ossPoolList<PAIR_CLNAME_ID>::iterator it = _globalIdxCLList.begin() ;
+                  it != _globalIdxCLList.end() ; it++ )
+            {
+               builder.append( BSON( CAT_COLLECTION << it->first <<
+                                     CAT_GIDX_CL_UNIQUEID <<
+                                     (INT64)(it->second) ) ) ;
+
+            }
+            builder.done() ;
          }
 
          BSONObj retObj = retObjBuilder.obj() ;
@@ -2777,8 +2530,9 @@ namespace engine
                       "Failed to lock the collection[%s], rc: %d",
                       _targetName.c_str(), rc ) ;
 
-         // check task count of old cl
-         rc = catGetTaskCount( _targetName.c_str(), cb, taskCount ) ;
+         // check split task count of old cl
+         rc = catGetCLTaskCountByType( _targetName.c_str(), CLS_TASK_SPLIT, cb,
+                                       taskCount ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get task count of cl[%s], rc: %d",
                       _targetName.c_str(), rc ) ;
@@ -2888,11 +2642,7 @@ namespace engine
                           "CAT_ALTER_CL" )
 
    _catCtxAlterCL::_catCtxAlterCL ( INT64 contextID, UINT64 eduID )
-#if !defined( SDB_INDEX_DEVELOPMENT )
-   : _catCtxIndexMultiTask( contextID, eduID )
-#else
    : _catCtxDataMultiTaskBase( contextID, eduID )
-#endif
    {
       _executeAfterLock = TRUE ;
       _needRollback = TRUE ;
@@ -3088,7 +2838,7 @@ namespace engine
       }
 
       PD_RC_CHECK( rc, PDWARNING, "Failed to clear alter collection command,"
-                "rc: %d", rc ) ;
+                   "rc: %d", rc ) ;
 
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXALTERCL_CLEAR_INT, rc ) ;
@@ -3130,7 +2880,9 @@ namespace engine
                    "collection [%s], rc: %d", task->getActionName(),
                    _targetName.c_str(), rc ) ;
 
-      rc = _addAlterTask( _targetName, task, &catTask, FALSE ) ;
+      // do not push task to _execTasks here, because we should push this task
+      // after subcl's task
+      rc = _addAlterTask( _targetName, task, &catTask, FALSE, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to add alter task [%s] on "
                    "collection [%s], rc: %d", task->getActionName(),
                    _targetName.c_str(), rc ) ;
@@ -3158,7 +2910,7 @@ namespace engine
           actionType != RTN_ALTER_CL_INC_VERSION)
       {
          rc = _addAlterSubCLTask( catTask, cb, *lockMgr, collectionSet,
-                                _groupList ) ;
+                                  _groupList ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to add alter sub tasks [%s] on "
                       "collection [%s], rc: %d", task->getActionName(),
                       _targetName.c_str(), rc ) ;
@@ -3275,10 +3027,10 @@ namespace engine
    INT32 _catCtxAlterCL::_addAlterTask ( const string & collection,
                                          const rtnAlterTask * task,
                                          catCtxAlterCLTask ** catTask,
-                                         BOOLEAN pushExec )
+                                         BOOLEAN pushExec,
+                                         BOOLEAN isSubCL )
    {
       INT32 rc = SDB_OK ;
-      INT32 actionType = RTN_ALTER_INVALID_ACTION ;
 
       PD_TRACE_ENTRY ( SDB_CATCTXALTERCL__ADDALTERTASK ) ;
 
@@ -3286,21 +3038,14 @@ namespace engine
       SDB_ASSERT( NULL != catTask, "alter task is invalid" ) ;
       catCtxAlterCLTask * tempTask = NULL ;
 
-      actionType = task->getActionType() ;
-
       tempTask = SDB_OSS_NEW catCtxAlterCLTask( collection, task ) ;
       PD_CHECK( tempTask, SDB_OOM, error, PDERROR,
                 "Failed to create alter task [%s] on collection [%s]",
                 task->getActionName(), collection.c_str() ) ;
 
-      if( pushExec && actionType == RTN_ALTER_CL_SET_ATTRIBUTES )
+      if( isSubCL )
       {
-         const rtnCLSetAttributeTask *setTask =
-                     dynamic_cast< const rtnCLSetAttributeTask * >( task ) ;
-         if( setTask->containAutoincArgument() )
-         {
-            tempTask->setSubCLFlag() ;
-         }
+         tempTask->setSubCLFlag() ;
       }
 
       _addTask( tempTask, pushExec ) ;
@@ -3362,7 +3107,8 @@ namespace engine
                catCtxAlterCLTask * subCLTask = NULL ;
                catCtxTaskBase * subCLAutoIncTask = NULL ;
 
-               rc = _addAlterTask( subCLName, alterTask, &subCLTask, TRUE ) ;
+               rc = _addAlterTask( subCLName, alterTask, &subCLTask,
+                                   TRUE, TRUE ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to "
                             "add alter task [%s] on collection [%s], rc: %d",
                             alterTask->getActionName(), subCLName.c_str(), rc );
@@ -3540,9 +3286,9 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCL_ADDALTERSEQ_TASK, "_catCtxAlterCL::_addAlterSeqenceTask" )
-   INT32 _catCtxAlterCL::_addAlterSeqenceTask( const string & collection,
-                                               const rtnAlterTask * task,
-                                               catCtxTaskBase ** catAutoIncTask )
+   INT32 _catCtxAlterCL::_addAlterSeqenceTask( const string &collection,
+                                               const rtnAlterTask *task,
+                                               catCtxTaskBase **catAutoIncTask )
    {
       INT32 rc = SDB_OK ;
 
@@ -3575,22 +3321,29 @@ namespace engine
    INT32 _catCtxAlterCL::_makeReply ( rtnContextBuf & buffObj )
    {
       INT32 rc = SDB_OK ;
-
       PD_TRACE_ENTRY( SDB_CATCTXALTERCL__MAKEREPLY ) ;
 
-      BOOLEAN containTasks = FALSE ;
+      BSONObjBuilder replyBuilder ;
 
-      for( UINT32 i = 0 ; i < _execTasks.size() ; i++ )
+      if ( _execTasks.size() > 0 )
       {
-         catCtxAlterCLTask * task =
-                           dynamic_cast<catCtxAlterCLTask *>( _execTasks[i] ) ;
-         if( task )
+         /* message format:
+         *  { TaskID: [ 1, 2, ... ],
+         *    Index: [ { Collection: "foo.bar", IndexDef: xxx },
+         *             { Collection: "foo.bar", IndexDef: xxx },
+         *             ...
+         *           ]
+         *  }
+         */
+         // Generate task list
+         BSONArrayBuilder taskBuilder(
+                               replyBuilder.subarrayStart( CAT_TASKID_NAME ) ) ;
+         for( UINT32 i = 0 ; i < _execTasks.size() ; i++ )
          {
-            if ( !task->getPostTasks().empty() )
+            catCtxAlterCLTask * task =
+                           dynamic_cast<catCtxAlterCLTask *>( _execTasks[i] ) ;
+            if( task )
             {
-               // Generate task list
-               BSONObjBuilder replyBuilder ;
-               BSONArrayBuilder taskBuilder( replyBuilder.subarrayStart( CAT_TASKID_NAME ) ) ;
                const ossPoolList< UINT64 > & postTasks = task->getPostTasks() ;
                for ( ossPoolList<UINT64>::const_iterator it = postTasks.begin();
                      it != postTasks.end() ;
@@ -3598,24 +3351,39 @@ namespace engine
                {
                   taskBuilder.append( (INT64)( *it ) ) ;
                }
-               taskBuilder.done() ;
-
-               // Generate group list
-               _pCatCB->makeGroupsObj( replyBuilder, _groupList, TRUE ) ;
-
-               buffObj = rtnContextBuf( replyBuilder.obj() ) ;
-               containTasks = TRUE ;
             }
          }
+         taskBuilder.done() ;
+         // Generate index list
+         BSONArrayBuilder idxBuilder(
+                              replyBuilder.subarrayStart( FIELD_NAME_INDEX ) ) ;
+         for( UINT32 i = 0 ; i < _execTasks.size() ; i++ )
+         {
+            catCtxAlterCLTask * task =
+                           dynamic_cast<catCtxAlterCLTask *>( _execTasks[i] ) ;
+            if( task )
+            {
+               const ossPoolList<BSONObj> & indexes = task->getIndexes() ;
+               for ( ossPoolList<BSONObj>::const_iterator it = indexes.begin() ;
+                     it != indexes.end() ; it++ )
+               {
+                  idxBuilder.append( BSON( FIELD_NAME_COLLECTION <<
+                                           task->getDataName().c_str() <<
+                                           IXM_FIELD_NAME_INDEX_DEF << *it ) ) ;
+               }
+            }
+         }
+         idxBuilder.done() ;
+         // Generate task list
+         _pCatCB->makeGroupsObj( replyBuilder, _groupList, TRUE ) ;
+         buffObj = rtnContextBuf( replyBuilder.obj() ) ;
       }
-
-      if ( !containTasks )
+      else
       {
          rc = _catCtxDataMultiTaskBase::_makeReply( buffObj ) ;
       }
 
       PD_TRACE_EXITRC( SDB_CATCTXALTERCL__MAKEREPLY, rc ) ;
-
       return rc ;
    }
 
@@ -4095,271 +3863,4 @@ namespace engine
       return rc ;
    }
 
-#if !defined( SDB_INDEX_DEVELOPMENT )
-   /*
-    * _catCtxCreateIdx implement
-    */
-   RTN_CTX_AUTO_REGISTER( _catCtxCreateIdx, RTN_CONTEXT_CAT_CREATE_IDX,
-                          "CAT_CREATE_IDX" )
-
-   _catCtxCreateIdx::_catCtxCreateIdx ( INT64 contextID, UINT64 eduID )
-   : _catCtxIndexMultiTask( contextID, eduID )
-   {
-      _executeAfterLock = FALSE ;
-      _commitAfterExecute = FALSE ;
-      _needRollback = TRUE ;
-   }
-
-   _catCtxCreateIdx::~_catCtxCreateIdx ()
-   {
-      _onCtxDelete() ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXCREATEIDX_PARSEQUERY, "_catCtxCreateIdx::_parseQuery" )
-   INT32 _catCtxCreateIdx::_parseQuery ( _pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY ( SDB_CATCTXCREATEIDX_PARSEQUERY ) ;
-
-      SDB_ASSERT( MSG_CAT_CREATE_IDX_REQ == _cmdType,
-                  "Wrong command type" ) ;
-
-      try
-      {
-         rc = rtnGetSTDStringElement( _boQuery, CAT_COLLECTION, _targetName ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to get field [%s], rc: %d",
-                      CAT_COLLECTION, rc ) ;
-
-         rc = rtnGetObjElement( _boQuery, FIELD_NAME_INDEX, _boIdx ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to get field [%s], rc: %d",
-                      FIELD_NAME_INDEX, rc ) ;
-
-         rc = rtnConvertIndexDef( _boIdx ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to convert index definition" ) ;
-
-         rc = rtnGetSTDStringElement( _boIdx, IXM_FIELD_NAME_NAME, _idxName ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to get field [%s], rc: %d",
-                      IXM_FIELD_NAME_NAME, rc ) ;
-      }
-      catch ( std::exception &e )
-      {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = SDB_INVALIDARG;
-         goto error ;
-      }
-
-   done :
-      PD_TRACE_EXITRC( SDB_CATCTXCREATEIDX_PARSEQUERY, rc ) ;
-      return rc;
-   error :
-      goto done;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXCREATEIDX_CHECK_INT, "_catCtxCreateIdx::_checkInternal" )
-   INT32 _catCtxCreateIdx::_checkInternal ( _pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY ( SDB_CATCTXCREATEIDX_CHECK_INT ) ;
-
-      rc = _addCreateIdxTasks( _targetName, _idxName, _boIdx, TRUE, cb ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to add create index [%s/%s] tasks, rc: %d",
-                   _targetName.c_str(), _idxName.c_str(), rc ) ;
-
-   done :
-      PD_TRACE_EXITRC ( SDB_CATCTXCREATEIDX_CHECK_INT, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXCREATEIDX__MAKEREPLY, "_catCtxCreateIdx::_makeReply" )
-   INT32 _catCtxCreateIdx::_makeReply ( rtnContextBuf & buffObj )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB_CATCTXCREATEIDX__MAKEREPLY ) ;
-
-      try
-      {
-         if ( CAT_CONTEXT_READY == _status )
-         {
-            // send index's clname and grouplist to coord.
-            // coord will create the cl and index in phase1
-            BSONObjBuilder retObjBuilder ;
-            if ( _isGlobalIndex )
-            {
-               retObjBuilder.appendBool( IXM_GLOBAL_FIELD, TRUE ) ;
-               BSONObjBuilder globalOption(
-                         retObjBuilder.subobjStart(IXM_GLOBAL_OPTION_FIELD) ) ;
-               globalOption.append( CAT_COLLECTION, _indexCLName ) ;
-               if ( !_domain.empty() )
-               {
-                  globalOption.append( CAT_DOMAIN_NAME, _domain ) ;
-               }
-               globalOption.done() ;
-            }
-
-            // send grouplist to coord
-            _pCatCB->makeGroupsObj( retObjBuilder, _groupList, TRUE ) ;
-            buffObj = rtnContextBuf( retObjBuilder.obj() ) ;
-         }
-         else
-         {
-            // Send dummy object to keep one GetMore for one step.
-            BSONObj dummy ;
-            buffObj = rtnContextBuf( dummy.getOwned() ) ;
-         }
-      }
-      catch ( std::exception &e )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB_CATCTXCREATEIDX__MAKEREPLY, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   /*
-    * _catCtxDropIdx implement
-    */
-   RTN_CTX_AUTO_REGISTER( _catCtxDropIdx, RTN_CONTEXT_CAT_DROP_IDX,
-                          "CAT_DROP_IDX" )
-
-   _catCtxDropIdx::_catCtxDropIdx ( INT64 contextID, UINT64 eduID )
-   : _catCtxIndexMultiTask( contextID, eduID )
-   {
-      _executeAfterLock = FALSE ;
-      _needRollback = FALSE ;
-   }
-
-   _catCtxDropIdx::~_catCtxDropIdx ()
-   {
-      _onCtxDelete() ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXDROPIDX_PARSEQUERY, "_catCtxDropIdx::_parseQuery" )
-   INT32 _catCtxDropIdx::_parseQuery ( _pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY ( SDB_CATCTXDROPIDX_PARSEQUERY ) ;
-
-      SDB_ASSERT( MSG_CAT_DROP_IDX_REQ == _cmdType,
-                  "Wrong command type" ) ;
-
-      try
-      {
-         BSONObj boIdx ;
-         BSONElement beIdx ;
-
-         rc = rtnGetSTDStringElement( _boQuery, CAT_COLLECTION, _targetName ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to get field [%s], rc: %d",
-                      CAT_COLLECTION, rc ) ;
-
-         rc = rtnGetObjElement( _boQuery, FIELD_NAME_INDEX, boIdx ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to get field [%s], rc: %d",
-                      FIELD_NAME_INDEX, rc ) ;
-
-         beIdx = boIdx.firstElement() ;
-         PD_CHECK( jstOID == beIdx.type() || String == beIdx.type(),
-                   SDB_INVALIDARG, error, PDERROR,
-                   "Invalid index identifier type: %s", beIdx.toString().c_str() ) ;
-         if ( String == beIdx.type() )
-         {
-            _idxName = beIdx.valuestr() ;
-         }
-         else
-         {
-            PD_LOG( PDDEBUG, "Deleting index by OID" ) ;
-         }
-      }
-      catch ( std::exception &e )
-      {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = SDB_INVALIDARG;
-         goto error ;
-      }
-
-   done :
-      PD_TRACE_EXITRC ( SDB_CATCTXDROPIDX_PARSEQUERY, rc ) ;
-      return rc;
-   error :
-      goto done;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXDROPIDX_CHECK_INT, "_catCtxDropIdx::_checkInternal" )
-   INT32 _catCtxDropIdx::_checkInternal ( _pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY ( SDB_CATCTXDROPIDX_CHECK_INT ) ;
-
-      rc = _addDropIdxTasks ( _targetName, _idxName, cb ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to add drop index [%s/%s] tasks, rc: %d",
-                   _targetName.c_str(), _idxName.c_str(), rc ) ;
-
-   done :
-      PD_TRACE_EXITRC ( SDB_CATCTXDROPIDX_CHECK_INT, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
-   INT32 _catCtxDropIdx::_makeReply ( rtnContextBuf & buffObj )
-   {
-      INT32 rc = SDB_OK ;
-      try
-      {
-         if ( CAT_CONTEXT_READY == _status )
-         {
-            // send index's clname and grouplist to coord.
-            // coord will create the cl and index in phase1
-            BSONObjBuilder retObjBuilder ;
-            if ( _isGlobalIndex )
-            {
-               BSONArrayBuilder indexArrayBuilder(
-                         retObjBuilder.subarrayStart(CAT_GLOBAL_INDEX) ) ;
-               indexArrayBuilder.append( BSON(CAT_GIDX_CL_UNIQUEID <<
-                                                         (INT64)_indexCLUID) ) ;
-               indexArrayBuilder.done() ;
-            }
-
-            // send grouplist to coord
-            _pCatCB->makeGroupsObj( retObjBuilder, _groupList, TRUE ) ;
-            buffObj = rtnContextBuf( retObjBuilder.obj() ) ;
-         }
-         else
-         {
-            // Send dummy object to keep one GetMore for one step.
-            BSONObj dummy ;
-            buffObj = rtnContextBuf( dummy.getOwned() ) ;
-         }
-      }
-      catch ( std::exception &e )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-#endif
 }

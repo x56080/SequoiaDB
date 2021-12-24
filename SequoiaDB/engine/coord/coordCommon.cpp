@@ -229,7 +229,7 @@ namespace engine
    }
 
    INT32 coordInitCataPtrFromObj( const BSONObj &obj,
-                                  CoordCataInfoPtr & cataPtr)
+                                  CoordCataInfoPtr & cataPtr )
    {
       INT32 rc = SDB_OK ;
       CoordCataInfo *pCataInfoTmp = NULL ;
@@ -1019,6 +1019,10 @@ namespace engine
          if ( pCh && pCh[1] && ':' != pCh[1] )
          {
             rc = SDB_OK ;
+         }
+         else
+         {
+            PD_LOG_MSG( PDERROR, "Invalid node name: %s", pNodeName ) ;
          }
       }
 

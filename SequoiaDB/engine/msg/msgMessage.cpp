@@ -1496,8 +1496,7 @@ INT32 msgExtractReply ( const CHAR *pBuffer, SINT32 *flag, SINT64 *contextID,
                         SINT32 *startFrom, SINT32 *numReturned,
                         vector<BSONObj> &objList )
 {
-   SDB_ASSERT ( pBuffer && flag && contextID && startFrom &&
-                numReturned , "Invalid input" ) ;
+   SDB_ASSERT ( pBuffer , "Invalid input" ) ;
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_MSGEXTRACTREPLY ) ;
 
@@ -1510,14 +1509,26 @@ INT32 msgExtractReply ( const CHAR *pBuffer, SINT32 *flag, SINT64 *contextID,
       goto error ;
    }
 
-   *flag = pReply->flags ;
-   *contextID = pReply->contextID ;
-   *startFrom = pReply->startFrom ;
-   *numReturned = pReply->numReturned ;
+   if ( flag )
+   {
+      *flag = pReply->flags ;
+   }
+   if ( contextID )
+   {
+      *contextID = pReply->contextID ;
+   }
+   if ( startFrom )
+   {
+      *startFrom = pReply->startFrom ;
+   }
+   if ( numReturned )
+   {
+      *numReturned = pReply->numReturned ;
+   }
 
    try
    {
-      for ( SINT32 i = 0 ; i < *numReturned; i++ )
+      for ( SINT32 i = 0 ; i < pReply->numReturned ; i++ )
       {
          if ( pReply->header.messageLength < offset + 5 )
          {
