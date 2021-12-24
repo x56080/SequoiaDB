@@ -3329,16 +3329,6 @@ namespace engine
          highConcurrentMode = TRUE ;
       }
 
-      if (DMS_STORAGE_VESSEL == getStorageType())
-      {
-         rc = insertRecordToEngine(cb, context, record, insertResult);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-         goto done;
-      }
-
       try
       {
          dpsTransExecutor *pTransExe = cb->getTransExecutor() ;

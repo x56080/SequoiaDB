@@ -40,21 +40,12 @@ namespace engine
 {
 namespace vessel
 {
-   INT32 bsonRecordUpdater::init(const bson::BSONObj &pattern)
+   void bsonRecordUpdater::setModifier(mthModifier *modifier)
    {
-      INT32 rc = SDB_OK;
       clearResult();
-
-      rc = _modifier.loadPattern(pattern);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init modifier:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
+      SDB_ASSERT(NULL != modifier && modifier->isInitialized(), "can not be invalid");
+      _modifier = modifier;
+      return;
    }
 
    void bsonRecordUpdater::clearResult()
@@ -73,7 +64,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (!_modifier.isInitialized())
+      else if (NULL == _modifier)
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -92,7 +83,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _modifier.modify(obj, _result, NULL, &_changed);
+      rc = _modifier->modify(obj, _result, NULL, &_changed);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to modify record:%d", rc);

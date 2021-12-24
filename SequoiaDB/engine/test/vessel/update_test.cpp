@@ -112,8 +112,11 @@ TEST_F(update_test, base_update_test1)
    bsonRecordUpdater updater;
    DATA_CURSOR_PTR cursor;
 
-   rc = updater.init(pattern);
+   mthModifier modifier;
+   rc = modifier.loadPattern(pattern);
    ASSERT_EQ(SDB_OK, rc);
+
+   updater.setModifier(&modifier);
 
    rc = db.open(&executor, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
@@ -212,8 +215,11 @@ TEST_F(update_test, base_update_test2)
    params.type = INDEX_TYPE_BTREE;
    bson::BSONObj indexDef = indexTestUtil::createIndexObj("index", params, BSON("a" << 1));
 
-   rc = updater.init(pattern);
+   mthModifier modifier;
+   rc = modifier.loadPattern(pattern);
    ASSERT_EQ(SDB_OK, rc);
+
+   updater.setModifier(&modifier);
 
    rc = db.open(&executor, &resource, options);
    ASSERT_EQ(SDB_OK, rc);

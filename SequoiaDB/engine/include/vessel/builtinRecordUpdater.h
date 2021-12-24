@@ -64,10 +64,10 @@ namespace vessel
          virtual void dumpUpdatedFields(ossPoolVector<const CHAR *> &fields)const;
 
       public:
-         INT32 init(const bson::BSONObj &pattern);
+         void setModifier(mthModifier *modifier);
 
       private:
-         mthModifier _modifier;
+         mthModifier *_modifier = NULL;
          bson::BSONObj _result;
          bson::BSONObj _changed;
    };//class bsonRecordUpdater
