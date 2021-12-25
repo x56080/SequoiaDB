@@ -919,6 +919,7 @@ public class DBCollection {
      *                 <li>DBQuery.FLG_QUERY_PARALLED
      *                 <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
      *                 <li>DBQuery.FLG_QUERY_FOR_UPDATE
+     *                 <li>DBQuery.FLG_QUERY_FOR_SHARE
      *                 </ul>
      * @return a DBCursor instance of the result or null if no any matched document
      * @throws BaseException If error happens.
@@ -963,6 +964,7 @@ public class DBCollection {
      *                 <li>DBQuery.FLG_QUERY_PARALLED
      *                 <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
      *                 <li>DBQuery.FLG_QUERY_FOR_UPDATE
+     *                 <li>DBQuery.FLG_QUERY_FOR_SHARE
      *                 </ul>
      * @return a DBCursor instance of the result or null if no any matched document
      * @throws BaseException If error happens.
@@ -1065,6 +1067,7 @@ public class DBCollection {
      *                   <li>DBQuery.FLG_QUERY_PARALLED
      *                   <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
      *                   <li>DBQuery.FLG_QUERY_FOR_UPDATE
+     *                   <li>DBQuery.FLG_QUERY_FOR_SHARE
      *                   </ul>
      * @return a DBCursor instance of the result or null if no any matched document
      * @throws BaseException If error happens.
@@ -1130,6 +1133,7 @@ public class DBCollection {
      *                 <li>DBQuery.FLG_QUERY_PARALLED
      *                 <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
      *                 <li>DBQuery.FLG_QUERY_FOR_UPDATE
+     *                 <li>DBQuery.FLG_QUERY_FOR_SHARE
      *                 </ul>
      * @return the matched document or null if no such document
      * @throws BaseException If error happens.
@@ -1239,6 +1243,7 @@ public class DBCollection {
      *                   <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
      *                   <li>DBQuery.FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE
      *                   <li>DBQuery.FLG_QUERY_FOR_UPDATE
+     *                   <li>DBQuery.FLG_QUERY_FOR_SHARE
      *                   </ul>
      * @param returnNew  When true, returns the updated document rather than the original
      * @return a DBCursor instance of the result or null if no any matched document
@@ -1273,6 +1278,7 @@ public class DBCollection {
      *                   <li>DBQuery.FLG_QUERY_PARALLED
      *                   <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
      *                   <li>DBQuery.FLG_QUERY_FOR_UPDATE
+     *                   <li>DBQuery.FLG_QUERY_FOR_SHARE
      *                   </ul>
      * @return a DBCursor instance of the result or null if no any matched document
      * @throws BaseException If error happens.

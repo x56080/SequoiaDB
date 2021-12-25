@@ -28,7 +28,8 @@ The optional values of the 'flag' parameter are as follows：
 | SDB_FLG_QUERY_PARALLED | When add this flag, it will enable parallel sub query, each sub query will finish scanning different part of the data |
 | SDB_FLG_QUERY_WITH_RETURNDATA | In general, query won't return data but a cursor. And the cursor is used to get data. When add this flag, it will return data in query response. This flag is enabled by default |
 | SDB_FLG_QUERY_PREPARE_MORE | During the query, the server will perform multiple transmissions with the client to return the query result to client. When add this flag, the server will transmit more data to the client each time. It will reduce the number of transmissions between the server and the client and reduce network overhead. |
-| SDB_FLG_QUERY_FOR_UPDATE | When the transaction is turned on and the transaction isolation level is "RC", the transaction lock will be released after the record is read by default. However, when setting this flag, the transaction lock will not released until the transaction is committed or rollback. When the transaction is turned off or the transaction isolation level is "RU", the flag does not work |
+| SDB_FLG_QUERY_FOR_UPDATE | Acquire U lock on the records that are read. When the session is in transaction and setting this flag, the transaction lock will not released until the transaction is committed or rollback. When the session is not in transaction, the flag does not work. |
+| SDB_FLG_QUERY_FOR_SHARE | Acquire S lock on the records that are read. When the session is in transaction and setting this flag, the transaction lock will not released until the transaction is committed or rollback. When the session is not in transaction, the flag does not work. |
 
 >**Note:**
 

@@ -220,10 +220,11 @@ namespace engine
          BOOLEAN              _firstRun ;
          BOOLEAN              _hasLockedRecord ;
          dpsTransCB           *_pTransCB ;
-         INT32                _recordLock ;
+         INT8                 _recordLock ;
+         INT8                 _selectLockMode ;
          BOOLEAN              _needUnLock ;
+         BOOLEAN              _needEscalation ;
          BOOLEAN              _CSCLLockHeld ;
-         BOOLEAN              _selectForUpdate ;
          _pmdEDUCB            *_cb ;
          _dmsScannerContext   _scannerContext ;
 
@@ -427,8 +428,9 @@ namespace engine
          BOOLEAN              _hasLockedRecord ;
          dpsTransCB           *_pTransCB ;
          INT8                 _recordLock ;
+         INT8                 _selectLockMode ;
          BOOLEAN              _needUnLock ;
-         BOOLEAN              _selectForUpdate ;
+         BOOLEAN              _needEscalation ;
          _pmdEDUCB            *_cb ;
          _rtnIXScanner        *_scanner ;
          INT64                _onceRestNum ;

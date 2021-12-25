@@ -83,6 +83,7 @@ const SDB_FLG_QUERY_PARALLED          = 0x00000100 ;
 const SDB_FLG_QUERY_WITH_RETURNDATA   = 0x00000200 ;
 const SDB_FLG_QUERY_PREPARE_MORE      = 0x00004000 ;
 const SDB_FLG_QUERY_FOR_UPDATE        = 0x00010000 ;
+const SDB_FLG_QUERY_FOR_SHARE         = 0x00040000 ;
 
 // end Global Constants
 

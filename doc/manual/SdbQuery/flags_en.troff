@@ -267,54 +267,33 @@ T{
 T}@T{
 SDB_FLG_QUERY_FOR_
 T}@T{
-When the transaction is
+Acquire U lock on the
 T}
 T{
 T}@T{
 UPDATE
 T}@T{
-turned on and the
+records that are read.
 T}
 T{
 T}@T{
 T}@T{
-transaction isolation
+When the session is
 T}
 T{
 T}@T{
 T}@T{
-level is "RC", the
+in transaction and
 T}
 T{
 T}@T{
 T}@T{
-transaction lock will
+setting this flag,
 T}
 T{
 T}@T{
 T}@T{
-be released after the
-T}
-T{
-T}@T{
-T}@T{
-record is read by
-T}
-T{
-T}@T{
-T}@T{
-default.
-However, when
-T}
-T{
-T}@T{
-T}@T{
-setting this flag, the
-T}
-T{
-T}@T{
-T}@T{
-transaction lock will
+the transaction lock will
 T}
 T{
 T}@T{
@@ -324,37 +303,90 @@ T}
 T{
 T}@T{
 T}@T{
-transaction is
+transaction is committed
 T}
 T{
 T}@T{
 T}@T{
-committed or rollback.
+or rollback. When the
 T}
 T{
 T}@T{
 T}@T{
-When the transaction is
+session is not in
 T}
 T{
 T}@T{
 T}@T{
-turned off or the
+transaction, the flag does
 T}
 T{
 T}@T{
 T}@T{
-transaction isolation
+not work.
+T}
+T{
+6
+T}@T{
+SDB_FLG_QUERY_FOR_
+T}@T{
+Acquire S lock on the
+T}
+T{
+T}@T{
+SHARE
+T}@T{
+records that are read.
 T}
 T{
 T}@T{
 T}@T{
-level is "RU", the flag
+When the session is
 T}
 T{
 T}@T{
 T}@T{
-does not work
+in transaction and
+T}
+T{
+T}@T{
+T}@T{
+setting this flag,
+T}
+T{
+T}@T{
+T}@T{
+the transaction lock will
+T}
+T{
+T}@T{
+T}@T{
+not released until the
+T}
+T{
+T}@T{
+T}@T{
+transaction is committed
+T}
+T{
+T}@T{
+T}@T{
+or rollback. When the
+T}
+T{
+T}@T{
+T}@T{
+session is not in
+T}
+T{
+T}@T{
+T}@T{
+transaction, the flag does
+T}
+T{
+T}@T{
+T}@T{
+not work.
 T}
 .TE
 .RS
