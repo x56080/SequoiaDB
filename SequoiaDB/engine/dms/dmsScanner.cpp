@@ -179,14 +179,20 @@ namespace engine
       _pTransCB            = NULL ;
       _curRID._extent      = curExtentID ;
       _recordLock          = DPS_TRANSLOCK_MAX ;
+      _selectLockMode      = DPS_TRANSLOCK_MAX ;
       _needUnLock          = FALSE ;
-      _selectForUpdate     = FALSE ;
+      _needEscalation      = FALSE ;
       _CSCLLockHeld        = FALSE ;
       _cb                  = NULL ;
 
+      // lock for update has higher priority
       if ( OSS_BIT_TEST( flag, FLG_QUERY_FOR_UPDATE ) )
       {
-         _selectForUpdate = TRUE ;
+         _selectLockMode = DPS_TRANSLOCK_U ;
+      }
+      else if ( OSS_BIT_TEST( flag, FLG_QUERY_FOR_SHARE ) )
+      {
+         _selectLockMode = DPS_TRANSLOCK_S ;
       }
    }
 
@@ -458,7 +464,6 @@ namespace engine
       if ( !_pSu->isTransSupport() )
       {
          _recordLock = DPS_TRANSLOCK_MAX ;
-         _selectForUpdate = FALSE ;
       }
       /// When not in transaction
       else if ( cb->getTransID().isInvalid() )
@@ -467,7 +472,6 @@ namespace engine
          if ( !pExe->useTransLock() )
          {
             _recordLock = DPS_TRANSLOCK_MAX ;
-            _selectForUpdate = FALSE ;
          }
          /// Write operation should release lock right now
          else if ( DMS_IS_WRITE_OPR( _accessType ) )
@@ -480,7 +484,6 @@ namespace engine
          else
          {
             _recordLock = DPS_TRANSLOCK_MAX ;
-            _selectForUpdate = FALSE ;
          }
       }
       /// In transaction
@@ -489,28 +492,31 @@ namespace engine
          if ( cb->isInTransRollback() )
          {
             _recordLock = DPS_TRANSLOCK_MAX ;
-            _selectForUpdate = FALSE ;
          }
          else if ( DMS_IS_WRITE_OPR( _accessType ) )
          {
             _recordLock = DPS_TRANSLOCK_X ;
             _needUnLock = FALSE ;
+            _needEscalation = TRUE ;
          }
          else if ( TRANS_ISOLATION_RU == _transIsolation &&
-                   !_selectForUpdate )
+                   DPS_TRANSLOCK_MAX == _selectLockMode )
          {
             _recordLock = DPS_TRANSLOCK_MAX ;
-            _selectForUpdate = FALSE ;
          }
          else
          {
-            _recordLock = _selectForUpdate ? DPS_TRANSLOCK_U :
+            _recordLock =
+                  DPS_TRANSLOCK_MAX != _selectLockMode ?
+                                             _selectLockMode :
                                              DPS_TRANSLOCK_S ;
             if ( TRANS_ISOLATION_RS == _transIsolation ||
-                 _selectForUpdate )
+                 DPS_TRANSLOCK_MAX != _selectLockMode )
             {
                _needUnLock = FALSE ;
                _waitLock = TRUE ;
+               _needEscalation = TRUE ;
+               _callback.setUseLatestVersion() ;
             }
             else
             {
@@ -521,7 +527,8 @@ namespace engine
 
 #ifdef _DEBUG
       if ( ( TRANS_ISOLATION_RR == _transIsolation ) &&
-           ( DPS_TRANSLOCK_S == _recordLock ) )
+           ( DPS_TRANSLOCK_S == _recordLock ) &&
+           ( DPS_TRANSLOCK_MAX == _selectLockMode ) )
       {
          SDB_ASSERT( ( FALSE == _waitLock ),
                      "_waitLock must be set to FALSE when isolation is RR" ) ;
@@ -701,12 +708,13 @@ namespace engine
                   // test S lock failed and the record is not in old version
                   // container nor in RBS, most likely the one hold / wait X
                   // hasn't finish updating the record.
+                  // NOTE: RS and lock for share requires lock escalation
                   rc = _pTransCB->transLockGetS( cb, _pSu->logicalID(),
                                                  _context->mbID(), &_curRID,
                                                  & tbTxContext,
                                                  &lockConflict,
                                                  &_callback,
-                                                 cb->isTransRS() ) ;
+                                                 _needEscalation ) ;
                   if ( SDB_OK == rc )
                   {
                      ignoredLock = FALSE ;
@@ -1603,8 +1611,9 @@ namespace engine
       _hasLockedRecord     = FALSE ;
       _pTransCB            = NULL ;
       _recordLock          = DPS_TRANSLOCK_MAX ;
+      _selectLockMode      = DPS_TRANSLOCK_MAX ;
       _needUnLock          = FALSE ;
-      _selectForUpdate     = FALSE ;
+      _needEscalation      = FALSE ;
       _cb                  = NULL ;
       _scanner             = scanner ;
       _onceRestNum         = 0 ;
@@ -1617,9 +1626,14 @@ namespace engine
       _countOnly           = FALSE ;
       _CSCLLockHeld        = FALSE ;
 
+      // lock for update has higher priority
       if ( OSS_BIT_TEST( flag, FLG_QUERY_FOR_UPDATE ) )
       {
-         _selectForUpdate = TRUE ;
+         _selectLockMode = DPS_TRANSLOCK_U ;
+      }
+      else if ( OSS_BIT_TEST( flag, FLG_QUERY_FOR_SHARE ) )
+      {
+         _selectLockMode = DPS_TRANSLOCK_S ;
       }
    }
 
@@ -1836,7 +1850,6 @@ namespace engine
       if ( !_pSu->isTransSupport() )
       {
          _recordLock = DPS_TRANSLOCK_MAX ;
-         _selectForUpdate = FALSE ;
       }
       /// When not in transaction
       else if ( cb->getTransID().isInvalid() )
@@ -1845,7 +1858,6 @@ namespace engine
          if ( !pExe->useTransLock() )
          {
             _recordLock = DPS_TRANSLOCK_MAX ;
-            _selectForUpdate = FALSE ;
          }
          /// Write operation should release lock right way
          else if ( DMS_IS_WRITE_OPR( _accessType ) )
@@ -1858,7 +1870,6 @@ namespace engine
          else
          {
             _recordLock = DPS_TRANSLOCK_MAX ;
-            _selectForUpdate = FALSE ;
          }
       }
       /// In transaction
@@ -1867,28 +1878,31 @@ namespace engine
          if ( cb->isInTransRollback() )
          {
             _recordLock = DPS_TRANSLOCK_MAX ;
-            _selectForUpdate = FALSE ;
          }
          else if ( DMS_IS_WRITE_OPR( _accessType ) )
          {
             _recordLock = DPS_TRANSLOCK_X ;
             _needUnLock = FALSE ;
+            _needEscalation = TRUE ;
          }
          else if ( TRANS_ISOLATION_RU == _transIsolation &&
-                   !_selectForUpdate )
+                   DPS_TRANSLOCK_MAX == _selectLockMode )
          {
             _recordLock = DPS_TRANSLOCK_MAX ;
-            _selectForUpdate = FALSE ;
          }
          else
          {
-            _recordLock = _selectForUpdate ? DPS_TRANSLOCK_U :
+            _recordLock =
+                  DPS_TRANSLOCK_MAX != _selectLockMode ?
+                                             _selectLockMode :
                                              DPS_TRANSLOCK_S ;
             if ( TRANS_ISOLATION_RS == _transIsolation ||
-                 _selectForUpdate )
+                 DPS_TRANSLOCK_MAX != _selectLockMode )
             {
                _needUnLock = FALSE ;
                _waitLock = TRUE ;
+               _needEscalation = TRUE ;
+               _callback.setUseLatestVersion() ;
             }
             else
             {
@@ -1905,7 +1919,8 @@ namespace engine
 
 #ifdef _DEBUG
       if ( ( TRANS_ISOLATION_RR == _transIsolation ) &&
-           ( DPS_TRANSLOCK_S == _recordLock ) )
+           ( DPS_TRANSLOCK_S == _recordLock ) &&
+           ( DPS_TRANSLOCK_MAX == _selectLockMode ) )
       {
          SDB_ASSERT( ( FALSE == _waitLock ),
                      "_waitLock must be set to FALSE when isolation is RR" ) ;
@@ -2106,13 +2121,13 @@ namespace engine
                // test S lock failed and the record is not in old version
                // container nor in RBS. most likely the one hold / wait X
                // hasn't finish updating the record.
-               // NOTE: only RS requires lock escalation
+               // NOTE: RS and lock for share requires lock escalation
                rc = _pTransCB->transLockGetS( cb, _pSu->logicalID(),
                                               _context->mbID(), &_curRID,
                                               &ixTxContext,
                                               &lockConflict,
                                               &_callback,
-                                              cb->isTransRS() ) ;
+                                              _needEscalation ) ;
                if ( SDB_OK == rc )
                {
                   ignoredLock = FALSE ;

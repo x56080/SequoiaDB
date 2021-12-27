@@ -638,6 +638,8 @@ typedef struct _MsgOpInsert MsgOpInsert ;
 #define FLG_QUERY_FOR_UPDATE                 0x00010000
 // query from the secondary node( only use in inner )
 #define FLG_QUERY_SECONDARY                  0x00020000
+// query for share
+#define FLG_QUERY_FOR_SHARE                  0x00040000
 
 // For query takes 4 document
 // Query + returnFieldSelector + orderBy + hint

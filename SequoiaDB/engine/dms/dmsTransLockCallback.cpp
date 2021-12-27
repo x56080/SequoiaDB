@@ -491,6 +491,7 @@ namespace engine
       _latchedIdxLid  = DMS_INVALID_EXTENT ;
       _transIsolation = TRANS_ISOLATION_MAX ;
       _nonTransNeedCleanup = FALSE ;
+      _useLatestVersion = FALSE ;
       _pScanner    = NULL ;
 
       clearStatus() ;
@@ -508,6 +509,7 @@ namespace engine
       _recordRW   = NULL ;
       _rbsRecordData = NULL ;
       _nonTransNeedCleanup = FALSE ;
+      _useLatestVersion = FALSE ;
       _oldVerCB   = transCB->getOldVCB() ;
       _rbsMgr     = pmdGetKRCB()->getDMSCB()->getRBSSUMgr() ;
 
@@ -658,7 +660,8 @@ namespace engine
 
       // S lock and isolation RR
       if (  ( TRANS_ISOLATION_RR == _transIsolation ) &&
-            ( DPS_TRANSLOCK_S == requestLockMode ) )
+            ( DPS_TRANSLOCK_S == requestLockMode ) &&
+            ( !_useLatestVersion )  )
 
       {
          _afterAcquireSLockRRread( lockId,
@@ -1380,7 +1383,8 @@ namespace engine
 #endif
 
       if ( ( DPS_TRANSLOCK_S == requestLockMode ) &&
-           ( TRANS_ISOLATION_RR == _transIsolation ) )
+           ( TRANS_ISOLATION_RR == _transIsolation ) &&
+           ( !_useLatestVersion ) )
       {
          if ( transID.isInvalid() || _eduCB->isInTransRollback() )
          {

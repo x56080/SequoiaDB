@@ -93,6 +93,8 @@ namespace engine
       BOOLEAN  isNonTransNeedCleanup() const { return _nonTransNeedCleanup ; }
       void     setNonTransNeedCleanup() { _nonTransNeedCleanup = TRUE ; }
       BOOLEAN  isUseOldVersion() const { return _useOldVersion ; }
+      void     setUseLatestVersion() { _useLatestVersion = TRUE ; }
+      BOOLEAN  isUseLatestVersion() const { return _useLatestVersion ; }
 
       BOOLEAN  idxTreeLatched ( SINT32 lid )
       {
@@ -332,6 +334,7 @@ namespace engine
       BOOLEAN              _needPostAction ;
       BOOLEAN              _useOldVersion ;
       BOOLEAN              _recordOnDiskVisible ;
+      BOOLEAN              _useLatestVersion ;
       // save transaction ID of record from disk, which will be used
       // in RBS to check MVCC record chain
       DPS_TRANS_ID         _diskRecordTransID ;

@@ -828,6 +828,7 @@ namespace SequoiaDB
          *      DBQuery.FLG_QUERY_PARALLED
          *      DBQuery.FLG_QUERY_WITH_RETURNDATA
          *      DBQuery.FLG_QUERY_FOR_UPDATE
+         *      DBQuery.FLG_QUERY_FOR_SHARE
          *
          *  \return The DBCursor of matching documents or null
          *  \exception SequoiaDB.BaseException
@@ -957,6 +958,7 @@ namespace SequoiaDB
          *      DBQuery.FLG_QUERY_WITH_RETURNDATA
          *      DBQuery.FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE
          *      DBQuery.FLG_QUERY_FOR_UPDATE
+         *      DBQuery.FLG_QUERY_FOR_SHARE
          *
          *  \param returnNew When true, returns the updated document rather than the original
          *  \return The DBCursor of matching documents or null
@@ -998,6 +1000,7 @@ namespace SequoiaDB
          *      DBQuery.FLG_QUERY_PARALLED
          *      DBQuery.FLG_QUERY_WITH_RETURNDATA
          *      DBQuery.FLG_QUERY_FOR_UPDATE
+         *      DBQuery.FLG_QUERY_FOR_SHARE
          *
          *  \return The DBCursor of matching documents or null
          *  \exception SequoiaDB.BaseException
