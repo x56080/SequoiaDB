@@ -1,6 +1,7 @@
 package com.sequoiadb.faulttolerance.slownode;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import com.sequoiadb.commlib.GroupWrapper;
@@ -37,7 +38,7 @@ import com.sequoiadb.task.TaskMgr;
 public class Faulttolerance22198 extends SdbTestBase {
 
     private String csName = "cs22198";
-    private String clName = "cl22198_";
+    private String clName = "cl22198";
     private String clName2 = "newcl22198_2";
     private int[] replSizes = { -1, 0, 1, 2 };
     private byte[] lobBuff = LobUtil.getRandomBytes( 1024 * 1024 );
@@ -45,7 +46,6 @@ public class Faulttolerance22198 extends SdbTestBase {
     private GroupMgr groupMgr = null;
     private Sequoiadb sdb = null;
     private boolean shutoff = false;
-    private int slowNodeNum = 0;
     private boolean runSuccess = false;
 
     @BeforeClass
@@ -172,8 +172,6 @@ public class Faulttolerance22198 extends SdbTestBase {
                 for ( int i = 0; i < 2000; i++ ) {
                     if ( shutoff ) {
                         break;
-                    } else if ( slowNodeNum == 2 ) {
-                        Thread.sleep( 1000 );
                     }
                     try {
                         cl2.insert( records );
@@ -199,8 +197,6 @@ public class Faulttolerance22198 extends SdbTestBase {
                 for ( int i = 0; i < 5000; i++ ) {
                     if ( shutoff ) {
                         break;
-                    } else if ( slowNodeNum == 2 ) {
-                        Thread.sleep( 1000 );
                     }
                     BasicBSONObject modifier = new BasicBSONObject();
                     modifier.put( "$inc",
@@ -244,19 +240,14 @@ public class Faulttolerance22198 extends SdbTestBase {
                 DBCollection cl3 = dbcs.getCollection( clName + "_2" );
                 DBCollection cl4 = dbcs.getCollection( clName + "_3" );
                 for ( int i = 0; i < 6000; i++ ) {
-                    slowNodeNum = 0;
-                    for ( String slaveNodeName : slaveNodeNames ) {
-                        String ft = FaultToleranceUtils.getNodeFTStatus( db,
-                                slaveNodeName );
-                        if ( "SLOWNODE".equals( ft )
-                                || "SLOWNODE|DEADSYNC".equals( ft ) ) {
-                            slowNodeNum++;
-                        }
-                    }
-                    if ( slowNodeNum == 1 ) {
+                    String ft = FaultToleranceUtils.getNodeFTStatus( db,
+                            slaveNodeNames.get( 0 ) );
+                    if ( "SLOWNODE".equals( ft )
+                            || "SLOWNODE|DEADSYNC".equals( ft ) ) {
+                        System.out.println( new Date() + " "
+                                + this.getClass().getName() + " "
+                                + slaveNodeNames.get( 0 ) + " ft is : " + ft );
                         break;
-                    } else if ( slowNodeNum == 2 ) {
-                        System.out.println( "there are tow slow nodes" );
                     } else {
                         if ( i == 5999 ) {
                             shutoff = true;
@@ -272,8 +263,13 @@ public class Faulttolerance22198 extends SdbTestBase {
 
                 try {
                     cl2.insert( "{a:1}" );
-                    System.out.println(
-                            "ReplSize:0 cl write data must be error when node slow" );
+                    for ( String nodeName : slaveNodeNames ) {
+                        String ft = FaultToleranceUtils.getNodeFTStatus( db,
+                                nodeName );
+                        System.out.println(
+                                new Date() + " " + this.getClass().getName()
+                                        + " " + nodeName + " ft is : " + ft );
+                    }
                     Assert.fail(
                             "ReplSize:0 cl write data must be error when node slow" );
                 } catch ( BaseException e ) {

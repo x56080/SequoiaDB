@@ -1,6 +1,7 @@
 package com.sequoiadb.faulttolerance.slownode;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import com.sequoiadb.exception.SDBError;
@@ -38,7 +39,7 @@ public class Faulttolerance22202 extends SdbTestBase {
 
     private String csName = "cs22202";
     private String clName = "cl22202";
-    private String testCLName = "cl22202_";
+    private String testCLName = "cl22202_test";
     private byte[] lobBuff = LobUtil.getRandomBytes( 1024 * 1024 );
     private GroupMgr groupMgr = null;
     private String groupName = null;
@@ -225,14 +226,23 @@ public class Faulttolerance22202 extends SdbTestBase {
                     "" )) {
                 DBCollection cl = db.getCollectionSpace( csName )
                         .getCollection( testCLName );
+                int slowNodeNum;
                 for ( int i = 0; i < 6000; i++ ) {
-                    boolean nodeSlow = true;
+                    boolean nodeSlow = false;
+                    slowNodeNum = 0;
                     for ( String nodeName : slaveNodeNames ) {
                         String ft = FaultToleranceUtils.getNodeFTStatus( db,
                                 nodeName );
-                        if ( !ft.equals( "SLOWNODE" )
-                                && !ft.equals( "SLOWNODE|DEADSYNC" ) ) {
-                            nodeSlow = false;
+                        if ( ft.equals( "SLOWNODE" )
+                                || ft.equals( "SLOWNODE|DEADSYNC" ) ) {
+                            System.out.println( "nodeName -- " + nodeName
+                                    + " ft -- " + ft );
+                            slowNodeNum++;
+                            System.out.println( ( slowNodeNum == 2 ) + " -- "
+                                    + slowNodeNum );
+                        }
+                        if ( slowNodeNum == 2 ) {
+                            nodeSlow = true;
                             break;
                         }
                     }
@@ -251,8 +261,13 @@ public class Faulttolerance22202 extends SdbTestBase {
 
                 try {
                     cl.insert( "{a:'testslow'}" );
-                    System.out.println(
-                            "ReplSize:-1 cl write data must be error when node slow" );
+                    for ( String nodeName : slaveNodeNames ) {
+                        String ft = FaultToleranceUtils.getNodeFTStatus( db,
+                                nodeName );
+                        System.out.println(
+                                new Date() + " " + this.getClass().getName()
+                                        + " " + nodeName + " ft is : " + ft );
+                    }
                     Assert.fail(
                             "ReplSize:-1 cl write data must be error when node slow" );
                 } catch ( BaseException e ) {
