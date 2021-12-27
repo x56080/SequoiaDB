@@ -1112,7 +1112,7 @@ namespace engine
          needEscalate = curLockEscalated ||
                         ( 0 == maxRecordLockNum ||
                           ( 0 < maxRecordLockNum &&
-                            curRecordLockNum >= (UINT32)maxRecordLockNum ) ) ;
+                            curRecordLockNum > (UINT32)maxRecordLockNum ) ) ;
 
          // check if lock escalation is allowed
          PD_CHECK( isTransAllowLockEscalation() || !needEscalate,
