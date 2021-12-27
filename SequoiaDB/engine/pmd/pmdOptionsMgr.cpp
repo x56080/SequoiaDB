@@ -1982,6 +1982,8 @@ done:
       _transMaxLockNum = DPS_TRANS_MAXLOCKNUM_DFT ;
       _transMaxLogSpaceRatio = DPS_TRANS_MAXLOGSPACERATIO_DFT ;
 
+      _detectDisk = TRUE ;
+
 #ifdef SDB_ENTERPRISE
 
 #ifdef SDB_SSL
@@ -2515,6 +2517,10 @@ done:
               PMD_CFG_CHANGE_RUN, RTN_CTX_TIMEOUT_DFT, FALSE ) ;
       rdvMinMax( pEX, _contextTimeout, RTN_CTX_TIMEOUT_MIN,
                  RTN_CTX_TIMEOUT_MAX, TRUE ) ;
+
+      // --detectdisk
+      rdxBooleanS( pEX, PMD_OPTION_DETECT_DISK, _detectDisk,
+                   FALSE, PMD_CFG_CHANGE_RUN, TRUE, TRUE ) ;
 
       // end map
 

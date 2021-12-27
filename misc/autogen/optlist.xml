@@ -2727,4 +2727,24 @@
       <typeofweb>int</typeofweb>
    </opt>
 
+   <opt>
+      <name>PMD_OPTION_DETECT_DISK</name>
+      <long>detectdisk</long>
+      <description>
+         <en>Turn on disk detection. Default is true</en>
+         <cn>开启磁盘检测，默认为true</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+         <en>Turn on disk detection. Default is true</en>
+         <cn>开启磁盘检测，默认为true</cn>
+      </detail>
+      <default>true</default>
+      <typeofweb>boolean</typeofweb>
+      <hidden>true</hidden>
+  </opt>
+
 </optlist>

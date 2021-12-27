@@ -684,6 +684,7 @@ namespace engine
          OSS_INLINE INT32 maxSessionContextNum() const { return _maxSessionContextNum ; }
          OSS_INLINE INT32 contextTimeout() const { return _contextTimeout ; }
          std::string getOmAddr() const ;
+         OSS_INLINE BOOLEAN detectDisk() const { return _detectDisk ; }
 
 #ifdef SDB_ENTERPRISE
 
@@ -823,6 +824,8 @@ namespace engine
          INT32       _maxContextNum ;
          INT32       _maxSessionContextNum ;
          INT32       _contextTimeout ;
+
+         BOOLEAN     _detectDisk ;
 
 #ifdef SDB_ENTERPRISE
 

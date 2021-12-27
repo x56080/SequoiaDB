@@ -114,9 +114,10 @@ namespace engine
 
          if ( pmdDBIsAbnormal() )
          {
-            PD_LOG( PDSEVERE, "DB is under abnormal status, we must "
-                    "restart!" ) ;
             PMD_RESTART_DB( SDB_SYS ) ;
+            PD_LOG( PDSEVERE, "DB is under abnormal status, because of "
+                    "tick - validationTick > %dms. We must restart db!",
+                    (30*OSS_ONE_SEC)/PMD_SYNC_CLOCK_INTERVAL ) ;
          }
       }
 
