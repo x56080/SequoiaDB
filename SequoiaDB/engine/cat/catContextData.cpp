@@ -1376,27 +1376,13 @@ namespace engine
       CHAR szSpace[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = {0} ;
       CHAR szCollection[ DMS_COLLECTION_NAME_SZ + 1 ] = {0} ;
       BSONObj boSpace, boDomain, boDummy ;
-      BOOLEAN inMappinCS = FALSE ;
 
       // Just check the existence of collection, no lock is needed
-      rc = catGetCollection( _targetName, boDummy, cb, &inMappinCS ) ;
-      if ( SDB_OK == rc && inMappinCS )
-      {
-         // The collection space is mapping to another collection space
-         // on a data source(pure mapping collection space). It's not
-         // allowed to create collection in this collection space.
-         rc = SDB_OPERATION_INCOMPATIBLE ;
-         PD_LOG( PDERROR, "Can not create collection on a data source "
-                 "mapping collection space[%s]", szSpace ) ;
-         goto error ;
-      }
-      else if ( SDB_DMS_NOTEXIST != rc )
-      {
-         rc = SDB_DMS_EXIST ;
-         PD_LOG( PDERROR, "Create failed, the collection [%s] exists",
+      rc = catGetCollection( _targetName, boDummy, cb ) ;
+      PD_CHECK( SDB_DMS_NOTEXIST == rc,
+                SDB_DMS_EXIST, error, PDERROR,
+                "Create failed, the collection [%s] exists",
                 _targetName.c_str() ) ;
-         goto error ;
-      }
 
       // split collection full name to csname and clname
       rc = rtnResolveCollectionName( _targetName.c_str(),
@@ -1418,6 +1404,21 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get the collection space [%s], rc: %d",
                    szSpace, rc ) ;
+      {
+         // Check if the collection space is mapping to another collection
+         // space on a data source(pure mapping collection space). If yes, it's
+         // not allowed to create collection in this collection space.
+         BSONElement dsEle = boSpace.getField( FIELD_NAME_DATASOURCE_ID ) ;
+         // For compatible reason, need to check if dsEle is eoo.
+         if ( !dsEle.eoo() &&
+              ( UTIL_INVALID_DS_UID != (UINT32)dsEle.numberInt() ) )
+         {
+            rc = SDB_OPERATION_INCOMPATIBLE ;
+            PD_LOG( PDERROR, "Can not create collection on a data source "
+                    "mapping collection space[%s]", szSpace ) ;
+            goto error ;
+         }
+      }
 
       // here we do not care what the values are
       // we care how many records in the specified collection space

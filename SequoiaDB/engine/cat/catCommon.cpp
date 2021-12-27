@@ -4476,10 +4476,35 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCOLLETION, "catGetCollection" )
    INT32 catGetCollection ( const string &clName, BSONObj &boCollection,
-                            _pmdEDUCB *cb, BOOLEAN *pInMappinCS )
+                            _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
+
       PD_TRACE_ENTRY ( SDB_CATGETCOLLETION ) ;
+
+      BOOLEAN isExist = FALSE ;
+
+      rc = catCheckCollectionExist( clName.c_str(), isExist, boCollection, cb );
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to get info of collection [%s], rc: %d",
+                   clName.c_str(), rc ) ;
+      PD_CHECK( isExist,
+                SDB_DMS_NOTEXIST, error, PDDEBUG,
+                "Collection [%s] does not exist!",
+                clName.c_str() ) ;
+   done :
+      PD_TRACE_EXITRC ( SDB_CATGETCOLLETION, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCHKCL, "catGetAndCheckCollection" )
+   INT32 catGetAndCheckCollection ( const string &clName, BSONObj &boCollection,
+                                    _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATGETCHKCL ) ;
 
       BOOLEAN isExist = FALSE ;
 
@@ -4503,10 +4528,6 @@ namespace engine
                                                inMappingCS, &csMetaRecord ) ;
                PD_RC_CHECK( rc, PDERROR, "Checking if using mapping cs for "
                             "collection[%s] failed[%d]", clName.c_str(), rc ) ;
-               if ( pInMappinCS )
-               {
-                  *pInMappinCS = inMappingCS ;
-               }
                if ( !inMappingCS )
                {
                   rc = SDB_DMS_NOTEXIST ;
@@ -4546,7 +4567,7 @@ namespace engine
          goto error ;
       }
    done :
-      PD_TRACE_EXITRC ( SDB_CATGETCOLLETION, rc ) ;
+      PD_TRACE_EXITRC ( SDB_CATGETCHKCL, rc ) ;
       return rc ;
    error :
       goto done ;
@@ -4823,7 +4844,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CATGETANDLOCKCOLLECTION ) ;
 
-      rc = catGetCollection( clName, boCollection, cb ) ;
+      rc = catGetAndCheckCollection( clName, boCollection, cb ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get collection[%s], rc: %d",
                    clName.c_str(), rc ) ;

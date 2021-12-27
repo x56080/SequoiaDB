@@ -1572,7 +1572,7 @@ namespace engine
       isDataSourceCL = FALSE ;
       isHighErrLevel = FALSE ;
 
-      rc = catGetCollection( collection, boCollection, cb ) ;
+      rc = catGetAndCheckCollection( collection, boCollection, cb ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get the collection[%s], rc: %d",
                    collection, rc ) ;

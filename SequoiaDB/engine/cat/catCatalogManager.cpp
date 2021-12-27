@@ -1867,17 +1867,29 @@ namespace engine
                                       clName ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get cl name, rc: %d", rc ) ;
-
          rc = catGetCollection( clName, boCollection, _pEduCB ) ;
+         if ( SDB_DMS_NOTEXIST == rc )
+         {
+            // Check if it's in a pure mapping collection space. If yes, return
+            // success directly.
+            BOOLEAN exist = FALSE ;
+            BSONObj csMeta ;
+            const CHAR *fullName = clName.c_str() ;
+            CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
+            const CHAR *dot = ossStrchr( fullName, '.' ) ;
+            ossStrncpy( csName, fullName, dot - fullName ) ;
+            rc = catCheckSpaceExist( csName, exist, csMeta, _pEduCB ) ;
+            PD_RC_CHECK( rc, PDERROR, "Check collection space[%s] existence "
+                         "failed[%d]", csName, rc ) ;
+            if ( csMeta.hasField( FIELD_NAME_DATASOURCE ) )
+            {
+               // The collection is in a pure mapping collection space. Nothing
+               // needs to be done locally.
+               goto done ;
+            }
+         }
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get cl info, rc: %d", rc ) ;
-
-         if ( boCollection.hasField( FIELD_NAME_DATASOURCE_ID ) )
-         {
-            // The collection is in a pure mapping collection space. Nothing
-            // needs to be done locally.
-            goto done ;
-         }
 
          beAutoInc = boCollection.getField( CAT_AUTOINCREMENT ) ;
          if ( EOO == beAutoInc.type() )

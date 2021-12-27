@@ -363,7 +363,11 @@ namespace engine
 
    /* Get Collection */
    INT32 catGetCollection ( const string &clName, BSONObj &boCollection,
-                            _pmdEDUCB *cb, BOOLEAN *pInMappinCS = NULL ) ;
+                            _pmdEDUCB *cb ) ;
+
+   /* Get Collection and check data source */
+   INT32 catGetAndCheckCollection ( const string &clName, BSONObj &boCollection,
+                                    _pmdEDUCB *cb ) ;
 
    /* Get collection's name by unique id */
    INT32 catGetCollectionNameByUID( utilCLUniqueID clUID, string &clName,
