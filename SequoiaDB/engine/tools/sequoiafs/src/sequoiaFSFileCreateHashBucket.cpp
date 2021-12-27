@@ -43,10 +43,9 @@ using namespace sequoiafs;
 INT32 fileCreateHashBucket::hash(INT64 parentId, const CHAR* fileName)
 {
    UINT32 hashKey = 0;
-   CHAR hashStr[OSS_MAX_NAMESIZE + 1];
-   //ossMemset(hashStr, 0, OSS_MAX_NAMESIZE + 1);
-   ossStrncpy(hashStr, fileName, OSS_MAX_NAMESIZE);
-   hashStr[OSS_MAX_NAMESIZE] = '\0';
+   CHAR hashStr[FS_MAX_NAMESIZE + 1];
+   ossStrncpy(hashStr, fileName, FS_MAX_NAMESIZE);
+   hashStr[FS_MAX_NAMESIZE] = '\0';
 
    hashKey = ossHash((const BYTE *)hashStr, ossStrlen(hashStr),
                      (const BYTE *)(&parentId), sizeof(parentId));
@@ -83,7 +82,7 @@ createFileNode* fileCreateHashBucket::get(UINT32 key, INT64 parentId, const CHAR
    {
       visit++;
       if(cur->meta.pid() == parentId
-            && !ossStrncmp(cur->meta.name(), name, OSS_MAX_NAMESIZE))
+            && !ossStrncmp(cur->meta.name(), name, FS_MAX_NAMESIZE))
       {
          break;
       }
@@ -121,7 +120,7 @@ void fileCreateHashBucket::add(UINT32 key, createFileNode* node )
       while ( cur->bucketNext)
       {
          if(cur->meta.pid() == node->meta.pid()
-               && !ossStrncmp(cur->meta.name(), node->meta.name(), OSS_MAX_NAMESIZE))
+               && !ossStrncmp(cur->meta.name(), node->meta.name(), FS_MAX_NAMESIZE))
          {
             SDB_ASSERT(FALSE, "dup node");
          }
@@ -153,7 +152,7 @@ createFileNode* fileCreateHashBucket::del(UINT32 key, INT64 parentId, const CHAR
    {
       visit++;
       if(cur->meta.pid() == parentId 
-            && !ossStrncmp(cur->meta.name(), name, OSS_MAX_NAMESIZE))
+            && !ossStrncmp(cur->meta.name(), name, FS_MAX_NAMESIZE))
       {
          break;
       }
@@ -223,8 +222,8 @@ void fileCreateHashBucket::waitBucketClean()
             isFind = TRUE;
             if(cur->handle != NULL)
             {
-               CHAR fileName[OSS_MAX_NAMESIZE+1] = {0};
-               ossStrncpy(fileName, cur->meta.name(), OSS_MAX_NAMESIZE);
+               CHAR fileName[FS_MAX_NAMESIZE+1] = {0};
+               ossStrncpy(fileName, cur->meta.name(), FS_MAX_NAMESIZE);
                if(cur->handle->status != CREATE_STATUS_INDISK)
                {
                   if(SDB_OK == _createMgr->writeTmpFile(cur))

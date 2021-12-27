@@ -891,7 +891,7 @@ error:
 
 void fileCreatingMgr::_uploadTask()
 {
-   CHAR tmpFileName[OSS_MAX_NAMESIZE + 1] = {0};
+   CHAR tmpFileName[FS_MAX_NAMESIZE + 1] = {0};
    INT32 tryTimes = 0;
    
    while(_running)
@@ -907,8 +907,8 @@ void fileCreatingMgr::_uploadTask()
             {
                if(SDB_IXM_DUP_KEY == rc)
                {
-                  ossMemset(tmpFileName, 0, OSS_MAX_NAMESIZE + 1);
-                  ossSnprintf(tmpFileName, OSS_MAX_NAMESIZE, "%ld.%s.file", 
+                  ossMemset(tmpFileName, 0, FS_MAX_NAMESIZE + 1);
+                  ossSnprintf(tmpFileName, FS_MAX_NAMESIZE, "%ld.%s.file", 
                               item._parentId, item._fileName);
                   rc = _moveTmpFileToBak(tmpFileName);
                   if(SDB_OK != rc)
@@ -1106,7 +1106,7 @@ INT32 fileCreatingMgr::_addFileToDirMap(INT64 parentId, CHAR* fileName)
       while(curfile != NULL)
       {
          prefile = curfile;
-         if(0 == ossStrncmp(curfile->_fileName, fileName, OSS_MAX_NAMESIZE))
+         if(0 == ossStrncmp(curfile->_fileName, fileName, FS_MAX_NAMESIZE))
          {
             PD_LOG(PDERROR, "dup file, parentId=%d, fileName=%s", 
                              parentId, fileName);
@@ -1178,7 +1178,7 @@ fileItem* fileCreatingMgr::_removeFileFromDirMap(INT64 parentId, const CHAR* fil
       curfile = iter->second;
       while(curfile != NULL)
       {
-         if(0 == ossStrncmp(curfile->_fileName, fileName, OSS_MAX_NAMESIZE))
+         if(0 == ossStrncmp(curfile->_fileName, fileName, FS_MAX_NAMESIZE))
          {
             break;
          }
@@ -1216,7 +1216,7 @@ fileItem* fileCreatingMgr::_removeFileFromDirMap(INT64 parentId, const CHAR* fil
 INT32 fileCreatingMgr::writeTmpFile(createFileNode* fileNode)
 {
    INT32 rc = SDB_OK;
-   CHAR fileName[OSS_MAX_NAMESIZE + 1] = {0};
+   CHAR fileName[FS_MAX_NAMESIZE + 1] = {0};
    string filePath;
    ossFile createFile;
    INT64 writeLen = 0;
@@ -1228,7 +1228,7 @@ INT32 fileCreatingMgr::writeTmpFile(createFileNode* fileNode)
       goto error;
    }
 
-   ossSnprintf(fileName, OSS_MAX_NAMESIZE, "%ld.%s.file", 
+   ossSnprintf(fileName, FS_MAX_NAMESIZE, "%ld.%s.file", 
                fileNode->meta.pid(),  fileNode->meta.name());
    filePath = _fileWorkPath + fileName;  
    
@@ -1295,11 +1295,11 @@ error:
 INT32 fileCreatingMgr::_removeTmpFile(INT64 parentId, const CHAR* fileName)
 {
    INT32 rc = SDB_OK;
-   CHAR tmpName[OSS_MAX_NAMESIZE + 1] = {0};
+   CHAR tmpName[FS_MAX_NAMESIZE + 1] = {0};
    string filePath;
    ossFile createFile;
 
-   ossSnprintf( tmpName, OSS_MAX_NAMESIZE,
+   ossSnprintf( tmpName, FS_MAX_NAMESIZE,
                 "%ld.%s.file", parentId, fileName);
    filePath = _fileWorkPath + tmpName; 
    

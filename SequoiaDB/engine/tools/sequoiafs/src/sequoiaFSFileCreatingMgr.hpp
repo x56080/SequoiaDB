@@ -70,7 +70,7 @@ namespace sequoiafs
    {
       public:
          INT64 _parentId;
-         CHAR  _fileName[OSS_MAX_NAMESIZE + 1];
+         CHAR  _fileName[FS_MAX_NAMESIZE + 1];
          fileItem* _pre;
          fileItem* _next;
 
@@ -78,10 +78,10 @@ namespace sequoiafs
          fileItem(INT64 parentId, CHAR* filename)
          {
             _parentId = parentId;
-            ossStrncpy(_fileName, filename, OSS_MAX_NAMESIZE);
+            ossStrncpy(_fileName, filename, FS_MAX_NAMESIZE);
 
-            int len = ossStrlen(filename) < OSS_MAX_NAMESIZE ?
-                     ossStrlen(filename) : OSS_MAX_NAMESIZE;
+            int len = ossStrlen(filename) < FS_MAX_NAMESIZE ?
+                     ossStrlen(filename) : FS_MAX_NAMESIZE;
             _fileName[len] = '\0';
             
             _pre = NULL;

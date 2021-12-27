@@ -42,14 +42,11 @@ using namespace sequoiafs;
 INT32 sequoiaFSMetaHashBucket::hashDirPid(INT64 parentId, const CHAR* dirName)
 {
    UINT32 hashKey = 0;
-   //struct dirNameId name(dirName, parentId);
-   CHAR _hashStr[OSS_MAX_NAMESIZE + 1];
-   ossMemset(_hashStr, 0, OSS_MAX_NAMESIZE + 1);
-   ossStrncpy(_hashStr, dirName, OSS_MAX_NAMESIZE);
+   CHAR _hashStr[FS_MAX_NAMESIZE + 1];
+   ossMemset(_hashStr, 0, FS_MAX_NAMESIZE + 1);
+   ossStrncpy(_hashStr, dirName, FS_MAX_NAMESIZE);
 
-   //hashKey = ossHash((CHAR *)&name, sizeof(dirNameId), 5); //ossHash(char ,size ,)
-
-   hashKey = ossHash( ( const BYTE * )_hashStr, OSS_MAX_NAMESIZE,
+   hashKey = ossHash( ( const BYTE * )_hashStr, FS_MAX_NAMESIZE,
                       ( const BYTE * )( &parentId ),
                       sizeof( parentId ) ) ;
    
@@ -103,7 +100,7 @@ dirMetaNode* sequoiaFSMetaHashBucket::get(UINT32 key, const CHAR* name, INT64 pi
    {
       visit++;
       if(cur->meta.pid() == pid 
-            && !ossStrncmp(cur->meta.name(), name, OSS_MAX_NAMESIZE))
+            && !ossStrncmp(cur->meta.name(), name, FS_MAX_NAMESIZE))
       {
          break;
       }
@@ -143,7 +140,7 @@ void sequoiaFSMetaHashBucket::add(UINT32 key, dirMetaNode* node )
       while ( cur->bucketNext)
       {
          if(cur->meta.pid() == node->meta.pid()
-               && !ossStrncmp(cur->meta.name(), node->meta.name(), OSS_MAX_NAMESIZE))
+               && !ossStrncmp(cur->meta.name(), node->meta.name(), FS_MAX_NAMESIZE))
          {
             SDB_ASSERT( FALSE, "dup node" ) ;
          }
@@ -173,7 +170,7 @@ dirMetaNode* sequoiaFSMetaHashBucket::del(UINT32 key, dirMetaNode* node )
    {
       visit++;
       if(cur->meta.pid() == node->meta.pid() 
-            && !ossStrncmp(cur->meta.name(), node->meta.name(), OSS_MAX_NAMESIZE))
+            && !ossStrncmp(cur->meta.name(), node->meta.name(), FS_MAX_NAMESIZE))
       {
          break;
       }

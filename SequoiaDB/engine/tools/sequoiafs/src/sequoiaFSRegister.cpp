@@ -287,7 +287,7 @@ namespace sequoiafs
    {
       INT32 rc = SDB_OK;
       _mcsNotifyReq *notifyReq = NULL;
-      INT32 nameLen = strnlen(dirName, OSS_MAX_NAMESIZE);
+      INT32 nameLen = strnlen(dirName, FS_MAX_NAMESIZE);
       INT32 messageLength = sizeof(_mcsNotifyReq) + nameLen + 1;
 
       if(!_isRegistered)

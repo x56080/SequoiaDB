@@ -13,7 +13,7 @@
 
 using namespace bson;
 
-#define OSS_MAX_NAMESIZE   NAME_MAX
+#define FS_MAX_NAMESIZE   NAME_MAX
 
 #define LISTEN_PORT  "11742"
 #define ROOT_ID 1
@@ -95,7 +95,7 @@ namespace sequoiafs
       INT32 status;
       INT32 flId;
       INT64 parentId;
-      CHAR fileName[OSS_MAX_NAMESIZE + 1];
+      CHAR fileName[FS_MAX_NAMESIZE + 1];
    };
 
    class _metaNode : public SDBObject
@@ -182,7 +182,7 @@ namespace sequoiafs
          }
 
       public:
-         CHAR _name[OSS_MAX_NAMESIZE + 1];
+         CHAR _name[FS_MAX_NAMESIZE + 1];
          UINT32 _mode; //umode_t(u_shourt)
          UINT32 _uid;
          UINT32 _gid;

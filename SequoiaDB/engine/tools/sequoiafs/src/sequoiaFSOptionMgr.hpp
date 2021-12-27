@@ -154,10 +154,10 @@ namespace sequoiafs
          CHAR _userName[OSS_MAX_PATHSIZE + 1] ;
          CHAR _passwd[OSS_MAX_PATHSIZE + 1] ;
          CHAR _cipherFile[OSS_MAX_PATHSIZE + 1] ;
-         CHAR _token[OSS_MAX_NAMESIZE + 1] ;
+         CHAR _token[FS_MAX_NAMESIZE + 1] ;
          CHAR _collection[OSS_MAX_PATHSIZE + 1] ;
          CHAR _mountpoint[OSS_MAX_PATHSIZE + 1] ;
-         CHAR _alias[OSS_MAX_NAMESIZE + 1] ;
+         CHAR _alias[FS_MAX_NAMESIZE + 1] ;
          CHAR _metaFileCollection[OSS_MAX_PATHSIZE + 1] ;
          CHAR _metaDirCollection[OSS_MAX_PATHSIZE + 1] ;
          INT32 _connectionNum ;

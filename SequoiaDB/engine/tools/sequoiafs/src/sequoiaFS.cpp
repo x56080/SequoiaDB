@@ -82,7 +82,7 @@ const INT32 BUFSIZE=1000;
    lh->parentId = 0;\
    lh->isCreate = FALSE;\
    lh->status = 2;\
-   memset(lh->fileName, 0, OSS_MAX_NAMESIZE + 1);\
+   memset(lh->fileName, 0, FS_MAX_NAMESIZE + 1);\
 }
 
 INT32 getLocalIPs(string *localhosts)
@@ -2641,7 +2641,7 @@ INT32 sequoiaFS::truncate(const CHAR *path, off_t newsize)
    
    //lh->hSysFileMetaCL = &sysFileMetaCL;
    lh->flId = fl->flGetFlId();
-   ossStrncpy(lh->fileName, fileName, OSS_MAX_NAMESIZE);
+   ossStrncpy(lh->fileName, fileName, FS_MAX_NAMESIZE);
    lh->parentId = parentId;
    lh->oid = oid;
    fi->fh = (intptr_t)(uint64_t)((void *)lh);
@@ -2758,7 +2758,7 @@ INT32 sequoiaFS::open(const CHAR *path, struct fuse_file_info *fi)
    }
    
    fileName = (CHAR*)basePath.c_str();
-   ossStrncpy(lh->fileName, fileName, OSS_MAX_NAMESIZE);
+   ossStrncpy(lh->fileName, fileName, FS_MAX_NAMESIZE);
    lh->parentId = parentId;
 
    rc = _fileCreatingMgr.flushfile(parentId, fileName);
@@ -3414,7 +3414,7 @@ INT32 sequoiaFS::create(const CHAR *path,
       goto error;
    }
    fileName = (CHAR *)basePath.c_str();
-   ossStrncpy(lh->fileName, fileName, OSS_MAX_NAMESIZE);
+   ossStrncpy(lh->fileName, fileName, FS_MAX_NAMESIZE);
    lh->parentId = parentId;
 
    rc = _metaCache.getFileInfo(parentId, fileName, fMeta);
