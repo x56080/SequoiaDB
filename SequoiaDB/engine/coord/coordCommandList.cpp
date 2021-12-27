@@ -700,7 +700,9 @@ namespace engine
          queryOpt.setHint( BSONObj() ) ;
 
          outSelector = queryOpt.getSelector() ;
-         queryOpt.setSelector( BSON( FIELD_NAME_COLLECTION <<
+         queryOpt.setSelector( BSON( DMS_ID_KEY_NAME <<
+                                     BSON( "$include" << 0 ) <<
+                                     FIELD_NAME_COLLECTION <<
                                      BSON( "$include" << 0 ) <<
                                      FIELD_NAME_CL_UNIQUEID <<
                                      BSON( "$include" << 0 ) <<
