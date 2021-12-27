@@ -560,8 +560,8 @@ namespace engine
       else if ( SQL_GRAMMAR::CRTINDEX == _commandType )
       {
          dmsIdxTaskStatusPtr statusPtr ;
-         const CHAR* collection = _fullName.toString().c_str() ;
-         const CHAR* indexName = _indexName.toString().c_str() ;
+         ossPoolString collection = _fullName.toString() ;
+         ossPoolString indexName = _indexName.toString() ;
          INT32 sortBufSz = SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE ;
 
          // build index obj
@@ -594,7 +594,7 @@ namespace engine
                                                         statusPtr ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to create task status, rc: %d", rc ) ;
 
-         rc = statusPtr->init( collection, indexObj, sortBufSz ) ;
+         rc = statusPtr->init( collection.c_str(), indexObj, sortBufSz ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to initialize task status, rc: %d",
                       rc ) ;
@@ -602,20 +602,20 @@ namespace engine
          statusPtr->setStatus( DMS_TASK_STATUS_RUN ) ;
 
          // create index
-         rc = rtnCreateIndexCommand( collection, indexObj,
+         rc = rtnCreateIndexCommand( collection.c_str(), indexObj,
                                      eduCB, dmsCB, dpsCB, FALSE, sortBufSz,
                                      &_wrResult, statusPtr.get() ) ;
          const CHAR* rstDetail = eduCB ? eduCB->getInfo(EDU_INFO_ERROR) : NULL ;
          statusPtr->setStatus2Finish( rc, rstDetail, &_wrResult ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to create index[%s] for collection[%s], rc: %d",
-                      indexName, collection, rc ) ;
+                      indexName.c_str(), collection.c_str(), rc ) ;
       }
       else if ( SQL_GRAMMAR::DROPINDEX == _commandType )
       {
          dmsIdxTaskStatusPtr statusPtr ;
-         const CHAR* collection = _fullName.toString().c_str() ;
-         const CHAR* indexName = _indexName.toString().c_str() ;
+         ossPoolString collection = _fullName.toString() ;
+         ossPoolString indexName = _indexName.toString() ;
          BSONObj identifier ;
          try
          {
@@ -634,7 +634,7 @@ namespace engine
                       "Failed to create task status, rc: %d",
                       rc ) ;
 
-         rc = statusPtr->init( collection, BSON( "" << indexName ) ) ;
+         rc = statusPtr->init( collection.c_str(), BSON( "" << indexName ) ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to initialize task status, rc: %d",
                       rc ) ;
@@ -642,14 +642,14 @@ namespace engine
          statusPtr->setStatus( DMS_TASK_STATUS_RUN ) ;
 
          // drop index
-         rc = rtnDropIndexCommand( collection, identifier.firstElement(),
+         rc = rtnDropIndexCommand( collection.c_str(), identifier.firstElement(),
                                    eduCB, dmsCB, dpsCB, FALSE,
                                    statusPtr.get() ) ;
          const CHAR* rstDetail = eduCB ? eduCB->getInfo(EDU_INFO_ERROR) : NULL ;
          statusPtr->setStatus2Finish( rc, rstDetail ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to drop index[%s] on collection[%s], rc: %d",
-                      indexName, collection, rc ) ;
+                      indexName.c_str(), collection.c_str(), rc ) ;
       }
       else if ( SQL_GRAMMAR::LISTCS == _commandType )
       {
