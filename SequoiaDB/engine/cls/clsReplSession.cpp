@@ -1538,6 +1538,7 @@ namespace engine
       DPS_LSN expect ;
       DPS_LSN search = req->next ;
       MsgReplSyncRes msg ;
+      BOOLEAN needSend = TRUE ;
 
       if ( DPS_INVALID_LSN_OFFSET == req->next.offset )
       {
@@ -1619,6 +1620,11 @@ namespace engine
                        sessionName() ) ;
                msg.header.res = SDB_OK ;
                rc = SDB_OK ;
+
+               if ( pmdGetOptionCB()->detectDisk() && pmdDBIsAbnormal() )
+               {
+                  needSend = FALSE ;
+               }
             }
          }
          else
@@ -1628,7 +1634,11 @@ namespace engine
             msg.header.res = SDB_OK ;
             rc = SDB_OK ;
          }
-         routeAgent()->syncSend( handle, &msg ) ;
+
+         if ( needSend )
+         {
+            routeAgent()->syncSend( handle, &msg ) ;
+         }
          goto done ;
       }
       else if ( 0 == req->needData )
