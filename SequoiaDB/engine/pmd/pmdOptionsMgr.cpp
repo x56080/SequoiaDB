@@ -2012,6 +2012,8 @@ done:
       _transReplSize = -1 ;
       _transRCCount = DPS_TRANS_RCCOUNT_DFT ;
 
+      _detectDisk = TRUE ;
+
 #ifdef SDB_ENTERPRISE
 
 #ifdef SDB_SSL
@@ -2528,6 +2530,9 @@ done:
       rdvMinMax( pEX, _maxSessionContextNum, 0, RTN_MAX_SESS_CTX_NUM_MAX,
                  TRUE ) ;
 
+      // --detectdisk
+      rdxBooleanS( pEX, PMD_OPTION_DETECT_DISK, _detectDisk,
+                   FALSE, PMD_CFG_CHANGE_RUN, TRUE, TRUE ) ;
       // end map
 
       return getResult () ;

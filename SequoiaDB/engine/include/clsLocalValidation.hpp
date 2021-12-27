@@ -37,13 +37,40 @@
 
 #include "oss.hpp"
 #include "core.hpp"
+#include "ossUtil.hpp"
+#include "ossMemPool.hpp"
 
 namespace engine
 {
+   class _clsDiskDetector : public SDBObject
+   {
+   public:
+      _clsDiskDetector() ;
+      ~_clsDiskDetector() ;
+
+      INT32   detect() ;
+      INT32   init() ;
+
+   private:
+      INT32   _addFilePath( const CHAR* pFilePath ) ;
+      INT32   _tryToWriteFile( const CHAR* pFilePath ) ;
+      BOOLEAN _isNeedToDetect() ;
+
+   private:
+      ossPoolSet<ossPoolString> _filePathsSet ;
+      ossPoolSet<ossPoolString>::iterator _it ;
+      UINT64 _lastTick ;
+      BOOLEAN _isMonitoredRole ;
+      BOOLEAN _hasInit ;
+   } ;
+
    class _clsLocalValidation : public SDBObject
    {
    public:
       INT32 run() ;
+
+   private:
+      _clsDiskDetector _diskDetector ;
    } ;
 }
 

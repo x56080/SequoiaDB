@@ -713,9 +713,11 @@ namespace engine
    void _clsReplicateSet::onTimer( UINT64 timerID, UINT32 interval )
    {
       PD_TRACE_ENTRY ( SDB__CLSREPSET_ONTMR );
+
       if ( _timerID == timerID )
       {
          UINT64 timeSpan = pmdGetTickSpanTime( _lastTimerTick ) ;
+
          /// avoid out-of-data's timeout event
          if ( timeSpan < interval / 2 )
          {
@@ -986,7 +988,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSREPSET__SHRBEAT ) ;
 
-      if ( _info.info.empty() )
+      if ( _info.info.empty() ||
+           ( pmdGetOptionCB()->detectDisk() && pmdDBIsAbnormal() ) )
       {
          goto done ;
       }
@@ -1026,7 +1029,7 @@ namespace engine
          for ( ; itr != _info.info.end(); itr++ )
          {
             _clsSharingStatus &status = itr->second ;
- 
+
             /// decrease dead time for heartbeat
             if ( status.deadtime >= pmdGetOptionCB()->sharingBreakTime() &&
                  status.deadtime >= _beatTime )
@@ -1361,6 +1364,12 @@ namespace engine
       {
          _alive( beat.identity, _isUDPHandle( handle ) ) ;
          _MsgClsBeatRes res ;
+
+         if ( pmdGetOptionCB()->detectDisk() && pmdDBIsAbnormal() )
+         {
+            goto done ;
+         }
+
          res.header.header.requestID = msg->header.requestID ;
          res.identity = _info.local ;
          _agent->syncSend( handle, &res ) ;
