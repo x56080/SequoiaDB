@@ -47,16 +47,16 @@ namespace vessel
    {  
       public:
          scanEntry(){}
-         explicit scanEntry(UINT32 seq, RECORD_SLOT_ID slot):
-         _seq(seq), _slot(slot){}
+         explicit scanEntry(UINT32 seq, RECORD_SLOT_POS pos):
+         _seq(seq), _pos(pos){}
          ~scanEntry(){}
          scanEntry(const scanEntry &o):
          _seq(o._seq),
-         _slot(o._slot){}
+         _pos(o._pos){}
          scanEntry &operator=(const scanEntry &o)
          {
             _seq = o._seq;
-            _slot = o._slot;
+            _pos = o._pos;
             return *this;
          }
 
@@ -73,7 +73,7 @@ namespace vessel
             }
             else
             {
-               return _slot < o._slot;
+               return _pos < o._pos;
             }
          }
 
@@ -89,18 +89,18 @@ namespace vessel
             }
             else
             {
-               return _slot > o._slot;
+               return _pos > o._pos;
             }
          }
 
          OSS_INLINE BOOLEAN operator==(const scanEntry &o)const
          {
-            return _seq == o._seq && _slot == o._slot;
+            return _seq == o._seq && _pos == o._pos;
          }
 
          OSS_INLINE BOOLEAN operator!=(const scanEntry &o)const
          {
-            return _seq != o._seq || _slot != o._slot;
+            return _seq != o._seq || _pos != o._pos;
          }
 
          OSS_INLINE BOOLEAN operator<=(const scanEntry &o)const
@@ -113,36 +113,36 @@ namespace vessel
          {
             return _seq;
          }
-         OSS_INLINE RECORD_SLOT_ID getSlot()const
+         OSS_INLINE RECORD_SLOT_POS getPos()const
          {
-            return _slot;
+            return _pos;
          }
 
          OSS_INLINE void reset(UINT32 seq = 0,
-                               RECORD_SLOT_ID slot = 0)
+                               RECORD_SLOT_POS pos = 0)
          {
             _seq = seq;
-            _slot = slot;
+            _pos = pos;
             return;
          }
 
          OSS_INLINE void incSeqAndZeroSlot()
          {
             ++_seq;
-            _slot = 0;
+            _pos = 0;
             return;
          }
 
-         OSS_INLINE void incSlot()
+         OSS_INLINE void incPos()
          {
-            ++_slot;
+            ++_pos;
             return;
          }
 
 
       private:
          UINT32 _seq = 0;
-         RECORD_SLOT_ID _slot = 0;
+         RECORD_SLOT_POS _pos = 0;
    };//class scanEntry
 }//namespace vessel
 }//namespace engine

@@ -72,7 +72,7 @@ namespace vessel
 
             public:
                /// exclusive end
-               RECORD_SLOT_ID endBound = INVALID_RECORD_SLOT_ID;
+               RECORD_SLOT_POS  endBound = INVALID_RECORD_SLOT_POS ;
                dmsScanOptions so;
 
                /// do not hold rid latch when scan for none
@@ -88,7 +88,7 @@ namespace vessel
          /// from begin to end.
          INT32 open(requestContext *context,
                     PAGE_ID lpid,
-                    RECORD_SLOT_ID begin = 0,
+                    RECORD_SLOT_POS  begin = 0,
                     const options *o = NULL);
 
          void close();
@@ -132,20 +132,20 @@ namespace vessel
       private:
          /// it will automaticlly search visible slot from pos to the end.
          /// The end pos will be end bound(if set) or the last slot in the page.
-         INT32 scanFrom(RECORD_SLOT_ID pos);
+         INT32 scanFrom(RECORD_SLOT_POS  pos);
 
-         INT32 scanWithRU(RECORD_SLOT_ID pos);
+         INT32 scanWithRU(RECORD_SLOT_POS  pos);
 
-         INT32 scanWithLockingRecord(RECORD_SLOT_ID pos);
+         INT32 scanWithLockingRecord(RECORD_SLOT_POS pos);
 
          void clearDataCached();
 
          INT32 initAccessor();
 
-         INT32 fetchRecord(RECORD_SLOT_ID pos,
+         INT32 fetchRecord(RECORD_SLOT_POS pos,
                            UINT8 type);
 
-         INT32 fetchNormalRecord(RECORD_SLOT_ID pos);
+         INT32 fetchNormalRecord(RECORD_SLOT_POS pos);
 
       private:
          static constexpr UINT8 _FLAG_BIG_RECORD = 0x01;
@@ -158,7 +158,7 @@ namespace vessel
          rdpAccessor _accessor;
 
          /// data fetched
-         RECORD_SLOT_ID _pos = INVALID_RECORD_SLOT_ID;
+         RECORD_SLOT_POS  _pos = INVALID_RECORD_SLOT_POS;
          recordID _overflowAddr;
          UINT8 _recordType = RDP_RECORD_HEAD_TYPE_INVALID;
          UINT8 _flags = 0;

@@ -56,7 +56,7 @@ namespace vessel
       _bac.fini();
       _context = NULL;
       _item.fini();
-      _pos = INVALID_RECORD_SLOT_ID;
+      _pos = INVALID_RECORD_SLOT_POS;
       _builder.reset();
       return;
    }
@@ -383,7 +383,7 @@ namespace vessel
    {
       _bac.clearAccessPath();
       _item.fini();
-      _pos = INVALID_RECORD_SLOT_ID;
+      _pos = INVALID_RECORD_SLOT_POS;
       return;
    }
 
@@ -505,13 +505,13 @@ namespace vessel
       goto done;
    }
 
-   void btreeIndexIterator::resetPositionOfCurrentNode(RECORD_SLOT_ID pos)
+   void btreeIndexIterator::resetPositionOfCurrentNode(RECORD_SLOT_POS pos)
    {
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_POS != pos, "can not be invalid");
       SDB_ASSERT(!_bac.isPathEmpty(), "can not be invalid");
       SDB_ASSERT(_bac.isStillAccessing(_bac.getPathSize() - 1), "must be accessing");
       btreeNode node = _bac.getEndNodeInPath();
-      SDB_ASSERT(pos < node.getItemCount(), "out of bound");
+      SDB_ASSERT(pos < (INT16)node.getItemCount(), "out of bound");
       _pos = pos;
       _item.fini();
       return;
@@ -519,7 +519,7 @@ namespace vessel
 
    void btreeIndexIterator::clearPositionOfCurrentNode()
    {
-      _pos = INVALID_RECORD_SLOT_ID;
+      _pos = INVALID_RECORD_SLOT_POS;
       _item.fini();
       return;
    }
@@ -533,20 +533,20 @@ namespace vessel
 
       btreeNode node = _bac.getEndNodeInPath();
       SDB_ASSERT(!node.isLeaf(), "can not be leaf");
-      SDB_ASSERT(_pos < node.getItemCount(), "out of bound");
+      SDB_ASSERT(_pos < (INT16)node.getItemCount(), "out of bound");
 
       INT32 direction = _forward ? 1 : -1;
       INT32 adjust = _forward ? 0 : 1;
       INT32 pos = (INT32)_pos + direction;
-      PAGE_ID childLpid = node.getChild((RECORD_SLOT_ID)(pos + adjust));
+      PAGE_ID childLpid = node.getChild((RECORD_SLOT_POS)(pos + adjust));
 
       if (INVALID_PAGE_ID != childLpid)
       {
          btreeItemLocation location;
          location.child = childLpid;
          location.identical = FALSE;
-         location.slotPos = (RECORD_SLOT_ID)(pos + adjust);
-         location.isUpperBound = (location.slotPos == node.getItemCount());
+         location.slotPos = (RECORD_SLOT_POS)(pos + adjust);
+         location.isUpperBound = (location.slotPos == (INT16)node.getItemCount());
          rc = traverseDownToBottom(location);
          if (SDB_OK != rc)
          {
@@ -558,7 +558,7 @@ namespace vessel
       else if (0 <= pos && pos < (INT32)node.getItemCount())
       {
          /// move to next in current node
-         resetPositionOfCurrentNode((RECORD_SLOT_ID)pos);
+         resetPositionOfCurrentNode((RECORD_SLOT_POS)pos);
       }
       else
       {
@@ -623,7 +623,7 @@ namespace vessel
 
       INT32 ancestorDepth = -1;
       BOOLEAN footPrintIsFaithful = FALSE;
-      RECORD_SLOT_ID ancestorPos = INVALID_RECORD_SLOT_ID;
+      RECORD_SLOT_POS ancestorPos = INVALID_RECORD_SLOT_POS;
 
       rc = prepareToGoBackToAncestors(obstructed,
                                       ancestorDepth,
@@ -658,7 +658,7 @@ namespace vessel
 
       _bac.popEnds(_bac.getPathSize() - ancestorDepth - 1);
       resetPositionOfCurrentNode(_forward ? ancestorPos : (ancestorPos - 1));
-      SDB_ASSERT(_pos < _bac.getEndNodeInPath().getItemCount(), "out of bound");
+      SDB_ASSERT(_pos < (INT16)_bac.getEndNodeInPath().getItemCount(), "out of bound");
    done:
       return rc;
    error:
@@ -919,7 +919,7 @@ namespace vessel
 
       clearPositionOfCurrentNode();
 
-      RECORD_SLOT_ID pos = INVALID_RECORD_SLOT_ID;
+      RECORD_SLOT_POS pos = INVALID_RECORD_SLOT_POS;
       UINT32 locatedDepth = 0;
       btreeNode node = _bac.getEndNodeInPath();
 
@@ -968,7 +968,7 @@ namespace vessel
          }
       } while (TRUE);
 
-      if (INVALID_RECORD_SLOT_ID == pos)
+      if (INVALID_RECORD_SLOT_POS == pos)
       {
          clearPositionOfCurrentNode();
          goto done;
@@ -977,7 +977,7 @@ namespace vessel
       /// return to the last located node
       SDB_ASSERT(locatedDepth < _bac.getPathSize(), "impossible");
       _bac.popEnds(_bac.getPathSize() - locatedDepth - 1);
-      if (_bac.getEndNodeInPath().getItemCount() == pos)
+      if ((INT16)_bac.getEndNodeInPath().getItemCount() == pos)
       {
          --pos;
       }
@@ -1003,7 +1003,7 @@ namespace vessel
       else
       {
          btreeNode node = _bac.getEndNodeInPath();
-         SDB_ASSERT(_pos < node.getItemCount(), "out of bound");
+         SDB_ASSERT(_pos < (INT16)node.getItemCount(), "out of bound");
          md = node.getItemSlot(_pos).isMarkedDeleted();
       }
 
@@ -1011,7 +1011,7 @@ namespace vessel
    }
 
    INT32 btreeIndexIterator::findPosInAncestor(UINT32 ancestorDepth,
-                                               RECORD_SLOT_ID &pos)
+                                               RECORD_SLOT_POS &pos)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(hasLocation(), "can not be invalid");
@@ -1060,7 +1060,7 @@ namespace vessel
       SDB_ASSERT(_bac.isValid(), "can not be invalid");
       SDB_ASSERT(_bac.isReadonly(), "must be readonly");
       SDB_ASSERT(key.isValid(), "can not be invalid");
-      RECORD_SLOT_ID pos = INVALID_RECORD_SLOT_ID;
+      RECORD_SLOT_POS pos = INVALID_RECORD_SLOT_POS;
       UINT32 locatedDepth = 0;
 
       resetLocation();
@@ -1123,7 +1123,7 @@ namespace vessel
          }
       } while (TRUE);
 
-      if (INVALID_RECORD_SLOT_ID == pos)
+      if (INVALID_RECORD_SLOT_POS == pos)
       {
          resetLocation();
          goto done;
@@ -1160,7 +1160,7 @@ namespace vessel
       do
       {
          SDB_ASSERT(!_bac.getEndNodeInPath().isLeaf(), "can not be leaf");
-         RECORD_SLOT_ID pos = INVALID_RECORD_SLOT_ID;
+         RECORD_SLOT_POS pos = INVALID_RECORD_SLOT_POS;
          PAGE_ID nextChild = INVALID_PAGE_ID;
          btreeNode node;
          btreePathFootprint fp;
@@ -1223,7 +1223,7 @@ namespace vessel
 
       do
       {
-         RECORD_SLOT_ID currentPos = _pos;
+         RECORD_SLOT_POS currentPos = _pos;
          btreeNode node = _bac.getEndNodeInPath();
          BOOLEAN back = FALSE;
          btreeItemLocation locd;

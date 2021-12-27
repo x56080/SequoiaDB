@@ -61,14 +61,14 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return INVALID_RECORD_SLOT_ID != _pos;
+            return isValidRecordSlotPosition(_pos);
          }
-         OSS_INLINE void setPos(RECORD_SLOT_ID pos)
+         OSS_INLINE void setPos(RECORD_SLOT_POS pos)
          {
             _pos = pos;
             return;
          }
-         OSS_INLINE RECORD_SLOT_ID getPos()const
+         OSS_INLINE RECORD_SLOT_POS getPos()const
          {
             return _pos;
          }
@@ -97,7 +97,7 @@ namespace vessel
          static const UINT16 FLAG_IS_UPPER_BOUND = 0x01;
 
       private:
-         RECORD_SLOT_ID _pos = INVALID_RECORD_SLOT_ID;
+         RECORD_SLOT_POS _pos = INVALID_RECORD_SLOT_POS;
          UINT16 _flags = 0;
    };//class btreePathFootprint
 #pragma pack()

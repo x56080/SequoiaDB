@@ -77,11 +77,11 @@ namespace vessel
          }
          OSS_INLINE BOOLEAN isDmlPositionSet()const
          {
-            return _rid.valid() && INVALID_CL_PAGE_SEQ != _seq;
+            return _rid.isValid() && INVALID_CL_PAGE_SEQ != _seq;
          }
          OSS_INLINE scanEntry getScanEntry()const
          {
-            return scanEntry(_seq, _rid.getSlotID());
+            return scanEntry(_seq, _rid.getPos());
          }
          
          OSS_INLINE const DPS_LSN_OFFSET &getDmlLSN()const

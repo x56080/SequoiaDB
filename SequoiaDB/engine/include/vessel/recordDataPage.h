@@ -42,6 +42,7 @@
 #include "vessel/vesselIdDef.h"
 #include "dms.hpp"
 #include "dmsStripingId.hpp"
+#include "vessel/pageDef.h"
 
 namespace engine
 {
@@ -76,7 +77,7 @@ namespace vessel
       UINT16 totalSlotCount = 0;
       UINT16 totalFreeSpace = 0;
       UINT16 backOffset = 0;
-      UINT16 firstFreeSlot = INVALID_RECORD_SLOT_ID;
+      INT16 firstFreeSlot = INVALID_RECORD_SLOT_POS;
       INT32 minStriping = DMS_INVALID_STRIPING_ID;
       INT32 maxStriping = DMS_INVALID_STRIPING_ID;
       UINT64 transSN = DPS_INVALID_TRANSID_SN;
@@ -187,7 +188,7 @@ namespace vessel
          UINT16 size = 0;
    };//struct recordSlot
    constexpr UINT32 RDP_RSLOT_SIZE = sizeof(recordSlot);
-   static_assert(ossIsAligned4(RDP_RSLOT_SIZE), "invalid size");
+   static_assert(sizeof(UINT64) == RDP_RSLOT_SIZE, "invalid size");
 
    struct normalRecordHead
    {
@@ -264,7 +265,7 @@ namespace vessel
       }
 
       UINT16 flags = 0;
-      UINT16 pos = INVALID_RECORD_SLOT_ID;
+      INT16 pos = INVALID_RECORD_SLOT_POS;
       UINT32 lpid = INVALID_PAGE_ID;
       UINT32 pad = 0;
    };//struct overflowedRecord
@@ -333,9 +334,10 @@ namespace vessel
 
    OSS_INLINE BOOLEAN isBigRecord(UINT32 pageSize, UINT32 originalRecordSize)
    {
+      SDB_ASSERT(isValidPageSize(pageSize), "can not be invalid");
       UINT32 size = estimateNormalRecordSavingSize(originalRecordSize);
-      /// 128 is meaningless magic number.
-      return getMaxFreeSizeOfRdp(pageSize) < (size + 128);
+      static constexpr UINT32 _MIN_FREE_SIZE = 1024;
+      return pageSize < (size + _MIN_FREE_SIZE);
    }
 }//namespace vessel
 }//namespace engine

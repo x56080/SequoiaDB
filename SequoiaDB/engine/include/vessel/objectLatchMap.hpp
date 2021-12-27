@@ -180,10 +180,10 @@ namespace vessel
             ossItoa(_mbID, buf, _BUF_SIZE);
             str.append(buf);
             str.append(", lpid:");
-            ossItoa(_rid.getPageID(), buf, _BUF_SIZE);
+            ossItoa(_rid.getPid(), buf, _BUF_SIZE);
             str.append(buf);
             str.append(", slot:");
-            ossItoa(_rid.getSlotID(), buf, _BUF_SIZE);
+            ossItoa(_rid.getPos(), buf, _BUF_SIZE);
             str.append(buf);
             str.append("}");
             return std::move(str);

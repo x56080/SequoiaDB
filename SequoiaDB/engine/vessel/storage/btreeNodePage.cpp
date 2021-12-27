@@ -49,13 +49,13 @@ namespace vessel
                                           PAGE_ID leftChild,
                                           BOOLEAN isExternalKey)
    {
-      SDB_ASSERT(rid.valid(), "can not be invalid");
+      SDB_ASSERT(rid.isValid(), "can not be invalid");
       SDB_ASSERT(0 != size, "can not be invalid");
       SDB_ASSERT(!(!isExternalKey && 0 == offset), "can not be invalid");
       reset();
       OSS_BIT_SET(flags, (FLAG_IN_USED));
-      ridSlot = rid.getSlotID();
-      ridPage = rid.getPageID();
+      ridPos = rid.getPos();
+      ridPage = rid.getPid();
       data.key.offset = offset;
       data.key.size = size;
       data.nlf.leftChild = leftChild;
@@ -70,20 +70,20 @@ namespace vessel
                                         UINT16 offset,
                                         UINT16 size,
                                         BOOLEAN compressed,
-                                        RECORD_SLOT_ID prefixPos)
+                                        RECORD_SLOT_POS prefixPos)
    {
-      SDB_ASSERT(rid.valid(), "can not be invalid");
+      SDB_ASSERT(rid.isValid(), "can not be invalid");
       reset();
       OSS_BIT_SET(flags, FLAG_IN_USED);
-      ridSlot = rid.getSlotID();
-      ridPage = rid.getPageID();
+      ridPos = rid.getPos();
+      ridPage = rid.getPid();
       data.key.offset = offset;
       data.key.size = size;
       
       if (compressed)
       {
          OSS_BIT_SET(flags, FLAG_KEY_COMPRESSESD);
-         SDB_ASSERT(INVALID_RECORD_SLOT_ID != prefixPos, "can not be invalid");
+         SDB_ASSERT(isValidRecordSlotPosition(prefixPos), "can not be invalid");
       }
       
       data.lf.prefixSlot = prefixPos;

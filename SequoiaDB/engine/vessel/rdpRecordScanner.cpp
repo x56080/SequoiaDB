@@ -50,7 +50,7 @@ namespace vessel
 
    INT32 rdpRecordScanner::open(requestContext *context,
                                 PAGE_ID lpid,
-                                RECORD_SLOT_ID begin,
+                                RECORD_SLOT_POS begin,
                                 const options *o)
    {
       INT32 rc = SDB_OK;
@@ -59,7 +59,7 @@ namespace vessel
       if (OSS_UNLIKELY(NULL == context ||
                        !context->isMbContextAttached() ||
                        INVALID_PAGE_ID == lpid ||
-                       INVALID_RECORD_SLOT_ID == begin))
+                       INVALID_RECORD_SLOT_POS  == begin))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -107,9 +107,9 @@ namespace vessel
          goto error;
       }
 
-      o.endBound = rid.getSlotID() + 1;
+      o.endBound = rid.getPos() + 1;
       o.nolockWhenScanForNone = TRUE;
-      rc = open(context, rid.getPageID(), rid.getSlotID(), &o);
+      rc = open(context, rid.getPid(), rid.getPos(), &o);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open scanner:%d", rc);
@@ -170,15 +170,15 @@ namespace vessel
    BOOLEAN rdpRecordScanner::isReadyToRead()const
    {
       return isOpen() && 
-             INVALID_RECORD_SLOT_ID != _pos;
+             isValidRecordSlotPosition(_pos);
    }
 
-   INT32 rdpRecordScanner::fetchRecord(RECORD_SLOT_ID pos,
+   INT32 rdpRecordScanner::fetchRecord(RECORD_SLOT_POS  pos,
                                        UINT8 type)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_POS  != pos, "can not be invalid");
       SDB_ASSERT(RDP_RECORD_HEAD_TYPE_INVALID != type, "can not be invalid");
 
       if (RDP_RECORD_HEAD_TYPE_NORMAL == type)
@@ -205,7 +205,7 @@ namespace vessel
    {
       SDB_ASSERT(isOpen(), "can not be closed");
 
-      _pos = INVALID_RECORD_SLOT_ID;
+      _pos = INVALID_RECORD_SLOT_POS ;
       _overflowAddr = recordID();
       _recordType = RDP_RECORD_HEAD_TYPE_INVALID;
       _flags = 0;
@@ -221,11 +221,11 @@ namespace vessel
       return;
    }
 
-   INT32 rdpRecordScanner::fetchNormalRecord(RECORD_SLOT_ID pos)
+   INT32 rdpRecordScanner::fetchNormalRecord(RECORD_SLOT_POS  pos)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_POS  != pos, "can not be invalid");
       normalRecordHead rh;
       slice recordData;
       rc = _accessor.getNormalRecord(pos, rh, recordData);
@@ -247,11 +247,11 @@ namespace vessel
       goto done;
    }
 
-   INT32 rdpRecordScanner::scanFrom(RECORD_SLOT_ID pos)
+   INT32 rdpRecordScanner::scanFrom(RECORD_SLOT_POS  pos)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be invalid");
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_POS  != pos, "can not be invalid");
       if (DMS_SCAN_FOR_NONE == _o.so.scanFor)
       {
          rc = scanWithRU(pos);
@@ -276,11 +276,11 @@ namespace vessel
       goto done;
    }
 
-   INT32 rdpRecordScanner::scanWithLockingRecord(RECORD_SLOT_ID pos)
+   INT32 rdpRecordScanner::scanWithLockingRecord(RECORD_SLOT_POS  pos)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_POS  != pos, "can not be invalid");
       SDB_ASSERT(DMS_SCAN_FOR_NONE != _o.so.scanFor, "can not be none");
       DPS_TRANSLOCK_TYPE mode = (DMS_SCAN_FOR_SHARE == _o.so.scanFor) ?
                                 DPS_TRANSLOCK_S : DPS_TRANSLOCK_U;
@@ -290,8 +290,8 @@ namespace vessel
 
       clearDataCached();
 
-      while (pos < _o.endBound &&
-             pos < _accessor.getTotalSlotCount())
+      while ((!isValidRecordSlotPosition(_o.endBound) || pos < _o.endBound) &&
+             pos < (INT16)_accessor.getTotalSlotCount())
       {
          recordSlot rs;
          recordType = RDP_RECORD_HEAD_TYPE_INVALID;
@@ -310,8 +310,8 @@ namespace vessel
          }
 
          SDB_ASSERT(!locked, "impossible");
-         rid.setPageID(_lpb.getLogicalPid());
-         rid.setSlotID(pos);
+         rid.setPid(_lpb.getLogicalPid());
+         rid.setPos(pos);
          rc = _context->tryAcquireTransLock(rid, mode, locked);
          if (SDB_OK != rc)
          {
@@ -363,11 +363,11 @@ namespace vessel
       goto done;
    }
 
-   INT32 rdpRecordScanner::scanWithRU(RECORD_SLOT_ID pos)
+   INT32 rdpRecordScanner::scanWithRU(RECORD_SLOT_POS  pos)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be invalid");
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(isValidRecordSlotPosition(pos), "can not be invalid");
       
       DPS_LSN_OFFSET minFileLsn = _context->getOuterResource()->logger->getMinFileLSN();
       DPS_LSN_OFFSET lsn = _lpb.getRuntimeBuffer().getPageHead()->lsn;
@@ -380,8 +380,8 @@ namespace vessel
 
       clearDataCached();
 
-      while (pos < _o.endBound &&
-             pos < _accessor.getTotalSlotCount())
+      while ((!isValidRecordSlotPosition(_o.endBound) || pos < _o.endBound) &&
+             pos < (INT16)_accessor.getTotalSlotCount())
       {
          recordSlot rs;
          recordType = RDP_RECORD_HEAD_TYPE_INVALID;

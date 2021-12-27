@@ -71,20 +71,20 @@ namespace vessel
 
 
          INT32 updateNormalRecord(dmlContext *context,
-                                  RECORD_SLOT_ID pos,
+                                  RECORD_SLOT_POS  pos,
                                   const dmsStripingId &striping,
                                   const slice &newRowData,
                                   BOOLEAN &outOfSpace);
 
          INT32 deleteNormalRecord(dmlContext *context,
-                                  RECORD_SLOT_ID pos);
+                                  RECORD_SLOT_POS  pos);
 
       public:
          UINT32 getFreeSpaceAfterLastSlot()const;
          UINT32 getTotalSlotCount()const;
-         INT32 getSlot(RECORD_SLOT_ID pos, recordSlot &rs)const;
+         INT32 getSlot(RECORD_SLOT_POS  pos, recordSlot &rs)const;
 
-         INT32 getNormalRecord(RECORD_SLOT_ID pos,
+         INT32 getNormalRecord(RECORD_SLOT_POS  pos,
                                normalRecordHead &rh,
                                slice &data)const;
 
@@ -97,11 +97,11 @@ namespace vessel
       private:
          INT32 insertNormalRecordToPos(dmlContext *context,
                                        const dmlInsertRequest &request,
-                                       RECORD_SLOT_ID pos,
+                                       RECORD_SLOT_POS  pos,
                                        UINT16 offset);
 
       private:
-         void updatePageHeadWhenInsert(RECORD_SLOT_ID pos,
+         void updatePageHeadWhenInsert(RECORD_SLOT_POS  pos,
                                        const recordSlot &slot,
                                        const normalRecordHead &rh,
                                        const dmsStripingId &striping);
@@ -114,32 +114,32 @@ namespace vessel
          INT32 getPosToInsert(const recordDataPageHead *head,
                               UINT32 alignedHeadAndBodySize,
                               UINT32 minFreeSize,
-                              RECORD_SLOT_ID &slotId,
+                              RECORD_SLOT_POS  &slotId,
                               UINT16 &offset,
                               UINT32 &totalSize)const;
 
          BOOLEAN findPositionToInsert(UINT32 recordSize,
                                       FLOAT32 minFreePercent,
-                                      RECORD_SLOT_ID &pos,
+                                      RECORD_SLOT_POS  &pos,
                                       UINT16 &offset)const;
 
       private:
          INT32 inplaceUpdate(dmlContext *context,
-                             RECORD_SLOT_ID pos,
+                             RECORD_SLOT_POS  pos,
                              const dmsStripingId &striping,
                              const slice &row);
 
       private:
          INT32 createTombstone(dmlContext *context,
-                               RECORD_SLOT_ID pos);
+                               RECORD_SLOT_POS  pos);
 
       private:
-         const recordSlot *getReadableSlot(RECORD_SLOT_ID pos)const;
+         const recordSlot *getReadableSlot(RECORD_SLOT_POS  pos)const;
          
          UINT32 getFrontOffset(const recordDataPageHead *head)const;
 
          recordSlot *getWritableSlot(strictBuffer &buffer,
-                                     RECORD_SLOT_ID pos);
+                                     RECORD_SLOT_POS  pos);
       private:
          INT32 validatePage(requestContext *context,
                             logicalPageBuffer *lpb)const;

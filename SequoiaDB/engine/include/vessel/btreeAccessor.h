@@ -102,7 +102,7 @@ namespace vessel
 
          INT32 insertWithRecreatingChild(const ixmKey &key,
                                          const recordID &rid,
-                                         RECORD_SLOT_ID pos);
+                                         RECORD_SLOT_POS pos);
 
       private:
          INT32 traverseDownAndRemove(const ixmKey &key,

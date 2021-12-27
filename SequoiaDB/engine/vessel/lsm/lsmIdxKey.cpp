@@ -938,8 +938,8 @@ void lsmUpdateDataEntryToMostAdjacent( rocksdb::Slice a, INT32 direction )
       {
          vessel::recordID *pRid = (vessel::recordID*)(aStart + offset);
          UINT64 * aLsn = (UINT64*)(aStart + offset + lsmRidSz );
-         PAGE_ID        pageId = pRid->getPageID();
-         RECORD_SLOT_ID slotId = pRid->getSlotID();
+         PAGE_ID        pageId = pRid->getPid();
+         RECORD_SLOT_POS slotId = pRid->getPos();
          // key sorted on LSN field in descending order
          if ( direction > 0 )
          {
@@ -950,7 +950,7 @@ void lsmUpdateDataEntryToMostAdjacent( rocksdb::Slice a, INT32 direction )
             else
             {
                slotId++;
-               pRid->setSlotID( slotId ) ;
+               pRid->setPos( slotId ) ;
             }
          }
          else
@@ -964,12 +964,12 @@ void lsmUpdateDataEntryToMostAdjacent( rocksdb::Slice a, INT32 direction )
                if ( slotId > 0 )
                {
                   slotId--;
-                  pRid->setSlotID( slotId ) ;
+                  pRid->setPos( slotId ) ;
                }
                else if ( pageId > 0 )
                {
                   pageId--;
-                  pRid->setPageID( pageId ) ;
+                  pRid->setPos( pageId ) ;
                }
             }
          }

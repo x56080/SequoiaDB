@@ -147,7 +147,7 @@ namespace vessel
       return getReadableHead()->splitedTimes;
    }
 
-   btreeItemSlot btreeNode::getItemSlot(RECORD_SLOT_ID pos)const
+   btreeItemSlot btreeNode::getItemSlot(RECORD_SLOT_POS  pos)const
    {
       return *getReadableSlot(pos);
    }
@@ -172,9 +172,9 @@ namespace vessel
              keyDataSize;
    }
 
-   btreeItemSlot *btreeNode::getWritableSlot(RECORD_SLOT_ID pos)
+   btreeItemSlot *btreeNode::getWritableSlot(RECORD_SLOT_POS  pos)
    {
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_POS  != pos, "can not be invalid");
       SDB_ASSERT(isValid(), "can not be invalid");
       SDB_ASSERT(_buffer->isWritable(), "must be prepared");
       UINT32 offset = BTREE_NODE_PAGE_HEAD_SIZE +
@@ -184,9 +184,9 @@ namespace vessel
              getWritableObjPtr<btreeItemSlot>(offset);
    }
 
-   const btreeItemSlot *btreeNode::getReadableSlot(RECORD_SLOT_ID pos)const
+   const btreeItemSlot *btreeNode::getReadableSlot(RECORD_SLOT_POS  pos)const
    {
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_POS  != pos, "can not be invalid");
       SDB_ASSERT(isValid(), "can not be invalid");
       SDB_ASSERT(pos < getReadableHead()->totalSlotCount, "out of bound");
       UINT32 offset = BTREE_NODE_PAGE_HEAD_SIZE +
@@ -261,10 +261,10 @@ namespace vessel
       return r;
    }
 
-   BOOLEAN btreeNode::isItemMarkedAsDeleted(RECORD_SLOT_ID pos)const
+   BOOLEAN btreeNode::isItemMarkedAsDeleted(RECORD_SLOT_POS  pos)const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_POS  != pos, "can not be invalid");
       SDB_ASSERT(!isLeaf(), "can not be leaf");
       SDB_ASSERT(pos < getReadableHead()->totalSlotCount, "out of bound");
       return getReadableSlot(pos)->isMarkedDeleted();
@@ -282,19 +282,19 @@ namespace vessel
       return INVALID_PAGE_ID != getRightChild();
    }
 
-   PAGE_ID btreeNode::getLeftChild(RECORD_SLOT_ID pos)const
+   PAGE_ID btreeNode::getLeftChild(RECORD_SLOT_POS pos)const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_POS  != pos, "can not be invalid");
       SDB_ASSERT(!isLeaf(), "can not be leaf");
       SDB_ASSERT(pos < getReadableHead()->totalSlotCount, "out of bound");
       return getReadableSlot(pos)->data.nlf.leftChild;
    }
 
-   PAGE_ID btreeNode::getChild(RECORD_SLOT_ID pos)const
+   PAGE_ID btreeNode::getChild(RECORD_SLOT_POS pos)const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_POS  != pos, "can not be invalid");
       SDB_ASSERT(!isLeaf(), "can not be leaf");
 
       PAGE_ID child = INVALID_PAGE_ID;
@@ -350,10 +350,10 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::leafRemove(RECORD_SLOT_ID pos)
+   INT32 btreeNode::leafRemove(RECORD_SLOT_POS  pos)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(INVALID_RECORD_SLOT_ID == pos))
+      if (OSS_UNLIKELY(INVALID_RECORD_SLOT_POS  == pos))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -393,10 +393,10 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::nonleafRemove(RECORD_SLOT_ID pos)
+   INT32 btreeNode::nonleafRemove(RECORD_SLOT_POS  pos)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(INVALID_RECORD_SLOT_ID == pos))
+      if (OSS_UNLIKELY(INVALID_RECORD_SLOT_POS  == pos))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -439,7 +439,7 @@ namespace vessel
 
    INT32 btreeNode::_leafInsert(const ixmKey &key,
                                 const recordID &rid,
-                                RECORD_SLOT_ID pos)
+                                RECORD_SLOT_POS  pos)
    { 
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "can not be invalid");
@@ -451,7 +451,7 @@ namespace vessel
       UINT32 keySize = key.dataSize();
       UINT32 savingSize = getSizeToSaveInNode(keySize);
       btreeItemLocation location;
-      RECORD_SLOT_ID toInsert = INVALID_RECORD_SLOT_ID;
+      RECORD_SLOT_POS  toInsert = INVALID_RECORD_SLOT_POS;
 
       if (!hasFreeSpaceToInsert(keySize, &needCompact))
       {
@@ -459,7 +459,7 @@ namespace vessel
          goto error;
       }
 
-      if (INVALID_RECORD_SLOT_ID != pos)
+      if (INVALID_RECORD_SLOT_POS  != pos)
       {
          if (getReadableHead()->totalSlotCount < pos)
          {
@@ -581,7 +581,7 @@ namespace vessel
       btreeItemSlot *slot = NULL;
 
       if (OSS_UNLIKELY(!location.identical ||
-                       INVALID_RECORD_SLOT_ID == location.slotPos))
+                       INVALID_RECORD_SLOT_POS  == location.slotPos))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -640,13 +640,13 @@ namespace vessel
       bson::BufBuilder localBuilder;
       bson::BufBuilder *builder = (NULL == bb) ? &localBuilder : bb;
       INT32 direction = forward ? 1 : -1;
-      RECORD_SLOT_ID low = INVALID_RECORD_SLOT_ID;
-      RECORD_SLOT_ID high = INVALID_RECORD_SLOT_ID;
-      RECORD_SLOT_ID bound = INVALID_RECORD_SLOT_ID;
+      RECORD_SLOT_POS  low = INVALID_RECORD_SLOT_POS;
+      RECORD_SLOT_POS  high = INVALID_RECORD_SLOT_POS;
+      RECORD_SLOT_POS  bound = INVALID_RECORD_SLOT_POS;
       btreeIndexItem item;
       INT32 result = 0;
       orderingWrapper ow;
-      RECORD_SLOT_ID pos = INVALID_RECORD_SLOT_ID;
+      RECORD_SLOT_POS  pos = INVALID_RECORD_SLOT_POS;
 
       location = btreeItemLocation();
       outOfBound = FALSE;
@@ -742,7 +742,7 @@ namespace vessel
          goto error;
       }
 
-      if (OSS_UNLIKELY(INVALID_RECORD_SLOT_ID == pos))
+      if (OSS_UNLIKELY(INVALID_RECORD_SLOT_POS  == pos))
       {
          PD_LOG(PDERROR, "failed to find key in current node");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -761,7 +761,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::keyAdvance(RECORD_SLOT_ID pos,
+   INT32 btreeNode::keyAdvance(RECORD_SLOT_POS  pos,
                               const BSONObj &prevKey,
                               INT32 fieldCountToCmpInPrev,
                               const VEC_ELE_CMP &matchEle,
@@ -774,8 +774,8 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!hasCompressedKeys(), "TODO");
-      RECORD_SLOT_ID low = INVALID_RECORD_SLOT_ID;
-      RECORD_SLOT_ID high = INVALID_RECORD_SLOT_ID;
+      RECORD_SLOT_POS  low = INVALID_RECORD_SLOT_POS;
+      RECORD_SLOT_POS  high = INVALID_RECORD_SLOT_POS;
       BOOLEAN currentNode = FALSE;
       btreeIndexItem item;
       orderingWrapper ow;
@@ -802,7 +802,7 @@ namespace vessel
       if (forward)
       {
          ixmKey key;
-         low = (INVALID_RECORD_SLOT_ID == pos) ?
+         low = (INVALID_RECORD_SLOT_POS  == pos) ?
                 0 : pos;
          high = getItemCount() - 1;
          rc = getItem(high, item);
@@ -825,7 +825,7 @@ namespace vessel
       {
          ixmKey key;
          low = 0;
-         high = (INVALID_RECORD_SLOT_ID == pos) ?
+         high = (INVALID_RECORD_SLOT_POS  == pos) ?
                  (getItemCount() - 1) : pos;
          rc = getItem(high, item);
          if (SDB_OK != rc)
@@ -850,7 +850,7 @@ namespace vessel
       }
       else
       {
-         RECORD_SLOT_ID found = INVALID_RECORD_SLOT_ID;
+         RECORD_SLOT_POS  found = INVALID_RECORD_SLOT_POS;
          builder->reset();
          rc = find(low, high, prevKey, fieldCountToCmpInPrev,
                 matchEle, matchInclusive, exclusive,
@@ -908,7 +908,7 @@ namespace vessel
       {
          INT32 cmp = 0;
          btreeIndexItem item;
-         rc = getItem((RECORD_SLOT_ID)middle, item);
+         rc = getItem((RECORD_SLOT_POS)  middle, item);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get item at[%d], rc:%d", middle, rc);
@@ -931,7 +931,7 @@ namespace vessel
          }
          else
          {
-            res.slotPos = (RECORD_SLOT_ID)middle;
+            res.slotPos = (RECORD_SLOT_POS)middle;
             res.identical = TRUE;
             res.child = isLeaf() ? INVALID_PAGE_ID :
                         item.getSlot().data.nlf.leftChild;
@@ -963,7 +963,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::getItem(RECORD_SLOT_ID pos,
+   INT32 btreeNode::getItem(RECORD_SLOT_POS  pos,
                             btreeIndexItem &item)const
    {
       INT32 rc = SDB_OK;
@@ -978,7 +978,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(INVALID_RECORD_SLOT_ID == pos))
+      else if (OSS_UNLIKELY(INVALID_RECORD_SLOT_POS  == pos))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -1035,15 +1035,15 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::_insert(RECORD_SLOT_ID pos,
+   INT32 btreeNode::_insert(RECORD_SLOT_POS  pos,
                             const ixmKey &key,
                             const recordID &rid,
                             PAGE_ID leftChild)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
-      SDB_ASSERT(key.isValid() && rid.valid(), "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_POS  != pos, "can not be invalid");
+      SDB_ASSERT(key.isValid() && rid.isValid(), "can not be invalid");
 
       btreeItemSlot *slot = NULL;
       UINT32 keySize = key.dataSize();
@@ -1112,13 +1112,13 @@ namespace vessel
    }
 
    INT32 btreeNode::_insertRaisedKey(const btreeSplitRaisedKey &raisedKey,
-                                     RECORD_SLOT_ID pos)
+                                     RECORD_SLOT_POS  pos)
    {
       INT32 rc = SDB_OK;
       const btreeNodePageHead *head = NULL;
       BOOLEAN appendOnly = FALSE;
       UINT32 savingSize = 0;
-      RECORD_SLOT_ID insertPos = INVALID_RECORD_SLOT_ID;
+      RECORD_SLOT_POS  insertPos = INVALID_RECORD_SLOT_POS;
 
       if (OSS_UNLIKELY(!raisedKey.isValid()))
       {
@@ -1157,7 +1157,7 @@ namespace vessel
       savingSize = getSizeToSaveInNode(raisedKey.getKeySize());
       head = getReadableHead();
 
-      if (INVALID_RECORD_SLOT_ID != pos)
+      if (INVALID_RECORD_SLOT_POS  != pos)
       {
          if (head->totalSlotCount < pos)
          {
@@ -1218,11 +1218,11 @@ namespace vessel
    }
 
    INT32 btreeNode::_insertExternalKey(const btreeSplitRaisedKey &raisedKey,
-                                       RECORD_SLOT_ID pos)
+                                       RECORD_SLOT_POS  pos)
    {
       INT32 rc = SDB_OK;
       const btreeNodePageHead *head = NULL;
-      RECORD_SLOT_ID insertPos = INVALID_RECORD_SLOT_ID;
+      RECORD_SLOT_POS  insertPos = INVALID_RECORD_SLOT_POS;
       BOOLEAN appendOnly = FALSE;
 
       if (OSS_UNLIKELY(!raisedKey.isValid()))
@@ -1266,7 +1266,7 @@ namespace vessel
       }
 
       head = getReadableHead();
-      if (INVALID_RECORD_SLOT_ID != pos)
+      if (INVALID_RECORD_SLOT_POS  != pos)
       {
          if (head->totalSlotCount < pos)
          {
@@ -1324,7 +1324,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::insertExternalKey(RECORD_SLOT_ID pos,
+   INT32 btreeNode::insertExternalKey(RECORD_SLOT_POS  pos,
                                       const ixmKey &key,
                                       const recordID &rid,
                                       PAGE_ID leftChild)
@@ -1334,8 +1334,8 @@ namespace vessel
       SDB_ASSERT(!isLeaf(), "can not be leaf");
       SDB_ASSERT(!hasExternalKey(), "external key already exists");
       SDB_ASSERT(key.isValid(), "can not be invalid");
-      SDB_ASSERT(rid.valid(), "can not be invalid");
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(rid.isValid(), "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_POS  != pos, "can not be invalid");
       SDB_ASSERT(INVALID_PAGE_ID != leftChild, "can not be invalid");
 
       btreeItemSlot *slot = NULL;
@@ -1398,12 +1398,12 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::getItemWithExtKey(RECORD_SLOT_ID pos,
+   INT32 btreeNode::getItemWithExtKey(RECORD_SLOT_POS  pos,
                                       btreeIndexItem &item)const
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_POS  != pos, "can not be invalid");
       SDB_ASSERT(!item.isValid(), "can not be valid");
       SDB_ASSERT(hasExternalKey(), "no external key exists");
 
@@ -1474,12 +1474,12 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::tryToCompressKeyInserting(RECORD_SLOT_ID pos,
+   INT32 btreeNode::tryToCompressKeyInserting(RECORD_SLOT_POS  pos,
                                               const ixmKey &key,
                                               btreeNodeCompressedKey &ck)const
    {
       INT32 rc = SDB_OK;/*
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_POS  != pos, "can not be invalid");
       SDB_ASSERT(key.isValid(), "can not be invalid");
       SDB_ASSERT(isLeaf(), "must be leaf");
 
@@ -1597,13 +1597,13 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::insertCompressedKey(RECORD_SLOT_ID pos,
+   INT32 btreeNode::insertCompressedKey(RECORD_SLOT_POS  pos,
                                         const btreeNodeCompressedKey &ck,
                                         const recordID &rid)
    {
       INT32 rc = SDB_OK;/*
       SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_POS  != pos, "can not be invalid");
       SDB_ASSERT(ck.isValid(), "can not be invalid");
       SDB_ASSERT(rid.valid(), "can not be invalid");
       SDB_ASSERT(isLeaf(), "must be leaf node");
@@ -1686,7 +1686,7 @@ namespace vessel
    }
 
    INT32 btreeNode::findSplitPivot(BOOLEAN idleRight,
-                                   RECORD_SLOT_ID &pivot)const
+                                   RECORD_SLOT_POS  &pivot)const
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "can not be invalid");
@@ -1697,7 +1697,7 @@ namespace vessel
       static const UINT32 _MIN_SPLIT_ITEM_COUNT = 3;
       UINT32 factor = idleRight ? 10 : 2;
 
-      pivot = INVALID_RECORD_SLOT_ID;
+      pivot = INVALID_RECORD_SLOT_POS;
       head = getReadableHead();
       if (head->totalSlotCount < _MIN_SPLIT_ITEM_COUNT)
       {
@@ -1730,7 +1730,7 @@ namespace vessel
          pivot = i;
       }
 
-      if (OSS_UNLIKELY(INVALID_RECORD_SLOT_ID == pivot ||
+      if (OSS_UNLIKELY(INVALID_RECORD_SLOT_POS  == pivot ||
                        (head->totalSlotCount - 1) == pivot))
       {
          pivot = head->totalSlotCount - 2;
@@ -1745,7 +1745,7 @@ namespace vessel
    done:
       return rc;
    error:
-      pivot = INVALID_RECORD_SLOT_ID;
+      pivot = INVALID_RECORD_SLOT_POS;
       goto done;
    }
 
@@ -1758,7 +1758,7 @@ namespace vessel
       SDB_ASSERT(key.isValid() && rid.isValid(), "can not be invalid");
 
       btreeItemLocation location;
-      RECORD_SLOT_ID pivot = INVALID_RECORD_SLOT_ID;
+      RECORD_SLOT_POS  pivot = INVALID_RECORD_SLOT_POS;
       BOOLEAN idleRight = FALSE;
       btreeIndexItem item;
       PAGE_ID rightNode = INVALID_PAGE_ID;
@@ -1770,7 +1770,7 @@ namespace vessel
          goto error;
       }
       else if (OSS_UNLIKELY(!key.isValid() ||
-                            !rid.valid()))
+                            !rid.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -1874,12 +1874,12 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::_splitAndCompact(RECORD_SLOT_ID pivot,
+   INT32 btreeNode::_splitAndCompact(RECORD_SLOT_POS  pivot,
                                      PAGE_ID &rightNode)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pivot, "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_POS  != pivot, "can not be invalid");
 
       memoryBlock mb;
       btreeNodePageSplitIniter initer;
@@ -1967,12 +1967,12 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::buildRightNodeWhenSplit(RECORD_SLOT_ID begin,
+   INT32 btreeNode::buildRightNodeWhenSplit(RECORD_SLOT_POS  begin,
                                             strictBuffer &node)const
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != begin, "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_POS  != begin, "can not be invalid");
       SDB_ASSERT(getNodeSize() == node.getSize(), "must be same");
 
       btreeNodePageHead *newHead = node.getWritableObjPtr<btreeNodePageHead>(0);
@@ -1996,7 +1996,7 @@ namespace vessel
       newHead->transSN = head->transSN;
       newHead->transNode = head->transNode;
 
-      for (RECORD_SLOT_ID i = begin; i < head->totalSlotCount; ++i)
+      for (RECORD_SLOT_POS  i = begin; i < head->totalSlotCount; ++i)
       {
          btreeItemSlot *slot = NULL;
          UINT32 keyOffset = 0;
@@ -2152,7 +2152,7 @@ namespace vessel
       head = compactionBuffer.getWritableObjPtr<btreeNodePageHead>(0);
       ossMemcpy(head, rh, BTREE_NODE_PAGE_HEAD_SIZE);
 
-      for (RECORD_SLOT_ID i = 0; i < rh->totalSlotCount; ++i)
+      for (RECORD_SLOT_POS  i = 0; i < rh->totalSlotCount; ++i)
       {
          btreeIndexItem item;
          const btreeItemSlot *slot = getReadableSlot(i);
@@ -2212,12 +2212,12 @@ namespace vessel
 
             if (isLeaf())
             {
-               newSlot.initAsLeafFormat(recordID(slot->ridPage, slot->ridSlot),
+               newSlot.initAsLeafFormat(recordID(slot->ridPage, slot->ridPos),
                                         backOffset, keySize, FALSE);
             }
             else
             {
-               newSlot.initAsNonLeafFormat(recordID(slot->ridPage, slot->ridSlot),
+               newSlot.initAsNonLeafFormat(recordID(slot->ridPage, slot->ridPos),
                                            backOffset, keySize,
                                            slot->data.nlf.leftChild, FALSE);
             }
@@ -2254,11 +2254,11 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::truncate(RECORD_SLOT_ID max)
+   INT32 btreeNode::truncate(RECORD_SLOT_POS  max)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid() && _buffer->isWritable(), "can not be invalid");
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != max, "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_POS  != max, "can not be invalid");
       UINT32 size = 0;
       btreeNodePageHead *head = _buffer->getWritableBodyBuffer().getWritableObjPtr<btreeNodePageHead>(0);
       if (NULL == head)
@@ -2271,7 +2271,7 @@ namespace vessel
       SDB_ASSERT((UINT32)(max + 1) < head->totalSlotCount, "invalid truncate range");
       SDB_ASSERT(!hasCompressedKeys(), "TODO");
 
-      for (RECORD_SLOT_ID i = head->totalSlotCount - 1; i > max; --i)
+      for (RECORD_SLOT_POS  i = head->totalSlotCount - 1; i > max; --i)
       {
          const btreeItemSlot *slot = getReadableSlot(i);
          size += BTREE_NODE_SLOT_SIZE;
@@ -2341,7 +2341,7 @@ namespace vessel
    INT32 btreeNode::split(btreeSplitRaisedKey &raisedKey)
    {
       INT32 rc = SDB_OK;
-      RECORD_SLOT_ID pivot = INVALID_RECORD_SLOT_ID;
+      RECORD_SLOT_POS  pivot = INVALID_RECORD_SLOT_POS;
       PAGE_ID rightNode = INVALID_PAGE_ID;
       btreeIndexItem item;
       BOOLEAN idleRight = FALSE;
@@ -2404,7 +2404,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       btreeItemLocation location;
-      RECORD_SLOT_ID pivot = INVALID_RECORD_SLOT_ID;
+      RECORD_SLOT_POS  pivot = INVALID_RECORD_SLOT_POS;
       BOOLEAN idleRight = FALSE;
       btreeIndexItem item;
       PAGE_ID rightNode = INVALID_PAGE_ID;
@@ -2610,8 +2610,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::find(RECORD_SLOT_ID low,
-                         RECORD_SLOT_ID high,
+   INT32 btreeNode::find(RECORD_SLOT_POS  low,
+                         RECORD_SLOT_POS  high,
                          const bson::BSONObj &prevKey,
                          INT32 fieldCountToCmpInPrev,
                          const VEC_ELE_CMP &matchEle,
@@ -2619,12 +2619,12 @@ namespace vessel
                          BOOLEAN exclusive,
                          BOOLEAN forward,
                          bson::BufBuilder &bb,
-                         RECORD_SLOT_ID &pos)const
+                         RECORD_SLOT_POS  &pos)const
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != low, "can not be invalid");
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != high, "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_POS  != low, "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_POS  != high, "can not be invalid");
       SDB_ASSERT(low <= high, "can not be invalid");
       SDB_ASSERT(!hasCompressedKeys(), "TODO");
 
@@ -2632,7 +2632,7 @@ namespace vessel
       btreeIndexItem item;
       orderingWrapper ow = _ic->getObj().getPattern().getOrdering();
 
-      pos = INVALID_RECORD_SLOT_ID;
+      pos = INVALID_RECORD_SLOT_POS;
 
       INT32 l = (INT32)low;
       INT32 h = (INT32)high;
@@ -2649,13 +2649,13 @@ namespace vessel
             INT32 tmp = forward ? l : h;
             if ((INT32)low <= tmp && tmp <= (INT32)high)
             {
-               pos = (RECORD_SLOT_ID)tmp;
+               pos = (RECORD_SLOT_POS)  tmp;
             }
             goto done;
          }
 
          m = (l + h) >> 1;
-         rc = getItem((RECORD_SLOT_ID)m, item);
+         rc = getItem((RECORD_SLOT_POS)  m, item);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get item[%d], rc:%d", m, rc);
@@ -2694,14 +2694,14 @@ namespace vessel
    done:
       return rc;
    error:
-      pos = INVALID_RECORD_SLOT_ID;
+      pos = INVALID_RECORD_SLOT_POS;
       goto done;
    }
 
-   INT32 btreeNode::removeChild(RECORD_SLOT_ID pos)
+   INT32 btreeNode::removeChild(RECORD_SLOT_POS  pos)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(INVALID_RECORD_SLOT_ID == pos))
+      if (OSS_UNLIKELY(INVALID_RECORD_SLOT_POS  == pos))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -2735,11 +2735,11 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::_removeChild(RECORD_SLOT_ID pos)
+   INT32 btreeNode::_removeChild(RECORD_SLOT_POS  pos)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_POS  != pos, "can not be invalid");
       SDB_ASSERT(!isLeaf(), "can not be leaf");
 
       const btreeNodePageHead *rh = getReadableHead();
@@ -2800,10 +2800,10 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::_destroySlot(RECORD_SLOT_ID pos)
+   INT32 btreeNode::_destroySlot(RECORD_SLOT_POS  pos)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_POS  != pos, "can not be invalid");
       SDB_ASSERT(isValid(), "can not be invalid");
       SDB_ASSERT(getLockingMode().isExclusive(), "must be exlusive");
       SDB_ASSERT(pos < getReadableHead()->totalSlotCount, "out of bound");
@@ -2860,12 +2860,12 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::_nonleafRemove(RECORD_SLOT_ID pos)
+   INT32 btreeNode::_nonleafRemove(RECORD_SLOT_POS pos)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(isValidRecordSlotPosition(pos), "can not be invalid");
       SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(pos < getItemCount(), "out of bound");
+      SDB_ASSERT(pos < (INT16)getItemCount(), "out of bound");
       SDB_ASSERT(getLockingMode().isExclusive(), "must be exclusive");
       SDB_ASSERT(!isLeaf(), "can not be leaf");
       SDB_ASSERT(pos < getReadableHead()->totalSlotCount, "out of bound");
@@ -2903,12 +2903,12 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::_markRemoved(RECORD_SLOT_ID pos)
+   INT32 btreeNode::_markRemoved(RECORD_SLOT_POS  pos)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(isValidRecordSlotPosition(pos), "can not be invalid");
       SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(pos < getItemCount(), "out of bound");
+      SDB_ASSERT(pos < (INT16)getItemCount(), "out of bound");
       SDB_ASSERT(getLockingMode().isExclusive(), "must be exclusive");
       SDB_ASSERT(!isLeaf(), "can not be leaf");
 
@@ -2930,11 +2930,11 @@ namespace vessel
       goto done;
    }
 
-   BOOLEAN btreeNode::becameEmptyAfterRemoving(RECORD_SLOT_ID pos)const
+   BOOLEAN btreeNode::becameEmptyAfterRemoving(RECORD_SLOT_POS  pos)const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
-      SDB_ASSERT(pos < getItemCount(), "out of bound");
+      SDB_ASSERT(isValidRecordSlotPosition(pos), "can not be invalid");
+      SDB_ASSERT(pos < (INT16)getItemCount(), "out of bound");
 
       BOOLEAN r = FALSE;
       if (isLeaf())
@@ -2957,11 +2957,11 @@ namespace vessel
       return r;
    }
 
-   INT32 btreeNode::resetRemovedChild(RECORD_SLOT_ID pos,
+   INT32 btreeNode::resetRemovedChild(RECORD_SLOT_POS  pos,
                                       PAGE_ID child)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(INVALID_RECORD_SLOT_ID == pos ||
+      if (OSS_UNLIKELY(INVALID_RECORD_SLOT_POS  == pos ||
                        INVALID_PAGE_ID == child))
       {
          rc = SDB_INVALIDARG;
@@ -2982,7 +2982,7 @@ namespace vessel
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
       }
-      else if (getItemCount() < pos)
+      else if ((INT16)getItemCount() < pos)
       {
          rc = SDB_OUT_OF_BOUND;
          goto error;
@@ -2993,7 +2993,7 @@ namespace vessel
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
-      else if (pos < getItemCount() &&
+      else if (pos < (INT16)getItemCount() &&
                (getReadableSlot(pos)->isKeyInExtPage()))
       {
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
@@ -3007,7 +3007,7 @@ namespace vessel
          goto error;
       }
 
-      if (pos < getItemCount())
+      if (pos < (INT16)getItemCount())
       {
          getWritableSlot(pos)->data.nlf.leftChild = child;
       }

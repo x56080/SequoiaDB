@@ -515,8 +515,8 @@ namespace vessel
       if (NULL != res)
       {
          res->incInsertedNum();
-         res->setInsertLoc(context->getRid().getPageID(),
-                           context->getRid().getSlotID());
+         res->setInsertLoc(context->getRid().getPid(),
+                           context->getRid().getPos());
       }
    done:
       if (NULL != context)
@@ -1017,7 +1017,7 @@ namespace vessel
       SDB_ASSERT(NULL != _collectionSpace, "can not be null");
       SDB_ASSERT(NULL != cursor, "can not be null");
       SDB_ASSERT(INVALID_PAGE_ID != cursor->getLpid(), "can not be invalid");
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != cursor->getToScanEntry().getSlot(),
+      SDB_ASSERT(isValidRecordSlotPosition(cursor->getToScanEntry().getPos()),
                  "can not be invalid");
 
       rdpRecordScanner scanner;
@@ -1025,7 +1025,7 @@ namespace vessel
       o.so = cursor->getOptions();
 
       rc = scanner.open(context, cursor->getLpid(),
-                        cursor->getToScanEntry().getSlot(),
+                        cursor->getToScanEntry().getPos(),
                         &o);
       if (SDB_OK != rc)
       {
@@ -1042,7 +1042,7 @@ namespace vessel
          rid = scanner.getCurrentRid().toDMSRid();
          transId = scanner.getCurrentTransID();
          record = scanner.getCurrentRecord();
-         cursor->setToScanSlot(scanner.getCurrentRid().getSlotID());
+         cursor->setToScanSlot(scanner.getCurrentRid().getPos());
 
          rc = cursor->pushDataFragments({slice(sizeof(dmsRecordID), &rid),
                                          slice(sizeof(DPS_TRANS_ID), &transId),
@@ -2617,7 +2617,7 @@ namespace vessel
             goto error;
          }
 
-         rc = scanner.open(context, lpid, entry.getSlot());
+         rc = scanner.open(context, lpid, entry.getPos());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to init scanner on lpid[%d]:%d", lpid, rc);
@@ -2729,7 +2729,7 @@ namespace vessel
             goto error;
          }
 
-         rc = scanner.open(context, lpid, entry.getSlot());
+         rc = scanner.open(context, lpid, entry.getPos());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to open scanner:%d", rc);
@@ -2762,7 +2762,7 @@ namespace vessel
             
             if (!sorter->push(batch))
             {
-               entry.reset(entry.getSeq(), rid.getSlotID());
+               entry.reset(entry.getSeq(), rid.getPos());
                buildingContext->updateBuildingHighBound(entry);
                scanner.close();
                goto done;
@@ -3520,12 +3520,12 @@ namespace vessel
                goto error;
             }
 
-            if (rid.valid())
+            if (rid.isValid())
             {
                PD_LOG(PDDEBUG, "duplidated key[%s] found in index[%s], rid[%d,%d]",
                       itr->toString().c_str(),
                       req->getContext()->getObj().getIndexName().str(),
-                      rid.getPageID(), rid.getSlotID());
+                      rid.getPid(), rid.getPos());
                duplicated = TRUE;
                if (NULL != res)
                {
@@ -3994,10 +3994,10 @@ namespace vessel
       mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
       BOOLEAN outOfSpace = FALSE;
 
-      rc = mds.getLogicalPageBuffer(context, rid.getPageID(), mode, lpb);
+      rc = mds.getLogicalPageBuffer(context, rid.getPid(), mode, lpb);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get lpb[%d], rc:%d", rid.getPageID(), rc);
+         PD_LOG(PDERROR, "failed to get lpb[%d], rc:%d", rid.getPid(), rc);
          goto error;
       }
 
@@ -4008,7 +4008,7 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.updateNormalRecord(context, rid.getSlotID(),
+      rc = accessor.updateNormalRecord(context, rid.getPos(),
                                        striping, newRecord,
                                        outOfSpace);
       if (SDB_OK != rc)
@@ -4068,10 +4068,10 @@ namespace vessel
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
       mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
 
-      rc = mds.getLogicalPageBuffer(context, rid.getPageID(), mode, lpb);
+      rc = mds.getLogicalPageBuffer(context, rid.getPid(), mode, lpb);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get lpb[%d], rc:%d", rid.getPageID(), rc);
+         PD_LOG(PDERROR, "failed to get lpb[%d], rc:%d", rid.getPid(), rc);
          goto error;
       }
 
@@ -4082,7 +4082,7 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.deleteNormalRecord(context, rid.getSlotID());
+      rc = accessor.deleteNormalRecord(context, rid.getPos());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to delete record by accessor:%d", rc);

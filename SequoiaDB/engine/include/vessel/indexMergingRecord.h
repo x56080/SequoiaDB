@@ -40,6 +40,7 @@
 #include "utilPooledObject.hpp"
 #include "ossMemPool.hpp"
 #include "../bson/bson.hpp"
+#include "dpsDef.hpp"
 
 namespace engine
 {

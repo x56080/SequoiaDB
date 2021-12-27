@@ -36,7 +36,7 @@
 #ifndef VESSEL_RECORD_ID_H_
 #define VESSEL_RECORD_ID_H_
 
-#include "vessel/pageDef.h"
+#include "vessel/pageIdentifier.h"
 #include "dms.hpp"
 #include "xxHashInc.h"
 #include "ossMemPool.hpp"
@@ -46,37 +46,43 @@ namespace engine
 {
 namespace vessel
 {
-   typedef UINT16 RECORD_SLOT_ID;
-   const RECORD_SLOT_ID INVALID_RECORD_SLOT_ID = 65535;
+   typedef INT16 RECORD_SLOT_POS;
+   constexpr RECORD_SLOT_POS INVALID_RECORD_SLOT_POS = (RECORD_SLOT_POS)-1;
+
+   OSS_INLINE BOOLEAN isValidRecordSlotPosition(RECORD_SLOT_POS pos)
+   {
+      return 0 <= pos;
+   }
+
 #pragma pack(2)
    class recordID
    {
       public:
          OSS_INLINE recordID(){}
          OSS_INLINE ~recordID(){}
-         OSS_INLINE explicit recordID(PAGE_ID pid, RECORD_SLOT_ID slotID)
-         :_page(pid), _slot(slotID){}
+         OSS_INLINE explicit recordID(PAGE_ID pid, RECORD_SLOT_POS pos)
+         :_pid(pid), _pos(pos){}
 
-         OSS_INLINE recordID(const recordID &id)
-         :_page(id._page),
-          _slot(id._slot)
+         OSS_INLINE recordID(const recordID &rid)
+         :_pid(rid._pid),
+          _pos(rid._pos)
          {
          }
 
          OSS_INLINE BOOLEAN operator==(const recordID &o)const
          {
-            return _page == o._page && _slot == o._slot;
+            return _pid == o._pid && _pos == o._pos;
          }
 
          OSS_INLINE BOOLEAN operator!=(const recordID &o)const
          {
-            return _page != o._page || _slot != o._slot;
+            return _pid != o._pid || _pos != o._pos;
          }
 
-         OSS_INLINE recordID &operator=(const recordID &id)
+         OSS_INLINE recordID &operator=(const recordID &rid)
          {
-            _page = id._page;
-            _slot = id._slot;
+            _pid = rid._pid;
+            _pos = rid._pos;
             return *this;
          }
 
@@ -92,19 +98,19 @@ namespace vessel
 
          OSS_INLINE INT32 compare(const recordID &rid)const
          {
-            if ((UINT32)_page < (UINT32)rid._page)
+            if (_pid < rid._pid)
             {
                return -1;     
             }
-            else if((UINT32)_page > (UINT32)rid._page)
+            else if(_pid > rid._pid)
             {
                return 1;
             }
-            else if ((UINT16)_slot < (UINT16)rid._slot)
+            else if (_pos < rid._pos)
             {
                return -1;
             }
-            else if ((UINT16)_slot > (UINT16)rid._slot)
+            else if (_pos > rid._pos)
             {
                return 1;
             }
@@ -114,69 +120,59 @@ namespace vessel
             }
          }
 
-         OSS_INLINE void setPageID(PAGE_ID id)
+         OSS_INLINE void setPid(PAGE_ID pid)
          {
-            _page = id;
+            _pid = pid;
          }
 
-         OSS_INLINE PAGE_ID getPageID()const
+         OSS_INLINE PAGE_ID getPid()const
          {
-            return _page;
+            return _pid;
          }
 
-         OSS_INLINE void setSlotID(RECORD_SLOT_ID id)
+         OSS_INLINE void setPos(RECORD_SLOT_POS pos)
          {
-            _slot = id;
+            _pos = pos;
          }
 
-         OSS_INLINE RECORD_SLOT_ID getSlotID()const
+         OSS_INLINE RECORD_SLOT_POS getPos()const
          {
-            return _slot;
+            return _pos;
          }
 
          OSS_INLINE BOOLEAN isValid()const
          {
-            return INVALID_RECORD_SLOT_ID != _slot &&
-                   INVALID_PAGE_ID != _page &&
-                   0 != _page;
-         }
-         OSS_INLINE BOOLEAN valid()const
-         {
-            return INVALID_RECORD_SLOT_ID != _slot &&
-                   INVALID_PAGE_ID != _page;
+            return INVALID_PAGE_ID != _pid &&
+                   isValidRecordSlotPosition(_pos);
          }
 
          OSS_INLINE dmsRecordID toDMSRid()const
          {
-            if (valid())
-            {
-               return dmsRecordID(_page, _slot);
-            }
-            return dmsRecordID();
+            return isValid() ? dmsRecordID(_pid, _pos) : dmsRecordID();
          }
 
          OSS_INLINE void resetByDmsRid(const dmsRecordID &rid)
          {
             reset();
-            if (rid.isValid() && rid._offset < 65535)
+            if (rid.isValid() && (rid._offset <= (INT32)OSS_SINT16_MAX))
             {
-               _page = rid._extent;
-               _slot = rid._offset;
+               _pid = rid._extent;
+               _pos = rid._offset;
             }
             return;
          }
 
          OSS_INLINE void reset()
          {
-            _page = INVALID_PAGE_ID;
-            _slot = INVALID_RECORD_SLOT_ID;
+            _pid = INVALID_PAGE_ID;
+            _pos = INVALID_RECORD_SLOT_POS;
          }
 
          OSS_INLINE UINT32 hash()const
          {
-            UINT64 v = _page;
+            UINT64 v = _pid;
             v <<= 32;
-            v |= _slot;
+            v |= _pos;
             return XXH3_64bits(&v, sizeof(v));
          }
 
@@ -185,27 +181,27 @@ namespace vessel
             ossPoolString str;
             str.reserve(32);
             CHAR buf[16] = {};
-            ossItoa(_page, buf, 16);
+            ossItoa(_pid, buf, 16);
             str.append("[");
             str.append(buf);
-            ossItoa(_slot, buf, 16);
+            ossItoa(_pos, buf, 16);
             str.append(buf);
             str.append("]");
-            return str;
+            return std::move(str);
          }
 
          static recordID createMinRid()
          {
-            return recordID(0, 0);
+            return recordID(0, OSS_SINT16_MIN);
          }
          static recordID createMaxRid()
          {
-            return recordID((UINT32)-1, (UINT16)-1);
+            return recordID((UINT32)-1, OSS_SINT16_MAX);
          }
 
       private:
-         PAGE_ID _page = INVALID_PAGE_ID;
-         RECORD_SLOT_ID _slot = INVALID_RECORD_SLOT_ID;
+         PAGE_ID _pid = INVALID_PAGE_ID;
+         RECORD_SLOT_POS _pos = INVALID_RECORD_SLOT_POS;
    }; /// end of class recordID
 #pragma pack()
 }//namespace vessel

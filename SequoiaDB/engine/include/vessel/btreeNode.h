@@ -99,15 +99,15 @@ namespace vessel
          UINT32 getNodeSize()const;
          ossSharedLatchMode getLockingMode()const;
          BOOLEAN ensureExclusiveLocking();
-         BOOLEAN isItemMarkedAsDeleted(RECORD_SLOT_ID pos)const;
+         BOOLEAN isItemMarkedAsDeleted(RECORD_SLOT_POS pos)const;
          PAGE_ID getRightChild()const;
          BOOLEAN hasRightChild()const;
-         PAGE_ID getLeftChild(RECORD_SLOT_ID pos)const;
-         PAGE_ID getChild(RECORD_SLOT_ID pos)const;
+         PAGE_ID getLeftChild(RECORD_SLOT_POS pos)const;
+         PAGE_ID getChild(RECORD_SLOT_POS pos)const;
          DPS_TRANS_ID getTransID()const;
          UINT32 getSplitedTimes()const;
 
-         BOOLEAN becameEmptyAfterRemoving(RECORD_SLOT_ID pos)const;
+         BOOLEAN becameEmptyAfterRemoving(RECORD_SLOT_POS pos)const;
 
 
          const logicalPageBuffer *getBuffer()const
@@ -118,7 +118,7 @@ namespace vessel
          {
             return _depth;
          }
-         btreeItemSlot getItemSlot(RECORD_SLOT_ID pos)const;
+         btreeItemSlot getItemSlot(RECORD_SLOT_POS pos)const;
 
       public:
          INT32 prepareToWrite();
@@ -152,26 +152,26 @@ namespace vessel
 
          INT32 exchangeWithNewRoot(btreeNode &newRoot);
 
-         INT32 resetRemovedChild(RECORD_SLOT_ID pos,
+         INT32 resetRemovedChild(RECORD_SLOT_POS pos,
                                  PAGE_ID child);
 
       public:
          /// non-leaf only
-         INT32 nonleafRemove(RECORD_SLOT_ID pos);
+         INT32 nonleafRemove(RECORD_SLOT_POS pos);
 
-         INT32 leafRemove(RECORD_SLOT_ID pos);
+         INT32 leafRemove(RECORD_SLOT_POS pos);
 
          /// non-leaf node only
          /// when pos equals to item count in node,
          /// remove right child
-         INT32 removeChild(RECORD_SLOT_ID pos);
+         INT32 removeChild(RECORD_SLOT_POS pos);
          
       public:
          INT32 locateKeyAndRid(const ixmKey &key,
                                  const recordID &rid,
                                  btreeItemLocation &res)const;
 
-         INT32 getItem(RECORD_SLOT_ID pos,
+         INT32 getItem(RECORD_SLOT_POS pos,
                         btreeIndexItem &item)const;
 
          INT32 keyLocate(const BSONObj &prevKey,
@@ -184,7 +184,7 @@ namespace vessel
                          BOOLEAN &outOfBound,
                          bson::BufBuilder *bb=NULL);
 
-         INT32 keyAdvance(RECORD_SLOT_ID pos,
+         INT32 keyAdvance(RECORD_SLOT_POS pos,
                           const BSONObj &prevKey,
                           INT32 fieldCountToCmpInPrev,
                           const VEC_ELE_CMP &matchEle,
@@ -204,8 +204,8 @@ namespace vessel
          UINT32 getKeyDataOffsetToWrite(const btreeNodePageHead *head,
                                           UINT32 keyDataSize)const;
 
-         btreeItemSlot *getWritableSlot(RECORD_SLOT_ID pos);
-         const btreeItemSlot *getReadableSlot(RECORD_SLOT_ID pos)const;
+         btreeItemSlot *getWritableSlot(RECORD_SLOT_POS pos);
+         const btreeItemSlot *getReadableSlot(RECORD_SLOT_POS pos)const;
 
          const btreeNodePrefixSlot *getReadablePrefixSlot(UINT16 pos)const;
          btreeNodePrefixSlot *getWritablePrefixSlot(UINT16 pos);
@@ -223,8 +223,8 @@ namespace vessel
 
          BOOLEAN isRecentWriteOrdered()const;
 
-         INT32 find(RECORD_SLOT_ID low,
-                    RECORD_SLOT_ID high,
+         INT32 find(RECORD_SLOT_POS low,
+                    RECORD_SLOT_POS high,
                     const bson::BSONObj &prevKey,
                     INT32 fieldCountToCmpInPrev,
                     const VEC_ELE_CMP &matchEle,
@@ -232,7 +232,7 @@ namespace vessel
                     BOOLEAN exclusive,
                     BOOLEAN forward,
                     bson::BufBuilder &bb,
-                    RECORD_SLOT_ID &pos)const;
+                    RECORD_SLOT_POS &pos)const;
 
       private:
          void commit();
@@ -242,38 +242,38 @@ namespace vessel
 
          INT32 _leafInsert(const ixmKey &key,
                            const recordID &rid,
-                           RECORD_SLOT_ID pos=INVALID_RECORD_SLOT_ID);
+                           RECORD_SLOT_POS pos=INVALID_RECORD_SLOT_POS);
 
-         INT32 _insert(RECORD_SLOT_ID pos,
+         INT32 _insert(RECORD_SLOT_POS pos,
                         const ixmKey &key,
                         const recordID &rid,
                         PAGE_ID leftChild=INVALID_PAGE_ID);
 
          INT32 _insertRaisedKey(const btreeSplitRaisedKey &raisedKey,
-                                 RECORD_SLOT_ID pos=INVALID_RECORD_SLOT_ID);
+                                 RECORD_SLOT_POS pos=INVALID_RECORD_SLOT_POS);
 
          INT32 _insertExternalKey(const btreeSplitRaisedKey &raisedKey,
-                                  RECORD_SLOT_ID pos=INVALID_RECORD_SLOT_ID);
+                                  RECORD_SLOT_POS pos=INVALID_RECORD_SLOT_POS);
 
 
-         INT32 _splitAndCompact(RECORD_SLOT_ID pivot,
+         INT32 _splitAndCompact(RECORD_SLOT_POS pivot,
                                 PAGE_ID &rightNode);
 
-         INT32 insertExternalKey(RECORD_SLOT_ID pos,
+         INT32 insertExternalKey(RECORD_SLOT_POS pos,
                                  const ixmKey &key,
                                  const recordID &rid,
                                  PAGE_ID leftChild);
 
-         INT32 getItemWithExtKey(RECORD_SLOT_ID pos,
+         INT32 getItemWithExtKey(RECORD_SLOT_POS pos,
                                  btreeIndexItem &item)const;
 
-         INT32 buildRightNodeWhenSplit(RECORD_SLOT_ID begin,
+         INT32 buildRightNodeWhenSplit(RECORD_SLOT_POS begin,
                                        strictBuffer &node)const;
 
          INT32 findSplitPivot(BOOLEAN idleRight,
-                              RECORD_SLOT_ID &pivot)const;
+                              RECORD_SLOT_POS &pivot)const;
 
-         INT32 truncate(RECORD_SLOT_ID max);
+         INT32 truncate(RECORD_SLOT_POS max);
 
          void updateAppendingFactor(btreeNodePageHead *head,
                                     BOOLEAN isAppending);
@@ -282,16 +282,16 @@ namespace vessel
 
       private:
 
-         INT32 _removeChild(RECORD_SLOT_ID pos);
+         INT32 _removeChild(RECORD_SLOT_POS pos);
 
-         INT32 _destroySlot(RECORD_SLOT_ID pos);
+         INT32 _destroySlot(RECORD_SLOT_POS pos);
 
-         INT32 _nonleafRemove(RECORD_SLOT_ID pos);
+         INT32 _nonleafRemove(RECORD_SLOT_POS pos);
 
-         INT32 _markRemoved(RECORD_SLOT_ID pos);
+         INT32 _markRemoved(RECORD_SLOT_POS pos);
 
       private:/// leaf node only
-         INT32 tryToCompressKeyInserting(RECORD_SLOT_ID pos,
+         INT32 tryToCompressKeyInserting(RECORD_SLOT_POS pos,
                                           const ixmKey &key,
                                           btreeNodeCompressedKey &ck)const;
          INT32 tryToCompressKey(const ixmKey &key,
@@ -299,7 +299,7 @@ namespace vessel
                                  const ixmKey &prefix,
                                  btreeNodeCompressedKey &ck)const;
 
-         INT32 insertCompressedKey(RECORD_SLOT_ID pos,
+         INT32 insertCompressedKey(RECORD_SLOT_POS pos,
                                     const btreeNodeCompressedKey &ck,
                                     const recordID &rid);
 

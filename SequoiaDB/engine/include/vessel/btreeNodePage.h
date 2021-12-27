@@ -61,7 +61,8 @@ namespace vessel
       }
       OSS_INLINE BOOLEAN isReferenced()const
       {
-         return low != INVALID_RECORD_SLOT_ID;
+         return isValidRecordSlotPosition(low) &&
+                isValidRecordSlotPosition(high);
       }
       OSS_INLINE UINT32 getOptimizedSize()const
       {
@@ -79,8 +80,8 @@ namespace vessel
 
       UINT16 prefixOffset = 0;
       UINT16 prefixSize = 0;
-      UINT16 low = 0;
-      UINT16 high = 0;
+      INT16 low = 0;
+      INT16 high = 0;
 
    };//struct btreeNodePrefixSlot
    static const UINT32 BTREE_NODE_PREFIX_SLOT_SIZE = sizeof(btreeNodePrefixSlot);
@@ -114,8 +115,8 @@ namespace vessel
       UINT32 clLogicalID = DMS_INVALID_LOGICCLID;
       UINT32 indexId = INVALID_LOGICAL_INDEX_ID;
       UINT32 flags = 0;
-      UINT32 totalFreeSpace = 0;
-      UINT32 freeSapceAfterLastSlot = 0;
+      UINT16 totalFreeSpace = 0;
+      UINT16 freeSapceAfterLastSlot = 0;
       UINT16 totalSlotCount = 0;
       UINT16 prefixCount = 0;
       UINT16 compressedItemCount = 0;
@@ -139,7 +140,7 @@ namespace vessel
       OSS_INLINE ~btreeItemSlot(){}
       OSS_INLINE btreeItemSlot(const btreeItemSlot &o):
                  flags(o.flags),
-                 ridSlot(o.ridSlot),
+                 ridPos(o.ridPos),
                  ridPage(o.ridPage)
                  {
                     data.value = o.data.value;
@@ -147,7 +148,7 @@ namespace vessel
       OSS_INLINE btreeItemSlot &operator=(const btreeItemSlot &o)
       {
          flags = o.flags;
-         ridSlot = o.ridSlot;
+         ridPos = o.ridPos;
          ridPage = o.ridPage;
          data.value = o.data.value;
          return *this;
@@ -164,7 +165,7 @@ namespace vessel
       OSS_INLINE void reset()
       {
          flags = 0;
-         ridSlot = 0;
+         ridPos = 0;
          ridPage = 0;
          data.value = 0;
       }
@@ -183,7 +184,7 @@ namespace vessel
                             UINT16 offset,
                             UINT16 size,
                             BOOLEAN compressed,
-                            RECORD_SLOT_ID prefixPos = INVALID_RECORD_SLOT_ID);
+                            RECORD_SLOT_POS prefixPos = INVALID_RECORD_SLOT_POS);
 
       OSS_INLINE BOOLEAN isMarkedDeleted()const
       {
@@ -200,7 +201,8 @@ namespace vessel
       OSS_INLINE BOOLEAN hasPrefixSlot()const
       {
          ///WARNING: user should ensure it is in leaf node!
-         return INVALID_RECORD_SLOT_ID != data.lf.prefixSlot;
+         return isValidRecordSlotPosition(data.lf.prefixSlot);
+
       }
       OSS_INLINE BOOLEAN isKeyCompressed()const
       {
@@ -228,7 +230,7 @@ namespace vessel
          struct
          {
             UINT32 reserved;
-            UINT16 prefixSlot;
+            INT16 prefixSlot;
             UINT16 flags;
          }lf; // leaf format
 
@@ -236,7 +238,7 @@ namespace vessel
       };//slotData
 
       UINT16 flags = 0;
-      UINT16 ridSlot = 0;
+      INT16 ridPos = 0;
       UINT32 ridPage = 0;
       slotData data;
    };//struct btreeItemSlot

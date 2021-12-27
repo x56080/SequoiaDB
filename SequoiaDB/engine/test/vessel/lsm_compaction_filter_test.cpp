@@ -185,8 +185,8 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test2)
    vl.reset(LSM_VALUE_TYPE_INSERT);
    for (UINT32 i = 0; i < insertCount; ++i)
    {  
-      rid.setPageID(i+1);
-      rid.setSlotID((UINT16)i+1);
+      rid.setPid(i+1);
+      rid.setPos((INT16)i+1);
       rc = lsmPackIndexFullKey(fullKey, sizeof(fullKey), 
                                indexId, ordering, 
                                ixmKey(&keyData), 
@@ -203,8 +203,8 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test2)
    vl.reset(LSM_VALUE_TYPE_DELETE);
    for (UINT32 i = 0; i < insertCount / 2; ++i)
    {
-      rid.setPageID(i+1);
-      rid.setSlotID((UINT16)i+1);
+      rid.setPid(i+1);
+      rid.setPos((INT16)i+1);
       rc = lsmPackIndexFullKey(fullKey, sizeof(fullKey), 
                                indexId, ordering, 
                                ixmKey(&keyData), 
@@ -238,8 +238,8 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test2)
    {
       rc = key.shallowCopy(itr->key());
       ASSERT_EQ(SDB_OK, rc);
-      ASSERT_EQ(i, key.getRid().getPageID());
-      ASSERT_EQ((UINT16)i, key.getRid().getSlotID());
+      ASSERT_EQ(i, key.getRid().getPid());
+      ASSERT_EQ((INT16)i, key.getRid().getPos());
 
       const lsmIndexValue *val = (const lsmIndexValue *)itr->value().data();
       ASSERT_FALSE(val->isDeleted());

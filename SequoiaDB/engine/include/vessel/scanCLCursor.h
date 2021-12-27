@@ -83,13 +83,13 @@ namespace vessel
             _lpid = INVALID_PAGE_ID;
             _toScan.incSeqAndZeroSlot();
          }
-         OSS_INLINE void setToScanSlot(RECORD_SLOT_ID slot)
+         OSS_INLINE void setToScanSlot(RECORD_SLOT_POS slot)
          {
             _toScan.reset(_toScan.getSeq(), slot);
          }
          OSS_INLINE void incToScanSlot()
          {
-            _toScan.incSlot();
+            _toScan.incPos();
          }
 
          OSS_INLINE void setLpid(PAGE_ID lpid)

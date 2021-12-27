@@ -36,6 +36,7 @@
 #include "vessel/btreeScanEntryParser.h"
 #include "ixmKey.hpp"
 #include "vessel/strictBuffer.h"
+#include "ossLikely.hpp"
 
 namespace engine
 {

@@ -55,7 +55,7 @@ namespace vessel
          OSS_INLINE BOOLEAN isValid()const
          {
             return 0 < keyBuilder.len() &&
-                   rid.valid() &&
+                   rid.isValid() &&
                    INVALID_PAGE_ID != leftChild &&
                    INVALID_PAGE_ID != rightChild;
          }
@@ -71,7 +71,7 @@ namespace vessel
          OSS_INLINE void reset()
          {
             keyBuilder.reset();
-            rid = recordID();
+            rid.reset();
             leftChild = INVALID_PAGE_ID;
             rightChild = INVALID_PAGE_ID;
             return;

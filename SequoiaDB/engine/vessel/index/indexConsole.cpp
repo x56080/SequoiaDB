@@ -244,7 +244,7 @@ namespace vessel
                             NULL == ic ||
                             !ic->isValid() ||
                             !key.isValid() ||
-                            !rid.valid()))
+                            !rid.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -284,7 +284,7 @@ namespace vessel
       SDB_ASSERT(NULL != context && context->isMbContextAttached(), "can not be null");
       SDB_ASSERT(NULL != ic, "can not be null");
       SDB_ASSERT(key.isValid(), "can not be invalid");
-      SDB_ASSERT(rid.valid(), "can not be invalid");
+      SDB_ASSERT(rid.isValid(), "can not be invalid");
       DPS_LSN_OFFSET lsn = context->getExecutor()->getEndLsn();
       const globalCollectionId &gcid = context->getMbContext()->getGlobalId();
       SDB_ASSERT(gcid.isValid(), "can not be invalid");

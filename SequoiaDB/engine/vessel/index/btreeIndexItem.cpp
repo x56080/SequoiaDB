@@ -44,7 +44,7 @@ namespace vessel
 {
    void btreeIndexItem::fini()
    {
-      _slotPos = INVALID_RECORD_SLOT_ID;
+      _slotPos = INVALID_RECORD_SLOT_POS;
       _slot.reset();
       _keyData = NULL;
       _prefixData = NULL;
@@ -52,11 +52,11 @@ namespace vessel
       return;
    }
 
-   void btreeIndexItem::initWhenNormal(RECORD_SLOT_ID slotPos,
+   void btreeIndexItem::initWhenNormal(RECORD_SLOT_POS slotPos,
                                        const btreeItemSlot *slot,
                                        const CHAR *keyData)
    {
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != slotPos , "can not be invalid");
+      SDB_ASSERT(isValidRecordSlotPosition(slotPos), "can not be invalid");
       SDB_ASSERT(NULL != slot && slot->isValid(), "can not be invalid");
       SDB_ASSERT(!slot->isKeyCompressed() || !slot->isKeyInExtPage(), "can not be invalid");
       SDB_ASSERT(NULL != keyData, "can not be invalid");
@@ -69,12 +69,12 @@ namespace vessel
       return;
    }
 
-   void btreeIndexItem::initWhenCompressed(RECORD_SLOT_ID slotPos,
+   void btreeIndexItem::initWhenCompressed(RECORD_SLOT_POS slotPos,
                                            const btreeItemSlot *slot,
                                            const CHAR *suffixData,
                                            const CHAR *prefix)
    {
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != slotPos , "can not be invalid");
+      SDB_ASSERT(isValidRecordSlotPosition(slotPos), "can not be invalid");
       SDB_ASSERT(NULL != slot && slot->isValid(), "can not be invalid");
       SDB_ASSERT(slot->isKeyCompressed(), "must be compressed");
       SDB_ASSERT(NULL != prefix, "can not be null");
@@ -87,12 +87,12 @@ namespace vessel
       return;
    }
 
-   INT32 btreeIndexItem::initWhenExtKey(RECORD_SLOT_ID slotPos,
+   INT32 btreeIndexItem::initWhenExtKey(RECORD_SLOT_POS slotPos,
                                         const btreeItemSlot *slot,
                                         UINT32 keySize,
                                         const CHAR *keyData)
    {
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != slotPos , "can not be invalid");
+      SDB_ASSERT(isValidRecordSlotPosition(slotPos), "can not be invalid");
       SDB_ASSERT(NULL != slot && slot->isValid(), "can not be invalid");
       SDB_ASSERT(slot->isKeyInExtPage(), "must be ext key");
       SDB_ASSERT(0 < keySize && NULL != keyData, "can not be invalid");

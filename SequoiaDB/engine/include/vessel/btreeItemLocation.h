@@ -64,13 +64,13 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return INVALID_RECORD_SLOT_ID != slotPos;
+            return isValidRecordSlotPosition(slotPos);
          }
 
       public:
          BOOLEAN identical = FALSE;
          PAGE_ID child = INVALID_PAGE_ID;
-         RECORD_SLOT_ID slotPos = INVALID_RECORD_SLOT_ID;
+         RECORD_SLOT_POS slotPos = INVALID_RECORD_SLOT_POS;
          BOOLEAN isUpperBound = FALSE;
    };//class btreeItemLocation
 

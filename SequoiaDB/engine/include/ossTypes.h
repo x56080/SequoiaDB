@@ -105,7 +105,8 @@
 #define OSS_SINT32_MIN_LL (-2147483648LL)
 #define OSS_SINT32_MAX_D  (2147483647.0)
 #define OSS_SINT32_MIN_D  (-2147483648.0)
-
+#define OSS_SINT16_MIN    (-32768)
+#define OSS_SINT16_MAX    (32767)
 
 
 #if defined (_LINUX) || defined ( _AIX )

@@ -53,7 +53,7 @@ namespace vessel
          btreeIndexItem(const btreeIndexItem &o) = delete;
          btreeIndexItem &operator=(const btreeIndexItem &o) = delete;
       public:
-         OSS_INLINE RECORD_SLOT_ID getSlotPos()const
+         OSS_INLINE RECORD_SLOT_POS getSlotPos()const
          {
             return _slotPos;
          }
@@ -77,28 +77,28 @@ namespace vessel
          OSS_INLINE recordID getRid()const
          {
             return isValid() ?
-                   recordID(_slot.ridPage, _slot.ridSlot) : recordID();
+                   recordID(_slot.ridPage, _slot.ridPos) : recordID();
          }
 
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return INVALID_RECORD_SLOT_ID != _slotPos;
+            return isValidRecordSlotPosition(_slotPos);
          }
 
          void fini();
 
          /// not compressed and not ext key
-         void initWhenNormal(RECORD_SLOT_ID slotPos,
+         void initWhenNormal(RECORD_SLOT_POS slotPos,
                              const btreeItemSlot *slot,
                              const CHAR *keyData);
 
-         void initWhenCompressed(RECORD_SLOT_ID slotPos,
+         void initWhenCompressed(RECORD_SLOT_POS slotPos,
                                  const btreeItemSlot *slot,
                                  const CHAR *suffixData,
                                  const CHAR *prefix);
 
-         INT32 initWhenExtKey(RECORD_SLOT_ID slotPos,
+         INT32 initWhenExtKey(RECORD_SLOT_POS slotPos,
                               const btreeItemSlot *slot,
                               UINT32 keySize,
                               const CHAR *keyData);
@@ -121,7 +121,7 @@ namespace vessel
          //void cacheOriginalKey();
 
       private:
-         RECORD_SLOT_ID _slotPos = INVALID_RECORD_SLOT_ID;
+         RECORD_SLOT_POS _slotPos = INVALID_RECORD_SLOT_POS;
          btreeItemSlot _slot;
          const CHAR *_keyData = NULL;
          const CHAR *_prefixData = NULL;

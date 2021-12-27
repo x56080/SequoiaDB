@@ -123,7 +123,7 @@ namespace vessel
          goto error;
       }
       else if (OSS_UNLIKELY(!key.isValid() ||
-                            !rid.valid()))
+                            !rid.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -210,7 +210,7 @@ namespace vessel
          goto error;
       }
       else if (OSS_UNLIKELY(!key.isValid() ||
-                            !rid.valid()))
+                            !rid.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -1140,12 +1140,12 @@ namespace vessel
 
    INT32 btreeAccessor::insertWithRecreatingChild(const ixmKey &key,
                                                   const recordID &rid,
-                                                  RECORD_SLOT_ID pos)
+                                                  RECORD_SLOT_POS pos)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "can not be invalid");
       SDB_ASSERT(key.isValid() && rid.isValid(), "can not be invalid");
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(isValidRecordSlotPosition(pos), "can not be invalid");
 
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
       btreeNodePageIniter initer;
@@ -1155,7 +1155,7 @@ namespace vessel
       btreeNode node = _bac.getEndNodeInPath();
       SDB_ASSERT(!node.isLeaf() && node.getLockingMode().isExclusive(),
                  "can not be invalid");
-      SDB_ASSERT(pos <= node.getItemCount(), "out of bound");
+      SDB_ASSERT((UINT32)pos <= node.getItemCount(), "out of bound");
 
       initer._logicalCLID = _context->getMbContext()->getGlobalId().getCLLid();
       initer._indexId = _ic->getIndexID();

@@ -104,7 +104,7 @@ namespace vessel
       private:
          OSS_INLINE BOOLEAN hasLocation()const
          {
-            return INVALID_RECORD_SLOT_ID != _pos;
+            return isValidRecordSlotPosition(_pos);
          }
          INT32 locateKeyInTree(const bson::BSONObj &prevKey,
                                INT32 fieldCountToCmpInPrev,
@@ -130,7 +130,7 @@ namespace vessel
       private:
          void resetLocation();
 
-         void resetPositionOfCurrentNode(RECORD_SLOT_ID pos);
+         void resetPositionOfCurrentNode(RECORD_SLOT_POS pos);
 
          void clearPositionOfCurrentNode();
 
@@ -149,7 +149,7 @@ namespace vessel
          INT32 goBackToAncestor(BOOLEAN &obstructed);
 
          INT32 findPosInAncestor(UINT32 ancestorDepth,
-                                 RECORD_SLOT_ID &pos);
+                                 RECORD_SLOT_POS &pos);
 
          INT32 traverseDownToBottom(const btreeItemLocation &location);
 
@@ -160,7 +160,7 @@ namespace vessel
       private:
          requestContext *_context = NULL;
          btreeAccessContext _bac;
-         RECORD_SLOT_ID _pos = INVALID_RECORD_SLOT_ID;
+         RECORD_SLOT_POS _pos = INVALID_RECORD_SLOT_POS;
          btreeIndexItem _item;
          bson::BufBuilder _builder;
          BOOLEAN _forward = TRUE;

@@ -112,7 +112,7 @@ namespace vessel
       }
 
       mr->entry = entry;
-      mr->lpid = rid.getPageID();
+      mr->lpid = rid.getPid();
       mr->lsn = context->getDmlLSN();
       mr->transID = transID;
       
