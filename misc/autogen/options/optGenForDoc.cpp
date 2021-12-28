@@ -97,7 +97,8 @@ int optGenForDoc::outputFile( int id, fileOutStream &fout, string &outputPath )
 
    outputPath = OPT_RUNTIME_CONFIG_PATH ;
 
-   fout << "|" << otherInfo.acronym
+   fout << "|" << otherInfo.name
+        << "|" << otherInfo.acronym
         << "|" << otherInfo.type
         << "|" << otherInfo.reloadable
         << "|" << otherInfo.reloadstrategy
