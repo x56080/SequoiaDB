@@ -3,15 +3,15 @@
 @author: 2018-1-29 wuyan  Init
 ***************************************************************************** */
 testConf.skipStandAlone = true;
-
 testConf.clName = CHANGEDPREFIX + "_14103";
-var groupName = commGetGroups( db )[0][0]["GroupName"];
-testConf.clOpt = { Group: groupName, ReplSize: 0 };
+testConf.clOpt = { ReplSize: 0 };
+testConf.useSrcGroup = true;
 
 main( test );
 
 function test ( testPara )
 {
+   var groupName = testPara.srcGroupName;
    db.setSessionAttr( { PreferedInstance: "S" } )
    insertData( testPara.testCL );
 
