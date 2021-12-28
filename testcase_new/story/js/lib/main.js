@@ -69,8 +69,6 @@ function checkEnv ( db, testConf )
    {
       for( var i = 0; i < testPara.groups.length; ++i )
       {
-         println( JSON.stringify( testPara.groups ) );
-         println( testPara.groups[i].length );
          if( testPara.groups[i].length - 1 == nodeNum )
          {
             break;
