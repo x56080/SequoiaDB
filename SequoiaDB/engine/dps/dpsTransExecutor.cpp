@@ -1100,8 +1100,11 @@ namespace engine
 
       needEscalate = FALSE ;
 
-      if ( LOCKMGR_TRANS_LOCK == lockMgrType &&
-           lockID.isSupportEscalation() )
+      // NOTE: only consider lock escalation in transaction
+      if ( ( LOCKMGR_TRANS_LOCK == lockMgrType ) &&
+           ( lockID.isSupportEscalation() ) &&
+           ( DPS_INVALID_TRANS_ID != getTransID() ) &&
+           !( getTransID() & DPS_TRANSID_ROLLBACKTAG_BIT ) )
       {
          // for transaction lock, we need escalate if already acquired too
          // many record locks to limit the resource of the transaction
