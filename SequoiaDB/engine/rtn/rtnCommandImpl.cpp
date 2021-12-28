@@ -1945,8 +1945,7 @@ namespace engine
 
       rc = dmsCB->nameToSULID( pCollectionSpace, suLogicalID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical ID for "
-                   "collection space [%s], rc: %d", pCollectionSpace,
-                   suLogicalID ) ;
+                   "collection space [%s], rc: %d", pCollectionSpace, rc ) ;
       SDB_ASSERT( DMS_INVALID_LOGICCSID != suLogicalID,
                   "logical ID should be valid" ) ;
 
