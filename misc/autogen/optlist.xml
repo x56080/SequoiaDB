@@ -2717,7 +2717,7 @@
             2. Default is 50, range is [ 1, 50 ].<fig></fig>
             3. If the log space occupied by a transaction exceeds limit, it will fail.<fig></fig>
             4. 50 means half of the log space can be used by transaction, and another half will be used for transaction rollback.</en>
-        <cn>1. 事务在一个数据节点上可以使用的最大日志空间比例(%)，即占数节点的日志空间总大小（logfilesz * logfilenum）的最大百分比。<fig></fig>
+        <cn>1. 事务在一个数据节点上可以使用的最大日志空间比例(%)，即占数据节点的日志空间总大小（logfilesz*logfilenum）的最大百分比。<fig></fig>
             2. 默认是50，取值范围是[ 1, 50 ]。<fig></fig>
             3. 如果事务使用的日志空间达到上限，则事务操作将报错。<fig></fig>
             4. 取值为50，表示一半的日志空间都可以被事务使用，另外一半用于事务回滚。</cn>
