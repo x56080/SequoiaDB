@@ -1041,6 +1041,7 @@ INT32 fsMetaCache::modMetaMode(INT64 parentId,
    BSONObj hint;
    BOOLEAN is_dir;
    fsConnectionDao fsDao(_ds);
+   BOOLEAN isTransBegin = FALSE;
    
    rc = isDir(parentId, name, &is_dir);
    if(SDB_OK != rc)
@@ -1068,6 +1069,7 @@ INT32 fsMetaCache::modMetaMode(INT64 parentId,
       PD_LOG(PDERROR, "Fail to transBegin. rc=%d", rc);
       goto error;
    }
+   isTransBegin = TRUE;
 
    try   
    {
@@ -1098,7 +1100,12 @@ INT32 fsMetaCache::modMetaMode(INT64 parentId,
 
 done:
    return rc;
+   
 error:
+   if(isTransBegin)
+   {
+      fsDao.transRollback();
+   }
    goto done;
 }
 
@@ -1113,6 +1120,7 @@ INT32 fsMetaCache::modMetaOwn(INT64 parentId,
    BSONObj hint;
    BOOLEAN is_dir;
    fsConnectionDao fsDao(_ds);
+   BOOLEAN isTransBegin = FALSE;
 
    rc = isDir(parentId, name, &is_dir);
    if(SDB_OK != rc)
@@ -1139,11 +1147,30 @@ INT32 fsMetaCache::modMetaOwn(INT64 parentId,
       PD_LOG(PDERROR, "Fail to transBegin. rc=%d", rc);
       goto error;
    }
+   isTransBegin = TRUE;
 
    try   
    {
       condition = BSON(SEQUOIAFS_NAME<<name<<SEQUOIAFS_PID<<parentId);
-      rule = BSON("$set"<<BSON(SEQUOIAFS_UID<<newUid<<SEQUOIAFS_GID<<newGid));
+      if(newUid >= 0 && newGid >= 0)
+      {
+         rule = BSON("$set"<<BSON(SEQUOIAFS_UID<<newUid<<SEQUOIAFS_GID<<newGid));
+      }
+      else if(newUid >= 0)
+      {
+         rule = BSON("$set"<<BSON(SEQUOIAFS_UID<<newUid));
+      }
+      else if(newGid >= 0)
+      {
+         rule = BSON("$set"<<BSON(SEQUOIAFS_GID<<newGid));
+      }
+      else 
+      {
+         rc = SDB_INVALIDARG;
+         PD_LOG(PDERROR, "chown must specify uid or gid. parentid:%d, name:%s", 
+                          parentId, name);
+         goto error;
+      }
    }
    catch (std::exception &e)   
    {
@@ -1169,7 +1196,12 @@ INT32 fsMetaCache::modMetaOwn(INT64 parentId,
 
 done:
    return rc;
+   
 error:
+   if(isTransBegin)
+   {
+      fsDao.transRollback();
+   }
    goto done; 
 }
 
@@ -1184,6 +1216,7 @@ INT32 fsMetaCache::modMetaUtime(INT64 parentId,
    BSONObj hint;
    BOOLEAN is_dir;
    fsConnectionDao fsDao(_ds);
+   BOOLEAN isTransBegin = FALSE;
   
    rc = isDir(parentId, name, &is_dir);
    if(SDB_OK != rc)
@@ -1211,6 +1244,7 @@ INT32 fsMetaCache::modMetaUtime(INT64 parentId,
       PD_LOG(PDERROR, "Fail to transBegin. rc=%d", rc);
       goto error;
    }
+   isTransBegin = TRUE;
 
    try   
    {
@@ -1242,7 +1276,12 @@ INT32 fsMetaCache::modMetaUtime(INT64 parentId,
 
 done:
    return rc;
+   
 error:
+   if(isTransBegin)
+   {
+      fsDao.transRollback();
+   }
    goto done;
 }
 
@@ -1256,6 +1295,7 @@ INT32 fsMetaCache::modMetaSize(CHAR* lobId,
    BSONObj rule;
    BSONObj hint;
    fsConnectionDao fsDao(_ds);
+   BOOLEAN isTransBegin = FALSE;
 
    try   
    {
@@ -1277,6 +1317,7 @@ INT32 fsMetaCache::modMetaSize(CHAR* lobId,
       PD_LOG(PDERROR, "Fail to transBegin. rc=%d", rc);
       goto error;
    }
+   isTransBegin = TRUE;
 
    rc = fsDao.updateMeta(_fileCLName.c_str(), 
                           condition, rule, hint);
@@ -1295,7 +1336,12 @@ INT32 fsMetaCache::modMetaSize(CHAR* lobId,
 
 done:
    return rc;
+   
 error:
+   if(isTransBegin)
+   {
+      fsDao.transRollback();
+   }
    goto done;
 }
 

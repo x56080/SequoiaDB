@@ -2016,6 +2016,7 @@ INT32 sequoiaFS::rmdir(const CHAR *path)
    BOOLEAN is_empty = TRUE;
    dirMeta pDirMeta;
    fsConnectionDao fsDao(&_ds);
+   BOOLEAN isTransBegin = FALSE;
    
    PD_LOG(PDDEBUG, "Called: rmdir(), path:%s", path);
 
@@ -2074,6 +2075,7 @@ INT32 sequoiaFS::rmdir(const CHAR *path)
       PD_LOG(PDERROR, "Failed to transBegin, rc=%d", rc);
       goto error;
    }
+   isTransBegin = TRUE;
 
    rc = _metaCache.delDir(&fsDao, parentId, (CHAR*)basePath.c_str());
    if(SDB_OK != rc)
@@ -2102,6 +2104,10 @@ done:
    return rc;
 
 error:
+   if(isTransBegin)
+   {
+      fsDao.transRollback();
+   }
    rc = _convertErrorCode(rc);
    goto done;
 }
@@ -2222,6 +2228,7 @@ INT32 sequoiaFS::rename(const CHAR *path, const CHAR *newpath)
    BOOLEAN is_dir = true;
    _fileMeta fMeta;
    fsConnectionDao fsDao(&_ds);
+   BOOLEAN isTransBegin = FALSE;
 
    PD_LOG(PDDEBUG, "Called: rename(), path:%s, newpath:%s", path, newpath);
 
@@ -2299,6 +2306,7 @@ INT32 sequoiaFS::rename(const CHAR *path, const CHAR *newpath)
       PD_LOG(PDERROR, "Failed to transBegin, rc=%d", rc);
       goto error;
    }
+   isTransBegin = TRUE;
 
    rc = _metaCache.renameEntity(&fsDao, 
                                 parentId, name, newParentId, newName);
@@ -2340,6 +2348,10 @@ done:
    return rc;
 
 error:
+   if(isTransBegin)
+   {
+      fsDao.transRollback();
+   }
    rc = _convertErrorCode(rc);
    goto done;
 }
