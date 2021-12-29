@@ -66,35 +66,14 @@ INT32 lsmIndex::init( LSMDB * lsmdb, const lsmIndexMeta & idxMeta )
                          _idxMeta.getIdxId().getLogicalCSID(),
                          _idxMeta.getIdxId().getLogicalIndexID() + 1);
 
-   recordID dummyRid(0,0);
-   UINT64 dummyLsn = ((UINT64)(-1));
-   DPS_TRANS_ID dummyTxID;
-   BSONObj dummyObj ;
-   ixmKeyOwned dummyKey( dummyObj );
+   _uBuf[0] = LSM_ENTRY_TYPE_DATA;
+   *((globalIndexID *)(_uBuf + 1)) = upIdxId;
 
-   rc = lsmPackIndexFullKey(_uBuf, lsmMinDataKeySz,
-                            upIdxId, _idxMeta.getOrdering(),
-                            dummyKey, dummyRid,
-                            dummyLsn, dummyTxID);
-   if (SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "failed to build ukey:%d", rc);
-      goto error;
-   }
+   _lBuf[0] = LSM_ENTRY_TYPE_DATA;
+   *((globalIndexID *)(_lBuf + 1)) = _idxMeta.getIdxId();
 
-   rc = lsmPackIndexFullKey(_lBuf, lsmMinDataKeySz,
-                            _idxMeta.getIdxId(),
-                            _idxMeta.getOrdering(),
-                            dummyKey, dummyRid,
-                            dummyLsn, dummyTxID);
-   if (SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "failed to build lkey:%d", rc);
-      goto error;
-   }
-
-   _uKey = rocksdb::Slice( _uBuf, lsmMinDataKeySz ) ;
-   _lKey = rocksdb::Slice( _lBuf, lsmMinDataKeySz ) ;
+   _uKey = rocksdb::Slice( _uBuf, sizeof(_uBuf) ) ;
+   _lKey = rocksdb::Slice( _lBuf, sizeof(_lBuf) ) ;
 
    // set ReadOptions
    _rOpt = _lsmdb->getReadOpt();

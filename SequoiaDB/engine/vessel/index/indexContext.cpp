@@ -112,9 +112,10 @@ namespace vessel
       return;
    }
 
-   void indexContext::setRemoving()
+   void indexContext::setRemovingWhenNormalOrBuilding()
    {
       SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(isNormal() || isBuilding(), "must be normal or building");
       if (NULL != _unstatbleContext)
       {
          SDB_OSS_DEL _unstatbleContext;

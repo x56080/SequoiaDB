@@ -98,11 +98,8 @@ namespace vessel
                                 const options &o)
    {
       INT32 rc = SDB_OK;
-      CHAR minKey = 1;
       rocksdb::ReadOptions opt;
       globalIndexID indexId;
-      globalIndexID upperIndexId;
-      StackBufBuilder minKeyBuilder;
       globalCollectionId gcid;
                         
       _close();
@@ -124,48 +121,14 @@ namespace vessel
 
       indexId = globalIndexID(gcid.getCSLid(),
                               gcid.getCLLid(),
-                              ic->getIndexID());
-      upperIndexId = globalIndexID(gcid.getCSLid(),
-                                   gcid.getCLLid(),
-                                   ic->getIndexID() + 1);
-
-      ixmKeyUtils::buildMinKey(ic->getObj().getPattern().getKeyCount(),
-                               ic->getObj().getPattern().getOrdering().toBsonOrdering(),
-                               minKeyBuilder);
-
-      rc = lsmPackIndexFullKey(_lowBoundKey,
-                               LSM_MIN_FULL_KEY_SIZE,
-                               indexId,
-                               ic->getObj().getPattern().getOrdering(),
-                               minKeyBuilder.buf(),
-                               recordID::createMinRid(),
-                               DPS_INVALID_LSN_OFFSET,
-                               DPS_TRANS_ID());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to build low bound key:%d", rc);
-         goto error;
-      }
-
-      rc = lsmPackIndexFullKey(_upperBoundKey,
-                               LSM_MIN_FULL_KEY_SIZE,
-                               upperIndexId,
-                               ic->getObj().getPattern().getOrdering(),
-                               ixmKey(&minKey),
-                               recordID::createMinRid(),
-                               DPS_INVALID_LSN_OFFSET,
-                               DPS_TRANS_ID());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to build upper bound key:%d", rc);
-         goto error;
-      }
+                              ic->getLogicalIndexId());
+      _initKeyBoundWhenOpen(indexId);
 
       _forward = o.isForward();
       _globalId = indexId;
       _lsmDB = context->getEnv()->lsm;
-      _lowKey = rocksdb::Slice(_lowBoundKey, LSM_MIN_FULL_KEY_SIZE - 1 + minKeyBuilder.len());
-      _upKey = rocksdb::Slice(_upperBoundKey, LSM_MIN_FULL_KEY_SIZE);
+      _lowKey = rocksdb::Slice(_lowBoundKey, sizeof(_lowBoundKey));
+      _upKey = rocksdb::Slice(_upperBoundKey, sizeof(_upperBoundKey));
       opt = context->getEnv()->lsm->getReadOpt();
       opt.iterate_lower_bound = &_lowKey;
       opt.iterate_upper_bound = &_upKey;
@@ -860,5 +823,19 @@ namespace vessel
 
    }
 
+   void lsmIndexIterator::_initKeyBoundWhenOpen(const globalIndexID &id)
+   {
+      SDB_ASSERT(id.isValid(), "can not be invalid");
+      _lowBoundKey[0] = LSM_ENTRY_TYPE_DATA;
+      *((globalIndexID *)(_lowBoundKey + 1)) = id;
+
+      globalIndexID upperIndexId;
+      upperIndexId.reset(id.getLogicalCSID(),
+                         id.getLogicalCLID(),
+                         id.getLogicalIndexID() + 1);
+      _upperBoundKey[0] = LSM_ENTRY_TYPE_DATA;
+      *((globalIndexID *)(_upperBoundKey + 1)) = upperIndexId;
+      return;
+   }
 }//namespace vessel
 }//namespace engine

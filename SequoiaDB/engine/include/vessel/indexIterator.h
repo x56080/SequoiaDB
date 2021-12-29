@@ -37,7 +37,6 @@
 #define VESSEL_INDEX_ITERATOR_H_
 
 #include "vessel/indexDef.h"
-#include "vessel/indexHandle.h"
 #include "utilPooledObject.hpp"
 #include "ixmKey.hpp"
 #include "dms.hpp"

@@ -61,6 +61,16 @@ namespace vessel
                              UINT32 pos,
                              PAGE_ID lpid,
                              logicalPageBuffer &lpb)const;
+
+         /// unmap index and return old value
+         INT32 unmapIndex(requestContext *context,
+                          logicalPageBuffer &lpb,
+                          UINT32 pos,
+                          PAGE_ID &out);
+
+      private:
+         PAGE_ID getPidAtPos(UINT32 pos,
+                             const logicalPageBuffer &lpb)const;
    };//class indexMappingPageAccessor
 }//namespace vessel
 }//namespace engine

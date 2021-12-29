@@ -80,6 +80,7 @@ namespace vessel
 
          void setBuildingContextAsNormal(INT32 indexSlot);
                      
+         /// when filter is invalid, return context found with any status.
          indexContext *find(INT32 indexSlot,
                             INDEX_STATUS filter=INDEX_STATUS_INVALID)const;
 

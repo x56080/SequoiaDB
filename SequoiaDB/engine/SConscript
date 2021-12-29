@@ -937,6 +937,8 @@ vesselFiles = [
       "vessel/handlers/createIndexHandler.cpp",
       "vessel/handlers/indexScanHandler.cpp",
       "vessel/handlers/removeCSHandler.cpp",
+      "vessel/handlers/removeIndexHandler.cpp",
+      "vessel/handlers/testIndexHandler.cpp",
       "vessel/api/collectionHandler.cpp",
       "vessel/api/vesselFactroy.cpp",
       "vessel/index/indexConsole.cpp",
@@ -1054,7 +1056,8 @@ vesselTestFiles = [
       "test/vessel/update_test.cpp",
       "test/vessel/dml_delete_test.cpp",
       "test/vessel/index_delete_test.cpp",
-      "test/vessel/lsm_compaction_filter_test.cpp"
+      "test/vessel/lsm_compaction_filter_test.cpp",
+      "test/vessel/index_ddl_test.cpp"
 ]
 
 vesselUnitTestCommonFiles = [

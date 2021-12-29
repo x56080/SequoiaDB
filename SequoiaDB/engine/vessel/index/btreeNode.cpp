@@ -78,6 +78,11 @@ namespace vessel
       return INVALID_PAGE_ID != getReadableHead()->externalKeyPage;
    }
 
+   PAGE_ID btreeNode::getExternalKeyPage()const
+   {
+      return getReadableHead()->externalKeyPage;
+   }
+
    BOOLEAN btreeNode::isLeaf()const
    {
       return 0 != OSS_BIT_TEST(getReadableHead()->flags, BTREE_NODE_FLAG_IS_LEAF);
@@ -1368,7 +1373,7 @@ namespace vessel
          goto error;
       }
 
-      initer._indexId = _ic->getIndexID();
+      initer._indexId = _ic->getLogicalIndexId();
       initer._key.reset(keySize, key.data());
       rc = lps->allocatePage(_buffer->getContext(),
                              &initer, extp);
@@ -1450,7 +1455,7 @@ namespace vessel
       buffer = lpb.getReadableBodyBuffer();
       head = buffer.getReadableObjPtr<btreeExternalKeyPageHead>(0);
       if (head->size != slot->data.key.size ||
-          head->indexId != _ic->getIndexID())
+          head->indexId != _ic->getLogicalIndexId())
       {
          PD_LOG(PDERROR, "unexpected page head found[%s]",
                 getReadableHead()->externalKeyPage);
@@ -1835,7 +1840,7 @@ namespace vessel
          if (SDB_OK != rc)
          {
             PD_LOG(PDSEVERE, "failed to insert key after node[%d,%d] split:%d",
-                   _ic->getIndexID(), _buffer->getLogicalPid(), rc);
+                   _ic->getLogicalIndexId(), _buffer->getLogicalPid(), rc);
             ossPanic();
             goto error;
          }
@@ -1859,7 +1864,7 @@ namespace vessel
          {
             buffer.fini();
             PD_LOG(PDSEVERE, "failed to insert key into right node[%d,%d]:%d",
-                   _ic->getIndexID(), rightNode, rc);
+                   _ic->getLogicalIndexId(), rightNode, rc);
             ossPanic();
             goto error;
          }
@@ -2502,7 +2507,7 @@ namespace vessel
          if (SDB_OK != rc)
          {
             PD_LOG(PDSEVERE, "failed to insert raised key into right node[%d,%d]:%d",
-                   _ic->getIndexID(), rightNode, rc);
+                   _ic->getLogicalIndexId(), rightNode, rc);
             buffer.fini();
             ossPanic();
             goto error;

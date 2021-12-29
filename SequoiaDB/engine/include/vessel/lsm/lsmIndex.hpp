@@ -564,8 +564,8 @@ private:
 protected:
    LSMDB *          _lsmdb ;
    lsmIndexMeta      _idxMeta ;
-   CHAR             _uBuf[ lsmMinDataKeySz ] ;
-   CHAR             _lBuf[ lsmMinDataKeySz ] ;
+   CHAR             _uBuf[ LSM_LOW_BOUND_KEY_SIZE ] ;
+   CHAR             _lBuf[ LSM_LOW_BOUND_KEY_SIZE ] ;
    rocksdb::Slice   _uKey;
    rocksdb::Slice   _lKey;
    rocksdb::ReadOptions _rOpt;

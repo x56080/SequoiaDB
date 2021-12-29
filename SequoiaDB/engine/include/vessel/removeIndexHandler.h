@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = buildingIndexContext.h
+   Source File Name = removeIndexHandler.h
 
    Descriptive Name =
 
@@ -33,52 +33,29 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_BUILDING_INDEX_CONTEXT_H_
-#define VESSEL_BUILDING_INDEX_CONTEXT_H_
+#ifndef VESSEL_REMOVE_INDEX_HANDLER_H_
+#define VESSEL_REMOVE_INDEX_HANDLER_H_
 
-#include "vessel/unstableIndexContext.h"
-#include "vessel/indexMergingRecord.h"
-#include "vessel/dmlContext.h"
-#include "vessel/dmlIndexRequest.h"
+#include "vessel/requestHandler.h"
+#include "vessel/strSlice.h"
+#include "vessel/objectIdentifier.h"
+#include "dmsEngineOptions.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class buildingIndexContext : public unstableIndexContext
+   class removeIndexHandler : public requestHandler
    {
       public:
-         buildingIndexContext(){}
-         virtual ~buildingIndexContext();
+         removeIndexHandler(){}
+         virtual ~removeIndexHandler(){}
 
       public:
-         INT32 merge(dmlContext *context,
-                     dmlIndexRequest *ir);
+         INT32 doit(const globalCollectionId &gcid,
+                    const CHAR *indexName);
+   };//class removeIndexHandler
+}//namespace vessel
+}//namespace engine
 
-         void fini();
-         
-         /// res < 0: builded
-         /// res == 0: building
-         /// res > 0: not builded 
-         INT32 getEntryBuildingStatus(const scanEntry &entry)const;
-
-         BOOLEAN endToBuildCurrentRange(indexMergingRecordList &mrl);
-
-         void updateBuildingHighBound(const scanEntry &entry);
-
-         BOOLEAN getNextBuildingBound(scanEntry &bound)const;
-
-      private:
-         ossSpinXLatch _latch;
-         /// scanning range is [_low, _high)
-         scanEntry _low;
-         scanEntry _high;
-
-         indexMergingRecordList _mrl;
-   };//class buildingIndexContext
-} // namespace vessel
-  
-} // namespace engine
-
-
-#endif//VESSEL_BUILDING_INDEX_CONTEXT_H_
+#endif//VESSEL_REMOVE_INDEX_HANDLER_H_

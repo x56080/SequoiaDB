@@ -270,6 +270,7 @@ const UINT32 lsmMinDataKeySz   = lsmEntryTypeSz + lsmIdxIDSz
 const UINT32 LSM_MIN_FULL_KEY_SIZE = lsmEntryTypeSz + lsmIdxIDSz +
                                      lsmOrdSz + lsmMinIxmKeySz +
                                      lsmRidSz + lsmLsnSz + lsmTxIDSz;
+constexpr UINT32 LSM_LOW_BOUND_KEY_SIZE = lsmEntryTypeSz + lsmIdxIDSz;
 
 
 

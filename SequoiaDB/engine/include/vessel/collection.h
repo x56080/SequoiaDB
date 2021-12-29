@@ -124,6 +124,8 @@ namespace vessel
                             const collectionRecord &record,
                             collectionSpace *cs);
 
+         INT32 destroy(requestContext *context);
+
          void fini();
 
       public:
@@ -133,6 +135,13 @@ namespace vessel
 
          INT32 listIndexes(requestContext *context,
                            ossPoolVector<bson::BSONObj> &indexes);
+
+         INT32 removeIndex(requestContext *context,
+                           const strSlice &indexName);
+
+         INT32 testNormalIndex(requestContext *context,
+                               const strSlice &indexName,
+                               indexIdentifier &indexId);
 
       public:
          INT32 dump(requestContext *context,
@@ -161,14 +170,6 @@ namespace vessel
                       utilDeleteResult *res);
 
       private:
-         INT32 testIndex(requestContext *context,
-                         const strSlice &indexName,
-                         indexHandle &ih);
-
-         INT32 testIndex(requestContext *context,
-                         UINT32 indexId,
-                         INT32 &indexSlot);
-
          INT32 _getMoreWhenIndexScan(indexScanContext *context,
                                      indexContext *ic);
 
@@ -338,8 +339,20 @@ namespace vessel
                                          INT32 indexSlot,
                                          UINT64 sortBufferSize);
 
-         INT32 removeIndex(requestContext *context,
-                           INT32 indexSlot);
+         /// mark index removing and return index slot;
+         /// if index is building, building thread will be terminated.
+         /// if index is neither normal nor building, return error. 
+         INT32 markIndexRemovingByName(requestContext *context,
+                                       const strSlice &indexName,
+                                       INT32 &indexSlot);
+
+         /// always mark index removing first and truncate it.
+         /// at last, release all resources.
+         INT32 releaseIndexContextAndEntryPage(requestContext *context,
+                                               INT32 indexSlot);
+
+         INT32 markIndexRemovingBySlot(requestContext *context,
+                                       INT32 indexSlot);
                                     
          INT32 truncateIndex(requestContext *context,
                              INT32 indexSlot);

@@ -55,10 +55,9 @@ namespace vessel
       _cursor = cursor;
    }
 
-   const indexHandle &indexScanContext::getHandle()const
+   indexIdentifier indexScanContext::getIndexId()const
    {
-      SDB_ASSERT(isCursorAttached(), "must be attached");
-      return _cursor->getIndexHandle();
+      return isCursorAttached() ? _cursor->getIndexId() : indexIdentifier();
    }
    
    rtnPredicateListIterator *indexScanContext::getPredicate()const

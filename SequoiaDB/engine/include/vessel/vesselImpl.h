@@ -128,6 +128,15 @@ namespace vessel
          INT32 listIndexes(IExecutor *executor,
                            const globalCollectionId &gcid,
                            ossPoolVector<bson::BSONObj> &indexes);
+
+         INT32 removeIndex(IExecutor *executor,
+                           const globalCollectionId &gcid,
+                           const CHAR *indexName);
+
+         INT32 testIndex(IExecutor *executor,
+                         const globalCollectionId &gcid,
+                         const strSlice &indexName,
+                         indexIdentifier &indexId);
       
       public:
 

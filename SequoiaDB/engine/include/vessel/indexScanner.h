@@ -36,7 +36,6 @@
 #ifndef VESSEL_INDEX_SCANNER_H_
 #define VESSEL_INDEX_SCANNER_H_
 
-#include "vessel/indexHandle.h"
 #include "vessel/indexObject.h"
 #include "vessel/recordID.h"
 #include "vessel/indexIterator.h"

@@ -662,3 +662,107 @@ TEST_F(index_scan_test, test5_2)
 {
    test5(INDEX_TYPE_BTREE);
 }
+
+void multi_index_scan_test(INDEX_TYPE type)
+{
+   INT32 rc = SDB_OK;
+   vesselImpl db;
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
+   openDBOptions options;
+
+   options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+
+   DATA_COLLECTION_PTR handler;
+   INT32 count = 100;
+
+   constexpr INT32 indexCount = 26;
+
+   indexParameters params;
+   params.type = type;
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (INT32 i = 0; i < indexCount; ++i)
+   {
+      CHAR indexName[2] = {};
+      indexName[0] = 'a' + i;
+      bson::BSONObj pattern = BSON(indexName << 1);
+      bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName, params, pattern);
+      rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+
+   bson::BSONObjBuilder builder;
+   for (INT32 i = 0; i < count; ++i)
+   {
+      for (INT32 j = 0; j < indexCount; ++j)
+      {
+         CHAR fieldName[2] = {};
+         fieldName[0] = 'a' + j;
+         builder.append(fieldName, i);
+      }
+
+      rc = handler->insertRecord(&session, builder.done(), dmsInsertRecordOptions(), NULL);
+      ASSERT_EQ(SDB_OK, rc);
+      builder.reset();
+   }
+
+   for (INT32 i = 0; i < indexCount; ++i)
+   {
+      CHAR fieldName[2] = {};
+      fieldName[0] = 'a' + i;
+      bson::BSONObj match = BSON(fieldName << BSON("$gte" << 0));
+      mthMatchTree mt;
+      rc = mt.loadPattern(match, FALSE);
+      ASSERT_EQ(SDB_OK, rc);
+      rtnPredicateSet ps;
+      rc = mt.calcPredicate(ps, NULL);
+      ASSERT_EQ(SDB_OK, rc);
+      rtnPredicateList predicates;
+      UINT32 lvl = 0;
+      bson::BSONObj pattern = BSON(fieldName << 1);
+      rc = predicates.initialize(ps, pattern, 1, lvl);
+      ASSERT_EQ(SDB_OK, rc);
+      DATA_CURSOR_PTR cursor;
+      rc = handler->scanIndex(&session, fieldName, predicates,
+                              dmsIndexScanOptions(), cursor);
+      ASSERT_EQ(SDB_OK, rc);
+      dmsBsonCursorReader reader;
+      reader.init(cursor, FALSE);
+      for (INT32 j = 0; j < count; ++j)
+      {
+         rc = reader.fetchNext(&session);
+         ASSERT_EQ(SDB_OK, rc);
+         ASSERT_EQ(j, reader.getRecord().getIntField(fieldName));
+      }
+
+      rc = reader.fetchNext(&session);
+      ASSERT_EQ(SDB_DMS_EOC, rc);
+   }
+
+   handler->close();
+   rc = db.close(&session, closeDBOptions());
+   ASSERT_EQ(SDB_OK, rc);
+}
+
+TEST_F(index_scan_test, test6_1)
+{
+   multi_index_scan_test(INDEX_TYPE_BTREE);
+}
+
+TEST_F(index_scan_test, test6_2)
+{
+   multi_index_scan_test(INDEX_TYPE_LSM);
+}

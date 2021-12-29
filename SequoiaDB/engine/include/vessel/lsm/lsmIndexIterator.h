@@ -129,13 +129,16 @@ namespace vessel
          BOOLEAN _isMarkedRemoved(rocksdb::Iterator *itr)const;
 
       private:
+         void _initKeyBoundWhenOpen(const globalIndexID &id);
+
+      private:
          requestContext *_context = NULL;
          indexContext *_ic = NULL;
          globalIndexID _globalId;
          LSMDB *_lsmDB = NULL;
          rocksdb::Iterator *_itr = NULL;
-         CHAR _lowBoundKey[LSM_MIN_FULL_KEY_SIZE+31] = {};
-         CHAR _upperBoundKey[LSM_MIN_FULL_KEY_SIZE] = {};
+         CHAR _lowBoundKey[LSM_LOW_BOUND_KEY_SIZE] = {};
+         CHAR _upperBoundKey[LSM_LOW_BOUND_KEY_SIZE] = {};
          rocksdb::Slice _lowKey;
          rocksdb::Slice _upKey;
          lsmKeyEntry _currentEntry;

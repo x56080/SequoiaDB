@@ -39,7 +39,6 @@
 #include "vessel/collectionSpace.h"
 #include "vessel/collection.h"
 #include "vessel/instanceEnv.h"
-#include "vessel/indexHandle.h"
 
 namespace engine
 {
@@ -53,18 +52,9 @@ namespace vessel
       indexScanContext context;
 
       if (OSS_UNLIKELY(NULL == cursor ||
-                       !cursor->isOpen()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!cursor->getCollectionId().isValid()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(cursor->getIndexName().empty() &&
-                            INVALID_LOGICAL_INDEX_ID == cursor->getIndexId()))
+                       !cursor->isOpen() ||
+                       !cursor->getCollectionId().isValid() ||
+                       !cursor->getIndexId().isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;

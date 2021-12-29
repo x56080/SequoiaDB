@@ -42,10 +42,6 @@
 namespace engine
 {
    /// allocate_shared can avoid twice memory allocating(obj and control block).
-
-   /// for now, our allocator is under c++98 standard.
-   /// args to construct class may not be working.
-   /// users better to init class outside.
    template<class T, class ... Args>
    std::shared_ptr<T> makeSharedPtrFromPool(Args &&... args)
    {

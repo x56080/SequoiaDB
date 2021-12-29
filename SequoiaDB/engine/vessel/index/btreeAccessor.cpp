@@ -50,6 +50,8 @@ namespace engine
 {
 namespace vessel
 {
+   constexpr UINT32 BATCH_RELEASE_COUNT = 8;
+
    btreeAccessor::btreeAccessor()
    {}
 
@@ -277,6 +279,68 @@ namespace vessel
       goto done;
    }
 
+   INT32 btreeAccessor::truncate()
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isValid(), "can not be invalid");
+
+      if (!_ic->getObj().hasBtreeRoot())
+      {
+         PD_LOG(PDDEBUG, "has no btree root");
+         goto done;
+      }
+
+      rc = removeBtreeRootInEntry();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to remove btree root in entry page:%d", rc);
+         goto error;
+      }
+
+      rc = releaseWholeTree();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to release btree:%d", rc);
+         goto error;
+      }
+   done:
+      _ic->getObj().removeBtreeRoot();
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 btreeAccessor::removeBtreeRootInEntry()
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isValid(), "must be inited");
+      SDB_ASSERT(_ic->getObj().hasBtreeRoot(), "must has root");
+
+      logicalPageBuffer buffer;
+      indexEntryPageAccessor accessor;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+      PAGE_ID root = INVALID_PAGE_ID;
+
+      rc = _is->getLogicalPageBuffer(_context, _ic->getObj().getBtreeRoot(),
+                                     mode, buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get index entry page buffer:%d", rc);
+         goto error;
+      }
+
+      rc = accessor.removeBtreeRoot(_context, &buffer, root);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      buffer.fini();
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 btreeAccessor::traverseDownAndInsert(const ixmKey &key,
                                               const recordID &rid,
                                               BOOLEAN &obstructed)
@@ -309,7 +373,7 @@ namespace vessel
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to insert into leaf node[%d,%d]:%d",
-                        _ic->getIndexID(), node.getBuffer()->getLogicalPid(), rc);
+                        _ic->getLogicalIndexId(), node.getBuffer()->getLogicalPid(), rc);
                   goto error;
                }
             }
@@ -625,7 +689,7 @@ namespace vessel
                  "must be same");
 
       initer._logicalCLID = _context->getMbContext()->getGlobalId().getCLLid();
-      initer._indexId = _ic->getIndexID();
+      initer._indexId = _ic->getLogicalIndexId();
       initer._isLeaf = FALSE;
       initer._isRoot = TRUE;
       rc = _is->allocatePage(_context, &initer, newRoot);
@@ -769,7 +833,7 @@ namespace vessel
       }
 
       initer._logicalCLID = _context->getMbContext()->getGlobalId().getCLLid();
-      initer._indexId = _ic->getIndexID();
+      initer._indexId = _ic->getLogicalIndexId();
       initer._isLeaf = TRUE;
       initer._isRoot = TRUE;
       rc = _is->allocatePages(_context, &initer, 1, &lpid);
@@ -780,7 +844,7 @@ namespace vessel
       }
 
       rc = accessor.updateBtreeRoot(_context,
-                                    _ic->getIndexID(),
+                                    _ic->getLogicalIndexId(),
                                     lpid, &entryBuffer);
       if (SDB_OK != rc)
       {
@@ -1158,7 +1222,7 @@ namespace vessel
       SDB_ASSERT((UINT32)pos <= node.getItemCount(), "out of bound");
 
       initer._logicalCLID = _context->getMbContext()->getGlobalId().getCLLid();
-      initer._indexId = _ic->getIndexID();
+      initer._indexId = _ic->getLogicalIndexId();
       initer._isLeaf = TRUE;
       initer._isRoot = FALSE;
 
@@ -1198,6 +1262,99 @@ namespace vessel
       {
          _is->releasePage(_context, lpid);
       }
+      goto done;
+   }
+
+   INT32 btreeAccessor::releaseWholeTree()
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(_ic->getObj().hasBtreeRoot(), "must be has btree root");
+      ossPoolVector<PAGE_ID> batch;
+      batch.reserve(BATCH_RELEASE_COUNT);
+
+      rc = _bac.pushRootIntoPath();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to push root into path:%d", rc);
+         goto error;
+      }
+
+      rc = releaseTreeNodeRecursively(batch);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to release tree nodes:%d", rc);
+         goto error;
+      }
+
+      SDB_ASSERT(batch.empty(), "must be empty");
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 btreeAccessor::releaseTreeNodeRecursively(ossPoolVector<PAGE_ID> &batch)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(!_bac.isPathEmpty(), "can not be empty");
+      btreeNode node = _bac.getEndNodeInPath();
+      if (node.isLeaf())
+      {
+         batch.push_back(node.getBuffer()->getLogicalPid());
+         _bac.popEnd();
+      }
+      else
+      {
+         UINT32 itemCount = node.getItemCount();
+         for (UINT32 i = 0; i <= itemCount; ++i)
+         {
+            PAGE_ID child = node.getChild(i);
+            if (INVALID_PAGE_ID != child)
+            {
+               btreePathFootprint fp;
+               fp.setPos(i);
+               fp.setUpperBound(i == itemCount);
+               rc = _bac.pushChildNodeIntoPath(child, fp);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to push child[%d] into path:%d", child, rc);
+                  goto error;
+               }
+
+               rc = releaseTreeNodeRecursively(batch);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to release tree node:%d", rc);
+                  goto error;
+               }
+            }
+         }
+
+         if (node.hasExternalKey())
+         {
+            batch.push_back(node.getExternalKeyPage());
+         }
+
+         batch.push_back(node.getBuffer()->getLogicalPid());
+         _bac.popEnd();
+      }
+
+      if (BATCH_RELEASE_COUNT <= batch.size() ||
+          (_bac.isPathEmpty() && !batch.empty()))
+      {
+         rc = _is->releasePages(_context, batch.size(), batch.data());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to release pages:%d", rc);
+            goto error;
+         }
+
+         batch.clear();
+      }
+
+   done:
+      return rc;
+   error:
       goto done;
    }
 } // namespace vessel

@@ -88,6 +88,10 @@ namespace vessel
                                    const logicalPageBuffer *lpb,
                                    const indexEntryPageHead **out)const;
 
+         INT32 removeBtreeRoot(requestContext *context,
+                               logicalPageBuffer *lpb,
+                               PAGE_ID &oldValue);
+
    };//class indexEntryPageAccessor 
 }//namespace vessel
 }//namespace engine

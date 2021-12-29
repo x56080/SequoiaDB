@@ -510,5 +510,55 @@ namespace vessel
    error:
       goto done;
    }
+
+   INT32 indexEntryPageAccessor::removeBtreeRoot(requestContext *context,
+                                                 logicalPageBuffer *lpb,
+                                                 PAGE_ID &oldValue)
+   {
+      INT32 rc = SDB_OK;
+
+      const indexEntryPageHead *header = NULL;
+      oldValue = INVALID_PAGE_ID;
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       NULL == lpb ||
+                       !lpb->isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = lpb->validatePage(PAGE_TYPE_INDEX_ENTRY);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
+                lpb->getRuntimeBuffer().getGlobalPid().toString().c_str(), rc);
+         goto error;
+      }
+
+      header = lpb->getReadableBodyBuffer().getReadableObjPtr<indexEntryPageHead>(0);
+      if (INVALID_PAGE_ID == header->btreeRoot)
+      {
+         goto done;
+      }
+
+      oldValue = header->btreeRoot;
+      header = NULL;
+      rc = lpb->prepareToWrite();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get buffer ready to write:%d", rc);
+         goto error;
+      }
+
+      
+      lpb->getWritableBodyBuffer().getWritableObjPtr<indexEntryPageHead>(0)->btreeRoot = INVALID_PAGE_ID;
+      lpb->commit(context->getExecutor()->getEndLsn());
+   done:
+      return rc;
+   error:
+      oldValue = INVALID_PAGE_ID;
+      goto done;
+   }
 }//namespace vessel
 }//namespace engine

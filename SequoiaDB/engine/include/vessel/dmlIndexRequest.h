@@ -36,11 +36,11 @@
 #ifndef VESSEL_DML_INDEX_REQUEST_H_
 #define VESSEL_DML_INDEX_REQUEST_H_
 
-#include "vessel/indexHandle.h"
+#include "vessel/indexContext.h"
 #include "../bson/bson.hpp"
 #include "ossMemPool.hpp"
 #include "utilPooledObject.hpp"
-#include "vessel/indexContext.h"
+
 
 namespace engine
 {

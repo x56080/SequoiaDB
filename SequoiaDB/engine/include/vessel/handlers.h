@@ -47,5 +47,7 @@
 #include "vessel/createIndexHandler.h"
 #include "vessel/indexScanHandler.h"
 #include "vessel/removeCSHandler.h"
+#include "vessel/removeIndexHandler.h"
+#include "vessel/testIndexHandler.h"
 
 #endif//VESSEL_HANDLERS_H_

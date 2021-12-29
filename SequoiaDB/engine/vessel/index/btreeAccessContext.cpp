@@ -662,10 +662,10 @@ namespace vessel
          goto error;
       }
 
-      if (_ic->getIndexID() != head->indexId)
+      if (_ic->getLogicalIndexId() != head->indexId)
       {
          PD_LOG(PDERROR, "different logical index ids found[%d,%d] on page[%s]",
-                _ic->getIndexID(), head->indexId, rpb.getGlobalPid().toString().c_str());
+                _ic->getLogicalIndexId(), head->indexId, rpb.getGlobalPid().toString().c_str());
          rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
          goto error;
       }

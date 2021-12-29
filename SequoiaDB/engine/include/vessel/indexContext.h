@@ -39,8 +39,8 @@
 #include "vessel/indexObject.h"
 #include "vessel/unstableIndexContext.h"
 #include "vessel/vesselIdDef.h"
-#include "vessel/indexHandle.h"
 #include "vessel/shallowPointer.hpp"
+#include "vessel/objectIdentifier.h"
 
 namespace engine
 {
@@ -91,7 +91,7 @@ namespace vessel
          {
             return _obj;
          }
-         OSS_INLINE UINT32 getIndexID()const
+         OSS_INLINE UINT32 getLogicalIndexId()const
          {
             return _obj.getIndexID();
          }
@@ -105,9 +105,9 @@ namespace vessel
             return _lpid;
          }
 
-         OSS_INLINE indexHandle getHandle()const
+         OSS_INLINE indexIdentifier getIndexId()const
          {
-            return indexHandle(_indexSlot, _obj.getIndexID());
+            return indexIdentifier(_indexSlot, _obj.getIndexID());
          }
 
          OSS_INLINE INDEX_TYPE getIndexType()const
@@ -126,7 +126,7 @@ namespace vessel
 
          void setNormalFromBuilding();
 
-         void setRemoving();
+         void setRemovingWhenNormalOrBuilding();
 
          BOOLEAN associates(const CHAR *fieldName)const;
 

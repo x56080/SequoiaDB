@@ -82,8 +82,8 @@ namespace vessel
                            const slice &defObj,
                            PAGE_ID &lpid)const;
 
-         INT32 releaseIndexDefPage(requestContext *context,
-                                   INT32 indexSlot);
+         INT32 releaseIndexEntryPage(requestContext *context,
+                                     INT32 indexSlot);
 
          INT32 truncateIndex(requestContext *context,
                              indexContext *ic);
@@ -147,6 +147,9 @@ namespace vessel
                            const ixmKey &key,
                            const recordID &rid,
                            const DPS_TRANS_ID &transID);
+
+         INT32 btreeTruncate(requestContext *context,
+                             indexContext *ic);
       private:
          INT32 createDirectMappedIndex(requestContext *context,
                                        INT32 indexSlot,
@@ -162,6 +165,10 @@ namespace vessel
 
          INT32 cacheBtreeRootSplitTimes(requestContext *context,
                                         indexContextMap *indexes);
+
+      private:
+         INT32 releaseDoubleMappedIndexEntry(requestContext *context,
+                                             INT32 indexSlot);
 
       private:
          CL_MB_ID _mbID = INVALID_CL_MB_ID;

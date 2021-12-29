@@ -72,6 +72,9 @@ namespace engine
          virtual INT32 listIndex(IExecutor *executor,
                                  ossPoolVector<bson::BSONObj> &indexes) = 0;
 
+         virtual INT32 removeIndex(IExecutor *executor,
+                                   const CHAR *indexName) = 0;
+
       public:
          virtual INT32 insertRecord(IExecutor *executor,
                                     const bson::BSONObj &record,

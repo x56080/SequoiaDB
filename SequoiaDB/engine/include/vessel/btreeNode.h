@@ -93,6 +93,7 @@ namespace vessel
       public:
          BOOLEAN isRoot()const;
          BOOLEAN hasExternalKey()const;
+         PAGE_ID getExternalKeyPage()const;
          BOOLEAN isLeaf()const;
          
          UINT32 getItemCount()const;

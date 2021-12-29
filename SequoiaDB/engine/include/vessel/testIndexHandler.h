@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexHandle.h
+   Source File Name = testIndexHandler.h
 
    Descriptive Name =
 
@@ -33,52 +33,30 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INDEX_HANDLE_H_
-#define VESSEL_INDEX_HANDLE_H_
+#ifndef VESSEL_TEST_INDEX_HANDLER_H_
+#define VESSEL_TEST_INDEX_HANDLER_H_
 
-#include "vessel/indexDef.h"
+#include "vessel/requestHandler.h"
+#include "vessel/objectIdentifier.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class indexHandle : public SDBObject
+   class testIndexHandler : public requestHandler
    {
       public:
-         indexHandle(){}
-         explicit indexHandle(INT32 indexSlot, UINT32 indexId):
-         _indexSlot(indexSlot),
-         _indexId(indexId){}
-         ~indexHandle(){}
-         indexHandle(const indexHandle &o):
-         _indexSlot(o._indexSlot),
-         _indexId(o._indexId){}
-         indexHandle &operator=(const indexHandle &o)
-         {
-            _indexSlot = o._indexSlot;
-            _indexId = o._indexId;
-            return *this;
-         }
+         testIndexHandler(){}
+         virtual ~testIndexHandler(){}
 
       public:
-         OSS_INLINE BOOLEAN isValid()const
-         {
-            return INVALID_LOGICAL_INDEX_ID != _indexId && isValidIndexSlot(_indexSlot);
-         }
-         OSS_INLINE INT32 getIndexSlot()const
-         {
-            return _indexSlot;
-         }
-         OSS_INLINE UINT32 getIndexId()const
-         {
-            return _indexId;
-         }
+         INT32 doit(const globalCollectionId &gcid,
+                    const strSlice &indexName,
+                    indexIdentifier &indexId);
+   };//class testIndexHandler
+} // namespace vessel
 
-      private:
-         INT32 _indexSlot = -1;
-         UINT32 _indexId = INVALID_LOGICAL_INDEX_ID;
-   };//class indexHandle
-}//namespace vessel
-}//namespace engine
+} // namespace engine
 
-#endif//VESSEL_INDEX_HANDLE_H_
+
+#endif//VESSEL_TEST_INDEX_HANDLER_H_

@@ -108,6 +108,8 @@ namespace vessel
          {
             PD_LOG(PDERROR, "failed to release pids on smp:%d", rc);
          }
+
+         close();
       }
    done:
       return;

@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = fsmCandidate.cpp
+   Source File Name = testIndexHandler.cpp
 
    Descriptive Name =
 
@@ -33,52 +33,51 @@
 
 ******************************************************************************/
 
-#include "vessel/fsmCandidate.h"
-#include "ossMemPool.hpp"
-#include "pdTrace.hpp"
-#include "utilSharedPtrMaker.hpp"
+#include "vessel/testIndexHandler.h"
 
 namespace engine
 {
 namespace vessel
 {
-   INT32 makeFsmCandidateSharedInfoPtr(PAGE_ID lpid,
-                                       INT32 lvl,
-                                       fsmCandidate::SHARED_INFO_PTR &sptr)
+   INT32 testIndexHandler::doit(const globalCollectionId &gcid,
+                                const strSlice &indexName,
+                                indexIdentifier &indexId)
    {
       INT32 rc = SDB_OK;
-      /*
-      ossPoolAllocator<fsmCandidate::mutableInfo>::Type alloc;
-      sptr.reset();
+      requestContext context;
+      COLLECTION_PTR cl;
+      indexId.reset();
 
-      /// allocate_shared can avoid twice memory allocating(obj and control block).
-      sptr = std::allocate_shared<fsmCandidate::mutableInfo,
-                                  typename ossPoolAllocator<fsmCandidate::mutableInfo>::Type>
-                                  (alloc, lpid, lvl);
-      if (NULL == sptr.get())
+      if (OSS_UNLIKELY(!gcid.isValid() ||
+                        indexName.empty()))
       {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isInitialized()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
-      ///For now, allocator is under c++98 standard.
-      sptr->_lvl = lvl;
-      sptr->_lpid = lpid;
-      */
-
-      sptr = makeSharedPtrFromPool<fsmCandidate::mutableInfo>(lpid, lvl);
-      if (!sptr)
+      context.open(getExecutor(), getEnv());
+      rc = requestHandler::getCollectionObject(&context, gcid, SHARED, cl);
+      if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
          goto error;
       }
 
+      rc = cl->testNormalIndex(&context, indexName, indexId);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
    done:
+      context.close();
       return rc;
    error:
       goto done;
    }
-}//namespace vessel
-}//namespace engine
+} // namespace vessel
+
+} // namespace engine

@@ -87,6 +87,7 @@ namespace vessel
                                    PAGE_ID &lpid)const
    {
       INT32 rc = SDB_OK;
+      BOOLEAN checkpointBlocked = FALSE;
 
       if (OSS_UNLIKELY(!isInitialized()))
       {
@@ -101,6 +102,14 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
+
+      rc = _is->blockCheckpoint(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to block checkpoint:%d", rc);
+         goto error;
+      }
+      checkpointBlocked = TRUE;
 
       if (indexSlot < (INT32)DIRECT_MAPPING_INDEX_COUNT_PER_CL)
       {
@@ -121,16 +130,63 @@ namespace vessel
          }
       }
    done:
+      if (checkpointBlocked)
+      {
+         context->unblockCheckpoint();
+      }
       return rc;
    error:
       goto done;
    }
 
-   INT32 indexConsole::releaseIndexDefPage(requestContext *context,
-                                           INT32 indexSlot)
+   INT32 indexConsole::releaseIndexEntryPage(requestContext *context,
+                                             INT32 indexSlot)
    {
-      SDB_ASSERT(FALSE, "TODO");
-      return SDB_OK;
+      INT32 rc = SDB_OK;
+      BOOLEAN blocked = FALSE;
+      
+      if (OSS_UNLIKELY(NULL == context ||
+                       !isValidIndexSlot(indexSlot)))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isInitialized()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = _is->blockCheckpoint(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to block checkpoint:%d", rc);
+         goto error;
+      }
+      blocked = TRUE;
+
+      if (indexSlot < (INT32)DIRECT_MAPPING_INDEX_COUNT_PER_CL)
+      {
+         SDB_ASSERT(FALSE, "impossible");
+      }
+      else
+      {
+         rc = releaseDoubleMappedIndexEntry(context, indexSlot);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to release index entry:%d", rc);
+            goto error;
+         }
+      }
+      
+   done:
+      if (blocked)
+      {
+         context->unblockCheckpoint();
+      }
+      return rc;
+   error:
+      goto done;
    }
 
    INT32 indexConsole::updateIndexStatus(requestContext *context,
@@ -291,7 +347,7 @@ namespace vessel
 
       globalIndexID gid(gcid.getCSLid(),
                         gcid.getCLLid(),
-                        ic->getIndexID());
+                        ic->getLogicalIndexId());
       lsmIndexMeta lsmMeta(gid, ic->getObj().getPattern().getOrdering());
       lsmIndex lsm;
       lsmKeyEntry lsmEntry;
@@ -328,7 +384,7 @@ namespace vessel
       SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
       SDB_ASSERT((INT32)DIRECT_MAPPING_INDEX_COUNT_PER_CL <= indexSlot, "impossible");
 
-      BOOLEAN checkpointBlocked = FALSE;
+      
       indexMappingPageIniter mappingIniter;
       indexEntryPageIniter defIniter;
       PAGE_ID lpid = INVALID_PAGE_ID;
@@ -364,14 +420,6 @@ namespace vessel
 
       context->unlockLpid(SPACE_TYPE_IDX, mappingPage);
       mappingPageLocked = FALSE;
-
-      rc = _is->blockCheckpoint(context);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to block checkpoint:%d", rc);
-         goto error;
-      }
-      checkpointBlocked = TRUE;
 
       rc = _is->allocatePage(context, &defIniter, lpid);
       if (SDB_OK != rc)
@@ -417,10 +465,6 @@ namespace vessel
          context->unlockLpid(SPACE_TYPE_IDX, mappingPage);
       }
       lpb.fini();
-      if (checkpointBlocked)
-      {
-         context->unblockCheckpoint();
-      }
       return rc;
    error:
       if (INVALID_PAGE_ID != lpid)
@@ -532,7 +576,12 @@ namespace vessel
       }
       else
       {
-         SDB_ASSERT(FALSE, "TODO");
+         rc = btreeTruncate(context, ic);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to truncate btree index:%d", rc);
+            goto error;
+         }
       }
    done:
       return rc;
@@ -810,7 +859,7 @@ namespace vessel
 
          globalIndexID gid(gcid.getCSLid(),
                            gcid.getCLLid(),
-                           ir->getContext()->getIndexID());
+                           ir->getContext()->getLogicalIndexId());
          lsmIndexMeta meta(gid, ir->getContext()->getObj().getPattern().getOrdering());
 
 
@@ -985,8 +1034,8 @@ namespace vessel
                             context->getTransIDWithoutTag());
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to init btree accessor[%d]:%d",
-                   req->getContext()->getIndexID(), rc);
+            PD_LOG(PDERROR, "failed to init btree accessor[%s]:%d",
+                   req->getContext()->getObj().getIndexName().str(), rc);
             goto error;  
          }
 
@@ -1064,6 +1113,91 @@ namespace vessel
             lpb.fini();
          }
 
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 indexConsole::releaseDoubleMappedIndexEntry(requestContext *context,
+                                                     INT32 indexSlot)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
+
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+      UINT32 pos = 0;
+      logicalPageBuffer mappingBuffer;
+      indexMappingPageAccessor accessor;
+      PAGE_ID entryPage = INVALID_PAGE_ID;
+      logicalPageBuffer entryBuffer;
+
+      PAGE_ID mappingPage = _is->getMappingPageLpid(_mbID, indexSlot, pos);
+      if (INVALID_PAGE_ID == mappingPage)
+      {
+         PD_LOG(PDERROR, "failed to get mapping page of [%d,%d]", _mbID, indexSlot);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = _is->getLogicalPageBuffer(context, mappingPage, mode, mappingBuffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d", mappingPage, rc);
+         goto error;
+      }
+
+      rc = accessor.unmapIndex(context, mappingBuffer, pos, entryPage);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to unmap index at[%d, %d], rc:%d",
+                mappingPage, pos, rc);
+         goto error;
+      }
+
+      mappingBuffer.fini();
+
+      rc = _is->getLogicalPageBuffer(context, entryPage, mode, entryBuffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d",
+                entryPage, rc);
+         goto error;
+         /// entry page will be lost for ever.
+      }
+
+      entryBuffer.destroy();
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 indexConsole::btreeTruncate(requestContext *context,
+                                     indexContext *ic)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(NULL != ic && ic->isValid(), "can not be invalid");
+      SDB_ASSERT(ic->getIndexType() == INDEX_TYPE_BTREE, "must be btree");
+      SDB_ASSERT(ic->isTruncating() || ic->isRemoving(), "update status first");
+
+      btreeAccessor accessor;
+      rc = accessor.init(context, ic, DPS_TRANS_ID());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init btree accessor:%d", rc);
+         goto error;
+      }
+
+      rc = accessor.truncate();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to truncate btree index:%d", rc);
+         goto error;
       }
    done:
       return rc;

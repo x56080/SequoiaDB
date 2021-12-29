@@ -39,6 +39,7 @@
 #include "vessel/vesselIdDef.h"
 #include "dms.hpp"
 #include "utilUniqueID.hpp"
+#include "vessel/indexDef.h"
 
 namespace engine
 {
@@ -199,6 +200,51 @@ namespace vessel
          UINT16 _sid = INVALID_SPACE_ID;
          UINT16 _mbId = INVALID_CL_MB_ID;
    };//class globalCollectionId
+
+   class indexIdentifier : public SDBObject
+   {
+      public:
+         indexIdentifier(){}
+         explicit indexIdentifier(INT32 slot, UINT32 lid):
+         _indexSlot(slot), _indexLid(lid){}
+         ~indexIdentifier(){}
+
+         indexIdentifier(const indexIdentifier &o):
+         _indexSlot(o._indexSlot),
+         _indexLid(o._indexLid){}
+         indexIdentifier &operator=(const indexIdentifier &o)
+         {
+            _indexSlot = o._indexSlot;
+            _indexLid = o._indexLid;
+            return *this;
+         }
+
+         BOOLEAN operator==(const indexIdentifier &o)const
+         {
+            return _indexSlot == o._indexSlot &&
+                   _indexLid == o._indexLid;
+         }
+
+      public:
+         OSS_INLINE BOOLEAN isValid()const
+         {
+            return isValidIndexSlot(_indexSlot) &&
+                   INVALID_LOGICAL_INDEX_ID != _indexLid;
+         }
+         OSS_INLINE INT32 getIndexSlot()const {return _indexSlot;}
+         OSS_INLINE UINT32 getLogicalIndexId()const {return _indexLid;}
+         OSS_INLINE void reset(INT32 slot=-1,
+                               UINT32 lid=INVALID_LOGICAL_INDEX_ID)
+         {
+            _indexSlot = slot;
+            _indexLid = lid;
+            return;
+         }
+
+      private:
+         INT32 _indexSlot = -1;
+         UINT32 _indexLid = INVALID_LOGICAL_INDEX_ID;
+   };//class indexIdentifier
 
 #pragma pack()
 } // namespace vessel

@@ -732,6 +732,71 @@ namespace vessel
       goto done;
    }
 
+   INT32 vesselImpl::removeIndex(IExecutor *executor,
+                                 const globalCollectionId &gcid,
+                                 const CHAR *indexName)
+   {
+      INT32 rc = SDB_OK;
+      removeIndexHandler handler;
+
+      if (OSS_UNLIKELY(NULL == executor ||
+                       !gcid.isValid() ||
+                       NULL == indexName))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      handler.init(&_env, executor);
+      rc = handler.doit(gcid, indexName);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 vesselImpl::testIndex(IExecutor *executor,
+                               const globalCollectionId &gcid,
+                               const strSlice &indexName,
+                               indexIdentifier &indexId)
+   {
+      INT32 rc = SDB_OK;
+      testIndexHandler handler;
+
+      if (OSS_UNLIKELY(NULL == executor ||
+                       !gcid.isValid() ||
+                       indexName.empty()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      handler.init(&_env, executor);
+      rc = handler.doit(gcid, indexName, indexId);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 vesselImpl::insert(IExecutor *executor,
                             const globalCollectionId &gcid,
                             const dmlInsertRequest &request,

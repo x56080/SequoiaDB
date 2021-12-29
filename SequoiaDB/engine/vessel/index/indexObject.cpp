@@ -138,5 +138,11 @@ namespace vessel
       SDB_ASSERT(INDEX_TYPE_BTREE == _params.type, "must be btree");
       return INVALID_PAGE_ID != _btreeRoot;
    }
+
+   void indexObject::removeBtreeRoot()
+   {
+      _btreeRoot = INVALID_PAGE_ID;
+      _btreeRootSplitTimes = 0;
+   }
 }//namespace vessel
 }//namespace engine

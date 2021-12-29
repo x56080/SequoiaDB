@@ -51,7 +51,6 @@ namespace vessel
       _low.reset();
       _high.reset();
       _mrl.clear();
-      _terminated = FALSE;
       return;
    }
 

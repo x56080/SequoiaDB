@@ -160,5 +160,79 @@ namespace vessel
    error:
       goto done;
    }
+
+   INT32 indexMappingPageAccessor::unmapIndex(requestContext *context,
+                                              logicalPageBuffer &lpb,
+                                              UINT32 pos,
+                                              PAGE_ID &out)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 capacity = 0;
+      PAGE_ID oldValue = INVALID_PAGE_ID;
+
+      out = INVALID_PAGE_ID;
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       !lpb.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = lpb.validatePage(PAGE_TYPE_INDEX_MAPPING);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
+                lpb.getGlobalPid().toString().c_str(), rc);
+         goto error;
+      }
+
+      capacity = getIndexMappingPageCapacity(lpb.getPageSize());
+      if (0 == capacity)
+      {
+         PD_LOG(PDERROR, "failed to get index mapping page capacity");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      if (capacity <= pos)
+      {
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+
+      oldValue = getPidAtPos(pos, lpb);
+      if (INVALID_PAGE_ID == oldValue)
+      {
+         PD_LOG(PDERROR, "lpid at pos[%d] is invalid", pos);
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = lpb.prepareToWrite();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get buffer ready to write:%d", rc);
+         goto error;
+      }
+
+      *(lpb.getWritableBodyBuffer().getWritableObjPtr<PAGE_ID>(pos * sizeof(PAGE_ID))) = INVALID_PAGE_ID;
+      out = oldValue;
+      lpb.commit(context->getExecutor()->getEndLsn());
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   PAGE_ID indexMappingPageAccessor::getPidAtPos(UINT32 pos,
+                                                 const logicalPageBuffer &lpb)const
+   {
+      SDB_ASSERT(lpb.isValid(), "can not be invalid");
+      strictBuffer buffer = lpb.getReadableBodyBuffer();
+      const PAGE_ID *ptr = buffer.getReadableObjPtr<PAGE_ID>(sizeof(PAGE_ID) * pos);
+      SDB_ASSERT(NULL != ptr, "out of bound");
+      return *ptr;
+   }
 }//namespace vessel
 }//namespace engine

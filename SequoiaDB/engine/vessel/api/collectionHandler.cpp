@@ -89,6 +89,33 @@ namespace vessel
       goto done;
    }
 
+   INT32 collectionHandler::removeIndex(IExecutor *executor,
+                                        const CHAR *indexName)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == executor ||
+                            NULL == indexName))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = _db->removeIndex(executor, _gcid, indexName);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 collectionHandler::insertRecord(IExecutor *executor,
                                          const bson::BSONObj &record,
                                          const dmsInsertRecordOptions &o,
@@ -298,6 +325,7 @@ namespace vessel
       cursorOptions co;
       indexScanCursor *impl = NULL;
       strSlice indexNameSlice(indexName);
+      indexIdentifier indexId;
 
       cursor.reset();
 
@@ -313,13 +341,18 @@ namespace vessel
          goto error;
       }
 
+      rc = _db->testIndex(executor, _gcid, indexNameSlice, indexId);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
       co.rowCountLimit = o.rowCountLimit;
       co.stepSize = 8;
       co.initBufferSize = (INT32)32 << 10;
 
       cursor = makeSharedPtrFromPool<indexScanCursor>(o, predicate,
-                                                      _gcid,
-                                                      indexNameSlice);
+                                                      _gcid, indexId);
       if (!cursor)
       {
          rc = SDB_OOM;

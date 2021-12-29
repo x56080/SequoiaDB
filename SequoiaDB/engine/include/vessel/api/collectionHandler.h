@@ -89,6 +89,9 @@ namespace vessel
          virtual INT32 listIndex(IExecutor *executor,
                                  ossPoolVector<bson::BSONObj> &indexes);
 
+         virtual INT32 removeIndex(IExecutor *executor,
+                                   const CHAR *indexName);
+
       public:
          virtual INT32 insertRecord(IExecutor *executor,
                                     const bson::BSONObj &record,

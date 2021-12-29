@@ -107,6 +107,8 @@ namespace vessel
 
          BOOLEAN hasBtreeRoot()const;
 
+         void removeBtreeRoot();
+
       private:
          UINT32 _indexId = INVALID_LOGICAL_INDEX_ID;
          strSlice _nameSlice;

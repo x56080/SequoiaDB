@@ -73,6 +73,8 @@ namespace vessel
          INT32 remove(const ixmKey &key,
                       const recordID &rid);
 
+         INT32 truncate();
+
       private:/// writing
 
          INT32 traverseDownAndInsert(const ixmKey &key,
@@ -116,6 +118,13 @@ namespace vessel
 
          INT32 removeFromNonleafPathEnd(const btreeItemLocation &location,
                                         BOOLEAN &obstructed);
+
+      private:
+         INT32 removeBtreeRootInEntry();
+
+         INT32 releaseWholeTree();
+
+         INT32 releaseTreeNodeRecursively(ossPoolVector<PAGE_ID> &batch);
 
       private:
          requestContext *_context = NULL;

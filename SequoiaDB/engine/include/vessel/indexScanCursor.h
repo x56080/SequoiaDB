@@ -38,7 +38,6 @@
 
 #include "vessel/cursorKernal.h"
 #include "rtnPredicate.hpp"
-#include "vessel/indexHandle.h"
 #include "vessel/strSlice.h"
 #include "vessel/unorderedRidSet.h"
 #include "vessel/slice.h"
@@ -57,11 +56,11 @@ namespace vessel
          indexScanCursor(const dmsIndexScanOptions &o,
                          const rtnPredicateList &predicateList,
                          const globalCollectionId &gcid,
-                         const strSlice &indexName):
+                         const indexIdentifier &indexId):
          _o(o),
          _predicate(predicateList),
          _gcid(gcid),
-         _indexName(indexName)
+         _indexId(indexId)
          {}
 
          virtual ~indexScanCursor();
@@ -73,23 +72,9 @@ namespace vessel
          }
    
       public:
-         OSS_INLINE const strSlice &getIndexName()const
+         OSS_INLINE const indexIdentifier &getIndexId()const
          {
-            return _indexName;
-         }
-
-         OSS_INLINE const indexHandle &getIndexHandle()const
-         {
-            return _handle;
-         }
-         OSS_INLINE UINT32 getIndexId()const
-         {
-            return _handle.getIndexId();
-         }
-
-         OSS_INLINE void setIndexHandle(const indexHandle &h)
-         {
-            _handle = h;
+            return _indexId;
          }
          OSS_INLINE const globalCollectionId &getCollectionId()const
          {
@@ -123,8 +108,7 @@ namespace vessel
          dmsIndexScanOptions _o;
          rtnPredicateListIterator _predicate;
          globalCollectionId _gcid;
-         strSlice _indexName;
-         indexHandle _handle;
+         indexIdentifier _indexId;
          UNORDERED_RID_SET _scanned;
          bson::StackBufBuilder _entry;
    };//class indexScanCursor

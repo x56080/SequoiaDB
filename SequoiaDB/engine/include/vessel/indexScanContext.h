@@ -37,7 +37,6 @@
 #define VESSEL_INDEX_SCAN_CONTEXT_H_
 
 #include "vessel/requestContext.h"
-#include "vessel/indexHandle.h"
 #include "rtnPredicate.hpp"
 #include "vessel/unorderedRidSet.h"
 #include "vessel/slice.h"
@@ -57,7 +56,7 @@ namespace vessel
          ~indexScanContext(){}
 
       public:
-         const indexHandle &getHandle()const;
+         indexIdentifier getIndexId()const;
          rtnPredicateListIterator *getPredicate()const;
 
          const dmsIndexScanOptions &getOptions()const;
