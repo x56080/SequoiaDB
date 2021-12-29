@@ -15,6 +15,8 @@ using namespace bson;
 
 #define FS_MAX_NAMESIZE   NAME_MAX
 
+#define INVALID_UID_GID 0xFFFFFFFF
+
 #define LISTEN_PORT  "11742"
 #define ROOT_ID 1
 

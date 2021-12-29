@@ -3950,6 +3950,11 @@ INT32 sequoiaFS::_convertErrorCode(INT32 rc)
          errorCode = -EMFILE;
          break;
       }
+      case SDB_INVALIDARG:
+      {
+         errorCode = -EPERM;
+         break;
+      }
       default:
          errorCode = -EIO;
          break;

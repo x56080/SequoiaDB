@@ -84,7 +84,7 @@ namespace sequoiafs
          INT32 modMetaMode(INT64 parentId, 
                            CHAR* name, INT32 newMode);
          INT32 modMetaOwn(INT64 parentId, CHAR* name, 
-                          INT32 newUid, INT32 newGid);
+                          UINT32 newUid, UINT32 newGid);
          INT32 modMetaUtime(INT64 parentId, 
                             CHAR* name, INT64 newMtime, INT64 newAtime);
          INT32 modMetaSize(CHAR* lobId, INT64 newSize, INT64 newMtime, INT64 newAtime);

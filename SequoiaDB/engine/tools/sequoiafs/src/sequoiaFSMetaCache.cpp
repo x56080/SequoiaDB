@@ -1111,8 +1111,8 @@ error:
 
 INT32 fsMetaCache::modMetaOwn(INT64 parentId, 
                               CHAR* name, 
-                              INT32 newUid, 
-                              INT32 newGid)
+                              UINT32 newUid, 
+                              UINT32 newGid)
 {
    INT32 rc = SDB_OK;
    BSONObj condition;
@@ -1152,15 +1152,15 @@ INT32 fsMetaCache::modMetaOwn(INT64 parentId,
    try   
    {
       condition = BSON(SEQUOIAFS_NAME<<name<<SEQUOIAFS_PID<<parentId);
-      if(newUid >= 0 && newGid >= 0)
+      if(newUid != INVALID_UID_GID && newGid != INVALID_UID_GID)
       {
          rule = BSON("$set"<<BSON(SEQUOIAFS_UID<<newUid<<SEQUOIAFS_GID<<newGid));
       }
-      else if(newUid >= 0)
+      else if(newUid != INVALID_UID_GID)
       {
          rule = BSON("$set"<<BSON(SEQUOIAFS_UID<<newUid));
       }
-      else if(newGid >= 0)
+      else if(newGid != INVALID_UID_GID)
       {
          rule = BSON("$set"<<BSON(SEQUOIAFS_GID<<newGid));
       }
