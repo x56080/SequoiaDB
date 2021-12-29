@@ -30,9 +30,8 @@ public class Fulltext12015 extends FullTestBase {
     private String subCLName1 = "ES_12015_subcl_1";
     private String subCLName2 = "ES_12015_subcl_2";
     private String textIndexName = "fulltext12015";
-    private List< String > cappedNames;
-
-    List< String > esIndexNames = new ArrayList<>();
+    private List< String > cappedNames = new ArrayList<>();
+    private List< String > esIndexNames = new ArrayList<>();
 
     @Override
     protected void initTestProp() {
@@ -97,6 +96,8 @@ public class Fulltext12015 extends FullTestBase {
                     .getCollection( subCLName );
             esIndexNames.addAll(
                     FullTextDBUtils.getESIndexNames( subCL, textIndexName ) );
+            cappedNames.add(
+                    FullTextDBUtils.getCappedName( subCL, textIndexName ) );
         }
 
         insertData( maincl, FullTextUtils.INSERT_NUMS );
@@ -117,7 +118,6 @@ public class Fulltext12015 extends FullTestBase {
         // 检查ES端索引数据是否完成同步，主备节点上主表的原始集合、固定集合数据是否一致
         Assert.assertTrue( FullTextUtils.isMainCLIndexCreated( maincl,
                 textIndexName, ( int ) maincl.getCount() ) );
-        cappedNames = FullTextDBUtils.getESIndexNames( maincl, textIndexName );
     }
 
     private void insertData( DBCollection cl, int insertNums ) {
