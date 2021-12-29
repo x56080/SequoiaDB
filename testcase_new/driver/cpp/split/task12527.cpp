@@ -99,13 +99,31 @@ TEST_F( taskTest12527, listCancelTask12527 )
 
    // cancel task
    rc = db.cancelTask( taskID, false ) ;   // error
-   ASSERT_EQ( SDB_OK, rc ) << "fail to cancel task " << taskID ;
+   if ( rc == SDB_OK )
+   {
+      ASSERT_EQ( SDB_OK, rc ) << "fail to cancel task " << taskID ;
+   }
+   else
+   {
+      ASSERT_EQ( SDB_TASK_ALREADY_FINISHED, rc ) << "fail to cancel task " << taskID ;
+   }
 
    // check cancel task
-   rc = db.listTasks( cursor, cond ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to list tasks" ;
-   rc = cursor.next( obj ) ;
-   ASSERT_EQ( SDB_DMS_EOC, rc ) << "fail to check cancel task " << taskID ;
+   INT32 rc1 = db.listTasks( cursor, cond ) ;
+   ASSERT_EQ( SDB_OK, rc1 ) << "fail to list tasks" ;
+   rc1 = cursor.next( obj ) ;
+   ASSERT_EQ( SDB_OK, rc1 ) << "fail to list tasks" ;
+   
+   INT32 resCode = obj.getField("ResultCode").Int() ;
+   if ( rc == SDB_OK )
+   {
+      ASSERT_EQ( SDB_OK, resCode ) << "fail to list tasks" << obj.toString() ;
+   }
+   else
+   {
+      ASSERT_EQ( SDB_TASK_HAS_CANCELED , resCode ) << "fail to list tasks" << obj.toString() ;
+   }
+  
 
    // check cl split 
    vector<string> clGroups ;
