@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.SkipException;
@@ -77,10 +78,10 @@ public class IdIndexSplit15549 extends SdbTestBase {
             int timeOut = 60;
             int doTimes = 0;
             while ( doTimes < timeOut ) {
-                cursor = db.listTasks(
-                        ( BSONObject ) JSON.parse(
-                                "{Name:\"" + csName + "." + clName + "\"}" ),
-                        null, null, null );
+                BasicBSONObject matcher = new BasicBSONObject();
+                matcher.put( "Name", csName + "." + clName );
+                matcher.put( "Status", new BasicBSONObject( "$ne", 9 ) );
+                cursor = db.listTasks( matcher, null, null, null );
                 if ( cursor.hasNext() ) {
                     try {
                         cl.alterCollection( ( BSONObject ) JSON

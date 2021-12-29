@@ -172,7 +172,7 @@ public class CreateSameIndex6216 extends SdbTestBase {
         BSONObject expectIndexKey = ( BSONObject ) JSON.parse( "{'time':1}" );
 
         checkIndex( subcl1, expectIndexName, expectIndexKey );
-        checkIndex( maincl, expectIndexName, expectIndexKey );
+        checkIndex( maincl, null, null );
         checkIndex( subcl2, null, null );
     }
 

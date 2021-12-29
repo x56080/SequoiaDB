@@ -41,12 +41,10 @@ public class IdIndex22105 extends SdbTestBase {
             cs.dropCollection( clName );
         }
         cl = cs.createCollection( clName,
-                new BasicBSONObject( "Group", "group1" )
-                        .append( "ShardingType", "range" )
-                        .append( "ShardingKey",
-                                new BasicBSONObject( "a", 1 ) ) );
+                new BasicBSONObject( "ShardingType", "range" ).append(
+                        "ShardingKey", new BasicBSONObject( "a", 1 ) ) );
 
-        ArrayList< BSONObject > insertor = new ArrayList< >();
+        ArrayList< BSONObject > insertor = new ArrayList<>();
         for ( int i = 0; i < recsNum; i++ ) {
             insertor.add( new BasicBSONObject( "a", i ) );
         }

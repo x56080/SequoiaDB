@@ -98,26 +98,6 @@ public class Split10500 extends SdbTestBase {
         }
     }
 
-    public boolean isSplitComplte( long taskId ) {
-        DBCursor cursor = null;
-        try {
-            cursor = commSdb.listTasks(
-                    ( BSONObject ) JSON.parse( "{TaskId:" + taskId + "}" ),
-                    null, null, null );
-            if ( cursor.hasNext() ) {
-                return false;
-            } else {
-                return true;
-            }
-
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() + "\r\n"
-                    + SplitUtils.getKeyStack( e, this ) );
-        }
-
-        return false;
-    }
-
     public void insertAndCheckAgain() {
         BSONObject obj1 = ( BSONObject ) JSON.parse( "{sk:50,flag:-1}" );// 期望此数据落入目标组
         BSONObject obj2 = ( BSONObject ) JSON.parse( "{sk:10,flag:-1}" );// 期望此数据落入源组

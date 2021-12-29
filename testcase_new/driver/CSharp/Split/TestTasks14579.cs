@@ -61,6 +61,10 @@ namespace CSharp.Split
             {
                 return;
             }
+            if (sdb.IsCollectionSpaceExist(localCSName))
+            {
+                sdb.DropCollectionSpace(localCSName);
+            }
             cs = sdb.CreateCollectionSpace(localCSName);
             BsonDocument option = new BsonDocument();
             option.Add("Group", dataGroupNames[0]);
@@ -112,7 +116,20 @@ namespace CSharp.Split
             cur.Close();
             Assert.IsTrue(count > 0);
 
-            sdb.CancelTask(taskId, true);
+            try
+            {
+                sdb.CancelTask(taskId, true);
+            }
+            catch (BaseException e)
+            {
+                if (e.ErrorCode != -219)
+                {
+                    throw e;
+                }
+            }
+
+            sdb.DropCollectionSpace(localCSName);
+
             cur = sdb.ListTasks(new BsonDocument("TaskID", taskId), null, null, null);
             Assert.AreEqual(null, cur.Next());
 
@@ -125,7 +142,6 @@ namespace CSharp.Split
             {
                 Assert.AreEqual(-173, e.ErrorCode);
             }
-            sdb.DropCollectionSpace(localCSName);
         }
 
         private void InsertData()

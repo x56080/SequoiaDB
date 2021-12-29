@@ -3,6 +3,7 @@ package com.sequoiadb.split;
 import java.util.ArrayList;
 import java.util.Date;
 
+import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -208,20 +209,22 @@ public class SplitHash11558A extends SdbTestBase {
         private void cancelTaskOper() throws InterruptedException {
             System.out.println(
                     new Date() + " " + this.getClass().getName().toString() );
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
                 DBCursor rc = db.listTasks(
-                        new BasicBSONObject( "Name", clFullName ), null, null,
-                        null );
+                        new BasicBSONObject( "Name", clFullName ).append(
+                                "Status", new BasicBSONObject( "$ne", 9 ) ),
+                        null, null, null );
                 BSONObject info = rc.getCurrent();
                 if ( null != info ) {
                     long taskID = ( long ) info.get( "TaskID" );
                     db.cancelTask( taskID, false );
                 }
-            } finally {
-                if ( db != null )
-                    db.close();
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_TASK_ALREADY_FINISHED
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
         }
     }

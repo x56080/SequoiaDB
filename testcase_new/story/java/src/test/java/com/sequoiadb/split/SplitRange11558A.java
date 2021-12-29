@@ -172,8 +172,9 @@ public class SplitRange11558A extends SdbTestBase {
             try {
                 db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
                 DBCursor rc = db.listTasks(
-                        new BasicBSONObject( "Name", clFullName ), null, null,
-                        null );
+                        new BasicBSONObject( "Name", clFullName ).append(
+                                "Status", new BasicBSONObject( "$ne", 9 ) ),
+                        null, null, null );
                 BSONObject info = rc.getCurrent();
                 if ( null != info ) {
                     long taskID = ( long ) info.get( "TaskID" );

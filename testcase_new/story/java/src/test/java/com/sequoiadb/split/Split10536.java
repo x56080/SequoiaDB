@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.SkipException;
@@ -91,10 +92,10 @@ public class Split10536 extends SdbTestBase {
             db = new Sequoiadb( coordUrl, "", "" );
             cl = db.getCollectionSpace( csName ).getCollection( clName );
             for ( int i = 0; i < 50; i++ ) {
-                DBCursor cursor = db.listTasks(
-                        ( BSONObject ) JSON.parse(
-                                "{Name:\"" + csName + "." + clName + "\"}" ),
-                        null, null, null );
+                BasicBSONObject matcher = new BasicBSONObject();
+                matcher.put( "Name", csName + "." + clName );
+                matcher.put( "Status", new BasicBSONObject( "$ne", 9 ) );
+                DBCursor cursor = db.listTasks( matcher, null, null, null );
                 if ( cursor.hasNext() ) {
                     try {
                         cl.dropIdIndex();
