@@ -82,6 +82,7 @@ const string SEQUOIAFS_META_ID_CL_FULL = SEQUOIAFS_META_CS + "." +
 #define CURSOR_OF_META_DIR_CL 0
 #define CURSOR_OF_META_FILE_CL 1
 
+#define INVALID_UID_GID 0xFFFFFFFF
 
 #define MAXCNT 1000
 #define ENOIOCTLCMD 515
@@ -2740,7 +2741,6 @@ INT32 sequoiaFS::chown(const CHAR *path, uid_t uid, gid_t gid)
    sdbCollectionSpace cs;
    CHAR *pathStr = NULL;
    BSONObj condition;
-   sdbCursor *cursor = new sdbCursor;
    BSONObj rule;
    INT64 pid = 0;
    BOOLEAN is_dir = TRUE;
@@ -2803,8 +2803,36 @@ INT32 sequoiaFS::chown(const CHAR *path, uid_t uid, gid_t gid)
    {
       goto error;
    }
-   condition = BSON(SEQUOIAFS_NAME<<fileName<<SEQUOIAFS_PID<<pid);
-   rule = BSON("$set"<<BSON(SEQUOIAFS_UID<<uid<<SEQUOIAFS_GID<<gid));
+
+   try   
+   {
+      condition = BSON(SEQUOIAFS_NAME<<fileName<<SEQUOIAFS_PID<<pid);
+      if(uid != INVALID_UID_GID && gid != INVALID_UID_GID)
+      {
+         rule = BSON("$set"<<BSON(SEQUOIAFS_UID<<uid<<SEQUOIAFS_GID<<gid));
+      }
+      else if(uid != INVALID_UID_GID)
+      {
+         rule = BSON("$set"<<BSON(SEQUOIAFS_UID<<uid));
+      }
+      else if(gid != INVALID_UID_GID)
+      {
+         rule = BSON("$set"<<BSON(SEQUOIAFS_GID<<gid));
+      }
+      else 
+      {
+         rc = -EPERM;
+         PD_LOG(PDERROR, "chown must specify uid or gid. parentid:%d, name:%s", 
+                          fileName, pid);
+         goto error;
+      }
+   }
+   catch (std::exception &e)   
+   {
+      rc = -EIO;
+      PD_LOG(PDERROR, "Exception[%s] occurs when build bson obj.", e.what());
+      goto error;
+   }
    rc = doUpdateAttr(is_dir?&sysDirMetaCL:&sysFileMetaCL, rule, condition);
    if(SDB_OK != rc)
    {
@@ -2815,7 +2843,6 @@ INT32 sequoiaFS::chown(const CHAR *path, uid_t uid, gid_t gid)
 
 done:
    SDB_OSS_FREE(pathStr);
-   delete cursor;
    releaseConnection(db);
    return rc;
 
