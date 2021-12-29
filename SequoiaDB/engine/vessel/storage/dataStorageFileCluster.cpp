@@ -54,20 +54,218 @@ namespace vessel
       _close();
    }
 
+   INT32 dataStorageFileCluster::open(requestContext *context,
+                                      SPACE_TYPE type,
+                                      UINT32 secretValue,
+                                      const storageFileLoader *loader, 
+                                      const storageCoreArgs &args,
+                                      const options &o)
+   {
+      INT32 rc = SDB_OK;
+      close();
+
+      if (NULL == context ||
+          INVALID_SPACE_ID == context->getSpaceID() ||
+          INVALID_SPACE_TYPE == type ||
+          !args.isValid())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      _sid = context->getSpaceID();
+      _type = type;
+      _secretValue = secretValue;
+      _args = args;
+      _o = o;
+      if (_o.segmentCountAutoExtending < 0)
+      {
+         _o.segmentCountAutoExtending = 1;
+      }
+
+      rc = openFiles(context, loader);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open files:%d", rc);
+         goto error;
+      }
+
+      rc = initAllocator();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init allocator:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      close();
+      goto done;
+   }
+
+   INT32 dataStorageFileCluster::initAllocator()
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(getCoreArgs().isValid(), "can not be invalid");
+      inMemBitmap::options bo;
+      bo.percentFreeReused = _o.segmentReusedMinFreePercent;
+
+      rc = _allocator.initWithNoLatch(_args.maxPageCountPerSeg, bo);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init page allocator:%d", rc);
+         goto error;
+      }
+
+      if (0 < _segmentsCreatedEver)
+      {
+         rc = _allocator.allocateNewBitmapPages(_segmentsCreatedEver);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to allocate bitmap pages:%d", rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      _allocator.fini();
+      goto done;
+   }
+
+   void dataStorageFileCluster::close()
+   {
+      _close();
+      _reset();
+   }
+
    void dataStorageFileCluster::_close()
    {
-      for (UINT32 i = 0; i < _files.getSize(); ++i)
+      _allocator.fini();
+      closeFiles();
+      return;
+   }
+
+   INT32 dataStorageFileCluster::allocatePages(requestContext *context,
+                                               UINT32 count,
+                                               PAGE_ID *pids)
+   {
+      INT32 rc = SDB_OK;
+      ossXLatchGuard guard(&_latch, FALSE);
+
+      if (OSS_UNLIKELY(!isOpen()))
       {
-         storageFile *file = NULL;
-         _files.get<storageFile>(i, file);
-         if (NULL != file)
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == context ||
+                            0 == count ||
+                            _args.maxPageCountPerSeg < count ||
+                            NULL == pids))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      guard.lock();
+      rc = _allocator.allocateBits(count, pids, 0);
+      if (SDB_OK == rc)
+      {
+         goto done;
+      }
+      else if (SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE != rc)
+      {
+         PD_LOG(PDERROR, "failed to allocate from bitmap:%d", rc);
+         goto error;
+      }
+      else if (0 == _o.segmentCountAutoExtending)
+      {
+         goto error;
+      }
+      else if (_allocator.getCustomizedPageCount() == _segmentsCreatedEver)
+      {                                 
+         rc = _createNewSegment(context, _o.segmentCountAutoExtending);
+         if (SDB_OK != rc)
          {
-            file->close();
-            SDB_OSS_DEL file;
+            PD_LOG(PDERROR, "failed to create new segment on disk:%d", rc);
+            goto error;
          }
       }
 
-      _files.fini();
+      SDB_ASSERT(_allocator.getCustomizedPageCount() < _segmentsCreatedEver, "impossible");
+      rc = _allocator.allocateNewBitmapPages(_segmentsCreatedEver - 
+                                             _allocator.getCustomizedPageCount());
+      if (SDB_OK != rc)
+      {
+         /// No need to do anything to rollback file.
+         /// Just wait for the next extending.
+         PD_LOG(PDERROR, "failed to map new segment to allocator:%d", rc);
+         goto error;
+      }
+
+      rc = _allocator.allocateBits(count, pids, 0);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "unexpected failed allocating:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 dataStorageFileCluster::occupyPages(requestContext *context,
+                                             UINT32 count,
+                                             const PAGE_ID *pids)
+   {
+      INT32 rc = SDB_OK;
+      ossXLatchGuard guard(&_latch, FALSE);
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(0 == count || NULL == pids))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      guard.lock();
+      rc = _allocator.occupy(count, pids);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to occupy pages:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void dataStorageFileCluster::releasePages(UINT32 count,
+                                             const PAGE_ID *pids)
+   {
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         SDB_ASSERT(FALSE, "must be open");
+         goto done;
+      }
+      else if (OSS_UNLIKELY(0 == count ||
+                            NULL == pids))
+      {
+         SDB_ASSERT(FALSE, "invalid args");
+         goto done;
+      }
+
+      {
+         ossXLatchGuard guard(&_latch);
+         _allocator.releaseBits(count, pids);
+      }
+   done:
       return;
    }
 
@@ -107,6 +305,87 @@ namespace vessel
          PD_LOG(PDERROR, "failed to fsync segment[%d,%d], rc:%d",
                 fileId, segmentInFile, rc);
          goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 dataStorageFileCluster::ensurePidSpace(requestContext *context,
+                                                PAGE_ID pid)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 minSegmentCount = 0;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == context ||
+                            INVALID_PAGE_ID == pid))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      minSegmentCount = pid / _args.maxPageCountPerSeg + 1;
+      rc = ensureSegmentCount(context, minSegmentCount);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 dataStorageFileCluster::ensureSegmentCount(requestContext *context,
+                                                    UINT32 totalSegmentCount)
+   {
+      INT32 rc = SDB_OK;
+      ossXLatchGuard guard(&_latch, FALSE);
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == context))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (totalSegmentCount <= _allocator.getCustomizedPageCount())
+      {
+         goto done;
+      }
+
+      guard.lock();
+
+      while (_allocator.getCustomizedPageCount() < totalSegmentCount)
+      {
+         if (_allocator.getCustomizedPageCount() == _segmentsCreatedEver)
+         {
+            rc = _createNewSegment(context, 1);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to create new segment on disk:%d", rc);
+               goto error;
+            }
+         }
+
+         rc = _allocator.allocateNewBitmapPages(1);
+         if (SDB_OK != rc)
+         {
+            /// No need to do anything to rollback file.
+            /// Just wait for the next allocating.
+            PD_LOG(PDERROR, "failed to allocate new page in bitmap:%d", rc);
+            goto error;
+         }
       }
    done:
       return rc;
@@ -213,6 +492,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be invalid");
+      SDB_ASSERT(0 == _segmentsCreatedEver && 0 == _files.getSize(), "do not reopen");
       const storageCoreArgs &args = getCoreArgs();
       SDB_ASSERT(args.isValid(), "must be valid");
       constexpr UINT64 MAX_FILE_SEQUENCE = 1048575;
@@ -360,6 +640,12 @@ namespace vessel
             rc = SDB_VESSEL_INVALID_VESSEL_FILE;
             goto error;
          }
+
+         _segmentsCreatedEver = lastFile->getSegmentCount();
+         if (1 < _files.getSize())
+         {
+            _segmentsCreatedEver += (_files.getSize() - 1) * getCoreArgs().maxSegmentCountPerFile;
+         }
       }
    done:
       return rc;
@@ -369,17 +655,30 @@ namespace vessel
          file->close();
          SDB_OSS_DEL file;
       }
-      _close();
+      closeFiles();
       goto done;
    }
 
    void dataStorageFileCluster::closeFiles()
    {
-      _close();
+      _segmentsCreatedEver = 0;
+      for (UINT32 i = 0; i < _files.getSize(); ++i)
+      {
+         storageFile *file = NULL;
+         _files.get<storageFile>(i, file);
+         if (NULL != file)
+         {
+            file->close();
+            SDB_OSS_DEL file;
+         }
+      }
+
+      _files.fini();
    }
 
    void dataStorageFileCluster::destroyFiles()
    {
+      _segmentsCreatedEver = 0;
       for (UINT32 i = 0; i < _files.getSize(); ++i)
       {
          storageFile *file = _files.get<storageFile>(i);
@@ -391,142 +690,61 @@ namespace vessel
          }
       }
       _files.fini();
+   }
+
+   void dataStorageFileCluster::destroy()
+   {
+      _allocator.fini();
+      destroyFiles();
       return;
    }
 
-   INT32 dataStorageFileCluster::isSparseSegment(UINT32 globalSegmentId,
-                                                 BOOLEAN &isSparse)const
+   INT32 dataStorageFileCluster::_createNewSegment(requestContext *context,
+                                                   UINT32 count)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(dataPageCluster::isOpen(), "must be open");
-      const storageCoreArgs &args = getCoreArgs();
-      SDB_ASSERT(args.isValid(), "must be valid");
-      storageFile *file = NULL;
-      UINT32 minSegmentCount = 0;
-      
-      UINT32 fileId = globalSegmentId / args.maxSegmentCountPerFile;
-      if (_files.getSize() <= fileId)
-      {
-         rc = SDB_OUT_OF_BOUND;
-         goto error;
-      }
-      
-      file = _files.get<storageFile>(fileId);
-      if (NULL == file)
-      {
-         isSparse = TRUE;
-         goto done;
-      }
+      SDB_ASSERT(_args.isValid(), "must be valid");
+      SDB_ASSERT(0 < count, "can not be zero");
 
-      minSegmentCount = globalSegmentId % args.maxSegmentCountPerFile + 1;
-      if (file->getSegmentCount() < minSegmentCount)
+      for (UINT32 i = 0; i < count; ++i)
       {
-         isSparse = TRUE;
-         goto done;
-      }
-
-      isSparse = FALSE;
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   UINT32 dataStorageFileCluster::getTotalSegmentCountAllocated()const
-   {
-      SDB_ASSERT(dataPageCluster::isOpen(), "must be open");
-      SDB_ASSERT(dataPageCluster::getCoreArgs().isValid(), "must be valid");
-      UINT32 count = 0;
-      UINT32 size = _files.getSize();
-      if (0 < size)
-      {
-         storageFile *file = _files.get<storageFile>(size - 1);
-         SDB_ASSERT(NULL != file, "the last file can not be null");
-         if (1 < size)
+         if (0 == _files.getSize())
          {
-            count = (size - 1) * dataPageCluster::getCoreArgs().maxSegmentCountPerFile;
+            rc = createNewFile(context);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to create new storage file:%d", rc);
+               goto error;
+            }
          }
-         count += file->getSegmentCount();
-      }
-      return count;
-   }
-
-   INT32 dataStorageFileCluster::allocateNewSegment(requestContext *context)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(dataPageCluster::isOpen(), "must be open");
-      SDB_ASSERT(dataPageCluster::getCoreArgs().isValid(), "must be valid");
-
-      storageFile *file = NULL;
-      if (0 == _files.getSize())
-      {
-         rc = createNewFile(context);
-         if (SDB_OK != rc)
+         else
          {
-            PD_LOG(PDERROR, "failed to create new storage file:%d", rc);
-            goto error;
+            storageFile *file = _files.get<storageFile>(_files.getSize() - 1);
+            SDB_ASSERT(NULL != file, "the last file can not be null");
+            if (file->getSegmentCount() < file->getCommonHeadInMem().maxSegmentCountPerFile)
+            {
+               rc = file->allocateNewSegment();
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to extend storage file[%s]:%d",
+                        file->getFullPath(), rc);
+                  goto error;
+               }
+            }
+            else
+            {
+               rc = createNewFile(context);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to create new storage file:%d", rc);
+                  goto error;
+               }
+            }
          }
-         goto done;
-      }
 
-      file = _files.get<storageFile>(_files.getSize() - 1);
-      SDB_ASSERT(NULL != file, "the last file can not be null");
-      if (file->getSegmentCount() < file->getCommonHeadInMem().maxSegmentCountPerFile)
-      {
-         rc = file->allocateNewSegment();
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to extend storage file[%s]:%d",
-                   file->getFullPath(), rc);
-            goto error;
-         }
+         ++_segmentsCreatedEver;
       }
-      else
-      {
-         rc = createNewFile(context);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to create new storage file:%d", rc);
-            goto error;
-         }
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 dataStorageFileCluster::ensureSegmentNotSparse(requestContext *context,
-                                                        UINT32 globalSegmentId)
-   {
-      INT32 rc = SDB_OK;
-      storageFile *file = NULL;
-      UINT32 segmentIdInFile = 0;
-      UINT32 fileId = getFileIdByGlobalSegmentId(globalSegmentId, &segmentIdInFile);
-      if (_files.getSize() <= fileId)
-      {
-         rc = SDB_OUT_OF_BOUND;
-         goto error;
-      }
-
-      file = _files.get<storageFile>(fileId);
-      if (NULL == file)
-      {
-         rc = createFileEverShrinked(context, fileId);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to create file ever shrinked:%d", rc);
-            goto error;
-         }
-      }
-
-      rc = file->ensureSegmentCount(segmentIdInFile + 1);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to ensure segment count:%d", rc);
-         goto error;
-      }
-
    done:
       return rc;
    error:
@@ -613,97 +831,9 @@ namespace vessel
       goto done;
    }
 
-   INT32 dataStorageFileCluster::createFileEverShrinked(requestContext *context,
-                                                        UINT32 sequence)
+   UINT32 dataStorageFileCluster::getTotalSegmentCount()
    {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      const storageCoreArgs &args = dataPageCluster::getCoreArgs();
-      SDB_ASSERT(args.isValid(), "can not be invalid");
-
-      storageUnit *su = context->getEnv()->dms.getStorageUnit(getSpaceID());
-      SDB_ASSERT(NULL != su, "can not be null");
-      storageFile *file = NULL ;
-      createStorageFileOptions o;
-      vesselFileName fn;
-
-      if (_files.getSize() <= sequence)
-      {
-         PD_LOG(PDERROR, "invalid sequence[%d] to create, current size[%d]",
-                sequence, _files.getSize());
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (NULL != _files.get<storageFile>(sequence))
-      {
-         rc = SDB_FE;
-         goto error;
-      }
-
-      file = SDB_OSS_NEW storageFile();
-      if (OSS_UNLIKELY(NULL == file))
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-
-      if (!fn.build(getSpaceID(), FILE_TYPE_DATA_STORAGE,
-                    getSpaceType(), _files.getSize()))
-      {
-         PD_LOG(PDERROR, "failed to build file name");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      o.args = args;
-      o.createAsTmpFile = TRUE;
-      o.replaceWhenCreate = TRUE;
-      o.secretValue = getSecretValue();
-
-      rc = su->createStorageFile(fn, o, slice(), file);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to create new file[%d], rc:%d", fn.getFileName(), rc);
-         goto error;
-      }
-
-      rc = file->allocateNewSegment();
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to allocate new segment:%d", rc);
-         goto error;
-      }
-
-      rc = file->fsync();
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to fsync file head:%d", rc);
-         goto error;
-      }
-
-      rc = file->removeShadowSuffix();
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to remove file's shadow suffix:%d", rc);
-         goto error;
-      }
-
-      rc = _files.set(sequence, file);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      file = NULL;
-   done:
-      return rc;
-   error:
-      if (NULL != file)
-      {
-         file->destroy();
-         SDB_OSS_DEL file;
-      }
-      goto done;
+      return _allocator.getCustomizedPageCount();
    }
 
    UINT32 dataStorageFileCluster::getFileIdByGlobalSegmentId(UINT32 globalSegment,

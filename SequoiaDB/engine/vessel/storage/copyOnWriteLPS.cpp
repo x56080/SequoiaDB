@@ -644,10 +644,10 @@ namespace vessel
       return;
    }
 
-   inMemBitmap::options copyOnWriteLPS::getStorageAllocatorOptions()const
+   dataPageCluster::options copyOnWriteLPS::getStorageOptions()const
    {
-      inMemBitmap::options o;
-      o.percentFreeReused = 0.5;
+      dataPageCluster::options o;
+      o.segmentReusedMinFreePercent = 0.3;
       return o;
    }
 }//namespace vessel

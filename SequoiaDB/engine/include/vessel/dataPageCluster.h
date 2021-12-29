@@ -39,8 +39,6 @@
 #include "vessel/pageDef.h"
 #include "vessel/vesselFileDef.h"
 #include "vessel/storageFileDef.h"
-#include "ossLatch.hpp"
-#include "vessel/inMemBitmap.h"
 #include "vessel/mmapPagePointer.h"
 #include "vessel/storageFileLoader.h"
 
@@ -52,10 +50,34 @@ namespace vessel
    class dataPageCluster : public SDBObject
    {
       public:
-         dataPageCluster();
-         virtual ~dataPageCluster();
+         dataPageCluster(){}
+         virtual ~dataPageCluster(){}
          dataPageCluster(const dataPageCluster &) = delete;
          dataPageCluster &operator=(const dataPageCluster &) = delete;
+
+      public:
+         class options : public SDBObject
+         {
+            public:
+               options(){}
+               ~options(){}
+               options(const options &o):
+               segmentReusedMinFreePercent(o.segmentReusedMinFreePercent),
+               segmentCountAutoExtending(o.segmentCountAutoExtending){}
+               options &operator=(const options &o)
+               {
+                  segmentReusedMinFreePercent = o.segmentReusedMinFreePercent;
+                  segmentCountAutoExtending = o.segmentCountAutoExtending;
+                  return *this;
+               }
+
+            public:
+               /// the segment will be reused only when hit min free percent
+               FLOAT32 segmentReusedMinFreePercent = 0.10f;
+
+               /// extend segments when failed to allocate free pages.
+               INT32 segmentCountAutoExtending = 1;
+         };//class options
 
       public:
          OSS_INLINE const storageCoreArgs &getCoreArgs()const
@@ -80,44 +102,41 @@ namespace vessel
          }
 
       public:
-         INT32 open(requestContext *context,
-                    SPACE_TYPE type,
-                    UINT32 secretValue,
-                    const storageFileLoader *loader, 
-                    const storageCoreArgs &args,
-                    const inMemBitmap::options &allocator);
+         virtual INT32 open(requestContext *context,
+                            SPACE_TYPE type,
+                            UINT32 secretValue,
+                            const storageFileLoader *loader, 
+                            const storageCoreArgs &args,
+                            const options &o) = 0;
 
-         void close();
+         virtual void close() = 0;
 
-         void destroy();
+         virtual void destroy() = 0;
 
+         virtual INT32 allocatePages(requestContext *context,
+                                     UINT32 count,
+                                     PAGE_ID *pids) = 0;
+
+         virtual INT32 occupyPages(requestContext *context,
+                                   UINT32 count,
+                                   const PAGE_ID *pids) = 0;
+
+         virtual void releasePages(UINT32 count,
+                                   const PAGE_ID *pids) = 0;
+
+         virtual INT32 ensureSegmentCount(requestContext *context,
+                                          UINT32 totalSegmentCount) = 0;
+
+         virtual INT32 ensurePidSpace(requestContext *context,
+                                      PAGE_ID pid) = 0;
+
+      public:
          INT32 allocatePage(requestContext *context,
                             PAGE_ID &pid);
-
-         INT32 allocatePages(requestContext *context,
-                             UINT32 count,
-                             PAGE_ID *pids);
-
          INT32 occupyPage(requestContext *context,
                           PAGE_ID pid);
-
-         INT32 occupyPages(requestContext *context,
-                           UINT32 count,
-                           const PAGE_ID *pids);
-
-         void releasePages(UINT32 count,
-                           const PAGE_ID *pids);
-
          void releasePage(PAGE_ID pid);
 
-         /// If oldSegmentCount set as valid value,
-         /// will extend space only when (segmentCount + *oldSegmentCount) > current segment count
-         INT32 extendPageSpace(requestContext *context,
-                               UINT32 segmentCount,
-                               const UINT32 *oldSegmentCount);
-
-         INT32 ensurePidSpace(requestContext *context,
-                              PAGE_ID pid);
       public:
          virtual INT32 fsyncSegment(UINT32 globalSegmentId)const = 0;
 
@@ -131,42 +150,17 @@ namespace vessel
 
          virtual FILE_TYPE getDataFileType()const = 0;
 
-         virtual UINT32 getTotalSegmentCountAllocated()const = 0;
-
-      private:
-         /// loader may be null
-         virtual INT32 openFiles(requestContext *context,
-                                 const storageFileLoader *loader) = 0;
-         virtual void closeFiles() = 0;
-         virtual void destroyFiles() = 0;
-
-         virtual INT32 allocateNewSegment(requestContext *context) = 0;
-         virtual INT32 ensureSegmentNotSparse(requestContext *context,
-                                              UINT32 globalSegmentId) = 0;
-         virtual INT32 isSparseSegment(UINT32 globalSegmentId,
-                                       BOOLEAN &isSparse)const = 0;
-
-         virtual BOOLEAN mayBeSparse()const = 0;
-
-         virtual BOOLEAN hasSparseFile()const = 0;
+         virtual UINT32 getTotalSegmentCount() = 0;
       
       protected:
-         void _close();
+         void _reset();
 
-      private:
-         INT32 ensureAllPagesNotSparse(requestContext *context,
-                                       UINT32 count,
-                                       const PAGE_ID *pids);
-
-      private:
+      protected:
          SPACE_ID _sid = INVALID_SPACE_ID;
          SPACE_TYPE _type = INVALID_SPACE_TYPE;
          UINT32 _secretValue = 0;
          storageCoreArgs _args;
-         ossSpinXLatch _extendingLatch;
-         inMemBitmap _allocator;
-         UINT32 _segmentCountOnDisk = 0;
-
+         options _o;
    };//class dataPageCluster
 }//namespace vessel
 }//namespace engine

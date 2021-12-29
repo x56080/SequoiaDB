@@ -209,7 +209,7 @@ namespace vessel
       rc = _dpc->open(context, getSpaceType(),
                       baseFile->getCommonHeadInMem().secretValue,
                       NULL, o.dataArgs,
-                      getStorageAllocatorOptions());
+                      getStorageOptions());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init page storage:%d", rc);
@@ -308,7 +308,7 @@ namespace vessel
       rc = _dpc->open(context, getSpaceType(),
                       base->getCommonHeadInMem().secretValue,
                       &loader, dataArgs,
-                      getStorageAllocatorOptions());
+                      getStorageOptions());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init page storage:%d", rc);

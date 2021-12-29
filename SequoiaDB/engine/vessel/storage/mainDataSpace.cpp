@@ -101,8 +101,8 @@ namespace vessel
 
       builder.buildMappingLog(psv, 1, &mid);
 
-      SDB_ASSERT(0 == _storage.getTotalSegmentCountAllocated(), "must be empty");
-      rc = _storage.extendPageSpace(context, 1, NULL);
+      SDB_ASSERT(0 == _storage.getTotalSegmentCount(), "must be empty");
+      rc = _storage.ensureSegmentCount(context, 1);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to extend storage:%d", rc);

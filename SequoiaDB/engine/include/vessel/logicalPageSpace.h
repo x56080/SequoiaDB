@@ -52,6 +52,7 @@
 #include "vessel/logicalPageBuffer.h"
 #include "vessel/sortedStorageFileList.h"
 #include "vessel/shallowPointer.hpp"
+#include "vessel/dataPageCluster.h"
 
 namespace engine
 {
@@ -61,7 +62,6 @@ namespace vessel
    class idMapFile;
    class atomicOperationList;
    class pageInitializer;
-   class dataPageCluster;
 
    class logicalPageSpace : public SDBObject
    {
@@ -238,9 +238,9 @@ namespace vessel
 
       private:
          virtual UINT32 getReservedImpCount()const {return 0;}
-         virtual inMemBitmap::options getStorageAllocatorOptions()const
+         virtual dataPageCluster::options getStorageOptions()const
          {
-            return inMemBitmap::options();
+            return dataPageCluster::options();
          }
 
       protected:/// page management

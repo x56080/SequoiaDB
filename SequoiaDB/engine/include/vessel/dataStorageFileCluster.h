@@ -38,6 +38,8 @@
 
 #include "vessel/dataPageCluster.h"
 #include "vessel/keepHistoryPointerArray.h"
+#include "vessel/inMemBitmap.h"
+#include "ossLatch.hpp"
 
 namespace engine
 {
@@ -52,6 +54,35 @@ namespace vessel
          virtual ~dataStorageFileCluster();
 
       public:
+         virtual INT32 open(requestContext *context,
+                            SPACE_TYPE type,
+                            UINT32 secretValue,
+                            const storageFileLoader *loader, 
+                            const storageCoreArgs &args,
+                            const options &o);
+
+         virtual void close();
+
+         virtual void destroy();
+
+         virtual INT32 allocatePages(requestContext *context,
+                                     UINT32 count,
+                                     PAGE_ID *pids);
+
+         virtual INT32 occupyPages(requestContext *context,
+                                   UINT32 count,
+                                   const PAGE_ID *pids);
+
+         virtual void releasePages(UINT32 count,
+                                   const PAGE_ID *pids);
+
+         virtual INT32 ensureSegmentCount(requestContext *context,
+                                          UINT32 totalSegmentCount);
+
+         virtual INT32 ensurePidSpace(requestContext *context,
+                                      PAGE_ID pid);
+
+      public:
          virtual INT32 fsyncSegment(UINT32 globalSegmentId)const;
 
          virtual INT32 fysncPage(PAGE_ID pid)const;
@@ -62,28 +93,23 @@ namespace vessel
          {
             return FILE_TYPE_DATA_STORAGE;
          }
-         virtual UINT32 getTotalSegmentCountAllocated()const;
+
+         virtual UINT32 getTotalSegmentCount();
 
       private:
-         virtual INT32 openFiles(requestContext *context,
-                                 const storageFileLoader *loader);
-         virtual void closeFiles();
-         virtual void destroyFiles();
+         INT32 openFiles(requestContext *context,
+                         const storageFileLoader *loader);
 
-         virtual INT32 allocateNewSegment(requestContext *context);
-         virtual INT32 ensureSegmentNotSparse(requestContext *context,
-                                              UINT32 globalSegmentId);
-         virtual INT32 isSparseSegment(UINT32 globalSegmentId,
-                                       BOOLEAN &isSparse)const;
+         /// must open file first
+         INT32 initAllocator();
 
-         virtual BOOLEAN mayBeSparse()const {return TRUE;}
+         void closeFiles();
 
-         virtual BOOLEAN hasSparseFile()const {return FALSE;}
+         void destroyFiles();
 
-      private:
+         INT32 _createNewSegment(requestContext *context, UINT32 count);
+
          INT32 createNewFile(requestContext *context);
-
-         INT32 createFileEverShrinked(requestContext *context, UINT32 sequence);
 
          void _close();
 
@@ -92,6 +118,9 @@ namespace vessel
          UINT32 getFileIdByGlobalPageId(PAGE_ID pid,
                                         PAGE_ID *pidInFile)const;
       private:
+         ossSpinXLatch _latch;
+         inMemBitmap _allocator;
+         UINT32 _segmentsCreatedEver = 0;
          keepHistoryPointerArray _files;
 
    };//class dataStorageFileCluster

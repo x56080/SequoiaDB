@@ -130,7 +130,7 @@ namespace vessel
 
          if (!fn.extract(fileNameSlice, TRUE))
          {
-            PD_LOG(PDDEBUG, "not storage file name:%s", fileName.c_str());
+            //PD_LOG(PDDEBUG, "not storage file name:%s", fileName.c_str());
             continue;
          }
          else if (fn.getSpaceID() != _sid)

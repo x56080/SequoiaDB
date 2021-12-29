@@ -64,7 +64,7 @@ namespace vessel
          virtual void _close();
          virtual void _destroy(requestContext *context);
 
-         virtual inMemBitmap::options getStorageAllocatorOptions()const;
+         virtual dataPageCluster::options getStorageOptions()const;
 
       private:
          virtual INT32 getRuntimePageBuffer(requestContext *context,

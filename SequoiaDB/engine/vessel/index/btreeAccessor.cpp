@@ -321,7 +321,7 @@ namespace vessel
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
       PAGE_ID root = INVALID_PAGE_ID;
 
-      rc = _is->getLogicalPageBuffer(_context, _ic->getObj().getBtreeRoot(),
+      rc = _is->getLogicalPageBuffer(_context, _ic->getEntryLpid(),
                                      mode, buffer);
       if (SDB_OK != rc)
       {

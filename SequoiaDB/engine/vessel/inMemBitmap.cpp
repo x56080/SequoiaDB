@@ -427,7 +427,6 @@ namespace vessel
          UINT32 minOffset = _o.bitmapBeginPage * _pageCapacity;
          for (UINT32 i = 0; i < count; ++i)
          {
-            
             SDB_ASSERT(minOffset <= buf[i], "out of bound");
          }
       }
