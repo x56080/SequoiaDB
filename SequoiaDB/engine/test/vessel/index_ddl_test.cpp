@@ -226,7 +226,7 @@ void remove_index2(INDEX_TYPE type)
 
    constexpr const CHAR *indexName = "index";
    constexpr const CHAR *fieldName = "a";
-   constexpr UINT32 recordCount = 10000;
+   constexpr UINT32 recordCount = 100000;
 
    indexParameters params;
    params.type = type;
@@ -252,9 +252,17 @@ void remove_index2(INDEX_TYPE type)
    }
 
    bson::BSONObjBuilder builder;
+   CHAR pad[128];
+   ossMemset(pad, 'a', sizeof(pad));
+   std::string key;
+   key.assign(pad);
    for (UINT32 i = 0; i < recordCount; ++i)
    {
-      builder.append(fieldName, i * 2 + 1);
+      key.resize(sizeof(pad));
+      CHAR buf[16];
+      ossItoa(i, buf, sizeof(buf));
+      key.append(buf);
+      builder.append(fieldName, key.c_str());
       rc = handler->insertRecord(&session, builder.done(), dmsInsertRecordOptions(), NULL);
       ASSERT_EQ(SDB_OK, rc);
       builder.reset();

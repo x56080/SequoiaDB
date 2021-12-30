@@ -46,7 +46,7 @@ namespace engine
 {
 namespace vessel
 {
-   static const UINT32 BTREE_NODE_PAGE_HEAD_VERSION = 1;
+   constexpr UINT32 BTREE_NODE_PAGE_HEAD_VERSION = 1;
 #pragma pack(4)
    struct btreeNodePrefixSlot
    {
@@ -84,17 +84,16 @@ namespace vessel
       INT16 high = 0;
 
    };//struct btreeNodePrefixSlot
-   static const UINT32 BTREE_NODE_PREFIX_SLOT_SIZE = sizeof(btreeNodePrefixSlot);
-   static const UINT32 BTREE_NODE_MAX_PREFIX_COUNT = 128;
+   constexpr UINT32 BTREE_NODE_PREFIX_SLOT_SIZE = sizeof(btreeNodePrefixSlot);
 
 
    /// btreeNode flags begin
-   static const UINT32 BTREE_NODE_FLAG_IS_ROOT = 0x01;
-   static const UINT32 BTREE_NODE_FLAG_IS_LEAF = 0x02;
+   constexpr UINT32 BTREE_NODE_FLAG_IS_ROOT = 0x01;
+   constexpr UINT32 BTREE_NODE_FLAG_IS_LEAF = 0x02;
 
    /// tried to generate(or regenerate) prefixes but failed.
    /// reset until next split.
-   static const UINT32 BTREE_NODE_FLAG_VAIN_PREFIX_REGENERATION = 0x04;
+   constexpr UINT32 BTREE_NODE_FLAG_VAIN_PREFIX_REGENERATION = 0x04;
    /// btreeNode flags end
 
    struct btreeNodePageHead

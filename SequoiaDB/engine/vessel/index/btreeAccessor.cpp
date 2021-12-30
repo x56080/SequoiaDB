@@ -50,8 +50,6 @@ namespace engine
 {
 namespace vessel
 {
-   constexpr UINT32 BATCH_RELEASE_COUNT = 8;
-
    btreeAccessor::btreeAccessor()
    {}
 
@@ -290,27 +288,26 @@ namespace vessel
          goto done;
       }
 
-      rc = removeBtreeRootInEntry();
+      rc = releaseWholeTreeExceptRoot();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to remove btree root in entry page:%d", rc);
          goto error;
       }
 
-      rc = releaseWholeTree();
+      rc = removeBtreeRoot();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to release btree:%d", rc);
          goto error;
       }
    done:
-      _ic->getObj().removeBtreeRoot();
       return rc;
    error:
       goto done;
    }
 
-   INT32 btreeAccessor::removeBtreeRootInEntry()
+   INT32 btreeAccessor::removeBtreeRoot()
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "must be inited");
@@ -320,6 +317,15 @@ namespace vessel
       indexEntryPageAccessor accessor;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
       PAGE_ID root = INVALID_PAGE_ID;
+      BOOLEAN blocked = FALSE;
+
+      rc = _is->blockCheckpoint(_context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to block checkpoint:%d", rc);
+         goto error;
+      }
+      blocked = TRUE;
 
       rc = _is->getLogicalPageBuffer(_context, _ic->getEntryLpid(),
                                      mode, buffer);
@@ -332,10 +338,19 @@ namespace vessel
       rc = accessor.removeBtreeRoot(_context, &buffer, root);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to remove btree root in entry page:%d", rc);
          goto error;
       }
+
+      SDB_ASSERT(root == _ic->getObj().getBtreeRoot(), "must be same");
+      _is->releasePage(_context, root);
+      _ic->getObj().removeBtreeRoot();
    done:
       buffer.fini();
+      if (blocked)
+      {
+         _context->unblockCheckpoint();
+      }
       return rc;
    error:
       goto done;
@@ -1265,12 +1280,14 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeAccessor::releaseWholeTree()
+   INT32 btreeAccessor::releaseWholeTreeExceptRoot()
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(_ic->getObj().hasBtreeRoot(), "must be has btree root");
-      ossPoolVector<PAGE_ID> batch;
-      batch.reserve(BATCH_RELEASE_COUNT);
+      SDB_ASSERT(_bac.isPathEmpty(), "must be empty");
+
+      _bac.setReadonly(FALSE);
+      _bac.setPessimistic(TRUE);
 
       rc = _bac.pushRootIntoPath();
       if (SDB_OK != rc)
@@ -1279,80 +1296,165 @@ namespace vessel
          goto error;
       }
 
-      rc = releaseTreeNodeRecursively(batch);
+      if (_bac.getEndNodeInPath().isLeaf())
+      {
+         goto done;
+      }
+
+      rc = releaseNonLeafNodeRecursively();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to release tree nodes:%d", rc);
          goto error;
       }
 
-      SDB_ASSERT(batch.empty(), "must be empty");
+      _bac.clearAccessPath();
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 btreeAccessor::releaseTreeNodeRecursively(ossPoolVector<PAGE_ID> &batch)
+   INT32 btreeAccessor::releaseNonLeafNodeRecursively()
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!_bac.isPathEmpty(), "can not be empty");
       btreeNode node = _bac.getEndNodeInPath();
-      if (node.isLeaf())
+      SDB_ASSERT(!node.isLeaf(), "can not be leaf");
+      RECORD_SLOT_POS begin = 0;
+      
+      do
       {
-         batch.push_back(node.getBuffer()->getLogicalPid());
-         _bac.popEnd();
-      }
-      else
-      {
-         UINT32 itemCount = node.getItemCount();
-         for (UINT32 i = 0; i <= itemCount; ++i)
-         {
-            PAGE_ID child = node.getChild(i);
-            if (INVALID_PAGE_ID != child)
-            {
-               btreePathFootprint fp;
-               fp.setPos(i);
-               fp.setUpperBound(i == itemCount);
-               rc = _bac.pushChildNodeIntoPath(child, fp);
-               if (SDB_OK != rc)
-               {
-                  PD_LOG(PDERROR, "failed to push child[%d] into path:%d", child, rc);
-                  goto error;
-               }
-
-               rc = releaseTreeNodeRecursively(batch);
-               if (SDB_OK != rc)
-               {
-                  PD_LOG(PDERROR, "failed to release tree node:%d", rc);
-                  goto error;
-               }
-            }
-         }
-
-         if (node.hasExternalKey())
-         {
-            batch.push_back(node.getExternalKeyPage());
-         }
-
-         batch.push_back(node.getBuffer()->getLogicalPid());
-         _bac.popEnd();
-      }
-
-      if (BATCH_RELEASE_COUNT <= batch.size() ||
-          (_bac.isPathEmpty() && !batch.empty()))
-      {
-         rc = _is->releasePages(_context, batch.size(), batch.data());
+         RECORD_SLOT_POS pos = INVALID_RECORD_SLOT_POS;
+         rc = seekChildToReleaseFirst(begin, pos);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to release pages:%d", rc);
+            PD_LOG(PDERROR, "failed to seek child to be released:%d", rc);
             goto error;
          }
 
-         batch.clear();
+         if (INVALID_RECORD_SLOT_POS == pos)
+         {
+            break;
+         }
+         else
+         {
+            PAGE_ID child = node.getChild(pos);
+            btreePathFootprint fp;
+            fp.setPos(pos);
+            fp.setUpperBound((UINT32)pos == node.getItemCount());
+            rc = _bac.pushChildNodeIntoPath(child, fp);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to push child[%d] into path:%d", child, rc);
+               goto error;
+            }
+
+            rc = releaseNonLeafNodeRecursively();
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to release node[%d], rc:%d", child, rc);
+               goto error;
+            }
+
+            _bac.popEnd();
+            begin = pos + 1;
+            continue;
+         }
+      } while(TRUE);
+
+      rc = atomicReleaseNonLeafPathEnd();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to atomic release node:%d", rc);
+         goto error;
       }
 
    done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 btreeAccessor::seekChildToReleaseFirst(RECORD_SLOT_POS begin,
+                                                RECORD_SLOT_POS &pos)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(INVALID_RECORD_SLOT_POS != begin, "can not be invalid");
+      SDB_ASSERT(!_bac.isPathEmpty(), "can not be empty");
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
+      pos = INVALID_RECORD_SLOT_POS;
+
+      btreeNode node = _bac.getEndNodeInPath();
+      SDB_ASSERT(!node.isLeaf(), "can not be leaf");
+      UINT32 itemCount = node.getItemCount();
+      for (UINT32 i = begin; i <= itemCount; ++i)
+      {
+         BOOLEAN childIsLeaf = FALSE;
+         logicalPageBuffer buffer;
+         btreeNode childNode;
+         PAGE_ID child = node.getChild(i);
+         if (INVALID_PAGE_ID == child)
+         {
+            continue;
+         }
+
+         rc = _is->getLogicalPageBuffer(_context, child, mode, buffer);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get page[%d] buffer:%d", child, rc);
+            goto error;
+         }
+
+         childNode = btreeNode(&buffer, _bac.getPathSize() + 1, _ic);
+         childIsLeaf = childNode.isLeaf();
+         buffer.fini();
+         if (!childIsLeaf)
+         {
+            pos = i;
+            break;
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 btreeAccessor::atomicReleaseNonLeafPathEnd()
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(!_bac.isPathEmpty(), "can not be empty");
+
+      BOOLEAN blocked = FALSE;
+      btreeNode node = _bac.getEndNodeInPath();
+      SDB_ASSERT(!node.isLeaf(), "can not be leaf");
+
+      ossPoolVector<PAGE_ID> nodes;
+      node.dumpAllSubNodes(nodes);
+
+      rc = _is->blockCheckpoint(_context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to block checkpoint:%d", rc);
+         goto error;
+      }
+      blocked = TRUE;
+
+      rc = node.resetAsEmptyNode();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to clear node[%d]:%d",
+                node.getBuffer()->getLogicalPid(), rc);
+         goto error;
+      }
+
+      _is->releasePages(_context, nodes.size(), nodes.data());
+   done:
+      if (blocked)
+      {
+         _context->unblockCheckpoint();
+      }
       return rc;
    error:
       goto done;

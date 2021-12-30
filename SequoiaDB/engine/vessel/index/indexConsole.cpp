@@ -1132,7 +1132,6 @@ namespace vessel
       logicalPageBuffer mappingBuffer;
       indexMappingPageAccessor accessor;
       PAGE_ID entryPage = INVALID_PAGE_ID;
-      logicalPageBuffer entryBuffer;
 
       PAGE_ID mappingPage = _is->getMappingPageLpid(_mbID, indexSlot, pos);
       if (INVALID_PAGE_ID == mappingPage)
@@ -1159,16 +1158,7 @@ namespace vessel
 
       mappingBuffer.fini();
 
-      rc = _is->getLogicalPageBuffer(context, entryPage, mode, entryBuffer);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d",
-                entryPage, rc);
-         goto error;
-         /// entry page will be lost for ever.
-      }
-
-      entryBuffer.destroy();
+      _is->releasePage(context, entryPage);
       
    done:
       return rc;

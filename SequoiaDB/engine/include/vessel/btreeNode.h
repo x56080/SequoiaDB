@@ -121,8 +121,11 @@ namespace vessel
          }
          btreeItemSlot getItemSlot(RECORD_SLOT_POS pos)const;
 
+         void dumpAllSubNodes(ossPoolVector<PAGE_ID> &nodes);
+
       public:
          INT32 prepareToWrite();
+
       public:
 
          BOOLEAN hasFreeSpaceToInsert(UINT32 keySize,
@@ -156,6 +159,7 @@ namespace vessel
          INT32 resetRemovedChild(RECORD_SLOT_POS pos,
                                  PAGE_ID child);
 
+         INT32 resetAsEmptyNode();
       public:
          /// non-leaf only
          INT32 nonleafRemove(RECORD_SLOT_POS pos);

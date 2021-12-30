@@ -120,11 +120,16 @@ namespace vessel
                                         BOOLEAN &obstructed);
 
       private:
-         INT32 removeBtreeRootInEntry();
+         INT32 removeBtreeRoot();
 
-         INT32 releaseWholeTree();
+         INT32 releaseWholeTreeExceptRoot();
 
-         INT32 releaseTreeNodeRecursively(ossPoolVector<PAGE_ID> &batch);
+         INT32 releaseNonLeafNodeRecursively();
+
+         INT32 seekChildToReleaseFirst(RECORD_SLOT_POS begin,
+                                       RECORD_SLOT_POS &pos);
+
+         INT32 atomicReleaseNonLeafPathEnd();
 
       private:
          requestContext *_context = NULL;

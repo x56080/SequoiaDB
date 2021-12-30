@@ -1553,7 +1553,6 @@ namespace vessel
                                      btreeNodeCompressedKey &ck)const
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(prefixPos < BTREE_NODE_MAX_PREFIX_COUNT, "can not be invalid");
       SDB_ASSERT(key.isValid(), "can not be invalid");
       SDB_ASSERT(prefix.isValid(), "can not be invalid");
       SDB_ASSERT(!isCompressionDisabled(), "can not be disabled");
@@ -3022,6 +3021,77 @@ namespace vessel
                                    getWritableObjPtr<btreeNodePageHead>(0);
          head->rightChild = child;
       }
+      commit();
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void btreeNode::dumpAllSubNodes(ossPoolVector<PAGE_ID> &nodes)
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(!isLeaf(), "can not be leaf");
+      const btreeNodePageHead *header = getReadableHead();
+      if (INVALID_PAGE_ID != header->externalKeyPage)
+      {
+         nodes.push_back(header->externalKeyPage);
+      }
+      if (INVALID_PAGE_ID != header->rightChild)
+      {
+         nodes.push_back(header->rightChild);
+      }
+
+      for (UINT32 i = 0; i < getItemCount(); ++i)
+      {
+         const btreeItemSlot *slot = getReadableSlot(i);
+         if (INVALID_PAGE_ID != slot->data.nlf.leftChild)
+         {
+            nodes.push_back(slot->data.nlf.leftChild);
+         }
+      }
+
+      return;
+   }
+
+   INT32 btreeNode::resetAsEmptyNode()
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isValid(), "can not be invalid");
+      btreeNodePageHead *header = NULL;
+      strictBuffer buffer;
+      BOOLEAN isLeafNode = isLeaf();
+      BOOLEAN isRootNode = isRoot();
+
+      rc = _buffer->autoGetWritableBodyBuffer(buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare to write:%d", rc);
+         goto error;
+      }
+
+      header = buffer.getWritableObjPtr<btreeNodePageHead>(0);
+      header->totalFreeSpace = getPageBodySize(_buffer->getPageSize()) -
+                               BTREE_NODE_PAGE_HEAD_SIZE;
+      header->freeSapceAfterLastSlot = header->totalFreeSpace;
+      header->totalSlotCount = 0;
+      header->prefixCount = 0;
+      header->compressedItemCount = 0;
+      header->appendingFactor = 0;
+      header->rightChild = INVALID_PAGE_ID;
+      header->splitedTimes = 0;
+      header->externalKeyPage = INVALID_PAGE_ID;
+      header->flags = 0;
+      if (isRootNode)
+      {
+         OSS_BIT_SET(header->flags, BTREE_NODE_FLAG_IS_ROOT);
+      }
+      if (isLeafNode)
+      {
+         OSS_BIT_SET(header->flags, BTREE_NODE_FLAG_IS_LEAF);
+      }
+
       commit();
 
    done:
