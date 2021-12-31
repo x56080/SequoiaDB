@@ -526,7 +526,7 @@ namespace engine
                             "The scene of index '%s' is covered by "
                             "the existing index '%s'",
                             index.getStringField( IXM_FIELD_NAME_NAME ),
-                            curIdxCB.getName() );
+                            curIdxCB.getName() ) ;
                rc = SDB_IXM_EXIST_COVERD_ONE ;
                goto error ;
             }

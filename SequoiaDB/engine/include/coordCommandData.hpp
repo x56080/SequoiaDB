@@ -353,9 +353,6 @@ namespace engine
                                 pmdEDUCB *cb,
                                 INT64 &contextID,
                                 rtnContextBuf *buf ) ;
-      private:
-         INT32 _checkTaskFinish( const CHAR* taskData, BOOLEAN& isFinish,
-                                 INT32& resultCode ) ;
    } ;
    typedef _coordCmdWaitTask coordCmdWaitTask ;
 

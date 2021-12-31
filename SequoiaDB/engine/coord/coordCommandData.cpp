@@ -1457,7 +1457,7 @@ namespace engine
                                      rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
-      INT32 resultCode = SDB_OK ;
+      INT32 firstResultCode = SDB_OK ;
       SET_RC ignoreRC ;
       rtnContextCoord::sharePtr pContext ;
       rtnContextBuf buffObj ;
@@ -1489,8 +1489,8 @@ namespace engine
          // loop every task
          while ( pContext )
          {
-            BOOLEAN isFinish = FALSE ;
-            INT32 curResult = SDB_OK ;
+            BSONObj taskObj ;
+            clsTask *pTask = NULL ;
 
             rc = pContext->getMore( 1, buffObj, cb ) ;
             if ( SDB_DMS_EOC == rc )
@@ -1500,16 +1500,46 @@ namespace engine
             }
             PD_RC_CHECK( rc, PDERROR, "Failed to get more, rc: %d", rc ) ;
 
-            rc = _checkTaskFinish( buffObj.data(), isFinish, curResult ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to check task, rc: %d", rc ) ;
+            try
+            {
+               taskObj = BSONObj( buffObj.data() ) ;
+            }
+            catch( std::exception &e )
+            {
+               rc = ossException2RC( &e ) ;
+               PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+            }
 
-            if ( !isFinish )
+            rc = clsNewTask( taskObj, pTask ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to new task, rc: %d", rc ) ;
+
+            if ( CLS_TASK_STATUS_FINISH != pTask->status() )
             {
                allTaskFinish = FALSE ;
+               continue ;
             }
-            if( SDB_OK == resultCode && SDB_OK != curResult )
+
+            if( SDB_OK == firstResultCode && SDB_OK != pTask->resultCode() )
             {
-               resultCode = curResult ;
+               firstResultCode = pTask->resultCode() ;
+               // build error object
+               try
+               {
+                  BSONObjBuilder errBuilder ;
+                  pTask->toErrInfo( errBuilder ) ;
+                  BSONObj errObj = errBuilder.done() ;
+                  *buf = rtnContextBuf( errObj ) ;
+                  PD_LOG( PDERROR, "error task: %s", errObj.toString().c_str() ) ;
+                  INT32 rc1 = buf->getOwned() ;
+                  if ( rc1 )
+                  {
+                     PD_LOG( PDERROR, "Failed to build buffer, rc: %d", rc1 ) ;
+                  }
+               }
+               catch( std::exception &e )
+               {
+                  PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+               }
             }
          }
 
@@ -1525,66 +1555,15 @@ namespace engine
       }
 
    done:
-      if ( SDB_OK == rc )
+      if ( SDB_OK == rc && SDB_OK != firstResultCode )
       {
-         rc = resultCode ;
+         rc = firstResultCode ;
       }
       if ( pContext )
       {
          pKRCB->getRTNCB()->contextDelete( pContext->contextID(),  cb ) ;
          pContext.release() ;
       }
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _coordCmdWaitTask::_checkTaskFinish( const CHAR* taskData,
-                                              BOOLEAN& isFinish,
-                                              INT32& resultCode )
-   {
-      INT32 rc = SDB_OK ;
-      CLS_TASK_STATUS status = CLS_TASK_STATUS_END ;
-      INT32 result = SDB_OK ;
-      isFinish = FALSE ;
-      resultCode = SDB_OK ;
-
-      /// check task is finished or not
-      try
-      {
-         BSONObj obj( taskData ) ;
-
-         // get status
-         rc = rtnGetIntElement( obj, FIELD_NAME_STATUS, (INT32&)status ) ;
-         if ( SDB_FIELD_NOT_EXIST == rc )
-         {
-            // sequence task do NOT have "Status", just ignore
-            isFinish = TRUE ;
-            goto done ;
-         }
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to get field[%s] from obj[%s], rc: %d",
-                      FIELD_NAME_STATUS, obj.toString().c_str(), rc ) ;
-
-         // get result code
-         rc = rtnGetIntElement( obj, FIELD_NAME_RESULTCODE, result ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to get field[%s] from obj[%s], rc: %d",
-                      FIELD_NAME_RESULTCODE, obj.toString().c_str(), rc );
-
-         if ( CLS_TASK_STATUS_FINISH == status )
-         {
-            isFinish = TRUE ;
-            resultCode = result ;
-         }
-      }
-      catch( std::exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
-      }
-
-   done:
       return rc ;
    error:
       goto done ;
@@ -5461,8 +5440,7 @@ namespace engine
          rc = _waitTask( taskID, cb, contextID, buf ) ;
          if ( rc )
          {
-            PD_LOG_MSG( PDERROR, "Failed to wait task[%llu], rc: %d",
-                        taskID, rc ) ;
+            PD_LOG( PDERROR, "Failed to wait task[%llu], rc: %d", taskID, rc ) ;
             goto error ;
          }
       }

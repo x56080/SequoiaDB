@@ -194,6 +194,8 @@ namespace engine
                                                 BSONObj& updator,
                                                 BSONObj& matcher ) ;
 
+         virtual INT32       toErrInfo( BSONObjBuilder& builder ) ;
+
       protected:
          UINT64                  _taskID ;
          CLS_TASK_TYPE           _taskType ;
@@ -216,6 +218,19 @@ namespace engine
       public:
          _clsDummyTask ( UINT64 taskID ) ;
          ~_clsDummyTask () ;
+         virtual const CHAR*     taskName () const ;
+         virtual const CHAR*     collectionName() const ;
+         virtual const CHAR*     collectionSpaceName() const ;
+         virtual BOOLEAN         muteXOn ( const _clsTask *pOther ) ;
+         virtual INT32           init( const CHAR* objdata ) ;
+         virtual BSONObj         toBson ( UINT32 mask = CLS_MASK_ALL ) ;
+   };
+
+   class _clsSequenceTask : public _clsTask
+   {
+      public:
+         _clsSequenceTask ( UINT64 taskID ) ;
+         ~_clsSequenceTask () ;
          virtual const CHAR*     taskName () const ;
          virtual const CHAR*     collectionName() const ;
          virtual const CHAR*     collectionSpaceName() const ;
@@ -491,6 +506,8 @@ namespace engine
          virtual INT32       buildQuerySubTasks( const BSONObj& obj,
                                                  BSONObj& matcher,
                                                  BSONObj& selector ) ;
+
+         virtual INT32       toErrInfo( BSONObjBuilder& builder ) ;
 
          utilCLUniqueID  clUniqueID() const ;
 

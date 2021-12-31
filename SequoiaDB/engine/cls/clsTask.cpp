@@ -175,6 +175,11 @@ namespace engine
       return SDB_OK ;
    }
 
+   INT32 _clsTask::toErrInfo( BSONObjBuilder& builder )
+   {
+      return SDB_OK ;
+   }
+
    INT32 clsNewTask( const BSONObj &taskObj, clsTask*& pTask )
    {
       INT32 rc = SDB_OK ;
@@ -228,6 +233,9 @@ namespace engine
             break ;
          case CLS_TASK_COPY_IDX :
             pTask = SDB_OSS_NEW _clsCopyIdxTask( taskID ) ;
+            break ;
+         case CLS_TASK_SEQUENCE :
+            pTask = SDB_OSS_NEW _clsSequenceTask( taskID ) ;
             break ;
          default :
             PD_RC_CHECK( SDB_INVALIDARG, PDERROR,
@@ -677,6 +685,50 @@ namespace engine
    }
 
    BSONObj _clsDummyTask::toBson ( UINT32 mask )
+   {
+      return BSONObj() ;
+   }
+
+   /*
+      _clsSequenceTask : implement
+   */
+   _clsSequenceTask::_clsSequenceTask( UINT64 taskID )
+   :_clsTask( taskID )
+   {
+      _taskType = CLS_TASK_SEQUENCE ;
+      _status = CLS_TASK_STATUS_FINISH ;
+   }
+
+   _clsSequenceTask::~_clsSequenceTask()
+   {
+   }
+
+   const CHAR* _clsSequenceTask::taskName() const
+   {
+      return "SequenceTask" ;
+   }
+
+   BOOLEAN _clsSequenceTask::muteXOn ( const _clsTask *pOther )
+   {
+      return FALSE ;
+   }
+
+   const CHAR* _clsSequenceTask::collectionName() const
+   {
+      return "" ;
+   }
+
+   const CHAR* _clsSequenceTask::collectionSpaceName() const
+   {
+      return "" ;
+   }
+
+   INT32 _clsSequenceTask::init( const CHAR* objdata )
+   {
+      return SDB_OK ;
+   }
+
+   BSONObj _clsSequenceTask::toBson ( UINT32 mask )
    {
       return BSONObj() ;
    }
@@ -2254,6 +2306,97 @@ namespace engine
          rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
          goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsIdxTask::toErrInfo( BSONObjBuilder& builder )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( CLS_TASK_STATUS_FINISH != _status ||
+           SDB_OK == _resultCode )
+      {
+         goto done ;
+      }
+
+      try
+      {
+         // errno and its description
+         builder.append( OP_ERRNOFIELD, _resultCode ) ;
+         builder.append( OP_ERRDESP_FIELD, getErrDesp( _resultCode ) ) ;
+
+         // detail
+         if ( _resultInfo.isEmpty() )
+         {
+            builder.append( OP_ERR_DETAIL, "" ) ;
+         }
+         else if ( 0 == ossStrcmp( _resultInfo.firstElementFieldName(),
+                                   FIELD_NAME_DETAIL ) )
+         {
+            builder.append( OP_ERR_DETAIL,
+                            _resultInfo.firstElement().valuestrsafe() ) ;
+         }
+         else
+         {
+            builder.appendElements( _resultInfo ) ;
+            builder.append( OP_ERR_DETAIL, "" ) ;
+         }
+
+         // ErrNodes
+         BSONArrayBuilder arrB( builder.subarrayStart( FIELD_NAME_ERROR_NODES ) ) ;
+         ossPoolMap<ossPoolString, _clsIdxTaskGroupUnit>::const_iterator it ;
+         for( it = _mapGroupInfo.begin() ; it != _mapGroupInfo.end() ; ++it )
+         {
+            const CHAR* groupName = it->first.c_str() ;
+            const _clsIdxTaskGroupUnit& groupUnit = it->second ;
+            BSONObjBuilder ob1, ob2 ;
+
+            if ( SDB_OK == groupUnit.resultCode ||
+                 SDB_TASK_ROLLBACK == groupUnit.resultCode )
+            {
+               continue ;
+            }
+
+            ob1.append( FIELD_NAME_NODE_NAME, "" ) ;
+            ob1.append( FIELD_NAME_GROUPNAME, groupName ) ;
+            ob1.append( FIELD_NAME_RCFLAG, groupUnit.resultCode ) ;
+
+            // ErrInfo
+            ob2.append( OP_ERRNOFIELD, groupUnit.resultCode ) ;
+            ob2.append( OP_ERRDESP_FIELD, getErrDesp( groupUnit.resultCode ) ) ;
+            if ( groupUnit.resultInfo.isEmpty() )
+            {
+               ob2.append( OP_ERR_DETAIL, "" ) ;
+            }
+            else if ( 0 == ossStrcmp( groupUnit.resultInfo.firstElementFieldName(),
+                                      FIELD_NAME_DETAIL ) )
+            {
+               ob2.append( OP_ERR_DETAIL,
+                           groupUnit.resultInfo.firstElement().valuestrsafe() ) ;
+            }
+            else
+            {
+               ob2.appendElements( groupUnit.resultInfo ) ;
+               ob2.append( OP_ERR_DETAIL, "" ) ;
+            }
+            ob1.append( FIELD_NAME_ERROR_INFO, ob2.done() ) ;
+
+            arrB.append( ob1.obj() ) ;
+         }
+         arrB.done() ;
+
+         // TaskID
+         builder.append( FIELD_NAME_TASKID, (INT64)_taskID ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
       }
 
    done:

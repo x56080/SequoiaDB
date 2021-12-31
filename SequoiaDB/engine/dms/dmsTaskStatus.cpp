@@ -525,13 +525,7 @@ namespace engine
             }
             else if ( wResultDetail )
             {
-               BSONObj tmp = wResultDetail->toBSON() ;
-               if ( !tmp.isEmpty() )
-               {
-                  BSONObj filter = BSON( FIELD_NAME_INDEXNAME << 1 <<
-                                         FIELD_NAME_INDEX << 1 ) ;
-                  _resultInfo = tmp.filterFieldsUndotted( filter, false ) ;
-               }
+               _resultInfo = wResultDetail->toBSON().getOwned() ;
             }
             if ( _resultInfo.isEmpty() )
             {
