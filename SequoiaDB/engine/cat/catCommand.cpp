@@ -2179,6 +2179,7 @@ namespace engine
          {
             // ignore error, because sub-collection may not have this index
             rc = SDB_OK ;
+            cb->resetInfo( EDU_INFO_ERROR ) ;
             mainCLRedef = TRUE ;
          }
          if ( rc )
@@ -2510,6 +2511,7 @@ namespace engine
          {
             // if the subcl's index already exists, DON'T build the subcl's task
             rc = SDB_OK ;
+            cb->resetInfo( EDU_INFO_ERROR ) ;
             PD_LOG( PDWARNING, "Collection[%s] index[%s] already exists",
                     subclName, _pIndexName ) ;
             continue ;
@@ -2541,9 +2543,9 @@ namespace engine
       if ( 0 == subTaskList.size() && mainCLRedef )
       {
          rc = SDB_IXM_REDEF ;
-         PD_LOG( PDERROR, "An index with the same definition[%s] and "
-                 "name[%s] already exists in collection[%s]",
-                 _boIdx.toString().c_str(), _pIndexName, _pCollection ) ;
+         PD_LOG_MSG( PDERROR,
+                     "The same index '%s' has been defined already",
+                     _pIndexName ) ;
          goto error ;
       }
 

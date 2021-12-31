@@ -2269,9 +2269,9 @@ namespace engine
             if ( ixmIsSameDef( def, indexDef, TRUE ) )
             {
                rc = SDB_IXM_REDEF ;
-               PD_LOG( PDWARNING, "An index with the same definition[%s] and "
-                       "name[%s] already exists in collection[%s]",
-                       indexDef.toString().c_str(), indexName, collection ) ;
+               PD_LOG_MSG( PDERROR,
+                           "The same index '%s' has been defined already",
+                           indexName ) ;
                if ( pIndexObj )
                {
                   *pIndexObj = obj.getOwned() ;
@@ -2281,9 +2281,9 @@ namespace engine
             else
             {
                rc = SDB_IXM_EXIST ;
-               PD_LOG( PDWARNING, "An index with the same "
-                       "name[%s] already exists in collection[%s]",
-                       indexName, collection ) ;
+               PD_LOG_MSG( PDERROR,
+                           "The existing index '%s' has the same name "
+                           "but with a different definition", indexName ) ;
                goto error ;
             }
          }
@@ -2292,9 +2292,9 @@ namespace engine
             if ( ixmIsSameDef( def, indexDef ) )
             {
                rc = SDB_IXM_EXIST_COVERD_ONE ;
-               PD_LOG( PDWARNING, "An index[%s] which can cover this index[%s] "
-                       "exists in collection[%s]",
-                       name, indexName, collection ) ;
+               PD_LOG_MSG( PDERROR,
+                           "The scene of index '%s' is covered by "
+                           "the existing index '%s'", indexName, name );
                goto error ;
             }
             else

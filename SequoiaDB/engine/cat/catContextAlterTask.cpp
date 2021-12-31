@@ -324,6 +324,7 @@ namespace engine
          if ( SDB_IXM_REDEF == rc )
          {
             rc = SDB_OK ;
+            cb->resetInfo( EDU_INFO_ERROR ) ;
             // If the index creation fails, it will not be rolled back. So the
             // catalog may have index, while data node doesn't have the index.
             // Bring the index UniqueID to data node.
@@ -333,6 +334,7 @@ namespace engine
          else if ( SDB_IXM_EXIST_COVERD_ONE == rc )
          {
             rc = SDB_OK ;
+            cb->resetInfo( EDU_INFO_ERROR ) ;
          }
          else if ( SDB_OK == rc )
          {
