@@ -60,6 +60,10 @@
       <coorddft>/opt/sequoiadb/database/coord</coorddft>
       <datadft>/opt/sequoiadb/database/data</datadft>
       <standdft>/opt/sequoiadb/database/standalone</standdft>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
       <detail>
          <en>1. It specifies the path of data file.<fig></fig>
              2. If it is not specified, the default path is current path.</en>
@@ -76,6 +80,10 @@
          <en>Index path</en>
          <cn>索引路径</cn>
       </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
       <detail>
          <en>1. It specifies the path of index file<fig></fig>
              2. If it is not specified, the default path is the same with 'dbpath'.</en>
@@ -489,6 +497,10 @@
       </description>
       <type>int</type>
       <default>64</default>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
       <detail>
          <en>1. It specifies the size of sync log file. It is between 64(MB) and 2048(MB).<fig></fig>
              2. If it is not specified, the default value is 64 (MB).<fig></fig>
@@ -504,6 +516,10 @@
       <name>PMD_OPTION_LOGFILENUM</name>
       <long>logfilenum</long>
       <short>n</short>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
       <description>
          <en>Number of log files,default:20, value range:[1,11800]</en>
          <cn>日志文件数量,默认值:20,取值范围:[1,11800]</cn>
@@ -1096,6 +1112,10 @@
          <en>Large object file path</en>
          <cn>大对象文件路径</cn>
       </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
       <detail>
          <en>1. It specifies the path of lob. <fig></fig>
              2. If it is not specified, the default path is "Data file path".</en>
@@ -1112,6 +1132,10 @@
          <en>Large object meta file path</en>
          <cn>大对象元数据文件路径</cn>
       </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
       <detail>
          <en>1. It specifies the path of lob. <fig></fig>
              2. If it is not specified, the default path is the same with 'lobpath'.</en>
@@ -2084,9 +2108,13 @@
         <cn>复制日志写模式，取值：increment,full,默认为increment。</cn>
       </description>
       <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <reloadstrategy>
          <en>takes effect upon next transaction</en>
          <cn>下一次事务中生效</cn>
-      </reloadable>
+      </reloadstrategy>
       <detail>
         <en>Replica log write mod, value enumeration:increment,full, default:increment.</en>
         <cn>复制日志写模式，取值：increment,full,默认为increment。为increment时，复制日志只保存更新记录的增量信息；为full时，复制日志将保存更新记录的完整信息。</cn>
@@ -2104,9 +2132,13 @@
         <cn>开启复制日志保存时间信息功能，默认为false。</cn>
       </description>
       <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <reloadstrategy>
          <en>takes effect upon next transaction</en>
          <cn>下一次事务中生效</cn>
-      </reloadable>
+      </reloadstrategy>
       <detail>
         <en>Turn on replica log save timestamp info, default false.</en>
         <cn>开启复制日志保存时间信息功能，默认为false。</cn>
@@ -2768,9 +2800,13 @@
         <cn>事务持有记录锁个数超过 transmaxlocknum 后是否允许锁升级，默认为 true，表示允许锁升级。</cn>
       </description>
       <reloadable>
-        <en>takes effect upon next transaction</en>
-        <cn>下一次事务中生效</cn>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
       </reloadable>
+      <reloadstrategy>
+         <en>takes effect upon next transaction</en>
+         <cn>下一次事务中生效</cn>
+      </reloadstrategy>
       <detail>
         <en>Whether to allow lock escalation after the number of record locks held by a transaction exceeds the parameter transmaxlocknum. The default value is true, which means lock escalation ia allowed.</en>
         <cn>事务持有记录锁个数超过 transmaxlocknum 后是否允许锁升级，默认为 true，表示允许锁升级。</cn>
@@ -2787,9 +2823,13 @@
         <cn>事务在一个数据节点上可以持有最大的记录锁个数，默认值为 10000，取值范围为[-1, 2^31 - 1]</cn>
       </description>
       <reloadable>
-        <en>takes effect upon next transaction</en>
-        <cn>下一次事务中生效</cn>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
       </reloadable>
+      <reloadstrategy>
+         <en>takes effect upon next transaction</en>
+         <cn>下一次事务中生效</cn>
+      </reloadstrategy>
       <detail>
         <en>Maximum number of record locks can be hold by a transaction on a data node, default value is 10000, range is [ -1, 2^31 - 1 ]. For more details, refer to [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md). </en>
         <cn>事务在一个数据节点上可以持有最大的记录锁个数，默认值为 10000，取值范围为[-1, 2^31 - 1]，详细说明可参考 [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。</cn>
@@ -2807,9 +2847,13 @@
         <cn>事务在一个数据节点上可以使用的最大日志空间比例(%)，默认为 50，取值范围：[1, 50]</cn>
       </description>
       <reloadable>
-        <en>takes effect upon next transaction</en>
-        <cn>下一次事务中生效</cn>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
       </reloadable>
+      <reloadstrategy>
+         <en>takes effect upon next transaction</en>
+         <cn>下一次事务中生效</cn>
+      </reloadstrategy>
       <detail>
         <en>Maximum ratio of log space can be used by a transaction on a data node, default value is 50, range is [ 1, 50 ]. For more details, refer to [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md).</en>
         <cn>事务在一个数据节点上可以使用的最大日志空间比例(%)，默认值为 50，取值范围为[1, 50]，详细说明可参考 [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。</cn>
