@@ -550,6 +550,8 @@ namespace engine
       {
          delete pVecObj ;
       }
+      // objects in message depends on vecObjects
+      inMsg._datas.clear() ;
       goto done ;
    }
 
@@ -586,6 +588,8 @@ namespace engine
       {
          delete pVecObj ;
       }
+       // objects in message depends on vecObjects
+      inMsg._datas.clear() ;
    }
 
    INT32 rtnCoordInsert::shardAnObj( CHAR *pInsertor,

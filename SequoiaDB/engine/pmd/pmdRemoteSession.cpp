@@ -772,10 +772,12 @@ namespace engine
          // prepare send
          if ( pSub->getIODatas()->size() > 0 )
          {
+            INT32 origLen = pSub->getReqMsg()->messageLength ;
             pSub->getReqMsg()->messageLength = sizeof( MsgHeader ) +
                                                pSub->getIODataLen() ;
             rc = _pAgent->syncSendv( pSub->getHandle(), pSub->getReqMsg(),
                                      *(pSub->getIODatas()) ) ;
+            pSub->getReqMsg()->messageLength = origLen ;
          }
          else
          {
@@ -817,11 +819,13 @@ namespace engine
          // prepare send
          if ( pSub->getIODatas()->size() > 0 )
          {
+            INT32 origLen = pSub->getReqMsg()->messageLength ;
             pSub->getReqMsg()->messageLength = sizeof( MsgHeader ) +
                                                pSub->getIODataLen() ;
             rc = _pAgent->syncSendv( pSub->getNodeID(), pSub->getReqMsg(),
                                      *(pSub->getIODatas()),
                                      &(pSub->_handle) ) ;
+            pSub->getReqMsg()->messageLength = origLen ;
          }
          else
          {

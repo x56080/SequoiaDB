@@ -636,6 +636,7 @@ namespace engine
       NET_EH eh ;
       map<NET_HANDLE, NET_EH>::iterator itHandle ;
 
+      INT32 origLen = header->messageLength ;
       header->messageLength = sizeof( MsgHeader ) + netCalcIOVecSize( iov ) ;
       if ( header->messageLength > SDB_MAX_MSG_LENGTH )
       {
@@ -690,6 +691,7 @@ namespace engine
       eh->mtx().release() ;
 
    done:
+      header->messageLength = origLen ;
       return rc ;
    error:
       goto done ;
@@ -765,6 +767,7 @@ namespace engine
       NET_EH eh ;
       MULTI_ITR itr ;
 
+      INT32 origLen = header->messageLength ;
       header->messageLength = sizeof( MsgHeader ) + netCalcIOVecSize( iov ) ;
       if ( header->messageLength > SDB_MAX_MSG_LENGTH )
       {
@@ -823,6 +826,7 @@ namespace engine
       eh->mtx().release() ;
 
    done:
+      header->messageLength = origLen ;
       PD_TRACE_EXITRC( SDB__NETFRAME_SYNCSENDV, rc ) ;
       return rc ;
    error:
