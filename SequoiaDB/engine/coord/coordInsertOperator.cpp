@@ -300,7 +300,8 @@ namespace engine
             _hasGenerated = FALSE ;
             needNewAutoInc = FALSE ;
             // in case of reshard, clear the last shard result.
-            cataPtr->isMainCL() ? _grpSubCLDatas.clear() : inMsg.data()->clear() ;
+            _grpSubCLDatas.clear() ;
+            inMsg.data()->clear() ;
 
             hasExplicitKey = FALSE ;
             rc = _addAutoIncToMsg( *pAutoIncSet, pInsertMsg, pInsertor,
@@ -791,6 +792,8 @@ namespace engine
       return rc ;
    error:
       _vecObject.clear() ;
+      // objects in message depends on vecObjects
+      inMsg._datas.clear() ;
       goto done ;
    }
 
@@ -815,6 +818,8 @@ namespace engine
       result._sucGroupLst.clear() ;
 
       _vecObject.clear() ;
+      // objects in message depends on vecObjects
+      inMsg._datas.clear() ;
    }
 
    INT32 _coordInsertOperator::shardAnObj( const CHAR *pInsertor,
