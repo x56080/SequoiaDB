@@ -1108,10 +1108,12 @@ namespace engine
          // prepare send
          if ( pSub->getIODatas()->size() > 0 )
          {
+            INT32 origLen = pSub->getReqMsg()->messageLength ;
             pSub->getReqMsg()->messageLength = sizeof( MsgHeader ) +
                                                pSub->getIODataLen() ;
             rc = connection->syncSendv( pSub->getReqMsg(),
                                         *(pSub->getIODatas()) ) ;
+            pSub->getReqMsg()->messageLength = origLen ;
          }
          else
          {
@@ -1164,10 +1166,12 @@ namespace engine
          // prepare send
          if ( pSub->getIODatas()->size() > 0 )
          {
+            INT32 origLen = pSub->getReqMsg()->messageLength ;
             pSub->getReqMsg()->messageLength = sizeof( MsgHeader ) +
                                                pSub->getIODataLen() ;
             rc = connection->syncSendv( pSub->getReqMsg(),
                                         *(pSub->getIODatas()) ) ;
+            pSub->getReqMsg()->messageLength = origLen ;
          }
          else
          {
