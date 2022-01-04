@@ -74,7 +74,7 @@ function _getInstallPath( PD_LOGGER, oma )
    return installPath ;
 }
 
-function _getConfig( PD_LOGGER, oma, dbpath )
+function _getConfig( PD_LOGGER, remote, dbpath )
 {
    var configPath = catPath( dbpath, 'auto.cnf' ) ;
    var config = {} ;
@@ -82,7 +82,10 @@ function _getConfig( PD_LOGGER, oma, dbpath )
 
    try
    {
-      config = oma.getIniConfigs( configPath ).toObj() ;
+      var ini = remote.getIniFile( configPath,
+                                   SDB_INIFILE_FLAGS_MYSQL );
+      config = ini.toObj() ;
+      config = config.toObj() ;
    }
    catch( e )
    {
@@ -90,8 +93,6 @@ function _getConfig( PD_LOGGER, oma, dbpath )
       PD_LOGGER.log( PDERROR, error ) ;
       throw error ;
    }
-
-   PD_LOGGER.log( PDERROR, JSON.stringify( config ) ) ;
 
    for ( var key in config )
    {
@@ -104,7 +105,7 @@ function _getConfig( PD_LOGGER, oma, dbpath )
             newKey = 'dbpath' ;
          }
 
-         newConfig[newKey] = config[key] ;
+         newConfig[newKey] = config[key] + '' ;
       }
    }
 
@@ -118,11 +119,12 @@ function _findInstanceConfig( PD_LOGGER, oma, businessName,
    var result = [] ;
    var isFind = false ;
    var fileList ;
+   var remote = null ;
 
    try
    {
       var agentPort = Oma.getAOmaSvcName( hostName ) ;
-      var remote = new Remote( hostName, agentPort ) ;
+      remote = new Remote( hostName, agentPort ) ;
       var file = remote.getFile() ;
       fileList = file.list( { 'pathname': instanceConfigPath } ).toArray()
    }
@@ -146,7 +148,7 @@ function _findInstanceConfig( PD_LOGGER, oma, businessName,
       if( isUnknow )
       {
          var dataPath = config[FIELD_SQLDATA] ;
-         var instanceConfig = _getConfig( PD_LOGGER, oma, dataPath ) ;
+         var instanceConfig = _getConfig( PD_LOGGER, remote, dataPath ) ;
 
          if( instanceConfig[FIELD_PORT2] == mysqlPort )
          {
@@ -163,7 +165,7 @@ function _findInstanceConfig( PD_LOGGER, oma, businessName,
             var dataPath = config[FIELD_SQLDATA] ;
             isFind = true ;
             result[0] = instanceName ;
-            result[1] = _getConfig( PD_LOGGER, oma, dataPath ) ;
+            result[1] = _getConfig( PD_LOGGER, remote, dataPath ) ;
             break ;
          }
       }
