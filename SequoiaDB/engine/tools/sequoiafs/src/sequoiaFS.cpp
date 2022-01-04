@@ -1465,8 +1465,6 @@ INT32 sequoiaFS::getattr(const CHAR *path, struct stat *sbuf)
    CHAR *pathStr = NULL;
    BSONObj condition;
    sdbCursor *cursor = new sdbCursor;
-   uid_t uid = getuid();
-   gid_t gid = getgid();
    UINT32 mode = 0;
    BSONObj record;
    BSONElement ele;
@@ -1480,8 +1478,6 @@ INT32 sequoiaFS::getattr(const CHAR *path, struct stat *sbuf)
    PD_LOG(PDDEBUG, "Called: getattr(). Path:%s", path);
    ossMemset(sbuf, 0, sizeof(struct stat));
 
-   sbuf->st_uid = uid;
-   sbuf->st_gid = gid;
    pathStr = ossStrdup(path);
 
    rc = getConnection(&db);
@@ -1753,7 +1749,7 @@ error:
    goto done;
 }
 
-INT32 sequoiaFS::mkdir(const CHAR *path, mode_t mode)
+INT32 sequoiaFS::mkdir(const CHAR *path, mode_t mode, struct fuse_context *context)
 {
    INT32 rc = SDB_OK;
    sdb *db = NULL;
@@ -1784,6 +1780,11 @@ INT32 sequoiaFS::mkdir(const CHAR *path, mode_t mode)
    BSONObj options;
 
    pathStr = ossStrdup(path);
+   if(context != NULL)
+   {
+      uid = context->uid;
+      gid = context->gid;
+   }
 
    PD_LOG(PDDEBUG, "Called: mkdir(), path:%s, mode:%u", path, mode);
 
@@ -2221,7 +2222,7 @@ error:
 
 }
 
-INT32 sequoiaFS::symlink(const CHAR *path, const CHAR *link)
+INT32 sequoiaFS::symlink(const CHAR *path, const CHAR *link, struct fuse_context *context)
 {
    INT32 rc = SDB_OK;
    sdb *db;
@@ -2244,6 +2245,11 @@ INT32 sequoiaFS::symlink(const CHAR *path, const CHAR *link)
    INT64 pid = 1;
    string basePath;
    BSONObj options;
+   if(context != NULL)
+   {
+      uid = context->uid;
+      gid = context->gid;
+   }
 
    PD_LOG(PDDEBUG, "Called: symlink(), path:%s, link:%s", path, link);
    //INIT_NODE(lobNode);
@@ -2492,11 +2498,6 @@ INT32 sequoiaFS::link(const CHAR *path, const CHAR *newpath)
    BSONObj record;
    BSONObj rule;
    BSONObj obj;
-   UINT64 ctime = 0;
-   UINT64 mtime = 0;
-   uid_t uid = getuid();
-   gid_t gid = getgid();
-   struct timeval tval;
    INT64 pid = 1;
    string basePath;
    BSONObj options;
@@ -2600,17 +2601,8 @@ INT32 sequoiaFS::link(const CHAR *path, const CHAR *newpath)
    linkStr = ossStrdup(newpath);
    linkName = basename(linkStr);
 
-   gettimeofday(&tval, NULL);
-   ctime = tval.tv_sec * 1000 + tval.tv_usec/1000;
-   mtime = ctime;
 
    fileNode.name = linkName;
-   fileNode.mode = S_IFREG | 0755;//33188
-   fileNode.ctime= ctime;
-   fileNode.mtime= mtime;
-   fileNode.atime= mtime;
-   fileNode.uid = uid;
-   fileNode.gid = gid;
    fileNode.pid = pid;
 
    rc = doSetFileNodeAttr(sysFileMetaCL, fileNode);
@@ -3837,7 +3829,8 @@ error:
 //->getattr():/testlob3 ->
 INT32 sequoiaFS::create(const CHAR *path,
                         mode_t mode,
-                        struct fuse_file_info *fi)
+                        struct fuse_file_info *fi, 
+                        struct fuse_context *context)
 {
    INT32 rc = SDB_OK;
    sdb *db = NULL;
@@ -3864,6 +3857,11 @@ INT32 sequoiaFS::create(const CHAR *path,
 
    INIT_LOBHANDLE(lh);
    INIT_FILE_NODE(fileNode);
+   if(context != NULL)
+   {
+      uid = context->uid;
+      gid = context->gid;
+   }
 
    PD_LOG(PDDEBUG, "Called: create(), path:%s, mode:%u, flags:%d", path, mode, fi->flags);
 
@@ -4168,8 +4166,6 @@ INT32 sequoiaFS::fgetattr(const CHAR *path, struct stat *buf,
    CHAR *pathStr = NULL;
    BSONObj condition;
    sdbCursor *cursor = new sdbCursor;
-   uid_t uid = getuid();
-   gid_t gid = getgid();
    BSONObj record;
    BSONElement ele;
    lobHandle *lh = NULL;
@@ -4177,6 +4173,8 @@ INT32 sequoiaFS::fgetattr(const CHAR *path, struct stat *buf,
    sdbCollection sysDirMetaCL;
    string basePath;
    INT64 pid = 1;
+   UINT32 nlink = 0;
+   UINT32 mode = 0;
 
    lh = (lobHandle *)fi->fh;
    sysFileMetaCL = (sdbCollection *)lh->hSysFileMetaCL;
@@ -4185,19 +4183,7 @@ INT32 sequoiaFS::fgetattr(const CHAR *path, struct stat *buf,
 
    ossMemset(buf, 0, sizeof(struct stat));
 
-   buf->st_uid = uid;
-   buf->st_gid = gid;
    pathStr = ossStrdup(path);
-
-   if(ossStrcmp(path, "/") == 0)
-   {
-      buf->st_mode = S_IFDIR | 0755;
-      buf->st_nlink = 2;
-      goto done;
-   }
-
-   buf->st_mode = S_IFREG | 0644;
-   buf->st_nlink = 1;
 
    rc = getConnection(&db);
    if(SDB_OK != rc)
@@ -4262,12 +4248,22 @@ INT32 sequoiaFS::fgetattr(const CHAR *path, struct stat *buf,
       goto error;
    }
 
+   rc += getRecordField(record, (CHAR *)SEQUOIAFS_MODE,
+                        (void *)(&mode), NumberInt);
+   rc += getRecordField(record, (CHAR *)SEQUOIAFS_NLINK,
+                        (void *)(&nlink), NumberInt);
+   rc += getRecordField(record, (CHAR *)SEQUOIAFS_UID,
+                        (void *)(&buf->st_uid), NumberInt);
+   rc += getRecordField(record, (CHAR *)SEQUOIAFS_GID,
+                        (void *)(&buf->st_gid), NumberInt);
    rc = getRecordField(record, (CHAR *)SEQUOIAFS_SIZE,
                        (void *)(&buf->st_size), NumberLong);
    rc += getRecordField(record, (CHAR *)SEQUOIAFS_CREATE_TIME,
                         (void *)(&buf->st_ctime), NumberLong);
    rc += getRecordField(record, (CHAR *)SEQUOIAFS_MODIFY_TIME,
                         (void *)(&buf->st_mtime), NumberLong);
+   rc += getRecordField(record, (CHAR *)SEQUOIAFS_ACCESS_TIME,
+                        (void *)(&buf->st_atime), NumberLong);
    if(SDB_OK != rc)
    {
       PD_LOG(PDERROR, "Failed to get file attr, name=%s, error=%d", fileName, rc);
@@ -4275,8 +4271,11 @@ INT32 sequoiaFS::fgetattr(const CHAR *path, struct stat *buf,
       goto error;
    }
 
+   buf->st_mode = mode;
+   buf->st_nlink = nlink;
    buf->st_ctime /= 1000;
    buf->st_mtime /= 1000;
+   buf->st_atime /= 1000;
    rc = SDB_OK;
 
 done:
