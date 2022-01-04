@@ -72,8 +72,11 @@ public class SdbTestBase {
     public static final String RRAUTO = "rrauto";
     public static final String MVCCON = "mvccon";
     public static final String GLOBTRANSON = "globtranson";
-    public static final String TRANSREPLSIZE = "transreplsize";
     public static final String TRANSMAXLOCKMUN = "transmaxlocknum";
+    public static final String LOCKESCALATION = "lockEscalation";
+    public static final String TRANSREPLSIZE = "transreplsize";
+    public static final String TRANSALLOWLOCKESCALATION = "transallowlockescalation";
+    public static final String TRANSMAXLOCKNUM = "transmaxlocknum";
 
     private static ConfigOptions options = new ConfigOptions();
     public static String testGroup = null;
@@ -172,6 +175,20 @@ public class SdbTestBase {
         group2Conf.get( RRAUTO ).put( MVCCON, true );
         group2Conf.get( RRAUTO ).put( GLOBTRANSON, true );
         group2Conf.get( RRAUTO ).put( TRANSREPLSIZE, transReplsize );
+
+        group2Conf.put( LOCKESCALATION, new BasicBSONObject() );
+        group2Conf.get( LOCKESCALATION ).put( TRANSISOLATION, 2 );
+        group2Conf.get( LOCKESCALATION ).put( TRANSLOCKWAIT, false );
+        group2Conf.get( LOCKESCALATION ).put( INDEXSCANSTEP, newIndexScanStep );
+        group2Conf.get( LOCKESCALATION ).put( TRANSTIMEOUT, 2 );
+        group2Conf.get( LOCKESCALATION ).put( TRANSAUTOCOMMIT, false );
+        group2Conf.get( LOCKESCALATION ).put( TRANSAUTOROLLBACK, true );
+        group2Conf.get( LOCKESCALATION ).put( TRANSUSERBS, true );
+        group2Conf.get( LOCKESCALATION ).put( TRANSREPLSIZE, transReplsize );
+        group2Conf.get( LOCKESCALATION ).put( TRANSALLOWLOCKESCALATION, true );
+        group2Conf.get( LOCKESCALATION ).put( TRANSMAXLOCKNUM, 10 );
+        group2Conf.get( LOCKESCALATION ).put( MVCCON, true );
+        group2Conf.get( LOCKESCALATION ).put( GLOBTRANSON, true );
 
         for ( String key : group2Conf.keySet() ) {
             group2Count.put( key, new AtomicInteger( 0 ) );
@@ -349,14 +366,15 @@ public class SdbTestBase {
         }
     }
 
+
     @BeforeTest(groups = { RU, RC, RCWAITLOCK, RS, RCAUTO, RCUSERBS, RR,
-            RRAUTO })
+            RRAUTO, LOCKESCALATION })
     public static synchronized void initTestGroups()
             throws UnknownHostException {
         if ( testGroup == null )
             return;
         System.out.println( "init " + testGroup + " Groups..........." );
-        if ( testGroup.equals( RR ) || testGroup.equals( RRAUTO ) ) {
+        if ( testGroup.equals( RR ) || testGroup.equals( RRAUTO ) || testGroup.equals( LOCKESCALATION ) ) {
             try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "",
                     options )) {
                 Object coordGlobTransConfig = null;
@@ -398,7 +416,7 @@ public class SdbTestBase {
     }
 
     @AfterTest(groups = { RC, RU, RCWAITLOCK, RS, RCAUTO, RCUSERBS, RR,
-            RRAUTO }, alwaysRun = true)
+            RRAUTO, LOCKESCALATION }, alwaysRun = true)
     public static synchronized void finiTestGroups() {
         if ( testGroup == null )
             return;
