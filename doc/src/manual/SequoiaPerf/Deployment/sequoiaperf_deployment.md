@@ -27,7 +27,7 @@
 
 >**Note:**
 >
-> SequoiaPerf 服务进程全部以 SequoiaPerf 配置用户（默认为 sdbadmin）运行，需确保 SequoiaPerf 安装目录都赋予 sdnadmin 读写权限。
+> SequoiaPerf 服务进程全部以 SequoiaPerf 配置用户（默认为 sdbadmin）运行，需确保该用户拥有 SequoiaPerf 安装目录的读写权限。
 
 1. 切换至 sdbadmin 用户
 

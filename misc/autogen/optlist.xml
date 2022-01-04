@@ -997,7 +997,7 @@
          <cn>1. 指定当多个实例符合 preferedinstance 的条件时的选择模式。<fig></fig>
              2. 取值列表：<fig></fig>
                 ● "random": 从候选的实例取值中随机选择。<fig></fig>
-                ● "ordered": 从候选的实例取值中按照 perferedinstance 的顺序进行选择。<fig></fig>
+                ● "ordered": 从候选的实例取值中按照 preferedinstance 的顺序进行选择。<fig></fig>
                 ● preferedinstance 中的角色取值，根据规则选择时优于或者次于实例取值，与 preferedinstancemode 取值无关。<fig></fig>
              3. 默认值为 "random"。<fig></fig>
              4. 更详细的内容请参考 [db.setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。</cn>
