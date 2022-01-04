@@ -6576,10 +6576,15 @@ namespace engine
       // If hasConsistentIdx=false, maybe catalog has index info. We need to
       // execute _executeConsistent() anyway.
       rc = _executeConsistent( pMsg, cb, contextID, buf ) ;
-      if ( SDB_IXM_NOTEXIST == rc && hasStandaloneIdx )
+      if ( hasStandaloneIdx )
       {
-         // has already drop standalone index
-         rc = SDB_OK ;
+         if ( SDB_IXM_NOTEXIST == rc ||
+              SDB_DMS_CS_NOTEXIST == rc ||
+              SDB_DMS_NOTEXIST == rc )
+         {
+            // has already drop standalone index
+            rc = SDB_OK ;
+         }
       }
       if ( rc )
       {
