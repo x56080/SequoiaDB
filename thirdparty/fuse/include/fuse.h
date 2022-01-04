@@ -121,7 +121,7 @@ struct fuse_operations {
 	 * bits set, i.e. S_ISDIR(mode) can be false.  To obtain the
 	 * correct directory type bits use  mode|S_IFDIR
 	 * */
-	int (*mkdir) (const char *, mode_t);
+	int (*mkdir) (const char *, mode_t, struct fuse_context *);
 
 	/** Remove a file */
 	int (*unlink) (const char *);
@@ -130,7 +130,7 @@ struct fuse_operations {
 	int (*rmdir) (const char *);
 
 	/** Create a symbolic link */
-	int (*symlink) (const char *, const char *);
+	int (*symlink) (const char *, const char *, struct fuse_context *);
 
 	/** Rename a file */
 	int (*rename) (const char *, const char *);
@@ -365,7 +365,7 @@ struct fuse_operations {
 	 *
 	 * Introduced in version 2.5
 	 */
-	int (*create) (const char *, mode_t, struct fuse_file_info *);
+	int (*create) (const char *, mode_t, struct fuse_file_info *, struct fuse_context *);
 
 	/**
 	 * Change the size of an open file

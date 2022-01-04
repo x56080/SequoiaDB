@@ -1544,8 +1544,6 @@ error:
 INT32 sequoiaFS::getattr(const CHAR *path, struct stat *sbuf)
 {
    INT32 rc = SDB_OK;
-   uid_t uid = getuid();
-   gid_t gid = getgid();
    INT32 blocks;
    INT32 pageSize = getpagesize();
    INT64 parentId = 1;
@@ -1557,9 +1555,6 @@ INT32 sequoiaFS::getattr(const CHAR *path, struct stat *sbuf)
 
    PD_LOG(PDDEBUG, "Called: getattr(). Path:%s", path);
    ossMemset(sbuf, 0, sizeof(struct stat));
-
-   sbuf->st_uid = uid;
-   sbuf->st_gid = gid;
 
    rc = _metaCache.getParentIdName(path, &basePath, parentId);
    if(SDB_OK != rc)
@@ -1728,7 +1723,7 @@ error:
    goto done;
 }
 
-INT32 sequoiaFS::mkdir(const CHAR *path, mode_t mode)
+INT32 sequoiaFS::mkdir(const CHAR *path, mode_t mode, struct fuse_context *context)
 {
    INT32 rc = SDB_OK;
    sdb *db = NULL;
@@ -1744,6 +1739,12 @@ INT32 sequoiaFS::mkdir(const CHAR *path, mode_t mode)
    BSONObj options;
    dirMeta newDirMeta;
    fsConnectionDao fsDao(&_ds);
+
+   if(context != NULL)
+   {
+      uid = context->uid;
+      gid = context->gid;
+   }
 
    PD_LOG(PDDEBUG, "Called: mkdir(), path:%s, mode:%u", path, mode);
 
@@ -2112,7 +2113,7 @@ error:
    goto done;
 }
 
-INT32 sequoiaFS::symlink(const CHAR *path, const CHAR *link)
+INT32 sequoiaFS::symlink(const CHAR *path, const CHAR *link, struct fuse_context *context)
 {
    INT32 rc = SDB_OK;
    sdb *db;
@@ -2130,6 +2131,12 @@ INT32 sequoiaFS::symlink(const CHAR *path, const CHAR *link)
    INT64 parentId = 1;
    string basePath;
    _fileMeta fMeta;
+
+   if(context != NULL)
+   {
+      uid = context->uid;
+      gid = context->gid;
+   }
 
    PD_LOG(PDDEBUG, "Called: symlink(), path:%s, link:%s", path, link);
 
@@ -2367,10 +2374,6 @@ INT32 sequoiaFS::link(const CHAR *path, const CHAR *newpath)
    BSONObj condition;
    BSONObj rule;
    BSONObj obj;
-   UINT64 ctime = 0;
-   uid_t uid = getuid();
-   gid_t gid = getgid();
-   struct timeval tval;
    INT64 parentId = 1;
    INT64 newParentId = 1;
    string basePath;
@@ -2444,14 +2447,7 @@ INT32 sequoiaFS::link(const CHAR *path, const CHAR *newpath)
       goto error;
    }
 
-   gettimeofday(&tval, NULL);
-   ctime = tval.tv_sec * 1000 + tval.tv_usec/1000;
    fileNode.setName(linkName);
-   fileNode.setAtime(ctime);
-   fileNode.setMtime(ctime);
-   fileNode.setCtime(ctime);
-   fileNode.setUid(uid);
-   fileNode.setGid(gid);
    fileNode.setPid(newParentId);
 
    rc = _doSetFileNodeAttr(sysFileMetaCL, fileNode);
@@ -3384,7 +3380,8 @@ error:
 //->getattr():/testlob3 ->
 INT32 sequoiaFS::create(const CHAR *path,
                         mode_t mode,
-                        struct fuse_file_info *fi)
+                        struct fuse_file_info *fi, 
+                        struct fuse_context *context)
 {
    INT32 rc = SDB_OK;
    sdb *db = NULL;
@@ -3397,13 +3394,18 @@ INT32 sequoiaFS::create(const CHAR *path,
    lobHandle *lh = NULL;
    _fileMeta fileNode;
    UINT64 ctime = 0;
-   //UINT64 mtime = 0;
    INT64 parentId = 0;
    uid_t uid = getuid();
    gid_t gid = getgid();
    fileLob *fl;
    _fileMeta fMeta;
    BOOLEAN isProcessed = FALSE;
+
+   if(context != NULL)
+   {
+      uid = context->uid;
+      gid = context->gid;
+   }
 
    PD_LOG(PDDEBUG, "Called: create(), path:%s, mode:%u, flags:%d", path, mode, fi->flags);
    
@@ -3672,10 +3674,7 @@ INT32 sequoiaFS::fgetattr(const CHAR *path, struct stat *buf,
                           struct fuse_file_info *fi)
 {
    INT32 rc = SDB_OK;
-   uid_t uid = getuid();
-   gid_t gid = getgid();
    _fileMeta fMeta;
-   UINT64 mtime;
    lobHandle *lh = NULL;
 
    PD_LOG(PDDEBUG, "Called: fgetattr(), path:%s", path);
@@ -3683,21 +3682,6 @@ INT32 sequoiaFS::fgetattr(const CHAR *path, struct stat *buf,
    lh = (lobHandle *)fi->fh;
 
    ossMemset(buf, 0, sizeof(struct stat));
-
-   if(ossStrcmp(path, "/") == 0)
-   {
-      buf->st_uid = uid;
-      buf->st_gid = gid;
-      buf->st_size = 0;
-
-      mtime = ossGetCurrentMilliseconds();
-      buf->st_ctime /= mtime / 1000;
-      buf->st_mtime /= mtime / 1000;
-   
-      buf->st_mode = S_IFDIR | 0755;
-      buf->st_nlink = 2;
-      goto done;
-   }
 
    rc = _fileCreatingMgr.query(lh->parentId, lh->fileName, fMeta);
    if(SDB_OK != rc)

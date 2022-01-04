@@ -99,10 +99,10 @@ namespace sequoiafs
       INT32 getdir(const CHAR *path, fuse_dirh_t dirh,
                    fuse_dirfil_t dirfill);
       INT32 mknod(const CHAR *path, mode_t mode, dev_t dev);
-      INT32 mkdir(const CHAR *path, mode_t mode);
+      INT32 mkdir(const CHAR *path, mode_t mode, struct fuse_context *context);
       INT32 unlink(const CHAR *path);
       INT32 rmdir(const CHAR *path);
-      INT32 symlink(const CHAR *path, const CHAR *link);
+      INT32 symlink(const CHAR *path, const CHAR *link, struct fuse_context *context);
       INT32 rename(const CHAR *path, const CHAR *newpath);
       INT32 link(const CHAR *path, const CHAR *newpath);
       INT32 chmod(const CHAR *path, mode_t mode);
@@ -134,7 +134,8 @@ namespace sequoiafs
                      struct fuse_file_info *fi);
       INT32 access(const CHAR *path, INT32 mask);
       INT32 create(const CHAR *path, mode_t mode,
-                   struct fuse_file_info *fi);
+                   struct fuse_file_info *fi, 
+                   struct fuse_context *context);
       INT32 ftruncate(const CHAR *path, off_t offset,
                       struct fuse_file_info *fi);
       INT32 fgetattr(const CHAR *path, struct stat *buf,

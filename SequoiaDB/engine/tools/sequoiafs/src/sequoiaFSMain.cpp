@@ -67,10 +67,10 @@ INT32 sfsMknod(const CHAR *path, mode_t mode, dev_t dev)
    SDB_LOB_VALID_CHECK();
    return sfs.mknod(path, mode, dev);
 }
-INT32 sfsMkdir(const CHAR *path, mode_t mode)
+INT32 sfsMkdir(const CHAR *path, mode_t mode, struct fuse_context *context)
 {
    SDB_LOB_VALID_CHECK();
-   return sfs.mkdir(path, mode);
+   return sfs.mkdir(path, mode, context);
 }
 INT32 sfsUnlink(const CHAR *path)
 {
@@ -82,10 +82,10 @@ INT32 sfsRmdir(const CHAR *path)
    SDB_LOB_VALID_CHECK();
    return sfs.rmdir(path);
 }
-INT32 sfsSymlink(const CHAR *path, const CHAR *link)
+INT32 sfsSymlink(const CHAR *path, const CHAR *link, struct fuse_context *context)
 {
    SDB_LOB_VALID_CHECK();
-   return sfs.symlink(path, link);
+   return sfs.symlink(path, link, context);
 }
 INT32 sfsRename(const CHAR *path, const CHAR *newpath)
 {
@@ -190,10 +190,10 @@ INT32 sfsAccess(const CHAR *path, INT32 mask)
    return sfs.access(path, mask);
 
 }
-INT32 sfsCreate(const CHAR *path, mode_t mode, struct fuse_file_info *fi)
+INT32 sfsCreate(const CHAR *path, mode_t mode, struct fuse_file_info *fi, struct fuse_context *context)
 {
    SDB_LOB_VALID_CHECK();
-   return sfs.create(path, mode, fi);
+   return sfs.create(path, mode, fi, context);
 }
 INT32 sfsFtruncate(const CHAR *path, off_t offset, struct fuse_file_info *fi)
 {

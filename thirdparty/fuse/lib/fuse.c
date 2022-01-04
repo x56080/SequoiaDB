@@ -1157,7 +1157,7 @@ int fuse_fs_symlink(struct fuse_fs *fs, const char *linkname, const char *path)
 		if (fs->debug)
 			fprintf(stderr, "symlink %s %s\n", linkname, path);
 
-		return fs->op.symlink(linkname, path);
+		return fs->op.symlink(linkname, path, fuse_get_context());
 	} else {
 		return -ENOSYS;
 	}
@@ -1427,7 +1427,7 @@ int fuse_fs_create(struct fuse_fs *fs, const char *path, mode_t mode,
 				fi->flags, path, mode,
 				fuse_get_context()->umask);
 
-		err = fs->op.create(path, mode, fi);
+		err = fs->op.create(path, mode, fi, fuse_get_context());
 
 		if (fs->debug && !err)
 			fprintf(stderr, "   create[%llu] flags: 0x%x %s\n",
@@ -1592,7 +1592,7 @@ int fuse_fs_mkdir(struct fuse_fs *fs, const char *path, mode_t mode)
 			fprintf(stderr, "mkdir %s 0%o umask=0%03o\n",
 				path, mode, fuse_get_context()->umask);
 
-		return fs->op.mkdir(path, mode);
+		return fs->op.mkdir(path, mode, fuse_get_context());
 	} else {
 		return -ENOSYS;
 	}
