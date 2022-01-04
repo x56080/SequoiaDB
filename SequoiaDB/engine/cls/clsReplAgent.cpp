@@ -544,7 +544,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__ICLSREPLAGENT__SHRBEAT ) ;
 
       if ( _info.info.empty() ||
-           ( pmdGetOptionCB()->detectDisk() && pmdDBIsAbnormal() ) )
+           ( getDetectDisk() && pmdDBIsAbnormal() ) )
       {
          goto done ;
       }
@@ -876,7 +876,7 @@ namespace engine
          _alive( beat.identity, _isUDPHandle( handle ) ) ;
          MsgClsBeatRes res ;
 
-         if ( pmdGetOptionCB()->detectDisk() && pmdDBIsAbnormal() )
+         if ( getDetectDisk() && pmdDBIsAbnormal() )
          {
             goto done ;
          }

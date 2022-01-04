@@ -291,7 +291,7 @@ namespace engine
             return ;
          }
          virtual void afterFS( const DPS_LSN_OFFSET &offset,
-                               const DPS_LSN_VER &version ) 
+                               const DPS_LSN_VER &version )
          {
             return ;
          }
@@ -347,6 +347,7 @@ namespace engine
          virtual BOOLEAN isLocalSpare() ;
          virtual UINT8 getVoteWeight() ;
          virtual UINT32 getSharingBreakTime() ;
+         virtual BOOLEAN getDetectDisk() ;
          virtual INT32 getSyncStrategy() ;
          virtual INT32 onLocalNotFoundInGroup() ;
          virtual void beforePrimaryActive() ;

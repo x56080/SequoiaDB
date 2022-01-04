@@ -891,6 +891,11 @@ namespace engine
       return pmdGetOptionCB()->syncStrategy() ;
    }
 
+   BOOLEAN _clsReplicateSet::getDetectDisk()
+   {
+      return pmdGetOptionCB()->detectDisk() ;
+   }
+
    INT32 _clsReplicateSet::onLocalNotFoundInGroup()
    {
       INT32 rc = SDB_SYS ;

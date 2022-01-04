@@ -86,6 +86,8 @@ namespace engine
       virtual UINT32 getSharingBreakTime() = 0 ;
       /// get synchronize strategy
       virtual INT32 getSyncStrategy() = 0 ;
+      /// get detectdisk
+      virtual BOOLEAN getDetectDisk() = 0 ;
       /// handle case where local is not found in replica group
       virtual INT32 onLocalNotFoundInGroup() = 0 ;
       /// handle case before primary active
