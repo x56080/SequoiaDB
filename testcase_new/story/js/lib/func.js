@@ -872,12 +872,43 @@ function commCheckBusinessStatus ( db, timeout, checkLSN )
       }
       else if( i < timeout )
       {
+         time++;
          sleep( 1000 );
       }
       else
       {
          throw new Error( "check the cluster state timeout, check failed nodes: "
             + JSON.stringify( tmpArr, "", 1 ) );
+      }
+   }
+
+   // LSN 已校验通过，校验DiffLSNWithPrimary不为-1，超时不报错，连续校验通过5次退出
+   var passNum = 0;
+   for( var i = time; i <= timeout; i++ )
+   {
+      var allDiffLSNWithPrimary = [];
+      var cursor = db.snapshot( SDB_SNAP_HEALTH, { Role: "data" }, { DiffLSNWithPrimary: "" } );
+      while( cursor.next() )
+      {
+         var obj = cursor.current().toObj();
+         allDiffLSNWithPrimary.push( obj.DiffLSNWithPrimary );
+      }
+      cursor.close();
+      if( allDiffLSNWithPrimary.indexOf( -1 ) == -1 )
+      {
+         passNum++;
+         sleep( 1000 );
+         time++;
+      }
+      else
+      {
+         passNum = 0;
+         sleep( 1000 );
+         time++;
+      }
+      if( passNum > 5 )
+      {
+         break;
       }
    }
 }
