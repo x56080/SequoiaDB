@@ -129,6 +129,16 @@ namespace vessel
                              const dmsStripingId &striping,
                              const slice &row);
 
+         INT32 updateByResaving(dmlContext *context,
+                                RECORD_SLOT_POS  pos,
+                                const dmsStripingId &striping,
+                                const slice &row);
+
+         INT32 updateByCompaction(dmlContext *context,
+                                  RECORD_SLOT_POS  pos,
+                                  const dmsStripingId &striping,
+                                  const slice &row);
+
       private:
          INT32 createTombstone(dmlContext *context,
                                RECORD_SLOT_POS  pos);

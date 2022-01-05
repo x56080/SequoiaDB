@@ -43,6 +43,7 @@
 #include "vessel/modifyRecordContext.h"
 #include "vessel/runtimeMbContext.h"
 #include "vessel/dmlContext.h"
+#include "vessel/rdpCompactor.h"
 
 namespace engine
 {
@@ -699,9 +700,31 @@ namespace vessel
             goto error;
          }
       }
+      else if ((newRowData.getSize() + NORMAL_RECORD_HEAD_SIZE) <= 
+               getFreeSpaceAfterLastSlot())
+      {
+         rc = updateByResaving(context, pos, striping, newRowData);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to update record[%d] by resaving, rc:%d", 
+                   pos, rc);
+            goto error;
+         }
+      }
+      else if ((newRowData.getSize() + NORMAL_RECORD_HEAD_SIZE - rs->size) <= 
+               head->totalFreeSpace)
+      {
+         rc = updateByCompaction(context, pos, striping, newRowData);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to update record[%d] by compacting, rc:%d", 
+                  pos, rc);
+            goto error;
+         }
+      }
       else
       {
-         SDB_ASSERT(FALSE, "TODO");
+         outOfSpace = TRUE;
       }
    done:
       return rc;
@@ -817,6 +840,264 @@ namespace vessel
          pageAccessor::abortLog(context, &lrc);
       }
       goto done;
+   }
+
+   INT32 rdpAccessor::updateByResaving(dmlContext *context,
+                                       RECORD_SLOT_POS pos,
+                                       const dmsStripingId &striping,
+                                       const slice &row)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(isValidRecordSlotPosition(pos), "can not be invalid");
+      SDB_ASSERT(row.isValid(), "can not be invalid");
+
+      strictBuffer buffer;
+      CHAR* oldRecordPtr = NULL;
+      strictBuffer newRecordBuffer;
+      recordSlot *rs = NULL;
+      normalRecordHead rh;
+      recordDataPageHead *head = NULL;
+      UINT16 offset = 0;
+      UINT16 deltaSize = 0;
+
+      logRecordContext lrc;
+      DPS_TRANS_ID transID = context->getTransIDWithoutTag();
+      UINT32 totalSize = row.getSize() + NORMAL_RECORD_HEAD_SIZE;
+      SDB_ASSERT(totalSize <= getFreeSpaceAfterLastSlot(), "not enough free space");
+
+      rc = _lpb->autoGetWritableBodyBuffer(buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare to write");
+         goto error;
+      }
+
+      head = buffer.getWritableObjPtr<recordDataPageHead>(0);
+      if (OSS_UNLIKELY(NULL == head))
+      {
+         PD_LOG(PDERROR, "failed to get page head");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rs = getWritableSlot(buffer, pos);
+      if (OSS_UNLIKELY(NULL == rs))
+      {
+         PD_LOG(PDERROR, "failed to get writable slot[%d]", pos);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      SDB_ASSERT(rs->isValid() && rs->isNormalRecord(), "impossible");
+
+      rh = *(buffer.getReadableObjPtr<normalRecordHead>(rs->offset));
+      // reset old record
+      oldRecordPtr = buffer.getWritablePtr(rs->offset, rs->getMaxSpaceSize());
+      if (OSS_UNLIKELY(NULL == oldRecordPtr))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to get writable old record");
+         goto error;
+      }
+      ossMemset(oldRecordPtr, 0, rs->getMaxSpaceSize());
+
+      // save new record
+      offset = (UINT16)(head->backOffset - totalSize);
+      newRecordBuffer = buffer.getWritableBuffer(totalSize, (UINT32)offset);
+      rh.setTransID(transID);
+
+      newRecordBuffer.write(0, NORMAL_RECORD_HEAD_SIZE, &rh);
+      newRecordBuffer.write(NORMAL_RECORD_HEAD_SIZE, row.getSize(), row.getData());
+
+      // update slot and page head
+      SDB_ASSERT(totalSize > rs->size, "impossible");
+      deltaSize = (UINT16)(totalSize - rs->size);
+      rs->offset = offset;
+      rs->reserved = 0;
+      rs->size = totalSize;
+
+      SDB_ASSERT(deltaSize <= head->totalFreeSpace, "impossible");
+      head->totalFreeSpace -= deltaSize;
+      head->backOffset = offset;
+      updateStripingInfo(head, striping);
+      updateMaxTransSN(head, transID.getSN());
+
+      ///dummy log
+      rc = prepareInplaceUpdateLog(context, &(_lpb->getRuntimeBuffer()), &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare redo log:%d", rc);
+         goto error;
+      }
+
+      rc = pageAccessor::commitLog(context, &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
+         goto error;
+      }
+
+      _lpb->commit(lrc.getLsn());
+      context->setDmlLSN(lrc.getLsn());
+      context->setDmlRecordInfo(head->pageSeq, 
+                                recordID(_lpb->getLogicalPid(), pos));
+
+   done:
+      return rc;
+   error:
+      if (lrc.prepared())
+      {
+         pageAccessor::abortLog(context, &lrc);
+      }
+      goto done;
+   }
+
+   INT32 rdpAccessor::updateByCompaction(dmlContext *context,
+                                         RECORD_SLOT_POS pos,
+                                         const dmsStripingId &striping,
+                                         const slice &row)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(isValidRecordSlotPosition(pos), "can not be invalid");
+      SDB_ASSERT(row.isValid(), "can not be invalid");
+
+      strictBuffer buffer; 
+      const recordDataPageHead *rhead = NULL;
+      recordDataPageHead *whead = NULL;
+      const recordSlot *rs = getReadableSlot(pos);
+      normalRecordHead rh;
+
+      logRecordContext lrc;
+      DPS_TRANS_ID transID = context->getTransIDWithoutTag();
+      rdpCompactor compactor;
+
+      // compactor only needs slots and data
+      UINT32 compactBufSize = getPageBodySize(_lpb->getPageSize())
+                              - RECORD_PAGE_HEAD_SIZE;
+      CHAR *compactBuf = context->allocateBuffer(compactBufSize);
+      if (OSS_UNLIKELY(NULL == compactBuf))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to allocate compact buffer");
+         goto error;
+      }
+      compactor.reset(compactBuf, compactBufSize);
+
+      buffer = _lpb->getReadableBodyBuffer();
+      rhead = buffer.getReadableObjPtr<recordDataPageHead>(0);
+      if (OSS_UNLIKELY(NULL == rhead))
+      {
+         PD_LOG(PDERROR, "failed to get page head");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      SDB_ASSERT(row.getSize() + NORMAL_RECORD_HEAD_SIZE - rs->size <= 
+                 rhead->totalFreeSpace, "not enough free space");
+
+      for (UINT16 i = 0; i < rhead->totalSlotCount; ++i)
+      {
+         rs = getReadableSlot(i);
+         if (OSS_UNLIKELY(NULL == rs))
+         {
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            PD_LOG(PDERROR, "failed to get readable slot[%d]", i);
+            goto error;
+         }
+
+         if (!rs->isValid())
+         {
+            rc = compactor.pushEmptySlot();
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to compact the page");
+               goto error;
+            }
+         }
+         else if (i == pos)
+         {
+            normalRecordHead compactRH = *(buffer.getReadableObjPtr<normalRecordHead>(rs->offset));
+            compactRH.setTransID(transID);
+            rc = compactor.push(rs->flags, rs->type, 
+                                slice(NORMAL_RECORD_HEAD_SIZE, &compactRH), 
+                                row);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to compact the page");
+               goto error;
+            }
+         }
+         else
+         {
+            rc = compactor.push(rs->flags, rs->type, buffer.getSlice(rs->offset, rs->size));
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to compact the page");
+               goto error;
+            }
+         }
+      }
+
+      rc = _lpb->autoGetWritableBodyBuffer(buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare to write");
+         goto error;
+      }
+      whead = buffer.getWritableObjPtr<recordDataPageHead>(0);
+      if (OSS_UNLIKELY(NULL == whead))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to get writable page head");
+         goto error;
+      }
+
+      // write the compact buf back
+      rc = buffer.write(RECORD_PAGE_HEAD_SIZE, compactBufSize, 
+                        compactor.getBuffer());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to write the buffer");
+         goto error;
+      }
+
+      // update head
+      whead->totalFreeSpace = compactor.getFreeSpace();
+      whead->backOffset = compactor.getCorrectBackOffset();
+      whead->totalSlotCount = compactor.getSlotCount();
+      updateStripingInfo(whead, striping);
+      updateMaxTransSN(whead, transID.getSN());
+
+      ///dummy log
+      rc = prepareInplaceUpdateLog(context, &(_lpb->getRuntimeBuffer()), &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare redo log:%d", rc);
+         goto error;
+      }
+
+      rc = pageAccessor::commitLog(context, &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
+         goto error;
+      }
+
+      _lpb->commit(lrc.getLsn());
+      context->setDmlLSN(lrc.getLsn());
+      context->setDmlRecordInfo(rhead->pageSeq, 
+                                recordID(_lpb->getLogicalPid(), pos));
+
+   done:
+      context->releaseBuffer(compactBuf);
+      return rc;
+   error:
+      if (lrc.prepared())
+      {
+         pageAccessor::abortLog(context, &lrc);
+      }
+      goto done;
+
    }
 
    INT32 rdpAccessor::validatePage(requestContext *context,
