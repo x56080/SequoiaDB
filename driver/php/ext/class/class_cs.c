@@ -17,10 +17,12 @@
 #include "class_cs.h"
 
 extern zend_class_entry *pSequoiadbCl ;
+extern zend_class_entry *pSequoiadbCursor ;
 
 extern INT32 connectionDesc ;
 extern INT32 csDesc ;
 extern INT32 clDesc ;
+extern INT32 cursorDesc ;
 
 PHP_METHOD( SequoiaCS, __construct )
 {
@@ -247,6 +249,36 @@ error:
    goto done ;
 }
 
+PHP_METHOD( SequoiaCS, listCL )
+{
+   INT32 rc                       = SDB_OK ;
+   zval *pThisObj                 = getThis() ;
+   sdbCSHandle cs                 = SDB_INVALID_HANDLE ;
+   sdbCursorHandle cursor         = SDB_INVALID_HANDLE ;
+   PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
+   PHP_READ_HANDLE( pThisObj,
+                    cs,
+                    sdbCSHandle,
+                    SDB_CS_HANDLE_NAME,
+                    csDesc ) ;
+   rc = sdbCSListCollections( cs, &cursor ) ;
+   if( rc )
+   {
+      goto error ;
+   }
+   PHP_BUILD_CLASS( FALSE,
+                    pThisObj,
+                    pSequoiadbCursor,
+                    cursor,
+                    cursorDesc ) ;
+done:
+   return ;
+error:
+   RETVAL_NULL() ;
+   PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
+   goto done ;
+}
+
 //e.g. Rename dropCollection
 PHP_METHOD( SequoiaCS, dropCL )
 {
@@ -405,6 +437,32 @@ done:
    PHP_RETURN_AUTO_ERROR( FALSE, pThisObj, rc ) ;
    return ;
 error:
+   PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
+   goto done ;
+}
+
+PHP_METHOD( SequoiaCS, getDomainName )
+{
+   INT32 rc                           = SDB_OK ;
+   zval *pThisObj                     = getThis() ;
+   CHAR pDomainName [ PHP_NAME_SIZE ] = { 0 } ;
+   sdbCSHandle cs                     = SDB_INVALID_HANDLE ;
+   PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
+   PHP_READ_HANDLE( pThisObj,
+                    cs,
+                    sdbCSHandle,
+                    SDB_CS_HANDLE_NAME,
+                    csDesc ) ;
+   rc = sdbCSGetDomainName( cs, pDomainName, PHP_NAME_SIZE ) ;
+   if( rc )
+   {
+      goto error ;
+   }
+   PHP_RETVAL_STRING( pDomainName, 1 ) ;
+done:
+   return ;
+error:
+   RETVAL_NULL() ;	
    PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
    goto done ;
 }
