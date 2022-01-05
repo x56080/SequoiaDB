@@ -394,6 +394,87 @@ TEST_F(cl_ddl_test, base_remove_cl_1)
    ASSERT_EQ(SDB_OK, rc);
 }
 
+TEST_F(cl_ddl_test, base_remove_cl_2)
+{
+   vesselImpl db;
+   outerResource resource = test_outer_resource::getResource();
+
+   test_executor executor;
+   openDBOptions options;
+
+   options.path.dataPath = DATA_PATH;
+   options.path.indexPath = DATA_PATH;
+   options.path.lobMetaPath = DATA_PATH;
+   options.path.lobPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+
+   INT32 rc = SDB_OK;
+
+   rc = db.open(&executor, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCS(&executor, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCL(&executor, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   DATA_COLLECTION_PTR cl;
+   rc = db.openCL(&executor, "foo.bar", dmsOpenCLOptions(), cl);
+   ASSERT_EQ(SDB_OK, rc);
+
+   bson::BSONObj indexDef;
+   indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_BTREE,
+                                            "index1", FALSE,
+                                            BSON("a" << 1));
+   rc = cl->createIndex(&executor, dmsBuildIndexOptions(), indexDef);
+   ASSERT_EQ(SDB_OK, rc);
+
+   indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_LSM,
+                                            "index2", FALSE,
+                                            BSON("b" << 1));
+   rc = cl->createIndex(&executor, dmsBuildIndexOptions(), indexDef);
+   ASSERT_EQ(SDB_OK, rc);
+
+   UINT32 insertCount = 10000;
+   bson::BSONObjBuilder builder;
+   constexpr UINT32 _PAD_SIZE = 1024;
+   CHAR pad[_PAD_SIZE] = {};
+   ossMemset(pad, 'a', sizeof(pad) - 1);
+
+   for (UINT32 i = 0; i < insertCount; ++i)
+   {
+      builder.append("a", i);
+      builder.append("b", i);
+      builder.append("c", pad);
+      rc = cl->insertRecord(&executor, builder.done(), dmsInsertRecordOptions(), NULL);
+      ASSERT_EQ(SDB_OK, rc);
+      builder.reset();
+   }
+
+   rc = db.removeCL(&executor, "foo.bar", dmsRemoveCLOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.removeCL(&executor, "foo.bar", dmsRemoveCLOptions());
+   ASSERT_EQ(SDB_DMS_NOTEXIST, rc);
+
+   UINT64 count = 0;
+   rc = cl->getRecordCount(&executor, count);
+   ASSERT_EQ(SDB_DMS_NOTEXIST, rc);
+
+   rc = db.close(&executor, closeDBOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.open(&executor, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCL(&executor, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.close(&executor, closeDBOptions());
+   ASSERT_EQ(SDB_OK, rc);
+}
+
 TEST_F(cl_ddl_test, base_truncate_cl_1)
 {
    vesselImpl db;
@@ -425,7 +506,7 @@ TEST_F(cl_ddl_test, base_truncate_cl_1)
 
    UINT32 insertCount = 10000;
    bson::BSONObjBuilder builder;
-   constexpr UINT32 _PAD_SIZE = 1023;
+   constexpr UINT32 _PAD_SIZE = 1024;
    CHAR pad[_PAD_SIZE] = {};
    ossMemset(pad, 'a', sizeof(pad) - 1);
    builder.append("a", pad);

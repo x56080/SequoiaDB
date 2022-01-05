@@ -2265,8 +2265,6 @@ namespace vessel
       SDB_ASSERT(_dpc->isOpen(), "can not be closed");
       SDB_ASSERT(isCopyOnWrite(), "impossible");
 
-      static const UINT32 _DISPATCH_BATCH_SIZE = 4;
-
       autoEventList<backgroundEvent> rl;
       backgroundWorkers &workers = context->getEnv()->workers;
       UINT32 dispatched = 0;

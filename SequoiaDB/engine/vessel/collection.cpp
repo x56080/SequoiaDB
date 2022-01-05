@@ -1900,7 +1900,7 @@ namespace vessel
       rc = getLvl0RoutePage(context, capacity, lvl0Id, lvl0Lpid);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get lvl0 page[%d], rc:%d", lvl0Lpid, rc);
+         PD_LOG(PDERROR, "failed to get lvl0 page[%d], rc:%d", lvl0Id, rc);
          goto error;
       }
 
@@ -4390,6 +4390,8 @@ namespace vessel
          batch.clear();
       }
 
+      _totalRdpCount = 0;
+
    done:
       return rc;
    error:
@@ -4447,6 +4449,7 @@ namespace vessel
 
       commitReleasingPagesLog(context, batch, bson::BSONObj());
       mds.releasePages(context, batch.size(), batch.data());
+      _totalLvl0Count = 0;
 
    done:
       return rc;
