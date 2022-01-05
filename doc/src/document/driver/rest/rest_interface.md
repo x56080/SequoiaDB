@@ -212,6 +212,28 @@
 | 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述<br>}<br>{<br>返回数据组的内容<br>} | [{ "errno": 0 }] |
 | 说明     |                                           |                 |
 
+##列出集合空间的集合##
+
+|          | 说明                                      | 例子            |
+|----------|-------------------------------------------|-----------------|
+| 请求头   | 同通用请求头                              |                 |
+| 请求内容 | cmd：list collections in collectionspace<br>name:集合空间的名字  | cmd=list collections in collectionspace&name=sample |
+| 说明     |                                           |                 |
+| 响应头   | 同通用响应头                              |                 |
+| 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述<br>}<br>{<br>返回集合空间下所有集合的全名<br>} | [{ "errno": 0 },{ "Name": "sample.employee" }]  |
+| 说明     |    
+
+##获取数据域名##
+
+|          | 说明                                      | 例子            |
+|----------|-------------------------------------------|-----------------|
+| 请求头   | 同通用请求头                              |                 |
+| 请求内容 | cmd：get domain name<br>name:集合空间的名字                      | cmd=get domain name&name=sample |
+| 说明     |                                           |                 |
+| 响应头   | 同通用响应头                              |                 |
+| 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述<br>}<br>{<br>返回集合空间所属数据域名<br>} | [{ "errno": 0 },{ "Name": "sample.employee" }]  |
+| 说明     |    
+
 ##收集统计信息##
 
 |          | 说明                                      | 例子            |
