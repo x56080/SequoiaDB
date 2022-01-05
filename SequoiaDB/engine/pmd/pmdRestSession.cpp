@@ -71,7 +71,9 @@ namespace engine
    }
 
    #define PMD_REST_SESSION_SNIFF_TIMEOUT    ( 10 * OSS_ONE_SEC )
-
+   #define PMD_REST_CS_NAME_SZ               127 
+   #define PMD_REST_SQL_COMMON_LEN           127
+   #define PMD_REST_SQL_MAX_LEN              ( PMD_REST_SQL_COMMON_LEN + PMD_REST_CS_NAME_SZ )            
    /*
       util
    */
@@ -928,7 +930,10 @@ namespace engine
                               &RestToMSGTransfer::_convertDropAutoIncrement },
 
          { CMD_NAME_GET_COUNT,   &RestToMSGTransfer::_convertGetCount },
-
+         
+         { CMD_NAME_GET_DOMAIN_NAME,
+                                 &RestToMSGTransfer::_convertGetDomainName },
+                     
          { CMD_NAME_LIST_GROUPS, &RestToMSGTransfer::_convertListGroups },
          { REST_CMD_NAME_START_GROUP,
                                  &RestToMSGTransfer::_convertStartGroup },
@@ -971,6 +976,8 @@ namespace engine
          { REST_CMD_NAME_LISTINDEXES,
                                  &RestToMSGTransfer::_convertListIndexes },
 //         { CMD_NAME_LIST_CL_IN_DOMAIN, &RestToMSGTransfer::_convertQuery },
+         { CMD_NAME_LIST_CL_IN_COLLECTIONSPACE, 
+                               &RestToMSGTransfer::_convertListCLInCollectionsSpace },
          { CMD_NAME_SNAPSHOT_CONTEXTS,
                                  &RestToMSGTransfer::_convertSnapshotContext },
          { CMD_NAME_SNAPSHOT_CONTEXTS_CURRENT,
@@ -3062,6 +3069,47 @@ namespace engine
       goto done ;
    }
 
+   INT32 RestToMSGTransfer::_convertGetDomainName( restAdaptor *pAdaptor,
+                                                   restRequest &request,
+                                                   MsgHeader **msg )
+   {
+      INT32 rc                                    = SDB_OK ;
+      CHAR *pBuff                                 = NULL ;
+      INT32 buffSize                              = 0 ;
+      CHAR sql[ PMD_REST_SQL_MAX_LEN + 1 ]        = { 0 } ;
+      string csName ;
+
+      csName = request.getQuery( FIELD_NAME_NAME ) ;
+      if ( csName.empty() )
+      {
+         csName = request.getQuery( REST_KEY_NAME_COLLECTIONSPACE ) ;
+         if ( csName.empty() )
+         {
+            PD_LOG_MSG( PDERROR, "get field failed:field=%s[or %s]",
+                     FIELD_NAME_NAME, REST_KEY_NAME_COLLECTIONSPACE ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+      // build sql
+      ossSnprintf( sql, PMD_REST_SQL_MAX_LEN,
+                   "select Domain from $LIST_CS where Name = '%s'",
+                   csName.c_str() ) ;
+      rc = _buildExecMsg( &pBuff, &buffSize, sql, 0 ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "build exec command failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      *msg = ( MsgHeader * )pBuff ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 RestToMSGTransfer::_convertListBase( restAdaptor *pAdaptor,
                                               restRequest &request,
                                               const CHAR  *command,
@@ -3549,6 +3597,67 @@ namespace engine
 
       rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, NULL,
                              NULL, NULL, &hint ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
+                     pCommand, rc ) ;
+         goto error ;
+      }
+
+      *msg = ( MsgHeader * )pBuff ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 RestToMSGTransfer::_convertListCLInCollectionsSpace( restAdaptor *pAdaptor,
+                                                              restRequest &request,
+                                                              MsgHeader **msg)
+   {
+      INT32 rc                                         = SDB_OK ;
+      CHAR *pBuff                                      = NULL ;
+      INT32 buffSize                                   = 0 ;
+      const CHAR *pCommand                             = CMD_ADMIN_PREFIX CMD_NAME_LIST_COLLECTIONS ;
+      CHAR lowBound[ PMD_REST_CS_NAME_SZ + 1 + 1 ]    = { 0 } ;
+      CHAR upBound[ PMD_REST_CS_NAME_SZ + 1 + 1 ]     = { 0 } ;
+      string csName ;
+      BSONObj condition ;
+
+      csName = request.getQuery( FIELD_NAME_NAME ) ;
+      if ( csName.empty() )
+      {
+         csName = request.getQuery( REST_KEY_NAME_COLLECTIONSPACE ) ;
+         if ( csName.empty() )
+         {
+            PD_LOG_MSG( PDERROR, "get field failed:field=%s[or %s]",
+                     FIELD_NAME_NAME, REST_KEY_NAME_COLLECTIONSPACE ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+      ossStrncpy( lowBound, csName.c_str(), PMD_REST_CS_NAME_SZ ) ;
+      ossStrncat( lowBound, ".", 1 ) ;
+      ossStrncpy( upBound, csName.c_str(), PMD_REST_CS_NAME_SZ ) ;
+      ossStrncat( upBound, "/", 1 ) ;
+      // build condition bson
+      try
+      {
+         BSONObjBuilder builder ;
+         BSONObjBuilder subBuilder ( builder.subobjStart( FIELD_NAME_NAME ) ) ; 
+         subBuilder.append( "$gt", lowBound ) ;
+         subBuilder.append( "$lt", upBound ) ;
+         subBuilder.doneFast() ;
+         condition = builder.obj() ;
+      }
+      catch( const std::exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, FLG_QUERY_WITH_RETURNDATA, 0, 0, -1, &condition,
+                             NULL, NULL, NULL ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",

@@ -790,6 +790,8 @@
 #define CMD_NAME_LIST_SVCTASKS               CMD_NAME_PREFIX_LIST "service tasks"
 #define CMD_NAME_LIST_SEQUENCES              CMD_NAME_PREFIX_LIST "sequences"
 #define CMD_NAME_LIST_DATASOURCES            CMD_NAME_PREFIX_LIST "datasources"
+#define CMD_NAME_GET_DOMAIN_NAME             "get domain name"
+#define CMD_NAME_LIST_CL_IN_COLLECTIONSPACE  "list collections in collectionspace"
 #define CMD_NAME_RENAME_COLLECTION           "rename collection"
 #define CMD_NAME_RENAME_COLLECTIONSPACE      "rename collectionspace"
 #define CMD_NAME_REORG_OFFLINE               "reorg offline"
