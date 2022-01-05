@@ -6099,104 +6099,34 @@ namespace engine
 
          // get name, key, unique, enforced, NotNull from Index
          newBoIndex = _boIndex ;
-         rc = rtnConvertIndexDef( newBoIndex ) ;
+         rc = rtnCheckAndConvertIndexDef( newBoIndex ) ;
          PD_RC_CHECK( rc, PDERROR,
-                      "Failed to convert index definition" ) ;
+                      "Failed to convert index definition: %s",
+                      newBoIndex.toString().c_str() ) ;
 
          ii = BSONObjIterator( newBoIndex ) ;
          while ( ii.more() )
          {
             BSONElement e = ii.next();
-            if ( ossStrcmp( e.fieldName(), IXM_FIELD_NAME_NAME ) == 0 )
+            if ( ossStrcmp( e.fieldName(), IXM_FIELD_NAME_UNIQUE ) == 0 )
             {
-               if ( e.type() != String )
-               {
-                  rc = SDB_INVALIDARG ;
-                  PD_LOG( PDERROR, "Field[%s] invalid in obj[%s]",
-                          IXM_FIELD_NAME_NAME, _boIndex.toString().c_str() ) ;
-                  goto error ;
-               }
-            }
-            else if ( ossStrcmp( e.fieldName(), IXM_FIELD_NAME_KEY ) == 0 )
-            {
-               if ( !e.isABSONObj() )
-               {
-                  rc = SDB_INVALIDARG ;
-                  PD_LOG( PDERROR, "Field[%s] invalid in obj[%s]",
-                          IXM_FIELD_NAME_KEY, _boIndex.toString().c_str() ) ;
-                  goto error ;
-               }
-            }
-            else if ( ossStrcmp( e.fieldName(), IXM_FIELD_NAME_UNIQUE ) == 0 )
-            {
-               if ( e.type() != Bool )
-               {
-                  rc = SDB_INVALIDARG ;
-                  PD_LOG_MSG( PDERROR, "%s/%s should be boolean",
-                              IXM_FIELD_NAME_UNIQUE1, IXM_FIELD_NAME_UNIQUE ) ;
-                  goto error ;
-               }
                isUnique = e.trueValue() ;
-            }
-            else if ( ossStrcmp( e.fieldName(), IXM_FIELD_NAME_ENFORCED ) == 0 )
-            {
-               if ( e.type() != Bool )
-               {
-                  rc = SDB_INVALIDARG ;
-                  PD_LOG_MSG( PDERROR, "%s/%s should be boolean",
-                              IXM_FIELD_NAME_ENFORCED1, IXM_FIELD_NAME_ENFORCED ) ;
-                  goto error ;
-               }
             }
             else if ( ossStrcmp( e.fieldName(), IXM_FIELD_NAME_NOTNULL ) == 0 )
             {
-               if ( e.type() != Bool )
-               {
-                  rc = SDB_INVALIDARG ;
-                  PD_LOG_MSG( PDERROR, "%s should be boolean",
-                              IXM_FIELD_NAME_NOTNULL ) ;
-                  goto error ;
-               }
                notNull = e.trueValue() ;
             }
             else if ( ossStrcmp( e.fieldName(), IXM_FIELD_NAME_NOTARRAY ) == 0 )
             {
-               if ( e.type() != Bool )
-               {
-                  rc = SDB_INVALIDARG ;
-                  PD_LOG_MSG( PDERROR, "%s should be boolean",
-                              IXM_FIELD_NAME_NOTARRAY ) ;
-                  goto error ;
-               }
                notArray = e.trueValue() ;
             }
             else if ( ossStrcmp( e.fieldName(), IXM_FIELD_NAME_GLOBAL ) == 0 )
             {
-               if ( e.type() != Bool )
-               {
-                  rc = SDB_INVALIDARG ;
-                  PD_LOG_MSG( PDERROR, "%s should be boolean",
-                              IXM_FIELD_NAME_GLOBAL ) ;
-                  goto error ;
-               }
                isGlobal = e.trueValue() ;
             }
             else if ( ossStrcmp( e.fieldName(), IXM_FIELD_NAME_STANDALONE ) == 0 )
             {
-               if ( e.type() != Bool )
-               {
-                  rc = SDB_INVALIDARG ;
-                  PD_LOG_MSG( PDERROR, "%s should be boolean",
-                              IXM_FIELD_NAME_STANDALONE ) ;
-                  goto error ;
-               }
                _isStandaloneIdx = e.boolean();
-            }
-            else
-            {
-               rc = SDB_INVALIDARG ;
-               PD_LOG_MSG( PDERROR, "Unrecognized field: %s", e.fieldName() ) ;
-               goto error ;
             }
          }
 

@@ -263,10 +263,11 @@ namespace engine
          goto error ;
       }
 
-      rc = rtnConvertIndexDef( _index ) ;
+      rc = rtnCheckAndConvertIndexDef( _index ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to convert index definition" ) ;
+         PD_LOG ( PDERROR, "Failed to convert index definition: %s",
+                  _index.toString().c_str() ) ;
          goto error ;
       }
 
@@ -278,12 +279,14 @@ namespace engine
          goto error ;
       }
 
+      // get global
       rc = rtnGetBooleanElement( _index, IXM_FIELD_NAME_GLOBAL,
                                  _isGlobal ) ;
       rc = SDB_FIELD_NOT_EXIST == rc ? SDB_OK : rc ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get field(%s):index=%s,rc=%d",
                    IXM_FIELD_NAME_GLOBAL, _index.toString().c_str(), rc ) ;
 
+      // get standalone
       rc = rtnGetBooleanElement( _index, IXM_FIELD_NAME_STANDALONE,
                                  _isStandaloneIdx ) ;
       rc = SDB_FIELD_NOT_EXIST == rc ? SDB_OK : rc ;
@@ -307,8 +310,8 @@ namespace engine
                                 _sortBufSize ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR, "Failed to get index sort buffer from match[%s]",
-                     arg.toString().c_str() ) ;
+            PD_LOG_MSG( PDERROR, "%s should be number",
+                        IXM_FIELD_NAME_SORT_BUFFER_SIZE ) ;
             goto error ;
          }
       }
@@ -319,15 +322,15 @@ namespace engine
                                 _sortBufSize ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR, "Failed to get index sort buffer from hint[%s]",
-                     hint.toString().c_str() ) ;
+            PD_LOG_MSG( PDERROR, "%s should be number",
+                        IXM_FIELD_NAME_SORT_BUFFER_SIZE ) ;
             goto error ;
          }
       }
       if ( _sortBufSize < 0 )
       {
-         PD_LOG ( PDERROR, "invalid index sort buffer size: %d",
-                  _sortBufSize ) ;
+         PD_LOG_MSG( PDERROR, "'%s' invalid: %d",
+                     IXM_FIELD_NAME_SORT_BUFFER_SIZE, _sortBufSize ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
@@ -343,8 +346,7 @@ namespace engine
       }
 
       // get task id
-      rc = rtnGetNumberLongElement( hint, FIELD_NAME_TASKID,
-                                    (INT64&)_taskID ) ;
+      rc = rtnGetNumberLongElement( hint, FIELD_NAME_TASKID, (INT64&)_taskID ) ;
       if ( SDB_FIELD_NOT_EXIST == rc )
       {
          rc = SDB_OK ;
@@ -388,14 +390,14 @@ namespace engine
       if ( _isAsync && ( CMD_SPACE_SERVICE_SHARD != getFromService() ) )
       {
          rc = SDB_OPERATION_INCOMPATIBLE ;
-         PD_LOG( PDERROR, "Async is only supported in cluster" ) ;
+         PD_LOG_MSG( PDERROR, "Async is only supported in cluster" ) ;
          goto error ;
       }
 
       // Currently only support text index in cluster.
       if ( _textIdx && ( CMD_SPACE_SERVICE_SHARD != getFromService() ) )
       {
-         PD_LOG( PDERROR, "Text index is only supported in cluster" ) ;
+         PD_LOG_MSG( PDERROR, "Text index is only supported in cluster" ) ;
          rc = SDB_OPERATION_INCOMPATIBLE ;
          goto error ;
       }
@@ -403,7 +405,7 @@ namespace engine
       // Currently only support global index in cluster.
       if ( _isGlobal && ( CMD_SPACE_SERVICE_SHARD != getFromService() ) )
       {
-         PD_LOG( PDERROR, "Global index is only supported in cluster" ) ;
+         PD_LOG_MSG( PDERROR, "Global index is only supported in cluster" ) ;
          rc = SDB_OPERATION_INCOMPATIBLE ;
          goto error ;
       }

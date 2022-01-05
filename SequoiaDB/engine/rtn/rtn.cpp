@@ -2467,7 +2467,7 @@ namespace engine
       }
    }
 
-   INT32 rtnConvertIndexDef( BSONObj& indexDef )
+   INT32 rtnCheckAndConvertIndexDef( BSONObj& indexDef )
    {
       INT32 rc = SDB_OK ;
 
@@ -2483,7 +2483,6 @@ namespace engine
          while ( i.more() )
          {
             BSONElement e = i.next() ;
-            BOOLEAN hasAppend = FALSE ;
 
             if ( 0 == ossStrcmp( e.fieldName(), IXM_UNIQUE_FIELD ) ||
                  0 == ossStrcmp( e.fieldName(), IXM_ENFORCED_FIELD ) ||
@@ -2492,56 +2491,120 @@ namespace engine
                  0 == ossStrcmp( e.fieldName(), IXM_GLOBAL_FIELD ) ||
                  0 == ossStrcmp( e.fieldName(), IXM_STANDALONE_FIELD ) )
             {
-               if ( e.isNumber() &&
-                    ( 1 == e.number() || 0 == e.number() ) )
+               if ( Bool == e.type() )
+               {
+                  builder.append( e ) ;
+               }
+               else if ( e.isNumber() &&
+                         ( 1 == e.number() || 0 == e.number() ) )
                {
                   // convert { unique: 1 } => { unique: true }
                   builder.append( e.fieldName(), e.trueValue() ) ;
-                  hasAppend = TRUE ;
+               }
+               else
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "%s should be boolean",
+                              e.fieldName() ) ;
+                  goto error ;
                }
             }
             else if ( 0 == ossStrcmp( e.fieldName(), IXM_UNIQUE_FIELD1 ) )
             {
-               // convert { Unique: true } => { unique: true }
-               if ( e.isNumber() &&
+               if ( Bool == e.type() )
+               {
+                  // convert { Unique: true } => { unique: true }
+                  builder.appendAs( e, IXM_UNIQUE_FIELD ) ;
+               }
+               else if ( e.isNumber() &&
                     ( 1 == e.number() || 0 == e.number() ) )
                {
+                  // convert { Unique: 1 } => { unique: true }
                   builder.append( IXM_UNIQUE_FIELD, e.trueValue() ) ;
                }
                else
                {
-                  builder.appendAs( e, IXM_UNIQUE_FIELD ) ;
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "%s should be boolean",
+                              e.fieldName() ) ;
+                  goto error ;
                }
-               hasAppend = TRUE ;
             }
             else if ( 0 == ossStrcmp( e.fieldName(), IXM_ENFORCED_FIELD1 ) )
             {
-               // convert { Enforced: true } => { enforce: true }
-               if ( e.isNumber() &&
+               if ( Bool == e.type() )
+               {
+                  // convert { Enforced: true } => { enforced: true }
+                  builder.appendAs( e, IXM_ENFORCED_FIELD ) ;
+               }
+               else if ( e.isNumber() &&
                     ( 1 == e.number() || 0 == e.number() ) )
                {
+                  // convert { Enforced: 1 } => { enforced: true }
                   builder.append( IXM_ENFORCED_FIELD, e.trueValue() ) ;
                }
                else
                {
-                  builder.appendAs( e, IXM_ENFORCED_FIELD ) ;
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "%s should be boolean",
+                              e.fieldName() ) ;
+                  goto error ;
                }
-               hasAppend = TRUE ;
             }
-            if ( !hasAppend )
+            else if ( 0 == ossStrcmp( e.fieldName(), IXM_FIELD_NAME_NAME ) )
             {
+               if ( String == e.type() )
+               {
+                  builder.append( e ) ;
+               }
+               else
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG( PDERROR, "Field[%s] invalid in obj[%s]",
+                          IXM_FIELD_NAME_NAME, indexDef.toString().c_str() ) ;
+                  goto error ;
+               }
+            }
+            else if ( 0 == ossStrcmp( e.fieldName(), IXM_FIELD_NAME_KEY ) )
+            {
+               if ( Object == e.type() )
+               {
+                  builder.append( e ) ;
+               }
+               else
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG( PDERROR, "Field[%s] invalid in obj[%s]",
+                          IXM_FIELD_NAME_KEY, indexDef.toString().c_str() ) ;
+                  goto error ;
+               }
+            }
+            else if ( 0 == ossStrcmp( e.fieldName(), IXM_FIELD_NAME_V ) ||
+                      0 == ossStrcmp( e.fieldName(), IXM_DROPDUP_FIELD ) ||
+                      0 == ossStrcmp( e.fieldName(), IXM_2DRANGE_FIELD ) )
+            {
+               // old version create index or copy index has them
                builder.append( e ) ;
+            }
+            else
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "Unrecognized field: %s", e.fieldName() ) ;
+               goto error ;
             }
          }
          indexDef = builder.obj() ;
       }
       catch( std::exception &e )
       {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
       }
 
+   done:
       return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNLOADCOLLECTIONDICT, "rtnLoadCollectionDict" )

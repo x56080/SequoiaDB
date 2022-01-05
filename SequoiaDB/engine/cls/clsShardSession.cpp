@@ -5325,9 +5325,10 @@ namespace engine
                    "Failed to get field[%s] from matcher[%s]",
                    FIELD_NAME_INDEX, boMatcher.toString().c_str() ) ;
 
-      rc = rtnConvertIndexDef( boIndex ) ;
+      rc = rtnCheckAndConvertIndexDef( boIndex ) ;
       PD_RC_CHECK( rc, PDERROR,
-                   "Failed to convert index definition" ) ;
+                   "Failed to convert index definition: %s",
+                   boIndex.toString().c_str() ) ;
 
       rc = rtnGetIntElement( boMatcher, IXM_FIELD_NAME_SORT_BUFFER_SIZE,
                              sortBufferSize ) ;

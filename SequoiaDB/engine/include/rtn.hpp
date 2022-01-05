@@ -721,7 +721,7 @@ namespace engine
    BOOLEAN rtnCollectionInTheSpace ( const CHAR *pCLName,
                                      const CHAR *pCSName ) ;
 
-   INT32 rtnConvertIndexDef( BSONObj& indexDef ) ;
+   INT32 rtnCheckAndConvertIndexDef( BSONObj& indexDef ) ;
 
    // Load compression dictionary for one collection.
    // Note: Always be cautious to set force as true. Only use force when the

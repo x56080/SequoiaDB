@@ -1912,9 +1912,10 @@ namespace engine
                       "Failed to get field [%s], rc: %d",
                       FIELD_NAME_INDEX, rc ) ;
 
-         rc = rtnConvertIndexDef( _boIdx ) ;
+         rc = rtnCheckAndConvertIndexDef( _boIdx ) ;
          PD_RC_CHECK( rc, PDERROR,
-                      "Failed to convert index definition" ) ;
+                      "Failed to convert index definition: %s",
+                      _boIdx.toString().c_str() ) ;
 
          BSONObjIterator ii( _boIdx ) ;
          while ( ii.more() )
@@ -1922,60 +1923,22 @@ namespace engine
             BSONElement e = ii.next();
             if ( ossStrcmp( e.fieldName(), IXM_FIELD_NAME_NAME ) == 0 )
             {
-               if ( e.type() != String )
-               {
-                  rc = SDB_INVALIDARG ;
-                  PD_LOG_MSG( PDERROR, "Field[%s] invalid in obj[%s]",
-                              IXM_FIELD_NAME_NAME, _boIdx.toString().c_str() ) ;
-                  goto error ;
-               }
-               _pIndexName = e.valuestr() ;
+               _pIndexName = e.valuestrsafe() ;
             }
             else if ( ossStrcmp( e.fieldName(), IXM_FIELD_NAME_KEY ) == 0 )
             {
-               if ( e.type() != Object )
-               {
-                  rc = SDB_INVALIDARG ;
-                  PD_LOG_MSG( PDERROR, "Field[%s] invalid in obj[%s]",
-                              IXM_FIELD_NAME_KEY, _boIdx.toString().c_str() ) ;
-                  goto error ;
-               }
                _key = e.Obj() ;
             }
             else if ( ossStrcmp( e.fieldName(), IXM_FIELD_NAME_UNIQUE ) == 0 )
             {
-               if ( e.type() != Bool )
-               {
-                  rc = SDB_INVALIDARG ;
-                  PD_LOG_MSG( PDERROR, "Field[%s] invalid in obj[%s]",
-                              IXM_FIELD_NAME_UNIQUE,
-                              _boIdx.toString().c_str() ) ;
-                  goto error ;
-               }
                _isUnique = e.boolean() ;
             }
             else if ( ossStrcmp( e.fieldName(), IXM_FIELD_NAME_ENFORCED ) == 0 )
             {
-               if ( e.type() != Bool )
-               {
-                  rc = SDB_INVALIDARG ;
-                  PD_LOG_MSG( PDERROR, "Field[%s] invalid in obj[%s]",
-                              IXM_FIELD_NAME_ENFORCED,
-                              _boIdx.toString().c_str() ) ;
-                  goto error ;
-               }
                _isEnforced = e.boolean() ;
             }
             else if ( ossStrcmp( e.fieldName(), IXM_FIELD_NAME_GLOBAL ) == 0 )
             {
-               if ( e.type() != Bool )
-               {
-                  rc = SDB_INVALIDARG ;
-                  PD_LOG_MSG( PDERROR, "Field[%s] invalid in obj[%s]",
-                              IXM_FIELD_NAME_GLOBAL,
-                              _boIdx.toString().c_str() ) ;
-                  goto error ;
-               }
                _isGlobal = e.boolean() ;
             }
          }
