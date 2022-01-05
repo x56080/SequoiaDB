@@ -76,6 +76,10 @@ namespace engine
                                    const CHAR *indexName) = 0;
 
       public:
+         virtual INT32 truncate(IExecutor *executor,
+                                const dmsTruncateCLOptions &o) = 0;
+
+      public:
          virtual INT32 insertRecord(IExecutor *executor,
                                     const bson::BSONObj &record,
                                     const dmsInsertRecordOptions &o,

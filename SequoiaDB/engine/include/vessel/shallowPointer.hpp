@@ -72,6 +72,81 @@ namespace vessel
       private:
          T *_ptr = NULL;
    };//class shallowPointer
+
+   template <class T>
+   class shallowArray : public SDBObject
+   {
+      public:
+         shallowArray(){}
+         explicit shallowArray(T *ptr, UINT32 size):
+         _ptr(ptr), _size(size){}
+         ~shallowArray(){}
+         shallowArray(const shallowArray &o):
+         _ptr(o._ptr), _size(o._size){}
+         shallowArray &operator=(const shallowArray &o)
+         {
+            _ptr = o._ptr;
+            _size = o._size;
+            return *this;
+         }
+
+      public:
+         OSS_INLINE T &operator[](UINT32 i)
+         {
+            return at(i);
+         }
+         OSS_INLINE const T &operator[](UINT32 i)const
+         {
+            return at(i);
+         }
+         OSS_INLINE BOOLEAN isValid()const
+         {
+            return NULL != _ptr && 0 < _size;
+         }
+         OSS_INLINE UINT32 getSize()const
+         {
+            return _size;
+         }
+         OSS_INLINE T *data()
+         {
+            return _ptr;
+         }
+         OSS_INLINE const T *data()const
+         {
+            return _ptr;
+         }
+         OSS_INLINE const T &at(UINT32 i)const
+         {
+            return _ptr[i];
+         }
+         OSS_INLINE T &at(UINT32 i)
+         {
+            return _ptr[i];
+         }
+         
+         void fill(const T &v)
+         {
+            for (UINT32 i = 0; i < _size; ++i)
+            {
+               _ptr[i] = v;
+            }
+            return;
+         }
+
+         void fill()
+         {
+            T v;
+            for (UINT32 i = 0; i < _size; ++i)
+            {
+               _ptr[i] = v;
+            }
+            return;
+         }
+
+      private:
+         T *_ptr = NULL;
+         UINT32 _size = 0;
+   };//class shallowArray
 } // namespace vessel
 
 } // namespace engine

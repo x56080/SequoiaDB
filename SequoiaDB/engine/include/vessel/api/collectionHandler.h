@@ -93,6 +93,10 @@ namespace vessel
                                    const CHAR *indexName);
 
       public:
+         virtual INT32 truncate(IExecutor *executor,
+                                const dmsTruncateCLOptions &o);
+
+      public:
          virtual INT32 insertRecord(IExecutor *executor,
                                     const bson::BSONObj &record,
                                     const dmsInsertRecordOptions &o,

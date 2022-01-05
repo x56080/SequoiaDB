@@ -36,14 +36,14 @@
 #ifndef VESSEL_INDEX_SPACE_H_
 #define VESSEL_INDEX_SPACE_H_
 
-#include "vessel/copyOnWriteLPS.h"
+#include "vessel/logicalPageSpace.h"
 #include "vessel/dataStorageFileCluster.h"
 
 namespace engine
 {
 namespace vessel
 {  
-   class indexSpace : public copyOnWriteLPS
+   class indexSpace : public logicalPageSpace
    {
       public:
          indexSpace(){}
@@ -54,6 +54,10 @@ namespace vessel
          {
             return SPACE_TYPE_IDX;
          }
+         virtual BOOLEAN isCopyOnWrite()const
+         {
+            return TRUE;
+         }
 
       private:
          virtual UINT32 getReservedImpCount()const;
@@ -61,6 +65,34 @@ namespace vessel
          {
             return &_storage;
          }
+
+      private:
+         virtual INT32 getRuntimePageBuffer(requestContext *context,
+                                            PAGE_ID pid,
+                                            const ossSharedLatchMode &mode,
+                                            runtimePageBuffer &rpb);
+
+         /// rpb must be writable at last
+         virtual INT32 getRuntimePageBufferToReset(requestContext *context,
+                                                   PAGE_ID pid,
+                                                   runtimePageBuffer &rpb);
+
+         /// rpb must be writable at last
+         virtual INT32 copyPageAndReinitBuffer(requestContext *context,
+                                               PAGE_SNAPSHOT_VERION psv,
+                                               PAGE_ID newPid,
+                                               runtimePageBuffer &rpb);
+
+      private:
+         virtual INT32 _create(requestContext *context);
+         virtual INT32 _open(requestContext *context,
+                             const storageFileLoader &loader);
+         virtual void _close();
+         virtual void _destroy(requestContext *context);
+
+      private:
+         virtual INT32 getMinUncompletedLSN(requestContext *context,
+                                            DPS_LSN_OFFSET &lsn);
 
       public:
          ///lpid may be invalid 

@@ -81,6 +81,8 @@ namespace vessel
 
          void destroy();
 
+         void truncate();
+
          /// Find free space in whole map.
          /// The striping is necessary when cl is sharded.
          /// User should validate candidate again even return ok.

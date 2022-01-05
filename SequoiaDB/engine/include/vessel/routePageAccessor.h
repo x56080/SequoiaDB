@@ -70,7 +70,16 @@ namespace vessel
                               UINT32 &size,
                               PAGE_ID &last)const;
 
+         INT32 dumpValidPages(requestContext *context,
+                              INT32 targetLvl,
+                              logicalPageBuffer *lpb,
+                              ossPoolVector<PAGE_ID> &lpids);
+
       private:
+         INT32 validatePage(requestContext *context,
+                            INT32 targetLvl,
+                            const logicalPageBuffer *lpb);
+
          INT32 prepareAppendLog(requestContext *context,
                                 const runtimePageBuffer *rpb,
                                 UINT32 count,

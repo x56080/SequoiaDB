@@ -97,6 +97,10 @@ namespace vessel
                                 const dmsCreateCLOptions &o,
                                 const bson::BSONObj &adjunct);
 
+         virtual INT32 removeCL(IExecutor *executor,
+                                const CHAR *fullName,
+                                const dmsRemoveCLOptions &o);
+
          virtual INT32 testCL(IExecutor *executor,
                               const CHAR *fullName,
                               utilCLUniqueID &uniqueId);
@@ -137,6 +141,11 @@ namespace vessel
                          const globalCollectionId &gcid,
                          const strSlice &indexName,
                          indexIdentifier &indexId);
+
+      public:
+         INT32 truncate(IExecutor *executor,
+                        const globalCollectionId &gcid,
+                        const dmsTruncateCLOptions &o);
       
       public:
 

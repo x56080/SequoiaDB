@@ -438,5 +438,101 @@ namespace vessel
       goto done;
    }
 
+   INT32 routePageAccessor::validatePage(requestContext *context,
+                                         INT32 targetLvl,
+                                         const logicalPageBuffer *lpb)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context && context->isMbContextAttached(), "can not be invalid");
+      SDB_ASSERT(isValidRoutePageLvl(targetLvl), "can not be invalid");
+      SDB_ASSERT(NULL != lpb && lpb->isValid(), "can not be invalid");
+      const routePageHead *header = NULL;
+
+      rc = lpb->validatePage(PAGE_TYPE_ROUTE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to validate page:%d", rc);
+         goto error;
+      }
+
+      header = lpb->getReadableBodyBuffer().getReadableObjPtr<routePageHead>(0);
+      if (header->logicalId != context->getMbContext()->getGlobalId().getCLLid())
+      {
+         PD_LOG(PDERROR, "different cl logical id found[%d, %d]",
+                header->logicalId,
+                context->getMbContext()->getGlobalId().getCLLid());
+         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
+         goto error;
+      }
+
+      if (header->lvl != targetLvl)
+      {
+         PD_LOG(PDERROR, "invalid lvl found in header[%d, %d]",
+                header->lvl, targetLvl);
+         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 routePageAccessor::dumpValidPages(requestContext *context,
+                                           INT32 targetLvl,
+                                           logicalPageBuffer *lpb,
+                                           ossPoolVector<PAGE_ID> &lpids)
+   {
+      INT32 rc = SDB_OK;
+
+      const routePageHead *header = NULL;
+      UINT32 oldSize = lpids.size();
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       !context->isMbContextAttached() ||
+                       !isValidRoutePageLvl(targetLvl) ||
+                       NULL == lpb || !lpb->isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = validatePage(context, targetLvl, lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to validate page:%s, rc:%d",
+                lpb->getGlobalPid().toString().c_str(), rc);
+         goto error;
+      }
+
+      header = lpb->getReadableBodyBuffer().getReadableObjPtr<routePageHead>(0);
+      if (0 == header->size)
+      {
+         PD_LOG(PDDEBUG, "empty route page");
+         goto done;
+      }
+
+      for (UINT32 i = 0; i < (UINT32)header->size; ++i)
+      {
+         UINT32 offset = ROUTE_PAGE_HEAD_SIZE + (i << 2);
+         const PAGE_ID *ptr = lpb->getReadableBodyBuffer().getReadableObjPtr<PAGE_ID>(offset);
+         if (OSS_UNLIKELY(NULL == ptr))
+         {
+            PD_LOG(PDERROR, "failed to get lpid ptr of pos[%d]", i);
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
+         if (INVALID_PAGE_ID != *ptr)
+         {
+            lpids.push_back(*ptr);
+         }
+      }
+   done:
+      return rc;
+   error:
+      lpids.resize(oldSize);
+      goto done;
+   }
 }//namespace vessel
 }//namespace engine

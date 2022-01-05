@@ -147,6 +147,77 @@ namespace vessel
       goto done;
    }
 
+   INT32 crpAccessor::removeCL(requestContext *context,
+                               logicalPageBuffer *lpb)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 slot = 0;
+      logRecordContext lrc;
+      UINT32 capacity;
+      strictBuffer buffer;
+      collectionRecordOnDisk *recordPtr = NULL;
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       INVALID_CL_MB_ID == context->getMBID() ||
+                       NULL == lpb ||
+                       !lpb->isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = lpb->validatePage(PAGE_TYPE_CL_META);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
+                lpb->getRuntimeBuffer().getGlobalPid().toString().c_str(), rc);
+         goto error;
+      }
+
+      rc = getCapacityOfCLRecordPage(lpb->getRuntimeBuffer().getPageSize(), capacity);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to get capacity of cl record page:%d", rc);
+         goto error;
+      }
+
+      slot = context->getMBID() % capacity;
+
+      rc = lpb->prepareToWrite();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare writing:%d", rc);
+         goto error;
+      }
+
+      buffer = lpb->getWritableBodyBuffer();
+      recordPtr = buffer.getWritableObjPtr<collectionRecordOnDisk>
+                  (COLLECTION_DISK_RECORD_LEN * slot);
+      if (NULL == recordPtr)
+      {
+         PD_LOG(PDERROR, "failed to get writable disk ptr");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      ossMemset(recordPtr, 0, COLLECTION_DISK_RECORD_LEN);
+      recordPtr->record.reset();
+
+      rc = commitRemoveLog(context, &(lpb->getRuntimeBuffer()), lsn);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to commit remove log:%d", rc);
+         goto error;
+      }
+
+      lpb->commit(lsn);
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 crpAccessor::updateRoutePages(requestContext *context,
                                        const collectionRecord &record,
                                        logicalPageBuffer *lpb)
@@ -222,6 +293,109 @@ namespace vessel
       for (UINT32 i = 0; i < COLLECTION_ROUTE_PAGE_SLOT_COUNT; ++i)
       {
          wptr->record.routePages[i] = record.routePages[i];
+      }
+
+      rc = commitUpdateLog(context, &lrc, lpb->getRuntimeBuffer().getGlobalPid(),
+                           lpb->getLogicalPid(),
+                           COLLECTION_UPDATE_MASK_ROUTE_PAGES,
+                           oldRecord, wptr->record);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDSEVERE, "failed to commit log[%lld], rc:%d",
+                lrc.getLsn(), rc);
+         ossPanic();
+         for (UINT32 i = 0; i < COLLECTION_ROUTE_PAGE_SLOT_COUNT; ++i)
+         {
+            wptr->record.routePages[i] = oldRecord.routePages[i];
+         }
+         goto error;
+      }
+
+      lpb->commit(lrc.getLsn());
+   done:
+      return rc;
+   error:
+      if (lrc.prepared())
+      {
+         pageAccessor::abortLog(context, &lrc);
+      }
+      goto done;
+   }
+
+   INT32 crpAccessor::truncateRouteMap(requestContext *context,
+                                       logicalPageBuffer *lpb)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 slot = 0;
+      logRecordContext lrc;
+      collectionRecordOnDisk *wptr = NULL;
+      collectionRecord oldRecord;
+      UINT32 capacity = 0;
+      strictBuffer buffer;
+      
+      if (OSS_UNLIKELY(NULL == context ||
+                       INVALID_CL_MB_ID == context->getMBID() ||
+                       NULL == lpb ||
+                       !lpb->isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = lpb->validatePage(PAGE_TYPE_CL_META);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
+                lpb->getRuntimeBuffer().getGlobalPid().toString().c_str(), rc);
+         goto error;
+      }
+
+      rc = getCapacityOfCLRecordPage(lpb->getPageSize(), capacity);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to get capacity of cl record page:%d", rc);
+         goto error;
+      }
+
+      slot = context->getMBID() % capacity;
+
+      rc = lpb->prepareToWrite();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare to write:%d", rc);
+         goto error;
+      }
+
+      buffer = lpb->getWritableBodyBuffer();
+      SDB_ASSERT(buffer.isWritable(), "must be writable");
+
+      wptr = buffer.getWritableObjPtr<collectionRecordOnDisk>
+             (COLLECTION_DISK_RECORD_LEN * slot);
+      if (NULL == wptr)
+      {
+         PD_LOG(PDERROR, "failed to get writable ptr of slot[%d]", slot);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      if (!wptr->record.isValid())
+      {
+         PD_LOG(PDERROR, "invalid record on disk");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      oldRecord = wptr->record;
+      rc = prepareUpdateLog(context, &(lpb->getRuntimeBuffer()), &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare dps log:%d", rc);
+         goto error;
+      }
+
+      for (UINT32 i = 0; i < COLLECTION_ROUTE_PAGE_SLOT_COUNT; ++i)
+      {
+         wptr->record.routePages[i] = INVALID_PAGE_ID;
       }
 
       rc = commitUpdateLog(context, &lrc, lpb->getRuntimeBuffer().getGlobalPid(),
@@ -546,6 +720,44 @@ namespace vessel
          PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc->getLsn(), rc);
          goto error;
       }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 crpAccessor::commitRemoveLog(requestContext *context,
+                                      const runtimePageBuffer *rpb,
+                                      DPS_LSN_OFFSET &lsn)
+   {
+      INT32 rc = SDB_OK;
+      logRecordContext lrc;
+      rc = pageAccessor::prepareLog(context, rpb,
+                                    LOG_TYPE_CL_DELETE,
+                                    FALSE, &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
+         goto error;
+      }
+
+      lrc.setDDL();
+
+      rc = pageAccessor::prepareLogDone(context, &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare log done:%d", rc);
+         goto error;
+      }
+
+      rc = pageAccessor::commitLog(context, &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
+         goto error;
+      }
+
+      lsn = lrc.getLsn();
    done:
       return rc;
    error:

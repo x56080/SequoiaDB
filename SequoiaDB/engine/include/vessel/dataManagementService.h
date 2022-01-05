@@ -101,6 +101,7 @@ namespace vessel
                            const strSlice &nameSlice,
                            OSS_LATCH_MODE mode,
                            collectionSpace **out);
+
          INT32 getCSByUniqueID(requestContext *context,
                                utilCSUniqueID uniqueID,
                                OSS_LATCH_MODE mode,

@@ -77,6 +77,10 @@ namespace vessel
                          const strSlice &csName,
                          const strSlice &clName);
 
+   INT32 commitReleasingPagesLog(requestContext *context,
+                                 const ossPoolVector<PAGE_ID> &lpids,
+                                 const bson::BSONObj &adjunct);
+
    class lpsLogUtil : public SDBObject
    {
       public:

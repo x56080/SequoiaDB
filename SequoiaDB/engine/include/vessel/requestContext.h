@@ -46,7 +46,7 @@
 #include "sdbInterface.hpp"
 #include "vessel/objectIdentifier.h"
 #include "vessel/simpleBufferAllocator.h"
-
+#include "vessel/shallowPointer.hpp"
 #include "dpsTransLockDef.hpp"
 
 /*
@@ -106,8 +106,22 @@ namespace vessel
 
       public:
          CHAR *allocateBuffer(UINT32 size);
-         void releaseBuffer(CHAR *buffer);
+         void releaseBuffer(void *buffer);
 
+         template<class T>
+         shallowArray<T> allocateArray(UINT32 size)
+         {
+            shallowArray<T> arr;
+            const CHAR *buffer = this->allocateBuffer(size * sizeof(T));
+            if (OSS_LIKELY(NULL != buffer))
+            {
+               arr = shallowArray<T>((T*)buffer, size);
+            }
+            return arr;
+         }
+
+         /// releaseBuffer(array.data());
+         
       public:
 
          INT32 lockSpaceID(SPACE_ID sid,

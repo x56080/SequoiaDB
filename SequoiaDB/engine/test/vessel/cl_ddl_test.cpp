@@ -322,3 +322,147 @@ TEST_F(cl_ddl_test, test4)
    ASSERT_EQ(SDB_OK, rc);
 
 }
+
+TEST_F(cl_ddl_test, base_remove_cl_1)
+{
+   vesselImpl db;
+   outerResource resource = test_outer_resource::getResource();
+
+   test_executor executor;
+   openDBOptions options;
+
+   options.path.dataPath = DATA_PATH;
+   options.path.indexPath = DATA_PATH;
+   options.path.lobMetaPath = DATA_PATH;
+   options.path.lobPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+
+   INT32 rc = SDB_OK;
+   UINT32 count = 0;
+
+   rc = db.open(&executor, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCS(&executor, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCL(&executor, "foo.bar1", 1, dmsCreateCLOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+   rc = db.createCL(&executor, "foo.bar2", 2, dmsCreateCLOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+   rc = db.createCL(&executor, "foo.bar3", 3, dmsCreateCLOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.getCLCount(&executor, "foo", count);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(3, count);
+
+   rc = db.removeCL(&executor, "foo.bar1", dmsRemoveCLOptions());
+   ASSERT_EQ(SDB_OK, rc);
+   rc = db.getCLCount(&executor, "foo", count);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(2, count);
+   rc = db.removeCL(&executor, "foo.bar1", dmsRemoveCLOptions());
+   ASSERT_EQ(SDB_DMS_NOTEXIST, rc);
+
+   rc = db.removeCL(&executor, "foo.bar2", dmsRemoveCLOptions());
+   ASSERT_EQ(SDB_OK, rc);
+   rc = db.getCLCount(&executor, "foo", count);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(1, count);
+   rc = db.removeCL(&executor, "foo.bar2", dmsRemoveCLOptions());
+   ASSERT_EQ(SDB_DMS_NOTEXIST, rc);
+
+   rc = db.removeCL(&executor, "foo.bar3", dmsRemoveCLOptions());
+   ASSERT_EQ(SDB_OK, rc);
+   rc = db.getCLCount(&executor, "foo", count);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(0, count);
+   rc = db.removeCL(&executor, "foo.bar3", dmsRemoveCLOptions());
+   ASSERT_EQ(SDB_DMS_NOTEXIST, rc);
+
+   rc = db.close(&executor, closeDBOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.open(&executor, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+   rc = db.getCLCount(&executor, "foo", count);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(0, count);
+
+   rc = db.close(&executor, closeDBOptions());
+   ASSERT_EQ(SDB_OK, rc);
+}
+
+TEST_F(cl_ddl_test, base_truncate_cl_1)
+{
+   vesselImpl db;
+   outerResource resource = test_outer_resource::getResource();
+
+   test_executor executor;
+   openDBOptions options;
+
+   options.path.dataPath = DATA_PATH;
+   options.path.indexPath = DATA_PATH;
+   options.path.lobMetaPath = DATA_PATH;
+   options.path.lobPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+
+   INT32 rc = SDB_OK;
+
+   rc = db.open(&executor, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCS(&executor, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCL(&executor, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   DATA_COLLECTION_PTR cl;
+   rc = db.openCL(&executor, "foo.bar", dmsOpenCLOptions(), cl);
+   ASSERT_EQ(SDB_OK, rc);
+
+   UINT32 insertCount = 10000;
+   bson::BSONObjBuilder builder;
+   constexpr UINT32 _PAD_SIZE = 1023;
+   CHAR pad[_PAD_SIZE] = {};
+   ossMemset(pad, 'a', sizeof(pad) - 1);
+   builder.append("a", pad);
+   bson::BSONObj obj = builder.done();
+   for (UINT32 i = 0; i < insertCount; ++i)
+   {
+      rc = cl->insertRecord(&executor, obj, dmsInsertRecordOptions(), NULL);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+
+   UINT64 count = 0;
+   rc = cl->getRecordCount(&executor, count);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(insertCount, count);
+
+   rc = cl->truncate(&executor, dmsTruncateCLOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   count = 0;
+   rc = cl->getRecordCount(&executor, count);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(0, count);
+
+   rc = db.close(&executor, closeDBOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.open(&executor, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   cl.reset();
+   rc = db.openCL(&executor, "foo.bar", dmsOpenCLOptions(), cl);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = cl->getRecordCount(&executor, count);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(0, count);
+
+   rc = db.close(&executor, closeDBOptions());
+   ASSERT_EQ(SDB_OK, rc);
+}

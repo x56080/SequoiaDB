@@ -118,11 +118,6 @@ namespace vessel
    void logicalPageSpace::destroy(requestContext *context)
    {
       _destroy(context);
-      if (NULL != _dpc)
-      {
-         _dpc->destroy();
-         _dpc = NULL;
-      }
       if (_logConsole.isReady())
       {
          _logConsole.destroy(context);
@@ -198,6 +193,7 @@ namespace vessel
       }
 
       /// 5. init page stoarge
+      /// TODO: move to sub class
       _dpc = getDataStorageObj();
       if (NULL == _dpc)
       {
@@ -297,6 +293,7 @@ namespace vessel
       }
 
       /// init page storage
+      /// TODO: move to sub class
       _dpc = getDataStorageObj();
       if (NULL == _dpc)
       {
@@ -418,7 +415,8 @@ namespace vessel
       idMapFile *base = _idMapFiles.getBack<idMapFile>();
       SDB_ASSERT(NULL != base, "can not be null");
       DPS_LSN_OFFSET pushLSN = DPS_INVALID_LSN_OFFSET;
-      DPS_LSN_OFFSET currentMaxLSN = DPS_INVALID_LSN_OFFSET;
+      DPS_LSN_OFFSET minDirtyLSN = DPS_INVALID_LSN_OFFSET;
+      DPS_LSN_OFFSET maxDirtyLSN = DPS_INVALID_LSN_OFFSET;
 
       if (!_checkpointContext.tryToSetRunningFromNoneOrApplying())
       {
@@ -443,10 +441,10 @@ namespace vessel
                       _checkpointContext.getMinDirtyLsn(),
                       _checkpointContext.getMaxDirtyLsn());
 
-      /// actually we only need push lsn to max dirty lsn when space is replicated.
-      pushLSN = logger->getCurrentLSN();
-      currentMaxLSN = _checkpointContext.getMaxDirtyLsn();
-
+      minDirtyLSN = _checkpointContext.getMinDirtyLsn();
+      maxDirtyLSN = _checkpointContext.getMaxDirtyLsn();
+      pushLSN = isCopyOnWrite() ? logger->getCurrentLSN() : maxDirtyLSN;
+      
       rc = _logConsole.reserveCheckpoint(context);
       if (SDB_OK != rc)
       {
@@ -454,26 +452,29 @@ namespace vessel
          goto error;
       }
 
-      rc = prepareToCreateCheckpoint(context, FALSE, lsn);
+      lsn._lsn = logger->getCurrentLSN();
+      lsn._minDirtyLSN = minDirtyLSN;
+      rc = getMinUncompletedLSN(context, lsn._minUncompletedLSN);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare to create checkpoint:%d", rc);
+         PD_LOG(PDERROR, "failed to get min uncompleted lsn:%d", rc);
          goto error;
       }
 
       if (isCopyOnWrite())
       {
-         extractDirtySegments(segments);
+         extractDirtySegmentsInCache(segments);
       }
 
       _lpidCache.setAllPagesImmutable();
+      mergeWaitingListIntoReadyList();
 
       SDB_ASSERT(lsn.isValid(), "can not be invalid");
-      _checkpointContext.clearDirtyLSN(FALSE);
+      _checkpointContext.clearDirtyLSN();
       _checkpointContext.getLatch()->release_w();
       locked = FALSE;
 
-      if (!segments.empty())
+      if (isCopyOnWrite() && !segments.empty())
       {
          rc = flushSegmentsAtCheckpoint(context, segments);
          if (SDB_OK != rc)
@@ -489,14 +490,17 @@ namespace vessel
                       ossGetCurrentMilliseconds());
       _logConsole.commit(checkpoint);
 
+      freePidsInReadyList();
+
       _checkpointContext.setCheckpoint(checkpoint);
       _checkpointContext.setStatus(lpsCheckpointContext::STATUS::ENDING);
+      
       endToCreateCheckpoint(context);
       /// TOOD: update global status here
 
       _checkpointContext.setStatus(lpsCheckpointContext::STATUS::NONE);
       abortCheckpoint = FALSE;
-      currentMaxLSN = DPS_INVALID_LSN_OFFSET;
+
       PD_LOG(PDINFO, "end to create checkpoint (delta) on lps[%d,%d], :%s",
              getSpaceID(), getSpaceType(),
              _checkpointContext.getCheckpoint().toString().c_str());
@@ -506,17 +510,19 @@ namespace vessel
       {
          _checkpointContext.getLatch()->release_w();
       }
-      if (DPS_INVALID_LSN_OFFSET != currentMaxLSN)
-      {
-         /// rollback dir lsn if necessary
-         _checkpointContext.updateDirtyLsn(currentMaxLSN);
-      }
       if (abortCheckpoint)
       {
          _checkpointContext.setStatus(lpsCheckpointContext::STATUS::NONE);
       }
       return rc;
    error:
+      if (DPS_INVALID_LSN_OFFSET != minDirtyLSN)
+      {
+         _mappingLatch.get();
+         _checkpointContext.updateDirtyLsn(minDirtyLSN);
+         _checkpointContext.updateDirtyLsn(maxDirtyLSN);
+         _mappingLatch.release();
+      }
       goto done;
    }
 
@@ -532,7 +538,8 @@ namespace vessel
       IRedoLogger *logger = context->getOuterResource()->logger;
       ossPoolSet<UINT32> segments;
       DPS_LSN_OFFSET pushLSN = DPS_INVALID_LSN_OFFSET;
-      DPS_LSN_OFFSET currentMaxLSN = DPS_INVALID_LSN_OFFSET;
+      DPS_LSN_OFFSET minDirtyLSN = DPS_INVALID_LSN_OFFSET;
+      DPS_LSN_OFFSET maxDirtyLSN = DPS_INVALID_LSN_OFFSET;
 
       if (!_checkpointContext.tryToSetRunningFromNoneOrApplying())
       {
@@ -557,31 +564,34 @@ namespace vessel
                       _checkpointContext.getMinDirtyLsn(),
                       _checkpointContext.getMaxDirtyLsn());
 
-      currentMaxLSN = _checkpointContext.getMaxDirtyLsn();
-      pushLSN = logger->getCurrentLSN();
+      minDirtyLSN = _checkpointContext.getMaxDirtyLsn();
+      maxDirtyLSN = _checkpointContext.getMaxDirtyLsn();
+      pushLSN = isCopyOnWrite() ? logger->getCurrentLSN() : maxDirtyLSN;
 
-      rc = prepareToCreateCheckpoint(context, TRUE, lsn);
+      lsn._lsn = logger->getCurrentLSN();
+      lsn._minDirtyLSN = minDirtyLSN;
+      rc = getMinUncompletedLSN(context, lsn._minUncompletedLSN);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare to create checkpoint:%d", rc);
+         PD_LOG(PDERROR, "failed to get min uncompleted lsn:%d", rc);
          goto error;
       }
-      SDB_ASSERT(lsn.isValid(), "can not be invalid");
 
       if (isCopyOnWrite())
       {
-         extractDirtySegments(segments);
+         extractDirtySegmentsInCache(segments);  
       }
 
       _lpidCache.setAllPagesImmutable();
+      mergeWaitingListIntoReadyList();
 
       _logConsole.rebase(context, _logConsole.getBaseSequence() + 1, FALSE);
 
-      _checkpointContext.clearDirtyLSN(FALSE);
+      _checkpointContext.clearDirtyLSN();
       _checkpointContext.getLatch()->release_w();
       locked = FALSE;
 
-      if (!segments.empty())
+      if (isCopyOnWrite() && !segments.empty())
       {
          rc = flushSegmentsAtCheckpoint(context, segments);
          if (SDB_OK != rc)
@@ -605,6 +615,8 @@ namespace vessel
          goto error;
       }
 
+      freePidsInReadyList();
+
       _checkpointContext.setCheckpoint(checkpoint);
       _checkpointContext.setStatus(lpsCheckpointContext::STATUS::ENDING);
       endToCreateCheckpoint(context);
@@ -612,7 +624,7 @@ namespace vessel
 
       _checkpointContext.setStatus(lpsCheckpointContext::STATUS::NONE);
       abortCheckpoint = FALSE;
-      currentMaxLSN = DPS_INVALID_LSN_OFFSET;
+
       PD_LOG(PDINFO, "end to create checkpoint (full) on lps[%d,%d], :%s",
             getSpaceID(), getSpaceType(),
             _checkpointContext.getCheckpoint().toString().c_str());
@@ -621,17 +633,19 @@ namespace vessel
       {
          _checkpointContext.getLatch()->release_w();
       }
-      if (DPS_INVALID_LSN_OFFSET != currentMaxLSN)
-      {
-         /// rollback dir lsn if necessary
-         _checkpointContext.updateDirtyLsn(currentMaxLSN);
-      }
       if (abortCheckpoint)
       {
          _checkpointContext.setStatus(lpsCheckpointContext::STATUS::NONE);
       }
       return rc;
    error:
+      if (DPS_INVALID_LSN_OFFSET != minDirtyLSN)
+      {
+         _mappingLatch.get();
+         _checkpointContext.updateDirtyLsn(minDirtyLSN);
+         _checkpointContext.updateDirtyLsn(maxDirtyLSN);
+         _mappingLatch.release();
+      }
       goto done;
    }
 
@@ -737,7 +751,7 @@ namespace vessel
       }
       locked = TRUE;
 
-      rc = getIdMapSlotFromCache(lpid, slot, isMutablePage);
+      rc = _lpidCache.get(lpid, slot, isMutablePage);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to find lpid[%d] in cache:%d", lpid, rc);
@@ -815,7 +829,7 @@ namespace vessel
          goto done;
       }
 
-      rc = getIdMapSlotFromCache(lpid, slot, isMutablePage);
+      rc = _lpidCache.get(lpid, slot, isMutablePage);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to find lpid[%d] in cache:%d", lpid, rc);
@@ -895,7 +909,7 @@ namespace vessel
          locked = TRUE;
       }
 
-      rc = getIdMapSlotFromCache(lpid, slot, isMutablePage);
+      rc = _lpidCache.get(lpid, slot, isMutablePage);
       if (SDB_VESSEL_LOGICAL_PAGE_UNMAPPED == rc)
       {
          rc = SDB_OK;
@@ -927,7 +941,6 @@ namespace vessel
       idMapSlot slot;
       runtimePageBuffer &rpb = lpb._rpb;
       requestContext *context = lpb._context;
-      BOOLEAN copyOnWrite = FALSE;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -978,10 +991,8 @@ namespace vessel
                    lpb.getLogicalPid(), rc);
             goto error;
          }
-
-         copyOnWrite = TRUE;
       }
-      else if (!lpb.getCowTrigger().isMutablePid())
+      else if (isCopyOnWrite() && !lpb.getCowTrigger().isMutablePid())
       {
          rc = remapBufferToNewDataPage(context, TRUE, lpb);
          if (SDB_OK != rc)
@@ -990,8 +1001,6 @@ namespace vessel
                    lpb.getLogicalPid(), rc);
             goto error;
          }
-
-         copyOnWrite = TRUE;
       }
       
       SDB_ASSERT(rpb.isValid(), "must be valid");
@@ -1003,11 +1012,6 @@ namespace vessel
             PD_LOG(PDERROR, "failed to get rpb writable:%d", rc);
             goto error;
          }
-      }
-
-      if (copyOnWrite)
-      {
-         applyCheckpointIfNecessary(context);
       }
       
    done:
@@ -1071,15 +1075,13 @@ namespace vessel
       }
 
       mpid.reset(lpid, pid);
-      rc = initAndMapPages(context, initer, 1, &mpid);
+      rc = initAndMapPages(context, initer, LPID_MAPPING_ARRAY(&mpid, 1));
       if (SDB_OK != rc)
       {
          _dpc->releasePage(pid);
          PD_LOG(PDERROR, "failed to init page:%d", rc);
          goto error;
       }
-
-      applyCheckpointIfNecessary(context);
    done:
       return rc;
    error:
@@ -1089,47 +1091,45 @@ namespace vessel
 
    INT32 logicalPageSpace::initAndMapPages(requestContext *context,
                                            pageInitializer *initer,
-                                           UINT32 count,
-                                           const mappedLogicalPageId *mpids)
+                                           const LPID_MAPPING_ARRAY &mapping)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(NULL != initer, "can not be null");
-      SDB_ASSERT(0 != count, "can not be zero");
-      SDB_ASSERT(NULL != mpids, "can not be null");
+      SDB_ASSERT(mapping.isValid(), "can not be invalid");
       runtimePageBuffer rpb;
       PAGE_SNAPSHOT_VERION psv = context->getEnv()->dms.getOnlinePageSnapshotVersion();
       
-      for (UINT32 i = 0; i < count; ++i)
+      for (UINT32 i = 0; i < mapping.getSize(); ++i)
       {
-         if (OSS_UNLIKELY(!mpids[i].isValid()))
+         if (OSS_UNLIKELY(!mapping[i].isValid()))
          {
             PD_LOG(PDERROR, "invalid mapped id");
             rc = SDB_INVALIDARG;
             goto error;
          }
 
-         rc = getRuntimePageBufferToReset(context, mpids[i].getPid(), rpb);
+         rc = getRuntimePageBufferToReset(context, mapping[i].getPid(), rpb);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get runtime buffer of page[%d], rc:%d",
-                   mpids[i].getPid(), rc);
+                   mapping[i].getPid(), rc);
             goto error;
          }
          SDB_ASSERT(rpb.isWritingPrepared(), "must be prepared");
 
-         rc = initer->initInTurns(context, i, mpids[i].getLpid(),
+         rc = initer->initInTurns(context, i, mapping[i].getLpid(),
                                   psv, &rpb);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to init page[%d,%d], rc:%d",
-                   mpids[i].getLpid(), mpids[i].getPid(), rc);
+                   mapping[i].getLpid(), mapping[i].getPid(), rc);
             goto error;
          }
          rpb.fini();
       }
 
-      rc = map(context, psv, count, mpids);
+      rc = map(context, psv, mapping);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to map pages:%d", rc);
@@ -1176,7 +1176,10 @@ namespace vessel
 
       /// 3. remap
       mpid.reset(lpid, pid);
-      rc = remap(context, psv, 1, &mpid, &oldPid, releaseOld);
+      rc = remap(context, psv,
+                 LPID_MAPPING_ARRAY(&mpid, 1),
+                 PID_ARRAY(&oldPid, 1),
+                 releaseOld);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to remap lpid[%d], rc:%d", lpid, rc);
@@ -1206,8 +1209,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(count <= 32, "impossible");
-      CHAR *buffer = NULL;
-      UINT32 bufferSize = 0;
+      LPID_MAPPING_ARRAY mapping;
       BOOLEAN rollback = FALSE;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -1224,16 +1226,15 @@ namespace vessel
          goto error;
       }
 
-      bufferSize = count * sizeof(mappedLogicalPageId);
-      buffer = context->allocateBuffer(bufferSize);
-      if (OSS_UNLIKELY(NULL == buffer))
+      mapping = context->allocateArray<mappedLogicalPageId>(count);
+      if (OSS_UNLIKELY(!mapping.isValid()))
       {
          PD_LOG(PDERROR, "failed to allocate mem");
          rc = SDB_OOM;
          goto error;
       }
 
-      rc = preallocate(context, count, (mappedLogicalPageId *)buffer);
+      rc = reservePagesInMem(context, mapping);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to preallocate pages:%d", rc);
@@ -1241,8 +1242,7 @@ namespace vessel
       }
       rollback = TRUE;
 
-      rc = initAndMapPages(context, initer, count,
-                           (const mappedLogicalPageId *)buffer);
+      rc = initAndMapPages(context, initer, mapping);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init and map pages:%d", rc);
@@ -1251,21 +1251,19 @@ namespace vessel
 
       for (UINT32 i = 0; i < count; ++i)
       {
-         lpids[i] = ((const mappedLogicalPageId *)buffer)[i].getLpid();
+         lpids[i] = mapping[i].getLpid();
       }
 
-      applyCheckpointIfNecessary(context);
    done:
-      if (NULL != buffer)
+      if (mapping.isValid())
       {
-         context->releaseBuffer(buffer);
+         context->releaseBuffer(mapping.data());
       }
       return rc;
    error:
       if (rollback)
       {
-         releasePreallocated(context, count,
-                             (const mappedLogicalPageId *)buffer);
+         freePagesInMem(context, mapping);
       }
       for (UINT32 i = 0; i < count; ++i)
       {
@@ -1312,7 +1310,7 @@ namespace vessel
          ossPoolVector<mappedLogicalPageId> *vec = NULL;
          BOOLEAN releaseOld = FALSE;
 
-         INT32 rc = getIdMapSlotFromCache(lpid, slot, isMutable);
+         INT32 rc = _lpidCache.get(lpid, slot, isMutable);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get page[%d] from cache, rc:%d", lpid, rc);
@@ -1342,7 +1340,8 @@ namespace vessel
          vec->push_back(mappedId);
          if (_BATCH_COUNT == vec->size())
          {
-            unmap(context, vec->size(), vec->data(), releaseOld);
+            LPID_MAPPING_ARRAY array(vec->data(), vec->size());
+            unmap(context, array, releaseOld);
             vec->clear();
          }
 
@@ -1354,18 +1353,19 @@ namespace vessel
 
       if (!underSnapshot.empty())
       {
-         unmap(context, underSnapshot.size(), underSnapshot.data(), FALSE);
+         LPID_MAPPING_ARRAY array(underSnapshot.data(), underSnapshot.size());
+         unmap(context, array, FALSE);
       }
       if (!notUnderSnapshot.empty())
       {
-         unmap(context, notUnderSnapshot.size(), notUnderSnapshot.data(), TRUE);
+         LPID_MAPPING_ARRAY array(notUnderSnapshot.data(), notUnderSnapshot.size());
+         unmap(context, array, TRUE);
       }
       if (!notReservedLpids.empty())
       {
-         releaseLpidsPreallocated(context, notReservedLpids.size(), notReservedLpids.data());
+         PID_ARRAY array(notReservedLpids.data(), notReservedLpids.size());
+         freeLpidsInMem(context, array);
       }
-
-      applyCheckpointIfNecessary(context);
    done:
       return rc;
    error:
@@ -1630,132 +1630,121 @@ namespace vessel
       goto done;
    }
 
-   INT32 logicalPageSpace::preallocate(requestContext *context,
-                                       UINT32 count,
-                                       mappedLogicalPageId *mpids)
+   INT32 logicalPageSpace::reservePagesInMem(requestContext *context,
+                                             LPID_MAPPING_ARRAY pages)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(pages.isValid(), "can not be invalid");
+      SDB_ASSERT(NULL != context, "can not be null");
 
-      CHAR *pidBuffer = NULL;
-      CHAR *lpidBuffer = NULL;
-      UINT32 bufferSize = 0;
-      if (OSS_UNLIKELY(NULL == context ||
-                       0 == count ||
-                       NULL == mpids))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
+      pages.fill();
 
-      bufferSize = count * sizeof(PAGE_ID);
-      pidBuffer = context->allocateBuffer(bufferSize);
-      if (OSS_UNLIKELY(NULL == pidBuffer))
+      PID_ARRAY pids;
+      PID_ARRAY lpids;
+
+      pids = context->allocateArray<PAGE_ID>(pages.getSize());
+      if (OSS_UNLIKELY(!pids.isValid()))
       {
          PD_LOG(PDERROR, "failed to allocate mem");
          rc = SDB_OOM;
          goto error;
       }
-      lpidBuffer = context->allocateBuffer(bufferSize);
-      if (OSS_UNLIKELY(NULL == lpidBuffer))
+      lpids = context->allocateArray<PAGE_ID>(pages.getSize());
+      if (OSS_UNLIKELY(!lpids.isValid()))
       {
          PD_LOG(PDERROR, "failed to allocate mem");
          rc = SDB_OOM;
          goto error;
       }
 
-      rc = preallocateLpids(context, count, (PAGE_ID *)lpidBuffer);
+      rc = reserveLpidsInMem(context, lpids);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to preallocate lpids:%d", rc);
          goto error;
       }
 
-      rc = _dpc->allocatePages(context, count, (PAGE_ID *)pidBuffer);
+      rc = _dpc->allocatePages(context, pids.getSize(), pids.data());
       if (SDB_OK != rc)
       {
-         releaseLpidsPreallocated(context, count, (const PAGE_ID *)lpidBuffer);
+         freeLpidsInMem(context, lpids);
          PD_LOG(PDERROR, "failed to allocate pids:%d", rc);
          goto error;
       }
 
-      for (UINT32 i = 0; i < count; ++i)
+      for (UINT32 i = 0; i < pages.getSize(); ++i)
       {
-         mpids[i].reset(((const PAGE_ID *)lpidBuffer)[i],
-                         ((const PAGE_ID *)pidBuffer)[i]);
+         pages[i].reset(lpids[i], pids[i]);
       }
    done:
-      if (NULL != lpidBuffer)
+      if (lpids.isValid())
       {
-         context->releaseBuffer(lpidBuffer);
+         context->releaseBuffer(lpids.data());
       }
-      if (NULL != pidBuffer)
+      if (pids.isValid())
       {
-         context->releaseBuffer(pidBuffer);
+         context->releaseBuffer(pids.data());
       }
       return rc;
    error:
       goto done;
    }
 
-   void logicalPageSpace::releasePreallocated(requestContext *context,
-                                              UINT32 count,
-                                              const mappedLogicalPageId *mpids)
+   void logicalPageSpace::freePagesInMem(requestContext *context,
+                                         const LPID_MAPPING_ARRAY &pages)
    {
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(0 < count, "can not be zero");
-      SDB_ASSERT(NULL != mpids, "can not be null");
-      CHAR *buffer = NULL;
+      SDB_ASSERT(pages.isValid(), "can not be invalid");
+      PID_ARRAY array;
 
-      if (1 == count)
+      if (1 == pages.getSize())
       {
-         SDB_ASSERT(mpids[0].isValid(), "must be valid");
-         PAGE_ID lpid = mpids->getLpid();
-         releaseLpidsPreallocated(context, 1, &lpid);
-         _dpc->releasePage(mpids[0].getPid());
+         PAGE_ID lpid = pages[0].getLpid();
+         SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not invalid");
+         freeLpidInMem(context, lpid);
+         _dpc->releasePage(pages[0].getPid());
       }
       else
       {
-         UINT32 bufferSize = count * sizeof(PAGE_ID);
-         CHAR *buffer = context->allocateBuffer(bufferSize);
-         if (OSS_UNLIKELY(NULL == buffer))
+         array = context->allocateArray<PAGE_ID>(pages.getSize());
+         if (OSS_UNLIKELY(!array.isValid()))
          {
             PD_LOG(PDSEVERE, "failed to allocate mem, releasing terminated!");
             goto done;
          }
 
-         for (UINT32 i = 0; i < count; ++i)
+         for (UINT32 i = 0; i < pages.getSize(); ++i)
          {
-            ((PAGE_ID *)buffer)[i] = mpids[i].getLpid();
+            array[i] = pages[i].getLpid();
          }
-         releaseLpidsPreallocated(context, count, (const PAGE_ID *)buffer);
+         freeLpidsInMem(context, array);
 
-         for (UINT32 i = 0; i < count; ++i)
+         for (UINT32 i = 0; i < pages.getSize(); ++i)
          {
-            ((PAGE_ID *)buffer)[i] = mpids[i].getPid();
+            array[i] = pages[i].getPid();
          }
-         _dpc->releasePages(count, (const PAGE_ID *)buffer);
+         _dpc->releasePages(array.getSize(), array.data());
       }
    done:
-      if (NULL != buffer)
+      if (array.isValid())
       {
-         context->releaseBuffer(buffer);
+         context->releaseBuffer(array.data());
       }
       return;
    }
 
-   INT32 logicalPageSpace::preallocateLpids(requestContext *context,
-                                            UINT32 count,
-                                            PAGE_ID *lpids)
+   INT32 logicalPageSpace::reserveLpidsInMem(requestContext *context,
+                                             PID_ARRAY lpids)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(_allocator.isInitialized(), "must be inited");
       SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(0 < count, "can not be zero");
-      SDB_ASSERT(NULL != lpids, "can not be null");
+      SDB_ASSERT(lpids.isValid(), "can not be invalid");
+      lpids.fill(INVALID_PAGE_ID);
       
-      rc = _allocator.allocateBits(count, lpids, 1);
+      rc = _allocator.allocateBits(lpids.getSize(), lpids.data(), 1);
       if (SDB_OK == rc)
       {
          goto done;
@@ -1776,18 +1765,28 @@ namespace vessel
       goto done;
    }
 
-   void logicalPageSpace::releaseLpidsPreallocated(requestContext *context,
-                                                   UINT32 count,
-                                                   const PAGE_ID *lpids)
+   void logicalPageSpace::freeLpidInMem(requestContext *context,
+                                        PAGE_ID lpid)
+   {
+      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
+      UINT32 reservedImpCount = getReservedImpCount();
+      PAGE_ID imp = getImpPidOfLpid(lpid);
+      SDB_ASSERT(INVALID_PAGE_ID != imp, "can not be invalid");
+      SDB_ASSERT(reservedImpCount <= imp, "impossible");
+      _allocator.release(lpid);
+      return;
+   }
+
+   void logicalPageSpace::freeLpidsInMem(requestContext *context,
+                                          const PID_ARRAY &lpids)
    {
       SDB_ASSERT(_allocator.isInitialized(), "must be inited");
       SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(0 < count, "can not be zero");
-      SDB_ASSERT(NULL != lpids, "can not be null");
+      SDB_ASSERT(lpids.isValid(), "can not be null");
 
       UINT32 reservedImpCount = getReservedImpCount();
 
-      for (UINT32 i = 0; i < count; ++i)
+      for (UINT32 i = 0; i < lpids.getSize(); ++i)
       {
          SDB_ASSERT(INVALID_PAGE_ID != lpids[i], "can not be invalid");
          PAGE_ID imp = getImpPidOfLpid(lpids[i]);
@@ -1795,8 +1794,7 @@ namespace vessel
          SDB_ASSERT(reservedImpCount <= imp, "impossible");
       }
 
-      _allocator.releaseBits(count, lpids);
-   done:
+      _allocator.releaseBits(lpids.getSize(), lpids.data());
       return;
    }
 
@@ -1820,7 +1818,7 @@ namespace vessel
 
       idMapFileHead imfHead;
       imfHead.version = ID_MAP_FILE_HEAD_VERSION;
-      imfHead.flags = getIdMapFileHeadFlags();
+      imfHead.flags = createIdMapFileHeadFlags();
       imfHead.dataPageSize = o.dataArgs.pageSize;
       imfHead.dataPageCountInSeg = o.dataArgs.maxPageCountPerSeg;
       imfHead.dataSegCountInFile = o.dataArgs.maxSegmentCountPerFile;
@@ -1902,7 +1900,7 @@ namespace vessel
                            ID_MAP_FILE_MAX_SEG_COUNT_IN_FILE);
       idMapFileHead imfHead;
       imfHead.version = ID_MAP_FILE_HEAD_VERSION;
-      imfHead.flags = getIdMapFileHeadFlags();
+      imfHead.flags = createIdMapFileHeadFlags();
       imfHead.dataPageSize = getStorageCoreArgs().pageSize;
       imfHead.dataPageCountInSeg = getStorageCoreArgs().maxPageCountPerSeg;
       imfHead.dataSegCountInFile = getStorageCoreArgs().maxSegmentCountPerFile;
@@ -2258,28 +2256,6 @@ namespace vessel
       goto done;
    }
 
-   INT32 logicalPageSpace::getIdMapSlotFromCache(PAGE_ID lpid,
-                                                 idMapSlot &slot,
-                                                 BOOLEAN &isMutable)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-      rc = _lpidCache.get(lpid, slot, isMutable);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      if (!isCopyOnWrite())
-      {
-         isMutable = TRUE;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
    INT32 logicalPageSpace::flushSegmentsAtCheckpoint(requestContext *context,
                                                      const ossPoolSet<UINT32> &segments)const
    {
@@ -2345,7 +2321,7 @@ namespace vessel
       goto done;
    }
 
-   void logicalPageSpace::applyCheckpointIfNecessary(requestContext *context)
+   void logicalPageSpace::postCheckpointIfNecessary(requestContext *context)
    {
       SDB_ASSERT(isOpen(), "can not be invalid");
       SDB_ASSERT(NULL != context && context->isOpen(), "can not be invalid");
@@ -2433,7 +2409,7 @@ namespace vessel
       goto done;
    }
 
-   void logicalPageSpace::extractDirtySegments(ossPoolSet<UINT32> &segments)
+   void logicalPageSpace::extractDirtySegmentsInCache(ossPoolSet<UINT32> &segments)
    {
       SDB_ASSERT(isOpen(), "can not be invalid");
       SDB_ASSERT(_lpidCache.isReady(), "can not be invalid");
@@ -2657,6 +2633,325 @@ namespace vessel
       return rc;
    error:
       goto done;
+   }
+   
+
+   INT32 logicalPageSpace::map(requestContext *context,
+                               PAGE_SNAPSHOT_VERION psv,
+                               const LPID_MAPPING_ARRAY &mapping)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(INVALID_PAGE_SNAPSHOT_VERSION != psv, "can not be invalid");
+      SDB_ASSERT(mapping.isValid(), "can not be invalid");
+
+      deltaLogRecordBuilder builder;
+      BOOLEAN blocked = FALSE;
+      DPS_LSN_OFFSET lsn = context->getExecutor()->getEndLsn();
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
+
+      /// build delta log
+      rc = builder.buildMappingLog(psv, mapping.getSize(), mapping.data());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to build mapping log:%d", rc);
+         goto error;
+      }
+
+      /// block checkpoint
+      rc = context->blockCheckpoint(getSpaceType(),
+                                    _checkpointContext.getLatch());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to block checkpoint:%d", rc);
+         goto error;
+      }
+      blocked = TRUE;
+
+      /// do mapping
+      {
+         ossXLatchGuard guard(&_mappingLatch);
+         rc = _logConsole.append(context, builder.getDeltaLogRecord());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR,"failed to append delta log record:%d", rc);
+            goto error;
+         }
+
+         _checkpointContext.updateDirtyLsn(lsn);
+      }
+
+      ///update cache
+      for (UINT32 i = 0; i < mapping.getSize(); ++i)
+      {
+         idMapSlot slot(psv, mapping[i].getPid());
+         rc = _lpidCache.put(mapping[i].getLpid(), slot);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to upsert lpid[%d] in cache:%d", mapping[i].getLpid(), rc);
+            ossPanic();
+            goto error;
+         }
+      }
+
+      context->unblockCheckpoint();
+      blocked = FALSE;
+      postCheckpointIfNecessary(context);
+
+   done:
+      if (blocked)
+      {
+         context->unblockCheckpoint();
+      }
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 logicalPageSpace::remap(requestContext *context,
+                                 PAGE_SNAPSHOT_VERION psv,
+                                 const LPID_MAPPING_ARRAY &mapping,
+                                 const PID_ARRAY &oldPids,
+                                 BOOLEAN releaseOld)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(INVALID_PAGE_SNAPSHOT_VERSION != psv, "can not be invalid");
+      SDB_ASSERT(mapping.isValid() && oldPids.isValid(), "can not be invalid");
+      SDB_ASSERT(mapping.getSize() == oldPids.getSize(), "must be same");
+      SDB_ASSERT(mapping.getSize() < 256, "out of size");
+
+      deltaLogRecordBuilder builder;
+      BOOLEAN blocked = FALSE;
+      DPS_LSN_OFFSET lsn = context->getExecutor()->getEndLsn();
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
+
+      rc = builder.buildRemappingLog(psv, mapping.getSize(),
+                                     mapping.data(),
+                                     oldPids.data(),
+                                     releaseOld);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to build remapping log:%d", rc);
+         goto error;
+      }
+
+      rc = context->blockCheckpoint(getSpaceType(),
+                                    _checkpointContext.getLatch());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to block checkpoint:%d", rc);
+         goto error;
+      }
+      blocked = TRUE;
+
+      {
+         ossXLatchGuard guard(&_mappingLatch);
+         rc = _logConsole.append(context, builder.getDeltaLogRecord());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR,"failed to append delta log record:%d", rc);
+            goto error;
+         }
+
+         _checkpointContext.updateDirtyLsn(lsn);
+      }
+
+      for (UINT32 i = 0; i < mapping.getSize(); ++i)
+      {
+         idMapSlot slot(psv, mapping[i].getPid());
+         rc = _lpidCache.put(mapping[i].getLpid(), slot);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to upsert lpid[%d] in cache:%d", mapping[i].getLpid(), rc);
+            ossPanic();
+            goto error;
+         }
+      }
+
+      /// it is not necessary to push pids into waiting list
+      /// if space is not copy-on-write.
+      /// we just do it for the safety.
+      if (releaseOld)
+      {
+         pushIntoWaitingFreeList(oldPids);
+      }
+
+      context->unblockCheckpoint();
+      blocked = FALSE;
+      postCheckpointIfNecessary(context);
+   done:
+      if (blocked)
+      {
+         context->unblockCheckpoint();
+      }
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 logicalPageSpace::unmap(requestContext *context,
+                                 const LPID_MAPPING_ARRAY &mapping,
+                                 BOOLEAN releasePid)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(mapping.isValid(), "can not be invalid");
+      deltaLogRecordBuilder builder;
+      DPS_LSN_OFFSET lsn = context->getExecutor()->getEndLsn();
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
+      BOOLEAN blocked = FALSE;
+
+      PID_ARRAY pids;
+      if (releasePid)
+      {
+         pids = context->allocateArray<PAGE_ID>(mapping.getSize());
+         if (OSS_UNLIKELY(!pids.isValid()))
+         {
+            PD_LOG(PDERROR, "failed to allocate mem");
+            rc = SDB_OOM;
+            goto error;
+         }
+
+         for (UINT32 i = 0; i < mapping.getSize(); ++i)
+         {
+            pids[i] = mapping[i].getPid();
+         }
+      }
+
+      rc = builder.buildUnmappingLog(mapping.getSize(), mapping.data(), releasePid);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to build unmapping log:%d", rc);
+         goto error;
+      }
+
+      rc = context->blockCheckpoint(getSpaceType(),
+                                    _checkpointContext.getLatch());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to block checkpoint:%d", rc);
+         goto error;
+      }
+      blocked = TRUE;
+
+      {
+         ossXLatchGuard guard(&_mappingLatch);
+         rc = _logConsole.append(context, builder.getDeltaLogRecord());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR,"failed to append delta log record:%d", rc);
+            goto error;
+         }
+
+         _checkpointContext.updateDirtyLsn(lsn);
+      }
+
+      for (UINT32 i = 0; i < mapping.getSize(); ++i)
+      {
+         _lpidCache.remove(mapping[i].getLpid());
+      }
+
+      if (releasePid)
+      {
+         pushIntoWaitingFreeList(pids);
+      }
+
+      context->unblockCheckpoint();
+      blocked = FALSE;
+      postCheckpointIfNecessary(context);
+   done:
+      if (blocked)
+      {
+         context->unblockCheckpoint();
+      }
+      if (pids.isValid())
+      {
+         context->releaseBuffer(pids.data());
+      }
+      return rc;
+   error:
+      goto done;
+   }
+
+   void logicalPageSpace::pushIntoWaitingFreeList(const PID_ARRAY &pids)
+   {
+      SDB_ASSERT(isOpen(), "can not be invalid");
+      SDB_ASSERT(pids.isValid(), "can not be invalid");
+      ossXLatchGuard guard(&_freeLatch);
+      for (UINT32 i = 0; i < pids.getSize(); ++i)
+      {
+         PAGE_ID pid = pids[i];
+         if (OSS_LIKELY(INVALID_PAGE_ID != pid))
+         {
+            _waitingToFree.push(pid);
+         }
+         else
+         {
+            SDB_ASSERT(FALSE, "invalid pid");
+         }
+      }
+      return;
+   }
+
+   void logicalPageSpace::mergeWaitingListIntoReadyList()
+   {
+      SDB_ASSERT(isOpen(), "can not be invalid");
+      ossXLatchGuard guard(&_freeLatch);
+      if (!_waitingToFree.isEmpty())
+      {
+         _waitingToFree.transferTo(_readyToFree);
+      }
+      return;
+   }
+
+   void logicalPageSpace::freePidsInReadyList()
+   {
+      SDB_ASSERT(isOpen(), "can not be invalid");
+      pidBatchList bl;
+
+      {
+         ossXLatchGuard guard(&_freeLatch);
+         if (!_readyToFree.isEmpty())
+         {
+            _readyToFree.transferTo(bl);
+         }
+      }
+
+      for (pidBatchList::BATCH_LIST::const_iterator itr = bl.begin();
+           itr != bl.end(); ++itr)
+      {
+         getDataStorageObj()->releasePages(itr->size(), itr->data());
+      }
+
+      bl.clear();
+      return;
+   }
+
+   UINT32 logicalPageSpace::createIdMapFileHeadFlags()const
+   {
+      UINT32 flags = 0;
+      if (isCopyOnWrite())
+      {
+         OSS_BIT_SET(flags, IMF_FLAG_COPY_ON_WRITE);
+      }
+      return flags;
+   }
+
+   BOOLEAN logicalPageSpace::validateIdMapFileHeadFlags(UINT32 flags)const
+   {
+      return createIdMapFileHeadFlags() == flags;
+   }
+
+   INT32 logicalPageSpace::getMinUncompletedLSN(requestContext *context,
+                                                DPS_LSN_OFFSET &lsn)
+   {
+      SDB_ASSERT(NULL != context, "can not be null");
+      IRedoLogger *logger = context->getOuterResource()->logger;
+      lsn = logger->getMinUncommitedLSN();
+      return SDB_OK;
    }
 }//namespace vessel
 }//namespace engine

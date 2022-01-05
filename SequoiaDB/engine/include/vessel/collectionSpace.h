@@ -124,8 +124,6 @@ namespace vessel
                       storageUnit *su,
                       const createCSOptions &options);
 
-         INT32 destory(requestContext *context);
-
          INT32 open(requestContext *context,
                     storageUnit *su);
 
@@ -136,10 +134,14 @@ namespace vessel
 
          INT32 waitIfCheckpointCreating(requestContext *context);
 
+      public:
          INT32 createCL(requestContext *context,
                         const strSlice &clName, 
                         utilCLInnerID clInnerId,
                         const createCLOptions &options);
+
+         INT32 removeCL(requestContext *context,
+                        const collectionId &identifier);
       public:
 
          UINT32 getCollectionCount();
@@ -184,6 +186,8 @@ namespace vessel
 
          INT32 getCollectionHolder(CL_MB_ID mbID, collectionObjHolder **holder);
 
+         void releaseCollectionObject(CL_MB_ID mbID);
+
          INT32 ensureCollectionRecordPage(requestContext *context,
                                           CL_MB_ID mbID);
 
@@ -199,6 +203,13 @@ namespace vessel
                                   UINT32 logicalID);
 
          void endCreatingCL(collection *obj);
+
+         void prepareToRemoveCL(const ossPoolString &clName,
+                                utilCLInnerID innerId);
+
+         void endToRemoveCL(const ossPoolString &clName,
+                            utilCLInnerID innerId,
+                            CL_MB_ID mbID);
 
       private:
          BOOLEAN upperBoundCLName(const strSlice &clName,
@@ -226,7 +237,7 @@ namespace vessel
 
          typedef ossPoolMap<const CHAR *, CL_MB_ID, _NAME_LESS> NAME_INDEX;
          typedef ossPoolMap<utilCLInnerID, CL_MB_ID> ID_INDEX;
-         typedef ossPoolSet<const CHAR *, _NAME_LESS> _NAME_SET;
+         typedef ossPoolSet<ossPoolString> _NAME_SET;
          typedef ossPoolSet<utilCLInnerID> _INNER_ID_SET;         
       private:
          BOOLEAN _isOpen = FALSE;

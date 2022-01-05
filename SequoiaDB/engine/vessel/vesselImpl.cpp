@@ -384,6 +384,45 @@ namespace vessel
       goto done;
    }
 
+   INT32 vesselImpl::removeCL(IExecutor *executor,
+                              const CHAR *fullName,
+                              const dmsRemoveCLOptions &o)
+   {
+      INT32 rc = SDB_OK;
+      globalCollectionId gcid;
+
+      if (OSS_UNLIKELY(!isOpen() ||
+                       NULL == fullName))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      {
+         openCLHandler handler;
+         handler.init(&_env, executor);
+         rc = handler.doit(fullName, gcid);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+      }
+
+      {
+         removeCLHandler handler;
+         handler.init(&_env, executor);
+         rc = handler.doit(gcid, o);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 vesselImpl::listCL(IExecutor *executor,
                             const CHAR *csName,
                             DATA_CURSOR_PTR &cursor)
@@ -1063,6 +1102,37 @@ namespace vessel
          _env.resource.reset();
       }
       return;
+   }
+
+   INT32 vesselImpl::truncate(IExecutor *executor,
+                              const globalCollectionId &gcid,
+                              const dmsTruncateCLOptions &o)
+   {
+      INT32 rc = SDB_OK;
+      truncateCLHandler handler;
+
+      if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == executor ||
+                            !gcid.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      handler.init(&_env, executor);
+      rc = handler.doit(gcid, o);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    INT32 vesselImpl::initLsmDB(const openDBOptions &options)

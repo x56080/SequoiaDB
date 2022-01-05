@@ -832,10 +832,6 @@ void death_thread_insert(vesselImpl *db,
    session._id = i;
    CHAR pad[1024] = {0};
    bson::BSONObjBuilder builder;
-   builder.append("a", 1);
-   builder.append("b", 2);
-   builder.append("c", pad, 1024);
-   bson::BSONObj obj = builder.obj();
 
    DATA_COLLECTION_PTR handler;
    INT32 rc = db->openCL(&session, fullName, dmsOpenCLOptions(), handler);
@@ -843,14 +839,22 @@ void death_thread_insert(vesselImpl *db,
 
    for (UINT32 i = 0; i < count; ++i)
    {
+      builder.append("a", ossRand());
+      builder.append("b", 2);
+      builder.append("c", pad, 1024);
+      bson::BSONObj obj = builder.done();
       utilInsertResult res;
       rc = handler->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
       counter->fetch_add(1, std::memory_order_relaxed);
+      builder.reset();
    }
    handler->close();
+   cout << "thread quit:" << i << endl;
 }
 
+
+/// insert into single cl by multi threads.
 TEST_F(insert_test, DISABLED_death_test_1)
 {
    INT32 rc = SDB_OK;
@@ -885,6 +889,187 @@ TEST_F(insert_test, DISABLED_death_test_1)
       threads[i] = std::move(std::thread(death_thread_insert, &db,
                                          "foo.bar", countPerThread,
                                          i, counters+i));
+   }
+
+   do
+   {
+      ossSleep(1000);
+      UINT32 countPerSecond = 0;
+      for (UINT32 i = 0; i < threadCount; ++i)
+      {
+         countPerSecond += counters[i].exchange(0, std::memory_order_relaxed);
+      }
+
+      cout << "total count per second:" << countPerSecond << endl;
+      count += countPerSecond;
+   } while (count < (countPerThread * threadCount));
+   
+
+   for (UINT32 i = 0; i < threadCount; ++i)
+   {
+      threads[i].join();
+   }
+
+   rc = db.close(&session, co);
+   ASSERT_EQ(SDB_OK, rc);
+}
+
+/// insert into single cl by multi threads.
+TEST_F(insert_test, DISABLED_death_test_2)
+{
+   INT32 rc = SDB_OK;
+   vesselImpl db;
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
+   openDBOptions options;
+
+   options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+   DATA_COLLECTION_PTR handler;
+
+   constexpr UINT32 threadCount = 8;
+   std::thread threads[threadCount];
+   atomic_int counters[threadCount] = {};
+   UINT32 countPerThread = 10000000;
+   UINT32 count = 0;
+
+   closeDBOptions co;
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   DATA_COLLECTION_PTR cl;
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), cl);
+   ASSERT_EQ(SDB_OK, rc);
+
+   indexParameters params;
+   params.type = INDEX_TYPE_BTREE;
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj("index", params, BSON("a" << 1));
+   rc = cl->createIndex(&session, dmsBuildIndexOptions(), indexDef);
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (UINT32 i = 0; i < threadCount; ++i)
+   {
+      threads[i] = std::move(std::thread(death_thread_insert, &db,
+                                         "foo.bar", countPerThread,
+                                         i, counters+i));
+   }
+
+   do
+   {
+      ossSleep(1000);
+      UINT32 countPerSecond = 0;
+      for (UINT32 i = 0; i < threadCount; ++i)
+      {
+         countPerSecond += counters[i].exchange(0, std::memory_order_relaxed);
+      }
+
+      cout << "total count per second:" << countPerSecond << endl;
+      count += countPerSecond;
+   } while (count < (countPerThread * threadCount));
+   
+
+   for (UINT32 i = 0; i < threadCount; ++i)
+   {
+      threads[i].join();
+   }
+
+   rc = db.close(&session, co);
+   ASSERT_EQ(SDB_OK, rc);
+}
+
+void death_thread_loop_insert(vesselImpl *db,
+                              const CHAR *fullNamePrefix,
+                              UINT32 count,
+                              UINT32 i,
+                              UINT32 clCount,
+                              atomic_int *counter)
+{
+   INT32 rc = SDB_OK;
+   test_executor session;
+   session._id = i;
+   CHAR pad[1024] = {0};
+   bson::BSONObjBuilder builder;
+   builder.append("a", 1);
+   builder.append("b", 2);
+   builder.append("c", pad, 1024);
+   bson::BSONObj obj = builder.obj();
+
+   vector<DATA_COLLECTION_PTR> cls;
+   for (UINT32 i = 0; i < clCount; ++i)
+   {
+      std::stringstream ss;
+      ss << i;
+      std::string clName;
+      clName.append(fullNamePrefix);
+      clName.append(ss.str());
+      DATA_COLLECTION_PTR handler;
+      rc = db->openCL(&session, clName.c_str(), dmsOpenCLOptions(), handler);
+      ASSERT_EQ(SDB_OK, rc);
+      cls.push_back(handler);
+   }
+   
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      utilInsertResult res;
+      rc = cls[i % clCount]->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
+      ASSERT_EQ(SDB_OK, rc);
+      counter->fetch_add(1, std::memory_order_relaxed);
+   }
+
+   cout << "thread quit:" << i << endl;
+}
+
+/// insert into multi collections by single thread each
+TEST_F(insert_test, DISABLED_death_test_3)
+{
+   INT32 rc = SDB_OK;
+   vesselImpl db;
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
+   openDBOptions options;
+
+   options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+   DATA_COLLECTION_PTR handler;
+
+   constexpr UINT32 threadCount = 8;
+   std::thread threads[threadCount];
+   atomic_int counters[threadCount] = {};
+   UINT32 countPerThread = 10000000;
+   UINT32 count = 0;
+
+   closeDBOptions co;
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (UINT32 i = 0; i < threadCount; ++i)
+   {
+      std::stringstream ss;
+      ss << i;
+      std::string clName;
+      clName.append("foo.bar");
+      clName.append(ss.str());
+      rc = db.createCL(&session, clName.c_str(), i + 1,
+                       dmsCreateCLOptions(), bson::BSONObj());
+      ASSERT_EQ(SDB_OK, rc);
+   }
+
+   for (UINT32 i = 0; i < threadCount; ++i)
+   {
+      threads[i] = std::move(std::thread(death_thread_loop_insert, &db,
+                                         "foo.bar", countPerThread,
+                                         i, threadCount, counters+i));
    }
 
    do

@@ -90,6 +90,10 @@ namespace engine
                                 const dmsCreateCLOptions &o,
                                 const bson::BSONObj &adjunct) = 0;
 
+         virtual INT32 removeCL(IExecutor *executor,
+                                const CHAR *fullName,
+                                const dmsRemoveCLOptions &o) = 0;
+
          virtual INT32 testCL(IExecutor *executor,
                               const CHAR *fullName,
                               utilCLUniqueID &uniqueId) = 0;

@@ -124,9 +124,9 @@ namespace vessel
 
          void dump(bson::BSONObjBuilder &builder)const;
 
-         void setNormalFromBuilding();
+         void removeUnstableContext();
 
-         void setRemovingWhenNormalOrBuilding();
+         void updateStatus(INDEX_STATUS status);
 
          BOOLEAN associates(const CHAR *fieldName)const;
 

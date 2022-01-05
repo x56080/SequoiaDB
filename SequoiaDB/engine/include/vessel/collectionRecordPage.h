@@ -108,6 +108,7 @@ namespace vessel
          ossMemset(routePages, 0xFF, sizeof(routePages));
          compressionType = UTIL_COMPRESSOR_INVALID;
          minFreePercent = 0;
+         pad = 0;
       }
 
       UINT32 version = 0;

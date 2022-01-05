@@ -50,6 +50,8 @@
 #include "vessel/fsmFile.h"
 #include "vessel/freeSpaceMapDef.h"
 #include "vessel/storageUtils.h"
+#include "vessel/logRecordContext.h"
+#include "vessel/idMapFile.h"
 
 namespace engine
 {
@@ -415,6 +417,7 @@ namespace vessel
          _fsm->close();
          SDB_OSS_DEL _fsm;
          _fsm = NULL;
+         _storage.close();
       }
       return;
    }
@@ -427,7 +430,298 @@ namespace vessel
          SDB_OSS_DEL _fsm;
          _fsm = NULL;
       }
+      _storage.destroy();
       return;
+   }
+
+   INT32 mainDataSpace::getRuntimePageBuffer(requestContext *context,
+                                             PAGE_ID pid,
+                                             const ossSharedLatchMode &mode,
+                                             runtimePageBuffer &rpb)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(!rpb.isValid(), "can not be valid");
+      logicalPageSpace::_runtimePageBufferIniter initer;
+      liteCacheAllocateOptions options;
+      options.lockMode = mode;
+      liteCacheTuple tuple;
+      GLOBAL_PAGE_ID gpid;
+      UINT32 pageSize = 0;
+
+      if (OSS_UNLIKELY(NULL == context ||
+                      INVALID_PAGE_ID == pid ||
+                      mode.isNone()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      gpid.reset(logicalPageSpace::getSpaceID(),
+                 getSpaceType(),
+                 getStorageFileType(),
+                 pid);
+
+      rc = context->getEnv()->cacheConsole.allocate(context, gpid, options, tuple);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to allocate cache tuple of page[%s], rc:%d",
+                gpid.toString().c_str(), rc);
+         goto error;
+      }
+
+      pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
+      rc = initer.initWithCache(gpid, pageSize, tuple, rpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init rpb[%s] with cache tuple:%d",
+                gpid.toString().c_str(), rc);
+         goto error;
+      }
+   done:
+      tuple.release();
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 mainDataSpace::getRuntimePageBufferToReset(requestContext *context,
+                                                    PAGE_ID pid,
+                                                    runtimePageBuffer &rpb)
+   {
+      INT32 rc = SDB_OK;
+      logicalPageSpace::_runtimePageBufferIniter initer;
+      liteCacheTuple tuple;
+      GLOBAL_PAGE_ID gpid(logicalPageSpace::getSpaceID(),
+                          getSpaceType(),
+                          getStorageFileType(),
+                          pid);
+      UINT32 pageSize = 0;
+      
+      if (OSS_UNLIKELY(NULL == context ||
+                       INVALID_PAGE_ID == pid))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = context->getEnv()->cacheConsole.allocateToReset(context, gpid, tuple);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to allocate cache tuple of page[%s], rc:%d",
+                gpid.toString().c_str(), rc);
+         goto error;
+      }
+
+      pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
+      rc = initer.initWithCache(gpid, pageSize, tuple, rpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init rpb[%s] with cache tuple:%d",
+                gpid.toString().c_str(), rc);
+         goto error;
+      }
+
+      rc = rpb.prepareToWrite(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare to write:%d", rc);
+         goto error;
+      }
+   done:
+      tuple.release();
+      return rc;
+   error:
+      rpb.fini();
+      goto done;
+   }
+
+   INT32 mainDataSpace::copyPageAndReinitBuffer(requestContext *context,
+                                                PAGE_SNAPSHOT_VERION psv,
+                                                PAGE_ID newPid,
+                                                runtimePageBuffer &rpb)
+   {
+      INT32 rc = SDB_OK;
+      logicalPageSpace::_runtimePageBufferIniter initer;
+      liteCacheTuple tuple;
+      GLOBAL_PAGE_ID gpid;
+      UINT32 pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
+      CHAR *buffer = NULL;
+      logRecordContext lrc;
+      slice rs;
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       INVALID_PAGE_SNAPSHOT_VERSION == psv ||
+                       INVALID_PAGE_ID == newPid ||
+                       !rpb.isValid() ||
+                       !rpb.isCacheBuffer()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rs = rpb.getSlice();
+      if (isPageCrashed((ossValuePtr)rs.data(), pageSize))
+      {
+         PD_LOG(PDERROR, "page[%s] may be crashed", rpb.getGlobalPid().toString().c_str());
+         rc = SDB_VESSEL_PAGE_CRASHED;
+         goto error;
+      }
+
+      buffer = context->allocateBuffer(pageSize);
+      ossMemcpy(buffer, rs.data(), pageSize);
+      rpb.fini();
+
+      gpid.reset(logicalPageSpace::getSpaceID(),
+                 getSpaceType(),
+                 getStorageFileType(),
+                 newPid);
+      rc = context->getEnv()->cacheConsole.allocateToReset(context, gpid, tuple);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to allocate cache tuple of page[%s], rc:%d",
+                gpid.toString().c_str(), rc);
+         goto error;
+      }
+
+      rc = prepareCopyLog(context, pageSize, &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
+         goto error;
+      }
+
+      ossMemcpy((void *)(tuple.getWritableBuffer()),
+                 rs.data(),
+                 pageSize);
+      ((pageHead *)(tuple.getWritableBuffer()))->pid = newPid;
+      ((pageHead *)(tuple.getWritableBuffer()))->psv = psv;
+      updatePageLsn((ossValuePtr)(tuple.getWritableBuffer()), lrc.getLsn());
+
+      rc = commit(context, pageSize,
+                  (const void *)(tuple.getReadableBuffer()),
+                  gpid,
+                  ((const pageHead *)(tuple.getReadableBuffer()))->lpid,
+                  &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to commit log[%lld]:%d", lrc.getLsn(), rc);
+         ossPanic();
+         goto error;
+      }
+      
+      tuple.commit(lrc.getLsn());
+      rpb.fini();
+
+      rc = initer.initWithCache(gpid, pageSize, tuple, rpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to reinit rpb:%d", rc);
+         ossPanic();
+         goto error;
+      }
+
+      rc = rpb.prepareToWrite(context);
+      if (SDB_OK != rc)
+      {
+         rpb.fini();
+         PD_LOG(PDERROR, "failed to prepare to write:%d", rc);
+         SDB_ASSERT(FALSE, "impossible");
+         goto error;
+      }
+   done:
+      tuple.release();
+      if (NULL != buffer)
+      {
+         context->releaseBuffer(buffer);
+      }
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 mainDataSpace::prepareCopyLog(requestContext *context,
+                                       UINT32 pageSize,
+                                       logRecordContext *lrc)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(isValidPageSize(pageSize), "can not be invalid");
+      SDB_ASSERT(NULL != lrc, "can not be null");
+      IRedoLogger *logger = context->getOuterResource()->logger;
+      lrc->open(LOG_TYPE_VESSEL_COPY_PAGE);
+      lrc->setResetPage();
+      lrc->prepush(sizeof(GLOBAL_PAGE_ID));
+      lrc->prepush(pageSize);
+      lrc->prepush(sizeof(PAGE_ID));
+      lrc->prepushDone();
+      rc = logger->prepare(context->getExecutor(), lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 mainDataSpace::commit(requestContext *context,
+                               UINT32 pageSize,
+                               const void *pageBuffer,
+                               const GLOBAL_PAGE_ID &gpid,
+                               PAGE_ID lpid,
+                               logRecordContext *lrc)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(isValidPageSize(pageSize), "can not be invalid");
+      SDB_ASSERT(NULL != pageBuffer, "can not be null");
+      SDB_ASSERT(gpid.isValid(), "can not be invalid");
+      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
+      SDB_ASSERT(NULL != lrc, "can not be null");
+      SDB_ASSERT(lrc->prepared(), "must be prepared");
+
+      IRedoLogger *logger = context->getOuterResource()->logger;
+
+      rc = logger->pushLogRecordElement(context->getExecutor(), lrc,
+                                        DPS_LOG_PUBLIC_VESSEL_GPID,
+                                        sizeof(gpid),
+                                        &gpid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to push gpid:%d", rc);
+         goto error;
+      }
+
+      rc = logger->pushLogRecordElement(context->getExecutor(), lrc,
+                                        DPS_LOG_VESSEL_COPY_PAGE_LPID,
+                                        sizeof(PAGE_ID), &lpid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to push page lpid:%d", rc);
+         goto error;
+      }
+
+      rc = logger->pushLogRecordElement(context->getExecutor(), lrc,
+                                        DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP,
+                                        pageSize, pageBuffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to push page buffer:%d", rc);
+         goto error;
+      }
+
+      rc = logger->commit(context->getExecutor(), lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to commit:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
 }//namespace vessel

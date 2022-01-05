@@ -75,6 +75,8 @@ namespace vessel
 
          void destroy();
 
+         INT32 truncate();
+
          INT32 find(INT32 targetLvl,
                     BOOLEAN &found,
                     UINT32 &seq,
@@ -89,6 +91,10 @@ namespace vessel
                                      INT32 lvl);
       private:
          INT32 initBitmapPage(PAGE_ID pid);
+         void initBitmapPageBuffer(ossValuePtr ptr,
+                                   UINT32 logicalId,
+                                   PAGE_ID pre=INVALID_PAGE_ID,
+                                   PAGE_ID next=INVALID_PAGE_ID);
          INT32 initOwnerPage(PAGE_ID pid, PAGE_ID pre);
          INT32 updateEntrySlot(CL_MB_ID mbID, const fsmCLEntry &entry);
          INT32 destroyEntrySlot(CL_MB_ID mbID);

@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = handlers.h
+   Source File Name = removeCLHandler.h
 
    Descriptive Name =
 
@@ -33,23 +33,31 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_HANDLERS_H_
-#define VESSEL_HANDLERS_H_
+#ifndef VESSEL_REMOVE_CL_HANDLER_H_
+#define VESSEL_REMOVE_CL_HANDLER_H_
 
-#include "vessel/createCSHandler.h"
-#include "vessel/listCollectionSpaceHandler.h"
-#include "vessel/listCollectionsHandler.h"
-#include "vessel/createCLHandler.h"
-#include "vessel/dmlHandler.h"
-#include "vessel/openCLHandler.h"
-#include "vessel/scanCLHandler.h"
-#include "vessel/countCLHandler.h"
-#include "vessel/createIndexHandler.h"
-#include "vessel/indexScanHandler.h"
-#include "vessel/removeCSHandler.h"
-#include "vessel/removeIndexHandler.h"
-#include "vessel/testIndexHandler.h"
-#include "vessel/removeCLHandler.h"
-#include "vessel/truncateCLHandler.h"
+#include "vessel/requestHandler.h"
+#include "vessel/requestContext.h"
+#include "vessel/collectionOptions.h"
+#include "vessel/strSlice.h"
+#include "dmsEngineOptions.hpp"
 
-#endif//VESSEL_HANDLERS_H_
+namespace engine
+{
+namespace vessel
+{
+   class removeCLHandler : public requestHandler
+   {
+      public:
+         removeCLHandler(){}
+         virtual ~removeCLHandler(){}
+
+      public:
+         INT32 doit(const globalCollectionId &gcid,
+                    const dmsRemoveCLOptions &o);
+
+   };//class removeCLHandler
+}//namespace vessel
+}//namespace engine
+
+#endif//VESSEL_REMOVE_CL_HANDLER_H_

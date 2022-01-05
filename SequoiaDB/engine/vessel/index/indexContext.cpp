@@ -100,29 +100,15 @@ namespace vessel
       return;
    }
 
-   void indexContext::setNormalFromBuilding()
+   void indexContext::removeUnstableContext()
    {
-      SDB_ASSERT(isBuilding(), "must be building");
-      if (NULL != _unstatbleContext)
-      {
-         SDB_OSS_DEL _unstatbleContext;
-         _unstatbleContext = NULL;
-      }
-      _status = INDEX_STATUS_NORMAL;
-      return;
+      SAFE_OSS_DELETE(_unstatbleContext);
    }
 
-   void indexContext::setRemovingWhenNormalOrBuilding()
+   void indexContext::updateStatus(INDEX_STATUS status)
    {
-      SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(isNormal() || isBuilding(), "must be normal or building");
-      if (NULL != _unstatbleContext)
-      {
-         SDB_OSS_DEL _unstatbleContext;
-         _unstatbleContext = NULL;
-      }
-      _status = INDEX_STATUS_REMOVING;
-      return;
+      SDB_ASSERT(INDEX_STATUS_INVALID != status, "can not be invalid");
+      _status = status;
    }
 
    void indexContext::dump(bson::BSONObjBuilder &builder)const

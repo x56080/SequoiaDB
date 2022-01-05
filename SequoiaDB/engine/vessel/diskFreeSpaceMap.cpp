@@ -111,8 +111,69 @@ namespace vessel
 
          close();
       }
-   done:
+
       return;
+   }
+
+   INT32 diskFreeSpaceMap::truncate()
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(!_bitmaps.empty(), "can not be empty");
+      ossPoolVector<PAGE_ID> pids;
+      PAGE_ID firstPid = INVALID_PAGE_ID;
+      fsmBitmapPageObject *obj = NULL;
+      fsmFile *file = NULL;
+      UINT32 lid = DMS_INVALID_LOGICCLID;
+      CL_MB_ID mbID = INVALID_CL_MB_ID;
+      ossValuePtr ptr = 0;
+
+      if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      file = _fsmFile;
+      lid = _logicalId;
+      mbID = _mbID;
+
+      /// keep the first page and reinit it.
+      /// release others.
+      SDB_ASSERT(!_bitmaps.empty(), "can not be empty");
+      SDB_ASSERT(0 == _bitmaps.begin()->first, "must be the first page");
+      obj = _bitmaps.begin()->second;
+      firstPid = obj->getPid();
+      _bitmaps.erase(_bitmaps.begin());
+      SAFE_OSS_DELETE(obj);
+      for (_BITMAP_OBJ_MAP::const_iterator itr = _bitmaps.begin();
+           itr != _bitmaps.end(); ++itr)
+      {
+         pids.push_back(itr->second->getPid());
+      }
+
+      for (UINT32 i = 0; i < _bitmapOwners.size(); ++i)
+      {
+         pids.push_back(_bitmapOwners.at(i));
+      }
+
+      close();
+      file->getPagePtr(firstPid, ptr);
+      initBitmapPageBuffer(ptr, lid);
+      file->fsyncPage(firstPid, TRUE);
+      file->releasePages(pids.size(), pids.data());
+
+      rc = open(file, mbID, lid, 0, FALSE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to reopen disk fsm:%d", rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    INT32 diskFreeSpaceMap::create(fsmFile *file,
@@ -1162,6 +1223,29 @@ namespace vessel
       goto done;
    }
 
+   void diskFreeSpaceMap::initBitmapPageBuffer(ossValuePtr ptr,
+                                               UINT32 logicalId,
+                                               PAGE_ID pre,
+                                               PAGE_ID next)
+   {
+      SDB_ASSERT(0 != ptr, "can not be invalid");
+      SDB_ASSERT(DMS_INVALID_LOGICCLID != logicalId, "can not be invalid");
+      static_assert(FSM_BITMAP_PAGE_SIZE <= 65536, "can not be too large");
+      CHAR buffer[FSM_BITMAP_PAGE_SIZE] = {};
+      fsmPageHead *head = (fsmPageHead *)buffer;
+
+      head->version = FSM_FILE_PAGE_VERSION;
+      head->type = FSM_FILE_PAGE_TYPE_BITMAP;
+      head->clLogicalId = logicalId;
+      head->flags = 0;
+      head->pre = pre;
+      head->next = next;
+      head->pad = 0;
+
+      ossMemcpy((void *)ptr, buffer, FSM_BITMAP_PAGE_SIZE);
+      return;
+   }
+
    INT32 diskFreeSpaceMap::initOwnerPage(PAGE_ID pid, PAGE_ID pre)
    {
       INT32 rc = SDB_OK;
@@ -1289,7 +1373,7 @@ namespace vessel
 
       for (UINT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
       {
-         _superBitmap[i].swap(mbs[i]);
+         _superBitmap[i] = std::move(mbs[i]);
       }
    done:
       return rc;

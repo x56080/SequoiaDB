@@ -35,6 +35,7 @@
 
 #include "vessel/simpleBufferAllocator.h"
 #include "pdTrace.hpp"
+#include "ossLikely.hpp"
 
 namespace engine
 {
@@ -45,23 +46,33 @@ namespace vessel
    _buffer(buffer),
    _bufferSize(bufferSize)
    {
-      SDB_ASSERT(NULL != _buffer, "can not be null");
+      SDB_ASSERT(!(0 < bufferSize && NULL == buffer), "can not be invalid");
    }
 
    simpleBufferAllocator::~simpleBufferAllocator()
    {
-      _allocated.clear();
+      SDB_ASSERT(!hasUnfreeBuffer(), "memory leak");
+      clearBufferAllocated();
    }
 
    CHAR *simpleBufferAllocator::allocate(UINT32 size)
    {
       CHAR *out = NULL;
       SDB_ASSERT(0 < size, "can not be zero");
-      UINT32 offset = getAvailableOffset();
-      if ((size + offset) <= _bufferSize)
+      UINT32 staticBufSize = getAvailableStaticBufferSize();
+
+      if (staticBufSize < size)
       {
-         _allocated.push_back(_bufferAllocated(offset, size));
-         out = _buffer + offset;
+         out = (CHAR *)SDB_THREAD_ALLOC(size);
+         if (OSS_UNLIKELY(NULL != out))
+         {
+            _dynamic.push_back(_bufferAllocated(out, size));
+         }
+      }
+      else
+      {
+         out = _buffer + (_bufferSize - staticBufSize);
+         _static.push_back(_bufferAllocated(out, size));
       }
 
       return out;
@@ -70,69 +81,80 @@ namespace vessel
    void simpleBufferAllocator::release(CHAR *buffer)
    {
       SDB_ASSERT(NULL != buffer, "can not be null");
-      if (contains(buffer))
+      BOOLEAN found = FALSE;
+      ossPoolVector<_bufferAllocated> *pool = NULL;
+      if (_buffer <= buffer && buffer <= (_buffer + _bufferSize))
       {
-         for (ossPoolVector<_bufferAllocated>::reverse_iterator itr = _allocated.rbegin();
-              itr != _allocated.rend(); ++itr)
-         {
-            if (buffer == (itr->offset + _buffer))
-            {
-               itr->reset();
-               break;
-            }
-         }
-
-         popReleasedBuffers();
+         pool = &_static;
       }
       else
       {
-         SDB_ASSERT(FALSE, "buffer not managed by allocator");
+         pool = &_dynamic;
       }
 
-      return;
-   }
-
-   BOOLEAN simpleBufferAllocator::contains(CHAR *buffer)const
-   {
-      SDB_ASSERT(NULL != buffer, "can not be null");
-      return _buffer <= buffer && buffer < (_buffer + _bufferSize);
-   }
-
-   UINT32 simpleBufferAllocator::getAvailableOffset()const
-   {
-      UINT32 offset = 0;
-      if (!_allocated.empty())
+      for (ossPoolVector<_bufferAllocated>::reverse_iterator itr = pool->rbegin();
+           itr != pool->rend(); ++itr)
       {
-         const _bufferAllocated &o = _allocated.back();
-         SDB_ASSERT(o.isValid(), "impossible");
-         offset = (UINT32)(o.offset + o.size);
+         if (itr->buffer == buffer)
+         {
+            found = TRUE;
+            if (pool == &_dynamic)
+            {
+               SDB_THREAD_FREE(itr->buffer);
+            }
+            itr->reset();
+            break;
+         }
       }
-      return offset;
-   }
 
-   void simpleBufferAllocator::popReleasedBuffers()
-   {
-      while (!_allocated.empty())
+      SDB_ASSERT(found, "invalid buffer to free");
+      while (!pool->empty())
       {
-         const _bufferAllocated &o = _allocated.back();
-         if (o.isValid())
+         if (!pool->back().isValid())
+         {
+            pool->pop_back();
+         }
+         else
          {
             break;
          }
-
-         _allocated.pop_back();
       }
+
       return;
    }
 
    void simpleBufferAllocator::clearBufferAllocated()
    {
-      _allocated.clear();
+      _static.clear();
+      for (ossPoolVector<_bufferAllocated>::const_iterator itr = _dynamic.begin();
+           itr != _dynamic.end(); ++itr)
+      {
+         if (itr->isValid())
+         {
+            SDB_THREAD_FREE(itr->buffer);
+         }
+      }
+      _dynamic.clear();
    }
    
-   BOOLEAN simpleBufferAllocator::isTotallyFree()const
+   BOOLEAN simpleBufferAllocator::hasUnfreeBuffer()const
    {
-      return _allocated.empty();
+      return !_static.empty() || !_dynamic.empty();
+   }
+
+   UINT32 simpleBufferAllocator::getAvailableStaticBufferSize()const
+   {
+      if (_static.empty())
+      {
+         return _bufferSize;
+      }
+      else
+      {
+         const _bufferAllocated &ba = _static.back();
+         UINT32 offset = (UINT32)(ba.buffer - _buffer) + ba.size;
+         SDB_ASSERT(offset <= _bufferSize, "impossible");
+         return _bufferSize - offset;
+      }
    }
 } // namespace vessel
 

@@ -69,6 +69,7 @@ namespace vessel
       public:
          INT32 init(UINT32 capacity);
          void fini();
+         void clear();
 
          INT32 upsert(UINT32 seq,
                       const fsmCandidate::SHARED_INFO_PTR &sptr);

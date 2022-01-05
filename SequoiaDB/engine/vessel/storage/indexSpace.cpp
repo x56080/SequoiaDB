@@ -38,6 +38,8 @@
 #include "vessel/indexDef.h"
 #include "vessel/indexMappingPage.h"
 #include "vessel/indexMappingPageAccessor.h"
+#include "vessel/requestContext.h"
+#include "vessel/outerResource.h"
 
 namespace engine
 {
@@ -152,6 +154,173 @@ namespace vessel
       return rc;
    error:
       goto done;
+   }
+
+   INT32 indexSpace::getMinUncompletedLSN(requestContext *context,
+                                          DPS_LSN_OFFSET &lsn)
+   {
+      SDB_ASSERT(NULL != context, "can not be null");
+      /// getMinUncompletedLSN is very expensive.
+      lsn = context->getOuterResource()->getMinUncompletedLSN();
+      return SDB_OK;
+   }
+
+   INT32 indexSpace::getRuntimePageBuffer(requestContext *context,
+                                              PAGE_ID pid,
+                                              const ossSharedLatchMode &mode,
+                                              runtimePageBuffer &rpb)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(!rpb.isValid(), "can not be valid");
+      dataPageCluster *dpc = NULL;
+      logicalPageSpace::_runtimePageBufferIniter initer;
+      GLOBAL_PAGE_ID gpid;
+      UINT32 pageSize = 0;
+      mmapPagePointer ptr;
+
+      if (OSS_UNLIKELY(NULL == context ||
+                      INVALID_PAGE_ID == pid ||
+                      mode.isNone()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      dpc = getDataStorageObj();
+      SDB_ASSERT(NULL != dpc, "can not be null");
+
+      rc = dpc->getDataPagePtr(pid, ptr);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get page[%d], rc:%d", pid, rc);
+         goto error;
+      }
+
+      gpid.reset(logicalPageSpace::getSpaceID(),
+                 getSpaceType(),
+                 getStorageFileType(),
+                 pid);
+      pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
+
+      rc = initer.initWithMmap(gpid, pageSize, ptr, rpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init rpb:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 indexSpace::getRuntimePageBufferToReset(requestContext *context,
+                                                     PAGE_ID pid,
+                                                     runtimePageBuffer &rpb)
+   {
+      INT32 rc = SDB_OK;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+
+      rc = this->getRuntimePageBuffer(context, pid,
+                                      mode, /// usless actually
+                                      rpb);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      rc = rpb.prepareToWrite(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "faield to get rpb ready to write:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      rpb.fini();
+      goto done;
+   }
+
+   INT32 indexSpace::copyPageAndReinitBuffer(requestContext *context,
+                                                 PAGE_SNAPSHOT_VERION psv,
+                                                 PAGE_ID newPid,
+                                                 runtimePageBuffer &rpb)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
+      mmapPagePointer ptr;
+      GLOBAL_PAGE_ID gpid;
+      logicalPageSpace::_runtimePageBufferIniter initer;
+      slice rs;
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       INVALID_PAGE_SNAPSHOT_VERSION == psv ||
+                       INVALID_PAGE_ID == newPid ||
+                       !rpb.isValid() ||
+                       rpb.isCacheBuffer()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      
+      rs = rpb.getSlice();
+      if (isPageCrashed((ossValuePtr)(rs.data()), pageSize))
+      {
+         PD_LOG(PDERROR, "page[%s] may be crashed", rpb.getGlobalPid().toString().c_str());
+         rc = SDB_VESSEL_PAGE_CRASHED;
+         goto error;
+      }
+
+      rc = getDataStorageObj()->getDataPagePtr(newPid, ptr);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "faield to get new page[%d] ptr:%d", newPid, rc);
+         goto error;
+      }
+
+      ossMemcpy((void *)(ptr.get()), rs.data(), pageSize);
+      ((pageHead *)(ptr.get()))->pid = newPid;
+      ((pageHead *)(ptr.get()))->psv = psv;
+
+      rpb.fini();
+
+      gpid.reset(logicalPageSpace::getSpaceID(),
+                 getSpaceType(),
+                 getStorageFileType(),
+                 newPid);
+
+      rc = initer.initWithMmap(gpid, pageSize, ptr, rpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init rpb:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 indexSpace::_create(requestContext *context)
+   {
+      return SDB_OK;
+   }
+
+   INT32 indexSpace::_open(requestContext *context,
+                           const storageFileLoader &loader)
+   {
+      return SDB_OK;
+   }
+   
+   void indexSpace::_close()
+   {
+      _storage.close();
+   }
+   
+   void indexSpace::_destroy(requestContext *context)
+   {
+      _storage.destroy();
    }
 }//namespace vessel
 }//namespace engine

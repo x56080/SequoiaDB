@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = handlers.h
+   Source File Name = containerUtils.h
 
    Descriptive Name =
 
@@ -33,23 +33,21 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_HANDLERS_H_
-#define VESSEL_HANDLERS_H_
+#ifndef VESSE_CONTAINER_UTILS_H_
+#define VESSE_CONTAINER_UTILS_H_
 
-#include "vessel/createCSHandler.h"
-#include "vessel/listCollectionSpaceHandler.h"
-#include "vessel/listCollectionsHandler.h"
-#include "vessel/createCLHandler.h"
-#include "vessel/dmlHandler.h"
-#include "vessel/openCLHandler.h"
-#include "vessel/scanCLHandler.h"
-#include "vessel/countCLHandler.h"
-#include "vessel/createIndexHandler.h"
-#include "vessel/indexScanHandler.h"
-#include "vessel/removeCSHandler.h"
-#include "vessel/removeIndexHandler.h"
-#include "vessel/testIndexHandler.h"
-#include "vessel/removeCLHandler.h"
-#include "vessel/truncateCLHandler.h"
+#include "vessel/pageIdentifier.h"
+#include "vessel/shallowPointer.hpp"
 
-#endif//VESSEL_HANDLERS_H_
+namespace engine
+{
+namespace vessel
+{
+   typedef shallowArray<PAGE_ID> PID_ARRAY;
+   typedef shallowArray<mappedLogicalPageId> LPID_MAPPING_ARRAY;
+} // namespace vessel
+
+} // namespace engine
+
+
+#endif//VESSE_CONTAINER_UTILS_H_

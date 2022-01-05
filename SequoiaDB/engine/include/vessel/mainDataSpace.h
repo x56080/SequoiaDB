@@ -36,7 +36,7 @@
 #ifndef VESSEL_MAIN_DATA_SPACE_H_
 #define VESSEL_MAIN_DATA_SPACE_H_
 
-#include "vessel/replicatedLPS.h"
+#include "vessel/logicalPageSpace.h"
 #include "vessel/dataStorageFileCluster.h"
 #include "vessel/collectionSpaceOptions.h"
 #include "vessel/collectionSpaceGlobalPage.h"
@@ -46,8 +46,9 @@ namespace engine
 namespace vessel
 {
    class fsmFile;
+   class logRecordContext;
 
-   class mainDataSpace : public replicatedLPS
+   class mainDataSpace : public logicalPageSpace
    {
       public:
          mainDataSpace();
@@ -57,6 +58,10 @@ namespace vessel
          virtual SPACE_TYPE getSpaceType()const
          {
             return SPACE_TYPE_MAIN_DATA;
+         }
+         virtual BOOLEAN isCopyOnWrite()const
+         {
+            return FALSE;
          }
 
       public:
@@ -87,6 +92,32 @@ namespace vessel
          virtual void _close();
          virtual void _destroy(requestContext *context);
 
+      private:
+         virtual INT32 getRuntimePageBuffer(requestContext *context,
+                                            PAGE_ID pid,
+                                            const ossSharedLatchMode &mode,
+                                            runtimePageBuffer &rpb);
+
+         virtual INT32 getRuntimePageBufferToReset(requestContext *context,
+                                                   PAGE_ID pid,
+                                                   runtimePageBuffer &rpb);
+
+         virtual INT32 copyPageAndReinitBuffer(requestContext *context,
+                                               PAGE_SNAPSHOT_VERION psv,
+                                               PAGE_ID newPid,
+                                               runtimePageBuffer &rpb);
+
+      private:
+         INT32 prepareCopyLog(requestContext *context,
+                              UINT32 pageSize,
+                              logRecordContext *lrc);
+
+         INT32 commit(requestContext *context,
+                        UINT32 pageSize,
+                        const void *pageBuffer,
+                        const GLOBAL_PAGE_ID &gpid,
+                        PAGE_ID lpid,
+                        logRecordContext *lrc);
 
       private:
          dataStorageFileCluster _storage;

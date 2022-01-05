@@ -77,8 +77,6 @@ namespace vessel
                       INDEX_STATUS status);
 
          void erase(INT32 indexSlot);
-
-         void setBuildingContextAsNormal(INT32 indexSlot);
                      
          /// when filter is invalid, return context found with any status.
          indexContext *find(INT32 indexSlot,

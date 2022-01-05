@@ -56,47 +56,49 @@ namespace vessel
          struct _bufferAllocated : public SDBObject
          {
             _bufferAllocated(){}
-            _bufferAllocated(UINT32 off, UINT32 s):
-            offset((INT32)off),
-            size((INT32)s){}
+            explicit _bufferAllocated(CHAR *buf, UINT32 s):
+            buffer(buf),
+            size(s){}
             ~_bufferAllocated(){}
             _bufferAllocated(const _bufferAllocated &o):
-            offset(o.offset),
+            buffer(o.buffer),
             size(o.size){}
             _bufferAllocated &operator=(const _bufferAllocated &o)
             {
-               offset = o.offset;
+               buffer = o.buffer;
                size = o.size;
                return *this;
             }
 
-            OSS_INLINE BOOLEAN isValid()const {return 0 <= offset && 0 <= size;}
+            OSS_INLINE BOOLEAN isValid()const
+            {
+               return NULL != buffer;
+            }
             OSS_INLINE void reset()
             {
-               offset = -1;
-               size = -1;
+               buffer = NULL;
+               size = 0;
                return;
             }
 
-            INT32 offset = -1;
-            INT32 size = -1;
+            CHAR *buffer = NULL;
+            UINT32 size = 0;
          };
 
       public:
          CHAR *allocate(UINT32 size);
          void release(CHAR *buffer);
-         BOOLEAN contains(CHAR *buffer)const;
          void clearBufferAllocated();
-         BOOLEAN isTotallyFree()const;
+         BOOLEAN hasUnfreeBuffer()const;
 
       private:
-         UINT32 getAvailableOffset()const;
-         void popReleasedBuffers();
-
+         UINT32 getAvailableStaticBufferSize()const;
+         
       private:
          CHAR *_buffer = NULL;
          UINT32 _bufferSize = 0;
-         ossPoolVector<_bufferAllocated> _allocated;
+         ossPoolVector<_bufferAllocated> _static;
+         ossPoolVector<_bufferAllocated> _dynamic;
    };//class simpleBufferAllocator
 } // namespace vessel
 

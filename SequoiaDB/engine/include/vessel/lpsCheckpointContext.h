@@ -83,11 +83,11 @@ namespace vessel
          }
          OSS_INLINE DPS_LSN_OFFSET getMaxDirtyLsn()const
          {
-            return _dirtyLSN;
+            return _maxDirtyLSN;
          }
          OSS_INLINE BOOLEAN isDirty()const
          {
-            return DPS_INVALID_LSN_OFFSET != _dirtyLSN;
+            return DPS_INVALID_LSN_OFFSET != _maxDirtyLSN;
          }
 
          OSS_INLINE ossRWMutex *getLatch()
@@ -98,8 +98,8 @@ namespace vessel
       public:
          void fini();
          void setCheckpoint(const LPS_CHECKPOINT &checkpoint);
-         void updateDirtyLsn(DPS_LSN_OFFSET lsn, BOOLEAN lock=TRUE);
-         void clearDirtyLSN(BOOLEAN lock=TRUE);
+         void updateDirtyLsn(DPS_LSN_OFFSET lsn);
+         void clearDirtyLSN();
 
          BOOLEAN tryToApplyCheckpoint();
          BOOLEAN tryToSetRunningFromNoneOrApplying();
@@ -110,8 +110,8 @@ namespace vessel
          std::atomic_int _status = {STATUS::NONE};
          LPS_CHECKPOINT _checkpoint;
 
-         ossSpinLatch _lsnLatch;
-         DPS_LSN_OFFSET _dirtyLSN = DPS_INVALID_LSN_OFFSET;
+         DPS_LSN_OFFSET _minDirtyLSN = DPS_INVALID_LSN_OFFSET;
+         DPS_LSN_OFFSET _maxDirtyLSN = DPS_INVALID_LSN_OFFSET;
    };//class lpsCheckpointContext
 }//namespace vessel
 }//namespace engine

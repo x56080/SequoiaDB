@@ -140,15 +140,6 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionSpace::destory(requestContext *context)
-   {
-      INT32 rc = SDB_OK;
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
    void collectionSpace::close()
    {
       fini();
@@ -299,6 +290,63 @@ namespace vessel
       {
          rollbackPrecreating(clName, clInnerId, mbID, logicalID);
       }
+      goto done;
+   }
+
+   INT32 collectionSpace::removeCL(requestContext *context,
+                                   const collectionId &identifier)
+   {
+      INT32 rc = SDB_OK;
+      collection *cl = NULL;
+      ossPoolString clName;
+      utilCLInnerID innerId = UTIL_UNIQUEID_NULL;
+      BOOLEAN locked = FALSE;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == context ||
+                            !identifier.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      SDB_ASSERT(context->isSpaceIdLocked(), "must be locked");
+      SDB_ASSERT(!context->isMbLocked(), "can not be locked");
+
+      rc = getCollectionById(context, identifier, EXCLUSIVE, &cl);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+      locked = TRUE;
+
+      clName.assign(cl->getName());
+      innerId = cl->getInnerID();
+
+      prepareToRemoveCL(clName, innerId);
+
+      rc = cl->destroy(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to remove cl[%s], rc:%d", clName.c_str(), rc);
+         ossPanic();
+         goto error;
+      }
+      cl = NULL;
+      releaseCollectionObject(context->getMBID());
+
+      endToRemoveCL(clName, innerId, context->getMBID());
+   done:
+      if (locked)
+      {
+         context->unlockMB();
+      }
+      return rc;
+   error:
       goto done;
    }
 
@@ -911,6 +959,29 @@ namespace vessel
       goto done;
    }
 
+   void collectionSpace::releaseCollectionObject(CL_MB_ID mbID)
+   {
+      SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
+      SDB_ASSERT(_collections.isInitialized(), "must be inited");
+      collectionObjHolderGroup *group = NULL;
+      UINT32 i = mbID / collectionObjHolderGroup::CAPACITY;
+      collectionObjHolder *holder = NULL;
+
+      INT32 rc = _collections.get(i, &group);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get collection holder[%d], rc:%d", mbID, rc);
+         SDB_ASSERT(FALSE, "can not be failed");
+         goto done;
+      }
+
+      holder = &(group->holders[mbID & (collectionObjHolderGroup::CAPACITY - 1)]);
+      holder->releaseObj();
+
+   done:
+      return;
+   }
+
    INT32 collectionSpace::ensureCollectionRecordPage(requestContext *context,
                                                      CL_MB_ID mbID)
    {
@@ -1349,6 +1420,41 @@ namespace vessel
       return rc;
    error:
       goto done;
+   }
+
+   void collectionSpace::prepareToRemoveCL(const ossPoolString &clName,
+                                           utilCLInnerID innerId)
+   {
+      SDB_ASSERT(!clName.empty(), "can not be empty");
+      ossSLatchGuard guard(&_latch, EXCLUSIVE);
+
+      BOOLEAN res = FALSE;
+      res = _unformalNameIndex.insert(clName).second;
+      SDB_ASSERT(res, "must be true");
+      _clNameIndex.erase(clName.c_str());
+
+      if (UTIL_IS_VALID_CL_INNERID(innerId))
+      {
+         res = _unformalInnerIdIndex.insert(innerId).second;
+         SDB_ASSERT(res, "must be true");
+         _innerIdIndex.erase(innerId);
+      }
+   }
+
+   void collectionSpace::endToRemoveCL(const ossPoolString &clName,
+                                       utilCLInnerID innerId,
+                                       CL_MB_ID mbID)
+   {
+      SDB_ASSERT(!clName.empty(), "can not be empty");
+      SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
+      ossSLatchGuard guard(&_latch, EXCLUSIVE);
+      _unformalNameIndex.erase(clName);
+      if (UTIL_IS_VALID_CL_INNERID(innerId))
+      {
+         _unformalInnerIdIndex.erase(innerId);
+      }
+      _allocator.release(mbID);
+      return;
    }
 }//namespace vessel
 }//namespace engine

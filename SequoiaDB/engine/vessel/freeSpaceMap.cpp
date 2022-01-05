@@ -108,6 +108,24 @@ namespace vessel
       return;
    }
 
+   void freeSpaceMap::truncate()
+   {
+      if (!isOpen())
+      {
+         goto done;
+      }
+
+      for (UINT32 i = 0; i < _bucketCount; ++i)
+      {
+         _buckets[i].clear();
+      }
+      _newPagePool.clear();
+      _dfsm.truncate();
+      
+   done:
+      return;
+   }
+
    INT32 freeSpaceMap::create(CL_MB_ID mbID,
                               UINT32 logicalID,
                               fsmFile *file,

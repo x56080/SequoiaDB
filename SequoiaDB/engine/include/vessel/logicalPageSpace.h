@@ -53,6 +53,8 @@
 #include "vessel/sortedStorageFileList.h"
 #include "vessel/shallowPointer.hpp"
 #include "vessel/dataPageCluster.h"
+#include "vessel/containerUtils.h"
+#include "vessel/pidBatchList.h"
 
 namespace engine
 {
@@ -84,6 +86,7 @@ namespace vessel
          static constexpr UINT32 MAX_LPID_COUNT = ID_MAP_PAGE_CAPACITY * ID_MAP_FILE_MAX_PAGE_COUNT;
       public:
          virtual SPACE_TYPE getSpaceType()const = 0;
+         virtual BOOLEAN isCopyOnWrite()const = 0;
 
       public:
          void close();
@@ -169,16 +172,6 @@ namespace vessel
          INT32 blockCheckpoint(requestContext *context);
          INT32 tryToBlockCheckpoint(requestContext *context, BOOLEAN &blocked);
          void waitCheckpoint();
-
-      private:
-         virtual INT32 prepareToCreateCheckpoint(requestContext *context,
-                                                 BOOLEAN fullCheckpoint,
-                                                 checkpointLSN &lsn) = 0;
-
-         virtual void endToCreateCheckpoint(requestContext *context){return;}
-
-         
-  
       protected:
          OSS_INLINE ossSpinXLatch *getMappingLatch()
          {
@@ -197,13 +190,11 @@ namespace vessel
             return _lpidCache;
          }
 
-         INT32 preallocate(requestContext *context,
-                           UINT32 count,
-                           mappedLogicalPageId *mpids);
+         INT32 reservePagesInMem(requestContext *context,
+                                 LPID_MAPPING_ARRAY pages);
 
-         void releasePreallocated(requestContext *context,
-                                  UINT32 count,
-                                  const mappedLogicalPageId *mpids);
+         void freePagesInMem(requestContext *context,
+                             const LPID_MAPPING_ARRAY &pages);
 
          INT32 validateLpidBeforeGet(PAGE_ID lpid)const;
 
@@ -244,32 +235,19 @@ namespace vessel
          }
 
       protected:/// page management
-         INT32 getIdMapSlotFromCache(PAGE_ID lpid,
-                                     idMapSlot &slot,
-                                     BOOLEAN &isMutable);
+         INT32 map(requestContext *context,
+                   PAGE_SNAPSHOT_VERION psv,
+                   const LPID_MAPPING_ARRAY &mapping);
 
-         virtual BOOLEAN isCopyOnWrite()const = 0;
+         INT32 remap(requestContext *context,
+                     PAGE_SNAPSHOT_VERION psv,
+                     const LPID_MAPPING_ARRAY &mapping,
+                     const PID_ARRAY &oldPids,
+                     BOOLEAN releaseOld);
 
-         virtual INT32 map(requestContext *context,
-                           PAGE_SNAPSHOT_VERION psv,
-                           UINT32 count,
-                           const mappedLogicalPageId *mpids) = 0;
-
-         virtual INT32 remap(requestContext *context,
-                             PAGE_SNAPSHOT_VERION psv,
-                             UINT32 count,
-                             const mappedLogicalPageId *mpids,
-                             const PAGE_ID *oldPids,
-                             BOOLEAN releaseOld) = 0;
-
-         virtual INT32 unmap(requestContext *context,
-                             UINT32 count,
-                             const mappedLogicalPageId *mpids,
-                             BOOLEAN releasePid) = 0;
-/*
-         virtual INT32 releasePids(requestContext *context,
-                                   UINT32 count,
-                                   const PAGE_ID *pids) = 0;*/
+         INT32 unmap(requestContext *context,
+                     const LPID_MAPPING_ARRAY &mapping,
+                     BOOLEAN releasePid);
 
       private:/// for data storage.
          virtual INT32 getRuntimePageBuffer(requestContext *context,
@@ -289,13 +267,14 @@ namespace vessel
                                                runtimePageBuffer &rpb) = 0;
 
       private:/// for openning/creating
-         virtual INT32 _create(requestContext *context){return SDB_OK;}
+         virtual INT32 _create(requestContext *context) = 0;
          virtual INT32 _open(requestContext *context,
-                             const storageFileLoader &loader){return SDB_OK;}
-         virtual void _close(){return;}
-         virtual void _destroy(requestContext *context){return ;}
-         virtual UINT32 getIdMapFileHeadFlags()const = 0;
-         virtual BOOLEAN validateIdMapFileHeadFlags(UINT32 flags)const = 0;
+                             const storageFileLoader &loader) = 0;
+         virtual void _close() = 0;
+         virtual void _destroy(requestContext *context) = 0;
+
+         virtual UINT32 createIdMapFileHeadFlags()const;
+         virtual BOOLEAN validateIdMapFileHeadFlags(UINT32 flags)const;
 
       private:
          void fini();
@@ -319,22 +298,29 @@ namespace vessel
          INT32 flushSegmentsAtCheckpoint(requestContext *context,
                                          const ossPoolSet<UINT32> &segments)const;
 
+         void extractDirtySegmentsInCache(ossPoolSet<UINT32> &segments);
+
+      private:
+         virtual INT32 getMinUncompletedLSN(requestContext *context,
+                                            DPS_LSN_OFFSET &lsn);
+
+         virtual void endToCreateCheckpoint(requestContext *context){return;}
+
          BOOLEAN needFullCheckpoint();
 
-         void applyCheckpointIfNecessary(requestContext *context);
+         void postCheckpointIfNecessary(requestContext *context);
          INT32 createDeltaCheckpoint(requestContext *context);
          INT32 createFullCheckpoint(requestContext *context);
 
          INT32 resumeToLatestCheckpoint(requestContext *context);
-
-         void extractDirtySegments(ossPoolSet<UINT32> &segments);
       private:
-         INT32 preallocateLpids(requestContext *context,
-                                UINT32 count,
-                                PAGE_ID *lpids);
-         void releaseLpidsPreallocated(requestContext *context,
-                                       UINT32 count,
-                                       const PAGE_ID *lpids);
+         INT32 reserveLpidsInMem(requestContext *context,
+                                 PID_ARRAY lpids);
+
+         void freeLpidInMem(requestContext *context,
+                            PAGE_ID lpid);
+         void freeLpidsInMem(requestContext *context,
+                              const PID_ARRAY &lpids);
 
          INT32 remapBufferToNewDataPage(requestContext *context,
                                         BOOLEAN releaseOld,
@@ -344,14 +330,18 @@ namespace vessel
 
          INT32 initAndMapPages(requestContext *context,
                                pageInitializer *initer,
-                               UINT32 count,
-                               const mappedLogicalPageId *mpids);
+                               const LPID_MAPPING_ARRAY &mapping);
 
       private:
          INT32 replayDeltaLog(requestContext *context);
          INT32 replayMappingDeltaLog(requestContext *context, const deltaLogRecord &dlr);
          INT32 replayUnmappingDeltaLog(requestContext *context, const deltaLogRecord &dlr);
          INT32 replayRemmapingDeltaLog(requestContext *context, const deltaLogRecord &dlr);
+
+      private:
+         void pushIntoWaitingFreeList(const PID_ARRAY &pids);
+         void mergeWaitingListIntoReadyList();
+         void freePidsInReadyList();
 
       private:
          SPACE_ID _sid = INVALID_SPACE_ID;
@@ -362,6 +352,10 @@ namespace vessel
          logicalPageIdCache _lpidCache;
          dataPageCluster *_dpc = NULL;
          lpsCheckpointContext _checkpointContext;
+
+         ossSpinXLatch _freeLatch;
+         pidBatchList _waitingToFree;
+         pidBatchList _readyToFree;
    };//class logicalPageSpace
 
    typedef shallowPointer<logicalPageSpace> LPS_OBJ_PTR;

@@ -60,17 +60,16 @@ namespace vessel
                         const createCLOptions &options,
                         logicalPageBuffer *lpb);
 
+         INT32 removeCL(requestContext *context,
+                        logicalPageBuffer *lpb);
+
          /// record on disk must be valid.
          INT32 updateRoutePages(requestContext *context,
                                 const collectionRecord &record,
                                 logicalPageBuffer *lpb);
-/*
-         INT32 updateIndexInfo(requestContext *context,
-                               CL_MB_ID mbID,
-                               UINT64 uniqueIndexes,
-                               UINT64 nonuniqueIndexes,
-                               logicalPageBuffer *lpb);
-                               */
+
+         INT32 truncateRouteMap(requestContext *context,
+                                logicalPageBuffer *lpb);
 
       private:
          const collectionRecordOnDisk *getReadableDiskRecordPtr(const runtimePageBuffer *rpb,
@@ -99,6 +98,10 @@ namespace vessel
                                UINT64 mask,
                                const collectionRecord &oldRecord,
                                const collectionRecord &newRecord);
+
+         INT32 commitRemoveLog(requestContext *context,
+                               const runtimePageBuffer *rpb,
+                               DPS_LSN_OFFSET &lsn);
 
    };//class crpAccessor
 }//namespace vessel

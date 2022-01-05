@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = createCLHandler.cpp
+   Source File Name = truncateCLHandler.cpp
 
    Descriptive Name =
 
@@ -36,86 +36,52 @@
 
 ******************************************************************************/
 
-#include "vessel/createCLHandler.h"
+#include "vessel/truncateCLHandler.h"
+#include "utilFullNameParser.hpp"
 #include "vessel/instanceEnv.h"
 #include "vessel/collectionSpace.h"
-#include "utilFullNameParser.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   createCLHandler::createCLHandler()
-   {
-
-   }
-
-   createCLHandler::~createCLHandler()
-   {
-      
-   }
-
-   INT32 createCLHandler::doit(const CHAR *fullName,
-                               const utilCLUniqueID &uniqueId,
-                               const dmsCreateCLOptions &o,
-                               const bson::BSONObj &adjunct)
+   INT32 truncateCLHandler::doit(const globalCollectionId &gcid,
+                                 const dmsTruncateCLOptions &o)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "can not be null");
-      collectionSpace *csObj = NULL;
+      COLLECTION_PTR cl;
       requestContext context;
-      utilFullNameParser parser;
-      const CHAR *clName = NULL;
-      strSlice clNameSlice;
-      strSlice csName;
-      createCLOptions options;
 
-      if (OSS_UNLIKELY(!isInitialized()))
+      if (OSS_UNLIKELY(!gcid.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isInitialized()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
-      if (!parser.parse(fullName, &clName))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      clNameSlice.reset(clName);
-      if (DMS_COLLECTION_NAME_SZ < clNameSlice.strLen())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      options.compressionType = o.compressor;
-      options.minFreePercent = o.pageMinFreePercent;
-
       context.open(getExecutor(), getEnv());
-      csName.reset(parser.getCSName());
-      rc = getEnv()->dms.getCSByName(&context, csName, SHARED, &csObj);
+      rc = getCollectionObject(&context, gcid, EXCLUSIVE, cl);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = csObj->createCL(&context, clNameSlice,
-                           utilGetCLInnerID(uniqueId), options);
+      rc = cl->truncate(&context);
       if (SDB_OK != rc)
       {
          goto error;
       }
    done:
-      if (NULL != csObj)
-      {
-         context.unlockSpaceID();
-      }
       context.close();
       return rc;
    error:
       goto done;
    }
+} // namespace vessel
 
-}//namespace vessel
-}//namespace engine
+} // namespace engine
+

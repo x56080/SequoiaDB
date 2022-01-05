@@ -55,7 +55,18 @@ namespace engine
    {
       public:
          UTIL_COMPRESSOR_TYPE compressor = UTIL_COMPRESSOR_INVALID;
+         UINT8 pageMinFreePercent = 10;
    };//class dmsCreateCLOptions
+
+   class dmsRemoveCLOptions : public SDBObject
+   {
+
+   };
+
+   class dmsTruncateCLOptions : public SDBObject
+   {
+      
+   };
 
    class dmsOpenCLOptions : public SDBObject
    {

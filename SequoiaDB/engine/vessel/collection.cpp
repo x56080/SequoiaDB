@@ -229,6 +229,101 @@ namespace vessel
       return;
    }
 
+   INT32 collection::destroy(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      OSS_LATCH_MODE mode = SHARED;
+      runtimeMbContext mbContext;
+
+      if (OSS_UNLIKELY(NULL == context))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (!context->isMbLocked(&mode) ||
+               EXCLUSIVE != mode)
+      {
+         rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
+         goto error;
+      }
+
+      mbContext.init(_record,
+                     _collectionSpace->getIdentifier());
+      context->attachMbContext(&mbContext);
+      _fsm.destroy();
+      removeAllIndexes(context);
+      releaseAllRdps(context);
+      removeMetaRecordOnDisk(context);
+      
+      context->detachMbContext();
+      fini();
+   done:
+      
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::truncate(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      OSS_LATCH_MODE mode;
+      runtimeMbContext mbContext;
+
+      if (OSS_UNLIKELY(NULL == context))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (!context->isMbLocked(&mode) ||
+               EXCLUSIVE != mode)
+      {
+         rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
+         goto error;
+      }
+
+      mbContext.init(_record,
+                     _collectionSpace->getIdentifier());
+      context->attachMbContext(&mbContext);
+
+      _fsm.truncate();
+
+      rc = truncateAllIndexes(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to truncate indexes:%d", rc);
+         goto error;
+      }
+
+      releaseAllRdps(context);
+      rc = resetRouteRootOnDisk(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to reset route map on disk:%d", rc);
+         goto error;
+      }
+
+      for (UINT32 i = 0; i < COLLECTION_ROUTE_PAGE_SLOT_COUNT; ++i)
+      {
+         _record.routePages[i] = INVALID_PAGE_ID;
+      }
+   done:
+      context->detachMbContext();
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 collection::createIndex(requestContext *context,
                                  const dmsBuildIndexOptions &o,
                                  const bson::BSONObj &adjunct)
@@ -483,6 +578,88 @@ namespace vessel
       }
    done:
       lpb.fini();
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::removeMetaRecordOnDisk(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(_record.isValid(), "must be valid");
+
+      logicalPageBuffer lpb;
+      crpAccessor accessor;
+      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      UINT32 pageSize = getDataPageSize();
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+
+      PAGE_ID lpid = getCrpLpidOfCollection(pageSize, _record.mbID);
+      if (INVALID_PAGE_ID == lpid)
+      {
+         PD_LOG(PDERROR, "failed to get lpid of mbid[%d]", _record.mbID);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      
+      rc = mds.getLogicalPageBuffer(context, lpid, mode, lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get page buffer of lpid[%d], rc:%d",
+                lpid, rc);
+         goto error;
+      }
+
+      rc = accessor.removeCL(context, &lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to remove cl on disk:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::resetRouteRootOnDisk(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(_record.isValid(), "must be valid");
+
+      logicalPageBuffer lpb;
+      crpAccessor accessor;
+      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      UINT32 pageSize = getDataPageSize();
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+
+      PAGE_ID lpid = getCrpLpidOfCollection(pageSize, _record.mbID);
+      if (INVALID_PAGE_ID == lpid)
+      {
+         PD_LOG(PDERROR, "failed to get lpid of mbid[%d]", _record.mbID);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      
+      rc = mds.getLogicalPageBuffer(context, lpid, mode, lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get page buffer of lpid[%d], rc:%d",
+                lpid, rc);
+         goto error;
+      }
+
+      rc = accessor.truncateRouteMap(context, &lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to truncate route map on disk:%d", rc);
+         goto error;
+      }
+   done:
       return rc;
    error:
       goto done;
@@ -2487,7 +2664,7 @@ namespace vessel
          goto error;
       }
 
-      ic->setRemovingWhenNormalOrBuilding();
+      ic->updateStatus(INDEX_STATUS_REMOVING);
       indexSlot = ic->getIndexSlot();
    done:
       return rc;
@@ -3216,7 +3393,8 @@ namespace vessel
          goto error;
       }
 
-      ic->setNormalFromBuilding();
+      ic->removeUnstableContext();
+      ic->updateStatus(INDEX_STATUS_NORMAL);
    done:
       return rc;
    error:
@@ -3674,7 +3852,7 @@ namespace vessel
          goto error;
       }
 
-      ic->setRemovingWhenNormalOrBuilding();
+      ic->updateStatus(INDEX_STATUS_REMOVING);
    done:
       return rc;
    error:
@@ -3711,6 +3889,84 @@ namespace vessel
          PD_LOG(PDERROR, "failed to truncate index[%s], rc:%d",
                 ic->getObj().getIndexName().str(), rc);
          goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::removeAllIndexes(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      OSS_LATCH_MODE mode;
+      SDB_ASSERT(context->isMbLocked(&mode) && EXCLUSIVE == mode, "must be locked");
+      SDB_ASSERT(isOpen(), "can not be closed");
+      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
+      indexConsole console;
+      console.init(_record.mbID, &is);
+
+      indexContextMap::ITERATOR itr = _indexes.begin();
+      for (; itr != _indexes.end(); ++itr)
+      {
+         indexContext *ic = itr->second;
+         SDB_ASSERT(NULL != ic && ic->isNormal(), "can not be other status");
+         ic->updateStatus(INDEX_STATUS_REMOVING);
+         rc = console.updateIndexStatus(context, ic->getLogicalIndexId(),
+                                        ic->getEntryLpid(), INDEX_STATUS_REMOVING);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to update index[%s] status, rc:%d",
+                   ic->getObj().getIndexName().str(), rc);
+            goto error;
+         }
+         console.truncateIndex(context, ic);
+         console.releaseIndexEntryPage(context, itr->first);
+      }
+
+      _indexes.fini();
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::truncateAllIndexes(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      OSS_LATCH_MODE mode;
+      SDB_ASSERT(context->isMbLocked(&mode) && EXCLUSIVE == mode, "must be locked");
+      SDB_ASSERT(isOpen(), "can not be closed");
+      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
+      indexConsole console;
+      console.init(_record.mbID, &is);
+
+      indexContextMap::ITERATOR itr = _indexes.begin();
+      for (; itr != _indexes.end(); ++itr)
+      {
+         indexContext *ic = itr->second;
+         SDB_ASSERT(NULL != ic && ic->isNormal(), "can not be other status");
+         ic->updateStatus(INDEX_STATUS_TRUNCATING);
+         rc = console.updateIndexStatus(context, ic->getLogicalIndexId(),
+                                        ic->getEntryLpid(), INDEX_STATUS_TRUNCATING);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to update index[%s] status, rc:%d",
+                   ic->getObj().getIndexName().str(), rc);
+            goto error;
+         }
+         console.truncateIndex(context, ic);
+         rc = console.updateIndexStatus(context, ic->getLogicalIndexId(),
+                                        ic->getEntryLpid(), INDEX_STATUS_NORMAL);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to update index[%s] status, rc:%d",
+                   ic->getObj().getIndexName().str(), rc);
+            goto error;
+         }
+         ic->updateStatus(INDEX_STATUS_NORMAL);
       }
    done:
       return rc;
@@ -4065,6 +4321,132 @@ namespace vessel
       }
 
       lpb.fini();
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::releaseAllRdps(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(NULL != context, "can not be null");
+      OSS_LATCH_MODE mode = SHARED;
+      SDB_ASSERT(context->isMbLocked(&mode) && EXCLUSIVE == mode, "must be exclusive");
+
+      loopReleaseRdpsInLvl0(context);
+      loopReleaseRoutePages(context);
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::loopReleaseRdpsInLvl0(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(NULL != context, "can not be null");
+      OSS_LATCH_MODE m = SHARED;
+      SDB_ASSERT(context->isMbLocked(&m) && EXCLUSIVE == m, "must be exclusive");
+      ossPoolVector<PAGE_ID> batch;
+      logicalPageBuffer buffer;
+      UINT32 capacity = getCapacityOfRoutePage(getDataPageSize());
+      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+
+
+      for (INT32 i = (INT32)_totalLvl0Count - 1; i >= 0; --i)
+      {
+         routePageAccessor accessor;
+         PAGE_ID lpid = INVALID_PAGE_ID;
+         rc = getLvl0RoutePage(context, capacity, (UINT32)i, lpid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get lpid of lvl0[%d], rc:%d", i, rc);
+            goto error;
+         }
+
+         rc = mds.getLogicalPageBuffer(context, lpid, mode, buffer);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get page buffer of lpid[%d], rc:%d", lpid, rc);
+            goto error;
+         }
+
+         rc = accessor.dumpValidPages(context, COLLECTION_ROUTE_PAGE_LVL0,
+                                      &buffer, batch);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to clear and dump lvl0 page:%d", rc);
+            goto error;
+         }
+
+         buffer.fini();
+         commitReleasingPagesLog(context, batch, bson::BSONObj());
+         mds.releasePages(context, batch.size(), batch.data());
+         batch.clear();
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::loopReleaseRoutePages(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(NULL != context, "can not be null");
+      OSS_LATCH_MODE m = SHARED;
+      SDB_ASSERT(context->isMbLocked(&m) && EXCLUSIVE == m, "must be exclusive");
+      ossPoolVector<PAGE_ID> batch;
+      logicalPageBuffer buffer;
+      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
+
+      SDB_ASSERT(INVALID_PAGE_ID == _record.routePages[COLLECTION_ROOT_LVL2],
+                "plan to remove lvl2 node");
+
+      for (INT32 i = COLLECTION_SECOND_ROOT_LVL1; i > (INT32)COLLECTION_ROOT_LVL0; --i)
+      {
+         routePageAccessor accessor;
+         PAGE_ID lpid = _record.routePages[i];
+         if (INVALID_PAGE_ID == lpid)
+         {
+            continue;
+         }
+
+         rc = mds.getLogicalPageBuffer(context, lpid, mode, buffer);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get page buffer of lpid[%d], rc:%d", lpid, rc);
+            goto error;
+         }
+
+         rc = accessor.dumpValidPages(context, COLLECTION_ROUTE_PAGE_LVL1,
+                                      &buffer, batch);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to clear and dump lvl0 page:%d", rc);
+            goto error;
+         }
+
+         buffer.fini();
+
+         batch.push_back(lpid);
+      }
+
+      if (INVALID_PAGE_ID != _record.routePages[COLLECTION_ROOT_LVL0])
+      {
+         batch.push_back(_record.routePages[COLLECTION_ROOT_LVL0]);
+      }
+
+      commitReleasingPagesLog(context, batch, bson::BSONObj());
+      mds.releasePages(context, batch.size(), batch.data());
 
    done:
       return rc;

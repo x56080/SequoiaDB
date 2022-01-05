@@ -117,15 +117,6 @@ namespace vessel
       goto done;
    }
 
-   void indexContextMap::setBuildingContextAsNormal(INT32 indexSlot)
-   {
-      SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
-      indexContext *ic = find(indexSlot);
-      SDB_ASSERT(NULL != ic && ic->isBuilding(), "must be building");
-      ic->setNormalFromBuilding();
-      return;
-   }
-
    void indexContextMap::erase(INT32 indexSlot)
    {
       SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");

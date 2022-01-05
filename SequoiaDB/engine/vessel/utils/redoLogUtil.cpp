@@ -288,6 +288,34 @@ namespace vessel
       return r;
    }
 
+   INT32 commitReleasingPagesLog(requestContext *context,
+                                 const ossPoolVector<PAGE_ID> &lpids,
+                                 const bson::BSONObj &adjunct)
+   {
+      INT32 rc = SDB_OK;
+      IRedoLogger *logger = context->getOuterResource()->logger;
+      logRecordContext lrc;
+
+      lrc.open(LOG_TYPE_VESSEL_ROUTE_PAGE_UPDATE);
+      lrc.prepushDone();
+      rc = logger->prepare(context->getExecutor(), &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare log, rc:%d",  rc);
+         goto error;
+      }
+      rc = logger->commit(context->getExecutor(), &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
 /////////////logicalPageSapceLogUtil begin
    INT32 lpsLogUtil::prepare(requestContext *context,
                               const deltaLogRecord &dlr,

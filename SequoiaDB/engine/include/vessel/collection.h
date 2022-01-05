@@ -128,6 +128,8 @@ namespace vessel
 
          void fini();
 
+         INT32 truncate(requestContext *context);
+
       public:
          INT32 createIndex(requestContext *context,
                            const dmsBuildIndexOptions &o,
@@ -218,6 +220,10 @@ namespace vessel
 
          INT32 saveOnDiskWhenCreating(requestContext *context,
                                       const createCLOptions &options);
+
+         INT32 removeMetaRecordOnDisk(requestContext *context);
+
+         INT32 resetRouteRootOnDisk(requestContext *context);
 
       private:
          INT32 getMoreFromPageInCursor(requestContext *context,
@@ -310,6 +316,12 @@ namespace vessel
                                     PAGE_ID routePgaeLpid,
                                     UINT32 pos,
                                     PAGE_ID &lpid);
+
+         INT32 releaseAllRdps(requestContext *context);
+
+         INT32 loopReleaseRdpsInLvl0(requestContext *context);
+
+         INT32 loopReleaseRoutePages(requestContext *context);
       private:
          UINT32 getDataPageSize()const;
 
@@ -356,6 +368,10 @@ namespace vessel
                                     
          INT32 truncateIndex(requestContext *context,
                              INT32 indexSlot);
+
+         INT32 removeAllIndexes(requestContext *context);
+
+         INT32 truncateAllIndexes(requestContext *context);
 
       private:/// need protection by dml latch
 

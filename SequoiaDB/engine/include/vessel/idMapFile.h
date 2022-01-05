@@ -43,10 +43,9 @@ namespace engine
 {
 namespace vessel
 {
-   static const UINT32 ID_MAP_FILE_HEAD_VERSION = 1;
+   constexpr UINT32 ID_MAP_FILE_HEAD_VERSION = 1;
 
-   static const UINT32 ID_MAP_FILE_FLAG_REPLICATED = 0x01;
-   static const UINT32 ID_MAP_FILE_FLAG_COPY_ON_WRITE = 0x02;
+   constexpr UINT32 IMF_FLAG_COPY_ON_WRITE = 0x01;
 
 #pragma pack(4)
    struct idMapFileHead
@@ -80,21 +79,13 @@ namespace vessel
                 dataSegCountInFile == h.dataSegCountInFile;
       }
 
-      void setReplicated()
-      {
-         OSS_BIT_SET(flags, ID_MAP_FILE_FLAG_REPLICATED);
-      }
-      BOOLEAN isReplicated()const
-      {
-         return 0 != OSS_BIT_TEST(flags, ID_MAP_FILE_FLAG_REPLICATED);
-      }
       void setCopyOnWrite()
       {
-         OSS_BIT_SET(flags, ID_MAP_FILE_FLAG_COPY_ON_WRITE);
+         OSS_BIT_SET(flags, IMF_FLAG_COPY_ON_WRITE);
       }
       BOOLEAN isCopyOnWrite()const
       {
-         return 0 != OSS_BIT_TEST(flags, ID_MAP_FILE_FLAG_COPY_ON_WRITE);
+         return 0 != OSS_BIT_TEST(flags, IMF_FLAG_COPY_ON_WRITE);
       }
 
 

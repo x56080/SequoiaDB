@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = handlers.h
+   Source File Name = pidBatchList.cpp
 
    Descriptive Name =
 
@@ -33,23 +33,38 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_HANDLERS_H_
-#define VESSEL_HANDLERS_H_
+#include "vessel/pidBatchList.h"
+#include "pdTrace.hpp"
 
-#include "vessel/createCSHandler.h"
-#include "vessel/listCollectionSpaceHandler.h"
-#include "vessel/listCollectionsHandler.h"
-#include "vessel/createCLHandler.h"
-#include "vessel/dmlHandler.h"
-#include "vessel/openCLHandler.h"
-#include "vessel/scanCLHandler.h"
-#include "vessel/countCLHandler.h"
-#include "vessel/createIndexHandler.h"
-#include "vessel/indexScanHandler.h"
-#include "vessel/removeCSHandler.h"
-#include "vessel/removeIndexHandler.h"
-#include "vessel/testIndexHandler.h"
-#include "vessel/removeCLHandler.h"
-#include "vessel/truncateCLHandler.h"
+namespace engine
+{
+namespace vessel
+{
+   constexpr UINT32 RESERVE_SIZE = 64;
 
-#endif//VESSEL_HANDLERS_H_
+   void pidBatchList::push(PAGE_ID pid)
+   {
+      SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
+   
+      if (!_bl.empty() && _bl.back().size() < RESERVE_SIZE)
+      {
+         _bl.back().push_back(pid);
+      }
+      else
+      {
+         BATCH batch;
+         batch.reserve(RESERVE_SIZE);
+         batch.push_back(pid);
+         _bl.push_back(std::move(batch));
+      }
+
+      return;
+   }
+
+   void pidBatchList::transferTo(pidBatchList &o)
+   {
+      o._bl.merge(std::move(_bl));
+   }
+} // namespace vessel
+
+} // namespace engine

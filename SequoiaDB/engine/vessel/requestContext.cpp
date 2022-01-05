@@ -78,7 +78,7 @@ namespace vessel
       }
 
       {
-      SDB_ASSERT(_sba.isTotallyFree(), "memory leak");
+      SDB_ASSERT(!_sba.hasUnfreeBuffer(), "memory leak");
       SDB_ASSERT(!_blocker.isBlocking(), "unblocking missed");
       SDB_ASSERT(_lpidLatchContext.isEmpty(), "unlocking missed");
       SDB_ASSERT(NULL == _oplist, "detaching missed");
@@ -105,38 +105,12 @@ namespace vessel
    CHAR *requestContext::allocateBuffer(UINT32 size)
    {
       SDB_ASSERT(isOpen(), "can not be closed");
-      SDB_ASSERT(0 < size, "can not be zero");
-      CHAR *buf = _sba.allocate(size);
-      if (NULL != buf)
-      {
-         goto done;
-      }
-      else
-      {
-         buf = (CHAR*)SDB_THREAD_ALLOC(size);
-      }
-      
-   done:
-      return buf;
+      return _sba.allocate(size);
    }
    
-   void requestContext::releaseBuffer(CHAR *buffer)
+   void requestContext::releaseBuffer(void *buffer)
    {
-      if (OSS_LIKELY(NULL != buffer))
-      {
-         if (_sba.contains(buffer))
-         {
-            _sba.release(buffer);
-         }
-         else
-         {
-            SDB_THREAD_FREE(buffer);
-         }
-      }
-      else
-      {
-         SDB_ASSERT(FALSE, "buffer can not be null");
-      }
+      _sba.release((CHAR *)buffer);
       return;
    }
 
@@ -291,7 +265,12 @@ namespace vessel
 
    BOOLEAN requestContext::isMbLocked(OSS_LATCH_MODE *mode)const
    {
-      return NULL != _mbMutex;
+      BOOLEAN r = NULL != _mbMutex;
+      if (r && NULL != mode)
+      {
+         *mode = _mbMode;
+      }
+      return r;
    }
 
    void requestContext::unlockMB()

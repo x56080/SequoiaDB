@@ -92,6 +92,17 @@ namespace vessel
       return;
    }
 
+   void fsmCandidateBucket::clear()
+   {
+      SDB_ASSERT(NULL != _candidates, "can not be null");
+      for (UINT32 i = 0; i < _size; ++i)
+      {
+         _candidates[i].reset();
+      }
+      _size = 0;
+      return;
+   }
+
    INT32 fsmCandidateBucket::upsert(UINT32 seq,
                                     const fsmCandidate::SHARED_INFO_PTR &sptr)
    {

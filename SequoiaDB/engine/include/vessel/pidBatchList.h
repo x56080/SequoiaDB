@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = handlers.h
+   Source File Name = pidBatchList.h
 
    Descriptive Name =
 
@@ -32,24 +32,43 @@
    Last Changed =
 
 ******************************************************************************/
+#ifndef VESSEL_PID_BATCH_LIST_H_
+#define VESSEL_PID_BATCH_LIST_H_
 
-#ifndef VESSEL_HANDLERS_H_
-#define VESSEL_HANDLERS_H_
+#include "vessel/pageIdentifier.h"
+#include "ossMemPool.hpp"
 
-#include "vessel/createCSHandler.h"
-#include "vessel/listCollectionSpaceHandler.h"
-#include "vessel/listCollectionsHandler.h"
-#include "vessel/createCLHandler.h"
-#include "vessel/dmlHandler.h"
-#include "vessel/openCLHandler.h"
-#include "vessel/scanCLHandler.h"
-#include "vessel/countCLHandler.h"
-#include "vessel/createIndexHandler.h"
-#include "vessel/indexScanHandler.h"
-#include "vessel/removeCSHandler.h"
-#include "vessel/removeIndexHandler.h"
-#include "vessel/testIndexHandler.h"
-#include "vessel/removeCLHandler.h"
-#include "vessel/truncateCLHandler.h"
+namespace engine
+{
+namespace vessel
+{
+   class pidBatchList : public SDBObject
+   {
+      public:
+         pidBatchList(){}
+         ~pidBatchList(){}
+         pidBatchList(const pidBatchList &) = delete;
+         pidBatchList &operator=(const pidBatchList &) = delete;
 
-#endif//VESSEL_HANDLERS_H_
+
+      public:
+         typedef ossPoolVector<PAGE_ID> BATCH;
+         typedef ossPoolList<BATCH> BATCH_LIST;
+
+      public:
+         OSS_INLINE BATCH_LIST::const_iterator begin()const {return _bl.cbegin();}
+         OSS_INLINE BATCH_LIST::const_iterator end()const {return _bl.cend();}
+         OSS_INLINE BOOLEAN isEmpty()const {return _bl.empty();}
+         OSS_INLINE void clear() {_bl.clear();}
+         void push(PAGE_ID pid);
+         void transferTo(pidBatchList &o);
+
+      private:
+         BATCH_LIST _bl;
+   };//class pidBatchList
+} // namespace vessel
+
+} // namespace engine
+
+
+#endif//VESSEL_PID_BATCH_LIST_H_
