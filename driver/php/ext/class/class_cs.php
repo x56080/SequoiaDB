@@ -147,6 +147,28 @@ class SequoiaCS
     * @endcode
    */
    public function getCL( string $name ){}
+ 
+   /**
+    * List all collections in current collection space.
+    *
+    * @return Returns SequoiaCursor object on success, or NULL on failure.
+    *
+    * @retval SequoiaCursor object or NULL.
+    *
+    * Example:
+    * @code
+    * $cursor = $cs -> listCL() ;
+    * if( empty( $cursor ) ) {
+    *    $err = $db -> getLastErrorMsg() ;
+    *    echo "Failed to call listCL, error code: ".$err['errno'] ;
+    *    return ;
+    * }
+    * while( $record = $cursor -> next() ) {
+    *    var_dump( $record ) ;
+    * }
+    * @endcode
+   */
+   public function listCL(){}
 
    /**
     * Drop the specified collection.
@@ -235,6 +257,27 @@ class SequoiaCS
     * @endcode
    */
    public function setDomain( array|string $options ){}
+
+   /**
+    * Get the Domain name of current collection space.
+    *
+    * @return Returns the domain name ( If the collection space does not belong to any domain, return "" ) on success, or NULL on failure.
+    *
+    * @retval string <domain_name> or NULL
+    *
+    * Example:
+    * @code
+    * $domainName = $cs -> getDomainName() ;
+    * if( $domainName === NULL ) {    
+    *    $err = $db -> getLastErrorMsg() ;
+    *    if( $err['errno'] != 0 ) {
+    *       echo "Failed to get collection space name, error code: ".$err['errno'] ;
+    *       return ;
+    * }
+    * echo "Domain name is: ".$domainName ;
+    * @endcode
+   */
+   public function getDomainName(  ){}
 
    /**
     * Alter the specified collection space to remove domain.
