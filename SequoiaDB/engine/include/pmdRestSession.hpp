@@ -339,6 +339,10 @@ namespace engine
                                                 restRequest &request,
                                                 MsgHeader **msg ) ;
 
+         INT32       _convertGetDomainName( restAdaptor *pAdaptor,
+                                            restRequest &request,
+                                            MsgHeader **msg ) ;
+
          INT32       _convertGetCount( restAdaptor *pAdaptor,
                                        restRequest &request,
                                        MsgHeader **msg ) ;
@@ -420,6 +424,10 @@ namespace engine
          INT32       _convertListCLInDomain( restAdaptor *pAdaptor,
                                              restRequest &request,
                                              MsgHeader **msg ) ;
+
+         INT32       _convertListCLInCollectionsSpace( restAdaptor *pAdaptor,
+                                                       restRequest &request,
+                                                       MsgHeader **msg ) ;
 
          INT32       _convertListLobs( restAdaptor *pAdaptor,
                                        restRequest &request,
