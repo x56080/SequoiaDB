@@ -611,7 +611,7 @@ namespace vessel
       rc = rebaseWhenCreatingCheckpoint(context, checkpoint);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to complete delta log:%d", rc);
+         PD_LOG(PDERROR, "failed to rebase id map file:%d", rc);
          goto error;
       }
 
@@ -1904,7 +1904,7 @@ namespace vessel
       imfHead.dataPageSize = getStorageCoreArgs().pageSize;
       imfHead.dataPageCountInSeg = getStorageCoreArgs().maxPageCountPerSeg;
       imfHead.dataSegCountInFile = getStorageCoreArgs().maxSegmentCountPerFile;
-      imfHead.totalPageCount = 0; /// will be reset soon
+      imfHead.totalPageCount = oldPageCount; /// will be reset soon
       imfHead.checkpoint = checkpoint;
       slice hs(sizeof(idMapFileHead), &imfHead);
 
@@ -1964,21 +1964,34 @@ namespace vessel
 
       SDB_ASSERT(ossIsPowerOf2(ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG), "must be power of 2");
 
-      for (ossPoolMap<PAGE_ID, idMapSlot>::const_iterator itr = sorter.begin();
-           itr != sorter.end(); ++itr)
+      if (!sorter.empty())
       {
-         UINT32 pos = getIdMapSlotNo(itr->first);
-         ossValuePtr ptr = 0;
-         PAGE_ID imp = getImpPidOfLpid(itr->first);
-         UINT32 minSegCnt = ossAlignX(imp + 1, ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG) /
+         PAGE_ID maxLpid = sorter.rbegin()->first;
+         PAGE_ID maxImp = getImpPidOfLpid(maxLpid);
+         UINT32 minSegCnt = ossAlignX(maxImp + 1, ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG) /
                             ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG;
+         imfHead.totalPageCount = maxImp + 1;
+         rc = file->updateUserDefinedHead(hs);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to update id map page head:%d", rc);
+            goto error;
+         }
+
          rc = file->ensureSegmentCountAndInit(minSegCnt);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to extend file space:%d", rc);
             goto error;
          }
+      }
 
+      for (ossPoolMap<PAGE_ID, idMapSlot>::const_iterator itr = sorter.begin();
+           itr != sorter.end(); ++itr)
+      {
+         UINT32 pos = getIdMapSlotNo(itr->first);
+         ossValuePtr ptr = 0;
+         PAGE_ID imp = getImpPidOfLpid(itr->first);
          rc = file->getPagePtr(imp, ptr);
          if (OSS_UNLIKELY(SDB_OK != rc))
          {
@@ -1987,19 +2000,6 @@ namespace vessel
          }
 
          *(((idMapSlot *)ptr) + pos) = itr->second;
-      }
-
-      if (!sorter.empty())
-      {
-         PAGE_ID maxLpid = sorter.rbegin()->first;
-         PAGE_ID maxImpPid = getImpPidOfLpid(maxLpid);
-         imfHead.totalPageCount = maxImpPid + 1;
-         rc = file->updateUserDefinedHead(hs);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to update id map page head:%d", rc);
-            goto error;
-         }
       }
 
       sorter.clear();
