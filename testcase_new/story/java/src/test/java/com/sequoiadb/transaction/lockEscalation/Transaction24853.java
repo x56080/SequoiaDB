@@ -135,7 +135,7 @@ public class Transaction24853 extends SdbTestBase {
             BSONObject obj = cursor.getNext();
             int logFileNum = ( int ) obj.get( LOGFILE_NUM );
             int logFileSize = ( int ) obj.get( LOGFILE_SIZE );  // unit is MB
-            result = ( logFileNum * logFileSize * 1024 * 1024 ) * ( transMaxLogSpaceRatio * 0.01 );
+            result = ( logFileNum * logFileSize * 1024L * 1024L ) * ( transMaxLogSpaceRatio * 0.01 );
         }
         return result;
     }
