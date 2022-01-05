@@ -1021,6 +1021,7 @@ vesselFiles = [
       "vessel/backgroundWorker.cpp",
       "vessel/backgroundWorkers.cpp",
       "vessel/rdpRecordScanner.cpp",
+      "vessel/rdpCompactor.cpp",
       "vessel/indexScanCursor.cpp",
       "vessel/btreeNodePageIniter.cpp",
       "vessel/outerResource.cpp",
