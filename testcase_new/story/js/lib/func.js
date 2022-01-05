@@ -81,7 +81,7 @@ if( typeof ( DSHOSTNAME ) == "undefined" ) { DSHOSTNAME = 'localhost'; }
 //数据源端端口号，CI默认传入11810
 if( typeof ( DSSVCNAME ) == "undefined" ) { DSSVCNAME = '11810'; }
 
-if ( typeof( SDBADMINPWD ) == "undefined" ) { SDBADMINPWD = "Admin@1024"; }
+if( typeof ( SDBADMINPWD ) == "undefined" ) { SDBADMINPWD = "Admin@1024"; }
 
 // CHANGEDPREFIX = local_test
 
@@ -871,12 +871,43 @@ function commCheckBusinessStatus ( db, timeout, checkLSN )
       }
       else if( i < timeout )
       {
+         time++;
          sleep( 1000 );
       }
       else
       {
          throw new Error( "check the cluster state timeout, check failed nodes: "
             + JSON.stringify( tmpArr, "", 1 ) );
+      }
+   }
+
+   // LSN 已校验通过，校验DiffLSNWithPrimary不为-1，超时不报错，连续校验通过5次退出
+   var passNum = 0;
+   for( var i = time; i <= timeout; i++ )
+   {
+      var allDiffLSNWithPrimary = [];
+      var cursor = db.snapshot( SDB_SNAP_HEALTH, { Role: "data" }, { DiffLSNWithPrimary: "" } );
+      while( cursor.next() )
+      {
+         var obj = cursor.current().toObj();
+         allDiffLSNWithPrimary.push( obj.DiffLSNWithPrimary );
+      }
+      cursor.close();
+      if( allDiffLSNWithPrimary.indexOf( -1 ) == -1 )
+      {
+         passNum++;
+         sleep( 1000 );
+         time++;
+      }
+      else
+      {
+         passNum = 0;
+         sleep( 1000 );
+         time++;
+      }
+      if( passNum > 5 )
+      {
+         break;
       }
    }
 }
