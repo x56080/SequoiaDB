@@ -263,17 +263,6 @@ class OptionsMgr:
         self.__global_parser = None
         self.args = None
 
-#    def __show_version(self):
-#        file = os.path.join(MY_HOME, "version.info")
-#        try:
-#            with open(file, 'r') as f:
-#                print(f.read())
-#            sys.exit(0)
-#        except IOError: 
-#            print("[ERROR] Failed to show version. Make ensure the " \
-#                  "version.info exists")
-#            sys.exit(1)
-
     def __add_option(self):
         #Add -t option
         self.__parser.add_option("-t", "--type", action='store', type="string",
@@ -337,15 +326,12 @@ class OptionsMgr:
         self.__parser.add_option("--nodename", action='store', type='string',
                                  dest="node_name", help="node name, " \
                                  "<hostname>:<svcname>")
-#        #Add --version option
-#        self.__parser.add_option("-v", "--version", action='store_true',
-#                                 dest="version", help="show version")
 
     def __load_global_configs(self):
         file = os.path.join(MY_CONF_PATH, CONFIG_FILE_NAME)
         if not os.path.exists(file):
-            logger.error("Configuration file {} dose not " \
-                  "exists".format(CONFIG_FILE_NAME))
+            logger.error("Configuration file {} does not " \
+                  "exist".format(CONFIG_FILE_NAME))
             return 1
         self.__global_parser = ConfigParser.ConfigParser()
         self.__global_parser.read(file)
@@ -376,7 +362,7 @@ class OptionsMgr:
                   "specify.")
             return 1
         elif not os.path.exists(options.audit_path):
-            logger.error("Directory of audit path '{}' is not exists".format(options.audit_path))
+            logger.error("Directory of audit path '{}' does not exist".format(options.audit_path))
             return 1
         elif not os.path.isdir(options.audit_path):
             logger.error("Audit path '{}' must be a directory".format(options.audit_path))
@@ -450,8 +436,6 @@ class OptionsMgr:
     def parse_option(self):
         self.__add_option()
         options,args = self.__parser.parse_args()
-        # if options.version:
-        #     self.__show_version()
         if options.conf_path:
             if not os.path.isfile(options.conf_path):
                 logger.error("configuration path '{}' is not a file".format(options.conf_path))
@@ -536,7 +520,7 @@ class StatMgr:
         try:
             if not os.path.exists(self.stat_file):
                 # No status file at all. Treat as fresh start.
-                logger.warn('Status file {} dose not exist. Init it with '
+                logger.warn('Status file {} does not exist. Init it with '
                             'default values'.format(self.stat_file))
                 self.__init_stat_file()
 
@@ -1050,6 +1034,9 @@ class LogExporter:
             self.__num_of_records = 0
             self.stat_mgr.update_stat()
 
+    def get_records(self):
+        return self.__records 
+
     def run(self):
         fd = None
         try:
@@ -1100,7 +1087,7 @@ def __quit():
         pid_file = os.path.join(work_path, PID_FILE_NAME)
         if os.path.exists(pid_file):
             os.remove(pid_file)
-        log_exporter.connect.write_row(self.__records)
+        log_exporter.connect.write_row(log_exporter.get_records())
         log_exporter.stat_mgr.update_stat()
         logger.info('Exit')
     except (Exception, ValueError) as e:

@@ -95,8 +95,6 @@ public class Index10218 extends SdbTestBase {
                 String name = idxName;
                 Random i = new Random();
                 clDB.dropIndex( name + i.nextInt( 42 ) );
-            } catch ( NullPointerException e ) {
-
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
                 if ( eCode != -47 // -47:Index name does not exist

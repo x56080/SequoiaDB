@@ -1,3 +1,10 @@
+/******************************************************************************
+ * @Description   : seqDB-4484:createDomain，覆盖name/groups/options有效字符和边界_st.verify.domain.001
+ * @Author        : wangkexin
+ * @CreateTime    : 2019.06.05
+ * @LastEditTime  : 2021.02.04
+ * @LastEditors   : Lai Xuan
+ ******************************************************************************/
 /************************************
 *@Description: createDomain，覆盖name/groups/options有效字符和边界_st.verify.domain.001
 *@author:      wangkexin
@@ -64,7 +71,7 @@ function checkDomain ( domain, datagroups, autosplit )
    if( cur.next() )
    {
       var groups = cur.current().toObj()["Groups"];
-      if( typeof ( autoSplit ) !== undefined )
+      if( typeof ( autoSplit ) != undefined )
       {
          actAutoSplit = cur.current().toObj()["AutoSplit"];
       }

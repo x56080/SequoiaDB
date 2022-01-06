@@ -146,6 +146,12 @@
                                  "en": "High Availability"
                               },
                               {
+                                 "id": 1608537490,
+                                 "file": "instance_group",
+                                 "cn": "实例组",
+                                 "en": "Instance Group"
+                              },
+                              {
                                  "id": 1595583537,
                                  "file": "sdb_mysql_ctl",
                                  "cn": "实例管理工具",
@@ -252,6 +258,12 @@
                                  "file": "ha",
                                  "cn": "高可用",
                                  "en": "High Availability"
+                              },
+                              {
+                                 "id": 1608537553,
+                                 "file": "instance_group",
+                                 "cn": "实例组",
+                                 "en": "Instance Group"
                               },
                               {
                                  "id": 1595583874,
@@ -3480,6 +3492,68 @@
                            "file": "updateNodeConfigs",
                            "cn": "updateNodeConfigs()",
                            "en": "updateNodeConfigs()"
+                        }
+                     ]
+                  },
+                  {
+                     "id": 1612245510,
+                     "dir": "Stp",
+                     "cn": "Stp",
+                     "en": "Stp",
+                     "contents": [
+                        {
+                           "id": 1612245511,
+                           "file": "Stp",
+                           "cn": "Stp()",
+                           "en": "Stp()"
+                        },
+                        {
+                           "id": 1612245512,
+                           "file": "getTime",
+                           "cn": "getTime()",
+                           "en": "getTime()"
+                        },
+                        {
+                           "id": 1612245513,
+                           "file": "getTimeUS",
+                           "cn": "getTimeUS()",
+                           "en": "getTimeUS()"
+                        },
+                        {
+                           "id": 1612245514,
+                           "file": "getConf",
+                           "cn": "getConf()",
+                           "en": "getConf()"
+                        },
+                        {
+                           "id": 1612245515,
+                           "file": "getMeta",
+                           "cn": "getMeta()",
+                           "en": "getMeta()"
+                        },
+                        {
+                           "id": 1612245516,
+                           "file": "getServers",
+                           "cn": "getServers()",
+                           "en": "getServers()"
+                        },
+                        {
+                           "id": 1612245517,
+                           "file": "getSyncClients",
+                           "cn": "getSyncClients()",
+                           "en": "getSyncClients()"
+                        },
+                        {
+                           "id": 1612245518,
+                           "file": "getSyncStatus",
+                           "cn": "getSyncStatus()",
+                           "en": "getSyncStatus()"
+                        },
+                        {
+                           "id": 1612245519,
+                           "file": "getSyncHistory",
+                           "cn": "getSyncHistory()",
+                           "en": "getSyncHistory()"
                         }
                      ]
                   },

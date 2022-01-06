@@ -218,6 +218,10 @@ namespace engine
       #define SET_NAME_EXT_DATA_INITED()     ( _fieldInitedFlag |= 0x00002000 )
       #define ID_INDEX_IS_INITED()           ( _fieldInitedFlag &  0x00004000 )
       #define SET_ID_INDEX_INITED()          ( _fieldInitedFlag |= 0x00004000 )
+      #define CREATE_TIME_IS_INITED()        ( _fieldInitedFlag &  0x00008000 )
+      #define SET_CREATE_TIME_INITED()       ( _fieldInitedFlag |= 0x00008000 )
+      #define REBUILD_TIME_IS_INITED()       ( _fieldInitedFlag &  0x00010000 )
+      #define SET_REBUILD_TIME_INITED()      ( _fieldInitedFlag |= 0x00010000 )
 
    private:
 #pragma pack(1)
@@ -272,6 +276,8 @@ namespace engine
       mutable BOOLEAN _isIDIndex ;
       mutable OID _oid ;
       mutable const CHAR* _nameExtData ;
+      mutable UINT64 _createTime ;
+      mutable UINT64 _rebuildTime ;
       mutable UINT32 _fieldInitedFlag ;
 
       // Whether the given extent is a valid control block

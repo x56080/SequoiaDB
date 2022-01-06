@@ -8,7 +8,7 @@
 var backupName = CHANGEDPREFIX + "_bk";
 
 // main entry
-main( test );
+// main( test );
 
 function test ()
 {

@@ -561,19 +561,12 @@ namespace engine
                           BOOLEAN &finished ) ;
 
    protected:
-      // parse logical time from element
-      INT32 _parseLTime( const bson::BSONElement &element ) ;
-      // parse real time from element
-      INT32 _parseRTime( const bson::BSONElement &element ) ;
-
       // convert logical time to BSON object
       INT32 _buildLTime( bson::BSONObjBuilder &builder ) ;
       // convert real time to BSON object
       INT32 _buildRTime( bson::BSONObjBuilder &builder ) ;
 
    protected:
-      // options of convert time command
-      BSONObj           _options ;
       // convert direction ( from real time to logical time or reverse )
       BOOLEAN           _fromRTimeToLTime ;
       // indicates whether simple mode
@@ -587,6 +580,42 @@ namespace engine
    } ;
 
    typedef class _stpConvTimeCMD stpConvTimeCMD ;
+
+   /*
+      _stpGetTimeMapCMD define
+    */
+   class _stpGetTimeMapCMD : public stpCommand
+   {
+      DECLARE_STP_CMD_AUTO_REGISTER()
+
+   public:
+      // constructor and destructor
+      _stpGetTimeMapCMD( STPCB *stpCB ) ;
+      virtual ~_stpGetTimeMapCMD() ;
+
+   public:
+      // get name of command
+      OSS_INLINE virtual const CHAR *getName() const
+      {
+         return CMD_NAME_STP_GET_TIME_MAP ;
+      }
+
+      // initialize with given option
+      virtual INT32 initialize( const CHAR *option ) ;
+      // run command
+      virtual INT32 doit( stpSession *session,
+                          MsgHeader *message,
+                          bson::BSONObj &result,
+                          BOOLEAN &finished ) ;
+   protected:
+      BOOLEAN   _hasLogicalTime ;
+      stpHPTime _beginLogicalTime ;
+      BOOLEAN   _hasRealTime ;
+      stpHPTime _beginRealTime ;
+      UINT32    _recordCount ;
+   } ;
+
+   typedef class _stpGetTimeMapCMD stpGetTimeMapCMD ;
 
 }
 

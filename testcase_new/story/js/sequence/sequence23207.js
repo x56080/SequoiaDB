@@ -2,8 +2,8 @@
  * @Description   : seqDB-23207:获取多个序列值
  * @Author        : zhaoyu
  * @CreateTime    : 2021.01.11
- * @LastEditTime  : 2021.01.11
- * @LastEditors   : zhaoyu
+ * @LastEditTime  : 2021.02.03
+ * @LastEditors   : Lai Xuan
  ******************************************************************************/
 main( test );
 
@@ -41,17 +41,17 @@ function test ()
 
    for( var i = 0; i < coords.length; i++ )
    {
-      sequence.fetch( acquireSize );
+      sequences[i].fetch( acquireSize );
 
-      var nextValue = sequence.getNextValue();
+      var nextValue = sequences[i].getNextValue();
       assert.equal( nextValue, acquireSize * coords.length + acquireSize * i + 1 );
    }
 
    for( var i = 0; i < coords.length; i++ )
    {
-      sequence.fetch( cacheSize );
+      sequences[i].fetch( cacheSize );
 
-      var nextValue = sequence.getNextValue();
+      var nextValue = sequences[i].getNextValue();
       assert.equal( nextValue, acquireSize * coords.length * 2 + acquireSize * i + 1 );
    }
 

@@ -63,6 +63,8 @@ namespace engine
    #define STP_OPTION_MAXTIMEERROR_MAX       ( 10000000 )
    // default value for maxtimeerror option ( 50000 microseconds )
    #define STP_OPTION_MAXTIEMERROR_DEF       ( STP_MAX_TIME_ERROR_US )
+   // default value of max size of time map
+   #define STP_OPTION_MAXTIMEMAPSIZE_DEF     ( 525600 )
 
    #define FILE_OPTIONS \
       ( STP_OPTION_PORT, \
@@ -115,6 +117,10 @@ namespace engine
             po::value<INT32>(), \
             "nodes starting shift time ( in seconds ), " \
             "default is 600, value range is [ 0, 7200 ]" ) \
+      ( STP_OPTION_MAXTIMEMAPSIZE, \
+            po::value<INT32>(), \
+            "max number to save time mapping records, " \
+            "default is 525600, 0 means not save, -1 means no limit" ) \
       ( STP_OPTION_TESTMODE, \
             "start STP in test mode" )
 
@@ -184,6 +190,10 @@ namespace engine
             po::value<INT32>(), \
             "nodes starting shift time ( in seconds ), " \
             "default is 600, value range is [ 0, 7200 ]" ) \
+      ( STP_OPTION_MAXTIMEMAPSIZE, \
+            po::value<INT32>(), \
+            "max number to save time mapping records, " \
+            "default is 525600, 0 means not save, -1 means no limit" ) \
       ( STP_OPTION_CURUSER, \
             "use current user to start STP node" )
 
@@ -204,7 +214,8 @@ namespace engine
      _startShiftTime( STP_OPTION_STARTSHIFTTIME_DFT ),
      _port( STP_DEF_PORT ),
      _role( STP_ROLE_SERVER ),
-     _testMode( FALSE )
+     _testMode( FALSE ),
+     _maxTimeMapSize( STP_OPTION_MAXTIMEMAPSIZE_DEF )
    {
       _cfgFileName[ 0 ] = '\0' ;
       _stpPath[ 0 ] = '\0' ;
@@ -497,6 +508,11 @@ namespace engine
       rdxUInt( ex, STP_OPTION_STARTSHIFTTIME, _startShiftTime, FALSE,
                PMD_CFG_CHANGE_RUN, STP_OPTION_STARTSHIFTTIME_DFT, TRUE ) ;
       rdvMinMax( ex, _startShiftTime, 0, 7200, TRUE ) ;
+
+      // --maxtimemapsize
+      rdxInt( ex, STP_OPTION_MAXTIMEMAPSIZE, _maxTimeMapSize, FALSE,
+              PMD_CFG_CHANGE_RUN, STP_OPTION_MAXTIMEMAPSIZE_DEF, TRUE ) ;
+      rdvMinMax( ex, _maxTimeMapSize, -1, OSS_SINT32_MAX, TRUE ) ;
 
       return getResult () ;
    }

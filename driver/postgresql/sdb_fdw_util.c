@@ -1714,10 +1714,10 @@ void sdbPrintBson( sdbbson *bson, int log_level, const char *label )
    free( p ) ;
 }
 
-void SdbInitRecordCache()
+void sdbInitRecordCache()
 {
    INT32 i = 0 ;
-   SdbRecordCache *cache = SdbGetRecordCache() ;
+   SdbRecordCache *cache = sdbGetRecordCache() ;
    cache->size      = SDB_MAX_RECORD_SIZE ;
    cache->usedCount = 0 ;
    for (; i < cache->size; i++ )
@@ -1725,32 +1725,35 @@ void SdbInitRecordCache()
       cache->recordArray[i].record = malloc( sizeof( sdbbson ) ) ;
       sdbbson_init( cache->recordArray[i].record ) ;
       cache->recordArray[i].isUsed = FALSE ;
+      cache->recordArray[i].key = -1 ;
    }
 }
 
-void SdbFiniRecordCache()
+void sdbFiniRecordCache()
 {
    INT32 i = 0 ;
-   SdbRecordCache *cache = SdbGetRecordCache() ;
+   SdbRecordCache *cache = sdbGetRecordCache() ;
 
    for (; i < cache->size; i++ )
    {
       sdbbson_destroy( cache->recordArray[i].record ) ;
       free( cache->recordArray[i].record ) ;
       cache->recordArray[i].record = NULL ;
+      cache->recordArray[i].isUsed = FALSE ;
+      cache->recordArray[i].key = -1 ;
    }
 
    cache->usedCount = 0 ;
    cache->size      = 0 ;
 }
 
-SdbRecordCache *SdbGetRecordCache()
+SdbRecordCache *sdbGetRecordCache()
 {
    static SdbRecordCache cache ;
    return &cache ;
 }
 
-sdbbson *SdbAllocRecord( SdbRecordCache *recordCache, UINT64 *recordID )
+sdbbson *sdbAllocRecord( SdbRecordCache *recordCache, SdbExecState *fdw_state )
 {
    INT32 i = 0 ;
    sdbbson *pRecord ;
@@ -1761,46 +1764,90 @@ sdbbson *SdbAllocRecord( SdbRecordCache *recordCache, UINT64 *recordID )
       {
          pRecord = recordCache->recordArray[i].record ;
          recordCache->recordArray[i].isUsed = TRUE ;
-         *recordID = i ;
+         recordCache->recordArray[i].key = fdw_state->keyAddress ;
+         fdw_state->bson_record_index = i ;
 
          recordCache->usedCount++ ;
-         elog( DEBUG1, "SdbAllocRecord:usedCount=%d,index=%d",
+         elog( DEBUG1, "sdbAllocRecord:usedCount=%d,index=%d",
                recordCache->usedCount, i ) ;
          return pRecord ;
       }
    }
 
-   elog( ERROR, "SdbAllocRecord failed:usedCount=%d,index=%d",
+   elog( ERROR, "sdbAllocRecord failed:usedCount=%d,index=%d",
          recordCache->usedCount, i) ;
    return NULL ;
 }
 
-sdbbson *SdbGetRecord( SdbRecordCache *recordCache, UINT64 recordID )
+sdbbson *sdbGetRecord( SdbRecordCache *recordCache, SdbExecState *fdw_state )
 {
-   INT32 index = ( INT32 ) recordID ;
-//   elog( DEBUG1, "SdbGetRecord:usedCount=%d,index=%d",
-//         recordCache->usedCount, index ) ;
+   INT32 index = -1 ;
+   INT32 meetUsedCount = 0 ;
 
-   if ( index >= recordCache->size )
+   if ( -1 == fdw_state->bson_record_index )
    {
-      elog( ERROR, "recordID is not correct:recordID=%d", index ) ;
-      return NULL ;
+      // get record through keyAddress
+      INT32 i = 0 ;
+      for ( ; i < recordCache->size ; i++ )
+      {
+         if ( recordCache->recordArray[i].isUsed )
+         {
+            ++meetUsedCount ;
+            if ( recordCache->recordArray[i].key == fdw_state->keyAddress )
+            {
+               index = i ;
+               break ;
+            }
+
+            if ( meetUsedCount >= recordCache->usedCount )
+            {
+               // have met all used record, no more used record
+               break ;
+            }
+         }
+      }
+
+      if ( -1 == index )
+      {
+         elog( ERROR, "record must be allocated before" ) ;
+         return NULL ;
+      }
+
+      // save record_index, make next get faster
+      fdw_state->bson_record_index = index ;
    }
-
-   if ( !recordCache->recordArray[index].isUsed )
+   else
    {
-      elog( DEBUG1, "get released record!!!:index=%d", index ) ;
-      recordCache->recordArray[index].isUsed = TRUE ;
-      recordCache->usedCount++ ;
+      // get record through bson_record_index
+      index = ( INT32 ) fdw_state->bson_record_index ;
+      if ( index >= recordCache->size )
+      {
+         elog( ERROR, "recordID is not correct:recordID=%d", index ) ;
+         return NULL ;
+      }
+
+      if ( !recordCache->recordArray[index].isUsed )
+      {
+         elog( ERROR, "get released record!!!:index=%d", index ) ;
+         return NULL ;
+      }
+
+      if ( recordCache->recordArray[index].key != fdw_state->keyAddress )
+      {
+         elog( ERROR, "key must be same:cache key=%llu, fdw key=%llu",
+               recordCache->recordArray[index].key,
+               fdw_state->keyAddress ) ;
+         return NULL ;
+      }
    }
 
    return recordCache->recordArray[index].record ;
 }
 
-void SdbReleaseRecord( SdbRecordCache *recordCache, UINT64 recordID )
+void sdbReleaseRecord( SdbRecordCache *recordCache, SdbExecState *fdw_state )
 {
-   INT32 index = ( INT32 ) recordID ;
-//   elog( DEBUG1, "SdbReleaseRecord:usedCount=%d,index=%d",
+   INT32 index = ( INT32 ) fdw_state->bson_record_index ;
+//   elog( DEBUG1, "sdbReleaseRecord:usedCount=%d,index=%d",
 //         recordCache->usedCount, index ) ;
 
    if ( index >= recordCache->size || index < 0 )
@@ -1815,6 +1862,7 @@ void SdbReleaseRecord( SdbRecordCache *recordCache, UINT64 recordID )
    }
 
    recordCache->recordArray[index].isUsed = FALSE ;
+   recordCache->recordArray[index].key = -1 ;
    recordCache->usedCount-- ;
 }
 

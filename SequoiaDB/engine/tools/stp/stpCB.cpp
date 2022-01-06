@@ -230,6 +230,11 @@ namespace engine
       // update start shift time
       _replManager.setStartShiftTime( _options.getStartShiftTime() ) ;
 
+      // update max size of time map
+      _metaManager.getTimeMapManager()->setMaxTimeMapSize(
+                                             _options.getMaxTimeMapSize(),
+                                             FALSE ) ;
+
       // update configs to node manager
       _nodeManager.updateConfigs() ;
 

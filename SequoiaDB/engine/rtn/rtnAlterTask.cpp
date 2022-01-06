@@ -586,6 +586,66 @@ namespace engine
    }
 
    /*
+      _rtnCLRepairCheckArgument implement
+    */
+   _rtnCLRepairCheckArgument::_rtnCLRepairCheckArgument()
+   : _rtnAlterTaskArgument(),
+     _repairCheck( FALSE )
+   {
+   }
+
+   _rtnCLRepairCheckArgument::_rtnCLRepairCheckArgument(
+                                           const bson::BSONObj &argument )
+   : _rtnAlterTaskArgument( argument ),
+     _repairCheck( FALSE )
+   {
+   }
+
+   _rtnCLRepairCheckArgument::_rtnCLRepairCheckArgument(
+                                     const _rtnCLRepairCheckArgument &argument )
+   : _rtnAlterTaskArgument( argument ),
+     _repairCheck( argument._repairCheck )
+   {
+   }
+
+   _rtnCLRepairCheckArgument::~_rtnCLRepairCheckArgument()
+   {
+   }
+
+   _rtnCLRepairCheckArgument& _rtnCLRepairCheckArgument::operator = (
+                                    const _rtnCLRepairCheckArgument &argument )
+   {
+      _rtnAlterTaskArgument::operator =( argument ) ;
+      _repairCheck = argument._repairCheck ;
+
+      return ( *this ) ;
+   }
+
+   INT32 _rtnCLRepairCheckArgument::parseArgument()
+   {
+      INT32 rc = SDB_OK ;
+      BSONElement ele = _argument.getField( FIELD_NAME_REPARECHECK ) ;
+      if ( !ele.eoo() )
+      {
+         PD_CHECK( Bool == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to get field [%s]", FIELD_NAME_REPARECHECK ) ;
+
+         _repairCheck = ele.booleanSafe() ;
+         parsedArgumentMask( UTIL_CL_REPAIRCHECK_FIELD ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   BOOLEAN _rtnCLRepairCheckArgument::isRepairCheck() const
+   {
+      return _repairCheck ;
+   }
+
+   /*
       _rtnCLExtOptionArgument implement
     */
    _rtnCLExtOptionArgument::_rtnCLExtOptionArgument ()
@@ -1319,6 +1379,7 @@ namespace engine
    : _rtnAlterCLTask( schema, argument ),
      _shardingArgument( argument, FALSE ),
      _compressArgument( argument, TRUE ),
+     _repairCheckArgument( argument ),
      _extOptionArgument( argument ),
      _autoRebalance( FALSE ),
      _autoIndexID( TRUE ),
@@ -1380,6 +1441,13 @@ namespace engine
 
       parsedArgumentMask( _compressArgument.getArgumentMask(),
                           _compressArgument.getArgumentCount() ) ;
+
+      rc = _repairCheckArgument.parseArgument() ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to parse access mode argument, rc: %d", rc ) ;
+
+      parsedArgumentMask( _repairCheckArgument.getArgumentMask(),
+                          _repairCheckArgument.getArgumentCount() ) ;
 
       rc = _extOptionArgument.parseArgument() ;
       PD_RC_CHECK( rc, PDERROR,

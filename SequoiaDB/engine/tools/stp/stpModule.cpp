@@ -502,7 +502,7 @@ namespace engine
       _stopEDU() ;
 
       // start EDU by EDU manager
-      rc = eduMgr->startEDU( EDU_TYPE_STP_MODULE, (void *)this, &eduID ) ;
+      rc = eduMgr->startEDU( EDU_TYPE_STP_SYSTEM_SESSION, (void *)this, &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start EDU for [%s], rc: %d",
                    getModuleName(), rc ) ;
 

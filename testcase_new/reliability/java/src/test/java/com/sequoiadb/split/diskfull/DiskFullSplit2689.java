@@ -108,7 +108,7 @@ public class DiskFullSplit2689 extends SdbTestBase {
             Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
             // 故障恢复后检查集群状态
-            if ( !groupMgr.checkBusiness( 20 ) ) {
+            if ( !groupMgr.checkBusinessWithLSNAndDisk( 20 ) ) {
                 throw new SkipException( "checkBusiness return false" );
             }
 

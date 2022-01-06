@@ -213,8 +213,10 @@ namespace engine
 
       // edu for SequoiaDB Time Protocol
       EDU_TYPE_STP_NET_AGENT,
-      EDU_TYPE_STP_MODULE,
-      EDU_TYPE_STP_SESSION,
+      // system session to STP CB modules
+      EDU_TYPE_STP_SYSTEM_SESSION,
+      // service session to STP client
+      EDU_TYPE_STP_SERVICE_SESSION,
 
       /// vessel begin
       EDU_TYPE_VESSEL_CACHE_WATCHER,

@@ -1,13 +1,17 @@
 import( "../lib/basic_operation/commlib.js" );
 import( "../lib/main.js" );
+// create WORKDIR in local host
+commMakeDir( "localhost", WORKDIR );
+// create cappedCS
+commCreateCS( db, COMMCAPPEDCSNAME, true, "", { Capped: true } );
+// the header size of each record
+var recordHeader = 67;
 
 /************************************
 *@Description: check count
 *@author:      zhaoyu
 *@createDate:  2017.7.18
 **************************************/
-// the header size of each record
-var recordHeader = 67;
 function checkCount ( dbcl, findConf, expectCount )
 {
    var actualCount = dbcl.count( findConf );
@@ -66,7 +70,6 @@ function insertFixedLengthDatas ( dbcl, recordNum, stringLength, string )
    doc.clear();
 
    return records;
-
 }
 
 /************************************
@@ -307,4 +310,131 @@ function checkLSN ( db, groups, primaryNodeLSNs )
    }
 
    return checkLSN;
+}
+
+/************************************
+*@Description: get actual result and check it 
+*@author:      zhaoyu
+*@createDate:  2017.7.11
+**************************************/
+function checkRecords ( dbcl, findConf, selectConf, sortConf, limitConf, skipConf, expRecs )
+{
+   if( typeof ( findConf ) == "undefined" ) { findConf = null; }
+   if( typeof ( selectConf ) == "undefined" ) { selectConf = null; }
+   if( typeof ( sortConf ) == "undefined" ) { sortConf = null; }
+   if( typeof ( limitConf ) == "undefined" ) { limitConf = null; }
+   if( typeof ( skipConf ) == "undefined" ) { skipConf = null; }
+   var rc = dbcl.find( findConf, selectConf ).sort( sortConf ).limit( limitConf ).skip( skipConf );
+   checkRec( rc, expRecs );
+}
+
+/************************************
+*@Description: 调用sdb工具
+*@author:      luweikang
+*@createDate:  2017.07.05
+**************************************/
+function command ( name )
+{
+   if( "undefined" === typeof ( name ) )
+   {
+      throw new Error( command + "name undefined" );
+   }
+
+   this.name = name;
+   this.cmd = new Cmd();
+}
+
+command.prototype.exec =
+   function( newcmdstr )
+   {
+      if( "undefined" !== typeof ( newcmdstr ) )
+      {
+         var cmdstr = newcmdstr;
+      }
+      else
+      {
+         var cmdstr = "undefined" !== typeof ( this.options ) ?
+            this.name + " " + this.options : this.name;
+      }
+      var result = this.cmd.run( cmdstr );
+
+      return result;
+   }
+
+command.prototype.addOption =
+   function( option )
+   {
+      if( "undefined" === typeof ( option ) )
+      {
+         throw new Error( "command.addOption() option is undefined" );
+      }
+
+      if( "undefined" === typeof ( this.options ) )
+      {
+         this.options = option;
+      }
+      else
+      {
+         this.options = this.options + " " + option;
+      }
+   }
+
+/*************************************
+*@Description: 检测主备节点数据一致性
+*@author:      luweikang
+*@createDate:  2017.07.05
+**************************************/
+function checkData ( csName, clName )
+{
+   var groupNames = commGetCLGroups( db, csName + "." + clName );
+   // check lsn firstly within group
+   commCheckLSN( db, groupNames, 120 );
+
+   // check inspect result secondly
+   var inspectBinFile = WORKDIR + "/" + "inspect_" + csName + "_" + clName + ".bin";
+   var inspectReportFile = WORKDIR + "/" + "inspect_" + csName + "_" + clName + ".bin.report";
+   var installPath = commGetInstallPath();
+   var cmd = new command( installPath + "/bin/sdbinspect" );
+   cmd.addOption( "-g " + groupNames[0] );
+   cmd.addOption( "-d " + this.db.toString() );
+   cmd.addOption( "-c " + csName );
+   cmd.addOption( "-l " + clName );
+   cmd.addOption( "-o " + inspectBinFile );
+   var result = cmd.exec();
+   if( result.lastIndexOf( "inspect done" ) !== 0 ||
+      result.lastIndexOf( "exit with no records different" ) === -1 )
+   {
+      throw new Error( "inspect error, actual result: " + result );
+   }
+
+   // remove inspect reports
+   cmd = new Cmd();
+   cmd.run( "rm -f " + inspectBinFile );
+   cmd.run( "rm -f " + inspectReportFile );
+}
+
+/*************************************
+*@Description: 初始化固定集合测试环境
+*@author:      luweikang
+*@createDate:  2017.07.05
+**************************************/
+function initCappedCS ( csName )
+{
+   //clean environment before test
+   commDropCS( db, csName, true, "drop CS in the beginning" );
+
+   //create cappedCS
+   var options = { Capped: true }
+   commCreateCS( db, csName, false, "beginning to create cappedCS", options );
+}
+
+/************************************
+*@Description: return count record
+*@author:      zhaoyu
+*@createDate:  2017.7.11
+**************************************/
+function countRecords ( dbcl, conf )
+{
+   var count = dbcl.count( conf );
+   return parseInt( count );
 }

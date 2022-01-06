@@ -58,7 +58,7 @@ backupTestCase11669.prototype.execTest =
       this.checkResult( times );
    }
 
-main( test );
+// main( test );
 
 function test ()
 {

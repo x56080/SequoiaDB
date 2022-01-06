@@ -461,6 +461,32 @@ namespace engine
    } ;
 
    /*
+      _rtnCLRepairCheckArgument define
+    */
+   class _rtnCLRepairCheckArgument ;
+   typedef class _rtnCLRepairCheckArgument rtnCLRepairCheckArgument ;
+
+   class _rtnCLRepairCheckArgument : public _rtnAlterTaskArgument
+   {
+      public :
+         _rtnCLRepairCheckArgument() ;
+         _rtnCLRepairCheckArgument( const bson::BSONObj &argument ) ;
+         _rtnCLRepairCheckArgument(
+                                const _rtnCLRepairCheckArgument &argument ) ;
+         virtual ~_rtnCLRepairCheckArgument() ;
+
+         _rtnCLRepairCheckArgument& operator =(
+                                 const _rtnCLRepairCheckArgument &argument ) ;
+
+         INT32 parseArgument() ;
+
+         BOOLEAN isRepairCheck() const ;
+
+      protected :
+         BOOLEAN _repairCheck ;
+   } ;
+
+   /*
       _rtnCLAutoincFieldArgument define
     */
    class _rtnCLAutoincFieldArgument;
@@ -729,9 +755,20 @@ namespace engine
             return _shardingArgument ;
          }
 
+         OSS_INLINE const rtnCLRepairCheckArgument &getRepairCheckArgument() const
+         {
+            return _repairCheckArgument ;
+         }
+
          OSS_INLINE BOOLEAN containCompressArgument () const
          {
             return _compressArgument.getArgumentMask() !=
+                                                RTN_ALTER_TASK_FLAG_EMPTY ;
+         }
+
+         OSS_INLINE BOOLEAN containRepairCheckArgument () const
+         {
+            return _repairCheckArgument.getArgumentMask() !=
                                                 RTN_ALTER_TASK_FLAG_EMPTY ;
          }
 
@@ -786,6 +823,7 @@ namespace engine
       protected :
          rtnCLShardingArgument      _shardingArgument ;
          rtnCLCompressArgument      _compressArgument ;
+         rtnCLRepairCheckArgument   _repairCheckArgument ;
          rtnCLExtOptionArgument     _extOptionArgument ;
          autoIncFieldsList          _autoIncFieldList ;
 

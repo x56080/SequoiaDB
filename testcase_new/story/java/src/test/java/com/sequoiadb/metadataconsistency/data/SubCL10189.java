@@ -109,8 +109,6 @@ public class SubCL10189 extends SdbTestBase {
 
                     MetaDataUtils.insertData( db, csName, mCLName );
                 }
-            } catch ( NullPointerException e ) {
-
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
                 if ( eCode != -23 && eCode != -34 && eCode != -147

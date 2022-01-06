@@ -2171,6 +2171,7 @@ namespace engine
       INT16 w = 0 ;
       INT16 clientW = pUpdate->w ;
       INT16 replSize = 0 ;
+      BOOLEAN repairCheck = FALSE ;
 
       rc = msgExtractUpdate( (CHAR*)msg, &flags, &pCollectionName,
                              &pMatcherBuffer, &pUpdatorBuffer, &pHintBuffer );
@@ -2216,11 +2217,16 @@ namespace engine
       _pEDUCB->setIsAffectGIndex( TRUE ) ;
 
       rc = _checkCLStatusAndGetSth( pCollectionName, pUpdate->version,
-                                    &_isMainCL, &replSize, mainCLName ) ;
+                                    &_isMainCL, &replSize, mainCLName, NULL,
+                                    &repairCheck ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
       }
+
+      PD_LOG_MSG_CHECK( FALSE == repairCheck, SDB_OPERATION_INCOMPATIBLE,
+                        error, PDERROR, "collection(%s) is in repair check "
+                        "status, rc: %d", pCollectionName, rc ) ;
 
       rc = _calculateW( &replSize, &clientW, w ) ;
       if ( SDB_OK != rc )
@@ -2305,6 +2311,7 @@ namespace engine
       INT16 w = 0 ;
       INT16 clientW = pInsert->w ;
       INT16 replSize = 0 ;
+      BOOLEAN repairCheck = FALSE ;
 
       rc = msgExtractInsert ( (CHAR*)msg,  &flags, &pCollectionName,
                               &pInsertorBuffer, recordNum ) ;
@@ -2338,11 +2345,16 @@ namespace engine
 
       rc = _checkCLStatusAndGetSth( pCollectionName,
                                     pInsert->version,
-                                    &_isMainCL, &replSize ) ;
+                                    &_isMainCL, &replSize, NULL, NULL,
+                                    &repairCheck ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
       }
+
+      PD_LOG_MSG_CHECK( FALSE == repairCheck, SDB_OPERATION_INCOMPATIBLE,
+                        error, PDERROR, "collection(%s) is in repair check "
+                        "status, rc: %d", pCollectionName, rc ) ;
 
       rc = _calculateW( &replSize, &clientW, w ) ;
       if ( SDB_OK != rc )
@@ -2416,6 +2428,7 @@ namespace engine
       INT16 w = 0 ;
       INT16 clientW = pDelete->w ;
       INT16 replSize = 0 ;
+      BOOLEAN repairCheck = FALSE ;
 
       rc = msgExtractDelete ( (CHAR *)msg , &flags, &pCollectionName,
                               &pMatcherBuffer, &pHintBuffer ) ;
@@ -2439,11 +2452,16 @@ namespace engine
       _pEDUCB->setIsAffectGIndex( TRUE ) ;
 
       rc = _checkCLStatusAndGetSth( pCollectionName, pDelete->version,
-                                    &_isMainCL, &replSize, mainCLName ) ;
+                                    &_isMainCL, &replSize, mainCLName, NULL,
+                                    &repairCheck ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
       }
+
+      PD_LOG_MSG_CHECK( FALSE == repairCheck, SDB_OPERATION_INCOMPATIBLE,
+                        error, PDERROR, "collection(%s) is in repair check "
+                        "status, rc: %d", pCollectionName, rc ) ;
 
       rc = _calculateW( &replSize, &clientW, w ) ;
       if ( SDB_OK != rc )
@@ -2545,6 +2563,7 @@ namespace engine
 
          if ( flags & FLG_QUERY_MODIFY )
          {
+            BOOLEAN repairCheck = FALSE ;
             needRollback = TRUE ;
             rc = _checkWriteStatus() ;
             if ( SDB_OK != rc )
@@ -2557,11 +2576,15 @@ namespace engine
 
             rc = _checkCLStatusAndGetSth( pCollectionName, pQuery->version,
                                           &_isMainCL, &replSize,
-                                          mainCLName ) ;
+                                          mainCLName, NULL, &repairCheck ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
             }
+
+            PD_LOG_MSG_CHECK( FALSE == repairCheck, SDB_OPERATION_INCOMPATIBLE,
+                              error, PDERROR, "collection(%s) is in repair "
+                              "check status, rc: %d", pCollectionName, rc ) ;
 
             rc = _calculateW( &replSize, &clientW, w ) ;
             if ( SDB_OK != rc )
@@ -3915,31 +3938,15 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to check order-key(rc=%d)", rc ) ;
 
-      rc = _getSubCLList( options.getQuery(), options.getCLFullName(),
-                          isWrite, boNewMatcher, strSubCLList ) ;
+      rc = _getAndChkSubCL( options.getQuery(), options.getCLFullName(),
+                            isWrite, FALSE, boNewMatcher, strSubCLList,
+                            &includeShardingOrder ) ;
       if ( rc != SDB_OK )
       {
          goto error;
       }
 
       options.setQuery( boNewMatcher ) ;
-
-      if ( includeShardingOrder && strSubCLList.size() > 1 )
-      {
-         rc = _sortSubCLListByBound( options.getCLFullName(), strSubCLList ) ;
-         if ( rc )
-         {
-            /// can't optimize
-            if ( SDB_CLS_NO_CATALOG_INFO == rc || SDB_SYS == rc )
-            {
-               includeShardingOrder = FALSE ;
-            }
-            else
-            {
-               goto error ;
-            }
-         }
-      }
 
       if ( options.testFlag( FLG_QUERY_EXPLAIN ) )
       {
@@ -4012,74 +4019,57 @@ namespace engine
       goto done ;
    }
 
-   INT32 _clsShdSession::_sortSubCLListByBound( const CHAR *pCollectionName,
-                                                CLS_SUBCL_LIST &strSubCLList )
+   INT32 _clsShdSession::_getAndChkSubCL( const BSONObj &matcher,
+                                          const CHAR *pCollectionName,
+                                          BOOLEAN isWrite,
+                                          BOOLEAN isAllowEmptyList,
+                                          BSONObj &boNewMatcher,
+                                          CLS_SUBCL_LIST &strSubCLList,
+                                          BOOLEAN *pIncludeShardingOrder )
    {
-      INT32 rc = SDB_OK ;
-      ossPoolSet<string> setNameFilter ;
-      CLS_SUBCL_LIST strSubCLListTmp ;
-      _clsCatalogSet *pCataSet = NULL ;
+      INT32 rc = SDB_OK;
 
-      _pCatAgent->lock_r () ;
-      pCataSet = _pCatAgent->collectionSet( pCollectionName ) ;
-      if ( NULL == pCataSet )
+      BOOLEAN includeShardingOrder =
+            NULL == pIncludeShardingOrder ? FALSE : *pIncludeShardingOrder ;
+
+      rc = _prepareSubCLList( matcher, boNewMatcher, strSubCLList ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to prepare sub-collection list by "
+                   "query matcher for main-collection [%s], rc: %d",
+                   pCollectionName, rc ) ;
+
+      if ( strSubCLList.empty() )
       {
-         _pCatAgent->release_r () ;
-         rc = SDB_CLS_NO_CATALOG_INFO ;
-         PD_LOG( PDWARNING, "Can't find collection(%s)'s catalog information",
-                 pCollectionName ) ;
-         goto error ;
+         // no sub-collection list is given from matcher, acquire all
+         // sub-collections from main-collection
+         rc = _getSubCLList( pCollectionName, strSubCLList,
+                             includeShardingOrder ?
+                                   SUBCL_SORT_BY_BOUND :
+                                   SUBCL_SORT_BY_ID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get sub-collection list "
+                      "for main-collection [%s], rc: %d",
+                      pCollectionName, rc ) ;
       }
-      pCataSet->getSubCLList( strSubCLListTmp, SUBCL_SORT_BY_BOUND ) ;
-      _pCatAgent->release_r () ;
-
-      if ( rc )
+      else if ( includeShardingOrder )
       {
-         PD_LOG( PDERROR, "Get sub collection list failed, rc: %d", rc ) ;
-         goto error ;
+         // sub-collection list is given by matcher, and sharding order is
+         // required, sort the sub-collections
+         rc = _getSubCLOrder( pCollectionName, includeShardingOrder,
+                              strSubCLList ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get sub-collection by "
+                      "sharding order for main-collection [%s], rc: %d",
+                      pCollectionName, rc ) ;
       }
 
-      try
-      {
-         CLS_SUBCL_LIST_IT it = strSubCLList.begin() ;
-         while( it != strSubCLList.end() )
-         {
-            setNameFilter.insert( *it ) ;
-            ++it ;
-         }
+      // check sub-collections
+      rc = _checkSubCLList( pCollectionName, strSubCLList, isWrite,
+                            isAllowEmptyList ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check sub-collection list "
+                   "for main-collection [%s], rc: %d",
+                   pCollectionName, rc ) ;
 
-         ossPoolSet<string>::iterator itSet ;
-         strSubCLList.clear() ;
-         it = strSubCLListTmp.begin() ;
-         while( it != strSubCLListTmp.end() )
-         {
-            itSet = setNameFilter.find( *it ) ;
-            /// Found
-            if ( itSet != setNameFilter.end() )
-            {
-               strSubCLList.push_back( *it ) ;
-               setNameFilter.erase( itSet ) ;
-            }
-            ++it ;
-         }
-
-         /// has some sub cl not found
-         if ( !setNameFilter.empty() )
-         {
-            rc = SDB_SYS ;
-            itSet = setNameFilter.begin() ;
-            while( itSet != setNameFilter.end() )
-            {
-               strSubCLList.push_back( *itSet ) ;
-               ++itSet ;
-            }
-         }
-      }
-      catch( std::exception &e )
+      if ( NULL != pIncludeShardingOrder )
       {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = SDB_OOM ;
-         goto error ;
+         *pIncludeShardingOrder = includeShardingOrder ;
       }
 
    done:
@@ -4088,23 +4078,21 @@ namespace engine
       goto done ;
    }
 
-   INT32 _clsShdSession::_getSubCLList( const BSONObj &matcher,
-                                        const CHAR *pCollectionName,
-                                        BOOLEAN isWrite,
-                                        BSONObj &boNewMatcher,
-                                        CLS_SUBCL_LIST &strSubCLList )
+   INT32 _clsShdSession::_prepareSubCLList( const BSONObj &matcher,
+                                            BSONObj &boNewMatcher,
+                                            CLS_SUBCL_LIST &subCLList )
    {
-      INT32 rc = SDB_OK;
+      INT32 rc = SDB_OK ;
 
       try
       {
-         BSONObjBuilder bobNewMatcher;
-         BSONObjIterator iter( matcher );
+         BSONObjBuilder bobNewMatcher( matcher.objsize() ) ;
+         BSONObjIterator iter( matcher ) ;
          while( iter.more() )
          {
-            BSONElement beTmp = iter.next();
+            BSONElement beTmp = iter.next() ;
             if ( beTmp.type() == Array &&
-                 0 == ossStrcmp(beTmp.fieldName(), CAT_SUBCL_NAME ) )
+                 0 == ossStrcmp( beTmp.fieldName(), CAT_SUBCL_NAME ) )
             {
                BSONObj boSubCLList = beTmp.embeddedObject();
                BSONObjIterator iterSubCL( boSubCLList );
@@ -4114,64 +4102,215 @@ namespace engine
                   string strSubCLName = beSubCL.str();
                   if ( !strSubCLName.empty() )
                   {
-                     strSubCLList.push_back( strSubCLName ) ;
-
-                     /// wait for freezing window
-                     if ( isWrite )
-                     {
-                        rc = _pFreezingWindow->waitForOpr( strSubCLName.c_str(),
-                                                           _pEDUCB,
-                                                           _pEDUCB->isWritingDB() ) ;
-                        PD_RC_CHECK( rc, PDERROR, "Wait freezing window for "
-                                     "collection(%s) failed, rc: %d",
-                                     strSubCLName.c_str(), rc ) ;
-                     }
+                     subCLList.push_back( strSubCLName ) ;
                   }
                }
             }
             else
             {
-               bobNewMatcher.append( beTmp );
+               bobNewMatcher.append( beTmp ) ;
             }
          }
-         boNewMatcher = bobNewMatcher.obj();
+         boNewMatcher = bobNewMatcher.obj() ;
       }
-      catch( std::exception &e )
+      catch ( exception &e )
       {
-         PD_RC_CHECK( SDB_INVALIDARG, PDERROR,
-                      "occur unexpected error:%s",
-                      e.what() );
+         PD_LOG( PDERROR, "Failed to get sub-collection list, "
+                 "occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
       }
 
-      if ( strSubCLList.empty() )
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _clsShdSession::_getSubCLOrder( const CHAR *pCollectionName,
+                                         BOOLEAN &includeShardingOrder,
+                                         CLS_SUBCL_LIST &subCLList )
+   {
+      INT32 rc = SDB_OK ;
+
+      clsCatalogSet *pCataSet = NULL ;
+      CLS_ORDER2SUBCLIDX_MAP sortedSubCLIdxMap ;
+      CLS_SUBCL_LIST sortedSubCLList ;
+
+      _pCatAgent->lock_r () ;
+      pCataSet = _pCatAgent->collectionSet( pCollectionName ) ;
+      if ( NULL == pCataSet )
       {
-         rc = _getSubCLList( pCollectionName, isWrite, strSubCLList ) ;
-         if ( rc )
+         PD_LOG( PDWARNING, "Failed to get main-collection [%s] "
+                 "from catalog, rc: %d, disable sharding order",
+                 pCollectionName, rc ) ;
+
+         // ignore
+         includeShardingOrder = FALSE ;
+      }
+      else if ( pCataSet->isSortSubCLPrepared() )
+      {
+         // if catalog info has sub-collection prepared for sort
+         // use the sort info
+         rc = pCataSet->sortSubCL( subCLList, sortedSubCLIdxMap ) ;
+         if ( SDB_OK != rc )
          {
-            goto error ;
+            PD_LOG( PDWARNING, "Failed to get sub-collection list "
+                    "by filter for main-collection [%s], rc: %d, "
+                    "disable sharding order", pCollectionName, rc ) ;
+            // ignore
+            rc = SDB_OK ;
+            includeShardingOrder = FALSE ;
          }
       }
       else
       {
-         // need recheck version of main-collection
-         rc = _checkCLVersion( pCollectionName, _clVersion ) ;
-         PD_RC_CHECK( rc, PDDEBUG, "Failed to check message version [%d] of "
-                      "collection [%s], rc: %d", _clVersion, pCollectionName,
-                      rc ) ;
+         // no sort info is prepared, use the old method
+         rc = pCataSet->getSubCLList( sortedSubCLList,
+                                      SUBCL_SORT_BY_BOUND ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDWARNING, "Failed to get sub-collection list "
+                    "by bound for main-collection [%s], rc: %d, "
+                    "disable sharding order", pCollectionName, rc ) ;
+            rc = SDB_OK ;
+            includeShardingOrder = FALSE ;
+         }
       }
+      _pCatAgent->release_r() ;
 
-      PD_CHECK( !strSubCLList.empty(), SDB_INVALID_MAIN_CL, error, PDERROR,
-                "main-collection has no sub-collection!" ) ;
+      if ( includeShardingOrder )
+      {
+         try
+         {
+            if ( !sortedSubCLIdxMap.empty() )
+            {
+               // sort info is prepared, use the sorted map to sort
+               // sub-collections
+               SDB_ASSERT( sortedSubCLIdxMap.size() == subCLList.size(),
+                           "sizes of sorted sub-collections are different" ) ;
+               sortedSubCLList.clear() ;
+               sortedSubCLList.reserve( subCLList.size() ) ;
+               for ( CLS_ORDER2SUBCLIDX_MAP::iterator iter =
+                                                   sortedSubCLIdxMap.begin() ;
+                     iter != sortedSubCLIdxMap.end() ;
+                     ++ iter )
+               {
+                  SDB_ASSERT( iter->second < subCLList.size(),
+                              "index is invalid" ) ;
+                  // replace
+                  sortedSubCLList.push_back( subCLList[ iter->second ] ) ;
+               }
+               // swap with sorted result
+               subCLList.swap( sortedSubCLList ) ;
+            }
+            else
+            {
+               UINT32 index = 0 ;
+
+               // calculate from full sorted list of sub-collections
+               ossPoolSet<string> setNameFilter ;
+               CLS_SUBCL_LIST_IT it = subCLList.begin() ;
+               while( it != subCLList.end() )
+               {
+                  setNameFilter.insert( *it ) ;
+                  ++it ;
+               }
+
+               ossPoolSet<string>::iterator itSet ;
+               it = sortedSubCLList.begin() ;
+               while( it != sortedSubCLList.end() )
+               {
+                  itSet = setNameFilter.find( *it ) ;
+                  /// Found
+                  if ( itSet != setNameFilter.end() )
+                  {
+                     // replace
+                     subCLList[ index ++ ] = ( *it ) ;
+                     setNameFilter.erase( itSet ) ;
+                  }
+                  ++it ;
+               }
+
+               /// has some sub cl not found
+               if ( !setNameFilter.empty() )
+               {
+                  rc = SDB_SYS ;
+                  itSet = setNameFilter.begin() ;
+                  while( itSet != setNameFilter.end() )
+                  {
+                     // replace
+                     subCLList[ index ++ ] = ( *itSet ) ;
+                     ++itSet ;
+                  }
+               }
+            }
+         }
+         catch( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to check sub-collection "
+                    "list with filter for main-collection [%s], "
+                    "occur exception: %s", pCollectionName, e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+      }
 
    done:
       return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _clsShdSession::_checkSubCLList( const CHAR *pCollectionName,
+                                          const CLS_SUBCL_LIST &subCLList,
+                                          BOOLEAN isWrite,
+                                          BOOLEAN isAllowEmptyList )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( !isAllowEmptyList )
+      {
+         // not allow empty sub-collection list
+         PD_CHECK( !subCLList.empty(), SDB_INVALID_MAIN_CL, error, PDERROR,
+                   "main-collection [%s] has no sub-collection!",
+                   pCollectionName ) ;
+      }
+
+      // check write status is needed
+      if ( isWrite )
+      {
+         for ( CLS_SUBCL_LIST::const_iterator iter = subCLList.begin() ;
+               iter != subCLList.end() ;
+               ++ iter )
+         {
+            rc = _pFreezingWindow->waitForOpr( iter->c_str(),
+                                               _pEDUCB,
+                                               _pEDUCB->isWritingDB() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Wait freezing window for "
+                         "sub-collection(%s) failed, rc: %d",
+                         iter->c_str(), rc ) ;
+         }
+      }
+
+      // need recheck version of main-collection
+      rc = _checkCLVersion( pCollectionName, _clVersion ) ;
+      PD_RC_CHECK( rc, PDDEBUG, "Failed to check message version [%d] of "
+                   "collection [%s], rc: %d", _clVersion, pCollectionName,
+                   rc ) ;
+
+   done:
+      return rc ;
+
    error:
       goto done ;
    }
 
    INT32 _clsShdSession::_getSubCLList( const CHAR *pCollectionName,
-                                        BOOLEAN isWrite,
-                                        CLS_SUBCL_LIST &subCLList )
+                                        CLS_SUBCL_LIST &subCLList,
+                                        CLS_SUBCL_SORT_TYPE sortType )
    {
       INT32 rc = SDB_OK ;
       const CHAR *pSubCLName = NULL ;
@@ -4188,7 +4327,7 @@ namespace engine
          PD_LOG( PDERROR, "can not find collection:%s", pCollectionName ) ;
          goto error ;
       }
-      pCataSet->getSubCLList( strSubCLListTmp ) ;
+      pCataSet->getSubCLList( strSubCLListTmp, sortType ) ;
       _pCatAgent->release_r() ;
 
       /// check all sub collection is valid
@@ -4229,14 +4368,6 @@ namespace engine
 
          /// push to list
          subCLList.push_back( *iter ) ;
-         if ( isWrite )
-         {
-            rc = _pFreezingWindow->waitForOpr( (*iter).c_str(), _pEDUCB,
-                                               _pEDUCB->isWritingDB() ) ;
-            PD_RC_CHECK( rc, PDERROR, "Wait freezing window for "
-                         "collection(%s) failed, rc: %d",
-                         (*iter).c_str(), rc ) ;
-         }
 
          ++iter ;
       }
@@ -4248,17 +4379,33 @@ namespace engine
          _pCatAgent->clear( pCollectionName ) ;
          _pCatAgent->release_w() ;
       }
-      else
-      {
-         // need recheck version of main-collection
-         rc = _checkCLVersion( _pCollectionName, _clVersion ) ;
-         PD_RC_CHECK( rc, PDDEBUG, "Failed to check message version [%d] of "
-                      "collection [%s], rc: %d", _clVersion, _pCollectionName,
-                      rc ) ;
-      }
 
    done:
       return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsShdSession::_getAndChkAllSubCL( const CHAR *pCollectionName,
+                                             BOOLEAN isWrite,
+                                             CLS_SUBCL_LIST &subCLList,
+                                             CLS_SUBCL_SORT_TYPE sortType )
+   {
+      INT32 rc = SDB_OK ;
+
+      // get all sub-collections from main-collection
+      rc = _getSubCLList( pCollectionName, subCLList, sortType ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get sub-collection list for "
+                   "main-collection [%s], rc: %d", pCollectionName, rc ) ;
+
+      // check sub-collections
+      rc = _checkSubCLList( pCollectionName, subCLList, isWrite, TRUE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check sub-collection list for "
+                   "main-collection [%s], rc: %d", pCollectionName, rc ) ;
+
+   done:
+      return rc ;
+
    error:
       goto done ;
    }
@@ -4277,8 +4424,8 @@ namespace engine
       CLS_SUBCL_LIST strSubCLList ;
       CLS_SUBCL_LIST_IT iterSubCLSet ;
 
-      rc = _getSubCLList( options.getQuery(), options.getCLFullName(), TRUE,
-                          boNewMatcher, strSubCLList ) ;
+      rc = _getAndChkSubCL( options.getQuery(), options.getCLFullName(),
+                            TRUE, FALSE, boNewMatcher, strSubCLList, NULL ) ;
       if ( rc != SDB_OK )
       {
          goto error;
@@ -4347,8 +4494,8 @@ namespace engine
       CLS_SUBCL_LIST strSubCLList ;
       CLS_SUBCL_LIST_IT iterSubCLSet ;
 
-      rc = _getSubCLList( options.getQuery(), options.getCLFullName(), TRUE,
-                          boNewMatcher, strSubCLList ) ;
+      rc = _getAndChkSubCL( options.getQuery(), options.getCLFullName(),
+                            TRUE, FALSE, boNewMatcher, strSubCLList, NULL ) ;
       if ( rc != SDB_OK )
       {
          goto error;
@@ -4551,8 +4698,8 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      rc = _getSubCLList( boMatcher, pCollection, FALSE, boNewMatcher,
-                          strSubCLList );
+      rc = _getAndChkSubCL( boMatcher, pCollection, FALSE, FALSE, boNewMatcher,
+                            strSubCLList, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "failed to get sub-collection list(rc=%d)",
                    rc );
 
@@ -4747,8 +4894,8 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
       lockDms = TRUE ;
 
-      rc = _getSubCLList( boMatcher, pCollection, TRUE, boNewMatcher,
-                          strSubCLList );
+      rc = _getAndChkSubCL( boMatcher, pCollection, TRUE, FALSE, boNewMatcher,
+                            strSubCLList, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get sub-collection list, rc: %d",
                    rc ) ;
 
@@ -4850,8 +4997,8 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
       lockDms = TRUE ;
 
-      rc = _getSubCLList( boMatcher, pCollection, TRUE, boNewMatcher,
-                          strSubCLList );
+      rc = _getAndChkSubCL( boMatcher, pCollection, TRUE, FALSE, boNewMatcher,
+                            strSubCLList, NULL ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get sub-collection list, rc: %d", rc ) ;
 
@@ -4923,7 +5070,7 @@ namespace engine
       contextID = -1 ;
       rtnContextDelMainCL *delContext = NULL ;
 
-      rc = _getSubCLList( pCollection, TRUE, subCLLst ) ;
+      rc = _getAndChkAllSubCL( pCollection, TRUE, subCLLst ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s]: Failed to get sub collection "
                    "list, rc: %d", sessionName(), rc ) ;
 
@@ -5845,7 +5992,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
       lockDms = TRUE ;
 
-      rc = _getSubCLList( fullName, TRUE, subCLs ) ;
+      rc = _getAndChkAllSubCL( fullName, TRUE, subCLs ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s]: Get sub collection list "
                    "failed, rc: %d", sessionName(), rc ) ;
 
@@ -5948,7 +6095,7 @@ namespace engine
       const CHAR *pSubCLName = NULL ;
       CLS_SUBCL_LIST subCLs ;
       SDB_DMSCB *dmsCB = sdbGetDMSCB() ;
-      rc = _getSubCLList( fullName, FALSE, subCLs ) ;
+      rc = _getAndChkAllSubCL( fullName, FALSE, subCLs ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s]: Get sub collection list "
                    "failed, rc: %d", sessionName(), rc ) ;
       for ( CLS_SUBCL_LIST_IT itr =  subCLs.begin();
@@ -6000,8 +6147,8 @@ namespace engine
       lockDms = TRUE ;
 
       // Get sub-collection list
-      rc = _getSubCLList( matcher, collectionName, TRUE,
-                          newMatcher, subCLList ) ;
+      rc = _getAndChkSubCL( matcher, collectionName, TRUE, FALSE,
+                            newMatcher, subCLList, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get sub-collection list of "
                    "collection [%s], rc: %d", collectionName, rc ) ;
 
@@ -6107,7 +6254,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
       lockDms = TRUE ;
 
-      rc = _getSubCLList( pMainCLName, TRUE, strSubCLList ) ;
+      rc = _getAndChkAllSubCL( pMainCLName, TRUE, strSubCLList ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get sub-collection list of "
                    "main-collection [%s], rc: %d", pMainCLName, rc ) ;
 
@@ -6196,7 +6343,7 @@ namespace engine
       CLS_SUBCL_LIST strSubCLList ;
       CLS_SUBCL_LIST_IT iterSubCL ;
 
-      rc = _getSubCLList( mainCLName, FALSE, strSubCLList ) ;
+      rc = _getAndChkAllSubCL( mainCLName, FALSE, strSubCLList ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get sub-collection list of "
                    "main-collection [%s], rc: %d", mainCLName, rc ) ;
 
@@ -6500,7 +6647,8 @@ namespace engine
                                                   BOOLEAN *isMainCL,
                                                   INT16 *w,
                                                   CHAR *mainCLName,
-                                                  utilCLUniqueID *clUniqueID )
+                                                  utilCLUniqueID *clUniqueID,
+                                                  BOOLEAN *repairCheck )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSSHDSESS__CHECKCLSANDGET ) ;
@@ -6534,7 +6682,7 @@ namespace engine
       }
 
       rc = _checkCLVersion( name, version, isMainCL, w, mainCLName,
-                            clUniqueID ) ;
+                            clUniqueID, repairCheck ) ;
       if ( rc )
       {
          goto error ;
@@ -6606,7 +6754,8 @@ namespace engine
                                           BOOLEAN *isMainCL,
                                           INT16 *w,
                                           CHAR *mainCLName,
-                                          utilCLUniqueID *clUniqueID )
+                                          utilCLUniqueID *clUniqueID,
+                                          BOOLEAN *repairCheck )
    {
       INT32 rc = SDB_OK ;
 
@@ -6640,6 +6789,10 @@ namespace engine
          {
             *w = 1 ;
          }
+         if ( NULL != repairCheck )
+         {
+            *repairCheck = FALSE ;
+         }
          goto done ;
       }
 
@@ -6664,6 +6817,10 @@ namespace engine
       {
          ossStrncpy( mainCLName, set->getMainCLName().c_str(),
                      DMS_COLLECTION_FULL_NAME_SZ ) ;
+      }
+      if ( NULL != repairCheck )
+      {
+         *repairCheck = set->isRepairCheck() ;
       }
       _pCatAgent->release_r () ;
       agentLocked = FALSE ;

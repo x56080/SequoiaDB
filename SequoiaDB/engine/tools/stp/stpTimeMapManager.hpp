@@ -44,12 +44,14 @@
 #include "utilPooledObject.hpp"
 #include "ossMemPool.hpp"
 #include "ossRWMutex.hpp"
+#include "utilSQLiteDB.hpp"
 #include "stpLogicalTime.hpp"
 
 namespace engine
 {
 
-   // -/+ 0.5 seconds
+   // time difference between logical time and real time is
+   // tolerable in -/+ 0.5 seconds
    #define STP_TIME_MAP_MAX_TOLERANCE ( 500000LL )
    #define STP_TIME_MAP_MIX_TOLERANCE ( -500000LL )
 
@@ -186,7 +188,7 @@ namespace engine
    } ;
 
    typedef class _stpTimeMapRecord stpTimeMapRecord ;
-   typedef ossPoolVector< stpTimeMapRecord > STP_TIME_MAP_RECORD_LIST ;
+   typedef ossPoolList< stpTimeMapRecord > STP_TIMEMAP_RECLIST ;
 
    /*
       _stpTimeMapStore define
@@ -195,7 +197,11 @@ namespace engine
    class _stpTimeMapStore : public SDBObject
    {
    public:
-      _stpTimeMapStore() {}
+      _stpTimeMapStore()
+      : _maxTimeMapSize( 0 )
+      {
+      }
+
       virtual ~_stpTimeMapStore() {}
 
    public:
@@ -216,19 +222,69 @@ namespace engine
                                           stpTimeMapRecord &record ) = 0 ;
 
       // get records after given logical time
-      virtual INT32 getRecordAfterLTime( UINT64 logicalTime,
-                                           BOOLEAN included,
-                                           UINT32 count,
-                                           STP_TIME_MAP_RECORD_LIST &recordList ) = 0 ;
+      virtual INT32 getRecordsAfterLTime( UINT64 logicalTime,
+                                          BOOLEAN included,
+                                          UINT32 count,
+                                          STP_TIMEMAP_RECLIST &recordList ) = 0 ;
 
       // get records after given real time
-      virtual INT32 getRecordAfterRTime( UINT64 realTime,
-                                         BOOLEAN included,
-                                         UINT32 count,
-                                         STP_TIME_MAP_RECORD_LIST &recordList ) = 0 ;
+      virtual INT32 getRecordsAfterRTime( UINT64 realTime,
+                                          BOOLEAN included,
+                                          UINT32 count,
+                                          STP_TIMEMAP_RECLIST &recordList ) = 0 ;
+
+      // get latest record
+      virtual INT32 getLastRecord( stpTimeMapRecord &record ) = 0 ;
+
+      // get latest records
+      virtual INT32 getLastRecords( UINT32 count,
+                                    STP_TIMEMAP_RECLIST &recordList ) = 0 ;
+
+      // get first record
+      virtual INT32 getFirstRecord( stpTimeMapRecord &record ) = 0 ;
+
+      // get first records
+      virtual INT32 getFirstRecords( UINT32 count,
+                                     STP_TIMEMAP_RECLIST &recordList ) = 0 ;
 
       // clear expired records
-      virtual INT32 clearExpiredRecords() = 0 ;
+      virtual void clearExpiredRecords() = 0 ;
+
+      // clear all records
+      virtual void clearAllRecords() = 0 ;
+
+      // get number of records
+      virtual UINT32 getTimeMapSize() = 0 ;
+
+      // set max size of time map
+      virtual void setMaxTimeMapSize( INT32 maxTimeMapSize )
+      {
+         _maxTimeMapSize = maxTimeMapSize ;
+         if ( _isDisabled() )
+         {
+            clearAllRecords() ;
+         }
+      }
+
+   protected:
+      OSS_INLINE BOOLEAN _isEnabled() const
+      {
+         return 0 != _maxTimeMapSize ;
+      }
+
+      OSS_INLINE BOOLEAN _isDisabled() const
+      {
+         return 0 == _maxTimeMapSize ;
+      }
+
+      OSS_INLINE BOOLEAN _isUnlimited() const
+      {
+         return _maxTimeMapSize < 0 ;
+      }
+
+   protected:
+      // max size of time map
+      INT32 _maxTimeMapSize ;
    } ;
 
    typedef class _stpTimeMapStore stpTimeMapStore ;
@@ -236,7 +292,7 @@ namespace engine
    /*
       _stpTimeMapMemStore define
     */
-   // time mapping store in memory
+   // time mapping store in memory ( used for cache )
    class _stpTimeMapMemStore : public _stpTimeMapStore
    {
    public:
@@ -250,29 +306,59 @@ namespace engine
 
       // save time mapping record
       virtual INT32 saveRecord( const stpTimeMapRecord &record ) ;
+
       // get nearest record before given logical time
       virtual INT32 getRecordBeforeLTime( UINT64 logicalTime,
                                           BOOLEAN included,
                                           stpTimeMapRecord &record ) ;
+
       // get nearest record before given real time
       virtual INT32 getRecordBeforeRTime( UINT64 realTime,
                                           BOOLEAN included,
                                           stpTimeMapRecord &record ) ;
 
       // get records after given logical time
-      virtual INT32 getRecordAfterLTime( UINT64 logicalTime,
-                                         BOOLEAN included,
-                                         UINT32 count,
-                                         STP_TIME_MAP_RECORD_LIST &recordList ) ;
+      virtual INT32 getRecordsAfterLTime( UINT64 logicalTime,
+                                          BOOLEAN included,
+                                          UINT32 count,
+                                          STP_TIMEMAP_RECLIST &recordList ) ;
 
       // get records after given real time
-      virtual INT32 getRecordAfterRTime( UINT64 realTime,
-                                         BOOLEAN included,
-                                         UINT32 count,
-                                         STP_TIME_MAP_RECORD_LIST &recordList ) ;
+      virtual INT32 getRecordsAfterRTime( UINT64 realTime,
+                                          BOOLEAN included,
+                                          UINT32 count,
+                                          STP_TIMEMAP_RECLIST &recordList ) ;
+
+      // get latest record
+      virtual INT32 getLastRecord( stpTimeMapRecord &record ) ;
+
+      // get latest records
+      virtual INT32 getLastRecords( UINT32 count,
+                                    STP_TIMEMAP_RECLIST &recordList ) ;
+
+      // get first record
+      virtual INT32 getFirstRecord( stpTimeMapRecord &record ) ;
+
+      // get first records
+      virtual INT32 getFirstRecords( UINT32 count,
+                                     STP_TIMEMAP_RECLIST &recordList ) ;
 
       // clear expired records
-      virtual INT32 clearExpiredRecords() ;
+      virtual void clearExpiredRecords() ;
+
+      // clear all records
+      virtual void clearAllRecords() ;
+
+      // get size of map
+      OSS_INLINE virtual UINT32 getTimeMapSize()
+      {
+         return _logicalTimeMap.size() ;
+      }
+
+      OSS_INLINE BOOLEAN isEmpty()
+      {
+         return _logicalTimeMap.empty() ;
+      }
 
    protected:
       typedef ossPoolMap< UINT64, UINT64 > STP_TIME_MAP ;
@@ -310,11 +396,20 @@ namespace engine
                                    BOOLEAN included,
                                    UINT32 maxNumReturn,
                                    BOOLEAN fromRTimeToLTime,
-                                   STP_TIME_MAP_RECORD_LIST &recordList ) ;
+                                   STP_TIMEMAP_RECLIST &recordList ) ;
+
+      // save time mapping record
+      INT32 _saveRecord( const stpTimeMapRecord &record ) ;
+
+      // clear expired records
+      void _clearExpiredRecords() ;
+
+      // clear records from maps
+      void _clearMaps( STP_TIME_MAP &mapping,
+                       STP_TIME_MAP &mapped,
+                       INT32 maxMapSize ) ;
 
    protected:
-      // lock to protect maps
-      ossRWMutex _mapLock ;
       // mapping key: logical time, mapping value: real time
       STP_TIME_MAP _logicalTimeMap ;
       // mapping key: real time, mapping value: logical time
@@ -322,6 +417,163 @@ namespace engine
    } ;
 
    typedef class _stpTimeMapMemStore stpTimeMapMemStore ;
+
+   /*
+      _stpTimeMapDBStore define
+    */
+   // time mapping store in database
+   class _stpTimeMapDBStore : public _stpTimeMapStore
+   {
+   public:
+      _stpTimeMapDBStore() ;
+      virtual ~_stpTimeMapDBStore() ;
+
+      // initialize
+      virtual INT32 initialize() ;
+      // finalize
+      virtual INT32 finalize() ;
+
+      // save time mapping record
+      virtual INT32 saveRecord( const stpTimeMapRecord &record ) ;
+
+      // get nearest record before given logical time
+      virtual INT32 getRecordBeforeLTime( UINT64 logicalTime,
+                                          BOOLEAN included,
+                                          stpTimeMapRecord &record ) ;
+      // get nearest record before given real time
+      virtual INT32 getRecordBeforeRTime( UINT64 realTime,
+                                          BOOLEAN included,
+                                          stpTimeMapRecord &record ) ;
+
+      // get records after given logical time
+      virtual INT32 getRecordsAfterLTime( UINT64 logicalTime,
+                                          BOOLEAN included,
+                                          UINT32 count,
+                                          STP_TIMEMAP_RECLIST &recordList ) ;
+
+      // get records after given real time
+      virtual INT32 getRecordsAfterRTime( UINT64 realTime,
+                                          BOOLEAN included,
+                                          UINT32 count,
+                                          STP_TIMEMAP_RECLIST &recordList ) ;
+
+      // get latest record
+      virtual INT32 getLastRecord( stpTimeMapRecord &record ) ;
+
+      // get latest records
+      virtual INT32 getLastRecords( UINT32 count,
+                                    STP_TIMEMAP_RECLIST &recordList ) ;
+
+      // get first record
+      virtual INT32 getFirstRecord( stpTimeMapRecord &record ) ;
+
+      // get first records
+      virtual INT32 getFirstRecords( UINT32 count,
+                                     STP_TIMEMAP_RECLIST &recordList ) ;
+
+      // clear expired records
+      virtual void clearExpiredRecords() ;
+
+      // clear all records
+      virtual void clearAllRecords() ;
+
+      // get number of records
+      virtual UINT32 getTimeMapSize() ;
+
+      // set max size of time map
+      virtual void setMaxTimeMapSize( INT32 maxTimeMapSize ) ;
+
+   protected:
+      // ensure time map table and indexes are created
+      INT32 _ensureTable() ;
+      // prepare statements
+      INT32 _prepareStatements() ;
+      // save record into database
+      INT32 _saveRecord( const stpTimeMapRecord &record ) ;
+      // load cache from database
+      INT32 _loadCache() ;
+      // get size of time map
+      INT32 _getTimeMapSize( UINT32 &timeMapSize ) ;
+      // merge record lists
+      INT32 _mergeRecordList( STP_TIMEMAP_RECLIST &recordList,
+                              const STP_TIMEMAP_RECLIST &mergeList,
+                              BOOLEAN isMergeInDescOrder,
+                              BOOLEAN isMergeToEnd ) ;
+
+      // get nearest record by given time from database
+      // input:
+      // - timeColumnName: column name of given time
+      // - targetTime: given time
+      // - isIncluded: whether to include target time
+      // - isBefore: whether to get result before target time
+      // - isDescOrder: in descent order
+      // output:
+      // - record: result time map record
+      INT32 _getRecordByTime( const CHAR *timeColumnName,
+                              UINT64 targetTime,
+                              BOOLEAN isIncluded,
+                              BOOLEAN isBefore,
+                              BOOLEAN isDescOrder,
+                              stpTimeMapRecord &record ) ;
+
+      // get records by given time
+      // input:
+      // - timeColumnName: column name of given time
+      // - targetTime: given time
+      // - isIncluded: whether to include target time
+      // - isBefore: whether to get result before target time
+      // - isDescOrder: in descent order
+      // - count: number of results
+      // output:
+      // - recordList: result time map records
+      INT32 _getRecordsByTime( const CHAR *timeColumnName,
+                               UINT64 targetTime,
+                               BOOLEAN isIncluded,
+                               BOOLEAN isBefore,
+                               BOOLEAN isDescOrder,
+                               UINT32 count,
+                               STP_TIMEMAP_RECLIST &recordList ) ;
+
+      // get latest or first record
+      // input:
+      // - formattedQuery: SQL query to get time map records
+      // - isDescOrder: in descent order
+      // output:
+      // - record: result time map record
+      INT32 _getRecord( BOOLEAN isDescOrder,
+                        stpTimeMapRecord &record ) ;
+
+      // get latest or first records
+      // input:
+      // - isDescOrder: in descent order
+      // - count: number of results
+      // output:
+      // - recordList: result time map records
+      INT32 _getRecords( BOOLEAN isDescOrder,
+                         UINT32 count,
+                         STP_TIMEMAP_RECLIST &recordList ) ;
+
+      BOOLEAN _isLTimeInCache( UINT64 logicalTime ) ;
+      BOOLEAN _isRTimeInCache( UINT64 realTime ) ;
+
+   protected:
+      // memory cache for latest records
+      stpTimeMapMemStore   _cache ;
+
+      // max size of cache
+      UINT32               _maxCacheSize ;
+
+      // current size of time map
+      UINT32               _currentMapSize ;
+
+      // SQLite database
+      utilSQLiteDB         _database ;
+
+      // prepared save record statement
+      utilSQLiteStatement  _saveRecordStmt ;
+   } ;
+
+   typedef class _stpTimeMapDBStore stpTimeMapDBStore ;
 
    /*
       _stpTimeMapManager define
@@ -334,7 +586,7 @@ namespace engine
 
    public:
       // initialize
-      INT32 initialize() ;
+      INT32 initialize( INT32 maxTimeMapSize ) ;
       // finalize
       INT32 finalize() ;
 
@@ -357,6 +609,22 @@ namespace engine
       INT32 convRTimeToLTime( const stpHPTime &realTime,
                               stpHPTime &logicalTime ) ;
 
+      // get records after given logical time
+      INT32 getRecordsAfterLTime( const stpHPTime &logicalTime,
+                                  BOOLEAN included,
+                                  UINT32 count,
+                                  STP_TIMEMAP_RECLIST &recordList ) ;
+
+      // get records after given real time
+      INT32 getRecordsAfterRTime( const stpHPTime &realTime,
+                                  BOOLEAN included,
+                                  UINT32 count,
+                                  STP_TIMEMAP_RECLIST &recordList ) ;
+
+      // get latest records
+      INT32 getLastRecords( UINT32 count,
+                            STP_TIMEMAP_RECLIST &recordList ) ;
+
       // indicate if we need to save time mapping
       OSS_INLINE BOOLEAN isNeedSaveTimeMapping()
       {
@@ -369,7 +637,29 @@ namespace engine
          _needSaveTimeMapping = needSave ;
       }
 
+      // set max size of time map
+      OSS_INLINE void setMaxTimeMapSize( INT32 maxTimeMapSize,
+                                         BOOLEAN hasLock )
+      {
+         if ( !hasLock )
+         {
+            _storeLock.lock_w() ;
+         }
+
+         if ( NULL != _store )
+         {
+            _store->setMaxTimeMapSize( maxTimeMapSize ) ;
+         }
+
+         if ( !hasLock )
+         {
+            _storeLock.release_w() ;
+         }
+      }
+
    protected:
+      // lock to protected time map store
+      ossRWMutex        _storeLock ;
       // indicate whether we need to save time mapping record
       volatile BOOLEAN  _needSaveTimeMapping ;
       // last time mapping record saved in store

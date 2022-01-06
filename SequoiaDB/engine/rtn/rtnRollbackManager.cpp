@@ -206,10 +206,12 @@ INT32 rtnPITRollbackManager::_init()
    PD_LOG(PDEVENT, "Starting rollback to point-in-time [%llu]. Test only [%d]",
           _targetTime.getTime(), _testOnly);
 
-   // Drain in-flight transactions on this node. This protects against stale
-   // data after the restore. The node will send a session disconnect msg to
-   // the transaction's coord.
-   _transCB->termAllTrans();
+   if ((rc = _drainTrans()))
+   {
+      PD_LOG(PDERROR, "Failed to terminate all existing transactions. Unsafe "
+                      "to continue rollback.");
+      return rc;
+   }
 
    // Start at the end of the log
    _cursor = _dpsCB->getCurrentLsn().offset;
@@ -484,6 +486,32 @@ BOOLEAN rtnPITRollbackManager::_isTargetTimeReached(INT32 *pRc)
    }
    return ((maxTime < _targetTime.getTime()) || // maxTime is less than target
            (maxTime == DPS_MAX_TRANS_TIME));    // invalid maxTime (first file)
+}
+
+// Drain in-flight transactions on this node. This protects against stale
+// data after the restore. The node will send a session disconnect msg to
+// the transaction's coord.
+// PD_TRACE_DECLARE_FUNCTION( RTN_PITROLLBACKMGR_DRAIN, "rtnPITRollbackManager::_drainTrans" )
+INT32 rtnPITRollbackManager::_drainTrans()
+{
+   INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(RTN_PITROLLBACKMGR_DRAIN, &rc);
+   // termAllTrans sends a signal to terminate all transactions, but it is not
+   // synchronous. Do a loop to check the TransCBSize, which is the number of
+   // transactions. Repeatedly call termAllTrans (no harm in trying).
+   UINT32 remTrans = 0;
+   while ((remTrans = _transCB->getTransCBSize()) > 0 && !_cb->isInterrupted())
+   {
+      PD_LOG(PDDEBUG, "Waiting for %u transactions to finish", remTrans);
+      _transCB->termAllTrans();
+      ossSleep(OSS_ONE_SEC);
+   }
+   if (_cb->isInterrupted())
+   {
+      PD_LOG(PDERROR, "Rollback drain transactions interrupted");
+      return (rc = SDB_APP_INTERRUPT);
+   }
+   return rc;
 }
 
 } // namespace engine

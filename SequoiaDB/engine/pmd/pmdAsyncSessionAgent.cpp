@@ -212,9 +212,11 @@ namespace engine
                           pmdAsyncSessionAgentEntryPoint,
                           "SeAgent" ) ;
 
-   PMD_DEFINE_ENTRYPOINT( EDU_TYPE_STP_SESSION, FALSE,
+#if defined ( SDB_STP )
+   PMD_DEFINE_ENTRYPOINT( EDU_TYPE_STP_SERVICE_SESSION, FALSE,
                           pmdAsyncSessionAgentEntryPoint,
-                          "TPSesion" ) ;
+                          "STPServiceSession" ) ;
+#endif
 
 }
 

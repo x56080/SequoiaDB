@@ -34,6 +34,7 @@ client/include/
 Errors.cs
 version.py
 misc/autogen/bin/
+misc/autogen/version.py
 filenames.lst
 tests/
 sdbload2

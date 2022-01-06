@@ -64,6 +64,7 @@ zstd_lib_dir = join(zstd_dir, 'lib')
 bzip2_dir = join(thirdparty_dir, 'bzip2')
 bzip2_lib_dir = join(bzip2_dir, 'lib')
 xxhash_dir = join(thirdparty_dir, 'xxHash')
+sqlite_dir = join( thirdparty_dir, "sqlite" )
 # --- options ----
 
 options = {}
@@ -882,6 +883,7 @@ fmpEnv = env.Clone() ;
 
 stpEnv = None
 stpEnv = env.Clone();
+stpEnv.Append( CPPPATH = [ sqlite_dir ] )
 
 if windows:
     shellEnv.Append( LIBS=["winmm.lib"] )
@@ -1025,6 +1027,8 @@ Export("bzip2_lib")
 Export("rocksdb_lib_dir")
 Export("zstd_lib_dir")
 Export("bzip2_lib_dir")
+Export("sqlite_dir")
+
 # Generating Versioning information
 # In order to change the file location, we have to modify both win32 and linux
 # ossVer_Autogen.h is NOT in SVN, we have to generate this file by scons before
@@ -1085,6 +1089,9 @@ if not has_option("noautogen"):
                                    language + " " + silent_opt)
    if autogen_result != 0:
       os._exit( 1 )
+   version_file = 'misc/autogen/version.py'
+   shutil.copyfile(version_file, 'tools/sdbaudit/version.py')
+   shutil.copyfile(version_file, 'driver/python/version.py')
 
 if hasDoc:
    errno = os.system ( 'python doc/build.py --doc' )

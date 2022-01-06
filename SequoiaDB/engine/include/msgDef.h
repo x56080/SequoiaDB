@@ -100,6 +100,7 @@
 #define FIELD_NAME_COMPRESSIONTYPE           "CompressionType"
 #define FIELD_NAME_STRICTDATAMODE            "StrictDataMode"
 #define FIELD_NAME_COMPRESSIONTYPE_DESC      "CompressionTypeDesc"
+#define FIELD_NAME_REPARECHECK               "RepairCheck"
 #define VALUE_NAME_SNAPPY                    "snappy"
 #define VALUE_NAME_LZW                       "lzw"
 #define VALUE_NAME_LZ4                       "lz4"
@@ -170,6 +171,7 @@
 #define FIELD_NAME_NODEWAITTIME              "RemoteNodeWaitTime"
 #define FIELD_NAME_STARTTIMESTAMP            "StartTimestamp"
 #define FIELD_NAME_ENDTIMESTAMP              "EndTimestamp"
+#define VALUE_NAME_EMPTYENDTIMESTAMP         "--"
 #define FIELD_NAME_TOTALNUMCONNECTS          "TotalNumConnects"
 #define FIELD_NAME_TOTALDATAREAD             "TotalDataRead"
 #define FIELD_NAME_TOTALINDEXREAD            "TotalIndexRead"
@@ -870,6 +872,7 @@
 #define CMD_NAME_STP_STOP                 CMD_NAME_STP_PREFIX "stop"
 #define CMD_NAME_STP_REELECT              CMD_NAME_STP_PREFIX "reelect"
 #define CMD_NAME_STP_CONV_TIME            CMD_NAME_STP_PREFIX "conv time"
+#define CMD_NAME_STP_GET_TIME_MAP         CMD_NAME_STP_PREFIX "get time map"
 
 #define CMD_VALUE_NAME_SET_CURR_VALUE        "set current value"
 #define CMD_VALUE_NAME_RENAME                "rename"

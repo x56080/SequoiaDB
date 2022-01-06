@@ -27,6 +27,7 @@ import signal
 import optparse
 from sdbaudit_exprt import CryptoUtil, pid_exist
 from subprocess import Popen, PIPE
+from version import get_version, get_release, get_git_version, get_build_time
 try:
     import ConfigParser as ConfigParser
 except Exception:
@@ -48,6 +49,7 @@ USAGE = '''%prog add -t <sdb|mysql|mariadb> [--inst=INSTNAME] [--path=INSTALL_DI
        %prog list
        %prog start
        %prog stop
+       %prog --version
        %prog --help'''
 
 KW_SSL = 'ssl'
@@ -110,16 +112,12 @@ class OptionsMgr:
         self.instance_name = None
         self.install_dir = None
 
-#    def __show_version(self):
-#        file = os.path.join(MY_HOME, VERSION_FILE_NAME)
-#        try:
-#            with open(file, 'r') as f:
-#                print(f.read())
-#            sys.exit(0)
-#        except IOError: 
-#            print("[ERROR] Failed to show version. Make ensure the "
-#                  "version.info exists")
-#            sys.exit(1)
+    def __show_version(self):
+        print("sdbaudit: {}".format(get_version())) 
+        print("Release: {}".format(get_release())) 
+        print("Git version: {}".format(get_git_version())) 
+        print(get_build_time())
+        sys.exit(0)
 
     def __add_option(self):
         #Add -t option
@@ -136,9 +134,9 @@ class OptionsMgr:
                                  dest='install_dir', help="installation path. If " \
                                  "not specified, Monitor the audit log files " \
                                  "under the registered path")
-#        #Add --version option
-#        self.__parser.add_option("-v", "--version", action='store_true',
-#                                 dest="version", help="show version")
+        #Add --version option
+        self.__parser.add_option("-v", "--version", action='store_true',
+                                 dest="version", help="show version")
 
     def __parse_option(self):
         self.__add_option()
@@ -176,8 +174,8 @@ class OptionsMgr:
         elif self.operation == '--help' or self.operation == '-h':
             self.__add_option()
             self.__parser.parse_args()
-#        elif self.operation == '--version' or self.operation == '-v':
-#            self.__show_version()
+        elif self.operation == '--version' or self.operation == '-v':
+            self.__show_version()
         else:
             print("[ERROR] Invalid argument: '{}'. Try 'python {} -h' for more " \
                   "information".format(self.operation, sys.argv[0]))
@@ -248,8 +246,8 @@ class ObjMgr:
         if not self.__install_dir:
             conf = os.path.join(REGISTER_CONF_PATH, 'sequoiadb')
             if not os.path.exists(conf):
-                print("[ERROR] Register configuration file in {} is not " \
-                      "exists".format(conf))
+                print("[ERROR] Register configuration file '{}' does not " \
+                      "exist".format(conf))
                 return 1
             with open(conf, 'r') as f:
                 content = f.read()
@@ -259,7 +257,7 @@ class ObjMgr:
         try:
             p = Popen([command, '-t', 'all', '-m', 'local', '--expand'], stdout=PIPE)
         except OSError:
-            print("[ERROR] --path '{}' is not installation directory for " \
+            print("[ERROR] --path '{}' is not the installation directory for " \
                   "{}".format(self.__install_dir, self.__log_type))
             return 1
 
@@ -301,7 +299,7 @@ class ObjMgr:
             try:
                 p = Popen([command, 'listinst'], stdout=PIPE)
             except OSError:
-                print("[ERROR] --path '{}' is not installation directory for " \
+                print("[ERROR] --path '{}' is not the installation directory for " \
                       "{}".format(self.__install_dir, self.__log_type))
                 return 1
             line = p.stdout.readline()
@@ -347,8 +345,9 @@ class ObjMgr:
                     list_conf.append(conf)
 
             if 0 == len(list_conf):
-                print("[INFO] No SQL instance found in " \
-                      "{}".format(REGISTER_CONF_PATH))
+                default_conf = os.path.join(REGISTER_CONF_PATH, prefix_name)
+                print("[ERROR] Register configuration file " \
+                      "'{}' does not exist".format(default_conf))
                 return 1
 
             for conf in list_conf:
@@ -403,9 +402,9 @@ class ObjMgr:
                           "exist".format(self.__instance_name))
                     return 1
                 elif len(install_dir) > 1:
-                    print("[INFO] There are {} install dir containing " \
-                          "inst '{}', which are {}. Please use --path " \
-                          "to specify the directory you want to " \
+                    print("[INFO] There are {} installation directories containing " \
+                          "instance '{}', which are {}. Please use --path " \
+                          "to specify one of the directories you want to " \
                           "add".format(len(install_dir),
                           self.__instance_name, install_dir))
                     return 1
@@ -421,8 +420,8 @@ class ObjMgr:
                 audit_file = parser.get(section, option)
                 audit_path = os.path.dirname(audit_file)
             else:
-                print("[INFO] INSTNAME:[{}] dosen't install audit " \
-                      "plugin.".format(inst_name[i]))
+                print("[WARNING] INSTNAME '{}' doesn't install audit " \
+                      "plugin. Let's skip the instance.".format(inst_name[i]))
                 continue;
             option = 'port'
             if parser.has_option(section, option):
@@ -441,8 +440,8 @@ class ObjMgr:
     def __setup_password(self):
         file = os.path.join(MY_CONF_PATH, CONFIG_FILE_NAME)
         if not os.path.exists(file):
-            print("[ERROR] Configuration file {} dose not " \
-                  "exists".format(CONFIG_FILE_NAME))
+            print("[ERROR] Configuration file '{}' dose not " \
+                  "exist".format(file))
             return 1
         global_parser = ConfigParser.ConfigParser()
         global_parser.read(file)
@@ -450,7 +449,7 @@ class ObjMgr:
         try:
             pwd_type = int(self.get_passwd_type(global_parser))
             if 0 != pwd_type and 1 != pwd_type:
-                print("[ERROR] 'w_type' in configuration file {} " \
+                print("[ERROR] 'w_type' in configuration file '{}' " \
                       "is invalid".format(file))
                 return 1
             if 0 == pwd_type:
@@ -459,7 +458,7 @@ class ObjMgr:
                 global_parser.set(KW_MONITOR, KW_PASSWD_TYPE, 1)
                 global_parser.write(open(file, 'w'))
         except ValueError:
-            print("[ERROR] 'w_type' in configuration file {} " \
+            print("[ERROR] 'w_type' in configuration file '{}' " \
                   "must be integer".format(file))
             return 1
         except ConfigParser.NoOptionError:

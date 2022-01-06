@@ -255,6 +255,12 @@ namespace engine
          return _startShiftTime ;
       }
 
+      // get max size of time mapping
+      OSS_INLINE INT32 getMaxTimeMapSize() const
+      {
+         return _maxTimeMapSize ;
+      }
+
       // clear server list
       OSS_INLINE void clearServerList()
       {
@@ -333,15 +339,16 @@ namespace engine
       UINT32         _sharingBreakTime ;
       // start shift time for vote
       UINT32         _startShiftTime ;
-
       // port
-      UINT16                  _port ;
+      UINT16         _port ;
       // server list ( parsed into address )
-      vector< pmdAddrPair >   _serverList ;
+      vector< pmdAddrPair > _serverList ;
       // role
-      STP_ROLE                _role ;
+      STP_ROLE       _role ;
       // test mode
-      BOOLEAN                 _testMode ;
+      BOOLEAN        _testMode ;
+      // max number to save time mapping records
+      INT32          _maxTimeMapSize ;
    } ;
 
    typedef class _stpOptions stpOptions ;
