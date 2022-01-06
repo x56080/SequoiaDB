@@ -49,7 +49,25 @@ namespace engine
 {
 
    /*
+      _coordCmdPushdownCtrl define
+   */
+   class _coordCmdPushdownCtrl
+   {
+      public:
+         _coordCmdPushdownCtrl() {}
+         virtual ~_coordCmdPushdownCtrl() {}
+
+      public:
+         virtual BOOLEAN      isOpenEmptyContext() = 0 ;
+         virtual BOOLEAN      ignoreFailedNodes() = 0 ;
+         virtual const CHAR*  pushdownCommandName() = 0 ;
+   } ;
+   typedef _coordCmdPushdownCtrl coordCmdPushdownCtrl ;
+
+   /*
       _coordCommandBase define
+      Provide the basic functions to operate on different object, such as a
+      collection, a data group, and so on.
    */
    class _coordCommandBase : public _coordOperator
    {
@@ -65,13 +83,13 @@ namespace engine
                                     const CoordGroupList *pSpecGrpLst = NULL,
                                     SET_RC *pIgnoreRC = NULL,
                                     CoordGroupList *pSucGrpLst = NULL,
-                                    rtnContextCoord **ppContext = NULL,
+                                    rtnContextCoord::sharePtr *ppContext = NULL,
                                     rtnContextBuf *buf = NULL ) ;
 
          INT32         queryOnCL( MsgHeader *pMsg,
                                   pmdEDUCB *cb,
                                   const CHAR *pCLName,
-                                  rtnContextCoord **ppContext,
+                                  rtnContextCoord::sharePtr *ppContext,
                                   BOOLEAN onPrimary = FALSE,
                                   const CoordGroupList *pSpecGrpLst = NULL,
                                   rtnContextBuf *buf = NULL ) ;
@@ -82,14 +100,14 @@ namespace engine
                                             BOOLEAN onPrimary = TRUE,
                                             SET_RC *pIgnoreRC = NULL,
                                             CoordGroupList *pSucGrpLst = NULL,
-                                            rtnContextCoord **ppContext = NULL,
+                                            rtnContextCoord::sharePtr *ppContext = NULL,
                                             rtnContextBuf *buf = NULL ) ;
 
          INT32         executeOnCataGroup ( MsgHeader *pMsg,
                                             pmdEDUCB *cb,
                                             BOOLEAN onPrimary = TRUE,
                                             SET_RC *pIgnoreRC = NULL,
-                                            rtnContextCoord **ppContext = NULL,
+                                            rtnContextCoord::sharePtr *ppContext = NULL,
                                             rtnContextBuf *buf = NULL ) ;
 
          INT32         executeOnCataGroup ( MsgHeader *pMsg,
@@ -105,7 +123,7 @@ namespace engine
                                         const CHAR *pCLName,
                                         BOOLEAN onPrimary = TRUE,
                                         SET_RC *pIgnoreRC = NULL,
-                                        rtnContextCoord **ppContext = NULL,
+                                        rtnContextCoord::sharePtr *ppContext = NULL,
                                         rtnContextBuf *buf = NULL ) ;
 
          INT32         queryOnCatalog( MsgHeader *pMsg,
@@ -137,8 +155,8 @@ namespace engine
                                        coordCtrlParam &ctrlParam,
                                        UINT32 mask,
                                        ROUTE_RC_MAP &faileds,
-                                       rtnContextCoord **ppContext = NULL,
-                                       BOOLEAN openEmptyContext = FALSE,
+                                       rtnContextCoord::sharePtr *ppContext = NULL,
+                                       coordCmdPushdownCtrl *pCtrl = NULL,
                                        SET_RC *pIgnoreRC = NULL,
                                        SET_ROUTEID *pSucNodes = NULL ) ;
 
@@ -161,7 +179,9 @@ namespace engine
                                    SET_ROUTEID *pSucNodes = NULL ) ;
 
          INT32 _buildFailedNodeReply( ROUTE_RC_MAP &failedNodes,
-                                      rtnContextCoord *pContext ) ;
+                                      rtnContext *pContext,
+                                      COORD_SHOWERRORMODE_TYPE modeType =
+                                      COORD_SHOWERRORMODE_AGGR ) ;
 
          INT32 _executeOnGroups ( MsgHeader *pMsg,
                                   pmdEDUCB *cb,
@@ -170,28 +190,9 @@ namespace engine
                                   BOOLEAN onPrimary = TRUE,
                                   SET_RC *pIgnoreRC = NULL,
                                   CoordGroupList *pSucGrpLst = NULL,
-                                  rtnContextCoord **ppContext = NULL,
+                                  rtnContextCoord::sharePtr *ppContext = NULL,
                                   rtnContextBuf *buf = NULL ) ;
 
-         virtual INT32 _handleHints ( BSONObj & hint, UINT32 mask )
-         {
-            return SDB_OK ;
-         }
-
-         virtual UINT32 _getShowErrorMask ()
-         {
-            return COORD_MASK_SHOWERROR_ALL ;
-         }
-
-         virtual COORD_SHOWERROR_TYPE _getShowErrorType ()
-         {
-            return COORD_SHOWERROR_SHOW ;
-         }
-
-         virtual COORD_SHOWERRORMODE_TYPE _getShowErrorModeType ()
-         {
-            return COORD_SHOWERRORMODE_AGGR ;
-         }
    } ;
    typedef _coordCommandBase coordCommandBase ;
 

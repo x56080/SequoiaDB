@@ -59,7 +59,6 @@ namespace engine
    */
    _coordQueryOperator::_coordQueryOperator( BOOLEAN readOnly )
    {
-      _pContext = NULL ;
       _processRet = SDB_OK ;
       setReadOnly( readOnly ) ;
 
@@ -71,7 +70,7 @@ namespace engine
 
    _coordQueryOperator::~_coordQueryOperator()
    {
-      SDB_ASSERT( NULL == _pContext, "Context must be NULL" ) ;
+      SDB_ASSERT( !_pContext, "Context must be NULL" ) ;
       SDB_ASSERT( 0 == _vecBlock.size(), "Block must be empty" ) ;
    }
 
@@ -232,13 +231,13 @@ namespace engine
       MsgOpQuery *pQueryMsg   = ( MsgOpQuery* )inMsg.msg() ;
 
       INT32 flags             = 0 ;
-      CHAR *pCollectionName   = NULL ;
+      const CHAR *pCollectionName   = NULL ;
       INT64 numToSkip         = 0 ;
       INT64 numToReturn       = -1 ;
-      CHAR *pQuery            = NULL ;
-      CHAR *pFieldSelector    = NULL ;
-      CHAR *pOrderBy          = NULL ;
-      CHAR *pHint             = NULL ;
+      const CHAR *pQuery      = NULL ;
+      const CHAR *pFieldSelector = NULL ;
+      const CHAR *pOrderBy    = NULL ;
+      const CHAR *pHint       = NULL ;
 
       BSONObj objQuery ;
       BSONObj objSelector ;
@@ -268,7 +267,7 @@ namespace engine
 
       inMsg.data()->clear() ;
 
-      rc = msgExtractQuery( (CHAR*)pQueryMsg, &flags, &pCollectionName,
+      rc = msgExtractQuery( (const CHAR*)pQueryMsg, &flags, &pCollectionName,
                             &numToSkip, &numToReturn, &pQuery,
                             &pFieldSelector, &pOrderBy, &pHint ) ;
       PD_RC_CHECK( rc, PDERROR, "Extract query msg failed, rc: %d", rc ) ;
@@ -392,23 +391,23 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_QUERYOPERATOR_EXE ) ;
-      rtnContextCoord *pContext        = NULL ;
+      rtnContextCoord::sharePtr pContext ;
       coordCommandFactory *pFactory    = NULL ;
       coordOperator *pOperator         = NULL ;
 
       // fill default-reply(query success)
       contextID                        = -1 ;
 
-      CHAR *pCollectionName            = NULL ;
+      const CHAR *pCollectionName      = NULL ;
       INT32 flag                       = 0 ;
       INT64 numToSkip                  = 0 ;
       INT64 numToReturn                = 0 ;
-      CHAR *pQuery                     = NULL ;
-      CHAR *pSelector                  = NULL ;
-      CHAR *pOrderby                   = NULL ;
-      CHAR *pHint                      = NULL ;
+      const CHAR *pQuery               = NULL ;
+      const CHAR *pSelector            = NULL ;
+      const CHAR *pOrderby             = NULL ;
+      const CHAR *pHint                = NULL ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, &flag, &pCollectionName,
+      rc = msgExtractQuery( (const CHAR*)pMsg, &flag, &pCollectionName,
                             &numToSkip, &numToReturn, &pQuery, &pSelector,
                             &pOrderby, &pHint ) ;
       if ( rc )
@@ -472,9 +471,17 @@ namespace engine
                                       BSONObj( pOrderby ), BSONObj( pHint ),
                                       pCollectionName, numToSkip, numToReturn,
                                       flag ) ;
+            BSONElement ePos = hint.getField( FIELD_NAME_POSITION ) ;
+
+            if ( !ePos.eoo() && Object != ePos.type() )
+            {
+               PD_LOG( PDERROR, "Field[%s] is invalid", FIELD_NAME_POSITION ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
 
             // add last op info
-            MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg->opCode, options ) ;
+            MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg, options ) ;
 
             MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
 
@@ -516,6 +523,16 @@ namespace engine
             {
                pContext->setPrepareMoreData( TRUE ) ;
             }
+
+            if ( Object == ePos.type() )
+            {
+               rc = pContext->locate( ePos.embeddedObject(), cb ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Do context locate failed, rc: %d", rc ) ;
+                  goto error ;
+               }
+            }
          }
       }
       catch ( std::exception &e )
@@ -533,6 +550,12 @@ namespace engine
       PD_TRACE_EXITRC ( COORD_QUERYOPERATOR_EXE, rc ) ;
       return rc ;
    error:
+      if ( -1 != contextID  )
+      {
+         sdbGetRTNCB()->contextDelete( contextID, cb ) ;
+         contextID = -1 ;
+         pContext.release() ;
+      }
       goto done ;
    }
 
@@ -679,7 +702,7 @@ namespace engine
 
    INT32 _coordQueryOperator::queryOrDoOnCL( MsgHeader *pMsg,
                                              pmdEDUCB *cb,
-                                             rtnContextCoord **pContext,
+                                             rtnContextCoord::sharePtr *pContext,
                                              coordSendOptions & sendOpt,
                                              coordQueryConf *pQueryConf,
                                              rtnContextBuf *buf )
@@ -690,7 +713,7 @@ namespace engine
 
    INT32 _coordQueryOperator::queryOrDoOnCL( MsgHeader *pMsg,
                                              pmdEDUCB *cb,
-                                             rtnContextCoord **pContext,
+                                             rtnContextCoord::sharePtr *pContext,
                                              coordSendOptions &sendOpt,
                                              CoordGroupList &sucGrpLst,
                                              coordQueryConf *pQueryConf,
@@ -764,7 +787,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( COORD_QUERYOPERATOR__QUERYORDOONCL, "_coordQueryOperator::_queryOrDoOnCL" )
    INT32 _coordQueryOperator::_queryOrDoOnCL( MsgHeader *pMsg,
                                               pmdEDUCB *cb,
-                                              rtnContextCoord **pContext,
+                                              rtnContextCoord::sharePtr *pContext,
                                               coordSendOptions &sendOpt,
                                               CoordGroupList *pSucGrpLst,
                                               coordQueryConf *pQueryConf,
@@ -823,13 +846,13 @@ namespace engine
 
       BOOLEAN isUpdate        = FALSE ;
       INT32 flags             = 0 ;
-      CHAR *pCollectionName   = NULL ;
+      const CHAR *pCollectionName   = NULL ;
       INT64 numToSkip         = 0 ;
       INT64 numToReturn       = -1 ;
-      CHAR *pQuery            = NULL ;
-      CHAR *pFieldSelector    = NULL ;
-      CHAR *pOrderBy          = NULL ;
-      CHAR *pHint             = NULL ;
+      const CHAR *pQuery      = NULL ;
+      const CHAR *pFieldSelector = NULL ;
+      const CHAR *pOrderBy    = NULL ;
+      const CHAR *pHint       = NULL ;
 
       BSONObj objQuery ;
       BSONObj objSelector ;
@@ -837,7 +860,7 @@ namespace engine
       BSONObj objHint ;
       BSONObj objNewHint ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, &flags, &pCollectionName,
+      rc = msgExtractQuery( (const CHAR*)pMsg, &flags, &pCollectionName,
                             &numToSkip, &numToReturn, &pQuery,
                             &pFieldSelector, &pOrderBy, &pHint ) ;
       PD_RC_CHECK( rc, PDERROR, "Extract query msg failed, rc: %d", rc ) ;
@@ -861,8 +884,9 @@ namespace engine
 
       if ( pContext )
       {
-         if ( NULL == *pContext )
+         if ( NULL == pContext->get() )
          {
+            rtnContextCoord::sharePtr newContext ;
             RTN_CONTEXT_TYPE contextType = RTN_CONTEXT_COORD ;
 
             if ( FLG_QUERY_EXPLAIN & pQueryMsg->flags )
@@ -872,10 +896,12 @@ namespace engine
 
             // create context
             rc = pRtncb->contextNew( contextType,
-                                     (rtnContext **)pContext,
+                                     newContext,
                                      contextID, cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to allocate context(rc=%d)",
                          rc ) ;
+
+            *pContext = newContext ;
          }
          else
          {
@@ -895,6 +921,7 @@ namespace engine
          else
          {
             BOOLEAN needResetSubQuery = FALSE ;
+            BSONObj mergedSelect ;
             rtnQueryOptions options ;
 
             if ( FLG_QUERY_STRINGOUT & pQueryMsg->flags )
@@ -903,14 +930,14 @@ namespace engine
             }
             else
             {
-               rtnNeedResetSelector( objSelector, objOrderby, needResetSubQuery ) ;
+               rtnGetMergedSelector( objSelector, objOrderby,
+                                     needResetSubQuery, &mergedSelect ) ;
             }
 
             // build new selector
             if ( needResetSubQuery )
             {
-               static BSONObj emptyObj = BSONObj() ;
-               rc = _buildNewMsg( (const CHAR*)pMsg, &emptyObj, NULL,
+               rc = _buildNewMsg( (const CHAR*)pMsg, &mergedSelect, NULL,
                                   pNewMsg, newMsgSize, cb ) ;
                if ( SDB_OK != rc )
                {
@@ -1001,6 +1028,14 @@ namespace engine
          pQueryMsg = ( MsgOpQuery* )pLastMsg ;
          inMsg._pMsg = ( MsgHeader* )pLastMsg ;
 
+         // if DQL not command should check version
+         if ( pCollectionName && CMD_ADMIN_PREFIX[0] != pCollectionName[0] )
+         {
+            rc = checkCatVersion( cb,pCollectionName,clientVer,cataSel );
+            PD_CHECK( SDB_OK == rc, rc, error, PDWARNING,
+                "check cat version failed, rc: %d",rc );
+         }
+
          if ( isUpdate && ( cataSel.getCataPtr()->isSharded() ||
                             cataSel.getCataPtr()->hasAutoIncrement() ) )
          {
@@ -1062,14 +1097,6 @@ namespace engine
             }
          }
          pQueryMsg->version = cataSel.getCataPtr()->getVersion() ;
-
-         // if DQL not command should check version
-         if ( pCollectionName && CMD_ADMIN_PREFIX[0] != pCollectionName[0] )
-         {
-            rc = checkCatVersion( cb,pCollectionName,clientVer,cataSel );
-            PD_CHECK( SDB_OK == rc, rc, error, PDWARNING,
-                "check cat version failed, rc: %d",rc );
-         }
 
          rcTmp = doOpOnCL( cataSel, objQuery, inMsg, sendOpt, cb, result ) ;
       }while( FALSE ) ;
@@ -1138,7 +1165,7 @@ namespace engine
       }
 
       /// reset info
-      _pContext = NULL ;
+      _pContext.release() ;
       _processRet = SDB_OK ;
       PD_TRACE_EXITRC ( COORD_QUERYOPERATOR__QUERYORDOONCL, rc ) ;
       return rc ;
@@ -1152,7 +1179,7 @@ namespace engine
       {
          pRtncb->contextDelete( contextID, cb ) ;
          contextID = -1 ;
-         *pContext = NULL ;
+         pContext->release() ;
       }
       if ( buf && ( nokRC.size() > 0 || SDB_CLIENT_CATA_VER_OLD == rc ) )
       {
@@ -1179,13 +1206,13 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_QUERYOPERATOR__BUILDNEWMSG ) ;
       INT32 flag = 0 ;
-      CHAR *pCollectionName = NULL ;
+      const CHAR *pCollectionName = NULL ;
       SINT64 numToSkip = 0 ;
       SINT64 numToReturn = 0 ;
-      CHAR *pQuery = NULL ;
-      CHAR *pFieldSelector = NULL ;
-      CHAR *pOrderBy = NULL ;
-      CHAR *pHint = NULL ;
+      const CHAR *pQuery = NULL ;
+      const CHAR *pFieldSelector = NULL ;
+      const CHAR *pOrderBy = NULL ;
+      const CHAR *pHint = NULL ;
       BSONObj query ;
       BSONObj selector ;
       BSONObj orderBy ;
@@ -1194,7 +1221,7 @@ namespace engine
 
       SDB_ASSERT( newSelector || newHint, "Selector or hint is NULL" ) ;
 
-      rc = msgExtractQuery( ( CHAR * )msg, &flag, &pCollectionName,
+      rc = msgExtractQuery( ( const CHAR * )msg, &flag, &pCollectionName,
                             &numToSkip, &numToReturn, &pQuery,
                             &pFieldSelector, &pOrderBy, &pHint );
       PD_RC_CHECK( rc, PDERROR,

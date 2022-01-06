@@ -61,9 +61,6 @@
 using namespace bson ;
 using namespace std ;
 
-// Default size of capped collection for text index. The unit is MB. So its 30G.
-#define TEXT_INDEX_DATA_BUFF_DEFAULT_SIZE  ( 30 * 1024 )
-
 #define RTN_MIN_TRACE_BUFFER_SIZE 1
 #define RTN_MAX_TRACE_BUFFER_SIZE 1024
 
@@ -411,6 +408,7 @@ namespace engine
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnCreateSequence)
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnDropSequence)
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnAlterSequence)
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnListDataSources)
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnBackup)
    _rtnBackup::_rtnBackup ()
@@ -552,7 +550,7 @@ namespace engine
                                      const CHAR * pMatcherBuff,
                                      const CHAR * pSelectBuff,
                                      const CHAR * pOrderByBuff,
-                                     const CHAR * pHintBuff)
+                                     const CHAR * pHintBuff )
    {
       INT32 rc = SDB_OK ;
       BOOLEAN enSureShardIdx = TRUE ;
@@ -564,8 +562,10 @@ namespace engine
       BOOLEAN capped = FALSE ;
       const CHAR *compressionType = NULL ;
       PD_TRACE_ENTRY ( SDB__RTNCREATECL_INIT ) ;
-      BSONObj matcher ( pMatcherBuff ) ;
+      BSONObj matcher( pMatcherBuff ) ;
+      BSONObj hint( pHintBuff ) ;
       BSONElement ele ;
+      BSONObj indexArray ;
 
       rc = rtnGetStringElement ( matcher, FIELD_NAME_NAME,
                                  &_collectionName ) ;
@@ -791,6 +791,65 @@ namespace engine
          goto error ;
       }
 
+      // get indexes info
+      rc = rtnGetArrayElement( hint, FIELD_NAME_INDEX, indexArray ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
+      {
+         rc = SDB_OK ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         PD_LOG ( PDERROR, "Failed to get array[%s], rc: %d",
+                  FIELD_NAME_INDEX, rc ) ;
+         goto error ;
+      }
+      else
+      {
+         BSONObjIterator i( indexArray ) ;
+         while ( i.more() )
+         {
+            BSONObj idxObj ;
+            const CHAR* idxName = NULL ;
+
+            BSONElement ele = i.next() ;
+            PD_CHECK( ele.type() == Object, SDB_INVALIDARG, error, PDERROR,
+                      "Invalid field type[%s] in obj[%s], expect Object",
+                      ele.type(), indexArray.toString().c_str() ) ;
+
+            // get index name
+            idxObj = ele.Obj() ;
+            rc = rtnGetStringElement( idxObj, FIELD_NAME_NAME, &idxName ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get field[%s] in obj[%s], rc: %d",
+                         FIELD_NAME_NAME, idxObj.toString().c_str(), rc ) ;
+
+            // get index definition if it is system index
+            if ( 0 == ossStrcmp( idxName, IXM_ID_KEY_NAME ) )
+            {
+               rc = rtnGetObjElement( idxObj, IXM_FIELD_NAME_INDEX_DEF,
+                                      _idIdxDef ) ;
+            }
+            else if ( 0 == ossStrcmp( idxName, IXM_SHARD_KEY_NAME ) )
+            {
+               rc = rtnGetObjElement( idxObj, IXM_FIELD_NAME_INDEX_DEF,
+                                      _shardIdxDef ) ;
+            }
+            PD_RC_CHECK( rc, PDERROR,
+                            "Failed to get field[%s] in obj[%s], rc: %d",
+                            IXM_FIELD_NAME_INDEX_DEF,
+                            idxObj.toString().c_str(), rc ) ;
+         }
+      }
+
+      // if there is nothing about shard index, we build index definition by
+      // ourself
+      if ( _shardIdxDef.isEmpty() && !_shardingKey.isEmpty() )
+      {
+         _shardIdxDef = BSON( IXM_FIELD_NAME_KEY << _shardingKey <<
+                              IXM_FIELD_NAME_NAME << IXM_SHARD_KEY_NAME <<
+                              IXM_FIELD_NAME_V << 0 ) ;
+      }
+
       rc = SDB_OK ;
    done :
       PD_TRACE_EXITRC ( SDB__RTNCREATECL_INIT, rc ) ;
@@ -812,11 +871,28 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNCREATECL_DOIT ) ;
 
-      rc = rtnCreateCollectionCommand ( _collectionName, _shardingKey,
+      BOOLEAN addIdxIDIfNotExist = FALSE ;
+      BSONObj* pExtOptions = NULL ;
+      BSONObj* pIdIdxDef = NULL ;
+      if ( !_extOptions.isEmpty() )
+      {
+         pExtOptions = &_extOptions ;
+      }
+      if ( !_idIdxDef.isEmpty() )
+      {
+         pIdIdxDef = &_idIdxDef ;
+      }
+      if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
+      {
+         addIdxIDIfNotExist = TRUE ;
+      }
+
+      rc = rtnCreateCollectionCommand ( _collectionName,
+                                        _shardIdxDef,
                                         _attributes, cb, dmsCB, dpsCB,
-                                        _clUniqueID, _compressorType, 0, FALSE,
-                                        ( _extOptions.isEmpty() ?
-                                         NULL : &_extOptions ) ) ;
+                                        _clUniqueID, _compressorType,
+                                        0, FALSE, pExtOptions, pIdIdxDef,
+                                        addIdxIDIfNotExist ) ;
 
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
@@ -978,237 +1054,6 @@ namespace engine
       return rc ;
    }
 
-   IMPLEMENT_CMD_AUTO_REGISTER(_rtnCreateIndex)
-
-   _rtnCreateIndex::_rtnCreateIndex ()
-   : _collectionName ( NULL ),
-     _sortBufferSize ( SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE ),
-     _textIdx( FALSE ),
-     _isGlobal( FALSE )
-   {
-   }
-
-   _rtnCreateIndex::~_rtnCreateIndex ()
-   {
-   }
-
-   const CHAR *_rtnCreateIndex::name ()
-   {
-      return NAME_CREATE_INDEX ;
-   }
-
-   RTN_COMMAND_TYPE _rtnCreateIndex::type ()
-   {
-      return CMD_CREATE_INDEX ;
-   }
-
-   BOOLEAN _rtnCreateIndex::writable ()
-   {
-      return TRUE ;
-   }
-
-   const CHAR *_rtnCreateIndex::collectionFullName ()
-   {
-      return _collectionName ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCREATEINDEX_INIT, "_rtnCreateIndex::init" )
-   INT32 _rtnCreateIndex::init ( INT32 flags, INT64 numToSkip,
-                                 INT64 numToReturn,
-                                 const CHAR * pMatcherBuff,
-                                 const CHAR * pSelectBuff,
-                                 const CHAR * pOrderByBuff,
-                                 const CHAR * pHintBuff )
-   {
-      PD_TRACE_ENTRY ( SDB__RTNCREATEINDEX_INIT ) ;
-      BSONObj arg ( pMatcherBuff ) ;
-      BSONObj hint ( pHintBuff ) ;
-      BOOLEAN hasSortBufSz = FALSE ;
-
-      INT32 rc = rtnGetStringElement ( arg, FIELD_NAME_COLLECTION,
-                                       &_collectionName ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG ( PDERROR, "Failed to get string [collection] " ) ;
-         goto error ;
-      }
-
-      rc = rtnGetObjElement ( arg, FIELD_NAME_INDEX, _index ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG ( PDERROR, "Failed to get object index " ) ;
-         goto error ;
-      }
-
-      rc = rtnConvertIndexDef( _index ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG ( PDERROR, "Failed to convert index definition" ) ;
-         goto error ;
-      }
-
-      rc = _validateDef( _index ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG ( PDERROR, "Failed to validate index definition: %s, rc: %d",
-                  _index.toString().c_str(), rc ) ;
-         goto error ;
-      }
-
-      if ( _index.hasField( IXM_FIELD_NAME_GLOBAL ) )
-      {
-         rc = rtnGetBooleanElement( _index, IXM_FIELD_NAME_GLOBAL,
-                                    _isGlobal ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get field(%s):index=%s,rc=%d",
-                      IXM_FIELD_NAME_GLOBAL, _index.toString().c_str(), rc ) ;
-      }
-
-      if ( arg.hasField( IXM_FIELD_NAME_SORT_BUFFER_SIZE ) )
-      {
-         hasSortBufSz = TRUE ;
-         rc = rtnGetIntElement( arg, IXM_FIELD_NAME_SORT_BUFFER_SIZE,
-                                _sortBufferSize ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG ( PDERROR, "Failed to get index sort buffer, arg: %s",
-                     arg.toString().c_str() ) ;
-            goto error ;
-         }
-      }
-      else if ( hint.hasField( IXM_FIELD_NAME_SORT_BUFFER_SIZE ) )
-      {
-         hasSortBufSz = TRUE ;
-         rc = rtnGetIntElement( hint, IXM_FIELD_NAME_SORT_BUFFER_SIZE,
-                                _sortBufferSize ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG ( PDERROR, "Failed to get index sort buffer, hint: %s",
-                     hint.toString().c_str() ) ;
-            goto error ;
-         }
-      }
-      if ( _sortBufferSize < 0 )
-      {
-         PD_LOG ( PDERROR, "invalid index sort buffer size: %d",
-                  _sortBufferSize ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      if ( !hasSortBufSz )
-      {
-         // For text index, the "sort buffer size" is actually used as the 'Size'
-         // option for the corresponding capped collection.
-         if ( _textIdx )
-         {
-            _sortBufferSize = TEXT_INDEX_DATA_BUFF_DEFAULT_SIZE ;
-         }
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB__RTNCREATEINDEX_INIT, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCREATEINDEX_DOIT, "_rtnCreateIndex::doit" )
-   INT32 _rtnCreateIndex::doit ( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
-                                 SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
-                                 INT16 w , INT64 *pContextID )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__RTNCREATEINDEX_DOIT ) ;
-      BOOLEAN isSys = FALSE ;
-
-      // Currently only support text index in cluster.
-      if ( _textIdx && ( CMD_SPACE_SERVICE_SHARD != getFromService() ) )
-      {
-         PD_LOG( PDERROR, "Text index is only supported in cluster" ) ;
-         rc = SDB_OPERATION_INCOMPATIBLE ;
-         goto error ;
-      }
-
-      // Currently only support global index in cluster.
-      if ( _isGlobal && ( CMD_SPACE_SERVICE_SHARD != getFromService() ) )
-      {
-         PD_LOG( PDERROR, "Global index is only supported in cluster" ) ;
-         rc = SDB_OPERATION_INCOMPATIBLE ;
-         goto error ;
-      }
-
-      if ( !pmdGetOptionCB()->authEnabled() )
-      {
-         isSys = TRUE ;
-      }
-
-      rc = rtnCreateIndexCommand ( _collectionName, _index, cb,
-                                   dmsCB, dpsCB, isSys, _sortBufferSize,
-                                   &_writeResult ) ;
-
-      if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
-      {
-         /// AUDIT
-         PD_AUDIT_COMMAND( AUDIT_DDL, name(), AUDIT_OBJ_CL,
-                           _collectionName, rc,
-                           "IndexDef:%s, SortBuffSize:%d",
-                           _index.toString().c_str(), _sortBufferSize ) ;
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB__RTNCREATEINDEX_DOIT, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // Check if there is mixed use of normal index and text index.
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCREATEINDEX__VALIDATEDEF, "_rtnCreateIndex::_validateDef" )
-   INT32 _rtnCreateIndex::_validateDef( const BSONObj &index )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNCREATEINDEX__VALIDATEDEF ) ;
-      BOOLEAN hasText = FALSE ;
-      const string textFieldVal = "text" ;
-      BSONObj idxDef = index.getObjectField( IXM_FIELD_NAME_KEY ) ;
-      BSONObjIterator itr( idxDef ) ;
-
-      while ( itr.more() )
-      {
-         BSONElement ele = itr.next() ;
-         if ( ele.eoo() )
-         {
-            PD_LOG( PDERROR, "Index definition ended unexpected. "
-                    "Definition: %s", idxDef.toString().c_str() ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-
-         if ( String == ele.type() && textFieldVal == ele.String() )
-         {
-            hasText = TRUE ;
-         }
-         else
-         {
-            if ( hasText )
-            {
-               PD_LOG( PDERROR, "Text index can only contain fields specified "
-                       "as text. Definition: %s", idxDef.toString().c_str() ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-         }
-      }
-
-      _textIdx = hasText ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__RTNCREATEINDEX__VALIDATEDEF, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnDropCollection)
 
    _rtnDropCollection::_rtnDropCollection ()
@@ -1264,8 +1109,8 @@ namespace engine
       *pContextID = -1;
       if ( CMD_SPACE_SERVICE_SHARD == getFromService() )
       {
-         rtnContextDelCL *delContext = NULL;
-         rc = rtnCB->contextNew( RTN_CONTEXT_DELCL, (rtnContext **)&delContext,
+         rtnContextDelCL::sharePtr delContext ;
+         rc = rtnCB->contextNew( RTN_CONTEXT_DELCL, delContext,
                                  *pContextID, cb );
          PD_RC_CHECK( rc, PDERROR, "Failed to create context, drop "
                       "collection failed(rc=%d)", rc );
@@ -1342,6 +1187,9 @@ namespace engine
             BSONElement ele = iter.next() ;
             if ( 0 == ossStrcmp(ele.fieldName(), CAT_COLLECTION_SPACE_NAME) )
             {
+               PD_LOG_MSG_CHECK( NULL == _spaceName, SDB_INVALIDARG, error,
+                                 PDERROR, "More than one collection space "
+                                 "name in options" ) ;
                PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
                          "Field type is not String, type: %d, obj: %s, rc: %d",
                          ele.type(), arg.toString().c_str(), rc ) ;
@@ -1398,9 +1246,9 @@ namespace engine
       if ( CMD_SPACE_SERVICE_SHARD == getFromService() )
       {
          // ignore _ensureEmpty because it have been checked by catalog
-         rtnContextDelCS *delContext = NULL;
+         rtnContextDelCS::sharePtr delContext ;
          rc = rtnCB->contextNew( RTN_CONTEXT_DELCS,
-                                 (rtnContext **)&delContext,
+                                 delContext,
                                  *pContextID, cb );
          PD_RC_CHECK( rc, PDERROR, "Failed to create context, "
                       "drop cs failed(rc=%d)", rc );
@@ -1426,95 +1274,6 @@ namespace engine
          *pContextID = -1;
       }
       goto done;
-   }
-
-   IMPLEMENT_CMD_AUTO_REGISTER(_rtnDropIndex)
-
-   _rtnDropIndex::_rtnDropIndex ()
-   :_collectionName ( NULL )
-   {
-   }
-
-   _rtnDropIndex::~_rtnDropIndex ()
-   {
-   }
-
-   const CHAR *_rtnDropIndex::name ()
-   {
-      return NAME_DROP_INDEX ;
-   }
-
-   RTN_COMMAND_TYPE _rtnDropIndex::type ()
-   {
-      return CMD_DROP_INDEX ;
-   }
-
-   const CHAR *_rtnDropIndex::collectionFullName ()
-   {
-      return _collectionName ;
-   }
-
-   BOOLEAN _rtnDropIndex::writable ()
-   {
-      return TRUE ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDROPINDEX_INIT, "_rtnDropIndex::init" )
-   INT32 _rtnDropIndex::init ( INT32 flags, INT64 numToSkip,
-                               INT64 numToReturn,
-                               const CHAR * pMatcherBuff,
-                               const CHAR * pSelectBuff,
-                               const CHAR * pOrderByBuff,
-                               const CHAR * pHintBuff )
-   {
-      PD_TRACE_ENTRY ( SDB__RTNDROPINDEX_INIT ) ;
-      BSONObj arg ( pMatcherBuff ) ;
-      INT32 rc = rtnGetStringElement ( arg, FIELD_NAME_COLLECTION,
-                                       &_collectionName ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG ( PDERROR, "Failed to get string[collection]" ) ;
-         goto error ;
-      }
-
-      rc = rtnGetObjElement ( arg, FIELD_NAME_INDEX, _index ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG ( PDERROR, "Failed to get index object " ) ;
-         goto error ;
-      }
-   done:
-      PD_TRACE_EXITRC ( SDB__RTNDROPINDEX_INIT, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDROPINDEX_DOIT, "_rtnDropIndex::doit" )
-   INT32 _rtnDropIndex::doit ( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
-                               SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
-                               INT16 w , INT64 *pContextID )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__RTNDROPINDEX_DOIT ) ;
-      BOOLEAN isSys = FALSE ;
-      BSONElement ele = _index.firstElement() ;
-
-      if ( !pmdGetOptionCB()->authEnabled() )
-      {
-         isSys = TRUE ;
-      }
-      rc = rtnDropIndexCommand ( _collectionName, ele, cb, dmsCB,
-                                 dpsCB, isSys ) ;
-      if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
-      {
-         /// AUDIT
-         PD_AUDIT_COMMAND( AUDIT_DDL, name(), AUDIT_OBJ_CL,
-                           _collectionName, rc, "IndexDef:%s",
-                           _index.toString().c_str() ) ;
-      }
-      PD_TRACE_EXITRC ( SDB__RTNDROPINDEX_DOIT, rc ) ;
-      return rc ;
    }
 
    _rtnGet::_rtnGet ()
@@ -1613,25 +1372,6 @@ namespace engine
       return CMD_GET_COUNT ;
    }
 
-   IMPLEMENT_CMD_AUTO_REGISTER(_rtnGetIndexes)
-   _rtnGetIndexes::_rtnGetIndexes ()
-   {
-   }
-
-   _rtnGetIndexes::~_rtnGetIndexes ()
-   {
-   }
-
-   const CHAR *_rtnGetIndexes::name ()
-   {
-      return NAME_GET_INDEXES ;
-   }
-
-   RTN_COMMAND_TYPE _rtnGetIndexes::type ()
-   {
-      return CMD_GET_INDEXES ;
-   }
-
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnGetDatablocks)
    _rtnGetDatablocks::_rtnGetDatablocks ()
    {
@@ -1675,7 +1415,7 @@ namespace engine
                                  INT16 w, INT64 *pContextID )
    {
       INT32 rc = SDB_OK ;
-      rtnContextDump *context = NULL ;
+      rtnContextDump::sharePtr context ;
 
       SDB_ASSERT( pContextID, "context id can't be NULL" ) ;
 
@@ -1685,7 +1425,7 @@ namespace engine
          _options.setHint( _options.getSelector() ) ;
       }
 
-      rc = rtnCB->contextNew( RTN_CONTEXT_DUMP, (rtnContext**)&context,
+      rc = rtnCB->contextNew( RTN_CONTEXT_DUMP, context,
                               *pContextID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Create context failed, rc: %d", rc ) ;
 
@@ -1897,9 +1637,9 @@ namespace engine
 
       if ( CMD_SPACE_SERVICE_SHARD == getFromService() )
       {
-         rtnContextRenameCL *renameContext = NULL;
+         rtnContextRenameCL::sharePtr renameContext ;
          rc = rtnCB->contextNew( RTN_CONTEXT_RENAMECL,
-                                 (rtnContext **)&renameContext,
+                                 renameContext,
                                  *pContextID, cb );
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to create context, rename cl failed, rc: %d",
@@ -2024,9 +1764,9 @@ namespace engine
 
       if ( CMD_SPACE_SERVICE_SHARD == getFromService() )
       {
-         rtnContextRenameCS *renameContext = NULL ;
+         rtnContextRenameCS::sharePtr renameContext ;
          rc = rtnCB->contextNew( RTN_CONTEXT_RENAMECS,
-                                 (rtnContext **)&renameContext,
+                                 renameContext,
                                  *pContextID, cb );
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to create context, rename cs failed, rc: %d",
@@ -2465,104 +2205,18 @@ namespace engine
    INT32 _configOprBase::_errorReport( BSONObj &returnObj )
    {
       INT32 rc = SDB_OK ;
+      BOOLEAN hasError = FALSE ;
       string returnStr;
-      INT32 rebootCount = 0 ;
-      BOOLEAN rebootFirstEntry  = TRUE ;
-      INT32 forbidCount = 0 ;
-      BOOLEAN forbidFirstEntry  = TRUE ;
-      BSONElement rebootEle ;
-      BSONElement forbidEle ;
 
-      try
+      if ( SDB_OK != optBuildErrorReport( returnObj,
+                                          hasError,
+                                          returnStr ) )
       {
-         rebootEle = returnObj.getField( "Reboot" ) ;
-         if ( Array == rebootEle.type() )
-         {
-            BSONObjIterator iter( rebootEle.embeddedObject() ) ;
-            while ( iter.more() )
-            {
-               BSONElement ele = iter.next() ;
-               if ( String == ele.type() )
-               {
-                  if ( TRUE == rebootFirstEntry )
-                  {
-                     returnStr += "Config '" ;
-                     returnStr +=  ele.valuestr() ;
-
-                     rebootFirstEntry = FALSE ;
-                  }
-                  else
-                  {
-                     returnStr += ", '" ;
-                     returnStr +=  ele.valuestr() ;
-                  }
-                  returnStr += "'" ;
-                  rebootCount++ ;
-               }
-               if ( 3 == rebootCount )
-               {
-                  break ;
-               }
-            }
-         }
-
-         if ( rebootCount > 0 && rebootCount < 3 )
-         {
-            returnStr += " require(s) restart to take effect." ;
-         }
-         else if ( rebootCount == 3 )
-         {
-            returnStr += ", etc. require(s) restart to take effect." ;
-         }
-
-         forbidEle = returnObj.getField( "Forbidden" ) ;
-         if ( Array == forbidEle.type() )
-         {
-            BSONObjIterator iter( forbidEle.embeddedObject() ) ;
-            while ( iter.more() )
-            {
-               BSONElement ele = iter.next() ;
-               if ( String == ele.type() )
-               {
-                  if ( TRUE == forbidFirstEntry )
-                  {
-                     returnStr += " Config '" ;
-                     returnStr +=  ele.valuestr() ;
-                     forbidFirstEntry = FALSE ;
-                  }
-                  else
-                  {
-                     returnStr += ", '" ;
-                     returnStr +=  ele.valuestr() ;
-                  }
-                  returnStr += "'" ;
-                  forbidCount++ ;
-               }
-               if ( 3 == forbidCount )
-               {
-                  break ;
-               }
-            }
-         }
-
-         if ( forbidCount > 0 && forbidCount < 3 )
-         {
-            returnStr += " cannot be changed." ;
-         }
-         else if ( forbidCount == 3 )
-         {
-            returnStr += ", etc. cannot be changed." ;
-         }
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG( PDWARNING, "Exception during updateConf/deleteConf "
-                 "info parsing: %s",
-                 e.what() ) ;
+         // ignore error
          goto error ;
       }
 
-      if ( rebootCount > 0 || forbidCount > 0 )
+      if ( hasError )
       {
          rc = SDB_RTN_CONF_NOT_TAKE_EFFECT ;
          PD_LOG_MSG( PDERROR, returnStr.c_str() ) ;
@@ -3553,10 +3207,10 @@ error:
       SDB_ASSERT ( cb, "cb can't be NULL" ) ;
       SDB_ASSERT ( pContextID, "context id can't be NULL" ) ;
       PD_TRACE_ENTRY ( SDB__RTNTRACESTATUS_DOIT ) ;
-      rtnContextDump *context = NULL ;
+      rtnContextDump::sharePtr context ;
       *pContextID = -1 ;
       // create cursors
-      rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, (rtnContext**)&context,
+      rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, context,
                                *pContextID, cb ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to create new context, rc = %d", rc ) ;
 
@@ -3583,7 +3237,7 @@ error:
 
          if ( !orderBy.isEmpty() )
          {
-            rc = rtnSort( (rtnContext**)&context,
+            rc = rtnSort( context,
                           orderBy,
                           cb, _numToSkip,
                           _numToReturn, *pContextID ) ;
@@ -4202,10 +3856,10 @@ error:
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNLISTLOB_DOIT ) ;
-      rtnContextListLob *context = NULL ;
+      rtnContextListLob::sharePtr context ;
 
       rc = rtnCB->contextNew( RTN_CONTEXT_LIST_LOB,
-                              (rtnContext**)(&context),
+                              context,
                               _contextID, cb ) ;
       if ( SDB_OK != rc )
       {
@@ -4223,7 +3877,7 @@ error:
          rc = context->open( _query, _selector, _hint, 0, -1, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open list lob context:%d", rc ) ;
 
-         rc = rtnSort( (rtnContext**)&context, _orderBy, cb,
+         rc = rtnSort( context, _orderBy, cb,
                        _skip, _returnNum, _contextID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to sort, rc: %d", rc ) ;
       }
@@ -4313,7 +3967,7 @@ error:
    {
       if ( _cb )
       {
-         _cb->getTransExecutor()->updateByMask( *pTransConf ) ;
+         _cb->updateTransConfByMask( *pTransConf ) ;
       }
    }
 
@@ -4673,7 +4327,7 @@ error:
    IMPLEMENT_CMD_AUTO_REGISTER( _rtnLoadCollectionSpace )
    _rtnLoadCollectionSpace::_rtnLoadCollectionSpace()
    : _csName( NULL ),
-     _needChangeID( FALSE ),
+     _needChgID( FALSE ),
      _csUniqueID( UTIL_CSUNIQUEID_LOADCS )
    {
    }
@@ -4733,41 +4387,43 @@ error:
          goto error ;
       }
 
-      if ( _needChangeID )
-      {
-         rc = rtnLoadCollectionSpace( _csName,
-                                      pmdGetOptionCB()->getDbPath(),
-                                      pmdGetOptionCB()->getIndexPath(),
-                                      pmdGetOptionCB()->getLobPath(),
-                                      pmdGetOptionCB()->getLobMetaPath(),
-                                      cb, dmsCB, FALSE,
-                                      &_csUniqueID, _clInfoObj ) ;
-      }
-      else
-      {
-         rc = rtnLoadCollectionSpace( _csName,
-                                      pmdGetOptionCB()->getDbPath(),
-                                      pmdGetOptionCB()->getIndexPath(),
-                                      pmdGetOptionCB()->getLobPath(),
-                                      pmdGetOptionCB()->getLobMetaPath(),
-                                      cb, dmsCB, FALSE ) ;
-      }
-
+      rc = rtnLoadCollectionSpace( _csName,
+                                   pmdGetOptionCB()->getDbPath(),
+                                   pmdGetOptionCB()->getIndexPath(),
+                                   pmdGetOptionCB()->getLobPath(),
+                                   pmdGetOptionCB()->getLobMetaPath(),
+                                   cb, dmsCB, FALSE,
+                                   _needChgID ? &_csUniqueID : NULL,
+                                   _needChgID ? &_clInfoObj : NULL,
+                                   _needChgID ? &_idxInfoVector : NULL ) ;
    done:
+      if ( SDB_OK == rc )
+      {
+         rtnCB->delUnloadCS( _csName ) ;
+      }
       return rc ;
    error:
       goto done ;
    }
 
-   void _rtnLoadCollectionSpace::setCSUniqueID( utilCSUniqueID csUniqueID )
+   INT32 _rtnLoadCollectionSpace::setUniqueID( utilCSUniqueID csUniqueID,
+                                               const BSONObj& clInfoObj )
    {
-      _csUniqueID = csUniqueID ;
-      _needChangeID = TRUE ;
-   }
+      INT32 rc = SDB_OK ;
 
-   void _rtnLoadCollectionSpace::setCLInfo ( const BSONObj& clInfoObj )
-   {
-      _clInfoObj = clInfoObj.getOwned() ;
+      try
+      {
+         _csUniqueID = csUniqueID ;
+         _clInfoObj = clInfoObj.getOwned() ;
+         _needChgID = TRUE ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+      return rc ;
    }
 
    IMPLEMENT_CMD_AUTO_REGISTER( _rtnUnloadCollectionSpace )
@@ -4795,6 +4451,10 @@ error:
       rc = rtnUnloadCollectionSpace( _csName, cb, dmsCB ) ;
 
    done:
+      if ( SDB_OK == rc )
+      {
+         rtnCB->addUnloadCS( _csName ) ;
+      }
       return rc ;
    error:
       goto done ;
@@ -5033,6 +4693,8 @@ error:
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnRestoreToTime)
    _rtnRestoreToTime::_rtnRestoreToTime ()
+      : _timestamp(-1),
+        _transID()
    {
    }
 
@@ -5065,24 +4727,20 @@ error:
    {
       INT32 rc = SDB_OK;
       PD_TRACER_BEGIN(SDB__RTNRESTOREPIT_INIT, &rc);
-      _testOnly = FALSE;
-      _skipTest = FALSE;
-      _timestamp = -1;
-      if ((rc = _parseOpts(BSONObj(pMatcherBuff))))
+      try
       {
-         return rc;
+         BSONObj matcher = BSONObj(pMatcherBuff);
+         if ((rc = _parseTimestamp(matcher)) ||
+             (rc = _parseTransID(matcher)))
+         {
+            PD_LOG(PDERROR, "Error parsing options [rc=%d]", rc);
+            return rc;
+         }
       }
-      return rc;
-   }
-
-   INT32 _rtnRestoreToTime::_parseOpts(const BSONObj &matcher)
-   {
-      INT32 rc = SDB_OK;
-      if ((rc = _parseTimestamp(matcher)) ||
-          (rc = _parseTestOpts(matcher)) ||
-          (rc = _parseTransID(matcher)))
+      catch ( std::exception &e )
       {
-         return rc;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         return (rc = SDB_INVALIDARG) ;
       }
       return rc;
    }
@@ -5101,58 +4759,22 @@ error:
       return rc;
    }
 
-   INT32 _rtnRestoreToTime::_parseTestOpts(const BSONObj &matcher)
-   {
-      INT32 rc = SDB_OK;
-      // Check for the optional run type modifiers
-      if ((rc = util::fromBsonObj(matcher, FIELD_NAME_TEST_ONLY, &_testOnly,
-                                  FALSE)) ||
-          (rc = util::fromBsonObj(matcher, FIELD_NAME_SKIP_TEST, &_skipTest,
-                                  FALSE)))
-      {
-         PD_LOG(PDERROR, "Invalid args %s/%s", FIELD_NAME_TEST_ONLY,
-                FIELD_NAME_SKIP_TEST);
-         return rc;
-      }
-      if (_testOnly && _skipTest)
-      {
-         PD_LOG(PDERROR, "Cannot perform a test only and skip test");
-         return (rc = SDB_INVALIDARG);
-      }
-      return rc;
-   }
-
    INT32 _rtnRestoreToTime::_parseTransID(const BSONObj &matcher)
    {
       INT32 rc = SDB_OK;
       // User may call this directly on a node and transID would not be set
       INT64 transID;
       INT32 transNodeID;
-      if (SDB_OK == (rc = util::fromBsonObj(
-                         matcher, FIELD_NAME_TRANSACTION_ID_SN, &transID)))
+      if ((rc = util::fromBsonObj(matcher, FIELD_NAME_TRANSACTION_ID_SN,
+                                  &transID)) ||
+          (rc = util::fromBsonObj(matcher, FIELD_NAME_TRANSACTION_ID_NODEID,
+                                  &transNodeID)))
       {
-         // If we get the transID, everything else must succeed
-         if ((rc = util::fromBsonObj(matcher, FIELD_NAME_TRANSACTION_ID_NODEID,
-                                     &transNodeID)))
-         {
-            // Trans ID is sent internally only so this is a system error
-            PD_LOG(PDERROR, "Missing or invalid %s [rc=%d]",
-                   FIELD_NAME_TRANSACTION_ID_NODEID, rc);
-            return (rc = SDB_SYS);
-         }
-         _transID = DPS_TRANS_ID(transID, transNodeID);
-      }
-      else if (SDB_FIELD_NOT_EXIST == rc)
-      {
-         // No transID given, this is a direct call from the client
-         rc = SDB_OK;
-      }
-      else
-      {
-         // A bad transID
-         PD_LOG(PDERROR, "Invalid %s", FIELD_NAME_TRANSACTION_ID_SN);
+         // Trans ID is sent internally only so this is a system error
+         PD_LOG(PDERROR, "Invalid trans ID [rc=%d]", rc);
          return (rc = SDB_SYS);
       }
+      _transID = DPS_TRANS_ID(transID, transNodeID);
       return rc;
    }
 
@@ -5164,28 +4786,133 @@ error:
       INT32 rc = SDB_OK;
       PD_TRACER_BEGIN(SDB__RTNRESTOREPIT_DOIT, &rc);
       // restoreToTime on a data node is a type of rollback
-      if (!_skipTest)
+      rtnPITRollbackManager rollbackManager(cb, (UINT64)_timestamp, _transID);
+      if ((rc = rollbackManager.execute()))
       {
-         rtnPITRollbackManager rollbackTester(cb, (UINT64)_timestamp, _transID);
-         if ((rc = rollbackTester.test()))
+         PD_LOG(PDERROR,
+                "Failed to rollback during restore to point-in-time [rc=%d]",
+                rc);
+         if (rollbackManager.countRollbackRecords() > 0)
          {
-            PD_LOG(
-                PDERROR,
-                "Failed checks for rollback during restore to point-in-time");
+            // If any records were written then the cache is no longer valid
+            sdbGetTransCB()->clearLogLimitTime();
+         }
+         return rc;
+      }
+      return rc;
+   }
+
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnRestoreCheck)
+   _rtnRestoreCheck::_rtnRestoreCheck ()
+      : _time(-1)
+   {
+   }
+
+   _rtnRestoreCheck::~_rtnRestoreCheck ()
+   {
+   }
+
+   const CHAR *_rtnRestoreCheck::name()
+   {
+      return NAME_RESTORE_CHECK ;
+   }
+
+   RTN_COMMAND_TYPE _rtnRestoreCheck::type()
+   {
+      return CMD_RESTORE_CHECK;
+   }
+
+   BOOLEAN _rtnRestoreCheck::writable()
+   {
+      return TRUE ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNRESTORECHK_INIT, "_rtnRestoreCheck::init" )
+   INT32 _rtnRestoreCheck::init( INT32 flags, INT64 numToSkip,
+                                 INT64 numToReturn,
+                                 const CHAR * pMatcherBuff,
+                                 const CHAR * pSelectBuff,
+                                 const CHAR * pOrderByBuff,
+                                 const CHAR * pHintBuff)
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACER_BEGIN(SDB__RTNRESTORECHK_INIT, &rc);
+      try
+      {
+         BSONObj matcher = BSONObj(pMatcherBuff);
+         // Get the GlobalTime option
+         if ((rc = util::fromBsonObj(matcher, FIELD_NAME_GLOBAL_TIME, &_time)) ||
+             (_time < 0))
+         {
+            PD_LOG(PDERROR, "Valid %s required", FIELD_NAME_GLOBAL_TIME);
+            return (rc = SDB_INVALIDARG);
+         }
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         return (rc = SDB_INVALIDARG) ;
+      }
+      return rc;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNRESTORECHK_DOIT, "_rtnRestoreCheck::doit" )
+   INT32 _rtnRestoreCheck::doit ( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
+                                  SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
+                                  INT16 w , INT64 *pContextID )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACER_BEGIN(SDB__RTNRESTORECHK_DOIT, &rc);
+
+      // Check the cache first
+      UINT64 limit = sdbGetTransCB()->getLogLimitTime(_time);
+      PD_LOG(PDINFO, "For time [%llu] got cached log limit [%llu]", _time,
+             limit);
+
+      // Max SN means invalid cached value
+      if (DPS_MAX_TRANSID_SN == limit)
+      {
+         if ((rc = _runTest(cb, &limit)) && SDB_DPS_LOG_FILE_OUT_OF_SIZE != rc)
+         {
+            PD_LOG(PDERROR, "Error during restoreCheck test run [rc=%d]", rc);
             return rc;
          }
       }
-      if (!_testOnly)
+      else if (limit > _time)
       {
-         rtnPITRollbackManager rollbackManager(cb, (UINT64)_timestamp,
-                                               _transID);
-         if ((rc = rollbackManager.execute()))
-         {
-            PD_LOG(PDERROR,
-                   "Failed to rollback during restore to point-in-time");
-            return rc;
-         }
+         // Limited by log space
+         rc = SDB_DPS_LOG_FILE_OUT_OF_SIZE;
       }
+
+      if (SDB_DPS_LOG_FILE_OUT_OF_SIZE == rc)
+      {
+         PD_LOG_MSG(PDERROR, "Restore cannot reach %llu, limited to %llu",
+                    _time, limit);
+         return rc;
+      }
+
+      // Check succeeded - target time is reachable
+      return rc;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNRESTORECHK_RUNTEST, "_rtnRestoreCheck::_runTest" )
+   INT32 _rtnRestoreCheck::_runTest(_pmdEDUCB *cb, UINT64 *limit)
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACER_BEGIN(SDB__RTNRESTORECHK_RUNTEST, &rc);
+      
+      // restoreCheck on a data node is a type of rollback test
+      rtnPITRollbackManager rollbackTester(cb, _time, DPS_TRANS_ID());
+      if ((rc = rollbackTester.test()) && SDB_DPS_LOG_FILE_OUT_OF_SIZE != rc)
+      {
+         PD_LOG(PDERROR, "Failed rollback test [rc=%d]", rc);
+         return rc;
+      }
+      *limit = rollbackTester.getLogLimitTime();
+      // cache the log limit
+      sdbGetTransCB()->setLogLimitTime(_time, *limit);
+      PD_LOG(PDINFO, "For time [%llu] set new cache log limit [%llu]", _time,
+             *limit);
       return rc;
    }
 
@@ -5222,7 +4949,12 @@ error:
                                   SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
                                   INT16 w , INT64 *pContextID )
    {
-      pmdGetKRCB()->setDBRestoring(false);
+      if (SDB_ROLE_DATA == pmdGetDBRole())
+      {
+         // clear the log limit cache and reset the restorePointTime
+         sdbGetTransCB()->clearLogLimitTime();
+         sdbGetTransCB()->setRestorePointTime(DPS_INVALID_TRANS_TIME);
+      }
       return SDB_OK ;
    }
 
@@ -5262,11 +4994,20 @@ error:
    {
       INT32 rc = SDB_OK;
       PD_TRACER_BEGIN(SDB__RTNRESTOREPREP_DOIT, &rc);
-      if (SDB_ROLE_COORD == pmdGetDBRole())
+
+      // Only allowed if global transactions and mvcc (data node only) are on
+      if ( !cb->isGlobTransOn() || !sdbGetTransCB()->isGlobTransOn() ||
+           !pmdGetKRCB()->getOptionCB()->mvccOn() )
       {
-         pmdGetKRCB()->setDBRestoring(true);
+         PD_LOG( PDERROR, "Failed to prepare for restore, which is "
+                          "only supported when mvccOn and is true and "
+                          "global transactions are enabled" ) ;
+         rc = SDB_GLOB_TRANS_NOT_AVAILABLE ;
+         return rc;
       }
-      if (SDB_ROLE_DATA == pmdGetDBRole())
+
+      // Update the restore point if it is old
+      if (_isOldRestorePoint())
       {
          stpLogicalTimeUS t;
          if ((rc = sdbGetTransCB()->getGlobTransTime(t)))
@@ -5274,9 +5015,25 @@ error:
             PD_LOG(PDERROR, "Error getting time");
             return rc;
          }
-         sdbGetTransCB()->updateRestoreWindow(t.getTime());
+         // Update the running time to now
+         sdbGetTransCB()->setRestorePointTime(t.getTime());
+         PD_LOG(PDEVENT, "New restore point time %llu", t.getTime());
       }
       return rc;
+   }
+
+   BOOLEAN _rtnRestorePrepare::_isOldRestorePoint()
+   {
+      UINT64 minRecoverableTime;
+      UINT64 maxCommitTime;
+      UINT64 restorePointTime;
+      sdbGetTransCB()->getRestoreWindow(minRecoverableTime, maxCommitTime,
+                                        restorePointTime);
+      PD_LOG(PDINFO,
+             "Current restore window [min recoverable: %llu, max commit: %llu, "
+             "restore point: %llu]",
+             minRecoverableTime, maxCommitTime, restorePointTime);
+      return (restorePointTime <= maxCommitTime ? TRUE : FALSE);
    }
 }
 

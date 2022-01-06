@@ -58,5 +58,5 @@ Rename the sequence from 'IDSequence' to 'ID_SEQ'.
      本文使用的所有引用及链接
 [getLastErrMsg]:manual/reference/Sequoiadb_command/Global/getLastErrMsg.md
 [getLastError]:manual/reference/Sequoiadb_command/Global/getLastError.md
-[faq]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md

@@ -299,6 +299,7 @@
                         },
                         {
                            "name": "condition",
+                           "desc": $scope.pAutoLanguage( "如匹配条件是BETWEEN或NOT BETWEEN时，请在“值”的输入框填写值，用半角逗号(,)隔开。" ),
                            "webName": $scope.pAutoLanguage( "匹配条件" ),
                            "type": "list",
                            "valid": {
@@ -316,8 +317,8 @@
                                  {
                                     "name": "logic",
                                     "type": "select",
-                                    "value": ">",
-                                    "default": ">",
+                                    "value": "=",
+                                    "default": "=",
                                     "valid": [
                                        { 'key': '=', 'value': '=' },
                                        { 'key': '>', 'value': '>' },
@@ -341,8 +342,9 @@
                                     "placeholder": $scope.pAutoLanguage( "值" ),
                                     "type": "string",
                                     "value": "",
+                                    "default": "", 
                                     "valid": {
-                                       "min": 1
+                                       "empty": true
                                     }
                                  }
                               ]
@@ -415,7 +417,7 @@
             } ;
          
             $scope.QueryWindow['callback']['SetOkButton']( $scope.pAutoLanguage( '确定' ), function(){
-               var isClear = $scope.QueryWindow['config'].check() ;
+               var isClear = $scope.QueryWindow['config'].check();
                if( isClear )
                {
                   var formValue = $scope.QueryWindow['config'].getValue() ;
@@ -446,12 +448,12 @@
                         case '<>':
                         case 'LIKE':
                         case 'NOT LIKE':
-                           sql += field + ' ' + operate + ' ' + sqlEscape( param ) ;
+                           sql += '`' + field + '` ' + operate + ' ' + sqlEscape( param ) ;
                            break ;
                         case 'BETWEEN':
                         case 'NOT BETWEEN':
                            var paramArr = param.split( ',', 2 ) ;
-                           sql += field + ' ' + operate + ' ' + sqlEscape( paramArr[0] ) ;
+                           sql +=  '`' + field + '` ' + operate + ' ' + sqlEscape( paramArr[0] ) ;
                            if( paramArr.length > 1 )
                            {
                               sql += ' AND ' + sqlEscape( paramArr[1] ) ;
@@ -459,21 +461,21 @@
                            break ;
                         case 'IS NULL':
                         case 'IS NOT NULL':
-                           sql += field + ' ' + operate ;
+                           sql += '`' + field + '` ' + operate ;
                            break ;
                         case 'IN':
                         case 'NOT IN':
                            var tmp = trim( param ) ;
                            if( tmp.charAt(0) == '(' && tmp.charAt(tmp.length - 1) == ')' )
                            {
-                              sql += field + ' ' + operate + ' ' + tmp ;
+                              sql += '`' + field + '` ' + operate + ' ' + tmp ;
                            }
                            else
                            {
                               var paramArr = param.split( ',' ) ;
                               if( paramArr.length > 0 )
                               {
-                                 sql += field + ' ' + operate + ' (' ;
+                                 sql += '`' + field + '` ' + operate + ' (' ;
                                  $.each( paramArr, function( index, subPara ){
                                     if( index > 0 )
                                     {
@@ -501,7 +503,7 @@
                         {
                            sql += ', ' ;
                         }
-                        sql += sprintf( '? ?', info['field'], info['order'] ) ;
+                        sql += sprintf( '`?` ?', info['field'], info['order'] ) ;
                      }
                   } ) ;
                   sql += sprintf( ' LIMIT ? OFFSET ?', formValue['returnnum'], formValue['skip'] ) ;
@@ -570,6 +572,7 @@
                         },
                         {
                            "name": "condition",
+                           "desc": $scope.pAutoLanguage( "如匹配条件是BETWEEN或NOT BETWEEN时，请在“值”的输入框填写值，用半角逗号(,)隔开。" ),
                            "webName": $scope.pAutoLanguage( "匹配条件" ),
                            "type": "list",
                            "valid": {
@@ -587,8 +590,8 @@
                                  {
                                     "name": "logic",
                                     "type": "select",
-                                    "value": ">",
-                                    "default": ">",
+                                    "value": "=",
+                                    "default": "=",
                                     "valid": [
                                        { 'key': '=', 'value': '=' },
                                        { 'key': '>', 'value': '>' },
@@ -612,8 +615,9 @@
                                     "placeholder": $scope.pAutoLanguage( "值" ),
                                     "type": "string",
                                     "value": "",
+                                    "default": "",
                                     "valid": {
-                                       "min": 1
+                                       "empty": true
                                     }
                                  }
                               ]
@@ -682,11 +686,11 @@
                   $.each( formValue['updator'], function( index, fieldInfo ){
                      if( fieldInfo['null'] == true )
                      {
-                        sql += fieldInfo['field'] + ' = NULL ' ;
+                        sql += '`' + fieldInfo['field'] + '` = NULL ' ;
                      }
                      else
                      {
-                        sql += fieldInfo['field'] + ' = ' + sqlEscape( fieldInfo['value'] ) ;
+                        sql += '`' + fieldInfo['field'] + '` = ' + sqlEscape( fieldInfo['value'] ) ;
                      }
                      if( index + 1 < formValue['updator'].length )
                      {
@@ -720,12 +724,12 @@
                         case '<>':
                         case 'LIKE':
                         case 'NOT LIKE':
-                           sql += field + ' ' + operate + ' ' + sqlEscape( param ) ;
+                           sql += '`' + field + '` ' + operate + ' ' + sqlEscape( param ) ;
                            break ;
                         case 'BETWEEN':
                         case 'NOT BETWEEN':
                            var paramArr = param.split( ',', 2 ) ;
-                           sql += field + ' ' + operate + ' ' + sqlEscape( paramArr[0] ) ;
+                           sql += '`' + field + '` ' + operate + ' ' + sqlEscape( paramArr[0] ) ;
                            if( paramArr.length > 1 )
                            {
                               sql += ' AND ' + sqlEscape( paramArr[1] ) ;
@@ -733,21 +737,21 @@
                            break ;
                         case 'IS NULL':
                         case 'IS NOT NULL':
-                           sql += field + ' ' + operate ;
+                           sql += '`' + field + '` ' + operate ;
                            break ;
                         case 'IN':
                         case 'NOT IN':
                            var tmp = trim( param ) ;
                            if( tmp.charAt(0) == '(' && tmp.charAt(tmp.length - 1) == ')' )
                            {
-                              sql += field + ' ' + operate + ' ' + tmp ;
+                              sql += '`' + field + '` ' + operate + ' ' + tmp ;
                            }
                            else
                            {
                               var paramArr = param.split( ',' ) ;
                               if( paramArr.length > 0 )
                               {
-                                 sql += field + ' ' + operate + ' (' ;
+                                 sql += '`' + field + '` ' + operate + ' (' ;
                                  $.each( paramArr, function( index, subPara ){
                                     if( index > 0 )
                                     {
@@ -850,22 +854,30 @@
                      case 'mediumint':
                      case 'tinyint':
                         param = parseInt( param ) ;
+                        if( isNaN( param ) )
+                        {
+                          param = null ;
+                        }
                         break ;
                      case 'float':
                      case 'double':
                      case 'decimal':
                         param = parseFloat( param ) ;
+                        if( isNaN( param ) )
+                        {
+                          param = null ;
+                        }
                         break ;
                   }
                   
-                  fields += field ;
+                  fields += '`' + field + '`' ;
                   if( operate == false )
                   {
-                     if( typeof( param ) == 'undefined' || param === null )
+                     if( isUndefined( param ) || param === null )
                      {
                         params += '\'\'' ;
                      }
-                     else if( typeof( param ) == 'number' || type == 'bit' )
+                     else if( isNumber( param ) || type == 'bit' )
                      {
                         params += param ;
                      }
@@ -935,6 +947,7 @@
                         },
                         {
                            "name": "condition",
+                           "desc": $scope.pAutoLanguage( "如匹配条件是BETWEEN或NOT BETWEEN时，请在“值”的输入框填写值，用半角逗号(,)隔开。" ),
                            "webName": $scope.pAutoLanguage( "匹配条件" ),
                            "type": "list",
                            "valid": {
@@ -952,8 +965,8 @@
                                  {
                                     "name": "logic",
                                     "type": "select",
-                                    "value": ">",
-                                    "default": ">",
+                                    "value": "=",
+                                    "default": "=",
                                     "valid": [
                                        { 'key': '=', 'value': '=' },
                                        { 'key': '>', 'value': '>' },
@@ -977,8 +990,9 @@
                                     "placeholder": $scope.pAutoLanguage( "值" ),
                                     "type": "string",
                                     "value": "",
+                                    "default": "",
                                     "valid": {
-                                       "min": 1
+                                       "empty": true
                                     }
                                  }
                               ]
@@ -1032,12 +1046,12 @@
                         case '<>':
                         case 'LIKE':
                         case 'NOT LIKE':
-                           condition += field + ' ' + operate + ' ' + sqlEscape( param ) ;
+                           condition += '`' + field + '` ' + operate + ' ' + sqlEscape( param ) ;
                            break ;
                         case 'BETWEEN':
                         case 'NOT BETWEEN':
                            var paramArr = param.split( ',', 2 ) ;
-                           condition += field + ' ' + operate + ' ' + sqlEscape( paramArr[0] ) ;
+                           condition += '`' + field + '` ' + operate + ' ' + sqlEscape( paramArr[0] ) ;
                            if( paramArr.length > 1 )
                            {
                               condition += ' AND ' + sqlEscape( paramArr[1] ) ;
@@ -1045,21 +1059,21 @@
                            break ;
                         case 'IS NULL':
                         case 'IS NOT NULL':
-                           condition += field + ' ' + operate ;
+                           condition += '`' + field + '` ' + operate ;
                            break ;
                         case 'IN':
                         case 'NOT IN':
                            var tmp = trim( param ) ;
                            if( tmp.charAt(0) == '(' && tmp.charAt(tmp.length - 1) == ')' )
                            {
-                              condition += field + ' ' + operate + ' ' + tmp ;
+                              condition += '`' + field + '` ' + operate + ' ' + tmp ;
                            }
                            else
                            {
                               var paramArr = param.split( ',' ) ;
                               if( paramArr.length > 0 )
                               {
-                                 condition += field + ' ' + operate + ' (' ;
+                                 condition += '`' + field + '` ' + operate + ' (' ;
                                  $.each( paramArr, function( index, subPara ){
                                     if( index > 0 )
                                     {
@@ -1074,21 +1088,6 @@
                         }
                      }
                   } ) ;
-                  //$.each( formValue['filter']['condition'], function( index, filterInfo ){
-                  //   if( isEmpty( filterInfo['field'] ) || isEmpty( filterInfo['value'] ) )
-                  //   {
-                  //      return ;
-                  //   }
-                  //   if( index == 0 )
-                  //   {
-                  //      condition += ' WHERE ' ;
-                  //   }
-                  //   condition += addQuotes( filterInfo['field'] ) + ' ' + filterInfo['logic'] + ' ' + sqlEscape( filterInfo['value'] ) ;
-                  //   if( index + 1 < formValue['filter']['condition'].length )
-                  //   {
-                  //      condition += ' ' + formValue['filter']['model'] + ' ' ;
-                  //   }
-                  //} ) ;
 
                   sql += condition ;
 
@@ -1174,7 +1173,7 @@
                      {
                         sql += ', ' ;
                      }
-                     sql += fieldInfo[0] + ' = ' + sqlEscape( fieldInfo[2] ) ;
+                     sql += '`' + fieldInfo[0] + '` = ' + sqlEscape( fieldInfo[2] ) ;
                      ++ tempNum ;
                   }
                   else
@@ -1194,17 +1193,17 @@
                   {
                      sql += ' AND ' ;
                   }
-                  if( typeof( value ) == 'string' )
+                  if( isString( value ) )
                   {
-                     sql += key + ' = ' + sqlEscape( value ) ;
+                     sql += '`' + key + '` = ' + sqlEscape( value ) ;
                   }
                   else if( value === null )
                   {
-                     sql += key + ' IS NULL ' ;
+                     sql += '`' + key + '` IS NULL ' ;
                   }
                   else
                   {
-                     sql += key + ' = ' + value ;
+                     sql += '`' + key + '` = ' + value ;
                   }
                   ++ tempNum ;
                } ) ;
@@ -1250,17 +1249,17 @@
                {
                   sql += ' AND ' ;
                }
-               if( typeof( value ) == 'string' )
+               if( isString( value ) )
                {
-                  sql += key + ' = ' + sqlEscape( value ) ;
+                  sql += '`' + key + '` = ' + sqlEscape( value ) ;
                }
                else if( value === null )
                {
-                  sql += key + ' IS NULL ' ;
+                  sql += '`' + key + '` IS NULL ' ;
                }
                else
                {
-                  sql += key + ' = ' + value ;
+                  sql += '`' + key + '` = ' + value ;
                }
                ++ tempNum ;
             } ) ;

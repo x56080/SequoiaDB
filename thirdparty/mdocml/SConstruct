@@ -42,6 +42,8 @@ def GuessArch():
       return 'ppc64le'
    elif id == 'aarch64':
       return 'arm64'
+   elif id == 'sw_64':
+      return 'alpha64'
    else:
       return None
 
@@ -215,6 +217,10 @@ if guess_os == "linux":
     elif guess_arch == "ppc64le":
         linux64 = True
         targetLibPath = "ppclelinux64"
+    elif guess_arch == "alpha64":
+        linux64 = True
+        targetLibPath = "alphalinux64"
+        env.Append( CPPFLAGS=" -mieee " )
     nix = True
 
 elif "win32" == guess_os:

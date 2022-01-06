@@ -4,7 +4,7 @@
 .hy
 .SH NAME
 .PP
-print \- Print the contents to the standard output.
+print \- print the contents to the standard output
 .SH SYNOPSIS
 .PP
 \f[B]print(<contents>)\f[]
@@ -27,14 +27,14 @@ NULL.
 NULL.
 .SH HISTORY
 .PP
-Since v1.0.
+v1.0 and above.
 .SH EXAMPLES
-.IP "1." 3
+.PP
 Print the contents to the standard output.
+.IP
 .nf
 \f[C]
->\ println("hello\ world")
-hello\ world
+> println("hello world")
+hello world
 \f[]
 .fi
-.RE

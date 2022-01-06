@@ -94,7 +94,7 @@ namespace engine
 
          virtual INT32 _openSubContext ( rtnQueryOptions & options,
                                          pmdEDUCB * cb,
-                                         rtnContext ** ppContext ) = 0 ;
+                                         rtnContextPtr *ppContext ) = 0 ;
 
          OSS_INLINE virtual INT32 _finishSubContext ( rtnContext * context,
                                                       pmdEDUCB * cb )
@@ -137,7 +137,7 @@ namespace engine
          INT32 _buildBSONNodeInfo ( BSONObjBuilder & builder ) const ;
 
          INT32 _buildBSONQueryOptions ( BSONObjBuilder & builder,
-                                        BOOLEAN needDetail ) const ;
+                                        const rtnExplainOptions &expOptions ) const ;
 
          optPlanAllocator*          getPlanAllocator() ;
 
@@ -146,16 +146,8 @@ namespace engine
       protected :
          /// Query options
          rtnQueryOptions _queryOptions ;
-
          /// Explain options
-         UINT16 _explainMask ;
-         BOOLEAN _needDetail ;
-         BOOLEAN _needEstimate ;
-         BOOLEAN _needRun ;
-         BOOLEAN _needSearch ;
-         BOOLEAN _needEvaluate ;
-         BOOLEAN _needExpand ;
-         BOOLEAN _needFlatten ;
+         rtnExplainOptions _expOptions ;
 
          /// Explain status
          BOOLEAN _explainStarted ;
@@ -174,7 +166,7 @@ namespace engine
    class _rtnContextExplain : public _rtnContextBase,
                               public _rtnExplainBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextExplain )
 
    public :
       _rtnContextExplain ( INT64 contextID, UINT64 eduID ) ;
@@ -195,6 +187,11 @@ namespace engine
       OSS_INLINE virtual dmsStorageUnit * getSU ()
       {
          return NULL ;
+      }
+
+      OSS_INLINE virtual UINT32 getSULogicalID() const
+      {
+         return _rtnSubContextHolder::_subSULogicalID ;
       }
 
       INT32 open ( const rtnQueryOptions &options,
@@ -223,7 +220,7 @@ namespace engine
 
       INT32 _openSubContext ( rtnQueryOptions & options,
                               pmdEDUCB * cb,
-                              rtnContext ** ppContext ) ;
+                              rtnContextPtr *ppContext ) ;
 
       INT32 _prepareExplainPath ( rtnContext * context,
                                   pmdEDUCB * cb ) ;

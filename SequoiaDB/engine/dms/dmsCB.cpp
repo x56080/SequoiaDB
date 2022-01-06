@@ -196,26 +196,26 @@ namespace engine
 
    INT32 _SDB_DMSCB::deactive ()
    {
-      INT32 rc = SDB_OK ;
+      return SDB_OK ;
+   }
+
+   INT32 _SDB_DMSCB::fini ()
+   {
       // check if MVCC is supported
-      // finish and flush Rollback Segment CS mgr. We must do it here 
+      // finish and flush Rollback Segment CS mgr. We must do it here
       // instead of fini because we need DPS to flush logs to disk.
       // see the order in _SDB_KRCB::destroy. DPS is alway the first
       // to start and last to shut down.
       if ( pmdGetOptionCB()->mvccOn() )
       {
-         rc = _rbsSUMgr.fini() ;
-         if ( rc )
+         INT32 tmpRC = _rbsSUMgr.fini() ;
+         if ( SDB_OK != tmpRC )
          {
-            PD_LOG( PDERROR, "Finish RBS failed, rc: %d",
-                    rc ) ;
+            PD_LOG( PDWARNING, "Finish RBS failed, rc: %d",
+                    tmpRC ) ;
          }
       }
-      return rc ;
-   }
 
-   INT32 _SDB_DMSCB::fini ()
-   {
       _localSUMgr.fini() ;
       _tempSUMgr.fini() ;
 
@@ -269,7 +269,6 @@ namespace engine
             pInfo->_enableSparse = optCB->sparseFile() ;
             pInfo->_cacheMergeSize = optCB->getCacheMergeSize() ;
             pInfo->_pageAllocTimeout = optCB->getPageAllocTimeout() ;
-            pInfo->_logWriteMod = optCB->logWriteMod() ;
 
             pCache->setAllocTimeout( pInfo->_pageAllocTimeout ) ;
             pCache->updateMerge( pInfo->_directIO, pInfo->_cacheMergeSize ) ;
@@ -1467,6 +1466,31 @@ namespace engine
       unblockWrite( cb ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_REGRESTORE, "_SDB_DMSCB::registerRestore" )
+   INT32 _SDB_DMSCB::registerRestore(_pmdEDUCB *cb)
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACER_BEGIN(SDB__SDB_DMSCB_REGRESTORE, &rc);
+
+      _stateMtx.get();
+      if (DMS_STATE_NORMAL != _dmsCBState)
+      {
+         _stateMtx.release();
+         PD_LOG(PDERROR, "Unable to lock storage for restore");
+         return (rc = SDB_DMS_STATE_NOT_COMPATIBLE);
+      }
+      _dmsCBState = DMS_STATE_RESTORE;
+      _stateMtx.release();
+      return rc;
+   }
+
+   void _SDB_DMSCB::restoreDown(_pmdEDUCB *cb)
+   {
+      _stateMtx.get();
+      _dmsCBState = DMS_STATE_NORMAL;
+      _stateMtx.release();
+   }
+
    INT32 _SDB_DMSCB::idToSUAndLock ( utilCSUniqueID csUniqueID,
                                      dmsStorageUnitID &suID,
                                      _dmsStorageUnit **su,
@@ -1562,6 +1586,31 @@ namespace engine
      goto done ;
    }
 
+   INT32 _SDB_DMSCB::nameToSULID( const CHAR *pName,
+                                  UINT32 &suLogicalID )
+   {
+      INT32 rc = SDB_OK ;
+
+      suLogicalID = DMS_INVALID_LOGICCSID ;
+
+      if ( NULL == pName )
+      {
+         rc = SDB_INVALIDARG ;
+      }
+      else
+      {
+         ossScopedLock _lock( &_mutex, SHARED ) ;
+         SDB_DMS_CSCB *cscb = NULL ;
+         rc = _CSCBNameLookup( pName, &cscb, NULL, TRUE ) ;
+         if ( SDB_OK == rc )
+         {
+            suLogicalID = cscb->_su->LogicalCSID() ;
+         }
+      }
+
+      return rc ;
+   }
+
    _dmsStorageUnit *_SDB_DMSCB::suLock ( dmsStorageUnitID suID )
    {
       ossScopedLock _lock(&_mutex, SHARED) ;
@@ -1647,15 +1696,103 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_CHGIDXUID, "_SDB_DMSCB::_changeIndexUniqueID" )
+   INT32 _SDB_DMSCB::_changeIndexUniqueID( _dmsStorageUnit* su,
+                                           const ossPoolVector<ossPoolString>& changedClVec,
+                                           const ossPoolVector<BSONObj>& idxInfoVec,
+                                           pmdEDUCB* cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__SDB_DMSCB_CHGIDXUID ) ;
+
+      // convert index info which is from catalog
+      MAP_CLNAME_IDX clIdxMap ;
+      utilBson2IdxNameId( idxInfoVec, clIdxMap ) ;
+
+      // loop every collection
+      for ( ossPoolVector<ossPoolString>::const_iterator itr = changedClVec.begin() ;
+            itr != changedClVec.end() ; itr++ )
+      {
+         MAP_IDXNAME_DEF idxDefMap ;
+         const CHAR* clShortName = itr->c_str() ;
+         CHAR clFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+         ossSnprintf( clFullName, sizeof( clFullName ),
+                      "%s.%s", su->CSName(), clShortName ) ;
+
+         MAP_CLNAME_IDX::iterator it = clIdxMap.find( clFullName ) ;
+         if ( it != clIdxMap.end() )
+         {
+            idxDefMap = it->second ;
+         }
+
+         // get indexes from local
+         MON_IDX_LIST localIdxList ;
+         rc = su->getIndexes( clShortName, localIdxList ) ;
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to get collection[%s]'s indexes, rc: %d",
+                      clFullName, rc ) ;
+
+         // loop every index
+         for ( MON_IDX_LIST::iterator it = localIdxList.begin() ;
+               it != localIdxList.end() ; it++ )
+         {
+            const CHAR* idxName = it->getIndexName() ;
+            // Use local index definition ( filter out UniqueID ) to assign
+            // initial value to "idxDefToCreate". If the index doesn't exist on
+            // catalog, we also need to call createIndex(). The createIndex()
+            // function will check whether the index UniqueID is valid or not,
+            // if it's invalid, a new UniqueID will be generated for the index.
+            BSONObj idxDefToCreate = it->_indexDef.filterFieldsUndotted(
+                                BSON( IXM_FIELD_NAME_UNIQUEID << 1 ), false ) ;
+
+            // if the index has unique id at catalog, use it
+            MAP_IDXNAME_DEF::iterator i = idxDefMap.find( idxName ) ;
+            if ( i != idxDefMap.end() )
+            {
+               if ( ixmIsSameDef( i->second, idxDefToCreate, TRUE ) )
+               {
+                  idxDefToCreate = i->second ;
+               }
+            }
+
+            // change unique id by createIndex()
+            rc = su->createIndex( clShortName, idxDefToCreate,
+                                  cb, NULL, TRUE, NULL,
+                                  SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE,
+                                  NULL, NULL, FALSE, FALSE ) ;
+            if ( rc )
+            {
+               PD_LOG( PDWARNING,
+                       "Failed to upgrade index's unique id, rc: %d",
+                       rc ) ;
+            }
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__SDB_DMSCB_CHGIDXUID, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // input: clInfoObj
    // [
    //    { "Name": "bar1", "UniqueID": 2667174690817 } ,
    //    { "Name": "bar2", "UniqueID": 2667174690818 }
    // ]
+   // input: pIdxInfoVec
+   // [
+   //   { Collection: "foo.bar", IndexDef: {xxx} },
+   //   { Collection: "foo.ba1", IndexDef: {xxx} }
+   // ]
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_CHGUID, "_SDB_DMSCB::changeUniqueID" )
    INT32 _SDB_DMSCB::changeUniqueID( const CHAR* csname,
                                      utilCSUniqueID csUniqueID,
                                      const BSONObj& clInfoObj,
+                                     BOOLEAN changeOtherCL,
+                                     const ossPoolVector<BSONObj>* pIdxInfoVec,
+                                     BOOLEAN changeIdx,
                                      pmdEDUCB* cb,
                                      SDB_DPSCB* dpsCB,
                                      BOOLEAN isLoadCS )
@@ -1675,6 +1812,7 @@ namespace engine
       dmsStorageUnit* su = NULL ;
       dmsStorageUnit* suTmp = NULL ;
       BOOLEAN isMetaLocked = FALSE ;
+      ossPoolVector<ossPoolString> changedCLVec ;
 
       _mutex.get_shared () ;
       rc = _CSCBNameLookup( csname, &cscb, &suID, TRUE ) ;
@@ -1698,8 +1836,8 @@ namespace engine
          logRecSize = record.alignedLen() ;
          rc = pTransCB->reservedLogSpace( logRecSize, cb );
          PD_RC_CHECK( rc, PDERROR,
-                     "Failed to reserved log space(length=%u)",
-                     logRecSize );
+                      "Failed to reserved log space(length=%u)",
+                      logRecSize ) ;
          isReserved = TRUE ;
       }
 
@@ -1716,12 +1854,19 @@ namespace engine
          goto error ;
       }
 
-      su->data()->changeCLUniqueID( utilBson2ClNameId( clInfoObj ),
-                                    csUniqueID, isLoadCS ) ;
+      rc = su->data()->changeCLUniqueID( utilBson2ClNameId( clInfoObj ),
+                                         changeOtherCL, csUniqueID,
+                                         isLoadCS, changedCLVec ) ;
+      if ( rc )
+      {
+         // ignore error
+         PD_LOG( PDWARNING, "Failed to change collection unique id, rc: %d",
+                 rc ) ;
+      }
 
-      suUnlock ( suID ) ;
+      suUnlock ( suTmpID ) ;
 
-      // get meta lock
+      // change cs unique id
       _mutex.get() ;
       isMetaLocked = TRUE ;
 
@@ -1738,7 +1883,6 @@ namespace engine
          goto error ;
       }
 
-      // change cs unique id
       rc = changeCSUniqueID( su, csUniqueID ) ;
       PD_RC_CHECK ( rc, PDERROR,
                     "Failed to change cs unique id, rc: %d",
@@ -1757,6 +1901,40 @@ namespace engine
          isMetaLocked = FALSE ;
 
          dpsCB->writeData( info ) ;
+      }
+
+      if ( isMetaLocked )
+      {
+         _mutex.release() ;
+         isMetaLocked = FALSE ;
+      }
+
+      if ( changeIdx )
+      {
+         rc = nameToSUAndLock( su->CSName(), suTmpID, &suTmp, SHARED ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         else if ( suTmpID != suID )
+         {
+            suUnlock ( suTmpID ) ;
+            rc = SDB_DMS_CS_NOTEXIST ;
+            goto error ;
+         }
+
+         ossPoolVector<BSONObj> emptyVec ;
+         INT32 rc1 = _changeIndexUniqueID( su, changedCLVec,
+                                           pIdxInfoVec ? *pIdxInfoVec : emptyVec,
+                                           cb ) ;
+         if ( rc1 )
+         {
+            // ignore error
+            PD_LOG( PDWARNING, "Failed to change index unique id, rc: %d",
+                    rc1 ) ;
+         }
+
+         suUnlock ( suTmpID ) ;
       }
 
    done :
@@ -1801,7 +1979,7 @@ namespace engine
       INT32 type = 0 ;
       dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB();
       _SDB_RTNCB *pRtnCB = pmdGetKRCB()->getRTNCB() ;
-      utilCSUniqueID csUniqueID = su->CSUniqueID() ;
+      utilCSUniqueID csUniqueID = 0 ;
 
       PD_TRACE_ENTRY ( SDB__SDB_DMSCB_ADDCS );
 
@@ -1811,6 +1989,7 @@ namespace engine
          goto error ;
       }
 
+      csUniqueID = su->CSUniqueID() ;
       pageSize = su->getPageSize() ;
       lobPageSz = su->getLobPageSize() ;
       type = su->type() ;
@@ -1961,7 +2140,7 @@ namespace engine
       if ( cb && cb->getTransExecutor()->useTransLock() )
       {
          dpsTransRetInfo lockConflict ;
-         rc = pTransCB->transLockTryX( cb, csLID, DMS_INVALID_MBID,
+         rc = pTransCB->transLockTryZ( cb, csLID, DMS_INVALID_MBID,
                                        NULL, &lockConflict ) ;
          if ( rc )
          {
@@ -2272,8 +2451,8 @@ namespace engine
       if ( cb && cb->getTransExecutor()->useTransLock() )
       {
          dpsTransRetInfo lockConflict ;
-         rc = pTransCB->transLockTryS( cb, csLID, DMS_INVALID_MBID,
-                                       NULL, &lockConflict ) ;
+         rc = pTransCB->transLockTrySAgainstWrite( cb, csLID, DMS_INVALID_MBID,
+                                                   NULL, &lockConflict ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR,
@@ -3142,36 +3321,6 @@ namespace engine
       return rc ;
    error:
       goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_FIXTRANSMBSTATS, "_SDB_DMSCB::fixTransMBStats" )
-   void _SDB_DMSCB::fixTransMBStats ()
-   {
-      PD_TRACE_ENTRY( SDB__SDB_DMSCB_FIXTRANSMBSTATS ) ;
-      MON_CS_SIM_LIST monCSList ;
-      dumpInfo( monCSList, TRUE, FALSE, FALSE ) ;
-      for ( MON_CS_SIM_LIST::const_iterator csIter = monCSList.begin() ;
-            csIter != monCSList.end() ;
-            csIter ++ )
-      {
-         INT32 rc = SDB_OK ;
-         dmsStorageUnit * su = NULL ;
-         const monCSSimple & monCS = (*csIter) ;
-         dmsEventSUItem suItem( monCS._name, monCS._suID, monCS._logicalID ) ;
-
-         rc = verifySUAndLock( &suItem, &su, SHARED, OSS_ONE_SEC ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDDEBUG, "Failed to get storage unit [%s], rc: %d",
-                    monCS._name, rc ) ;
-            continue ;
-         }
-
-         su->fixTransMBStat() ;
-
-         suUnlock( monCS._suID, SHARED ) ;
-      }
-      PD_TRACE_EXIT( SDB__SDB_DMSCB_FIXTRANSMBSTATS ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_CLEARALLCRUDCB, "_SDB_DMSCB::clearAllCRUDCB" )

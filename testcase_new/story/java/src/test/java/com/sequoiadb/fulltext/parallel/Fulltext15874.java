@@ -22,11 +22,14 @@ import com.sequoiadb.threadexecutor.ThreadExecutor;
 import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 
 /**
- * @FileName seqDB-15874:truncate集合记录与增删改/全文检索记录并发
- * @Author huangxiaoni
- * @Date 2019.5.14
+ * @description seqDB-15874:truncate集合记录与增删改/全文检索记录并发
+ * @author huangxiaoni
+ * @createDate 2019.05.14
+ * @updateUser ZhangYanan
+ * @updateDate 2021.12.14
+ * @updateRemark
+ * @version v1.0
  */
-
 public class Fulltext15874 extends FullTestBase {
     private Random random = new Random();
     private final String CL_NAME = "cl_es_15874";
@@ -119,7 +122,8 @@ public class Fulltext15874 extends FullTestBase {
                 System.out.println( new Date() + " end   "
                         + this.getClass().getName().toString() );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -321 ) {
+                if ( e.getErrorCode() != -321 && e.getErrorCode() != -190
+                        && e.getErrorCode() != -147 ) {
                     throw e;
                 }
             }
@@ -141,7 +145,8 @@ public class Fulltext15874 extends FullTestBase {
                 System.out.println( new Date() + " end   "
                         + this.getClass().getName().toString() );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -321 ) {
+                if ( e.getErrorCode() != -321 && e.getErrorCode() != -190
+                        && e.getErrorCode() != -147 ) {
                     throw e;
                 }
             }
@@ -167,7 +172,8 @@ public class Fulltext15874 extends FullTestBase {
                 System.out.println( new Date() + " end   "
                         + this.getClass().getName().toString() );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -321 ) {
+                if ( e.getErrorCode() != -321 && e.getErrorCode() != -190
+                        && e.getErrorCode() != -147 ) {
                     throw e;
                 }
             }
@@ -199,7 +205,9 @@ public class Fulltext15874 extends FullTestBase {
                     } catch ( BaseException e ) {
                         if ( e.getErrorCode() != -321 && e.getErrorCode() != -52
                                 && e.getErrorCode() != -6
-                                && e.getErrorCode() != -10 ) {
+                                && e.getErrorCode() != -10
+                                && e.getErrorCode() != -190
+                                && e.getErrorCode() != -147 ) {
                             throw e;
                         }
                         Thread.sleep( random.nextInt( 50 ) );

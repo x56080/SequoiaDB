@@ -40,43 +40,43 @@ On error, exception will be thrown.
 
 ##ERRORS##
 
-when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md)  and use [getLastErrMsg()](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md) to get [error message](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md). For more detial, please  reference to [Troubleshooting](manual/faq.md).
+when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md)  and use [getLastErrMsg()](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md) to get [error message](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md). For more detial, please  reference to [Troubleshooting](manual/FAQ/faq_sdb.md).
 
 ##EXAMPLES##
 
 * List the information of processes
 
-```lang-javascript
-> System.listProcess()
-{
-  "pid": "30571",
-  "cmd": "sequoiadb(50000) S"
-}
-{
-  "pid": "30834",
-  "cmd": "bin/sdb"
-}
-{
-  "pid": "30876",
-  "cmd": "/usr/sbin/rsyslogd -n"
-}
-...
-```
+    ```lang-javascript
+    > System.listProcess()
+    {
+      "pid": "30571",
+      "cmd": "sequoiadb(50000) S"
+    }
+    {
+      "pid": "30834",
+      "cmd": "bin/sdb"
+    }
+    {
+      "pid": "30876",
+      "cmd": "/usr/sbin/rsyslogd -n"
+    }
+    ...
+    ```
 
-* Filter the results:
+* Filter the results
 
-```lang-javascript
-> System.listProcess( { detail: true }, { "user": "sdbadmin" } )
-{
-  "user": "sdbadmin",
-  "pid": "20630",
-  "status": "S",
-  "cmd": "sleep 1"
-}
-{
-  "user": "sdbadmin",
-  "pid": "25681",
-  "status": "Sl",
-  "cmd": "sdbom(11780)"
-}
-```
+    ```lang-javascript
+    > System.listProcess( { detail: true }, { "user": "sdbadmin" } )
+    {
+      "user": "sdbadmin",
+      "pid": "20630",
+      "status": "S",
+      "cmd": "sleep 1"
+    }
+    {
+      "user": "sdbadmin",
+      "pid": "25681",
+      "status": "Sl",
+      "cmd": "sdbom(11780)"
+    }
+    ```

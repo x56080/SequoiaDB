@@ -147,6 +147,8 @@ namespace engine
       protected:
          void _saveAdvancedRecrodID( const dmsRecordID &recordID, INT32 rc ) ;
 
+         INT32 _checkGlobTransAvailable( _pmdEDUCB *cb ) ;
+
       protected:
          _dmsStorageDataCommon  *_pSu ;
          _dmsMBContext          *_context ;
@@ -223,9 +225,10 @@ namespace engine
          BOOLEAN              _hasLockedRecord ;
          dpsTransCB           *_pTransCB ;
          INT8                 _recordLock ;
+         INT8                 _selectLockMode ;
          BOOLEAN              _needUnLock ;
+         BOOLEAN              _needEscalation ;
          BOOLEAN              _CSCLLockHeld ;
-         BOOLEAN              _selectForUpdate ;
          _pmdEDUCB            *_cb ;
          _dmsScannerContext   _scannerContext ;
 
@@ -422,7 +425,7 @@ namespace engine
                             IXM_ELE_RAWDATA_ARRAY& value,
                             SimpleBSONBuilder& builder ) ;
 
-         INT32 _buildIndexRecord( BOOLEAN& completed ) ;
+         const CHAR* _buildIndexRecord() ;
 
       private:
          INT64                _maxRecords ;
@@ -434,8 +437,9 @@ namespace engine
          BOOLEAN              _hasLockedRecord ;
          dpsTransCB           *_pTransCB ;
          INT8                 _recordLock ;
+         INT8                 _selectLockMode ;
          BOOLEAN              _needUnLock ;
-         BOOLEAN              _selectForUpdate ;
+         BOOLEAN              _needEscalation ;
          _pmdEDUCB            *_cb ;
          _rtnIXScanner        *_scanner ;
          INT64                _onceRestNum ;
@@ -498,7 +502,6 @@ namespace engine
       private:
          dmsIXSecScanner            _secScanner ;
          _rtnIXScanner              *_scanner ;
-         BOOLEAN                    _firstRun ;
          BOOLEAN                    _eof ;
          BOOLEAN                    _ownedScanner ;
          _dmsIXScannerContext       _ixScannerContext ;

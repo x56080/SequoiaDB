@@ -63,6 +63,7 @@
     <Compile Include="DataCenterTest.cs" />
     <Compile Include="DBCollectionTest.cs" />
     <Compile Include="DBCursorTest.cs" />
+    <Compile Include="DBSequenceTest.cs" />
     <Compile Include="DomainTest.cs" />
     <Compile Include="HelperTest.cs" />
     <Compile Include="LoggerTest.cs" />

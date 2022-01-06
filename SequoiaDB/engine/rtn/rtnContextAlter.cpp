@@ -288,6 +288,7 @@ namespace engine
 
       const CHAR * collectionSpace = _alterJob->getObjectName() ;
       const rtnAlterOptions * options = _alterJob->getOptions() ;
+      const _rtnAlterInfo * alterInfo = _alterJob->getAlterInfo() ;
       const RTN_ALTER_TASK_LIST & alterTasks = _alterJob->getAlterTasks() ;
 
       for ( RTN_ALTER_TASK_LIST::const_iterator iter = alterTasks.begin() ;
@@ -295,8 +296,8 @@ namespace engine
             ++ iter )
       {
          const rtnAlterTask * task = ( *iter ) ;
-         rc = rtnAlterCollectionSpace( collectionSpace, task, options, cb,
-                                       getDPSCB(), _su, _dmsCB ) ;
+         rc = rtnAlterCollectionSpace( collectionSpace, task, alterInfo,
+                                       options, cb, getDPSCB(), _su, _dmsCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to run alter task [%s] on "
                       "collection space [%s], rc: %d", task->getActionName(),
                       collectionSpace, rc ) ;
@@ -496,6 +497,7 @@ namespace engine
 
       const CHAR * collection = _alterJob->getObjectName() ;
       const rtnAlterOptions * options = _alterJob->getOptions() ;
+      const _rtnAlterInfo * alterInfo = _alterJob->getAlterInfo() ;
       const RTN_ALTER_TASK_LIST & alterTasks = _alterJob->getAlterTasks() ;
 
       PD_CHECK( NULL != _su, SDB_INVALIDARG, error, PDERROR,
@@ -513,8 +515,8 @@ namespace engine
             ++ iter )
       {
          const rtnAlterTask * task = ( *iter ) ;
-         rc = rtnAlterCollection( collection, task, options, cb, getDPSCB(),
-                                  _mbContext, _su, _dmsCB ) ;
+         rc = rtnAlterCollection( collection, task, alterInfo, options,
+                                  cb, getDPSCB(), _mbContext, _su, _dmsCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to run alter task [%s] on "
                       "collection [%s], rc: %d", task->getActionName(),
                       collection, rc ) ;

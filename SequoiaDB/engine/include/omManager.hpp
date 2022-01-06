@@ -259,6 +259,10 @@ namespace engine
                                                rtnContextBuf &buf,
                                                INT64 &contextID ) ;
 
+         INT32             _processAdvanceMsg( MsgHeader *pMsg,
+                                               rtnContextBuf &buf,
+                                               INT64 &contextID ) ;
+
          INT32             _processKillContext( MsgHeader *pMsg ) ;
 
          INT32             _processSessionInit( MsgHeader *pMsg ) ;

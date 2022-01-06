@@ -115,6 +115,14 @@ namespace engine
                                              const rtnParamList *parameters ) ;
          virtual void evalEstimation ( const optCollectionStat *pCollectionStat,
                                        double &selectivity, UINT32 &cpuCost ) ;
+
+         virtual BOOLEAN isTotalConverted()
+         {
+            return _addedToPred ;
+         }
+
+      protected:
+         BOOLEAN _addedToPred ;
    } ;
 
    class _mthMatchLogicNotNode : public _mthMatchLogicAndNode

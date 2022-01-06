@@ -113,6 +113,7 @@ namespace engine
             }
             else if ( PMD_EDU_EVENT_ACTIVE == event._eventType )
             {
+               UINT64 doRollbackID = event._userData ;
                rc = SDB_OK ;
 
                while ( TRUE )
@@ -135,7 +136,7 @@ namespace engine
                   }
 
                   // rollback remaining transactions
-                  rc = rtnTransRollbackAll( cb ) ;
+                  rc = rtnTransRollbackAll( cb, doRollbackID ) ;
                   break ;
                }
             }

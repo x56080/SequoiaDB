@@ -75,6 +75,7 @@ namespace engine
       INT32          pop() ;
       INT32          popN( INT32 num ) ;
       INT32          popAll() ;
+      INT32          pushFront( const BSONObj &obj ) ;
       INT32          recordNum() ;
       INT32          remainLength() ;
       INT32          truncate ( INT32 num ) ;
@@ -108,7 +109,7 @@ namespace engine
    */
    class _rtnContextCoord : public _rtnContextMain
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextCoord )
       public:
          _rtnContextCoord ( INT64 contextID, UINT64 eduID,
                             BOOLEAN preRead = TRUE ) ;
@@ -141,6 +142,7 @@ namespace engine
 
          virtual UINT32    getCachedRecordNum() ;
 
+         virtual BOOLEAN   isWrite() const { return _isModify ; }
          virtual BOOLEAN   needRollback() const { return _isModify ; }
 
       public:
@@ -164,6 +166,14 @@ namespace engine
          INT32   _saveEmptyNormalSubCtx( rtnSubContext* subCtx ) ;
          INT32   _saveNonEmptyNormalSubCtx( rtnSubContext* subCtx ) ;
          INT32   _doAfterPrepareData( _pmdEDUCB *cb ) ;
+
+         virtual INT32   _processCacheData( _pmdEDUCB *cb ) ;
+
+         virtual INT32   _prepareSubCtxsAdvance( LST_SUB_CTX_PTR &lstCtx ) ;
+
+         virtual INT32   _doSubCtxsAdvance( LST_SUB_CTX_PTR &lstCtx,
+                                            const BSONObj &arg,
+                                            _pmdEDUCB *cb ) ;
 
       private:
          INT32    _appendSubData ( const pmdEDUEvent &event ) ;
@@ -218,7 +228,7 @@ namespace engine
    class _rtnContextCoordExplain : public _rtnContextCoord,
                                    public _rtnExplainMainBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextCoordExplain )
 
       public :
          _rtnContextCoordExplain ( INT64 contextID, UINT64 eduID,
@@ -250,7 +260,7 @@ namespace engine
 
          INT32 _openSubContext ( rtnQueryOptions & options,
                                  pmdEDUCB * cb,
-                                 rtnContext ** ppContext ) ;
+                                 rtnContextPtr *ppContext ) ;
 
          INT32 _prepareExplainPath ( rtnContext * context,
                                      pmdEDUCB * cb ) ;

@@ -398,7 +398,8 @@ namespace engine
                       BOOLEAN &result ) ;
       INT32 advance ( ixmRecordID &keyRID, INT32 direction ) const ;
       INT32 exists ( const ixmKey &key, const Ordering &order,
-                     const ixmIndexCB *indexCB, BOOLEAN &result ) const ;
+                     const ixmIndexCB *indexCB, BOOLEAN &result,
+                     ixmRecordID &keyRID, dmsRecordID &rid ) const ;
       dmsExtentID getRoot() const ;
       INT32 findSingle ( const ixmKey &key, const Ordering &order,
                          dmsRecordID &rid, ixmIndexCB *indexCB ) const ;
@@ -408,7 +409,8 @@ namespace engine
                      ixmIndexCB *indexCB,
                      utilWriteResult *pResult = NULL ) ;
       // wipe out everything in the extent and all child extents
-      void truncate ( ixmIndexCB *indexCB, dmsExtentID parent, BOOLEAN &valid) ;
+      void truncate ( ixmIndexCB *indexCB, dmsExtentID parent, BOOLEAN &valid,
+                      UINT64 *pDelKeyCnt = NULL ) ;
       // get the total number of elements in the index node and all children
       UINT64 count() const ;
 

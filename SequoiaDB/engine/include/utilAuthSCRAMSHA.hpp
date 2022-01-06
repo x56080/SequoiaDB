@@ -57,7 +57,6 @@ using namespace std ;
 
 #define UTIL_AUTH_SCRAMSHA_NONCE_LEN                 24
 #define UTIL_AUTH_SCRAMSHA_NONCE_BASE64_LEN          32
-#define UTIL_AUTH_SCRAMSHA_COMBINE_NONCE_LEN         64
 
 #define UTIL_AUTH_MD5SUM_LEN                         32
 

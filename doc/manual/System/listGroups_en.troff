@@ -137,32 +137,36 @@ For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 List the information of all user groups
+.RS 2
 .IP
 .nf
 \f[C]
->\ System.listGroups()
+> System.listGroups()
 {
-\ \ "name":\ "sequoiadb"
+  "name": "sequoiadb"
 }
 {
-\ \ "name":\ "lpadmin"
+  "name": "lpadmin"
 }
 {
-\ \ "name":\ "sambashare"
+  "name": "sambashare"
 }
 \&...
 \f[]
 .fi
+.RE
 .IP \[bu] 2
-Filter the results:
+Filter the results
+.RS 2
 .IP
 .nf
 \f[C]
->\ System.listGroups(\ {\ detail:\ true\ },\ {\ "name":\ "sequoiadb"\ }\ )
+> System.listGroups( { detail: true }, { "name": "sequoiadb" } )
 {
-\ \ "name":\ "sequoiadb",
-\ \ "gid":\ "1000",
-\ \ "members":\ ""
+  "name": "sequoiadb",
+  "gid": "1000",
+  "members": ""
 }
 \f[]
 .fi
+.RE

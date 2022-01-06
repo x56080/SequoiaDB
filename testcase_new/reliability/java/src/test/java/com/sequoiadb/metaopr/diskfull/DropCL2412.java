@@ -2,6 +2,7 @@ package com.sequoiadb.metaopr.diskfull;
 
 import java.util.Date;
 
+import com.sequoiadb.metaopr.Utils;
 import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
@@ -101,7 +102,7 @@ public class DropCL2412 extends SdbTestBase {
             MyUtil.checkListCL( db, csName, clNameBase, 0 );
             Utils.checkConsistency( groupMgr );
             runSuccess = true;
-        } catch ( ReliabilityException e ) {
+        } catch ( ReliabilityException | InterruptedException e ) {
             e.printStackTrace();
             Assert.fail( e.getMessage() );
         } finally {

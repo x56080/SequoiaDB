@@ -63,9 +63,7 @@ namespace engine
    #define UTIL_CL_AUTOINC_FIELD             ( 0x00020000 )
    #define UTIL_CL_LOBKEYFORMAT_FIELD        ( 0x00040000 )
    #define UTIL_CL_REPAIRCHECK_FIELD         ( 0x00080000 )
-
-   // mask for autoincrement option.
-   #define UTIL_CL_AUTOINCREMENT_FIELD       ( 0x00040000 )
+   #define UTIL_CL_AUTOINCREMENT_FIELD       ( 0x00100000 )
 
    // mask for one field of autoincrement filed attr.
    #define UTIL_CL_AUTOINC_INCREMENT_FIELD   ( 0x00000001 )

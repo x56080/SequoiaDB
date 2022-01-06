@@ -32,13 +32,8 @@ import java.util.Date;
 @Component
 public class OMClient implements ApplicationListener<EmbeddedServletContainerInitializedEvent> {
 
+    private final Logger logger = LoggerFactory.getLogger(OMClient.class);
     private String svcname;
-
-    @Override
-    public void onApplicationEvent(EmbeddedServletContainerInitializedEvent event) {
-        svcname = Integer.toString(event.getEmbeddedServletContainer().getPort());
-    }
-
     @Autowired
     private OMInfo omInfo;
 
@@ -46,7 +41,11 @@ public class OMClient implements ApplicationListener<EmbeddedServletContainerIni
     private AutoRegister register;
 
     private Sequoiadb db;
-    private final Logger logger = LoggerFactory.getLogger(OMClient.class);
+
+    @Override
+    public void onApplicationEvent(EmbeddedServletContainerInitializedEvent event) {
+        svcname = Integer.toString(event.getEmbeddedServletContainer().getPort());
+    }
 
     public boolean registerPlugin(SequoiaSQLConfig config) {
 

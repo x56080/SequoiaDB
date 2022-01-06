@@ -40,10 +40,10 @@ public class Authentication21934 extends MongodbTestBase {
     private MongoDatabase db = null;
     private MongoDatabase db1 = null;
     private MongoDatabase db2 = null;
-    private String username1 = "mongo_java_21934_1";
-    private String username2 = "mongo_java_21934_2";
-    private String dbName = "mongo_java_21934";
-    private String clName = "cl_21934";
+    private String username1;
+    private String username2;
+    private String dbName;
+    private String clName;
     private int recordsNum = 30;
     private List< Document > records;
     private boolean runSuccess = false;
@@ -51,6 +51,11 @@ public class Authentication21934 extends MongodbTestBase {
     @SuppressWarnings("deprecation")
     @BeforeClass
     public void setup() throws Exception {
+        username1 = javaDBNameWithVersion + "_user21934_1";
+        username2 = javaDBNameWithVersion + "_user21934_2";
+        dbName = javaDBNameWithVersion + "_db21934";
+        clName = javaDBNameWithVersion + "_cl21934";
+
         // 创建Client
         opt = MongoClientOptions.builder().build();
         try {

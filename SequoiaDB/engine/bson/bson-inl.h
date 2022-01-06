@@ -146,6 +146,10 @@ namespace bson {
     */
     inline NOINLINE_DECL BSONObj BSONObj::copy() const {
         holder_type holder ;
+        if ( isEmpty() )
+        {
+           return BSONObj() ;
+        }
         if ( 0 != holder.makeFrom( objdata(), objsize() ) )
         {
             msgasserted( 13551, "BSONObj copy() out-of-memory", true ) ;
@@ -191,8 +195,11 @@ namespace bson {
        BSONObjIterator i(*this);
        while ( i.more() ) {
            BSONElement e = i.next();
-           if ( strncmp(e.fieldName(), name.data(), name.size()) == 0 )
+           const char *p = e.fieldName();
+           if ( strncmp(p, name.data(), name.size()) == 0 &&
+                '\0' == p[name.size()] ) {
                return e;
+           }
        }
        return BSONElement();
     }
@@ -1089,12 +1096,7 @@ namespace bson {
         if ( e.eoo() ) {
             const char *p = strchr(name, '.');
             if ( p ) {
-#if defined ( SDB_ENGINE ) || defined ( SDB_FMP ) || defined ( SDB_TOOL )
-                ossPoolString left(name, p-name) ;
-#else
-                string left(name, p-name);
-#endif //SDB_ENGINE || SDB_FMP || SDB_TOOL
-                BSONObj sub = getObjectField(left.c_str());
+                BSONObj sub = getObjectField( StringData(name, p-name) );
                 return sub.isEmpty() ? BSONElement() : sub.getFieldDotted(p+1);
             }
         }
@@ -1103,6 +1105,12 @@ namespace bson {
     }
 
     inline BSONObj BSONObj::getObjectField(const char *name) const {
+        BSONElement e = getField(name);
+        BSONType t = e.type();
+        return t == Object || t == Array ? e.embeddedObject() : BSONObj();
+    }
+
+    inline BSONObj BSONObj::getObjectField( const StringData &name ) const {
         BSONElement e = getField(name);
         BSONType t = e.type();
         return t == Object || t == Array ? e.embeddedObject() : BSONObj();

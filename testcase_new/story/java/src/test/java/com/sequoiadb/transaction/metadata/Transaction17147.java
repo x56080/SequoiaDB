@@ -90,7 +90,7 @@ public class Transaction17147 extends SdbTestBase {
             cl.dropIndex( "" );
             throw new BaseException( -999, "DROPINDEX ERROR" );
         } catch ( BaseException e ) {
-            if ( e.getErrorCode() != -47 ) {
+            if ( e.getErrorCode() != -6 ) {
                 Assert.fail( e.getMessage() );
             }
         }

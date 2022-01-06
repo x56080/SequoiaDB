@@ -31,8 +31,8 @@ public class Util extends SdbTestBase {
             String passwordFile, String token ) throws Exception {
         Ssh ssh = null;
         try {
-            ssh = new Ssh( SdbTestBase.hostName, "root",
-                    SdbTestBase.rootPassword );
+            ssh = new Ssh( SdbTestBase.hostName, SdbTestBase.username,
+                    SdbTestBase.password );
             String toolsPath = Util.getSdbInstallDir() + "/bin/";
             String passwdFilePath = toolsPath + passwordFile;
             String cmd = toolsPath + "sdbpasswd  -a \"" + username + "\" -p \""
@@ -52,8 +52,8 @@ public class Util extends SdbTestBase {
             String remotePath ) throws Exception {
         Ssh ssh = null;
         try {
-            ssh = new Ssh( SdbTestBase.hostName, "root",
-                    SdbTestBase.rootPassword );
+            ssh = new Ssh( SdbTestBase.hostName, SdbTestBase.username,
+                    SdbTestBase.password );
             ssh.scpFrom( localPath, remotePath );
         } finally {
             if ( null != ssh ) {
@@ -63,8 +63,8 @@ public class Util extends SdbTestBase {
     }
 
     public static String getSdbInstallDir() throws Exception {
-        Ssh ssh = new Ssh( SdbTestBase.hostName, "root",
-                SdbTestBase.rootPassword );
+        Ssh ssh = new Ssh( SdbTestBase.hostName, SdbTestBase.username,
+                SdbTestBase.password );
         String dir = null;
         try {
             ssh.exec( "cat /etc/default/sequoiadb |grep INSTALL_DIR" );
@@ -82,8 +82,8 @@ public class Util extends SdbTestBase {
 
     public static void removePasswdFile( String passwordFilePath )
             throws Exception {
-        Ssh ssh = new Ssh( SdbTestBase.hostName, "root",
-                SdbTestBase.rootPassword );
+        Ssh ssh = new Ssh( SdbTestBase.hostName, SdbTestBase.username,
+                SdbTestBase.password );
         try {
             ssh.exec( " rm -rf  " + passwordFilePath );
         } finally {

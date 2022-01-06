@@ -21,11 +21,13 @@ import com.mongodb.utils.MongodbTestBase;
  */
 public class CrudDB21933 extends MongodbTestBase {
     private MongoDatabase db;
-    private String dbName = "db21933v3";
-    private String clName = "cl21933v3";
+    private String dbName;
+    private String clName;
 
     @BeforeClass
     public void setUp() throws UnknownHostException {
+        dbName = javaDBNameWithVersion + "_db21933";
+        clName = javaDBNameWithVersion + "_cl21933";
         db = client.getDatabase( dbName );
     }
 

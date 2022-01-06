@@ -1,7 +1,10 @@
+##名称##
+
+listLoginUsers - 列出登录用户的信息
 
 ##语法##
 
-***System.listLoginUsers( \[options\], \[filter\] )***
+**System.listLoginUsers( \[options\], \[filter\] )**
 
 ##类别##
 
@@ -34,35 +37,39 @@ options 参数详细说明如下：
 
 ##错误##
 
-如果出错则抛异常，并输出错误信息，可以通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误码。关于错误处理可以参考[常见错误处理指南](manual/faq.md)。
+如果出错则抛异常，并输出错误信息，可以通过 [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) 获取错误信息或通过 [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) 获取错误码。关于错误处理可以参考[常见错误处理指南](manual/FAQ/faq_sdb.md)。
 
 常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
 
+##版本##
+
+v3.2 及以上版本
+
 ##示例##
 
-* 列出所有登录用户的信息；
+* 列出所有登录用户的信息
 
-  ```lang-javascript
-  > System.listLoginUsers()
-  {
-      "user": "sequoiadb"
-  }
-  {
-      "user": "username"
-  }
-  ...
-  ```
+    ```lang-javascript
+    > System.listLoginUsers()
+    {
+        "user": "sequoiadb"
+    }
+    {
+        "user": "username"
+    }
+    ...
+    ```
 
-* 对结果进行筛选:
+* 对结果进行筛选
 
-  ```lang-javascript
-  > System.listLoginUsers( { detail: true }, { "tty": "tty1" } )
-  {
-      "user": "sequoiadb",
-      "time": "2019-05-10 18:37",
-      "from": "",
-      "tty": "tty1"
-  }
-  ```
+    ```lang-javascript
+    > System.listLoginUsers( { detail: true }, { "tty": "tty1" } )
+    {
+        "user": "sequoiadb",
+        "time": "2019-05-10 18:37",
+        "from": "",
+        "tty": "tty1"
+    }
+    ```
 
 

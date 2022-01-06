@@ -73,7 +73,7 @@ TEST(collectionspace, getCollection)
    rc = connection.getCollection( NOT_EXIST_CL_FULL_NAME, cl_5, FALSE) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = cl_5.getDetail( cursor ) ;
-   ASSERT_EQ( SDB_DMS_NOTEXIST, rc ) ;
+   ASSERT_EQ( SDB_DMS_CS_NOTEXIST, rc ) ;
 
    // case 6 :
    // get a nonexistent cl when checkExist is false

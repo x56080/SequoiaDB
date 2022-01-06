@@ -1,8 +1,10 @@
 ##名称##
+
 getDetailObj - 获取当前节点信息
 
 ##语法##
-***node.getDetailObj()***
+
+**node.getDetailObj()**
 
 ##类别##
 
@@ -26,7 +28,7 @@ NULL
 ##错误##
 
 当抛出异常时,可以通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误码。
-关于错误处理可以参考[常见错误处理指南](manual/faq.md)。
+关于错误处理可以参考[常见错误处理指南](manual/FAQ/faq_sdb.md)。
 
 ##版本##
 

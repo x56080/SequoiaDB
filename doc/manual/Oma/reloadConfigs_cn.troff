@@ -31,8 +31,8 @@ v2.0及以上版本。
 重新加载目标机器 sdbserver1 上 sdbcm 的配置文件。
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "sdbserver1",\ 11790\ )
->\ oma.reloadConfigs()
+> var oma = new Oma( "sdbserver1", 11790 )
+> oma.reloadConfigs()
 \f[]
 .fi
 .RE

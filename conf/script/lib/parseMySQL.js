@@ -17,7 +17,7 @@ function _string_encode_by_no_quotes( str ){
    return str ;
 }
 
-function ExecSsql( cmd, installPath, port, user, passwd, database, arg, timeout )
+function ExecSsql3( cmd, installPath, hostName, port, user, passwd, database, arg, timeout )
 {
    var rc = SDB_OK ;
    var error = null ;
@@ -38,7 +38,7 @@ function ExecSsql( cmd, installPath, port, user, passwd, database, arg, timeout 
    user = _string_encode_by_cmd( user ) ;
    passwd = _string_encode_by_no_quotes( passwd ) ;
 
-   arg = '-t -D ' + database + ' -h 127.0.0.1  -P ' + port + ' -e ' + arg + ' -u ' + user ;
+   arg = '-t -D ' + database + ' -h ' + hostName + ' -P ' + port + ' -e ' + arg + ' -u ' + user ;
    if( passwd && passwd.length > 0 )
    {
       exec = sprintf( 'export MYSQL_PWD=?;', passwd ) + exec ;
@@ -76,6 +76,67 @@ function ExecSsql( cmd, installPath, port, user, passwd, database, arg, timeout 
 
    return result ;
 }
+
+function ExecSsql2( cmd, installPath, sockFile, user, database, arg, timeout )
+{
+   var rc = SDB_OK ;
+   var error = null ;
+   var exec = installPath + '/bin/mysql' ;
+   var result = {
+      'rc': true,
+      'field': {},
+      'value': [],
+      'attr': ''
+   } ;
+
+   if( isNaN( timeout ) )
+   {
+      timeout = 600000 ;
+   }
+
+   user = _string_encode_by_cmd( user ) ;
+
+   arg = _string_encode_by_cmd( arg ) ;
+   arg = '-t -D ' + database + ' -S ' + sockFile + ' -u ' + user + ' -e ' + arg ;
+
+   try
+   {
+      cmd.run( exec, arg, timeout ) ;
+      rc = cmd.getLastRet() ;
+      if( rc )
+      {
+         error = new SdbError( rc, cmd.getLastOut() ) ;
+         throw error ;
+      }
+   }
+   catch( e )
+   {
+      rc = cmd.getLastRet() ;
+      error = new SdbError( rc, arg ) ;
+      throw error ;
+   }
+
+   var output = cmd.getLastOut() ;
+   if( output.length == 0 )
+   {
+      return result ;
+   }
+
+   result = ParseSSQL( output ) ;
+   if( result['rc'] != true )
+   {
+      error = new SdbError( SDB_SYS, "failed to exec sql" ) ;
+      throw error ;
+   }
+
+   return result ;
+}
+
+function ExecSsql( cmd, installPath, port, user, passwd, database, arg, timeout )
+{
+   return ExecSsql3( cmd, installPath, '127.0.0.1', port, user, passwd, database, arg, timeout ) ;
+}
+
 /*
 function test()
 {

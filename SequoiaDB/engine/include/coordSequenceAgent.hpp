@@ -109,6 +109,7 @@ namespace engine
       INT32 _processAcquireReply( MsgHeader* msg, _coordSequence& seq ) ;
       BOOLEAN _removeCacheByID( const std::string& sequenceName,
                                 const utilSequenceID ID ) ;
+      BOOLEAN _isInnerRC( INT32 rc ) ;
 
    private:
       _coordResource*   _resource ;

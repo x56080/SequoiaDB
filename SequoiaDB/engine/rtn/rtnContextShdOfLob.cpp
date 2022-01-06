@@ -60,6 +60,7 @@ namespace engine
     _bufLen( 0 ),
     _accessInfo( NULL ),
     _su( NULL ),
+    _suLogicalID( DMS_INVALID_LOGICCSID ),
     _mbContext( NULL ),
     _dmsCB( NULL ),
     _reopened( FALSE ),
@@ -152,6 +153,7 @@ namespace engine
                  _getRealCLName(), rc ) ;
          goto error ;
       }
+      _suLogicalID = _su->LogicalCSID() ;
 
       /// get mb context
       rc = _su->data()->getMBContext( &_mbContext, clName, -1 ) ;

@@ -1,53 +1,35 @@
-﻿/************************************************************************
-@Description:   seqDB-6655:数据未压缩，更新记录达到压缩条件_st.compress.03.014
-@input:    
-         1 create CL[Compressed:false] ;
-           create CL[Compressed: true, CompressionType: "lzw"] ;
-         2 insert({atest:i,btest:i,ctest:"test"+i,dtest:""}) ;
-         3 update({$set:{dtest:"abcdefg890abcdefg890abcdefg890"}) ;
-         4 check records, get random records, then compare the records;
-           check records for each node in the group;
-           check compressed rate. 
-@output:   successfull
-@Author:   
-           2016/3/23   XiaoNi Huang init
-************************************************************************/
+﻿/******************************************************************************
+ * @Description   : seqDB-6655:数据未压缩，更新记录达到压缩条件
+ * @Author        : XiaoNi Huang
+ * @CreateTime    : 2016.03.23
+ * @LastEditTime  : 2021.02.23
+ * @LastEditors   : XiaoNi Huang
+ ******************************************************************************/
+testConf.skipStandAlone = true;
+testConf.useSrcGroup = true;
+testConf.clName = CHANGEDPREFIX + "_cl_6655";
+testConf.clOpt = { Compressed: true, CompressionType: "lzw", ReplSize: 0 };
+
 main( test );
-
-function test ()
+function test ( testPara )
 {
-   var noCSName = COMMCSNAME + "_no";
-   var lzwCSName = COMMCSNAME + "_lzw";
-   var noCLName = COMMCLNAME + "_no";
-   var lzwCLName = COMMCLNAME + "_lzw";
-   var rgName = getDataGroupsName()[0];
+   var rgName = testPara.srcGroupName;
+   var csName = COMMCSNAME;
+   var clName = testConf.clName;
+   var cl = testPara.testCL;
    var insertRecsNum = 800000;
-   var checkRecsNum = 3; //get random 3 records
+   var checkRecsNum = 3;
 
-   commDropCS( db, noCSName, true, "Failed to drop CS[" + noCSName + "]." );
-   commDropCS( db, lzwCSName, true, "Failed to drop CS[" + lzwCSName + "]." );
+   // 插入并更新数据
+   insertRecs( cl, insertRecsNum );
+   cl.update( { "$set": { "dtest": "abcdefg890abcdefg890abcdefg890" } } );
 
-   commCreateCS( db, noCSName, false, "Failed to create CS[" + noCSName + "]." );
-   commCreateCS( db, lzwCSName, false, "Failed to create CS[" + lzwCSName + "]." );
-
-   var noCL = createCL( noCSName, noCLName, rgName, false );
-   var lzwCL = createCL( lzwCSName, lzwCLName, rgName, true, "lzw" );
-
-   insertRecs( noCL, noCSName, noCLName, insertRecsNum );
-   insertRecs( lzwCL, lzwCSName, lzwCLName, insertRecsNum );
-
-   updateRecs( noCL, noCSName, noCLName );
-   updateRecs( lzwCL, lzwCSName, lzwCLName );
-
-   checkRecs( lzwCL, insertRecsNum, checkRecsNum );
-   checkNodeCnt( lzwCSName, lzwCLName, rgName, insertRecsNum );
-   checkCompressedRate( noCSName, lzwCSName );
-
-   clearCS( db, noCSName );
-   clearCS( db, lzwCSName );
+   // 检查结果，检查组内每个节点数据正确性
+   checkLzwAttributeByDataNode( rgName, csName, clName, false );
+   checkRecsByDataNode( rgName, csName, clName, insertRecsNum, checkRecsNum );
 }
 
-function insertRecs ( cl, csName, clName, insertRecsNum )
+function insertRecs ( cl, insertRecsNum )
 {
 
    for( k = 0; k < insertRecsNum; k += 50000 )
@@ -61,21 +43,41 @@ function insertRecs ( cl, csName, clName, insertRecsNum )
    }
 }
 
-function updateRecs ( cl, csName, clName )
+function checkRecsByDataNode ( rgName, csName, clName, insertRecsNum, checkRecsNum )
 {
-
-   cl.update( { $set: { dtest: "abcdefg890abcdefg890abcdefg890" } } );
-}
-
-function checkRecs ( cl, insertRecsNum, checkRecsNum )
-{
-
-   //get random records, compare the records
-   for( j = 0; j < checkRecsNum; j++ )
+   var rc = db.exec( "select NodeName from $SNAPSHOT_SYSTEM where GroupName='" + rgName + "'" );
+   while( rc.next() )
    {
-      var i = parseInt( Math.random() * insertRecsNum );
-      var recsCnt = cl.find( { atest: i, btest: i, ctest: "test" + i, dtest: "abcdefg890abcdefg890abcdefg890" } ).count();
-      var expctCnt = 1;
-      assert.equal( recsCnt, expctCnt );
+      var nodeName = rc.current().toObj()["NodeName"];
+      var nodeDB = null;
+      try
+      {
+         nodeDB = new Sdb( nodeName );
+         var nodeCL = nodeDB.getCS( csName ).getCL( clName );
+         // 检查数据总数
+         var recsCnt = nodeCL.count();
+         assert.equal( recsCnt, insertRecsNum );
+         // 随机检查n条记录正确性
+         for( j = 0; j < checkRecsNum; j++ )
+         {
+            var i = parseInt( Math.random() * insertRecsNum );
+            // 检查更新前的记录
+            var recsCnt2 = nodeCL.find( {
+               atest: i, btest: i, ctest: "test" + i,
+               dtest: ""
+            } ).count();
+            assert.equal( recsCnt2, 0 );
+            // 检查更新后的记录
+            var recsCnt1 = nodeCL.find( {
+               atest: i, btest: i, ctest: "test" + i,
+               dtest: "abcdefg890abcdefg890abcdefg890"
+            } ).count();
+            assert.equal( recsCnt1, 1 );
+         }
+      }
+      finally 
+      {
+         if( nodeDB != null ) nodeDB.close();
+      }
    }
 }

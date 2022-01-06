@@ -91,6 +91,13 @@ enum OSS_MATCH_TYPE
 #define OSS_SOCKET_KEEP_INTERVAL          ( 10 )
 #define OSS_SOCKET_KEEP_CONTER            ( 5 )
 
+/*
+   Operating system page size define
+*/
+#define OSS_SYSTEM_PAGESIZE4K             ( 4096 )
+#define OSS_SYSTEM_PAGESIZE16K            ( 16384 )
+#define OSS_SYSTEM_PAGESIZE64K            ( 65536 )
+
 SDB_EXTERN_C_START
 #if defined (_WINDOWS)
    #if defined(_MSC_VER) || defined(_MSC_EXTENSIONS)
@@ -115,6 +122,7 @@ UINT32 ossGetLastError();
 const CHAR* ossGetLastErrorMsg( UINT32 sysErrno ) ;
 void ossSleep(UINT32 milliseconds);
 void ossPanic () ;
+INT64  ossGetPageSize();
 
 #if defined (_WINDOWS)
 #include <windows.h>

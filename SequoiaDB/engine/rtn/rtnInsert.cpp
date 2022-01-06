@@ -68,6 +68,7 @@ namespace engine
                                   BOOLEAN canUnLock,
                                   dmsMBContext *context,
                                   INT64 position,
+                                  IOperationContext *opContext,
                                   utilInsertResult *insertResult )
    {
       INT32 rc = SDB_OK ;
@@ -98,6 +99,7 @@ namespace engine
             BSONObj hint ;
             BSONObj updator ;
             BSONObj matcher ;
+            BSONObj shardingKey ;
             utilUpdateResult upResult ;
 
             utilIdxDupErrAssit dupErrAssit( insertResult->getIdxKeyPattern(),
@@ -110,9 +112,17 @@ namespace engine
             }
             insertResult->resetInfo() ;
 
+            if ( NULL != opContext )
+            {
+               rc = opContext->getShardingKey( clFullName, shardingKey ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get sharding key of "
+                            "collection: %s, rc: %d", clFullName, rc ) ;
+            }
+
             updator = generateUpdator( record ) ;
             rc = rtnUpdate( clFullName, matcher, updator, hint,
-                            0, cb, dmsCB, dpsCB, w, &upResult ) ;
+                            0, cb, dmsCB, dpsCB, w, &upResult,
+                            shardingKey.isEmpty() ? NULL : &shardingKey ) ;
             if ( rc )
             {
                insertResult->setErrInfo( &upResult ) ;
@@ -151,7 +161,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNINSERT1, "rtnInsert" )
    INT32 rtnInsert ( const CHAR *pCollectionName,
                      const BSONObj &objs, INT32 objNum,
-                     INT32 flags, pmdEDUCB *cb, utilInsertResult *pResult )
+                     INT32 flags, pmdEDUCB *cb, IOperationContext *opContext,
+                     utilInsertResult *pResult )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNINSERT1 ) ;
@@ -165,7 +176,7 @@ namespace engine
          dpsCB = NULL ;
       }
       rc = rtnInsert ( pCollectionName, objs, objNum, flags, cb,
-                       dmsCB, dpsCB, 1, pResult ) ;
+                       dmsCB, dpsCB, 1, opContext, pResult ) ;
       PD_TRACE_EXITRC ( SDB_RTNINSERT1, rc ) ;
 
       return rc ;
@@ -175,7 +186,8 @@ namespace engine
    INT32 rtnInsert ( const CHAR *pCollectionName,
                      const BSONObj &objs, INT32 objNum,
                      INT32 flags, pmdEDUCB *cb, SDB_DMSCB *dmsCB,
-                     SDB_DPSCB *dpsCB, INT16 w, utilInsertResult *pResult )
+                     SDB_DPSCB *dpsCB, INT16 w, IOperationContext *opContext,
+                     utilInsertResult *pResult )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNINSERT2 ) ;
@@ -245,7 +257,7 @@ namespace engine
 
             rc = _rtnInsertRecord( su, pCollectionName, pCollectionShortName,
                                    record, flags, cb, dmsCB, dpsCB, w, TRUE,
-                                   TRUE, NULL, -1, pResult ) ;
+                                   TRUE, NULL, -1, opContext, pResult ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to insert record into "
                          "collection [%s], rc: %d", pCollectionName, rc ) ;
 
@@ -286,7 +298,8 @@ namespace engine
    INT32 rtnReplayInsert( const CHAR *pCollectionName, const BSONObj &obj,
                           INT32 flags, pmdEDUCB *cb, SDB_DMSCB *dmsCB,
                           SDB_DPSCB *dpsCB, INT16 w,
-                          utilInsertResult *pResult )
+                          utilInsertResult *pResult,
+                          INT64 position )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNREPLAYINERT ) ;
@@ -297,8 +310,6 @@ namespace engine
       dmsStorageUnitID suID = DMS_INVALID_CS ;
       const CHAR *clShortName = NULL ;
       BOOLEAN writable = FALSE ;
-      BSONElement positionEle ;
-      INT64 position = -1 ;
 
       utilInsertResult inTmpResult ;
 
@@ -329,9 +340,9 @@ namespace engine
          // Insertion replaying on capped collection should be done by position,
          // as the record positions on primary and slavery nodes should be
          // exactly the same.
-         if ( DMS_STORAGE_CAPPED == su->type() )
+         if ( -1 == position && DMS_STORAGE_CAPPED == su->type() )
          {
-            positionEle = obj.getField( DMS_ID_KEY_NAME ) ;
+            BSONElement positionEle = obj.getField( DMS_ID_KEY_NAME ) ;
             if ( NumberLong != positionEle.type() )
             {
                PD_LOG( PDERROR, "Field _id type[ %d ] is not as expected"
@@ -345,14 +356,14 @@ namespace engine
 
          rc = _rtnInsertRecord( su, pCollectionName, clShortName, obj, flags,
                                 cb, dmsCB, dpsCB, w, TRUE, TRUE, NULL, position,
-                                pResult ) ;
+                                NULL, pResult ) ;
          if ( SDB_OK != rc )
          {
             if ( DMS_STORAGE_CAPPED == su->type() )
             {
                PD_LOG( PDERROR, "Failed to insert record into collection [%s] "
                        "by position[%lld], rc: %d", pCollectionName,
-                       positionEle.numberLong(), rc ) ;
+                       position, rc ) ;
             }
             else
             {

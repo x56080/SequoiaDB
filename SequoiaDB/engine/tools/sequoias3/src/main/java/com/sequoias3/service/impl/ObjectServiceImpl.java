@@ -21,6 +21,7 @@ import com.sequoias3.service.ObjectService;
 import com.sequoias3.taskmanager.OutStreamFlushQueue;
 import com.sequoias3.utils.DataFormatUtils;
 import com.sequoias3.utils.DirUtils;
+import com.sequoias3.utils.MD5Utils;
 import com.sequoias3.utils.RestUtils;
 import org.apache.commons.codec.binary.Hex;
 import org.bson.BSONObject;
@@ -123,8 +124,8 @@ public class ObjectServiceImpl implements ObjectService {
 
         try {
             //check md5
-          if (null != contentMD5) {
-                if (!isMd5EqualWithETag(contentMD5, insertResult.geteTag())) {
+            if (null != contentMD5) {
+                if (!MD5Utils.isMd5EqualWithETag(contentMD5, insertResult.geteTag())) {
                     throw new S3ServerException(S3Error.OBJECT_BAD_DIGEST,
                             "The Content-MD5 you specified does not match what we received.");
                 }
@@ -610,6 +611,7 @@ public class ObjectServiceImpl implements ObjectService {
             if (deleteObject != null && deleteObject.getDeleteMarker()){
                 response = new PutDeleteResult();
                 response.setDeleteMarker(true);
+                response.setVersionId(String.valueOf(versionId));
             }
             return response;
         }catch (S3ServerException e) {
@@ -1194,7 +1196,7 @@ public class ObjectServiceImpl implements ObjectService {
                                         " and receive " + dataAttr.getSize() + " bytes");
                     }
                     if (null != contentMD5) {
-                        if (!isMd5EqualWithETag(contentMD5, dataAttr.geteTag())) {
+                        if (!MD5Utils.isMd5EqualWithETag(contentMD5, dataAttr.geteTag())) {
                             throw new S3ServerException(S3Error.OBJECT_BAD_DIGEST,
                                     "The Content-MD5 you specified does not match what we received." +
                                             " contentMD5:" + contentMD5
@@ -1354,10 +1356,10 @@ public class ObjectServiceImpl implements ObjectService {
                         int partNumber = completeList.get(i).getPartNumber();
                         Part part = partArray.get(partNumber - 1);
                         eTag = completeList.get(i).getEtag();
-                        if ((!part.getCsName().equals(destCSName)
+                        if (part.getSize() > 0
+                            && (!part.getCsName().equals(destCSName)
                                 || !part.getClName().equals(destCLName)
-                                || !part.getLobId().equals(destLobId))
-                                && part.getSize() > 0) {
+                                || !part.getLobId().equals(destLobId))) {
                             dataDao.copyObjectData(destCSName, destCLName, destLobId, writeOffset,
                                     part.getCsName(), part.getClName(), part.getLobId(),
                                     part.getSize() * (part.getPartNumber() - 1),
@@ -2057,25 +2059,6 @@ public class ObjectServiceImpl implements ObjectService {
         }
 
         return uploadMeta;
-    }
-
-    private Boolean isMd5EqualWithETag(String contentMd5, String eTag) throws S3ServerException{
-        try {
-            if(contentMd5.length() % 4 != 0){
-                throw new S3ServerException(S3Error.OBJECT_INVALID_DIGEST,
-                        "decode md5 failed, contentMd5:"+contentMd5);
-            }
-            BASE64Decoder decoder = new BASE64Decoder();
-            String textMD5 = new String(Hex.encodeHex(decoder.decodeBuffer(contentMd5)));
-            if (textMD5.equals(eTag)){
-                return true;
-            }else {
-                return false;
-            }
-        }catch (Exception e){
-            throw new S3ServerException(S3Error.OBJECT_INVALID_DIGEST,
-                    "decode md5 failed, contentMd5:"+contentMd5, e);
-        }
     }
 
     private Boolean checkMatchModify(Map headers, ObjectMeta objectMeta) throws S3ServerException{

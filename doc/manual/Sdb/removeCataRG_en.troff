@@ -41,6 +41,6 @@ Delete the catalog replication group.
 .IP
 .nf
 \f[C]
->\ db.removeCataRG()
+> db.removeCataRG()
 \f[]
 .fi

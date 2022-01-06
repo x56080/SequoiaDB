@@ -290,6 +290,9 @@ namespace engine
          virtual const CHAR*  getFromIPAddr() const = 0 ;
          virtual UINT16       getFromPort() const = 0 ;
 
+         virtual const MsgHeader *getInMsg() const = 0 ;
+         virtual void registerInMsg( const MsgHeader *msg ) = 0 ;
+         virtual void unregisterInMsg() = 0 ;
    } ;
    typedef _IClient IClient ;
 
@@ -470,14 +473,22 @@ namespace engine
          /*
             Context Related
          */
-         virtual void      contextInsert( INT64 contextID ) = 0 ;
+         virtual BOOLEAN   contextInsert( INT64 contextID ) = 0 ;
          virtual void      contextDelete( INT64 contextID ) = 0 ;
          virtual INT64     contextPeek() = 0 ;
          virtual BOOLEAN   contextFind( INT64 contextID ) = 0 ;
          virtual UINT32    contextNum() = 0 ;
 
+         /*
+            Log config
+          */
+         virtual BOOLEAN   isLogTimeOn() const = 0 ;
+         virtual UINT32    getLogWriteMod() const = 0 ;
    } ;
    typedef _IExecutor IExecutor ;
+
+   // interface to get IExecutor of current thread
+   IExecutor *sdbGetThreadExecutor() ;
 
    /*
       _IIOService define

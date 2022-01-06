@@ -98,6 +98,6 @@ Set the user group of the file to the "sequoiadb".
 .IP
 .nf
 \f[C]
->\ File.chgrp(\ "/opt/sequoiadb/file.txt",\ "sequoiadb",\ false\ )
+> File.chgrp( "/opt/sequoiadb/file.txt", "sequoiadb", false )
 \f[]
 .fi

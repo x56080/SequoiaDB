@@ -1,45 +1,66 @@
+##名称##
+
+putLob - 在集合中插入大对象
 
 ##语法##
-***db.collectionspace.collection.putLob\(\<file path\>, [oid]\)***
 
-在集合中插入大对象。
+**db.collectionspace.collection.putLob\(\<file path\>, [oid]\)**
 
-## 参数描述##
-| 参数名    | 参数类型 | 描述     | 是否必填 |
+##类别##
+
+SdbCollection
+
+##描述##
+
+该函数用于在集合中插入大对象。
+
+##参数##
+
+| 参数名    | 类型 | 描述     | 是否必填 |
 | --------- | -------- | -------- | -------- |
-| file path | string   | 待上传的文件全路径。 | 是 |
-| oid       | string   | 指定oid。 | 否 |
-
-> **Note:**
->
-> * 上传大对象成功后会返回其 oid。
-> * 需要拥有文件的读权限。
-
+| file path | string   | 待上传文件的绝对路径，用户需拥有该文件的读权限 | 是 |
+| oid       | string   | 指定大对象的 oid | 否 |
 
 ##返回值##
 
-成功返回oid，出错抛异常，并输出错误信息，可以通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误信息码。
+函数执行成功时，将返回一个 String 类型的 oid 字符串。用户可通过 oid 对大对象进行相关操作。
+
+函数执行失败时，将抛异常并输出错误信息。
+
 ##错误##
 
-[错误码](manual/Manual/Sequoiadb_error_code.md)
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
 
-## 示例##
+##版本##
 
-* 创建集合空间与集合
+v2.0 及以上版本
 
- ```lang-javascript
- > db.createCS('sample' )
- > db.sample.createCL('employee')
- ```
+##示例##
 
-* 上传大对象文件
+- 创建集合空间与集合
 
- ```lang-javascript
- > db.sample.employee.putLob('/opt/mylob')
- ```
+    ```lang-javascript
+    > db.createCS('sample' )
+    > db.sample.createCL('employee')
+    ```
 
-* 上传指定oid大对象文件
+- 上传大对象文件 `mylob.txt`
 
- ```lang-javascript
- > db.sample.employee.putLob('/opt/mylob', '5bf3a024ed9954d596420256')
- ```
+    ```lang-javascript
+    > db.sample.employee.putLob('/opt/mylob/mylob.txt')
+    0000604f989a390002db009e
+    ```
+
+- 上传指定 oid 的大对象文件 `mylob.txt`
+
+    ```lang-javascript
+    > db.sample.employee.putLob('/opt/mylob/mylob.txt', '5bf3a024ed9954d596420256')
+    5bf3a024ed9954d596420256
+    ```
+
+[^_^]:
+     本文使用的所有引用及链接
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[faq]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md

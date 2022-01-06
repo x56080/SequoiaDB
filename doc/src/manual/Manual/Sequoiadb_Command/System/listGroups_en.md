@@ -40,35 +40,35 @@ On error, exception will be thrown.
 
 ##ERRORS##
 
-when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md)  and use [getLastErrMsg()](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md) to get [error message](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md). For more detial, please  reference to [Troubleshooting](manual/faq.md).
+when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md)  and use [getLastErrMsg()](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md) to get [error message](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md). For more detial, please  reference to [Troubleshooting](manual/FAQ/faq_sdb.md).
 
 ##EXAMPLES##
 
 * List the information of all user groups
 
-```lang-javascript
-> System.listGroups()
-{
-  "name": "sequoiadb"
-}
-{
-  "name": "lpadmin"
-}
-{
-  "name": "sambashare"
-}
-...
-```
+    ```lang-javascript
+    > System.listGroups()
+    {
+      "name": "sequoiadb"
+    }
+    {
+      "name": "lpadmin"
+    }
+    {
+      "name": "sambashare"
+    }
+    ...
+    ```
 
-* Filter the results:
+* Filter the results
 
-```lang-javascript
-> System.listGroups( { detail: true }, { "name": "sequoiadb" } )
-{
-  "name": "sequoiadb",
-  "gid": "1000",
-  "members": ""
-}
-```
+    ```lang-javascript
+    > System.listGroups( { detail: true }, { "name": "sequoiadb" } )
+    {
+      "name": "sequoiadb",
+      "gid": "1000",
+      "members": ""
+    }
+    ```
 
 

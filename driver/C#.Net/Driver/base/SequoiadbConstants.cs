@@ -80,6 +80,8 @@ namespace SequoiaDB
         public const string LATCHWAITS = "latchwaits";
         public const string LOCKWAITS = "lockwaits";
         public const string INDEXSTATS = "index statistics";
+        public const string TRANSWAITS = "waiting transactions";
+        public const string TRANSDEADLOCK = "transaction deadlocks";
         public const string USERS = "users";
         public const string BACKUPS = "backups";
         public const string CS_IN_DOMAIN = "collectionspaces in domain";
@@ -90,6 +92,7 @@ namespace SequoiaDB
         public const string CREATE_INX = "create index";
         public const string DROP_INX = "drop index";
         public const string GET_INXES = "get indexes";
+        public const string GET_INDEX_STAT = "get index statistic";
         public const string GET_COUNT = "get count";
         public const string DATABASE = "database";
         public const string SYSTEM = "system";
@@ -133,6 +136,11 @@ namespace SequoiaDB
         public const string CMD_VALUE_NAME_ANALYZE = "analyze";
         public const string CMD_NAME_RENAME_COLLECTION = "rename collection";
         public const string CMD_NAME_RENAME_COLLECTIONSPACE = "rename collectionspace";
+
+        public const string CREATE_SEQUENCE = "create sequence";
+        public const string DROP_SEQUENCE = "drop sequence";
+        public const string ALTER_SEQUENCE = "alter sequence";
+        public const string GET_SEQ_CURR_VAL = "get sequence current value";
 
         public const string OID = "_id";
         public const string CLIENT_RECORD_ID_INDEX = "$id";
@@ -201,6 +209,10 @@ namespace SequoiaDB
         public const string FIELD_NAME_CELLECTIONSPACE = "CollectionSpace";
 	    public const string FIELD_NAME_AUTOINCREMENT = "AutoIncrement";
         public const string FIELD_NAME_AUTOINC_FIELD = "Field";
+        public const string FIELD_NAME_FETCH_NUM = "FetchNum";
+        public const string FIELD_NAME_START_VALUE = "StartValue";
+        public const string FIELD_NAME_EXPECT_VALUE = "ExpectValue";
+        public const string FIELD_NAME_CURRENT_VALUE = "CurrentValue";
         public const string FIELD_MODIFY = "$Modify";
         public const string FIELD_OP = "OP";
         public const string FIELD_OP_UPDATE = "Update";
@@ -231,6 +243,10 @@ namespace SequoiaDB
         public const string SDB_ALTER_ADD_GROUPS = "add groups";
         public const string SDB_ALTER_SET_GROUPS = "set groups";
         public const string SDB_ALTER_REMOVE_GROUPS = "remove groups";
+
+        public const string SEQ_OPT_SET_CURR_VALUE = "set current value";
+        public const string SEQ_OPT_RESTART = "restart";
+
 
         public const string FIELD_SET_ON_INSERT = "$SetOnInsert";
 
@@ -278,6 +294,7 @@ namespace SequoiaDB
 
 	    OP_AGGREGATE              = 2019,
         OP_INTERRUPTE_SELF        = 2020,
+        MSG_BS_SEQUENCE_FETCH_REQ = 2022, MSG_BS_SEQUENCE_FETCH_RES = unchecked((int)(RES_FLAG | (uint)MSG_BS_SEQUENCE_FETCH_REQ)),
 
         MSG_AUTH_VERIFY_REQ       = 7000,
         MSG_AUTH_CRTUSR_REQ       = 7001,

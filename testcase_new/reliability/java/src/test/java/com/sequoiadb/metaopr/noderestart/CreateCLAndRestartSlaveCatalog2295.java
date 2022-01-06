@@ -2,6 +2,7 @@ package com.sequoiadb.metaopr.noderestart;
 
 import java.util.Date;
 
+import com.sequoiadb.metaopr.Utils;
 import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;

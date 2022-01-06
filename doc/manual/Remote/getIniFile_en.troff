@@ -14,7 +14,7 @@ getIniFile \- Create a IniFile object remotely.
 Remote
 .SH DESCRIPTION
 .PP
-Create a IniFile object remotely.
+Open a remote INI configuration file.
 .SH PARAMETERS
 .PP
 .TS
@@ -271,15 +271,17 @@ For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 Create a remote object.
-.RS
-.PP
-var remoteObj = new Remote( "sdbserver1", 11790 )
-.RE
+.IP
+.nf
+\f[C]
+> var remoteObj = new Remote( "sdbserver1", 11790 )
+\f[]
+.fi
 .IP \[bu] 2
 Create a IniFile object remotely.
 .IP
 .nf
 \f[C]
->\ var\ ini\ =\ remoteObj.getFile(\ "/opt/sequoiadb/file.ini",\ SDB_INIFILE_FLAGS_DEFAULT\ )
+> var ini = remoteObj.getFile( "/opt/sequoiadb/file.ini", SDB_INIFILE_FLAGS_DEFAULT )
 \f[]
 .fi

@@ -82,9 +82,7 @@ public class DeleteRequest extends SdbRequest {
         out.put((byte) 0);
         int length = clNameBytes.length + 1;
         int paddingLen = Helper.alignedSize(length) - length;
-        if (paddingLen > 0) {
-            out.put(new byte[paddingLen]);
-        }
+        Helper.fillZero(out, paddingLen);
         encodeBSONBytes(matcherBytes, out);
         encodeBSONBytes(hintBytes, out);
     }

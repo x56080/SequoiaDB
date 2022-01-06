@@ -141,67 +141,6 @@ namespace engine
    };
    typedef _clsCatalogItem clsCatalogItem ;
 
-   // global index define
-   class _clsCataGIndex : public SDBObject
-   {
-      public:
-         _clsCataGIndex() ;
-         ~_clsCataGIndex() ;
-
-         _clsCataGIndex ( const _clsCataGIndex &right ) ;
-         _clsCataGIndex& operator= ( const _clsCataGIndex &right ) ;
-
-      public:
-         INT32 init( const BSONObj &globalIndex ) ;
-         INT32 toBSONObj( BSONObjBuilder &builder ) ;
-
-         //UINT64 getIndexUID() ;
-         utilCLUniqueID getIndexCollectionUID() ;
-         const string &getIndexName() const ;
-
-      private:
-         string            _indexName ;
-         // index collection's unique id
-         utilCLUniqueID    _indexCLUID ;
-
-         // index's unique id
-         //UINT64            _indexUID ;
-   } ;
-
-   typedef ossPoolList<_clsCataGIndex>       CLS_GINDEX_LIST ;
-   typedef CLS_GINDEX_LIST::iterator         CLS_GINDEX_LIST_ITER ;
-
-   class _clsCataGIndexGroup : public SDBObject
-   {
-      public:
-         typedef ossPoolMap< string, _clsCataGIndex >     CLS_GINDEX_MAP ;
-         typedef CLS_GINDEX_MAP::iterator                 CLS_GINDEX_MAP_IT ;
-
-      public:
-         _clsCataGIndexGroup() ;
-         ~_clsCataGIndexGroup() ;
-
-      public:
-         INT32 init( const BSONObj &globalIndexes ) ;
-         INT32 toBSONObj( BSONObjBuilder &builder ) ;
-         INT32 addIndex( const _clsCataGIndex &indexInfo ) ;
-         INT32 delIndex( const string &indexName ) ;
-         INT32 getSize() ;
-         /***
-         INT32 delIndex( UINT64 indexUID ) ;
-         BOOLEAN isIndexExist( UINT64 indexUID ) ;
-         BOOLEAN getIndexInfo( const string &indexName,
-                               _clsCataGIndex &indexInfo ) ;
-         ***/
-         BOOLEAN isIndexExist( const string &indexName ) ;
-         BOOLEAN getIndexInfo( const string &indexName,
-                               _clsCataGIndex &indexInfo ) ;
-         INT32 getIndexes( CLS_GINDEX_LIST &globalIndexes ) ;
-
-      private:
-         CLS_GINDEX_MAP             _indexMap ;
-   } ;
-
    typedef VEC_UINT32                           VEC_GROUP_ID ;
 
    class _clsCataOrder : public utilPooledObject
@@ -220,7 +159,8 @@ namespace engine
    enum CLS_SUBCL_SORT_TYPE
    {
       SUBCL_SORT_BY_ID     = 1,
-      SUBCL_SORT_BY_BOUND
+      SUBCL_SORT_BY_BOUND,
+      SUBCL_SORT_BY_REVERSE_BOUND
    } ;
 
    class _clsShardingKeySite ;
@@ -243,6 +183,7 @@ namespace engine
       typedef ossPoolMap<clsCataItemKey, clsCatalogItem*>   MAP_CAT_ITEM ;
       typedef MAP_CAT_ITEM::iterator                        MAP_CAT_ITEM_IT ;
       typedef MAP_CAT_ITEM_IT                               POSITION ;
+      typedef MAP_CAT_ITEM::reverse_iterator                MAP_CAT_ITEM_RIT ;
 
       public:
          _clsCatalogSet ( const CHAR * name,
@@ -332,6 +273,7 @@ namespace engine
          // sort sub-collections by bounds
          // return a map from sorted orders to index in subCLList
          INT32             sortSubCL( CLS_SUBCL_LIST &subCLList,
+                                      INT32 direction,
                                       CLS_ORDER2SUBCLIDX_MAP &subCLIdxMap ) ;
          BOOLEAN           isSortSubCLPrepared() const ;
          BOOLEAN           isContainSubCL( const string &subCLName ) const ;
@@ -371,14 +313,8 @@ namespace engine
                                            CLS_SUBCL_SORT_TYPE sortType =
                                            SUBCL_SORT_BY_ID ) ;
 
-         BOOLEAN isExistGlobalIndex( const string &indexName ) ;
-         INT32 addGlobalIndex( const _clsCataGIndex &gIndex ) ;
-         INT32 delGlobalIndex( const string &indexName ) ;
-         BOOLEAN getGlobalIndex( const string &indexName,
-                                 _clsCataGIndex &gIndex ) ;
-         INT32 toGlobalIndexBson( BSONObjBuilder &builder ) ;
-         INT32 getGlobalIndexSize() ;
-         INT32 getGlobalIndexes( CLS_GINDEX_LIST &globalIndexes ) ;
+         UINT32         getDataSourceID() const ;
+         const string&  getMappingName() const ;
 
       protected:
          _clsCatalogSet    *next () ;
@@ -471,7 +407,8 @@ namespace engine
          BOOLEAN           _overwrite ;
          BOOLEAN           _repairCheck ;
 
-         _clsCataGIndexGroup _gIndexGroup ;
+         UTIL_DS_UID       _dataSourceID ;
+         string            _mapping ;
    };
    typedef class _clsCatalogSet clsCatalogSet ;
 

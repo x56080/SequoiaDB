@@ -224,7 +224,8 @@ namespace engine
      _isNewPlan( FALSE ),
      _hasNonGTIndex( TRUE ),
      _ownedPlanInfo( FALSE ),
-     _clScanInfo( NULL )
+     _clScanInfo( NULL ),
+     _expOptions( NULL )
    {
    }
 
@@ -257,6 +258,7 @@ namespace engine
          plan->incRefCount() ;
          setPlan( plan, planRuntime->_apm, FALSE,
                   planRuntime->hasNonGTIndex() ) ;
+         setExplainOptions( planRuntime->getExplainOptions() ) ;
 
          // Set match runtime and query info
          setMatchRuntime( planRuntime->getMatchRuntime() ) ;
@@ -557,7 +559,10 @@ namespace engine
    BSONObj _optAccessPlanRuntime::getPredIXBound () const
    {
       const rtnPredicateList * predList = getPredList() ;
-      return predList ? predList->getBound() : BSONObj() ;
+      BOOLEAN isAbbrev = NULL != _expOptions && _expOptions->isNeedAbbrev() ;
+      return predList ?
+             predList->getBound( isAbbrev ) :
+             BSONObj() ;
    }
 
 }

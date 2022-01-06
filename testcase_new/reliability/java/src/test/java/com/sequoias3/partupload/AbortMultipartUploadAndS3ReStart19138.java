@@ -46,10 +46,8 @@ public class AbortMultipartUploadAndS3ReStart19138 extends S3TestBase {
     private String filePath = null;
     private File localPath = null;
     private File file = null;
-    private MultiValueMap< String, String > successKeyAndUploadIds = new
-            LinkedMultiValueMap< String, String >();
-    private MultiValueMap< String, String > keyAndUploadIds = new
-            LinkedMultiValueMap< String, String >();
+    private MultiValueMap< String, String > successKeyAndUploadIds = new LinkedMultiValueMap< String, String >();
+    private MultiValueMap< String, String > keyAndUploadIds = new LinkedMultiValueMap< String, String >();
 
     @BeforeClass
     private void setUp() throws IOException {
@@ -117,15 +115,15 @@ public class AbortMultipartUploadAndS3ReStart19138 extends S3TestBase {
                     String keyName = keyAndUploadIds.keySet().toArray()[ i ]
                             .toString();
                     String uploadId = keyAndUploadIds.get( keyName ).get( 0 );
-                    AbortMultipartUploadRequest request = new
-                            AbortMultipartUploadRequest(
+                    AbortMultipartUploadRequest request = new AbortMultipartUploadRequest(
                             bucketName, keyName, uploadId );
                     s3Client1.abortMultipartUpload( request );
                     successKeyAndUploadIds.add( keyName, uploadId );
                 }
             } catch ( AmazonS3Exception e ) {
-                // e:0 Get connection failed.
-                if ( e.getStatusCode() != 0 && e.getStatusCode() != 500 ) {
+                // e:0 Get connection failed.e:404 NoSuchUpload.
+                if ( e.getStatusCode() != 0 && e.getStatusCode() != 500
+                        && e.getStatusCode() != 404 ) {
                     throw new Exception( keyName, e );
                 }
             } catch ( SdkClientException e ) {
@@ -151,7 +149,7 @@ public class AbortMultipartUploadAndS3ReStart19138 extends S3TestBase {
                 1024 * 1024 * 8, 1024 * 1024 * 7, 1024 * 1024 * 5 };
         int partNumbers = 9;
         int filePosition = 0;
-        new ArrayList<>();
+        new ArrayList< >();
         for ( int i = 0; i < partNumbers; i++ ) {
             // 分段号从1开始
             int partNumber = i + 1;
@@ -179,8 +177,7 @@ public class AbortMultipartUploadAndS3ReStart19138 extends S3TestBase {
                 String keyName = keyAndUploadIds.keySet().toArray()[ i ]
                         .toString();
                 String uploadId = keyAndUploadIds.get( keyName ).get( 0 );
-                AbortMultipartUploadRequest request = new
-                        AbortMultipartUploadRequest(
+                AbortMultipartUploadRequest request = new AbortMultipartUploadRequest(
                         bucketName, keyName, uploadId );
                 s3Client.abortMultipartUpload( request );
             } catch ( AmazonS3Exception e ) {
@@ -199,9 +196,8 @@ public class AbortMultipartUploadAndS3ReStart19138 extends S3TestBase {
                 bucketName );
         MultipartUploadListing result = s3Client
                 .listMultipartUploads( request );
-        MultiValueMap< String, String > expUpload = new LinkedMultiValueMap<
-                String, String >();
-        List< String > expCommonPrefixes = new ArrayList<>();
+        MultiValueMap< String, String > expUpload = new LinkedMultiValueMap< String, String >();
+        List< String > expCommonPrefixes = new ArrayList< >();
         PartUploadUtils.checkListMultipartUploadsResults( result,
                 expCommonPrefixes, expUpload );
 

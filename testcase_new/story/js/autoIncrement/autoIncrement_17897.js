@@ -48,7 +48,8 @@ function test ()
    }
 
    var rc = dbcl.find().sort( { _id: 1 } );
-   checkRec( rc, expRecs.sort( compare( "_id" ) ) );
+   expRecs.sort( compare( "_id" ) );
+   checkRec( rc, expRecs );
 
    commDropCL( db, COMMCSNAME, clName );
 }

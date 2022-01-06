@@ -27,8 +27,8 @@ function test ()
       key1 + "=" + value1 + "\n" +
       key2 + "=" + value2 + "\n" +
       "[" + section2 + "]\n" +
-      key2 + "=" + value2 + "\n";
-   key3 + "=" + value3 + "\n";
+      key2 + "=" + value2 + "\n" + 
+      key3 + "=" + value3 + "\n";
    initFile( fileFullPath, content );
 
    var iniFile = new IniFile( fileFullPath );

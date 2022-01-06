@@ -1599,7 +1599,8 @@ namespace engine
                }
             }
             else if ( OM_BUSINESS_SEQUOIASQL_POSTGRESQL == _businessType ||
-                      OM_BUSINESS_SEQUOIASQL_MYSQL == _businessType )
+                      OM_BUSINESS_SEQUOIASQL_MYSQL == _businessType ||
+                      OM_BUSINESS_SEQUOIASQL_MARIADB == _businessType )
             {
                string port = nodeInfo.getStringField(
                                              OM_CONFIGURE_FIELD_PORT2 ) ;
@@ -1852,7 +1853,8 @@ namespace engine
          builder.append( OM_BSON_ADDRESS, arrayBuilder.arr() ) ;
       }
       else if ( OM_BUSINESS_SEQUOIASQL_POSTGRESQL == _businessType ||
-                OM_BUSINESS_SEQUOIASQL_MYSQL == _businessType )
+                OM_BUSINESS_SEQUOIASQL_MYSQL == _businessType ||
+                OM_BUSINESS_SEQUOIASQL_MARIADB == _businessType )
       {
          BSONObj buzInfo ;
          BSONObj buzConfig ;

@@ -355,7 +355,8 @@ namespace engine
 #if defined( SDB_ENGINE )
    INT32 _pmdEDUMgr::beginDumpEDUTrans( EDUID eduID,
                                         pmdTransExecutor **executor,
-                                        monTransInfo &transInfo )
+                                        monTransInfo &transInfo,
+                                        BOOLEAN bDumpTransInfo )
    {
       INT32 rc = SDB_OK ;
       MAP_EDUCB_IT it ;
@@ -407,7 +408,10 @@ namespace engine
             continue ;
          }
 
-         cb->dumpTransInfo( transInfo ) ;
+         if ( bDumpTransInfo )
+         {
+            cb->dumpTransInfo( transInfo ) ;
+         }
          *executor = cb->getTransExecutor() ;
          break ;
       }
@@ -1009,91 +1013,54 @@ namespace engine
       return count ;
    }
 
-   UINT32 _pmdEDUMgr::_getWritingEDUCount( INT32 eduTypeFilter,
-                                           UINT64 idThreshold,
-                                           INT32 excludeBlockType,
-                                           const dpsTransLockId &lockID,
-                                           UINT32 *pTransCnt )
+   BOOLEAN _pmdEDUMgr::_hasWritingEDU( INT32 eduTypeFilter,
+                                       UINT64 idThreshold,
+                                       EDU_BLOCK_TYPE excludeBlockType )
    {
-      pmdEDUCB *cb = NULL ;
-      UINT32 eduCount = 0 ;
-      UINT32 transCnt = 0 ;
-      MAP_EDUCB_IT it ;
-      UINT64 opID = 0 ;
-      UINT64 transOpID = 0 ;
-      UINT64 minID = 0 ;
+      BOOLEAN hasWriting = FALSE ;
+
       pmdEDUCB *self = pmdGetThreadEDUCB() ;
 
-      _latch.get_shared() ;
+      ossScopedLock _lock( &_latch, SHARED ) ;
 
-      for ( it = _mapRuns.begin () ; it != _mapRuns.end () ; ++it )
+      for ( MAP_EDUCB_IT it = _mapRuns.begin () ;
+            it != _mapRuns.end () ;
+            ++ it )
       {
-         cb = it->second ;
-
-         opID = cb->getWritingID() ;
-         transOpID = cb->getTransWritingID() ;
-
+         pmdEDUCB *cb = it->second ;
          if ( self == cb )
          {
             continue ;
          }
-         else if ( cb->isWritingDB() || 0 != transOpID )
+         else if ( cb->isWritingDB() )
          {
-            minID = opID ;
-            if ( 0 == minID || ( 0 != transOpID && transOpID < minID ) )
-            {
-               minID = transOpID ;
-            }
+            UINT64 opID = cb->getWritingID() ;
 
             if ( -1 != eduTypeFilter && eduTypeFilter != cb->getType() )
             {
                continue ;
             }
-            else if ( 0 != idThreshold && minID > idThreshold )
+            else if ( 0 != idThreshold && opID > idThreshold )
             {
                continue ;
             }
-            else if ( -1 == excludeBlockType && cb->isBlocked() )
+            else if ( EDU_BLOCK_ALL == excludeBlockType && cb->isBlocked() )
             {
                continue ;
             }
-            else if ( 0 != excludeBlockType &&
-                      excludeBlockType == cb->getBlockType() )
+            else if ( EDU_BLOCK_NONE != excludeBlockType &&
+                      OSS_BIT_TEST( cb->getBlockType(), excludeBlockType ) )
             {
                continue ;
             }
-#if defined ( SDB_ENGINE )
-            else if ( 0 == opID || ( 0 != idThreshold && opID > idThreshold ) )
-            {
-               if ( lockID.isValid() &&
-                    0 == cb->getTransExecutor()->countLock( lockID,
-                                                            DPS_TRANSLOCK_IX,
-                                                            LOCKMGR_TRANS_LOCK,
-                                                            TRUE ) )
-               {
-                  continue ;
-               }
-               else
-               {
-                  ++transCnt ;
-               }
-            }
-#endif // SDB_ENGINE
-
             PD_LOG ( PDDEBUG, "Session [%lld] TID [%u] writing ID [%llu] "
-                     "is writing", cb->getID(), cb->getTID(),
-                     minID ) ;
-            ++eduCount ;
+                     "is writing", cb->getID(), cb->getTID(), opID ) ;
+            hasWriting = TRUE ;
+            break ;
          }
       }
-      _latch.release_shared() ;
 
-      if ( pTransCnt )
-      {
-         *pTransCnt = transCnt ;
-      }
-
-      return eduCount ;
+      return hasWriting ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_PSTEDUPST, "_pmdEDUMgr::postEDUPost" )
@@ -1141,15 +1108,11 @@ namespace engine
       return _interruptWritingEDUs( FALSE, interruptRC ) ;
    }
 
-   UINT32 _pmdEDUMgr::getWritingEDUCount( INT32 eduTypeFilter,
-                                          UINT64 idThreshold,
-                                          INT32 excludeBlockType,
-                                          const dpsTransLockId &lockID,
-                                          UINT32 *pTransCnt )
+   BOOLEAN _pmdEDUMgr::hasWritingEDU( INT32 eduTypeFilter,
+                                      UINT64 idThreshold,
+                                      EDU_BLOCK_TYPE excludeBlockType )
    {
-      return _getWritingEDUCount( eduTypeFilter, idThreshold,
-                                  excludeBlockType, lockID,
-                                  pTransCnt ) ;
+      return _hasWritingEDU( eduTypeFilter, idThreshold, excludeBlockType ) ;
    }
 
    void _pmdEDUMgr::resetIOService()
@@ -1537,8 +1500,8 @@ namespace engine
       if ( it != _mapIdles.end() )
       {
          cb = it->second ;
-         _mapIdles.erase( it ) ;
          _mapRuns[ cb->getID() ] = cb ;
+         _mapIdles.erase( it ) ;
 
          cb->setType( type ) ;
          SDB_ASSERT( PMD_EDU_IDLE == cb->getStatus(), "Status must be idle" ) ;
@@ -2446,7 +2409,7 @@ namespace engine
 
             *(cb->getMonConfigCB()) = *(krcb->getMonCB()) ;
             cb->initMonAppCB() ;
-            cb->initTransConf() ;
+            cb->initConf() ;
 
             rc = pItem->_pFunc( cb, event._Data ) ;
             // copy name

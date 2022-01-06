@@ -33,7 +33,7 @@ Open an INI file.
 .IP
 .nf
 \f[C]
->\ var\ ini\ =\ new\ IniFile(\ "/opt/sequoiadb/file.ini",\ SDB_INIFILE_FLAGS_DEFAULT\ )
+> var ini = new IniFile( "/opt/sequoiadb/file.ini", SDB_INIFILE_FLAGS_DEFAULT )
 \f[]
 .fi
 .IP \[bu] 2
@@ -41,7 +41,7 @@ Get the last comment.
 .IP
 .nf
 \f[C]
->\ ini.getLastComment(\ "info",\ "name"\ )
-End\ of\ INI\ file
+> ini.getLastComment( "info", "name" )
+End of INI file
 \f[]
 .fi

@@ -625,7 +625,7 @@ namespace engine
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  " Type   : %s(%d)"OSS_NEWLINE,
                                  "DELETE", LOG_TYPE_DATA_DELETE ) ;
-            dpsLogRecord::iterator itrFullName, itrM ;
+            dpsLogRecord::iterator itrFullName, itrM, itrRID ;
             itrFullName = this->find( DPS_LOG_PUBLIC_FULLNAME ) ;
             if ( !itrFullName.valid() )
             {
@@ -665,6 +665,23 @@ namespace engine
                len += ossSnprintf( outBuf + len, outSize - len,
                                    " OldUnqIdxHash : %s"OSS_NEWLINE,
                                    unqIdxHashArray.toString().c_str() ) ;
+            }
+
+            itrRID = this->find( DPS_LOG_DELETE_POSITION ) ;
+            if ( itrRID.valid() )
+            {
+               const INT64 *position = (const INT64 *)( itrRID.value() ) ;
+
+               dmsExtentID extentID = DMS_INVALID_EXTENT ;
+               dmsOffset offset = DMS_INVALID_OFFSET ;
+               ossUnpack32From64( (UINT64)( *position ),
+                                  (UINT32 &)( extentID ),
+                                  (UINT32 &)( offset ) ) ;
+
+               len += ossSnprintf( outBuf + len, outSize - len,
+                                   " Record ID : "
+                                   "(extent: %d; offset: %d)"OSS_NEWLINE,
+                                   extentID, offset ) ;
             }
 
             break ;
@@ -852,6 +869,45 @@ namespace engine
                                     " ComType: 0x%02x (%u)"OSS_NEWLINE,
                                     comType, comType ) ;
             }
+
+            itrCL = this->find( DPS_LOG_CLCRT_EXT_OPTIONS ) ;
+            if ( itrCL.valid() )
+            {
+               try
+               {
+                  BSONObj obj( itrCL.value() ) ;
+                  len += ossSnprintf ( outBuf + len, outSize - len,
+                                       " Ext Options: %s"OSS_NEWLINE,
+                                       obj.toString().c_str() ) ;
+               }
+               catch ( std::exception &e )
+               {
+                  len += ossSnprintf ( outBuf + len, outSize - len,
+                                       "*ERROR* : %s: %s"OSS_NEWLINE,
+                                       "Invalid create cl record", e.what() ) ;
+                  goto done ;
+               }
+            }
+
+            itrCL = this->find( DPS_LOG_CLCRT_IDIDX_DEF ) ;
+            if ( itrCL.valid() )
+            {
+               try
+               {
+                  BSONObj obj( itrCL.value() ) ;
+                  len += ossSnprintf ( outBuf + len, outSize - len,
+                                       " Id Index: %s"OSS_NEWLINE,
+                                       obj.toString().c_str() ) ;
+               }
+               catch ( std::exception &e )
+               {
+                  len += ossSnprintf ( outBuf + len, outSize - len,
+                                       "*ERROR* : %s: %s"OSS_NEWLINE,
+                                       "Invalid create cl record", e.what() ) ;
+                  goto done ;
+               }
+            }
+
             break ;
          }
          case LOG_TYPE_CL_DELETE :
@@ -882,7 +938,7 @@ namespace engine
                                  " Type   : %s(%d)"OSS_NEWLINE,
                                  "IX CREATE", LOG_TYPE_IX_CRT ) ;
 
-            dpsLogRecord::iterator itrFullName, itrIX ;
+            dpsLogRecord::iterator itrFullName, itrIX, itrOpt ;
             itrFullName = this->find( DPS_LOG_PUBLIC_FULLNAME ) ;
             if ( !itrFullName.valid() )
             {
@@ -907,18 +963,28 @@ namespace engine
                goto done ;
             }
 
+            itrOpt = this->find( DPS_LOG_IXCRT_OPTION ) ;
+
             try
             {
-               BSONObj obj ( itrIX.value() ) ;
+               BSONObj ix ( itrIX.value() ) ;
                len += ossSnprintf ( outBuf + len, outSize - len,
                                     " IXDef  : %s"OSS_NEWLINE,
-                                    obj.toString().c_str() ) ;
+                                    ix.toString().c_str() ) ;
+
+               if ( itrOpt.valid() )
+               {
+                  BSONObj opt ( itrOpt.value() ) ;
+                  len += ossSnprintf ( outBuf + len, outSize - len,
+                                       " Option : %s"OSS_NEWLINE,
+                                       opt.toString().c_str() ) ;
+               }
             }
             catch ( std::exception &e )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
                                     "*ERROR* : %s: %s"OSS_NEWLINE,
-                                    "Invalid ixdef record", e.what() ) ;
+                                    "Invalid create index record", e.what() ) ;
                goto done ;
             }
             break ;
@@ -929,7 +995,7 @@ namespace engine
                                  " Type   : %s(%d)"OSS_NEWLINE,
                                  "IX DROP", LOG_TYPE_IX_DELETE ) ;
 
-            dpsLogRecord::iterator itrFullName, itrIX ;
+            dpsLogRecord::iterator itrFullName, itrIX, itrOpt ;
             itrFullName = this->find( DPS_LOG_PUBLIC_FULLNAME ) ;
             if ( !itrFullName.valid() )
             {
@@ -944,7 +1010,7 @@ namespace engine
                                  " CLName : %s"OSS_NEWLINE,
                                  itrFullName.value() ) ;
 
-            itrIX = this->find(DPS_LOG_IXDEL_IX ) ;
+            itrIX = this->find( DPS_LOG_IXDEL_IX ) ;
             if ( !itrIX.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
@@ -954,18 +1020,28 @@ namespace engine
                goto done ;
             }
 
+            itrOpt = this->find( DPS_LOG_IXDEL_OPTION ) ;
+
             try
             {
                BSONObj obj ( itrIX.value() ) ;
                len += ossSnprintf ( outBuf + len, outSize - len,
                                     " IXDef  : %s"OSS_NEWLINE,
                                     obj.toString().c_str() ) ;
+
+               if ( itrOpt.valid() )
+               {
+                  BSONObj opt ( itrOpt.value() ) ;
+                  len += ossSnprintf ( outBuf + len, outSize - len,
+                                       " Option : %s"OSS_NEWLINE,
+                                       opt.toString().c_str() ) ;
+               }
             }
             catch ( std::exception &e )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
                                     "*ERROR* : %s: %s"OSS_NEWLINE,
-                                    "Invalid ixdef record", e.what() ) ;
+                                    "Invalid drop index record", e.what() ) ;
                goto done ;
             }
             break ;
@@ -1580,7 +1656,7 @@ namespace engine
             {
                utilCSUniqueID csUniqueID = *(utilCSUniqueID *)( itr.value() ) ;
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " CS UniqueID : %u"OSS_NEWLINE,
+                                    " CSUniqueID : %u"OSS_NEWLINE,
                                     csUniqueID ) ;
             }
 

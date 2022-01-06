@@ -19,7 +19,7 @@ class TestListDomains12504(testlib.SdbTestBase):
          self.db.drop_domain(domain_name)  
       except SDBBaseError as e:
          if -214 != e.code:
-            self.fail('set up fail: ' + e.detail)         
+            self.fail('set up fail: ' + str(e))
 
    def test_list_domains_12504(self):
       # create domain
@@ -41,7 +41,7 @@ class TestListDomains12504(testlib.SdbTestBase):
          # get result
          act_result = self.get_actual_result(cursor)
       except SDBBaseError as e:
-         self.fail('get list domains fail: ' + e.detail)
+         self.fail('get list domains fail: ' + str(e))
       return act_result
             
    def get_actual_result(self,cursor):

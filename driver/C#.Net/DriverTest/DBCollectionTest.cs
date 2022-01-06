@@ -533,6 +533,32 @@ namespace DriverTest
         }
 
         [TestMethod()]
+        public void GetIndexStatTest()
+        {
+            string indexName = "GetIndexStatTest";
+            string errorIndex = "errorGetIndexStatTest";
+            BsonDocument indexDef = new BsonDocument();
+            indexDef.Add(indexName, 1);
+
+            // case 1, index exist
+            coll.CreateIndex(indexName, indexDef, null);
+            sdb.Analyze();
+            BsonDocument obj = coll.GetIndexStat(indexName);
+            Assert.AreEqual(coll.FullName, obj.GetElement("Collection").Value);
+            Assert.AreEqual(indexName, obj.GetElement("Index").Value);
+
+            // case 2, index no exist
+            try
+            {
+                coll.GetIndexStat(errorIndex);
+            }
+            catch (BaseException e)
+            {
+                Assert.IsTrue(e.ErrorType == "SDB_IXM_STAT_NOTEXIST");
+            }
+        }
+
+        [TestMethod()]
         public void GetCountTest()
         {
             for (int i = 0; i < 10; ++i)

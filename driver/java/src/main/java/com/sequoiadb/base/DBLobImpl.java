@@ -66,6 +66,7 @@ class DBLobImpl implements DBLob {
     private long _currentOffset = 0;
     private long _cachedOffset = -1;
     private ByteBuffer _cachedDataBuff = null;
+    private ByteBuffer _receivedBuff = null;
     private boolean _isOpened = false;
     private boolean _isOldVersionLobServer = false;
 
@@ -74,6 +75,8 @@ class DBLobImpl implements DBLob {
      * reading/writing/close
      */
     private long _contextID;
+    private byte[] _tmpWriteBuf = null;
+    private byte[] _tmpReadBuf = null;
 
     /**
      * @param cl The instance of DBCollection
@@ -199,7 +202,7 @@ class DBLobImpl implements DBLob {
         int flags = (_mode == SDB_LOB_READ) ? FLG_LOBOPEN_WITH_RETURNDATA : 0;
 
         LobOpenRequest request = new LobOpenRequest(openLob, flags);
-        LobOpenResponse response = _sdb.requestAndResponse(request, LobOpenResponse.class);
+        LobOpenResponse response = _sdb.requestAndResponse(request, LobOpenResponse.class, _receivedBuff);
         if (response.getFlag() == SDBError.SDB_INVALIDARG.getErrorCode() && _id == null
                 && _mode == SDB_LOB_CREATEONLY) {
             _isOldVersionLobServer = true;
@@ -219,12 +222,14 @@ class DBLobImpl implements DBLob {
             _modificationTime = _createTime;
         }
         _pageSize = (Integer) obj.get(FIELD_NAME_LOB_PAGESIZE);
-        _cachedDataBuff = response.getData();
+        // refresh _receivedBuff
+        _receivedBuff = response.getData();
+        // get return data
+        _cachedDataBuff = _receivedBuff;
         if (_cachedDataBuff != null) {
             _currentOffset = 0;
             _cachedOffset = _currentOffset;
         }
-
         _contextID = response.getContextId();
     }
 
@@ -278,7 +283,14 @@ class DBLobImpl implements DBLob {
         if (!_isOpened) {
             return;
         }
-        _sdb.narrowBuff();
+
+        // clean buff
+        _sdb.cleanRequestBuff();
+        _receivedBuff = null;
+        _cachedDataBuff = null;
+        _tmpReadBuf = null;
+        _tmpWriteBuf = null;
+
         LobCloseRequest request = new LobCloseRequest(_contextID);
         SdbReply response = _sdb.requestAndResponse(request);
         _sdb.throwIfError(response);
@@ -290,7 +302,6 @@ class DBLobImpl implements DBLob {
                 _modificationTime = (Long) obj.get(FIELD_NAME_LOB_MODIFICATION_TIME);
             }
         }
-
     }
 
     /**
@@ -309,10 +320,13 @@ class DBLobImpl implements DBLob {
         }
         // get data from input stream
         int readNum = 0;
-        byte[] tmpBuf = new byte[SDB_LOB_WRITE_DATA_LENGTH];
+        if (_tmpWriteBuf == null){
+            _tmpWriteBuf = new byte[SDB_LOB_WRITE_DATA_LENGTH];
+        }
+
         try {
-            while (-1 < (readNum = in.read(tmpBuf))) {
-                write(tmpBuf, 0, readNum);
+            while (-1 < (readNum = in.read(_tmpWriteBuf))) {
+                write(_tmpWriteBuf, 0, readNum);
             }
         } catch (IOException e) {
             throw new BaseException(SDBError.SDB_SYS, e);
@@ -401,10 +415,13 @@ class DBLobImpl implements DBLob {
         }
         // read data to output stream
         int readNum = 0;
-        byte[] tmpBuf = new byte[SDB_LOB_READ_DATA_LENGTH];
-        while (-1 < (readNum = read(tmpBuf, 0, tmpBuf.length))) {
+        if (_tmpReadBuf == null){
+            _tmpReadBuf = new byte[SDB_LOB_READ_DATA_LENGTH];
+        }
+
+        while (-1 < (readNum = read(_tmpReadBuf, 0, _tmpReadBuf.length))) {
             try {
-                out.write(tmpBuf, 0, readNum);
+                out.write(_tmpReadBuf, 0, readNum);
             } catch (IOException e) {
                 throw new BaseException(SDBError.SDB_SYS, e);
             }
@@ -608,11 +625,11 @@ class DBLobImpl implements DBLob {
         // copy the data from cache out to the buf for user
         _cachedDataBuff.get(buf, off, readInCache);
         if (_cachedDataBuff.remaining() == 0) {
-            // TODO: shell we need to reuse the ByteBuffer ?
             _cachedDataBuff = null;
         } else {
             _cachedOffset = _currentOffset + readInCache;
         }
+
         return readInCache;
     }
 
@@ -639,7 +656,7 @@ class DBLobImpl implements DBLob {
         alignedLen = _reviseReadLen(needRead);
 
         LobReadRequest request = new LobReadRequest(_contextID, alignedLen, _currentOffset);
-        LobReadResponse response = _sdb.requestAndResponse(request, LobReadResponse.class);
+        LobReadResponse response = _sdb.requestAndResponse(request, LobReadResponse.class, _receivedBuff);
 
         int rc = response.getFlag();
         if (rc == SDBError.SDB_EOF.getErrorCode()) {
@@ -656,8 +673,13 @@ class DBLobImpl implements DBLob {
 
         int retLobLen = response.getLobLen();
 
+        // refresh _receivedBuff
+        _receivedBuff = response.getData();
         // get return data
-        _cachedDataBuff = response.getData();
+        _cachedDataBuff = _receivedBuff;
+        if (_cachedDataBuff == null){
+            throw new BaseException(SDBError.SDB_SYS, "The returned data is empty");
+        }
         // sanity check
         int remainLen = _cachedDataBuff.remaining();
         if (remainLen != retLobLen) {

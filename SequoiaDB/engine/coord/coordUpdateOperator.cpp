@@ -131,16 +131,16 @@ namespace engine
       contextID                        = -1 ;
 
       INT32 flag                       = 0 ;
-      CHAR *pCollectionName            = NULL ;
-      CHAR *pSelector                  = NULL ;
-      CHAR *pUpdator                   = NULL ;
-      CHAR *pHint                      = NULL ;
+      const CHAR *pCollectionName      = NULL ;
+      const CHAR *pSelector            = NULL ;
+      const CHAR *pUpdator             = NULL ;
+      const CHAR *pHint                = NULL ;
       BOOLEAN strictDataMode           = FALSE ;
       BSONObj boSelector ;
       BSONObj boHint ;
       BSONObj boUpdator ;
 
-      rc = msgExtractUpdate( (CHAR*)pMsg, &flag, &pCollectionName,
+      rc = msgExtractUpdate( (const CHAR*)pMsg, &flag, &pCollectionName,
                              &pSelector, &pUpdator, &pHint ) ;
       if ( rc )
       {
@@ -188,7 +188,7 @@ namespace engine
          options.setWriteOp( TRUE ) ;
 
          // add last op info
-         MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg->opCode, options ) ;
+         MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg, options ) ;
 
          MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
       }
@@ -216,6 +216,10 @@ namespace engine
          BOOLEAN isChanged = FALSE ;
          BOOLEAN keepShardingKey = OSS_BIT_TEST( flag,
                                                  FLG_UPDATE_KEEP_SHARDINGKEY ) ;
+
+         rc = checkCatVersion( cb,pCollectionName,clientVer,cataSel );
+         PD_CHECK( SDB_OK == rc, rc, error, PDWARNING,
+                   "check cat version failed, rc: %d",rc );
 
          if ( cataSel.getCataPtr()->isSharded() ||
               cataSel.getCataPtr()->hasAutoIncrement() )
@@ -297,11 +301,12 @@ namespace engine
          }
          inMsg._pMsg = ( MsgHeader* )pNewUpdate ;
 
-         rc = checkCatVersion( cb,pCollectionName,clientVer,cataSel );
-         PD_CHECK( SDB_OK == rc, rc, error, PDWARNING,
-                   "check cat version failed, rc: %d",rc );
-
          rcTmp = doOpOnCL( cataSel, boSelector, inMsg, sendOpt, cb, result ) ;
+
+         if ( oldFlag & FLG_UPDATE_UPSERT )
+         {
+            ((MsgOpUpdate*)(inMsg._pMsg))->flags |= FLG_UPDATE_UPSERT ;
+         }
       }while( FALSE ) ;
 
       if ( SDB_OK == rcTmp && nokRC.empty() )
@@ -583,11 +588,11 @@ namespace engine
       INT32 rc                = SDB_OK ;
       MsgOpUpdate *pUpMsg     = ( MsgOpUpdate* )inMsg.msg() ;
 
-      INT32 flag              = 0 ;
-      CHAR *pCollectionName   = NULL;
-      CHAR *pSelector         = NULL ;
-      CHAR *pUpdator          = NULL ;
-      CHAR *pHint             = NULL;
+      INT32 flag                    = 0 ;
+      const CHAR *pCollectionName   = NULL;
+      const CHAR *pSelector         = NULL ;
+      const CHAR *pUpdator          = NULL ;
+      const CHAR *pHint             = NULL;
 
       CHAR *pBuff             = NULL ;
       UINT32 buffLen          = 0 ;
@@ -604,7 +609,7 @@ namespace engine
 
       inMsg.data()->clear() ;
 
-      rc = msgExtractUpdate( (CHAR*)pUpMsg, &flag, &pCollectionName,
+      rc = msgExtractUpdate( (const CHAR*)pUpMsg, &flag, &pCollectionName,
                              &pSelector, &pUpdator, &pHint ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse update request, rc: %d",
                    rc ) ;

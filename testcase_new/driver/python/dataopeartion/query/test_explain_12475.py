@@ -86,13 +86,13 @@ class TestExplain12475(testlib.SdbTestBase):
       try:
          self.cl.bulk_insert(flags, doc)
       except SDBError as e:
-         self.fail('insert fail: ' + e.detail)
+         self.fail('insert fail: ' + str(e))
 
    def create_index(self,index,index_name):
       try:
          self.cl.create_index(index, index_name, False, False, 64)
       except SDBBaseError as e:
-         self.fail('create index fail: ' + e.detail)
+         self.fail('create index fail: ' + str(e))
 
    def check_index(self,index_name):
       try:
@@ -102,7 +102,7 @@ class TestExplain12475(testlib.SdbTestBase):
          exp_idx_name = index_name
          self.assertEqual(exp_idx_name, act_idx_name,'index name is not exist')
       except SDBBaseError as e:
-         self.fail('check index fail: ' + e.detail)
+         self.fail('check index fail: ' + str(e))
       
    def get_explain(self,expectExplainRec,cond,selection,index_name):
       try:
@@ -124,4 +124,4 @@ class TestExplain12475(testlib.SdbTestBase):
          self.assertEqual( expIdxName,actIdxName)
          self.assertListEqualUnordered(expQuery, actQuery)
       except SDBBaseError as e:
-         self.fail('check explain fail: ' + e.detail)
+         self.fail('check explain fail: ' + str(e))

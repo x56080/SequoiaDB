@@ -150,6 +150,7 @@ void CMarkdownEditorDoc::Dump(CDumpContext& dc) const
 //更新文本内容
 void CMarkdownEditorDoc::UpdateText(const string& text, CView* pSender, bool bMoveToEnd){
 	_strText = text;
+	Util::ReplaceAllStr(_strText, "\r\n", "\n");
 	int lParam = LPARAM_Update;
 	if(bMoveToEnd)
 		lParam |= LPARAM_MoveEnd;

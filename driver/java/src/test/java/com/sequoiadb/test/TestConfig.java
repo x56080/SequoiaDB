@@ -35,6 +35,8 @@ public class TestConfig {
     private static final String dataGroup = "data.group";
     private static final String dataHost = "data.host";
     private static final String dataPort = "data.port";
+    private static final String datasourceAddress = "datasource.address";
+    private static final String datasourceUrls = "datasource.urls";
 
     private TestConfig() {
     }
@@ -108,4 +110,11 @@ public class TestConfig {
         }
     }
 
+    public static String getDatasourceAddress() {
+        return properties.getProperty(datasourceAddress);
+    }
+
+    public static String getDatasourceUrls() {
+        return properties.getProperty(datasourceUrls);
+    }
 }

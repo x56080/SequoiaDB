@@ -121,7 +121,7 @@ namespace engine
          T* operator->() { return get() ; }
          const T* operator->() const { return get() ; }
 
-         operator bool () { return get() ? true : false ; }
+         operator bool () const { return get() ? true : false ; }
          operator T* () { return get () ; }
          operator BOOLEAN () { return get() ? TRUE : FALSE ; }
          operator const T* () { return get() ; }
@@ -152,6 +152,13 @@ namespace engine
          T*          get() const { return _ptr ; }
          INT64       refCount() const { return _pRef ? *_pRef : 0 ; }
          void        release() ;
+
+         template < typename U >
+         friend class utilSharePtr ;
+
+         // quick swap without atomic operation
+         template < typename U >
+         void swap( utilSharePtr<U> &ptr ) ;
 
       private:
          utilSharePtr( T *ptr, UTIL_ALLOC_TYPE type = ALLOC_TC ) ;
@@ -382,6 +389,334 @@ namespace engine
       {
          INT64 orgRef = ossFetchAndDecrement64( _pRef ) ;
          SDB_ASSERT( orgRef >= 1, "Ref is invlaid" ) ;
+         if ( 1 == orgRef )
+         {
+            if ( (CHAR*)_ptr - sizeof( INT64 ) == ( CHAR* )_pRef )
+            {
+               _ptr->~T() ;
+            }
+            else
+            {
+               SDB_OSS_DEL( _ptr ) ;
+            }
+
+            if ( ALLOC_OSS == _allocType )
+            {
+               SDB_OSS_FREE( _pRef ) ;
+            }
+            else if ( ALLOC_POOL == _allocType )
+            {
+               SDB_POOL_FREE( _pRef ) ;
+            }
+            else
+            {
+               SDB_THREAD_FREE( _pRef ) ;
+            }
+         }
+
+         _pRef = NULL ;
+         _ptr = NULL ;
+      }
+   }
+
+   template< typename T >
+   template< typename U >
+   void utilSharePtr<T>::swap( utilSharePtr<U> &ptr )
+   {
+      U *tempL = static_cast<U *>( _ptr ) ;
+      T *tempR = static_cast<T *>( ptr._ptr ) ;
+      SDB_ASSERT( (void *)tempL == (void *)_ptr,
+                  "should be valid cast" ) ;
+      SDB_ASSERT( (void *)tempR == (void *)( ptr._ptr ),
+                  "should be valid cast" ) ;
+      _ptr = tempR ;
+      ptr._ptr = tempL ;
+      INT64 *temp = _pRef ;
+      _pRef = ptr._pRef ;
+      ptr._pRef = temp ;
+   }
+
+   /*
+      utilThreadLocalPtr define
+   */
+   template < typename T >
+   class utilThreadLocalPtr
+   {
+   public:
+      utilThreadLocalPtr() ;
+      utilThreadLocalPtr( const utilThreadLocalPtr &rhs ) ;
+      ~utilThreadLocalPtr() ;
+
+      utilThreadLocalPtr& operator= ( const utilThreadLocalPtr &rhs ) ;
+      bool operator! () const { return get() ? false : true ; }
+      T* operator->() { return get() ; }
+      const T* operator->() const { return get() ; }
+
+      operator bool () const { return get() ? true : false ; }
+      operator T* () { return get () ; }
+      operator BOOLEAN () { return get() ? TRUE : FALSE ; }
+      operator const T* () { return get() ; }
+
+      template < typename U >
+      friend class utilThreadLocalPtr ;
+
+      template < typename U >
+      utilThreadLocalPtr& operator= ( const utilThreadLocalPtr< U > &rhs ) ;
+
+   public:
+      static utilThreadLocalPtr alloc( const CHAR *pFile,
+                                       UINT32 line,
+                                       UTIL_ALLOC_TYPE type = ALLOC_TC ) ;
+
+      static utilThreadLocalPtr alloc( UTIL_ALLOC_TYPE type = ALLOC_TC ) ;
+
+      // NOTICE: ptr must call construct after allocRaw
+      static utilThreadLocalPtr allocRaw( const CHAR *pFile,
+                                          UINT32 line,
+                                          UTIL_ALLOC_TYPE type = ALLOC_TC ) ;
+
+      // NOTICE: ptr must call construct after allocRaw
+      static utilThreadLocalPtr allocRaw( UTIL_ALLOC_TYPE type = ALLOC_TC ) ;
+
+      static utilThreadLocalPtr make( T *ptr,
+                                      UTIL_ALLOC_TYPE type = ALLOC_TC ) ;
+
+   public:
+      T*          get() const { return _ptr ; }
+      INT64       refCount() const { return _pRef ? *_pRef : 0 ; }
+      void        release() ;
+
+   private:
+      utilThreadLocalPtr( T *ptr, UTIL_ALLOC_TYPE type = ALLOC_TC ) ;
+
+   private:
+      T                    *_ptr ;
+      // NOTE: the atomic operators in arm64 requires 8 bytes align
+      INT64                *_pRef ;
+      UTIL_ALLOC_TYPE      _allocType ;
+
+   } ;
+
+   template< typename T >
+   utilThreadLocalPtr<T>::utilThreadLocalPtr()
+   {
+      _ptr = NULL ;
+      _pRef = NULL ;
+      _allocType = ALLOC_TC ;
+   }
+
+   template< typename T >
+   utilThreadLocalPtr<T>::utilThreadLocalPtr( const utilThreadLocalPtr &rhs )
+   {
+      _ptr = rhs._ptr ;
+      _pRef = rhs._pRef ;
+      _allocType = rhs._allocType ;
+      if ( _pRef )
+      {
+         INT64 orgRef = ( *_pRef ) ++ ;
+         SDB_ASSERT( orgRef >= 1, "Ref is invalid" ) ;
+         SDB_UNUSED( orgRef ) ;
+      }
+   }
+
+   template< typename T >
+   utilThreadLocalPtr<T>::utilThreadLocalPtr( T *ptr, UTIL_ALLOC_TYPE type )
+   {
+      _ptr = NULL ;
+      _pRef = NULL ;
+      _allocType = type ;
+      if ( ptr )
+      {
+         /// create ref
+         if ( ALLOC_OSS == _allocType )
+         {
+            _pRef = ( INT64* )SDB_OSS_MALLOC( sizeof( INT64 ) ) ;
+         }
+         else if ( ALLOC_POOL == _allocType )
+         {
+            _pRef = ( INT64* )SDB_POOL_ALLOC( sizeof( INT64 ) ) ;
+         }
+         else
+         {
+            _pRef = ( INT64* )SDB_THREAD_ALLOC( sizeof( INT64 ) ) ;
+         }
+
+         if ( !_pRef )
+         {
+            throw std::bad_alloc() ;
+         }
+
+         *_pRef = 1 ;
+         _ptr = ptr ;
+      }
+   }
+
+   template< typename T >
+   utilThreadLocalPtr<T>::~utilThreadLocalPtr()
+   {
+      release() ;
+   }
+
+   template< typename T >
+   utilThreadLocalPtr<T>& utilThreadLocalPtr<T>::operator= ( const utilThreadLocalPtr &rhs )
+   {
+      // avoid assigning by self
+      if ( _ptr != rhs._ptr )
+      {
+         release() ;
+         _ptr = rhs._ptr ;
+         _pRef = rhs._pRef ;
+         _allocType = rhs._allocType ;
+         if ( _pRef )
+         {
+            INT64 orgRef = ( *_pRef ) ++ ;
+            SDB_ASSERT( orgRef >= 1, "Ref is invalid" ) ;
+            SDB_UNUSED( orgRef ) ;
+         }
+      }
+      return *this ;
+   }
+
+   template< typename T >
+   template< typename U >
+   utilThreadLocalPtr<T>& utilThreadLocalPtr<T>::operator= ( const utilThreadLocalPtr<U> &rhs )
+   {
+      T *tempR = static_cast<T *>( rhs._ptr ) ;
+      SDB_ASSERT( (void *)tempR == (void *)( rhs._ptr ),
+                  "should be valid cast" ) ;
+      // avoid assigning by self
+      if ( _ptr != tempR )
+      {
+         release() ;
+         _ptr = tempR ;
+         _pRef = rhs._pRef ;
+         _allocType = rhs._allocType ;
+         if ( _pRef )
+         {
+            INT64 orgRef = ( *_pRef ) ++ ;
+            SDB_ASSERT( orgRef >= 1, "Ref is invalid" ) ;
+            SDB_UNUSED( orgRef ) ;
+         }
+      }
+      return *this ;
+   }
+
+   template< typename T >
+   utilThreadLocalPtr<T> utilThreadLocalPtr<T>::alloc( const CHAR *pFile,
+                                                       UINT32 line,
+                                                       UTIL_ALLOC_TYPE type )
+   {
+      utilThreadLocalPtr<T> recordPtr ;
+      UINT32 realSZ = sizeof( T ) + sizeof( INT64 ) ;
+      CHAR *ptr = NULL ;
+
+      if ( ALLOC_OSS == type )
+      {
+         ptr = ( CHAR* )ossMemAlloc( realSZ, pFile, line ) ;
+      }
+      else if ( ALLOC_POOL == type )
+      {
+         ptr = ( CHAR* )utilPoolAlloc( realSZ, pFile, line ) ;
+      }
+      else
+      {
+         ptr = ( CHAR* )utilThreadAlloc( realSZ, pFile, line ) ;
+      }
+
+      if ( ptr )
+      {
+         *(INT64*)ptr = 1 ;
+         recordPtr._pRef = (INT64*)ptr ;
+         recordPtr._ptr = (T*)( ptr + sizeof( INT64 ) ) ;
+         recordPtr._allocType = type ;
+         new ( recordPtr._ptr ) T () ;
+      }
+      return recordPtr ;
+   }
+
+   template< typename T >
+   utilThreadLocalPtr<T> utilThreadLocalPtr<T>::alloc( UTIL_ALLOC_TYPE type )
+   {
+      return alloc( __FILE__, __LINE__, type ) ;
+   }
+
+   template< typename T >
+   utilThreadLocalPtr<T> utilThreadLocalPtr<T>::allocRaw( const CHAR *pFile,
+                                                          UINT32 line,
+                                                          UTIL_ALLOC_TYPE type )
+   {
+      utilThreadLocalPtr<T> recordPtr ;
+      UINT32 realSZ = sizeof( T ) + sizeof( INT64 ) ;
+      CHAR *ptr = NULL ;
+
+      if ( ALLOC_OSS == type )
+      {
+         ptr = ( CHAR* )ossMemAlloc( realSZ, pFile, line ) ;
+      }
+      else if ( ALLOC_POOL == type )
+      {
+         ptr = ( CHAR* )utilPoolAlloc( realSZ, pFile, line ) ;
+      }
+      else
+      {
+         ptr = ( CHAR* )utilThreadAlloc( realSZ, pFile, line ) ;
+      }
+
+      if ( ptr )
+      {
+         *(INT64*)ptr = 1 ;
+         recordPtr._pRef = (INT64*)ptr ;
+         recordPtr._ptr = (T*)( ptr + sizeof( INT64 ) ) ;
+         recordPtr._allocType = type ;
+      }
+      return recordPtr ;
+   }
+
+   template< typename T >
+   utilThreadLocalPtr<T> utilThreadLocalPtr<T>::allocRaw( UTIL_ALLOC_TYPE type )
+   {
+      return allocRaw( __FILE__, __LINE__, type ) ;
+   }
+
+   template< typename T >
+   utilThreadLocalPtr<T> utilThreadLocalPtr<T>::make( T *ptr,
+                                                      UTIL_ALLOC_TYPE type )
+   {
+      utilThreadLocalPtr<T> recordPtr ;
+
+      if ( ptr )
+      {
+         /// create ref
+         if ( ALLOC_OSS == type )
+         {
+            recordPtr._pRef = ( INT64* )SDB_OSS_MALLOC( sizeof( INT64 ) ) ;
+         }
+         else if ( ALLOC_POOL == type )
+         {
+            recordPtr._pRef = ( INT64* )SDB_POOL_ALLOC( sizeof( INT64 ) ) ;
+         }
+         else
+         {
+            recordPtr._pRef = ( INT64* )SDB_THREAD_ALLOC( sizeof( INT64 ) ) ;
+         }
+
+         if ( recordPtr._pRef )
+         {
+            *(recordPtr._pRef) = 1 ;
+            recordPtr._ptr = ptr ;
+            recordPtr._allocType = type ;
+         }
+      }
+      return recordPtr ;
+   }
+
+   template< typename T >
+   void utilThreadLocalPtr<T>::release()
+   {
+      if ( _pRef )
+      {
+         INT64 orgRef = ( *_pRef ) -- ;
+         SDB_ASSERT( orgRef >= 1, "Ref is invalid" ) ;
          if ( 1 == orgRef )
          {
             if ( (CHAR*)_ptr - sizeof( INT64 ) == ( CHAR* )_pRef )

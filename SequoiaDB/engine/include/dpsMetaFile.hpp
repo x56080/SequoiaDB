@@ -186,8 +186,10 @@ namespace engine
       INT32 invalidateStatus( BOOLEAN resetSummary ) ;
       INT32 writeOldestLSNOffset( DPS_LSN_OFFSET offset ) ;
       INT32 writeTransMeta( DPS_LSN_OFFSET offset,
-                            const dpsLogSummary &summary ) ;
-      INT32 writeSummary( const dpsLogSummary &summary ) ;
+                            const dpsLogSummary &summary,
+                            BOOLEAN needSync = TRUE ) ;
+      INT32 writeSummary( const dpsLogSummary &summary,
+                          BOOLEAN needSync = TRUE ) ;
 
       DPS_LSN_OFFSET getCacheLSN() const { return _content._oldestLSNOffset ; }
       BOOLEAN        isCacheLSNValid() const ;
@@ -203,7 +205,7 @@ namespace engine
    private:
       INT32 _initNewFile() ;
       INT32 _restore() ;
-      INT32 writeContent() ;
+      INT32 writeContent( BOOLEAN needSync = TRUE ) ;
       INT32 readContent() ;
 
    private:

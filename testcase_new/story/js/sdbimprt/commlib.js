@@ -150,8 +150,8 @@ function importData ( csName, clName, importFile, type, fields, cast )
    var imprtOption = installDir + 'bin/sdbimprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
       + ' -c ' + csName + ' -l ' + clName
       + ' --type ' + type
-      + ' --file ' + importFile;
-   +' --insertnum ' + 10000;
+      + ' --file ' + importFile
+      +' --insertnum ' + 10000;
    if( type == 'csv' ) 
    {
       imprtOption = imprtOption + ' --fields "' + fields + '"';

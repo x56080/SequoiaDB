@@ -84,5 +84,5 @@ class TestGetSnapshot16660(testlib.SdbTestBase):
          flags = 0
          self.cl.bulk_insert(flags, doc)
       except SDBBaseError as e:
-         self.fail('insert fail: ' + e.detail)
+         self.fail('insert fail: ' + str(e))
          

@@ -1,7 +1,10 @@
+##名称##
+
+getSize - 获取文件的大小
 
 ##语法##
 
-***File.getSize( \<filepath\> )***
+**File.getSize(\<filepath\>)**
 
 ##类别##
 
@@ -32,14 +35,18 @@ File
 
 常见错误可参考[错误码][error_code]。
 
+##版本##
+
+v3.2 及以上版本
+
 ##示例##
 
-* 获取文件的大小。
+获取文件的大小
 
-  ```lang-javascript
-  > File.getSize( "/opt/sequoiadb/file.txt" )
-  13558
-  ```
+```lang-javascript
+> File.getSize( "/opt/sequoiadb/file.txt" )
+13558
+```
 
 
 [^_^]:
@@ -47,6 +54,6 @@ File
 [Length]:manual/Manual/Sequoiadb_Command/FileContent/getLength.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[faq]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
 

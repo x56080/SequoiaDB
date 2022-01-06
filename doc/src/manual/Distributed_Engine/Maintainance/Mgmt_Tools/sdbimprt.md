@@ -175,6 +175,7 @@ CSV类型转换
 | 参数名         | 缩写 | 描述 |
 | -------------- | ---- | ---- |
 | --delchar      | -a   | 指定字符串分隔符，默认值为双引号' " ' |
+| --autodelchar  |      | 针对没有字符串分隔符的 string 类型数据，指定是否自动补齐字符串分隔符，默认值为 false。当值为 true 时，会在字符串数据（包括前后的所有空格）的首尾补齐字符串符分隔符 |
 | --delfield     | -e   | 指定字段分隔符，默认值为逗号',' |
 | --fields       |      | 指定导入数据的字段名、类型及默认值 |
 | --datefmt      |      | 指定日期格式，默认值为“YYYY-MM-DD” |
@@ -182,7 +183,7 @@ CSV类型转换
 | --trim         |      | 删除字符串左右两侧的空格（包括 ASCII 空格和 UTF-8 全角空格），<br>取值可以是 no、right、left 或 both， 默认值为 no |
 | --headerline   |      | 指定导入数据首行是否作为字段名，默认值为 false，不指定首行数据为字段名 |
 | --sparse       |      | 指定导入数据时是否自动添加字段名，默认值为 true，字段名按 filed1、field2 顺序增加 |
-| --extra        |      | 指定导入数据中，数据的列比字段的列数多，是否自动添加 null 值，默认值为 false，不自动添加 |
+| --extra        |      | 指定导入数据中，数据的列数小于字段的列数时，是否自动添加 null 值，默认值为 false，不自动添加 |
 | --cast         |      | 指定是否允许数值类型转换时丢失精度或数值溢出，默认值为 false，不允许丢失精度或数据溢出 |
 | --strictfieldnum|     | 指定是否严格限制记录的字段数与定义的字段数一致，默认值为 false，不严格限制 |
 | --checkdelimeter|     | 是否严格校验分隔符，默认为 true <br>true：禁止字符分隔符、字段分隔符、记录分隔符互相包含 <br>false：允许字符分隔符、字段分隔符、记录分隔符互相包含|
@@ -232,6 +233,23 @@ CSV类型转换
 >       *   例如需要导入的数据中时间戳格式为“3/15/2015 T 12.30.123”，则设置 ```--timestampfmt="MM/DD/YYYY T mm.ss.SSS"``` 与该格式匹配
 >       *   例如指定带时区的时间戳：``--timestampfmt="YYYY-MM-DD HH.mm.ssZ"``
 >       *   例如指定东八区时间戳： ``--timestampfmt="YYYY-MM-DD HH.mm.ss+0800"``
+
+##结果字段解析##
+
+导入操作完成后，将会输出如下结果字段：
+
+| 字段名 | 描述 |
+| ------ | ---- | 
+| Parsed records | 解析成功的记录条数 |
+| Parsed failure | 解析失败的记录条数 |
+| Sharding records | 根据分区信息打包成功的记录条数 |
+| Sharding failure | 根据分区信息打包失败的记录条数 |
+| Imported records | 导入成功的记录条数 |
+| Imported failure | 导入失败的记录条数 |
+
+> **Note:**
+>
+> Sharding records 和 Sharding failure 仅在导入集合为分区集合且参数 --sharding 为 true 时统计。
 
 示例
 ----

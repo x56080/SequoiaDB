@@ -38,15 +38,6 @@ vi nodejs-12.14.1/demo/package-lock.json
         "mongodb": "^2.2.30",
         ......
 
-// mongoose驱动mongodb的版本
-
-    "mongoose": {
-      ......
-      "requires": {
-        ......
-        "mongodb": "3.1.13",
-        ......
-
 
 注意事项：
 必须在 demo 目录下执行用例

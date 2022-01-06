@@ -86,7 +86,8 @@ namespace engine
       _registerTask( SDB_ALTER_CL_CRT_ID_INDEX,
                      RTN_ALTER_COLLECTION,
                      RTN_ALTER_CL_CREATE_ID_INDEX,
-                     RTN_ALTER_TASK_FLAG_MAINCLALLOW ) ;
+                     ( RTN_ALTER_TASK_FLAG_SHARDLOCK |
+                       RTN_ALTER_TASK_FLAG_MAINCLALLOW ) ) ;
 
       // Create AutoIncrement Field
       _registerTask( SDB_ALTER_CL_CRT_AUTOINC_FLD,
@@ -100,7 +101,8 @@ namespace engine
       _registerTask( SDB_ALTER_CL_DROP_ID_INDEX,
                      RTN_ALTER_COLLECTION,
                      RTN_ALTER_CL_DROP_ID_INDEX,
-                     RTN_ALTER_TASK_FLAG_MAINCLALLOW ) ;
+                     ( RTN_ALTER_TASK_FLAG_SHARDLOCK |
+                       RTN_ALTER_TASK_FLAG_MAINCLALLOW ) ) ;
 
       /// Increase Version
       _registerTask( SDB_ALTER_CL_INC_VER,
@@ -400,6 +402,20 @@ namespace engine
 
             rc = _extractTasks( jobElement ) ;
             PD_RC_CHECK( rc, PDERROR, "failed to extract task list:%d", rc ) ;
+
+            /// alter info
+            jobElement = jobObject.getField( FIELD_NAME_ALTER_INFO ) ;
+            if ( !jobElement.eoo() )
+            {
+               PD_CHECK( Object == jobElement.type(),
+                         SDB_INVALIDARG, error, PDERROR,
+                         "invalid type of field [%s],request obj: %s",
+                         FIELD_NAME_ALTER_INFO,
+                         _jobObject.toString( FALSE, TRUE ).c_str() ) ;
+
+               rc = _alterInfo.init( jobElement.Obj() ) ;
+               PD_RC_CHECK( rc, PDERROR, "failed to init alter info:%d", rc ) ;
+            }
          }
       }
       catch ( exception & e )

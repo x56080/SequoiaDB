@@ -475,6 +475,7 @@ namespace engine
                                  const BSONObj &optionObj, string &err )
    {
       INT32 rc = SDB_OK ;
+      BOOLEAN isExist = FALSE ;
       UINT32 permission = OSS_DEFAULTFILE ;
       BOOLEAN isReplace = TRUE ;
 
@@ -586,7 +587,37 @@ namespace engine
       }
 #endif
 
+      // try to access file
+      rc = ossAccess( dst.c_str() ) ;
+      if ( SDB_OK != rc && SDB_FNE != rc )
+      {
+         PD_LOG( PDERROR, "failed to check file:%s existence, rc:%d",
+                 dst.c_str(), rc ) ;
+         err = "Failed to check file existence" ;
+         goto error ;
+      }
+      else if ( SDB_OK == rc )
+      {
+         isExist = TRUE ;
+      }
+      
       rc = ossFileCopy( src.c_str(), dst.c_str(), permission, isReplace ) ;
+      if ( !isExist && SDB_OK == rc )
+      {
+         if ( 0 == permission )
+         {
+            permission = OSS_DEFAULTFILE ;
+         }
+
+         rc = ossChmod( dst.c_str(), permission ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "failed to chmod of file:%s, rc:%d",
+		            dst.c_str(), rc ) ;
+            err = "Failed to chmod of file: " + dst ;
+            goto error ;
+         }
+      }
       if ( rc )
       {
          err = "Copy file failed" ;

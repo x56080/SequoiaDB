@@ -33,9 +33,9 @@ On success, return a lob ID.
 On error, exception will be thrown.
 .SH ERRORS
 .PP
-When error happen, use getLastErrMsg() to get the error message or use
+When error happens, use getLastErrMsg() to get the error message or use
 getLastError() to get the error code.
-See troubleshooting for more detail.
+See troubleshooting for more details.
 .SH EXAMPLES
 .IP \[bu] 2
 Create a lob ID by the Time in server side.
@@ -43,9 +43,9 @@ Create a lob ID by the Time in server side.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.createLobID()
+> db.sample.employee.createLobID()
 00005d36d096350002de7f3a
-Takes\ 0.329455s.
+Takes 0.329455s.
 \f[]
 .fi
 .RE
@@ -55,9 +55,9 @@ Create a lob ID by the specified Time.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.createLobID(\ "2015\-06\-05\-16.10.33.000000"\ )
+> db.sample.employee.createLobID( "2015\-06\-05\-16.10.33.000000" )
 00005571c9f93f03e8d8dd57
-Takes\ 0.108214s.
+Takes 0.108214s.
 \f[]
 .fi
 .RE

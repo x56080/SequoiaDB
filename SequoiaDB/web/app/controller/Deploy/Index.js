@@ -1,4 +1,4 @@
-﻿//@ sourceURL=Deploy.Index.Ctrl.js
+//@ sourceURL=Deploy.Index.Ctrl.js
 //"use strict" ;
 (function(){
    var sacApp = window.SdbSacManagerModule ;
@@ -136,6 +136,10 @@
                   if( moduleInfo['BusinessType'] == 'sequoiasql-mysql' )
                   {
                      moduleInfo['BusinessDesc'] = 'MySQL' ;
+                  }
+                  else if( moduleInfo['BusinessType'] == 'sequoiasql-mariadb' )
+                  {
+                     moduleInfo['BusinessDesc'] = 'MariaDB' ;
                   }
                   else if( moduleInfo['BusinessType'] == 'sequoiasql-postgresql' )
                   {
@@ -643,6 +647,8 @@
             $location.path( '/Data/SequoiaSQL/PostgreSQL/Database/Index' ).search( { 'r': new Date().getTime() } ) ; break ;
          case 'sequoiasql-mysql':
             $location.path( '/Data/SequoiaSQL/MySQL/Database/Index' ).search( { 'r': new Date().getTime() } ) ; break ;
+         case 'sequoiasql-mariadb':
+            $location.path( '/Data/SequoiaSQL/MariaDB/Database/Index' ).search( { 'r': new Date().getTime() } ) ; break ;
          case 'hdfs':
             $location.path( '/Data/HDFS-web/Index' ).search( { 'r': new Date().getTime() } ) ; break ;
          case 'spark':
@@ -732,7 +738,10 @@
                      getErrNodes( index2, index ) ;
                   }
 
-                  if( moduleInfo['BusinessType'] == 'sequoiadb' || moduleInfo['BusinessType'] == 'sequoiasql-postgresql' || moduleInfo['BusinessType'] == 'sequoiasql-mysql' )
+                  if( moduleInfo['BusinessType'] == 'sequoiadb' ||
+                      moduleInfo['BusinessType'] == 'sequoiasql-postgresql' ||
+                      moduleInfo['BusinessType'] == 'sequoiasql-mysql' ||
+                      moduleInfo['BusinessType'] == 'sequoiasql-mariadb' )
                   {
                      SdbSwap.queryAuth( moduleInfo['BusinessName'] ) ;
                   }
@@ -845,7 +854,7 @@
                      "type": "string",
                      "desc": $scope.autoLanguage( '用户名和密码需要与安装 SequoiaDB 的用户名和密码一致' ),
                      "required": true,
-                     "value": 'sdbadmin',
+                     "value": 'Admin@1024',
                      "valid": {
                         'min': 1,
                         'max': 1024
@@ -1086,7 +1095,7 @@
                      "type": "string",
                      "desc": $scope.autoLanguage( '用户名和密码需要与安装 SequoiaDB 的用户名和密码一致' ),
                      "required": true,
-                     "value": 'sdbadmin',
+                     "value": 'Admin@1024',
                      "valid": {
                         'min': 1,
                         'max': 1024

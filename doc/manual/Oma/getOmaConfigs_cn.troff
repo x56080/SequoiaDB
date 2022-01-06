@@ -73,27 +73,27 @@ T}@T{
 T}
 .TE
 .PP
-当异常抛出时，可以通过getLastError()获取错误码，
-或通过getLastErrMsg()获取错误信息。 可以参考常见错误处理指南了解更多内容。
+当异常抛出时，可以通过 getLastError() 获取错误码，或通过 getLastErrMsg()
+获取错误信息。 可以参考常见错误处理指南了解更多内容。
 .SH 版本
 .PP
-v1.0及以上版本。
+v1.0 及以上版本。
 .SH 示例
 .IP "1." 3
 打印 sdbcm 配置文件。
 .nf
 \f[C]
->\ Oma.getOmaConfigs()
+> Oma.getOmaConfigs()
 {
-\ \ \ \ "AutoStart":\ true,
-\ \ \ \ "DiagLevel":\ 3,
-\ \ \ \ "EnableWatch":\ "TRUE",
-\ \ \ \ "IsGeneral":\ "TRUE",
-\ \ \ \ "OMAddress":\ "rhel64\-test8:11785",
-\ \ \ \ "RestartCount":\ 5,
-\ \ \ \ "RestartInterval":\ 0,
-\ \ \ \ "defaultPort":\ "11790",
-\ \ \ \ "rhel64\-test8_Port":\ "11790"
+    "AutoStart": true,
+    "DiagLevel": 3,
+    "EnableWatch": "TRUE",
+    "IsGeneral": "TRUE",
+    "OMAddress": "rhel64\-test8:11785",
+    "RestartCount": 5,
+    "RestartInterval": 0,
+    "defaultPort": "11790",
+    "rhel64\-test8_Port": "11790"
 }
 \f[]
 .fi
@@ -102,9 +102,9 @@ v1.0及以上版本。
 获取 sdbcm 配置文件。
 .nf
 \f[C]
->\ var\ ret\ =\ Oma.getOmaConfigs()
->\ var\ obj\ =\ ret.toObj()
->\ println(obj["DiagLevel"])
+> var ret = Oma.getOmaConfigs()
+> var obj = ret.toObj()
+> println(obj["DiagLevel"])
 3
 \f[]
 .fi

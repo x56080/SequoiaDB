@@ -184,7 +184,6 @@ pmdMTFiles = [
       "sched/schedPrepareJob.cpp",
       "sched/schedDispatchJob.cpp",
       "sched/schedTaskMgr.cpp",
-
       "rtn/rtnQueryOptions.cpp"
       ]
 
@@ -279,6 +278,14 @@ omagentFiles = [
       "omagent/omagentStpCmd.cpp"
       ]
 
+stpCommonFiles = [
+      "tools/stp/stpNode.cpp",
+      "tools/stp/stpSyncStats.cpp",
+      "tools/stp/stpMetaData.cpp",
+      "tools/stp/stpOptions.cpp",
+      "tools/stp/stpToolUtil.cpp"
+      ]
+
 sptFiles = [
       "spt/sptCommon.cpp",
       "spt/sptSPObject.cpp",
@@ -348,7 +355,8 @@ sptFiles = [
       "spt/db/sptDBTraceOption.cpp",
       "spt/db/sptDBUser.cpp",
       "spt/db/sptDBCipherUser.cpp",
-      "spt/db/sptDBSequence.cpp"
+      "spt/db/sptDBSequence.cpp",
+      "spt/db/sptDBDataSource.cpp"
       ]
 
 ssh2Files = [
@@ -390,10 +398,10 @@ clientCppFiles = [
       "client/clientcpp.cpp",
       "client/common.c",
       "client/network.c",
-      "client/sdbDataSource.cpp",
-      "client/sdbDataSourceComm.cpp",
-      "client/sdbDataSourceStrategy.cpp",
-      "client/sdbDataSourceWorker.cpp",
+      "client/sdbConnectionPoolImpl.cpp",
+      "client/sdbConnectionPoolComm.cpp",
+      "client/sdbConnectionPoolStrategy.cpp",
+      "client/sdbConnectionPoolWorker.cpp",
       "bson/bsonobj.cpp",
       "bson/oid.cpp",
       "bson/base64.cpp",
@@ -675,12 +683,39 @@ sdbSEAdptFiles = [
       "tools/seadapter/seAdptCommand.cpp"
       ]
 
+sequoiaFSComFiles = [
+      "tools/sequoiafs/src/sequoiaFSDao.cpp",
+      "tools/sequoiafs/src/sequoiaFSCommon.cpp"
+]  
 sequoiaFSFiles = [
       "tools/sequoiafs/src/sequoiaFS.cpp",
-      "tools/sequoiafs/src/sequoiaFSLruCache.cpp",
+      "tools/sequoiafs/src/sequoiaFSLRUList.cpp",
       "tools/sequoiafs/src/sequoiaFSMain.cpp",
       "tools/sequoiafs/src/sequoiaFSOptionMgr.cpp",
+      "tools/sequoiafs/src/sequoiaFSDataCache.cpp",
+      "tools/sequoiafs/src/sequoiaFSFileLobMgr.cpp",
+      "tools/sequoiafs/src/sequoiaFSFileLob.cpp",
+      "tools/sequoiafs/src/sequoiaFSHashBucket.cpp",
+      "tools/sequoiafs/src/sequoiaFSCacheQueue.cpp",
+      "tools/sequoiafs/src/sequoiaFSDirMetaCache.cpp",
+      "tools/sequoiafs/src/sequoiaFSMetaHashBucket.cpp",
+      "tools/sequoiafs/src/sequoiaFSMetaCache.cpp",
+      "tools/sequoiafs/src/sequoiaFSMsgHandler.cpp",
+      "tools/sequoiafs/src/sequoiaFSRegister.cpp",
+      "tools/sequoiafs/src/sequoiaFSSessionMgr.cpp",
+      "tools/sequoiafs/src/sequoiaFSCacheLoader.cpp",
+      "tools/sequoiafs/src/sequoiaFSFileCreateHashBucket.cpp",
+      "tools/sequoiafs/src/sequoiaFSFileCreatingMgr.cpp",
+      "tools/sequoiafs/src/sequoiaFSSession.cpp"
     ]
+sequoiaMCSFiles = [
+      "tools/sequoiafs/src/sequoiaFSMCS.cpp",
+      "tools/sequoiafs/src/sequoiaFSMCSMsgHandler.cpp",
+      "tools/sequoiafs/src/sequoiaFSMCSRegister.cpp",
+      "tools/sequoiafs/src/sequoiaFSMCSOptionMgr.cpp",
+      "tools/sequoiafs/src/sequoiaFSMCSSessionMgr.cpp",
+      "tools/sequoiafs/src/sequoiaFSMCSSession.cpp"
+    ]    
 sdbPasswdFiles = [
       "tools/passwd/sdbPasswd.cpp"
     ]
@@ -732,6 +767,10 @@ if linux:
 toolEnv.StaticLibrary('spt', sptFiles)
 toolEnv.StaticLibrary('ssh2', ssh2Files)
 toolEnv.StaticLibrary('mon', monFiles)
+toolEnv.StaticLibrary('stpCommon', stpCommonFiles)
+#fs
+if linux64:
+   toolEnv.StaticLibrary('fs', sequoiaFSComFiles)
 
 #Export Executable
 sdbimprt = toolEnv.Program("sdbimprt", importFiles,
@@ -763,7 +802,7 @@ sdblist = toolEnv.Program("sdblist", sdbListMain,
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbcm = toolEnv.Program("sdbcm", sdbcmMain,
-         LIBDEPS=["pd","oss","msg","bson","util","net","pmd", "clientcpp","pmdMT","omagent","client", "spt","ssh2","rtnJob","mon"],
+         LIBDEPS=["pd","oss","msg","bson","util","net","pmd", "clientcpp","pmdMT","omagent","client", "spt","ssh2","rtnJob","mon","stpCommon"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbcmd = toolEnv.Program("sdbcmd", sdbcmDMNMain,
@@ -813,15 +852,21 @@ if linux:
                _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbseadapter = toolEnv.Program("sdbseadapter",
-		 sdbSEAdptFiles,
-		 LIBDEPS=["pd","oss","msg","util","bson","pmd","pmdMT","net","rtnJob","rtn","ixm","cls","mon"],
-		 _LIBDEPS='$_LIBDEPS_OBJS' )
-
+         sdbSEAdptFiles,
+         LIBDEPS=["pd","oss","msg","util","bson","pmd","pmdMT","net","rtnJob","rtn","ixm","cls","mon"],
+         _LIBDEPS='$_LIBDEPS_OBJS' )
+        
+if linux64:
+    sequoiamcs = toolEnv.Program("sequoiamcs",
+        sequoiaMCSFiles,
+        LIBDEPS=["bson", "oss", "pd", "util", "pmd", "pmdMT", "rtnJob", "rtn", "client", "clientcpp", "mon", "fs", "net", "msg"],
+        _LIBDEPS='$_LIBDEPS_OBJS' )    
+        
 if linux64:
     Import("fuse_lib")
     sequoiafs = toolEnv.Program("sequoiafs",
         sequoiaFSFiles,
-        LIBDEPS=["bson", "oss", "pd", "util", "pmd", "client", "clientcpp", "mon", fuse_lib],
+        LIBDEPS=["bson", "oss", "pd", "util", "pmd", "pmdMT", "rtnJob", "rtn", "client", "clientcpp", "mon", "fs", fuse_lib, "net", "msg"],
         _LIBDEPS='$_LIBDEPS_OBJS' )
 
 toolEnv.Install( '#/bin', sdbimprt )
@@ -847,4 +892,6 @@ if linux:
    toolEnv.Install( '#/bin', sdbomtool )
 if linux64:
    toolEnv.Install('#/tools/sequoiafs/bin', sequoiafs)
+if linux64:
+   toolEnv.Install('#/tools/sequoiafs/bin', sequoiamcs)
 toolEnv.Install( '#/bin', sdbseadapter )

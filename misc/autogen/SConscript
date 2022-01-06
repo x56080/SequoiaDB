@@ -391,7 +391,7 @@ srcFiles = [
    "version/versionGeneratorBase.cpp",
    "version/versionGenForDoc.cpp",
    "version/versionGenForBuild.cpp",
-   "version/versionGenForCrontask.cpp",
+   "version/versionGenForTools.cpp",
    "version/versionGenForPython.cpp",
 ]
 

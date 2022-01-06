@@ -251,7 +251,6 @@ namespace engine
    } ;
 
    typedef _coordCMDAnalyze coordCMDAnalyze ;
-
 }
 
 #endif // COORD_COMMAND_WITH_LOCATION_HPP__

@@ -1,7 +1,11 @@
 
+##名称##
+
+delUser - 删除操作系统用户
+
 ##语法##
 
-***System.delUser( \<users\> )***
+**System.delUser(\<users\>)**
 
 ##类别##
 
@@ -9,36 +13,49 @@ System
 
 ##描述##
 
-删除系统用户
+该函数用于删除操作系统用户。
 
 ##参数##
 
-| 参数名  | 参数类型 | 默认值       | 描述             | 是否必填 |
-| ------- | -------- | ------------ | ---------------- | -------- |
-| users     | JSON   | ---          | 用户信息       | 是       |
+users（ *object，必填* ）
 
-users 参数详细说明如下：
+通过参数 users 可以设置需要删除的用户：
 
-| 属性     | 值类型 | 是否<br>必填 | 格式 | 描述 |
-| -------- | ------ | -------- | -------------------- | ---------------------------------- |
-| name    | string |     是   | { "name": newUser }     | 用户名                        |
-| group    | string |     否   | { "group": groupname }     | 用户组                        |
+- name（ *string* ）：用户名，该参数必填
 
+    格式：`name: "username"`
+
+- isRemoveDir（ *boolean* ）：是否删除用户目录，默认为 false
+
+    格式：`isRemoveDir: true`
 
 ##返回值##
 
-无返回值。
+函数执行成功时，无返回值。
+
+函数执行失败时，将抛异常并输出错误信息。
 
 ##错误##
 
-如果出错则抛异常，并输出错误信息，可以通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误码。关于错误处理可以参考[常见错误处理指南](manual/faq.md)。
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
 
-常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
+##版本##
+
+v3.2 及以上版本
+
 ##示例##
 
-* 删除系统用户
+删除指定的系统用户
 
-  ```lang-javascript
-  > System.addUser( { "name": "newUser" } )
-  > System.delUser( { "name": "newUser" } )
-  ```
+```lang-javascript
+> System.delUser({name: "newUser"})
+```
+
+
+
+[^_^]:
+    本文使用的所有引用及链接
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md
+[faq]:manual/FAQ/faq_sdb.md

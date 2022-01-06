@@ -64,6 +64,7 @@ namespace engine
    {
       _dmsCB            = NULL ;
       _su               = NULL ;
+      _suLogicalID      = DMS_INVALID_LOGICCSID ;
       _mbContext        = NULL ;
       _scanType         = UNKNOWNSCAN ;
       _numToReturn      = -1 ;
@@ -140,6 +141,272 @@ namespace engine
       _appendRIDFilter = appendMode ;
    }
 
+   INT32 _rtnContextData::_getAdvanceOrderby( BSONObj &orderby ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      /// not ixscan
+      if ( IXSCAN != scanType() )
+      {
+         PD_LOG_MSG( PDERROR, "Table scan does not support advance" ) ;
+         rc = SDB_OPTION_NOT_SUPPORT ;
+      }
+      else if ( _planRuntime.getPlan()->sortRequired() )
+      {
+         PD_LOG_MSG( PDERROR, "Orderby is not the same with index" ) ;
+         rc = SDB_OPTION_NOT_SUPPORT ;
+      }
+      else
+      {
+         orderby = _planRuntime.getPlan()->getKey().getOrderBy() ;
+
+         if ( orderby.isEmpty() )
+         {
+            PD_LOG_MSG( PDERROR, "Context does not support advance without "
+                        "orderby" ) ;
+            rc = SDB_OPTION_NOT_SUPPORT ;
+         }
+      }
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXDATA__DOADVANCE, "_rtnContextData::_doAdvance" )
+   INT32 _rtnContextData::_doAdvance( INT32 type,
+                                      INT32 prefixNum,
+                                      const BSONObj &keyVal,
+                                      const BSONObj &orderby,
+                                      const BSONObj &arg,
+                                      BOOLEAN isLocate,
+                                      _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_RTNCTXDATA__DOADVANCE ) ;
+
+      BOOLEAN doLock = FALSE ;
+      const BSONObj *pSaveObj = NULL ;
+      ixmIndexCB *pIndexCB = NULL ;
+      dmsRecordID rid ;
+
+      if ( IXSCAN != _scanType )
+      {
+         PD_LOG( PDWARNING, "Table scan does not support advance" ) ;
+         rc = SDB_OPTION_NOT_SUPPORT ;
+         goto error ;
+      }
+
+      // lock
+      if ( !_mbContext->isMBLock() )
+      {
+         rc = _mbContext->mbLock( SHARED ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Lock collection failed, rc: %d", rc ) ;
+            goto error ;
+         }
+         doLock = TRUE ;
+      }
+
+      // check index
+      pIndexCB = _scanner->getIndexCB() ;
+      if ( !pIndexCB )
+      {
+         PD_LOG ( PDERROR, "Failed to allocate memory for indexCB" ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+      if ( !pIndexCB->isInitialized() )
+      {
+         rc = SDB_DMS_INIT_INDEX ;
+         goto done ;
+      }
+
+      if ( pIndexCB->getFlag() != IXM_INDEX_FLAG_NORMAL )
+      {
+         rc = SDB_IXM_UNEXPECTED_STATUS ;
+         goto done ;
+      }
+
+      // compare the historical index OID with the current index oid, to make
+      // sure the index is not changed during the time
+      if ( !pIndexCB->isStillValid ( _scanner->getIdxOID() ) ||
+           _scanner->getIdxLID() != pIndexCB->getLogicalID() )
+      {
+         rc = SDB_DMS_INVALID_INDEXCB ;
+         goto done ;
+      }
+
+      // check key and index def
+      try
+      {
+         // build located object
+         BSONObj objLocate ;
+         BSONObj keyPattern = pIndexCB->keyPattern() ;
+         INT32 keyPatternNum = keyPattern.nFields() ;
+         INT32 cmp = 0 ;
+
+         if ( _scanner->eof() )
+         {
+            goto done ;
+         }
+
+         if ( prefixNum > keyPatternNum )
+         {
+            SDB_ASSERT( FALSE, "Invalid prefix number" ) ;
+            prefixNum = keyPatternNum ;
+         }
+
+         if ( !_compareFieldName( orderby, keyPattern, prefixNum ) )
+         {
+            PD_LOG_MSG( PDERROR, "Orderby is not the prefix of key pattern" ) ;
+            rc = SDB_OPTION_NOT_SUPPORT ;
+            goto error ;
+         }
+
+         pSaveObj = _scanner->getSavedObj() ;
+         cmp = _woNCompare( keyVal, *pSaveObj, FALSE, prefixNum, orderby ) ;
+         if ( cmp < 0 )
+         {
+            goto done ;
+         }
+         else if ( MSG_ADVANCE_TO_FIRST_IN_VALUE == type && 0 == cmp )
+         {
+            goto done ;
+         }
+
+         /// build next value
+         if ( prefixNum == keyPatternNum && 0 == cmp )
+         {
+            objLocate = *pSaveObj ;
+         }
+         else
+         {
+            objLocate = _buildNextValueObj( keyPattern, keyVal,
+                                            prefixNum, type ) ;
+         }
+
+         /// build next rid
+         _buildNextRID( type, rid ) ;
+
+         /// relocate
+         rc = _scanner->relocateRID( objLocate, rid ) ;
+         if ( rc )
+         {
+            PD_LOG_MSG( PDERROR, "Relocate failed, rc: %d", rc ) ;
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      if ( doLock )
+      {
+         _mbContext->mbUnlock() ;
+      }
+      PD_TRACE_EXITRC( SDB_RTNCTXDATA__DOADVANCE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   BSONObj _rtnContextData::_buildNextValueObj( const BSONObj &keyPattern,
+                                                const BSONObj &srcVal,
+                                                UINT32 keepNum,
+                                                INT32 type ) const
+   {
+      BSONObjBuilder builder ;
+      BSONObjIterator itrKey( keyPattern ) ;
+      BSONObjIterator itrVal( srcVal ) ;
+
+      for ( UINT32 i = 0 ; i < keepNum && itrKey.more() && itrVal.more() ; ++i )
+      {
+         itrKey.next() ;
+         builder.appendAs( itrVal.next(), "" ) ;
+      }
+
+      while( itrKey.more() )
+      {
+         BSONElement e = itrKey.next() ;
+
+         if ( _direction * e.numberInt() > 0 )
+         {
+            if ( MSG_ADVANCE_TO_FIRST_IN_VALUE == type )
+            {
+               builder.appendMinKey( "" ) ;
+            }
+            else
+            {
+               builder.appendMaxKey( "" ) ;
+            }
+         }
+         else
+         {
+            if ( MSG_ADVANCE_TO_FIRST_IN_VALUE == type )
+            {
+               builder.appendMaxKey( "" ) ;
+            }
+            else
+            {
+               builder.appendMinKey( "" ) ;
+            }
+         }
+      }
+
+      return builder.obj() ;
+   }
+
+   void _rtnContextData::_buildNextRID( INT32 type,
+                                        dmsRecordID &rid ) const
+   {
+      if ( _direction > 0 )
+      {
+         if ( MSG_ADVANCE_TO_FIRST_IN_VALUE == type )
+         {
+            rid.resetMin() ;
+         }
+         else
+         {
+            rid.resetMax() ;
+         }
+      }
+      else
+      {
+         if ( MSG_ADVANCE_TO_FIRST_IN_VALUE == type )
+         {
+            rid.resetMax() ;
+         }
+         else
+         {
+            rid.resetMin() ;
+         }
+      }
+   }
+
+   BOOLEAN _rtnContextData::_compareFieldName( const BSONObj &orderby,
+                                               const BSONObj &keyPattern,
+                                               UINT32 prefixNum ) const
+   {
+      BSONObjIterator itO( orderby ) ;
+      BSONObjIterator itK( keyPattern ) ;
+      UINT32 i = 0 ;
+
+      for ( ; i < prefixNum && itO.more() && itK.more() ; ++i )
+      {
+         if ( 0 != ossStrcmp( itO.next().fieldName(),
+                              itK.next().fieldName() ) )
+         {
+            return FALSE ;
+         }
+      }
+
+      return i == prefixNum ? TRUE : FALSE ;
+   }
+
    void _rtnContextData::_toString( stringstream & ss )
    {
       if ( NULL != _su && NULL != _planRuntime.getPlan() )
@@ -193,6 +460,10 @@ namespace engine
          rc = SDB_IXM_NOTEXIST ;
          goto error ;
       }
+
+      /// set direction
+      _direction = _planRuntime.getPlan()->getDirection() ;
+
       // get the predicate list
       predList = _planRuntime.getPredList() ;
       SDB_ASSERT ( predList, "predList can't be NULL" ) ;
@@ -213,8 +484,13 @@ namespace engine
       {
          SDB_ASSERT( direction == 1 || direction == -1,
                      "direction must be 1 or -1" ) ;
+         if ( _direction != direction )
+         {
+            PD_LOG( PDERROR, "Direction is not the same with access plan" ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
 
-         _direction = direction ;
          rc = _parseIndexBlocks( *blockObj, _indexBlocks, _indexRIDs ) ;
          PD_RC_CHECK( rc, PDERROR, "Parse index blocks failed, rc: %d", rc ) ;
          _indexBlockScan = TRUE ;
@@ -306,7 +582,6 @@ namespace engine
          isStictType = TRUE ;
       }
 
-      _isOpened = TRUE ;
       _hitEnd = FALSE ;
 
       if ( TBSCAN == _planRuntime.getScanType() )
@@ -365,6 +640,7 @@ namespace engine
 
       _dmsCB = pmdGetKRCB()->getDMSCB() ;
       _su = su ;
+      _suLogicalID = su->LogicalCSID() ;
       _mbContext = mbContext ;
       _scanType = _planRuntime.getScanType() ;
 
@@ -375,13 +651,14 @@ namespace engine
       _numToReturn = returnOptions.getLimit() ;
       _numToSkip = returnOptions.getSkip() ;
 
+      _isOpened = TRUE ;
       if ( 0 == _numToReturn )
       {
          _hitEnd = TRUE ;
       }
 
       // register read transaction
-      cb->regReadTran() ;
+      sdbGetTransCB()->regReadTran( cb ) ;
 
    done:
       mbContext->mbUnlock() ;
@@ -460,6 +737,7 @@ namespace engine
 
       _dmsCB = pmdGetKRCB()->getDMSCB() ;
       _su = su ;
+      _suLogicalID = su->LogicalCSID() ;
       _mbContext = mbContext ;
       _scanType = _planRuntime.getScanType() ;
       _numToReturn = numToReturn ;
@@ -536,7 +814,7 @@ namespace engine
          rc = _su->data()->updateRecord( _mbContext, recordID,
                                          recordDataPtr, eduCB, getDPSCB(),
                                          _queryModifier->getModifier(),
-                                         newObjPtr, pHandler ) ;
+                                         newObjPtr, pHandler, NULL, pInfo ) ;
          PD_RC_CHECK( rc, PDERROR, "Update record failed, rc: %d", rc ) ;
          _queryModifier->getDollarList()->clear() ;
       }
@@ -1372,6 +1650,12 @@ namespace engine
       }
       else if ( IXSCAN == _scanType && FALSE == _indexBlockScan )
       {
+         if ( !_planRuntime.getPlan()->getKey().getOrderBy().isEmpty() &&
+              !_planRuntime.getPlan()->sortRequired() )
+         {
+            goto done ;
+         }
+
          rc = rtnGetIndexSeps( &_planRuntime, su, mbContext, cb, _indexBlocks,
                                _indexRIDs ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get index seperations, rc: %d",
@@ -1419,6 +1703,14 @@ namespace engine
       mbContext->mbUnlock() ;
       return rc ;
    error:
+      if ( NULL != _mbContext )
+      {
+         _mbContext = NULL ;
+      }
+      if ( NULL != _su )
+      {
+         _su = NULL ;
+      }
       goto done ;
    }
 
@@ -1611,6 +1903,30 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 _rtnContextParaData::_doAdvance( INT32 type,
+                                          INT32 prefixNum,
+                                          const BSONObj &keyVal,
+                                          const BSONObj &orderby,
+                                          const BSONObj &arg,
+                                          BOOLEAN isLocate,
+                                          _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( !_isParalled )
+      {
+         rc = _rtnContextData::_doAdvance( type, prefixNum, keyVal, orderby,
+                                           arg, isLocate, cb ) ;
+      }
+      else
+      {
+         rc = _rtnContextBase::_doAdvance( type, prefixNum, keyVal, orderby,
+                                           arg, isLocate, cb ) ;
+      }
+
+      return rc ;
    }
 
    INT32 _rtnContextParaData::_getSubContextData( pmdEDUCB * cb )

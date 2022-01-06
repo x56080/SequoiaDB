@@ -41,10 +41,10 @@ Recount the sequence with the current value of 10 to 1.
 .IP
 .nf
 \f[C]
->\ sequence.getNextValue()
+> sequence.getNextValue()
 10
->\ sequence.restart()
->\ sequence.getNextValue()
+> sequence.restart()
+> sequence.getNextValue()
 1
 \f[]
 .fi

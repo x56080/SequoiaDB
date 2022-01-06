@@ -18,7 +18,7 @@ class TestString12450(testlib.SdbTestBase):
          self.db.drop_collection_space(self.cs_name)
       except SDBBaseError as e:
          if -34 != e.code:
-            self.fail("drop_cs_fail,detail:" + e.detail)
+            self.fail("drop_cs_fail,detail:" + str(e))
       self.cs = self.db.create_collection_space(self.cs_name)
       self.cl = self.cs.create_collection(self.cl_name)
 
@@ -84,7 +84,7 @@ class TestString12450(testlib.SdbTestBase):
          self.fail("need_an_error")
       except SDBBaseError as e:
          if -24 != e.code:
-            self.fail("insert_fail,detail:" + e.detail)
+            self.fail("insert_fail,detail:" + str(e))
       
       #query data and check
       check_Result(self.cl, {}, {}, {}, {}, False)

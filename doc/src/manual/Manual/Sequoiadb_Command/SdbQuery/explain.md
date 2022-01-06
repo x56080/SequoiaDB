@@ -1,6 +1,10 @@
+##名称##
+
+explain - 获取查询的访问计划
+
 ##语法##
 
-***query.explain( \[options\] )***
+**query.explain( \[options\] )**
 
 ##类别##
 
@@ -30,6 +34,7 @@ options 参数详细说明如下：
 | SubCollections | 字符串 或者 数组 | 表示对访问计划的结果按照子表进行过滤。<br>SubCollections 选项只在带有主子表的访问计划时生效。<br>SubCollections 选项可以选择某个子表名，或者子表名的数组，表示只显示指定子表的访问计划。<br>SubCollections 选项为 [] 或者 null 表示为不进行过滤。<br>如果 SubCollections 选项显式设置，Detail 选项自动设置为 true。  | 空 |
 | Search         | 布尔型           | 表示是否查看查询优化器搜索过的访问计划，并查看查询优化器选择的结果。<br>Search 选项为 true 表示展示查询优化器的选择过程。<br>Search 选项为 false 表示不展示查询优化器的选择过程。<br>如果 Search 选项显式设置，Detail 选项和 Expand 选项自动设置为 true。 | false |
 | Evaluate       | 布尔型           | 表示是否查看查询优化器搜索过的访问计划的计算过程。<br>Evaluate 选项为 true 表示展示查询优化器的计算过程。<br>Evaluate 选项为 false 表示不展示查询优化器的计算过程。<br>如果 Evaluate 选项显式设置，Detail 选项、Search 选项和 Expand 选项自动设置成 true。 | false |
+| Abbrev         | 布尔型           | 表示是否对过长的字符串进行简略输出。| false |
 
 ##普通的访问计划##
 
@@ -44,10 +49,10 @@ Detail 选项为 false 时，将会展示普通的访问计划。
 | Role           | 字符串    | 访问计划所在的节点的角色<br>1. "data" 表示数据节点<br>2. "coord" 表示协调节点 |
 | Name           | 字符串    | 访问计划访问的集合的名称                         |
 | ScanType       | 字符串    | 访问计划的扫描方式<br>1. "tbscan" 表示全表扫描<br>2. "ixscan" 表示索引扫描 |
-| IndexName      | 字符串    | 访问计划使用的索引的名称<br>全表扫描时为 ""      |
+| IndexName      | 字符串    | 访问计划使用的索引的名称<br>全表扫描时，字段值为 ""      |
 | UseExtSort     | 布尔型    | 访问计划是否使用非索引排序                       |
 | Query          | BSON 对象 | 访问计划解析后的用户查询条件                     |
-| IXBound        | BSON 对象 | 访问计划使用索引的查找范围<br全>表扫描为 null    |
+| IXBound        | BSON 对象 | 访问计划使用索引的查找范围<br>全表扫描时，字段值为 null  |
 | NeedMatch      | 布尔型    | 访问计划获取记录时是否需要根据匹配符进行过滤<br>NeedMatch 为 false 的情况有：<br>1. 没有查询条件<br>2. 查询条件可以被索引覆盖 |
 | IndexCover     | 布尔型    | 访问计划匹配条件字段、选择字段、排序字段是否被索引覆盖。<br>被索引覆盖可以直接使用索引键值替代集合记录，提升访问性能 |
 | ReturnNum      | 长整型    | 访问计划返回记录的个数                           |
@@ -57,7 +62,7 @@ Detail 选项为 false 时，将会展示普通的访问计划。
 | UserCPU        | 浮点数    | 访问计划用户态 CPU 使用时间（单位：秒）          |
 | SysCPU         | 浮点数    | 访问计划内核态 CPU 使用时间（单位：秒）          |
 
-垂直分区中主表的访问计划信息：
+表分区中主表的访问计划信息：
 
 | 字段名         | 类型      | 描述                                             |
 | -------------- | --------- | ------------------------------------------------ |
@@ -65,18 +70,18 @@ Detail 选项为 false 时，将会展示普通的访问计划。
 | GroupName      | 字符串    | 访问计划所在的节点属于的复制组的名称             |
 | Role           | 字符串    | 访问计划所在的节点的角色<br>1. "data" 表示数据节点<br>2. "coord" 表示协调节点 |
 | Name           | 字符串    | 访问计划访问的集合的名称                         |
-| SubCollections | 数组      | 访问计划垂直分区表中各子表的访问计划             |
+| SubCollections | 数组      | 表分区中各子表的访问计划                         |
 
-垂直分区中子表的访问计划信息：
+表分区中子表的访问计划信息：
 
 | 字段名         | 类型      | 描述                                             |
 | -------------- | --------- | ------------------------------------------------ |
 | Name           | 字符串    | 访问计划访问的集合的名称                         |
 | ScanType       | 字符串    | 访问计划的扫描方式<br>1. "tbscan" 表示全表扫描<br>2. "ixscan" 表示索引扫描 |
-| IndexName      | 字符串    | 访问计划使用的索引的名称<br>全表扫描时为 ""      |
+| IndexName      | 字符串    | 访问计划使用的索引的名称<br>全表扫描时，字段值为 ""      |
 | UseExtSort     | 布尔型    | 访问计划是否使用非索引排序                       |
 | Query          | BSON 对象 | 访问计划解析后的用户查询条件                     |
-| IXBound        | BSON 对象 | 访问计划使用索引的查找范围<br全>表扫描为 null    |
+| IXBound        | BSON 对象 | 访问计划使用索引的查找范围<br>全表扫描时，字段值为 null    |
 | NeedMatch      | 布尔型    | 访问计划获取记录时是否需要根据匹配符进行过滤<br>NeedMatch 为 false 的情况有：<br>1. 没有查询条件<br>2. 查询条件可以被索引覆盖 |
 | IndexCover     | 布尔型    | 访问计划匹配条件字段、选择字段、排序字段是否被索引覆盖。<br>被索引覆盖可以直接使用索引键值替代集合记录，提升访问性能 |
 | ReturnNum      | 长整型    | 访问计划返回记录的个数                           |
@@ -89,16 +94,17 @@ Detail 选项为 false 时，将会展示普通的访问计划。
 >   **Note:**
 >
 >   1.  如果集合经过 split 分布在多个复制组，访问计划会按照一组一记录的方式返回。
->   2.  如果查询的匹配符不能命中垂直分区的任何一个分区时，查询将不会下发到数据节点上执行，此时的访问计划将返回一个带有协调节点的虚拟访问计划。
+>   2.  如果查询的匹配符不能命中表分区的任何一个分区时，查询将不会下发到数据节点上执行，此时的访问计划将返回一个带有协调节点的虚拟访问计划。
 
-##详细的访问计划##
+### 详细的访问计划
 
 Detail 选项为 true 时，将会展示[详细的访问计划][explain]。在协调节点和数据节点上展示的详细访问计划略有不同。
 
 
-##访问计划的搜索过程##
+### 访问计划的搜索过程
 
 Search 选项为 true 时，将会展示[访问计划的搜索过程][cost_estimation]，并查看查询优化器选择的结果。
+
 ##返回值##
 
 返回访问计划的游标，类型为 object 。
@@ -110,1278 +116,1282 @@ Search 选项为 true 时，将会展示[访问计划的搜索过程][cost_estim
 
 常见错误可参考[错误码][error_code]。
 
+##版本##
+
+v2.0 及以上版本。
+
 ##示例##
 
-*   普通表的访问计划
+* 普通表的访问计划
 
-```lang-json
-{
-  "Name": "sample.employee",
-  "ScanType": "ixscan",
-  "IndexName": "$shard",
-  "UseExtSort": false,
-  "Query": {
-    "$and": [
-      {
-        "a": {
-          "$gt": 1
-        }
-      }
-    ]
-  },
-  "IXBound": {
-    "a": [
-      [
-        1,
-        {
-          "$maxElement": 1
-        }
-      ]
-    ]
-  },
-  "NeedMatch": false,
-  "IndexCover": true,
-  "NodeName": "hostname:11830",
-  "GroupName": "group",
-  "Role": "data",
-  "ReturnNum": 0,
-  "ElapsedTime": 0.000107,
-  "IndexRead": 0,
-  "DataRead": 0,
-  "UserCPU": 0,
-  "SysCPU": 0
-}
-```
-
-*   垂直分区的访问计划
-
-```lang-json
-{
-  "NodeName": "hostname:11830",
-  "GroupName": "group",
-  "Role": "data",
-  "Name": "maincs.maincl",
-  "SubCollections": [
+    ```lang-json
     {
-      "Name": "subcs.subcl1",
-      "ScanType": "tbscan",
-      "IndexName": "",
+      "Name": "sample.employee",
+      "ScanType": "ixscan",
+      "IndexName": "$shard",
       "UseExtSort": false,
       "Query": {
-        "$and": []
+        "$and": [
+          {
+            "a": {
+              "$gt": 1
+            }
+          }
+        ]
       },
-      "IXBound": null,
-      "NeedMatch": false,
-      "IndexCover": false,
-      "ReturnNum": 0,
-      "ElapsedTime": 0.000088,
-      "IndexRead": 0,
-      "DataRead": 0,
-      "UserCPU": 0,
-      "SysCPU": 0
-    },
-    {
-      "Name": "subcs.subcl2",
-      "ScanType": "tbscan",
-      "IndexName": "",
-      "UseExtSort": false,
-      "Query": {
-        "$and": []
+      "IXBound": {
+        "a": [
+          [
+            1,
+            {
+              "$maxElement": 1
+            }
+          ]
+        ]
       },
-      "IXBound": null,
       "NeedMatch": false,
       "IndexCover": true,
+      "NodeName": "hostname:11830",
+      "GroupName": "group",
+      "Role": "data",
       "ReturnNum": 0,
-      "ElapsedTime": 0.000089,
+      "ElapsedTime": 0.000107,
       "IndexRead": 0,
       "DataRead": 0,
       "UserCPU": 0,
       "SysCPU": 0
     }
-  ]
-}
-```
+    ```
 
-*   协调节点上的虚拟访问计划，即匹配符不能命中任何分区
+* 表分区的访问计划
 
-```lang-json
-{
-  "NodeName": "hostname:11810",
-  "GroupName": "SYSCoord",
-  "Role": "coord",
-  "Collection": "maincs.maincl",
-  "Query": {
-    "a": 10000000
-  },
-}
-```
+    ```lang-json
+    {
+      "NodeName": "hostname:11830",
+      "GroupName": "group",
+      "Role": "data",
+      "Name": "maincs.maincl",
+      "SubCollections": [
+        {
+          "Name": "subcs.subcl1",
+          "ScanType": "tbscan",
+          "IndexName": "",
+          "UseExtSort": false,
+          "Query": {
+            "$and": []
+          },
+          "IXBound": null,
+          "NeedMatch": false,
+          "IndexCover": false,
+          "ReturnNum": 0,
+          "ElapsedTime": 0.000088,
+          "IndexRead": 0,
+          "DataRead": 0,
+          "UserCPU": 0,
+          "SysCPU": 0
+        },
+        {
+          "Name": "subcs.subcl2",
+          "ScanType": "tbscan",
+          "IndexName": "",
+          "UseExtSort": false,
+          "Query": {
+            "$and": []
+          },
+          "IXBound": null,
+          "NeedMatch": false,
+          "IndexCover": true,
+          "ReturnNum": 0,
+          "ElapsedTime": 0.000089,
+          "IndexRead": 0,
+          "DataRead": 0,
+          "UserCPU": 0,
+          "SysCPU": 0
+        }
+      ]
+    }
+    ```
 
-*   查看查询的普通访问计划，并使用 Run 选项执行查询
+* 协调节点上的虚拟访问计划，即匹配符不能命中任何分区
 
-```lang-javascript
-> db.sample.employee.find( { a : { $gt : 100 } } ).explain( { Run : true } )
-{
-  "NodeName": "hostname:11810",
-  "GroupName": "group1",
-  "Role": "data",
-  "Name": "sample.employee",
-  "ScanType": "tbscan",
-  "IndexName": "",
-  "UseExtSort": false,
-  "Query": {
-    "$and": [
-      {
+    ```lang-json
+    {
+      "NodeName": "hostname:11810",
+      "GroupName": "SYSCoord",
+      "Role": "coord",
+      "Collection": "maincs.maincl",
+      "Query": {
+        "a": 10000000
+      },
+    }
+    ```
+
+* 查看查询的普通访问计划，并使用 Run 选项执行查询
+
+    ```lang-javascript
+    > db.sample.employee.find( { a : { $gt : 100 } } ).explain( { Run : true } )
+    {
+      "NodeName": "hostname:11810",
+      "GroupName": "group1",
+      "Role": "data",
+      "Name": "sample.employee",
+      "ScanType": "tbscan",
+      "IndexName": "",
+      "UseExtSort": false,
+      "Query": {
+        "$and": [
+          {
+            "a": {
+              "$gt": 100
+            }
+          }
+        ]
+      },
+      "IXBound": null,
+      "NeedMatch": true,
+      "IndexCover": false,
+      "ReturnNum": 49892,
+      "ElapsedTime": 0.323423,
+      "IndexRead": 0,
+      "DataRead": 49945,
+      "UserCPU": 0.1399999999999999,
+      "SysCPU": 0
+    }
+    {
+      "NodeName": "hostname:11820",
+      "GroupName": "group2",
+      "Role": "data",
+      "Name": "sample.employee",
+      "ScanType": "tbscan",
+      "IndexName": "",
+      "UseExtSort": false,
+      "Query": {
+        "$and": [
+          {
+            "a": {
+              "$gt": 100
+            }
+          }
+        ]
+      },
+      "IXBound": null,
+      "NeedMatch": true,
+      "IndexCover": false,
+      "ReturnNum": 50007,
+      "ElapsedTime": 0.41887,
+      "IndexRead": 0,
+      "DataRead": 50055,
+      "UserCPU": 0.1400000000000006,
+      "SysCPU": 0.009999999999999787
+    }
+    ```
+
+* 使用 Detail 选项查看查询的详细访问计划
+
+    ```lang-javascript
+    > db.sample.employee.find( { a : { $gt : 100 } } ).explain( { Detail : true } )
+    {
+      "NodeName": "hostname:11800",
+      "GroupName": "SYSCoord",
+      "Role": "coord",
+      "Collection": "sample.employee",
+      "Query": {
         "a": {
           "$gt": 100
         }
+      },
+      "Sort": {},
+      "Selector": {},
+      "Hint": {},
+      "Skip": 0,
+      "Return": -1,
+      "Flag": 0,
+      "ReturnNum": 0,
+      "ElapsedTime": 0.00123,
+      "IndexRead": 0,
+      "DataRead": 0,
+      "UserCPU": 0,
+      "SysCPU": 0,
+      "PlanPath": {
+        "Operator": "COORD-MERGE",
+        "Sort": {},
+        "NeedReorder": false,
+        "DataNodeNum": 2,
+        "DataNodeList": [
+          {
+            "Name": "hostname:11810",
+            "EstTotalCost": 1.484
+          },
+          {
+            "Name": "hostname:11820",
+            "EstTotalCost": 0.7418349999999999
+          }
+        ],
+        "Selector": {},
+        "Skip": 0,
+        "Return": -1,
+        "Estimate": {
+          "StartCost": 0,
+          "RunCost": 1.5214865,
+          "TotalCost": 1.5214865,
+          "Output": {
+            "Records": 74973,
+            "RecordSize": 29,
+            "Sorted": false
+          }
+        },
+        "ChildOperators": [
+          {
+            "NodeName": "hostname:11810",
+            "GroupName": "group1",
+            "Role": "data",
+            "Collection": "sample.employee",
+            "Query": {
+              "a": {
+                "$gt": 100
+              }
+            },
+            "Sort": {},
+            "Selector": {},
+            "Hint": {},
+            "Skip": 0,
+            "Return": -1,
+            "Flag": 2048,
+            "ReturnNum": 0,
+            "ElapsedTime": 0.000078,
+            "IndexRead": 0,
+            "DataRead": 0,
+            "UserCPU": 0,
+            "SysCPU": 0,
+            "CacheStatus": "HitCache",
+            "MainCLPlan": false,
+            "CacheLevel": "OPT_PLAN_PARAMETERIZED",
+            "Parameters": [
+              100
+            ],
+            "MatchConfig": {
+              "EnableMixCmp": false,
+              "Parameterized": true,
+              "FuzzyOptr": false
+            }
+          },
+          {
+            "NodeName": "hostname:11820",
+            "GroupName": "group2",
+            "Role": "data",
+            "Collection": "sample.employee",
+            "Query": {
+              "a": {
+                "$gt": 100
+              }
+            },
+            "Sort": {},
+            "Selector": {},
+            "Hint": {},
+            "Skip": 0,
+            "Return": -1,
+            "Flag": 2048,
+            "ReturnNum": 0,
+            "ElapsedTime": 0.000081,
+            "IndexRead": 0,
+            "DataRead": 0,
+            "UserCPU": 0,
+            "SysCPU": 0,
+            "CacheStatus": "HitCache",
+            "MainCLPlan": false,
+            "CacheLevel": "OPT_PLAN_PARAMETERIZED",
+            "Parameters": [
+              100
+            ],
+            "MatchConfig": {
+              "EnableMixCmp": false,
+              "Parameterized": true,
+              "FuzzyOptr": false
+            }
+          }
+        ]
       }
-    ]
-  },
-  "IXBound": null,
-  "NeedMatch": true,
-  "IndexCover": false,
-  "ReturnNum": 49892,
-  "ElapsedTime": 0.323423,
-  "IndexRead": 0,
-  "DataRead": 49945,
-  "UserCPU": 0.1399999999999999,
-  "SysCPU": 0
-}
-{
-  "NodeName": "hostname:11820",
-  "GroupName": "group2",
-  "Role": "data",
-  "Name": "sample.employee",
-  "ScanType": "tbscan",
-  "IndexName": "",
-  "UseExtSort": false,
-  "Query": {
-    "$and": [
-      {
+    }
+    ```
+
+* 使用 Detail 选项查看查询的详细访问计划，并使用 Run 选项执行查询
+
+    ```lang-javascript
+    > db.sample.employee.find( { a : { $gt : 100 } } ).explain( { Detail : true, Run : true } )
+    {
+      "NodeName": "hostname:11800",
+      "GroupName": "SYSCoord",
+      "Role": "coord",
+      "Collection": "sample.employee",
+      "Query": {
         "a": {
           "$gt": 100
         }
-      }
-    ]
-  },
-  "IXBound": null,
-  "NeedMatch": true,
-  "IndexCover": false,
-  "ReturnNum": 50007,
-  "ElapsedTime": 0.41887,
-  "IndexRead": 0,
-  "DataRead": 50055,
-  "UserCPU": 0.1400000000000006,
-  "SysCPU": 0.009999999999999787
-}
-```
-
-*   使用 Detail 选项查看查询的详细访问计划
-
-```lang-javascript
-> db.sample.employee.find( { a : { $gt : 100 } } ).explain( { Detail : true } )
-{
-  "NodeName": "hostname:11800",
-  "GroupName": "SYSCoord",
-  "Role": "coord",
-  "Collection": "sample.employee",
-  "Query": {
-    "a": {
-      "$gt": 100
-    }
-  },
-  "Sort": {},
-  "Selector": {},
-  "Hint": {},
-  "Skip": 0,
-  "Return": -1,
-  "Flag": 0,
-  "ReturnNum": 0,
-  "ElapsedTime": 0.00123,
-  "IndexRead": 0,
-  "DataRead": 0,
-  "UserCPU": 0,
-  "SysCPU": 0,
-  "PlanPath": {
-    "Operator": "COORD-MERGE",
-    "Sort": {},
-    "NeedReorder": false,
-    "DataNodeNum": 2,
-    "DataNodeList": [
-      {
-        "Name": "hostname:11810",
-        "EstTotalCost": 1.484
       },
-      {
-        "Name": "hostname:11820",
-        "EstTotalCost": 0.7418349999999999
-      }
-    ],
-    "Selector": {},
-    "Skip": 0,
-    "Return": -1,
-    "Estimate": {
-      "StartCost": 0,
-      "RunCost": 1.5214865,
-      "TotalCost": 1.5214865,
-      "Output": {
-        "Records": 74973,
-        "RecordSize": 29,
-        "Sorted": false
-      }
-    },
-    "ChildOperators": [
-      {
-        "NodeName": "hostname:11810",
-        "GroupName": "group1",
-        "Role": "data",
-        "Collection": "sample.employee",
-        "Query": {
-          "a": {
-            "$gt": 100
-          }
-        },
-        "Sort": {},
-        "Selector": {},
-        "Hint": {},
-        "Skip": 0,
-        "Return": -1,
-        "Flag": 2048,
-        "ReturnNum": 0,
-        "ElapsedTime": 0.000078,
-        "IndexRead": 0,
-        "DataRead": 0,
-        "UserCPU": 0,
-        "SysCPU": 0,
-        "CacheStatus": "HitCache",
-        "MainCLPlan": false,
-        "CacheLevel": "OPT_PLAN_PARAMETERIZED",
-        "Parameters": [
-          100
-        ],
-        "MatchConfig": {
-          "EnableMixCmp": false,
-          "Parameterized": true,
-          "FuzzyOptr": false
-        }
-      },
-      {
-        "NodeName": "hostname:11820",
-        "GroupName": "group2",
-        "Role": "data",
-        "Collection": "sample.employee",
-        "Query": {
-          "a": {
-            "$gt": 100
-          }
-        },
-        "Sort": {},
-        "Selector": {},
-        "Hint": {},
-        "Skip": 0,
-        "Return": -1,
-        "Flag": 2048,
-        "ReturnNum": 0,
-        "ElapsedTime": 0.000081,
-        "IndexRead": 0,
-        "DataRead": 0,
-        "UserCPU": 0,
-        "SysCPU": 0,
-        "CacheStatus": "HitCache",
-        "MainCLPlan": false,
-        "CacheLevel": "OPT_PLAN_PARAMETERIZED",
-        "Parameters": [
-          100
-        ],
-        "MatchConfig": {
-          "EnableMixCmp": false,
-          "Parameterized": true,
-          "FuzzyOptr": false
-        }
-      }
-    ]
-  }
-}
-```
-
-*   使用 Detail 选项查看查询的详细访问计划，并使用 Run 选项执行查询
-
-```lang-javascript
-> db.sample.employee.find( { a : { $gt : 100 } } ).explain( { Detail : true, Run : true } )
-{
-  "NodeName": "hostname:11800",
-  "GroupName": "SYSCoord",
-  "Role": "coord",
-  "Collection": "sample.employee",
-  "Query": {
-    "a": {
-      "$gt": 100
-    }
-  },
-  "Sort": {},
-  "Selector": {},
-  "Hint": {},
-  "Skip": 0,
-  "Return": -1,
-  "Flag": 0,
-  "ReturnNum": 99899,
-  "ElapsedTime": 0.82863,
-  "IndexRead": 0,
-  "DataRead": 0,
-  "UserCPU": 0.01999999999999999,
-  "SysCPU": 0.009999999999999995,
-  "PlanPath": {
-    "Operator": "COORD-MERGE",
-    "Sort": {},
-    "NeedReorder": false,
-    "DataNodeNum": 2,
-    "DataNodeList": [
-      {
-        "Name": "hostname:11820",
-        "EstTotalCost": 0.7418349999999999,
-        "QueryTimeSpent": 0.733299,
-        "WaitTimeSpent": 0.013556
-      },
-      {
-        "Name": "hostname:11810",
-        "EstTotalCost": 1.484,
-        "QueryTimeSpent": 0.82677,
-        "WaitTimeSpent": 0.084652
-      }
-    ],
-    "Selector": {},
-    "Skip": 0,
-    "Return": -1,
-    "Estimate": {
-      "StartCost": 0,
-      "RunCost": 1.5214865,
-      "TotalCost": 1.5214865,
-      "Output": {
-        "Records": 74973,
-        "RecordSize": 29,
-        "Sorted": false
-      }
-    },
-    "Run": {
-      "ContextID": 29314,
-      "StartTimestamp": "2017-12-14-15.24.51.254623",
-      "QueryTimeSpent": 0.821182,
-      "GetMores": 112,
+      "Sort": {},
+      "Selector": {},
+      "Hint": {},
+      "Skip": 0,
+      "Return": -1,
+      "Flag": 0,
       "ReturnNum": 99899,
-      "WaitTimeSpent": 0.075
-    },
-    "ChildOperators": [
-      {
-        "NodeName": "hostname:11820",
-        "GroupName": "group2",
-        "Role": "data",
-        "Collection": "sample.employee",
-        "Query": {
-          "a": {
-            "$gt": 100
-          }
-        },
+      "ElapsedTime": 0.82863,
+      "IndexRead": 0,
+      "DataRead": 0,
+      "UserCPU": 0.01999999999999999,
+      "SysCPU": 0.009999999999999995,
+      "PlanPath": {
+        "Operator": "COORD-MERGE",
         "Sort": {},
-        "Selector": {},
-        "Hint": {},
-        "Skip": 0,
-        "Return": -1,
-        "Flag": 2048,
-        "ReturnNum": 49892,
-        "ElapsedTime": 0.733493,
-        "IndexRead": 0,
-        "DataRead": 49945,
-        "UserCPU": 0.14,
-        "SysCPU": 0.01000000000000001,
-        "CacheStatus": "HitCache",
-        "MainCLPlan": false,
-        "CacheLevel": "OPT_PLAN_PARAMETERIZED",
-        "Parameters": [
-          100
-        ],
-        "MatchConfig": {
-          "EnableMixCmp": false,
-          "Parameterized": true,
-          "FuzzyOptr": false
-        }
-      },
-      {
-        "NodeName": "hostname:11810",
-        "GroupName": "group1",
-        "Role": "data",
-        "Collection": "sample.employee",
-        "Query": {
-          "a": {
-            "$gt": 100
-          }
-        },
-        "Sort": {},
-        "Selector": {},
-        "Hint": {},
-        "Skip": 0,
-        "Return": -1,
-        "Flag": 2048,
-        "ReturnNum": 50007,
-        "ElapsedTime": 0.82666,
-        "IndexRead": 0,
-        "DataRead": 50055,
-        "UserCPU": 0.1499999999999986,
-        "SysCPU": 0.01000000000000023,
-        "CacheStatus": "HitCache",
-        "MainCLPlan": false,
-        "CacheLevel": "OPT_PLAN_PARAMETERIZED",
-        "Parameters": [
-          100
-        ],
-        "MatchConfig": {
-          "EnableMixCmp": false,
-          "Parameterized": true,
-          "FuzzyOptr": false
-        }
-      }
-    ]
-  }
-}
-```
-
-*   使用 Detail 选项查看查询的详细访问计划，并且使用 Search 选项查看查询优化器的搜索过程
-
-```lang-javascript
-> db.sample.employee.find( { a : { $gt : 100 } } ).explain( { Detail : true, Search : true } )
-{
-  "NodeName": "hostname:11800",
-  "GroupName": "SYSCoord",
-  "Role": "coord",
-  "Collection": "sample.employee",
-  "Query": {
-    "a": {
-      "$gt": 100
-    }
-  },
-  "Sort": {},
-  "Selector": {},
-  "Hint": {},
-  "Skip": 0,
-  "Return": -1,
-  "Flag": 0,
-  "ReturnNum": 0,
-  "ElapsedTime": 0.037223,
-  "IndexRead": 0,
-  "DataRead": 0,
-  "UserCPU": 0,
-  "SysCPU": 0,
-  "PlanPath": {
-    "Operator": "COORD-MERGE",
-    "Sort": {},
-    "NeedReorder": false,
-    "DataNodeNum": 2,
-    "DataNodeList": [
-      {
-        "Name": "hostname:11820",
-        "EstTotalCost": 0.7418349999999999
-      },
-      {
-        "Name": "hostname:11810",
-        "EstTotalCost": 1.334165
-      }
-    ],
-    "Selector": {},
-    "Skip": 0,
-    "Return": -1,
-    "Estimate": {
-      "StartCost": 0,
-      "RunCost": 1.3591655,
-      "TotalCost": 1.3591655,
-      "Output": {
-        "Records": 50001,
-        "RecordSize": 29,
-        "Sorted": false
-      }
-    },
-    "ChildOperators": [
-      {
-        "NodeName": "hostname:11820",
-        "GroupName": "group2",
-        "Role": "data",
-        "Collection": "sample.employee",
-        "Query": {
-          "a": {
-            "$gt": 100
-          }
-        },
-        "Sort": {},
-        "Selector": {},
-        "Hint": {},
-        "Skip": 0,
-        "Return": -1,
-        "Flag": 2048,
-        "ReturnNum": 0,
-        "ElapsedTime": 0.000048,
-        "IndexRead": 0,
-        "DataRead": 0,
-        "UserCPU": 0,
-        "SysCPU": 0,
-        "CacheStatus": "NoCache",
-        "MatchConfig": {
-          "EnableMixCmp": false,
-          "Parameterized": false,
-          "FuzzyOptr": false
-        },
-        "PlanPath": {
-          "Operator": "TBSCAN",
-          "Collection": "sample.employee",
-          "Query": {
-            "$and": [
-              {
-                "a": {
-                  "$gt": 100
-                }
-              }
-            ]
+        "NeedReorder": false,
+        "DataNodeNum": 2,
+        "DataNodeList": [
+          {
+            "Name": "hostname:11820",
+            "EstTotalCost": 0.7418349999999999,
+            "QueryTimeSpent": 0.733299,
+            "WaitTimeSpent": 0.013556
           },
-          "Selector": {},
-          "Skip": 0,
-          "Return": -1,
-          "Estimate": {
-            "StartCost": 0,
-            "RunCost": 0.7418349999999999,
-            "TotalCost": 0.7418349999999999,
-            "CLEstFromStat": false,
-            "Input": {
-              "Pages": 37,
-              "Records": 49945,
-              "RecordSize": 29
+          {
+            "Name": "hostname:11810",
+            "EstTotalCost": 1.484,
+            "QueryTimeSpent": 0.82677,
+            "WaitTimeSpent": 0.084652
+          }
+        ],
+        "Selector": {},
+        "Skip": 0,
+        "Return": -1,
+        "Estimate": {
+          "StartCost": 0,
+          "RunCost": 1.5214865,
+          "TotalCost": 1.5214865,
+          "Output": {
+            "Records": 74973,
+            "RecordSize": 29,
+            "Sorted": false
+          }
+        },
+        "Run": {
+          "ContextID": 29314,
+          "StartTimestamp": "2017-12-14-15.24.51.254623",
+          "QueryTimeSpent": 0.821182,
+          "GetMores": 112,
+          "ReturnNum": 99899,
+          "WaitTimeSpent": 0.075
+        },
+        "ChildOperators": [
+          {
+            "NodeName": "hostname:11820",
+            "GroupName": "group2",
+            "Role": "data",
+            "Collection": "sample.employee",
+            "Query": {
+              "a": {
+                "$gt": 100
+              }
             },
-            "Filter": {
-              "MthSelectivity": 0.4999994999999995
+            "Sort": {},
+            "Selector": {},
+            "Hint": {},
+            "Skip": 0,
+            "Return": -1,
+            "Flag": 2048,
+            "ReturnNum": 49892,
+            "ElapsedTime": 0.733493,
+            "IndexRead": 0,
+            "DataRead": 49945,
+            "UserCPU": 0.14,
+            "SysCPU": 0.01000000000000001,
+            "CacheStatus": "HitCache",
+            "MainCLPlan": false,
+            "CacheLevel": "OPT_PLAN_PARAMETERIZED",
+            "Parameters": [
+              100
+            ],
+            "MatchConfig": {
+              "EnableMixCmp": false,
+              "Parameterized": true,
+              "FuzzyOptr": false
+            }
+          },
+          {
+            "NodeName": "hostname:11810",
+            "GroupName": "group1",
+            "Role": "data",
+            "Collection": "sample.employee",
+            "Query": {
+              "a": {
+                "$gt": 100
+              }
             },
-            "Output": {
-              "Records": 24973,
-              "RecordSize": 29,
-              "Sorted": false
+            "Sort": {},
+            "Selector": {},
+            "Hint": {},
+            "Skip": 0,
+            "Return": -1,
+            "Flag": 2048,
+            "ReturnNum": 50007,
+            "ElapsedTime": 0.82666,
+            "IndexRead": 0,
+            "DataRead": 50055,
+            "UserCPU": 0.1499999999999986,
+            "SysCPU": 0.01000000000000023,
+            "CacheStatus": "HitCache",
+            "MainCLPlan": false,
+            "CacheLevel": "OPT_PLAN_PARAMETERIZED",
+            "Parameters": [
+              100
+            ],
+            "MatchConfig": {
+              "EnableMixCmp": false,
+              "Parameterized": true,
+              "FuzzyOptr": false
             }
           }
-        },
-        "Search": {
-          "Options": {
-            "sortbuf": 256,
-            "optcostthreshold": 20
+        ]
+      }
+    }
+    ```
+
+* 使用 Detail 选项查看查询的详细访问计划，并且使用 Search 选项查看查询优化器的搜索过程
+
+    ```lang-javascript
+    > db.sample.employee.find( { a : { $gt : 100 } } ).explain( { Detail : true, Search : true } )
+    {
+      "NodeName": "hostname:11800",
+      "GroupName": "SYSCoord",
+      "Role": "coord",
+      "Collection": "sample.employee",
+      "Query": {
+        "a": {
+          "$gt": 100
+        }
+      },
+      "Sort": {},
+      "Selector": {},
+      "Hint": {},
+      "Skip": 0,
+      "Return": -1,
+      "Flag": 0,
+      "ReturnNum": 0,
+      "ElapsedTime": 0.037223,
+      "IndexRead": 0,
+      "DataRead": 0,
+      "UserCPU": 0,
+      "SysCPU": 0,
+      "PlanPath": {
+        "Operator": "COORD-MERGE",
+        "Sort": {},
+        "NeedReorder": false,
+        "DataNodeNum": 2,
+        "DataNodeList": [
+          {
+            "Name": "hostname:11820",
+            "EstTotalCost": 0.7418349999999999
           },
-          "SearchPaths": [
-            {
-              "IsUsed": false,
-              "IsCandidate": false,
-              "Score": 1,
-              "ScanType": "ixscan",
-              "IndexName": "$id",
-              "UseExtSort": false,
-              "Direction": 1,
-              "IXBound": {
-                "_id": [
-                  [
-                    {
-                      "$minElement": 1
+          {
+            "Name": "hostname:11810",
+            "EstTotalCost": 1.334165
+          }
+        ],
+        "Selector": {},
+        "Skip": 0,
+        "Return": -1,
+        "Estimate": {
+          "StartCost": 0,
+          "RunCost": 1.3591655,
+          "TotalCost": 1.3591655,
+          "Output": {
+            "Records": 50001,
+            "RecordSize": 29,
+            "Sorted": false
+          }
+        },
+        "ChildOperators": [
+          {
+            "NodeName": "hostname:11820",
+            "GroupName": "group2",
+            "Role": "data",
+            "Collection": "sample.employee",
+            "Query": {
+              "a": {
+                "$gt": 100
+              }
+            },
+            "Sort": {},
+            "Selector": {},
+            "Hint": {},
+            "Skip": 0,
+            "Return": -1,
+            "Flag": 2048,
+            "ReturnNum": 0,
+            "ElapsedTime": 0.000048,
+            "IndexRead": 0,
+            "DataRead": 0,
+            "UserCPU": 0,
+            "SysCPU": 0,
+            "CacheStatus": "NoCache",
+            "MatchConfig": {
+              "EnableMixCmp": false,
+              "Parameterized": false,
+              "FuzzyOptr": false
+            },
+            "PlanPath": {
+              "Operator": "TBSCAN",
+              "Collection": "sample.employee",
+              "Query": {
+                "$and": [
+                  {
+                    "a": {
+                      "$gt": 100
+                    }
+                  }
+                ]
+              },
+              "Selector": {},
+              "Skip": 0,
+              "Return": -1,
+              "Estimate": {
+                "StartCost": 0,
+                "RunCost": 0.7418349999999999,
+                "TotalCost": 0.7418349999999999,
+                "CLEstFromStat": false,
+                "Input": {
+                  "Pages": 37,
+                  "Records": 49945,
+                  "RecordSize": 29
+                },
+                "Filter": {
+                  "MthSelectivity": 0.4999994999999995
+                },
+                "Output": {
+                  "Records": 24973,
+                  "RecordSize": 29,
+                  "Sorted": false
+                }
+              }
+            },
+            "Search": {
+              "Options": {
+                "sortbuf": 256,
+                "optcostthreshold": 20
+              },
+              "SearchPaths": [
+                {
+                  "IsUsed": false,
+                  "IsCandidate": false,
+                  "Score": 1,
+                  "ScanType": "ixscan",
+                  "IndexName": "$id",
+                  "UseExtSort": false,
+                  "Direction": 1,
+                  "IXBound": {
+                    "_id": [
+                      [
+                        {
+                          "$minElement": 1
+                        },
+                        {
+                          "$maxElement": 1
+                        }
+                      ]
+                    ]
+                  },
+                  "NeedMatch": true,
+                  "IndexCover": false,
+                  "IXEstFromStat": false
+                },
+                {
+                  "IsUsed": false,
+                  "IsCandidate": false,
+                  "Score": 0.4999994999999995,
+                  "ScanType": "ixscan",
+                  "IndexName": "$shard",
+                  "UseExtSort": false,
+                  "Direction": 1,
+                  "IXBound": {
+                    "a": [
+                      [
+                        100,
+                        {
+                          "$decimal": "MAX"
+                        }
+                      ]
+                    ]
+                  },
+                  "NeedMatch": false,
+                  "IXEstFromStat": false
+                },
+                {
+                  "IsUsed": true,
+                  "IsCandidate": true,
+                  "Score": 0.4999994999999995,
+                  "TotalCost": 1483670,
+                  "ScanType": "tbscan",
+                  "IndexName": "",
+                  "UseExtSort": false
+                }
+              ]
+            }
+          },
+          {
+            "NodeName": "hostname:11810",
+            "GroupName": "group1",
+            "Role": "data",
+            "Collection": "sample.employee",
+            "Query": {
+              "a": {
+                "$gt": 100
+              }
+            },
+            "Sort": {},
+            "Selector": {},
+            "Hint": {},
+            "Skip": 0,
+            "Return": -1,
+            "Flag": 2048,
+            "ReturnNum": 0,
+            "ElapsedTime": 0.000064,
+            "IndexRead": 0,
+            "DataRead": 0,
+            "UserCPU": 0,
+            "SysCPU": 0,
+            "CacheStatus": "NoCache",
+            "MatchConfig": {
+              "EnableMixCmp": false,
+              "Parameterized": false,
+              "FuzzyOptr": false
+            },
+            "PlanPath": {
+              "Operator": "TBSCAN",
+              "Collection": "sample.employee",
+              "Query": {
+                "$and": [
+                  {
+                    "a": {
+                      "$gt": 100
+                    }
+                  }
+                ]
+              },
+              "Selector": {},
+              "Skip": 0,
+              "Return": -1,
+              "Estimate": {
+                "StartCost": 0,
+                "RunCost": 1.334165,
+                "TotalCost": 1.334165,
+                "CLEstFromStat": false,
+                "Input": {
+                  "Pages": 74,
+                  "Records": 50055,
+                  "RecordSize": 29
+                },
+                "Filter": {
+                  "MthSelectivity": 0.4999994999999995
+                },
+                "Output": {
+                  "Records": 25028,
+                  "RecordSize": 29,
+                  "Sorted": false
+                }
+              }
+            },
+            "Search": {
+              "Options": {
+                "sortbuf": 256,
+                "optcostthreshold": 20
+              },
+              "SearchPaths": [
+                {
+                  "IsUsed": false,
+                  "IsCandidate": false,
+                  "Score": 1,
+                  "ScanType": "ixscan",
+                  "IndexName": "$id",
+                  "UseExtSort": false,
+                  "Direction": 1,
+                  "IXBound": {
+                    "_id": [
+                      [
+                        {
+                          "$minElement": 1
+                        },
+                        {
+                          "$maxElement": 1
+                        }
+                      ]
+                    ]
+                  },
+                  "NeedMatch": true,
+                  "IndexCover": false,
+                  "IXEstFromStat": false
+                },
+                {
+                  "IsUsed": false,
+                  "IsCandidate": false,
+                  "Score": 0.4999994999999995,
+                  "ScanType": "ixscan",
+                  "IndexName": "$shard",
+                  "UseExtSort": false,
+                  "Direction": 1,
+                  "IXBound": {
+                    "a": [
+                      [
+                        100,
+                        {
+                          "$decimal": "MAX"
+                        }
+                      ]
+                    ]
+                  },
+                  "NeedMatch": false,
+                  "IndexCover": false,
+                  "IXEstFromStat": false
+                },
+                {
+                  "IsUsed": true,
+                  "IsCandidate": true,
+                  "Score": 0.4999994999999995,
+                  "TotalCost": 2668330,
+                  "ScanType": "tbscan",
+                  "IndexName": "",
+                  "UseExtSort": false
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+    ```
+
+* 使用 Detail 选项查看查询的详细访问计划，并且使用 Location 选项查看查询在 group1 上的访问计划
+
+    ```lang-javascript
+    > db.sample.employee.find( { a : { $gt : 100 } } ).explain( { Detail : true, Location : { GroupName : 'group1' } } )
+    {
+      "NodeName": "hostname:11800",
+      "GroupName": "SYSCoord",
+      "Role": "coord",
+      "Collection": "sample.employee",
+      "Query": {
+        "a": {
+          "$gt": 100
+        }
+      },
+      "Sort": {},
+      "Selector": {},
+      "Hint": {},
+      "Skip": 0,
+      "Return": -1,
+      "Flag": 0,
+      "ReturnNum": 0,
+      "ElapsedTime": 0.011374,
+      "IndexRead": 0,
+      "DataRead": 0,
+      "UserCPU": 0,
+      "SysCPU": 0,
+      "PlanPath": {
+        "Operator": "COORD-MERGE",
+        "Sort": {},
+        "NeedReorder": false,
+        "DataNodeNum": 2,
+        "DataNodeList": [
+          {
+            "Name": "hostname:11810",
+            "EstTotalCost": 1.484
+          },
+          {
+            "Name": "hostname:11820",
+            "EstTotalCost": 0.7418349999999999
+          }
+        ],
+        "Selector": {},
+        "Skip": 0,
+        "Return": -1,
+        "Estimate": {
+          "StartCost": 0,
+          "RunCost": 1.5214865,
+          "TotalCost": 1.5214865,
+          "Output": {
+            "Records": 74973,
+            "RecordSize": 29,
+            "Sorted": false
+          }
+        },
+        "ChildOperators": [
+          {
+            "NodeName": "hostname:11810",
+            "GroupName": "group1",
+            "Role": "data",
+            "Collection": "sample.employee",
+            "Query": {
+              "a": {
+                "$gt": 100
+              }
+            },
+            "Sort": {},
+            "Selector": {},
+            "Hint": {},
+            "Skip": 0,
+            "Return": -1,
+            "Flag": 2048,
+            "ReturnNum": 0,
+            "ElapsedTime": 0.000088,
+            "IndexRead": 0,
+            "DataRead": 0,
+            "UserCPU": 0,
+            "SysCPU": 0,
+            "CacheStatus": "HitCache",
+            "MainCLPlan": false,
+            "CacheLevel": "OPT_PLAN_PARAMETERIZED",
+            "Parameters": [
+              100
+            ],
+            "MatchConfig": {
+              "EnableMixCmp": false,
+              "Parameterized": true,
+              "FuzzyOptr": false
+            }
+          }
+        ]
+      }
+    }
+    ```
+
+* 使用 Detail 选项查看表分区的详细访问计划，并使用 Expand 选项展开所有细节
+
+    ```lang-javascript
+    > db.maincs.maincl.find( { a : { $gt : 100 } } ).explain( { Detail : true, Expand : true } )
+    {
+      "NodeName": "hostname:11800",
+      "GroupName": "SYSCoord",
+      "Role": "coord",
+      "Collection": "maincs.maincl",
+      "Query": {
+        "a": {
+          "$gt": 100
+        }
+      },
+      "Sort": {},
+      "Selector": {},
+      "Hint": {},
+      "Skip": 0,
+      "Return": -1,
+      "Flag": 0,
+      "ReturnNum": 0,
+      "ElapsedTime": 0.002748,
+      "IndexRead": 0,
+      "DataRead": 0,
+      "UserCPU": 0,
+      "SysCPU": 0,
+      "PlanPath": {
+        "Operator": "COORD-MERGE",
+        "Sort": {},
+        "NeedReorder": false,
+        "DataNodeNum": 2,
+        "DataNodeList": [
+          {
+            "Name": "hostname:11810",
+            "EstTotalCost": 0.9624999999999999
+          },
+          {
+            "Name": "hostname:11820",
+            "EstTotalCost": 0.9624999999999999
+          }
+        ],
+        "Selector": {},
+        "Skip": 0,
+        "Return": -1,
+        "Estimate": {
+          "StartCost": 0,
+          "RunCost": 0.9874999999999999,
+          "TotalCost": 0.9874999999999999,
+          "Output": {
+            "Records": 50000,
+            "RecordSize": 43,
+            "Sorted": false
+          }
+        },
+        "ChildOperators": [
+          {
+            "NodeName": "hostname:11810",
+            "GroupName": "group1",
+            "Role": "data",
+            "Collection": "maincs.maincl",
+            "Query": {
+              "a": {
+                "$gt": 100
+              }
+            },
+            "Sort": {},
+            "Selector": {},
+            "Hint": {},
+            "Skip": 0,
+            "Return": -1,
+            "Flag": 2048,
+            "ReturnNum": 0,
+            "ElapsedTime": 0.00062,
+            "IndexRead": 0,
+            "DataRead": 0,
+            "UserCPU": 0,
+            "SysCPU": 0,
+            "PlanPath": {
+              "Operator": "MERGE",
+              "Sort": {},
+              "NeedReorder": false,
+              "SubCollectionNum": 2,
+              "SubCollectionList": [
+                {
+                  "Name": "subcs.subcl2",
+                  "EstTotalCost": 0.475
+                },
+                {
+                  "Name": "subcs.subcl1",
+                  "EstTotalCost": 0.475
+                }
+              ],
+              "Selector": {},
+              "Skip": 0,
+              "Return": -1,
+              "Estimate": {
+                "StartCost": 0,
+                "RunCost": 0.9624999999999999,
+                "TotalCost": 0.9624999999999999,
+                "Output": {
+                  "Records": 25000,
+                  "RecordSize": 43,
+                  "Sorted": false
+                }
+              },
+              "SubCollections": [
+                {
+                  "Collection": "subcs.subcl2",
+                  "Query": {
+                    "a": {
+                      "$gt": 100
+                    }
+                  },
+                  "Sort": {},
+                  "Selector": {},
+                  "Hint": {},
+                  "Skip": 0,
+                  "Return": -1,
+                  "Flag": 2048,
+                  "ReturnNum": 0,
+                  "ElapsedTime": 0.000042,
+                  "IndexRead": 0,
+                  "DataRead": 0,
+                  "UserCPU": 0,
+                  "SysCPU": 0,
+                  "CacheStatus": "HitCache",
+                  "MainCLPlan": true,
+                  "CacheLevel": "OPT_PLAN_PARAMETERIZED",
+                  "Parameters": [
+                    100
+                  ],
+                  "MatchConfig": {
+                    "EnableMixCmp": false,
+                    "Parameterized": true,
+                    "FuzzyOptr": false
+                  },
+                  "PlanPath": {
+                    "Operator": "TBSCAN",
+                    "Collection": "subcs.subcl2",
+                    "Query": {
+                      "$and": [
+                        {
+                          "a": {
+                            "$gt": 100
+                          }
+                        }
+                      ]
                     },
-                    {
-                      "$maxElement": 1
+                    "Selector": {},
+                    "Skip": 0,
+                    "Return": -1,
+                    "Estimate": {
+                      "StartCost": 0,
+                      "RunCost": 0.475,
+                      "TotalCost": 0.475,
+                      "CLEstFromStat": false,
+                      "Input": {
+                        "Pages": 25,
+                        "Records": 25000,
+                        "RecordSize": 43
+                      },
+                      "Filter": {
+                        "MthSelectivity": 0.4999994999999995
+                      },
+                      "Output": {
+                        "Records": 12500,
+                        "RecordSize": 43,
+                        "Sorted": false
+                      }
                     }
-                  ]
-                ]
-              },
-              "NeedMatch": true,
-              "IndexCover": false,
-              "IXEstFromStat": false
-            },
-            {
-              "IsUsed": false,
-              "IsCandidate": false,
-              "Score": 0.4999994999999995,
-              "ScanType": "ixscan",
-              "IndexName": "$shard",
-              "UseExtSort": false,
-              "Direction": 1,
-              "IXBound": {
-                "a": [
-                  [
-                    100,
-                    {
-                      "$decimal": "MAX"
+                  }
+                },
+                {
+                  "Collection": "subcs.subcl1",
+                  "Query": {
+                    "a": {
+                      "$gt": 100
                     }
-                  ]
-                ]
-              },
-              "NeedMatch": false,
-              "IXEstFromStat": false
-            },
-            {
-              "IsUsed": true,
-              "IsCandidate": true,
-              "Score": 0.4999994999999995,
-              "TotalCost": 1483670,
-              "ScanType": "tbscan",
-              "IndexName": "",
-              "UseExtSort": false
-            }
-          ]
-        }
-      },
-      {
-        "NodeName": "hostname:11810",
-        "GroupName": "group1",
-        "Role": "data",
-        "Collection": "sample.employee",
-        "Query": {
-          "a": {
-            "$gt": 100
-          }
-        },
-        "Sort": {},
-        "Selector": {},
-        "Hint": {},
-        "Skip": 0,
-        "Return": -1,
-        "Flag": 2048,
-        "ReturnNum": 0,
-        "ElapsedTime": 0.000064,
-        "IndexRead": 0,
-        "DataRead": 0,
-        "UserCPU": 0,
-        "SysCPU": 0,
-        "CacheStatus": "NoCache",
-        "MatchConfig": {
-          "EnableMixCmp": false,
-          "Parameterized": false,
-          "FuzzyOptr": false
-        },
-        "PlanPath": {
-          "Operator": "TBSCAN",
-          "Collection": "sample.employee",
-          "Query": {
-            "$and": [
-              {
-                "a": {
-                  "$gt": 100
-                }
-              }
-            ]
-          },
-          "Selector": {},
-          "Skip": 0,
-          "Return": -1,
-          "Estimate": {
-            "StartCost": 0,
-            "RunCost": 1.334165,
-            "TotalCost": 1.334165,
-            "CLEstFromStat": false,
-            "Input": {
-              "Pages": 74,
-              "Records": 50055,
-              "RecordSize": 29
-            },
-            "Filter": {
-              "MthSelectivity": 0.4999994999999995
-            },
-            "Output": {
-              "Records": 25028,
-              "RecordSize": 29,
-              "Sorted": false
-            }
-          }
-        },
-        "Search": {
-          "Options": {
-            "sortbuf": 256,
-            "optcostthreshold": 20
-          },
-          "SearchPaths": [
-            {
-              "IsUsed": false,
-              "IsCandidate": false,
-              "Score": 1,
-              "ScanType": "ixscan",
-              "IndexName": "$id",
-              "UseExtSort": false,
-              "Direction": 1,
-              "IXBound": {
-                "_id": [
-                  [
-                    {
-                      "$minElement": 1
+                  },
+                  "Sort": {},
+                  "Selector": {},
+                  "Hint": {},
+                  "Skip": 0,
+                  "Return": -1,
+                  "Flag": 2048,
+                  "ReturnNum": 0,
+                  "ElapsedTime": 0.000049,
+                  "IndexRead": 0,
+                  "DataRead": 0,
+                  "UserCPU": 0,
+                  "SysCPU": 0,
+                  "CacheStatus": "HitCache",
+                  "MainCLPlan": true,
+                  "CacheLevel": "OPT_PLAN_PARAMETERIZED",
+                  "Parameters": [
+                    100
+                  ],
+                  "MatchConfig": {
+                    "EnableMixCmp": false,
+                    "Parameterized": true,
+                    "FuzzyOptr": false
+                  },
+                  "PlanPath": {
+                    "Operator": "TBSCAN",
+                    "Collection": "subcs.subcl1",
+                    "Query": {
+                      "$and": [
+                        {
+                          "a": {
+                            "$gt": 100
+                          }
+                        }
+                      ]
                     },
-                    {
-                      "$maxElement": 1
+                    "Selector": {},
+                    "Skip": 0,
+                    "Return": -1,
+                    "Estimate": {
+                      "StartCost": 0,
+                      "RunCost": 0.475,
+                      "TotalCost": 0.475,
+                      "CLEstFromStat": false,
+                      "Input": {
+                        "Pages": 25,
+                        "Records": 25000,
+                        "RecordSize": 43
+                      },
+                      "Filter": {
+                        "MthSelectivity": 0.4999994999999995
+                      },
+                      "Output": {
+                        "Records": 12500,
+                        "RecordSize": 43,
+                        "Sorted": false
+                      }
                     }
-                  ]
-                ]
-              },
-              "NeedMatch": true,
-              "IndexCover": false,
-              "IXEstFromStat": false
-            },
-            {
-              "IsUsed": false,
-              "IsCandidate": false,
-              "Score": 0.4999994999999995,
-              "ScanType": "ixscan",
-              "IndexName": "$shard",
-              "UseExtSort": false,
-              "Direction": 1,
-              "IXBound": {
-                "a": [
-                  [
-                    100,
-                    {
-                      "$decimal": "MAX"
-                    }
-                  ]
-                ]
-              },
-              "NeedMatch": false,
-              "IndexCover": false,
-              "IXEstFromStat": false
-            },
-            {
-              "IsUsed": true,
-              "IsCandidate": true,
-              "Score": 0.4999994999999995,
-              "TotalCost": 2668330,
-              "ScanType": "tbscan",
-              "IndexName": "",
-              "UseExtSort": false
-            }
-          ]
-        }
-      }
-    ]
-  }
-}
-```
-
-*   使用 Detail 选项查看查询的详细访问计划，并且使用 Location 选项查看查询在 group1 上的访问计划
-
-```lang-javascript
-> db.sample.employee.find( { a : { $gt : 100 } } ).explain( { Detail : true, Location : { GroupName : 'group1' } } )
-{
-  "NodeName": "hostname:11800",
-  "GroupName": "SYSCoord",
-  "Role": "coord",
-  "Collection": "sample.employee",
-  "Query": {
-    "a": {
-      "$gt": 100
-    }
-  },
-  "Sort": {},
-  "Selector": {},
-  "Hint": {},
-  "Skip": 0,
-  "Return": -1,
-  "Flag": 0,
-  "ReturnNum": 0,
-  "ElapsedTime": 0.011374,
-  "IndexRead": 0,
-  "DataRead": 0,
-  "UserCPU": 0,
-  "SysCPU": 0,
-  "PlanPath": {
-    "Operator": "COORD-MERGE",
-    "Sort": {},
-    "NeedReorder": false,
-    "DataNodeNum": 2,
-    "DataNodeList": [
-      {
-        "Name": "hostname:11810",
-        "EstTotalCost": 1.484
-      },
-      {
-        "Name": "hostname:11820",
-        "EstTotalCost": 0.7418349999999999
-      }
-    ],
-    "Selector": {},
-    "Skip": 0,
-    "Return": -1,
-    "Estimate": {
-      "StartCost": 0,
-      "RunCost": 1.5214865,
-      "TotalCost": 1.5214865,
-      "Output": {
-        "Records": 74973,
-        "RecordSize": 29,
-        "Sorted": false
-      }
-    },
-    "ChildOperators": [
-      {
-        "NodeName": "hostname:11810",
-        "GroupName": "group1",
-        "Role": "data",
-        "Collection": "sample.employee",
-        "Query": {
-          "a": {
-            "$gt": 100
-          }
-        },
-        "Sort": {},
-        "Selector": {},
-        "Hint": {},
-        "Skip": 0,
-        "Return": -1,
-        "Flag": 2048,
-        "ReturnNum": 0,
-        "ElapsedTime": 0.000088,
-        "IndexRead": 0,
-        "DataRead": 0,
-        "UserCPU": 0,
-        "SysCPU": 0,
-        "CacheStatus": "HitCache",
-        "MainCLPlan": false,
-        "CacheLevel": "OPT_PLAN_PARAMETERIZED",
-        "Parameters": [
-          100
-        ],
-        "MatchConfig": {
-          "EnableMixCmp": false,
-          "Parameterized": true,
-          "FuzzyOptr": false
-        }
-      }
-    ]
-  }
-}
-```
-
-*   使用 Detail 选项查看垂直分区的详细访问计划，并使用 Expand 选项展开所有细节
-
-```lang-javascript
-> db.maincs.maincl.find( { a : { $gt : 100 } } ).explain( { Detail : true, Expand : true } )
-{
-  "NodeName": "hostname:11800",
-  "GroupName": "SYSCoord",
-  "Role": "coord",
-  "Collection": "maincs.maincl",
-  "Query": {
-    "a": {
-      "$gt": 100
-    }
-  },
-  "Sort": {},
-  "Selector": {},
-  "Hint": {},
-  "Skip": 0,
-  "Return": -1,
-  "Flag": 0,
-  "ReturnNum": 0,
-  "ElapsedTime": 0.002748,
-  "IndexRead": 0,
-  "DataRead": 0,
-  "UserCPU": 0,
-  "SysCPU": 0,
-  "PlanPath": {
-    "Operator": "COORD-MERGE",
-    "Sort": {},
-    "NeedReorder": false,
-    "DataNodeNum": 2,
-    "DataNodeList": [
-      {
-        "Name": "hostname:11810",
-        "EstTotalCost": 0.9624999999999999
-      },
-      {
-        "Name": "hostname:11820",
-        "EstTotalCost": 0.9624999999999999
-      }
-    ],
-    "Selector": {},
-    "Skip": 0,
-    "Return": -1,
-    "Estimate": {
-      "StartCost": 0,
-      "RunCost": 0.9874999999999999,
-      "TotalCost": 0.9874999999999999,
-      "Output": {
-        "Records": 50000,
-        "RecordSize": 43,
-        "Sorted": false
-      }
-    },
-    "ChildOperators": [
-      {
-        "NodeName": "hostname:11810",
-        "GroupName": "group1",
-        "Role": "data",
-        "Collection": "maincs.maincl",
-        "Query": {
-          "a": {
-            "$gt": 100
-          }
-        },
-        "Sort": {},
-        "Selector": {},
-        "Hint": {},
-        "Skip": 0,
-        "Return": -1,
-        "Flag": 2048,
-        "ReturnNum": 0,
-        "ElapsedTime": 0.00062,
-        "IndexRead": 0,
-        "DataRead": 0,
-        "UserCPU": 0,
-        "SysCPU": 0,
-        "PlanPath": {
-          "Operator": "MERGE",
-          "Sort": {},
-          "NeedReorder": false,
-          "SubCollectionNum": 2,
-          "SubCollectionList": [
-            {
-              "Name": "subcs.subcl2",
-              "EstTotalCost": 0.475
-            },
-            {
-              "Name": "subcs.subcl1",
-              "EstTotalCost": 0.475
-            }
-          ],
-          "Selector": {},
-          "Skip": 0,
-          "Return": -1,
-          "Estimate": {
-            "StartCost": 0,
-            "RunCost": 0.9624999999999999,
-            "TotalCost": 0.9624999999999999,
-            "Output": {
-              "Records": 25000,
-              "RecordSize": 43,
-              "Sorted": false
+                  }
+                }
+              ]
             }
           },
-          "SubCollections": [
-            {
-              "Collection": "subcs.subcl2",
-              "Query": {
-                "a": {
-                  "$gt": 100
-                }
-              },
-              "Sort": {},
-              "Selector": {},
-              "Hint": {},
-              "Skip": 0,
-              "Return": -1,
-              "Flag": 2048,
-              "ReturnNum": 0,
-              "ElapsedTime": 0.000042,
-              "IndexRead": 0,
-              "DataRead": 0,
-              "UserCPU": 0,
-              "SysCPU": 0,
-              "CacheStatus": "HitCache",
-              "MainCLPlan": true,
-              "CacheLevel": "OPT_PLAN_PARAMETERIZED",
-              "Parameters": [
-                100
-              ],
-              "MatchConfig": {
-                "EnableMixCmp": false,
-                "Parameterized": true,
-                "FuzzyOptr": false
-              },
-              "PlanPath": {
-                "Operator": "TBSCAN",
-                "Collection": "subcs.subcl2",
-                "Query": {
-                  "$and": [
-                    {
-                      "a": {
-                        "$gt": 100
-                      }
-                    }
-                  ]
-                },
-                "Selector": {},
-                "Skip": 0,
-                "Return": -1,
-                "Estimate": {
-                  "StartCost": 0,
-                  "RunCost": 0.475,
-                  "TotalCost": 0.475,
-                  "CLEstFromStat": false,
-                  "Input": {
-                    "Pages": 25,
-                    "Records": 25000,
-                    "RecordSize": 43
-                  },
-                  "Filter": {
-                    "MthSelectivity": 0.4999994999999995
-                  },
-                  "Output": {
-                    "Records": 12500,
-                    "RecordSize": 43,
-                    "Sorted": false
-                  }
-                }
+          {
+            "NodeName": "hostname:11820",
+            "GroupName": "group2",
+            "Role": "data",
+            "Collection": "maincs.maincl",
+            "Query": {
+              "a": {
+                "$gt": 100
               }
             },
-            {
-              "Collection": "subcs.subcl1",
-              "Query": {
-                "a": {
-                  "$gt": 100
-                }
-              },
+            "Sort": {},
+            "Selector": {},
+            "Hint": {},
+            "Skip": 0,
+            "Return": -1,
+            "Flag": 2048,
+            "ReturnNum": 0,
+            "ElapsedTime": 0.00067,
+            "IndexRead": 0,
+            "DataRead": 0,
+            "UserCPU": 0,
+            "SysCPU": 0,
+            "PlanPath": {
+              "Operator": "MERGE",
               "Sort": {},
+              "NeedReorder": false,
+              "SubCollectionNum": 2,
+              "SubCollectionList": [
+                {
+                  "Name": "subcs.subcl2",
+                  "EstTotalCost": 0.475
+                },
+                {
+                  "Name": "subcs.subcl1",
+                  "EstTotalCost": 0.475
+                }
+              ],
               "Selector": {},
-              "Hint": {},
               "Skip": 0,
               "Return": -1,
-              "Flag": 2048,
-              "ReturnNum": 0,
-              "ElapsedTime": 0.000049,
-              "IndexRead": 0,
-              "DataRead": 0,
-              "UserCPU": 0,
-              "SysCPU": 0,
-              "CacheStatus": "HitCache",
-              "MainCLPlan": true,
-              "CacheLevel": "OPT_PLAN_PARAMETERIZED",
-              "Parameters": [
-                100
-              ],
-              "MatchConfig": {
-                "EnableMixCmp": false,
-                "Parameterized": true,
-                "FuzzyOptr": false
+              "Estimate": {
+                "StartCost": 0,
+                "RunCost": 0.9624999999999999,
+                "TotalCost": 0.9624999999999999,
+                "Output": {
+                  "Records": 25000,
+                  "RecordSize": 43,
+                  "Sorted": false
+                }
               },
-              "PlanPath": {
-                "Operator": "TBSCAN",
-                "Collection": "subcs.subcl1",
-                "Query": {
-                  "$and": [
-                    {
-                      "a": {
-                        "$gt": 100
+              "SubCollections": [
+                {
+                  "Collection": "subcs.subcl2",
+                  "Query": {
+                    "a": {
+                      "$gt": 100
+                    }
+                  },
+                  "Sort": {},
+                  "Selector": {},
+                  "Hint": {},
+                  "Skip": 0,
+                  "Return": -1,
+                  "Flag": 2048,
+                  "ReturnNum": 0,
+                  "ElapsedTime": 0.000034,
+                  "IndexRead": 0,
+                  "DataRead": 0,
+                  "UserCPU": 0,
+                  "SysCPU": 0,
+                  "CacheStatus": "HitCache",
+                  "MainCLPlan": true,
+                  "CacheLevel": "OPT_PLAN_PARAMETERIZED",
+                  "Parameters": [
+                    100
+                  ],
+                  "MatchConfig": {
+                    "EnableMixCmp": false,
+                    "Parameterized": true,
+                    "FuzzyOptr": false
+                  },
+                  "PlanPath": {
+                    "Operator": "TBSCAN",
+                    "Collection": "subcs.subcl2",
+                    "Query": {
+                      "$and": [
+                        {
+                          "a": {
+                            "$gt": 100
+                          }
+                        }
+                      ]
+                    },
+                    "Selector": {},
+                    "Skip": 0,
+                    "Return": -1,
+                    "Estimate": {
+                      "StartCost": 0,
+                      "RunCost": 0.475,
+                      "TotalCost": 0.475,
+                      "CLEstFromStat": false,
+                      "Input": {
+                        "Pages": 25,
+                        "Records": 25000,
+                        "RecordSize": 43
+                      },
+                      "Filter": {
+                        "MthSelectivity": 0.4999994999999995
+                      },
+                      "Output": {
+                        "Records": 12500,
+                        "RecordSize": 43,
+                        "Sorted": false
                       }
                     }
-                  ]
+                  }
                 },
-                "Selector": {},
-                "Skip": 0,
-                "Return": -1,
-                "Estimate": {
-                  "StartCost": 0,
-                  "RunCost": 0.475,
-                  "TotalCost": 0.475,
-                  "CLEstFromStat": false,
-                  "Input": {
-                    "Pages": 25,
-                    "Records": 25000,
-                    "RecordSize": 43
+                {
+                  "Collection": "subcs.subcl1",
+                  "Query": {
+                    "a": {
+                      "$gt": 100
+                    }
                   },
-                  "Filter": {
-                    "MthSelectivity": 0.4999994999999995
+                  "Sort": {},
+                  "Selector": {},
+                  "Hint": {},
+                  "Skip": 0,
+                  "Return": -1,
+                  "Flag": 2048,
+                  "ReturnNum": 0,
+                  "ElapsedTime": 0.000048,
+                  "IndexRead": 0,
+                  "DataRead": 0,
+                  "UserCPU": 0,
+                  "SysCPU": 0,
+                  "CacheStatus": "HitCache",
+                  "MainCLPlan": true,
+                  "CacheLevel": "OPT_PLAN_PARAMETERIZED",
+                  "Parameters": [
+                    100
+                  ],
+                  "MatchConfig": {
+                    "EnableMixCmp": false,
+                    "Parameterized": true,
+                    "FuzzyOptr": false
                   },
-                  "Output": {
-                    "Records": 12500,
-                    "RecordSize": 43,
-                    "Sorted": false
+                  "PlanPath": {
+                    "Operator": "TBSCAN",
+                    "Collection": "subcs.subcl1",
+                    "Query": {
+                      "$and": [
+                        {
+                          "a": {
+                            "$gt": 100
+                          }
+                        }
+                      ]
+                    },
+                    "Selector": {},
+                    "Skip": 0,
+                    "Return": -1,
+                    "Estimate": {
+                      "StartCost": 0,
+                      "RunCost": 0.475,
+                      "TotalCost": 0.475,
+                      "CLEstFromStat": false,
+                      "Input": {
+                        "Pages": 25,
+                        "Records": 25000,
+                        "RecordSize": 43
+                      },
+                      "Filter": {
+                        "MthSelectivity": 0.4999994999999995
+                      },
+                      "Output": {
+                        "Records": 12500,
+                        "RecordSize": 43,
+                        "Sorted": false
+                      }
+                    }
                   }
                 }
-              }
+              ]
             }
-          ]
-        }
-      },
-      {
-        "NodeName": "hostname:11820",
-        "GroupName": "group2",
-        "Role": "data",
-        "Collection": "maincs.maincl",
-        "Query": {
-          "a": {
-            "$gt": 100
           }
-        },
-        "Sort": {},
-        "Selector": {},
-        "Hint": {},
-        "Skip": 0,
-        "Return": -1,
-        "Flag": 2048,
-        "ReturnNum": 0,
-        "ElapsedTime": 0.00067,
-        "IndexRead": 0,
-        "DataRead": 0,
-        "UserCPU": 0,
-        "SysCPU": 0,
-        "PlanPath": {
-          "Operator": "MERGE",
-          "Sort": {},
-          "NeedReorder": false,
-          "SubCollectionNum": 2,
-          "SubCollectionList": [
-            {
-              "Name": "subcs.subcl2",
-              "EstTotalCost": 0.475
-            },
-            {
-              "Name": "subcs.subcl1",
-              "EstTotalCost": 0.475
-            }
-          ],
-          "Selector": {},
-          "Skip": 0,
-          "Return": -1,
-          "Estimate": {
-            "StartCost": 0,
-            "RunCost": 0.9624999999999999,
-            "TotalCost": 0.9624999999999999,
-            "Output": {
-              "Records": 25000,
-              "RecordSize": 43,
-              "Sorted": false
-            }
-          },
-          "SubCollections": [
-            {
-              "Collection": "subcs.subcl2",
-              "Query": {
-                "a": {
-                  "$gt": 100
-                }
-              },
-              "Sort": {},
-              "Selector": {},
-              "Hint": {},
-              "Skip": 0,
-              "Return": -1,
-              "Flag": 2048,
-              "ReturnNum": 0,
-              "ElapsedTime": 0.000034,
-              "IndexRead": 0,
-              "DataRead": 0,
-              "UserCPU": 0,
-              "SysCPU": 0,
-              "CacheStatus": "HitCache",
-              "MainCLPlan": true,
-              "CacheLevel": "OPT_PLAN_PARAMETERIZED",
-              "Parameters": [
-                100
-              ],
-              "MatchConfig": {
-                "EnableMixCmp": false,
-                "Parameterized": true,
-                "FuzzyOptr": false
-              },
-              "PlanPath": {
-                "Operator": "TBSCAN",
-                "Collection": "subcs.subcl2",
-                "Query": {
-                  "$and": [
-                    {
-                      "a": {
-                        "$gt": 100
-                      }
-                    }
-                  ]
-                },
-                "Selector": {},
-                "Skip": 0,
-                "Return": -1,
-                "Estimate": {
-                  "StartCost": 0,
-                  "RunCost": 0.475,
-                  "TotalCost": 0.475,
-                  "CLEstFromStat": false,
-                  "Input": {
-                    "Pages": 25,
-                    "Records": 25000,
-                    "RecordSize": 43
-                  },
-                  "Filter": {
-                    "MthSelectivity": 0.4999994999999995
-                  },
-                  "Output": {
-                    "Records": 12500,
-                    "RecordSize": 43,
-                    "Sorted": false
-                  }
-                }
-              }
-            },
-            {
-              "Collection": "subcs.subcl1",
-              "Query": {
-                "a": {
-                  "$gt": 100
-                }
-              },
-              "Sort": {},
-              "Selector": {},
-              "Hint": {},
-              "Skip": 0,
-              "Return": -1,
-              "Flag": 2048,
-              "ReturnNum": 0,
-              "ElapsedTime": 0.000048,
-              "IndexRead": 0,
-              "DataRead": 0,
-              "UserCPU": 0,
-              "SysCPU": 0,
-              "CacheStatus": "HitCache",
-              "MainCLPlan": true,
-              "CacheLevel": "OPT_PLAN_PARAMETERIZED",
-              "Parameters": [
-                100
-              ],
-              "MatchConfig": {
-                "EnableMixCmp": false,
-                "Parameterized": true,
-                "FuzzyOptr": false
-              },
-              "PlanPath": {
-                "Operator": "TBSCAN",
-                "Collection": "subcs.subcl1",
-                "Query": {
-                  "$and": [
-                    {
-                      "a": {
-                        "$gt": 100
-                      }
-                    }
-                  ]
-                },
-                "Selector": {},
-                "Skip": 0,
-                "Return": -1,
-                "Estimate": {
-                  "StartCost": 0,
-                  "RunCost": 0.475,
-                  "TotalCost": 0.475,
-                  "CLEstFromStat": false,
-                  "Input": {
-                    "Pages": 25,
-                    "Records": 25000,
-                    "RecordSize": 43
-                  },
-                  "Filter": {
-                    "MthSelectivity": 0.4999994999999995
-                  },
-                  "Output": {
-                    "Records": 12500,
-                    "RecordSize": 43,
-                    "Sorted": false
-                  }
-                }
-              }
-            }
-          ]
-        }
+        ]
       }
-    ]
-  }
-}
-```
+    }
+    ```
 
 
 [^_^]:
@@ -1390,5 +1400,5 @@ Search 选项为 true 时，将会展示[访问计划的搜索过程][cost_estim
 [cost_estimation]:manual/Distributed_Engine/Maintainance/Access_Plan/cost_estimation.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
-[faq]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md

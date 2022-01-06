@@ -8,7 +8,7 @@ getDetailObj - 获取复制组的信息
 
 ##类别##
 
-Replica Group
+SdbReplicaGroup
 
 ##描述##
 
@@ -87,4 +87,4 @@ v3.4.2 及以上版本
 [LIST_GROUPS]:manual/Manual/List/SDB_LIST_GROUPS.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
-[faq]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md

@@ -37,19 +37,19 @@ v2.6及以上版本。
 
 ##示例##
 
-1. 设置前一次操作的详细错误信息
+设置前一次操作的详细错误信息
 
-  	```lang-javascript
-  	> db = new Sdb()
-  	(nofile):0 uncaught exception: -15
-  	> var err = getLastErrObj()
-	> var obj = err.toObj()
-	> println( obj.toString() )
-  	{
-    	"errno": -15,
-    	"description": "Network error",
-    	"detail": ""
-  	}
-	> obj["detail"] = Date() + ": " + obj["description"]
-	> setLastErrObj(obj)
-  ```
+```lang-javascript
+> db = new Sdb()
+(nofile):0 uncaught exception: -15
+> var err = getLastErrObj()
+> var obj = err.toObj()
+> println( obj.toString() )
+{
+	"errno": -15,
+	"description": "Network error",
+	"detail": ""
+}
+> obj["detail"] = Date() + ": " + obj["description"]
+> setLastErrObj(obj)
+```

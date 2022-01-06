@@ -48,6 +48,11 @@
 namespace engine
 {
 
+   // sleep time ( 100ms ) for retry getting logical time
+   #define STP_GET_TIME_RETRY_INTERVAL ( 100 )
+   // sleep time ( 1ms ) for quick retry getting logical time
+   #define STP_GET_TIME_MIN_RETRY_INTERVAL ( 1 )
+
    /*
       _stpMetaData define
     */

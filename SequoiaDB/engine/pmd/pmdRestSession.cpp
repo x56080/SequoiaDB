@@ -71,7 +71,9 @@ namespace engine
    }
 
    #define PMD_REST_SESSION_SNIFF_TIMEOUT    ( 10 * OSS_ONE_SEC )
-
+   #define PMD_REST_CS_NAME_SZ               127 
+   #define PMD_REST_SQL_COMMON_LEN           127
+   #define PMD_REST_SQL_MAX_LEN              ( PMD_REST_SQL_COMMON_LEN + PMD_REST_CS_NAME_SZ )            
    /*
       util
    */
@@ -315,7 +317,7 @@ namespace engine
 #endif /* SDB_ENTERPRISE */
 
          /// update trans conf should here
-         _pEDUCB->updateTransConf() ;
+         _pEDUCB->updateConf() ;
          // recv rest header
          rc = pAdptor->recvHeader( socket(), &request ) ;
          if ( rc )
@@ -448,8 +450,9 @@ namespace engine
                                             rtnContextBuf &contextBuff )
    {
       INT32 rc = SDB_OK ;
-      rtnContext *pContext = _pRTNCB->contextFind( contextID ) ;
-      if ( NULL == pContext )
+      rtnContextPtr pContext ;
+      _pRTNCB->contextFind( contextID, pContext ) ;
+      if ( !pContext )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR, "can't fine context,contextID=%u", rc, contextID ) ;
@@ -652,13 +655,14 @@ namespace engine
 
       if ( -1 != contextID )
       {
-         rtnContext *pContext = _pRTNCB->contextFind( contextID ) ;
+         rtnContextPtr pContext ;
          monClassQueryTmpData tmpData ;
          tmpData = *(_pEDUCB->getMonAppCB()) ;
          ossTick startTime ;
          startTime.sample() ;
 
-         while ( NULL != pContext )
+         _pRTNCB->contextFind( contextID, pContext ) ;
+         while ( pContext )
          {
             rc = pContext->getMore( -1, contextBuff, _pEDUCB ) ;
             if ( rc )
@@ -926,7 +930,10 @@ namespace engine
                               &RestToMSGTransfer::_convertDropAutoIncrement },
 
          { CMD_NAME_GET_COUNT,   &RestToMSGTransfer::_convertGetCount },
-
+         
+         { CMD_NAME_GET_DOMAIN_NAME,
+                                 &RestToMSGTransfer::_convertGetDomainName },
+                     
          { CMD_NAME_LIST_GROUPS, &RestToMSGTransfer::_convertListGroups },
          { REST_CMD_NAME_START_GROUP,
                                  &RestToMSGTransfer::_convertStartGroup },
@@ -969,6 +976,8 @@ namespace engine
          { REST_CMD_NAME_LISTINDEXES,
                                  &RestToMSGTransfer::_convertListIndexes },
 //         { CMD_NAME_LIST_CL_IN_DOMAIN, &RestToMSGTransfer::_convertQuery },
+         { CMD_NAME_LIST_CL_IN_COLLECTIONSPACE, 
+                               &RestToMSGTransfer::_convertListCLInCollectionsSpace },
          { CMD_NAME_SNAPSHOT_CONTEXTS,
                                  &RestToMSGTransfer::_convertSnapshotContext },
          { CMD_NAME_SNAPSHOT_CONTEXTS_CURRENT,
@@ -1001,6 +1010,12 @@ namespace engine
                                  &RestToMSGTransfer::_convertSnapshotLockWaits },
          { CMD_NAME_SNAPSHOT_INDEXSTATS,
                                  &RestToMSGTransfer::_convertSnapshotIndexStats },
+         { CMD_NAME_SNAPSHOT_TASKS,
+                                 &RestToMSGTransfer::_convertSnapshotTasks },
+         { CMD_NAME_SNAPSHOT_TRANSWAITS,
+                                 &RestToMSGTransfer::_convertSnapshotTransWaits },
+         { CMD_NAME_SNAPSHOT_TRANSDEADLOCK,
+                                 &RestToMSGTransfer::_convertSnapshotTransDeadlock },
          { CMD_NAME_LIST_LOBS,   &RestToMSGTransfer::_convertListLobs },
          { OM_LOGIN_REQ,         &RestToMSGTransfer::_convertLogin },
          { REST_CMD_NAME_EXEC,   &RestToMSGTransfer::_convertExec },
@@ -1010,7 +1025,25 @@ namespace engine
          { CMD_NAME_UPDATE_CONFIG,
                                  &RestToMSGTransfer::_convertUpdateConfig },
          { CMD_NAME_DELETE_CONFIG,
-                                 &RestToMSGTransfer::_convertDeleteConfig }
+                                 &RestToMSGTransfer::_convertDeleteConfig },
+         { CMD_NAME_LIST_SEQUENCES,
+                                 &RestToMSGTransfer::_convertListSequences },
+         { CMD_NAME_SNAPSHOT_SEQUENCES,
+                                 &RestToMSGTransfer::_convertSnapshotSequences },
+         { CMD_NAME_CREATE_SEQUENCE,
+                                 &RestToMSGTransfer::_convertCreateSequence },
+         { CMD_NAME_DROP_SEQUENCE,
+                                 &RestToMSGTransfer::_convertDropSequence },
+         { REST_CMD_NAME_RENAME_SEQUENCE,
+                                 &RestToMSGTransfer::_convertRenameSequence },
+         { CMD_NAME_GET_SEQ_CURR_VAL,
+                                 &RestToMSGTransfer::_convertGetSequenceCurrentValue },
+         { REST_CMD_NAME_GET_SEQ_NEXT_VAL,
+                                 &RestToMSGTransfer::_convertGetSequenceNextValue },
+         { REST_CMD_NAME_RESTART_SEQUENCE,
+                                 &RestToMSGTransfer::_convertRestartSequence },
+         { REST_CMD_NAME_SET_SEQ_ATTR,
+                                 &RestToMSGTransfer::_convertSetSequenceAttributes }
       } ;
 
       len = sizeof( s_commandArray ) / sizeof( restCommand2Func ) ;
@@ -1411,7 +1444,7 @@ namespace engine
                         "value=%s", REST_KEY_NAME_FLAG, flagStr.c_str() ) ;
             goto error ;
          }
-         *flag = *flag | FLG_QUERY_WITH_RETURNDATA ;
+         *flag = *flag | FLG_QUERY_WITH_RETURNDATA | FLG_QUERY_PREPARE_MORE ;
       }
 
       if ( FALSE == skipStr.empty() )
@@ -3036,6 +3069,47 @@ namespace engine
       goto done ;
    }
 
+   INT32 RestToMSGTransfer::_convertGetDomainName( restAdaptor *pAdaptor,
+                                                   restRequest &request,
+                                                   MsgHeader **msg )
+   {
+      INT32 rc                                    = SDB_OK ;
+      CHAR *pBuff                                 = NULL ;
+      INT32 buffSize                              = 0 ;
+      CHAR sql[ PMD_REST_SQL_MAX_LEN + 1 ]        = { 0 } ;
+      string csName ;
+
+      csName = request.getQuery( FIELD_NAME_NAME ) ;
+      if ( csName.empty() )
+      {
+         csName = request.getQuery( REST_KEY_NAME_COLLECTIONSPACE ) ;
+         if ( csName.empty() )
+         {
+            PD_LOG_MSG( PDERROR, "get field failed:field=%s[or %s]",
+                     FIELD_NAME_NAME, REST_KEY_NAME_COLLECTIONSPACE ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+      // build sql
+      ossSnprintf( sql, PMD_REST_SQL_MAX_LEN,
+                   "select Domain from $LIST_CS where Name = '%s'",
+                   csName.c_str() ) ;
+      rc = _buildExecMsg( &pBuff, &buffSize, sql, 0 ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "build exec command failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      *msg = ( MsgHeader * )pBuff ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 RestToMSGTransfer::_convertListBase( restAdaptor *pAdaptor,
                                               restRequest &request,
                                               const CHAR  *command,
@@ -3538,6 +3612,67 @@ namespace engine
       goto done ;
    }
 
+   INT32 RestToMSGTransfer::_convertListCLInCollectionsSpace( restAdaptor *pAdaptor,
+                                                              restRequest &request,
+                                                              MsgHeader **msg)
+   {
+      INT32 rc                                         = SDB_OK ;
+      CHAR *pBuff                                      = NULL ;
+      INT32 buffSize                                   = 0 ;
+      const CHAR *pCommand                             = CMD_ADMIN_PREFIX CMD_NAME_LIST_COLLECTIONS ;
+      CHAR lowBound[ PMD_REST_CS_NAME_SZ + 1 + 1 ]    = { 0 } ;
+      CHAR upBound[ PMD_REST_CS_NAME_SZ + 1 + 1 ]     = { 0 } ;
+      string csName ;
+      BSONObj condition ;
+
+      csName = request.getQuery( FIELD_NAME_NAME ) ;
+      if ( csName.empty() )
+      {
+         csName = request.getQuery( REST_KEY_NAME_COLLECTIONSPACE ) ;
+         if ( csName.empty() )
+         {
+            PD_LOG_MSG( PDERROR, "get field failed:field=%s[or %s]",
+                     FIELD_NAME_NAME, REST_KEY_NAME_COLLECTIONSPACE ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+      ossStrncpy( lowBound, csName.c_str(), PMD_REST_CS_NAME_SZ ) ;
+      ossStrncat( lowBound, ".", 1 ) ;
+      ossStrncpy( upBound, csName.c_str(), PMD_REST_CS_NAME_SZ ) ;
+      ossStrncat( upBound, "/", 1 ) ;
+      // build condition bson
+      try
+      {
+         BSONObjBuilder builder ;
+         BSONObjBuilder subBuilder ( builder.subobjStart( FIELD_NAME_NAME ) ) ; 
+         subBuilder.append( "$gt", lowBound ) ;
+         subBuilder.append( "$lt", upBound ) ;
+         subBuilder.doneFast() ;
+         condition = builder.obj() ;
+      }
+      catch( const std::exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, FLG_QUERY_WITH_RETURNDATA, 0, 0, -1, &condition,
+                             NULL, NULL, NULL ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
+                     pCommand, rc ) ;
+         goto error ;
+      }
+
+      *msg = ( MsgHeader * )pBuff ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 RestToMSGTransfer::_convertListCSInDomain( restAdaptor *pAdaptor,
                                                     restRequest &request,
                                                     MsgHeader **msg )
@@ -3902,6 +4037,33 @@ namespace engine
                                                         MsgHeader** msg )
    {
       const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_INDEXSTATS ;
+
+      return  _convertSnapshotBase( pAdaptor, request, pCommand, msg ) ;
+   }
+
+   INT32 RestToMSGTransfer::_convertSnapshotTasks ( restAdaptor * pAdaptor,
+                                                    restRequest &request,
+                                                    MsgHeader ** msg )
+   {
+      const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TASKS ;
+
+      return  _convertSnapshotBase( pAdaptor, request, pCommand, msg ) ;
+   }
+
+   INT32 RestToMSGTransfer::_convertSnapshotTransWaits ( restAdaptor * pAdaptor,
+                                                         restRequest &request,
+                                                         MsgHeader ** msg )
+   {
+      const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSWAITS ;
+
+      return  _convertSnapshotBase( pAdaptor, request, pCommand, msg ) ;
+   }
+
+   INT32 RestToMSGTransfer::_convertSnapshotTransDeadlock ( restAdaptor * pAdaptor,
+                                                            restRequest &request,
+                                                             MsgHeader ** msg )
+   {
+      const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSDEADLOCK ;
 
       return  _convertSnapshotBase( pAdaptor, request, pCommand, msg ) ;
    }
@@ -4329,6 +4491,370 @@ namespace engine
    done:
       return rc ;
 
+   error:
+      goto done ;
+   }
+
+   INT32 RestToMSGTransfer::_convertListSequences( restAdaptor *pAdaptor,
+                                                   restRequest &request,
+                                                   MsgHeader **msg )
+   {
+      const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_LIST_SEQUENCES ;
+
+      return _convertListBase( pAdaptor, request, pCommand, msg ) ;
+   }
+
+   INT32 RestToMSGTransfer::_convertSnapshotSequences( restAdaptor *pAdaptor,
+                                                       restRequest &request,
+                                                       MsgHeader **msg )
+   {
+      const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_SEQUENCES ;
+
+      return  _convertSnapshotBase( pAdaptor, request, pCommand, msg ) ;
+   }
+
+   INT32 RestToMSGTransfer::_convertCreateSequence( restAdaptor *pAdaptor,
+                                                    restRequest &request,
+                                                    MsgHeader **msg )
+   {
+      INT32 rc       = SDB_OK ;
+      INT32 buffSize = 0 ;
+      CHAR *pBuff    = NULL ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_CREATE_SEQUENCE ;
+      string name ;
+      string optionsStr ;
+      BSONObj options ;
+      BSONObj query ;
+      BSONObjBuilder builder ;
+
+      name = request.getQuery( FIELD_NAME_NAME ) ;
+      if( name.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get sequence's %s failed", FIELD_NAME_NAME ) ;
+         goto error ;
+      }
+
+      optionsStr = request.getQuery( FIELD_NAME_OPTIONS ) ;
+      if ( FALSE == optionsStr.empty() )
+      {
+         rc = fromjson( optionsStr.c_str(), options, 0 ) ;
+         if ( rc )
+         {
+            PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
+                        FIELD_NAME_OPTIONS, optionsStr.c_str() ) ;
+            goto error ;
+         }
+      }
+
+      builder.append( FIELD_NAME_NAME, name ) ;
+      builder.appendElements( options ) ;
+
+      query = builder.obj() ;
+
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1,
+                             &query, NULL, NULL, NULL ) ;
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
+                     pCommand, rc ) ;
+         goto error ;
+      }
+
+      *msg = ( MsgHeader * )pBuff ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 RestToMSGTransfer::_convertDropSequence( restAdaptor *pAdaptor,
+                                                  restRequest &request,
+                                                  MsgHeader **msg )
+   {
+      INT32 rc       = SDB_OK ;
+      INT32 buffSize = 0 ;
+      CHAR *pBuff    = NULL ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_DROP_SEQUENCE ;
+      string name ;
+      BSONObj options ;
+
+      name = request.getQuery( FIELD_NAME_NAME ) ;
+      if( name.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get sequence's %s failed", FIELD_NAME_NAME ) ;
+         goto error ;
+      }
+
+      options = BSON( FIELD_NAME_NAME << name ) ;
+
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1,
+                             &options, NULL, NULL, NULL ) ;
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
+                     pCommand, rc ) ;
+         goto error ;
+      }
+
+      *msg = ( MsgHeader * )pBuff ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 RestToMSGTransfer::_convertRenameSequence( restAdaptor *pAdaptor,
+                                                    restRequest &request,
+                                                    MsgHeader **msg )
+   {
+      INT32 rc       = SDB_OK ;
+      INT32 buffSize = 0 ;
+      CHAR *pBuff    = NULL ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_ALTER_SEQUENCE ;
+      string name ;
+      string newName ;
+      BSONObj options ;
+
+      name = request.getQuery( FIELD_NAME_NAME ) ;
+      if( name.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get sequence's %s failed", FIELD_NAME_NAME ) ;
+         goto error ;
+      }
+
+      newName = request.getQuery( FIELD_NAME_NEWNAME ) ;
+      if( newName.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get sequence's %s failed", FIELD_NAME_NEWNAME ) ;
+         goto error ;
+      }
+
+      options = BSON(
+            FIELD_NAME_ACTION << CMD_VALUE_NAME_RENAME <<
+            FIELD_NAME_OPTIONS << BSON( FIELD_NAME_NAME << name <<
+                                        FIELD_NAME_NEWNAME << newName ) ) ;
+
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1,
+                             &options, NULL, NULL, NULL ) ;
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
+                     pCommand, rc ) ;
+         goto error ;
+      }
+
+      *msg = ( MsgHeader * )pBuff ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 RestToMSGTransfer::_convertGetSequenceCurrentValue(
+                                                      restAdaptor *pAdaptor,
+                                                      restRequest &request,
+                                                      MsgHeader **msg )
+   {
+      INT32 rc       = SDB_OK ;
+      INT32 buffSize = 0 ;
+      CHAR *pBuff    = NULL ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_GET_SEQ_CURR_VAL ;
+      string name ;
+      BSONObj query ;
+
+      name = request.getQuery( FIELD_NAME_NAME ) ;
+      if( name.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get sequence's %s failed", FIELD_NAME_NAME ) ;
+         goto error ;
+      }
+
+      query = BSON( FIELD_NAME_NAME << name ) ;
+
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &query,
+                             NULL, NULL, NULL ) ;
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
+                     pCommand, rc ) ;
+         goto error ;
+      }
+
+      *msg = ( MsgHeader * )pBuff ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 RestToMSGTransfer::_convertGetSequenceNextValue(
+                                                      restAdaptor *pAdaptor,
+                                                      restRequest &request,
+                                                      MsgHeader **msg )
+   {
+      INT32 rc       = SDB_OK ;
+      INT32 buffSize = 0 ;
+      CHAR *pBuff    = NULL ;
+      string name ;
+      BSONObj options ;
+
+      name = request.getQuery( FIELD_NAME_NAME ) ;
+      if( name.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get sequence's %s failed", FIELD_NAME_NAME ) ;
+         goto error ;
+      }
+
+      options = BSON( FIELD_NAME_NAME << name << FIELD_NAME_FETCH_NUM << 1 ) ;
+
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, "", 0, 0, 0, -1, &options,
+                             NULL, NULL, NULL ) ;
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
+                     REST_CMD_NAME_GET_SEQ_NEXT_VAL, rc ) ;
+         goto error ;
+      }
+
+      *msg = ( MsgHeader * )pBuff ;
+      (*msg)->opCode = MSG_BS_SEQUENCE_FETCH_REQ ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 RestToMSGTransfer::_convertRestartSequence( restAdaptor *pAdaptor,
+                                                     restRequest &request,
+                                                     MsgHeader **msg )
+   {
+      INT32 rc         = SDB_OK ;
+      INT32 buffSize   = 0 ;
+      INT64 startValue = 0 ;
+      CHAR *pBuff      = NULL ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_ALTER_SEQUENCE ;
+      string name ;
+      string startValueStr ;
+      BSONObj options ;
+
+      name = request.getQuery( FIELD_NAME_NAME ) ;
+      if( name.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get sequence's %s failed", FIELD_NAME_NAME ) ;
+         goto error ;
+      }
+
+      startValueStr = request.getQuery( FIELD_NAME_START_VALUE ) ;
+      if ( startValueStr.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get sequence's %s failed",
+                     FIELD_NAME_START_VALUE ) ;
+         goto error ;
+      }
+
+      startValue = ossAtoll( startValueStr.c_str() ) ;
+
+      options = BSON( FIELD_NAME_ACTION << CMD_VALUE_NAME_RESTART <<
+                      FIELD_NAME_OPTIONS <<
+                           BSON( FIELD_NAME_NAME << name <<
+                                 FIELD_NAME_START_VALUE << startValue ) ) ;
+
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1,
+                             &options, NULL, NULL, NULL ) ;
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
+                     pCommand, rc ) ;
+         goto error ;
+      }
+
+      *msg = ( MsgHeader * )pBuff ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 RestToMSGTransfer::_convertSetSequenceAttributes(
+                                                      restAdaptor *pAdaptor,
+                                                      restRequest &request,
+                                                      MsgHeader **msg )
+   {
+      INT32 rc       = SDB_OK ;
+      INT32 buffSize = 0 ;
+      CHAR *pBuff    = NULL ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_ALTER_SEQUENCE ;
+      string name ;
+      string attrStr ;
+      BSONObj options ;
+      BSONObj attr ;
+      BSONObjBuilder optionsBuilder ;
+
+      name = request.getQuery( FIELD_NAME_NAME ) ;
+      if( name.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get sequence's %s failed", FIELD_NAME_NAME ) ;
+         goto error ;
+      }
+
+      attrStr = request.getQuery( FIELD_NAME_OPTIONS ) ;
+      if( attrStr.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get sequence's %s failed", FIELD_NAME_OPTIONS ) ;
+         goto error ;
+      }
+
+      rc = fromjson( attrStr.c_str(), attr, 0 ) ;
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
+                     FIELD_NAME_OPTIONS, attrStr.c_str() ) ;
+         goto error ;
+      }
+
+      if ( attr.hasField( FIELD_NAME_NAME ) )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "Invalid %s, the %s can not be specified in %s",
+                     FIELD_NAME_OPTIONS, FIELD_NAME_NAME, FIELD_NAME_OPTIONS ) ;
+         goto error ;
+      }
+
+      optionsBuilder.append( FIELD_NAME_NAME, name ) ;
+      optionsBuilder.appendElements( attr ) ;
+
+      options = BSON( FIELD_NAME_ACTION << CMD_VALUE_NAME_SETATTR <<
+                      FIELD_NAME_OPTIONS << optionsBuilder.obj() ) ;
+
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1,
+                             &options, NULL, NULL, NULL ) ;
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
+                     pCommand, rc ) ;
+         goto error ;
+      }
+
+      *msg = ( MsgHeader * )pBuff ;
+
+   done:
+      return rc ;
    error:
       goto done ;
    }

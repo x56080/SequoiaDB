@@ -38,7 +38,7 @@ function test ()
                {
                   if( flag !== -79 )
                   {
-                     throw new Error( "show/aggr's nodeName is " + nodeName );
+                     throw new Error( "show/aggr's nodeName is " + nodeName + ", flag is " + flag );
                   }
                   count++;
                   break;
@@ -84,7 +84,7 @@ function test ()
             {
                if( flag !== -79 )
                {
-                  throw new Error( "show/aggr's nodeName is " + nodeName );
+                  throw new Error( "show/aggr's nodeName is " + nodeName + ", flag is " + flag );
                }
                count++;
                break;

@@ -51,7 +51,6 @@
 #include "rtnLob.hpp"
 #include "pmdStartup.hpp"
 #include "rtnContextLob.hpp"
-#include "rtnContextData.hpp"
 #include "msgMessageFormat.hpp"
 #include "rtnExtDataHandler.hpp"
 #include <set>
@@ -86,7 +85,6 @@ namespace engine
    {
       _agent = agent ;
       _contextID = -1 ;
-      _context   = NULL ;
       _lobContextID = -1 ;
       _findEnd = FALSE ;
       _query = NULL ;
@@ -113,6 +111,8 @@ namespace engine
       _disconnectMsg.requestID = 0 ;
 
       _info._info.setNice( SCHED_NICE_MIN ) ;
+
+      _lastEndNtyOffset = DPS_INVALID_LSN_OFFSET ;
    }
 
    _clsDataSrcBaseSession::~_clsDataSrcBaseSession ()
@@ -186,7 +186,7 @@ namespace engine
          rtnKillContexts( 1, &_contextID , eduCB(),
                           pmdGetKRCB()->getRTNCB() ) ;
          _contextID = -1 ;
-         _context   = NULL ;
+         _context.release() ;
       }
       if ( -1 != _lobContextID )
       {
@@ -307,7 +307,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSDSBS__ERSDFTINX, "_clsDataSrcBaseSession::_eraseDefaultIndex" )
-   void _clsDataSrcBaseSession::_eraseDefaultIndex ()
+   void _clsDataSrcBaseSession::_eraseDefaultIndex ( BSONObj& idIdxDef )
    {
       PD_TRACE_ENTRY ( SDB__CLSDSBS__ERSDFTINX );
       MON_IDX_LIST::iterator itr = _indexs.begin() ;
@@ -317,6 +317,7 @@ namespace engine
          BSONElement nameE = itr->_indexDef.getField ( IXM_NAME_FIELD ) ;
          if ( ossStrcmp( nameE.str().c_str(), IXM_ID_KEY_NAME ) == 0 )
          {
+            idIdxDef = itr->_indexDef ;
             itr = _indexs.erase( itr ) ;
             continue ;
          }
@@ -354,7 +355,7 @@ namespace engine
       BSONObj hint = builder.obj() ;
       CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
       SDB_RTNCB *pRtnCB = pmdGetKRCB()->getRTNCB() ;
-      rtnContextLobFetcher *pContextLob = NULL ;
+      rtnContextLobFetcher::sharePtr pContextLob ;
 
       ossSnprintf( fullName, sizeof( fullName ), "%s.%s",
                    cs, collection ) ;
@@ -363,7 +364,7 @@ namespace engine
       {
          rtnKillContexts( 1, &_contextID , eduCB(), pRtnCB ) ;
          _contextID = -1 ;
-         _context   = NULL ;
+         _context.release() ;
       }
 
       if ( -1 != _lobContextID )
@@ -383,7 +384,7 @@ namespace engine
       {
          rc = rtnQuery( fullName, selector, matcher, orderBy, hint, 0, eduCB(),
                         0, -1,  pmdGetKRCB()->getDMSCB(), pRtnCB,
-                        _contextID, (rtnContextBase**)&_context ) ;
+                        _contextID, &_context ) ;
       }
       // SHARD KEY INDEX SCAN
       else
@@ -401,7 +402,7 @@ namespace engine
          {
             rtnKillContexts( 1, &_contextID , eduCB(), pRtnCB ) ;
             _contextID = -1 ;
-            _context = NULL ;
+            _context.release() ;
          }
 
          _findEnd = TRUE ;
@@ -423,14 +424,14 @@ namespace engine
             // Empty collection, hit end already
             rtnKillContexts( 1, &_contextID , eduCB(), pRtnCB ) ;
             _contextID = -1 ;
-            _context = NULL ;
+            _context.release() ;
             _findEnd = TRUE ;
          }
       }
 
       /// create lob context
       rc = pRtnCB->contextNew( RTN_CONTEXT_LOB_FETCHER,
-                               (rtnContext**)&pContextLob,
+                               pContextLob,
                                _lobContextID, eduCB() ) ;
       if ( rc )
       {
@@ -489,6 +490,7 @@ namespace engine
                                                 const CHAR *cs,
                                                 const CHAR *collection,
                                                 utilCLUniqueID clUniqueID,
+                                                const BSONObj idIdxDef,
                                                 _dmsStorageUnit *su )
    {
       PD_TRACE_ENTRY ( SDB__CLSDSBS__CONSTMETA );
@@ -527,6 +529,10 @@ namespace engine
       if ( !extOptions.isEmpty() )
       {
          builder1.append( CLS_FS_EXT_OPTION, extOptions ) ;
+      }
+      if ( !idIdxDef.isEmpty() )
+      {
+         builder1.append( CLS_FS_IDIDX_DEF, idIdxDef ) ;
       }
 
       builder1.append( CLS_FS_LOB_PAGE_SIZE, su->getLobPageSize() ) ;
@@ -995,12 +1001,14 @@ namespace engine
          {
             if ( TBSCAN == _scanType() )
             {
+               ossScopedLock _lock( &_LSNlatch ) ;
                _curExtID = _context->lastExtLID() ;
                PD_LOG ( PDDEBUG, "Session[%s]: scan logical extent id: %d",
                         sessionName(), _curExtID ) ;
             }
             else
             {
+               ossScopedLock _lock( &_LSNlatch ) ;
                _curScanKeyObj = _context->getIXScanner()->getSavedObj()->copy() ;
                PD_LOG ( PDDEBUG, "Session[%s]: scan cur key obj: %s",
                         sessionName(), _curScanKeyObj.toString().c_str() ) ;
@@ -1010,6 +1018,13 @@ namespace engine
             {
                _findEnd = TRUE ;
             }
+
+            // we should make sure the DPS logs for this batch of records
+            // will be send right after them
+            _updateNtyLSN(
+                  (DPS_LSN_OFFSET)(
+                        _context->getMBContext()->mbStat()->_lastLSN.fetch() ) ) ;
+
             _context->getMBContext()->mbUnlock() ;
 
             _query = _onObjFilter( buffObj.data(), buffObj.size(), _queryLen ) ;
@@ -1061,7 +1076,7 @@ namespace engine
       {
          pRtnCB->contextDelete( _contextID, eduCB() ) ;
          _contextID = -1 ;
-         _context = NULL ;
+         _context.release() ;
       }
 
       if ( _mb.length () != 0 )
@@ -1126,6 +1141,58 @@ namespace engine
       return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSDSBS__UPDNTYLSN, "_clsDataSrcBaseSession::_updateNtyLSN" )
+   void _clsDataSrcBaseSession::_updateNtyLSN( DPS_LSN_OFFSET collectionLSN )
+   {
+      PD_TRACE_ENTRY( SDB__CLSDSBS__UPDNTYLSN ) ;
+
+      // we should make sure the DPS logs for this batch of records
+      // will be send right after them
+      DPS_LSN_OFFSET preparedLSN = sdbGetReplCB()->getNtyLastOffset() ;
+      DPS_LSN_OFFSET lastNtyLSN = _lastEndNtyOffset ;
+      DPS_LSN_OFFSET tempLSN = DPS_INVALID_LSN_OFFSET ;
+
+      if ( DPS_INVALID_LSN_OFFSET == preparedLSN )
+      {
+         // nothing happened
+         goto done ;
+      }
+      else if ( DPS_INVALID_LSN_OFFSET == _lastEndNtyOffset )
+      {
+         // first time to update, use the LSN from log manager
+         _lastEndNtyOffset = preparedLSN ;
+         goto done ;
+      }
+
+      if ( collectionLSN != DPS_INVALID_LSN_OFFSET )
+      {
+         // both LSN from log manager and collection are valid,
+         // choose the minimum one
+         // WARNING: collection LSN may not be correct
+         // - if collection LSN is larger than actual LSN, use the prepared LSN
+         //   which is updated by each DPS logs and must be correct
+         // - if collection LSN is smaller than actual LSN, use the collection
+         //   LSN which means the collection has not been updated recently
+         //   and it is safe
+         tempLSN = OSS_MIN( preparedLSN, collectionLSN ) ;
+      }
+      else
+      {
+         // LSN from log manager is valid
+         tempLSN = preparedLSN ;
+      }
+
+      _lastEndNtyOffset = OSS_MAX( lastNtyLSN, tempLSN ) ;
+
+   done:
+      PD_LOG( PDDEBUG, "Session[%s]: update last notify LSN from "
+              "[%llu] to [%llu], collection [%llu], prepared [%llu]",
+              name(), lastNtyLSN, _lastEndNtyOffset, collectionLSN,
+              preparedLSN ) ;
+
+      PD_TRACE_EXIT( SDB__CLSDSBS__UPDNTYLSN ) ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSDSBS_HNDFSMETA, "_clsDataSrcBaseSession::handleFSMeta" )
    INT32 _clsDataSrcBaseSession::handleFSMeta( NET_HANDLE handle,
                                                MsgHeader* header )
@@ -1142,6 +1209,7 @@ namespace engine
       UINT32 csLID = DMS_INVALID_LOGICCSID ;
       UINT16 mbID = DMS_INVALID_MBID ;
       utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
+      BSONObj idIdxDef ;
 
       MsgClsFSMetaRes res ;
       res.header.header.TID = header->TID ;
@@ -1181,6 +1249,7 @@ namespace engine
                  obj.toString().c_str() ) ;
          CHAR cs[DMS_COLLECTION_SPACE_NAME_SZ + 1] = { 0 } ;
          CHAR collection[DMS_COLLECTION_NAME_SZ + 1] = { 0 } ;
+         BOOLEAN excludeStandIdx = TRUE ;
 
          if ( SDB_OK != ( rc = _getCSName( obj, cs,
                                DMS_COLLECTION_SPACE_NAME_SZ + 1) ) )
@@ -1237,7 +1306,11 @@ namespace engine
          curCollection = ossPack32To64 ( su->LogicalCSID(),
                                          mbContext->clLID() ) ;
          /// get indexes
-         rc = su->getIndexes( mbContext, _indexs ) ;
+         if ( SDB_ROLE_CATALOG == pmdGetDBRole() )
+         {
+            excludeStandIdx = FALSE ;
+         }
+         rc = su->getIndexes( mbContext, _indexs, excludeStandIdx ) ;
          if ( rc )
          {
             PD_LOG( PDWARNING, "Session[%s]:Failed to get indexs of "
@@ -1253,7 +1326,7 @@ namespace engine
             su->data()->releaseMBContext( mbContext ) ;
 
             /// erase index of "_id"
-            _eraseDefaultIndex() ;
+            _eraseDefaultIndex( idIdxDef ) ;
 
             // must release su lock, because _openContext will get lock again
             dmsCB->suUnlock ( suID ) ;
@@ -1273,7 +1346,7 @@ namespace engine
             _curCSLID = csLID ;
             _curMBID = mbID ;
          }
-         _constructMeta( meta, cs, collection, clUniqueID, su ) ;
+         _constructMeta( meta, cs, collection, clUniqueID, idIdxDef, su ) ;
          PD_LOG( PDDEBUG, "Session[%s]: get meta [%s]", sessionName(),
                  meta.toString().c_str() ) ;
          res.header.header.messageLength = sizeof( MsgClsFSMetaRes ) +
@@ -1678,16 +1751,16 @@ namespace engine
          MON_CL_LIST clList ;
          BOOLEAN needDisconnect = FALSE ;
 
-         /// get expcect lsn
-         _lsn = dpscb->expectLsn() ;
-         msg.lsn = _lsn ;
-         _beginLSNOffset = _lsn.offset ;
-
          // release notify lsn que, and prevent create cs/cl, drop cs/cl,
          // rename cl, truncate cl and so on occur during construct full names
          // and set _init = TRUE
          ossScopedLock lock( &_LSNlatch ) ;
          _deqLSN.clear() ;
+
+         /// get expcect lsn
+         _lsn = dpscb->expectLsn() ;
+         msg.lsn = _lsn ;
+         _beginLSNOffset = _lsn.offset ;
 
          /// Notify fullsync, So will kick the node from sync control nodes.
          /// In _processValidCLs, need to get lock of collection, If has some
@@ -1733,6 +1806,9 @@ namespace engine
                                       obj.objsize() ) ;
             }
          }
+
+         // save last offset after meta info is fetched.
+         _lastEndNtyOffset = sdbGetReplCB()->getNtyLastOffset() ;
 
          /// reset timeCounter
          _timeCounter = 0 ;
@@ -1904,15 +1980,18 @@ namespace engine
       UINT64 fullCLLID = ossPack32To64 ( suLID, clLID ) ;
       map<UINT64, UINT32>::iterator it ;
       BOOLEAN needRelease = FALSE ;
+      BOOLEAN needSetBeginLSN = FALSE ;
       UINT32 lsnLen = 0 ;
+
+      _LSNlatch.get() ;
+      needRelease = TRUE ;
 
       if ( !_init || _quit || offset < _beginLSNOffset )
       {
          goto done ;
       }
 
-      _LSNlatch.get() ;
-      needRelease = TRUE ;
+      needSetBeginLSN = TRUE ;
 
       PD_LOG ( PDINFO, "Session[%s]: dps notify[suLID:%d, clLID:%d, "
                "extLID:%d, offset:%lld], curScan extLID:%d", sessionName(),
@@ -1972,9 +2051,13 @@ namespace engine
          }
       }
    done:
-      if ( needRelease )
+      if ( needSetBeginLSN )
       {
          _beginLSNOffset = offset + lsnLen ;
+      }
+
+      if ( needRelease )
+      {
          _LSNlatch.release () ;
       }
       PD_TRACE_EXIT ( SDB__CLSFSSS_NTFLSN );
@@ -2000,7 +2083,27 @@ namespace engine
 
    BOOLEAN _clsFSSrcSession::_canSwitchWhenSyncLog()
    {
-      return TRUE ;
+      if ( DPS_INVALID_LSN_OFFSET == _lastEndNtyOffset )
+      {
+         // lsn is not changed after meta info is fetched.
+         return TRUE ;
+      }
+
+      if ( _beginLSNOffset >= _lastEndNtyOffset )
+      {
+         // begin lsn is greater than the lsn when meta info is fetched.
+         return TRUE ;
+      }
+
+      DPS_LSN_OFFSET processed = sdbGetReplCB()->getNtyProcessedOffset() ;
+      if ( DPS_INVALID_LSN_OFFSET != processed &&
+           _lastEndNtyOffset <= processed )
+      {
+         // lsn is processed after meta info is fetched
+         return TRUE ;
+      }
+
+      return FALSE ;
    }
 
    INT32 _clsFSSrcSession::_isReady()
@@ -2560,10 +2663,9 @@ namespace engine
       _hasEndRange      = TRUE ;
       _partitionBit     = 0 ;
 
-      _taskID           = 0 ;
+      _locationID       = 0 ;
       _ntyOverTime      = 0 ;
-      _lastEndNtyOffset = DPS_INVALID_LSN_OFFSET ;
-      _getLastEndNtyOffset = FALSE ;
+      _getMetaNtyOffset = FALSE ;
       _collectionW      = 1 ;
       _lastOprLSN       = DPS_INVALID_LSN_OFFSET ;
       _internalV        = 0 ;
@@ -2873,6 +2975,10 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      dpsTransCB *transCB = sdbGetTransCB() ;
+      dpsTransLockId lockID( _curCSLID, _curMBID, NULL ) ;
+      DPS_TRANS_ID_SET incompList ;
+
       if ( _ntyOverTime > 0 )
       {
          /// Blocking has been started, the sync process might be restarted
@@ -2892,20 +2998,37 @@ namespace engine
 
       /// Block collection and main-collection ( if have ) together
       rc = _pFreezingWindow->registerCL( clFullName, _ntyOverTime ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Session[%s]: Block all write operations of "
-                 "collection[%s] failed, rc: %d",
-                 sessionName(), clFullName, rc ) ;
-      }
-      else
-      {
-         PD_LOG( PDEVENT, "Session[%s]: Begin to block all write operations "
-                 "of collection[%s], ID: %llu", sessionName(), clFullName,
-                 _ntyOverTime ) ;
-      }
+      PD_RC_CHECK( rc, PDERROR, "Session[%s]: Block all write operations of "
+                   "collection[%s] failed, rc: %d",
+                   sessionName(), clFullName, rc ) ;
+      PD_LOG( PDEVENT, "Session[%s]: Begin to block all write operations "
+              "of collection[%s], ID: %llu", sessionName(), clFullName,
+              _ntyOverTime ) ;
 
+      // get white list of transactions, who had already acquired write
+      // locks on the same collection, they must be finished before split
+      // NOTE: use S lock to exclusive X, IX, Z locks
+      rc = transCB->getIncompTrans( eduCB(),
+                                    lockID,
+                                    DPS_TRANSLOCK_S,
+                                    TRUE,
+                                    incompList ) ;
+      PD_RC_CHECK( rc, PDERROR, "Session[%s]: Failed to get white list for "
+                   "collection [%s], rc: %d", sessionName(), clFullName, rc ) ;
+
+      // set white list to freezing window
+      rc = _pFreezingWindow->updateCLWhiteList( clFullName,
+                                                _ntyOverTime,
+                                                incompList ) ;
+      PD_RC_CHECK( rc, PDERROR, "Session[%s]: Failed to set white list for "
+                   "collection [%s], ID: %llu, rc: %d", sessionName(),
+                   clFullName, _ntyOverTime, rc ) ;
+
+   done:
       return rc ;
+
+   error:
+      goto done ;
    }
 
    INT32 _clsSplitSrcSession::_scanType() const
@@ -2921,11 +3044,27 @@ namespace engine
    {
       if ( _ntyOverTime > 0 )
       {
+         INT32 rc = SDB_OK ;
+
          pmdEDUMgr *pEDUMgr = eduCB()->getEDUMgr() ;
+         dpsTransCB *transCB = sdbGetTransCB() ;
          dpsTransLockId lockID( _curCSLID, _curMBID, NULL ) ;
-         if ( pEDUMgr->getWritingEDUCount( -1, _ntyOverTime,
-                                           EDU_BLOCK_FREEZING_WND,
-                                           lockID ) > 0 )
+         DPS_TRANS_ID_SET incompList ;
+
+         // Step 1. check writing EDU with blocking ID, if no smaller
+         //         operation ID than blocking ID on the same collection,
+         //         it means all running operations on the same collection
+         //         before blocking ID had been finished
+         // Step 2. check transaction with incompatible locks on the same
+         //         collection, if no incompatible transactions, it means all
+         //         running transactions on the same collection had been
+         //         finished, otherwise, add the incompatible transactions
+         //         as white list for blocking, so they won't be blocked
+
+         // check if writing EDU on the same collection
+         if ( pEDUMgr->hasWritingEDU( -1,
+                                      _ntyOverTime,
+                                      EDU_BLOCK_FREEZING_WND ) )
          {
             PD_LOG( PDINFO, "Session[%s] operator ID [%llu] : Waiting for "
                     "other operations to finish", sessionName(),
@@ -2933,27 +3072,63 @@ namespace engine
             return FALSE ;
          }
 
-         if ( FALSE == _getLastEndNtyOffset )
+         // get white list of transactions, who had already acquired write
+         // locks on the same collection, they must be finished before split
+         // NOTE: use S lock to exclusive X, IX, Z locks
+         rc = transCB->getIncompTrans( eduCB(),
+                                       lockID,
+                                       DPS_TRANSLOCK_S,
+                                       TRUE,
+                                       incompList ) ;
+         if ( SDB_OK != rc )
          {
-            _getLastEndNtyOffset = TRUE ;
-            _lastEndNtyOffset = sdbGetReplCB()->getNtyLastOffset() ;
+            PD_LOG( PDWARNING, "Session[%s]: Failed to get incompatible "
+                    "transaction list for collection [%s], rc: %d",
+                    sessionName(), _curCollecitonName.c_str(), rc ) ;
+            // failed to check, retry later
+            return FALSE ;
          }
 
-         if ( DPS_INVALID_LSN_OFFSET != _lastEndNtyOffset )
+         if ( incompList.size() > 0 )
          {
-            DPS_LSN_OFFSET processed = sdbGetReplCB()->getNtyProcessedOffset() ;
-            if ( DPS_INVALID_LSN_OFFSET == processed ||
-                 processed < _lastEndNtyOffset )
+            // update white list to freezing window
+            rc = _pFreezingWindow->updateCLWhiteList(
+                                                   _curCollecitonName.c_str(),
+                                                   _ntyOverTime,
+                                                   incompList ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDWARNING, "Session[%s]: Failed to set white list for "
+                       "collection [%s], ID: %llu, rc: %d", sessionName(),
+                       _curCollecitonName.c_str(), _ntyOverTime, rc ) ;
+            }
+
+            // still have incompatible transactions, retry later
+            return FALSE ;
+         }
+
+         // stop fetching logs after all blocking operators are finished
+         if ( FALSE == _getMetaNtyOffset )
+         {
+            _getMetaNtyOffset = TRUE ;
+            _lastEndNtyOffset = sdbGetReplCB()->getNtyLastOffset() ;
+         }
+      }
+
+      if ( DPS_INVALID_LSN_OFFSET != _lastEndNtyOffset )
+      {
+         DPS_LSN_OFFSET processed = sdbGetReplCB()->getNtyProcessedOffset() ;
+         if ( DPS_INVALID_LSN_OFFSET == processed ||
+              processed < _lastEndNtyOffset )
+         {
+            return FALSE ;
+         }
+         else
+         {
+            ossScopedLock lock( &_LSNlatch ) ;
+            if ( _deqLSN.size() > 0 )
             {
                return FALSE ;
-            }
-            else
-            {
-               ossScopedLock lock( &_LSNlatch ) ;
-               if ( _deqLSN.size() > 0 )
-               {
-                  return FALSE ;
-               }
             }
          }
       }
@@ -3023,6 +3198,9 @@ namespace engine
             _init = TRUE ;
             _quit = FALSE ;
          }
+
+         // save last offset after meta info is fetched.
+         _lastEndNtyOffset = sdbGetReplCB()->getNtyLastOffset() ;
       }
 
    done:
@@ -3113,6 +3291,9 @@ namespace engine
             _cleanupJobID = PMD_INVALID_EDUID ;
          }
       }
+
+      // End of split, make it so that restoreToTime cannot go beyond this
+      sdbGetTransCB()->pushRestoreWindow() ;
 
    done:
       PD_TRACE_EXIT ( SDB__CLSSPLSS_HNDEND ) ;
@@ -3495,10 +3676,19 @@ namespace engine
 
       // add empty split task to start timmer
       _clsTaskMgr *taskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
-      _clsDummyTask *pTask = SDB_OSS_NEW _clsDummyTask ( taskMgr->getTaskID() ) ;
-      if ( pTask && SDB_OK == taskMgr->addTask( pTask ) )
+      UINT32 locationID = taskMgr->getLocationID() ;
+      _clsDummyTask *pTask = SDB_OSS_NEW _clsDummyTask ( CLS_INVALID_TASKID ) ;
+      if ( pTask )
       {
-         _taskID = pTask->taskID() ;
+         if ( SDB_OK == taskMgr->addTask( pTask, locationID ) )
+         {
+            _locationID = locationID ;
+         }
+         else
+         {
+            SDB_OSS_DEL pTask ;
+            _quit = TRUE ;
+         }
       }
       else
       {
@@ -3515,9 +3705,9 @@ namespace engine
 
       // remove the empty split task
       _clsTaskMgr *taskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
-      if ( 0 != _taskID )
+      if ( 0 != _locationID )
       {
-         taskMgr->removeTask( _taskID ) ;
+         taskMgr->removeTask( _locationID ) ;
       }
 
       if ( _ntyOverTime > 0 )

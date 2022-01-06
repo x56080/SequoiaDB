@@ -72,17 +72,6 @@ namespace engine
 
    _catDCManager::~_catDCManager()
    {
-      _pDCBaseInfo = NULL ;
-      if ( _pDCMgr )
-      {
-         SDB_OSS_DEL _pDCMgr ;
-         _pDCMgr = NULL ;
-      }
-      if ( _pLogMgr )
-      {
-         SDB_OSS_DEL _pLogMgr ;
-         _pLogMgr = NULL ;
-      }
    }
 
    INT32 _catDCManager::init()
@@ -129,6 +118,17 @@ namespace engine
       if ( _pCatCB )
       {
          _pCatCB->unregEventHandler( this ) ;
+      }
+      _pDCBaseInfo = NULL ;
+      if ( _pDCMgr )
+      {
+         SDB_OSS_DEL _pDCMgr ;
+         _pDCMgr = NULL ;
+      }
+      if ( _pLogMgr )
+      {
+         SDB_OSS_DEL _pLogMgr ;
+         _pLogMgr = NULL ;
       }
       return SDB_OK ;
    }
@@ -343,13 +343,13 @@ namespace engine
       rtnContextBuf ctxBuff ;
 
       INT32 flag = 0 ;
-      CHAR *pCMDName = NULL ;
+      const CHAR *pCMDName = NULL ;
       INT64 numToSkip = 0 ;
       INT64 numToReturn = 0 ;
-      CHAR *pQuery = NULL ;
-      CHAR *pFieldSelector = NULL ;
-      CHAR *pOrderBy = NULL ;
-      CHAR *pHint = NULL ;
+      const CHAR *pQuery = NULL ;
+      const CHAR *pFieldSelector = NULL ;
+      const CHAR *pOrderBy = NULL ;
+      const CHAR *pHint = NULL ;
 
       // init reply msg
       replyHeader.header.messageLength = sizeof( MsgOpReply ) ;
@@ -360,7 +360,7 @@ namespace engine
       _fillRspHeader( &(replyHeader.header), &(pQueryReq->header) ) ;
 
       // extract msg
-      rc = msgExtractQuery( (CHAR*)pMsg, &flag, &pCMDName, &numToSkip,
+      rc = msgExtractQuery( (const CHAR*)pMsg, &flag, &pCMDName, &numToSkip,
                             &numToReturn, &pQuery, &pFieldSelector,
                             &pOrderBy, &pHint ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to extract query msg, rc: %d", rc ) ;
@@ -1240,12 +1240,12 @@ namespace engine
       if ( !pBaseInfo->isRestoring() )
       {
          // update to collection
-         if (( rc = catUpdateDCStatus( FIELD_NAME_RESTORING, TRUE,
+         if (( rc = catUpdateDCStatus( FIELD_NAME_RESTORE, TRUE,
                                       _pEduCB, _majoritySize(), _pDmsCB,
                                       _pDpsCB )))
          {
             // update failed, undo the change
-            catUpdateDCStatus( FIELD_NAME_RESTORING, FALSE, _pEduCB, 1,
+            catUpdateDCStatus( FIELD_NAME_RESTORE, FALSE, _pEduCB, 1,
                                _pDmsCB, _pDpsCB ) ;
             return rc;
          }
@@ -1276,12 +1276,12 @@ namespace engine
       if ( pBaseInfo->isRestoring() )
       {
          // update to collection
-         if (( rc = catUpdateDCStatus( FIELD_NAME_RESTORING, FALSE,
+         if (( rc = catUpdateDCStatus( FIELD_NAME_RESTORE, FALSE,
                                       _pEduCB, _majoritySize(), _pDmsCB,
                                       _pDpsCB )))
          {
             // update failed, undo the change
-            catUpdateDCStatus( FIELD_NAME_RESTORING, TRUE, _pEduCB, 1,
+            catUpdateDCStatus( FIELD_NAME_RESTORE, TRUE, _pEduCB, 1,
                                _pDmsCB, _pDpsCB ) ;
             return rc;
          }
@@ -1435,7 +1435,7 @@ namespace engine
                            FIELD_NAME_ADDRESS << option->getCatAddr() ) <<
                          FIELD_NAME_ACTIVATED << true <<
                          FIELD_NAME_READONLY << false <<
-                         FIELD_NAME_RESTORING << false ) ;
+                         FIELD_NAME_RESTORE << false ) ;
          rc = rtnInsert( CAT_SYSDCBASE_COLLECTION_NAME, infoObj, 1, 0,
                          _pEduCB, _pDmsCB, _pDpsCB, 1 ) ;
          PD_RC_CHECK( rc, PDERROR, "Insert global info[%s] to collection[%s] "

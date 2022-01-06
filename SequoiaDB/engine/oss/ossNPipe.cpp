@@ -1532,10 +1532,9 @@ INT32 ossEnumNamedPipes( vector<string > &names,
                  rootPath, rc ) ;
          goto error ;
       }
-      rc = SDB_OK ;
+      rc = _ossEnumNamedPipes( rootPath, names, pattern,
+                               ossStrlen( pattern ), type ) ;
    }
-   rc = _ossEnumNamedPipes( rootPath, names, pattern,
-                            ossStrlen( pattern ), type ) ;
 
 done:
    return rc ;

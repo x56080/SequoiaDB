@@ -93,4 +93,4 @@ v3.4.2 and above
 .IP \[bu] 2
 Get the statistics of index ageIndex of collection sample.employee.
 .PP
-\f[C]>\ db.sample.employee.getIndexStat(\ "ageIndex"\ )\f[]
+\f[C]> db.sample.employee.getIndexStat( "ageIndex" )\f[]

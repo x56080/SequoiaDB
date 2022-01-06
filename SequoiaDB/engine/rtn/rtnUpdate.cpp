@@ -178,7 +178,8 @@ namespace engine
                                      TRUE,
                                      shardingKey,
                                      strictDataMode,
-                                     logWriteMod ) ;
+                                     logWriteMod,
+                                     TRUE ) ;
          PD_RC_CHECK( rc, PDERROR, "Invalid pattern is detected for updator: "
                       "%s", updator.toString().c_str() ) ;
       }
@@ -196,7 +197,7 @@ namespace engine
          SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 
          // plan is released when exiting the function
-         rc = apm->getAccessPlan( options, FALSE, su, mbContext, planRuntime ) ;
+         rc = apm->getAccessPlan( options, su, mbContext, planRuntime, NULL ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s for update, "
                       "rc: %d", options.getCLFullName(), rc ) ;
 
@@ -270,7 +271,8 @@ namespace engine
                                               recordDataPtr, cb, dpsCB,
                                               modifier, NULL,
                                               pScanner->callbackHandler(),
-                                              pResult ) ;
+                                              pResult,
+                                              pScanner->recordInfo() ) ;
                PD_RC_CHECK( rc, PDERROR, "Update record failed, rc: %d", rc ) ;
 
                ++numUpdatedRecords ;

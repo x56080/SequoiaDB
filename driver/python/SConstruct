@@ -22,7 +22,7 @@ client_include = join(root_dir, path + 'SequoiaDB/engine/include')
 common_include_dir = join(root_dir, path + 'SequoiaDB/engine/client')
 bson_include_dir = join(root_dir, path + 'SequoiaDB/engine/bson')
 boost_dir = join(root_dir, path + 'thirdparty/boost')
-ssl_dir = join(root_dir, path + 'thirdparty/crypto/openssl-1.1.1g')
+ssl_dir = join(root_dir, path + 'thirdparty/crypto/openssl-1.1.1k')
 ssl_include = join(ssl_dir, 'include')
 ssl_lib_dir = join(ssl_dir, 'lib')
 
@@ -232,9 +232,10 @@ elif guess_os == "linux":
     env.Append(CPPDEFINES=["HAVE_CONFIG_H", "PIC"])
     env['ENV']['HOME'] = os.environ['HOME']
     env['ENV']['TERM'] = os.environ['TERM']
-    env.Append(CPPFLAGS="-ggdb")
+    env.Append(CPPFLAGS="-ggdb -pthread")
     env.Append(LIBS=['ssl'])
     env.Append(LIBS=['crypto'])
+    env.Append(LINKFLAGS=" -pthread")
     if guess_arch == "ia64":
         env.Append(LIBPATH="/usr/lib64")
         env.Append(LIBPATH="/lib64")

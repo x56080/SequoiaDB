@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import com.sequoiadb.util.Helper;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -54,6 +55,7 @@ import com.sequoiadb.message.response.SysInfoResponse;
 import com.sequoiadb.net.IConnection;
 import com.sequoiadb.net.ServerAddress;
 import com.sequoiadb.net.TCPConnection;
+import com.sequoiadb.net.ConnectionProxy;
 
 /**
  * The connection with SequoiaDB server.
@@ -61,11 +63,13 @@ import com.sequoiadb.net.TCPConnection;
 public class Sequoiadb implements Closeable {
     private InetSocketAddress socketAddress;
     private IConnection connection;
+    private ConnectionProxy connProxy;
     private String userName;
     private String password;
     private ByteOrder byteOrder = ByteOrder.BIG_ENDIAN;
     private long requestId;
     private long lastUseTime;
+    private int currentCacheSize = 0;
     private boolean isOldVersionLobServer = false;
 
     // cache cs/cl name
@@ -79,7 +83,6 @@ public class Sequoiadb implements Closeable {
 
     private final static int DEFAULT_BUFF_LENGTH = 512;
     private ByteBuffer requestBuffer = null;
-    private ByteBuffer responseBuffer = null;
 
     /**
      * specified the package size of the collections in current collection space to be 4K
@@ -127,6 +130,9 @@ public class Sequoiadb implements Closeable {
     //public final static int SDB_LIST_RESERVED2 = 19 ;
     //public final static int SDB_LIST_RESERVED3 = 20 ;
     //public final static int SDB_LIST_RESERVED4 = 21 ;
+    public final static int SDB_LIST_DATASOURCES = 22;
+    //public final static int SDB_LIST_RESERVED6 = 23 ;
+    //public final static int SDB_LIST_RESERVED7 = 24 ;
     public final static int SDB_LIST_CL_IN_DOMAIN = 129;
     public final static int SDB_LIST_CS_IN_DOMAIN = 130;
 
@@ -152,6 +158,11 @@ public class Sequoiadb implements Closeable {
     public final static int SDB_SNAP_LATCHWAITS = 19;
     public final static int SDB_SNAP_LOCKWAITS = 20;
     public final static int SDB_SNAP_INDEXSTATS = 21;
+    //public final static int SDB_SNAP_RESERVED3 = 22;
+    public final static int SDB_SNAP_TASKS = 23;
+    public final static int SDB_SNAP_INDEXES = 24;
+    public final static int SDB_SNAP_TRANSWAITS = 25;
+    public final static int SDB_SNAP_TRANSDEADLOCK = 26;
 
     public final static int FMP_FUNC_TYPE_INVALID = -1;
     public final static int FMP_FUNC_TYPE_JS = 0;
@@ -340,6 +351,13 @@ public class Sequoiadb implements Closeable {
     }
 
     /**
+     * Reserve.
+     */
+    public int getCurrentCacheSize() {
+        return currentCacheSize;
+    }
+
+    /**
      * Use server address "127.0.0.1:11810".
      *
      * @param username the user's name of the account
@@ -490,6 +508,8 @@ public class Sequoiadb implements Closeable {
         socketAddress = new InetSocketAddress(host, port);
         connection = new TCPConnection(socketAddress, options);
         connection.connect();
+
+        connProxy = new ConnectionProxy(connection);
 
         byteOrder = getSysInfo();
         authenticate(username, password);
@@ -680,10 +700,14 @@ public class Sequoiadb implements Closeable {
      * @param options Contains configuration information for create collection space. The options are as
      *                below:
      *                <ul>
-     *                <li>PageSize : Assign how large the page size is for the collection created in
+     *                <li>PageSize(int) : Assign how large the page size is for the collection created in
      *                this collection space, default to be 64K
-     *                <li>Domain : Assign which domain does current collection space belong to, it will
+     *                <li>Domain(String) : Assign which domain does current collection space belong to, it will
      *                belongs to the system domain if not assign this option
+     *                <li>LobPageSize(int) : The Lob data page size, default value is 262144
+     *                and the unit is byte
+     *                <li>DataSource(String) : Assign which data source does current collection space belong to
+     *                <li>Mapping(String) : The name of the collection space mapped by the current collection space
      *                </ul>
      * @return the newly created collection space object
      * @throws BaseException If error happens.
@@ -714,18 +738,38 @@ public class Sequoiadb implements Closeable {
      * @throws BaseException If error happens.
      */
     public void dropCollectionSpace(String csName) throws BaseException {
+        dropCollectionSpace(csName, null);
+    }
+
+    /**
+     * Remove the named collection space.
+     *
+     * @param csName The collection space name
+     * @param options Contains configuration information for drop collection space. The options are as
+     *                below:
+     *                <ul>
+     *                <li>EnsureEmpty(boolean) : check whether the collection space is empty when drop,
+     *                false means drop directly, true means only empty can drop, default value is false
+     *                </ul>
+     * @throws BaseException If error happens.
+     */
+    public void dropCollectionSpace(String csName, BSONObject options) throws BaseException {
         if (csName == null || csName.isEmpty()) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "cs name can not be null or empty");
         }
 
-        BSONObject options = new BasicBSONObject();
-        options.put(SdbConstants.FIELD_NAME_NAME, csName);
+        BSONObject innerOptions = new BasicBSONObject();
+        innerOptions.put(SdbConstants.FIELD_NAME_NAME, csName);
+        if (null != options) {
+            innerOptions.putAll(options);
+        }
 
-        AdminRequest request = new AdminRequest(AdminCommand.DROP_CS, options);
+        AdminRequest request = new AdminRequest(AdminCommand.DROP_CS, innerOptions);
         SdbReply response = requestAndResponse(request);
         throwIfError(response);
         removeCache(csName);
     }
+
 
     /**
      * @param csName  The collection space name
@@ -1111,6 +1155,7 @@ public class Sequoiadb implements Closeable {
      *                   <dt>Sequoiadb.SDB_LIST_SEQUENCES : Get the information of sequences
      *                   <dt>Sequoiadb.SDB_LIST_USERS : Get all the user information.
      *                   <dt>Sequoiadb.SDB_LIST_BACKUPS : Get all the backup information.
+     *                   <dt>Sequoiadb.SDB_LIST_DATASOURCES : Get all the data source information</dt>
      *                   </dl>
      * @param query      The matching rule, match all the documents if null.
      * @param selector   The selective rule, return the whole document if null.
@@ -1165,6 +1210,7 @@ public class Sequoiadb implements Closeable {
      *                 <dt>Sequoiadb.SDB_LIST_SEQUENCES : Get the information of sequences
      *                 <dt>Sequoiadb.SDB_LIST_USERS : Get all the user information.
      *                 <dt>Sequoiadb.SDB_LIST_BACKUPS : Get all the backup information.
+     *                 <dt>Sequoiadb.SDB_LIST_DATASOURCES : Get all the data source information</dt>
      *                 </dl>
      * @param query    The matching rule, match all the documents if null.
      * @param selector The selective rule, return the whole document if null.
@@ -1308,6 +1354,10 @@ public class Sequoiadb implements Closeable {
      *                 <dt>Sequoiadb.SDB_SNAP_LATCHWAITS : Get the snapshot of latch waits
      *                 <dt>Sequoiadb.SDB_SNAP_LOCKWAITS : Get the snapshot of lock waits
      *                 <dt>Sequoiadb.SDB_SNAP_INDEXSTATS : Get the snapshot of index statistics
+     *                 <dt>Sequoiadb.SDB_SNAP_TASKS : Get the snapshot of tasks
+     *                 <dt>Sequoiadb.SDB_SNAP_INDEXES : Get the snapshot of indexes
+     *                 <dt>Sequoiadb.SDB_SNAP_TRANSWAITS : Get the snapshot of transaction waits
+     *                 <dt>Sequoiadb.SDB_SNAP_TRANSDEADLOCK : Get the snapshot of transaction deadlock
      *                 </dl>
      * @param matcher  the matching rule, match all the documents if null
      * @param selector the selective rule, return the whole document if null
@@ -1359,6 +1409,10 @@ public class Sequoiadb implements Closeable {
      *                 <dt>Sequoiadb.SDB_SNAP_LATCHWAITS : Get the snapshot of latch waits
      *                 <dt>Sequoiadb.SDB_SNAP_LOCKWAITS : Get the snapshot of lock waits
      *                 <dt>Sequoiadb.SDB_SNAP_INDEXSTATS : Get the snapshot of index statistics
+     *                 <dt>Sequoiadb.SDB_SNAP_TASKS : Get the snapshot of tasks
+     *                 <dt>Sequoiadb.SDB_SNAP_INDEXES : Get the snapshot of indexes
+     *                 <dt>Sequoiadb.SDB_SNAP_TRANSWAITS : Get the snapshot of transaction waits
+     *                 <dt>Sequoiadb.SDB_SNAP_TRANSDEADLOCK : Get the snapshot of transaction deadlock
      *                 </dl>
      * @param matcher  the matching rule, match all the documents if null
      * @param selector the selective rule, return the whole document if null
@@ -1397,6 +1451,10 @@ public class Sequoiadb implements Closeable {
      *                   <dt>Sequoiadb.SDB_SNAP_LATCHWAITS : Get the snapshot of latch waits
      *                   <dt>Sequoiadb.SDB_SNAP_LOCKWAITS : Get the snapshot of lock waits
      *                   <dt>Sequoiadb.SDB_SNAP_INDEXSTATS : Get the snapshot of index statistics
+     *                   <dt>Sequoiadb.SDB_SNAP_TASKS : Get the snapshot of tasks
+     *                   <dt>Sequoiadb.SDB_SNAP_INDEXES : Get the snapshot of indexes
+     *                   <dt>Sequoiadb.SDB_SNAP_TRANSWAITS : Get the snapshot of transaction waits
+     *                   <dt>Sequoiadb.SDB_SNAP_TRANSDEADLOCK : Get the snapshot of transaction deadlock
      *                   </dl>
      * @param matcher    the matching rule, match all the documents if null
      * @param selector   the selective rule, return the whole document if null
@@ -1475,6 +1533,14 @@ public class Sequoiadb implements Closeable {
                 return AdminCommand.SNAP_LOCKWAITS;
             case SDB_SNAP_INDEXSTATS:
                 return AdminCommand.SNAP_INDEXSTATS;
+            case SDB_SNAP_TASKS:
+                return AdminCommand.SNAP_TASKS;
+            case SDB_SNAP_INDEXES:
+                return AdminCommand.SNAP_INDEXES;
+            case SDB_SNAP_TRANSWAITS:
+                return AdminCommand.SNAP_TRANSWAITS;
+            case SDB_SNAP_TRANSDEADLOCK:
+                return AdminCommand.SNAP_TRANSDEADLOCK;
             default:
                 throw new BaseException(SDBError.SDB_INVALIDARG,
                         String.format("Invalid snapshot type: %d", snapType));
@@ -1988,24 +2054,9 @@ public class Sequoiadb implements Closeable {
      */
     public boolean isDomainExist(String domainName) throws BaseException {
         if (null == domainName || domainName.equals("")) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, domainName);
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Domain name can't be null or empty");
         }
-
-        BSONObject matcher = new BasicBSONObject();
-        matcher.put(SdbConstants.FIELD_NAME_NAME, domainName);
-
-        DBCursor cursor = getList(SDB_LIST_DOMAINS, matcher, null, null);
-        try {
-            if (cursor != null && cursor.hasNext()) {
-                return true;
-            } else {
-                return false;
-            }
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
-        }
+        return _checkIsExistByList(SDB_LIST_DOMAINS, domainName);
     }
 
     /**
@@ -2381,6 +2432,271 @@ public class Sequoiadb implements Closeable {
         throwIfError(response);
     }
 
+    /**
+     * Create a sequence with default options.
+     *
+     * @param seqName The name of sequence
+     * @return A sequence object of creation
+     */
+    public DBSequence createSequence(String seqName){
+        return createSequence(seqName, null);
+    }
+
+    /**
+     * Create a sequence with default options.
+     *
+     * @param seqName The name of sequence
+     * @param options The options specified by user, details as bellow:
+     *                <ul>
+     *                  <li>StartValue(long) : The start value of sequence
+     *                  <li>MinValue(long)   : The minimum value of sequence
+     *                  <li>MaxValue(long)   : The maxmun value of sequence
+     *                  <li>Increment(int)   : The increment value of sequence
+     *                  <li>CacheSize(int)   : The cache size of sequence
+     *                  <li>AcquireSize(int) : The acquire size of sequence
+     *                  <li>Cycled(boolean)  : The cycled flag of sequence
+     *                </ul>
+     * @return A sequence object of creation
+     */
+    public DBSequence createSequence(String seqName, BSONObject options){
+        if (seqName == null || seqName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Sequence name can't be null or empty");
+        }
+        BSONObject obj = new BasicBSONObject();
+        obj.put(SdbConstants.FIELD_NAME_NAME, seqName);
+        if (options != null) {
+            obj.putAll(options);
+        }
+        AdminRequest request = new AdminRequest(AdminCommand.CREATE_SEQUENCE, obj);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+        return new DBSequence(seqName,this);
+    }
+
+    /**
+     * Drop the specified sequence.
+     *
+     * @param seqName The name of sequence
+     */
+    public void dropSequence(String seqName){
+        if (seqName == null || seqName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Sequence name can't be null or empty");
+        }
+        BSONObject newObj = new BasicBSONObject();
+        newObj.put(SdbConstants.FIELD_NAME_NAME, seqName);
+
+        AdminRequest request = new AdminRequest(AdminCommand.DROP_SEQUENCE, newObj);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+    }
+
+    /**
+     * Get the specified sequence.
+     *
+     * @param seqName The name of sequence
+     * @return The specified sequence object
+     */
+    public DBSequence getSequence(String seqName){
+        if (seqName == null || seqName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Sequence name can't be null or empty");
+        }
+        if (isSequenceExist(seqName)){
+            return new DBSequence(seqName, this);
+        } else {
+            throw new BaseException(SDBError.SDB_SEQUENCE_NOT_EXIST, "Sequence does not exist");
+        }
+    }
+
+    private boolean isSequenceExist(String seqName) throws BaseException {
+        if (seqName == null || seqName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Sequence name can't be null or empty");
+        }
+        return _checkIsExistByList(SDB_LIST_SEQUENCES, seqName);
+    }
+
+    /**
+     * Rename sequence.
+     *
+     * @param oldName    The old name of sequence
+     * @param newName The new name of sequence
+     */
+    public void renameSequence(String oldName, String newName){
+        if (oldName == null || oldName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "oldName can't be null or empty");
+        }
+        if (newName == null || newName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "newName can't be null or empty");
+        }
+
+        BSONObject option = new BasicBSONObject();
+        option.put(SdbConstants.FIELD_NAME_NAME, oldName);
+        option.put(SdbConstants.FIELD_NAME_NEWNAME, newName);
+
+        BSONObject obj = new BasicBSONObject();
+        obj.put(SdbConstants.FIELD_NAME_ACTION, SdbConstants.SEQ_OPT_RENAME);
+        obj.put(SdbConstants.FIELD_NAME_OPTIONS, option);
+
+        AdminRequest request = new AdminRequest(AdminCommand.ALTER_SEQUENCE, obj);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+    }
+
+    /**
+     * Whether the data source exists or not.
+     *
+     * @param dataSourceName The data source name
+     * @throws BaseException If error happens.
+     */
+    public boolean isDataSourceExist(String dataSourceName) throws BaseException {
+        if (null == dataSourceName || dataSourceName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "data source name cannot be empty or null");
+        }
+        return _checkIsExistByList(SDB_LIST_DATASOURCES, dataSourceName);
+    }
+
+    /**
+     * Create data source.
+     * @param dataSourceName The data source name
+     * @param addresses The list of coord addresses for the target sequoiadb cluster, spearated by ','
+     * @param user User name of the data source
+     * @param password User password of the data source
+     * @param type Data source type, default is "SequoiaDB"
+     * @param option Optional configuration option for create data source, as follows:
+     *                <ul>
+     *                  <li>AccessMode(String) : Configure access permissions for the data source, default is "ALL",
+     *                  the values are as follows:
+     *                  <ul>
+     *                    <li>"READ" : Allow read-only operation
+     *                    <li>"WRITE" : Allow write-only operation
+     *                    <li>"ALL" or "READ|WRITE" : Allow all operations
+     *                    <li>"NONE" : Neither read nor write operation is allowed
+     *                  </ul>
+     *                  <li>ErrorFilterMask(String) : Configure error filtering for data operations on data sources,
+     *                  default is "NONE", the values are as follows:
+     *                  <ul>
+     *                    <li>"READ" : Filter data read errors
+     *                    <li>"WRITE" : Filter data write errors
+     *                    <li>"ALL" or "READ|WRITE" : Filter both data read and write errors
+     *                    <li>"NONE" : Do not filter any errors
+     *                  </ul>
+     *                  <li>ErrorControlLevel(String) : Configure the error control level when performing unsupported data
+     *                  operations(such as DDL) on the mapping collection or collection space, default is "low",
+     *                  the values are as follows:
+     *                  <ul>
+     *                    <li>"high" : Report an error and output an error message
+     *                    <li>"low" : Ignore unsupported data operations and do not execute on data source
+     *                  </ul>
+     *                  <li>TransPropagateMode(String) : Configure the transaction propagation mode on data source,
+     *                  default is "never", the values are as follows:
+     *                  <ul>
+     *                    <li>"never": Transaction operation is forbidden. Report an error and output and error message.
+     *                    <li>"notsupport": Transaction operation is not supported on data source. The operation
+     *                    will be converted to non-transactional and send to data source.
+     *                  </ul>
+     *                  <li>InheritSessionAttr(Bool): Configure whether the session between the coordination node and the
+     *                  data source inherits properties of the local session, default is true. The supported attributes
+                        include PreferedInstance, PreferedInstanceMode, PreferedStrict, PreferedPeriod and Timeout.
+     *                </ul>
+     * @return A data source object
+     * @throws BaseException If error happens.
+     */
+    public DataSource createDataSource(String dataSourceName, String addresses,
+                                       String user, String password,
+                                       String type, BSONObject option) throws BaseException {
+        if (dataSourceName == null || dataSourceName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "data source name is empty or null");
+        }
+        if (addresses == null || addresses.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "data source address list is empty or null");
+        }
+        if ( type == null || type.equals("")){
+            type = "SequoiaDB";
+        }
+
+        BSONObject obj = new BasicBSONObject();
+        if ( option != null ) {
+            obj.putAllUnique(option);
+        }
+        obj.put(SdbConstants.FIELD_NAME_NAME, dataSourceName);
+        obj.put(SdbConstants.FIELD_NAME_ADDRESS, addresses);
+        obj.put(SdbConstants.FIELD_NAME_USER, user);
+        obj.put(SdbConstants.FIELD_NAME_PASSWD, Helper.md5(password));
+        obj.put(SdbConstants.FIELD_NAME_TYPE, type);
+
+        AdminRequest request = new AdminRequest(AdminCommand.CREATE_DATASOURCE, obj);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+        return new DataSource(this, dataSourceName);
+    }
+
+    /**
+     * Drop data source.
+     *
+     * @param dataSourceName The data source name
+     * @throws BaseException If error happens.
+     */
+    public void dropDataSource(String dataSourceName) throws BaseException {
+        if (dataSourceName == null || dataSourceName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "data source name is empty or null");
+        }
+
+        BSONObject obj = new BasicBSONObject(SdbConstants.FIELD_NAME_NAME, dataSourceName);
+        AdminRequest request = new AdminRequest(AdminCommand.DROP_DATASOURCE, obj);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+    }
+
+    /**
+     * List data source.
+     *
+     * @param matcher  The matching rule, return all the records if null
+     * @param selector The selective rule, return the whole records if null
+     * @param orderBy  The ordered rule, never sort if null
+     * @param hint  Reserved, please specify null
+     * @return Cursor of data source information
+     * @throws BaseException If error happens.
+     */
+    public DBCursor listDataSources(BSONObject matcher, BSONObject selector, BSONObject orderBy,
+                                    BSONObject hint) throws BaseException {
+        return getList(SDB_LIST_DATASOURCES, matcher, selector, orderBy);
+    }
+
+    /**
+     * Get data source.
+     *
+     * @param dataSourceName The data source name
+     * @return The data source object
+     * @throws BaseException If error happens.
+     */
+    public DataSource getDataSource(String dataSourceName) throws BaseException {
+        if (isDataSourceExist(dataSourceName)) {
+            return new DataSource(this, dataSourceName);
+        } else {
+            throw new BaseException(SDBError.SDB_CAT_DATASOURCE_NOTEXIST, dataSourceName);
+        }
+    }
+
+
+    private boolean _checkIsExistByList(int listType, String targetName) throws BaseException {
+        if (null == targetName || targetName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, targetName);
+        }
+        BSONObject matcher = new BasicBSONObject();
+        matcher.put(SdbConstants.FIELD_NAME_NAME, targetName);
+        DBCursor cursor = getList(listType, matcher, null, null);
+        try {
+            if (cursor != null && cursor.hasNext()) {
+                return true;
+            } else {
+                return false;
+            }
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+    }
+
     private String getListCommand(int listType) {
         switch (listType) {
             case SDB_LIST_CONTEXTS:
@@ -2417,6 +2733,8 @@ public class Sequoiadb implements Closeable {
                 return AdminCommand.LIST_USERS;
             case SDB_LIST_BACKUPS:
                 return AdminCommand.LIST_BACKUPS;
+            case SDB_LIST_DATASOURCES:
+                return AdminCommand.LIST_DATASOURCES;
             case SDB_LIST_CL_IN_DOMAIN:
                 return AdminCommand.LIST_CL_IN_DOMAIN;
             case SDB_LIST_CS_IN_DOMAIN:
@@ -2484,13 +2802,11 @@ public class Sequoiadb implements Closeable {
         return response;
     }
 
-    private ByteBuffer receiveSdbResponse() {
-        ByteBuffer buffer = null;
+    private ByteBuffer receiveSdbResponse(ByteBuffer buffer) {
         try {
             byte[] lengthBytes = connection.receive(4);
             int length = ByteBuffer.wrap(lengthBytes).order(byteOrder).getInt();
-            buffer = ByteBuffer.allocate(length);
-            buffer.order(byteOrder);
+            buffer = Helper.resetBuff(buffer, length, byteOrder);
             System.arraycopy(lengthBytes, 0, buffer.array(), 0, lengthBytes.length);
             connection.receive(buffer.array(), 4, length - 4);
         }catch (Exception e){
@@ -2508,42 +2824,11 @@ public class Sequoiadb implements Closeable {
     }
 
     private void resetRequestBuff(int len) {
-        requestBuffer = resetBuff(requestBuffer, len);
+        requestBuffer = Helper.resetBuff(requestBuffer, len, byteOrder);
     }
 
-    private void resetResponseBuffer(int len) {
-        responseBuffer = resetBuff(responseBuffer, len);
-    }
-
-    private ByteBuffer resetBuff(ByteBuffer buff, int len) {
-        if (buff == null) {
-            buff = ByteBuffer.allocate(len);
-            buff.order(byteOrder);
-        }else if(buff.capacity() < len) {
-            buff = ByteBuffer.allocate(len);
-            buff.order(byteOrder);
-        }else if(buff.capacity() > len) {
-            buff.clear();
-            buff.limit(len);
-        }else {
-            buff.clear();
-        }
-        return buff;
-    }
-
-    protected void narrowBuff(){
-        narrowRequestBuff();
-        // narrowRespondBuff();
-    }
-
-    protected void narrowRequestBuff(){
-        requestBuffer = ByteBuffer.allocate(DEFAULT_BUFF_LENGTH);
-        requestBuffer.order(byteOrder);
-    }
-
-    protected void narrowRespondBuff(){
-        responseBuffer = ByteBuffer.allocate(DEFAULT_BUFF_LENGTH);
-        responseBuffer.order(byteOrder);
+    protected void cleanRequestBuff(){
+        requestBuffer = null;
     }
 
     private ByteBuffer encodeRequest(Request request) {
@@ -2556,6 +2841,7 @@ public class Sequoiadb implements Closeable {
     private void sendRequest(Request request) {
         ByteBuffer buffer = encodeRequest(request);
         if (!isClosed()) {
+            // no need to set currentCacheSize here, for only command message use sendRequest
             connection.send(buffer);
         } else {
             throw new BaseException(SDBError.SDB_NOT_CONNECTED);
@@ -2573,26 +2859,37 @@ public class Sequoiadb implements Closeable {
         return response;
     }
 
-    private ByteBuffer sendAndReceive(ByteBuffer request) {
+    private ByteBuffer sendAndReceive(ByteBuffer request, ByteBuffer buff) {
         if (!isClosed()) {
             connection.send(request);
             lastUseTime = System.currentTimeMillis();
-            return receiveSdbResponse();
+            ByteBuffer response = receiveSdbResponse(buff);
+            if (request.limit() > currentCacheSize) {
+                currentCacheSize = request.limit();
+            }
+            if (response.limit() > currentCacheSize) {
+                currentCacheSize = response.limit();
+            }
+            return response;
         } else {
             throw new BaseException(SDBError.SDB_NOT_CONNECTED);
         }
     }
 
+    SdbReply requestAndResponse(SdbRequest request) {
+        return requestAndResponse(request, SdbReply.class);
+    }
+
     <T extends SdbResponse> T requestAndResponse(SdbRequest request, Class<T> tClass) {
+        return requestAndResponse(request, tClass, null);
+    }
+
+    <T extends SdbResponse> T requestAndResponse(SdbRequest request, Class<T> tClass, ByteBuffer buff) {
         ByteBuffer out = encodeRequest(request);
-        ByteBuffer in = sendAndReceive(out);
+        ByteBuffer in = sendAndReceive(out, buff);
         T response = decodeResponse(in, tClass);
         validateResponse(request, response);
         return response;
-    }
-
-    SdbReply requestAndResponse(SdbRequest request) {
-        return requestAndResponse(request, SdbReply.class);
     }
 
     private String getErrorDetail(BSONObject errorObj, Object errorMsg) {
@@ -2681,8 +2978,37 @@ public class Sequoiadb implements Closeable {
             DisconnectRequest request = new DisconnectRequest();
             sendRequest(request);
         } finally {
+            cleanRequestBuff();
             connection.close();
         }
+    }
+
+    protected Object getObjectFromResp(SdbReply response, String targetField){
+        BSONObject result;
+        DBCursor cursor = new DBCursor(response, this);
+        try {
+            if (!cursor.hasNext()) {
+                throw new BaseException(SDBError.SDB_UNEXPECTED_RESULT);
+            }
+            result = cursor.getNext();
+        } finally {
+            cursor.close();
+        }
+        boolean flag = result.containsField(targetField);
+        if (!flag) {
+            throw new BaseException(SDBError.SDB_UNEXPECTED_RESULT);
+        }
+        return result.get(targetField);
+    }
+
+    /**
+     * Get the connection proxy object, which can be used to update the configuration
+     * of the connection object.
+     *
+     * @return The connection proxy object
+     */
+    public ConnectionProxy getConnProxy(){
+        return connProxy;
     }
 
     /**

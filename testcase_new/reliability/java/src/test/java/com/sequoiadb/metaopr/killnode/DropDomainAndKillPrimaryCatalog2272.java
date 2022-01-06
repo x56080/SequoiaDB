@@ -9,7 +9,7 @@ import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.fault.KillNode;
-import com.sequoiadb.metaopr.diskfull.Utils;
+import com.sequoiadb.metaopr.Utils;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
@@ -22,7 +22,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.Date;
 import java.util.List;
 
 /**
@@ -89,7 +88,7 @@ public class DropDomainAndKillPrimaryCatalog2272 extends SdbTestBase {
 
             // Normal operating environment
             clearFlag = true;
-        } catch ( ReliabilityException e ) {
+        } catch ( ReliabilityException | InterruptedException e ) {
             e.printStackTrace();
             Assert.fail( e.getMessage() );
         }

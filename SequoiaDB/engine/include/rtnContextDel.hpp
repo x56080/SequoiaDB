@@ -61,13 +61,18 @@ namespace engine
          DELCSPHASE_0 = 0,
          DELCSPHASE_1
       };
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextDelCS )
    public:
       _rtnContextDelCS( SINT64 contextID, UINT64 eduID ) ;
       ~_rtnContextDelCS();
       virtual const CHAR*      name() const ;
       virtual RTN_CONTEXT_TYPE getType () const;
       virtual _dmsStorageUnit* getSU () { return NULL ; }
+      virtual UINT32 getSULogicalID () const
+      {
+         // must return invalid, to avoid killing self in preDelContext
+         return DMS_INVALID_LOGICCSID ;
+      }
       virtual BOOLEAN          isWrite() const { return TRUE ; }
 
       INT32 open( const CHAR *pCollectionName,
@@ -102,7 +107,7 @@ namespace engine
    */
    class _rtnContextDelCL : public _rtnContextBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextDelCL )
    public:
       _rtnContextDelCL( SINT64 contextID, UINT64 eduID );
       ~_rtnContextDelCL();
@@ -148,7 +153,7 @@ namespace engine
    class _rtnContextDelMainCL : public _rtnContextBase
    {
       typedef ossPoolMap< std::string, SINT64>  SUBCL_CONTEXT_LIST ;
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextDelMainCL )
    public:
       _rtnContextDelMainCL( SINT64 contextID, UINT64 eduID );
       ~_rtnContextDelMainCL();
@@ -193,7 +198,7 @@ namespace engine
          RENAMECSPHASE_0 = 0,
          RENAMECSPHASE_1
       } ;
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextRenameCS )
    public:
       _rtnContextRenameCS( SINT64 contextID, UINT64 eduID ) ;
       ~_rtnContextRenameCS();
@@ -238,7 +243,7 @@ namespace engine
    */
    class _rtnContextRenameCL : public _rtnContextBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextRenameCL )
    public:
       _rtnContextRenameCL( SINT64 contextID, UINT64 eduID ) ;
       ~_rtnContextRenameCL();
@@ -268,6 +273,7 @@ namespace engine
       _rtnLocalTaskMgr     *_pLTMgr ;
 
       CHAR                 _clFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
+      CHAR                 _newCLFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
       CHAR                 _clShortName[ DMS_COLLECTION_NAME_SZ + 1 ] ;
       CHAR                 _newCLShortName[ DMS_COLLECTION_NAME_SZ + 1 ] ;
 
@@ -285,7 +291,7 @@ namespace engine
    */
    class _rtnContextRenameMainCL : public _rtnContextBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextRenameMainCL )
    public:
       _rtnContextRenameMainCL( SINT64 contextID, UINT64 eduID );
       ~_rtnContextRenameMainCL();

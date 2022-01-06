@@ -224,11 +224,15 @@ public class GroupWrapper {
         if ( this.getGroupName().equals( CATA_RG_NAME ) ) {
             return inspectCata( false );
         }
-        String stdout = getInspectStdout();
-        if ( stdout.contains(
-                "Reason for exit : exit with no records different" ) ) {
-            return true;
-        } else {
+        String stdout = "";
+        try {
+            stdout = getInspectStdout();
+            if ( stdout.contains(
+                    "Reason for exit : exit with no records different" ) ) {
+                return true;
+            }
+            return false;
+        } catch ( ReliabilityException e ) {
             System.out.println( stdout );
             return false;
         }

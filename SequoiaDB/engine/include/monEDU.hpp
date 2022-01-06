@@ -173,7 +173,7 @@ namespace engine
       std::string  _info ;
       monContextCB _monContext ;
 
-      _monContextFull ( SINT64 cid, monContextCB &monCtxCB )
+      _monContextFull ( SINT64 cid, const monContextCB &monCtxCB )
       {
          _contextID = cid ;
          _monContext = monCtxCB ;

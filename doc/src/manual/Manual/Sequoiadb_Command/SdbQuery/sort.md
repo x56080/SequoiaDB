@@ -1,6 +1,10 @@
+##名称##
+
+sort - 对结果集按指定字段排序
 
 ##语法##
-***query.sort( \<sort\> )***
+
+**query.sort( \<sort\> )**
 
 ##类别##
 
@@ -26,46 +30,49 @@ SdbQuery
 
 ##错误##
 
-
 如果出错则抛异常，并输出错误信息，可以通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误码。
-关于错误处理可以参考[常见错误处理指南](manual/faq.md)。
+关于错误处理可以参考[常见错误处理指南](manual/FAQ/faq_sdb.md)。
 
 常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
+
+##版本##
+
+v2.0 及以上版本。
 
 ##示例##
 
 - 返回集合 employee 中 age 字段值大于20的记录（如使用 [$gt](manual/Manual/Operator/Match_Operator/gt.md) 查询），设置只返回记录的 name 和 age 字段，并按 age 字段值的升序排序。
 
-```lang-javascript
-  > db.sample.employee.find( { age: { $gt: 20 } }, { age: "", name: "" } ).sort( { age: 1 } )
-  {
-    "name": "Jack",
-    "age": 22
-  }
-  {
-    "name": "Tom",
-    "age": 23
-  }
-  {
-    "name": "John",
-    "age": 25
-  }
-```
+    ```lang-javascript
+      > db.sample.employee.find( { age: { $gt: 20 } }, { age: "", name: "" } ).sort( { age: 1 } )
+      {
+        "name": "Jack",
+        "age": 22
+      }
+      {
+        "name": "Tom",
+        "age": 23
+      }
+      {
+        "name": "John",
+        "age": 25
+      }
+    ```
 
 * 指定一个无效的排序字段。
 
-```lang-javascript
-  > db.sample.employee.find( { age: { $gt: 20 } }, { age: "", name: "" } ).sort( { "sex": 1 } )
-  {
-    "name": "Jack",
-    "age": 22
-  }
-  {
-    "name": "Tom",
-    "age": 23
-  }
-  {
-    "name": "John",
-    "age": 25
-  }
-```
+    ```lang-javascript
+      > db.sample.employee.find( { age: { $gt: 20 } }, { age: "", name: "" } ).sort( { "sex": 1 } )
+      {
+        "name": "Jack",
+        "age": 22
+      }
+      {
+        "name": "Tom",
+        "age": 23
+      }
+      {
+        "name": "John",
+        "age": 25
+      }
+    ```

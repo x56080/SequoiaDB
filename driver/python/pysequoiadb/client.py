@@ -31,6 +31,7 @@ from pysequoiadb.collection import collection
 from pysequoiadb.cursor import cursor
 from pysequoiadb.domain import domain
 from pysequoiadb.replicagroup import (replicagroup, SDB_COORD_GROUP_NAME, SDB_CATALOG_GROUP_NAME)
+from pysequoiadb.sequence import sequence
 from pysequoiadb.error import (SDBBaseError, SDBSystemError, SDBTypeError, SDBError, raise_if_error)
 from pysequoiadb.errcode import *
 
@@ -102,6 +103,8 @@ SDB_SNAP_QUERIES = 18
 SDB_SNAP_LATCHWAITS = 19
 SDB_SNAP_LOCKWAITS = 20
 SDB_SNAP_INDEXSTATS = 21
+SDB_SNAP_TRANSWAITS = 25
+SDB_SNAP_TRANSDEADLOCK = 26
 
 SDB_SNAP_TYPE = [
     SDB_SNAP_CONTEXTS,
@@ -123,7 +126,9 @@ SDB_SNAP_TYPE = [
     SDB_SNAP_QUERIES,
     SDB_SNAP_LATCHWAITS,
     SDB_SNAP_LOCKWAITS,
-    SDB_SNAP_INDEXSTATS
+    SDB_SNAP_INDEXSTATS,
+    SDB_SNAP_TRANSWAITS,
+    SDB_SNAP_TRANSDEADLOCK
 ]
 
 class client(object):
@@ -163,39 +168,53 @@ class client(object):
     USER = ""
     PSW = ""
 
-    def __init__(self, host=None, service=None, user=None, psw=None, ssl=False, **kwargs):
-        """initialize when product a object.
+    def __init__(self, host=None, service=None, user=None, psw=None, ssl=False, host_list=None, policy=None, token=None,
+                 cipher_file=None):
+        """initialize when product an object.
 
-           it will try to connect to SequoiaDB using host and port given,
-           localhost and 11810 are the default value of host and port,
-           user and password are "".
+           it will try to connect to SequoiaDB.
 
         Parameters:
-           Name         Type      Info:
-           host         str       The hostname or IP address of SequoiaDB server.
-                                          If None, "localhost" will be used.
-           service      str/int   The service name or port number of SequoiaDB server.
-                                          If None, "11810" will be used.
-           user         str       The user name to access to SequoiaDB server.
-                                          If None, "" will be used.
-           psw          str       The user password to access to SequoiaDB server.
-                                          If None, "" will be used.
-           ssl          bool      Decide whether to use ssl or not, default is False.
-           **kwargs               Useful options are below:
-           -  auto_conn bool      Decide whether to automatically connect SequoiaDB database,
-                                          default is True.
+           Name           Type      Info:
+           host           str       The hostname or IP address of SequoiaDB server. If None, "localhost" will be used.
+           service        str/int   The service name or port number of SequoiaDB server. If None, "11810" will be used.
+           user           str       The user name to access to SequoiaDB server. If None, "" will be used.
+           psw            str       The user password to access to SequoiaDB server. If None, "" will be used.
+           ssl            bool      Decide whether to use ssl or not, default is False.
+           host_list      list      The list contains hosts. If both 'host' and 'host_list' exist, the 'host' is
+                                    preferred, if the size of the 'host_list' is 0, "localhost" will be used.
+                                    eg.
+                                    [ {'host':'sdbservre1', 'service':11810},
+                                      {'host':'sdbservre2', 'service':11810},
+                                      {'host':'sdbservre3', 'service':11810} ]
+           policy         str       The policy of select hosts. it must be string of 'random' or 'local_first' or
+                                    'one_by_one', default is 'random'. 'local_first' will choose local host firstly,
+                                    then use 'random' if no local host.
+           token          str       The Password encryption token, it needs to used with 'cipher_file'.
+           cipher_file    str       The cipher file location, if both 'psw' and 'cipher_file' exist, the 'psw' is
+                                    preferred.
+
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
         self.__connected = False
-        self._client = None
+        _host_list = None
 
-        if host is None:
-            self.__host = self.HOST
-        elif isinstance(host, str_type):
-            self.__host = host
+        if host is not None:
+            if isinstance(host, str_type):
+                self.__host = host
+            else:
+                raise SDBTypeError("host must be an instance of str_type")
         else:
-            raise SDBTypeError("host must be an instance of str_type")
+            if host_list is None:
+                self.__host = self.HOST
+            elif isinstance(host_list, list):
+                if len(host_list) is 0 :
+                    self.__host = self.HOST
+                else:
+                    _host_list = host_list
+            else:
+                raise SDBTypeError("host_list must be an instance of list")
 
         if service is None:
             self.__service = self.SERVICE
@@ -225,20 +244,17 @@ class client(object):
         else:
             raise SDBTypeError("ssl must be an instance of bool")
 
-        if "auto_conn" in kwargs:
-            auto_conn = kwargs.get("auto_conn")
-        else:
-            auto_conn = True
-        if not isinstance(auto_conn, bool):
-            raise SDBTypeError("auto_conn must be an instance of bool")
-
         try:
             self._client = sdb.sdb_create_client(self.__ssl)
         except SystemError:
             raise SDBSystemError(SDB_OOM, "Failed to alloc client")
 
-        if auto_conn :
-            self.connect(self.__host, self.__service, user=_user, password=_psw)
+        if _host_list is None:
+            self.connect(self.__host, self.__service, user=_user, password=_psw, token=token,
+                         cipher_file=cipher_file)
+        else:
+            self.connect_to_hosts(_host_list, user=_user, password=_psw, token=token,
+                                  cipher_file=cipher_file, policy=policy)
 
     def __del__(self):
         """release resource when del called.
@@ -319,29 +335,29 @@ class client(object):
         """try to connect a host in specified hosts
 
         Parameters:
-           Name        Type  Info:
-           hosts       list  The list contains hosts.
+           Name           Type     Info:
+           hosts          list     The list contains hosts.
                                    eg.
-                                   [ {'host':'localhost',     'service':'11810'},
-                                     {'host':'192.168.10.30', 'service':'11810'},
-                                     {'host':'192.168.20.63', 'service':11810}, ]
-           **kwargs          Useful options are below:
-           -  user     str   The user name to access to database.
-           -  password str   The user password to access to database.
-           -  policy   str   The policy of select hosts. it must be string
-                                of 'random' or 'local_first' or 'one_by_one', default is 'random'.
-                                'local_first' will choose local host firstly,
-                                then use 'random' if no local host.
+                                   [ {'host':'sdbservre1', 'service':11810},
+                                     {'host':'sdbservre2', 'service':11810},
+                                     {'host':'sdbservre3', 'service':11810} ]
+           **kwargs       Useful options are below:
+           -  user        str      The user name to access to database.
+           -  password    str      The user password to access to database.
+           -  policy      str      The policy of select hosts. it must be string of 'random' or 'local_first' or
+                                   'one_by_one', default is 'random'. 'local_first' will choose local host firstly,
+                                   then use 'random' if no local host.
+
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(hosts, list):
             raise SDBTypeError("hosts must be an instance of list")
-        if "policy" in kwargs:
-            policy = kwargs.get("policy")
-        else:
+
+        policy = kwargs.get("policy")
+        if policy is None:
             policy = "random"
-        if not isinstance(policy, str):
+        elif not isinstance(policy, str):
             raise SDBTypeError("policy must be an instance of str_type")
 
         if len(hosts) == 0:
@@ -364,6 +380,18 @@ class client(object):
             _psw = kwargs.get("password")
         else:
             _psw = self.PSW
+
+        token = kwargs.get("token")
+        if token is None:
+            token = ""
+        elif not isinstance(token, str_type):
+            raise SDBTypeError("token must be an instance of str_type")
+
+        cipher_file = kwargs.get("cipher_file")
+        if cipher_file is None:
+            cipher_file = ""
+        elif not isinstance(cipher_file, str_type):
+            raise SDBTypeError("cipher_file must be an instance of str_type")
 
         # connect to localhost first
         if "local_first" == policy:
@@ -388,7 +416,7 @@ class client(object):
 
                     try:
                         self.connect(self.__host, self.__service,
-                                     user=_user, password=_psw)
+                                     user=_user, password=_psw, token=token, cipher_file=cipher_file)
                     except SDBBaseError:
                         continue
 
@@ -423,7 +451,7 @@ class client(object):
 
             try:
                 self.connect(self.__host, self.__service,
-                             user=_user, password=_psw)
+                             user=_user, password=_psw, token=token, cipher_file=cipher_file)
             except SDBBaseError:
                 position += 1
                 if position >= size:
@@ -439,12 +467,13 @@ class client(object):
         """connect to specified database
 
         Parameters:
-           Name        Type     Info:
-           host        str      The host name or IP address of database server.
-           service     int/str  The service name of database server.
-           **kwargs             Useful options are below:
-           -  user     str      The user name to access to database.
-           -  password str      The user password to access to database.
+           Name           Type     Info:
+           host           str      The host name or IP address of database server.
+           service        int/str  The service name of database server.
+           **kwargs                Useful options are below:
+           -  user        str      The user name to access to database.
+           -  password    str      The user password to access to database,
+
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
@@ -478,8 +507,22 @@ class client(object):
         else:
             raise SDBTypeError("password must be an instance of str_type")
 
-        rc = sdb.sdb_connect(self._client, self.__host, self.__service,
-                             _user, _psw)
+        token = kwargs.get("token")
+        if token is None:
+            token = ""
+        elif not isinstance(token, str_type):
+            raise SDBTypeError("token must be an instance of str_type")
+
+        cipher_file = kwargs.get("cipher_file")
+        if cipher_file is None:
+            cipher_file = ""
+        elif not isinstance(cipher_file, str_type):
+            raise SDBTypeError("cipher_file must be an instance of str_type")
+
+        hosts_list = []
+        hosts_list.append(self.__host + ":" + self.__service)
+        rc = sdb.sdb_connect(self._client, hosts_list, len(hosts_list),
+                             _user, _psw, token, cipher_file)
         raise_if_error(rc, "Failed to connect to %s:%s" %
                        (self.__host, self.__service))
 
@@ -577,6 +620,8 @@ class client(object):
                     SDB_SNAP_LATCHWAITS            : Get the snapshot of latch waits
                     SDB_SNAP_LOCKWAITS             : Get the snapshot of lock waits
                     SDB_SNAP_INDEXSTATS            : Get the snapshot of index statistics
+                    SDB_SNAP_TRANSWAITS            : Get the snapshot of transaction waits
+                    SDB_SNAP_TRANSDEADLOCK         : Get the snapshot of transaction deadlock
         """
         if not isinstance(snap_type, int):
             raise SDBTypeError("snap type must be an instance of int")
@@ -863,20 +908,30 @@ class client(object):
 
         return cs
 
-    def drop_collection_space(self, cs_name):
+    def drop_collection_space(self, cs_name, options=None):
         """Remove the specified collection space.
 
         Parameters:
-           Name         Type     Info:
-           cs_name      str      The name of collection space to be dropped
+           Name             Type     Info:
+           cs_name          str      The name of collection space to be dropped
+           options          dict     The options for dropping collection, default to be None
+            - EnsureEmpty   bool     Ensure the collection space is empty or not, default to be false.
+                                      * True : Delete fails when the collection space is not empty
+                                      * False: Directly delete the collection space
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
+        ops = {}
         if not isinstance(cs_name, str_type):
             raise SDBTypeError("name of collection space must be\
                          an instance of str_type")
+        bson_options = None
+        if options is not None:
+            if not isinstance(options, dict):
+                raise SDBTypeError("options must be an instance of dict")
+            bson_options = bson.BSON.encode(options)
 
-        rc = sdb.sdb_drop_collection_space(self._client, cs_name)
+        rc = sdb.sdb_drop_collection_space(self._client, cs_name, bson_options)
         raise_if_error(rc, "Failed to drop collection space: %s" % cs_name)
 
     def rename_collection_space(self, old_name, new_name, options=None):
@@ -975,7 +1030,7 @@ class client(object):
         if not isinstance(group_name, str_type):
             raise SDBTypeError("group name must be an instance of str_type")
 
-        result = replicagroup(self._client, ssl = self.__ssl)
+        result = replicagroup(self._client)
         try:
             rc = sdb.sdb_get_replica_group_by_name(self._client, group_name,
                                                    result._group)
@@ -1000,7 +1055,7 @@ class client(object):
         if not isinstance(group_id, int):
             raise SDBTypeError("group id must be an instance of int")
 
-        result = replicagroup(self._client, ssl = self.__ssl)
+        result = replicagroup(self._client)
         try:
             rc = sdb.sdb_get_replica_group_by_id(self._client, group_id, result._group)
             raise_if_error(rc, "Failed to get specified group: %d" % group_id)
@@ -1044,7 +1099,7 @@ class client(object):
         if not isinstance(group_name, str_type):
             raise SDBTypeError("group name must be an instance of str_type")
 
-        replica_group = replicagroup(self._client, ssl = self.__ssl)
+        replica_group = replicagroup(self._client)
         try:
             rc = sdb.sdb_create_replica_group(self._client, group_name,
                                               replica_group._group)
@@ -1606,14 +1661,14 @@ class client(object):
         if not isinstance(task_id, long_type):
             raise SDBTypeError("task id must be an instance of list")
 
-        async = 0
+        async_flag = 0
         if isinstance(is_async, bool):
             if is_async:
-                async = 1
+                async_flag = 1
         else:
             raise SDBTypeError("size of tasks must be an instance of int")
 
-        rc = sdb.sdb_cancel_task(self._client, task_id, async)
+        rc = sdb.sdb_cancel_task(self._client, task_id, async_flag)
         raise_if_error(rc, "Failed to cancel task")
 
     def set_session_attri(self, options):
@@ -1755,7 +1810,7 @@ class client(object):
                                 AutoSplit: If this option is set to be true, while creating collection(ShardingType is "hash") in this domain,
                                            the data of this collection will be split(hash split) into all the groups in this domain automatically.
                                            However, it won't automatically split data into those groups which were add into this domain later.
-                                           eg: { "Groups": [ "group1", "group2", "group3" ], "AutoSplit: true" }
+                                           eg: { "Groups": [ "group1", "group2", "group3" ], "AutoSplit": True }
         Return values:
            The created domain object.
         Exceptions:
@@ -1999,3 +2054,100 @@ class client(object):
 
         rc = sdb.sdb_force_stepup(self._client, bson_options)
         raise_if_error(rc, "Failed to force step up")
+
+    def create_sequence(self, sequence_name, options=None):
+        """Create the sequence with specified options.
+
+        Parameters:
+            Name             Type    Info
+            sequence_name    str     The name of sequence.
+            options          dict    The options for create sequence:
+            - StartValue     int     The start value of sequence
+            - MinValue       int     The minimum value of sequence
+            - MaxValue       int     The maxmun value of sequence
+            - Increment      int     The increment value of sequence
+            - CacheSize      int     The cache size of sequence
+            - AcquireSize    int     The acquire size of sequence
+            - Cycled         bool    The cycled flag of sequence
+        Return values:
+           A sequence object
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        if not isinstance(sequence_name, str_type):
+            raise SDBTypeError("sequence name must be an instance of str")
+
+        bson_options = None
+        if options is not None:
+            if not isinstance(options, dict):
+                raise SDBTypeError("options must be an instance of dict")
+            bson_options = bson.BSON.encode(options)
+
+        sequence_obj = sequence()
+        try:
+            if bson_options is None:
+                rc = sdb.sdb_create_sequence(self._client, sequence_name, sequence_obj._seq)
+            else:
+                rc = sdb.sdb_create_sequence_use_opt(self._client, sequence_name,
+                                                     bson_options, sequence_obj._seq)
+            raise_if_error(rc, "Failed to create sequence: %s" % sequence_name)
+        except SDBBaseError:
+            del sequence_obj
+            raise
+        return sequence_obj
+
+    def drop_sequence(self, sequence_name):
+        """Drop the specified sequence.
+
+        Parameters:
+            Name             Type     Info
+            sequence_name    str      The name of sequence.
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        if not isinstance(sequence_name, str_type):
+            raise SDBTypeError("sequence name must be an instance of str")
+
+        rc = sdb.sdb_drop_sequence(self._client, sequence_name)
+        raise_if_error(rc, "Failed to drop sequence: %s" % sequence_name)
+
+    def get_sequence(self, sequence_name):
+        """Get the named sequence.
+
+        Parameters:
+            Name             Type     Info
+            sequence_name    str      The name of sequence.
+        Return values:
+           A sequence object
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        if not isinstance(sequence_name, str_type):
+            raise SDBTypeError("sequence name must be an instance of str")
+
+        sequence_obj = sequence()
+        try:
+            rc = sdb.sdb_get_sequence(self._client, sequence_name, sequence_obj._seq)
+            raise_if_error(rc, "Failed to get sequence: %s" % sequence_name)
+        except SDBBaseError:
+            del sequence_obj
+            raise
+        return sequence_obj
+
+    def rename_sequence(self, old_name, new_name):
+        """Rename sequence.
+
+        Parameters:
+            Name        Type     Info
+            old_name    str      The old name of sequence.
+            new_name    str      The new name of sequence.
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        if not isinstance(old_name, str_type) :
+            raise SDBTypeError("Old sequence name must be an instance of str")
+        if not isinstance(new_name, str_type) :
+            raise SDBTypeError("New sequence name must be an instance of str")
+
+        rc = sdb.sdb_rename_sequence(self._client, old_name, new_name)
+        raise_if_error(rc, "Failed to rename sequence, old name: %s, new name: %s" %(old_name, new_name))

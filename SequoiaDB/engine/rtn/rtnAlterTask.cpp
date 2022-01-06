@@ -70,6 +70,185 @@ namespace engine
    }
 
    /*
+      _rtnAlterInfo implement
+    */
+   INT32 _rtnAlterInfo::init( const BSONObj& obj )
+   {
+      INT32 rc = SDB_OK ;
+
+      /*{ Index: [ { Collection: "foo.bar", IndexDef: xxx },
+      *            { Collection: "foo.bar", IndexDef: xxx },
+      *            { Collection: "foo.ba1", IndexDef: xxx }
+      *          ]
+      * }
+      */
+      try
+      {
+         _obj = obj.getOwned() ;
+
+         BSONElement ele = _obj.getField( FIELD_NAME_INDEX ) ;
+         if ( ele.eoo() )
+         {
+            goto done ;
+         }
+
+         PD_CHECK( Array == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Invalid field[%s] type[%d]",
+                   FIELD_NAME_INDEX, ele.type() ) ;
+
+         BSONObjIterator it( ele.embeddedObject() ) ;
+         while( it.more() )
+         {
+            BSONElement e = it.next() ;
+            const CHAR* collection = NULL ;
+            const CHAR* indexName = NULL ;
+            utilIdxUniqueID indexUniqID = UTIL_UNIQUEID_NULL ;
+            BSONObj indexDef ;
+
+            PD_CHECK( Object == e.type() , SDB_INVALIDARG, error, PDERROR,
+                      "Invalid type[%d]", e.type() ) ;
+
+            BSONObj idxObj = e.Obj() ;
+
+            e = idxObj.getField( FIELD_NAME_COLLECTION ) ;
+            PD_CHECK( String == e.type(), SDB_INVALIDARG, error, PDERROR,
+                      "Invalid field[%s] type[%d]",
+                      FIELD_NAME_COLLECTION, e.type() ) ;
+            collection = e.valuestrsafe() ;
+
+            e = idxObj.getField( IXM_FIELD_NAME_INDEX_DEF ) ;
+            PD_CHECK( Object == e.type(), SDB_INVALIDARG, error, PDERROR,
+                      "Invalid field[%s] type[%d]",
+                      IXM_FIELD_NAME_INDEX_DEF, e.type() ) ;
+            indexDef = e.Obj() ;
+
+            e = indexDef.getField( IXM_FIELD_NAME_NAME ) ;
+            PD_CHECK( String == e.type(), SDB_INVALIDARG, error, PDERROR,
+                      "Invalid field[%s] type[%d]",
+                      IXM_FIELD_NAME_NAME, e.type() ) ;
+            indexName = e.valuestrsafe() ;
+
+            e = indexDef.getField( IXM_FIELD_NAME_UNIQUEID ) ;
+            PD_CHECK( e.isNumber(), SDB_INVALIDARG, error, PDERROR,
+                      "Invalid field[%s] type[%d]",
+                      IXM_FIELD_NAME_UNIQUEID, e.type() ) ;
+            indexUniqID = (utilIdxUniqueID)e.numberLong() ;
+
+            rc = _addIdxUniqueID( collection, indexName, indexUniqID ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to add index uniqueid, rc: %d",
+                         rc ) ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   BSONObj _rtnAlterInfo::toBSON() const
+   {
+      return _obj ;
+   }
+
+   utilIdxUniqueID _rtnAlterInfo::getIdxUniqueID( const CHAR* collection,
+                                                  const CHAR* indexName ) const
+   {
+      ossPoolMap<const CHAR*, MAP_IDXNAME_ID, cmp_str>::const_iterator it =
+                                                _clMap.find( collection ) ;
+      if ( it != _clMap.end() )
+      {
+         const MAP_IDXNAME_ID& idxMap = it->second ;
+         MAP_IDXNAME_ID::const_iterator i = idxMap.find( indexName ) ;
+         if ( i != idxMap.end() )
+         {
+            return i->second ;
+         }
+      }
+      return UTIL_UNIQUEID_NULL ;
+   }
+
+   INT32 _rtnAlterInfo::getIndexInfoByCL( const CHAR* collection,
+                                          BSONObj& indexInfo ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         ossPoolMap<const CHAR*, MAP_IDXNAME_ID, cmp_str>::const_iterator it =
+                                                   _clMap.find( collection ) ;
+         if ( it != _clMap.end() )
+         {
+           /* { Index: [ { Collection: "foo.bar", IndexDef: xxx },
+            *            { Collection: "foo.bar", IndexDef: xxx }, ...
+            *          ]
+            * }
+            */
+            BSONObjBuilder builder ;
+            BSONArrayBuilder sub( builder.subarrayStart( FIELD_NAME_INDEX ) ) ;
+
+            const MAP_IDXNAME_ID& idxMap = it->second ;
+            for ( MAP_IDXNAME_ID::const_iterator i = idxMap.begin() ;
+                  i != idxMap.end() ; i++ )
+            {
+               sub.append( BSON( FIELD_NAME_COLLECTION << collection <<
+                                 IXM_FIELD_NAME_INDEX_DEF <<
+                                 BSON( IXM_FIELD_NAME_NAME << i->first <<
+                                       IXM_FIELD_NAME_UNIQUEID <<
+                                       (INT64)(i->second) ) ) ) ;
+            }
+
+            sub.done() ;
+            indexInfo = builder.obj() ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnAlterInfo::_addIdxUniqueID( const CHAR* collection,
+                                         const CHAR* indexName,
+                                         utilIdxUniqueID indexUniqID )
+   {
+      try
+      {
+         ossPoolMap<const CHAR*, MAP_IDXNAME_ID, cmp_str>::iterator it =
+                                             _clMap.find( collection ) ;
+         if ( it == _clMap.end() )
+         {
+            MAP_IDXNAME_ID idxMap ;
+            idxMap[ indexName ] = indexUniqID ;
+            _clMap[ collection ] = idxMap ;
+         }
+         else
+         {
+            (it->second)[ indexName ] = indexUniqID ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         return ossException2RC( &e ) ;
+      }
+
+      return SDB_OK ;
+   }
+
+   /*
       _rtnAlterTaskArgument implement
     */
    _rtnAlterTaskArgument::_rtnAlterTaskArgument ()
@@ -233,6 +412,7 @@ namespace engine
                                        INT32 * bufferSize,
                                        const CHAR * objectName,
                                        const BSONObj & options,
+                                       const BSONObj * pAlterInfo,
                                        UINT64 reqID,
                                        _pmdEDUCB * cb ) const
    {
@@ -240,7 +420,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__RTNALTERTASKRUNNER_TOCMDMSG ) ;
 
-      BSONObj alterObject = toBSON( objectName, options ) ;
+      BSONObj alterObject = toBSON( objectName, options, pAlterInfo ) ;
 
       rc = msgBuildQueryCMDMsg( ppBuffer, bufferSize, getCommandName(),
                                 alterObject, BSONObj(), BSONObj(), BSONObj(),
@@ -257,7 +437,8 @@ namespace engine
    }
 
    BSONObj _rtnAlterTask::toBSON ( const CHAR * objectName,
-                                   const bson::BSONObj & options ) const
+                                   const bson::BSONObj & options,
+                                   const bson::BSONObj * pAlterInfo ) const
    {
       BSONObjBuilder builder ;
       BSONObj alterObject ;
@@ -271,6 +452,11 @@ namespace engine
       taskBuilder.append( FIELD_NAME_NAME, getActionName() ) ;
       taskBuilder.append( FIELD_NAME_ARGS, _argument ) ;
       taskBuilder.done() ;
+
+      if ( pAlterInfo )
+      {
+         builder.append( FIELD_NAME_ALTER_INFO, *pAlterInfo ) ;
+      }
 
       return builder.obj() ;
    }
@@ -838,6 +1024,7 @@ namespace engine
          PD_CHECK( NumberInt == argElement.type() && argElement.Int() >= 0,
                    SDB_INVALIDARG, error, PDERROR, "Failed to get field [%s]",
                    IXM_FIELD_NAME_SORT_BUFFER_SIZE ) ;
+         _sortBufferSize = argElement.Int() ;
       }
 
    done :
@@ -1383,6 +1570,7 @@ namespace engine
      _extOptionArgument( argument ),
      _autoRebalance( FALSE ),
      _autoIndexID( TRUE ),
+     _idIdxUniqID( UTIL_UNIQUEID_NULL ),
      _replSize( 1 ),
      _strictDataMode( 1 )
    {

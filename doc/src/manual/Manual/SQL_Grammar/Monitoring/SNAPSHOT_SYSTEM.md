@@ -1,13 +1,15 @@
 
-##描述##
+## 描述
 
-操作系统快照 $SNAPSHOT_SYSTEM 列出当前数据库节点所在操作系统中主要的状态与性能监控参数，输出一条记录。
+操作系统快照 $SNAPSHOT_SYSTEM 列出当前数据库节点所在操作系统中主要的状态与性能监控参数。
 
-##标识##
+通过协调节点查询快照，将返回所有节点的快照信息，每个数据节点或编目节点产生一条记录；通过数据节点或编目节点查询快照，将返回当前节点的快照信息。
+
+## 标识
 
 $SNAPSHOT_SYSTEM
 
-##字段信息##
+## 字段信息
 
 | 字段名               | 类型   |  描述                                                          |
 | -------------------- | ------ | -------------------------------------------------------------- |
@@ -25,7 +27,7 @@ $SNAPSHOT_SYSTEM
 | CommittedLSN.Offset  | int64  | 已提交 LSN 的偏移                                              |
 | CommittedLSN.Version | int32  | 已提交 LSN 的版本号                                            |
 | CompleteLSN          | int64  | 已完成 LSN 的偏移                                              |
-| LSNQueSize           | int32  | 等待同步的LSN队列长度                                          |
+| LSNQueSize           | int32  | 等待同步的 LSN 队列长度                                          |
 | TransInfo.TotalCount | int32  | 正在执行的事务数量                                             |
 | TransInfo.BeginLSN   | int64  | 正在执行的事务的起始 LSN 的偏移                                |
 | NodeID               | array  | 节点的 ID，格式为[ <分区组 ID>, <节点 ID> ]<br>在 standalone 模式下，该字段为[ 0，0 ] |
@@ -46,7 +48,7 @@ $SNAPSHOT_SYSTEM
 | Disk.TotalSpace      | int64  | 数据库路径总空间，单位为字节                                   |
 | Disk.FreeSpace       | int64  | 数据库路径空闲空间，单位为字节                                 |
 
-##示例##
+## 示例
 
 查看操作系统快照
 
@@ -117,4 +119,4 @@ $SNAPSHOT_SYSTEM
 [^_^]:
     本文使用的所有引用及链接
 [architecture]:manual/Distributed_Engine/Architecture/Replication/architecture.md#全量同步
-
+[snapshot]:manual/Manual/Sequoiadb_Command/Sdb/snapshot.md

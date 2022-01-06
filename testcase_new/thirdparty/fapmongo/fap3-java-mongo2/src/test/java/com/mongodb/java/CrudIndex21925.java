@@ -30,11 +30,12 @@ import com.mongodb.utils.MongodbTestBase;
 
 public class CrudIndex21925 extends MongodbTestBase {
     private DB db;
-    private String clName = "cl21925";
+    private String clName;
 
     @BeforeClass
     public void setUp() throws UnknownHostException {
         db = MongodbTestBase.getDB( client );
+        clName = javaDBNameWithVersion + "_cl21925";
     }
 
     @Test
@@ -74,16 +75,8 @@ public class CrudIndex21925 extends MongodbTestBase {
         // 不指定索引名，多个字段，创建普通复合索引
         cl.createIndex( new BasicDBObject( "f", -1 ).append( "g", 1 ) );
 
-        // 重复创建索引
-        try {
-            cl.createIndex( new BasicDBObject( "a", 1 ), indexNames1[ 0 ],
-                    true );
-            Assert.fail( "exp fail but act success!!!" );
-        } catch ( Exception e ) {
-            if ( !e.getMessage().contains( "-247" ) ) {
-                throw e;
-            }
-        }
+        // 重复创建索引，不报错
+        cl.createIndex( new BasicDBObject( "a", 1 ), indexNames1[ 0 ], true );
 
         // 做简单的操作
         crud( cl );

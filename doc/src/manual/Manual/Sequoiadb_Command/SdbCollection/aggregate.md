@@ -3,21 +3,22 @@
 aggregate - 计算集合中数据的聚合值
 
 ##语法##
+
 **db.collectionspace.collection.aggregate( \<subOp1\>，[subOp2]，... )**
 
 ##类别##
 
-Collection
+SdbCollection
 
 ##描述##
 
-aggregate() 方法与 [find()](manual/Manual/Sequoiadb_Command/SdbCollection/find.md) 方法功能比较接近，也是从 SequoiaDB 的集合中检索文档记录，并返回游标。
+该函数用于计算集合中数据的聚合值。
 
 ##参数##
 
 * `subOp`( *Object*， *必填* )
 
-    subOp1，subOp2... 表示包含[聚集符] (manual/Manual/Operator/Aggregate_Operator/Readme.md)的子操作，在 aggregate() 方法中可以填写 1~N 个子操作。每个子操作是一个包含聚集符的 Object 对象，子操作之间用逗号隔开。注意各子操作的参数名的语法规则。
+    subOp1，subOp2... 表示包含[聚集符](manual/Manual/Operator/Aggregate_Operator/Readme.md)的子操作，在 aggregate() 方法中可以填写 1~N 个子操作。每个子操作是一个包含聚集符的 Object 对象，子操作之间用逗号隔开。注意各子操作的参数名的语法规则。
 
     >**Note:**
     >
@@ -25,9 +26,9 @@ aggregate() 方法与 [find()](manual/Manual/Sequoiadb_Command/SdbCollection/fin
 
 ##返回值##
 
-成功：返回游标对象，可通过游标对象获取结果集。
+函数执行成功时，将返回一个 SdbCursor 类型的对象。
 
-失败：抛出异常。
+函数执行失败时，将抛异常并输出错误信息。
 
 ##错误##
 
@@ -37,13 +38,11 @@ aggregate() 方法与 [find()](manual/Manual/Sequoiadb_Command/SdbCollection/fin
 | ------ | ------ | --- | ------ |
 | -6 | SDB_INVALIDARG | 参数错误 | 查看参数是否填写正确。|
 
-当异常抛出时，可以通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取[错误码](manual/Manual/Sequoiadb_error_code.md)，
-或通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息。
-可以参考[常见错误处理指南](manual/faq.md)了解更多内容。
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
 
 ##版本##
 
-v1.0及以上版本
+v1.0 及以上版本
 
 ##示例##
 
@@ -65,7 +64,7 @@ v1.0及以上版本
 }
 ```
 
-1. 按条件选择记录，并指定返回字段名，如下聚集操作操作首先使用 $match 选择
+- 按条件选择记录，并指定返回字段名，如下聚集操作操作首先使用 $match 选择
    匹配条件的记录，然后使用 $project 只返回指定的字段名。
 
     ```lang-javascript
@@ -89,7 +88,7 @@ v1.0及以上版本
         "major": "计算机工程"
     }
     ```
-2. 按条件选择记录，并对记录进行分组。如下操作首先使用 $match 选择匹配条件的记录，
+- 按条件选择记录，并对记录进行分组。如下操作首先使用 $match 选择匹配条件的记录，
    然后使用 $group 对记录按字段 major 进行分组，并使用 $avg 返回每个分组中嵌套
    对象 age 字段的平均值。
 
@@ -111,7 +110,7 @@ v1.0及以上版本
     }
     ```
 
-3. 按条件选择记录，并对记录进行分组、排序、限制返回记录的起始位置和返回记录数。
+- 按条件选择记录，并对记录进行分组、排序、限制返回记录的起始位置和返回记录数。
    如下操作首先按 $match 选择匹配条件的记录；然后使用 $group 按 major 进行分组，
    并使用 $avg 返回每个分组中嵌套对象 age 字段的平均值，输出字段名为 avg_age；
    最后使用 $sort 按 avg_age 字段值（降序），major 字段值（降序）对结果集进行
@@ -138,3 +137,9 @@ v1.0及以上版本
         "major": "物理学"
     }
     ```
+
+[^_^]:
+     本文使用的所有引用及链接
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[error_guide]:manual/FAQ/faq_sdb.md

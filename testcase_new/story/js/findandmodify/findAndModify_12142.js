@@ -10,7 +10,7 @@ function test ()
 {
    var clName = COMMCLNAME + "_12142";
    commDropCL( db, COMMCSNAME, clName );
-   var cl = commCreateCL( db, COMMCLNAME, clName );
+   var cl = commCreateCL( db, COMMCSNAME, clName );
    testNormal( cl );
    testSortNotExistIndex( cl );
    testSortExistIndex( cl );
@@ -110,20 +110,12 @@ function testSortNotExistIndex ( cl )
 count() cannot be executed with update() or remove()
 *****************************************************************/
 function testWithCount ( cl )
-{
-   try
+{  
+   cl.insert( { a: 1 } ); 
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
-      cl.insert( { a: 1 } );
-      cl.find( { a: 1 } ).remove().count();
-      throw new Error( "need throw error" );
-   }
-   catch( e )
-   {
-      if( errMsg.WITHCOUNT != e.message )
-      {
-         throw e;
-      }
-   }
+      cl.find( { a: 1 } ).remove().count(); 
+   } );
    cl.truncate();
 }
 

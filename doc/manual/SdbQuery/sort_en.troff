@@ -86,9 +86,11 @@ T}@T{
 descending order
 T}
 .TE
-
+.RS
+.PP
 \f[B]Note:\f[]
 .RE
+.RS
 .PP
 When find() uses the sel, if the option does not cantain the sort field
 specified by sort(), the sort set by sort() is meaningless and is automatically
@@ -101,29 +103,29 @@ On success, return rearch result set.
 On error, exception will be thrown.
 .SH ERRORS
 .PP
-when exception happen, use getLastError() to get the error code and use
+When exception happens, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
-For more detial, please reference to Troubleshooting.
+For more details, refer to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 Select the record that the age field value greater than (with using $gt) 20
-under the collection, bar, and return only name field and age field with sorting
-by ascending order of age field values.
+under the collection, employee, and return only name field and age field with
+sorting by ascending order of age field values.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find(\ {\ age:\ {\ $gt:\ 20\ }\ },\ {\ age:\ "",\ name:\ ""\ }\ ).sort(\ {\ age:\ 1\ }\ )
+> db.sample.employee.find( { age: { $gt: 20 } }, { age: "", name: "" } ).sort( { age: 1 } )
 {
-\ \ "name":\ "Jack",
-\ \ "age":\ 22
+  "name": "Jack",
+  "age": 22
 }
 {
-\ \ "name":\ "Tom",
-\ \ "age":\ 23
+  "name": "Tom",
+  "age": 23
 }
 {
-\ \ "name":\ "John",
-\ \ "age":\ 25
+  "name": "John",
+  "age": 25
 }
 \f[]
 .fi
@@ -132,18 +134,18 @@ Specifiy an invalid field.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find(\ {\ age:\ {\ $gt:\ 20\ }\ },\ {\ age:\ "",\ name:\ ""\ }\ ).sort(\ {\ "sex":\ 1\ }\ )
+> db.sample.employee.find( { age: { $gt: 20 } }, { age: "", name: "" } ).sort( { "sex": 1 } )
 {
-\ \ "name":\ "Jack",
-\ \ "age":\ 22
+  "name": "Jack",
+  "age": 22
 }
 {
-\ \ "name":\ "Tom",
-\ \ "age":\ 23
+  "name": "Tom",
+  "age": 23
 }
 {
-\ \ "name":\ "John",
-\ \ "age":\ 25
+  "name": "John",
+  "age": 25
 }
 \f[]
 .fi

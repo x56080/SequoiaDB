@@ -41,6 +41,8 @@
 
 #include "core.hpp"
 #include "oss.hpp"
+#include "utilCircularQueue.hpp"
+#include "ossQueue.hpp"
 
 namespace engine
 {
@@ -61,6 +63,7 @@ namespace engine
       PMD_EDU_EVENT_TRANS_STOP,   // stop transaction
       PMD_EDU_EVENT_STEP_DOWN,    // step down
       PMD_EDU_EVENT_STEP_UP,      // step up
+      PMD_EDU_EVENT_KILLCONTEXT,  // kill specified context
 
       PMD_EDU_EVENT_MAX
    } ;
@@ -70,7 +73,7 @@ namespace engine
    */
    enum pmdEDUMemTypes
    {
-      PMD_EDU_MEM_NONE     = 0,   // Memory is not unknow
+      PMD_EDU_MEM_NONE     = 0,   // Memory is not unknown
       PMD_EDU_MEM_ALLOC    = 1,   // Memory is by SDB_OSS_MALLOC
       PMD_EDU_MEM_SELF     = 2,   // Memory is by pmdEDU::allocBuff
       PMD_EDU_MEM_THREAD   = 3    // thread alloc
@@ -99,9 +102,9 @@ namespace engine
    {
    public :
       pmdEDUEventTypes  _eventType ;
+      pmdEDUMemTypes    _dataMemType ;
       UINT64            _userData ;
       UINT64            _recvTime ;
-      pmdEDUMemTypes    _dataMemType ;
       void              *_Data ;
 
       _pmdEDUEvent ( pmdEDUEventTypes type = PMD_EDU_EVENT_NONE,
@@ -146,6 +149,34 @@ namespace engine
 
    typedef class _pmdEDUEvent pmdEDUEvent ;
 
+   /*
+      _pmdEDUEventQueue
+    */
+   #define PMD_EDU_QUEUE_CAPACITY ( 5 )
+   typedef _utilCircularStackBuffer< pmdEDUEvent, PMD_EDU_QUEUE_CAPACITY >
+                                             PMD_EVENT_QUEUE_BUFFER ;
+   typedef _utilCircularQueue< pmdEDUEvent > PMD_EVENT_QUEUE_CONTAINER ;
+   class _pmdEDUEventQueue : public ossQueue< pmdEDUEvent,
+                                              PMD_EVENT_QUEUE_CONTAINER >
+   {
+   protected:
+      typedef ossQueue< pmdEDUEvent, PMD_EVENT_QUEUE_CONTAINER > _BASE ;
+
+   public:
+      _pmdEDUEventQueue()
+      : _BASE( PMD_EVENT_QUEUE_CONTAINER( &_buffer ) )
+      {
+      }
+
+      ~_pmdEDUEventQueue()
+      {
+      }
+
+   protected:
+      PMD_EVENT_QUEUE_BUFFER _buffer ;
+   } ;
+
+   typedef class _pmdEDUEventQueue pmdEDUEventQueue ;
 
    #define PMD_INVALID_EDUID              ( 0 )
 
@@ -168,6 +199,7 @@ namespace engine
       EDU_TYPE_CATMGR,
       EDU_TYPE_CATNETWORK,
       EDU_TYPE_COORDNETWORK,
+      EDU_TYPE_COORD_DS_NETWORK,
       EDU_TYPE_COORDMGR,
       EDU_TYPE_OMMGR,
       EDU_TYPE_OMNET,
@@ -217,6 +249,9 @@ namespace engine
       // service session to STP client
       EDU_TYPE_STP_SERVICE_SESSION,
 
+      EDU_TYPE_FS_MCS_NET_SERVICE,
+      EDU_TYPE_FS_MCS_NET_AGENT,
+      
       EDU_TYPE_UNKNOWN,
       EDU_TYPE_MAXIMUM = EDU_TYPE_UNKNOWN
    } ;
@@ -249,21 +284,20 @@ namespace engine
    /*
       EDU_BLOCK_TYPE define
    */
-   enum EDU_BLOCK_TYPE
-   {
-      EDU_BLOCK_NONE             = 0,
-      EDU_BLOCK_FREEZING_WND,
-      EDU_BLOCK_DMS,
-      EDU_BLOCK_PRIMARY,
-      EDU_BLOCK_TRANSROLLBACK,
-      EDU_BLOCK_REELECT,
-      EDU_BLOCK_SYNCWAIT,
-      EDU_BLOCK_SYNCCONTROL,
-      EDU_BLOCK_WAITREPLY,
-      EDU_BLOCK_FT,
+   typedef UINT32 EDU_BLOCK_TYPE ;
 
-      EDU_BLOCK_MAX
-   } ;
+   #define EDU_BLOCK_NONE           ( 0x00000000 )
+   #define EDU_BLOCK_FREEZING_WND   ( 0x00000001 )
+   #define EDU_BLOCK_DMS            ( 0x00000002 )
+   #define EDU_BLOCK_PRIMARY        ( 0x00000004 )
+   #define EDU_BLOCK_TRANSROLLBACK  ( 0x00000008 )
+   #define EDU_BLOCK_REELECT        ( 0x00000010 )
+   #define EDU_BLOCK_SYNCWAIT       ( 0x00000020 )
+   #define EDU_BLOCK_SYNCCONTROL    ( 0x00000040 )
+   #define EDU_BLOCK_WAITREPLY      ( 0x00000080 )
+   #define EDU_BLOCK_FT             ( 0x00000100 )
+   #define EDU_BLOCK_RENAMECHK      ( 0x00000200 )
+   #define EDU_BLOCK_ALL            ( 0xFFFFFFFF )
 
    /*
       SDB_TYPE_STR DEFINE

@@ -238,9 +238,9 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      rtnContextQGM *context = NULL ;
+      rtnContextQGM::sharePtr context ;
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
-      rc = rtnCB->contextNew ( RTN_CONTEXT_QGM, (rtnContext**)&context,
+      rc = rtnCB->contextNew ( RTN_CONTEXT_QGM, context,
                                contextID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create new context, rc: %d", rc ) ;
       // open

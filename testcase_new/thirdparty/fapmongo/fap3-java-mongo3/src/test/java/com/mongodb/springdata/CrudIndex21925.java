@@ -30,11 +30,12 @@ import com.mongodb.utils.MongodbTestBase;
  * @version:1.0
  */
 public class CrudIndex21925 extends MongodbTestBase {
-    private String clName = "spring_cl21925";
+    private String clName;
     private IndexOperations indexOperations;
 
     @BeforeClass
     public void setUp() {
+        clName = springDBNameWithVersion + "_cl21925";
         indexOperations = mongoTemplate.indexOps( clName );
     }
 
@@ -77,16 +78,9 @@ public class CrudIndex21925 extends MongodbTestBase {
         indexOperations.ensureIndex( new Index().on( "f", Sort.Direction.DESC )
                 .on( "g", Sort.Direction.ASC ) );
 
-        // 重复创建索引
-        try {
-            indexOperations.ensureIndex( new Index().named( indexNames1[ 0 ] )
-                    .unique().on( "a", Sort.Direction.ASC ) );
-            Assert.fail( "exp fail but act success!!!" );
-        } catch ( UncategorizedMongoDbException e ) {
-            if ( !e.getMessage().contains( "-247" ) ) {
-                throw e;
-            }
-        }
+        // 重复创建索引，不报错
+        indexOperations.ensureIndex( new Index().named( indexNames1[ 0 ] )
+                .unique().on( "a", Sort.Direction.ASC ) );
 
         // 列取索引
         List< IndexInfo > actIndexes = indexOperations.getIndexInfo();

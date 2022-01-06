@@ -57,6 +57,7 @@ namespace engine
 
    INT32 rtnAlter ( const CHAR * name,
                     const rtnAlterTask * task,
+                    const rtnAlterInfo * alterInfo,
                     const rtnAlterOptions * options,
                     _pmdEDUCB * cb,
                     _dpsLogWrapper * dpsCB,
@@ -71,6 +72,7 @@ namespace engine
 
    INT32 rtnAlterCollection ( const CHAR * collection,
                               const rtnAlterTask * task,
+                              const rtnAlterInfo * alterInfo,
                               const rtnAlterOptions * options,
                               _pmdEDUCB * cb,
                               _dpsLogWrapper * dpsCB,
@@ -78,6 +80,7 @@ namespace engine
 
    INT32 rtnAlterCollection ( const CHAR * collection,
                               const rtnAlterTask * task,
+                              const rtnAlterInfo * alterInfo,
                               const rtnAlterOptions * options,
                               _pmdEDUCB * cb,
                               _dpsLogWrapper * dpsCB,
@@ -88,12 +91,14 @@ namespace engine
 
    INT32 rtnAlterCollectionSpace ( const CHAR * collectionSpace,
                                    const rtnAlterTask * task,
+                                   const rtnAlterInfo * alterInfo,
                                    const rtnAlterOptions * options,
                                    _pmdEDUCB * cb,
                                    _dpsLogWrapper * dpsCB ) ;
 
    INT32 rtnAlterCollectionSpace ( const CHAR * collectionSpace,
                                    const rtnAlterTask * task,
+                                   const rtnAlterInfo * alterInfo,
                                    const rtnAlterOptions * options,
                                    _pmdEDUCB * cb,
                                    _dpsLogWrapper * dpsCB,

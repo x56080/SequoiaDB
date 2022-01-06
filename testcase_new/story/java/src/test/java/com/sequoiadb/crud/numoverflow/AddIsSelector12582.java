@@ -1,10 +1,7 @@
 package com.sequoiadb.crud.numoverflow;
 
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -13,16 +10,14 @@ import org.testng.annotations.Test;
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * FileName: AddIsSelector12582.java test content:Numeric value overflow for
- * single character using $add operation, and the $add is used as a selector.
- * testlink case:seqDB-12582
- * 
+ * @Description: seqDB-12582:单个字段使用$add操作不同类型运算溢出 *
  * @author luweikang
  * @Date 2017.9.12
+ * @updateUser wuyan
+ * @updateDate 2021.8.14
  * @version 1.00
  */
 
@@ -42,16 +37,18 @@ public class AddIsSelector12582 extends SdbTestBase {
         String[] expRecords3 = {
                 "{'no':2147483647,'long':{'$decimal':'9223372036854775808'},'test':1}" };
         String[] expRecords4 = {
-                "{'no':{'$numberLong':'2147483646'},'long':{'$numberLong':'9223372036854775807'},'test':1}" };
+                "{'no':2147483646,'long':{'$numberLong':'9223372036854775807'},'test':1}" };
         String[] expRecords5 = { "{'no':[2147483147.5],'test':2}" };
         String[] expRecords6 = {
                 "{'no':[{'$numberLong':'8223372036854775808'}],'test':2}" };
         String expJavaLong = "class java.lang.Long";
         String expJavaDouble = "class java.lang.Double";
         String expJavaDecimal = "class org.bson.types.BSONDecimal";
+        String expJavaInt = "class java.lang.Integer";
         String expLongType = "int64";
         String expDoubleType = "double";
         String expDecimalType = "decimal";
+        String expIntType = "int32";
 
         return new Object[][] {
                 // the parameters:
@@ -62,8 +59,8 @@ public class AddIsSelector12582 extends SdbTestBase {
                         expRecords2, expLongType, true, expJavaLong },
                 new Object[] { 1, new Integer( 1 ), "long", expRecords3,
                         expDecimalType, true, expJavaDecimal },
-                new Object[] { 1, new Long( -1 ), "no", expRecords4,
-                        expLongType, true, expJavaLong },
+                new Object[] { 1, new Long( -1 ), "no", expRecords4, expIntType,
+                        true, expJavaInt },
                 new Object[] { 2, new Double( 0.5 ), "no.$[0]", expRecords5,
                         expDoubleType, false, expJavaDouble },
                 new Object[] { 2, new Integer( 1 ), "no.$[1]", expRecords6,
@@ -72,13 +69,7 @@ public class AddIsSelector12582 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        } catch ( BaseException e ) {
-            Assert.assertTrue( false,
-                    "connect %s failed," + coordUrl + e.getMessage() );
-        }
-
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cs = sdb.getCollectionSpace( SdbTestBase.csName );
         cl = NumOverflowUtils.createCL( cs, clName );
 
@@ -93,36 +84,23 @@ public class AddIsSelector12582 extends SdbTestBase {
     @Test(dataProvider = "operData")
     public void testAdd( int matcherValue, Object mulValue, String selectorName,
             String[] expRecords, String expType, Boolean isVerifyTypeToJava,
-            String expTypeToJava ) {
-        try {
-            BSONObject mValue = new BasicBSONObject();
-            mValue.put( "$add", mulValue );
-            NumOverflowUtils.selectorOper( cl, matcherValue, mValue,
-                    selectorName, expRecords );
-            try {
-                NumOverflowUtils.checkDataType( cl, mValue, matcherValue,
-                        selectorName, expType, isVerifyTypeToJava,
-                        expTypeToJava );
-            } catch ( Exception e ) {
-                e.printStackTrace();
-            }
+            String expTypeToJava ) throws Exception {
 
-        } catch ( BaseException e ) {
-            Assert.assertTrue( false,
-                    "add data is used as selector oper failed,"
-                            + e.getMessage() );
-        }
+        BSONObject mValue = new BasicBSONObject();
+        mValue.put( "$add", mulValue );
+        NumOverflowUtils.selectorOper( cl, matcherValue, mValue, selectorName,
+                expRecords );
+
+        NumOverflowUtils.checkDataType( cl, mValue, matcherValue, selectorName,
+                expType, isVerifyTypeToJava, expTypeToJava );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            CollectionSpace cs = sdb.getCollectionSpace( SdbTestBase.csName );
             if ( cs.isCollectionExist( clName ) ) {
                 cs.dropCollection( clName );
             }
-        } catch ( BaseException e ) {
-            Assert.fail( "clear env failed, errMsg:" + e.getMessage() );
         } finally {
             if ( sdb != null ) {
                 sdb.close();

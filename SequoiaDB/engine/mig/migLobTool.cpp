@@ -1139,13 +1139,49 @@ const UINT32 BUF_SIZE = 2 * 1024 * 1024 ;
    INT32 _migLobTool::_createFile( const CHAR *fullPath )
    {
       INT32 rc = SDB_OK ;
+      INT64 fsize = 0 ;
       SDB_ASSERT( NULL != fullPath, "can not be null" ) ;
       UINT32 mode = OSS_READWRITE |
                     OSS_SHAREREAD |
                     OSS_CREATEONLY |
                     OSS_DIRECTIO ;
 
+      if ( !ossAccess( fullPath ) )
+      {
+          //If the file exists in the path, goto error
+          rc = SDB_FE ;
+          PD_LOG( PDERROR, "file:%s exists, rc:%d",
+                  fullPath, rc ) ;
+          goto error ;
+      }
       rc = ossOpen( fullPath, mode, OSS_RU|OSS_WU|OSS_RG, _file ) ;
+
+      if ( SDB_FE == rc ) 
+      {
+         //To avoid the case where O_DIRECT is invalidParm in tmpfs, remove the previous file and retry.(avoid modifying ossFuncs)
+         rc = ossGetFileSizeByName( fullPath, &fsize ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to get file:%s size, rc:%d",
+                    fullPath, rc ) ;
+            goto error ;
+         }
+
+         if ( 0 == fsize )
+         {
+            rc = ossDelete( fullPath ) ;
+            if ( SDB_OK != rc )
+            {
+                PD_LOG( PDERROR, "failed to delete file:%s, rc:%d",
+                        fullPath, rc ) ;
+                goto error ;
+            }
+
+            mode ^= OSS_DIRECTIO ;
+            rc = ossOpen( fullPath, mode, OSS_RU|OSS_WU|OSS_RG, _file ) ;
+         }
+      }
+
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to open file:%s, rc:%d",

@@ -40,6 +40,7 @@
 #include "coordDef.hpp"
 #include "pmdOptionsMgr.hpp"
 #include "coordOmCache.hpp"
+#include "IDataSource.hpp"
 #include "ossMemPool.hpp"
 #include "../bson/bson.h"
 
@@ -52,6 +53,7 @@ namespace engine
    class _netRouteAgent ;
    class _IOmProxy ;
    class _coordSequenceAgent ;
+   class _coordDataSourceMgr ;
    class _coordGTSAgent ;
 
    /*
@@ -87,14 +89,16 @@ namespace engine
          ~_coordResource() ;
 
          INT32       init( _netRouteAgent *pAgent,
-                           pmdOptionsCB *pOptionsCB ) ;
+                           pmdOptionsCB *pOptionsCB,
+                           _coordDataSourceMgr *pDSMgr = NULL ) ;
          void        fini() ;
 
          INT32       active() ;
 
-         void        invalidateCataInfo() ;
+         void        invalidateCataInfo( const CHAR *clFullName = NULL ) ;
          void        invalidateGroupInfo( UINT64 identify = 0 ) ;
          void        invalidateStrategy() ;
+         void        invalidateDataSourceInfo( const CHAR *name = NULL ) ;
 
          _netRouteAgent*   getRouteAgent() ;
          _IOmProxy*        getOmProxy() ;
@@ -103,6 +107,7 @@ namespace engine
          {
             return _pSequenceAgent ;
          }
+         _coordDataSourceMgr* getDSManager() { return _pDataSourceMgr ; }
 
          OSS_INLINE _coordGTSAgent *getGTSAgent()
          {
@@ -174,8 +179,7 @@ namespace engine
          INT32                updateOmGroupInfo( CoordGroupInfoPtr &groupPtr,
                                                  _pmdEDUCB *cb ) ;
 
-      public:
-
+   public:
          void        addCataInfo( CoordCataInfoPtr &cataPtr ) ;
 
          INT32       getCataInfo( const CHAR *collectionName,
@@ -289,6 +293,8 @@ namespace engine
          _coordOmStrategyAgent            *_pOmStrategyAgent ;
 
          _coordSequenceAgent              *_pSequenceAgent ;
+
+         _coordDataSourceMgr              *_pDataSourceMgr ;
          _coordGTSAgent                   *_pGTSAgent ;
    } ;
    typedef _coordResource coordResource ;

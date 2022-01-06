@@ -28,6 +28,8 @@ public class Test {
 
         s3Client.putObjectWithFile(bucketName, objectName2, file);
 
+        s3Client.copyObject(bucketName, objectName1, bucketName, objectName2);
+
         s3Client.deleteObject(bucketName, objectName1);
 
         s3Client.listObjects(bucketName);

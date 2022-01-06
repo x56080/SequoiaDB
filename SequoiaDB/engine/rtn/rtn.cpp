@@ -62,15 +62,25 @@ namespace engine
       SINT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNGETINTELE );
       SDB_ASSERT ( fieldName, "field name can't be NULL" ) ;
-      BSONElement ele = obj.getField ( fieldName ) ;
-      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
-                 "Can't locate field '%s': %s",
-                 fieldName,
-                 obj.toString().c_str() ) ;
-      PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDDEBUG,
-                 "Unexpected field type : %s, supposed to be Integer",
-                 obj.toString().c_str()) ;
-      value = ele.numberInt() ;
+
+      try
+      {
+         BSONElement ele = obj.getField ( fieldName ) ;
+         PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
+                    "Can't locate field '%s': %s",
+                    fieldName,
+                    obj.toString().c_str() ) ;
+         PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDDEBUG,
+                    "Unexpected field type : %s, supposed to be Integer",
+                    obj.toString().c_str()) ;
+         value = ele.numberInt() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB_RTNGETINTELE, rc );
       return rc ;
@@ -85,15 +95,25 @@ namespace engine
       SINT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNGETSTRELE );
       SDB_ASSERT ( fieldName && value, "field name and value can't be NULL" ) ;
-      BSONElement ele = obj.getField ( fieldName ) ;
-      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
-                 "Can't locate field '%s': %s",
-                 fieldName,
-                 obj.toString().c_str() ) ;
-      PD_CHECK ( String == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
-                 "Unexpected field type : %s, supposed to be String",
-                 obj.toString().c_str()) ;
-      *value = ele.valuestr() ;
+
+      try
+      {
+         BSONElement ele = obj.getField ( fieldName ) ;
+         PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
+                    "Can't locate field '%s': %s",
+                    fieldName,
+                    obj.toString().c_str() ) ;
+         PD_CHECK ( String == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
+                    "Unexpected field type : %s, supposed to be String",
+                    obj.toString().c_str()) ;
+         *value = ele.valuestr() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB_RTNGETSTRELE, rc );
       return rc ;
@@ -108,15 +128,25 @@ namespace engine
       SINT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNGETSTDSTRELE ) ;
       SDB_ASSERT ( fieldName, "field name can't be NULL" ) ;
-      BSONElement ele = obj.getField ( fieldName ) ;
-      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
-                 "Can't locate field '%s': %s",
-                 fieldName,
-                 obj.toString().c_str() ) ;
-      PD_CHECK ( String == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
-                 "Unexpected field type : %s, supposed to be String",
-                 obj.toString().c_str()) ;
-      value = ele.valuestr() ;
+
+      try
+      {
+         BSONElement ele = obj.getField ( fieldName ) ;
+         PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
+                    "Can't locate field '%s': %s",
+                    fieldName,
+                    obj.toString().c_str() ) ;
+         PD_CHECK ( String == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
+                    "Unexpected field type : %s, supposed to be String",
+                    obj.toString().c_str()) ;
+         value = ele.valuestr() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB_RTNGETSTDSTRELE, rc );
       return rc ;
@@ -131,15 +161,25 @@ namespace engine
       SINT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNGETOBJELE );
       SDB_ASSERT ( fieldName , "field name can't be NULL" ) ;
-      BSONElement ele = obj.getField ( fieldName ) ;
-      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
-                 "Can't locate field '%s': %s",
-                 fieldName,
-                 obj.toString().c_str() ) ;
-      PD_CHECK ( Object == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
-                 "Unexpected field type : %s, supposed to be Object",
-                 obj.toString().c_str()) ;
-      value = ele.embeddedObject() ;
+
+      try
+      {
+         BSONElement ele = obj.getField ( fieldName ) ;
+         PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
+                    "Can't locate field '%s': %s",
+                    fieldName,
+                    obj.toString().c_str() ) ;
+         PD_CHECK ( Object == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
+                    "Unexpected field type : %s, supposed to be Object",
+                    obj.toString().c_str()) ;
+         value = ele.embeddedObject() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB_RTNGETOBJELE, rc );
       return rc ;
@@ -154,15 +194,25 @@ namespace engine
       SINT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNGETARRAYELE );
       SDB_ASSERT ( fieldName , "field name can't be NULL" ) ;
-      BSONElement ele = obj.getField ( fieldName ) ;
-      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
-                 "Can't locate field '%s': %s",
-                 fieldName,
-                 obj.toString().c_str() ) ;
-      PD_CHECK ( Array == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
-                 "Unexpected field type : %s, supposed to be Array",
-                 obj.toString().c_str()) ;
-      value = ele.embeddedObject() ;
+
+      try
+      {
+         BSONElement ele = obj.getField ( fieldName ) ;
+         PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
+                    "Can't locate field '%s': %s",
+                    fieldName,
+                    obj.toString().c_str() ) ;
+         PD_CHECK ( Array == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
+                    "Unexpected field type : %s, supposed to be Array",
+                    obj.toString().c_str()) ;
+         value = ele.embeddedObject() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB_RTNGETARRAYELE, rc );
       return rc ;
@@ -177,15 +227,25 @@ namespace engine
       SINT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNGETBOOLELE );
       SDB_ASSERT ( fieldName , "field name can't be NULL" ) ;
-      BSONElement ele = obj.getField ( fieldName ) ;
-      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
-                 "Can't locate field '%s': %s",
-                 fieldName,
-                 obj.toString().c_str() ) ;
-      PD_CHECK ( Bool == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
-                 "Unexpected field type : %s, supposed to be Bool",
-                 obj.toString().c_str()) ;
-      value = ele.boolean() ;
+
+      try
+      {
+         BSONElement ele = obj.getField ( fieldName ) ;
+         PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
+                    "Can't locate field '%s': %s",
+                    fieldName,
+                    obj.toString().c_str() ) ;
+         PD_CHECK ( Bool == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
+                    "Unexpected field type : %s, supposed to be Bool",
+                    obj.toString().c_str()) ;
+         value = ele.boolean() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB_RTNGETBOOLELE, rc );
       return rc ;
@@ -200,15 +260,25 @@ namespace engine
       SINT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNGETLONGELE );
       SDB_ASSERT ( fieldName, "field name can't be NULL" ) ;
-      BSONElement ele = obj.getField ( fieldName ) ;
-      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
-                 "Can't locate field '%s': %s",
-                 fieldName,
-                 obj.toString().c_str() ) ;
-      PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDDEBUG,
-                 "Unexpected field type : %s, supposed to be number",
-                 obj.toString().c_str()) ;
-      value = ele.numberLong() ;
+
+      try
+      {
+         BSONElement ele = obj.getField ( fieldName ) ;
+         PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
+                    "Can't locate field '%s': %s",
+                    fieldName,
+                    obj.toString().c_str() ) ;
+         PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDDEBUG,
+                    "Unexpected field type : %s, supposed to be number",
+                    obj.toString().c_str()) ;
+         value = ele.numberLong() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB_RTNGETLONGELE, rc );
       return rc ;
@@ -223,15 +293,25 @@ namespace engine
       SINT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNGETLONGELE );
       SDB_ASSERT ( fieldName, "field name can't be NULL" ) ;
-      BSONElement ele = obj.getField ( fieldName ) ;
-      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
-                 "Can't locate field '%s': %s",
-                 fieldName,
-                 obj.toString().c_str() ) ;
-      PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDDEBUG,
-                 "Unexpected field type : %s, supposed to be number",
-                 obj.toString().c_str()) ;
-      value = ele.numberDouble() ;
+
+      try
+      {
+         BSONElement ele = obj.getField ( fieldName ) ;
+         PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
+                    "Can't locate field '%s': %s",
+                    fieldName,
+                    obj.toString().c_str() ) ;
+         PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDDEBUG,
+                    "Unexpected field type : %s, supposed to be number",
+                    obj.toString().c_str()) ;
+         value = ele.numberDouble() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB_RTNGETLONGELE, rc );
       return rc ;
@@ -738,22 +818,6 @@ namespace engine
       goto done ;
    }
 
-   INT32 rtnLoadCollectionSpace ( const CHAR *pCSName,
-                                  const CHAR *dataPath,
-                                  const CHAR *indexPath,
-                                  const CHAR *lobPath,
-                                  const CHAR *lobMetaPath,
-                                  pmdEDUCB *cb,
-                                  SDB_DMSCB *dmsCB,
-                                  BOOLEAN checkOnly )
-   {
-      utilCSUniqueID *csUniqueIDInCata = NULL ;
-      BSONObj clInfoInCata ;
-      return rtnLoadCollectionSpace( pCSName, dataPath, indexPath, lobPath,
-                                     lobMetaPath, cb, dmsCB, checkOnly,
-                                     csUniqueIDInCata, clInfoInCata ) ;
-   }
-
    // load a single collection name from given path
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNLOADCS, "rtnLoadCollectionSpace" )
    INT32 rtnLoadCollectionSpace ( const CHAR *pCSName,
@@ -764,8 +828,9 @@ namespace engine
                                   pmdEDUCB *cb,
                                   SDB_DMSCB *dmsCB,
                                   BOOLEAN checkOnly,
-                                  utilCSUniqueID *csUniqueIDInCata,
-                                  const BSONObj& clInfoInCata )
+                                  utilCSUniqueID *csUniqueIDInCat,
+                                  const BSONObj *clInfoInCat,
+                                  const ossPoolVector<BSONObj> *idxInfoInCat )
    {
       SDB_ASSERT ( pCSName, "pCSName can't be NULL" ) ;
       SDB_ASSERT ( dataPath, "data path can't be NULL" ) ;
@@ -846,6 +911,8 @@ namespace engine
                                                     optCB->getSyncRecordNum(),
                                                     optCB->getSyncDirtyRatio() ) ;
                         storageUnit->setSyncDeep( optCB->isSyncDeep() ) ;
+                        // set MVCC support
+                        storageUnit->setMVCCSupport( optCB->mvccOn() ) ;
                         /// add collectionspace
                         rc = dmsCB->addCollectionSpace ( csName, sequence,
                                                          storageUnit, NULL,
@@ -860,7 +927,7 @@ namespace engine
                                        "space[%s] because it's already exist",
                                        csName ) ;
                               // reset the rc
-                              rc = SDB_OK; 
+                              rc = SDB_OK;
                            }
                            else
                            {
@@ -873,12 +940,11 @@ namespace engine
                         storageUnit = NULL ;
 
                         /// db.loadCS() may need to set unique id
-                        if ( csUniqueIDInCata )
+                        if ( csUniqueIDInCat )
                         {
-                           rc = dmsCB->changeUniqueID( csName,
-                                                       *csUniqueIDInCata,
-                                                       clInfoInCata,
-                                                       cb, NULL, TRUE ) ;
+                           rc = dmsCB->changeUniqueID( csName, *csUniqueIDInCat,
+                                  clInfoInCat ? *clInfoInCat: BSONObj(), TRUE,
+                                  idxInfoInCat, TRUE, cb, NULL, TRUE ) ;
                            PD_RC_CHECK( rc, PDERROR,
                                         "Failed to change unique id, rc: %d",
                                         rc ) ;
@@ -1064,6 +1130,8 @@ namespace engine
                                            optCB->getSyncRecordNum(),
                                            optCB->getSyncDirtyRatio() ) ;
                storageUnit->setSyncDeep( optCB->isSyncDeep() ) ;
+               // set MVCC support
+               storageUnit->setMVCCSupport( optCB->mvccOn() ) ;
                /// add collectionspace
                rc = dmsCB->addCollectionSpace ( csName, sequence, storageUnit,
                                                 NULL, NULL, FALSE ) ;
@@ -1123,37 +1191,45 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNDELCSCTX, "rtnDelContextForCollectionSpace" )
    void rtnDelContextForCollectionSpace ( const CHAR *pCollectionSpace,
+                                          UINT32 suLogicalID,
                                           _pmdEDUCB *cb )
    {
       PD_TRACE_ENTRY ( SDB_RTNDELCSCTX ) ;
 
+      SDB_ASSERT ( NULL != pCollectionSpace,
+                   "collection space name should be valid" ) ;
+      SDB_ASSERT ( DMS_INVALID_LOGICCSID != suLogicalID,
+                   "logical ID should be valid" ) ;
       SDB_ASSERT ( cb, "EDU control block can't be NULL" ) ;
 
-      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
-
-      // let's find out whether the collection space is held by this
-      // EDU. If so we have to get rid of those contexts
-      pmdEDUCB::SET_CONTEXT contextList ;
-      cb->contextCopy( contextList ) ;
-
-      pmdEDUCB::SET_CONTEXT::iterator it = contextList.begin() ;
-      while ( it != contextList.end() )
+      if ( DMS_INVALID_LOGICCSID != suLogicalID )
       {
-         SINT64 contextID = *it ;
-         ++it ;
+         SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
 
-         // get each context
-         rtnContext *ctx = rtnCB->contextFind ( contextID ) ;
-         // if context doesn't exist or has not dmsStorageUnit
-         if ( !ctx || NULL == ctx->getSU() )
+         // let's find out whether the collection space is held by this
+         // EDU. If so we have to get rid of those contexts
+         pmdEDUCB::SET_CONTEXT contextList ;
+         cb->contextCopy( contextList ) ;
+
+         pmdEDUCB::SET_CONTEXT::iterator it = contextList.begin() ;
+         while ( it != contextList.end() )
          {
-            continue ;
-         }
-         if ( ossStrcmp ( ctx->getSU()->CSName(), pCollectionSpace ) == 0 )
-         {
-            // if the su is held by myself, i have to kill the context
-            // from global
-            rtnCB->contextDelete( contextID, cb ) ;
+            INT64 contextID = *it ;
+            rtnContextPtr ctx ;
+            ++it ;
+
+            // get each context
+            if ( SDB_OK == rtnCB->contextFind ( contextID, ctx ) &&
+                 ctx->isOpened() &&
+                 suLogicalID == ctx->getSULogicalID() )
+            {
+               // if the su is held by myself, i have to kill the context
+               // from global
+               rtnCB->contextDelete( contextID, cb ) ;
+
+               PD_LOG( PDDEBUG, "Deleted context [%lld] on "
+                       "collection space [%s]", contextID, pCollectionSpace ) ;
+            }
          }
       }
 
@@ -1172,6 +1248,9 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNDELCSCOMMAND ) ;
       BOOLEAN writable = FALSE ;
+      UINT32 retryTime = 0 ;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      UINT32 suLogicalID = DMS_INVALID_LOGICCSID ;
 
       SDB_ASSERT ( pCollectionSpace, "collection space can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
@@ -1188,32 +1267,64 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
       writable = TRUE ;
 
+      rc = dmsCB->nameToSULID( pCollectionSpace, suLogicalID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get logical ID for "
+                   "collection space [%s], rc: %d", pCollectionSpace, rc ) ;
+      SDB_ASSERT( DMS_INVALID_LOGICCSID != suLogicalID,
+                  "logical ID should be valid" ) ;
+
       // let's find out whether the collection space is held by this
       // EDU. If so we have to get rid of those contexts
       if ( NULL != cb )
       {
-         rtnDelContextForCollectionSpace( pCollectionSpace, cb ) ;
+         rtnDelContextForCollectionSpace( pCollectionSpace, suLogicalID, cb ) ;
       }
 
-      if ( dropFile )
+      while ( TRUE )
       {
-         if ( ensureEmpty )
+         if ( ( PMD_IS_DB_DOWN() ) ||
+              ( NULL != cb && cb->isInterrupted() ) )
          {
-            rc = dmsCB->dropEmptyCollectionSpace( pCollectionSpace, cb,
-                                                  dpsCB ) ;
+            PD_LOG( PDWARNING, "Failed to drop collection space [%s], "
+                    "it is interrupted", pCollectionSpace ) ;
+            rc = SDB_APP_INTERRUPT ;
+            goto error ;
+         }
+
+         // tell others to close contexts on the same collection space
+         if ( rtnCB->preDelContext( pCollectionSpace, suLogicalID ) > 0 )
+         {
+            ossSleep( 200 ) ;
+         }
+
+         if ( dropFile )
+         {
+            if ( ensureEmpty )
+            {
+               rc = dmsCB->dropEmptyCollectionSpace( pCollectionSpace, cb,
+                                                     dpsCB ) ;
+            }
+            else
+            {
+               rc = dmsCB->dropCollectionSpace ( pCollectionSpace, cb, dpsCB ) ;
+            }
          }
          else
          {
-            rc = dmsCB->dropCollectionSpace ( pCollectionSpace, cb, dpsCB ) ;
+            rc = dmsCB->unloadCollectonSpace( pCollectionSpace, cb ) ;
          }
+
+         if ( SDB_LOCK_FAILED == rc && retryTime < 100 )
+         {
+            ++ retryTime ;
+            rc = SDB_OK ;
+            continue ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to %s collectionspace %s, "
+                      "rc: %d", dropFile ? "drop" : "unload",
+                      pCollectionSpace, rc ) ;
+         break ;
       }
-      else
-      {
-         rc = dmsCB->unloadCollectonSpace( pCollectionSpace, cb ) ;
-      }
-      PD_RC_CHECK( rc, PDERROR, "Failed to %s collectionspace %s, "
-                   "rc: %d", dropFile ? "drop" : "unload",
-                   pCollectionSpace, rc ) ;
 
    done :
       if ( writable )
@@ -1437,14 +1548,14 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNKILLCONTEXTS, "rtnKillContexts" )
-   INT32 rtnKillContexts ( INT32 numContexts, INT64 *pContextIDs,
+   INT32 rtnKillContexts ( INT32 numContexts, const INT64 *pContextIDs,
                            pmdEDUCB *cb, SDB_RTNCB *rtnCB )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNKILLCONTEXTS );
       for ( INT32 i = 0; i< numContexts ; i++ )
       {
-         if ( rtnCB->contextFind ( pContextIDs[i] ) &&
+         if ( rtnCB->contextExist ( pContextIDs[i] ) &&
               !cb->contextFind ( pContextIDs[i] ) )
          {
             PD_LOG ( PDWARNING, "Context %lld is not owned by current session",
@@ -1680,7 +1791,7 @@ namespace engine
       rtnScannerFactory    f ;
       // choose merge scanner if in transaction
 
-      IXScannerType scanType = cb->isTransaction() ? SCANNER_TYPE_MERGE : 
+      IXScannerType scanType = cb->isTransaction() ? SCANNER_TYPE_MERGE :
                                                      SCANNER_TYPE_DISK ;
 
       // delete and update should also use scanner properly
@@ -1808,62 +1919,137 @@ namespace engine
       return hasExclude ;
    }
 
-   void rtnNeedResetSelector( const BSONObj &original,
+   void rtnGetMergedSelector( const BSONObj &original,
                               const BSONObj &orderBy,
-                              BOOLEAN &needReset )
+                              BOOLEAN &needReset,
+                              BSONObj *mergedSelect )
    {
+      BSONObjBuilder builder ;
+      BSONObjIterator itr( orderBy ) ;
+
       needReset = FALSE ;
-      if ( !original.isEmpty() &&
-           !orderBy.isEmpty() )
+
+      if( original.isEmpty() || orderBy.isEmpty() )
       {
-         BSONObjIterator itr( orderBy ) ;
-         while ( itr.more() )
+         goto done ;
+      }
+
+      while ( itr.more() )
+      {
+         /// find({}, {a:null}).sort({a.b:1})
+         /// we do not want to clear it's selector when
+         /// query is like above. --yunwu
+         BSONElement ele = itr.next() ;
+         const CHAR *fieldName = ele.fieldName() ;
+         BSONElement select = original.getField( fieldName ) ;
+         if ( EOO == select.type() )
          {
-            /// find({}, {a:null}).sort({a.b:1})
-            /// we do not want to clear it's selector when
-            /// query is like above. --yunwu
-            BSONElement ele = itr.next() ;
-            const CHAR *fieldName = ele.fieldName() ;
-            BSONElement select = original.getField( fieldName ) ;
-            if ( EOO == select.type() )
+            const CHAR * subField = fieldName ;
+            while ( TRUE )
             {
-               const CHAR * subField = fieldName ;
-               while ( TRUE )
+               CHAR * c = (CHAR *)ossStrchr( subField, '.' ) ;
+               if ( NULL == c )
                {
-                  CHAR * c = (CHAR *)ossStrchr( subField, '.' ) ;
-                  if ( NULL == c )
+                  needReset = TRUE ;
+
+                  if( NULL == mergedSelect )
                   {
-                     needReset = TRUE ;
-                     break ;
+                     goto done ;
                   }
 
-                  *c = '\0' ;
-                  BSONElement select = original.getField( fieldName ) ;
-                  *c = '.' ;
-                  if ( EOO != select.type() )
+                  try
                   {
-                     if ( _rtnCheckExcludeSelector( select ) )
-                     {
-                        needReset = TRUE ;
-                     }
-                     break ;
+                     BSONObjBuilder sub( builder.subobjStart( ele.fieldName() ) ) ;
+                     sub.append( "$include", 1 ) ;
+                     sub.done() ;
                   }
-                  subField = (const CHAR *)( c + 1 ) ;
-               }
-               if ( needReset )
-               {
+                  catch ( std::exception &e )
+                  {
+                     PD_LOG( PDWARNING, "Append sort field to merge builder Occur exception: %s",
+                             e.what() ) ;
+                     builder.reset() ;
+                     goto error ;
+                  }
+                  // continue to merge next sort filed
                   break ;
                }
+
+               StringData name( fieldName, c - fieldName ) ;
+               BSONElement select = original.getField( name ) ;
+
+               if ( EOO != select.type() )
+               {
+                  if ( _rtnCheckExcludeSelector( select ) )
+                  {
+                     needReset = TRUE ;
+                     builder.reset() ;
+                     goto done ;
+                  }
+                  break ;
+               }
+               else
+               {
+                  subField = (const CHAR *)( c + 1 ) ;
+               }
             }
-            else if ( _rtnCheckExcludeSelector( select ) )
-            {
-               needReset = TRUE ;
-               break ;
-            }
+         }
+         else if ( _rtnCheckExcludeSelector( select ) )
+         {
+            needReset = TRUE ;
+            builder.reset() ;
+            goto done ;
          }
       }
 
+   done:
+      if( !builder.isEmpty() && mergedSelect )
+      {
+         // if merged failed then set mergedSelect to empty
+         if( !rtnMergeSelector( builder, original, *mergedSelect ) )
+         {
+            *mergedSelect = BSONObj() ;
+         }
+      }
       return ;
+   error:
+      goto done ;
+   }
+
+   BOOLEAN rtnMergeSelector( BSONObjBuilder &builder,
+                             const BSONObj &select,
+                             BSONObj &mergedSelect )
+   {
+      BOOLEAN rc = FALSE ;
+      try
+      {
+         BSONObjIterator itr( select ) ;
+         while( itr.more() )
+         {
+            BSONElement ele = itr.next() ;
+            static BSONObj objInclude = BSON( "$include" << 1 ) ;
+            if( Object == ele.type() &&
+                !ele.embeddedObject().shallowEqual( objInclude ) )
+            {
+               //field is object and is not include, no need set merged select
+               goto done ;
+            }
+            builder.append( ele ) ;
+         }
+         mergedSelect = builder.obj() ;
+         rc = TRUE ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDWARNING, "Append select to merge builder Occur exception: %s",
+                  e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNSYNCDB, "rtnSyncDB" )
@@ -2240,20 +2426,40 @@ namespace engine
       goto done ;
    }
 
+   BOOLEAN rtnCollectionInTheSpace ( const CHAR *pCLName, const CHAR *pCSName )
+   {
+      SDB_ASSERT( pCLName && pCSName, "name can't be null" ) ;
+      BOOLEAN isIn = FALSE ;
+
+      if ( pCLName && pCSName )
+      {
+         INT32 csNameLen = ossStrlen( pCSName ) ;
+         if ( 0 == ossStrncmp( pCLName, pCSName, csNameLen ) )
+         {
+            if ( pCLName[csNameLen]   == '.' &&
+                 pCLName[csNameLen+1] != '\0' )
+            {
+               isIn = TRUE ;
+            }
+         }
+      }
+
+      return isIn ;
+   }
+
    void rtnUnsetTransContext( _pmdEDUCB * cb,SDB_RTNCB *rtnCB )
    {
       if ( cb->contextNum() > 0 )
       {
          _pmdEDUCB::SET_CONTEXT setCtx ;
          _pmdEDUCB::SET_CONTEXT::iterator it ;
-         rtnContextBase *pContext = NULL ;
 
          cb->contextCopy( setCtx ) ;
 
          for ( it = setCtx.begin() ; it != setCtx.end() ; ++it )
          {
-            pContext = rtnCB->contextFind( *it, NULL ) ;
-            if ( pContext )
+            rtnContextPtr pContext ;
+            if ( SDB_OK == rtnCB->contextFind( *it, pContext, NULL ) )
             {
                pContext->setTransContext( FALSE ) ;
             }
@@ -2276,46 +2482,53 @@ namespace engine
          BSONObjIterator i( indexDef ) ;
          while ( i.more() )
          {
-            BSONElement e = i.next();
-            // convert { Unique: true } => { unique: true }
-            if ( 0 == ossStrcmp( e.fieldName(), IXM_UNIQUE_FIELD1 ) )
+            BSONElement e = i.next() ;
+            BOOLEAN hasAppend = FALSE ;
+
+            if ( 0 == ossStrcmp( e.fieldName(), IXM_UNIQUE_FIELD ) ||
+                 0 == ossStrcmp( e.fieldName(), IXM_ENFORCED_FIELD ) ||
+                 0 == ossStrcmp( e.fieldName(), IXM_NOTNULL_FIELD ) ||
+                 0 == ossStrcmp( e.fieldName(), IXM_NOTARRAY_FIELD ) ||
+                 0 == ossStrcmp( e.fieldName(), IXM_GLOBAL_FIELD ) ||
+                 0 == ossStrcmp( e.fieldName(), IXM_STANDALONE_FIELD ) )
             {
-               builder.append( IXM_UNIQUE_FIELD, e.trueValue() ) ;
-            }
-            else if ( 0 == ossStrcmp( e.fieldName(), IXM_ENFORCED_FIELD1 ) )
-            {
-               builder.append( IXM_ENFORCED_FIELD, e.trueValue() ) ;
-            }
-            // convert { unique: 1 } => { unique: true }
-            else if ( 0 == ossStrcmp( e.fieldName(), IXM_UNIQUE_FIELD ) )
-            {
-               builder.append( IXM_UNIQUE_FIELD, e.trueValue() ) ;
-            }
-            else if ( 0 == ossStrcmp( e.fieldName(), IXM_ENFORCED_FIELD ) )
-            {
-               builder.append( IXM_ENFORCED_FIELD, e.trueValue() ) ;
-            }
-            else if ( 0 == ossStrcmp( e.fieldName(), IXM_NOTNULL_FIELD ) )
-            {
-               builder.append( IXM_NOTNULL_FIELD, e.trueValue() ) ;
-            }
-            else if ( 0 == ossStrcmp( e.fieldName(), IXM_GLOBAL_FIELD ) )
-            {
-               builder.append( IXM_GLOBAL_FIELD, e.trueValue() ) ;
-            }
-            else if ( 0 == ossStrcmp( e.fieldName(), IXM_NOTARRAY_FIELD ) )
-            {
-               if( 0 == ossStrcmp( indexDef.getStringField( IXM_NAME_FIELD ),
-                                   IXM_ID_KEY_NAME ) )
+               if ( e.isNumber() &&
+                    ( 1 == e.number() || 0 == e.number() ) )
                {
-                  builder.append( IXM_NOTARRAY_FIELD, true ) ;
+                  // convert { unique: 1 } => { unique: true }
+                  builder.append( e.fieldName(), e.trueValue() ) ;
+                  hasAppend = TRUE ;
+               }
+            }
+            else if ( 0 == ossStrcmp( e.fieldName(), IXM_UNIQUE_FIELD1 ) )
+            {
+               // convert { Unique: true } => { unique: true }
+               if ( e.isNumber() &&
+                    ( 1 == e.number() || 0 == e.number() ) )
+               {
+                  builder.append( IXM_UNIQUE_FIELD, e.trueValue() ) ;
                }
                else
                {
-                  builder.append( IXM_NOTARRAY_FIELD, e.trueValue() ) ;
+                  builder.appendAs( e, IXM_UNIQUE_FIELD ) ;
                }
+               hasAppend = TRUE ;
             }
-            else
+            else if ( 0 == ossStrcmp( e.fieldName(), IXM_ENFORCED_FIELD1 ) )
+            {
+               // convert { Enforced: true } => { enforce: true }
+               if ( e.isNumber() &&
+                    ( 1 == e.number() || 0 == e.number() ) )
+               {
+                  builder.append( IXM_ENFORCED_FIELD, e.trueValue() ) ;
+               }
+               else
+               {
+                  builder.appendAs( e, IXM_ENFORCED_FIELD ) ;
+               }
+               hasAppend = TRUE ;
+            }
+            if ( !hasAppend )
             {
                builder.append( e ) ;
             }

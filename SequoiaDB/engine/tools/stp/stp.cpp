@@ -46,6 +46,7 @@
 #include "pmdProc.hpp"
 #include "utilPidFile.hpp"
 #include "stpCB.hpp"
+#include "stpToolUtil.hpp"
 
 using namespace std ;
 
@@ -90,8 +91,9 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       pmdKRCB *krcb = pmdGetKRCB() ;
-      STPCB *stpCB = stpGetSTPCB() ;
-      stpOptions *options = stpCB->getOptions() ;
+
+      STPCB stpCB ;
+      stpOptions *options = stpCB.getOptions() ;
 
       CHAR currentPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       CHAR confPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
@@ -100,10 +102,11 @@ namespace engine
       INT32 delSig[] = { 17, 0 } ; // del SIGCHLD
       CHAR verText[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       BOOLEAN daemonMode = FALSE ;
+      string daemonCommand ;
 
       pmdSetDBRole( SDB_ROLE_STP ) ;
 
-      // 1. get root path
+      // get root path
       rc = ossGetEWD( currentPath, OSS_MAX_PATHSIZE ) ;
       if ( SDB_OK != rc )
       {
@@ -111,7 +114,37 @@ namespace engine
          goto error ;
       }
 
-      // 3. create pid file
+      // initialize options, pre-check for version, help,
+      // and change user
+      rc = options->initialize( argc, argv, currentPath, daemonMode,
+                                daemonCommand ) ;
+      if ( SDB_PMD_HELP_ONLY == rc || SDB_PMD_VERSION_ONLY == rc )
+      {
+         PMD_SHUTDOWN_DB( SDB_OK ) ;
+         rc = SDB_OK ;
+         return 0 ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         PMD_SHUTDOWN_DB( rc ) ;
+         return utilRC2ShellRC( rc ) ;
+      }
+      if ( daemonMode )
+      {
+         cout << "Start STP node with options: " << daemonCommand << endl ;
+         rc = stpStartNode( currentPath, options->getStpPath(),
+                            daemonCommand ) ;
+         if ( SDB_OK != rc )
+         {
+            cout << "Start STP node failed: " << rc << endl ;
+            PMD_SHUTDOWN_DB( rc ) ;
+            return utilRC2ShellRC( rc ) ;
+         }
+         PMD_SHUTDOWN_DB( SDB_OK ) ;
+         return 0 ;
+      }
+
+      // create pid file
       rc = utilBuildFullPath( currentPath, STP_LOG_PATH, OSS_MAX_PATHSIZE,
                               confPath ) ;
       if ( SDB_OK != rc )
@@ -144,7 +177,7 @@ namespace engine
          rc = SDB_OK ;
       }
 
-      // 2. enable dialog
+      // enable dialog
       rc = utilBuildFullPath( confPath, STP_DIAGLOG_FILE_NAME,
                               OSS_MAX_PATHSIZE, dialogFile ) ;
       if ( SDB_OK != rc )
@@ -157,22 +190,10 @@ namespace engine
       ossSprintVersion( "Version", verText, OSS_MAX_PATHSIZE, FALSE ) ;
       PD_LOG( PDEVENT, "Start stp[%s]...", verText) ;
 
-      // 4. init param
-      options = stpCB->getOptions() ;
-      rc = options->initialize( argc, argv, currentPath, daemonMode ) ;
-      if ( SDB_OK != rc )
-      {
-         goto done ;
-      }
-      if ( daemonMode )
-      {
-         goto done ;
-      }
-
       setPDLevel( (PDLEVEL)( options->getDiagLevel() ) ) ;
       options->logOptions() ;
 
-      // 6. handlers and init global mem
+      // handlers and init global mem
       rc = pmdEnableSignalEvent( confPath, (PMD_ON_QUIT_FUNC)pmdOnQuit,
                                  delSig ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to enable trap, rc: %d", rc ) ;
@@ -181,8 +202,8 @@ namespace engine
       signal( SIGCHLD, SIG_IGN ) ;
 #endif // _LINUX
 
-      // 7. register agent cb
-      PMD_REGISTER_CB( stpCB ) ;
+      // register agent cb
+      PMD_REGISTER_CB( ( &stpCB ) ) ;
 
       // system init
       rc = _pmdSystemInit( confPath ) ;
@@ -191,16 +212,16 @@ namespace engine
          goto error ;
       }
 
-      // 8. initialize pipe manager
+      // initialize pipe manager
       rc = sdbGetSystemPipeManager()->init( options->getServiceName(), TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to initialize pipe manager, rc: %d",
                    rc ) ;
 
-      // 9. init krcb
+      // init krcb
       rc = krcb->init() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to init krcb, rc: %d", rc ) ;
 
-      // 10. change process name
+      // change process name
       pmdRenameProcess( argc, argv, options->getServiceName() ) ;
 
       // Now master thread get into big loop and check shutdown flag
@@ -208,6 +229,7 @@ namespace engine
       {
          ossSleepsecs ( 1 ) ;
          krcb->onTimer( OSS_ONE_SEC ) ;
+         stpCB.onTimer( STP_INVALID_TIMERID, OSS_ONE_SEC ) ;
       }
 
       rc = krcb->getShutdownCode() ;
@@ -225,7 +247,7 @@ namespace engine
       pmdDisableSignalEvent() ;
       PD_LOG( PDEVENT, "Stop program, exit code: %d",
               krcb->getShutdownCode() ) ;
-      return rc == SDB_OK ? 0 : 1 ;
+      return SDB_OK == rc ? 0 : utilRC2ShellRC( rc ) ;
 
    error:
       goto done ;

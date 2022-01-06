@@ -11,23 +11,37 @@
    通过编写 `connect.py` 连接到数据库
   
    ```lang-python
-   import pysequoiadb
-   from pysequoiadb import client
+   from pysequoiadb import *
 
-   # 使用默认的端口连接到数据库
    host = 'localhost'
    port = 11810
-   # 当数据库已经创建用户时，应该使用正确的用户及密码连接到数据库
-   # user= '', password= ''
-   db = client(host, port)
-  
-   print 'Connect success'
+   host_list = [ {'host': 'sdbserver1', 'service': 11810}, { 'host': 'sdbserver2', 'service': 11810 } ]
+
+   # 只使用一个地址连接
+   db = client( host, port )
+   db.disconnect()
+
+   # 使用多个地址连接，从地址列表中随机选择地址进行连接，直至连接成功
+   db = client( host_list=host_list, policy='random' )
+   db.disconnect()
+
+   # 如果数据库已经创建用户，需要使用正确的用户及密码才能连接到数据库
+   user = "sdbadmin"
+   psw = "sdbadmin"
+   db = client( host, port, user, psw  )
+   db.disconnect()
+
+   # 当然，也支持使用密码文件进行连接
+   cipher_file="/opt/sequoiadb/cipher"
+   db = client( host, port, user, cipher_file=cipher_file )
    db.disconnect()
    ```
 
    > **Note:**
    >
-   > 本示例连接到本地数据库的 11810 端口，使用的是空的用户名和密码。用户可以根据实际情况配置参数。例如：将上述代码中的 `db = client()` 修改为 `db = client('192.168.10.188', 11810)`。
+   > - 用户可以根据实际情况调整上述配置参数，如用户名、密码等。
+   >
+   > - 密码文件的使用，请参考[密码管理工具](manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdbpasswd.md)
 
 * 创建集合空间和集合
   

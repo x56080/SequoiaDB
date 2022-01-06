@@ -157,16 +157,38 @@ TEST(sdb,sdbDropCollectionSpace)
 {
    sdbConnectionHandle connection = 0 ;
    sdbCSHandle collectionspace    = 0 ;
+   sdbCollectionHandle collection = 0 ;   
    INT32 rc                       = SDB_OK ;
+   bson options1 ;
+   bson options2 ;
    rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
+   //case 1:no options parameter
    rc = sdbDropCollectionSpace ( connection,
                                  COLLECTION_SPACE_NAME ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-
+   //case 2:the options parameter is {"EnsureEmpty" : true}
+   rc = sdbCreateCollectionSpace ( connection, COLLECTION_SPACE_NAME,
+                                   SDB_PAGESIZE_4K, &collectionspace ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbCreateCollection( collectionspace, COLLECTION_NAME, &collection) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   bson_init( &options1 ) ;
+   bson_append_bool( &options1, "EnsureEmpty", TRUE ) ;
+   rc = sdbDropCollectionSpace1 ( connection,
+                                 COLLECTION_SPACE_NAME, &options1) ;
+   ASSERT_EQ(  SDB_DMS_CS_NOT_EMPTY, rc ) ;  
+   bson_destroy( &options1 ) ;
+   //case 3:the options parameter is {"EnsureEmpty" : false}
+   bson_init( &options2 ) ;
+   bson_append_bool( &options2, "EnsureEmpty", FALSE ) ;
+   rc = sdbDropCollectionSpace1 ( connection,
+                                 COLLECTION_SPACE_NAME, &options2) ;
+   ASSERT_EQ(  SDB_OK, rc ) ;  
+   bson_destroy( &options2 ) ;
    sdbDisconnect ( connection ) ;
    sdbReleaseCS ( collectionspace ) ;
    sdbReleaseConnection ( connection ) ;

@@ -34,25 +34,21 @@
 
 #include "utilCipherMgr.hpp"
 
-namespace passwd
+class _utilPasswordTool : public SDBObject
 {
-   class _utilPasswordTool : public SDBObject
-   {
-   public:
-      _utilPasswordTool() {}
-      ~_utilPasswordTool() {}
-      static string interactivePasswdInput() ;
-      INT32  getPasswdByCipherFile( const string &userFullName,
-                                    const string &token,
-                                    string &filePath,
-                                    string &password ) ;
+public:
+   _utilPasswordTool() {}
+   ~_utilPasswordTool() {}
+   static BOOLEAN interactivePasswdInput( string &passwd ) ;
+   INT32  getPasswdByCipherFile( const string &userFullName,
+                                 const string &token,
+                                 string &filePath,
+                                 string &password ) ;
 
-   private:
-      utilCipherMgr    _cipherMgr ;
-      utilCipherFile   _cipherfile ;
-   } ;
-   typedef _utilPasswordTool utilPasswordTool ;
-
-}
+private:
+   utilCipherMgr    _cipherMgr ;
+   utilCipherFile   _cipherfile ;
+} ;
+typedef _utilPasswordTool utilPasswordTool ;
 
 #endif

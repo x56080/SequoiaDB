@@ -98,7 +98,18 @@ namespace engine
          _mthNodeAllocator *_allocator ;
    } ;
 
-   class _mthMatchFuncABS : public _mthMatchFunc
+   class _mthMatchUnaryFunc : public _mthMatchFunc
+   {
+      public:
+         _mthMatchUnaryFunc( _mthNodeAllocator *allocator ) ;
+         virtual ~_mthMatchUnaryFunc() ;
+
+      protected:
+         virtual INT32 _init( const CHAR *fieldName,
+                              const BSONElement &ele ) ;
+   } ;
+
+   class _mthMatchFuncABS : public _mthMatchUnaryFunc
    {
       public:
          _mthMatchFuncABS( _mthNodeAllocator *allocator ) ;
@@ -106,16 +117,11 @@ namespace engine
 
       public:
          virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
-         virtual void clear() ;
          virtual INT32 getType() ;
          virtual const CHAR* getName() ;
-
-      protected:
-         virtual INT32 _init( const CHAR *fieldName,
-                              const BSONElement &ele ) ;
    } ;
 
-   class _mthMatchFuncCEILING : public _mthMatchFuncABS
+   class _mthMatchFuncCEILING : public _mthMatchUnaryFunc
    {
       public:
          _mthMatchFuncCEILING( _mthNodeAllocator *allocator ) ;
@@ -127,7 +133,7 @@ namespace engine
          virtual const CHAR* getName() ;
    } ;
 
-   class _mthMatchFuncFLOOR : public _mthMatchFuncABS
+   class _mthMatchFuncFLOOR : public _mthMatchUnaryFunc
    {
       public:
          _mthMatchFuncFLOOR( _mthNodeAllocator *allocator ) ;
@@ -139,7 +145,7 @@ namespace engine
          virtual const CHAR* getName() ;
    } ;
 
-   class _mthMatchFuncLOWER : public _mthMatchFuncABS
+   class _mthMatchFuncLOWER : public _mthMatchUnaryFunc
    {
       public:
          _mthMatchFuncLOWER( _mthNodeAllocator *allocator ) ;
@@ -151,7 +157,7 @@ namespace engine
          virtual const CHAR* getName() ;
    } ;
 
-   class _mthMatchFuncUPPER : public _mthMatchFuncABS
+   class _mthMatchFuncUPPER : public _mthMatchUnaryFunc
    {
       public:
          _mthMatchFuncUPPER( _mthNodeAllocator *allocator ) ;
@@ -163,7 +169,7 @@ namespace engine
          virtual const CHAR* getName() ;
    } ;
 
-   class _mthMatchFuncLTRIM : public _mthMatchFuncABS
+   class _mthMatchFuncLTRIM : public _mthMatchUnaryFunc
    {
       public:
          _mthMatchFuncLTRIM( _mthNodeAllocator *allocator ) ;
@@ -175,7 +181,7 @@ namespace engine
          virtual const CHAR* getName() ;
    } ;
 
-   class _mthMatchFuncRTRIM : public _mthMatchFuncABS
+   class _mthMatchFuncRTRIM : public _mthMatchUnaryFunc
    {
       public:
          _mthMatchFuncRTRIM( _mthNodeAllocator *allocator ) ;
@@ -187,7 +193,7 @@ namespace engine
          virtual const CHAR* getName() ;
    } ;
 
-   class _mthMatchFuncTRIM : public _mthMatchFuncABS
+   class _mthMatchFuncTRIM : public _mthMatchUnaryFunc
    {
       public:
          _mthMatchFuncTRIM( _mthNodeAllocator *allocator ) ;
@@ -199,11 +205,35 @@ namespace engine
          virtual const CHAR* getName() ;
    } ;
 
-   class _mthMatchFuncSTRLEN : public _mthMatchFuncABS
+   class _mthMatchFuncSTRLEN : public _mthMatchUnaryFunc
    {
       public:
          _mthMatchFuncSTRLEN( _mthNodeAllocator *allocator ) ;
          virtual ~_mthMatchFuncSTRLEN() ;
+
+      public:
+         virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
+         virtual INT32 getType() ;
+         virtual const CHAR* getName() ;
+   } ;
+
+   class _mthMatchFuncSTRLENBYTES : public _mthMatchUnaryFunc
+   {
+      public:
+         _mthMatchFuncSTRLENBYTES( _mthNodeAllocator *allocator ) ;
+         virtual ~_mthMatchFuncSTRLENBYTES() ;
+
+      public:
+         virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
+         virtual INT32 getType() ;
+         virtual const CHAR* getName() ;
+   } ;
+
+   class _mthMatchFuncSTRLENCP : public _mthMatchUnaryFunc
+   {
+      public:
+         _mthMatchFuncSTRLENCP( _mthNodeAllocator *allocator ) ;
+         virtual ~_mthMatchFuncSTRLENCP() ;
 
       public:
          virtual INT32 call( const BSONElement &in, BSONObj &out ) ;

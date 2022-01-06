@@ -419,7 +419,7 @@ namespace seadapter
 
    INT32 _seAdptCB::deactive()
    {
-      _svcRtAgent.closeListen() ;
+      _svcRtAgent.shutdownListen() ;
       _dbAssist.routeAgent()->stop() ;
       _svcRtAgent.stop() ;
 
@@ -536,7 +536,7 @@ namespace seadapter
       {
          if ( type == itr->type )
          {
-            _vecInnerSessionParam.erase( itr ) ;
+            _vecInnerSessionParam.erase( itr++ ) ;
          }
          else
          {
@@ -883,8 +883,9 @@ namespace seadapter
 
          if ( 1 != objVec.size() )
          {
-            PD_LOG( PDERROR, "Register reply is not as expected" ) ;
             rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Register reply is not as expected. Make sure the "
+                             "data node configuration is correct[%d]", rc ) ;
             goto error ;
          }
 

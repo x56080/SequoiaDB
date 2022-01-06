@@ -42,7 +42,7 @@ namespace engine
 {
    class _rtnContextListLob : public _rtnContextBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextListLob )
    public:
       _rtnContextListLob( INT64 contextID, UINT64 eduID ) ;
       virtual ~_rtnContextListLob() ;
@@ -51,6 +51,11 @@ namespace engine
       virtual const CHAR*      name() const { return "LIST_LOB" ; } ;
       virtual RTN_CONTEXT_TYPE getType() const { return RTN_CONTEXT_LIST_LOB ; }
       virtual _dmsStorageUnit*  getSU () ;
+
+      virtual UINT32 getSULogicalID() const
+      {
+         return _suLogicalID ;
+      }
 
    public:
       INT32 open( const BSONObj &query, const BSONObj &selector,
@@ -67,6 +72,7 @@ namespace engine
       INT32 _reallocate( UINT32 len ) ;
    private:
       _rtnLobFetcher _fetcher ;
+      UINT32 _suLogicalID ;
       CHAR *_buf ;
       UINT32 _bufLen ;
       std::string _fullName ;

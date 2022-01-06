@@ -4,7 +4,7 @@ renameCL - 修改集合名
 
 ##语法##
 
-***db.collectionspace.renameCL( \<oldname\>, \<newname\> )***
+**db.collectionspace.renameCL( \<oldname\>, \<newname\> )**
 
 ##类别##
 
@@ -28,7 +28,7 @@ Collection Space
 
 ##返回值##
 
-函数执行成功时无返回值。
+函数执行成功时，无返回值。
 
 函数执行失败时，将抛出异常并输出错误信息。
 
@@ -45,17 +45,18 @@ Collection Space
 | -149  | SDB_REBUILD_HAS_ALREADY_START| 数据节点正在做rebuild。 | 等待rebuild完成，再执行改名。 |
 
 当异常抛出时，可以通过 [getLastErrObj()](manual/Manual/Sequoiadb_Command/Global/getLastErrObj.md)  或 [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) 获取错误信息 或 通过 [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) 获取错误码。
-更多错误可以参考[常见错误处理指南](manual/faq.md) 。
+更多错误可以参考[常见错误处理指南](manual/FAQ/faq_sdb.md) 。
 
-##版本信息##
-3.0.1及以上版本
+##版本##
+
+v3.0.1 及以上版本
 
 ##示例##
 
 将集合 sample.employee，改名为 sample.employee_new
 
- ```lang-javascript
- > db = new Sdb( "localhost", 11810 )    // 连接协调节点
- > db.sample.renameCL( "employee", "employee_new" )
- ```
+```lang-javascript
+> db = new Sdb( "localhost", 11810 )    // 连接协调节点
+> db.sample.renameCL( "employee", "employee_new" )
+```
 

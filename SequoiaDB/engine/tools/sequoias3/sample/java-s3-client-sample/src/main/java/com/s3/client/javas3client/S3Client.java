@@ -29,13 +29,13 @@ public class S3Client {
     private AmazonS3 awsS3;
     private SequoiaS3 sequoiaS3;
 
-    public S3Client(String endpointarg){
+    public S3Client(String endpointarg) {
         String accessKey = "ABCDEFGHIJKLMNOPQRST";
         String secretKey = "abcdefghijklmnopqrstuvwxyz0123456789ABCD";
-        AWSCredentials credentials = new BasicAWSCredentials(accessKey,secretKey);
+        AWSCredentials credentials = new BasicAWSCredentials(accessKey, secretKey);
 
         String endPoint = "http://localhost:8002";
-        if (endpointarg != null){
+        if (endpointarg != null) {
             endPoint = endpointarg;
         }
         AwsClientBuilder.EndpointConfiguration endpointConfiguration =
@@ -52,48 +52,48 @@ public class S3Client {
                 .build();
     }
 
-    public void shutdown(){
+    public void shutdown() {
         awsS3.shutdown();
         sequoiaS3.shutdown();
     }
 
-    public void putBucket(String bucketName, String region){
+    public void putBucket(String bucketName, String region) {
         logger.debug("putBucket enter");
         try {
             CreateBucketRequest request = new CreateBucketRequest(bucketName, region);
             awsS3.createBucket(request);
         } catch (AmazonServiceException e) {
-            logger.error("status code:"+e.getStatusCode());
-            logger.error("error code:"+e.getErrorCode());
-            logger.error("error message:"+e.getErrorMessage());
-        } catch (Exception e){
-            logger.error("error message:"+e.getMessage());
+            logger.error("status code:" + e.getStatusCode());
+            logger.error("error code:" + e.getErrorCode());
+            logger.error("error message:" + e.getErrorMessage());
+        } catch (Exception e) {
+            logger.error("error message:" + e.getMessage());
 //            throw e;
         } finally {
             logger.debug("putBucket exit");
         }
     }
 
-    public void deleteBucket(String bucket){
+    public void deleteBucket(String bucket) {
         logger.debug("deleteBucket enter");
-        try{
+        try {
             DeleteBucketRequest request = new DeleteBucketRequest(bucket);
             awsS3.deleteBucket(request);
-        } catch (AmazonServiceException e){
-            logger.error("status code:"+e.getStatusCode());
-            logger.error("error code:"+e.getErrorCode());
-            logger.error("error message:"+e.getErrorMessage());
-        } catch (Exception e){
-            logger.error("error message:"+e.getMessage());
+        } catch (AmazonServiceException e) {
+            logger.error("status code:" + e.getStatusCode());
+            logger.error("error code:" + e.getErrorCode());
+            logger.error("error message:" + e.getErrorMessage());
+        } catch (Exception e) {
+            logger.error("error message:" + e.getMessage());
 //            throw e;
         } finally {
             logger.debug("deleteBucket exit");
         }
     }
 
-    public void listBuckets(){
+    public void listBuckets() {
         logger.debug("listBuckets enter");
-        try{
+        try {
             List<Bucket> buckets = awsS3.listBuckets();
             System.out.println("bucket count:" + buckets.size());
             for (int i = 0; i < buckets.size(); i++) {
@@ -101,19 +101,19 @@ public class S3Client {
                 System.out.println("name:" + bucket.getName() +
                         ", createTime:" + bucket.getCreationDate());
             }
-        } catch (AmazonServiceException e){
-            logger.error("status code:"+e.getStatusCode());
-            logger.error("error code:"+e.getErrorCode());
-            logger.error("error message:"+e.getErrorMessage());
-        } catch (Exception e){
-            logger.error("error message:"+e.getMessage());
+        } catch (AmazonServiceException e) {
+            logger.error("status code:" + e.getStatusCode());
+            logger.error("error code:" + e.getErrorCode());
+            logger.error("error message:" + e.getErrorMessage());
+        } catch (Exception e) {
+            logger.error("error message:" + e.getMessage());
 //            throw e;
         } finally {
             logger.debug("listBuckets exit");
         }
     }
 
-    public void listObjects(String bucketName){
+    public void listObjects(String bucketName) {
         logger.debug("listObjects enter");
         try {
             ListObjectsV2Request request = new ListObjectsV2Request();
@@ -131,27 +131,27 @@ public class S3Client {
                 for (int i = 0; i < objectList.size(); i++) {
                     System.out.println("name: " + objectList.get(i).getKey());
                 }
-                if (result.isTruncated()){
+                if (result.isTruncated()) {
                     request.withContinuationToken(result.getNextContinuationToken());
                     System.out.println("NextContinuationToken:" + result.getNextContinuationToken());
-                }else {
+                } else {
                     break;
                 }
             }
-        } catch (AmazonServiceException e){
-            logger.error("status code:"+e.getStatusCode());
-            logger.error("error code:"+e.getErrorCode());
-            logger.error("error message:"+e.getErrorMessage());
-        } catch (Exception e){
-            logger.error("error message:"+e.getMessage());
+        } catch (AmazonServiceException e) {
+            logger.error("status code:" + e.getStatusCode());
+            logger.error("error code:" + e.getErrorCode());
+            logger.error("error message:" + e.getErrorMessage());
+        } catch (Exception e) {
+            logger.error("error message:" + e.getMessage());
 //            throw e;
         } finally {
             logger.debug("listObjects exit");
         }
     }
 
-    public void listVersions(String bucketName, String prefix, String delimiter, String keyMarker){
-        logger.debug("listVersions enter. bucket:"+bucketName+", prefix:"+prefix+", delimiter:"+delimiter);
+    public void listVersions(String bucketName, String prefix, String delimiter, String keyMarker) {
+        logger.debug("listVersions enter. bucket:" + bucketName + ", prefix:" + prefix + ", delimiter:" + delimiter);
         try {
             ListVersionsRequest request = new ListVersionsRequest().withBucketName(bucketName);
             request.setBucketName(bucketName);
@@ -170,24 +170,24 @@ public class S3Client {
                     System.out.println("versionId:" + versionSummaries.get(i).getVersionId());
                     System.out.println("lastmodified:" + versionSummaries.get(i).getLastModified());
                 }
-                if (result.isTruncated()){
+                if (result.isTruncated()) {
                     result = awsS3.listNextBatchOfVersions(result);
-                }else {
+                } else {
                     break;
                 }
             }
-        }catch (AmazonServiceException e){
-            logger.error("status code:"+e.getStatusCode());
-            logger.error("status code:"+e.getErrorCode());
-            logger.error("status code:"+e.getErrorMessage());
-        }catch (Exception e){
-            logger.error("status code:"+e.getMessage());
-        }finally {
+        } catch (AmazonServiceException e) {
+            logger.error("status code:" + e.getStatusCode());
+            logger.error("status code:" + e.getErrorCode());
+            logger.error("status code:" + e.getErrorMessage());
+        } catch (Exception e) {
+            logger.error("status code:" + e.getMessage());
+        } finally {
             logger.debug("listVersions exit");
         }
     }
 
-    public void multiPartUploadObject(String bucketName, String objectName, File file){
+    public void multiPartUploadObject(String bucketName, String objectName, File file) {
         logger.debug("Multi part upload  enter");
         long maxsize = 5 * 1024 * 1024;
 
@@ -208,8 +208,7 @@ public class S3Client {
                         .withPartSize(partsize)
                         .withBucketName(bucketName)
                         .withKey(objectName)
-                        .withUploadId(uploadId)
-                        ;
+                        .withUploadId(uploadId);
                 UploadPartResult uploadPartResult = awsS3.uploadPart(partRequest);
                 partETags.add(uploadPartResult.getPartETag());
                 filepositon += partsize;
@@ -219,9 +218,9 @@ public class S3Client {
                     new ListPartsRequest(bucketName, objectName, uploadId);
             PartListing listResult = awsS3.listParts(listPartsRequest);
             int size = listResult.getParts().size();
-            for (int i=0; i<size; i++) {
-                System.out.println("i:"+ i +
-                        ", part number:" + listResult.getParts().get(i).getPartNumber()+
+            for (int i = 0; i < size; i++) {
+                System.out.println("i:" + i +
+                        ", part number:" + listResult.getParts().get(i).getPartNumber() +
                         ", part size:" + listResult.getParts().get(i).getSize() +
                         ", part etag:" + listResult.getParts().get(i).getETag());
             }
@@ -232,88 +231,105 @@ public class S3Client {
                     .withUploadId(uploadId)
                     .withPartETags(partETags);
             CompleteMultipartUploadResult result1 = awsS3.completeMultipartUpload(completeRequest);
-            System.out.println("complete eTag:"+result1.getETag());
+            System.out.println("complete eTag:" + result1.getETag());
         } catch (AmazonServiceException e) {
-            logger.error("status code:"+e.getStatusCode());
-            logger.error("error code:"+e.getErrorCode());
-            logger.error("error message:"+e.getErrorMessage());
-        } catch (Exception e){
-            logger.error("error message:"+e.getMessage());
+            logger.error("status code:" + e.getStatusCode());
+            logger.error("error code:" + e.getErrorCode());
+            logger.error("error message:" + e.getErrorMessage());
+        } catch (Exception e) {
+            logger.error("error message:" + e.getMessage());
 //            throw e;
         } finally {
             logger.debug("Multi part upload exit");
         }
     }
 
-    public void putObjectWithContent(String bucketName , String objectName, String content){
+    public void putObjectWithContent(String bucketName, String objectName, String content) {
         logger.debug("putObject enter");
         try {
             awsS3.putObject(bucketName, objectName, content);
-        } catch (AmazonServiceException e){
-            logger.error("status code:"+e.getStatusCode());
-            logger.error("error code:"+e.getErrorCode());
-            logger.error("error message:"+e.getErrorMessage());
-        } catch (Exception e){
-            logger.error("error:"+e.getMessage());
-            logger.debug("error:"+e.getMessage(), e);
+        } catch (AmazonServiceException e) {
+            logger.error("status code:" + e.getStatusCode());
+            logger.error("error code:" + e.getErrorCode());
+            logger.error("error message:" + e.getErrorMessage());
+        } catch (Exception e) {
+            logger.error("error:" + e.getMessage());
+            logger.debug("error:" + e.getMessage(), e);
         } finally {
             logger.debug("putObject exit");
         }
     }
 
-    public void putObjectWithFile(String bucketName , String objectName, File file)  {
+    public void putObjectWithFile(String bucketName, String objectName, File file) {
         logger.debug("putObjectWithFile enter");
         try {
             PutObjectRequest request = new PutObjectRequest(bucketName, objectName, file);
             awsS3.putObject(request);
-        } catch (AmazonServiceException e){
-            logger.error("status code:"+e.getStatusCode());
-            logger.error("error code:"+e.getErrorCode());
-            logger.error("error message:"+e.getErrorMessage());
-        } catch (Exception e){
-            logger.error("error message:"+e.getMessage());
-            logger.debug("error:"+e.getMessage(), e);
+        } catch (AmazonServiceException e) {
+            logger.error("status code:" + e.getStatusCode());
+            logger.error("error code:" + e.getErrorCode());
+            logger.error("error message:" + e.getErrorMessage());
+        } catch (Exception e) {
+            logger.error("error message:" + e.getMessage());
+            logger.debug("error:" + e.getMessage(), e);
         } finally {
             logger.debug("putObjectWithFile exit");
         }
     }
 
-    public void deleteObject(String bucketName, String objectName){
+    public void copyObject(String sourceBucket, String sourceObject, String destBucket, String destObject) {
+        logger.debug("copyObject enter. destBucket:" + destBucket + ", destObject:" + destObject);
+        try {
+            CopyObjectRequest request = new CopyObjectRequest(sourceBucket, sourceObject, destBucket, destObject);
+            CopyObjectResult result = awsS3.copyObject(request);
+            System.out.println("ETag:" + result.getETag());
+            System.out.println("VersionId:" + result.getVersionId());
+            System.out.println("lastModifiedDate:" + result.getLastModifiedDate());
+        } catch (AmazonServiceException e) {
+            logger.error("status code:" + e.getStatusCode());
+            logger.error("error code:" + e.getErrorCode());
+            logger.error("error message:" + e.getErrorMessage());
+        } catch (Exception e) {
+            logger.error("status code:" + e.getMessage());
+        } finally {
+            logger.debug("copyObject exit");
+        }
+    }
+
+    public void deleteObject(String bucketName, String objectName) {
         logger.debug("deleteObject enter");
-        try{
+        try {
             awsS3.deleteObject(bucketName, objectName);
-        } catch (AmazonServiceException e){
-            logger.error("status code:"+e.getStatusCode());
-            logger.error("error code:"+e.getErrorCode());
-            logger.error("error message:"+e.getErrorMessage());
-        } catch (Exception e){
-            logger.error("error message:"+e.getMessage());
+        } catch (AmazonServiceException e) {
+            logger.error("status code:" + e.getStatusCode());
+            logger.error("error code:" + e.getErrorCode());
+            logger.error("error message:" + e.getErrorMessage());
+        } catch (Exception e) {
+            logger.error("error message:" + e.getMessage());
 //            throw e;
         } finally {
             logger.debug("deleteObject exit");
         }
     }
 
-    public void deleteVersion(String bucketName, String objectName, String versionId)
-    {
-        logger.debug("deleteVersion enter: bucket:"+bucketName+", key:"+objectName +"versionId:"+versionId);
-        try{
+    public void deleteVersion(String bucketName, String objectName, String versionId) {
+        logger.debug("deleteVersion enter: bucket:" + bucketName + ", key:" + objectName + "versionId:" + versionId);
+        try {
             awsS3.deleteVersion(bucketName, objectName, versionId);
-        }catch (AmazonServiceException e){
-            logger.error("status code"+e.getStatusCode());
-            logger.error("status code:"+e.getErrorCode());
-            logger.error("status code:"+e.getErrorMessage());
-        }catch (Exception e){
-            logger.error("status code:"+e.getMessage());
-        }finally {
+        } catch (AmazonServiceException e) {
+            logger.error("status code" + e.getStatusCode());
+            logger.error("status code:" + e.getErrorCode());
+            logger.error("status code:" + e.getErrorMessage());
+        } catch (Exception e) {
+            logger.error("status code:" + e.getMessage());
+        } finally {
             logger.debug("deleteVersion exit");
         }
     }
 
-    public void deleteAllVersions(String bucketName)
-    {
+    public void deleteAllVersions(String bucketName) {
         logger.debug("delete all versions enter");
-        try{
+        try {
             ListVersionsRequest request = new ListVersionsRequest();
             request.setBucketName(bucketName);
             VersionListing result = awsS3.listVersions(request);
@@ -323,17 +339,17 @@ public class S3Client {
                     System.out.println("delete key:" + versionSummaries.get(i).getKey() + ", versionId:" + versionSummaries.get(i).getVersionId());
                     awsS3.deleteVersion(bucketName, versionSummaries.get(i).getKey(), versionSummaries.get(i).getVersionId());
                 }
-                if (result.isTruncated()){
+                if (result.isTruncated()) {
                     result = awsS3.listNextBatchOfVersions(result);
-                }else {
+                } else {
                     break;
                 }
             }
-        }catch (AmazonServiceException e){
-            System.out.println("status code:"+e.getStatusCode());
-            System.out.println("status code:"+e.getErrorCode());
-            System.out.println("status code:"+e.getErrorMessage());
-        }finally {
+        } catch (AmazonServiceException e) {
+            System.out.println("status code:" + e.getStatusCode());
+            System.out.println("status code:" + e.getErrorCode());
+            System.out.println("status code:" + e.getErrorMessage());
+        } finally {
             logger.debug("delete all versions exit");
         }
     }
@@ -342,12 +358,12 @@ public class S3Client {
         logger.debug("getObject enter");
         S3ObjectInputStream s3is = null;
         FileOutputStream fos = null;
-        try{
+        try {
             GetObjectRequest request = new GetObjectRequest(bucketName, objectName, versionId);
             S3Object result = awsS3.getObject(request);
 
             s3is = result.getObjectContent();
-            File file = new File(path+objectName);
+            File file = new File(path + objectName);
             System.out.println("file path:" + file.getAbsolutePath());
             fos = new FileOutputStream(file);
             byte[] read_buf = new byte[1024 * 1024];
@@ -358,134 +374,134 @@ public class S3Client {
             s3is.close();
             fos.close();
         } catch (AmazonServiceException e) {
-            logger.error("status code:"+e.getStatusCode());
-            logger.error("error code:"+e.getErrorCode());
-            logger.error("error message:"+e.getErrorMessage());
-        } catch (Exception e){
-            logger.error("error message:"+e.getMessage());
+            logger.error("status code:" + e.getStatusCode());
+            logger.error("error code:" + e.getErrorCode());
+            logger.error("error message:" + e.getErrorMessage());
+        } catch (Exception e) {
+            logger.error("error message:" + e.getMessage());
 //            throw e;
         } finally {
             logger.debug("getObject exit");
-            if (fos != null){
+            if (fos != null) {
                 try {
                     fos.close();
-                }catch (Exception e){
-                    logger.error("fos.close() failed. e:"+e.getMessage());
+                } catch (Exception e) {
+                    logger.error("fos.close() failed. e:" + e.getMessage());
                 }
             }
-            if (s3is != null){
+            if (s3is != null) {
                 try {
                     s3is.close();
-                }catch (Exception e){
-                    logger.error("s3is.close() failed. e:"+e.getMessage());
+                } catch (Exception e) {
+                    logger.error("s3is.close() failed. e:" + e.getMessage());
                 }
             }
         }
     }
 
-    public void createRegion(String regionName){
-        logger.debug("create region enter, regionName:"+regionName);
+    public void createRegion(String regionName) {
+        logger.debug("create region enter, regionName:" + regionName);
         try {
             sequoiaS3.createRegion(regionName);
-        }catch (SequoiaS3ServiceException e){
-            logger.error("status code:"+e.getStatusCode());
-            logger.error("error code:"+e.getErrorCode());
-            logger.error("error message:"+e.getErrorMessage());
-        }catch (SequoiaS3ClientException e){
-            logger.error("error message:"+e.getMessage());
+        } catch (SequoiaS3ServiceException e) {
+            logger.error("status code:" + e.getStatusCode());
+            logger.error("error code:" + e.getErrorCode());
+            logger.error("error message:" + e.getErrorMessage());
+        } catch (SequoiaS3ClientException e) {
+            logger.error("error message:" + e.getMessage());
 //            throw e;
-        }finally {
+        } finally {
             logger.debug("create region exit.");
         }
     }
 
-    public void getRegion(String regionName){
-        logger.debug("get region enter, regionName:"+regionName);
+    public void getRegion(String regionName) {
+        logger.debug("get region enter, regionName:" + regionName);
         try {
             GetRegionResult regionResult = sequoiaS3.getRegion(regionName);
             Region region = regionResult.getRegion();
             List<String> buckets = regionResult.getBuckets();
             System.out.println("region:" + region.toString());
 
-            for (int i=0; i < buckets.size(); i++) {
+            for (int i = 0; i < buckets.size(); i++) {
                 String bucket = buckets.get(i);
                 System.out.println("Name:" + bucket);
             }
-        }catch (SequoiaS3ServiceException e){
-            logger.error("status code:"+e.getStatusCode());
-            logger.error("error code:"+e.getErrorCode());
-            logger.error("error message:"+e.getErrorMessage());
-        }catch (SequoiaS3ClientException e){
-            logger.error("status code:"+e.getMessage());
-        }catch (Exception e){
-            logger.error("status code:"+e.getMessage());
+        } catch (SequoiaS3ServiceException e) {
+            logger.error("status code:" + e.getStatusCode());
+            logger.error("error code:" + e.getErrorCode());
+            logger.error("error message:" + e.getErrorMessage());
+        } catch (SequoiaS3ClientException e) {
+            logger.error("status code:" + e.getMessage());
+        } catch (Exception e) {
+            logger.error("status code:" + e.getMessage());
 //            throw e;
-        }finally {
+        } finally {
             logger.debug("get region exit.");
         }
     }
 
-    public void headRegion(String regionName){
-        logger.debug("head region enter, regionName:"+regionName);
+    public void headRegion(String regionName) {
+        logger.debug("head region enter, regionName:" + regionName);
         try {
             Boolean isRegionExist = sequoiaS3.headRegion(regionName);
-            System.out.println("Region("+ regionName +") exist: " + isRegionExist);
-        }catch (SequoiaS3ServiceException e){
-            logger.error("status code:"+e.getStatusCode());
-            logger.error("error code:"+e.getErrorCode());
-            logger.error("error message:"+e.getErrorMessage());
-        }catch (Exception e){
-            logger.error("status code:"+e.getMessage());
+            System.out.println("Region(" + regionName + ") exist: " + isRegionExist);
+        } catch (SequoiaS3ServiceException e) {
+            logger.error("status code:" + e.getStatusCode());
+            logger.error("error code:" + e.getErrorCode());
+            logger.error("error message:" + e.getErrorMessage());
+        } catch (Exception e) {
+            logger.error("status code:" + e.getMessage());
 //            throw e;
-        }finally {
+        } finally {
             logger.debug("head region exit.");
         }
     }
 
     public void deleteRegion(String regionName) {
-        logger.debug("delete region enter, regionName:"+regionName);
+        logger.debug("delete region enter, regionName:" + regionName);
         try {
             sequoiaS3.deleteRegion(regionName);
-        }catch (SequoiaS3ServiceException e){
-            logger.error("status code:"+e.getStatusCode());
-            logger.error("error code:"+e.getErrorCode());
-            logger.error("error message:"+e.getErrorMessage());
-        }catch (Exception e){
-            logger.error("status code:"+e.getMessage());
+        } catch (SequoiaS3ServiceException e) {
+            logger.error("status code:" + e.getStatusCode());
+            logger.error("error code:" + e.getErrorCode());
+            logger.error("error message:" + e.getErrorMessage());
+        } catch (Exception e) {
+            logger.error("status code:" + e.getMessage());
 //            throw e;
-        }finally {
+        } finally {
             logger.debug("delete region exit.");
         }
     }
 
-    public void listRegions(){
+    public void listRegions() {
         logger.debug("list regions enter.");
         try {
             ListRegionsResult listRegionsResult = sequoiaS3.listRegions();
-            logger.info("regionResult"+listRegionsResult.getRegions());
-        }catch (SequoiaS3ServiceException e){
-            logger.error("status code:"+e.getStatusCode());
-            logger.error("error code:"+e.getErrorCode());
-            logger.error("error message:"+e.getErrorMessage());
-        }catch (Exception e){
-            logger.error("status code:"+e.getMessage());
+            logger.info("regionResult" + listRegionsResult.getRegions());
+        } catch (SequoiaS3ServiceException e) {
+            logger.error("status code:" + e.getStatusCode());
+            logger.error("error code:" + e.getErrorCode());
+            logger.error("error message:" + e.getErrorMessage());
+        } catch (Exception e) {
+            logger.error("status code:" + e.getMessage());
 //            throw e;
-        }finally {
+        } finally {
             logger.debug("list regions exit.");
         }
     }
 
-    public void putVersioningStatus(String bucket, String status){
+    public void putVersioningStatus(String bucket, String status) {
         logger.debug("putVersioningStatus enter");
         try {
             BucketVersioningConfiguration cfg = new BucketVersioningConfiguration(status);
             SetBucketVersioningConfigurationRequest request = new SetBucketVersioningConfigurationRequest(bucket, cfg);
             awsS3.setBucketVersioningConfiguration(request);
-        }catch (AmazonServiceException e){
-            logger.error("status code"+e.getStatusCode());
-            logger.error("status code:"+e.getErrorCode());
-            logger.error("status code:"+e.getErrorMessage());
-        }finally {
+        } catch (AmazonServiceException e) {
+            logger.error("status code" + e.getStatusCode());
+            logger.error("status code:" + e.getErrorCode());
+            logger.error("status code:" + e.getErrorMessage());
+        } finally {
             logger.debug("putVersioningStatus exit");
         }
     }

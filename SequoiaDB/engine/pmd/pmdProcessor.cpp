@@ -209,6 +209,10 @@ namespace engine
                rc = _onGetMoreReqMsg( msg, contextBuff, contextID,
                                       needRollback ) ;
                break ;
+            case MSG_BS_ADVANCE_REQ :
+               rc = _onAdvanceReqMsg( msg, contextBuff, contextID,
+                                      needRollback ) ;
+               break ;
             case MSG_BS_KILL_CONTEXT_REQ :
                rc = _onKillContextsReqMsg( msg ) ;
                break ;
@@ -508,12 +512,12 @@ namespace engine
    {
       INT32 rc    = SDB_OK ;
       INT32 flags = 0 ;
-      CHAR *pCollectionName = NULL ;
-      CHAR *pSelectorBuffer = NULL ;
-      CHAR *pUpdatorBuffer  = NULL ;
-      CHAR *pHintBuffer     = NULL ;
+      const CHAR *pCollectionName = NULL ;
+      const CHAR *pSelectorBuffer = NULL ;
+      const CHAR *pUpdatorBuffer  = NULL ;
+      const CHAR *pHintBuffer     = NULL ;
 
-      rc = msgExtractUpdate( (CHAR*)msg, &flags, &pCollectionName,
+      rc = msgExtractUpdate( (const CHAR*)msg, &flags, &pCollectionName,
                              &pSelectorBuffer, &pUpdatorBuffer,
                              &pHintBuffer );
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract update message failed, "
@@ -606,10 +610,10 @@ namespace engine
       INT32 rc    = SDB_OK ;
       INT32 flag  = 0 ;
       INT32 count = 0 ;
-      CHAR *pCollectionName = NULL ;
-      CHAR *pInsertor       = NULL ;
+      const CHAR *pCollectionName = NULL ;
+      const CHAR *pInsertor       = NULL ;
 
-      rc = msgExtractInsert( (CHAR *)msg, &flag, &pCollectionName,
+      rc = msgExtractInsert( (const CHAR *)msg, &flag, &pCollectionName,
                              &pInsertor, count ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extrace insert msg failed, rc: %d",
                    getSession()->sessionName(), rc ) ;
@@ -671,7 +675,7 @@ namespace engine
                   count, pCollectionName, flag, flag ) ; */
 
          rc = rtnInsert( pCollectionName, insertor, count, flag, eduCB(),
-                         &inResult ) ;
+                         NULL, &inResult ) ;
          /// AUDIT
          PD_AUDIT_OP( AUDIT_DML, MSG_BS_INSERT_REQ, AUDIT_OBJ_CL,
                       pCollectionName, rc, "InsertedNum:%llu, "
@@ -710,17 +714,18 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       INT32 flags = 0 ;
-      CHAR *pCollectionName = NULL ;
-      CHAR *pQueryBuff = NULL ;
-      CHAR *pFieldSelector = NULL ;
-      CHAR *pOrderByBuffer = NULL ;
-      CHAR *pHintBuffer = NULL ;
+      const CHAR *pCollectionName = NULL ;
+      const CHAR *pQueryBuff = NULL ;
+      const CHAR *pFieldSelector = NULL ;
+      const CHAR *pOrderByBuffer = NULL ;
+      const CHAR *pHintBuffer = NULL ;
       INT64 numToSkip = -1 ;
       INT64 numToReturn = -1 ;
       _rtnCommand *pCommand = NULL ;
       monClassQuery *monQuery = NULL ;
+      rtnContextPtr pContext ;
 
-      rc = msgExtractQuery ( (CHAR *)msg, &flags, &pCollectionName,
+      rc = msgExtractQuery ( (const CHAR *)msg, &flags, &pCollectionName,
                              &numToSkip, &numToReturn, &pQueryBuff,
                              &pFieldSelector, &pOrderByBuffer, &pHintBuffer ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract query msg failed, rc: %d",
@@ -730,8 +735,6 @@ namespace engine
 
       if ( !rtnIsCommand ( pCollectionName ) )
       {
-         rtnContextBase *pContext = NULL ;
-
          /// check auto-commit
          rc = _checkTransAutoCommit( msg, ( flags & FLG_QUERY_MODIFY ) ?
                                           TRUE : FALSE ) ;
@@ -812,27 +815,6 @@ namespace engine
                                          getPlanRuntime()->
                                          getAccessPlanID() ;
             }
-
-            if ( ( flags & FLG_QUERY_WITH_RETURNDATA ) && NULL != pContext )
-            {
-               rc = pContext->getMore( -1, buffObj, eduCB() ) ;
-               if ( rc || pContext->eof() )
-               {
-                  _pRTNCB->contextDelete( contextID, eduCB() ) ;
-                  contextID = -1 ;
-               }
-
-               if ( SDB_DMS_EOC == rc )
-               {
-                  rc = SDB_OK ;
-               }
-               else if ( rc )
-               {
-                  PD_LOG( PDERROR, "Session[%s] failed to query with return "
-                          "data, rc: %d", getSession()->sessionName(), rc ) ;
-                  goto error ;
-               }
-            }
          }
          catch ( std::exception &e )
          {
@@ -899,6 +881,30 @@ namespace engine
          }
       }
 
+      if ( ( flags & FLG_QUERY_WITH_RETURNDATA ) &&
+           ( ( pContext ) ||
+             ( -1 != contextID &&
+               SDB_OK == _pRTNCB->contextFind( contextID, pContext ) ) ) )
+      {
+         rc = pContext->getMore( -1, buffObj, eduCB() ) ;
+         if ( rc || pContext->eof() )
+         {
+            _pRTNCB->contextDelete( contextID, eduCB() ) ;
+            contextID = -1 ;
+         }
+
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_OK ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDERROR, "Session[%s] failed to query with return "
+                    "data, rc: %d", getSession()->sessionName(), rc ) ;
+            goto error ;
+         }
+      }
+
    done:
       if ( pCommand )
       {
@@ -915,11 +921,11 @@ namespace engine
    {
       INT32 rc    = SDB_OK ;
       INT32 flags = 0 ;
-      CHAR *pCollectionName = NULL ;
-      CHAR *pDeletorBuffer  = NULL ;
-      CHAR *pHintBuffer     = NULL ;
+      const CHAR *pCollectionName = NULL ;
+      const CHAR *pDeletorBuffer  = NULL ;
+      const CHAR *pHintBuffer     = NULL ;
 
-      rc = msgExtractDelete ( (CHAR *)msg , &flags, &pCollectionName,
+      rc = msgExtractDelete ( (const CHAR *)msg , &flags, &pCollectionName,
                               &pDeletorBuffer, &pHintBuffer ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract delete msg failed, rc: %d",
                    getSession()->sessionName(), rc ) ;
@@ -1008,7 +1014,7 @@ namespace engine
    {
       INT32 rc         = SDB_OK ;
       INT32 numToRead  = 0 ;
-      rtnContext *pContext = NULL ;
+      rtnContextPtr pContext ;
 
       rc = msgExtractGetMore ( (CHAR*)msg, &numToRead, &contextID ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract get more msg failed, "
@@ -1023,11 +1029,11 @@ namespace engine
       PD_LOG ( PDDEBUG, "Session[%s] GetMore: contextID:%lld\nnumToRead: %d",
                getSession()->sessionName(), contextID, numToRead ) ; */
 
-      pContext = _pRTNCB->contextFind ( contextID, eduCB() ) ;
-      if ( !pContext )
+      rc = _pRTNCB->contextFind ( contextID, pContext, eduCB() ) ;
+      if ( SDB_OK != rc )
       {
-         PD_LOG ( PDERROR, "Context %lld does not exist", contextID ) ;
-         rc = SDB_RTN_CONTEXT_NOTEXIST ;
+         PD_LOG ( PDERROR, "Context %lld does not exist, rc: %d", contextID,
+                  rc ) ;
          goto error ;
       }
 
@@ -1056,6 +1062,61 @@ namespace engine
       goto done ;
    }
 
+   INT32 _pmdDataProcessor::_onAdvanceReqMsg( MsgHeader * msg,
+                                              rtnContextBuf &buffObj,
+                                              INT64 &contextID,
+                                              BOOLEAN &needRollback )
+   {
+      INT32 rc         = SDB_OK ;
+      INT64 tmpContextID = -1 ;
+      const CHAR *pOption = NULL ;
+      const CHAR *pBackData = NULL ;
+      INT32 backDataSize = 0 ;
+
+      rc = msgExtractAdvanceMsg ( (const CHAR*)msg, &tmpContextID, &pOption,
+                                  &pBackData, &backDataSize ) ;
+      PD_RC_CHECK( rc, PDERROR, "Session[%s] extract advance msg failed, "
+                   "rc: %d", getSession()->sessionName(), rc ) ;
+
+      try
+      {
+         BSONObj option( pOption ) ;
+         // add last op info
+         MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
+                             "ContextID:%lld, BackDataSize:%d, "
+                             "Option:%s", contextID,
+                             backDataSize,
+                             option.toString(false,false,true).c_str() ) ;
+
+         /*
+         PD_LOG ( PDDEBUG, "Session[%s] Advance: contextID:%lld\n"
+                           "BackDataSize:%d\nOption: %s",
+                  getSession()->sessionName(), tmpContextID,
+                  backDataSize,
+                  arg.toString(false,false,true).c_str() ) ; */
+
+         needRollback = FALSE ; // don't rollback
+
+         rc = rtnAdvance( tmpContextID, option, pBackData, backDataSize,
+                          eduCB(), _pRTNCB ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _pmdDataProcessor::_onKillContextsReqMsg( MsgHeader *msg )
    {
       PD_LOG ( PDDEBUG, "session[%s] _onKillContextsReqMsg",
@@ -1063,9 +1124,10 @@ namespace engine
 
       INT32 rc = SDB_OK ;
       INT32 contextNum = 0 ;
-      INT64 *pContextIDs = NULL ;
+      const INT64 *pContextIDs = NULL ;
 
-      rc = msgExtractKillContexts ( (CHAR*)msg, &contextNum, &pContextIDs ) ;
+      rc = msgExtractKillContexts ( (const CHAR*)msg, &contextNum,
+                                    &pContextIDs ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract kill contexts msg failed, "
                    "rc: %d", getSession()->sessionName(), rc ) ;
 
@@ -1095,11 +1157,11 @@ namespace engine
                                        BOOLEAN &needRollback,
                                        BSONObjBuilder &builder )
    {
-      CHAR *sql = NULL ;
+      const CHAR *sql = NULL ;
       INT32 rc = SDB_OK ;
       SQL_CB *sqlcb = pmdGetKRCB()->getSqlCB() ;
 
-      rc = msgExtractSql( (CHAR*)msg, &sql ) ;
+      rc = msgExtractSql( (const CHAR*)msg, &sql ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract sql msg failed, rc: %d",
                    getSession()->sessionName(), rc ) ;
 
@@ -1146,6 +1208,12 @@ namespace engine
 
       if ( eduCB()->isTransaction() )
       {
+         PD_LOG_MSG_CHECK( SDB_OK == eduCB()->getTransRC(),
+                           eduCB()->getTransRC(), error, PDERROR,
+                           "Transaction(%s) must rollback due to error(%d)",
+                           dpsTransIDToString( eduCB()->getTransID() ).c_str(),
+                           eduCB()->getTransRC() ) ;
+
          // add last op info
          MON_SAVE_OP_DETAIL(
                eduCB()->getMonAppCB(), MSG_BS_TRANS_COMMIT_REQ,
@@ -1153,9 +1221,15 @@ namespace engine
                dpsTransIDToString( eduCB()->getTransID() ).c_str() ) ;
 
          rc = rtnTransCommit( eduCB(), dpsCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to commit transaction, rc: %d",
+                      rc ) ;
       }
 
+   done:
       return rc ;
+
+   error:
+      goto done ;
    }
 
    INT32 _pmdDataProcessor::_onTransRollbackMsg ( SDB_DPSCB *dpsCB )
@@ -1179,12 +1253,12 @@ namespace engine
    INT32 _pmdDataProcessor::_onAggrReqMsg( MsgHeader *msg, INT64 &contextID )
    {
       INT32 rc    = SDB_OK ;
-      CHAR *pObjs = NULL ;
+      const CHAR *pObjs = NULL ;
       INT32 count = 0 ;
       INT32 flags = 0 ;
-      CHAR *pCollectionName = NULL ;
+      const CHAR *pCollectionName = NULL ;
 
-      rc = msgExtractAggrRequest( (CHAR*)msg, &pCollectionName,
+      rc = msgExtractAggrRequest( (const CHAR*)msg, &pCollectionName,
                                   &pObjs, count, &flags ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extrace aggr msg failed, rc: %d",
                    getSession()->sessionName(), rc ) ;
@@ -1696,11 +1770,12 @@ namespace engine
       INT32 rc = SDB_OK ;
       INT32 opCode = msg->opCode ;
       coordResource *pResource = sdbGetResourceContainer()->getResource() ;
-      pmdRestorePendingChecker restorePendingChecker( msg ) ;
+      //pmdRestorePendingChecker restorePendingChecker( msg ) ;
 
       PD_TRACE_ENTRY ( SDB_PMDCOORDPROC_PROCOORDMSG ) ;
 
-      if ( !restorePendingChecker.isOpAllowed() )
+      //if ( !restorePendingChecker.isOpAllowed() )
+      if ( FALSE )
       {
          rc = SDB_RESTORE_IN_PROGRESS ;
          goto error ;
@@ -2001,16 +2076,18 @@ namespace engine
       coordOperator *pOpr = NULL ;
       pResource = sdbGetResourceContainer()->getResource() ;
 
-      CHAR *pCollectionName            = NULL ;
+      const CHAR *pCollectionName      = NULL ;
       INT32 flag                       = 0 ;
       INT64 numToSkip                  = 0 ;
       INT64 numToReturn                = 0 ;
-      CHAR *pQuery                     = NULL ;
-      CHAR *pSelector                  = NULL ;
-      CHAR *pOrderby                   = NULL ;
-      CHAR *pHint                      = NULL ;
+      const CHAR *pQuery               = NULL ;
+      const CHAR *pSelector            = NULL ;
+      const CHAR *pOrderby             = NULL ;
+      const CHAR *pHint                = NULL ;
 
-      rc = msgExtractQuery( (CHAR*)msg, &flag, &pCollectionName,
+      rtnContextPtr pContext ;
+
+      rc = msgExtractQuery( (const CHAR*)msg, &flag, &pCollectionName,
                             &numToSkip, &numToReturn, &pQuery, &pSelector,
                             &pOrderby, &pHint ) ;
       if ( rc )
@@ -2072,7 +2149,6 @@ namespace engine
       }
       else
       {
-         rtnContextBase *pContext = NULL ;
          coordQueryOperator opr ;
          rc = opr.init( pResource, eduCB() ) ;
          PD_RC_CHECK( rc, PDERROR, "Init operator[%s] failed, rc: %d",
@@ -2098,30 +2174,31 @@ namespace engine
                     opr.getName(), rc ) ;
             goto error ;
          }
+      }
 
-         // query with return data
-         if ( ( flag & FLG_QUERY_WITH_RETURNDATA ) &&
-              -1 != contextID &&
-              NULL != ( pContext = _pRTNCB->contextFind( contextID ) ) )
+      // query with return data
+      if ( ( flag & FLG_QUERY_WITH_RETURNDATA ) &&
+           -1 != contextID &&
+           SDB_OK == _pRTNCB->contextFind( contextID, pContext ) )
+      {
+         rc = pContext->getMore( -1, buffObj, eduCB() ) ;
+         if ( rc || pContext->eof() )
          {
-            rc = pContext->getMore( -1, buffObj, eduCB() ) ;
-            if ( rc || pContext->eof() )
-            {
-               _pRTNCB->contextDelete( contextID, eduCB() ) ;
-               contextID = -1 ;
-            }
+            _pRTNCB->contextDelete( contextID, eduCB() ) ;
+            contextID = -1 ;
+         }
 
-            if ( SDB_DMS_EOC == rc )
-            {
-               rc = SDB_OK ;
-            }
-            else if ( rc )
-            {
-               PD_LOG( PDERROR, "Failed to query with return data, "
-                       "rc: %d", rc ) ;
-            }
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_OK ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to query with return data, "
+                    "rc: %d", rc ) ;
          }
       }
+
    done:
       if ( pOpr )
       {
@@ -2328,14 +2405,14 @@ namespace engine
       case MSG_BS_QUERY_REQ:
          {
             // only the whitelisted commands are allowed
-            CHAR *pCollectionName = NULL ;
+            const CHAR *pCollectionName = NULL ;
             // ignore error, only want the collection name
-            msgExtractQuery ( (CHAR *)_msg, NULL, &pCollectionName,
+            msgExtractQuery ( (const CHAR *)_msg, NULL, &pCollectionName,
                               NULL, NULL, NULL, NULL, NULL, NULL ) ;
             if (rtnIsCommand(pCollectionName))
             {
                // trim the leading $ from the collection name
-               CHAR *pCmdName = pCollectionName + 1;
+               const CHAR *pCmdName = pCollectionName + 1;
                if (utilStrStartsWith(pCmdName, CMD_NAME_PREFIX_RESTORE) ||
                    utilStrStartsWith(pCmdName, CMD_NAME_PREFIX_GET) ||
                    utilStrStartsWith(pCmdName, CMD_NAME_PREFIX_LIST) ||

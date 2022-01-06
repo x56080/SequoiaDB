@@ -56,7 +56,7 @@ class TestCreateDropUsr12489(testlib.SdbTestBase):
          try:
             self.db.remove_user(username, password)
          except SDBBaseError as e:
-            self.assertEqual(-300, e.code, "teardown fail,errmsg:" + e.detail)			
+            self.assertEqual(-300, e.code, "teardown fail,errmsg:" + str(e))
 	
    # used to do connecting	
    def get_data_nodes(self):
@@ -75,7 +75,7 @@ class TestCreateDropUsr12489(testlib.SdbTestBase):
             svc_name = svc['Name']
             nodeAddrs.append({'host' : host_name , 'service': svc_name})
       except SDBBaseError as e:
-         self.fail("get groupAdrr fail: " + e.detail)
+         self.fail("get groupAdrr fail: " + str(e))
 			
       return nodeAddrs		
 
@@ -87,20 +87,20 @@ class TestCreateDropUsr12489(testlib.SdbTestBase):
       try:
          self.cl.bulk_insert(flag, doc)
       except SDBBaseError as e:
-         self.fail('insert fail: ' + e.detail)
+         self.fail('insert fail: ' + str(e))
 
    def check_create_user(self,username,password):
       try:
          self.db.create_user(username, password)
       except SDBBaseError as e:
          if(-295 != e.code):
-            self.fail('create user fail: ' + e.detail)
+            self.fail('create user fail: ' + str(e))
 
    def check_reconnect_db(self,username,password):
       try:
          self.db = client(self.config.host_name, self.config.service, username, password)
       except SDBBaseError as e:
-         self.fail('reconnect with username fail: ' + e.detail)	
+         self.fail('reconnect with username fail: ' + str(e))
 	
    # seqDB-12501, check connect(username,password)	
    def check_connect_catalog(self,username,password):
@@ -115,7 +115,7 @@ class TestCreateDropUsr12489(testlib.SdbTestBase):
 			
          new_db.connect(hostname,svcname,user = username,password = password)
       except SDBBaseError as e:
-         self.fail("connect to catalog fail: " + e.detail)
+         self.fail("connect to catalog fail: " + str(e))
       finally:
          new_db.disconnect()	
 
@@ -134,7 +134,7 @@ class TestCreateDropUsr12489(testlib.SdbTestBase):
 				# check data result
             self.check_connect_result(new_db)
       except SDBBaseError as e:
-         self.fail("connect to node fail: " + e.detail)
+         self.fail("connect to node fail: " + str(e))
       finally:
          new_db.disconnect()	
 			
@@ -146,11 +146,11 @@ class TestCreateDropUsr12489(testlib.SdbTestBase):
          actCount = new_cl.get_count()
          self.assertEqual(insert_nums, actCount)
       except SDBBaseError as e:
-         self.fail('check node fail: ' + e.detail)		
+         self.fail('check node fail: ' + str(e))
 			
    def check_drop_user(self,username,password):
       try:
          self.db.remove_user(username, password)
          self.fail('NEED DROP USER FAIL')
       except SDBBaseError as e:
-          self.assertEqual(-300, e.code, "error msg: " + e.detail)
+          self.assertEqual(-300, e.code, "error msg: " + str(e))

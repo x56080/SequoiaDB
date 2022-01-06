@@ -145,6 +145,35 @@ namespace engine
                _cost < OSS_MAX( _reqTimeError, _rspTimeError ) ) ;
    }
 
+   BOOLEAN _stpSyncRecord::isOffsetInTimeError( FLOAT64 scale,
+                                                FLOAT64 &ratio ) const
+   {
+      SDB_ASSERT( scale > 0.0, "scale is invalid" ) ;
+
+      ratio = 1.0 ;
+
+      if ( 0 != _offset )
+      {
+         FLOAT64 scaledTimeError = (FLOAT64)_rspTimeError * scale ;
+
+         ratio = scaledTimeError / _offset ;
+         if ( ratio < 0.0 )
+         {
+            ratio *= -1.0 ;
+         }
+
+         // if offset < -1 * time error * scale, or offset > time error * scale
+         // it is not in time error range
+         if ( (FLOAT64)_offset > scaledTimeError ||
+              (FLOAT64)_offset < -1.0 * scaledTimeError )
+         {
+            return FALSE ;
+         }
+      }
+
+      return TRUE ;
+   }
+
    ossPoolString _stpSyncRecord::toString() const
    {
       StringBuilder ss ;

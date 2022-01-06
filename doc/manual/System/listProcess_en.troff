@@ -137,42 +137,46 @@ For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 List the information of processes
+.RS 2
 .IP
 .nf
 \f[C]
->\ System.listProcess()
+> System.listProcess()
 {
-\ \ "pid":\ "30571",
-\ \ "cmd":\ "sequoiadb(50000)\ S"
+  "pid": "30571",
+  "cmd": "sequoiadb(50000) S"
 }
 {
-\ \ "pid":\ "30834",
-\ \ "cmd":\ "bin/sdb"
+  "pid": "30834",
+  "cmd": "bin/sdb"
 }
 {
-\ \ "pid":\ "30876",
-\ \ "cmd":\ "/usr/sbin/rsyslogd\ \-n"
+  "pid": "30876",
+  "cmd": "/usr/sbin/rsyslogd \-n"
 }
 \&...
 \f[]
 .fi
+.RE
 .IP \[bu] 2
-Filter the results:
+Filter the results
+.RS 2
 .IP
 .nf
 \f[C]
->\ System.listProcess(\ {\ detail:\ true\ },\ {\ "user":\ "sdbadmin"\ }\ )
+> System.listProcess( { detail: true }, { "user": "sdbadmin" } )
 {
-\ \ "user":\ "sdbadmin",
-\ \ "pid":\ "20630",
-\ \ "status":\ "S",
-\ \ "cmd":\ "sleep\ 1"
+  "user": "sdbadmin",
+  "pid": "20630",
+  "status": "S",
+  "cmd": "sleep 1"
 }
 {
-\ \ "user":\ "sdbadmin",
-\ \ "pid":\ "25681",
-\ \ "status":\ "Sl",
-\ \ "cmd":\ "sdbom(11780)"
+  "user": "sdbadmin",
+  "pid": "25681",
+  "status": "Sl",
+  "cmd": "sdbom(11780)"
 }
 \f[]
 .fi
+.RE

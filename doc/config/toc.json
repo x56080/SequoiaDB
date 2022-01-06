@@ -107,43 +107,25 @@
                "dir": "Relational_Instance",
                "cn": "关系型数据库实例",
                "en": "Relational Instance",
-               "top": true,
                "contents": [
                   {
                      "id": 1521595228,
                      "dir": "MySQL_Instance",
-                     "cn": "MySQL实例",
+                     "cn": "MySQL 实例",
                      "en": "MySQL Instance",
+                     "top": true,
                      "contents": [
                         {
-                           "id": 1574045901,
-                           "dir": "Operation",
-                           "cn": "操作",
-                           "en": "Operation",
+                           "id": 1628062061,
+                           "dir": "Installation",
+                           "cn": "安装",
+                           "en": "Installation",
                            "contents": [
                               {
                                  "id": 1521595270,
                                  "file": "install_deploy",
                                  "cn": "安装部署",
                                  "en": "Install and Deploy"
-                              },  
-                              {
-                                 "id": 1521595283,
-                                 "file": "connection",
-                                 "cn": "使用",
-                                 "en": "Connection"
-                              },
-                              {
-                                 "id": 1566551297,
-                                 "file": "config",
-                                 "cn": "配置",
-                                 "en": "Configuration"
-                              },
-                              {
-                                 "id": 1572505575,
-                                 "file": "ha",
-                                 "cn": "高可用",
-                                 "en": "High Availability"
                               },
                               {
                                  "id": 1608537490,
@@ -152,10 +134,36 @@
                                  "en": "Instance Group"
                               },
                               {
-                                 "id": 1595583537,
-                                 "file": "sdb_mysql_ctl",
-                                 "cn": "实例管理工具",
-                                 "en": "Instance management tool"
+                                 "id": 1572505575,
+                                 "file": "ha",
+                                 "cn": "元数据同步工具",
+                                 "en": "High Availability"
+                              }
+                           ]
+                        },
+                        {
+                           "id": 1574045901,
+                           "dir": "Operation",
+                           "cn": "操作",
+                           "en": "Operation",
+                           "contents": [ 
+                              {
+                                 "id": 1521595283,
+                                 "file": "connection",
+                                 "cn": "连接",
+                                 "en": "Connection"
+                              },
+                              {
+                                 "id": 1628062041,
+                                 "file": "database_and_table_operation",
+                                 "cn": "库与表操作",
+                                 "en": "Database and Table Operation"
+                              },
+                              {
+                                 "id": 1628062048,
+                                 "file": "CRUD_operation",
+                                 "cn": "CRUD 操作",
+                                 "en": "CRUD Operation"
                               },
                               {
                                  "id": 1589347299,
@@ -164,22 +172,30 @@
                                  "en": "Partition"
                               },
                               {
-                                 "id": 1574045910,
-                                 "file": "data_type",
-                                 "cn": "数据类型映射表",
-                                 "en": "data type map table"
+                                 "id": 1619750158,
+                                 "file": "federal_query",
+                                 "cn": "联邦查询",
+                                 "en": "federal query"
+                              }
+                           ]
+                        },
+                        {
+                           "id": 1628060723,
+                           "dir": "Maintainance",
+                           "cn": "运维",
+                           "en": "Maintainance",
+                           "contents": [
+                              {
+                                 "id": 1566551297,
+                                 "file": "config",
+                                 "cn": "配置",
+                                 "en": "Configuration"
                               },
                               {
-                                 "id": 1521595284,
-                                 "file": "attention",
-                                 "cn": "注意事项",
-                                 "en": "attention"
-                              },
-                              {
-                                 "id": 1555382544,
-                                 "file": "error_code",
-                                 "cn": "错误码",
-                                 "en": "Error Code"
+                                 "id": 1595583537,
+                                 "file": "sdb_mysql_ctl",
+                                 "cn": "实例管理",
+                                 "en": "Instance management tool"
                               },
                               {
                                  "id": 1556198260,
@@ -198,42 +214,61 @@
                         {
                            "id": 1595583528,
                            "dir": "Development",
-                           "cn": "开发",
+                           "cn": "驱动",
                            "en": "Development",
                            "contents": [
                               {
                                  "id": 1603248345,
                                  "file": "engine_download",
-                                 "cn": "MySQL驱动下载",
+                                 "cn": "MySQL 驱动下载",
                                  "en": "Engine Download"
                               },
                               {
                                  "id": 1603248355,
                                  "file": "JDBC",
-                                 "cn": "JDBC驱动",
+                                 "cn": "JDBC 驱动",
                                  "en": "JDBC Engine"
                               },
                               {
                                  "id": 1603248361,
                                  "file": "ODBC",
-                                 "cn": "ODBC驱动",
+                                 "cn": "ODBC 驱动",
                                  "en": "ODBC Engine"
                               }
                            ]
+                        },
+                        {
+                           "id": 1574045910,
+                           "file": "data_type",
+                           "cn": "数据类型映射表",
+                           "en": "data type map table"
+                        },
+                        {
+                           "id": 1555382544,
+                           "file": "error_code",
+                           "cn": "错误码",
+                           "en": "Error Code"
+                        },
+                        {
+                           "id": 1521595284,
+                           "file": "attention",
+                           "cn": "注意事项",
+                           "en": "attention"
                         }
                      ]
                   },
                   {
                      "id": 1575355389,
                      "dir": "MariaDB_Instance",
-                     "cn": "MariaDB实例",
+                     "cn": "MariaDB 实例",
                      "en": "MariaDB Instance",
+                     "top": true,
                      "contents": [
                         {
-                           "id": 1575355401,
-                           "dir": "Operation",
-                           "cn": "操作",
-                           "en": "Operation",
+                           "id": 1630121854,
+                           "dir": "Installation",
+                           "cn": "安装",
+                           "en": "Installation",
                            "contents": [
                               {
                                  "id": 1575355415,
@@ -242,34 +277,48 @@
                                  "en": "Install and Deploy"
                               },
                               {
-                                 "id": 1921595283,
-                                 "file": "connection",
-                                 "cn": "使用",
-                                 "en": "Connection"
-                              },
-                              {
-                                 "id": 1966551297,
-                                 "file": "config",
-                                 "cn": "配置",
-                                 "en": "Configuration"
-                              },
-                              {
-                                 "id": 1972505575,
-                                 "file": "ha",
-                                 "cn": "高可用",
-                                 "en": "High Availability"
-                              },
-                              {
                                  "id": 1608537553,
                                  "file": "instance_group",
                                  "cn": "实例组",
                                  "en": "Instance Group"
                               },
                               {
-                                 "id": 1595583874,
-                                 "file": "sdb_maria_ctl",
-                                 "cn": "实例管理工具",
-                                 "en": "Instance management tool"
+                                 "id": 1972505575,
+                                 "file": "ha",
+                                 "cn": "元数据同步工具",
+                                 "en": "High Availability"
+                              }
+                           ]
+                        },
+                        {
+                           "id": 1575355401,
+                           "dir": "Operation",
+                           "cn": "操作",
+                           "en": "Operation",
+                           "contents": [
+                              {
+                                 "id": 1921595283,
+                                 "file": "connection",
+                                 "cn": "连接",
+                                 "en": "Connection"
+                              },
+                              {
+                                 "id": 1630121584,
+                                 "file": "database_and_table_operation",
+                                 "cn": "库与表操作",
+                                 "en": "Database and Table Operation"
+                              },
+                              {
+                                 "id": 1630121579,
+                                 "file": "CRUD_operation",
+                                 "cn": "CRUD 操作",
+                                 "en": "CRUD Operation"
+                              },
+                              {
+                                 "id": 1627883003,
+                                 "file": "partition",
+                                 "cn": "分区",
+                                 "en": "Partition"
                               },
                               {
                                  "id": 1608019035,
@@ -278,22 +327,30 @@
                                  "en": "Sequence"
                               },
                               {
-                                 "id": 1974045910,
-                                 "file": "data_type",
-                                 "cn": "数据类型映射表",
-                                 "en": "data type map table"
+                                 "id": 1619750356,
+                                 "file": "federal_query",
+                                 "cn": "联邦查询",
+                                 "en": "federal query"
+                              }
+                           ]
+                        },
+                        {
+                           "id": 1630121565,
+                           "dir": "Maintainance",
+                           "cn": "运维",
+                           "en": "Maintainance",
+                           "contents": [
+                              {
+                                 "id": 1966551297,
+                                 "file": "config",
+                                 "cn": "配置",
+                                 "en": "Configuration"
                               },
                               {
-                                 "id": 1921595284,
-                                 "file": "attention",
-                                 "cn": "注意事项",
-                                 "en": "attention"
-                              },
-                              {
-                                 "id": 1955382544,
-                                 "file": "error_code",
-                                 "cn": "错误码",
-                                 "en": "Error Code"
+                                 "id": 1595583874,
+                                 "file": "sdb_maria_ctl",
+                                 "cn": "实例管理",
+                                 "en": "Instance management tool"
                               },
                               {
                                  "id": 1575355422,
@@ -307,16 +364,41 @@
                                  "cn": "卸载",
                                  "en": "Uninstall"
                               }
-                           ]  
+                           ]
+                        },
+                        {
+                           "id": 1974045910,
+                           "file": "data_type",
+                           "cn": "数据类型映射表",
+                           "en": "data type map table"
+                        },
+                        {
+                           "id": 1955382544,
+                           "file": "error_code",
+                           "cn": "错误码",
+                           "en": "Error Code"
+                        },
+                        {
+                           "id": 1921595284,
+                           "file": "attention",
+                           "cn": "注意事项",
+                           "en": "attention"
                         }
                      ]
                   },
                   {
                      "id": 1519627277,
                      "dir": "PostgreSQL_Instance",
-                     "cn": "PostgreSQL实例",
+                     "cn": "PostgreSQL 实例",
                      "en": "PostgreSQL Instance",
+                     "top": true,
                      "contents": [
+                        {
+                           "id": 1519628019,
+                           "file": "install_deploy",
+                           "cn": "安装部署",
+                           "en": "Install and Deploy"
+                        },
                         {
                            "id": 1519627742,
                            "dir": "Operation",
@@ -324,22 +406,48 @@
                            "en": "Operation",
                            "contents": [
                               {
-                                 "id": 1519628019,
-                                 "file": "install_deploy",
-                                 "cn": "安装部署",
-                                 "en": "Install and Deploy"
-                              },
-                              {
                                  "id": 1519628020,
                                  "file": "connection",
                                  "cn": "连接",
                                  "en": "Connection"
                               },
                               {
-                                 "id": 1519627744,
-                                 "file": "SQL_to_Sequoiadb_mapping",
-                                 "cn": "SQL实例与JSON对象映射表",
-                                 "en": "Mapping Table from SQL to JSON"
+                                 "id": 1630572010,
+                                 "file": "database_and_table_operation",
+                                 "cn": "库与表操作",
+                                 "en": "Database and Table Operation"
+                              },
+                              {
+                                 "id": 1630572018,
+                                 "file": "CRUD_operation",
+                                 "cn": "CRUD 操作",
+                                 "en": "CRUD Operation"
+                              }
+                           ]
+                        },
+                        {
+                           "id": 1630572038,
+                           "dir": "Maintainance",
+                           "cn": "运维",
+                           "en": "Maintainance",
+                           "contents": [
+                              {
+                                 "id": 1630572045,
+                                 "file": "config",
+                                 "cn": "配置",
+                                 "en": "Config"
+                              },
+                              {
+                                 "id": 1634111005,
+                                 "file": "sdb_pg_ctl",
+                                 "cn": "实例管理",
+                                 "en": "Instance Management"
+                              },
+                              {
+                                 "id": 1630572050,
+                                 "file": "upgrade",
+                                 "cn": "升级",
+                                 "en": "Upgrade"
                               },
                               {
                                  "id": 1557737448,
@@ -352,49 +460,56 @@
                         {
                            "id": 1519628021,
                            "dir": "Development",
-                           "cn": "开发",
+                           "cn": "驱动",
                            "en": "Development",
                            "contents": [
                               {
                                  "id": 1603248529,
                                  "file": "engine_download",
-                                 "cn": "PostgreSQL驱动下载",
+                                 "cn": "PostgreSQL 驱动下载",
                                  "en": "Engine Download"
                               },
                               {
                                  "id": 1603248544,
                                  "file": "JDBC",
-                                 "cn": "JDBC驱动",
+                                 "cn": "JDBC 驱动",
                                  "en": "JDBC Engine"
                               },
                               {
                                  "id": 1603248551,
                                  "file": "ODBC",
-                                 "cn": "ODBC驱动",
+                                 "cn": "ODBC 驱动",
                                  "en": "ODBC Engine"
                               }
                            ]
+                        },
+                        {
+                           "id": 1630572070,
+                           "file": "data_type",
+                           "cn": "数据类型映射表",
+                           "en": "Data Type"
                         }
                      ]
                   },
                   {
                      "id": 1432190710,
                      "dir": "SparkSQL_Instance",
-                     "cn": "Spark实例",
+                     "cn": "Spark 实例",
                      "en": "Spark Instance",
+                     "top": true,
                      "contents": [
+                        {
+                            "id": 1432190711,
+                            "file": "setup",
+                            "cn": "安装部署",
+                            "en": "Install and Deploy"
+                        },
                         {
                            "id": 1603248417,
                            "dir": "Operation",
                            "cn": "操作",
                            "en": "Operation",
                            "contents": [
-                              {
-                                 "id": 1432190711,
-                                 "file": "setup",
-                                 "cn": "安装部署",
-                                 "en": "Install and Deploy"
-                              },
                               {
                                  "id": 1432190587,
                                  "file": "connection",
@@ -428,6 +543,12 @@
                                  "en": "JDBC Engine"
                               }
                            ]
+                        },
+                        {
+                            "id": 1630996189,
+                            "file": "data_type",
+                            "cn": "数据类型映射表",
+                            "en": "Data Type"
                         }
                      ]
                   }
@@ -436,76 +557,44 @@
             {
                "id": 1604543919,
                "dir": "Json_Instance",
-               "cn": "JSON实例",
+               "cn": "JSON 实例",
                "en": "Json Instance",
                "top": true,
                "contents": [
                   {
-                     "id": 1604543929,
-                     "dir": "Operation",
-                     "cn": "操作",
-                     "en": "Operation",
-                     "contents": [
-                        {
-                           "id": 1604543936,
-                           "file": "setup",
-                           "cn": "安装部署",
-                           "en": "Setup"
-                        },
-                        {
-                           "id": 1604543942,
-                           "file": "usage",
-                           "cn": "使用",
-                           "en": "Usage"
-                        },
-                        {
-                           "id": 1604543949,
-                           "file": "errorcode",
-                           "cn": "JSON实例错误码",
-                           "en": "Error Code"
-                        },
-                        {
-                           "id": 1604543955,
-                           "file": "warning",
-                           "cn": "注意事项",
-                           "en": "Warning"
-                        }
-                     ]
+                     "id": 1604543936,
+                     "file": "setup",
+                     "cn": "安装部署",
+                     "en": "Setup"
                   },
                   {
                      "id": 1432190717,
                      "dir": "Development",
-                     "cn": "开发",
+                     "cn": "驱动",
                      "en": "Development",
                      "contents": [
                         {
                            "id": 1604545413,
                            "file": "JavaScript",
-                           "cn": "JSON实例开发",
-                           "en": "Java Script"
-                        },
-                        {
-                           "id": 1604545419,
-                           "file": "SDK",
-                           "cn": "SDK驱动",
-                           "en": "SDK Driver"
+                           "cn": "JavaScript 驱动",
+                           "en": "JavaScript Driver"
                         },
                         {
                            "id": 1432190718,
                            "dir": "c_driver",
-                           "cn": "C驱动",
+                           "cn": "C 驱动",
                            "en": "C Driver",
                            "contents": [
                               {
                                  "id": 1432190720,
                                  "file": "c_environment_to_build",
-                                 "cn": "C开发环境搭建",
+                                 "cn": "C 开发环境搭建",
                                  "en": "C Environment to Build"
                               },
                               {
                                  "id": 1432190721,
                                  "file": "c_development_foundation",
-                                 "cn": "C开发基础",
+                                 "cn": "C 开发基础",
                                  "en": "C Development Foundation"
                               },
                               {
@@ -531,19 +620,19 @@
                         {
                            "id": 1432190724,
                            "dir": "cpp_driver",
-                           "cn": "C++驱动",
+                           "cn": "C++ 驱动",
                            "en": "C++ Driver",
                            "contents": [
                               {
                                  "id": 1432190726,
                                  "file": "cpp_environment_to_build",
-                                 "cn": "C++开发环境搭建",
+                                 "cn": "C++ 开发环境搭建",
                                  "en": "C++ Environment to Build"
                               },
                               {
                                  "id": 1432190727,
                                  "file": "cpp_development_foundation",
-                                 "cn": "C++开发基础",
+                                 "cn": "C++ 开发基础",
                                  "en": "C++ Development Foundation"
                               },
                               {
@@ -554,8 +643,8 @@
                               },
                               {
                                  "id": 1474439999,
-                                 "file": "cpp_sdbDataSource",
-                                 "cn": "C++连接池",
+                                 "file": "cpp_sdbConnectionPool",
+                                 "cn": "C++ 连接池",
                                  "en": "C++ connection pool"
                               },
                               {
@@ -575,19 +664,19 @@
                         {
                            "id": 1432190730,
                            "dir": "csharp_driver",
-                           "cn": "CSharp驱动",
-                           "en": "CSharp Driver",
+                           "cn": "C# 驱动",
+                           "en": "C# Driver",
                            "contents": [
                               {
                                  "id": 1432190732,
                                  "file": "csharp_environment_to_build",
-                                 "cn": "CSharp开发环境搭建",
+                                 "cn": "CSharp 开发环境搭建",
                                  "en": "CSharp Environment to Build"
                               },
                               {
                                  "id": 1432190733,
                                  "file": "csharp_development_foundation",
-                                 "cn": "CSharp开发基础",
+                                 "cn": "CSharp 开发基础",
                                  "en": "CSharp Development Foundation"
                               },
                               {
@@ -607,32 +696,32 @@
                         {
                            "id": 1432190736,
                            "dir": "java_driver",
-                           "cn": "Java开发驱动",
+                           "cn": "Java 驱动",
                            "en": "Java Driver",
                            "contents": [
                               {
                                  "id": 1432190738,
                                  "file": "java_environment_to_build",
-                                 "cn": "Java开发环境搭建",
+                                 "cn": "Java 开发环境搭建",
                                  "en": "Java Environment to Build"
                               },
                               {
                                  "id": 1432190739,
                                  "file": "java_development_foundation",
-                                 "cn": "Java开发基础",
+                                 "cn": "Java 开发基础",
                                  "en": "Java Development Foundation"
                               },
                               {
                                  "id": 1432190585,
                                  "file": "java_bson_usage",
-                                 "cn": "Java BSON使用",
+                                 "cn": "Java BSON 使用",
                                  "en": "Java BSON Usage"
                               },
                               {
                                  "id": 1432190584,
                                  "file": "java_datasource_introduction",
-                                 "cn": "Java Datasource介绍",
-                                 "en": "Java Datasource Introduction"
+                                 "cn": "Java 连接池",
+                                 "en": "Java Connection Pool"
                               },
                               {
                                  "id": 1432190740,
@@ -651,19 +740,19 @@
                         {
                            "id": 1432190742,
                            "dir": "php_driver",
-                           "cn": "PHP驱动",
+                           "cn": "PHP 驱动",
                            "en": "PHP Driver",
                            "contents": [
                               {
                                  "id": 1432190744,
                                  "file": "phpenvironment",
-                                 "cn": "PHP开发环境搭建",
+                                 "cn": "PHP 开发环境搭建",
                                  "en": "PHP Environment to Build"
                               },
                               {
                                  "id": 1432190745,
                                  "file": "php_development_foundation",
-                                 "cn": "PHP开发基础",
+                                 "cn": "PHP 开发基础",
                                  "en": "PHP Development Foundation"
                               },
                               {
@@ -683,25 +772,25 @@
                         {
                            "id": 1432190748,
                            "dir": "python_driver",
-                           "cn": "Python驱动",
+                           "cn": "Python 驱动",
                            "en": "Python Driver",
                            "contents": [
                               {
                                  "id": 1432190750,
                                  "file": "python_environment_to_build",
-                                 "cn": "Python开发环境搭建",
+                                 "cn": "Python 开发环境搭建",
                                  "en": "Python Environment to Build"
                               },
                               {
                                  "id": 1432190751,
                                  "file": "python_development_foundation",
-                                 "cn": "Python开发基础",
+                                 "cn": "Python 开发基础",
                                  "en": "Python Development Foundation"
                               },
                               {
                                  "id": 1562911641,
                                  "file": "python_bson_usage",
-                                 "cn": "Python BSON使用",
+                                 "cn": "Python BSON 使用",
                                  "en": "Python bson usage"
                               },
                               {
@@ -721,18 +810,30 @@
                         {
                            "id": 1432190760,
                            "dir": "rest",
-                           "cn": "REST",
+                           "cn": "REST 驱动",
                            "en": "REST Interface",
                            "contents": [
                               {
                                  "id": 1432190762,
                                  "file": "rest_interface",
-                                 "cn": "REST接口",
+                                 "cn": "REST 接口",
                                  "en": "REST Interface"
                               }
                            ]
                         }
                      ]
+                  },
+                  {
+                     "id": 1604543949,
+                     "file": "errorcode",
+                     "cn": "错误码",
+                     "en": "Error Code"
+                  },
+                  {
+                     "id": 1604543955,
+                     "file": "warning",
+                     "cn": "注意事项",
+                     "en": "Warning"
                   }
                ]
             },
@@ -808,82 +909,8 @@
                           ]
                        }
                      ]
-                  },
-                  {
-                    "id": 1525955869,
-                    "dir": "File_Instance",
-                    "cn": "Posix 文件系统实例",
-                    "en": "Posix Instance",
-                    "contents": [
-                      {
-                         "id": 1525955905,
-                         "file": "install_deploy",
-                         "cn": "安装部署",
-                         "en": "Install and Deploy"
-                      },
-                      {
-                         "id": 1525956050,
-                         "dir": "Operation",
-                         "cn": "使用",
-                         "en": "Operation",
-                         "contents": [
-                           {
-                           "id": 1525956060,
-                           "file": "mount",
-                           "cn": "挂载目录",
-                           "en": "Mount"
-                           },
-                           {
-                           "id": 1525956070,
-                           "file": "unmount",
-                           "cn": "卸载目录",
-                           "en": "Unmount"
-                           }
-                        ]
-                      }, 
-                      {
-                         "id": 1525956080,
-                         "dir": "Management",
-                         "cn": "管理",
-                         "en": "Management",
-                         "contents": [
-                           {
-                           "id": 1525956090,
-                           "file": "sequoiafsconfig",
-                           "cn": "配置管理",
-                           "en": "ConfigManagement"
-                           },
-                           {
-                           "id": 1525956100,
-                           "file": "sequoiafsbash",
-                           "cn": "SequoiaFS 启停",
-                           "en": "Bash"
-                           }   
-                         ]
-                      },
-                      {
-                         "id": 1525956110,
-                         "dir": "Development",
-                         "cn": "开发",
-                         "en": "Development",
-                         "contents": [
-                           {
-                           "id": 1525956120,
-                           "file": "datadefine",
-                           "cn": "数据设计",
-                           "en": "Datadefine"
-                           },
-                           {
-                           "id": 1525956130,
-                           "file": "fileapi",
-                           "cn": "API",
-                           "en": "API"
-                           }
-                        ]
-                     }
-                  ]
-                }
-              ]
+                  }
+               ]
             }
          ]
       },
@@ -1027,6 +1054,12 @@
                      "en": "Domain"
                   },
                   {
+                     "id": 1610373324,
+                     "file": "datasource",
+                     "cn": "数据源",
+                     "en": "Data Source"
+                  },
+                  {
                      "id": 1432190590,
                      "dir": "Transactions",
                      "cn": "分布式事务",
@@ -1117,6 +1150,12 @@
                            "file": "sequence",
                            "cn": "序列",
                            "en": "Sequence"
+                        },
+                        {
+                           "id": 1634711899,
+                           "file": "instance",
+                           "cn": "实例",
+                           "en": "Instance"
                         }
                      ]
                   },
@@ -1159,20 +1198,6 @@
                      "en": "Compression Encryption"
                   },
                   {
-                    "id": 1580978421,
-                    "dir": "Foreign_Protocol",
-                    "cn": "外部数据库协议兼容",
-                    "en": "foreign database protocol compatible",
-                    "contents": [
-                      {
-                         "id": 1580978422,
-                         "file": "mongodb_protocol",
-                         "cn": "MongoDB协议兼容",
-                         "en": "MongoDB protocol compatible"
-                      }
-                    ]
-                  },
-                  {
                      "id": 1589351530,
                      "dir": "Stp",
                      "cn": "时间序列服务",
@@ -1213,6 +1238,12 @@
                                  "file": "stpq",
                                  "cn": "stpq",
                                  "en": "stpq"
+                              },
+                              {
+                                 "id": 1589351545,
+                                 "file": "stplist",
+                                 "cn": "stplist",
+                                 "en": "stplist"
                               }
                            ]
                         }
@@ -1221,9 +1252,30 @@
                ]
             },
             {
+               "id": 1627438310,
+               "dir": "Operation",
+               "cn": "操作指南",
+               "en": "Operation",
+               "top": true,
+               "contents":[
+                  {
+                     "id": 1627442024,
+                     "file": "collectionspace_operation",
+                     "cn": "集合空间操作",
+                     "en": "CollectionSpace Operation"
+                  },
+                  {
+                     "id": 1627442029,
+                     "file": "collection_operation",
+                     "cn": "集合操作",
+                     "en": "Collection Operation"
+                  }
+               ]
+            },
+            {
                "id": 1601184872,
                "dir": "Maintainance",
-               "cn": "运维指南",
+               "cn": "运维管理",
                "en": "Maintainance",
                "top": true,
                "contents":[
@@ -1283,6 +1335,64 @@
                            "cn": "监控节点状态",
                            "en": "Monitor Node Status"
                         }
+                     ]
+                  },
+                  {
+                    "id": 1577931587,
+                    "dir": "Database_Configuration",
+                    "cn": "数据库配置",
+                    "en": "Database Configuration",
+                    "contents": [
+                      {
+                        "id": 1432190643,
+                        "file": "parameter_instructions",
+                        "cn": "参数说明",
+                        "en": "Parameter Instructions"
+                      },
+                      {
+                        "id": 1632902617,
+                        "file": "configuration_parameters",
+                        "cn": "参数配置",
+                        "en": "Configuration Parameters"
+                      },
+                      {
+                        "id": 1432191411,
+                        "dir": "Special_Configuration_Modify",
+                        "cn": "特殊配置项修改",
+                        "en": "Special Configuration Modify",
+                        "contents": [
+                            {
+                              "id": 1432191413,
+                              "file": "dbpath_modify",
+                              "cn": "dbpath",
+                              "en": "dbpath_modify"
+                            },
+                            {
+                              "id": 1432191414,
+                              "file": "indexpath_modify",
+                              "cn": "indexpath",
+                              "en": "indexpath_modify"
+                            },
+                            {
+                              "id": 1432191415,
+                              "file": "lobpath_modify",
+                              "cn": "lobpath",
+                              "en": "lobpath_modify"
+                            },
+                            {
+                              "id": 1432191416,
+                              "file": "lobmetapath_modify",
+                              "cn": "lobmetapath",
+                              "en": "lobmetapath_modify"
+                            },
+                            {
+                              "id": 1432190652,
+                              "file": "log_synchronization",
+                              "cn": "logfilesz/logfilenum",
+                              "en": "Log Synchronization"
+                            }
+                          ]
+                       }
                      ]
                   },
                   {
@@ -1386,6 +1496,12 @@
                            "en": "Command Line Tool"
                         },
                         {
+                           "id": 1613633034,
+                           "file": "sdblist",
+                           "cn": "本地集群检查工具",
+                           "en": "Local Cluster Check Tool"
+                        },
+                        {
                            "id": 1479195620,
                            "file": "sdbimprt",
                            "cn": "数据导入工具",
@@ -1450,6 +1566,12 @@
                            "file": "split_merge",
                            "cn": "容灾切换合并工具",
                            "en": "Split Merge Tool"
+                        },
+                        {
+                           "id": 1599730476,
+                           "file": "upgrade_index",
+                           "cn": "索引升级工具",
+                           "en": "Upgrade Index Tool"
                         }
                      ]
                   },
@@ -1550,6 +1672,12 @@
                      ]
                   },
                   {
+                     "id": 1617245375,
+                     "file": "build_datasource",
+                     "cn": "搭建数据源",
+                     "en": "Build DataSource"
+                  },
+                  {
                      "id": 1432190663,
                      "dir": "Backup_Recovery",
                      "cn": "备份恢复",
@@ -1563,15 +1691,27 @@
                         },
                         {
                            "id": 1432190664,
-                           "file": "regular_bar",
-                           "cn": "数据备份恢复",
-                           "en": "Regular Bar"
+                           "file": "data_backup",
+                           "cn": "数据备份",
+                           "en": "Data Backup"
                         },
                         {
                            "id": 1477552448,
                            "file": "log_archive",
                            "cn": "日志归档",
                            "en": "Log Archive"
+                        },
+                        {
+                           "id": 1432190666,
+                           "file": "data_restore",
+                           "cn": "数据恢复",
+                           "en": "Data Restore"
+                        },
+                        {
+                           "id": 1617112698,
+                           "file": "point_in_time_restore",
+                           "cn": "时间点恢复",
+                           "en": "Point In Time Restore"
                         }
                      ]
                   },
@@ -1606,6 +1746,12 @@
                            "en": "Data Export"
                         }
                      ]
+                  },
+                  {
+                     "id": 1629289093,
+                     "file": "deadlock_detector",
+                     "cn": "死锁检测",
+                     "en": "Deadlock detection"
                   },
                   {
                      "id": 1610960736,
@@ -1730,7 +1876,7 @@
       {
          "id": 1483942793,
          "dir": "SAC",
-         "cn": "SAC管控中心",
+         "cn": "SAC 管控中心",
          "en": "SAC",
          "contents": [
             {
@@ -1790,14 +1936,20 @@
                         {
                            "id": 1534834770,
                            "file": "deployment_mysql",
-                           "cn": "部署MySQL实例",
+                           "cn": "部署 MySQL 实例",
                            "en": "Deployment MySQL"
                         },
                         {
                            "id": 1501736518,
                            "file": "deployment_postgresql",
-                           "cn": "部署PostgreSQL实例",
+                           "cn": "部署 PostgreSQL 实例",
                            "en": "Deployment PostgreSQL"
+                        },
+                        {
+                           "id": 1632992351,
+                           "file": "deployment_mariadb",
+                           "cn": "部署 MariaDB 实例",
+                           "en": "Deployment MariaDB"
                         }
                      ]
                   }
@@ -1837,9 +1989,15 @@
                      "contents": [
                         {
                            "id": 1509430534,
-                           "file": "basic_operation",
-                           "cn": "基本操作",
-                           "en": "Basic Operation"
+                           "file": "manage_module",
+                           "cn": "管理存储集群",
+                           "en": "Manage Module"
+                        },
+                        {
+                           "id": 1548829161,
+                           "file": "restart_module",
+                           "cn": "重启存储集群",
+                           "en": "Restart Module"
                         },
                         {
                            "id": 1483944504,
@@ -1852,7 +2010,7 @@
                   {
                      "id": 1523182044,
                      "dir": "Sequoiadb_Data",
-                     "cn": "SequoiaDB数据操作",
+                     "cn": "SequoiaDB 数据操作",
                      "en": "SequoiaDB Data",
                      "contents": [
                         {
@@ -1882,33 +2040,21 @@
                         {
                            "id": 1483944513,
                            "file": "lob",
-                           "cn": "Lob",
-                           "en": "Lob"
-                        },
-                        {
-                           "id": 1548829158,
-                           "file": "sequoiadb_configs",
-                           "cn": "修改存储集群配置",
-                           "en": "Distributed Storage Configs"
+                           "cn": "LOB",
+                           "en": "LOB"
                         }
                      ]
                   },
                   {
                      "id": 1562317092,
                      "dir": "Mysql",
-                     "cn": "MySQL实例操作",
+                     "cn": "MySQL 实例操作",
                      "en": "MySQL Instance",
                      "contents": [
                         {
-                           "id": 1562312142,
-                           "file": "basic_operation",
-                           "cn": "基础操作",
-                           "en": "Basic Operation"
-                        },
-                        {
                            "id": 1534834767,
                            "file": "database",
-                           "cn": "数据库",
+                           "cn": "数据库操作",
                            "en": "Database"
                         },
                         {
@@ -1919,40 +2065,46 @@
                         },
                         {
                            "id": 1534834769,
-                           "file": "field",
-                           "cn": "字段结构",
-                           "en": "Field"
+                           "file": "manage_table",
+                           "cn": "管理数据表",
+                           "en": "Manage Table"
+                        },
+                        {
+                           "id": 1562312142,
+                           "file": "manage_instance",
+                           "cn": "管理实例",
+                           "en": "Manage Instance"
+                        },
+                        {
+                           "id": 1562652775,
+                           "file": "restart_instance",
+                           "cn": "重启实例",
+                           "en": "Restart Instance"
                         },
                         {
                            "id": 1562641633,
-                           "file": "uninstall_mysql",
+                           "file": "uninstall_instance",
                            "cn": "删除实例",
-                           "en": "Uninstall instance"
+                           "en": "Uninstall Instance"
                         },
                         {
                            "id": 1562586902,
-                           "file": "remove_mysql_storage",
+                           "file": "remove_instance_storage",
                            "cn": "移除实例存储",
-                           "en": "Remove instance storage"
+                           "en": "Remove Instance Storage"
                         }
                      ]
                   },
                   {
                      "id": 1562317093,
                      "dir": "Postgresql",
-                     "cn": "PostgreSQL实例操作",
+                     "cn": "PostgreSQL 实例操作",
                      "en": "PostgreSQL Instance",
                      "contents": [
                         {
-                           "id": 1562312143,
-                           "file": "basic_operation",
-                           "cn": "基础操作",
-                           "en": "Basic Operation"
-                        },
-                        {
                            "id": 1520921810,
                            "file": "database",
-                           "cn": "数据库",
+                           "cn": "数据库操作",
                            "en": "Database"
                         },
                         {
@@ -1963,21 +2115,83 @@
                         },
                         {
                            "id": 1520921813,
-                           "file": "field",
-                           "cn": "字段结构",
-                           "en": "Field"
+                           "file": "manage_table",
+                           "cn": "管理数据表",
+                           "en": "Manage Table"
+                        },
+                        {
+                           "id": 1562312143,
+                           "file": "manage_instance",
+                           "cn": "管理实例",
+                           "en": "Manage Instance"
+                        },
+                        {
+                           "id": 156265278,
+                           "file": "restart_instance",
+                           "cn": "重启实例",
+                           "en": "Restart Instance"
                         },
                         {
                            "id": 1562641764,
-                           "file": "uninstall_postgresql",
+                           "file": "uninstall_instance",
                            "cn": "删除实例",
-                           "en": "Uninstall instance"
+                           "en": "Uninstall Instance"
                         },
                         {
                            "id": 1562586901,
-                           "file": "remove_pg_storage",
+                           "file": "remove_instance_storage",
                            "cn": "移除实例存储",
-                           "en": "Remove instance storage"
+                           "en": "Remove Instance Storage"
+                        }
+                     ]
+                  },
+                  {
+                     "id": 1632992352,
+                     "dir": "Mariadb",
+                     "cn": "MariaDB 实例操作",
+                     "en": "MariaDB Instance",
+                     "contents": [
+                        {
+                           "id": 1632992354,
+                           "file": "database",
+                           "cn": "数据库操作",
+                           "en": "Database"
+                        },
+                        {
+                           "id": 1632992355,
+                           "file": "record",
+                           "cn": "数据操作",
+                           "en": "Record"
+                        },
+                        {
+                           "id": 1632992356,
+                           "file": "manage_table",
+                           "cn": "管理数据表",
+                           "en": "Manage Table"
+                        },
+                        {
+                           "id": 1632992353,
+                           "file": "manage_instance",
+                           "cn": "管理实例",
+                           "en": "Restart Instance"
+                        },
+                        {
+                           "id": 1635303476,
+                           "file": "restart_instance",
+                           "cn": "重启实例",
+                           "en": "Restart Instance"
+                        },
+                        {
+                           "id": 1632992357,
+                           "file": "uninstall_mariadb",
+                           "cn": "删除实例",
+                           "en": "Uninstall Instance"
+                        },
+                        {
+                           "id": 1632992358,
+                           "file": "remove_mariadb_storage",
+                           "cn": "移除实例存储",
+                           "en": "Remove Instance Storage"
                         }
                      ]
                   }
@@ -2012,75 +2226,197 @@
          ]
       },
       {
+         "id": 1611088100,
+         "dir": "SequoiaPerf",
+         "cn": "SequoiaPerf 性能分析工具",
+         "en": "SequoiaPerf",
+         "contents": [
+            {
+               "id": 1611088121,
+               "file": "sequoiaperf_operating_environment",
+               "cn": "运行环境",
+               "en": "Runtine Environment"
+            },
+            {
+               "id": 1611088208,
+               "dir": "Deployment",
+               "cn": "安装部署",
+               "en": "Installation and Deployment",
+               "contents": [
+                  {
+                     "id": 1611502495,
+                     "file": "sequoiaperf_installation",
+                     "cn": "安装",
+                     "en": "Installation"
+                  },
+                  {
+                     "id": 1611502510,
+                     "file": "sequoiaperf_deployment",
+                     "cn": "部署 SequoiaPerf 实例",
+                     "en": "Deploy Instance"
+                  },
+                  {
+                     "id": 1635327651,
+                     "file": "sequoiaperf_agent_deployment",
+                     "cn": "部署 SequoiaPerf Agent 服务",
+                     "en": "Deploy Agent Service"
+                  }
+               ]
+            },
+            {
+               "id": 1611539293,
+               "dir": "Overview",
+               "cn": "概览",
+               "en": "Overview",
+               "contents": [
+                  {
+                     "id": 1611539675,
+                     "file": "sequoiaperf_overview_page",
+                     "cn": "SequoiaPerf 概览",
+                     "en": "Sequoiaperf Overview"
+                  },
+                  {
+                     "id": 1611539783,
+                     "file": "sequoiaperf_mysql_monitor_page",
+                     "cn": "MySQL 概览",
+                     "en": "MySQL Overview"
+                  },
+				  {
+                     "id": 1635324402,
+                     "file": "sequoiaperf_host_monitor_page",
+                     "cn": "主机概览",
+                     "en": "Host Overview"
+                  },
+                  {
+                     "id": 1611539811,
+                     "file": "sequoiaperf_alert_overview_page",
+                     "cn": "告警概览",
+                     "en": "Alert Overview"
+                  }
+               ]
+            },
+            {
+               "id": 1611088238,
+               "dir": "Configuration",
+               "cn": "配置",
+               "en": "Configuration",
+               "contents": [
+                  {
+                     "id": 1611501584,
+                     "file": "sequoiaperf_configuration_page",
+                     "cn" : "SequoiaPerf 配置",
+                     "en" : "SequoiaPerf Configuration"
+                  },
+                  {
+                     "id": 1611887378,
+                     "file": "sequoiaperf_add_sql",
+                     "cn": "添加 SQL 实例",
+                     "en": "Add SQL Instance"
+                  },
+                  {
+                     "id": 1636718292,
+                     "file": "sequoiaperf_add_agent",
+                     "cn": "添加 Agent 服务",
+                     "en": "Add Agent Service"
+                  }
+               ]
+            },
+            {
+               "id": 1611540405,
+               "dir": "Slowquery_Monitor",
+               "cn": "慢查询监控",
+               "en": "Slowquery Monitor",
+               "contents": [
+                  {
+                     "id": 1611540421,
+                     "file": "sequoiaperf_sdb_slowquery_overview_page",
+                     "cn" : "SequoiaDB 慢查询监控概览",
+                     "en" : "SequoiaDB Slowquery Overview"
+                  },
+                  {
+                     "id": 1619481934,
+                     "file": "sequoiaperf_sdb_slowquery_detail_page",
+                     "cn" : "SequoiaDB 慢查询监控详情",
+                     "en" : "SequoiaDB Slowquery Detail"
+                  },
+                  {
+                     "id": 1619481957,
+                     "file": "sequoiaperf_sdb_slowquery_datanode_detail_page",
+                     "cn" : "SequoiaDB 慢查询对应的数据节点详情",
+                     "en" : "SequoiaDB Slowquery Datanode Detail"
+                  },
+                  {
+                     "id": 1619482385,
+                     "file": "sequoiaperf_sdb_slowquery_accessplan_page",
+                     "cn" : "SequoiaDB 慢查询对应的访问计划详情",
+                     "en" : "SequoiaDB Slowquery AccessPlan"
+                  },
+                  {
+                     "id": 1611540436,
+                     "file": "sequoiaperf_sql_slowquery_overview_page",
+                     "cn": "SQL 慢查询监控概览",
+                     "en": "SQL Slowquery Overview"
+                  },
+                  {
+                     "id": 1619483552,
+                     "file": "sequoiaperf_sql_slowquery_detail_page",
+                     "cn": "SQL 慢查询监控详情",
+                     "en": "SQL Slowquery Detail"
+                  }
+               ]
+            },
+            {
+               "id": 1611540661,
+               "dir": "Tools",
+               "cn": "工具",
+               "en": "Tools",
+               "contents": [
+                  {
+                     "id": 1611540745,
+                     "file": "sdb_perf_ctl",
+                     "cn" : "实例管理工具",
+                     "en" : "Instance Control Tool"
+                  },
+                  {
+                     "id": 1611540757,
+                     "file": "sdb_perf_archive",
+                     "cn": "归档管理工具",
+                     "en": "Archive Management Tool"
+                  },
+				  {
+                     "id": 1635324450,
+                     "file": "sdb_perf_agent_ctl",
+                     "cn": "Agent 管理工具",
+                     "en": "Agent Management Tool"
+                  }
+               ]
+            },
+            {
+               "id": 1611541105,
+               "file": "sequoiaperf_alertmanager_configuration",
+               "cn": "告警消息接收",
+               "en": "Alertmanager Configuration"
+            },
+            {
+               "id": 1611541117,
+               "file": "sequoiaperf_uninstallation",
+               "cn": "卸载",
+               "en": "Uninstallation"
+            }
+         ]
+      },
+      {
          "id": 1432190763,
          "dir": "Manual",
          "cn": "参考手册",
          "en": "Manual",
          "contents": [
             {
-              "id": 1577931587,
-              "dir": "Database_Configuration",
-              "cn": "数据库配置",
-              "en": "Database Configuration",
-              "contents": [
-                {
-                  "id": 1432190643,
-                  "file": "configuration_parameters",
-                  "cn": "配置项参数",
-                  "en": "Configuration Parameters"
-                },
-                {
-                  "id": 1432191411,
-                  "dir": "Special_Configuration_Modify",
-                  "cn": "特殊配置项修改",
-                  "en": "Special Configuration Modify",
-                  "contents": [
-                      {
-                        "id": 1432191413,
-                        "file": "dbpath_modify",
-                        "cn": "数据文件",
-                        "en": "dbpath_modify"
-                      },
-                      {
-                        "id": 1432191414,
-                        "file": "indexpath_modify",
-                        "cn": "索引文件",
-                        "en": "indexpath_modify"
-                      },
-                      {
-                        "id": 1432191415,
-                        "file": "lobpath_modify",
-                        "cn": "大对象数据文件",
-                        "en": "lobpath_modify"
-                      },
-                      {
-                        "id": 1432191416,
-                        "file": "lobmetapath_modify",
-                        "cn": "大对象元数据文件",
-                        "en": "lobmetapath_modify"
-                      },
-                      {
-                        "id": 1432190652,
-                        "file": "log_synchronization",
-                        "cn": "同步日志",
-                        "en": "Log Synchronization"
-                      }
-                    ]
-                 }
-               ]
-            },
-            {
                "id": 1432190764,
                "dir": "Sequoiadb_Command",
                "cn": "SequoiaDB Shell方法",
                "en": "SequoiaDB Shell Method List",
                "contents": [
-                  {
-                     "id": 1482314609,
-                     "file": "location",
-                     "cn": "命令位置参数",
-                     "en": "location"
-                  },
                   {
                      "id": 1432190765,
                      "dir": "Global",
@@ -2258,6 +2594,12 @@
                            "en": "createCS()"
                         },
                         {
+                           "id": 1610376288,
+                           "file": "createDataSource",
+                           "cn": "createDataSource()",
+                           "en": "createDataSource()"
+                        },
+                        {
                            "id": 1432190774,
                            "file": "createDomain",
                            "cn": "createDomain()",
@@ -2298,6 +2640,12 @@
                            "file": "dropCS",
                            "cn": "dropCS()",
                            "en": "dropCS()"
+                        },
+                        {
+                           "id": 1610376333,
+                           "file": "dropDataSource",
+                           "cn": "dropDataSource()",
+                           "en": "dropDataSource()"
                         },
                         {
                            "id": 1432190779,
@@ -2372,6 +2720,12 @@
                            "en": "getCS()"
                         },
                         {
+                           "id": 1610377717,
+                           "file": "getDataSource",
+                           "cn": "getDataSource()",
+                           "en": "getDataSource()"
+                        },
+                        {
                            "id": 1432190790,
                            "file": "getDomain",
                            "cn": "getDomain()",
@@ -2402,6 +2756,12 @@
                            "en": "getSpareRG()"
                         },
                         {
+                           "id": 1620788843,
+                           "file": "getTask",
+                           "cn": "getTask()",
+                           "en": "getTask()"
+                        },
+                        {
                            "id": 1432190792,
                            "file": "invalidateCache",
                            "cn": "invalidateCache()",
@@ -2430,6 +2790,12 @@
                            "file": "listCollectionSpaces",
                            "cn": "listCollectionSpaces()",
                            "en": "listCollectionSpaces()"
+                        },
+                        {
+                           "id": 1610377810,
+                           "file": "listDataSources",
+                           "cn": "listDataSources()",
+                           "en": "listDataSources()"
                         },
                         {
                            "id": 1432190797,
@@ -2526,6 +2892,30 @@
                            "file": "reloadConf",
                            "cn": "reloadConf()",
                            "en": "reloadConf()"
+                        },
+                        {
+                           "id": 1617154481,
+                           "file": "restoreAbort",
+                           "cn": "restoreAbort()",
+                           "en": "restoreAbort()"
+                        },
+                        {
+                           "id": 1617154529,
+                           "file": "restoreCheck",
+                           "cn": "restoreCheck()",
+                           "en": "restoreCheck()"
+                        },
+                        {
+                           "id": 1617154625,
+                           "file": "restorePrepare",
+                           "cn": "restorePrepare()",
+                           "en": "restorePrepare()"
+                        },
+                        {
+                           "id": 1617154651,
+                           "file": "restoreToTime",
+                           "cn": "restoreToTime()",
+                           "en": "restoreToTime()"
                         },
                         {
                            "id": 1521424296,
@@ -2668,6 +3058,18 @@
                            "en": "getCL()"
                         },
                         {
+                           "id": 1634980924,
+                           "file": "getDomainName",
+                           "cn": "getDomainName()",
+                           "en": "getDomainName()"
+                        },
+                        {
+                           "id": 1634981086,
+                           "file": "listCollections",
+                           "cn": "listCollections()",
+                           "en": "listCollections()"
+                        },
+                        {
                            "id": 1524019771,
                            "file": "removeDomain",
                            "cn": "removeDomain()",
@@ -2718,6 +3120,18 @@
                            "en": "attachCL()"
                         },
                         {
+                           "id": 1541039123,
+                           "file": "copyIndex",
+                           "cn": "copyIndex()",
+                           "en": "copyIndex()"
+                        },
+                        {
+                           "id": 1541039124,
+                           "file": "copyIndexAsync",
+                           "cn": "copyIndexAsync()",
+                           "en": "copyIndexAsync()"
+                        },
+                        {
                            "id": 1432190828,
                            "file": "count",
                            "cn": "count()",
@@ -2740,6 +3154,12 @@
                            "file": "createIndex",
                            "cn": "createIndex()",
                            "en": "createIndex()"
+                        },
+                        {
+                           "id": 1563882539,
+                           "file": "createIndexAsync",
+                           "cn": "createIndexAsync()",
+                           "en": "createIndexAsync()"
                         },
                         {
                            "id": 1563882538,
@@ -2788,6 +3208,12 @@
                            "file": "dropIndex",
                            "cn": "dropIndex()",
                            "en": "dropIndex()"
+                        },
+                        {
+                           "id": 1620787944,
+                           "file": "dropIndexAsync",
+                           "cn": "dropIndexAsync()",
+                           "en": "dropIndexAsync()"
                         },
                         {
                            "id": 1524019502,
@@ -2878,6 +3304,12 @@
                            "file": "setAttributes",
                            "cn": "setAttributes()",
                            "en": "setAttributes()"
+                        },
+                        {
+                           "id": 1524019505,
+                           "file": "snapshotIndexes",
+                           "cn": "snapshotIndexes()",
+                           "en": "snapshotIndexes()"
                         },
                         {
                            "id": 1432190844,
@@ -3234,6 +3666,20 @@
                      ]
                   },
                   {
+                     "id": 1610376080,
+                     "dir": "SdbDataSource",
+                     "cn": "SdbDataSource",
+                     "en": "SdbDataSource",
+                     "contents": [
+                        {
+                           "id": 1610376142,
+                           "file": "alter",
+                           "cn": "alter()",
+                           "en": "alter()"
+                        }
+                     ]
+                  },
+                  {
                      "id": 1606119698,
                      "dir": "SdbSequence",
                      "cn": "SdbSequence",
@@ -3554,6 +4000,24 @@
                            "file": "getSyncHistory",
                            "cn": "getSyncHistory()",
                            "en": "getSyncHistory()"
+                        },
+                        {
+                           "id": 1612245520,
+                           "file": "reelect",
+                           "cn": "reelect()",
+                           "en": "reelect()"
+                        },
+                        {
+                           "id": 1618473735,
+                           "file": "stop",
+                           "cn": "stop()",
+                           "en": "stop()"
+                        },
+                        {
+                           "id": 1612245521,
+                           "file": "updateConf",
+                           "cn": "updateConf()",
+                           "en": "updateConf()"
                         }
                      ]
                   },
@@ -4460,6 +4924,12 @@
                            "en": "Timestamp"
                         }
                      ]
+                  },
+                  {
+                     "id": 1482314609,
+                     "file": "location",
+                     "cn": "命令位置参数",
+                     "en": "location"
                   }
                ]
             },
@@ -4762,6 +5232,18 @@
                            "en": "$strlen"
                         },
                         {
+                           "id": 1631340394,
+                           "file": "strlenBytes",
+                           "cn": "$strlenBytes",
+                           "en": "$strlenBytes"
+                        },
+                        {
+                           "id": 1631340429,
+                           "file": "strlenCP",
+                           "cn": "$strlenCP",
+                           "en": "$strlenCP"
+                        },
+                        {
                            "id": 1440656865,
                            "file": "lower",
                            "cn": "$lower",
@@ -4840,6 +5322,18 @@
                            "file": "unset",
                            "cn": "$unset",
                            "en": "$unset"
+                        },
+                        {
+                           "id": 1614933171,
+                           "file": "bit",
+                           "cn": "$bit",
+                           "en": "$bit"
+                        },
+                        {
+                           "id": 1614933217,
+                           "file": "rename",
+                           "cn": "$rename",
+                           "en": "$rename"
                         },
                         {
                            "id": 1432190926,
@@ -5336,6 +5830,18 @@
                            "en": "$SNAPSHOT_INDEXSTATS"
                         },
                         {
+                           "id": 1631086808,
+                           "file": "SNAPSHOT_TRANSWAITS",
+                           "cn": "$SNAPSHOT_TRANSWAIT",
+                           "en": "$SNAPSHOT_TRANSWAIT"
+                        },
+                        {
+                           "id": 1631086816,
+                           "file": "SNAPSHOT_TRANSDEADLOCK",
+                           "cn": "$SNAPSHOT_TRANSDEADLOCK",
+                           "en": "$SNAPSHOT_TRANSDEADLOCK"
+                        },
+                        {
                            "id": 1559282949,
                            "file": "LIST_CONTEXT",
                            "cn": "$LIST_CONTEXT",
@@ -5418,6 +5924,12 @@
                            "file": "LIST_BACKUP",
                            "cn": "$LIST_BACKUP",
                            "en": "$LIST_BACKUP"
+                        },
+                        {
+                           "id": 1611220898,
+                           "file": "LIST_DATASOURCE",
+                           "cn": "$LIST_DATASOURCE",
+                           "en": "$LIST_DATASOURCE"
                         }
                      ]
                   },
@@ -5450,50 +5962,62 @@
                   {
                      "id": 1519625791,
                      "file": "SYSCOLLECTIONS",
-                     "cn": "SYSCOLLECTIONS 集合",
+                     "cn": "SYSCOLLECTIONS集合",
                      "en": "SYSCOLLECTIONS"
                   },
                   {
                      "id": 1519625792,
                      "file": "SYSCOLLECTIONSPACES",
-                     "cn": "SYSCOLLECTIONSPACES 集合",
+                     "cn": "SYSCOLLECTIONSPACES集合",
                      "en": "SYSCOLLECTIONSPACES"
                   },
                   {
                      "id": 1519625793,
                      "file": "SYSDOMAINS",
-                     "cn": "SYSDOMAINS 集合",
+                     "cn": "SYSDOMAINS集合",
                      "en": "SYSDOMAINS"
                   },
                   {
                      "id": 1519625794,
                      "file": "SYSNODES",
-                     "cn": "SYSNODES 集合",
+                     "cn": "SYSNODES集合",
                      "en": "SYSNODES"
+                  },
+                  {
+                     "id": 1519625798,
+                     "file": "SYSINDEXES",
+                     "cn": "SYSINDEXES集合",
+                     "en": "SYSINDEXES"
                   },
                   {
                      "id": 1519625795,
                      "file": "SYSTASKS",
-                     "cn": "SYSTASKS 集合",
+                     "cn": "SYSTASKS集合",
                      "en": "SYSTASKS"
                   },
                   {
                      "id": 1519625796,
                      "file": "SYSUSRS",
-                     "cn": "SYSUSRS 集合",
+                     "cn": "SYSUSRS集合",
                      "en": "SYSUSRS"
                   },
                   {
                      "id": 1519625797,
                      "file": "STOREPROCEDURES",
-                     "cn": "STOREPROCEDURES 集合",
+                     "cn": "STOREPROCEDURES集合",
                      "en": "STOREPROCEDURES"
                   },
                   {
                      "id": 1588131727,
                      "file": "SEQUENCES",
-                     "cn": "SEQUENCES 集合",
+                     "cn": "SEQUENCES集合",
                      "en": "SEQUENCES"
+                  },
+                  {
+                     "id": 1610373493,
+                     "file": "SYSDATASOURCES",
+                     "cn": "SYSDATASOURCES集合",
+                     "en": "SYSDATASOURCES"
                   }
                ]
             },
@@ -5503,12 +6027,6 @@
                "cn": "数据库快照",
                "en": "Snapshot",
                "contents": [
-                  {
-                     "id": 1479173710,
-                     "file": "snapshot",
-                     "cn": "快照类型",
-                     "en": "Snapshot Types"
-                  },
                   {
                      "id": 1479173711,
                      "file": "SDB_SNAP_CONTEXTS",
@@ -5628,6 +6146,24 @@
                      "file": "SDB_SNAP_INDEXSTATS",
                      "cn": "索引统计信息快照",
                      "en": "SDB_SNAP_INDEXSTATS"
+                  },
+                  {
+                     "id": 1592467467,
+                     "file": "SDB_SNAP_TASKS",
+                     "cn": "任务快照",
+                     "en": "SDB_SNAP_TASKS"
+                  },
+                  {
+                     "id": 1631066558,
+                     "file": "SDB_SNAP_TRANSWAITS",
+                     "cn": "事务等待快照",
+                     "en": "SDB_SNAP_TRANSWAITS"
+                  },
+                  {
+                     "id": 1631066569,
+                     "file": "SDB_SNAP_TRANSDEADLOCK",
+                     "cn": "事务死锁检测快照",
+                     "en": "SDB_SNAP_TRANSDEADLOCK"
                   }
                ]
             },
@@ -5637,12 +6173,6 @@
                "cn": "数据库列表",
                "en": "List",
                "contents": [
-                  {
-                     "id": 1479173730,
-                     "file": "list",
-                     "cn": "列表类型",
-                     "en": "List Types"
-                  },
                   {
                      "id": 1479173731,
                      "file": "SDB_LIST_CONTEXTS",
@@ -5726,6 +6256,12 @@
                      "file": "SDB_LIST_BACKUPS",
                      "cn": "备份列表",
                      "en": "SDB_LIST_BACKUPS"
+                  },
+                  {
+                     "id": 1611158407,
+                     "file": "SDB_LIST_DATASOURCES",
+                     "cn": "数据源列表",
+                     "en": "SDB_LIST_DATASOURCES"
                   }
                ]
             },
@@ -5856,10 +6392,24 @@
          ]
       },
       {
-         "id": 1478742401,
-         "file": "faq",
-         "cn": "常见问题及解答",
-         "en": "general guide"
+         "id": 1616391478,
+         "dir": "FAQ",
+         "cn": "常见问题及解答（FAQ）",
+         "en": "general guide",
+         "contents":[
+            {
+               "id": 1478742401,
+               "file": "faq_sdb",
+               "cn": "SequoiaDB FAQ",
+               "en": "SequoiaDB FAQ"
+            },
+            {
+               "id": 1616405418,
+               "file": "faq_sql",
+               "cn": "SQL FAQ",
+               "en": "SQL FAQ"
+            }
+         ]
       },
       {
          "id": 1432190607,

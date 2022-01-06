@@ -826,6 +826,7 @@ INT32 _dpsDumper::repaireHeader( const std::string &str )
    {
       ossPrintf( "repaire format must be: header:xx=y,dd=k"OSS_NEWLINE ) ;
       rc = SDB_INVALIDARG ;
+      goto error ;
    }
    *pos = 0 ;
    if ( 0 != ossStrcasecmp( pin, "header" ) )
@@ -833,6 +834,7 @@ INT32 _dpsDumper::repaireHeader( const std::string &str )
       *pos = ':' ;
       ossPrintf( "repaire only support for type header"OSS_NEWLINE ) ;
       rc = SDB_INVALIDARG ;
+      goto error ;
    }
    *pos = ':' ;
 

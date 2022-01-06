@@ -53,8 +53,27 @@ OSS_INLINE UINT32 ossAlignX( UINT32 i, UINT32_64 X  )
    return ( ( i + ( X - 1 ) ) & ( ~( ( UINT32 ) ( X - 1 ) ) ) ) ;
 }
 
+OSS_INLINE UINT32 ossAlignX( INT32 i, UINT32_64 X  )
+{
+   return ( ( i + ( X - 1 ) ) & ( ~( ( UINT32 ) ( X - 1 ) ) ) ) ;
+}
 
 OSS_INLINE UINT64 ossAlignX( UINT64 i, UINT32_64   X )
+{
+   return ( ( i + ( X - 1 ) ) & ( ~( ( UINT64 ) ( X - 1 ) ) ) ) ;
+}
+
+OSS_INLINE UINT64 ossAlignX( INT64 i, UINT32_64   X )
+{
+   return ( ( i + ( X - 1 ) ) & ( ~( ( UINT64 ) ( X - 1 ) ) ) ) ;
+}
+
+OSS_INLINE long ossAlignX( long i, UINT32_64   X )
+{
+   return ( ( i + ( X - 1 ) ) & ( ~( ( UINT64 ) ( X - 1 ) ) ) ) ;
+}
+
+OSS_INLINE unsigned long ossAlignX( unsigned long i, UINT32_64   X )
 {
    return ( ( i + ( X - 1 ) ) & ( ~( ( UINT64 ) ( X - 1 ) ) ) ) ;
 }

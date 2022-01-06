@@ -680,8 +680,14 @@ namespace seadapter
       }
 
       rc = _getResultObjs( replyObj, result ) ;
-      PD_RC_CHECK( rc, PDERROR, "Get result objects from reply failed[ %d ]",
-                   rc ) ;
+      if ( rc )
+      {
+         if ( SDB_DMS_EOC != rc )
+         {
+            PD_LOG( PDERROR, "Get result objects from reply failed[%d]", rc ) ;
+         }
+         goto error ;
+      }
 
       scrollId = string( scroll ) ;
       PD_LOG( PDDEBUG, "scroll id returned: %s", scrollId.c_str() ) ;

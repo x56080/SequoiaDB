@@ -136,7 +136,7 @@ env = Environment( BUILD_DIR=variantDir )
 
 if guess_os == "linux":
    # add -lrt for boost_thread.a, need clock_gettime reference
-   env.Append ( _LIBFLAGS=' -lrt ' )
+   env.Append ( _LIBFLAGS=' -lrt -lpthread -ldl ' )
 
 env.Append ( CPPDEFINES=[ "SDB_DLL_BUILD" ] )
 if guess_os == "win32":
@@ -196,7 +196,7 @@ elif guess_os == "linux":
         env.Append( LIBPATH=[join(boost_lib_dir,'ppclinux64', build_type)] )
 
 
-    winLibString = "staticsdbc gtest pthread dl"
+    winLibString = "gtest crypt"
     env.Append( LIBS=Split(winLibString) )
     if debugBuild:
         env.Append( CPPFLAGS=" -O0 -fstack-protector")
@@ -217,7 +217,7 @@ elif guess_os == 'aix':
     env.Append( LIBPATH="/lib" )
     # use project-related boost library
     env.Append( LIBPATH=[join(boost_lib_dir,'aix64', build_type)] )
-    winLibString = "staticsdbc gtest pthread dl"
+    winLibString = "gtest crypt pthread dl"
     env.Append( LIBS=Split(winLibString) )
     if debugBuild:
         env.Append( CPPFLAGS=" -O0 ")

@@ -80,10 +80,6 @@ namespace engine
 #define DMS_DEFAULT_LOB_PAGE_SZ  DMS_PAGE_SIZE256K
 #define DMS_DO_NOT_CREATE_LOB    0
 
-#define DMS_LOG_WRITE_MOD_INCREMENT 0
-#define DMS_LOG_WRITE_MOD_FULL      1
-
-
 // the maximum number of pages * size for the storage unit
 // this number does NOT count metadata
 // max SU size:
@@ -101,6 +97,9 @@ namespace engine
 #define DMS_SEGMENT_SZ_MAX     (512*1024*1024)     /// 512MB
 
 #define DMS_SEGMENT_SZ         (128*1024*1024)     /// 128MB
+#define DMS_SEGMENT_SZ256M     (256*1024*1024)     /// 256MB
+#define DMS_SEGMENT_SZ512M     (512*1024*1024)     /// 512MB
+
 #define DMS_SEGMENT_PG(s,x)    ((s)/(x))
 
 #define DMS_SYS_SEGMENT_SZ     (32*1024*1024)      /// 32MB
@@ -140,7 +139,7 @@ namespace engine
 #define DMS_TEMP_NAME_PATTERN       "%s%04d"
 
 #define SDB_DMSRBS_NAME            "SYSRBS"
-#define SDB_DMSRBS_FULLNAME        "SYSRBS.SYSRBS"
+#define SDB_DMSRBS_NAME_SIZE       ( sizeof( SDB_DMSRBS_NAME ) - 1 )
 #define DMS_RBS_NAME_PATTERN       "%s%04d"
 // Range of RBS CL is 0000-4095, with 0000 for meta
 #define DMS_MAX_RBS_CL             DMS_MME_SLOTS 

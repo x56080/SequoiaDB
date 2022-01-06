@@ -109,10 +109,10 @@ information
 T}
 .TE
 .PP
-When error happen, use getLastErrMsg() to get the error message or use
+When error happens, use getLastErrMsg() to get the error message or use
 getLastError() to get the error code.
-See troubleshooting for more detail.
-.SH HISTORY
+See troubleshooting for more details.
+#HISTORY#
 .PP
 since v2.0
 .SH EXAMPLES
@@ -121,8 +121,8 @@ Overwrite the configuration of the node with port number 11810 with the new
 configuration.
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "localhost",\ 11790\ )
->\ oma.setNodeConfigs(\ 11810,\ {\ svcname:\ "11810",\ dbpath:\ "/home/users/sequoiadb/trunk/11810",\ diaglevel:\ 3,\ clustername:\ "xxx",\ businessname:\ "yyy",\ role:\ "data",\ catalogaddr:\ "ubuntu1:11823,\ ubuntu2:11823"\ }\ )
+> var oma = new Oma( "localhost", 11790 )
+> oma.setNodeConfigs( 11810, { svcname: "11810", dbpath: "/home/users/sequoiadb/trunk/11810", diaglevel: 3, clustername: "xxx", businessname: "yyy", role: "data", catalogaddr: "ubuntu1:11823, ubuntu2:11823" } )
 \f[]
 .fi
 .RE

@@ -143,19 +143,20 @@ configuration mask
 T}@T{
 T}
 .TE
-
+.RS
+.PP
 Note：
 .RE
-.PP
+.RS
 .IP \[bu] 2
 This interface can only be used in cluster mode.
 .RE
-.PP
+.RS
 .IP \[bu] 2
 If the database has created a user, you must specify a username and password to
 connect to the database.
 .RE
-.PP
+.RS
 .IP \[bu] 2
 AuditMask\[aq]s value are as follow:
 ACCESS、CLUSTER、SYSTEM、DML、DDL、DCL、DQL、INSERT、DELETE、UPDATE、OTHER.
@@ -164,7 +165,8 @@ You can combine multiple values with \[aq]|\[aq].
 that no mask items are turned on.
 If an item in the user audit log is not configured, the configuration of the
 corresponding mask item on the node is inherited.
-You can also use \[aq]!\[aq] to disable inheritance of this mask( e.g: "!DDL|DML" ).
+You can also use \[aq]!\[aq] to disable inheritance of this mask( e.g:
+"!DDL|DML" ).
 .RE
 .SH RETURN VALUE
 .PP
@@ -182,7 +184,7 @@ Create a user with username \[aq]sdbadmin\[aq] and password \[aq]sdbadmin\[aq],
 and set the audit log mask.
 .nf
 \f[C]
->\ db.createUsr(\ "sdbadmin",\ "sdbadmin",\ {\ AuditMask:\ "DDL|DML|!DQL"\ }\ )
+> db.createUsr( "sdbadmin", "sdbadmin", { AuditMask: "DDL|DML|!DQL" } )
 \f[]
 .fi
 .RE
@@ -191,8 +193,8 @@ Create a user with username \[aq]sdbadmin\[aq] and password \[aq]sdbadmin\[aq]
 using User object.
 .nf
 \f[C]
->\ var\ a\ =\ User(\ "sdbadmin",\ "sdbadmin"\ )
->\ db.createUsr(\ a\ )
+> var a = User( "sdbadmin", "sdbadmin" )
+> db.createUsr( a )
 \f[]
 .fi
 .RE
@@ -204,8 +206,8 @@ For details on how to add and delete cipher test information in cipher test
 file, please see sdbpasswd for details ).
 .nf
 \f[C]
->\ var\ a\ =\ CipherUser(\ "sdbadmin"\ )
->\ db.createUsr(\ a\ )
+> var a = CipherUser( "sdbadmin" )
+> db.createUsr( a )
 \f[]
 .fi
 .RE

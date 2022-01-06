@@ -13,7 +13,7 @@ SAC 是 SequoiaDB 巨杉数据库的管理中心（SequoiaDB Administration Cent
 + [安装和登陆][install_login]：安装和登陆 SAC
 + [卸载][RemoveOM]：通过 SequoiaDB Shell 方法卸载 SAC
 + [部署][deployment]：通过 SAC 一键或分步部署 SequoiaDB 相关集群和业务
-+ [操作][operation]：使用 SAC 对主机、存储集群、MySQL 实例、 PostgreSQL 实例和 SequoiaDB 数据进行操作
++ [操作][operation]：使用 SAC 对主机、存储集群、MySQL 实例、 PostgreSQL 实例、MariaDB 实例和 SequoiaDB 数据进行操作
 + [监控][monitor]：通过 SAC 监控 SequoiaDB 
 
 [^_^]:

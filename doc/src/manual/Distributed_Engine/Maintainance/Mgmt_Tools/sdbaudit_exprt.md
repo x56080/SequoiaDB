@@ -85,6 +85,7 @@ sdbaudit_ctl.py del -t <sdb|mysql|mariadb> [--inst INSTNAME] [--path INSTALL_DIR
 |addr|string|指定主机地址（hostname:svcname），默认值为 localhost:11810|否|
 |user|string|数据库用户名|否|
 |password|string|指定数据库密码，指定值则使用明文输入，不指定值则命令行提示输入|否|
+|password_type|string|指定数据库密码类型，0 代表密码为明文，1 代表密码为密文|否|
 |ssl|boolean|指定是否使用 SSL 连接，默认 false，不使用 SSL 连接|否|
 |clname|string|导出的集合全名|否|
 |insertnum|int32|每批次插入的记录数|否|

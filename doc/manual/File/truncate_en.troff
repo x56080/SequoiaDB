@@ -67,14 +67,14 @@ On error, exception will be thrown.
 .PP
 when exception happen, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
-For more detial, please reference to Troubleshooting.
+For more detial, refer to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 Truncates the file.
 .IP
 .nf
 \f[C]
->\ var\ file\ =\ new\ File(\ "/opt/sequoiadb/file.txt"\ )
->\ file.truncate()
+> var file = new File( "/opt/sequoiadb/file.txt" )
+> file.truncate()
 \f[]
 .fi

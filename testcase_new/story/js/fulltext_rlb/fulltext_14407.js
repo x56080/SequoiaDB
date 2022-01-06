@@ -4,17 +4,28 @@
 *@createdate:  2019.08.21
 *@testlinkCase: seqDB-14407
 **************************************/
+testConf.skipStandAlone = true;
+testConf.skipOneDuplicatePerGroup = true;
 
 main( test );
 
 function test ()
 {
-   if( commIsStandalone( db ) ) { return; }
+   var groups = commGetGroups( db );
+   for( var i = 0; i < groups.length; i++ )
+   {
+      var group = groups[i];
+      if( group.length > 2 )
+      {
+         break;
+      }
+   }
+   var groupName = group[0].GroupName;
 
    var clName = COMMCLNAME + "_ES_14407";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCL( db, COMMCSNAME, clName );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName } );
 
    // 创建全文索引，插入数据
    var textIndexName = "textIndex_14407";
@@ -27,10 +38,9 @@ function test ()
    dbcl.insert( objs );
 
    // 正常停止数据备节点
-   var groups = commGetCLGroups( db, COMMCSNAME + "." + clName );
-   var preMaster = db.getRG( groups[0] ).getMaster();
+   var preMaster = db.getRG( groupName ).getMaster();
    var preMasterNodeName = preMaster.getHostName() + ":" + preMaster.getServiceName();
-   var preSlave = db.getRG( groups[0] ).getSlave();
+   var preSlave = db.getRG( groupName ).getSlave();
    var preSlaveNodeName = preSlave.getHostName() + ":" + preSlave.getServiceName();
    try
    {

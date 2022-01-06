@@ -4,7 +4,8 @@
    var packageShortName = {
       'sequoiadb': 'sdb',
       'sequoiasql-postgresql': 'pgsql',
-      'sequoiasql-mysql': 'mysql'
+      'sequoiasql-mysql': 'mysql',
+      'sequoiasql-mariadb': 'mariadb'
    } ;
 
    //全局模板
@@ -445,6 +446,7 @@
          'sequoiadb':               $scope.autoLanguage( '分布式存储' ),
          'sequoiasql-postgresql':   $scope.autoLanguage( '数据库实例' ),
          'sequoiasql-mysql':        $scope.autoLanguage( '数据库实例' ),
+         'sequoiasql-mariadb':      $scope.autoLanguage( '数据库实例' ),
          'hdfs': 'HDFS',
          'yarn': 'YARN'
       } ;
@@ -478,6 +480,8 @@
                   $location.path( '/Data/SequoiaSQL/PostgreSQL/Database/Index' ).search( params ) ; break ;
                case 'sequoiasql-mysql':
                   $location.path( '/Data/SequoiaSQL/MySQL/Database/Index' ).search( params ) ; break ;
+               case 'sequoiasql-mariadb':
+                  $location.path( '/Data/SequoiaSQL/MariaDB/Database/Index' ).search( params ) ; break ;
                default:
                   break ;
                }
@@ -536,6 +540,8 @@
                   $location.path( '/Config/SequoiaSQL/PostgreSQL/Index' ).search( params ) ; break ;
                case 'sequoiasql-mysql':
                   $location.path( '/Config/SequoiaSQL/MySQL/Index' ).search( params ) ; break ;
+               case 'sequoiasql-mariadb':
+                  $location.path( '/Config/SequoiaSQL/MariaDB/Index' ).search( params ) ; break ;
                default:
                   break ;
                }
@@ -655,7 +661,7 @@
 
       function addMonitor( businessInfo )
       {
-         if( businessInfo['type'] == 'sequoiasql-postgresql' || businessInfo['type'] == 'sequoiasql-mysql' )
+         if(businessInfo['type'] !== 'sequoiadb' )
          {
             return ;
          }
@@ -679,7 +685,8 @@
       {
          if( businessInfo['type'] == 'sequoiadb' ||
              businessInfo['type'] == 'sequoiasql-postgresql' ||
-             businessInfo['type'] == 'sequoiasql-mysql' )
+             businessInfo['type'] == 'sequoiasql-mysql' ||
+             businessInfo['type'] == 'sequoiasql-mariadb' )
          {
             var title = getNavTitle( businessInfo['type'] ) ;
             var titleInfo = addBusinessTitle( getModuleList( 'Config' ), title ) ;

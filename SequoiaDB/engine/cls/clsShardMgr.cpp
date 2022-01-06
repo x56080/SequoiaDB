@@ -301,6 +301,151 @@ namespace engine
       return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFREEZWND_UPDCLWHITELST, "_clsFreezingWindow::updateCLWhiteList" )
+   INT32 _clsFreezingWindow::updateCLWhiteList( const CHAR *pName,
+                                             UINT64 opID,
+                                             const DPS_TRANS_ID_SET &whiteList )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSFREEZWND_UPDCLWHITELST ) ;
+
+      SDB_ASSERT( NULL != pName, "name is invalid" ) ;
+      SDB_ASSERT( 0 != opID, "block ID is invalid" ) ;
+
+      if ( whiteList.empty() )
+      {
+         goto done ;
+      }
+
+      try
+      {
+         ossScopedLock lock( &_latch ) ;
+
+         MAP_WINDOW::iterator iterCL ;
+         OP_SET::iterator iterItem ;
+
+         ossPoolString name( pName ) ;
+         iterCL = _mapWindow.find( name ) ;
+         PD_CHECK( iterCL != _mapWindow.end(), SDB_SYS, error, PDERROR,
+                   "Failed to find freezing item for collection [%s]",
+                   pName ) ;
+
+         iterItem = iterCL->second.find( opID ) ;
+         PD_CHECK( iterItem != iterCL->second.end(), SDB_SYS, error, PDERROR,
+                   "Failed to find freezing item for collection [%s], "
+                   "op [%llu]", pName, opID ) ;
+
+         iterItem->updateWhiteList( whiteList ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to update white list for collection, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSFREEZWND_UPDCLWHITELST, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFREEZWND_UPDCSWHITELST, "_clsFreezingWindow::updateCSWhiteList" )
+   INT32 _clsFreezingWindow::updateCSWhiteList( const CHAR *pName,
+                                                UINT64 opID,
+                                                const DPS_TRANS_ID_SET &whiteList )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSFREEZWND_UPDCSWHITELST ) ;
+
+      SDB_ASSERT( NULL != pName, "name is invalid" ) ;
+      SDB_ASSERT( 0 != opID, "block ID is invalid" ) ;
+
+      if ( whiteList.empty() )
+      {
+         goto done ;
+      }
+
+      try
+      {
+         ossScopedLock lock( &_latch ) ;
+
+         MAP_CS_WINDOW::iterator iterCS ;
+         OP_SET::iterator iterItem ;
+
+         ossPoolString name( pName ) ;
+         iterCS = _mapCSWindow.find( name ) ;
+         PD_CHECK( iterCS != _mapCSWindow.end(), SDB_SYS, error, PDERROR,
+                   "Failed to find freezing item for collection space [%s]",
+                   pName ) ;
+
+         iterItem = iterCS->second.find( opID ) ;
+         PD_CHECK( iterItem != iterCS->second.end(), SDB_SYS, error, PDERROR,
+                   "Failed to find freezing item for collection space [%s], "
+                   "op [%llu]", pName, opID ) ;
+
+         iterItem->updateWhiteList( whiteList ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to update white list for collection space, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSFREEZWND_UPDCSWHITELST, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFREEZWND_UPDWHOLEWHITELST, "_clsFreezingWindow::updateWholeWhiteList" )
+   INT32 _clsFreezingWindow::updateWholeWhiteList( UINT64 opID,
+                                                   const DPS_TRANS_ID_SET &whiteList )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSFREEZWND_UPDWHOLEWHITELST ) ;
+
+      SDB_ASSERT( 0 != opID, "block ID is invalid" ) ;
+
+      try
+      {
+         ossScopedLock lock( &_latch ) ;
+
+         OP_SET::iterator iterItem ;
+
+         iterItem = _setWholeID.find( opID ) ;
+         PD_CHECK( iterItem != _setWholeID.end(), SDB_SYS, error, PDERROR,
+                   "Failed to find freezing item for whole DB, op [%llu]",
+                   opID ) ;
+
+         iterItem->updateWhiteList( whiteList ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to update white list for whole DB, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSFREEZWND_UPDWHOLEWHITELST, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    INT32 _clsFreezingWindow::_regWholeInternal( UINT64 opID )
    {
       INT32 rc = SDB_OK ;
@@ -458,6 +603,7 @@ namespace engine
    {
       MAP_WINDOW::iterator it = _mapWindow.begin() ;
 
+      clsFreezingItem temp( opID ) ;
       while ( it != _mapWindow.end() )
       {
          if ( 0 == ossStrcmp( it->first.c_str(), pName ) )
@@ -550,16 +696,13 @@ namespace engine
       }
    }
 
-   void _clsFreezingWindow::_blockCheck( const CHAR *pName,
-                                         const _clsFreezingWindow::OP_SET &setID,
+   void _clsFreezingWindow::_blockCheck( const OP_SET &setID,
                                          UINT64 testOPID,
-                                         UINT64 testTransOPID,
                                          _pmdEDUCB *cb,
                                          BOOLEAN &result,
                                          BOOLEAN &forceEnd )
    {
       OP_SET::const_iterator cit = setID.begin() ;
-
       while ( cit != setID.end () )
       {
          if ( *cit == testOPID )
@@ -569,85 +712,18 @@ namespace engine
             forceEnd = TRUE ;
             break ;
          }
-         else if ( *cit < testOPID  )
+         else if ( *cit < testOPID &&
+                   !cit->isInWhiteList( cb->getTransID() ) )
          {
-            // Should not break, we need to test if testOpID matches
-            // the remaining blocking op IDs which may be the blocking op
-            // itself
-            if ( 0 == testTransOPID || *cit < testTransOPID )
-            {
-               result = TRUE ;
-            }
-            else if ( 0 != *pName ) /// Not whole
-            {
-               if ( NULL == ossStrchr( pName, '.' ) ) /// CS
-               {
-                  SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
-                  dmsStorageUnitID suID = DMS_INVALID_CS ;
-                  _dmsStorageUnit *su = NULL ;
-
-                  if ( SDB_OK == dmsCB->nameToSUAndLock( pName, suID, &su ) )
-                  {
-                     dpsTransLockId lockID( su->LogicalCSID(),
-                                            DMS_INVALID_MBID,
-                                            NULL ) ;
-                     if ( cb->getTransExecutor()->countLock( lockID ) <= 0 )
-                     {
-                        result = TRUE ;
-                     }
-
-                     dmsCB->suUnlock( suID ) ;
-                  }
-                  else
-                  {
-                     result = TRUE ;
-                  }
-               }
-               else  /// CL
-               {
-                  SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
-                  _dmsStorageUnit *su = NULL ;
-                  const CHAR *pShortName = NULL ;
-                  dmsStorageUnitID suID = DMS_INVALID_CS ;
-                  UINT16 collectionID = DMS_INVALID_MBID ;
-
-                  if ( SDB_OK == rtnResolveCollectionNameAndLock( pName, dmsCB,
-                                                                  &su,
-                                                                  &pShortName,
-                                                                  suID ) )
-                  {
-                     if ( SDB_OK == su->data()->findCollection( pShortName,
-                                                                collectionID ) )
-                     {
-                        dpsTransLockId lockID( su->LogicalCSID(),
-                                               collectionID,
-                                               NULL ) ;
-                        if ( cb->getTransExecutor()->countLock( lockID ) <= 0 )
-                        {
-                           result = TRUE ;
-                        }
-                     }
-                     else
-                     {
-                        result = TRUE ;
-                     }
-
-                     dmsCB->suUnlock( suID ) ;
-                  }
-                  else
-                  {
-                     result = TRUE ;
-                  }
-               }
-            }
+            result = TRUE ;
+            break ;
          }
-         ++cit ;
+         ++ cit ;
       }
    }
 
    BOOLEAN _clsFreezingWindow::needBlockOpr( const ossPoolString &name,
                                              UINT64 testOpID,
-                                             UINT64 testTransOpID,
                                              _pmdEDUCB *cb )
    {
       MAP_WINDOW::iterator it ;
@@ -660,8 +736,7 @@ namespace engine
       /// whole block check
       if ( !_setWholeID.empty() )
       {
-         _blockCheck( "", _setWholeID, testOpID,
-                      testTransOpID, cb, needBlock, forceEnd ) ;
+         _blockCheck( _setWholeID, testOpID, cb, needBlock, forceEnd ) ;
          if ( forceEnd )
          {
             goto done ;
@@ -672,8 +747,7 @@ namespace engine
       if ( !_mapCSWindow.empty() &&
            _mapCSWindow.end() != ( itCS = _mapCSWindow.find( name ) ) )
       {
-         _blockCheck( itCS->first._name.c_str(), itCS->second, testOpID,
-                      testTransOpID, cb, needBlock, forceEnd ) ;
+         _blockCheck( itCS->second, testOpID, cb, needBlock, forceEnd ) ;
          if ( forceEnd )
          {
             goto done ;
@@ -684,8 +758,7 @@ namespace engine
       if ( !_mapWindow.empty() &&
            _mapWindow.end() != ( it = _mapWindow.find( name ) ) )
       {
-         _blockCheck( it->first.c_str(), it->second, testOpID,
-                      testTransOpID, cb, needBlock, forceEnd ) ;
+         _blockCheck( it->second, testOpID, cb, needBlock, forceEnd ) ;
       }
 
    done:
@@ -707,7 +780,6 @@ namespace engine
             BOOLEAN needBlock = TRUE ;
             MAP_WINDOW::iterator it ;
             UINT64 opID = cb->getWritingID() ;
-            UINT64 transOpID = cb->getTransWritingID() ;
 
             while( needBlock )
             {
@@ -717,7 +789,7 @@ namespace engine
                   break ;
                }
 
-               needBlock = needBlockOpr( clName, opID, transOpID, cb ) ;
+               needBlock = needBlockOpr( clName, opID, cb ) ;
                if ( needBlock )
                {
                   if ( !hasBlock )
@@ -1140,6 +1212,12 @@ namespace engine
                tmpInfo._result = rc ;
                continue ;
             }
+
+            tmpSocket.disableNagle() ;
+            // set keep alive
+            tmpSocket.setKeepAlive( 1, OSS_SOCKET_KEEP_IDLE,
+                                    OSS_SOCKET_KEEP_INTERVAL,
+                                    OSS_SOCKET_KEEP_CONTER ) ;
 
             // send msg, if we can connect to the node but failed to send
             // let's skip and retry
@@ -3017,7 +3095,6 @@ namespace engine
                                    UINT32 *lobPageSize,
                                    DMS_STORAGE_TYPE *type,
                                    BSONObj *clInfo,
-                                   string *newCSName,
                                    INT64 waitMillSec )
    {
       INT32 rc = SDB_OK ;
@@ -3054,8 +3131,8 @@ namespace engine
       ++retryTimes ;
       needRetry = FALSE ;
       // send request
-      rc = _sendCSInfoReq( csName, csUniqueID, requestID, &(item->netHandle),
-                           waitMillSec ) ;
+      rc = _sendCSInfoReq( csName, csUniqueID, requestID,
+                           &(item->netHandle), waitMillSec ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to send cs info request, rc = %d", rc ) ;
@@ -3104,10 +3181,6 @@ namespace engine
       // sanity chekc for result
       PD_RC_CHECK( rc, PDWARNING, "Get collection space[%s] info failed, "
                    "rc: %d", csName, rc ) ;
-      if ( newCSName )
-      {
-         *newCSName = item->csName ;
-      }
       if ( UTIL_UNIQUEID_NULL == csUniqueID )
       {
          csUniqueID = item->csUniqueID ;
@@ -3396,8 +3469,10 @@ namespace engine
             }
 
             // eg:
-            // { "Collection": [ { "Name": "bar1", "UniqueID": 2667174690817 } ,
-            //                   { "Name": "bar2", "UniqueID": 2667174690818 } ] }
+            // { Collection: [ { "Name": "bar1", "UniqueID": 2667174690817 } ,
+            //                 { "Name": "bar2", "UniqueID": 2667174690818 }
+            //               ]
+            // }
             ele = objList[0].getField( CAT_COLLECTION ) ;
             if ( Array == ele.type() )
             {
@@ -3490,6 +3565,13 @@ namespace engine
       BSONObj myInfoObj ;
       MsgAuthReply *reply = NULL ;
       INT32 replySize = 0 ;
+
+      if ( SDB_ROLE_DATA != pmdGetDBRole() )
+      {
+         PD_LOG( PDWARNING, "Received authentication message on shard "
+                            "unexpectedly" ) ;
+         goto done ;
+      }
 
       // If the adapter handler is valid, there is some valid connection between
       // this node and the adapter. In this case, no new connections with a

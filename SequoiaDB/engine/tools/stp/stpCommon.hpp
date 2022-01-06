@@ -39,6 +39,8 @@
 #ifndef STP_COMMON_HPP__
 #define STP_COMMON_HPP__
 
+#include "math.h"
+
 namespace engine
 {
 
@@ -71,6 +73,8 @@ namespace engine
    #define STP_NANOSEC_TO_MILLISEC( x )      ( (UINT64)( x ) / 1000000LL )
    // convert microseconds to milliseconds
    #define STP_MICROSEC_TO_MILLISEC( x )     ( (UINT32)( x ) / 1000 )
+   #define STP_MICROSEC_TO_MILLISEC_CEIL( x ) \
+                              ( (UINT32)( ceil( (FLOAT64)( x ) / 1000.0 ) ) )
    // convert milliseconds to microseconds
    #define STP_MILLISEC_TO_MICROSEC( x )     ( (UINT64)( x ) * 1000LL )
    // convert milliseconds to seconds
@@ -83,6 +87,18 @@ namespace engine
    #define STP_MAX_SYNC_INTERVAL       ( 600 )
    // default synchronize interval is 60 seconds
    #define STP_DEF_SYNC_INTERVAL       ( 60 )
+   // step for increase / decrease synchronize interval in runtime
+   #define STP_SYNC_INTERVAL_STEP      ( STP_MIN_SYNC_INTERVAL )
+   // calculate steps from synchronize interval
+   #define STP_SYNC_INT_TO_STEP( syncIntSec ) \
+                           ( ( syncIntSec ) >= 1 ? \
+                             ( ( ( syncIntSec ) + STP_SYNC_INTERVAL_STEP - 1 ) / \
+                               STP_SYNC_INTERVAL_STEP - 1 ) : \
+                             ( 0 ) )
+   // calculate synchronize interval from steps
+   #define STP_SYNC_STEP_TO_INT( syncIntSteps ) \
+                           ( STP_MIN_SYNC_INTERVAL + \
+                             STP_SYNC_INTERVAL_STEP * ( syncIntSteps ) )
 
    // STP time error defines ( in microseconds )
    // minimum time error is 1000 microseconds
@@ -100,8 +116,23 @@ namespace engine
    // step to adjust time error ( adjust time error by 10% each time )
    #define STP_TIME_ERROR_ADJUST_STEP  ( 0.1 )
 
+   // synchronize record with offset in valid range means the offset is too
+   // trivial to adjust slew rate
+   // NOTE:
+   // - the offset of each synchronize can not be larger than the minimum
+   //   time error ( 1ms )
+   // - we take 1/10 ( 0.1ms ) of it as the limit to adjust the slew rate for
+   //   CPU ticks
+   // maximum valid offset to slew rate check
+   #define STP_SLEWRATE_OFFSET_MAX_LIMIT     ( 100000L )
+   // minimum valid offset to slew rate check
+   #define STP_SLEWRATE_OFFSET_MIN_LIMIT     ( -100000L )
+
    // STP default slew rate for CPU ticks
-   #define STP_DEF_SLEWRATE   ( 10000LL )
+   // NOTE:
+   // for the given minimum and maximum limits and interval of slew rate
+   // check interval ( 10s ), we need 10s / 0.1ms in precision to tell difference
+   #define STP_DEF_SLEWRATE   ( 100000LL )
 
    // STP to keep history synchronize records
    #define STP_DEF_SYNC_HIST_SIZE ( 20 )

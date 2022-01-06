@@ -78,7 +78,7 @@ namespace engine
    {
       if ( NULL != func )
       {
-         stpCommand *command = (*func)() ;
+         stpCommand *command = (*func)( NULL ) ;
          if ( NULL != command )
          {
             const CHAR *name = command->getName() ;
@@ -103,14 +103,15 @@ namespace engine
    {
    }
 
-   stpCommand *_stpCommandBuilder::createCommand( const CHAR *name )
+   stpCommand *_stpCommandBuilder::createCommand( STPCB *stpCB,
+                                                  const CHAR *name )
    {
       // find command by name
       STP_CMD_NEW_FUNC func = _findCommand( name ) ;
       if ( NULL != func )
       {
          // call new function to create command
-         return (*func)() ;
+         return (*func)( stpCB ) ;
       }
       return NULL ;
    }
@@ -153,7 +154,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPGETCOMMAND, "stpGetCommand" )
-   INT32 stpGetCommand( const CHAR *name, stpCommand **command )
+   INT32 stpGetCommand( STPCB *stpCB, const CHAR *name, stpCommand **command )
    {
       INT32 rc = SDB_OK ;
 
@@ -169,7 +170,7 @@ namespace engine
                 "name is invalid" ) ;
 
       // create command
-      tmpCommand = stpGetCommandBuilder()->createCommand( name + 1 ) ;
+      tmpCommand = stpGetCommandBuilder()->createCommand( stpCB, name + 1 ) ;
       PD_CHECK( NULL != tmpCommand, SDB_INVALIDARG, error, PDERROR,
                 "Failed to get command with name [%s]", name ) ;
 
@@ -951,11 +952,13 @@ namespace engine
 
       try
       {
+         string returnStr;
+         BOOLEAN hasError = FALSE ;
          BSONObj errorObject ;
 
          // update options ( will notify config changed to all STPCB modules
          // internally )
-         rc = _stpCB->getOptions()->update( _configs, FALSE, result ) ;
+         rc = _stpCB->getOptions()->update( _configs, FALSE, errorObject ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to update config options, "
                       "rc: %d", rc ) ;
 
@@ -963,6 +966,21 @@ namespace engine
          rc = _stpCB->getOptions()->save() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to save config options, "
                       "rc: %d", rc ) ;
+
+         // build error report
+         if ( SDB_OK != optBuildErrorReport( errorObject,
+                                             hasError,
+                                             returnStr ) )
+         {
+            // ignore error
+            goto error ;
+         }
+
+         if ( hasError )
+         {
+            rc = SDB_RTN_CONF_NOT_TAKE_EFFECT ;
+            PD_LOG_MSG( PDERROR, returnStr.c_str() ) ;
+         }
       }
       catch ( exception &e )
       {
@@ -1101,6 +1119,8 @@ namespace engine
          }
          else if ( _stpCB->isSecondaryServer() )
          {
+            PD_LOG( PDDEBUG, "Reelect target, set max weight" ) ;
+
             // it is not primary yet, set shadow weight to maximum
             _stpCB->getReplManager()->getVoteMachine()->
                   setShadowWeight( CLS_ELECTION_WEIGHT_MAX ) ;
@@ -1589,6 +1609,71 @@ namespace engine
 
    error:
       goto done ;
+   }
+
+   /*
+      _stpMsgCMD implement
+    */
+   IMPLEMENT_STP_CMD_AUTO_REGISTER( _stpMsgCMD )
+
+   _stpMsgCMD::_stpMsgCMD( STPCB *stpCB )
+   : stpCommand( stpCB )
+   {
+   }
+
+   _stpMsgCMD::~_stpMsgCMD()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMSGCMD_INITIALIZE, "_stpMsgCMD::initialize" )
+   INT32 _stpMsgCMD::initialize( const CHAR *option )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPMSGCMD_INITIALIZE ) ;
+
+      try
+      {
+         BSONObj boOption( option ) ;
+         BSONElement element = boOption.getField( FIELD_NAME_MESSAGE ) ;
+         PD_CHECK( String == element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to get field [%s], it is not a string",
+                   FIELD_NAME_MESSAGE ) ;
+         _message.assign( element.valuestr() ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse option for command [%s], "
+                 "occurred unexpected error: %s", getName(), e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPMSGCMD_INITIALIZE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMSGCMD_DOIT, "_stpMsgCMD::doit" )
+   INT32 _stpMsgCMD::doit( stpSession *session,
+                           MsgHeader *message,
+                           BSONObj &result,
+                           BOOLEAN &finished )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPMSGCMD_DOIT ) ;
+
+      PD_LOG( getPDLevel(), "%s", _message.c_str() ) ;
+
+      finished = TRUE ;
+
+      PD_TRACE_EXITRC( SDB__STPMSGCMD_DOIT, rc ) ;
+
+      return rc ;
    }
 
 }

@@ -776,13 +776,13 @@ namespace engine
       rtnContextBuf ctxBuff ;
 
       INT32 flag = 0 ;
-      CHAR *pCMDName = NULL ;
+      const CHAR *pCMDName = NULL ;
       INT64 numToSkip = 0 ;
       INT64 numToReturn = 0 ;
-      CHAR *pQuery = NULL ;
-      CHAR *pFieldSelector = NULL ;
-      CHAR *pOrderBy = NULL ;
-      CHAR *pHint = NULL ;
+      const CHAR *pQuery = NULL ;
+      const CHAR *pFieldSelector = NULL ;
+      const CHAR *pOrderBy = NULL ;
+      const CHAR *pHint = NULL ;
 
       // init reply msg
       replyHeader.header.messageLength = sizeof( MsgOpReply ) ;
@@ -793,7 +793,7 @@ namespace engine
       _fillRspHeader( &(replyHeader.header), &(pQueryReq->header) ) ;
 
       // extract msg
-      rc = msgExtractQuery( (CHAR*)pMsg, &flag, &pCMDName, &numToSkip,
+      rc = msgExtractQuery( (const CHAR*)pMsg, &flag, &pCMDName, &numToSkip,
                             &numToReturn, &pQuery, &pFieldSelector,
                             &pOrderBy, &pHint ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to extract query msg, rc: %d", rc ) ;
@@ -831,9 +831,9 @@ namespace engine
          case MSG_CAT_DEL_NODE_REQ :
          {
             SINT64 contextID = -1;
-            catContext *pCatCtx = NULL ;
+            catContextPtr pCatCtx ;
             rc = catCreateContext ( (MSG_TYPE)pQueryReq->header.opCode,
-                                    &pCatCtx, contextID,
+                                    pCatCtx, contextID,
                                     _pEduCB ) ;
             if ( SDB_OK == rc )
             {
@@ -842,7 +842,6 @@ namespace engine
                {
                   catDeleteContext( contextID, _pEduCB ) ;
                   contextID = -1 ;
-                  pCatCtx = NULL ;
                }
                else
                {

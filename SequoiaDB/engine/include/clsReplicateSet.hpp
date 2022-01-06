@@ -282,6 +282,20 @@ namespace engine
             return ;
          }
 
+         virtual BOOLEAN isEnabled()
+         {
+            return TRUE;
+         }
+         virtual void beforeFS()
+         {
+            return ;
+         }
+         virtual void afterFS( const DPS_LSN_OFFSET &offset,
+                               const DPS_LSN_VER &version )
+         {
+            return ;
+         }
+
       public:
          void  regSession ( _clsDataSrcBaseSession *pSession ) ;
          void  unregSession ( _clsDataSrcBaseSession *pSession ) ;
@@ -333,6 +347,7 @@ namespace engine
          virtual BOOLEAN isLocalSpare() ;
          virtual UINT8 getVoteWeight() ;
          virtual UINT32 getSharingBreakTime() ;
+         virtual BOOLEAN getDetectDisk() ;
          virtual INT32 getSyncStrategy() ;
          virtual INT32 onLocalNotFoundInGroup() ;
          virtual void beforePrimaryActive() ;

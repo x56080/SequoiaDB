@@ -1,6 +1,10 @@
+##名称##
+
+arrayAccess - 将结果集保存到数组中并获取指定下标记录
+
 ##语法##
 
-***query.arrayAccess( \<index\> )***
+**query.arrayAccess( \<index\> )**
 
 ##类别##
 
@@ -27,25 +31,29 @@ SdbQuery
 
 常见错误可参考[错误码][error_code]。
 
+##版本##
+
+v3.0 及以上版本。
+
 ##示例##
 
-* 返回数组中下标为 0 的记录
+返回数组中下标为 0 的记录
 
-  ```lang-javascript
-  > db.sample.employee.find().arrayAccess(0)
-  {
-      "_id": {
-        "$oid": "5cf8aef75e72aea111e82b38"
-      },
-      "name": "tom",
-      "age": 20
-  }
-  ```
+```lang-javascript
+> db.sample.employee.find().arrayAccess(0)
+{
+    "_id": {
+      "$oid": "5cf8aef75e72aea111e82b38"
+    },
+    "name": "tom",
+    "age": 20
+}
+```
 
 
 [^_^]:
      本文使用的所有引用及链接
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
-[faq]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md

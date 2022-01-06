@@ -1,23 +1,17 @@
 /******************************************************************************
-@Description: seqDB-7496:插入数据后对多个hash子表做范围切分
-@modify list:
-   2014-7-30   pusheng Ding  Init
-   2019-4-15   xiaoni huang  modify
-*******************************************************************************/
+ * @Description   : seqDB-7496:插入数据后对多个hash子表做范围切分
+ * @Author        : Lan Tian
+ * @CreateTime    : 2021.12.01
+ * @LastEditTime  : 2021.12.02
+ * @LastEditors   : Lan Tian
+ ******************************************************************************/
+
+testConf.skipStandAlone = true;
+testConf.skipOneGroup = true;
 
 main( test );
 function test ()
 {
-   if( true == commIsStandalone( db ) )
-   {
-      return;
-   }
-   if( commGetGroupsNum( db ) < 2 )
-   {
-      return;
-   }
-   db.setSessionAttr( { PreferedInstance: "M" } );
-
    var mclName = "mcl_7496";
    var sclName1 = "scl_7496_1";
    var sclName2 = "scl_7496_2";
@@ -41,7 +35,7 @@ function test ()
    mainCL.attachCL( COMMCSNAME + "." + sclName1, { LowBound: { a: 0 }, UpBound: { a: 1000 } } );
    mainCL.attachCL( COMMCSNAME + "." + sclName2, { LowBound: { a: 1000 }, UpBound: { a: 2000 } } );
 
-   // insert   
+   // insert
    var recordsNum = 2000;
    var insertTimes = 3;
    var docs = [];
@@ -56,9 +50,9 @@ function test ()
    }
 
    // split
-   subCL1.splitAsync( srcRG, trgRG, { Partition: 500 }, { Partition: 1000 } );
-   subCL2.splitAsync( srcRG, trgRG, { a: 1500 }, { a: 2000 } );
-   sleep( 2000 );
+   let taskid1 = subCL1.splitAsync( srcRG, trgRG, { Partition: 500 }, { Partition: 1000 } );
+   let taskid2 = subCL2.splitAsync( srcRG, trgRG, { a: 1500 }, { a: 2000 } );
+   db.waitTasks( taskid1, taskid2 );
 
    // check min/maxValue
    var expMainCnt = recordsNum * insertTimes * 2;

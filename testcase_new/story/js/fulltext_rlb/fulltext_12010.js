@@ -4,17 +4,28 @@
 *@createdate:  2019.08.21
 *@testlinkCase: seqDB-12010
 **************************************/
+testConf.skipStandAlone = true;
+testConf.skipOneDuplicatePerGroup = true;
 
 main( test );
 
 function test ()
 {
-   if( commIsStandalone( db ) ) { return; }
+   var groups = commGetGroups( db );
+   for( var i = 0; i < groups.length; i++ )
+   {
+      var group = groups[i];
+      if( group.length > 2 )
+      {
+         break;
+      }
+   }
+   var groupName = group[0].GroupName;
 
    var clName = COMMCLNAME + "_ES_12010";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: 7 } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName, ReplSize: 7 } );
 
    // 创建全文索引，插入数据
    var textIndexName = "textIndex_12010";
@@ -25,8 +36,7 @@ function test ()
    checkFullSyncToES( COMMCSNAME, clName, textIndexName, 1 );
 
    // 停止其中一个节点，插入记录
-   var groups = commGetCLGroups( db, COMMCSNAME + "." + clName );
-   var preSlave = db.getRG( groups[0] ).getSlave();
+   var preSlave = db.getRG( groupName ).getSlave();
    try
    {
       preSlave.stop();

@@ -23,12 +23,22 @@ testCommonFiles = [
 testFiles = [ 
    [ "./lob/lob23377.cpp" ],
    [ "./lob/lob23411.cpp" ],
-   [ "./datasource/DS_connTest9505.cpp" ],
-   [ "./datasource/DS_invalidArgTest9524.cpp" ],
-   [ "./datasource/DS_invalidConnTest9528.cpp" ],
-   [ "./datasource/DS_invalidUsrTest9522.cpp" ],  # sync
-   [ "./datasource/DS_threadTest9535.cpp", "./datasource/DS_thread.cpp" ],
-   [ "./datasource/DS_timeTest9499.cpp" ],  # sync
+   [ "./checkClientCataVersion/checkClientCataVersion22815.cpp" ],
+   [ "./connectionpool/connpool_connTest9505.cpp" ],
+   [ "./connectionpool/connpool_invalidArgTest9524.cpp" ],
+   [ "./connectionpool/connpool_invalidConnTest9528.cpp" ],
+   [ "./connectionpool/connpool_invalidUsrTest9522.cpp" ],  # sync
+   [ "./connectionpool/connpool_threadTest9535.cpp", "./connectionpool/connpool_thread.cpp" ],
+   [ "./connectionpool/connpool_timeTest9499.cpp" ],  # sync
+   #[ "./connectionpool/connpool_authtest24439.cpp" ], #not exec
+   #[ "./connectionpool/connpool_authtest24537.cpp" ], #not exec
+   #[ "./connectionpool/connpool_authtest24543.cpp" ], #not exec
+   #[ "./connectionpool/connpool_coordTest9571.cpp" ],
+   #[ "./connectionpool/connpool_libTest9577.cpp" ],
+   #[ "./connectionpool/connpool_memCheck9578.cpp" ],
+   #[ "./connectionpool/connpool_strategyTest9483.cpp"],
+   #[ "./connectionpool/connpool_timeJumpTest9580.cpp"],
+   #[ "./connectionpool/connpool_updateAddr24546.cpp"],
    [ "./meta/domain12510_12658.cpp" ], # sync
    [ "./meta/domain12657.cpp" ], # sync
    [ "./meta/cs12511_12659.cpp" ],
@@ -128,6 +138,7 @@ testFiles = [
    # [ "./cache/renameCsClWithCache14694.cpp" ],
    # [ "./cache/getCountWithCache14695.cpp" ], # no need
    # [ "./cache/listLobPiecesWithCache14696.cpp" ], # no need
+   # [ "./cache/getVersionWithCache24412.cpp" ],
    [ "./lob/lobOpr12516.cpp" ],
    [ "./lob/lobSeek12663.cpp" ],
    [ "./lob/lobClose12554_12665.cpp" ],
@@ -191,10 +202,12 @@ testFiles = [
    [ "./alter/alterdomain_15163.cpp" ],
    [ "./alter/altercs_15166.cpp" ],
    [ "./alter/altercl_15168.cpp" ],
+   [ "./alter/getCSCL23278.cpp" ],
    [ "./datatype/timestamptest_15861.cpp" ],
    [ "./paramVerify/snapshotTest15759.cpp" ],
    [ "./lob/lobIsEof15671.cpp" ],
    [ "./list/listtest_19946.cpp" ],
+   [ "./datasource/DataSource24224.cpp" ],
    #[ "./sdb/errobj_17385.cpp"]
 ]
 

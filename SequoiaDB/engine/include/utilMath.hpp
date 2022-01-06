@@ -58,6 +58,11 @@ namespace engine
       return value >= 0 ? value : -value ;
    }
 
+   OSS_INLINE BOOLEAN utilCanConvertToINT32( INT64 value )
+   {
+      return value <= OSS_SINT32_MAX_LL && value >= OSS_SINT32_MIN_LL ;
+   }
+
    //
    // overflow check in basic operation
    //

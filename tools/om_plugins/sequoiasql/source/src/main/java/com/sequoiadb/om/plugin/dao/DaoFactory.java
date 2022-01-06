@@ -12,6 +12,7 @@ public class DaoFactory {
     DaoFactory() throws ClassNotFoundException {
         daoMap.put("postgresql", new PostgreSQLOperations());
         daoMap.put("mysql", new MySQLOperations());
+        daoMap.put("mariadb", new MariaDBOperations());
     }
 
     public SequoiaSQLOperations getDao(String name) {

@@ -69,10 +69,10 @@ enum MSG_TYPE
    //shard msg
    MSG_BS_MSG_REQ                      = 1000,
    MSG_BS_MSG_RES                      = MAKE_REPLY_TYPE(MSG_BS_MSG_REQ),
-   MSG_BS_INSERT_REQ                   = 2002,
-   MSG_BS_INSERT_RES                   = MAKE_REPLY_TYPE(MSG_BS_INSERT_REQ),
    MSG_BS_UPDATE_REQ                   = 2001,
    MSG_BS_UPDATE_RES                   = MAKE_REPLY_TYPE(MSG_BS_UPDATE_REQ),
+   MSG_BS_INSERT_REQ                   = 2002,
+   MSG_BS_INSERT_RES                   = MAKE_REPLY_TYPE(MSG_BS_INSERT_REQ),
    MSG_BS_SQL_REQ                      = 2003,
    MSG_BS_SQL_RES                      = MAKE_REPLY_TYPE(MSG_BS_SQL_REQ),
    MSG_BS_QUERY_REQ                    = 2004,
@@ -106,6 +106,9 @@ enum MSG_TYPE
    MSG_BS_TRANS_QUERY_RES              = MAKE_REPLY_TYPE(MSG_BS_TRANS_QUERY_REQ),
    MSG_BS_SEQUENCE_FETCH_REQ           = 2022,
    MSG_BS_SEQUENCE_FETCH_RSP           = MAKE_REPLY_TYPE(MSG_BS_SEQUENCE_FETCH_REQ),
+
+   MSG_BS_ADVANCE_REQ                  = 2030,
+   MSG_BS_ADVANCE_RES                  = MAKE_REPLY_TYPE(MSG_BS_ADVANCE_REQ),
 
    //catalogue msg
    //(MainController:3001~3099, catalogueManager:3100~3199, nodeManager:3200~3299)
@@ -168,20 +171,19 @@ enum MSG_TYPE
    MSG_CAT_SPLIT_READY_REQ             = 3108,
    MSG_CAT_SPLIT_READY_RSP             = MAKE_REPLY_TYPE(MSG_CAT_SPLIT_READY_REQ),
 
-   // split cancel request need 1 or more arguments
-   // by task id :
+   // task cancel request need 1 arguments
    // 1) CAT_TASKID_NAME for task id
-   // else :
-   // the same param with MSG_CAT_SPLIT_READY_REQ
-   MSG_CAT_SPLIT_CANCEL_REQ            = 3109,
-   MSG_CAT_SPLIT_CANCEL_RSP            = MAKE_REPLY_TYPE(MSG_CAT_SPLIT_CANCEL_REQ),
+   MSG_CAT_TASK_CANCEL_REQ             = 3109,
+   MSG_CAT_TASK_CANCEL_RSP             = MAKE_REPLY_TYPE(MSG_CAT_TASK_CANCEL_REQ),
 
-   // split start/chgmeta/cleanup/finish request need 2 arguments
+   // task start request need 1 arguments
+   // 1) CAT_TASKID_NAME for task id
+   MSG_CAT_TASK_START_REQ              = 3110,
+   MSG_CAT_TASK_START_REP              = MAKE_REPLY_TYPE(MSG_CAT_TASK_START_REQ),
+
+   // split chgmeta/cleanup/finish request need 2 arguments
    // 1) CAT_COLLECTION_NAME for collection string
    // 2) CAT_TASKID_NAME for target group name string
-   MSG_CAT_SPLIT_START_REQ             = 3110,
-   MSG_CAT_SPLIT_START_RSP             = MAKE_REPLY_TYPE(MSG_CAT_SPLIT_START_REQ),
-
    MSG_CAT_SPLIT_CHGMETA_REQ           = 3111,
    MSG_CAT_SPLIT_CHGMETA_RSP           = MAKE_REPLY_TYPE(MSG_CAT_SPLIT_CHGMETA_REQ),
 
@@ -231,6 +233,8 @@ enum MSG_TYPE
    // create index
    MSG_CAT_CREATE_IDX_REQ             = 3139,
    MSG_CAT_CREATE_IDX_RSP             = MAKE_REPLY_TYPE(MSG_CAT_CREATE_IDX_REQ),
+
+   // drop index
    MSG_CAT_DROP_IDX_REQ               = 3140,
    MSG_CAT_DROP_IDX_RSP               = MAKE_REPLY_TYPE(MSG_CAT_DROP_IDX_REQ),
 
@@ -635,6 +639,8 @@ typedef struct _MsgOpInsert MsgOpInsert ;
 #define FLG_QUERY_FOR_UPDATE                 0x00010000
 // query from the secondary node( only use in inner )
 #define FLG_QUERY_SECONDARY                  0x00020000
+// query for share
+#define FLG_QUERY_FOR_SHARE                  0x00040000
 
 // For query takes 4 document
 // Query + returnFieldSelector + orderBy + hint
@@ -663,6 +669,25 @@ struct _MsgOpGetMore
    SINT32    numToReturn ;// number of rows to return
 } ;
 typedef struct _MsgOpGetMore MsgOpGetMore ;
+
+enum MSG_ADVANCE_TYPE
+{
+   MSG_ADVANCE_TO_FIRST_IN_VALUE = 1,  // For index scan. Advance to the first
+                                       // record of the same value
+   MSG_ADVANCE_TO_NEXT_OUT_VALUE = 2   // For index scan. Advance to the next
+                                       // record different from the value.
+} ;
+
+// advance for context
+// take a bson(arg) | back data bsons
+struct _MsgOpAdvance
+{
+   MsgHeader header ;      // message header
+   SINT64    contextID ;   // context ID from reply
+   SINT32    backDataSize ;// back data size
+   SINT32    padding[3] ;  // padding
+} ;
+typedef struct _MsgOpAdvance MsgOpAdvance ;
 
 // remove one row instead of all matching records
 #define FLG_DELETE_ONE              0x00000002
@@ -729,6 +754,8 @@ struct _MsgOpReply
    //    RTN_CTX_PROCESSOR_END, it is the type of data dispatcher which is
    //    used to process "this" reply
    // 4. DDL reply, startFrom might be the new sdb metadata version
+   // 5. test collection cata reply to coord success,
+   //    startFrom might be the collection metadata version
    SINT32    startFrom ;
    // 40-43 bytes
    SINT32    numReturned ;// number of records returned in the reply
@@ -917,7 +944,7 @@ typedef struct _MsgOpAggregate
 /// read on secondary node( use only in secondary )
 #define FLG_LOBREAD_SECONDARY             0x00000008
 
-/// when it is open reg |MsgOpLob|bsonobj|
+/// when it is open req |MsgOpLob|bsonobj|
 /// when it is open res |MsgOpReply|bsonobj|
 /// when it is put req |MsgOpLob|_MsgLobTuple|data|
 /// when it is put res |MsgOpReply|

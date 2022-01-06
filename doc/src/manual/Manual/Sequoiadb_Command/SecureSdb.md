@@ -21,7 +21,7 @@ SecureSdb
 
 > - SecureSdb 是 Sdb 的子类，SecureSdb 的对象使用 SSL 连接，目前只有企业版支持 SSL 功能。
 
-> - 在使用 SecureSdb 之前需要先设置数据库配置项 --usessl=true ，可参考[配置项参数](manual/Manual/Database_Configuration/configuration_parameters.md)。
+> - 在使用 SecureSdb 之前需要先设置数据库配置项 --usessl=true ，可参考[配置项参数](manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md)。
 
 > - SecureSdb 对象和 Sdb 对象的方法和语法一致。 
 
@@ -44,7 +44,7 @@ SecureSdb
 ##错误##
 
 
-当异常抛出时，可以通过 [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) 获取错误信息或通过 [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) 获取错误码。更多错误处理可以参考[常见错误处理指南](manual/faq.md)。
+当异常抛出时，可以通过 [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) 获取错误信息或通过 [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) 获取错误码。更多错误处理可以参考[常见错误处理指南](manual/FAQ/faq_sdb.md)。
 
 常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
 

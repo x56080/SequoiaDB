@@ -879,6 +879,126 @@ namespace engine
       goto done ;
    }
 
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSTRLENBYTESBUILD, "mthStrLenBytesBuild" )
+   INT32 mthStrLenBytesBuild( const CHAR *fieldName,
+                              const bson::BSONElement &e,
+                              _mthSAction *action,
+                              bson::BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHSTRLENBYTESBUILD ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+
+      rc = mthStrLenBytes( fieldName, e, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthStrLenBytes failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHSTRLENBYTESBUILD, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSTRLENBYTESGET, "mthStrLenBytesGet" )
+   INT32 mthStrLenBytesGet( const CHAR *fieldName,
+                            const bson::BSONElement &in,
+                            _mthSAction *action,
+                            bson::BSONElement &out )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHSTRLENBYTESGET ) ;
+      BSONObjBuilder builder ;
+      BSONObj obj ;
+      if ( in.eoo() )
+      {
+         goto done ;
+      }
+
+      rc = mthStrLenBytes( fieldName, in, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthStrLenBytes failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      obj = builder.obj() ;
+      if ( !obj.isEmpty() )
+      {
+         action->setObj( obj ) ;
+         out = action->getObj().getField( fieldName ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHSTRLENBYTESGET, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSTRLENCPBUILD, "mthStrLenCPBuild" )
+   INT32 mthStrLenCPBuild( const CHAR *fieldName,
+                              const bson::BSONElement &e,
+                              _mthSAction *action,
+                              bson::BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHSTRLENCPBUILD ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+
+      rc = mthStrLenCP( fieldName, e, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthStrLenCP failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHSTRLENCPBUILD, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSTRLENCPGET, "mthStrLenCPGet" )
+   INT32 mthStrLenCPGet( const CHAR *fieldName,
+                            const bson::BSONElement &in,
+                            _mthSAction *action,
+                            bson::BSONElement &out )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHSTRLENCPGET ) ;
+      BSONObjBuilder builder ;
+      BSONObj obj ;
+      if ( in.eoo() )
+      {
+         goto done ;
+      }
+
+      rc = mthStrLenCP( fieldName, in, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthStrLenCP failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      obj = builder.obj() ;
+      if ( !obj.isEmpty() )
+      {
+         action->setObj( obj ) ;
+         out = action->getObj().getField( fieldName ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHSTRLENCPGET, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHLOWERBUILD, "mthLowerBuild" )
    INT32 mthLowerBuild( const CHAR *fieldName,
                         const bson::BSONElement &e,

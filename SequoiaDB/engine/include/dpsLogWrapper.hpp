@@ -192,6 +192,9 @@ namespace engine
       void regEventHandler( dpsEventHandler *pHandler ) ;
       void unregEventHandler( dpsEventHandler *pHandler ) ;
 
+      void beforeFS() ;
+      void afterFS() ;
+
       OSS_INLINE _dpsReplicaLogMgr *getLogMgr ()
       {
          return &_buf ;

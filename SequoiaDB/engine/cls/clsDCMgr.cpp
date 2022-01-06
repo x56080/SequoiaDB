@@ -148,7 +148,7 @@ namespace engine
          goto error ;
       }
 
-      e = obj.getField( FIELD_NAME_RESTORING ) ;
+      e = obj.getField( FIELD_NAME_RESTORE ) ;
       if ( e.eoo() )
       {
          _restoring = FALSE ;
@@ -720,6 +720,12 @@ namespace engine
          rc = sock.connect( (INT32)millsec ) ;
          PD_RC_CHECK( rc, PDWARNING, "Connect to %s:%d failed, rc: %d",
                       node._host, port, rc ) ;
+
+         sock.disableNagle() ;
+         // set keep alive
+         sock.setKeepAlive( 1, OSS_SOCKET_KEEP_IDLE,
+                            OSS_SOCKET_KEEP_INTERVAL,
+                            OSS_SOCKET_KEEP_CONTER ) ;
 
          if ( pRecvEvent )
          {

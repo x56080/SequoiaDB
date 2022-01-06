@@ -37,35 +37,37 @@ NULL.
 .PP
 Since v2.6.
 .SH EXAMPLES
-.IP "1." 3
+.PP
 Get the error object of last operation.
 When the error occurs on a data node, the error object returned contains the
 description of the ErrNodes field.
+.IP
 .nf
 \f[C]
->\ db.foo.bar.createIndex("A",{"a":1})
-(shell):1\ uncaught\ exception:\ \-247
-Redefine\ index
->\ var\ err\ =\ getLastErrObj()
->\ var\ obj\ =\ err.toObj()
->\ println(\ obj.toString()\ )
+```lang\-javascript
+> db.sample.employee.createIndex("A",{"a":1})
+(shell):1 uncaught exception: \-247
+Redefine index
+> var err = getLastErrObj()
+> var obj = err.toObj()
+> println( obj.toString() )
 {
-\ \ "errno":\ \-247,
-\ \ "description":\ "Redefine\ index",
-\ \ "detail":\ "",
-\ \ "ErrNodes":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "NodeName":\ "localhost:11830",
-\ \ \ \ \ \ "GroupName":\ "group2",
-\ \ \ \ \ \ "Flag":\ \-247,
-\ \ \ \ \ \ "ErrInfo":\ {
-\ \ \ \ \ \ \ \ "errno":\ \-247,
-\ \ \ \ \ \ \ \ "description":\ "Redefine\ index",
-\ \ \ \ \ \ \ \ "detail":\ ""
-\ \ \ \ \ \ }
-\ \ \ \ }
-\ \ ]
+  "errno": \-247,
+  "description": "Redefine index",
+  "detail": "",
+  "ErrNodes": [
+    {
+      "NodeName": "localhost:11830",
+      "GroupName": "group2",
+      "Flag": \-247,
+      "ErrInfo": {
+        "errno": \-247,
+        "description": "Redefine index",
+        "detail": ""
+      }
+    }
+  ]
 }
+```
 \f[]
 .fi
-.RE

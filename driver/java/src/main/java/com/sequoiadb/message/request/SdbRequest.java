@@ -67,8 +67,6 @@ public abstract class SdbRequest extends SdbMsgHeader implements Request {
         out.put(objBytes);
 
         int paddingLen = Helper.alignedSize(objBytes.length) - objBytes.length;
-        if (paddingLen > 0) {
-            out.put(new byte[paddingLen]);
-        }
+        Helper.fillZero(out, paddingLen);
     }
 }

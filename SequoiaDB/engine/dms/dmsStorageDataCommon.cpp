@@ -377,6 +377,16 @@ namespace engine
       _isDirectMem = FALSE ;
    }
 
+   _dmsRecordRW::_dmsRecordRW( const _dmsRecordRW &recordRW )
+   : _isDirectMem( recordRW._isDirectMem ),
+     _ptr( recordRW._ptr ),
+     _rid( recordRW._rid._extent, recordRW._rid._offset ),
+     _rw( recordRW._rw ),
+     _pData( recordRW._pData )
+   {
+   }
+
+
    _dmsRecordRW::~_dmsRecordRW()
    {
    }
@@ -565,7 +575,7 @@ namespace engine
       _mmeSegID         = 0 ;
       _pEventHolder     = pEventHolder ;
       _pExtDataHandler  = NULL ;
-      _isCapped         = FALSE;
+      _isCapped         = FALSE ;
       for ( UINT16 i = 0; i < DMS_MME_SLOTS; ++i )
       {
          _mblock[i] = monSpinSLatch( MON_LATCH_MBLOCK ) ;
@@ -747,6 +757,21 @@ namespace engine
          PD_LOG( PDERROR, "Incompatible version: %u", pHeader->_version ) ;
          rc = SDB_DMS_INCOMPATIBLE_VERSION ;
       }
+      else if ( pHeader->_version < DMS_MVCC_ENABLE_VER &&
+                pHeader->_version > DMS_NONMVCC_MAX_VER )
+      {
+         // to avoid new unknown versions are adding in v3.x
+         PD_LOG( PDERROR, "Incompatible version: %u, "
+                 "unknown version is added, maximum known version: %u",
+                 pHeader->_version, DMS_NONMVCC_MAX_VER ) ;
+         rc = SDB_DMS_INCOMPATIBLE_VERSION ;
+      }
+      else if ( pHeader->_version >= DMS_MVCC_ENABLE_VER )
+      {
+         // check if MVCC version upgraded
+         _mvccUpgraded = TRUE ;
+      }
+
       return rc ;
    }
 
@@ -1038,7 +1063,7 @@ namespace engine
             // collection. It's default value is DMS_INVALID_EXTENT, so need
             // to upgrade the existing collections to this default value for
             // those collections which created on cs before this version.
-            if ( _dmsHeader->_version < 3 &&
+            if ( _dmsHeader->_version < DMS_CAPPED_ENABLE_VER &&
                  DMS_INVALID_EXTENT != _dmsMME->_mbList[i]._mbOptExtentID )
             {
                _dmsMME->_mbList[i]._mbOptExtentID = DMS_INVALID_EXTENT ;
@@ -1177,6 +1202,22 @@ namespace engine
          }
       }
 
+      if ( _mvccSupport && !_mvccUpgraded )
+      {
+         if ( NULL != _dmsHeader &&
+              _dmsHeader->_version < DMS_MVCC_ENABLE_VER )
+         {
+            PD_LOG( PDEVENT, "Collection space [%s] upgrade dms file version "
+                    "from [%u] to [%u]", _dmsHeader->_name,
+                    _dmsHeader->_version, DMS_MVCC_ENABLE_VER ) ;
+            // upgrade to MVCC enabled version
+            // WARNING: it is irreversible
+            _dmsHeader->_version = DMS_MVCC_ENABLE_VER ;
+
+            _mvccUpgraded = TRUE ;
+         }
+      }
+
       if ( needSync )
       {
          rc = flushMME( isSyncDeep() ) ;
@@ -1261,6 +1302,8 @@ namespace engine
             BSONObj obj ( recordData.data() ) ;
             // create a new object for updated record
             BSONObj newobj ( recordData.data() );
+            // just copy object, no need to update indexes
+            ixmIdxHashBitmap emptyBitmap ;
 #if _DEBUG
             PD_LOG ( PDDEBUG,
                      "Dummy update record (%s)",
@@ -1268,7 +1311,7 @@ namespace engine
 #endif
             rc = _extentUpdatedRecord( context, extRW, recordRW,
                                        recordData, newobj, cb,
-                                       NULL, NULL, NULL, NULL ) ;
+                                       NULL, NULL, NULL, NULL, emptyBitmap ) ;
             if ( rc )
             {
                PD_LOG ( PDERROR, "Failed to update record from (%s) to (%s), "
@@ -2151,7 +2194,7 @@ namespace engine
          else if ( extID == context->mb()->_lastExtentID )
          {
             context->mb()->_lastExtentID = extent->_prevExtent ;
-            if ( !prevExt )
+            if ( prevExt )
             {
                prevExt->_nextExtent = DMS_INVALID_EXTENT ;
             }
@@ -2185,13 +2228,15 @@ namespace engine
                                                BOOLEAN sysCollection,
                                                UINT8 compressionType,
                                                UINT32 *logicID,
-                                               const BSONObj *extOptions )
+                                               const BSONObj *extOptions,
+                                               const BSONObj *pIdIdxDef,
+                                               BOOLEAN addIdxIDIfNotExist )
    {
       INT32 rc                = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_ADDCOLLECTION ) ;
       dpsMergeInfo info ;
       dpsLogRecord &record    = info.getMergeBlock().record() ;
-      UINT32 logRecSize       = 0;
+      UINT32 logRecSize       = 0 ;
       dpsTransCB *pTransCB    = pmdGetKRCB()->getTransCB() ;
       CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
       UINT16 newCollectionID  = DMS_INVALID_MBID ;
@@ -2207,6 +2252,7 @@ namespace engine
       dmsExtentID mbExExtent  = DMS_INVALID_EXTENT ;
       dmsExtentID mbOptExtent = DMS_INVALID_EXTENT ;
       dmsMetaExtent *mbExtent = NULL ;
+      INT32 testTransLockRC   = SDB_OK ;
 
       SDB_ASSERT( pName, "Collection name cat't be NULL" ) ;
 
@@ -2220,7 +2266,7 @@ namespace engine
       {
          rc = dpsCLCrt2Record( _clFullName(pName, fullName, sizeof(fullName)),
                                clUniqueID, attributes, compressionType,
-                               extOptions, record ) ;
+                               extOptions, pIdIdxDef, record ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build record, rc: %d", rc ) ;
 
          rc = dpscb->checkSyncControl( record.alignedLen(), cb ) ;
@@ -2285,6 +2331,37 @@ namespace engine
       {
          if ( DMS_IS_MB_FREE ( _dmsMME->_mbList[i]._flag ) )
          {
+            // trans lock
+            if ( cb && cb->getTransExecutor()->useTransLock() )
+            {
+               dpsTransRetInfo lockConflict ;
+               // NOTE: acquired meta lock and su lock,
+               // no need to test upper lock
+               testTransLockRC = pTransCB->transLockTestX( cb,
+                                                           _logicalCSID,
+                                                           i,
+                                                           NULL,
+                                                           &lockConflict,
+                                                           NULL,
+                                                           FALSE ) ;
+               if ( SDB_OK != testTransLockRC )
+               {
+                  PD_LOG( PDDEBUG,
+                          "Failed to test X lock on collection slot, "
+                          "rc: %d"OSS_NEWLINE
+                          "Conflict( representative ):"OSS_NEWLINE
+                          "   EDUID:  %llu"OSS_NEWLINE
+                          "   TID:    %u"OSS_NEWLINE
+                          "   LockId: %s"OSS_NEWLINE
+                          "   Mode:   %s"OSS_NEWLINE,
+                          testTransLockRC,
+                          lockConflict._eduID,
+                          lockConflict._tid,
+                          lockConflict._lockID.toString().c_str(),
+                          lockModeToString( lockConflict._lockType ) ) ;
+                  continue ;
+               }
+            }
             newCollectionID = i ;
             break ;
          }
@@ -2292,8 +2369,17 @@ namespace engine
       // make sure we find free collection id
       if ( DMS_INVALID_MBID == newCollectionID )
       {
-         PD_LOG ( PDERROR, "Unable to find free collection id" ) ;
-         rc = SDB_SYS ;
+         if ( SDB_OK != testTransLockRC )
+         {
+            PD_LOG( PDERROR, "Failed to test transaction on free slots, "
+                    "rc: %d", testTransLockRC ) ;
+            rc = testTransLockRC ;
+         }
+         else
+         {
+           PD_LOG ( PDERROR, "Unable to find free collection id" ) ;
+           rc = SDB_SYS ;
+         }
          goto error ;
       }
 
@@ -2320,6 +2406,7 @@ namespace engine
                    "Invalid meta extent[%d]", mbExExtent ) ;
          mbExtent->init( mbExSize, newCollectionID, segNum ) ;
          mb->_mbExExtentID = mbExExtent ;
+         // reset to avoid duplicated release
          mbExExtent = DMS_INVALID_EXTENT ;
       }
 
@@ -2327,6 +2414,8 @@ namespace engine
                              optExtSize, newCollectionID ) ;
       PD_RC_CHECK( rc, PDERROR, "onAddCollection operation failed: %d", rc ) ;
       mb->_mbOptExtentID = mbOptExtent ;
+      // reset to avoid duplicated release
+      mbOptExtent = DMS_INVALID_EXTENT ;
 
       // lock mb context before release meta lock
       rc = getMBContext( &context, newCollectionID, logicalID, logicalID,
@@ -2378,8 +2467,11 @@ namespace engine
       // create $id index[s_idKeyObj]
       if ( !OSS_BIT_TEST( attributes, DMS_MB_ATTR_NOIDINDEX ) )
       {
-         rc = _pIdxSU->createIndex( context, ixmGetIDIndexDefine(),
-                                    cb, NULL, TRUE ) ;
+         rc = _pIdxSU->createIndex( context,
+                                    pIdIdxDef ? *pIdIdxDef : ixmGetIDIndexDefine(),
+                                    cb, NULL, TRUE,
+                                    SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE,
+                                    NULL, NULL, FALSE, addIdxIDIfNotExist ) ;
          PD_RC_CHECK( rc, PDERROR, "Create $id index failed in collection[%s], "
                       "rc: %d", pName, rc ) ;
       }
@@ -2440,7 +2532,7 @@ namespace engine
          if ( rc1 )
          {
             PD_LOG( PDSEVERE, "Failed to clean up bad collection creation[%s], "
-                    "rc: %d", pName, rc ) ;
+                    "rc: %d", pName, rc1 ) ;
          }
       }
       goto done ;
@@ -2529,7 +2621,7 @@ namespace engine
       if ( cb && cb->getTransExecutor()->useTransLock() )
       {
          dpsTransRetInfo lockConflict ;
-         rc = pTransCB->transLockTryX( cb, _logicalCSID, context->mbID(),
+         rc = pTransCB->transLockTryZ( cb, _logicalCSID, context->mbID(),
                                        NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to lock the collection, rc: %d"OSS_NEWLINE
@@ -2731,7 +2823,7 @@ namespace engine
       if ( cb && cb->getTransExecutor()->useTransLock() )
       {
          dpsTransRetInfo lockConflict ;
-         rc = pTransCB->transLockTryX( cb, _logicalCSID, context->mbID(),
+         rc = pTransCB->transLockTryZ( cb, _logicalCSID, context->mbID(),
                                        NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to lock the collection, rc: %d"OSS_NEWLINE
@@ -2915,9 +3007,12 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_CHGUID, "_dmsStorageDataCommon::changeCLUniqueID" )
    INT32 _dmsStorageDataCommon::changeCLUniqueID( const MAP_CLNAME_ID& modifyCl,
+                                                  BOOLEAN changeOtherCL,
                                                   utilCSUniqueID csUniqueID,
-                                                  BOOLEAN isLoadCS )
+                                                  BOOLEAN isLoadCS,
+                                                  ossPoolVector<ossPoolString>& clVec )
    {
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON_CHGUID ) ;
       BOOLEAN hasChanged = FALSE ;
 
@@ -2926,7 +3021,7 @@ namespace engine
       COLNAME_MAP_IT it = _collectionNameMap.begin() ;
       while ( it != _collectionNameMap.end() )
       {
-         string clName ( it->first ) ;
+         const CHAR* clName = it->first ;
          UINT16 mbID = it->second ;
          it++ ;
 
@@ -2944,16 +3039,30 @@ namespace engine
          }
          else
          {
+            if ( !changeOtherCL )
+            {
+               continue ;
+            }
             if ( isLoadCS )
             {
                newClUniqueID = utilBuildCLUniqueID( csUniqueID,
-                                                    UTIL_CLINNERID_LOADCS );
+                                                    UTIL_CLINNERID_LOADCS ) ;
             }
             else
             {
                utilCLInnerID orgInnerID = utilGetCLInnerID( orgClUniqueID ) ;
                newClUniqueID = utilBuildCLUniqueID( csUniqueID, orgInnerID ) ;
             }
+         }
+
+         try
+         {
+            clVec.push_back( clName ) ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
          }
 
          // skip when old id equals to new id
@@ -2966,12 +3075,12 @@ namespace engine
          // set new unique id
          _dmsMME->_mbList[mbID]._clUniqueID = newClUniqueID ;
 
-         _collectionRemove ( clName.c_str(), orgClUniqueID ) ;
-         _collectionInsert ( clName.c_str(), mbID, newClUniqueID ) ;
+         _collectionRemove ( clName, orgClUniqueID ) ;
+         _collectionInsert ( clName, mbID, newClUniqueID ) ;
 
          PD_LOG( PDEVENT,
                  "Change cl[%s.%s] unique id from [%llu] to [%llu]",
-                 _dmsHeader->_name, clName.c_str(),
+                 _dmsHeader->_name, clName,
                  orgClUniqueID, newClUniqueID ) ;
 
       }
@@ -2981,8 +3090,11 @@ namespace engine
          flushMME( isSyncDeep() ) ;
       }
 
+   done:
       PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON_CHGUID ) ;
-      return SDB_OK ;
+      return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_RENAMECOLLECTION, "_dmsStorageDataCommon::renameCollection" )
@@ -3052,8 +3164,8 @@ namespace engine
       if ( cb && cb->getTransExecutor()->useTransLock() )
       {
          dpsTransRetInfo lockConflict ;
-         rc = pTransCB->transLockTryS( cb, _logicalCSID, mbID,
-                                       NULL, &lockConflict ) ;
+         rc = pTransCB->transLockTrySAgainstWrite( cb, _logicalCSID, mbID,
+                                                   NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to lock the collection, rc: %d"OSS_NEWLINE
                       "Conflict( representative ):"OSS_NEWLINE
@@ -3251,7 +3363,6 @@ namespace engine
       CHAR                *pMergedData = NULL ;
       _dmsCompressorEntry *compressorEntry =
                                     &_compressorEntry[context->mbID()] ;
-      UINT32               textIdxNum  = 0 ;
       IDmsExtDataHandler  *handler  = NULL ;
       BOOLEAN markInsert            = FALSE ;
       BOOLEAN highConcurrentMode    = FALSE ;
@@ -3281,48 +3392,12 @@ namespace engine
 
       try
       {
-         dpsTransExecutor *pTransExe = cb->getTransExecutor() ;
-         /// when is rollback, and the rid is found
-         if ( transInfo._transID.isValid() &&
-              cb->isInTransRollback() &&
-              pTransExe->getRecord( transInfo._relatedLSN, foundRID, TRUE ) )
-         {
-            markInsert = TRUE ;
-            const dmsRecord *pcRecord = NULL ;
-
-            rc = context->mbLock( EXCLUSIVE ) ;
-            PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d",
-                         rc ) ;
-
-            recordRW = record2RW( foundRID, context->mbID() ) ;
-
-            /// 1. check status
-            pcRecord = recordRW.readPtr<dmsRecord>() ;
-            if ( !pcRecord->isDeleting() )
-            {
-               SDB_ASSERT( FALSE, "Record is not deleting" ) ;
-               markInsert = FALSE ;
-            }
-            /// 2. check the value is the same
-            else
-            {
-               rc = extractData( context, recordRW, cb, recordData ) ;
-               if ( rc )
-               {
-                  SDB_ASSERT( FALSE, "Extrace data failed" ) ;
-                  markInsert = FALSE ;
-               }
-               else if ( 0 != insertObj.woCompare(BSONObj(recordData.data())) )
-               {
-                  SDB_ASSERT( FALSE, "Data is not the same" ) ;
-                  markInsert = FALSE ;
-               }
-            }
-
-            context->mbUnlock() ;
-            recordData.setData( insertObj.objdata(), insertObj.objsize(),
-                                UTIL_COMPRESSOR_INVALID, TRUE ) ;
-         }
+         rc = _checkMarkInsert( context, transInfo._transID, insertObj,
+                                cb, position, markInsert, foundRID,
+                                recordData, recordRW ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check mark insert "
+                      "[position %lld, obj %s], rc: %d",
+                      position, insertObj.toPoolString().c_str(), rc ) ;
 
          if ( !markInsert )
          {
@@ -3413,15 +3488,24 @@ namespace engine
             _clFullName( context->mb()->_collectionName, fullName,
                          sizeof(fullName) ) ;
 
-            if ( ( !OSS_BIT_TEST( context->mb()->_attributes,
+            if ( ( !cb->isInTransRollback() ) &&
+                 ( !OSS_BIT_TEST( context->mb()->_attributes,
                                   DMS_MB_ATTR_NOIDINDEX ) ) &&
                  ( context->mbStat()->_uniqueIdxNum > 1 ) )
             {
                // need save 1 value for each unique index ( except for $id
                // index )
-               // NOTE: for insert, it can without $id index, if it doesn't
-               //       have $id index, the secondary nodes will not replay
-               //       in parallel, so it can without hash array
+               // NOTE:
+               // - for insert, it can without $id index, if it doesn't
+               //   have $id index, the secondary nodes will not replay
+               //   in parallel, so it can without hash array
+               // - two reasons we don't append index hash for
+               //   transaction rollback
+               //   + index hash will enlarge the size of DPS record
+               //     against the origin transaction DPS record.
+               //   + In secondary nodes, it will allow duplicated keys
+               //     during transaction rollback, so the index hash is
+               //     useless
                rc = unqIdxHashArray.prepare(
                                  context->mbStat()->_uniqueIdxNum - 1, TRUE ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to prepare hash list for "
@@ -3483,8 +3567,7 @@ namespace engine
             goto error ;
          }
 
-         textIdxNum = context->mbStat()->_textIdxNum ;
-         if ( textIdxNum > 0 )
+         if ( context->mbStat()->_textIdxNum > 0 )
          {
             handler = getExtDataHandler() ;
             if ( handler )
@@ -3517,7 +3600,7 @@ namespace engine
             // We don't need to handle migration in this code path because
             // markInsert is for rollback purpose. The record version should
             // be up to date or this is a cappedCL record. But let's assert it
-            SDB_ASSERT( pRecord->hasGlobTransID(),
+            SDB_ASSERT( !_mvccSupport || pRecord->hasGlobTransID(),
                         "Record is down level version during rollback" ) ;
 
             // restore record transID when rollback
@@ -3529,8 +3612,17 @@ namespace engine
             }
 
             ++( pWRExtent->_recCount ) ;
-            _increaseMBStat( context->mb()->_clUniqueID,
-                             &( _mbStatInfo[ context->mbID() ] ), cb ) ;
+            _increaseMBStat( context->mb()->_clUniqueID, context->mbStat(),
+                             NULL, cb ) ;
+
+#if defined (_DEBUG)
+            PD_LOG( PDDEBUG, "Mark insert for record (extent: %d; offset: %d) "
+                    "in collection [%s.%s] to rollback transaction [%s]",
+                    foundRID._extent, foundRID._offset,
+                    getSuName(), context->mb()->_collectionName,
+                    dpsTransIDToString(
+                                cb->getTransID().getOrigTransID() ).c_str() ) ;
+#endif
          }
          else
          {
@@ -3566,7 +3658,12 @@ namespace engine
             }
             recordRW = record2RW( foundRID, context->mbID() ) ;
 
-            if ( dpscb && isTransSupport() && !cb->isInTransRollback() )
+            // NOTE: we still need transaction locks during rollback
+            // the insert record to rollback delete operation may insert
+            // to a new place
+            if ( isTransSupport() &&
+                 NULL != cb &&
+                 cb->getTransExecutor()->useTransLock() )
             {
                dpsTransRetInfo lockConflict ;
                callback.setIDInfo( CSID(), context->mbID(), _logicalCSID,
@@ -3608,7 +3705,8 @@ namespace engine
 
             // insert to extent
             rc = _extentInsertRecord( context, extRW, recordRW, recordData,
-                                      dmsRecordSize, cb, TRUE ) ;
+                                      dmsRecordSize, cb, TRUE,
+                                      callback.getTransRecordInfo() ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to append record, rc: %d", rc ) ;
          }
 
@@ -3702,7 +3800,8 @@ namespace engine
       ( void )_onInsertFail( context, ( markInsert ? TRUE : hasInsert),
                              foundRID, dropDps,
                              (ossValuePtr)insertObj.objdata(),
-                             cb ) ;
+                             cb,
+                             callback.getTransRecordInfo() ) ;
       if ( !ctrlAssist.isUndoFinished() )
       {
          // undo is not finished
@@ -3761,7 +3860,6 @@ namespace engine
       dmsExtent *pExtent            = NULL ;
       dmsRecord *pRecord            = NULL ;
       dmsRecordData recordData ;
-      UINT32 textIdxNum             = 0 ;
       IDmsExtDataHandler *handler   = NULL ;
       BOOLEAN inTrans               = FALSE ;
       BOOLEAN hasWaitLock           = FALSE ;
@@ -3771,6 +3869,7 @@ namespace engine
 
       dpsUnqIdxHashArray unqIdxHashArray ;
       dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ;
+      INT64 delPosition = -1 ;
 
       if ( !context->isMBLock( EXCLUSIVE ) )
       {
@@ -3832,25 +3931,30 @@ namespace engine
             inTrans = TRUE ;
          }
 
-         // don't delete the record, someone are waitting for the record lock,
-         // mark the record's attr to DMS_RECORD_FLAG_DELETING and write the log
-         // the last one who get the record-X-Lock will delete the record while
-         // those who gets record-S-Lock will skip the record.
-         if ( pTransCB->hasWait( _logicalCSID, context->mbID(), &recordID ) )
+         if ( NULL != pInfo && pInfo->_transLockEscalated )
          {
+            // holds X on collection, so no other transactions are waiting
+            // for record locks
+            markDeleting = FALSE ;
+         }
+         else if ( pTransCB->hasWait( _logicalCSID, context->mbID(),
+                                      &recordID ) )
+         {
+            // don't delete the record, someone are waitting for the record
+            // lock, mark the record's attr to DMS_RECORD_FLAG_DELETING and
+            // write the log the last one who get the record-X-Lock will
+            // delete the record while those who gets record-S-Lock will skip
+            // the record.
             markDeleting = TRUE ;
             hasWaitLock = TRUE ;
          }
          else if ( inTrans )
          {
-            // although this record was inserted by this transaction(itself),
-            // we shall not remove it directly from disk; othsewise, in case
-            // of rollback, when insertRecord() it doesn't guarantee the same
-            // RID can be used/allocated if space allocation is needed.
-            // As a result, under condition isolation RC and transwaitlock =
-            // TRUE, table scan may wait on that record, index scan will
-            // not wait on that record lock.
             markDeleting = TRUE ;
+            if ( pInfo && pInfo->_transInsert )
+            {
+               markDeleting = FALSE ;
+            }
          }
 
          if ( pRecord->isDeleting() )
@@ -3887,6 +3991,11 @@ namespace engine
                PD_RC_CHECK( rc, PDERROR, "Extract data failed, rc: %d", rc ) ;
             }
 
+            // get record position
+            rc = _getRecordPosition( recordID, recordData, delPosition ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get record position, "
+                         "rc: %d", rc ) ;
+
             if ( !retry )
             {
                // delete index keys
@@ -3895,13 +4004,12 @@ namespace engine
                   delObject = BSONObj( recordData.data() ) ;
                   // need to create own bson buffer as migration would move
                   // the obj
-                  if ( !pRecord->hasGlobTransID() )
+                  if ( _mvccSupport && !pRecord->hasGlobTransID() )
                   {
                      delObject = delObject.getOwned() ;
                   }
 
-                  textIdxNum = context->mbStat()->_textIdxNum ;
-                  if ( textIdxNum > 0 )
+                  if ( context->mbStat()->_textIdxNum > 0 )
                   {
                      handler = getExtDataHandler() ;
                      if ( handler )
@@ -3937,7 +4045,8 @@ namespace engine
                      _clFullName( context->mb()->_collectionName, fullName,
                                   sizeof(fullName) ) ;
 
-                     if ( context->mbStat()->_uniqueIdxNum > 1 )
+                     if ( ( !cb->isInTransRollback() ) &&
+                          ( context->mbStat()->_uniqueIdxNum > 1 ) )
                      {
                         // need save 1 value for each unique index ( except
                         // for $id index )
@@ -3948,14 +4057,18 @@ namespace engine
                         PD_RC_CHECK( rc, PDERROR, "Failed to prepare hash "
                                      "list for unique index [%u], rc: %d",
                                      context->mbStat()->_uniqueIdxNum, rc ) ;
-   
+
                         pUnqIdxHashArray = &unqIdxHashArray ;
                      }
-   
+
                      // reserved log-size
+                     // NOTE: only append position if mark deleting during
+                     //       transaction ( not including rollback phase )
                      rc = dpsDelete2Record( fullName, delObject,
-                                            pUnqIdxHashArray, transInfo,
-                                            record ) ;
+                                            pUnqIdxHashArray,
+                                            ( markDeleting && inTrans ) ?
+                                                        ( &delPosition ) : NULL,
+                                            transInfo, record ) ;
 
                      if ( SDB_OK != rc )
                      {
@@ -4004,7 +4117,7 @@ namespace engine
                         needSetTransRC = TRUE ;
                         goto error ;
                      }
-   
+
                      if ( !context->isMBLock( EXCLUSIVE ) )
                      {
                         // context may be paused in _pIdxSU->indexesDelete
@@ -4013,7 +4126,7 @@ namespace engine
                         goto error ;
                      }
                      // in undo flow, let's continue remove the record.
-   
+
                      // if local index delete fail, let's continue remove the record
                   }
                   context->mbStat()->_totalDataLen -= recordData.orgLen() ;
@@ -4054,7 +4167,7 @@ namespace engine
                     pTransCB ) ;
 #endif
             rc = _extentRemoveRecord( context, extRW, recordRW, cb,
-                                      !isDeleting ) ;
+                                      !isDeleting, pInfo ) ;
 
             PD_RC_CHECK( rc, PDERROR, "Extent remove record failed, "
                          "rc: %d", rc ) ;
@@ -4078,7 +4191,7 @@ namespace engine
          else
          {
             // delete also need to set the transID
-            if( !pRecord->hasGlobTransID() )
+            if( _mvccSupport && !pRecord->hasGlobTransID() )
             {
                // migrate to V1 record header before we can set transID
                PD_LOG ( PDDEBUG, 
@@ -4092,7 +4205,7 @@ namespace engine
             {
                pRecord->setGlobTransID( transInfo._transID ) ;
             }
-            else
+            else if ( _mvccSupport )
             {
                // The migration could fail due to the size, since we
                // only mark deleting here, other query might need to use the
@@ -4130,8 +4243,8 @@ namespace engine
 
             // need to dec count
             --( pExtent->_recCount ) ;
-            _decreaseMBStat( context->mb()->_clUniqueID,
-                             &( _mbStatInfo[ context->mbID() ] ), cb ) ;
+            _decreaseMBStat( context->mb()->_clUniqueID, context->mbStat(),
+                             NULL, cb ) ;
             // increase data write counter for deleting marking
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
          }
@@ -4173,13 +4286,6 @@ namespace engine
                        DMS_FILE_DATA ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert record into log, rc: %d",
                       rc ) ;
-
-         if ( markDeleting && inTrans )
-         {
-            /// put pair(lsn,record info), when rollback, can insert the record
-            /// to the same rid
-            cb->getTransExecutor()->putRecord( cb->getEndLsn(), recordID ) ;
-         }
       }
       else if ( !isDeleting && cb->getLsnCount() > 0 )
       {
@@ -4227,7 +4333,8 @@ namespace engine
                                               mthModifier &modifier,
                                               BSONObj* newRecord,
                                               IDmsOprHandler *pHandler,
-                                              utilUpdateResult *pResult )
+                                              utilUpdateResult *pResult,
+                                              const dmsTransRecordInfo *pInfo )
    {
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_UPDATERECORD ) ;
       INT32            rc          = SDB_OK ;
@@ -4238,7 +4345,7 @@ namespace engine
       UINT32           logRecSize  = 0 ;
       dpsMergeInfo     info ;
       dpsLogRecord     &record     = info.getMergeBlock().record() ;
-      UINT32           writeMod    = DMS_LOG_WRITE_MOD_INCREMENT ;
+      UINT32           writeMod    = DPS_LOG_WRITE_MOD_INCREMENT ;
       UINT32          *pWriteMod   = NULL ;
       dpsTransCB      *pTransCB    = pmdGetKRCB()->getTransCB() ;
       CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
@@ -4255,7 +4362,6 @@ namespace engine
       const dmsExtent *pExtent    = NULL ;
       const dmsRecord *pRecord    = NULL ;
       dmsRecordData    recordData ;
-      UINT32           textIdxNum = 0 ;
       IDmsExtDataHandler *handler = NULL ;
 
       dpsUnqIdxHashArray newUnqIdxHashArray, oldUnqIdxHashArray ;
@@ -4329,8 +4435,7 @@ namespace engine
 
             if ( dpscb )
             {
-               if ( DMS_LOG_WRITE_MOD_INCREMENT
-                                      == _pStorageInfo->_logWriteMod )
+               if ( DPS_LOG_WRITE_MOD_INCREMENT == cb->getLogWriteMod() )
                {
                   rc = modifier.modify ( obj, newobj, &oldMatch, &oldChg,
                                          &newMatch, &newChg,
@@ -4340,7 +4445,7 @@ namespace engine
                }
                else
                {
-                  writeMod = DMS_LOG_WRITE_MOD_FULL ;
+                  writeMod = DPS_LOG_WRITE_MOD_FULL ;
                   rc = modifier.modify ( obj, newobj, &oldMatch, NULL,
                                          &newMatch, NULL,
                                          &oldShardingKey, &newShardingKey ) ;
@@ -4392,8 +4497,7 @@ namespace engine
                goto done ;
             }
 
-            textIdxNum = context->mbStat()->_textIdxNum ;
-            if ( textIdxNum > 0 )
+            if ( context->mbStat()->_textIdxNum > 0 )
             {
                handler = getExtDataHandler() ;
                if ( handler )
@@ -4412,12 +4516,21 @@ namespace engine
                _clFullName( context->mb()->_collectionName, fullName,
                             sizeof(fullName) ) ;
 
-               if ( context->mbStat()->_uniqueIdxNum > 1 )
+               if ( ( !cb->isInTransRollback() ) &&
+                    ( context->mbStat()->_uniqueIdxNum > 1 ) )
                {
                   // may save 2 keys for update, both new and old keys for
                   // each unique index ( except for $id index )
-                  // NOTE: for update, it can not without $id index, so we can
-                  //       exclude one $id unique index
+                  // NOTE:
+                  // - for update, it can not without $id index, so we can
+                  //   exclude one $id unique index
+                  // - two reasons we don't append index hash for
+                  //   transaction rollback
+                  //   + index hash will enlarge the size of DPS record
+                  //     against the origin transaction DPS record.
+                  //   + In secondary nodes, it will allow duplicated keys
+                  //     during transaction rollback, so the index hash is
+                  //     useless
                   rc = newUnqIdxHashArray.prepare(
                         context->mbStat()->_uniqueIdxNum - 1, TRUE ) ;
                   PD_RC_CHECK( rc, PDERROR, "Failed to prepare hash list for "
@@ -4465,7 +4578,8 @@ namespace engine
                                        dpscb ? pHandler : NULL,
                                        pResult,
                                        pNewUnqIdxHashArray,
-                                       pOldUnqIdxHashArray ) ;
+                                       pOldUnqIdxHashArray,
+                                       modifier.getIdxHashBitmap() ) ;
             if ( rc )
             {
                if ( pResult && pResult->isMaskEnabled( UTIL_RESULT_MASK_ID ) )
@@ -4505,6 +4619,9 @@ namespace engine
             rc = SDB_CORRUPTED_RECORD ;
             goto error ;
          }
+
+         _updateMBStat( context->mb()->_clUniqueID, context->mbStat(), pInfo,
+                        cb ) ;
 
          // increase update counter
          DMS_MON_OP_COUNT_INC( pMonAppCB, MON_UPDATE, 1 ) ;
@@ -4943,6 +5060,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__INCMBSTAT, "_dmsStorageDataCommon::_increaseMBStat" )
    void _dmsStorageDataCommon::_increaseMBStat ( utilCLUniqueID clUniqueID,
                                                  dmsMBStatInfo * mbStat,
+                                                 const dmsTransRecordInfo *recordInfo,
                                                  _pmdEDUCB * cb )
    {
       SDB_ASSERT( NULL != mbStat, "mb stat should not be NULL" ) ;
@@ -4953,21 +5071,41 @@ namespace engine
       // update meta-block statistics
       ++ ( mbStat->_totalRecords ) ;
 
-      // update meta-block statistics for transaction
-      if ( cb->isInTransRollback() )
+      // update meta-block statistics for transaction RC counter
+      if ( cb->isDoReplay() || cb->isTakeOverTransRB() )
       {
-         // do nothing
+         // two special cases need update RC counter with record counter
+         // - replay thread in secondary node
+         // - primary switch is running
+         // in these cases, no transactions can query the collection, so it
+         // is safe to update the RC counter
+         mbStat->_rcTotalRecords.poke( mbStat->_totalRecords ) ;
+      }
+      else if ( cb->isInTransRollback() )
+      {
+         // in transaction rollback, do nothing
       }
       else if ( cb->isTransaction() )
       {
-         if ( !cb->getTransExecutor()->incMBTotalRecords(
-                           clUniqueID, &( mbStat->_rcTotalRecords ), 1 ) )
+         // in transaction, update the RC counter in transaction executor
+         // first
+         // NOTE: insert records won't touch MVCC old version, so needn't to
+         //       update global transaction available time of collection
+         ossAtomic64 *totalRecords = &( mbStat->_rcTotalRecords ) ;
+         if ( !cb->getTransExecutor()->incMBTotalRecords( clUniqueID,
+                                                          NULL,
+                                                          totalRecords,
+                                                          1 ) )
          {
+            // failed to update the RC counter in transaction executor, which
+            // means the collection unique ID may be invalid, update the
+            // RC counter directly
             mbStat->_rcTotalRecords.inc() ;
          }
       }
       else
       {
+         // not a transaction, update the RC counter
          mbStat->_rcTotalRecords.inc() ;
       }
 
@@ -4977,6 +5115,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__DECMBSTAT, "_dmsStorageDataCommon::_decreaseMBStat" )
    void _dmsStorageDataCommon::_decreaseMBStat ( utilCLUniqueID clUniqueID,
                                                  dmsMBStatInfo * mbStat,
+                                                 const dmsTransRecordInfo *recordInfo,
                                                  _pmdEDUCB * cb )
    {
       SDB_ASSERT( NULL != mbStat, "mb stat should not be NULL" ) ;
@@ -4987,25 +5126,78 @@ namespace engine
       // update meta-block statistics
       -- ( mbStat->_totalRecords ) ;
 
-      // update meta-block statistics for transaction
-      if ( cb->isInTransRollback() )
+      // update meta-block statistics for transaction RC counter
+      if ( cb->isDoReplay() || cb->isTakeOverTransRB() )
       {
-         // do nothing
+         // two special cases need update RC counter with record counter
+         // - replay thread in secondary node
+         // - primary switch is running
+         // in these cases, no transactions can query the collection, so it
+         // is safe to update the RC counter
+         mbStat->_rcTotalRecords.poke( mbStat->_totalRecords ) ;
+      }
+      else if ( cb->isInTransRollback() )
+      {
+         // in transaction rollback, do nothing
       }
       else if ( cb->isTransaction() )
       {
-         if ( !cb->getTransExecutor()->decMBTotalRecords(
-                        clUniqueID, &( mbStat->_rcTotalRecords ), 1 ) )
+         BOOLEAN isLockEscalated = ( NULL != recordInfo ) &&
+                                   ( recordInfo->_transLockEscalated ) ;
+         ossAtomic64 *globTransAvalTime =
+               isLockEscalated ? &( mbStat->_globTransAvailTime ) : NULL ;
+         ossAtomic64 *totalRecords = &( mbStat->_rcTotalRecords ) ;
+         // in transaction, update the RC counter in transaction executor
+         // first
+         if ( !cb->getTransExecutor()->decMBTotalRecords( clUniqueID,
+                                                          globTransAvalTime,
+                                                          totalRecords,
+                                                          1 ) )
          {
+            // failed to update the RC counter in transaction executor, which
+            // means the collection unique ID may be invalid, update the
+            // RC counter directly
             mbStat->_rcTotalRecords.dec() ;
          }
       }
       else
       {
+         // not a transaction, update the RC counter
          mbStat->_rcTotalRecords.dec() ;
       }
 
       PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON__DECMBSTAT ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__UPDATEMBSTAT, "_dmsStorageDataCommon::_updateMBStat" )
+   void _dmsStorageDataCommon::_updateMBStat ( utilCLUniqueID clUniqueID,
+                                               dmsMBStatInfo * mbStat,
+                                               const dmsTransRecordInfo *recordInfo,
+                                               _pmdEDUCB * cb )
+   {
+      SDB_ASSERT( NULL != mbStat, "mb stat should not be NULL" ) ;
+      SDB_ASSERT( NULL != cb, "EDUCB should not be NULL" ) ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON__UPDATEMBSTAT ) ;
+
+      if ( cb->isDoReplay() ||
+           cb->isTakeOverTransRB() ||
+           cb->isInTransRollback() )
+      {
+         // in transaction rollback or replay, do nothing
+      }
+      else if ( cb->isTransaction() )
+      {
+         BOOLEAN isLockEscalated = ( NULL != recordInfo ) &&
+                                   ( recordInfo->_transLockEscalated ) ;
+         ossAtomic64 *globTransAvalTime =
+               isLockEscalated ? &( mbStat->_globTransAvailTime ) : NULL ;
+         cb->getTransExecutor()->updateMBStat( clUniqueID,
+                                               globTransAvalTime,
+                                               NULL ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON__UPDATEMBSTAT ) ;
    }
 
    /*

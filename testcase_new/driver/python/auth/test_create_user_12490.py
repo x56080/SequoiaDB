@@ -33,7 +33,7 @@ class TestCreateUsr12490(testlib.SdbTestBase):
          except SDBBaseError as e:
             # user or password not exist
             if (-300 != e.code):
-               self.fail('teardown fail: ' + e.detail)
+               self.fail('teardown fail: ' + str(e))
 
    def check_create_user(self,username,password,is_success):
       try:
@@ -42,6 +42,6 @@ class TestCreateUsr12490(testlib.SdbTestBase):
             self.fail("NEED CREATE_USER FAIL")
       except SDBBaseError as e:
          if is_success:
-            self.fail("create user fail,error: " + e.detail)
+            self.fail("create user fail,error: " + str(e))
          else:
             self.assertEqual(-295,e.code,"error msg: " + e.detail)

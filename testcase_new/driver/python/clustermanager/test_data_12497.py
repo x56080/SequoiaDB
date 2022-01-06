@@ -78,5 +78,4 @@ class TestDataRg12497(testlib.SdbTestBase):
          self.db.disconnect()
       except SDBBaseError as e:
          if -154 != e.code:
-            print(e.detail)
-            self.fail("tear_down_fail")
+            self.fail("tear_down_fail:" + str(e))

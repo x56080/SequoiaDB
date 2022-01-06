@@ -40,6 +40,8 @@
 #include "msgCatalogDef.h"
 #include "pmdEDU.hpp"
 #include "rtnQueryOptions.hpp"
+#include "coordDataSource.hpp"
+#include "coordCB.hpp"
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
 
@@ -129,7 +131,7 @@ namespace engine
                //objBD.append( FIELD_NAME_GROUPID, routeID.columns.groupID ) ;
                //objBD.append( FIELD_NAME_NODEID, (INT32)routeID.columns.nodeID ) ;
                objBD.append( FIELD_NAME_RCFLAG, iter->second._rc ) ;
-               objBD.append( FIELD_NAME_ERROR_IINFO, iter->second._obj ) ;
+               objBD.append( FIELD_NAME_ERROR_INFO, iter->second._obj ) ;
                objBD.done() ;
             }
             catch ( std::exception &e )
@@ -175,7 +177,7 @@ namespace engine
             flag = pFailedNodes->begin()->second._rc ;
          }
          else
-         {         
+         {
             flag = SDB_COORD_NOT_ALL_DONE ;
          }
       }
@@ -612,6 +614,51 @@ namespace engine
    done:
       return rc ;
    error:
+      goto done ;
+   }
+
+   INT32 coordGetCLDataSource( const CHAR *collection,
+                               pmdEDUCB *cb,
+                               coordResource *pResource,
+                               BOOLEAN &isDataSourceCL,
+                               BOOLEAN &isHighErrLevel )
+   {
+      INT32 rc = SDB_OK ;
+      coordCataSel cataSel ;
+      CoordCataInfoPtr cataPtr ;
+      UTIL_DS_UID dsID = UTIL_INVALID_DS_UID ;
+
+      isDataSourceCL = FALSE ;
+      isHighErrLevel = FALSE ;
+
+      rc = cataSel.bind( pResource, collection, cb, TRUE, TRUE ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Update collection[%s]'s catalog info failed, rc: %d",
+                   collection, rc ) ;
+
+      cataPtr = cataSel.getCataPtr() ;
+      dsID = cataPtr->getDataSourceID() ;
+      if ( dsID != UTIL_INVALID_DS_UID )
+      {
+         isDataSourceCL = TRUE ;
+
+         CoordDataSourcePtr dsPtr ;
+         coordDataSourceMgr *pDSMgr = sdbGetCoordCB()->getDSManager() ;
+         rc = pDSMgr->getOrUpdateDataSource( dsID, dsPtr, cb ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Get data source[%u] failed, rc: %d",
+                      dsID, rc ) ;
+
+         if ( 0 == ossStrcmp( dsPtr->getErrCtlLevel(), VALUE_NAME_HIGH ) )
+         {
+            isHighErrLevel = TRUE ;
+         }
+      }
+
+   done :
+      return rc ;
+
+   error :
       goto done ;
    }
 

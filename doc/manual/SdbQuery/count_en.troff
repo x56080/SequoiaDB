@@ -14,10 +14,11 @@ SdbQuery
 .SH DESCRIPTION
 .PP
 Get the number of record matching the criteria.
-.RE
+.RS
 .PP
 \f[B]Note\f[]:
 .RE
+.RS
 .PP
 The result of count() ignores the effects of skip() and limit().
 .RE
@@ -31,17 +32,17 @@ On success, return the number of record matching the criteria.
 On error, exception will be thrown.
 .SH ERRORS
 .PP
-when exception happen, use getLastError() to get the error code and use
+When exception happens, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
-For more detial, please reference to Troubleshooting.
+For more details, refer to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 Select the record whose age is greater than (with using $gt) 10 in the
-collection bar and return the number of records.
+collection employee and return the number of records.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find(\ {\ age:\ {\ $gt:\ 10\ }\ }\ ).count()
+> db.sample.employee.find( { age: { $gt: 10 } } ).count()
 3
 \f[]
 .fi

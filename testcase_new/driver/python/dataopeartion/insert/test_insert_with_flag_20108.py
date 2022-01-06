@@ -27,7 +27,7 @@ class TestInsertWithFlag20108(testlib.SdbTestBase):
 
       # query data and check
       check_Result(self.cl, {"a": 1}, [record], False)
-      self.assertEqual({}, ret_value)
+      self.assertEqual({'DuplicatedNum': 0, 'InsertedNum': 1}, ret_value)
 
       # insert data with INSERT_FLG_DEFAULT
       self.cl.create_index({"a":1}, "idx", True)
@@ -62,7 +62,7 @@ class TestInsertWithFlag20108(testlib.SdbTestBase):
 
       # query data and check
       check_Result(self.cl, {"a":1}, [record3], False)
-      self.assertEqual({}, ret_value)
+      self.assertEqual({'DuplicatedNum': 1, 'InsertedNum': 0}, ret_value)
 
       # insert data with INSERT_FLG_RETURNNUM 
       record4 = {"a": 3, "b": 3}

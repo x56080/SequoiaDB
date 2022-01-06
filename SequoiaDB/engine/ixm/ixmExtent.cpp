@@ -418,17 +418,17 @@ namespace engine
             goto error ;
          }
          SDB_ASSERT ( pos <= getNumKeyNode(), "pos is out of range" ) ;
-         // if we still don't have enough space, let's return error
-         if ( bytesNeeded > getFreeSize() )
-         {
-            rc = SDB_IXM_NOSPC ;
-            goto error ;
-         }
          // after reorg, the pos may points to an element with different lchild,
          // in this case we should be careful and perform find again
          if ( getChildExtentID( pos ) != ch )
          {
             rc = SDB_IXM_REORG_DONE ;
+            goto error ;
+         }
+         // if we still don't have enough space, let's return error
+         if ( bytesNeeded > getFreeSize() )
+         {
+            rc = SDB_IXM_NOSPC ;
             goto error ;
          }
       }
@@ -494,6 +494,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__IXMEXT__SPLIT );
       UINT16 splitPos = 0, newPos = 0 ;
       SDB_ASSERT ( indexCB, "index control block can't be NULL" ) ;
+      dmsExtentID newRootExtentID = DMS_INVALID_EXTENT ;
       dmsExtentID newExtentID = DMS_INVALID_EXTENT ;
       const ixmKeyNode *splitKey = NULL ;
       // find the split position
@@ -553,9 +554,9 @@ namespace engine
          if ( DMS_INVALID_EXTENT == getParent() )
          {
             // if this is root page, let's allocate another page
-            dmsExtentID rootExtentID = DMS_INVALID_EXTENT ;
+
             // allocate new extent
-            rc = indexCB->allocExtent ( rootExtentID ) ;
+            rc = indexCB->allocExtent ( newRootExtentID ) ;
             if ( rc )
             {
                PD_LOG ( PDERROR, "Failed to allocate new extent for index, "
@@ -563,7 +564,7 @@ namespace engine
                goto error ;
             }
             // initialize the header for the new extent
-            _ixmExtent rootExtent( rootExtentID, _extentHead->_mbID,
+            _ixmExtent rootExtent( newRootExtentID, _extentHead->_mbID,
                                    _pIndexSu ) ;
             // promote the split key into parent, key._left point to the current
             // extent
@@ -591,7 +592,9 @@ namespace engine
                goto error ;
             }
             // set new root page
-            indexCB->setRoot ( rootExtentID ) ;
+            indexCB->setRoot ( newRootExtentID ) ;
+            newRootExtentID = DMS_INVALID_EXTENT ;
+            newExtentID = DMS_INVALID_EXTENT ;
          }
          else
          {
@@ -611,6 +614,7 @@ namespace engine
                         rc ) ;
                goto error ;
             }
+            newExtentID = DMS_INVALID_EXTENT ;
          }
          // now new page and(or) root page are created, and all keys are copied,
          // so we are safe to truncate
@@ -651,6 +655,16 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__IXMEXT__SPLIT, rc );
       return rc ;
    error :
+      if ( DMS_INVALID_EXTENT != newRootExtentID )
+      {
+         indexCB->freeExtent( newRootExtentID ) ;
+         newRootExtentID = DMS_INVALID_EXTENT ;
+      }
+      if ( DMS_INVALID_EXTENT != newExtentID )
+      {
+         indexCB->freeExtent( newExtentID ) ;
+         newExtentID = DMS_INVALID_EXTENT ;
+      }
       goto done ;
    }
    // truncate a page and leave totalNodes. Passin a newPos as
@@ -1167,6 +1181,9 @@ namespace engine
       dmsExtentID ch = DMS_INVALID_EXTENT ;
       const ixmKeyNode *kn = NULL ;
 
+      // NOTE: check duplicated keys from root
+      BOOLEAN dupChecked = FALSE ;
+
       // sanity check
       INT32 keySize = key.dataSize() ;
       if ( keySize > _pIndexSu->indexKeySizeMax() )
@@ -1225,29 +1242,88 @@ namespace engine
          // may violate unique definition ). If we restricted this behavior,
          // user cannot insert records that does not contains the keys twice,
          // which is very violating "schemaless"
-         if ( kn->isUsed() && ( indexCB->enforced() || !key.isUndefined () ) )
+         if ( indexCB->enforced() || !key.isUndefined() )
          {
-            // this error only returned when dupAllowed == FALSE
-            // this error represent duplicate key is not allowed and
-            // duplicate key is detected
-#ifdef _DEBUG
-            PD_LOG ( PDWARNING, "Duplicate key is detected with rid(%d, %d), "
-                     "page:%d, keynode:%d, insert rid:(%d, %d)",
-                     kn->_rid._extent, kn->_rid._offset, _me, keyFoundPos,
-                     rid._extent, rid._offset ) ;
-#else
-            PD_LOG ( PDINFO, "Duplicate key is detected with rid(%d, %d), "
-                     "page:%d, keynode:%d, insert rid:(%d, %d)",
-                     kn->_rid._extent, kn->_rid._offset, _me, keyFoundPos,
-                     rid._extent, rid._offset ) ;
-#endif
-            if ( pResult )
+            if ( kn->isUsed() && ( indexCB->enforced() || !key.isUndefined () ) )
             {
-               pResult->setCurRID( rid ) ;
-               pResult->setPeerRID( kn->_rid ) ;
+               // this error only returned when dupAllowed == FALSE
+               // this error represent duplicate key is not allowed and
+               // duplicate key is detected
+#ifdef _DEBUG
+               PD_LOG ( PDWARNING, "Duplicate key is detected with rid(%d, %d), "
+                        "page:%d, keynode:%d, insert rid:(%d, %d)",
+                        kn->_rid._extent, kn->_rid._offset, _me, keyFoundPos,
+                        rid._extent, rid._offset ) ;
+#else
+               PD_LOG ( PDINFO, "Duplicate key is detected with rid(%d, %d), "
+                        "page:%d, keynode:%d, insert rid:(%d, %d)",
+                        kn->_rid._extent, kn->_rid._offset, _me, keyFoundPos,
+                        rid._extent, rid._offset ) ;
+#endif
+               if ( pResult )
+               {
+                  pResult->setCurRID( rid ) ;
+                  pResult->setPeerRID( kn->_rid ) ;
+               }
+               rc = SDB_IXM_DUP_KEY ;
+               goto error ;
             }
-            rc = SDB_IXM_DUP_KEY ;
-            goto error ;
+            // NOTE: there is an issue in earlier versions
+            // ( SEQUOIADBMAINSTREAM-7298 ), a unused key may cause
+            // duplicated insert keys, we had removed unused key to fix the
+            // issue, and this will require to rebuild the unique index.
+            // And for old unique index without rebuild, we need a further
+            // check to find out whether a duplicated key has been already
+            // inserted
+            else if ( !kn->isUsed() && !dupChecked )
+            {
+               dmsExtentID rootExtent = indexCB->getRoot() ;
+               ixmExtent root( rootExtent, _pIndexSu ) ;
+               ixmRecordID tmpIdxRID ;
+               dmsRecordID tmpRID ;
+               BOOLEAN tmpFound = FALSE ;
+
+               rc = root.exists( key, order, indexCB, tmpFound, tmpIdxRID,
+                                 tmpRID ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to locate key %s to find "
+                            "duplicated keys, rc: %d", key.toString().c_str(),
+                            rc ) ;
+               if ( tmpFound )
+               {
+                  if ( tmpRID == rid )
+                  {
+                     PD_LOG ( PDINFO, "same key + rid is already in index" ) ;
+                     // have same key/rid point to same record
+                     rc = SDB_IXM_IDENTICAL_KEY ;
+                  }
+                  else
+                  {
+#ifdef _DEBUG
+                     PD_LOG ( PDWARNING, "Duplicate key is detected with "
+                              "rid(%d, %d), page:%d, keynode:%d, "
+                              "insert rid:(%d, %d)", tmpRID._extent,
+                              tmpRID._offset, tmpIdxRID._extent,
+                              tmpIdxRID._slot, rid._extent, rid._offset ) ;
+#else
+                     PD_LOG ( PDINFO, "Duplicate key is detected with "
+                              "rid(%d, %d), page:%d, keynode:%d, "
+                              "insert rid:(%d, %d)", tmpRID._extent,
+                              tmpRID._offset, tmpIdxRID._extent,
+                              tmpIdxRID._slot, rid._extent, rid._offset ) ;
+#endif
+                     if ( pResult )
+                     {
+                        pResult->setCurRID( rid ) ;
+                        pResult->setPeerRID( tmpRID ) ;
+                     }
+                     rc = SDB_IXM_DUP_KEY ;
+                  }
+                  goto error ;
+               }
+
+               // we have mblatch, so check once is enough
+               dupChecked = TRUE ;
+            }
          }
       }
 
@@ -1679,10 +1755,11 @@ namespace engine
          // do have child, let's use a simple way to set the key unused (a
          // better way could be recursively swap+_deleteInternalKey /
          // _delKeyAtPos)
-         if ( nextExtent.getChildExtentID ( nextIndexKey._slot ) !=
-                    DMS_INVALID_EXTENT ||
-              nextExtent.getChildExtentID ( nextIndexKey._slot+1 ) !=
-                    DMS_INVALID_EXTENT )
+         if ( !indexCB->unique() &&
+              ( nextExtent.getChildExtentID ( nextIndexKey._slot ) !=
+                      DMS_INVALID_EXTENT ||
+                nextExtent.getChildExtentID ( nextIndexKey._slot+1 ) !=
+                      DMS_INVALID_EXTENT ) )
          {
             writeKeyNode(pos)->setUnused() ;
          }
@@ -1951,7 +2028,8 @@ namespace engine
    // output in result
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_EXIST, "_ixmExtent::exists" )
    INT32 _ixmExtent::exists ( const ixmKey &key, const Ordering &order,
-                             const ixmIndexCB *indexCB, BOOLEAN &result ) const
+                              const ixmIndexCB *indexCB, BOOLEAN &result,
+                              ixmRecordID &idxRID, dmsRecordID &rid ) const
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT_EXIST );
@@ -1981,6 +2059,11 @@ namespace engine
             // compare the on-disk key and the one we are looking for, if they
             // match that means we got exists
             result = ixmKey(extent.getKeyData(indexrid._slot)).woEqual(key) ;
+            if ( result )
+            {
+               idxRID = indexrid ;
+               rid = kn->_rid ;
+            }
             goto done ;
          }
          // advance to next keynode
@@ -2088,7 +2171,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_TRUNC, "_ixmExtent::truncate" )
    void _ixmExtent::truncate( ixmIndexCB *indexCB, dmsExtentID parent,
-                              BOOLEAN &valid )
+                              BOOLEAN &valid, UINT64 *pDelKeyCnt )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT_TRUNC );
@@ -2119,9 +2202,9 @@ namespace engine
                                             totalFreeSize ) ;
                try
                {
-                  ixmExtent( childExtentID, _pIndexSu ).truncate ( indexCB,
-                                                                   _me,
-                                                                   childValid) ;
+                  ixmExtent extent( childExtentID, _pIndexSu ) ;
+                  UINT16 keyCnt = extent.getNumKeyNode() ;
+                  extent.truncate( indexCB, _me, childValid, pDelKeyCnt ) ;
                   // If the child extent is invalid, it's safer not to release
                   // it, and its space will be lost...
                   // It happend that the child extent is the index CB extent,
@@ -2131,6 +2214,10 @@ namespace engine
                   {
                      indexCB->freeExtent ( childExtentID ) ;
                      pPageMap->rmItem( childExtentID ) ;
+                     if ( pDelKeyCnt )
+                     {
+                        (*pDelKeyCnt) += keyCnt ;
+                     }
                   }
                }
                catch ( std::exception &e )
@@ -2719,8 +2806,6 @@ namespace engine
                                        pBuffer, indexExtentDumpBufferSize,
                                        NULL,
                                        DMS_SU_DMP_OPT_HEX |
-                                       DMS_SU_DMP_OPT_HEX_WITH_ASCII |
-                                       DMS_SU_DMP_OPT_HEX_PREFIX_AS_ADDR |
                                        DMS_SU_DMP_OPT_FORMATTED,
                                        childExtents,
                                        TRUE ) ;

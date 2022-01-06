@@ -1,0 +1,6 @@
+{
+    "FAPHOST": "localhost",
+    "FAPPORT": 11817,
+    "CHANGEDPREFIX": "local_test_pymongo",
+    "WORKDIR": "/tmp/pymongo"
+}

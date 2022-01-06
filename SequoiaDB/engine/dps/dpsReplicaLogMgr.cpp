@@ -808,9 +808,12 @@ namespace engine
       {
          for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
          {
-            _vecEventHandler[i]->onMoveLog( offset, version,
-                                            _lsn.offset, _lsn.version,
-                                            DPS_BEFORE, SDB_OK ) ;
+            if( _vecEventHandler[i]->isEnabled() )
+            {
+               _vecEventHandler[i]->onMoveLog( offset, version,
+                                               _lsn.offset, _lsn.version,
+                                               DPS_BEFORE, SDB_OK ) ;
+            }
          }
       }
 
@@ -869,9 +872,13 @@ namespace engine
       {
          for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
          {
-            _vecEventHandler[i]->onMoveLog( offset, version,
-                                            _lsn.offset, _lsn.version,
-                                            DPS_AFTER, rc ) ;
+            if( _vecEventHandler[i]->isEnabled() )
+            {
+               _vecEventHandler[i]->onMoveLog( offset, version,
+                                               _lsn.offset, _lsn.version,
+                                               DPS_AFTER, rc ) ;
+            }
+
          }
       }
       if ( locked )
@@ -1424,7 +1431,8 @@ namespace engine
          if ( DPS_INVALID_LSN_OFFSET != offset )
          {
             // offset is valid, just save offset.
-            _metaFile.writeTransMeta( offset, summary ) ;
+            // flush only, no need to sync
+            _metaFile.writeTransMeta( offset, summary, FALSE ) ;
          }
          else
          {
@@ -1433,12 +1441,14 @@ namespace engine
             // in this case we can safely save _pageFlushedBeginLSN.offset.
             if ( !_pageFlushedBeginLSN.invalid() )
             {
-               _metaFile.writeTransMeta( offset, summary ) ;
+               // flush only, no need to sync
+               _metaFile.writeTransMeta( offset, summary, FALSE ) ;
             }
             else
             {
                // no valid offset is given, flush summary only
-               _metaFile.writeSummary( summary ) ;
+               // flush only, no need to sync
+               _metaFile.writeSummary( summary, FALSE ) ;
             }
          }
       }
@@ -1606,10 +1616,13 @@ namespace engine
       {
          for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
          {
-            _vecEventHandler[i]->onSwitchLogFile( preLogicalFileId,
-                                                  preFileId,
-                                                  curLogicalFileId,
-                                                  curFileId ) ;
+            if( _vecEventHandler[i]->isEnabled() )
+            {
+               _vecEventHandler[i]->onSwitchLogFile( preLogicalFileId,
+                                                     preFileId,
+                                                     curLogicalFileId,
+                                                     curFileId ) ;
+            }
          }
       }
 
@@ -1630,10 +1643,13 @@ namespace engine
       {
          for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
          {
-            rc = _vecEventHandler[i]->canAssignLogPage( reqLen, cb ) ;
-            if ( rc )
+            if( _vecEventHandler[i]->isEnabled() )
             {
-               break ;
+               rc = _vecEventHandler[i]->canAssignLogPage( reqLen, cb ) ;
+               if ( rc )
+               {
+                  break ;
+               }
             }
          }
       }
@@ -1747,5 +1763,26 @@ namespace engine
       goto done ;
    }
 
-}
+   void _dpsReplicaLogMgr::beforeFS()
+   {
+      if ( _vecEventHandler.size() > 0 )
+      {
+         for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
+         {
+            _vecEventHandler[i]->beforeFS() ;
+         }
+      }
+   }
 
+   void _dpsReplicaLogMgr::afterFS( const DPS_LSN_OFFSET &offset,
+                                    const DPS_LSN_VER &version )
+   {
+      if ( _vecEventHandler.size() > 0 )
+      {
+         for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
+         {
+            _vecEventHandler[i]->afterFS( offset, version ) ;
+         }
+      }
+   }
+}

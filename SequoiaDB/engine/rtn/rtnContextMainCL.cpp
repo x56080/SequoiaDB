@@ -42,6 +42,8 @@
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
 
+using namespace bson ;
+
 namespace engine
 {
 
@@ -50,8 +52,6 @@ namespace engine
                                        INT64 contextID )
       : _rtnSubContext( orderBy, keyGen, contextID )
    {
-      _startPos = 0 ;
-      _remainNum = 0;
       _hitEnd = FALSE ;
    }
 
@@ -66,29 +66,32 @@ namespace engine
 
    INT32 _rtnSubCLContext::pop()
    {
-      INT32 rc = SDB_OK;
-      BSONObj obj;
+      INT32 rc = SDB_OK ;
 
-      if ( _remainNum <= 0 )
+      if ( _buffer.recordNum() > 0 )
       {
-         goto done ;
+         rc = _buffer.pop() ;
+         if ( SDB_OK == rc )
+         {
+            _isOrderKeyChange = TRUE ;
+         }
       }
 
-      _isOrderKeyChange = TRUE;
-      _remainNum--;
-      if ( _remainNum <= 0 )
+      return rc ;
+   }
+
+   INT32 _rtnSubCLContext::pushFront( const BSONObj &obj )
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = _buffer.pushFront( obj ) ;
+      if ( rc )
       {
-         rtnContextBuf emptyBuf;
-         _buffer = emptyBuf;
-         _startPos = 0 ;
+         PD_LOG( PDERROR, "Push front object failed, rc: %d", rc ) ;
+         goto error ;
       }
-      else
-      {
-         rc = _buffer.nextObj( obj );
-         PD_RC_CHECK( rc, PDERROR, "Get next object in buffer failed, rc: %d",
-                      rc ) ;
-         _startPos++ ;
-      }
+
+      _isOrderKeyChange = TRUE ;
 
    done:
       return rc ;
@@ -119,11 +122,10 @@ namespace engine
    error:
       goto done;
    }
+
    INT32 _rtnSubCLContext::popAll()
    {
       _isOrderKeyChange = TRUE;
-      _startPos = 0 ;
-      _remainNum = 0;
       rtnContextBuf emptyBuf;
       _buffer = emptyBuf;
       return SDB_OK;
@@ -131,7 +133,7 @@ namespace engine
 
    INT32 _rtnSubCLContext::recordNum()
    {
-      return _remainNum;
+      return _buffer.recordNum() ;
    }
 
    INT32 _rtnSubCLContext::remainLength()
@@ -144,11 +146,10 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       SDB_ASSERT( num >= 0, "num can't <0 " ) ;
-      // Why? Please refer to the comment of the _startPos.
-      rc = _buffer.truncate( (UINT32)( _startPos + num ) ) ;
-      PD_RC_CHECK( rc, PDERROR, "Truncate context buffer failed, rc: %d", rc ) ;
+      rc = _buffer.truncate( (UINT32)num  ) ;
+      PD_RC_CHECK( rc, PDERROR, "Truncate context buffer failed, rc: %d",
+                   rc ) ;
 
-      _remainNum = _buffer.recordNum() - _startPos ;
    done:
       return rc ;
    error:
@@ -180,8 +181,9 @@ namespace engine
             }
          }
       }
-      orderKey = _orderKey;
-      _isOrderKeyChange = FALSE;
+      orderKey = _orderKey ;
+      _isOrderKeyChange = FALSE ;
+
    done:
       return rc;
    error:
@@ -197,7 +199,6 @@ namespace engine
    {
       _buffer = buffer;
       _isOrderKeyChange = TRUE;
-      _remainNum = buffer.recordNum();
       _startFrom = buffer.getStartFrom() ;
    }
 
@@ -334,7 +335,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       INT64 context = -1 ;
       _SDB_RTNCB *rtnCB = sdbGetRTNCB() ;
-      rtnContextBase *contextObj = NULL ;
+      rtnContextPtr contextObj ;
       if ( !_subs.empty() )
       {
          // Construct query options of sub-collection
@@ -344,7 +345,7 @@ namespace engine
                                       clName.c_str() ) ;
 
          rc = rtnQuery( subCLOptions, cb, sdbGetDMSCB(), rtnCB, context,
-                        &contextObj, TRUE, FALSE ) ;
+                        &contextObj, TRUE, NULL ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to query on cl:%s, rc:%d",
@@ -352,7 +353,7 @@ namespace engine
             goto error ;
          }
 
-         if ( NULL != contextObj && contextObj->isWrite() )
+         if ( contextObj && contextObj->isWrite() )
          {
             _isWrite = TRUE ;
             contextObj->setWriteInfo( this->getDPSCB(),
@@ -361,7 +362,18 @@ namespace engine
 
          _subs.pop_front() ;
          /// do not use clName again.
+
+         if ( contextObj && !_advancePosition.isEmpty() )
+         {
+            rc = contextObj->advance( _advancePosition, NULL, 0, cb ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Advance context failed, rc: %d", rc ) ;
+               goto error ;
+            }
+         }
       }
+
    done:
       contextID = context ;
       return rc ;
@@ -457,13 +469,16 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXMAINCL_PREPARESUBDATA, "_rtnContextMainCL::_prepareSubCLData" )
    INT32 _rtnContextMainCL::_prepareSubCLData( SINT64 contextID,
                                                _pmdEDUCB * cb,
                                                INT32 maxNumToReturn )
    {
-      INT32 rc = SDB_OK;
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_RTNCTXMAINCL_PREPARESUBDATA ) ;
+
       _SDB_RTNCB *pRtnCB = pmdGetKRCB()->getRTNCB();
-      rtnContext *pContext = NULL;
+      rtnContextPtr pContext ;
       rtnContextBuf contextBuf;
       SUBCL_CTX_MAP::iterator iterSubCTX = _subContextMap.find( contextID ) ;
       _rtnSubCLContext *subCtx = NULL ;
@@ -480,9 +495,9 @@ namespace engine
          goto done;
       }
 
-      pContext = pRtnCB->contextFind( contextID );
-      PD_CHECK( pContext, SDB_RTN_CONTEXT_NOTEXIST, error, PDERROR,
-                "Context %lld does not exist", contextID ) ;
+      rc = pRtnCB->contextFind( contextID, pContext );
+      PD_RC_CHECK( rc, PDERROR, "Context %lld does not exist, rc: %d",
+                   contextID, rc ) ;
 
       subCtx = iterSubCTX->second ;
 
@@ -549,6 +564,7 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB_RTNCTXMAINCL_PREPARESUBDATA, rc ) ;
       return rc;
    error:
       goto done;
@@ -571,9 +587,12 @@ namespace engine
       }
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXMAINCL_PREPAREALLSUBCTXDATA, "_rtnContextMainCL::_prepareAllSubCtxDataByOrder" )
    INT32 _rtnContextMainCL::_prepareAllSubCtxDataByOrder( _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_RTNCTXMAINCL_PREPAREALLSUBCTXDATA ) ;
+
       _SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB();
 
       if ( !_subs.empty() )
@@ -603,9 +622,10 @@ namespace engine
          if ( subCtx->recordNum() <= 0 )
          {
             rtnContextBuf contextBuf;
-            rtnContext* rtnCtx = rtnCB->contextFind( subCtx->contextID() );
-            PD_CHECK( rtnCtx, SDB_RTN_CONTEXT_NOTEXIST, error, PDERROR,
-                      "Context %lld does not exist", subCtx->contextID() );
+            rtnContextPtr rtnCtx ;
+            rc = rtnCB->contextFind( subCtx->contextID(), rtnCtx );
+            PD_RC_CHECK( rc, PDERROR, "Context %lld does not exist, rc: %d",
+                         subCtx->contextID(), rc );
 
             for ( ; ; )
             {
@@ -663,6 +683,7 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB_RTNCTXMAINCL_PREPAREALLSUBCTXDATA, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -801,6 +822,72 @@ namespace engine
       _subContextMap.clear();
    }
 
+   INT32 _rtnContextMainCL::_prepareSubCtxsAdvance( LST_SUB_CTX_PTR &lstCtx )
+   {
+      INT32 rc = SDB_OK ;
+      SUBCL_CTX_MAP::iterator it ;
+
+      try
+      {
+         it = _subContextMap.begin() ;
+         while( it != _subContextMap.end() )
+         {
+            lstCtx.push_back( it->second ) ;
+            ++it ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXMAINCL_DOSUBCTXSADVANCE, "_rtnContextMainCL::_doSubCtxsAdvance" )
+   INT32 _rtnContextMainCL::_doSubCtxsAdvance( LST_SUB_CTX_PTR &lstCtx,
+                                               const BSONObj &arg,
+                                               _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_RTNCTXMAINCL_DOSUBCTXSADVANCE ) ;
+
+      _SDB_RTNCB *pRtnCB = pmdGetKRCB()->getRTNCB() ;
+      rtnSubContext *pSubCtx = NULL ;
+
+      LST_SUB_CTX_PTR::iterator it = lstCtx.begin() ;
+      while( it != lstCtx.end() )
+      {
+         rtnContextPtr pContext ;
+         pSubCtx = *it ;
+         ++it ;
+         rc = pRtnCB->contextFind( pSubCtx->contextID(), pContext ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Context %lld does not exist, rc: %d",
+                    pSubCtx->contextID(), rc ) ;
+            goto error ;
+         }
+
+         rc = pContext->advance( arg, NULL, 0, cb ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_RTNCTXMAINCL_DOSUBCTXSADVANCE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    /*
       _rtnContextMainCLExplain implement
     */
@@ -886,7 +973,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXMAINCLEXP__OPENSUBCTX, "_rtnContextMainCLExplain::_openSubContext" )
    INT32 _rtnContextMainCLExplain::_openSubContext ( rtnQueryOptions & options,
                                                      pmdEDUCB * cb,
-                                                     rtnContext ** ppContext )
+                                                     rtnContextPtr *ppContext )
    {
       INT32 rc = SDB_OK ;
 
@@ -897,14 +984,14 @@ namespace engine
       SDB_RTNCB * rtnCB = sdbGetRTNCB() ;
 
       INT64 queryContextID = -1 ;
-      rtnContextMainCL * queryContext = NULL ;
+      rtnContextMainCL::sharePtr queryContext ;
 
-      rc = rtnCB->contextNew( RTN_CONTEXT_MAINCL, (rtnContext **)&queryContext,
+      rc = rtnCB->contextNew( RTN_CONTEXT_MAINCL, queryContext,
                               queryContextID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create new main-collection "
                    "context, rc: %d", rc ) ;
 
-      PD_CHECK( NULL != queryContext, SDB_SYS, error, PDERROR,
+      PD_CHECK( queryContext, SDB_SYS, error, PDERROR,
                 "Failed to get the context of query" ) ;
 
       if ( options.canPrepareMore() )
@@ -925,16 +1012,17 @@ namespace engine
 
       _explainMergePath.setCollectionName( options.getCLFullName() ) ;
 
-      if ( _needRun )
+      if ( _expOptions.isNeedRun() )
       {
          queryContext->setEnableMonContext( TRUE ) ;
       }
 
-   done :
       if ( NULL != ppContext )
       {
-         ( *ppContext ) = queryContext ;
+         *ppContext = queryContext ;
       }
+
+   done :
       PD_TRACE_EXITRC( SDB_RTNCTXMAINCLEXP__OPENSUBCTX, rc ) ;
       return rc ;
 
@@ -943,7 +1031,6 @@ namespace engine
       {
          rtnCB->contextDelete( queryContextID, cb ) ;
       }
-      queryContext = NULL ;
       goto done ;
    }
 
@@ -957,7 +1044,7 @@ namespace engine
 
       SDB_ASSERT( NULL != context, "query context is invalid" ) ;
 
-      if ( _needDetail )
+      if ( _expOptions.isNeedDetail() )
       {
          rc = _explainMergePath.evaluate() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to evaluate MERGE path, "
@@ -988,10 +1075,6 @@ namespace engine
 
       rc = _explainMergePath.toSimpleBSON( builder ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build simple explain result, "
-                   "rc: %d", rc ) ;
-
-      rc = _explainMergePath.toBSONExplainInfo( builder, OPT_EXPINFO_MASK_NONE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for run information, "
                    "rc: %d", rc ) ;
 
       rc = explainContext->append( builder.obj() ) ;

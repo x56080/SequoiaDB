@@ -37,6 +37,7 @@ public class DatasourceOptions implements Cloneable {
     private static final int DEFAULT_SESSION_TIMEOUT = -1;
     private int _deltaIncCount = 10;
     private int _maxIdleCount = 10;
+    private int _minIdleCount = 10;
     private int _maxCount = 500;
     private int _keepAliveTimeout = 0 * 60 * 1000; // 0 min
     private int _checkInterval = 1 * 60 * 1000; // 1 min
@@ -46,6 +47,8 @@ public class DatasourceOptions implements Cloneable {
     private List<Object> _preferedInstance = null;
     private String _preferedInstanceMode = DEFAULT_PREFERRD_INSTANCE_MODE; // "random" or "ordered"
     private int _sessionTimeout = DEFAULT_SESSION_TIMEOUT;
+    private int _networkBlockTimeout = 6000; //network block timeout, default 6s
+    private int _cacheLimit = 131072; // 128k
 
     /**
      * Clone the current options.
@@ -67,14 +70,23 @@ public class DatasourceOptions implements Cloneable {
     }
 
     /**
-     * Set the max number of the idle connection left in connection
-     * pool after periodically cleaning.
-     *
+     * Set the maximum number of idle connections. When the number of idle connections in the
+     *         pool is more than 'maxIdleCount', the pool will destroy some connections.
      * @param maxIdleCount Default to be 10.
      * @since 2.2
      */
     public void setMaxIdleCount(int maxIdleCount) {
         _maxIdleCount = maxIdleCount;
+    }
+
+    /**
+     *  Set the minimum number of idle connections. When the number of idle connections in the
+     *         pool is less than 'minIdleCount', the pool will create some connections.
+     * @param minIdleCount Default to be 10.
+     * @since v2.8.10
+     */
+    public void setMinIdleCount(int minIdleCount) {
+        _minIdleCount = minIdleCount;
     }
 
     /**
@@ -245,6 +257,20 @@ public class DatasourceOptions implements Cloneable {
     }
 
     /**
+     * Set the cache size limit of the session. 0 means not set the limit for the session cache size.
+     *         Default to be 131072 bytes(128 KB). When the cache size of the session reaches the limit, the
+     *         session will be destroyed after the connection release to pool.
+     * @param limitBytes The cache size limit of the session in bytes.
+     */
+    public void setCacheLimit(int limitBytes) {
+        if (limitBytes < 0) {
+            _cacheLimit = 0;
+        } else {
+            _cacheLimit = limitBytes;
+        }
+    }
+
+    /**
      * Get the number of connections to create once running out the
      * connection pool.
      *
@@ -255,12 +281,19 @@ public class DatasourceOptions implements Cloneable {
     }
 
     /**
-     * Get the max number of idle connection.
-     *
-     * @return The max number of idle connection after checking.
+     * Get the maximum number of idle connections.
+     * @return The maximum number of idle connections.
      */
     public int getMaxIdleCount() {
         return _maxIdleCount;
+    }
+
+    /**
+     * Get the minimum number of idle connections.
+     * @return The minimum number of idle connections.
+     */
+    public int getMinIdleCount() {
+        return _minIdleCount;
     }
 
     /**
@@ -364,7 +397,16 @@ public class DatasourceOptions implements Cloneable {
     public int getSessionTimeout() {
         return _sessionTimeout;
     }
-    // The following methods are deprecated.
+
+    /**
+     * Get the cache size limit of the session.
+     * @return The cache size limit of the session.
+     */
+    public int getCacheLimit() {
+        return _cacheLimit;
+    }
+
+    /// the follow APIs are deprecated
 
     /**
      * Set the initial number of connection.
@@ -529,6 +571,26 @@ public class DatasourceOptions implements Cloneable {
      */
     public int getTimeout() {
         return 0;
+    }
+
+    /**
+     * Set the network block timeout, which is used to set the send and receive timeout of the connections
+     * inside the connection pool. After a connection get out from the connection pool, its send and receive
+     * timeout will be restored to the original state.
+     *
+     * @param networkBlockTimeout The network block timeout, default to be 6000ms, 0ms and means no timeout
+     */
+    public void setNetworkBlockTimeout(int networkBlockTimeout) {
+        this._networkBlockTimeout = networkBlockTimeout;
+    }
+
+    /**
+     * Get the network block timeout
+     *
+     * @return The network block timeout
+     */
+    public int getNetworkBlockTimeout() {
+        return _networkBlockTimeout;
     }
 
     BSONObject getSessionAttr() {

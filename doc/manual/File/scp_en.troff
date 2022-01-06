@@ -5,8 +5,7 @@
 .hy
 .SH NAME
 .PP
-scp \- Remote copy file. The format of srcFile and dstFile is: ip:sdbcmPort@filePath.
-
+scp \- Remote copy file.
 .SH SYNOPSIS
 .PP
 \f[B]\f[I]File.scp( <srcFile>, <dstFile>, [isreplace], [mode] )\f[]\f[]
@@ -98,14 +97,16 @@ T}
 .TE
 .PP
 The specific format of parameters srcFile and dstFile are as follows:
-
-ip:sdbcmPort\@filePath
+.IP
+.nf
+\f[C]
+ip:sdbcmPort\@filepath
+hostname:sdbcmPort\@filepath
+\f[]
+.fi
+.RS
 .PP
-hostname:sdbcmPort\@filePath
-.TE
-
-Note:
-.RE
+\f[B]Note:\f[]
 .PP
 The port refers to the port of the sdbcm.
 If the ip or hostname and sdbcmport in the parameters srcFile and desFile refer
@@ -118,16 +119,16 @@ On success, return void.
 On error, exception will be thrown.
 .SH ERRORS
 .PP
-when exception happen, use getLastError() to get the error code and use
+when exception happens, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
 For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
-.IP \[bu] 2
+.PP
 Copy file from local host to remote host.
 .IP
 .nf
 \f[C]
->\ File.scp(\ "/opt/sequoiadb/srcFile.txt",\ "192.168.20.71:11790\@/opt/sequoiadb/desFile.txt"\ )
-Success\ to\ copy\ file\ from\ /opt/sequoiadb/srcFile.txt\ to\ 192.168.20.71:11790\@/opt/sequoiadb/desFile.txt
+> File.scp( "/opt/sequoiadb/srcFile.txt", "192.168.20.71:11790\@/opt/sequoiadb/desFile.txt" )
+Success to copy file from /opt/sequoiadb/srcFile.txt to 192.168.20.71:11790\@/opt/sequoiadb/desFile.txt
 \f[]
 .fi

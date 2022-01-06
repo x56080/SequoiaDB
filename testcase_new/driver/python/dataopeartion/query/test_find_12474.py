@@ -75,7 +75,7 @@ class TestFind12474(testlib.SdbTestBase):
       try:
          self.cl.bulk_insert(flags, doc)
       except SDBBaseError as e:
-         self.fail('insert fail: ' + e.detail)
+         self.fail('insert fail: ' + str(e))
 
    def query_one_with_kwargs(self, cond, selection, expectResult):
       try:
@@ -91,4 +91,4 @@ class TestFind12474(testlib.SdbTestBase):
          actResult = rec
          self.assertEqual(actResult, expectResult)
       except SDBBaseError as e:
-         self.fail('query one fail: ' + e.detail)
+         self.fail('query one fail: ' + str(e))

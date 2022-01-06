@@ -40,7 +40,8 @@
 #include "mthSAttribute.hpp"
 #include "utilPooledObject.hpp"
 
-#define MTH_SCOLUMN_STATIC_NAME_BUF_LEN 32 
+#define MTH_SCOLUMN_STATIC_NAME_BUF_LEN 32
+#define MTH_SCOLUMN_INVALID_SUBARRAY_INDEX -1
 
 namespace engine
 {
@@ -86,6 +87,16 @@ namespace engine
          return _actions ;
       }
 
+      OSS_INLINE void _setSubArrayIndex( INT32 subArrayIndex )
+      {
+         _subArrayIndex = subArrayIndex ;
+      }
+
+      OSS_INLINE INT32 _getSubArrayIndex()
+      {
+         return _subArrayIndex ;
+      }
+
       INT32 _setAttribute( MTH_S_ATTRIBUTE attribute ) ;
 
       INT32 _selectWithExclusion( const bson::BSONObj &obj,
@@ -97,7 +108,8 @@ namespace engine
                            UINT32 *number = NULL ) ;
 
       INT32 _build( const bson::BSONElement &e,
-                    bson::BSONObjBuilder &builder ) ;
+                    bson::BSONObjBuilder &builder,
+                    UINT32 actionIndex = 0 ) ;
 
       INT32 _buildFromChildren( const bson::BSONElement &e,
                                 bson::BSONObjBuilder &builder ) ;
@@ -111,6 +123,11 @@ namespace engine
       INT32 _buildLastChildren( MTH_S_COLUMNS &array,
                                 bson::BSONObjBuilder &builder ) ;
 
+      INT32 _buildSubArray( const bson::BSONElement &e,
+                            bson::BSONArrayBuilder &builder ) ;
+
+      BOOLEAN _needBuildSubArray() ;
+
    private:
       MTH_S_COLUMNS _subColumns ;
       _mthSColumn *_father ;
@@ -122,6 +139,8 @@ namespace engine
       CHAR *_dynamicName ;
 
       _mthSAttribute _attribute ;
+
+      INT32 _subArrayIndex ;
 
    friend class _mthSColumnMatrix ;
    } ;

@@ -137,29 +137,33 @@ For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 List the information of all users
+.RS 2
 .IP
 .nf
 \f[C]
->\ System.listAllUsers(\ )
+> System.listAllUsers( )
 {
-\ \ "user":\ "sequoiadb"
+  "user": "sequoiadb"
 }
 {
-\ \ "user":\ "sdbadmin"
+  "user": "sdbadmin"
 }
 \&...
 \f[]
 .fi
+.RE
 .IP \[bu] 2
 Filter the results:
+.RS 2
 .IP
 .nf
 \f[C]
->\ System.listAllUsers(\ {\ detail:\ true\ },\ {\ "user":\ "sequoiadb"\ }\ )
+> System.listAllUsers( { detail: true }, { "user": "sequoiadb" } )
 {
-\ \ "user":\ "sequoiadb",
-\ \ "gid":\ "1000",
-\ \ "dir":\ "/home/sequoiadb"
+  "user": "sequoiadb",
+  "gid": "1000",
+  "dir": "/home/sequoiadb"
 }
 \f[]
 .fi
+.RE

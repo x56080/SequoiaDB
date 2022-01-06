@@ -114,7 +114,7 @@ namespace engine
             break ;
          }
          /// update conf should here
-         _pEDUCB->updateTransConf() ;
+         _pEDUCB->updateConf() ;
 
          // if system info msg
          if ( msgSize == (UINT32)MSG_SYSTEM_INFO_LEN )
@@ -310,6 +310,7 @@ namespace engine
    INT32 _pmdLocalSession::_onMsgBegin( MsgHeader *msg )
    {
       // set reply header ( except flags, length )
+      getClient()->registerInMsg( msg ) ;
       _replyHeader.contextID          = -1 ;
       _replyHeader.numReturned        = 0 ;
       _replyHeader.startFrom          = 0 ;
@@ -351,6 +352,8 @@ namespace engine
 
       // end operator
       MON_END_OP( _pEDUCB->getMonAppCB() ) ;
+
+      getClient()->unregisterInMsg() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDLOCALSN_PROMSG, "_pmdLocalSession::_processMsg" )

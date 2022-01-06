@@ -47,10 +47,12 @@
 #include "ossMemPool.hpp"
 #include "dpsLogWrapper.hpp"
 #include "mthSelector.hpp"
+#include "rtnContextDef.hpp"
 #include "rtnContextBuff.hpp"
 #include "rtnQueryOptions.hpp"
 #include "rtnResultSetFilter.hpp"
 #include "utilPooledObject.hpp"
+#include "utilPooledAutoPtr.hpp"
 #include "monClass.hpp"
 #include <string>
 
@@ -58,7 +60,6 @@ using namespace bson ;
 
 namespace engine
 {
-   #define RTN_CONTEXT_GETNUM_ONCE              (1000)
 
    class _pmdEDUCB ;
    class _dmsStorageUnit ;
@@ -185,12 +186,21 @@ namespace engine
 
    public:
       INT32    append( const BSONObj &obj ) ;
+      INT32    pushFront( const BSONObj &obj ) ;
+      INT32    pushFronts( const CHAR *objBuf,
+                           INT32 len,
+                           INT32 num ) ;
       INT32    appendObjs( const CHAR *objBuf,
-                              INT32 len,
-                              INT32 num,
-                              BOOLEAN needAligned = TRUE ) ;
+                           INT32 len,
+                           INT32 num,
+                           BOOLEAN needAligned = TRUE ) ;
       INT32    get( INT32 maxNumToReturn,
-                     rtnContextBuf& buf ) ;
+                    rtnContextBuf& buf,
+                    BOOLEAN onlyPeek = FALSE ) ;
+
+      // only for object(aligned)
+      INT32    pop( UINT32 num = 1 ) ;
+
       void     release() ;
 
    public:
@@ -284,6 +294,14 @@ namespace engine
                            rtnContextBuf &buffObj,
                            _pmdEDUCB *cb ) ;
 
+         INT32    advance( const BSONObj &arg,
+                           const CHAR *pBackData ,
+                           INT32 backDataSize,
+                           _pmdEDUCB *cb ) ;
+
+         INT32    locate( const BSONObj &arg,
+                          _pmdEDUCB *cb ) ;
+
          virtual void     getErrorInfo( INT32 rc,
                                         _pmdEDUCB *cb,
                                         rtnContextBuf &buffObj )
@@ -352,6 +370,21 @@ namespace engine
          virtual BOOLEAN          isWrite() const { return FALSE ; }
          virtual BOOLEAN          needRollback() const { return FALSE ; }
 
+         virtual UINT32 getSULogicalID() const
+         {
+            return DMS_INVALID_LOGICCSID ;
+         }
+
+         virtual BOOLEAN needTimeout() const
+         {
+            return TRUE ;
+         }
+
+         UINT64 getLastProcessTick() const
+         {
+            return _lastProcessTick ;
+         }
+
          virtual _optAccessPlanRuntime * getPlanRuntime ()
          {
             return NULL ;
@@ -415,10 +448,25 @@ namespace engine
          }
 
       protected:
-         void              _onDataEmpty () ;
          virtual INT32     _prepareData( _pmdEDUCB *cb ) = 0 ;
          virtual BOOLEAN   _canPrefetch () const { return FALSE ; }
          virtual void      _toString( stringstream &ss ) {}
+         virtual INT32     _doAdvance( INT32 type,
+                                       INT32 prefixNum,
+                                       const BSONObj &keyVal,
+                                       const BSONObj &orderby,
+                                       const BSONObj &arg,
+                                       BOOLEAN isLocate,
+                                       _pmdEDUCB *cb )
+         {
+            return SDB_OPTION_NOT_SUPPORT ;
+         }
+         virtual INT32     _getAdvanceOrderby( BSONObj &orderby ) const
+         {
+            return SDB_OPTION_NOT_SUPPORT ;
+         }
+
+         virtual void      _onDataEmpty () ;
          BOOLEAN           _canPrepareMoreData() const { return _canPrepareMore ;}
          INT32             _prepareMoreData( _pmdEDUCB *cb ) ;
          INT32             _prepareDataMonitor ( _pmdEDUCB *cb ) ;
@@ -436,6 +484,45 @@ namespace engine
             _totalRecords = totalRecords ;
          }
 
+         INT32    _advance( const BSONObj &arg,
+                            BOOLEAN isLocate,
+                            _pmdEDUCB *cb,
+                            const CHAR *pBackData = NULL,
+                            INT32 backDataSize = 0 ) ;
+
+         INT32    _advanceRecords( INT32 type,
+                                   INT32 prefixNum,
+                                   ixmIndexKeyGen &keyGen,
+                                   const BSONObj &keyVal,
+                                   const BSONObj &orderby,
+                                   INT64 recordNum,
+                                   _pmdEDUCB *cb,
+                                   BOOLEAN &finished ) ;
+
+         INT32    _advanceBackData( INT32 type,
+                                    INT32 prefixNum,
+                                    ixmIndexKeyGen &keyGen,
+                                    const BSONObj &keyVal,
+                                    const BSONObj &orderby,
+                                    const CHAR *pBackData,
+                                    INT32 backDataSize,
+                                    BOOLEAN &finished ) ;
+
+         INT32    _checkAdvance( INT32 type,
+                                 ixmIndexKeyGen &keyGen,
+                                 INT32 prefixNum,
+                                 const BSONObj &keyVal,
+                                 const BSONObj &curObj,
+                                 const BSONObj &orderby,
+                                 BOOLEAN &matched,
+                                 BOOLEAN &isEqual ) ;
+
+         INT32    _woNCompare( const BSONObj &l,
+                               const BSONObj &r,
+                               BOOLEAN compreFieldName,
+                               UINT32 keyNum,
+                               const BSONObj &keyPattern = BSONObj() ) ;
+
       protected:
          monContextCB            _monCtxCB ;
          monClassQuery          *_monQueryCB ;
@@ -451,6 +538,9 @@ namespace engine
          // Enable performance monitor
          BOOLEAN                 _enableMonContext ;
          BOOLEAN                 _enableQueryActivity ;
+
+         // advance postion info
+         BSONObj                 _advancePosition ;
 
       private:
          INT64                   _contextID ;
@@ -471,13 +561,17 @@ namespace engine
 
          BOOLEAN                 _canPrepareMore ;
          INT32                   _prepareMoreDataLimit ;
+         INT32                   _prepareMoreTimeLimit ;
 
          BOOLEAN                 _isTransCtx ;
 
          BOOLEAN                 _isAffectGIndex ;
+
+         UINT64                  _lastProcessTick ;
    } ;
    typedef _rtnContextBase rtnContextBase ;
    typedef _rtnContextBase rtnContext ;
+   typedef utilThreadLocalPtr< rtnContext > rtnContextPtr ;
 
    /*
       _rtnContextBase OSS_INLINE functions
@@ -496,25 +590,43 @@ namespace engine
       return _buffer.freeSize() ;
    }
 
-   typedef _rtnContextBase* (*RTN_CTX_NEW_FUNC)( INT64 contextId, EDUID eduId ) ;
+   typedef rtnContextPtr (*RTN_CTX_NEW_FUNC)( INT64 contextId, EDUID eduId ) ;
 
    class _rtnContextAssit: public SDBObject
    {
    public:
       _rtnContextAssit( RTN_CONTEXT_TYPE type,
-                             std::string name,
-                             RTN_CTX_NEW_FUNC func ) ;
+                        std::string name,
+                        RTN_CTX_NEW_FUNC func ) ;
       ~_rtnContextAssit() ;
    } ;
 
-#define DECLARE_RTN_CTX_AUTO_REGISTER() \
+#define DECLARE_RTN_CTX_AUTO_REGISTER(theClass) \
    public: \
-      static _rtnContextBase *newThis ( INT64 contextId, EDUID eduId ) ;
+      static rtnContextPtr newThis ( INT64 contextId, EDUID eduId ) ; \
+      class sharePtr : public rtnContextPtr \
+      { \
+      public: \
+         theClass* get() const { return (theClass *)( rtnContextPtr::get() ) ; } \
+         theClass* operator->() { return get() ; } \
+         const theClass* operator->() const { return get() ; } \
+         operator const theClass* () { return get() ; } \
+         operator theClass* () { return get() ; } \
+      } ;
 
 #define RTN_CTX_AUTO_REGISTER(theClass, type, name ) \
-   _rtnContextBase *theClass::newThis ( INT64 contextId, EDUID eduId ) \
+   rtnContextPtr theClass::newThis ( INT64 contextId, EDUID eduId ) \
    { \
-      return SDB_OSS_NEW theClass( contextId, eduId ) ;\
+      rtnContextPtr res ; \
+      utilThreadLocalPtr< theClass > ptr = \
+                  utilThreadLocalPtr< theClass >::allocRaw( ALLOC_TC ) ; \
+      if ( NULL != ptr.get() && \
+           NULL != new ( ptr.get() ) theClass( contextId, eduId ) ) \
+      { \
+         res = ptr ; \
+         SDB_ASSERT( NULL != res.get(), "should be valid cast" ) ; \
+      } \
+      return res ; \
    } \
    _rtnContextAssit theClass##Assit ( type, std::string( name ), theClass::newThis ) ;
 
@@ -533,8 +645,9 @@ namespace engine
       _rtnContextBuilder() ;
       ~_rtnContextBuilder() ;
 
-      _rtnContextBase* create ( RTN_CONTEXT_TYPE type, INT64 contextId, EDUID eduId ) ;
-      void             release ( _rtnContextBase* context ) ;
+      rtnContextPtr  create( RTN_CONTEXT_TYPE type,
+                             INT64 contextId,
+                             EDUID eduId ) ;
       const _rtnContextInfo* find( RTN_CONTEXT_TYPE type ) const ;
 
    private:
@@ -564,29 +677,25 @@ namespace engine
          ~_rtnSubContextHolder () ;
 
       protected :
-         void _deleteSubContext () ;
-
-         void _setSubContext ( rtnContext * subContext, _pmdEDUCB * subCB ) ;
+         void _setSubContext ( rtnContextPtr &subContext, _pmdEDUCB *subCB ) ;
 
          OSS_INLINE rtnContext * _getSubContext ()
          {
-            return _subContext ;
+            return _subContext.get() ;
          }
 
          OSS_INLINE const rtnContext * _getSubContext () const
          {
-            return _subContext ;
+            return _subContext.get() ;
          }
 
-         OSS_INLINE _pmdEDUCB * _getSubContextCB ()
-         {
-            return _subCB ;
-         }
+      private :
+         void _deleteSubContext () ;
 
       protected :
-         _pmdEDUCB *     _subCB ;
-         rtnContext *   _subContext ;
-         INT64          _subContextID ;
+         UINT32         _subSULogicalID ;
+         _pmdEDUCB *    _subCB ;
+         rtnContextPtr  _subContext ;
    } ;
 
    typedef class _rtnSubContextHolder rtnSubContextHolder ;

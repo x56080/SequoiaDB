@@ -68,7 +68,7 @@ namespace engine
                                             pmdEDUCB *cb,
                                             BOOLEAN onPrimary,
                                             SET_RC *pIgnoreRC,
-                                            rtnContextCoord **ppContext,
+                                            rtnContextCoord::sharePtr *ppContext,
                                             rtnContextBuf *buf )
    {
       CoordGroupList grpList ;
@@ -87,7 +87,7 @@ namespace engine
    {
       INT32 rc = SDB_OK;
       rtnContextBuf buffObj ;
-      rtnContextCoord *pContext = NULL ;
+      rtnContextCoord::sharePtr pContext ;
 
       rc = executeOnOm( pMsg, cb, onPrimary, pIgnoreRC,
                         &pContext, buf ) ;
@@ -132,7 +132,7 @@ namespace engine
       {
          INT64 contextID = pContext->contextID() ;
          pmdGetKRCB()->getRTNCB()->contextDelete( contextID, cb ) ;
-         pContext = NULL ;
+         pContext.release() ;
       }
       return rc ;
 
@@ -147,7 +147,7 @@ namespace engine
                                           rtnContextBuf *buf )
    {
       INT32 rc                         = SDB_OK ;
-      rtnContextCoord *pContext        = NULL ;
+      rtnContextCoord::sharePtr pContext ;
 
       // fill default-reply(list success)
       contextID = -1 ;
@@ -176,7 +176,7 @@ namespace engine
       {
          INT64 contextID = pContext->contextID() ;
          pmdGetKRCB()->getRTNCB()->contextDelete( contextID, cb ) ;
-         pContext = NULL ;
+         pContext.release() ;
       }
       goto done ;
    }

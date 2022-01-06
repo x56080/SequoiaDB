@@ -89,7 +89,13 @@ namespace engine
                            rtnContextBuf &buffObj,
                            _pmdEDUCB *cb ) ;
 
+      // can not timeout
+      virtual BOOLEAN needTimeout() const { return FALSE ; }
+
    protected:
+      INT32 _open ( rtnContextBuf &buffObj,
+                    _pmdEDUCB *cb ) ;
+
       virtual INT32 _prepareData ( _pmdEDUCB *cb ) ;
 
    protected:
@@ -157,6 +163,19 @@ namespace engine
    } ;
 
    typedef class _catContextBase catContext ;
+
+   /*
+      catContextPtr define
+    */
+   class catContextPtr : public rtnContextPtr
+   {
+   public:
+      catContext* get() const { return (catContext *)( rtnContextPtr::get() ) ; }
+      catContext* operator->() { return get() ; }
+      const catContext* operator->() const { return get() ; }
+      operator const catContext* () { return get() ; }
+      operator catContext* () { return get() ; }
+   } ;
 }
 
 #endif //CATCONTEXT_HPP_

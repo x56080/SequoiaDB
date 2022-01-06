@@ -1,4 +1,4 @@
-﻿
+
 ##环境准备##
 
 用户自行下载需要的安装包，对应版本参考如下：
@@ -55,9 +55,9 @@
 
      > **Note:**
      >
-     > JBoss 有“domain”和“standalone”两种运行模式，两种模式的安装和配置是相同的。由于“standlone”提供的功能相对比较多，比如应用热部署、丰富的 web 操作界面等，因此为了降低安装的复杂度，在本次安装中采用的运行模式是“standlone”。
+     > JBoss 有“domain”和“standalone”两种运行模式，两种模式的安装和配置是相同的。由于“standalone”提供的功能相对比较多，比如应用热部署、丰富的 web 操作界面等，因此为了降低安装的复杂度，在本次安装中采用的运行模式是“standalone”。
 
-   2. 修改 `standlone.conf` 配置文件
+   2. 修改 `standalone.conf` 配置文件
 
       ```lang-bash
       $ vim /opt/jboss/bin/standalone.conf
@@ -69,7 +69,7 @@
       JAVA_HOME=/usr/java/jdk1.7.0_67
       ```
 
-   3. 修改 `standlone.xml` 配置文件
+   3. 修改 `standalone.xml` 配置文件
 
       ```lang-bash
       $ vim /opt/jboss/standalone/configuration/standalone.xml
@@ -93,7 +93,7 @@
 
      >**Note:**
      >
-     > 执行 `standalone.sh` 脚本启动 JBoss，所有的日志信息会输出到屏幕上；建议配置日志文件，根据日志的级别来选择日志是持久化还是重定向到 `/dev/null` 中。本次安装选择直接启动 `standalone .sh`，目的是安装过程中能够及时查看信息，环境安装成功后可以根据自己需求来处理日志。
+     > 执行 `standalone.sh` 脚本启动 JBoss，所有的日志信息会输出到屏幕上；建议配置日志文件，根据日志的级别来选择日志是持久化还是重定向到 `/dev/null` 中。本次安装选择直接启动 `standalone.sh`，目的是安装过程中能够及时查看信息，环境安装成功后可以根据自己需求来处理日志。
 
 - **添加JBoss后台访问用户**
 
@@ -137,4 +137,4 @@
 [jdbc]:https://jdbc.postgresql.org/
 [jboss]:http://jbossas.jboss.org/downloads/
 [jdk]:https://www.oracle.com/index.html/
-[install_deploy]:manual/Database_Instance/Relational_Instance/PostgreSQL_Instance/Operation/install_deploy.md
+[install_deploy]:manual/Database_Instance/Relational_Instance/PostgreSQL_Instance/install_deploy.md

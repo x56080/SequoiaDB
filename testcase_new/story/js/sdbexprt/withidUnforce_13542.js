@@ -31,8 +31,8 @@ function testWithIdCsv1 ()
       " -l " + clname +
       " --file " + csvfile +
       " --type csv" +
-      " --fields a"
-   " --withid true " +
+      " --fields a" +
+      " --withid true " +
       " --force false ";
    testRunCommand( command );
 
@@ -59,8 +59,8 @@ function testWithIdCsv2 ()
       " -l " + clname +
       " --file " + csvfile +
       " --type csv" +
-      " --fields _id,a"
-   " --withid true " +
+      " --fields _id,a" +
+      " --withid true " +
       " --force false ";
    testRunCommand( command );
 

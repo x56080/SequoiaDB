@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.sequoias3.common.RestParamDefine;
 import com.sequoias3.core.Bucket;
-import com.sequoias3.core.Region;
 import com.sequoias3.model.*;
 import com.sequoias3.core.User;
 import com.sequoias3.exception.S3Error;
@@ -14,7 +13,6 @@ import com.sequoias3.utils.RestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.rest.core.annotation.RestResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -23,8 +21,6 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
-import java.util.HashMap;
-import java.util.Map;
 
 @RestController
 public class BucketController {
@@ -166,7 +162,6 @@ public class BucketController {
         logger.error("bucketRejectCopy: need a key name.");
         throw new S3ServerException(S3Error.OBJECT_COPY_INVALID_DEST, "You can only specify a copy source header for copy requests.");
     }
-
 
     private String getLocation(HttpServletRequest httpServletRequest)
             throws S3ServerException{

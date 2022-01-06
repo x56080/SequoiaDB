@@ -1,27 +1,48 @@
+##名称##
+
+start - 启动当前节点
 
 ##语法##
-***node.start()***
 
-启动当前节点。
+**node.start()**
 
-##参数描述##
+##类别##
+
+SdbNode
+
+##描述##
+
+该函数用于启动当前节点。
+
+##参数##
 
 无
 
 ##返回值##
 
-无返回值，出错抛异常，并输出错误信息，可以通过
-[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误码。
-关于错误处理可以参考[常见错误处理指南](manual/faq.md)。
+函数执行成功时，无返回值。
+
+函数执行失败时，将抛异常并输出错误信息。
 
 ##错误##
 
-[错误码](manual/Manual/Sequoiadb_error_code.md)
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
+
+##版本##
+
+v2.0 及以上版本
 
 ##示例##
 
-* 启动 node 节点
+启动 node 节点
 
- ```lang-javascript
- > node.start()
- ```
+```lang-javascript
+> node.start()
+```
+
+[^_^]:
+    本文使用的所有引用及链接
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[faq]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md

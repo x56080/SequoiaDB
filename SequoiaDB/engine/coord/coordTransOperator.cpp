@@ -417,7 +417,7 @@ namespace engine
    // Add all groups to the transaction map. Normal transaction operations only
    // add nodes/groups when their data is touched. This function is for the
    // special case where all nodes are included by default.
-   INT32 _coordTransBegin::addAllGroups( pmdEDUCB *cb )
+   INT32 _coordTransBegin::addAllGroups( pmdEDUCB *cb, BOOLEAN isWrite )
    {
       INT32 rc = SDB_OK ;
       CoordGroupList groups;
@@ -432,7 +432,7 @@ namespace engine
       {
          CoordGroupInfoPtr groupPtr;
          _pResource->getGroupInfo(it->first, groupPtr);
-         _groupSession.getPropSite()->addTransNode(groupPtr->primary());
+         _groupSession.getPropSite()->addTransNode(groupPtr->primary(), TRUE);
       }
       return rc;
    }
@@ -462,6 +462,8 @@ namespace engine
       _coord2PhaseCommit implement
    */
    _coord2PhaseCommit::_coord2PhaseCommit()
+   : _preCommitTimeUS( 0 ),
+     _commitTimeUS( 0 )
    {
    }
 
@@ -483,6 +485,12 @@ namespace engine
       {
          goto done ;
       }
+
+      PD_LOG_MSG_CHECK( SDB_OK == cb->getTransRC(),
+                        cb->getTransRC(), error, PDERROR,
+                        "Transaction(%s) must rollback due to error(%d)",
+                        dpsTransIDToString( cb->getTransID() ).c_str(),
+                        cb->getTransRC() ) ;
 
       needCancel = TRUE ;
 
@@ -513,6 +521,30 @@ namespace engine
             PD_LOG( PDERROR, "Execute failed on phase2 in operator[%s], "
                     "rc: %d", getName(), rc ) ;
             goto error ;
+         }
+      }
+
+      // NOTE: we have send commit message to data nodes in advance, but now
+      // we need to reply to client at a right time. Because client may issue
+      // another transaction immediately after the reply, if we don't wait
+      // the commit time to be passed, the next transaction from the same
+      // client may not see the changes of this transaction
+      if ( cb->isGlobTrans() && _commitTimeUS > _preCommitTimeUS )
+      {
+         dpsTransCB *transCB = sdbGetTransCB() ;
+         stpLogicalTimeUS tempTime ;
+         INT32 timeout = (INT32)(
+               STP_MICROSEC_TO_MILLISEC( _commitTimeUS - _preCommitTimeUS ) ) ;
+         timeout = OSS_MIN( (INT32)( cb->getTransTimeout() ), timeout ) ;
+         INT32 tmpRC = transCB->getGlobTransTime( cb,
+                                                  _commitTimeUS,
+                                                  tempTime,
+                                                  timeout ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDWARNING, "Failed to get global logical time for "
+                    "delayed commit transaction [%s], rc: %d",
+                    dpsTransIDToString( cb->getTransID() ).c_str(), tmpRC ) ;
          }
       }
 
@@ -960,6 +992,8 @@ namespace engine
          // in send message callback
          MSG_TRANS_COMMIT_PRE_SET_SEND_TIME( pCommitPreMsg,
                                              preCommitTime.getTime() ) ;
+
+         _preCommitTimeUS = preCommitTime.getTime() ;
       }
       else
       {
@@ -1015,12 +1049,13 @@ namespace engine
          stpLogicalTimeUS commitTime ;
 
          // use the last pre-commit as commit time
-         // NOTE: it might retry for several times due to network traffic
          transCB->getGlobCommitTime( cb, commitTime ) ;
 
          // NOTE: commit time uses time error of transaction begin time
          cb->setTransCommitTime( commitTime ) ;
          _phase2Msg.commitTime = commitTime.getTime() ;
+
+         _commitTimeUS = commitTime.getTime() ;
       }
       else
       {
@@ -1191,7 +1226,8 @@ namespace engine
       SDB_ASSERT( NULL != reply, "reply is invalid" ) ;
 
       if ( ( cb->isGlobTrans() ) &&
-           ( MSG_BS_TRANS_COMMITPRE_RSP == reply->header.opCode ) &&
+           ( MSG_BS_TRANS_COMMITPRE_REQ ==
+                           GET_REQUEST_TYPE( reply->header.opCode ) ) &&
            ( SDB_OK == reply->flags ) &&
            ( 1 <= reply->numReturned ) )
       {
@@ -1321,11 +1357,12 @@ namespace engine
       if ((_rc = opr.init(_pResource, _cb)) ||
           (_rc = opr.execute(&msg, _cb, contextID, &buf)))
       {
+         PD_LOG(PDERROR, "Transaction begin operation failed [rc=%d]", _rc);
          return;
       }
       // Add all groups to the trans map so they get included in subsequent
       // commit/rollback operations
-      if (allGroups && (_rc = opr.addAllGroups(_cb)))
+      if (allGroups && (_rc = opr.addAllGroups(_cb, TRUE)))
       {
          return;
       }
@@ -1344,8 +1381,12 @@ namespace engine
          MsgHeader msg;
          coordTransRollback opr;
          // Perform coordTransRollback()
-         opr.init(_pResource, _cb);
-         opr.execute(&msg, _cb, contextID, &buf);
+         if ((_rc = opr.init(_pResource, _cb)) ||
+             (_rc = opr.execute(&msg, _cb, contextID, &buf)))
+         {
+            PD_LOG(PDERROR, "Transaction rollback operation failed [rc=%d]",
+                   _rc);
+         }
       }
    }
 
@@ -1367,6 +1408,7 @@ namespace engine
       if ((_rc = opr.init(_pResource, _cb)) ||
           (_rc = opr.execute(&msg, _cb, contextID, &buf)))
       {
+         PD_LOG(PDERROR, "Transaction commit operation failed [rc=%d]", _rc);
          return _rc;
       }
       _committed = TRUE;

@@ -78,6 +78,9 @@
 typedef UINT64 DPS_LSN_OFFSET ;
 typedef UINT32 DPS_LSN_VER ;
 
+#define DPS_LOG_WRITE_MOD_INCREMENT 0
+#define DPS_LOG_WRITE_MOD_FULL      1
+
 enum DPS_LOG_TYPE
 {
    LOG_TYPE_DUMMY        = 0x00,
@@ -145,8 +148,62 @@ namespace engine
                                   DPS_LSN_VER expectVersion,
                                   DPS_MOMENT moment,
                                   INT32 errcode ) = 0 ;
+
+         virtual BOOLEAN isEnabled() = 0 ;
+
+         virtual void beforeFS() = 0 ;
+
+         virtual void afterFS( const DPS_LSN_OFFSET &offset,
+                               const DPS_LSN_VER &version ) = 0 ;
    } ;
    typedef _dpsEventHandler dpsEventHandler ;
+
+   /*
+      _dpsLogConfig define
+    */
+   class _dpsLogConfig
+   {
+   public:
+      _dpsLogConfig()
+      : _logTimeOn( FALSE ),
+        _logWriteMod( DPS_LOG_WRITE_MOD_INCREMENT )
+      {
+      }
+
+      ~_dpsLogConfig() {}
+
+      BOOLEAN updateConf( BOOLEAN logTimeOn,
+                          UINT32 logWriteMod,
+                          BOOLEAN isInTrans = FALSE )
+      {
+         BOOLEAN changed = FALSE ;
+
+         if ( !isInTrans )
+         {
+            _logTimeOn = logTimeOn ;
+            _logWriteMod = logWriteMod ;
+            changed = TRUE ;
+         }
+
+         return changed ;
+      }
+
+      BOOLEAN isLogTimeOn() const
+      {
+         return _logTimeOn ;
+      }
+
+      UINT32 getLogWriteMod() const
+      {
+         return _logWriteMod ;
+      }
+
+   protected:
+      BOOLEAN _logTimeOn ;
+      UINT32  _logWriteMod ;
+   } ;
+
+   typedef class _dpsLogConfig dpsLogConfig ;
 
 }
 

@@ -24,17 +24,17 @@ On success, return void.
 On error, exception will be thrown.
 .SH ERRORS
 .PP
-when exception happen, use getLastError() to get the error code and use
+When exception happens, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
-For more detial, please reference to Troubleshooting.
+For more details, refer to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 Close the cursor.
 .IP
 .nf
 \f[C]
->\ var\ query\ =\ db.foo.bar.find()
->\ query.close()
+> var query = db.sample.employee.find()
+> query.close()
 \f[]
 .fi
 .IP \[bu] 2
@@ -42,8 +42,8 @@ Return the record with the subscript 0.
 .IP
 .nf
 \f[C]
->\ query[0]
-uncaught\ exception:\ \-31
-Failed\ to\ get\ next
+> query[0]
+uncaught exception: \-31
+Failed to get next
 \f[]
 .fi

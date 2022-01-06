@@ -1,5 +1,10 @@
 package com.mongodb.java;
 
+import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.gte;
+import static com.mongodb.client.model.Updates.inc;
+import static com.mongodb.client.model.Updates.set;
+
 import java.math.BigDecimal;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -43,11 +48,6 @@ import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.UpdateResult;
 import com.mongodb.utils.MongodbTestBase;
 
-import static com.mongodb.client.model.Filters.eq;
-import static com.mongodb.client.model.Filters.gte;
-import static com.mongodb.client.model.Updates.inc;
-import static com.mongodb.client.model.Updates.set;
-
 /**
  * @Description seqDB-22419:数据类型测试
  * @author fanyu
@@ -56,14 +56,17 @@ import static com.mongodb.client.model.Updates.set;
  */
 public class AllDataType22419 extends MongodbTestBase {
     private MongoDatabase db;
-    private String clName1 = "cl22419A";
-    private String clName2 = "cl22419B";
+    private String clName1;
+    private String clName2;
 
     @BeforeClass
     public void setUp() throws UnknownHostException {
         db = MongodbTestBase.getDataBase( client );
+        clName1 = javaDBNameWithVersion + "_cl22419A";
+        clName2 = javaDBNameWithVersion + "_cl22419B";
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void test1() {
         MongoCollection< Document > cl = db.getCollection( clName1 );
@@ -88,9 +91,8 @@ public class AllDataType22419 extends MongodbTestBase {
                         new BsonDecimal128( Decimal128.parse( "10" ) ) )
                 .append( "decimalFiled9",
                         new BsonDecimal128( Decimal128.POSITIVE_ZERO ) )
-                // TODO:SEQUOIADBMAINSTREAM-6037
-                // .append( "decimalFiled10",
-                // new BsonDecimal128( Decimal128.NEGATIVE_ZERO ) )
+                .append( "decimalFiled10",
+                        new BsonDecimal128( Decimal128.NEGATIVE_ZERO ) )
                 .append( "decimalFiled11",
                         new BsonDecimal128(
                                 Decimal128.parse( "0.471447736024856578" ) ) )
@@ -131,7 +133,7 @@ public class AllDataType22419 extends MongodbTestBase {
         // 查询
         List< Document > list = cl.find().into( new ArrayList< Document >() );
         // 检查结果
-        // TODO:SEQUOIADBMAINSTREAM-6037
+        document.append( "decimalFiled10", Decimal128.parse( "0" ) );
         document.append( "decimalFiled15", Decimal128
                 .parse( "1.567778800000000000000000000000000E+999" ) );
         document.append( "decimalFiled16", Decimal128
@@ -146,8 +148,7 @@ public class AllDataType22419 extends MongodbTestBase {
         // 更新
         Bson query = Filters.and(
                 gte( "decimalFiled5", Decimal128.POSITIVE_INFINITY ),
-                // TODO:SEQUOIADBMAINSTREAM-6037
-                // gte( "decimalFiled7", Decimal128.NEGATIVE_NaN ),
+                gte( "decimalFiled7", Decimal128.NEGATIVE_NaN ),
                 gte( "decimalFiled9", Decimal128.POSITIVE_ZERO ),
                 gte( "decimalFiled11",
                         Decimal128.parse( "0.471447736024856578" ) ),
@@ -207,6 +208,7 @@ public class AllDataType22419 extends MongodbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void test2() {
         MongoCollection< Document > cl = db.getCollection( clName2 );

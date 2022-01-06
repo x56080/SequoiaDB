@@ -821,45 +821,56 @@ namespace engine
             (UTIL_COMPRESSOR_TYPE)_metaHeader._compressionType ) ;
       }
 
-      // 1. prepare for backup
-      rc = _prepareBackup( cb, isEmpty ) ;
-      PD_RC_CHECK( rc, PDERROR, "Prepare for backup failed, rc: %d", rc ) ;
-
-      hasPrepared = TRUE ;
-
-      if ( !isEmpty )
+      try
       {
-         // 2. backup config
-         rc = _backupConfig() ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to backup config, rc: %d", rc ) ;
+         // 1. prepare for backup
+         rc = _prepareBackup( cb, isEmpty ) ;
+         PD_RC_CHECK( rc, PDERROR, "Prepare for backup failed, rc: %d", rc ) ;
 
-         // 3. do backup data
-         rc = _doBackup ( cb ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to do backup, rc: %d", rc ) ;
+         hasPrepared = TRUE ;
 
-         // 4. write meta file
-         rc = _writeMetaFile () ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to write meta file, rc: %d", rc ) ;
+         if ( !isEmpty )
+         {
+            // 2. backup config
+            rc = _backupConfig() ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to backup config, rc: %d", rc ) ;
+
+            // 3. do backup data
+            rc = _doBackup ( cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to do backup, rc: %d", rc ) ;
+
+            // 4. write meta file
+            rc = _writeMetaFile () ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to write meta file, rc: %d",
+                         rc ) ;
+         }
+         else if ( _metaHeader._global & BAR_BACKUP_GLOBAL_BKP )
+         {
+            // for global backup, we need to save a global timestamp for backup,
+            // so save a file even the backup is empty
+
+            // 2. backup config
+            rc = _backupConfig() ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to backup config, rc: %d", rc ) ;
+
+            // 3. no data to backup
+
+            // 4. write meta file
+            rc = _writeMetaFile () ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to write meta file, rc: %d", rc ) ;
+         }
+         else
+         {
+            PD_LOG( PDWARNING, "Backup[%s] is empty, will ignored",
+                    backupName() ) ;
+         }
       }
-      else if ( _metaHeader._global & BAR_BACKUP_GLOBAL_BKP )
+      catch ( exception &e )
       {
-         // for global backup, we need to save a global timestamp for backup,
-         // so save a file even the backup is empty
-
-         // 2. backup config
-         rc = _backupConfig() ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to backup config, rc: %d", rc ) ;
-
-         // 3. no data to backup
-
-         // 4. write meta file
-         rc = _writeMetaFile () ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to write meta file, rc: %d", rc ) ;
-      }
-      else
-      {
-         PD_LOG( PDWARNING, "Backup[%s] is empty, will ignored",
-                 backupName() ) ;
+         PD_LOG( PDERROR, "Failed to run backup [%s], occur exception %s",
+                 backupName(), e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
       }
 
       // 5. clean up after backup
@@ -1378,7 +1389,7 @@ namespace engine
       _curDataType = BAR_DATA_TYPE_RAW_DATA ;
       _curOffset   = 0 ;
       _curSequence = 0 ;
-      _replStatus  = -1 ;
+      _blockSync   = FALSE ;
       _hasRegBackup = FALSE ;
       _pExtentBuff = NULL ;
    }
@@ -1411,8 +1422,8 @@ namespace engine
       {
          if ( SDB_ROLE_STANDALONE != krcb->getDBRole() )
          {
-            _replStatus = PMD_DB_STATUS() ;
-            PMD_SET_DB_STATUS( SDB_DB_OFFLINE_BK ) ;
+            _pClsCB->getReplCB()->syncMgr()->disableSync() ;
+            _blockSync = TRUE ;
 
             _pClsCB->getReplCB()->getSyncEmptyEvent()->wait() ;
 
@@ -1469,6 +1480,9 @@ namespace engine
       expectlsn = _pDPSCB->expectLsn() ;
       currentLSN = _pDPSCB->getCurrentLsn() ;
       transLSN = _pTransCB->getOldestBeginLsn() ;
+
+      _metaHeader._endLSNOffset   = expectlsn.offset ;
+      _metaHeader._transLSNOffset = transLSN ;
 
       if ( BAR_BACKUP_OP_TYPE_INC == _metaHeader._opType )
       {
@@ -1530,9 +1544,6 @@ namespace engine
          }
       }
 
-      _metaHeader._endLSNOffset   = expectlsn.offset ;
-      _metaHeader._transLSNOffset = transLSN ;
-
    done:
       return rc ;
    error:
@@ -1541,10 +1552,10 @@ namespace engine
          _pDMSCB->backupDown( cb ) ;
          _hasRegBackup = FALSE ;
       }
-      if ( -1 != _replStatus )
+      if ( _blockSync )
       {
-         PMD_SET_DB_STATUS( (SDB_DB_STATUS)_replStatus ) ;
-         _replStatus = -1 ;
+         _pClsCB->getReplCB()->syncMgr()->enableSync() ;
+         _blockSync = FALSE ;
       }
       goto done ;
    }
@@ -1561,10 +1572,10 @@ namespace engine
          _pDMSCB->backupDown( cb ) ;
          _hasRegBackup = FALSE ;
       }
-      if ( -1 != _replStatus )
+      if ( _blockSync )
       {
-         PMD_SET_DB_STATUS( (SDB_DB_STATUS)_replStatus ) ;
-         _replStatus = -1 ;
+         _pClsCB->getReplCB()->syncMgr()->enableSync() ;
+         _blockSync = FALSE ;
       }
       return SDB_OK ;
    }
@@ -2141,6 +2152,7 @@ namespace engine
 
       _isDoRestoring       = FALSE ;
       _skipConf            = FALSE ;
+      _isGlobal            = FALSE ;
    }
 
    _barRSBaseLogger::~_barRSBaseLogger ()
@@ -2383,6 +2395,9 @@ namespace engine
       // 4. load config
       rc = _loadConf() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to load config, rc: %d", rc ) ;
+
+      // Is this a global backup that is being restored?
+      _isGlobal = _metaHeader._global & BAR_BACKUP_GLOBAL_BKP ;
 
       // 5. reset
       _reset() ;
@@ -3373,12 +3388,12 @@ namespace engine
          PD_LOG( PDEVENT, "Begin to rollback all trans..." ) ;
          std::cout << "Begin to rollback all trans..." << std::endl ;
          // rollback trans
-         rc = rtnTransRollbackAll( cb ) ;
+         rc = rtnTransRollbackAll( cb, 0 ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to rollback all trans, rc: %d",
                       rc ) ;
       }
 
-      if ( _metaHeader._global & BAR_BACKUP_GLOBAL_BKP )
+      if ( _isGlobal )
       {
          if ( SDB_ROLE_CATALOG == pmdGetDBRole() )
          {
@@ -3406,7 +3421,7 @@ namespace engine
 
             PD_LOG( PDEVENT, "Setting DC to restore-in-progress..." ) ;
             std::cout << "Setting DC to restore-in-progress..." << std::endl ;
-            if ((rc = catUpdateDCStatus(FIELD_NAME_RESTORING, TRUE, cb, 1,
+            if ((rc = catUpdateDCStatus(FIELD_NAME_RESTORE, TRUE, cb, 1,
                                         _pDMSCB, _pDPSCB)) != SDB_OK)
             {
                PD_LOG( PDERROR, "Failed to set restore-in-progress." ) ;
@@ -3417,22 +3432,26 @@ namespace engine
          // save global backup time to metadata file if needed
          if ( 0LL != _metaHeader._globalBackupTime )
          {
-            UINT64 minTime = 0LL, maxTime = 0LL ;
-            // move max time forward
-            _pTransCB->setMaxTransCommitTime( _metaHeader._globalBackupTime ) ;
+            UINT64 minTime = 0LL, tmp = 0LL, maxTime = 0LL ;
+            if (_isGlobal)
+            {
+               // set the running time to the backup time
+               _pTransCB->setRestorePointTime( _metaHeader._globalBackupTime ) ;
+            }
             // flush to meta file
             _pDPSCB->getLogMgr()->flushTransMeta() ;
             // log a message
-            _pTransCB->getRestoreWindow( minTime, maxTime ) ;
+            _pTransCB->getRestoreWindow( minTime, tmp, maxTime ) ;
             PD_LOG( PDEVENT, "Saved global transaction recoverable window ( "
                     "min: %llu, max: %llu )", minTime, maxTime ) ;
-            std::cout << "Saved global transaction recoverable window ( min: " <<
-                         minTime << ", max: " << maxTime << " )" << std::endl ;
+            std::cout << "Saved global transaction recoverable window ( " <<
+               "min: " << minTime << ", max: " << maxTime << " )" << std::endl ;
          }
          else
          {
-            PD_LOG( PDWARNING, "No bakcup time is given for global backup" ) ;
-            std::cout << "WARNING: No backup time is given for global backup" << std::endl ;
+            PD_LOG( PDWARNING, "No backup time is given for global backup" ) ;
+            std::cout << "WARNING: No backup time is given for global " <<
+               "backup" << std::endl ;
          }
       }
 
@@ -3472,7 +3491,7 @@ namespace engine
       _checkGroupName = checkGroupName ;
       _checkHostName = checkHostName ;
       _checkSvcName = checkSvcName ;
-      
+
    }
 
    _barBackupMgr::~_barBackupMgr ()

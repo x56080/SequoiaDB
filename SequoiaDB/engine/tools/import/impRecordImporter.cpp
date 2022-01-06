@@ -58,7 +58,8 @@ namespace import
                                    BOOLEAN useSSL,
                                    BOOLEAN enableTransaction,
                                    BOOLEAN allowKeyDuplication,
-                                   BOOLEAN replaceKeyDuplication )
+                                   BOOLEAN replaceKeyDuplication,
+                                   INT32 batchSize )
          : _insertBufferSize( 0 ),
            _recvBufferSize( 0 ),
            _useSSL( useSSL ),
@@ -77,7 +78,8 @@ namespace import
            _user( user ),
            _password( password ),
            _csname( csname ),
-           _clname( clname )
+           _clname( clname ),
+           _batchSize( batchSize )
    {
 
    }
@@ -123,6 +125,15 @@ namespace import
 
       connection = (sdbConnectionStruct*)_connection ;
       _endianConvert = connection->_endianConvert ;
+
+      rc = _setSessionAttr() ;
+      if ( SDB_OK != rc )
+      {
+         ossPrintf( "Failed to set session attributes"OSS_NEWLINE ) ;
+         PD_LOG( PDERROR, "Failed to set session attributes, rc = %d",
+                 rc ) ;
+         goto error ;
+      }
 
       rc = sdbGetCollectionSpace( _connection, _csname.c_str(),
                                   &_collectionSpace ) ;
@@ -514,4 +525,62 @@ namespace import
    error :
       goto done ;
    }
+
+   INT32 RecordImporter::_setSessionAttr()
+   {
+      INT32 rc = SDB_OK ;
+      bson options ;
+      BOOLEAN optionsInited = FALSE ;
+
+      if ( _enableTransaction )
+      {
+         // set TransMaxLockNum to batch size, so parallel transactions won't
+         // trigger lock escalation to block each other
+         // reserved 10% more in advance
+         INT32 lockMoreSize = _batchSize * 10 / 100 ;
+         INT32 lockSize = _batchSize + lockMoreSize > 100 ? lockMoreSize : 100 ;
+
+         bson_init( &options ) ;
+         optionsInited = TRUE ;
+
+         rc = bson_append_int( &options,
+                               FIELD_NAME_TRANS_MAXLOCKNUM,
+                               lockSize ) ;
+         if ( rc )
+         {
+            rc = SDB_DRIVER_BSON_ERROR ;
+            goto error ;
+         }
+
+         rc = bson_finish( &options ) ;
+         if ( rc )
+         {
+            rc = SDB_DRIVER_BSON_ERROR ;
+            goto error ;
+         }
+
+         rc = sdbSetSessionAttr( _collection, &options ) ;
+         if ( rc )
+         {
+            if ( SDB_INVALIDARG == rc )
+            {
+               PD_LOG( PDWARNING, "Server can not recognize field [%s], "
+                       "it is an old version server, ignore the field",
+                       FIELD_NAME_TRANS_MAXLOCKNUM ) ;
+               rc = SDB_OK ;
+            }
+            goto error ;
+         }
+      }
+
+   done:
+      if ( optionsInited )
+      {
+         bson_destroy( &options ) ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
 }

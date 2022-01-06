@@ -216,7 +216,7 @@ class QueryTask implements Runnable {
         cursor = cl.query();
         try {
             while(cursor.hasNext()) {
-            System.out.println("The inserted record is: " + cursor.getNext())
+            System.out.println("The inserted record is: " + cursor.getNext());
             }
         } finally {
            cursor.close();

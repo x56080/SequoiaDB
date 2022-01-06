@@ -117,7 +117,7 @@ v1.0 and above
 [TraceOption]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects/SdbTraceOption.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[general_guide]:manual/faq.md
+[general_guide]:manual/FAQ/faq_sdb.md
 [traceStatus]:manual/Manual/Sequoiadb_Command/Sdb/traceStatus.md
 [traceResume]:manual/Manual/Sequoiadb_Command/Sdb/traceResume.md
 [traceOff]:manual/Manual/Sequoiadb_Command/Sdb/traceOff.md

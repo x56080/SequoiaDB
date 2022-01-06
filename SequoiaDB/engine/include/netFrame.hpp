@@ -102,7 +102,7 @@ namespace engine
 
          void close() ;
 
-         void addEH( NET_EH eh ) ;
+         INT32 addEH( NET_EH eh ) ;
 
          void delEH( const NET_HANDLE& handle ) ;
 
@@ -157,7 +157,9 @@ namespace engine
 
       public:
          /// handler will not be freed by frame
-         _netFrame( INetMsgHandler *handler, _netRoute *pRoute ) ;
+         _netFrame( INetMsgHandler *handler,
+                    _netRoute *pRoute,
+                    const NET_HANDLE &beginID = NET_MIN_HANDLE ) ;
 
          ~_netFrame() ;
 
@@ -280,7 +282,9 @@ namespace engine
 
          void  close() ;
 
+         // WARNING: close of acceptor is not thread safe
          INT32 closeListen ( UINT32 protocolMask = NET_FRAME_MASK_ALL ) ;
+         INT32 shutdownListen( UINT32 protocolMask = NET_FRAME_MASK_ALL ) ;
 
          void  handleMsg( NET_EH eh ) ;
 
@@ -339,7 +343,7 @@ namespace engine
 
          NET_EH            _createEvHandler() ;
 
-         void              _addOpposite( NET_EH eh ) ;
+         INT32             _addOpposite( NET_EH eh ) ;
 
          INT32             _listenTCP( const CHAR *hostName,
                                        const CHAR *serviceName ) ;
@@ -354,12 +358,15 @@ namespace engine
 
          void     _erase( const NET_HANDLE &handle ) ;
 
-         void     _addRoute( NET_EH eh ) ;
+         INT32    _addRoute( NET_EH eh ) ;
+         void     _eraseRoute( NET_EH eh ) ;
 
          void     _heartbeat( INT32 serviceType ) ;
          void     _handleHeartBeat( NET_EH eh, MsgHeader *message ) ;
          void     _handleHeartBeatRes( NET_EH eh, MsgHeader *message ) ;
          void     _checkBreak( UINT32 timeout, INT32 serviceType ) ;
+
+         void     _closeHandle( NET_HANDLE handle ) ;
 
       private:
          UINT32                           _protocolMask ;

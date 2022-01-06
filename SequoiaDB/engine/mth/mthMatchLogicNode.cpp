@@ -261,7 +261,8 @@ namespace engine
    //*******************_mthMatchLogicAndNode***********************
    _mthMatchLogicOrNode::_mthMatchLogicOrNode( _mthNodeAllocator *allocator,
                                                const mthNodeConfig *config )
-                        :_mthMatchLogicNode( allocator, config )
+                        :_mthMatchLogicNode( allocator, config ),
+                         _addedToPred( FALSE )
    {
    }
 
@@ -327,8 +328,68 @@ namespace engine
    INT32 _mthMatchLogicOrNode::calcPredicate( rtnPredicateSet &predicateSet,
                                               const rtnParamList * paramList )
    {
-      // Logic or do not have predicatekey.
-      return SDB_OK ;
+      INT32 rc = SDB_OK ;
+
+      rtnPredicateSet curPredicateSet ;
+
+      // if all children can generate a single predicate with the same field
+      // we can generate predicate for $or
+      // e.g. { $or : [ { a : 1 }, { a : 2 } ] } to bounds [ 1, 1 ], [ 2, 2 ]
+
+      for ( MATCHNODE_VECTOR::iterator iter = _children.begin() ;
+            iter != _children.end() ;
+            ++ iter )
+      {
+         rtnPredicateSet subPredicateSet ;
+
+         _mthMatchNode *child = *iter ;
+         // NOTE: no parameters under $or
+         rc = child->calcPredicate( subPredicateSet, NULL ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to calculate predicates in child "
+                      "node [type: %d, field: %s], rc: %d",
+                      child->getType(), child->getFieldName(), rc ) ;
+
+         // check if predicates from child is empty or has multiple fields
+         if ( 1 != subPredicateSet.getSize() )
+         {
+            goto done ;
+         }
+
+         if ( 0 == curPredicateSet.getSize() )
+         {
+            // first child, just add
+            rc = curPredicateSet.addAndPredicates( subPredicateSet ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to add first predicates by $or, "
+                         "rc: %d", rc ) ;
+         }
+         else
+         {
+            // other children, add by $or merge
+            rc = curPredicateSet.addOrPredicates( subPredicateSet ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to add predicates by $or, "
+                         "rc: %d", rc ) ;
+         }
+
+         // check if predicates after merge is empty or has multiple fields
+         if ( 1 != curPredicateSet.getSize() )
+         {
+            goto done ;
+         }
+      }
+
+      if ( 1 == curPredicateSet.getSize() )
+      {
+         rc = predicateSet.addAndPredicates( curPredicateSet ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to merge predicates, "
+                      "rc: %d", rc ) ;
+         _addedToPred = TRUE ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    INT32 _mthMatchLogicOrNode::extraEqualityMatches( BSONObjBuilder &builder,

@@ -36,7 +36,6 @@
 *******************************************************************************/
 
 #include "sequoiaFSOptionMgr.hpp"
-#include "pmdOptionsMgr.hpp"
 #include "pmdDef.hpp"
 #include "ossVer.hpp"
 #include "utilStr.hpp"
@@ -46,26 +45,41 @@ using namespace sequoiafs;
 
 #define FS_COMMANDS_OPTIONS \
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_HELP,           ",h" ), "Print help message" ) \
+     ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_HELP_FUSE,      ",h" ), "Print fuse help message" ) \
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_VERSION,        ",v" ), "Print version message" ) \
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_MOUNTPOINT,     ",m" ), po::value<std::string>() , "Full path of mountpoint" )  \
      ( SDB_SEQUOIAFS_ALIAS, po::value<std::string>() , "Alias name of mountpoint, the value is generally the last level of full path. " ) \
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_HOSTS,          ",i" ), po::value<std::string>() , "Host addresses( hostname:svcname ), separated by ',', such as 'localhost:11810,localhost:11910', default:'localhost:11810'" ) \
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_USERNAME,       ",u" ), po::value<std::string>() , "User name of source sdb" ) \
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_PASSWD,         ",p" ), po::value<std::string>() , "User password of source sdb" ) \
+     ( SDB_SEQUOIAFS_CIPHERFILE, po::value<std::string>() , "Cipher file of source sdb" ) \
+     ( SDB_SEQUOIAFS_TOKEN, po::value<std::string>() , "Encryption token for cipher file" ) \
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_COLLECTION,     ",l" ), po::value<std::string>() , "The target collection that be mounted" ) \
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_META_DIR_CL,    ",d" ), po::value<std::string>() , "The dir meta collection" ) \
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_META_FILE_CL,   ",f" ), po::value<std::string>() , "The file meta collection" ) \
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_CONNECTION_NUM, ",n" ), po::value<INT32>() , "The max connection num of the connection pool, default:100, value range: [50-1000]" ) \
-     ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_CACHE_SIZE,     ",s" ), po::value<INT32>() , "The cache size( unit:M ) of dir meta, default:2, value range: [1-200]" ) \
+     ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_DIRCACHE_SIZE,  ",s" ), po::value<INT32>() , "The cache number of dir meta, default:100000 , value range: [20-1000000]" ) \
+     ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_DATACACHE_SIZE, ",s" ), po::value<INT32>() , "The cache size of data cache, default:2048 (MB), value range: [200-20480]" ) \
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_CONF_PATH,      ",c" ), po::value<std::string>() , "Configure file path." ) \
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_DIAGLEVEL,      ",g" ), po::value<INT32>() , "Diagnostic level, default:3, value range: [0-5]" ) \
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_REPLSIZE,       ",r" ), po::value<INT32>() , "Replsize of meta collections, default:2, value range: [-1-7]" ) \
      ( SDB_SEQUOIAFS_DIAGNUM, po::value<INT32>() , "The max number of diagnostic log files, default:20, -1:unlimited" ) \
      ( SDB_SEQUOIAFS_DIAGPATH, po::value<std::string>(), "Diagnostic log file path" ) \
+     ( SDB_SEQUOIAFS_FLUSH_FLAG, po::value<INT32>() , "The flush flag, value range:[0:sync, 1:async, 2:direct], default:0:sync" ) \
+     ( SDB_SEQUOIAFS_FORCE_MOUNT, po::value<std::string>() , "The froce mount flag, default: different mountpath can not mount to the same collection. value range:[false, true], default:false" ) \
+     ( SDB_SEQUOIAFS_PRE_READ, po::value<INT32>() , "The preread block number, default: 4. value range:[1, 20]" ) \
+     ( SDB_SEQUOIAFS_CREATECACHE, po::value<std::string>(), "Create file cache, if the mode is true, FS will cache creating tiny file. default: false. " ) \
+     ( SDB_SEQUOIAFS_CREATECACHESIZE, po::value<INT32>() , "The cache size of creating file cache, default:1024 (MB), value range: [200-20480]" ) \
+     ( SDB_SEQUOIAFS_CREATEPATH, po::value<std::string>(), "Creating file cache path, if filecreatecache is true, the path must be specified." ) \
      ( SDB_SEQUOIAFS_ALLOWOTHER, po::value<std::string>(), "Allow other users access the specified mountpoint, default: true" ) \
      ( SDB_SEQUOIAFS_BIGWRITES, po::value<std::string>(), "Enable larger than 4kB writes, default: true" ) \
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_MAXWRITE, "" ), po::value<INT32>() , "Set maximum size of write requests, default: 131072" ) \
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_MAXREAD, "" ), po::value<INT32>() ,  "Set maximum size of read requests, default: 131072" ) \
+     ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_MAXREAD, "" ), po::value<INT32>() ,  "Set maximum size of read requests, default: 131072" ) \
+
+#define FS_COMMANDS_HIDE_OPTIONS \
+     ( SDB_SEQUOIAFS_STANDALONE, po::value<std::string>(), "The standalone mode, if the mode is true, FS will cache directory not rely on MCS. default: true. " ) \
+//TODO: hide standalone parameter, if work with MCS. standalone should be false.
 
 INT32 _sequoiafsOptionMgr::parseCollection( const string collection,
                                      string *cs,
@@ -140,7 +154,7 @@ _sequoiafsOptionMgr::_sequoiafsOptionMgr()
    ossMemset( _diagPath, 0, sizeof( _diagPath ) );
 
    _connectionNum = SDB_SEQUOIAFS_CONNECTION_DEFAULT_MAX_NUM;
-   _cacheSize = SDB_SEQUOIAFS_CACHE_DEFAULT_SIZE;
+   //_cacheSize = SDB_SEQUOIAFS_CACHE_DEFAULT_SIZE;
    _diagLevel = PDWARNING;
    _replsize = SDB_SEQUOIAFS_REPLSIZE_DEFAULT_VALUE;
    _fuse_allow_other = TRUE;
@@ -169,7 +183,6 @@ PDLEVEL _sequoiafsOptionMgr::getDiaglogLevel()const
 
    return level;
 }
-
 
 INT32 _sequoiafsOptionMgr::init( INT32 argc,
                             CHAR **argv,
@@ -222,6 +235,13 @@ INT32 _sequoiafsOptionMgr::init( INT32 argc,
       ossPrintVersion("SequoiaFS version");
       fuse_str.push_back("--version");
       rc = SDB_PMD_VERSION_ONLY;
+      goto done;
+   }
+
+   if(vmFromCmd.count(SDB_SEQUOIAFS_HELP_FUSE))
+   {                
+      fuse_str.push_back("--help");
+      rc = SDB_PMD_HELP_ONLY;
       goto done;
    }
 
@@ -358,6 +378,12 @@ INT32 _sequoiafsOptionMgr::doDataExchange(pmdCfgExchange *pEX)
    //--passwd
    rdxString(pEX, SDB_SEQUOIAFS_PASSWD, _passwd, sizeof(_passwd), FALSE,
              PMD_CFG_CHANGE_FORBIDDEN, SDB_SEQUOIAFS_USER_DEFAULT_PASSWD);
+   //--cipherfile
+   rdxString(pEX, SDB_SEQUOIAFS_CIPHERFILE, _cipherFile, sizeof(_cipherFile), FALSE,
+             PMD_CFG_CHANGE_FORBIDDEN, "");    
+   //--token
+   rdxString(pEX, SDB_SEQUOIAFS_TOKEN, _token, sizeof(_token), FALSE,
+             PMD_CFG_CHANGE_FORBIDDEN, "");
    //--mountpoint
    rdxString(pEX, SDB_SEQUOIAFS_MOUNTPOINT, _mountpoint, sizeof(_mountpoint), FALSE,
              PMD_CFG_CHANGE_FORBIDDEN, "");
@@ -381,10 +407,21 @@ INT32 _sequoiafsOptionMgr::doDataExchange(pmdCfgExchange *pEX)
           PMD_CFG_CHANGE_FORBIDDEN, SDB_SEQUOIAFS_CONNECTION_DEFAULT_MAX_NUM);
    rdvMinMax(pEX, _connectionNum, 50, 1000, TRUE);
 
+/*
    //--cachesize
    rdxInt(pEX, SDB_SEQUOIAFS_CACHE_SIZE, _cacheSize, FALSE,
           PMD_CFG_CHANGE_FORBIDDEN, SDB_SEQUOIAFS_CACHE_DEFAULT_SIZE);
-   rdvMinMax(pEX, _cacheSize, 1, 200, TRUE);
+   rdvMinMax(pEX, _cacheSize, 20, 1000000, TRUE);
+*/
+   //--maxdircachesize
+   rdxInt(pEX, SDB_SEQUOIAFS_DIRCACHE_SIZE, _dirCacheSize, FALSE,
+          PMD_CFG_CHANGE_FORBIDDEN, SDB_SEQUOIAFS_DIR_CACHE_DEFAULT_SIZE);
+   rdvMinMax(pEX, _dirCacheSize, 10, 1000000, TRUE);
+
+   //--maxdatacachesize
+   rdxInt(pEX, SDB_SEQUOIAFS_DATACACHE_SIZE, _dataCacheSize, FALSE,
+          PMD_CFG_CHANGE_FORBIDDEN, SDB_SEQUOIAFS_DATA_CACHE_DEFAULT_SIZE);
+   rdvMinMax(pEX, _dataCacheSize, 200, 20480, TRUE);
 
    //--diaglevel
    rdxUShort(pEX, SDB_SEQUOIAFS_DIAGLEVEL, _diagLevel, FALSE,
@@ -405,6 +442,31 @@ INT32 _sequoiafsOptionMgr::doDataExchange(pmdCfgExchange *pEX)
    //--diagnum
    rdxInt(pEX, SDB_SEQUOIAFS_DIAGNUM, _diagnum, FALSE, PMD_CFG_CHANGE_RUN,
           PD_DFT_FILE_NUM);
+   rdvMinMax( pEX, _diagnum, (INT32)PD_MIN_FILE_NUM, (INT32)OSS_SINT32_MAX, TRUE ) ;
+   //--fflag
+   rdxInt(pEX, SDB_SEQUOIAFS_FLUSH_FLAG, _flushflag, FALSE, PMD_CFG_CHANGE_RUN,
+          0);
+   rdvMinMax(pEX, _flushflag, 0, 2, TRUE);
+   //--forcemountflag
+   rdxBooleanS(pEX, SDB_SEQUOIAFS_FORCE_MOUNT, _forcemount, FALSE, 
+          PMD_CFG_CHANGE_RUN, FALSE);
+   //--prereadblock
+   rdxInt(pEX, SDB_SEQUOIAFS_PRE_READ, _prereadblock, FALSE, 
+          PMD_CFG_CHANGE_RUN, SDB_SEQUOIAFS_PRE_READ_DEFAULT_NAME);
+   rdvMinMax(pEX, _prereadblock, 1, 20, TRUE);
+   //--standalone
+   rdxBooleanS(pEX, SDB_SEQUOIAFS_STANDALONE, _standalone, FALSE, 
+          PMD_CFG_CHANGE_RUN, TRUE);
+   //--filecreatecache
+   rdxBooleanS(pEX, SDB_SEQUOIAFS_CREATECACHE, _filecreatecache, FALSE, 
+          PMD_CFG_CHANGE_RUN, FALSE);
+   //--filecreatecachesize
+   rdxInt(pEX, SDB_SEQUOIAFS_CREATECACHESIZE, _filecreatecachesize, FALSE,
+          PMD_CFG_CHANGE_FORBIDDEN, SDB_SEQUOIAFS_CREAT_FILE_DEFAULT_SIZE);
+   rdvMinMax(pEX, _dataCacheSize, 200, 20480, TRUE);       
+   //--createfilepath
+   rdxPath(pEX, SDB_SEQUOIAFS_CREATEPATH, _createfilePath, sizeof(_createfilePath),
+           FALSE, PMD_CFG_CHANGE_FORBIDDEN, "");       
    //--fuse_allow_other
    rdxBooleanS(pEX, SDB_SEQUOIAFS_ALLOWOTHER, _fuse_allow_other, FALSE, 
           PMD_CFG_CHANGE_FORBIDDEN, TRUE);
@@ -420,8 +482,7 @@ INT32 _sequoiafsOptionMgr::doDataExchange(pmdCfgExchange *pEX)
    //--fuse_max_read
    rdxInt(pEX, SDB_SEQUOIAFS_MAXREAD, _fuse_max_read, FALSE,
           PMD_CFG_CHANGE_FORBIDDEN, SDB_SEQUOIAFS_MAXREAD_DEFAULT_VALUE);
-   
-   rdvMinMax( pEX, _diagnum, (INT32)PD_MIN_FILE_NUM, (INT32)OSS_SINT32_MAX, TRUE ) ;
+
    return getResult();
 }
 

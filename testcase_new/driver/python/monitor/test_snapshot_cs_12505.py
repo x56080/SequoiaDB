@@ -47,7 +47,7 @@ class TestSnapshotCSCL12505(testlib.SdbTestBase):
          # remark totalDataSize before reset snapshot
          self.oldDataSize = rec['TotalDataSize']
       except SDBBaseError as e:
-         self.fail('get snapshot fail: ' + e.detail)
+         self.fail('get snapshot fail: ' + str(e))
       return rec
             
    def get_actual_result(self,cursor):

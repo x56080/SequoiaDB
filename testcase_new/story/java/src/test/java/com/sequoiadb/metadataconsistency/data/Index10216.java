@@ -98,7 +98,8 @@ public class Index10216 extends SdbTestBase {
                 clDB.dropIndex( idxName );
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if ( eCode != -47 ) { // -47:Index name does not exist
+                if ( eCode != -47 && eCode != -175 ) {
+                    // -47:Index name does not exist
                     throw e;
                 }
             } finally {

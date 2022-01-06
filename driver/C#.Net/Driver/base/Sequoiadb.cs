@@ -623,11 +623,34 @@ namespace SequoiaDB
          */
         public void DropCollectionSpace(string csName) 
         {
-            if (csName == null || csName.Length == 0) 
+            DropCollectionSpace(csName, null);
+        }
+
+        /** \fn void DropCollectionSpace(string csName, BsonDocument options)
+         *  \brief Remove the named collection space
+         *  \param csName The collection space name
+         *  \param options The options for dropping collection, default to be null
+         *
+         *      EnsureEmpty   : Ensure the collection space is empty or not, default to be false.
+         *                      if true, delete fails when the collection space is not empty,
+         *                      if false, directly delete the collection space.
+         *  \exception SequoiaDB.BaseException
+         *  \exception System.Exception
+         */
+        public void DropCollectionSpace(string csName, BsonDocument options)
+        {
+            if (csName == null || csName.Length == 0)
             {
                 throw new BaseException("SDB_INVALIDARG");
             }
-            SDBMessage rtn = AdminCommand(SequoiadbConstants.DROP_CMD, SequoiadbConstants.COLSPACE, csName);
+            BsonDocument obj = new BsonDocument();
+            obj.Add(SequoiadbConstants.FIELD_NAME, csName);
+            if (options != null)
+            {
+                obj.Add(options);
+            }
+            string cmdStr = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.DROP_CMD + " " + SequoiadbConstants.COLSPACE;
+            SDBMessage rtn = AdminCommand(cmdStr, obj);
             int flags = rtn.Flags;
             if (flags != 0)
                 throw new BaseException(flags, rtn.ErrorObject);
@@ -828,6 +851,8 @@ namespace SequoiaDB
          *      SDBConst.SDB_SNAP_LATCHWAITS
          *      SDBConst.SDB_SNAP_LOCKWAITS
          *      SDBConst.SDB_SNAP_INDEXSTATS
+         *      SDBConst.SDB_SNAP_TRANSWAITS
+         *      SDBConst.SDB_SNAP_TRANSDEADLOCK
          *      
          *  \param matcher The matching condition or null
          *  \param selector The selective rule or null
@@ -867,6 +892,8 @@ namespace SequoiaDB
          *      SDBConst.SDB_SNAP_LATCHWAITS
          *      SDBConst.SDB_SNAP_LOCKWAITS
          *      SDBConst.SDB_SNAP_INDEXSTATS
+         *      SDBConst.SDB_SNAP_TRANSWAITS
+         *      SDBConst.SDB_SNAP_TRANSDEADLOCK
          *      
          *  \param matcher The matching condition or null
          *  \param selector The selective rule or null
@@ -909,6 +936,8 @@ namespace SequoiaDB
          *      SDBConst.SDB_SNAP_LATCHWAITS
          *      SDBConst.SDB_SNAP_LOCKWAITS
          *      SDBConst.SDB_SNAP_INDEXSTATS
+         *      SDBConst.SDB_SNAP_TRANSWAITS
+         *      SDBConst.SDB_SNAP_TRANSDEADLOCK
          *      
          *  \param matcher The matching condition or null
          *  \param selector The selective rule or null
@@ -1011,6 +1040,14 @@ namespace SequoiaDB
                 case SDBConst.SDB_SNAP_INDEXSTATS:
                     command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.SNAP_CMD + " " +
                            SequoiadbConstants.INDEXSTATS;
+                    break;
+                case SDBConst.SDB_SNAP_TRANSWAITS:
+                    command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.SNAP_CMD + " " +
+                           SequoiadbConstants.TRANSWAITS;
+                    break;
+                case SDBConst.SDB_SNAP_TRANSDEADLOCK:
+                    command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.SNAP_CMD + " " +
+                           SequoiadbConstants.TRANSDEADLOCK;
                     break;
                 default:
                     throw new BaseException("SDB_INVALIDARG");
@@ -1729,21 +1766,7 @@ namespace SequoiaDB
          */
         public bool IsDomainExist(string dmName)
         {
-            if (null == dmName || dmName.Equals(""))
-            {
-                throw new BaseException("SDB_INVALIDARG");
-            }
-            BsonDocument matcher = new BsonDocument();
-            matcher.Add(SequoiadbConstants.FIELD_NAME, dmName);
-            DBCursor cursor = GetList(SDBConst.SDB_LIST_DOMAINS, matcher, null, null);
-            if (null != cursor && null != cursor.Next())
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            return _CheckIsExistByList(SDBConst.SDB_LIST_DOMAINS, dmName);
         }
 
         /** \fn bool IsReplicaGroupExist(string groupName)
@@ -2355,6 +2378,168 @@ namespace SequoiaDB
             RenameCollectionSpace(oldName, newName, null);
         }
 
+        /** \fn DBSequence CreateSequence(String seqName)
+         *  \brief Create a sequence with default options.
+         *  \param seqName The name of sequence
+         *  \return A sequence object of creation
+         *  \exception SequoiaDB.BaseException
+         *  \exception System.Exception
+         */
+        public DBSequence CreateSequence(String seqName)
+        {
+            return CreateSequence(seqName, null);
+        }
+
+        /** \fn DBSequence CreateSequence(String seqName, BsonDocument options)
+         *  \brief Create a sequence with specified options.
+         *  \param seqName The name of sequence
+         *  \param options The options specified by user, details as bellow:
+         *                 <ul>
+         *                   <li>StartValue(long) : The start value of sequence
+         *                   <li>MinValue(long)   : The minimum value of sequence
+         *                   <li>MaxValue(long)   : The maxmun value of sequence
+         *                   <li>Increment(int)   : The increment value of sequence
+         *                   <li>CacheSize(int)   : The cache size of sequence
+         *                   <li>AcquireSize(int) : The acquire size of sequence
+         *                   <li>Cycled(boolean)  : The cycled flag of sequence
+         *                 </ul>
+         *  \return A sequence object of creation
+         *  \exception SequoiaDB.BaseException
+         *  \exception System.Exception
+         */
+        public DBSequence CreateSequence(String seqName, BsonDocument options)
+        {
+            if (seqName == null || seqName.Length == 0)
+            {
+                throw new BaseException("SDB_INVALIDARG");
+            }
+            // build cmd
+            string command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.CREATE_SEQUENCE;
+            // build object
+            BsonDocument obj = new BsonDocument();
+            obj.Add(SequoiadbConstants.FIELD_NAME, seqName);
+            if (options != null)
+            {
+                obj.Add(options);
+            }
+            SDBMessage rtn = AdminCommand(command, obj, null, null, null);
+            int flags = rtn.Flags;
+            if (flags != 0)
+            {
+                throw new BaseException(flags, rtn.ErrorObject);
+            }
+            return new DBSequence(seqName, this);
+        }
+
+        /** \fn void DropSequence(String seqName)
+         *  \brief Drop the specified sequence.
+         *  \param seqName The name of sequence
+         *  \exception SequoiaDB.BaseException
+         *  \exception System.Exception
+         */
+        public void DropSequence(String seqName)
+        {
+            if (seqName == null || seqName.Length == 0)
+            {
+                throw new BaseException("SDB_INVALIDARG");
+            }
+            // build cmd
+            string command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.DROP_SEQUENCE;
+            // build object
+            BsonDocument obj = new BsonDocument();
+            obj.Add(SequoiadbConstants.FIELD_NAME, seqName);
+            SDBMessage rtn = AdminCommand(command, obj, null, null, null);
+            int flags = rtn.Flags;
+            if (flags != 0)
+            {
+                throw new BaseException(flags, rtn.ErrorObject);
+            }
+        }
+
+        /** \fn DBSequence GetSequence(String seqName)
+         *  \brief Get the specified sequence.
+         *  \param seqName The name of sequence
+         *  \return The specified sequence object
+         *  \exception SequoiaDB.BaseException
+         *  \exception System.Exception
+         */
+        public DBSequence GetSequence(String seqName)
+        {
+            if (seqName == null || seqName.Length == 0)
+            {
+                throw new BaseException("SDB_INVALIDARG");
+            }
+            if (IsSequenceExist(seqName))
+            {
+                return new DBSequence(seqName, this);
+            }
+            else
+            {
+                throw new BaseException((int)Errors.errors.SDB_SEQUENCE_NOT_EXIST, "Sequence does not exist");
+            }
+        }
+
+        /** \fn void RenameSequence(String oldName, String newName)
+         *  \brief Rename sequence.
+         *  \param oldName The old name of sequence
+         *  \param newName The new name of sequence
+         *  \exception SequoiaDB.BaseException
+         *  \exception System.Exception
+         */
+        public void RenameSequence(String oldName, String newName)
+        {
+            if (oldName == null || oldName.Length == 0)
+            {
+                throw new BaseException("SDB_INVALIDARG");
+            }
+            if (newName == null || newName.Length == 0)
+            {
+                throw new BaseException("SDB_INVALIDARG");
+            }
+            // build cmd
+            string command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.ALTER_SEQUENCE;
+            // build object
+            BsonDocument options = new BsonDocument();
+            options.Add(SequoiadbConstants.FIELD_NAME, oldName);
+            options.Add(SequoiadbConstants.FIELD_NEWNAME, newName);
+            BsonDocument obj = new BsonDocument();
+            obj.Add(SequoiadbConstants.FIELD_NAME_ACTION, SequoiadbConstants.RENAME_CMD);
+            obj.Add(SequoiadbConstants.FIELD_OPTIONS, options);
+            SDBMessage rtn = AdminCommand(command, obj, null, null, null);
+            int flags = rtn.Flags;
+            if (flags != 0)
+            {
+                throw new BaseException(flags, rtn.ErrorObject);
+            }
+        }
+
+        private bool IsSequenceExist(String seqName)
+        {
+            return _CheckIsExistByList(SDBConst.SDB_LIST_SEQUENCES, seqName);
+        }
+
+        private bool _CheckIsExistByList(int listType, string targetName)
+        {
+            if (null == targetName || targetName.Length == 0)
+            {
+                throw new BaseException("SDB_INVALIDARG");
+            }
+            BsonDocument matcher = new BsonDocument();
+            matcher.Add(SequoiadbConstants.FIELD_NAME, targetName);
+            DBCursor cursor = GetList(listType, matcher, null, null);
+            bool result;
+            if (null != cursor.Next())
+            {
+                result = true;
+            }
+            else
+            {
+                result = false;
+            }
+            cursor.Close();
+            return result;
+        }
+
         private void RenameCollectionSpace(String oldName, String newName, BsonDocument options)
         {
             if (oldName == null || oldName.Length == 0)
@@ -2455,76 +2640,27 @@ namespace SequoiaDB
             return rtnSDBMessage;
         }
 
-        private SDBMessage AdminCommand(string command, BsonDocument matcher, BsonDocument selector,
-                                        BsonDocument orderBy, BsonDocument hint, 
-                                        long skipRows, long returnRows)
+        private SDBMessage AdminCommand(string command, BsonDocument matcher)
         {
-            BsonDocument dummyObj = new BsonDocument();
-            SDBMessage sdbMessage = new SDBMessage();
-            sdbMessage.OperationCode = Operation.OP_QUERY;
-            sdbMessage.CollectionFullName = command;
-            sdbMessage.Version = SequoiadbConstants.DEFAULT_VERSION;
-            sdbMessage.W = SequoiadbConstants.DEFAULT_W;
-            sdbMessage.Padding = 0;
-            sdbMessage.Flags = 0;
-            sdbMessage.NodeID = SequoiadbConstants.ZERO_NODEID;
-            sdbMessage.RequestID = 0;
-            sdbMessage.SkipRowsCount = skipRows;
-            sdbMessage.ReturnRowsCount = returnRows;
-            // matcher
-            if (null == matcher)
-            {
-                sdbMessage.Matcher = dummyObj;
-            }
-            else
-            {
-                sdbMessage.Matcher = matcher;
-            }
-            // selector
-            if (null == selector)
-            {
-                sdbMessage.Selector = dummyObj;
-            }
-            else
-            {
-                sdbMessage.Selector = selector;
-            }
-            // orderBy
-            if (null == orderBy)
-            {
-                sdbMessage.OrderBy = dummyObj;
-            }
-            else
-            {
-                sdbMessage.OrderBy = orderBy;
-            }
-            // hint
-            if (null == hint)
-            {
-                sdbMessage.Hint = dummyObj;
-            }
-            else
-            {
-                sdbMessage.Hint = hint;
-            }
-
-            byte[] request = SDBMessageHelper.BuildQueryRequest(sdbMessage, isBigEndian);
-            if (connection == null)
-                throw new BaseException("SDB_NOT_CONNECTED");
-            connection.SendMessage(request);
-            SDBMessage rtnSDBMessage = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
-            rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
-            return rtnSDBMessage;
+            return AdminCommand(command, matcher, null, null, null);
         }
 
         private SDBMessage AdminCommand(string command, BsonDocument matcher, BsonDocument selector,
                                         BsonDocument orderBy, BsonDocument hint)
         {
-            return AdminCommand(command, matcher, selector, orderBy, hint, 0, -1);
+            return AdminCommand(command, matcher, selector, orderBy, hint, -1, -1);
         }
 
-        private SDBMessage AdminCommand(string command, BsonDocument query, BsonDocument selector, BsonDocument orderBy,
-                                        BsonDocument hint, long skipRows, long returnRows, int flag)
+        private SDBMessage AdminCommand(string command, BsonDocument matcher, BsonDocument selector,
+                                        BsonDocument orderBy, BsonDocument hint,
+                                        long skipRows, long returnRows)
+        {
+            return AdminCommand(command, matcher, selector, orderBy, hint, skipRows, returnRows, 0);
+        }
+
+        private SDBMessage AdminCommand(string command, BsonDocument query, BsonDocument selector,
+                                        BsonDocument orderBy, BsonDocument hint,
+                                        long skipRows, long returnRows, int flag)
         {
             BsonDocument dummyObj = new BsonDocument();
             SDBMessage sdbMessage = new SDBMessage();
@@ -2576,6 +2712,8 @@ namespace SequoiaDB
             }
 
             byte[] request = SDBMessageHelper.BuildQueryRequest(sdbMessage, isBigEndian);
+            if (connection == null)
+                throw new BaseException("SDB_NOT_CONNECTED");
             connection.SendMessage(request);
             SDBMessage rtnSDBMessage = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
             rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);

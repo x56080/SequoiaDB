@@ -77,7 +77,6 @@ namespace import
       if ( !_options->enableSharding() ||
            _options->batchSize() <= 1 )
       {
-         // no need to do anything
          rc = _initPageMap() ;
          if ( rc )
          {
@@ -105,7 +104,6 @@ namespace import
 
       if ( _sharding.getGroupNum() <= 1 )
       {
-         // no need to do anything
          rc = _initPageMap() ;
          if ( rc )
          {
@@ -328,16 +326,15 @@ namespace import
    {
       INT32 rc = SDB_OK ;
 
-      _mapNum = _options->parsers() / 4 ;
+      _mapNum = _options->parsers() ;
 
-      if ( _mapNum < 1 )
+      if ( _mapNum <= 1 )
       {
          _mapNum = 1 ;
       }
-
-      if ( 1 == _mapNum && _options->parsers() > 1 )
+      else if ( _mapNum > 1 )
       {
-         _mapNum = 2 ;
+         _mapNum = _mapNum * 2 ;
       }
 
       for ( INT32 i = 0; i < _mapNum; ++i )

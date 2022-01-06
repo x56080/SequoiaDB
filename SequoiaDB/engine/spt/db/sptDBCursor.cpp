@@ -37,6 +37,7 @@ namespace engine
    JS_CONSTRUCT_FUNC_DEFINE( _sptDBCursor, construct )
    JS_DESTRUCT_FUNC_DEFINE( _sptDBCursor, destruct )
    JS_MEMBER_FUNC_DEFINE( _sptDBCursor, close )
+   JS_MEMBER_FUNC_DEFINE( _sptDBCursor, advance )
    JS_MEMBER_FUNC_DEFINE( _sptDBCursor, next )
    JS_MEMBER_FUNC_DEFINE( _sptDBCursor, current )
    JS_RESOLVE_FUNC_DEFINE( _sptDBCursor, resolve )
@@ -45,6 +46,7 @@ namespace engine
       JS_ADD_CONSTRUCT_FUNC( construct )
       JS_ADD_DESTRUCT_FUNC( destruct )
       JS_ADD_MEMBER_FUNC( "close", close )
+      JS_ADD_MEMBER_FUNC( "advance", advance )
       JS_ADD_MEMBER_FUNC( "next", next )
       JS_ADD_MEMBER_FUNC( "current", current )
       JS_ADD_RESOLVE_FUNC( resolve )
@@ -88,6 +90,51 @@ namespace engine
          detail = BSON( SPT_ERR << "Failed to close cursor" ) ;
          goto error ;
       }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBCursor::advance( const _sptArguments &arg,
+                                _sptReturnVal &rval,
+                                BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj option ;
+
+      if ( 1 != arg.argc() )
+      {
+         detail = BSON( SPT_ERR << "Argument is invalid" ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      rc = arg.getBsonobj( 0, option ) ;
+      if ( rc )
+      {
+         if ( arg.hasErrMsg() )
+         {
+            detail = BSON( SPT_ERR << arg.getErrMsg() ) ;
+         }
+         else
+         {
+            detail = BSON( SPT_ERR << "Option must be Object" ) ;
+         }
+         goto error ;
+      }
+
+      if( _finishRead )
+      {
+         goto done ;
+      }
+
+      rc = _cursor.advance( option ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
    done:
       return rc ;
    error:

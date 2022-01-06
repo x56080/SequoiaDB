@@ -152,6 +152,7 @@
                                                 Indexes:\"$Details.$[0].Indexes\",\
                                                 Status:\"$Details.$[0].Status\",\
                                                 TotalRecords:\"$Details.$[0].TotalRecords\",\
+                                                TotalLobs:\"$Details.$[0].TotalLobs\",\
                                                 TotalDataPages:\"$Details.$[0].TotalDataPages\",\
                                                 TotalIndexPages:\"$Details.$[0].TotalIndexPages\",\
                                                 TotalLobPages:\"$Details.$[0].TotalLobPages\",\
@@ -178,7 +179,7 @@
                                                 UniqueID:1,\
                                                 GroupName:1,\
                                                 Details:{ID:1,LogicalID:1,Sequence:1,\
-                                                         Indexes:1,Status:1,TotalRecords:1,TotalDataPages:1,\
+                                                         Indexes:1,Status:1,TotalRecords:1,TotalLobs:1,TotalDataPages:1,\
                                                          TotalIndexPages:1,TotalLobPages:1,TotalDataFreeSpace:1,\
                                                          TotalIndexFreeSpace:1,TotalDataRead:1,TotalIndexRead:1,\
                                                          TotalDataWrite:1,TotalIndexWrite:1,TotalUpdate:1,\
@@ -319,5 +320,27 @@
                                        {$match:{$and:[{Collection:{$isnull:0}},\
                                                       {Index:{$isnull:0}}]}}"
 
+#define COORD_SNAPSHOTIDX_INPUT        "{$project:{\
+                                             IndexName:\"$IndexDef.name\",\
+                                             IndexDef:1,\
+                                             IndexFlag:1,\
+                                             Type:1,\
+                                             ExtDataName:1,\
+                                             Node:{NodeName:1,GroupName:1}\
+                                             }\
+                                        }\n\
+                                        {$group:{\
+                                             _id:{IndexName:\"$IndexName\"},\
+                                             IndexDef:{$first:\"$IndexDef\"},\
+                                             IndexFlag:{$first:\"$IndexFlag\"},\
+                                             Type:{$first:\"$Type\"},\
+                                             ExtDataName:{$first:\"$ExtDataName\"},\
+                                             Nodes:{$addtoset:\"$Node\"}\
+                                             }\
+                                        }\n\
+                                        {$match:\
+                                             {$and:[{IndexDef:{$exists:1}},\
+                                                    {IndexDef:{$ne:null}}]}\
+                                        }"
 
 #endif // COORD_SNAPSHOT_DEF_HPP__

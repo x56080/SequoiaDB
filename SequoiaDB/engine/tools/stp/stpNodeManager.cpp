@@ -319,9 +319,12 @@ namespace engine
       }
       else
       {
-         // with error return codes, reset primary
-         // will launch server check from another server later
-         resetPrimary() ;
+         if ( SDB_CLS_NOT_PRIMARY == rc )
+         {
+            // with error return codes, reset primary
+            // will launch server check from another server later
+            resetPrimaryOnError( response->reply.header.routeID ) ;
+         }
          PD_RC_CHECK( rc, PDERROR, "Failed to query server, "
                       "received result with error: %d", rc ) ;
       }
@@ -1404,12 +1407,27 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__STPNODEMGR__GETSERVERS ) ;
 
-      ossScopedRWLock lock( &_mutex, SHARED ) ;
+      BOOLEAN needCheckRepl = FALSE ;
 
-      // update version, servers and primary
-      version = _version ;
-      servers = _servers ;
-      primaryRID = _primaryRID ;
+      {
+         ossScopedRWLock lock( &_mutex, SHARED ) ;
+
+         // update version, servers and primary
+         version = _version ;
+         servers = _servers ;
+         primaryRID = _primaryRID ;
+
+         if ( STP_ROLE_SERVER == _local.getRole() )
+         {
+            needCheckRepl = TRUE ;
+         }
+      }
+
+      // for STP server, use the primary RID in replica manager
+      if ( needCheckRepl )
+      {
+         primaryRID = _replManager->getPrimary() ;
+      }
 
       PD_TRACE_EXIT( SDB__STPNODEMGR__GETSERVERS ) ;
    }
@@ -1986,6 +2004,35 @@ namespace engine
 
    error:
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNODEMGR_HASPRIMARY, "_stpNodeManager::hasPrimary" )
+   BOOLEAN _stpNodeManager::hasPrimary()
+   {
+      BOOLEAN result = FALSE ;
+
+      PD_TRACE_ENTRY( SDB__STPNODEMGR_HASPRIMARY ) ;
+
+      BOOLEAN needCheckRepl = FALSE ;
+
+      {
+         ossScopedRWLock lock( &_mutex, SHARED ) ;
+         if ( STP_ROLE_SERVER == _local.getRole() )
+         {
+            needCheckRepl = TRUE ;
+         }
+         result = _hasPrimary() ;
+      }
+
+      // for STP server, use the primary RID in replica manager
+      if ( needCheckRepl )
+      {
+         result = _replManager->getPrimary().value != MSG_INVALID_ROUTEID ;
+      }
+
+      PD_TRACE_EXIT( SDB__STPNODEMGR_HASPRIMARY ) ;
+
+      return result ;
    }
 
 }

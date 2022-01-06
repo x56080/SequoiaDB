@@ -41,6 +41,7 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "ossUtil.hpp"
+#include "ossMemPool.hpp"
 
 namespace engine
 {
@@ -81,7 +82,7 @@ namespace engine
          {
          }
 
-         virtual ~_utilBitmapBase ()
+         ~_utilBitmapBase ()
          {
             _size = 0 ;
             _freeSize = 0 ;
@@ -137,6 +138,15 @@ namespace engine
             return FALSE ;
          }
 
+         OSS_INLINE void setAllBits()
+         {
+            if ( NULL != _bitmap )
+            {
+               ossMemset( _bitmap, 0xFF, _bitmapSize ) ;
+               _freeSize = 0 ;
+            }
+         }
+
          OSS_INLINE void resetBitmap ()
          {
             if ( NULL != _bitmap )
@@ -151,35 +161,109 @@ namespace engine
             return _size ;
          }
 
+         OSS_INLINE ossPoolString toString() const
+         {
+            ossPoolStringStream ss ;
+            ss << "(" << _size << ")" ;
+            CHAR tmp[ 3 ] = { 0 } ;
+            for ( UINT32 i = 0 ; i < _bitmapSize ; ++ i )
+            {
+               ossSnprintf( tmp, 2, "%x", _bitmap[ i ] ) ;
+               ss << tmp ;
+            }
+            return ss.str() ;
+         }
+
+         OSS_INLINE BOOLEAN isEqual( const _utilBitmapBase & bitmap ) const
+         {
+            if ( isEmpty() != bitmap.isEmpty() )
+            {
+               // one is empty, other is not
+               return FALSE ;
+            }
+            else if ( !isEmpty() )
+            {
+               // both are not empty, test first bits
+               UINT32 bitmapSize = OSS_MIN( _bitmapSize, bitmap._bitmapSize ) ;
+               if ( 0 != ossMemcmp( _bitmap, bitmap._bitmap, bitmapSize ) )
+               {
+                  return FALSE ;
+               }
+               else if ( _bitmapSize > bitmap._bitmapSize )
+               {
+                  // this is larger, check remain bits
+                  INT32 nextBit = _bitmapSize << UTIL_BITMAP_UNIT_LOG2SIZE ;
+                  nextBit = nextSetBitPos( nextBit ) ;
+                  if ( -1 != nextBit )
+                  {
+                     return FALSE ;
+                  }
+               }
+               else if ( _bitmapSize < bitmap._bitmapSize )
+               {
+                  // other is larger, check remain bits
+                  INT32 nextBit = bitmap._bitmapSize << UTIL_BITMAP_UNIT_LOG2SIZE ;
+                  nextBit = bitmap.nextSetBitPos( nextBit ) ;
+                  if ( -1 != nextBit )
+                  {
+                     return FALSE ;
+                  }
+               }
+            }
+            return TRUE ;
+         }
+
          OSS_INLINE void setBitmap ( const _utilBitmapBase & bitmap )
          {
             resetBitmap() ;
 
-            UINT32 lhsIdx = 0, rhsIdx = 0 ;
-            while ( lhsIdx < _bitmapSize &&
-                    rhsIdx < bitmap._bitmapSize )
+            if ( !bitmap.isEmpty() )
             {
-               _bitmap[ lhsIdx ] = bitmap._bitmap[ rhsIdx ] ;
-               lhsIdx ++ ;
-               rhsIdx ++ ;
+               UINT32 bitmapSize = OSS_MIN( _bitmapSize, bitmap._bitmapSize ) ;
+               ossMemcpy( _bitmap, bitmap._bitmap, bitmapSize ) ;
+               _calcFreeSize() ;
             }
+         }
 
-            _calcFreeSize() ;
+         OSS_INLINE void unionBitmap( const _utilBitmapBase &bitmap )
+         {
+            if ( !bitmap.isEmpty() )
+            {
+               UINT32 idx = 0 ;
+               while ( idx < _bitmapSize &&
+                       idx < bitmap._bitmapSize )
+               {
+                  _bitmap[ idx ] |= bitmap._bitmap[ idx ] ;
+                  idx ++ ;
+               }
+
+               _calcFreeSize() ;
+            }
          }
 
          OSS_INLINE BOOLEAN hasIntersaction ( const _utilBitmapBase & bitmap ) const
          {
-            UINT32 lhsIdx = 0, rhsIdx = 0 ;
-            while ( lhsIdx < _bitmapSize &&
-                    rhsIdx < bitmap._bitmapSize )
+            if ( isEmpty() || bitmap.isEmpty() )
             {
-               if ( OSS_BIT_TEST( _bitmap[ lhsIdx ],
-                                  bitmap._bitmap[ rhsIdx ] ) )
+               return FALSE ;
+            }
+            else if ( isFull() || bitmap.isFull() )
+            {
+               return TRUE ;
+            }
+            else
+            {
+               UINT32 idx = 0 ;
+               while ( idx < _bitmapSize &&
+                       idx < bitmap._bitmapSize )
                {
-                  return TRUE ;
+                  if ( OSS_BIT_TEST( _bitmap[ idx ],
+                                     bitmap._bitmap[ idx ] ) )
+                  {
+                     return TRUE ;
+                  }
+                  idx ++ ;
                }
-               lhsIdx ++ ;
-               rhsIdx ++ ;
             }
             return FALSE ;
          }
@@ -316,12 +400,12 @@ namespace engine
             _allocateBitmap( size ) ;
          }
 
-         virtual ~_utilBitmap ()
+         ~_utilBitmap ()
          {
             _freeBitmap() ;
          }
 
-         virtual void resize ( UINT32 size )
+         void resize ( UINT32 size )
          {
             if ( size != _size )
             {
@@ -379,7 +463,7 @@ namespace engine
             resetBitmap() ;
          }
 
-         virtual ~_utilStackBitmap ()
+         ~_utilStackBitmap ()
          {
             _bitmap = NULL ;
          }

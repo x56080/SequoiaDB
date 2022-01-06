@@ -70,17 +70,26 @@ const CHAR* serviceID2String( UINT32 serviceID )
    return "UNKNOW" ;
 }
 
-string routeID2String( MsgRouteID routeID )
+const CHAR *routeID2String( const MsgRouteID &routeID,
+                            CHAR *buffer,
+                            UINT32 bufferSize )
 {
-   stringstream ss ;
-   ss << "{ GroupID:" << routeID.columns.groupID
-      << ", NodeID:" << routeID.columns.nodeID
-      << ", ServiceID:" << routeID.columns.serviceID
-      << "(" << serviceID2String( routeID.columns.serviceID ) << ") }" ;
-   return ss.str() ;
+   ossSnprintf( buffer, bufferSize,
+                "{ GroupID:%u, NodeID:%u, ServiceID:%u(%s) }",
+                routeID.columns.groupID,
+                routeID.columns.nodeID,
+                routeID.columns.serviceID,
+                serviceID2String( routeID.columns.serviceID ) ) ;
+   return buffer ;
 }
 
-string routeID2String( UINT64 nodeID )
+ossPoolString routeID2String( const MsgRouteID &routeID )
+{
+   CHAR buffer[ MSG_ROUTEID_STRING_MAX_SIZE + 1 ] = { 0 } ;
+   return routeID2String( routeID, buffer, MSG_ROUTEID_STRING_MAX_SIZE ) ;
+}
+
+ossPoolString routeID2String( UINT64 nodeID )
 {
    return routeID2String( *(MsgRouteID*)&nodeID ) ;
 }
@@ -102,6 +111,8 @@ const CHAR* msgType2String( MSG_TYPE msgType, BOOLEAN isCommand )
          return isCommand ? "COMMAND" : "QUERY" ;
       case MSG_BS_GETMORE_REQ :
          return "GETMORE" ;
+      case MSG_BS_ADVANCE_REQ :
+         return "ADVANCE" ;
       case MSG_BS_DELETE_REQ :
       case MSG_BS_TRANS_DELETE_REQ :
          return "DELETE" ;
@@ -288,14 +299,14 @@ void msgExpandBSQuery2String( stringstream &ss,
 {
    INT32 rc         = SDB_OK ;
    INT32 flag       = 0 ;
-   CHAR *collection = NULL ;
+   const CHAR *collection = NULL ;
    SINT64 skip      =  0;
    SINT64 limit     = -1 ;
-   CHAR *query      = NULL ;
-   CHAR *selector   = NULL ;
-   CHAR *orderby    = NULL ;
-   CHAR *hint       = NULL ;
-   rc = msgExtractQuery( (CHAR*)pMsg, &flag, &collection,
+   const CHAR *query    = NULL ;
+   const CHAR *selector = NULL ;
+   const CHAR *orderby  = NULL ;
+   const CHAR *hint     = NULL ;
+   rc = msgExtractQuery( (const CHAR*)pMsg, &flag, &collection,
                          &skip, &limit, &query, &selector,
                          &orderby, &hint ) ;
    if ( SDB_OK != rc )

@@ -1,53 +1,39 @@
-﻿/************************************************************************
-@Description:   seqDB-7523:记录已压缩，更新记录为不压缩
-@input:    
-         1 create CL[Compressed:false] ;
-           create CL[Compressed: true, CompressionType: "lzw"] ;
-         2 insert({INNER_NO:i,SA_ACCT_NO:i,EVT_ID:"lwy20120702"+i,QRCODE_STRING: "need update",SA_OP_ACCT_NO: "6217001820000548390"}) ;
-         3 find({INNER_NO:{$gte:500000}}).update({$replace:{"电子银行业务回单(付款)":"中国民生银行福州闽江支行"}})  ;
-         4 check records, get random records, then compare the records;
-           check records for each node in the group;
-           check compressed rate. 
-@output:   successfull
-@Author:   
-           2016/3/23   XiaoNi Huang init
-************************************************************************/
+﻿/******************************************************************************
+ * @Description   : seqDB-7523:记录已压缩，更新记录为不压缩
+ * @Author        : XiaoNi Huang
+ * @CreateTime    : 2016.03.23
+ * @LastEditTime  : 2021.02.23
+ * @LastEditors   : XiaoNi Huang
+ ******************************************************************************/
+testConf.skipStandAlone = true;
+testConf.useSrcGroup = true;
+testConf.clName = CHANGEDPREFIX + "_cl_7523";
+testConf.clOpt = { Compressed: true, CompressionType: "lzw", ReplSize: 0 };
+
 main( test );
-
-function test ()
+function test ( testPara )
 {
-   var noCSName = COMMCSNAME + "_no";
-   var lzwCSName = COMMCSNAME + "_lzw";
-   var noCLName = COMMCLNAME + "_no";
-   var lzwCLName = COMMCLNAME + "_lzw";
-   var rgName = getDataGroupsName()[0];
+   var rgName = testPara.srcGroupName;
+   var csName = COMMCSNAME;
+   var clName = testConf.clName;
+   var cl = testPara.testCL;
    var insertRecsNum = 800000;
-   var checkRecsNum = 3; //get random 3 records
+   var checkRecsNum = 3;
 
-   commDropCS( db, noCSName, true, "Failed to drop CS[" + noCSName + "]." );
-   commDropCS( db, lzwCSName, true, "Failed to drop CS[" + lzwCSName + "]." );
+   // insert
+   insertRecs( cl, insertRecsNum );
 
-   commCreateCS( db, noCSName, false, "Failed to create CS[" + noCSName + "]." );
-   commCreateCS( db, lzwCSName, false, "Failed to create CS[" + lzwCSName + "]." );
+   // findAndUpdate
+   var rc = cl.find( { INNER_NO: { $gte: 300000 } } ).
+      update( { $replace: { "电子银行业务回单(付款)": "中国民生银行福州闽江支行" } } );
+   while( rc.next() );
 
-   var noCL = createCL( noCSName, noCLName, rgName, false );
-   var lzwCL = createCL( lzwCSName, lzwCLName, rgName, true, "lzw" );
-
-   insertRecs( noCL, noCSName, noCLName, insertRecsNum );
-   insertRecs( lzwCL, lzwCSName, lzwCLName, insertRecsNum );
-
-   findAndUpdateRecs( noCL, noCSName, noCLName );
-   findAndUpdateRecs( lzwCL, lzwCSName, lzwCLName );
-
-   checkRecs( lzwCL, insertRecsNum, checkRecsNum );
-   checkNodeCnt( lzwCSName, lzwCLName, rgName, insertRecsNum );
-   checkCompressedRate( noCSName, lzwCSName );
-
-   clearCS( db, noCSName );
-   clearCS( db, lzwCSName );
+   // 检查结果，检查组内每个节点数据正确性
+   checkLzwAttributeByDataNode( rgName, csName, clName, false );
+   checkRecsByDataNode( rgName, csName, clName, insertRecsNum, checkRecsNum );
 }
 
-function insertRecs ( cl, csName, clName, insertRecsNum )
+function insertRecs ( cl, insertRecsNum )
 {
 
    for( k = 0; k < insertRecsNum; k += 50000 )
@@ -55,38 +41,52 @@ function insertRecs ( cl, csName, clName, insertRecsNum )
       var doc = [];
       for( i = 0 + k; i < 50000 + k; i++ )
       {
-         doc.push( { INNER_NO: i, SA_ACCT_NO: i, EVT_ID: "lwy20120702" + i, QRCODE_STRING: "need update", SA_OP_ACCT_NO: "6217001820000548390" } )
+         doc.push( {
+            INNER_NO: i, SA_ACCT_NO: i, EVT_ID: "lwy20120702" + i,
+            QRCODE_STRING: "need update", SA_OP_ACCT_NO: "6217001820000548390"
+         } )
       };
       cl.insert( doc );
    }
 }
 
-function findAndUpdateRecs ( cl, csName, clName )
+function checkRecsByDataNode ( rgName, csName, clName, insertRecsNum, checkRecsNum )
 {
-
-   var rc = cl.find( { INNER_NO: { $gte: 300000 } } ).update( { $replace: { "电子银行业务回单(付款)": "中国民生银行福州闽江支行" } } );
-   while( rc.next() );
-}
-
-function checkRecs ( cl, insertRecsNum, checkRecsNum )
-{
-
-   //get random records, compare the records
-
-   for( j = 0; j < checkRecsNum; j++ )
+   var rc = db.exec( "select NodeName from $SNAPSHOT_SYSTEM where GroupName='" + rgName + "'" );
+   while( rc.next() )
    {
-      var i = parseInt( Math.random() * insertRecsNum );
-
-      if( i < 300000 )
-      {  //before update
-         var recsCnt = cl.find( { INNER_NO: i, SA_ACCT_NO: i, EVT_ID: "lwy20120702" + i, QRCODE_STRING: "need update", SA_OP_ACCT_NO: "6217001820000548390" } ).count();
-         var expctCnt = 1;
+      var nodeName = rc.current().toObj()["NodeName"];
+      var nodeDB = null;
+      try
+      {
+         nodeDB = new Sdb( nodeName );
+         var nodeCL = nodeDB.getCS( csName ).getCL( clName );
+         // 检查数据总数
+         var recsCnt = nodeCL.count();
+         assert.equal( recsCnt, insertRecsNum );
+         // 随机检查n条记录正确性
+         for( j = 0; j < checkRecsNum; j++ )
+         {
+            var i = parseInt( Math.random() * insertRecsNum );
+            if( i < 300000 )
+            {  // 检查更新前的记录
+               var recsCnt = nodeCL.find( {
+                  INNER_NO: i, SA_ACCT_NO: i, EVT_ID: "lwy20120702" + i,
+                  QRCODE_STRING: "need update", SA_OP_ACCT_NO: "6217001820000548390"
+               } ).count();
+               var expctCnt = 1;
+            }
+            else
+            {  // 检查更新后的记录
+               var recsCnt = nodeCL.find( { "电子银行业务回单(付款)": "中国民生银行福州闽江支行" } ).count();
+               var expctCnt = insertRecsNum - 300000;
+            }
+            assert.equal( recsCnt, expctCnt );
+         }
       }
-      else
-      {  //after update
-         var recsCnt = cl.find( { "电子银行业务回单(付款)": "中国民生银行福州闽江支行" } ).count();
-         var expctCnt = insertRecsNum - 300000;
+      finally 
+      {
+         if( nodeDB != null ) nodeDB.close();
       }
-      assert.equal( recsCnt, expctCnt );
    }
 }

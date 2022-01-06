@@ -17,13 +17,13 @@ Oma
 Class for cluster management.
 .SH DESCRIPTION
 .IP \[bu] 2
-\f[C]hostname\f[] ( \f[I]String\f[]， \f[I]optional\f[] )
+\f[C]hostname\f[] ( \f[I]String\f[]， \f[I]Optional\f[] )
 .RS 2
 .PP
 the hostname of the target sdbcm.
 .RE
 .IP \[bu] 2
-\f[C]svcname\f[] ( \f[I]Int | String\f[]， \f[I]optional\f[] )
+\f[C]svcname\f[] ( \f[I]Int | String\f[]， \f[I]Optional\f[] )
 .RS 2
 .PP
 the port of the target sdbcm, default to be 11790.
@@ -35,7 +35,7 @@ On success, return an object of Oma.
 On error, exception will be thrown.
 .SH ERRORS
 .PP
-the exceptions of \f[C]Oma()\f[] are as below:
+the exceptions of \f[C]createCL()\f[] are as below:
 .PP
 .TS
 tab(@);
@@ -81,7 +81,7 @@ T}
 .PP
 When error happen, use getLastErrMsg() to get the error message or use
 getLastError() to get the error code.
-See troubleshooting for more detail.
+See troubleshooting for more details.
 .SH HISTORY
 .PP
 since v1.12
@@ -90,7 +90,7 @@ since v1.12
 Create an Oma object from localhost
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma()
+> var oma = new Oma()
 \f[]
 .fi
 .RE
@@ -98,7 +98,7 @@ Create an Oma object from localhost
 Create an Oma object from remote host
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "ubuntu\-dev1",\ 11790\ )
+> var oma = new Oma( "ubuntu\-dev1", 11790 )
 \f[]
 .fi
 .RE

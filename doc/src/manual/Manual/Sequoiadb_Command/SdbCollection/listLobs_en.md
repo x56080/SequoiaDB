@@ -51,56 +51,56 @@ The function is applicable to v2.0 and above, of which v3.2 and above support ob
 
 * List all LOBs in sample.employee.
 
-```lang-javascript
-   > db.sample.employee.listLobs()
-   {
-    "Size": 2,
-    "Oid": {
-      "$oid": "00005d36c8a5350002de7edc"
-    },
-    "CreateTime": {
-      "$timestamp": "2019-07-23-16.43.17.360000"
-    },
-    "ModificationTime": {
-      "$timestamp": "2019-07-23-16.43.17.508000"
-    },
-    "Available": true,
-    "HasPiecesInfo": false
-   }
-   {
-    "Size": 51717368,
-    "Oid": {
-      "$oid": "00005d36cae8370002de7edd"
-    },
-    "CreateTime": {
-      "$timestamp": "2019-07-23-16.52.56.278000"
-    },
-    "ModificationTime": {
-      "$timestamp": "2019-07-23-16.52.56.977000"
-    },
-    "Available": true,
-    "HasPiecesInfo": false
-   }
-   Return 2 row(s).
-   ```
+    ```lang-javascript
+    > db.sample.employee.listLobs()
+    {
+       "Size": 2,
+       "Oid": {
+         "$oid": "00005d36c8a5350002de7edc"
+       },
+       "CreateTime": {
+         "$timestamp": "2019-07-23-16.43.17.360000"
+       },
+       "ModificationTime": {
+         "$timestamp": "2019-07-23-16.43.17.508000"
+       },
+       "Available": true,
+       "HasPiecesInfo": false
+     }
+     {
+       "Size": 51717368,
+       "Oid": {
+         "$oid": "00005d36cae8370002de7edd"
+       },
+       "CreateTime": {
+         "$timestamp": "2019-07-23-16.52.56.278000"
+       },
+       "ModificationTime": {
+         "$timestamp": "2019-07-23-16.52.56.977000"
+       },
+       "Available": true,
+       "HasPiecesInfo": false
+    }
+    Return 2 row(s).
+    ```
 
 * List LOBs with size greater than 10 in sample.employee.
 
-```lang-javascript
-   > db.sample.employee.listLobs( SdbQueryOption().cond( { "Size": { $gt: 10 } } ) )
-   {
-    "Size": 51717368,
-    "Oid": {
-      "$oid": "00005d36cae8370002de7edd"
-    },
-    "CreateTime": {
-      "$timestamp": "2019-07-23-16.52.56.278000"
-    },
-    "ModificationTime": {
-      "$timestamp": "2019-07-23-16.52.56.977000"
-    },
-    "Available": true,
-    "HasPiecesInfo": false
-   }
-   Return 1 row(s).
-   ```
+    ```lang-javascript
+    > db.sample.employee.listLobs( SdbQueryOption().cond( { "Size": { $gt: 10 } } ) )
+    {
+       "Size": 51717368,
+       "Oid": {
+         "$oid": "00005d36cae8370002de7edd"
+       },
+       "CreateTime": {
+         "$timestamp": "2019-07-23-16.52.56.278000"
+       },
+       "ModificationTime": {
+         "$timestamp": "2019-07-23-16.52.56.977000"
+       },
+       "Available": true,
+       "HasPiecesInfo": false
+    }
+    Return 1 row(s).
+    ```

@@ -95,7 +95,7 @@ namespace engine
                                                      capacity,
                                                      id ) )
       {
-         segPtr = tmpPtr ;
+         segPtr.swap( tmpPtr ) ;
       }
 
       return segPtr ;
@@ -138,7 +138,13 @@ namespace engine
          else if ( created )
          {
             // add to opposite map
-            _pFrame->_addOpposite( eh ) ;
+            rc = _pFrame->_addOpposite( eh ) ;
+            if ( SDB_OK != rc )
+            {
+               delEH( eh->handle() ) ;
+               eh->close() ;
+               PD_LOG( PDERROR, "Failed to save handle, rc: %d", rc ) ;
+            }
          }
       }
 
@@ -166,9 +172,21 @@ namespace engine
             goto done ;
          }
 
+         try
+         {
+            _vecEH.push_back( tmpEH ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to add event handler, occur exception %s",
+                    e.what() ) ;
+            tmpEH->close() ;
+            goto done ;
+         }
+
          eh = tmpEH ;
          eh->id( _id ) ;
-         _vecEH.push_back(eh) ;
+
          ret = TRUE ;
       }
       else
@@ -197,11 +215,28 @@ namespace engine
    // that the new connection has to be added into a container that has
    // already hit the capacity, in that case we will resize the container
    // by increasing the capacity
-   void _netEHSegment::addEH( NET_EH eh )
+   INT32 _netEHSegment::addEH( NET_EH eh )
    {
-      _mtx.get() ;
-      _vecEH.push_back(eh) ;
-      _mtx.release() ;
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         ossScopedLock _lock( &_mtx, EXCLUSIVE ) ;
+         _vecEH.push_back(eh) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to save event handler to segment, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    void _netEHSegment::delEH( const NET_HANDLE& handle )
@@ -224,7 +259,8 @@ namespace engine
    /*
       _netFrame implement
    */
-   _netFrame::_netFrame( INetMsgHandler *handler, _netRoute *pRoute )
+   _netFrame::_netFrame( INetMsgHandler *handler, _netRoute *pRoute,
+                         const NET_HANDLE &beginID )
    : _protocolMask( NET_FRAME_MASK_EMPTY ),
      _pRoute( pRoute ),
      // this might have bad-alloc issue in initialize phase
@@ -235,7 +271,7 @@ namespace engine
      _handler( handler ),
      _mtx( MON_LATCH_NETFRAME_MTX ),
      _acceptor( _mainSuitPtr->getIOService() ),
-     _handle( NET_HANDLE_BEGIN ),
+     _handle( beginID ),
      _timerID( NET_INVALID_TIMER_ID ),
      _netOut( 0 ),
      _netIn( 0 ),
@@ -303,23 +339,55 @@ namespace engine
       _eraseSuit_i( evSuitPtr ) ;
       _suiteMtx.release() ;
 
-      MsgRouteID nodeID ;
-      _netEventSuit::SET_HANDLE setHandles = evSuitPtr->getHandles() ;
-      _netEventSuit::SET_HANDLE_IT itr = setHandles.begin() ;
-      while( itr != setHandles.end() )
+      _netEventSuit::SET_HANDLE setHandles ;
+
+      if ( SDB_OK == evSuitPtr->getHandles( setHandles ) )
       {
-         close( *itr, &nodeID ) ;
-         if ( MSG_INVALID_ROUTEID != nodeID.value )
+         // copy set of handles succeed, just iterate each handle
+         _netEventSuit::SET_HANDLE_IT itr = setHandles.begin() ;
+         while( itr != setHandles.end() )
          {
-            _handler->handleClose( *itr, nodeID ) ;
+            _closeHandle( *itr ) ;
+            ++itr ;
          }
-         ++itr ;
+      }
+      else
+      {
+         // copy set of handles failed, get handle one by one
+         NET_HANDLE curHandle = NET_INVALID_HANDLE ;
+         while ( TRUE )
+         {
+            curHandle = evSuitPtr->getNextHandle( curHandle ) ;
+            if ( NET_INVALID_HANDLE == curHandle )
+            {
+               break ;
+            }
+            _closeHandle( curHandle ) ;
+         }
       }
       // make sure event handlers are released
       // NOTE: handler has shared pointer of event suit, if we
       //       don't release handlers, the event suit will not be
       //       released
       evSuitPtr->removeAllEH() ;
+   }
+
+   void _netFrame::_closeHandle( NET_HANDLE handle )
+   {
+      MsgRouteID nodeID ;
+      close( handle, &nodeID ) ;
+      if ( MSG_INVALID_ROUTEID != nodeID.value )
+      {
+         try
+         {
+            _handler->handleClose( handle, nodeID ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDWARNING, "Failed to close handle [%u], "
+                    "occur exception %s", handle, e.what() ) ;
+         }
+      }
    }
 
    void _netFrame::onSuitTimer( netEvSuitPtr evSuitPtr )
@@ -360,35 +428,93 @@ namespace engine
          goto error ;
       }
 
-      /// run main suit ioservice
-      _mainSuitPtr->getIOService().run() ;
-      onRunSuitStop( _mainSuitPtr ) ;
-
-      /// stop all evSuit
-      _stopAllEvSuit() ;
-      close() ;
-
-      /// wait all evSuit stop
-      while( TRUE )
+      try
       {
-         if ( getEvSuitSize() > 0 )
-         {
-            ossSleep( 200 ) ;
-            // sub-network may be added after quiesced
-            // let's retry stop after each second
-            ++ retryCount ;
-            if ( 0 == retryCount % 5 )
-            {
-               _stopAllEvSuit() ;
-            }
-            continue ;
-         }
-         break ;
+         /// run main suit ioservice
+         _mainSuitPtr->getIOService().run() ;
+      }
+      catch ( exception &e )
+      {
+         // main net is down, should restart
+         PD_LOG( PDERROR, "Failed to run IO service, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
       }
 
-      if ( _handler )
+      // close listen
+      closeListen( NET_FRAME_MASK_ALL ) ;
+
+      /// WARNING: try catch each exceptions of each steps during stop
+      /// to make sure each step can tell related sessions and net suits to
+      /// stop
+
+      // prepare to stop message handler
+      try
       {
-         _handler->onStop() ;
+         if ( _handler )
+         {
+            _handler->onPrepareStop() ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to prepare to stop handler, "
+                 "occur exception %s", e.what() ) ;
+      }
+
+      // stop handles related to this suit
+      try
+      {
+         onRunSuitStop( _mainSuitPtr ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to call on stop suit event, "
+                 "occur exception %s", e.what() ) ;
+      }
+
+      // stop all sub event suits
+      try
+      {
+         _stopAllEvSuit() ;
+         close() ;
+
+         /// wait all evSuit stop
+         while( TRUE )
+         {
+            if ( getEvSuitSize() > 0 )
+            {
+               ossSleep( 200 ) ;
+               // sub-network may be added after quiesced
+               // let's retry stop after each second
+               ++ retryCount ;
+               if ( 0 == retryCount % 5 )
+               {
+                  _stopAllEvSuit() ;
+               }
+               continue ;
+            }
+            break ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to stop all suits, "
+                 "occur exception %s", e.what() ) ;
+      }
+
+      // stop message handler
+      try
+      {
+         if ( _handler )
+         {
+            _handler->onStop() ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to call on stop event, "
+                 "occur exception %s", e.what() ) ;
       }
 
    done:
@@ -407,7 +533,7 @@ namespace engine
       _suiteStopFlag = TRUE ;
       _suiteMtx.release() ;
 
-      closeListen( NET_FRAME_MASK_ALL ) ;
+      shutdownListen( NET_FRAME_MASK_ALL ) ;
       _mainSuitPtr->getIOService().stop() ;
       PD_TRACE_EXIT ( SDB__NETFRAME_STOP );
    }
@@ -853,29 +979,57 @@ namespace engine
          goto error ;
       }
 
-      rc = eh->syncConnect( hostName, serviceName ) ;
-      if ( SDB_OK != rc )
       {
-         goto error ;
+         rc = eh->syncConnect( hostName, serviceName ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+
+         eh->id( id ) ;
+
+         /// add to map
+         // addRoute will take latch inside the function
+         rc = _addRoute( eh ) ;
+         if ( SDB_OK != rc )
+         {
+            eh->close() ;
+            PD_LOG( PDERROR, "Failed to save route, rc: %d", rc ) ;
+            goto error ;
+         }
+
+         rc = _addOpposite( eh ) ;
+         if ( SDB_OK != rc )
+         {
+            _eraseRoute( eh ) ;
+            eh->close() ;
+            PD_LOG( PDERROR, "Failed to save handle, rc: %d", rc ) ;
+            goto error ;
+         }
+
+         if ( pHandle )
+         {
+            *pHandle = eh->handle() ;
+         }
+
+         // Keep eh->asyncRead after handleConnect callback. As for data source
+         // connection, the system information check and authentication is done
+         // in the callback. They are done in sync way. So async read should be
+         // started after that, otherwise, sysinfo/auth reply message will be
+         // caught by the async read, and the sync waiting will get nothing.
+         // Refer to _coordDataSourceMsgHandler::_authenticate.
+         rc = _handler->handleConnect( eh->handle(), id, TRUE, eh.get() ) ;
+         if ( rc )
+         {
+            _erase( eh->handle() ) ;
+            eh->close() ;
+            *pHandle = NET_INVALID_HANDLE ;
+
+            PD_LOG( PDERROR, "Handlee connected failed, rc: %d", rc ) ;
+            goto error ;
+         }
+         eh->asyncRead() ;
       }
-
-      eh->id( id ) ;
-      eh->asyncRead() ;
-
-      /// add to map
-      // addRoute will take latch inside the function
-      _addRoute( eh ) ;
-      _mtx.get() ;
-      _opposite.insert( make_pair( eh->handle(), eh ) ) ;
-      _mtx.release() ;
-
-      if ( pHandle )
-      {
-         *pHandle = eh->handle() ;
-      }
-
-      // callback: handleConnect
-      _handler->handleConnect( eh->handle(), id, TRUE, eh.get() ) ;
 
    done:
       PD_TRACE_EXITRC ( SDB__NETFRAME_SYNNCCONN, rc );
@@ -1006,8 +1160,19 @@ namespace engine
                goto error ;
             }
 
-            // insert the shared ptr into route table
-            _route.insert( make_pair(id.value, ptr) ) ;
+            try
+            {
+               // insert the shared ptr into route table
+               _route.insert( make_pair(id.value, ptr) ) ;
+            }
+            catch ( exception &e )
+            {
+               _mtx.release() ;
+               PD_LOG( PDERROR, "Failed to save route, occur exception %s",
+                       e.what() ) ;
+               rc = ossException2RC( &e ) ;
+               goto error ;
+            }
          }
          _mtx.release() ;
       }
@@ -1244,6 +1409,7 @@ namespace engine
       NET_EH eh ;
       MAP_EVENT_IT itHandle ;
 
+      INT32 origLen = header->messageLength ;
       header->messageLength = sizeof( MsgHeader ) + netCalcIOVecSize( iov ) ;
       if ( header->messageLength > SDB_MAX_MSG_LENGTH )
       {
@@ -1308,6 +1474,7 @@ namespace engine
       eh->mtx().release() ;
 
    done:
+      header->messageLength = origLen ;
       return rc ;
    error:
       goto done ;
@@ -1320,7 +1487,7 @@ namespace engine
                               UINT32 bodyLen,
                               NET_HANDLE *pHandle )
    {
-      SDB_ASSERT( NULL != header && NULL != body, "should not be NULL") ;
+      SDB_ASSERT( NULL != header, "should not be NULL") ;
       SDB_ASSERT( MSG_INVALID_ROUTEID != id.value,
                   "id.value should not be zero" ) ;
       INT32 rc = SDB_OK ;
@@ -1347,6 +1514,14 @@ namespace engine
          header->routeID = _local ;
       }
       eh->mtx().get() ;
+
+      rc = onSendMsg( eh, eh->id(), header ) ;
+      if ( SDB_OK != rc )
+      {
+         eh->mtx().release() ;
+         goto error ;
+      }
+
       if ( pHandle )
       {
          *pHandle = eh->handle() ;
@@ -1359,14 +1534,23 @@ namespace engine
          goto error ;
       }
       _netOut.add( headLen ) ;
-      rc = eh->syncSend( body, bodyLen ) ;
-      eh->mtx().release() ;
-      if ( SDB_OK != rc )
+
+      if ( NULL != body )
       {
-         eh->close() ;
-         goto error ;
+         rc = eh->syncSend( body, bodyLen ) ;
+         eh->mtx().release() ;
+         if ( SDB_OK != rc )
+         {
+            eh->close() ;
+            goto error ;
+         }
+         _netOut.add( bodyLen ) ;
       }
-      _netOut.add( bodyLen ) ;
+      else
+      {
+         eh->mtx().release() ;
+      }
+
    done:
       PD_TRACE_EXITRC ( SDB__NETFRAME_SYNCSEND4, rc );
       return rc ;
@@ -1387,6 +1571,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       NET_EH eh ;
 
+      INT32 origLen = header->messageLength ;
       header->messageLength = sizeof( MsgHeader ) + netCalcIOVecSize( iov ) ;
       if ( header->messageLength > SDB_MAX_MSG_LENGTH )
       {
@@ -1455,6 +1640,7 @@ namespace engine
       eh->mtx().release() ;
 
    done:
+      header->messageLength = origLen ;
       PD_TRACE_EXITRC( SDB__NETFRAME_SYNCSENDV, rc ) ;
       return rc ;
    error:
@@ -1588,6 +1774,46 @@ namespace engine
       return rc ;
    }
 
+   INT32 _netFrame::shutdownListen( UINT32 protocolMask )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         if ( OSS_BIT_TEST( protocolMask, NET_FRAME_MASK_TCP ) &&
+              _acceptor.is_open() )
+         {
+            boost::system::error_code ec ;
+
+            // close native socket
+            boost::asio::detail::socket_ops::shutdown(
+                  _acceptor.native_handle(),
+                  boost::asio::ip::tcp::socket::shutdown_both, ec ) ;
+#if defined (_DEBUG)
+            if ( ec )
+            {
+               PD_LOG( PDDEBUG, "Failed to shutdown socket of acceptor, "
+                       "occur error %s,%d", ec.message().c_str(),
+                       ec.value() ) ;
+            }
+#endif
+         }
+         if ( OSS_BIT_TEST( protocolMask, NET_FRAME_MASK_UDP ) &&
+              NULL != _udpMainSuit.get() )
+         {
+            _udpMainSuit->shutdown() ;
+         }
+      }
+      catch( boost::system::system_error &e )
+      {
+         PD_LOG ( PDERROR, "Close listen occur error: %s,%d",
+                  e.what(), e.code().value() ) ;
+         rc = SDB_NETWORK ;
+      }
+
+      return rc ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION( SDB__NETFRAME_CLOSE3, "_netFrame::close" )
    void _netFrame::close( const NET_HANDLE &handle,
                           MsgRouteID *pID )
@@ -1636,11 +1862,19 @@ namespace engine
       PD_CHECK( NULL != timer.get(), SDB_OOM, error, PDERROR,
                 "Allocate netTimer failed" ) ;
 
-      /// lock
-      _mtx.get() ;
-      _timers.insert( std::make_pair( timer->id(), timer ) ) ;
-      /// release
-      _mtx.release() ;
+      try
+      {
+         /// lock
+         ossScopedLock _lock( &_mtx, EXCLUSIVE ) ;
+         _timers.insert( std::make_pair( timer->id(), timer ) ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to save timer, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
 
       timerid = timer->id() ;
       timer->asyncWait() ;
@@ -1772,9 +2006,12 @@ namespace engine
 
    //TODO rewrite it later
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME__ADDRT, "_netFrame::_addRoute" )
-   void _netFrame::_addRoute( NET_EH eh )
+   INT32 _netFrame::_addRoute( NET_EH eh )
    {
+      INT32 rc = SDB_OK ;
+
       PD_TRACE_ENTRY ( SDB__NETFRAME__ADDRT ) ;
+
       MAP_ROUTE_IT itr ;
       netEHSegPtr ptr ;
 
@@ -1784,7 +2021,9 @@ namespace engine
       if ( itr == _route.end() )
       {
          _mtx.release_shared() ;
-         _mtx.get() ;
+
+         ossScopedLock _lock( &_mtx, EXCLUSIVE ) ;
+
          // after we get the x latch, re-check if someone has already create
          // the netEHSegment
          itr = _route.find(eh->id().value) ;
@@ -1801,14 +2040,23 @@ namespace engine
             if ( NULL == ptr.get() )
             {
                PD_LOG( PDERROR, "Allocate netEHSegment failed" ) ;
-               _mtx.release() ;
-               goto done ;
+               rc = SDB_OOM ;
+               goto error ;
             }
 
-            // insert the shared ptr into route table
-            _route.insert( make_pair(eh->id().value, ptr) ) ;
+            try
+            {
+               // insert the shared ptr into route table
+               _route.insert( make_pair(eh->id().value, ptr) ) ;
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to save route, occur exception %s",
+                       e.what() ) ;
+               rc = ossException2RC( &e ) ;
+               goto error ;
+            }
          }
-         _mtx.release() ;
       }
       else
       {
@@ -1817,10 +2065,57 @@ namespace engine
          _mtx.release_shared() ;
       }
       // get event handler
-      ptr->addEH(eh) ;
+      rc = ptr->addEH(eh) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to add event handler to event "
+                   "handler segment, rc: %d", rc ) ;
 
    done:
-      PD_TRACE_EXIT ( SDB__NETFRAME__ADDRT );
+      PD_TRACE_EXITRC( SDB__NETFRAME__ADDRT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME__ERASERT, "_netFrame::_eraseRoute" )
+   void _netFrame::_eraseRoute( NET_EH eh )
+   {
+      PD_TRACE_ENTRY( SDB__NETFRAME__ERASERT ) ;
+
+      MsgRouteID removeUDPRouteID ;
+
+      removeUDPRouteID.value = MSG_INVALID_ROUTEID ;
+
+      if ( NET_EVENT_HANDLER_TCP == eh->getHandlerType() )
+      {
+         ossScopedLock _lock( &_mtx, EXCLUSIVE ) ;
+
+         // TCP handler
+         MAP_ROUTE_IT routeItr = _route.find( eh->id().value ) ;
+         if ( routeItr != _route.end() )
+         {
+            routeItr->second->delEH( eh->handle() ) ;
+            /// when nobody used and is empty
+            /// remove the route and also try to remove UDP event
+            /// handler
+            if ( routeItr->second->isEmpty() &&
+                 1 == routeItr->second.refCount() )
+            {
+               _route.erase( routeItr ) ;
+               removeUDPRouteID.value = eh->id().value ;
+            }
+         }
+      }
+
+      // if no TCP event handlers left for the given route
+      // also remove UDP event handler
+      if ( MSG_INVALID_ROUTEID != removeUDPRouteID.value &&
+           NULL != _udpMainSuit.get() )
+      {
+         _udpMainSuit->removeEH( removeUDPRouteID ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__NETFRAME__ERASERT ) ;
    }
 
    void _netFrame::_eraseSuit_i( netEvSuitPtr &ptr )
@@ -1837,11 +2132,28 @@ namespace engine
       }
    }
 
-   void _netFrame::_addOpposite( NET_EH eh )
+   INT32 _netFrame::_addOpposite( NET_EH eh )
    {
-     _mtx.get() ;
-     _opposite.insert( make_pair( eh->handle(), eh ) ) ;
-     _mtx.release() ;
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         ossScopedLock _lock( &_mtx, EXCLUSIVE ) ;
+         _opposite.insert( make_pair( eh->handle(), eh ) ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to save handle, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME__GETEVSUIT, "_netFrame::_getEvSuit" )
@@ -1849,7 +2161,6 @@ namespace engine
    {
       netEvSuitPtr ptr = _mainSuitPtr ;
       UINT32 minSockNum = ptr->getHandleNum() ;
-      BOOLEAN hasLock = FALSE ;
       PD_TRACE_ENTRY ( SDB__NETFRAME__GETEVSUIT ) ;
 
       if ( _pThreadFunc && _maxSockPerThread > 0 &&
@@ -1858,11 +2169,7 @@ namespace engine
          VEC_EVSUIT_IT itr ;
          UINT32 curSockNum = 0 ;
 
-         if ( needLock )
-         {
-            _suiteMtx.get() ;
-            hasLock = TRUE ;
-         }
+         ossScopedLock _lock( needLock ? &_suiteMtx : NULL, EXCLUSIVE ) ;
 
          if ( _suiteStopFlag )
          {
@@ -1895,6 +2202,17 @@ namespace engine
             netEvSuitPtr suitPtr = netEventSuit::createShared( this ) ;
             if ( NULL != suitPtr.get() )
             {
+               try
+               {
+                  _vecEvSuit.reserve( _vecEvSuit.size() + 1 ) ;
+               }
+               catch ( exception &e )
+               {
+                  PD_LOG( PDERROR, "Failed to reserved memory for new suit, "
+                          "occur exception %s", e.what() ) ;
+                  goto done ;
+               }
+
                /// start thread
                INT32 rc = _pThreadFunc( suitPtr.get() ) ;
                if ( rc )
@@ -1903,17 +2221,15 @@ namespace engine
                   goto done ;
                }
 
+               // already reserved, no need to try-catch
+               _vecEvSuit.push_back( suitPtr ) ;
+
                ptr = suitPtr ;
-               _vecEvSuit.push_back( ptr ) ;
             }
          }
       }
 
    done:
-      if ( hasLock )
-      {
-         _suiteMtx.release() ;
-      }
       PD_TRACE_EXIT( SDB__NETFRAME__GETEVSUIT ) ;
       return ptr ;
    }
@@ -1966,18 +2282,26 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__NETFRAME__APTCALLBCK );
       if ( error )
       {
-         PD_LOG ( PDERROR, "Accept connection occur exception: %s, %d",
-                  error.message().c_str(), error.value() ) ;
-
          if ( boost::system::errc::too_many_files_open == error.value() ||
               boost::system::errc::too_many_files_open_in_system ==
               error.value() )
          {
+            // in IO service async callback, safe to call close
             closeListen( NET_FRAME_MASK_TCP ) ;
             PD_LOG( PDERROR, "Can not accept more connections because of "
                     "open files upto limits, restart listening" ) ;
             _restartTimer.startTimer() ;
             pmdIncErrNum( SDB_TOO_MANY_OPEN_FD ) ;
+         }
+         else if ( boost::asio::error::operation_aborted == error.value() )
+         {
+            PD_LOG( PDINFO, "acceptor is closed: %s,%d",
+                    error.message().c_str(), error.value() ) ;
+         }
+         else
+         {
+            PD_LOG ( PDERROR, "Accept connection occur exception: %s, %d",
+                     error.message().c_str(), error.value() ) ;
          }
 
          goto done ;
@@ -1986,14 +2310,18 @@ namespace engine
       eh->setOpt() ;
 
       /// add to map
-      _mtx.get() ;
-      _opposite.insert( make_pair( eh->handle(), eh ) ) ;
-      _mtx.release() ;
+      if ( SDB_OK == _addOpposite( eh ) )
+      {
+         // callback: handleConnect
+         _handler->handleConnect( eh->handle(), eh->id(), FALSE, eh.get() ) ;
+         eh->asyncRead() ;
+      }
+      else
+      {
+         // failed to add to map, close connection
+         eh->close() ;
+      }
 
-      // callback: handleConnect
-      _handler->handleConnect( eh->handle(), eh->id(), FALSE, eh.get() ) ;
-
-      eh->asyncRead() ;
       _asyncAccept() ;
 
    done:

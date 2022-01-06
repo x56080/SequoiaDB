@@ -15,6 +15,7 @@ SequoiaDB 巨杉数据库提供多种类型数据管理工具，包括数据日�
 数据管理工具如下：
 + [快速部署工具][quickdeploy]：用命令行的方式快速部署 SequoiaDB/SequoiaSQL-MySQL/SequoiaSQL-PostgreSQL 
 + [命令行工具][sdb]：SequoiaDB 数据库的接口工具
++ [本地集群检查工具][sdblist]：sdblist 是 SequoiaDB 的本地集群检查工具
 + [数据导入工具][sdbimprt]：sdbimprt 是 SequoiaDB 的数据导入工具
 + [数据导出工具][sdbexprt]：sdbexprt 是 SequoiaDB 的数据导出工具
 + [数据库检测工具][dmsdump]：使用数据库检测工具检查数据库文件结构的正确性并给出结果报告
@@ -25,6 +26,7 @@ SequoiaDB 巨杉数据库提供多种类型数据管理工具，包括数据日�
 + [密码管理工具][passwordtools]：使用密码管理工具管理数据库密码
 + [日志重放工具][log_replay]：使用日志重放工具在其它集群或节点重放归档日志
 + [容灾切换合并工具][split_merge]：当两个子网间出现网络分离无法访问时，使用工具进行集群分离；两个子网间网络连通后，使用工具进行集群合并
++ [索引升级工具][upgrade_index]：sdbupgradeidx 是 SequoiaDB 的索引升级工具
 
 
 [^_^]:
@@ -41,3 +43,5 @@ SequoiaDB 巨杉数据库提供多种类型数据管理工具，包括数据日�
 [log_replay]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/log_replay.md
 [split_merge]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/split_merge.md
 [sdb]: manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdb.md
+[sdblist]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdblist.md
+[upgrade_index]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/upgrade_index.md

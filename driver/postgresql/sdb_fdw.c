@@ -1287,7 +1287,7 @@ INT32 sdbOperExprParamVar( OpExpr *expr, SdbExprTreeState *expr_state,
       if ( T_Var == nodeTag(tmp) )
       {
          var = (Var *)tmp ;
-         if (  !isVarValid( var, expr_state )  )
+         if ( !isVarValid( var, expr_state ) )
          {
             rc = SDB_INVALIDARG ;
             elog( DEBUG1, "##column is not reconigzed:table_index=%d, varno=%d, "
@@ -1309,6 +1309,53 @@ INT32 sdbOperExprParamVar( OpExpr *expr, SdbExprTreeState *expr_state,
       {
          param      = (Param *)tmp ;
          paramIndex = index ;
+      }
+      else if ( T_RelabelType == nodeTag(tmp) )
+      {
+         RelabelType *relabel = (RelabelType *)tmp ;
+         if ( TEXTOID == relabel->resulttype &&
+              COERCE_IMPLICIT_CAST == relabel->relabelformat )
+         {
+            if (T_Param == nodeTag( relabel->arg ))
+            {
+               param = (Param *) relabel->arg ;
+               if ( BPCHAROID == param->paramtype ||
+                    VARCHAROID == param->paramtype )
+               {
+                  paramIndex = index ;
+               }
+               else
+               {
+                  rc = SDB_INVALIDARG ;
+                  elog( DEBUG1, "unreconigzed paramtype:type=%d",
+                        param->paramtype ) ;
+                  param = NULL ;
+                  goto error ;
+               }
+            }
+            else if ( T_Var == nodeTag( relabel->arg ) )
+            {
+               var = (Var *)relabel->arg ;
+               if ( !isVarValid( var, expr_state ) )
+               {
+                  rc = SDB_INVALIDARG ;
+                  elog( DEBUG1, "var is not reconigzed:table_index=%d, "
+                        "varno=%d, valevelsup=%d",
+                        expr_state->foreign_table_index,
+                        var->varno, var->varlevelsup ) ;
+                  goto error ;
+               }
+
+               varIndex = index ;
+            }
+            else
+            {
+               rc = SDB_INVALIDARG ;
+               elog( DEBUG1, "unreconigzed arg type:type=%d",
+                     nodeTag( relabel->arg ) ) ;
+               goto error ;
+            }
+         }
       }
       else
       {

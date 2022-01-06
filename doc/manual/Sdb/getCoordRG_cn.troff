@@ -35,7 +35,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ rg\ =\ db.getCoordRG()
+> var rg = db.getCoordRG()
 \f[]
 .fi
 .PP
@@ -43,39 +43,39 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ rg.getDetail()
+> rg.getDetail()
 {
-\ \ "Group":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "HostName":\ "sdbserver",
-\ \ \ \ \ \ "Status":\ 1,
-\ \ \ \ \ \ "dbpath":\ "/opt/sequoiadb/database/coord/11810/",
-\ \ \ \ \ \ "Service":\ [
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 0,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11810"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 1,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11811"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 2,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11812"
-\ \ \ \ \ \ \ \ }
-\ \ \ \ \ \ ],
-\ \ \ \ \ \ "NodeID":\ 2
-\ \ \ \ }
-\ \ ],
-\ \ "GroupID":\ 2,
-\ \ "GroupName":\ "SYSCoord",
-\ \ "Role":\ 1,
-\ \ "SecretID":\ 112493285,
-\ \ "Status":\ 1,
-\ \ "Version":\ 2,
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5ff52af65c0657cec2f706d9"
-\ \ }
+  "Group": [
+    {
+      "HostName": "sdbserver",
+      "Status": 1,
+      "dbpath": "/opt/sequoiadb/database/coord/11810/",
+      "Service": [
+        {
+          "Type": 0,
+          "Name": "11810"
+        },
+        {
+          "Type": 1,
+          "Name": "11811"
+        },
+        {
+          "Type": 2,
+          "Name": "11812"
+        }
+      ],
+      "NodeID": 2
+    }
+  ],
+  "GroupID": 2,
+  "GroupName": "SYSCoord",
+  "Role": 1,
+  "SecretID": 112493285,
+  "Status": 1,
+  "Version": 2,
+  "_id": {
+    "$oid": "5ff52af65c0657cec2f706d9"
+  }
 }
 \f[]
 .fi

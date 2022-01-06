@@ -98,11 +98,11 @@ helloWorld.js 内容如下：
 .IP
 .nf
 \f[C]
-function\ sayHello()
+function sayHello()
 {
-\ \ \ \ println(\ "hello\ world"\ )\ ;
+    println( "hello world" ) ;
 }
-println(\ "import\ helloWorld.js"\ )\ ;
+println( "import helloWorld.js" ) ;
 \f[]
 .fi
 .IP "2)" 3
@@ -110,14 +110,14 @@ println(\ "import\ helloWorld.js"\ )\ ;
 .IP
 .nf
 \f[C]
->\ importOnce(\ \[aq]helloWorld.js\[aq]\ )
-import\ helloWorld.js
-Takes\ 0.000849s.
->\ importOnce(\ \[aq]helloWorld.js\[aq]\ )
-Takes\ 0.000354s.
->\ sayHello()
-hello\ world
-Takes\ 0.000436s.
+> importOnce( \[aq]helloWorld.js\[aq] )
+import helloWorld.js
+Takes 0.000849s.
+> importOnce( \[aq]helloWorld.js\[aq] )
+Takes 0.000354s.
+> sayHello()
+hello world
+Takes 0.000436s.
 \f[]
 .fi
 .RE
@@ -132,10 +132,10 @@ funcDef.js 内容如下：
 .IP
 .nf
 \f[C]
-function\ test()
+function test()
 {
-\ \ \ \ println(\ "defined\ in\ funcDef.js"\ )\ ;
-}\ \ 
+    println( "defined in funcDef.js" ) ;
+}  
 \f[]
 .fi
 .IP "2)" 3
@@ -143,12 +143,12 @@ test.js 内容如下：
 .IP
 .nf
 \f[C]
-importOnce(\ \[aq]./funcDef.js\[aq]\ )\ ;
-function\ test()
+importOnce( \[aq]./funcDef.js\[aq] ) ;
+function test()
 {
-\ \ \ \ println(\ \[aq]defined\ in\ test.js\[aq]\ )\ ;
+    println( \[aq]defined in test.js\[aq] ) ;
 }
-test()\ ;
+test() ;
 \f[]
 .fi
 .IP "3)" 3
@@ -156,8 +156,8 @@ test()\ ;
 .IP
 .nf
 \f[C]
-$\ ./sdb\ \-f\ test.js\ 
-defined\ in\ funcDef.js
+$ ./sdb \-f test.js 
+defined in funcDef.js
 \f[]
 .fi
 .PP
@@ -173,9 +173,9 @@ defined\ in\ funcDef.js
 .IP
 .nf
 \f[C]
-function\ test()
+function test()
 {
-\ \ \ \ println(\ \[aq]defined\ in\ userDef.js\[aq]\ )\ ;
+    println( \[aq]defined in userDef.js\[aq] ) ;
 }
 \f[]
 .fi
@@ -184,9 +184,9 @@ test.js 内容改为：
 .IP
 .nf
 \f[C]
-importOnce(\ \[aq]./funcDef.js\[aq]\ )\ ;
-importOnce(\ \[aq]./userDef.js\[aq]\ )\ ;
-test()\ ;
+importOnce( \[aq]./funcDef.js\[aq] ) ;
+importOnce( \[aq]./userDef.js\[aq] ) ;
+test() ;
 \f[]
 .fi
 .IP "3)" 3
@@ -194,8 +194,8 @@ test()\ ;
 .IP
 .nf
 \f[C]
-$\ ./sdb\ \-f\ test.js
-defined\ in\ userDef.js
+$ ./sdb \-f test.js
+defined in userDef.js
 \f[]
 .fi
 .PP

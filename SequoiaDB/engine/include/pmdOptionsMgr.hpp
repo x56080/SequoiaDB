@@ -308,6 +308,8 @@ namespace engine
 
          UINT32 getChangeID () const { return _changeID ; }
 
+         BOOLEAN hasAutoAdjust() const { return _hasAutoAdjust ; }
+
       public:
          /*
             Parse address line(192.168.20.106:5000,192.168.30.102:1000...) to
@@ -410,6 +412,7 @@ namespace engine
 
          MAP_K2V                             _mapKeyValue ;
          MAP_K2V                             _mapColdKeyValue ;
+         BOOLEAN                             _hasAutoAdjust ;
       protected:
          ossSpinXLatch                       _mutex ;
 
@@ -573,6 +576,12 @@ namespace engine
             return (UINT64)_logFileSz * DPS_LOG_FILE_SIZE_UNIT ;
          }
          OSS_INLINE UINT32 getReplLogFileNum () const { return _logFileNum ; }
+
+         OSS_INLINE UINT64 getTotalLogSpace() const
+         {
+            return (UINT64)getReplLogFileSz() * (UINT64)getReplLogFileNum() ;
+         }
+
          OSS_INLINE UINT32 numPreLoaders () const { return _numPreLoaders ; }
          OSS_INLINE UINT32 maxPrefPool () const { return _maxPrefPool ; }
          OSS_INLINE UINT32 maxSubQuery () const { return _maxSubQuery ; }
@@ -667,13 +676,19 @@ namespace engine
          OSS_INLINE UINT32 memPoolThreshold() const { return _memPoolThreshold ; }
          OSS_INLINE INT32  transReplSize() const { return _transReplSize ; }
          OSS_INLINE BOOLEAN transRCCount() const { return _transRCCount ; }
+         OSS_INLINE BOOLEAN transAllowLockEscalation() const { return _transAllowLockEscalation ; }
+         OSS_INLINE INT32 transMaxLockNum() const { return _transMaxLockNum ; }
+         OSS_INLINE INT32 transMaxLogSpaceRatio() const { return _transMaxLogSpaceRatio ; }
          OSS_INLINE UINT32 slowQueryThreshold() const { return _slowQueryThreshold ; }
          OSS_INLINE UINT32 monGroupMask() const { return _monGroupMask ; }
          OSS_INLINE UINT32 monHistEvent() const { return _monHistEvent ; }
          OSS_INLINE UINT32 serviceMask() const { return _serviceMask ; }
          OSS_INLINE UINT32 mvccRBSNum() const { return _mvccRBSNum ; }
-
+         OSS_INLINE INT32 maxContextNum() const { return _maxContextNum ; }
+         OSS_INLINE INT32 maxSessionContextNum() const { return _maxSessionContextNum ; }
+         OSS_INLINE INT32 contextTimeout() const { return _contextTimeout ; }
          std::string getOmAddr() const ;
+         OSS_INLINE BOOLEAN detectDisk() const { return _detectDisk ; }
 
 #ifdef SDB_ENTERPRISE
 
@@ -802,6 +817,9 @@ namespace engine
          UINT32      _memPoolThreshold ;
          INT32       _transReplSize ;
          BOOLEAN     _transRCCount ;
+         BOOLEAN     _transAllowLockEscalation ;
+         INT32       _transMaxLockNum ;
+         INT32       _transMaxLogSpaceRatio ;
          UINT32      _slowQueryThreshold ;
          UINT32      _monGroupMask ;
          UINT32      _monHistEvent ;
@@ -810,6 +828,12 @@ namespace engine
          BOOLEAN     _globTransOn ;
          INT32       _globTransMaxTimeError ;
          UINT32      _mvccRBSNum ;
+
+         INT32       _maxContextNum ;
+         INT32       _maxSessionContextNum ;
+         INT32       _contextTimeout ;
+
+         BOOLEAN     _detectDisk ;
 
 #ifdef SDB_ENTERPRISE
 
@@ -834,6 +858,9 @@ namespace engine
    INT32 optString2LogMod( const CHAR *str, UINT32 &value ) ;
    INT32 optString2MonGroupMask( const CHAR *str, UINT32 &value ) ;
    INT32 optLogMod2String( UINT32 value, CHAR *str, INT32 len ) ;
+   INT32 optBuildErrorReport( const bson::BSONObj &returnObj,
+                              BOOLEAN &hasError,
+                              std::string &returnStr ) ;
 
 }
 

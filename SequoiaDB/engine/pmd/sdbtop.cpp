@@ -454,6 +454,9 @@ BOOLEAN useSSL = FALSE ;
 #define ADD_PARAM_OPTIONS_END ;
 
 #define COMMANDS_STRING( a, b ) (string(a) +string( b)).c_str()
+
+vector<string> passwdVec ;
+
 #define COMMANDS_OPTIONS \
        ( COMMANDS_STRING(OPTION_HELP, ",h"), "help" )\
        ( COMMANDS_STRING(OPTION_VERSION, ",v"), "version" ) \
@@ -461,7 +464,7 @@ BOOLEAN useSSL = FALSE ;
        ( COMMANDS_STRING(OPTION_HOSTNAME, ",i"), boost::program_options::value<string>(), "host name, default: localhost" ) \
        ( COMMANDS_STRING(OPTION_SERVICENAME, ",s"), boost::program_options::value<string>(), "service name, default: 11810" ) \
        ( COMMANDS_STRING(OPTION_USRNAME, ",u"), boost::program_options::value<string>(), "username, default: \"\"" ) \
-       ( COMMANDS_STRING(OPTION_PASSWORD, ",p"), implicit_value<string>(""), "password, default: \"\"" ) \
+       ( COMMANDS_STRING(OPTION_PASSWORD, ",p"), boost::program_options::value< vector<string> >(&passwdVec)->multitoken()->zero_tokens(), "password, default: \"\"" ) \
        ( OPTION_CIPHERFILE,boost::program_options::value<string>(), "cipher file location, default ~/sequoiadb/passwd" ) \
        ( OPTION_CIPHER,boost::program_options::value<bool>(), "input password using a cipher file" ) \
        ( OPTION_TOKEN,boost::program_options::value<string>(), "password encryption token" )
@@ -6176,10 +6179,8 @@ INT32 Event::runSDBTOP( BOOLEAN useSSL )
 
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
-                   "%s can't connect to the coord: "
-                   "%s, %s, %s, %s, rc =%d"OSS_NEWLINE,
-                   errStrBuf, hostname.c_str(), serviceName.c_str(),
-                   usrName.c_str(), password.c_str(), rc ) ;
+                   "%s can't connect to %s:%s, rc: %d"OSS_NEWLINE,
+                   errStrBuf, hostname.c_str(), serviceName.c_str(), rc ) ;
       goto error ;
    }
    root.input.displayModeChooser = 0 ;
@@ -6409,20 +6410,29 @@ INT32 resolveArgument ( po::options_description &desc,
 
    if( vm.count( OPTION_USRNAME) )
    {
-      passwd::utilPasswordTool passwdTool ;
+      utilPasswordTool passwdTool ;
 
       usrName = vm[OPTION_USRNAME].as<string>();
 
       if ( vm.count( OPTION_PASSWORD ) )
       {
-         std::string passwd = vm[OPTION_PASSWORD].as<string>() ;
-         if ( "" == passwd )
+         BOOLEAN isNormalInput = FALSE ;
+
+         if ( 0 == passwdVec.size() )
          {
-            password = passwdTool.interactivePasswdInput() ;
+            isNormalInput = utilPasswordTool::interactivePasswdInput( password ) ;
          }
          else
          {
-            password = passwd ;
+            isNormalInput = TRUE ;
+            password = passwdVec[0] ;
+         }
+
+         if ( !isNormalInput )
+         {
+            rc = SDB_APP_INTERRUPT ;
+            std::cerr << getErrDesp( rc ) << ", rc: " << rc << std::endl ;
+            goto error ;
          }
       }
       else
@@ -6440,7 +6450,7 @@ INT32 resolveArgument ( po::options_description &desc,
                          << std::endl ;
                goto error ;
             }
-            usrName = passwd::utilGetUserShortNameFromUserFullName( usrName ) ;
+            usrName = utilGetUserShortNameFromUserFullName( usrName ) ;
          }
          else
          {

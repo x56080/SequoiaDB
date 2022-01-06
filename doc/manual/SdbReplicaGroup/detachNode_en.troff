@@ -210,10 +210,10 @@ since v1.12
 Detach node from group1 and then add it to group2.
 .nf
 \f[C]
->\ var\ rg1\ =\ db.getRG("group1")
->\ rg1.detachNode(\[aq]hostname1\[aq],\ \[aq]11830\[aq],\ {KeepData:\ true})
->\ var\ rg2\ =\ db.getRG("group2")
->\ rg2.attachNode(\[aq]hostname1\[aq],\ \[aq]11830\[aq],\ {KeepData:\ false})
+> var rg1 = db.getRG("group1")
+> rg1.detachNode(\[aq]hostname1\[aq], \[aq]11830\[aq], {KeepData: true})
+> var rg2 = db.getRG("group2")
+> rg2.attachNode(\[aq]hostname1\[aq], \[aq]11830\[aq], {KeepData: false})
 \f[]
 .fi
 .RE

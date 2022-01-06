@@ -51,6 +51,7 @@ namespace engine
 #define NAME_DROP_COLLECTION                 CMD_NAME_DROP_COLLECTION
 #define NAME_DROP_COLLECTIONSPACE            CMD_NAME_DROP_COLLECTIONSPACE
 #define NAME_DROP_INDEX                      CMD_NAME_DROP_INDEX
+#define NAME_COPY_INDEX                      CMD_NAME_COPY_INDEX
 #define NAME_LOAD_COLLECTIONSPACE            CMD_NAME_LOAD_COLLECTIONSPACE
 #define NAME_UNLOAD_COLLECTIONSPACE          CMD_NAME_UNLOAD_COLLECTIONSPACE
 #define NAME_GET_COUNT                       CMD_NAME_GET_COUNT
@@ -67,6 +68,7 @@ namespace engine
 #define NAME_LIST_SESSIONS_CURRENT           CMD_NAME_LIST_SESSIONS_CURRENT
 #define NAME_LIST_STORAGEUNITS               CMD_NAME_LIST_STORAGEUNITS
 #define NAME_LIST_BACKUPS                    CMD_NAME_LIST_BACKUPS
+#define NAME_LIST_INDEXES                    CMD_NAME_LIST_INDEXES
 #define NAME_RENAME_COLLECTION               CMD_NAME_RENAME_COLLECTION
 #define NAME_RENAME_COLLECTIONSPACE          CMD_NAME_RENAME_COLLECTIONSPACE
 #define NAME_REORG_OFFLINE                   CMD_NAME_REORG_OFFLINE
@@ -92,6 +94,10 @@ namespace engine
 #define NAME_SNAPSHOT_LATCHWAITS             CMD_NAME_SNAPSHOT_LATCHWAITS
 #define NAME_SNAPSHOT_LOCKWAITS              CMD_NAME_SNAPSHOT_LOCKWAITS
 #define NAME_SNAPSHOT_INDEXSTATS             CMD_NAME_SNAPSHOT_INDEXSTATS
+#define NAME_SNAPSHOT_TASKS                  CMD_NAME_SNAPSHOT_TASKS
+#define NAME_SNAPSHOT_INDEXES                CMD_NAME_SNAPSHOT_INDEXES
+#define NAME_SNAPSHOT_TRANSWAITS             CMD_NAME_SNAPSHOT_TRANSWAITS
+#define NAME_SNAPSHOT_TRANSDEADLOCK          CMD_NAME_SNAPSHOT_TRANSDEADLOCK
 #define NAME_TEST_COLLECTION                 CMD_NAME_TEST_COLLECTION
 #define NAME_TEST_COLLECTIONSPACE            CMD_NAME_TEST_COLLECTIONSPACE
 #define NAME_SET_PDLEVEL                     CMD_NAME_SET_PDLEVEL
@@ -125,6 +131,7 @@ namespace engine
 #define NAME_RESTORE_TO_TIME                 CMD_NAME_RESTORE_TO_TIME
 #define NAME_RESTORE_ABORT                   CMD_NAME_RESTORE_ABORT
 #define NAME_RESTORE_PREPARE                 CMD_NAME_RESTORE_PREPARE
+#define NAME_RESTORE_CHECK                   CMD_NAME_RESTORE_CHECK
 
 // the commands that does not supported by data nodes or standalone mode
 #define NAME_CREATE_GROUP                    CMD_NAME_CREATE_GROUP
@@ -142,6 +149,7 @@ namespace engine
 #define NAME_LIST_DOMAINS                    CMD_NAME_LIST_DOMAINS
 #define NAME_LIST_GROUPS                     CMD_NAME_LIST_GROUPS
 #define NAME_LIST_PROCEDURES                 CMD_NAME_LIST_PROCEDURES
+#define NAME_LIST_DATASOURCES                CMD_NAME_LIST_DATASOURCES
 #define NAME_CREATE_PROCEDURE                CMD_NAME_CRT_PROCEDURE
 #define NAME_REMOVE_PROCEDURE                CMD_NAME_RM_PROCEDURE
 #define NAME_LIST_CS_IN_DOMAIN               CMD_NAME_LIST_CS_IN_DOMAIN
@@ -160,6 +168,7 @@ namespace engine
 #define NAME_CREATE_SEQUENCE                 CMD_NAME_CREATE_SEQUENCE
 #define NAME_DROP_SEQUENCE                   CMD_NAME_DROP_SEQUENCE
 #define NAME_ALTER_SEQUENCE                  CMD_NAME_ALTER_SEQUENCE
+#define NAME_INVALIDATE_DATASOURCE_CACHE     CMD_NAME_INVALIDATE_DATASOURCE_CACHE
    /*
       Command Type Define
    */
@@ -181,7 +190,7 @@ namespace engine
       CMD_UNLOAD_COLLECTIONSPACE             = 26,
 
       CMD_GET_COUNT                          = 30,
-      CMD_GET_INDEXES                        = 31,
+      CMD_GET_INDEXES                        = 31,  // deprecated
       CMD_GET_DATABLOCKS                     = 32,
       CMD_GET_QUERYMETA                      = 33,
       CMD_GET_DCINFO                         = 34,
@@ -211,7 +220,10 @@ namespace engine
 
       CMD_RENAME_COLLECTION                  = 60,
       CMD_RENAME_COLLECTIONSPACE             = 61,
+
       CMD_LIST_SEQUENCES                     = 62,
+      CMD_LIST_DATASOURCES                   = 63,
+      CMD_LIST_INDEXES                       = 64,
 
       CMD_REORG_OFFLINE                      = 70,
       CMD_REORG_ONLINE                       = 71,
@@ -302,13 +314,24 @@ namespace engine
       CMD_SNAPSHOT_LOCKWAITS                 = 255,
       CMD_SNAPSHOT_INDEXSTATS                = 256,
 
-      CMD_RESTORE_TO_TIME                    = 257,
-      CMD_RESTORE_ABORT                      = 258,
-      CMD_RESTORE_PREPARE                    = 259,
+      CMD_INVALIDATE_DATASOURCE_CACHE        = 257,
 
       CMD_CREATE_SEQUENCE                    = 260,
       CMD_DROP_SEQUENCE                      = 261,
       CMD_ALTER_SEQUENCE                     = 262,
+
+      CMD_RESTORE_CHECK                      = 263,
+      CMD_RESTORE_TO_TIME                    = 264,
+      CMD_RESTORE_ABORT                      = 265,
+      CMD_RESTORE_PREPARE                    = 266,
+
+      CMD_SNAPSHOT_TASKS                     = 270,
+      CMD_SNAPSHOT_INDEXES                   = 271,
+      CMD_SNAPSHOT_TRANSWAITS                = 272,
+      CMD_SNAPSHOT_TRANSDEADLOCK             = 273,
+
+      CMD_COPY_INDEX                         = 280,
+
       CMD_UNKNOW                             = 65535
    };
 

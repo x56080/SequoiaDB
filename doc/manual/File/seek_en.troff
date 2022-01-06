@@ -112,9 +112,11 @@ T}@T{
 size plus offset
 T}
 .TE
-
+.RS
+.PP
 Note:
 .RE
+.RS
 .PP
 When the "where" parameter is \[aq]e\[aq], the "offset" parameter can be
 negative.
@@ -135,10 +137,10 @@ Open a file and get a file descriptor.
 .IP
 .nf
 \f[C]
->\ var\ file\ =\ new\ File(\ "/opt/sequoiadb/file.txt"\ )
->\ file.read()
-0:sequoiadb\ is\ wonderful.
-1:wonderful\ sequoiadb.
+> var file = new File( "/opt/sequoiadb/file.txt" )
+> file.read()
+0:sequoiadb is wonderful.
+1:wonderful sequoiadb.
 \f[]
 .fi
 .IP \[bu] 2
@@ -146,14 +148,14 @@ Moving cursor, and perform an offset operation from the beginning of the file.
 .IP
 .nf
 \f[C]
->\ file.seek(2)
->\ file.read()
-sequoiadb\ is\ wonderful.
-1:wonderful\ sequoiadb.
->\ file.seek(\ 2,\ "b"\ )
->\ file.read()
-sequoiadb\ is\ wonderful.
-1:wonderful\ sequoiadb.
+> file.seek(2)
+> file.read()
+sequoiadb is wonderful.
+1:wonderful sequoiadb.
+> file.seek( 2, "b" )
+> file.read()
+sequoiadb is wonderful.
+1:wonderful sequoiadb.
 \f[]
 .fi
 .IP \[bu] 2
@@ -162,11 +164,11 @@ of the file.
 .IP
 .nf
 \f[C]
->\ file.seek(2)
->\ file.seek(\ 2,\ "c"\ )
->\ file.read()
-quoiadb\ is\ wonderful.
-1:wonderful\ sequoiadb.
+> file.seek(2)
+> file.seek( 2, "c" )
+> file.read()
+quoiadb is wonderful.
+1:wonderful sequoiadb.
 \f[]
 .fi
 .IP \[bu] 2
@@ -174,9 +176,9 @@ Offset the file cursor to the end of the file.
 .IP
 .nf
 \f[C]
->\ file.seek(0)
->\ file.seek(\ \-5,\ "e"\ )
->\ file.read()
+> file.seek(0)
+> file.seek( \-5, "e" )
+> file.read()
 adb.
 \f[]
 .fi

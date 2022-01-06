@@ -27,25 +27,27 @@ sdbimprt.sh 与 sdbexprt.sh 脚本是由原生的导入导出工具 sdbimprt、s
 
 1. 如果需要使用 --conf 参数，则需要编辑配置文件。
 
- ```sh
- cp conf/sample/* conf/  
+ ```lang-bash
+ $ cp conf/sample/* conf/
  vim conf/import.conf          #vim conf/export.conf
  ```
 
 2. 根据实际需要设置 sdbimprt.sh（sdbexprt.sh）的执行参数，并执行，以下为导入示例：
 
- ```sh
- ./bin/sdbimprt.sh --conf ./conf/import.conf
+ ```lang-bash
+ $ ./bin/sdbimprt.sh --conf ./conf/import.conf
  ```
 
 3. 查看导入（导出）的结果文件，获取导入（导出）的实际情况。
 
- ```sh
- vim sdbimport.result           #vim sdbexport.result
+ ```lang-bash
+ $ vim sdbimport.result           #vim sdbexport.result
  ```
 
 ###注意事项
 
-1. sdbexprt.sh 脚本的 --jobs 并发导出功能，是通过直接连接多个数据组，从多个数据组中同时导出集合数据实现。集合数据分散的数据组越多、分散的越均匀，则并发导出的性能越好。
+1. sdbexprt.sh 脚本的 --jobs 并发导出，是直接从多个数据组中并行导出数据。集合数据被切分得越离散、分布得越均匀，其并发导出性能越好。
 
-2. sdbimprt.sh 与 sdbexprt.sh 的参数支持在命令行与配置文件中填写，在命令行中填写参数时，该参数将对配置的所有集合、集合空间生效，在配置文件中填写时，该参数仅对某个集合或集合空间生效。配置文件中的参数其有效优先级高于命令行中的相同参数。
+2. 指定集合空间进行导出时，为了防止导出的数据重复，将不导出该集合空间下的主分区集合（逻辑集合，所导出数据与其子集合数据一致）
+
+3. sdbimprt.sh 与 sdbexprt.sh 的参数支持在命令行与配置文件中填写。在命令行中填写参数时，该参数将对指定的所有集合、集合空间生效；在配置文件中填写时，该参数仅对某个集合或集合空间生效。配置文件中参数的优先级高于命令行中相同的参数。

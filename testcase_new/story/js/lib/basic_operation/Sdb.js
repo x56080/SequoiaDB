@@ -10,6 +10,7 @@ var tmpSdb = {
    createCS: Sdb.prototype.createCS,
    createCataRG: Sdb.prototype.createCataRG,
    createCoordRG: Sdb.prototype.createCoordRG,
+   createDataSource: Sdb.prototype.createDataSource,
    createDomain: Sdb.prototype.createDomain,
    createProcedure: Sdb.prototype.createProcedure,
    createRG: Sdb.prototype.createRG,
@@ -18,6 +19,7 @@ var tmpSdb = {
    createUsr: Sdb.prototype.createUsr,
    deleteConf: Sdb.prototype.deleteConf,
    dropCS: Sdb.prototype.dropCS,
+   dropDataSource: Sdb.prototype.dropDataSource,
    dropDomain: Sdb.prototype.dropDomain,
    dropSequence: Sdb.prototype.dropSequence,
    dropUsr: Sdb.prototype.dropUsr,
@@ -32,6 +34,7 @@ var tmpSdb = {
    getCatalogRG: Sdb.prototype.getCatalogRG,
    getCoordRG: Sdb.prototype.getCoordRG,
    getDC: Sdb.prototype.getDC,
+   getDataSource: Sdb.prototype.getDataSource,
    getDomain: Sdb.prototype.getDomain,
    getRG: Sdb.prototype.getRG,
    getSequence: Sdb.prototype.getSequence,
@@ -43,6 +46,7 @@ var tmpSdb = {
    listBackup: Sdb.prototype.listBackup,
    listCollectionSpaces: Sdb.prototype.listCollectionSpaces,
    listCollections: Sdb.prototype.listCollections,
+   listDataSources: Sdb.prototype.listDataSources,
    listDomains: Sdb.prototype.listDomains,
    listProcedures: Sdb.prototype.listProcedures,
    listReplicaGroups: Sdb.prototype.listReplicaGroups,
@@ -62,6 +66,7 @@ var tmpSdb = {
    renameSequence: Sdb.prototype.renameSequence,
    resetSnapshot: Sdb.prototype.resetSnapshot,
    restoreAbort: Sdb.prototype.restoreAbort,
+   restoreCheck: Sdb.prototype.restoreCheck,
    restorePrepare: Sdb.prototype.restorePrepare,
    restoreToTime: Sdb.prototype.restoreToTime,
    setPDLevel: Sdb.prototype.setPDLevel,
@@ -97,6 +102,7 @@ Sdb.prototype.close=function(){try{return tmpSdb.close.apply(this,arguments);}ca
 Sdb.prototype.createCS=function(){try{return tmpSdb.createCS.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.createCataRG=function(){try{return tmpSdb.createCataRG.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.createCoordRG=function(){try{return tmpSdb.createCoordRG.apply(this,arguments);}catch(e){throw new Error(e);}};
+Sdb.prototype.createDataSource=function(){try{return tmpSdb.createDataSource.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.createDomain=function(){try{return tmpSdb.createDomain.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.createProcedure=function(){try{return tmpSdb.createProcedure.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.createRG=function(){try{return tmpSdb.createRG.apply(this,arguments);}catch(e){throw new Error(e);}};
@@ -105,6 +111,7 @@ Sdb.prototype.createSpareRG=function(){try{return tmpSdb.createSpareRG.apply(thi
 Sdb.prototype.createUsr=function(){try{return tmpSdb.createUsr.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.deleteConf=function(){try{return tmpSdb.deleteConf.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.dropCS=function(){try{return tmpSdb.dropCS.apply(this,arguments);}catch(e){throw new Error(e);}};
+Sdb.prototype.dropDataSource=function(){try{return tmpSdb.dropDataSource.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.dropDomain=function(){try{return tmpSdb.dropDomain.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.dropSequence=function(){try{return tmpSdb.dropSequence.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.dropUsr=function(){try{return tmpSdb.dropUsr.apply(this,arguments);}catch(e){throw new Error(e);}};
@@ -119,6 +126,7 @@ Sdb.prototype.getCataRG=function(){try{return tmpSdb.getCataRG.apply(this,argume
 Sdb.prototype.getCatalogRG=function(){try{return tmpSdb.getCatalogRG.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.getCoordRG=function(){try{return tmpSdb.getCoordRG.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.getDC=function(){try{return tmpSdb.getDC.apply(this,arguments);}catch(e){throw new Error(e);}};
+Sdb.prototype.getDataSource=function(){try{return tmpSdb.getDataSource.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.getDomain=function(){try{return tmpSdb.getDomain.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.getRG=function(){try{return tmpSdb.getRG.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.getSequence=function(){try{return tmpSdb.getSequence.apply(this,arguments);}catch(e){throw new Error(e);}};
@@ -130,6 +138,7 @@ Sdb.prototype.list=function(){try{return tmpSdb.list.apply(this,arguments);}catc
 Sdb.prototype.listBackup=function(){try{return tmpSdb.listBackup.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.listCollectionSpaces=function(){try{return tmpSdb.listCollectionSpaces.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.listCollections=function(){try{return tmpSdb.listCollections.apply(this,arguments);}catch(e){throw new Error(e);}};
+Sdb.prototype.listDataSources=function(){try{return tmpSdb.listDataSources.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.listDomains=function(){try{return tmpSdb.listDomains.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.listProcedures=function(){try{return tmpSdb.listProcedures.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.listReplicaGroups=function(){try{return tmpSdb.listReplicaGroups.apply(this,arguments);}catch(e){throw new Error(e);}};
@@ -149,6 +158,7 @@ Sdb.prototype.renameCS=function(){try{return tmpSdb.renameCS.apply(this,argument
 Sdb.prototype.renameSequence=function(){try{return tmpSdb.renameSequence.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.resetSnapshot=function(){try{return tmpSdb.resetSnapshot.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.restoreAbort=function(){try{return tmpSdb.restoreAbort.apply(this,arguments);}catch(e){throw new Error(e);}};
+Sdb.prototype.restoreCheck=function(){try{return tmpSdb.restoreCheck.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.restorePrepare=function(){try{return tmpSdb.restorePrepare.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.restoreToTime=function(){try{return tmpSdb.restoreToTime.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.setPDLevel=function(){try{return tmpSdb.setPDLevel.apply(this,arguments);}catch(e){throw new Error(e);}};

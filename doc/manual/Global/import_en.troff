@@ -95,11 +95,11 @@ helloWorld.js as below:
 .IP
 .nf
 \f[C]
-function\ sayHello()
+function sayHello()
 {
-\ \ \ \ println(\ "hello\ world"\ )\ ;
+    println( "hello world" ) ;
 }
-println(\ "import\ helloWorld.js"\ )\ ;
+println( "import helloWorld.js" ) ;
 \f[]
 .fi
 .IP "2)" 3
@@ -107,12 +107,12 @@ Import and eval helloWorld.js, then call the sayHello().
 .IP
 .nf
 \f[C]
->\ import(\ \[aq]helloWorld.js\[aq]\ )
-import\ helloWorld.js
-Takes\ 0.000901s.
->\ sayHello()
-hello\ world
-Takes\ 0.000475s.
+> import( \[aq]helloWorld.js\[aq] )
+import helloWorld.js
+Takes 0.000901s.
+> sayHello()
+hello world
+Takes 0.000475s.
 \f[]
 .fi
 .RE
@@ -127,10 +127,10 @@ The content of funcDef.js as below:
 .IP
 .nf
 \f[C]
-function\ test()
+function test()
 {
-\ \ \ \ println(\ "defined\ in\ funcDef.js"\ )\ ;
-}\ \ 
+    println( "defined in funcDef.js" ) ;
+}  
 \f[]
 .fi
 .IP "2)" 3
@@ -138,12 +138,12 @@ The content of test.js as below：
 .IP
 .nf
 \f[C]
-import(\ \[aq]./funcDef.js\[aq]\ )\ ;
-function\ test()
+import( \[aq]./funcDef.js\[aq] ) ;
+function test()
 {
-\ \ \ \ println(\ \[aq]defined\ in\ test.js\[aq]\ )\ ;
+    println( \[aq]defined in test.js\[aq] ) ;
 }
-test()\ ;
+test() ;
 \f[]
 .fi
 .IP "3)" 3
@@ -151,8 +151,8 @@ Use sdb to run test.js
 .IP
 .nf
 \f[C]
-$\ ./sdb\ \-f\ test.js\ 
-defined\ in\ funcDef.js
+$ ./sdb \-f test.js 
+defined in funcDef.js
 \f[]
 .fi
 .PP
@@ -170,9 +170,9 @@ Create a file named userDef.js,the content as below：
 .IP
 .nf
 \f[C]
-function\ test()
+function test()
 {
-\ \ \ \ println(\ \[aq]defined\ in\ userDef.js\[aq]\ )\ ;
+    println( \[aq]defined in userDef.js\[aq] ) ;
 }
 \f[]
 .fi
@@ -181,9 +181,9 @@ The content of test.js is changed as below：
 .IP
 .nf
 \f[C]
-import(\ \[aq]./funcDef.js\[aq]\ )\ ;
-import(\ \[aq]./userDef.js\[aq]\ )\ ;
-test()\ ;
+import( \[aq]./funcDef.js\[aq] ) ;
+import( \[aq]./userDef.js\[aq] ) ;
+test() ;
 \f[]
 .fi
 .IP "3)" 3
@@ -191,8 +191,8 @@ Use sdb to run test.js
 .IP
 .nf
 \f[C]
-$\ ./sdb\ \-f\ test.js\ 
-defined\ in\ userDef.js
+$ ./sdb \-f test.js 
+defined in userDef.js
 \f[]
 .fi
 .PP

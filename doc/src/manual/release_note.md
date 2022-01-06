@@ -1,8 +1,41 @@
-SequoiaDB 巨杉数据库是一款金融级分布式关系型数据库，产品引擎采用原生分布式架构，100%兼容 MySQL 语法和协议，支持完整的 ACID 和分布式事务。同时 SequoiaDB 还提供多模（multi-model）数据库存储引擎，原生支持多数据中心容灾机制，是新一代分布式数据库的首选。  
+SequoiaDB 巨杉数据库是一款金融级分布式关系型数据库，产品引擎采用原生分布式架构，100% 兼容 MySQL，支持完整的 ACID 和分布式事务。同时 SequoiaDB 还提供多模（multi-model）数据库存储引擎，原生支持多数据中心容灾机制，是新一代分布式数据库的首选。  
+
 本文档中心旨在介绍 SequoiaDB 巨杉数据库的基本概念、数据增删改查的基本语法、数据库运维管理的基本策略，以及性能调优和问题诊断的相关思路。
 
 [快速使用 SequoiaDB][quickstart]
 
+##SequoiaDB version 5.0.2 版本说明##
+
+**接口变更：**
+
+- SQL引擎
+  - MySQL/MariaDB 增加 preferedinstance 配置参数
+- fap 支持 findAndModify 功能
+- fap 支持 bulkWrite 功能
+
+**主要特性：**
+
+- SequoiaDB 增加数据源功能
+
+**性能优化：**
+
+- SQL引擎
+  - 优化 MySQL 索引查询性能
+  - 优化 MySQL multistatement 数据插入性能
+- 优化并发回放性能
+- 优化主子表下对切分键排序查询的性能
+
+**工具优化：**
+
+- MySQL 默认配置 lower_case_table_names 为 1（表名存储在磁盘是小写，比较时不区分大小写 ）
+- MySQL 实例和 PostgreSQL 实例默认日志路径从安装目录调整到数据目录下
+
+**解决重要Bug：**
+
+- 修复 MySQL 部分场景下条件下压不正确的问题
+- 修复 MySQL 实例组功能在多实例并发极限场景下，多个实例之间元数据不同步的问题
+- 修复 PostgresSQL 在特殊查询条件下造成内存泄漏的问题
+- 修复 引擎在内存严重不足时导致程序退出的问题
 
 ##SequoiaDB version 5.0.1 版本说明##
 
@@ -13,7 +46,6 @@ SequoiaDB 巨杉数据库是一款金融级分布式关系型数据库，产品�
   - 兼容 MariaDB 协议；
   - 增加参数 sequoiadb_rollback_on_timeout ，开启时当事务锁超时回滚整个事务；
   - sdb_sql_ctl 改名为 sdb_mysql_ctl 和 sdb_pg_ctl；
-- 兼容 mongodb 3.x/4.x 协议，可以直接使用 mongodb 驱动进行访问；
 - 全文索引支持Elasticearch 6.8.5版本；
 - 系统 limit 配置支持 stack size，并统一单位为 byte；
 
@@ -52,7 +84,6 @@ SequoiaDB 巨杉数据库是一款金融级分布式关系型数据库，产品�
 - 导入工具支持空字符串的 Decimal 类型；
 - 导入工具支持将 Decimal 转换为其它类型；
 - 导入工具支持将 null 转换为 Date/Timestamp 类型；
-- 优化 SequoiaFS 启动、停止和参数配置；
 - 支持 TRACE 的结果导出到客户端本地；
 - SAC
   - 提供图形化性能监控工具(SequoiaPerf)，简化端到端的慢查询性能分析；
@@ -100,7 +131,7 @@ SequoiaDB 巨杉数据库是一款金融级分布式关系型数据库，产品�
 - 全文索引支持字符串数组，以及 $or 和 $not 操作；
 - 索引支持 not null 约束；
 - 命令位置参数支持 InstanceID ；
-- 大对象存储支持按时间序进行垂直分区，提升对大对象的存取和管理能力，可以快速按时间进行归档和清理；
+- 大对象存储支持按时间序进行表分区，提升对大对象的存取和管理能力，可以快速按时间进行归档和清理；
 - 大对象List操作支持过滤条件和精准匹配；
 - 重选举支持指定节点；
 - 复制日志支持开启全量模式和时间字段，可以通过工具进行增量数据抽取；

@@ -51,7 +51,7 @@ namespace engine
    class _rtnContextDump : public _rtnContextBase,
                            public _mthMatchTreeHolder
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextDump )
       public:
          _rtnContextDump ( INT64 contextID, UINT64 eduID ) ;
          virtual ~_rtnContextDump () ;
@@ -62,8 +62,7 @@ namespace engine
          INT32 monAppend( const BSONObj &result ) ;
 
          void  setMonFetch( rtnFetchBase *pFetch, BOOLEAN ownned ) ;
-         rtnFetchBase* getMonFetch() { return _pFetch ; }
-         BOOLEAN isMonFetchOwnned() const { return _ownnedFetch ; }
+         void  setMonProcessor( IRtnMonProcessorPtr monProcessorPtr ) ;
 
          INT64 getNumToReturn() const { return _numToReturn ; }
 
@@ -75,6 +74,7 @@ namespace engine
       protected:
          virtual INT32  _prepareData( _pmdEDUCB *cb ) ;
          virtual void   _toString( stringstream &ss ) ;
+         virtual void   _onDataEmpty () ;
 
       private:
          // rest number of records to expect, -1 means select all
@@ -84,6 +84,8 @@ namespace engine
 
          rtnFetchBase               *_pFetch ;
          BOOLEAN                    _ownnedFetch ;
+
+         IRtnMonProcessorPtr        _monProcessorPtr ;
 
    } ;
    typedef _rtnContextDump rtnContextDump ;

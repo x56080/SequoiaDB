@@ -136,8 +136,8 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__STPNETMGR_DEACTIVENETAGENT ) ;
 
-      // close and stop net agent
-      _agent.closeListen() ;
+      // shutdown and stop net agent
+      _agent.shutdownListen() ;
       _agent.stop() ;
 
       PD_TRACE_EXITRC( SDB__STPNETMGR_DEACTIVENETAGENT, SDB_OK ) ;

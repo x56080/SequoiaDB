@@ -46,6 +46,8 @@
 #include "ossMemPool.hpp"
 #include "clsCatalogAgent.hpp"
 
+using namespace bson ;
+
 namespace engine
 {
    /*
@@ -64,6 +66,7 @@ namespace engine
       INT32 pop() ;
       INT32 popN( INT32 num ) ;
       INT32 popAll() ;
+      INT32 pushFront( const BSONObj &obj ) ;
       INT32 recordNum() ;
       INT32 remainLength() ;
       INT32 truncate ( INT32 num ) ;
@@ -88,21 +91,10 @@ namespace engine
 
    private:
       rtnContextBuf        _buffer ;
-      // Why do we need this _startPos?
-      // Because of the difference between the truncation of this context and
-      // the rtnContextBuf we use above.
-      // The context buffer is read only(except the truncation operation). So
-      // when pop of this context is called, the buffer dose not actually pop
-      // out the objects. It just move its iterator forward. As for truncation,
-      // the buffer will always count from the BEGINNING(including those who
-      // have been popped). But this is not the case in this context. So we
-      // handle this difference by using this member, to make truncation working
-      // properly.
-      INT32                _startPos ;
-      INT32                _remainNum ;
 
       // indicate the data context for sub-collection is ended
       BOOLEAN              _hitEnd ;
+
    };
    typedef class _rtnSubCLContext rtnSubCLContext ;
 
@@ -112,7 +104,7 @@ namespace engine
    class _rtnContextMainCL : public _rtnContextMain
    {
       typedef ossPoolMap< INT64, _rtnSubCLContext*>    SUBCL_CTX_MAP ;
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextMainCL )
    public:
       _rtnContextMainCL( INT64 contextID, UINT64 eduID ) ;
       ~_rtnContextMainCL();
@@ -170,6 +162,12 @@ namespace engine
                 requireOrder() ;
       }
 
+      virtual INT32   _prepareSubCtxsAdvance( LST_SUB_CTX_PTR &lstCtx ) ;
+
+      virtual INT32   _doSubCtxsAdvance( LST_SUB_CTX_PTR &lstCtx,
+                                         const BSONObj &arg,
+                                         _pmdEDUCB *cb ) ;
+
    private:
       INT32 _prepareSubCLData( SINT64 contextID,
                                 _pmdEDUCB * cb,
@@ -198,7 +196,7 @@ namespace engine
    class _rtnContextMainCLExplain : public _rtnContextBase,
                                     public _rtnExplainMainBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextMainCLExplain )
 
       public :
          _rtnContextMainCLExplain ( INT64 contextID, UINT64 eduID ) ;
@@ -234,7 +232,7 @@ namespace engine
 
          INT32 _openSubContext ( rtnQueryOptions & options,
                                  pmdEDUCB * cb,
-                                 rtnContext ** ppContext ) ;
+                                 rtnContextPtr *ppContext ) ;
 
          INT32 _prepareExplainPath ( rtnContext * context,
                                      pmdEDUCB * cb ) ;

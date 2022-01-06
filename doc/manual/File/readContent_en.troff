@@ -5,7 +5,7 @@
 .hy
 .SH NAME
 .PP
-readContent \- Read file's content into a FileContent object.
+readContent \- Read file\[aq]s content into a FileContent object.
 .SH SYNOPSIS
 .PP
 \f[B]\f[I]File.readContent( [size] )\f[]\f[]
@@ -87,7 +87,7 @@ advanced by this number.
 On error, exception will be thrown.
 .SH ERRORS
 .PP
-when exception happen, use getLastError() to get the error code and use
+when exception happens, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
 For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
@@ -96,7 +96,7 @@ Open an existing or new file and get a file descriptor
 .IP
 .nf
 \f[C]
->\ var\ file\ =\ new\ File(\ "/opt/sequoiadb/file.dump"\ )
+> var file = new File( "/opt/sequoiadb/file.dump" )
 \f[]
 .fi
 .IP \[bu] 2
@@ -104,8 +104,8 @@ Read the contents of the file into the fileContent object
 .IP
 .nf
 \f[C]
->\ var\ content\ =\ file.readContent()
->\ content\ instanceof\ FileContent\ \ \ //\ Verify\ that\ content\ is\ a\ \[aq]FileContent\[aq]\ object
+> var content = file.readContent()
+> content instanceof FileContent   // Verify that content is a \[aq]FileContent\[aq] object
 true
 \f[]
 .fi

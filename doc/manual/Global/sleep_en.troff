@@ -4,7 +4,7 @@
 .hy
 .SH NAME
 .PP
-sleep \- Sleep a few milliseconds.
+sleep \- sleep a few milliseconds
 .SH SYNOPSIS
 .PP
 \f[B]sleep(<ms>)\f[]
@@ -15,12 +15,10 @@ Global
 .PP
 Sleep a few milliseconds.
 .SH PARAMETERS
-.IP \[bu] 2
-\f[C]ms\f[] ( \f[I]Int32\f[]， \f[I]Required\f[] )
-.RS 2
+.PP
+ms（ \f[I]number\f[]， \f[I]Required\f[] ）
 .PP
 Time for sleep, Unit：milliseconds.
-.RE
 .SH RETURN VALUE
 .PP
 NULL.
@@ -29,13 +27,13 @@ NULL.
 NULL.
 .SH HISTORY
 .PP
-Since v1.0.
+v1.0 and above.
 .SH EXAMPLES
-.IP "1." 3
+.PP
 Sleep 1 second.
+.IP
 .nf
 \f[C]
->\ sleep(1000)
+> sleep(1000)
 \f[]
 .fi
-.RE

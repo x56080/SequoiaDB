@@ -1,249 +1,173 @@
+/*******************************************************************************
+*@Description : Test data source C++ driver, include createDataSource/dropDataSource /
+*               /getDataSource/listDataSources/alterDataSource
+*@Modify List :
+*               2021-5-11   QinCheng Yang
+*******************************************************************************/
+
 #include <stdio.h>
 #include <gtest/gtest.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/time.h>
+#include "client.hpp"
+#include "testcommon.hpp"
 #include <string>
 #include <iostream>
-#include <sstream>
-#include <vector>
-#include "testcommon.hpp"
-#include "testWorker.hpp"
-#include "client.hpp"
-#include "sdbDataSourceComm.hpp"
-#include "sdbDataSource.hpp"
-
 
 using namespace std ;
-using namespace test ;
 using namespace sdbclient ;
 
-#define THREAD_TIME_OUT ( 60 * 6 )
-
-BOOLEAN global_init_flag   = FALSE ;
-BOOLEAN case_init_flag     = FALSE ;
-
-struct DS_WorderArgs: public WorkerArgs
+TEST( datasource, createDSTest )
 {
-	sdbDataSource *pDatasource ;
-	INT32 returnCode ;
-} ;
+   INT32 rc = SDB_OK ;
+   sdb db ;
+   sdbCursor cursor ;
+   sdbDataSource ds ;
 
-void ds_WorkerRoutine(WorkerArgs *args)
-{
-	INT32 rc = SDB_OK ;
-	//INT32 sleepMillis = 6000 * 1000 ;
-	INT32 sleepMillis = 200 * 1000 ;
-	DS_WorderArgs *pArgs = (DS_WorderArgs*)args ;
-	sdbDataSource *pDatasource = pArgs->pDatasource ;
-	
-	while( true )
-	{
-		sdb *db = NULL ;
-		BOOLEAN isValid = FALSE ;
-	
-		rc = pDatasource->getConnection( db, 500 ) ;
-		if ( SDB_OK != rc )
-		{
-			printf( "error happen is: rc = %d"OSS_NEWLINE, rc ) ;
-			break ;
-		}
-		isValid = db->isValid() ;
-		ASSERT_EQ( TRUE, isValid ) ;
-		usleep( sleepMillis ) ;
-		pDatasource->releaseConnection( db ) ;
-	}
-	
-done:
-	pArgs->returnCode = rc ;
-	return ;
-error:
-	goto done ;
+   rc = db.connect( HOST, SERVER, USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   // case 1: create ds with name and address
+   rc = db.createDataSource( ds, DATASOURCENAME, DATASOURCEADDRESS ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = db.dropDataSource( DATASOURCENAME );
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   // case 2: create ds with urls
+   rc = db.createDataSource( ds, DATASOURCENAME, DATASOURCEURLS ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = db.dropDataSource( DATASOURCENAME );
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   // case 3: create ds with error type
+   rc = db.createDataSource( ds, DATASOURCENAME, DATASOURCEADDRESS,
+                             NULL, NULL, "errorDSType" ) ;
+   ASSERT_EQ( SDB_INVALIDARG, rc ) ;
+
+   // case 4: create ds with invalid options
+   BSONObjBuilder optBuild4 ;
+   optBuild4.append( "a", 1) ;
+   BSONObj options4 = optBuild4.obj() ;
+   rc = db.createDataSource( ds, DATASOURCENAME, DATASOURCEADDRESS,
+                             NULL, NULL, NULL, &options4 ) ;
+   ASSERT_EQ( SDB_OPTION_NOT_SUPPORT, rc ) ;
+
+   // case 5: create ds with valid options
+   BSONObjBuilder optBuild5 ;
+   optBuild5.append( "AccessMode", "READ") ;
+   optBuild5.append( "ErrorFilterMask", "READ") ;
+   optBuild5.append( "ErrorControlLevel", "Low") ;
+   BSONObj options5 = optBuild5.obj() ;
+   rc = db.createDataSource( ds, DATASOURCENAME, DATASOURCEADDRESS,
+                             NULL, NULL, NULL, &options5 ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   BSONObjBuilder matcher ;
+   matcher.append( "Name", DATASOURCENAME ) ;
+   rc = db.listDataSources( cursor, matcher.obj() ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   BSONObj obj ;
+   rc = cursor.next( obj ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   ASSERT_STREQ( "READ", obj.getStringField( "AccessModeDesc" ) ) ;
+   ASSERT_STREQ( "READ", obj.getStringField( "ErrorFilterMaskDesc" ) ) ;
+   ASSERT_STREQ( "Low", obj.getStringField( "ErrorControlLevel" ) ) ;
+
+   rc = db.dropDataSource( DATASOURCENAME ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   db.disconnect();
 }
 
-class DatasourceTest : public testing::Test
+TEST( datasource, dropDSTest )
 {
-public:
-	static sdb db ;
-    static sdbCollectionSpace cs ;
-    static sdbCollection cl ;
-	
-	static const CHAR *pHostName ;
-	static const CHAR *pSvcName ;
-	static const CHAR *pUser ;
-	static const CHAR *pPassword ;
-	
-	static const CHAR *pCSName ;
-	static const CHAR *pCLName ;
+   INT32 rc               = SDB_OK ;
+   sdb db ;
 
-public:
-	DatasourceTest() {}
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = db.connect( HOST, SERVER, USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
 
-public:
-	// run before all the testcase
-	static void SetUpTestCase() ;
+   const CHAR *pDataSourceName = "errorDataSourceName" ;
+   rc = db.dropDataSource( pDataSourceName ) ;
+   ASSERT_EQ( SDB_CAT_DATASOURCE_NOTEXIST, rc ) ;
 
-	// run before all the testcase
-	static void TearDownTestCase() ;
-
-	// run before every testcase
-	virtual void SetUp() ;
-
-	// run before every testcase
-	virtual void TearDown() ;
-} ;
-
-sdb DatasourceTest::db ;
-sdbCollectionSpace DatasourceTest::cs ;
-sdbCollection DatasourceTest::cl ;
-
-const CHAR * DatasourceTest::pHostName      = "192.168.20.165" ;
-const CHAR * DatasourceTest::pSvcName       = "21810" ;
-//const CHAR * DatasourceTest::pSvcName       = "50000" ;
-// const CHAR * DatasourceTest::pHostName      = HOST ;
-// const CHAR * DatasourceTest::pSvcName       = SERVER ;
-const CHAR * DatasourceTest::pUser          = USER ;
-const CHAR * DatasourceTest::pPassword      = PASSWD ;
-const CHAR * DatasourceTest::pCSName        = COLLECTION_SPACE_NAME ;
-const CHAR * DatasourceTest::pCLName        = COLLECTION_NAME ;
-
-void DatasourceTest::SetUpTestCase()
-{
-	INT32 rc = SDB_OK ;
-	BSONObj options = BSON( "PreferedInstance" << "M" ); 
-
-	global_init_flag = FALSE ;
-	rc = db.connect( pHostName, pSvcName, pUser, pPassword ) ;
-	if ( SDB_OK != rc )
-	{
-		printf( "Error: %s:%d: failed to connect to database: rc = %d"OSS_NEWLINE,
-				__FUNC__, __LINE__, rc ) ;
-		goto error ;
-	}
-	rc = db.setSessionAttr( options ) ;
-	if ( SDB_OK != rc )
-	{
-		printf( "Error: %s:%d: failed to set session attribute, "
-				"rc = %d"OSS_NEWLINE, __FUNC__, __LINE__, rc ) ;
-		goto error ;
-	}
-	global_init_flag = TRUE ;
-
-done :
-	return ;
-error :
-	goto done ;
+   db.disconnect();
 }
 
-void DatasourceTest::TearDownTestCase()
+TEST( datasource, getDSTest )
 {
-	db.disconnect() ;
+   INT32 rc               = SDB_OK ;
+   sdb db ;
+   sdbDataSource ds ;
+
+   rc = db.connect( HOST, SERVER, USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = db.createDataSource( ds, DATASOURCENAME, DATASOURCEADDRESS ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   // case 1: get valid data source
+   rc = db.getDataSource( DATASOURCENAME, ds ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   // case 2: get invalid data source
+   rc = db.getDataSource( "invalidDSTest", ds ) ;
+   ASSERT_EQ( SDB_CAT_DATASOURCE_NOTEXIST, rc ) ;
+
+   // clean
+   db.dropDataSource( DATASOURCENAME );
+   db.disconnect();
 }
 
-void DatasourceTest::SetUp()
+TEST( datasource, alterDSTest )
 {
-    INT32 rc = SDB_OK ;
-    case_init_flag = FALSE ;
-    if ( FALSE == global_init_flag )
-    {
-        goto done ;
-    }
-    // drop and create cs
-	rc = db.dropCollectionSpace( pCSName ) ;
-    if ( SDB_DMS_CS_NOTEXIST != rc && SDB_OK != rc )
-    {
-        printf( "Error: %s:%d, failed to drop cs[%s] in db, rc = %d"OSS_NEWLINE,
-              __FUNC__, __LINE__, pCSName, rc ) ;
-        goto error ;
-    }
-    rc = db.createCollectionSpace( pCSName, SDB_PAGESIZE_DEFAULT, cs ) ;
-    if ( SDB_OK != rc )
-    {
-        printf( "Error: %s:%d, failed to create cs[%s], rc = %d"OSS_NEWLINE,
-             __FUNC__, __LINE__, pCSName, rc ) ;
-        goto error ;
-    }
-    // create cl
-    rc = cs.createCollection( pCLName, BSON( "ReplSize" << 0 ), cl ) ;
-    if ( SDB_OK != rc )
-    {
-        printf( "Error: %s:%d, failed to create cl[%s], rc = %d"OSS_NEWLINE,
-                 __FUNC__, __LINE__, pCLName, rc ) ;
-        goto error ;
-    }
-    case_init_flag = TRUE ;
-done:
-	return ;
-error:
-	goto done ;
-}
+   INT32 rc               = SDB_OK ;
+   sdb db ;
+   sdbCursor cursor ;
+   sdbDataSource ds ;
 
-void DatasourceTest::TearDown()
-{
-	INT32 rc = SDB_OK ;
-	if ( FALSE == case_init_flag )
-	{
-		return ;
-    }
-	rc = db.dropCollectionSpace( pCSName ) ;
-	if ( SDB_DMS_CS_NOTEXIST != rc && SDB_OK != rc )
-	{
-		printf( "Error: %s:%d, failed to drop cs[%s] in db, rc = %d"OSS_NEWLINE,
-			  __FUNC__, __LINE__, pCSName, rc ) ;
-		goto error ; 
-	}
-done:
-	return ;
-error:
-	goto done ;
-}
-/*
-TEST_F( DatasourceTest, demo_test )
-{
-	INT32 rc = SDB_OK ;
-	INT32 threadCount = 500 ;
-	sdbDataSourceConf conf ;
-	stringstream ss ;
-	string addres ;
-	ss << pHostName << ":" << pSvcName ;
-	addres = ss.str() ;
-	sdbDataSource *pDatasource = new sdbDataSource() ;
-	vector<Worker> vec_workers ;
-	vector<Worker>::iterator vec_workers_itr ;
-	DS_WorderArgs ds_args ;
-    ds_args.pDatasource = pDatasource ;
-	ds_args.returnCode = 0 ;
-	rc = pDatasource->init( addres, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) ;
-	rc = pDatasource->enable() ;
-	ASSERT_EQ( SDB_OK, rc ) ;
-	
-	for(INT32 i = 0; i < threadCount; ++i) 
-	{
-		Worker worker(ds_WorkerRoutine, &ds_args) ;
-		vec_workers.push_back( worker ) ;
-	}
-	
-	for(vec_workers_itr = vec_workers.begin(); 
-	vec_workers_itr != vec_workers.end(); ++vec_workers_itr) 
-	{
-		vec_workers_itr->start() ;
-	}
-	
-	for(vec_workers_itr = vec_workers.begin(); 
-	vec_workers_itr != vec_workers.end(); ++vec_workers_itr) 
-	{
-		vec_workers_itr->waitStop() ;
-	}
-	
-done:
-	pDatasource->disable() ;
-	pDatasource->close() ;
-	delete pDatasource ;
-	return ;
-error:
-	goto done ;
-}
-*/
+   rc = db.connect( HOST, SERVER, USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = db.createDataSource( ds, DATASOURCENAME, DATASOURCEADDRESS ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
 
+   // case 1: empty option
+   const BSONObj option1;
+   rc = ds.alterDataSource( option1 ) ;
+   ASSERT_EQ( SDB_INVALIDARG, rc ) ;
+
+   // case 2: invalid option
+   BSONObjBuilder options2 ;
+   options2.append( "Alter", 1) ;
+   rc = ds.alterDataSource( options2.obj() ) ;
+   ASSERT_EQ( SDB_INVALIDARG, rc ) ;
+
+   // case 3: valid option
+   const CHAR * dsNewName = "dataSourceNewNameC++Test" ;
+   BSONObjBuilder options3 ;
+   options3.append( "Name", dsNewName ) ;
+   options3.append( "AccessMode", "READ" ) ;
+   options3.append( "ErrorFilterMask", "READ" ) ;
+   options3.append( "ErrorControlLevel", "Low" ) ;
+   rc = ds.alterDataSource( options3.obj() ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   const CHAR *dsActualName = ds.getName();
+   ASSERT_STREQ( dsNewName, dsActualName ) ;
+
+   BSONObjBuilder matcher ;
+   matcher.append( "Name", dsNewName ) ;
+   rc = db.listDataSources( cursor, matcher.obj() ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   BSONObj obj ;
+   rc = cursor.next( obj ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_STREQ( "READ", obj.getStringField( "AccessModeDesc" ) ) ;
+   ASSERT_STREQ( "READ", obj.getStringField( "ErrorFilterMaskDesc" ) ) ;
+   ASSERT_STREQ( "Low", obj.getStringField( "ErrorControlLevel" ) ) ;
+
+   // clean
+   db.dropDataSource( dsNewName ) ;
+   db.disconnect();
+}

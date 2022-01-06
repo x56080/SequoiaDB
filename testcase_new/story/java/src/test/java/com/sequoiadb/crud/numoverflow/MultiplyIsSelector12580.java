@@ -1,10 +1,7 @@
 package com.sequoiadb.crud.numoverflow;
 
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -13,16 +10,15 @@ import org.testng.annotations.Test;
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * FileName: MultiplyIsSelector12580.java test content:Numeric value overflow
- * for single character using $multiply operation, and the $multiply is used as
- * a selector. testlink case:seqDB-12580
- * 
+ * @Description seqDB-12580:使用$multiply操作不同类型运算
  * @author luweikang
  * @Date 2017.9.11
+ * @updateUser wuyan
+ * @updateDate 2021.9.3
+ * @updateRemark 新增int32类型数值运算不溢出情况下保持原类型测试单
  * @version 1.00
  */
 
@@ -47,12 +43,15 @@ public class MultiplyIsSelector12580 extends SdbTestBase {
                 "{'no':[2147483147,{'$numberLong':'8223372036854775807'}],'arr':[2147483648],'obj':{a:'123'},'test':3}" };
         String[] expRecords7 = {
                 "{'no':[2147483147,{'$numberLong':'8223372036854775807'}],'arr':[1000000000,-2147483648],'obj':null,'test':3}" };
+        String[] expRecords8 = { "{'no':2147483646,'double':2.3,'test':5}" };
         String expJavaLong = "class java.lang.Long";
         String expJavaDouble = "class java.lang.Double";
         String expJavaDecimal = "class org.bson.types.BSONDecimal";
+        String expJavaInt = "class java.lang.Integer";
         String expLongType = "int64";
         String expDoubleType = "double";
         String expDecimalType = "decimal";
+        String expIntType = "int32";
 
         return new Object[][] {
                 // the parameters:
@@ -79,18 +78,16 @@ public class MultiplyIsSelector12580 extends SdbTestBase {
                         expLongType, false, expJavaLong },
                 // obj $multiply 1 the result is null
                 new Object[] { 3, new Integer( -1 ), "obj", expRecords7, "null",
-                        false, null }, };
+                        false, null },
+                // int(1073741823) type $multiply numberLong(2) the result is
+                // int(2147483646)
+                new Object[] { 5, new Long( 2 ), "no", expRecords8, expIntType,
+                        false, expJavaInt } };
     }
 
     @BeforeClass
     public void setUp() {
-        try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        } catch ( BaseException e ) {
-            Assert.assertTrue( false,
-                    "connect %s failed," + coordUrl + e.getMessage() );
-        }
-
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cs = sdb.getCollectionSpace( SdbTestBase.csName );
         cl = NumOverflowUtils.createCL( cs, clName );
 
@@ -98,7 +95,8 @@ public class MultiplyIsSelector12580 extends SdbTestBase {
                 "{'no':-2147483648,'tlong':{'$numberLong':'-9223372036854775808'},'test':0}",
                 "{'no':2147483647,'long':{'$numberLong':'9223372036854775807'},'test':1}",
                 "{'no':123.0,'double':123.5,'test':2}",
-                "{'no':[2147483147,{'$numberLong':'8223372036854775807'}],'arr':[1000000000,-2147483648],'obj':{a:'123'},'test':3}" };
+                "{'no':[2147483147,{'$numberLong':'8223372036854775807'}],'arr':[1000000000,-2147483648],'obj':{a:'123'},'test':3}",
+                "{'no':1073741823,'double':2.3,'test':5}" };
 
         NumOverflowUtils.insert( cl, records );
     }
@@ -106,36 +104,25 @@ public class MultiplyIsSelector12580 extends SdbTestBase {
     @Test(dataProvider = "operData")
     public void testMultiply( int matcherValue, Object mulValue,
             String selectorName, String[] expRecords, String expType,
-            Boolean isVerifyTypeToJava, String expTypeToJava ) {
-        try {
-            BSONObject mValue = new BasicBSONObject();
-            mValue.put( "$multiply", mulValue );
-            NumOverflowUtils.selectorOper( cl, matcherValue, mValue,
-                    selectorName, expRecords );
-            try {
-                NumOverflowUtils.checkDataType( cl, mValue, matcherValue,
-                        selectorName, expType, isVerifyTypeToJava,
-                        expTypeToJava );
-            } catch ( Exception e ) {
-                e.printStackTrace();
-            }
+            Boolean isVerifyTypeToJava, String expTypeToJava )
+                    throws Exception {
 
-        } catch ( BaseException e ) {
-            Assert.assertTrue( false,
-                    "multiply data is used as selector oper failed,"
-                            + e.getMessage() );
-        }
+        BSONObject mValue = new BasicBSONObject();
+        mValue.put( "$multiply", mulValue );
+        NumOverflowUtils.selectorOper( cl, matcherValue, mValue, selectorName,
+                expRecords );
+
+        NumOverflowUtils.checkDataType( cl, mValue, matcherValue, selectorName,
+                expType, isVerifyTypeToJava, expTypeToJava );
+
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            CollectionSpace cs = sdb.getCollectionSpace( SdbTestBase.csName );
             if ( cs.isCollectionExist( clName ) ) {
                 cs.dropCollection( clName );
             }
-        } catch ( BaseException e ) {
-            Assert.fail( "clear env failed, errMsg:" + e.getMessage() );
         } finally {
             if ( sdb != null ) {
                 sdb.close();

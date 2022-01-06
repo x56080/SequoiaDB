@@ -189,10 +189,12 @@ const zend_function_entry csFun[] = {
    PHP_ME( SequoiaCS, selectCL,        NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaCS, createCL,        NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaCS, getCL,           NULL, ZEND_ACC_PUBLIC )
+   PHP_ME( SequoiaCS, listCL,          NULL, ZEND_ACC_PUBLIC )   
    PHP_ME( SequoiaCS, dropCL,          NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaCS, renameCL,        NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaCS, alter,           NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaCS, setDomain,       NULL, ZEND_ACC_PUBLIC )
+   PHP_ME( SequoiaCS, getDomainName,   NULL, ZEND_ACC_PUBLIC )   
    PHP_ME( SequoiaCS, removeDomain,    NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaCS, enableCapped,    NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaCS, disableCapped,   NULL, ZEND_ACC_PUBLIC )
@@ -241,6 +243,7 @@ const zend_function_entry clFun[] = {
    PHP_ME( SequoiaCL, getIndex,              NULL, ZEND_ACC_PUBLIC )//deprecated
    PHP_ME( SequoiaCL, getIndexes,            NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaCL, getIndexInfo,          NULL, ZEND_ACC_PUBLIC )
+   PHP_ME( SequoiaCL, getIndexStat,          NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaCL, createIdIndex,         NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaCL, dropIdIndex,           NULL, ZEND_ACC_PUBLIC )
    //lob
@@ -627,6 +630,7 @@ PHP_MINIT_FUNCTION(sequoiadb)
    PHP_REGISTER_LONG_CONSTANT( "SDB_FLG_QUERY_PREPARE_MORE",   0x00004000 ) ;
    PHP_REGISTER_LONG_CONSTANT( "SDB_FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE", 0x00008000 ) ;
    PHP_REGISTER_LONG_CONSTANT( "SDB_FLG_QUERY_FOR_UPDATE",     0x00010000 ) ;
+   PHP_REGISTER_LONG_CONSTANT( "SDB_FLG_QUERY_FOR_SHARE",      0x00040000 ) ;
 
    //update
    PHP_REGISTER_LONG_CONSTANT( "SDB_FLG_UPDATE_KEEP_SHARDINGKEY", 0x00008000 ) ;

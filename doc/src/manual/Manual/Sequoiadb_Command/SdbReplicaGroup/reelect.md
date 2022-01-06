@@ -1,15 +1,14 @@
-
 ##名称##
 
-reelect - 在当前复制组中重新选举。
+reelect - 在当前复制组中重新选举
 
 ##语法##
 
-***rg.reelect( [options] )***
+**rg.reelect( [options] )**
 
 ##类别##
 
-Replica Group
+SdbReplicaGroup
 
 ##描述##
 
@@ -59,9 +58,11 @@ options 参数详细说明如下：
 
 如果出错则抛异常，并输出错误信息，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息，通过 [getLastError()][getLastError] 获取错误码。常见错误处理可以参考[常见错误处理指南][faq]。
 
-##错误##
-
 [错误码][error_code]
+
+##版本##
+
+v2.0 及以上版本
 
 ##示例##
 
@@ -76,9 +77,9 @@ options 参数详细说明如下：
 [^_^]:
     本文使用的所有引用和链接
 [istReplicaGroups]:manual/Manual/Sequoiadb_Command/Sdb/listReplicaGroups.md
-[cluster_config]:manual/Manual/Database_Configuration/configuration_parameters.md
+[cluster_config]:manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md
 [Replication]:manual/Distributed_Engine/Architecture/Replication/election.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
-[faq]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md

@@ -252,6 +252,7 @@ namespace engine
          PD_LOG( PDERROR, "failed to get meta group:%d", rc ) ;
          goto error ;
       }
+
       // get group info
       rc = _pResource->getOrUpdateGroupInfo( _metaGroup, _metaGroupInfo,
                                              cb ) ;
@@ -274,7 +275,8 @@ namespace engine
                                             const bson::OID &oid,
                                             INT32 mode,
                                             _pmdEDUCB *cb,
-                                            UINT32 groupID )
+                                            UINT32 groupID,
+                                            BOOLEAN &needReshard )
    {
       INT32 rc = SDB_OK ;
       CoordGroupList gpList ;
@@ -289,7 +291,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _openOtherStreams( fullName, oid, mode, cb, gpList ) ;
+      rc = _openOtherStreams( fullName, oid, mode, cb, gpList, needReshard ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open stream:groupID=%u,rc=%d",
                    groupID, rc ) ;
 
@@ -305,7 +307,8 @@ namespace engine
                                              const bson::OID &oid,
                                              INT32 mode,
                                              _pmdEDUCB *cb,
-                                             CoordGroupList &gpLst )
+                                             CoordGroupList &gpLst,
+                                             BOOLEAN &needReshard )
    {
       INT32 rc = SDB_OK ;
       INT32 rcTmp = SDB_OK ;
@@ -322,6 +325,8 @@ namespace engine
 
       coordGroupSessionCtrl *pCtrl = _groupSession.getGroupCtrl() ;
       coordGroupSel *pSel = _groupSession.getGroupSel() ;
+
+      UINT32 metaGroupID = _metaGroup ;
 
       /// reset retry times
       pCtrl->resetRetry() ;
@@ -423,12 +428,16 @@ namespace engine
          }
          else if ( RETRY_TAG_REOPEN & tag )
          {
-            rc = _closeSubStreams( cb, TRUE ) ;
+            // Need close meta group if meta group is changed
+            rc = _closeSubStreams( cb, metaGroupID == _metaGroup ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "failed to close sub streams: %d", rc ) ;
                goto error ;
             }
+            needReshard = TRUE ;
+            PD_LOG( PDEVENT, "Need reshard LOB streams" ) ;
+            goto done ;
          }
       } while ( TRUE ) ;
 
@@ -444,7 +453,8 @@ namespace engine
    INT32 _coordLobStream::_openMainStream( const CHAR *fullName,
                                            const bson::OID &oid,
                                            INT32 mode,
-                                           _pmdEDUCB *cb )
+                                           _pmdEDUCB *cb,
+                                           BOOLEAN *pNeedReshard )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( COORD_LOBSTREAM_OPENMAINSTREAM ) ;
@@ -532,9 +542,18 @@ namespace engine
          else if ( RETRY_TAG_NULL == tag )
          {
             SDB_ASSERT( 1 == _results.size(), "impossible" ) ;
-            reply = _results.empty() ? NULL :
-                     (MsgOpReply*)((*_results.begin())._Data ) ;
+
+            PD_CHECK( 1 == _results.size(), SDB_SYS, error, PDERROR,
+                      "Failed to get result, no result returned" ) ;
+
+            reply = (MsgOpReply*)((*_results.begin())._Data ) ;
             break ;
+         }
+         else if ( NULL != pNeedReshard && ( RETRY_TAG_REOPEN & tag ) )
+         {
+            *pNeedReshard = TRUE ;
+            PD_LOG( PDEVENT, "Need reshard LOB stream" ) ;
+            goto done ;
          }
       } while ( TRUE ) ;
 
@@ -586,21 +605,29 @@ namespace engine
    // open sub streams including main stream
    //PD_TRACE_DECLARE_FUNCTION( COORD_LOBSTREAM_OPENSUBSTREAMS, "_coordLobStream::_openSubStreams" )
    INT32 _coordLobStream::_openSubStreams( CoordGroupList &gpLst,
-                                           _pmdEDUCB* cb )
+                                           _pmdEDUCB* cb,
+                                           BOOLEAN &needReshard )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( COORD_LOBSTREAM_OPENSUBSTREAMS ) ;
       CoordGroupList::iterator iter ;
 
+      needReshard = FALSE ;
+
       iter = gpLst.find( _metaGroup ) ;
       if ( iter != gpLst.end() )
       {
-         rc = _openMainStream( getFullName(), getOID(), _getMode(), cb ) ;
+         rc = _openMainStream( getFullName(), getOID(), _getMode(), cb,
+                               &needReshard ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to open main stream in group[%d], "
                     "rc: %d", _metaGroup, rc ) ;
             goto error ;
+         }
+         if ( needReshard )
+         {
+            goto done ;
          }
 
          gpLst.erase( iter ) ;
@@ -609,11 +636,16 @@ namespace engine
       if ( gpLst.size() > 0 )
       {
          rc = _openOtherStreams( getFullName(), getOID(), _getMode(), cb,
-                                 gpLst ) ;
+                                 gpLst, needReshard ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to open other streams, rc: %d", rc ) ;
             goto error ;
+         }
+         if ( needReshard )
+         {
+            PD_LOG( PDDEBUG, "Need reshard LOB streams" ) ;
+            goto done ;
          }
       }
 
@@ -625,7 +657,10 @@ namespace engine
    }
 
    //PD_TRACE_DECLARE_FUNCTION( COORD_LOBSTREAM_GETSUBSTREAM, "_coordLobStream::_getSubStream" )
-   INT32 _coordLobStream::_getSubStream( UINT32 groupID, const subStream** sub, _pmdEDUCB* cb )
+   INT32 _coordLobStream::_getSubStream( UINT32 groupID,
+                                         const subStream** sub,
+                                         _pmdEDUCB* cb,
+                                         BOOLEAN &needReshard )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( COORD_LOBSTREAM_GETSUBSTREAM ) ;
@@ -640,7 +675,7 @@ namespace engine
          if ( groupID == _metaGroup )
          {
             rc = _openMainStream( getFullName(), getOID(),
-                                  _getMode(), cb ) ;
+                                  _getMode(), cb, &needReshard ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "failed to open main stream in group[%d], "
@@ -651,13 +686,18 @@ namespace engine
          else
          {
             rc = _openOtherStream( getFullName(), getOID(), _getMode(), cb,
-                                   groupID ) ;
+                                   groupID, needReshard ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "failed to open other stream in group[%d], "
                        "rc: %d", groupID, rc ) ;
                goto error ;
             }
+         }
+         if ( needReshard )
+         {
+            PD_LOG( PDDEBUG, "Need reshard LOB streams" ) ;
+            goto done ;
          }
          itr = _subs.find( groupID ) ;
          if ( _subs.end() == itr )
@@ -893,8 +933,11 @@ namespace engine
       do
       {
          _clearMsgData() ;
+         BOOLEAN needReshard = FALSE ;
          INT32 tag = RETRY_TAG_NULL ;
+         UINT32 metaGroup = _metaGroup ;
          header.version = _cataInfo->getVersion() ;
+         header.header.opCode = opCode ;
          rc = _getLobGroupID( getOID(), tuple.tuple.columns.sequence,
                               groupID ) ;
          if ( SDB_OK != rc )
@@ -903,11 +946,16 @@ namespace engine
             goto error ;
          }
 
-         rc = _getSubStream( groupID, &sub, cb ) ;
+         rc = _getSubStream( groupID, &sub, cb, needReshard ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "Failed to get sub stream:%d", rc ) ;
             goto error ;
+         }
+         if ( needReshard )
+         {
+            PD_LOG( PDDEBUG, "Need reshard LOB stream" ) ;
+            continue ;
          }
 
          header.contextID = sub->contextID ;
@@ -938,7 +986,8 @@ namespace engine
          }
          else
          {
-            rc = _reopenSubStreams( cb ) ;
+            // reopen new meta group if needed
+            rc = _reopenSubStreams( cb, metaGroup == _metaGroup ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "Failed to reopen sub streams, rc: %d", rc ) ;
@@ -992,6 +1041,7 @@ namespace engine
       {
          _clearMsgData() ;
          INT32 tag = RETRY_TAG_NULL ;
+         UINT32 metaGroup = _metaGroup ;
          header.version = _cataInfo->getVersion() ;
 
          if ( reshard )
@@ -1054,7 +1104,8 @@ namespace engine
          }
          else
          {
-            rc = _reopenSubStreams( cb ) ;
+            // reopen new meta group if needed
+            rc = _reopenSubStreams( cb, metaGroup == _metaGroup ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Failed to reopen sub streams, rc: %d", rc ) ;
@@ -1140,6 +1191,7 @@ namespace engine
       {
          _clearMsgData() ;
          INT32 tag = RETRY_TAG_NULL ;
+         UINT32 metaGroup = _metaGroup ;
          header.version = _cataInfo->getVersion() ;
 
          if ( needReshard )
@@ -1199,7 +1251,8 @@ namespace engine
          }
          else
          {
-            rc = _reopenSubStreams( cb ) ;
+            // reopen new meta group if needed
+            rc = _reopenSubStreams( cb, metaGroup == _metaGroup ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "failed to reopen sub streams:%d", rc ) ;
@@ -1291,6 +1344,7 @@ namespace engine
       {
          _clearMsgData() ;
          INT32 tag = RETRY_TAG_NULL ;
+         UINT32 metaGroup = _metaGroup ;
          header.version = _cataInfo->getVersion() ;
 
          if ( needReshard )
@@ -1352,7 +1406,8 @@ namespace engine
          }
          else
          {
-            rc = _reopenSubStreams( cb ) ;
+            // reopen new meta group if needed
+            rc = _reopenSubStreams( cb, metaGroup == _metaGroup ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "failed to reopen sub streams:%d", rc ) ;
@@ -1407,7 +1462,7 @@ namespace engine
          }
          else if ( got )
          {
-            if ( _getMeta()._version <  DMS_LOB_META_MERGE_DATA_VERSION &&
+            if ( _getMeta()._version < DMS_LOB_META_MERGE_DATA_VERSION &&
                  0 == curTuple->columns.sequence )
             {
                PD_LOG( PDERROR, "we should not get sequence 0" ) ;
@@ -1415,12 +1470,15 @@ namespace engine
                goto error ;
             }
 
-            rc = _getPool().push( data, curTuple->columns.len,
-                                  RTN_LOB_GET_OFFSET_OF_LOB(
-                                         pageSz,
-                                         curTuple->columns.sequence,
-                                         curTuple->columns.offset,
-                                         _getMeta()._version >= DMS_LOB_META_MERGE_DATA_VERSION ) ) ;
+            rc = _getPool().push(
+                  data,
+                  curTuple->columns.len,
+                  RTN_LOB_GET_OFFSET_OF_LOB(
+                        pageSz,
+                        curTuple->columns.sequence,
+                        curTuple->columns.offset,
+                        _getMeta()._version >= DMS_LOB_META_MERGE_DATA_VERSION ) ) ;
+
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "failed to push data to pool:%d", rc ) ;
@@ -1499,7 +1557,9 @@ namespace engine
       do
       {
          _clearMsgData() ;
+         BOOLEAN needReshard = FALSE ;
          INT32 tag = RETRY_TAG_NULL ;
+         UINT32 metaGroup = _metaGroup ;
          header.version = _cataInfo->getVersion() ;
          rc = _getLobGroupID( getOID(), DMS_LOB_META_SEQUENCE, groupID ) ;
          if ( SDB_OK != rc )
@@ -1508,11 +1568,16 @@ namespace engine
             goto error ;
          }
 
-         rc = _getSubStream( groupID, &sub, cb ) ;
+         rc = _getSubStream( groupID, &sub, cb, needReshard ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to get sub stream:%d", rc ) ;
             goto error ;
+         }
+         if ( needReshard )
+         {
+            PD_LOG( PDDEBUG, "Need reshard LOB stream" ) ;
+            continue ;
          }
 
          header.contextID = sub->contextID ;
@@ -1543,7 +1608,8 @@ namespace engine
          }
          else
          {
-            rc = _reopenSubStreams( cb ) ;
+            // reopen new meta group if needed
+            rc = _reopenSubStreams( cb, metaGroup == _metaGroup ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "Failed to reopen sub streams, rc: %d", rc ) ;
@@ -1579,7 +1645,9 @@ namespace engine
       do
       {
          _clearMsgData() ;
+         BOOLEAN needReshard = FALSE ;
          INT32 tag = RETRY_TAG_NULL ;
+         UINT32 metaGroup = _metaGroup ;
          header.version = _cataInfo->getVersion() ;
          rc = _getLobGroupID( getOID(), DMS_LOB_META_SEQUENCE, groupID ) ;
          if ( SDB_OK != rc )
@@ -1588,11 +1656,16 @@ namespace engine
             goto error ;
          }
 
-         rc = _getSubStream( groupID, &sub, cb ) ;
+         rc = _getSubStream( groupID, &sub, cb, needReshard ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to get sub stream:%d", rc ) ;
             goto error ;
+         }
+         if ( needReshard )
+         {
+            PD_LOG( PDDEBUG, "Need reshard LOB stream" ) ;
+            continue ;
          }
 
          header.contextID = sub->contextID ;
@@ -1625,7 +1698,8 @@ namespace engine
          }
          else
          {
-            rc = _reopenSubStreams( cb ) ;
+            // reopen new meta group if needed
+            rc = _reopenSubStreams( cb, metaGroup == _metaGroup ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "Failed to reopen sub streams, rc: %d", rc ) ;
@@ -1648,6 +1722,11 @@ namespace engine
    INT32 _coordLobStream::_close( _pmdEDUCB *cb )
    {
       return _closeSubStreams( cb, FALSE ) ;
+   }
+
+   BOOLEAN _coordLobStream::_canCache() const
+   {
+      return SDB_IS_DSID( _metaGroup ) ? FALSE : TRUE ;
    }
 
    //PD_TRACE_DECLARE_FUNCTION( COORD_LOBSTREAM_ROLLBACK, "_coordLobStream::_rollback" )
@@ -1962,6 +2041,7 @@ namespace engine
       {
          _clearMsgData() ;
          INT32 tag = RETRY_TAG_NULL ;
+         UINT32 metaGroup = _metaGroup ;
          header.version = _cataInfo->getVersion() ;
          if ( reshard )
          {
@@ -2022,7 +2102,8 @@ namespace engine
          }
          else
          {
-            rc = _reopenSubStreams( cb ) ;
+            // reopen new meta group if needed
+            rc = _reopenSubStreams( cb, metaGroup == _metaGroup ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "Failed to reopen sub streams, rc: %d", rc ) ;
@@ -2188,11 +2269,12 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_LOBSTREAM_REOPENSUBSTREAMS, "_coordLobStream::_reopenSubStreams" )
-   INT32 _coordLobStream::_reopenSubStreams( _pmdEDUCB *cb )
+   INT32 _coordLobStream::_reopenSubStreams( _pmdEDUCB *cb,
+                                             BOOLEAN exceptMeta )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( COORD_LOBSTREAM_REOPENSUBSTREAMS ) ;
-      rc = _closeSubStreams( cb, TRUE ) ;
+      rc = _closeSubStreams( cb, exceptMeta ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to close sub streams:%d", rc ) ;
@@ -2217,8 +2299,11 @@ namespace engine
       PD_TRACE_ENTRY( COORD_LOBSTREAM_SHARDDATA ) ;
       TUPLE_GROUPID_MAP tuple2GroupIDMap ;
       CoordGroupList newGpList ;
-      INT32 oldCataVertion = _cataInfo->getVersion() ;
+      INT32 oldCataVertion = -1 ;
 
+   retry:
+      oldCataVertion = _cataInfo->getVersion() ;
+      newGpList.clear() ;
       _dataGroups.clear() ;
 
       for ( RTN_LOB_TUPLES::const_iterator itr = tuples.begin() ;
@@ -2259,11 +2344,17 @@ namespace engine
 
       if ( newGpList.size() > 0 )
       {
-         rc = _openSubStreams( newGpList, cb ) ;
+         BOOLEAN needReshard = FALSE ;
+         rc = _openSubStreams( newGpList, cb, needReshard ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "Failed to get sub stream:%d", rc ) ;
             goto error ;
+         }
+         if ( needReshard )
+         {
+            PD_LOG( PDDEBUG, "Need reshard for LOB streams" ) ;
+            goto retry ;
          }
       }
 
@@ -2334,7 +2425,10 @@ namespace engine
       UINT32 groupID = 0 ;
       dataGroup *dg = NULL ;
       const MsgLobTuple& t = tuple.tuple ;
+      BOOLEAN needReshard = FALSE ;
 
+   retry:
+      needReshard = FALSE ;
       _dataGroups.clear() ;
 
       rc = _getLobGroupID( getOID(), t.columns.sequence, groupID ) ;
@@ -2344,11 +2438,16 @@ namespace engine
          goto error ;
       }
 
-      rc = _getSubStream( groupID, &sub, cb ) ;
+      rc = _getSubStream( groupID, &sub, cb, needReshard ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to get sub stream:%d", rc ) ;
          goto error ;
+      }
+      if ( needReshard )
+      {
+         PD_LOG( PDDEBUG, "Need reshard LOB stream" ) ;
+         goto retry ;
       }
 
       dg = &( _dataGroups[groupID] ) ;
@@ -2589,16 +2688,16 @@ namespace engine
    }
 
    void _coordLobStream::_add2Subs( UINT32 groupID,
-                                     SINT64 contextID,
-                                     MsgRouteID id )
+                                    SINT64 contextID,
+                                    MsgRouteID id )
    {
       SDB_ASSERT( 0 == _subs.count( groupID ), "impossible" ) ;
       // throw exception outside to make sure contextID is closed( disconnect )
       _subs[groupID] = subStream( contextID, id ) ;
-      PD_LOG( PDDEBUG, "_add2Subs:lobID=%s,groupIDKey=%d,groupID=%u"
-           "nodeID=%d,contextID=%lld", getOID().toString().c_str(),
-           groupID, id.columns.groupID,
-           id.columns.nodeID, contextID ) ;
+      PD_LOG( PDDEBUG, "_add2Subs:lobID=%s,groupIDKey=%d,groupID=%u,"
+              "nodeID=%d,contextID=%lld", getOID().toString().c_str(),
+              groupID, id.columns.groupID,
+              id.columns.nodeID, contextID ) ;
    }
 
    INT32 _coordLobStream::_ensureEmptyPageBuf( INT32 pageSize )

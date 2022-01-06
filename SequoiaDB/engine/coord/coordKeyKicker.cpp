@@ -82,6 +82,78 @@ namespace engine
       return FALSE ;
    }
 
+   // eUpdate: one element of updator is sharding key
+   // matcher: condition
+   // if any element of matcher not equal eUpdate, that means sharding key change
+   BOOLEAN _coordKeyKicker::_isShardingKeyChange( const BSONElement &eUpdate,
+                                                  const BSONObj &matcher )
+   {
+      BOOLEAN change = FALSE ;
+      BSONElement eMatcher = matcher.getField( "$and" ) ;
+
+      if( Array == eMatcher.type() )
+      {
+         //update({$set:{a:1,c:2},{$and:[{a:1},{b:2}]},{},{KeepShardingKey:true})
+         BSONObjIterator ele( eMatcher.embeddedObject() ) ;
+         while ( ele.more() )
+         {
+            BSONElement eArray = ele.next() ;
+            // eArray will be "0":{a:1} "1":{b:2}
+            if( Object != eArray.type() )
+            {
+               change = TRUE ;
+               goto done ;
+            }
+            change = _isShardingKeyChange( eUpdate, eArray.embeddedObject() ) ;
+            // operator is $and so if one element of matcher equal eUpdate,then return FALSE
+            if( FALSE == change )
+            {
+               goto done ;
+            }
+         }
+      }
+
+      // if $and matcher failure, continue to process other element
+      change = FALSE ;
+
+      eMatcher = matcher.getField( eUpdate.fieldName() ) ;
+      if( EOO == eMatcher.type() )
+      {
+         // shardingKey field eUpdate not exist in matcher,set change TRUE
+         change = TRUE ;
+         goto done ;
+      }
+
+      // if the format of the shard key nested field is not consistent
+      // with the format of matcher nested field , we not recoginze
+      // update(({$set:{"a.b":10},c:1},{a:{b:10}},{},{KeepShardingKey:true}) errno -178
+      // update(({$set:{a:{b:10}},c:1},{a:{b:10}},{},{KeepShardingKey:true}) update success
+      if( Object == eMatcher.type() )
+      {
+         BSONObj obj = eMatcher.embeddedObject() ;
+
+         // eMatcher "a":{$et:2}, obj {$et:2}
+         if( 1 == obj.nFields() &&
+             0 == ossStrcmp( obj.firstElement().fieldName(), "$et" ) )
+         {
+            // set eMatcher = $et:2
+            eMatcher = obj.firstElement();
+         }
+      }
+
+      // compare update element with matcher element, exclude field name
+      if( 0 != eUpdate.woCompare( eMatcher, FALSE ) )
+      {
+         // eUpdate exist in matcher, but not equal with eMatcher
+         change =  TRUE ;
+         goto done ;
+      }
+
+   done:
+       return change ;
+   }
+
+
    UINT32 _coordKeyKicker::_addKeys( const BSONObj &objKey )
    {
       UINT32 count = 0 ;
@@ -105,7 +177,8 @@ namespace engine
    INT32 _coordKeyKicker::_kickKey( const CoordCataInfoPtr &cataInfo,
                                     const BSONObj &updator,
                                     BSONObj &newUpdator,
-                                    BOOLEAN &hasShardingKey,
+                                    const BSONObj &matcher,
+                                    BOOLEAN &shardingKeyChanged,
                                     BOOLEAN &hasKeepAutoInc,
                                     BOOLEAN ignoreAutoInc )
    {
@@ -120,7 +193,7 @@ namespace engine
          if ( it != _skSiteIDs.end() && ignoreAutoInc )
          {
             newUpdator = updator ;
-            hasShardingKey = it->second ;
+            shardingKeyChanged = it->second ;
             hasKeepAutoInc = FALSE ;
             goto done ;
          }
@@ -168,7 +241,30 @@ namespace engine
 
                if ( _isKey( pField, boShardingKey ) )
                {
-                  hasShardingKey = TRUE ;
+                  if( 0 == ossStrcmp( beTmp.fieldName(),
+                                      CMD_ADMIN_PREFIX FIELD_OP_VALUE_REPLACE ) )
+                  {
+                     // rule is replace, shardingKeyChanged will be juded in later flow
+                     if( 0 == _setKeys.count( pField ) &&
+                         !_isShardingKeyChange( beField, matcher ) )
+                     {
+                        _setKeys.insert( pField ) ;
+                     }
+                  }
+                  else if( 0 == ossStrcmp( beTmp.fieldName(),
+                                           CMD_ADMIN_PREFIX FIELD_OP_VALUE_SET ) )
+                  {
+                     if( FALSE == shardingKeyChanged &&
+                         _isShardingKeyChange( beField, matcher ) )
+                     {
+                        shardingKeyChanged = TRUE ;
+                     }
+                  }
+                  else
+                  {
+                     // other rule like $unset $inc, then set shardingKeyChanged TRUE
+                     shardingKeyChanged = TRUE ;
+                  }
                }
                else
                {
@@ -191,7 +287,8 @@ namespace engine
             UINT32 count = _addKeys( boShardingKey ) ;
             if ( count > 0 )
             {
-               hasShardingKey = TRUE ;
+               // exist boShardingKey field not equal boReplace and boKeeper
+               shardingKeyChanged = TRUE ;
             }
 
             if ( !ignoreAutoInc )
@@ -226,7 +323,7 @@ namespace engine
          if ( skSiteID > 0 )
          {
             _skSiteIDs.insert(
-                       pair< UINT32, BOOLEAN >( skSiteID, hasShardingKey ) ) ;
+                       pair< UINT32, BOOLEAN >( skSiteID, shardingKeyChanged ) ) ;
          }
 
       }
@@ -254,7 +351,7 @@ namespace engine
                                    BOOLEAN keepShardingKey )
    {
       INT32 rc = SDB_OK ;
-      BOOLEAN hasShardingKey = FALSE ;
+      BOOLEAN shardingKeyChanged = FALSE ;
       BOOLEAN hasKeepAutoInc = FALSE ;
 
       if ( !_cataPtr.get() || (!_cataPtr->isSharded() &&
@@ -269,7 +366,7 @@ namespace engine
       _setKeys.clear() ;
 
       rc = _kickKey( _cataPtr, updator, newUpdator,
-                     hasShardingKey, hasKeepAutoInc ) ;
+                     matcher, shardingKeyChanged, hasKeepAutoInc, FALSE ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Kick sharding key failed, rc: %d", rc ) ;
@@ -277,7 +374,7 @@ namespace engine
       }
       if ( keepShardingKey )
       {
-         if ( hasShardingKey )
+         if ( shardingKeyChanged )
          {
             rc = SDB_UPDATE_SHARD_KEY ;
             PD_LOG( PDERROR, "Sharding key cannot be updated, rc: %d", rc ) ;
@@ -288,7 +385,7 @@ namespace engine
       }
       else
       {
-         if ( hasShardingKey )
+         if ( shardingKeyChanged )
          {
             isChanged = TRUE ;
          }
@@ -322,7 +419,7 @@ namespace engine
          while( iterCL != subCLLst.end() )
          {
             rc = _kickShardingKey( *iterCL, subUpdator, newUpdator,
-                                   isChanged, cb, keepShardingKey ) ;
+                                   matcher, isChanged, cb, keepShardingKey ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Kick sharding key for sub-collection[%s] "
@@ -344,13 +441,14 @@ namespace engine
    INT32 _coordKeyKicker::_kickShardingKey( const string &collectionName,
                                             const BSONObj &updator,
                                             BSONObj &newUpdator,
+                                            const BSONObj &matcher,
                                             BOOLEAN &isChanged,
                                             pmdEDUCB *cb,
                                             BOOLEAN keepShardingKey )
    {
       INT32 rc = SDB_OK ;
       CoordCataInfoPtr cataPtr ;
-      BOOLEAN hasShardingKey = FALSE ;
+      BOOLEAN shardingKeyChanged = FALSE ;
       BOOLEAN hasKeepAutoInc = FALSE ;
 
       rc = _pResource->getOrUpdateCataInfo( collectionName.c_str(),
@@ -376,14 +474,14 @@ namespace engine
       }
 
       rc = _kickKey( cataPtr, updator, newUpdator,
-                     hasShardingKey, hasKeepAutoInc, TRUE ) ;
+                     matcher, shardingKeyChanged, hasKeepAutoInc, TRUE ) ;
       if ( rc )
       {
          goto error ;
       }
       if ( keepShardingKey )
       {
-         if ( 1 != cataPtr->getGroupNum() && hasShardingKey )
+         if ( 1 != cataPtr->getGroupNum() && shardingKeyChanged )
          {
             // num >= 2, cl which has been splited, not allow sharding key
             rc = SDB_UPDATE_SHARD_KEY ;
@@ -397,7 +495,7 @@ namespace engine
       }
       else
       {
-         if ( hasShardingKey )
+         if ( shardingKeyChanged )
          {
             isChanged = TRUE ;
          }

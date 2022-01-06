@@ -35,6 +35,7 @@
 #define MSGAUTH_HPP_
 #include "core.hpp"
 #include "msg.h"
+#include "sdbInterface.hpp"
 #include "authDef.hpp"
 #include "../bson/bson.h"
 
@@ -92,7 +93,8 @@ namespace engine
    INT32 msgBuildAuthMsg( CHAR **ppBuffer, INT32 *bufferSize,
                           const CHAR *username,
                           const CHAR *password,
-                          UINT64 reqID ) ;
+                          UINT64 reqID,
+                          IExecutor *cb = NULL ) ;
 
 }
 

@@ -136,30 +136,30 @@ List directory contents
 .IP
 .nf
 \f[C]
->\ File.list(\ {\ detail:\ true,\ pathname:\ "/opt/sequoiadb"\ }\ )
+> File.list( { detail: true, pathname: "/opt/sequoiadb" } )
 {
-\ \ "name":\ "file1.txt",
-\ \ "size":\ "20480",
-\ \ "mode":\ "drwxr\-xr\-x",
-\ \ "user":\ "root",
-\ \ "group":\ "root",
-\ \ "lasttime":\ "6月\ 11\ 11:58"
+  "name": "file1.txt",
+  "size": "20480",
+  "mode": "drwxr\-xr\-x",
+  "user": "root",
+  "group": "root",
+  "lasttime": "6月 11 11:58"
 }
 {
-\ \ "name":\ "file2.txt",
-\ \ "size":\ "20480",
-\ \ "mode":\ "drwxr\-xr\-x",
-\ \ "user":\ "root",
-\ \ "group":\ "root",
-\ \ "lasttime":\ "6月\ 12\ 12:58"
+  "name": "file2.txt",
+  "size": "20480",
+  "mode": "drwxr\-xr\-x",
+  "user": "root",
+  "group": "root",
+  "lasttime": "6月 12 12:58"
 }
 {
-\ \ "name":\ "file3.txt",
-\ \ "size":\ "20480",
-\ \ "mode":\ "drwxr\-xr\-x",
-\ \ "user":\ "root",
-\ \ "group":\ "root",
-\ \ "lasttime":\ "6月\ 13\ 13:58"
+  "name": "file3.txt",
+  "size": "20480",
+  "mode": "drwxr\-xr\-x",
+  "user": "root",
+  "group": "root",
+  "lasttime": "6月 13 13:58"
 }
 \f[]
 .fi
@@ -168,14 +168,14 @@ List directory contents and filter the result set
 .IP
 .nf
 \f[C]
->\ File.list(\ {\ detail:\ true,\ pathname:\ "/opt/sequoiadb"\ },\ {\ $and:\ [\ {\ name:\ "file1"\ },\ {\ size:\ "20480"\ }\ ]\ }\ )
+> File.list( { detail: true, pathname: "/opt/sequoiadb" }, { $and: [ { name: "file1" }, { size: "20480" } ] } )
 {
-\ \ "name":\ "file1.txt",
-\ \ "size":\ "20480",
-\ \ "mode":\ "drwxr\-xr\-x",
-\ \ "user":\ "root",
-\ \ "group":\ "root",
-\ \ "lasttime":\ "6月\ 13\ 13:58"
+  "name": "file1.txt",
+  "size": "20480",
+  "mode": "drwxr\-xr\-x",
+  "user": "root",
+  "group": "root",
+  "lasttime": "6月 13 13:58"
 }
 \f[]
 .fi

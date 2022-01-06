@@ -48,9 +48,11 @@ T}@T{
 yes
 T}
 .TE
-
-Note:
+.RS
+.PP
+\f[B]Note:\f[]
 .RE
+.RS
 .PP
 It can\[aq]t get the size of the binary file.
 If you want to get the size fo the binary file, you can reference getLength
@@ -71,7 +73,7 @@ Get the size of the file.
 .IP
 .nf
 \f[C]
->\ File.getSize(\ "/opt/sequoiadb/file.txt"\ )
+> File.getSize( "/opt/sequoiadb/file.txt" )
 13558
 \f[]
 .fi

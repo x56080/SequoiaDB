@@ -83,7 +83,7 @@ public class Fulltext15825 extends FullTestBase {
                 cl.dropIndex( fullIdxName );
                 atoint.incrementAndGet();
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -47 ) {
+                if ( e.getErrorCode() != -47 && e.getErrorCode() != -175 ) {
                     throw e;
                 }
             } finally {

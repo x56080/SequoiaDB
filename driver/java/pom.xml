@@ -4,7 +4,7 @@
 
     <groupId>com.sequoiadb</groupId>
     <artifactId>sequoiadb-driver</artifactId>
-    <version>3.2-SNAPSHOT</version>
+    <version>5.0.3-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>SequoiaDB Java Driver</name>
@@ -145,6 +145,7 @@
                 </executions>
                 <configuration>
                     <nodeprecated>true</nodeprecated>
+                    <locale>en_US</locale>
                     <excludePackageNames>com.sequoiadb.message:com.sequoiadb.net:org.bson.io:org.bson.util:org.bson.util.annotations</excludePackageNames>
                     <sourceFileExcludes>
                         <exclude></exclude>

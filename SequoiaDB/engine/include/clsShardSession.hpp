@@ -51,6 +51,7 @@ namespace engine
    class _clsCatalogAgent ;
    class _clsFreezingWindow ;
    class _rtnContextBase ;
+   class _clsOPContext ;
 
    struct _clsIdentifyInfo
    {
@@ -213,6 +214,8 @@ namespace engine
     */
    class _clsShdSession : public _pmdAsyncSession
    {
+      friend class _clsOPContext ;
+
       DECLARE_OBJ_MSG_MAP()
 
       public:
@@ -305,6 +308,9 @@ namespace engine
          INT32 _onGetMoreReqMsg ( MsgHeader *msg, rtnContextBuf &buffObj,
                                   INT32 &startingPos, INT64 &contextID,
                                   BOOLEAN &needRollback ) ;
+         INT32 _onAdvanceReqMsg ( MsgHeader *msg, rtnContextBuf &buffObj,
+                                  INT32 &startingPos, INT64 &contextID,
+                                  BOOLEAN &needRollback ) ;
          INT32 _onKillContextsReqMsg ( NET_HANDLE handle, MsgHeader *msg ) ;
          INT32 _onMsgReq ( NET_HANDLE handle, MsgHeader *msg ) ;
          INT32 _onInterruptMsg ( NET_HANDLE handle, MsgHeader *msg ) ;
@@ -362,7 +368,7 @@ namespace engine
 
          INT32 _includeShardingOrder( const CHAR *pCollectionName,
                                       const BSONObj &orderBy,
-                                      BOOLEAN &result ) ;
+                                      INT32 &result ) ;
          INT32 _insertToMainCL( BSONObj &objs, INT32 objNum, INT32 flags,
                                 INT16 w, BOOLEAN onlyCheck,
                                 utilInsertResult &inResult ) ;
@@ -370,7 +376,7 @@ namespace engine
          INT32 _queryToMainCL( rtnQueryOptions &options,
                                pmdEDUCB *cb,
                                SINT64 &contextID,
-                               _rtnContextBase **ppContext = NULL,
+                               rtnContextPtr *ppContext,
                                INT16 w = 1,
                                BOOLEAN isWrite = FALSE ) ;
          INT32 _updateToMainCL( rtnQueryOptions &options,
@@ -399,7 +405,7 @@ namespace engine
                              SINT64 &contextID,
                              BSONObjBuilder *pBuilder );
 
-         INT32 _getOnMainCL( const CHAR *pCommand,
+         INT32 _getOnMainCL( const CHAR *pCommandName,
                              const CHAR *pCollection,
                              INT32 flags,
                              INT64 numToSkip,
@@ -411,21 +417,35 @@ namespace engine
                              INT16 w,
                              SINT64 &contextID );
 
-         INT32 _createIndexOnMainCL( const CHAR *pCommand,
+         INT32 _createIndexOnMainCL( const CHAR *pCommandName,
                                      const CHAR *pCollection,
                                      const CHAR *pQuery,
                                      const CHAR *pHint,
                                      INT16 w,
-                                     SINT64 &contextID,
-                                     BOOLEAN syscall = FALSE,
-                                     BSONObjBuilder *pBuilder = NULL );
+                                     BSONObjBuilder *pBuilder ) ;
+         INT32 _createConsistentIndex( const BSONObj &boMatcher,
+                                       const BSONObj &boHint ) ;
+         INT32 _createStandaloneIndex( const CHAR *pCollection,
+                                       const BSONObj &boMatcher,
+                                       const BSONObj &boHint,
+                                       BSONObjBuilder *pBuilder ) ;
 
-         INT32 _dropIndexOnMainCL( const CHAR *pCommand,
+         INT32 _dropIndexOnMainCL( const CHAR *pCommandName,
                                    const CHAR *pCollection,
                                    const CHAR *pQuery,
-                                   INT16 w,
-                                   SINT64 &contextID,
-                                   BOOLEAN syscall = FALSE ) ;
+                                   const CHAR *pHint,
+                                   INT16 w ) ;
+         INT32 _dropConsistentIndex( const BSONObj &boMatcher,
+                                     const BSONObj &boHint ) ;
+         INT32 _dropStandaloneIndex( const CHAR *pCollection,
+                                     const BSONObj &boMatcher,
+                                     const BSONObj &boHint ) ;
+
+         INT32 _copyIndexOnMainCL( const CHAR *pCommandName,
+                                   const CHAR *pCollection,
+                                   const CHAR *pQuery,
+                                   const CHAR *pHint,
+                                   INT16 w ) ;
 
          INT32 _dropMainCL( const CHAR *pCollection,
                            INT16 w,
@@ -450,7 +470,7 @@ namespace engine
                                 BOOLEAN isAllowEmptyList,
                                 BSONObj &boNewMatcher,
                                 CLS_SUBCL_LIST &strSubCLList,
-                                BOOLEAN *pIncludeShardingOrder ) ;
+                                INT32 *pIncludeShardingOrder ) ;
 
          // prepare sub-collection list from query matcher
          INT32 _prepareSubCLList( const BSONObj &matcher,
@@ -458,7 +478,7 @@ namespace engine
                                   CLS_SUBCL_LIST &subCLList ) ;
          // get sub-collection list by sharding order
          INT32 _getSubCLOrder( const CHAR *pCollectionName,
-                               BOOLEAN &includeShardingOrder,
+                               INT32 &includeShardingOrder,
                                CLS_SUBCL_LIST &subCLList ) ;
 
          // check sub-collections ( write operators, version, etc )
@@ -487,6 +507,8 @@ namespace engine
          INT32 _checkPrimaryStatus() ;
 
          INT32 _checkRollbackStatus() ;
+
+         INT32 _checkRestoring() ;
 
          INT32 _checkReplStatus() ;
 
@@ -564,6 +586,23 @@ namespace engine
                                     const stpLogicalTimeUS &sendTime,
                                     stpLogicalTimeUS &preCommitTime ) ;
 
+         void _copyCollectionName( const CHAR *collectionName )
+         {
+            _cmdCollectionName.assign( collectionName ) ;
+            _pCollectionName = _cmdCollectionName.c_str() ;
+         }
+
+         void _clearCollectionName()
+         {
+            _cmdCollectionName.clear() ;
+            _pCollectionName = NULL ;
+         }
+
+         INT32 _getCSInfoWhenLoadCS( _rtnLoadCollectionSpace* pCommand ) ;
+
+         INT32 _getIndexInfoFromCatalog( utilCLUniqueID clUniqID,
+                                         ossPoolVector<BSONObj> &indexInfo ) ;
+
       protected:
          _clsReplicateSet       *_pReplSet ;
          _clsShardMgr           *_pShdMgr ;
@@ -578,7 +617,7 @@ namespace engine
          MsgRouteID             _primaryID ;
          BSONObj                _errorInfo ;
          const CHAR             *_pCollectionName ;
-         std::string             _cmdCollectionName ;
+         ossPoolString           _cmdCollectionName ;
          INT32                   _clVersion ;
 
          BOOLEAN                _isMainCL ;
@@ -608,6 +647,21 @@ namespace engine
 
          BSONObjBuilder         _retBuilder ;
    } ;
+
+   class _clsOPContext : public _IOperationContext
+   {
+      public:
+         _clsOPContext( _clsShdSession *shdSession ) ;
+         virtual ~_clsOPContext() ;
+
+      public:
+         INT32 getShardingKey( const CHAR* clName, BSONObj &shardingKey ) ;
+
+      private:
+         _clsShdSession *_pShdSession ;
+   } ;
+
+   typedef _clsOPContext clsOPContext ;
 
 }
 

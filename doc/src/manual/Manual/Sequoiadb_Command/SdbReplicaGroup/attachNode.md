@@ -1,10 +1,20 @@
+##名称##
+
+attachNode - 将不属于任何复制组的节点加入当前复制组
 
 ##语法##
-***rg.attachNode( \<host\>, \<service\>, \<options\> )***
+
+**rg.attachNode( \<host\>, \<service\>, \<options\> )**
+
+##类别##
+
+SdbReplicaGroup
+
+##描述##
 
 将一个已经创建完成但不属于任何复制组的节点加入到当前复制组。可以搭配 [rg.detachNode()](manual/Manual/Sequoiadb_Command/SdbReplicaGroup/detachNode.md) 使用。目前可以支持加入到数据组或者编目组。
 
-##参数描述##
+##参数##
 
 | 参数名  | 参数类型  | 描述                         | 是否必填 |
 | ------- | --------- | -----------------------------| -------- |
@@ -12,7 +22,7 @@
 | service | string    | 节点服务名或者端口。         | 是 |
 | options | Json 对象 | 详见options选项说明。| 是 |
 
-##options选项##
+options 选项：
 
 | 参数名   | 参数类型 | 描述                        | 默认值 |
 | -------- | -------- | --------------------------- | ------ |
@@ -27,7 +37,7 @@
 ##返回值##
 
 无返回值，出错抛异常，并输出错误信息。可以通过 [getLastErrMsg](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) 获取错误信息，或通过 [getLastError](manual/Manual/Sequoiadb_Command/Global/getLastError.md) 获取错误码。
-关于错误处理可以参考 [常见错误处理指南](manual/faq.md) 。
+关于错误处理可以参考 [常见错误处理指南](manual/FAQ/faq_sdb.md) 。
 
 ##错误##
 
@@ -38,6 +48,10 @@
 | -15      | 网络错误               | 1. 检查 sdbcm 状态是否正常，如果状态异常，可以尝试重启；<br> 2. 检查填写的 host 是否正确。 |
 | -146     | 节点不存在             | 检查节点是否存在。 |
 | -157     | 节点已存在于其他复制组 | 检查节点是否已加入到当前或其他复制组，如果已属于任何复制组将不支持该操作。注意：编目节点不能加入到数据组中，数据节点也不能加入到编目组中。 |
+
+##版本##
+
+v2.0 及以上版本
 
 ##示例##
 

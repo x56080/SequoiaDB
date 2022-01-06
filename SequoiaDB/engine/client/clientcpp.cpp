@@ -55,7 +55,9 @@
 using namespace std ;
 using namespace bson ;
 
+#define SDB_MD5_VALUE_BUF_LEN  (SDB_MD5_DIGEST_LENGTH * 2 + 1)
 #define LOB_ALIGNED_LEN 524288
+#define CLIENT_SQL_MAX_LEN 127
 
 namespace sdbclient
 {
@@ -385,6 +387,100 @@ do                                                            \
       }
 
    done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   INT32 _sdbCursorImpl::advance( const BSONObj &option, BSONObj *pResult )
+   {
+      INT32 rc                = SDB_OK ;
+      CHAR *pReceiveBuffer    = NULL ;
+      INT32 receiveBufferSize = 0 ;
+
+      const CHAR *pBackData   = NULL ;
+      INT32 backDataSize      = 0 ;
+
+      // if contextid is not invalid
+      if ( -1 == _contextID )
+      {
+         rc = SDB_DMS_EOC ;
+         goto error ;
+      }
+      // check
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
+      if ( _pReceiveBuffer )
+      {
+         INT32 tmpOffset = _offset ;
+         MsgOpReply *pReply = (MsgOpReply*)_pReceiveBuffer ;
+
+         if ( -1 == tmpOffset )
+         {
+            tmpOffset = ossRoundUpToMultipleX ( sizeof ( MsgOpReply ), 4 ) ;
+         }
+         else
+         {
+            // otherwise let's skip the current one
+            tmpOffset += ossRoundUpToMultipleX ( *(INT32*)&_pReceiveBuffer[tmpOffset],
+                                                 4 ) ;
+         }
+
+         if ( tmpOffset < pReply->header.messageLength )
+         {
+            pBackData = &_pReceiveBuffer[tmpOffset] ;
+            backDataSize = pReply->header.messageLength - tmpOffset ;
+         }
+      }
+
+      // build msg
+      rc = clientBuildAdvanceMsgCpp( &_pSendBuffer, &_sendBufferSize,
+                                     _contextID, 0, option.objdata(),
+                                     pBackData, backDataSize,
+                                     _connection->_endianConvert ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = _connection->_sendAndRecv( _pSendBuffer,
+                                      &pReceiveBuffer,
+                                      &receiveBufferSize ) ;
+      if ( rc )
+      {
+         if ( pResult )
+         {
+            _connection->getLastErrorObj( *pResult ) ;
+            try
+            {
+               *pResult = pResult->getOwned() ;
+            }
+            catch( ... )
+            {
+               /// ignore error
+            }
+            /// reset result
+            _connection->cleanLastErrorObj() ;
+         }
+         goto error ;
+      }
+
+      /// clear buffer
+      if ( _pReceiveBuffer )
+      {
+         MsgOpReply *pReply = (MsgOpReply*)_pReceiveBuffer ;
+         pReply->header.messageLength = sizeof( MsgOpReply ) ;
+      }
+
+   done :
+      if ( pReceiveBuffer )
+      {
+         SDB_OSS_FREE( pReceiveBuffer ) ;
+      }
       return rc ;
    error :
       goto done ;
@@ -920,7 +1016,8 @@ do                                                            \
 
       rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_GET_COUNT,
                                      &condition, NULL, NULL, &newObj,
-                                     0, 0, -1, -1, &pCursor ) ;
+                                     FLG_QUERY_WITH_RETURNDATA, 0, -1, -1,
+                                     &pCursor ) ;
       /// udpate and ignore the update result
       updateCachedVersion( rc, _connection->_getCachedContainer(),
                           _collectionFullName, _version ) ;
@@ -1052,6 +1149,8 @@ do                                                            \
       {
          goto error ;
       }
+
+      flags |= FLG_INSERT_RETURNNUM ;
 
       rc = clientBuildInsertMsgCpp ( &_pSendBuffer, &_sendBufferSize,
                                      _collectionFullName, flags, 0,
@@ -1212,6 +1311,8 @@ do                                                            \
          goto done ;
       }
 
+      flags |= FLG_INSERT_RETURNNUM ;
+
       for ( SINT32 count = 0 ; count < num ; ++count )
       {
          rc = _appendOID ( objs[count], newObj ) ;
@@ -1318,6 +1419,8 @@ do                                                            \
       {
          goto done ;
       }
+
+      flags |= FLG_INSERT_RETURNNUM ;
 
       for ( SINT32 count = 0; count < size; ++count )
       {
@@ -1485,6 +1588,8 @@ do                                                            \
          goto error ;
       }
 
+      flag |= FLG_UPDATE_RETURNNUM ;
+
       rc = clientBuildUpdateMsgCpp ( &_pSendBuffer, &_sendBufferSize,
                                      _collectionFullName, flag, 0,
                                      condition.objdata(),
@@ -1539,6 +1644,8 @@ do                                                            \
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+
+     flag |= FLG_DELETE_RETURNNUM ;
 
       rc = clientBuildDeleteMsgCpp ( &_pSendBuffer, &_sendBufferSize,
                                      _collectionFullName, flag, 0,
@@ -1663,6 +1770,7 @@ do                                                            \
 
       // try to set flag to be find one
       newFlags |= FLG_QUERY_WITH_RETURNDATA ;
+      newFlags |= QUERY_PREPARE_MORE ;
 
       // run command
       rc = clientBuildQueryMsgCpp ( &_pSendBuffer, &_sendBufferSize, _collectionFullName,
@@ -1905,11 +2013,12 @@ do                                                            \
                                             const CHAR *pIndexName,
                                             BOOLEAN isUnique,
                                             BOOLEAN isEnforced,
-                                            INT32 sortBufferSize )
+                                            INT32 sortBufferSize,
+                                            SINT64 *pTaskID )
    {
       INT32 rc = SDB_OK ;
-      BSONObj indexObj ;
-      BSONObj matcher, hint ;
+      BSONObj matcher, hint, indexObj, countObj ;
+      _sdbCursor *cursor = NULL ;
 
       if ( _collectionFullName [0] == '\0' || !_connection ||
            !pIndexName )
@@ -1931,21 +2040,57 @@ do                                                            \
                      ) ;
 
       matcher = BSON( FIELD_NAME_COLLECTION << _collectionFullName <<
-                       FIELD_NAME_INDEX << indexObj <<
-                       IXM_FIELD_NAME_SORT_BUFFER_SIZE << sortBufferSize ) ;
+                      FIELD_NAME_INDEX << indexObj <<
+                      IXM_FIELD_NAME_SORT_BUFFER_SIZE << sortBufferSize <<
+                      FIELD_NAME_ASYNC << ( pTaskID ? true : false ) ) ;
 
       // For Compatibility with older engine( version <3.4 ), keep sort buffer
       // size in hint. After several versions, we can delete it.
       hint = BSON( IXM_FIELD_NAME_SORT_BUFFER_SIZE << sortBufferSize ) ;
 
       rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_CREATE_INDEX,
-                                     &matcher, NULL, NULL, &hint ) ;
+                                     &matcher, NULL, NULL, &hint,
+                                     0, 0, 0, -1, &cursor ) ;
       /// ignore update result
       updateCachedVersion( rc, _connection->_getCachedContainer(),
                           _collectionFullName, _version ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
+      }
+
+      // get task ID
+      if ( NULL == pTaskID )
+      {
+         goto done ;
+      }
+
+      if ( NULL == cursor )
+      {
+         rc = SDB_UNEXPECTED_RESULT ;
+         goto error ;
+      }
+      ((_sdbCursorImpl*)cursor)->_attachCollection ( this ) ;
+
+      rc = cursor->next( countObj ) ; // there should only 1 record read
+      if ( rc )
+      {
+         // if we didn't read anything, let't return unexpected
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_UNEXPECTED_RESULT ;
+         }
+         goto error ;
+      }
+      else
+      {
+         BSONElement ele = countObj.getField ( FIELD_NAME_TASKID ) ;
+         if ( ele.type() != NumberLong )
+         {
+            rc = SDB_UNEXPECTED_RESULT ;
+            goto error ;
+         }
+         *pTaskID = ele.numberLong () ;
       }
 
    done :
@@ -1956,11 +2101,15 @@ do                                                            \
 
    INT32 _sdbCollectionImpl::_createIndex ( const BSONObj &indexDef,
                                             const CHAR *pIndexName,
-                                            const BSONObj &options )
+                                            const BSONObj &indexAttr,
+                                            const BSONObj &option,
+                                            SINT64 *pTaskID )
    {
       INT32 rc = SDB_OK ;
-      BSONObj matcher, hint ;
+      BSONObj matcher, hint, countObj ;
       BSONObjBuilder indexBuild, matchBuilder, hintBuilder ;
+      BOOLEAN foundOutSort = FALSE ;
+      _sdbCursor *cursor = NULL ;
 
       if ( _collectionFullName [0] == '\0' || !_connection ||
            !pIndexName )
@@ -1973,7 +2122,7 @@ do                                                            \
       // macher: { Collection: "foo.bar",
       //           Index:{ key: {a:1}, name: 'aIdx', Unique: true,
       //                   Enforced: true, NotNull: true },
-      //           SortBufferSize: 1024 }
+      //           SortBufferSize: 1024, Async: true }
       // hint: { SortBufferSize: 1024 }
       // For Compatibility with older engine( version <3.4 ), keep sort buffer
       // size in hint. After several versions, we can delete it.
@@ -1982,13 +2131,14 @@ do                                                            \
       indexBuild.append( IXM_FIELD_NAME_NAME, pIndexName ) ;
 
       {
-         BSONObjIterator it( options );
+         BSONObjIterator it( indexAttr ) ;
          while( it.more() )
          {
-            BSONElement e = it.next();
+            BSONElement e = it.next() ;
             if ( 0 == ossStrcmp( e.fieldName(),
                                  IXM_FIELD_NAME_SORT_BUFFER_SIZE ) )
             {
+               foundOutSort = TRUE ;
                matchBuilder.append( e ) ;
                hintBuilder.append( e ) ;
             }
@@ -1998,21 +2148,66 @@ do                                                            \
             }
          }
       }
+      if ( !foundOutSort )
+      {
+         BSONElement e = option.getField( IXM_FIELD_NAME_SORT_BUFFER_SIZE ) ;
+         if ( !e.eoo() )
+         {
+            hintBuilder.append( e ) ;
+         }
+      }
 
       matchBuilder.append( FIELD_NAME_COLLECTION, _collectionFullName ) ;
       matchBuilder.append( FIELD_NAME_INDEX, indexBuild.obj() ) ;
+      matchBuilder.appendElements( option );
+      matchBuilder.append( FIELD_NAME_ASYNC, ( pTaskID ? true : false ) ) ;
       matcher = matchBuilder.obj() ;
 
       hint = hintBuilder.obj() ;
 
       rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_CREATE_INDEX,
-                                     &matcher, NULL, NULL, &hint ) ;
+                                     &matcher, NULL, NULL, &hint,
+                                     0, 0, 0, -1, &cursor ) ;
       /// ignore update result
       updateCachedVersion( rc, _connection->_getCachedContainer(),
                           _collectionFullName, _version ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
+      }
+
+      // get task ID
+      if ( NULL == pTaskID )
+      {
+         goto done ;
+      }
+
+      if ( NULL == cursor )
+      {
+         rc = SDB_UNEXPECTED_RESULT ;
+         goto error ;
+      }
+      ((_sdbCursorImpl*)cursor)->_attachCollection ( this ) ;
+
+      rc = cursor->next( countObj ) ; // there should only 1 record read
+      if ( rc )
+      {
+         // if we didn't read anything, let't return unexpected
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_UNEXPECTED_RESULT ;
+         }
+         goto error ;
+      }
+      else
+      {
+         BSONElement ele = countObj.getField ( FIELD_NAME_TASKID ) ;
+         if ( ele.type() != NumberLong )
+         {
+            rc = SDB_UNEXPECTED_RESULT ;
+            goto error ;
+         }
+         *pTaskID = ele.numberLong () ;
       }
 
    done :
@@ -2033,9 +2228,75 @@ do                                                            \
 
    INT32 _sdbCollectionImpl::createIndex ( const BSONObj &indexDef,
                                            const CHAR *pIndexName,
-                                           const BSONObj &options )
+                                           const BSONObj &indexAttr,
+                                           const BSONObj &option )
    {
-      return _createIndex( indexDef, pIndexName, options ) ;
+      return _createIndex( indexDef, pIndexName, indexAttr, option ) ;
+   }
+
+   INT32 _sdbCollectionImpl::createIndexAsync ( SINT64 &taskID,
+                                                const BSONObj &indexDef,
+                                                const CHAR *pIndexName,
+                                                const BSONObj &indexAttr,
+                                                const BSONObj &option )
+   {
+      return _createIndex( indexDef, pIndexName, indexAttr, option, &taskID ) ;
+   }
+
+   INT32 _sdbCollectionImpl::snapshotIndexes ( _sdbCursor **cursor,
+                                               const BSONObj &condition,
+                                               const BSONObj &selector,
+                                               const BSONObj &orderby,
+                                               const BSONObj &hint,
+                                               INT64 numToSkip,
+                                               INT64 numToReturn )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder hintBuilder ;
+
+      if ( _collectionFullName [0] == '\0' || !_connection || !cursor )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      {
+         BSONObjIterator it( hint ) ;
+         while( it.more() )
+         {
+            BSONElement e = it.next() ;
+            if ( 0 != ossStrcmp( e.fieldName(), FIELD_NAME_COLLECTION ) )
+            {
+               hintBuilder.append( e ) ;
+            }
+         }
+         hintBuilder.append( FIELD_NAME_COLLECTION, _collectionFullName ) ;
+      }
+
+      rc = _connection->getSnapshot( cursor, SDB_SNAP_INDEXES,
+                                     condition, selector, orderby,
+                                     hintBuilder.done(),
+                                     numToSkip, numToReturn ) ;
+
+      /// ignore update result
+      updateCachedObject( rc, _connection->_getCachedContainer(),
+                          _collectionFullName ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      ((_sdbCursorImpl*)*cursor)->_attachCollection ( this ) ;
+
+   done :
+      return rc ;
+   error :
+      if ( NULL != *cursor )
+      {
+         delete *cursor ;
+         *cursor = NULL ;
+      }
+      goto done ;
    }
 
    INT32 _sdbCollectionImpl::getIndexes ( _sdbCursor **cursor,
@@ -2144,10 +2405,12 @@ do                                                            \
       goto done ;
    }
 
-   INT32 _sdbCollectionImpl::dropIndex ( const CHAR *pIndexName )
+   INT32 _sdbCollectionImpl::_dropIndex ( const CHAR *pIndexName,
+                                          SINT64 *pTaskID )
    {
       INT32 rc = SDB_OK ;
-      BSONObj newObj ;
+      BSONObj countObj, matchObj ;
+      _sdbCursor *cursor = NULL ;
 
       if ( _collectionFullName [0] == '\0' || !_connection ||
            !pIndexName )
@@ -2156,11 +2419,14 @@ do                                                            \
          goto error ;
       }
 
-      newObj = BSON ( FIELD_NAME_COLLECTION << _collectionFullName <<
-                      FIELD_NAME_INDEX << BSON ( "" << pIndexName ) ) ;
+      matchObj = BSON( FIELD_NAME_COLLECTION << _collectionFullName <<
+                       FIELD_NAME_INDEX << BSON ( "" << pIndexName ) <<
+                       FIELD_NAME_ASYNC << ( pTaskID ? true : false ) ) ;
 
+      /// send message
       rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_DROP_INDEX,
-                                     &newObj ) ;
+                                     &matchObj, NULL, NULL, NULL,
+                                     0, 0, 0, -1, &cursor ) ;
       /// ignore update result
       updateCachedVersion( rc, _connection->_getCachedContainer(),
                           _collectionFullName, _version ) ;
@@ -2169,10 +2435,151 @@ do                                                            \
          goto error ;
       }
 
-    done :
+      // get task ID
+      if ( !pTaskID )
+      {
+         goto done ;
+      }
+
+      if ( NULL == cursor )
+      {
+         rc = SDB_UNEXPECTED_RESULT ;
+         goto error ;
+      }
+      ((_sdbCursorImpl*)cursor)->_attachCollection ( this ) ;
+
+      rc = cursor->next( countObj ) ; // there should only 1 record read
+      if ( rc )
+      {
+         // if we didn't read anything, let't return unexpected
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_UNEXPECTED_RESULT ;
+         }
+         goto error ;
+      }
+      else
+      {
+         BSONElement ele = countObj.getField ( FIELD_NAME_TASKID ) ;
+         if ( ele.type() != NumberLong )
+         {
+            rc = SDB_UNEXPECTED_RESULT ;
+            goto error ;
+         }
+         *pTaskID = ele.numberLong() ;
+      }
+
+   done :
       return rc ;
    error :
       goto done ;
+   }
+
+   INT32 _sdbCollectionImpl::dropIndex ( const CHAR *pIndexName )
+   {
+      return _dropIndex( pIndexName ) ;
+   }
+
+   INT32 _sdbCollectionImpl::dropIndexAsync ( SINT64 &taskID,
+                                              const CHAR *pIndexName )
+   {
+      return _dropIndex( pIndexName, &taskID ) ;
+   }
+
+   INT32 _sdbCollectionImpl::_copyIndex ( const CHAR *subClFullName,
+                                          const CHAR *pIndexName,
+                                          SINT64 *pTaskID )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj countObj, matchObj ;
+      BSONObjBuilder builder ;
+      _sdbCursor *cursor = NULL ;
+
+      if ( _collectionFullName [0] == '\0' || !_connection )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         builder.append( FIELD_NAME_NAME, _collectionFullName ) ;
+         builder.append( FIELD_NAME_ASYNC, ( pTaskID ? true : false ) ) ;
+         if ( subClFullName )
+         {
+            builder.append( FIELD_NAME_SUBCLNAME, subClFullName ) ;
+         }
+         if ( pIndexName )
+         {
+            builder.append( FIELD_NAME_INDEXNAME, pIndexName ) ;
+         }
+         matchObj = builder.obj() ;
+
+         /// send message
+         rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_COPY_INDEX,
+                                        &matchObj, NULL, NULL, NULL,
+                                        0, 0, 0, -1, &cursor ) ;
+         updateCachedObject( rc, _connection->_getCachedContainer(),
+                             _collectionFullName ) ; // ignore update result
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+
+         // get task ID
+         if ( !pTaskID )
+         {
+            goto done ;
+         }
+
+         ((_sdbCursorImpl*)cursor)->_attachCollection ( this ) ;
+
+         rc = cursor->next( countObj ) ; // there should only 1 record read
+         if ( rc )
+         {
+            // if we didn't read anything, let't return unexpected
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_UNEXPECTED_RESULT ;
+            }
+            goto error ;
+         }
+         else
+         {
+            BSONElement ele = countObj.getField ( FIELD_NAME_TASKID ) ;
+            if ( ele.type() != NumberLong )
+            {
+               rc = SDB_UNEXPECTED_RESULT ;
+               goto error ;
+            }
+            *pTaskID = ele.numberLong() ;
+         }
+
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   INT32 _sdbCollectionImpl::copyIndex ( const CHAR *subClFullName,
+                                         const CHAR *pIndexName )
+   {
+      return _copyIndex( subClFullName, pIndexName ) ;
+   }
+
+   INT32 _sdbCollectionImpl::copyIndexAsync ( SINT64 &taskID,
+                                              const CHAR *subClFullName,
+                                              const CHAR *pIndexName )
+   {
+      return _copyIndex( subClFullName, pIndexName, &taskID ) ;
    }
 
    INT32 _sdbCollectionImpl::create()
@@ -3977,14 +4384,13 @@ do                                                            \
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      connection = new (std::nothrow) _sdbImpl ( this->_connection->_useSSL ) ;
+      connection = new (std::nothrow) _sdbImpl () ;
       if ( !connection )
       {
          rc = SDB_OOM ;
          goto error ;
       }
-
-      rc = connection->connect ( _hostName, _serviceName, this->_connection->_userName, this->_connection->_passwd ) ;
+      rc = connection->connect ( _hostName, _serviceName ) ;
       if ( rc )
       {
          goto error ;
@@ -5324,6 +5730,53 @@ do                                                            \
       goto done ;
    }
 
+   INT32 _sdbCollectionSpaceImpl::listCollections ( _sdbCursor **cursor )
+   {
+      INT32   rc = SDB_OK ;
+      BSONObj condition ;
+      CHAR    lowBound[ CLIENT_CS_NAMESZ + 1 + 1 ] = { 0 } ;
+      CHAR    upBound[ CLIENT_CS_NAMESZ + 1 + 1 ] = { 0 } ;
+
+      if ( !_connection || '\0' == _collectionSpaceName[0] || !cursor )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      ossStrncpy( lowBound, _collectionSpaceName, CLIENT_CS_NAMESZ ) ;
+      ossStrncat( lowBound, ".", 1 ) ;
+      ossStrncpy( upBound, _collectionSpaceName, CLIENT_CS_NAMESZ ) ;
+      ossStrncat( upBound, "/", 1 ) ;
+
+      // build condition bson
+      try
+      {
+         BSONObjBuilder builder ;
+         BSONObjBuilder subBuilder ( builder.subobjStart( FIELD_NAME_NAME ) ) ; 
+         subBuilder.append( "$gt", lowBound ) ;
+         subBuilder.append( "$lt", upBound ) ;
+         subBuilder.doneFast() ;
+         condition = builder.obj() ;
+      }
+      catch( const std::exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+
+      rc = _connection->getList( cursor, SDB_LIST_COLLECTIONS, condition ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
    INT32 _sdbCollectionSpaceImpl::create ()
    {
       INT32 rc            = SDB_OK ;
@@ -5505,6 +5958,61 @@ do                                                            \
    INT32 _sdbCollectionSpaceImpl::setDomain ( const BSONObj & options )
    {
       return _alterInternal( SDB_ALTER_CS_SET_DOMAIN, &options, FALSE ) ;
+   }
+
+   INT32 _sdbCollectionSpaceImpl::getDomainName ( CHAR *result, 
+                                                  INT32 resultLen )
+   {
+      INT32 rc = SDB_OK ;
+      CHAR sql[ CLIENT_SQL_MAX_LEN + CLIENT_CS_NAMESZ + 1 ] = { 0 } ;
+      sdbCursor cursor ;
+      BSONObj   tempObj ;
+
+      if ( !_connection || '\0' == _collectionSpaceName[0] || 0 >= resultLen || NULL == result )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      ossMemset( result, 0, resultLen ) ;      
+      // build sql
+      ossSnprintf( sql, CLIENT_SQL_MAX_LEN + CLIENT_CS_NAMESZ, 
+                   "select Domain from $LIST_CS where Name = '%s'", 
+                   _collectionSpaceName ) ;
+
+      rc = _connection->exec( sql, cursor ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      rc = cursor.next( tempObj ) ;
+      if ( SDB_OK != rc )
+      {
+         // SDB_DMS_EOC will return because the collectionspace was deleted
+         // and this error code doesn't need to be exposed.
+         // SDB_DMS_CS_NOTEXIST is better.
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_DMS_CS_NOTEXIST ;
+         }
+         goto error ;
+      }
+
+      if ( jstNULL != tempObj.firstElement().type() )
+      {
+         ossStrncpy( result, 
+                     tempObj.getStringField( "Domain" ),
+                     resultLen - 1 ) ;
+      }
+      else
+      {
+         result[0] = '\0' ;
+      }
+
+   done :
+      return rc ;
+   error :
+      goto done ;
    }
 
    INT32 _sdbCollectionSpaceImpl::removeDomain ()
@@ -7288,6 +7796,178 @@ do                                                            \
       goto done ;
    }
 
+   _sdbDataSourceImpl::_sdbDataSourceImpl()
+   : _connection( NULL ),
+     _pSendBuffer ( NULL ),
+     _sendBufferSize ( 0 ) ,
+     _pReceiveBuffer ( NULL ) ,
+     _receiveBufferSize ( 0 )
+   {
+      ossMemset( _dataSourceName, 0, sizeof( _dataSourceName ) ) ;
+   }
+
+   _sdbDataSourceImpl::_sdbDataSourceImpl( const CHAR *pDataSourceName )
+   : _connection( NULL ),
+     _pSendBuffer ( NULL ),
+     _sendBufferSize ( 0 ) ,
+     _pReceiveBuffer ( NULL ) ,
+     _receiveBufferSize ( 0 )
+   {
+      _setName( pDataSourceName ) ;
+   }
+
+   _sdbDataSourceImpl::~_sdbDataSourceImpl()
+   {
+      if ( _connection )
+      {
+         _connection->_unregDataSource( this ) ;
+      }
+      if ( _pSendBuffer )
+      {
+         SDB_OSS_FREE( _pSendBuffer ) ;
+      }
+      if ( _pReceiveBuffer )
+      {
+         SDB_OSS_FREE( _pReceiveBuffer ) ;
+      }
+   }
+
+   void _sdbDataSourceImpl::_setConnection( _sdb *connection )
+   {
+      _connection = (_sdbImpl *)connection ;
+      _connection->_regDataSource( this ) ;
+
+   }
+
+   INT32 _sdbDataSourceImpl::_setName( const CHAR *pDataSourceName )
+   {
+      INT32 rc = SDB_OK ;
+      if ( ossStrlen( pDataSourceName ) > CLIENT_DATASOURCE_NAMESZ )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      ossMemset( _dataSourceName, 0, sizeof( _dataSourceName ) ) ;
+      ossStrncpy( _dataSourceName, pDataSourceName, CLIENT_DATASOURCE_NAMESZ ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbDataSourceImpl::_appendOptions( BSONObjBuilder &builder,
+                                             const BSONObj &options )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObjIterator itr( options ) ;
+         BSONObjBuilder
+            subBuilder( builder.subobjStart( FIELD_NAME_OPTIONS ) ) ;
+         while ( itr.more() )
+         {
+            BSONElement ele = itr.next() ;
+            if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_PASSWD ) )
+            {
+               CHAR md5[ SDB_MD5_VALUE_BUF_LEN ] = { 0 } ;
+               rc = md5Encrypt( ele.valuestrsafe(), md5,
+                                SDB_MD5_VALUE_BUF_LEN ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
+               subBuilder.append( FIELD_NAME_PASSWD, md5 ) ;
+            }
+            else
+            {
+               subBuilder.append( ele ) ;
+            }
+         }
+         subBuilder.done() ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbDataSourceImpl::alterDataSource( const BSONObj& options )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder bob ;
+      BSONElement ele ;
+      BSONObj newObj ;
+      const CHAR *newName = NULL ;
+
+      if ( !_connection || ( 0 == ossStrlen( _dataSourceName ) ) )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         // If the user change the name of the data source, the name in this
+         // object needs to be updated.
+         BSONElement nameEle = options.getField( FIELD_NAME_NAME ) ;
+         if ( !nameEle.eoo() )
+         {
+            if ( String != nameEle.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+            newName = nameEle.valuestr() ;
+            if ( 0 == ossStrlen( newName ) )
+            {
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+         }
+
+         bob.append( FIELD_NAME_NAME, _dataSourceName ) ;
+         rc = _appendOptions( bob, options ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         newObj = bob.obj() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_ALTER_DATASOURCE,
+                                     &newObj ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      if ( newName && ( 0 != ossStrcmp( _dataSourceName, newName ) ) )
+      {
+         ossStrncpy( _dataSourceName, newName, CLIENT_DATASOURCE_NAMESZ ) ;
+         _dataSourceName[ ossStrlen(newName) ] = '\0' ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    /*
     * sdbImpl
     * SequoiaDB Connection Implementation
@@ -7307,6 +7987,7 @@ do                                                            \
       _errorBufSize = 0 ;
       _pResultBuf = NULL ;
       _resultBufSize = 0 ;
+      ossMemset ( _address, 0, sizeof(_address) ) ;
 
       initHashTable( &_tb ) ;
       // get current time
@@ -7378,6 +8059,12 @@ do                                                            \
       {
          ((_sdbSequenceImpl*)(*it))->_dropConnection () ;
       }
+      // release data sources
+      copySet = _dataSources ;
+      for ( it = copySet.begin(); it != copySet.end(); ++it )
+      {
+         ((_sdbDataSourceImpl*)(*it))->_dropConnection() ;
+      }
       if ( NULL != _tb )
       {
          releaseHashTable( &_tb ) ;
@@ -7427,6 +8114,7 @@ do                                                            \
                               UINT16 port )
    {
       INT32 rc = SDB_OK ;
+
       if ( _sock )
       {
          _disconnect () ;
@@ -7539,6 +8227,13 @@ do                                                            \
       unlock () ;
    }
 
+   void _sdbImpl::_regDataSource( _sdbDataSourceImpl *dataSource )
+   {
+      lock() ;
+      _dataSources.insert( (ossValuePtr)dataSource ) ;
+      unlock() ;
+   }
+
    void _sdbImpl::_unregCursor ( _sdbCursorImpl *cursor )
    {
       lock () ;
@@ -7593,6 +8288,13 @@ do                                                            \
       lock () ;
       _lobs.erase ( (ossValuePtr)lob ) ;
       unlock () ;
+   }
+
+   void _sdbImpl::_unregDataSource( _sdbDataSourceImpl *dataSource )
+   {
+      lock() ;
+      _dataSources.erase( (ossValuePtr)dataSource ) ;
+      unlock() ;
    }
 
    void _sdbImpl::_unregSequence ( _sdbSequenceImpl *sequence )
@@ -8119,13 +8821,6 @@ do                                                            \
          pPW = pPasswd ;
       }
 
-      if ( CLIENT_USER_NAME_SZ < ossStrlen( pUN ) ||
-           CLIENT_USER_PASSWORD_SZ < ossStrlen( pPW ) )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
       rc = _connect( pHostName, port ) ;
       if ( SDB_OK != rc )
       {
@@ -8189,13 +8884,11 @@ do                                                            \
          goto error ;
       }
 
-   ossStrncpy( this->_userName, pUN,
-                sizeof( this->_userName ) - 1 ) ;
-   ossStrncpy( this->_passwd, pPW,
-                sizeof( this->_passwd ) - 1 ) ;
-   this->_userName[ CLIENT_USER_NAME_SZ ] ='\0' ;
-   this->_passwd[ CLIENT_USER_PASSWORD_SZ ] ='\0' ;
-
+      ossStrncpy ( _hostName, pHostName, OSS_MAX_HOSTNAME ) ;
+      ossItoa( port, _serviceName, OSS_MAX_SERVICENAME ) ;
+      ossStrcpy ( _address, _hostName ) ;
+      ossStrncat ( _address, NODE_NAME_SERVICE_SEP, 1 ) ;
+      ossStrncat ( _address, _serviceName, OSS_MAX_SERVICENAME ) ;
 
    done :
       return rc ;
@@ -8599,16 +9292,39 @@ do                                                            \
       case SDB_SNAP_INDEXSTATS :
          p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_INDEXSTATS ;
          break ;
+      case SDB_SNAP_TASKS :
+         p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TASKS ;
+         break ;
+      case SDB_SNAP_INDEXES :
+         p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_INDEXES ;
+         break ;
+      case SDB_SNAP_TRANSWAITS :
+         p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSWAITS ;
+         break ;
+      case SDB_SNAP_TRANSDEADLOCK :
+         p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSDEADLOCK ;
+         break ;
       default :
          rc = SDB_INVALIDARG ;
          goto error ;
       }
 
       rc = _runCommand( p, &condition, &selector, &orderBy, &hint,
-                        0, 0, numToSkip, numToReturn, result ) ;
+                        FLG_QUERY_WITH_RETURNDATA, 0, numToSkip, numToReturn,
+                        result ) ;
       if ( rc )
       {
          goto error ;
+      }
+
+      // check return cursor
+      if ( NULL == *result )
+      {
+         rc = _buildEmptyCursor( result ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
       }
 
    done :
@@ -8702,17 +9418,30 @@ do                                                            \
       case SDB_LIST_BACKUPS:
          p = CMD_ADMIN_PREFIX CMD_NAME_LIST_BACKUPS ;
          break ;
+      case SDB_LIST_DATASOURCES:
+         p = CMD_ADMIN_PREFIX CMD_NAME_LIST_DATASOURCES ;
+         break ;
       default :
          rc = SDB_INVALIDARG ;
          goto error ;
       }
 
       rc = _runCommand( p, &condition, &selector, &orderBy, &hint,
-                        0, 0, numToSkip, numToReturn,
+                        FLG_QUERY_WITH_RETURNDATA, 0, numToSkip, numToReturn,
                         result ) ;
       if ( rc )
       {
          goto error ;
+      }
+
+      // check return cursor
+      if ( NULL == *result )
+      {
+         rc = _buildEmptyCursor( result ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
       }
 
    done :
@@ -8857,7 +9586,7 @@ do                                                            \
       _sock->quickAck() ;
 
       ossEndianConvertIf4 ( length, realLen, _endianConvert ) ;
-      if ( realLen < sizeof(MsgOpReply) )
+      if ( (UINT32)realLen < sizeof(MsgOpReply) )
       {
          rc = SDB_NET_BROKEN_MSG ;
          goto error ;
@@ -8912,6 +9641,11 @@ do                                                            \
          *pHasRecv = FALSE ;
       }
 
+      _pErrorBuf = NULL ;
+      _errorBufSize = 0 ;
+      _pResultBuf = NULL ;
+      _resultBufSize = 0 ;
+
       rc = _recv ( ppBuffer, size ) ;
       if ( rc )
       {
@@ -8937,10 +9671,6 @@ do                                                            \
          *pRemoteErr = TRUE ;
       }
 
-      _pErrorBuf = NULL ;
-      _errorBufSize = 0 ;
-      _pResultBuf = NULL ;
-      _resultBufSize = 0 ;
       if ( SDB_OK != replyFlag && SDB_DMS_EOC != replyFlag )
       {
          INT32 dataOff     = 0 ;
@@ -10164,7 +10894,7 @@ do                                                            \
                                const bson::BSONObj &condition,
                                const bson::BSONObj &selector,
                                const bson::BSONObj &orderBy,
-                               const bson::BSONObj &hint)
+                               const bson::BSONObj &hint )
 
    {
       return getList ( cursor, SDB_LIST_TASKS, condition, selector, orderBy ) ;
@@ -11402,10 +12132,217 @@ do                                                            \
       goto done ;
    }
 
+   INT32 _sdbImpl::createDataSource( _sdbDataSource **dataSource,
+                                     const CHAR *pDataSourceName,
+                                     const CHAR *addresses,
+                                     const CHAR *user,
+                                     const CHAR *password,
+                                     const CHAR *type,
+                                     const bson::BSONObj *options )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj newObj ;
+
+      if ( !pDataSourceName || !*pDataSourceName || !addresses ||
+           ( user && !password ) )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         BSONObjBuilder bob ;
+         bob.append( FIELD_NAME_NAME, pDataSourceName ) ;
+         bob.append( FIELD_NAME_ADDRESS, addresses ) ;
+         if ( user )
+         {
+            CHAR md5[ SDB_MD5_VALUE_BUF_LEN ] = { 0 } ;
+            bob.append( FIELD_NAME_USER, user ) ;
+            rc = md5Encrypt( password, md5, SDB_MD5_VALUE_BUF_LEN ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+            bob.append( FIELD_NAME_PASSWD, md5 ) ;
+         }
+         if ( type )
+         {
+            bob.append( FIELD_NAME_TYPE, type ) ;
+         }
+         if ( options )
+         {
+            bob.appendElementsUnique( *options ) ;
+         }
+         newObj = bob.obj() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _runCommand( CMD_ADMIN_PREFIX CMD_NAME_CREATE_DATASOURCE, &newObj ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      if ( dataSource && *dataSource )
+      {
+         delete *dataSource ;
+         *dataSource = NULL ;
+      }
+
+      if ( dataSource )
+      {
+         *dataSource = ( _sdbDataSource *)( new(std::nothrow) sdbDataSourceImpl() ) ;
+         if ( !*dataSource )
+         {
+            rc = SDB_OOM ;
+            goto error ;
+         }
+         ((sdbDataSourceImpl*)*dataSource)->_setConnection( this ) ;
+         ((sdbDataSourceImpl*)*dataSource)->_setName( pDataSourceName ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbImpl::dropDataSource(const CHAR *pDataSourceName)
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj obj ;
+      BSONObjBuilder builder ;
+
+      if ( !pDataSourceName ||
+           ossStrlen( pDataSourceName ) > CLIENT_COLLECTION_NAMESZ )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         builder.append( FIELD_NAME_NAME, pDataSourceName ) ;
+         obj = builder.obj() ;
+      }
+      catch ( std::exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _runCommand( CMD_ADMIN_PREFIX CMD_NAME_DROP_DATASOURCE, &obj ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbImpl::getDataSource( const CHAR *pDataSourceName,
+                                  _sdbDataSource **dataSource )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj condition ;
+      BSONObjBuilder ob ;
+      BSONObj result ;
+      sdbCursor cursor ;
+
+      if ( !pDataSourceName ||
+           ossStrlen( pDataSourceName) > CLIENT_DATASOURCE_NAMESZ ||
+           !dataSource )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         ob.append( FIELD_NAME_NAME, pDataSourceName ) ;
+         condition = ob.done() ;
+      }
+      catch( const std::exception& )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+      rc = getList( &cursor.pCursor, SDB_LIST_DATASOURCES, condition ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      rc = cursor.next( result ) ;
+      if ( SDB_OK == rc )
+      {
+         *dataSource = (_sdbDataSource*)( new(std::nothrow) sdbDataSourceImpl() ) ;
+         if ( !(*dataSource) )
+         {
+            rc = SDB_OOM ;
+            goto error ;
+         }
+         ((sdbDataSourceImpl*)*dataSource)->_setConnection( this ) ;
+         ((sdbDataSourceImpl*)*dataSource)->_setName( pDataSourceName ) ;
+      }
+      else if ( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_CAT_DATASOURCE_NOTEXIST ;
+         goto error ;
+      }
+      else
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbImpl::listDataSources( _sdbCursor **cursor,
+                                    const BSONObj &condition,
+                                    const BSONObj &selector,
+                                    const BSONObj &orderBy,
+                                    const BSONObj &hint )
+   {
+      return getList( cursor, SDB_LIST_DATASOURCES,
+                      condition, selector, orderBy, hint ) ;
+   }
+
    INT32 _sdbImpl::restoreToTime( const BSONObj &options )
    {
       return _runCommand ( CMD_ADMIN_PREFIX CMD_NAME_RESTORE_TO_TIME,
                            &options ) ;
+   }
+
+   INT32 _sdbImpl::restoreCheck( BSONObj &result, const BSONObj &options )
+   {
+      INT32 rc = SDB_OK ;
+      sdbCursor cursor;
+      if ((rc = _runCommand(CMD_ADMIN_PREFIX CMD_NAME_RESTORE_CHECK, &options,
+                            NULL, NULL, NULL, 0, 0, 0, -1, &cursor.pCursor)))
+      {
+         return rc;
+      }
+      if ((rc = cursor.next(result)))
+      {
+         if (SDB_DMS_EOC != rc)
+         {
+            return rc;
+         }
+         rc = SDB_OK;
+      }
+      // cursor is cleaned up in ~sdbCursor
+      return rc;
    }
 
    INT32 _sdbImpl::restoreAbort( const BSONObj &options )

@@ -63,103 +63,103 @@ v2.0 及以上版本
 
 1. 查看 SessionID 为 22 的会话快照
 
-   ```lang-javascript
-   > db.snapshot(SDB_SNAP_SESSIONS,{"SessionID":22})
-   {
-     "NodeName": "sdbserver:31820",
-     "SessionID": 22,
-     "TID": 11076,
-     "Status": "Waiting",
-     "IsBlocked": false,
-     "Type": "ShardAgent",
-     "Name": "Type:Shard,NetID:1,R-TID:12930,R-IP:192.168.20.53,R-Port:11810",
-     "Doing": "",
-     "Source": "",
-     "QueueSize": 0,
-     "ProcessEventCount": 32,
-     "RelatedID": "c0a814352e2200003282",
-     "Contexts": [
-         200
-     ],
-     "TotalDataRead": 27577,
-     "TotalIndexRead": 0,
-     "TotalDataWrite": 0,
-     "TotalIndexWrite": 0,
-     "TotalUpdate": 0,
-     "TotalDelete": 0,
-     "TotalInsert": 0,
-     "TotalSelect": 27577,
-     "TotalRead": 27577,
-     "TotalReadTime": 0,
-     "TotalWriteTime": 0,
-     "ReadTimeSpent": 0,
-     "WriteTimeSpent": 0,
-     "ConnectTimestamp": "2019-06-20-13.55.52.646730",
-     "ResetTimestamp": "2019-06-20-13.55.52.646730",
-     "LastOpType": "GETMORE",
-     "LastOpBegin": "--",
-     "LastOpEnd": "2019-06-20-14.20.22.223637",
-     "LastOpInfo": "ContextID:200, NumToRead:-1",
-     "UserCPU": 0.38,
-     "SysCPU": 0.29
-   }
-   ```
+    ```lang-javascript
+    > db.snapshot(SDB_SNAP_SESSIONS,{"SessionID":22})
+    {
+      "NodeName": "sdbserver:31820",
+      "SessionID": 22,
+      "TID": 11076,
+      "Status": "Waiting",
+      "IsBlocked": false,
+      "Type": "ShardAgent",
+      "Name": "Type:Shard,NetID:1,R-TID:12930,R-IP:192.168.20.53,R-Port:11810",
+      "Doing": "",
+      "Source": "",
+      "QueueSize": 0,
+      "ProcessEventCount": 32,
+      "RelatedID": "c0a814352e2200003282",
+      "Contexts": [
+          200
+      ],
+      "TotalDataRead": 27577,
+      "TotalIndexRead": 0,
+      "TotalDataWrite": 0,
+      "TotalIndexWrite": 0,
+      "TotalUpdate": 0,
+      "TotalDelete": 0,
+      "TotalInsert": 0,
+      "TotalSelect": 27577,
+      "TotalRead": 27577,
+      "TotalReadTime": 0,
+      "TotalWriteTime": 0,
+      "ReadTimeSpent": 0,
+      "WriteTimeSpent": 0,
+      "ConnectTimestamp": "2019-06-20-13.55.52.646730",
+      "ResetTimestamp": "2019-06-20-13.55.52.646730",
+      "LastOpType": "GETMORE",
+      "LastOpBegin": "--",
+      "LastOpEnd": "2019-06-20-14.20.22.223637",
+      "LastOpInfo": "ContextID:200, NumToRead:-1",
+      "UserCPU": 0.38,
+      "SysCPU": 0.29
+    }
+    ```
   
 2. 重置快照
 
-   ```lang-javascript
-   > db.resetSnapshot({Type:"sessions",SessionID:22})
-   ```
+    ```lang-javascript
+    > db.resetSnapshot({Type:"sessions",SessionID:22})
+    ```
 
 3. 查看重置后的会话快照
   
-   ```lang-javascript
-   > db.snapshot(SDB_SNAP_SESSIONS,{"SessionID":22})
-   {
-     "NodeName": "sdbserver:31820",
-     "SessionID": 22,
-     "TID": 11076,
-     "Status": "Waiting",
-     "IsBlocked": false,
-     "Type": "ShardAgent",
-     "Name": "Type:Shard,NetID:1,R-TID:12930,R-IP:192.168.20.53,R-Port:11810",
-     "Doing": "",
-     "Source": "",
-     "QueueSize": 0,
-     "ProcessEventCount": 32,
-     "RelatedID": "c0a814352e2200003282",
-     "Contexts": [
-         200
-     ],
-     "TotalDataRead": 0,
-     "TotalIndexRead": 0,
-     "TotalDataWrite": 0,
-     "TotalIndexWrite": 0,
-     "TotalUpdate": 0,
-     "TotalDelete": 0,
-     "TotalInsert": 0,
-     "TotalSelect": 0,
-     "TotalRead": 0,
-     "TotalReadTime": 0,
-     "TotalWriteTime": 0,
-     "ReadTimeSpent": 0,
-     "WriteTimeSpent": 0,
-     "ConnectTimestamp": "2019-06-20-13.55.52.646730",
-     "ResetTimestamp": "2019-06-20-14.23.42.059988",
-     "LastOpType": "UNKNOW",
-     "LastOpBegin": "--",
-     "LastOpEnd": "--",
-     "LastOpInfo": "",
-     "UserCPU": 0.38,
-     "SysCPU": 0.3
-   }
-   ```
+    ```lang-javascript
+    > db.snapshot(SDB_SNAP_SESSIONS,{"SessionID":22})
+    {
+      "NodeName": "sdbserver:31820",
+      "SessionID": 22,
+      "TID": 11076,
+      "Status": "Waiting",
+      "IsBlocked": false,
+      "Type": "ShardAgent",
+      "Name": "Type:Shard,NetID:1,R-TID:12930,R-IP:192.168.20.53,R-Port:11810",
+      "Doing": "",
+      "Source": "",
+      "QueueSize": 0,
+      "ProcessEventCount": 32,
+      "RelatedID": "c0a814352e2200003282",
+      "Contexts": [
+          200
+      ],
+      "TotalDataRead": 0,
+      "TotalIndexRead": 0,
+      "TotalDataWrite": 0,
+      "TotalIndexWrite": 0,
+      "TotalUpdate": 0,
+      "TotalDelete": 0,
+      "TotalInsert": 0,
+      "TotalSelect": 0,
+      "TotalRead": 0,
+      "TotalReadTime": 0,
+      "TotalWriteTime": 0,
+      "ReadTimeSpent": 0,
+      "WriteTimeSpent": 0,
+      "ConnectTimestamp": "2019-06-20-13.55.52.646730",
+      "ResetTimestamp": "2019-06-20-14.23.42.059988",
+      "LastOpType": "UNKNOW",
+      "LastOpBegin": "--",
+      "LastOpEnd": "--",
+      "LastOpInfo": "",
+      "UserCPU": 0.38,
+      "SysCPU": 0.3
+    }
+    ```
 
 
 [^_^]:
     本文使用的所有引用及链接
 [location]:manual/Manual/Sequoiadb_Command/location.md
-[snapshot]:manual/Manual/Snapshot/snapshot.md
+[snapshot]:manual/Manual/Snapshot/Readme.md
 [SDB_SNAP_SESSIONS]:manual/Manual/Snapshot/SDB_SNAP_SESSIONS.md
 [SDB_SNAP_SESSIONS_CURRENT]:manual/Manual/Snapshot/SDB_SNAP_SESSIONS_CURRENT.md
 [SDB_SNAP_DATABASE]:manual/Manual/Snapshot/SDB_SNAP_DATABASE.md
@@ -168,4 +168,4 @@ v2.0 及以上版本
 [getLastErrObj]:manual/Manual/Sequoiadb_Command/Global/getLastErrObj.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[faq]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md

@@ -138,7 +138,7 @@ public class FullSyncAndDataOrMetadataOper22430 extends SdbTestBase {
             try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
                 DBCollection cl = db.getCollectionSpace( csNames[ 0 ] )
-                        .getCollection( clNameBase + 1 );
+                        .getCollection( clNameBase + 0 );
 
                 for ( BSONObject obj: insertor ){
                     obj.removeField("_id") ;
@@ -166,7 +166,7 @@ public class FullSyncAndDataOrMetadataOper22430 extends SdbTestBase {
             try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
                 DBCollection cl = db.getCollectionSpace( csNames[ 0 ] )
-                        .getCollection( clNameForIdx );
+                        .getCollection( clNameBase + 2 );
                 for ( int i = 0; i < 10; i++ ) {
                     String indexName = "idx";
                     cl.createIndex( indexName, new BasicBSONObject( "a", 1 ),

@@ -162,7 +162,7 @@ static INT32 buildSdbAuthMsg( const CHAR *username,
         NULL == combineNonceBase64 ||
         NULL == saltBase64         ||
         NULL == identify           ||
-        UTIL_AUTH_SCRAMSHA_COMBINE_NONCE_LEN != ossStrlen( combineNonceBase64 ) )
+        0 == ossStrlen( combineNonceBase64 ) )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
@@ -485,7 +485,7 @@ INT32 utilAuthCaculateClientProof( const CHAR *originalPassword,
         NULL == combineNonceBase64 ||
         NULL == identify ||
         UTIL_AUTH_SCRAMSHA256_SALT_BASE64_LEN != ossStrlen(saltBase64) ||
-        UTIL_AUTH_SCRAMSHA_COMBINE_NONCE_LEN  != ossStrlen(combineNonceBase64) )
+        0 == ossStrlen(combineNonceBase64) )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
@@ -618,7 +618,7 @@ INT32 utilAuthCaculateServerProof( const CHAR *username,
         NULL == identify ||
         NULL == serverKeyBase64 ||
         UTIL_AUTH_SCRAMSHA256_SALT_BASE64_LEN != ossStrlen(saltBase64) ||
-        UTIL_AUTH_SCRAMSHA_COMBINE_NONCE_LEN != ossStrlen(combineNonceBase64) ||
+        0 == ossStrlen(combineNonceBase64) ||
         UTIL_AUTH_SCRAMSHA256_HASH_BASE64_SIZE != ossStrlen(serverKeyBase64) )
    {
       rc = SDB_INVALIDARG ;
@@ -876,7 +876,7 @@ INT32 utilAuthVerifyClientProof( const CHAR *clientProofBase64,
         NULL == storedKeyBase64 ||
         UTIL_AUTH_SCRAMSHA256_HASH_BASE64_SIZE != ossStrlen(clientProofBase64) ||
         UTIL_AUTH_SCRAMSHA256_SALT_BASE64_LEN != ossStrlen(saltBase64) ||
-        UTIL_AUTH_SCRAMSHA_COMBINE_NONCE_LEN != ossStrlen(combineNonceBase64) ||
+        0 == ossStrlen(combineNonceBase64) ||
         UTIL_AUTH_SCRAMSHA256_HASH_BASE64_SIZE != ossStrlen(storedKeyBase64) )
    {
       rc = SDB_INVALIDARG ;
@@ -1117,7 +1117,7 @@ INT32 utilAuthVerifyServerProof( const CHAR *serverProofBase64,
         NULL == serverKeyBase64 ||
         UTIL_AUTH_SCRAMSHA256_HASH_BASE64_SIZE != ossStrlen(serverProofBase64) ||
         UTIL_AUTH_SCRAMSHA256_SALT_BASE64_LEN != ossStrlen(saltBase64) ||
-        UTIL_AUTH_SCRAMSHA_COMBINE_NONCE_LEN != ossStrlen(combineNonceBase64) ||
+        0 == ossStrlen(combineNonceBase64) ||
         UTIL_AUTH_SCRAMSHA256_HASH_BASE64_SIZE != ossStrlen(serverKeyBase64) )
    {
       rc = SDB_INVALIDARG ;

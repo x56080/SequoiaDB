@@ -127,7 +127,7 @@ namespace engine
                goto done ;
             }
             {
-            ossPoolString fieldName = itr->value.attr().toFieldName() ;
+            const ossPoolString &fieldName = itr->value.attr().toFieldName() ;
             BSONElement ele = src.getFieldDotted( fieldName.c_str() ) ;
             if ( ele.eoo() )
             {

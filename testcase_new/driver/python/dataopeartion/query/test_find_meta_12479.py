@@ -51,7 +51,7 @@ class TestFind12479(testlib.SdbTestBase):
          try:
             self.cl.insert({"a": i, "b": "test" + str(i)})
          except SDBError as e:
-            self.fail('insert fail: ' + e.detail)
+            self.fail('insert fail: ' + str(e))
 			
    def create_index(self, index, index_name):
       try:
@@ -61,7 +61,7 @@ class TestFind12479(testlib.SdbTestBase):
          print ('create index success')
 
       except SDBBaseError as e:
-         self.fail('create index fail: ' + e.detail)
+         self.fail('create index fail: ' + str(e))
 
    def query_meta_with_kwargs(self, expectResult, **kwargs):
       try:		
@@ -70,7 +70,7 @@ class TestFind12479(testlib.SdbTestBase):
          actResult = rec.next()
          self.check_query_result(actResult, expectResult)
       except SDBBaseError as e:
-         self.fail('query meta fail: ' + e.detail)
+         self.fail('query meta fail: ' + str(e))
 			
    def check_query_result(self, actResult, expectResult):
       if not(expectResult['IndexName'] is None):

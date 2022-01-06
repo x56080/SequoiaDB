@@ -1,4 +1,4 @@
-﻿//@ sourceURL=Deploy.Index.Storage.Ctrl.js
+//@ sourceURL=Deploy.Index.Storage.Ctrl.js
 //"use strict" ;
 (function(){
    var sacApp = window.SdbSacManagerModule ;
@@ -286,7 +286,7 @@
             } ;
             $scope.InstallModule['config']['inputList'][0]['value'] = SdbSwap.generateModuleName( 'SequoiaDB' ) ;
             $.each( SdbSwap.moduleType, function( index, typeInfo ){
-               if( typeInfo['BusinessType'] == 'sequoiasql-mysql' || typeInfo['BusinessType'] == 'sequoiasql-postgresql' )
+               if( typeInfo['BusinessType'] == 'sequoiasql-mysql' || typeInfo['BusinessType'] == 'sequoiasql-postgresql' || typeInfo['BusinessType'] == 'sequoiasql-mariadb' )
                {
                   return true ;
                }

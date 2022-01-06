@@ -38,6 +38,8 @@ public class SdbTestBase {
     protected static String coordUrl;
     protected static String hostName;
     protected static String serviceName;
+    public static String dsHostName;
+    public static String dsServiceName;
     protected static String csName;
     protected static int reservedPortBegin;
     protected static int reservedPortEnd;
@@ -70,7 +72,11 @@ public class SdbTestBase {
     public static final String RRAUTO = "rrauto";
     public static final String MVCCON = "mvccon";
     public static final String GLOBTRANSON = "globtranson";
+    public static final String TRANSMAXLOCKMUN = "transmaxlocknum";
+    public static final String LOCKESCALATION = "lockEscalation";
     public static final String TRANSREPLSIZE = "transreplsize";
+    public static final String TRANSALLOWLOCKESCALATION = "transallowlockescalation";
+    public static final String TRANSMAXLOCKNUM = "transmaxlocknum";
 
     private static ConfigOptions options = new ConfigOptions();
     public static String testGroup = null;
@@ -156,6 +162,7 @@ public class SdbTestBase {
         group2Conf.get( RR ).put( MVCCON, true );
         group2Conf.get( RR ).put( GLOBTRANSON, true );
         group2Conf.get( RR ).put( TRANSREPLSIZE, transReplsize );
+        group2Conf.get( RR ).put( TRANSMAXLOCKMUN, -1 );
 
         group2Conf.put( RRAUTO, new BasicBSONObject() );
         group2Conf.get( RRAUTO ).put( TRANSISOLATION, 3 );
@@ -168,6 +175,20 @@ public class SdbTestBase {
         group2Conf.get( RRAUTO ).put( MVCCON, true );
         group2Conf.get( RRAUTO ).put( GLOBTRANSON, true );
         group2Conf.get( RRAUTO ).put( TRANSREPLSIZE, transReplsize );
+
+        group2Conf.put( LOCKESCALATION, new BasicBSONObject() );
+        group2Conf.get( LOCKESCALATION ).put( TRANSISOLATION, 2 );
+        group2Conf.get( LOCKESCALATION ).put( TRANSLOCKWAIT, false );
+        group2Conf.get( LOCKESCALATION ).put( INDEXSCANSTEP, newIndexScanStep );
+        group2Conf.get( LOCKESCALATION ).put( TRANSTIMEOUT, 2 );
+        group2Conf.get( LOCKESCALATION ).put( TRANSAUTOCOMMIT, false );
+        group2Conf.get( LOCKESCALATION ).put( TRANSAUTOROLLBACK, true );
+        group2Conf.get( LOCKESCALATION ).put( TRANSUSERBS, true );
+        group2Conf.get( LOCKESCALATION ).put( TRANSREPLSIZE, transReplsize );
+        group2Conf.get( LOCKESCALATION ).put( TRANSALLOWLOCKESCALATION, true );
+        group2Conf.get( LOCKESCALATION ).put( TRANSMAXLOCKNUM, 10 );
+        group2Conf.get( LOCKESCALATION ).put( MVCCON, true );
+        group2Conf.get( LOCKESCALATION ).put( GLOBTRANSON, true );
 
         for ( String key : group2Conf.keySet() ) {
             group2Count.put( key, new AtomicInteger( 0 ) );
@@ -213,7 +234,8 @@ public class SdbTestBase {
 
     @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN",
             "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "CONFTOOL",
-            "ENABLETRANSACTION", "ESHOSTNAME", "ESSVCNAME", "FULLTEXTPREFIX" })
+            "ENABLETRANSACTION", "ESHOSTNAME", "ESSVCNAME", "FULLTEXTPREFIX",
+            "DSHOSTNAME", "DSSVCNAME" })
     @BeforeSuite(alwaysRun = true)
     public static void initSuite( String HOSTNAME, String SVCNAME,
             String COMMCSNAME, int RSRVPORTBEGIN, int RSRVPORTEND,
@@ -221,7 +243,9 @@ public class SdbTestBase {
             @Optional("false") String ENABLETRANSACTION,
             @Optional("localhost") String ESHOSTNAME,
             @Optional("9200") String ESSVCNAME,
-            @Optional("") String FULLTEXTPREFIX ) {
+            @Optional("") String FULLTEXTPREFIX,
+            @Optional("localhost") String DSHOSTNAME,
+            @Optional("11810") String DSSVCNAME ) {
         System.out.println( "initSuite....." );
         hostName = HOSTNAME;
         serviceName = SVCNAME;
@@ -237,6 +261,8 @@ public class SdbTestBase {
         confToolScript = CONFTOOL;
         enableTransaction = ENABLETRANSACTION;
         FullTextUtils.setFulltextPrefix( FULLTEXTPREFIX );
+        dsHostName = DSHOSTNAME;
+        dsServiceName = DSSVCNAME;
 
         try {
             if ( enableTransaction.equals( "true" ) ) {
@@ -340,14 +366,15 @@ public class SdbTestBase {
         }
     }
 
+
     @BeforeTest(groups = { RU, RC, RCWAITLOCK, RS, RCAUTO, RCUSERBS, RR,
-            RRAUTO })
+            RRAUTO, LOCKESCALATION })
     public static synchronized void initTestGroups()
             throws UnknownHostException {
         if ( testGroup == null )
             return;
         System.out.println( "init " + testGroup + " Groups..........." );
-        if ( testGroup.equals( RR ) || testGroup.equals( RRAUTO ) ) {
+        if ( testGroup.equals( RR ) || testGroup.equals( RRAUTO ) || testGroup.equals( LOCKESCALATION ) ) {
             try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "",
                     options )) {
                 Object coordGlobTransConfig = null;
@@ -389,7 +416,7 @@ public class SdbTestBase {
     }
 
     @AfterTest(groups = { RC, RU, RCWAITLOCK, RS, RCAUTO, RCUSERBS, RR,
-            RRAUTO }, alwaysRun = true)
+            RRAUTO, LOCKESCALATION }, alwaysRun = true)
     public static synchronized void finiTestGroups() {
         if ( testGroup == null )
             return;

@@ -35,6 +35,13 @@
                      keyList.push( newKey ) ;
                   }
                }
+               else if( typeof( value['$decimal'] ) == 'string' )
+               {
+                  if( $.inArray( newKey, keyList ) == -1 )
+                  {
+                     keyList.push( newKey ) ;
+                  }
+               }
                else if( typeof( value['$timestamp'] ) == 'string' )
                {
                   if( $.inArray( newKey, keyList ) == -1 )
@@ -234,6 +241,10 @@
                   else if( typeof( value['$binary'] ) == 'string' && typeof( value['$type'] ) == 'string' )
                   {
                      return value['$binary'] ;
+                  }
+                  else if( typeof( value['$decimal'] ) == 'string' )
+                  {
+                      return value['$decimal'] ;
                   }
                   else if( typeof( value['$timestamp'] ) == 'string' )
                   {

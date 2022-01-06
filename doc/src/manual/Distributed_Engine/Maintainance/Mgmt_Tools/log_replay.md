@@ -1,17 +1,11 @@
 [^_^]:
     日志重放工具
-    作者：赵育
-    时间：20190603
-    评审意见
-    王涛：20190308
-    许建辉：
-    市场部：20190812
     
 
-sdbreplay 是 SequoiaDB 巨杉数据库的日志重放工具。在复制组内，主节点上的写操作会记录到同步日志中，备节点通过同步日志实现与主节点的数据同步。同步日志循环使用磁盘上的日志文件，新产生的日志会覆盖旧的日志，同步日志只能保存最近的部分日志。通过开启[日志归档][log_archive]，可以持续归档数据节点的同步日志，归档日志不会被覆盖。通过重新执行在其它集群或节点的日志重放工具，用户可以实现不同集群间的数据同步。
+sdbreplay 是 SequoiaDB 巨杉数据库的日志重放工具，用于重放已经[归档][log_archive]的同步日志。用户可以在其他集群或节点重复执行日志重放工具，以实现不同集群间的数据同步。
 
-基本功能
-----
+##基本功能##
+
 日志重放工具主要功能如下:
 
 - 读取日志并在 SequoiaDB 巨杉数据库上执行重放
@@ -27,7 +21,7 @@ sdbreplay 是 SequoiaDB 巨杉数据库的日志重放工具。在复制组内�
 | insert     | 插入数据     |
 | update     | 更新数据     |
 | delete     | 删除数据     |
-| truncatecl | truncate集合 |
+| truncatecl | truncate 集合 |
 
 >**Note:**
 >
@@ -41,8 +35,7 @@ sdbreplay 是 SequoiaDB 巨杉数据库的日志重放工具。在复制组内�
 >- 复制日志是幂等的，同一条日志多次重放结果不变
 >- 归档重放过程中，如果在集合上执行 split 操作，通过协调节点重放到同一个集群时可能会丢失数据。因为 split 的源复制组在数据迁移到目标复制组后会删除本地相应数据，并生成删除日志；而目标复制组接收数据后生成插入日志。如果目标复制组的归档日志先被重放而后源复制组的归档日志才被重放，那么迁移的那部分数据重放时先插入后被删除，导致数据丢失。此时可以通过再次重放目标复制组的归档日志来重新插入丢失的数据
 
-参数说明
-----
+##参数说明##
 
 | 参数名        | 缩写 | 描述 |
 | ----          | ---- | ---- |
@@ -59,11 +52,11 @@ sdbreplay 是 SequoiaDB 巨杉数据库的日志重放工具。在复制组内�
 | --path        |      | 归档目录，可以是文件或目录，必填    |
 | --outputconf  |      | 用于配置回放工具的输出规则，当设置 --hostname 时该参数无效，该参数详细说明可参考 [outputconf说明][outputconf]                                                      |
 | --filter      |      | 过滤条件                            |
-| --dump        |      | 导出日志后是否重放，默认值为 false，不重放 |
-| --dumpheader  |      | 导出归档文件头后是否重放，默认值为 false，不重放                                                                     |
-| --delete      |      | 是否删除已完成重放的归档日志文件，默认值为 false，不删除归档文件；如果设置为 true，则只删除完整的归档文件             |
+| --dump        |      | 是否打印归档日志信息，默认值为 false，取值如下：<br>true：只打印日志信息，不执行重放操作<br>false：执行重放操作，不打印日志信息|
+| --dumpheader  |      | 是否打印归档日志元数据的头信息，默认值为 false，取值如下：<br>true：只打印日志元数据的头信息，不执行重放操作<br>false：执行重放操作，不打印日志元数据的头信息|
+| --delete      |      | 是否删除已完成重放的完整归档日志文件，默认值为 false，取值如下：<br>true：删除 <br>false：不删除            |
 | --watch       |      | 是否持续监控归档目录并重放日志，设置 --path 为目录时该参数有效，默认值为 false，不持续监控                             |
-| --daemon      |      | 是否在后台运行，默认值为 false，不在后台运行；如果设置为 true，执行 `kill -15 <pid>` 可以使后台进程正确退出              |
+| --daemon      |      | 是否在后台运行，默认值为 false，取值如下：<br>true：在后台运行，执行 `kill -15 <pid>` 可以使后台进程正确退出<br>false：不在后台运行              |
 | --status      |      | 指定状态文件，状态文件会存储重放的状态信息，首次指定时重放工具会生成该文件；重放工具退出后，通过指定状态文件可以从上次退出的地方继续重放 |
 | --intervalnum |      | 状态文件持久化间隔记录数，每回放 intervalnum 条记录持久化一次状态文件，默认值为 1000 |
 | --type        |      | 指定日志类型，默认值为“archive” <br> “archive”：归档日志<br>“replica”：复制日志 |
@@ -83,7 +76,7 @@ sdbreplay 是 SequoiaDB 巨杉数据库的日志重放工具。在复制组内�
 | CL       | array[string] | 指定重放的集合，集合名的格式为"集合空间.集合名"，默认为全部 |
 | ExclCL   | array[string] | 指定排除的集合，优先级高于CL                     |
 
-## outputconf说明 ##
+##outputconf 说明##
 
 outputconf 是以 json 格式表示的，用于设置输出格式的配置文件，其具体参数有：
 
@@ -174,8 +167,7 @@ $cat SDB_db1_1000_dbName_tableName_0000000001_384_201904291212.csv
 >
 > 第三、四条为更新操作，更新前记录为：{"_id": {"$oid": "5cac3850da342dfe37a40eee"}, "a": "a1", "b": "b1111"}，更新后操作为：{"_id": {"$oid": "5cac3850da342dfe37a40eee"}, "a": "a1", "b": "b22"}
 
-示例
-----
+##示例##
 
 - 指定归档目录下的 `archivelog.1` 日志文件进行重放
 
@@ -185,7 +177,7 @@ $cat SDB_db1_1000_dbName_tableName_0000000001_384_201904291212.csv
 - 指定归档目录并过滤集合 sample.employee 的 insert 和 update 操作进行重放
 
    ```lang-bash
-   $./sdbreplay --hostname sdbserver1 --svcname 11810 --path /data/archivelog --filter '{ "CL": [ "sample.employee" ], "OP": ["insert"，"update"] }'
+   $./sdbreplay --hostname sdbserver1 --svcname 11810 --path /data/archivelog --filter '{ "CL": [ "sample.employee" ], "OP": ["insert","update"] }'
    ```
    
 - 在后台持续监控归档目录并重放归档日志文件，同时记录状态

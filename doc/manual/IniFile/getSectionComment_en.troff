@@ -64,7 +64,7 @@ Open an INI file.
 .IP
 .nf
 \f[C]
->\ var\ ini\ =\ new\ IniFile(\ "/opt/sequoiadb/file.ini",\ SDB_INIFILE_FLAGS_DEFAULT\ )
+> var ini = new IniFile( "/opt/sequoiadb/file.ini", SDB_INIFILE_FLAGS_DEFAULT )
 \f[]
 .fi
 .IP \[bu] 2
@@ -72,7 +72,7 @@ Get the comment for the specified section.
 .IP
 .nf
 \f[C]
->\ ini.getSectionComment(\ "info"\ )
-personal\ information
+> ini.getSectionComment( "info" )
+personal information
 \f[]
 .fi

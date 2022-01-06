@@ -28,17 +28,17 @@ when exception happen, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
 For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
-.IP \[bu] 2
+.PP
 Acquire basic CPU information
 .IP
 .nf
 \f[C]
->\ System.snapshotCpuInfo()
+> System.snapshotCpuInfo()
 {
-\ \ "User":\ 47223380,
-\ \ "Sys":\ 46662920,
-\ \ "Idle":\ 3513293040,
-\ \ "Other":\ 3023840
+  "User": 47223380,
+  "Sys": 46662920,
+  "Idle": 3513293040,
+  "Other": 3023840
 }
 \f[]
 .fi

@@ -101,7 +101,7 @@ namespace engine
          if ( cb->waitEvent( event, OSS_ONE_SEC, TRUE ) )
          {
             /// update trans should here
-            cb->updateTransConf() ;
+            cb->updateConf() ;
             /// reset again to avoid set interrupt self
             if ( !cb->isDisconnected() )
             {

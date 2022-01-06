@@ -106,35 +106,35 @@ err_exit( rs, 'Failed to compile Java driver!' )
 
 #compile fdw
 if os_type == LINUX:
-   fdw_code_path = os.path.join( code_path, 'driver', 'postgresql' )
-   rs = run_in_dir( 'make clean', fdw_code_path )
-   err_exit( rs, 'Failed to compile fdw in make clean')
-   rs = run_in_dir( 'make local', fdw_code_path )
-   err_exit( rs, 'Failed to compile fdw in make local')
-   rs = run_in_dir( 'make all',   fdw_code_path )
-   err_exit( rs, 'Failed to compile fdw in make all')
+   rs = os.system( "pg_config --version" )
+   if rs == 0:
+      fdw_code_path = os.path.join( code_path, 'driver', 'postgresql' )
+      rs = run_in_dir( 'make clean', fdw_code_path )
+      err_exit( rs, 'Failed to compile fdw in make clean')
+      rs = run_in_dir( 'make local', fdw_code_path )
+      err_exit( rs, 'Failed to compile fdw in make local')
+      rs = run_in_dir( 'make all',   fdw_code_path )
+      err_exit( rs, 'Failed to compile fdw in make all')
+   else:
+      print("Warning: unable to find postgresql, so skip fdw compilation!")
 
 #compile php
 php_code_path = os.path.join( code_path, 'driver', 'php' )
 build_php_cmd_common = build_cmd_pre + ' --phpversion='
 php_ver_file_path = ''
-if os_type == WINDOWS or os_type == 'Microsoft':
-   php_ver_file_path = os.path.join( php_code_path, 'php_ver_win.list' )
-elif os_type == LINUX:
+if os_type == LINUX:
    php_ver_file_path = os.path.join( php_code_path, 'php_ver_linux.list' )
-else:
-   err_exit( 1, 'The platform is not supported!' )
-php_ver_file_obj = open( php_ver_file_path )
-try:
-   while 1:
-      line = php_ver_file_obj.readline()
-      if not line:
-         break
-      build_php_cmd = build_php_cmd_common + line
-      rs = run_in_dir( build_php_cmd, php_code_path )
-      err_exit( rs, 'Failed to compile PHP driver!' )
-finally:
-   php_ver_file_obj.close()
+   php_ver_file_obj = open( php_ver_file_path )
+   try:
+      while 1:
+         line = php_ver_file_obj.readline()
+         if not line:
+            break
+         build_php_cmd = build_php_cmd_common + line
+         rs = run_in_dir( build_php_cmd, php_code_path )
+         err_exit( rs, 'Failed to compile PHP driver!' )
+   finally:
+      php_ver_file_obj.close()
 
 #compile python
 build_python_cmd = build_cmd_pre
@@ -149,6 +149,8 @@ if rs == 0:
    python_code_path = os.path.join( code_path, 'driver', 'python' )
    rs = run_in_dir( build_python_cmd, python_code_path )
    err_exit( rs, 'Failed to compile python3 driver!')
+else:
+   print("Warning: python3 command not found, so skip python3 compilation!")
 
 #compile C# driver
 if os_type == WINDOWS:

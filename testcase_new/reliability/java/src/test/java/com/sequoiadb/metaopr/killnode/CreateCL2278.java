@@ -1,7 +1,6 @@
 package com.sequoiadb.metaopr.killnode;
 
-import java.util.Date;
-
+import com.sequoiadb.metaopr.Utils;
 import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
@@ -19,9 +18,7 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.fault.KillNode;
 import com.sequoiadb.metaopr.commons.MyUtil;
-import com.sequoiadb.metaopr.diskfull.Utils;
 import com.sequoiadb.task.FaultMakeTask;
-import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
 import com.sequoiadb.datasync.CreateCLTask;
 
@@ -76,7 +73,7 @@ public class CreateCL2278 extends SdbTestBase {
             FaultMakeTask faultTask = KillNode.getFaultMakeTask(
                     priNode.hostName(), priNode.svcName(), 0 );
             TaskMgr mgr = new TaskMgr( faultTask );
-            CreateCLTask cTask = new CreateCLTask(clNameBase, CL_NUM);
+            CreateCLTask cTask = new CreateCLTask( clNameBase, CL_NUM );
             mgr.addTask( cTask );
             mgr.execute();
             Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
@@ -96,7 +93,7 @@ public class CreateCL2278 extends SdbTestBase {
 
             Utils.checkConsistency( groupMgr );
             runSuccess = true;
-        } catch ( ReliabilityException e ) {
+        } catch ( ReliabilityException | InterruptedException e ) {
             e.printStackTrace();
             Assert.fail( e.getMessage() );
         } finally {

@@ -50,7 +50,7 @@ class TestListTasks12504(testlib.SdbTestBase):
       try:
          self.cl.bulk_insert(0, doc)
       except SDBBaseError as e:   
-         self.fail('insert fail: ' + e.detail)    
+         self.fail('insert fail: ' + str(e))
       
    def get_list_tasks(self):
       act_result = None
@@ -59,7 +59,7 @@ class TestListTasks12504(testlib.SdbTestBase):
          # get result
          act_result = self.get_actual_result(cursor)
       except SDBBaseError as e:
-         self.fail('get list tasks fail: ' + e.detail)
+         self.fail('get list tasks fail: ' + str(e))
       return act_result   
             
    def get_actual_result(self,cursor):

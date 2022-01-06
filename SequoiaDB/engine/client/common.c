@@ -315,7 +315,7 @@ INT32 hash_table_create_node( const CHAR *key, htbNode **node )
 {
    INT32 rc = SDB_OK ;
    CHAR *ptr =  NULL ;
-
+   *node = NULL ;
    if ( NULL == key )
    {
       goto done ;
@@ -329,6 +329,8 @@ INT32 hash_table_create_node( const CHAR *key, htbNode **node )
    }
 
    *node = ( htbNode *)ptr ;
+   ossMemset ( *node, 0, sizeof( htbNode ) ) ;
+   ptr = NULL ;
 
    ptr = ( CHAR * )SDB_OSS_MALLOC( ossStrlen( key ) + 1 ) ;
    if ( NULL == ptr )
@@ -342,13 +344,14 @@ INT32 hash_table_create_node( const CHAR *key, htbNode **node )
 done:
    return rc ;
 error:
-   if ( NULL != (*node)->name )
-   {
-      SDB_OSS_FREE( (*node)->name ) ;
-      (*node)->name = NULL ;
-   }
+   
    if ( NULL != *node )
    {
+      if ( NULL != (*node)->name )
+      {
+         SDB_OSS_FREE( (*node)->name ) ;
+         (*node)->name = NULL ;
+      }
       SDB_OSS_FREE( *node ) ;
       *node = NULL ;
    }
@@ -434,7 +437,7 @@ INT32 hash_table_remove( hashTable *tb, const CHAR *key, BOOLEAN dropCS )
       {
          htbNode *toFree = tb->node[ locate ] ;
          if ( NULL == tb->node[ locate ]->name ||
-              0 == ossStrncmp( toFree->name, key, ossStrlen( key ) ) )
+              0 == ossStrcmp( toFree->name, key ) )
          {
             hash_table_destroy_node( &toFree ) ;
             tb->node[ locate ] = NULL ;
@@ -482,7 +485,7 @@ INT32 hash_table_fetch( hashTable *tb, const CHAR *key, htbNode **node )
 
    if (   NULL != tb->node[ locate ] &&
         ( NULL != tb->node[ locate ]->name &&
-          0 == ossStrncmp( tb->node[ locate ]->name, key, strlen( key ) ) ) )
+          0 == ossStrcmp( tb->node[ locate ]->name, key ) ) )
    {
       *node = tb->node[ locate ] ;
    }
@@ -1507,6 +1510,159 @@ endian_convert_done :
       bson_destroy ( &newselector ) ;
       bson_destroy ( &neworderby ) ;
       bson_destroy ( &newhint ) ;
+
+      if ( rc )
+      {
+         goto error ;
+      }
+   }
+   // sanity test
+   if ( offset != packetLength )
+   {
+      ossPrintf ( "Invalid packet length"OSS_NEWLINE ) ;
+      rc = SDB_SYS ;
+      goto error ;
+   }
+done :
+   return rc ;
+error :
+   goto done ;
+}
+
+INT32 clientBuildAdvanceMsg( CHAR **ppBuffer, INT32 *bufferSize,
+                             INT64 contextID, UINT64 reqID,
+                             const bson *option,
+                             const CHAR *pBackData,
+                             INT32 backDataSize,
+                             BOOLEAN endianConvert )
+{
+   bson emptyObj ;
+   INT32 packetLength   = 0 ;
+   INT32 rc             = SDB_OK ;
+   MsgOpAdvance *pAdvance = NULL ;
+   INT32 offset         = 0 ;
+
+   bson_init ( &emptyObj ) ;
+   bson_empty ( &emptyObj ) ;
+
+   if ( !option )
+   {
+      option = &emptyObj ;
+   }
+
+   packetLength = ossRoundUpToMultipleX( sizeof( MsgOpAdvance ), 4 ) +
+                  ossRoundUpToMultipleX( bson_size(option), 4 ) +
+                  ossRoundUpToMultipleX( backDataSize, 4 ) ;
+
+   if ( backDataSize < 0 )
+   {
+      ossPrintf ( "Back data size invalid"OSS_NEWLINE ) ;
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+   else if ( packetLength < 0 )
+   {
+      ossPrintf ( "Packet size overflow"OSS_NEWLINE ) ;
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+   rc = clientCheckBuffer ( ppBuffer, bufferSize, packetLength ) ;
+   if ( rc )
+   {
+      ossPrintf ( "Failed to check buffer, rc = %d"OSS_NEWLINE, rc ) ;
+      goto error ;
+   }
+   // now the buffer is large enough
+   pAdvance                      = (MsgOpAdvance*)(*ppBuffer) ;
+   ossEndianConvertIf ( contextID, pAdvance->contextID, endianConvert ) ;
+   ossEndianConvertIf ( backDataSize, pAdvance->backDataSize, endianConvert ) ;
+   ossMemset( pAdvance->padding, 0, sizeof(pAdvance->padding) ) ;
+
+   pAdvance->header.requestID    = reqID ;
+   pAdvance->header.opCode       = MSG_BS_ADVANCE_REQ ;
+   pAdvance->header.messageLength= packetLength ;
+   pAdvance->header.routeID.value= 0 ;
+   pAdvance->header.TID          = ossGetCurrentThreadID() ;
+
+   // get the offset of the bson obj
+   offset = ossRoundUpToMultipleX( sizeof( MsgOpAdvance ), 4 ) ;
+
+   if( !endianConvert )
+   {
+      ossMemcpy ( &((*ppBuffer)[offset]), bson_data(option),
+                                          bson_size(option) );
+      offset += ossRoundUpToMultipleX( bson_size(option), 4 ) ;
+
+      /// copy the back data
+      if ( backDataSize > 0 )
+      {
+         ossMemcpy( &((*ppBuffer)[offset]), pBackData, backDataSize ) ;
+         offset += ossRoundUpToMultipleX( backDataSize, 4 ) ;
+      }
+   }
+   else
+   {
+      bson newoption ;
+      bson backdata ;
+      INT32 backdataSz = 0 ;
+      INT32 backDataOffset = 0 ;
+
+      off_t off = 0 ;
+      clientEndianConvertHeader ( &pAdvance->header ) ;
+      bson_init ( &newoption ) ;
+      bson_init ( &backdata ) ;
+
+      rc = bson_copy ( &newoption, option ) ;
+      if ( rc )
+      {
+         rc = SDB_INVALIDARG ;
+         goto endian_convert_done ;
+      }
+
+      off = 0 ;
+      if ( !bson_endian_convert ( (char*)bson_data(&newoption), &off, TRUE ) )
+      {
+         rc = SDB_INVALIDARG ;
+         goto endian_convert_done ;
+      }
+
+      ossMemcpy ( &((*ppBuffer)[offset]), bson_data(&newoption),
+                  bson_size(&newoption));
+      offset += ossRoundUpToMultipleX( bson_size(option), 4 ) ;
+
+      /// copy the back data
+      if ( backDataSize > 0 )
+      {
+         while ( backDataOffset < backDataSize )
+         {
+            bson_init_finished_data ( &backdata, &pBackData[backDataOffset] ) ;
+            off = 0 ;
+            backdataSz = bson_size( &backdata ) ;
+
+            if ( !bson_endian_convert( (char*)bson_data(&backdata), &off, TRUE ) )
+            {
+               rc = SDB_INVALIDARG ;
+               goto endian_convert_done ;
+            }
+
+            backDataOffset += ossRoundUpToMultipleX( backdataSz, 4 ) ;
+         }
+
+         if ( backDataOffset != ossRoundUpToMultipleX( backDataSize, 4 ) )
+         {
+            ossPrintf ( "Back data length is invalid"OSS_NEWLINE ) ;
+            rc = SDB_INVALIDARG ;
+            goto endian_convert_done ;
+         }
+
+         ossMemcpy( &((*ppBuffer)[offset]), pBackData, backDataSize ) ;
+         offset += ossRoundUpToMultipleX( backDataSize, 4 ) ;
+      }
+
+
+endian_convert_done :
+      bson_destroy ( &newoption ) ;
+      bson_destroy ( &backdata ) ;
 
       if ( rc )
       {
@@ -2556,6 +2712,29 @@ INT32 clientBuildQueryMsgCpp  ( CHAR **ppBuffer, INT32 *bufferSize,
    bson_destroy ( &bf ) ;
    bson_destroy ( &bo ) ;
    bson_destroy ( &bh ) ;
+   return rc ;
+}
+
+INT32 clientBuildAdvanceMsgCpp( CHAR **ppBuffer, INT32 *bufferSize,
+                                INT64 contextID, UINT64 reqID,
+                                const CHAR *option,
+                                const CHAR *pBackData,
+                                INT32 backDataSize,
+                                BOOLEAN endianConvert )
+{
+   INT32 rc = SDB_OK ;
+   bson bo ;
+   bson_init ( &bo ) ;
+   if ( option )
+   {
+      bson_init_finished_data ( &bo, option ) ;
+   }
+
+   rc = clientBuildAdvanceMsg( ppBuffer, bufferSize, contextID, reqID,
+                               &bo, pBackData, backDataSize,
+                               endianConvert ) ;
+   bson_destroy ( &bo ) ;
+
    return rc ;
 }
 

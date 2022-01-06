@@ -39,6 +39,8 @@ final class AdminCommand {
     final static String GET_INDEXES = PREFIX + "get indexes";
     final static String CREATE_INDEX = PREFIX + "create index";
     final static String DROP_INDEX = PREFIX + "drop index";
+    final static String COPY_INDEX = PREFIX + "copy index";
+    final static String SNAPSHOT_INDEXES = PREFIX + "snapshot indexes";
 
     final static String GET_COUNT = PREFIX + "get count";
     final static String GET_QUERYMETA = PREFIX + "get querymeta";
@@ -60,6 +62,7 @@ final class AdminCommand {
     final static String UPDATE_CONFIG = PREFIX + "update config";
     final static String DELETE_CONFIG = PREFIX + "delete config";
     final static String ANALYZE = PREFIX + "analyze";
+    final static String GET_INDEX_STAT = PREFIX + "get index statistic";
 
     final static String LIST_CONTEXTS = PREFIX + "list contexts";
     final static String LIST_CONTEXTS_CURRENT = PREFIX + "list contexts current";
@@ -78,6 +81,7 @@ final class AdminCommand {
     final static String LIST_SEQUENCES = PREFIX + "list sequences";
     final static String LIST_USERS = PREFIX + "list users";
     final static String LIST_BACKUPS = PREFIX + "list backups";
+    final static String LIST_DATASOURCES = PREFIX + "list datasources";
     final static String LIST_CL_IN_DOMAIN = PREFIX + "list collections in domain";
     final static String LIST_CS_IN_DOMAIN = PREFIX + "list collectionspaces in domain";
 
@@ -101,6 +105,10 @@ final class AdminCommand {
     final static String SNAP_LATCHWAITS  = PREFIX + "snapshot latchwaits";
     final static String SNAP_LOCKWAITS  = PREFIX + "snapshot lockwaits";
     final static String SNAP_INDEXSTATS = PREFIX + "snapshot index statistics";
+    final static String SNAP_TASKS = PREFIX + "snapshot tasks";
+    final static String SNAP_INDEXES = PREFIX + "snapshot indexes";
+    final static String SNAP_TRANSWAITS = PREFIX + "snapshot waiting transactions";
+    final static String SNAP_TRANSDEADLOCK = PREFIX + "snapshot transaction deadlocks";
 
     final static String RESET_SNAPSHOT = PREFIX + "snapshot reset";
 
@@ -131,6 +139,15 @@ final class AdminCommand {
     final static String SHUTDOWN_NODE = PREFIX + "shutdown node";
     final static String CREATE_NODE = PREFIX + "create node";
     final static String REMOVE_NODE = PREFIX + "remove node";
+
+    final static String CREATE_SEQUENCE = PREFIX + "create sequence";
+    final static String DROP_SEQUENCE = PREFIX + "drop sequence";
+    final static String ALTER_SEQUENCE = PREFIX + "alter sequence";
+    final static String GET_SEQ_CURR_VAL = PREFIX + "get sequence current value";
+
+    final static String CREATE_DATASOURCE = PREFIX + "create datasource";
+    final static String DROP_DATASOURCE = PREFIX + "drop datasource";
+    final static String ALTER_DATASOURCE = PREFIX + "alter datasource";
 
     final static String INVALIDATE_CACHE = PREFIX + "invalidate cache";
 }

@@ -64,7 +64,7 @@ Connect to the host using ssh.
 .IP
 .nf
 \f[C]
->\ var\ ssh\ =\ new\ Ssh(\ "192.168.20.71",\ "sdbadmin",\ "sdbadmin",\ 22\ )
+> var ssh = new Ssh( "192.168.20.71", "sdbadmin", "sdbadmin", 22 )
 \f[]
 .fi
 .IP \[bu] 2
@@ -72,7 +72,7 @@ Execute the command.
 .IP
 .nf
 \f[C]
->\ ssh.run(\ "ls\ /opt/sequoiadb/file"\ )
+> ssh.run( "ls /opt/sequoiadb/file" )
 file1
 file2
 file3

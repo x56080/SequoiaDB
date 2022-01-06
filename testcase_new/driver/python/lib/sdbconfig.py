@@ -27,6 +27,12 @@ class SdbConfig(object):
       self.work_dir = configs['WORKDIR']
       #失败是否停止用例开关
       self.break_on_failure = configs['BREAK_ON_FAILURE']
+      #加密文件的字符串
+      self.passwd = configs['PASSWORD']
+      #使用token加密令牌生成的密码文件的字符串
+      self.passwd_token = configs['PASSWORDTOKEN']
+      #使用的token令牌
+      self.token = configs['TOKEN']
 
       fp.close()
 

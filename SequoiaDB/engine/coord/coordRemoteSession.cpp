@@ -248,7 +248,7 @@ namespace engine
 
    void _coordSessionPropSite::_updateTransConf( const _dpsTransConfItem *pTransConf )
    {
-      _pEDUCB->getTransExecutor()->updateByMask( *pTransConf ) ;
+      _pEDUCB->updateTransConfByMask( *pTransConf ) ;
    }
 
    void _coordSessionPropSite::_updateSource( const CHAR *pSource )
@@ -693,7 +693,7 @@ namespace engine
          PD_LOG( PDDEBUG, "Select node: %s", routeID2String( nodeID ).c_str() ) ;
          goto done ;
       }
-      else if ( _primary )
+      else if ( _primary && !SDB_IS_DSID( groupID ) )
       {
          rc = _selPrimaryBegin( nodeID ) ;
       }
@@ -872,7 +872,8 @@ namespace engine
 
       pos = 0 ;
 
-      if ( instanceOption.hasCommonInstance() )
+      if ( !SDB_IS_DSID( pGroupItem->groupID() ) &&
+           instanceOption.hasCommonInstance() )
       {
          const VEC_NODE_INFO * nodes = pGroupItem->getNodes() ;
          SDB_ASSERT( NULL != nodes, "node list is invalid" ) ;
@@ -893,7 +894,8 @@ namespace engine
             selected = TRUE ;
          }
       }
-      else if ( instanceOption.isSlavePreferred() )
+      else if ( SDB_IS_DSID( pGroupItem->groupID() ) ||
+                instanceOption.isSlavePreferred() )
       {
          const VEC_NODE_INFO * nodes = pGroupItem->getNodes() ;
          SDB_ASSERT( NULL != nodes, "node list is invalid" ) ;
@@ -1589,6 +1591,7 @@ namespace engine
                               BOOLEAN isRoot )
    {
       INT32 rc = SDB_OK ;
+
       _pResource = pResource ;
 
       if ( !forceUpdate )
@@ -1847,6 +1850,7 @@ namespace engine
             CoordGroupList::iterator subGrpItr ;
             _coordCataSel subSel ;
 
+            // Some collections may be using the same data source.
             rc = subSel.bind( _pResource, (*iterCL).c_str(), cb ) ;
             if ( rc )
             {
@@ -2029,14 +2033,25 @@ namespace engine
             }
          }
       }
-      // [SDB_COORD_REMOTE_DISC] can't use in write command,
-      // because when some insert/update opr do partibal,
-      // if retry, data will repeat. The code can't update status,
-      // because it maybe occured in long time ago
-      else if ( ( isReadCmd && SDB_COORD_REMOTE_DISC == flag ) ||
-                SDB_CLS_NODE_NOT_ENOUGH == flag )
+      else if ( SDB_CLS_NODE_NOT_ENOUGH == flag )
       {
          /// do nothing
+      }
+      else if ( SDB_COORD_REMOTE_DISC == flag )
+      {
+         // [SDB_COORD_REMOTE_DISC] can't use in write command,
+         // because when some insert/update opr do partibal,
+         // if retry, data will repeat. The code can't update status,
+         // because it maybe occured in long time ago
+         if ( !isReadCmd )
+         {
+            bRetry = FALSE ;
+         }
+         if( groupPtr.get() )
+         {
+            groupPtr->updateNodeStat( nodeID.columns.nodeID,
+                                      netResult2Status( flag ) ) ;
+         }
       }
       else if ( SDB_CLS_FULL_SYNC == flag ||
                 SDB_RTN_IN_REBUILD == flag ||
@@ -2195,6 +2210,9 @@ namespace engine
 
       _pSession->setUserData( (UINT64)this ) ;
 
+      // check if has events which requires immediate response in the session
+      _pSite->checkImmediateRespEvents( pHandle ) ;
+
    done:
       return rc ;
    error:
@@ -2347,6 +2365,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       pmdSubSession *pSub = NULL ;
       MsgRouteID nodeID ;
+      MsgRouteID oldNodeID ;
 
       rc = _groupSel.selBegin( groupID, nodeID ) ;
       if ( rc )
@@ -2388,15 +2407,39 @@ namespace engine
             _groupSel.selDone() ;
             break ;
          }
-         /// remove the sub node
-         _pSession->delSubSession( nodeID.value ) ;
+
+         /// save old node id
+         oldNodeID.value = nodeID.value ;
          /// update node stat
          _groupSel.updateStat( nodeID, rc ) ;
+
          /// get next node
-         if ( SDB_OK != ( rc = _groupSel.selNext( nodeID ) ) )
+         /// when all node failed, need to check error filter out
+         if ( pSub->canSwitchOtherNode( rc ) )
          {
-            goto error ;
+            rc = _groupSel.selNext( nodeID ) ;
          }
+         if ( rc )
+         {
+            /// when ignore the error, sub session is null,
+            /// can't be set to ppSub
+            if ( !ppSub && pSub->canErrFilterOut( rc ) )
+            {
+               rc = SDB_OK ;
+            }
+
+            /// remove the old node
+            _pSession->delSubSession( oldNodeID.value ) ;
+
+            if ( rc )
+            {
+               goto error ;
+            }
+            break ;
+         }
+
+         /// remove the old node
+         _pSession->delSubSession( oldNodeID.value ) ;
       }
 
    done:

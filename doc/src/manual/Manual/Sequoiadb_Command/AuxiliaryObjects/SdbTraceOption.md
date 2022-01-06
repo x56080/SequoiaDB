@@ -22,9 +22,9 @@
 
  | 参数名       | 参数类型        | 默认值   | 描述     | 是否必填 |
  | ------------ | --------------- | -------- | -------- | -------- |
- | conponent    | string / array  | 所有模块 | 指定模块 | 否       |
+ | component    | string / array  | 所有模块 | 指定模块 | 否       |
 
- conponent 参数的可选值如下表：
+ component 参数的可选值如下表：
 
  | 可选值 | 描述                      | 
  | ------ | ------------------------- | 
@@ -177,5 +177,5 @@
     本文使用的所有引用和链接
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[general_guide]:manual/faq.md
+[general_guide]:manual/FAQ/faq_sdb.md
 [edu]:manual/Distributed_Engine/Architecture/Thread_Model/edu.md

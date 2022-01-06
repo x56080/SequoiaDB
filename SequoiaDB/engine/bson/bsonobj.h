@@ -301,6 +301,9 @@ namespace bson {
         /** @return subobject of the given name */
         BSONObj getObjectField(const char *name) const;
 
+        /** @return subobject of the given name */
+        BSONObj getObjectField( const StringData &name ) const ;
+
         /** @return INT_MIN if not present - does some type conversions */
         int getIntField(const char *name) const;
 

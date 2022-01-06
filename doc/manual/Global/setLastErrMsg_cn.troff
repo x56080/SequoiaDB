@@ -35,12 +35,12 @@ v2.6及以上版本。
 修改前一次操作的详细错误信息。
 .nf
 \f[C]
->\ db\ =\ new\ Sdb()
-(nofile):0\ uncaught\ exception:\ \-15
->\ var\ err\ =\ getLastErrMsg()
->\ err\ =\ Date()\ +\ ":\ "\ +\ err
-Wed\ May\ 24\ 2017\ 12:44:44\ GMT+0800\ (CST):\ Network\ error
->\ setLastErrMsg(\ err\ )\ ;
+> db = new Sdb()
+(nofile):0 uncaught exception: \-15
+> var err = getLastErrMsg()
+> err = Date() + ": " + err
+Wed May 24 2017 12:44:44 GMT+0800 (CST): Network error
+> setLastErrMsg( err ) ;
 \f[]
 .fi
 .RE

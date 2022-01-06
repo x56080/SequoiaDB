@@ -7,7 +7,7 @@
 getOmaInstallFile \- 获取安装信息文件。
 .SH 语法
 .PP
-\f[B]Oma.getOmaInstallFile()\f[]
+\f[B]oma.getOmaInstallFile()\f[]
 .SH 类别
 .PP
 Oma
@@ -33,7 +33,7 @@ v1.0及以上版本。
 获取安装信息文件。
 .nf
 \f[C]
->\ Oma.getOmaInstallFile()
+> Oma.getOmaInstallFile()
 /etc/default/sequoiadb
 \f[]
 .fi

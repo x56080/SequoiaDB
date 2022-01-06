@@ -40,4 +40,6 @@ public interface IConnection {
     byte[] receive(int length) throws BaseException;
 
     void receive(byte[] buf, int off, int length) throws BaseException;
+
+    void setSoTimeout(int timeout);
 }

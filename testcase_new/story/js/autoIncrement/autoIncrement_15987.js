@@ -5,7 +5,7 @@
 main( test );
 function test ()
 {
-   var dataGroupNames = commGetDataGroupNames( db);
+   var dataGroupNames = commGetDataGroupNames( db );
    if( commIsStandalone( db ) || dataGroupNames.length < 2 )
    {
       return;
@@ -74,8 +74,8 @@ function test ()
    }
 
    var rc = dbcl.find().sort( { "b": 1, "a": 1 } );
-   var exp = expRecs.sort( compare( "a" ) );
-   checkRec( rc, expRecs.sort( compare( "a" ) ) );
+   expRecs.sort( compare( "a" ) );
+   checkRec( rc, expRecs );
    commDropCL( db, COMMCSNAME, clName );
 }
 

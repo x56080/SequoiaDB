@@ -3,6 +3,7 @@
 @author: 2020-4-9 zhaoxiaoni  Init
 ***************************************************************************** */
 testConf.skipStandAlone = true;
+testConf.skipExistOneNodeGroup = true;
 
 main( test );
 
@@ -68,19 +69,6 @@ function test ()
    checkAccessNodes( cl, expAccessNodes, options );
 
    options = { PreferedInstance: [11, 224, 38, "-a"] };
-   checkAccessNodes( cl, expAccessNodes, options );
-
-   options = { PreferedInstance: [11, 224, 30, "A", "M", "S"] };
-   checkAccessNodes( cl, expAccessNodes, options );
-
-   options = { PreferedInstance: [11, 224, 30, "-A", "-M", "-S"] };
-   checkAccessNodes( cl, expAccessNodes, options );
-
-   expAccessNodes = [group[primaryPos].HostName + ":" + group[primaryPos].svcname];
-   options = { PreferedInstance: [11, 224, 38, "M", "S", "A"] };
-   checkAccessNodes( cl, expAccessNodes, options );
-
-   options = { PreferedInstance: [11, 224, 38, "-M", "-S", "-A"] };
    checkAccessNodes( cl, expAccessNodes, options );
 
    commDropCL( db, COMMCSNAME, clName, false, false );

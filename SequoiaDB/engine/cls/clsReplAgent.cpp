@@ -543,7 +543,8 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__ICLSREPLAGENT__SHRBEAT ) ;
 
-      if ( _info.info.empty() )
+      if ( _info.info.empty() ||
+           ( getDetectDisk() && pmdDBIsAbnormal() ) )
       {
          goto done ;
       }
@@ -874,6 +875,12 @@ namespace engine
       {
          _alive( beat.identity, _isUDPHandle( handle ) ) ;
          MsgClsBeatRes res ;
+
+         if ( getDetectDisk() && pmdDBIsAbnormal() )
+         {
+            goto done ;
+         }
+
          res.header.header.requestID = msg->header.requestID ;
          res.identity = _info.local ;
          _agent->syncSend( handle, &res ) ;

@@ -1,5 +1,6 @@
 package com.sequoias3.object;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -26,6 +27,7 @@ import com.sequoiadb.task.TaskMgr;
 import com.sequoias3.commlibs3.CommLibS3;
 import com.sequoias3.commlibs3.S3TestBase;
 import com.sequoias3.commlibs3.TestTools;
+import com.sequoias3.commlibs3.s3utils.ObjectUtils;
 import com.sequoias3.commlibs3.s3utils.UserUtils;
 
 /**
@@ -43,11 +45,13 @@ public class UpdateObjectWithKillCoord16461 extends S3TestBase {
 
     private String bucketName = "bucket16461";
     private String keyName = "key16461";
-    private List< String > keyNames = new ArrayList<>();
-    private int objectNum = 10;
-    private String objectContent = "object_old";
-    private String objectContentNew = "object_new";
-
+    private List< String > keyNames = new ArrayList< >();
+    private int objectNum = 30;
+    private int fileSize = 1024 * 50;
+    private int updateSize = 1024 * 200;
+    private File localPath = null;
+    private String filePath = null;
+    private String updatePath = null;
     private List< String > updatedObjectList = new CopyOnWriteArrayList< String >();
 
     private GroupMgr groupMgr = null;
@@ -65,9 +69,20 @@ public class UpdateObjectWithKillCoord16461 extends S3TestBase {
         CommLibS3.setBucketVersioning( s3Client, bucketName,
                 BucketVersioningConfiguration.ENABLED );
 
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
+        updatePath = localPath + File.separator + "localFile_" + updateSize
+                + ".txt";
+
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
+        TestTools.LocalFile.createFile( updatePath, updateSize );
         for ( int i = 0; i < objectNum; i++ ) {
             String currentKey = keyName + "_" + i;
-            s3Client.putObject( bucketName, currentKey, objectContent );
+            s3Client.putObject( bucketName, currentKey, new File( filePath ) );
             keyNames.add( currentKey );
         }
     }
@@ -116,7 +131,8 @@ public class UpdateObjectWithKillCoord16461 extends S3TestBase {
             AmazonS3 s3Client = CommLibS3.buildS3Client( accessKeys[ 0 ],
                     accessKeys[ 1 ] );
             try {
-                s3Client.putObject( bucketName, keyName, objectContentNew );
+                s3Client.putObject( bucketName, keyName,
+                        new File( updatePath ) );
                 updatedObjectList.add( keyName );
             } catch ( AmazonServiceException e ) {
                 if ( !e.getErrorCode().equals( "GetDBConnectFail" ) ) {
@@ -139,6 +155,7 @@ public class UpdateObjectWithKillCoord16461 extends S3TestBase {
         for ( String keyName : remainOldObjects ) {
             ObjectMetadata objectMetadata = null;
             try {
+
                 objectMetadata = s3Client.getObjectMetadata( bucketName,
                         keyName );
             } catch ( AmazonServiceException e ) {
@@ -155,40 +172,38 @@ public class UpdateObjectWithKillCoord16461 extends S3TestBase {
             }
         }
         remainOldObjects.removeAll( updatedObjectList );
-
         // update未成功的对象
         for ( String keyName : remainOldObjects ) {
-            s3Client.putObject( bucketName, keyName, objectContentNew );
+            s3Client.putObject( bucketName, keyName, new File( updatePath ) );
         }
 
         // 检查当前版本和历史版本所有对象metadata及lob正确性
         VersionListing versions = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName ) );
         List< S3VersionSummary > objects = versions.getVersionSummaries();
-        Assert.assertEquals( objects.size(), keyNames.size() * 2,
-                "updatedObjectList : " + updatedObjectList.toString()
-                        + "  ,objects=" + printVersionKeys( objects ) );
-        for ( int i = 0; i < objects.size(); i += 2 ) {
+
+        String expCreateFileEtag = TestTools.getMD5( filePath );
+        String expUpdateFileEtag = TestTools.getMD5( updatePath );
+
+        for ( int i = 0; i < objects.size(); i++ ) {
             String key = objects.get( i ).getKey();
-            String expEtag = TestTools.getMD5( objectContentNew.getBytes() );
-            String actEtag = objects.get( i ).getETag();
-            Assert.assertEquals( objects.get( i ).getVersionId(), "1",
-                    "objectName is : " + key );
-            Assert.assertEquals( actEtag, expEtag, "objectName is : " + key );
+            String versionId = objects.get( i ).getVersionId();
+            if ( versionId.equals( "0" ) ) {
+                String actEtag = ObjectUtils.getMd5OfObject( s3Client,
+                        localPath, bucketName, key, versionId );
+                Assert.assertEquals( actEtag, expCreateFileEtag,
+                        "objectName is : " + key + ",version=" + versionId );
+                // 如果异常后重试成功，再次创建对象版本为2
+            } else if ( versionId.equals( "1" ) || versionId.equals( "2" ) ) {
+                String actEtag = ObjectUtils.getMd5OfObject( s3Client,
+                        localPath, bucketName, key, versionId );
+                Assert.assertEquals( actEtag, expUpdateFileEtag,
+                        " objectName is : " + key + ",version=" + versionId );
+            } else {
+                Assert.fail( "versionId is error! id=" + versionId + "---key="
+                        + key );
+            }
 
-            expEtag = TestTools.getMD5( objectContent.getBytes() );
-            actEtag = objects.get( i + 1 ).getETag();
-            Assert.assertEquals( objects.get( i + 1 ).getVersionId(), "0",
-                    "objectName is : " + key );
-            Assert.assertEquals( actEtag, expEtag, "objectName is : " + key );
         }
-    }
-
-    private String printVersionKeys( List< S3VersionSummary > objects ) {
-        String str = "";
-        for ( S3VersionSummary obj : objects ) {
-            str += obj.getKey() + ", ";
-        }
-        return str;
     }
 }

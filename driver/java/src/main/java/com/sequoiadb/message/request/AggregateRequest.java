@@ -74,9 +74,7 @@ public class AggregateRequest extends SdbRequest {
         out.put((byte) 0); // end of string
         int length = clNameBytes.length + 1;
         int paddingLen = Helper.alignedSize(length) - length;
-        if (paddingLen > 0) {
-            out.put(new byte[paddingLen]);
-        }
+        Helper.fillZero(out, paddingLen);
         for (byte[] docBytes : objsBytes) {
             encodeBSONBytes(docBytes, out);
         }

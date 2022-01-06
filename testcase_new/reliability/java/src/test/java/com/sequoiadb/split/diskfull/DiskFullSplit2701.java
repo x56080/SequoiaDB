@@ -1,5 +1,15 @@
 package com.sequoiadb.split.diskfull;
 
+import java.util.List;
+
+import org.bson.BSONObject;
+import org.bson.util.JSON;
+import org.testng.Assert;
+import org.testng.SkipException;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
@@ -13,16 +23,6 @@ import com.sequoiadb.fault.DiskFull;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
-import org.bson.BSONObject;
-import org.bson.util.JSON;
-import org.testng.Assert;
-import org.testng.SkipException;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.util.Date;
-import java.util.List;
 
 /**
  * @FileName:SEQDB-26701 对range分区组进行百分比切分，切分时目标组主节点所在服务器磁盘耗尽
@@ -45,32 +45,36 @@ public class DiskFullSplit2701 extends SdbTestBase {
     @BeforeClass()
     public void setUp() {
         try {
-
             commSdb = new Sequoiadb( coordUrl, "", "" );
+
             groupMgr = GroupMgr.getInstance();
             if ( !groupMgr.checkBusiness( 20 ) ) {
                 throw new SkipException( "checkBusiness return false" );
             }
-            List< GroupWrapper > glist = groupMgr.getAllDataGroup();
 
+            List< GroupWrapper > glist = groupMgr.getAllDataGroup();
             srcGroupName = glist.get( 0 ).getGroupName();
             destGroupName = glist.get( 1 ).getGroupName();
             System.out.println( "split srcRG:" + srcGroupName + " destRG:"
                     + destGroupName );
 
+            // 准备数据
+            if ( commSdb.isCollectionSpaceExist( csName ) ) {
+                commSdb.dropCollectionSpace( csName );
+            }
             CollectionSpace commCS = commSdb.createCollectionSpace( csName );
             DBCollection cl = commCS.createCollection( clName,
                     ( BSONObject ) JSON.parse(
                             "{ShardingKey:{'sk':1},ShardingType:'range',Group:'"
                                     + srcGroupName + "'}" ) );
             insertData( cl, 0, 5000 );
+
             // 调整主机
             fillUpDiskHost = groupMgr.getGroupByName( destGroupName )
                     .getMaster().hostName();
             Utils.reelect( fillUpDiskHost, Utils.CATA_RG_NAME, srcGroupName );
             groupMgr.refresh();
             System.out.println( "fillUpDiskHost:" + fillUpDiskHost );
-
         } catch ( ReliabilityException e ) {
             if ( commSdb != null ) {
                 commSdb.close();
@@ -130,12 +134,31 @@ public class DiskFullSplit2701 extends SdbTestBase {
 
     }
 
-    private long checkGroupData( Sequoiadb sdb, String destGroupName ) {
+    private long checkGroupData( Sequoiadb sdb, String destGroupName )
+            throws ReliabilityException {
         Sequoiadb destDataNode = null;
-        DBCursor cursor = null;
         try {
             destDataNode = sdb.getReplicaGroup( destGroupName ).getMaster()
-                    .connect();// 获得源主节点链接
+                    .connect();
+        } catch ( BaseException e ) {
+            // 受熔断机制影响，前一个用例如果跑的也是磁盘满的场景，可能检查到了NOSPC状态但是还没有到达熔断确认时间
+            // 到下一个用例时，如果也是测试磁盘满的场景，可能会继续检查到熔断NOSPC状态
+            // 如果前后用例加起来的时间刚好到达熔断确认周期，则会触发熔断选主
+            // 当前用例在CI上跑出有受前面磁盘满用例影响导致在当前步骤直连主节点时报-104
+            // 讨论修改方案为：捕获-104，再次检查集群状态通过后再次检查数据正确性
+            if ( e.getErrorCode() == -104 || e.getErrorCode() == -71 ) {
+                if ( !groupMgr.checkBusinessWithLSNAndDisk( 20 ) ) {
+                    throw new ReliabilityException( "再次检查集群状态失败" );
+                }
+                destDataNode = sdb.getReplicaGroup( destGroupName ).getMaster()
+                        .connect();
+            } else {
+                throw e;
+            }
+        }
+
+        DBCursor cursor = null;
+        try {
             DBCollection destCL = destDataNode.getCollectionSpace( csName )
                     .getCollection( clName );
             long recCount = destCL.getCount();
@@ -166,7 +189,6 @@ public class DiskFullSplit2701 extends SdbTestBase {
             if ( commSdb != null ) {
                 commSdb.close();
             }
-
         }
     }
 

@@ -261,7 +261,8 @@ namespace engine
                     "failed, rc: %d", inMsg.opCode(),
                     routeID2String( routeID ).c_str(), rcTmp ) ;
          }
-         else if ( rcTmp && !options.isIgnored( rcTmp ) )
+         else if ( rcTmp && !options.isIgnored( rcTmp ) &&
+                   !pSub->canErrFilterOut( rcTmp ) )
          {
             if ( pCtrl->canRetry( rcTmp, routeID, primaryID,
                                   isReadOnly(), TRUE ) )

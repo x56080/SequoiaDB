@@ -25,14 +25,14 @@ NULL.
 NULL.
 .SH HISTORY
 .PP
-Since v2.6.
+v2.6 and above.
 .SH EXAMPLES
-.IP "1." 3
+.IP \[bu] 2
 Recycle object resources.
+.IP
 .nf
 \f[C]
->\ for\ (var\ i\ =\ 0;\ i\ <\ 10000;\ i++)\ {\ var\ obj\ =\ new\ Object();\ }
->\ forceGC()
+> for (var i = 0; i < 10000; i++) { var obj = new Object(); }
+> forceGC()
 \f[]
 .fi
-.RE

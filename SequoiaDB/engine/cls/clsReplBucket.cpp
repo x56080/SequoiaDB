@@ -305,8 +305,6 @@ namespace engine
       _pendingCLUniqueID = UTIL_UNIQUEID_NULL ;
       _lastIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
       _lastNIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
-
-      resetUnqIdxLSN() ;
    }
 
    _clsBucket::~_clsBucket ()
@@ -462,13 +460,13 @@ namespace engine
                 "Failed to allocate notify queue" ) ;
 
       _lastNewUnqIdxLSN =
-            (DPS_LSN_OFFSET *)( SDB_OSS_MALLOC( sizeof( DPS_LSN_OFFSET * ) *
+            (DPS_LSN_OFFSET *)( SDB_OSS_MALLOC( sizeof( DPS_LSN_OFFSET ) *
                                                 CLS_UNQIDX_HASH_SIZE ) ) ;
       PD_CHECK( NULL != _lastNewUnqIdxLSN, SDB_OOM, error, PDERROR,
                 "Failed allocate array for last LSN for new unique index "
                 "hash values" ) ;
       _lastNewUnqIdxBkt =
-            (INT16 *)( SDB_OSS_MALLOC( sizeof( INT16 * ) *
+            (INT16 *)( SDB_OSS_MALLOC( sizeof( INT16 ) *
                                        CLS_UNQIDX_HASH_SIZE ) ) ;
       PD_CHECK( NULL != _lastNewUnqIdxBkt, SDB_OOM, error, PDERROR,
                 "Failed allocate array for last bucket for new unique index "
@@ -480,7 +478,7 @@ namespace engine
                 "Failed allocate array for last LSN for old unique index "
                 "hash values" ) ;
       _lastOldUnqIdxBkt =
-            (INT16 *)( SDB_OSS_MALLOC( sizeof( INT16 * ) *
+            (INT16 *)( SDB_OSS_MALLOC( sizeof( INT16 ) *
                                        CLS_UNQIDX_HASH_SIZE ) ) ;
       PD_CHECK( NULL != _lastOldUnqIdxBkt, SDB_OOM, error, PDERROR,
                 "Failed allocate array for last bucket for old unique index "
@@ -501,10 +499,7 @@ namespace engine
 
       _pendingCLUniqueID = UTIL_UNIQUEID_NULL ;
 
-      _lastIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
-      _lastNIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
-
-      resetUnqIdxLSN() ;
+      initUnqIdxLSN() ;
 
    done:
       return rc ;
@@ -555,10 +550,7 @@ namespace engine
 
       _pendingCLUniqueID = UTIL_UNIQUEID_NULL ;
 
-      _lastIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
-      _lastNIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
-
-      resetUnqIdxLSN() ;
+      resetUnqIdxLSN( FALSE ) ;
    }
 
    void _clsBucket::close ()
@@ -965,7 +957,9 @@ namespace engine
       }
 
       // parallel replay stopped
-      resetUnqIdxLSN() ;
+      // we are rolling back, LSN will move backwards
+      // so we need to enforce reset index LSNs
+      resetUnqIdxLSN( TRUE ) ;
 
       PD_TRACE_EXITRC( SDB__CLSBUCKET_WAITANDROLLBACK, rc ) ;
       return rc ;
@@ -1619,10 +1613,8 @@ namespace engine
 
    void _clsBucket::clearParallaInfo()
    {
-      resetUnqIdxLSN() ;
+      resetUnqIdxLSN( FALSE ) ;
       _mapParallaInfo.clear() ;
-      _lastIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
-      _lastNIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
    }
 
    INT32 _clsBucket::waitForLSN( DPS_LSN_OFFSET lsn )
@@ -1694,19 +1686,28 @@ namespace engine
       return rc ;
    }
 
-   void _clsBucket::resetUnqIdxLSN()
+   void _clsBucket::initUnqIdxLSN()
    {
-      if ( _lastUnqIdxSize > 0 )
+      for ( UINT32 i = 0 ; i < _lastUnqIdxSize ; ++ i )
       {
-         for ( UINT32 i = 0 ; i < _lastUnqIdxSize ; ++ i )
-         {
-            _lastNewUnqIdxLSN[ i ] = DPS_INVALID_LSN_OFFSET ;
-            _lastNewUnqIdxBkt[ i ] = -1 ;
-            _lastOldUnqIdxLSN[ i ] = DPS_INVALID_LSN_OFFSET ;
-            _lastOldUnqIdxBkt[ i ] = -1 ;
-         }
+         _lastNewUnqIdxLSN[ i ] = DPS_INVALID_LSN_OFFSET ;
+         _lastNewUnqIdxBkt[ i ] = -1 ;
+         _lastOldUnqIdxLSN[ i ] = DPS_INVALID_LSN_OFFSET ;
+         _lastOldUnqIdxBkt[ i ] = -1 ;
       }
+      _lastIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
+      _lastNIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
       _lastExpectLSN = DPS_INVALID_LSN_OFFSET ;
+   }
+
+   void _clsBucket::resetUnqIdxLSN( BOOLEAN isEnforced )
+   {
+      if ( _lastUnqIdxSize > 0 &&
+           ( isEnforced ||
+             DPS_INVALID_LSN_OFFSET != _lastExpectLSN ) )
+      {
+         initUnqIdxLSN() ;
+      }
    }
 
    DPS_LSN_OFFSET _clsBucket::checkUnqIdxWaitLSN(

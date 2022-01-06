@@ -36,11 +36,11 @@ v5.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ stp\ =\ new\ Stp()
->\ stp.getTimeUS()
+> var stp = new Stp()
+> stp.getTimeUS()
 {
-\ \ "TimeStamp":\ 1612365234246145,
-\ \ "TimeError":\ 1000000
+  "TimeStamp": 1612365234246145,
+  "TimeError": 1000000
 }
 \f[]
 .fi

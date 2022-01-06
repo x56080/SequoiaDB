@@ -136,7 +136,7 @@ List all background tasks of the system
 .IP
 .nf
 \f[C]
->\ db.listTasks()
+> db.listTasks()
 \f[]
 .fi
 .RE

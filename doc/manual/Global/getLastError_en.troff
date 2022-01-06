@@ -31,9 +31,9 @@ Since v1.0.
 Get the error code of the last opetation.
 .nf
 \f[C]
->\ db\ =\ new\ Sdb()
-(nofile):0\ uncaught\ exception:\ \-15
->\ getLastError()
+> db = new Sdb()
+(nofile):0 uncaught exception: \-15
+> getLastError()
 \-15
 \f[]
 .fi

@@ -28,23 +28,23 @@ when exception happen, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
 For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
-.IP \[bu] 2
+.PP
 Acquire network card information
 .IP
 .nf
 \f[C]
->\ System.getNetcardInfo()
+> System.getNetcardInfo()
 {
-\ \ "Netcards":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "Name":\ "lo",
-\ \ \ \ \ \ "Ip":\ "127.0.0.1"
-\ \ \ \ },
-\ \ \ \ {
-\ \ \ \ \ \ "Name":\ "ens160",
-\ \ \ \ \ \ "Ip":\ "192.168.20.62"
-\ \ \ \ }
-\ \ ]
+  "Netcards": [
+    {
+      "Name": "lo",
+      "Ip": "127.0.0.1"
+    },
+    {
+      "Name": "ens160",
+      "Ip": "192.168.20.62"
+    }
+  ]
 }
 \f[]
 .fi

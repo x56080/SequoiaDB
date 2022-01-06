@@ -89,7 +89,7 @@ namespace engine
                       CMD_NAME_LIST_COLLECTION_INTR,
                       CMD_LIST_COLLECTIONS,
                       RTN_FETCH_COLLECTION,
-                      0 ) 
+                      0 )
          {}
 
          virtual ~_rtnListCollections () {}
@@ -107,7 +107,7 @@ namespace engine
 
       public:
          _rtnListCollectionsInner () :
-            _rtnListInner( CMD_NAME_LIST_COLLECTION_INTR, 
+            _rtnListInner( CMD_NAME_LIST_COLLECTION_INTR,
                            CMD_LIST_COLLECTIONS,
                            RTN_FETCH_COLLECTION,
                            0 )
@@ -148,13 +148,52 @@ namespace engine
       DECLARE_CMD_AUTO_REGISTER()
 
       public:
-         _rtnListCollectionspacesInner () 
-            : _rtnListInner( CMD_NAME_LIST_SPACE_INTR, 
+         _rtnListCollectionspacesInner ()
+            : _rtnListInner( CMD_NAME_LIST_SPACE_INTR,
                              CMD_LIST_COLLECTIONSPACES,
                              RTN_FETCH_COLLECTIONSPACE,
                              0 )
          {}
          virtual ~_rtnListCollectionspacesInner () {}
+
+      protected:
+         virtual BOOLEAN _isCurrent() const ;
+   } ;
+
+   /*
+      _rtnListIndexes define
+   */
+   class _rtnListIndexes : public _rtnList
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public :
+         _rtnListIndexes()
+            : _rtnList( NAME_LIST_INDEXES,
+                        CMD_NAME_LIST_INDEXES_INTR,
+                        CMD_LIST_INDEXES,
+                        RTN_FETCH_INDEX,
+                        0 )
+         {}
+         virtual ~_rtnListIndexes () {}
+
+      protected:
+         virtual BOOLEAN _isCurrent() const ;
+         virtual BSONObj _getOptObj() const ;
+   } ;
+
+   class _rtnListIndexesInner : public _rtnListInner
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public:
+         _rtnListIndexesInner()
+            : _rtnListInner( CMD_NAME_LIST_INDEXES_INTR,
+                             CMD_LIST_INDEXES,
+                             RTN_FETCH_INDEX,
+                             0 )
+         {}
+         virtual ~_rtnListIndexesInner() {}
 
       protected:
          virtual BOOLEAN _isCurrent() const ;
@@ -168,7 +207,7 @@ namespace engine
       DECLARE_CMD_AUTO_REGISTER()
 
       public:
-         _rtnListContexts () 
+         _rtnListContexts ()
             : _rtnList( NAME_LIST_CONTEXTS,
                         CMD_NAME_LIST_CONTEXT_INTR,
                         CMD_LIST_CONTEXTS,
@@ -190,7 +229,7 @@ namespace engine
       DECLARE_CMD_AUTO_REGISTER()
 
       public:
-         _rtnListContextsInner () 
+         _rtnListContextsInner ()
             : _rtnListInner( CMD_NAME_LIST_CONTEXT_INTR,
                              CMD_LIST_CONTEXTS,
                              RTN_FETCH_CONTEXT,
@@ -211,7 +250,7 @@ namespace engine
       DECLARE_CMD_AUTO_REGISTER()
 
       public:
-         _rtnListContextsCurrent () 
+         _rtnListContextsCurrent ()
             : _rtnList( NAME_LIST_CONTEXTS_CURRENT,
                         CMD_NAME_LIST_CONTEXTCUR_INTR,
                         CMD_LIST_CONTEXTS_CURRENT,
@@ -335,7 +374,7 @@ namespace engine
       DECLARE_CMD_AUTO_REGISTER()
 
       public:
-         _rtnListStorageUnits () 
+         _rtnListStorageUnits ()
             : _rtnList( NAME_LIST_STORAGEUNITS,
                         CMD_NAME_LIST_STORAGEUNIT_INTR,
                         CMD_LIST_STORAGEUNITS,
@@ -376,7 +415,7 @@ namespace engine
       DECLARE_CMD_AUTO_REGISTER () ;
 
       public:
-         _rtnListBackups () 
+         _rtnListBackups ()
             : _rtnList( NAME_LIST_BACKUPS,
                         CMD_NAME_LIST_BACKUP_INTR,
                         CMD_LIST_BACKUPS,
@@ -398,7 +437,7 @@ namespace engine
       DECLARE_CMD_AUTO_REGISTER()
 
       public:
-         _rtnListBackupsInner () 
+         _rtnListBackupsInner ()
             : _rtnListInner( CMD_NAME_LIST_BACKUP_INTR,
                              CMD_LIST_BACKUPS,
                              RTN_FETCH_BACKUP,
@@ -418,7 +457,7 @@ namespace engine
       DECLARE_CMD_AUTO_REGISTER () ;
 
       public:
-         _rtnListTrans () 
+         _rtnListTrans ()
             : _rtnList( CMD_NAME_LIST_TRANSACTIONS,
                         CMD_NAME_LIST_TRANS_INTR,
                         CMD_LIST_TRANS,
@@ -439,7 +478,7 @@ namespace engine
       DECLARE_CMD_AUTO_REGISTER()
 
       public:
-         _rtnListTransInner () 
+         _rtnListTransInner ()
             : _rtnListInner( CMD_NAME_LIST_TRANS_INTR,
                              CMD_LIST_TRANS,
                              RTN_FETCH_TRANS,
@@ -459,7 +498,7 @@ namespace engine
       DECLARE_CMD_AUTO_REGISTER () ;
 
       public:
-         _rtnListTransCurrent () 
+         _rtnListTransCurrent ()
             : _rtnList( CMD_NAME_LIST_TRANSACTIONS_CUR,
                         CMD_NAME_LIST_TRANSCUR_INTR,
                         CMD_LIST_TRANS,
@@ -480,7 +519,7 @@ namespace engine
       DECLARE_CMD_AUTO_REGISTER()
 
       public:
-         _rtnListTransCurrentInner () 
+         _rtnListTransCurrentInner ()
             : _rtnListInner( CMD_NAME_LIST_TRANSCUR_INTR,
                              CMD_LIST_TRANS_CURRENT,
                              RTN_FETCH_TRANS,
@@ -499,7 +538,7 @@ namespace engine
       public:
          _rtnListSvcTasks()
             : _rtnList( CMD_NAME_LIST_SVCTASKS,
-                        CMD_NAME_LIST_SVCTASKS_INTR, 
+                        CMD_NAME_LIST_SVCTASKS_INTR,
                         CMD_LIST_SVCTASKS,
                         RTN_FETCH_SVCTASKS,
                         MON_MASK_NODE_NAME )
@@ -516,7 +555,7 @@ namespace engine
 
       public:
          _rtnListSvcTasksInner()
-            : _rtnListInner( CMD_NAME_LIST_SVCTASKS_INTR, 
+            : _rtnListInner( CMD_NAME_LIST_SVCTASKS_INTR,
                              CMD_LIST_SVCTASKS,
                              RTN_FETCH_SVCTASKS,
                              MON_MASK_NODE_NAME )

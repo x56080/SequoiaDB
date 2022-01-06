@@ -33,8 +33,8 @@ Get a BSONObj.
 .IP
 .nf
 \f[C]
->\ var\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )
->\ var\ bsonObj\ =\ db.foo.bar.find().current()
+> var db = new Sdb( "localhost", 11810 )
+> var bsonObj = db.foo.bar.find().current()
 \f[]
 .fi
 .IP \[bu] 2
@@ -42,7 +42,7 @@ Convert BSONObj to JSON format.
 .IP
 .nf
 \f[C]
->\ bsonObj.toJson()\ 
-{\ "_id":\ {\ "$oid":\ "5d240ab1117b8a87cbfd10eb"\ },\ "age":\ 17,\ "name":\ "tom"\ }
+> bsonObj.toJson() 
+{ "_id": { "$oid": "5d240ab1117b8a87cbfd10eb" }, "age": 17, "name": "tom" }
 \f[]
 .fi

@@ -147,6 +147,7 @@ namespace SequoiaDB
          *  \return The Sequoiadb handle
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
+         *  \deprecated This function is deprecated
          */
         public Sequoiadb Connect()
         {
@@ -155,11 +156,12 @@ namespace SequoiaDB
 
         /** \fn Sequoiadb Connect(string username, string password)
          *  \brief Connect to remote Sequoiadb database node
-         *  \username Sequoiadb connection user name
-         *  \password Sequoiadb connection password
+         *  \param username Sequoiadb connection user name
+         *  \param password Sequoiadb connection password
          *  \return The Sequoiadb handle
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
+         *  \deprecated This function is deprecated
          */
         public Sequoiadb Connect(string username, string password)
         {

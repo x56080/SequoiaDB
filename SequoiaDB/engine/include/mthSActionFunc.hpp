@@ -193,6 +193,26 @@ namespace engine
                        _mthSAction *,
                        bson::BSONElement & ) ;
 
+   INT32 mthStrLenBytesBuild( const CHAR *,
+                              const bson::BSONElement &,
+                              _mthSAction *,
+                              bson::BSONObjBuilder & ) ;
+
+   INT32 mthStrLenBytesGet( const CHAR *,
+                            const bson::BSONElement &,
+                            _mthSAction *,
+                            bson::BSONElement & ) ;
+
+   INT32 mthStrLenCPBuild( const CHAR *,
+                           const bson::BSONElement &,
+                           _mthSAction *,
+                           bson::BSONObjBuilder & ) ;
+
+   INT32 mthStrLenCPGet( const CHAR *,
+                         const bson::BSONElement &,
+                         _mthSAction *,
+                         bson::BSONElement & ) ;
+
    INT32 mthLowerBuild( const CHAR *,
                         const bson::BSONElement &,
                         _mthSAction *,

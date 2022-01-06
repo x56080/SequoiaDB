@@ -62,7 +62,7 @@ namespace engine
                                      pmdEDUCB *cb,
                                      BOOLEAN onPrimary,
                                      SET_RC *pIgnoreRC = NULL,
-                                     rtnContextCoord **ppContext = NULL,
+                                     rtnContextCoord::sharePtr *ppContext = NULL,
                                      rtnContextBuf *buf = NULL ) ;
 
          INT32         executeOnOm ( MsgHeader *pMsg,

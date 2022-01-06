@@ -551,6 +551,7 @@ namespace engine
          UINT64            _curOffset ;
          UINT32            _curSequence ;
          INT32             _replStatus ;
+         BOOLEAN           _blockSync ;
          BOOLEAN           _hasRegBackup ;
 
          CHAR              *_pExtentBuff ;
@@ -655,7 +656,13 @@ namespace engine
 
          BOOLEAN                       _skipConf ;
          BOOLEAN                       _isDoRestoring ;
+         BOOLEAN                       _isGlobal ;
 
+      public:
+         void ignoreConsistency()
+         {
+            _isGlobal = FALSE ;
+         }
    } ;
    typedef _barRSBaseLogger barRSBaseLogger ;
 

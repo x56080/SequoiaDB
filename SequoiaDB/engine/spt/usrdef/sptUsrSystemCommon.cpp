@@ -684,28 +684,20 @@ namespace engine
       {
          PD_LOG( PDERROR, "failed to exec cmd, rc:%d, exit:%d",
                  rc, exitCode ) ;
-         if ( SDB_OK == rc )
-         {
-            rc = SDB_SYS ;
-         }
-         stringstream ss ;
-         ss << "failed to exec cmd \" " << CPU_CMD << "\",rc:"
-            << rc
-            << ",exit:"
-            << exitCode ;
-         err = ss.str() ;
-         goto error ;
+         rc = SDB_OK ;
       }
-
-      rc = runner.read( outStr ) ;
-      if ( SDB_OK != rc )
+      else 
       {
-         PD_LOG( PDERROR, "failed to read msg from cmd runner:%d", rc ) ;
-         stringstream ss ;
-         ss << "failed to read msg from cmd \"" << CPU_CMD << "\", rc:"
-            << rc ;
-         err = ss.str() ;
-         goto error ;
+         rc = runner.read( outStr ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to read msg from cmd runner:%d", rc ) ;
+            stringstream ss ;
+            ss << "failed to read msg from cmd \"" << CPU_CMD << "\", rc:"
+               << rc ;
+            err = ss.str() ;
+            goto error ;
+         } 
       }
 
       rc = _extractCpuInfo( outStr.c_str(), builder ) ;
@@ -758,30 +750,21 @@ namespace engine
       {
          PD_LOG( PDERROR, "failed to exec cmd, rc:%d, exit:%d",
                  rc, exitCode ) ;
-         if ( SDB_OK == rc )
-         {
-            rc = SDB_SYS ;
-         }
-         stringstream ss ;
-         ss << "failed to exec cmd \" " << cmd << "\",rc:"
-            << rc
-            << ",exit:"
-            << exitCode ;
-         err = ss.str() ;
-         goto error ;
+         rc = SDB_OK ;
       }
-
-      rc = runner.read( outStr ) ;
-      if ( SDB_OK != rc )
+      else
       {
-         PD_LOG( PDERROR, "failed to read msg from cmd runner:%d", rc ) ;
-         stringstream ss ;
-         ss << "failed to read msg from cmd \"" << cmd << "\", rc:"
-            << rc ;
-         err = ss.str() ;
-         goto error ;
+         rc = runner.read( outStr ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to read msg from cmd runner:%d", rc ) ;
+            stringstream ss ;
+            ss << "failed to read msg from cmd \"" << cmd << "\", rc:"
+               << rc ;
+            err = ss.str() ;
+            goto error ;
+         }
       }
-
       rc = _extractCpuInfo( outStr.c_str(), builder ) ;
       if ( SDB_OK != rc )
       {
@@ -1865,86 +1848,100 @@ namespace engine
       stringstream      cmd ;
       _ossCmdRunner     runner ;
       UINT32            exitCode ;
+      BOOLEAN           nameFlag = 0 ;
 
       // init cmd
       cmd << "useradd" ;
 
-      if ( configObj.hasField( "passwd" ) )
+      BSONObjIterator it ( configObj ) ;
+      while ( it.more() )
       {
-         // if password has been input, we don't save command to history file.
-         sdbSetIsNeedSaveHistory( FALSE ) ;
-
-         if ( String != configObj.getField( "passwd" ).type() )
+         BSONElement elem = it.next() ;
+         if ( 0 == ossStrcmp( elem.fieldName(), "name" ) )
          {
-            rc = SDB_INVALIDARG ;
-            err = "passwd must be string" ;
-            goto error ;
+            if ( String != elem.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               err = "name must be string" ;
+               goto error ;
+            }
+            nameFlag = 1 ;
+            cmd << " " << elem.valuestr() ;
+         }
+         else if ( 0 == ossStrcmp( elem.fieldName(), "passwd" ) )
+         {
+            // if password has been input, we don't save command to history file.
+            sdbSetIsNeedSaveHistory( FALSE ) ;
+            
+            if ( String != elem.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               err = "password must be string" ;
+               goto error ;
+            }
+            cmd << " -p \'" << elem.valuestr() << "\'" ;
+         }
+         else if ( 0 == ossStrcmp( elem.fieldName(), "gid" ) )
+         {
+            if ( String != elem.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               err = "gid must be string" ;
+               goto error ;
+            }
+            cmd << " -g " << elem.valuestr() ;
+         }
+         else if ( 0 == ossStrcmp( elem.fieldName(), "groups" ) )
+         {
+            if ( String != elem.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               err = "groups must be string" ;
+               goto error ;
+            }
+            cmd << " -G " << elem.valuestr() ;
+         }
+         else if ( 0 == ossStrcmp( elem.fieldName(), "dir" ) )
+         {
+            if ( String != elem.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               err = "dir must be string" ;
+               goto error ;
+            }
+            cmd << " -d " << elem.valuestr() ;
+         }
+         else if ( 0 == ossStrcmp( elem.fieldName(), "createDir" ) )
+         {
+            if ( Bool != elem.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               err = "createDir must be bool" ;
+               goto error ;
+            }
+
+            if ( TRUE == elem.boolean() )
+            {
+               cmd << " -m " ;
+            }
+            else
+            {
+               cmd << " -M " ;
+            }
          }
          else
          {
-            cmd << " -p " << configObj.getStringField( "passwd" ) ;
-         }
-      }
-
-      if ( configObj.hasField( "group" ) )
-      {
-         if ( String != configObj.getField( "group" ).type() )
-         {
             rc = SDB_INVALIDARG ;
-            err = "group must be string" ;
             goto error ;
          }
-         else
-         {
-            cmd << " -g " << configObj.getStringField( "group" ) ;
-         }
       }
 
-      if ( configObj.hasField( "Group" ) )
-      {
-         if ( String != configObj.getField( "Group" ).type() )
-         {
-            rc = SDB_INVALIDARG ;
-            err = "Group must be string" ;
-            goto error ;
-         }
-         else
-         {
-            cmd << " -G " << configObj.getStringField( "Group" ) ;
-         }
-      }
-
-      if ( configObj.hasField( "dir" ) )
-      {
-         if ( String != configObj.getField( "dir" ).type() )
-         {
-            rc = SDB_INVALIDARG ;
-            err = "dir must be string" ;
-            goto error ;
-         }
-         else
-         {
-            cmd << " -d " << configObj.getStringField( "dir" ) ;
-         }
-      }
-
-      if ( TRUE == configObj.getBoolField( "createDir" ) )
-      {
-         cmd << " -m" ;
-      }
-
-      if( FALSE == configObj.hasField( "name" ) )
+      if ( 0 == nameFlag )
       {
          rc = SDB_INVALIDARG ;
          err = "name must be config" ;
+         goto error ;
       }
-      if( String != configObj.getField( "name" ).type() )
-      {
-         rc = SDB_INVALIDARG ;
-         err = "name must be string" ;
-      }
-      PD_RC_CHECK( rc, PDERROR, "Failed to get name, rc: %d", rc ) ;
-      cmd << " " << configObj.getStringField( "name" ) ;
 
       // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
@@ -1994,63 +1991,72 @@ namespace engine
       stringstream    cmd ;
       _ossCmdRunner   runner ;
       UINT32          exitCode ;
+      BOOLEAN         nameFlag = 0 ;
 
       // check argument and build cmd
       cmd << "groupadd" ;
-      if ( configObj.hasField( "passwd" ) )
-      {
-         if ( String != configObj.getField( "passwd" ).type() )
-         {
-            rc = SDB_INVALIDARG ;
-            err = "passwd must be string" ;
-            goto error ;
-         }
-         else
-         {
-            cmd << " -p " << configObj.getStringField( "passwd" ) ;
-         }
-      }
 
-      if ( configObj.hasField( "id" ) )
+      BSONObjIterator it( configObj ) ;
+      while ( it.more() )
       {
-         if ( String != configObj.getField( "id" ).type() )
+         BSONElement elem = it.next() ;
+         if ( 0 == ossStrcmp( elem.fieldName(), "name" ) )
          {
-            rc = SDB_INVALIDARG ;
-            err = "id must be string" ;
-            goto error ;
-         }
-         else
-         {
-            cmd << " -g " << configObj.getStringField( "id" ) ;
-            if ( TRUE == configObj.hasField( "isUnique" ) )
+            if ( String != elem.type() )
             {
-               if ( Bool != configObj.getField( "isUnique" ).type() )
-               {
-                  rc = SDB_INVALIDARG ;
-                  err = "isUnique must be bool" ;
-                  goto error ;
-               }
-               if ( FALSE == configObj.getBoolField( "isUnique" ) )
-               {
-                  cmd << " -o" ;
-               }
+               rc = SDB_INVALIDARG ;
+               err = "name must be string" ;
+               goto error ;
+            }
+            nameFlag = 1 ;
+            cmd << " " << elem.valuestr() ;
+         }
+         else if ( 0 == ossStrcmp( elem.fieldName(), "id" ))
+         {
+            if ( String != elem.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               err = "id must be string" ;
+            }
+            cmd << " -g " << elem.valuestr() ;
+         }
+         else if ( 0 == ossStrcmp( elem.fieldName(), "isUnique" ) )
+         {
+            if ( Bool != elem.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               err = "isUnique must be bool" ;
+               goto error ;
+            } 
+            if ( FALSE == elem.boolean() )
+            {
+               cmd << " -o " ;
             }
          }
+         else if ( 0 == ossStrcmp( elem.fieldName(), "passwd" ) )
+         {
+            sdbSetIsNeedSaveHistory( FALSE ) ;
+            if ( String != elem.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               err = "passwd must be string" ;
+               goto error ;
+            }
+         }
+         else
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
       }
 
-      if( FALSE == configObj.hasField( "name" ) )
+      if ( 0 == nameFlag )
       {
          rc = SDB_INVALIDARG ;
          err = "name must be config" ;
+         goto error ;
       }
-      if( String != configObj.getField( "name" ).type() )
-      {
-         rc = SDB_INVALIDARG ;
-         err = "name must be string" ;
-      }
-      PD_RC_CHECK( rc, PDERROR, "Failed to get name, rc: %d", rc ) ;
-      cmd << " " << configObj.getStringField( "name" ) ;
-
+      
       // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
@@ -2099,94 +2105,105 @@ namespace engine
       stringstream      cmd ;
       _ossCmdRunner     runner ;
       UINT32            exitCode ;
+      BOOLEAN           nameFlag = 0 ;
 
       cmd << "usermod" ;
-      if ( configObj.hasField( "passwd" ) )
+
+      BSONObjIterator it( configObj ) ;
+      while ( it.more() )
       {
-         // if password has been input, we don't save command to history file.
-         sdbSetIsNeedSaveHistory( FALSE ) ;
-
-         if ( String != configObj.getField( "passwd" ).type() )
+         BSONElement elem = it.next() ;
+         if ( 0 == ossStrcmp( elem.fieldName(), "name" ) )
          {
-            rc = SDB_INVALIDARG ;
-            err = "passwd must be string" ;
-            goto error ;
-         }
-         else
-         {
-            cmd << " -p "
-                << configObj.getStringField( "passwd" ) ;
-         }
-      }
-
-      if ( configObj.hasField( "group" ) )
-      {
-         if ( String != configObj.getField( "group" ).type() )
-         {
-            rc = SDB_INVALIDARG ;
-            err = "group must be string" ;
-            goto error ;
-         }
-         else
-         {
-            cmd << " -g "
-                << configObj.getStringField( "group" ) ;
-         }
-      }
-
-      if ( configObj.hasField( "Group" ) )
-      {
-         if ( String != configObj.getField( "Group" ).type() )
-         {
-            rc = SDB_INVALIDARG ;
-            err = "Group must be string" ;
-            goto error ;
-         }
-         else
-         {
-            cmd << " -G "
-                << configObj.getStringField( "Group" ) ;
-
-
-            if ( TRUE == configObj.getBoolField( "isAppend" ) )
+            if ( String != elem.type() )
             {
-               cmd << " -a" ;
+               rc = SDB_INVALIDARG ;
+               err = "name must be string" ;
+               goto error ;
+            }
+            nameFlag = 1 ;
+            cmd << " " << elem.valuestr() ;
+         }
+         else if ( 0 == ossStrcmp( elem.fieldName(), "passwd" ) )
+         {
+            sdbSetIsNeedSaveHistory( FALSE ) ;
+            if ( String != elem.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               err = "passwd must be string" ;
+               goto error ;
+            }
+            cmd << " -p \'" << elem.valuestr() << "\' ";
+         }
+         else if ( 0 == ossStrcmp( elem.fieldName(), "gid" ) )
+         {
+            if ( String != elem.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               err = "gid must be string" ;
+               goto error ;
+            }
+            cmd << " -g " << elem.valuestr() ;
+         }
+         else if ( 0 == ossStrcmp( elem.fieldName(), "groups" ) )
+         {
+            if ( String != elem.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               err = "groups must be string" ;
+               goto error ;
+            }
+            cmd << " -G " << elem.valuestr() ;
+         }
+         else if ( 0 == ossStrcmp( elem.fieldName(), "isAppend" ) )
+         {
+            if ( Bool != elem.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               err = "isAppend must be bool" ;
+               goto error ;
+            }
+            if ( TRUE == elem.boolean() )
+            {
+               cmd << " -a " ;
             }
          }
-      }
-
-      if ( configObj.hasField( "dir" ) )
-      {
-         if ( String != configObj.getField( "dir" ).type() )
+         else if ( 0 == ossStrcmp( elem.fieldName(), "dir" ) )
          {
-            rc = SDB_INVALIDARG ;
-            err = "dir must be string" ;
-            goto error ;
+            if ( String != elem.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               err = "dir must be string" ;
+               goto error ;
+            }
+            cmd << " -d " << elem.valuestr() ;
+         }
+         else if ( 0 == ossStrcmp( elem.fieldName(), "isMove" ) )
+         {
+            if ( Bool != elem.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               err = "isMove must be bool" ;
+               goto error ;
+            }
+            if ( TRUE == elem.boolean() )
+            {
+               cmd << " -m " ;
+            }
          }
          else
          {
-            cmd << " -d "
-                << configObj.getStringField( "dir" ) ;
-
-            if ( TRUE == configObj.getBoolField( "isMove" ) )
-            {
-               cmd << " -m" ;
-            }
+            rc = SDB_INVALIDARG ;
+            goto error ;
          }
       }
 
-      if( FALSE == configObj.hasField( "name" ) )
+      if ( 0 == nameFlag )
       {
          rc = SDB_INVALIDARG ;
          err = "name must be config" ;
+         goto error ;
       }
-      if( String != configObj.getField( "name" ).type() )
-      {
-         rc = SDB_INVALIDARG ;
-         err = "name must be string" ;
-      }
-      PD_RC_CHECK( rc, PDERROR, "Failed to get name, rc: %d", rc ) ;
-      cmd << " " << configObj.getStringField( "name" ) ;
 
       // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
@@ -2236,35 +2253,52 @@ namespace engine
       stringstream      cmd ;
       _ossCmdRunner     runner ;
       UINT32            exitCode ;
+      BOOLEAN           nameFlag = 0 ;
 
       cmd << "userdel" ;
-      if ( configObj.hasField( "isRemoveDir" ) )
+      
+      BSONObjIterator it( configObj ) ;
+      while ( it.more() )
       {
-         if ( Bool != configObj.getField( "isRemoveDir" ).type() )
+         BSONElement elem = it.next() ;
+         if ( 0 == ossStrcmp( elem.fieldName(), "name" ) )
+         {
+            if ( String != elem.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               err = "name must be string" ;
+               goto error ;
+            }
+            nameFlag = 1 ;
+            cmd << " " << elem.valuestr() ;
+         }
+         else if ( 0 == ossStrcmp( elem.fieldName(), "isRemoveDir" ) )
+         {
+            if ( Bool != elem.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               err = "isRemoveDir must be bool" ;
+               goto error ;
+            }
+            if ( TRUE == elem.boolean() )
+            {
+               cmd << " -r " ;
+            }
+         }
+         else
          {
             rc = SDB_INVALIDARG ;
-            err = "isRemoveDir must be bool" ;
             goto error ;
-         }
-         else if ( configObj.getBoolField( "isRemoveDir" ) )
-         {
-            cmd << " -r" ;
          }
       }
 
-      if( FALSE == configObj.hasField( "name" ) )
+      if ( 0 == nameFlag )
       {
          rc = SDB_INVALIDARG ;
          err = "name must be config" ;
+         goto error ;
       }
-      if( String != configObj.getField( "name" ).type() )
-      {
-         rc = SDB_INVALIDARG ;
-         err = "name must be string" ;
-      }
-      PD_RC_CHECK( rc, PDERROR, "Failed to get name, rc: %d", rc ) ;
-      cmd << " " << configObj.getStringField( "name" ) ;
-
+      
       // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;

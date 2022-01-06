@@ -51,7 +51,7 @@ namespace engine
 
    class _rtnContextSP : public _rtnContextBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextSP )
    public:
       _rtnContextSP( INT64 contextID, UINT64 eduID ) ;
       virtual ~_rtnContextSP() ;

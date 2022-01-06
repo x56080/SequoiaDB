@@ -52,6 +52,9 @@ namespace engine
                        std::string configPath,
                        const std::string &options ) ;
 
+   // remove STP related files
+   INT32 stpRemoveFiles( const CHAR *stpPath ) ;
+
 }
 
 #endif // STP_TOOL_UTIL_HPP__

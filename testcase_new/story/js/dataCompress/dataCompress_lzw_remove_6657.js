@@ -1,90 +1,71 @@
-﻿/************************************************************************
-@Description:    seqDB-6657:remove带条件删除所有数据并再次插入数据_st.compress.03.016
-@input:    
-         1 create CL[Compressed:false] ;
-           create CL[Compressed: true, CompressionType: "lzw"] ;
-         2 insert({INNER_NO:i,SA_ACCT_NO:i,EVT_ID:"lwy20120702"+i,IVC_NAME: "电子银行业务回单(付款)",OPEN_BRANCH_NAME:"中国民生银行福州闽江支行"}) ;
-         3 remove({IVC_NAME:{$exists:1}}) ;
-         4 insert again ;
-         5 check attribute of CL[lzw];
-           check records, get random records, then compare the records;
-           check records for each node in the group;
-           check compressed rate. 
-@output:   successfull
-@Author:   
-           2016/3/23   XiaoNi Huang init
-************************************************************************/
+﻿/******************************************************************************
+ * @Description   : seqDB-6657:remove带条件删除所有数据并再次插入数据
+ * @Author        : XiaoNi Huang
+ * @CreateTime    : 2016.03.23
+ * @LastEditTime  : 2021.02.23
+ * @LastEditors   : XiaoNi Huang
+ ******************************************************************************/
+testConf.skipStandAlone = true;
+testConf.useSrcGroup = true;
+testConf.clName = CHANGEDPREFIX + "_cl_6657";
+testConf.clOpt = { Compressed: true, CompressionType: "lzw", ReplSize: 0 };
+
 main( test );
-
-function test ()
+function test ( testPara )
 {
-   var noCSName = COMMCSNAME + "_no";
-   var lzwCSName = COMMCSNAME + "_lzw";
-   var noCLName = COMMCLNAME + "_no";
-   var lzwCLName = COMMCLNAME + "_lzw";
-   var rgName = getDataGroupsName()[0];
-   var insertRecsNum = 800000;
-   var checkRecsNum = 3; //get random 3 records
+   var rgName = testPara.srcGroupName;
+   var csName = COMMCSNAME;
+   var clName = testConf.clName;
+   var cl = testPara.testCL;
+   var insertRecsNum1 = 800000;
+   var insertRecsNum2 = 200000;
+   var checkRecsNum = 10;
 
-   commDropCS( db, noCSName, true, "Failed to drop CS[" + noCSName + "]." );
-   commDropCS( db, lzwCSName, true, "Failed to drop CS[" + lzwCSName + "]." );
+   // insert  
+   insertRecs2( cl, insertRecsNum1 );
 
-   commCreateCS( db, noCSName, false, "Failed to create CS[" + noCSName + "]." );
-   commCreateCS( db, lzwCSName, false, "Failed to create CS[" + lzwCSName + "]." );
-
-   var noCL = createCL( noCSName, noCLName, rgName, false );
-   var lzwCL = createCL( lzwCSName, lzwCLName, rgName, true, "lzw" );
-
-   insertRecs( noCL, noCSName, noCLName, insertRecsNum );
-   insertRecs( lzwCL, lzwCSName, lzwCLName, insertRecsNum );
-
-   removeRecs( noCL, noCSName, noCLName );
-   removeRecs( lzwCL, lzwCSName, lzwCLName );
-
-   //insert again
-   insertRecs( noCL, noCSName, noCLName, insertRecsNum );
-   insertRecs( lzwCL, lzwCSName, lzwCLName, insertRecsNum );
-
-   checkAttributeOfCL( lzwCSName, lzwCLName, true, "lzw" );
-   checkRecs( lzwCL, insertRecsNum, checkRecsNum );
-   checkNodeCnt( lzwCSName, lzwCLName, rgName, insertRecsNum );
-   checkCompressedRate( noCSName, lzwCSName );
-
-   clearCS( db, noCSName );
-   clearCS( db, lzwCSName );
-}
-
-function insertRecs ( cl, csName, clName, insertRecsNum )
-{
-
-   for( k = 0; k < insertRecsNum; k += 50000 )
-   {
-      var doc = [];
-      for( i = 0 + k; i < 50000 + k; i++ )
-      {
-         doc.push( { INNER_NO: i, SA_ACCT_NO: i, EVT_ID: "lwy20120702" + i, IVC_NAME: "电子银行业务回单(付款)", OPEN_BRANCH_NAME: "中国民生银行福州闽江支行" } )
-      };
-      cl.insert( doc );
-   }
-}
-
-function removeRecs ( cl, csName, clName )
-{
-
+   // remove
    cl.remove( { IVC_NAME: { $exists: 1 } } );
+   var recsCnt = cl.count();
+   assert.equal( recsCnt, 0 );
+   checkLzwAttributeByDataNode( rgName, csName, clName, false );
+
+   // insert again
+   insertRecs2( cl, insertRecsNum2 );
+
+   // 检查结果，检查组内每个节点数据正确性
+   checkLzwAttributeByDataNode( rgName, csName, clName, true );
+   checkRecsByDataNode( rgName, csName, clName, insertRecsNum2, checkRecsNum );
 }
 
-function checkRecs ( cl, insertRecsNum, checkRecsNum )
+function checkRecsByDataNode ( rgName, csName, clName, insertRecsNum, checkRecsNum )
 {
-
-   //get random records, compare the records
-
-   for( j = 0; j < checkRecsNum; j++ )
+   var rc = db.exec( "select NodeName from $SNAPSHOT_SYSTEM where GroupName='" + rgName + "'" );
+   while( rc.next() )
    {
-      var i = parseInt( Math.random() * insertRecsNum );
-
-      var recsCnt = cl.find( { INNER_NO: i, SA_ACCT_NO: i, EVT_ID: "lwy20120702" + i, IVC_NAME: "电子银行业务回单(付款)", OPEN_BRANCH_NAME: "中国民生银行福州闽江支行" } ).count();
-      var expctCnt = 1;
-      assert.equal( recsCnt, expctCnt );
+      var nodeName = rc.current().toObj()["NodeName"];
+      var nodeDB = null;
+      try
+      {
+         nodeDB = new Sdb( nodeName );
+         var nodeCL = nodeDB.getCS( csName ).getCL( clName );
+         // 检查数据总数
+         var recsCnt = nodeCL.count();
+         assert.equal( recsCnt, 200000 );
+         // 随机检查n条记录正确性
+         for( j = 0; j < checkRecsNum; j++ )
+         {
+            var i = parseInt( Math.random() * insertRecsNum );
+            var recsCnt = nodeCL.find( {
+               INNER_NO: i, SA_ACCT_NO: i, EVT_ID: "lwy20120702" + i,
+               IVC_NAME: "电子银行业务回单(付款)", OPEN_BRANCH_NAME: "中国民生银行福州闽江支行"
+            } ).count();
+            assert.equal( recsCnt, 1 );
+         }
+      }
+      finally 
+      {
+         if( nodeDB != null ) nodeDB.close();
+      }
    }
 }

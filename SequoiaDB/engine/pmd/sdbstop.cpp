@@ -322,7 +322,7 @@ namespace engine
 
       // list all nodes
       utilListNodes( listNodes, typeFilter, NULL, OSS_INVALID_PID,
-                     roleFilter ) ;
+                     roleFilter, FALSE, FALSE ) ;
 
       itrNode = listNodes.begin() ;
       while( itrNode != listNodes.end() )

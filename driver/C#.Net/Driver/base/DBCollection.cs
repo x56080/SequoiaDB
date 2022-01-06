@@ -828,6 +828,7 @@ namespace SequoiaDB
          *      DBQuery.FLG_QUERY_PARALLED
          *      DBQuery.FLG_QUERY_WITH_RETURNDATA
          *      DBQuery.FLG_QUERY_FOR_UPDATE
+         *      DBQuery.FLG_QUERY_FOR_SHARE
          *
          *  \return The DBCursor of matching documents or null
          *  \exception SequoiaDB.BaseException
@@ -873,6 +874,7 @@ namespace SequoiaDB
             {
                 newFlags = newFlags | DBQuery.FLG_QUERY_WITH_RETURNDATA;
             }
+            newFlags = newFlags | DBQuery.FLG_QUERY_PREPARE_MORE;
             SDBMessage rtnSDBMessage = AdminCommand(collectionFullName, query, selector,
                                                     orderBy, hint, skipRows, returnRows, newFlags);
             int errorCode = rtnSDBMessage.Flags;
@@ -956,6 +958,7 @@ namespace SequoiaDB
          *      DBQuery.FLG_QUERY_WITH_RETURNDATA
          *      DBQuery.FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE
          *      DBQuery.FLG_QUERY_FOR_UPDATE
+         *      DBQuery.FLG_QUERY_FOR_SHARE
          *
          *  \param returnNew When true, returns the updated document rather than the original
          *  \return The DBCursor of matching documents or null
@@ -997,6 +1000,7 @@ namespace SequoiaDB
          *      DBQuery.FLG_QUERY_PARALLED
          *      DBQuery.FLG_QUERY_WITH_RETURNDATA
          *      DBQuery.FLG_QUERY_FOR_UPDATE
+         *      DBQuery.FLG_QUERY_FOR_SHARE
          *
          *  \return The DBCursor of matching documents or null
          *  \exception SequoiaDB.BaseException
@@ -1172,6 +1176,53 @@ namespace SequoiaDB
                 }
             }
             finally 
+            {
+                cursor.Close();
+            }
+        }
+
+        /** \fn BsonDocument GetIndexStat(string name)
+         *  \brief Get the statistics of the index.
+         *  \param name The index name.
+         *  \return The index statistics information.
+         *  \exception SequoiaDB.BaseException
+         *  \exception System.Exception
+         */
+        public BsonDocument GetIndexStat(string name)
+        {
+            if (name == null || name == "")
+            {
+                throw new BaseException("SDB_INVALIDARG");
+            }
+            string cmdStr = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.GET_INDEX_STAT;
+            BsonDocument hint = new BsonDocument();
+            hint.Add(SequoiadbConstants.FIELD_COLLECTION, collectionFullName);
+            hint.Add(SequoiadbConstants.FIELD_INDEX, name);
+
+            SDBMessage rtn = AdminCommand(cmdStr, null, null, null, hint, -1, -1, 0);
+
+            int flags = rtn.Flags;
+            if (flags != 0)
+            {
+                throw new BaseException(flags, rtn.ErrorObject);
+            }
+            // upsert cache
+            sdb.UpsertCache(collectionFullName);
+            BsonDocument result;
+            DBCursor cursor = new DBCursor(rtn, this);
+            try
+            {
+                result = cursor.Next();
+                if (result != null)
+                {
+                    return result;
+                }
+                else
+                {
+                    throw new BaseException("SDB_IXM_STAT_NOTEXIST");
+                }
+            }
+            finally
             {
                 cursor.Close();
             }

@@ -24,20 +24,20 @@ On success, return result set as an array.
 On error, exception will be thrown.
 .SH ERRORS
 .PP
-when exception happen, use getLastError() to get the error code and use
+When exception happens, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
-For more detial, please reference to Troubleshooting.
+For more details, refer to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 Return the first record of the array.
 .IP
 .nf
 \f[C]
->\ var\ arr\ =\ db.foo.bar.find().toArray()
->\ arr[0]
+> var arr = db.sample.employee.find().toArray()
+> arr[0]
 {
-\ \ "name":\ "Alice",
-\ \ "age":\ 19
+  "name": "Alice",
+  "age": 19
 }
 \f[]
 .fi

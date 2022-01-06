@@ -15,17 +15,18 @@ function test ( testPara )
    var recordsArr = new Array();
    var sortStringArr = new Array();
    readyRdmRecs( recordsNum, recordsArr, sortStringArr );
+   sortStringArr.sort();
    cl.insert( recordsArr );
 
    // 不带索引
    var cursor = cl.find( {}, { "_id": { "$include": 0 } } ).sort( { "b": 1 } );
-   var expRecsArr = getExpRecs( sortStringArr.sort() );
+   var expRecsArr = getExpRecs( sortStringArr );
    commCompareResults( cursor, expRecsArr );
 
    // 带索引
    cl.createIndex( "idx", { "b": -1 } );
    var cursor = cl.find( {}, { "_id": { "$include": 0 } } ).hint( { "": "idx" } ).sort( { "b": 1 } );
-   var expRecsArr = getExpRecs( sortStringArr.sort() );
+   var expRecsArr = getExpRecs( sortStringArr );
    commCompareResults( cursor, expRecsArr );
 }
 

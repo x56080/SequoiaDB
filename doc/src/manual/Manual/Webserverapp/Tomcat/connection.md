@@ -18,7 +18,7 @@
             username="sdbadmin"
             password="sdbadmin"
             driverClassName="org.postgresql.Driver"
-            url="jdbc:postgresql://localhost:5432/foo"/>
+            url="jdbc:postgresql://localhost:5432/sample"/>
    ```
 
    - name：表示以后要查找的名称，通过此名称可以找到 DataSource，此名称任意更换，但是程序中最终要查找的就是此名称；为了不与其他的名称混淆，所以使用 jdbc/pg，现在配置的是一个 jdbc 的关于 pg 的命名服务

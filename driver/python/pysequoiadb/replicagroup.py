@@ -64,7 +64,7 @@ class replicagroup(object):
               and order-sensitive
     """
 
-    def __init__(self, client, **kwargs):
+    def __init__(self, client):
         """constructor of replica group
 
         Exceptions:
@@ -72,13 +72,6 @@ class replicagroup(object):
         """
 
         self._client = client
-        self.__ssl = False
-
-        if "ssl" in kwargs:
-            ssl = kwargs.get("ssl")
-            if not isinstance(ssl, bool):
-                raise SDBTypeError("ssl must be an instance of bool")
-            self.__ssl = ssl
         try:
             self._group = sdb.create_group()
         except SystemError:
@@ -152,7 +145,7 @@ class replicagroup(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-        node = replicanode(self._client, ssl = self.__ssl)
+        node = replicanode(self._client)
         try:
             rc = sdb.gp_get_master(self._group, node._node)
             raise_if_error(rc, "Failed to get master")
@@ -178,7 +171,7 @@ class replicagroup(object):
             if not isinstance(positions[i], int):
                 raise SDBTypeError("elements of positions should be instance of int")
 
-        node = replicanode(self._client, ssl = self.__ssl)
+        node = replicanode(self._client)
         
         try:
             rc = sdb.gp_get_slave(self._group, node._node, positions)
@@ -206,7 +199,7 @@ class replicagroup(object):
         if not isinstance(servicename, str_type):
             raise SDBTypeError("servicename must be an instance of str_type")
 
-        node = replicanode(self._client, ssl = self.__ssl)
+        node = replicanode(self._client)
         try:
             rc = sdb.gp_get_nodebyendpoint(self._group, node._node,
                                            hostname, servicename)
@@ -231,7 +224,7 @@ class replicagroup(object):
         if not isinstance(node_name, str_type):
             raise SDBTypeError("node_name must be an instance of str_type")
 
-        node = replicanode(self._client, ssl = self.__ssl)
+        node = replicanode(self._client)
         try:
             rc = sdb.gp_get_nodebyname(self._group, node._node, node_name)
             raise_if_error(rc, "Failed to get node")

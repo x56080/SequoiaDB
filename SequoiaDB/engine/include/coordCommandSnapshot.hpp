@@ -40,6 +40,7 @@
 
 #include "coordCommandCommon.hpp"
 #include "coordFactory.hpp"
+#include "rtnDetectDeadlock.hpp"
 
 using namespace bson ;
 
@@ -166,7 +167,10 @@ namespace engine
          virtual const CHAR *getIntrCMDName() ;
          virtual const CHAR *getInnerAggrContent() ;
 
-         virtual UINT32 _getShowErrorMask () { return COORD_MASK_SHOWERROR ; }
+         virtual UINT32 _getShowErrorMask () const
+         {
+            return COORD_MASK_SHOWERROR ;
+         }
    } ;
    typedef _coordCMDSnapshotDataBase coordCMDSnapshotDataBase ;
 
@@ -195,7 +199,10 @@ namespace engine
          virtual const CHAR *getIntrCMDName() ;
          virtual const CHAR *getInnerAggrContent() ;
 
-         virtual UINT32 _getShowErrorMask () { return COORD_MASK_SHOWERROR ; }
+         virtual UINT32 _getShowErrorMask () const
+         {
+            return COORD_MASK_SHOWERROR ;
+         }
    } ;
    typedef _coordCMDSnapshotSystem coordCMDSnapshotSystem ;
 
@@ -237,6 +244,67 @@ namespace engine
          virtual ~_coordCMDSnapshotHealthIntr() ;
    } ;
    typedef _coordCMDSnapshotHealthIntr coordCMDSnapshotHealthIntr ;
+
+   /*
+      _coordCMDSnapshotTasks define
+   */
+   class _coordCMDSnapshotTasks: public _coordCMDMonBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDSnapshotTasks() ;
+         virtual ~_coordCMDSnapshotTasks() ;
+      private:
+         virtual const CHAR *getIntrCMDName() ;
+         virtual const CHAR *getInnerAggrContent() ;
+   } ;
+   typedef _coordCMDSnapshotTasks coordCMDSnapshotTasks ;
+
+   /*
+      _coordCMDSnapshotTasksIntr define
+   */
+   class _coordCMDSnapshotTasksIntr : public _coordCMDSnapshotIntrBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDSnapshotTasksIntr() ;
+         virtual ~_coordCMDSnapshotTasksIntr() ;
+         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
+   } ;
+   typedef _coordCMDSnapshotTasksIntr coordCMDSnapshotTasksIntr ;
+
+   /*
+      _coordCMDSnapshotIndexes define
+   */
+   class _coordCMDSnapshotIndexes: public _coordCMDMonBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDSnapshotIndexes() ;
+         virtual ~_coordCMDSnapshotIndexes() ;
+      private:
+         virtual const CHAR *getIntrCMDName() ;
+         virtual const CHAR *getInnerAggrContent() ;
+   } ;
+   typedef _coordCMDSnapshotIndexes coordCMDSnapshotIndexes ;
+
+   /*
+      _coordCMDSnapshotIndexesIntr define
+   */
+   class _coordCMDSnapshotIndexesIntr : public _coordCMDSnapshotIntrBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDSnapshotIndexesIntr() ;
+         virtual ~_coordCMDSnapshotIndexesIntr() ;
+         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
+      protected:
+         virtual INT32 _preExcute( MsgHeader *pMsg,
+                                   pmdEDUCB *cb,
+                                   coordCtrlParam &ctrlParam,
+                                   SET_RC &ignoreRCList ) ;
+   } ;
+   typedef _coordCMDSnapshotIndexesIntr coordCMDSnapshotIndexesIntr ;
 
    /*
       _coordCMDSnapshotCollections define
@@ -659,6 +727,67 @@ namespace engine
          virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordCMDSnapshotIndexStatsIntr coordCMDSnapshotIndexStatsIntr ;
+
+   /*
+      _coordCMDSnapshotTransWaits define
+   */
+   class _coordCMDSnapshotTransWaits : public _coordCMDMonBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDSnapshotTransWaits() ;
+         virtual ~_coordCMDSnapshotTransWaits() ;
+      private:
+         virtual const CHAR *getIntrCMDName() ;
+         virtual const CHAR *getInnerAggrContent() ;
+   } ;
+   typedef _coordCMDSnapshotTransWaits coordCMDSnapshotTransWaits ;
+
+   /*
+      _coordCMDSnapshotTransWaitsIntr define
+   */
+   class _coordCMDSnapshotTransWaitsIntr : public _coordCMDSnapshotIntrBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDSnapshotTransWaitsIntr() ;
+         virtual ~_coordCMDSnapshotTransWaitsIntr() ;
+   } ;
+   typedef _coordCMDSnapshotTransWaitsIntr coordCMDSnapshotTransWaitsIntr ;
+
+   /*
+      _coordCMDSnapshotTransDeadlock define
+   */
+   class _coordCMDSnapshotTransDeadlock : public _coordCMDMonBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDSnapshotTransDeadlock() ;
+         virtual ~_coordCMDSnapshotTransDeadlock() ;
+      private:
+         virtual const CHAR *getIntrCMDName() ;
+         virtual const CHAR *getInnerAggrContent() ;
+   } ;
+   typedef _coordCMDSnapshotTransDeadlock coordCMDSnapshotTransDeadlock ;
+
+   /*
+      _coordCMDSnapshotTransDeadlockIntr define
+   */
+   class _coordCMDSnapshotTransDeadlockIntr : public _coordCMDSnapshotIntrBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDSnapshotTransDeadlockIntr() ;
+         virtual ~_coordCMDSnapshotTransDeadlockIntr() ;
+         virtual const CHAR* pushdownCommandName() ;
+      protected:
+         virtual INT32 _getMonProcessor( IRtnMonProcessorPtr & ptr ) ;
+         virtual COORD_SHOWERROR_TYPE _getDefaultShowErrorType() const
+         {
+            return COORD_SHOWERROR_IGNORE ;
+         }
+   } ;
+   typedef _coordCMDSnapshotTransDeadlockIntr coordCMDSnapshotTransDeadlockIntr;
 
 }
 #endif // COORD_COMMAND_SNAPSHOT_HPP__

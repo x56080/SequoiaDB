@@ -42,6 +42,7 @@
 #include "ossTypes.h"
 #include "ossAtomic.hpp"
 #include "ossUtil.h"
+#include "ossMemPool.hpp"
 
 // node ID of transaction ID
 typedef UINT16 DPS_TRANSID_NODEID ;
@@ -478,5 +479,7 @@ do                                                                         \
       DPS_SET_TRANSID_SN_GLOBAL( sn ) ;                                    \
    }                                                                       \
 } while ( FALSE )
+
+typedef ossPoolSet< DPS_TRANS_ID > DPS_TRANS_ID_SET ;
 
 #endif // DPS_TRANS_ID_HPP_

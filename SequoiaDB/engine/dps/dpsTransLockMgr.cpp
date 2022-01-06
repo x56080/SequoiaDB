@@ -34,6 +34,7 @@
    Last Changed =     JT  10/28/2018, locking performance improvement
 
 *******************************************************************************/
+#include "dpsDeadlockDetector.hpp"
 #include "dpsTransLockMgr.hpp"
 #include "dpsTransExecutor.hpp"
 #include "dpsTransLockCallback.hpp"
@@ -44,6 +45,7 @@
 #include "dpsTrace.hpp"
 #include "pdTrace.hpp"
 #include "sdbInterface.hpp"   // IContext
+#include "msg.h"              // MsgRouteID
 
 #include <stdio.h>
 #if 0
@@ -54,7 +56,7 @@
 
 namespace engine
 {
-   #define DPS_LOCKID_STRING_MAX_SIZE      ( 128 )
+
    #define DPS_TRANSLOCK_DUMP_SLICE_SIZE   ( 1000 )
 
    // thredshold of EDU LRB list length when search whether owning a lock
@@ -228,7 +230,6 @@ namespace engine
       PD_TRACE_EXIT( SDB_DPSTRANSLOCKMANAGER__CHECKLOCKMODEWITHOTHERS ) ;
       return foundIncomp ;
    }
-
 
    //
    // Description: walk through the upgrade list check if the request
@@ -677,7 +678,7 @@ namespace engine
          }
 
          // increase the lock count
-         dpsTxExectr->incLockCount( _lockMgrType ) ;
+         dpsTxExectr->incLockCount( _lockMgrType, lockId.isLeafLevel() ) ;
 
          // clear the wait info in dpsTxExectr
          dpsTxExectr->clearWaiterInfo( _lockMgrType ) ;
@@ -1128,7 +1129,7 @@ namespace engine
          }
 
          // decrease the lock count
-         dpsTxExectr->decLockCount( _lockMgrType ) ;
+         dpsTxExectr->decLockCount( _lockMgrType, lockId.isLeafLevel() ) ;
          delLRB->eduLrbPrev = NULL ;
          delLRB->eduLrbNext = NULL ;
       }
@@ -1198,7 +1199,8 @@ namespace engine
       UINT32                             bktIdx,
       const BOOLEAN                      bktLatched,
       dpsTransRetInfo                  * pdpsTxResInfo,
-      _dpsITransLockCallback           * callback
+      _dpsITransLockCallback           * callback,
+      DPS_TRANSLOCK_TYPE               * ownedLockMode
    )
    {
       PD_TRACE_ENTRY( SDB_DPSTRANSLOCKMANAGER__TRYACQUIREORTEST ) ;
@@ -1206,6 +1208,10 @@ namespace engine
       SDB_ASSERT( dpsTxExectr, "dpsTxExectr can't be null" ) ;
 #endif
       INT32 rc    = SDB_OK ;
+
+      // copy lock mode
+      DPS_TRANSLOCK_TYPE lockMode   = requestLockMode ;
+
       dpsTransLRB *pLRBNew          = NULL ,
                   *pLRBIncompatible = NULL ,
                   *pLRBDeadlock     = NULL ,
@@ -1235,7 +1241,7 @@ namespace engine
       PD_TRACE8( SDB_DPSTRANSLOCKMANAGER__TRYACQUIREORTEST,
                  PD_PACK_ULONG( dpsTxExectr ),
                  PD_PACK_STRING( lockIdStr ),
-                 PD_PACK_BYTE( requestLockMode ),
+                 PD_PACK_BYTE( lockMode ),
                  PD_PACK_BYTE( opMode ),
                  PD_PACK_UINT( bktIdx ),
                  PD_PACK_UINT( bktLatched ),
@@ -1245,7 +1251,7 @@ namespace engine
       SDB_ASSERT( _initialized, "dpsTransLockManager is not initialized." ) ;
 #else
       PD_TRACE2( SDB_DPSTRANSLOCKMANAGER__TRYACQUIREORTEST,
-                 PD_PACK_BYTE( requestLockMode ),
+                 PD_PACK_BYTE( lockMode ),
                  PD_PACK_BYTE( opMode ) );
 #endif
       if ( bktLatched )
@@ -1266,7 +1272,7 @@ namespace engine
       // executes _tryAcquireOrTest again.
       if ( callback )
       {
-         callback->beforeLockAcquire( lockId, requestLockMode, opMode ) ;
+         callback->beforeLockAcquire( lockId, lockMode, opMode ) ;
          if ( callback->hasError() )
          {
             PD_LOG( PDERROR, "before lock acquire callback failed (rc=%d)",
@@ -1314,7 +1320,7 @@ namespace engine
       {
          pLRBOwner = pLRB ;
          pLRBHdr   = pLRB->lrbHdr ;
-         if ( dpsLockCoverage( pLRB->lockMode, requestLockMode ) )
+         if ( dpsLockCoverage( pLRB->lockMode, lockMode ) )
          {
             if ( !testMode )
             {
@@ -1326,7 +1332,7 @@ namespace engine
             goto done ;
          }
          // if dpsUpgradeCheck is OK
-         rc = dpsUpgradeCheck( pLRB->lockMode, requestLockMode ) ;
+         rc = dpsUpgradeCheck( pLRB->lockMode, lockMode ) ;
          if ( SDB_OK != rc )
          {
             // can't do upgrade, job done with error rc set
@@ -1376,7 +1382,7 @@ namespace engine
             if ( !testMode )
             {
                // allocate LRB header prepare new LRB and LRB Header
-               rc = _prepareNewLRBAndHeader( dpsTxExectr, lockId, requestLockMode,
+               rc = _prepareNewLRBAndHeader( dpsTxExectr, lockId, lockMode,
                                              bktIdx, pLRBHdrNew, pLRBNew ) ;
                if ( SDB_OK != rc )
                {
@@ -1418,7 +1424,7 @@ namespace engine
             if ( !testMode )
             {
                // allocate LRB header prepare new LRB and LRB Header
-               rc = _prepareNewLRBAndHeader( dpsTxExectr, lockId, requestLockMode,
+               rc = _prepareNewLRBAndHeader( dpsTxExectr, lockId, lockMode,
                                              bktIdx, pLRBHdrNew, pLRBNew ) ;
                if ( SDB_OK != rc )
                {
@@ -1474,7 +1480,7 @@ namespace engine
          // pLRBIncompatible -- lrb of first incompatible
          // pLRBOwner        -- lrb owned by same EDU
          _searchOwnerLRBList( dpsTxExectr,
-                              requestLockMode,
+                              lockMode,
                               pLRBHdr->ownerLRB,
                               pLRBToInsert,
                               pLRBIncompatible,
@@ -1491,7 +1497,7 @@ namespace engine
          // pLRBToInsert     -- lrb to insert after
          // pLRBIncompatible -- lrb of first incompatible
          _searchOwnerLRBListForInsertAndIncompatible( dpsTxExectr,
-                                                      requestLockMode,
+                                                      lockMode,
                                                       pLRBHdr->ownerLRB,
                                                       pLRBToInsert,
                                                       pLRBIncompatible ) ;
@@ -1509,9 +1515,10 @@ namespace engine
                      "Invalid LRB or the lrbHdr doesn't match "
                      "the LRB Header" ) ;
 #endif
+
          // if current holding lock mode covers the requesting mode,
          // then job is done
-         if ( dpsLockCoverage( pLRB->lockMode, requestLockMode ) )
+         if ( dpsLockCoverage( pLRB->lockMode, lockMode ) )
          {
             if ( !testMode )
             {
@@ -1522,13 +1529,14 @@ namespace engine
                // clear the wait info in dpsTxExectr
                dpsTxExectr->clearWaiterInfo( _lockMgrType ) ;
             }
+
             goto done ;
          }
 
          // if dpsUpgradeCheck is OK
          if ( FALSE == bLockModeUpgradeChecked )
          {
-            rc = dpsUpgradeCheck( pLRB->lockMode, requestLockMode ) ;
+            rc = dpsUpgradeCheck( pLRB->lockMode, lockMode ) ;
             if ( SDB_OK != rc )
             {
                // can't do upgrade, job done with error rc set
@@ -1556,7 +1564,7 @@ namespace engine
             if ( DPS_TRANSLOCK_OP_MODE_ACQUIRE == opMode )
             {
                // allocate LRB
-               rc = _prepareNewLRB( dpsTxExectr, requestLockMode,
+               rc = _prepareNewLRB( dpsTxExectr, lockMode,
                                     pLRBHdr, pLRBNew ) ;
                if ( SDB_OK != rc )
                {
@@ -1647,7 +1655,7 @@ namespace engine
                _removeFromLRBList( pLRBHdr->ownerLRB, pLRB ) ;
 
                // update current lock mode to the request mode
-               pLRB->lockMode = requestLockMode ;
+               pLRB->lockMode = lockMode ;
 
                // insert it to the new position
                if ( pLRBToInsert )
@@ -1683,7 +1691,7 @@ namespace engine
          if ( !testMode )
          {
             // allocate LRB
-            rc = _prepareNewLRB( dpsTxExectr, requestLockMode,
+            rc = _prepareNewLRB( dpsTxExectr, lockMode,
                                  pLRBHdr, pLRBNew ) ;
             if ( SDB_OK != rc )
             {
@@ -1792,12 +1800,12 @@ namespace engine
                // in both upgrade and waiter list, then add it into owner list
                if ( FALSE == _checkLockModeWithOthers( pLRBHdr->upgradeLRB,
                                                        dpsTxExectr,
-                                                       requestLockMode,
+                                                       lockMode,
                                                        pLRBIncompatible ) )
                {
                   if ( FALSE == _checkLockModeWithOthers( pLRBHdr->waiterLRB,
                                                           dpsTxExectr,
-                                                          requestLockMode,
+                                                          lockMode,
                                                           pLRBIncompatible ) )
                   {
                      // add to owner list
@@ -1882,7 +1890,7 @@ namespace engine
             // lookup information in LRBHdr
             callback->afterLockAcquire(
                          lockId, rc,
-                         requestLockMode,
+                         lockMode,
                          pLRB ? pLRB->refCounter : 0,
                          ( ( testMode )
                            ? DPS_TRANSLOCK_OP_MODE_TEST : opMode ),
@@ -1897,7 +1905,7 @@ namespace engine
          // hanging off LRB header. Release LRB header if it is possible
          // when test opreation succeeded.
          if ( ( DPS_TRANSLOCK_OP_MODE_TEST == opMode ) &&
-              ( DPS_TRANSLOCK_X == requestLockMode ) &&
+              ( DPS_TRANSLOCK_X == lockMode ) &&
               ( SDB_OK == rc ) )
          {
             if (    ( NULL != pLRBHdr )
@@ -1910,6 +1918,12 @@ namespace engine
                _releaseLRBHdr( pLRBHdr ) ;
             }
          }
+      }
+
+      if ( SDB_OK == rc && ownedLockMode )
+      {
+         // lock is now acquired, or owned, or tested
+         *ownedLockMode = pLRB ? pLRB->lockMode : lockMode ;
       }
 
       if ( bLatched )
@@ -1958,6 +1972,55 @@ namespace engine
       goto done ;
    }
 
+   BOOLEAN dpsTransLockManager::_addRefIfOwned
+   (
+         _dpsTransExecutor *        dpsTxExectr,
+         const dpsTransLockId &     lockID
+   )
+   {
+      BOOLEAN foundLock = FALSE ;
+
+      UINT32 bktIdx  = DPS_LOCK_INVALID_BUCKET_SLOT ;
+      dpsTransLRBHeader *pLRBHdr = NULL ;
+
+      if ( !lockID.isValid() )
+      {
+         PD_LOG( PDERROR, "Invalid lockId:%s", lockID.toString().c_str() ) ;
+         goto error ;
+      }
+
+      // calculate the hash index by lockId
+      bktIdx = _getBucketNo( lockID ) ;
+
+      // latch the LRB Header list
+      _acquireOpLatch( bktIdx ) ;
+
+      pLRBHdr = _LockHdrBkt[bktIdx].lrbHdr ;
+      if ( _getLRBHdrByLockId( lockID, pLRBHdr ) )
+      {
+         SDB_ASSERT( pLRBHdr, "Invalid LRB Header" ) ;
+         dpsTransLRB *pLRB = pLRBHdr->ownerLRB ;
+         while ( NULL != pLRB )
+         {
+            if ( dpsTxExectr == pLRB->dpsTxExectr )
+            {
+               ++ pLRB->refCounter ;
+               foundLock = TRUE ;
+               break ;
+            }
+            pLRB = pLRB->nextLRB ;
+         }
+      }
+
+      // free LRB Header list latch
+      _releaseOpLatch( bktIdx ) ;
+
+   done:
+      return foundLock ;
+
+   error:
+      goto done ;
+   }
 
    //
    // Description: acquire and setup a new LRB header and a new LRB
@@ -2128,7 +2191,9 @@ namespace engine
       const DPS_TRANSLOCK_TYPE   requestLockMode,
       IContext                 * pContext,
       dpsTransRetInfo          * pdpsTxResInfo,
-      _dpsITransLockCallback   * callback
+      _dpsITransLockCallback   * callback,
+      DPS_TRANSLOCK_TYPE       * ownedLockMode,
+      BOOLEAN                    useEscalation
    )
    {
       PD_TRACE_ENTRY( SDB_DPSTRANSLOCKMANAGER_ACQUIRE ) ;
@@ -2166,7 +2231,21 @@ namespace engine
       if ( _autoUpperLockOp && ( ! lockId.isRootLevel()) )
       {
          iLockId   = lockId.upOneLevel() ;
-         iLockMode = dpsIntentLockMode( requestLockMode ) ;
+         BOOLEAN needEscalate = FALSE ;
+         DPS_TRANSLOCK_TYPE iOwnedLockMode = DPS_TRANSLOCK_MAX ;
+
+         // check if escalation is triggered
+         if ( useEscalation && iLockId.isSupportEscalation() )
+         {
+            rc = dpsTxExectr->checkLockEscalation( _lockMgrType,
+                                                   iLockId,
+                                                   needEscalate ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to check lock escalation, "
+                         "rc: %d", rc ) ;
+         }
+
+         // get intent lock mode
+         iLockMode = dpsIntentLockMode( requestLockMode, needEscalate ) ;
 #ifdef _DEBUG
          ossSnprintf( lockIdStr, sizeof( lockIdStr ),
                       "%s", iLockId.toString().c_str() ) ;
@@ -2175,13 +2254,39 @@ namespace engine
                     PD_PACK_STRING( lockIdStr ),
                     PD_PACK_BYTE( iLockMode )  ) ;
 #endif
+         // acquire upper lock
          rc = acquire( dpsTxExectr, iLockId, iLockMode,
-                       pContext, pdpsTxResInfo );
+                       pContext, pdpsTxResInfo, NULL, &iOwnedLockMode,
+                       useEscalation ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
          }
          isIntentLockAcquired = TRUE ;
+
+         // if lock escalated or lock owned in upper level can cover lock
+         // requesting in lower level, no need to request lock in lower level
+         if ( ( needEscalate ) ||
+              ( dpsIsCoverLowerLock( iOwnedLockMode, requestLockMode ) ) )
+         {
+            // invoke callback if needed
+            if ( NULL != callback )
+            {
+               callback->afterLockEscalated( lockId,
+                                             DPS_TRANSLOCK_OP_MODE_ACQUIRE ) ;
+            }
+            _addRefIfOwned( dpsTxExectr, lockId ) ;
+            // if requesting lock in current level is covered by upper lock,
+            // it means we got the same type of lock in current level
+            // e.g. IX is requesting in current level, and X is owned in
+            // upper level, it means we got X in current level as well
+            if ( ownedLockMode )
+            {
+               *ownedLockMode = iOwnedLockMode ;
+            }
+            // no need to process lower level locks
+            goto done ;
+         }
       }
 
       // calculate the hash index by lockId
@@ -2203,7 +2308,8 @@ namespace engine
                               bktIdx,
                               bLatched,
                               pdpsTxResInfo,
-                              callback ) ;
+                              callback,
+                              ownedLockMode ) ;
       // _tryAcquireOrTest acquires bucket latch by default unless the input
       // parameter, bLatched, is set to TRUE; and it always releases the latch
       // before returns
@@ -2273,10 +2379,11 @@ namespace engine
                     PD_PACK_STRING("waitLock rc:"),
                     PD_PACK_INT( rc ) )  ;
 #endif
+         CHAR lockIdStr[ DPS_LOCKID_STRING_MAX_SIZE + 1 ] = { '\0' } ;
          dpsTxExectr->getExecutor()->resetInfo( EDU_INFO_ERROR ) ;
          dpsTxExectr->getExecutor()->printInfo( EDU_INFO_ERROR,
                      "Acquire transaction lock(%s)(%s) failed",
-                     lockId.toString().c_str(),
+                     lockId.toString( lockIdStr, DPS_LOCKID_STRING_MAX_SIZE ),
                      lockModeToString( requestLockMode ) ) ;
          goto postLockWaiting ;
       }
@@ -2415,18 +2522,33 @@ namespace engine
    )
    {
       BOOLEAN found = FALSE ;
-      dpsTransLRB * pLRB = dpsTxExectr->getLastLRB( _lockMgrType ) ;
 
-      while ( pLRB )
+      if ( lockId.isLeafLevel() )
       {
-         if ( ( NULL != pLRB->lrbHdr ) && ( lockId == pLRB->lrbHdr->lockId ) )
+         dpsTransLRB * pLRB = dpsTxExectr->getLastLRB( _lockMgrType ) ;
+
+         while ( pLRB )
          {
-            refCount       = pLRB->refCounter ;
-            owningLockMode = pLRB->lockMode ;
-            found          = TRUE ;
-            break ;
+            if ( ( NULL != pLRB->lrbHdr ) && ( lockId == pLRB->lrbHdr->lockId ) )
+            {
+               refCount       = pLRB->refCounter ;
+               owningLockMode = pLRB->lockMode ;
+               found          = TRUE ;
+               break ;
+            }
+            pLRB = pLRB->eduLrbPrev ;
          }
-         pLRB = pLRB->eduLrbPrev ;
+      }
+      else
+      {
+         dpsTransLRB *pLRB = NULL ;
+         if ( dpsTxExectr->findLock( lockId, pLRB, _lockMgrType, FALSE ) )
+         {
+            SDB_ASSERT( NULL != pLRB, "LRB is invalid" ) ;
+            refCount = pLRB->refCounter ;
+            owningLockMode = pLRB->lockMode ;
+            found = TRUE ;
+         }
       }
       return found ;
    }
@@ -2533,7 +2655,49 @@ namespace engine
       }
 
       // We must have a LRB by now
-      SDB_ASSERT ( NULL != pMyLRB, "lrb cannot be NULL" ) ;
+      if ( NULL == pMyLRB )
+      {
+#if defined ( _DEBUG )
+         // not found in current level, should be holding a non-intent lock in
+         // upper levels
+         if ( !lockId.isRootLevel() )
+         {
+            // check upper levels one by one
+            dpsTransLockId iLockId = lockId.upOneLevel() ;
+            while ( iLockId.isValid() )
+            {
+               INT8 holdingILockMode = DPS_TRANSLOCK_MAX ;
+               UINT32 refCount = 0 ;
+
+               if ( isHolding( dpsTxExectr,
+                               iLockId,
+                               holdingILockMode,
+                               refCount ) &&
+                    DPS_TRANSLOCK_IS != holdingILockMode &&
+                    DPS_TRANSLOCK_IX != holdingILockMode )
+               {
+                  // if holding a non-intent lock, it is OK
+                  break ;
+               }
+
+               // lock is not holding in this level, check upper
+               if ( !iLockId.isRootLevel() )
+               {
+                  iLockId = iLockId.upOneLevel() ;
+                  continue ;
+               }
+
+               SDB_ASSERT( FALSE, "should hold non-intent lock in upper "
+                           "levels" ) ;
+            }
+         }
+         else
+         {
+            SDB_ASSERT( FALSE, "should hold root level lock" ) ;
+         }
+#endif
+         goto done ;
+      }
       // normal lock release routine
 
       bktIdx = pMyLRB->lrbHdr->bktIdx ;
@@ -2699,6 +2863,8 @@ namespace engine
    //    dpsTxExectr     -- pointer to dpsTransExecutor
    //    lockId          -- lock id
    //    bForceRelease   -- requested lock mode
+   //    callback        -- transaction lock callback
+   //    releaseUpperLock -- whether to release upper locks
    // Output:
    //    none
    // Dependency:  the lock manager must be initialized
@@ -2710,7 +2876,8 @@ namespace engine
       _dpsTransExecutor      * dpsTxExectr,
       const dpsTransLockId   & lockId,
       const BOOLEAN            bForceRelease,
-      _dpsITransLockCallback * callback
+      _dpsITransLockCallback * callback,
+      BOOLEAN                  releaseUpperLock
    )
    {
       PD_TRACE_ENTRY( SDB_DPSTRANSLOCKMANAGER_RELEASE ) ;
@@ -2745,7 +2912,7 @@ namespace engine
                       NULL, bForceRelease, refCountToBeDecreased,
                       callback ) ;
 
-            if ( _autoUpperLockOp )
+            if ( _autoUpperLockOp && releaseUpperLock )
             {
                // release the intent lock
                if ( ! myLockId.isRootLevel() )
@@ -2891,6 +3058,8 @@ nextLock:
          }
       }
 
+      dpsTxExectr->resetLockEscalated( _lockMgrType ) ;
+
       PD_TRACE_EXIT( SDB_DPSTRANSLOCKMANAGER_RELEASEALL ) ;
       return ;
    }
@@ -3030,7 +3199,9 @@ nextLock:
       const dpsTransLockId     & lockId,
       const DPS_TRANSLOCK_TYPE   requestLockMode,
       dpsTransRetInfo          * pdpsTxResInfo,
-      _dpsITransLockCallback   * callback
+      _dpsITransLockCallback   * callback,
+      DPS_TRANSLOCK_TYPE       * ownedLockMode,
+      BOOLEAN                    useEscalation
    )
    {
       PD_TRACE_ENTRY( SDB_DPSTRANSLOCKMANAGER_TRYACQUIRE ) ;
@@ -3064,7 +3235,20 @@ nextLock:
       if ( _autoUpperLockOp && ( ! lockId.isRootLevel()) )
       {
          iLockId = lockId.upOneLevel() ;
-         iLockMode = dpsIntentLockMode( requestLockMode ) ;
+         BOOLEAN needEscalate = FALSE ;
+         DPS_TRANSLOCK_TYPE iOwnedLockMode = DPS_TRANSLOCK_MAX ;
+
+         // check if escalation is triggered
+         if ( useEscalation && iLockId.isSupportEscalation() )
+         {
+            rc = dpsTxExectr->checkLockEscalation( _lockMgrType,
+                                                   iLockId,
+                                                   needEscalate ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to check lock escalation, "
+                         "rc: %d", rc ) ;
+         }
+         // get intent lock mode
+         iLockMode = dpsIntentLockMode( requestLockMode, needEscalate ) ;
 #ifdef _DEBUG
          ossSnprintf( lockIdStr, sizeof( lockIdStr ),
                       "%s", iLockId.toString().c_str() ) ;
@@ -3073,12 +3257,37 @@ nextLock:
                     PD_PACK_STRING( lockIdStr ),
                     PD_PACK_BYTE( iLockMode )  ) ;
 #endif
-         rc = tryAcquire( dpsTxExectr, iLockId, iLockMode, pdpsTxResInfo );
+         // acquire upper lock
+         rc = tryAcquire( dpsTxExectr, iLockId, iLockMode, pdpsTxResInfo,
+                          NULL, &iOwnedLockMode, useEscalation ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
          }
          isIntentLockAcquired = TRUE;
+
+         // lock escalation has been triggered
+         if ( ( needEscalate ) ||
+              ( dpsIsCoverLowerLock( iOwnedLockMode, requestLockMode ) ) )
+         {
+            // invoke callback if needed
+            if ( NULL != callback )
+            {
+               callback->afterLockEscalated( lockId,
+                                             DPS_TRANSLOCK_OP_MODE_TRY ) ;
+            }
+            _addRefIfOwned( dpsTxExectr, lockId ) ;
+            // if requesting lock in current level is covered by upper lock,
+            // it means we got the same type of lock in current level
+            // e.g. IX is requesting in current level, and X is owned in
+            // upper level, it means we got X in current level as well
+            if ( ownedLockMode )
+            {
+               *ownedLockMode = iOwnedLockMode ;
+            }
+            // no need to process lower level locks
+            goto done ;
+         }
       }
 
       // check if EDU is intrrupted first
@@ -3095,7 +3304,8 @@ nextLock:
                               DPS_LOCK_INVALID_BUCKET_SLOT,
                               FALSE,
                               pdpsTxResInfo,
-                              callback ) ;
+                              callback,
+                              ownedLockMode ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -3148,7 +3358,7 @@ nextLock:
    //    lockId          -- lock Id
    //    requestLockMode -- lock mode being requested
    //    isPreemptMode   -- if do test with preemptive mode
-   //    needIntentLock  -- whether to acquire intent lock in upper level
+   //    needUpperLock   -- whether to acquire intent lock in upper level
    //                       WARNING: no need to acquire intent lock only when
    //                       we have acquired earlier
    // Output:
@@ -3170,7 +3380,8 @@ nextLock:
       const BOOLEAN              isPreemptMode,
       dpsTransRetInfo          * pdpsTxResInfo,
       _dpsITransLockCallback   * callback,
-      BOOLEAN                    needIntentLock
+      BOOLEAN                    needUpperLock,
+      DPS_TRANSLOCK_TYPE       * ownedLockMode
    )
    {
       PD_TRACE_ENTRY( SDB_DPSTRANSLOCKMANAGER_TESTACQUIRE ) ;
@@ -3203,9 +3414,11 @@ nextLock:
 
       // get intent lock at first
       // it is not need to get intent lock while lock space
-      if ( needIntentLock && _autoUpperLockOp && ( ! lockId.isRootLevel()) )
+      if ( needUpperLock && _autoUpperLockOp && ( ! lockId.isRootLevel()) )
       {
+         DPS_TRANSLOCK_TYPE iOwnedLockMode = DPS_TRANSLOCK_MAX ;
          iLockId = lockId.upOneLevel() ;
+         // get intent lock mode
          iLockMode = dpsIntentLockMode( requestLockMode ) ;
 #ifdef _DEBUG
          ossSnprintf( lockIdStr, sizeof( lockIdStr ),
@@ -3216,10 +3429,27 @@ nextLock:
                     PD_PACK_BYTE( iLockMode )  ) ;
 #endif
          rc = testAcquire( dpsTxExectr, iLockId, iLockMode,
-                           isPreemptMode, pdpsTxResInfo, callback );
+                           isPreemptMode, pdpsTxResInfo, callback, TRUE,
+                           &iOwnedLockMode );
          if ( SDB_OK != rc )
          {
             goto error ;
+         }
+         // if lock escalated or lock owned in upper level can cover lock
+         // requesting in lower level, no need to request lock in lower level
+         if ( dpsIsCoverLowerLock( iOwnedLockMode, requestLockMode ) )
+         {
+            // if requesting lock in current level is covered by upper lock,
+            // it means we got the same type of lock in current level
+            // e.g. IX is requesting in current level, and X is owned in
+            // upper level, it means we got X in current level as well
+            if ( ownedLockMode )
+            {
+               *ownedLockMode = iOwnedLockMode ;
+            }
+
+            // already covered
+            goto done ;
          }
       }
 
@@ -3234,7 +3464,8 @@ nextLock:
                               bktIdx,
                               FALSE,
                               pdpsTxResInfo,
-                              callback ) ;
+                              callback,
+                              ownedLockMode ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -3944,5 +4175,253 @@ nextLock:
       _releaseOpLatch( bktIdx ) ;
    }
 
+
+   // return TRUE if a LRB in waiter or upgrade queue
+   BOOLEAN dpsTransLockManager::_isInWaiterOrUpgradeQueue
+   (
+      const dpsTransLRBHeader * pLRBHdr,
+      const dpsTransLRB       * pLRB
+   )
+   {
+      if ( pLRB && pLRBHdr && ( pLRBHdr == pLRB->lrbHdr ) )
+      {
+         if ( pLRBHdr->upgradeLRB )
+         {
+            dpsTransLRB *plrb = pLRBHdr->upgradeLRB;
+            while ( plrb )
+            {
+               if ( plrb == pLRB )
+               {
+                  return TRUE ;
+               }
+               plrb = plrb->nextLRB ;
+            }
+         }
+         if ( pLRBHdr->waiterLRB )
+         {
+            dpsTransLRB *plrb = pLRBHdr->waiterLRB;
+            while ( plrb )
+            {
+               if ( plrb == pLRB )
+               {
+                  return TRUE ;
+               }
+               plrb = plrb->nextLRB ;
+            }
+         }
+      }
+      return FALSE ;
+   }
+
+
+   void dpsTransLockManager::snapWaitInfo
+   (
+      _dpsTransExecutor       * pExctr,
+      dpsTransLRB             * pWaiterLRB,
+      const dpsTransLockId    & lockId,
+      DPS_TRANS_WAIT_SET      & waitInfoSet
+   )
+   {
+      ossTickConversionFactor factor ;
+      ossTick endTick ;
+
+      dpsDBNodeID nodeID ; // will get nodeID in snapshot, no need to get it here
+      UINT32 bktIdx = _getBucketNo( lockId ) ;
+
+      endTick.sample() ;
+      _acquireOpLatch( bktIdx ) ;
+
+      if ( pWaiterLRB && pExctr && ( pExctr == pWaiterLRB->dpsTxExectr ) )
+      {
+         DPS_TRANS_ID  waiterTransId  = pExctr->getNormalizedTransID();
+         UINT64            waiterCost = pExctr->getLogSpace() ;
+         ISession *        pWaiterSes = pExctr->getExecutor()->getSession() ;
+         EDUID        waiterSessionID = pExctr->getEDUID();
+         UINT64       waiterRelatedID = pWaiterSes->identifyID();
+         MsgRouteID  waiterRelatedNID = pWaiterSes->identifyNID();
+         UINT32      waiterRelatedTID = pWaiterSes->identifyTID();
+         EDUID waiterRelatedSessionID = pWaiterSes->identifyEDUID();
+
+         dpsTransLRBHeader *pLRBHdr = _LockHdrBkt[bktIdx].lrbHdr ;
+         if ( waiterTransId.isValid() && _getLRBHdrByLockId( lockId, pLRBHdr ) )
+         {
+            if ( ( pWaiterLRB->lrbHdr == pLRBHdr ) &&
+                 ( pLRBHdr->ownerLRB ) &&
+                 _isInWaiterOrUpgradeQueue( pLRBHdr, pWaiterLRB ) )
+            {
+               DPS_TRANS_ID holderTransId ;
+               ISession    *pHolderSes ;
+               dpsTransLRB *pLRB = pLRBHdr->ownerLRB ;
+               while ( pLRB )
+               {
+                  holderTransId = pLRB->dpsTxExectr->getNormalizedTransID() ;
+                  pHolderSes = pLRB->dpsTxExectr->getExecutor()->getSession();
+                  if ( ( waiterTransId != holderTransId ) &&
+                       holderTransId.isValid() )
+                  {
+                     UINT32 seconds = 0, microseconds = 0 ;
+                     ossTickDelta delta = endTick - pWaiterLRB->beginTick ;
+                     delta.convertToTime( factor, seconds, microseconds ) ;
+                     UINT64 durationInMicroseconds =
+                        (UINT64)( seconds * 1000 + microseconds / 1000 );
+
+                     dpsTransWait waitInfo(
+                        waiterTransId, holderTransId, nodeID,
+                        durationInMicroseconds,// wait time 
+                        waiterCost,            // Cost 
+                        pLRB->dpsTxExectr->getLogSpace(),
+                        waiterSessionID,       // sessionID
+                        pLRB->dpsTxExectr->getEDUID(),
+                        waiterRelatedID,       // RelatedID 
+                        pHolderSes->identifyID(),
+                        waiterRelatedTID,      // RelatedTID
+                        pHolderSes->identifyTID(),
+                        waiterRelatedSessionID,// Related SessionID
+                        pHolderSes->identifyEDUID(),
+                        waiterRelatedNID,      // RelatedNID, i.e., MsgRouteID
+                        pHolderSes->identifyNID() );
+                     try
+                     {
+                        waitInfoSet.insert( waitInfo ) ;
+                     }
+                     catch( std::exception &e )
+                     {
+                        PD_LOG( PDERROR,
+                                "Exception captured: %s, "
+                                "when dump transaction waiting info",
+                                e.what() ) ;
+                     }
+                  }
+                  pLRB = pLRB->nextLRB ;
+               }
+            }
+         }
+      }
+
+      _releaseOpLatch( bktIdx ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSLOCKMANAGER_GETINCOMPTRANS, "dpsTransLockManager::getIncompTrans" )
+   INT32 dpsTransLockManager::getIncompTrans
+   (
+      const dpsTransLockId &     lockID,
+      const DPS_TRANSLOCK_TYPE   lockMode,
+      DPS_TRANS_ID_SET &         incompTrans
+   )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSLOCKMANAGER_GETINCOMPTRANS ) ;
+
+      dpsTransLRBHeader *pLRBHdr = NULL ;
+      UINT32 bktIdx = _getBucketNo( lockID ) ;
+
+      _acquireOpLatch( bktIdx ) ;
+
+      pLRBHdr = _LockHdrBkt[ bktIdx ].lrbHdr ;
+      if ( !_getLRBHdrByLockId( lockID, pLRBHdr ) )
+      {
+         goto done ;
+      }
+
+      rc = _getIncompTrans( pLRBHdr, lockMode, incompTrans ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get incompatible transactions "
+                   "for lock [%s], lock mode [%s], rc: %d",
+                   lockID.toString().c_str(), lockModeToString( lockMode ),
+                   rc ) ;
+
+   done:
+      _releaseOpLatch( bktIdx ) ;
+
+      PD_TRACE_EXITRC( SDB_DPSTRANSLOCKMANAGER_GETINCOMPTRANS, rc ) ;
+
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSLOCKMANAGER__GETINCOMPTRANS_HEADER, "dpsTransLockManager::_getIncompTrans" )
+   INT32 dpsTransLockManager::_getIncompTrans
+   (
+      const dpsTransLRBHeader *  pLRBHdr,
+      const DPS_TRANSLOCK_TYPE   lockMode,
+      DPS_TRANS_ID_SET &         incompTrans
+   )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSLOCKMANAGER__GETINCOMPTRANS_HEADER ) ;
+
+      if ( NULL == pLRBHdr )
+      {
+         goto done ;
+      }
+
+      rc = _getIncompTrans( pLRBHdr->ownerLRB, lockMode, incompTrans ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get incompatible transactions "
+                   "from owner LRB list, rc: %d", rc ) ;
+
+      rc = _getIncompTrans( pLRBHdr->waiterLRB, lockMode, incompTrans ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get incompatible transactions "
+                   "from waiter LRB list, rc: %d", rc ) ;
+
+      rc = _getIncompTrans( pLRBHdr->upgradeLRB, lockMode, incompTrans ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get incompatible transactions "
+                   "from upgrader LRB list, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_DPSTRANSLOCKMANAGER__GETINCOMPTRANS_HEADER, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSLOCKMANAGER__GETINCOMPTRANS, "dpsTransLockManager::_getIncompTrans" )
+   INT32 dpsTransLockManager::_getIncompTrans
+   (
+      const dpsTransLRB *        pLRBBegin,
+      const DPS_TRANSLOCK_TYPE   lockMode,
+      DPS_TRANS_ID_SET &         incompTrans
+   )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSLOCKMANAGER__GETINCOMPTRANS ) ;
+
+      dpsTransLRB *pLRB = (dpsTransLRB *)pLRBBegin ;
+      while ( NULL != pLRB )
+      {
+         if ( !dpsIsLockCompatible( pLRB->lockMode, lockMode ) )
+         {
+            DPS_TRANS_ID transID = pLRB->dpsTxExectr->getOrigTransID() ;
+            // check if transaction ID is valid, if not, it is only a write
+            // operation without transaction
+            if ( transID.isValid() )
+            {
+               try
+               {
+                  incompTrans.insert( transID ) ;
+               }
+               catch ( exception &e )
+               {
+                  PD_LOG( PDERROR, "Failed to save incompatible transaction, "
+                          "occur exception %s", e.what() ) ;
+                  rc = ossException2RC( &e ) ;
+                  goto error ;
+               }
+            }
+         }
+         pLRB = pLRB->nextLRB ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_DPSTRANSLOCKMANAGER__GETINCOMPTRANS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
 
 }  // namespace engine

@@ -181,6 +181,7 @@ namespace engine
    #define DMS_RECORD_V1_METADATA_SZ   sizeof(_dmsRecord_v1)
    #define DMS_RECORD_RBS_METADATA_SZ   sizeof(_dmsRBSRecord)
    #define DMS_RECORD_CAP_METADATA_SZ   sizeof(_dmsCappedRecord)
+   #define DMS_RECORD_NOMVCC_METADATA_SZ DMS_RECORD_V0_METADATA_SZ
 
    #define DMS_RECORD_METADATA_SZ DMS_RECORD_V1_METADATA_SZ
    // based on current record version to decide the record metadata size
@@ -408,12 +409,16 @@ namespace engine
          setHasGlobTransID() ;
       }
 
-      void resetAttr()
+      void resetAttr( BOOLEAN isMVCCEnabled )
       {
          unsetAttr( 0xF0 ) ;
-         // v1 should always have GlobTransID field, although the value could be 
-         // invalid if the update/insert is done when transaction is not ON
-         setHasGlobTransID() ;
+         if ( isMVCCEnabled )
+         {
+            // v1 should always have GlobTransID field, although the value
+            // could be invalid if the update/insert is done when transaction
+            // is not ON
+            setHasGlobTransID() ;
+         }
       }
 
       DPS_TRANS_ID getGlobTransID() const
@@ -718,10 +723,10 @@ namespace engine
          return ((const dmsRecord*)this)->isNormal() ;
       }
 
-      void resetAttr()
+      void resetAttr( BOOLEAN isMVCCEnabled )
       {
          // Capped record has no lsn and transID fields
-         return ((dmsRecord*)this)->resetAttr() ;
+         return ((dmsRecord*)this)->resetAttr( isMVCCEnabled ) ;
       }
 
       void setData( const dmsRecordData &data )

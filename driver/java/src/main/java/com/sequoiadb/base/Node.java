@@ -100,7 +100,9 @@ public class Node {
      *
      * @return The Sequoiadb instance of current node.
      * @throws BaseException If error happens.
+     * @deprecated This function is deprecated
      */
+    @Deprecated
     public Sequoiadb connect() throws BaseException {
         if (sequoiadb != null && !sequoiadb.isClosed()) {
             sequoiadb.close();
@@ -117,7 +119,9 @@ public class Node {
      * @param password pass word
      * @return The Sequoiadb instance of current node.
      * @throws BaseException If error happens.
+     * @deprecated This function is deprecated
      */
+    @Deprecated
     public Sequoiadb connect(String username, String password) throws BaseException {
         if (sequoiadb != null && !sequoiadb.isClosed()) {
             sequoiadb.close();

@@ -1,13 +1,13 @@
 本文档主要介绍如何在 SAC 上部署 MySQL 实例。在部署 MySQL 实例之前用户需要先完成[部署包][deploy_package]操作。
 
-## 创建MySQL实例
+##创建 MySQL 实例##
 
 创建 MySQL 实例是指在已经安装部署包的主机中创建一个 MySQL 实例。
 
 1. 进入【部署】页面, 在【数据库实例】栏中点击 **创建实例** 按钮，实例类型选择 MySQL 后点击 **确定** 按钮进入【配置服务】页面
 ![安装SequoiaSQL-MySQL][add_mysql_1]
 
-2. 在【配置服务】页面，可以修改 MySQL实例的配置，点击 **下一步** 按钮开始安装
+2. 在【配置服务】页面，可以修改 MySQL 实例的配置，点击 **下一步** 按钮开始安装
 ![安装SequoiaSQL-MySQL][add_mysql_2]
 
  >**Note:**
@@ -21,7 +21,7 @@
 3. 安装服务完成
 ![安装SequoiaSQL-MySQL][add_mysql_3]
 
-## 添加已有MySQL实例
+##添加已有 MySQL 实例##
 
 如果用户不需要创建实例，可以将已有 MySQL 实例添加至 SAC。
 
@@ -52,7 +52,7 @@
 
   ![添加 MySQL 实例][append_mysql_5]
 
-## 添加MySQL实例存储
+##添加 MySQL 实例存储##
 
 用户创建 MySQL 实例或添加已有 MySQL 实例后，需要添加实例存储将 MySQL 实例与 SequoiaDB 巨杉数据库进行关联。
 
@@ -67,7 +67,7 @@
    > **Note:**
    >
    > - 关联名：创建关联完成后的名字，全局唯一   
-   > - preferedinstance：指定 SequoiaSQL-PostgreSQL 访问 SequoiaDB 数据节点时，优先连接哪种角色的数据节点，默认为’a’，可输入参数 m/s/a/1~7，分别表示 master/slave/anyone/node1~node7   
+   > - preferedinstance：指定 MySQL 实例访问 SequoiaDB 数据节点时，优先连接哪种角色的数据节点，默认为’a’，可输入参数 m/s/a/1~7，分别表示 master/slave/anyone/node1~node7   
    > - transaction：设置 SequoiaDB 是否开启事务，默认为 off，开启为 on   
    > - 存储集群的节点：选择关联 SequoiaDB 服务的 coord 节点，默认所有 coord 节点
 

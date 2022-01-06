@@ -98,8 +98,6 @@ namespace engine
              "get logical time in microseconds" ) \
        ( STPQ_OPTION_GETCONF, \
              "get configuration of STP" ) \
-       ( STPQ_OPTION_GETCONFFULL, \
-             "get full configuration of STP" ) \
        ( STPQ_OPTION_GETMETA, \
              "get meta" ) \
        ( STPQ_OPTION_GETSERVERS, \
@@ -121,7 +119,9 @@ namespace engine
              "non-stop mode" )
 
    #define COMMANDS_HIDE_OPTIONS \
-      ( STP_OPTION_HELPFULL, "help all options" )
+      ( STP_OPTION_HELPFULL, "help all options" ) \
+      ( STPQ_OPTION_GETCONFFULL, \
+             "get full configuration of STP" )
 
    // task of STPQ
    enum STPQ_TASK_TYPE
@@ -1653,7 +1653,7 @@ namespace engine
       {
          return 0 ;
       }
-      return ( SDB_OK != rc ? SDB_SRC_INVALIDARG : 1 ) ;
+      return SDB_OK == rc ? 0 : utilRC2ShellRC( rc ) ;
 
    error:
       goto done ;

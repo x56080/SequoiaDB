@@ -1,7 +1,24 @@
 package com.sequoias3.partupload;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.*;
+import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
+import com.amazonaws.services.s3.model.MultipartUploadListing;
+import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
 import com.sequoiadb.commlib.NodeWrapper;
@@ -14,18 +31,6 @@ import com.sequoias3.commlibs3.CommLibS3;
 import com.sequoias3.commlibs3.S3TestBase;
 import com.sequoias3.commlibs3.TestTools;
 import com.sequoias3.commlibs3.s3utils.PartUploadUtils;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 /**
  * @Description seqDB-19139 :取消分段上传过程中db端节点异常
@@ -43,8 +48,8 @@ public class AbortMultipartUploadAndKillData19139 extends S3TestBase {
     private String filePath = null;
     private File localPath = null;
     private File file = null;
-    private MultiValueMap< String, String > successKeyAndUploadIds = new LinkedMultiValueMap<>();
-    private MultiValueMap< String, String > keyAndUploadIds = new LinkedMultiValueMap<>();
+    private MultiValueMap< String, String > successKeyAndUploadIds = new LinkedMultiValueMap< >();
+    private MultiValueMap< String, String > keyAndUploadIds = new LinkedMultiValueMap< >();
 
     @BeforeClass
     private void setUp() throws IOException {
@@ -130,9 +135,9 @@ public class AbortMultipartUploadAndKillData19139 extends S3TestBase {
                             successKeyAndUploadIds.add( keyName, uploadId );
                         }
                     } catch ( AmazonS3Exception e ) {
-                        // e:0 Get connection failed.
-                        if ( e.getStatusCode() != 0
-                                && e.getStatusCode() != 500 ) {
+                        // e:0 Get connection failed. e:404 NoSuchUpload.
+                        if ( e.getStatusCode() != 0 && e.getStatusCode() != 500
+                                && e.getStatusCode() != 404 ) {
                             throw new Exception( keyName, e );
                         }
                     }
@@ -151,7 +156,7 @@ public class AbortMultipartUploadAndKillData19139 extends S3TestBase {
                 1024 * 1024 * 8, 1024 * 1024 * 7, 1024 * 1024 * 5 };
         int partNumbers = 9;
         int filePosition = 0;
-        new ArrayList<>();
+        new ArrayList< >();
         for ( int i = 0; i < partNumbers; i++ ) {
             // 分段号从1开始
             int partNumber = i + 1;
@@ -195,8 +200,8 @@ public class AbortMultipartUploadAndKillData19139 extends S3TestBase {
                 bucketName );
         MultipartUploadListing result = s3Client1
                 .listMultipartUploads( request );
-        MultiValueMap< String, String > expUpload = new LinkedMultiValueMap<>();
-        List< String > expCommonPrefixes = new ArrayList<>();
+        MultiValueMap< String, String > expUpload = new LinkedMultiValueMap< >();
+        List< String > expCommonPrefixes = new ArrayList< >();
         PartUploadUtils.checkListMultipartUploadsResults( result,
                 expCommonPrefixes, expUpload );
     }

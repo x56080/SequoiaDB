@@ -33,8 +33,8 @@ Get a BSONArray.( For more detail about oma, please reference to Oma )
 .IP
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "localhost",\ 11790\ )
->\ var\ bsonArray\ =\ oma.listNodes()
+> var oma = new Oma( "localhost", 11790 )
+> var bsonArray = oma.listNodes()
 \f[]
 .fi
 .IP \[bu] 2
@@ -42,19 +42,19 @@ Get the element of current subscript.
 .IP
 .nf
 \f[C]
->\ bsonArray.pos()
+> bsonArray.pos()
 {
-\ \ "svcname":\ "11820",
-\ \ "type":\ "sequoiadb",
-\ \ "role":\ "standalone",
-\ \ "pid":\ 17936,
-\ \ "groupid":\ 0,
-\ \ "nodeid":\ 0,
-\ \ "primary":\ 1,
-\ \ "isalone":\ 0,
-\ \ "groupname":\ "",
-\ \ "starttime":\ "2019\-07\-26\-16.43.01",
-\ \ "dbpath":\ "/opt/trunk/database/standalone/11820/"
+  "svcname": "11820",
+  "type": "sequoiadb",
+  "role": "standalone",
+  "pid": 17936,
+  "groupid": 0,
+  "nodeid": 0,
+  "primary": 1,
+  "isalone": 0,
+  "groupname": "",
+  "starttime": "2019\-07\-26\-16.43.01",
+  "dbpath": "/opt/trunk/database/standalone/11820/"
 }
 \f[]
 .fi

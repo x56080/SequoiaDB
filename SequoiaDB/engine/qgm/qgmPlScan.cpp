@@ -248,12 +248,10 @@ namespace engine
       }
       else
       {
-         rtnContextBase *pContext = NULL ;
-
          // close prefetch
          rc = rtnQuery ( pCLName, selector, _condition,
                          _orderby, _hint, 0, eduCB, _skip, _return,
-                         _dmsCB, _rtnCB, _contextID, &pContext, FALSE ) ;
+                         _dmsCB, _rtnCB, _contextID, NULL, FALSE ) ;
          if ( SDB_OK != rc )
          {
             goto error ;

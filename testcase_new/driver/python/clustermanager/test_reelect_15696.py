@@ -77,7 +77,7 @@ class TestReelect15696(testlib.SdbTestBase):
          self.db.disconnect()
       except SDBBaseError as e:
          if -154 != e.code:
-            self.fail("tear_down_fail: " + e.detail)
+            self.fail("tear_down_fail: " + str(e))
 				
    def check_reelect(self, data_rg, expect_node):
       act_master_node = data_rg.get_master()

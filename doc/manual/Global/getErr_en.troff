@@ -31,8 +31,8 @@ Since v1.0.
 Get the error code of the last opetation.
 .nf
 \f[C]
->\ getErr(\-15)
-Network\ error
+> getErr(\-15)
+Network error
 \f[]
 .fi
 .RE

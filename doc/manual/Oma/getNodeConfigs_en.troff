@@ -75,9 +75,9 @@ or not.
 T}
 .TE
 .PP
-When error happen, use getLastErrMsg() to get the error message or use
+When error happens, use getLastErrMsg() to get the error message or use
 getLastError() to get the error code.
-See troubleshooting for more detail.
+See troubleshooting for more details.
 .SH HISTORY
 .PP
 since v2.0
@@ -87,16 +87,16 @@ Get the configuration information of the 11820 node on the target host
 sdbserver1.
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "sdbserver1",\ 11790\ )
->\ oma.getNodeConfigs(\ 11820\ )
+> var oma = new Oma( "sdbserver1", 11790 )
+> oma.getNodeConfigs( 11820 )
 {
-"catalogaddr":\ "sdbserver1:11803",
-"dbpath":\ "/opt/sequoiadb/database/data/11820/",
-"diaglevel":\ "5",
-"role":\ "data",
-"svcname":\ "11820"
+"catalogaddr": "sdbserver1:11803",
+"dbpath": "/opt/sequoiadb/database/data/11820/",
+"diaglevel": "5",
+"role": "data",
+"svcname": "11820"
 }
-Takes\ 0.000567s.
+Takes 0.000567s.
 \f[]
 .fi
 .RE

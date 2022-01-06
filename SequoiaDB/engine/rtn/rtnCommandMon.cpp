@@ -161,8 +161,9 @@ namespace engine
       SDB_ASSERT ( cb, "educb can't be NULL" ) ;
       SDB_ASSERT ( pContextID, "context id can't be NULL" ) ;
 
-      rtnContextDump *context = NULL ;
+      rtnContextDump::sharePtr context ;
       rtnFetchBase *pFetch = NULL ;
+      IRtnMonProcessorPtr monProcessor ;
 
       BSONObj matcher ;
       BSONObj selector ;
@@ -186,7 +187,7 @@ namespace engine
       }
 
       // create cursors
-      rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, (rtnContext**)&context,
+      rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, context,
                                *pContextID, cb ) ;
       if ( rc )
       {
@@ -210,14 +211,19 @@ namespace engine
       rc = _createFetch( cb, &pFetch ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create fetch, rc: %d", rc ) ;
 
-      pFetch->setDataProcessor( _pDataProcessor, TRUE ) ;
       context->setMonFetch( pFetch, TRUE ) ;
       pFetch = NULL ;
+
+      /// set mon processor
+      rc = _getMonProcessor( monProcessor ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to acquire an IRtnMonProcessor obj, rc: %d", rc ) ;
+      context->setMonProcessor( monProcessor ) ;
 
       /// when has orderby
       if ( !orderBy.isEmpty() )
       {
-         rc = rtnSort( (rtnContext**)&context, orderBy, cb,
+         rc = rtnSort( context, orderBy, cb,
                        _numToSkip, _numToReturn, *pContextID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to sort, rc: %d", rc ) ;
       }
@@ -229,7 +235,6 @@ namespace engine
       {
          rtnCB->contextDelete( *pContextID, cb ) ;
          *pContextID = -1 ;
-         context = NULL ;
       }
       if ( pFetch )
       {

@@ -151,6 +151,7 @@
 
 #define CAT_ASSIGNGROUP_FOLLOW            "$follow"
 #define CAT_ASSIGNGROUP_RANDOM            "$random"
+#define CAT_DATASOURCE_GROUPNAME          "$null"
 
 #define CAT_DELAY_REPLY_TYPE_NAME         "DELAYEVENT"
 #define CAT_DELAY_REPLY_MSG_NAME          "DELAYREPLY"

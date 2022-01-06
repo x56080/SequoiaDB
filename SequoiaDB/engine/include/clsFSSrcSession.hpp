@@ -45,6 +45,7 @@
 #include "dpsLogDef.hpp"
 #include "dpsMessageBlock.hpp"
 #include "rtnLobFetcher.hpp"
+#include "rtnContextData.hpp"
 #include "rtnRecover.hpp"
 #include "../bson/bsonobj.h"
 #include <map>
@@ -65,7 +66,6 @@ namespace engine
    class _clsCatalogAgent ;
    class _clsFreezingWindow ;
    class _clsSplitTask ;
-   class _rtnContextData ;
 
    /*
       _clsDataSrcBaseSession define
@@ -118,13 +118,14 @@ namespace engine
          void              _resetInfo ( BOOLEAN all = TRUE ) ;
          void              _resend( const NET_HANDLE &handle,
                                     const _MsgClsFSNotify *req ) ;
-         void              _eraseDefaultIndex() ;
+         void              _eraseDefaultIndex( BSONObj& idIdxDef ) ;
          BOOLEAN           _existIndex( const CHAR *indexName ) ;
          INT32             _openContext( CHAR *cs, CHAR *collection ) ;
          void              _constructIndex( BSONObj &obj ) ;
          void              _constructMeta( BSONObj &obj, const CHAR *cs,
                                            const CHAR *collection,
                                            utilCLUniqueID clUniqueID,
+                                           const BSONObj idIdxDef,
                                            _dmsStorageUnit *su ) ;
          INT32             _getCSName( const BSONObj &obj, CHAR *cs, UINT32 len ) ;
          INT32             _getCollection( const BSONObj &obj, CHAR *collection,
@@ -149,6 +150,8 @@ namespace engine
          INT32             _buildCLCommitInfo( const string &fullName,
                                                BSONObj &obj ) ;
 
+         void              _updateNtyLSN( DPS_LSN_OFFSET collectoinLSN ) ;
+
       protected:
          BSONObj                          _rangeKeyObj ;
          BSONObj                          _rangeEndKeyObj ;
@@ -157,7 +160,7 @@ namespace engine
          DPS_LSN                          _lsn ;
          DPS_LSN_OFFSET                   _beginLSNOffset ;
          SINT64                           _contextID ;
-         _rtnContextData                  *_context ;
+         rtnContextData::sharePtr         _context ;
          INT64                            _lobContextID ;
          BOOLEAN                          _findEnd ;
          const CHAR                       *_query ;
@@ -185,7 +188,7 @@ namespace engine
          deque<DPS_LSN_OFFSET>            _deqLSN ;
          ossSpinXLatch                    _LSNlatch ;
          rtnLobFetcher                    _lobFetcher ;
-
+         DPS_LSN_OFFSET                   _lastEndNtyOffset ;
    };
 
    /*
@@ -247,7 +250,6 @@ namespace engine
       _dpsMessageBlock           _lsnSearchMB ;
       INT32                      _lastRecvSlice ;
       MAP_SU_STATUS              _validCLs ;
-
    } ;
    typedef class _clsFSSrcSession clsFSSrcSession ;
 
@@ -312,10 +314,9 @@ namespace engine
          BOOLEAN                          _hasEndRange ;
          UINT32                           _partitionBit ;
 
-         UINT64                           _taskID ;
+         UINT32                           _locationID ;
          UINT64                           _ntyOverTime ;
-         DPS_LSN_OFFSET                   _lastEndNtyOffset ;
-         BOOLEAN                          _getLastEndNtyOffset ;
+         BOOLEAN                          _getMetaNtyOffset ;
          UINT32                           _collectionW ;
          UINT64                           _lastOprLSN ;
          UINT32                           _internalV ;

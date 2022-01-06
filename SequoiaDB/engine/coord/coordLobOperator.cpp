@@ -40,6 +40,10 @@
 #include "coordTrace.hpp"
 #include "coordCB.hpp"
 
+#ifdef _DEBUG
+#include "../bson/lib/md5.hpp"
+#endif /* _DEBUG */
+
 using namespace bson ;
 
 namespace engine
@@ -82,6 +86,10 @@ namespace engine
       // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "Option:%s", obj.toString().c_str() ) ;
+
+#if defined (_DEBUG)
+      PD_LOG( PDDEBUG, "Got open LOB, meta: %s", obj.toString().c_str() ) ;
+#endif
 
       /// pStream will free in context
       pStream = SDB_OSS_NEW _coordLobStream( _pResource, getTimeout() ) ;
@@ -148,6 +156,15 @@ namespace engine
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "ContextID:%lld, Len:%u, Offset:%llu",
                           header->contextID, len, offset ) ;
+
+#if defined (_DEBUG)
+      {
+         string md5sum = md5::md5simpledigest( data, len ) ;
+         PD_LOG( PDDEBUG, "Got write LOB, context: %lld, len: %u, "
+                 "offset: %llu, md5sum: %s",
+                 header->contextID, len, offset, md5sum.c_str() ) ;
+      }
+#endif
 
       rc = rtnWriteLob( header->contextID, cb, len, data, offset, buf ) ;
       if ( SDB_OK != rc )
@@ -309,6 +326,10 @@ namespace engine
       // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "ContextID:%lld", header->contextID ) ;
+
+#if defined (_DEBUG)
+      PD_LOG( PDDEBUG, "Got close LOB, context: %lld", header->contextID ) ;
+#endif
 
       rc = rtnCloseLob( header->contextID, cb, buf ) ;
       if ( SDB_OK != rc )

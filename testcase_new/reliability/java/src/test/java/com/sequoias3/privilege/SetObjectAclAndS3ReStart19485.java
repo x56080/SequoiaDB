@@ -26,9 +26,12 @@ import com.sequoias3.commlibs3.s3utils.S3NodeRestart;
 import com.sequoias3.commlibs3.s3utils.bean.S3NodeWrapper;
 
 /**
- * @Description seqDB-19485 :获取对象acl过程中s3节点异常
+ * @description seqDB-19485 :获取对象acl过程中s3节点异常
  * @author wangkexin
- * @Date 2019.09.26
+ * @date 2019.09.26
+ * @updateUser wuyan
+ * @updateDate 2021.11.1
+ * @updateRemark 减少操作对象数据量，在满足测试场景基础上减少大数据量同步等待时间
  * @version 1.00
  */
 public class SetObjectAclAndS3ReStart19485 extends S3TestBase {
@@ -40,7 +43,7 @@ public class SetObjectAclAndS3ReStart19485 extends S3TestBase {
     private String filePath = null;
     private File localPath = null;
     private File file = null;
-    private int threadNum = 100;
+    private int threadNum = 30;
     private Grant expGrants;
 
     @BeforeClass

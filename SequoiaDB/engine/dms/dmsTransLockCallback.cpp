@@ -63,8 +63,8 @@ namespace engine
    class _dmsMemRecordRW : public _dmsRecordRW
    {
       public:
-         _dmsMemRecordRW( dpsOldRecordPtr ptr )
-         :_dmsRecordRW()
+         _dmsMemRecordRW( const _dmsRecordRW &recordRW, dpsOldRecordPtr ptr )
+         :_dmsRecordRW( recordRW )
          {
             if ( ptr.get() )
             {
@@ -491,6 +491,7 @@ namespace engine
       _latchedIdxLid  = DMS_INVALID_EXTENT ;
       _transIsolation = TRANS_ISOLATION_MAX ;
       _nonTransNeedCleanup = FALSE ;
+      _useLatestVersion = FALSE ;
       _pScanner    = NULL ;
 
       clearStatus() ;
@@ -508,6 +509,7 @@ namespace engine
       _recordRW   = NULL ;
       _rbsRecordData = NULL ;
       _nonTransNeedCleanup = FALSE ;
+      _useLatestVersion = FALSE ;
       _oldVerCB   = transCB->getOldVCB() ;
       _rbsMgr     = pmdGetKRCB()->getDMSCB()->getRBSSUMgr() ;
 
@@ -658,7 +660,8 @@ namespace engine
 
       // S lock and isolation RR
       if (  ( TRANS_ISOLATION_RR == _transIsolation ) &&
-            ( DPS_TRANSLOCK_S == requestLockMode ) )
+            ( DPS_TRANSLOCK_S == requestLockMode ) &&
+            ( !_useLatestVersion )  )
 
       {
          _afterAcquireSLockRRread( lockId,
@@ -783,7 +786,8 @@ namespace engine
                     lockId.toString().c_str() ) ;
 #endif
             // setup the buffer pointer in dmsRecordRW
-            *_recordRW = dmsMemRecordRW( _recordPtr ) ;
+            SDB_ASSERT( NULL != _recordRW, "record should be attached" ) ;
+            *_recordRW = dmsMemRecordRW( *_recordRW, _recordPtr ) ;
 
             // set the return info if we successfully used old version
             _useOldVersion = TRUE ;
@@ -1007,7 +1011,8 @@ namespace engine
       {
          _useOldVersion = TRUE ;
          // setup the buffer pointer in dmsRecordRW
-         *_recordRW = dmsMemRecordRW( _recordPtr ) ;
+         SDB_ASSERT( NULL != _recordRW, "record should be attached" ) ;
+         *_recordRW = dmsMemRecordRW( *_recordRW, _recordPtr ) ;
       }
 
       return rc ;
@@ -1378,7 +1383,8 @@ namespace engine
 #endif
 
       if ( ( DPS_TRANSLOCK_S == requestLockMode ) &&
-           ( TRANS_ISOLATION_RR == _transIsolation ) )
+           ( TRANS_ISOLATION_RR == _transIsolation ) &&
+           ( !_useLatestVersion ) )
       {
          if ( transID.isInvalid() || _eduCB->isInTransRollback() )
          {
@@ -1479,6 +1485,17 @@ namespace engine
                              pExtData ) ;
 
       PD_TRACE_EXIT( SDB_DMSTRANSLOCKCALLBACK_BEFORELOCKRELEASE );
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSTRANSLOCKCALLBACK_AFTERLOCKESCALATED, "dmsTransLockCallback::afterLockEscalated" )
+   void dmsTransLockCallback::afterLockEscalated( const dpsTransLockId &lockId,
+                                                  DPS_TRANSLOCK_OP_MODE_TYPE opMode )
+   {
+      PD_TRACE_ENTRY( SDB_DMSTRANSLOCKCALLBACK_AFTERLOCKESCALATED ) ;
+
+      _recordInfo._transLockEscalated = TRUE ;
+
+      PD_TRACE_EXIT( SDB_DMSTRANSLOCKCALLBACK_AFTERLOCKESCALATED ) ;
    }
 
    // Description
@@ -1685,6 +1702,8 @@ namespace engine
       {
          _oldVer->setRecordNew( cb->getTID() ) ;
       }
+      // mark insert by self
+      _recordInfo._transInsert = TRUE ;
       return SDB_OK ;
    }
 
@@ -1701,6 +1720,20 @@ namespace engine
       if ( SDB_OK == rc && markDeleting && _oldVer )
       {
          _oldVer->setDiskDeleting() ;
+      }
+      if ( !markDeleting &&
+           ( _recordInfo._transInsert ||
+             ( cb->isInTransRollback() &&
+               !cb->isTakeOverTransRB() ) ) )
+      {
+         // if the record is deleted from disk during transaction,
+         // mark it in record info, so the scanner can release
+         // transaction lock for this record later
+         _recordInfo._transInsertDeleted = TRUE ;
+      }
+      else
+      {
+         _recordInfo._transInsertDeleted = FALSE ;
       }
       return rc ;
    }

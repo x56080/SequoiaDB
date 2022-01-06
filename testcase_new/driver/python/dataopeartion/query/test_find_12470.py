@@ -107,7 +107,7 @@ class TestFind12470(testlib.SdbTestBase):
          actResult = testlib.get_all_records(cursor)
          self.assertListEqualUnordered(expectResult, actResult)
       except SDBBaseError as e:
-         self.fail('check query fail: ' + e.detail)
+         self.fail('check query fail: ' + str(e))
 
    def insert_datas(self):
       flags = 0
@@ -127,7 +127,7 @@ class TestFind12470(testlib.SdbTestBase):
       try:
          self.cl.bulk_insert(flags, doc)
       except SDBBaseError as e:
-         self.fail('insert fail: ' + e.detail)
+         self.fail('insert fail: ' + str(e))
 
 
    def get_count(self, condition, expectCount):
@@ -135,4 +135,4 @@ class TestFind12470(testlib.SdbTestBase):
          actCount = self.cl.get_count(condition)
          self.assertEqual(expectCount, actCount)
       except SDBBaseError as e:
-         self.fail('get count fail: ' + e.detail)
+         self.fail('get count fail: ' + str(e))

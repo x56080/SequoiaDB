@@ -1,11 +1,5 @@
 [^_^]:
     离线升级
-    作者：杨上德
-    时间：20190818
-    评审意见
-    王涛：时间：
-    许建辉：时间：
-    市场部：时间：20190911
 
 
 离线升级指在升级过程中服务会暂时性不可用，在整个升级过程完成之后恢复服务。本文档将说明在一台主机上的离线升级流程，按照相同步骤，用户可以依次完成所有主机上的软件升级。
@@ -15,15 +9,14 @@
 
 用户可前往 SequoiaDB 巨杉数据库官网下载相应版本的[安装包][download]。
 
-升级
-----
+##升级##
 
-### 升级说明
+###升级说明###
 
 * 升级 SequoiaDB 需要使用操作系统 root 用户权限，用户需确认已经获取了对应权限。 
 * 升级过程中输入的参数不接受非英文字符。
 
-### 升级步骤 
+###升级步骤###
 
 本文档以从 2.8.7 企业版升级到 3.2 企业版为例进行说明，其它版本间的升级与之基本一致。升级前需要先将新版软件安装包上传到目标主机，并确保软件包具有可执行权限。
 
@@ -92,8 +85,14 @@
     安装程序已经完成安装 SequoiaDB Server 于你的电脑中.
    ```
 
+6. 在集群中所有主机完成软件升级后，如果 SequoiaDB 是由 v3.4.5/5.0.3 以下版本升级至 v3.4.5/5.0.3 及以上版本，需要手动执行 [sdbupgradeidx][upgrade_index] 工具进行索引升级。
+
+
+
 
 [^_^]:
     本文中用到的所有链接
 [download]:http://download.sequoiadb.com/cn/
 [compatibility]:manual/Maintainance/Upgrade/compatibility.md
+[upgrade_index]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/upgrade_index.md
+[report]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/upgrade_index.md#示例

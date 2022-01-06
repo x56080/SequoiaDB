@@ -56,7 +56,9 @@
                'Flow':           '35%'
             } ;
          }
-         else if( moduleType == 'sequoiasql-postgresql' || moduleType == 'sequoiasql-mysql' )
+         else if( moduleType == 'sequoiasql-postgresql' ||
+                  moduleType == 'sequoiasql-mysql' ||
+                  moduleType == 'sequoiasql-mariadb' )
          {
             $scope.TaskTable['title'] = {
                'Status':         '',
@@ -99,6 +101,10 @@
          {
             $location.path( '/Deploy/MySQL-Mod' ).search( { 'r': new Date().getTime() } ) ;
          }
+         else if( $scope.ModuleType == 'sequoiasql-mariadb' )
+         {
+            $location.path( '/Deploy/MariaDB-Mod' ).search( { 'r': new Date().getTime() } ) ;
+         }
       }
 
       //返回
@@ -125,6 +131,11 @@
                else if ( 'sequoiasql-mysql' == $scope.ModuleType )
                {
                   $location.path( '/Config/SequoiaSQL/MySQL/Index' ).search( { 'r': new Date().getTime() } ) ;
+                  return ;
+               }
+               else if ( 'sequoiasql-mariadb' == $scope.ModuleType )
+               {
+                  $location.path( '/Config/SequoiaSQL/MariaDB/Index' ).search( { 'r': new Date().getTime() } ) ;
                   return ;
                }
             }
@@ -211,7 +222,9 @@
                         $scope.BarColor = 2 ;
                      }
                   }
-                  else if( $scope.ModuleType == 'sequoiasql-postgresql' || $scope.ModuleType == 'sequoiasql-mysql' )
+                  else if( $scope.ModuleType == 'sequoiasql-postgresql' ||
+                           $scope.ModuleType == 'sequoiasql-mysql' ||
+                           $scope.ModuleType == 'sequoiasql-mariadb' )
                   {
                      $.each( $scope.TaskInfo['ResultInfo'], function( index, nodeInfo ){
                         if( nodeInfo['errno'] != 0 )
