@@ -457,6 +457,10 @@ namespace engine
       public:
          _coordCmdListIndexes() ;
          virtual ~_coordCmdListIndexes() ;
+         virtual INT32 execute( MsgHeader *pMsg,
+                                pmdEDUCB *cb,
+                                INT64 &contextID,
+                                rtnContextBuf *buf ) ;
       protected:
          virtual INT32 _preProcess( rtnQueryOptions &queryOpt,
                                     string &clName,

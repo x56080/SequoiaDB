@@ -47,6 +47,7 @@
 #include "coordTrace.hpp"
 #include "catGTSDef.hpp"
 #include "coordUtil.hpp"
+#include "coordCommandStat.hpp"
 
 using namespace bson ;
 
@@ -656,6 +657,53 @@ namespace engine
 
    _coordCmdListIndexes::~_coordCmdListIndexes()
    {
+   }
+
+   INT32 _coordCmdListIndexes::execute( MsgHeader *pMsg,
+                                        pmdEDUCB *cb,
+                                        INT64 &contextID,
+                                        rtnContextBuf *buf )
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = _coordCMDQueryBase::execute( pMsg, cb, contextID, buf ) ;
+      if ( SDB_DMS_NOTEXIST == rc )
+      {
+         // If catalog is old version, it doesn't has SYSINDEXES collection,
+         // it will return -23, we should try to list index by old command.
+         if ( buf )
+         {
+            buf->release() ;
+         }
+
+         coordCMDGetIndexesOldVersion listIndexOld ;
+         rc = listIndexOld.init( _pResource, cb ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to init get index command, rc: %d",
+                    rc ) ;
+            goto error ;
+         }
+
+         rc = listIndexOld.execute( pMsg, cb, contextID, buf ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to list indexes by old command, rc: %d",
+                    rc ) ;
+            goto error ;
+         }
+      }
+      else if ( rc )
+      {
+
+         PD_LOG( PDERROR, "Failed to list indexes, rc: %d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( COORDLISTIDX_PREPCS, "_coordCmdListIndexes::_preProcess" )
