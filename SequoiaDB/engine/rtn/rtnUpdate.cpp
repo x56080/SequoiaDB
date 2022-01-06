@@ -150,7 +150,7 @@ namespace engine
          goto error;
       }      
 
-      rc = apm->getAccessPlan( options, FALSE, su, mbContext, planRuntime ) ;
+      rc = apm->getAccessPlan( options, su, mbContext, planRuntime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s for update, "
                      "rc: %d", options.getCLFullName(), rc ) ;
       matchRuntime = planRuntime.getMatchRuntime(TRUE) ;

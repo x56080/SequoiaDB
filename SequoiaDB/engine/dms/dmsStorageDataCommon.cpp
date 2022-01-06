@@ -2470,6 +2470,7 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Allocate new %u pages of collection[%s] "
                         "failed, rc: %d", initPages, pName, rc ) ;
          }
+      }
 
       // create $id index[s_idKeyObj]
       if ( !OSS_BIT_TEST( attributes, DMS_MB_ATTR_NOIDINDEX ) )
@@ -4398,7 +4399,7 @@ namespace engine
       {
          rc = updateRecordOnMmap(context, recordID, updatedDataPtr,
                                  cb, dpscb, modifier, newRecord,
-                                 pHandler, pResult);
+                                 pHandler, pResult, pInfo);
       }
    done:
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_UPDATERECORD, rc ) ;
@@ -4416,7 +4417,8 @@ namespace engine
                                                    _mthModifier &modifier,
                                                    BSONObj* newRecord,
                                                    IDmsOprHandler *pHandler,
-                                                   utilUpdateResult *pResult )
+                                                   utilUpdateResult *pResult,
+                                                   const dmsTransRecordInfo *pInfo)
    {
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_UPDATERECORDONMMP ) ;
       INT32            rc          = SDB_OK ;
@@ -5391,6 +5393,8 @@ namespace engine
       return rc;
    error:
       goto done;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__UPDATEMBSTAT, "_dmsStorageDataCommon::_updateMBStat" )
    void _dmsStorageDataCommon::_updateMBStat ( utilCLUniqueID clUniqueID,
                                                dmsMBStatInfo * mbStat,

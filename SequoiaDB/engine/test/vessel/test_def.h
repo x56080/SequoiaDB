@@ -158,11 +158,14 @@ class test_executor : public IExecutor
       /*
          Context Related
       */
-      virtual void      contextInsert( INT64 contextID ) {}
+      virtual BOOLEAN      contextInsert( INT64 contextID ) {return FALSE;}
       virtual void      contextDelete( INT64 contextID ) {}
       virtual INT64     contextPeek() {return -1;}
       virtual BOOLEAN   contextFind( INT64 contextID ) {return FALSE;}
       virtual UINT32    contextNum() {return 0;}
+
+      virtual BOOLEAN   isLogTimeOn() const {return FALSE;}
+      virtual UINT32    getLogWriteMod() const {return DPS_LOG_WRITE_MOD_INCREMENT;}
 
    public:
       EDUID _id = 0;

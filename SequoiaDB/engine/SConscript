@@ -209,7 +209,7 @@ utilFiles = [
       "util/utilBSON.cpp",
       "util/utilAuthSCRAMSHA.cpp",
       "util/utilFullNameParser.cpp",
-      "util/utilCRC.cpp"
+      "util/utilCRC.cpp",
       "util/utilAddress.cpp",
       "util/utilDataSource.cpp"
       ]
@@ -310,7 +310,7 @@ rtnFiles = [
       "rtn/rtnLocalTask.cpp",
       "rtn/rtnCSHandlers.cpp",
       "rtn/rtnCLHandlers.cpp",
-      "rtn/rtnDMLHandlers.cpp"
+      "rtn/rtnDMLHandlers.cpp",
       "rtn/rtnDetectDeadlock.cpp"
       ]
 

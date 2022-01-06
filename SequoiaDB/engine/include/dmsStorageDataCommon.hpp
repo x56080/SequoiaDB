@@ -1368,7 +1368,8 @@ namespace engine
                                  _mthModifier &modifier,
                                  BSONObj* newRecord,
                                  IDmsOprHandler *pHandler,
-                                 utilUpdateResult *pResult);
+                                 utilUpdateResult *pResult,
+                                 const dmsTransRecordInfo *pInfo);
 
       private:
          INT32 createCLInEngine(pmdEDUCB * cb,

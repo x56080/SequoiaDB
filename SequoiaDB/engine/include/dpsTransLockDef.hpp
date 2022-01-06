@@ -579,14 +579,6 @@ namespace engine
    OSS_INLINE const CHAR *_dpsTransLockId::toString( CHAR *buffer,
                                                      UINT32 bufferSize ) const
    {
-<<<<<<< HEAD
-      stringstream ss ;
-      ss << DPS_LOCKID_CSID ":" << csID()
-         << ", " DPS_LOCKID_CLID ":" << clID()
-         << ", " DPS_LOCKID_EXTENTID ":" << extentID()
-         << ", " DPS_LOCKID_OFFSET ":" << offset() ;
-      return ss.str() ;
-=======
       ossSnprintf( buffer, bufferSize,
                    DPS_LOCKID_CSID ":%u, "
                    DPS_LOCKID_CLID ":%u, "
@@ -594,7 +586,6 @@ namespace engine
                    DPS_LOCKID_OFFSET ":%d",
                    csID(), clID(), extentID(), offset() ) ;
       return buffer ;
->>>>>>> origin/v5.0
    }
 
    OSS_INLINE BSONObj _dpsTransLockId::toBson() const
