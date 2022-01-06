@@ -1,5 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <rclist>
+   <taglist>
+      <tag>
+         <name>vessel</name>
+         <base>800</base>      
+      </tag>
+   </taglist> 
+
    <conslist>
       <constant>
         <name>SDB_MAX_ERROR</name>
@@ -3075,6 +3082,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_INTERNAL_ERR</name>
          <description>
             <en>An internal error of vessel has occurred</en>
@@ -3083,6 +3091,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_LC_NOT_ENOUGH_PAGES_IN_FL</name>
          <description>
             <en>Not enough pages in free list</en>
@@ -3091,6 +3100,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_LC_LRU_BUSY</name>
          <description>
             <en>Failed to evict mem page from lru</en>
@@ -3099,6 +3109,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_FORBIDDEN_OP_WLT</name>
          <description>
             <en>forbidden operation because of holding wrong type latch</en>
@@ -3107,6 +3118,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_LC_NOT_IN_POOL</name>
          <description>
             <en>Extent does not exist in lite cache</en>
@@ -3115,6 +3127,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_INVALID_VESSEL_FILE</name>
          <description>
             <en>invalid file</en>
@@ -3123,6 +3136,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_FILE_HEAD_CRASHED</name>
          <description>
             <en>file head already crashed</en>
@@ -3131,6 +3145,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_CF_VERSION_NOT_AVAILABLE</name>
          <description>
             <en>target version of control file is not available</en>
@@ -3139,6 +3154,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_CRASHED_WHEN_CREATING</name>
          <description>
             <en>crashing happend when creating file</en>
@@ -3147,6 +3163,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_INVALID_PTR_OFFSET</name>
          <description>
             <en>invalid pointer offset of disk page</en>
@@ -3155,6 +3172,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_FS_UPPER_LIMIT</name>
          <description>
             <en>the space of file reaches the upper limit</en>
@@ -3163,6 +3181,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE</name>
          <description>
             <en>not enough free resource</en>
@@ -3171,14 +3190,16 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_PAGE_HEAD_NOT_MATCH</name>
          <description>
             <en>the page head does not match the input arguments</en>
             <cn>数据页头与传入参数不符</cn>
          </description>
       </code>
-
+      
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_PAGE_CRASHED</name>
          <description>
             <en>data page is crashed</en>
@@ -3187,6 +3208,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_CURSOR_NO_SPACE</name>
          <description>
             <en>not enough space in cursor buf</en>
@@ -3195,6 +3217,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_OUT_OF_RESOURCE</name>
          <description>
             <en>some request is out of resource</en>
@@ -3203,6 +3226,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_LOGICAL_PAGE_UNMAPPED</name>
          <description>
             <en>logical page has not been mapped</en>
@@ -3211,6 +3235,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_PAGE_IN_SNAPSHOT</name>
          <description>
             <en>page is readonly because of in the snapshot</en>
@@ -3219,6 +3244,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE</name>
          <description>
             <en>not enough free space in data page</en>
@@ -3227,6 +3253,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_FSM_ENTRY_BROKEN</name>
          <description>
             <en>the entry of free space map on disk is broken</en>
@@ -3235,6 +3262,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_FSM_PAGE_BROKEN</name>
          <description>
             <en>the page of free space map on disk is broken</en>
@@ -3243,6 +3271,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_CL_PAGE_SEQ_NOT_EXISTS</name>
          <description>
             <en>the page sequence of collection does not exist</en>
@@ -3251,6 +3280,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_RESOURCES_NOT_INIT</name>
          <description>
             <en>the resources has not been initialized yet</en>
@@ -3259,6 +3289,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_OPERATOION_NOT_PERMITTED</name>
          <description>
             <en>the operation is not permitted</en>
@@ -3266,7 +3297,8 @@
          </description>
       </code>
 
-      code>
+      <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_FAILURE_LOADING_DLR</name>
          <description>
             <en>failed to load delta log record on disk</en>
@@ -3276,6 +3308,7 @@
       
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_DUPLICATED_KEY</name>
          <description>
             <en>the key is duplicated</en>
@@ -3284,6 +3317,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_KEY_NOT_FOUND</name>
          <description>
             <en>the key is not found</en>
@@ -3292,6 +3326,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_TEMP_SU</name>
          <description>
             <en>the storage unit is temporary</en>
@@ -3300,6 +3335,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_OUT_OF_MBID_RESOURCE</name>
          <description>
             <en>no more free mb id can be allocated</en>
@@ -3308,6 +3344,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_SAME_TASK_RUNNING</name>
          <description>
             <en>task with same type is running</en>
@@ -3316,6 +3353,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_INDEX_BUILDING_TERMINATED</name>
          <description>
             <en>the creating of index is terminated</en>
@@ -3324,6 +3362,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_LATCH_OBJ_BUSY</name>
          <description>
             <en>the latch object is busy</en>
@@ -3332,6 +3371,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_IXM_ITEM_NOT_FOUND</name>
          <description>
             <en>the index item with key and rid not found</en>
@@ -3340,6 +3380,7 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_ROW_BATCH_LIMITS</name>
          <description>
             <en>hit the limits of row batch</en>
@@ -3348,11 +3389,13 @@
       </code>
 
       <code>
+         <tag>vessel</tag>
          <name>SDB_VESSEL_RECORD_NOT_FOUND</name>
          <description>
             <en>the target record not found</en>
             <cn>没有发现目标记录</cn>
          </description>
       </code>
+
    </codelist>
 </rclist>
