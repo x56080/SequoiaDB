@@ -248,6 +248,11 @@ namespace engine
 
       _latch.release() ;
 
+      if ( pJob )
+      {
+         pJob->onDone() ;
+      }
+
       // free memory
       if ( pJob )
       {
@@ -290,7 +295,7 @@ namespace engine
 
       _evtOut.signal() ;
       _pEDUCB = NULL ;
-      return SDB_OK ;      
+      return SDB_OK ;
    }
 
    void _rtnBaseJob::_onAttach()
@@ -298,6 +303,10 @@ namespace engine
    }
 
    void _rtnBaseJob::_onDetach()
+   {
+   }
+
+   void _rtnBaseJob::_onDone()
    {
    }
 
@@ -309,6 +318,12 @@ namespace engine
    INT32 _rtnBaseJob::waitDetach ( INT64 millsec )
    {
       return _evtOut.wait( millsec ) ;
+   }
+
+   void _rtnBaseJob::onDone ()
+   {
+      // do something after the job is removed from _mapJobs
+      _onDone() ;
    }
 
    pmdEDUCB * _rtnBaseJob::eduCB ()

@@ -50,7 +50,7 @@ namespace engine
    */
    class _rtnContextQGM : public _rtnContextBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextQGM )
       public:
          _rtnContextQGM ( INT64 contextID, UINT64 eduID ) ;
          virtual ~_rtnContextQGM () ;
@@ -75,7 +75,7 @@ namespace engine
 
    class _rtnContextQgmSort : public _rtnContextBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextQgmSort )
    public:
       _rtnContextQgmSort( INT64 contextID, UINT64 eduID ) ;
       virtual ~_rtnContextQgmSort() ;

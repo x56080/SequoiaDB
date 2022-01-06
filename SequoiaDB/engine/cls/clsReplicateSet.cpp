@@ -270,8 +270,7 @@ namespace engine
       sdbGetPMDController()->registerNet( pNetFrame,
                                           MSG_ROUTE_REPL_SERVICE ) ;
 
-      _totalLogSize = (UINT64)pmdGetOptionCB()->getReplLogFileSz()*
-                      (UINT64)pmdGetOptionCB()->getReplLogFileNum() ;
+      _totalLogSize = pmdGetOptionCB()->getTotalLogSpace() ;
       // init sync control param
       {
          UINT32 rate = 2 ;
@@ -402,10 +401,10 @@ namespace engine
    {
       if ( pmdGetOptionCB()->maxReplSync() != getBucket()->maxReplSync() )
       {
-         _sync.enableSync( FALSE ) ;
+         _sync.disableSync() ;
          _syncEmptyEvent.wait() ;
          getBucket()->enforceMaxReplSync( pmdGetOptionCB()->maxReplSync() ) ;
-         _sync.enableSync( TRUE ) ;
+         _sync.enableSync() ;
       }
       if ( getStartShiftTime() >= 0 )
       {
@@ -826,11 +825,16 @@ namespace engine
    {
       BOOLEAN checkResult = TRUE ;
 
-      if ( !sdbGetReplCB()->getBucket()->isEmpty() )
+      if ( SDB_OK != getSyncEmptyEvent()->wait( 0 ) )
+      {
+         PD_LOG( PDWARNING, "Repl sync log is running, "
+                 "can't initial voting" ) ;
+         checkResult = FALSE ;
+      }
+      else if ( !getBucket()->isEmpty() )
       {
          PD_LOG( PDWARNING, "Repl log is not empty, can't initial voting, "
-                 "repl bucket size: %d",
-                 sdbGetReplCB()->getBucket()->size() ) ;
+                 "repl bucket size: %d", getBucket()->size() ) ;
          checkResult = FALSE ;
       }
       else if ( sdbGetTransCB()->isNeedSyncTrans() &&
@@ -885,6 +889,11 @@ namespace engine
    INT32 _clsReplicateSet::getSyncStrategy()
    {
       return pmdGetOptionCB()->syncStrategy() ;
+   }
+
+   BOOLEAN _clsReplicateSet::getDetectDisk()
+   {
+      return pmdGetOptionCB()->detectDisk() ;
    }
 
    INT32 _clsReplicateSet::onLocalNotFoundInGroup()

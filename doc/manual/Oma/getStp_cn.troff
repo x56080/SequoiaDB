@@ -58,7 +58,7 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-录 \f[C]<INSTALL_DIR>/conf/stp/stp.conf\f[] 查看
+录 \f[C]<INSTALL_DIR>/conf| |||||/stp/stp.conf\f[] 查看
 T}
 T{
 T}@T{
@@ -80,7 +80,7 @@ v5.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma("localhost",11790)
->\ var\ stp\ =\ oma.getStp()
+> var oma = new Oma("localhost",11790)
+> var stp = oma.getStp()
 \f[]
 .fi

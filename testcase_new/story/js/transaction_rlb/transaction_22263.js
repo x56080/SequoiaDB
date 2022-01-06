@@ -25,13 +25,12 @@ function test( testPara )
    
       try
       {
-         
          db.transCommit();
          throw new Error( "commit should be failed!");
       }
       catch( e )
       {
-         if( e.message != SDB_NET_INVALID_HANDLE )
+         if( e.message != SDB_COORD_REMOTE_DISC )
          {
             throw e;
          }
@@ -39,11 +38,9 @@ function test( testPara )
       
       db.transRollback();
       checkReelect( groupName, slaveHostName, slaveServiceName );
-      commCheckBusinessStatus( db, 180, true );
-     
-      var cl = db.getCS(COMMCSNAME).getCL(testConf.clName);
-      var cursor = cl.find();
-      commCompareResults( cursor, [] );     
+      commCheckBusinessStatus( db, 180, true );      
+      checkInsertResult(testConf.clName);
+      
    }
    finally
    {

@@ -154,7 +154,7 @@ public class CollectionSpace {
      * Create collection by options.
      *
      * @param collectionName The collection name
-     * @param options        The {@see <a href=http://doc.sequoiadb.com/cn/index-cat_id-1432190821-edition_id-@SDB_SYMBOL_VERSION>options</a>}
+     * @param options        The {@see <a href=//doc.sequoiadb.com/cn/index-cat_id-1432190821-edition_id-@SDB_SYMBOL_VERSION target=new>options</a>}
      *                       for creating collection or null for not specified any options.
      * @return the newly created object of collection.
      * @throws BaseException If error happens.
@@ -288,6 +288,26 @@ public class CollectionSpace {
      */
     public void removeDomain() throws BaseException {
         alterInternal(SdbConstants.SDB_ALTER_REMOVE_DOMAIN, null, true);
+    }
+
+    /**
+     * Get the Domain name of the current collection space. Returns an empty string if the current collection space
+     * has no owning domain
+     * @return the Domain name.
+     * @throws BaseException If error happens.
+     */
+    public String getDomainName(){
+        String result= null;
+        String cmd = "select Domain from $LIST_CS where Name = '" + this.name + "'";
+        DBCursor cursor = sequoiadb.exec(cmd);
+        if (cursor.hasNext()) {
+            BSONObject obj = cursor.getNext();
+            result = (String) obj.get("Domain");
+        }
+        if (result == null){
+            result = "";
+        }
+        return result;
     }
 
     /**

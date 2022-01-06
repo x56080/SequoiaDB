@@ -177,6 +177,9 @@ IMPLEMENT_DYNCREATE(CMainFrame, CFrameWnd)
 \r\n\
 ###### 这是 h6\r\n\
 \r\n\
+> **Note:**  \r\n\
+> 在官网模式，会根据 H2 生成本页导航\r\n\
+\r\n\
 --\r\n\
 \r\n\
 # 2. 区块引用\r\n\
@@ -322,7 +325,13 @@ cd /opt\r\n\
 mkdir sequoiadb\r\n\
 ```\r\n\
 \r\n\
-# 10. 表格\r\n\
+# 10. 高亮\r\n\
+\r\n\
+事实上这是单行代码，一般用在代码、路径或者比较重要的特殊内容，依旧需要与中文之间前后保持一个空格。如果后接标点符号则不需要空格\r\n\
+\r\n\
+你好 `this is demo` 结束\r\n\
+\r\n\
+# 11. 表格\r\n\
 \r\n\
 | First Header | Second Header |\r\n\
 | ------------ | ------------- |\r\n\
@@ -330,12 +339,12 @@ mkdir sequoiadb\r\n\
 | Content in the first column | Content in the second column |\r\n\
 | 我要<br/>换行 | 我不换行 |\r\n\
 \r\n\
-# 11. 删除线\r\n\
+# 12. 删除线\r\n\
 \r\n\
 ~~123456~~\r\n\
 \r\n\
 \r\n\
-# 12. 转义字符\r\n\
+# 13. 转义字符\r\n\
 \r\n\
 Markdown 支持以下这些符号前面加上反斜杠来帮助插入普通的符号：\r\n\
 \r\n\
@@ -357,14 +366,12 @@ Markdown 支持以下这些符号前面加上反斜杠来帮助插入普通的符号：\r\n\
 | \\|   | 竖线 |\r\n\
 | \\<\> | 尖括号 |\r\n\
 \r\n\
-# 13. 分页\r\n\
+# 14. 分页\r\n\
 \r\n\
 **我们利用注释开发的语法，通过模式切换【普通模式】和【官网模式】查看效果  \r\n\
 【普通模式】是列表，【官网模式】是分页**\r\n\
 \r\n\
 **列表支持有序列表和无序列表**\r\n\
-\r\n\
-语法：\r\n\
 \r\n\
 ```\r\n\
 [^_^]:tab\r\n\
@@ -378,8 +385,6 @@ Markdown 支持以下这些符号前面加上反斜杠来帮助插入普通的符号：\r\n\
 ```\r\n\
 \r\n\
 --\r\n\
-例子：\r\n\
-\r\n\
 \r\n\
 [^_^]:tab\r\n\
 1. Linux:\r\n\

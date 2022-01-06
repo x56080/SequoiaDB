@@ -1,18 +1,6 @@
-分区功能用于将一张表的存储分散到多个物理位置，达到更好的并发读写效果。在数据量大时，速度提升更为明显。MySQL 提供了四种分区的方式：RANGE 分区、LIST 分区、HASH 分区和 KEY 分区，同时还支持复合分区的方式。
+分区功能用于将一张表的存储分散到多个物理位置，达到更好的并发读写效果。在数据量大时，速度提升更为明显。MySQL 提供了四种分区的方式：RANGE 分区、LIST 分区、HASH 分区和 KEY 分区，同时支持复合分区。
 
-## 约束与限制
-
-* 不支持指定特定的 HASH 分区操作；
-
-* 不支持从 INFORMATION_SCHEMA.PARTITIONS 表查询 HASH 分区后各个分区具体记录数；
-
-* 不支持使用自增字段作为 LIST/RANGE 的分区字段；
-
-* 不支持 EXCHANGE PARTITION 操作；
-
-* RANGE COLUMNS 有多个列时，不能指定分区操作。
-
-## RANGE分区
+##RANGE 分区##
 
 - **RANGE(\<expression\>)**
 
@@ -69,7 +57,7 @@
     );
     ```
 
-## LIST分区
+##LIST 分区##
 
 - **LIST(\<expression\>)**
     
@@ -109,7 +97,7 @@
     );
     ```
 
-## HASH分区
+##HASH 分区##
 
 - **HASH(\<expression\>)**
 
@@ -141,7 +129,7 @@
 
     `PARTITION BY LINEAR HASH` 与 `PARTITION BY HASH` 效果等同。例子中 `PARTITION 4` 参数是无意义的。分区实际是按 SequoiaDB 的规则自动切分到对应的数据组中。
 
-## KEY分区
+##KEY 分区##
 
 - **KEY(\<column_list\>)**
 
@@ -172,7 +160,7 @@
     COMMENT='sequoiadb:{ table_options: { ShardingKey: { id: 1 }, ShardingType: "hash", AutoSplit: true } }'
     ```
 
-## 复合分区
+##复合分区##
 
 复合分区中，上层分区必须使用 RANGE 或者 LIST 分区，下层分区必须使用 HASH 或者 KEY 分区。以下示例是在 goods 表上先根据 produced_date 进行 RANGE 分区，再使用每个范围分区的 id 进行 HASH 分区。
 
@@ -192,3 +180,15 @@ SUBPARTITIONS 2 (
     PARTITION p3 VALUES LESS THAN ('2020-01-01')
 );
 ```
+
+##注意事项##
+
+* 不支持指定特定的 HASH 分区操作
+
+* 不支持从 INFORMATION_SCHEMA.PARTITIONS 表查询 HASH 分区后各个分区具体记录数
+
+* 不支持使用自增字段作为 LIST/RANGE 的分区字段
+
+* 不支持 EXCHANGE PARTITION 操作
+
+* RANGE COLUMNS 有多个列时，不能指定分区操作

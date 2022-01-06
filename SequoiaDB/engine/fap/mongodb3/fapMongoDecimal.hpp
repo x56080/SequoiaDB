@@ -38,7 +38,7 @@
 
 #include "ossUtil.hpp"
 #include "../../bson/bson.hpp"
-#include "mongodef.hpp"
+#include "fapMongodef.hpp"
 
 #ifndef _FAP_MONGO_DECIMAL_HPP_
 #define _FAP_MONGO_DECIMAL_HPP_

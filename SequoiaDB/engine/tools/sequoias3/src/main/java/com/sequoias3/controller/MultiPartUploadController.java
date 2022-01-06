@@ -269,7 +269,7 @@ public class MultiPartUploadController {
             objectService.abortUpload(operator.getUserId(), bucketName, objectName, uploadId);
 
             logger.debug("abortUpload success. bucketName={}, objectName={}, uploadId={}", bucketName, objectName, uploadId);
-            return ResponseEntity.ok()
+            return ResponseEntity.noContent()
                     .build();
         }catch (Exception e){
             logger.error("abortUpload failed. bucketName={}, bucketName/objectName={}, uploadId:{}",

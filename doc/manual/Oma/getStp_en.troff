@@ -60,7 +60,7 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-STP \f[C]<INSTALL_DIR>/conf/stp/stp.conf\f[] if the
+STP \f[C]<INSTALL_DIR>/conf| |||||/stp/stp.conf\f[] if the
 T}
 T{
 T}@T{
@@ -83,7 +83,7 @@ Get the STP process.
 .IP
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma("localhost",11790)
->\ var\ stp\ =\ oma.getStp()
+> var oma = new Oma("localhost",11790)
+> var stp = oma.getStp()
 \f[]
 .fi

@@ -119,12 +119,12 @@ namespace engine
       spdSession *session = NULL ;
       contextID           = -1 ;
 
-      CHAR *pQuery = NULL ;
+      const CHAR *pQuery = NULL ;
       BSONObj procedures ;
       spdCoordDownloader downloader( this, cb ) ;
       BSONObj runInfo ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL,
                             NULL, NULL, &pQuery, NULL,
                             NULL, NULL );
       if ( SDB_OK != rc )
@@ -205,8 +205,8 @@ namespace engine
       SDB_ASSERT( !evalRes.isEmpty(), "impossible" ) ;
 
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
-      rtnContextSP *context = NULL ;
-      rc = rtnCB->contextNew ( RTN_CONTEXT_SP, (rtnContext**)&context,
+      rtnContextSP::sharePtr context ;
+      rc = rtnCB->contextNew ( RTN_CONTEXT_SP, context,
                                contextID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create new context, rc: %d", rc ) ;
 

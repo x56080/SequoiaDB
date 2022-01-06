@@ -4,7 +4,7 @@
 .hy
 .SH 名称
 .PP
-print \- 将输入内容输出到标准输出。
+print \- 将输入内容输出到标准输出
 .SH 语法
 .PP
 \f[B]print(<contents>)\f[]
@@ -17,28 +17,21 @@ Global
 .PP
 将输入内容输出到标准输出。print 函数不会换行，println 函数会换行。
 .SH 参数
-.IP \[bu] 2
-\f[C]contents\f[] ( \f[I]String\f[]， \f[I]必填\f[] )
-.RS 2
 .PP
-要输出的内容。
-.RE
+contents（ \f[I]string\f[]， \f[I]必填\f[] ）
+.PP
+要输出的内容
 .SH 返回值
 .PP
-无。
+无
 .SH 错误
 .PP
-无。
+无
 .SH 版本
 .PP
-v1.0及以上版本。
+v1.0 及以上版本
 .SH 示例
-.IP "1." 3
-格式化输出文件。
-.nf
-\f[C]
->\ println("hello\ world")
-hello\ world
-\f[]
-.fi
-.RE
+.PP
+格式化输出文件
+.PP
+\f[C]lang\-javascript > println("hello world") hello world\f[]

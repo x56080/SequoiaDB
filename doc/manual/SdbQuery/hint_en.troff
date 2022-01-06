@@ -56,25 +56,26 @@ speed up queries
 T}@T{
 T}
 .TE
-
+.RS
+.PP
 \f[B]Note:\f[]
 .RE
-.PP
+.RS
 .IP "1." 3
 The parameter "hint" is a Json object.
 The database does not care about the field of the object, but instead uses its
 field value to confirm the name of the index to use.
 When the field value is null, it indicates a table scan.
 The format of the parameter "hint" are as follow:
-\f[C]{\ "":\ null\ },\ {\ "":\ "indexname"\ },\ {\ "0":\ "indexname0",\ "1":\ "indexname1",\ "2":\ "indexname2"\ }\f[].
+\f[C]{ "": null }, { "": "indexname" }, { "0": "indexname0", "1": "indexname1", "2": "indexname2" }\f[].
 .RE
-.PP
+.RS
 .IP "2." 3
 Before SequoiaDB\-v3.0, When an index is specified by using hint(), once the
 database traverses to an index that can be used (or a table scan), it stops
 traversing and moves to the index (or table scan) for data lookup.
 .RE
-.PP
+.RS
 .IP "3." 3
 After SequoiaDB\-v3.0, When the database selects an index, it performs a
 comprehensive analysis based on the statistical model of the data and the index,
@@ -89,45 +90,45 @@ On success, returns the cursor of the query result set.
 On error, exception will be thrown.
 .SH ERRORS
 .PP
-when exception happen, use getLastError() to get the error code and use
+When exception happens, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
-For more detial, please reference to Troubleshooting.
+For more details, refer to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 It is mandatory to query the table scan.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find(\ {age:\ 100\ }\ ).hint(\ {\ "":\ null\ }\ )
+> db.sample.employee.find( {age: 100 } ).hint( { "": null } )
 \f[]
 .fi
 .IP \[bu] 2
 Use the index ageIndex to iterate through the records of the age field in the
-collection bar and return.
+collection employee and return.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find(\ {age:\ {$exists:1}\ }\ ).hint(\ {\ "":\ "ageIndex"\ }\ )
+> db.sample.employee.find( {age: {$exists:1} } ).hint( { "": "ageIndex" } )
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5cf8aef75e72aea111e82b38"
-\ \ },
-\ \ "name":\ "tom",
-\ \ "age":\ 20
+  "_id": {
+    "$oid": "5cf8aef75e72aea111e82b38"
+  },
+  "name": "tom",
+  "age": 20
 }
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5cf8aefe5e72aea111e82b39"
-\ \ },
-\ \ "name":\ "ben",
-\ \ "age":\ 21
+  "_id": {
+    "$oid": "5cf8aefe5e72aea111e82b39"
+  },
+  "name": "ben",
+  "age": 21
 }
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5cf8af065e72aea111e82b3a"
-\ \ },
-\ \ "name":\ "alice",
-\ \ "age":\ 19
+  "_id": {
+    "$oid": "5cf8af065e72aea111e82b3a"
+  },
+  "name": "alice",
+  "age": 19
 }
 \f[]
 .fi
@@ -138,6 +139,6 @@ statistics.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find(\ {age:\ 10\ }\ ).hint(\ {\ "1":\ "aIndex",\ "2":\ "bIndex",\ "3":"cIndex"\ }\ )
+> db.sample.employee.find( {age: 10 } ).hint( { "1": "aIndex", "2": "bIndex", "3":"cIndex" } )
 \f[]
 .fi

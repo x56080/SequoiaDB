@@ -102,6 +102,7 @@
                   tempHostInfo['OMA']            = hostInfo['OMA'] ;
                   tempHostInfo['POSTGRESQL']    = hostInfo['POSTGRESQL'] ;
                   tempHostInfo['MYSQL']         = hostInfo['MYSQL'] ;
+                  tempHostInfo['MARIADB']       = hostInfo['MARIADB'] ;
                   tempHostInfo['Safety']         = hostInfo['Safety'] ;
                   tempHostInfo['OS']            = hostInfo['OS'] ;
                   tempHostInfo['InstallPath']   = hostInfo['InstallPath'] ;
@@ -220,6 +221,40 @@
          else
          {
             hostInfo['MYSQL'] = {} ;
+         }
+      }
+
+      function initMariaDB( hostInfo )
+      {
+         var mariadbInfo = hostInfo['MARIADB'] ;
+
+         hostInfo['MariaDBList'] = [] ;
+
+         if ( mariadbInfo.length > 0 )
+         {
+            var defaultUse = 0 ;
+            var maxVersion = mariadbInfo[0]['Version'] ;
+
+            $.each( mariadbInfo, function( index, info ){
+               mariadbInfo[index]['IsUse'] = false ;
+               if( ComparVersion( maxVersion, info['Version'] ) == -1 )
+               {
+                  defaultUse = index ;
+                  maxVersion = info['Version'] ;
+               }
+            } ) ;
+
+            mariadbInfo[defaultUse]['IsUse'] = true ;
+            hostInfo['MariaDBList'] = mariadbInfo ;
+            hostInfo['MARIADB'] = {
+               'Version':  mariadbInfo[defaultUse]['Version'],
+               'SdbUser':  mariadbInfo[defaultUse]['SdbUser'],
+               'Path':     mariadbInfo[defaultUse]['Path']
+            } ;
+         }
+         else
+         {
+            hostInfo['MARIADB'] = {} ;
          }
       }
 
@@ -354,6 +389,7 @@
                      }
 
                      initMySQL( hostInfo ) ;
+                     initMariaDB( hostInfo ) ;
                      initPG( hostInfo ) ;
 
                      $.each( hostList, function( index2, hostInfo2 ){

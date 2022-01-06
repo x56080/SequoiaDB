@@ -90,6 +90,20 @@ namespace engine
                                         BOOLEAN &memReallocate,
                                         INT64 position ) ;
 
+      virtual INT32 _getRecordPosition( const dmsRecordID &rid,
+                                        const dmsRecordData &recordData,
+                                        INT64 &position ) ;
+
+      virtual INT32 _checkMarkInsert( dmsMBContext *context,
+                                      const DPS_TRANS_ID &transID,
+                                      const BSONObj &insertObj,
+                                      pmdEDUCB *cb,
+                                      INT64 &position,
+                                      BOOLEAN &markInsert,
+                                      dmsRecordID &foundRID,
+                                      dmsRecordData &recordData,
+                                      dmsRecordRW &recordRW ) ;
+
       virtual INT32 _allocRecordSpace( dmsMBContext *context,
                                        UINT32 size,
                                        dmsRecordID &foundRID,
@@ -104,14 +118,19 @@ namespace engine
       virtual void _finalRecordSize( UINT32 &size,
                                      const dmsRecordData &recordData ) ;
 
-      virtual INT32 _onInsertFail( dmsMBContext *context, BOOLEAN hasInsert,
-                                   dmsRecordID rid, SDB_DPSCB *dpscb,
-                                   ossValuePtr dataPtr, _pmdEDUCB *cb ) ;
+      virtual INT32 _onInsertFail( dmsMBContext *context,
+                                   BOOLEAN hasInsert,
+                                   dmsRecordID rid,
+                                   SDB_DPSCB *dpscb,
+                                   ossValuePtr dataPtr,
+                                   _pmdEDUCB *cb,
+                                   const dmsTransRecordInfo *pInfo ) ;
 
       virtual INT32 extractData( const dmsMBContext *mbContext,
                                  const dmsRecordRW &recordRW,
                                  _pmdEDUCB *cb,
-                                 dmsRecordData &recordData ) ;
+                                 dmsRecordData &recordData,
+                                 BOOLEAN needIncDataRead = TRUE ) ;
 
       virtual INT32 _operationPermChk( DMS_ACCESS_TYPE accessType ) ;
 
@@ -154,14 +173,16 @@ namespace engine
                                   const dmsRecordData &recordData,
                                   UINT32 needRecordSize,
                                   _pmdEDUCB *cb,
-                                  BOOLEAN isInsert = TRUE ) ;
+                                  BOOLEAN isInsert = TRUE,
+                                  const dmsTransRecordInfo *recordInfo = NULL ) ;
 
       // must hold mb exclusive lock
       INT32 _extentRemoveRecord ( dmsMBContext *context,
                                   dmsExtRW &extRW,
                                   dmsRecordRW &recordRW,
                                   _pmdEDUCB *cb,
-                                  BOOLEAN decCount = TRUE ) ;
+                                  BOOLEAN decCount = TRUE,
+                                  const dmsTransRecordInfo *recordInfo = NULL ) ;
 
       // must hold mb exclusive lock
       INT32 _extentUpdatedRecord ( dmsMBContext *context,
@@ -173,7 +194,8 @@ namespace engine
                                    IDmsOprHandler *pHandler,
                                    utilUpdateResult *pResult,
                                    dpsUnqIdxHashArray *pNewUnqIdxHashArray,
-                                   dpsUnqIdxHashArray *pOldUnqIdxHashArray ) ;
+                                   dpsUnqIdxHashArray *pOldUnqIdxHashArray,
+                                   const ixmIdxHashBitmap &idxHashBitmap ) ;
 
       // must hold mb exclusive lock
       // set or restore global transID for record ( and the 

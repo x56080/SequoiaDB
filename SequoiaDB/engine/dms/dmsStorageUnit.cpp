@@ -55,7 +55,6 @@
 
 namespace engine
 {
-
    /*
       _dmsEventHolder implement
     */
@@ -1136,7 +1135,6 @@ namespace engine
       _storageInfo._extentThreshold = options->getExtendThreshold() << 20 ;
       _storageInfo._enableSparse = options->sparseFile() ;
       _storageInfo._directIO = options->useDirectIOInLob() ;
-      _storageInfo._logWriteMod = options->logWriteMod() ;
       _storageInfo._cacheMergeSize = options->getCacheMergeSize() ;
       _storageInfo._pageAllocTimeout = options->getPageAllocTimeout() ;
       _storageInfo._dataIsOK = pmdGetStartup().isOK() ;
@@ -1711,7 +1709,8 @@ namespace engine
             rc = _pDataSu->updateRecord( context, recordID, recordDataPtr, cb,
                                          dpscb, modifier, NULL,
                                          tbScanner.callbackHandler(),
-                                         pResult ) ;
+                                         pResult,
+                                         tbScanner.recordInfo() ) ;
             PD_RC_CHECK( rc, PDERROR, "Update record failed, rc: %d", rc ) ;
          }
 
@@ -1852,7 +1851,9 @@ namespace engine
                                        BOOLEAN isSys, dmsMBContext * context,
                                        INT32 sortBufferSize,
                                        utilWriteResult *pResult,
-                                       BOOLEAN forceTransCallback )
+                                       dmsIdxTaskStatus *pIdxStatus,
+                                       BOOLEAN forceTransCallback,
+                                       BOOLEAN addUIDIfNotExist )
    {
       INT32 rc                     = SDB_OK ;
       BOOLEAN getContext           = FALSE ;
@@ -1868,8 +1869,9 @@ namespace engine
       }
 
       rc = _pIndexSu->createIndex( context, index, cb, dpscb,
-                                   isSys, sortBufferSize, pResult,
-                                   forceTransCallback ) ;
+                                   isSys, sortBufferSize,
+                                   pResult, pIdxStatus,
+                                   forceTransCallback, addUIDIfNotExist ) ;
       if ( rc )
       {
          goto error ;
@@ -1886,15 +1888,62 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_CREATEINDEX1, "_dmsStorageUnit::createIndex" )
+   INT32 _dmsStorageUnit::createIndex( utilCLUniqueID clUniqID,
+                                       const BSONObj &index,
+                                       pmdEDUCB *cb, SDB_DPSCB *dpscb,
+                                       BOOLEAN isSys, dmsMBContext * context,
+                                       INT32 sortBufferSize,
+                                       utilWriteResult *pResult,
+                                       dmsIdxTaskStatus *pIdxStatus,
+                                       BOOLEAN forceTransCallback,
+                                       BOOLEAN addUIDIfNotExist )
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN getContext = FALSE ;
+      PD_TRACE_ENTRY ( SDB__DMSSU_CREATEINDEX1 ) ;
+
+      if ( NULL == context )
+      {
+         rc = _pDataSu->getMBContextByID( &context, clUniqID, -1 ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Get collection[%llu] mb context failed, rc: %d",
+                      clUniqID, rc ) ;
+         getContext = TRUE ;
+      }
+
+      rc = _pIndexSu->createIndex( context, index, cb, dpscb,
+                                   isSys, sortBufferSize,
+                                   pResult, pIdxStatus,
+                                   forceTransCallback, addUIDIfNotExist ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done :
+      if ( context && getContext )
+      {
+         _pDataSu->releaseMBContext( context ) ;
+      }
+      PD_TRACE_EXITRC ( SDB__DMSSU_CREATEINDEX1, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_DROPINDEX, "_dmsStorageUnit::dropIndex" )
    INT32 _dmsStorageUnit::dropIndex( const CHAR *pName, const CHAR *indexName,
                                      pmdEDUCB *cb, SDB_DPSCB *dpscb,
-                                     BOOLEAN isSys, dmsMBContext *context )
+                                     BOOLEAN isSys, dmsMBContext *context,
+                                     dmsIdxTaskStatus *pIdxStatus,
+                                     BOOLEAN onlyStandalone )
    {
       INT32 rc                     = SDB_OK ;
       BOOLEAN getContext           = FALSE ;
 
       PD_TRACE_ENTRY ( SDB__DMSSU_DROPINDEX ) ;
+
       if ( NULL == context )
       {
          SDB_ASSERT( pName, "Collection name can't be NULL" ) ;
@@ -1905,7 +1954,8 @@ namespace engine
          getContext = TRUE ;
       }
 
-      rc = _pIndexSu->dropIndex( context, indexName, cb, dpscb, isSys ) ;
+      rc = _pIndexSu->dropIndex( context, indexName, cb, dpscb, isSys,
+                                 pIdxStatus, onlyStandalone ) ;
       if ( rc )
       {
          goto error ;
@@ -1925,7 +1975,9 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_DROPINDEX1, "_dmsStorageUnit::dropIndex" )
    INT32 _dmsStorageUnit::dropIndex( const CHAR *pName, OID &indexOID,
                                      pmdEDUCB *cb, SDB_DPSCB *dpscb,
-                                     BOOLEAN isSys, dmsMBContext *context )
+                                     BOOLEAN isSys, dmsMBContext *context,
+                                     dmsIdxTaskStatus *pIdxStatus,
+                                     BOOLEAN onlyStandalone )
    {
       INT32 rc                     = SDB_OK ;
       BOOLEAN getContext           = FALSE ;
@@ -1941,7 +1993,8 @@ namespace engine
          getContext = TRUE ;
       }
 
-      rc = _pIndexSu->dropIndex( context, indexOID, cb, dpscb, isSys ) ;
+      rc = _pIndexSu->dropIndex( context, indexOID, cb, dpscb, isSys,
+                                 pIdxStatus, onlyStandalone ) ;
       if ( rc )
       {
          goto error ;
@@ -1953,6 +2006,84 @@ namespace engine
          _pDataSu->releaseMBContext( context ) ;
       }
       PD_TRACE_EXITRC ( SDB__DMSSU_DROPINDEX1, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_DROPINDEX2, "_dmsStorageUnit::dropIndex" )
+   INT32 _dmsStorageUnit::dropIndex( utilCLUniqueID clUniqID,
+                                     const CHAR *indexName,
+                                     pmdEDUCB *cb, SDB_DPSCB *dpscb,
+                                     BOOLEAN isSys, dmsMBContext *context,
+                                     dmsIdxTaskStatus *pIdxStatus,
+                                     BOOLEAN onlyStandalone )
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN getContext = FALSE ;
+
+      PD_TRACE_ENTRY ( SDB__DMSSU_DROPINDEX2 ) ;
+
+      if ( NULL == context )
+      {
+         rc = _pDataSu->getMBContextByID( &context, clUniqID, -1 ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Get collection[%llu] mb context failed, rc: %d",
+                      clUniqID, rc ) ;
+         getContext = TRUE ;
+      }
+
+      rc = _pIndexSu->dropIndex( context, indexName, cb, dpscb, isSys,
+                                 pIdxStatus, onlyStandalone ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done :
+      if ( context && getContext )
+      {
+         _pDataSu->releaseMBContext( context ) ;
+      }
+      PD_TRACE_EXITRC ( SDB__DMSSU_DROPINDEX2, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_DROPINDEX3, "_dmsStorageUnit::dropIndex" )
+   INT32 _dmsStorageUnit::dropIndex( utilCLUniqueID clUniqID, OID &indexOID,
+                                     pmdEDUCB *cb, SDB_DPSCB *dpscb,
+                                     BOOLEAN isSys, dmsMBContext *context,
+                                     dmsIdxTaskStatus *pIdxStatus,
+                                     BOOLEAN onlyStandalone )
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN getContext = FALSE ;
+
+      PD_TRACE_ENTRY ( SDB__DMSSU_DROPINDEX3 ) ;
+
+      if ( NULL == context )
+      {
+         rc = _pDataSu->getMBContextByID( &context, clUniqID, -1 ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get collection[%llu] mb context failed, "
+                      "rc: %d", clUniqID, rc ) ;
+         getContext = TRUE ;
+      }
+
+      rc = _pIndexSu->dropIndex( context, indexOID, cb, dpscb, isSys,
+                                 pIdxStatus, onlyStandalone ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done :
+      if ( context && getContext )
+      {
+         _pDataSu->releaseMBContext( context ) ;
+      }
+      PD_TRACE_EXITRC ( SDB__DMSSU_DROPINDEX3, rc ) ;
       return rc ;
    error :
       goto done ;
@@ -2583,6 +2714,10 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DMSSU_GETSEGEXTENTS ) ;
       segExtents.clear() ;
 
+      PD_CHECK( _pDataSu->isBlockScanSupport(), SDB_SYS, error, PDERROR,
+                "Collection space [%s] does not support block scan",
+                CSName() ) ;
+
       if ( NULL == context )
       {
          SDB_ASSERT( pName, "Collection name can't be NULL" ) ;
@@ -2655,7 +2790,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_GETINDEXES_CTX, "_dmsStorageUnit::getIndexes" )
    INT32 _dmsStorageUnit::getIndexes ( dmsMBContext * context,
-                                       MON_IDX_LIST &resultIndexes )
+                                       MON_IDX_LIST &resultIndexes,
+                                       BOOLEAN excludeStandalone )
    {
       INT32 rc                     = SDB_OK ;
       BOOLEAN lockContext          = FALSE ;
@@ -2671,7 +2807,7 @@ namespace engine
          lockContext = TRUE ;
       }
 
-      rc = _getIndexes( context->mb(), resultIndexes ) ;
+      rc = _getIndexes( context->mb(), resultIndexes, excludeStandalone ) ;
       PD_RC_CHECK( rc, PDERROR, "dump indexes failed, rc: %d", rc ) ;
 
    done :
@@ -2688,7 +2824,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_GETINDEXES_NAME, "_dmsStorageUnit::getIndexes" )
    INT32 _dmsStorageUnit::getIndexes ( const CHAR *pName,
-                                       MON_IDX_LIST &resultIndexes )
+                                       MON_IDX_LIST &resultIndexes,
+                                       BOOLEAN excludeStandalone )
    {
       INT32 rc                     = SDB_OK ;
       dmsMBContext * context       = NULL ;
@@ -2701,7 +2838,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Get collection[%s] mb context failed, "
                    "rc: %d", pName, rc ) ;
 
-      rc = getIndexes( context, resultIndexes ) ;
+      rc = getIndexes( context, resultIndexes, excludeStandalone ) ;
       PD_RC_CHECK( rc, PDERROR, "dump indexes failed, rc: %d", rc ) ;
 
    done :
@@ -3423,7 +3560,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU__GETINDEXES, "_dmsStorageUnit::_getIndexes" )
    INT32 _dmsStorageUnit::_getIndexes ( const dmsMB *mb,
-                                        MON_IDX_LIST &resultIndexes )
+                                        MON_IDX_LIST &resultIndexes,
+                                        BOOLEAN excludeStandalone )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSU__GETINDEXES ) ;
@@ -3437,11 +3575,21 @@ namespace engine
             break ;
          }
 
+         ixmIndexCB indexCB ( mb->_indexExtent[indexID], _pIndexSu, NULL ) ;
+         if ( !indexCB.isInitialized() )
+         {
+            PD_LOG( PDERROR, "Failed to initialize index[%u], indexID" ) ;
+            continue ;
+         }
+         if ( excludeStandalone && indexCB.standalone() )
+         {
+            // No need to process it
+            continue ;
+         }
+
          try
          {
             monIndex indexItem ;
-            ixmIndexCB indexCB ( mb->_indexExtent[indexID], _pIndexSu, NULL ) ;
-
             indexItem._indexFlag = indexCB.getFlag () ;
             indexItem._scanExtLID = indexCB.scanExtLID () ;
             indexItem._indexLID = indexCB.getLogicalID () ;
@@ -3463,9 +3611,9 @@ namespace engine
          }
          catch( std::exception &e )
          {
+            rc = ossException2RC( &e ) ;
             PD_LOG( PDERROR, "Build index information occur exception: %s",
                     e.what() ) ;
-            rc = SDB_OOM ;
             goto error ;
          }
       }
@@ -3498,7 +3646,8 @@ namespace engine
          }
 
          ixmIndexCB indexCB ( mb->_indexExtent[indexID], _pIndexSu, NULL ) ;
-         if ( 0 == ossStrcmp( indexCB.getName(), pIndexName ) )
+         if ( indexCB.isInitialized() &&
+              0 == ossStrcmp( indexCB.getName(), pIndexName ) )
          {
             resultIndex._indexFlag = indexCB.getFlag () ;
             resultIndex._scanExtLID = indexCB.scanExtLID () ;
@@ -3562,6 +3711,14 @@ namespace engine
       if ( _pDataSu )
       {
          _pDataSu->setSyncDeep( syncDeep ) ;
+      }
+   }
+
+   void _dmsStorageUnit::setMVCCSupport( BOOLEAN mvccSupport )
+   {
+      if ( NULL != _pDataSu )
+      {
+         _pDataSu->setMVCCSupport( mvccSupport ) ;
       }
    }
 
@@ -3716,29 +3873,6 @@ namespace engine
       return (dmsCachedPlanMgr *)getSUCache( DMS_CACHE_TYPE_PLAN ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_FIXTRANSMBSTATS, "_dmsStorageUnit::fixTransMBStat" )
-   void _dmsStorageUnit::fixTransMBStat ()
-   {
-      PD_TRACE_ENTRY( SDB__DMSSU_FIXTRANSMBSTATS ) ;
-
-      if ( NULL == _pDataSu )
-      {
-         PD_LOG( PDINFO, "storage data unit for [%s] is empty", CSName() ) ;
-         return ;
-      }
-
-      for ( UINT32 i = 0 ; i < DMS_MME_SLOTS ; i++ )
-      {
-         if ( DMS_IS_MB_INUSE ( _pDataSu->_dmsMME->_mbList[i]._flag ) )
-         {
-            _pDataSu->_mbStatInfo[ i ]._rcTotalRecords.init(
-                              _pDataSu->_mbStatInfo[ i ]._totalRecords ) ;
-         }
-      }
-
-      PD_TRACE_EXIT( SDB__DMSSU_FIXTRANSMBSTATS ) ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_CLEARMBCRUDCB, "_dmsStorageUnit::clearMBCRUDCB" )
    void _dmsStorageUnit::clearMBCRUDCB ()
    {
@@ -3747,7 +3881,7 @@ namespace engine
       if ( NULL == _pDataSu )
       {
          PD_LOG( PDINFO, "storage data unit for [%s] is empty", CSName() ) ;
-         return ;
+         goto done ;
       }
 
       for ( UINT32 i = 0 ; i < DMS_MME_SLOTS ; i++ )
@@ -3758,6 +3892,7 @@ namespace engine
          }
       }
 
+   done:
       PD_TRACE_EXIT( SDB__DMSSU_CLEARMBCRUDCB ) ;
    }
 

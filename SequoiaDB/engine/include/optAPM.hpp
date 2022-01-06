@@ -82,6 +82,9 @@ namespace engine
 
          void removeCachedPlan ( optAccessPlan *pPlan, INT32 lockType = -1 ) ;
 
+         void resetCachedPlanActivity( optAccessPlan *pPlan,
+                                       INT32 lockType = -1 ) ;
+
          void invalidateSUPlans ( dmsCachedPlanMgr *pCachedPlanMgr,
                                   UINT32 suLID ) ;
 
@@ -185,6 +188,26 @@ namespace engine
                                  const rtnParamList &parameters ) ;
 
          void toBSON ( BSONObjBuilder &builder ) ;
+
+      protected:
+         void _clearPlan()
+         {
+            if ( NULL != _pPlan )
+            {
+               _pPlan->release() ;
+               _pPlan = NULL ;
+            }
+         }
+
+         void _setPlan( optAccessPlan *pPlan )
+         {
+            _clearPlan() ;
+            if ( NULL != pPlan )
+            {
+               pPlan->incRefCount() ;
+               _pPlan = pPlan ;
+            }
+         }
 
       protected :
          optAccessPlan *   _pPlan ;
@@ -373,10 +396,10 @@ namespace engine
          // Try to get access plan from cache, if could not get access plan
          // from cache, create one
          INT32 getAccessPlan ( const rtnQueryOptions &options,
-                               BOOLEAN keepSearchPaths,
                                dmsStorageUnit *su,
                                dmsMBContext *mbContext,
-                               optAccessPlanRuntime &planRuntime ) ;
+                               optAccessPlanRuntime &planRuntime,
+                               const rtnExplainOptions *expOptions = NULL ) ;
 
          // Create access plan directly without caching
          INT32 getTempAccessPlan ( const rtnQueryOptions &options,
@@ -480,17 +503,17 @@ namespace engine
 
       protected :
          INT32 _getCLAccessPlan ( const rtnQueryOptions &options,
-                                  BOOLEAN keepSearchPaths,
                                   dmsStorageUnit *su,
                                   dmsMBContext *mbContext,
-                                  optAccessPlanRuntime &planRuntime ) ;
+                                  optAccessPlanRuntime &planRuntime,
+                                  const rtnExplainOptions *expOptions ) ;
 
          INT32 _getCLAccessPlan ( const rtnQueryOptions &options,
                                   OPT_PLAN_CACHE_LEVEL cacheLevel,
-                                  BOOLEAN keepSearchPaths,
                                   dmsStorageUnit *su,
                                   dmsMBContext *mbContext,
-                                  optAccessPlanRuntime &planRuntime ) ;
+                                  optAccessPlanRuntime &planRuntime,
+                                  const rtnExplainOptions *expOptions ) ;
 
          INT32 _getMainCLAccessPlan ( const rtnQueryOptions &options,
                                       dmsStorageUnit *su,

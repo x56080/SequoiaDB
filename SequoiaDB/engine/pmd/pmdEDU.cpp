@@ -89,7 +89,8 @@ namespace engine
    :_mutex( MON_LATCH_PMDEDUCB_MUTEX ),
     _dumpTransCount( 0 )
 #if defined ( SDB_ENGINE )
-    ,_transExecutor( this, pmdGetKRCB()->getMonMgr() )
+    ,_transExecutor( this, pmdGetKRCB()->getMonMgr() ),
+    _urgentEventCount( 0 )
 #endif // SDB_ENGINE
 
    {
@@ -117,6 +118,7 @@ namespace engine
       _pUncompressBuff  = NULL ;
       _uncompressBuffLen= 0 ;
       _isDoTransRollback= FALSE ;
+      _isTakeOverTransRB= FALSE ;
       _pClientSock      = NULL ;
 
       _alignedMem       = NULL ;
@@ -131,7 +133,6 @@ namespace engine
       _doRollback       = FALSE ;
 
       _curTransLSN      = DPS_INVALID_LSN_OFFSET ;
-      _transWritingID   = 0 ;
 
 #if defined (_LINUX)
       _threadID         = 0 ;
@@ -191,6 +192,7 @@ namespace engine
          pmdEduEventRelease( data, this ) ;
       }
       _processEventCount = 0 ;
+      _clearUrgentEvents() ;
       ossMemset( _name, 0, sizeof( _name ) ) ;
       ossMemset( _source, 0, sizeof( _source ) ) ;
       _userName = "" ;
@@ -643,6 +645,9 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__PMDEDUCB_ISINT );
       BOOLEAN ret = FALSE ;
 
+      /// check urgent events
+      checkUrgentEvents() ;
+
       // mask interrupt while doing rollback
       if ( !onlyFlag && _isDoTransRollback )
       {
@@ -817,21 +822,24 @@ namespace engine
 
    void _pmdEDUCB::setCurTransLsn( UINT64 lsn )
    {
-      if ( 0 == _transWritingID && DPS_INVALID_LSN_OFFSET != lsn )
-      {
-         _transWritingID = _writingID ;
-      }
-      else if ( DPS_INVALID_LSN_OFFSET == lsn )
-      {
-         _transWritingID = 0 ;
-      }
       _curTransLSN = lsn ;
    }
 
-   void _pmdEDUCB::contextInsert( INT64 contextID )
+   BOOLEAN _pmdEDUCB::contextInsert( INT64 contextID )
    {
-      ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
-      _contextList.insert ( contextID ) ;
+      BOOLEAN result = FALSE ;
+      try
+      {
+         ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
+         _contextList.insert ( contextID ) ;
+         result = TRUE ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to insert context, occur exception %s",
+                 e.what() ) ;
+      }
+      return result ;
    }
 
    void _pmdEDUCB::contextDelete( INT64 contextID )
@@ -872,14 +880,34 @@ namespace engine
 
    BOOLEAN _pmdEDUCB::contextFind( INT64 contextID )
    {
-      ossScopedLock _lock ( &_mutex, SHARED ) ;
+      ossScopedLock _lock(
+            pmdGetThreadEDUCB() == this ? NULL : &_mutex, SHARED ) ;
       return _contextList.end() != _contextList.find( contextID ) ;
    }
 
    UINT32 _pmdEDUCB::contextNum()
    {
-      ossScopedLock _lock ( &_mutex, SHARED ) ;
+      ossScopedLock _lock(
+            pmdGetThreadEDUCB() == this ? NULL : &_mutex, SHARED ) ;
       return _contextList.size() ;
+   }
+
+   BOOLEAN _pmdEDUCB::isLogTimeOn() const
+   {
+#if defined ( SDB_ENGINE )
+      return _logConfig.isLogTimeOn() ;
+#else
+      return FALSE ;
+#endif
+   }
+
+   UINT32 _pmdEDUCB::getLogWriteMod() const
+   {
+#if defined ( SDB_ENGINE )
+      return _logConfig.getLogWriteMod() ;
+#else
+      return 0 ;
+#endif
    }
 
    void _pmdEDUCB::setCurAutoTransCtxID( INT64 contextID )
@@ -930,10 +958,24 @@ namespace engine
 #endif
    }
 
+   void _pmdEDUCB::_contextCopy( _pmdEDUCB::SET_CONTEXT &contextList )
+   {
+      try
+      {
+         contextList = _contextList ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDWARNING, "Failed to copy context list, "
+                 "occur exception %s", e.what() ) ;
+      }
+   }
+
    void _pmdEDUCB::contextCopy( _pmdEDUCB::SET_CONTEXT &contextList )
    {
-      ossScopedLock _lock ( &_mutex, SHARED ) ;
-      contextList = _contextList ;
+      ossScopedLock _lock(
+                  pmdGetThreadEDUCB() == this ? NULL : &_mutex, SHARED ) ;
+      _contextCopy( contextList ) ;
    }
 
    void _pmdEDUCB::initMonAppCB()
@@ -945,13 +987,13 @@ namespace engine
       }
    }
 
-   void _pmdEDUCB::initTransConf()
+   void _pmdEDUCB::initConf()
    {
 #if defined ( SDB_ENGINE )
       pmdOptionsCB *optCB = pmdGetOptionCB() ;
+      _confChangeID = optCB->getChangeID() ;
       if ( optCB->transactionOn() )
       {
-         _confChangeID = optCB->getChangeID() ;
          _transExecutor.initTransConf( optCB->transIsolation(),
                                        optCB->transTimeout() * OSS_ONE_SEC,
                                        optCB->transLockwait(),
@@ -959,12 +1001,17 @@ namespace engine
                                        optCB->transAutoRollback(),
                                        optCB->transUseRBS(),
                                        optCB->transRCCount(),
-                                       optCB->globTransOn() ) ;
+                                       optCB->transAllowLockEscalation(),
+                                       optCB->transMaxLockNum(),
+                                       optCB->transMaxLogSpaceRatio(),
+                                       optCB->getTotalLogSpace() ) ;
       }
       else
       {
          _transExecutor.setTransAutoCommit( FALSE, FALSE ) ;
       }
+      _logConfig.updateConf( optCB->logTimeOn(),
+                             optCB->logWriteMod() ) ;
 
       // make sure meta-block statistics are cleared
       if ( !_transExecutor.isMBStatsEmpty() )
@@ -981,22 +1028,48 @@ namespace engine
 #endif //SDB_ENGINE
    }
 
-   void _pmdEDUCB::updateTransConf()
+   void _pmdEDUCB::updateConf()
    {
 #if defined ( SDB_ENGINE )
       pmdOptionsCB *optCB = pmdGetOptionCB() ;
-      if ( optCB->transactionOn() && _confChangeID != optCB->getChangeID() )
+      UINT32 confChangeID = optCB->getChangeID() ;
+
+      if ( confChangeID != _confChangeID )
       {
-         if ( _transExecutor.updateTransConf( optCB->transIsolation(),
-                                              optCB->transTimeout() * OSS_ONE_SEC,
-                                              optCB->transLockwait(),
-                                              optCB->transAutoCommit(),
-                                              optCB->transAutoRollback(),
-                                              optCB->transUseRBS(),
-                                              optCB->transRCCount(),
-                                              optCB->globTransOn() ) )
+         BOOLEAN needUpdateChangeID = TRUE ;
+         if ( optCB->transactionOn() )
          {
-            _confChangeID = optCB->getChangeID() ;
+            // update transaction config
+            if ( !_transExecutor.updateTransConf(
+                                          optCB->transIsolation(),
+                                          optCB->transTimeout() * OSS_ONE_SEC,
+                                          optCB->transLockwait(),
+                                          optCB->transAutoCommit(),
+                                          optCB->transAutoRollback(),
+                                          optCB->transUseRBS(),
+                                          optCB->transRCCount(),
+                                          optCB->transAllowLockEscalation(),
+                                          optCB->transMaxLockNum(),
+                                          optCB->transMaxLogSpaceRatio(),
+                                          optCB->getTotalLogSpace() ) )
+            {
+               // failed to update, wait for next round
+               needUpdateChangeID = FALSE ;
+            }
+         }
+
+         // update DPS log config
+         if ( !_logConfig.updateConf( optCB->logTimeOn(),
+                                      optCB->logWriteMod(),
+                                      isTransaction() ) )
+         {
+            // failed to update, wait for next round
+            needUpdateChangeID = FALSE ;
+         }
+
+         if ( needUpdateChangeID )
+         {
+            _confChangeID = confChangeID ;
          }
       }
 #endif //SDB_ENGINE
@@ -1017,6 +1090,42 @@ namespace engine
       SDB_ASSERT( lockType >= SDB_LOCK_DMS && lockType < SDB_LOCK_MAX,
                   "lockType error" ) ;
       return &_lockInfo[ (INT32)lockType ] ;
+   }
+
+   void _pmdEDUCB::_clearUrgentEvents()
+   {
+#if defined ( SDB_ENGINE )
+      pmdEDUEvent data ;
+      while ( _urgentQueue.try_pop( data ) )
+      {
+         _urgentEventCount.dec() ;
+         pmdEduEventRelease( data, this ) ;
+      }
+#endif
+   }
+
+   void _pmdEDUCB::checkUrgentEvents()
+   {
+#if defined ( SDB_ENGINE )
+      if ( _urgentEventCount.peek() > 0 )
+      {
+         pmdEDUEvent event ;
+         IContextMgr *ctxMgr = pmdGetKRCB()->getContextMgr() ;
+         SDB_ASSERT( NULL != ctxMgr, "context manager should be valid" ) ;
+         while ( _urgentQueue.try_pop( event ) )
+         {
+            _urgentEventCount.dec() ;
+            ++ _processEventCount ;
+            if ( PMD_EDU_EVENT_KILLCONTEXT == event._eventType &&
+                 NULL != ctxMgr )
+            {
+               INT64 contextID = (INT64)( event._userData ) ;
+               ctxMgr->contextDelete( contextID, this ) ;
+            }
+            pmdEduEventRelease( event, this ) ;
+         }
+      }
+#endif // SDB_ENGINE
    }
 
    void _pmdEDUCB::assertLocks()
@@ -1111,7 +1220,9 @@ namespace engine
 
       full._monApplCB = _monApplCB ;
       full._threadHdl = _threadHdl ;
-      full._eduContextList = _contextList ;
+
+      _contextCopy( full._eduContextList ) ;
+
       if ( _pSession )
       {
          full._relatedNID = _pSession->identifyID() ;
@@ -1127,6 +1238,18 @@ namespace engine
    }
 
 #if defined ( SDB_ENGINE )
+   void _pmdEDUCB::updateTransConfByMask( const dpsTransConfItem &conf )
+   {
+      pmdOptionsCB *optCB = pmdGetOptionCB() ;
+      _transExecutor.updateTransConfByMask( conf, optCB->getTotalLogSpace() ) ;
+   }
+
+   void _pmdEDUCB::copyTransConf( const dpsTransConfItem &conf )
+   {
+      pmdOptionsCB *optCB = pmdGetOptionCB() ;
+      _transExecutor.copyTransConf( conf, optCB->getTotalLogSpace() ) ;
+   }
+
    void _pmdEDUCB::clearTransInfo()
    {
       _curTransID.reset() ;
@@ -1135,7 +1258,6 @@ namespace engine
       _curTransLSN = DPS_INVALID_LSN_OFFSET ;
       _transRC = SDB_OK ;
       _transStatus = DPS_TRANS_UNKNOWN ;
-      _transWritingID = 0 ;
       dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
       if ( pTransCB )
       {
@@ -1210,6 +1332,10 @@ namespace engine
       transInfo._transPreCommitTime = _transExecutor.getPreCommitTime() ;
       transInfo._transCommitTime = _transExecutor.getCommitTime() ;
       transInfo._curTransLsn  = _curTransLSN ;
+      transInfo._lockEscalated =
+            _transExecutor.isLockEscalated( LOCKMGR_TRANS_LOCK ) ;
+      transInfo._usedLogSpace = _transExecutor.getUsedSpace() ;
+      transInfo._reservedLogSpace = _transExecutor.getReservedSpace() ;
 
       {
          ossScopedLock lock( &_mutex, SHARED ) ;
@@ -1295,6 +1421,7 @@ namespace engine
 #endif // SDB_ENGINE
 
    static OSS_THREAD_LOCAL _pmdEDUCB *__eduCB ;
+   extern OSS_THREAD_LOCAL IExecutor *__executor ;
 
    _pmdEDUCB *pmdGetThreadEDUCB ()
    {
@@ -1303,12 +1430,14 @@ namespace engine
 
    _pmdEDUCB *pmdDeclareEDUCB ( _pmdEDUCB *p )
    {
+      __executor = p ;
       __eduCB = p ;
       return __eduCB ;
    }
 
    void pmdUndeclareEDUCB ()
    {
+      __executor = NULL ;
       __eduCB = NULL ;
    }
 

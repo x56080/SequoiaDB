@@ -410,7 +410,7 @@ namespace engine
       }
 
       // intersection operation for two keysets
-      const rtnPredicate &operator&= ( rtnPredicate &right ) ;
+      const rtnPredicate &operator&= ( const rtnPredicate &right ) ;
       // union operation for two keysets
       const rtnPredicate &operator|= ( const rtnPredicate &right ) ;
       // exclude operation for two keysets
@@ -590,9 +590,15 @@ namespace engine
    } ;
 
    typedef ossPoolVector< rtnPredicate >                     RTN_PREDICATE_LIST ;
+   typedef RTN_PREDICATE_LIST::iterator                      RTN_PREDICATE_LIST_IT ;
+   typedef RTN_PREDICATE_LIST::const_iterator                RTN_PREDICATE_LIST_CIT ;
    typedef ossPoolVector< RTN_PREDICATE_LIST >               RTN_PARAM_PREDICATE_LIST ;
    typedef ossPoolMap< ossPoolString, rtnPredicate >         RTN_PREDICATE_MAP ;
+   typedef RTN_PREDICATE_MAP::iterator                       RTN_PREDICATE_MAP_IT ;
+   typedef RTN_PREDICATE_MAP::const_iterator                 RTN_PREDICATE_MAP_CIT ;
    typedef ossPoolMap< ossPoolString, RTN_PREDICATE_LIST >   RTN_PARAM_PREDICATE_MAP ;
+   typedef RTN_PARAM_PREDICATE_MAP::iterator                 RTN_PARAM_PREDICATE_MAP_IT ;
+   typedef RTN_PARAM_PREDICATE_MAP::const_iterator           RTN_PARAM_PREDICATE_MAP_CIT ;
 
    // This set is created when receiving a query. It contains user search
    // condition predicates from user input for all fields
@@ -611,7 +617,11 @@ namespace engine
                                 BOOLEAN addToParam, INT8 paramIndex,
                                 INT8 fuzzyIndex, UINT32 savedCPUCost ) ;
 
+      INT32 addAndPredicates( const _rtnPredicateSet &otherSet ) ;
+      INT32 addOrPredicates( const _rtnPredicateSet &otherSet ) ;
+
       UINT32 getSize () const { return _predicates.size() ; }
+      UINT32 getParamSize() const { return _paramPredicates.size() ; }
 
       void clear()
       {
@@ -677,10 +687,12 @@ namespace engine
          UINT32 size() { return _predicates.size(); }
          BSONObj startKey() const ;
          BSONObj endKey() const ;
-         BSONObj obj() const ;
+         BSONObj obj( BOOLEAN needAbbrev ) const ;
          BOOLEAN matchesKey ( const BSONObj &key ) const ;
          string toString() const ;
+         BSONObj getBound( BOOLEAN needAbbrev ) const ;
          BSONObj getBound() const ;
+         BOOLEAN isAllRange() const ;
 
          const RTN_PREDICATE_LIST* getPredicateList() const
          {

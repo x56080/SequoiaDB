@@ -86,6 +86,9 @@ namespace engine
          BOOLEAN              isTransAutoCommit() const ;
          BOOLEAN              isTransAutoRollback() const ;
          BOOLEAN              isTransRCCount() const ;
+         BOOLEAN              isTransAllowLockEscalation() const ;
+         INT32                getTransMaxLockNum() const ;
+         INT32                getTransMaxLogSpaceRatio() const ;
 
          UINT32               getTransConfMask() const ;
          UINT32               getTransConfVer() const ;
@@ -104,6 +107,12 @@ namespace engine
                                                     BOOLEAN enableMask = TRUE ) ;
          void                 setTransRCCount ( BOOLEAN rcCount,
                                                 BOOLEAN enableMask = TRUE ) ;
+         void                 setTransAllowLockEscalation( BOOLEAN allow,
+                                                           BOOLEAN enableMask = TRUE ) ;
+         void                 setTransMaxLockNum( INT32 maxNum,
+                                                  BOOLEAN enableMask = TRUE ) ;
+         void                 setTransMaxLogSpaceRatio( INT32 maxRatio,
+                                                        BOOLEAN enableMask = TRUE ) ;
 
          void                 reset() ;
          void                 resetConfMask() ;
@@ -129,6 +138,16 @@ namespace engine
          // whether to use RC isolation to process count()
          BOOLEAN                 _transRCCount ;
 
+         // whether allow lock escalation when exceeds limit of max record
+         // locks
+         BOOLEAN                 _transAllowLockEscalation ;
+
+         // Maximum number of record locks can be hold by a transaction
+         INT32                   _transMaxLockNum ;
+
+         // Maximum ratio of log space can be used by a transaction
+         INT32                   _transMaxLogSpaceRatio ;
+
          UINT32                  _transConfMask ;
          UINT32                  _transConfVer ;
 
@@ -142,29 +161,31 @@ namespace engine
    {
       protected :
          _dpsTransMBStat ()
-         : _totalRecords(),
+         : _globTransAvailTime( NULL ),
+           _totalRecords( NULL ),
            _incDelta( 0 ),
            _decDelta( 0 )
          {
          }
 
       public :
-         _dpsTransMBStat ( ossAtomic64 * totalRecords,
+         _dpsTransMBStat ( ossAtomic64 * globTransAvailTime,
+                           ossAtomic64 * totalRecords,
                            UINT64 incDelta,
                            UINT64 decDelta )
-         : _totalRecords( totalRecords ),
+         : _globTransAvailTime( globTransAvailTime ),
+           _totalRecords( totalRecords ),
            _incDelta( incDelta ),
            _decDelta( decDelta )
          {
          }
 
          _dpsTransMBStat ( const _dpsTransMBStat & stat )
-         : _totalRecords( stat._totalRecords ),
+         : _globTransAvailTime( stat._globTransAvailTime ),
+           _totalRecords( stat._totalRecords ),
            _incDelta( stat._incDelta ),
            _decDelta( stat._decDelta )
          {
-            SDB_ASSERT( NULL != _totalRecords,
-                        "atomic total records should not be NULL" ) ;
          }
 
          ~_dpsTransMBStat ()
@@ -174,8 +195,7 @@ namespace engine
       public :
          _dpsTransMBStat & operator = ( const _dpsTransMBStat & stat )
          {
-            SDB_ASSERT( NULL != stat._totalRecords,
-                        "atomic total records should not be NULL" ) ;
+            _globTransAvailTime = stat._globTransAvailTime ;
             _totalRecords = stat._totalRecords ;
             _incDelta = stat._incDelta ;
             _decDelta = stat._decDelta ;
@@ -193,42 +213,88 @@ namespace engine
             _decDelta += delta ;
          }
 
-         OSS_INLINE UINT64 getTotalRecords () const
+         OSS_INLINE BOOLEAN getTotalRecords ( UINT64 &totalRecords ) const
          {
-            SDB_ASSERT( NULL != _totalRecords,
-                        "atomic total records should not be NULL" ) ;
-            if ( _incDelta > _decDelta )
+            if ( NULL != _totalRecords )
             {
-               return ( _incDelta - _decDelta ) + _totalRecords->fetch() ;
+               if ( _incDelta > _decDelta )
+               {
+                  totalRecords = ( _incDelta - _decDelta ) +
+                                 _totalRecords->fetch() ;
+               }
+               else if ( _incDelta < _decDelta )
+               {
+                  totalRecords = _totalRecords->fetch() -
+                                 ( _decDelta - _incDelta ) ;
+               }
+               else
+               {
+                  totalRecords = _totalRecords->fetch() ;
+               }
+
+               return TRUE ;
             }
-            else if ( _incDelta < _decDelta )
-            {
-               return _totalRecords->fetch() - ( _decDelta - _incDelta ) ;
-            }
-            return _totalRecords->fetch() ;
+
+            return FALSE ;
          }
 
-         OSS_INLINE void commit ()
+         OSS_INLINE void commit ( UINT64 commitTime )
          {
-            SDB_ASSERT( NULL != _totalRecords,
-                        "atomic total records should not be NULL" ) ;
-            if ( _incDelta > _decDelta )
+            if ( NULL != _totalRecords )
             {
-               _totalRecords->add( _incDelta - _decDelta ) ;
+               if ( _incDelta > _decDelta )
+               {
+                  _totalRecords->add( _incDelta - _decDelta ) ;
+               }
+               else if ( _incDelta < _decDelta )
+               {
+                  _totalRecords->sub( _decDelta - _incDelta ) ;
+               }
             }
-            else if ( _incDelta < _decDelta )
+            // current transaction is going to commit and release the locks on
+            // collections, so update global transaction available timestamp
+            // with commit timestamp of current transaction to block
+            // other transactions may fetch MVCC versions before
+            if ( NULL != _globTransAvailTime )
             {
-               _totalRecords->sub( _decDelta - _incDelta ) ;
+               _globTransAvailTime->swapGreaterThan( commitTime ) ;
             }
          }
 
-         OSS_INLINE void rollback ()
+         OSS_INLINE void rollback ( UINT64 rollbackTime )
          {
-            SDB_ASSERT( NULL != _totalRecords,
-                        "atomic total records should not be NULL" ) ;
+            // current transaction is going to commit and release the locks on
+            // collections, so update global transaction available timestamp
+            // with commit timestamp of current transaction to block
+            // other transactions may fetch MVCC versions before
+            if ( NULL != _globTransAvailTime )
+            {
+               _globTransAvailTime->swapGreaterThan( rollbackTime ) ;
+            }
+         }
+
+         OSS_INLINE void setTotalRecords( ossAtomic64 *totalRecords )
+         {
+            _totalRecords = totalRecords ;
+         }
+
+         OSS_INLINE BOOLEAN hasTotalRecords() const
+         {
+            return NULL != _totalRecords ? TRUE : FALSE ;
+         }
+
+         OSS_INLINE void setGlobTransAvailTime( ossAtomic64 *globTransAvailTime )
+         {
+            _globTransAvailTime = globTransAvailTime ;
+         }
+
+         OSS_INLINE BOOLEAN hasGlobTransAvailTime() const
+         {
+            return NULL != _globTransAvailTime ? TRUE : FALSE ;
          }
 
       protected :
+         ossAtomic64 * _globTransAvailTime ;
          ossAtomic64 * _totalRecords ;
          UINT64        _incDelta ;
          UINT64        _decDelta ;
@@ -317,19 +383,13 @@ namespace engine
                                           LOCKMGR_TYPE managerType ) ;
          void                 clearLock( LOCKMGR_TYPE managerType ) ;
 
-         /*
-            lockID is invalid, means count all the cs/cl lock
-            lockType is -1, means all the lock type
-         */
-         UINT32               countLock( const dpsTransLockId &lockID,
-                                         UINT8 lockType = DPS_TRANSLOCK_IX,
-                                         LOCKMGR_TYPE managerType = LOCKMGR_TRANS_LOCK,
-                                         BOOLEAN needLock = FALSE ) ;
-
-         void                 incLockCount( LOCKMGR_TYPE managerType ) ;
-         void                 decLockCount( LOCKMGR_TYPE managerType ) ;
+         void                 incLockCount( LOCKMGR_TYPE managerType,
+                                            BOOLEAN isLeafLevel ) ;
+         void                 decLockCount( LOCKMGR_TYPE managerType,
+                                            BOOLEAN isLeafLevel ) ;
          void                 clearLockCount( LOCKMGR_TYPE managerType ) ;
          UINT32               getLockCount( LOCKMGR_TYPE managerType ) const ;
+         UINT32               getLeafLockCount( LOCKMGR_TYPE managerType ) const ;
 
          BOOLEAN              hasLockWait() const { return _lockWaitStarted ; }
          void                 finishLockWait() ;
@@ -349,23 +409,17 @@ namespace engine
          void                 setUseTransLock( BOOLEAN use ) ;
          BOOLEAN              useTransLock() const ;
 
-         /*
-            LSN to record map functions
-         */
-         const MAP_LSN_2_RECORD*    getRecordMap() const ;
-         void                       putRecord( DPS_LSN_OFFSET lsnOffset,
-                                               const dmsRecordID &item ) ;
-         void                       delRecord( DPS_LSN_OFFSET lsnOffset ) ;
-         BOOLEAN                    getRecord( DPS_LSN_OFFSET lsnOffset,
-                                               dmsRecordID &item,
-                                               BOOLEAN withDel = FALSE ) ;
-         void                       clearRecordMap() ;
-         BOOLEAN                    isRecordMapEmpty() const ;
-         UINT32                     getRecordMapSize() const ;
+         // get the waiting LRB and lockId if this executor is waiting for a
+         // trans lock and it has opened a transaction and has associated with
+         // _tmsDataTransContext
+         BOOLEAN getTransWaitingLRBInfo( dpsTxWaitLRB & waitInfo,
+                                         LOCKMGR_TYPE
+                                         lockMgrType = LOCKMGR_TRANS_LOCK ) ;
+         DPS_TRANS_ID getNormalizedTransID() ;
 
          // for transaction meta-block statistics
-         void commitMBStats () ;
-         void rollbackMBStats () ;
+         void commitMBStats ( UINT64 commitTime ) ;
+         void rollbackMBStats ( UINT64 rollbackTime ) ;
          void clearMBStats () ;
 
          OSS_INLINE BOOLEAN isMBStatsEmpty () const
@@ -374,11 +428,16 @@ namespace engine
          }
 
          BOOLEAN incMBTotalRecords ( utilCLUniqueID clUniqueID,
+                                     ossAtomic64 * globTransAvailTime,
                                      ossAtomic64 * totalRecords,
                                      UINT64 delta ) ;
          BOOLEAN decMBTotalRecords ( utilCLUniqueID clUniqueID,
+                                     ossAtomic64 * globTransAvailTime,
                                      ossAtomic64 * totalRecords,
                                      UINT64 delta ) ;
+         BOOLEAN updateMBStat( utilCLUniqueID clUniqueID,
+                               ossAtomic64 * globTransAvailTime,
+                               ossAtomic64 * totalRecords ) ;
          BOOLEAN getMBTotalRecords ( utilCLUniqueID clUniqueID,
                                      UINT64 & totalRecords ) const ;
 
@@ -517,11 +576,54 @@ namespace engine
             _passedDoingArbit = passed ;
          }
 
-         void regReadTranTime() ;
+         OSS_INLINE BOOLEAN hasRegReadTran() const
+         {
+            return _regReadTranTime ;
+         }
+
+         OSS_INLINE void setRegReadTran( BOOLEAN hasReg )
+         {
+            _regReadTranTime = hasReg ;
+         }
 
          // reset transaction times ( begin time, pre-commit time and
          // pass arbitration time flag )
          void resetTransTime() ;
+
+         UINT64   getReservedSpace() const ;
+         UINT64   getUsedSpace() const ;
+         UINT64   getLogSpace() const ;
+
+         INT32                checkLockEscalation( LOCKMGR_TYPE managerType,
+                                                   const dpsTransLockId &lockID,
+                                                   BOOLEAN &needEscalation ) ;
+
+         OSS_INLINE void      setLockEscalated( LOCKMGR_TYPE managerType,
+                                                BOOLEAN isEscalated )
+         {
+            _isLockEscalated[ managerType ] = isEscalated ;
+         }
+
+         OSS_INLINE BOOLEAN   isLockEscalated( LOCKMGR_TYPE managerType ) const
+         {
+            return _isLockEscalated[ managerType ] ;
+         }
+
+         OSS_INLINE void      resetLockEscalated( LOCKMGR_TYPE managerType )
+         {
+            _isLockEscalated[ managerType ] = FALSE ;
+         }
+
+         // interface to get transaction ID
+         OSS_INLINE DPS_TRANS_ID getTransID()
+         {
+            return getExecutor()->getTransID() ;
+         }
+
+         OSS_INLINE DPS_TRANS_ID getOrigTransID()
+         {
+            return getTransID().getOrigTransID() ;
+         }
 
       protected:
          void                 initTransConf( INT32 isolation,
@@ -531,7 +633,10 @@ namespace engine
                                              BOOLEAN autoRollback,
                                              BOOLEAN useRBS,
                                              BOOLEAN rcCount,
-                                             BOOLEAN globTrans ) ;
+                                             BOOLEAN allowLockEscalation,
+                                             INT32 maxLockNum,
+                                             INT32 maxLogSpaceRatio,
+                                             UINT64 totalLogSpace ) ;
 
          BOOLEAN              updateTransConf( INT32 isolation,
                                                UINT32 timeout,
@@ -540,15 +645,27 @@ namespace engine
                                                BOOLEAN autoRollback,
                                                BOOLEAN useRBS,
                                                BOOLEAN rcCount,
-                                               BOOLEAN globTrans ) ;
+                                               BOOLEAN allowLockEscalation,
+                                               INT32 maxLockNum,
+                                               INT32 maxLogSpaceRatio,
+                                               UINT64 totalLogSpace ) ;
+
+         void                 copyTransConf( const dpsTransConfItem &conf,
+                                             UINT64 totalLogSpace ) ;
+         void                 updateTransConfByMask( const dpsTransConfItem &conf,
+                                                     UINT64 totalLogSpace ) ;
 
          void     addReservedSpace( const UINT64 len ) ;
-
-         UINT64   getReservedSpace() const ;
+         void     decReservedSpace( const UINT64 len ) ;
+         void     addUsedSpace( const UINT64 len ) ;
 
          void     resetLogSpace() ;
 
+         INT32    checkLogSpace( UINT64 usedLen, UINT64 reservedLen ) const ;
+         void     updateMaxLogSpace( UINT64 totalLogSpace ) ;
+
          void _initMBStat ( utilCLUniqueID clUniqueID,
+                            ossAtomic64 * globTransAvailTime,
                             ossAtomic64 * totalRecords,
                             UINT64 incDelta,
                             UINT64 decDelta ) ;
@@ -572,6 +689,8 @@ namespace engine
          ossSpinXLatch           _mapMutex ;
          DPS_LOCKID_MAP          _mapCSCLLockID[ LOCKMGR_TYPE_MAX ] ;
          UINT32                  _lockCount[ LOCKMGR_TYPE_MAX ] ;
+         UINT32                  _leafLockCount[ LOCKMGR_TYPE_MAX ] ;
+         BOOLEAN                 _isLockEscalated[ LOCKMGR_TYPE_MAX ] ;
 
          ossSpinSLatch           _accessingLRBMutex ;
          // LOCKMGR_TRANS_LOCK
@@ -616,6 +735,8 @@ namespace engine
          BOOLEAN                 _useTransLock ;
          // undo LR space reserved by this transaction
          UINT64                  _reservedLogSpace ;
+         UINT64                  _usedLogSpace ;
+         UINT64                  _maxLogSpace ;
 
          monMonitorManager      *_monMgr ;
          monClassLock           *_monLock ;

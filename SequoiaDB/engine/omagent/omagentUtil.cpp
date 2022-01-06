@@ -589,7 +589,8 @@ namespace engine
       PMD_ADD_PARAM_OPTIONS_END
 
       rc = utilReadConfigureFile( cfgFileName, desc, vm ) ;
-      PD_RC_CHECK( rc, PDWARNING, "Failed to read STP config file [%s], "
+      PD_RC_CHECK( rc, ( SDB_FNE == rc ? PDINFO : PDWARNING ),
+                   "Failed to read STP config file [%s], "
                    "rc: %d", cfgFileName, rc ) ;
 
       if ( vm.count( STP_OPTION_PORT ) )

@@ -33,7 +33,7 @@ Create a Remote object.
 .IP
 .nf
 \f[C]
->\ var\ remoteObj\ =\ new\ Remote(\ "192.168.20.71",\ 11790\ )
+> var remoteObj = new Remote( "192.168.20.71", 11790 )
 \f[]
 .fi
 .IP \[bu] 2
@@ -41,10 +41,10 @@ Get the object information of the Remote object.
 .IP
 .nf
 \f[C]
->\ remoteObj.getInfo()
+> remoteObj.getInfo()
 {
-\ \ "hostname":\ "192.168.20.71",
-\ \ "svcname":\ "11790"
+  "hostname": "192.168.20.71",
+  "svcname": "11790"
 }
 \f[]
 .fi

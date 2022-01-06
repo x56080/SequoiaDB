@@ -351,10 +351,28 @@ public final class Helper {
         }
     }
 
-    public static void main(String[] args) {
-        byte[] b = Helper.hexToByte(new String("7F01"));
-        for (int i = 0; i < b.length; i++) {
-            System.out.println(b[i]);
+    public static ByteBuffer resetBuff(ByteBuffer buff, int len, ByteOrder byteOrder) {
+        if (len <= 0){
+            throw new BaseException(SDBError.SDB_INVALIDARG, "The len parameter cannot be less than 0, len:" + len);
+        }
+        if (buff == null) {
+            buff = ByteBuffer.allocate(len);
+            buff.order(byteOrder);
+        }else if(buff.capacity() < len) {
+            buff = ByteBuffer.allocate(len);
+            buff.order(byteOrder);
+        }else if(buff.capacity() > len) {
+            buff.clear();
+            buff.limit(len);
+        }else {
+            buff.clear();
+        }
+        return buff;
+    }
+
+    public static void fillZero(ByteBuffer out, int len) {
+        for (int i = 0; i < len; i++) {
+            out.put((byte) 0);
         }
     }
 }

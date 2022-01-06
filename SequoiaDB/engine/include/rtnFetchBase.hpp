@@ -40,6 +40,7 @@
 #include "ossMemPool.hpp"
 #include "monDMS.hpp"
 #include "../bson/bson.h"
+#include "utilPooledAutoPtr.hpp"
 
 using namespace bson ;
 
@@ -79,12 +80,17 @@ namespace engine
       RTN_FETCH_HEALTH,                /// node health check
       RTN_FETCH_CONFIGS,               /// config
       RTN_FETCH_SVCTASKS,              /// svc tasks
-
       RTN_FETCH_VCL_SESSIONINFO,       /// VCL session info
       RTN_FETCH_QUERIES,               /// queries
       RTN_FETCH_LATCHWAITS,            /// latch waits
       RTN_FETCH_LOCKWAITS,             /// lock waits
       RTN_FETCH_INDEXSTATS,            /// index statistics
+      RTN_FETCH_TASKS,                 /// tasks
+
+      RTN_FETCH_DATASET,               /// fetch from inner data set
+
+      RTN_FETCH_TRANSWAITS,            /// transaction waits
+      RTN_FETCH_TRANSDEADLOCK,         /// transaction deadlock 
 
       RTN_FETCH_MAX
    } ;
@@ -95,22 +101,17 @@ namespace engine
    class _IRtnMonProcessor : public utilPooledObject
    {
       public:
-         static const UINT32 FLAG_OUTPUT = 1 ;
-         static const UINT32 FLAG_IGNORE = 2 ;
-
-      public:
          _IRtnMonProcessor() {}
          virtual ~_IRtnMonProcessor() {}
 
-         virtual INT32 process( const monCollection &clIn,
-                                monCollection &clOut,
-                                UINT32 &resultFlag ) = 0 ;
+         virtual INT32     pushIn( const BSONObj &obj ) = 0 ;
+         virtual INT32     output( BSONObj &obj, BOOLEAN &hasOut ) = 0 ;
 
-         virtual BOOLEAN hasDataInProcess() = 0 ;
-
-         virtual INT32 outputDataInProcess( MON_CL_LIST &out ) = 0 ;
+         virtual INT32     done( BOOLEAN &hasOut ) = 0 ;
+         virtual BOOLEAN   eof() const = 0 ;
    } ;
    typedef _IRtnMonProcessor IRtnMonProcessor ;
+   typedef utilSharePtr<IRtnMonProcessor>       IRtnMonProcessorPtr ;
 
    /*
       _rtnFetchBase define
@@ -118,19 +119,13 @@ namespace engine
    class _rtnFetchBase : public utilPooledObject
    {
       public :
-         _rtnFetchBase(INT32 sz, RTN_FETCH_TYPE type) :
-               _builder( sz ),
-               _hitEnd( TRUE ),
-               _type( type ),
-               _pDataProcessor( NULL ),
-               _owned( FALSE ) {}
+         _rtnFetchBase( INT32 sz, RTN_FETCH_TYPE type )
+         :_builder( sz ), _hitEnd( TRUE ), _type( type )
+         {
+         }
 
          virtual ~_rtnFetchBase()
          {
-            if ( _pDataProcessor && _owned )
-            {
-               SDB_OSS_DEL _pDataProcessor ;
-            }
          }
 
          virtual INT32           init( pmdEDUCB *cb,
@@ -147,20 +142,12 @@ namespace engine
 
          RTN_FETCH_TYPE    getType() const { return _type ; }
 
-         void setDataProcessor( IRtnMonProcessor *pDataProcessor, BOOLEAN owned )
-         {
-            _pDataProcessor = pDataProcessor ;
-            _owned = owned ;
-         }
-
       public:
-         BufBuilder _builder ;
+         BufBuilder        _builder ;
 
       protected:
          BOOLEAN           _hitEnd ;
          RTN_FETCH_TYPE    _type ;
-         IRtnMonProcessor *_pDataProcessor ;
-         BOOLEAN           _owned ;
    } ;
    typedef _rtnFetchBase rtnFetchBase ;
 

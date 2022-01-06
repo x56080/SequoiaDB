@@ -135,12 +135,16 @@ typedef sdbNodeHandle             sdbReplicaNodeHandle ;
 #define QUERY_PREPARE_MORE                0x00004000
 /** The sharding key in update rule is not filtered, when executing queryAndUpdate. */
 #define QUERY_KEEP_SHARDINGKEY_IN_UPDATE  0x00008000
-/** When the transaction is turned on and the transaction isolation level is "RC",
-    the transaction lock will be released after the record is read by default.
-    However, when setting this flag, the transaction lock will not released until
-    the transaction is committed or rollback. When the transaction is turned off or
-    the transaction isolation level is "RU", the flag does not work. */
+/** Acquire U lock on the records that are read. When the session is in
+    transaction and setting this flag, the transaction lock will not released
+    until the transaction is committed or rollback. When the session is not
+    in transaction, the flag does not work. */
 #define QUERY_FOR_UPDATE                  0x00010000
+/** Acquire S lock on the records that are read. When the session is in
+    transaction and setting this flag, the transaction lock will not released
+    until the transaction is committed or rollback. When the session is not
+    in transaction, the flag does not work. */
+#define QUERY_FOR_SHARE                   0x00040000
 
 
 /** The flag represent whether insert continue(no errors were reported) when hitting index key duplicate error */
@@ -399,6 +403,8 @@ SDB_EXPORT INT32 sdbGetQueryMeta ( sdbCollectionHandle cHandle,
         SDB_SNAP_SVCTASKS         : Get all the information of schedule task
         SDB_SNAP_SEQUENCES        : Get the snapshot of sequences
         SDB_SNAP_INDEXSTATS       : Get the snapshot of index statistics
+        SDB_SNAP_TRANSWAITS       : Get the snapshot of transaction waits 
+        SDB_SNAP_TRANSDEADLOCK    : Get the snapshot of transaction deadlock
 
     \param [in] condition The matching rule, match all the documents if null
     \param [in] select The selective rule, return the whole document if null
@@ -444,6 +450,8 @@ SDB_EXPORT INT32 sdbGetSnapshot ( sdbConnectionHandle cHandle,
         SDB_SNAP_SVCTASKS         : Get all the information of schedule task
         SDB_SNAP_SEQUENCES        : Get the snapshot of sequences
         SDB_SNAP_INDEXSTATS       : Get the snapshot of index statistics
+        SDB_SNAP_TRANSWAITS       : Get the snapshot of transaction waits 
+        SDB_SNAP_TRANSDEADLOCK    : Get the snapshot of transaction deadlock
 
     \param [in] condition The matching rule, match all the documents if null
     \param [in] select The selective rule, return the whole document if null
@@ -812,6 +820,23 @@ SDB_EXPORT INT32 sdbCreateCollectionSpaceV2 ( sdbConnectionHandle cHandle,
 */
 SDB_EXPORT INT32 sdbDropCollectionSpace ( sdbConnectionHandle cHandle,
                                           const CHAR *pCollectionSpaceName ) ;
+
+/** \fn INT32 sdbDropCollectionSpace1 ( sdbConnectionHandle cHandle,
+                                         const CHAR *pCollectionSpaceName,
+                                         bson *options )
+    \brief Drop the specified collection space
+    \param [in] cHandle The database connection handle
+    \param [in] pCollectionSpaceName The name of collection space
+    \param [in] options The options specified by user, e.g. {"EnsureEmpty": true}.
+
+        EnsureEmpty   : Check whether the collection space is empty when deleting it. false in default.
+                        if EnsureEmpty is true but CollectionSpace is not empty, it will report SDB_DMS_CS_NOT_EMPTY error code. 
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbDropCollectionSpace1 ( sdbConnectionHandle cHandle,
+                                           const CHAR *pCollectionSpaceName,
+                                           bson *options) ;
 
 /** \fn INT32 sdbCreateReplicaGroup ( sdbConnectionHandle cHandle,
                                       const CHAR *pRGName,
@@ -1299,6 +1324,18 @@ SDB_EXPORT INT32 sdbAlterCollectionSpace ( sdbCSHandle cHandle,
 SDB_EXPORT INT32 sdbCSSetDomain ( sdbCSHandle cHandle,
                                   bson * options ) ;
 
+/** \fn INT32 sdbCSGetDomainName( sdbCSHandle cHandle,
+                                  CHAR *pResult, INT32 size )
+    \brief Get the domain name which the collection space belongs to
+    \param [in] cHandle The collection space handle
+    \param [in] pResult The result for output domain name
+    \param [in] size The size of the buffer
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbCSGetDomainName ( sdbCSHandle cHandle,
+                                      CHAR *pResult, INT32 size ) ;
+
 /** \fn INT32 sdbCSRemoveDomain( sdbCSHandle cHandle )
     \brief Alter the specified collection space to remove domain
     \param [in] cHandle The collection space handle
@@ -1337,6 +1374,17 @@ SDB_EXPORT INT32 sdbCSDisableCapped ( sdbCSHandle cHandle ) ;
 */
 SDB_EXPORT INT32 sdbCSSetAttributes ( sdbCSHandle cHandle,
                                       bson * options ) ;
+
+/** \fn INT32 sdbCSListCollections ( sdbCSHandle cHandle,
+                                     sdbCursorHandle *handle )
+    \brief List all the collection of current collection space
+    \param [in] cHandle The collection space handle
+    \param [out] handle The cursor handle of returns
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbCSListCollections ( sdbCSHandle cHandle,
+                                        sdbCursorHandle *handle ) ;
 
 /** \fn INT32 sdbGetCLName ( sdbCollectionHandle cHandle,
                              CHAR *pCLName, INT32 size )

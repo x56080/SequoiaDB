@@ -47,13 +47,13 @@ class TestProcedure12491(testlib.SdbTestBase):
             self.db.remove_procedure(name)
          except SDBBaseError as e:
             if -233 != e.code:
-               self.fail("teardown fail,errmsg: " + e.detail)  
+               self.fail("teardown fail,errmsg: " + str(e))
 
    def check_create_procedure(self,code):
       try:
          self.db.create_procedure(code)
       except SDBBaseError as e:
-         self.fail("create procedure fail: " + e.detail)
+         self.fail("create procedure fail: " + str(e))
 
    def check_list_procedure(self,cond,expectResult):
       try:
@@ -62,7 +62,7 @@ class TestProcedure12491(testlib.SdbTestBase):
          self.assertEqual(expectResult['name'],actResult['name'])
          self.assertEqual(expectResult['code'],actResult['func'])
       except SDBBaseError as e:
-         self.fail("list procedure fail: " + e.detail)
+         self.fail("list procedure fail: " + str(e))
 
    def check_eval_procedure(self,name,expectResult):
       try:
@@ -70,7 +70,7 @@ class TestProcedure12491(testlib.SdbTestBase):
          actResult = cursor.next()
          self.assertEqual(expectResult, actResult['value'])
       except SDBBaseError as e:
-         self.fail("eval procedure fail: " + e.detail)
+         self.fail("eval procedure fail: " + str(e))
 
    def check_remove_procedure(self,name):
       try:
@@ -84,7 +84,7 @@ class TestProcedure12491(testlib.SdbTestBase):
          except SDBEndOfCursor:
              self.assertEqual(0, result, 'remove procedure fail')
       except SDBBaseError as e:
-         self.fail("remove procedure fail: " + e.detail)
+         self.fail("remove procedure fail: " + str(e))
 
    def check_remove_none_procedure(self,names):
       for i in range(len(names)):

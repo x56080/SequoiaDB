@@ -32,14 +32,17 @@
 *******************************************************************************/
 
 #include "clsMainCLMonAggregator.hpp"
-#include "clsMgr.hpp"
-#include "pmd.hpp"
 
 using namespace bson ;
 
 namespace engine
 {
-   INT32 clsParseShowMainCLModeHint( const BSONObj &hint, clsShowMainCLMode &mode )
+   /*
+      TOOL Functions
+   */
+   /*
+   INT32 clsParseShowMainCLModeHint( const BSONObj &hint,
+                                     clsShowMainCLMode &mode )
    {
       INT32 rc = SDB_OK ;
       mode = SHOW_MODE_SUB ;
@@ -75,7 +78,7 @@ namespace engine
       }
       catch ( std::exception& e )
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e );
          PD_LOG( PDERROR, "Failed to parse option, received unexpected "
                  "error:%s", e.what() ) ;
          goto error ;
@@ -86,7 +89,11 @@ namespace engine
    error:
       goto done ;
    }
+   */
 
+   /*
+      _clsMainCLMonInfo implement
+   */
    _clsMainCLMonInfo::_clsMainCLMonInfo( const clsCatalogSet *pCataSet,
                                          UINT32 subCLCount )
    {
@@ -202,6 +209,11 @@ namespace engine
       out._details.insert( std::pair< UINT32, detailedInfo >( 1, _detail ) ) ;
    }
 
+   /*
+      _clsMainCLMonAggregator implement
+   */
+
+   /*
    _clsMainCLMonAggregator::~_clsMainCLMonAggregator()
    {
       MainCLInfoMap::iterator it ;
@@ -418,6 +430,7 @@ namespace engine
    error:
       goto done ;
    }
+   */
 
 }
 

@@ -19,9 +19,13 @@ import com.sequoiadb.threadexecutor.ThreadExecutor;
 import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 
 /**
- * @FileName seqDB-15798:增删改查与truncate并发
- * @Author yinzhen
- * @Date 2019-4-22
+ * @description seqDB-15798:增删改查与truncate并发
+ * @author yinzhen
+ * @createDate 2019.04.22
+ * @updateUser ZhangYanan
+ * @updateDate 2021.12.14
+ * @updateRemark
+ * @version v1.0
  */
 public class Fulltext15798 extends FullTestBase {
     private String clName = "cl15798";
@@ -84,7 +88,8 @@ public class Fulltext15798 extends FullTestBase {
                         .getCollection( clName );
                 insertData( cl, 10000 );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -321 ) {
+                if ( e.getErrorCode() != -321 && e.getErrorCode() != -190
+                        && e.getErrorCode() != -147 ) {
                     throw e;
                 }
             } finally {
@@ -105,7 +110,8 @@ public class Fulltext15798 extends FullTestBase {
                         .getCollection( clName );
                 cl.update( "{a:'test_15798_1'}", "{$set:{b:'b_15798'}}", "{}" );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -321 ) {
+                if ( e.getErrorCode() != -321 && e.getErrorCode() != -190
+                        && e.getErrorCode() != -147 ) {
                     throw e;
                 }
             } finally {
@@ -126,7 +132,8 @@ public class Fulltext15798 extends FullTestBase {
                         .getCollection( clName );
                 cl.delete( "{a:'test_15798_0'}" );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -321 ) {
+                if ( e.getErrorCode() != -321 && e.getErrorCode() != -190
+                        && e.getErrorCode() != -147 ) {
                     throw e;
                 }
             } finally {
@@ -148,7 +155,9 @@ public class Fulltext15798 extends FullTestBase {
                 cl.query( "{'':{'$Text':{'query':{'match_all':{}}}}}", "{}",
                         "{}", "{'':'" + fullIdxName + "'}" );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -321 && e.getErrorCode() != -10 ) {
+                if ( e.getErrorCode() != -321 && e.getErrorCode() != -10
+                        && e.getErrorCode() != -190
+                        && e.getErrorCode() != -147 ) {
                     throw e;
                 }
             } finally {

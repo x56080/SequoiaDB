@@ -82,17 +82,17 @@ Since v1.0.
 print the configuration information of sdbcm.
 .nf
 \f[C]
->\ Oma.getOmaConfigs()
+> Oma.getOmaConfigs()
 {
-\ \ \ \ "AutoStart":\ true,
-\ \ \ \ "DiagLevel":\ 3,
-\ \ \ \ "EnableWatch":\ "TRUE",
-\ \ \ \ "IsGeneral":\ "TRUE",
-\ \ \ \ "OMAddress":\ "rhel64\-test8:11785",
-\ \ \ \ "RestartCount":\ 5,
-\ \ \ \ "RestartInterval":\ 0,
-\ \ \ \ "defaultPort":\ "11790",
-\ \ \ \ "rhel64\-test8_Port":\ "11790"
+    "AutoStart": true,
+    "DiagLevel": 3,
+    "EnableWatch": "TRUE",
+    "IsGeneral": "TRUE",
+    "OMAddress": "rhel64\-test8:11785",
+    "RestartCount": 5,
+    "RestartInterval": 0,
+    "defaultPort": "11790",
+    "rhel64\-test8_Port": "11790"
 }
 \f[]
 .fi
@@ -101,9 +101,9 @@ print the configuration information of sdbcm.
 Get the information from configuration file of sdbcm.
 .nf
 \f[C]
->\ var\ ret\ =\ Oma.getOmaConfigs()
->\ var\ obj\ =\ ret.toObj()
->\ println(obj["DiagLevel"])
+> var ret = Oma.getOmaConfigs()
+> var obj = ret.toObj()
+> println(obj["DiagLevel"])
 3
 \f[]
 .fi

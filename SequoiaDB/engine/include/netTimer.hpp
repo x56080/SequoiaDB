@@ -102,7 +102,7 @@ namespace engine
                                                       io,
                                                       handler ) )
             {
-               th = tmpTH ;
+               th.swap( tmpTH ) ;
             }
 
             return th ;

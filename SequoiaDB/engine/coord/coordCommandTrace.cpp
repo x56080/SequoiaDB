@@ -70,17 +70,17 @@ namespace engine
       INT32 rc = SDB_OK ;
       contextID = -1 ;
 
-      INT32 flag ;
-      CHAR *pCMDName ;
-      SINT64 numToSkip ;
-      SINT64 numToReturn ;
-      CHAR *pQuery ;
-      CHAR *pFieldSelector ;
-      CHAR *pOrderBy ;
-      CHAR *pHint ;
+      INT32 flag = 0 ;
+      const CHAR *pCMDName = NULL ;
+      SINT64 numToSkip = 0 ;
+      SINT64 numToReturn = -1 ;
+      const CHAR *pQuery = NULL ;
+      const CHAR *pFieldSelector = NULL ;
+      const CHAR *pOrderBy = NULL ;
+      const CHAR *pHint = NULL ;
       _rtnTraceStart tracestart ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, &flag, &pCMDName, &numToSkip,
+      rc = msgExtractQuery( (const CHAR*)pMsg, &flag, &pCMDName, &numToSkip,
                             &numToReturn, &pQuery, &pFieldSelector,
                             &pOrderBy, &pHint );
       PD_RC_CHECK ( rc, PDERROR,
@@ -120,17 +120,17 @@ namespace engine
       INT32 rc = SDB_OK;
       contextID = -1 ;
 
-      INT32 flag;
-      CHAR *pCMDName;
-      SINT64 numToSkip;
-      SINT64 numToReturn;
-      CHAR *pQuery;
-      CHAR *pFieldSelector;
-      CHAR *pOrderBy;
-      CHAR *pHint;
+      INT32 flag = 0 ;
+      const CHAR *pCMDName = NULL ;
+      SINT64 numToSkip = 0 ;
+      SINT64 numToReturn = -1 ;
+      const CHAR *pQuery = NULL ;
+      const CHAR *pFieldSelector = NULL ;
+      const CHAR *pOrderBy = NULL ;
+      const CHAR *pHint = NULL ;
       _rtnTraceResume traceResume ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, &flag, &pCMDName, &numToSkip,
+      rc = msgExtractQuery( (const CHAR*)pMsg, &flag, &pCMDName, &numToSkip,
                             &numToReturn, &pQuery, &pFieldSelector,
                             &pOrderBy, &pHint );
       PD_RC_CHECK ( rc, PDERROR,
@@ -170,17 +170,17 @@ namespace engine
       INT32 rc = SDB_OK;
       contextID = -1 ;
 
-      INT32 flag;
-      CHAR *pCMDName;
-      SINT64 numToSkip;
-      SINT64 numToReturn;
-      CHAR *pQuery;
-      CHAR *pFieldSelector;
-      CHAR *pOrderBy;
-      CHAR *pHint;
+      INT32 flag = 0 ;
+      const CHAR *pCMDName = NULL ;
+      SINT64 numToSkip = 0 ;
+      SINT64 numToReturn = -1 ;
+      const CHAR *pQuery = NULL ;
+      const CHAR *pFieldSelector = NULL ;
+      const CHAR *pOrderBy = NULL ;
+      const CHAR *pHint = NULL ;
       _rtnTraceStop tracestop ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, &flag, &pCMDName, &numToSkip,
+      rc = msgExtractQuery( (const CHAR*)pMsg, &flag, &pCMDName, &numToSkip,
                             &numToReturn, &pQuery, &pFieldSelector,
                             &pOrderBy, &pHint );
       PD_RC_CHECK ( rc, PDERROR,
@@ -222,17 +222,17 @@ namespace engine
       SDB_RTNCB *pRtncb                = pKrcb->getRTNCB();
       contextID = -1 ;
 
-      INT32 flag;
-      CHAR *pCMDName;
-      SINT64 numToSkip;
-      SINT64 numToReturn;
-      CHAR *pQuery;
-      CHAR *pFieldSelector;
-      CHAR *pOrderBy;
-      CHAR *pHint;
+      INT32 flag = 0 ;
+      const CHAR *pCMDName = NULL ;
+      SINT64 numToSkip = 0 ;
+      SINT64 numToReturn = -1 ;
+      const CHAR *pQuery = NULL ;
+      const CHAR *pFieldSelector = NULL ;
+      const CHAR *pOrderBy = NULL ;
+      const CHAR *pHint = NULL ;
       _rtnTraceStatus tracestatus ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, &flag, &pCMDName, &numToSkip,
+      rc = msgExtractQuery( (const CHAR*)pMsg, &flag, &pCMDName, &numToSkip,
                             &numToReturn, &pQuery, &pFieldSelector,
                             &pOrderBy, &pHint );
       PD_RC_CHECK ( rc, PDERROR,

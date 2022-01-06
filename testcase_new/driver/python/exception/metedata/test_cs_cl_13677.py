@@ -61,7 +61,7 @@ class CsClException13677(testlib.SdbTestBase):
          self.assertIn(expect_cl, act_cl)
             
       except SDBBaseError as e:
-         self.fail("check create cs or cl fail: " + e.detail)
+         self.fail("check create cs or cl fail: " + str(e))
          
    def check_drop_cs_success(self, cs_name):
       try:
@@ -72,7 +72,7 @@ class CsClException13677(testlib.SdbTestBase):
          expect_cs = {'Name': cs_name}
          self.assertNotIn(expect_cs, act_cs)
       except SDBBaseError as e:
-         self.fail("check drop cs fail: " + e.detail)
+         self.fail("check drop cs fail: " + str(e))
          
    def check_drop_cl_success(self, cs_name, cl_name):
       try:
@@ -83,7 +83,7 @@ class CsClException13677(testlib.SdbTestBase):
          expect_cl = {'Name': cs_name + "." + cl_name}
          self.assertNotIn(expect_cl, act_cl)
       except SDBBaseError as e:
-         self.fail("check drop cl fail: " + e.detail)
+         self.fail("check drop cl fail: " + str(e))
          
    def check_error_create_cs(self, cs_name):
       try:

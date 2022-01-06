@@ -73,6 +73,8 @@ namespace engine
       // input:
       // - timeout: timeout to get global logical time
       // - monotonic: indicate if monotonic time is required
+      // output:
+      // - pWaitedTime: return total wait time
       // return:
       // - SDB_OK: succeed to get global logical time
       // - other return code: failed to get global logical time
@@ -80,7 +82,8 @@ namespace engine
       //       `timeout` is 0 means only try once
       INT32 getLogicalTimeNS( stpLogicalTimeNS &time,
                               INT32 timeout = -1,
-                              BOOLEAN monotonic = TRUE ) ;
+                              BOOLEAN monotonic = TRUE,
+                              INT32 *pWaitedTime = NULL ) ;
 
       INT32 getClient( stpClient &client ) ;
 
@@ -122,8 +125,6 @@ namespace engine
 
       // PID of STP
       OSSPID            _stpPID ;
-      // host name
-      CHAR              _hostName[ OSS_MAX_HOSTNAME + 1 ] ;
       // service name ( port ) of STP
       CHAR              _serviceName[ OSS_MAX_SERVICENAME + 1 ] ;
 
@@ -149,10 +150,6 @@ namespace engine
      _stpPID( OSS_INVALID_PID ),
      _lastSyncTick( 0LL )
    {
-      if ( SDB_OK != ossGetHostName( _hostName, OSS_MAX_HOSTNAME ) )
-      {
-         _hostName[ 0 ] = '\0' ;
-      }
       _serviceName[ 0 ] = '\0' ;
    }
 
@@ -235,10 +232,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to get STP node, rc: %d", rc ) ;
       }
 
-      // test alive of STP
-      rc = _testSTP() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to test STP node, rc: %d", rc ) ;
-
       // check meta data
       rc = _checkMetaData( _serviceName ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to check meta data with key [%s], "
@@ -318,7 +311,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENTSERVICE_GETLOGICALTIMENS, "_stpAgentService::getLogicalTimeNS" )
    INT32 _stpAgentService::getLogicalTimeNS( stpLogicalTimeNS &time,
                                              INT32 timeout,
-                                             BOOLEAN monotonic )
+                                             BOOLEAN monotonic,
+                                             INT32 *pWaitedTime )
    {
       INT32 rc = SDB_OK ;
 
@@ -352,13 +346,15 @@ namespace engine
          }
          else if ( _recheckAvailable( rc, needWait ) )
          {
+            UINT32 waitTime = 0 ;
             if ( needWait )
             {
-               UINT32 waitTime = STP_MICROSEC_TO_MILLISEC( waitTimeUS ) ;
+               waitTime = STP_MICROSEC_TO_MILLISEC_CEIL( waitTimeUS ) ;
 
+               // wait time is extremely small, set to minimum interval
                if ( 0 == waitTime )
                {
-                  waitTime = STP_AGENT_RETRY_INTERVAL ;
+                  waitTime = STP_GET_TIME_MIN_RETRY_INTERVAL ;
                }
 
                // reset wait time against timeout
@@ -371,14 +367,20 @@ namespace engine
                {
                   waitTime = OSS_ONE_SEC ;
                }
-
-               // we could retry, sleep and continue loop
-               ossSleep( waitTime ) ;
-               if ( timeout > 0 )
-               {
-                  totalTimeout += waitTime ;
-               }
             }
+            else
+            {
+               // sleep for a quick interval to avoid infinity loop
+               waitTime = STP_GET_TIME_RETRY_INTERVAL ;
+            }
+
+             // we could retry, sleep and continue loop
+            ossSleep( waitTime ) ;
+            if ( timeout > 0 )
+            {
+               totalTimeout += waitTime ;
+            }
+
             continue ;
          }
          // we could not retry, break loop
@@ -388,6 +390,10 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, rc: %d", rc ) ;
 
    done:
+      if ( NULL != pWaitedTime )
+      {
+         *pWaitedTime = totalTimeout ;
+      }
       PD_TRACE_EXITRC( SDB__STPAGENTSERVICE_GETLOGICALTIMENS, rc ) ;
       return rc ;
 
@@ -411,7 +417,7 @@ namespace engine
       PD_CHECK( NULL != getMetaData(), STP_NOT_AVAILABLE, error, PDERROR,
                 "Failed to get logical time, meta data is not available" ) ;
 
-      rc = client.setConnInfo( _hostName, _serviceName ) ;
+      rc = client.setConnInfo( OSS_LOOPBACK_IP, _serviceName ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to set connection information for "
                    "STP client, rc: %d", rc ) ;
 
@@ -449,17 +455,6 @@ namespace engine
 
       utilNodeInfo node ;
       UTIL_VEC_NODES listNodes ;
-
-      // check host name if needed
-      if ( '\0' == _hostName[ 0 ] )
-      {
-         rc = ossGetHostName( _hostName, OSS_MAX_HOSTNAME ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDWARNING, "Failed to get host name, rc: %d", rc ) ;
-            _hostName[ 0 ] = '\0' ;
-         }
-      }
 
       // list running nodes, filtered by STP
       rc = utilListNodes( listNodes, SDB_TYPE_STP, NULL, OSS_INVALID_PID, -1 ) ;
@@ -500,28 +495,44 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__STPAGENTSERVICE__TESTSTP ) ;
 
-      INT8 test = 0 ;
+      stpClient client ;
+      BOOLEAN gotCheckLatch = FALSE ;
 
-      // write test command to pipe
-      rc = utilWriteReadPipe( STP_PIPE_SERVICE_NAME,
-                              _stpPID,
-                              STP_PIPE_MSG_TEST,
-                              sizeof( STP_PIPE_MSG_TEST ),
-                              (CHAR *)( &test ),
-                              sizeof( test ),
-                              FALSE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to test from STP "
-                   "node [%s] pid [%u], rc: %d", _serviceName,
-                   _stpPID, rc ) ;
+      // critical section: only one thread could check available in concurrent
+      if ( !_metaCheckLatch.try_get() )
+      {
+         // if we failed to get latch, means someone else is updating,
+         // just goto done
+         goto done ;
+      }
 
-      PD_LOG( PDINFO, "Send STP node [%s] pid [%u] with command [%s] done",
-              _serviceName, _stpPID, STP_PIPE_MSG_TEST ) ;
+      // entered critical section
+      gotCheckLatch = TRUE ;
+
+      rc = getClient( client ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get local STP client, "
+                   "rc: %d", rc ) ;
+
+      // try to connect to STP
+      // connect will send and recv session init messages, enough to test
+      // alive of the STP
+      // auto disconnect by destructor of stpClient
+      rc = client.connect() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to connect to STP service [%s], "
+                   "rc: %d", _serviceName, rc ) ;
 
    done:
+      if ( gotCheckLatch )
+      {
+         _metaCheckLatch.release() ;
+      }
       PD_TRACE_EXITRC( SDB__STPAGENTSERVICE__TESTSTP, rc ) ;
       return rc ;
 
    error:
+      // when error happened, clear agent
+      SDB_ASSERT( gotCheckLatch, "should in critical section" ) ;
+      _clear() ;
       goto done ;
    }
 
@@ -738,13 +749,28 @@ namespace engine
       switch ( rc )
       {
          case STP_NOT_AVAILABLE :
-         case STP_SYNC_FAILED :
          {
-            // it is not synchronized or not available
+            // it is not available
             // in these cases, STP might not started, so check available
             if ( SDB_OK == checkAvailable() )
             {
                // it is available now, go retry
+               canRetry = TRUE ;
+               needWait = FALSE ;
+            }
+            break ;
+         }
+         case STP_SYNC_FAILED :
+         {
+            // it is not synchronized, test if STP is alive first
+            // if failed, it may restarted, check available again
+            if ( SDB_OK == _testSTP() )
+            {
+               canRetry = TRUE ;
+               needWait = FALSE ;
+            }
+            else if ( SDB_OK == checkAvailable() )
+            {
                canRetry = TRUE ;
                needWait = FALSE ;
             }
@@ -869,7 +895,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT_GETLOGICALTIMENS, "_stpAgent::getLogicalTimeNS" )
    INT32 _stpAgent::getLogicalTimeNS( stpLogicalTimeNS &time,
                                       INT32 timeout,
-                                      BOOLEAN monotonic )
+                                      BOOLEAN monotonic,
+                                      INT32 *pWaitedTime )
    {
       INT32 rc = SDB_OK ;
 
@@ -882,7 +909,7 @@ namespace engine
       PD_CHECK( NULL != service, STP_NOT_AVAILABLE, error, PDERROR,
                 "Failed to get STP agent service" ) ;
 
-      rc = service->getLogicalTimeNS( time, timeout, monotonic ) ;
+      rc = service->getLogicalTimeNS( time, timeout, monotonic, pWaitedTime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, rc: %d", rc ) ;
 
    done:
@@ -896,7 +923,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT_GETLOGICALTIMEUS, "_stpAgent::getLogicalTimeUS" )
    INT32 _stpAgent::getLogicalTimeUS( stpLogicalTimeUS &time,
                                       INT32 timeout,
-                                      BOOLEAN monotonic )
+                                      BOOLEAN monotonic,
+                                      INT32 *pWaitedTime )
    {
       INT32 rc = SDB_OK ;
 
@@ -905,7 +933,7 @@ namespace engine
       stpLogicalTimeNS timeNS ;
 
       // get logical time
-      rc = getLogicalTimeNS( timeNS, timeout, monotonic ) ;
+      rc = getLogicalTimeNS( timeNS, timeout, monotonic, pWaitedTime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, rc: %d", rc ) ;
 
       time = timeNS ;

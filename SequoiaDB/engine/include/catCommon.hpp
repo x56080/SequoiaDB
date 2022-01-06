@@ -52,13 +52,6 @@ namespace engine
    class _SDB_DMSCB ;
    typedef _SDB_DMSCB SDB_DMSCB;
    class _dpsLogWrapper ;
-   struct cmp_str
-   {
-      BOOLEAN operator() ( const CHAR *a, const CHAR *b )
-      {
-         return ossStrcmp( a, b ) < 0 ;
-      }
-   } ;
 
    /* Check group name is valid */
    INT32 catGroupNameValidate ( const CHAR *pName, BOOLEAN isSys = FALSE ) ;
@@ -92,6 +85,14 @@ namespace engine
                        const BSONObj &hint,
                        pmdEDUCB *cb,
                        BSONObj &obj ) ;
+
+   INT32 catGetOneObjByOrder( const CHAR * collectionName,
+                              const BSONObj & selector,
+                              const BSONObj & matcher,
+                              const BSONObj & order,
+                              const BSONObj & hint,
+                              pmdEDUCB * cb,
+                              BSONObj & obj ) ;
 
    /* Query and get count of objects */
    INT32 catGetObjectCount ( const CHAR * collectionName,
@@ -223,22 +224,74 @@ namespace engine
 
    INT32 catGetCSGroupsFromCLs( const CHAR *csName, pmdEDUCB *cb,
                                 vector< UINT32 > &groups,
-                                BOOLEAN includeSubCLGroups = FALSE ) ;
+                                BOOLEAN includeSubCLGroups = FALSE,
+                                BOOLEAN checkDataSource = FALSE ) ;
    INT32 catGetCSGroups ( const CHAR * csName,
                           pmdEDUCB * cb,
                           ossPoolSet< UINT32 > & groups,
-                          BOOLEAN includeSubCLGroups = FALSE ) ;
+                          BOOLEAN includeSubCLGroups = FALSE,
+                          BOOLEAN checkDataSource = FALSE ) ;
+
+   /* Collection[CAT_INDEX_INFO_COLLECTION] functions: */
+   INT32 catGetAndIncIdxUniqID( const CHAR* collection, pmdEDUCB *cb, INT16 w,
+                                UINT64& idxUniqID ) ;
+
+   INT32 catAddIndex( const CHAR *collectionName,
+                      const BSONObj &indexDef,
+                      pmdEDUCB *cb, INT16 w,
+                      BOOLEAN *pAddNewIdx = NULL,
+                      BSONObj *pIndexObj = NULL ) ;
+
+   INT32 catRemoveIndex( const CHAR *collection,
+                         const CHAR *indexName,
+                         pmdEDUCB *cb, INT16 w,
+                         BOOLEAN *pRemoveOldIdx = NULL ) ;
+   INT32 catRemoveCLIndexes( const CHAR *collection, pmdEDUCB *cb, INT16 w ) ;
+
+   INT32 catCheckIndexExist( const CHAR *collection, const BSONObj &indexDef,
+                             pmdEDUCB *cb,
+                             BOOLEAN &isExist, BOOLEAN &isSameDef ) ;
+
+   INT32 catCheckIndexExist( const CHAR* collection, const CHAR* indexName,
+                             const BSONObj& indexDef, _pmdEDUCB* cb,
+                             BOOLEAN skipShardIdx = FALSE,
+                             BSONObj* pIndexObj = NULL ) ;
+
+   INT32 catGetIndex( const CHAR *collection, const CHAR *indexName,
+                      pmdEDUCB *cb, BSONObj &obj ) ;
+   INT32 catGetCLIndexes( const CHAR *collection,
+                          BOOLEAN onlyGlobaIndex,
+                          pmdEDUCB *cb,
+                          ossPoolVector<BSONObj>& indexes ) ;
+
+   INT32 catGetGlobalIndexInfo( const CHAR *collection, const CHAR *indexName,
+                                pmdEDUCB *cb, BOOLEAN &isGlobalIndex,
+                                string &indexCLName,
+                                utilCLUniqueID &indexCLUID ) ;
+   INT32 catGetCLGlobalIndexesInfo( const CHAR *collection, pmdEDUCB *cb,
+                                    ossPoolList<PAIR_CLNAME_ID>& indexCLList ) ;
+
+   INT32 catRenameCLInIndexes( const CHAR *clFullName, const CHAR *newCLFullName,
+                               pmdEDUCB *cb, INT16 w ) ;
 
    /* Collection[CAT_TASK_INFO_COLLECTION] functions: */
-   INT32 catAddTask( BSONObj & taskObj, pmdEDUCB *cb, INT16 w ) ;
+   INT32 catAddTask( const BSONObj & taskObj, pmdEDUCB *cb, INT16 w ) ;
+
    INT32 catGetTask( UINT64 taskID, BSONObj &obj, pmdEDUCB *cb ) ;
-   INT32 catGetTaskCount ( const CHAR *collection, pmdEDUCB *cb, INT64 &count );
-   INT32 catGetTaskCountByCS( const CHAR *csName, pmdEDUCB *cb, INT64 &count ) ;
-   INT32 catGetCLTaskCountByType( const CHAR * collection, pmdEDUCB * cb,
-                                  CLS_TASK_TYPE type, INT64 & count ) ;
+   INT32 catGetCSTaskCountByType( const CHAR *csName, CLS_TASK_TYPE type,
+                                  pmdEDUCB *cb, INT64 &count ) ;
+   INT32 catGetCLTaskCountByType( const CHAR *collection, CLS_TASK_TYPE type,
+                                  pmdEDUCB *cb, INT64 &count ) ;
    INT32 catGetTaskStatus( UINT64 taskID, INT32 &status, pmdEDUCB *cb ) ;
-   INT32 catUpdateTaskStatus( UINT64 taskID, INT32 status, pmdEDUCB *cb,
-                              INT16 w ) ;
+   INT32 catUpdateTask( UINT64 taskID, const BSONObj *pSetInfo,
+                        const BSONObj *pUnsetInfo, pmdEDUCB *cb, INT16 w ) ;
+   INT32 catUpdateTask( const BSONObj &matcher, const BSONObj &updator,
+                        pmdEDUCB *cb, INT16 w ) ;
+   INT32 catUpdateTaskStatus( UINT64 taskID, CLS_TASK_STATUS status,
+                              pmdEDUCB * cb, INT16 w ) ;
+   INT32 catUpdateTask2Finish( UINT64 taskID, INT32 resultCode, pmdEDUCB *cb,
+                               INT16 w ) ;
+
    UINT64 catGetCurrentMaxTaskID( pmdEDUCB *cb ) ;
    INT32 catGetAndIncTaskID( pmdEDUCB *cb, INT16 w, UINT64& taskID ) ;
    INT32 catSetTaskHWM( pmdEDUCB *cb, INT16 w, UINT64 taskHWM ) ;
@@ -258,6 +311,9 @@ namespace engine
    INT32 catGetCSTaskGroups ( const CHAR * csName,
                               pmdEDUCB * cb,
                               ossPoolSet< UINT32 > & groups ) ;
+
+   INT32 catRenameCLInTasks( const CHAR *clFullName, const CHAR *newCLFullName,
+                             pmdEDUCB *cb, INT16 w ) ;
 
    /* Collection[CAT_HISTORY_COLLECTION] functions */
    INT32 catGetBucketVersion( const CHAR *pCLName, pmdEDUCB *cb ) ;
@@ -288,19 +344,19 @@ namespace engine
                             utilGlobalID& globalID ) ;
 
    /* Other Tools */
+   INT32 catFormatIndexInfo( const CHAR* collection, utilCLUniqueID clUniqID,
+                             const BSONObj& indexDef,
+                             _pmdEDUCB *cb, BSONObj &obj ) ;
+
    INT32 catPraseFunc( const BSONObj &func, BSONObj &parsed ) ;
 
    UINT32 catCalcBucketID( const CHAR *pData, UINT32 length,
                            UINT32 bucketSize = CAT_BUCKET_SIZE ) ;
 
    INT32 catCreateContext ( MSG_TYPE cmdType,
-                            catContext **context,
+                            catContextPtr &context,
                             SINT64 &contextID,
                             _pmdEDUCB * pEDUCB ) ;
-
-   INT32 catFindContext ( SINT64 contextID,
-                          catContext **pCtx,
-                          _pmdEDUCB *pEDUCB ) ;
 
    INT32 catDeleteContext ( SINT64 contextID,
                             _pmdEDUCB *pEDUCB ) ;
@@ -308,6 +364,10 @@ namespace engine
    /* Get Collection */
    INT32 catGetCollection ( const string &clName, BSONObj &boCollection,
                             _pmdEDUCB *cb ) ;
+
+   /* Get Collection and check data source */
+   INT32 catGetAndCheckCollection ( const string &clName, BSONObj &boCollection,
+                                    _pmdEDUCB *cb ) ;
 
    /* Get collection's name by unique id */
    INT32 catGetCollectionNameByUID( utilCLUniqueID clUID, string &clName,
@@ -320,6 +380,10 @@ namespace engine
    /* Check whether the collection will be re-linked */
    INT32 catCheckRelinkCollection ( const BSONObj &boCollection,
                                     string &mainCLName ) ;
+
+   INT32 catCheckLinkMultiDSCollection( const BSONObj &boMainCL,
+                                        const BSONObj &boSubCL,
+                                        pmdEDUCB *cb ) ;
 
    /* Get group list from collection */
    INT32 catGetCollectionGroups ( const BSONObj &boCollection,
@@ -444,24 +508,6 @@ namespace engine
                            _pmdEDUCB *cb, SDB_DMSCB *pDmsCB, SDB_DPSCB *pDpsCB,
                            INT16 w ) ;
 
-   /* add global index info */
-   INT32 catAddGlobalIndexStep ( const string &clName, BSONObj &gIndexInfo,
-                                 _pmdEDUCB *cb, SDB_DMSCB *pDmsCB,
-                                 SDB_DPSCB *pDpsCB, INT16 w,
-                                 BOOLEAN *isAltered = NULL ) ;
-
-   INT32 catDelGlobalIndexByNameStep ( const string &clName,
-                                       const string &indexName,
-                                       _pmdEDUCB *cb, SDB_DMSCB *pDmsCB,
-                                       SDB_DPSCB *pDpsCB, INT16 w,
-                                       BOOLEAN *isAltered = NULL ) ;
-
-   /* delete global index info */
-   INT32 catDelGlobalIndexStep ( const string &clName, BSONObj &gIndexInfo,
-                                 _pmdEDUCB *cb, SDB_DMSCB *pDmsCB,
-                                 SDB_DPSCB *pDpsCB, INT16 w,
-                                 BOOLEAN *isAltered = NULL ) ;
-
    /* Check and build Collection record */
    INT32 catCheckAndBuildCataRecord ( const BSONObj &boCollection,
                                       UINT32 &fieldMask,
@@ -536,6 +582,27 @@ namespace engine
                                        INT16 w ) ;
    string catGetSeqName4AutoIncFld( const utilCLUniqueID id,
                                     const CHAR* fldName ) ;
+
+   /* Data Source */
+   INT32 catCheckDataSourceExist( const CHAR *dsName, BOOLEAN &exist,
+                                  BSONObj &obj, pmdEDUCB *cb ) ;
+
+   INT32 catCheckPureMappingCS( const CHAR *csName,
+                                pmdEDUCB *cb,
+                                BOOLEAN &isMappingCS,
+                                BSONObj *csMeta = NULL ) ;
+
+   INT32 catCheckCLInPureMappingCS( const CHAR *clFullName,
+                                    pmdEDUCB *cb, BOOLEAN &inMappingCS,
+                                    BSONObj *csMeta = NULL ) ;
+
+   INT32 catBuildCatalogByPureMappingCS( const CHAR *clFullName,
+                                         const BSONObj &csMetaData,
+                                         BSONObj &catalog, pmdEDUCB *cb ) ;
+
+   INT32 catCheckDataSourceID( const bson::BSONObj &boObject,
+                               UTIL_DS_UID &dsUID ) ;
+
 }
 
 #endif //CAT_COMMON_HPP__

@@ -64,6 +64,6 @@ service port as 11800, specify the data file storage path as
 .IP
 .nf
 \f[C]
->\ db.createCataRG("hostname1",11800,"/opt/sequoiadb/database/cata/11800",{logfilesz:64})
+> db.createCataRG("hostname1",11800,"/opt/sequoiadb/database/cata/11800",{logfilesz:64})
 \f[]
 .fi

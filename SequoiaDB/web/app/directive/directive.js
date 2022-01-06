@@ -5682,7 +5682,7 @@
                                        {
                                           break ;
                                        }
-                                       newAutoHtml = newAutoHtml.replace( /\$autoValue/g, item + "['" + tableKey + "']" ) ;
+                                       newAutoHtml = newAutoHtml.replace( /\$autoValue/g, item + "." + tableKey ) ;
                                        newAutoHtml = newAutoHtml.replace( /\$auto/g, tableKey ) ;
                                        newAutoHtml = newAutoHtml.replace( /table-if/g, 'ng-if' ) ;
                                        newAutoHtml = newAutoHtml.replace( /table-switch/g, 'ng-switch' ) ;

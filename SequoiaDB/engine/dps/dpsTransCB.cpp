@@ -72,7 +72,6 @@ namespace engine
    dpsTransCB::dpsTransCB()
    :_TransIDL56Cur( 1 ) ,
     _lsnMapMutex( MON_LATCH_DPSTRANSCB_LSNMAPMUTEX ),
-    _maxFileSizeMutex( MON_LATCH_DPSTRANSCB_MAXFILESIZEMUTEX ),
     _reservedRBSpace( 0 ) ,
     _reservedSpace( 0 ),
     _sucCount( 0LL ),
@@ -84,9 +83,12 @@ namespace engine
     _maxReadTran( DPS_INVALID_TRANSID_SN ),
     _maxTransCommitTime( DPS_INVALID_TRANS_TIME ),
     _minRecoverableTime( DPS_INVALID_TRANS_TIME ),
+    _restorePointTime( DPS_INVALID_TRANS_TIME ),
     _numTransIDConflict( 0LL ),
     _stpAgent(),
-    _gtsAgent( NULL )
+    _gtsAgent( NULL ),
+    _rollbackLogTime( DPS_MAX_TRANSID_SN ),
+    _rollbackLogLimit( DPS_MAX_TRANSID_SN )
    {
       _TransIDH16          = DPS_INVALID_TRANSID_NODEID ;
       _isOn                = FALSE ;
@@ -94,6 +96,7 @@ namespace engine
       _isGlobTransSyncCheck = FALSE ;
       _isMVCCOn            = FALSE ;
       _doRollback          = FALSE ;
+      _doRollbackID        = 1 ;
       _isNeedSyncTrans     = TRUE ;
       _logFileTotalSize    = 0 ;
       _transLockMgr        = NULL ;
@@ -234,8 +237,8 @@ namespace engine
 
    INT32 dpsTransCB::deactive ()
    {
-      PD_LOG( PDEVENT, "Counts of transID conflicts [%llu]",
-              _numTransIDConflict ) ;
+      PD_LOG( PDEVENT, "Counts of transID conflicts [%llu], "
+              "generated the same timestamp by STP", _numTransIDConflict ) ;
       return SDB_OK ;
    }
 
@@ -313,11 +316,9 @@ namespace engine
       SDB_DPSCB *dpsCB = sdbGetDPSCB() ;
       dpsReplicaLogMgr *logMgr = dpsCB->getLogMgr() ;
       UINT32 transMapSize = 0 ;
-      UINT64 logFileSize = pmdGetOptionCB()->getReplLogFileSz() ;
-      UINT32 logFileNum = pmdGetOptionCB()->getReplLogFileNum() ;
       dpsLogSummary summary ;
       BOOLEAN isSummaryValid = FALSE ;
-      _logFileTotalSize = logFileSize * logFileNum ;
+      _logFileTotalSize = pmdGetOptionCB()->getTotalLogSpace() ;
 
       DPS_LSN_OFFSET startLsnOffset = dpsCB->readOldestBeginLsnOffset() ;
       DPS_LSN_OFFSET workBeginOffset = logMgr->getWorkBeginOffset() ;
@@ -328,7 +329,8 @@ namespace engine
                    "rc: %d", rc ) ;
 
       if ( DPS_INVALID_TRANS_TIME == summary._maxTransCommitTime &&
-           DPS_INVALID_TRANS_TIME == summary._minRecoverableTime )
+           DPS_INVALID_TRANS_TIME == summary._minRecoverableTime &&
+           DPS_INVALID_TRANS_TIME == summary._restorePointTime )
       {
          // summary from meta file is invalid, need get from log file
          summary.reset() ;
@@ -376,6 +378,7 @@ namespace engine
       {
          setMinRecoverableTime( summary._minRecoverableTime ) ;
          setMaxTransCommitTime( summary._maxTransCommitTime ) ;
+         setRestorePointTime( summary._restorePointTime ) ;
       }
 
       PD_LOG( PDEVENT, "Restored log summary [ minRecoverableTime: %llu,"
@@ -1460,7 +1463,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETGLOBTRANSTIME, "dpsTransCB::getGlobTransTime" )
    INT32 dpsTransCB::getGlobTransTime( stpLogicalTimeUS &time,
-                                       INT32 timeout )
+                                       INT32 timeout,
+                                       INT32 *pWaitedTime )
    {
       INT32 rc = SDB_OK ;
 
@@ -1469,7 +1473,7 @@ namespace engine
       // try to get time in timeout
       // NOTE: it might be failed if STP is busy with synchronization
       //       we could retry within a given timeout
-      rc = _stpAgent.getLogicalTimeUS( time, timeout, TRUE ) ;
+      rc = _stpAgent.getLogicalTimeUS( time, timeout, TRUE, pWaitedTime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, "
                    "rc: %d", rc ) ;
 
@@ -1493,13 +1497,18 @@ namespace engine
 
       SDB_ASSERT( NULL != eduCB, "EDUCB is invalid" ) ;
 
+      INT32 totalTimeout = 0 ;
+      INT32 waitedTime = 0 ;
+
    retry:
+      waitedTime = 0 ;
+
       // check if interrupted
       PD_CHECK( !eduCB->isInterrupted(), SDB_APP_INTERRUPT, error, PDERROR,
                 "Failed to get global logical time for pre-commit, "
                 "it is interrupted" ) ;
 
-      rc = getGlobTransTime( time, (INT32)( eduCB->getTransTimeout() ) ) ;
+      rc = getGlobTransTime( time, timeout, &waitedTime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get global transaction time, "
                    "rc: %d", rc ) ;
 
@@ -1510,14 +1519,27 @@ namespace engine
       }
       else if ( expectTimeUS > time.getTime() )
       {
-         // there is an interval to reach expecting time, sleep and retry
-         UINT32 sleepTimeUS = expectTimeUS - time.getTime() ;
-         if ( sleepTimeUS > STP_MAX_TIME_ERROR_US )
+         totalTimeout += waitedTime ;
+         if ( timeout >= 0 && totalTimeout > timeout )
          {
-            sleepTimeUS = STP_MAX_TIME_ERROR_US ;
+            PD_LOG( PDWARNING, "Failed to get global transaction time, "
+                    "it is timeout" ) ;
+            rc = SDB_TIMEOUT ;
+            goto error ;
          }
-         ossSleep( STP_MICROSEC_TO_MILLISEC( sleepTimeUS ) ) ;
-         goto retry ;
+         else
+         {
+            // there is an interval to reach expecting time, sleep and retry
+            UINT32 sleepTimeUS = expectTimeUS - time.getTime() ;
+            if ( sleepTimeUS > STP_MAX_TIME_ERROR_US )
+            {
+               sleepTimeUS = STP_MAX_TIME_ERROR_US ;
+            }
+            INT32 sleepTime = STP_MICROSEC_TO_MILLISEC( sleepTimeUS ) ;
+            totalTimeout += sleepTime ;
+            ossSleep( sleepTime ) ;
+            goto retry ;
+         }
       }
       else if ( expectTimeUS == time.getTime() )
       {
@@ -1972,7 +1994,7 @@ namespace engine
       // NOTE: if STP is unavailable temporarily, timeout > 0
       //       will trigger STP checking
       rc = timeAgent.getLogicalTimeUS( activeTime,
-                                       STP_AGENT_RETRY_INTERVAL,
+                                       STP_GET_TIME_RETRY_INTERVAL,
                                        FALSE ) ;
       if ( SDB_OK == rc )
       {
@@ -1996,8 +2018,31 @@ namespace engine
       PD_TRACE_EXIT( SDB_DPSTRANSCB_CHECKPRIMARYACTIVETIME ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_REGREADTRAN, "dpsTransCB::regReadTran" )
+   void dpsTransCB::regReadTran( pmdEDUCB *eduCB )
+   {
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_REGREADTRAN ) ;
+
+      if ( eduCB->isTransRR() )
+      {
+         dpsTransExecutor *executor = eduCB->getTransExecutor() ;
+         if ( !( executor->hasRegReadTran() ) )
+         {
+            regReadTranTime( executor->getBeginTime().getUpperTime() ) ;
+            executor->setRegReadTran( TRUE ) ;
+         }
+
+         // start a read operator, it is a good time to set expireTran cache
+         executor->setExpireTranCache( getExpiredVersion() ) ;
+      }
+
+      PD_TRACE_EXIT( SDB_DPSTRANSCB_REGREADTRAN ) ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETRESTOREWINDOW, "dpsTransCB::getRestoreWindow" )
-   INT32 dpsTransCB::getRestoreWindow( UINT64 &minTime, UINT64 &maxTime )
+   INT32 dpsTransCB::getRestoreWindow( UINT64 &minTime,
+                                       UINT64 &maxTransCommitTime,
+                                       UINT64 &restorePointTime )
    {
       INT32 rc = SDB_OK ;
 
@@ -2008,7 +2053,8 @@ namespace engine
          // CATALOG nodes do not have global transactions, so we need to
          // make the restore window from CATALOG covers full time interval
          minTime = DPS_MIN_TRANS_TIME ;
-         maxTime = DPS_MAX_TRANS_TIME ;
+         maxTransCommitTime = DPS_MAX_TRANS_TIME ;
+         restorePointTime = DPS_MAX_TRANS_TIME ;
       }
       else
       {
@@ -2018,7 +2064,8 @@ namespace engine
          ossScopedLock lock( logMgr->getWriteMutex() ) ;
 
          minTime = _minRecoverableTime ;
-         maxTime = _maxTransCommitTime ;
+         maxTransCommitTime = _maxTransCommitTime ;
+         restorePointTime = _restorePointTime ;
       }
 
       PD_TRACE_EXITRC( SDB_DPSTRANSCB_GETRESTOREWINDOW, rc ) ;
@@ -2094,7 +2141,7 @@ namespace engine
       {
          if ( SDB_EVT_OCCUR_AFTER == occurType )
          {
-            stopRollbackTask() ;
+            stopRollbackTask( 0 ) ;
             termAllTrans() ;
          }
          else
@@ -2197,8 +2244,11 @@ namespace engine
       eduID = pEduMgr->getSystemEDU( EDU_TYPE_DPSROLLBACK ) ;
       if ( PMD_INVALID_EDUID != eduID )
       {
-         rc = pEduMgr->postEDUPost( eduID, PMD_EDU_EVENT_ACTIVE,
-                                    PMD_EDU_MEM_NONE, NULL ) ;
+         rc = pEduMgr->postEDUPost( eduID,
+                                    PMD_EDU_EVENT_ACTIVE,
+                                    PMD_EDU_MEM_NONE,
+                                    NULL,
+                                    _doRollbackID ) ;
       }
       else
       {
@@ -2213,10 +2263,21 @@ namespace engine
       return rc ;
    }
 
-   INT32 dpsTransCB::stopRollbackTask()
+   INT32 dpsTransCB::stopRollbackTask( UINT64 doRollbackID )
    {
-      _doRollback = FALSE ;
-      _rollbackEvent.signalAll() ;
+      // only the same rollback ID can stop the task
+      // or doRollback ID is 0, which means force to stop
+      if ( 0 == doRollbackID || _doRollbackID == doRollbackID )
+      {
+         _doRollback = FALSE ;
+         _rollbackEvent.signalAll() ;
+
+         // if force to stop, increase the rollback ID
+         if ( 0 == doRollbackID )
+         {
+            ++ _doRollbackID ;
+         }
+      }
       return SDB_OK ;
    }
 
@@ -2556,6 +2617,33 @@ namespace engine
          {
             PD_LOG( PDERROR, "Failed to add EDU list, occur exception: %s",
                     e.what() ) ;
+         }
+      }
+      FOR_EACH_CMAP_ELEMENT_END
+   }
+
+   void dpsTransCB::snapTransLockWaiterLRB( DPS_TX_WAIT_LRB_SET & txWaiterLRBSet )
+   {
+      // for each element in concurrent map
+      FOR_EACH_CMAP_ELEMENT_S( TRANS_CB_MAP, _cbMap )
+      {
+         dpsTransExecutor *exe = it->second->getTransExecutor();
+         dpsTxWaitLRB waitInfo;
+
+         waitInfo.eduID = it->second->getID() ;
+         if ( exe && exe->getTransWaitingLRBInfo( waitInfo ) )
+         {
+            try
+            {
+               txWaiterLRBSet.insert( waitInfo );
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR,
+                       "Failed to collect waiter LRB, exception captured: %s",
+                       e.what() ) ;
+               break ;
+            }
          }
       }
       FOR_EACH_CMAP_ELEMENT_END
@@ -3218,7 +3306,8 @@ namespace engine
                                     const dmsRecordID *recordID,
                                     _IContext *pContext,
                                     dpsTransRetInfo * pdpsTxResInfo,
-                                    _dpsITransLockCallback * callback )
+                                    _dpsITransLockCallback * callback,
+                                    BOOLEAN useEscalation )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_TRANSLOCKGETS ) ;
@@ -3240,7 +3329,7 @@ namespace engine
          rc = _transLockMgr->acquire( eduCB->getTransExecutor(),
                                       lockId, DPS_TRANSLOCK_S,
                                       pContext, pdpsTxResInfo,
-                                      callback );
+                                      callback, NULL, useEscalation );
 
          if ( eduCB->getTransExecutor()->hasLockWait() )
          {
@@ -3323,16 +3412,18 @@ namespace engine
    void dpsTransCB::transLockRelease( _pmdEDUCB *eduCB, UINT32 logicCSID,
                                       UINT16 collectionID,
                                       const dmsRecordID *recordID,
-                                      _dpsITransLockCallback * callback )
+                                      _dpsITransLockCallback * callback,
+                                      BOOLEAN forceRelease,
+                                      BOOLEAN releaseUpperLock )
    {
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_TRANSLOCKRELEASE ) ;
 
-      PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKRELEASE, 
+      PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKRELEASE,
                  PD_PACK_INT(logicCSID),
                  PD_PACK_INT(collectionID) ) ;
       if ( recordID )
       {
-         PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKRELEASE, 
+         PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKRELEASE,
                     PD_PACK_INT(recordID->_extent),
                     PD_PACK_INT(recordID->_offset) ) ;
       }
@@ -3342,7 +3433,8 @@ namespace engine
          dpsTransLockId lockId( logicCSID, collectionID, recordID );
 
          _transLockMgr->release( eduCB->getTransExecutor(),
-                                     lockId, FALSE, callback );
+                                 lockId, forceRelease, callback,
+                                 releaseUpperLock ) ;
       }
 
       PD_TRACE_EXIT ( SDB_DPSTRANSCB_TRANSLOCKRELEASE );
@@ -3411,7 +3503,7 @@ namespace engine
                                             const dmsRecordID *recordID,
                                             dpsTransRetInfo * pdpsTxResInfo,
                                             _dpsITransLockCallback * callback,
-                                            BOOLEAN needIntentLock )
+                                            BOOLEAN needUpperLock )
    {
       if ( !_isOn )
       {
@@ -3423,7 +3515,7 @@ namespace engine
                                         TRUE, // preemptively test
                                         pdpsTxResInfo,
                                         callback,
-                                        needIntentLock );
+                                        needUpperLock );
    }
 
 
@@ -3447,7 +3539,8 @@ namespace engine
                                      UINT16 collectionID,
                                      const dmsRecordID *recordID,
                                      dpsTransRetInfo * pdpsTxResInfo,
-                                     _dpsITransLockCallback * callback )
+                                     _dpsITransLockCallback * callback,
+                                     BOOLEAN needUpperLock )
    {
       if ( !_isOn )
       {
@@ -3458,7 +3551,8 @@ namespace engine
                                         lockId, DPS_TRANSLOCK_X,
                                         FALSE,  // not preemptively test
                                         pdpsTxResInfo,
-                                        callback ) ;
+                                        callback,
+                                        needUpperLock ) ;
    }
 
 
@@ -3480,6 +3574,25 @@ namespace engine
                                         callback ) ;
    }
 
+   INT32 dpsTransCB::transLockTestZ( _pmdEDUCB *eduCB,
+                                     UINT32 logicCSID,
+                                     UINT16 collectionID,
+                                     const dmsRecordID *recordID,
+                                     dpsTransRetInfo *pdpsTxResInfo,
+                                     _dpsITransLockCallback *callback )
+   {
+      if ( !_isOn )
+      {
+         return SDB_OK ;
+      }
+      dpsTransLockId lockId( logicCSID, collectionID, recordID ) ;
+      return _transLockMgr->testAcquire( eduCB->getTransExecutor(),
+                                         lockId,
+                                         DPS_TRANSLOCK_Z,
+                                         FALSE,
+                                         pdpsTxResInfo,
+                                         callback ) ;
+   }
 
    INT32 dpsTransCB::transLockTestIX( _pmdEDUCB *eduCB, UINT32 logicCSID,
                                       UINT16 collectionID,
@@ -3512,6 +3625,22 @@ namespace engine
       return _transLockMgr->tryAcquire( eduCB->getTransExecutor(),
                                        lockId, DPS_TRANSLOCK_X,
                                        pdpsTxResInfo, callback );
+   }
+
+   INT32 dpsTransCB::transLockTryZ( _pmdEDUCB *eduCB, UINT32 logicCSID,
+                                    UINT16 collectionID,
+                                    const dmsRecordID *recordID,
+                                    dpsTransRetInfo * pdpsTxResInfo,
+                                    _dpsITransLockCallback * callback )
+   {
+      if ( !_isOn )
+      {
+         return SDB_OK ;
+      }
+      dpsTransLockId lockId( logicCSID, collectionID, recordID ) ;
+      return _transLockMgr->tryAcquire( eduCB->getTransExecutor(),
+                                        lockId, DPS_TRANSLOCK_Z,
+                                        pdpsTxResInfo, callback ) ;
    }
 
    INT32 dpsTransCB::transLockTryU( _pmdEDUCB *eduCB, UINT32 logicCSID,
@@ -3564,28 +3693,68 @@ namespace engine
       return rc ;
    }
 
+   INT32 dpsTransCB::transLockTrySAgainstWrite( _pmdEDUCB *eduCB,
+                                                UINT32 logicCSID,
+                                                UINT16 collectionID,
+                                                const dmsRecordID *recordID,
+                                                dpsTransRetInfo *pdpsTxResInfo,
+                                                _dpsITransLockCallback *callback )
+   {
+      INT32 rc = SDB_OK ;
+
+      dpsTransRetInfo localTxResInfo ;
+      dpsTransRetInfo *tmpTxResInfo =
+            NULL != pdpsTxResInfo ? pdpsTxResInfo : &localTxResInfo ;
+
+      // test Z lock first, if no write locks are being hold, ( especially
+      // for self transaction with SIX lock ), then try acquire S lock
+      rc = transLockTestZ( eduCB, logicCSID, collectionID, recordID,
+                           tmpTxResInfo, callback ) ;
+      if ( SDB_OK != rc &&
+           DPS_TRANSLOCK_IS != tmpTxResInfo->_lockType &&
+           DPS_TRANSLOCK_S != tmpTxResInfo->_lockType &&
+           DPS_TRANSLOCK_U != tmpTxResInfo->_lockType )
+      {
+         return rc ;
+      }
+
+      return transLockTryS( eduCB, logicCSID, collectionID, recordID,
+                            pdpsTxResInfo, callback ) ;
+   }
+
    BOOLEAN dpsTransCB::transIsHolding( _pmdEDUCB *eduCB, UINT32 logicCSID,
                                         UINT16 collectionID,
                                         const dmsRecordID *recordID )
    {
-      BOOLEAN result = FALSE ;
-      INT8 holdingMode = DPS_TRANSLOCK_MAX ;
-      UINT32 refCount = 0 ;
       if ( !_isOn )
       {
          return FALSE ;
       }
 
-      dpsTransLockId lockId( logicCSID, collectionID, recordID );
+      dpsTransLockId lockId( logicCSID, collectionID, recordID ) ;
 
-      result = _transLockMgr->isHolding( eduCB->getTransExecutor(), lockId,
-                                         holdingMode, refCount ) ;
-      if ( result )
+      while ( lockId.isValid() )
       {
-         if ( holdingMode == DPS_TRANSLOCK_X || holdingMode == DPS_TRANSLOCK_S )
+         INT8 holdingMode = DPS_TRANSLOCK_MAX ;
+         UINT32 refCount = 0 ;
+
+         if ( _transLockMgr->isHolding( eduCB->getTransExecutor(),
+                                        lockId,
+                                        holdingMode,
+                                        refCount ) )
          {
+
             return TRUE ;
          }
+
+         // lock is not holding in this level, check upper
+         if ( !lockId.isRootLevel() )
+         {
+            lockId = lockId.upOneLevel() ;
+            continue ;
+         }
+
+         break ;
       }
 
       return FALSE ;
@@ -3604,6 +3773,46 @@ namespace engine
       return _transLockMgr->hasWait( lockId );
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETINCOMPTRANS, "dpsTransCB::getIncompTrans" )
+   INT32 dpsTransCB::getIncompTrans( _pmdEDUCB *               cb,
+                                     const dpsTransLockId &    lockID,
+                                     const DPS_TRANSLOCK_TYPE  lockMode,
+                                     BOOLEAN                   canSelfIncomp,
+                                     DPS_TRANS_ID_SET &        incompTrans )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETINCOMPTRANS ) ;
+
+      if ( !_isOn )
+      {
+         goto done ;
+      }
+
+      rc = _transLockMgr->getIncompTrans( lockID, lockMode, incompTrans ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get incompatible transactions for "
+                   "lock [%s], lock mode [%s], rc: %d",
+                   lockID.toString().c_str(), lockModeToString( lockMode ),
+                   rc ) ;
+
+      if ( !canSelfIncomp && NULL != cb && cb->isTransaction() )
+      {
+         DPS_TRANS_ID selfTransID = cb->getTransID().getOrigTransID() ;
+         PD_CHECK( 0 == incompTrans.count( cb->getTransID().getOrigTransID() ),
+                   SDB_DPS_INVALID_LOCK_UPGRADE_REQUEST, error, PDERROR,
+                   "Failed to get incompatible transactions, "
+                   "self [%s] is incompatible with lock mode [%s]",
+                   dpsTransIDToString( selfTransID ).c_str(),
+                   lockModeToString( lockMode ) ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_DPSTRANSCB_GETINCOMPTRANS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
 
    BOOLEAN dpsTransCB::getOldVerRecordTransID( UINT32 logicCSID,
                                                UINT16 collectionID,
@@ -3687,6 +3896,25 @@ namespace engine
          _reservedSpace.sub( length ) ;
          goto error ;
       }
+
+      if ( NULL != cb && cb->isTransaction() )
+      {
+         rc = cb->checkLogSpace( length, rblength ) ;
+         if ( SDB_OK != rc )
+         {
+            _reservedRBSpace.sub( rblength ) ;
+            _reservedSpace.sub( length ) ;
+
+            PD_LOG( PDERROR, "Failed to check log space for "
+                    "transaction [%s], rc: %d",
+                    dpsTransIDToString( cb->getTransID() ).c_str(), rc ) ;
+
+            goto error ;
+         }
+
+         cb->addUsedSpace( length ) ;
+      }
+
       cb->addReservedSpace( rblength ) ;
    done:
       return rc;
@@ -3696,8 +3924,33 @@ namespace engine
 
    void dpsTransCB::releaseLogSpace( UINT32 length, _pmdEDUCB *cb )
    {
-      if ( !_isOn || ( cb && cb->isInTransRollback() ) )
+      if ( !_isOn )
       {
+         return ;
+      }
+      else if ( NULL != cb && cb->isInTransRollback() )
+      {
+         // check transaction rollback, return DPS log space reserved for
+         // rollback
+         if ( !cb->isTakeOverTransRB() )
+         {
+            // NOTE: transaction RB pending may create larger DPS log records
+            if ( _reservedRBSpace.fetch() < (UINT64)length ||
+                 cb->getReservedSpace() < (UINT64)length )
+            {
+               PD_LOG( PDWARNING, "Reserved log space is not enough "
+                       "for rollback transaction [%s], total reserved [%llu], "
+                       "cb reserved [%llu], need [%u]",
+                       dpsTransIDToString( cb->getTransID() ).c_str(),
+                       _reservedRBSpace.fetch(), cb->getReservedSpace(),
+                       length ) ;
+            }
+            else
+            {
+               _reservedRBSpace.sub( length ) ;
+               cb->decReservedSpace( length ) ;
+            }
+         }
          return ;
       }
 
@@ -3712,6 +3965,10 @@ namespace engine
 
    void dpsTransCB::releaseRBLogSpace( _pmdEDUCB *cb )
    {
+#ifdef _DEBUG
+      SDB_ASSERT( _reservedRBSpace.fetch() >= cb->getReservedSpace(),
+                  "should have enough reserved log space" ) ;
+#endif
       _reservedRBSpace.sub( cb->getReservedSpace() ) ;
       cb->resetLogSpace() ;
    }
@@ -3892,6 +4149,32 @@ namespace engine
                   EDU_TYPE_MAIN == pmdGetThreadEDUCB()->getType(),
                   "must unregister in main thread" ) ;
       _gtsAgent = NULL ;
+   }
+
+   // Set the rollback log limit cache
+   void dpsTransCB::setLogLimitTime( UINT64 tim, UINT64 lim )
+   {
+      _rollbackLogTime  = tim ;
+      _rollbackLogLimit = lim ;
+   }
+
+   // Reset the values for the rollback log limit cache
+   void dpsTransCB::clearLogLimitTime()
+   {
+      _rollbackLogTime  = DPS_MAX_TRANSID_SN ;
+      _rollbackLogLimit = DPS_MAX_TRANSID_SN ;
+   }
+
+   // Get the rollback log limit for the target time
+   UINT64 dpsTransCB::getLogLimitTime( UINT64 tim )
+   {
+      if ( _rollbackLogTime <= tim )
+      {
+         // Cache only valid if the cached Time is earlier than the input,
+         // indicating a previous scan went further than this one
+         return _rollbackLogLimit ;
+      }
+      return DPS_MAX_TRANSID_SN ;
    }
 
    /*

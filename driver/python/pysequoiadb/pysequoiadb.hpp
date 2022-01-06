@@ -64,6 +64,11 @@ __METHOD_DECLARE(sdb_force_session) ;
 __METHOD_DECLARE(sdb_reload_config) ;
 __METHOD_DECLARE(sdb_set_pdlevel) ;
 __METHOD_DECLARE(sdb_force_stepup) ;
+__METHOD_DECLARE(sdb_create_sequence) ;
+__METHOD_DECLARE(sdb_create_sequence_use_opt) ;
+__METHOD_DECLARE(sdb_drop_sequence) ;
+__METHOD_DECLARE(sdb_get_sequence) ;
+__METHOD_DECLARE(sdb_rename_sequence) ;
 
 ///< collection space
 __METHOD_DECLARE(create_cs) ;
@@ -73,7 +78,15 @@ __METHOD_DECLARE(cs_create_collection) ;
 __METHOD_DECLARE(cs_create_collection_use_opt) ;
 __METHOD_DECLARE(cs_drop_collection) ;
 __METHOD_DECLARE(cs_rename_collection);
+__METHOD_DECLARE(cs_get_collection_names);
 __METHOD_DECLARE(cs_get_collection_space_name) ;
+__METHOD_DECLARE(cs_alter) ;
+__METHOD_DECLARE(cs_set_domain) ;
+__METHOD_DECLARE(cs_remove_domain) ;
+__METHOD_DECLARE(cs_get_domain_name) ;
+__METHOD_DECLARE(cs_enable_capped) ;
+__METHOD_DECLARE(cs_disable_capped) ;
+__METHOD_DECLARE(cs_set_attributes) ;
 
 ///< collection
 __METHOD_DECLARE(create_cl) ;
@@ -113,6 +126,7 @@ __METHOD_DECLARE(cl_create_id_index) ;
 __METHOD_DECLARE(cl_drop_id_index) ;
 __METHOD_DECLARE(cl_create_autoincrement) ;
 __METHOD_DECLARE(cl_drop_autoincrement) ;
+__METHOD_DECLARE(cl_get_index_stat) ;
 
 ///< domain
 __METHOD_DECLARE(create_domain) ;
@@ -188,4 +202,14 @@ __METHOD_DECLARE(dc_deactivate) ;
 __METHOD_DECLARE(dc_enable_read_only) ;
 __METHOD_DECLARE(dc_disable_read_only) ;
 __METHOD_DECLARE(dc_get_detail) ;
+
+///< sequence
+__METHOD_DECLARE(create_seq) ;
+__METHOD_DECLARE(release_seq) ;
+__METHOD_DECLARE(seq_fetch) ;
+__METHOD_DECLARE(seq_get_current_value) ;
+__METHOD_DECLARE(seq_get_next_value) ;
+__METHOD_DECLARE(seq_restart) ;
+__METHOD_DECLARE(seq_set_attributes) ;
+__METHOD_DECLARE(seq_set_current_value) ;
 #endif

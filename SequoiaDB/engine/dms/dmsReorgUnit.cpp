@@ -411,7 +411,8 @@ namespace engine
       }
 
       dmsrecordSize *= DMS_RECORD_OVERFLOW_RATIO ;
-      dmsrecordSize += DMS_RECORD_METADATA_SZ ;
+      // no need to enable MVCC
+      dmsrecordSize += DMS_RECORD_NOMVCC_METADATA_SZ ;
       dmsrecordSize = OSS_MIN( DMS_RECORD_MAX_SZ,
                                ossAlignX( dmsrecordSize, 4 ) ) ;
 
@@ -458,7 +459,7 @@ namespace engine
 
       // set record header
       pRecord->setNormal() ;
-      pRecord->resetAttr() ;
+      pRecord->resetAttr( FALSE ) ;
       pRecord->setMyOffset( recordOffset ) ;
       pRecord->setSize( dmsrecordSize ) ;
       pRecord->setData( recordData ) ;

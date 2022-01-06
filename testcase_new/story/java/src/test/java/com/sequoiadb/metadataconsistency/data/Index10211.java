@@ -2,6 +2,7 @@ package com.sequoiadb.metadataconsistency.data;
 
 import java.util.Random;
 
+import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
@@ -84,9 +85,8 @@ public class Index10211 extends SdbTestBase {
     private class CreateIndex extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
                 DBCollection clDB = db.getCollectionSpace( csName )
                         .getCollection( clName );
 
@@ -95,13 +95,15 @@ public class Index10211 extends SdbTestBase {
                 clDB.createIndex( idxName, opt, false, false );
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if ( eCode != -247 && eCode != -147// -247:Redefine index
-                        && eCode != -43 && eCode != -190 ) { // -43:Failed to
-                                                             // initialize index
+                if ( eCode != SDBError.SDB_IXM_REDEF.getErrorCode()
+                        && eCode != SDBError.SDB_LOCK_FAILED.getErrorCode()
+                        && eCode != SDBError.SDB_CLS_MUTEX_TASK_EXIST
+                                .getErrorCode()
+                        && eCode != SDBError.SDB_DMS_INIT_INDEX.getErrorCode()
+                        && eCode != SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
+                                .getErrorCode() ) {
                     throw e;
                 }
-            } finally {
-                db.close();
             }
         }
     }

@@ -29,36 +29,48 @@ getLastErrMsg() to get error message.
 For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
-Turn on the database engine program tracking.
-.IP
-.nf
-\f[C]
->\ db.traceOn(\ 100,\ new\ SdbTraceOption().components(\ "dms"\ ).functionNames(\ "_dmsStorageUnit::insertRecord"\ ).threadTypes(\ "RestListener"\ )\ )
-\f[]
-.fi
-.IP \[bu] 2
 View the tracking status of the current program.
 .IP
 .nf
 \f[C]
->\ db.traceStatus()
+> db.traceStatus()
 {
-\ \ "TraceStarted":\ true,
-\ \ "Wrapped":\ false,
-\ \ "Size":\ 104857600,
-\ \ "FreeSize":\ 104857600,
-\ \ "PadSize":\ 0,
-\ \ "Mask":\ [
-\ \ \ \ "dms"
-\ \ ],
-\ \ "BreakPoint":\ [],
-\ \ "Threads":\ [],
-\ \ "ThreadTypes":\ [
-\ \ \ \ "RestListener"
-\ \ ],
-\ \ "FunctionNames":\ [
-\ \ \ \ "_dmsStorageUnit::insertRecord"
-\ \ ]
+  "TraceStarted": true,
+  "Wrapped": false,
+  "Size": 524288,
+  "Mask": 
+  [
+  "auth",
+  "bps",
+  "cat",
+  "cls",
+  "dps",
+  "mig",
+  "msg",
+  "net",
+  "oss",
+  "pd",
+  "rtn",
+  "sql",
+  "tools",
+  "employee",
+  "client",
+  "coord",
+  "dms",
+  "ixm",
+  "mon",
+  "mth",
+  "opt",
+  "pmd",
+  "rest",
+  "spt",
+  "util",
+  "aggr",
+  "spd",
+  "qgm"
+  ],
+  "BreakPoint": [],
+  "Threads": [],
 }
 \f[]
 .fi

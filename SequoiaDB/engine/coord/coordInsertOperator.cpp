@@ -235,12 +235,12 @@ namespace engine
       contextID                        = -1 ;
 
       INT32 flag = 0 ;
-      CHAR *pCollectionName = NULL ;
-      CHAR *pInsertor = NULL;
+      const CHAR *pCollectionName = NULL ;
+      const CHAR *pInsertor = NULL;
       INT32 count = 0 ;
       rtnQueryOptions options ;
 
-      rc = msgExtractInsert( (CHAR*)pMsg, &flag,
+      rc = msgExtractInsert( (const CHAR*)pMsg, &flag,
                              &pCollectionName, &pInsertor, count ) ;
       if( rc )
       {
@@ -262,10 +262,12 @@ namespace engine
       options.setInsertor( BSONObj( pInsertor ) ) ;
 
       // add list op info
-      MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg->opCode, options ) ;
+      MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg, options ) ;
 
       MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
 
+      // Find out which groups is the collection sharded. And later the message
+      // will only be transfered to these groups.
       rc = cataSel.bind( _pResource, pCollectionName, cb, FALSE, TRUE ) ;
       if ( rc )
       {
@@ -276,6 +278,11 @@ namespace engine
       orgMsgLen = pMsg->messageLength ;
 
    retry:
+      rc = checkCatVersion( cb,pCollectionName,clientVer,cataSel );
+      PD_CHECK( SDB_OK == rc, rc, error, PDWARNING,
+                "check cat version failed, rc: %d",rc );
+
+      // It may be a main or normal collection.
       cataPtr = cataSel.getCataPtr() ;
       if ( cataPtr->hasAutoIncrement() )
       {
@@ -293,7 +300,8 @@ namespace engine
             _hasGenerated = FALSE ;
             needNewAutoInc = FALSE ;
             // in case of reshard, clear the last shard result.
-            cataPtr->isMainCL() ? _grpSubCLDatas.clear() : inMsg.data()->clear() ;
+            _grpSubCLDatas.clear() ;
+            inMsg.data()->clear() ;
 
             hasExplicitKey = FALSE ;
             rc = _addAutoIncToMsg( *pAutoIncSet, pInsertMsg, pInsertor,
@@ -316,10 +324,6 @@ namespace engine
       pTmpInsertMsg = (MsgOpInsert*) inMsg._pMsg ;
       pTmpInsertMsg->version = cataPtr->getVersion() ;
       pTmpInsertMsg->w = 0 ;
-
-      rc = checkCatVersion( cb,pCollectionName,clientVer,cataSel );
-      PD_CHECK( SDB_OK == rc, rc, error, PDWARNING,
-                "check cat version failed, rc: %d",rc );
 
       /// Do on collection
       rcTmp = doOpOnCL( cataSel, BSONObj(), inMsg, sendOpt, cb, result ) ;
@@ -407,6 +411,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       MsgOpInsert *pInsertMsg = ( MsgOpInsert* )inMsg.msg() ;
+      // From version to collection name in MsgOpInsert message, the header
+      // excluded.
       netIOV fixed( ( CHAR*)inMsg.msg() + sizeof( MsgHeader ),
                     ossRoundUpToMultipleX ( offsetof(MsgOpInsert, name) +
                                             pInsertMsg->nameLength + 1, 4 ) -
@@ -425,11 +431,11 @@ namespace engine
       else if ( inMsg.data()->size() == 0 )
       {
          INT32 flag = 0 ;
-         CHAR *pCollectionName = NULL ;
-         CHAR *pInsertor = NULL ;
+         const CHAR *pCollectionName = NULL ;
+         const CHAR *pInsertor = NULL ;
          INT32 count = 0 ;
 
-         rc = msgExtractInsert( (CHAR *)inMsg.msg(), &flag, &pCollectionName,
+         rc = msgExtractInsert( (const CHAR *)inMsg.msg(), &flag, &pCollectionName,
                                 &pInsertor, count ) ;
          PD_RC_CHECK( rc, PDERROR, "Extrace insert msg failed, rc: %d",
                       rc ) ;
@@ -745,11 +751,12 @@ namespace engine
       if ( _grpSubCLDatas.size() == 0 )
       {
          INT32 flag = 0 ;
-         CHAR *pCollectionName = NULL ;
-         CHAR *pInsertor = NULL ;
+         const CHAR *pCollectionName = NULL ;
+         const CHAR *pInsertor = NULL ;
          INT32 count = 0 ;
 
-         rc = msgExtractInsert( (CHAR *)inMsg.msg(), &flag, &pCollectionName,
+         rc = msgExtractInsert( (const CHAR *)inMsg.msg(), &flag,
+                                &pCollectionName,
                                 &pInsertor, count ) ;
          PD_RC_CHECK( rc, PDERROR, "Extrace insert msg failed, rc: %d",
                       rc ) ;
@@ -785,6 +792,8 @@ namespace engine
       return rc ;
    error:
       _vecObject.clear() ;
+      // objects in message depends on vecObjects
+      inMsg._datas.clear() ;
       goto done ;
    }
 
@@ -809,6 +818,8 @@ namespace engine
       result._sucGroupLst.clear() ;
 
       _vecObject.clear() ;
+      // objects in message depends on vecObjects
+      inMsg._datas.clear() ;
    }
 
    INT32 _coordInsertOperator::shardAnObj( const CHAR *pInsertor,

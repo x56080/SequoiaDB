@@ -62,11 +62,11 @@ when exception happen, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
 For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
-.IP \[bu] 2
+.PP
 Modify the maximum memory size of the process
 .IP
 .nf
 \f[C]
->\ System.setProcUlimitConfigs(\ {\ "max_memory_size":\ \-1\ }\ )
+> System.setProcUlimitConfigs( { "max_memory_size": \-1 } )
 \f[]
 .fi

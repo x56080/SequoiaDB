@@ -169,6 +169,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__STPSERVICEMGR__PREDEACTIVE ) ;
 
       // stop and force asynchronous session manager
+      _sessionManager.handlePrepareStop() ;
       _sessionManager.handleStop() ;
       _sessionManager.setForced() ;
 

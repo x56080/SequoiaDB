@@ -38,7 +38,7 @@ function test ()
    //alter attributes default and check
    dbcl.setAttributes( { AutoIncrement: { Field: "id1", Cycled: false } } );
 
-   var clID = getCLID( db,  COMMCSNAME, clName );
+   var clID = getCLID( db, COMMCSNAME, clName );
    var sequenceName = "SYS_" + clID + "_id1_SEQ";
    var cursor = db.snapshot( SDB_SNAP_SEQUENCES, { Name: sequenceName } );
    if( cursor.current().toObj().Cycled !== false )
@@ -106,7 +106,8 @@ function test ()
    }
 
    var rc = dbcl.find().sort( { "id1": 1 } );
-   checkRec( rc, expRecs.sort( compare( "id1" ) ) );
+   expRecs.sort( compare( "id1" ) );
+   checkRec( rc, expRecs );
 
    commDropCL( db, COMMCSNAME, clName );
 }

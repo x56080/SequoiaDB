@@ -1,10 +1,7 @@
 package com.sequoiadb.crud.numoverflow;
 
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -13,17 +10,15 @@ import org.testng.annotations.Test;
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.crud.numoverflow.NumOverflowUtils;
-import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * FileName: SubtractIsSelector12585.java test content:Numeric value overflow
- * for single character using $subtract operation, and the $subtract is used as
- * a selector. testlink case:seqDB-12585
- * 
+ * @Description seqDB-12585: 单个字段使用$subtract操作不同类型运算溢出
  * @author wuyan
  * @Date 2017.9.11
+ * @updateUser wuyan
+ * @updateDate 2021.9.3
+ * @updateRemark 新增int32类型数值运算不溢出情况下保持原类型测试单
  * @version 1.00
  */
 
@@ -45,8 +40,12 @@ public class SubtractIsSelector12585 extends SdbTestBase {
         String[] expRecords03 = {
                 "{arr:[{'$numberLong':'9223372036854775807'},-2100],"
                         + "obj:{a:{b:{int:2147483647,long:{'$decimal':'9223372036854775808'}}}},test:1}" };
+        String[] expRecords04 = {
+                "{'no':-2147483640,'tlong':{'$numberLong':'-9223372036854775808'},'test':0}" };
         String expDecimalType = "decimal";
         String expDecimalTypeToJava = "class org.bson.types.BSONDecimal";
+        String expIntType = "int32";
+        String expIntTypeToJava = "class java.lang.Integer";
 
         return new Object[][] {
                 // parameters:
@@ -80,7 +79,10 @@ public class SubtractIsSelector12585 extends SdbTestBase {
                 // obj.a.b.long:9223372036854775800 $substract -8,the result is
                 // {'$decimal':'9223372036854775808'}
                 new Object[] { 1, new Integer( -8 ), "obj.a.b.long",
-                        expRecords03, expDecimalType, false, null }, };
+                        expRecords03, expDecimalType, false, null },
+                // int(-2147483648) - long(-8) = int(-2147483640)
+                new Object[] { 0, new Long( -8 ), "no", expRecords04,
+                        expIntType, false, expIntTypeToJava } };
     }
 
     private String clName = "subtract_selector12585";
@@ -90,13 +92,7 @@ public class SubtractIsSelector12585 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        } catch ( BaseException e ) {
-            Assert.assertTrue( false,
-                    "connect %s failed," + coordUrl + e.getMessage() );
-        }
-
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cs = sdb.getCollectionSpace( SdbTestBase.csName );
         cl = NumOverflowUtils.createCL( cs, clName );
 
@@ -111,38 +107,22 @@ public class SubtractIsSelector12585 extends SdbTestBase {
     @Test(dataProvider = "operData")
     public void testSubtract( int matcherValue, Object subValue,
             String selectorName, String[] expRecords, String expTypeToSdb,
-            Boolean isVerifyTypeToJava, String typeToJava ) {
-        try {
+            Boolean isVerifyTypeToJava, String typeToJava ) throws Exception {
 
-            BSONObject sValue = new BasicBSONObject();
-            sValue.put( "$subtract", subValue );
-            NumOverflowUtils.selectorOper( cl, matcherValue, sValue,
-                    selectorName, expRecords );
-            try {
-                NumOverflowUtils.checkDataType( cl, sValue, matcherValue,
-                        selectorName, expTypeToSdb, isVerifyTypeToJava,
-                        typeToJava );
-            } catch ( Exception e ) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-
-        } catch ( BaseException e ) {
-            Assert.assertTrue( false,
-                    "subtract intData is used as selector oper failed,"
-                            + e.getMessage() );
-        }
+        BSONObject sValue = new BasicBSONObject();
+        sValue.put( "$subtract", subValue );
+        NumOverflowUtils.selectorOper( cl, matcherValue, sValue, selectorName,
+                expRecords );
+        NumOverflowUtils.checkDataType( cl, sValue, matcherValue, selectorName,
+                expTypeToSdb, isVerifyTypeToJava, typeToJava );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            CollectionSpace cs = sdb.getCollectionSpace( SdbTestBase.csName );
             if ( cs.isCollectionExist( clName ) ) {
                 cs.dropCollection( clName );
             }
-        } catch ( BaseException e ) {
-            Assert.fail( "clear env failed, errMsg:" + e.getMessage() );
         } finally {
             if ( sdb != null ) {
                 sdb.close();

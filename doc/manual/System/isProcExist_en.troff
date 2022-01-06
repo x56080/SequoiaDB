@@ -181,19 +181,23 @@ For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 Judging by the specified pid：
+.RS 2
 .IP
 .nf
 \f[C]
->\ System.isProcExist(\ {\ value:\ "31831",\ type:\ "pid"\ }\ )
+> System.isProcExist( { value: "31831", type: "pid" } )
 true
 \f[]
 .fi
+.RE
 .IP \[bu] 2
 Judging by the specified service name：
+.RS 2
 .IP
 .nf
 \f[C]
->\ System.isProcExist(\ {\ value:\ "sdbcm(11790)",\ type:\ "name"\ }\ )
+> System.isProcExist( { value: "sdbcm(11790)", type: "name" } )
 true
 \f[]
 .fi
+.RE

@@ -154,8 +154,8 @@ since v1.0
 Get a slave node in group1.
 .nf
 \f[C]
->\ var\ rg\ =\ db.getRG("group1")
->\ rg.getSlave()
+> var rg = db.getRG("group1")
+> rg.getSlave()
 hostname1:42000
 \f[]
 .fi
@@ -164,8 +164,8 @@ hostname1:42000
 Get the slave node in group1 with the specified positions.
 .nf
 \f[C]
->\ var\ rg\ =\ db.getRG("group1")
->\ rg.getSlave(1,2)
+> var rg = db.getRG("group1")
+> rg.getSlave(1,2)
 hostname1:40000
 \f[]
 .fi

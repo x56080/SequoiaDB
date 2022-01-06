@@ -32,7 +32,7 @@ SDB_LIST_GROUPS
 | GroupID            | int32      | 复制组 ID                                           |
 | GroupName          | string     | 复制组名称                                            |
 | PrimaryNode        | int32      | 主节点 ID                                           |
-| Role               | int32      | 复制组角色，取值如下：<br>0：数据节点<br>2：编目节点 |
+| Role               | int32      | 复制组角色，取值如下：<br>0：数据节点<br>1：协调节点<br>2：编目节点 |
 | Status             | string     | 复制组状态，取值如下：<br>1：已激活<br>0：未激活<br>不存在：未激活分区组            |
 | Version            | int32      | 复制组版本号，创建删除节点时，版本号会改变          |
 

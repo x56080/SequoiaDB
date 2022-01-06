@@ -190,6 +190,21 @@ namespace engine
       // check whether we could decrease time error
       BOOLEAN _canDecTimeError( UINT32 curTimeError ) ;
 
+      // calculate the synchronize interval in seconds
+      OSS_INLINE UINT32 _calcCurSyncIntSec( UINT32 maxSyncIntSec )
+      {
+         UINT32 tmpSyncIntSec = STP_SYNC_STEP_TO_INT( _syncTimeSteps ) ;
+         return OSS_MIN( maxSyncIntSec, tmpSyncIntSec ) ;
+      }
+
+      OSS_INLINE void _resetSyncTimeSteps()
+      {
+         _syncTimeSteps = 0 ;
+         _lastStableStepCount = 0 ;
+      }
+
+      BOOLEAN _updateSyncTimeSteps( const stpSyncRecord &record ) ;
+
       // launch register
       INT32 _launchRegister( const MsgRouteID &primaryRID,
                              UINT32 version,
@@ -263,6 +278,11 @@ namespace engine
       BOOLEAN              _waitSyncRsp ;
       // timeout to clear expired sources
       UINT64               _sourceClearTimeout ;
+
+      // steps to calculate synchronize interval ( 1 step for 10s )
+      UINT32               _syncTimeSteps ;
+      // counts to have the same steps of synchronize interval
+      UINT32               _lastStableStepCount ;
    } ;
 
 }

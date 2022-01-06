@@ -192,11 +192,17 @@ namespace engine
          /*
             Context Related
          */
-         virtual void      contextInsert( INT64 contextID ) ;
+         virtual BOOLEAN   contextInsert( INT64 contextID ) ;
          virtual void      contextDelete( INT64 contextID ) ;
          virtual INT64     contextPeek() ;
          virtual BOOLEAN   contextFind( INT64 contextID ) ;
          virtual UINT32    contextNum() ;
+
+         /*
+            Log config
+          */
+         virtual BOOLEAN   isLogTimeOn() const ;
+         virtual UINT32    getLogWriteMod() const ;
 
          INT64             getCurAutoTransCtxID() const ;
          void              setCurAutoTransCtxID( INT64 contextID ) ;
@@ -260,7 +266,7 @@ namespace engine
       BOOLEAN     isOnlySelfWhenInterrupt() const ;
       INT32       getInterruptRC() const ;
 
-      void        updateTransConf() ;
+      void        updateConf() ;
 
       void        setUserInfo( const string &userName,
                                const string &password ) ;
@@ -277,11 +283,44 @@ namespace engine
 
       void postEvent ( pmdEDUEvent const &data )
       {
-         // no need latch since _queue is already latched
-         _queue.push ( data ) ;
+         try
+         {
+            // no need latch since queue has latch itself
+#if defined ( SDB_ENGINE )
+            if ( PMD_EDU_EVENT_KILLCONTEXT == data._eventType )
+            {
+               // avoid pushing too many events in to urgent queue,
+               // while the EDU may hang and urgent queue is full
+               if ( _urgentEventCount.inc() <= contextNum() )
+               {
+                  _urgentQueue.push( data ) ;
+               }
+               else
+               {
+                  _urgentEventCount.dec() ;
+               }
+            }
+            else
+#endif // SDB_ENGINE
+            {
+               _queue.push ( data ) ;
+            }
+         }
+         catch ( std::exception &e )
+         {
+            PD_LOG( PDWARNING, "Failed to push event to "
+                    "Thread[EDUID:%llu, TID:%u], occur exception %s",
+                    _eduID, _tid, e.what() ) ;
+            // can not handle, throw to caller
+#if defined ( SDB_ENGINE )
+            if ( PMD_EDU_EVENT_KILLCONTEXT == data._eventType )
+            {
+               _urgentEventCount.dec() ;
+            }
+#endif
+            throw e ;
+         }
       }
-
-      UINT64   getTransWritingID() const { return _transWritingID ; }
 
       BOOLEAN waitEvent ( pmdEDUEvent &data, INT64 millsec,
                           BOOLEAN resetStat = FALSE )
@@ -296,6 +335,9 @@ namespace engine
          {
             _status = PMD_EDU_WAITING ;
          }
+
+         /// check urgent events
+         checkUrgentEvents() ;
 
          if ( 0 > millsec )
          {
@@ -324,12 +366,42 @@ namespace engine
          return waitMsg ;
       }
 
-      BOOLEAN waitEvent( pmdEDUEventTypes type, pmdEDUEvent &data,
-                         INT64 millsec, BOOLEAN resetStat = FALSE )
+      // event filter
+      class _pmdEventFilter
+      {
+      public:
+         _pmdEventFilter() {}
+         virtual ~_pmdEventFilter() {}
+         virtual BOOLEAN filterEvent( pmdEDUEvent &event ) = 0 ;
+      } ;
+      typedef class _pmdEventFilter pmdEventFilter ;
+
+      // event type filter
+      class _pmdEventTypeFilter : public _pmdEventFilter
+      {
+      public:
+         _pmdEventTypeFilter( pmdEDUEventTypes type ) : _type( type ) {}
+         virtual ~_pmdEventTypeFilter() {}
+
+         virtual BOOLEAN filterEvent( pmdEDUEvent &event )
+         {
+            return event._eventType == _type ;
+         }
+
+      protected:
+         pmdEDUEventTypes _type ;
+      } ;
+      typedef class _pmdEventTypeFilter pmdEventTypeFilter ;
+
+      // wait event and get back first matched event
+      BOOLEAN waitEvent( pmdEventFilter &filter,
+                         pmdEDUEvent &data,
+                         INT64 millsec,
+                         BOOLEAN resetStat = FALSE )
       {
          BOOLEAN ret = FALSE ;
          INT64 waitTime = 0 ;
-         ossQueue< pmdEDUEvent > tmpQue ;
+         pmdEDUEventQueue tmpQue ;
 
          if ( millsec < 0 )
          {
@@ -348,7 +420,7 @@ namespace engine
                }
                continue ;
             }
-            if ( type != data._eventType )
+            if ( !filter.filterEvent( data ) )
             {
                tmpQue.push( data ) ;
                --_processEventCount ;
@@ -366,6 +438,64 @@ namespace engine
          }
          return ret ;
       }
+
+      // wait event and get back matched events
+      BOOLEAN waitEvent( _pmdEventFilter &filter,
+                         pmdEDUEventQueue &dataQueue,
+                         INT64 millsec,
+                         BOOLEAN resetStat = FALSE )
+      {
+         BOOLEAN ret = FALSE ;
+         INT64 waitTime = 0 ;
+         pmdEDUEventQueue tmpQue ;
+
+         if ( millsec < 0 )
+         {
+            millsec = 0x7FFFFFFF ;
+         }
+
+         while ( !isInterrupted() )
+         {
+            pmdEDUEvent data ;
+            waitTime = millsec < OSS_ONE_SEC ? millsec : OSS_ONE_SEC ;
+            if ( !waitEvent( data, waitTime, resetStat ) )
+            {
+               millsec -= waitTime ;
+               if ( millsec <= 0 )
+               {
+                  break ;
+               }
+               continue ;
+            }
+            if ( filter.filterEvent( data ) )
+            {
+               dataQueue.push( data ) ;
+               ret = TRUE ;
+            }
+            else
+            {
+               tmpQue.push( data ) ;
+               --_processEventCount ;
+            }
+         }
+
+         pmdEDUEvent tmpData ;
+         while ( !tmpQue.empty() )
+         {
+            tmpQue.try_pop( tmpData ) ;
+            _queue.push( tmpData ) ;
+         }
+         return ret ;
+      }
+
+      BOOLEAN waitEvent( pmdEDUEventTypes type, pmdEDUEvent &data,
+                         INT64 millsec, BOOLEAN resetStat = FALSE )
+      {
+         pmdEventTypeFilter filter( type ) ;
+         return waitEvent( filter, data, millsec, resetStat ) ;
+      }
+
+      void checkUrgentEvents() ;
 
       void contextCopy( SET_CONTEXT &contextList ) ;
 
@@ -406,6 +536,9 @@ namespace engine
       INT16    getOrgReplSize() const { return _orgReplSize ; }
    #endif
    #if defined ( SDB_ENGINE )
+      void        updateTransConfByMask( const dpsTransConfItem &conf ) ;
+      void        copyTransConf( const dpsTransConfItem &conf ) ;
+
       UINT64 getCurRequestID() const { return _curRequestID ; }
       // WANRING: no lock protect, only called by eduCB thread itself
       UINT64 incCurRequestID() { return ++_curRequestID ; }
@@ -431,9 +564,21 @@ namespace engine
       BOOLEAN  isGlobTrans() const ;
       // get global transaction time error
       UINT32   getTransTimeError() const ;
-      void     startTransRollback() { _isDoTransRollback = TRUE ; }
-      void     stopTransRollback() { _isDoTransRollback = FALSE ; }
+
+      void     startTransRollback( BOOLEAN takeOver = FALSE )
+      {
+         _isDoTransRollback = TRUE ;
+         _isTakeOverTransRB = takeOver ;
+      }
+
+      void     stopTransRollback()
+      {
+         _isDoTransRollback = FALSE ;
+         _isTakeOverTransRB = FALSE ;
+      }
+
       BOOLEAN  isInTransRollback() const { return _isDoTransRollback ; }
+      BOOLEAN  isTakeOverTransRB() const { return _isTakeOverTransRB ; }
       void     setTransRC( INT32 rc ) { _transRC = rc ; }
       INT32    getTransRC() const { return _transRC ; }
       void     setTransStatus( INT32 status ) { _transStatus = status ; }
@@ -449,6 +594,16 @@ namespace engine
          _transExecutor.addReservedSpace( len ) ;
       }
 
+      void     decReservedSpace( const UINT64 len )
+      {
+         _transExecutor.decReservedSpace( len ) ;
+      }
+
+      void     addUsedSpace( const UINT64 len )
+      {
+         _transExecutor.addUsedSpace( len ) ;
+      }
+
       UINT64   getReservedSpace() const
       {
          return _transExecutor.getReservedSpace();
@@ -457,6 +612,11 @@ namespace engine
       void     resetLogSpace()
       {
          _transExecutor.resetLogSpace();
+      }
+
+      INT32    checkLogSpace( UINT64 usedLen, UINT64 reservedLen ) const
+      {
+         return _transExecutor.checkLogSpace( usedLen, reservedLen ) ;
       }
 
       // remote operator
@@ -539,16 +699,6 @@ namespace engine
       {
          _transExecutor.setPassedDoingArbit( passed ) ;
       }
-
-      // register read transaction
-      OSS_INLINE void regReadTran()
-      {
-         if ( isTransRR() )
-         {
-            _transExecutor.regReadTranTime() ;
-         }
-      }
-
    #endif // SDB_ENGINE
 
    protected:
@@ -574,7 +724,7 @@ namespace engine
 
       void        initMonAppCB() ;
 
-      void        initTransConf() ;
+      void        initConf() ;
 
       /*
          Only for pmdEDUMgr call, and must under pmdEDUMgr::_latch protected
@@ -586,10 +736,16 @@ namespace engine
 
       INT32 getDumpTransCount() { return _dumpTransCount.fetch() ; }
 
+      // WARNING: internal copy contexts, no lock protect
+      void _contextCopy( SET_CONTEXT &contextList ) ;
+
+      void     _clearUrgentEvents() ;
+
    private :
       _pmdEDUMgr     *_eduMgr ;
       monSpinSLatch  _mutex ;
-      ossQueue<pmdEDUEvent> _queue ;
+
+      pmdEDUEventQueue _queue ;
 
       EDU_STATUS     _status ;
       ossAtomic32    _dumpTransCount ;
@@ -622,6 +778,8 @@ namespace engine
 
       // indicate transaction is rolling back
       BOOLEAN                 _isDoTransRollback ;
+      // indicate if transaction rollback is taken over
+      BOOLEAN                 _isTakeOverTransRB ;
 
       monAppCB                _monApplCB ;
       monConfigCB             _monCfgCB ;
@@ -639,11 +797,14 @@ namespace engine
       INT32                   _transStatus ;
 
       pmdTransExecutor        _transExecutor ;
+      dpsLogConfig            _logConfig ;
       UINT32                  _confChangeID ;
 
       sdbRemoteOpCtrl         _remoteOpCtrl ;
       IRemoteOperator         *_pRemoteOperator ;
 
+      pmdEDUEventQueue        _urgentQueue ;
+      ossAtomic32             _urgentEventCount ;
    #endif // SDB_ENGINE
 
       /*
@@ -664,7 +825,6 @@ namespace engine
 
       DPS_TRANS_ID            _curTransID ;
       DPS_LSN_OFFSET          _curTransLSN ;
-      UINT64                  _transWritingID ;
 
       sdbLockItem             _lockInfo[ SDB_LOCK_MAX ] ;
 

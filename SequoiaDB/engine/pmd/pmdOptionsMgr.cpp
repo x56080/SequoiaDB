@@ -52,6 +52,7 @@
 #include "optCommon.hpp"
 #include "dpsTransDef.hpp"
 #include "monMgr.hpp"
+#include "rtnContextDef.hpp"
 #include "rtnSortDef.hpp"
 #include "clsUtil.hpp"
 #include <vector>
@@ -579,6 +580,7 @@ namespace engine
       _result = SDB_OK ;
       _changeID = 0 ;
       _pConfigHander = NULL ;
+      _hasAutoAdjust = FALSE ;
    }
    _pmdCfgRecord::~_pmdCfgRecord ()
    {
@@ -1646,6 +1648,7 @@ done:
          if ( autoAdjust )
          {
             value = minV ;
+            _hasAutoAdjust = TRUE ;
          }
          else
          {
@@ -1660,6 +1663,7 @@ done:
          if ( autoAdjust )
          {
             value = maxV ;
+            _hasAutoAdjust = TRUE ;
          }
          else
          {
@@ -1695,6 +1699,7 @@ done:
          if ( autoAdjust )
          {
             value = minV ;
+            _hasAutoAdjust = TRUE ;
          }
          else
          {
@@ -1709,6 +1714,7 @@ done:
          if ( autoAdjust )
          {
             value = maxV ;
+            _hasAutoAdjust = TRUE ;
          }
          else
          {
@@ -1744,6 +1750,7 @@ done:
          if ( autoAdjust )
          {
             value = minV ;
+            _hasAutoAdjust = TRUE ;
          }
          else
          {
@@ -1758,6 +1765,7 @@ done:
          if ( autoAdjust )
          {
             value = maxV ;
+            _hasAutoAdjust = TRUE ;
          }
          else
          {
@@ -1794,6 +1802,7 @@ done:
          if ( autoAdjust )
          {
             pValue[ maxChar ] = 0 ;
+            _hasAutoAdjust = TRUE ;
          }
          else
          {
@@ -1927,6 +1936,9 @@ done:
       _syncRecordNum       = PMD_DFT_SYNC_RECORDNUM ;
       _syncDeep            = FALSE ;
       _serviceMask         = PMD_SVC_MASK_NONE ;
+      _maxContextNum       = RTN_MAX_CTX_NUM_DFT ;
+      _maxSessionContextNum = RTN_MAX_SESS_CTX_NUM_DFT ;
+      _contextTimeout      = RTN_CTX_TIMEOUT_DFT ;
 
       // archive related
       _archiveOn = FALSE ;
@@ -1953,7 +1965,7 @@ done:
       _preferedPeriod = PMD_DFT_PREFINST_PERIOD ;
 
       ossMemset( _logWriteModStr, 0, sizeof(_logWriteModStr) ) ;
-      _logWriteMod = DMS_LOG_WRITE_MOD_INCREMENT ;
+      _logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT ;
 
       _logTimeOn = FALSE ;
 
@@ -1972,6 +1984,11 @@ done:
 
       _transReplSize = -1 ;
       _transRCCount = DPS_TRANS_RCCOUNT_DFT ;
+      _transAllowLockEscalation = DPS_TRANS_ALLOWLOCKESCALATION_DFT ;
+      _transMaxLockNum = DPS_TRANS_MAXLOCKNUM_DFT ;
+      _transMaxLogSpaceRatio = DPS_TRANS_MAXLOGSPACERATIO_DFT ;
+
+      _detectDisk = TRUE ;
 
 #ifdef SDB_ENTERPRISE
 
@@ -2472,6 +2489,23 @@ done:
       rdxBooleanS( pEX, PMD_OPTION_TRANS_RCCOUNT, _transRCCount, FALSE,
                    PMD_CFG_CHANGE_RUN, DPS_TRANS_RCCOUNT_DFT, FALSE ) ;
 
+      // --transallowlockescalation
+      rdxBooleanS( pEX, PMD_OPTION_TRANSALLOWLOCKESCALATION,
+                   _transAllowLockEscalation, FALSE, PMD_CFG_CHANGE_RUN,
+                   DPS_TRANS_ALLOWLOCKESCALATION_DFT, FALSE ) ;
+
+      // --transmaxlocknum
+      rdxInt( pEX, PMD_OPTION_TRANSMAXLOCKNUM, _transMaxLockNum, FALSE,
+              PMD_CFG_CHANGE_RUN, DPS_TRANS_MAXLOCKNUM_DFT, FALSE ) ;
+      rdvMinMax( pEX, _transMaxLockNum, DPS_TRANS_MAXLOCKNUM_MIN,
+                 DPS_TRANS_MAXLOCKNUM_MAX ) ;
+
+      // --transmaxlogspaceratio
+      rdxInt( pEX, PMD_OPTION_TRANSMAXLOGSPACERATIO, _transMaxLogSpaceRatio,
+              FALSE, PMD_CFG_CHANGE_RUN, DPS_TRANS_MAXLOGSPACERATIO_DFT, FALSE ) ;
+      rdvMinMax( pEX, _transMaxLogSpaceRatio, DPS_TRANS_MAXLOGSPACERATIO_MIN,
+                 DPS_TRANS_MAXLOGSPACERATIO_MAX ) ;
+
       // --monslowquerythreshold
       rdxUInt( pEX, PMD_OPTION_MON_SLOWQUERY_THRESHOLD, _slowQueryThreshold, FALSE,
                PMD_CFG_CHANGE_RUN, 300, TRUE ) ;
@@ -2494,6 +2528,27 @@ done:
       rdxUInt( pEX, PMD_OPTION_MVCCRBSNUM, _mvccRBSNum, FALSE,
                PMD_CFG_CHANGE_REBOOT, PMD_DFT_MVCCRBSNUM, TRUE ) ;
       rdvMinMax( pEX, _mvccRBSNum, 1, PMD_MAX_MVCCRBSNUM, TRUE ) ;
+
+      // --maxcontextnum
+      rdxInt( pEX, PMD_OPTION_MAXCONTEXTNUM, _maxContextNum, FALSE,
+              PMD_CFG_CHANGE_RUN, RTN_MAX_CTX_NUM_DFT, FALSE ) ;
+      rdvMinMax( pEX, _maxContextNum, 0, RTN_MAX_CTX_NUM_MAX, TRUE ) ;
+
+      // --maxsessioncontextnum
+      rdxInt( pEX, PMD_OPTION_MAXSESSIONCONTEXTNUM, _maxSessionContextNum,
+              FALSE, PMD_CFG_CHANGE_RUN, RTN_MAX_SESS_CTX_NUM_DFT, FALSE ) ;
+      rdvMinMax( pEX, _maxSessionContextNum, 0, RTN_MAX_SESS_CTX_NUM_MAX,
+                 TRUE ) ;
+
+      // --contexttimeout
+      rdxInt( pEX, PMD_OPTION_CONTEXTTIMEOUT, _contextTimeout, FALSE,
+              PMD_CFG_CHANGE_RUN, RTN_CTX_TIMEOUT_DFT, FALSE ) ;
+      rdvMinMax( pEX, _contextTimeout, RTN_CTX_TIMEOUT_MIN,
+                 RTN_CTX_TIMEOUT_MAX, TRUE ) ;
+
+      // --detectdisk
+      rdxBooleanS( pEX, PMD_OPTION_DETECT_DISK, _detectDisk,
+                   FALSE, PMD_CFG_CHANGE_RUN, TRUE, TRUE ) ;
 
       // end map
 
@@ -2565,7 +2620,7 @@ done:
       {
          std::cerr << PMD_OPTION_LOGWRITEMOD << " value error, use default"
                    << endl ;
-         _logWriteMod = DMS_LOG_WRITE_MOD_INCREMENT ;
+         _logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT ;
          _invalidConfNum++ ;
       }
       _logWriteModStr[0] = 0 ;
@@ -2617,6 +2672,7 @@ done:
          std::cerr << PMD_OPTION_FT_MASK << "value error, use default"
                    << endl ;
          _ftMask = PMD_FT_MASK_DFT ;
+         _invalidConfNum++ ;
       }
 
       // mon group mask check
@@ -2924,6 +2980,9 @@ done:
       if ( SDB_ROLE_CATALOG == dbRole || SDB_ROLE_OM == dbRole )
       {
          _transactionOn = TRUE ;
+         _transAllowLockEscalation = TRUE ;
+         _transMaxLockNum = -1 ;
+         _transMaxLogSpaceRatio = DPS_TRANS_MAXLOGSPACERATIO_MAX ;
       }
 
       if ( _transactionOn )
@@ -2999,6 +3058,20 @@ done:
       if ( SCHED_TYPE_NONE == _svcSchedulerType )
       {
          _svcMaxConcurrency = 0 ;
+      }
+
+      if ( _maxContextNum > 0 &&
+           _maxContextNum < RTN_MAX_CTX_NUM_MIN )
+      {
+         // avoid the value is too small
+         _maxContextNum = RTN_MAX_CTX_NUM_MIN ;
+      }
+
+      if ( _maxSessionContextNum > 0 &&
+           _maxSessionContextNum < RTN_MAX_SESS_CTX_NUM_MIN )
+      {
+         // avoid the value is too small
+         _maxSessionContextNum = RTN_MAX_SESS_CTX_NUM_MIN ;
       }
 
    done:
@@ -3227,7 +3300,7 @@ done:
          _addToFieldMap( PMD_OPTION_CONFPATH, _krcbConfPath, TRUE, FALSE ) ;
       }
 
-      if( 0 != _invalidConfNum )
+      if( 0 != _invalidConfNum || hasAutoAdjust() )
       {
          rc = reflush2File() ;
          if ( rc )
@@ -3640,7 +3713,7 @@ done:
       INT32 rc = SDB_OK ;
       if ( !str || !*str )
       {
-         value = DMS_LOG_WRITE_MOD_INCREMENT ;
+         value = DPS_LOG_WRITE_MOD_INCREMENT ;
       }
       else
       {
@@ -3648,12 +3721,12 @@ done:
          if ( 0 == ossStrncasecmp( str, PMD_OPTION_LOG_WRITEMOD_INCREMENT_STR, len ) &&
               len == ossStrlen( PMD_OPTION_LOG_WRITEMOD_INCREMENT_STR ) )
          {
-            value = DMS_LOG_WRITE_MOD_INCREMENT ;
+            value = DPS_LOG_WRITE_MOD_INCREMENT ;
          }
          else if ( 0 == ossStrncasecmp( str, PMD_OPTION_LOG_WRITEMOD_FULL_STR, len ) &&
                    len == ossStrlen( PMD_OPTION_LOG_WRITEMOD_FULL_STR ) )
          {
-            value = DMS_LOG_WRITE_MOD_FULL ;
+            value = DPS_LOG_WRITE_MOD_FULL ;
          }
          else
          {
@@ -3804,11 +3877,11 @@ done:
 
       switch ( value )
       {
-         case DMS_LOG_WRITE_MOD_INCREMENT :
+         case DPS_LOG_WRITE_MOD_INCREMENT :
             ossStrncpy( str, PMD_OPTION_LOG_WRITEMOD_INCREMENT_STR, len - 1 ) ;
             break ;
 
-         case DMS_LOG_WRITE_MOD_FULL :
+         case DPS_LOG_WRITE_MOD_FULL :
             ossStrncpy( str, PMD_OPTION_LOG_WRITEMOD_FULL_STR, len -1 ) ;
             break ;
 
@@ -3818,6 +3891,122 @@ done:
       }
       str[ len -1 ] = 0 ;
       return rc ;
+   }
+
+   #define OPT_ERROR_OUTPUT_NUM ( 3 )
+
+   INT32 optBuildErrorReport( const BSONObj &returnObj,
+                              BOOLEAN &hasError,
+                              string &returnStr )
+   {
+      INT32 rc = SDB_OK ;
+
+      BOOLEAN rebootFirstEntry  = TRUE ;
+      BOOLEAN forbidFirstEntry  = TRUE ;
+      BSONElement rebootEle ;
+      BSONElement forbidEle ;
+      INT32 rebootCount = 0 ;
+      INT32 forbidCount = 0 ;
+
+      hasError = FALSE ;
+
+      try
+      {
+         rebootEle = returnObj.getField( "Reboot" ) ;
+         if ( Array == rebootEle.type() )
+         {
+            BSONObjIterator iter( rebootEle.embeddedObject() ) ;
+            while ( iter.more() )
+            {
+               BSONElement ele = iter.next() ;
+               if ( String == ele.type() )
+               {
+                  if ( TRUE == rebootFirstEntry )
+                  {
+                     returnStr += "Config '" ;
+                     returnStr +=  ele.valuestr() ;
+
+                     rebootFirstEntry = FALSE ;
+                  }
+                  else
+                  {
+                     returnStr += ", '" ;
+                     returnStr +=  ele.valuestr() ;
+                  }
+                  returnStr += "'" ;
+                  rebootCount++ ;
+               }
+               if ( OPT_ERROR_OUTPUT_NUM == rebootCount )
+               {
+                  break ;
+               }
+            }
+         }
+
+         if ( rebootCount > 0 && rebootCount < OPT_ERROR_OUTPUT_NUM )
+         {
+            returnStr += " require(s) restart to take effect." ;
+         }
+         else if ( rebootCount == OPT_ERROR_OUTPUT_NUM )
+         {
+            returnStr += ", etc. require(s) restart to take effect." ;
+         }
+
+         forbidEle = returnObj.getField( "Forbidden" ) ;
+         if ( Array == forbidEle.type() )
+         {
+            BSONObjIterator iter( forbidEle.embeddedObject() ) ;
+            while ( iter.more() )
+            {
+               BSONElement ele = iter.next() ;
+               if ( String == ele.type() )
+               {
+                  if ( TRUE == forbidFirstEntry )
+                  {
+                     returnStr += " Config '" ;
+                     returnStr +=  ele.valuestr() ;
+                     forbidFirstEntry = FALSE ;
+                  }
+                  else
+                  {
+                     returnStr += ", '" ;
+                     returnStr +=  ele.valuestr() ;
+                  }
+                  returnStr += "'" ;
+                  forbidCount++ ;
+               }
+               if ( OPT_ERROR_OUTPUT_NUM == forbidCount )
+               {
+                  break ;
+               }
+            }
+         }
+
+         if ( forbidCount > 0 && forbidCount < OPT_ERROR_OUTPUT_NUM )
+         {
+            returnStr += " cannot be changed." ;
+         }
+         else if ( forbidCount == OPT_ERROR_OUTPUT_NUM )
+         {
+            returnStr += ", etc. cannot be changed." ;
+         }
+
+         hasError = rebootCount > 0 || forbidCount > 0 ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDWARNING, "Exception during updateConf/deleteConf "
+                 "info parsing: %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
 }

@@ -162,8 +162,9 @@ namespace engine
          goto error ;
       }
 
-      if (  OM_BUSINESS_SEQUOIASQL_MYSQL == formBuzType &&
-            dbTool.isRelationshipExistByBusiness( _fromBuzName ) )
+      if ( ( OM_BUSINESS_SEQUOIASQL_MYSQL == formBuzType ||
+             OM_BUSINESS_SEQUOIASQL_MARIADB == formBuzType ) &&
+           dbTool.isRelationshipExistByBusiness( _fromBuzName ) )
       {
          rc = SDB_INVALIDARG ;
          _errorMsg.setError( TRUE, "Can't be relationship multiple times: "

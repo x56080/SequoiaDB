@@ -6,6 +6,10 @@ renameSequence - 修改序列名
 
 **db.renameSequence\(\<oldname\>, \<newname\>\)**
 
+##类别##
+
+Sdb
+
 ##描述##
 
 该函数用于对当前数据库中已存在的序列进行重命名。
@@ -14,11 +18,11 @@ renameSequence - 修改序列名
 
 + oldname（ *string*， *必填* ）
 
-	需要修改的序列名
+    需要修改的序列名
 
 + newname（ *string*， *必填* ）
 
-	修改后的序列名
+    修改后的序列名
 
 ##返回值##
 
@@ -54,5 +58,5 @@ v3.4.2 及以上版本
      本文使用的所有引用及链接
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[faq]:manual/faq.md
-[error_code]manual/Manual/Sequoiadb_error_code.md
+[faq]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md

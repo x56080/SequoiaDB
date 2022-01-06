@@ -671,7 +671,6 @@ namespace engine
       utilInsertResult insertResult ;
       BSONObj       record ;
       BOOLEAN       bktLatched   = FALSE ;
-      BOOLEAN       clLocked     = FALSE ;
       UINT32        recSize ;
       dmsRBSOffset  location ;
       // type conversion for following use
@@ -751,7 +750,6 @@ namespace engine
                         "Failed to insert into RBS(%d), going to retry. rc: %d",
                         clContext->mbID(), rc ) ;
                _su->data()->releaseMBContext( clContext ) ;
-               clLocked = FALSE ;
                goto retry ;
             }
 
@@ -771,7 +769,6 @@ namespace engine
       clContext->mbStat()->updateGlobTransIDWithComp( ownerTransID ) ;
 
       _su->data()->releaseMBContext( clContext ) ;
-      clLocked = FALSE ;
 
       // Update bucket to point to the new record location
       {
@@ -798,7 +795,7 @@ namespace engine
       {
          _rbsRecordBkt.release( bkt ) ;
       }
-      if ( clLocked )
+      if ( NULL != clContext )
       {
          _su->data()->releaseMBContext( clContext ) ;
       }

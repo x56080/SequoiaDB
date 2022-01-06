@@ -40,6 +40,7 @@
 #include "dms.hpp"
 #include "dpsLogWrapper.hpp"
 #include "dmsCB.hpp"
+#include "dmsTaskStatus.hpp"
 #include <string>
 
 #include "../bson/bsonobj.h"
@@ -54,14 +55,23 @@ namespace engine
    class _rtnIndexJob : public _rtnBaseJob
    {
       public:
+         // slave node use it
          _rtnIndexJob ( RTN_JOB_TYPE type,
                         const CHAR *pCLName,
-                        const BSONObj &indexObj, SDB_DPSCB *dpsCB,
-                        UINT64 offset, BOOLEAN isRollBack ) ;
+                        const BSONObj &indexObj,
+                        SDB_DPSCB *dpsCB,
+                        UINT64 lsnOffset,
+                        BOOLEAN isRollBackLog,
+                        INT32 sortBufSize,
+                        UINT64 taskID,
+                        UINT64 mainTaskID ) ;
+
+         // master node use it
+         _rtnIndexJob () ;
 
          virtual ~_rtnIndexJob() ;
 
-         INT32 init () ;
+         virtual INT32 init () ;
          const CHAR* getIndexName () const ;
          const CHAR* getCollectionName() const ;
 
@@ -69,27 +79,38 @@ namespace engine
                                        const CHAR *pIdxName,
                                        BOOLEAN &hasExist ) ;
 
-      public:
          virtual RTN_JOB_TYPE type () const ;
          virtual const CHAR* name () const ;
          virtual BOOLEAN muteXOn ( const _rtnBaseJob *pOther ) ;
          virtual INT32 doit () ;
 
       protected:
+         virtual INT32 _onDoit( INT32 resultCode ) { return SDB_OK ; }
+         INT32 _buildJobName() ;
+         BOOLEAN _needRetry( INT32 rc ) ;
+
+      protected:
          RTN_JOB_TYPE            _type ;
          CHAR                    _clFullName[DMS_COLLECTION_FULL_NAME_SZ + 1] ;
+         utilCLUniqueID          _clUniqID ;
          std::string             _indexName ;
          std::string             _jobName ;
          BSONObj                 _indexObj ;
          BSONElement             _indexEle ;
          BOOLEAN                 _hasAddUnique ;
+         BOOLEAN                 _hasAddGlobal ;
          UINT32                  _csLID ;
          UINT32                  _clLID ;
          SDB_DPSCB*              _dpsCB ;
          SDB_DMSCB*              _dmsCB ;
          UINT64                  _lsn ;
-         BOOLEAN                 _isRollback ;
+         BOOLEAN                 _isRollbackLog ;
          BOOLEAN                 _regCLJob ;
+         INT32                   _sortBufSize ;
+         dmsIdxTaskStatusPtr     _taskStatusPtr ;
+         UINT64                  _taskID ;
+         UINT32                  _locationID ;
+         UINT64                  _mainTaskID ;
    };
    typedef _rtnIndexJob rtnIndexJob ;
 
@@ -131,6 +152,24 @@ namespace engine
    rtnIndexJobHolder *rtnGetIndexJobHolder() ;
 
    /*
+      _rtnCleanupIdxStatusJob define
+   */
+   class _rtnCleanupIdxStatusJob : public _utilLightJob
+   {
+      public:
+         _rtnCleanupIdxStatusJob() {}
+         virtual ~_rtnCleanupIdxStatusJob() {}
+
+      public:
+         virtual const CHAR* name() const ;
+         virtual INT32 doit( IExecutor *pExe, UTIL_LJOB_DO_RESULT &result,
+                             UINT64 &sleepTime ) ;
+   };
+   typedef _rtnCleanupIdxStatusJob rtnCleanupIdxStatusJob ;
+
+   INT32 rtnStartCleanupIdxStatusJob() ;
+
+   /*
       _rtnLoadJob define
    */
    class _rtnLoadJob : public _rtnBaseJob
@@ -146,6 +185,8 @@ namespace engine
          virtual INT32 doit () ;
    };
    typedef _rtnLoadJob rtnLoadJob ;
+
+   INT32 rtnStartLoadJob() ;
 
    typedef void (*RTN_ON_REBUILD_DONE_FUNC)( INT32 rc ) ;
    /*
@@ -169,10 +210,6 @@ namespace engine
    } ;
    typedef _rtnRebuildJob rtnRebuildJob ;
 
-   /*
-      Global function define
-   */
-   INT32    rtnStartLoadJob() ;
    INT32    rtnStartRebuildJob( RTN_ON_REBUILD_DONE_FUNC pFunc = NULL ) ;
 
 }

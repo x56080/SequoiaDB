@@ -32,6 +32,7 @@
 
 #include "rplSdbOutputter.hpp"
 #include "msgDef.h"
+#include "dpsDef.hpp"
 #include "dms.hpp"
 
 using namespace sdbclient ;
@@ -41,9 +42,17 @@ namespace replay
 {
    const CHAR RPL_OUTPUT_SEQUOIADB[] = "SEQUOIADB" ;
 
-   rplSdbOutputter::rplSdbOutputter( BOOLEAN updateWithShardingKey )
+   rplSdbOutputter::rplSdbOutputter( BOOLEAN updateWithShardingKey,
+                                     BOOLEAN isKeepShardingKey )
    {
       _updateWithShardingKey = updateWithShardingKey ;
+      _updateFlag = 0 ;
+
+      if ( isKeepShardingKey )
+      {
+         _updateFlag = UPDATE_KEEP_SHARDINGKEY ;
+      }
+
       _sdb = NULL ;
    }
 
@@ -186,7 +195,7 @@ namespace replay
       BSONObj modifier;
       BSONObj hint = BSON( "" << "$id" );
 
-      if ( DMS_LOG_WRITE_MOD_FULL == logWriteMod )
+      if ( DPS_LOG_WRITE_MOD_FULL == logWriteMod )
       {
          modifier = BSON( "$replace" << newModifier ) ;
       }
@@ -215,7 +224,7 @@ namespace replay
          goto error ;
       }
 
-      rc = cl.update( modifier, match, hint, UPDATE_KEEP_SHARDINGKEY ) ;
+      rc = cl.update( modifier, match, hint, _updateFlag ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to update record, match[%s], modifier[%s], "

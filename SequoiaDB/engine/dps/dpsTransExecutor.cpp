@@ -39,7 +39,6 @@
 
 #include "dpsTransExecutor.hpp"
 #include "dpsTransLockDef.hpp"
-#include "dpsTransCB.hpp"
 #include "dpsTransLRB.hpp"
 #include "dpsUtil.hpp"
 #include "dpsTrace.hpp"
@@ -71,6 +70,9 @@ namespace engine
       _transAutoCommit  = FALSE ;
       _transAutoRollback= TRUE ;
       _transRCCount     = DPS_TRANS_RCCOUNT_DFT ;
+      _transAllowLockEscalation = DPS_TRANS_ALLOWLOCKESCALATION_DFT ;
+      _transMaxLockNum  = DPS_TRANS_MAXLOCKNUM_DFT ;
+      _transMaxLogSpaceRatio = DPS_TRANS_MAXLOGSPACERATIO_DFT ;
       _transConfMask    = 0 ;
       _transConfVer     = 1 ;
    }
@@ -118,6 +120,21 @@ namespace engine
    BOOLEAN _dpsTransConfItem::isTransRCCount() const
    {
       return _transRCCount ;
+   }
+
+   BOOLEAN _dpsTransConfItem::isTransAllowLockEscalation() const
+   {
+      return _transAllowLockEscalation ;
+   }
+
+   INT32 _dpsTransConfItem::getTransMaxLockNum() const
+   {
+      return _transMaxLockNum ;
+   }
+
+   INT32 _dpsTransConfItem::getTransMaxLogSpaceRatio() const
+   {
+      return _transMaxLogSpaceRatio ;
    }
 
    UINT32 _dpsTransConfItem::getTransConfMask() const
@@ -242,6 +259,48 @@ namespace engine
       }
    }
 
+   void _dpsTransConfItem::setTransAllowLockEscalation( BOOLEAN allow,
+                                                        BOOLEAN enableMask )
+   {
+      if ( _transAllowLockEscalation != allow )
+      {
+         _transAllowLockEscalation = allow ;
+         ++ _transConfVer ;
+      }
+      if ( enableMask )
+      {
+         _transConfMask |= TRANS_CONF_MASK_ALLOWLOCKESCALATION ;
+      }
+   }
+
+   void _dpsTransConfItem::setTransMaxLockNum( INT32 maxNum,
+                                               BOOLEAN enableMask )
+   {
+      if ( _transMaxLockNum != maxNum )
+      {
+         _transMaxLockNum = maxNum ;
+         ++ _transConfVer ;
+      }
+      if ( enableMask )
+      {
+         _transConfMask |= TRANS_CONF_MASK_MAXLOCKNUM ;
+      }
+   }
+
+   void _dpsTransConfItem::setTransMaxLogSpaceRatio( INT32 maxRatio,
+                                                     BOOLEAN enableMask )
+   {
+      if ( _transMaxLogSpaceRatio != maxRatio )
+      {
+         _transMaxLogSpaceRatio = maxRatio ;
+         ++ _transConfVer ;
+      }
+      if ( enableMask )
+      {
+         _transConfMask |= TRANS_CONF_MASK_MAXLOGSPACERATIO ;
+      }
+   }
+
    void _dpsTransConfItem::updateByMask( const _dpsTransConfItem &rhs )
    {
       UINT32 rhsMask = rhs.getTransConfMask() ;
@@ -275,6 +334,19 @@ namespace engine
       {
          setTransRCCount( rhs.isTransRCCount(), TRUE ) ;
       }
+      if ( rhsMask & TRANS_CONF_MASK_ALLOWLOCKESCALATION )
+      {
+         setTransAllowLockEscalation( rhs.isTransAllowLockEscalation(),
+                                      TRUE ) ;
+      }
+      if ( rhsMask & TRANS_CONF_MASK_MAXLOCKNUM )
+      {
+         setTransMaxLockNum( rhs.getTransMaxLockNum(), TRUE ) ;
+      }
+      if ( rhsMask & TRANS_CONF_MASK_MAXLOGSPACERATIO )
+      {
+         setTransMaxLogSpaceRatio( rhs.getTransMaxLogSpaceRatio(), TRUE ) ;
+      }
 
       if ( oldTransConfVer != _transConfVer )
       {
@@ -300,6 +372,11 @@ namespace engine
          builder.appendBool( FIELD_NAME_TRANS_AUTOROLLBACK,
                              _transAutoRollback ) ;
          builder.appendBool( FIELD_NAME_TRANS_RCCOUNT, _transRCCount ) ;
+         builder.appendBool( FIELD_NAME_TRANS_ALLOWLOCKESCALATION,
+                             _transAllowLockEscalation ) ;
+         builder.append( FIELD_NAME_TRANS_MAXLOCKNUM, _transMaxLockNum ) ;
+         builder.append( FIELD_NAME_TRANS_MAXLOGSPACERATIO,
+                         _transMaxLogSpaceRatio ) ;
       }
       catch ( std::exception &e )
       {
@@ -354,6 +431,21 @@ namespace engine
             {
                setTransRCCount( e.booleanSafe(), TRUE ) ;
             }
+            else if ( 0 == ossStrcmp( e.fieldName(),
+                                      FIELD_NAME_TRANS_ALLOWLOCKESCALATION ) )
+            {
+               setTransAllowLockEscalation( e.booleanSafe(), TRUE ) ;
+            }
+            else if ( 0 == ossStrcmp( e.fieldName(),
+                                      FIELD_NAME_TRANS_MAXLOCKNUM ) )
+            {
+               setTransMaxLockNum( e.numberInt(), TRUE ) ;
+            }
+            else if ( 0 == ossStrcmp( e.fieldName(),
+                                      FIELD_NAME_TRANS_MAXLOGSPACERATIO ) )
+            {
+               setTransMaxLogSpaceRatio( e.numberInt(), TRUE ) ;
+            }
          }
       }
       catch ( std::exception &e )
@@ -380,10 +472,14 @@ namespace engine
          _waiterQueType[ i ] = DPS_QUE_NULL ;
          _lastLRB[ i ]       = NULL;
          _lockCount[ i ]     = 0 ;
+         _leafLockCount[ i ] = 0 ;
+         _isLockEscalated[ i ] = FALSE ;
          _accessingTransLRB[ i ] = NULL ;
       }
       _useTransLock     = TRUE ;
       _reservedLogSpace = 0 ;
+      _usedLogSpace     = 0 ;
+      _maxLogSpace      = OSS_UINT64_MAX ;
       _lockWaitStarted  = FALSE ;
       _monLock          = NULL ;
       _expireTranCache  = DPS_INVALID_TRANSID_SN ;
@@ -407,7 +503,6 @@ namespace engine
          clearLockCount( (LOCKMGR_TYPE) i ) ;
          clearLock( (LOCKMGR_TYPE) i ) ;
       }
-      clearRecordMap() ;
       resetLogSpace() ;
    }
 
@@ -421,6 +516,10 @@ namespace engine
                   "Trans Lock must be 0" ) ;
       SDB_ASSERT( _lockCount[LOCKMGR_INDEX_LOCK] == 0,
                   "Index lock must be 0" ) ;
+      SDB_ASSERT( _leafLockCount[LOCKMGR_TRANS_LOCK] == 0,
+                  "Trans leaf Lock must be 0" ) ;
+      SDB_ASSERT( _leafLockCount[LOCKMGR_INDEX_LOCK] == 0,
+                  "Index leaf lock must be 0" ) ;
       SDB_ASSERT( _waiter[ LOCKMGR_TRANS_LOCK ] == NULL,
                   "Trans lock waiter LRB must be invalid" ) ;
       SDB_ASSERT( _waiter[ LOCKMGR_INDEX_LOCK ] == NULL,
@@ -429,8 +528,8 @@ namespace engine
                   "Tran lock last LRB must be invalid" ) ;
       SDB_ASSERT( _lastLRB[ LOCKMGR_INDEX_LOCK ] == NULL,
                   "Index lock last LRB must be invalid" ) ;
-      SDB_ASSERT( isRecordMapEmpty(), "Record map must be empty" ) ;
       SDB_ASSERT( _reservedLogSpace == 0, "Reserved log space must be 0" ) ;
+      SDB_ASSERT( _usedLogSpace == 0, "Used log space must be 0" ) ;
    }
 
    void _dpsTransExecutor::setWaiterInfo( dpsTransLRB* waiter,
@@ -595,73 +694,50 @@ namespace engine
       _mapCSCLLockID[ lockMgrType ].clear() ;
    }
 
-   UINT32 _dpsTransExecutor::countLock( const dpsTransLockId &lockID,
-                                        UINT8 lockType,
-                                        LOCKMGR_TYPE managerType,
-                                        BOOLEAN needLock )
-   {
-      UINT32 count = 0 ;
-      DPS_LOCKID_MAP_CIT cit ;
-
-      if ( !lockID.isValid() )
-      {
-         if ( needLock )
-         {
-            _mapMutex.get() ;
-         }
-
-         cit = _mapCSCLLockID[ managerType ].begin() ;
-         while ( cit != _mapCSCLLockID[ managerType ].end() )
-         {
-            const dpsTransLRB *lrb = cit->second ;
-            if ( -1 == lockType || lrb->lockMode == lockType )
-            {
-               count += lrb->refCounter ;
-            }
-            ++cit ;
-         }
-
-         if ( needLock )
-         {
-            _mapMutex.release() ;
-         }
-      }
-      else
-      {
-         dpsTransLRB *lrb = NULL ;
-
-         if ( findLock( lockID, lrb, managerType, needLock ) &&
-              ( -1 == lockType || lrb->lockMode == lockType ) )
-         {
-            count = lrb->refCounter ;
-         }
-      }
-
-      return count ;
-   }
-
-   void _dpsTransExecutor::incLockCount( LOCKMGR_TYPE lockMgrType )
+   void _dpsTransExecutor::incLockCount( LOCKMGR_TYPE lockMgrType,
+                                         BOOLEAN isLeafLevel )
    {
       _lockCount[ lockMgrType ]++ ;
+      if ( isLeafLevel )
+      {
+         _leafLockCount[ lockMgrType ] ++ ;
+      }
    }
 
-   void _dpsTransExecutor::decLockCount( LOCKMGR_TYPE lockMgrType )
+   void _dpsTransExecutor::decLockCount( LOCKMGR_TYPE lockMgrType,
+                                         BOOLEAN isLeafLevel )
    {
       SDB_ASSERT( _lockCount[ lockMgrType ] > 0, "Lock count must > 0" ) ;
       if ( _lockCount[ lockMgrType ] > 0 )
       {
          _lockCount[ lockMgrType ]-- ;
       }
+      if ( isLeafLevel )
+      {
+         SDB_ASSERT( _leafLockCount[ lockMgrType ] > 0,
+                     "Leaf lock count must > 0" ) ;
+         if ( _leafLockCount[ lockMgrType ] > 0 )
+         {
+            _leafLockCount[ lockMgrType ] -- ;
+         }
+      }
    }
 
    void _dpsTransExecutor::clearLockCount( LOCKMGR_TYPE lockMgrType )
    {
       _lockCount[ lockMgrType ] = 0 ;
+      _leafLockCount[ lockMgrType ] = 0 ;
+      _isLockEscalated[ lockMgrType ] = FALSE ;
    }
 
    UINT32 _dpsTransExecutor::getLockCount( LOCKMGR_TYPE lockMgrType ) const
    {
       return _lockCount[ lockMgrType ] ;
+   }
+
+   UINT32 _dpsTransExecutor::getLeafLockCount( LOCKMGR_TYPE lockMgrType ) const
+   {
+      return _leafLockCount[ lockMgrType ] ;
    }
 
    BOOLEAN _dpsTransExecutor::useTransLock() const
@@ -681,7 +757,10 @@ namespace engine
                                           BOOLEAN autoRollback,
                                           BOOLEAN useRBS,
                                           BOOLEAN rcCount,
-                                          BOOLEAN globTrans )
+                                          BOOLEAN allowLockEscalation,
+                                          INT32 maxLockNum,
+                                          INT32 maxLogSpaceRatio,
+                                          UINT64 totalLogSpace )
    {
       _transConfMask = 0 ;
 
@@ -692,9 +771,14 @@ namespace engine
       setTransAutoRollback( autoRollback, FALSE ) ;
       setUseRollbackSemgent( useRBS, FALSE ) ;
       setTransRCCount( rcCount, FALSE ) ;
+      setTransAllowLockEscalation( allowLockEscalation, FALSE ) ;
+      setTransMaxLockNum( maxLockNum, FALSE ) ;
+      setTransMaxLogSpaceRatio( maxLogSpaceRatio, FALSE ) ;
 
       _useTransLock        = TRUE ;
       _transConfVer        = 1 ;
+
+      updateMaxLogSpace( totalLogSpace ) ;
    }
 
    BOOLEAN _dpsTransExecutor::updateTransConf( INT32 isolation,
@@ -704,7 +788,10 @@ namespace engine
                                                BOOLEAN autoRollback,
                                                BOOLEAN useRBS,
                                                BOOLEAN rcCount,
-                                               BOOLEAN globTrans )
+                                               BOOLEAN allowLockEscalation,
+                                               INT32 maxLockNum,
+                                               INT32 maxLogSpaceRatio,
+                                               UINT64 totalLogSpace )
    {
       UINT32 oldTransConfVer = _transConfVer ;
       BOOLEAN updateAll = FALSE ;
@@ -741,6 +828,22 @@ namespace engine
          {
             setTransRCCount( rcCount, FALSE ) ;
          }
+         if ( !OSS_BIT_TEST( _transConfMask,
+                             TRANS_CONF_MASK_ALLOWLOCKESCALATION ) )
+         {
+            setTransAllowLockEscalation( allowLockEscalation, FALSE ) ;
+         }
+         if ( !OSS_BIT_TEST( _transConfMask,
+                             TRANS_CONF_MASK_MAXLOCKNUM ) )
+         {
+            setTransMaxLockNum( maxLockNum, FALSE ) ;
+         }
+         if ( !OSS_BIT_TEST( _transConfMask,
+                             TRANS_CONF_MASK_MAXLOGSPACERATIO ) )
+         {
+            setTransMaxLogSpaceRatio( maxLogSpaceRatio, FALSE ) ;
+            updateMaxLogSpace( totalLogSpace ) ;
+         }
          updateAll = TRUE ;
       }
 
@@ -751,67 +854,18 @@ namespace engine
       return updateAll ;
    }
 
-   const _dpsTransExecutor::MAP_LSN_2_RECORD*
-      _dpsTransExecutor::getRecordMap() const
+   void _dpsTransExecutor::copyTransConf( const dpsTransConfItem &conf,
+                                          UINT64 totalLogSpace )
    {
-      return &_mapLSN2Record ;
+      copyFrom( conf ) ;
+      updateMaxLogSpace( totalLogSpace ) ;
    }
 
-   void _dpsTransExecutor::putRecord( DPS_LSN_OFFSET lsnOffset,
-                                      const dmsRecordID &item )
+   void _dpsTransExecutor::updateTransConfByMask( const dpsTransConfItem &conf,
+                                                  UINT64 totalLogSpace )
    {
-      pair<MAP_LSN_2_RECORD_IT,BOOLEAN> ret ;
-      try
-      {
-         ret = _mapLSN2Record.insert( MAP_LSN_2_RECORD::value_type( lsnOffset,
-                                                                    item ) ) ;
-         if ( !ret.second )
-         {
-            SDB_ASSERT( FALSE, "Item must not been existed" ) ;
-            ret.first->second = item ;
-         }
-      }
-      catch ( std::exception &e )
-      {
-         PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
-      }
-   }
-
-   void _dpsTransExecutor::delRecord( DPS_LSN_OFFSET lsnOffset )
-   {
-      _mapLSN2Record.erase( lsnOffset ) ;
-   }
-
-   BOOLEAN _dpsTransExecutor::getRecord( DPS_LSN_OFFSET lsnOffset,
-                                         dmsRecordID &item,
-                                         BOOLEAN withDel )
-   {
-      MAP_LSN_2_RECORD_IT it = _mapLSN2Record.find( lsnOffset ) ;
-      if ( it != _mapLSN2Record.end() )
-      {
-         item = it->second ;
-         if ( withDel )
-         {
-            _mapLSN2Record.erase( it ) ;
-         }
-         return TRUE ;
-      }
-      return FALSE ;
-   }
-
-   void _dpsTransExecutor::clearRecordMap()
-   {
-      _mapLSN2Record.clear() ;
-   }
-
-   BOOLEAN _dpsTransExecutor::isRecordMapEmpty() const
-   {
-      return _mapLSN2Record.empty() ? TRUE : FALSE ;
-   }
-
-   UINT32 _dpsTransExecutor::getRecordMapSize() const
-   {
-      return _mapLSN2Record.size() ;
+      updateByMask( conf ) ;
+      updateMaxLogSpace( totalLogSpace ) ;
    }
 
    void  _dpsTransExecutor::addReservedSpace( const UINT64 len )
@@ -819,34 +873,102 @@ namespace engine
       _reservedLogSpace += len ;
    }
 
+   void  _dpsTransExecutor::decReservedSpace( const UINT64 len )
+   {
+      SDB_ASSERT( _reservedLogSpace >= len,
+                  "reserved log space is not enough" ) ;
+      _reservedLogSpace -= len ;
+   }
+
+   void _dpsTransExecutor::addUsedSpace( const UINT64 len )
+   {
+      _usedLogSpace += len ;
+   }
+
    UINT64 _dpsTransExecutor::getReservedSpace() const
    {
       return _reservedLogSpace ;
    }
 
+   UINT64 _dpsTransExecutor::getUsedSpace() const
+   {
+      return _usedLogSpace ;
+   }
+
+   UINT64 _dpsTransExecutor::getLogSpace() const
+   {
+      return _usedLogSpace + _reservedLogSpace ;
+   }
+
    void  _dpsTransExecutor::resetLogSpace()
    {
       _reservedLogSpace = 0 ;
+      _usedLogSpace = 0 ;
    }
 
-   void _dpsTransExecutor::commitMBStats ()
+   INT32 _dpsTransExecutor::checkLogSpace( UINT64 usedLen,
+                                           UINT64 reservedLen ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      // do not calculate with reserved size
+      UINT64 totalLogSpace = _usedLogSpace + usedLen ;
+
+      PD_CHECK( totalLogSpace <= _maxLogSpace,
+                SDB_DPS_TRANS_LOG_SPACE_UP_TO_LIMIT, error, PDERROR,
+                "Failed to check log space for transaction, "
+                "used [%llu], reserved [%llu], required used [%llu], "
+                "required reserved [%llu], total [%llu] > max [%llu]",
+                _usedLogSpace, _reservedLogSpace, usedLen, reservedLen,
+                totalLogSpace, _maxLogSpace ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   void _dpsTransExecutor::updateMaxLogSpace( UINT64 totalLogSpace )
+   {
+      SDB_ASSERT( 0 < _transMaxLogSpaceRatio,
+                  "max log space ratio should be > 0" ) ;
+
+      if ( 50 <= _transMaxLogSpaceRatio )
+      {
+         // at most half of log space can be used
+         _maxLogSpace = totalLogSpace / 2 ;
+      }
+      else
+      {
+         FLOAT64 temp = (FLOAT64)totalLogSpace / 100.0 *
+                        (FLOAT64)_transMaxLogSpaceRatio ;
+         _maxLogSpace = (UINT64)( OSS_ROUND( temp ) ) ;
+      }
+
+      PD_LOG( PDDEBUG, "Update max log space to [%llu], "
+              "total [%llu], ratio [%d]", _maxLogSpace, totalLogSpace,
+              _transMaxLogSpaceRatio ) ;
+   }
+
+   void _dpsTransExecutor::commitMBStats ( UINT64 commitTime )
    {
       for ( TRANS_MB_STAT_MAP_IT iter = _transMBStatMap.begin() ;
             iter != _transMBStatMap.end() ;
             ++ iter )
       {
-         iter->second.commit() ;
+         iter->second.commit( commitTime ) ;
       }
       clearMBStats() ;
    }
 
-   void _dpsTransExecutor::rollbackMBStats ()
+   void _dpsTransExecutor::rollbackMBStats ( UINT64 rollbackTime )
    {
       for ( TRANS_MB_STAT_MAP_IT iter = _transMBStatMap.begin() ;
             iter != _transMBStatMap.end() ;
             ++ iter )
       {
-         iter->second.rollback() ;
+         iter->second.rollback( rollbackTime ) ;
       }
       clearMBStats() ;
    }
@@ -857,16 +979,20 @@ namespace engine
    }
 
    void _dpsTransExecutor::_initMBStat ( utilCLUniqueID clUniqueID,
+                                         ossAtomic64 * globTransAvailTime,
                                          ossAtomic64 * totalRecords,
                                          UINT64 incDelta,
                                          UINT64 decDelta )
    {
-      SDB_ASSERT( NULL != totalRecords, "total records should not be NULL" ) ;
-      dpsTransMBStat stat( totalRecords, incDelta, decDelta ) ;
+      dpsTransMBStat stat( globTransAvailTime,
+                           totalRecords,
+                           incDelta,
+                           decDelta ) ;
        _transMBStatMap.insert( std::make_pair( clUniqueID, stat ) ) ;
    }
 
    BOOLEAN _dpsTransExecutor::incMBTotalRecords ( utilCLUniqueID clUniqueID,
+                                                  ossAtomic64 * globTransAvailTime,
                                                   ossAtomic64 * totalRecords,
                                                   UINT64 delta )
    {
@@ -877,16 +1003,29 @@ namespace engine
       TRANS_MB_STAT_MAP_IT iter = _transMBStatMap.find( clUniqueID ) ;
       if ( iter == _transMBStatMap.end() )
       {
-         _initMBStat( clUniqueID, totalRecords, delta, 0 ) ;
+         _initMBStat( clUniqueID, globTransAvailTime, totalRecords, delta, 0 ) ;
       }
       else
       {
          iter->second.increase( delta ) ;
+
+         if ( NULL != totalRecords &&
+              !( iter->second.hasTotalRecords() ) )
+         {
+            iter->second.setTotalRecords( totalRecords ) ;
+         }
+
+         if ( NULL != globTransAvailTime &&
+              !( iter->second.hasGlobTransAvailTime() ) )
+         {
+            iter->second.setGlobTransAvailTime( globTransAvailTime ) ;
+         }
       }
       return TRUE ;
    }
 
    BOOLEAN _dpsTransExecutor::decMBTotalRecords ( utilCLUniqueID clUniqueID,
+                                                  ossAtomic64 * globTransAvailTime,
                                                   ossAtomic64 * totalRecords,
                                                   UINT64 delta )
    {
@@ -897,11 +1036,54 @@ namespace engine
       TRANS_MB_STAT_MAP_IT iter = _transMBStatMap.find( clUniqueID ) ;
       if ( iter == _transMBStatMap.end() )
       {
-         _initMBStat( clUniqueID, totalRecords, 0, delta ) ;
+         _initMBStat( clUniqueID, globTransAvailTime, totalRecords, 0, delta ) ;
       }
       else
       {
          iter->second.decrease( delta ) ;
+
+         if ( NULL != totalRecords &&
+              !( iter->second.hasTotalRecords() ) )
+         {
+            iter->second.setTotalRecords( totalRecords ) ;
+         }
+
+         if ( NULL != globTransAvailTime &&
+              !( iter->second.hasGlobTransAvailTime() ) )
+         {
+            iter->second.setGlobTransAvailTime( globTransAvailTime ) ;
+         }
+      }
+      return TRUE ;
+   }
+
+   BOOLEAN _dpsTransExecutor::updateMBStat( utilCLUniqueID clUniqueID,
+                                            ossAtomic64 * globTransAvailTime,
+                                            ossAtomic64 * totalRecords )
+   {
+      if ( !UTIL_IS_VALID_CLUNIQUEID( clUniqueID ) )
+      {
+         return FALSE ;
+      }
+
+      TRANS_MB_STAT_MAP_IT iter = _transMBStatMap.find( clUniqueID ) ;
+      if ( iter == _transMBStatMap.end() )
+      {
+         _initMBStat( clUniqueID, globTransAvailTime, totalRecords, 0, 0 ) ;
+      }
+      else
+      {
+         if ( NULL != totalRecords &&
+              !( iter->second.hasTotalRecords() ) )
+         {
+            iter->second.setTotalRecords( totalRecords ) ;
+         }
+
+         if ( NULL != globTransAvailTime &&
+              !( iter->second.hasGlobTransAvailTime() ) )
+         {
+            iter->second.setGlobTransAvailTime( globTransAvailTime ) ;
+         }
       }
       return TRUE ;
    }
@@ -916,8 +1098,7 @@ namespace engine
       TRANS_MB_STAT_MAP_CIT citer = _transMBStatMap.find( clUniqueID ) ;
       if ( citer != _transMBStatMap.end() )
       {
-         totalRecords = citer->second.getTotalRecords() ;
-         return TRUE ;
+         return citer->second.getTotalRecords( totalRecords ) ;
       }
       return FALSE ;
    }
@@ -1030,24 +1211,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSTRANSEXE_REGREADTRANTIME, "_dpsTransExecutor::regReadTranTime" )
-   void _dpsTransExecutor::regReadTranTime()
-   {
-      PD_TRACE_ENTRY( SDB__DPSTRANSEXE_REGREADTRANTIME ) ;
-
-      dpsTransCB *transCB = sdbGetTransCB() ;
-
-      if ( !_regReadTranTime )
-      {
-         transCB->regReadTranTime( _beginTime.getUpperTime() ) ;
-         _regReadTranTime = TRUE ;
-      }
-      // start a read operator, it is a good time to set expireTran cache
-      _expireTranCache = transCB->getExpiredVersion() ;
-
-      PD_TRACE_EXIT( SDB__DPSTRANSEXE_REGREADTRANTIME ) ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSTRANSEXE_RESETTRANSTIME, "_dpsTransExecutor::resetTransTime" )
    void _dpsTransExecutor::resetTransTime()
    {
@@ -1061,6 +1224,82 @@ namespace engine
       _regReadTranTime = FALSE ;
 
       PD_TRACE_EXIT( SDB__DPSTRANSEXE_RESETTRANSTIME ) ;
+   }
+
+   // get the waiting LRB and lockId if this executor is waiting for a
+   // trans lock and it has opened a transaction and has associated with
+   // _tmsDataTransContext
+   BOOLEAN _dpsTransExecutor::getTransWaitingLRBInfo
+   (
+      dpsTxWaitLRB & exctrWaitInfo,
+      LOCKMGR_TYPE   lockMgrType
+   )
+   {
+      BOOLEAN result = FALSE ;
+      {
+         acquireLRBAccessingLock( lockMgrType ) ;
+         dpsTransLRB *pLRB = _waiter[ lockMgrType ] ;
+         if ( pLRB )
+         {
+            exctrWaitInfo.pLRB   = pLRB ;
+            exctrWaitInfo.lockId = pLRB->lrbHdr->lockId ;
+            result = TRUE;
+         }
+         releaseLRBAccessingLock( lockMgrType ) ;
+      }
+      return result ;
+   }
+
+   DPS_TRANS_ID _dpsTransExecutor::getNormalizedTransID()
+   {
+      return getExecutor()->getTransID().getOrigTransID() ;
+   }
+
+   INT32 _dpsTransExecutor::checkLockEscalation( LOCKMGR_TYPE lockMgrType,
+                                                 const dpsTransLockId &lockID,
+                                                 BOOLEAN &needEscalate )
+   {
+      INT32 rc = SDB_OK ;
+
+      needEscalate = FALSE ;
+
+      // NOTE: only consider lock escalation in transaction
+      if ( ( LOCKMGR_TRANS_LOCK == lockMgrType ) &&
+           ( lockID.isSupportEscalation() ) &&
+           ( getTransID().isValid() ) &&
+           !( getTransID().isRollback() ) )
+      {
+         // for transaction lock, we need escalate if already acquired too
+         // many record locks to limit the resource of the transaction
+         INT32 maxRecordLockNum = getTransMaxLockNum() ;
+         UINT32 curRecordLockNum = getLeafLockCount( lockMgrType ) ;
+         BOOLEAN curLockEscalated = isLockEscalated( lockMgrType ) ;
+
+         needEscalate = curLockEscalated ||
+                        ( 0 == maxRecordLockNum ||
+                          ( 0 < maxRecordLockNum &&
+                            curRecordLockNum > (UINT32)maxRecordLockNum ) ) ;
+
+         // check if lock escalation is allowed
+         PD_CHECK( isTransAllowLockEscalation() || !needEscalate,
+                   SDB_DPS_TRANS_LOCK_UP_TO_LIMIT, error, PDERROR,
+                   "Failed to check record locks for transaction, "
+                   "acquired [%u], max [%u], allow escalation [%s]",
+                   curRecordLockNum, maxRecordLockNum,
+                   isTransAllowLockEscalation() ? "TRUE" : "FALSE" ) ;
+
+         // set lock escalated if needed
+         if ( needEscalate )
+         {
+            setLockEscalated( lockMgrType, TRUE ) ;
+         }
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
 }

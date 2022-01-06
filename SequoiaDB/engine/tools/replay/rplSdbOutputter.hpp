@@ -46,7 +46,8 @@ namespace replay
    extern const CHAR RPL_OUTPUT_SEQUOIADB[] ;
    class rplSdbOutputter : public rplOutputter, public SDBObject {
    public:
-      rplSdbOutputter( BOOLEAN updateWithShardingKey ) ;
+      rplSdbOutputter( BOOLEAN updateWithShardingKey,
+                       BOOLEAN isKeepShardingKey ) ;
       ~rplSdbOutputter() ;
 
    public:
@@ -96,6 +97,7 @@ namespace replay
    private:
       sdb* _sdb ;
       BOOLEAN _updateWithShardingKey ;
+      INT32 _updateFlag ;
    } ;
 }
 

@@ -27,7 +27,7 @@ class TestMeteData12444(testlib.SdbTestBase):
             self.db.drop_collection_space(self.cs_name)
          except SDBBaseError as e:
             if -34 != e.code:
-               self.fail("drop_cs_fail,detail:" + e.detail)
+               self.fail("drop_cs_fail,detail:" + str(e))
          page_size = self.list[index][1]
          lob_page_size = self.list[index][2]
          cs_options = {"PageSize": page_size, "LobPageSize": lob_page_size}
@@ -43,7 +43,7 @@ class TestMeteData12444(testlib.SdbTestBase):
                self.db.drop_collection_space(self.cs_name)
          except SDBBaseError as e:
             if -34 != e.code:
-               self.fail("tear_down_fail,detail:" + e.detail)
+               self.fail("tear_down_fail,detail:" + str(e))
            
    def check_create_cs(self, cs_name, cs_options, expect_cs_options):
       #create cs and cl

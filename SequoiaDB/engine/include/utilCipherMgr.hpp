@@ -36,37 +36,33 @@
 #include <map>
 #include <vector>
 
-namespace passwd
+class _utilCipherMgr : public SDBObject
 {
-   class _utilCipherMgr : public SDBObject
-   {
-   public:
-      _utilCipherMgr() {}
-      ~_utilCipherMgr() {}
+public:
+   _utilCipherMgr() {}
+   ~_utilCipherMgr() {}
 
-      INT32   init( utilCipherFile *file ) ;
-      INT32   addUser( const string &userFullName, const string &token,
-                       const string &passwd ) ;
-      INT32   removeUser( const string &userFullName, INT32 &retCode ) ;
-      INT32   getPasswd( const string &filePath,
-                         const string &userFullName,
-                         const string &token,
-                         string &passwd ) ;
+   INT32   init( utilCipherFile *file ) ;
+   INT32   addUser( const string &userFullName, const string &token,
+                    const string &passwd ) ;
+   INT32   removeUser( const string &userFullName, INT32 &retCode ) ;
+   INT32   getPasswd( const string &filePath,
+                      const string &userFullName,
+                      const string &token,
+                      string &passwd ) ;
 
-   private:
-      INT32   _parseLine( const string &line,
-                          string &userFullName,
-                          string &cipherText ) ;
-      INT32   _findCipherText( const string &userFullName,
-                               string &cipherText ) ;
-      BOOLEAN _isValidHex( const CHAR *hexString ) ;
+private:
+   INT32   _parseLine( const string &line,
+                       string &userFullName,
+                       string &cipherText ) ;
+   INT32   _findCipherText( const string &userFullName,
+                            string &cipherText ) ;
+   BOOLEAN _isValidHex( const CHAR *hexString ) ;
 
-   private:
-      utilCipherFile *_cipherfile ;
-      std::map<std::string, std::string> _usersCipher ;
-   } ;
-   typedef _utilCipherMgr utilCipherMgr ;
-
-}
+private:
+   utilCipherFile *_cipherfile ;
+   std::map<std::string, std::string> _usersCipher ;
+} ;
+typedef _utilCipherMgr utilCipherMgr ;
 
 #endif // UTIL_CIPHER_HPP_

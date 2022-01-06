@@ -138,30 +138,34 @@ For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 List the information of all logged\-in users
+.RS 2
 .IP
 .nf
 \f[C]
->\ System.listLoginUsers()
+> System.listLoginUsers()
 {
-\ \ "user":\ "sequoiadb"
+  "user": "sequoiadb"
 }
 {
-\ \ "user":\ "username"
+  "user": "username"
 }
 \&...
 \f[]
 .fi
+.RE
 .IP \[bu] 2
 Filter the results:
+.RS 2
 .IP
 .nf
 \f[C]
->\ System.listLoginUsers(\ {\ detail:\ true\ },\ {\ "tty":\ "tty1"\ }\ )
+> System.listLoginUsers( { detail: true }, { "tty": "tty1" } )
 {
-\ \ "user":\ "sequoiadb",
-\ \ "time":\ "2019\-05\-10\ 18:37",
-\ \ "from":\ "",
-\ \ "tty":\ "tty1"
+  "user": "sequoiadb",
+  "time": "2019\-05\-10 18:37",
+  "from": "",
+  "tty": "tty1"
 }
 \f[]
 .fi
+.RE

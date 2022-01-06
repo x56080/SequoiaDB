@@ -67,6 +67,34 @@ namespace engine
                             _mthSAction &action ) const ;
    } ;
 
+   class _mthStrLenBytesParser : public _mthSActionParser::parser
+   {
+   public:
+      _mthStrLenBytesParser()
+      {
+         _name = MTH_S_STRLENBYTES ;
+      }
+      virtual ~_mthStrLenBytesParser(){}
+
+   public:
+      virtual INT32 parse( const bson::BSONElement &e,
+                           _mthSAction &action ) const ;
+   } ;
+
+   class _mthStrLenCPParser : public _mthSActionParser::parser
+   {
+   public:
+      _mthStrLenCPParser()
+      {
+         _name = MTH_S_STRLENCP ;
+      }
+      virtual ~_mthStrLenCPParser(){}
+
+   public:
+      virtual INT32 parse( const bson::BSONElement &e,
+                           _mthSAction &action ) const ;
+   } ;
+
    class _mthLowerParser : public _mthSActionParser::parser
    {
    public:

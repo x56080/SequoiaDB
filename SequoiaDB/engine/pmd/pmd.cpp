@@ -568,6 +568,7 @@ namespace engine
             PD_LOG( PDERROR, "Fini cb[Type: %d, Name: %s] failed, rc: %d",
                     pCB->cbType(), pCB->cbName(), rc ) ;
          }
+         _arrayCBs[ index - 1 ] = NULL ;
       }
 
       /// fini cache manager

@@ -1063,8 +1063,9 @@ namespace engine
       BSONObj boNodeList ;
       BOOLEAN lockGroup = FALSE ;
       INT32 groupRole = SDB_ROLE_DATA ;
-
+      UINT64 nodeNum = 0 ;
       BOOLEAN isSpareGroup = FALSE ;
+      BSONObj matcher ;
 
       rc = catGetGroupObj( _targetName.c_str(), FALSE, _boTarget, cb ) ;
       PD_RC_CHECK( rc, PDERROR,
@@ -1142,6 +1143,46 @@ namespace engine
       if ( _forced &&  1 == _nodeCount && !isSpareGroup &&
            SDB_ROLE_DATA == groupRole )
       {
+         try
+         {
+             matcher = BSON( FIELD_NAME_CATALOGINFO".GroupID" << _groupID ) ;
+         }
+         catch ( std::exception &e )
+         {
+             rc = ossException2RC( &e ) ;
+             PD_LOG ( PDERROR, "Failed to build BSONObj, exception: %s, rc: %d",
+                      e.what(), rc ) ;
+             goto error ;
+         }
+         rc = _countNodes( CAT_COLLECTION_INFO_COLLECTION, matcher, nodeNum, cb ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to count collection: %s, match: %s, rc: %d",
+                      CAT_COLLECTION_INFO_COLLECTION,
+                      matcher.toPoolString().c_str(), rc ) ;
+         PD_CHECK( nodeNum == 0,
+                   SDB_CATA_RM_NODE_FORBIDDEN, error, PDERROR,
+                   "Unable to remove the last node or primary with data in a group" ) ;
+                   
+         /// confirm that no there is no task.
+         try
+         {
+            matcher = BSON( FIELD_NAME_TARGETID << _groupID ) ;
+         }
+         catch ( std::exception &e )
+         {
+             rc = ossException2RC( &e ) ;
+             PD_LOG ( PDERROR, "Failed to build BSONObj, exception: %s, rc: %d",
+                      e.what(), rc ) ;
+             goto error ;
+         }
+         rc = _countNodes( CAT_TASK_INFO_COLLECTION, matcher, nodeNum, cb ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to count collection: %s, match: %s, rc: %d",
+                      CAT_TASK_INFO_COLLECTION,
+                      matcher.toPoolString().c_str(), rc ) ;
+         PD_CHECK( nodeNum == 0,
+                   SDB_CATA_RM_NODE_FORBIDDEN, error, PDERROR,
+                   "Can not remove last node with task in it" ) ;
          lockGroup = TRUE ;
          _needDeactive = TRUE ;
       }

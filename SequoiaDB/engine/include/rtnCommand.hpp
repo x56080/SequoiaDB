@@ -527,6 +527,16 @@ namespace engine
          virtual RTN_COMMAND_TYPE type () { return CMD_ALTER_SEQUENCE ; }
    } ;
 
+   class _rtnListDataSources : public _rtnCoordOnly
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+      public:
+         _rtnListDataSources() {}
+         virtual ~_rtnListDataSources() {}
+         virtual const CHAR *name () { return NAME_LIST_DATASOURCES ; }
+         virtual RTN_COMMAND_TYPE type () { return CMD_LIST_DATASOURCES ; }
+   } ;
+
    class _rtnBackup : public _rtnCommand
    {
       DECLARE_CMD_AUTO_REGISTER()
@@ -590,6 +600,8 @@ namespace engine
          utilCLUniqueID          _clUniqueID ;
          UTIL_COMPRESSOR_TYPE    _compressorType ;
          BSONObj                 _extOptions ; // Store options accorrding to attributes.
+         BSONObj                 _idIdxDef ;
+         BSONObj                 _shardIdxDef ;
    };
 
    class _rtnCreateCollectionspace : public _rtnCommand
@@ -621,40 +633,6 @@ namespace engine
          INT32                      _pageSize ;
          INT32                      _lobPageSize ;
          DMS_STORAGE_TYPE           _storageType ;    
-   };
-
-   class _rtnCreateIndex : public _rtnCommand
-   {
-      DECLARE_CMD_AUTO_REGISTER()
-
-      public:
-         _rtnCreateIndex () ;
-         virtual ~_rtnCreateIndex () ;
-
-         virtual const CHAR * name () ;
-         virtual RTN_COMMAND_TYPE type () ;
-         virtual BOOLEAN      writable () ;
-         virtual const CHAR * collectionFullName () ;
-         virtual utilResult* getResult() { return &_writeResult ; }
-
-         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
-                              const CHAR *pMatcherBuff,
-                              const CHAR *pSelectBuff,
-                              const CHAR *pOrderByBuff,
-                              const CHAR *pHintBuff ) ;
-         virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
-                              _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
-                              INT16 w = 1, INT64 *pContextID = NULL  ) ;
-      private:
-         INT32 _validateDef( const BSONObj &index ) ;
-      protected:
-         const CHAR              *_collectionName ;
-         BSONObj                 _index ;
-         INT32                   _sortBufferSize ;
-         BOOLEAN                 _textIdx ;
-         utilWriteResult         _writeResult ;
-
-         BOOLEAN                 _isGlobal ;
    };
 
    class _rtnDropCollection : public _rtnCommand
@@ -710,32 +688,6 @@ namespace engine
          BOOLEAN              _ensureEmpty ;
    };
 
-   class _rtnDropIndex : public _rtnCommand
-   {
-      DECLARE_CMD_AUTO_REGISTER()
-
-      public:
-         _rtnDropIndex () ;
-         virtual ~_rtnDropIndex () ;
-
-         virtual const CHAR * name () ;
-         virtual RTN_COMMAND_TYPE type () ;
-         virtual BOOLEAN      writable () ;
-         virtual const CHAR * collectionFullName () ;
-
-         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
-                              const CHAR *pMatcherBuff,
-                              const CHAR *pSelectBuff,
-                              const CHAR *pOrderByBuff,
-                              const CHAR *pHintBuff ) ;
-         virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
-                              _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
-                              INT16 w = 1, INT64 *pContextID = NULL  ) ;
-      protected:
-         const CHAR           *_collectionName ;
-         BSONObj              _index ;
-   };
-
    class _rtnGet : public _rtnCommand
    {
       protected:
@@ -769,18 +721,6 @@ namespace engine
       public:
          _rtnGetCount () ;
          virtual ~_rtnGetCount () ;
-
-         virtual const CHAR * name () ;
-         virtual RTN_COMMAND_TYPE type () ;
-   };
-
-   class _rtnGetIndexes : public _rtnGet
-   {
-      DECLARE_CMD_AUTO_REGISTER()
-
-      public:
-         _rtnGetIndexes () ;
-         virtual ~_rtnGetIndexes () ;
 
          virtual const CHAR * name () ;
          virtual RTN_COMMAND_TYPE type () ;
@@ -1557,14 +1497,16 @@ namespace engine
                            INT16 w = 1, INT64 *pContextID = NULL ) ;
 
       virtual const CHAR* spaceName () { return _csName ; }
-      void setCSUniqueID ( utilCSUniqueID csUniqueID ) ;
-      void setCLInfo ( const BSONObj& clInfoObj ) ;
+      INT32 setUniqueID( utilCSUniqueID csUniqueID,
+                         const BSONObj& clInfoObj ) ;
+      ossPoolVector<BSONObj>& getIndexVector() { return _idxInfoVector ; }
 
    protected:
-      const CHAR                 *_csName ;
-      BOOLEAN                    _needChangeID ;
+      const CHAR                *_csName ;
+      BOOLEAN                    _needChgID ;
       utilCSUniqueID             _csUniqueID ;
       BSONObj                    _clInfoObj ;
+      ossPoolVector<BSONObj>     _idxInfoVector ;
    } ;
 
    class _rtnUnloadCollectionSpace : public _rtnLoadCollectionSpace
@@ -1693,15 +1635,49 @@ namespace engine
          virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
-         INT32 _parseOpts(const BSONObj &matcher);
          INT32 _parseTimestamp(const BSONObj &matcher);
-         INT32 _parseTestOpts(const BSONObj &matcher);
          INT32 _parseTransID(const BSONObj &matcher);
       private:
          INT64 _timestamp;
-         BOOLEAN _testOnly;
-         BOOLEAN _skipTest;
          DPS_TRANS_ID _transID;
+   };
+
+   /**
+   Node handler for db.restoreCheck()
+
+   Performs the checks before a user can call db.restoreToTime(). Given a
+   target time, it checks that there is sufficient log space to undo the
+   records to restore to the target time. The check enters the point-in-time
+   rollback log scanning loop and sums up the log space. The reachable time is
+   cached so for future calls to restoreCheck. The cache is invalidated by
+   db.restoreToTime() because it uses up log space. The cache is cleared by
+   db.restoreAbort().
+   See coordCMDRestoreCheck for the corresponding coordinator class.
+   */
+   class _rtnRestoreCheck : public _rtnCommand
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public:
+         _rtnRestoreCheck () ;
+         virtual ~_rtnRestoreCheck () ;
+
+         virtual const CHAR * name () ;
+         virtual RTN_COMMAND_TYPE type () ;
+         virtual BOOLEAN      writable () ;
+
+         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+                              const CHAR *pMatcherBuff,
+                              const CHAR *pSelectBuff,
+                              const CHAR *pOrderByBuff,
+                              const CHAR *pHintBuff ) ;
+         virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                              _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                              INT16 w = 1, INT64 *pContextID = NULL  ) ;
+         INT32 _runTest(_pmdEDUCB *cb, UINT64 *limit);
+
+       private:
+         UINT64 _time;
    };
 
    /*
@@ -1754,6 +1730,7 @@ namespace engine
          virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
+         BOOLEAN _isOldRestorePoint() ;
    };
 }
 

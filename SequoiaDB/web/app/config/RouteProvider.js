@@ -9,7 +9,7 @@
          'async': async,
          'beforeSend': function( jqXHR ){
             jqXHR.setRequestHeader( 'SdbClusterName', clusterName ) ;
-	         jqXHR.setRequestHeader( 'SdbBusinessName', businessName ) ;
+            jqXHR.setRequestHeader( 'SdbBusinessName', businessName ) ;
          },
          'success': function( response, status ){
             func( response ) ;

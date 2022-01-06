@@ -32,7 +32,7 @@ On error, exception will be thrown.
 
 When error happens, use [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)
 to get the error message or use [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)
-to get the error code. See [troubleshooting](manual/faq.md) for more details.
+to get the error code. See [troubleshooting](manual/FAQ/faq_sdb.md) for more details.
 
 
 ##EXAMPLES##

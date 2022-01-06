@@ -55,7 +55,8 @@ namespace engine
    :_fileSz( 0 ),
     _pageSz( 0 ),
     _logarithmic( 0 ),
-    _flags( DMS_LOBD_FLAG_NULL )
+    _flags( DMS_LOBD_FLAG_NULL ),
+    _segmentSize( 0 )
    {
       _fileName.assign( fileName ) ;
       _segmentPages = 0 ;
@@ -221,6 +222,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSSTORAGELOBDATA_OPEN, "_dmsStorageLobData::open" )
    INT32 _dmsStorageLobData::open( const CHAR *path,
                                    BOOLEAN createNew,
+                                   UINT32 lobmSegmentSize,
+                                   UINT32 lobmPageSize,
                                    UINT32 totalDataPages,
                                    const dmsStorageInfo &info,
                                    _pmdEDUCB *cb )
@@ -233,7 +236,18 @@ namespace engine
       INT64 rightSize = 0 ;
       BOOLEAN reGetSize = FALSE ;
 
+      if ( 0 == lobmSegmentSize || 0 == lobmPageSize ||
+           0 == info._lobdPageSize )
+      {
+         PD_LOG ( PDERROR, "Invalid lobm segment size[%d] or lobm page "
+                  "size[%d] or lobd page size[%d]",
+                  lobmSegmentSize, lobmPageSize, info._lobdPageSize ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
       _fileSz = 0 ;
+      _segmentSize = lobmSegmentSize / lobmPageSize * info._lobdPageSize ;
 
       if ( createNew )
       {
@@ -1071,6 +1085,8 @@ namespace engine
       PD_TRACE_ENTRY( SDB_DMSSTORAGELOBDATA__INITFILEHEADER ) ;
       CHAR *pBuff = NULL ;
       dmsStorageUnitHeader *pHeader = NULL ;
+      SDB_ASSERT( 0 != _segmentSize,
+                  "Invalid size of lobd _segmentSize" ) ;
 
       rc = cb->allocBuff( sizeof( dmsStorageUnitHeader ),
                           &pBuff, NULL ) ;

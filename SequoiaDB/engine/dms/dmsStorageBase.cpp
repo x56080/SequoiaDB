@@ -242,6 +242,15 @@ namespace engine
       _ptr   = ( ossValuePtr ) 0 ;
    }
 
+   _dmsExtRW::_dmsExtRW( const _dmsExtRW &extRW )
+   : _extentID( extRW._extentID ),
+     _collectionID( extRW._collectionID ),
+     _attr( extRW._attr ),
+     _ptr( extRW._ptr ),
+     _pBase( extRW._pBase )
+   {
+   }
+
    _dmsExtRW::~_dmsExtRW()
    {
       if ( _pBase && isDirty() )
@@ -368,6 +377,8 @@ namespace engine
       _isTempSU           = FALSE ;
       _isSysSU            = FALSE ;
       _transSupport       = TRUE ;
+      _mvccSupport        = FALSE ;
+      _mvccUpgraded       = FALSE ;
       _blockScanSupport   = TRUE ;
       _pageSize           = 0 ;
       _lobPageSize        = 0 ;
@@ -382,6 +393,15 @@ namespace engine
          _isTempSU = TRUE ;
          _isSysSU = TRUE ;
          _blockScanSupport = FALSE ;
+      }
+      else if ( 0 == ossStrncmp( pInfo->_suName,
+                                 SDB_DMSRBS_NAME,
+                                 SDB_DMSRBS_NAME_SIZE ) )
+      {
+         _isSysSU = TRUE ;
+         _blockScanSupport = FALSE ;
+         // SYSRBS supports MVCC always
+         _mvccSupport = TRUE ;
       }
       else if ( 0 == ossStrncmp( pInfo->_suName, "SYS", 3 ) )
       {
@@ -424,6 +444,16 @@ namespace engine
    void _dmsStorageBase::setTransSupport( BOOLEAN supported )
    {
       _transSupport = supported ;
+   }
+
+   void _dmsStorageBase::setMVCCSupport( BOOLEAN supported )
+   {
+      // only set for user storage
+      // NOTE: MVCC for SYSRBS is always enabled
+      if ( !_isSysSU && !_isTempSU )
+      {
+         _mvccSupport = supported ;
+      }
    }
 
    void _dmsStorageBase::setSyncConfig( UINT32 syncInterval,
@@ -508,6 +538,19 @@ namespace engine
    BOOLEAN _dmsStorageBase::isCrashed() const
    {
       return _isCrash ;
+   }
+
+   void _dmsStorageBase::setCrashed()
+   {
+
+      ossScopedLock lock( &_commitLatch ) ;
+
+      _isCrash = TRUE ;
+      _commitFlag = 0 ;
+      _dmsHeader->_commitFlag = 0 ;
+
+      /// flush header
+      flushHeader( TRUE ) ;
    }
 
    void _dmsStorageBase::enableSync( BOOLEAN enable )
@@ -1345,6 +1388,7 @@ namespace engine
       pHeader->_commitLsn  = ~0 ;
       pHeader->_commitTime = 0 ;
       pHeader->_csUniqueID = _pStorageInfo->_csUniqueID ;
+      pHeader->_idxInnerHWM = 0 ;
    }
 
    INT32 _dmsStorageBase::_checkPageSize( dmsStorageUnitHeader * pHeader )

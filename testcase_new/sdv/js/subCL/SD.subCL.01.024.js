@@ -6,52 +6,45 @@ main();
 
 function main ()
 {
-   try
+   if( commIsStandalone( db ) )
    {
-      if( commIsStandalone( db ) )
-      {
-         println( " Deploy mode is standalone!" );
-         return;
-      }
-
-      var csName = COMMCSNAME;
-      var mainCLName = COMMCLNAME + "_mcl";
-      var subCLName1 = COMMCLNAME + "_scl01";
-      var subCLName2 = COMMCLNAME + "_scl02";
-      var idxName = COMMCLNAME + "_idx";
-
-      println( "\n---Begin to drop cl in the pre-condition." );
-      commDropCL( db, csName, subCLName1, true, true, "Failed to drop CL[" + subCLName1 + "]" );
-      commDropCL( db, csName, subCLName2, true, true, "Failed to drop CL[" + subCLName2 + "]" );
-      commDropCL( db, csName, mainCLName, true, true, "Failed to drop CL[" + mainCLName + "]" );
-
-      var mainCL = createMainCL( csName, mainCLName );
-      var subCL1 = createSubCL( csName, subCLName1 );
-      var subCL2 = createSubCL( csName, subCLName2 );
-
-      var options1 = { LowBound: { "a": 0 }, UpBound: { "a": 100 } };
-      var options2 = { LowBound: { "a": 100 }, UpBound: { "a": 200 } };
-      attachCL( mainCL, csName, subCLName1, options1 );
-      attachCL( mainCL, csName, subCLName2, options2 );
-
-      insertRecs( mainCL );
-
-      //create index and check scanType
-      createIndex( csName, mainCL, subCL1, subCL2, idxName, subCLName1, subCLName2 );
-      //drop index and check scanType
-      dropIndex( mainCL, subCL1, subCL2, idxName );
-      //check records
-      checkResult( mainCL );
-
-      println( "\n---Begin to drop subCS in the end-condition." );
-      commDropCL( db, csName, subCLName1, true, false, "Failed to drop CL[" + subCLName1 + "]" );
-      commDropCL( db, csName, subCLName2, true, false, "Failed to drop CL[" + subCLName2 + "]" );
-      commDropCL( db, csName, mainCLName, true, false, "Failed to drop CL[" + mainCLName + "]" );
+      println( " Deploy mode is standalone!" );
+      return;
    }
-   catch( e )
-   {
-      throw e;
-   }
+
+   var csName = COMMCSNAME;
+   var mainCLName = COMMCLNAME + "_mcl";
+   var subCLName1 = COMMCLNAME + "_scl01";
+   var subCLName2 = COMMCLNAME + "_scl02";
+   var idxName = COMMCLNAME + "_idx";
+
+   println( "\n---Begin to drop cl in the pre-condition." );
+   commDropCL( db, csName, subCLName1, true, true, "Failed to drop CL[" + subCLName1 + "]" );
+   commDropCL( db, csName, subCLName2, true, true, "Failed to drop CL[" + subCLName2 + "]" );
+   commDropCL( db, csName, mainCLName, true, true, "Failed to drop CL[" + mainCLName + "]" );
+
+   var mainCL = createMainCL( csName, mainCLName );
+   var subCL1 = createSubCL( csName, subCLName1 );
+   var subCL2 = createSubCL( csName, subCLName2 );
+
+   var options1 = { LowBound: { "a": 0 }, UpBound: { "a": 100 } };
+   var options2 = { LowBound: { "a": 100 }, UpBound: { "a": 200 } };
+   attachCL( mainCL, csName, subCLName1, options1 );
+   attachCL( mainCL, csName, subCLName2, options2 );
+
+   insertRecs( mainCL );
+
+   //create index and check scanType
+   createIndex( csName, mainCL, subCL1, subCL2, idxName, subCLName1, subCLName2 );
+   //drop index and check scanType
+   dropIndex( mainCL, subCL1, subCL2, idxName );
+   //check records
+   checkResult( mainCL );
+
+   println( "\n---Begin to drop subCS in the end-condition." );
+   commDropCL( db, csName, subCLName1, true, false, "Failed to drop CL[" + subCLName1 + "]" );
+   commDropCL( db, csName, subCLName2, true, false, "Failed to drop CL[" + subCLName2 + "]" );
+   commDropCL( db, csName, mainCLName, true, false, "Failed to drop CL[" + mainCLName + "]" );
 }
 
 function createMainCL ( csName, mainCLName )
@@ -98,15 +91,8 @@ function createIndex ( csName, mainCL, subCL1, subCL2, idxName, subCLName1, subC
 
    //create an index on one of subCL
    subCL1.createIndex( idxName, { b: 1 } );
-   //check the index of subCL1 and mainCL
-   var subCLIdx1 = subCL1.getIndex( idxName ).toObj()["IndexDef"]["name"];
-   var mainCLIdx = mainCL.getIndex( idxName ).toObj()["IndexDef"]["name"];
-   if( subCLIdx1 !== idxName || mainCLIdx !== idxName )
-   {
-      throw buildException( "createIndex", null, "[create index in the subCL1,and check it]",
-         "[subCLIdx1:" + idxName + ",mainCLIdx:" + idxName + "]",
-         "[subCLIdx1:" + subCLIdx1 + ",mainCLIdx:" + mainCLIdx + "]" );
-   }
+   subCL1.getIndex( idxName ).toObj()["IndexDef"]["name"];
+
    //check the index of subCL2
    try
    {

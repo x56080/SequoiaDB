@@ -4,5 +4,5 @@ driver/hadoop/pig_connector
 thirdparty/mdocml/lib/win64
 thirdparty/boost/lib/win32
 thirdparty/boost/lib/win64
-thirdparty/crypto/openssl-1.1.1g/lib/win64
+thirdparty/crypto/openssl-1.1.1k/lib/win64
 

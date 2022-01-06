@@ -39,7 +39,6 @@
 #include "stpOptions.hpp"
 #include "ossVer.h"
 #include "pmdEnv.hpp"
-#include "stpToolUtil.hpp"
 
 namespace po = boost::program_options ;
 
@@ -47,6 +46,12 @@ using namespace std ;
 
 namespace engine
 {
+
+#if defined (_WINDOWS)
+   #define STP_EXAMPLE_CONF "\"E:\\Sequoiadb\\conf\\stp\\\""
+#else
+   #define STP_EXAMPLE_CONF "\"/opt/sequoiadb/conf/stp\""
+#endif
 
    // default sharing break time in 7 seconds
    #define STP_OPTION_BREAKTIME_DFT          ( 7000 )
@@ -69,82 +74,90 @@ namespace engine
    #define FILE_OPTIONS \
       ( STP_OPTION_PORT, \
             po::value<string>(), \
-            "STP listening port, default is 9622" ) \
+            "STP listening port, default: 9622" ) \
       ( STP_OPTION_SERVERLIST, \
             po::value<string>(), \
             "STP server list, if not specified, " \
             "will use host name of this machine" ) \
       ( STP_OPTION_ROLE, \
             po::value<string>(), \
-            "STP role, default is \"server\"" ) \
+            "STP role (server/client), " \
+            "default: \"server\"" ) \
       ( STP_OPTION_WEIGHT, \
             po::value<INT32>(), \
-            "STP vote weight, default is 0" ) \
+            "STP vote weight, default: 0" ) \
       ( STP_OPTION_SYNCINTERVAL, \
             po::value<INT32>(), \
-            "STP synchronize interval in seconds, default is 60" ) \
+            "STP synchronize interval in seconds, default: 60, " \
+            "value range: [ 10, 600 ]" ) \
       ( STP_OPTION_MAXTIMEERROR, \
             po::value<INT32>(), \
-            "STP max time error in microseconds, default is 50000, " \
-            "value range is [ 1000, 10000000 ]" ) \
+            "STP max time error in microseconds, default: 50000, " \
+            "value range: [ 1000, 10000000 ]" ) \
       ( STP_OPTION_MAXSYNCHIST, \
             po::value<INT32>(), \
             "STP save history records of synchronize for statistics, " \
-            "default is 20, range is [ 0, 200 ]" ) \
+            "default: 20, value range: [ 0, 200 ]" ) \
       ( STP_OPTION_MAXSYNCPORTS, \
             po::value<INT32>(), \
-            "maximum UDP ports used to synchronize time, default is 1, " \
+            "maximum UDP ports used to synchronize time, default: 1, " \
             "means only use default port to synchronize, the extra ports " \
-            "will start from <port> + 1, maximum is 128" ) \
+            "will start from <port> + 1, range value: [ 1, 128 ]" ) \
       ( STP_OPTION_DEFCLIENTSPERPORT, \
             po::value<INT32>(), \
             "default synchronize clients could be assigned to a " \
-            "synchronize UDP port, default is 10" ) \
+            "synchronize UDP port, default: 10" ) \
       ( STP_OPTION_PREOPENPORTS, \
+            po::value<string>(), \
             "indicates whether to open all synchronize UDP ports during " \
-            "start of STP node, default is false" ) \
+            "start of STP node, default: false" ) \
       ( STP_OPTION_SYNCWITHSYSPORT, \
+            po::value<string>(), \
             "indicates whether to allow synchronize only on system port, " \
-            "default is true" ) \
+            "default: true" ) \
       ( STP_OPTION_DIAGLEVEL, \
             po::value<INT32>(), \
-            "STP dialog level, default is 3" ) \
+            "STP dialog level, default: 3, value range: [ 0 - 5 ]" ) \
       ( STP_OPTION_SHARINGBRK, \
             po::value<INT32>(), \
             "the timeout period for heartbeat in each replica group " \
-            "( in ms ), default is 7000, value range is [ 5000, 300000 ]" ) \
+            "( in ms ), default: 7000,\n" \
+            "value range: [ 5000, 300000 ]" ) \
       ( STP_OPTION_STARTSHIFTTIME, \
             po::value<INT32>(), \
-            "nodes starting shift time ( in seconds ), " \
-            "default is 600, value range is [ 0, 7200 ]" ) \
+            "nodes starting shift time ( in seconds ),\n" \
+            "default: 600, value range: [ 0, 7200 ]" ) \
       ( STP_OPTION_MAXTIMEMAPSIZE, \
             po::value<INT32>(), \
-            "max number to save time mapping records, " \
-            "default is 525600, 0 means not save, -1 means no limit" ) \
+            "max number to save time mapping records,\n" \
+            "default: 525600, 0 means not save, -1 means no limit" ) \
       ( STP_OPTION_TESTMODE, \
-            "start STP in test mode" )
+            po::value<string>(), \
+            "start STP in test mode, default: false" )
 
    #define COMMANDS_OPTIONS \
       ( PMD_COMMANDS_STRING( STP_OPTION_PORT, ",p" ), \
             po::value<string>(), \
-            "STP listening port, default is 9622" ) \
+            "STP listening port, default: 9622" ) \
       ( STP_OPTION_SERVERLIST, \
             po::value<string>(), \
             "STP server list, if not specified, " \
             "will use host name of this machine" ) \
       ( STP_OPTION_ROLE, \
             po::value<string>(), \
-            "STP role, default is server" ) \
+            "STP role (server/client), " \
+            "default: \"server\"" ) \
       ( STP_OPTION_SYNCINTERVAL, \
             po::value<INT32>(), \
-            "STP synchronize interval in seconds, default is 60" ) \
+            "STP synchronize interval in seconds, default: 60, " \
+            "value range: [ 10, 600 ]" ) \
       ( STP_OPTION_MAXTIMEERROR, \
             po::value<INT32>(), \
-            "STP max time error in microseconds, default is 50000, " \
-            "value range is [ 1000, 10000000 ]" ) \
+            "STP max time error in microseconds, default: 50000, " \
+            "value range: [ 1000, 10000000 ]" ) \
       ( STP_OPTION_DIAGLEVEL, \
             po::value<INT32>(), \
-            "STP dialog level, default is 3" ) \
+            "STP dialog level, default: 3, value range: [ 0 - 5 ]" ) \
       ( STP_OPTION_DAEMON, \
             "Start STP in daemon mode" ) \
       ( PMD_COMMANDS_STRING( STP_OPTION_HELP, ",h" ), \
@@ -153,47 +166,52 @@ namespace engine
             "version" ) \
       ( PMD_COMMANDS_STRING( STP_OPTION_CONFPATH, ",c" ), \
             po::value<string>(), \
-            "STP configuration file path" )
+            "STP configuration file path, \n" \
+            "eg: "STP_EXAMPLE_CONF )
 
    #define COMMANDS_HIDE_OPTIONS \
       ( STP_OPTION_HELPFULL, \
             "help all configs" ) \
       ( STP_OPTION_TESTMODE, \
-            "start STP in test mode" ) \
+            po::value<string>(), \
+            "start STP in test mode, default: false" ) \
       ( STP_OPTION_MAXSYNCHIST, \
             po::value<INT32>(), \
             "STP save history records of synchronize for statistics, " \
-            "default is 20, range is [ 0, 200 ]" ) \
+            "default: 20, value range: [ 0, 200 ]" ) \
       ( STP_OPTION_MAXSYNCPORTS, \
             po::value<INT32>(), \
-            "maximum UDP ports used to synchronize time, default is 1, " \
+            "maximum UDP ports used to synchronize time, default: 1, " \
             "means only use default port to synchronize, the extra ports " \
-            "will start from <port> + 1, maximum is 128" ) \
+            "will start from <port> + 1, range value: [ 1, 128 ]" ) \
       ( STP_OPTION_DEFCLIENTSPERPORT, \
             po::value<INT32>(), \
             "default synchronize clients could be assigned to a " \
-            "synchronize UDP port, default is 10" ) \
+            "synchronize UDP port, default: 10" ) \
       ( STP_OPTION_PREOPENPORTS, \
+            po::value<string>(), \
             "indicates whether to open all synchronize UDP ports during " \
-            "start of STP node, default is false" ) \
+            "start of STP node, default: false" ) \
       ( STP_OPTION_SYNCWITHSYSPORT, \
+            po::value<string>(), \
             "indicates whether to allow synchronize only on system port, " \
-            "default is true" ) \
+            "default: true" ) \
       ( STP_OPTION_WEIGHT, \
             po::value<INT32>(), \
-            "STP vote weight, default is 0" ) \
+            "STP vote weight, default: 0" ) \
       ( STP_OPTION_SHARINGBRK, \
             po::value<INT32>(), \
             "the timeout period for heartbeat in each replica group " \
-            "( in ms ), default is 7000, value range is [ 5000, 300000 ]" ) \
+            "( in ms ), default: 7000,\n" \
+            "value range: [ 5000, 300000 ]" ) \
       ( STP_OPTION_STARTSHIFTTIME, \
             po::value<INT32>(), \
-            "nodes starting shift time ( in seconds ), " \
-            "default is 600, value range is [ 0, 7200 ]" ) \
+            "nodes starting shift time ( in seconds ),\n" \
+            "default: 600, value range: [ 0, 7200 ]" ) \
       ( STP_OPTION_MAXTIMEMAPSIZE, \
             po::value<INT32>(), \
-            "max number to save time mapping records, " \
-            "default is 525600, 0 means not save, -1 means no limit" ) \
+            "max number to save time mapping records,\n" \
+            "default: 525600, 0 means not save, -1 means no limit" ) \
       ( STP_OPTION_CURUSER, \
             "use current user to start STP node" )
 
@@ -231,7 +249,8 @@ namespace engine
    INT32 _stpOptions::initialize( INT32 argc,
                                   CHAR **argv,
                                   const CHAR *rootPath,
-                                  BOOLEAN &daemonMode )
+                                  BOOLEAN &daemonMode,
+                                  std::string &daemonCommand )
    {
       INT32 rc = SDB_OK ;
 
@@ -285,18 +304,13 @@ namespace engine
 
       if ( vmCommand.count( STP_OPTION_DAEMON ) )
       {
-         string options ;
-
          // remove options should no saved into config file
          vmCommand.erase( STP_OPTION_CONFPATH ) ;
          vmCommand.erase( STP_OPTION_DAEMON ) ;
 
-         rc = _toCommandLine( vmCommand, options ) ;
+         rc = _toCommandLine( vmCommand, daemonCommand ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to generate command line for "
                       "daemon mode, rc: %d", rc ) ;
-
-         rc = stpStartNode( rootPath, _stpPath, options ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to start STP node, rc: %d", rc ) ;
 
          daemonMode = TRUE ;
 
@@ -323,7 +337,10 @@ namespace engine
             // file or dir not exist
             PD_LOG( PDWARNING, "Failed to read missing configurations [%s], "
                     "use default configurations", _cfgFileName ) ;
+            rc = SDB_OK ;
          }
+         PD_RC_CHECK( rc, PDERROR, "Failed to read configurations [%s], "
+                      "rc: %d", _cfgFileName, rc ) ;
       }
 
       // remove options should no saved into config file
@@ -335,6 +352,72 @@ namespace engine
       rc = pmdCfgRecord::init( &vmFile, &vmCommand ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to initialize configurations, rc: %d",
                    rc ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _stpOptions::initFromFile( const CHAR *confFile )
+   {
+      INT32 rc = SDB_OK ;
+
+      po::options_description desc( "Command options" ) ;
+      po::variables_map vmFile ;
+
+      PMD_ADD_PARAM_OPTIONS_BEGIN( desc )
+         FILE_OPTIONS
+      PMD_ADD_PARAM_OPTIONS_END
+
+      PD_CHECK( NULL != confFile, SDB_INVALIDARG, error, PDERROR,
+                "Config file is empty" ) ;
+
+      rc = utilReadConfigureFile( confFile, desc, vmFile ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to read config file [%s], rc: %d",
+                   _cfgFileName ) ;
+
+      rc = pmdCfgRecord::init( &vmFile, NULL ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to initialize configurations, rc: %d",
+                   rc ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _stpOptions::initFromRootPath( const CHAR *rootPath )
+   {
+      INT32 rc = SDB_OK ;
+
+      po::options_description desc( "Command options" ) ;
+      po::variables_map vmFile ;
+
+      PMD_ADD_PARAM_OPTIONS_BEGIN( desc )
+         FILE_OPTIONS
+      PMD_ADD_PARAM_OPTIONS_END
+
+      PD_CHECK( NULL != rootPath, SDB_INVALIDARG, error, PDERROR,
+                "Root path is empty" ) ;
+
+      // build 'conf' file path
+      rc = utilBuildFullPath( rootPath, STP_ROOT_PATH, OSS_MAX_PATHSIZE,
+                              _stpPath ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build local path for root "
+                   "path %s, rc: %d", rootPath, rc ) ;
+
+      // build stp config file path
+      rc = utilBuildFullPath( _stpPath, STP_CFG_FILE_NAME,
+                              OSS_MAX_PATHSIZE, _cfgFileName ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build config path for root "
+                   "path %s, rc: %d", rootPath, rc ) ;
+
+      rc = initFromFile( _cfgFileName ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to initialize from file [%s], "
+                   "rc: %d", rc ) ;
 
    done:
       return rc ;
@@ -459,11 +542,13 @@ namespace engine
 
       // --weight
       rdxUInt( ex, STP_OPTION_WEIGHT, _weight, FALSE, PMD_CFG_CHANGE_RUN,
-               _weight ) ;
+               _weight, TRUE ) ;
 
       // --syncinterval
       rdxUInt( ex, STP_OPTION_SYNCINTERVAL, _syncInterval, FALSE,
                PMD_CFG_CHANGE_RUN, _syncInterval ) ;
+      rdvMinMax( ex, _syncInterval, STP_MIN_SYNC_INTERVAL,
+                 STP_MAX_SYNC_INTERVAL, TRUE ) ;
 
       // --maxtimeerror
       rdxUInt( ex, STP_OPTION_MAXTIMEERROR, _maxTimeErrorUS, FALSE,
@@ -527,8 +612,10 @@ namespace engine
          rc = ossMkdir( _stpPath ) ;
          if ( rc && SDB_FE != rc )
          {
-            PD_LOG( PDERROR, "Failed to create dir: %s, rc: %d",
-                    _stpPath, rc ) ;
+            cerr << "Failed to create dir " << _stpPath << ", rc: " << rc
+                 << endl ;
+            PD_LOG_MSG( PDERROR, "Failed to create dir: %s, rc: %d",
+                        _stpPath, rc ) ;
             goto error ;
          }
          rc = SDB_OK ;
@@ -536,15 +623,26 @@ namespace engine
 
       // parse port
       rc = ossGetPort( _serviceName, _port ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to parse port from service name [%s], "
-                   "rc: %d", _serviceName, _port ) ;
+      if ( SDB_OK != rc )
+      {
+         cerr << "Invalid port: " << _serviceName << endl ;
+         PD_LOG_MSG_CHECK( FALSE, SDB_INVALIDARG, error, PDERROR,
+                           "Failed to parse port from service name [%s]",
+                           _serviceName ) ;
+      }
       pmdSetLocalPort( _port ) ;
 
       // parse server list into addresses
       _serverList.clear() ;
-      rc = parseAddressLine( _serverListString, _serverList ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to parse server list [%s], rc: %d",
-                   _serverListString, rc ) ;
+      rc = parseAddressLine( _serverListString, _serverList, ",", ":",
+                             CLS_REPLSET_MAX_NODE_SIZE ) ;
+      if ( SDB_OK != rc )
+      {
+         cerr << "Invalid serverlist: " << _serverListString << endl ;
+         PD_LOG_MSG_CHECK( FALSE, SDB_INVALIDARG, error, PDERROR,
+                           "Failed to parse server list [%s]",
+                           _serverListString ) ;
+      }
 
       // parse role
       if ( 0 == ossStrcmp( _roleString, STP_ROLE_NAME_CLIENT ) )
@@ -557,8 +655,10 @@ namespace engine
       }
       else
       {
-         PD_CHECK( FALSE, SDB_INVALIDARG, error, PDERROR,
-                   "Failed to parse role, unknown role [%s]", _roleString ) ;
+         cerr << "Invalid role: " << _roleString << endl ;
+         PD_LOG_MSG_CHECK( FALSE, SDB_INVALIDARG, error, PDERROR,
+                           "Failed to parse role, unknown role [%s]",
+                           _roleString ) ;
       }
 
       // reset role
@@ -656,10 +756,16 @@ namespace engine
       ossPrintVersion( "Serial Time Protocol version" ) ;
    }
 
-   INT32 _stpOptions::_toCommandLine( const po::variables_map &vm,
+   INT32 _stpOptions::_toCommandLine( po::variables_map &vm,
                                       string &options )
    {
       INT32 rc = SDB_OK ;
+
+      stpOptions tmpOptions ;
+
+      rc = tmpOptions.init( NULL, &vm ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to initialize temporary options with "
+                   "command variable map, rc: %d", rc ) ;
 
       try
       {
@@ -670,7 +776,12 @@ namespace engine
                iter != vm.end() ;
                ++ iter )
          {
-            ss << " --" << iter->first << " " << iter->second.as<string>() ;
+            string fieldValue ;
+            if ( SDB_OK == tmpOptions.getFieldStr( iter->first.c_str(),
+                                                   fieldValue ) )
+            {
+               ss << " --" << iter->first << " " << fieldValue ;
+            }
          }
 
          options = ss.str() ;

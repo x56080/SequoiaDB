@@ -85,9 +85,9 @@ Decrease the current value.
 .IP
 .nf
 \f[C]
->\ sequence.getCurrentValue()
+> sequence.getCurrentValue()
 1000
->\ sequence.setCurrentValue(\ 500\ )
+> sequence.setCurrentValue( 500 )
 \f[]
 .fi
 .PP
@@ -95,8 +95,8 @@ The output error message is as follows:
 .IP
 .nf
 \f[C]
-(shell):1\ uncaught\ exception:\ \-361
-Sequence\ value\ has\ been\ used
+(shell):1 uncaught exception: \-361
+Sequence value has been used
 \f[]
 .fi
 .RE
@@ -106,9 +106,9 @@ Increase the current value.
 .IP
 .nf
 \f[C]
->\ sequence.getCurrentValue()
+> sequence.getCurrentValue()
 1000
->\ sequence.setCurrentValue(\ 2000\ )
+> sequence.setCurrentValue( 2000 )
 \f[]
 .fi
 .PP
@@ -116,7 +116,7 @@ Current value after setting:
 .IP
 .nf
 \f[C]
->\ sequence.getCurrentValue()
+> sequence.getCurrentValue()
 2000
 \f[]
 .fi

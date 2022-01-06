@@ -40,9 +40,9 @@ Show the sequences name of the current database.
 .IP
 .nf
 \f[C]
->\ db.listSequences()
+> db.listSequences()
 {
-\ \ "Name":\ "SYS_8589934593_id_SEQ"
+  "Name": "SYS_8589934593_id_SEQ"
 }
 \f[]
 .fi

@@ -65,7 +65,7 @@ namespace engine
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( COORD_SEQ_FETCH_EXE ) ;
 
-      CHAR *pQuery               = NULL ;
+      const CHAR *pQuery         = NULL ;
       const CHAR *sequenceName   = NULL ;
       INT32 fetchNum             = 0 ;
       INT64 nextValue            = 0 ;
@@ -75,7 +75,7 @@ namespace engine
       BSONObjBuilder bob( 64 ) ;
       BSONObj result ;
 
-      rc = msgExtractQuery( (CHAR *)pMsg, NULL, NULL, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR *)pMsg, NULL, NULL, NULL, NULL,
                             &pQuery, NULL, NULL, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to extract query message, rc: %d", rc ) ;
 

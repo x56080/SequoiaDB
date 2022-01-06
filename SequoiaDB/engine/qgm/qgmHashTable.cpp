@@ -41,10 +41,12 @@
 #include "ossUtil.hpp"
 #include "qgmTrace.hpp"
 #include "pdTrace.hpp"
+#include "utilBsonHash.hpp"
 
 #define QGM_BUCKETS_PERCENT 0.05
-#define QGM_HASH( a )\
-        ( ossHash( (a).value(), (a).valuesize() ) % _buckets )
+
+#define QGM_HASH( ele )\
+        ( _utilBSONHasher::hashElement( ele ) % _buckets )
 
 #define QGM_GET_BUCKET(hash)\
         ( (hashTuple **)\

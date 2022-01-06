@@ -104,11 +104,14 @@ public class Transaction18308 extends SdbTestBase {
                     }
                 }
             } finally {
-                db.commit();
-                if ( db.isCollectionSpaceExist( csName ) ) {
-                    db.dropCollectionSpace( csName );
+                // The db is closed when a network error occurs
+                if ( db != null && !db.isClosed() ){
+                    db.commit();
+                    if ( db.isCollectionSpaceExist( csName ) ) {
+                        db.dropCollectionSpace( csName );
+                    }
+                    db.close();
                 }
-                db.close();
                 latch.countDown();
             }
         }

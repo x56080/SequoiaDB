@@ -80,9 +80,10 @@ namespace replay
       OSS_INLINE BOOLEAN inflate() const { return _inflate; }
       OSS_INLINE BOOLEAN isReplicaFile() const { return _isReplicaFile; }
       OSS_INLINE BOOLEAN updateWithShardingKey() const { return _updateWithShardingKey; }
+      OSS_INLINE BOOLEAN isKeepShardingKey() const { return _isKeeyShardingKey; }
 
    private:
-      INT32 setOptions();
+      INT32 setOptions( INT32 argc );
 
    private:
       string            _hostName;
@@ -107,6 +108,7 @@ namespace replay
       BOOLEAN           _inflate;
       BOOLEAN           _isReplicaFile;
       BOOLEAN           _updateWithShardingKey;
+      BOOLEAN           _isKeeyShardingKey;
       UINT32            _intervalNum;
    };
 }

@@ -42,10 +42,10 @@
 
 namespace engine
 {
-   _netRouteAgent::_netRouteAgent( INetMsgHandler *handler ):
-                                   _frame( handler, &_route )
+   _netRouteAgent::_netRouteAgent( INetMsgHandler *handler,
+                                   const NET_HANDLE &beginID )
+   :_frame( handler, &_route, beginID )
    {
-
    }
 
    // this updateRoute only change the old routeID to new one. It does NOT
@@ -241,7 +241,7 @@ namespace engine
                                    UINT32 bodyLen,
                                    NET_HANDLE *pHandle )
    {
-      SDB_ASSERT( NULL != header && NULL != body, "should not be NULL" ) ;
+      SDB_ASSERT( NULL != header, "should not be NULL" ) ;
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__NETRTAG_SYNCSND2 );
       rc = _frame.syncSend( id, header, body, bodyLen, pHandle ) ;

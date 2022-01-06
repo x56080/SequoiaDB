@@ -1,11 +1,5 @@
 [^_^]:
     数据库检测工具
-    作者：吴艳
-    时间：20190305
-    评审意见
-    王涛：20190306
-    许建辉：
-    市场部：20190401
 
 
 sdbdmsdump 是 SequoiaDB 巨杉数据库的数据文件检查工具，用于检测数据库文件结构的正确性，并且给出检测结果报告。
@@ -52,7 +46,7 @@ sdbdmsdump --version | -v
 | --clname    | -l   | 指定集合名，如果不指定则为全部集合                                                       |
 | --action    | -a   |  指定操作，必须指定值，但不能和 repair 同时使用，取值列表如下：<br> "inspect"：检测并报告任何数据损坏 <br> "dump"：将数据页格式化并输出 <br> "all"：检测数据页损坏，并格式化输出数据页                       |
 | --dumpdata  | -t   | 指定操作数据文件（取值为 true 或 false），默认值为 false                                 |
-| --dumpindex | -i   | 指定操作数据文件（取值为 true 或 false），默认值为 false                                 |
+| --dumpindex | -i   | 指定操作索引文件（取值为 true 或 false），默认值为 false                                 |
 | --dumplob   | -b   | 指定操作 Lob 文件（取值为 true 或者 false），默认值为 false                              |
 | --pagestart | -s   | 指定起始数据页，默认为 -1                                                                |
 | --numpage   | -n   | 指定需要检测或格式化的数据页数量，默认值为 1；当指定 -s 参数为非负值时，该参数生效       |

@@ -55,7 +55,7 @@ namespace engine
    */
    class _rtnContextData : public _rtnContextBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextData )
       public:
          _rtnContextData ( INT64 contextID, UINT64 eduID ) ;
          virtual ~_rtnContextData () ;
@@ -108,6 +108,11 @@ namespace engine
          virtual BOOLEAN          isWrite() const ;
          virtual BOOLEAN          needRollback() const ;
 
+         virtual UINT32 getSULogicalID() const
+         {
+            return _suLogicalID ;
+         }
+
          virtual void setResultSetFilter( rtnResultSetFilter *rsFilter,
                                           BOOLEAN appendMode = TRUE ) ;
 
@@ -125,6 +130,17 @@ namespace engine
             return ( _queryModifier ? FALSE : TRUE ) ;
          }
          virtual void      _toString( stringstream &ss ) ;
+
+         virtual INT32     _doAdvance( INT32 type,
+                                       INT32 prefixNum,
+                                       const BSONObj &keyVal,
+                                       const BSONObj &orderby,
+                                       const BSONObj &arg,
+                                       BOOLEAN isLocate,
+                                       _pmdEDUCB *cb ) ;
+
+         virtual INT32     _getAdvanceOrderby( BSONObj &orderby ) const ;
+
 
       protected:
 
@@ -168,10 +184,19 @@ namespace engine
                                  INT32 direction);
          INT32 _prepareByScanCursor(pmdEDUCB *cb);
       
+         BSONObj  _buildNextValueObj( const BSONObj &keyPattern,
+                                      const BSONObj &srcVal,
+                                      UINT32 keepNum,
+                                      INT32 type ) const ;
+         void     _buildNextRID( INT32 type, dmsRecordID &rid ) const ;
+         BOOLEAN  _compareFieldName( const BSONObj &orderby,
+                                     const BSONObj &keyPattern,
+                                     UINT32 prefixNum ) const ;
 
       protected:
          _SDB_DMSCB                 *_dmsCB ;
          _dmsStorageUnit            *_su ;
+         UINT32                     _suLogicalID ;
          _dmsMBContext              *_mbContext ;
          optAccessPlanRuntime       _planRuntime ;
          optScanType                _scanType ;
@@ -213,7 +238,7 @@ namespace engine
    */
    class _rtnContextParaData : public _rtnContextData
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextParaData )
       public:
          _rtnContextParaData( INT64 contextID, UINT64 eduID ) ;
          virtual ~_rtnContextParaData () ;
@@ -243,6 +268,15 @@ namespace engine
                                              _pmdEDUCB *cb ) ;
 
       protected:
+         virtual INT32     _doAdvance( INT32 type,
+                                       INT32 prefixNum,
+                                       const BSONObj &keyVal,
+                                       const BSONObj &orderby,
+                                       const BSONObj &arg,
+                                       BOOLEAN isLocate,
+                                       _pmdEDUCB *cb ) ;
+
+      protected:
          std::vector< _rtnContextData* >           _vecContext ;
          BOOLEAN                                   _isParalled ;
          BSONObj                                   _blockObj ;
@@ -258,7 +292,7 @@ namespace engine
    */
    class _rtnContextTemp : public _rtnContextData
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextTemp )
       public:
          _rtnContextTemp ( INT64 contextID, UINT64 eduID ) ;
          virtual ~_rtnContextTemp ();

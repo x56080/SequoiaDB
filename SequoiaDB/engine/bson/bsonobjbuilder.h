@@ -88,6 +88,43 @@ namespace bson {
         string _longName;
     };
 
+    /*
+       BSONObjBuilderOption define
+     */
+    class BSONObjBuilderOption
+    {
+    public:
+       BSONObjBuilderOption()
+       : isClientReadable( false ),
+         isAbbrevMode( false )
+       {
+       }
+
+       BSONObjBuilderOption( bool isClientReadable,
+                             bool isAbbrevMode )
+       : isClientReadable( isClientReadable ),
+         isAbbrevMode( isAbbrevMode )
+       {
+       }
+
+       ~BSONObjBuilderOption() {}
+
+       void reset()
+       {
+          isClientReadable = false ;
+          isAbbrevMode = false ;
+       }
+
+       bool isEnabled() const
+       {
+          return isClientReadable || isAbbrevMode ;
+       }
+
+    public:
+       bool isClientReadable ;
+       bool isAbbrevMode ;
+    } ;
+
     /** Utility for creating a BSONObj.
         See also the BSON() and BSON_ARRAY() macros.
     */
@@ -137,7 +174,10 @@ namespace bson {
         }
 
         ~BSONObjBuilder() {
-            if ( !_doneCalled && _b.buf() && _buf.getSize() == 0 ) {
+            // if done is not been called, and builder is not owned,
+            // which means we are in a sub-object or sub-array builder
+            // need call done to finish the BSON for outer builder
+            if ( !_doneCalled && !owned() ) {
                try {
                    _done();
                } catch ( ... ) {
@@ -158,11 +198,22 @@ namespace bson {
             _b.reserveBytes(1,true) ;
         }
 
+        /** Make it look as if "done" has been called, so that our destructor
+         *  is a no-op. Do this if you know that you don't care about the
+         *  contents of the builder you are destroying.
+         *
+         *  Note that it is invalid to call any method other than the
+         *  destructor after invoking this method.
+         */
+        void abandon() {
+            _doneCalled = true;
+        }
+
         bool isEmpty() const {
            if ( owned() ) {
-              return _b.len() <= (int)(sizeof(unsigned) + 4) ? true : false ;
+              return ( _b.len() - _offset ) <= (int)(sizeof(unsigned) + 4) ? true : false ;
            }
-           return _b.len() <= 4 ? true : false ;
+           return ( _b.len() - _offset ) <= 4 ? true : false ;
         }
 
         /** add all the fields from the object specified to this object */
@@ -201,6 +252,40 @@ namespace bson {
             _b.appendStr(fieldName);
             _b.appendBuf((void *) subObj.objdata(), subObj.objsize());
             return *this;
+        }
+
+        /** append element with builder options **/
+        BSONObjBuilder &appendEx( const BSONElement &element,
+                                  const BSONObjBuilderOption &option )
+        {
+           return appendEx( element.fieldName(), element, option ) ;
+        }
+
+        /** append element with builder options **/
+        BSONObjBuilder &appendEx( const StringData &fieldName,
+                                  const BSONElement &element,
+                                  const BSONObjBuilderOption &option ) ;
+
+        /** append element with builder options **/
+        BSONObjBuilder &appendEx( const BSONObj &object,
+                                  const BSONObjBuilderOption &option ) ;
+
+        /** append element with builder options **/
+        BSONObjBuilder &appendEx( const StringData &fieldName,
+                                  const BSONObj &subObject,
+                                  const BSONObjBuilderOption &option )
+        {
+           if ( option.isEnabled() )
+           {
+              BSONObjBuilder subBuilder( subobjStart( fieldName ) ) ;
+              subBuilder.appendEx( subObject, option ) ;
+              subBuilder.doneFast() ;
+           }
+           else
+           {
+              append( fieldName, subObject ) ;
+           }
+           return (*this) ;
         }
 
         /** add a subobject as a member */
@@ -848,6 +933,9 @@ namespace bson {
             return data;
         }
 
+        StringData _genAbbrevStr( StackBufBuilder &builder,
+                                  const StringData &value ) ;
+
         BufBuilder &_b;
         BufBuilder _buf;
         int _offset;
@@ -887,6 +975,13 @@ namespace bson {
             return *this;
         }
 
+        BSONArrayBuilder &appendEx( const BSONElement &e,
+                                    const BSONObjBuilderOption &option )
+        {
+           _b.appendEx( num(), e, option ) ;
+           return *this ;
+        }
+
         template <typename T>
         BSONArrayBuilder& operator<<(const T& x) {
             return append(x);
@@ -905,6 +1000,8 @@ namespace bson {
         BSONObj done() { return _b.done(); }
 
         void doneFast() { _b.doneFast(); }
+
+        void abandon() { _b.abandon() ; }
 
         template <typename T>
         BSONArrayBuilder& append(const StringData& name, const T& x) {

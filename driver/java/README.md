@@ -79,6 +79,12 @@ mvn clean package -Prelease
 ```
 mvn clean deploy -Prelease
 ```
+
+If you only want to install to local(skip test/gpg), run command:
+
+```
+mvn clean install -Prelease -Dmaven.test.skip=true -Dgpg.skip
+```
 Note that you should have a OSSRH JIRA account and executable "pgp" command in local host.
 See http://central.sonatype.org/pages/ossrh-guide.html for details.
 And you should configure password of GPG secret key and OSSRH JIRA account in ~/.m2/settings.xml:

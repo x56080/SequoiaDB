@@ -1,6 +1,6 @@
 本文档主要介绍如何在 SAC 上部署 PostgreSQL 实例。在部署 PostgreSQL 实例之前用户需要先完成[部署包][deploy_package]操作。
 
-## 创建PostgreSQL实例
+##创建 PostgreSQL 实例##
 
 创建 PostgreSQL 实例是指在已经安装了部署包的主机中创建一个 PostgreSQL 实例。
 
@@ -23,7 +23,7 @@
 >  
 > 用户创建 PostgreSQL 实例时自动建立一个名为 postgres 的库，建议后续操作不要删除此库。  
 
-## 添加已有PostgreSQL实例
+##添加已有 PostgreSQL 实例##
 
 如果用户不需要创建实例，可以将已有 PostgreSQL 实例添加至 SAC。
 
@@ -54,7 +54,7 @@
 
   ![添加 PostgreSQL 实例][append_postgresql_5]
 
-## 添加PostgreSQL实例存储
+##添加 PostgreSQL 实例存储##
 
 用户创建 PostgreSQL 实例或添加已有 PostgreSQL 实例后，需要添加实例存储将 PostgreSQL 实例与 SequoiaDB 巨杉数据库进行关联。
 
@@ -75,7 +75,7 @@
    > **Note:**
    >
    > - 关联名：创建关联完成后的名字，全局唯一   
-   > - preferedinstance：指定 SequoiaSQL-PostgreSQL 访问 SequoiaDB 数据节点时，优先连接哪种角色的数据节点，默认为’a’，可输入参数 m/s/a/1~7，分别表示 master/slave/anyone/node1~node7   
+   > - preferedinstance：指定 PostgreSQL 实例访问 SequoiaDB 数据节点时，优先连接哪种角色的数据节点，默认为’a’，可输入参数 m/s/a/1~7，分别表示 master/slave/anyone/node1~node7   
    > - transaction：设置 SequoiaDB 是否开启事务，默认为 off，开启为 on   
    > - 存储集群的节点：选择关联 SequoiaDB 服务的 coord 节点，默认所有 coord 节点
 

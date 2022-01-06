@@ -37,4 +37,4 @@ v3.2.5 and above, v3.4.1 and above
 .IP \[bu] 2
 Get the detail of collection \f[C]sample.employee\f[].
 .PP
-\f[C]>\ db.sample.employee.getDetail()\f[]
+\f[C]> db.sample.employee.getDetail()\f[]

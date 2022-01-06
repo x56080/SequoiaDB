@@ -76,11 +76,20 @@ if( typeof ( ESSVCNAME ) == "undefined" ) { ESSVCNAME = '9200'; }
 //ES全文索引前缀，与工程名相关
 if( typeof ( FULLTEXTPREFIX ) == "undefined" ) { FULLTEXTPREFIX = ''; }
 if( typeof ( CLEANFORFAIL ) == "undefined" ) { var CLEANFORFAIL = false; }
+//数据源端主机名，CI默认传入localhost
+if( typeof ( DSHOSTNAME ) == "undefined" ) { DSHOSTNAME = 'localhost'; }
+//数据源端端口号，CI默认传入11810
+if( typeof ( DSSVCNAME ) == "undefined" ) { DSSVCNAME = '11810'; }
+//STP服务端主机名，CI默认传入localhost
+if( typeof ( STPHOSTNAME ) == "undefined" ) { STPHOSTNAME = 'localhost'; }
+//STP服务端端口号，CI默认传入9622
+if( typeof ( STPSVCNAME ) == "undefined" ) { STPSVCNAME = '9622'; }
 
+if( typeof ( SDBADMINPWD ) == "undefined" ) { SDBADMINPWD = "Admin@1024"; }
 // CHANGEDPREFIX = local_test
 var cmd = new Cmd();
 var hostname = cmd.run( "hostname" ).split( "\n" )[0];
-hostname = hostname.replace(/-/g,"_");
+hostname = hostname.replace( /-/g, "_" );
 var COMMCSNAME = CHANGEDPREFIX + "_" + hostname + "_cs";
 var COMMCLNAME = CHANGEDPREFIX + "_cl";
 var COMMDUMMYCLNAME = "test_dummy_cl";
@@ -379,12 +388,12 @@ function commDropIndex ( cl, indexName, ignoreNotExist )
 @author Jianhui Xu
 @parameter
    exist     {boolean}  :  默认为 true，检测索引存在
-   timeout   {number}   :  默认为 30，检测超时时间
+   timeout   {number}   :  默认为 300，检测超时时间
 ******************************************************************************/
 function commCheckIndexConsistency ( cl, indexName, exist, timeout )
 {
    if( exist == undefined ) { exist = true; }
-   if( timeout == undefined ) { timeout = 30; }
+   if( timeout == undefined ) { timeout = 300; }
    commCheckType( exist, "boolean" );
    commCheckType( timeout, "number" );
 
@@ -864,12 +873,43 @@ function commCheckBusinessStatus ( db, timeout, checkLSN )
       }
       else if( i < timeout )
       {
+         time++;
          sleep( 1000 );
       }
       else
       {
          throw new Error( "check the cluster state timeout, check failed nodes: "
             + JSON.stringify( tmpArr, "", 1 ) );
+      }
+   }
+
+   // LSN 已校验通过，校验DiffLSNWithPrimary不为-1，超时不报错，连续校验通过5次退出
+   var passNum = 0;
+   for( var i = time; i <= timeout; i++ )
+   {
+      var allDiffLSNWithPrimary = [];
+      var cursor = db.snapshot( SDB_SNAP_HEALTH, { Role: "data" }, { DiffLSNWithPrimary: "" } );
+      while( cursor.next() )
+      {
+         var obj = cursor.current().toObj();
+         allDiffLSNWithPrimary.push( obj.DiffLSNWithPrimary );
+      }
+      cursor.close();
+      if( allDiffLSNWithPrimary.indexOf( -1 ) == -1 )
+      {
+         passNum++;
+         sleep( 1000 );
+         time++;
+      }
+      else
+      {
+         passNum = 0;
+         sleep( 1000 );
+         time++;
+      }
+      if( passNum > 5 )
+      {
+         break;
       }
    }
 }

@@ -39,6 +39,7 @@
 #include "rtnTrace.hpp"
 #include "rtnExtDataHandler.hpp"
 #include "../bson/lib/md5.hpp"
+#include "ixmUtil.hpp"
 
 namespace engine
 {
@@ -268,7 +269,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__RTNEXTDATAHANDLER_ONCRTTEXTIDX ) ;
       utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
       rtnExtCrtIdxCtx *crtContext = NULL ;
-      CHAR extName[ DMS_MAX_EXT_NAME_SIZE + 1 ] = { 0 };
+      CHAR extName[ DMS_MAX_EXT_NAME_SIZE + 1 ] = { 0 } ;
 
       if ( !context->isMBLock( EXCLUSIVE ) )
       {
@@ -294,8 +295,8 @@ namespace engine
          goto error ;
       }
 
-      rc = _getExtDataName( clUniqueID, indexCB.getName(), extName,
-                            DMS_MAX_EXT_NAME_SIZE + 1 ) ;
+      rc = ixmBuildExtDataName( clUniqueID, indexCB.getName(), extName,
+                                DMS_MAX_EXT_NAME_SIZE + 1 ) ;
       PD_RC_CHECK( rc, PDERROR, "Get external data name failed[%d]", rc ) ;
 
       try
@@ -944,40 +945,6 @@ namespace engine
             _release() ;
          }
       }
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAHANDLER__GETEXTDATANAME, "_rtnExtDataHandler::_getExtDataName" )
-   INT32 _rtnExtDataHandler::_getExtDataName( utilCLUniqueID clUniqID,
-                                              const CHAR *idxName,
-                                              CHAR *extName,
-                                              UINT32 buffSize )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAHANDLER__GETEXTDATANAME ) ;
-      INT32 length = 0 ;
-
-      SDB_ASSERT( idxName, "Index name is NULL") ;
-      SDB_ASSERT( extName, "Buffer is empty" ) ;
-      SDB_ASSERT( buffSize >= DMS_MAX_EXT_NAME_SIZE + 1, "buffer too small" ) ;
-
-      length = ossSnprintf( extName, DMS_MAX_EXT_NAME_SIZE + 1,
-                            SYS_PREFIX"_%llu_", clUniqID ) ;
-      if ( length + ossStrlen( idxName ) > DMS_MAX_EXT_NAME_SIZE )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "Index name size[%u] too long for external data",
-                 ossStrlen( idxName ) ) ;
-         goto error ;
-      }
-
-      ossSnprintf( extName + length, DMS_MAX_EXT_NAME_SIZE + 1 - length,
-                   idxName ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__RTNEXTDATAHANDLER__GETEXTDATANAME, rc ) ;
-      return rc ;
-   error:
       goto done ;
    }
 

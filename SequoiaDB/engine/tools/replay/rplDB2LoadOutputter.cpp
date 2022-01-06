@@ -401,7 +401,7 @@ namespace replay
       const CHAR *dbName = NULL ;
       const CHAR *tableName = NULL ;
 
-      if ( DMS_LOG_WRITE_MOD_FULL != logWriteMod )
+      if ( DPS_LOG_WRITE_MOD_FULL != logWriteMod )
       {
          rc = SDB_INVALIDARG ;
          PD_RC_CHECK( rc, PDERROR, "LogWriteMod(%d) is invalid, rc = %d",

@@ -14,23 +14,23 @@ SdbQuery
 .SH DESCRIPTION
 .PP
 Delete the result set after the query.
-.TE
-
+.RS
+.PP
 \f[B]Note:\f[]
 .RE
-.PP
+.RS
 .IP "1." 3
 Remove() cannot be used with count() and update().
 .RE
-.PP
+.RS
 .IP "2." 3
 If remove() is used with sort(), it must use an index when sorts on a single
 node.
 .RE
-.PP
+.RS
 .IP "3." 3
 When remove is used with limit() and skip() in a cluster, it must ensure that
-the query conditions are executed on a single partition or on a single child table.
+the query conditions are executed on a single node or on a single child table.
 .RE
 .SH PARAMETERS
 .PP
@@ -42,23 +42,23 @@ On success, return the cursor of the deleted result set.
 On error, exception will be thrown.
 .SH ERRORS
 .PP
-when exception happen, use getLastError() to get the error code and use
+When exception happens, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
-For more detial, please reference to Troubleshooting.
+For more details, refer to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 Select the record that the age field value greater than (with using $gt) 10
-under the collection, bar, and remove the records.
+under the collection, employee, and remove the records.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find(\ {\ age:\ {\ $gt:\ 10\ }\ }\ ).remove()
+> db.sample.employee.find( { age: { $gt: 10 } } ).remove()
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5d2c4455f6d7aeedc15ddf87"
-\ \ },
-\ \ "name":\ "tom",
-\ \ "age":\ 18
+  "_id": {
+    "$oid": "5d2c4455f6d7aeedc15ddf87"
+  },
+  "name": "tom",
+  "age": 18
 }
 \f[]
 .fi

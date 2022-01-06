@@ -715,6 +715,12 @@ class LogExporter:
                     pass
         return audit_list
 
+    def __check_audit_file_exist(self, audit_path):
+        audit_file_list = self.__get_audit_file_list(False)
+        if len(audit_file_list) == 0:
+            logging.warn("No audit file in the audit path " \
+                         "{}".format(audit_path))
+
     def __get_eldest_audit_file(self):
         audit_path = self.__audit_path
         audit_file_name = self.__audit_log_name
@@ -724,11 +730,10 @@ class LogExporter:
         else:
             reverse_order = True
 
+        self.__check_audit_file_exist(audit_path)
         while True:
             audit_file_list = self.__get_audit_file_list(reverse_order)
             if len(audit_file_list) == 0:
-                logging.info("No audit file in the audit path " \
-                             "{}".format(audit_path))
                 time.sleep(PROCESS_WAIT_TIME)
                 continue
             audit_inode_before = os.stat(audit_file).st_ino
@@ -850,7 +855,11 @@ class LogExporter:
             buf = ""
             checked = False
             dict = {}
+            is_msg_info = False
             for ch in self.__buf:
+                if True == is_msg_info:
+                    buf += ch
+                    continue
                 if ch != ':':
                     buf += ch
                     continue
@@ -898,12 +907,12 @@ class LogExporter:
                     if value == self.__cl_full_name:
                         return
                     checked = True
+                    is_msg_info = True
                     dict[FIELD_OBJECT_NAME] = value
                 if checked:
                     buf = ''
                     checked = False
                     continue
-                buf += ch
             dict[FIELD_MESSAGE] = buf.strip()
             dict[FIELD_CONNECT_ID] = 0
             dict[FIELD_OPERATION_ID] = 0

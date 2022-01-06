@@ -64,7 +64,7 @@ Open an INI file.
 .IP
 .nf
 \f[C]
->\ var\ ini\ =\ new\ IniFile(\ "/opt/sequoiadb/file.ini",\ SDB_INIFILE_FLAGS_DEFAULT\ )
+> var ini = new IniFile( "/opt/sequoiadb/file.ini", SDB_INIFILE_FLAGS_DEFAULT )
 \f[]
 .fi
 .IP \[bu] 2
@@ -72,6 +72,6 @@ Set a comment at the end.
 .IP
 .nf
 \f[C]
->\ ini.setLastComment(\ "End\ of\ INI\ file"\ )
+> ini.setLastComment( "End of INI file" )
 \f[]
 .fi

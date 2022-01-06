@@ -43,6 +43,7 @@
 #include "oss.hpp"
 #include "dms.hpp"
 #include "ixm.hpp"
+#include "ixmUtil.hpp"
 #include "ossUtil.hpp"
 #include "../bson/bson.h"
 #include "../bson/bsonobj.h"
@@ -96,36 +97,7 @@ namespace engine
 
       OSS_INLINE INT32 getIndexType( UINT16 &type ) const
       {
-         INT32 rc = SDB_OK ;
-         UINT16 indexType = IXM_EXTENT_TYPE_NONE ;
-         if ( !ixmIndexCB::generateIndexType( _indexDef, indexType ) )
-         {
-            PD_LOG( PDERROR, "Get index type from definition failed" ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-
-         if ( IXM_EXTENT_HAS_TYPE( indexType, IXM_EXTENT_TYPE_POSITIVE ) )
-         {
-            type |= IXM_EXTENT_TYPE_POSITIVE ;
-         }
-         if ( IXM_EXTENT_HAS_TYPE( indexType, IXM_EXTENT_TYPE_REVERSE ) )
-         {
-            type |= IXM_EXTENT_TYPE_REVERSE ;
-         }
-         if ( IXM_EXTENT_HAS_TYPE( indexType, IXM_EXTENT_TYPE_2D ) )
-         {
-            type |= IXM_EXTENT_TYPE_2D ;
-         }
-         if ( IXM_EXTENT_HAS_TYPE( indexType, IXM_EXTENT_TYPE_TEXT ) )
-         {
-            type |= IXM_EXTENT_TYPE_TEXT ;
-         }
-
-      done:
-         return rc ;
-      error:
-         goto done ;
+         return ixmGetIndexType( _indexDef, type ) ;
       }
 
       OSS_INLINE const CHAR* getExtDataName() const

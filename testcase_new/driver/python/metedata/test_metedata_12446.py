@@ -25,7 +25,7 @@ class TestMeteData12446(testlib.SdbTestBase):
          self.db.drop_collection_space(self.cs_name)
       except SDBBaseError as e:
          if -34 != e.code:
-            self.fail("drop_cs_fail,detail:" + e.detail)
+            self.fail("drop_cs_fail,detail:" + str(e))
       self.cs = self.db.create_collection_space(self.cs_name)
       
       #create cl set Compressed
@@ -58,7 +58,7 @@ class TestMeteData12446(testlib.SdbTestBase):
             self.db.drop_collection_space(self.cs_name)
          except SDBBaseError as e:
             if -34 != e.code:
-               self.fail("tear_down_fail,detail:" + e.detail)
+               self.fail("tear_down_fail,detail:" + str(e))
             
    def check_cl_snapshot_8(self, cl_full_name, options):
       cursor = self.db.get_snapshot(8, condition={"Name": cl_full_name})

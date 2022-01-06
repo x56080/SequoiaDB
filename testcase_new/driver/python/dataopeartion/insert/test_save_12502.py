@@ -7,6 +7,7 @@ from bson.objectid import ObjectId
 from lib import testlib
 from pysequoiadb.error import (SDBBaseError, SDBError)
 
+cs_name = "cs_12502"
 class TestSave12502(testlib.SdbTestBase):
    def setUp(self):
       if testlib.is_standalone():
@@ -21,8 +22,8 @@ class TestSave12502(testlib.SdbTestBase):
       destGroupName = destGroup["GroupName"]
 
       cl_option = {"ShardingKey": {'no': 1}, "ShardingType": 'hash', "Group": srcGroupName}
-      testlib.drop_cs(self.db, self.cs_name, ignore_not_exist = True)
-      self.cs = self.db.create_collection_space(self.cs_name)
+      testlib.drop_cs(self.db, cs_name, ignore_not_exist = True)
+      self.cs = self.db.create_collection_space(cs_name)
       self.cl = self.cs.create_collection(self.cl_name,options = cl_option)
 		
       self.insert_datas()
@@ -122,11 +123,11 @@ class TestSave12502(testlib.SdbTestBase):
          self.check_result(condition4, expectCount4)
 			
       except SDBError as e:
-         self.fail('test save fail: ' + e.detail)                    
+         self.fail('test save fail: ' + str(e))
 			
    def tearDown(self):
       if self.should_clean_env():
-         self.db.drop_collection_space(self.cs_name)
+         self.db.drop_collection_space(cs_name)
          
 
    def insert_datas(self):
@@ -142,13 +143,13 @@ class TestSave12502(testlib.SdbTestBase):
       try:
          self.cl.bulk_insert(flag, doc)
       except SDBBaseError as e:
-         self.fail('insert fail: ' + e.detail)
+         self.fail('insert fail: ' + str(e))
 
    def split_cl(self, srcGroupName, destGroupName):
       try:
-         self.cl.split_async_by_percent(srcGroupName, destGroupName, 50.0)
+         self.cl.split_by_percent(srcGroupName, destGroupName, 50.0)
       except SDBBaseError as e:
-         self.fail('split fail: ' + e.detail) 
+         self.fail('split fail: ' + str(e))
 
    def check_result(self, cond, expectCount):
       actCount = 0
@@ -156,4 +157,4 @@ class TestSave12502(testlib.SdbTestBase):
          actCount = self.cl.get_count(condition=cond)
          self.assertEqual(actCount, expectCount)
       except SDBBaseError as e:
-         self.fail('check result fail: ' + e.detail)
+         self.fail('check result fail: ' + str(e))

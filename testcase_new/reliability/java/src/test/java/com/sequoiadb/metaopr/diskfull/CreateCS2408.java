@@ -2,6 +2,7 @@ package com.sequoiadb.metaopr.diskfull;
 
 import java.util.Date;
 
+import com.sequoiadb.metaopr.Utils;
 import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
@@ -97,7 +98,7 @@ public class CreateCS2408 extends SdbTestBase {
             MyUtil.checkListCS( db, csNameBase, CS_NUM );
             Utils.checkConsistency( groupMgr );
             runSuccess = true;
-        } catch ( ReliabilityException e ) {
+        } catch ( ReliabilityException | InterruptedException e ) {
             e.printStackTrace();
             Assert.fail( e.getMessage() );
         } finally {

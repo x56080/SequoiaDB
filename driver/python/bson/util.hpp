@@ -120,6 +120,9 @@
 #define MAKE_RETURN_INT_INT_PYSTRING_SIZE( ret_value, type_value, c_string, c_stringsize ) \
    ( PyObject * )Py_BuildValue( "(i,i,s#)", ret_value, type_value, c_string, c_stringsize )
 
+#define MAKE_RETURN_INT_LONG_INT_INT( ret_value, long_value1, int_value2, int_value3 ) \
+   ( PyObject * )Py_BuildValue( "(i,l,i,i)", ret_value, long_value1, int_value2, int_value3 )
+
 #define MAKE_RETURN_INT_INT_INT_INT_STRING( verion, sub_verion, fixed, release, build)\
    ( PyObject * )Py_BuildValue( "(i,i,i,i,s)", version, sub_version, fixed, release, build )
 
@@ -248,6 +251,24 @@
       {                                                                 \
          SINT64 id = PyLong_AsLongLong(PyList_GetItem( py_list, idx)) ; \
          buffer[idx] = id;                                              \
+      }                                                                 \
+   }while( FALSE )
+
+#define MAKE_PYLIST_TO_STRARR( py_list, str_arr )                       \
+   do                                                                   \
+   {                                                                    \
+      if( !PyList_Check( py_list) )                                     \
+      {                                                                 \
+         rc = SDB_INVALIDARGS ;                                         \
+         goto done ;                                                    \
+      }                                                                 \
+                                                                        \
+      Py_ssize_t list_size = PyList_Size( py_list ) ;                   \
+      for ( int idx = 0 ; idx < list_size ; ++idx )                     \
+      {                                                                 \
+         CHAR *str = NULL ;                                             \
+         str = PyString_AsString( PyList_GetItem( py_list, idx) ) ;     \
+         str_arr[idx] = str;                                            \
       }                                                                 \
    }while( FALSE )
 

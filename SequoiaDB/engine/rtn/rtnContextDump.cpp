@@ -78,6 +78,11 @@ namespace engine
       _ownnedFetch = ownned ;
    }
 
+   void _rtnContextDump::setMonProcessor( IRtnMonProcessorPtr monProcessorPtr )
+   {
+      _monProcessorPtr = monProcessorPtr ;
+   }
+
    const CHAR* _rtnContextDump::name() const
    {
       return "DUMP" ;
@@ -233,9 +238,23 @@ namespace engine
       goto done ;
    }
 
+   void _rtnContextDump::_onDataEmpty ()
+   {
+      if ( !_hitEnd &&
+           isEmpty() &&
+           ( 0 == _numToReturn ||
+             NULL == _pFetch ||
+             _pFetch->isHitEnd() ) )
+      {
+         _hitEnd = TRUE ;
+      }
+   }
+
    INT32 _rtnContextDump::_prepareData( pmdEDUCB * cb )
    {
       INT32 rc = SDB_OK ;
+      BOOLEAN hasOut = FALSE ;
+      IRtnMonProcessor *pMonProcessor = _monProcessorPtr.get() ;
 
       if ( !_pFetch || _pFetch->isHitEnd() )
       {
@@ -266,18 +285,68 @@ namespace engine
             rc = _pFetch->fetch( obj ) ;
             if ( rc )
             {
-               PD_LOG( PDERROR, "MonFetch[%s] fetch object failed, rc: %d",
-                       _pFetch->getName(), rc ) ;
-               goto error ;
+               if ( !( ( SDB_DMS_EOC == rc ) && pMonProcessor ) )
+               {
+                  PD_LOG( PDERROR, "MonFetch[%s] fetch object failed, rc: %d",
+                          _pFetch->getName(), rc ) ;
+                  goto error ;
+               }
             }
 
-            /// add to context
-            rc = monAppend( obj ) ;
-            if ( rc )
+            if ( pMonProcessor )
             {
-               PD_LOG( PDERROR, "Append obj[%s] to context failed, rc: %d",
-                       obj.toString().c_str(), rc ) ;
-               goto error ;
+               if ( SDB_OK == rc )
+               {
+                  rc = pMonProcessor->pushIn( obj ) ;
+                  if ( rc )
+                  {
+                     PD_LOG( PDERROR, "Push obj[%s] to processor failed, rc: %d",
+                             obj.toString().c_str(), rc ) ;
+                     goto error ;
+                  }
+               }
+
+               do
+               {
+                  rc = pMonProcessor->output( obj, hasOut ) ;
+                  if ( rc )
+                  {
+                     PD_LOG( PDERROR, "Get output from processor failed, "
+                             "rc: %d", rc ) ;
+                     goto error ;
+                  }
+                  if ( hasOut )
+                  {
+                     rc = monAppend( obj ) ;
+                     if ( rc )
+                     {
+                        PD_LOG( PDERROR, "Append obj[%s] to context failed, "
+                                "rc: %d", obj.toString().c_str(), rc ) ;
+                        goto error ;
+                     }
+                  }
+                  else if ( _pFetch->isHitEnd() )
+                  {
+                     rc = pMonProcessor->done( hasOut ) ;
+                     if ( rc )
+                     {
+                        PD_LOG( PDERROR, "Done processor failed, rc: %d",
+                                rc ) ;
+                        goto error ;
+                     }
+                  }
+               } while( hasOut && !pMonProcessor->eof() ) ;
+            }
+            else
+            {
+               /// add to context
+               rc = monAppend( obj ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Append obj[%s] to context failed, rc: %d",
+                          obj.toString().c_str(), rc ) ;
+                  goto error ;
+               }
             }
          } /// end for
 

@@ -48,7 +48,7 @@ the exceptions of `createCoord()` are as below:
 
 When error happen, use [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)
 to get the error message or use [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)
-to get the error code. See [troubleshooting](manual/faq.md) for
+to get the error code. See [troubleshooting](manual/FAQ/faq_sdb.md) for
 more details.
 
 ##HISTORY##

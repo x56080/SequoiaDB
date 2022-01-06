@@ -8,7 +8,7 @@ getIndexStat - 获取指定索引的统计信息
 
 ##类别##
 
-Collection
+SdbCollection
 
 ##描述##
 
@@ -22,7 +22,7 @@ Collection
 
 ##返回值##
 
-函数执行成功时，返回汇总后的索引统计信息，其类型为 BSONObj。返回的字段信息可参考[索引统计信息快照][INDEXSTATS]。
+函数执行成功时，将返回一个 BSONObj 类型的对象。通过该对象获取汇总后的索引统计信息，字段说明可参考[索引统计信息快照][SDB_SNAP_INDEXSTATS]。
 
 函数执行失败时，将抛异常并输出错误信息。
 
@@ -80,8 +80,8 @@ v3.4.2 及以上版本
 
 [^_^]:
     本文使用的引用及链接
-[INDEXSTATS]:manual/Manual/Snapshot/SDB_SNAP_INDEXSTATS.md
+[SDB_SNAP_INDEXSTATS]:manual/Manual/Snapshot/SDB_SNAP_INDEXSTATS.md
 [analyze]:manual/Manual/Sequoiadb_Command/Sdb/analyze.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
-[faq]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md

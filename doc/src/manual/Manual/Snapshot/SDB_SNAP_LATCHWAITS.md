@@ -83,4 +83,4 @@ SDB_SNAP_LATCHWAITS
 [^_^]:
     本文使用的所有引用及链接
 [SnapshotOption]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects/SdbSnapshotOption.md
-[configuration]:manual/Manual/Database_Configuration/configuration_parameters.md
+[configuration]:manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md

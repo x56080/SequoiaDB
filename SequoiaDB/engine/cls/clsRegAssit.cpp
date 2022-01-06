@@ -62,90 +62,105 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREGASSIT_BUILDOBJ, "_clsRegAssit::buildRequestObj" )
-   BSONObj _clsRegAssit::buildRequestObj ()
+   INT32 _clsRegAssit::buildRequestObj ( BSONObj &request )
    {
       PD_TRACE_ENTRY ( SDB__CLSREGASSIT_BUILDOBJ );
+
+      INT32 rc = SDB_OK ;
       pmdKRCB *pKRCB = pmdGetKRCB () ;
       const CHAR* hostName = pKRCB->getHostName() ;
-      BSONObj obj ;
 
-      BSONObjBuilder bsonBuilder ;
-      bsonBuilder.append ( CAT_TYPE_FIELD_NAME, (INT32)(pKRCB->getDBRole()) ) ;
-      bsonBuilder.append ( CAT_HOST_FIELD_NAME, hostName ) ;
-      bsonBuilder.append ( PMD_OPTION_DBPATH, pKRCB->getDBPath() ) ;
-
-      if ( utilCheckInstanceID( pKRCB->getOptionCB()->getInstanceID(), FALSE ) )
+      try
       {
-         bsonBuilder.append ( PMD_OPTION_INSTANCE_ID,
-                              pKRCB->getOptionCB()->getInstanceID() ) ;
-      }
+         BSONObjBuilder bsonBuilder ;
+         bsonBuilder.append ( CAT_TYPE_FIELD_NAME, (INT32)(pKRCB->getDBRole()) ) ;
+         bsonBuilder.append ( CAT_HOST_FIELD_NAME, hostName ) ;
+         bsonBuilder.append ( PMD_OPTION_DBPATH, pKRCB->getDBPath() ) ;
 
-      BSONArrayBuilder subServiceBuild( bsonBuilder.subarrayStart(
-         CAT_SERVICE_FIELD_NAME ) ) ;
-
-      /// local
-      BSONObjBuilder subLocalBuild( subServiceBuild.subobjStart() ) ;
-      subLocalBuild.append ( CAT_SERVICE_TYPE_FIELD_NAME ,
-                            (INT32)MSG_ROUTE_LOCAL_SERVICE ) ;
-      subLocalBuild.append ( CAT_SERVICE_NAME_FIELD_NAME,
-                            pKRCB->getSvcname() ) ;
-      subLocalBuild.done() ;
-
-      /// repl
-      BSONObjBuilder subReplBuild( subServiceBuild.subobjStart() ) ;
-      subReplBuild.append ( CAT_SERVICE_TYPE_FIELD_NAME ,
-                            (INT32)MSG_ROUTE_REPL_SERVICE ) ;
-      subReplBuild.append ( CAT_SERVICE_NAME_FIELD_NAME,
-                            pKRCB->getOptionCB()->replService() ) ;
-      subReplBuild.done() ;
-
-      /// shard
-      BSONObjBuilder subShdBuild( subServiceBuild.subobjStart() ) ;
-      subShdBuild.append ( CAT_SERVICE_TYPE_FIELD_NAME ,
-                           (INT32)MSG_ROUTE_SHARD_SERVCIE) ;
-      subShdBuild.append ( CAT_SERVICE_NAME_FIELD_NAME,
-                           pKRCB->getOptionCB()->shardService() ) ;
-      subShdBuild.done() ;
-
-      /// cata
-      BSONObjBuilder subCataBuild( subServiceBuild.subobjStart() ) ;
-      subCataBuild.append ( CAT_SERVICE_TYPE_FIELD_NAME ,
-                            (INT32)MSG_ROUTE_CAT_SERVICE ) ;
-      subCataBuild.append ( CAT_SERVICE_NAME_FIELD_NAME,
-                            pKRCB->getOptionCB()->catService() ) ;
-      subCataBuild.done() ;
-
-      subServiceBuild.done() ;
-
-      // append IP address
-      ossIPInfo ipInfo ;
-      if ( ipInfo.getIPNum() > 0 )
-      {
-         BSONArrayBuilder subIPBuild( bsonBuilder.subarrayStart(
-            CAT_IP_FIELD_NAME ) ) ;
-
-         ossIP* ip = ipInfo.getIPs() ;
-         for ( INT32 i = ipInfo.getIPNum(); i > 0; i-- )
+         if ( utilCheckInstanceID( pKRCB->getOptionCB()->getInstanceID(), FALSE ) )
          {
-            // skip loopback IP
-            if (0 != ossStrncmp( ip->ipAddr, OSS_LOOPBACK_IP,
-                                 ossStrlen(OSS_LOOPBACK_IP)) )
-            {
-               subIPBuild.append( ip->ipAddr ) ;
-            }
-            ip++ ;
+            bsonBuilder.append ( PMD_OPTION_INSTANCE_ID,
+                                 pKRCB->getOptionCB()->getInstanceID() ) ;
          }
 
-         // support 'localhost' and '127.0.0.1' for node's hostname
-         subIPBuild.append( OSS_LOOPBACK_IP ) ;
-         subIPBuild.append( OSS_LOCALHOST ) ;
-         subIPBuild.done() ;
+         BSONArrayBuilder subServiceBuild( bsonBuilder.subarrayStart(
+            CAT_SERVICE_FIELD_NAME ) ) ;
 
-         obj = bsonBuilder.obj () ;
+         /// local
+         BSONObjBuilder subLocalBuild( subServiceBuild.subobjStart() ) ;
+         subLocalBuild.append ( CAT_SERVICE_TYPE_FIELD_NAME ,
+                               (INT32)MSG_ROUTE_LOCAL_SERVICE ) ;
+         subLocalBuild.append ( CAT_SERVICE_NAME_FIELD_NAME,
+                               pKRCB->getSvcname() ) ;
+         subLocalBuild.done() ;
+
+         /// repl
+         BSONObjBuilder subReplBuild( subServiceBuild.subobjStart() ) ;
+         subReplBuild.append ( CAT_SERVICE_TYPE_FIELD_NAME ,
+                               (INT32)MSG_ROUTE_REPL_SERVICE ) ;
+         subReplBuild.append ( CAT_SERVICE_NAME_FIELD_NAME,
+                               pKRCB->getOptionCB()->replService() ) ;
+         subReplBuild.done() ;
+
+         /// shard
+         BSONObjBuilder subShdBuild( subServiceBuild.subobjStart() ) ;
+         subShdBuild.append ( CAT_SERVICE_TYPE_FIELD_NAME ,
+                              (INT32)MSG_ROUTE_SHARD_SERVCIE) ;
+         subShdBuild.append ( CAT_SERVICE_NAME_FIELD_NAME,
+                              pKRCB->getOptionCB()->shardService() ) ;
+         subShdBuild.done() ;
+
+         /// cata
+         BSONObjBuilder subCataBuild( subServiceBuild.subobjStart() ) ;
+         subCataBuild.append ( CAT_SERVICE_TYPE_FIELD_NAME ,
+                               (INT32)MSG_ROUTE_CAT_SERVICE ) ;
+         subCataBuild.append ( CAT_SERVICE_NAME_FIELD_NAME,
+                               pKRCB->getOptionCB()->catService() ) ;
+         subCataBuild.done() ;
+
+         subServiceBuild.done() ;
+
+         // append IP address
+         ossIPInfo ipInfo ;
+         rc = ipInfo.getInitRC() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get ip info, rc: %d", rc ) ;
+         if ( ipInfo.getIPNum() > 0 )
+         {
+            BSONArrayBuilder subIPBuild( bsonBuilder.subarrayStart(
+               CAT_IP_FIELD_NAME ) ) ;
+
+            ossIP* ip = ipInfo.getIPs() ;
+            for ( INT32 i = ipInfo.getIPNum(); i > 0; i-- )
+            {
+               // skip loopback IP
+               if (0 != ossStrncmp( ip->ipAddr, OSS_LOOPBACK_IP,
+                                    ossStrlen(OSS_LOOPBACK_IP)) )
+               {
+                  subIPBuild.append( ip->ipAddr ) ;
+               }
+               ip++ ;
+            }
+
+            // support 'localhost' and '127.0.0.1' for node's hostname
+            subIPBuild.append( OSS_LOOPBACK_IP ) ;
+            subIPBuild.append( OSS_LOCALHOST ) ;
+            subIPBuild.done() ;
+
+            request = bsonBuilder.obj () ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+         goto error ;
       }
 
+   done:
       PD_TRACE_EXIT ( SDB__CLSREGASSIT_BUILDOBJ );
-      return obj ;
+      return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREGASSIT_EXTRACTRES, "_clsRegAssit::extractResponseMsg" )

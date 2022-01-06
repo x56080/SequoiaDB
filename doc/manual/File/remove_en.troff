@@ -55,7 +55,7 @@ On success, return void.
 On error, exception will be thrown.
 .SH ERRORS
 .PP
-when exception happen, use getLastError() to get the error code and use
+when exception happens, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
 For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
@@ -65,6 +65,8 @@ directory;
 .IP
 .nf
 \f[C]
->\ File.remove(\ "/opt/sequoiadb/file.txt"\ )
+> File.remove( "/opt/sequoiadb/file.txt" )
 \f[]
 .fi
+.PP
+```

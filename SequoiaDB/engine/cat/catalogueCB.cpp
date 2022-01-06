@@ -45,6 +45,7 @@
 #include "catTrace.hpp"
 #include "pmd.hpp"
 #include "utilLightJobBase.hpp"
+#include "IDataSource.hpp"
 #include <stdlib.h>
 
 using namespace bson ;
@@ -470,7 +471,7 @@ namespace engine
       // 1. stop listen
       if ( _pNetWork )
       {
-         _pNetWork->closeListen() ;
+         _pNetWork->shutdownListen() ;
       }
 
       // 2. stop io
@@ -563,6 +564,10 @@ namespace engine
       else if ( COORD_GROUPID == groupID )
       {
          return COORD_GROUPNAME ;
+      }
+      else if ( SDB_IS_DSID( groupID ) )
+      {
+         return CAT_DATASOURCE_GROUPNAME ;
       }
 
       GRP_ID_MAP::iterator it = _grpIdMap.find( groupID ) ;

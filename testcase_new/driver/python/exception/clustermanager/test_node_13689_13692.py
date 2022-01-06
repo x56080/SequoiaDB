@@ -82,7 +82,7 @@ class nodeException13689(testlib.SdbTestBase):
       try:
          data_rg.get_nodebyendpoint(host_name, svc_name)        
       except SDBBaseError as e:
-         self.fail("check create node fail: " + e.detail)
+         self.fail("check create node fail: " + str(e))
          
    def check_remove_node_success(self, data_rg, host_name, svc_name):
       try:
@@ -96,5 +96,5 @@ class nodeException13689(testlib.SdbTestBase):
          self.db.remove_replica_group(self.group_name)       
       except SDBBaseError as e:
          if -154 != e.code:
-            self.fail("tear down fail: " + e.detail)
+            self.fail("tear down fail: " + str(e))
          

@@ -295,7 +295,7 @@ namespace engine
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
 
-      rc = rtnDropCollectionSpaceP1( _cappedCSName, cb, dmsCB, dpsCB, TRUE ) ;
+      rc = dmsCB->dropCollectionSpaceP1( _cappedCSName, cb, dpsCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Phase 1 of dropping collection space[ %s ] "
                    "failed[ %d ]", _cappedCSName, rc ) ;
       rtnCB->incTextIdxVersion() ;
@@ -315,8 +315,7 @@ namespace engine
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
 
-      rc = rtnDropCollectionSpaceP1Cancel( _cappedCSName, cb, dmsCB,
-                                           dpsCB, TRUE ) ;
+      rc = dmsCB->dropCollectionSpaceP1Cancel( _cappedCSName, cb, dpsCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Cancel dropping collection space[ %s ] in "
                    "phase 1 failed[ %d ]", _cappedCSName, rc ) ;
       rtnCB->incTextIdxVersion() ;
@@ -335,8 +334,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_DODROPP2 ) ;
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
 
-      rc = rtnDropCollectionSpaceP2( _cappedCSName, cb, dmsCB,
-                                     dpsCB, TRUE ) ;
+      rc = dmsCB->dropCollectionSpaceP2( _cappedCSName, cb, dpsCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Phase 1 of dropping collection space[ %s ] "
                    "failed[ %d ]", _cappedCSName, rc ) ;
 
@@ -1141,7 +1139,6 @@ namespace engine
 
       // Get the metadata lock, to avoid concurrent problem with other creating/
       // dropping text index operation.
-      // _mutex.get() ;
       aquireMetaLock( EXCLUSIVE ) ;
       metaLocked = TRUE ;
 
@@ -1158,15 +1155,32 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Init external data processor failed[ %d ]",
                    rc ) ;
 
+      ++_number ;
       if ( newIndex )
       {
+         // As doRebuild will create the capped collection space and capped
+         // collection, locks of upper levels will be taken, e.g., cs mutex in
+         // dmsCB. If we do this in the processor meta lock, it may result in
+         // deadlock. Refer to defact SEQUOIADBMAINSTREAM-7224 for details.
+         // After initialization, the processor is invisible to anyone else. So
+         // it's safe to do the rebuild without any locks.
+         releaseMetaLock( EXCLUSIVE ) ;
+         metaLocked = FALSE ;
          rc = processorLocal->doRebuild( cb, dpsCB ) ;
-         PD_RC_CHECK( rc, PDERROR, "Rebuild of index failed[%d]", rc ) ;
+         aquireMetaLock( EXCLUSIVE ) ;
+         if ( rc )
+         {
+            --_number ;
+            releaseMetaLock( EXCLUSIVE ) ;
+            PD_LOG( PDERROR, "Rebuild of index failed[%d]. Collection space: "
+                    "%s, collection: %s, index: %s", rc,
+                    csName, clName, idxName ) ;
+            goto error ;
+         }
+         metaLocked = TRUE ;
       }
-
       processorLocal->active() ;
       processor = processorLocal ;
-      _number++ ;
 
    done:
       if ( metaLocked )

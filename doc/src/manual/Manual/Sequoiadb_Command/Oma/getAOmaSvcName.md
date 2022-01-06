@@ -42,7 +42,7 @@ Oma
 
 当异常抛出时，可以通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取[错误码](manual/Manual/Sequoiadb_error_code.md)，
 或通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息。
-可以参考[常见错误处理指南](manual/faq.md)了解更多内容。
+可以参考[常见错误处理指南](manual/FAQ/faq_sdb.md)了解更多内容。
 
 ##版本##
 
@@ -50,10 +50,10 @@ v2.0及以上版本。
 
 ##示例##
 
-1. 假如目标机器 sdbserver1 上的 sdbcm 的服务端口为：11790，可以通过 getAOmaSvcName 方法获取这个服务端口。
+假如目标机器 sdbserver1 上的 sdbcm 的服务端口为：11790，可以通过 getAOmaSvcName 方法获取这个服务端口
 
-	```lang-javascript
-	> var oma = new Oma( "sdbserver1", 11790 )
-	> oma.getAOmaSvcName( "sdbserver1")
-    11790
- ```
+```lang-javascript
+> var oma = new Oma( "sdbserver1", 11790 )
+> oma.getAOmaSvcName( "sdbserver1")
+11790
+```

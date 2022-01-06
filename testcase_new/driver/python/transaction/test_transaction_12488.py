@@ -6,6 +6,7 @@
 
 import unittest
 import datetime
+import time
 from pysequoiadb.error import (SDBTypeError, SDBBaseError, SDBEndOfCursor, SDBError)
 from lib import testlib
 
@@ -45,51 +46,63 @@ class TestTransaction12488(testlib.SdbTestBase):
         self.check_result(expectResult)
 
     def tearDown(self):
-      self.db.drop_collection_space(self.cs_name)   
+        self.db.drop_collection_space(self.cs_name)   
 
     def begin_transaction(self):
-       try:
-          self.db.transaction_begin()
-       except SDBBaseError as e:
-          self.fail('begin transaction fail: ' + e.detail)		 
+        try:
+            self.db.transaction_begin()
+        except SDBBaseError as e:
+            self.fail('begin transaction fail: ' + str(e))
 
     def insert_datas(self):
-       doc = []
-       for i in range(0, insert_nums):
-          doc.append({"a": i , "b": "test" + str(i)})
-       try:
-          flags = 0
-          self.cl.bulk_insert(flags, doc)
-       except SDBBaseError as e:
-          self.fail('insert fail: ' + e.detail)
+        doc = []
+        for i in range(0, insert_nums):
+            doc.append({"a": i , "b": "test" + str(i)})
+        for j in range(0,10):
+            try:
+                flags = 0
+                self.cl.bulk_insert(flags, doc)
+                break
+            except SDBBaseError as e:
+                if(e.code != -355 or j > 8):
+                    self.fail('insert fail: ' + str(e))
+                time.sleep(1)
 
     def update_datas(self,rule,cond):
-        try:
-            self.cl.update(rule, condition = cond)
-        except SDBBaseError as e:
-            self.fail('update fail: ' + e.detail)
+        for j in range(0,10):
+            try:
+                self.cl.update(rule, condition = cond)
+                break
+            except SDBBaseError as e:
+                if(e.code != -355 or j > 8):
+                    self.fail('update fail: ' + str(e))
+                time.sleep(1)
 
     def remove_datas(self,cond):
-        try:
-            self.cl.delete(condition = cond)
-        except SDBBaseError as e:
-            self.fail('remove fail: ' + e.detail)
+        for j in range(0,10):
+            try:
+                self.cl.delete(condition = cond)
+                break
+            except SDBBaseError as e:
+                if(e.code != -355 or j > 8):
+                    self.fail('remove fail: ' + str(e))
+                time.sleep(1)
 
     def rollback_transaction(self):
         try:
             self.db.transaction_rollback()
         except SDBBaseError as e:
-            self.fail('rollback transaction fail: ' + e.detail)
+            self.fail('rollback transaction fail: ' + str(e))
 
     def check_result(self,expectRec,cond = None):
-       try:
-          if cond == None:
-              cursor = self.cl.query(order_by = {"_id": 1})
-          else:
-              cursor = self.cl.query(condition = cond, order_by = {"_id": 1})
+        try:
+            if cond == None:
+                cursor = self.cl.query(order_by = {"_id": 1})
+            else:
+                cursor = self.cl.query(condition = cond, order_by = {"_id": 1})
 
-          actRec = testlib.get_all_records_noid(cursor)
-          # check result
-          self.assertListEqualUnordered(expectRec, actRec)			 
-       except SDBBaseError as e:
-          self.fail('check result fail: ' + e.detail)
+            actRec = testlib.get_all_records_noid(cursor)
+            # check result
+            self.assertListEqualUnordered(expectRec, actRec)
+        except SDBBaseError as e:
+            self.fail('check result fail: ' + str(e))

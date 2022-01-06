@@ -3,7 +3,7 @@
 *@Modify list:
 *   2014-2-24 Jianhui Xu  Init
 *******************************************************************************/
-
+import( "../lib/assert.js" );
 // begin global variable configuration
 // CSPREFIX, COORDSVCNAME, COORDHOSTNAME  is input parameter
 // UUID, UUNAME is input parameter
@@ -328,14 +328,14 @@ function commCheckIndexConsistency ( cl, name, exist, timeout )
 {
    if( exist == undefined ) { exist = true; }
    if( timeout == undefined ) { timeout = 30; }
-   
+
    //cl.toString = hostname:svc.csName.clName
    var arr1 = cl.toString().split( ":" );
    var arr2 = arr1[1].split( "." );
    var csName = arr2[1];
    var clName = arr2[2];
    var nodes = commGetCLNodes( db, csName, clName );
-   
+
    var timecount = 0;
    while( true )
    {
@@ -568,7 +568,7 @@ function commGetCLGroups ( db, clName )
    array[1] {"HostName": "XXXX", "svcname": "XXXX"}
    ...
 ******************************************************************************/
-function commGetCLNodes( db, csName, clName )
+function commGetCLNodes ( db, csName, clName )
 {
    var clGroups = commGetCLGroups( db, csName + "." + clName );
    var nodes = [];
@@ -1502,10 +1502,13 @@ function commCompareResults ( cursor, expRecs, exceptId )
    }
 }
 
-/* *******************************************************************
-@Description: comparison two objects are equal
-@author: luweikang
-@return: true/false
+/********************************************************************
+@description   判断两个对象是否相等
+@author  luweikang
+@return  {boolean}
+   e.g:
+      true   expObj 与 actObj 相等
+      false  expObj 与 actObj 不相等
 ******************************************************************* */
 function commCompareObject ( expObj, actObj )
 {
@@ -1515,7 +1518,7 @@ function commCompareObject ( expObj, actObj )
       {
          return true;
       }
-      else if( value === null )
+      else if( value == null )  // null and undefined
       {
          return true;
       }
@@ -1529,9 +1532,9 @@ function commCompareObject ( expObj, actObj )
       }
    }
 
-   if( typeof ( expObj ) != typeof ( actObj ) )
+   if( typeof ( expObj ) != typeof ( actObj ) || isDirectCompare( expObj ) != isDirectCompare( actObj ) )
    {
-      return false;
+      return expObj == actObj;
    }
    if( isDirectCompare( actObj ) )
    {
@@ -1659,7 +1662,7 @@ function commCursor2Array ( cursor, fieldName, filter )
 @Description: check node data consistency
 @author: luweikang
 ******************************************************************* */
-function commInspectData( db, group, csName, clName, loop )
+function commInspectData ( db, group, csName, clName, loop )
 {
    var coord = " -d " + db.toString();
    var installDir = commGetInstallPath();
@@ -1670,22 +1673,22 @@ function commInspectData( db, group, csName, clName, loop )
    ( csName === undefined || csName === "" ) ? csName = "" : csName = " -c " + csName;
    ( clName === undefined || clName === "" ) ? clName = "" : clName = " -l " + clName;
    ( loop === undefined ) ? loop = "" : loop = " -t " + loop;
-   
+
    var inspect = installDir + "/bin/sdbinspect" + coord + group + csName + clName + output + loop;
    println( inspect );
-   
+
    try
    {
       var cmd = new Cmd();
-      var result = cmd.run( inspect );   
+      var result = cmd.run( inspect );
    }
    catch( e )
    {
       throw new Error( e );
    }
-   
-   var tmpArr = result.split("\n");
-   if( tmpArr[ tmpArr.length - 3 ] !== "Reason for exit : exit with no records different" )
+
+   var tmpArr = result.split( "\n" );
+   if( tmpArr[tmpArr.length - 3] !== "Reason for exit : exit with no records different" )
    {
       throw new Error( "report path: " + reportPath + "\n" + result );
    }
@@ -1702,27 +1705,27 @@ function commInspectData( db, group, csName, clName, loop )
                   [{hostname: "xxx", svcname: "xxx", logpath: "xxx"}]
 @author: luweikang
 ******************************************************************* */
-function commCreateRG( db, rgName, nodeNum, hostname, nodeOption )
+function commCreateRG ( db, rgName, nodeNum, hostname, nodeOption )
 {
    if( hostname === undefined )
-   { 
-      var nodeList = commGetSnapshot( db, SDB_SNAP_SYSTEM, {Role: "coord", RawData: true} );
+   {
+      var nodeList = commGetSnapshot( db, SDB_SNAP_SYSTEM, { Role: "coord", RawData: true } );
       hostname = nodeList[0].HostName;
    }
    if( nodeOption === undefined )
    {
       nodeOption = { diaglevel: 5 };
    }
-   
+
    try
    {
-      var rg = db.createRG( rgName );   
+      var rg = db.createRG( rgName );
    }
    catch( e )
    {
       throw new Error( e );
    }
-   
+
    var maxRetryTimes = 100;
    var nodeInfos = [];
    for( var i = 0; i < nodeNum; i++ )
@@ -1741,10 +1744,10 @@ function commCreateRG( db, rgName, nodeNum, hostname, nodeOption )
             continue;
          }
          catch( e )
-         { 
+         {
             if( e !== 1 )
             {
-               throw new Error( "lsof check port error: " + e ); 
+               throw new Error( "lsof check port error: " + e );
             }
          }
          try
@@ -2141,6 +2144,37 @@ function commDropDomain ( db, domainName, ignoreNotExist, message )
    }
 }
 
+/******************************************************************************
+@description   类型检测（func自用）
+@author  lyy
+@parameter
+   variable         {any}     :     检测变量
+   expType          {"string",""}    :     期望类型
+******************************************************************************/
+function commCheckType ( variable, expType )
+{
+   if( variable == null )
+   {
+      throw new Error( variable + " == null " );
+   }
+   if( expType == "string" || expType == "number" || expType == "boolean" || "object" == expType || "function" == expType )
+   {
+      if( typeof ( variable ) != expType )
+      {
+         throw new Error( variable + " isn't " + expType );
+      }
+   } else if( expType == "array" )
+   {
+      if( !Array.isArray( variable ) )
+      {
+         throw new Error( variable + " isn't " + expType );
+      }
+   } else
+   {
+      throw new Error( expType + "not exists" );
+   }
+}
+
 /* *****************************************************************************
 @discription: create procedure
 @author: zhaoyu
@@ -2235,6 +2269,7 @@ function commDropUsr ( db, userName, password, ignoreNotExist, message )
 try
 {
    var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
+   var assert = new Assert();
 }
 catch( e )
 {

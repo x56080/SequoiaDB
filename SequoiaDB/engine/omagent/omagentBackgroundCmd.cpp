@@ -3268,7 +3268,8 @@ namespace engine
          }
       }
       else if ( OMA_BUS_TYPE_SEQUOIASQL_POSTGRESQL == businessType ||
-                OMA_BUS_TYPE_SEQUOIASQL_MYSQL == businessType )
+                OMA_BUS_TYPE_SEQUOIASQL_MYSQL == businessType ||
+                OMA_BUS_TYPE_SEQUOIASQL_MARIADB == businessType )
       {
          string hostName = itemInfo.getStringField( OMA_FIELD_HOSTNAME ) ;
          string port     = itemInfo.getStringField( OMA_FIELD_PORT2 ) ;

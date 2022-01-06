@@ -47,6 +47,7 @@
             <package name="com.sequoiadb.subcl.serial" />
             <package name="com.sequoiadb.split.serial" />
             <package name="com.sequoiadb.lob.serial" />
+            <package name="com.sequoiadb.explain.serial" />
       </packages>    
    </test>
 </suite>

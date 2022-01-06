@@ -85,14 +85,13 @@ On error, exception will be thrown.
 .PP
 when exception happen, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
-For more detial, please reference to Troubleshooting.
-.SH EXAMPLES
+For more detial, please reference to Troubleshooting #EXAMPLES#
 .IP \[bu] 2
 Open an INI file.
 .IP
 .nf
 \f[C]
->\ var\ ini\ =\ new\ IniFile(\ "/opt/sequoiadb/file.ini",\ SDB_INIFILE_FLAGS_DEFAULT\ )
+> var ini = new IniFile( "/opt/sequoiadb/file.ini", SDB_INIFILE_FLAGS_DEFAULT )
 \f[]
 .fi
 .IP \[bu] 2
@@ -100,6 +99,6 @@ Set value for the specified item.
 .IP
 .nf
 \f[C]
->\ ini.setValue(\ "info",\ "name",\ "Alan"\ )
+> ini.setValue( "info", "name", "Alan" )
 \f[]
 .fi

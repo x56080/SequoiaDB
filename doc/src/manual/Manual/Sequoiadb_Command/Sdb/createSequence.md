@@ -6,6 +6,10 @@ createSequence - 创建序列对象
 
 **db.createSequence\(\<name\>, \[options\]\)**
 
+##类别##
+
+Sdb
+
 ##描述##
 
 该函数用于在当前数据库中创建新的序列对象。
@@ -51,7 +55,7 @@ createSequence - 创建序列对象
 
 ##返回值##
 
-函数执行成功时，返回新建的序列对象。
+函数执行成功时，将返回一个 SdbSequence 类型的对象。
 
 函数执行失败时，将抛异常并输出错误信息。
 
@@ -82,5 +86,5 @@ v3.4.2 及以上版本
      本文使用的所有引用及链接
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[faq]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md

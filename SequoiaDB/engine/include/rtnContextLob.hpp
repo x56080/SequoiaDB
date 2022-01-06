@@ -49,7 +49,7 @@ namespace engine
    */
    class _rtnContextLob : public _rtnContextBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextLob )
    public:
       _rtnContextLob( INT64 contextID, UINT64 eduID ) ;
       virtual ~_rtnContextLob() ;
@@ -58,6 +58,11 @@ namespace engine
       virtual const CHAR*        name() const ;
       virtual RTN_CONTEXT_TYPE   getType() const { return RTN_CONTEXT_LOB ; }
       virtual _dmsStorageUnit*   getSU () ;
+
+      virtual UINT32 getSULogicalID() const
+      {
+         return _suLogicalID ;
+      }
 
    public:
       /*
@@ -104,6 +109,7 @@ namespace engine
 
    private:
       _rtnLobStream     *_stream ;
+      UINT32            _suLogicalID ;
       SINT64            _offset ;
       UINT32            _readLen ;
    } ;
@@ -114,7 +120,7 @@ namespace engine
    */
    class _rtnContextLobFetcher : public rtnContextBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextLobFetcher )
       public:
          _rtnContextLobFetcher( INT64 contextID, UINT64 eduID ) ;
          virtual ~_rtnContextLobFetcher() ;
@@ -137,12 +143,18 @@ namespace engine
          virtual RTN_CONTEXT_TYPE getType () const ;
          virtual _dmsStorageUnit* getSU () ;
 
+         virtual UINT32 getSULogicalID() const
+         {
+            return _suLogicalID ;
+         }
+
       protected:
          virtual INT32     _prepareData( _pmdEDUCB *cb ) { return SDB_OK ; }
          virtual void      _toString( stringstream &ss ) ;
 
       private:
          _rtnLobFetcher    *_pFetcher ;
+         UINT32            _suLogicalID ;
 
    } ;
    typedef _rtnContextLobFetcher rtnContextLobFetcher ;

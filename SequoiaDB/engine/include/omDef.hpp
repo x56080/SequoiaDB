@@ -225,6 +225,7 @@ namespace engine
    #define OM_HOST_FIELD_OMA                    "OMA"
    #define OM_HOST_FIELD_POSTGRESQL             "POSTGRESQL"
    #define OM_HOST_FIELD_MYSQL                  "MYSQL"
+   #define OM_HOST_FIELD_MARIADB                "MARIADB"
    #define OM_HOST_FIELD_OM_HASINSTALL          "HasInstalled"
    #define OM_HOST_FIELD_OM_VERSION             OM_HOST_FIELD_VERSION
    #define OM_HOST_FIELD_OM_PATH                "Path"
@@ -479,6 +480,7 @@ OM_CS_DEPLOY_CL_HISTORYIDX\",key: {" OM_HISTORY_FIELD_TIME ":1} }"
    #define OM_BUSINESS_SEQUOIASQL_OLAP       "sequoiasql-olap"
    #define OM_BUSINESS_SEQUOIASQL_POSTGRESQL "sequoiasql-postgresql"
    #define OM_BUSINESS_SEQUOIASQL_MYSQL      "sequoiasql-mysql"
+   #define OM_BUSINESS_SEQUOIASQL_MARIADB    "sequoiasql-mariadb"
 
    /*
       install package name
@@ -762,6 +764,7 @@ OM_CS_DEPLOY_CL_HISTORYIDX\",key: {" OM_HISTORY_FIELD_TIME ":1} }"
    #define  OM_BSON_FIELD_OMA                OM_HOST_FIELD_OMA
    #define  OM_BSON_FIELD_POSTGRESQL         OM_HOST_FIELD_POSTGRESQL
    #define  OM_BSON_FIELD_MYSQL              OM_HOST_FIELD_MYSQL
+   #define  OM_BSON_FIELD_MARIADB            OM_HOST_FIELD_MARIADB
    #define  OM_BSON_FIELD_MEMORY             "Memory"
    #define  OM_BSON_FIELD_DISK               OM_HOST_FIELD_DISK
    #define  OM_BSON_FIELD_DISK_NAME          OM_HOST_FIELD_DISK_NAME

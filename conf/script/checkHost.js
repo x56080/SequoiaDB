@@ -339,9 +339,11 @@ function _getInstallInfo()
    var invalidList = [] ;
    var postgresList = [] ;
    var mysqlList = [] ;
+   var mariadbList = [] ;
    var fileList = File.list( { 'pathname' : '/etc/default/' } ).toArray() ;
    var reg_pg = new RegExp( '^sequoiasql-postgresql[1-9]*$', '' ) ;
    var reg_ms = new RegExp( '^sequoiasql-mysql[1-9]*$', '' ) ;
+   var reg_md = new RegExp( '^sequoiasql-mariadb$', '' ) ;
 
    for( var index in fileList )
    {
@@ -408,6 +410,33 @@ function _getInstallInfo()
             mysqlList.push( pkgInfo ) ;
          }
       }
+      else if( reg_md.test( fileName ) )
+      {
+         var config = Oma.getIniConfigs( fullPath ).toObj() ;
+
+         if ( File.exist( config['INSTALL_DIR'] + '/bin/mariadb' ) &&
+              File.exist( config['INSTALL_DIR'] + '/bin/sdb_sql_ctl' ) )
+         {
+            var cmd = new Cmd() ;
+            var str = cmd.run( 'cat', config['INSTALL_DIR'] + '/version.info' ) ;
+            var lines = str.split( "\n" ) ;
+            var versionInfo = lines[0].split( ":" ) ;
+
+            if( versionInfo.length == 2 )
+            {
+               pkgInfo['Version'] = versionInfo[1].trim() ;
+            }
+            else
+            {
+               pkgInfo['Version'] = versionInfo[0].trim() ;
+            }
+
+            pkgInfo['SdbUser'] = config['USER'] ;
+            pkgInfo['Path']    = config['INSTALL_DIR'] ;
+
+            mariadbList.push( pkgInfo ) ;
+         }
+      }
       else
       {
          invalidList.push( fileName ) ;
@@ -416,7 +445,8 @@ function _getInstallInfo()
 
    RET_JSON['POSTGRESQL'] = postgresList ;
    RET_JSON['MYSQL'] = mysqlList ;
-   RET_JSON['INVALID'] = invalidList ;
+   RET_JSON['MARIADB'] = mariadbList ;
+   //RET_JSON['INVALID'] = invalidList ;
 }
 
 // os info

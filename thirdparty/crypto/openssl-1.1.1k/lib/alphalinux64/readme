@@ -1,0 +1,1 @@
+申威(sw_64,alpha架构)不支持Openssl库源码编译，所以直接提供1.1.1c alpha版本的Openssl库

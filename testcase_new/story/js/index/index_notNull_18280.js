@@ -3,7 +3,6 @@
 *@Author      : 2019-5-6  XiaoNi Huang
 ******************************************************************************/
 
-
 main( test );
 
 function test ()
@@ -26,10 +25,7 @@ function test ()
    var mCL = commCreateCL( db, COMMCSNAME, mclName, { ShardingKey: { a: 1 }, IsMainCL: true }, true, true );
    mCL.createIndex( mIdxName, { b: 1 }, { NotNull: true } );
    // check index of main cl 
-   assert.tryThrow( SDB_IXM_NOTEXIST, function()
-   {
-      mCL.getIndex( mIdxName );
-   } );
+   mCL.getIndex( mIdxName );
 
    var sCL = commCreateCL( db, COMMCSNAME, sclName, { ShardingKey: { a: 1 } }, true, true );
    sCL.createIndex( sIdxName, { b: 1 }, { NotNull: false } );
@@ -39,11 +35,11 @@ function test ()
    var recs = [{ a: 1, b: 1 }, { a: 2 }, { a: 3, b: null }];
    mCL.insert( recs );
 
-   checkIndex( mCL, sIdxName, false );
+   checkIndex( sCL, sIdxName, false );
    checkRecords( mCL, recs );
 
    // clean index
-   mCL.dropIndex( sIdxName );
+   sCL.dropIndex( sIdxName );
    mCL.remove();
 
    // clean env
@@ -70,7 +66,8 @@ function test ()
       } );
    }
 
-   checkIndex( mCL, sIdxName, true );
+   checkIndex( mCL, mIdxName, false );
+   checkIndex( sCL, sIdxName, true );
    checkRecords( mCL, valRecs );
 
    // clean env

@@ -240,4 +240,56 @@ class SequoiaNode
     * @deprecated This function is deprecated.
    */
    public function getStatus(){}
+
+   /**
+    * Connect the node.
+    *
+    * @return Returns a new SequoiaDB object.
+    *
+    * @retval SequoiaDB Object
+    *
+    * @deprecated This function is deprecated.
+    *
+    * Example:
+    * @code
+    * //connect to the coord
+    * $db = new SequoiaDB() ;
+    * $err = $db -> connect( "192.168.1.10:11810" ) ;
+    * if( $err['errno'] != 0 ) {
+    *    echo "Failed to connect database, error code: ".$err['errno'] ;
+    *    return ;
+    * }
+    * //get group object
+    * $groupObj = $db -> getGroup( 'myGroup' ) ;
+    * if( empty( $groupObj ) ) {
+    *    $err = $db -> getLastErrorMsg() ;
+    *    echo "Failed to call getGroup, error code: ".$err['errno'] ;
+    *    return ;
+    * }
+    * //get node object
+    * $nodeObj = $groupObj -> getNode( 'host1:11910' ) ;
+    * if( empty( $nodeObj ) ) {
+    *    $err = $db -> getLastErrorMsg() ;
+    *    echo "Failed to get the node, error code: ".$err['errno'] ;
+    *    return ;
+    * }
+    * //connect to the node
+    * $nodeDB = $nodeObj -> connect() ;
+    * if( empty( $nodeDB ) ) {
+    *    echo "Failed to connect node database, error code: ".$err['errno'] ;
+    *    return ;
+    * }
+    * //get node contexts
+    * $cursor = $nodeDB -> list( SDB_LIST_CONTEXTS ) ;
+    * if( empty( $cursor ) ) {
+    *    $err = $db -> getLastErrorMsg() ;
+    *    echo "Failed to call list, error code: ".$err['errno'] ;
+    *    return ;
+    * }
+    * while( $record = $cursor -> next() ) {
+    *    var_dump( $record ) ;
+    * } 
+    * @endcode
+   */
+   public function connect(){}
 }

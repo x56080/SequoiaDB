@@ -30,7 +30,8 @@ function test ()
    mainCL.createIdIndex( { SortBufferSize: 128 } );
 
    // inspect the index
-   inspecIndex( mainCL, "$id", "_id", 1 );
+   inspecIndex( subCL1, "$id", "_id", 1 );
+   inspecIndex( subCL2, "$id", "_id", 1 );
 
    //after create index, insert data
    var doc = [];

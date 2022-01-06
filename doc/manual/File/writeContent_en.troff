@@ -72,7 +72,7 @@ Open a binary file and get a file descriptor;
 .IP
 .nf
 \f[C]
->\ var\ file\ =\ new\ File(\ "/opt/sequoiadb/file.dump"\ )
+> var file = new File( "/opt/sequoiadb/file.dump" )
 \f[]
 .fi
 .IP \[bu] 2
@@ -80,8 +80,8 @@ Read the contents of the file into the fileContent object;
 .IP
 .nf
 \f[C]
->\ var\ content\ =\ file.readContent()
->\ content\ instanceof\ FileContent
+> var content = file.readContent()
+> content instanceof FileContent
 true
 \f[]
 .fi
@@ -90,7 +90,7 @@ Write file.
 .IP
 .nf
 \f[C]
->\ var\ file2\ =\ new\ File(\ "/opt/sequoiadb/file2.dump"\ )
->\ file2.writeContent(\ content\ )
+> var file2 = new File( "/opt/sequoiadb/file2.dump" )
+> file2.writeContent( content )
 \f[]
 .fi

@@ -46,4 +46,4 @@ v3.2.5 and above, v3.4.1 and above
 [SNAPSHOT_CL]:manual/Manual/SQL_grammar/monitoring/SNAPSHOT_CL.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
-[faq]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md

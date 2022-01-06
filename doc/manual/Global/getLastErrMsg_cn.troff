@@ -31,10 +31,10 @@ v2.6及以上版本。
 获取前一次操作的详细错误信息。
 .nf
 \f[C]
->\ db\ =\ new\ Sdb()
-(nofile):0\ uncaught\ exception:\ \-15
->\ getLastErrMsg()
-Network\ error
+> db = new Sdb()
+(nofile):0 uncaught exception: \-15
+> getLastErrMsg()
+Network error
 \f[]
 .fi
 .RE

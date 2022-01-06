@@ -45,6 +45,7 @@
 #include "pd.hpp"
 #include "ossMemPool.hpp"
 #include "utilArray.hpp"
+#include "utilBitmap.hpp"
 
 using namespace bson;
 
@@ -501,6 +502,146 @@ namespace engine
                               _ixmKeyGenBase *keyGen ) ;
    } ;
    typedef class _ixmIndexKeyGen ixmIndexKeyGen ;
+
+   /*
+      _ixmIdxHashBitmap define
+    */
+   // NOTE: hash index bitmap used to mark whether a field has been updated
+
+   // calculate hash brings additional costs, so only consider update less
+   // than 8 fields
+   #define IXM_IDX_HASH_MAX_FIELD_NUM  ( 8 )
+
+   // only save bitmap for first 8 indexes
+   // NOTE: bitmap for collection will calculate from all indexes
+   #define IXM_IDX_HASH_MAX_INDEX_NUM  ( 8 )
+
+   // hash bitmap with 128 bits
+   #define IXM_IDX_HASH_BITMAP_SIZE    ( 128 )
+
+   class _ixmIdxHashBitmap : public _utilStackBitmap< IXM_IDX_HASH_BITMAP_SIZE >
+   {
+   public:
+      void setFieldBit( const CHAR *fieldName )
+      {
+         setBit( calcIndex( fieldName ) ) ;
+      }
+
+      static UINT32 calcIndex( const CHAR *fieldName )
+      {
+         UINT32 hash = 5381 ;
+         CHAR c ;
+         // only take first level of field name
+         while ( (c = *(fieldName ++)) && '.' != c )
+            hash = ((hash << 5) + hash) + c ;
+         return hash % IXM_IDX_HASH_BITMAP_SIZE ;
+      }
+   } ;
+
+   typedef class _ixmIdxHashBitmap ixmIdxHashBitmap ;
+
+   /*
+      _ixmIdxHashArray define
+    */
+
+   // only maintain 7 hash values
+   #define IXM_IDX_HASH_FIELD_NUM      ( 7 )
+
+   class _ixmIdxHashArray : public _utilPooledObject
+   {
+   public:
+      _ixmIdxHashArray()
+      : _size( 0 )
+      {
+      }
+
+      ~_ixmIdxHashArray() {}
+
+      BOOLEAN isEmpty() const
+      {
+         return 0 == _size ;
+      }
+
+      BOOLEAN isValid() const
+      {
+         return _size > 0 && _size <= IXM_IDX_HASH_FIELD_NUM ;
+      }
+
+      void reset()
+      {
+         _size = 0 ;
+      }
+
+      void setField( UINT32 bitIndex )
+      {
+         // only maintain 7 hash values
+         if ( _size < IXM_IDX_HASH_FIELD_NUM )
+         {
+            _fields[ _size ] = (UINT8)bitIndex ;
+         }
+         ++ _size ;
+      }
+
+      BOOLEAN testBitmap( const ixmIdxHashBitmap &bitmap ) const
+      {
+         if ( !bitmap.isEmpty() )
+         {
+            if ( _size > IXM_IDX_HASH_FIELD_NUM )
+            {
+               // too many fields, out-of-range hash values are missing
+               return TRUE ;
+            }
+            else
+            {
+               // check if hash values in bitmap
+               for ( UINT32 i = 0 ; i < _size ; ++ i )
+               {
+                  if ( bitmap.testBit( (UINT32)( _fields[ i ] ) ) )
+                  {
+                     return TRUE ;
+                  }
+               }
+            }
+         }
+
+         return FALSE ;
+      }
+
+      ossPoolString toString() const
+      {
+         ixmIdxHashBitmap temp ;
+         _toBitmap( temp ) ;
+         return temp.toString() ;
+      }
+
+      BOOLEAN isEqual( const ixmIdxHashBitmap &bitmap ) const
+      {
+         ixmIdxHashBitmap temp ;
+         _toBitmap( temp ) ;
+         return temp.isEqual( bitmap ) ;
+      }
+
+      void mergeToBitmap( ixmIdxHashBitmap &bitmap )
+      {
+         _toBitmap( bitmap ) ;
+      }
+
+   protected:
+      void _toBitmap( ixmIdxHashBitmap &bitmap ) const
+      {
+         for ( UINT32 i = 0 ; i < _size ; ++ i )
+         {
+            bitmap.setBit( (UINT32)_fields[ i ] ) ;
+         }
+      }
+
+   protected:
+      UINT8 _size ;
+      UINT8 _fields[ IXM_IDX_HASH_FIELD_NUM ] ;
+   } ;
+
+   typedef class _ixmIdxHashArray ixmIdxHashArray ;
+
 }
 
 #endif //IXMINDEXKEY_HPP_

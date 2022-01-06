@@ -165,5 +165,5 @@ SDB_SNAP_CONFIGS
 [^_^]:
     本文使用到的所有链接及引用。
     
-[runtime_config_url]: manual/Manual/Database_Configuration/configuration_parameters.md
+[runtime_config_url]:manual/Distributed_Engine/Maintainance/Database_Configuration/parameter_instructions.md
 [sdbsnapshotoption_url]: manual/Manual/Sequoiadb_Command/AuxiliaryObjects/SdbSnapshotOption.md

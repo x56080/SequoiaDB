@@ -99,7 +99,7 @@ SequoiaDB 巨杉数据库提供多个快照，以查看当前数据库系统的�
 
 ### 节点运行状态 ###
 
-+ Status：该节点处于正常、正在 Rebuild、正在[全量同步][fullsync]或正在[离线备份][backup_offline]
++ Status：该节点处于正常、正在 Rebuild、正在[全量同步][fullsync]或正在[数据备份][backup_offline]
 + ServiceStatus：该节点是否能对外提供读写服务
 + DataStatus：该节点数据是否损坏
 
@@ -169,11 +169,11 @@ SequoiaDB 巨杉数据库提供多个快照，以查看当前数据库系统的�
 [health]:manual/Manual/Snapshot/SDB_SNAP_HEALTH.md
 [primary]:manual/Distributed_Engine/Architecture/Replication/architecture.md#主节点
 [fullsync]:manual/Distributed_Engine/Architecture/Replication/architecture.md#全量同步
-[backup_offline]:manual/Distributed_Engine/Maintainance/Backup_Recovery/regular_bar.md
+[backup_offline]:manual/Distributed_Engine/Maintainance/Backup_Recovery/data_backup.md
 [replicalog]:manual/Distributed_Engine/Architecture/Replication/architecture.md#事务日志
 [heartbeat]:manual/Distributed_Engine/Architecture/Replication/election.md#节点心跳
 [slave]:manual/Distributed_Engine/Architecture/Replication/architecture.md#备节点
-[syncstrategy]:manual/Manual/Database_Configuration/configuration_parameters.md
+[syncstrategy]:manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md
 [replicalog]:manual/Distributed_Engine/Architecture/Replication/architecture.md#事务日志
 [replicalog]:manual/Distributed_Engine/Architecture/Replication/architecture.md#事务日志
 [resetSnapshot]:manual/Manual/Sequoiadb_Command/Sdb/resetSnapshot.md

@@ -80,9 +80,9 @@ or not.
 T}
 .TE
 .PP
-When error happen, use getLastErrMsg() to get the error message or use
+When error happens, use getLastErrMsg() to get the error message or use
 getLastError() to get the error code.
-See troubleshooting for more detail.
+See troubleshooting for more details.
 .SH HISTORY
 .PP
 since v2.0
@@ -92,8 +92,8 @@ Use getAOmaSvcName() to get the service name of sdbcm from target host
 sdbserver1.
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "sdbserver1",\ 11790\ )
->\ oma.delAOmaSvcName(\ "sdbserver1")
+> var oma = new Oma( "sdbserver1", 11790 )
+> oma.delAOmaSvcName( "sdbserver1")
 \f[]
 .fi
 .RE

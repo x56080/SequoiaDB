@@ -44,30 +44,30 @@ located.
 .IP
 .nf
 \f[C]
->\ var\ stp\ =\ new\ Stp()
->\ stp.getSyncClients()
+> var stp = new Stp()
+> stp.getSyncClients()
 {
-\ \ "SyncSource":\ {
-\ \ \ \ "HostName":\ "server\-1",
-\ \ \ \ "Service":\ "9622"
-\ \ },
-\ \ "SyncClients":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "Role":\ "client",
-\ \ \ \ \ \ "HostName":\ "server\-2",
-\ \ \ \ \ \ "Service":\ "9622",
-\ \ \ \ \ \ "OID":\ {
-\ \ \ \ \ \ \ \ "$oid":\ "6018fc765f862e2e3241e692"
-\ \ \ \ \ \ },
-\ \ \ \ \ \ "SyncInterval":\ 60,
-\ \ \ \ \ \ "TimeError":\ 5559908,
-\ \ \ \ \ \ "MaxTimeError":\ 50000000,
-\ \ \ \ \ \ "SyncPassed":\ 470,
-\ \ \ \ \ \ "SyncCount":\ 47,
-\ \ \ \ \ \ "SyncStatus":\ "CheckOffset",
-\ \ \ \ \ \ "SyncPort":\ 9622
-\ \ \ \ }
-\ \ ]
+  "SyncSource": {
+    "HostName": "server\-1",
+    "Service": "9622"
+  },
+  "SyncClients": [
+    {
+      "Role": "client",
+      "HostName": "server\-2",
+      "Service": "9622",
+      "OID": {
+        "$oid": "6018fc765f862e2e3241e692"
+      },
+      "SyncInterval": 60,
+      "TimeError": 5559908,
+      "MaxTimeError": 50000000,
+      "SyncPassed": 470,
+      "SyncCount": 47,
+      "SyncStatus": "CheckOffset",
+      "SyncPort": 9622
+    }
+  ]
 }
 \f[]
 .fi

@@ -93,6 +93,8 @@ namespace import
    inline INT32 _pageMemCopyBson( LogFile* logFile, bson* obj,
                                   BsonPage*& page, INT32& offset )
    {
+      SDB_ASSERT( obj, "obj can't be null" ) ;
+
       INT32 rc  = SDB_OK ;
       INT32 ret = SDB_OK ;
       INT32 recordSize = 0 ;
@@ -185,7 +187,8 @@ namespace import
                                options->useSSL(),
                                options->enableTransaction(),
                                options->allowKeyDuplication(),
-                               options->replaceKeyDuplication() ) ;
+                               options->replaceKeyDuplication(),
+                               options->batchSize() ) ;
 
       SDB_ASSERT( NULL != freeQueue, "freeQueue can't be NULL" ) ;
       SDB_ASSERT( NULL != importQueue, "importQueue can't be NULL" ) ;

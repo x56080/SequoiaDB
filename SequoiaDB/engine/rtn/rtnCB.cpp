@@ -41,14 +41,63 @@
 #include "dmsCB.hpp"
 #include "rtnIxmKeySorter.hpp"
 #include "rtnBackgroundJob.hpp"
-
+#include "pmdLightJobMgr.hpp"
 #include "pmdController.hpp"
 
 using namespace std;
 namespace engine
 {
+
+   /*
+      _rtnClearExpireContextJob define
+    */
+   class _rtnClearExpireContextJob : public utilLightJob
+   {
+   public:
+      _rtnClearExpireContextJob( SDB_RTNCB *rtnCB )
+      : _rtnCB( rtnCB )
+      {
+         SDB_ASSERT( NULL != rtnCB, "rtnCB is invalid" ) ;
+      }
+
+      virtual ~_rtnClearExpireContextJob()
+      {
+      }
+
+      virtual const CHAR *name() const
+      {
+         return "ClearContextJob" ;
+      }
+
+      virtual INT32 doit( IExecutor *pExe,
+                          UTIL_LJOB_DO_RESULT &result,
+                          UINT64 &sleepTime )
+      {
+         sleepTime = RTN_CTX_CHECK_INTERVAL ;
+
+         if ( PMD_IS_DB_DOWN() )
+         {
+            result = UTIL_LJOB_DO_FINISH ;
+         }
+         else
+         {
+            _rtnCB->preDelExpiredContext() ;
+            result = UTIL_LJOB_DO_CONT ;
+         }
+
+         return SDB_OK ;
+      }
+
+   protected:
+      SDB_RTNCB * _rtnCB ;
+   } ;
+   typedef class _rtnClearExpireContextJob rtnClearExpireContextJob ;
+
    _SDB_RTNCB::_SDB_RTNCB()
       : _contextIdGenerator( 0 ),
+        _maxContextNum( RTN_MAX_CTX_NUM_DFT ),
+        _maxSessionContextNum( RTN_MAX_SESS_CTX_NUM_DFT ),
+        _contextTimeout( RTN_CTX_TIMEOUT_DFT ),
         _remoteMessenger( NULL ),
         _textIdxVersion((INT64)RTN_INIT_TEXT_INDEX_VERSION)
    {
@@ -57,12 +106,6 @@ namespace engine
 
    _SDB_RTNCB::~_SDB_RTNCB()
    {
-      FOR_EACH_CMAP_ELEMENT_S( RTN_CTX_MAP, _contextMap )
-      {
-         SDB_OSS_DEL ((*it).second) ;
-      }
-      FOR_EACH_CMAP_ELEMENT_END ;
-
       _contextMap.clear() ;
    }
 
@@ -90,6 +133,8 @@ namespace engine
    INT32 _SDB_RTNCB::init ()
    {
       INT32 rc = SDB_OK ;
+
+      pmdOptionsCB *optionCB = pmdGetOptionCB() ;
 
       rtnIxmKeySorterCreator* creator = SDB_OSS_NEW _rtnIxmKeySorterCreator() ;
       if ( NULL == creator )
@@ -119,11 +164,15 @@ namespace engine
               SDB_ROLE_CATALOG == pmdGetDBRole() ||
               SDB_ROLE_STANDALONE == pmdGetDBRole() ||
               SDB_ROLE_OM == pmdGetDBRole() ) ?
-             pmdGetOptionCB()->getPlanBuckets() : 0,
-            (OPT_PLAN_CACHE_LEVEL) pmdGetOptionCB()->getPlanCacheLevel(),
-            pmdGetOptionCB()->getSortBufSize(),
-            pmdGetOptionCB()->getOptCostThreshold(),
-            pmdGetOptionCB()->isEnabledMixCmp() ) ;
+                    optionCB->getPlanBuckets() : 0,
+            (OPT_PLAN_CACHE_LEVEL)( optionCB->getPlanCacheLevel() ),
+            optionCB->getSortBufSize(),
+            optionCB->getOptCostThreshold(),
+            optionCB->isEnabledMixCmp() ) ;
+
+      _maxContextNum = optionCB->maxContextNum() ;
+      _maxSessionContextNum = optionCB->maxSessionContextNum() ;
+      _contextTimeout = optionCB->contextTimeout() ;
 
    done:
       return rc ;
@@ -133,7 +182,32 @@ namespace engine
 
    INT32 _SDB_RTNCB::active ()
    {
-      return SDB_OK ;
+      INT32 rc = SDB_OK ;
+
+      UINT64 jobID = 0 ;
+      rtnClearExpireContextJob *job =
+            SDB_OSS_NEW rtnClearExpireContextJob( this ) ;
+      PD_CHECK( NULL != job, SDB_OOM, error, PDERROR,
+                "Failed to allocate clear context job" ) ;
+
+      rc = job->submit( TRUE, UTIL_LJOB_PRI_LOWEST, UTIL_LJOB_DFT_AVG_COST,
+                        &jobID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to submit clear context job, rc: %d",
+                   rc ) ;
+      PD_LOG( PDDEBUG, "submit clear context job [%llu]", jobID ) ;
+
+      if ( SDB_ROLE_DATA       == pmdGetKRCB()->getDBRole() ||
+           SDB_ROLE_STANDALONE == pmdGetKRCB()->getDBRole() )
+      {
+         rc = rtnStartCleanupIdxStatusJob() ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to start clean up index status job" ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    INT32 _SDB_RTNCB::deactive ()
@@ -183,43 +257,94 @@ namespace engine
 
    void _SDB_RTNCB::onConfigChange ()
    {
+      pmdOptionsCB *optionCB = pmdGetOptionCB() ;
+
       _accessPlanManager.reinit(
             ( SDB_ROLE_DATA == pmdGetDBRole() ||
               SDB_ROLE_CATALOG == pmdGetDBRole() ||
               SDB_ROLE_STANDALONE == pmdGetDBRole() ) ?
-            pmdGetOptionCB()->getPlanBuckets() : 0,
-            (OPT_PLAN_CACHE_LEVEL) pmdGetOptionCB()->getPlanCacheLevel(),
-            pmdGetOptionCB()->getSortBufSize(),
-            pmdGetOptionCB()->getOptCostThreshold(),
-            pmdGetOptionCB()->isEnabledMixCmp() ) ;
+                    optionCB->getPlanBuckets() : 0,
+            (OPT_PLAN_CACHE_LEVEL)( optionCB->getPlanCacheLevel() ),
+            optionCB->getSortBufSize(),
+            optionCB->getOptCostThreshold(),
+            optionCB->isEnabledMixCmp() ) ;
+
+      _maxContextNum = optionCB->maxContextNum() ;
+      _maxSessionContextNum = optionCB->maxSessionContextNum() ;
+      _contextTimeout = optionCB->contextTimeout() ;
    }
 
-   rtnContext* _SDB_RTNCB::contextFind ( SINT64 contextID, _pmdEDUCB *cb )
+   INT32 _SDB_RTNCB::contextFind( INT64 contextID,
+                                  rtnContextPtr &context,
+                                  _pmdEDUCB *cb )
    {
-      rtnContext *pContext = NULL ;
-      std::pair<rtnContext*, bool> ret = _contextMap.find( contextID ) ;
+      INT32 rc = SDB_OK ;
+
+      std::pair<rtnContextPtr, bool> ret = _contextMap.find( contextID ) ;
       if ( ret.second )
       {
          if ( cb && !cb->contextFind( contextID ) )
          {
             PD_LOG ( PDWARNING, "Context %lld does not owned by "
                      "current session", contextID ) ;
+            rc = SDB_RTN_CONTEXT_NOTEXIST ;
          }
          else
          {
-            pContext = ret.first ;
+            context = ret.first ;
+#ifdef _DEBUG
+            if ( context && cb && context->getMonQueryCB() )
+            {
+               SDB_ASSERT( cb->getMonQueryCB() == context->getMonQueryCB(),
+                           "Mismatch monQuery" ) ;
+            }
+#endif
+         }
+      }
+      else
+      {
+         rc = SDB_RTN_CONTEXT_NOTEXIST ;
+      }
+
+      return rc ;
+   }
+
+   INT32 _SDB_RTNCB::contextFind( INT64 contextID,
+                                  RTN_CONTEXT_TYPE type,
+                                  rtnContextPtr &context,
+                                  _pmdEDUCB *cb,
+                                  BOOLEAN closeOnUnexpectType )
+   {
+      INT32 rc = SDB_OK ;
+
+      rtnContextPtr tempContext ;
+      rc = contextFind( contextID, tempContext, cb ) ;
+      if ( SDB_OK == rc )
+      {
+         if ( type == tempContext->getType() )
+         {
+            context = tempContext ;
+         }
+         else
+         {
+            PD_LOG( PDWARNING, "Failed to find context [%llu] of type %d[%s], "
+                    "current is %d[%s]", contextID, type,
+                    getContextTypeDesp( type ), tempContext->getType(),
+                    getContextTypeDesp( tempContext->getType() ) ) ;
+            if ( closeOnUnexpectType )
+            {
+               contextDelete( contextID, cb ) ;
+            }
+            rc = SDB_SYS ;
          }
       }
 
-      // This assert is to ensure that the same edu resumes a previous context
-#ifdef _DEBUG
-      if ( pContext && pContext->getMonQueryCB() && cb)
-      {
-         SDB_ASSERT( cb->getMonQueryCB() == pContext->getMonQueryCB(), "Mismatch monQuery" ) ;
-      }
-#endif
+      return rc ;
+   }
 
-      return pContext ;
+   BOOLEAN _SDB_RTNCB::contextExist( INT64 contextID )
+   {
+      return _contextMap.find( contextID ).second ? TRUE : FALSE ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_RTNCB_CONTEXTDEL, "_SDB_RTNCB::contextDelete" )
@@ -227,7 +352,7 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__SDB_RTNCB_CONTEXTDEL ) ;
 
-      rtnContext *pContext = NULL ;
+      rtnContextPtr pContext ;
       pmdEDUCB *cb = ( pmdEDUCB* )pExe ;
 
       if ( cb )
@@ -236,17 +361,20 @@ namespace engine
       }
 
       {
-         pair<rtnContext*, bool> ret = _contextMap.find( contextID ) ;
+         pair<rtnContextPtr, bool> ret = _contextMap.find( contextID ) ;
          if ( ret.second )
          {
-            _contextMap.erase( contextID ) ;
             pContext = ret.first ;
+            _contextMap.erase( contextID ) ;
          }
       }
 
       if ( pContext )
       {
-         INT32 reference = pContext->getReference() ;
+         INT32 bufRef = pContext->getReference() ;
+         INT64 ctxRef = pContext.refCount() ;
+
+         // wait for pre-fetching
          pContext->waitForPrefetch() ;
 
          /// wait for sync
@@ -256,22 +384,168 @@ namespace engine
             pContext->getDPSCB()->completeOpr( cb, pContext->getW() ) ;
          }
 
-         sdbGetRTNContextBuilder()->release( pContext ) ;
-         PD_LOG( PDDEBUG, "delete context(contextID=%lld, reference: %d)",
-                 contextID, reference ) ;
+         pContext.release() ;
+
+         PD_LOG( PDDEBUG, "delete context(contextID=%lld, reference: %u, "
+                 "buffer reference: %d)", contextID, ctxRef, bufRef ) ;
       }
 
       PD_TRACE_EXIT ( SDB__SDB_RTNCB_CONTEXTDEL ) ;
       return ;
    }
 
-   SINT32 _SDB_RTNCB::contextNew ( RTN_CONTEXT_TYPE type,
-                                   rtnContext **context,
-                                   SINT64 &contextID,
-                                   _pmdEDUCB * pEDUCB )
+   UINT32 _SDB_RTNCB::preDelContext( const CHAR *csName,
+                                     UINT32 suLogicalID )
    {
-      SDB_ASSERT ( context, "context pointer can't be NULL" ) ;
+      _RTN_EDU_CTX_MAP contexts ;
+
+      SDB_ASSERT ( NULL != csName,
+                   "collection space name should be valid" ) ;
+      SDB_ASSERT ( DMS_INVALID_LOGICCSID != suLogicalID,
+                   "logical ID should be valid" ) ;
+
+      if ( 0 == _contextMap.size( TRUE ) ||
+           DMS_INVALID_LOGICCSID == suLogicalID )
+      {
+         goto done ;
+      }
+
+      FOR_EACH_CMAP_ELEMENT_S( RTN_CTX_MAP, _contextMap )
+      {
+         rtnContext *pContext = it->second.get() ;
+
+         if ( pContext &&
+              pContext->isOpened() &&
+              suLogicalID == pContext->getSULogicalID() )
+         {
+            try
+            {
+               EDUID eduID = pContext->eduID() ;
+               INT64 contextID = pContext->contextID () ;
+               contexts.insert( make_pair( eduID, contextID ) ) ;
+
+               PD_LOG( PDDEBUG, "Pre-deleting context [%lld] of EDU [%llu] on "
+                       "collection space [%s]", contextID, eduID, csName ) ;
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to save delete context, "
+                       "occur exception  %s", e.what() ) ;
+               // can continue
+            }
+         }
+      }
+      FOR_EACH_CMAP_ELEMENT_END
+
+      _notifyKillContexts( contexts ) ;
+
+   done:
+      return contexts.size() ;
+   }
+
+   UINT32 _SDB_RTNCB::preDelExpiredContext()
+   {
+      _RTN_EDU_CTX_MAP contexts ;
+
+      // config is in minutes, convert to milliseconds
+      UINT64 contextTimeoutMS = _contextTimeout * 60 * OSS_ONE_SEC ;
+
+      if ( 0 >= contextTimeoutMS ||
+           0 == _contextMap.size( TRUE ) )
+      {
+         goto done ;
+      }
+
+      FOR_EACH_CMAP_ELEMENT_S( RTN_CTX_MAP, _contextMap )
+      {
+         rtnContext *pContext = it->second.get() ;
+
+         if ( pContext &&
+              pContext->needTimeout() &&
+              pContext->isOpened() &&
+              pmdGetTickSpanTime( pContext->getLastProcessTick() ) >
+                                                         contextTimeoutMS )
+         {
+            try
+            {
+               contexts.insert( make_pair( pContext->eduID(),
+                                           pContext->contextID() ) ) ;
+               PD_LOG( PDEVENT, "Pre-deleting idle timeout context [%lld] "
+                       "of EDU [%llu]", pContext->contextID(),
+                       pContext->eduID() ) ;
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to save delete context, "
+                       "occur exception  %s", e.what() ) ;
+               // can continue
+            }
+         }
+      }
+      FOR_EACH_CMAP_ELEMENT_END
+
+      _notifyKillContexts( contexts ) ;
+
+   done:
+      return contexts.size() ;
+   }
+
+   void _SDB_RTNCB::_notifyKillContexts( const _RTN_EDU_CTX_MAP &contexts )
+   {
+      pmdEDUMgr *pEDUMgr = pmdGetKRCB()->getEDUMgr() ;
+
+      for ( _RTN_EDU_CTX_MAP::const_iterator iter = contexts.begin() ;
+            iter != contexts.end() ;
+            ++ iter )
+      {
+         try
+         {
+            pEDUMgr->postEDUPost( iter->first,
+                                  PMD_EDU_EVENT_KILLCONTEXT,
+                                  PMD_EDU_MEM_NONE,
+                                  NULL,
+                                  (UINT64)( iter->second ) ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to post event to EDU [%llu], "
+                    "occur exception %s", iter->first, e.what() ) ;
+            // can continue
+         }
+
+         PD_LOG( PDDEBUG, "post kill context [%lld] to EDU [%llu]",
+                 iter->second, iter->first ) ;
+      }
+   }
+
+   INT32 _SDB_RTNCB::contextNew( RTN_CONTEXT_TYPE type,
+                                 rtnContextPtr &context,
+                                 INT64 &contextID,
+                                 _pmdEDUCB * pEDUCB )
+   {
       monSvcTaskInfo *pTaskInfo = NULL ;
+
+      if ( pEDUCB->isFromLocal() )
+      {
+         // WARNING: the check may fail when context flooding ( too many
+         //          context are creating in the same time )
+         if ( _maxContextNum > 0 &&
+              _contextMap.size( FALSE ) >= (UINT32)( _maxContextNum ) )
+         {
+            PD_LOG_MSG( PDERROR, "the number of contexts exceeds the limit "
+                        "[%s:%d]", PMD_OPTION_MAXCONTEXTNUM, _maxContextNum ) ;
+            return SDB_DPS_CONTEXT_NUM_UP_TO_LIMIT ;
+         }
+
+         if ( _maxSessionContextNum > 0 &&
+              pEDUCB->contextNum() >= (UINT32)( _maxSessionContextNum ) )
+         {
+            PD_LOG_MSG( PDERROR, "the number of contexts in the session "
+                        "exceeds the limit [%s:%d]",
+                        PMD_OPTION_MAXSESSIONCONTEXTNUM, _maxSessionContextNum ) ;
+            return SDB_DPS_CONTEXT_NUM_UP_TO_LIMIT ;
+         }
+      }
 
       // if hit max signed 64 bit integer?
       if ( _contextIdGenerator.fetch() < 0 )
@@ -285,16 +559,27 @@ namespace engine
          return SDB_SYS ;
       }
 
-      (*context) = sdbGetRTNContextBuilder()->create(
+      context = sdbGetRTNContextBuilder()->create(
                      type, _contextId, pEDUCB->getID() ) ;
 
-      if ( !(*context) )
+      if ( !context )
       {
          return SDB_OOM ;
       }
 
-      _contextMap.insert( _contextId, *context ) ;
-      pEDUCB->contextInsert( _contextId ) ;
+      if ( !( _contextMap.insert( _contextId, context ).second ) )
+      {
+         context.release() ;
+         return SDB_OOM ;
+      }
+
+      if ( !pEDUCB->contextInsert( _contextId ) )
+      {
+         _contextMap.erase( _contextId ) ;
+         context.release() ;
+         return SDB_OOM ;
+      }
+
       contextID = _contextId ;
 
       pTaskInfo = pEDUCB->getMonAppCB()->getSvcTaskInfo() ;
@@ -308,8 +593,13 @@ namespace engine
       if ( NULL != monQuery &&
            !monQuery->anchorToContext )
       {
-         (*context)->setMonQueryCB( monQuery ) ;
+         context->setMonQueryCB( monQuery ) ;
          monQuery->anchorToContext = TRUE ;
+      }
+
+      if ( pEDUCB->getMonConfigCB()->timestampON )
+      {
+         context->getMonCB()->recordStartTimestamp() ;
       }
 
       PD_LOG ( PDDEBUG, "Create new context(contextID=%lld, type: %d[%s])",
@@ -336,11 +626,10 @@ namespace engine
          rc = _remoteMessenger->init() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to initialize remote messenger, "
                       "rc: %d", rc ) ;
+         rc = _remoteMessenger->active() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to active remote messenger, "
+                                   "rc: %d", rc) ;
       }
-
-      rc = _remoteMessenger->active() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to active remote messenger, "
-                   "rc: %d", rc) ;
 
    done:
       return rc ;
@@ -351,6 +640,43 @@ namespace engine
          _remoteMessenger = NULL ;
       }
       goto done ;
+   }
+
+   INT32 _SDB_RTNCB::addUnloadCS( const CHAR* csName )
+   {
+      ossScopedLock lock( &_csLatch, EXCLUSIVE ) ;
+      try
+      {
+         _unloadCSSet.insert( csName ) ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         return ossException2RC( &e ) ;
+      }
+      return SDB_OK ;
+   }
+
+   void _SDB_RTNCB::delUnloadCS( const CHAR* csName )
+   {
+      ossScopedLock lock( &_csLatch, EXCLUSIVE ) ;
+      _unloadCSSet.erase( csName ) ;
+   }
+
+   BOOLEAN _SDB_RTNCB::hasUnloadCS( const CHAR* csName )
+   {
+      BOOLEAN has = FALSE ;
+
+      if ( _unloadCSSet.size() != 0 )
+      {
+         ossScopedLock lock( &_csLatch, SHARED ) ;
+         if ( _unloadCSSet.count( csName ) != 0 )
+         {
+            has = TRUE ;
+         }
+      }
+
+      return has ;
    }
 
    /*

@@ -66,6 +66,6 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.employee.dropIdIndex()
+> db.sample.employee.dropIdIndex()
 \f[]
 .fi

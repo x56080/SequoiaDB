@@ -4,7 +4,7 @@
 .hy
 .SH NAME
 .PP
-valueOf \- Return the original value of the CLCount( It's a hidden method ).
+valueOf \- Return the original value of the CLCount( It\[aq]s a hidden method ).
 .SH SYNOPSIS
 .PP
 \f[B]CLCount.valueOf()\f[]

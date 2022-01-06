@@ -1,8 +1,6 @@
-
 本文档将介绍 trace 跟踪相关的命令、开启 trace 日志收集、断点跟踪功能、输出 trace 日志和 trace 日志格式化。
 
-trace 相关的命令
-----
+##trace 相关的命令##
 
 - **traceOn**
 
@@ -11,7 +9,7 @@ trace 相关的命令
  语法
 
  ```lang-bash
- > db.traceOn( <bufferSize>, [options])
+ > db.traceOn(<bufferSize>, [options])
  ```
 
  | 参数名     | 类型           | 描述                                    | 是否必填 |
@@ -20,14 +18,14 @@ trace 相关的命令
  | options    | SdbTraceOption | 是一个 json 类型，用于指定过滤选项      | 否       |
 
  ```lang-bash
- SdbTraceOption({[Components:[...]], [BreakPoint:[...]],[Threads:[...]], [FunctionNames:[...]], [ThreadTypes:[...]]})
+ SdbTraceOption({[Components: [...]], [BreakPoint: [...]], [Threads: [...]], [FunctionNames: [...]], [ThreadTypes: [...]]})
  ```
 
  | 参数名        | 类型        | 描述                 |
  | ------------- | :---------- | -------------------- |
  | Components | array[string] | 用于指定一组[模块][component]，默认跟踪所有模块 |
- | BreakPoint  | array[string] | 用于指定一组断点，最大断点数量为10个 |
- | Threads    | array[int32]    | 用于指定一组[线程][snapshot]，最大线程数量为10个 |
+ | BreakPoint  | array[string] | 用于指定一组断点，最大断点数量为 10 个 |
+ | Threads    | array[int32]    | 用于指定一组[线程][snapshot]，最大线程数量为 10 个 |
  | FunctionNames | array[string] | 用于指定一组函数名   |
  | ThreadTypes  | array[string] | 用于指定一组[线程类型][snapshot] |
 
@@ -77,12 +75,11 @@ trace 相关的命令
 
  | 参数名     | 类型   | 描述                          | 是否必填 |
  | ---------- | ------ | ----------------------------- | -------- |
- | formatType | int32  | 格式化类型，取值为0或者1      | 是       |
+ | formatType | int32  | 格式化类型，取值为 0 或者 1      | 是       |
  | input      | string | traceOff 导出的二进制文件路径 | 是       |
  | output     | string | 输出的目标文件                | 是       |
 
-开启trace日志收集
-----
+##开启 trace 日志收集##
 
 用户通过 traceOn 命令可以开启 trace 功能，通过 traceStatus 可以了解 trace 的状态，通过 traceResume 可以恢复被挂起的线程并继续跟踪。
 
@@ -91,37 +88,37 @@ trace 相关的命令
 * 跟踪所有模块
 
    ```lang-javascript
-   > db.traceOn( 256 )
+   > db.traceOn(256)
    ```
 
 * 按模块过滤
 
    ```lang-javascript
-   > db.traceOn( 256,  SdbTraceOption( { Components:['dms'] } ) )
+   > db.traceOn(256, SdbTraceOption({Components: ['dms']}))
    ```
 
 * 按线程过滤
 
    ```lang-javascript
-   > db.traceOn( 256,  SdbTraceOption( { Threads:[4650] } ) )
+   > db.traceOn(256, SdbTraceOption({Threads: [4650]}))
    ```
 
 * 按函数名过滤
 
    ```lang-javascript
-   > db.traceOn( 256,  SdbTraceOption( { FunctionNames:['_dmsTempSUMgr::init'] } ) )
+   > db.traceOn(256, SdbTraceOption({FunctionNames: ['_dmsTempSUMgr::init']}))
    ```
 
 * 按线程类型过滤
 
    ```lang-javascript
-   > db.traceOn( 256,  SdbTraceOption( { threadTypes:['ShardAgent'] } ) )
+   > db.traceOn(256, SdbTraceOption({threadTypes: ['ShardAgent']}))
    ```
 
 * 断点跟踪
 
    ```lang-javascript
-   > db.traceOn( 256,  SdbTraceOption( { BreakPoint:['_dmsTempSUMgr::init'] } ) ) 
+   > db.traceOn(256, SdbTraceOption({BreakPoint: ['_dmsTempSUMgr::init']})) 
    ```
 
 * 恢复断点执行
@@ -133,7 +130,7 @@ trace 相关的命令
 * 模块和线程组合过滤
 
    ```lang-javascript
-   > db.traceOn( 256,  SdbTraceOption( { Components:['rtn'], Threads:[8337] } ) )
+   > db.traceOn(256, SdbTraceOption({Components: ['rtn'], Threads: [8337]}))
    ```
 
 * 查看跟踪状态
@@ -142,26 +139,24 @@ trace 相关的命令
    > db.traceStatus()
    ```
 
-trace日志输出
----
+##trace 日志输出##
 
 关闭跟踪，并将缓冲区中的 trace 日志以二进制格式输出到指定的文件中
 
 ```lang-javascript
-> db.traceOff( 'tracedump.dat')
+> db.traceOff('tracedump.dat')
 ```
 
 文件路径为绝对路径时，需要有相关目录的权限；为相对路径时，则输出到节点日志目录下面。
 
-trace日志格式化
----
+##trace 日志格式化##
 
 trace 日志格式化用于将 trace 的输出日志格式化为可读的形式。
 
 - 输出分析文件
 
    ```lang-bash
-   > traceFmt(0, ${dbpath} + '/diaglog/tracedump.dat', ${dbpath} + '/diaglog/trace_fmt'
+   > traceFmt(0, ${dbpath} + '/diaglog/tracedump.dat', ${dbpath} + '/diaglog/trace_fmt')
    ```
 
    按线程进行组织输出流程文件，并且针对结果作初步分析

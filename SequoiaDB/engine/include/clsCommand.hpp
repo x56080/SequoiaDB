@@ -75,6 +75,102 @@ namespace engine
          bson::BSONObj _splitKey ;
    } ;
 
+   class _rtnCreateIndex : public _rtnCommand
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public:
+         _rtnCreateIndex () ;
+         ~_rtnCreateIndex () ;
+
+      public :
+         virtual const CHAR*      name () ;
+         virtual RTN_COMMAND_TYPE type () ;
+         virtual BOOLEAN          writable () ;
+         virtual const CHAR*      collectionFullName () ;
+         virtual utilResult*      getResult() { return &_writeResult ; }
+
+         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+                              const CHAR *pMatcherBuff,
+                              const CHAR *pSelectBuff,
+                              const CHAR *pOrderByBuff,
+                              const CHAR *pHintBuff ) ;
+         virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                              _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                              INT16 w = 1, INT64 *pContextID = NULL ) ;
+      private:
+         INT32 _validateDef( const BSONObj &index ) ;
+      protected:
+         const CHAR             *_collectionName ;
+         BSONObj                 _index ;
+         const CHAR             *_indexName ;
+         INT32                   _sortBufSize ;
+         BOOLEAN                 _textIdx ;
+         BOOLEAN                 _isGlobal ;
+         utilWriteResult         _writeResult ;
+         INT64                   _taskID ;
+         BOOLEAN                 _isAsync ;
+         BOOLEAN                 _isStandaloneIdx ;
+   } ;
+
+   class _rtnDropIndex : public _rtnCommand
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public:
+         _rtnDropIndex () ;
+         virtual ~_rtnDropIndex () ;
+
+         virtual const CHAR*      name () ;
+         virtual RTN_COMMAND_TYPE type () ;
+         virtual BOOLEAN          writable () ;
+         virtual const CHAR*      collectionFullName () ;
+
+         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+                              const CHAR *pMatcherBuff,
+                              const CHAR *pSelectBuff,
+                              const CHAR *pOrderByBuff,
+                              const CHAR *pHintBuff ) ;
+         virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                              _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                              INT16 w = 1, INT64 *pContextID = NULL  ) ;
+      protected:
+         const CHAR          *_collectionName ;
+         BSONObj              _index ;
+         const CHAR          *_indexName ;
+         INT64                _taskID ;
+         BOOLEAN              _isAsync ;
+         BOOLEAN              _isStandaloneIdx ;
+   } ;
+
+   class _rtnCopyIndex : public _rtnCommand
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public:
+         _rtnCopyIndex () ;
+         ~_rtnCopyIndex () ;
+
+      public :
+         virtual const CHAR *     name () ;
+         virtual RTN_COMMAND_TYPE type () ;
+         virtual BOOLEAN          writable () ;
+         virtual const CHAR *     collectionFullName () ;
+         virtual INT32            spaceNode () ;
+         virtual INT32            spaceService () ;
+
+         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+                              const CHAR *pMatcherBuff,
+                              const CHAR *pSelectBuff,
+                              const CHAR *pOrderByBuff,
+                              const CHAR *pHintBuff ) ;
+         virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                              _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                              INT16 w = 1, INT64 *pContextID = NULL ) ;
+      protected:
+         const CHAR* _collectionName ;
+   } ;
+
    class _rtnCancelTask : public _rtnCommand
    {
       DECLARE_CMD_AUTO_REGISTER()
@@ -285,6 +381,7 @@ namespace engine
          virtual AUDIT_OBJ_TYPE _getAuditType () const = 0 ;
          virtual INT32 _executeTask ( const CHAR * object,
                                       const rtnAlterTask * task,
+                                      const rtnAlterInfo * alterInfo,
                                       const rtnAlterOptions * options,
                                       _pmdEDUCB * cb,
                                       _SDB_DMSCB * dmsCB,
@@ -325,6 +422,7 @@ namespace engine
 
          virtual INT32 _executeTask ( const CHAR * object,
                                       const rtnAlterTask * task,
+                                      const rtnAlterInfo * alterInfo,
                                       const rtnAlterOptions * options,
                                       _pmdEDUCB * cb,
                                       _SDB_DMSCB * dmsCB,
@@ -368,6 +466,7 @@ namespace engine
 
          virtual INT32 _executeTask ( const CHAR * object,
                                       const rtnAlterTask * task,
+                                      const rtnAlterInfo * alterInfo,
                                       const rtnAlterOptions * options,
                                       _pmdEDUCB * cb,
                                       _SDB_DMSCB * dmsCB,

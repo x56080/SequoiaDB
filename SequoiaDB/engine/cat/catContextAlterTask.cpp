@@ -66,6 +66,8 @@ namespace engine
                                             const rtnAlterTask * task )
    : _catCtxAlterTask( collection, task ),
      _postAutoSplit( FALSE ),
+     _dropIdIdx( FALSE ),
+     _dropShardIdx( FALSE ),
      _subCLOFMainCL( FALSE )
    {
    }
@@ -112,7 +114,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BSONObj taskObj ;
-      INT32 type = CLS_TASK_UNKNOW ;
+      INT32 type = CLS_TASK_UNKNOWN ;
 
       PD_TRACE_ENTRY( SDB_CATCTXALTERCLTASK_CLEARPOSTTASK ) ;
       for ( ossPoolList<UINT64>::const_iterator iterTask = _postTasks.begin() ;
@@ -233,7 +235,7 @@ namespace engine
 
       if ( _task->testFlags( RTN_ALTER_TASK_FLAG_SHARDLOCK ) )
       {
-         rc = catGetCLTaskCountByType( _dataName.c_str(), cb, CLS_TASK_SPLIT,
+         rc = catGetCLTaskCountByType( _dataName.c_str(), CLS_TASK_SPLIT, cb,
                                        taskCount ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get task count of collection [%s], rc: %d",
@@ -243,6 +245,11 @@ namespace engine
                    "Failed to [%s]: should have no split tasks",
                    _task->getActionName() ) ;
       }
+
+      rc = _checkSysIndex( cataSet, cb ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to check collection [%s]'s system index, rc: %d",
+                   _dataName.c_str(), rc ) ;
 
    done :
       PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK_CHECK_INT, rc ) ;
@@ -289,11 +296,386 @@ namespace engine
                       _dataName.c_str(), rc ) ;
       }
 
+      rc = _executeSysIndex( _dataName.c_str(), cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to execute collection [%s]'s system index, rc: %d",
+                   _dataName.c_str(), rc ) ;
+
    done :
       PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK_EXECUTE_INT, rc ) ;
       return rc ;
 
    error :
+      goto done ;
+   }
+
+   INT32 _catCtxAlterCLTask::_buildSysIndexInfo( const CHAR* collection,
+                                                 const CHAR* indexName,
+                                                 const BSONObj& indexDef,
+                                                 _pmdEDUCB * cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObj existedIdxObj ;
+         rc = catCheckIndexExist( collection, indexName, indexDef, cb,
+                                  _dropShardIdx, &existedIdxObj ) ;
+         if ( SDB_IXM_REDEF == rc )
+         {
+            rc = SDB_OK ;
+            cb->resetInfo( EDU_INFO_ERROR ) ;
+            // If the index creation fails, it will not be rolled back. So the
+            // catalog may have index, while data node doesn't have the index.
+            // Bring the index UniqueID to data node.
+            BSONObj def = existedIdxObj.getObjectField( IXM_FIELD_NAME_INDEX_DEF ) ;
+            _createIdxList.push_back( def.getOwned() ) ;
+         }
+         else if ( SDB_IXM_EXIST_COVERD_ONE == rc )
+         {
+            rc = SDB_OK ;
+            cb->resetInfo( EDU_INFO_ERROR ) ;
+         }
+         else if ( SDB_OK == rc )
+         {
+            INT16 w = sdbGetCatalogueCB()->majoritySize() ;
+            utilIdxUniqueID idxUniqID = UTIL_UNIQUEID_NULL ;
+
+            rc = catGetAndIncIdxUniqID( collection, cb, w, idxUniqID ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get index unique id for cl: %s, rc: %d",
+                         collection, rc ) ;
+
+            BSONObjBuilder builder ;
+            builder.appendElements( indexDef ) ;
+            builder.append( IXM_FIELD_NAME_UNIQUEID, (INT64)idxUniqID ) ;
+
+            _createIdxList.push_back( builder.obj() ) ;
+         }
+         else
+         {
+            PD_LOG( PDERROR,
+                    "Failed to check index[%s] for collection[%s], rc: %d",
+                    collection, indexName, rc ) ;
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _catCtxAlterCLTask::_checkTaskConflict( const CHAR *collection,
+                                                 const BSONObj &indexDef,
+                                                 _pmdEDUCB *cb )
+   {
+      // If cl.enableSharding({ShardingKey:{a:1}}) and cl.createIndex('a',{a:1})
+      // are concurrent, alter ignore -291 error, so they may generate two index
+      // records on catalog SYSINDEXES.
+      INT32 rc = SDB_OK ;
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      BSONObj dummyObj, matcher ;
+      INT64 contextID = -1 ;
+      clsTask *pTask = NULL ;
+
+      // query tasks
+      try
+      {
+         matcher = BSON( FIELD_NAME_NAME << collection <<
+                         FIELD_NAME_TASKTYPE << CLS_TASK_CREATE_IDX <<
+                         FIELD_NAME_STATUS <<
+                         BSON( "$ne" << CLS_TASK_STATUS_FINISH ) ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+      rc = rtnQuery( CAT_TASK_INFO_COLLECTION,
+                     dummyObj, matcher, dummyObj, dummyObj,
+                     0, cb, 0, -1, dmsCB, rtnCB, contextID ) ;
+      PD_RC_CHECK ( rc, PDERROR, "Failed to perform query, rc = %d", rc ) ;
+
+      // loop every index task
+      while ( TRUE )
+      {
+         rtnContextBuf contextBuf ;
+         BSONObj obj ;
+
+         rc = rtnGetMore( contextID, 1, contextBuf, cb, rtnCB ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            contextID = -1 ;
+            rc = SDB_OK ;
+            break ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to retreive record, rc: %d", rc ) ;
+
+         try
+         {
+            obj = BSONObj( contextBuf.data() ) ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+         }
+
+         rc = clsNewTask( obj, pTask ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to initial task, rc: %d",
+                      rc ) ;
+
+         clsCreateIdxTask* pIdxTask = (clsCreateIdxTask*)pTask ;
+         if ( ixmIsSameDef( pIdxTask->indexDef(), indexDef ) )
+         {
+            rc = SDB_CLS_MUTEX_TASK_EXIST ;
+            PD_LOG_MSG( PDERROR,
+                        "Conflict with an existing task[%llu,%s]",
+                        pTask->taskID(), pTask->taskName() ) ;
+            goto error ;
+         }
+
+         clsReleaseTask( pTask ) ;
+      }
+
+   done:
+      if ( -1 != contextID )
+      {
+         rtnCB->contextDelete ( contextID, cb ) ;
+      }
+      if ( pTask )
+      {
+         clsReleaseTask( pTask ) ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _catCtxAlterCLTask::_checkSysIndex( const clsCatalogSet& cataSet,
+                                             _pmdEDUCB* cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      BOOLEAN createIdIdx = FALSE ;
+      BOOLEAN createShardIdx = FALSE ;
+      BSONObj shardingKey ;
+      BSONObj idxObj ;
+
+      // main-collection doesn't have $id or $shard index
+      if ( cataSet.isMainCL() )
+      {
+         goto done ;
+      }
+
+      switch ( _task->getActionType() )
+      {
+         case RTN_ALTER_CL_CREATE_ID_INDEX :
+         {
+            createIdIdx = TRUE ;
+            break ;
+         }
+         case RTN_ALTER_CL_DROP_ID_INDEX :
+         {
+            _dropIdIdx = TRUE ;
+            break ;
+         }
+         case RTN_ALTER_CL_ENABLE_SHARDING :
+         {
+            const rtnCLEnableShardingTask * localTask =
+                     dynamic_cast< const rtnCLEnableShardingTask * >( _task ) ;
+            PD_CHECK( NULL != localTask, SDB_SYS, error,
+                      PDERROR, "Failed to get task" ) ;
+
+            const rtnCLShardingArgument &arg = localTask->getShardingArgument() ;
+            shardingKey = arg.getShardingKey().getOwned() ;
+            const BSONObj &curShardKey = cataSet.getShardingKey() ;
+
+            if ( !curShardKey.isEmpty() )
+            {
+               _dropShardIdx = TRUE ;
+            }
+            else
+            {
+               _dropShardIdx = FALSE ;
+            }
+            if ( arg.isEnsureShardingIndex() && !shardingKey.isEmpty() )
+            {
+               createShardIdx = TRUE ;
+            }
+            else
+            {
+               createShardIdx = FALSE ;
+            }
+            break ;
+         }
+         case RTN_ALTER_CL_DISABLE_SHARDING :
+         {
+            _dropShardIdx = TRUE ;
+            break ;
+         }
+         case RTN_ALTER_CL_SET_ATTRIBUTES :
+         {
+            const rtnCLSetAttributeTask * localTask =
+                        dynamic_cast< const rtnCLSetAttributeTask * >( _task ) ;
+            PD_CHECK( NULL != localTask, SDB_SYS, error,
+                      PDERROR, "Failed to get task" ) ;
+
+            if ( localTask->testArgumentMask( UTIL_CL_AUTOIDXID_FIELD ) )
+            {
+               if ( localTask->isAutoIndexID() )
+               {
+                  createIdIdx = TRUE ;
+               }
+               else
+               {
+                  _dropIdIdx = TRUE ;
+               }
+            }
+            if ( localTask->containShardingArgument() )
+            {
+               const rtnCLShardingArgument &arg = localTask->getShardingArgument() ;
+               shardingKey = arg.getShardingKey().getOwned() ; ;
+               const BSONObj &curShardKey = cataSet.getShardingKey() ;
+
+               if ( !curShardKey.isEmpty() )
+               {
+                  _dropShardIdx = TRUE ;
+               }
+               else
+               {
+                  _dropShardIdx = FALSE ;
+               }
+               if ( arg.isEnsureShardingIndex() && !shardingKey.isEmpty() )
+               {
+                  createShardIdx = TRUE ;
+               }
+               else
+               {
+                  createShardIdx = FALSE ;
+               }
+            }
+            break ;
+         }
+         default :
+         {
+            break ;
+         }
+      }
+
+      if ( createIdIdx )
+      {
+         BSONObj def = BSON( IXM_FIELD_NAME_KEY << BSON( DMS_ID_KEY_NAME << 1 ) <<
+                             IXM_FIELD_NAME_NAME << IXM_ID_KEY_NAME <<
+                             IXM_FIELD_NAME_UNIQUE << true <<
+                             IXM_FIELD_NAME_ENFORCED << true <<
+                             IXM_FIELD_NAME_NOTARRAY << true ) ;
+
+         rc = _checkTaskConflict( cataSet.name(), def, cb ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to check whether there are conflicting tasks, "
+                      "rc: %d", rc ) ;
+
+         rc = _buildSysIndexInfo( cataSet.name(), IXM_ID_KEY_NAME, def, cb ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to build system index info, rc: %d",
+                      rc ) ;
+      }
+      if ( createShardIdx )
+      {
+         if ( createIdIdx &&
+              0 == shardingKey.woCompare( BSON( DMS_ID_KEY_NAME << 1 ) ) )
+         {
+            PD_LOG( PDWARNING, "$shard index and $id index are the same "
+                    "definition. Skip creating $shard index" ) ;
+         }
+         else
+         {
+            BSONObj dummyObj, obj ;
+            BSONObj boMatcher = BSON( FIELD_NAME_COLLECTION << cataSet.name() <<
+                                      IXM_FIELD_NAME_INDEX_DEF "."
+                                      IXM_FIELD_NAME_KEY << shardingKey ) ;
+            rc = catGetOneObj( CAT_INDEX_INFO_COLLECTION, dummyObj, boMatcher,
+                               dummyObj, cb, obj ) ;
+            if ( SDB_OK == rc )
+            {
+               PD_LOG( PDWARNING, "An index with the same definition already "
+                       "exists. Skip creating $shard index" ) ;
+            }
+            else if ( SDB_DMS_EOC == rc )
+            {
+               BSONObj def = BSON( IXM_FIELD_NAME_KEY << shardingKey <<
+                                   IXM_FIELD_NAME_NAME << IXM_SHARD_KEY_NAME ) ;
+               rc = _checkTaskConflict( cataSet.name(), def, cb ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to check whether there are conflicting "
+                            "tasks, rc: %d", rc ) ;
+
+               rc = _buildSysIndexInfo( cataSet.name(), IXM_SHARD_KEY_NAME,
+                                        def, cb ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to build system index info, rc: %d",
+                            rc ) ;
+            }
+            else
+            {
+               PD_LOG( PDERROR, "Failed to get obj(%s) from %s, rc: %d",
+                       boMatcher.toString().c_str(),
+                       CAT_INDEX_INFO_COLLECTION, rc ) ;
+               goto error ;
+            }
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _catCtxAlterCLTask::_executeSysIndex( const CHAR* collection,
+                                               _pmdEDUCB* cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      // remove index before creating index
+      if ( _dropIdIdx )
+      {
+         rc = catRemoveIndex( collection, IXM_ID_KEY_NAME, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to drop $id index for collection[%s], rc: %d",
+                      collection, rc ) ;
+      }
+      if ( _dropShardIdx )
+      {
+         rc = catRemoveIndex( collection, IXM_SHARD_KEY_NAME, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to drop $shard index for collection[%s], rc: %d",
+                      collection, rc ) ;
+      }
+
+      for ( ossPoolList<BSONObj>::iterator it = _createIdxList.begin() ;
+            it != _createIdxList.end() ; it++ )
+      {
+         rc = catAddIndex( collection, *it, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to create index for collection[%s], rc: %d",
+                      collection, rc ) ;
+      }
+
+   done:
+      return rc ;
+   error:
       goto done ;
    }
 
@@ -386,7 +768,7 @@ namespace engine
                 "Failed to check [%s]: collection [%s] is capped",
                 _task->getActionName(), _dataName.c_str() ) ;
 
-      rc = catGetCLTaskCountByType( _dataName.c_str(), cb, CLS_TASK_SPLIT,
+      rc = catGetCLTaskCountByType( _dataName.c_str(), CLS_TASK_SPLIT, cb,
                                     splitTaskNum ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get split task number for "
                    "collection [%s]", _dataName.c_str() ) ;
@@ -614,7 +996,7 @@ namespace engine
          if ( !localTask->isAutoIndexID() )
          {
             INT64 splitTaskNum = 0 ;
-            rc = catGetCLTaskCountByType( _dataName.c_str(), cb, CLS_TASK_SPLIT,
+            rc = catGetCLTaskCountByType( _dataName.c_str(), CLS_TASK_SPLIT, cb,
                                           splitTaskNum ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get split task number for "
                          "collection [%s]", _dataName.c_str() ) ;
@@ -1421,6 +1803,7 @@ namespace engine
             if( fieldList[i]->testArgumentMask( UTIL_CL_AUTOINC_GENERATED_FIELD ) )
             {
                const CHAR *generated = NULL ;
+               utilSequenceID seqID = field->sequenceID() ;
                generated = field->generated() ;
                PD_CHECK( generated, SDB_SYS, error, PDERROR,
                          "Invalid generated type[%d] in catalog sequence field"
@@ -1450,7 +1833,7 @@ namespace engine
                if( addRbk )
                {
                   fieldList[i]->setGenerated( generated ) ;
-                  fieldList[i]->setID( field->sequenceID() ) ;
+                  fieldList[i]->setID( seqID ) ;
                }
             }
          }
@@ -1673,11 +2056,6 @@ namespace engine
          {
             if ( _postAutoSplit )
             {
-               const rtnCLEnableShardingTask * localTask =
-                           dynamic_cast< const rtnCLEnableShardingTask * >( _task ) ;
-               PD_CHECK( NULL != localTask, SDB_SYS, error,
-                         PDERROR, "Failed to get task" ) ;
-
                if ( cataSet.groupCount() == 1 &&
                     cataSet.isHashSharding() )
                {
@@ -1693,8 +2071,8 @@ namespace engine
          }
          case RTN_ALTER_CL_SET_ATTRIBUTES :
          {
-            const rtnCLSetAttributeTask * localTask =
-                        dynamic_cast< const rtnCLSetAttributeTask * >( _task ) ;
+            const rtnCLSetAttributeTask *localTask =
+                           dynamic_cast<const rtnCLSetAttributeTask*>( _task ) ;
             PD_CHECK( NULL != localTask, SDB_SYS, error, PDERROR,
                       "Failed to get task" ) ;
             if ( _postAutoSplit )
@@ -2952,7 +3330,17 @@ namespace engine
                    SDB_LOCK_FAILED, error, PDWARNING,
                    "Failed to lock group [%s]",
                    groupName ) ;
-         _groups.push_back( groupID ) ;
+         try
+         {
+            _groups.push_back( groupID ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to add group ID, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
       }
 
    done :
@@ -3218,7 +3606,7 @@ namespace engine
 
       BOOLEAN checkGroups = _task->testArgumentMask( UTIL_DOMAIN_GROUPS_FIELD ) ;
 
-      rc = catGetAndLockDomain( _dataName.c_str(), _boData,
+      rc = catGetAndLockDomain( _dataName, _boData,
                                 cb, &lockMgr, EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get domain [%s], rc: %d",
                    _dataName.c_str(), rc ) ;

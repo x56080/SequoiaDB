@@ -4,15 +4,15 @@
 ***************************************************************************** */
 testConf.skipStandAlone = true;
 testConf.skipOneDuplicatePerGroup = true;
-
-var group = commGetGroups( db )[0].sort( sortBy( "NodeID" ) );
-var groupName = group[0].GroupName;
 testConf.clName = CHANGEDPREFIX + "_14084";
-testConf.clOpt = { Group: groupName, ReplSize: 0 };
+testConf.clOpt = { ReplSize: 0 };
+testConf.useSrcGroup = true;
 main( test );
 
 function test ( testPara )
 {
+   var groupName = testPara.srcGroupName;
+   var group = commGetGroups( db, "", groupName )[0].sort( sortBy( "NodeID" ) );
    insertData( testPara.testCL );
 
    //节点没有配置instanceid的情况下，按照节点的nodeid在组内的排序序列（从1开始）作为instanceid来进行选取

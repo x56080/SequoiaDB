@@ -159,7 +159,7 @@
 |          | 说明                                                         | 示例                                                         |
 | -------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | 请求头   | 同通用请求头                                                 |                                                              |
-| 请求内容 | cmd：create autoincrement<br>name：集合的全称（集合空间.集合）<br>options：属性 | 1. 创建一个自增字段：cmd=create autoincrement&name=foo.bar&options={AutoIncrement:{Field:"id"}}<br>2. 创建多个自增字段：cmd=create autoincrement&name=foo.bar&options={AutoIncrement:[{Field:"id"},{Field:"times"}]} |
+| 请求内容 | cmd：create autoincrement<br>name：集合的全称（集合空间.集合）<br>options：属性 | 1. 创建一个自增字段：cmd=create autoincrement&name=sample.employee&options={AutoIncrement:{Field:"id"}}<br>2. 创建多个自增字段：cmd=create autoincrement&name=sample.employee&options={AutoIncrement:[{Field:"id"},{Field:"times"}]} |
 | 响应头   | 同通用响应头                                                 |                                                              |
 | 响应内容 | {<br>errno: 返回值，0 表示成功，其他为失败<br>description: 失败时的错误描述<br>} | [{ "errno": 0 }]     
 
@@ -169,7 +169,7 @@
 |          | 说明                                                         | 示例                                                         |
 | -------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | 请求头   | 同通用请求头                                                 |                                                              |
-| 请求内容 | cmd：drop autoincrement<br>name：集合的全称（集合空间.集合）<br>options：属性 | 1. 删除一个自增字段：cmd=drop autoincrement&name=foo.bar&options={Field:"id"}<br >2. 删除多个自增字段：cmd=drop autoincrement&name=foo.bar&options={Field:["id","times"]} |
+| 请求内容 | cmd：drop autoincrement<br>name：集合的全称（集合空间.集合）<br>options：属性 | 1. 删除一个自增字段：cmd=drop autoincrement&name=sample.employee&options={Field:"id"}<br >2. 删除多个自增字段：cmd=drop autoincrement&name=sample.employee&options={Field:["id","times"]} |
 | 响应头   | 同通用响应头                                                 |                                                              |
 | 响应内容 | {<br>errno: 返回值，0 表示成功，其他为失败<br>description: 失败时的错误描述<br>} | [{ "errno": 0 }]                                         
 
@@ -190,6 +190,33 @@
 | 请求内容 | cmd：list groups                          | cmd=list groups |
 | 响应头   | 同通用响应头                              |                 |
 | 响应内容 | {<br>errno: 返回值，0 表示成功，其他为失败<br>description: 失败时的错误描述<br>}<br>{<br>返回数据组的内容<br>} | [{ "errno": 0 }] |
+
+##列出序列##
+
+|          | 说明                                      | 示例               |
+|----------|-------------------------------------------|--------------------|
+| 请求头   | 同通用请求头                              |                    |
+| 请求内容 | cmd：list sequences                       | cmd=list sequences |
+| 响应头   | 同通用响应头                              |                    |
+| 响应内容 | {<br>errno: 返回值，0 表示成功，其他为失败<br>description: 失败时的错误描述<br>}<br>{<br>返回序列的内容<br>} | [{ "errno": 0 }] |
+
+##列出集合空间的集合##
+
+|          | 说明                                      | 示例            |
+|----------|-------------------------------------------|-----------------|
+| 请求头   | 同通用请求头                              |                 |
+| 请求内容 | cmd：list collections in collectionspace<br> name: 集合空间的名字  | cmd=list collections in collectionspace&name=sample |
+| 响应头   | 同通用响应头                              |                 |
+| 响应内容 | {<br>errno: 返回值，0 表示成功，其他为失败<br>description: 失败时的错误描述<br>}<br>{<br>返回集合空间下所有集合的全名<br>} | [{ "errno": 0 },{ "Name": "sample.employee" }]  |
+
+##获取数据域名##
+
+|          | 说明                                      | 示例            |
+|----------|-------------------------------------------|-----------------|
+| 请求头   | 同通用请求头                              |                 |
+| 请求内容 | cmd：get domain name<br> name: 集合空间的名字               | cmd=get domain name&name=sample |
+| 响应头   | 同通用响应头                              |                 |
+| 响应内容 | {<br>errno: 返回值，0 表示成功，其他为失败<br>description: 失败时的错误描述<br>}<br>{<br>返回集合空间所属数据域名<br>} | [{ "errno": 0 },{ "Domain": "domain" }]  |
 
 ##收集统计信息##
 
@@ -225,6 +252,7 @@
 > - accessplans：访问计划缓存快照  
 > - health：节点健康检测快照  
 > - configs：配置快照  
+> - sequences：序列快照  
 
 ##更新配置参数##
 
@@ -245,7 +273,68 @@
 | 响应头   | 同通用响应头                              |                 |
 | 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述<br>} | [{ "errno": 0 }] |
 
+##创建序列##
 
+|          | 说明                                      | 示例            |
+|----------|-------------------------------------------|-----------------|
+| 请求头   | 同通用请求头                              |                 |
+| 请求内容 | cmd：create sequence<br>name：序列名<br>options：指定序列属性 <br>详细说明可参考 [db.createSequence\(\)][createSequence] | cmd=create sequence&name=IDSequence&options={"Cycled":true} |
+| 响应头   | 同通用响应头                              |                 |
+| 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述<br>} | [{ "errno": 0 }] |
+
+##删除序列##
+
+|          | 说明                                      | 示例            |
+|----------|-------------------------------------------|-----------------|
+| 请求头   | 同通用请求头                              |                 |
+| 请求内容 | cmd：drop sequence<br>name：序列名        | cmd=drop sequence&name=IDSequence |
+| 响应头   | 同通用响应头                              |                 |
+| 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述<br>} | [{ "errno": 0 }] |
+
+##修改序列名##
+
+|          | 说明                                      | 示例            |
+|----------|-------------------------------------------|-----------------|
+| 请求头   | 同通用请求头                              |                 |
+| 请求内容 | cmd：rename sequence<br>name：当前序列名<br>newname：新的序列名 | cmd=rename sequence&name=IDSequence&newname=ID_SEQ |
+| 响应头   | 同通用响应头                              |                 |
+| 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述<br>} | [{ "errno": 0 }] |
+
+##获取序列下一个值##
+
+|          | 说明                                      | 示例            |
+|----------|-------------------------------------------|-----------------|
+| 请求头   | 同通用请求头                              |                 |
+| 请求内容 | cmd：get sequence next value<br>name：序列名 | cmd=get sequence next value&name=IDSequence |
+| 响应头   | 同通用响应头                              |                 |
+| 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述<br>}<br>{<br>返回序列下一个值<br>}<br>... | [{ "errno": 0 },{ "NextValue": 1, "ReturnNum": 1, "Increment": 1 }] |
+
+##获取序列当前值##
+
+|          | 说明                                      | 示例            |
+|----------|-------------------------------------------|-----------------|
+| 请求头   | 同通用请求头                              |                 |
+| 请求内容 | cmd：get sequence current value<br>name：序列名 | cmd=get sequence current value&name=IDSequence |
+| 响应头   | 同通用响应头                              |                 |
+| 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述<br>}<br>{<br>返回序列当前值<br>}<br>... | [{ "errno": 0 },{ "CurrentValue": 1 }] |
+
+##重置序列计数##
+
+|          | 说明                                      | 示例            |
+|----------|-------------------------------------------|-----------------|
+| 请求头   | 同通用请求头                              |                 |
+| 请求内容 | cmd：restart sequence<br>name：序列名<br>startvalue：起始值 | cmd=restart sequence&name=IDSequence&StartValue=1 |
+| 响应头   | 同通用响应头                              |                 |
+| 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述<br>} | [{ "errno": 0 }] |
+
+##修改序列属性##
+
+|          | 说明                                      | 示例            |
+|----------|-------------------------------------------|-----------------|
+| 请求头   | 同通用请求头                              |                 |
+| 请求内容 | cmd：set sequence attributes<br>name：序列名<br>options：序列属性<br>详细说明可参考 [SdbSequence.setAttributes\(\)][setSequenceAttr] | cmd=set sequence attributes&name=IDSequence&options={MinValue:0} |
+| 响应头   | 同通用响应头                              |                 |
+| 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述<br>} | [{ "errno": 0 }] |
 
 [^_^]:
      本文使用的所有引用及链接
@@ -253,3 +342,5 @@
 [snapshot]:manual/Manual/Sequoiadb_Command/Sdb/snapshot.md
 [deleteConf]:manual/Manual/Sequoiadb_Command/Sdb/deleteConf.md
 [updateConf]:manual/Manual/Sequoiadb_Command/Sdb/updateConf.md
+[createSequence]: manual/Manual/Sequoiadb_Command/Sdb/createSequence.md
+[setSequenceAttr]: manual/Manual/Sequoiadb_Command/SdbSequence/setAttributes.md

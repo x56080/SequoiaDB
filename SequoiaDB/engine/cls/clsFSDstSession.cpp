@@ -674,6 +674,7 @@ namespace engine
          BSONElement lobPageEle ;
          BSONElement typeEle ;
          BSONElement extOptEle ;
+         BSONElement idIdxEle ;
          BSONElement csEle ;
          BSONElement dictEle ;
 
@@ -739,6 +740,12 @@ namespace engine
          if ( Object == extOptEle.type() )
          {
             meta.extOptions = extOptEle.Obj() ;
+         }
+
+         idIdxEle = ele.embeddedObject().getField( CLS_FS_IDIDX_DEF ) ;
+         if ( Object == idIdxEle.type() )
+         {
+            meta.idIdxDef = idIdxEle.Obj() ;
          }
 
          lobPageEle =  ele.embeddedObject().getField( CLS_FS_LOB_PAGE_SIZE ) ;
@@ -932,10 +939,20 @@ namespace engine
          rc = _replayer.replayCrtCS( meta.csName.c_str(), utilGetCSUniqueID( meta.clUniqueID ),
                                      meta.pageSize, meta.lobPageSize,
                                      meta.csType, eduCB() ) ;
+
+         BSONObj* pExtOpt = NULL ;
+         BSONObj* pIdIdx = NULL ;
+         if ( !meta.extOptions.isEmpty() )
+         {
+            pExtOpt = &meta.extOptions ;
+         }
+         if ( !meta.idIdxDef.isEmpty() )
+         {
+            pIdIdx = &meta.idIdxDef ;
+         }
          rc = _replayer.replayCrtCollection( fullName, meta.clUniqueID,
                                              meta.attributes, eduCB(), meta.compType,
-                                             ( meta.extOptions.isEmpty() ?
-                                               NULL : &meta.extOptions ) ) ;
+                                             pExtOpt, pIdIdx ) ;
          if ( SDB_OK != rc && SDB_DMS_EXIST != rc )
          {
             PD_LOG( PDERROR, "Session[%s]: Failed to create collection"
@@ -1857,6 +1874,7 @@ namespace engine
       pmdGetStartup().ok( FALSE ) ;
       // clear all log
       dpsCB->move ( 0, 0 ) ;
+      dpsCB->beforeFS() ;
       /*
       Don't to move the lsn to expect to prevent the node change to primary
       when the primary node crashed
@@ -1919,6 +1937,24 @@ namespace engine
             ++itCS ;
          }
          _mapEmptyCS.clear() ;
+      }
+
+      try
+      {
+         if ( 0 == _fullNames.size() )
+         {
+            // make sure we can get log from the src node.
+            static string dummpyCL( SYS_INEXISTENCE_CS"."SYS_INEXISTENCE_CL ) ;
+            _fullNames.push_back( dummpyCL ) ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Session[%s]: Occur exception: %s",
+                 sessionName(), e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         _disconnect() ;
+         goto done ;
       }
 
       /// begin next status
@@ -2161,7 +2197,6 @@ namespace engine
          PMD_SET_DB_STATUS( SDB_DB_FULLSYNC ) ;
       }
       sdbGetReplCB()->getFaultEvent()->signalAll( SDB_CLS_FULL_SYNC ) ;
-
       // not use trans lock
       eduCB()->getTransExecutor()->setUseTransLock( FALSE ) ;
 
@@ -2173,7 +2208,6 @@ namespace engine
    void _clsFSDstSession::_onDetach()
    {
       PD_TRACE_ENTRY ( SDB__CLSFSDS__ONDETACH );
-
       if ( CLS_FS_STATUS_END == _status && CLS_FS_STEP_END == _fsStep )
       {
          rtnDBFSPostCleaner fsCleaner ;
@@ -2184,7 +2218,7 @@ namespace engine
          /// move dps to 0
          pmdGetKRCB()->getDPSCB()->move( 0, 0 ) ;
       }
-
+      pmdGetKRCB()->getDPSCB()->afterFS();
       PD_LOG( PDEVENT, "Session[%s]: start sync session.", sessionName() ) ;
       pmdGetKRCB()->getClsCB()->startInnerSession( CLS_REPL,
                                                    CLS_TID_REPL_SYC ) ;
@@ -2579,7 +2613,9 @@ namespace engine
             }
 
             // skip SYSRBS CS during sync because it's local to the node
-            if ( 0 == ossStrcmp( csInfo._name, SDB_DMSRBS_NAME ) )
+            if ( 0 == ossStrncmp( csInfo._name,
+                                  SDB_DMSRBS_NAME,
+                                  SDB_DMSRBS_NAME_SIZE ) )
             {
                csList.erase( it++ ) ;
                ++count ;
@@ -2784,7 +2820,7 @@ namespace engine
    */
    BEGIN_OBJ_MSG_MAP( _clsSplitDstSession, _clsDataDstBaseSession )
       //ON_MSG
-      ON_MSG ( MSG_CAT_SPLIT_START_RSP, handleTaskNotifyRes )
+      ON_MSG ( MSG_CAT_TASK_START_REP, handleTaskNotifyRes )
       ON_MSG ( MSG_CAT_SPLIT_CHGMETA_RSP, handleTaskNotifyRes )
       ON_MSG ( MSG_CAT_SPLIT_CLEANUP_RSP, handleTaskNotifyRes )
       ON_MSG ( MSG_CAT_SPLIT_FINISH_RSP, handleTaskNotifyRes )
@@ -2846,7 +2882,7 @@ namespace engine
                   _pTask->taskName(), _pTask->status() ) ;
 
          EDUID cleanupJobID = PMD_INVALID_EDUID ;
-         startCleanupJob( _pTask->clFullName(), _pTask->clUniqueID(),
+         startCleanupJob( _pTask->collectionName(), _pTask->clUniqueID(),
                           _pTask->splitKeyObj(), _pTask->splitEndKeyObj(),
                           FALSE, _pTask->isHashSharding(),
                           pmdGetKRCB()->getDPSCB(), &cleanupJobID ) ;
@@ -2858,6 +2894,7 @@ namespace engine
       // the task is finished or catalog meta-data is changed,
       // need to notify peer to clean up data
       else if ( CLS_TASK_STATUS_FINISH == _pTask->status() ||
+                CLS_TASK_STATUS_CLEANUP == _pTask->status() ||
                 CLS_TASK_STATUS_META == _pTask->status() )
       {
          PD_LOG ( PDEVENT, "Session[%s]: Split task[%s] already finished,"
@@ -2873,7 +2910,7 @@ namespace engine
 
       // register collection
       clsTaskMgr *pTaskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
-      pTaskMgr->regCollection( _pTask->clFullName() ) ;
+      pTaskMgr->regCollection( _pTask->collectionName() ) ;
       _regTask = TRUE ;
 
       // begin
@@ -2892,7 +2929,7 @@ namespace engine
       // unregister collection
       if ( _regTask )
       {
-         pClsMgr->getTaskMgr()->unregCollection( _pTask->clFullName() ) ;
+         pClsMgr->getTaskMgr()->unregCollection( _pTask->collectionName() ) ;
          _regTask = FALSE ;
       }
 
@@ -2902,7 +2939,7 @@ namespace engine
          if ( 0 != _needSyncData && _step <= STEP_META )
          {
             EDUID cleanupJobID = PMD_INVALID_EDUID ;
-            startCleanupJob( _pTask->clFullName(), _pTask->clUniqueID(),
+            startCleanupJob( _pTask->collectionName(), _pTask->clUniqueID(),
                              _pTask->splitKeyObj(), _pTask->splitEndKeyObj(),
                              FALSE, _pTask->isHashSharding(),
                              pmdGetKRCB()->getDPSCB(), &cleanupJobID ) ;
@@ -2925,12 +2962,16 @@ namespace engine
 
       // when task complete and no the same type task, should notify cluster
       // to query all the node tasks
-      if ( CLS_FS_STATUS_END == _status && STEP_END == _step &&
-           1 == splitTaskCount )
+      if ( CLS_FS_STATUS_END == _status && STEP_END == _step )
       {
-         BSONObj match = BSON ( CAT_TARGETID_NAME <<
-                                pClsMgr->getNodeID().columns.groupID ) ;
-         pClsMgr->startTaskCheck( match ) ;
+         if ( 1 == splitTaskCount )
+         {
+            pClsMgr->startAllTaskCheck() ;
+         }
+         else
+         {
+            pClsMgr->startIdxTaskCheckByCL( _pTask->clUniqueID() ) ;
+         }
       }
 
       _disconnect() ;
@@ -2956,7 +2997,7 @@ namespace engine
       // unregister collection
       if ( _regTask )
       {
-         pClsMgr->getTaskMgr()->unregCollection( _pTask->clFullName() ) ;
+         pClsMgr->getTaskMgr()->unregCollection( _pTask->collectionName() ) ;
          _regTask = FALSE ;
       }
 
@@ -3019,7 +3060,7 @@ namespace engine
       // need to send start to catalog
       if ( STEP_NONE == _step )
       {
-         _taskNotify ( MSG_CAT_SPLIT_START_REQ ) ;
+         _taskNotify ( MSG_CAT_TASK_START_REQ ) ;
       }
       else
       {
@@ -3068,6 +3109,8 @@ namespace engine
       msg.header.TID = CLS_TID( _sessionID ) ;
       _sendTo( _selector.src(), &(msg.header) ) ;
       _timeout = 0 ;
+      // End of split, make it so that restoreToTime cannot go beyond this
+      sdbGetTransCB()->pushRestoreWindow() ;
       PD_TRACE_EXIT ( SDB__CLSSPLDS__LEND );
    }
 
@@ -3078,15 +3121,15 @@ namespace engine
 
       // if task has canceled, need to clean data
       if ( CLS_TASK_STATUS_CANCELED == _pTask->status() &&
-           STEP_REMOVE != _step )
+           STEP_FINISH != _step )
       {
          clsCB *pClsCB = pmdGetKRCB()->getClsCB() ;
-         pClsCB->getTaskMgr()->unregCollection( _pTask->clFullName() ) ;
+         pClsCB->getTaskMgr()->unregCollection( _pTask->collectionName() ) ;
          _regTask = FALSE ;
          INT32 cleanRet = SDB_OK ;
 
          EDUID cleanupJobID = PMD_INVALID_EDUID ;
-         if ( SDB_OK != startCleanupJob( _pTask->clFullName(),
+         if ( SDB_OK != startCleanupJob( _pTask->collectionName(),
                                          _pTask->clUniqueID(),
                                          _pTask->splitKeyObj(),
                                          _pTask->splitEndKeyObj(), FALSE,
@@ -3106,7 +3149,7 @@ namespace engine
             _disconnect() ;
             goto done ;
          }
-         _step = STEP_REMOVE ;
+         _step = STEP_FINISH ;
       }
       else if ( STEP_SYNC_DATA == _step )
       {
@@ -3148,7 +3191,7 @@ namespace engine
                // lock su
                if ( ( SDB_OK == rc ) &&
                     ( SDB_OK == rtnResolveCollectionNameAndLock(
-                                   _pTask->clFullName(), dmsCB, &su,
+                                   _pTask->collectionName(), dmsCB, &su,
                                    &pCLShort, suID ) ) )
                {
                   // mark split finish timestamp in mbStat
@@ -3156,9 +3199,10 @@ namespace engine
                                                            SHARED ) )
                   {
                      UINT64 tm = finishTime.getTime() ;
-                     // update mbStat._splitFinishTime
+                     // update global transaction available timestamp
+                     // split won't fetch old versions from source
                      pContext->mbStat()
-                             ->_splitFinishTime.swapGreaterThan( tm ) ;
+                             ->_globTransAvailTime.swapGreaterThan( tm ) ;
                      // release context
                      su->data()->releaseMBContext( pContext ) ;
                      jobDone   = TRUE ;
@@ -3191,7 +3235,7 @@ namespace engine
       else if ( STEP_META == _step )
       {
          //need to update catalog
-         INT32 rc = _pShardMgr->syncUpdateCatalog( _pTask->clFullName(),
+         INT32 rc = _pShardMgr->syncUpdateCatalog( _pTask->collectionName(),
                                                    OSS_ONE_SEC ) ;
          if ( SDB_DMS_NOTEXIST == rc )
          {
@@ -3206,7 +3250,7 @@ namespace engine
             catAgent *pCatAgent = _pShardMgr->getCataAgent() ;
             pCatAgent->lock_r () ;
             _clsCatalogSet* catSet = pCatAgent->collectionSet(
-               _pTask->clFullName() ) ;
+               _pTask->collectionName() ) ;
             if ( catSet )
             {
                mainCLName = catSet->getMainCLName();
@@ -3237,7 +3281,7 @@ namespace engine
                PD_LOG ( PDEVENT, "Session[%s]: Catalog is valid, "
                         "task: %s", sessionName(), _pTask->taskName() ) ;
                pmdGetKRCB()->getClsCB()->invalidateCata(
-                  _pTask->clFullName() ) ;
+                  _pTask->collectionName() ) ;
                if ( !mainCLName.empty() )
                {
                   pmdGetKRCB()->getClsCB()->invalidateCata(
@@ -3252,7 +3296,7 @@ namespace engine
       {
          _lend() ;
       }
-      else if ( STEP_FINISH == _step )
+      else if ( STEP_PRE_CLEANUP == _step )
       {
          _taskNotify( MSG_CAT_SPLIT_CLEANUP_REQ ) ;
       }
@@ -3266,7 +3310,7 @@ namespace engine
          _sendTo( _selector.src(), &(msg.header) ) ;
          _timeout = 0 ;
       }
-      else if ( STEP_REMOVE == _step )
+      else if ( STEP_FINISH == _step )
       {
          _taskNotify( MSG_CAT_SPLIT_FINISH_REQ ) ;
       }
@@ -3361,12 +3405,14 @@ namespace engine
          goto done ;
       }
       else if ( SDB_DMS_EOC == msg->flags ||
-                SDB_CAT_TASK_NOTFOUND == msg->flags )
+                SDB_CAT_TASK_NOTFOUND == msg->flags ||
+                SDB_TASK_ALREADY_FINISHED == msg->flags )
       {
-         //the task is removed
-         PD_LOG ( PDWARNING, "Session[%s]: The split task[%s] is removed",
+         //the task is removed or finished
+         PD_LOG ( PDWARNING,
+                  "Session[%s]: The split task[%s] is removed or finished",
                   sessionName(), _pTask->taskName() ) ;
-         if ( STEP_REMOVE != _step )
+         if ( STEP_FINISH != _step )
          {
             _disconnect() ;
             goto done ;
@@ -3378,6 +3424,14 @@ namespace engine
                  sessionName(), _pTask->taskName() ) ;
          _status = CLS_FS_STATUS_END ;
          _pTask->setStatus( CLS_TASK_STATUS_CANCELED ) ;
+         goto done ;
+      }
+      else if ( SDB_CAT_TASK_STATUS_ERROR == msg->flags )
+      {
+         PD_LOG ( PDWARNING, "Session[%s]: The split task[%s] notify "
+                  "response failed[%d]", sessionName(),
+                  _pTask->taskName(), msg->flags ) ;
+         _disconnect() ;
          goto done ;
       }
       else if ( SDB_OK != msg->flags )
@@ -3401,11 +3455,11 @@ namespace engine
             _step = STEP_META ;
             _end () ;
             break ;
-         case STEP_FINISH:
+         case STEP_PRE_CLEANUP:
             _step = STEP_CLEANUP ;
             _end() ;
             break ;
-         case STEP_REMOVE :
+         case STEP_FINISH :
             _step = STEP_END ;
          default :
             break ;
@@ -3463,7 +3517,7 @@ namespace engine
       //set fullname, which is used to set the collection names that need to be
       //sync
       _fullNames.clear () ;
-      _fullNames.push_back ( _pTask->clFullName() ) ;
+      _fullNames.push_back ( _pTask->collectionName() ) ;
 
       _status = CLS_FS_STATUS_META ;
       // meta is going to send elements in _fullNames list to Source, and source
@@ -3494,7 +3548,7 @@ namespace engine
                                _collectionW, CLS_SPLIT_DST_SYNC_TIME ) ;
       }
 
-      _step = STEP_REMOVE ;
+      _step = STEP_FINISH ;
       // notify catalog remove the task
       _taskNotify( MSG_CAT_SPLIT_FINISH_REQ ) ;
 
@@ -3523,7 +3577,7 @@ namespace engine
       }
       CHECK_REQUEST_ID ( msg->header.header, _requestID ) ;
 
-      _step = STEP_FINISH ;
+      _step = STEP_PRE_CLEANUP ;
       _end() ;
 
    done:

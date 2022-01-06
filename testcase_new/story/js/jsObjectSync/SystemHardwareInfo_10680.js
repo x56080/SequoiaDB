@@ -107,7 +107,7 @@ SystemTest.prototype.testGetDiskInfo = function()
    checkDiskInfo( diskInfo, diskFileContent );
 
    // 测试磁盘总容量，已使用容量
-   var command = "df -mP | grep -v Filesystem | awk '{print $1,$2,$3,$4}'";
+   var command = "df -mP | grep -v 'Filesystem\\|文件系统' | awk '{print $1,$2,$3,$4}'";
    var result = this.cmd.run( command ).split( "\n" );
    checkDiskSize( diskInfo, result );
 
@@ -422,7 +422,7 @@ function checkDiskIO ( info, result, cmd )
 ******************************************************************************/
 function readlink ( cmd, fs )
 {
-   var command = "readlink " + fs;
+   var command = "readlink -f " + fs;
    try
    {
       var info = cmd.run( command ).split( "\n" )[0];
@@ -430,7 +430,11 @@ function readlink ( cmd, fs )
    catch( e )
    {
       if( e.message == 1 ) return fs;
-      else throw e;
+      else
+      {
+         println( "throw e: " + e );
+         throw e;
+      }
    }
    var ind = info.lastIndexOf( "/" );
    return info.slice( ind + 1 );

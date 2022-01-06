@@ -45,14 +45,16 @@ namespace engine
                                        _pmdEDUCB* eduCB,
                                        dmsExtentID indexExtentID,
                                        dmsExtentID indexLogicID,
-                                       dmsDupKeyProcessor *dkProcessor )
+                                       dmsDupKeyProcessor *dkProcessor,
+                                       dmsIdxTaskStatus* pIdxStatus )
    : _suIndex ( indexSU ),
      _suData ( dataSU ),
      _mbContext ( mbContext ),
      _eduCB ( eduCB ),
      _indexExtentID ( indexExtentID ),
      _indexLID( indexLogicID ),
-     _dkProcessor( dkProcessor )
+     _dkProcessor( dkProcessor ),
+     _pIdxStatus( pIdxStatus )
    {
       _indexCB = NULL ;
       _scanExtLID = DMS_INVALID_EXTENT ;
@@ -294,6 +296,14 @@ namespace engine
          goto error ;
       }
 
+      if ( _pIdxStatus && DMS_TASK_STATUS_RUN == _pIdxStatus->status() )
+      {
+         _pIdxStatus->setTotalRecNum(
+            _suData->getMBStatInfo( _mbContext->mbID() )->_totalRecords ) ;
+
+         _pIdxStatus->resetPcsedRecNum() ;
+      }
+
    done:
       return rc ;
    error:
@@ -432,6 +442,13 @@ namespace engine
          rc = _DMS_SKIP_EXTENT ;
       }
 
+      if ( _pIdxStatus && DMS_TASK_STATUS_RUN == _pIdxStatus->status() )
+      {
+         // in case _totalRecords has changed
+         _pIdxStatus->setTotalRecNum(
+            _suData->getMBStatInfo( _mbContext->mbID() )->_totalRecords ) ;
+      }
+
    done:
       return rc ;
    error:
@@ -451,6 +468,12 @@ namespace engine
       {
          _indexCB->scanExtLID ( _extent->_logicID ) ;
       }
+
+      if ( _pIdxStatus && DMS_TASK_STATUS_RUN == _pIdxStatus->status() )
+      {
+         _pIdxStatus->incPcsedRecNum( _extent->_recCount ) ;
+      }
+
       return SDB_OK ;
    }
 
@@ -698,7 +721,8 @@ namespace engine
                                                        UINT16 indexType,
                                                        IDmsOprHandler *pOprHandler,
                                                        utilWriteResult *pResult,
-                                                       dmsDupKeyProcessor *dkProcessor )
+                                                       dmsDupKeyProcessor *dkProcessor,
+                                                       dmsIdxTaskStatus* pIdxStatus )
    {
       _dmsIndexBuilder* builder = NULL ;
 
@@ -732,7 +756,8 @@ namespace engine
                                                           mbContext, eduCB,
                                                           indexExtentID,
                                                           indexLogicID,
-                                                          dkProcessor ) ;
+                                                          dkProcessor,
+                                                          pIdxStatus ) ;
             if ( NULL == builder)
             {
                PD_LOG ( PDERROR, "failed to allocate _dmsIndexOnlineBuilder" ) ;
@@ -745,7 +770,8 @@ namespace engine
                                                            indexExtentID,
                                                            indexLogicID,
                                                            sortBufferSize,
-                                                           dkProcessor ) ;
+                                                           dkProcessor,
+                                                           pIdxStatus ) ;
             if ( NULL == builder)
             {
                PD_LOG ( PDERROR, "failed to allocate _dmsIndexSortingBuilder" ) ;

@@ -30,55 +30,6 @@ TEST(sdb,connect)
    connection.disconnect() ;
 }
 
-TEST(sdb,connect_with_usrname_and_pwd)
-{
-   sdb db1 ;
-   sdb db2 ;
-   sdb db3 ;
-   // initialize local variables
-   const CHAR *pHostName                    = HOST ;
-   const CHAR *pPort                        = SERVER ;
-   const CHAR *pUsr                         = USER ;
-   const CHAR *pPasswd                      = PASSWD ;
-   INT32 rc                                 = SDB_OK ;
-   INT32 normalMaxSz                        = 256 ;
-   INT32 length                             = 300 ;
-   CHAR *usrName = new CHAR[length + 1]() ;
-   CHAR *pwd = new CHAR[length + 1]() ;
-
-   // case 1, normal usrname and pwd
-   rc = db1.connect( pHostName, pPort, pUsr, pPasswd ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   db1.disconnect() ;
-
-   // case 2, max_sz usrname and pwd
-   for ( INT32 i = 0; i < normalMaxSz; i++ )
-   {
-      usrName[i] = 'a' ;
-      pwd[i] = 'a' ;
-   }
-   rc = db2.connect( pHostName, pPort, usrName, pwd ) ;
-   if ( rc != SDB_OK )
-   {
-      ASSERT_EQ( SDB_AUTH_AUTHORITY_FORBIDDEN, rc ) ;
-   }
-   db2.disconnect() ;
-
-   // case 3, username and pwd longer than normal
-   for ( INT32 i = normalMaxSz; i < length; i++ )
-   {
-      usrName[i] = 'a' ;
-      pwd[i] = 'a' ;
-   }
-   rc = db3.connect( pHostName, pPort, usrName, pwd ) ;
-   ASSERT_EQ( SDB_INVALIDARG, rc ) ;
-   db3.disconnect() ;
-
-   delete[] usrName ;
-   delete[] pwd ;
-}
-
-
 TEST(sdb,connect_with_serval_addr)
 {
    sdb connection ;
@@ -785,7 +736,7 @@ TEST(sdb,getCollection)
    rc = connection.getCollection( NOT_EXIST_CL_FULL_NAME, cl_5, FALSE) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = cl_5.getDetail( cursor ) ;
-   ASSERT_EQ( SDB_DMS_NOTEXIST, rc ) ;
+   ASSERT_EQ( SDB_DMS_CS_NOTEXIST, rc ) ;
 
    // case 6 :
    // get a nonexistent cl when checkExist is false
@@ -1264,3 +1215,57 @@ TEST(sdb, getLastErrorObjTest)
 
 }
 
+TEST(sdb, getAddressTest)
+{
+   INT32 rc          = SDB_OK ;
+   string hostName   = HOST ;
+   string port1      = SERVER ;
+   string port2      = SERVER1 ;
+   string port3      = port2 + "111" ;
+   string expAddr1   = hostName + ":" + port1 ;
+   string expAddr2   = hostName + ":" + port2 ;
+   string userName   = "getAddressTestUser" ;
+   string pwd        = "123";
+   string errorPwd   = "111" ;
+   sdb db ;
+   sdb conn ;
+
+   rc = conn.connect( hostName.c_str(), port1.c_str(), USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   // 1: before connect
+   string actAddr = db.getAddress() ;
+   ASSERT_EQ( "", actAddr ) ;
+
+   // 2: after connect
+   rc = db.connect( hostName.c_str(), port1.c_str(), USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_EQ( expAddr1, db.getAddress() ) ;
+
+   // 3. after disconnect
+   db.disconnect() ;
+   ASSERT_EQ( expAddr1, db.getAddress() ) ;
+
+   // 4: connect again
+   rc = db.connect( hostName.c_str(), port2.c_str(), USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_EQ( expAddr2, db.getAddress() ) ;
+   db.disconnect() ;
+
+   // 5. password error
+   rc = conn.createUsr( userName.c_str(), pwd.c_str() ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = db.connect( hostName.c_str(), port1.c_str(), userName.c_str(), errorPwd.c_str() ) ;
+   ASSERT_EQ( SDB_AUTH_AUTHORITY_FORBIDDEN, rc ) ;
+   rc = conn.removeUsr( userName.c_str(), pwd.c_str() ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   ASSERT_EQ( expAddr2, db.getAddress() ) ;
+
+   // 6: connect fails
+   rc = db.connect( hostName.c_str(), port3.c_str(), USER, PASSWD ) ;
+   ASSERT_EQ( SDB_INVALIDARG, rc ) ;
+   ASSERT_EQ( expAddr2, db.getAddress() ) ;
+
+   conn.disconnect() ;
+}

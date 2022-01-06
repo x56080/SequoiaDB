@@ -39,10 +39,11 @@
 #define CATCATALOGUEMANAGER_HPP_
 
 #include "pmd.hpp"
-#include "catSplit.hpp"
+#include "catTask.hpp"
 #include "rtnContextBuff.hpp"
 #include "utilCompressor.hpp"
 #include "utilArguments.hpp"
+#include "utilUniqueID.hpp"
 
 using namespace bson ;
 
@@ -89,6 +90,8 @@ namespace engine
       BOOLEAN     _overwrite ;
       BSONObj     _autoIncFields ;
       clsAutoIncSet _autoIncSet ;
+      UTIL_DS_UID _dsUID ;
+      CHAR        _fullMapping[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
 
       _catCollectionInfo()
       {
@@ -120,54 +123,12 @@ namespace engine
          _maxSize             = 0 ;
          _overwrite           = FALSE ;
          _lobShardingKeyFormat = NULL ;
+         _dsUID               = UTIL_INVALID_DS_UID ;
          _autoIncSet.clear() ;
+         ossMemset( _fullMapping, 0, DMS_COLLECTION_FULL_NAME_SZ + 1 ) ;
       }
    };
    typedef _catCollectionInfo catCollectionInfo ;
-
-   struct _catCSInfo
-   {
-      const CHAR*       _pCSName ;
-      utilCSUniqueID    _csUniqueID ;
-      utilCLUniqueID    _clUniqueHWM ;
-      INT32             _pageSize ;
-      const CHAR*       _domainName ;
-      INT32             _lobPageSize ;
-      DMS_STORAGE_TYPE  _type ;
-
-      _catCSInfo()
-      {
-         reset() ;
-      }
-
-      void reset()
-      {
-         _pCSName = NULL ;
-         _csUniqueID = UTIL_UNIQUEID_NULL ;
-         _clUniqueHWM = UTIL_UNIQUEID_NULL ;
-         _pageSize = DMS_PAGE_SIZE_DFT ;
-         _domainName = NULL ;
-         _lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ ;
-         _type = DMS_STORAGE_NORMAL ;
-      }
-
-      BSONObj toBson()
-      {
-         BSONObjBuilder builder ;
-         builder.append( CAT_COLLECTION_SPACE_NAME, _pCSName ) ;
-         builder.append( CAT_CS_UNIQUEID, _csUniqueID ) ;
-         builder.append( CAT_CS_CLUNIQUEHWM, (INT64)_clUniqueHWM ) ;
-         builder.append( CAT_PAGE_SIZE_NAME, _pageSize ) ;
-         if ( _domainName )
-         {
-            builder.append( CAT_DOMAIN_NAME, _domainName ) ;
-         }
-         builder.append( CAT_LOB_PAGE_SZ_NAME, _lobPageSize ) ;
-         builder.append( CAT_TYPE_NAME, _type ) ;
-         return builder.obj() ;
-      }
-   } ;
-   typedef _catCSInfo catCSInfo ;
 
    /*
       catCatalogueManager define
@@ -197,39 +158,50 @@ namespace engine
 
       INT32 processCmdCreateCS( const CHAR *pQuery,
                                 rtnContextBuf &ctxBuf ) ;
-      INT32 processCmdSplit( const CHAR *pQuery,
-                             INT32 opCode,
-                             rtnContextBuf &ctxBuf ) ;
+      INT32 processCmdCreateIndex( const CHAR *pQuery,
+                                   const CHAR *pHint,
+                                   rtnContextBuf &ctxBuf ) ;
+      INT32 processCmdDropIndex( const CHAR *pQuery,
+                                 const CHAR *pHint,
+                                 rtnContextBuf &ctxBuf ) ;
+      INT32 processCmdTask( const CHAR *pQuery,
+                            INT32 opCode,
+                            rtnContextBuf &ctxBuf ) ;
       INT32 processCmdQuerySpaceInfo( const CHAR *pQuery,
                                       rtnContextBuf &ctxBuf ) ;
       INT32 processQueryCatalogue ( const NET_HANDLE &handle,
                                     MsgHeader *pMsg ) ;
       INT32 processQueryTask ( const NET_HANDLE &handle, MsgHeader *pMsg ) ;
-      INT32 processCmdCrtProcedures( void *pMsg ) ;
-      INT32 processCmdRmProcedures( void *pMsg ) ;
+      INT32 processCmdCrtProcedures( const CHAR *pMsg ) ;
+      INT32 processCmdRmProcedures( const CHAR *pMsg ) ;
       INT32 processCmdCreateDomain ( const CHAR *pQuery ) ;
       INT32 processCmdDropDomain ( const CHAR *pQuery ) ;
       INT32 processCmdAlterDomain ( const CHAR *pQuery ) ;
-      INT32 processCmdTruncate ( const CHAR *pQuery ) ;
+      INT32 processCmdTruncate ( const CHAR *pQuery,
+                                 rtnContextBuf &ctxBuf ) ;
 
    // tool functions
    protected:
       void  _fillRspHeader( MsgHeader *rspMsg, const MsgHeader *reqMsg ) ;
 
-      INT32 _createCS( BSONObj & createObj, UINT32 &groupID ) ;
-
-      INT32 _checkAndGetCSInfo( const BSONObj &infoObj, catCSInfo &csInfo ) ;
-
-      INT32 _assignGroup( vector< UINT32 > *pGoups, UINT32 &groupID ) ;
-
       INT32 _checkTaskHWM() ;
 
       INT32 _checkAllCSCLUniqueID() ;
+
+      /**
+       * Check and upgrade data source and collection information. It will only
+       * happen when upgrading from sequoiadb 3.2.8 to newer versions, and if
+       * data source is used.
+       */
+      INT32 _checkAndUpgradeDSCLInfo() ;
+
    private:
       INT16 _majoritySize() ;
 
       INT32 _setCSCLUniqueID( string csName, const BSONObj& boCollections,
                               UINT32 csUniqueID ) ;
+
+      INT32 _checkPureMappingCS( const CHAR *clFullName, MsgOpReply *&reply ) ;
 
    private:
       sdbCatalogueCB       *_pCatCB;

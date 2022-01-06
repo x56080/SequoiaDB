@@ -3,6 +3,7 @@ package com.sequoiadb.metaopr.diskfull;
 import java.util.Date;
 import java.util.List;
 
+import com.sequoiadb.metaopr.Utils;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -105,7 +106,7 @@ public class CreateDomain2405 extends SdbTestBase {
             checkListDomain( db );
             Utils.checkConsistency( groupMgr );
             runSuccess = true;
-        } catch ( ReliabilityException e ) {
+        } catch ( ReliabilityException | InterruptedException e ) {
             e.printStackTrace();
             Assert.fail( e.getMessage() );
         } finally {

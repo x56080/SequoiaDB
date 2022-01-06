@@ -92,7 +92,7 @@ Connect to current node.
 .IP
 .nf
 \f[C]
->\ node.connect()
+> node.connect()
 localhost:11820
 \f[]
 .fi
@@ -101,7 +101,7 @@ Connect to current node with SSL.
 .IP
 .nf
 \f[C]
->\ node.connect(true)
+> node.connect(true)
 localhost:11820
 \f[]
 .fi

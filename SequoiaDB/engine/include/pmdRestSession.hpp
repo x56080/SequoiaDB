@@ -234,6 +234,10 @@ namespace engine
    #define REST_CMD_NAME_STOP_GROUP    "stop group"
    #define REST_CMD_NAME_START_NODE    "start node"
    #define REST_CMD_NAME_STOP_NODE     "stop node"
+   #define REST_CMD_NAME_RENAME_SEQUENCE "rename sequence"
+   #define REST_CMD_NAME_GET_SEQ_NEXT_VAL "get sequence next value"
+   #define REST_CMD_NAME_RESTART_SEQUENCE "restart sequence"
+   #define REST_CMD_NAME_SET_SEQ_ATTR  "set sequence attributes"
 
    class RestToMSGTransfer ;
    typedef INT32 ( RestToMSGTransfer::*restTransFunc )( restAdaptor *pAdaptor,
@@ -335,6 +339,10 @@ namespace engine
                                                 restRequest &request,
                                                 MsgHeader **msg ) ;
 
+         INT32       _convertGetDomainName( restAdaptor *pAdaptor,
+                                            restRequest &request,
+                                            MsgHeader **msg ) ;
+
          INT32       _convertGetCount( restAdaptor *pAdaptor,
                                        restRequest &request,
                                        MsgHeader **msg ) ;
@@ -417,6 +425,10 @@ namespace engine
                                              restRequest &request,
                                              MsgHeader **msg ) ;
 
+         INT32       _convertListCLInCollectionsSpace( restAdaptor *pAdaptor,
+                                                       restRequest &request,
+                                                       MsgHeader **msg ) ;
+
          INT32       _convertListLobs( restAdaptor *pAdaptor,
                                        restRequest &request,
                                        MsgHeader **msg ) ;
@@ -479,6 +491,15 @@ namespace engine
          INT32       _convertSnapshotIndexStats( restAdaptor * pAdaptor,
                                                  restRequest &request,
                                                  MsgHeader ** msg ) ;
+         INT32       _convertSnapshotTasks ( restAdaptor * pAdaptor,
+                                             restRequest &request,
+                                             MsgHeader ** msg ) ;
+         INT32       _convertSnapshotTransWaits ( restAdaptor * pAdaptor,
+                                                  restRequest &request,
+                                                  MsgHeader ** msg ) ;
+         INT32       _convertSnapshotTransDeadlock( restAdaptor * pAdaptor,
+                                                    restRequest &request,
+                                                    MsgHeader ** msg ) ;
          INT32       _buildExecMsg( CHAR **ppBuffer, INT32 *bufferSize,
                                     const CHAR *pSql, UINT64 reqID ) ;
          INT32       _convertExec( restAdaptor *pAdaptor, restRequest &request,
@@ -500,6 +521,43 @@ namespace engine
          INT32       _convertDeleteConfig( restAdaptor * pAdaptor,
                                            restRequest &request,
                                            MsgHeader ** msg ) ;
+
+         //sequence
+         INT32       _convertListSequences( restAdaptor *pAdaptor,
+                                            restRequest &request,
+                                            MsgHeader **msg ) ;
+
+         INT32       _convertSnapshotSequences( restAdaptor *pAdaptor,
+                                                restRequest &request,
+                                                MsgHeader **msg ) ;
+
+         INT32       _convertCreateSequence( restAdaptor *pAdaptor,
+                                             restRequest &request,
+                                             MsgHeader **msg ) ;
+
+         INT32       _convertDropSequence( restAdaptor *pAdaptor,
+                                           restRequest &request,
+                                           MsgHeader **msg ) ;
+
+         INT32       _convertRenameSequence( restAdaptor *pAdaptor,
+                                             restRequest &request,
+                                             MsgHeader **msg ) ;
+
+         INT32       _convertGetSequenceCurrentValue( restAdaptor *pAdaptor,
+                                                      restRequest &request,
+                                                      MsgHeader **msg ) ;
+
+         INT32       _convertGetSequenceNextValue( restAdaptor *pAdaptor,
+                                                   restRequest &request,
+                                                   MsgHeader **msg ) ;
+
+         INT32       _convertRestartSequence( restAdaptor *pAdaptor,
+                                              restRequest &request,
+                                              MsgHeader **msg ) ;
+
+         INT32       _convertSetSequenceAttributes( restAdaptor *pAdaptor,
+                                                    restRequest &request,
+                                                    MsgHeader **msg ) ;
 
       private:
          pmdRestSession    *_restSession ;

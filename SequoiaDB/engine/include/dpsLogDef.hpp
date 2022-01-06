@@ -203,13 +203,15 @@ namespace engine
    {
       _dpsLogSummary()
       : _minRecoverableTime( DPS_INVALID_TRANS_TIME ),
-        _maxTransCommitTime( DPS_INVALID_TRANS_TIME )
+        _maxTransCommitTime( DPS_INVALID_TRANS_TIME ),
+        _restorePointTime( DPS_INVALID_TRANS_TIME )
       {
       }
 
       _dpsLogSummary( const _dpsLogSummary &summary )
       : _minRecoverableTime( summary._minRecoverableTime ),
-        _maxTransCommitTime( summary._maxTransCommitTime )
+        _maxTransCommitTime( summary._maxTransCommitTime ),
+        _restorePointTime( summary._restorePointTime )
       {
       }
 
@@ -217,6 +219,7 @@ namespace engine
       {
          _minRecoverableTime = summary._minRecoverableTime ;
          _maxTransCommitTime = summary._maxTransCommitTime ;
+         _restorePointTime = summary._restorePointTime ;
          return ( *this ) ;
       }
 
@@ -230,6 +233,9 @@ namespace engine
       UINT64   _minRecoverableTime ;
       // maximum transaction commit time
       UINT64   _maxTransCommitTime ;
+      // time of restore point (either backup time of image used in the most
+      // recent sdbrestore or the time of the latest restorePrepare)
+      UINT64   _restorePointTime ;
    } dpsLogSummary ;
 
 }

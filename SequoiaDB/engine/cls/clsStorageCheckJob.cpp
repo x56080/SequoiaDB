@@ -125,7 +125,6 @@ namespace engine
             dmsStorageUnitID suID = DMS_INVALID_SUID ;
             dmsStorageUnit *su = NULL ;
             SINT64 contextID = -1 ;
-            rtnContextDelCS *pDelContext = NULL ;
             rtnContextBuf buffObj ;
 
             PD_LOG( PDDEBUG,
@@ -182,9 +181,11 @@ namespace engine
 
             do
             {
+               rtnContextDelCS::sharePtr pDelContext ;
+
                // Create a DelCS context to drop the collection space
                rc = pRtnCB->contextNew( RTN_CONTEXT_DELCS,
-                                        (rtnContext **)&pDelContext,
+                                        pDelContext,
                                         contextID, cb ) ;
                if ( SDB_OK != rc )
                {
@@ -243,7 +244,6 @@ namespace engine
             {
                pRtnCB->contextDelete( contextID, cb ) ;
                contextID = -1 ;
-               pDelContext = NULL ;
             }
          } // End for
 

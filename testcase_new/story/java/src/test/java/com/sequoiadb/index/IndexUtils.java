@@ -38,15 +38,37 @@ public class IndexUtils {
     public static ArrayList< BSONObject > insertData( DBCollection dbcl,
             int recordNum, int length ) {
         ArrayList< BSONObject > insertRecord = new ArrayList< BSONObject >();
-        for ( int i = 0; i < recordNum; i++ ) {
-            String keyValue = getRandomString( length );
-            BSONObject obj = new BasicBSONObject();
-            obj.put( "testa", keyValue );
-            obj.put( "no", i );
-            insertRecord.add( obj );
+        int batchNum = 10000;
+        if ( recordNum < batchNum ) {
+            batchNum = recordNum;
         }
-        dbcl.insert( insertRecord );
+        int count = 0;
+        // 预留6个字符长度追加按序列生成的字符串
+        String stringValue = getRandomString( length - 6 );
+        for ( int i = 0; i < recordNum / batchNum; i++ ) {
+            List< BSONObject > batchRecords = new ArrayList< BSONObject >();
+
+            for ( int j = 0; j < batchNum; j++ ) {
+                int value = count++;
+                BSONObject obj = new BasicBSONObject();
+                String keyValue = String.format( "%s%06d", stringValue,value );
+                obj.put( "testa", keyValue );
+                obj.put( "testb", value );
+                obj.put( "no", value );
+                obj.put( "testno", value );
+                obj.put( "teststr", "teststr" + value );
+                batchRecords.add( obj );
+            }
+            dbcl.insert( batchRecords );
+            insertRecord.addAll( batchRecords );
+            batchRecords.clear();
+        }
         return insertRecord;
+    }
+
+    public static ArrayList< BSONObject > insertData( DBCollection dbcl,
+            int recordNum ) {
+        return insertData( dbcl, recordNum, 1024 );
     }
 
     public static void checkRecords( DBCollection dbcl,
@@ -84,5 +106,4 @@ public class IndexUtils {
         }
         return sbBuffer.toString();
     }
-
 }

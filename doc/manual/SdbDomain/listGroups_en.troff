@@ -38,24 +38,24 @@ Get the replication group information contained in the specified domain.
 .IP
 .nf
 \f[C]
->\ var\ domain\ =\ db.getDomain("mydomain")
->\ domain.listGroups()
+> var domain = db.getDomain("mydomain")
+> domain.listGroups()
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5b92291ec5e807b5e32582cc"
-\ \ },
-\ \ "Name":\ "mydomain",
-\ \ "Groups":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "GroupName":\ "db1",
-\ \ \ \ \ \ "GroupID":\ 1000
-\ \ \ \ },
-\ \ \ \ {
-\ \ \ \ \ \ "GroupName":\ "db2",
-\ \ \ \ \ \ "GroupID":\ 1001
-\ \ \ \ }
-\ \ ],
-\ \ "AutoSplit":\ true
+  "_id": {
+    "$oid": "5b92291ec5e807b5e32582cc"
+  },
+  "Name": "mydomain",
+  "Groups": [
+    {
+      "GroupName": "db1",
+      "GroupID": 1000
+    },
+    {
+      "GroupName": "db2",
+      "GroupID": 1001
+    }
+  ],
+  "AutoSplit": true
 }
 \f[]
 .fi

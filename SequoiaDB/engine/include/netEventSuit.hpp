@@ -83,7 +83,8 @@ namespace engine
          void           addHandle( const NET_HANDLE &handle ) ;
          void           delHandle( const NET_HANDLE &handle ) ;
          BOOLEAN        exist( const NET_HANDLE &handle ) ;
-         SET_HANDLE     getHandles() ; 
+         INT32          getHandles( SET_HANDLE &setHandle ) ;
+         NET_HANDLE     getNextHandle( NET_HANDLE curHandle ) ;
          void           removeAllEH() ;
          UINT32         getHandleNum() ;
 

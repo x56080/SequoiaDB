@@ -56,6 +56,7 @@ namespace import
    #define IMP_OPTION_COLLECTSPACE      "csname"
    #define IMP_OPTION_COLLECTION        "clname"
    #define IMP_OPTION_DELCHAR           "delchar"
+   #define IMP_OPTION_AUTODELCHAR       "autodelchar"
    #define IMP_OPTION_DELFIELD          "delfield"
    #define IMP_OPTION_DELRECORD         "delrecord"
    #define IMP_OPTION_FILENAME          "file"
@@ -103,6 +104,7 @@ namespace import
    #define IMP_EXPLAIN_CIPHER           "input password using a cipher file"
    #define IMP_EXPLAIN_TOKEN            "password encryption token"
    #define IMP_EXPLAIN_DELCHAR          "string delimiter, default: '\"' ( csv only )"
+   #define IMP_EXPLAIN_AUTODELCHAR      "automatically add string delimiters to string data lacking string delimiters, default: false ( csv only )"
    #define IMP_EXPLAIN_DELFIELD         "field delimiter, default: ',' ( csv only )"
    #define IMP_EXPLAIN_DELRECORD        "record delimiter, default: '\\n'"
    #define IMP_EXPLAIN_COLLECTSPACE     "collection space name"
@@ -162,6 +164,8 @@ namespace import
    #define IMP_STR_TRIM_TYPE_EQ(str, type) \
       ((sizeof(type) - 1) == str.length() && ossStrncasecmp(str.c_str(), type, str.length()) == 0)
 
+   vector<string> passwdVec ;
+
    #define IMP_GENERAL_OPTIONS \
       (IMP_OPTION_HELP",h",             /* no arg */     IMP_EXPLAIN_HELP) \
       (IMP_OPTION_VERSION",V",          /* no arg */     IMP_EXPLAIN_VERSION) \
@@ -169,7 +173,7 @@ namespace import
       (IMP_OPTION_SVCNAME",p",         _TYPE(string),    IMP_EXPLAIN_SVCNAME) \
       (IMP_OPTION_HOSTS,               _TYPE(string),    IMP_EXPLAIN_HOSTS) \
       (IMP_OPTION_USER",u",            _TYPE(string),    IMP_EXPLAIN_USER) \
-      (IMP_OPTION_PASSWORD",w", _IMPLICIT_TYPE(string, ""), IMP_EXPLAIN_PASSWORD) \
+      (IMP_OPTION_PASSWORD",w", po::value< vector<string> >(&passwdVec)->multitoken()->zero_tokens(), IMP_EXPLAIN_PASSWORD) \
       (IMP_OPTION_CIPHERFILE,          _TYPE(string),    IMP_EXPLAIN_CIPHERFILE) \
       (IMP_OPTION_CIPHER,              _TYPE(bool),      IMP_EXPLAIN_CIPHER) \
       (IMP_OPTION_TOKEN,               _TYPE(string),    IMP_EXPLAIN_TOKEN) \
@@ -203,6 +207,7 @@ namespace import
 
    #define IMP_CSV_OPTIONS \
       (IMP_OPTION_DELCHAR",a",         _TYPE(string),    IMP_EXPLAIN_DELCHAR) \
+      (IMP_OPTION_AUTODELCHAR,         _TYPE(bool),      IMP_EXPLAIN_AUTODELCHAR) \
       (IMP_OPTION_DELFIELD",e",        _TYPE(string),    IMP_EXPLAIN_DELFIELD) \
       (IMP_OPTION_FIELDS,              _TYPE(string),    IMP_EXPLAIN_FIELDS) \
       (IMP_OPTION_DATEFMT,             _TYPE(string),    IMP_EXPLAIN_DATEFMT) \
@@ -334,6 +339,7 @@ namespace import
       _decimalto = DECIMALTO_DEFAULT ;
 
       _stringDelimiter = "\"";
+      _autoAddStrDel = FALSE;
       _fieldDelimiter = ",";
       _dateFormat = "YYYY-MM-DD";
       _timestampFormat = "YYYY-MM-DD-HH.mm.ss.ffffff";
@@ -401,7 +407,7 @@ namespace import
          goto done;
       }
 
-      rc = setOptions();
+      rc = setOptions( argc );
       if (SDB_OK != rc)
       {
          goto error;
@@ -490,7 +496,7 @@ namespace import
       return TRUE;
    }
 
-   INT32 Options::setOptions()
+   INT32 Options::setOptions( INT32 argc )
    {
       INT32 rc = SDB_OK;
 
@@ -549,19 +555,55 @@ namespace import
 
          if ( has(IMP_OPTION_PASSWORD) )
          {
-            string passwd = get<string>(IMP_OPTION_PASSWORD) ;
-            if ( "" == passwd )
+            string  passwd ;
+            BOOLEAN isNormalInput = FALSE ;
+
+            if ( 0 == passwdVec.size() )
             {
-               passwd = passwd::utilPasswordTool::interactivePasswdInput() ;
+               isNormalInput = utilPasswordTool::interactivePasswdInput( passwd ) ;
             }
+            else
+            {
+               isNormalInput = TRUE ;
+               passwd = passwdVec[0] ;
+            }
+
+            if ( !isNormalInput )
+            {
+               rc = SDB_APP_INTERRUPT ;
+               std::cerr << getErrDesp( rc ) << ", rc: " << rc << std::endl ;
+               goto error ;
+            }
+
             _password = passwd ;
          }
          else
          {
-            passwd::utilPasswordTool passwdTool ;
+            utilPasswordTool passwdTool ;
 
             if ( has(IMP_OPTION_CIPHER) && get<bool>(IMP_OPTION_CIPHER) )
             {
+               BOOLEAN isExist = FALSE ;
+
+               rc = engine::ossFile::exists( _cipherfile, isExist ) ;
+               if ( rc )
+               {
+                  std::cerr << "Failed to access path: " << _cipherfile.c_str()
+                            << std::endl;
+                  PD_LOG( PDERROR, "Failed to access path[%s], rc=%d",
+                          _cipherfile.c_str(), rc ) ;
+                  goto error;
+               }
+               else if ( !isExist )
+               {
+                  rc = SDB_FNE ;
+                  std::cerr << "Cipher file does not exist, path="
+                            << _cipherfile.c_str() << std::endl ;
+                  PD_LOG( PDERROR, "Cipher file does not exist, path=%s",
+                          _cipherfile.c_str() ) ;
+                  goto error;
+               }
+
                rc = passwdTool.getPasswdByCipherFile( _user, _token,
                                                       _cipherfile,
                                                       _password ) ;
@@ -576,7 +618,7 @@ namespace import
                           _cipherfile.c_str(), rc ) ;
                   goto error ;
                }
-               _user = passwd::utilGetUserShortNameFromUserFullName( _user ) ;
+               _user = utilGetUserShortNameFromUserFullName( _user ) ;
             }
             else
             {
@@ -627,10 +669,10 @@ namespace import
          _inputType = INPUT_FILE;
          string fileList = get<string>(IMP_OPTION_FILENAME);
 
-         rc = parseFileList(fileList, _files);
-         if (SDB_OK != rc)
+         rc = parseFileList( fileList, _files ) ;
+         if ( rc )
          {
-            std::cerr << "Invalid option " << IMP_OPTION_FILENAME
+            std::cerr << "Invalid " << IMP_OPTION_FILENAME
                       << std::endl;
             goto error;
          }
@@ -646,19 +688,18 @@ namespace import
          string type = get<string>(IMP_OPTION_TYPE);
          if ("csv" == type)
          {
-            _inputFormat = FORMAT_CSV;
+            _inputFormat = FORMAT_CSV ;
          }
          else if ("json" == type)
          {
-            _inputFormat = FORMAT_JSON;
+            _inputFormat = FORMAT_JSON ;
          }
          else
          {
-            std::cerr << "Invalid value for option " IMP_OPTION_TYPE ": "
-                      << type
-                      << std::endl;
-            rc = SDB_INVALIDARG;
-            goto error;
+            std::cerr << "Invalid argument of [" IMP_OPTION_TYPE "]: " << type
+                      << std::endl ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
          }
       }
 
@@ -669,9 +710,9 @@ namespace import
          {
             std::cerr << IMP_OPTION_BATCHSIZE " is out of range [1-100000]: "
                       << _batchSize
-                      << std::endl;
-            rc = SDB_INVALIDARG;
-            goto error;
+                      << std::endl ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
          }
       }
 
@@ -726,9 +767,8 @@ namespace import
          _jobs = get<INT32>(IMP_OPTION_JOBS);
          if (_jobs <= 0 || _jobs > 1000)
          {
-            std::cerr << IMP_OPTION_JOBS " is out of range [1, 1000]: "
-                      << _jobs
-                      << std::endl;
+            std::cerr << IMP_OPTION_JOBS " is out of range [1, 1000]: " << _jobs
+                      << std::endl ;
             rc = SDB_INVALIDARG;
             goto error;
          }
@@ -759,10 +799,15 @@ namespace import
          rc = _convertAsciiEscapeChar(_stringDelimiterIn, _stringDelimiter);
          if (SDB_OK != rc)
          {
-            std::cerr << "Invalid option " << IMP_OPTION_DELCHAR
+            std::cerr << "Invalid " << IMP_OPTION_DELCHAR
                       << std::endl;
             goto error;
          }
+      }
+
+      if (has(IMP_OPTION_AUTODELCHAR))
+      {
+         _autoAddStrDel = get<bool>(IMP_OPTION_AUTODELCHAR);
       }
 
       if (has(IMP_OPTION_DELRECORD))
@@ -779,7 +824,7 @@ namespace import
          rc = _convertAsciiEscapeChar(_recordDelimiterIn, _recordDelimiter);
          if (SDB_OK != rc)
          {
-            std::cerr << "Invalid option " << IMP_OPTION_DELRECORD
+            std::cerr << "Invalid " << IMP_OPTION_DELRECORD
                       << std::endl;
             goto error;
          }
@@ -799,7 +844,7 @@ namespace import
          rc = _convertAsciiEscapeChar(_fieldDelimiterIn, _fieldDelimiter);
          if (SDB_OK != rc)
          {
-            std::cerr << "Invalid option " << IMP_OPTION_DELFIELD
+            std::cerr << "Invalid " << IMP_OPTION_DELFIELD
                       << std::endl;
             goto error;
          }

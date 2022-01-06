@@ -53,11 +53,13 @@ namespace import
    RecordParser::RecordParser(const string& fieldDelimiter,
                               const string& stringDelimiter,
                               BOOLEAN autoAddField,
-                              BOOLEAN autoAddValue)
+                              BOOLEAN autoAddValue,
+                              BOOLEAN autoAddStrDel)
    : _fieldDelimiter(fieldDelimiter),
      _stringDelimiter(stringDelimiter),
      _autoAddField(autoAddField),
-     _autoAddValue(autoAddValue)
+     _autoAddValue(autoAddValue),
+     _autoAddStrDel(autoAddStrDel)
    {
    }
 
@@ -81,7 +83,8 @@ namespace import
                                         options.cast(),
                                         options.ignoreNull(),
                                         options.force(),
-                                        options.strictFieldNum());
+                                        options.strictFieldNum(),
+                                        options.autoAddStrDel());
          if (NULL == csvParser)
          {
             rc = SDB_OOM;

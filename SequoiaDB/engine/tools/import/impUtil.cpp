@@ -31,6 +31,7 @@
 *******************************************************************************/
 #include "impUtil.hpp"
 #include "utilCommon.hpp"
+#include "utilIniParserEx.hpp"
 #include "pd.hpp"
 #include <algorithm>
 #include <boost/tokenizer.hpp>
@@ -59,7 +60,7 @@ namespace import
       return FALSE;
    }
 
-   INT32 parseFileList(const string& fileList, vector<string>& files)
+   INT32 parseFileList( const string& fileList, vector<string>& files )
    {
       INT32 rc = SDB_OK;
 
@@ -82,10 +83,12 @@ namespace import
                continue;
             }
 
-            if (!fs::exists(file))
+            if ( !fs::exists( file ) )
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               std::cerr << "file is not existing, path=" << file.c_str()
+                         << std::endl ;
+               goto error ;
             }
 
             if (fs::is_directory(file))
@@ -116,17 +119,21 @@ namespace import
             }
          }
       }
-      catch(std::exception& e)
+      catch( std::exception& e )
       {
-         rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "Unexpected error happened: %s", e.what());
-         goto error;
+         rc = SDB_INVALIDARG ;
+         std::cerr << "Unexpected error happened: " << e.what()
+                   << std::endl ;
+         PD_LOG( PDERROR, "Unexpected error happened: %s", e.what() ) ;
+         goto error ;
       }
 
-      if (files.empty())
+      if ( files.empty() )
       {
-         rc = SDB_INVALIDARG;
-         goto error;
+         rc = SDB_INVALIDARG ;
+         std::cerr << "No files to import" << std::endl ;
+         PD_LOG( PDERROR, "No files to import, path=%s", fileList.c_str() ) ;
+         goto error ;
       }
 
    done:
@@ -157,16 +164,19 @@ namespace import
          case 'Y':
             if (hasYear)
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Duplicate year format, "
+                                "'YYYY' already exists" ) ;
+               goto error ;
             }
 
             if ('Y' != fmt[1] ||
                 'Y' != fmt[2] ||
                 'Y' != fmt[3])
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Invalid year format, year should be 'YYYY'" ) ;
+               goto error ;
             }
 
             hasYear = TRUE;
@@ -177,13 +187,15 @@ namespace import
          case 'M':
             if (hasMonth)
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Duplicate month format, 'MM' already exists" );
+               goto error ;
             }
 
             if ('M' != fmt[1])
             {
                rc = SDB_INVALIDARG;
+               PD_LOG( PDERROR, "Invalid month format, month should be 'MM'" ) ;
                goto error;
             }
 
@@ -195,14 +207,16 @@ namespace import
          case 'D':
             if (hasDay)
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Duplicate day format, 'DD' already exists" ) ;
+               goto error ;
             }
 
             if ('D' != fmt[1])
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Invalid day format, day should be 'DD'" ) ;
+               goto error ;
             }
 
             hasDay = TRUE;
@@ -213,14 +227,16 @@ namespace import
          case 'H':
             if (hasHour)
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Duplicate hour format, 'HH' already exists" ) ;
+               goto error ;
             }
 
             if ('H' != fmt[1])
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Invalid hour format, hour should be 'HH'" ) ;
+               goto error ;
             }
 
             hasHour = TRUE;
@@ -231,14 +247,18 @@ namespace import
          case 'm':
             if (hasMinute)
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Duplicate minute format, "
+                                "'mm' already exists" ) ;
+               goto error ;
             }
 
             if ('m' != fmt[1])
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Invalid minute format, "
+                                "minute should be 'mm'" ) ;
+               goto error ;
             }
 
             hasMinute = TRUE;
@@ -249,14 +269,18 @@ namespace import
          case 's':
             if (hasSecond)
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Duplicate second format, "
+                                "'ss' already exists" ) ;
+               goto error ;
             }
 
             if ('s' != fmt[1])
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Invalid second format, "
+                                "second should be 'ss'" ) ;
+               goto error ;
             }
 
             hasSecond = TRUE;
@@ -265,17 +289,28 @@ namespace import
             break;
          // millisecond: SSS
          case 'S':
-            if (hasMillisecond || hasMicrosecond)
+            if ( hasMillisecond )
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Duplicate millisecond format, "
+                                "'SSS' already exists" ) ;
+               goto error ;
+            }
+            else if ( hasMicrosecond )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Millisecond('SSS') and microsecond('ffffff') "
+                                "can't exist together" ) ;
+               goto error ;
             }
 
             if ('S' != fmt[1] ||
                 'S' != fmt[2])
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Invalid millisecond format, "
+                                "second should be 'SSS'" ) ;
+               goto error ;
             }
 
             hasMillisecond = TRUE;
@@ -284,9 +319,18 @@ namespace import
             break;
          // microsecond: ffffff
          case 'f':
-            if (hasMillisecond || hasMicrosecond)
+            if ( hasMillisecond )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Millisecond('SSS') and microsecond('ffffff') "
+                                "can't exist together" ) ;
+               goto error ;
+            }
+            else if ( hasMicrosecond )
             {
                rc = SDB_INVALIDARG;
+               PD_LOG( PDERROR, "Duplicate microsecond format, "
+                                "'ffffff' already exists" ) ;
                goto error;
             }
 
@@ -296,8 +340,10 @@ namespace import
                 'f' != fmt[4] ||
                 'f' != fmt[5])
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Invalid microsecond format, "
+                                "microsecond should be 'ffffff'" ) ;
+               goto error ;
             }
 
             hasMicrosecond = TRUE;
@@ -320,8 +366,9 @@ namespace import
 
             if ( !isdigit( fmt[2] ) || !isdigit( fmt[3] ) )
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Invalid time zone format" ) ;
+               goto error ;
             }
 
             if ( isdigit( fmt[4] ) )
@@ -343,8 +390,11 @@ namespace import
 
             if ( hour * 60 + minute > IMP_UTIL_TIMEZONE_MAX )
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Invalid time zone, time zone can't "
+                                "greater than %d minutes",
+                       IMP_UTIL_TIMEZONE_MAX ) ;
+               goto error ;
             }
 
             break;
@@ -359,10 +409,11 @@ namespace import
          }
       }
 
-      if (!hasYear)
+      if ( !hasYear )
       {
-         rc = SDB_INVALIDARG;
-         goto error;
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Invalid time zone, missing year format" ) ;
+         goto error ;
       }
 
    done:
@@ -370,5 +421,320 @@ namespace import
    error:
       goto done;
    }
+   
+#if defined (_LINUX)
 
+   #define IMP_UTIL_TIMEZONE_ENV  "TZ"
+   #define IMP_UTIL_TIMEZONE_FILE "/etc/timezone"
+   #define IMP_UTIL_CLOCK_FILE    "/etc/sysconfig/clock"
+   #define IMP_UTIL_TZ_FILE_KEY1  "ZONE"
+   #define IMP_UTIL_TZ_FILE_KEY2  "TIMEZONE"
+   #define IMP_UTIL_BUFFER_MAX_SIZE (5*1024*1024)
+
+   static BOOLEAN _loadTimezoneEnv()
+   {
+      BOOLEAN result = TRUE ;
+      CHAR *pTimezone = NULL ;
+
+      pTimezone = getenv( IMP_UTIL_TIMEZONE_ENV ) ;
+      if ( NULL == pTimezone )
+      {
+         result = FALSE ;
+         PD_LOG( PDDEBUG, "Environment variable %s value is empty",
+                 IMP_UTIL_TIMEZONE_ENV ) ;
+         goto error ;
+      }
+
+      if ( 0 == ossStrlen( pTimezone ) )
+      {
+         result = FALSE ;
+         PD_LOG( PDDEBUG, "Environment variable %s value is empty",
+                 IMP_UTIL_TIMEZONE_ENV ) ;
+         goto error ;
+      }
+
+      PD_LOG( PDINFO, "Environment variable %s value is %s",
+              IMP_UTIL_TIMEZONE_ENV, pTimezone ) ;
+
+   done:
+      return result ;
+   error:
+      goto done ;
+   }
+
+   static INT32 _setImportEnv( const CHAR *timezone )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 length = ossStrlen( timezone ) ;
+      INT32 i = 0 ;
+      INT32 k = 0 ;
+      BOOLEAN hasTimezone = FALSE ;
+      CHAR *pBuffer = NULL ;
+
+      pBuffer = (CHAR *)SDB_OSS_MALLOC( length + 1 ) ;
+      if ( NULL == pBuffer )
+      {
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+      ossMemset( pBuffer, 0, length + 1 ) ;
+
+      for( i = 0, k = 0; i < length; ++i )
+      {
+         if ( isspace( timezone[i] ) )
+         {
+            if ( hasTimezone )
+            {
+               break ;
+            }
+            else
+            {
+               continue ;
+            }
+         }
+         else
+         {
+            hasTimezone = TRUE ;
+            pBuffer[k] = timezone[i] ;
+            ++k ;
+         }
+      }
+
+      PD_LOG( PDINFO, "Set the value of the environment variable %s to %s",
+              IMP_UTIL_TIMEZONE_ENV, pBuffer ) ;
+
+      rc = setenv( IMP_UTIL_TIMEZONE_ENV, pBuffer, 1 ) ;
+      tzset() ;
+
+   done:
+      SAFE_OSS_FREE ( pBuffer ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   static BOOLEAN _updateTimezoneEnv( const CHAR *content )
+   {
+      INT32 rc       = SDB_OK ;
+      BOOLEAN result = TRUE ;
+      utilIniParserEx ini ;
+
+      if ( NULL == content || 0 == ossStrlen( content ) )
+      {
+         result = FALSE ;
+         goto error ;
+      }
+
+      rc = ini.parse( content, ossStrlen( content ),
+                      UTIL_INI_HASHMARK|UTIL_INI_EQUALSIGN|
+                      UTIL_INI_SINGLE_QUOMARK|UTIL_INI_DOUBLE_QUOMARK ) ;
+      if ( SDB_OK == rc )
+      {
+         string value ;
+
+         rc = ini.getValue( NULL, IMP_UTIL_TZ_FILE_KEY1, value ) ;
+         if ( SDB_OK == rc )
+         {
+            _setImportEnv( value.c_str() ) ;
+            goto done ;
+         }
+
+         rc = ini.getValue( NULL, IMP_UTIL_TZ_FILE_KEY2, value ) ;
+         if ( SDB_OK == rc )
+         {
+            _setImportEnv( value.c_str() ) ;
+            goto done ;
+         }
+
+         result = FALSE ;
+         goto error ;
+      }
+
+      _setImportEnv( content ) ;
+
+   done:
+      return result ;
+   error:
+      goto done ;
+   }
+
+   static BOOLEAN _loadTimezoneFile()
+   {
+      INT32 rc        = SDB_OK ;
+      BOOLEAN result  = TRUE ;
+      INT64 fileSize  = 0 ;
+      SINT64 readSize = 0 ;
+      CHAR *pBuffer   = NULL ;
+      OSSFILE file ;
+
+      rc = ossOpen( IMP_UTIL_TIMEZONE_FILE, OSS_READONLY | OSS_SHAREREAD,
+                    0, file ) ;
+      if ( rc )
+      {
+         PD_LOG( PDWARNING, "Failed to open %s, rc=%d",
+                 IMP_UTIL_TIMEZONE_FILE, rc ) ;
+         result = FALSE ;
+         goto error ;
+      }
+
+      rc = ossGetFileSize( &file, &fileSize ) ;
+      if ( rc )
+      {
+         PD_LOG( PDWARNING, "Failed to get %s file size, rc=%d",
+                 IMP_UTIL_TIMEZONE_FILE, rc ) ;
+         result = FALSE ;
+         goto error ;
+      }
+
+      if( fileSize > IMP_UTIL_BUFFER_MAX_SIZE )
+      {
+         fileSize = IMP_UTIL_BUFFER_MAX_SIZE ;
+      }
+      else if ( 0 == fileSize )
+      {
+         PD_LOG( PDWARNING, "The %s file is empty", IMP_UTIL_TIMEZONE_FILE ) ;
+         result = FALSE ;
+         goto error ;
+      }
+
+      pBuffer = (CHAR *)SDB_OSS_MALLOC( fileSize + 1 ) ;
+      if ( NULL == pBuffer )
+      {
+         PD_LOG( PDWARNING, "Failed to malloc memory" ) ;
+         result = FALSE ;
+         goto error ;
+      }
+
+      ossMemset( pBuffer, 0, fileSize + 1 ) ;
+
+      rc = ossReadN( &file, fileSize, pBuffer, readSize ) ;
+      if ( rc )
+      {
+         PD_LOG( PDWARNING, "Failed to read %s file, rc=%d",
+                 IMP_UTIL_TIMEZONE_FILE, rc ) ;
+         result = FALSE ;
+         goto error ;
+      }
+
+      result = _updateTimezoneEnv( pBuffer ) ;
+
+   done:
+      if ( file.isOpened() )
+      {
+         ossClose( file ) ;
+      }
+      SAFE_OSS_FREE ( pBuffer ) ;
+      return result ;
+   error:
+      goto done ;
+   }
+
+   static BOOLEAN _loadClockFile()
+   {
+      INT32 rc        = SDB_OK ;
+      BOOLEAN result  = TRUE ;
+      INT64 fileSize  = 0 ;
+      SINT64 readSize = 0 ;
+      CHAR *pBuffer   = NULL ;
+      OSSFILE file ;
+
+      rc = ossOpen( IMP_UTIL_CLOCK_FILE, OSS_READONLY | OSS_SHAREREAD,
+                    0, file ) ;
+      if ( rc )
+      {
+         PD_LOG( PDWARNING, "Failed to open %s, rc=%d",
+                 IMP_UTIL_CLOCK_FILE, rc ) ;
+         result = FALSE ;
+         goto error ;
+      }
+
+      rc = ossGetFileSize( &file, &fileSize ) ;
+      if ( rc )
+      {
+         PD_LOG( PDWARNING, "Failed to get %s file size, rc=%d",
+                 IMP_UTIL_CLOCK_FILE, rc ) ;
+         result = FALSE ;
+         goto error ;
+      }
+
+      if( fileSize > IMP_UTIL_BUFFER_MAX_SIZE )
+      {
+         fileSize = IMP_UTIL_BUFFER_MAX_SIZE ;
+      }
+      else if ( 0 == fileSize )
+      {
+         PD_LOG( PDWARNING, "The %s file is empty", IMP_UTIL_CLOCK_FILE ) ;
+         result = FALSE ;
+         goto error ;
+      }
+
+      pBuffer = (CHAR *)SDB_OSS_MALLOC( fileSize + 1 ) ;
+      if ( NULL == pBuffer )
+      {
+         PD_LOG( PDWARNING, "Failed to malloc memory" ) ;
+         result = FALSE ;
+         goto error ;
+      }
+
+      ossMemset( pBuffer, 0, fileSize + 1 ) ;
+
+      rc = ossReadN( &file, fileSize, pBuffer, readSize ) ;
+      if ( rc )
+      {
+         PD_LOG( PDWARNING, "Failed to read %s file, rc=%d",
+                 IMP_UTIL_CLOCK_FILE, rc ) ;
+         result = FALSE ;
+         goto error ;
+      }
+
+      result = _updateTimezoneEnv( pBuffer ) ;
+
+   done:
+      if ( file.isOpened() )
+      {
+         ossClose( file ) ;
+      }
+      SAFE_OSS_FREE ( pBuffer ) ;
+      return result ;
+   error:
+      goto done ;
+   }
+
+   BOOLEAN initTimezoneEnv()
+   {
+      BOOLEAN result = TRUE ;
+
+      if( _loadTimezoneEnv() )
+      {
+         goto done ;
+      }
+
+      if( _loadTimezoneFile() )
+      {
+         goto done ;
+      }
+
+      if( _loadClockFile() )
+      {
+         goto done ;
+      }
+
+      result = FALSE ;
+      PD_LOG( PDWARNING, "Failed to get time zone information, "
+                         "you can set environment variable TZ to improve "
+                         "import performance" ) ;
+
+   done:
+      return result ;
+   }
+
+#else
+
+   BOOLEAN initTimezoneEnv()
+   {
+      return TRUE ;
+   }
+
+#endif
 }

@@ -118,13 +118,16 @@ void _decimal_free_buff( bson_decimal *decimal )
  */
 void _decimal_strip( bson_decimal *decimal )
 {
-   short *digits = decimal->digits ;
-   int ndigits = decimal->ndigits ;
+   short *digits = NULL ;
+   int ndigits = 0 ;
 
    if ( NULL == decimal || !decimal->isOwn )
    {
       return ;
    }
+
+   digits = decimal->digits ;
+   ndigits = decimal->ndigits ;
 
    /* Strip leading zeroes */
    while ( ndigits > 0 && *digits == 0 )

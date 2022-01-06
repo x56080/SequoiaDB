@@ -165,6 +165,25 @@ class DefaultSource extends DataSourceRegister
                 if (config.get.group != "") {
                     options.put("Group", config.get.group)
                 }
+
+                if (config.get.ensureShardingIndex != SdbConfig.DefaultEnsureShardingIndex) {
+                    options.put("EnsureShardingIndex", config.get.ensureShardingIndex)
+                }
+
+                if (config.get.autoIndexId != SdbConfig.DefaultAutoIndexId) {
+                    options.put("AutoIndexId", config.get.autoIndexId)
+                }
+                // auto increment key
+                if (config.get.autoIncrement != "") {
+                    val autoIncrement = JSON.parse(config.get.autoIncrement)
+                        .asInstanceOf[BSONObject]
+                    options.put("AutoIncrement", autoIncrement)
+                }
+
+                if (config.get.strictDataMode != SdbConfig.DefaultStrictDataMode) {
+                    options.put("StrictDataMode", config.get.strictDataMode)
+                }
+
                 logInfo(s"Using $options to create collection[$csName.$clName]")
             }
             cs.createCollection(clName, options)

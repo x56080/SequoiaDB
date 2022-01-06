@@ -48,7 +48,7 @@ namespace engine
    // Context for text search data.
    class _rtnContextTS : public rtnContextMain
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextTS )
 
       public:
          _rtnContextTS( INT64 contextID, UINT64 eduID ) ;
@@ -73,6 +73,18 @@ namespace engine
          virtual BOOLEAN requireOrder () const
          {
             return !_options.isOrderByEmpty() ;
+         }
+
+         virtual INT32   _prepareSubCtxsAdvance( LST_SUB_CTX_PTR &lstCtx )
+         {
+            return SDB_OPTION_NOT_SUPPORT ;
+         }
+
+         virtual INT32   _doSubCtxsAdvance( LST_SUB_CTX_PTR &lstCtx,
+                                            const BSONObj &arg,
+                                            _pmdEDUCB *cb )
+         {
+            return SDB_OPTION_NOT_SUPPORT ;
          }
 
       private:

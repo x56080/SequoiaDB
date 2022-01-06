@@ -39,6 +39,6 @@ Create a hot spare group
 .IP
 .nf
 \f[C]
->\ db.createSpareRG()
+> db.createSpareRG()
 \f[]
 .fi

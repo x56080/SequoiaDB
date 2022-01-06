@@ -31,6 +31,7 @@
 *******************************************************************************/
 #include "impRoutine.hpp"
 #include "impHosts.hpp"
+#include "impUtil.hpp"
 #include <iostream>
 #include <sstream>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -41,7 +42,8 @@ namespace import
 {
    #define IMP_QUEUE_PAGE_SIZE (16 * 1024)
 
-   Routine::Routine( Options& options ) : _dataQueueNum( 0 ),
+   Routine::Routine( Options& options ) : _isInit( FALSE ),
+                                          _dataQueueNum( 0 ),
                                           _dataQueue( NULL ),
                                           _freeQueue( NULL ),
                                           _importQueue( NULL ),
@@ -129,6 +131,8 @@ namespace import
          goto error ;
       }
 
+      _isInit = TRUE ;
+
    done:
       return rc ;
    error:
@@ -138,6 +142,7 @@ namespace import
    INT32 Routine::run()
    {
       INT32 rc = SDB_OK ;
+      INT32 ret = SDB_OK ;
       pt::ptime startTime ;
       pt::ptime endTime ;
 
@@ -148,7 +153,9 @@ namespace import
       rc = _init() ;
       if ( rc )
       {
-         rc = SDB_OK ;
+         std::cerr << "Error: initialization error, please verify log "
+                   << getDialogName()
+                   << std::endl ;
          goto done ;
       }
 
@@ -179,22 +186,29 @@ namespace import
       }
 
    stop:
-      rc = _stopScanner() ;
-      if ( rc )
+      ret = _stopScanner() ;
+      if ( ret )
       {
-         PD_LOG( PDERROR, "Failed to stop scanner, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to stop scanner, rc=%d", ret ) ;
       }
 
-      rc = _waitParserStop() ;
-      if ( rc )
+      ret = _waitParserStop() ;
+      if ( ret )
       {
-         PD_LOG( PDERROR, "Failed to wait parser stop, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to wait parser stop, rc=%d", ret ) ;
       }
 
-      rc = _stopImporter();
+      ret = _stopImporter();
+      if ( ret )
+      {
+         PD_LOG(PDERROR, "Failed to stop importers, rc=%d", ret ) ;
+      }
+
       if ( rc )
       {
-         PD_LOG(PDERROR, "Failed to stop importers, rc=%d", rc);
+         std::cerr << "Error: import failed, please verify log "
+                   << getDialogName()
+                   << std::endl ;
       }
 
       endTime = pt::second_clock::universal_time() ;
@@ -343,39 +357,42 @@ namespace import
 
    void Routine::printStatistics()
    {
-      stringstream ss;
-
-      ss << "Parsed records: " << _parser.parsedNum() << std::endl
-         << "Parsed failure: " << _parser.failedNum() << std::endl;
-
-      ss << "Sharding records: " << _packer.shardingNum() << std::endl
-         << "Sharding failure: " << _packer.failedNum() << std::endl;
-
-      ss << "Imported records: " << _importer.importedNum() << std::endl
-         << "Imported failure: " << _importer.failedNum() << std::endl;
-
-      if ( _parser.failedNum() > 0 )
+      if ( _isInit )
       {
-         ss << "See " << _parser.logFileName()
-            << " for parse failure records" << std::endl ;
+         stringstream ss;
+
+         ss << "Parsed records: " << _parser.parsedNum() << std::endl
+            << "Parsed failure: " << _parser.failedNum() << std::endl;
+
+         ss << "Sharding records: " << _packer.shardingNum() << std::endl
+            << "Sharding failure: " << _packer.failedNum() << std::endl;
+
+         ss << "Imported records: " << _importer.importedNum() << std::endl
+            << "Imported failure: " << _importer.failedNum() << std::endl;
+
+         if ( _parser.failedNum() > 0 )
+         {
+            ss << "See " << _parser.logFileName()
+               << " for parse failure records" << std::endl ;
+         }
+
+         if ( _packer.failedNum() > 0 )
+         {
+            ss << "See " << _packer.logFileName()
+               << " for sharding failure records" << std::endl ;
+         }
+
+         if ( _importer.failedNum() > 0 )
+         {
+            ss << "See " << _importer.logFileName()
+               << " for import failure records" << std::endl ;
+         }
+
+         string stat = ss.str() ;
+
+         std::cout << stat ;
+         PD_LOG( PDEVENT, stat.c_str() ) ;
       }
-
-      if ( _packer.failedNum() > 0 )
-      {
-         ss << "See " << _packer.logFileName()
-            << " for sharding failure records" << std::endl ;
-      }
-
-      if ( _importer.failedNum() > 0 )
-      {
-         ss << "See " << _importer.logFileName()
-            << " for import failure records" << std::endl ;
-      }
-
-      string stat = ss.str() ;
-
-      std::cout << stat ;
-      PD_LOG( PDEVENT, stat.c_str() ) ;
    }
 }
 

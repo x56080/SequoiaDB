@@ -79,7 +79,7 @@ namespace engine
       ( PMD_COMMANDS_STRING( STP_OPTION_CONFPATH, ",c" ), \
             po::value<string>(), \
             "configuration file path of STP\n" \
-            "e.g. \"E:\\Sequoiadb\\conf\\stp\\\"" ) \
+            "eg: \"E:\\Sequoiadb\\conf\\stp\\\"" ) \
       ( STPSTART_OPTION_OPTIONS, po::value<string>(), \
             "options" )
 
@@ -97,7 +97,7 @@ namespace engine
       ( PMD_COMMANDS_STRING( STP_OPTION_CONFPATH, ",c" ), \
             po::value<string>(), \
             "configuration file path of STP\n" \
-            "e.g. \"/opt/sequoiadb/conf/stp\"") \
+            "eg: \"/opt/sequoiadb/conf/stp\"") \
       ( STPSTART_OPTION_OPTIONS, \
             po::value<string>(), \
             "options" )

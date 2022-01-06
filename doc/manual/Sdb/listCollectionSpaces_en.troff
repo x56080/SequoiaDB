@@ -41,9 +41,9 @@ List all collection space information in the database
 .IP
 .nf
 \f[C]
->\ db.listCollectionSpaces()
+> db.listCollectionSpaces()
 {
-\ \ "Name":"sample"
+  "Name":"sample"
 }
 \f[]
 .fi

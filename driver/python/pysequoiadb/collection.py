@@ -40,6 +40,7 @@ QUERY_FLG_WITH_RETURNDATA = 0x00000200
 QUERY_PREPARE_MORE = 0x00004000
 QUERY_FLG_KEEP_SHARDINGKEY_IN_UPDATE = 0x00008000
 QUERY_FLG_FOR_UPDATE = 0x00010000
+QUERY_FLG_FOR_SHARE = 0x00040000
 
 UPDATE_FLG_KEEP_SHARDINGKEY = QUERY_FLG_KEEP_SHARDINGKEY_IN_UPDATE
 UPDATE_FLG_UPDATE_ONE = 0x00000002
@@ -308,7 +309,6 @@ class collection(object):
              INSERT_FLG_RETURN_OID   : Return the value of "_id" field in the record.
              INSERT_FLG_REPLACEONDUP : If the record hit index key duplicate error, database will replace the existing record by
                                                the inserting new record and then go on inserting.
-             INSERT_FLG_RETURNNUM    : The flag represent whether insert return detail result.
         """
         if not isinstance(flag, int):
             raise SDBTypeError("flags must be an instance of int")
@@ -333,7 +333,7 @@ class collection(object):
            Name      Type    Info:
            record    dict    The inserted record.
         Return values:
-           A ObjectId object of record inserted. eg: { '_id': ObjectId('5d5149ade3071dce3692e93b') }
+           An ObjectId object of record inserted. eg: { '_id': ObjectId('5d5149ade3071dce3692e93b') }
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
@@ -366,7 +366,6 @@ class collection(object):
              INSERT_FLG_RETURN_OID   : Return the value of "_id" field in the record.
              INSERT_FLG_REPLACEONDUP : If the record hit index key duplicate error, database will replace the existing record by
                                                the inserting new record and then go on inserting.
-             INSERT_FLG_RETURNNUM    : The flag represent whether insert return detail result.
          """
         if not isinstance(record, dict):
             raise SDBTypeError("record must be an instance of dict")
@@ -402,7 +401,6 @@ class collection(object):
                                                    update or upsert.
              UPDATE_FLG_UPDATE_ONE       : The flag represent whether to update only one matched record or all
                                                    matched records.
-             UPDATE_FLG_RETURNNUM        : The flag represent whether update return detail result.
         Note:
            When flag is set to 0, it won't work to update the "ShardingKey" field, but the
            other fields take effect.
@@ -460,7 +458,6 @@ class collection(object):
                                                    update or upsert.
              UPDATE_FLG_UPDATE_ONE       : The flag represent whether to update only one matched record or all
                                                    matched records.
-             UPDATE_FLG_RETURNNUM        : The flag represent whether upsert return detail result.
         Note:
            When flag is set to 0, it won't work to update the "ShardingKey" field, but the
            other fields take effect.
@@ -520,7 +517,7 @@ class collection(object):
             oid = doc.get("_id")
             return self.upsert({"$set": doc}, condition={"_id": oid})
         else:
-            return self.insert(doc)
+            return self.insert_with_flag(doc)
 
     def delete(self, **kwargs):
         """Delete the matching documents in current collection.
@@ -541,7 +538,6 @@ class collection(object):
            The delete flags, default to be 0, it can choose the follow values:
              DELETE_FLG_DELETE_ONE : The flag represent whether to delete only one matched record
                                              or all matched records.
-             DELETE_FLG_RETURNNUM  : The flag represent whether delete return detail result.
         """
         bson_condition = None
         bson_hint = None
@@ -600,8 +596,14 @@ class collection(object):
            QUERY_FLG_PARALLED        : Enable parallel sub query, each sub query will finish scanning different part of the data
            QUERY_FLG_WITH_RETURNDATA : In general, query won't return data until cursor gets from database, when add this flag, return data in query response, it will be more high-performance
            QUERY_PREPARE_MORE        : Enable prepare more data when query
-           QUERY_FLG_FOR_UPDATE      : When the transaction is turned on and the transaction isolation level is "RC", the transaction lock will not
-                                       be released until the transaction commit or rollback.
+           QUERY_FLG_FOR_UPDATE      : Acquire U lock on the records that are read. When the session is in
+                                       transaction and setting this flag, the transaction lock will not released
+                                       until the transaction is committed or rollback. When the session is not
+                                       in transaction, the flag does not work.
+           QUERY_FLG_FOR_SHARE       : Acquire S lock on the records that are read. When the session is in
+                                       transaction and setting this flag, the transaction lock will not released
+                                       until the transaction is committed or rollback. When the session is not
+                                       in transaction, the flag does not work.
         """
 
         bson_condition = None
@@ -699,8 +701,14 @@ class collection(object):
                                                         it will be more high-performance
            QUERY_FLG_KEEP_SHARDINGKEY_IN_UPDATE : The sharding key in update rule is not filtered, when executing
                                                         queryAndUpdate.
-           QUERY_FLG_FOR_UPDATE                 : When the transaction is turned on and the transaction isolation level is "RC", the transaction lock will not
-                                                  be released until the transaction commit or rollback.
+           QUERY_FLG_FOR_UPDATE      : Acquire U lock on the records that are read. When the session is in
+                                       transaction and setting this flag, the transaction lock will not released
+                                       until the transaction is committed or rollback. When the session is not
+                                       in transaction, the flag does not work.
+           QUERY_FLG_FOR_SHARE       : Acquire S lock on the records that are read. When the session is in
+                                       transaction and setting this flag, the transaction lock will not released
+                                       until the transaction is committed or rollback. When the session is not
+                                       in transaction, the flag does not work.
         """
 
         bson_condition = None
@@ -810,8 +818,14 @@ class collection(object):
            QUERY_FLG_FORCE_HINT      : Force to use specified hint to query, if database have no index assigned by the hint, fail to query
            QUERY_FLG_PARALLED        : Enable parallel sub query, each sub query will finish scanning different part of the data
            QUERY_FLG_WITH_RETURNDATA : In general, query won't return data until cursor gets from database, when add this flag, return data in query response, it will be more high-performance
-           QUERY_FLG_FOR_UPDATE      : When the transaction is turned on and the transaction isolation level is "RC", the transaction lock will not
-                                       be released until the transaction commit or rollback.
+           QUERY_FLG_FOR_UPDATE      : Acquire U lock on the records that are read. When the session is in
+                                       transaction and setting this flag, the transaction lock will not released
+                                       until the transaction is committed or rollback. When the session is not
+                                       in transaction, the flag does not work.
+           QUERY_FLG_FOR_SHARE       : Acquire S lock on the records that are read. When the session is in
+                                       transaction and setting this flag, the transaction lock will not released
+                                       until the transaction is committed or rollback. When the session is not
+                                       in transaction, the flag does not work.
         """
 
         bson_condition = None
@@ -860,7 +874,8 @@ class collection(object):
             if kwargs.get('flags') not in (0, QUERY_FLG_WITH_RETURNDATA,
                                            QUERY_FLG_PARALLED,
                                            QUERY_FLG_FORCE_HINT,
-                                           QUERY_FLG_FOR_UPDATE):
+                                           QUERY_FLG_FOR_UPDATE,
+                                           QUERY_FLG_FOR_SHARE):
                 raise SDBTypeError("invalid flags value")
 
         try:
@@ -1037,6 +1052,26 @@ class collection(object):
 
         rc = sdb.cl_drop_index(self._cl, idx_name)
         raise_if_error(rc, "Failed to drop index")
+
+    def get_index_stat(self, idx_name):
+        """Get the statistics of the index.
+
+        Parameters:
+           Name         Type  Info:
+           idx_name     str   The index name.
+        Return values:
+           a dict object of result
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        if not isinstance(idx_name, str_type):
+            raise SDBTypeError("index name must be an instance of str_type")
+
+        rc, result = sdb.cl_get_index_stat(self._cl, idx_name)
+        raise_if_error(rc, "Failed to get index statistics")
+        record, size = bson._bson_to_dict(result, dict, False,
+                                          bson.OLD_UUID_SUBTYPE, True)
+        return record
 
     def get_collection_name(self):
         """Get the name of current collection.
@@ -1474,8 +1509,14 @@ class collection(object):
            QUERY_FLG_PARALLED        : Enable parallel sub query, each sub query will finish scanning different part of the data
            QUERY_FLG_WITH_RETURNDATA : In general, query won't return data until cursor gets from database, when add this flag, return data in query response, it will be more high-performance
            QUERY_PREPARE_MORE        : Enable prepare more data when query
-           QUERY_FLG_FOR_UPDATE      : When the transaction is turned on and the transaction isolation level is "RC", the transaction lock will not
-                                       be released until the transaction commit or rollback.
+           QUERY_FLG_FOR_UPDATE      : Acquire U lock on the records that are read. When the session is in
+                                       transaction and setting this flag, the transaction lock will not released
+                                       until the transaction is committed or rollback. When the session is not
+                                       in transaction, the flag does not work.
+           QUERY_FLG_FOR_SHARE       : Acquire S lock on the records that are read. When the session is in
+                                       transaction and setting this flag, the transaction lock will not released
+                                       until the transaction is committed or rollback. When the session is not
+                                       in transaction, the flag does not work.
         """
         bson_condition = None
         bson_selector = None

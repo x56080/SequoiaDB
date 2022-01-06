@@ -28,16 +28,16 @@ when exception happen, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
 For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
-.IP \[bu] 2
+.PP
 Acquire current user information
 .IP
 .nf
 \f[C]
->\ System.getCurrentUser()
+> System.getCurrentUser()
 {
-\ \ \ \ "user":\ "root",
-\ \ \ \ "gid":\ "0",
-\ \ \ \ "dir":\ "/root"
+    "user": "root",
+    "gid": "0",
+    "dir": "/root"
 }
 \f[]
 .fi

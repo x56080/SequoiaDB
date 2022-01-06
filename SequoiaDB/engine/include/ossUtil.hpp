@@ -1164,12 +1164,14 @@ class ossIPInfo
 private:
    INT32   _ipNum;
    ossIP*  _ips;
+   INT32   _initRC;
 
 public:
    ossIPInfo();
    ~ossIPInfo();
    inline INT32 getIPNum() const { return _ipNum; }
    inline ossIP* getIPs() const { return _ips; }
+   inline INT32 getInitRC() const { return _initRC; }
 
 private:
    INT32 _init();

@@ -40,7 +40,9 @@
 
 #define FUSE_USE_VERSION 26
 
+#ifndef _XOPEN_SOURCE
 #define _XOPEN_SOURCE 500
+#endif
 
 #include "core.h"
 #include "fuse_lowlevel.h"
@@ -51,81 +53,48 @@
 #include "utilParam.hpp"
 #include "ossIO.hpp"
 #include "pd.hpp"
-#include "pmdDef.hpp"
-#include "sequoiaFSOptionMgr.hpp"
-#include "sdbDataSourceComm.hpp"
-#include "sdbDataSource.hpp"
-
-#include<iostream>
-#include<fstream>
-#include<string>
-#include<vector>
-#include<libgen.h>
-#include<fuse.h>
-#include<time.h>
-//#include<linux/stat.h>
-
 #include<arpa/inet.h>
 #include<sys/socket.h>
 #include<netdb.h>
 #include<ifaddrs.h>
 #include<net/if.h>
 
+#include "sdbConnectionPool.hpp"
+
+#include "sequoiaFSOptionMgr.hpp"
+#include "sequoiaFSCommon.hpp"
+#include "sequoiaFSDao.hpp"
+
+#include "sequoiaFSFileCreatingMgr.hpp"
+#include "sequoiaFSFileLobMgr.hpp"
+#include "sequoiaFSFileLob.hpp"
+#include "sequoiaFSMetaCache.hpp"
+
 using std::string;
 using namespace sdbclient;
 using namespace bson;
 
-#define MAX_NODE_NAME_LEN 20
-#define NUM_OF_NODE_NAME {sizeof(lobLbfsNodeName)/sizeof(lobLbfsNodeName[0])}
-
 namespace sequoiafs
 {
-   struct dirMetaNode
-   {
-      string name;
-      UINT32 mode; //umode_t(u_shourt)
-      UINT32 uid;
-      UINT32 gid;
-      UINT32 nLink;
-      INT64 pid;
-      INT64 id;
-      INT64 size;  //off_t long long
-      INT64 ctime;//(struct timespec lobCTime)
-      INT64 mtime;
-      INT64 atime;
-      string symLink;
-   };
-
-   struct fileMetaNode
-   {
-      string name;
-      UINT32 mode; //umode_t(u_shourt)
-      UINT32 uid;
-      UINT32 gid;
-      UINT32 nLink;
-      string lobOid;
-      INT64 pid;
-      INT64 size;  //off_t long long
-      INT64 ctime;//(struct timespec lobCTime)
-      INT64 mtime;
-      INT64 atime;
-      string symLink;
-   };
-
    class sequoiaFS: public SDBObject
    {
    public:
-      INT32 init(INT32 argc, CHAR **argv, vector<string> *options4fuse);
+      sequoiaFS();
+      ~sequoiaFS();
+      INT32 init();
+      void fini();
+      INT32 buildDialogPathStartPD();
+      
       void destroy(void *userdata);
       INT32 getattr(const CHAR *path, struct stat *statbuf);
       INT32 readlink(const CHAR *path, CHAR * link, size_t size);
       INT32 getdir(const CHAR *path, fuse_dirh_t dirh,
                    fuse_dirfil_t dirfill);
       INT32 mknod(const CHAR *path, mode_t mode, dev_t dev);
-      INT32 mkdir(const CHAR *path, mode_t mode);
+      INT32 mkdir(const CHAR *path, mode_t mode, struct fuse_context *context);
       INT32 unlink(const CHAR *path);
       INT32 rmdir(const CHAR *path);
-      INT32 symlink(const CHAR *path, const CHAR *link);
+      INT32 symlink(const CHAR *path, const CHAR *link, struct fuse_context *context);
       INT32 rename(const CHAR *path, const CHAR *newpath);
       INT32 link(const CHAR *path, const CHAR *newpath);
       INT32 chmod(const CHAR *path, mode_t mode);
@@ -157,14 +126,15 @@ namespace sequoiafs
                      struct fuse_file_info *fi);
       INT32 access(const CHAR *path, INT32 mask);
       INT32 create(const CHAR *path, mode_t mode,
-                   struct fuse_file_info *fi);
+                   struct fuse_file_info *fi, 
+                   struct fuse_context *context);
       INT32 ftruncate(const CHAR *path, off_t offset,
                       struct fuse_file_info *fi);
       INT32 fgetattr(const CHAR *path, struct stat *buf,
                      struct fuse_file_info *fi);
       INT32 lock(const CHAR *path, struct fuse_file_info *fi,
                  INT32 cmd, struct flock *lock);
-      INT32 utimens(const CHAR *path, const struct timespec tv[2]);
+      INT32 utimes(const CHAR *path, const struct timespec tv[2]);
       INT32 bmap(const CHAR *path, size_t blocksize, uint64_t *idx);
       INT32 ioctl(const CHAR *path, INT32 cmd, void *arg,
                   struct fuse_file_info *fi, UINT32 flags, void *data);
@@ -179,16 +149,6 @@ namespace sequoiafs
                       off_t offset, off_t value, struct fuse_file_info *fi);
 
       sequoiafsOptionMgr * getOptionMgr();
-      sequoiaFS()
-      {
-        _collection = "";
-        _sysFileMetaCLFullName = "";
-        _sysDirMetaCLFullName = "";
-        _mountpoint = "";
-        _replsize = SDB_SEQUOIAFS_REPLSIZE_DEFAULT_VALUE;
-      }
-
-      ~sequoiaFS(){}
 
       const CHAR *getHosts()const{return _optionMgr.getHosts();}
       INT32 getRecordField(BSONObj &record, CHAR *fieldName,
@@ -197,25 +157,27 @@ namespace sequoiafs
       INT32 doUpdateAttr(sdbCollection *cl, const BSONObj &rule,
                          const BSONObj &condition = _sdbStaticObject,
                          const BSONObj &hint = _sdbStaticObject);
-      INT32 doesFileExist(sdbCollection &cl, const CHAR *lobName,
-                          BSONObj &condition, BOOLEAN *exist,
-                          OID *oid, BSONObj &record);
       void setDataSourceConf(const CHAR * userName,
-                             const CHAR *passwd, const INT32 connNum);
+                             const CHAR *passwd, 
+                             const CHAR* cipherFile,
+                             const CHAR* token,
+                             const INT32 connNum);
       int initDataSource(const CHAR * userName,
                          const CHAR *passwd,
+                         const CHAR* cipherFile,
+                         const CHAR* token,
                          const INT32 connNum);
-      INT32 disableDataSource();
-      INT32 closeDataSource();
+
+      void closeDataSource();
       INT32 getConnection(sdb **connection);
       void releaseConnection(sdb *connection)
       {
-         ds.releaseConnection(connection);
+         if(connection)
+         {
+            _ds.releaseConnection(connection);
+         }
       }
-      INT64 getDirIno(sdbCollection *sysMetaCl,
-                      string dirname, INT64 pino);
-      INT64 getDirPIno(sdbCollection *sysMetaCl,
-                       CHAR *pathStr, string *basePath, bool flag = FALSE);
+
       void getCoordHost();
       INT32 writeMapHistory(const CHAR *hosts);
       INT32 initMetaCSCL(sdb *db, const string csName,
@@ -229,26 +191,32 @@ namespace sequoiafs
       void setReplSize(INT32 replsize)
       {
         _replsize = replsize;
-      };
+      }
       INT32 replSize() const
       {
         return _replsize;
       }
+      void getSysInfo();
+      INT32 buildFileLobForFile(lobHandle* lh);
+      
    private:
-      INT32 doSetDirNodeAttr(sdbCollection &cl,
-                             struct dirMetaNode &dirNode);
-      INT32 doSetFileNodeAttr(sdbCollection &cl,
-                             struct fileMetaNode &fileNode);
-      INT32 getAndUpdateID(sdbCollection *cl, INT64 *sequenceId);
-      INT32 initMetaID(sdb *db);
-      INT32 initRootPath();
-      INT32 do_access(struct stat *stbuf);
-      INT32 isDir(sdbCollection *sysFileMetaCL,
-                  sdbCollection *sysDirMetaCL,
-                  CHAR *name, INT64 pid, BOOLEAN *is_dir);
+      INT32 _doSetDirNodeAttr(sdbCollection &cl,
+                              dirMeta &dirNode);
+      INT32 _doSetFileNodeAttr(sdbCollection &cl,
+                              fileMeta &fileNode);
+      INT32 _getAndUpdateID(sdbCollection *cl, CHAR* name, INT64 *sequenceId);
+      INT32 _initMetaID(sdb *db);
+      INT32 _initMountID(sdb *db);
+      INT32 _addMountID(sdb *db);
+      INT32 _initRootPath(sdb *db);
+      INT32 _do_access(struct stat *stbuf);
+      void _cleanCounts();
+
+      INT32 _convertErrorCode(INT32 rc);
+
    private:
-      sdbDataSourceConf conf;
-      sdbDataSource ds;
+      sdbConnectionPoolConf _conf;
+      sdbConnectionPool _ds ;
       string _csName;
       string _clName;
       string _sysDirMetaCSName;
@@ -257,10 +225,16 @@ namespace sequoiafs
       string _sysFileMetaCLName;
       string _sysFileMetaCLFullName;
       string _sysDirMetaCLFullName;
+      INT32 _replsize;
       vector<string> _coordHostPort;
       sequoiafsOptionMgr _optionMgr;
-      std::map<UINT64, INT8> _mapOpMode;
-      INT32 _replsize;
+      sequoiaFSFileLobMgr _fileLobMgr;
+      fsMetaCache        _metaCache;
+      fileCreatingMgr    _fileCreatingMgr;
+
+      boost::thread *_thClean;
+
+      BOOLEAN _running;
 
    public:
       string _collection;

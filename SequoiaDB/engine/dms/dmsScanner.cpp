@@ -76,8 +76,8 @@ namespace engine
    class _dmsIndexRecordRW : public _dmsRecordRW
    {
       public:
-         _dmsIndexRecordRW( const CHAR * ptr )
-         :_dmsRecordRW()
+         _dmsIndexRecordRW( const _dmsRecordRW &recordRW, const CHAR * ptr )
+         :_dmsRecordRW( recordRW )
          {
             if ( ptr )
             {
@@ -137,6 +137,31 @@ namespace engine
       }
    }
 
+   INT32 _dmsScanner::_checkGlobTransAvailable( _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      stpLogicalTimeUS txBeginTm = cb->getTransBeginTime() ;
+      UINT64 globTransAvailTime =
+                        _context->mbStat()->_globTransAvailTime.peek() ;
+      PD_CHECK( 0 == globTransAvailTime ||
+                globTransAvailTime + STP_MAX_TIME_ERROR_US <=
+                                                       txBeginTm.getTime(),
+                SDB_GLOB_TRANS_NOT_AVAILABLE, error, PDERROR,
+                "Failed to check global transaction, available "
+                "timestamp on collection [%s] is [%llu], "
+                "current transaction is [%llu]",
+                _context->mb()->_collectionName,
+                globTransAvailTime,
+                txBeginTm.getTime() ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    /*
       _dmsExtScannerBase implement
    */
@@ -160,14 +185,20 @@ namespace engine
       _pTransCB            = NULL ;
       _curRID._extent      = curExtentID ;
       _recordLock          = DPS_TRANSLOCK_MAX ;
+      _selectLockMode      = DPS_TRANSLOCK_MAX ;
       _needUnLock          = FALSE ;
-      _selectForUpdate     = FALSE ;
+      _needEscalation      = FALSE ;
       _CSCLLockHeld        = FALSE ;
       _cb                  = NULL ;
 
+      // lock for update has higher priority
       if ( OSS_BIT_TEST( flag, FLG_QUERY_FOR_UPDATE ) )
       {
-         _selectForUpdate = TRUE ;
+         _selectLockMode = DPS_TRANSLOCK_U ;
+      }
+      else if ( OSS_BIT_TEST( flag, FLG_QUERY_FOR_SHARE ) )
+      {
+         _selectLockMode = DPS_TRANSLOCK_S ;
       }
    }
 
@@ -248,14 +279,32 @@ namespace engine
          rc = _firstInit( cb ) ;
          PD_RC_CHECK( rc, PDWARNING, "first init failed, rc: %d", rc ) ;
       }
-      // have locked, but not trans, need to release record lock held
-      // from last round of scan
-      else if ( _needUnLock && _hasLockedRecord &&
-                DMS_INVALID_OFFSET != _curRID._offset )
+      else if ( DMS_INVALID_OFFSET != _curRID._offset )
       {
-         _pTransCB->transLockRelease( cb, _pSu->logicalID(), _context->mbID(),
-                                      &_curRID, &_callback ) ;
-         _hasLockedRecord = FALSE ;
+         if ( _hasLockedRecord && _needUnLock )
+         {
+            // last run have record lock held, but not trans, need to release
+            // record lock
+            _pTransCB->transLockRelease( cb, _pSu->logicalID(),
+                                         _context->mbID(), &_curRID,
+                                         &_callback ) ;
+            _hasLockedRecord = FALSE ;
+         }
+         else if ( NULL != cb &&
+                   cb->getTransExecutor()->useTransLock() &&
+                   _callback.getTransRecordInfo()->_transInsertDeleted )
+         {
+            SDB_ASSERT( !cb->isInTransRollback(), "should not be deleted by "
+                        "table scan during trans rollback" ) ;
+            // if the record is deleted in the same transaction, we can
+            // release the lock
+            // NOTE: we need to keep the IX locks on CS and CL
+            _pTransCB->transLockRelease( cb, _pSu->logicalID(),
+                                         _context->mbID(), &_curRID,
+                                         &_callback, TRUE, FALSE ) ;
+
+            _hasLockedRecord = FALSE ;
+         }
       }
 
       rc = _fetchNext( recordID, generator, cb, mthContext ) ;
@@ -298,6 +347,16 @@ namespace engine
    INT32 _dmsExtScannerBase::acquireCSCLLock( )
    {
       INT32 rc = SDB_OK ;
+
+      // check global transaction before lock, so we needn't to wait for
+      // collection locks if global transaction is not available
+      if ( DPS_TRANSLOCK_S == _recordLock && _cb->isTransRR() )
+      {
+         rc = _checkGlobTransAvailable( _cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check available of global "
+                      "transaction, rc: %d", rc ) ;
+      }
+
       if ( !_CSCLLockHeld && DPS_TRANSLOCK_MAX != _recordLock )
       {
          dmsTBTransContext tbTxContext( _context, _accessType ) ;
@@ -342,6 +401,16 @@ namespace engine
          {
             _CSCLLockHeld = TRUE ;
          }
+      }
+
+      // check global transaction after lock, double check if other transaction
+      // has changed the global transaction available timestamp for this
+      // scanning collection
+      if ( DPS_TRANSLOCK_S == _recordLock && _cb->isTransRR() )
+      {
+         rc = _checkGlobTransAvailable( _cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check available of global "
+                      "transaction, rc: %d", rc ) ;
       }
 
    done:
@@ -401,7 +470,6 @@ namespace engine
       if ( !_pSu->isTransSupport() )
       {
          _recordLock = DPS_TRANSLOCK_MAX ;
-         _selectForUpdate = FALSE ;
       }
       /// When not in transaction
       else if ( cb->getTransID().isInvalid() )
@@ -410,7 +478,6 @@ namespace engine
          if ( !pExe->useTransLock() )
          {
             _recordLock = DPS_TRANSLOCK_MAX ;
-            _selectForUpdate = FALSE ;
          }
          /// Write operation should release lock right now
          else if ( DMS_IS_WRITE_OPR( _accessType ) )
@@ -423,37 +490,39 @@ namespace engine
          else
          {
             _recordLock = DPS_TRANSLOCK_MAX ;
-            _selectForUpdate = FALSE ;
          }
       }
       /// In transaction
       else
       {
-         if ( cb->isInTransRollback() || !pExe->useTransLock() )
+         if ( cb->isInTransRollback() )
          {
             _recordLock = DPS_TRANSLOCK_MAX ;
-            _selectForUpdate = FALSE ;
          }
          else if ( DMS_IS_WRITE_OPR( _accessType ) )
          {
             _recordLock = DPS_TRANSLOCK_X ;
             _needUnLock = FALSE ;
+            _needEscalation = TRUE ;
          }
          else if ( TRANS_ISOLATION_RU == _transIsolation &&
-                   !_selectForUpdate )
+                   DPS_TRANSLOCK_MAX == _selectLockMode )
          {
             _recordLock = DPS_TRANSLOCK_MAX ;
-            _selectForUpdate = FALSE ;
          }
          else
          {
-            _recordLock = _selectForUpdate ? DPS_TRANSLOCK_U :
+            _recordLock =
+                  DPS_TRANSLOCK_MAX != _selectLockMode ?
+                                             _selectLockMode :
                                              DPS_TRANSLOCK_S ;
             if ( TRANS_ISOLATION_RS == _transIsolation ||
-                 _selectForUpdate )
+                 DPS_TRANSLOCK_MAX != _selectLockMode )
             {
                _needUnLock = FALSE ;
                _waitLock = TRUE ;
+               _needEscalation = TRUE ;
+               _callback.setUseLatestVersion() ;
             }
             else
             {
@@ -464,7 +533,8 @@ namespace engine
 
 #ifdef _DEBUG
       if ( ( TRANS_ISOLATION_RR == _transIsolation ) &&
-           ( DPS_TRANSLOCK_S == _recordLock ) )
+           ( DPS_TRANSLOCK_S == _recordLock ) &&
+           ( DPS_TRANSLOCK_MAX == _selectLockMode ) )
       {
          SDB_ASSERT( ( FALSE == _waitLock ),
                      "_waitLock must be set to FALSE when isolation is RR" ) ;
@@ -518,7 +588,6 @@ namespace engine
       }
 
       _cb   = cb ;
-      _next = _extent->_firstRecordOffset ;
 
       // As a performance improvement, we are going to acquire the CS and
       // CL lock right in the beginning to avoid extra performance overhead
@@ -529,6 +598,12 @@ namespace engine
       {
          goto error ;
       }
+
+      // WARNING: once the collection has been locked eXclusively by
+      //          other transaction, the first record offset may be changed
+      //          by that transaction, so we should not get the first record
+      //          offset before we acquired CS and CL locks
+      _next = _extent->_firstRecordOffset ;
 
       // unset first run
       _firstRun = FALSE ;
@@ -639,10 +714,13 @@ namespace engine
                   // test S lock failed and the record is not in old version
                   // container nor in RBS, most likely the one hold / wait X
                   // hasn't finish updating the record.
+                  // NOTE: RS and lock for share requires lock escalation
                   rc = _pTransCB->transLockGetS( cb, _pSu->logicalID(),
                                                  _context->mbID(), &_curRID,
                                                  & tbTxContext,
-                                                 &lockConflict ) ;
+                                                 &lockConflict,
+                                                 &_callback,
+                                                 _needEscalation ) ;
                   if ( SDB_OK == rc )
                   {
                      ignoredLock = FALSE ;
@@ -1539,8 +1617,9 @@ namespace engine
       _hasLockedRecord     = FALSE ;
       _pTransCB            = NULL ;
       _recordLock          = DPS_TRANSLOCK_MAX ;
+      _selectLockMode      = DPS_TRANSLOCK_MAX ;
       _needUnLock          = FALSE ;
-      _selectForUpdate     = FALSE ;
+      _needEscalation      = FALSE ;
       _cb                  = NULL ;
       _scanner             = scanner ;
       _onceRestNum         = 0 ;
@@ -1553,9 +1632,14 @@ namespace engine
       _countOnly           = FALSE ;
       _CSCLLockHeld        = FALSE ;
 
+      // lock for update has higher priority
       if ( OSS_BIT_TEST( flag, FLG_QUERY_FOR_UPDATE ) )
       {
-         _selectForUpdate = TRUE ;
+         _selectLockMode = DPS_TRANSLOCK_U ;
+      }
+      else if ( OSS_BIT_TEST( flag, FLG_QUERY_FOR_SHARE ) )
+      {
+         _selectLockMode = DPS_TRANSLOCK_S ;
       }
    }
 
@@ -1665,6 +1749,16 @@ namespace engine
    INT32 _dmsIXSecScanner::acquireCSCLLock( )
    {
       INT32 rc = SDB_OK ;
+
+      // check global transaction before lock, so we needn't to wait for
+      // collection locks if global transaction is not available
+      if ( DPS_TRANSLOCK_S == _recordLock && _cb->isTransRR() )
+      {
+         rc = _checkGlobTransAvailable( _cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check available of global "
+                      "transaction, rc: %d", rc ) ;
+      }
+
       if ( !_CSCLLockHeld && DPS_TRANSLOCK_MAX != _recordLock )
       {
          dpsTransRetInfo   lockConflict ;
@@ -1711,6 +1805,17 @@ namespace engine
             _CSCLLockHeld = TRUE ;
          }
       }
+
+      // check global transaction after lock, double check if other transaction
+      // has changed the global transaction available timestamp for this
+      // scanning collection
+      if ( DPS_TRANSLOCK_S == _recordLock && _cb->isTransRR() )
+      {
+         rc = _checkGlobTransAvailable( _cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check available of global "
+                      "transaction, rc: %d", rc ) ;
+      }
+
    done:
       return rc ;
    error:
@@ -1751,7 +1856,6 @@ namespace engine
       if ( !_pSu->isTransSupport() )
       {
          _recordLock = DPS_TRANSLOCK_MAX ;
-         _selectForUpdate = FALSE ;
       }
       /// When not in transaction
       else if ( cb->getTransID().isInvalid() )
@@ -1760,7 +1864,6 @@ namespace engine
          if ( !pExe->useTransLock() )
          {
             _recordLock = DPS_TRANSLOCK_MAX ;
-            _selectForUpdate = FALSE ;
          }
          /// Write operation should release lock right way
          else if ( DMS_IS_WRITE_OPR( _accessType ) )
@@ -1773,38 +1876,39 @@ namespace engine
          else
          {
             _recordLock = DPS_TRANSLOCK_MAX ;
-            _selectForUpdate = FALSE ;
          }
       }
       /// In transaction
       else
       {
-         // We may setup the transID during rollforward as well
-         if ( cb->isInTransRollback() || !pExe->useTransLock() )
+         if ( cb->isInTransRollback() )
          {
             _recordLock = DPS_TRANSLOCK_MAX ;
-            _selectForUpdate = FALSE ;
          }
          else if ( DMS_IS_WRITE_OPR( _accessType ) )
          {
             _recordLock = DPS_TRANSLOCK_X ;
             _needUnLock = FALSE ;
+            _needEscalation = TRUE ;
          }
          else if ( TRANS_ISOLATION_RU == _transIsolation &&
-                   !_selectForUpdate )
+                   DPS_TRANSLOCK_MAX == _selectLockMode )
          {
             _recordLock = DPS_TRANSLOCK_MAX ;
-            _selectForUpdate = FALSE ;
          }
          else
          {
-            _recordLock = _selectForUpdate ? DPS_TRANSLOCK_U :
+            _recordLock =
+                  DPS_TRANSLOCK_MAX != _selectLockMode ?
+                                             _selectLockMode :
                                              DPS_TRANSLOCK_S ;
             if ( TRANS_ISOLATION_RS == _transIsolation ||
-                 _selectForUpdate )
+                 DPS_TRANSLOCK_MAX != _selectLockMode )
             {
                _needUnLock = FALSE ;
                _waitLock = TRUE ;
+               _needEscalation = TRUE ;
+               _callback.setUseLatestVersion() ;
             }
             else
             {
@@ -1821,7 +1925,8 @@ namespace engine
 
 #ifdef _DEBUG
       if ( ( TRANS_ISOLATION_RR == _transIsolation ) &&
-           ( DPS_TRANSLOCK_S == _recordLock ) )
+           ( DPS_TRANSLOCK_S == _recordLock ) &&
+           ( DPS_TRANSLOCK_MAX == _selectLockMode ) )
       {
          SDB_ASSERT( ( FALSE == _waitLock ),
                      "_waitLock must be set to FALSE when isolation is RR" ) ;
@@ -2022,11 +2127,13 @@ namespace engine
                // test S lock failed and the record is not in old version
                // container nor in RBS. most likely the one hold / wait X
                // hasn't finish updating the record.
+               // NOTE: RS and lock for share requires lock escalation
                rc = _pTransCB->transLockGetS( cb, _pSu->logicalID(),
                                               _context->mbID(), &_curRID,
                                               &ixTxContext,
                                               &lockConflict,
-                                              &_callback ) ;
+                                              &_callback,
+                                              _needEscalation ) ;
                if ( SDB_OK == rc )
                {
                   ignoredLock = FALSE ;
@@ -2183,11 +2290,10 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSIXSECSCAN_BUILDIDINDEXRECORD, "_dmsIXSecScanner::_buildIndexRecord" )
-   INT32 _dmsIXSecScanner::_buildIndexRecord( BOOLEAN& finished )
+   const CHAR* _dmsIXSecScanner::_buildIndexRecord()
    {
       INT32 rc = SDB_OK ;
       dmsRecord *pNewRecord = NULL ;
-      const dmsRecord *pOldRecord = _recordRW.readPtr( 0 ) ;
       ixmIndexCover &index = _scanner->getIndex() ;
       const BSONObj* keyValue = _scanner->getCurKeyObj() ;
       CHAR* recordPtr = NULL ;
@@ -2197,13 +2303,13 @@ namespace engine
       UINT32 evalBufSize = 0 ;
       PD_TRACE_ENTRY ( SDB__DMSIXSECSCAN_BUILDIDINDEXRECORD );
 
-      finished = FALSE ;
-
       //1. pre caculte buf size
       rc = index.getExtraSize( extraSize ) ;
       PD_RC_CHECK( rc, PDWARNING, "Get index value extra size faield, rc: %d", rc ) ;
 
-      evalBufSize = DMS_RECORD_METADATA_SZ + extraSize + keyValue->objsize() ;
+      evalBufSize = DMS_RECORD_NOMVCC_METADATA_SZ +
+                    extraSize +
+                    keyValue->objsize() ;
 
       rc = index.ensureBuff( evalBufSize, recordPtr ) ;
       PD_RC_CHECK( rc, PDWARNING, "Get index buffer failed, rc: %d", evalBufSize, rc ) ;
@@ -2220,10 +2326,10 @@ namespace engine
             PD_RC_CHECK( rc, PDWARNING, "Append index field value failed, rc: %d", rc ) ;
          }
 
-         //3. copy header
-         ossMemcpy( recordPtr, (const void*)pOldRecord, DMS_RECORD_METADATA_SZ ) ;
+         //3. reset header
+         ossMemset( recordPtr, 0, DMS_RECORD_NOMVCC_METADATA_SZ ) ;
          //4. build body(BSONObj)
-         SimpleBSONBuilder builder( recordPtr + DMS_RECORD_METADATA_SZ ) ;
+         SimpleBSONBuilder builder( recordPtr + DMS_RECORD_NOMVCC_METADATA_SZ ) ;
          ixmIndexNode *pTree =  NULL ;
          rc = index.getTree( pTree ) ;
          PD_RC_CHECK( rc, PDWARNING, "Get index tree failed, rc: %d", rc ) ;
@@ -2234,10 +2340,9 @@ namespace engine
          builder.done() ;
 
          pNewRecord = ( dmsRecord* )recordPtr ;
-         pNewRecord->unsetCompressed() ;
-         pNewRecord->setSize( DMS_RECORD_METADATA_SZ + builder.len() ) ;
-
-         finished = TRUE ;
+         pNewRecord->setNormal() ;
+         pNewRecord->resetAttr( FALSE ) ;
+         pNewRecord->setSize( DMS_RECORD_NOMVCC_METADATA_SZ + builder.len() ) ;
       }
       catch( std::exception &e )
       {
@@ -2247,7 +2352,14 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC ( SDB__DMSIXSECSCAN_BUILDIDINDEXRECORD, rc );
-      return rc ;
+      if( SDB_OK == rc )
+      {
+         return ( const CHAR* )pNewRecord ;
+      }
+      else
+      {
+         return NULL ;
+      }
    error:
       goto done ;
    }
@@ -2276,6 +2388,7 @@ namespace engine
       dmsRecordData  recordData ;
       dmsRecordID    waitUnlockRID ;
       BOOLEAN        skipRecord      = FALSE ;
+      const CHAR*    pRecord         = NULL ;
 
       PD_TRACE_ENTRY ( SDB__DMSIXSECSCAN_ADVANCE );
 
@@ -2291,14 +2404,30 @@ namespace engine
          rc = _firstInit( cb ) ;
          PD_RC_CHECK( rc, PDWARNING, "first init failed, rc: %d", rc ) ;
       }
-      // last run have record lock held, but not trans, need to release
-      // record lock
-      else if ( _needUnLock && _hasLockedRecord &&
-                DMS_INVALID_OFFSET != _curRID._offset )
+      else if ( DMS_INVALID_OFFSET != _curRID._offset )
       {
-         _pTransCB->transLockRelease( cb, _pSu->logicalID(), _context->mbID(),
-                                      &_curRID, &_callback ) ;
-         _hasLockedRecord = FALSE ;
+         if ( _hasLockedRecord && _needUnLock )
+         {
+            // last run have record lock held, but not trans, need to release
+            // record lock
+            _pTransCB->transLockRelease( cb, _pSu->logicalID(),
+                                         _context->mbID(), &_curRID,
+                                         &_callback ) ;
+            _hasLockedRecord = FALSE ;
+         }
+         else if ( NULL != cb &&
+                   cb->getTransExecutor()->useTransLock() &&
+                   _callback.getTransRecordInfo()->_transInsertDeleted )
+         {
+            // if the record is deleted in the same transaction, we can
+            // release the lock
+            // NOTE: we need to keep the IX locks on CS and CL
+            _pTransCB->transLockRelease( cb, _pSu->logicalID(),
+                                         _context->mbID(), &_curRID,
+                                         &_callback, TRUE, FALSE ) ;
+
+            _hasLockedRecord = FALSE ;
+         }
       }
 
       _hasLockedRecord = FALSE ;
@@ -2411,17 +2540,17 @@ namespace engine
             continue ;
          }
 
+         pRecord = NULL ;
+
          if( _scanner->isIndexCover() &&
              !_recordRW.isDirectMem() &&
-             DMS_IS_READ_OPR( _accessType ) )
+             DMS_IS_READ_OPR( _accessType ) &&
+             !cb->isTransRR() )
          {
-            BOOLEAN finished = FALSE ;
-            // ignore return value
-            // if argout param finished is TRUE,we need to change _recordRW
-            _buildIndexRecord( finished );
-            if( finished )
+            pRecord = _buildIndexRecord() ;
+            if( NULL != pRecord )
             {
-               _recordRW = dmsIndexRecordRW( _scanner->getIndex().getBuf() );
+               _recordRW = dmsIndexRecordRW( _recordRW, pRecord ) ;
             }
          }
 
@@ -2477,7 +2606,7 @@ namespace engine
          // recordData could be filled up by callback for RR
          if ( recordData.isEmpty() )
          {
-            rc = _pSu->extractData( _context, _recordRW, cb, recordData ) ;
+            rc = _pSu->extractData( _context, _recordRW, cb, recordData, !pRecord ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Extract record data failed, rc: %d", rc ) ;

@@ -14,6 +14,7 @@ public class ConfigFactory {
     ConfigFactory() throws UnknownHostException {
         configList.add(new PostgreSQLConfig());
         configList.add(new MySQLConfig());
+        configList.add(new MariaDBConfig());
     }
 
     public void init(){

@@ -1,65 +1,10 @@
 [^_^]:
-    Spark-SequoiaDB 使用
-    作者：林友滨
-    时间：20190815
-    评审意见
-    林友滨：初稿完成；时间：20190815
-    市场部：时间：
+    SparkSQL 实例-使用
 
 
-本文档将介绍存储类型与SparkSQL 实例类型映射、SequoiaDB 存储引擎向 SparkSQL 实例类型转换的兼容性及 Spark-SequoiaDB 的使用
+本文档将介绍 Spark-SequoiaDB 的使用。
 
-存储类型与 SparkSQL 实例类型映射
-----
-
-| 存储引擎类型 | SparkSQL 实例类型   | SQL 实例类型  |
-| ------------| ------------------ | ------------ |
-|int32|IntegerType|int|
-|int64|LongType|bigint|
-|double|DoubleType|double|
-|decimal|DecimalType|decimal|
-|string|StringType|string|
-|ObjectId|StringType|string|
-|boolean|BooleanType|boolean|
-|date|DateType|date|
-|timestamp|TimestampType|timestamp|
-|binary|BinaryType|binary|
-|null|NullType|null|
-|BSON(嵌套对象)|StructType|struct\<field:type,…\>|
-|array|ArrayType|array\<type\>|
-
-SequoiaDB 存储引擎向 SparkSQL 实例类型转换的兼容性
-----
-
-Y 表示兼容，N 表示不兼容
-
-|ByteType | ShortType | IntegerType | LongType | FloatType | DoubleType | DecimalType | BooleanType|
-| -----| ---- | ----- | ----- | ----- | ----- | ----- | ----- |
-|int32|Y|Y|Y|Y|N|N|Y|N|
-|int64|Y|Y|Y|Y|N|N|Y|N|
-|double|Y|N|N|Y|N|N|Y|N|
-|decimal|Y|Y|Y|Y|N|N|Y|N|
-|string|Y|Y|Y|Y|N|N|Y|N|
-|ObjectId|Y|N|N|Y|N|N|Y|N|
-|boolean|Y|N|N|Y|N|N|Y|N|
-|date|Y|Y|Y|Y|N|N|Y|N|
-|timestamp|Y|Y|Y|Y|N|N|Y|N|
-|binary|Y|N|N|Y|N|N|Y|N|
-|null|Y|Y|Y|Y|Y|Y|Y|Y|
-|BSON|Y|N|N|N|N|Y|Y|Y|
-|array|Y|N|N|N|Y|N|Y|N|
-
->**Note:**
->- 不支持 SparkSQL 的 CalendarIntervalType 类型；
->- null 转换为任意类型仍为 null；
->- 不兼容类型转换时变为目标类型的零值；
->- date 和 timestamp 与数值类型转换时取其毫秒值；
->- string 如果是数值的字符串类型，则可转为对应的数值时，否则转换为 null；
->- boolean 值转为数值类型时，true 为 1，false 为 0；
->- 数值类型之间转换可能会溢出或损失精度。
-
-Spark-SequoiaDB 使用
-----
+##Spark-SequoiaDB 使用##
 
 下述以通过 SparkSQL 创建 SequoiaDB 表为例，创建语句如下：
 
@@ -67,11 +12,11 @@ Spark-SequoiaDB 使用
 create <[temporary] table| temporary view> <tableName> [(schema)] using com.sequoiadb.spark options (<option>, <option>, ...)
 ```
 
-- temporary 表示为临时表或视图，只在创建表或视图的会话中有效，会话退出后自动删除。
+- temporary：临时表或视图，只在创建表或视图的会话中有效，会话退出后自动删除。
 
-- 表名后紧跟的 schema 可不填，连接器会自动生成。自动生成的 schema 字段顺序与集合中记录的顺序不一致，因此如果对 schema 的字段顺序有要求，应该显式定义 schema 。
+- schema：可不填，连接器会自动生成。自动生成的 schema 字段顺序与集合中记录的顺序不一致，因此如果对 schema 的字段顺序有要求，应该显式定义 schema 。
 
-- option 为参数列表，参数是键和值都为字符串类型的键值对，其中值的前后需要有单引号，多个参数之间用逗号分隔。
+- option：参数列表，参数是键和值都为字符串类型的键值对，其中值的前后需要有单引号，多个参数之间用逗号分隔。
 
 **option 参数说明**
 
@@ -85,17 +30,18 @@ create <[temporary] table| temporary view> <tableName> [(schema)] using com.sequ
 |password|string|""|用户名对应的密码|否|
 |samplingratio|double|1|schema 采样率，取值范围为(0, 1.0]|否|
 |samplingnum|int64|1000|schema 采样数量（每个分区），取值大于 0|否|
-|samplingwithid|boolean|FALSE|schema采样时是否带 _id 字段，取值为 true 或 false  |否|
+|samplingwithid|boolean|FALSE|schema 采样时是否带 _id 字段，取值为 true 或 false  |否|
 |samplingsingle|boolean|TRUE|schema 采样时使用一个分区，取值为 true 或 false |否|
 |bulksize|int32|500|向 SequoiaDB 集合插入数据时批插的数据量，取值大于 0 |否|
 |partitionmode|string|auto|分区模式，取值可以是"single"、"sharding"、"datablock"、"auto"；设为"auto"时根据情况自动选择"sharding"或"datablock" |否|
 |partitionblocknum|int32|4|每个分区的数据块数，在按 datablock 分区时有效，取值大于 0 |否|
 |partitionmaxnum|int32|1000|最大分区数量，在按 datablock 分区时有效，取值大于等于 0，等于 0 时表示不限制分区最大数量<br>由于 partitionMaxNum 的限制，每个分区的数据块数可能与 partitionBlockNum 不同 |否|
 |preferredinstance|string|"A"|指定分区优先选择的节点实例，取值可参考 [preferredinstance][parameter]|否|
-|preferredinstancemode|string|"random"|在preferredinstance有多个实例符合时的选择模式，取值可参考 [preferredinstancemode][parameter]|否|
+|preferredinstancemode|string|"random"|在 preferredinstance 有多个实例符合时的选择模式，取值可参考 [preferredinstancemode][parameter]|否|
 |preferredinstancestrict|boolean|TRUE|在 preferredinstance 指定的实例 ID 都不符合时是否报错 |否|
 |ignoreduplicatekey|boolean|FALSE|向表中插入数据时忽略主键重复的错误 |否|
 |ignorenullfield|boolean|FALSE|向表中插入数据时忽略值为 null 的字段 |否|
+|configpath|string|-|配置文件路径<br>如果同时在 options 和配置文件中指定同一参数，将优先使用 options 参数进行配置| 否|
 |pagesize|int32|65536|create table as select 创建集合空间时指定数据页大小，如果集合空间已存在则忽略该参数 |否|
 |domain|string|-|create table as select 创建集合空间时指定所属域，如果集合空间已存在则忽略该参数 |否|
 |shardingkey|json|-|create table as select 创建集合时指定分区键 |否|
@@ -104,14 +50,18 @@ create <[temporary] table| temporary view> <tableName> [(schema)] using com.sequ
 |compressiontype|string|"none"|create table as select 创建集合时指定压缩类型，取值可以是"none"、"lzw"和"snappy"，"none"表示不压缩 |否|
 |autosplit|boolean|FALSE|create table as select 创建集合时指定是否自动切分，必须配合散列分区和域使用，且不能与 group 同时使用 |否|
 |group|string|-|create table as select 创建集合时指定创建在某个复制组，group 必须存在于集合空间所属的域中 |否|
+|ensureshardingindex|boolean|TRUE|create table as select 创建集合时指定是否使用 ShardingKey 包含的字段创建名字为"$shard"的索引 |否|
+|autoindexid|boolean|TRUE|create table as select 创建集合时指定是否自动使用字段 _id 创建名字为"$id"的唯一索引 |否|
+|strictdatamode|boolean|FALSE|create table as select 创建集合时指定对该集合的操作是否开启严格数据模式 <br>开启严格数据模式后对数值操作将存在以下限制：<br>1）运算过程不改数据类型<br>2）数值运算出现溢出时直接报错|否|
+|autoincrement|json|-|create table as select 创建集合时指定集合使用的自增字段<br>自增字段相关说明可参考 [autoincrement][autoincrement] |否|
 
-示例
-----
 
-1. 假设集合名为 test.data ，协调节点在 serverX 和 serverY 上，通过 spark-sql 创建一个表来对应 SequoiaDB 的集合
+##示例##
+
+1. 假设集合名为 test.data ，协调节点在 sdbserver1 和 sdbserver2 上，通过 spark-sql 创建一个表来对应 SequoiaDB 的集合
 
    ```lang-sql
-   spark-sql> create table datatable(c1 string, c2 int, c3 int) using com.sequoiadb.spark options(host 'serverX:11810,serverY:11810', collectionspace 'test', collection 'data');
+   spark-sql> create table datatable(c1 string, c2 int, c3 int) using com.sequoiadb.spark options(host 'sdbserver1:11810,sdbserver2:11810', collectionspace 'test', collection 'data');
    ```
 
 2. 从 SequoiaDB 的表 t1 向表 t2 插入数据
@@ -124,4 +74,5 @@ create <[temporary] table| temporary view> <tableName> [(schema)] using com.sequ
 
 [^_^]:
      本文使用的所有引用和链接
-[parameter]:manual/Manual/Database_Configuration/configuration_parameters.md
+[parameter]:manual/Distributed_Engine/Maintainance/Database_Configuration/parameter_instructions.md
+[autoincrement]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md

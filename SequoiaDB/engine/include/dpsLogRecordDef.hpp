@@ -96,7 +96,9 @@ namespace engine
 
    enum DPS_LOG_DELETE
    {
-      DPS_LOG_DELETE_OLDOBJ = 1
+      DPS_LOG_DELETE_OLDOBJ = 1,
+      // only used for mark deleting
+      DPS_LOG_DELETE_POSITION = 2
    } ;
 
    enum DPS_LOG_POP
@@ -136,6 +138,7 @@ namespace engine
       DPS_LOG_CLCRT_COMPRESS_TYPE = 2,
       DPS_LOG_CLCRT_EXT_OPTIONS = 3,
       DPS_LOG_CLCRT_CLUNIQUEID = 4,
+      DPS_LOG_CLCRT_IDIDX_DEF = 5,
 
       ///vessel format
       /// DPS_LOG_PUBLIC_FULLNAME
@@ -144,6 +147,7 @@ namespace engine
       DPS_LOG_CLCRT_VESSEL_INNER_ID = 101,
       DPS_LOG_CLCRT_VESSEL_LOGICAL_ID = 102,
       DPS_LOG_CLCRT_VESSEL_ADJUNCT = 103,
+      
       
    } ;
 
@@ -155,12 +159,14 @@ namespace engine
    {
       DPS_LOG_IXCRT_IX = 1,
       DPS_LOG_IXCRT_IX_MODE = 2,
+      DPS_LOG_IXCRT_OPTION = 3,
 
       ///vessel format
       /// DPS_LOG_PUBLIC_FULLNAME
       DPS_LOG_IXCRT_IX_SLOT = 100,
       DPS_LOG_IXCRT_IX_INDEX_ID = 101,
       DPS_LOG_IXCRT_IX_DEF_OBJ = 102,
+      
    } ;
 
    enum DPS_LOG_IXCRT_END
@@ -177,6 +183,7 @@ namespace engine
    enum DPS_LOG_IXDEL
    {
       DPS_LOG_IXDEL_IX = 1,
+      DPS_LOG_IXDEL_OPTION = 2
    } ;
 
    enum DPS_LOG_CLRENAME
@@ -240,7 +247,7 @@ namespace engine
       DPS_LOG_ANALYZE_MODE
    } ;
 
-   enum DPS_LOG_ALTERCS
+   enum DPS_LOG_ALTER
    {
       DPS_LOG_ALTER_OBJECT_TYPE = 1,
       DPS_LOG_ALTER_OBJECT

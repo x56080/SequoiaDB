@@ -2,15 +2,13 @@
  * @Description   : seqDB-23288 :: 多库多表并发导出后导入，cl为普通表，数据文件为json 
  * @Author        : Yu Fan
  * @CreateTime    : 2021.01.18
- * @LastEditTime  : 2021.02.03
- * @LastEditors   : Yu Fan
+ * @LastEditTime  : 2021.10.12
+ * @LastEditors   : liuli
  ******************************************************************************/
 var csNames = ["cs23288A", "cs23288B", "cs23288C"];
 var clNames = ["cl23288A1", "cl23288A2", "cl23288A3"];
 var docs = new Array();
 tmpFileDir += "/23288/";
-// SEQUOIADBMAINSTREAM-6639
-testConf.skipStandAlone = true;
 
 main( test );
 function test ( testPara )
@@ -55,8 +53,8 @@ function test ( testPara )
       for( var j = 0; j < clNames.length; j++ )
       {
          var cl = cs.getCL( clNames[j] );
-         var cursor = cl.find();
-         commCompareObject( cursor.toArray(), docs );
+         var cursor = cl.find().sort( { a: 1 } );
+         commCompareResults( cursor, docs );
       }
    }
 
@@ -86,7 +84,7 @@ function prepareCSCL ()
       var cs = db.getCS( csNames[i] );
       for( var j = 0; j < clNames.length; j++ )
       {
-         var cl = cs.createCL( clNames[j] );
+         var cl = cs.createCL( clNames[j], { ReplSize: 0 } );
          cl.insert( docs );
       }
    }
@@ -112,6 +110,7 @@ function prepareExportConf ()
    file.write( "number=2\n" );
    for( var i = 1; i < csNames.length; i++ )
    {
+      cmd.run( "mkdir -p " + tmpFileDir + csNames[i] );
       file.write( "[collectionspace" + i + "]\n" );
       file.write( "name=" + csNames[i] + "\n" );
       file.write( "type=json\n" );

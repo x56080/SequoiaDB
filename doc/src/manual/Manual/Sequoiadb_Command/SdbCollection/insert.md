@@ -1,22 +1,22 @@
-
 ##名称##
 
-insert - 将单条或者批量记录插入当前集合。
+insert - 将单条或者批量记录插入当前集合
 
 ##语法##
+
 **db.collectionspace.collection.insert(\<doc|docs\>,[flag])**
 
 **db.collectionspace.collection.insert(\<doc|docs\>,[options])**
 
 ##类别##
 
-Collection
+SdbCollection
 
 ##描述##
 
-将单条或者批量记录插入当前集合。
+该函数用于将单条或者批量记录插入当前集合。
 
-## 参数描述##
+##参数##
 
 * `doc|docs` ( *Object|Object of Array*， *必填* )
 
@@ -44,26 +44,16 @@ Collection
 
 ##返回值##
 
-* 成功返回详细结果信息（BSONObj 对象），结构如下：
+函数执行成功时，将返回一个 BSONObj 类型的对象，通过该对象获取成功插入的记录数信息，字段说明如下：
 
- ```lang-json
- {
-		InsertedNum    : <INT32>  成功插入的记录数，不包含替代和忽略的记录,
-		DuplicatedNum  : <INT32>  因重复键冲突被忽略或替代的记录数
- }
- ```
+| 字段名 | 类型 | 描述 |
+|--------|------|------|
+| InsertedNum | int64 | 成功插入的记录数，不包含替代和忽略的记录|
+| DuplicatedNum | int64 | 因重复键冲突被忽略或替代的记录数 |
+| LastGenerateID | int64 | 自增字段的值（仅在集合包含[自增字段][auto-increment]时显示），返回情况如下：<br> - 当插入单条记录时，返回该记录所对应的自增字段值<br>- 当插入多条记录时，仅返回第一条记录对应的自增字段值<br>- 当存在多个自增字段时，插入单条记录，仅返回所有自增字段中的最大值 <br> - 当存在多个自增字段时，插入多条记录，仅返回第一条记录所对应的最大自增字段值|
+| _id | oid | 返回插入的记录中 _id 字段所包含的内容（仅开启 `flag` 参数的SDB_INSERT_RETURN_ID 选项或 `options` 参数的 ReturnOID 选项时显示 ）|
 
-  当用户开启 `flag` 参数的 SDB_INSERT_RETURN_ID 选项或者 `options` 参数的 ReturnOID 选项时，详细结果信息中还包含 "_id" 字段，情况如下：
-
-	* 单条插入：直接返回插入记录的“_id”字段的内容。
-	* 批量插入：以数组的方式返回插入记录的“_id”字段的内容。
-
-  当集合包含[自增字段](manual/Distributed_Engine/Architecture/Data_Model/sequence.md)时，详细结果中还包含 "LastGenerateID" 字段。它返回了插入记录中自动生成的自增字段值。当插入操作生成多个自增字段值时，总是取第一个值，情况如下：
-
-    * 批量插入：只返回第一条记录的自增字段值。
-    * 多个自增字段：只返回第一个自增字段的值。
-
-* 出错抛异常。
+函数执行失败时，将抛异常并输出错误信息。
 
 ##错误##
 
@@ -76,81 +66,73 @@ Collection
 | -34 | SDB_DMS_CS_NOTEXIST | 集合空间不存在。| 检查集合空间是否存在。|
 | -38 | SDB_IXM_DUP_KEY | 索引键已存在。| 检查插入的记录的索引键是否已经存在。|
 
-当异常抛出时，可以通过 [getLastError()][getLastError] 获取[错误码][error_code]，
-或通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息。
-可以参考[常见错误处理指南][faq]了解更多内容。
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
 
 ##版本##
 
-v1.0及以上版本。
+v1.0 及以上版本。
 
-## 示例##
+##示例##
 
-1. 不指定 _id 字段，插入一条记录。
+- 不指定 _id 字段，插入一条记录
 
-	```lang-javascript
-	
- 	> db.sample.employee.insert( { name: "Tom", age: 20 } )
- 	```
+    ```lang-javascript
+    > db.sample.employee.insert( { name: "Tom", age: 20 } )
+    ```
 
-2. 插入一条带有 _id 字段的记录。
+- 插入一条带有 _id 字段的记录
 
- 	```lang-javascript
- 	> db.sample.employee.insert( {_id: 10, age: 20 } )
- 	```
+    ```lang-javascript
+    > db.sample.employee.insert( {_id: 10, age: 20 } )
+    ```
 
-3. 插入多条记录，如下操作会在集合employee中插入两条记录。
+- 插入多条记录，如下操作会在集合 sample.employee 中插入两条记录
 
  	```lang-javascript
  	> db.sample.employee.insert( [ { _id: 20, name: "Mike", age: 15 }, { name: "John", age: 25, phone: 123 } ] )
  	```
 
-4. 插入拥有重复“_id”键的多条记录，如下操作将会在集合employee中插入两条记录。
+- 插入拥有重复 _id 键的多条记录，如下操作将会在集合 sample.employee 中插入两条记录
 
-	```lang-javascript
-	
- 	> db.sample.employee.insert( [ { _id: 1, a: 1 }, { _id: 1, b:2 }, { _id: 3, c: 3 } ],  SDB_INSERT_CONTONDUP )
-
-	```
-		
-   ```lang-javascript
- 	> db.sample.employee.find()
- 	{
+    ```lang-javascript
+    
+    > db.sample.employee.insert( [ { _id: 1, a: 1 }, { _id: 1, b:2 }, { _id: 3, c: 3 } ],  SDB_INSERT_CONTONDUP )
+    > db.sample.employee.find()
+    {
       "_id": 1,
       "a": 1,
- 	}
- 	{
+    }
+    {
       "_id": 3,
       "c": 3
- 	}
- 	```
+    }
+    ```
 
+- 插入记录，并以 json 对象的方式返回结果
 
-5. 插入记录，并以 Json 对象的方式返回结果。
-
- 	```lang-javascript
- 	> db.sample.employee.insert({a:1}, {ReturnOID:true, ContOnDup:true})
- 	{
-   		"_id": {
+    ```lang-javascript
+    > db.sample.employee.insert({a:1}, {ReturnOID:true})
+    {
+    	"_id": {
      		"$oid": "5becec3d6404b9295a63caca"
-   		}
-		"InsertedNum": 1,
-  		"DuplicatedNum": 0
- 	}
-	>
- 	> db.sample.employee.insert([{a:1}, {b:1}], {ReturnOID:true, ContOnDup:true})
- 	{
-   		"_id": [
-     		{
-       			"$oid": "5bececdf6404b9295a63cacb"
-     		},
-     		{
-       			"$oid": "5bececdf6404b9295a63cacc"
-     		}
-   		]
-		"InsertedNum": 2,
-		"DuplicatedNum": 0
- 	}
+    	}
+    	"InsertedNum": 1,
+    	"DuplicatedNum": 0
+    }
+    >
+    > db.sample.employee.insert([{a:1}, {b:1}], {ReturnOID:true})
+    {
+        "_id": [
+            {
+                "$oid": "5bececdf6404b9295a63cacb"
+            },
+            {
+                "$oid": "5bececdf6404b9295a63cacc"
+            }
+        ]
+        "InsertedNum": 2,
+        "DuplicatedNum": 0
+    }
     > db.sample.employee.createAutoIncrement({ Field: "ID" })
     > db.sample.employee.insert({ a: 1 })
     {
@@ -158,13 +140,13 @@ v1.0及以上版本。
         "DuplicatedNum": 0,
         "LastGenerateID": 1
     }
- 	```
+    ```
     
 
 
 [^_^]:
-    本文使用的所有引用及链接
-[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+     本文使用的所有引用及链接
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
-[faq]:manual/faq.md
-[error_code]:manual/Manual/Sequoiadb_error_code.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[error_guide]:manual/FAQ/faq_sdb.md
+[auto-increment]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md

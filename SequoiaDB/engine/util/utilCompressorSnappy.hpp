@@ -57,7 +57,7 @@ namespace engine
                       const utilCompressStrategy *strategy = NULL ) ;
 
       INT32 getUncompressedLen( const CHAR *source, UINT32 sourceLen,
-                                UINT32 &length) ;
+                                UINT32 &length ) ;
 
       INT32 decompress( const CHAR *source, UINT32 sourceLen,
                         CHAR *dest, UINT32 &destLen,

@@ -30,7 +30,7 @@ function test ()
    checkFullSyncToES( COMMCSNAME, clName, textIndexName, 20 );
 
    //删除不存在的记录，检查结果 
-   dbcl.remove( { about: "what about you ", content: "this is my content" } );
+   dbcl.remove( { about: "what about you aaaaaaaaaaaaaaaaaaaaaa", content: "this is my contentaaaaaaaaaaaaaaaaaaaaaaaaaaa" } );
 
    checkFullSyncToES( COMMCSNAME, clName, textIndexName, 20 );
 

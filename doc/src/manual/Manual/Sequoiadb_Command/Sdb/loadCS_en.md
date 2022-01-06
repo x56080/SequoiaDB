@@ -1,7 +1,7 @@
 
 ##NAME##
 
-unloadCS -  Load the specific collection space into memory.
+loadCS -  Load the specific collection space into memory.
 
 ##SYNOPSIS##
 
@@ -22,10 +22,6 @@ Load the specific collection space into memory.
 | csName  | string | ---     | collection space name                | yes             |
 | options | JSON   | NULL    | [command position parameter](manual/Manual/Sequoiadb_Command/location.md) | not             |
 
->**Note:**
-
->Only when connecting to the coordination node, the options parameter will take effect.
-
 ##RETURN VALUE##
 
 On success, return void.
@@ -34,11 +30,11 @@ On error, exception will be thrown.
 
 ##ERRORS##
 
-When exception happens, use [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md) and use [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) to get error message. For more details, refer to [Troubleshooting](manual/faq.md).
+When exception happens, use [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md) and use [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) to get error message. For more details, refer to [Troubleshooting](manual/FAQ/faq_sdb.md).
 
 ##EXAMPLES##
 
-* Query data. ( Suppose the specific collection space named "sample" existes and the current sequoiadb is started in standalone mode )
+* Query data. ( Suppose the specific collection space named "sample" exists )
 
 ```lang-javascript
 > db.sample.employee.find()
@@ -62,7 +58,8 @@ When exception happens, use [getLastError()](manual/Manual/Sequoiadb_Command/Glo
 ```lang-javascript
 > db.sample.employee.find()
 uncaught exception: -34
-Collection space does not exist
+Collection space does not exist:
+Collection space[sample] has been unloaded
 ```
 
 * Load the collection space named into memory.

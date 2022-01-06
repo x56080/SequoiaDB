@@ -39,6 +39,9 @@
 #include "ossTypes.hpp"
 #include "ossFile.hpp"
 #include "ossUtil.hpp"
+#include "ossTypes.hpp"
+#include "ossMemPool.hpp"
+#include "ossLatch.hpp"
 #include "pmdStartup.hpp"
 #include <vector>
 
@@ -87,6 +90,11 @@ namespace engine
 
    BOOLEAN pmdStr2StartupLog( const string& str, pmdStartupLog& log ) ;
 
+   typedef ossPoolVector< pmdStartupLog > PMD_STARTUP_LOG_LIST ;
+
+   /*
+      _pmdStartupHistoryLogger define
+    */
    class _pmdStartupHistoryLogger : public SDBObject
    {
       public:
@@ -95,7 +103,7 @@ namespace engine
 
          INT32 init() ;
          INT32 clearAll() ;
-         INT32 getLatestLogs( UINT32 num, vector<pmdStartupLog> &vecLogs );
+         INT32 getLatestLogs( UINT32 num, PMD_STARTUP_LOG_LIST &vecLogs );
 
       protected:
          INT32 _clearEarlyLogs() ;
@@ -103,8 +111,9 @@ namespace engine
          INT32 _log() ;
 
       private:
+         ossSpinSLatch _loggerLock ;
          ossFile _file ;
-         vector<pmdStartupLog> _buffer ;
+         PMD_STARTUP_LOG_LIST _buffer ;
          BOOLEAN _initOk ;
          CHAR _fileName[ OSS_MAX_PATHSIZE + 1 ] ;
    };

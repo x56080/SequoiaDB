@@ -44,7 +44,7 @@ class TestFind12394(testlib.SdbTestBase):
       try:
          self.cl.bulk_insert(flag, doc)
       except SDBError as e:
-         self.fail('insert fail: ' + e.detail)
+         self.fail('insert fail: ' + str(e))
 
    def query_all(self, expectRec, flag):
       try:
@@ -59,7 +59,7 @@ class TestFind12394(testlib.SdbTestBase):
                break
          self.assertListEqualUnordered(expectRec, actRec)
       except SDBBaseError as e:
-         self.fail("query all error: " + e.detail)
+         self.fail("query all error: " + str(e))
 
    def query_one(self, expectRec, cond, flag):
       try:
@@ -67,4 +67,4 @@ class TestFind12394(testlib.SdbTestBase):
          rec = self.cl.query_one(order_by = sort, condition = cond, flags = flag)
          self.assertEqual(rec, expectRec)
       except SDBBaseError as e:
-         self.fail("query one error: " + e.detail)
+         self.fail("query one error: " + str(e))

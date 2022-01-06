@@ -93,10 +93,14 @@ TEST_F( snapshotTransTest, SDB_SNAP_TRANSACTIONS )
    ASSERT_EQ( SDB_OK, rc ) << "fail to commit trans" ;
 
    // snapshot trans
-   rc = sdbGetSnapshot( db, SDB_SNAP_TRANSACTIONS, NULL, NULL, NULL, &cursor ) ;
+   rc = sdbGetSnapshot( db, SDB_SNAP_TRANSACTIONS_CURRENT, NULL, NULL, NULL, &cursor ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to snapshot trans" ;
    bson_init( &obj ) ;
    rc = sdbNext( cursor, &obj ) ;
+   if ( rc == SDB_OK )
+   {
+      bson_print(&obj) ;
+   }
    ASSERT_EQ( SDB_DMS_EOC, rc ) << "fail to get next" ;
    bson_destroy( &obj ) ;
    rc = sdbCloseCursor( cursor ) ;

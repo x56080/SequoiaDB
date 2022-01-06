@@ -41,7 +41,7 @@ intel_decimal_lib_dir = join(intel_decimal_dir, 'lib')
 pcre_dir = join(engine_dir,'pcre')
 ssh2_dir = join(engine_dir,'ssh2')
 crypto_dir = join(thirdparty_dir, 'crypto')
-ssl_dir = join(crypto_dir, 'openssl-1.1.1g')
+ssl_dir = join(crypto_dir, 'openssl-1.1.1k')
 ssl_lib_dir = join(ssl_dir, 'lib')
 mdocml_dir = join(thirdparty_dir, 'mdocml' )
 mdocml_lib_dir = join(mdocml_dir, 'lib')
@@ -150,6 +150,8 @@ def GuessArch():
       return 'ppc64'
    elif id == 'ppc64le':
       return 'ppc64le'
+   elif id == 'sw_64':
+      return 'alpha64'
    else:
       return None
 
@@ -244,6 +246,8 @@ def get_platform_dir():
             return "ppclinux64"
         elif "ppc64le" == guess_arch:
             return "ppclelinux64"
+        elif "alpha64" == guess_arch:
+            return "alphalinux64"
     elif "win32" == guess_os:
         if "ia64" == guess_arch:
             return "win64"
@@ -457,10 +461,10 @@ usefuse = False
 if guess_os == 'linux' or guess_os == 'win32':
    usesm = True
 if guess_os == 'linux' or guess_os == 'win32':
-    if guess_arch == "ia64" or guess_arch == "arm64" or guess_arch == "ppc64le":
+    if guess_arch == "ia64" or guess_arch == "arm64" or guess_arch == "ppc64le" or guess_arch == "alpha64":
         usemdocml = True
 if guess_os == 'linux':
-    if guess_arch == "ia64" or guess_arch == "arm64" or guess_arch == "ppc64le":
+    if guess_arch == "ia64" or guess_arch == "arm64" or guess_arch == "ppc64le" or guess_arch == "alpha64":
         usefuse = True
 
 extraLibPlaces = []
@@ -540,6 +544,9 @@ if guess_os == "linux":
     elif guess_arch == "ppc64le":
         hdfsJniPath = join(java_dir,"jdk_ppclelinux64/include")
         hdfsJniMdPath = join(java_dir,"jdk_ppclelinux64/include/linux")
+    elif guess_arch == "alpha64":
+        hdfsJniPath = join(java_dir,"jdk8_alphalinux64/include")
+        hdfsJniMdPath = join(java_dir,"jdk8_alphalinux64/include/linux")
 elif guess_os == "win32":
     if guess_arch == "ia32":
         hdfsJniPath = join(java_dir,"jdk_win32/include")
@@ -626,6 +633,12 @@ if guess_os == "linux":
         nixLibPrefix = "lib64"
         env.Append( CPPDEFINES=[ "SDB_LITTLE_ENDIAN" ] )
         env.Append( EXTRALIBPATH="/lib64" )
+    elif guess_arch == "alpha64":
+        linux64 = True
+        nixLibPrefix = "lib64"
+        env.Append( CPPDEFINES=[ "SDB_LITTLE_ENDIAN" ] )
+        env.Append( EXTRALIBPATH="/lib64" )
+        env.Append( CPPFLAGS=" -mieee " )
 
     # Building for mysqld without linking openssl in c/c++ client.
     # Or there will be two same openssl symbol existing in one mysqld program 
@@ -824,6 +837,7 @@ if nix:
         env.Append( CPPFLAGS=" -D_DEBUG" )
     else:
         env.Append( CPPFLAGS=" -O3 " )
+        env.Append( CPPFLAGS=" -DNDEBUG" )
 
 try:
     umask = os.umask(022)
@@ -1028,47 +1042,6 @@ Export("rocksdb_lib_dir")
 Export("zstd_lib_dir")
 Export("bzip2_lib_dir")
 Export("sqlite_dir")
-
-# Generating Versioning information
-# In order to change the file location, we have to modify both win32 and linux
-# ossVer_Autogen.h is NOT in SVN, we have to generate this file by scons before
-# actually compling the project
-# Thus, we should avoid putting ossVer* files to release package
-#
-# In github build, we don't have svn info, so we don't run svn or SubWCRev
-# command. Instead the svn fork tool should already generated the right
-# ossVer_Autogen.h file
-
-if os.path.isfile ( "gitbuild" ):
-    gitVer = os.popen( "git rev-parse HEAD" ).read().replace("\n","")
-    if guess_os == "win32":
-        # For now, it's not easy to get the 'git release' on windows. Keep it as 0.
-        releaseVer = 0
-        ver_file = 'misc/autogen/ver_conf.h'
-        shutil.copyfile('misc/autogen/ver_conf.h.in', ver_file)
-        with open(ver_file, 'r+') as f:
-            data = ''
-            for line in f.readlines():
-                if line.find('$WCREV$') != -1:
-                    line = '#define SDB_ENGINE_RELEASE_CURRENT 0' + '\n'
-                elif line.find('$GITVER$') != -1:
-                    line = '#define SDB_ENGINE_GIT_VERSION "' +  gitVer + '"' + '\n'
-                data += line
-        with open(ver_file, 'r+') as f:
-            f.write(data)
-    else:
-        releaseVer = os.popen( "git rev-list --all | awk -v git_head=`git show-ref --head --hash head` '$0==git_head {i=1;next};i' | wc -l" ).read().replace("\n","")
-        os.system( "sed 's/\$WCREV\$/" + releaseVer + "/g' misc/autogen/ver_conf.h.in > misc/autogen/ver_conf.h" )
-        os.system( "sed -i 's/\$GITVER\$/" + gitVer + "/g' misc/autogen/ver_conf.h" )
-else:
-    # For svn
-   if guess_os == "win32":
-      # In windows platform, we take advantage of SubWCRev
-      os.system ("SubWCRev . misc/autogen/ver_conf.h.in misc/autogen/ver_conf.h")
-   else:
-      # In NIX platform, we use svn and sed to send to ossVer_Autogen.h
-      svnVer = os.popen( "svn info | grep Revision | awk '{print $2}'" ).read().replace("\n","")
-      os.system( "sed 's/\$WCREV\$/" + svnVer + "/g' misc/autogen/ver_conf.h.in > misc/autogen/ver_conf.h" )
 
 print("Begin to build thirdparty...")
 thirdpartyEnv.SConscript('thirdparty/SConscript', exports=["boost_lib_dir",

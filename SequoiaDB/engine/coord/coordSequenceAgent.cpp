@@ -769,8 +769,11 @@ namespace engine
       rc = func( this, *cache, eduCB ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "Failed to process sequence[%s], rc=%d",
-                 name.c_str(), rc ) ;
+         if ( !_isInnerRC( rc ) )
+         {
+            PD_LOG( PDERROR, "Failed to process sequence[%s], rc=%d",
+                    name.c_str(), rc ) ;
+         }
          // if rc==SDB_SEQUENCE_NOT_EXIST, we should delete the cache
          // here we get SLOCK, so we need to get XLOCK to delete the cache
          // check the id consistency when delete cache
@@ -875,8 +878,11 @@ namespace engine
       rc = func( this, *cache, eduCB ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "Failed to process sequence[%s], rc=%d",
-                 name.c_str(), rc ) ;
+         if ( !_isInnerRC( rc ) )
+         {
+            PD_LOG( PDERROR, "Failed to process sequence[%s], rc=%d",
+                    name.c_str(), rc ) ;
+         }
          if ( SDB_SEQUENCE_NOT_EXIST == rc )
          {
             // remove cache if sequence not exist
@@ -1189,6 +1195,11 @@ namespace engine
 
       PD_TRACE_EXITRC ( SDB_COORD_SEQ_AGENT__REMOVE_CACHE_BY_ID, removed ) ;
       return removed ;
+   }
+
+   BOOLEAN _coordSequenceAgent::_isInnerRC( INT32 rc )
+   {
+      return (SDB_SEQUENCE_VALUE_USED == rc || SDB_SEQUENCE_OUT_OF_CACHE == rc) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__COORD_SEQ_INVALIDATE_CACHE, "_coordSequenceInvalidateCache" )

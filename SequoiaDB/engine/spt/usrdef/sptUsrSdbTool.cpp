@@ -154,7 +154,7 @@ namespace engine
 
       utilListNodes( nodes, optionParam._typeFilter, NULL,
                      OSS_INVALID_PID, optionParam._roleFilter,
-                     optionParam._showAlone ) ;
+                     optionParam._showAlone, FALSE ) ;
 
       if ( RUN_MODE_RUN == optionParam._modeFilter )
       {

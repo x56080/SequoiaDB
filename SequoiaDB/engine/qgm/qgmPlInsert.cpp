@@ -99,7 +99,7 @@ namespace engine
       _inResult.toBSON( builder ) ;
    }
 
-   
+
    void _qgmPlInsert::setClientVersion( INT32 version )
    {
       _clientVersion = version ;
@@ -249,7 +249,7 @@ namespace engine
          {
             _inResult.resetInfo() ;
             rc = rtnInsert ( _fullName.c_str(), obj, 1, 0, eduCB,
-                             dmsCB, dpsCB, 1, &_inResult ) ;
+                             dmsCB, dpsCB, 1, NULL, &_inResult ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Insert record on node failed, rc: %d",
@@ -292,10 +292,10 @@ namespace engine
             }
             else
             {
-               CHAR *pInsertor = NULL ;
+               const CHAR *pInsertor = NULL ;
                INT32 count = 0 ;
                INT32 flag = 0 ;
-               CHAR *pCollectionName = NULL ;
+               const CHAR *pCollectionName = NULL ;
 
                rc = msgExtractInsert( pMsg, &flag, &pCollectionName,
                                       &pInsertor, count ) ;
@@ -311,7 +311,7 @@ namespace engine
                   BSONObj firstObj( pInsertor ) ;
                   _inResult.resetInfo() ;
                   rc = rtnInsert ( _fullName.c_str(), firstObj, count, flag,
-                                   eduCB, dmsCB, dpsCB, 1, &_inResult ) ;
+                                   eduCB, dmsCB, dpsCB, 1, NULL, &_inResult ) ;
                   if ( rc )
                   {
                      PD_LOG( PDERROR, "Insert record on node failed, rc: %d",

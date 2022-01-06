@@ -40,31 +40,31 @@ On error, exception will be thrown.
 
 ##ERRORS##
 
-when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md)  and use [getLastErrMsg()](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md) to get [error message](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md). For more detial, please  reference to [Troubleshooting](manual/faq.md).
+when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md)  and use [getLastErrMsg()](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md) to get [error message](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md). For more detial, please  reference to [Troubleshooting](manual/FAQ/faq_sdb.md).
 
 ##EXAMPLES##
 
 * List the information of all users
 
-```lang-javascript
-> System.listAllUsers( )
-{
-  "user": "sequoiadb"
-}
-{
-  "user": "sdbadmin"
-}
-...
-```
+    ```lang-javascript
+    > System.listAllUsers( )
+    {
+      "user": "sequoiadb"
+    }
+    {
+      "user": "sdbadmin"
+    }
+    ...
+    ```
 
 * Filter the results:
 
-```lang-javascript
-> System.listAllUsers( { detail: true }, { "user": "sequoiadb" } )
-{
-  "user": "sequoiadb",
-  "gid": "1000",
-  "dir": "/home/sequoiadb"
-}
-```
+    ```lang-javascript
+    > System.listAllUsers( { detail: true }, { "user": "sequoiadb" } )
+    {
+      "user": "sequoiadb",
+      "gid": "1000",
+      "dir": "/home/sequoiadb"
+    }
+    ```
 

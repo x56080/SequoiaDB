@@ -154,14 +154,15 @@ namespace engine
       _lastAllocTick = pmdGetDBTick() ;
 #endif // SDB_ENGINE
 
-      if ( _header )
+#ifdef _DEBUG
+         SDB_ASSERT( NULL == _header || _cachedSize >= _blockSize,
+                     "Invalid cachedSize" ) ;
+#endif //_DEBUG
+
+      if ( _header && _cachedSize >= _blockSize )
       {
          ptr = (void*)_header ;
          _header = _header->_next ;
-
-#ifdef _DEBUG
-         SDB_ASSERT( _cachedSize >= _blockSize, "Invalid cachedSize" ) ;
-#endif //_DEBUG
 
          ++_hitCount ;
          _cachedSize -= _blockSize ;
@@ -186,6 +187,17 @@ namespace engine
       }
       else
       {
+         if ( NULL != _header )
+         {
+            // in this else branch, the header should not be valid
+            // if header is valid, means the cached size is wrong
+#ifdef _DEBUG
+            SDB_ASSERT( FALSE, "header should not be valid" ) ;
+#endif
+            // cut the link
+            _header = NULL ;
+         }
+
          if ( _pEvent )
          {
             _pEvent->onOutOfCache( _blockSize, _cachedSize ) ;
@@ -503,6 +515,9 @@ namespace engine
 
    void _utilMemListPool::clear()
    {
+      ossSignalShield shield ;
+      shield.doNothing() ;
+
       for ( UINT32 i = 0 ; i < UTIL_MEM_POOL_LIST_NUM ; ++i )
       {
          if ( _arrayList[ i ] )
@@ -533,6 +548,9 @@ namespace engine
 
    void _utilMemListPool::shrink()
    {
+      ossSignalShield shield ;
+      shield.doNothing() ;
+
       if ( 0 == _cachedSize )
       {
          return ;
@@ -1044,6 +1062,9 @@ namespace engine
                           UINT32 *pRealSize,
                           const CHAR *pInfo )
    {
+      ossSignalShield shield ;
+      shield.doNothing() ;
+
       if ( g_thdMemPool )
       {
          return g_thdMemPool->alloc( size, pFile, line, pRealSize, pInfo ) ;
@@ -1056,6 +1077,9 @@ namespace engine
                             UINT32 *pRealSize,
                             const CHAR *pInfo )
    {
+      ossSignalShield shield ;
+      shield.doNothing() ;
+
       if ( g_thdMemPool )
       {
          return g_thdMemPool->realloc( ptr, size, pFile, line, pRealSize, pInfo ) ;
@@ -1072,6 +1096,9 @@ namespace engine
 
    void utilThreadRelease( void*& ptr )
    {
+      ossSignalShield shield ;
+      shield.doNothing() ;
+
       if ( g_thdMemPool )
       {
          g_thdMemPool->release( ptr ) ;

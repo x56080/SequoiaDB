@@ -40,8 +40,8 @@
 #include "clsBase.hpp"
 #include "pmdProcessor.hpp"
 #include "ossUtil.hpp"
+#include "dpsUtil.hpp"
 #include "pdTrace.hpp"
-#include "pmdDummySession.hpp"
 
 using namespace bson ;
 
@@ -52,7 +52,8 @@ namespace engine
      _session( NULL ),
      _cb( NULL ),
      _sucCount( 0 ),
-     _failureCount( 0 )
+     _failureCount( 0 ),
+     _ctrl( NULL )
    {
    }
 
@@ -71,24 +72,9 @@ namespace engine
 
       _cb = cb ;
       _ctrl = _cb->getRemoteOpCtrl() ;
-
-      if ( cb->getSession() )
-      {
-         _session = dynamic_cast<pmdSessionBase*>( _cb->getSession() ) ;
-      }
-      else
-      {
-         // create/drop index may use background job, it's cb hasn't session,
-         // so we need use dummy session
-         _session = SDB_OSS_NEW _pmdDummySession() ;
-      }
-      PD_CHECK( NULL != _session , SDB_OOM, error, PDERROR,
-                "Failed to malloc dummy session, rc: %d", rc ) ;
-
-      if ( SDB_SESSION_DUMMY == _session->sessionType() )
-      {
-         ((_pmdDummySession*)_session)->attachCB( cb ) ;
-      }
+      _session = dynamic_cast<pmdSessionBase*>( _cb->getSession() ) ;
+      PD_CHECK( NULL != _session , SDB_SYS, error, PDERROR,
+                "Failed to dynamic_cast pmdSessionBase, rc: %d", rc ) ;
 
       _processor = SDB_OSS_NEW _pmdCoordProcessor() ;
       PD_CHECK( NULL != _processor , SDB_OOM, error, PDERROR,
@@ -110,11 +96,6 @@ namespace engine
       if ( NULL != _session )
       {
          _session->detachProcessor() ;
-         if ( SDB_SESSION_DUMMY == _session->sessionType() )
-         {
-            ((_pmdDummySession*)_session)->detachCB() ;
-            SAFE_OSS_DELETE( _session ) ;
-         }
       }
 
       SAFE_OSS_DELETE( _processor ) ;
@@ -230,9 +211,16 @@ namespace engine
 
    INT32 _clsRemoteOperator::_processMsg( MsgHeader* msg )
    {
-      INT32 rc = SDB_OK ;
       rtnContextBuf contextBuff ;
       INT64 contextID = -1 ;
+      return _processMsg( msg, contextBuff, contextID ) ;
+   }
+
+   INT32 _clsRemoteOperator::_processMsg( MsgHeader* msg,
+                                          rtnContextBuf& contextBuff,
+                                          INT64& contextID )
+   {
+      INT32 rc = SDB_OK ;
       BOOLEAN needReply = TRUE ;
       BOOLEAN needRollback = FALSE ;
       BSONObjBuilder builder( PMD_RETBUILDER_DFT_SIZE ) ;
@@ -282,10 +270,6 @@ namespace engine
          goto done ;
       }
 
-      PD_CHECK( SDB_OK == _cb->getTransRC(), _cb->getTransRC(), error,
-                PDERROR, "Transaction is already failed, rc: %d",
-                _cb->getTransRC() ) ;
-
       rc = msgBuildInsertMsg( &msg, &bufferSize, clName, 0, 0, &insertor,
                               _cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build message, rc: %d", rc ) ;
@@ -315,10 +299,6 @@ namespace engine
       {
          goto done ;
       }
-
-      PD_CHECK( SDB_OK == _cb->getTransRC(), _cb->getTransRC(), error,
-                PDERROR, "Transaction is already failed, rc: %d",
-                _cb->getTransRC() ) ;
 
       rc = msgBuildDeleteMsg( &msg, &bufferSize, clName, flags, 0, &matcher,
                               &hint, _cb ) ;
@@ -351,10 +331,6 @@ namespace engine
       {
          goto done ;
       }
-
-      PD_CHECK( SDB_OK == _cb->getTransRC(), _cb->getTransRC(), error,
-                PDERROR, "Transaction is already failed, rc: %d",
-                _cb->getTransRC() ) ;
 
       rc = msgBuildUpdateMsg( &msg, &bufferSize, clName, flags, 0, &matcher,
                               &updator, &hint, _cb ) ;
@@ -404,6 +380,134 @@ namespace engine
 
    done:
       msgReleaseBuffer( msg, _cb ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsRemoteOperator::snapshot( INT64 &contextID,
+                                       const CHAR *pCommand,
+                                       const BSONObj &matcher,
+                                       const BSONObj &selector,
+                                       const BSONObj &orderBy,
+                                       const BSONObj &hint,
+                                       INT64 numToSkip,
+                                       INT64 numToReturn,
+                                       INT32 flag )
+   {
+      INT32 rc = SDB_OK ;
+      CHAR *msg = NULL ;
+      INT32 bufferSize = 0 ;
+      rtnContextBuf contextBuff ;
+      contextID = -1 ;
+
+      rc = msgBuildQueryMsg( &msg, &bufferSize, pCommand,
+                             flag, 0, numToSkip, numToReturn,
+                             &matcher, &selector, &orderBy, &hint, _cb ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to build snapshot message, command: %s, rc: %d",
+                   pCommand, rc ) ;
+
+      rc = _processMsg( (MsgHeader *)msg, contextBuff, contextID ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to process snapshot message, rc: %d",
+                   rc ) ;
+
+   done:
+      if ( msg )
+      {
+         msgReleaseBuffer( msg, _cb ) ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsRemoteOperator::snapshotIndexes( INT64 &contextID,
+                                              const CHAR *clName,
+                                              const CHAR *indexName,
+                                              BOOLEAN rawData )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj matcher, hint ;
+
+      try
+      {
+         matcher = BSON( IXM_FIELD_NAME_INDEX_DEF "." IXM_FIELD_NAME_NAME <<
+                         indexName <<
+                         FIELD_NAME_RAWDATA << rawData ) ;
+         hint = BSON( FIELD_NAME_COLLECTION << clName ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+      rc = snapshot( contextID, CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_INDEXES,
+                     matcher, BSONObj(), BSONObj(), hint ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsRemoteOperator::list( INT64 &contextID,
+                                   const CHAR *pCommand,
+                                   const BSONObj &matcher,
+                                   const BSONObj &selector,
+                                   const BSONObj &orderBy,
+                                   const BSONObj &hint,
+                                   INT64 numToSkip,
+                                   INT64 numToReturn,
+                                   INT32 flag )
+   {
+      INT32 rc = SDB_OK ;
+      CHAR *msg = NULL ;
+      INT32 bufferSize = 0 ;
+      rtnContextBuf contextBuff ;
+      contextID = -1 ;
+
+      rc = msgBuildQueryMsg( &msg, &bufferSize, pCommand,
+                             flag, 0, numToSkip, numToReturn,
+                             &matcher, &selector, &orderBy, &hint, _cb ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to build snapshot message, command: %s, rc: %d",
+                   pCommand, rc ) ;
+
+      rc = _processMsg( (MsgHeader *)msg, contextBuff, contextID ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to process snapshot message, rc: %d",
+                   rc ) ;
+
+   done:
+      if ( msg )
+      {
+         msgReleaseBuffer( msg, _cb ) ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsRemoteOperator::listCSIndexes( INT64 &contextID,
+                                            utilCSUniqueID csUniqID )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj matcher, dummyObj ;
+
+      rc = utilGetCSBounds( FIELD_NAME_CL_UNIQUEID, csUniqID, matcher ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to build cs bound, rc: %d",
+                   rc ) ;
+
+      // CMD_NAME_LIST_INDEXES will filter Collection/CLUniqueID field, so
+      // we use CMD_NAME_LIST_INDEXES_INTR instead.
+      rc = list( contextID, CMD_ADMIN_PREFIX CMD_NAME_LIST_INDEXES_INTR,
+                 matcher, dummyObj, dummyObj, dummyObj ) ;
+
+   done:
       return rc ;
    error:
       goto done ;

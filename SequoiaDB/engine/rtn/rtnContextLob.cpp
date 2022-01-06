@@ -52,6 +52,7 @@ namespace engine
    _rtnContextLob::_rtnContextLob( INT64 contextID, UINT64 eduID )
    :_rtnContextBase( contextID, eduID ),
     _stream( NULL ),
+    _suLogicalID( DMS_INVALID_LOGICCSID ),
     _offset( -1 ),
     _readLen( 0 )
    {
@@ -186,6 +187,11 @@ namespace engine
       {
          PD_LOG( PDERROR, "failed to open lob stream:%d", rc ) ;
          goto error ;
+      }
+
+      if ( NULL != _stream->getSU() )
+      {
+         _suLogicalID = _stream->getSU()->LogicalCSID() ;
       }
 
       _isOpened = TRUE ;
@@ -426,6 +432,7 @@ namespace engine
    :rtnContextBase( contextID, eduID )
    {
       _pFetcher = NULL ;
+      _suLogicalID = DMS_INVALID_LOGICCSID ;
    }
 
    _rtnContextLobFetcher::~_rtnContextLobFetcher()
@@ -441,12 +448,26 @@ namespace engine
                                       const CHAR *fullName,
                                       BOOLEAN onlyMetaPage )
    {
+      INT32 rc = SDB_OK ;
+
       _pFetcher = pFetcher ;
       if ( _pFetcher )
       {
-         return _pFetcher->init( fullName, onlyMetaPage ) ;
+         rc = _pFetcher->init( fullName, onlyMetaPage ) ;
+         if ( SDB_OK == rc )
+         {
+            if ( NULL != _pFetcher->getSu() )
+            {
+               _suLogicalID = _pFetcher->getSu()->LogicalCSID() ;
+            }
+         }
       }
-      return SDB_SYS ;
+      else
+      {
+         rc = SDB_SYS ;
+      }
+
+      return rc ;
    }
 
    INT32 _rtnContextLobFetcher::getMore( INT32 maxNumToReturn,

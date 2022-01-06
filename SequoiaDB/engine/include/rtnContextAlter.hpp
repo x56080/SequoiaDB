@@ -103,7 +103,7 @@ namespace engine
     */
    class _rtnContextAlterCS : public _rtnContextAlterBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextAlterCS )
 
       public :
          _rtnContextAlterCS ( SINT64 contextID, UINT64 eduID ) ;
@@ -140,7 +140,7 @@ namespace engine
     */
    class _rtnContextAlterCL : public _rtnContextAlterBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextAlterCL )
 
       public :
          _rtnContextAlterCL ( SINT64 contextID, UINT64 eduID ) ;

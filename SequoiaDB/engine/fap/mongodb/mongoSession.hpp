@@ -70,13 +70,12 @@ protected:
                          engine::rtnContextBuf &buff,
                          BOOLEAN &handled ) ;
    INT32 _processMsg( const CHAR *pMsg ) ;
-   INT32 _onMsgBegin( MsgHeader *msg ) ;
-   INT32 _onMsgEnd( INT32 result, MsgHeader *msg ) ;
+   void  _onMsgBegin( MsgHeader *msg ) ;
+   void  _onMsgEnd( INT32 result, MsgHeader *msg ) ;
    INT32 _reply( MsgOpReply *replyHeader, const CHAR *pBody, const INT32 len ) ;
 
 private:
    void  _resetBuffers() ;
-   INT32 _setSeesionAttr() ;
    INT32 _handleResponse( const INT32 opType, engine::rtnContextBuf &buff ) ;
 
 private:

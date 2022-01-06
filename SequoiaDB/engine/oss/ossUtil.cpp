@@ -702,9 +702,7 @@ INT32 ossGetOSInfo( ossOSInfo &info )
    ossSnprintf( info._release, sizeof( info._release ) - 1,
                 "%s", name.release ) ;
    ossSnprintf( arch, sizeof( arch ) - 1, "%s", name.machine ) ;
-#if defined (_PPCLIN64)
-   info._bit = 64 ;
-#elif defined (_ARMLIN64)
+#if defined (_PPCLIN64) || defined (_ARMLIN64) || defined (_ALPHALIN64)
    info._bit = 64 ;
 #else
    if ( 0 == ossStrcmp( arch, "x86_64" ) )
@@ -917,6 +915,7 @@ UINT32 ossHexDumpBuffer
    UINT32 *     pBytesProcessed
 )
 {
+   SDB_ASSERT( szOutBuf != NULL, "szOutBuf can't be null" ) ;
    PD_TRACE_ENTRY ( SDB_OSSHEXDUMPBUF );
    UINT32 bytesProcessed = 0 ;
    CHAR szLineBuf[OSS_HEXDUMP_LINEBUFFER_SIZE] = { 0 } ;
@@ -1885,11 +1884,12 @@ _kstkEsp(0),_kstkEip(0)
 #endif
 
 ossIPInfo::ossIPInfo()
-:_ipNum(0), _ips(NULL)
+:_ipNum(0), _ips(NULL), _initRC(SDB_OK)
 {
    INT32 rc = _init() ;
    if ( SDB_OK != rc )
    {
+      _initRC = rc ;
       PD_LOG( PDERROR, "failed to get ip-info, errno = %d", ossGetLastError()) ;
    }
 }
@@ -1983,6 +1983,8 @@ done:
    SAFE_OSS_FREE( ifc.ifc_req ) ;
    return rc ;
 error:
+   _ipNum = 0 ;
+   SAFE_OSS_FREE( _ips ) ;
    goto done ;
 }
 #elif defined (_WINDOWS)
@@ -2058,6 +2060,8 @@ done:
    SAFE_OSS_FREE( adapterInfo ) ;
    return rc ;
 error:
+   _ipNum = 0 ;
+   SAFE_OSS_FREE( _ips ) ;
    goto done ;
 }
 #else

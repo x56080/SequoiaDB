@@ -46,6 +46,7 @@
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
 #include "catGTSDef.hpp"
+#include "coordUtil.hpp"
 
 using namespace bson ;
 
@@ -644,6 +645,122 @@ namespace engine
    }
 
    /*
+      _coordCmdListIndexes implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCmdListIndexes,
+                                      CMD_NAME_LIST_INDEXES,
+                                      TRUE ) ;
+   _coordCmdListIndexes::_coordCmdListIndexes()
+   {
+   }
+
+   _coordCmdListIndexes::~_coordCmdListIndexes()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORDLISTIDX_PREPCS, "_coordCmdListIndexes::_preProcess" )
+   INT32 _coordCmdListIndexes::_preProcess( rtnQueryOptions &queryOpt,
+                                            string &clName,
+                                            BSONObj &outSelector )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( COORDLISTIDX_PREPCS ) ;
+      const CHAR* collection = NULL ;
+      BOOLEAN isDataSourceCL = FALSE ;
+      BOOLEAN isHighErrLevel = FALSE ;
+      clName = CAT_INDEX_INFO_COLLECTION ;
+
+      try
+      {
+         /**
+          * Client msg: Matcher: { IndexDef.name: 'a' }
+          *             Hint:    { Collection: 'cs.cl' } ==>
+          * Coord msg : Matcher: { IndexDef.name: 'a', Collection: 'cs.cl' }
+          *             Hint:    {}
+          */
+         const BSONObj& matcher = queryOpt.getQuery() ;
+         const BSONObj& hint    = queryOpt.getHint() ;
+         BSONElement ele ;
+
+         if ( !matcher.hasField( FIELD_NAME_COLLECTION ) )
+         {
+            // reset matcher by hint's collection name
+            ele = hint.getField( FIELD_NAME_COLLECTION ) ;
+            if ( EOO != ele.type() )
+            {
+               collection = ele.valuestrsafe() ;
+
+               BSONObjBuilder builder ;
+               builder.appendElements( matcher ) ;
+               builder.appendAs( ele, FIELD_NAME_COLLECTION ) ;
+               queryOpt.setQuery( builder.obj() ) ;
+            }
+         }
+
+         queryOpt.setHint( BSONObj() ) ;
+
+         outSelector = queryOpt.getSelector() ;
+         queryOpt.setSelector( BSON( DMS_ID_KEY_NAME <<
+                                     BSON( "$include" << 0 ) <<
+                                     FIELD_NAME_COLLECTION <<
+                                     BSON( "$include" << 0 ) <<
+                                     FIELD_NAME_CL_UNIQUEID <<
+                                     BSON( "$include" << 0 ) <<
+                                     FIELD_NAME_NAME <<
+                                     BSON( "$include" << 0 ) ) ) ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+      }
+
+      // If it is data source collection, ignore it or report error
+      if ( collection && collection[0] != 0 )
+      {
+         rc = coordGetCLDataSource( collection, pmdGetThreadEDUCB(), _pResource,
+                                    isDataSourceCL, isHighErrLevel ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get collection[%s]'s data source, rc: %d",
+                      collection, rc ) ;
+         if ( isDataSourceCL & isHighErrLevel )
+         {
+            rc = SDB_OPERATION_INCOMPATIBLE ;
+            PD_LOG_MSG( PDERROR, "The collection[%s] mapped to a data source "
+                        "can't do %s", collection, getName() ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORDLISTIDX_PREPCS, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
+      _coordCmdListIndexesIntr implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCmdListIndexesIntr,
+                                      CMD_NAME_LIST_INDEXES_INTR,
+                                      TRUE ) ;
+   _coordCmdListIndexesIntr::_coordCmdListIndexesIntr()
+   {
+   }
+
+   _coordCmdListIndexesIntr::~_coordCmdListIndexesIntr()
+   {
+   }
+
+   INT32 _coordCmdListIndexesIntr::_preProcess( rtnQueryOptions &queryOpt,
+                                                string &clName,
+                                                BSONObj &outSelector )
+   {
+      clName = CAT_INDEX_INFO_COLLECTION ;
+      return SDB_OK ;
+   }
+
+   /*
       _coordCMDListProcedures implement
    */
    COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDListProcedures,
@@ -745,13 +862,13 @@ namespace engine
       INT32 rc = SDB_OK ;
       BSONObj conObj ;
       BSONObj dummy ;
-      CHAR *query = NULL ;
+      const CHAR *query = NULL ;
       BSONElement domain ;
       rtnQueryOptions queryOptions ;
       vector<BSONObj> replyFromCata ;
       contextID = -1 ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL,
                             NULL, NULL, &query,
                             NULL, NULL, NULL );
       if ( rc != SDB_OK )
@@ -816,11 +933,11 @@ namespace engine
                                     SINT64 &contextID )
    {
       INT32 rc = SDB_OK ;
-      rtnContext *context = NULL ;
+      rtnContextDump::sharePtr context ;
       SDB_RTNCB *rtnCB = sdbGetRTNCB() ;
 
       rc = rtnCB->contextNew( RTN_CONTEXT_DUMP,
-                              &context,
+                              context,
                               contextID,
                               cb ) ;
       if  ( SDB_OK != rc )
@@ -829,7 +946,7 @@ namespace engine
          goto error ;
       }
 
-      rc = (( rtnContextDump * )context)->open( BSONObj(), BSONObj() ) ;
+      rc = context->open( BSONObj(), BSONObj() ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to open context:%d", rc ) ;
@@ -922,23 +1039,23 @@ namespace engine
       INT32 rc = SDB_OK ;
       SDB_RTNCB *pRtncb = pmdGetKRCB()->getRTNCB() ;
 
-      CHAR *pQuery = NULL ;
+      const CHAR *pQuery = NULL ;
       BSONObj query ;
-      CHAR *pHint = NULL ;
+      const CHAR *pHint = NULL ;
       BSONObj hint ;
-      CHAR *pCollectionName = NULL ;
+      const CHAR *pCollectionName = NULL ;
       INT32 flag ;
       CHAR *pNewMsg = NULL ;
       INT32 bufferSize = 0 ;
 
-      rtnContextCoord *context = NULL ;
+      rtnContextCoord::sharePtr context ;
       coordQueryLobOperator queryOpr ;
       coordQueryConf queryConf ;
       coordSendOptions sendOpt ;
 
       contextID = -1 ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, &flag, &pCollectionName,
+      rc = msgExtractQuery( (const CHAR*)pMsg, &flag, &pCollectionName,
                             NULL, NULL, &pQuery,
                             NULL, NULL, &pHint ) ;
       PD_RC_CHECK( rc, PDERROR, "Parse message failed, rc: %d", rc ) ;
@@ -1063,5 +1180,34 @@ namespace engine
       ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
    }
 
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDListDataSources,
+                                      CMD_NAME_LIST_DATASOURCES,
+                                      TRUE ) ;
+   _coordCMDListDataSources::_coordCMDListDataSources()
+   {
+   }
+
+   _coordCMDListDataSources::~_coordCMDListDataSources()
+   {
+   }
+
+   INT32 _coordCMDListDataSources::_preProcess( rtnQueryOptions &queryOpt,
+                                                string &clName,
+                                                BSONObj &outSelector )
+   {
+      clName = CAT_DATASOURCE_COLLECTION ;
+      return SDB_OK ;
+   }
+
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDListDataSourceIntr,
+                                      CMD_NAME_LIST_DATASOURCE_INTR,
+                                      TRUE ) ;
+   _coordCMDListDataSourceIntr::_coordCMDListDataSourceIntr()
+   {
+   }
+
+   _coordCMDListDataSourceIntr::~_coordCMDListDataSourceIntr()
+   {
+   }
 }
 

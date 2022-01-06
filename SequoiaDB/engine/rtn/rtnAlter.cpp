@@ -50,6 +50,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCREATEIDINDEX, "_rtnCreateIDIndex" )
    INT32 _rtnCreateIDIndex ( const CHAR * collection,
+                             utilIdxUniqueID idxUniqueID,
                              INT32 sortBufferSize,
                              _pmdEDUCB * cb,
                              _dpsLogWrapper * dpsCB,
@@ -69,7 +70,9 @@ namespace engine
 
       const CHAR * collectionShortName = mb->_collectionName ;
 
-      rc = su->createIndex( collectionShortName, ixmGetIDIndexDefine(), cb,
+      // alter will write DPS log itself, no need to pass dpsCB down
+      rc = su->createIndex( collectionShortName,
+                            ixmGetIDIndexDefine( idxUniqueID ), cb,
                             NULL, TRUE, mbContext, sortBufferSize, pResult ) ;
       if ( SDB_IXM_REDEF == rc || SDB_IXM_EXIST_COVERD_ONE == rc )
       {
@@ -106,6 +109,7 @@ namespace engine
 
       const CHAR * collectionShortName = mb->_collectionName ;
 
+      // alter will write DPS log itself, no need to pass dpsCB down
       rc = su->dropIndex( collectionShortName, IXM_ID_KEY_NAME, cb, NULL,
                           TRUE, mbContext ) ;
       if ( SDB_IXM_NOTEXIST == rc )
@@ -127,6 +131,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNSETSHARD, "_rtnCollectionSetSharding" )
    INT32 _rtnCollectionSetSharding ( const CHAR * collection,
                                      const rtnCLShardingArgument & argument,
+                                     utilIdxUniqueID idxUniqueID,
                                      _pmdEDUCB * cb,
                                      _dpsLogWrapper * dpsCB,
                                      _dmsMBContext * mbContext,
@@ -161,7 +166,8 @@ namespace engine
          else if ( 0 == shardIndex.getKeyPattern().woCompare( shardingKey ) )
          {
             dropIndex = FALSE ;
-            createIndex = FALSE ;
+            // check unique id by create index
+            createIndex = TRUE ;
          }
          else
          {
@@ -178,6 +184,7 @@ namespace engine
 
       if ( dropIndex )
       {
+         // alter will write DPS log itself, no need to pass dpsCB down
          rc = su->dropIndex( collectionShortName, IXM_SHARD_KEY_NAME, cb, NULL,
                              TRUE, mbContext ) ;
          if ( SDB_IXM_NOTEXIST == rc )
@@ -190,7 +197,8 @@ namespace engine
 
       if ( argument.isEnsureShardingIndex() && createIndex )
       {
-         BSONObj indexDef = BSON( IXM_FIELD_NAME_KEY << shardingKey <<
+         BSONObj indexDef = BSON( IXM_FIELD_NAME_UNIQUEID << (INT64)idxUniqueID <<
+                                  IXM_FIELD_NAME_KEY << shardingKey <<
                                   IXM_FIELD_NAME_NAME << IXM_SHARD_KEY_NAME <<
                                   IXM_V_FIELD << 0 ) ;
 
@@ -198,7 +206,7 @@ namespace engine
          // but we need to build old version index tree if dpsCB is given
          // so force to use trans callback
          rc = su->createIndex( collectionShortName, indexDef, cb, NULL, TRUE,
-                               mbContext, 0, pResult,
+                               mbContext, 0, pResult, NULL,
                                NULL != dpsCB ? TRUE : FALSE ) ;
          if ( SDB_IXM_REDEF == rc || SDB_IXM_EXIST_COVERD_ONE == rc )
          {
@@ -496,6 +504,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNALTERCLSETATTR, "_rtnAlterCLSetAttributes" )
    INT32 _rtnAlterCLSetAttributes ( const CHAR * collection,
                                     const rtnAlterTask * task,
+                                    const rtnAlterInfo * alterInfo,
                                     _pmdEDUCB * cb,
                                     _dpsLogWrapper * dpsCB,
                                     _dmsMBContext * mbContext,
@@ -522,13 +531,37 @@ namespace engine
       PD_CHECK( mbContext->isMBLock( EXCLUSIVE ), SDB_SYS, error, PDERROR,
                 "Failed to get mbContext: should be exclusive locked" ) ;
 
+      // $id index
+      if ( localTask->testArgumentMask( UTIL_CL_AUTOIDXID_FIELD ) )
+      {
+         OSS_BIT_SET( dpsType, DMS_FILE_IDX ) ;
+         if ( localTask->isAutoIndexID() )
+         {
+            rc = _rtnCreateIDIndex( collection,
+                                    alterInfo->getIdxUniqueID( collection,
+                                                               IXM_ID_KEY_NAME ),
+                                    0, cb, dpsCB, mbContext, su, pResult ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to create id index on collection "
+                         "[%s], rc: %d", collection, rc ) ;
+         }
+         else
+         {
+            rc = _rtnDropIDIndex( collection, cb, dpsCB, mbContext, su ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to drop id index on collection "
+                         "[%s], rc: %d", collection, rc ) ;
+         }
+      }
+
       // $sharding index
       if ( localTask->testArgumentMask( UTIL_CL_SHDKEY_FIELD ) )
       {
          OSS_BIT_SET( dpsType, DMS_FILE_IDX ) ;
          const rtnCLShardingArgument & argument =
                                              localTask->getShardingArgument() ;
-         rc = _rtnCollectionSetSharding( collection, argument, cb, dpsCB,
+         rc = _rtnCollectionSetSharding( collection, argument,
+                                         alterInfo->getIdxUniqueID( collection,
+                                                                    IXM_SHARD_KEY_NAME ),
+                                         cb, dpsCB,
                                          mbContext, su, pResult ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to set sharding on collection [%s], "
                       "rc: %d", collection, rc ) ;
@@ -570,25 +603,6 @@ namespace engine
                                                mbContext ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to set strict data mode "
                       "on collection [%s], rc: %d", collection, rc ) ;
-      }
-
-      // $id index
-      if ( localTask->testArgumentMask( UTIL_CL_AUTOIDXID_FIELD ) )
-      {
-         OSS_BIT_SET( dpsType, DMS_FILE_IDX ) ;
-         if ( localTask->isAutoIndexID() )
-         {
-            rc = _rtnCreateIDIndex( collection, 0, cb, dpsCB, mbContext,
-                                    su, pResult ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to create id index on collection "
-                         "[%s], rc: %d", collection, rc ) ;
-         }
-         else
-         {
-            rc = _rtnDropIDIndex( collection, cb, dpsCB, mbContext, su ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to drop id index on collection "
-                         "[%s], rc: %d", collection, rc ) ;
-         }
       }
 
    done :
@@ -644,6 +658,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNALTER2DPSLOG, "_rtnAlter2DPSLog" )
    INT32 _rtnAlter2DPSLog ( const CHAR * name,
                             const rtnAlterTask * task,
+                            const rtnAlterInfo * alterInfo,
                             const rtnAlterOptions * options,
                             _pmdEDUCB * cb,
                             _dpsLogWrapper * dpsCB,
@@ -668,7 +683,7 @@ namespace engine
 
          dpsLogRecord & record = info.getMergeBlock().record() ;
 
-         BSONObj alterOptions ;
+         BSONObj alterOptions, alterInfoObj ;
          BSONObj alterObject ;
          RTN_ALTER_OBJECT_TYPE objType = task->getObjectType() ;
 
@@ -676,7 +691,11 @@ namespace engine
          {
             alterOptions = options->toBSON() ;
          }
-         alterObject = task->toBSON( name, alterOptions ) ;
+         if ( NULL != alterInfo )
+         {
+            alterInfoObj = alterInfo->toBSON() ;
+         }
+         alterObject = task->toBSON( name, alterOptions, &alterInfoObj ) ;
 
          rc = dpsAlter2Record( name, objType, alterObject, record ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build alter log, rc: %d", rc ) ;
@@ -724,6 +743,7 @@ namespace engine
 
       if ( !alterJob.isEmpty() )
       {
+         const rtnAlterInfo * alterInfo = alterJob.getAlterInfo() ;
          const rtnAlterOptions * options = alterJob.getOptions() ;
          const RTN_ALTER_TASK_LIST & alterTasks = alterJob.getAlterTasks() ;
 
@@ -733,7 +753,7 @@ namespace engine
          {
             const rtnAlterTask * task = ( *iter ) ;
 
-            rc = rtnAlter( name, task, options, cb, dpsCB ) ;
+            rc = rtnAlter( name, task, alterInfo, options, cb, dpsCB ) ;
 
             if ( SDB_OK != rc )
             {
@@ -763,6 +783,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNALTER, "rtnAlter" )
    INT32 rtnAlter ( const CHAR * name,
                     const rtnAlterTask * task,
+                    const rtnAlterInfo * alterInfo,
                     const rtnAlterOptions * options,
                     _pmdEDUCB * cb,
                     _dpsLogWrapper * dpsCB,
@@ -786,7 +807,8 @@ namespace engine
          case RTN_ALTER_CL_DROP_AUTOINC_FLD :
          case RTN_ALTER_CL_INC_VERSION:
          {
-            rc = rtnAlterCollection( name, task, options, cb, dpsCB, pResult ) ;
+            rc = rtnAlterCollection( name, task, alterInfo, options,
+                                     cb, dpsCB, pResult ) ;
             break ;
          }
          // alter collection space actions
@@ -796,7 +818,8 @@ namespace engine
          case RTN_ALTER_CS_DISABLE_CAPPED :
          case RTN_ALTER_CS_SET_ATTRIBUTES :
          {
-            rc = rtnAlterCollectionSpace( name, task, options, cb, dpsCB ) ;
+            rc = rtnAlterCollectionSpace( name, task, alterInfo, options,
+                                          cb, dpsCB ) ;
             break ;
          }
          default :
@@ -893,6 +916,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNALTERCOLLECTION, "rtnAlterCollection" )
    INT32 rtnAlterCollection ( const CHAR * collection,
                               const rtnAlterTask * task,
+                              const rtnAlterInfo * alterInfo,
                               const rtnAlterOptions * options,
                               _pmdEDUCB * cb,
                               _dpsLogWrapper * dpsCB,
@@ -928,8 +952,8 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to check alter collection [%s], rc: %d",
                    collection, rc ) ;
 
-      rc = rtnAlterCollection( collection, task, options, cb, dpsCB, mbContext,
-                               su, dmsCB, pResult ) ;
+      rc = rtnAlterCollection( collection, task, alterInfo, options, cb, dpsCB,
+                               mbContext, su, dmsCB, pResult ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to alter collection [%s], rc: %d",
                    collection, rc ) ;
 
@@ -956,6 +980,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNALTERCOLLECTION_MB, "rtnAlterCollection" )
    INT32 rtnAlterCollection ( const CHAR * collection,
                               const rtnAlterTask * task,
+                              const rtnAlterInfo * alterInfo,
                               const rtnAlterOptions * options,
                               _pmdEDUCB * cb,
                               _dpsLogWrapper * dpsCB,
@@ -979,7 +1004,9 @@ namespace engine
                         dynamic_cast<const rtnCLCreateIDIndexTask *>( task ) ;
             PD_CHECK( NULL != localTask, SDB_SYS, error, PDERROR,
                       "Failed to get create id index task" ) ;
-            rc = _rtnCreateIDIndex( collection, localTask->getSortBufferSize(),
+            rc = _rtnCreateIDIndex( collection,
+                                    alterInfo->getIdxUniqueID( collection, IXM_ID_KEY_NAME ),
+                                    localTask->getSortBufferSize(),
                                     cb, dpsCB, mbContext, su, pResult ) ;
             break ;
          }
@@ -998,6 +1025,8 @@ namespace engine
                       "Failed to get alter task" ) ;
             rc = _rtnCollectionSetSharding( collection,
                                             localTask->getShardingArgument(),
+                                            alterInfo->getIdxUniqueID( collection,
+                                                                       IXM_SHARD_KEY_NAME ),
                                             cb, dpsCB, mbContext, su,
                                             pResult ) ;
             break ;
@@ -1007,7 +1036,7 @@ namespace engine
             OSS_BIT_SET( dpsType, DMS_FILE_IDX ) ;
             rtnCLShardingArgument argument ;
             argument.setEnsureShardingIndex( FALSE ) ;
-            rc = _rtnCollectionSetSharding( collection, argument, cb, dpsCB,
+            rc = _rtnCollectionSetSharding( collection, argument, 0, cb, dpsCB,
                                             mbContext, su, pResult ) ;
             break ;
          }
@@ -1030,8 +1059,8 @@ namespace engine
          }
          case RTN_ALTER_CL_SET_ATTRIBUTES :
          {
-            rc = _rtnAlterCLSetAttributes( collection, task, cb, dpsCB,
-                                           mbContext, su, dmsCB, dpsType,
+            rc = _rtnAlterCLSetAttributes( collection, task, alterInfo, cb,
+                                           dpsCB, mbContext, su, dmsCB, dpsType,
                                            pResult ) ;
             break ;
          }
@@ -1056,7 +1085,7 @@ namespace engine
    done :
       if ( SDB_OK == rc )
       {
-         rc = _rtnAlter2DPSLog( collection, task, options, cb, dpsCB,
+         rc = _rtnAlter2DPSLog( collection, task, alterInfo, options, cb, dpsCB,
                                 mbContext, su, dpsType ) ;
          if ( SDB_OK != rc )
          {
@@ -1079,6 +1108,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNALTERCOLLECTIONSPACE, "rtnAlterCollectionSpace" )
    INT32 rtnAlterCollectionSpace ( const CHAR * collectionSpace,
                                    const rtnAlterTask * task,
+                                   const rtnAlterInfo * alterInfo,
                                    const rtnAlterOptions * options,
                                    _pmdEDUCB * cb,
                                    _dpsLogWrapper * dpsCB )
@@ -1106,8 +1136,8 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to lock storage unit [%s], rc: %d",
                    collectionSpace, rc ) ;
 
-      rc = rtnAlterCollectionSpace( collectionSpace, task, options, cb, dpsCB,
-                                    su, dmsCB ) ;
+      rc = rtnAlterCollectionSpace( collectionSpace, task, alterInfo, options,
+                                    cb, dpsCB, su, dmsCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to alter collection space [%s], "
                    "rc: %d", collectionSpace, rc ) ;
 
@@ -1130,6 +1160,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNALTERCOLLECTIONSPACE_SU, "rtnAlterCollectionSpace" )
    INT32 rtnAlterCollectionSpace ( const CHAR * collectionSpace,
                                    const rtnAlterTask * task,
+                                   const rtnAlterInfo * alterInfo,
                                    const rtnAlterOptions * options,
                                    _pmdEDUCB * cb,
                                    _dpsLogWrapper * dpsCB,
@@ -1181,8 +1212,8 @@ namespace engine
    done :
       if ( SDB_OK == rc )
       {
-         rc = _rtnAlter2DPSLog( collectionSpace, task, options, cb, dpsCB,
-                                NULL, su, DMS_FILE_EMPTY ) ;
+         rc = _rtnAlter2DPSLog( collectionSpace, task, alterInfo, options, cb,
+                                dpsCB, NULL, su, DMS_FILE_EMPTY ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "Failed to write DPS log, rc: %d", rc ) ;

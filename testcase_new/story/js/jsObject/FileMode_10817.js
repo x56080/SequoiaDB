@@ -236,7 +236,7 @@ function createUserAndGroup ( ft, user, group )
    deleteGroup( ft.hostname, ft.svcname, group, ft.system );
    deleteUser( ft.hostname, ft.svcname, user, ft.system );
    ft.system.addGroup( { "name": group } );
-   ft.system.addUser( { "name": user, "group": group } );
+   ft.system.addUser( { "name": user, "gid": group } );
 }
 
 function deleteUserAndGroup ( ft, user, group )

@@ -45,7 +45,7 @@ v3.0.2及以上版本。
 写入 INI 配置文件。
 .nf
 \f[C]
->\ Oma.setIniConfigs(\ {\ "a":\ 1,\ "b":\ true,\ "c":\ "hello"},\ "/opt/config.ini"\ )
+> Oma.setIniConfigs( { "a": 1, "b": true, "c": "hello"}, "/opt/config.ini" )
 \f[]
 .fi
 .RE
@@ -53,7 +53,7 @@ v3.0.2及以上版本。
 写入 INI 配置文件，并且开启数据类型。
 .nf
 \f[C]
->\ Oma.setIniConfigs(\ {\ "a":\ 1,\ "b":\ true,\ "c":\ "hello"},\ "/opt/config.ini",\ {\ EnableType:\ true\ }\ )
+> Oma.setIniConfigs( { "a": 1, "b": true, "c": "hello"}, "/opt/config.ini", { EnableType: true } )
 \f[]
 .fi
 .RE

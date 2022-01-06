@@ -1,8 +1,8 @@
 package com.sequoiadb.metaopr.killnode;
 
-import java.util.Date;
 import java.util.List;
 
+import com.sequoiadb.metaopr.Utils;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
 import org.testng.SkipException;
@@ -20,9 +20,7 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.fault.KillNode;
 import com.sequoiadb.metaopr.commons.MyUtil;
-import com.sequoiadb.metaopr.diskfull.Utils;
 import com.sequoiadb.task.FaultMakeTask;
-import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
 import com.sequoiadb.datasync.CreateCLTask;
 
@@ -69,7 +67,7 @@ public class CreateCL18964 extends SdbTestBase {
         try {
             db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             String hostname2 = CommLib.getSafeHost( db.getHost() );
-     
+
             FaultMakeTask faultTask = KillNode.getFaultMakeTask( hostname2,
                     SdbTestBase.serviceName, 5 );
             TaskMgr mgr = new TaskMgr( faultTask );
@@ -95,7 +93,7 @@ public class CreateCL18964 extends SdbTestBase {
 
             Utils.checkConsistency( groupMgr );
             runSuccess = true;
-        } catch ( ReliabilityException e ) {
+        } catch ( ReliabilityException | InterruptedException e ) {
             e.printStackTrace();
             Assert.fail( e.getMessage() );
         } finally {

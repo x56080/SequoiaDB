@@ -463,6 +463,27 @@ namespace engine
                   }
                }
 
+               {
+                  BSONObj packageInfo ;
+                  BSONObj mysql = oneHost.getObjectField(
+                                                   OM_HOST_FIELD_MARIADB ) ;
+                  string version = mysql.getStringField(
+                                                   OM_HOST_FIELD_OM_VERSION ) ;
+                  string installPath = mysql.getStringField(
+                                                   OM_HOST_FIELD_OM_PATH ) ;
+
+                  if ( !version.empty() )
+                  {
+                     packageInfo = BSON(
+                           OM_HOST_FIELD_PACKAGENAME <<
+                                             OM_BUSINESS_SEQUOIASQL_MARIADB <<
+                           OM_HOST_FIELD_INSTALLPATH << installPath <<
+                           OM_HOST_FIELD_VERSION << version ) ;
+
+                     packageBuilder.append( packageInfo ) ;
+                  }
+               }
+
                oneHostBuilder.appendElements( oneHost ) ;
                oneHostBuilder.append( OM_HOST_FIELD_PACKAGES,
                                       packageBuilder.arr() ) ;
@@ -907,7 +928,8 @@ namespace engine
       configs = taskInfo.getObjectField( OM_BSON_FIELD_CONFIG ) ;
       businessName = taskInfo.getStringField( OM_BSON_BUSINESS_NAME ) ;
       businessType = taskInfo.getStringField( OM_BSON_BUSINESS_TYPE ) ;
-      if ( OM_BUSINESS_SEQUOIASQL_MYSQL == businessType )
+      if ( OM_BUSINESS_SEQUOIASQL_MYSQL == businessType ||
+           OM_BUSINESS_SEQUOIASQL_MARIADB == businessType )
       {
          BSONObjIterator iter( configs ) ;
 

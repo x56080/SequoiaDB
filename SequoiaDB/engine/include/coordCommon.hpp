@@ -272,6 +272,7 @@ namespace engine
    } ;
 
    INT32 coordParseShowErrorHint ( const BSONObj & hint,
+                                   UINT32 mask,
                                    COORD_SHOWERROR_TYPE & showError,
                                    COORD_SHOWERRORMODE_TYPE & showErrorMode ) ;
 

@@ -231,13 +231,15 @@ namespace engine
 
       INT32 prefInst = option.numberInt() ;
 
-      PD_CHECK( prefInst > PMD_PREFER_INSTANCE_TYPE_MIN &&
-                prefInst < PMD_PREFER_INSTANCE_TYPE_MAX,
-                SDB_INVALIDARG, error, PDWARNING, "Failed to parse "
-                "preferred instance: [%d] out of range ( %d ~ %d )",
-                prefInst, PMD_PREFER_INSTANCE_TYPE_MIN,
-                PMD_PREFER_INSTANCE_TYPE_MAX ) ;
+      PD_LOG_MSG_CHECK( prefInst > PMD_PREFER_INSTANCE_TYPE_MIN &&
+                        prefInst < PMD_PREFER_INSTANCE_TYPE_MAX,
+                        SDB_INVALIDARG, error, PDERROR, "Failed to parse "
+                        "preferred instance: id[%d] is out of range [%d, %d]",
+                        prefInst, PMD_PREFER_INSTANCE_TYPE_MIN + 1,
+                        PMD_PREFER_INSTANCE_TYPE_MAX - 1 ) ;
 
+      // Remove duplicate instance id.
+      _instanceList.remove( (UINT8)prefInst );
       _instanceList.push_back( (UINT8)prefInst ) ;
 
    done :
@@ -294,10 +296,10 @@ namespace engine
          _specInstance = ( INT8 )PMD_PREFER_INSTANCE_TYPE_UNKNOWN ;
       }
 
-      PD_CHECK( PMD_PREFER_INSTANCE_TYPE_UNKNOWN != _specInstance,
-                SDB_INVALIDARG, error, PDWARNING,
-                "Failed to parse preferred instance: "
-                "[%s] is unknown type", instanceStr ) ;
+      PD_LOG_MSG_CHECK( PMD_PREFER_INSTANCE_TYPE_UNKNOWN != _specInstance,
+                        SDB_INVALIDARG, error, PDERROR,
+                        "Failed to parse preferred instance: "
+                        "[%s] is unknown type", instanceStr ) ;
 
    done :
       PD_TRACE_EXITRC( SDB__RTNINST__PARSESTRPREFINST, rc ) ;
@@ -322,12 +324,18 @@ namespace engine
          BSONElement curOption = iter.next() ;
          if ( NumberInt == curOption.type() )
          {
-            _parseIntegerPreferredInstance( curOption ) ;
+            rc = _parseIntegerPreferredInstance( curOption ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse integer option of "
+                         "preferred instance, rc: %d", rc ) ;
          }
-         else if ( String == curOption.type() &&
-                   PMD_PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance )
+         else if ( String == curOption.type() )
          {
-            _parseStringPreferredInstance( curOption ) ;
+            PD_LOG_MSG_CHECK( PMD_PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance,
+                              SDB_INVALIDARG, error, PDERROR,
+                              "More than one preferred instance type exists") ;
+            rc = _parseStringPreferredInstance( curOption ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse string option of "
+                         "preferred instance, rc: %d", rc ) ;
          }
          else
          {
@@ -483,14 +491,16 @@ namespace engine
    _rtnSessionProperty::_rtnSessionProperty ()
    : _instanceOption(),
      _operationTimeout( RTN_SESSION_OPERATION_TIMEOUT_MAX ),
-     _needCheckVer( FALSE )
+     _needCheckVer( FALSE ),
+     _version( 1 )
    {
    }
 
    _rtnSessionProperty::_rtnSessionProperty ( const rtnSessionProperty & property )
    : _instanceOption( property._instanceOption ),
      _operationTimeout( property._operationTimeout ),
-     _needCheckVer( FALSE )
+     _needCheckVer( FALSE ),
+     _version( 1 )
    {
    }
 
@@ -560,6 +570,7 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Failed to parse old version of "
                          "session property, rc: %d", rc ) ;
          }
+         ++_version ;
       }
       catch ( std::exception &e )
       {
@@ -828,6 +839,59 @@ namespace engine
                                        TRUE ) ;
 
          }
+         else if ( 0 == ossStrcasecmp( field.fieldName(),
+                                       FIELD_NAME_TRANS_ALLOWLOCKESCALATION ) )
+         {
+            PD_CHECK( field.isBoolean(), SDB_INVALIDARG, error, PDERROR,
+                      "Field[%s] is not boolean",
+                      FIELD_NAME_TRANS_ALLOWLOCKESCALATION ) ;
+            transConf.setTransAllowLockEscalation(
+                  field.boolean() ? TRUE : FALSE, TRUE ) ;
+         }
+         else if ( 0 == ossStrcasecmp( field.fieldName(),
+                                       FIELD_NAME_TRANS_MAXLOCKNUM ) )
+         {
+            INT64 temp = 0 ;
+
+            PD_CHECK( field.isNumber(), SDB_INVALIDARG, error, PDERROR,
+                      "Field[%s] is not boolean",
+                      FIELD_NAME_TRANS_MAXLOCKNUM ) ;
+            temp = field.numberLong() ;
+
+            // auto adjust
+            if ( temp < DPS_TRANS_MAXLOCKNUM_MIN )
+            {
+               temp = DPS_TRANS_MAXLOCKNUM_MIN ;
+            }
+            else if ( temp > DPS_TRANS_MAXLOCKNUM_MAX )
+            {
+               temp = DPS_TRANS_MAXLOCKNUM_MAX ;
+            }
+
+            transConf.setTransMaxLockNum( (INT32)temp, TRUE ) ;
+         }
+         else if ( 0 == ossStrcasecmp( field.fieldName(),
+                                       FIELD_NAME_TRANS_MAXLOGSPACERATIO ) )
+         {
+            INT64 temp = 0 ;
+
+            PD_CHECK( field.isNumber(), SDB_INVALIDARG, error, PDERROR,
+                      "Field[%s] is not boolean",
+                      FIELD_NAME_TRANS_MAXLOGSPACERATIO ) ;
+            temp = field.numberLong() ;
+
+            // auto adjust
+            if ( temp < DPS_TRANS_MAXLOGSPACERATIO_MIN )
+            {
+               temp = DPS_TRANS_MAXLOGSPACERATIO_MIN ;
+            }
+            else if ( temp > DPS_TRANS_MAXLOGSPACERATIO_MAX )
+            {
+               temp = DPS_TRANS_MAXLOGSPACERATIO_MAX ;
+            }
+
+            transConf.setTransMaxLogSpaceRatio( (INT32)temp, TRUE ) ;
+         }
          else if ( 0 == ossStrcasecmp( field.fieldName(), FIELD_NAME_SOURCE ) )
          {
             PD_CHECK( String == field.type(), SDB_INVALIDARG, error,
@@ -874,16 +938,6 @@ namespace engine
 
       if ( gotInstance )
       {
-         if ( !instanceOption.hasCommonInstance() )
-         {
-            instanceOption.setPreferredStrict( FALSE ) ;
-         }
-         if ( !instanceOption.isValidated() )
-         {
-            // if no preferred instance is given, no need to check
-            // timeout period
-            _instanceOption.setPreferedPeriod( -1 ) ;
-         }
          setInstanceOption( instanceOption ) ;
          _onSetInstance() ;
       }

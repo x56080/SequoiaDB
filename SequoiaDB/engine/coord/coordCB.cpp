@@ -44,6 +44,7 @@
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
 #include "clsResourceContainer.hpp"
+#include "coordCacheAssist.hpp"
 
 using namespace bson ;
 
@@ -86,6 +87,11 @@ namespace engine
       _pDpsCB    = NULL ;
       _pCollectionName = NULL ;
       _cmdCollectionName.clear() ;
+   }
+
+   coordResource* _CoordCB::getResource()
+   {
+      return &_resource ;
    }
 
    netRouteAgent* _CoordCB::getRouteAgent()
@@ -143,8 +149,12 @@ namespace engine
       _pAgent->getFrame()->setMaxThreadNum(
          optCB->maxSockThread() ) ;
 
+      rc = _dsMgr.init( &_remoteSessionMgr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Init data source manager failed, rc: %d",
+                   rc ) ;
+
       // 2. init param
-      rc = _resource.init( _pAgent, optCB ) ;
+      rc = _resource.init( _pAgent, optCB, &_dsMgr ) ;
       PD_RC_CHECK( rc, PDERROR, "Init resource failed, rc: %d", rc ) ;
 
       ossStrncpy( _shdServiceName, optCB->shardService(),
@@ -156,7 +166,7 @@ namespace engine
                                       optCB->getPreferedPeriod(),
                                       PMD_PREFER_INSTANCE_TYPE_MASTER ) ;
 
-      rc = _remoteSessionMgr.init( _pAgent, &_sitePropMgr ) ;
+      rc = _remoteSessionMgr.init( _pAgent, &_sitePropMgr, &_dsMgr ) ;
       PD_RC_CHECK ( rc, PDERROR, "Init session manager failed, rc: %d", rc ) ;
 
       // set remote session manager to pmdController
@@ -218,6 +228,11 @@ namespace engine
       rc = pEDUMgr->waitUntil( eduID, PMD_EDU_RUNNING ) ;
       PD_RC_CHECK( rc, PDERROR, "Wait CoordNet active failed, rc: %d", rc ) ;
 
+      /// active data source
+      rc = _dsMgr.active() ;
+      PD_RC_CHECK( rc, PDERROR, "Active data source manager failed, rc: %d",
+                   rc ) ;
+
       // 2. start coord manager
       _attachEvent.reset() ;
       rc = pEDUMgr->startEDU ( EDU_TYPE_COORDMGR, (_pmdObjBase*)this,
@@ -261,12 +276,14 @@ namespace engine
 
    INT32 _CoordCB::deactive ()
    {
+      _dsMgr.deactive() ;
+
       if ( _pAgent )
       {
          // 1. unreg net from controller
          sdbGetPMDController()->unregNet( _pAgent->getFrame() ) ;
-         // 2. close listen
-         _pAgent->closeListen() ;
+         // 2. shutdown listen
+         _pAgent->shutdownListen() ;
          // 3. stop io
          _pAgent->stop() ;
       }
@@ -278,6 +295,7 @@ namespace engine
    {
       _remoteSessionMgr.fini() ;
       _resource.fini() ;
+      _dsMgr.fini() ;
 
       if ( _pAgent )
       {
@@ -313,6 +331,9 @@ namespace engine
          _pAgent->getFrame()->setMaxThreadNum(
             optCB->maxSockThread() ) ;
       }
+
+      // Also update options for communication chanel with data source.
+      _dsMgr.onConfigChange() ;
 
       _sitePropMgr.setInstanceOption( optCB->getPrefInstStr(),
                                       optCB->getPrefInstModeStr(),
@@ -523,7 +544,9 @@ retry :
       MsgCatRegisterReq *pReq = NULL ;
       clsRegAssit regAssit ;
 
-      BSONObj regObj = regAssit.buildRequestObj () ;
+      BSONObj regObj ;
+      rc = regAssit.buildRequestObj( regObj ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build request obj, rc: %d", rc ) ;
       length = regObj.objsize () + sizeof ( MsgCatRegisterReq ) ;
 
       // free by end of the function
@@ -641,7 +664,7 @@ retry :
             BSONObj objDCInfo( ( const CHAR* )pMsg + sizeof( MsgOpReply ) +
                                ossAlign4( (UINT32)msgObject.objsize() ) ) ;
             BOOLEAN restoring = FALSE ;
-            BSONElement rbEle = objDCInfo.getField( FIELD_NAME_RESTORING ) ;
+            BSONElement rbEle = objDCInfo.getField( FIELD_NAME_RESTORE ) ;
             if ( !rbEle.eoo() )
             {
                restoring = rbEle.Bool() ;
@@ -750,6 +773,10 @@ retry :
       {
          _needReply = FALSE ;
       }
+      else if ( IS_REPLY_TYPE( pMsg->opCode ) )
+      {
+         _needReply = FALSE ;
+      }
       else
       {
          _needReply = TRUE ;
@@ -787,6 +814,9 @@ retry :
                break;
             case MSG_BS_GETMORE_REQ :
                rc = _processGetMoreMsg( pMsg, buffObj, contextID ) ;
+               break ;
+            case MSG_BS_ADVANCE_REQ :
+               rc = _processAdvanceMsg( pMsg, buffObj, contextID ) ;
                break ;
             case MSG_BS_KILL_CONTEXT_REQ:
                rc = _processKillContext( pMsg ) ;
@@ -830,7 +860,7 @@ retry :
 
       if ( rc && SDB_DMS_EOC != rc )
       {
-         PD_LOG( PDERROR, "prcess msg[opCode:(%d)%d, len: %d, "
+         PD_LOG( PDERROR, "process msg[opCode:(%d)%d, len: %d, "
                  "tid: %d, reqID: %lld, nodeID: %u.%u.%u] failed, rc: %d",
                  IS_REPLY_TYPE(pMsg->opCode), GET_REQUEST_TYPE(pMsg->opCode),
                  pMsg->messageLength, pMsg->TID, pMsg->requestID,
@@ -921,6 +951,51 @@ retry :
       goto done ;
    }
 
+   INT32 _CoordCB::_processAdvanceMsg ( MsgHeader *pMsg,
+                                        rtnContextBuf &buffObj,
+                                        INT64 &contextID )
+   {
+      INT32 rc         = SDB_OK ;
+      INT64 tmpContextID = -1 ;
+      const CHAR *pOption = NULL ;
+      const CHAR *pBackData = NULL ;
+      INT32 backDataSize = 0 ;
+
+      /// extract msg
+      rc = msgExtractAdvanceMsg( (const CHAR*)pMsg, &tmpContextID, &pOption,
+                                 &pBackData, &backDataSize ) ;
+      PD_RC_CHECK ( rc, PDERROR, "Extract Advance msg failed[rc:%d]", rc ) ;
+
+      try
+      {
+         BSONObj option( pOption ) ;
+         /// execute get more
+         MON_SAVE_OP_DETAIL( _pEDUCB->getMonAppCB(), pMsg->opCode,
+                             "ContextID:%lld, BackDataSize:%d, "
+                             "Option:%s", tmpContextID,
+                             backDataSize,
+                             option.toPoolString(false,false,true).c_str() ) ;
+
+         rc = rtnAdvance ( tmpContextID, option, pBackData, backDataSize,
+                           _pEDUCB, _pRtnCB ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDCB__KILLCONTEXT, "_CoordCB::_processKillContext" )
    INT32 _CoordCB::_processKillContext( MsgHeader *pMsg )
    {
@@ -928,9 +1003,10 @@ retry :
 
       INT32 rc = SDB_OK ;
       INT32 contextNum = 0 ;
-      INT64 *pContextIDs = NULL ;
+      const INT64 *pContextIDs = NULL ;
 
-      rc = msgExtractKillContexts ( (CHAR *)pMsg, &contextNum, &pContextIDs ) ;
+      rc = msgExtractKillContexts ( (const CHAR *)pMsg, &contextNum,
+                                    &pContextIDs ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to parse the killcontexts request, "
                     "rc: %d", rc ) ;
 
@@ -1000,11 +1076,11 @@ retry :
       PD_TRACE_ENTRY ( SDB__COORDCB__QUERYMSG ) ;
 
       INT32 rc                = SDB_OK ;
-      CHAR *pCollectionName   = NULL ;
-      CHAR *pQueryBuff        = NULL ;
-      CHAR *pFieldSelector    = NULL ;
-      CHAR *pOrderByBuffer    = NULL ;
-      CHAR *pHintBuffer       = NULL ;
+      const CHAR *pCollectionName   = NULL ;
+      const CHAR *pQueryBuff        = NULL ;
+      const CHAR *pFieldSelector    = NULL ;
+      const CHAR *pOrderByBuffer    = NULL ;
+      const CHAR *pHintBuffer       = NULL ;
       INT32 flags             = 0 ;
       INT64 numToSkip         = -1 ;
       INT64 numToReturn       = -1 ;
@@ -1012,7 +1088,7 @@ retry :
       _rtnCommand *pCommand   = NULL ;
 
       /// extract msg
-      rc = msgExtractQuery ( (CHAR *)pMsg, &flags, &pCollectionName,
+      rc = msgExtractQuery ( (const CHAR *)pMsg, &flags, &pCollectionName,
                              &numToSkip, &numToReturn, &pQueryBuff,
                              &pFieldSelector, &pOrderByBuffer, &pHintBuffer ) ;
       PD_RC_CHECK ( rc, PDERROR, "Extract query msg failed[rc:%d]", rc ) ;
@@ -1095,8 +1171,24 @@ retry :
       /// run command
       if ( CMD_INVALIDATE_CACHE == pCommand->type() )
       {
-         sdbGetResourceContainer()->getResource()->invalidateCataInfo() ;
-         sdbGetResourceContainer()->getResource()->invalidateGroupInfo() ;
+         // For 'invalidate cache' command, an object of class
+         // _rtnInvalidateCache will be created above. But this command can only
+         // execute on catalogue and data nodes. The cache management on these
+         // nodes is different from coordinators. So we need to handle it
+         // seperately here.
+         try
+         {
+            BSONObj option( pQueryBuff )  ;
+            coordCacheInvalidator assist( getResource() ) ;
+            rc = assist.invalidate( option ) ;
+            PD_RC_CHECK( rc, PDERROR, "Invalidate cache with option[%s] "
+                         "failed[%d]", option.toString().c_str(), rc ) ;
+         }
+         catch ( std::exception &e )
+         {
+            rc= ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Exception occurred: %s", e.what() ) ;
+         }
       }
       else
       {
@@ -1334,6 +1426,11 @@ retry :
          ossScopedLock lock( &_contextLatch ) ;
          _contextLst[ contextID ] = ossPack32To64( handle, tid ) ;
       }
+   }
+
+   coordDataSourceMgr *_CoordCB::getDSManager()
+   {
+      return &_dsMgr ;
    }
 
    /*

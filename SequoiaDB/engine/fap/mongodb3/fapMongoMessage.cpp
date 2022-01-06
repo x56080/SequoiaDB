@@ -52,11 +52,11 @@ INT32 _mongoMessage::init( const CHAR* pMsg )
    _pMsg = pMsg ;
    _pCurrent = pMsg ;
 
-   mongoMsgHeader* header = ( mongoMsgHeader* )_pMsg ;
-   _msgLen = header->msgLen ;
-   _requestID = header->requestId ;
-   _responseTo = header->responseTo ;
-   _opCode = header->opCode ;
+   mongoMsgHeader* pHeader = ( mongoMsgHeader* )_pMsg ;
+   _msgLen = pHeader->msgLen ;
+   _requestID = pHeader->requestId ;
+   _responseTo = pHeader->responseTo ;
+   _opCode = pHeader->opCode ;
 
    _pCurrent += sizeof( mongoMsgHeader ) ;
    if ( _pCurrent <= _pMsg + _msgLen )
@@ -109,7 +109,7 @@ INT32 _mongoMessage::_readIntAndAdvance( INT64 &value )
    return rc ;
 }
 
-INT32 _mongoMessage::_readStringAndAdvance( const CHAR *&str )
+INT32 _mongoMessage::_readStringAndAdvance( const CHAR *&pStr )
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
@@ -118,7 +118,7 @@ INT32 _mongoMessage::_readStringAndAdvance( const CHAR *&str )
    INT32 strLen= ossStrlen( _pCurrent ) + 1 ;
    if ( _pCurrent + strLen <= _pMsg + _msgLen )
    {
-      str = _pCurrent ;
+      pStr = _pCurrent ;
       _pCurrent += strLen ;
    }
    else
@@ -129,7 +129,7 @@ INT32 _mongoMessage::_readStringAndAdvance( const CHAR *&str )
    return rc ;
 }
 
-INT32 _mongoMessage::_readObjectAndAdvance( const CHAR *&data )
+INT32 _mongoMessage::_readObjectAndAdvance( const CHAR *&pData )
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
@@ -140,7 +140,7 @@ INT32 _mongoMessage::_readObjectAndAdvance( const CHAR *&data )
       BSONObj obj( _pCurrent ) ;
       if ( _pCurrent + obj.objsize() <= _pMsg + _msgLen )
       {
-         data = _pCurrent ;
+         pData = _pCurrent ;
          _pCurrent = _pCurrent + obj.objsize() ;
       }
       else
@@ -357,7 +357,7 @@ INT32 _mongoKillCursorsRequest::init( const CHAR* pMsg )
 
    for( INT32 i = 0 ; i < _numCursors ; i++ )
    {
-      _cursorList = (INT64*)_current() ;
+      _pCursorList = (INT64*)_current() ;
       INT64 cursorID = 0 ;
       rc = _readIntAndAdvance( cursorID ) ;
       if ( rc )
@@ -409,13 +409,13 @@ INT32 _mongoCommandRequest::init( const CHAR* pMsg )
       goto error ;
    }
 
-   rc = _readStringAndAdvance( _databaseName ) ;
+   rc = _readStringAndAdvance( _pDatabaseName ) ;
    if ( rc )
    {
       goto error ;
    }
 
-   rc = _readStringAndAdvance( _commandName ) ;
+   rc = _readStringAndAdvance( _pCommandName ) ;
    if ( rc )
    {
       goto error ;

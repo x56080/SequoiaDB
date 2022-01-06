@@ -55,6 +55,7 @@
 #include "ossMemPool.hpp"
 #include "rtnLocalTaskMgr.hpp"
 #include "rtnRemoteMessenger.hpp"
+#include "dmsTaskStatus.hpp"
 
 #define RTN_INIT_TEXT_INDEX_VERSION    -1
 
@@ -66,14 +67,20 @@ namespace engine
    class _SDB_RTNCB : public _IControlBlock, public _IContextMgr, public _IEventHander
    {
    private :
-      typedef utilConcurrentMap<INT64, rtnContext*> RTN_CTX_MAP ;
+      typedef utilConcurrentMap<INT64, rtnContextPtr> RTN_CTX_MAP ;
+      typedef ossPoolMultiMap< EDUID, INT64 > _RTN_EDU_CTX_MAP ;
 
       ossAtomicSigned64    _contextIdGenerator ;
       RTN_CTX_MAP          _contextMap ;
+      INT32                _maxContextNum ;
+      INT32                _maxSessionContextNum ;
+      INT32                _contextTimeout ;
 
       optAccessPlanManager _accessPlanManager ;
 
       _rtnLobAccessManager _lobAccessManager ;
+
+      dmsTaskStatusMgr  _taskStatusMgr ;
 
       // The following members are used for communication with search engine
       // adapter when do text searching. Search engine adapter use the shard
@@ -85,6 +92,9 @@ namespace engine
       ossAtomicSigned64    _textIdxVersion ;
 
       rtnLocalTaskMgr      *_pLTMgr ;
+
+      ossPoolSet<ossPoolString> _unloadCSSet ;
+      ossSpinSLatch             _csLatch ;
 
    public:
       virtual void contextDelete( INT64 contextID, IExecutor *pExe ) ;
@@ -106,12 +116,27 @@ namespace engine
       virtual INT32  fini () ;
       virtual void   onConfigChange () ;
 
-      SINT32 contextNew ( RTN_CONTEXT_TYPE type, rtnContext **context,
-                          SINT64 &contextID, _pmdEDUCB * pEDUCB ) ;
+      INT32 contextNew( RTN_CONTEXT_TYPE type,
+                        rtnContextPtr &context,
+                        INT64 &contextID,
+                        _pmdEDUCB * pEDUCB ) ;
 
-      rtnContext *contextFind ( SINT64 contextID, _pmdEDUCB *cb = NULL ) ;
+      INT32 contextFind( INT64 contextID,
+                         rtnContextPtr &context,
+                         _pmdEDUCB *cb = NULL ) ;
+      INT32 contextFind( INT64 contextID,
+                         RTN_CONTEXT_TYPE type,
+                         rtnContextPtr &context,
+                         _pmdEDUCB *cb = NULL,
+                         BOOLEAN closeOnUnexpectType = TRUE ) ;
+      BOOLEAN contextExist( INT64 contextID ) ;
 
       INT32 prepareRemoteMessenger() ;
+
+      // try notify context owners to kill contexts of given collection space
+      UINT32 preDelContext( const CHAR *csName, UINT32 suLogicalID ) ;
+      // try notify context owners to kill expired contexts
+      UINT32 preDelExpiredContext() ;
 
       OSS_INLINE INT32 contextNum ()
       {
@@ -144,7 +169,10 @@ namespace engine
          FOR_EACH_CMAP_ELEMENT_S( RTN_CTX_MAP, _contextMap )
          {
             INT64 contextID = -1  ;
-            monContextCB *monCB = NULL ;
+            const monContextCB *monCB = NULL ;
+
+            SDB_ASSERT( NULL != (*it).second.get(), "context is invalid" ) ;
+
             EDUID eduID = (*it).second->eduID() ;
 
             if ( PMD_INVALID_EDUID != filterEDUID &&
@@ -158,7 +186,7 @@ namespace engine
 
             monContextFull item( contextID, *monCB ) ;
             item._typeDesp = (*it).second->name() ;
-            item._info = (*it).second->toString() ;
+            item._info = (*it).second.get()->toString() ;
 
             contextList[ eduID ].insert( item ) ;
          }
@@ -170,12 +198,14 @@ namespace engine
       {
          FOR_EACH_CMAP_ELEMENT_S( RTN_CTX_MAP, _contextMap )
          {
+            SDB_ASSERT( NULL != (*it).second.get(), "context is invalid" ) ;
+
             INT64 contextID = (*it).second->contextID() ;
-            monContextCB* monCB = (*it).second->getMonCB() ;
+            const monContextCB* monCB = (*it).second->getMonCB() ;
 
             monContextFull item( contextID, *monCB ) ;
             item._typeDesp = (*it).second->name() ;
-            item._info = (*it).second->toString() ;
+            item._info = (*it).second.get()->toString() ;
 
             contextList.insert( item ) ;
          }
@@ -221,6 +251,17 @@ namespace engine
          return _pLTMgr ;
       }
 
+      OSS_INLINE dmsTaskStatusMgr* getTaskStatusMgr()
+      {
+         return &_taskStatusMgr ;
+      }
+
+      INT32   addUnloadCS( const CHAR* csName ) ;
+      void    delUnloadCS( const CHAR* csName ) ;
+      BOOLEAN hasUnloadCS( const CHAR* csName ) ;
+
+   private:
+      void _notifyKillContexts( const _RTN_EDU_CTX_MAP &contexts ) ;
    } ;
    typedef class _SDB_RTNCB SDB_RTNCB ;
 

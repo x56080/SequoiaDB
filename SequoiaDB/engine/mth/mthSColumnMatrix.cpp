@@ -44,6 +44,9 @@ using namespace bson ;
 
 namespace engine
 {
+   // the range of UINT32 is 0 ~ 4294967295, strlen( "4294967295" ) = 10
+   #define MTH_UINT32_STR_MAX_LEN 10
+
    _mthSColumnMatrix::_mthSColumnMatrix()
    {
 
@@ -101,7 +104,11 @@ namespace engine
 
             if( NULL != pSelectSet )
             {
-               if( Object == e.type() )
+               static BSONObj objInclude = BSON( "$include" << 1 ) ;
+               // field is object and is not include, clear pSelectSet
+               // then follow proccess will set indexCover to FALSE if pSelectSet is empty
+               if( Object == e.type() &&
+                   !e.embeddedObject().shallowEqual( objInclude ) )
                {
                   pSelectSet->clear() ;
                   kownedType = FALSE ;
@@ -351,7 +358,7 @@ namespace engine
       SDB_ASSERT( NULL != fieldName, "can not be null" ) ;
       _mthSColumn *father = this ;
       _mthSColumn *node = NULL ;
-      INT32 eleNumber = 0 ;
+      CHAR numStr[ MTH_UINT32_STR_MAX_LEN + 1 ] = { 0 } ;
 
       /// WARNING: fieldName may be changed when get next.
       /// do not use it again until i is destroyed.
@@ -359,34 +366,26 @@ namespace engine
       while ( i.more() )
       {
          node = NULL ;
+         INT32 subArrayIndex = MTH_SCOLUMN_INVALID_SUBARRAY_INDEX ;
          const CHAR *columnName = i.next() ;
 
          /// a.$[0].b
          if ( '$' == *columnName &&
-              NULL != father &&
-              SDB_OK == mthConvertSubElemToNumeric( columnName,
-                                                    eleNumber ) )
+              SDB_OK == mthConvertSubElemToNumeric( columnName, subArrayIndex ) )
          {
-            rc = _addMiddleAction( father, eleNumber ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDERROR, "failed to add action to column:%d", rc ) ;
-               goto error ;
-            }
+            ossItoa( subArrayIndex, numStr, sizeof( numStr ) ) ;
+            columnName = numStr ;
+         }
 
-            node = father ;
-         }
-         else
+         rc = _getColumn( columnName, father, node ) ;
+         if( SDB_OK != rc )
          {
-            rc = _getColumn( columnName, father, node ) ;
-            if( SDB_OK != rc )
-            {
-               PD_LOG( PDERROR, "failed to get column:%d", rc ) ;
-               goto error ;
-            }
-            SDB_ASSERT( NULL != node, "can not be null" ) ;
-            father = node ;
+            PD_LOG( PDERROR, "failed to get column:%d", rc ) ;
+            goto error ;
          }
+         SDB_ASSERT( NULL != node, "can not be null" ) ;
+         node->_setSubArrayIndex( subArrayIndex ) ;
+         father = node ;
       }
       i.finish() ;
 
@@ -423,6 +422,9 @@ namespace engine
                                         _mthSColumn *father,
                                         _mthSColumn *&column )
    {
+      SDB_ASSERT( father, "father node can't be null" ) ;
+      SDB_ASSERT( name, "name can't be null" ) ;
+
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHSCOLUMNMATRIX__GETCOLUMN2 ) ;
       MTH_S_COLUMNS &array = father->_getSubColumns() ;
@@ -432,7 +434,7 @@ namespace engine
          _mthSColumn *lastColumn = array[array.size() - 1] ;
          if ( 0 == ossStrcmp( name, lastColumn->getName() ) )
          {
-            column = lastColumn ;       
+            column = lastColumn ;
          }
       }
 

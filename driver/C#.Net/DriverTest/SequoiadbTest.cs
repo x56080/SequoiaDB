@@ -261,6 +261,35 @@ namespace DriverTest
         }
 
         [TestMethod()]
+        public void DropCSTest()
+        {
+            string csName = "dropCSTest_CS";
+            string clName = "testCL";
+
+            // case 1
+            BsonDocument option1 = new BsonDocument();
+            option1.Add("EnsureEmpty", false);
+            CollectionSpace cs1 = sdb.CreateCollectionSpace(csName);
+            cs.CreateCollection(clName);
+            sdb.DropCollectionSpace(csName, option1);
+
+            // case 2
+            try
+            {
+                BsonDocument option2 = new BsonDocument();
+                option2.Add("EnsureEmpty", true);
+                CollectionSpace cs2 = sdb.CreateCollectionSpace(csName);
+                cs2.CreateCollection(clName);
+                sdb.DropCollectionSpace(csName, option2);
+            }
+            catch (BaseException e)
+            {
+                Assert.IsTrue(e.ErrorType == "SDB_DMS_CS_NOT_EMPTY");
+                sdb.DropCollectionSpace(csName);
+            }
+        }
+
+        [TestMethod()]
         public void ExecTest()
         {
             // insert English

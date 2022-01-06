@@ -54,8 +54,7 @@ class TestIndex12476(testlib.SdbTestBase):
          self.check_explain(expectExplainRec, condition)
 
       except SDBBaseError as e:
-         print(e.detail)
-         self.fail("test idIndex failed" + e.detail)
+         self.fail("test idIndex failed:" + str(e))
 
    def tearDown(self):
       if self.should_clean_env():
@@ -66,7 +65,7 @@ class TestIndex12476(testlib.SdbTestBase):
          try:
             self.cl.insert({"_id": i, "a": i, "b": "test" + str(i)})
          except SDBError as e:
-            self.fail('insert fail: ' + e.detail)
+            self.fail('insert fail: ' + str(e))
 
    def create_index(self, index, index_name, isOption):
       try:
@@ -80,14 +79,14 @@ class TestIndex12476(testlib.SdbTestBase):
          print ('create index success')
 
       except SDBBaseError as e:
-         self.fail('create index fail: ' + e.detail)
+         self.fail('create index fail: ' + str(e))
 
    def drop_index(self, index_name):
       try:
          self.cl.drop_index(index_name)
          print('drop index success')
       except SDBBaseError as e:
-         self.fail('drop index fail: ' + e.detail)
+         self.fail('drop index fail: ' + str(e))
 
    def check_indexes(self, expectResult, index_name):
       try:
@@ -101,7 +100,7 @@ class TestIndex12476(testlib.SdbTestBase):
          self.assertEqual(isUnique, expectResult['expUnique'])
          self.assertEqual(isEnforced, expectResult['expEnforced'])
       except SDBBaseError as e:
-         self.fail('check index fail: ' + e.detail)
+         self.fail('check index fail: ' + str(e))
 
    def query_datas(self, expectResult, cond, index_name):
       try:
@@ -118,7 +117,7 @@ class TestIndex12476(testlib.SdbTestBase):
                break
          self.assertListEqualUnordered(expectResult, actResult)
       except SDBBaseError as e:
-         self.fail('query fail: ' + e.detail)
+         self.fail('query fail: ' + str(e))
 
    def check_explain(self, expectExplainRec, cond):
       try:
@@ -136,4 +135,4 @@ class TestIndex12476(testlib.SdbTestBase):
          self.assertEqual(expIdxName, actIndexName)
          self.assertListEqualUnordered(expQuery, actQuery)
       except SDBBaseError as e:
-         self.fail('check explain fail: ' + e.detail)
+         self.fail('check explain fail: ' + str(e))

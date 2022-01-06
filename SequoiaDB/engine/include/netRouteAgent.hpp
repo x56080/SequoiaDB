@@ -52,16 +52,17 @@ namespace engine
    class _netRouteAgent : public SDBObject
    {
       public:
-         _netRouteAgent( INetMsgHandler *handler ) ;
+         _netRouteAgent( INetMsgHandler *handler,
+                         const NET_HANDLE &beginID = NET_MIN_HANDLE ) ;
 
          _netRoute* getRoute() { return &_route ; }
          _netFrame* getFrame() { return &_frame ; }
 
       public:
-         OSS_INLINE void run( NET_START_THREAD_FUNC pFunc = NULL )
+         OSS_INLINE INT32 run( NET_START_THREAD_FUNC pFunc = NULL )
          {
             _frame.setNetStartThreadFunc( pFunc ) ;
-            _frame.run() ;
+            return _frame.run() ;
          }
 
          OSS_INLINE void stop()
@@ -103,9 +104,11 @@ namespace engine
             _frame.close( handle ) ;
          }
 
-         OSS_INLINE void closeListen()
+         OSS_INLINE void shutdownListen()
          {
-            _frame.closeListen( NET_FRAME_MASK_ALL ) ;
+            // WARNING: can not call close which is not thread-safe
+            // during asyncAccept of acceptor
+            _frame.shutdownListen( NET_FRAME_MASK_ALL ) ;
          }
 
          OSS_INLINE void disconnectAll()

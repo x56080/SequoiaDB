@@ -79,8 +79,8 @@ namespace engine
 
       // extrace query msg
       {
-         CHAR *pQuery = NULL ;
-         rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
+         const CHAR *pQuery = NULL ;
+         rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL, NULL,
                                &pQuery, NULL, NULL, NULL ) ;
          PD_RC_CHECK( rc, PDERROR, "Extract command[%s] msg failed, rc: %d",
                       getName(), rc ) ;
@@ -132,6 +132,7 @@ namespace engine
            0 == ossStrcasecmp( CMD_VALUE_NAME_DISABLE_READONLY, pAction ) ||
            0 == ossStrcasecmp( CMD_VALUE_NAME_ACTIVATE, pAction ) ||
            0 == ossStrcasecmp( CMD_VALUE_NAME_DEACTIVATE, pAction ) ||
+           0 == ossStrcasecmp( CMD_VALUE_NAME_ENABLE_RESTORING, pAction ) ||
            0 == ossStrcasecmp( CMD_VALUE_NAME_DISABLE_RESTORING, pAction ) )
       {
          _executeByNodes( pMsg, cb, allgroups, pAction, buf ) ;

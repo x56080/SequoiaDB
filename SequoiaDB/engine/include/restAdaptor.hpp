@@ -92,7 +92,8 @@ namespace engine
       INT32 sendBody( ossSocket *sock, restBase *pRest ) ;
 
       INT32 sendChunk( ossSocket *sock, const CHAR *pBuffer, INT32 length,
-                       INT32 number = 0, BOOLEAN isObjBuffer = TRUE ) ;
+                       INT32 number = 0, BOOLEAN isObjBuffer = TRUE,
+                       BOOLEAN isJson = FALSE ) ;
 
       INT32 setResBody( ossSocket *sock, restResponse *response,
                         const CHAR *pBuffer, INT32 length,

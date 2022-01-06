@@ -55,8 +55,6 @@ public class LobWriteRequest extends LobRequest {
         out.putLong(offset);
         out.put(buffer);
         int paddingSize = Helper.alignedSize(bufLen) - bufLen;
-        if (paddingSize > 0) {
-            out.put(new byte[paddingSize]);
-        }
+        Helper.fillZero(out, paddingSize);
     }
 }

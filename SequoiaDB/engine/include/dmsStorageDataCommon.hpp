@@ -365,8 +365,9 @@ namespace engine
       UINT64      _totalIndexFreeSpace ;
       UINT32      _totalLobPages ;
       UINT64      _totalLobs ;
-      UINT32      _uniqueIdxNum ;
-      UINT32      _textIdxNum ;
+      UINT8       _uniqueIdxNum ;
+      UINT8       _textIdxNum ;
+      UINT8       _globIdxNum ;
       UINT8       _lastCompressRatio ;
       UINT64      _totalOrgDataLen ;
       UINT64      _totalDataLen ;
@@ -398,8 +399,15 @@ namespace engine
       // how many operators need to block index creating
       UINT32      _blockIndexCreatingCount ;
 
-      // spit finish timestamp
-      ossAtomic64 _splitFinishTime ;
+      // bitmap to indicate index fields
+      ixmIdxHashBitmap _clIdxHashBitmap ;
+      ixmIdxHashArray  _idxHashFields[ IXM_IDX_HASH_MAX_INDEX_NUM ] ;
+
+      // global timestamp to support global transaction to
+      // fetch MVCC old versions
+      // - updated after destination of split
+      // - updated after commit of transaction with lock escalated
+      ossAtomic64 _globTransAvailTime ;
 
       void reset()
       {
@@ -412,6 +420,7 @@ namespace engine
          _totalLobs              = 0 ;
          _uniqueIdxNum           = 0 ;
          _textIdxNum             = 0 ;
+         _globIdxNum             = 0 ;
          _lastCompressRatio      = 100 ;
          _totalOrgDataLen        = 0 ;
          _totalDataLen           = 0 ;
@@ -433,7 +442,12 @@ namespace engine
          _rcTotalRecords.init( 0 ) ;
          _crudCB.reset() ;
          _blockIndexCreatingCount = 0 ;
-         _splitFinishTime.init( 0 ) ;
+         _clIdxHashBitmap.resetBitmap() ;
+         for ( UINT32 i = 0 ; i < IXM_IDX_HASH_MAX_INDEX_NUM ; ++ i )
+         {
+            _idxHashFields[ i ].reset() ;
+         }
+         _globTransAvailTime.init( 0 ) ;
       }
 
       void updateLastLSN( UINT64 lsn, DMS_FILE_TYPE type )
@@ -515,6 +529,81 @@ namespace engine
          return _maxGlobTransID.peek() ;
       }
 
+      void setIdxHash( INT32 indexID, const CHAR *idxFieldName )
+      {
+         SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
+                     "invalid index ID" ) ;
+         UINT32 bitIndex = ixmIdxHashBitmap::calcIndex( idxFieldName ) ;
+         _clIdxHashBitmap.setBit( bitIndex ) ;
+         if ( indexID < IXM_IDX_HASH_MAX_INDEX_NUM )
+         {
+            _idxHashFields[ indexID ].setField( bitIndex ) ;
+         }
+      }
+
+      // reset index hash fields from given index
+      void resetIdxHashFrom( INT32 indexID )
+      {
+         SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
+                     "invalid index ID" ) ;
+         _clIdxHashBitmap.resetBitmap() ;
+         // reset bitmaps after given index ID
+         for ( UINT32 i = indexID ; i < IXM_IDX_HASH_MAX_INDEX_NUM ; ++ i )
+         {
+            _idxHashFields[ i ].reset() ;
+         }
+      }
+
+      void resetIdxHashAt( INT32 indexID )
+      {
+         SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
+                     "invalid index ID" ) ;
+         _idxHashFields[ indexID ].reset() ;
+      }
+
+      void mergeIdxHash( INT32 indexID )
+      {
+         SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
+                     "invalid index ID" ) ;
+         if ( indexID < IXM_IDX_HASH_MAX_INDEX_NUM )
+         {
+            _idxHashFields[ indexID ].mergeToBitmap( _clIdxHashBitmap ) ;
+         }
+      }
+
+      BOOLEAN testIdxHash( const ixmIdxHashBitmap &idxHash )
+      {
+         return _clIdxHashBitmap.hasIntersaction( idxHash ) ;
+      }
+
+      BOOLEAN testIdxHash( INT32 indexID, const ixmIdxHashBitmap &idxHash )
+      {
+         SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
+                     "invalid index ID" ) ;
+         if ( indexID < IXM_IDX_HASH_MAX_INDEX_NUM )
+         {
+            return _idxHashFields[ indexID ].testBitmap( idxHash ) ;
+         }
+         return TRUE ;
+      }
+
+      BOOLEAN isIdxHashReady() const
+      {
+         return !( _clIdxHashBitmap.isEmpty() ) ;
+      }
+
+      BOOLEAN isIdxHashReady( INT32 indexID ) const
+      {
+         SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
+                     "invalid index ID" ) ;
+         if ( indexID < IXM_IDX_HASH_MAX_INDEX_NUM )
+         {
+            return _idxHashFields[ indexID ].isValid() ;
+         }
+         // for indexes after first 8 ones, always not ready
+         return FALSE ;
+      }
+
       _dmsMBStatInfo ()
       : _commitFlag( 0 ),
         _lastLSN( 0 ),
@@ -524,7 +613,7 @@ namespace engine
         _lobCommitFlag( 0 ),
         _lobLastLSN( 0 ),
         _rcTotalRecords( 0 ),
-        _splitFinishTime( 0 )
+        _globTransAvailTime( 0 )
       {
          reset() ;
       }
@@ -721,6 +810,7 @@ namespace engine
 
       public:
          _dmsRecordRW() ;
+         _dmsRecordRW( const _dmsRecordRW &recordRW ) ;
          virtual ~_dmsRecordRW() ;
 
          BOOLEAN           isEmpty() const ;
@@ -784,9 +874,16 @@ namespace engine
    //    3             2.9                Support for capped collection. A new
    //                                     page for extend option is used, id
    //                                     stored in MB.
-   #define DMS_DATASU_CUR_VERSION         3
+   //   16             5.0.2              Support for MVCC
    #define DMS_DATACAPSU_EYECATCHER       "SDBDCAP"
    #define DMS_COMPRESSION_ENABLE_VER     2
+   #define DMS_CAPPED_ENABLE_VER          3
+   #define DMS_NONMVCC_MAX_VER            ( DMS_CAPPED_ENABLE_VER )
+   // enabled from 5.0.2
+   // NOTE: 3.x can have their versions, so reserved a range
+   //       before MVCC version
+   #define DMS_MVCC_ENABLE_VER            16
+   #define DMS_DATASU_CUR_VERSION         ( DMS_MVCC_ENABLE_VER )
    #define DMS_CONTEXT_MAX_SIZE           (2000)
    #define DMS_RECORDS_PER_EXTENT_SQUARE  4     // value is 2^4=16
    #define DMS_RECORD_OVERFLOW_RATIO      1.2f
@@ -914,7 +1011,9 @@ namespace engine
                                BOOLEAN sysCollection = FALSE,
                                UINT8 compressionType = UTIL_COMPRESSOR_INVALID,
                                UINT32 *logicID = NULL,
-                               const BSONObj *extOptions = NULL ) ;
+                               const BSONObj *extOptions = NULL,
+                               const BSONObj *pIdIdxDef = NULL,
+                               BOOLEAN addIdxIDIfNotExist = FALSE ) ;
 
          INT32 dropCollection ( const CHAR *pName,
                                 _pmdEDUCB *cb,
@@ -933,9 +1032,11 @@ namespace engine
          INT32 truncateCollectionLoads( const CHAR *pName,
                                         dmsMBContext *context = NULL ) ;
 
-         INT32 changeCLUniqueID( const MAP_CLNAME_ID& clInfo,
+         INT32 changeCLUniqueID( const MAP_CLNAME_ID& modifyCl,
+                                 BOOLEAN changeOtherCL,
                                  utilCSUniqueID csUniqueID,
-                                 BOOLEAN isLoadCS = FALSE ) ;
+                                 BOOLEAN isLoadCS,
+                                 ossPoolVector<ossPoolString>& clVec ) ;
 
          INT32 renameCollection ( const CHAR *oldName, const CHAR *newName,
                                   _pmdEDUCB *cb, SDB_DPSCB *dpscb,
@@ -975,7 +1076,8 @@ namespace engine
                               _mthModifier &modifier,
                               BSONObj* newRecord = NULL,
                               IDmsOprHandler *pHandler = NULL,
-                              utilUpdateResult *pResult = NULL ) ;
+                              utilUpdateResult *pResult = NULL,
+                              const dmsTransRecordInfo *pInfo = NULL ) ;
 
          virtual INT32 popRecord( dmsMBContext *context,
                                   INT64 targetID,
@@ -1007,7 +1109,8 @@ namespace engine
          virtual INT32 extractData( const dmsMBContext *mbContext,
                                     const dmsRecordRW &recordRW,
                                     _pmdEDUCB *cb,
-                                    dmsRecordData &recordData ) = 0 ;
+                                    dmsRecordData &recordData,
+                                    BOOLEAN needIncDataRead = TRUE ) = 0 ;
 
          virtual void postLoadExt( dmsMBContext *context,
                                    dmsExtent *extAddr,
@@ -1052,6 +1155,20 @@ namespace engine
                                            BOOLEAN &memReallocate,
                                            INT64 position ) = 0 ;
 
+         virtual INT32 _getRecordPosition( const dmsRecordID &rid,
+                                           const dmsRecordData &recordData,
+                                           INT64 &position ) = 0 ;
+
+         virtual INT32 _checkMarkInsert( dmsMBContext *context,
+                                         const DPS_TRANS_ID &transID,
+                                         const BSONObj &insertObj,
+                                         pmdEDUCB *cb,
+                                         INT64 &position,
+                                         BOOLEAN &markInsert,
+                                         dmsRecordID &foundRID,
+                                         dmsRecordData &recordData,
+                                         dmsRecordRW &recordRW ) = 0 ;
+
          virtual INT32 _allocRecordSpace( dmsMBContext *context,
                                           UINT32 size,
                                           dmsRecordID &foundRID,
@@ -1069,7 +1186,8 @@ namespace engine
                                             const dmsRecordData &recordData,
                                             UINT32 recordSize,
                                             _pmdEDUCB *cb,
-                                            BOOLEAN isInsert = TRUE ) = 0 ;
+                                            BOOLEAN isInsert = TRUE,
+                                            const dmsTransRecordInfo *recordInfo = NULL ) = 0 ;
 
          virtual INT32 _operationPermChk( DMS_ACCESS_TYPE accessType ) = 0 ;
 
@@ -1082,13 +1200,15 @@ namespace engine
                                              IDmsOprHandler *pHandler,
                                              utilUpdateResult *pResult,
                                              dpsUnqIdxHashArray *pNewUnqIdxHashArray,
-                                             dpsUnqIdxHashArray *pOldUnqIdxHashArray ) = 0 ;
+                                             dpsUnqIdxHashArray *pOldUnqIdxHashArray,
+                                             const ixmIdxHashBitmap &idxHashBitmap ) = 0 ;
 
          virtual INT32 _extentRemoveRecord( dmsMBContext *context,
                                             dmsExtRW &extRW,
                                             dmsRecordRW &recordRW,
                                             _pmdEDUCB *cb,
-                                            BOOLEAN decCount = TRUE ) = 0 ;
+                                            BOOLEAN decCount = TRUE,
+                                            const dmsTransRecordInfo *recordInfo = NULL ) = 0 ;
 
          // Calculate the final size needed by the record. Records of different
          // type may have different strategy, such as reservation for update,
@@ -1098,8 +1218,11 @@ namespace engine
 
          virtual INT32 _onInsertFail( dmsMBContext *context,
                                       BOOLEAN hasInsert,
-                                      dmsRecordID rid, SDB_DPSCB *dpscb,
-                                      ossValuePtr dataPtr, _pmdEDUCB *cb ) = 0 ;
+                                      dmsRecordID rid,
+                                      SDB_DPSCB *dpscb,
+                                      ossValuePtr dataPtr,
+                                      _pmdEDUCB *cb,
+                                      const dmsTransRecordInfo *pInfo ) = 0 ;
 
          virtual INT32  _onOpened() ;
          virtual void   _onClosed() ;
@@ -1172,10 +1295,16 @@ namespace engine
 
          void _increaseMBStat ( utilCLUniqueID clUniqueID,
                                 dmsMBStatInfo * mbStat,
+                                const dmsTransRecordInfo *recordInfo,
                                 _pmdEDUCB * cb ) ;
          void _decreaseMBStat ( utilCLUniqueID clUniqueID,
                                 dmsMBStatInfo * mbStat,
+                                const dmsTransRecordInfo *recordInfo,
                                 _pmdEDUCB * cb ) ;
+         void _updateMBStat( utilCLUniqueID clUniqueID,
+                             dmsMBStatInfo *mbStat,
+                             const dmsTransRecordInfo *recordInfo,
+                             _pmdEDUCB *cb ) ;
 
       private:
          void               _initializeMME () ;

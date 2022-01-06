@@ -173,7 +173,8 @@
 #define PD_TRACE_COMPONENT_SPD     0x04000000
 // query graph manger
 #define PD_TRACE_COMPONENT_QGM     0x08000000
-
+// fap
+#define PD_TRACE_COMPONENT_FAP     0x10000000
 /*
    _pdTraceFormatType define
 */
@@ -956,7 +957,7 @@ public:
    {
       if ( g_isTraceStarted )
       {
-         INT32 n = std::min(numArgs, (UINT32)PD_TRACE_MAX_ARG_NUM) ;
+         INT32 n = OSS_MIN(numArgs, (UINT32)PD_TRACE_MAX_ARG_NUM) ;
 
          va_list list;
 

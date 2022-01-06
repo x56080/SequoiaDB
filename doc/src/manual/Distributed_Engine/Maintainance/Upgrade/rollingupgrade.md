@@ -20,13 +20,16 @@
 
 1. 选择一台拥有复制组主节点最少的主机，查看有哪些复制组的主节点在该主机上
 2. 使用 [reelect()][reelect] 命令，将这些复制组的主节点切换到其它主机上
-3. 按照[离线升级][offlineupgrade]中的软件升级步骤完成本主机上的软件升级，在正常完成升级的情况下，所有的节点应已正常启动并重新加入到集群中
+3. 按照离线升级中的[升级步骤][offlineupgrade]前 5 步完成本主机上的软件升级，在正常完成升级的情况下，所有的节点应已正常启动并重新加入到集群中
 4. 选取下一个节点按照上述步骤完成升级，直至完成所有主机上的软件升级
+5. 按照离线升级中的[升级步骤][offlineupgrade]第 6 步完成索引升级
 
+> **Note:**  
+> 滚动升级过程中，禁止执行创建索引、删除索引、同步索引、创建集合、修改集合属性等 DML 操作。
 
 [^_^]:
     本文中用到的所有链接
 
 [compatible_list]:manual/Distributed_Engine/Maintainance/Upgrade/compatibility.md
 [reelect]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/reelect.md
-[offlineupgrade]:manual/Distributed_Engine/Maintainance/Upgrade/offline.md
+[offlineupgrade]:manual/Distributed_Engine/Maintainance/Upgrade/offline.md#升级

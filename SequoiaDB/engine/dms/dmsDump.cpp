@@ -65,56 +65,24 @@ namespace engine
       ossStrncat( pBuffer, flagStr, bufSize - ossStrlen( pBuffer ) ) ;
    }
 
-   #define DMS_INDEXTYPE_TMP_STR_SZ       63
-
-   string getIndexTypeDesp( UINT16 type )
-   {
-      CHAR szTmp[DMS_INDEXTYPE_TMP_STR_SZ+1] = {0} ;
-      if ( IXM_EXTENT_TYPE_NONE == type )
-      {
-         return "None" ;
-      }
-
-      if ( IXM_EXTENT_HAS_TYPE( type, IXM_EXTENT_TYPE_POSITIVE ) )
-      {
-         ossStrncat( szTmp, "Positive", DMS_INDEXTYPE_TMP_STR_SZ ) ;
-         OSS_BIT_CLEAR( type, IXM_EXTENT_TYPE_POSITIVE ) ;
-      }
-      if ( IXM_EXTENT_HAS_TYPE( type, IXM_EXTENT_TYPE_REVERSE ) )
-      {
-         appendString( szTmp, DMS_INDEXTYPE_TMP_STR_SZ, "Reverse" ) ;
-         OSS_BIT_CLEAR( type, IXM_EXTENT_TYPE_REVERSE ) ;
-      }
-      if ( IXM_EXTENT_HAS_TYPE( type, IXM_EXTENT_TYPE_2D ) )
-      {
-         appendString( szTmp, DMS_INDEXTYPE_TMP_STR_SZ, "2d" ) ;
-         OSS_BIT_CLEAR( type, IXM_EXTENT_TYPE_2D ) ;
-      }
-      if ( IXM_EXTENT_HAS_TYPE( type, IXM_EXTENT_TYPE_TEXT ) )
-      {
-         appendString( szTmp, DMS_INDEXTYPE_TMP_STR_SZ, "Text" ) ;
-         OSS_BIT_CLEAR( type, IXM_EXTENT_TYPE_TEXT ) ;
-      }
-
-      if ( type )
-      {
-         appendString( szTmp, DMS_INDEXTYPE_TMP_STR_SZ, "Unknow" ) ;
-      }
-
-      return szTmp ;
-   }
-
    UINT32 _dmsDump::dumpHeader( void *inBuf, UINT32 inSize,
                                 CHAR *outBuf, UINT32 outSize,
                                 CHAR *addrPrefix, UINT32 options,
                                 UINT32 &pageSize, UINT32 &pageNum )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len                         = 0 ;
       UINT32 hexDumpOption               = 0 ;
       dmsStorageUnitHeader *header       = (dmsStorageUnitHeader*)inBuf ;
       CHAR   eyeCatcher [ DMS_HEADER_EYECATCHER_LEN+1 ] = {0} ;
 
-      if ( NULL == inBuf || NULL == outBuf || inSize != DMS_HEADER_SZ )
+      if ( NULL == outBuf )
+      {
+         goto exit ;
+      }
+
+      if ( NULL == inBuf || inSize != DMS_HEADER_SZ )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpHeader input size (%d) doesn't match "
@@ -204,6 +172,9 @@ namespace engine
          len += ossSnprintf ( outBuf + len, outSize - len,
                               " Segment Size: %u" OSS_NEWLINE,
                               header->_segmentSize ) ;
+         len += ossSnprintf ( outBuf + len, outSize - len,
+                              " HWM of IdxInnerID: 0x%08x (%u)"OSS_NEWLINE,
+                              header->_idxInnerHWM, header->_idxInnerHWM ) ;
 
       }
       len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;
@@ -218,13 +189,20 @@ namespace engine
                              CHAR *outBuf, UINT32 outSize,
                              UINT32 pageNum )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len            = 0 ;
       UINT32 usedPages      = 0 ;
       UINT32 totalPages     = 0 ;
       CHAR stateBuf [ DMS_DUMP_SME_STATE_BUFSZ + 1 ] = {0} ;
       BOOLEAN hasError      = FALSE ;
 
-      if ( NULL == inBuf || NULL == outBuf || inSize != DMS_SME_SZ )
+      if ( NULL == outBuf )
+      {
+         goto exit ;
+      }
+
+      if ( NULL == inBuf || inSize != DMS_SME_SZ )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpSME input size (%d) doesn't match "
@@ -296,9 +274,16 @@ namespace engine
                              vector< UINT16 > &collections,
                              BOOLEAN force )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len = 0 ;
 
-      if ( NULL == inBuf || NULL == outBuf || inSize != DMS_MME_SZ )
+      if ( NULL == outBuf )
+      {
+         goto exit ;
+      }
+
+      if ( NULL == inBuf || inSize != DMS_MME_SZ )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpMME input size (%d) doesn't match "
@@ -335,6 +320,8 @@ namespace engine
                             vector< UINT16 > &collections,
                             BOOLEAN force )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len = 0 ;
       UINT32 hexDumpOption = 0 ;
       dmsMB *mb = (dmsMB*)inBuf ;
@@ -342,7 +329,12 @@ namespace engine
       UINT32 tmpInt = 0 , tmpSize = 0 ;
       CHAR uom ;
 
-      if ( NULL == inBuf || NULL == outBuf || inSize != DMS_MB_SIZE )
+      if ( NULL == outBuf )
+      {
+         goto exit ;
+      }
+
+      if ( NULL == inBuf || inSize != DMS_MB_SIZE )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpMMEMetadataBlock input size (%d) "
@@ -594,11 +586,18 @@ namespace engine
                               UINT32 outSize, CHAR * addrPrefix,
                               UINT32 options, dmsExtentID extID )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len           = 0 ;
       UINT32 hexDumpOption = 0 ;
       dmsMBEx *mbEx        = ( dmsMBEx* )inBuf ;
 
-      if ( NULL == inBuf || NULL == outBuf || inSize < sizeof( dmsMBEx ) ||
+      if ( NULL == outBuf )
+      {
+         goto exit ;
+      }
+
+      if ( NULL == inBuf || inSize < sizeof( dmsMBEx ) ||
            inSize % DMS_PAGE_SIZE4K != 0 )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
@@ -690,30 +689,42 @@ namespace engine
    UINT32 _dmsDump::_dumpDictDetail( void *inBuf, UINT32 inSize,
                                      CHAR *outBuf, UINT32 outSize )
    {
+      SDB_ASSERT( inBuf, "inBuf can't be null" ) ;
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len = 0 ;
       utilDictionaryDetail detail ;
 
-      utilDictHead *head
-         = (utilDictHead *)( (CHAR*)inBuf + sizeof( dmsDictExtent ) ) ;
-      if ( UTIL_DICT_LZW == head->_type )
+      if ( NULL == inBuf || NULL == outBuf )
       {
-         getDictionaryDetail( (void *)head, detail ) ;
-         len += ossSnprintf( outBuf + len, outSize - len,
-                             "Dictionary detail:" OSS_NEWLINE ) ;
-         len += ossSnprintf( outBuf + len, outSize - len,
-                             "   Type: %s" OSS_NEWLINE,
-                             VALUE_NAME_LZW ) ;
-         len += ossSnprintf( outBuf + len, outSize - len,
-                             "   Version: %u" OSS_NEWLINE,
-                             detail._version ) ;
-         len += ossSnprintf( outBuf + len, outSize - len,
-                             "   Maximum code: %u" OSS_NEWLINE,
-                             detail._maxCode ) ;
-         len += ossSnprintf( outBuf + len, outSize - len,
-                             "   Code size: %u" OSS_NEWLINE,
-                             detail._codeSize ) ;
+         goto exit ;
       }
 
+      {
+         utilDictHead *head =
+            (utilDictHead *)( (CHAR*)inBuf + sizeof( dmsDictExtent ) ) ;
+
+         if ( UTIL_DICT_LZW == head->_type )
+         {
+            getDictionaryDetail( (void *)head, detail ) ;
+            len += ossSnprintf( outBuf + len, outSize - len,
+                                "Dictionary detail:" OSS_NEWLINE ) ;
+            len += ossSnprintf( outBuf + len, outSize - len,
+                                "   Type: %s" OSS_NEWLINE,
+                                VALUE_NAME_LZW ) ;
+            len += ossSnprintf( outBuf + len, outSize - len,
+                                "   Version: %u" OSS_NEWLINE,
+                                detail._version ) ;
+            len += ossSnprintf( outBuf + len, outSize - len,
+                                "   Maximum code: %u" OSS_NEWLINE,
+                                detail._maxCode ) ;
+            len += ossSnprintf( outBuf + len, outSize - len,
+                                "   Code size: %u" OSS_NEWLINE,
+                                detail._codeSize ) ;
+         }
+      }
+
+   exit:
       return len ;
    }
 
@@ -721,7 +732,16 @@ namespace engine
                                           CHAR *outBuf, UINT32 outSize,
                                           DMS_STORAGE_TYPE type )
    {
+      SDB_ASSERT( inBuf, "inBuf can't be null" ) ;
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len = 0 ;
+
+      if ( NULL == inBuf || NULL == outBuf )
+      {
+         goto exit ;
+      }
+
       if ( DMS_STORAGE_CAPPED == type )
       {
          dmsCappedCLOptions *options =
@@ -736,6 +756,8 @@ namespace engine
                              "   Overwrite: %s" OSS_NEWLINE,
                              (options->_overwrite) ? "true" : "false" ) ;
       }
+
+   exit:
       return len ;
    }
 
@@ -743,11 +765,18 @@ namespace engine
                                     UINT32 outSize, CHAR * addrPrefix,
                                     UINT32 options, dmsExtentID extID )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len = 0 ;
       UINT32 hexDumpOption = 0 ;
       dmsDictExtent *extent = (dmsDictExtent*)inBuf ;
 
-      if ( NULL == inBuf || NULL == outBuf || inSize < sizeof( dmsDictExtent )
+      if ( NULL == outBuf )
+      {
+         goto exit ;
+      }
+
+      if ( NULL == inBuf || inSize < sizeof( dmsDictExtent )
            || inSize % DMS_PAGE_SIZE4K != 0 )
       {
          len = ossSnprintf( outBuf, outSize,
@@ -810,9 +839,17 @@ namespace engine
                                       dmsExtentID extID,
                                       DMS_STORAGE_TYPE type )
    {
+      SDB_ASSERT( inBuf, "inBuf can't be null" ) ;
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len = 0 ;
       UINT32 hexDumpOption = 0 ;
       dmsOptExtent *extent = (dmsOptExtent *)inBuf ;
+
+      if ( NULL == inBuf || NULL == outBuf )
+      {
+         goto exit ;
+      }
 
       if ( extent->_eyeCatcher[0] != DMS_OPT_EXTENT_EYECATCHER0
            || extent->_eyeCatcher[1] != DMS_OPT_EXTENT_EYECATCHER1 )
@@ -868,11 +905,19 @@ namespace engine
                                     BOOLEAN dumpRecord,
                                     BOOLEAN capped )
    {
+      SDB_ASSERT( cb, "cb can't be null" ) ;
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len           = 0 ;
       UINT32 hexDumpOption = 0 ;
       dmsExtent *extent    = (dmsExtent*)inBuf ;
 
-      if ( NULL == inBuf || NULL == outBuf || inSize < sizeof(dmsExtent) ||
+      if ( NULL == outBuf || NULL == cb )
+      {
+         goto exit ;
+      }
+
+      if ( NULL == inBuf || inSize < sizeof(dmsExtent) ||
            inSize % DMS_PAGE_SIZE4K != 0 )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
@@ -952,10 +997,17 @@ namespace engine
    UINT32 _dmsDump::dumpExtentHeader( void *inBuf, UINT32 inSize,
                                       CHAR *outBuf, UINT32 outSize )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len           = 0 ;
       dmsExtent *extent    = (dmsExtent*)inBuf ;
 
-      if ( NULL == inBuf || NULL == outBuf || inSize < sizeof(dmsExtent) )
+      if ( NULL == outBuf )
+      {
+         goto exit ;
+      }
+
+      if ( NULL == inBuf || inSize < sizeof(dmsExtent) )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpExtentHeader input size (%d) "
@@ -1009,7 +1061,16 @@ namespace engine
    UINT32 _dmsDump::_dumpExtentHeaderComm( const dmsExtent *extent,
                                            CHAR *outBuf, UINT32 outSize )
    {
+      SDB_ASSERT( extent, "extent can't be null" ) ;
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len = 0 ;
+
+      if ( NULL == outBuf || NULL == extent )
+      {
+         goto exit ;
+      }
+
       len += ossSnprintf ( outBuf, outSize,
                            "    Eye Catcher  : %c%c" OSS_NEWLINE,
                            extent->_eyeCatcher[0], extent->_eyeCatcher[1] ) ;
@@ -1026,16 +1087,24 @@ namespace engine
       len += ossSnprintf ( outBuf + len, outSize - len,
                            "    Version      : %d" OSS_NEWLINE,
                            extent->_version ) ;
+   exit:
       return len ;
    }
 
    UINT32 _dmsDump::dumpDataExtentHeader( void *inBuf, UINT32 inSize,
                                           CHAR *outBuf, UINT32 outSize )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len           = 0 ;
       dmsExtent *extent    = (dmsExtent*)inBuf ;
 
-      if ( NULL == inBuf || NULL == outBuf || inSize < sizeof(dmsExtent) )
+      if ( NULL == outBuf )
+      {
+         goto exit ;
+      }
+
+      if ( NULL == inBuf || inSize < sizeof(dmsExtent) )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpExtentHeader input size (%d) "
@@ -1077,10 +1146,17 @@ namespace engine
    UINT32 _dmsDump::dumpMetaExtentHeader( void * inBuf, UINT32 inSize,
                                           CHAR * outBuf, UINT32 outSize )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len              = 0 ;
       dmsMetaExtent*extent    = (dmsMetaExtent*)inBuf ;
 
-      if ( NULL == inBuf || NULL == outBuf || inSize < sizeof(dmsMetaExtent) )
+      if ( NULL == outBuf )
+      {
+         goto exit ;
+      }
+
+      if ( NULL == inBuf || inSize < sizeof(dmsMetaExtent) )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpExtentHeader input size (%d) "
@@ -1105,11 +1181,17 @@ namespace engine
    UINT32 _dmsDump::dumpDictExtentHeader( void *inBuf, UINT32 inSize,
                                           CHAR * outBuf, UINT32 outSize )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len = 0 ;
       dmsDictExtent *extent = (dmsDictExtent *)inBuf ;
 
-      if ( NULL == inBuf || NULL == outBuf
-           ||  inSize < DMS_DICTEXTENT_HEADER_SZ)
+      if ( NULL == outBuf )
+      {
+         goto exit ;
+      }
+
+      if ( NULL == inBuf || inSize < DMS_DICTEXTENT_HEADER_SZ)
       {
          len = ossSnprintf( outBuf, outSize,
                             "Error: dumpDictExtentHeader input size (%d) is "
@@ -1129,11 +1211,17 @@ namespace engine
    UINT32 _dmsDump::dumpExtOptExtentHeader( void *inBuf, UINT32 inSize,
                                             CHAR * outBuf, UINT32 outSize )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len = 0 ;
       dmsOptExtent *extent = (dmsOptExtent *)inBuf ;
 
-      if ( NULL == inBuf || NULL == outBuf
-           ||  inSize < DMS_DICTEXTENT_HEADER_SZ)
+      if ( NULL == outBuf )
+      {
+         goto exit ;
+      }
+
+      if ( NULL == inBuf || inSize < DMS_DICTEXTENT_HEADER_SZ)
       {
          len = ossSnprintf( outBuf, outSize,
                             "Error: dumpExtOptExtentHeader input size (%d) "
@@ -1156,10 +1244,20 @@ namespace engine
                                        set< dmsRecordID > *ridList,
                                        pmdEDUCB *cb )
    {
+      SDB_ASSERT( inBuf, "inBuf can't be null" ) ;
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len = 0 ;
       dmsExtent *extent = (dmsExtent *)inBuf ;
-      dmsOffset nextRecord = extent->_firstRecordOffset ;
+      dmsOffset nextRecord = 0 ;
       INT32 recordCount = 0 ;
+
+      if ( NULL == inBuf || NULL == outBuf )
+      {
+         goto exit ;
+      }
+
+      nextRecord = extent->_firstRecordOffset ;
 
       while ( DMS_INVALID_OFFSET != nextRecord && len < outSize )
       {
@@ -1192,13 +1290,21 @@ namespace engine
                                        dmsCompressorEntry *compressorEntry,
                                        pmdEDUCB *cb )
    {
+      SDB_ASSERT( cb, "cb can't be null" ) ;
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len = 0 ;
-      dmsExtent *extent = (dmsExtent *)inBuf ;
-      dmsOffset nextRecord = extent->_firstRecordOffset ;
-      dmsOffset lastRecord = extent->_lastRecordOffset ;
+      dmsExtent *extent = NULL ;
+      dmsOffset nextRecord = 0 ;
+      dmsOffset lastRecord = 0 ;
       INT32 recordCount = 0 ;
 
-      if ( NULL == inBuf || NULL == outBuf || inSize < sizeof(dmsCappedRecord) )
+      if ( NULL == outBuf || NULL == cb )
+      {
+         goto exit ;
+      }
+
+      if ( NULL == inBuf || inSize < sizeof(dmsCappedRecord) )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpCappedDataRecord input size (%d) "
@@ -1207,6 +1313,10 @@ namespace engine
          nextRecord = DMS_INVALID_OFFSET ;
          goto exit ;
       }
+
+      extent = (dmsExtent *)inBuf ;
+      nextRecord = extent->_firstRecordOffset ;
+      lastRecord = extent->_lastRecordOffset ;
 
       while ( DMS_INVALID_OFFSET != nextRecord && len < outSize )
       {
@@ -1297,19 +1407,24 @@ namespace engine
                                     dmsCompressorEntry *compressorEntry,
                                     set< dmsRecordID > *ridList )
    {
-      INT32 rc = SDB_OK ;
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
       SDB_ASSERT ( cb, "cb can't be NULL" ) ;
+
+      INT32 rc = SDB_OK ;
       UINT32 len        = 0 ;
       dmsRecord *record = (dmsRecord*)inBuf ;
-
       CHAR flag         = 0 ;
       UINT32 recordSize = 0 ;
-
       CHAR      flagText [DMS_DUMP_DATA_RECORD_FLAG_TEXT_LEN+1] = {0} ;
       BOOLEAN   isOvf   = FALSE ;
       BOOLEAN   isDel   = FALSE ;
 
-      if ( NULL == inBuf || NULL == outBuf || inSize < sizeof(dmsRecord) )
+      if ( NULL == outBuf || NULL == cb  )
+      {
+         goto exit ;
+      }
+
+      if ( NULL == inBuf || inSize < sizeof(dmsRecord) )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpDataRecord input size (%d) "
@@ -1462,11 +1577,19 @@ namespace engine
                                           UINT32 outSize,
                                           dmsCompressorEntry *compressorEntry )
    {
-      INT32 rc = SDB_OK ;
       SDB_ASSERT ( cb, "cb can't be NULL" ) ;
+      SDB_ASSERT ( record, "record can't be NULL" ) ;
+      SDB_ASSERT ( outBuf, "outBuf can't be NULL" ) ;
+
+      INT32 rc = SDB_OK ;
       UINT32 len = 0 ;
       CHAR flag = 0 ;
       CHAR flagText [DMS_DUMP_DATA_RECORD_FLAG_TEXT_LEN+1] = {0} ;
+
+      if ( NULL == cb || NULL == record || NULL == outBuf )
+      {
+         goto exit ;
+      }
 
       flag = record->getFlag() ;
       if ( record->isNormal() && record->getLogicalID() >= 0 )
@@ -1546,11 +1669,18 @@ namespace engine
                                      deque< dmsExtentID > &childExtents,
                                      BOOLEAN dumpIndexKey )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len           = 0 ;
       UINT32 hexDumpOption = 0 ;
       ixmExtentHead *extentHead = (ixmExtentHead*)inBuf ;
 
-      if ( NULL == inBuf || NULL == outBuf || inSize < sizeof(ixmExtentHead) ||
+      if ( NULL == outBuf )
+      {
+         goto exit ;
+      }
+
+      if ( NULL == inBuf || inSize < sizeof(ixmExtentHead) ||
            inSize % DMS_PAGE_SIZE4K != 0 )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
@@ -1656,10 +1786,17 @@ namespace engine
    UINT32 _dmsDump::dumpIndexExtentHeader( void *inBuf, UINT32 inSize,
                                            CHAR *outBuf, UINT32 outSize )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len           = 0 ;
       ixmExtentHead *header=(ixmExtentHead*)inBuf ;
 
-      if ( NULL == inBuf || NULL == outBuf || inSize < sizeof(ixmExtentHead) )
+      if ( NULL == outBuf )
+      {
+         goto exit ;
+      }
+
+      if ( NULL == inBuf || inSize < sizeof(ixmExtentHead) )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpIndexExtentHeader input size (%d) "
@@ -1708,11 +1845,19 @@ namespace engine
                                      CHAR *outBuf, UINT32 outSize,
                                      UINT32 keyOffset )
    {
+      SDB_ASSERT ( inBuf, "inBuf can't be NULL" ) ;
+      SDB_ASSERT ( outBuf, "outBuf can't be NULL" ) ;
+
       UINT32 len = 0 ;
       dmsExtentID left ;
       dmsRecordID rid ;
       UINT16 keyOfst ;
       ixmKeyNode *keyNode = NULL ;
+
+      if ( NULL == outBuf || NULL == inBuf )
+      {
+         goto exit ;
+      }
 
       if ( keyOffset > inSize )
       {
@@ -1779,11 +1924,18 @@ namespace engine
    UINT32 _dmsDump::dumpIndexCBExtentHeader( void *inBuf, UINT32 inSize,
                                              CHAR *outBuf, UINT32 outSize )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len           = 0 ;
       ixmIndexCBExtent *header = (ixmIndexCBExtent*)inBuf ;
       CHAR tmpBuff [ DMS_DUMP_IXM_CB_FLAG_TEXT_LEN + 1 ] = {0} ;
 
-      if ( NULL == inBuf || NULL == outBuf ||
+      if ( NULL == outBuf )
+      {
+         goto exit ;
+      }
+
+      if ( NULL == inBuf ||
            inSize < sizeof(ixmIndexCBExtent) || inSize % DMS_PAGE_SIZE4K != 0 )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
@@ -1825,12 +1977,12 @@ namespace engine
                            "  Logical ID     : %d" OSS_NEWLINE,
                            header->_logicID ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Root Ext    : 0x%08x (%d)" OSS_NEWLINE,
+                           "    Root Ext     : 0x%08x (%d)" OSS_NEWLINE,
                            header->_rootExtentID, header->_rootExtentID ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "Scan extent LID : 0x%08x (%d)" OSS_NEWLINE,
+                           "Scan extent LID  : 0x%08x (%d)" OSS_NEWLINE,
                            header->_scanExtLID, header->_scanExtLID ) ;
-      ossStrncpy ( tmpBuff, getIndexTypeDesp(header->_type).c_str(),
+      ossStrncpy ( tmpBuff, ixmGetIndexTypeDesp(header->_type).c_str(),
                    DMS_DUMP_IXM_CB_FLAG_TEXT_LEN ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
                            "     Type       : %d (%s)" OSS_NEWLINE,
@@ -1859,11 +2011,18 @@ namespace engine
                                        CHAR *addrPrefix, UINT32 options,
                                        dmsExtentID &root )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len           = 0 ;
       UINT32 hexDumpOption = 0 ;
       ixmIndexCBExtent *extent = (ixmIndexCBExtent*)inBuf ;
 
-      if ( NULL == inBuf || NULL == outBuf ||
+      if ( NULL == outBuf )
+      {
+         goto exit ;
+      }
+
+      if ( NULL == inBuf ||
            inSize < sizeof(ixmIndexCBExtent) || inSize % DMS_PAGE_SIZE4K != 0 )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
@@ -1913,8 +2072,16 @@ UINT32 _dmsDump::dumpDmsLobMeta( CHAR *inBuf, UINT32 inSize,
                                  CHAR * outBuf,UINT32 outSize,
                                  CHAR * addrPrefix, UINT32 options )
 {
+   SDB_ASSERT( inBuf, "inBuf can't be null" ) ;
+   SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
    UINT32 len           = 0 ;
    UINT32 hexDumpOption = 0 ;
+
+   if ( NULL == inBuf || NULL == outBuf )
+   {
+      return len ;
+   }
 
    if ( DMS_SU_DMP_OPT_HEX & options )
    {
@@ -1929,7 +2096,6 @@ UINT32 _dmsDump::dumpDmsLobMeta( CHAR *inBuf, UINT32 inSize,
       len += ossHexDumpBuffer(inBuf, inSize, outBuf+len, outSize-len,
                             addrPrefix, hexDumpOption ) ;
    }
-
 
    if ( DMS_SU_DMP_OPT_FORMATTED & options )
    {
@@ -2004,8 +2170,16 @@ UINT32 _dmsDump::dumpDmsLobData( CHAR *inBuf, UINT32 inSize,
                                  CHAR * outBuf, UINT32 outSize,
                                  CHAR * addrPrefix, UINT32 options )
 {
+   SDB_ASSERT( inBuf, "inBuf can't be null" ) ;
+   SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
    UINT32 len           = 0 ;
    UINT32 hexDumpOption = 0 ;
+
+   if ( NULL == inBuf || NULL == outBuf )
+   {
+      return len ;
+   }
 
    len += ossSnprintf(outBuf + len, outSize -len, "Lobd Data:") ;
 
@@ -2023,7 +2197,6 @@ UINT32 _dmsDump::dumpDmsLobData( CHAR *inBuf, UINT32 inSize,
                             addrPrefix, hexDumpOption ) ;
    }
 
-
    if ( DMS_SU_DMP_OPT_FORMATTED & options )
    {
       ///TODO:dump record
@@ -2034,13 +2207,20 @@ UINT32 _dmsDump::dumpDmsLobData( CHAR *inBuf, UINT32 inSize,
 
 }
 
-
 UINT32 _dmsDump::dumpDmsLobDataMapBlk(dmsLobDataMapBlk *blk, CHAR * outBuf,
                               UINT32 outSize, CHAR * addrPrefix,
                               UINT32 options, UINT32 pageSize)
 {
+   SDB_ASSERT( blk, "blk can't be null" ) ;
+   SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
    UINT32 len           = 0 ;
    UINT32 hexDumpOption = 0 ;
+
+   if ( NULL == blk || NULL == outBuf )
+   {
+      return len ;
+   }
 
    if ( DMS_SU_DMP_OPT_HEX & options )
    {

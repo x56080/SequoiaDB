@@ -60,6 +60,42 @@ namespace engine
 {
 
    /*
+      _stpConfigHandle define
+    */
+   class _stpConfigHandle : public _IConfigHandle
+   {
+   public:
+      _stpConfigHandle( IControlBlock *cb )
+      : _cb( cb )
+      {
+      }
+
+      virtual ~_stpConfigHandle()
+      {
+      }
+
+      virtual void onConfigChange( UINT32 changeID )
+      {
+         _cb->onConfigChange() ;
+      }
+
+      virtual void onConfigSave()
+      {
+         _cb->onConfigSave() ;
+      }
+
+      virtual INT32 onConfigInit()
+      {
+         return SDB_OK ;
+      }
+
+   protected:
+      IControlBlock * _cb ;
+   } ;
+
+   typedef class _stpConfigHandle stpConfigHandle ;
+
+   /*
       _stpCB define
     */
    // _stpCB is control block of STP
@@ -214,6 +250,8 @@ namespace engine
       // callback on role change
       INT32 onChangeRole( STP_ROLE role ) ;
 
+      virtual void onTimer( UINT64 timerID, UINT32 interval ) ;
+
    protected:
       // register module
       INT32 _registerModule( stpModule *module ) ;
@@ -239,6 +277,8 @@ namespace engine
    protected:
       // options from config file
       stpOptions           _options ;
+      // config handler
+      stpConfigHandle      _configHandler ;
       // net manager
       stpNetManager        _netManager ;
       // pipe manager ( owned by STP )
@@ -265,10 +305,9 @@ namespace engine
       // register all modules ( node manager, etc), into module list, and
       // call initialize, active functions by iterating module list
       STP_MODULE_LIST      _moduleList ;
-   } ;
 
-   // get STP control block
-   STPCB *stpGetSTPCB() ;
+      UINT64               _checkTimeout ;
+   } ;
 
 }
 

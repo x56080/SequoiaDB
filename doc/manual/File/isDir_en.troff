@@ -62,7 +62,7 @@ Determine if it is a directory.
 .IP
 .nf
 \f[C]
->\ File.isFile(\ "/opt/sequoiadb"\ )
+> File.isFile( "/opt/sequoiadb" )
 true
 \f[]
 .fi

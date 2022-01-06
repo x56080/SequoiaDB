@@ -137,10 +137,10 @@ Docker环境部署SequoiaDB
    docker exec -it coord_catalog /bin/bash
    ```
 
- - 切换 sdbamdin 用户（sdbadmin 用户密码为 sdbadmin）
+ - 切换 sdbamdin 用户（sdbadmin 用户密码为 Admin@1024）
 
    ```lang-bash
-   su – sdbadmin
+   su - sdbadmin
    ```
 
  - 查看编目节点和协调节点列表

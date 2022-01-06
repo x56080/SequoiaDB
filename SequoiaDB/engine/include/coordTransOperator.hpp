@@ -110,7 +110,7 @@ namespace engine
          INT32         beginTrans( pmdEDUCB *cb,
                                    BOOLEAN isAutoCommit = FALSE ) ;
 
-         INT32         addAllGroups( pmdEDUCB *cb ) ;
+         INT32         addAllGroups( pmdEDUCB *cb, BOOLEAN isWrite = FALSE) ;
 
          virtual INT32 execute( MsgHeader *pMsg,
                                 pmdEDUCB *cb,
@@ -189,6 +189,10 @@ namespace engine
          virtual void    releaseCompactMsg( CHAR *pMsg,
                                             INT32 msgSize,
                                             pmdEDUCB *cb ) = 0 ;
+
+      protected:
+         UINT64 _preCommitTimeUS ;
+         UINT64 _commitTimeUS ;
    } ;
    typedef _coord2PhaseCommit coord2PhaseCommit ;
 

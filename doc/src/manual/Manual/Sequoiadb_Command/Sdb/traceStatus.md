@@ -48,33 +48,33 @@ v2.0 及以上版本
 
 * 开启数据库引擎程序跟踪的功能
 
-   ```lang-javascript
-   > db.traceOn( 100, new SdbTraceOption().components( "dms" ).functionNames( "_dmsStorageUnit::insertRecord" ).threadTypes( "RestListener" ) )
-   ```
+    ```lang-javascript
+    > db.traceOn( 100, new SdbTraceOption().components( "dms" ).functionNames( "_dmsStorageUnit::insertRecord" ).threadTypes( "RestListener" ) )
+    ```
 
 * 查看当前程序跟踪的状态：
 
-   ```lang-javascript
-   > db.traceStatus()
-   {
-     "TraceStarted": true,
-     "Wrapped": false,
-     "Size": 104857600,
-     "FreeSize": 104857600,
-     "PadSize": 0,
-     "Mask": [
-       "dms"
-     ],
-     "BreakPoint": [],
-     "Threads": [],
-     "ThreadTypes": [
-       "RestListener"
-     ],
-     "FunctionNames": [
-       "_dmsStorageUnit::insertRecord"
-     ]
-   }
-   ```
+    ```lang-javascript
+    > db.traceStatus()
+    {
+      "TraceStarted": true,
+      "Wrapped": false,
+      "Size": 104857600,
+      "FreeSize": 104857600,
+      "PadSize": 0,
+      "Mask": [
+        "dms"
+      ],
+      "BreakPoint": [],
+      "Threads": [],
+      "ThreadTypes": [
+        "RestListener"
+      ],
+      "FunctionNames": [
+        "_dmsStorageUnit::insertRecord"
+      ]
+    }
+    ```
 
 
 
@@ -83,4 +83,4 @@ v2.0 及以上版本
 [option]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects/SdbTraceOption.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[faq]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md

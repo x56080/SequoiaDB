@@ -640,12 +640,10 @@ namespace engine
 
       // make sure to commit meta-block statistics
       // NOTE: actually it is empty
-      cb->getTransExecutor()->commitMBStats() ;
+      cb->getTransExecutor()->commitMBStats( commitTime ) ;
 
       cb->resetTransID() ;
       cb->setCurTransLsn( DPS_INVALID_LSN_OFFSET ) ;
-      // clear all lsn mapping
-      cb->getTransExecutor()->clearRecordMap() ;
       // release all transactions lock
       _transCB->transLockReleaseAll( cb ) ;
       // reduce the reservedLogSpace from dps for the transaction

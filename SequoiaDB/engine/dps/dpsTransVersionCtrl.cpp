@@ -1609,7 +1609,21 @@ namespace engine
          latchX() ;
       }
 
-      ret = _idxTrees.insert( IDXID_TO_TREE_MAP_PAIR( gid, tmpTreePtr ) ) ;
+      try
+      {
+         ret = _idxTrees.insert( IDXID_TO_TREE_MAP_PAIR( gid, tmpTreePtr ) ) ;
+      }
+      catch ( exception &e )
+      {
+         if ( !hasLock )
+         {
+            releaseX() ;
+         }
+         PD_LOG( PDERROR, "Failed to add index tree, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
 
       if ( !hasLock )
       {
@@ -1945,8 +1959,23 @@ namespace engine
          latchX() ;
       }
 
-      ret = _mapOldVersionUnit.insert( MAP_OLDVERION_UNIT_PAIR( keyID,
-                                                                tmpUnitPtr ) ) ;
+      try
+      {
+         ret = _mapOldVersionUnit.insert(
+                              MAP_OLDVERION_UNIT_PAIR( keyID,
+                                                       tmpUnitPtr ) ) ;
+      }
+      catch ( exception &e )
+      {
+         if ( !hasLock )
+         {
+            releaseX() ;
+         }
+         PD_LOG( PDERROR, "Failed to add old version unit, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
 
       if ( !hasLock )
       {

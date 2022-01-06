@@ -426,6 +426,45 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__GETRECPOS, "_dmsStorageDataCapped::_getRecordPosition" )
+   INT32 _dmsStorageDataCapped::_getRecordPosition( const dmsRecordID &rid,
+                                                    const dmsRecordData &recordData,
+                                                    INT64 &position )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__GETRECPOS ) ;
+
+      _extLidAndOffset2RecLid( rid._extent, rid._offset, position ) ;
+
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__GETRECPOS, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__CHKMARKINST, "_dmsStorageDataCapped::_checkMarkInsert" )
+   INT32 _dmsStorageDataCapped::_checkMarkInsert( dmsMBContext *context,
+                                                  const DPS_TRANS_ID &transID,
+                                                  const BSONObj &insertObj,
+                                                  pmdEDUCB *cb,
+                                                  INT64 &position,
+                                                  BOOLEAN &markInsert,
+                                                  dmsRecordID &foundRID,
+                                                  dmsRecordData &recordData,
+                                                  dmsRecordRW &recordRW )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__CHKMARKINST ) ;
+
+      // don't support mark insert
+      markInsert = FALSE ;
+
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__CHKMARKINST, rc ) ;
+
+      return rc ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__FINALRECORDSIZE, "_dmsStorageDataCapped::_finalRecordSize" )
    void _dmsStorageDataCapped::_finalRecordSize( UINT32 &size,
                                                  const dmsRecordData &recordData )
@@ -696,7 +735,8 @@ namespace engine
    INT32 _dmsStorageDataCapped::extractData( const dmsMBContext *mbContext,
                                              const dmsRecordRW &recordRW,
                                              pmdEDUCB *cb,
-                                             dmsRecordData &recordData )
+                                             dmsRecordData &recordData,
+                                             BOOLEAN needIncDataRead )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED_EXTRACTDATA ) ;
@@ -790,7 +830,11 @@ namespace engine
          recordData.setData( buffer, totalLen, FALSE, FALSE ) ;
 #endif
       }
-      DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_READ, 1 ) ;
+      if( needIncDataRead )
+      {
+         DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_READ, 1 ) ;
+      }
+
       DMS_MON_OP_COUNT_INC( pMonAppCB, MON_READ, 1 ) ;
 
    done:
@@ -1130,7 +1174,8 @@ namespace engine
                                                      const dmsRecordData &recordData,
                                                      UINT32 recordSize,
                                                      pmdEDUCB *cb,
-                                                     BOOLEAN isInsert )
+                                                     BOOLEAN isInsert,
+                                                     const dmsTransRecordInfo *recordInfo )
    {
       INT32            rc          = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__EXTENTINSERTRECORD ) ;
@@ -1159,11 +1204,15 @@ namespace engine
       pRecord = recordRW.writePtr<dmsCappedRecord>( recordSize ) ;
       // Set the record information. Logical id will be added in setData.
       pRecord->setNormal() ;
-      pRecord->resetAttr() ;
+      pRecord->resetAttr( _mvccSupport ) ;
       pRecord->setSize( recordSize ) ;
       pRecord->setRecordNo( workExtInfo->currentRecNo() + 1 ) ;
-      // setup global transaction id
-      pRecord->setGlobTransID( transID ) ;
+
+      if ( _mvccSupport )
+      {
+         // setup global transaction id
+         pRecord->setGlobTransID( transID ) ;
+      }
 
       {
          // Force set the logical id in the record. Logical id is always at the
@@ -1221,7 +1270,8 @@ namespace engine
                                                       IDmsOprHandler *pHandler,
                                                       utilUpdateResult *pResult,
                                                       dpsUnqIdxHashArray *pNewUnqIdxHashArray,
-                                                      dpsUnqIdxHashArray *pOldUnqIdxHashArray )
+                                                      dpsUnqIdxHashArray *pOldUnqIdxHashArray,
+                                                      const ixmIdxHashBitmap &idxHashBitmap )
    {
       SDB_ASSERT( FALSE, "Should not be here" ) ;
       return SDB_OPERATION_INCOMPATIBLE ;
@@ -1233,7 +1283,8 @@ namespace engine
                                                      dmsExtRW &extRW,
                                                      dmsRecordRW &recordRW,
                                                      pmdEDUCB *cb,
-                                                     BOOLEAN decCount )
+                                                     BOOLEAN decCount,
+                                                     const dmsTransRecordInfo *recordInfo )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__EXTENTREMOVERECORD ) ;
@@ -1297,7 +1348,8 @@ namespace engine
                                                dmsRecordID rid,
                                                SDB_DPSCB *dpscb,
                                                ossValuePtr dataPtr,
-                                               pmdEDUCB *cb )
+                                               pmdEDUCB *cb,
+                                               const dmsTransRecordInfo *pInfo )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__ONINSERTFAIL ) ;

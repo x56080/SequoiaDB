@@ -100,7 +100,7 @@ Open an INI file.
 .IP
 .nf
 \f[C]
->\ var\ ini\ =\ new\ IniFile(\ "/opt/sequoiadb/file.ini",\ SDB_INIFILE_FLAGS_DEFAULT\ )
+> var ini = new IniFile( "/opt/sequoiadb/file.ini", SDB_INIFILE_FLAGS_DEFAULT )
 \f[]
 .fi
 .IP \[bu] 2
@@ -108,6 +108,6 @@ Delete the comment for the specified item.
 .IP
 .nf
 \f[C]
->\ ini.delComment(\ "info",\ "name"\ )
+> ini.delComment( "info", "name" )
 \f[]
 .fi

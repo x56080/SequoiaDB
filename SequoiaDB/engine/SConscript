@@ -120,7 +120,7 @@ pmdFiles = [
       "pmd/pmdOptionsParse.cpp",
       "pmd/pmdDummySession.cpp",
       "pmd/pmdVesselEDU.cpp",
-
+      "pmd/pmdRemoteConnection.cpp",
       "sched/schedDef.cpp",
       "sched/schedTaskQue.cpp",
       "sched/schedTaskContainer.cpp",
@@ -210,6 +210,8 @@ utilFiles = [
       "util/utilAuthSCRAMSHA.cpp",
       "util/utilFullNameParser.cpp",
       "util/utilCRC.cpp"
+      "util/utilAddress.cpp",
+      "util/utilDataSource.cpp"
       ]
 
 rtnFiles = [
@@ -309,6 +311,7 @@ rtnFiles = [
       "rtn/rtnCSHandlers.cpp",
       "rtn/rtnCLHandlers.cpp",
       "rtn/rtnDMLHandlers.cpp"
+      "rtn/rtnDetectDeadlock.cpp"
       ]
 
 msgFiles = [
@@ -349,6 +352,7 @@ dmsFiles = [
       "dms/dmsLobDirectInBuffer.cpp",
       "dms/dmsLobDirectOutBuffer.cpp",
       "dms/dmsIndexBuilder.cpp",
+      "dms/dmsTaskStatus.cpp",
       "dms/dmsIndexBuilderImpl.cpp",
       "dms/dmsStatSUMgr.cpp",
       "dms/dmsStatUnit.cpp",
@@ -366,7 +370,8 @@ ixmFiles = [
       "ixm/ixmKey.cpp",
       "ixm/ixmIndexKey.cpp",
       "ixm/ixmExtent.cpp",
-      "ixm/ixm_common.cpp"
+      "ixm/ixm_common.cpp",
+      "ixm/ixmUtil.cpp"
       ]
 mthFiles = [
       "mth/mthMatchNode.cpp",
@@ -489,7 +494,8 @@ clsFiles = [
       "cls/clsAdapterJob.cpp",
       "cls/clsMainCLMonAggregator.cpp",
       "cls/clsRemoteOperator.cpp",
-      "cls/clsResourceContainer.cpp"
+      "cls/clsResourceContainer.cpp",
+      "cls/clsIndexJob.cpp"
       ]
 
 dpsFiles = [
@@ -514,7 +520,8 @@ dpsFiles = [
       "dps/dpsArchiveInfo.cpp",
       "dps/dpsArchiveFile.cpp",
       "dps/dpsArchiveFileMgr.cpp",
-      "dps/dpsUtil.cpp"
+      "dps/dpsUtil.cpp",
+      "dps/dpsDeadlockDetector.cpp"
       ]
 
 omsvcFiles = [
@@ -541,6 +548,7 @@ omsvcFiles = [
       "omsvc/omConfigSsqlOlap.cpp",
       "omsvc/omConfigPostgreSQL.cpp",
       "omsvc/omConfigMySQL.cpp",
+      "omsvc/omConfigMariaDB.cpp",
       "omsvc/omSdbAdaptor.cpp",
       "omsvc/omStrategyObserverJob.cpp"
       ]
@@ -564,7 +572,6 @@ catFiles = [
       "cat/catCatalogManager.cpp",
       "cat/catDCManager.cpp",
       "cat/catLevelLock.cpp",
-      "cat/catSplit.cpp",
       "cat/catDCLogMgr.cpp",
       "cat/catContext.cpp",
       "cat/catContextData.cpp",
@@ -577,7 +584,9 @@ catFiles = [
       "cat/catSequence.cpp",
       "cat/catSequenceManager.cpp",
       "cat/catCMDBase.cpp",
-      "cat/catGlobTransManager.cpp"
+      "cat/catGlobTransManager.cpp",
+      "cat/catCommand.cpp",
+      "cat/catTask.cpp"
       ]
 
 coordFiles = [
@@ -632,7 +641,15 @@ coordFiles = [
       "coord/coordSequenceAgent.cpp",
       "coord/coordCommandSequence.cpp",
       "coord/coordGTSAgent.cpp",
-      "coord/coordSequenceOperator.cpp"
+      "coord/coordSequenceOperator.cpp",
+      "coord/coordDataSource.cpp",
+      "coord/coordCommandDataSource.cpp",
+      "coord/coordSdbDataSource.cpp",
+      "coord/coordRemoteMsgHandler.cpp",
+      "coord/coordDSMsgConvertor.cpp",
+      "coord/coordRemoteConnection.cpp",
+      "coord/coordDSChecker.cpp",
+      "coord/coordCacheAssist.cpp"
       ]
 
 aggrFiles = [
@@ -814,6 +831,18 @@ clsTestFiles = [
       ]
 ixmgenTestFiles = [
       "test/ixmgen/generator.cpp"
+      ]
+idxHashTestFiles = [
+      "test/ixmgen/idxHashTest.cpp"
+      ]
+rtnContextTestFiles = [
+      "test/rtn/rtnContextTest.cpp"
+      ]
+mthUpdateTestFiles = [
+      "test/mth/mthUpdateTest.cpp"
+      ]
+bsonBuilderTestFiles = [
+      "test/bson/bsonBuilderTest.cpp"
       ]
 gtsTestFiles = [
       "test/dps/dpsGTSTest.cpp"
@@ -1150,6 +1179,9 @@ env.StaticLibrary('vessel_unit_test_common', vesselUnitTestCommonFiles)
 #cataloguetest = env.Object('cataloguetest', gtestMainFile)
 clstest = env.Object('clstest', gtestMainFile)
 ixmgentest = env.Object('ixmgentest', gtestMainFile)
+rtncontexttest = env.Object('rtncontexttest', gtestMainFile)
+mthtest = env.Object('mthtest', gtestMainFile)
+bsonbuildertest = env.Object('bsonbuildertest', gtestMainFile)
 gtstest = env.Object( 'gtstest', gtestMainFile )
 sqltest2 = env.Object('sqltest2', gtestMainFile)
 #sqltest3 = env.Object('sqltest3', gtestMainFile)
@@ -1258,6 +1290,18 @@ if hasTestcase:
    gtsTest = env.Program("gtsTest", [ gtsTestFiles, gtstest],
           LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel","zstd","bzip2"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
+   idxHashTest = env.Program("idxHashTest", [ idxHashTestFiles, ixmgentest ],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
+          _LIBDEPS='$_LIBDEPS_OBJS' )
+   rtnContextTest = env.Program("rtnContextTest", [ rtnContextTestFiles, rtncontexttest ],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
+          _LIBDEPS='$_LIBDEPS_OBJS' )
+   mthUpdateTest = env.Program("mthUpdateTest", [ mthUpdateTestFiles, mthtest ],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
+          _LIBDEPS='$_LIBDEPS_OBJS' )
+   bsonBuilderTest = env.Program( "bsonBuilderTest", [ bsonBuilderTestFiles, bsonbuildertest ],
+          LIBDEPS=[ "qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient" ],
+          _LIBDEPS='$_LIBDEPS_OBJS' )
    sqlTest2 = env.Program("sqlTest2", [ sqlTest2Files, sqltest2],
           LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel","zstd","bzip2"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
@@ -1334,6 +1378,10 @@ if hasTestcase:
 #   env.Install( '#/tests', npipeClientTest )
    env.Install( '#/tests', clsTest )
    env.Install( '#/tests', ixmgenTest )
+   env.Install( '#/tests', idxHashTest )
+   env.Install( '#/tests', rtnContextTest )
+   env.Install( '#/tests', mthUpdateTest )
+   env.Install( '#/tests', bsonBuilderTest )
    env.Install( '#/tests', gtsTest )
    env.Install( '#/tests', construct )
    env.Install( '#/tests', sqlTest2 )

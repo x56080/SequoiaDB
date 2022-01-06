@@ -119,7 +119,7 @@ class TestDataNode12498(testlib.SdbTestBase):
          data1.drop_collection_space(cs_name)
       except SDBBaseError as e:
          if -33 != e.code and  -34 != e.code:
-            self.fail("create and drop cs fail: " + e.detail)   
+            self.fail("create and drop cs fail: " + str(e))
       
       # remove node
       host_name = rg_slave.get_hostname();
@@ -131,7 +131,7 @@ class TestDataNode12498(testlib.SdbTestBase):
          self.fail("remove node fail")
       except SDBBaseError as e:
          if -155 != e.code:
-            self.fail("remove node fail: " + e.detail) 
+            self.fail("remove node fail: " + str(e))
            
       # remove group
       self.db.remove_replica_group(self.data_rg_name)
@@ -146,6 +146,5 @@ class TestDataNode12498(testlib.SdbTestBase):
          self.db.disconnect()
       except SDBBaseError as e:
          if -154 != e.code:
-            print(e.detail)
-            self.fail("tear_down_fail")
+            self.fail("tear_down_fail:" + str(e))
           

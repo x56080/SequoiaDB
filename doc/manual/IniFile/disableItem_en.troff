@@ -79,7 +79,7 @@ Open an INI file.
 .IP
 .nf
 \f[C]
->\ var\ ini\ =\ new\ IniFile(\ "/opt/sequoiadb/file.ini",\ SDB_INIFILE_FLAGS_DEFAULT\ )
+> var ini = new IniFile( "/opt/sequoiadb/file.ini", SDB_INIFILE_FLAGS_DEFAULT )
 \f[]
 .fi
 .IP \[bu] 2
@@ -87,6 +87,6 @@ Comment the specified item.
 .IP
 .nf
 \f[C]
->\ ini.disableItem(\ "info",\ "name"\ )
+> ini.disableItem( "info", "name" )
 \f[]
 .fi

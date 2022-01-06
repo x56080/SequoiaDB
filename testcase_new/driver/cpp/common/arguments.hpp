@@ -31,6 +31,10 @@ public:
    const CHAR* rsrvNodeDir() ;
    const CHAR* workDir() ;
 
+   const CHAR* dsHostName() ;
+   const CHAR* dsSvcName() ;
+   const CHAR* dsCoordUrl() ;
+
    BOOLEAN forceClear() ;
 
    void print() ;
@@ -49,6 +53,10 @@ private:
    CHAR _rsrvPortEnd[ MAX_ARG_LEN ] ;
    CHAR _rsrvNodeDir[ MAX_ARG_LEN ] ;
    CHAR _workDir[ MAX_ARG_LEN ] ;
+
+   CHAR _dsHostName[ MAX_ARG_LEN ] ;
+   CHAR _dsSvcName[ MAX_ARG_LEN ] ;
+   CHAR _dsCoordUrl[ MAX_ARG_LEN ] ;
 
    BOOLEAN _forceClear ;
 

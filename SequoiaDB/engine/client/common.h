@@ -131,6 +131,13 @@ INT32 clientBuildQueryMsgCpp  ( CHAR **ppBuffer, INT32 *bufferSize,
                                 const CHAR *hint,
                                 BOOLEAN endianConvert ) ;
 
+INT32 clientBuildAdvanceMsgCpp ( CHAR **ppBuffer, INT32 *bufferSize,
+                                 INT64 contextID, UINT64 reqID,
+                                 const CHAR *option,
+                                 const CHAR *pBackData,
+                                 INT32 backDataSize,
+                                 BOOLEAN endianConvert ) ;
+
 INT32 clientBuildDeleteMsgCpp ( CHAR **ppBuffer, INT32 *bufferSize,
                                 const CHAR *CollectionName,
                                 SINT32 flag, UINT64 reqID,
@@ -220,6 +227,13 @@ INT32 clientBuildQueryMsg  ( CHAR **ppBuffer, INT32 *bufferSize,
                              const bson *query, const bson *fieldSelector,
                              const bson *orderBy, const bson *hint,
                              BOOLEAN endianConvert ) ;
+
+INT32 clientBuildAdvanceMsg ( CHAR **ppBuffer, INT32 *bufferSize,
+                              INT64 contextID, UINT64 reqID,
+                              const bson *option,
+                              const CHAR *pBackData,
+                              INT32 backDataSize,
+                              BOOLEAN endianConvert ) ;
 
 INT32 clientBuildDeleteMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                              const CHAR *CollectionName,

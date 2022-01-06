@@ -1,7 +1,10 @@
+##名称##
+
+list - 列出当前目录的文件
 
 ##语法##
 
-***File.list( \[options\], \[filter\] )***
+**File.list(\[options\],\[filter\])**
 
 ##类别##
 
@@ -34,51 +37,56 @@ options 参数详细说明如下：
 
 ##错误##
 
-如果出错则抛异常，并输出错误信息，可以通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误码。关于错误处理可以参考[常见错误处理指南](manual/faq.md)。
+如果出错则抛异常，并输出错误信息，可以通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误码。关于错误处理可以参考[常见错误处理指南](manual/FAQ/faq_sdb.md)。
 
 常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
 
+##版本##
+
+v3.2 及以上版本
+
 ##示例##
 
-* 列出当前目录的文件；
-  ```lang-javascript
-  > File.list( { detail: true, pathname: "/opt/sequoiadb" } )
-  {
-      "name": "file1.txt",
-      "size": "20480",
-      "mode": "drwxr-xr-x",
-      "user": "root",
-      "group": "root",
-      "lasttime": "6月 11 11:58"
-  }
-  {
-      "name": "file2.txt",
-      "size": "20480",
-      "mode": "drwxr-xr-x",
-      "user": "root",
-      "group": "root",
-      "lasttime": "6月 12 12:58"
-  }
-  {
-      "name": "file3.txt",
-      "size": "20480",
-      "mode": "drwxr-xr-x",
-      "user": "root",
-      "group": "root",
-      "lasttime": "6月 13 13:58"
-  }
-  ```
+* 列出当前目录的文件
 
-* 列出当前目录的文件后，对结果进行筛选。
+    ```lang-javascript
+    > File.list( { detail: true, pathname: "/opt/sequoiadb" } )
+    {
+        "name": "file1.txt",
+        "size": "20480",
+        "mode": "drwxr-xr-x",
+        "user": "root",
+        "group": "root",
+        "lasttime": "6月 11 11:58"
+    }
+    {
+        "name": "file2.txt",
+        "size": "20480",
+        "mode": "drwxr-xr-x",
+        "user": "root",
+        "group": "root",
+        "lasttime": "6月 12 12:58"
+    }
+    {
+        "name": "file3.txt",
+        "size": "20480",
+        "mode": "drwxr-xr-x",
+        "user": "root",
+        "group": "root",
+        "lasttime": "6月 13 13:58"
+    }
+    ```
 
-  ```lang-javascript
-  > File.list( { detail: true, pathname: "/opt/sequoiadb" }, { $and: [ { name: "file1" }, { size: "20480" } ] } )
-  {
-      "name": "file1.txt",
-      "size": "20480",
-      "mode": "drwxr-xr-x",
-      "user": "root",
-      "group": "root",
-      "lasttime": "6月 13 13:58"
-  }
-  ```
+* 列出当前目录的文件后，对结果进行筛选
+
+    ```lang-javascript
+    > File.list( { detail: true, pathname: "/opt/sequoiadb" }, { $and: [ { name: "file1" }, { size: "20480" } ] } )
+    {
+        "name": "file1.txt",
+        "size": "20480",
+        "mode": "drwxr-xr-x",
+        "user": "root",
+        "group": "root",
+        "lasttime": "6月 13 13:58"
+    }
+    ```

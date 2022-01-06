@@ -290,6 +290,11 @@ namespace engine
       return CLS_SYNC_DTF_STRATEGY ;
    }
 
+   BOOLEAN _stpReplManager::getDetectDisk()
+   {
+      return FALSE ;
+   }
+
    INT32 _stpReplManager::onLocalNotFoundInGroup()
    {
       // return SDB_SYS if local is not found in replica group

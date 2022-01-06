@@ -16,12 +16,13 @@
 
 package com.sequoiadb.spark
 
-import java.io.File
+import java.io.{File, FileInputStream}
 import com.sequoiadb.net.ConfigOptions
 import org.bson.BSONObject
 import org.bson.util.JSON
-import com.sequoiadb.util.{ SdbDecrypt, SdbDecryptUserInfo }
+import com.sequoiadb.util.{SdbDecrypt, SdbDecryptUserInfo}
 
+import java.util.Properties
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
@@ -315,6 +316,25 @@ class SdbConfig(val properties: Map[String, String]) extends Serializable {
 
     val group: String = properties
         .getOrElse(SdbConfig.Group, SdbConfig.DefaultGroup)
+
+    val ensureShardingIndex: Boolean = properties.get(SdbConfig.EnsureShardingIndex)
+        .map(_.toBoolean).getOrElse(SdbConfig.DefaultEnsureShardingIndex)
+
+    val autoIndexId: Boolean = properties.get(SdbConfig.AutoIndexId)
+        .map(_.toBoolean).getOrElse(SdbConfig.DefaultAutoIndexId)
+
+    val autoIncrement: String = properties
+        .getOrElse(SdbConfig.AutoIncrement, SdbConfig.DefaultAutoIncrement)
+
+    try {
+        JSON.parse(autoIncrement).asInstanceOf[BSONObject]
+    } catch {
+        case _: Exception => invalidConfigValue(SdbConfig.AutoIncrement, autoIncrement)
+    }
+
+    val strictDataMode: Boolean = properties.get(SdbConfig.StrictDataMode)
+        .map(_.toBoolean).getOrElse(SdbConfig.DefaultStrictDataMode)
+
 }
 
 object SdbConfig {
@@ -358,6 +378,12 @@ object SdbConfig {
     val CompressionType = "compressiontype"
     val AutoSplit = "autosplit"
     val Group = "group"
+    val EnsureShardingIndex = "ensureshardingindex"
+    val AutoIndexId = "autoindexid"
+    val AutoIncrement = "autoincrement"
+    val StrictDataMode = "strictdatamode"
+
+    val ConfigPath = "configpath"
 
     // compatible with old edition option
     val ScanType = "scantype" // auto/ixscan/tbscan
@@ -433,7 +459,12 @@ object SdbConfig {
         ReplicaSize,
         CompressionType,
         AutoSplit,
-        Group)
+        Group,
+        EnsureShardingIndex,
+        AutoIndexId,
+        AutoIncrement,
+        StrictDataMode,
+        ConfigPath)
 
     val RequiredProperties = List(
         Host,
@@ -465,9 +496,13 @@ object SdbConfig {
     val DefaultIgnoreNullField = false
     val DefaultUseSelector: String = USE_SELECTOR_ENABLE
     val DefaultSelectorDiff = 2
+
+    // CS options
     val DefaultPageSize: Int = 1024 * 64
     val DefaultLobPageSize: Int = 1024 * 256
     val DefaultDomain = ""
+
+    // CL options
     val DefaultShardingKey = ""
     val DefaultShardingType: String = SHARDING_TYPE_HASH
     val DefaultCLPartition = 1024
@@ -475,8 +510,39 @@ object SdbConfig {
     val DefaultCompressionType: String = COMPRESSION_TYPE_NONE
     val DefaultAutoSplit = false
     val DefaultGroup = ""
+    val DefaultEnsureShardingIndex = true
+    val DefaultAutoIndexId = true
+    val DefaultAutoIncrement = ""
+    val DefaultStrictDataMode = false
 
-    def apply(parameters: Map[String, String]): SdbConfig = new SdbConfig(parameters)
+    val DefaultConfigPath = ""
+
+    def apply(parameters: Map[String, String]): SdbConfig = {
+        val configPath = parameters.getOrElse(SdbConfig.ConfigPath, "")
+        var newParameters: Map[String, String] = parameters
+
+        // 1. CHECK IF USES config file
+        if (configPath != "") {
+            val properties = new Properties()
+            properties.load(new FileInputStream(configPath))
+
+            val options = properties.propertyNames()
+            while (options.hasMoreElements) {
+                val optionName = options.nextElement().asInstanceOf[String]
+                // 2. VALIDATE OPTIONS that config in file
+                if (!SdbConfig.AllProperties.contains(optionName)) {
+                    throw new SdbException(s"unsupported option: $optionName, please check!")
+                }
+                // 3. Do not overwrite, options
+                if (!parameters.contains(optionName)) {
+                    newParameters += (optionName -> properties.getProperty(optionName))
+                }
+            }
+        }
+
+        // 4. use new parameters to generate SdbConfig, it can be from file or CLI
+        new SdbConfig(newParameters)
+    }
 
     private[spark] val SdbConnectionOptions: ConfigOptions = {
         val opt = new ConfigOptions()

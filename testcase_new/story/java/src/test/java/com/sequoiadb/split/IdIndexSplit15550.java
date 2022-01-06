@@ -129,7 +129,7 @@ public class IdIndexSplit15550 extends SdbTestBase {
                 checkData( 4500, "{sk:{$gte:500,$lt:5000}}", desGroup );
                 checkData( 500, "{sk:{$gte:0,$lt:500}}", srcGroup );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() == -279 ) {
+                if ( e.getErrorCode() == -279 || e.getErrorCode() == -147 ) {
                     checkData( 5000, "{sk:{$gte:0,$lt:5000}}", srcGroup );
                 } else {
                     throw e;

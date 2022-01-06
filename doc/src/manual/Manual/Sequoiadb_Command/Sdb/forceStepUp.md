@@ -1,21 +1,31 @@
+##名称##
+
+forceStepUp - 强制将备节点升级为主节点
 
 ##语法##
-***db.forceStepUp( [options] )***
 
-在一个不具备选举条件的复制组中，强制将一个备节点升级为主节点。
+**db.forceStepUp([options])**
+
+##类别##
+
+Sdb
+
+##描述##
+
+该函数用于在一个不具备选举条件的复制组中，强制将一个备节点升级为主节点。
 **请谨慎使用该命令！**
 
-##参数描述##
+##参数##
 
-|参数名    |参数类型    |描述         |是否必填|
+|参数名    |类型        |描述         |是否必填|
 |--------- |----------- |------------ |----------|
-|options   |Json 对象   |参数集合   |否|
+|options   |object      |参数集合   |否|
 
-   1. **options 选项**
+**options 选项**
 
-  |参数名    |参数类型   |描述                           |默认值|
-  |--------- |---------- |------------------------------ |--------|
-  |Seconds   |int        |强制升级为主节点的持续时间   |120|
+|参数名    |类型      |描述                           |默认值|
+|--------- |---------- |------------------------------ |--------|
+|Seconds   |number     |强制升级为主节点的持续时间   |120|
 
 > **Note:**
 >
@@ -26,13 +36,30 @@
 
 ##返回值##
 
-无返回值，出错抛异常，并输出错误信息，可以通过 [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) 获取错误信息 或 通过 [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) 获取错误码。关于错误处理可以参考[常见错误处理指南](manual/faq.md) 。
+函数执行成功时，无返回值。
+
+函数执行失败时，将抛异常并输出错误信息。
+
+##错误##
+
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][error_guide]。
+
+##版本##
+
+v2.0 及以上版本
 
 ##示例##
 
-- 连接 catalog 节点（hostname1:30000），并使其强制升主，持续300s。
+连接 catalog 节点 `hostname1:30000`，并使其强制升主，持续 300s
 
- ```lang-javascript
- > var db = new Sdb( "hostname1", 30000 ) ;
- > db.forceStepUp( { Seconds: 300 } );
- ```
+```lang-javascript
+> var db = new Sdb("hostname1", 30000)
+> db.forceStepUp({Seconds: 300})
+```
+
+[^_^]:
+     本文使用的所有引用及链接
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[error_guide]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md

@@ -43,6 +43,7 @@
 #include "msgMessage.hpp"
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
+#include "coordCacheAssist.hpp"
 
 using namespace bson ;
 
@@ -88,9 +89,9 @@ namespace engine
       /// do on local
       UINT32 mask = 0 ;
       INT32 rc = SDB_OK ;
-      CHAR *pMatcherBuff = NULL ;
+      const CHAR *pMatcherBuff = NULL ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL, NULL,
                             &pMatcherBuff, NULL, NULL, NULL ) ;
 
       try
@@ -174,16 +175,43 @@ namespace engine
       ctrlParam._emptyFilterSel = NODE_SEL_ALL ;
    }
 
+   /**
+    * Invalidate LOCAL caches.
+    * The user(or internal logic) may specify 'Type' and/or 'Name' for the
+    * command. In this case, only the specified target will be cleaned. If no
+    * option is specified, all kinds of caches will be cleaned.
+    */
    INT32 _coordCMDInvalidateCache::_preExcute( MsgHeader *pMsg,
                                                pmdEDUCB *cb,
                                                coordCtrlParam &ctrlParam,
                                                SET_RC &ignoreRCList )
    {
-      /// invalidate local catalog cache and group cache
-      _pResource->invalidateCataInfo() ;
-      _pResource->invalidateGroupInfo() ;
-      _pResource->invalidateStrategy() ;
-      return SDB_OK ;
+      INT32 rc = SDB_OK ;
+      const CHAR *query = NULL ;
+      coordCacheInvalidator assist( _pResource ) ;
+
+      rc = msgExtractQuery( (const CHAR *)pMsg, NULL, NULL, NULL, NULL, &query,
+                            NULL, NULL, NULL ) ;
+      PD_RC_CHECK( rc, PDERROR, "Extract invalidate message failed[%d]", rc ) ;
+
+      try
+      {
+         BSONObj queryObj( query ) ;
+         rc = assist.invalidate( queryObj ) ;
+         PD_RC_CHECK( rc, PDERROR, "Invalidate cache with option[%s] "
+                      "failed[%d]", queryObj.toString().c_str(), rc ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    UINT32 _coordCMDInvalidateCache::_getControlMask() const
@@ -227,9 +255,9 @@ namespace engine
                                       SET_RC &ignoreRCList )
    {
       INT32 rc = SDB_OK ;
-      CHAR *pQuery = NULL ;
+      const CHAR *pQuery = NULL ;
       CHAR *pNewMsg = NULL ;
-      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL, NULL,
                             &pQuery, NULL, NULL, NULL ) ;
       if ( rc )
       {
@@ -334,9 +362,9 @@ namespace engine
                                       SET_RC &ignoreRCList )
    {
       INT32 rc = SDB_OK ;
-      CHAR *pQuery = NULL ;
+      const CHAR *pQuery = NULL ;
       CHAR *pNewMsg = NULL ;
-      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL, NULL,
                             &pQuery, NULL, NULL, NULL ) ;
       if ( rc )
       {
@@ -614,14 +642,14 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      CHAR *pQuery = NULL ;
+      const CHAR *pQuery = NULL ;
       const CHAR *csname = NULL ;
       const CHAR *clname = NULL ;
       const CHAR *ixname = NULL ;
       INT32 mode = SDB_ANALYZE_MODE_SAMPLE ;
       BOOLEAN sampleByNum = FALSE, sampleByPercent = FALSE ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL, NULL,
                             &pQuery, NULL, NULL, NULL ) ;
       if ( rc )
       {
@@ -816,5 +844,4 @@ namespace engine
    error :
       goto done ;
    }
-
 }

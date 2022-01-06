@@ -63,7 +63,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       coordCtrlParam ctrlParam ;
-      rtnContextCoord *pContext = NULL ;
+      rtnContextCoord::sharePtr pContext ;
       ROUTE_RC_MAP failedNodes ;
       SET_ROUTEID sucNodes ;
       UINT32 mask = _getMask() ;
@@ -78,7 +78,7 @@ namespace engine
 
       rc = executeOnNodes( pMsg, cb, ctrlParam, mask, failedNodes,
                            _useContext() ? &pContext : NULL,
-                           FALSE, NULL, &sucNodes ) ;
+                           NULL, NULL, &sucNodes ) ;
       if ( rc )
       {
          if ( SDB_RTN_CMD_IN_LOCAL_MODE == rc )

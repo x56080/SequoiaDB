@@ -171,16 +171,16 @@ index
 T}
 .TE
 .PP
-when exception happen, use getLastError() to get the error code and use
+When exception happens, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
-For more detial, please reference to Troubleshooting.
+For more details, please reference to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 Create the $id index with default parameters.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.createIdIndex()
+> db.sample.employee.createIdIndex()
 \f[]
 .fi
 .IP \[bu] 2
@@ -188,6 +188,6 @@ Specify sort cache size when creating the $id index.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.createIdIndex(\ {\ SortBufferSize:\ 128\ }\ )
+> db.sample.employee.createIdIndex( { SortBufferSize: 128 } )
 \f[]
 .fi

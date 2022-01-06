@@ -97,13 +97,13 @@ namespace CSharp.Crud.DataType
             Assert.AreEqual(1, updateCount);
 
             //update Oid to  other type            
-            BsonDocument modifier1 = new BsonDocument { { "$set", new BsonDocument { { "_id", new BsonArray() { "testoid" } } } } };
+            BsonDocument modifier1 = new BsonDocument { { "$set", new BsonDocument { { "_id", new BsonString("testoid") } } } };
             BsonDocument matcher1 = new BsonDocument { { "b", 3 } };
             cl.Update(matcher1, modifier1, null);
             //check result
             long updateCount1 = cl.GetCount(new BsonDocument 
                                            { 
-                                               { "_id", new BsonArray() { "testoid" } }  ,
+                                               { "_id", new BsonString("testoid") }  ,
                                                { "b", 3 }
                                            });
             Assert.AreEqual(1, updateCount1);

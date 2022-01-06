@@ -30,11 +30,13 @@ PHP_METHOD( SequoiaCS, getName ) ;
 PHP_METHOD( SequoiaCS, selectCL ) ;
 PHP_METHOD( SequoiaCS, createCL ) ;
 PHP_METHOD( SequoiaCS, getCL ) ;
+PHP_METHOD( SequoiaCS, listCL ) ;
 //e.g. Rename dropCollection
 PHP_METHOD( SequoiaCS, dropCL ) ;
 PHP_METHOD( SequoiaCS, renameCL ) ;
 PHP_METHOD( SequoiaCS, alter ) ;
 PHP_METHOD( SequoiaCS, setDomain ) ;
+PHP_METHOD( SequoiaCS, getDomainName ) ;
 PHP_METHOD( SequoiaCS, removeDomain ) ;
 PHP_METHOD( SequoiaCS, enableCapped ) ;
 PHP_METHOD( SequoiaCS, disableCapped ) ;

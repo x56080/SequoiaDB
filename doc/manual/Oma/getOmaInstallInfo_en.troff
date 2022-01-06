@@ -33,15 +33,15 @@ Since v1.0.
 Get the installation information.
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "localhost",\ 11790\ )
->\ oma.getOmaInstallInfo()
+> var oma = new Oma( "localhost", 11790 )
+> oma.getOmaInstallInfo()
 {
-"NAME":\ "sdbcm",
-"SDBADMIN_USER":\ "sdbadmin",
-"INSTALL_DIR":\ "/opt/sequoiadb",
-"MD5":\ "0702f9916d37af0ae5917c0c34edbca3"
+"NAME": "sdbcm",
+"SDBADMIN_USER": "sdbadmin",
+"INSTALL_DIR": "/opt/sequoiadb",
+"MD5": "0702f9916d37af0ae5917c0c34edbca3"
 }
-Takes\ 0.000532s.
+Takes 0.000532s.
 \f[]
 .fi
 .RE

@@ -60,7 +60,13 @@ namespace engine
 
       // initialize options
       INT32 initialize( INT32 argc, CHAR **argv, const CHAR *rootPath,
-                        BOOLEAN &daemonMode ) ;
+                        BOOLEAN &daemonMode, std::string &daemonCommand ) ;
+
+      // initialize from file
+      INT32 initFromFile( const CHAR *confFile ) ;
+
+      // initialize from root file
+      INT32 initFromRootPath( const CHAR *rootPath ) ;
 
       // save options to config file
       INT32 save() ;
@@ -302,7 +308,7 @@ namespace engine
       void _displayVersion() const ;
 
       // to command line
-      INT32 _toCommandLine( const boost::program_options::variables_map &vm,
+      INT32 _toCommandLine( boost::program_options::variables_map &vm,
                             std::string &options ) ;
 
    protected:

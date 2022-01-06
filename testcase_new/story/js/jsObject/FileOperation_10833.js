@@ -65,15 +65,15 @@ FileTest.prototype.testCopyWithMode = function()
    }
    this.cmd.run( "rm -rf " + dstFile );
 
-   // 测试目标文件不存在时指定权限需要与umask运算
-   this.file.copy( srcFile, dstFile, false, 0733 );   // 0733 - 0022 = 0711
+   // 测试目标文件不存在时指定权限
+   this.file.copy( srcFile, dstFile, false, 0733 );
    var dstFileMode = this.file.stat( dstFile ).toObj().mode.slice( 0, 10 );
-   assert.equal( dstFileMode, "rwx--x--x" )
+   assert.equal( dstFileMode, "rwx-wx-wx" )
 
    // 测试目标文件存在时设置权限无效，保留原文件权限
    this.file.copy( srcFile, dstFile, true, 0777 );
    var dstFileMode = this.file.stat( dstFile ).toObj().mode.slice( 0, 10 );
-   assert.equal( dstFileMode, "rwx--x--x" );
+   assert.equal( dstFileMode, "rwx-wx-wx" );
 
 
    // 测试目标文件存在且isReplace为false时，拷贝失败

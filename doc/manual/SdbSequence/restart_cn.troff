@@ -37,10 +37,10 @@ v3.4.2 及以上版本
 .IP
 .nf
 \f[C]
->\ sequence.getNextValue()
+> sequence.getNextValue()
 10
->\ sequence.restart(\ 1\ )
->\ sequence.getNextValue()
+> sequence.restart( 1 )
+> sequence.getNextValue()
 1
 \f[]
 .fi

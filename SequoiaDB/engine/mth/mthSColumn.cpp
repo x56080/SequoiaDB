@@ -49,7 +49,8 @@ namespace engine
    _mthSColumn::_mthSColumn()
    :_father( NULL ),
     _name( _staticName ),
-    _dynamicName( NULL )
+    _dynamicName( NULL ),
+    _subArrayIndex( MTH_SCOLUMN_INVALID_SUBARRAY_INDEX )
    {
       ossMemset( _staticName, '\0', MTH_SCOLUMN_STATIC_NAME_BUF_LEN ) ;
    }
@@ -146,6 +147,7 @@ namespace engine
       _attribute.clear() ;
       _father = NULL ;
       _subColumns.clear() ;
+      _subArrayIndex = MTH_SCOLUMN_INVALID_SUBARRAY_INDEX ;
       PD_TRACE_EXIT( SDB__MTHSCOLUMN_CLEAR ) ;
       return ;
    }
@@ -175,7 +177,8 @@ namespace engine
 
    ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSCOLUMN__BUILD, "_mthSColumn::_build" )
    INT32 _mthSColumn::_build( const bson::BSONElement &e,
-                              bson::BSONObjBuilder &builder )
+                              bson::BSONObjBuilder &builder,
+                              UINT32 actionIndex )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHSCOLUMN__BUILD ) ;
@@ -183,7 +186,7 @@ namespace engine
       bson::BSONElement output ;
       UINT32 size = _actions.size() ;
 
-      for ( UINT32 i = 0; i < size ; ++i )
+      for ( UINT32 i = actionIndex ; i < size ; ++i )
       {
          if ( MTH_S_IS_LAST_ACTION( i ) )
          {
@@ -194,22 +197,20 @@ namespace engine
             }
             else
             {
-               PD_LOG( PDERROR, "failed to build column:%d", rc ) ;
+               PD_LOG( PDERROR, "Failed to build column:%d", rc ) ;
                goto error ;
             }
-
          }
          else
          {
             rc = _actions[i]->get( _name, input, output ) ;
             if ( SDB_OK != rc )
             {
-               PD_LOG( PDERROR, "failed to get column:%d", rc ) ;
+               PD_LOG( PDERROR, "Failed to get column:%d", rc ) ;
                goto error ;
             }
             input = output ;
          }
-
       }
 
       if ( !_subColumns.empty() )
@@ -217,7 +218,7 @@ namespace engine
          rc = _buildFromChildren( input, builder ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to build columns from children:%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to build columns from children:%d", rc ) ;
             goto error ;
          }
       }
@@ -227,6 +228,77 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   //PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSCOLUMN__BUILDSUBARRAY, "_mthSColumn::_buildSubArray" )
+   INT32 _mthSColumn::_buildSubArray( const bson::BSONElement &e,
+                                      bson::BSONArrayBuilder &builder )
+   {
+      SDB_ASSERT( Array == e.type(), "The type of ele must Array" ) ;
+      SDB_ASSERT( !_subColumns.empty(), "_subColumns can't be empty" ) ;
+
+      PD_TRACE_ENTRY( SDB__MTHSCOLUMN__BUILDSUBARRAY ) ;
+      INT32 rc = SDB_OK ;
+      INT32 index = 0 ;
+      INT32 subArrayIndex = (_subColumns[0])->_getSubArrayIndex() ;
+      BSONObj subObj ;
+
+      try
+      {
+         BSONObjIterator i( e.embeddedObject() ) ;
+         while( i.more() )
+         {
+            BSONElement ele = i.next() ;
+
+            if ( subArrayIndex == index )
+            {
+               BSONObjBuilder subArray ;
+
+               rc = _buildObjFromChildren( ele.wrap(), subArray ) ;
+               if ( SDB_OK != rc )
+               {
+                  PD_LOG( PDERROR, "Failed to build column from children, "
+                          "rc: %d", rc ) ;
+                  goto error ;
+               }
+
+               subObj = subArray.obj() ;
+
+               if ( !subObj.isEmpty() )
+               {
+                  builder.append( subObj.firstElement() ) ;
+               }
+
+               break ;
+            }
+            ++index ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when building sub array: "
+                 "%s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHSCOLUMN__BUILDSUBARRAY, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   BOOLEAN _mthSColumn::_needBuildSubArray()
+   {
+      SDB_ASSERT( !_subColumns.empty(), "_subColumns can't be empty" ) ;
+
+      if ( MTH_SCOLUMN_INVALID_SUBARRAY_INDEX ==
+           (_subColumns[0])->_getSubArrayIndex() )
+      {
+         return FALSE ;
+      }
+      return TRUE ;
    }
 
    ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSCOLUMN__BUILDFROMCHILDREN, "_mthSColumn::_buildFromChildren" )
@@ -251,14 +323,28 @@ namespace engine
       else if ( Array == e.type() )
       {
          BSONArrayBuilder sub( builder.subarrayStart( e.fieldName() ) ) ;
-         BSONObjIterator i( e.embeddedObject() ) ;
-         while ( i.more() )
+
+         if ( _needBuildSubArray() )
          {
-            rc = _buildFromChildren( i.next(), sub ) ;
-            if ( SDB_OK != rc )
+            rc = _buildSubArray( e, sub ) ;
+            if ( rc )
             {
-               PD_LOG( PDERROR, "failed to build column from children:%d", rc ) ;
+               PD_LOG( PDERROR, "Failed to build sub array, rc: %d", rc ) ;
                goto error ;
+            }
+         }
+         else
+         {
+            BSONObjIterator i( e.embeddedObject() ) ;
+            while ( i.more() )
+            {
+               rc = _buildFromChildren( i.next(), sub ) ;
+               if ( SDB_OK != rc )
+               {
+                  PD_LOG( PDERROR, "Failed to build column from children, "
+                          "rc: %d", rc ) ;
+                  goto error ;
+               }
             }
          }
 

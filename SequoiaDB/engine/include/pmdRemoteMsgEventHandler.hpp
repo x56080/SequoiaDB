@@ -60,7 +60,7 @@ namespace engine
                                   const CHAR *msg,
                                   UINT64 msgUserData ) ;
          virtual void  handleClose( const NET_HANDLE &handle, _MsgRouteID id ) ;
-         virtual void  handleConnect( const NET_HANDLE &handle,
+         virtual INT32 handleConnect( const NET_HANDLE &handle,
                                       _MsgRouteID id,
                                       BOOLEAN isPositive,
                                       netUserDataHolder *userDataHolder ) ;

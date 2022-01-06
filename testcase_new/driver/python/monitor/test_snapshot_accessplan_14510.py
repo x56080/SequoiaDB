@@ -53,7 +53,7 @@ class TestSnapshot14510(testlib.SdbTestBase):
                cursor.close()
                break
       except SDBBaseError as e:
-         self.fail('query fail: ' + e.detail)
+         self.fail('query fail: ' + str(e))
   
    def get_snapshot_accessplan(self, opt):
       act_accessplan = list()
@@ -68,7 +68,7 @@ class TestSnapshot14510(testlib.SdbTestBase):
                cursor.close()
                break
       except SDBBaseError as e:
-         self.fail('get snapshot accessplan fail: ' + e.detail) 
+         self.fail('get snapshot accessplan fail: ' + str(e))
       return act_accessplan  
 
    def insert_datas(self, insert_nums):
@@ -80,7 +80,7 @@ class TestSnapshot14510(testlib.SdbTestBase):
       try:
          self.cl.bulk_insert(flag, doc)
       except SDBError as e:
-         self.fail('insert fail: ' + e.detail)
+         self.fail('insert fail: ' + str(e))
       
    def check_snapshot(self, expect_accessplan, act_accessplan):
       expect_explain = self.get_sort_result(expect_accessplan)

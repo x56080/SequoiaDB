@@ -81,30 +81,9 @@ namespace engine
    #define MON_DUMP_DFT_BUILDER_SZ  ( 1024 )
    #define MON_DUMP_BUFF_STAT_SZ    ( 128 )
 
-   static void monAddGlobalIndexInfo( const BSONObj &indexObj,
-                                      BSONObjBuilder &builder )
-   {
-      INT32 rc = SDB_OK ;
-      BOOLEAN isGlobal = FALSE ;
-      rc = rtnGetBooleanElement( indexObj, IXM_FIELD_NAME_GLOBAL, isGlobal ) ;
-      if ( SDB_OK != rc )
-      {
-         // do not have global info
-         builder.appendBool( IXM_FIELD_NAME_GLOBAL, FALSE ) ;
-         return ;
-      }
-
-      if ( isGlobal )
-      {
-         builder.appendBool( IXM_FIELD_NAME_GLOBAL, TRUE ) ;
-         builder.append( IXM_FIELD_NAME_GLOBAL_OPTION,
-                      indexObj.getObjectField(IXM_FIELD_NAME_GLOBAL_OPTION) ) ;
-      }
-      else
-      {
-         builder.appendBool( IXM_FIELD_NAME_GLOBAL, FALSE ) ;
-      }
-   }
+   #define MON_CL_DETAIL_VERSION_NULL ( 0 )
+   #define MON_CL_DETAIL_VERSION_V1 ( 1 )
+   #define MON_CL_DETAIL_CURRENT_V  MON_CL_DETAIL_VERSION_V1
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MONGETNODENAME, "monGetNodeName" )
    static CHAR *monGetNodeName ( CHAR *nodeName,
@@ -367,8 +346,8 @@ namespace engine
             // restore PIT window
             subTrans.append( FIELD_NAME_TRANS_MIN_RECOVER_TIME,
                              (INT64)( logSummary._minRecoverableTime ) ) ;
-            subTrans.append( FIELD_NAME_TRANS_MAX_COMMIT_TIME,
-                             (INT64)( logSummary._maxTransCommitTime ) ) ;
+            subTrans.append( FIELD_NAME_TRANS_MAX_RECOVER_TIME,
+                             (INT64)( logSummary._restorePointTime ) ) ;
 
             // tree size High water mark
             subTrans.append( FIELD_NAME_IDX_TREE_SIZE_HWM, treeSizeHWM ) ;
@@ -570,7 +549,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_MONAPPENDSTARTINFO ) ;
-      vector<pmdStartupLog> startLogs ;
+      PMD_STARTUP_LOG_LIST startLogs ;
       UINT32 logNum = 10 ;
 
       rc = pmdGetStartupHstLogger()->getLatestLogs( logNum, startLogs ) ;
@@ -579,7 +558,7 @@ namespace engine
 
       {
          vector<string> startHst, abnormalHst;
-         vector<pmdStartupLog>::iterator i ;
+         PMD_STARTUP_LOG_LIST::iterator i ;
          for ( i = startLogs.begin(); i != startLogs.end(); ++i )
          {
             pmdStartupLog log = *i ;
@@ -835,13 +814,16 @@ namespace engine
 
    void monAppendSessionIdentify( BSONObjBuilder &ob,
                                   UINT64 relatedNID,
-                                  UINT32 relatedTID )
+                                  UINT32 relatedTID,
+                                  const CHAR * fieldName = NULL )
    {
       UINT32 ip = 0 ;
       UINT32 port = 0 ;
       /// IP:00000000, PORT:0000, TID:00000000
       /// SNPRINTF will truncate the last char, so need + 2
-      CHAR szTmp[ 8 + 4 + 8 + 2 ] = { 0 } ;
+      //  CHAR szTmp[ 8 + 4 + 8 + 2 ] = { 0 } ;
+      //
+      CHAR szTmp[ DPS_TRANS_RELATED_ID_STR_LEN + 1 ] = { 0 } ;
 
       if ( 0 != relatedNID )
       {
@@ -854,7 +836,14 @@ namespace engine
       }
       ossSnprintf( szTmp, sizeof(szTmp)-1, "%08x%04x%08x",
                    ip, (UINT16)port, relatedTID ) ;
-      ob.append( FIELD_NAME_RELATED_ID, szTmp ) ;
+      if ( NULL == fieldName )
+      {
+         ob.append( FIELD_NAME_RELATED_ID, szTmp ) ;
+      }
+      else
+      {
+         ob.append( fieldName, szTmp ) ;
+      }
    }
 
    #define MON_CPU_USAGE_STR_SIZE 20
@@ -1020,117 +1009,6 @@ namespace engine
    done :
       PD_TRACE_EXIT ( SDB_MONDMSCOLLECTIONFLAGTOSTRING ) ;
       return str ;
-   }
-
-   // dump information for all collections
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_MONDUMPINDEXES, "monDumpIndexes" )
-   INT32 monDumpIndexes( MON_IDX_LIST &indexes, rtnContextDump *context )
-   {
-      INT32 rc = SDB_OK ;
-      string flagDesp ;
-      SDB_ASSERT ( context, "context can't be NULL" ) ;
-
-      PD_TRACE_ENTRY ( SDB_MONDUMPINDEXES ) ;
-      try
-      {
-         MON_IDX_LIST::iterator it ;
-         for ( it = indexes.begin(); it!=indexes.end(); ++it )
-         {
-            UINT16 idxType = IXM_EXTENT_TYPE_NONE ;
-            monIndex &indexItem = (*it) ;
-            BSONObj &indexObj = indexItem._indexDef ;
-            const CHAR *extDataName = NULL ;
-            BSONObj obj ;
-            BSONObjBuilder builder( MON_DUMP_DFT_BUILDER_SZ ) ;
-            BSONObjBuilder ob (builder.subobjStart(IXM_FIELD_NAME_INDEX_DEF )) ;
-            ob.append ( IXM_NAME_FIELD,
-                        indexObj.getStringField(IXM_NAME_FIELD) ) ;
-            OID oid ;
-            indexObj.getField(DMS_ID_KEY_NAME).Val(oid) ;
-            ob.append ( DMS_ID_KEY_NAME, oid ) ;
-            ob.append ( IXM_KEY_FIELD,
-                        indexObj.getObjectField(IXM_KEY_FIELD) ) ;
-            BSONElement e = indexObj[IXM_V_FIELD] ;
-            INT32 version = ( e.type() == NumberInt ) ? e._numberInt() : 0 ;
-            ob.append ( IXM_V_FIELD, version ) ;
-            ob.append ( IXM_UNIQUE_FIELD,
-                        indexObj[IXM_UNIQUE_FIELD].trueValue() ) ;
-            ob.append ( IXM_DROPDUP_FIELD,
-                        indexObj.getBoolField(IXM_DROPDUP_FIELD) ) ;
-            ob.append ( IXM_ENFORCED_FIELD,
-                        indexObj.getBoolField(IXM_ENFORCED_FIELD) ) ;
-            ob.append ( IXM_NOTNULL_FIELD,
-                        indexObj.getBoolField(IXM_NOTNULL_FIELD) ) ;
-            if( 0 == ossStrcmp( indexObj.getStringField( IXM_NAME_FIELD ),
-                                IXM_ID_KEY_NAME ) )
-            {
-               ob.append ( IXM_NOTARRAY_FIELD, true ) ;
-            }
-            else
-            {
-               ob.append ( IXM_NOTARRAY_FIELD,
-                           indexObj.getBoolField(IXM_NOTARRAY_FIELD) ) ;
-            }
-            monAddGlobalIndexInfo( indexObj, ob ) ;
-            BSONObj range = indexObj.getObjectField( IXM_2DRANGE_FIELD ) ;
-            if ( !range.isEmpty() )
-            {
-               ob.append( IXM_2DRANGE_FIELD, range ) ;
-            }
-
-            // append create time
-            e = indexObj.getField( IXM_FIELD_NAME_CREATETIME ) ;
-            UINT64 createTime = e.isNumber() ?
-                                e.numberLong() :
-                                DPS_INVALID_TRANS_TIME ;
-            ob.append( IXM_FIELD_NAME_CREATETIME, (INT64)createTime ) ;
-
-            // append rebuild time
-            e = indexObj.getField( IXM_FIELD_NAME_REBUILDTIME ) ;
-            UINT64 rebuildTime = e.isNumber() ?
-                                 e.numberLong() :
-                                 DPS_INVALID_TRANS_TIME ;
-            ob.append( IXM_FIELD_NAME_REBUILDTIME, (INT64)rebuildTime ) ;
-
-            ob.done () ;
-
-            flagDesp = ixmGetIndexFlagDesp(indexItem._indexFlag) ;
-            builder.append (IXM_FIELD_NAME_INDEX_FLAG, flagDesp.c_str() ) ;
-            if ( IXM_INDEX_FLAG_CREATING == indexItem._indexFlag )
-            {
-               builder.append ( IXM_FIELD_NAME_SCAN_EXTLID,
-                                indexItem._scanExtLID ) ;
-            }
-            indexItem.getIndexType( idxType ) ;
-            builder.append( FIELD_NAME_TYPE, getIndexTypeDesp( idxType ) ) ;
-            extDataName = indexItem.getExtDataName() ;
-            if ( ossStrlen( extDataName ) > 0 )
-            {
-               builder.append( FIELD_NAME_EXT_DATA_NAME, extDataName ) ;
-            }
-            obj = builder.obj() ;
-            rc = context->monAppend( obj ) ;
-            if ( rc )
-            {
-               PD_LOG ( PDERROR, "Failed to add object %s to collections",
-                        obj.toString().c_str() ) ;
-               goto error ;
-            }
-         }
-      }
-      catch ( std::exception &e )
-      {
-         PD_LOG ( PDERROR, "Failed to create BSON objects for collections: %s",
-                  e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-   done :
-      PD_TRACE_EXITRC ( SDB_MONDUMPINDEXES, rc ) ;
-      return rc ;
-   error :
-      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MONRESETMON, "monResetMon" )
@@ -1655,6 +1533,7 @@ namespace engine
          }
          ob.append( FIELD_NAME_LASTOPEND, timestamp ) ;
 
+         SDB_ASSERT( !moncb._lastOpMsgSaved, "should not save message" ) ;
          ob.append( FIELD_NAME_LASTOPINFO, moncb._lastOpDetail ) ;
       }
       catch ( std::exception &e )
@@ -1738,7 +1617,259 @@ namespace engine
       return rc ;
    }
 
-   INT32 monDetailObj2Info( const BSONObj &obj, detailedInfo &info )
+   INT32 _monDetailObj2InfoV1( const BSONObj &obj, detailedInfo &info )
+   {
+      INT32 rc = SDB_OK ;
+      try
+      {
+         BSONObjIterator iter( obj ) ;
+
+         // NodeName
+         BSONElement ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_NODE_NAME ),
+                     "Unexcepted field here" ) ;
+
+         // GroupName
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_GROUPNAME ),
+                     "Unexcepted field here" ) ;
+
+         // InternalV
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_INTERNAL_VERSION ),
+                     "Unexcepted field here" ) ;
+         SDB_ASSERT( 1 == ele.numberInt(), "Wrong protocal version" ) ;
+
+         // ID
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_ID ),
+                     "Unexcepted field here" ) ;
+         info._blockID = (UINT16) ele.Int() ;
+
+         // LogicalID
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_LOGICAL_ID ),
+                     "Unexcepted field here" ) ;
+         info._logicID = ele.Int() ;
+
+         // Sequence
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_SEQUENCE ),
+                     "Unexcepted field here" ) ;
+
+         // Indexes
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_INDEXES ),
+                     "Unexcepted field here" ) ;
+         info._numIndexes = ele.Int() ;
+
+         // Status
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_STATUS ),
+                     "Unexcepted field here" ) ;
+
+         // Attributes
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_ATTRIBUTE ),
+                     "Unexcepted field here" ) ;
+
+         // CompressionType
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_COMPRESSIONTYPE ),
+                     "Unexcepted field here" ) ;
+
+         // DictionaryCreated
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_DICT_CREATED ),
+                     "Unexcepted field here" ) ;
+         info._dictCreated = ele.Bool() ;
+
+         // DictionaryVersion
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_DICT_VERSION ),
+                     "Unexcepted field here" ) ;
+
+         // PageSize
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_PAGE_SIZE ),
+                     "Unexcepted field here" ) ;
+         info._pageSize = ele.Int() ;
+
+         // LobPageSize
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_LOB_PAGE_SIZE ),
+                     "Unexcepted field here" ) ;
+         info._lobPageSize = ele.Int() ;
+
+         // TotalRecords
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_RECORDS ),
+                     "Unexcepted field here" ) ;
+         info._totalRecords = ele.Long() ;
+
+         // TotalLobs
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_LOBS ),
+                     "Unexcepted field here" ) ;
+         info._totalLobs = ele.Long() ;
+
+         // TotalDataPages
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_DATA_PAGES ),
+                     "Unexcepted field here" ) ;
+         info._totalDataPages = ele.Int() ;
+
+         // TotalIndexPages
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_INDEX_PAGES ),
+                     "Unexcepted field here" ) ;
+         info._totalIndexPages = ele.Int() ;
+
+         // TotalLobPages
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_LOB_PAGES ),
+                     "Unexcepted field here" ) ;
+         info._totalLobPages = ele.Int() ;
+
+         // TotalDataFreeSpace
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_DATA_FREESPACE ),
+                     "Unexcepted field here" ) ;
+         info._totalDataFreeSpace = ele.Long() ;
+
+         // TotalIndexFreeSpace
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_INDEX_FREESPACE ),
+                     "Unexcepted field here" ) ;
+         info._totalIndexFreeSpace = ele.Long() ;
+
+         // CurrentCompressionRatio
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_CURR_COMPRESS_RATIO ),
+                     "Unexcepted field here" ) ;
+         info._currCompressRatio = (UINT32)(ele.Double() * 100.0) ;
+
+         // DataCommitLSN
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_DATA_COMMIT_LSN ),
+                     "Unexcepted field here" ) ;
+         info._dataCommitLSN = ele.Long() ;
+
+         // IndexCommitLSN
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_IDX_COMMIT_LSN ),
+                     "Unexcepted field here" ) ;
+         info._idxCommitLSN = ele.Long() ;
+
+         // LobCommitLSN
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_LOB_COMMIT_LSN ),
+                     "Unexcepted field here" ) ;
+         info._lobCommitLSN = ele.Long() ;
+
+         // DataCommitted
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_DATA_COMMITTED ),
+                     "Unexcepted field here" ) ;
+         info._dataIsValid = ele.Bool() ;
+
+         // IndexCommitted
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_IDX_COMMITTED ),
+                     "Unexcepted field here" ) ;
+         info._idxIsValid = ele.Bool() ;
+
+         // LobCommitted
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_LOB_COMMITTED ),
+                     "Unexcepted field here" ) ;
+         info._lobIsValid = ele.Bool() ;
+
+         // TotalDataRead
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALDATAREAD ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalDataRead = ele.Long() ;
+
+         // TotalIndexRead
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALINDEXREAD ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalIndexRead = ele.Long() ;
+
+         // TotalDataWrite
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALDATAWRITE ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalDataWrite = ele.Long() ;
+
+         // TotalIndexWrite
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALINDEXWRITE ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalIndexWrite = ele.Long() ;
+
+         // TotalUpdate
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALUPDATE ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalUpdate = ele.Long() ;
+
+         // TotalDelete
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALDELETE ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalDelete = ele.Long() ;
+
+         // TotalInsert
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALINSERT ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalInsert = ele.Long() ;
+
+         // TotalSelect
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALSELECT ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalSelect = ele.Long() ;
+
+         // TotalRead
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALREAD ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalRead = ele.Long() ;
+
+         // TotalWrite
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALWRITE ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalWrite = ele.Long() ;
+
+         // TotalTbScan
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALTBSCAN ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalTbScan = ele.Long() ;
+
+         // TotalIxScan
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALIXSCAN ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalIxScan = ele.Long() ;
+
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_RESETTIMESTAMP ),
+                     "Unexcepted field here" ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to parse detail obj, exception: %s", e.what() ) ;
+      }
+      return rc ;
+   }
+
+   INT32 _monDetailObj2Info( const BSONObj &obj, detailedInfo &info )
    {
       INT32 rc = SDB_OK ;
       BSONElement ele ;
@@ -1911,19 +2042,55 @@ namespace engine
             // ignore _flag _attribute _dictVersion _compressType _maxGlobTransID
          }
       }
-      catch ( bson::assertion &ba )
+      catch ( std::exception &e )
       {
-         rc = SDB_INVALIDARG ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Failed to parse detail bson object. "
                  "Field[%s] has a wrong type. Detail: %s",
-                 ele.fieldName(), ba.what() ) ;
+                 ele.fieldName(), e.what() ) ;
       }
       return rc ;
    }
 
+   INT32 monDetailObj2Info( const BSONObj &obj, detailedInfo &info )
+   {
+      /*
+         Generally, we parse BSON object by searching the field one by one.
+         However, as the fields order is always fixed, using strcmp to
+         search a field is unnecessary and with high cost. Therefore, we use
+         the internal version to mark the fields order. Once the version is
+         ensured, we just sequential traverse the BSON without any strcmp.
+      */
+      INT32 rc = SDB_OK ;
+      INT32 internal_version = MON_CL_DETAIL_VERSION_NULL ;
+      try
+      {
+         BSONElement ele = obj.getField( FIELD_NAME_INTERNAL_VERSION ) ;
+         if ( ele.isNumber() )
+         {
+            internal_version = ele.numberInt() ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         internal_version = MON_CL_DETAIL_VERSION_NULL ;
+      }
+
+      if ( MON_CL_DETAIL_VERSION_V1 == internal_version )
+      {
+         rc = _monDetailObj2InfoV1( obj, info ) ;
+      }
+      else
+      {
+         rc = _monDetailObj2Info( obj, info ) ;
+      }
+      return rc ;
+   }
+
+
    INT32 monDetailInfo2Obj( const detailedInfo &info,
-                           INT32 sequence,
-                           BSONObjBuilder &ob )
+                            INT32 sequence,
+                            BSONObjBuilder &ob )
    {
       INT32 rc = SDB_OK ;
       UINT16 flag = info._flag ;
@@ -1931,6 +2098,7 @@ namespace engine
       CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
       try
       {
+         ob.append ( FIELD_NAME_INTERNAL_VERSION, MON_CL_DETAIL_CURRENT_V ) ;
          ob.append ( FIELD_NAME_ID, info._blockID ) ;
          ob.append ( FIELD_NAME_LOGICAL_ID, info._logicID ) ;
          ob.append ( FIELD_NAME_SEQUENCE, sequence ) ;
@@ -2509,6 +2677,12 @@ namespace engine
 
          builder.append( FIELD_NAME_TRANS_LOCKS_NUM,
                          (INT32)_curTransInfo._locksNum ) ;
+         builder.appendBool( FIELD_NAME_TRANS_IS_LOCK_ESCALATED,
+                             _curTransInfo._lockEscalated ) ;
+         builder.append( FIELD_NAME_USED_LOG_SPACE,
+                         (INT64)( _curTransInfo._usedLogSpace ) ) ;
+         builder.append( FIELD_NAME_RESERVED_LOG_SPACE,
+                         (INT64)( _curTransInfo._reservedLogSpace ) ) ;
          monAppendSessionIdentify( builder, _curTransInfo._relatedNID,
                                    _curTransInfo._relatedTID ) ;
 
@@ -2795,20 +2969,20 @@ namespace engine
             ossTimestamp startTime( ctx._monContext.getStartTimestamp() ) ;
             BSONObjBuilder sub( ba.subobjStart() ) ;
 
-            sub.append( FIELD_NAME_CONTEXTID, ctx._contextID );
+            sub.append( FIELD_NAME_CONTEXTID, ctx._contextID ) ;
             sub.append( FIELD_NAME_TYPE, ctx._typeDesp ) ;
             sub.append( FIELD_NAME_DESP, ctx._info ) ;
             sub.append( FIELD_NAME_DATAREAD,
-                        (INT64)ctx._monContext.getDataRead() );
+                        (INT64)ctx._monContext.getDataRead() ) ;
             sub.append( FIELD_NAME_INDEXREAD,
                         (INT64)ctx._monContext.getIndexRead() ) ;
             ctx._monContext.getQueryTime().convertToTime ( factor,
                                                            seconds,
                                                            microseconds ) ;
             sub.append( FIELD_NAME_QUERYTIMESPENT,
-                        (SINT64)(seconds * 1000 + microseconds / 1000 ) ) ;
+                        (SINT64)( seconds * 1000 + microseconds / 1000 ) ) ;
             ossTimestampToString( startTime, timestampStr ) ;
-            sub.append(FIELD_NAME_STARTTIMESTAMP, timestampStr ) ;
+            sub.append( FIELD_NAME_STARTTIMESTAMP, timestampStr ) ;
             sub.done() ;
          }
          ba.done() ;
@@ -3234,40 +3408,6 @@ namespace engine
          _builder.reset() ;
          BSONObjBuilder ob( _builder ) ;
          MON_CL_LIST::iterator it = _collectionInfo.begin() ;
-         UINT32 resFlag = 0 ;
-         monCollection clOut ;
-
-         // Aggregate sub cl info into main cl if needed.
-         if ( _pDataProcessor )
-         {
-            do
-            {
-               rc = _pDataProcessor->process( *it, clOut, resFlag ) ;
-               PD_RC_CHECK(rc, PDERROR,
-                           "Failed to process the cl info, rc=%d", rc ) ;
-               if ( resFlag & IRtnMonProcessor::FLAG_OUTPUT )
-               {
-                  _collectionInfo.insert( clOut ) ;
-               }
-               if ( resFlag & IRtnMonProcessor::FLAG_IGNORE )
-               {
-                  _collectionInfo.erase( it ) ;
-                  if ( _collectionInfo.empty() &&
-                       _pDataProcessor->hasDataInProcess() )
-                  {
-                     _pDataProcessor->outputDataInProcess( _collectionInfo );
-                  }
-                  if ( _collectionInfo.empty() )
-                  {
-                     rc = SDB_DMS_EOC ;
-                     _hitEnd = TRUE ;
-                     goto done ;
-                  }
-                  it = _collectionInfo.begin() ;
-               }
-            }
-            while ( resFlag & IRtnMonProcessor::FLAG_IGNORE ) ;
-         }
 
          rc = monCollection2Obj( *it, _addInfoMask, ob ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON obj, rc: %d", rc ) ;
@@ -3859,6 +3999,84 @@ namespace engine
    }
 
    /*
+      _monTasksFetch implement
+   */
+   IMPLEMENT_FETCH_AUTO_REGISTER( _monTasksFetch )
+
+   _monTasksFetch::_monTasksFetch()
+      : rtnFetchBase( MON_DUMP_DFT_BUILDER_SZ, RTN_FETCH_TASKS ),
+        _addInfoMask( 0 )
+   {
+   }
+
+   _monTasksFetch::~_monTasksFetch()
+   {
+   }
+
+   INT32 _monTasksFetch::init( pmdEDUCB *cb,
+                               BOOLEAN isCurrent,
+                               BOOLEAN isDetail,
+                               UINT32 addInfoMask,
+                               const BSONObj obj )
+   {
+      _addInfoMask = addInfoMask ;
+      _hitEnd = FALSE ;
+
+      sdbGetRTNCB()->getTaskStatusMgr()->dumpInfo( _mapInfo ) ;
+
+      return SDB_OK ;
+   }
+
+   const CHAR* _monTasksFetch::getName() const
+   {
+      return CMD_NAME_SNAPSHOT_TASKS ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__MONTASKFETCH_FETCH, "_monTasksFetch::fetch" )
+   INT32 _monTasksFetch::fetch( BSONObj &obj )
+   {
+      PD_TRACE_ENTRY ( SDB__MONTASKFETCH_FETCH ) ;
+      INT32 rc = SDB_OK ;
+
+      if ( _mapInfo.size() == 0 )
+      {
+         _hitEnd = TRUE ;
+         rc = SDB_DMS_EOC ;
+         goto error ;
+      }
+
+      try
+      {
+         _builder.reset();
+         BSONObjBuilder ob( _builder );
+
+         monAppendSystemInfo( ob, _addInfoMask ) ;
+
+         ossPoolMap<UINT64, BSONObj>::iterator it = _mapInfo.begin() ;
+         ob.appendElements( it->second ) ;
+
+         obj = ob.done();
+
+         /// remove current
+         _mapInfo.erase( it ) ;
+         if ( _mapInfo.empty() )
+         {
+            _hitEnd = TRUE ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB__MONTASKFETCH_FETCH, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
       _monStorageUnitFetch implement
    */
    IMPLEMENT_FETCH_AUTO_REGISTER( _monStorageUnitFetch )
@@ -3985,10 +4203,10 @@ namespace engine
    IMPLEMENT_FETCH_AUTO_REGISTER( _monIndexFetch )
 
    _monIndexFetch::_monIndexFetch()
-      : rtnFetchBase ( MON_DUMP_DFT_BUILDER_SZ, RTN_FETCH_INDEX )
+      : rtnFetchBase( MON_DUMP_DFT_BUILDER_SZ, RTN_FETCH_INDEX ),
+        _addInfoMask( 0 ),
+        _collection( NULL )
    {
-      _addInfoMask   = 0 ;
-      _pos           = 0 ;
    }
 
    _monIndexFetch::~_monIndexFetch()
@@ -4002,58 +4220,20 @@ namespace engine
                                const BSONObj obj )
    {
       INT32 rc = SDB_OK ;
-      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
-      SDB_ASSERT( dmsCB, "DMSCB can't be NULL" ) ;
-      dmsStorageUnit *su = NULL ;
-      dmsStorageUnitID suID = DMS_INVALID_CS ;
-      const CHAR *pCollectionName = NULL ;
-      const CHAR *pCollectionShortName = NULL ;
-
       _addInfoMask = addInfoMask ;
+      _hitEnd = FALSE ;
 
-      try
-      {
-         BSONElement e = obj.getField( FIELD_NAME_NAME ) ;
-         if ( String != e.type() )
-         {
-            PD_LOG( PDERROR, "Field[%s] is invalid in obj[%s]",
-                    FIELD_NAME_NAME, obj.toString().c_str() ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         pCollectionName = e.valuestr() ;
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
+      rc = rtnGetStringElement( obj, FIELD_NAME_COLLECTION, &_collection ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s], rc: %d",
+                   FIELD_NAME_COLLECTION, rc ) ;
 
-      rc = rtnResolveCollectionNameAndLock ( pCollectionName, dmsCB, &su,
-                                             &pCollectionShortName, suID ) ;
+      rc = _dumpIndexInfo( _collection ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to resolve collection name %s, rc: %d",
-                  pCollectionName, rc ) ;
          goto error ;
       }
-      rc = su->getIndexes ( pCollectionShortName, _indexInfo ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to get indexes %s, rc: %d",
-                  pCollectionName, rc ) ;
-         goto error ;
-      }
-
-      _hitEnd = _indexInfo.empty() ? TRUE : FALSE ;
-      _pos = 0 ;
 
    done:
-      if ( DMS_INVALID_CS != suID )
-      {
-         dmsCB->suUnlock ( suID ) ;
-      }
       return rc ;
    error:
       goto done ;
@@ -4061,74 +4241,76 @@ namespace engine
 
    const CHAR* _monIndexFetch::getName() const
    {
-      return CMD_NAME_GET_INDEXES ;
+      return CMD_NAME_LIST_INDEXES ;
    }
 
-   INT32 _monIndexFetch::fetch( BSONObj &obj )
+   INT32 _monIndexFetch::_dumpIndexInfo( const CHAR* collection )
    {
       INT32 rc = SDB_OK ;
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      dmsStorageUnitID suID = DMS_INVALID_CS ;
+      dmsStorageUnit *su = NULL ;
+      const CHAR* clShortName = NULL ;
 
-      if ( _hitEnd )
-      {
-         rc = SDB_DMS_EOC ;
-         goto error ;
-      }
+      // lock collection space
+      rc = rtnResolveCollectionNameAndLock( collection, dmsCB, &su,
+                                            &clShortName, suID, SHARED ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to resolve collection[%s] and lock collection "
+                   "space, rc: %d", collection, rc ) ;
 
-      rc = _fetchNext( obj ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
+      rc = su->getIndexes ( clShortName, _indexList ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get indexes from collection[%s], rc: %d",
+                   collection, rc ) ;
+
+      _it = _indexList.begin() ;
 
    done:
+      if ( DMS_INVALID_CS != suID )
+      {
+         dmsCB->suUnlock ( suID ) ;
+         suID = DMS_INVALID_CS ;
+         su = NULL ;
+      }
       return rc ;
    error:
       goto done ;
    }
 
-   INT32 _monIndexFetch::_fetchNext( BSONObj &obj )
+   void _monIndexFetch::_formatIndexInfo( const CHAR* collection,
+                                          const monIndex& index,
+                                          BSONObjBuilder& ob )
    {
-      INT32 rc = SDB_OK ;
-
-      if ( _pos >= _indexInfo.size() )
-      {
-         _hitEnd = TRUE ;
-         rc = SDB_DMS_EOC ;
-         goto error ;
-      }
-
       try
       {
-         _builder.reset() ;
-         BSONObjBuilder ob( _builder ) ;
+         INT64 idxUniqID = 0 ;
+         const BSONObj &indexDef = index._indexDef ;
 
-         const monIndex &indexItem = _indexInfo[ _pos++ ] ;
-         const BSONObj &indexObj = indexItem._indexDef ;
-         OID oid ;
+         BSONObjBuilder sub( ob.subobjStart( IXM_FIELD_NAME_INDEX_DEF ) );
 
-         /// add system info
-         monAppendSystemInfo( ob, _addInfoMask ) ;
-
-         BSONObjBuilder sub( ob.subobjStart( IXM_FIELD_NAME_INDEX_DEF ) ) ;
-
-         sub.append ( IXM_NAME_FIELD,
-                      indexObj.getStringField( IXM_NAME_FIELD ) ) ;
-         indexObj.getField( DMS_ID_KEY_NAME ).Val(oid) ;
-         sub.append ( DMS_ID_KEY_NAME, oid ) ;
-         sub.append ( IXM_KEY_FIELD,
-                      indexObj.getObjectField( IXM_KEY_FIELD ) ) ;
-         BSONElement e = indexObj[ IXM_V_FIELD ] ;
-         INT32 version = ( e.type() == NumberInt ) ? e._numberInt() : 0 ;
-         sub.append ( IXM_V_FIELD, version ) ;
-         sub.append ( IXM_UNIQUE_FIELD,
-                      indexObj[IXM_UNIQUE_FIELD].trueValue() ) ;
-         sub.append ( IXM_DROPDUP_FIELD,
-                      indexObj.getBoolField( IXM_DROPDUP_FIELD ) ) ;
-         sub.append ( IXM_ENFORCED_FIELD,
-                      indexObj.getBoolField( IXM_ENFORCED_FIELD ) ) ;
-         sub.append ( IXM_NOTNULL_FIELD,
-                      indexObj.getBoolField( IXM_NOTNULL_FIELD ) ) ;
-         if( 0 == ossStrcmp( indexObj.getStringField( IXM_NAME_FIELD ),
+         sub.append( IXM_NAME_FIELD,
+                     indexDef.getStringField( IXM_NAME_FIELD ) ) ;
+         sub.append( DMS_ID_KEY_NAME,
+                     indexDef.getField( DMS_ID_KEY_NAME ).OID() ) ;
+         if ( indexDef.hasField( FIELD_NAME_UNIQUEID ) )
+         {
+            idxUniqID = indexDef.getField( FIELD_NAME_UNIQUEID ).numberLong() ;
+            sub.append( FIELD_NAME_UNIQUEID, idxUniqID ) ;
+         }
+         sub.append( IXM_KEY_FIELD,
+                     indexDef.getObjectField( IXM_KEY_FIELD ) ) ;
+         sub.append( IXM_V_FIELD,
+                     indexDef.getField( IXM_V_FIELD ).numberInt() ) ;
+         sub.append( IXM_UNIQUE_FIELD,
+                     indexDef.getBoolField( IXM_UNIQUE_FIELD ) ) ;
+         sub.append( IXM_DROPDUP_FIELD,
+                     indexDef.getBoolField( IXM_DROPDUP_FIELD ) ) ;
+         sub.append( IXM_ENFORCED_FIELD,
+                     indexDef.getBoolField( IXM_ENFORCED_FIELD ) ) ;
+         sub.append( IXM_NOTNULL_FIELD,
+                     indexDef.getBoolField( IXM_NOTNULL_FIELD ) ) ;
+         if( 0 == ossStrcmp( indexDef.getStringField( IXM_NAME_FIELD ),
                              IXM_ID_KEY_NAME ) )
          {
             sub.append ( IXM_NOTARRAY_FIELD, true ) ;
@@ -4136,25 +4318,39 @@ namespace engine
          else
          {
             sub.append ( IXM_NOTARRAY_FIELD,
-                         indexObj.getBoolField( IXM_NOTARRAY_FIELD ) ) ;
+                         indexDef.getBoolField( IXM_NOTARRAY_FIELD ) ) ;
          }
 
-         monAddGlobalIndexInfo( indexObj, sub ) ;
-         BSONObj range = indexObj.getObjectField( IXM_2DRANGE_FIELD ) ;
+         BOOLEAN isGlobal = indexDef.getBoolField( IXM_FIELD_NAME_GLOBAL ) ;
+         sub.appendBool( IXM_FIELD_NAME_GLOBAL, isGlobal ) ;
+         if ( isGlobal )
+         {
+            sub.append( IXM_FIELD_NAME_GLOBAL_OPTION,
+                        indexDef.getObjectField( IXM_FIELD_NAME_GLOBAL_OPTION )
+                      ) ;
+         }
+
+         if ( indexDef.hasField( FIELD_NAME_UNIQUEID ) )
+         {
+            sub.appendBool( IXM_FIELD_NAME_STANDALONE,
+                            utilIsStandaloneIdx( (utilIdxUniqueID)idxUniqID ) ) ;
+         }
+
+         BSONObj range = indexDef.getObjectField( IXM_2DRANGE_FIELD ) ;
          if ( !range.isEmpty() )
          {
             sub.append( IXM_2DRANGE_FIELD, range ) ;
          }
 
          // append create time
-         e = indexObj.getField( IXM_FIELD_NAME_CREATETIME ) ;
+         BSONElement e = indexDef.getField( IXM_FIELD_NAME_CREATETIME ) ;
          UINT64 createTime = e.isNumber() ?
                              e.numberLong() :
                              DPS_INVALID_TRANS_TIME ;
          sub.append( IXM_FIELD_NAME_CREATETIME, (INT64)createTime ) ;
 
          // append rebuild time
-         e = indexObj.getField( IXM_FIELD_NAME_REBUILDTIME ) ;
+         e = indexDef.getField( IXM_FIELD_NAME_REBUILDTIME ) ;
          UINT64 rebuildTime = e.isNumber() ?
                               e.numberLong() :
                               DPS_INVALID_TRANS_TIME ;
@@ -4162,27 +4358,57 @@ namespace engine
 
          sub.done () ;
 
-         const CHAR *pFlagDesp = ixmGetIndexFlagDesp( indexItem._indexFlag ) ;
-         ob.append ( IXM_FIELD_NAME_INDEX_FLAG, pFlagDesp ) ;
-         if ( IXM_INDEX_FLAG_CREATING == indexItem._indexFlag )
+         ob.append( IXM_FIELD_NAME_INDEX_FLAG,
+                    ixmGetIndexFlagDesp( index._indexFlag ) ) ;
+
+         if ( IXM_INDEX_FLAG_CREATING == index._indexFlag )
          {
-            ob.append ( IXM_FIELD_NAME_SCAN_EXTLID,
-                        indexItem._scanExtLID ) ;
+            ob.append( IXM_FIELD_NAME_SCAN_EXTLID, index._scanExtLID ) ;
          }
 
-         obj = ob.done() ;
+         UINT16 idxType = IXM_EXTENT_TYPE_NONE ;
+         index.getIndexType( idxType ) ;
+         ob.append( FIELD_NAME_TYPE, ixmGetIndexTypeDesp( idxType ) ) ;
 
-         if ( _pos >= _indexInfo.size() )
+         const CHAR *extDataName = index.getExtDataName() ;
+         if ( ossStrlen( extDataName ) > 0 )
          {
-            _hitEnd = TRUE ;
+            ob.append( FIELD_NAME_EXT_DATA_NAME, extDataName ) ;
          }
       }
       catch ( std::exception &e )
       {
-         PD_LOG ( PDERROR, "Failed to create BSON objects for "
-                  "indexes: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+      }
+   }
+
+   INT32 _monIndexFetch::fetch( BSONObj &obj )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( _hitEnd || _it == _indexList.end() )
+      {
+         rc = SDB_DMS_EOC ;
          goto error ;
+      }
+
+      try
+      {
+         _builder.reset();
+         BSONObjBuilder ob( _builder ) ;
+         monAppendSystemInfo( ob, _addInfoMask ) ;
+         _formatIndexInfo( _collection, *_it, ob ) ;
+         obj = ob.done() ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+      ++_it ;
+      if ( _it == _indexList.end() )
+      {
+         _hitEnd = TRUE ;
       }
 
    done:
@@ -5635,4 +5861,285 @@ namespace engine
    error:
       goto done ;
    }
+
+   /*
+      _monDataSetFetch implement
+    */
+   IMPLEMENT_FETCH_AUTO_REGISTER( _monDataSetFetch )
+
+   _monDataSetFetch::_monDataSetFetch()
+   : _rtnFetchBase( MON_DUMP_DFT_BUILDER_SZ, RTN_FETCH_DATASET ),
+     _dataSet( NULL )
+   {
+   }
+
+   _monDataSetFetch::~_monDataSetFetch()
+   {
+      _clear() ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_MONDSFETCH_ATTACHCTX, "_monDataSetFetch::attachContext" )
+   INT32 _monDataSetFetch::attachContext( INT64 contextID, pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_MONDSFETCH_ATTACHCTX ) ;
+
+      _clear() ;
+
+      _dataSet = SDB_OSS_NEW rtnDataSet( contextID, cb ) ;
+      PD_CHECK( NULL != _dataSet, SDB_OOM, error, PDERROR,
+                "Failed to allocate data set for context" ) ;
+
+      _hitEnd = FALSE ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_MONDSFETCH_ATTACHCTX, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_MONDSFETCH__CLEAR, "_monDataSetFetch::_clear" )
+   void _monDataSetFetch::_clear()
+   {
+      PD_TRACE_ENTRY( SDB_MONDSFETCH__CLEAR ) ;
+
+      SAFE_OSS_DELETE( _dataSet ) ;
+      _hitEnd = TRUE ;
+
+      PD_TRACE_EXIT( SDB_MONDSFETCH__CLEAR ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_MONDSFETCH_FETCH, "_monDataSetFetch::fetch" )
+   INT32 _monDataSetFetch::fetch( BSONObj &obj )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_MONDSFETCH_FETCH ) ;
+
+      if ( _hitEnd )
+      {
+         rc = SDB_DMS_EOC ;
+         goto error ;
+      }
+      else if ( NULL == _dataSet )
+      {
+         _hitEnd = TRUE ;
+         rc = SDB_DMS_EOC ;
+         goto error ;
+      }
+
+      rc = _dataSet->next( obj ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         _hitEnd = TRUE ;
+         goto error ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to get data from data set, rc: %d",
+                   rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_MONDSFETCH_FETCH, rc ) ;
+      return rc ;
+
+   error:
+      _clear() ;
+      goto done ;
+   }
+
+   /*
+      _monTransWaitsFetch implement
+   */
+   IMPLEMENT_FETCH_AUTO_REGISTER( _monTransWaitsFetch )
+
+   _monTransWaitsFetch::_monTransWaitsFetch()
+      : rtnFetchBase ( MON_DUMP_DFT_BUILDER_SZ, RTN_FETCH_TRANSWAITS )
+   {
+      _nodeId.reset() ;
+      _addInfoMask = 0 ;
+      _waitInfoSet.clear() ;
+   }
+
+   _monTransWaitsFetch::~_monTransWaitsFetch()
+   {
+      _waitInfoSet.clear() ;
+   }
+
+   INT32 _monTransWaitsFetch::init( pmdEDUCB *cb,
+                                    BOOLEAN isCurrent,
+                                    BOOLEAN isDetail,
+                                    UINT32 addInfoMask,
+                                    const BSONObj obj )
+   {
+      NodeID selfID = pmdGetNodeID() ;
+      _nodeId.nodeID  = selfID.columns.nodeID ;
+      _nodeId.groupID = selfID.columns.groupID ;
+      _addInfoMask = addInfoMask ;
+      _hitEnd = FALSE ;
+
+      monTransInfo transInfo ;
+      dpsTransCB * pTransCB = pmdGetKRCB()->getTransCB() ;
+      pmdEDUMgr *  eduMgr   = pmdGetKRCB()->getEDUMgr() ;
+      if ( pTransCB && eduMgr )
+      {
+         dpsTransLockManager *pLockMgr = pTransCB->getLockMgrHandle() ;
+         if ( pLockMgr )
+         {
+            DPS_TX_WAIT_LRB_SET txWaitLRBSet ;
+            // get lock waiter's LRB
+            pTransCB->snapTransLockWaiterLRB( txWaitLRBSet ) ;
+            if ( ! txWaitLRBSet.empty() )
+            {
+               _waitInfoSet.clear() ;
+
+              // collect transaction waitng info for each waiting executor
+               DPS_TX_WAIT_LRB_SET_IT it = txWaitLRBSet.begin() ;
+               while ( it != txWaitLRBSet.end() )
+               {
+                  dpsTxWaitLRB txWaiterLRB = *it ;
+
+                  pmdTransExecutor *pExecutor = NULL ;
+                  if ( SDB_OK == eduMgr->beginDumpEDUTrans( txWaiterLRB.eduID,
+                                                            &pExecutor,
+                                                            transInfo,
+                                                            FALSE ) )
+                  {
+                     pLockMgr->snapWaitInfo( pExecutor,
+                                             txWaiterLRB.pLRB,
+                                             txWaiterLRB.lockId,
+                                             _waitInfoSet ) ;
+                     eduMgr->endDumpEDUTrans( txWaiterLRB.eduID ) ;
+                  }
+                  it++;
+               }
+            }
+            txWaitLRBSet.clear();
+         }
+      }
+      _hitEnd = _waitInfoSet.empty() ? TRUE : FALSE ;
+      return SDB_OK ;
+   }
+
+   const CHAR* _monTransWaitsFetch::getName() const
+   {
+      return CMD_NAME_SNAPSHOT_TRANSWAITS ;
+   }
+
+   INT32 _monTransWaitsFetch::fetch( BSONObj &obj )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( _hitEnd )
+      {
+         rc = SDB_DMS_EOC ;
+         goto error ;
+      }
+
+      rc = _fetchNext( obj ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _monTransWaitsFetch::_fetchNext( BSONObj &obj )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( _waitInfoSet.empty() )
+      {
+         _hitEnd = TRUE ;
+         rc = SDB_DMS_EOC ;
+         goto error ;
+      }
+
+      // convert waitInfo set into a BSONObj
+      try
+      {
+         _builder.reset() ;
+         BSONObjBuilder ob ( _builder ) ;
+         CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+
+         DPS_TRANS_WAIT_SET_IT itr = _waitInfoSet.begin();
+         if ( itr != _waitInfoSet.end() )
+         {
+            dpsTransWait info = *itr ;
+            // system info, nodeName
+            monAppendSystemInfo( ob, _addInfoMask ) ;
+            // groupID
+            ob.append( FIELD_NAME_GROUPID,(INT32)_nodeId.groupID );
+            // nodeID
+            ob.append( FIELD_NAME_NODEID,(INT32)_nodeId.nodeID );
+            // wait time
+            ob.append( FIELD_NAME_WAITTIME, (INT64)info.waitTime ) ;
+            // waiter transId
+            dpsTransIDToString( info.waiter, strTransID, DPS_TRANS_STR_LEN ) ;
+            ob.append( FIELD_NAME_WAITER_TRANSID, strTransID ) ;
+            // holder transId
+            dpsTransIDToString( info.holder, strTransID, DPS_TRANS_STR_LEN ) ;
+            ob.append( FIELD_NAME_HOLDER_TRANSID, strTransID ) ;
+            // waiter trans cost
+            ob.append( FIELD_NAME_WAITER_TRANS_COST,(INT64)info.waiterCost );
+            // holder trans cost
+            ob.append( FIELD_NAME_HOLDER_TRANS_COST,(INT64)info.holderCost );
+            // waiter sessionID
+            ob.append( FIELD_NAME_WAITER_SESSIONID,(INT64)info.waiterSessionID );
+            // holder sessionID
+            ob.append( FIELD_NAME_HOLDER_SESSIONID,(INT64)info.holderSessionID );
+            // waiter RelatedID
+            monAppendSessionIdentify( ob,
+                                      info.waiterRelatedID,
+                                      info.waiterRelatedTID,
+                                      FIELD_NAME_WAITER_RELATED_ID ) ;
+            // holder RelatedID
+            monAppendSessionIdentify( ob,
+                                      info.holderRelatedID,
+                                      info.holderRelatedTID,
+                                      FIELD_NAME_HOLDER_RELATED_ID ) ;
+            // waiter related sessionID
+            ob.append( FIELD_NAME_WAITER_RELATED_SESSIONID,
+                       (INT64)info.waiterRelatedSessionID ) ;
+            // holder related sessionID
+            ob.append( FIELD_NAME_HOLDER_RELATED_SESSIONID,
+                       (INT64)info.holderRelatedSessionID ) ;
+            // waiter related GroupID
+            ob.append( FIELD_NAME_WAITER_RELATED_GROUPID,
+                       (INT32)info.waiterRelatedNID.columns.groupID );
+            // holder related GroupID
+            ob.append( FIELD_NAME_HOLDER_RELATED_GROUPID,
+                       (INT32)info.holderRelatedNID.columns.groupID );
+            // waiter related NodeID
+            ob.append( FIELD_NAME_WAITER_RELATED_NODEID,
+                       (INT32)info.waiterRelatedNID.columns.nodeID );
+            // holder related NodeID
+            ob.append( FIELD_NAME_HOLDER_RELATED_NODEID,
+                       (INT32)info.holderRelatedNID.columns.nodeID );
+
+            _waitInfoSet.erase( itr ) ;
+         }
+         obj = ob.done();
+         if ( _waitInfoSet.size() == 0 )
+         {
+            _hitEnd = TRUE ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Exception captured: %s", e.what() ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
 }

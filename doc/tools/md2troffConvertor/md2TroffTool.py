@@ -1,10 +1,11 @@
+#!/usr/bin/python
 import platform
 import os
 import sys
 from os.path import join, dirname, abspath
 
 root_dir=os.getcwd()
-
+SYS_STR=platform.system()
 SCRIPT_PATH=root_dir
 SOURCE=""
 TARGET=""
@@ -15,7 +16,10 @@ FAILURE_NUM=0
 # path of parsing program
 PROG_PATH=join(SCRIPT_PATH, 'sundown-master')
 PROG_PATH=join(PROG_PATH, 'bin')
-PROG_PATH=join(PROG_PATH, 'md2TroffTool.exe')
+if (SYS_STR == "Windows"):
+     PROG_PATH=join(PROG_PATH, 'md2TroffTool.exe')
+elif (SYS_STR == "Linux"):
+     PROG_PATH=join(PROG_PATH, 'md2TroffTool')
 # path of markdown file
 MD_PATH=join(SCRIPT_PATH, '..')
 MD_PATH=join(MD_PATH, '..')

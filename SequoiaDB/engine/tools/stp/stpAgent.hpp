@@ -48,9 +48,6 @@
 namespace engine
 {
 
-   // sleep time ( 100ms ) for retry getting logical time
-   #define STP_AGENT_RETRY_INTERVAL ( 100 )
-
    /*
       _stpAgent define
     */
@@ -79,6 +76,8 @@ namespace engine
       // input:
       // - timeout: timeout to get global logical time
       // - monotonic: indicate if monotonic time is required
+      // output:
+      // - pWaitedTime: return total wait time
       // return:
       // - SDB_OK: succeed to get global logical time
       // - other return code: failed to get global logical time
@@ -86,7 +85,8 @@ namespace engine
       //       `timeout` is 0 means only try once
       INT32 getLogicalTimeNS( stpLogicalTimeNS &time,
                               INT32 timeout = -1,
-                              BOOLEAN monotonic = TRUE ) ;
+                              BOOLEAN monotonic = TRUE,
+                              INT32 *pWaitedTime = NULL ) ;
 
       // try to get logical time in microseconds in given timeout
       // output:
@@ -94,6 +94,8 @@ namespace engine
       // input:
       // - timeout: timeout to get global logical time
       // - monotonic: indicate if monotonic time is required
+      // output:
+      // - pWaitedTime: return total wait time
       // return:
       // - SDB_OK: succeed to get global logical time
       // - other return code: failed to get global logical time
@@ -101,7 +103,8 @@ namespace engine
       //       `timeout` is 0 means only try once
       INT32 getLogicalTimeUS( stpLogicalTimeUS &time,
                               INT32 timeout = -1,
-                              BOOLEAN monotonic = TRUE ) ;
+                              BOOLEAN monotonic = TRUE,
+                              INT32 *pWaitedTime = NULL ) ;
 
       // try to get logical time in nanosecond
       // output:

@@ -16,6 +16,7 @@ CS_BASIC_SECTION="collectionspace"
 ITEM_NUM="number"
 SDB_SHELL="sdb"
 CONN_STR="var db = new Sdb();"
+CONN_ADD="$DEFAULT_HOSTNAME:$DEFAULT_SVCNAME"
 
 FILE_MAX_SIZE=5120 # 5MB
 
@@ -87,23 +88,37 @@ function readInIfile()
     local option=$3
     local section_value
     local ini_options=()
+    local file_value=""
+    local section_num=0
     if [ "$ini_file" = "" ];then
-        echo "[ERROR]:ini file name cannot be empty!"
-        return 0
+        echo "[ERROR] ini file name cannot be empty!"
+        return 1
     fi
+    if [ ! -f "$ini_file" ]; then
+        echo "[ERROR] No such file: $ini_file"
+        return 1
+    fi
+
+    file_value=`sed -e '/^#/d' ${ini_file}`
     if [ "$section" = "" ];then
-        echo "[ERROR]:section cannot be empty!"
-        return 0
+        echo "[ERROR] Section cannot be empty!"
+        return 1
+    fi
+    section_num=`echo "$file_value" | grep "\[$section\]" | wc -l`
+    if [ $section_num -gt 1 ]; then
+        echo "[ERROR] Repeat section: $section!"
+        return 1
     fi
 
     if [ "${option}" = "" ];then
-        section_value=$(sed -e '/^#/d' ${ini_file} | awk "/\[${section}\]/{a=1}a==1" | sed -e'1d' -e '/^$/d' -e 's/[ \t]*$//g' -e 's/^[ \t]*//g' -e 's/[ ]/@SDB@/g' -e '/\[/,$d' )
+        section_value=$(echo "$file_value" | awk "/\[${section}\]/{a=1}a==1" | sed -e'1d' -e '/^$/d' -e 's/[ \t]*$//g' -e 's/^[ \t]*//g' -e 's/[ ]/@SDB@/g' -e '/^\[/,$d' )
         ini_options=(${section_value})
         echo ${ini_options[@]}
     elif [ "${section}" != "" ] && [ "${option}" != "" ];then
-        item_value=`awk -F '=' "/\[${section}\]/{a=1}a==1" ${ini_file}|sed -e '1d' -e '/^$/d' -e '/^#/d' -e '/^\[.*\]/,$d' -e "/^${option}.*=.*/!d" -e "s/^${option}.*= *//"`
+        item_value=$(echo "$file_value" | awk -F '=' "/\[${section}\]/{a=1}a==1" | sed -e '1d' -e '/^$/d' -e '/^\[.*\]/,$d' -e "/^${option}.*=.*/!d" -e "s/^${option}.*= *//")
         echo "${item_value}"
     fi
+    return 0
 }
 
 # foo.bar to --csname foo --clanme bar
@@ -178,6 +193,7 @@ function setConnectParam()
     else
         CONN_STR="var user = new CipherUser('$username').token('$token').cipherFile('$cipherfile'); var db = new Sdb('$hostname',$svcname,user);"
     fi
+    CONN_ADD="$hostname:$svcname"
 }
 
 function getCLList()
@@ -186,12 +202,26 @@ function getCLList()
     local rc=0
 
     if [ "$cs_name" != "" ]; then
-        get_cl_str="var cursor = db.snapshot(5,{Name:'$cs_name'}); while(cursor.next()){var obj = cursor.current().toObj().Collection; for(var i=0;i<obj.length;i++){println(obj[i].Name)}}"
+        get_cl_str="var cursor = db.snapshot(SDB_SNAP_COLLECTIONSPACES, {Name:'$cs_name'});
+                    while(cursor.next()){
+                        var obj = cursor.current().toObj().Collection;
+                        for(var i=0;i<obj.length;i++){
+                            println(obj[i].Name)
+                        }
+                    }
+                    cursor.close();"
     else
-        get_cl_str="var cursor = db.snapshot(5); while(cursor.next()){var obj = cursor.current().toObj().Collection; for(var i=0;i<obj.length;i++){println(obj[i].Name)}}"
+        get_cl_str="var cursor = db.snapshot(SDB_SNAP_COLLECTIONSPACES);
+                    while(cursor.next()){
+                        var obj = cursor.current().toObj().Collection;
+                        for(var i=0;i<obj.length;i++){
+                            println(obj[i].Name)
+                        }
+                    }
+                    cursor.close();"
     fi
 
-    cl_list=`$sdb -s "$CONN_STR $get_cl_str"`
+    cl_list=`$sdb -s "$CONN_STR $get_cl_str db.close();"`
     rc=$?
     echo "${cl_list[@]}"
     return $rc
@@ -207,9 +237,45 @@ function getNodeList()
         return 1
     fi
 
-    get_node_str="var cursor = db.snapshot(4,{Name:'$cl_name'}); while(cursor.next()){var obj = cursor.current().toObj().Details;for(var i=0;i<obj.length;i++){println(obj[i].Group[0].NodeName)}}"
+    get_node_str="var nodeArr = new Array();
+                  var cursor = db.snapshot(SDB_SNAP_HEALTH);
+                  if (cursor.size() < 2){
+                      var clInfoArr = db.snapshot(SDB_SNAP_COLLECTIONS,{Name: '$cl_name'});
+                      if (clInfoArr.size() > 0){
+                          nodeArr.push('$CONN_ADD');
+                      }
+                      clInfoArr.close();
+                  } else{
+                      var clInfoArr = db.snapshot(SDB_SNAP_CATALOG,{Name: '$cl_name'});
+                      while(clInfoArr.next()){
+                          var obj = clInfoArr.current().toObj().CataInfo;
+                          var isMainCL = clInfoArr.current().toObj().IsMainCL;
+                          if (isMainCL == true)
+                          {
+                              nodeArr.push('$CONN_ADD');
+                              break;
+                          }
+                          for(var i=0;i<obj.length;i++){
+                              var rg = db.getRG(obj[i].GroupName);
+                              var rgInfo = rg.getDetail().current().toObj().Group;
+                              if ( rgInfo.length > 0 )
+                              {
+                                  var host = rgInfo[0].HostName;
+                                  var svcname = rgInfo[0].Service[0].Name;
+                                  nodeArr.push(host+':'+svcname);
+                              }
+                          }
+                      }
+                      clInfoArr.close();
+                  }
+                  cursor.close();
+                  for (var i=0; i<nodeArr.length; i++){
+                      if (nodeArr.indexOf(nodeArr[i]) == i){
+                          println(nodeArr[i]);
+                      }
+                  }"
 
-    node_list=`$sdb -s "$CONN_STR $get_node_str"`
+    node_list=`$sdb -s "$CONN_STR $get_node_str db.close();"`
     rc=$?
     echo "${node_list[@]}"
     return $rc
@@ -217,12 +283,18 @@ function getNodeList()
 
 function arrToStr()
 {
-    local str=""
-    for var in $@; do
-        str="$str $var"
+    local i
+    local result=""
+    local len=$#
+    for ((i=0; i<$len; i++)); do
+        if [ "$1" != "" ]; then
+            result="$result$1 "
+        fi
+        shift
     done
-    if [ ${#str} -gt 0 ]; then
-        echo "${str:1:${#str}-1}"
+
+    if [ ${#result} -gt 0 ]; then
+        echo "${result:0:${#result}-1}"
     else
         echo ""
     fi
@@ -269,6 +341,22 @@ function getHostInfo()
     fi
 }
 
+function getPassword()
+{
+    local password1
+    local password2
+
+    password1=$(getOptionFCmd "--password" $@)
+    password2=$(getOptionFCmd "-w" $@)
+    if [ ! -z "$password1" ]; then
+        echo "$password1"
+    elif [ ! -z "$password2" ]; then
+        echo "$password2"
+    else
+        echo ""
+    fi
+}
+
 function getOptionFCmd()
 {
     local opt=$1
@@ -285,22 +373,37 @@ function getOptionFCmd()
 
 function dealQuotes()
 {
-    local opt=$1
-    local value=$2
-    local first_str="${value:0:1}"
+    local opt="$1"
+    local value="$2"
+    local isCommadnLine="$3"
+    local firstStr
 
     if [ "$value" = "" ]; then
         return 0
     fi
-    case $opt in
-        *delrecord* | *delchar* | *delfield* | *floatfmt* |  *sort* | *select* | *filter* | *datefmt* | *timestampfmt* | *fields* )
 
-         if [ "$first_str" != "'" ]; then
-             value="'$2'"
-         fi
-         ;;
+    case $opt in
+        *delrecord* | *delchar* | *delfield* | *floatfmt* | *datefmt* | *timestampfmt* | *fields* | *sort* | *select* | *filter* | -r | -a | -e )
+
+        if [ "$isCommadnLine" = "true" ]; then
+            # parameters in the command line
+            value="${value//\\/\\\\}"
+            value="${value//\"/\\\"}"
+            value="${value//\$/\\\$}"
+            value="${value//\`/\\\`}"
+            echo "\"$value\""
+        else
+            # parameters in the configuration file
+            firstStr="${value:0:1}"
+            if [ "$firstStr" = "'" -o "$firstStr" = "\"" ]; then
+                echo "$value"
+            else
+                echo "\"$value\""
+            fi
+        fi
+        ;;
+        * ) echo "$value" ;;
     esac
-    echo "$value"
 }
 
 function genResultFile()

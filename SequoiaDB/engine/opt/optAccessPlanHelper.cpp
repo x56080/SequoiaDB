@@ -72,7 +72,7 @@ namespace engine
                                                 OPT_PLAN_CACHE_LEVEL cacheLevel,
                                                 const optAccessPlanConfig &planConfig,
                                                 const mthNodeConfig &mthConfig,
-                                                BOOLEAN keepSearchPaths )
+                                                const rtnExplainOptions *expOptions )
    : _mthMatchTreeHolder(),
      _optAccessPlanConfigHolder( planConfig ),
      _mthMatchConfigHolder( mthConfig ),
@@ -84,8 +84,8 @@ namespace engine
      _predSelectivity( OPT_MTH_DEFAULT_SELECTIVITY ),
      _scanSelectivity( OPT_MTH_DEFAULT_SELECTIVITY ),
      _estCPUCost( OPT_MTH_OPTR_DEFAULT_SELECTIVITY ),
-     _keepSearchPaths( keepSearchPaths ),
-     _hasNonGTIndex( FALSE )
+     _hasNonGTIndex( FALSE ),
+     _expOptions( expOptions )
    {
       // Adjust with cache level
       setMthEnableParameterized( mthConfig._enableParameterized &&

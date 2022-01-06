@@ -49,7 +49,7 @@ namespace engine
 
    class _rtnContextShdOfLob : public _rtnContextBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextShdOfLob )
    public:
       _rtnContextShdOfLob( INT64 contextID, UINT64 eduID ) ;
       virtual ~_rtnContextShdOfLob() ;
@@ -58,6 +58,11 @@ namespace engine
       virtual const CHAR*      name() const { return "SHARD_OF_LOB" ; };
       virtual RTN_CONTEXT_TYPE getType() const { return RTN_CONTEXT_SHARD_OF_LOB ; }
       virtual _dmsStorageUnit*  getSU () ;
+
+      virtual UINT32 getSULogicalID() const
+      {
+         return _suLogicalID ;
+      }
 
    public:
       INT32 open( const bson::BSONObj &lob,
@@ -174,6 +179,7 @@ namespace engine
       _rtnLobAccessInfo*   _accessInfo ;
 
       _dmsStorageUnit*     _su ;
+      UINT32               _suLogicalID ;
       _dmsMBContext*       _mbContext ;
       _SDB_DMSCB*          _dmsCB ;
       BOOLEAN              _reopened ;

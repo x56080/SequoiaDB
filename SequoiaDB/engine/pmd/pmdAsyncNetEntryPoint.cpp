@@ -98,7 +98,7 @@ namespace engine
       hasReg = TRUE ;
       try
       {
-         pRouteAgent->run( pmdNetCallbackFunc ) ;
+         rc = pRouteAgent->run( pmdNetCallbackFunc ) ;
       }
       catch ( std::exception &e )
       {
@@ -129,7 +129,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_PMDASYNCNETSUBEP ) ;
       pmdEDUMgr *pEDUMgr = cb->getEDUMgr () ;
       _netEventSuit *pSuit = (_netEventSuit*)pData;
-      netEvSuitPtr suitPtr = netEvSuitPtr::makeRaw( pSuit, ALLOC_POOL ) ;
+      netEvSuitPtr suitPtr = netEvSuitPtr::makeRaw( pSuit ) ;
       SDB_UNUSED( suitPtr ) ;
 
       rc = pEDUMgr->activateEDU( cb ) ;
@@ -178,6 +178,10 @@ namespace engine
                           pmdAsyncNetEntryPoint,
                           "CoordNetwork" ) ;
 
+   PMD_DEFINE_ENTRYPOINT( EDU_TYPE_COORD_DS_NETWORK, TRUE,
+                          pmdAsyncNetEntryPoint,
+                          "CoordDSNetwork" ) ;
+
    PMD_DEFINE_ENTRYPOINT( EDU_TYPE_OMNET, TRUE,
                           pmdAsyncNetEntryPoint,
                           "OMNet" ) ;
@@ -201,5 +205,13 @@ namespace engine
    PMD_DEFINE_ENTRYPOINT( EDU_TYPE_STP_NET_AGENT, TRUE,
                           pmdAsyncNetEntryPoint,
                           "STPNetAgent" ) ;
+
+   PMD_DEFINE_ENTRYPOINT( EDU_TYPE_FS_MCS_NET_SERVICE, TRUE,
+                          pmdAsyncNetEntryPoint,
+                          "FsMcsNetService" ) ;
+
+   PMD_DEFINE_ENTRYPOINT( EDU_TYPE_FS_MCS_NET_AGENT, TRUE,
+                          pmdAsyncNetEntryPoint,
+                          "FsMcsNetAgent" ) ;
 
 }

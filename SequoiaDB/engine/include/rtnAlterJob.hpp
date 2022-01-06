@@ -108,6 +108,11 @@ namespace engine
             return &_options ;
          }
 
+         OSS_INLINE const _rtnAlterInfo * getAlterInfo () const
+         {
+            return &_alterInfo ;
+         }
+
          OSS_INLINE const RTN_ALTER_TASK_LIST & getAlterTasks () const
          {
             return _alterTasks ;
@@ -164,6 +169,7 @@ namespace engine
          const CHAR *            _objectName ;
          INT32                   _version ;
          INT32                   _parseRC ;
+         rtnAlterInfo            _alterInfo ;
    } ;
 
    typedef class _rtnAlterJob rtnAlterJob ;

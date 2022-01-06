@@ -51,7 +51,8 @@ namespace engine
                               _pmdEDUCB* eduCB,
                               dmsExtentID indexExtentID,
                               dmsExtentID indexLogicID,
-                              dmsDupKeyProcessor *dkProcessor ) ;
+                              dmsDupKeyProcessor *dkProcessor,
+                              dmsIdxTaskStatus* pIdxStatus = NULL ) ;
       ~_dmsIndexOnlineBuilder() ;
 
    private:
@@ -71,7 +72,8 @@ namespace engine
                                dmsExtentID indexExtentID,
                                dmsExtentID indexLogicID,
                                INT32 sortBufferSize,
-                               dmsDupKeyProcessor *dkProcessor ) ;
+                               dmsDupKeyProcessor *dkProcessor,
+                               dmsIdxTaskStatus* pIdxStatus = NULL ) ;
       ~_dmsIndexSortingBuilder() ;
 
    private:

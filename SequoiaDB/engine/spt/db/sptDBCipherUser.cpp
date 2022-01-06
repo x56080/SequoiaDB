@@ -94,7 +94,7 @@ namespace engine
          goto error ;
       }
 
-      rc = passwd::utilBuildDefaultCipherFilePath( cipherFile ) ;
+      rc = utilBuildDefaultCipherFilePath( cipherFile ) ;
       if ( rc )
       {
          detail = BSON( SPT_ERR << "Failed to build default cipher file path" ) ;

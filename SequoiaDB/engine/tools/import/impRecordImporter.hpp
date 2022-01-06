@@ -55,7 +55,8 @@ namespace import
                       BOOLEAN useSSL = FALSE,
                       BOOLEAN enableTransaction = FALSE,
                       BOOLEAN allowKeyDuplication = TRUE,
-                      BOOLEAN replaceKeyDuplication = FALSE ) ;
+                      BOOLEAN replaceKeyDuplication = FALSE,
+                      INT32 batchSize = 1000 ) ;
 
       ~RecordImporter() ;
 
@@ -75,6 +76,8 @@ namespace import
       INT32 _recv() ;
 
       INT32 _extract() ;
+
+      INT32 _setSessionAttr() ;
 
    private:
       INT32 _insertBufferSize ;
@@ -102,6 +105,8 @@ namespace import
       string   _password ;
       string   _csname ;
       string   _clname ;
+
+      INT32    _batchSize ;
    } ;
 }
 

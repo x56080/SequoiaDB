@@ -37,6 +37,7 @@
 
 *******************************************************************************/
 #include "rtnContextMain.hpp"
+#include "rtnTrace.hpp"
 #include "pmd.hpp"
 #include "rtn.hpp"
 #include "pd.hpp"
@@ -522,6 +523,197 @@ namespace engine
       return rc ;
 
    error :
+      goto done ;
+   }
+
+   INT32 _rtnContextMain::_getAdvanceOrderby( BSONObj &orderby ) const
+   {
+      orderby = _options.getOrderBy() ;
+
+      if ( orderby.isEmpty() )
+      {
+         PD_LOG_MSG( PDERROR, "Context does not support advance without "
+                     "orderby" ) ;
+         return SDB_OPTION_NOT_SUPPORT ;
+      }
+
+      return SDB_OK ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXMAIN__DOADVANCE, "_rtnContextMain::_doAdvance" )
+   INT32 _rtnContextMain::_doAdvance( INT32 type,
+                                      INT32 prefixNum,
+                                      const BSONObj &keyVal,
+                                      const BSONObj &orderby,
+                                      const BSONObj &arg,
+                                      BOOLEAN isLocate,
+                                      _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_RTNCTXMAIN__DOADVANCE ) ;
+
+      if ( isLocate )
+      {
+         goto done ;
+      }
+
+      // check keydef is the prefix match order by
+      try
+      {
+         LST_SUB_CTX_PTR lstCtx ;
+
+         /// 1. process cache data
+         rc = _processCacheData( cb ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Process cache data failed, rc: %d", rc ) ;
+            goto error ;
+         }
+
+         /// 2. check order context
+         rc = _checkOrderCtxsAdvance( type, prefixNum, keyVal, orderby ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Check order-contexts advance failed, rc: %d",
+                    rc ) ;
+            goto error ;
+         }
+
+         /// 3. prepare sub contexts
+         rc = _prepareSubCtxsAdvance( lstCtx ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Prepare sub contexts advance failed, rc: %d",
+                    rc ) ;
+            goto error ;
+         }
+
+         // 4. do sub contexts
+         rc = _doSubCtxsAdvance( lstCtx, arg, cb ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Do sub contexts advance failed, rc: %d",
+                    rc ) ;
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_RTNCTXMAIN__DOADVANCE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnContextMain::_checkOrderCtxsAdvance( INT32 type,
+                                                  INT32 prefixNum,
+                                                  const BSONObj &keyVal,
+                                                  const BSONObj &orderby )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         SUB_ORDERED_CTX_MAP::iterator itOrder ;
+         BOOLEAN processed = FALSE ;
+         ixmIndexKeyGen keyGen( orderby ) ;
+
+         itOrder = _orderedContextMap.begin() ;
+         while( itOrder != _orderedContextMap.end() )
+         {
+            rc = _checkSubContextAdvance( itOrder->second, keyGen, type,
+                                          prefixNum, keyVal, orderby,
+                                          processed ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Check sub-context advance failed, rc: %d",
+                       rc ) ;
+               goto error ;
+            }
+            else if ( !processed )
+            {
+               ///  save empty
+               SDB_ASSERT( 0 == itOrder->second->recordNum(),
+                           "Sub-context must be empty" ) ;
+               rc = _saveEmptyOrderedSubCtx( itOrder->second ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Save empty ordered sub-context failed, "
+                          "rc: %d", rc ) ;
+                  goto error ;
+               }
+               _orderedContextMap.erase( itOrder++ ) ;
+            }
+            else
+            {
+               ++itOrder ;
+            }
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXMAIN__CHECKSUBCTXADVANCE, "_rtnContextMain::_checkSubContextAdvance" )
+   INT32 _rtnContextMain::_checkSubContextAdvance( rtnSubContext *pSubCtx,
+                                                   ixmIndexKeyGen &keyGen,
+                                                   INT32 type,
+                                                   INT32 prefixNum,
+                                                   const BSONObj &keyVal,
+                                                   const BSONObj &orderby,
+                                                   BOOLEAN &processed )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_RTNCTXMAIN__CHECKSUBCTXADVANCE ) ;
+
+      BOOLEAN matched = FALSE ;
+      BOOLEAN isEqual = FALSE ;
+
+      processed = FALSE ;
+
+      // check sub context's data
+      while( pSubCtx->recordNum() > 0 )
+      {
+         BSONObj obj( pSubCtx->front() ) ;
+
+         rc = _checkAdvance( type, keyGen, prefixNum, keyVal,
+                             obj, orderby, matched, isEqual ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         else if ( matched )
+         {
+            processed = TRUE ;
+            break ;
+         }
+
+         rc = pSubCtx->pop() ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_RTNCTXMAIN__CHECKSUBCTXADVANCE, rc ) ;
+      return rc ;
+   error:
       goto done ;
    }
 

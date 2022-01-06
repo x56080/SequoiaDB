@@ -215,6 +215,9 @@ namespace engine
       /// when this interface is beging called.
       INT32 move( const DPS_LSN_OFFSET &offset,
                   const DPS_LSN_VER &version ) ;
+      void beforeFS() ;
+      void afterFS( const DPS_LSN_OFFSET &offset,
+                    const DPS_LSN_VER &version ) ;
 
       void setLogFileSz ( UINT64 logFileSz )
       {

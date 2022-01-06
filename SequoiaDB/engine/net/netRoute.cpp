@@ -236,6 +236,10 @@ namespace engine
          {
             *newAdd = TRUE ;
          }
+         else if ( node._service[id.columns.serviceID].empty() )
+         {
+            *newAdd = TRUE ;
+         }
          else
          {
             *newAdd = FALSE ;

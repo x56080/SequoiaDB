@@ -1,14 +1,5 @@
 [^_^]: 
-
     当前会话快照
-    作者：何嘉文
-    时间：20190307
-    评审意见
-
-    王涛：
-    许建辉：
-    市场部：
-
 
 
 当前会话快照可以列出当前用户的会话。
@@ -17,13 +8,11 @@
 >
 > 如果连接协调节点查询快照，返回的是当前会话通过协调节点所连接的编目节点和数据节点的会话。
 
-标识
-----
+##标识##
 
 SDB_SNAP_SESSIONS_CURRENT
 
-字段信息
-----
+##字段信息##
 
 | 字段名            | 类型       | 描述                                               |
 | ----------------- | ---------- | -------------------------------------------------- |
@@ -63,13 +52,12 @@ SDB_SNAP_SESSIONS_CURRENT
 | UserCPU           | double     | 用户 CPU，单位为秒                                 |
 | SysCPU            | double     | 系统 CPU，单位为秒                                 |
 
-示例
-----
+##示例##
 
 查看当前会话快照
 
 ```lang-javascript
-> db.snapshot( SDB_SNAP_CONTEXTS_CURRENT )
+> db.snapshot( SDB_SNAP_SESSIONS_CURRENT )
 ```
 
 输出结果如下：
@@ -117,6 +105,5 @@ SDB_SNAP_SESSIONS_CURRENT
 ```
 
 [^_^]:
-    本文使用到的所有链接及引用。
-    
+    本文使用到的所有链接及引用
 [edu_url]: manual/Distributed_Engine/Architecture/Thread_Model/edu.md

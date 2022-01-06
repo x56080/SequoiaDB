@@ -49,6 +49,7 @@
 #include "utilCommon.hpp"
 #include "utilNodeOpr.hpp"
 #include "utilParam.hpp"
+#include "pmdStartup.hpp"
 
 #include <boost/algorithm/string.hpp>
 
@@ -243,5 +244,49 @@ namespace engine
    error:
       goto done ;
    }
+
+   static const CHAR *s_stpFiles[] =
+   {
+      STP_CFG_FILE_NAME,
+      STP_DIAGLOG_FILE_NAME,
+      STP_PID_FILE_NAME,
+      STP_META_FILE_NAME,
+      STP_TIMEMAP_DB_FILE_NAME,
+      PMD_STARTUP_FILE_NAME
+   } ;
+
+   INT32 stpRemoveFiles( const CHAR *stpPath )
+   {
+      INT32 rc = SDB_OK ;
+
+      for ( UINT32 i = 0 ;
+            i < sizeof( s_stpFiles ) / sizeof( const CHAR * ) ;
+            ++ i )
+      {
+         const CHAR *fileName = s_stpFiles[ i ] ;
+         CHAR filePath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+
+         rc = utilBuildFullPath( stpPath, fileName, OSS_MAX_PATHSIZE,
+                                 filePath ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build path [%s] with file [%s], "
+                      "rc: %d", stpPath, fileName, rc ) ;
+
+         rc = ossDelete( filePath ) ;
+         if ( SDB_OK != rc && SDB_FNE != rc )
+         {
+            PD_LOG( PDERROR, "Failed to remove STP file: %s, rc: %d",
+                    stpPath, rc ) ;
+            goto error ;
+         }
+         rc = SDB_OK ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 }
 

@@ -18,10 +18,13 @@ import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
- * @FileName:seqDB-6672:并发做增删改查操作 1、CL压缩类型为lzw，并发对该CL做增删改查操作 2、检查返回结果
- * @Author linsuqiang
- * @Date 2016-12-22
- * @Version 1.00
+ * @descreption seqDB-6672:并发做增删改查操作_st.compress.04.001
+ * @author linsuqiang
+ * @date 2016-12-22
+ * @updateUser YiPan
+ * @updateDate 2021/12/10
+ * @updateRemark 关闭未使用的游标，优化抛错流程
+ * @version 1.0
  */
 public class TestConcurrency6672 extends SdbTestBase {
     private Sequoiadb sdb = null;
@@ -31,21 +34,13 @@ public class TestConcurrency6672 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
-        }
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         if ( CompressUtils.isStandAlone( sdb ) ) {
             throw new SkipException( "is standalone skip testcase" );
         }
-        try {
-            DBCollection cl = createCL();
-            insertData( cl, 9000 );
-            CompressUtils.waitCreateDict( cl, dataGroupName );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
-        }
+        DBCollection cl = createCL();
+        insertData( cl, 9000 );
+        CompressUtils.waitCreateDict( cl, dataGroupName );
     }
 
     @SuppressWarnings("deprecation")
@@ -56,8 +51,6 @@ public class TestConcurrency6672 extends SdbTestBase {
             if ( cs.isCollectionExist( clName ) ) {
                 cs.dropCollection( clName );
             }
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
         } finally {
             if ( sdb != null ) {
                 sdb.disconnect();
@@ -109,8 +102,6 @@ public class TestConcurrency6672 extends SdbTestBase {
                     delMatcher.put( "a", i );
                     cl.delete( delMatcher );
                 }
-            } catch ( BaseException e ) {
-                throw e;
             } finally {
                 if ( db != null ) {
                     db.disconnect();
@@ -136,8 +127,6 @@ public class TestConcurrency6672 extends SdbTestBase {
                     updModifier.put( "$set", JSON.parse( "{b:'hahahahaha'}" ) );
                     cl.update( updMatcher, updModifier, null );
                 }
-            } catch ( BaseException e ) {
-                throw e;
             } finally {
                 if ( db != null ) {
                     db.disconnect();
@@ -159,10 +148,10 @@ public class TestConcurrency6672 extends SdbTestBase {
                     // do query
                     BSONObject qryMatcher = new BasicBSONObject();
                     qryMatcher.put( "a", 6000 + i );
-                    cl.query( qryMatcher, null, null, null );
+                    DBCursor cursor = cl.query( qryMatcher, null, null, null );
+                    Assert.assertEquals( cursor.getNext().get( "b" ), ranStr );
+                    cursor.close();
                 }
-            } catch ( BaseException e ) {
-                throw e;
             } finally {
                 if ( db != null ) {
                     db.disconnect();
@@ -187,8 +176,6 @@ public class TestConcurrency6672 extends SdbTestBase {
                     insertOpt.put( "b", "Merry Christmas" );
                     cl.insert( insertOpt );
                 }
-            } catch ( BaseException e ) {
-                throw e;
             } finally {
                 if ( db != null ) {
                     db.disconnect();
@@ -199,31 +186,23 @@ public class TestConcurrency6672 extends SdbTestBase {
 
     private DBCollection createCL() {
         DBCollection cl = null;
-        try {
-            CollectionSpace cs = sdb.getCollectionSpace( csName );
-            BSONObject option = new BasicBSONObject();
-            dataGroupName = ( CompressUtils.getDataGroups( sdb ) ).get( 0 );
-            option.put( "Group", dataGroupName );
-            option.put( "Compressed", true );
-            option.put( "CompressionType", "lzw" );
-            option.put( "ReplSize", 0 );
-            cl = cs.createCollection( clName, option );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
-        }
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        BSONObject option = new BasicBSONObject();
+        dataGroupName = ( CompressUtils.getDataGroups( sdb ) ).get( 0 );
+        option.put( "Group", dataGroupName );
+        option.put( "Compressed", true );
+        option.put( "CompressionType", "lzw" );
+        option.put( "ReplSize", 0 );
+        cl = cs.createCollection( clName, option );
         return cl;
     }
 
     private void insertData( DBCollection cl, int recSum ) {
-        try {
-            for ( int i = 0; i < recSum; i++ ) {
-                BSONObject rec = new BasicBSONObject();
-                rec.put( "a", i );
-                rec.put( "b", ranStr );
-                cl.insert( rec );
-            }
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
+        for ( int i = 0; i < recSum; i++ ) {
+            BSONObject rec = new BasicBSONObject();
+            rec.put( "a", i );
+            rec.put( "b", ranStr );
+            cl.insert( rec );
         }
     }
 

@@ -30,7 +30,7 @@ function test ()
       key1 + "=" + value1 + "; " + comment3 + " " + comment4 + "\n" +
       "; test section comment\n" +
       "[" + section1 + "]\n" +
-      key2 + "=" + value2 + "\n"
+      key2 + "=" + value2 + "\n" +
    "[" + section2 + "]\n" +
       "; " + comment1 + "\n" +
       key2 + "=" + value2 + " ; " + comment3 + "\n" +

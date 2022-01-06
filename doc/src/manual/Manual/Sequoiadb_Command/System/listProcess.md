@@ -1,7 +1,10 @@
+##名称##
+
+listProcess - 列出进程的信息
 
 ##语法##
 
-***System.listProcess( \[options\], \[filter\] )***
+**System.listProcess( \[options\], \[filter\] )**
 
 ##类别##
 
@@ -34,46 +37,50 @@ options 参数详细说明如下：
 
 ##错误##
 
-如果出错则抛异常，并输出错误信息，可以通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误码。
-关于错误处理可以参考[常见错误处理指南](manual/faq.md)。
+如果出错则抛异常，并输出错误信息，可以通过 [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) 获取错误信息或通过 [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) 获取错误码。
+关于错误处理可以参考[常见错误处理指南](manual/FAQ/faq_sdb.md)。
 
 常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
 
+##版本##
+
+v3.2 及以上版本
+
 ##示例##
 
-* 列出所有进程的信息；
+* 列出所有进程的信息
 
-  ```lang-javascript
-  > System.listProcess()
-  {
-      "pid": "30571",
-      "cmd": "sequoiadb(50000) S"
-  }
-  {
-      "pid": "30834",
-      "cmd": "bin/sdb"
-  }
-  {
-      "pid": "30876",
-      "cmd": "/usr/sbin/rsyslogd -n"
-  }
-  ...
-  ```
+    ```lang-javascript
+    > System.listProcess()
+    {
+        "pid": "30571",
+        "cmd": "sequoiadb(50000) S"
+    }
+    {
+        "pid": "30834",
+        "cmd": "bin/sdb"
+    }
+    {
+        "pid": "30876",
+        "cmd": "/usr/sbin/rsyslogd -n"
+    }
+    ...
+    ```
 
-* 对结果进行筛选:
+* 对结果进行筛选
 
-  ```lang-javascript
-  > System.listProcess( { detail: true }, { "user": "sdbadmin" } )
-  {
-      "user": "sdbadmin",
-      "pid": "20630",
-      "status": "S",
-      "cmd": "sleep 1"
-  }
-  {
-      "user": "sdbadmin",
-      "pid": "25681",
-      "status": "Sl",
-      "cmd": "sdbom(11780)"
-  }
-  ```
+    ```lang-javascript
+    > System.listProcess( { detail: true }, { "user": "sdbadmin" } )
+    {
+        "user": "sdbadmin",
+        "pid": "20630",
+        "status": "S",
+        "cmd": "sleep 1"
+    }
+    {
+        "user": "sdbadmin",
+        "pid": "25681",
+        "status": "Sl",
+        "cmd": "sdbom(11780)"
+    }
+    ```

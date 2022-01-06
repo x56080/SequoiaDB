@@ -102,7 +102,7 @@ namespace engine
       protected :
          virtual INT32 _doOnCataGroupP2 ( MsgHeader *pMsg,
                                           pmdEDUCB *cb,
-                                          rtnContextCoord **ppContext,
+                                          rtnContextCoord::sharePtr *ppContext,
                                           coordCMDArguments *pArgs,
                                           const CoordGroupList &pGroupLst ) ;
 
@@ -322,14 +322,14 @@ namespace engine
 
          virtual INT32 _doOnCataGroup ( MsgHeader *pMsg,
                                         pmdEDUCB *cb,
-                                        rtnContextCoord **ppContext,
+                                        rtnContextCoord::sharePtr *ppContext,
                                         coordCMDArguments *pArgs,
                                         CoordGroupList *pGroupLst,
                                         vector<BSONObj> *pReplyObjs ) ;
 
          virtual INT32 _doOnDataGroup ( MsgHeader *pMsg,
                                         pmdEDUCB *cb,
-                                        rtnContextCoord **ppContext,
+                                        rtnContextCoord::sharePtr *ppContext,
                                         coordCMDArguments *pArgs,
                                         const CoordGroupList &groupLst,
                                         const vector<BSONObj> &cataObjs,
@@ -370,7 +370,7 @@ namespace engine
 
          virtual INT32 _doOnDataGroup ( MsgHeader *pMsg,
                                         pmdEDUCB *cb,
-                                        rtnContextCoord **ppContext,
+                                        rtnContextCoord::sharePtr *ppContext,
                                         coordCMDArguments *pArgs,
                                         const CoordGroupList &groupLst,
                                         const vector<BSONObj> &cataObjs,
@@ -378,7 +378,7 @@ namespace engine
 
          virtual INT32 _doCommit ( MsgHeader *pMsg,
                                    pmdEDUCB * cb,
-                                   rtnContextCoord **ppContext,
+                                   rtnContextCoord::sharePtr *ppContext,
                                    coordCMDArguments *pArgs ) ;
 
    } ;
@@ -411,7 +411,7 @@ namespace engine
 
          virtual INT32 _doOnDataGroup ( MsgHeader *pMsg,
                                         pmdEDUCB *cb,
-                                        rtnContextCoord **ppContext,
+                                        rtnContextCoord::sharePtr *ppContext,
                                         coordCMDArguments *pArgs,
                                         const CoordGroupList &groupLst,
                                         const vector<BSONObj> &cataObjs,
@@ -419,14 +419,14 @@ namespace engine
 
          virtual INT32 _doOnDataGroupP2 ( MsgHeader *pMsg,
                                           pmdEDUCB *cb,
-                                          rtnContextCoord **ppContext,
+                                          rtnContextCoord::sharePtr *ppContext,
                                           coordCMDArguments *pArgs,
                                           const CoordGroupList &groupLst,
                                           const vector<BSONObj> &cataObjs ) ;
 
          virtual INT32 _doCommit ( MsgHeader *pMsg,
                                    pmdEDUCB * cb,
-                                   rtnContextCoord **ppContext,
+                                   rtnContextCoord::sharePtr *ppContext,
                                    coordCMDArguments *pArgs ) ;
 
       private:
@@ -463,7 +463,7 @@ namespace engine
 
          virtual INT32 _doOnDataGroup ( MsgHeader *pMsg,
                                         pmdEDUCB *cb,
-                                        rtnContextCoord **ppContext,
+                                        rtnContextCoord::sharePtr *ppContext,
                                         coordCMDArguments *pArgs,
                                         const CoordGroupList &groupLst,
                                         const vector<BSONObj> &cataObjs,
@@ -471,7 +471,7 @@ namespace engine
 
          virtual INT32 _doOnDataGroupP2 ( MsgHeader *pMsg,
                                           pmdEDUCB *cb,
-                                          rtnContextCoord **ppContext,
+                                          rtnContextCoord::sharePtr *ppContext,
                                           coordCMDArguments *pArgs,
                                           const CoordGroupList &groupLst,
                                           const vector<BSONObj> &cataObjs ) ;
@@ -520,7 +520,7 @@ namespace engine
 
          virtual INT32 _doOnDataGroup ( MsgHeader *pMsg,
                                         pmdEDUCB *cb,
-                                        rtnContextCoord **ppContext,
+                                        rtnContextCoord::sharePtr *ppContext,
                                         coordCMDArguments *pArgs,
                                         const CoordGroupList &groupLst,
                                         const vector<BSONObj> &cataObjs,
@@ -528,7 +528,7 @@ namespace engine
 
          virtual INT32 _doOnDataGroupP2 ( MsgHeader *pMsg,
                                           pmdEDUCB *cb,
-                                          rtnContextCoord **ppContext,
+                                          rtnContextCoord::sharePtr *ppContext,
                                           coordCMDArguments *pArgs,
                                           const CoordGroupList &groupLst,
                                           const vector<BSONObj> &cataObjs ) ;

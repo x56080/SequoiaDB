@@ -18,7 +18,7 @@ class TestListProcedures12504(testlib.SdbTestBase):
          self.db.remove_procedure('sum12504')  
       except SDBBaseError as e:
          if -233 != e.code:
-            self.fail('set up fail: ' + e.detail)         
+            self.fail('set up fail: ' + str(e))
 
    def test_list_procedures_12504(self):
       # create procedure
@@ -42,7 +42,7 @@ class TestListProcedures12504(testlib.SdbTestBase):
          # get result
          act_result = self.get_actual_result(cursor)
       except SDBBaseError as e:
-         self.fail('get list procedures fail: ' + e.detail)
+         self.fail('get list procedures fail: ' + str(e))
       return act_result
             
    def get_actual_result(self,cursor):

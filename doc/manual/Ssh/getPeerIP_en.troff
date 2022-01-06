@@ -19,7 +19,7 @@ Get IP address of remote host.
 NULL
 .SH RETURN VALUE
 .PP
-On success, return remote host's IP address.
+On success, return IP address of remote host.
 .PP
 On error, exception will be thrown.
 .SH ERRORS
@@ -41,7 +41,7 @@ Suppose the local host is "192.168.20.71".
 .IP
 .nf
 \f[C]
->\ var\ ssh\ =\ new\ Ssh(\ "192.168.20.72",\ "sdbadmin",\ "sdbadmin",\ 22\ )
+> var ssh = new Ssh( "192.168.20.72", "sdbadmin", "sdbadmin", 22 )
 \f[]
 .fi
 .IP \[bu] 2
@@ -49,7 +49,7 @@ Get IP address of remote host.
 .IP
 .nf
 \f[C]
->\ ssh.getPeerIP()
+> ssh.getPeerIP()
 192.168.20.72
 \f[]
 .fi

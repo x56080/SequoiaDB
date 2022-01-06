@@ -50,7 +50,7 @@ Windows32:
         copy parser\sm\js\src\build-release\bin\dist\*.dll to parser\sm\js\src\build-release\dist\lib\
         do same operation for build-debug
 
-    OpenSSL 1.1.1g:
+    OpenSSL 1.1.1k:
         win32 not used, so not compile and not support.
 
     snappy 1.1.0:
@@ -114,11 +114,11 @@ Windows64:
         copy parser\sm\js\src\build-release\bin\dist\*.dll to parser\sm\js\src\build-release\dist\lib\
         do same operation for build-debug
 
-    OpenSSL 1.1.1g:
+    OpenSSL 1.1.1k:
         cd crypto/openssl.1.1g\
         perl Configure VC-WIN64A
         nmake
-        copy the following files to crypto\openssl-1.1.1g\lib\win64:
+        copy the following files to crypto\openssl-1.1.1k\lib\win64:
         libssl.lib libcrypto.lib
 
     snappy 1.1.0:
@@ -183,11 +183,11 @@ Linux32:
             Then check if it's installed successfully:
             autoconf2.13 --version
 
-    OpenSSL 1.1.1g:
-        cd crypto/openssl-1.1.1g/
+    OpenSSL 1.1.1k:
+        cd crypto/openssl-1.1.1k/
         ./configure
         make
-        copy libcrypto.a and libssl.a to crypto/openssl-1.1.1g/lib/linux32/
+        copy libcrypto.a and libssl.a to crypto/openssl-1.1.1k/lib/linux32/
 
     snappy 1.1.0:
         cd snappy
@@ -264,9 +264,9 @@ Linux64:
             Then check if it's installed successfully:
             autoconf2.13 --version
 
-    OpenSSL 1.1.1g:
+    OpenSSL 1.1.1k:
         # for release build:
-        cd thirdparty/crypto/openssl-1.1.1g/
+        cd thirdparty/crypto/openssl-1.1.1k/
         rm -rf stage
         make clean
         chmod +x ./config
@@ -276,7 +276,7 @@ Linux64:
         cp libssl.a ./lib/linux64/release
         
         # for debug build:
-        cd thirdparty/crypto/openssl-1.1.1g/
+        cd thirdparty/crypto/openssl-1.1.1k/
         rm -rf stage 
         make clean
         chmod +x ./config
@@ -472,6 +472,7 @@ ARM64:
         chmod +x ./tools/build/src/engine/build.sh
         ./bootstrap.sh --with-libraries=system,filesystem,thread,program_options,chrono --prefix=./
         ./bjam link=static threading=multi variant=release address-model=64 toolset=gcc runtime-link=static cxxflags="-fPIC" architecture=arm
+        mkdir -p ./lib/armlinux64/release
         cp ./stage/lib/* ./lib/armlinux64/release
 
         # for debug build:
@@ -480,6 +481,7 @@ ARM64:
         chmod +x ./tools/build/src/engine/build.sh
         ./bootstrap.sh --with-libraries=system,filesystem,thread,program_options,chrono --prefix=./
         ./bjam link=static threading=multi variant=debug address-model=64 toolset=gcc runtime-link=static cxxflags="-fPIC" architecture=arm
+        mkdir -p ./lib/armlinux64/debug
         cp ./stage/lib/* ./lib/armlinux64/debug
 
     SpiderMonkey 1.8.5:
@@ -515,23 +517,25 @@ ARM64:
 
     OpenSSL 1.1.g:
         # for release build:
-        cd thirdparty/crypto/openssl-1.1.1g/
+        cd thirdparty/crypto/openssl-1.1.1k/
         rm -rf stage
         make clean
         chmod +x ./config
         ./config -fPIC
         make -j 4
-        cp libcrypto.a lib/armlinux64/release
+        mkdir -p ./lib/armlinux64/release
+        cp libcrypto.a ./lib/armlinux64/release   
         cp libssl.a ./lib/armlinux64/release
 
         # for debug build:
-        cd thirdparty/crypto/openssl-1.1.1g/
+        cd thirdparty/crypto/openssl-1.1.1k/
         rm -rf stage
         make clean
         chmod +x ./config
         ./config -fPIC -d
         make -j 4
-        cp libcrypto.a lib/armlinux64/debug
+        mkdir -p ./lib/armlinux64/debug
+        cp libcrypto.a ./lib/armlinux64/debug
         cp libssl.a ./lib/armlinux64/debug
 
     snappy 1.1.0:
@@ -539,12 +543,14 @@ ARM64:
         cd thirdparty/snappy
         scons --clean
         scons
+        mkdir -p ./lib/armlinux64/release
         cp stage/lib/libsnappy.a ./lib/armlinux64/release
 
         # for debug build:
         cd thirdparty/snappy
         scons --clean
         scons --dd
+        mkdir -p ./lib/armlinux64/debug
         cp stage/lib/libsnappy.a ./lib/armlinux64/debug
 
     lz4 1.7.1:
@@ -552,12 +558,14 @@ ARM64:
         cd thirdparty/lz4
         scons --clean
         scons
+        mkdir -p ./lib/armlinux64/release
         cp stage/lib/liblz4.a ./lib/armlinux64/release
 
         # for debug build:
         cd thirdparty/lz4
         scons --clean
         scons --dd
+        mkdir -p ./lib/armlinux64/debug
         cp stage/lib/liblz4.a ./lib/armlinux64/debug
 
     zlib 1.2.8:
@@ -566,12 +574,14 @@ ARM64:
         cd thirdparty/zlib
         scons --clean
         scons
+        mkdir -p ./lib/armlinux64/release
         cp stage/lib/libzlib.a ./lib/armlinux64/release/libzlib.a
 
         # for debug build:
         cd thirdparty/zlib
         scons --clean
         scons --dd
+        mkdir -p ./lib/armlinux64/debug
         cp stage/lib/libzlib.a ./lib/armlinux64/debug/libzlib.a
 
         # The second way to build:
@@ -579,16 +589,18 @@ ARM64:
         chmod +x configure
         ./configure
         make -j 4
+        mkdir -p ./lib/armlinux64/release
         cp ./libz.a ./lib/armlinux64/release/libzlib.a
 
     fuse 2.8.6
-        cd fuse
+        cd thirdparty/fuse
         chmod +x makeconf.sh
         ./makeconf.sh
         ./configure
         make -j 4
         sudo make install
         whereis libfuse.a
+        mkdir -p ./lib/armlinux64/release
         cp ./lib/.libs/libfuse.a ./lib/armlinux64/release/libfuse.a
 
 PowerLinux64:
@@ -624,7 +636,7 @@ PowerLinux64:
         parser/sm/js/src/build-release/dist/lib to parser/sm/js/lib/ppclinux64.
         do same operation for build-debug
 
-    OpenSSL 1.1.1g:
+    OpenSSL 1.1.1k:
        not compile.
 
     snappy 1.1.0:
@@ -690,9 +702,9 @@ PowerleLinux64:
             to check if the macro '__ppc64le__' exists, if the macro does not, use another macro that has been 
             defined, such as: '../configure __PPC64__'
 
-    OpenSSL 1.1.1g:
+    OpenSSL 1.1.1k:
         # for release build:
-        cd thirdparty/crypto/openssl-1.1.1g/
+        cd thirdparty/crypto/openssl-1.1.1k/
         make clean
         chmod +x ./config
         ./config -fPIC
@@ -702,7 +714,7 @@ PowerleLinux64:
         cp libssl.a ./lib/ppclelinux64/release
 
         # for debug build:
-        cd thirdparty/crypto/openssl-1.1.1g/
+        cd thirdparty/crypto/openssl-1.1.1k/
         make clean
         chmod +x ./config
         ./config -fPIC -d
@@ -744,7 +756,7 @@ Aix64:
         ./bjam link=static threading=multi variant=release address-model=64 toolset=gcc runtime-link=static cxxflags="-maix64" linkflags="-maix64"
         copy boost/stage/lib/* to boost/lib/aix64
 
-    OpenSSL 1.1.1g:
+    OpenSSL 1.1.1k:
        not compile.
 
     snappy 1.1.0:
@@ -760,6 +772,73 @@ Aix64:
         ./configure
         make
         copy the following file to zlib\lib\aix64
+            libzlib.a
+    The second way to build:
+        cd zlib
+        scons
+
+Alpha64:
+    Building Prerequisites:
+        g++ 4.8.3
+        libstdc++ 6.0.19
+        Python 2.7.7
+        autoconf 2.13 ( source code in ..\tools\compile\autoconf-2.13 )
+        scons
+
+    Boost 1.60.0:
+        ./bootstrap.sh --prefix=./
+        ./bjam link=static threading=multi variant=release address-model=64 toolset=gcc runtime-link=static cxxflags="-fPIC -mieee"
+        copy boost/stage/lib/* to boost/lib/alphalinux64
+
+    SpiderMonkey 1.8.5:
+        cd thirdparty/parser/sm/js/src
+        autoconf2.13
+        mkdir build-release
+        cd build-release
+        ../configure --host=sw_64 --enable-optimize="-std=gnu++98 -mieee"
+        make
+        cd ..
+        mkdir build-debug
+        cd build-debug
+        ../configure --host=sw_64 --enable-optimize="-std=gnu++98 -mieee" --enable-debug
+        make
+        copy parser/sm/js/src/build-release/dist/include to parser/sm/js/include and
+        parser/sm/js/src/build-release/dist/lib to parser/sm/js/lib/alphalinux64.
+        do same operation for build-debug
+
+        Note:
+            autoconf2.13 is required to compile this version of SpiderMonkey. If it's not
+            installed in your system, you can compile and install it from source provided
+            by the sequoiadb repository. The source code path is tools/compile/autoconf-2.13.
+            Compile and install as follows:
+            cd autoconf-2.13
+            ./configure --program-suffix=2.13   # Be sure to use this version number
+            make
+            sudo make install
+            Then check if it's installed successfully:
+            autoconf2.13 --version
+
+    OpenSSL 1.1.1k:
+        # alpha64(sw_64) dose not supported SSL source compile
+        # we need to use the SSL library that comes with it
+        apt install libssl-dev
+        find /usr/ -name "libcrypto.a"
+        find /usr/ -name "libssl.a"
+        # copy the find file to ./lib/alphalinux64/release
+
+    snappy 1.1.0:
+        cd snappy
+        scons
+
+    lz4 1.7.1:
+        cd lz4
+        scons
+
+    zlib 1.2.8:
+        cd zlib
+        ./configure
+        make
+        copy the following file to zlib\lib\alphalinux64
             libzlib.a
     The second way to build:
         cd zlib

@@ -212,22 +212,25 @@ namespace seadapter
                                   _filterPath.c_str() ) ;
          if ( rc )
          {
-            const CHAR *errMsg = client->getLastErrMsg() ;
-            if ( errMsg )
+            if ( SDB_DMS_EOC != rc )
             {
-               PD_LOG_MSG( PDERROR, "Initialize scroll for index[ %s ] and "
-                           "type[ %s ] failed[ %d ], query string: %s. "
-                           "Error message: %s",
-                           _index.c_str(), _type.c_str(), rc,
-                           _query.toString( FALSE, TRUE ).c_str(),
-                           client->getLastErrMsg() ) ;
-            }
-            else
-            {
-               PD_LOG_MSG( PDERROR, "Initialize scroll for index[ %s ] and "
-                           "type[ %s ] failed[ %d ], query string: %s.",
-                           _index.c_str(), _type.c_str(), rc,
-                           _query.toString( FALSE, TRUE ).c_str() ) ;
+               const CHAR *errMsg = client->getLastErrMsg() ;
+               if ( errMsg )
+               {
+                  PD_LOG_MSG( PDERROR, "Initialize scroll for index[ %s ] and "
+                              "type[ %s ] failed[ %d ], query string: %s. "
+                              "Error message: %s",
+                              _index.c_str(), _type.c_str(), rc,
+                              _query.toString( FALSE, TRUE ).c_str(),
+                              client->getLastErrMsg() ) ;
+               }
+               else
+               {
+                  PD_LOG_MSG( PDERROR, "Initialize scroll for index[ %s ] and "
+                              "type[ %s ] failed[ %d ], query string: %s.",
+                              _index.c_str(), _type.c_str(), rc,
+                              _query.toString( FALSE, TRUE ).c_str() ) ;
+               }
             }
             goto error ;
          }
@@ -237,20 +240,23 @@ namespace seadapter
          rc = client->scrollNext( _scrollID, result, _filterPath.c_str() ) ;
          if ( rc )
          {
-            const CHAR *errMsg = client->getLastErrMsg() ;
-            if ( errMsg )
+            if ( SDB_DMS_EOC != rc )
             {
-               PD_LOG_MSG( PDERROR, "Scroll with id[ %s ] for index[ %s ] and "
-                           "type[ %s ] failed[ %d ]. Error message: %s",
-                           _scrollID.c_str(), _index.c_str(), _type.c_str(),
-                           rc, client->getLastErrMsg() ) ;
-            }
-            else
-            {
-               PD_LOG_MSG( PDERROR, "Scroll with id[ %s ] for index[ %s ] and "
-                           "type[ %s ] failed[ %d ].",
-                           _scrollID.c_str(), _index.c_str(),
-                           _type.c_str(), rc ) ;
+               const CHAR *errMsg = client->getLastErrMsg() ;
+               if ( errMsg )
+               {
+                  PD_LOG_MSG( PDERROR, "Scroll with id[ %s ] for index[ %s ] "
+                              "and type[ %s ] failed[ %d ]. Error message: %s",
+                              _scrollID.c_str(), _index.c_str(), _type.c_str(),
+                              rc, client->getLastErrMsg() ) ;
+               }
+               else
+               {
+                  PD_LOG_MSG( PDERROR, "Scroll with id[ %s ] for index[ %s ] "
+                              "and type[ %s ] failed[ %d ].",
+                              _scrollID.c_str(), _index.c_str(),
+                              _type.c_str(), rc ) ;
+               }
             }
             goto error ;
          }

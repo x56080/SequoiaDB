@@ -348,6 +348,7 @@ namespace engine
    INT32 restAdaptor::sendHeader( ossSocket *sock, restBase *pRest )
    {
       INT32 rc = SDB_OK ;
+      BOOLEAN isChunkModal = FALSE ;
       PD_TRACE_ENTRY ( SDB_RESTADAPTOR_SENDHEADER ) ;
       SDB_ASSERT( sock, "socket is NULL" ) ;
       SDB_ASSERT( pRest, "pRest is NULL" ) ;
@@ -355,7 +356,15 @@ namespace engine
       string restHeader = pRest->_generateHeader() ;
       REST_COLNAME_MAP_IT it ;
 
-      if ( pRest->getBodySize() > 0 &&
+      if ( SDB_REST_RESPONSE == pRest->type() )
+      {
+         restResponse *response = (restResponse *)pRest ;
+
+         isChunkModal = response->isChunkModal() ;
+      }
+
+      if ( isChunkModal == FALSE &&
+           pRest->getBodySize() > 0 &&
            pRest->isHeaderExist( REST_STRING_CONLEN ) == FALSE )
       {
          INT32 totalSize = pRest->getBodySize() ;
@@ -521,7 +530,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RESTADAPTOR_SENDCHUNK, "restAdaptor::sendChunk" )
    INT32 restAdaptor::sendChunk( ossSocket *sock, const CHAR *pBuffer,
                                  INT32 length, INT32 number,
-                                 BOOLEAN isObjBuffer )
+                                 BOOLEAN isObjBuffer, BOOLEAN isJson )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RESTADAPTOR_SENDCHUNK ) ;
@@ -548,6 +557,11 @@ namespace engine
             }
             
             str = record.toString( FALSE, TRUE ) ;
+
+            if ( isJson )
+            {
+               str = "," + str ;
+            }
 
             rc = _sendChunkData( sock, str.c_str(), str.length() ) ;
             if( rc )
@@ -583,6 +597,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_RESTADAPTOR_SETRESBODY ) ;
       SDB_ASSERT( sock, "socket is NULL" ) ;
       SDB_ASSERT( response, "response is NULL" ) ;
+      BOOLEAN isJson = ( HTTP_FILE_JSON == response->getDataType() ) ;
 
       if ( !response->isChunkModal() )
       {
@@ -626,7 +641,7 @@ namespace engine
       }
       else
       {
-         rc = sendChunk( sock, pBuffer, length, number, isObjBuffer ) ;
+         rc = sendChunk( sock, pBuffer, length, number, isObjBuffer, isJson ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to send chunk, rc=%d", rc ) ;
@@ -643,12 +658,23 @@ namespace engine
 
    INT32 restAdaptor::setResBodyEnd( ossSocket *sock, restResponse *response )
    {
+      BOOLEAN isJson = ( HTTP_FILE_JSON == response->getDataType() ) ;
+
       if ( !response->isChunkModal() )
       {
          return sendRest( sock, response ) ;
       }
       else
       {
+         if ( isJson )
+         {
+            INT32 rc = sendChunk( sock, "]", 1, 0, FALSE ) ;
+            if ( rc )
+            {
+              return rc ;
+            }
+         }
+
          return sendChunk( sock, NULL, 0, 0, FALSE ) ;
       }
    }
@@ -657,12 +683,25 @@ namespace engine
                                           restResponse *response )
    {
       INT32 rc = SDB_OK ;
+      BOOLEAN isJson = ( HTTP_FILE_JSON == response->getDataType() ) ;
       std::vector<string>::iterator it ;
 
       for( it = response->_bodyContent.begin();
            it != response->_bodyContent.end(); ++it )
       {
          string context = *it ;
+
+         if ( isJson )
+         {
+            if ( response->_bodyContent.begin() == it )
+            {
+               context = "[" + context ;
+            }
+            else
+            {
+               context = "," + context ;
+            }
+         }
 
          rc = _sendChunkData( sock, context.c_str(), context.length() ) ;
          if ( rc )

@@ -95,5 +95,18 @@ class globalParameter
       }
    }
 
+   // compare two array:if $arr contains all the elements of $targe
+   public static function compareArray( $arr, $targe )
+   {
+      foreach( $targe as $key => $value )
+      {
+         if( $arr[$key] != $value )
+         {
+            return false;
+         }
+      }
+      return true;
+   }
+
 };
 ?>

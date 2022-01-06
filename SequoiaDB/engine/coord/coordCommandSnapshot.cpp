@@ -91,13 +91,13 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      CHAR * query = NULL ;
+      const CHAR * query = NULL ;
 
       const CHAR * typeName = NULL ;
       const CHAR * collectionSpace = NULL ;
       const CHAR * collection = NULL ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL, NULL,
                             &query, NULL, NULL, NULL ) ;
       if ( rc )
       {
@@ -422,6 +422,127 @@ namespace engine
 
    _coordCMDSnapshotHealthIntr::~_coordCMDSnapshotHealthIntr()
    {
+   }
+
+   /*
+      _coordCMDSnapshotTasks implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotTasks,
+                                      CMD_NAME_SNAPSHOT_TASKS,
+                                      TRUE ) ;
+   _coordCMDSnapshotTasks::_coordCMDSnapshotTasks()
+   {
+   }
+
+   _coordCMDSnapshotTasks::~_coordCMDSnapshotTasks()
+   {
+   }
+
+   const CHAR* _coordCMDSnapshotTasks::getIntrCMDName()
+   {
+      return CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TASKS_INTR ;
+   }
+
+   const CHAR* _coordCMDSnapshotTasks::getInnerAggrContent()
+   {
+      return NULL ;
+   }
+
+   /*
+      _coordCMDSnapshotTasksIntr implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotTasksIntr,
+                                      CMD_NAME_SNAPSHOT_TASKS_INTR,
+                                      TRUE ) ;
+   _coordCMDSnapshotTasksIntr::_coordCMDSnapshotTasksIntr()
+   {
+   }
+
+   _coordCMDSnapshotTasksIntr::~_coordCMDSnapshotTasksIntr()
+   {
+   }
+
+   void _coordCMDSnapshotTasksIntr::_preSet( pmdEDUCB *cb,
+                                              coordCtrlParam &ctrlParam )
+   {
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
+   }
+
+   /*
+      _coordCMDSnapshotIndexes implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotIndexes,
+                                      CMD_NAME_SNAPSHOT_INDEXES,
+                                      TRUE ) ;
+   _coordCMDSnapshotIndexes::_coordCMDSnapshotIndexes()
+   {
+   }
+
+   _coordCMDSnapshotIndexes::~_coordCMDSnapshotIndexes()
+   {
+   }
+
+   const CHAR* _coordCMDSnapshotIndexes::getIntrCMDName()
+   {
+      return CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_INDEXES_INTR ;
+   }
+
+   const CHAR* _coordCMDSnapshotIndexes::getInnerAggrContent()
+   {
+      return COORD_SNAPSHOTIDX_INPUT ;
+   }
+
+   /*
+      _coordCMDSnapshotIndexesIntr implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotIndexesIntr,
+                                      CMD_NAME_SNAPSHOT_INDEXES_INTR,
+                                      TRUE ) ;
+   _coordCMDSnapshotIndexesIntr::_coordCMDSnapshotIndexesIntr()
+   {
+   }
+
+   _coordCMDSnapshotIndexesIntr::~_coordCMDSnapshotIndexesIntr()
+   {
+   }
+
+   void _coordCMDSnapshotIndexesIntr::_preSet( pmdEDUCB *cb,
+                                               coordCtrlParam &ctrlParam )
+   {
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
+   }
+
+   INT32 _coordCMDSnapshotIndexesIntr::_preExcute( MsgHeader *pMsg,
+                                                   pmdEDUCB *cb,
+                                                   coordCtrlParam &ctrlParam,
+                                                   SET_RC &ignoreRCList )
+   {
+      INT32 rc = SDB_OK ;
+      const CHAR *collection = NULL ;
+      const CHAR *hint = NULL ;
+
+      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
+                            NULL, NULL, NULL, &hint ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Extract message failed, rc: %d",
+                   rc ) ;
+
+      rc = rtnGetStringElement( BSONObj( hint ), FIELD_NAME_COLLECTION,
+                                &collection ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Get field[%s] failed, rc: %d",
+                   FIELD_NAME_COLLECTION, rc ) ;
+
+      rc = _getCLGrps( pMsg, collection, cb, ctrlParam ) ;
+      PD_RC_CHECK( rc, PDERROR, "Get groups of collection[%s], rc: %d",
+                   collection, rc ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    /*
@@ -1043,5 +1164,112 @@ namespace engine
       ctrlParam.resetRole() ;
       ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
    }
-}
 
+   /*
+    * _coordCMDSnapshotTransWaits implement
+    */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotTransWaits,
+                                      CMD_NAME_SNAPSHOT_TRANSWAITS,
+                                      TRUE ) ;
+
+   _coordCMDSnapshotTransWaits::_coordCMDSnapshotTransWaits()
+   {
+   }
+
+   _coordCMDSnapshotTransWaits::~_coordCMDSnapshotTransWaits()
+   {
+   }
+
+   const CHAR* _coordCMDSnapshotTransWaits::getIntrCMDName()
+   {
+      return CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSWAITS_INTR ;
+   }
+
+   const CHAR* _coordCMDSnapshotTransWaits::getInnerAggrContent()
+   {
+      return NULL ;
+   }
+
+   /*
+    * _coordCMDSnapshotTransWaitsIntr implement
+    */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotTransWaitsIntr,
+                                      CMD_NAME_SNAPSHOT_TRANSWAITS_INTR,
+                                      TRUE ) ;
+
+   _coordCMDSnapshotTransWaitsIntr::_coordCMDSnapshotTransWaitsIntr()
+   {
+   }
+
+   _coordCMDSnapshotTransWaitsIntr::~_coordCMDSnapshotTransWaitsIntr()
+   {
+   }
+
+   /*
+    * _coordCMDSnapshotTransDeadlock implement
+    */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotTransDeadlock,
+                                      CMD_NAME_SNAPSHOT_TRANSDEADLOCK,
+                                      TRUE ) ;
+
+   _coordCMDSnapshotTransDeadlock::_coordCMDSnapshotTransDeadlock()
+   {
+   }
+
+   _coordCMDSnapshotTransDeadlock::~_coordCMDSnapshotTransDeadlock()
+   {
+   }
+
+   const CHAR* _coordCMDSnapshotTransDeadlock::getIntrCMDName()
+   {
+      return CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSDEADLOCK_INTR ;
+   }
+
+   const CHAR* _coordCMDSnapshotTransDeadlock::getInnerAggrContent()
+   {
+      return NULL ;
+   }
+
+   /*
+    * _coordCMDSnapshotTransDeadlockIntr implement
+    */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotTransDeadlockIntr,
+                                      CMD_NAME_SNAPSHOT_TRANSDEADLOCK_INTR,
+                                      TRUE ) ;
+
+   _coordCMDSnapshotTransDeadlockIntr::_coordCMDSnapshotTransDeadlockIntr()
+   {
+   }
+
+   _coordCMDSnapshotTransDeadlockIntr::~_coordCMDSnapshotTransDeadlockIntr()
+   {
+   }
+
+   INT32 _coordCMDSnapshotTransDeadlockIntr::_getMonProcessor
+   (
+      IRtnMonProcessorPtr & ptr
+   )
+   {
+      INT32 rc = SDB_OK ;
+
+      rtnDetectDeadlockPtr tmpPtr =
+         rtnDetectDeadlockPtr::alloc( __FILE__, __LINE__, ALLOC_TC ) ;
+
+      if ( NULL == tmpPtr.get() )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Failed to create MonProcessor, rc=%d", rc ) ;
+      }
+      else
+      {
+         ptr = IRtnMonProcessorPtr::makeRaw( tmpPtr.get(), ALLOC_TC ) ;
+      }
+      return rc ;
+   }
+
+   const CHAR* _coordCMDSnapshotTransDeadlockIntr::pushdownCommandName()
+   {
+      return CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSWAITS ;
+   }
+
+}

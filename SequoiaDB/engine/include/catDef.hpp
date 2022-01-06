@@ -49,8 +49,10 @@
 #define CAT_COLLECTION_SPACE_COLLECTION   CAT_SYS_SPACE_NAME".SYSCOLLECTIONSPACES"
 #define CAT_COLLECTION_INFO_COLLECTION    CAT_SYS_SPACE_NAME".SYSCOLLECTIONS"
 #define CAT_TASK_INFO_COLLECTION          CAT_SYS_SPACE_NAME".SYSTASKS"
+#define CAT_INDEX_INFO_COLLECTION         CAT_SYS_SPACE_NAME".SYSINDEXES"
 #define CAT_DOMAIN_COLLECTION             CAT_SYS_SPACE_NAME".SYSDOMAINS"
 #define CAT_HISTORY_COLLECTION            CAT_SYS_SPACE_NAME".SYSHISTORY"
+#define CAT_DATASOURCE_COLLECTION         CAT_SYS_SPACE_NAME".SYSDATASOURCES"
 
 #define CAT_NODEINFO_GROUPNAMEIDX         "{name:\"SYSIDX1\",key: {"\
                                           CAT_GROUPNAME_NAME":1}, unique: true, enforced: true } "
@@ -66,8 +68,12 @@
                                           CAT_CL_UNIQUEID":1}, unique: true, enforced: false } "
 #define CAT_COLLECTION_MAINCLIDX          "{name:\"SYSIDX3\",key: {"\
                                           CAT_MAINCL_NAME":1}} "
-#define CAT_TASK_INFO_CLOBJIDX            "{name:\"SYSIDX1\",key: {"\
+#define CAT_TASK_INFO_TASKIDIDX           "{name:\"SYSIDX1\",key: {"\
                                           CAT_TASKID_NAME":1}, unique: true }"
+#define CAT_TASK_INFO_MAINTASKIDIDX       "{name:\"SYSIDX2\",key: {"\
+                                          FIELD_NAME_MAIN_TASKID":1} }"
+#define CAT_INDEX_INFO_NAMEIDX            "{name:\"SYSIDX1\",key: {"\
+                                          FIELD_NAME_COLLECTION":1, "FIELD_NAME_NAME":1 }, unique: true }"
 #define CAT_DOMAIN_NAMEIDX                "{name:\"SYSIDX1\",key: {"\
                                           CAT_DOMAINNAME_NAME":1}, unique: true, enforced: true } "
 #define CAT_HISTORY_BUCKETID_IDX          "{name:\"SYSIDX1\",key: {"\
@@ -91,6 +97,11 @@
 #define FIELD_NAME_BUCKETID               "BucketID"
 
 #define CAT_SYS_DOMAIN_NAME               SYS_PREFIX"DOMAIN"
+
+#define CAT_DATASOURCE_IDIDX              "{name:\"SYSIDX1\",key: {"\
+                                          FIELD_NAME_ID":1}, unique: true, enforced: true } "
+#define CAT_DATASOURCE_NAMEIDX            "{name:\"SYSIDX2\",key: {"\
+                                          FIELD_NAME_NAME":1}, unique: true, enforced: true } "
 
 /*
    SYSPROCEDURES CollectionSpace define

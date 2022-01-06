@@ -67,11 +67,10 @@ T}
 .SH RETURN VALUE
 .PP
 On success, return umask.
-.PP
 On error, exception will be thrown.
 .SH ERRORS
 .PP
-when exception happen, use getLastError() to get the error code and use
+when exception happens, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
 For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
@@ -80,11 +79,11 @@ Get file mode creation mask.
 .IP
 .nf
 \f[C]
->\ File.getUmask(\ 8\ )\ \ \ \ //\ Octal
+> File.getUmask( 8 )    // Octal
 0022
->\ File.getUmask(\ 10\ )\ \ \ //\ Decimal
+> File.getUmask( 10 )   // Decimal
 18
->\ File.getUmask(\ 16\ )\ \ \ //\ Hexadecimal
+> File.getUmask( 16 )   // Hexadecimal
 0x12
 \f[]
 .fi

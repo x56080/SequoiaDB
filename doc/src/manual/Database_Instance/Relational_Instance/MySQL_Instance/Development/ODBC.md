@@ -1,16 +1,9 @@
 [^_^]:
-    ODBC
-    作者：林苏强
-    时间：20190818
-    评审意见
-    王涛：时间：
-    许建辉：时间：
-    市场部：时间：20190903
+    MySQL 实例-ODBC 驱动
 
 本文档将介绍驱动安装配置及对接 ODBC 驱动示例。
 
-驱动安装配置
-----
+##驱动安装配置##
 
 用户下载 [ODBC 驱动][download] 后，需安装配置才能使用。下述以 Windows 系统为例介绍安装配置步骤。
 
@@ -32,18 +25,17 @@
 
  ![config_ds]
 
-示例
-----
+##示例##
 
 以下示例通过 C# 对接 ODBC 进行增删改查的基本操作。
 
 1. 连接到 MySQL 实例并准备样例使用的数据库 db 和表 tb 
 
-   ```lang-sql
-   CREATE DATABASE db;
-   USE db;
-   CREATE TABLE tb (id INT, first_name VARCHAR(128), last_name VARCHAR(128));
-   ```
+    ```lang-sql
+    CREATE DATABASE db;
+    USE db;
+    CREATE TABLE tb (id INT, first_name VARCHAR(128), last_name VARCHAR(128));
+    ```
 
 2. 添加数据源，配置 DSN（Data Source Name）为"SequoiaSQL-MySQL"，并配置 Database 为"db"，具体步骤见上一节
 
@@ -51,63 +43,64 @@
 
 4. 输入示例代码
 
-   ```lang-cs
-   using System;
-   using System.Collections.Generic;
-   using System.Linq;
-   using System.Text;
-   using System.Data.Odbc;
-   
-   namespace ConsoleApplication
-   {
-       class Program
-       {
-           static void Main(string[] args)
-           {
-               string connStr = "DSN=SequoiaSQL-MySQL";
-               OdbcConnection conn = new OdbcConnection(connStr);
-               conn.Open();
-   
-               Console.WriteLine("---INSERT---");
-               OdbcCommand cmd = conn.CreateCommand();
-               cmd.CommandText = "INSERT INTO tb(id, first_name, last_name) VALUES (1, 'Peter', 'Packer')";
-               cmd.ExecuteNonQuery();
-   
-               Console.WriteLine("---UPDATE---");
-               cmd.CommandText = "UPDATE tb SET first_name = 'Tony' WHERE id = 1";
-               cmd.ExecuteNonQuery();
-   
-               Console.WriteLine("---SELECT---");
-               cmd.CommandText = "SELECT * FROM tb";
-               OdbcDataReader odr = cmd.ExecuteReader();
-               while (odr.Read())
-               {
-                   for (int i = 0; i < odr.FieldCount; i++)
-                   {
-                       Console.Write("{0}\t", odr[i]);
-                   }
-                   Console.WriteLine();
-               }
-               conn.Close();
-   
-               Console.WriteLine("---DELETE---");
-               cmd.CommandText = "DELETE FROM tb WHERE id = 1";
-               cmd.ExecuteNonQuery();
-   
-               Console.Read();
-           }
-       }
-   }
-   ```
+    ```lang-cs
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+    using System.Data.Odbc;
+    
+    namespace ConsoleApplication
+    {
+        class Program
+        {
+            static void Main(string[] args)
+            {
+                string connStr = "DSN=SequoiaSQL-MySQL";
+                OdbcConnection conn = new OdbcConnection(connStr);
+                conn.Open();
+    
+                Console.WriteLine("---INSERT---");
+                OdbcCommand cmd = conn.CreateCommand();
+                cmd.CommandText = "INSERT INTO tb(id, first_name, last_name) VALUES (1, 'Peter', 'Packer')";
+                cmd.ExecuteNonQuery();
+    
+                Console.WriteLine("---UPDATE---");
+                cmd.CommandText = "UPDATE tb SET first_name = 'Tony' WHERE id = 1";
+                cmd.ExecuteNonQuery();
+    
+                Console.WriteLine("---SELECT---");
+                cmd.CommandText = "SELECT * FROM tb";
+                OdbcDataReader odr = cmd.ExecuteReader();
+                while (odr.Read())
+                {
+                    for (int i = 0; i < odr.FieldCount; i++)
+                    {
+                        Console.Write("{0}\t", odr[i]);
+                    }
+                    Console.WriteLine();
+                }
+                conn.Close();
+    
+                Console.WriteLine("---DELETE---");
+                cmd.CommandText = "DELETE FROM tb WHERE id = 1";
+                cmd.ExecuteNonQuery();
+    
+                Console.Read();
+            }
+        }
+    }
+    ```
 
 5. 点击【调试】->【开始执行】，得到运行结果
-```lang-text
----INSERT---
----UPDATE---
----SELECT---
-1       Tony    Parker
----DELETE---
-```
+
+    ```lang-text
+    ---INSERT---
+    ---UPDATE---
+    ---SELECT---
+    1       Tony    Parker
+    ---DELETE---
+    ```
 
 [^_^]:
      本文使用的所有引用和链接

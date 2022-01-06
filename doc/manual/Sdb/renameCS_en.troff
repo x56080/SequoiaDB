@@ -190,11 +190,11 @@ See troubleshooting for more detail.
 since v3.0.1
 .SH EXAMPLES
 .IP "1." 3
-Rename cs foo to foo_new.
+Rename cs sample to sample_new.
 .nf
 \f[C]
->\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )
->\ db.renameCS(\ "foo",\ "foo_new"\ )
+> db = new Sdb( "localhost", 11810 )
+> db.renameCS( "sample", "sample_new" )
 \f[]
 .fi
 .RE

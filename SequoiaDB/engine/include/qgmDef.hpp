@@ -67,6 +67,7 @@ namespace engine
       _qgmPtrTable   *_ptrTable ;
       const CHAR     *_begin ;
       UINT32         _size ;
+      mutable ossPoolString _fieldNameCache ;
 
    public:
       _qgmField() ;
@@ -84,6 +85,7 @@ namespace engine
       {
          _begin = "" ;
          _size = 0 ;
+         _fieldNameCache.clear() ;
       }
 
       BOOLEAN operator==( const _qgmField &field ) const ;
@@ -125,7 +127,7 @@ namespace engine
          return "" ;
       }
 
-      ossPoolString toFieldName() const ;
+      const ossPoolString &toFieldName() const ;
 
       _qgmPtrTable* ptrTable() { return _ptrTable ; }
 

@@ -76,6 +76,6 @@ Drop the $id index in the collection.
 .IP
 .nf
 \f[C]
->\ db.sample.employee.dropIdIndex()
+> db.sample.employee.dropIdIndex()
 \f[]
 .fi

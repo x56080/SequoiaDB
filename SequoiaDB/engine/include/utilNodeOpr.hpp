@@ -137,7 +137,8 @@ namespace engine
                            const CHAR *svcnameFilter = NULL,
                            OSSPID pidFilter = OSS_INVALID_PID,
                            INT32 roleFilter = -1,
-                           BOOLEAN allowAloneCM = FALSE ) ;
+                           BOOLEAN allowAloneCM = FALSE,
+                           BOOLEAN includeSTP = TRUE ) ;
 
    INT32 utilWritePipe( const CHAR *pSvcName, OSSPID pid,
                         const CHAR *pWriteBuf, INT32 writeLen ) ;

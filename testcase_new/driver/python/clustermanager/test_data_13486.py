@@ -55,5 +55,5 @@ class Testdata13486(testlib.SdbTestBase):
          self.db.disconnect()
       except SDBBaseError as e:
          if -154 != e.code:
-            self.fail("remove rg fail when teardown: " + e.detail)
+            self.fail("remove rg fail when teardown: " + str(e))
       

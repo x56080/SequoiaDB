@@ -44,33 +44,33 @@ v3.4.2 及以上版本
 
 - 将递增序列值设置为更小的值
 
-   ```lang-javascript
-   > sequence.getCurrentValue()
-   1000
-   > sequence.setCurrentValue( 500 )
-   ```
-
-   输出错误信息如下：
-
-   ```lang-text
-   (shell):1 uncaught exception: -361
-   Sequence value has been used
-   ```
+    ```lang-javascript
+    > sequence.getCurrentValue()
+    1000
+    > sequence.setCurrentValue( 500 )
+    ```
+    
+    输出错误信息如下：
+    
+    ```lang-text
+    (shell):1 uncaught exception: -361
+    Sequence value has been used
+    ```
 
 - 将递增序列值设置为更大的值
 
-   ```lang-javascript
-   > sequence.getCurrentValue()
-   1000
-   > sequence.setCurrentValue( 2000 )
-   ```
-
-   设置后获取的当前序列值如下：
-  
     ```lang-javascript
-   > sequence.getCurrentValue()
-   2000
-   ```
+    > sequence.getCurrentValue()
+    1000
+    > sequence.setCurrentValue( 2000 )
+    ```
+    
+    设置后获取的当前序列值如下：
+    
+    ```lang-javascript
+    > sequence.getCurrentValue()
+    2000
+    ```
 
 
 [^_^]:
@@ -78,5 +78,5 @@ v3.4.2 及以上版本
 [restart]:manual/Manual/Sequoiadb_Command/SdbSequence/restart.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[faq]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md

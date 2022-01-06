@@ -104,6 +104,8 @@ namespace engine
       virtual BOOLEAN isFieldExist( const std::string &fieldName ) const = 0 ;
 
       virtual INT32 getFieldNumber( UINT32 &number ) const = 0 ;
+
+      virtual INT32 getDesc( const sptObjDesc **pDesc ) const = 0 ;
    } ;
 
 }

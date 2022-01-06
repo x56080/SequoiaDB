@@ -57,9 +57,11 @@ returned
 T}@T{
 T}
 .TE
-
+.RS
+.PP
 \f[B]Note:\f[]
 .RE
+.RS
 .PP
 If the number of records in the result set is less than num, it is returned
 according to the actual number of records.
@@ -72,30 +74,30 @@ On success, returns the cursor of the query result set.
 On error, exception will be thrown.
 .SH ERRORS
 .PP
-when exception happen, use getLastError() to get the error code and use
+When exception happens, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
-For more detial, please reference to Troubleshooting.
+For more details, refer to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 Select the record that the age field value greater than (with using $gt) 10
-under the collection, bar, and return only the first two records.
+under the collection, employee, and return only the first two records.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find(\ {\ age:\ {\ $gt:\ 10\ }\ }\ ).limit(\ 2\ )
+> db.sample.employee.find( { age: { $gt: 10 } } ).limit( 2 )
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5cf8aef75e72aea111e82b38"
-\ \ },
-\ \ "name":\ "tom",
-\ \ "age":\ 20
+  "_id": {
+    "$oid": "5cf8aef75e72aea111e82b38"
+  },
+  "name": "tom",
+  "age": 20
 }
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5cf8aefe5e72aea111e82b39"
-\ \ },
-\ \ "name":\ "ben",
-\ \ "age":\ 21
+  "_id": {
+    "$oid": "5cf8aefe5e72aea111e82b39"
+  },
+  "name": "ben",
+  "age": 21
 }
 \f[]
 .fi

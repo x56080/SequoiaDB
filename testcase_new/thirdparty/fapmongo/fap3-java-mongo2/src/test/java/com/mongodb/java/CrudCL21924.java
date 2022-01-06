@@ -30,11 +30,13 @@ import com.mongodb.utils.MongodbTestBase;
  */
 public class CrudCL21924 extends MongodbTestBase {
     private DB db;
-    private String[] clNames = { "cl21924A", "cl21924B" };
+    private String[] clNames = new String[ 2 ];
 
     @BeforeClass
     public void setUp() throws UnknownHostException {
         db = MongodbTestBase.getDB( client );
+        clNames[ 0 ] = javaDBNameWithVersion + "_cl21924A";
+        clNames[ 1 ] = javaDBNameWithVersion + "_cl21924B";
     }
 
     @Test
@@ -98,8 +100,8 @@ public class CrudCL21924 extends MongodbTestBase {
 
     @Test
     public void test2() {
-        String dbName = "db21924";
-        String clName = "cl21924test2";
+        String dbName = javaDBNameWithVersion + "_db21924";
+        String clName = javaDBNameWithVersion + "_cl21924_test2";
         DB db = client.getDB( dbName );
         DBCollection cl = db.getCollection( clName );
         db.dropDatabase();

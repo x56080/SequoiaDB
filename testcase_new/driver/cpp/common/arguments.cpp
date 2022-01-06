@@ -42,6 +42,12 @@ arguments::arguments()
    strcpy( _rsrvNodeDir, "/opt/sequoiadb/database/" ) ;
    //用例存放临时文件的目录
    strcpy( _workDir, "/tmp/cpptest" ) ;
+   //数据源协调节点主机名
+   strcpy( _dsHostName, "localhost" ) ;
+   //数据源协调节点端口号
+   strcpy( _dsSvcName, "11810" ) ;
+   //数据源集群的coord连接
+   strcpy( _dsCoordUrl, "localhost:11810" ) ;
    _forceClear = TRUE ;
 
    // get arguments from outside
@@ -61,11 +67,16 @@ arguments::arguments()
       else if( para == "--RSRVNODEDIR" || para == "-d" )
          strcpy( _rsrvNodeDir,g_argvs[i+1].c_str() ) ;
       else if( para == "--WORKDIR" || para == "-w" )
-         strcpy( _workDir,g_argvs[i+1].c_str() ) ; 
+         strcpy( _workDir,g_argvs[i+1].c_str() ) ;
+      else if( para == "--DSHOSTNAME" || para == "-o" )
+         strcpy( _dsHostName,g_argvs[i+1].c_str() ) ; 
+      else if( para == "--DSSVCNAME" || para == "-p" )
+         strcpy( _dsSvcName,g_argvs[i+1].c_str() ) ; 
       else if( para == "--FORCECLEAR" || para == "-f" )
          _forceClear = atoi( g_argvs[i+1].c_str() ) ? TRUE : FALSE ;
    }
    sprintf( _coordUrl, "%s%s%s", _hostName, ":", _svcName ) ;
+   sprintf( _dsCoordUrl, "%s%s%s", _dsHostName, ":", _dsSvcName ) ;
    sscanf( _svcName, "%d", &_port ) ; // TODO: if svcName is not number, how to map?
 }
 
@@ -80,6 +91,9 @@ void arguments::print()
    cout << "RSPVNODEDIR   : " << _rsrvNodeDir << endl ;
    cout << "WORKDIR       : " << _workDir << endl ;
    cout << "COORDURL      : " << _coordUrl << endl ;
+   cout << "DSHOSTNAME    : " << _dsHostName << endl ;
+   cout << "DSSVCNAME     : " << _dsSvcName << endl ;
+   cout << "DSCOORDURL    : " << _dsCoordUrl << endl ;
    cout << "FORCECLEAR    : " << _forceClear << endl ;
 }
 
@@ -136,6 +150,21 @@ const CHAR* arguments::rsrvNodeDir()
 const CHAR* arguments::workDir() 
 {
    return _workDir ;
+}
+
+const CHAR* arguments::dsHostName()
+{
+   return _dsHostName ;
+}
+
+const CHAR* arguments::dsSvcName()
+{
+   return _dsSvcName ;
+}
+
+const CHAR* arguments::dsCoordUrl()
+{
+   return _dsCoordUrl ;
 }
 
 BOOLEAN arguments::forceClear()

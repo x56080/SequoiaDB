@@ -71,6 +71,7 @@
    // This guarantees all load-from-memory and store-to-memory instsructions
    // complete before subsequent load and store that follow this instruction
    #define ossX86MemoryFence()  __asm__ __volatile__ ( "mfence" ::: "memory" )
+
 #if defined (_PPCLIN64)
    #define ossYield() __asm__ __volatile__ ( "or 27,27,27" )
    #define ossAtomicExchange8(pAddr,iNewValue) \
@@ -78,9 +79,11 @@
 #else
    #if defined (_ARMLIN64)
       #define ossYield() __asm__ __volatile__ ( "yield": : :"memory" )
+   #elif defined (_ALPHALIN64)
+      #define ossYield()
    #else
       #define ossYield() __asm__ __volatile__ ( "pause\n": : :"memory" )
-   #endif // #if defined (_ARMLIN64)
+   #endif
    static OSS_INLINE char ossAtomicExchange8( volatile char* pAddr, char iNewValue)
    {
       char result ;

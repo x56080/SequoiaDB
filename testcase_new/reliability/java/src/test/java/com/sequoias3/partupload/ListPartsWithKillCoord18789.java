@@ -128,7 +128,7 @@ public class ListPartsWithKillCoord18789 extends S3TestBase {
                 }
                 Assert.assertEquals( actPartNumbersList, expPartNumberList );
             } catch ( AmazonServiceException e ) {
-                if ( !e.getErrorCode().equals( "GetDBConnectFail" ) ) {
+                if ( e.getStatusCode() != 500 ) {
                     throw e;
                 }
             } finally {

@@ -116,13 +116,13 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__QGMPLSORT__EXEC ) ;
       INT32 rc = SDB_OK ;
-      rtnContext *context = NULL ;
+      rtnContextQgmSort::sharePtr context ;
       _alias = input( 0 )->alias() ;
 
       rc = input(0)->execute ( eduCB ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to execute source, rc = %d", rc ) ;
 
-      rc = _rtnCB->contextNew( RTN_CONTEXT_QGMSORT, &context,
+      rc = _rtnCB->contextNew( RTN_CONTEXT_QGMSORT, context,
                                _contextSort, eduCB ) ;
       if ( SDB_OK != rc )
       {
@@ -130,14 +130,14 @@ namespace engine
          goto error ;
       }
 
-      rc = ((rtnContextQgmSort *)context)->open( input(0) ) ;
+      rc = context->open( input(0) ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to open context:%d", rc ) ;
          goto error ;
       }
 
-      rc = rtnSort( &context, _orderBy, 
+      rc = rtnSort( context, _orderBy,
                     eduCB, 0, -1, _contextID ) ;
       if ( SDB_OK != rc )
       {

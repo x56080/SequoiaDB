@@ -1,12 +1,18 @@
-main( test );
-function test ()
-{
-   var clName = COMMCLNAME + "_12135";
-   // insert record.
-   // normal case.
-   commDropCL( db, COMMCSNAME, clName, true, true, "drop cl in the beginning" );
+/******************************************************************************
+ * @Description   : seqDB-12135:单条记录中包含多个字段
+ * @Author        : Wu Yan
+ * @CreateTime    : 2017.07.11
+ * @LastEditTime  : 2021.07.02
+ * @LastEditors   : Zhang Yanan
+ ******************************************************************************/
+testConf.clName = COMMCLNAME + "_12135";
 
-   var varCL = commCreateCL( db, COMMCSNAME, clName );
+main( test );
+
+function test ( args )
+{
+   var varCL = args.testCL;
+
    var veryBigJsonString = "{'_id':1, \"a0\":0";
    var i = 0;
    for( i = 0; i < 1000; i++ )
@@ -17,10 +23,9 @@ function test ()
    var veryBigJson = eval( '(' + veryBigJsonString + ')' );
 
    varCL.insert( veryBigJson );
-   if( varCL.find().count() != 1 )
-      throw new Error( "varCL.find().count(): " + varCL.find().count() );
-   if( !commCompareObject( veryBigJson, varCL.find().next().toObj() ) )
-      throw new Error( "veryBigJson: " + JSON.stringify( veryBigJson ) + "\nvarCL.find().next().toObj(): " + JSON.stringify( varCL.find().current().toObj() ) );
+   var actual = varCL.find().count();
+   var expected = 1;
+   assert.equal( actual, expected );
 
-   commDropCL( db, COMMCSNAME, clName, true, true, "drop colleciton in the end" );
+   commCompareObject( veryBigJson, varCL.find().next().toObj() );
 }

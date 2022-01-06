@@ -110,11 +110,11 @@ namespace engine
       contextID                        = -1 ;
 
       INT32 flag = 0;
-      CHAR *pCollectionName = NULL ;
-      CHAR *pDeletor = NULL ;
-      CHAR *pHint = NULL ;
+      const CHAR *pCollectionName = NULL ;
+      const CHAR *pDeletor = NULL ;
+      const CHAR *pHint = NULL ;
 
-      rc = msgExtractDelete( (CHAR*)pMsg, &flag, &pCollectionName,
+      rc = msgExtractDelete( (const CHAR*)pMsg, &flag, &pCollectionName,
                              &pDeletor, &pHint ) ;
 
       if( rc )
@@ -153,7 +153,7 @@ namespace engine
          options.setWriteOp( TRUE ) ;
 
          // add last op info
-         MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg->opCode, options ) ;
+         MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg, options ) ;
       }
       catch ( std::exception &e )
       {
@@ -173,12 +173,12 @@ namespace engine
       }
 
    retry:
-      pDelMsg->version = cataSel.getCataPtr()->getVersion() ;
-      pDelMsg->w = 0 ;
-
       rc = checkCatVersion( cb,pCollectionName,clientVer,cataSel );
       PD_CHECK( SDB_OK == rc, rc, error, PDWARNING,
                 "check cat version failed, rc: %d",rc );
+
+      pDelMsg->version = cataSel.getCataPtr()->getVersion() ;
+      pDelMsg->w = 0 ;
 
       rcTmp = doOpOnCL( cataSel, boDeletor, inMsg, sendOpt, cb, result ) ;
 
@@ -308,10 +308,10 @@ namespace engine
       INT32 rc                = SDB_OK ;
       MsgOpDelete *pDelMsg    = ( MsgOpDelete* )inMsg.msg() ;
 
-      INT32 flag              = 0 ;
-      CHAR *pCollectionName   = NULL;
-      CHAR *pDeletor          = NULL;
-      CHAR *pHint             = NULL;
+      INT32 flag                    = 0 ;
+      const CHAR *pCollectionName   = NULL;
+      const CHAR *pDeletor          = NULL;
+      const CHAR *pHint             = NULL;
 
       CoordGroupSubCLMap &grpSubCl = cataSel.getGroup2SubsMap() ;
       CoordGroupSubCLMap::iterator it ;
@@ -324,7 +324,7 @@ namespace engine
 
       inMsg.data()->clear() ;
 
-      rc = msgExtractDelete( (CHAR*)inMsg.msg(), &flag, &pCollectionName,
+      rc = msgExtractDelete( (const CHAR*)inMsg.msg(), &flag, &pCollectionName,
                              &pDeletor, &pHint ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse delete request, rc: %d",
                    rc ) ;

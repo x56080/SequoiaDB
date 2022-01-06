@@ -62,6 +62,8 @@ namespace engine
    #define MTH_S_CAST           MTH_S_PREFIX"cast"
    #define MTH_S_TYPE           MTH_S_PREFIX"type"
    #define MTH_S_SIZE           MTH_S_PREFIX"size"
+   #define MTH_S_STRLENBYTES    MTH_S_PREFIX"strlenBytes"
+   #define MTH_S_STRLENCP       MTH_S_PREFIX"strlenCP"
 
    typedef UINT32 MTH_S_ATTRIBUTE ;
 

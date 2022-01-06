@@ -24,10 +24,12 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: 开启版本控制，删除对象过程中db端节点异常 testlink-case: seqDB-16464
- * 
+ * @description seqDB-16464:开启版本控制，删除对象过程中db端节点异常 *
  * @author wangkexin
- * @Date 2019.01.14
+ * @date 2019.01.14
+ * @updateUser wuyan
+ * @updateDate 2021.11.1
+ * @updateRemark 减少操作对象数据量，在满足测试场景基础上减少大数据量同步等待时间
  * @version 1.00
  */
 public class DeleteObjectKillData16464 extends S3TestBase {
@@ -37,7 +39,7 @@ public class DeleteObjectKillData16464 extends S3TestBase {
     private String roleName = "normal";
     private List< String > keyNames = new ArrayList<>();
     private List< String > deletedObjectList = new CopyOnWriteArrayList< String >();
-    private int objectNum = 1000;
+    private int objectNum = 100;
     private String[] accessKeys = null;
     private AmazonS3 s3Client = null;
     private boolean runSuccess = false;
@@ -69,7 +71,7 @@ public class DeleteObjectKillData16464 extends S3TestBase {
             String groupName = dataGroups.get( i ).getGroupName();
             GroupWrapper group = groupMgr.getGroupByName( groupName );
             NodeWrapper node = group.getMaster();
-            FaultMakeTask faultTask = KillNode.getFaultMakeTask( node, 1 );
+            FaultMakeTask faultTask = KillNode.getFaultMakeTask( node, 0 );
             mgr.addTask( faultTask );
         }
 

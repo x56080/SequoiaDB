@@ -1,5 +1,8 @@
 package com.mongodb.java;
 
+import static com.mongodb.client.model.Filters.gte;
+import static com.mongodb.client.model.Filters.lt;
+
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
@@ -21,9 +24,6 @@ import com.mongodb.client.model.Filters;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.utils.MongodbTestBase;
 
-import static com.mongodb.client.model.Filters.gte;
-import static com.mongodb.client.model.Filters.lt;
-
 /**
  * @Description seqDB-21929:delete操作
  * @author fanyu
@@ -32,7 +32,7 @@ import static com.mongodb.client.model.Filters.lt;
  */
 public class Delete21929 extends MongodbTestBase {
     private MongoDatabase db;
-    private String clName = "cl21929v3";
+    private String clName;
     private MongoCollection< Document > cl;
     // 不能小于10
     private int num = 10;
@@ -41,6 +41,7 @@ public class Delete21929 extends MongodbTestBase {
     @BeforeClass
     public void setUp() throws UnknownHostException {
         db = MongodbTestBase.getDataBase( client );
+        clName = javaDBNameWithVersion + "_cl21929";
         list = new CopyOnWriteArrayList<>();
         for ( int i = 0; i < num; i++ ) {
             list.add( new Document( "a", i ).append( "b", "" + i )

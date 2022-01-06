@@ -6,7 +6,7 @@ import( "../lib/basic_operation/commlib.js" );
 *@auhor       : Liang XueWang
 ******************************************************************************/
 var user = "sdbadmin";
-var password = "sdbadmin";
+var password = SDBADMINPWD;
 var port = 22;
 
 /******************************************************************************

@@ -163,8 +163,7 @@ sdbcm 服务会自动结束。
 如果出错则抛异常，并输出错误信息，可以通过getLastErrMsg()获取错误信息或通过getLastError()获取错误码。
 关于错误处理可以参考常见错误处理指南。
 .PP
-常见错误可参考错误码。
-.SH 版本
+常见错误可参考错误码。 #版本#
 .PP
 v2.0及以上版本。
 .SH 示例
@@ -173,8 +172,8 @@ v2.0及以上版本。
 存活时间为 5分钟（300秒）。
 .nf
 \f[C]
->\ Oma.start({\ port:11780,standalone:true\ })
-Success:\ sdbcm(11780)\ is\ successfully\ start\ (28741)
+> Oma.start({ port:11780,standalone:true })
+Success: sdbcm(11780) is successfully start (28741)
 \f[]
 .fi
 .RE

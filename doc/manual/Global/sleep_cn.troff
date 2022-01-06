@@ -4,7 +4,7 @@
 .hy
 .SH 名称
 .PP
-sleep \- 睡眠若干毫秒。
+sleep \- 睡眠若干毫秒
 .SH 语法
 .PP
 \f[B]sleep(<ms>)\f[]
@@ -13,29 +13,23 @@ sleep \- 睡眠若干毫秒。
 Global
 .SH 描述
 .PP
-睡眠若干毫秒。
+睡眠若干毫秒
 .SH 参数
-.IP \[bu] 2
-\f[C]ms\f[] ( \f[I]Int32\f[]， \f[I]必填\f[] )
-.RS 2
 .PP
-睡眠时间，单位：毫秒。
-.RE
+ms（ \f[I]number\f[]， \f[I]必填\f[] ）
+.PP
+睡眠时间，单位为毫秒
 .SH 返回值
 .PP
-无。
+无
 .SH 错误
 .PP
-无。
+无
 .SH 版本
 .PP
-v1.0及以上版本。
+v1.0 及以上版本
 .SH 示例
-.IP "1." 3
-睡眠1秒。
-.nf
-\f[C]
->\ sleep(1000)
-\f[]
-.fi
-.RE
+.IP \[bu] 2
+睡眠一秒
+.PP
+\f[C]lang\-javascript  > sleep(1000)\f[]

@@ -37,6 +37,7 @@
 #include "omConfigSsqlOlap.hpp"
 #include "omConfigPostgreSQL.hpp"
 #include "omConfigMySQL.hpp"
+#include "omConfigMariaDB.hpp"
 #include "pd.hpp"
 #include <sstream>
 
@@ -76,6 +77,10 @@ namespace engine
       else if ( businessType == OM_BUSINESS_SEQUOIASQL_MYSQL )
       {
          _node = SDB_OSS_NEW OmMySQLNode() ;
+      }
+      else if ( businessType == OM_BUSINESS_SEQUOIASQL_MARIADB )
+      {
+         _node = SDB_OSS_NEW OmMariaDBNode() ;
       }
       else
       {

@@ -438,6 +438,10 @@ namespace engine
             dummyField.type = SQL_GRAMMAR::WILDCARD ;
             sortFields.push_back( dummyField ) ;
          }
+         else if ( getSubNodeCount() > 0 )
+         {
+            rc = getSubNode(0)->outputSort( sortFields ) ;
+         }
       }
       else
       {

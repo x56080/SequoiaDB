@@ -119,14 +119,15 @@ T}@T{
 not
 T}
 .TE
-
+.RS
+.PP
 \f[B]Note:\f[]
 .RE
-.PP
+.RS
 .IP \[bu] 2
 Use createUsr() to create a user and set the password.
 .RE
-.PP
+.RS
 .IP \[bu] 2
 If the SequoiaDB has users, you must use username and password to create the Sdb
 object.
@@ -330,7 +331,7 @@ Create a Sdb object and connect to the SequoiaDB, using the default hostname and
 svcname.
 .nf
 \f[C]
->\ var\ db\ =\ new\ Sdb()
+> var db = new Sdb()
 \f[]
 .fi
 .RE
@@ -339,7 +340,7 @@ Create a Sdb object and connect to the SequoiaDB on the specified host,
 "sdbserver1".
 .nf
 \f[C]
->\ var\ db\ =\ new\ Sdb(\ "sdbserver1",\ 11810\ )
+> var db = new Sdb( "sdbserver1", 11810 )
 \f[]
 .fi
 .RE
@@ -348,7 +349,7 @@ Create a Sdb object and connect to the SequoiaDB on the specified host using the
 specified username and password.
 .nf
 \f[C]
->\ var\ db\ =\ new\ Sdb(\ "sdbserver1",\ 11810,\ "sdbadmin",\ "sdbadmin"\ )
+> var db = new Sdb( "sdbserver1", 11810, "sdbadmin", "sdbadmin" )
 \f[]
 .fi
 .RE
@@ -357,10 +358,10 @@ Create a Sdb object and connect to the SequoiaDB on the specified host using
 User object.
 .nf
 \f[C]
->\ var\ a\ =\ User(\ "sdbadmin"\ ).promptPassword()
+> var a = User( "sdbadmin" ).promptPassword()
 password:
 sdbadmin
->\ var\ db\ =\ new\ Sdb(\ "sdbserver1",\ 11810,\ a\ )
+> var db = new Sdb( "sdbserver1", 11810, a )
 \f[]
 .fi
 .RE
@@ -372,8 +373,8 @@ For details on how to add and delete cipher test information in cipher test
 file, please see sdbpasswd for details ).
 .nf
 \f[C]
->\ var\ a\ =\ CipherUser(\ "sdbadmin"\ )
->\ var\ db\ =\ new\ Sdb(\ "sdbserver1",\ 11810,\ a\ )
+> var a = CipherUser( "sdbadmin" )
+> var db = new Sdb( "sdbserver1", 11810, a )
 \f[]
 .fi
 .RE

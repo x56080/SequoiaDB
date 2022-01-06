@@ -52,6 +52,7 @@ INT32 mongoConverter::convert( msgBuffer &out )
    if ( NULL == cmdMgr )
    {
       rc = SDB_SYS ;
+      PD_LOG( PDERROR, "Failed to get command mgr, rc: %d", rc ) ;
       goto error ;
    }
 
@@ -83,18 +84,24 @@ INT32 mongoConverter::convert( msgBuffer &out )
    if ( NULL == cmd )
    {
       rc = SDB_OPTION_NOT_SUPPORT ;
+      PD_LOG( PDERROR, "Unsupported command[opCode: %d], rc: %d",
+              _parser.dataPacket().opCode, rc ) ;
       goto error ;
    }
 
    rc = cmd->convert( _parser ) ;
    if ( SDB_OK != rc )
    {
+      PD_LOG( PDERROR, "Failed to convert msg[opCode: %d], rc: %d",
+              _parser.dataPacket().opCode, rc ) ;
       goto error ;
    }
 
    rc = cmd->buildMsg( _parser, out ) ;
    if ( SDB_OK != rc )
    {
+      PD_LOG( PDERROR, "Failed to build msg[opCode: %d], rc: %d",
+              _parser.dataPacket().opCode, rc ) ;
       goto error ;
    }
 
@@ -113,6 +120,7 @@ INT32 mongoConverter::reConvert( msgBuffer &out, MsgOpReply *reply )
    if ( NULL == cmdMgr )
    {
       rc = SDB_SYS ;
+      PD_LOG( PDERROR, "Failed to get command mgr, rc: %d", rc ) ;
       goto error ;
    }
 
@@ -180,11 +188,13 @@ INT32 mongoConverter::reConvert( msgBuffer &out, MsgOpReply *reply )
             rc = cmd->convert( _parser ) ;
             if ( SDB_OK != rc )
             {
+               PD_LOG( PDERROR, "Failed to convert msg, rc: %d", rc ) ;
                goto error ;
             }
             rc = cmd->buildMsg( _parser, out ) ;
             if ( SDB_OK != rc )
             {
+               PD_LOG( PDERROR, "Failed to build msg, rc: %d", rc ) ;
                goto error ;
             }
             goto done ;
@@ -214,11 +224,13 @@ INT32 mongoConverter::reConvert( msgBuffer &out, MsgOpReply *reply )
          rc = cmd->convert( _parser ) ;
          if ( SDB_OK != rc )
          {
+            PD_LOG( PDERROR, "Failed to convert msg, rc: %d", rc ) ;
             goto error ;
          }
          rc = cmd->buildMsg( _parser, out ) ;
          if ( SDB_OK != rc )
          {
+            PD_LOG( PDERROR, "Failed to build msg, rc: %d", rc ) ;
             goto error ;
          }
          goto done ;
@@ -233,3 +245,4 @@ done:
 error:
    goto done ;
 }
+

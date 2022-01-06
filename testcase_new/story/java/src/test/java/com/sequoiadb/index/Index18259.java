@@ -89,7 +89,8 @@ public class Index18259 extends SdbTestBase {
                 cl2.createIndex( IDX_NAME, IDX_KEY, false, false );
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != -247 && e.getErrorCode() != -199
-                        && e.getErrorCode() != -43 ) {
+                        && e.getErrorCode() != -43
+                        && e.getErrorCode() != -175 ) {
                     throw e;
                 }
             }
@@ -114,7 +115,8 @@ public class Index18259 extends SdbTestBase {
                 System.out.println( new Date() + " end   "
                         + this.getClass().getName().toString() );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -47 && e.getErrorCode() != -147 ) {
+                if ( e.getErrorCode() != -47 && e.getErrorCode() != -147
+                        && e.getErrorCode() != -175 ) {
                     throw e;
                 }
             }

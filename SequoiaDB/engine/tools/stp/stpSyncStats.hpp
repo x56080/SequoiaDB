@@ -143,6 +143,10 @@ namespace engine
       // check if record is valid for update offset
       BOOLEAN isValid() const ;
 
+      // check if offset is in the range of time error
+      BOOLEAN isOffsetInTimeError( FLOAT64 scale,
+                                   FLOAT64 &ratio ) const ;
+
       // format record into string
       ossPoolString toString() const ;
 

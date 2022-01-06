@@ -46,6 +46,7 @@
 #include "dmsStorageUnit.hpp"
 #include "mthMatchRuntime.hpp"
 #include "pmdEDU.hpp"
+#include "rtnQueryOptions.hpp"
 
 namespace engine
 {
@@ -144,7 +145,7 @@ namespace engine
                                 OPT_PLAN_CACHE_LEVEL cacheLevel,
                                 const optAccessPlanConfig &planConfig,
                                 const mthNodeConfig &mthConfig,
-                                BOOLEAN keepSearchPaths ) ;
+                                const rtnExplainOptions *expOptions ) ;
 
          virtual ~_optAccessPlanHelper () ;
 
@@ -207,14 +208,14 @@ namespace engine
             return ( _predicateSet.getSize() == 0 ) ;
          }
 
-         OSS_INLINE void setKeepSearchPaths ( BOOLEAN keepSearchPaths )
+         OSS_INLINE const rtnExplainOptions *getExplainOptions() const
          {
-            _keepSearchPaths = keepSearchPaths ;
+            return _expOptions ;
          }
 
-         OSS_INLINE BOOLEAN isKeepSearchPaths () const
+         OSS_INLINE BOOLEAN isKeepPaths () const
          {
-            return _keepSearchPaths ;
+            return NULL != _expOptions && _expOptions->isNeedSearch() ;
          }
 
          // check if index is available for global transaction
@@ -256,7 +257,7 @@ namespace engine
 
          OSS_INLINE BOOLEAN validForCache() const
          {
-            return !isKeepSearchPaths() && !hasNonGTIndex() ;
+            return !isKeepPaths() && !hasNonGTIndex() ;
          }
 
       protected :
@@ -281,15 +282,15 @@ namespace engine
          // The CPU cost of the matcher
          UINT32            _estCPUCost ;
 
-         // keep search paths for explain "Search" option
-         BOOLEAN           _keepSearchPaths ;
-
          // has index created behind current transaction
          BOOLEAN           _hasNonGTIndex ;
 
          // indexes need to set rebuild time which are invalid for global
          // transactions
          OPT_INDEX_SET     _invalidGTIndexes ;
+
+         // explain options
+         const rtnExplainOptions * _expOptions ;
    } ;
 
    typedef class _optAccessPlanHelper optAccessPlanHelper ;

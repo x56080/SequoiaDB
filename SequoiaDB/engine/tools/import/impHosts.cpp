@@ -84,7 +84,11 @@ namespace import
          {
             return true;
          }
-
+         else if (hostname1 > hostname2)
+         {
+            return false;
+         }
+         
          return host1.svcname < host2.svcname;
       }
    };

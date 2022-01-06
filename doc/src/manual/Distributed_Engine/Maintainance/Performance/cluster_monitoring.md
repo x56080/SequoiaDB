@@ -1,17 +1,6 @@
-[^_^]: 
-    集群性能监控
-    作者：李元锴
-    时间：20190525
-    评审意见
-    王涛：
-    许建辉：
-    市场部：20190801
-
-
 本文档介绍 SequoiaDB 巨杉数据库提供的集群监控功能，用于快速找到数据库实例性能和活动的统计信息。
 
-客户端连接数
-----
+##客户端连接数##
 
 客户端连接数反映了应用系统与集群建立的连接数量。
 
@@ -25,11 +14,11 @@ $ sdb -f getCoordConn.js
 
 ```lang-javascript
 var db = new Sdb();
-var nodes = db.list(7,{GroupName:"SYSCoord"},{"Group.HostName":1,"Group.Service.Name":1}).next().toObj()["Group"];
+var nodes = db.list(SDB_LIST_GROUPS, {GroupName: "SYSCoord"}, {"Group.HostName": 1, "Group.Service.Name": 1}).next().toObj()["Group"];
 var sum = 0;
 for(var i in nodes){
    var node = nodes[i];
-   sum += new Sdb(node["HostName"],node["Service"][0]["Name"]).snapshot(6,{},{"TotalNumConnects":1}).next().toObj()["TotalNumConnects"];
+   sum += new Sdb(node["HostName"], node["Service"][0]["Name"]).snapshot(6, {}, {"TotalNumConnects": 1}).next().toObj()["TotalNumConnects"];
 }
 println("集群客户端连接数："+sum);
 ```
@@ -38,8 +27,7 @@ println("集群客户端连接数："+sum);
 
 数据库连接的创建是比较耗时的操作，应用程序频繁创建销毁，未关闭连接也有可能导致连接数过高，建议使用驱动程序中的数据库连接池进行连接管理，连接池允许应用程序更有效地使用和重用连接。
 
-读写操作量
-----
+##读写操作量##
 
 集群读写操作量连接的是集群协调节点，输出内容是整个集群的读写操作数量。
 
@@ -51,13 +39,12 @@ println("集群客户端连接数："+sum);
  
    数据和索引的写入次数，如果指标值偏低，检查应用程序，确认能否将单条插入改写成批量插入的方式。其次如果观察到数据节点磁盘 I/O 偏高，建议增加集合的分片数量，将 I/O 压力分担到其他磁盘。或考虑使用 SSD 磁盘替换 SAS 或 SATA 盘。
 
-副本集同步
-----
+##副本集同步##
 
 snapshot 命令可以查看当前节点副本集同步状态
 
 ```lang-javascript
-> db.snapshot(SDB_SNAP_HEALTH,{},{LSNQueSize:1,DiffLSNWithPrimary:1})
+> db.snapshot(SDB_SNAP_HEALTH, {}, {LSNQueSize: 1, DiffLSNWithPrimary: 1})
 ```
 
 输出结果如下：
@@ -82,13 +69,12 @@ snapshot 命令可以查看当前节点副本集同步状态
 
 通过以上两个指标，可以看出集群数据复制组间副本集数据同步的压力，如果两个指标长期较高，需要检查复制组间网络状态。
 
-节点运行状态
-----
+##节点运行状态##
 
 snapshot 命令可以查看当前节点运行状态
 
 ```lang-javascript
-> db.snapshot(SDB_SNAP_HEALTH,{},{ServiceStatus:1,SyncControl:1})
+> db.snapshot(SDB_SNAP_HEALTH, {}, {ServiceStatus: 1, SyncControl: 1})
 ```
 
 输出结果如下：

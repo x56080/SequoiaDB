@@ -177,11 +177,9 @@ namespace engine
       Explain field masks
     */
    #define OPT_NODE_EXPLAIN_MASK_NONE        ( 0x0000 )
-   #define OPT_NODE_EXPLAIN_MASK_ESTIMATE    ( 0x0001 )
-   #define OPT_NODE_EXPLAIN_MASK_RUN         ( 0x0002 )
-   #define OPT_NODE_EXPLAIN_MASK_INPUT       ( 0x0010 )
-   #define OPT_NODE_EXPLAIN_MASK_FILTER      ( 0x0020 )
-   #define OPT_NODE_EXPLAIN_MASK_OUTPUT      ( 0x0040 )
+   #define OPT_NODE_EXPLAIN_MASK_INPUT       ( 0x0001 )
+   #define OPT_NODE_EXPLAIN_MASK_FILTER      ( 0x0002 )
+   #define OPT_NODE_EXPLAIN_MASK_OUTPUT      ( 0x0004 )
    #define OPT_NODE_EXPLAIN_MASK_ALL         ( 0xffff )
 
    #define OPT_EXPLAIN_MASK_NONE_NAME        "None"
@@ -350,6 +348,11 @@ namespace engine
    #define OPT_EXPINFO_MASK_SYSCPU        ( 0x0020 )
    #define OPT_EXPINFO_MASK_NONE          ( 0x0000 )
    #define OPT_EXPINFO_MASK_ALL           ( 0xFFFF )
+
+   // maximum size of object to be cached
+   #define OPT_CACHE_OBJECT_MAX_SIZE         ( 2 << 20 )
+   // maximum size of plan to be cached
+   #define OPT_CACHE_PLAN_MAX_SIZE           ( 8 << 20 )
 
 }
 

@@ -33,7 +33,7 @@ function createCSAndCheckResult ( csNameLen )
 function getRandomString ( len )
 {
    var str = "";
-   if( len = 0 )
+   if( len == 0 )
    {
       return str;
    }

@@ -1484,6 +1484,7 @@ namespace engine
                                                 OM_CONFIGURE_FIELD_SVCNAME ) ;
                }
                else if ( OM_BUSINESS_SEQUOIASQL_MYSQL == businessType ||
+                         OM_BUSINESS_SEQUOIASQL_MARIADB == businessType ||
                          OM_BUSINESS_SEQUOIASQL_POSTGRESQL == businessType )
                {
                   tmpSvcname = tmpConfig.getStringField(
@@ -1796,7 +1797,8 @@ namespace engine
                }
             }
             else if ( OM_BUSINESS_SEQUOIASQL_POSTGRESQL == businessType ||
-                      OM_BUSINESS_SEQUOIASQL_MYSQL == businessType )
+                      OM_BUSINESS_SEQUOIASQL_MYSQL == businessType ||
+                      OM_BUSINESS_SEQUOIASQL_MARIADB == businessType )
             {
                BSONObj nodes = result.getObjectField(
                                                    OM_CONFIGURE_FIELD_CONFIG ) ;
@@ -4177,7 +4179,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       SINT64 contextID = -1 ;
-      rtnContextBase *pContextBase = NULL ;
+      rtnContextPtr pContextBase ;
       BSONObj selector ;
       BSONObj order ;
       BSONObj hint ;

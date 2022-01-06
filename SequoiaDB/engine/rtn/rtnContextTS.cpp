@@ -354,9 +354,11 @@ namespace engine
       if ( _enableRIDFilter )
       {
          SDB_RTNCB *rtnCB = sdbGetRTNCB() ;
-         rtnContext *dataContext = rtnCB->contextFind( subContextID, eduCB ) ;
-         SDB_ASSERT( RTN_CONTEXT_DATA == dataContext->getType(),
-                     "Context type is not RTN_CONTEXT_DATA" ) ;
+         rtnContextPtr dataContext ;
+         rc = rtnCB->contextFind( subContextID, RTN_CONTEXT_DATA, dataContext,
+                                  eduCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get context [%llu], rc: %d",
+                      subContextID, rc ) ;
          dataContext->setResultSetFilter( &_ridFilter ) ;
       }
 

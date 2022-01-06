@@ -39,6 +39,7 @@
 #ifndef DPSTRANSLOCKMANAGER_HPP_
 #define DPSTRANSLOCKMANAGER_HPP_
 
+#include "dpsDeadlockDetector.hpp"
 #include "dpsTransLRB.hpp"
 #include "dpsTransLockDef.hpp"
 #include "dpsTransDef.hpp"
@@ -104,7 +105,9 @@ namespace engine
          const DPS_TRANSLOCK_TYPE   requestLockMode,
          _IContext                * pContext      = NULL,
          dpsTransRetInfo          * pdpsTxResInfo = NULL,
-         _dpsITransLockCallback   * callback = NULL
+         _dpsITransLockCallback   * callback = NULL,
+         DPS_TRANSLOCK_TYPE       * ownedLockMode = NULL,
+         BOOLEAN                    useEscalation = TRUE
       ) ;
 
       // release a lock. The higher level intent lock will be also released
@@ -115,7 +118,8 @@ namespace engine
          _dpsTransExecutor      * dpsTxExectr,
          const dpsTransLockId   & lockId,
          const BOOLEAN            bForceRelease = FALSE,
-         _dpsITransLockCallback * callback = NULL
+         _dpsITransLockCallback * callback = NULL,
+         BOOLEAN                  releaseUpperLock = TRUE
       ) ;
 
       // release all locks an executor ( EDU ) holding. The executor ( EDU )
@@ -149,7 +153,9 @@ namespace engine
          const dpsTransLockId     & lockId,
          const DPS_TRANSLOCK_TYPE   requestLockMode,
          dpsTransRetInfo          * pdpsTxResInfo = NULL,
-         _dpsITransLockCallback   * callback = NULL
+         _dpsITransLockCallback   * callback = NULL,
+         DPS_TRANSLOCK_TYPE       * ownedLockMode = NULL,
+         BOOLEAN                    useEscalation = TRUE
       ) ;
 
       // test if a lock with give lock mode can be acquired, higher level intent
@@ -165,7 +171,8 @@ namespace engine
          const BOOLEAN              isPreemptMode = FALSE,
          dpsTransRetInfo          * pdpsTxResInfo = NULL,
          _dpsITransLockCallback   * callback = NULL,
-         BOOLEAN                    needIntentLock = TRUE
+         BOOLEAN                    needUpperLock = TRUE,
+         DPS_TRANSLOCK_TYPE       * ownedLockMode = NULL
       ) ;
 
       // dump specific lock info to a file for debugging purpose
@@ -228,6 +235,23 @@ namespace engine
 
       // search LRB header list by lockId to get dpsLRBExtData pointer
       dpsLRBExtData * getExtDataHdlByLockId( const dpsTransLockId &lockId ) ;
+      // snap lockWait info for a given waiterLRB
+      // similar as dumpEDUTransInfo, this function currently called from
+      // sdb snapshot( monDump.cpp )
+      void snapWaitInfo
+      (
+         _dpsTransExecutor    * pExctr,
+         dpsTransLRB          * pWaiterLRB,
+         const dpsTransLockId & lockId,
+         DPS_TRANS_WAIT_SET   & waitInfoSet
+      ) ;
+
+      INT32 getIncompTrans
+      (
+         const dpsTransLockId &     lockID,
+         const DPS_TRANSLOCK_TYPE   lockMode,
+         DPS_TRANS_ID_SET &         incompTrans
+      ) ;
 
    public:
       virtual INT32 acquire(IExecutor *executor,
@@ -310,6 +334,19 @@ namespace engine
          dpsTransLRB     *       & pLRBIncompatible
       ) ;
 
+      INT32 _getIncompTrans
+      (
+         const dpsTransLRBHeader *  pLRBHdr,
+         const DPS_TRANSLOCK_TYPE   lockMode,
+         DPS_TRANS_ID_SET &         incompTrans
+      ) ;
+
+      INT32 _getIncompTrans
+      (
+         const dpsTransLRB *        pLRBBegin,
+         const DPS_TRANSLOCK_TYPE   lockMode,
+         DPS_TRANS_ID_SET &         incompTrans
+      ) ;
 
       // add a LRB at the end of the queue ( waiter or upgrade list )
       void _addToLRBListTail
@@ -435,7 +472,15 @@ namespace engine
          UINT32                             bktIdx,
          const BOOLEAN                      bktLatched,
          dpsTransRetInfo                  * pdpsTxResInfo,
-         _dpsITransLockCallback           * callback = NULL
+         _dpsITransLockCallback           * callback = NULL,
+         DPS_TRANSLOCK_TYPE               * ownedLockMode = NULL
+      ) ;
+
+      // add reference if we own this lock
+      BOOLEAN _addRefIfOwned
+      (
+         _dpsTransExecutor *              dpsTxExectr,
+         const dpsTransLockId &           lockID
       ) ;
 
       // core logic of release a lock
@@ -480,6 +525,13 @@ namespace engine
 
       // wait a lock till be woken up, lock timeout elapsed, or be interrupted
       INT32 _waitLock( _dpsTransExecutor * dpsTxExectr ) ;
+
+      // check if a LRB in waiter or upgrade queue
+      BOOLEAN _isInWaiterOrUpgradeQueue
+      (
+         const dpsTransLRBHeader * pLRBHdr,
+         const dpsTransLRB       * pLRB
+      ) ;
 
       // format LRB to string, flat one line
       CHAR * _LRBToString ( dpsTransLRB * lrb, CHAR * pBuf, UINT32 bufSz ) ;

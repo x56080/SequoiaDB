@@ -475,7 +475,7 @@ namespace engine
       }
 
       utilListNodes( listNodes, typeFilter, NULL, OSS_INVALID_PID,
-                     roleFilter ) ;
+                     roleFilter, FALSE, FALSE ) ;
 
       if ( RUN_MODE_RUN == modeFilter )
       {

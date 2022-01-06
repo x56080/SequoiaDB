@@ -98,6 +98,10 @@ namespace engine
 
    INT32 mthStrLen( const CHAR *name, const BSONElement &in,
                     BSONObjBuilder &outBuilder ) ;
+   INT32 mthStrLenBytes( const CHAR *name, const BSONElement &in,
+                         BSONObjBuilder &outBuilder ) ;
+   INT32 mthStrLenCP( const CHAR *name, const BSONElement &in,
+                      BSONObjBuilder &outBuilder ) ;
 
    INT32 mthLower( const CHAR *name, const BSONElement &in,
                    BSONObjBuilder &outBuilder ) ;

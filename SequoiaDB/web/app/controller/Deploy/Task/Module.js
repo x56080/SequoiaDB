@@ -63,6 +63,10 @@
          {
             $scope.stepList = _Deploy.BuildSdbMysqlStep( $scope, $location, $scope['Url']['Method'] ) ;
          }
+         else if( $scope.ModuleType == 'sequoiasql-mariadb' )
+         {
+            $scope.stepList = _Deploy.BuildSdbMysqlStep( $scope, $location, $scope['Url']['Method'] ) ;
+         }
          else
          {
             $scope.stepList = _Deploy.BuildSdbStep( $scope, $location, $scope.DeployType, $scope['Url']['Method'], $scope.ModuleType ) ;
@@ -132,7 +136,7 @@
                'Flow':        '40%'
             } ;
          }
-         else if( moduleType == 'sequoiasql-postgresql' || moduleType == 'sequoiasql-mysql' )
+         else if( moduleType == 'sequoiasql-postgresql' || moduleType == 'sequoiasql-mysql' || moduleType == 'sequoiasql-mariadb' )
          {
             $scope.TaskTable['title'] = {
                'Status':         '',
@@ -172,6 +176,10 @@
          else if( $scope.ModuleType == 'sequoiasql-mysql' )
          {
             $location.path( '/Deploy/MySQL-Mod' ).search( { 'r': new Date().getTime() } ) ;
+         }
+         else if( $scope.ModuleType == 'sequoiasql-mariadb' )
+         {
+            $location.path( '/Deploy/Mariadb-Mod' ).search( { 'r': new Date().getTime() } ) ;
          }
       }
 
@@ -221,7 +229,7 @@
 
       function execSecondTask( installConfig )
       {
-         var data = { 'cmd': 'add business', 'ConfigInfo': JSON.stringify( installConfig ) } ;
+         var data = { 'cmd': 'add business', 'Force': true, 'ConfigInfo': JSON.stringify( installConfig ) } ;
 
          if( installConfig['BusinessType'] == 'sequoiasql-mysql' )
          {
@@ -278,7 +286,8 @@
                   "value": 'sequoiasql-mysql',
                   "valid": [
                      { 'key': 'PostgreSQL', 'value': 'sequoiasql-postgresql' },
-                     { 'key': 'MySQL', 'value': 'sequoiasql-mysql' }
+                     { 'key': 'MySQL', 'value': 'sequoiasql-mysql' },
+                     { 'key': 'MariaDB', 'value': 'sequoiasql-mariadb' },
                   ],
                   "onChange": function( name, key, value ){
                      $scope.InstallModule['config']['inputList'][0]['value'] = key + 'Instance' ;
@@ -319,6 +328,17 @@
                   businessConf['Property']     = [] ;
                   $rootScope.tempData( 'Deploy', 'ModuleConfig', businessConf ) ;
                   $location.path( '/Deploy/MySQL-Mod' ).search( { 'r': new Date().getTime() } ) ;
+               }
+               else if( formVal['moduleType'] == 'sequoiasql-mariadb' )
+               {
+                  var businessConf = {} ;
+                  businessConf['ClusterName']  = $scope.TaskInfo['Info']['ClusterName'] ;
+                  businessConf['BusinessName'] = formVal['moduleName'] ;
+                  businessConf['BusinessType'] = formVal['moduleType'] ;
+                  businessConf['DeployMod']    = '' ;
+                  businessConf['Property']     = [] ;
+                  $rootScope.tempData( 'Deploy', 'ModuleConfig', businessConf ) ;
+                  $location.path( '/Deploy/MariaDB-Mod' ).search( { 'r': new Date().getTime() } ) ;
                }
             }
             return isAllClear ;
@@ -377,11 +397,18 @@
                         $scope.BarColor = 2 ;
                      }
                   }
-                  else if( $scope.ModuleType == 'zookeeper' || $scope.ModuleType == 'sequoiasql' || $scope.ModuleType == 'sequoiasql-postgresql' || $scope.ModuleType == 'sequoiasql-mysql' )
+                  else if( $scope.ModuleType == 'zookeeper' || $scope.ModuleType == 'sequoiasql' ||
+                           $scope.ModuleType == 'sequoiasql-postgresql' ||
+                           $scope.ModuleType == 'sequoiasql-mysql' ||
+                           $scope.ModuleType == 'sequoiasql-mariadb' )
                   {
                      if ( $scope.ModuleType == 'sequoiasql-mysql' )
                      {
                         $scope.ModuleDesc = 'MySQL' ;
+                     }
+                     else if ( $scope.ModuleType == 'sequoiasql-mysql' )
+                     {
+                        $scope.ModuleDesc = 'MariaDB' ;
                      }
                      else if ( $scope.ModuleType == 'sequoiasql-postgresql' )
                      {

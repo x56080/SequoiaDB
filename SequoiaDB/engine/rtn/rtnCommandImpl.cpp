@@ -153,6 +153,7 @@ namespace engine
       dmsStorageUnit *su = NULL ;
       dmsStorageUnitID suID = DMS_INVALID_CS ;
       const CHAR *pCollectionShortName = NULL ;
+      SINT64 queryContextID = -1 ;
 
       rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB, &su,
                                              &pCollectionShortName, suID ) ;
@@ -164,8 +165,7 @@ namespace engine
       }
       if ( !options.isQueryEmpty() )
       {
-         rtnContextBase *pContextBase = NULL ;
-         SINT64 queryContextID = -1 ;
+         rtnContextPtr pContextBase ;
 
          if ( _isSimpleTextSearch( options.getQuery() ) )
          {
@@ -200,6 +200,7 @@ namespace engine
                {
                   // if we hit end of collection, let's clear the rc
                   // in this case, totalCount = 0
+                  queryContextID = -1 ;
                   rc = SDB_OK ;
                }
                else
@@ -214,29 +215,42 @@ namespace engine
                pContextBase->enableCountMode() ;
                rtnContextBuf buffObj ;
 
-               while ( TRUE )
+               if ( NULL != pContextBase->getPlanRuntime() &&
+                    pContextBase->getPlanRuntime()->isAllRangeScan() )
                {
-                  rc = rtnGetMore ( queryContextID, -1, buffObj, cb, rtnCB ) ;
-                  if ( rc )
+                  // use quick extent header count
+                  rc = su->countCollection ( pCollectionShortName, totalCount,
+                                             cb ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to get count %s, rc: %d",
+                               pCollection, rc ) ;
+               }
+               else
+               {
+                  while ( TRUE )
                   {
-                     // any error will clean up query context
-                     if ( SDB_DMS_EOC == rc )
+                     rc = rtnGetMore ( queryContextID, -1, buffObj, cb, rtnCB ) ;
+                     if ( rc )
                      {
-                        rc = SDB_OK ;
-                        break ;
+                        // any error will clean up query context
+                        if ( SDB_DMS_EOC == rc )
+                        {
+                           queryContextID = -1 ;
+                           rc = SDB_OK ;
+                           break ;
+                        }
+                        else
+                        {
+                           PD_LOG ( PDERROR, "Failed to fetch for count for "
+                                    "collecion %s, rc: %d", pCollection, rc ) ;
+                           goto error ;
+                        }
                      }
                      else
                      {
-                        PD_LOG ( PDERROR, "Failed to fetch for count for "
-                                 "collecion %s, rc: %d", pCollection, rc ) ;
-                        goto error ;
+                        // since rtnGetMore only takes 32 bit count, so let's pass
+                        // count and add into totalCount every round
+                        totalCount += buffObj.recordNum() ;
                      }
-                  }
-                  else
-                  {
-                     // since rtnGetMore only takes 32 bit count, so let's pass
-                     // count and add into totalCount every round
-                     totalCount += buffObj.recordNum() ;
                   }
                }
             }
@@ -260,6 +274,10 @@ namespace engine
       if ( DMS_INVALID_CS != suID )
       {
          dmsCB->suUnlock ( suID ) ;
+      }
+      if ( -1 != queryContextID )
+      {
+         rtnCB->contextDelete( queryContextID, cb ) ;
       }
       PD_TRACE_EXITRC ( SDB_RTNGETCOUNT, rc ) ;
       return rc ;
@@ -300,55 +318,6 @@ namespace engine
 
    done :
       PD_TRACE_EXITRC ( SDB_RTNGETCOUNT, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNGETINDEXES, "rtnGetIndexes" )
-   static INT32 rtnGetIndexes ( const CHAR *pCollection,
-                                SDB_DMSCB *dmsCB,
-                                rtnContextDump *context )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RTNGETINDEXES ) ;
-      SDB_ASSERT ( pCollection, "collection can't be NULL" ) ;
-      SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
-      dmsStorageUnit *su = NULL ;
-      dmsStorageUnitID suID = DMS_INVALID_CS ;
-      const CHAR *pCollectionShortName = NULL ;
-      MON_IDX_LIST resultIndexes ;
-      rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB, &su,
-                                             &pCollectionShortName, suID ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to resolve collection name %s, rc: %d",
-                  pCollection, rc ) ;
-         goto error ;
-      }
-      rc = su->getIndexes ( pCollectionShortName, resultIndexes ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to get indexes %s, rc: %d",
-                  pCollection, rc ) ;
-         goto error ;
-      }
-
-      rc = monDumpIndexes ( resultIndexes, context ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to dump indexes %s, rc: %d",
-                  pCollection, rc ) ;
-         goto error ;
-      }
-
-   done :
-      resultIndexes.clear() ;
-      if ( DMS_INVALID_CS != suID )
-      {
-         dmsCB->suUnlock ( suID ) ;
-      }
-      PD_TRACE_EXITRC ( SDB_RTNGETINDEXES, rc ) ;
       return rc ;
    error :
       goto done ;
@@ -462,7 +431,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_RTNGETINDEXSTAT ) ;
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
 
-      rtnContextBase *pContextBase = NULL ;
+      rtnContextPtr pContextBase ;
       rtnContextBuf buffObj ;
       SINT64 queryContextID = -1 ;
       BSONObj dummy ;
@@ -820,6 +789,22 @@ namespace engine
                           std::vector< dmsRecordID > &idxRIDs )
    {
       INT32 rc = SDB_OK ;
+      rtnPredicateList * predList = NULL ;
+      BSONObj startObj ;
+      BSONObj endObj ;
+      BSONObj prevObj ;
+      dmsRecordID prevRid ;
+      dmsExtentID rootID ;
+      const CHAR *keyData = NULL ;
+      BOOLEAN findPos = FALSE ;
+      BSONObj key ;
+      dmsRecordID rid ;
+      UINT32 segmentCount  = 1 ;
+      UINT32 deep = 1 ;
+      UINT32 mod  = 0 ;
+      UINT32 step = 1 ;
+      UINT32 index = 0 ;
+      UINT32 keyNodeCount ;
 
       SDB_ASSERT( planRuntime, "planRuntime is invalid" ) ;
 
@@ -829,8 +814,6 @@ namespace engine
       SDB_ASSERT( IXSCAN == planRuntime->getScanType(),
                   "Scan type must be IXSCAN" ) ;
 
-      ixmIndexCB indexCB( planRuntime->getIndexCBExtent(), su->index(), NULL ) ;
-
       if ( !mbContext->isMBLock() )
       {
          rc = mbContext->mbLock( SHARED ) ;
@@ -838,41 +821,39 @@ namespace engine
                       mbContext->toString().c_str(), rc ) ;
       }
 
-      if ( !indexCB.isInitialized() )
       {
-         PD_LOG ( PDERROR, "unable to get proper index control block" ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-      if ( indexCB.getLogicalID() != planRuntime->getIndexLID() )
-      {
-         PD_LOG( PDERROR, "Index[extent id: %d] logical id[%d] is not "
-                 "expected[%d]", planRuntime->getIndexCBExtent(),
-                 indexCB.getLogicalID(), planRuntime->getIndexLID() ) ;
-         rc = SDB_IXM_NOTEXIST ;
-         goto error ;
-      }
+         ixmIndexCB indexCB( planRuntime->getIndexCBExtent(), su->index(), NULL ) ;
 
-      {
-         rtnPredicateList * predList = planRuntime->getPredList() ;
+         if ( !indexCB.isInitialized() )
+         {
+            PD_LOG ( PDERROR, "unable to get proper index control block" ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+         if ( indexCB.getLogicalID() != planRuntime->getIndexLID() )
+         {
+            PD_LOG( PDERROR, "Index[extent id: %d] logical id[%d] is not "
+                    "expected[%d]", planRuntime->getIndexCBExtent(),
+                    indexCB.getLogicalID(), planRuntime->getIndexLID() ) ;
+            rc = SDB_IXM_NOTEXIST ;
+            goto error ;
+         }
+
+         predList = planRuntime->getPredList() ;
          SDB_ASSERT ( predList, "predList can't be NULL" ) ;
 
-         BSONObj startObj = predList->startKey() ;
-         BSONObj endObj = predList->endKey() ;
-         BSONObj prevObj ;
-         dmsRecordID prevRid ;
+         startObj = predList->startKey() ;
+         endObj = predList->endKey() ;
+
          if ( planRuntime->getDirection() < 0 )
          {
             startObj = endObj ;
             endObj = predList->startKey() ;
          }
+
          Ordering order = Ordering::make( indexCB.keyPattern() ) ;
-         dmsExtentID rootID = indexCB.getRoot() ;
-         const CHAR *keyData = NULL ;
-         BOOLEAN findPos = FALSE ;
-         BSONObj key ;
-         dmsRecordID rid ;
-         UINT32 segmentCount  = 1 ;
+         rootID = indexCB.getRoot() ;
 
          if ( DMS_INVALID_EXTENT != mbContext->mb()->_mbExExtentID )
          {
@@ -890,11 +871,7 @@ namespace engine
             }
          }
 
-         UINT32 deep = 1 ;
-         UINT32 mod  = 0 ;
-         UINT32 step = 1 ;
-         UINT32 index = 0 ;
-         UINT32 keyNodeCount = _rtnIndexKeyNodeCount( rootID, su, deep ) ;
+         keyNodeCount = _rtnIndexKeyNodeCount( rootID, su, deep ) ;
          while ( keyNodeCount < segmentCount && deep < 3 )
          {
             ++deep ;
@@ -1069,6 +1046,9 @@ namespace engine
 
       {
          ixmIndexCB indexCB( planRuntime->getIndexCBExtent(), su->index(), NULL ) ;
+         PD_CHECK( indexCB.isInitialized(), SDB_DMS_INIT_INDEX,
+                   error, PDERROR, "Failed to initialize index" ) ;
+
          rc = monDumpIndexblocks( idxBlocks, idxRIDs, indexCB.getName(),
                                   indexCB.getLogicalID(),
                                   planRuntime->getDirection(),
@@ -1122,7 +1102,7 @@ namespace engine
       SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 
       // plan is released in context destructor
-      rc = apm->getAccessPlan( copiedOptions, FALSE, su, mbContext, planRuntime ) ;
+      rc = apm->getAccessPlan( copiedOptions, su, mbContext, planRuntime, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s, "
                    "context %lld, rc: %d", pCollectionName,
                    context->contextID(), rc ) ;
@@ -1193,10 +1173,10 @@ namespace engine
       SDB_ASSERT ( cb, "educb can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dmsCB can't be NULL" ) ;
       SDB_ASSERT ( rtnCB, "runtimeCB can't be NULL" ) ;
-      rtnContextDump *context = NULL ;
+      rtnContextDump::sharePtr context ;
 
       // create cursors
-      rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, (rtnContext**)&context,
+      rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, context,
                                contextID, cb ) ;
       if ( rc )
       {
@@ -1222,9 +1202,6 @@ namespace engine
       // do each commands, $get
       switch ( command )
       {
-         case CMD_GET_INDEXES :
-            rc = rtnGetIndexes ( pCollectionName, dmsCB, context ) ;
-            break ;
          case CMD_GET_COUNT :
             rc = rtnGetCount ( options, dmsCB, cb, rtnCB, context ) ;
             break ;
@@ -1246,7 +1223,7 @@ namespace engine
 
       if ( !options.isOrderByEmpty() )
       {
-         rc = rtnSort( (rtnContext**)&context, options.getOrderBy(), cb,
+         rc = rtnSort( context, options.getOrderBy(), cb,
                        options.getSkip(), options.getLimit(), contextID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to sort, rc: %d", rc ) ;
       }
@@ -1381,6 +1358,8 @@ namespace engine
                          optCB->getSyncRecordNum(),
                          optCB->getSyncDirtyRatio() ) ;
       su->setSyncDeep( optCB->isSyncDeep() ) ;
+      // set MVCC support
+      su->setMVCCSupport( optCB->mvccOn() ) ;
 
       /// add collctionspace
       rc = dmsCB->addCollectionSpace( pCollectionSpace, 1, su, cb, dpsCB, TRUE ) ;
@@ -1438,19 +1417,22 @@ namespace engine
                                       UTIL_COMPRESSOR_TYPE compressorType,
                                       INT32 flags,
                                       BOOLEAN sysCall,
-                                      const BSONObj *extOptions )
+                                      const BSONObj *extOptions,
+                                      const BSONObj *pIdIdxDef,
+                                      BOOLEAN addIdxIDIfNotExist )
    {
-      BSONObj obj ;
+      BSONObj shardIdxDef ;
       return rtnCreateCollectionCommand ( pCollection,
-                                          obj, attributes,
-                                          cb, dmsCB, dpsCB,
+                                          shardIdxDef,
+                                          attributes, cb, dmsCB, dpsCB,
                                           clUniqueID, compressorType,
-                                          flags, sysCall, extOptions ) ;
+                                          flags, sysCall, extOptions,
+                                          pIdIdxDef, addIdxIDIfNotExist ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCREATECLCOMMAND, "rtnCreateCollectionCommand" )
    INT32 rtnCreateCollectionCommand ( const CHAR *pCollection,
-                                      const BSONObj &shardingKey,
+                                      const BSONObj &shardIdxDef,
                                       UINT32 attributes,
                                       _pmdEDUCB *cb,
                                       SDB_DMSCB *dmsCB,
@@ -1458,7 +1440,9 @@ namespace engine
                                       utilCLUniqueID clUniqueID,
                                       UTIL_COMPRESSOR_TYPE compType,
                                       INT32 flags, BOOLEAN sysCall,
-                                      const BSONObj *extOptions )
+                                      const BSONObj *extOptions,
+                                      const BSONObj *pIdIdxDef,
+                                      BOOLEAN addIdxIDIfNotExist )
    {
       INT32 rc              = SDB_OK ;
       INT32 rcTmp           = SDB_OK ;
@@ -1472,6 +1456,7 @@ namespace engine
       UINT32 logicalID      = DMS_INVALID_CLID ;
       const CHAR *pCollectionShortName = NULL ;
       utilCSUniqueID csUniqueID = utilGetCSUniqueID( clUniqueID ) ;
+      CHAR attrStr[ 64 + 1 ] = { 0 } ;
 
       // Check writable before su lock
       rc = dmsCB->writable( cb ) ;
@@ -1536,7 +1521,8 @@ namespace engine
       rc = su->data()->addCollection ( pCollectionShortName, &collectionID,
                                        clUniqueID, attributes, cb,
                                        dpsCB, 0, sysCall,
-                                       compType, &logicalID, extOptions ) ;
+                                       compType, &logicalID, extOptions,
+                                       pIdIdxDef, addIdxIDIfNotExist ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR,
@@ -1544,30 +1530,20 @@ namespace engine
                   pCollection, clUniqueID, rc ) ;
          goto error ;
       }
-      if ( !shardingKey.isEmpty() )
+
+      if ( !shardIdxDef.isEmpty() )
       {
-         try
+         rc = rtnCreateIndexCommand ( pCollection, shardIdxDef,
+                                      cb, dmsCB, dpsCB, TRUE ) ;
+         if ( SDB_IXM_REDEF == rc || SDB_IXM_EXIST_COVERD_ONE == rc )
          {
-            BSONObj shardKeyObj = BSON ( "key"<<shardingKey<<"name"<<
-                                         IXM_SHARD_KEY_NAME<< IXM_FIELD_NAME_V <<0 ) ;
-            rc = rtnCreateIndexCommand ( pCollection, shardKeyObj,
-                                         cb, dmsCB, dpsCB, TRUE ) ;
-            if ( SDB_IXM_REDEF == rc || SDB_IXM_EXIST_COVERD_ONE == rc )
-            {
-               /// same defined index already exists.
-               rc = SDB_OK ;
-            }
-            else if ( SDB_OK != rc )
-            {
-               PD_LOG ( PDERROR, "Failed to create sharding key for "
-                        "collection %s, rc = %d", pCollection, rc ) ;
-               goto error_rollback ;
-            }
+            /// same defined index already exists.
+            rc = SDB_OK ;
          }
-         catch ( std::exception &e )
+         else if ( SDB_OK != rc )
          {
-            PD_LOG ( PDERROR, "Failed to build sharding key: %s", e.what() ) ;
-            rc = SDB_INVALIDARG ;
+               PD_LOG ( PDERROR, "Failed to create shard index for "
+                        "collection %s, rc = %d", pCollection, rc ) ;
             goto error_rollback ;
          }
       }
@@ -1583,28 +1559,17 @@ namespace engine
                                          collectionID, logicalID ) ) ;
       }
 
-      {
-         CHAR attrStr[ 64 + 1 ] = { 0 } ;
-         mbAttr2String( attributes, attrStr, sizeof( attrStr ) - 1 ) ;
-         if ( extOptions && !extOptions->isEmpty())
-         {
-            PD_LOG( PDEVENT, "Create collection[name: %s, id: %llu] succeed, "
-                    "ShardingKey:%s, Attr:%s(0x%08x), CompressType:%s(%d), "
-                    "External options:%s", pCollection, clUniqueID,
-                    shardingKey.toString().c_str(), attrStr,
-                    attributes, utilCompressType2String( (UINT8)compType ),
-                    compType, extOptions->toString().c_str() ) ;
-         }
-         else
-         {
-            PD_LOG( PDEVENT, "Create collection[name: %s, id: %llu] succeed, "
-                    "ShardingKey:%s, Attr:%s(0x%08x), CompressType:%s(%d)",
-                    pCollection, clUniqueID,
-                    shardingKey.toString().c_str(), attrStr, attributes,
-                    utilCompressType2String( (UINT8)compType ),
-                    compType ) ;
-         }
-      }
+      mbAttr2String( attributes, attrStr, sizeof( attrStr ) - 1 ) ;
+      PD_LOG( PDEVENT, "Create collection[name: %s, id: %llu] succeed, "
+              "ShardingKey:%s, Attr:%s(0x%08x), CompressType:%s(%d)%s%s%s%s",
+              pCollection, clUniqueID,
+              shardIdxDef.getObjectField(IXM_FIELD_NAME_KEY).toString().c_str(),
+              attrStr, attributes,
+              utilCompressType2String( (UINT8)compType ), compType,
+              extOptions && !extOptions->isEmpty() ? ", External options:" : "",
+              extOptions && !extOptions->isEmpty() ? extOptions->toString().c_str() : "",
+              pIdIdxDef && !pIdIdxDef->isEmpty() ? ", Id Index:" : "",
+              pIdIdxDef && !pIdIdxDef->isEmpty() ? pIdIdxDef->toString().c_str() : "" ) ;
 
    done :
       if ( DMS_INVALID_CS != suID )
@@ -1638,7 +1603,9 @@ namespace engine
                                  SDB_DPSCB *dpsCB,
                                  BOOLEAN isSys,
                                  INT32 sortBufferSize,
-                                 utilWriteResult *pResult )
+                                 utilWriteResult *pResult,
+                                 dmsIdxTaskStatus *pIdxStatus,
+                                 BOOLEAN addUIDIfNotExist )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNCREATEINDEXCOMMAND ) ;
@@ -1651,7 +1618,7 @@ namespace engine
       BOOLEAN writable              = FALSE ;
 
       rc = dmsCB->writable( cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
       writable = TRUE ;
 
       rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB, &su,
@@ -1672,7 +1639,7 @@ namespace engine
 
       rc = su->createIndex ( pCollectionShortName, indexObj,
                              cb, dpsCB, isSys, NULL, sortBufferSize,
-                             pResult ) ;
+                             pResult, pIdxStatus, FALSE, addUIDIfNotExist ) ;
       if ( rc )
       {
          // SDB_IXM_EXIST may happen when user mistakenly type index name with
@@ -1700,13 +1667,80 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCREATEINDEXCOMMAND1, "rtnCreateIndexCommand" )
+   INT32 rtnCreateIndexCommand ( utilCLUniqueID clUniqID,
+                                 const BSONObj &indexObj,
+                                 _pmdEDUCB *cb,
+                                 SDB_DMSCB *dmsCB,
+                                 SDB_DPSCB *dpsCB,
+                                 BOOLEAN isSys,
+                                 INT32 sortBufferSize,
+                                 utilWriteResult *pResult,
+                                 dmsIdxTaskStatus *pIdxStatus,
+                                 BOOLEAN addUIDIfNotExist )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_RTNCREATEINDEXCOMMAND1 ) ;
+      SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
+
+      dmsStorageUnit *su = NULL ;
+      dmsStorageUnitID suID = DMS_INVALID_CS ;
+      BOOLEAN writable = FALSE ;
+      utilCSUniqueID csUniqID = utilGetCSUniqueID( clUniqID ) ;
+
+      rc = dmsCB->writable( cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
+      writable = TRUE ;
+
+      rc = dmsCB->idToSUAndLock( csUniqID, suID, &su, SHARED ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to loop up su by cs unique id[%u], rc: %d",
+                   csUniqID, rc ) ;
+
+      if ( DMS_STORAGE_CAPPED == su->type() )
+      {
+         PD_LOG( PDERROR, "Index is not support on capped collection" ) ;
+         rc = SDB_OPTION_NOT_SUPPORT ;
+         goto error ;
+      }
+
+      rc = su->createIndex( clUniqID, indexObj, cb, dpsCB, isSys, NULL,
+                            sortBufferSize, pResult, pIdxStatus, FALSE,
+                            addUIDIfNotExist ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to create index[%s] for collection[%llu], "
+                  "rc: %d", indexObj.toString().c_str(), clUniqID, rc ) ;
+         goto error ;
+      }
+
+      PD_LOG( PDEVENT, "Create index[%s] for collection[%llu] succeed",
+              indexObj.toString().c_str(), clUniqID ) ;
+
+   done :
+      if ( DMS_INVALID_CS != suID )
+      {
+         dmsCB->suUnlock ( suID ) ;
+      }
+      if ( writable )
+      {
+         dmsCB->writeDown( cb ) ;
+      }
+      PD_TRACE_EXITRC ( SDB_RTNCREATEINDEXCOMMAND1, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNDROPINDEXCOMMAND, "rtnDropIndexCommand" )
    INT32 rtnDropIndexCommand ( const CHAR *pCollection,
                                const BSONElement &identifier,
                                pmdEDUCB *cb,
                                SDB_DMSCB *dmsCB,
                                SDB_DPSCB *dpsCB,
-                               BOOLEAN sysCall )
+                               BOOLEAN sysCall,
+                               dmsIdxTaskStatus *pIdxStatus,
+                               BOOLEAN onlyStandalone )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNDROPINDEXCOMMAND ) ;
@@ -1728,7 +1762,7 @@ namespace engine
       }
 
       rc = dmsCB->writable( cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
       writable = TRUE ;
 
       rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB, &su,
@@ -1743,12 +1777,14 @@ namespace engine
       if ( identifier.type() == jstOID )
       {
          identifier.Val(oid) ;
-         rc = su->dropIndex ( pCollectionShortName, oid, cb, dpsCB, sysCall ) ;
+         rc = su->dropIndex ( pCollectionShortName, oid, cb, dpsCB, sysCall,
+                              NULL, pIdxStatus, onlyStandalone ) ;
       }
       else if ( identifier.type() == String )
       {
          rc = su->dropIndex ( pCollectionShortName, identifier.valuestr(),
-                              cb, dpsCB, sysCall ) ;
+                              cb, dpsCB, sysCall, NULL, pIdxStatus,
+                              onlyStandalone ) ;
       }
       else
       {
@@ -1781,6 +1817,85 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNDROPINDEXCOMMAND1, "rtnDropIndexCommand" )
+   INT32 rtnDropIndexCommand ( utilCLUniqueID clUniqID,
+                               const BSONElement &identifier,
+                               pmdEDUCB *cb,
+                               SDB_DMSCB *dmsCB,
+                               SDB_DPSCB *dpsCB,
+                               BOOLEAN sysCall,
+                               dmsIdxTaskStatus *pIdxStatus,
+                               BOOLEAN onlyStandalone )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_RTNDROPINDEXCOMMAND1 ) ;
+
+      OID oid ;
+      SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
+      dmsStorageUnit *su      = NULL ;
+      dmsStorageUnitID suID   = DMS_INVALID_CS ;
+      BOOLEAN writable        = FALSE ;
+      utilCSUniqueID csUniqID = utilGetCSUniqueID( clUniqID ) ;
+
+      if ( identifier.type() != jstOID && identifier.type() != String )
+      {
+         PD_LOG ( PDERROR, "Invalid index identifier type: %s",
+                 identifier.toString().c_str() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      rc = dmsCB->writable( cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
+      writable = TRUE ;
+
+      rc = dmsCB->idToSUAndLock( csUniqID, suID, &su, SHARED ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to loop up su by cs unique id[%u], rc: %d",
+                   csUniqID, rc ) ;
+
+      if ( identifier.type() == jstOID )
+      {
+         identifier.Val(oid) ;
+         rc = su->dropIndex( clUniqID, oid, cb, dpsCB, sysCall, NULL,
+                             pIdxStatus, onlyStandalone ) ;
+      }
+      else if ( identifier.type() == String )
+      {
+         rc = su->dropIndex( clUniqID, identifier.valuestr(), cb, dpsCB,
+                             sysCall, NULL, pIdxStatus, onlyStandalone ) ;
+      }
+      else
+      {
+         PD_LOG ( PDERROR, "Invalid identifier type" ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to drop index[%s] for collection[%llu], rc: %d",
+                  identifier.toString().c_str(), clUniqID, rc ) ;
+         goto error ;
+      }
+
+      PD_LOG( PDEVENT, "Drop index[%s] for collection[%llu] succeed",
+              identifier.toString().c_str(), clUniqID ) ;
+
+   done :
+      if ( DMS_INVALID_CS != suID )
+      {
+         dmsCB->suUnlock ( suID ) ;
+      }
+      if ( writable )
+      {
+         dmsCB->writeDown( cb ) ;
+      }
+      PD_TRACE_EXITRC ( SDB_RTNDROPINDEXCOMMAND1, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNRENAMECSCOMMAND, "rtnRenameCollectionSpaceCommand" )
    INT32 rtnRenameCollectionSpaceCommand ( const CHAR *csName,
                                            const CHAR *newCSName,
@@ -1793,6 +1908,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_RTNRENAMECSCOMMAND ) ;
       BOOLEAN lockDMS = FALSE ;
       utilRenameLogger logger ;
+      dmsTaskStatusMgr* pTaskStatMgr = sdbGetRTNCB()->getTaskStatusMgr() ;
 
       /// dms lock
       if ( blockWrite )
@@ -1836,6 +1952,8 @@ namespace engine
       /// remove .SEQUOIADB_RENAME_INFO
       rc = logger.clear() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to clear rename info, rc: %d", rc ) ;
+
+      pTaskStatMgr->renameCS( csName, newCSName ) ;
 
       PD_LOG( PDEVENT, "Rename cs[%s] to [%s] succeed", csName, newCSName ) ;
 
@@ -1881,6 +1999,9 @@ namespace engine
       {
          PD_LOG( PDEVENT, "Drop collectionspace[%s] succeed",
                  pCollectionSpace ) ;
+
+         dmsTaskStatusMgr* pTaskStatMgr = sdbGetRTNCB()->getTaskStatusMgr() ;
+         pTaskStatMgr->dropCS( pCollectionSpace ) ;
       }
       PD_TRACE_EXITRC ( SDB_RTNDROPCSCOMMAND, rc ) ;
       return rc ;
@@ -1896,6 +2017,10 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNDROPCSP1 ) ;
 
+      UINT32 retryTime = 0 ;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      UINT32 suLogicalID = DMS_INVALID_LOGICCSID ;
+
       SDB_ASSERT ( pCollectionSpace, "collection space can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
       // make sure the collectionspace length is not out of range
@@ -1908,18 +2033,49 @@ namespace engine
          goto error ;
       }
 
+      rc = dmsCB->nameToSULID( pCollectionSpace, suLogicalID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get logical ID for "
+                   "collection space [%s], rc: %d", pCollectionSpace, rc ) ;
+      SDB_ASSERT( DMS_INVALID_LOGICCSID != suLogicalID,
+                  "logical ID should be valid" ) ;
+
       // let's find out whether the collection space is held by this
       // EDU. If so we have to get rid of those contexts
       if ( NULL != cb )
       {
-         rtnDelContextForCollectionSpace( pCollectionSpace, cb ) ;
+         rtnDelContextForCollectionSpace( pCollectionSpace, suLogicalID, cb ) ;
       }
 
-      dmsCB->aquireCSMutex( pCollectionSpace ) ;
-      rc = dmsCB->dropCollectionSpaceP1( pCollectionSpace, cb, dpsCB ) ;
-      dmsCB->releaseCSMutex( pCollectionSpace ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to drop collectionspace %s, "
-                   "rc: %d", pCollectionSpace, rc ) ;
+      while ( TRUE )
+      {
+         if ( ( PMD_IS_DB_DOWN() ) ||
+              ( NULL != cb && cb->isInterrupted() ) )
+         {
+            PD_LOG( PDWARNING, "Failed to drop collection space [%s], "
+                    "it is interrupted", pCollectionSpace ) ;
+            rc = SDB_APP_INTERRUPT ;
+            goto error ;
+         }
+
+         // tell others to close contexts on the same collection space
+         if ( rtnCB->preDelContext( pCollectionSpace, suLogicalID ) > 0 )
+         {
+            ossSleep( 200 ) ;
+         }
+
+         dmsCB->aquireCSMutex( pCollectionSpace ) ;
+         rc = dmsCB->dropCollectionSpaceP1( pCollectionSpace, cb, dpsCB ) ;
+         dmsCB->releaseCSMutex( pCollectionSpace ) ;
+         if ( SDB_LOCK_FAILED == rc && retryTime < 100 )
+         {
+            ++ retryTime ;
+            rc = SDB_OK ;
+            continue ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to drop collectionspace %s, "
+                      "rc: %d", pCollectionSpace, rc ) ;
+         break ;
+      }
 
    done :
       PD_TRACE_EXITRC ( SDB_RTNDROPCSP1, rc ) ;
@@ -2012,6 +2168,7 @@ namespace engine
       const CHAR *pCollectionShortName    = NULL ;
       BOOLEAN writable                    = FALSE ;
       dmsMBContext * mbContext            = NULL ;
+      dmsTaskStatusMgr* pTaskStatMgr      = sdbGetRTNCB()->getTaskStatusMgr() ;
 
       if ( dmsCheckFullCLName( pCollection, TRUE ) )
       {
@@ -2023,7 +2180,7 @@ namespace engine
 
       // Check writable before su lock
       rc = dmsCB->writable( cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
       writable = TRUE ;
 
       rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB, &su,
@@ -2048,13 +2205,16 @@ namespace engine
                    clUniqueID, mbContext->mb()->_clUniqueID ) ;
       }
 
-      rc = su->data()->dropCollection ( pCollectionShortName, cb, dpsCB ) ;
+      rc = su->data()->dropCollection ( pCollectionShortName, cb, dpsCB,
+                                        TRUE, mbContext ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to drop collection %s, rc: %d",
                   pCollection, rc ) ;
          goto error ;
       }
+
+      pTaskStatMgr->dropCL( pCollection ) ;
 
       PD_LOG( PDEVENT, "Drop collection[%s] succeed", pCollection ) ;
 
@@ -2124,8 +2284,19 @@ namespace engine
                    "Failed to rename collection from %s to %s, rc: %d",
                    clShortName, newCLShortName, rc ) ;
 
-      PD_LOG( PDEVENT, "Rename cs[%s] collection[%s] to [%s] succeed",
-              csName, clShortName, newCLShortName ) ;
+      {
+         CHAR clFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+         CHAR newCLFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+         ossSnprintf( clFullName, sizeof( clFullName ),
+                      "%s.%s", csName, clShortName ) ;
+         ossSnprintf( newCLFullName, sizeof( newCLFullName ),
+                      "%s.%s", csName, newCLShortName ) ;
+         dmsTaskStatusMgr* pTaskStatMgr = sdbGetRTNCB()->getTaskStatusMgr() ;
+         pTaskStatMgr->renameCL( clFullName, newCLFullName ) ;
+      }
+
+      PD_LOG( PDEVENT, "Rename collection[%s.%s] to [%s.%s] succeed",
+              csName, clShortName, csName, newCLShortName ) ;
 
    done:
       if ( DMS_INVALID_CS != suID )
@@ -2326,6 +2497,8 @@ namespace engine
       if ( pIndexDef && pIsSame )
       {
          ixmIndexCB indexCB( extentID, su->index(), NULL ) ;
+         PD_CHECK( indexCB.isInitialized(), SDB_DMS_INIT_INDEX,
+                   error, PDERROR, "Failed to initialize index" ) ;
          if ( indexCB.isSameDef( *pIndexDef ) )
          {
             *pIsSame = TRUE ;
@@ -2565,8 +2738,7 @@ namespace engine
                             utilCSUniqueID csUniqueID,
                             const BSONObj& clInfoObj,
                             pmdEDUCB* cb,
-                            SDB_DMSCB* dmsCB, SDB_DPSCB* dpsCB,
-                            BOOLEAN isLoadCS )
+                            SDB_DMSCB* dmsCB, SDB_DPSCB* dpsCB )
    {
       PD_TRACE_ENTRY( SDB_RTNCHGUID ) ;
       INT32 rc = SDB_OK ;
@@ -2576,8 +2748,9 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
       writable = TRUE ;
 
-      rc = dmsCB->changeUniqueID( csName, csUniqueID, clInfoObj,
-                                  cb, dpsCB, isLoadCS ) ;
+      rc = dmsCB->changeUniqueID( csName, csUniqueID,
+                                  clInfoObj, TRUE, NULL, FALSE,
+                                  cb, dpsCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to change unique id, rc: %d", rc ) ;
 
    done :

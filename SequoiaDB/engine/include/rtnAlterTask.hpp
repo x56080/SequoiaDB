@@ -41,6 +41,7 @@
 #include "utilArguments.hpp"
 #include "../bson/bson.hpp"
 #include "utilGlobalID.hpp"
+#include "utilUniqueID.hpp"
 
 namespace engine
 {
@@ -101,6 +102,9 @@ namespace engine
    class _rtnAlterOptions ;
    typedef class _rtnAlterOptions rtnAlterOptions ;
 
+   class _rtnAlterInfo ;
+   typedef class _rtnAlterInfo rtnAlterInfo ;
+
    class _rtnAlterTaskSchema ;
    typedef class _rtnAlterTaskSchema rtnAlterTaskSchema ;
 
@@ -132,6 +136,44 @@ namespace engine
       protected :
          /// Ignore one alter's exception and continue to run next
          BOOLEAN _ignoreException ;
+   } ;
+
+   /*
+      _rtnAlterInfo define
+    */
+   class _rtnAlterInfo : public SDBObject
+   {
+      struct cmp_str
+      {
+         bool operator() (const char *a, const char *b) const
+         {
+            return std::strcmp(a,b)<0 ;
+         }
+      } ;
+      typedef ossPoolMap<const CHAR*, utilIdxUniqueID, cmp_str> MAP_IDXNAME_ID ;
+
+      public :
+         _rtnAlterInfo () {}
+         virtual ~_rtnAlterInfo () {}
+
+         INT32 init( const BSONObj& obj ) ;
+         BSONObj toBSON() const ;
+
+         INT32 getIndexInfoByCL( const CHAR* collection,
+                                 BSONObj& indexInfo ) const ;
+
+         utilIdxUniqueID getIdxUniqueID( const CHAR* collection,
+                                         const CHAR* indexName ) const ;
+
+      protected :
+         INT32 _addIdxUniqueID( const CHAR* collection,
+                                const CHAR* indexName,
+                                utilIdxUniqueID indexUniqID ) ;
+
+      protected :
+         BSONObj _obj ;
+         // < collection name, <index name, index unique id> >
+         ossPoolMap<const CHAR*, MAP_IDXNAME_ID, cmp_str> _clMap ;
    } ;
 
    /*
@@ -287,11 +329,13 @@ namespace engine
                               INT32 * bufferSize,
                               const CHAR * objectName,
                               const bson::BSONObj & options,
+                              const bson::BSONObj * pAlterInfo,
                               UINT64 reqID,
                               _pmdEDUCB * cb ) const ;
 
          bson::BSONObj toBSON ( const CHAR * objectName,
-                                const bson::BSONObj & options ) const ;
+                                const bson::BSONObj & options,
+                                const bson::BSONObj * pAlterInfo ) const ;
 
       protected :
          const rtnAlterTaskSchema * _taskSchema ;
@@ -817,6 +861,12 @@ namespace engine
          {
             return _strictDataMode ;
          }
+
+         OSS_INLINE utilIdxUniqueID getIdIdxUniqueID () const
+         {
+            return _idIdxUniqID ;
+         }
+
       private:
          BOOLEAN _conflictCheck() ;
 
@@ -827,10 +877,11 @@ namespace engine
          rtnCLExtOptionArgument     _extOptionArgument ;
          autoIncFieldsList          _autoIncFieldList ;
 
-         BOOLEAN        _autoRebalance ;
-         BOOLEAN        _autoIndexID ;
-         INT32          _replSize ;
-         BOOLEAN        _strictDataMode ;
+         BOOLEAN         _autoRebalance ;
+         BOOLEAN         _autoIndexID ;
+         utilIdxUniqueID _idIdxUniqID ;
+         INT32           _replSize ;
+         BOOLEAN         _strictDataMode ;
    } ;
 
    typedef class _rtnCLSetAttributeTask rtnCLSetAttributeTask ;

@@ -47,11 +47,10 @@ namespace engine
       virtual ~_rtnLobWindow() ;
 
    public:
-      INT32 init( INT32 pageSize, BOOLEAN mergeMeta, BOOLEAN metaPageDataCached ) ;
+      INT32 init( INT32 pageSize, BOOLEAN mergeMeta,
+                  BOOLEAN metaPageDataCached, BOOLEAN dataCached ) ;
 
       BOOLEAN continuous( INT64 offset ) const ;
-
-      UINT32 getLobSequence() const ;
 
       INT32 prepare4Write( INT64 offset, UINT32 len, const CHAR *data ) ;
 
@@ -77,6 +76,7 @@ namespace engine
       UINT32         _logarithmic ;
       BOOLEAN        _mergeMeta ;
       BOOLEAN        _metaPageDataCached ;
+      BOOLEAN        _dataCached ;
 
       INT64          _curOffset ;
       CHAR*          _pool ;

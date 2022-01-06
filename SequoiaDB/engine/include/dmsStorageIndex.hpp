@@ -46,6 +46,7 @@
 #include "utilResult.hpp"
 #include "utilList.hpp"
 #include "dmsOprHandler.hpp"
+#include "dmsTaskStatus.hpp"
 
 using namespace bson ;
 
@@ -165,22 +166,27 @@ namespace engine
                                 BOOLEAN isSys = FALSE,
                                 INT32 sortBufferSize = SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE,
                                 utilWriteResult *pResult = NULL,
-                                BOOLEAN forceTransCallback = FALSE ) ;
+                                dmsIdxTaskStatus* pIdxStatus = NULL,
+                                BOOLEAN forceTransCallback = FALSE,
+                                BOOLEAN addUIDIfNotExist = TRUE ) ;
 
          INT32    dropIndex ( _dmsMBContext *context, OID &indexOID,
                               _pmdEDUCB *cb, SDB_DPSCB *dpscb,
-                              BOOLEAN isSys = FALSE ) ;
-
-         INT32    dropIndex ( _dmsMBContext *context, const CHAR *indexName,
-                              _pmdEDUCB *cb, SDB_DPSCB *dpscb,
-                              BOOLEAN isSys = FALSE ) ;
+                              BOOLEAN isSys = FALSE,
+                              dmsIdxTaskStatus *pIdxStatus = NULL,
+                              BOOLEAN onlyStandalone = FALSE ) ;
+         INT32    dropIndex( _dmsMBContext *context, const CHAR *indexName,
+                             _pmdEDUCB *cb, SDB_DPSCB *dpscb,
+                             BOOLEAN isSys = FALSE,
+                             dmsIdxTaskStatus *pIdxStatus = NULL,
+                             BOOLEAN onlyStandalone = FALSE ) ;
+         INT32    dropIndex( _dmsMBContext *context, INT32 indexID,
+                             dmsExtentID indexLID, _pmdEDUCB *cb,
+                             SDB_DPSCB *dpscb, BOOLEAN isSys = FALSE,
+                             dmsIdxTaskStatus *pIdxStatus = NULL ) ;
 
          INT32    dropAllIndexes( _dmsMBContext *context, _pmdEDUCB *cb,
                                   SDB_DPSCB *dpscb ) ;
-
-         INT32    dropIndex ( _dmsMBContext *context, INT32 indexID,
-                              dmsExtentID indexLID, _pmdEDUCB *cb,
-                              SDB_DPSCB *dpscb, BOOLEAN isSys = FALSE ) ;
 
          INT32    rebuildIndexes ( _dmsMBContext *context, _pmdEDUCB *cb,
                                    INT32 sortBufferSize = SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE,
@@ -197,9 +203,11 @@ namespace engine
          // Caller must hold mb exclusive lock
          INT32    indexesUpdate ( _dmsMBContext *context, dmsExtentID extLID,
                                   BSONObj &originalObj, BSONObj &newObj,
-                                  const dmsRecordID &rid, _pmdEDUCB *cb,
+                                  const dmsRecordID &rid,
+                                  _pmdEDUCB *cb,
                                   BOOLEAN isUndo,
                                   IDmsOprHandler *pOprHandle,
+                                  const ixmIdxHashBitmap &idxHashBitmap,
                                   utilWriteResult *pResult = NULL,
                                   dpsUnqIdxHashArray *pNewUnqIdxHashArray = NULL,
                                   dpsUnqIdxHashArray *pOldUnqIdxHashArray = NULL ) ;
@@ -232,6 +240,8 @@ namespace engine
          INT32    indexKeySizeMax() { return _idxKeySizeMax ; }
 
       private:
+         INT32    _releaseMetaExtent( dmsExtentID extentID ) ;
+
          INT32    _createIndex( _dmsMBContext *context,
                                 const BSONObj &index,
                                 dmsExtentID metaExtentID,
@@ -242,10 +252,12 @@ namespace engine
                                 BOOLEAN isSys,
                                 INT32 sortBufferSize,
                                 utilWriteResult *pResult,
-                                BOOLEAN forceTransCallback ) ;
+                                dmsIdxTaskStatus *pIdxStatus,
+                                BOOLEAN forceTransCallback,
+                                BOOLEAN addUIDIfNotExist ) ;
 
-         INT32 _checkForCrtTextIdx( _dmsMBContext *context,
-                                    const BSONObj &index ) ;
+         INT32    _checkForCrtTextIdx( _dmsMBContext *context,
+                                       const BSONObj &index ) ;
 
          // newIndex - 'ExtDataName' will be added into index.
          INT32    _createTextIdx( _dmsMBContext *context,
@@ -253,7 +265,9 @@ namespace engine
                                   dmsExtentID metaExtentID,
                                   dmsExtentID rootExtentID,
                                   _pmdEDUCB *cb,
-                                  SDB_DPSCB *dpscb ) ;
+                                  SDB_DPSCB *dpscb,
+                                  dmsIdxTaskStatus* pIdxStatus,
+                                  BOOLEAN addUIDIfNotExist ) ;
 
          // if indexLID == DMS_INALID_EXTENT, it will get from index cb
          INT32    _rebuildIndex( _dmsMBContext *context,
@@ -263,7 +277,8 @@ namespace engine
                                  UINT16 indexType,
                                  IDmsOprHandler *pOprHandle = NULL,
                                  utilWriteResult *pResult = NULL,
-                                 _dmsDupKeyProcessor *dkProcessor = NULL ) ;
+                                 _dmsDupKeyProcessor *dkProcessor = NULL,
+                                 dmsIdxTaskStatus* pIdxStatus = NULL ) ;
 
          INT32    _indexInsert( _ixmIndexCB *indexCB,
                                  const _ixmKey &key, const dmsRecordID &rid,
@@ -319,6 +334,7 @@ namespace engine
                                         BSONObj &originalObj,
                                         BSONObj &newObj,
                                         _pmdEDUCB *cb,
+                                        const ixmIdxHashBitmap &idxHashBitmap,
                                         utilWriteResult *pResult = NULL ) ;
 
          INT32    _globalIndexesInsert( _dmsMBContext *context,
@@ -327,10 +343,22 @@ namespace engine
                                         _pmdEDUCB *cb,
                                         utilWriteResult *pResult = NULL ) ;
 
-         BOOLEAN  _needProcessGlobalIndex( _pmdEDUCB *cb ) ;
+         BOOLEAN  _needProcessGlobalIndex( _dmsMBContext *context,
+                                           _pmdEDUCB *cb ) ;
+         BOOLEAN  _needUpdateIndexes( _dmsMBContext *context,
+                                      const ixmIdxHashBitmap &idxHashBitmap ) ;
 
          INT32    _preCreateIndex( const BSONObj &indexDef,
                                    BSONObj &indexMeta ) ;
+
+         INT32    _buildIndexUniqueID( utilIdxUniqueID& uniqID ) ;
+
+         INT32    _checkAndChangeUniqueID( _dmsMBContext *context,
+                                           INT32 indexID,
+                                           const BSONObj &index ,
+                                           pmdEDUCB *cb,
+                                           SDB_DPSCB *dpscb,
+                                           dmsIdxTaskStatus* pIdxStatus ) ;
 
       private:
          virtual UINT64 _dataOffset() ;

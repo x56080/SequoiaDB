@@ -23,7 +23,10 @@ function main ( db )
 
 try
 {
-   main( db );
+   if( !RUNRESULT ) 
+   {
+      main( db );
+   }
 }
 catch( e )
 {

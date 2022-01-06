@@ -42,14 +42,23 @@
 #include "dpsTrace.hpp"
 #include "dpsUtil.hpp"
 #include "ossUtil.hpp"
+#include "sdbInterface.hpp"
 
 namespace engine
 {
+
+   static BOOLEAN _dpsIsTimeOn()
+   {
+      return NULL != sdbGetThreadExecutor() ?
+                         sdbGetThreadExecutor()->isLogTimeOn() :
+                         dpsGetGlobalLogConfig().isLogTimeOn() ;
+   }
+
    static INT32 checkAndAddTimeInfo( dpsLogRecord &record )
    {
       INT32 rc = SDB_OK ;
       UINT64 *timeMicroSeconds = NULL ;
-      if ( !dpsGetTimeonFlag() )
+      if ( !_dpsIsTimeOn() )
       {
          goto done ;
       }
@@ -702,6 +711,7 @@ namespace engine
    INT32 dpsDelete2Record( const CHAR *fullName,
                            const BSONObj &oldObj,
                            const dpsUnqIdxHashArray *pUnqIdxHashArray,
+                           const INT64 *position,
                            const dpsRecordTransInfo &transInfo,
                            dpsLogRecord &record )
    {
@@ -746,6 +756,15 @@ namespace engine
                       "rc: %d", rc ) ;
       }
 
+      if ( NULL != position && -1 != *position )
+      {
+         rc = record.push( DPS_LOG_DELETE_POSITION,
+                           sizeof( INT64 ),
+                           (CHAR *)( position ) ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to add position for mark delete"
+                      "record, rc: %d", rc ) ;
+      }
+
       header._length = record.alignedLen() ;
    done:
       PD_TRACE_EXITRC( SDB__DPS_DELETE2RECORD, rc ) ;
@@ -759,7 +778,8 @@ namespace engine
                            const CHAR **fullName,
                            BSONObj &oldObj,
                            UINT64 *microSeconds,
-                           dpsUnqIdxHashArray *pUnqIdxHashArray )
+                           dpsUnqIdxHashArray *pUnqIdxHashArray,
+                           INT64 *position )
    {
       PD_TRACE_ENTRY( SDB__DPS_RECORD2DELETE ) ;
       INT32 rc = SDB_OK ;
@@ -806,6 +826,22 @@ namespace engine
          rc = pUnqIdxHashArray->parseFromRecord( record, FALSE ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to parse unique index hash values, "
                       "rc: %d", rc ) ;
+      }
+
+      // parse position if needed
+      if ( NULL != position )
+      {
+         _dpsLogRecord::iterator iterPos =
+                                    record.find( DPS_LOG_DELETE_POSITION ) ;
+         if ( iterPos.valid() )
+         {
+            *position = *( (const INT64 *)( iterPos.value() ) ) ;
+         }
+         else
+         {
+            // not found, set to default
+            *position = -1 ;
+         }
       }
 
       *fullName = itrFullName.value() ;
@@ -1208,6 +1244,7 @@ namespace engine
                           const UINT32 &attribute,
                           const UINT8 &compressorType,
                           const BSONObj *extOptions,
+                          const BSONObj *idIdxDef,
                           dpsLogRecord &record )
    {
       PD_TRACE_ENTRY( SDB__DPS_CLCRT2RECORD ) ;
@@ -1267,6 +1304,22 @@ namespace engine
                       "rc: %d", rc ) ;
       }
 
+      if ( idIdxDef )
+      {
+         if ( !idIdxDef->valid() )
+         {
+            PD_LOG( PDERROR, "$id index definition is invalid" ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+         rc = record.push( DPS_LOG_CLCRT_IDIDX_DEF, idIdxDef->objsize(),
+                           idIdxDef->objdata() ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to push $id index definition to record, "
+                      "rc: %d", rc ) ;
+      }
+
       rc = checkAndAddTimeInfo( record ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to add time info, rc = %d", rc ) ;
 
@@ -1284,7 +1337,8 @@ namespace engine
                           utilCLUniqueID &clUniqueID,
                           UINT32 &attribute,
                           UINT8 &compressorType,
-                          BSONObj &extOptions )
+                          BSONObj &extOptions,
+                          BSONObj &idIdxDef )
    {
       PD_TRACE_ENTRY( SDB__DPS_RECORD2CLCRT ) ;
       INT32 rc = SDB_OK ;
@@ -1341,6 +1395,20 @@ namespace engine
                     "object: %s", e.what() ) ;
             rc = SDB_SYS ;
             goto error ;
+         }
+      }
+
+      recordItr = record.find( DPS_LOG_CLCRT_IDIDX_DEF ) ;
+      if ( recordItr.valid() )
+      {
+         try
+         {
+            idIdxDef = BSONObj( recordItr.value() ) ;
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
          }
       }
 
@@ -1420,6 +1488,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_IXCRT2RECORD, "dpsIXCrt2Record" )
    INT32 dpsIXCrt2Record( const CHAR *fullName,
                           const BSONObj &index,
+                          const BSONObj &option,
                           dpsLogRecord &record )
    {
       PD_TRACE_ENTRY( SDB__DPS_IXCRT2RECORD ) ;
@@ -1445,6 +1514,15 @@ namespace engine
          goto error ;
       }
 
+      rc = record.push( DPS_LOG_IXCRT_OPTION,
+                        option.objsize(),
+                        option.objdata() ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to push option to record, rc: %d",rc ) ;
+         goto error ;
+      }
+
       rc = checkAndAddTimeInfo( record ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to add time info, rc = %d", rc ) ;
 
@@ -1459,7 +1537,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_RECORD2IXCRT, "dpsRecord2IXCrt" )
    INT32 dpsRecord2IXCrt( const CHAR *logRecord,
                           const CHAR **fullName,
-                          BSONObj &index )
+                          BSONObj &index,
+                          BSONObj &option )
    {
       PD_TRACE_ENTRY( SDB__DPS_RECORD2IXCRT ) ;
       INT32 rc = SDB_OK ;
@@ -1473,7 +1552,7 @@ namespace engine
       }
 
       {
-      dpsLogRecord::iterator itrFullName, itrIndex, itrMode ;
+      dpsLogRecord::iterator itrFullName, itrIndex, itrOpt ;
       itrFullName = record.find( DPS_LOG_PUBLIC_FULLNAME ) ;
       if ( !itrFullName.valid() )
       {
@@ -1492,6 +1571,12 @@ namespace engine
 
       *fullName = itrFullName.value() ;
       index = BSONObj( itrIndex.value() ) ;
+
+      itrOpt = record.find( DPS_LOG_IXCRT_OPTION ) ;
+      if ( itrOpt.valid() )
+      {
+         option = BSONObj( itrOpt.value() ) ;
+      }
       }
    done:
       PD_TRACE_EXITRC( SDB__DPS_RECORD2IXCRT, rc ) ;
@@ -1503,6 +1588,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_IXDEL2RECORD, "dpsIXDel2Record" )
    INT32 dpsIXDel2Record( const CHAR *fullName,
                           const BSONObj &index,
+                          const BSONObj &option,
                           dpsLogRecord &record )
    {
       PD_TRACE_ENTRY( SDB__DPS_IXDEL2RECORD ) ;
@@ -1529,6 +1615,15 @@ namespace engine
          goto error ;
       }
 
+      rc = record.push( DPS_LOG_IXDEL_OPTION,
+                        option.objsize(),
+                        option.objdata() ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to push option to record, rc: %d",rc ) ;
+         goto error ;
+      }
+
       rc = checkAndAddTimeInfo( record ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to add time info, rc = %d", rc ) ;
 
@@ -1543,7 +1638,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_RECORD2IXDEL, "dpsRecord2IXDel" )
    INT32 dpsRecord2IXDel( const CHAR *logRecord,
                           const CHAR **fullName,
-                          BSONObj &index )
+                          BSONObj &index,
+                          BSONObj &option )
    {
       PD_TRACE_ENTRY( SDB__DPS_RECORD2IXDEL ) ;
       INT32 rc = SDB_OK ;
@@ -1557,7 +1653,7 @@ namespace engine
       }
 
       {
-      dpsLogRecord::iterator itrFullName, itrIndex ;
+      dpsLogRecord::iterator itrFullName, itrIndex, itrOpt ;
       itrFullName = record.find( DPS_LOG_PUBLIC_FULLNAME ) ;
       if ( !itrFullName.valid() )
       {
@@ -1566,7 +1662,7 @@ namespace engine
          goto error ;
       }
 
-      itrIndex = record.find( DPS_LOG_IXCRT_IX ) ;
+      itrIndex = record.find( DPS_LOG_IXDEL_IX ) ;
       if ( !itrIndex.valid() )
       {
          PD_LOG( PDERROR, "Failed to find tag ix in record" ) ;
@@ -1576,6 +1672,12 @@ namespace engine
 
       *fullName = itrFullName.value() ;
       index = BSONObj( itrIndex.value() ) ;
+
+      itrOpt = record.find( DPS_LOG_IXDEL_OPTION ) ;
+      if ( itrOpt.valid() )
+      {
+         option = BSONObj( itrOpt.value() ) ;
+      }
       }
    done:
       PD_TRACE_EXITRC( SDB__DPS_RECORD2IXDEL, rc ) ;
@@ -2996,7 +3098,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to push name to record, rc: %d", rc ) ;
 
       rc = record.push( DPS_LOG_ALTER_OBJECT_TYPE, sizeof( INT32 ),
-                        ( const CHAR * )( &objectType ) ) ;
+                        ( CHAR * )( &objectType ) ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to push alter objec type to record, "
                    "rc: %d", rc ) ;
 

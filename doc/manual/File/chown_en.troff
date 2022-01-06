@@ -15,7 +15,7 @@ File
 .SH DESCRIPTION
 .PP
 Set the user and/or group ownership of each given file.
-.SH PARAMETERS
+#PARAMETERS#
 .PP
 .TS
 tab(@);
@@ -123,9 +123,11 @@ T}@T{
 not
 T}
 .TE
-
+.RS
+.PP
 Note:
 .RE
+.RS
 .PP
 Two parameters, username and groupname, must specify one of them.
 .RE
@@ -145,6 +147,6 @@ Changes the user and group ownership of each given file.
 .IP
 .nf
 \f[C]
->\ File.chown(\ "/opt/sequoiadb/file.txt",\ {\ "username":\ "sequoiadb",\ "groupname":\ "SequoiadDB"\ },\ false\ )
+> File.chown( "/opt/sequoiadb/file.txt", { "username": "sequoiadb", "groupname": "SequoiadDB" }, false )
 \f[]
 .fi

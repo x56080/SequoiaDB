@@ -267,10 +267,10 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDMSGHND_HNDCONNECT, "_pmdAsyncMsgHandler::handleConnect" )
-   void _pmdAsyncMsgHandler::handleConnect( const NET_HANDLE &handle,
-                                            _MsgRouteID id,
-                                            BOOLEAN isPositive,
-                                            netUserDataHolder *userDataHolder )
+   INT32 _pmdAsyncMsgHandler::handleConnect( const NET_HANDLE &handle,
+                                             _MsgRouteID id,
+                                             BOOLEAN isPositive,
+                                             netUserDataHolder *userDataHolder )
    {
       PD_TRACE_ENTRY( SDB__PMDMSGHND_HNDCONNECT ) ;
 
@@ -288,7 +288,16 @@ namespace engine
          }
       }
 
+   #if defined ( SDB_ENGINE )
+      if ( NULL != _pRemoteSessionMgr )
+      {
+         _pRemoteSessionMgr->handleConnect( handle, id, isPositive ) ;
+      }
+   #endif
+
       PD_TRACE_EXIT( SDB__PMDMSGHND_HNDCONNECT ) ;
+
+      return SDB_OK ;
    }
 
    // This function will not be used concurrently, so we don't need to latch it
@@ -308,16 +317,12 @@ namespace engine
       PD_TRACE_EXIT ( SDB__PMDMSGHND_HNDCLOSE ) ;
    }
 
-   void _pmdAsyncMsgHandler::handleConnect( const NET_HANDLE &handle,
-                                            _MsgRouteID id,
-                                            BOOLEAN isPositive )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDMSGHND_ONPREPARESTOP, "_pmdAsyncMsgHandler::onPrepareStop" )
+   void _pmdAsyncMsgHandler::onPrepareStop()
    {
-   #if defined ( SDB_ENGINE )
-      if ( NULL != _pRemoteSessionMgr )
-      {
-         _pRemoteSessionMgr->handleConnect( handle, id, isPositive ) ;
-      }
-   #endif
+      PD_TRACE_ENTRY ( SDB__PMDMSGHND_ONPREPARESTOP ) ;
+      _pSessionMgr->handlePrepareStop() ;
+      PD_TRACE_EXIT ( SDB__PMDMSGHND_ONPREPARESTOP ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDMSGHND_ONSTOP, "_pmdAsyncMsgHandler::onStop" )
@@ -336,6 +341,8 @@ namespace engine
       pmdAsyncSession *pSession = NULL ;
       BOOLEAN bCreate = TRUE ;
       UINT64 sessionID = 0 ;
+
+      pmdSessionScopedHold scopedHold ;
 
       // if opcode is disconnect, we don't push the message
       if ( MSG_BS_DISCONNECT == header->opCode )
@@ -356,6 +363,7 @@ namespace engine
                                         PMD_SESSION_PASSIVE,
                                         handle, header->opCode,
                                         NULL, &pSession ) ;
+      scopedHold.setSession( pSession ) ;
       if ( rc )
       {
          goto error ;
@@ -371,10 +379,6 @@ namespace engine
       }
 
    done:
-      if ( pSession )
-      {
-         _pSessionMgr->holdOut( pSession ) ;
-      }
       return rc ;
    error:
       goto done ;

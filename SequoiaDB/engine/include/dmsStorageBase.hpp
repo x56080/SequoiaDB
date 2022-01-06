@@ -80,14 +80,13 @@ namespace engine
                                                    // _sequence
       UINT32      _sequence ;
       UINT64      _secretValue ;
-      UINT32       _lobdPageSize ;
+      UINT32      _lobdPageSize ;
 
       UINT32      _overflowRatio ;
       UINT32      _extentThreshold ;
 
       BOOLEAN     _enableSparse ;
       BOOLEAN     _directIO ;
-      UINT32      _logWriteMod ;
       UINT32      _cacheMergeSize ;
       UINT32      _pageAllocTimeout ;
 
@@ -112,7 +111,6 @@ namespace engine
          _extentThreshold = 0 ;
          _enableSparse = FALSE ;
          _directIO = FALSE ;
-         _logWriteMod = DMS_LOG_WRITE_MOD_INCREMENT ;
          _cacheMergeSize = 0 ;
          _pageAllocTimeout = 0 ;
 
@@ -148,7 +146,8 @@ namespace engine
       UINT64 _commitTime ;                               // commit timestamp
       utilCSUniqueID _csUniqueID ;                       // cs unique id
       UINT32 _segmentSize ;                              // segment size
-      CHAR   _pad [ 65328 ] ;
+      utilIdxInnerID _idxInnerHWM ;                      // index InnerID hwm
+      CHAR   _pad [ 65324 ] ;
 
       _dmsStorageUnitHeader()
       {
@@ -284,6 +283,7 @@ namespace engine
 
       public:
          _dmsExtRW() ;
+         _dmsExtRW( const _dmsExtRW &extRW ) ;
          ~_dmsExtRW() ;
 
          BOOLEAN        isEmpty() const ;
@@ -400,6 +400,7 @@ namespace engine
 
          void                 restoreForCrash() ;
          BOOLEAN              isCrashed() const ;
+         void                 setCrashed() ;
 
          void                 enableSync( BOOLEAN enable ) ;
 
@@ -457,6 +458,13 @@ namespace engine
          }
 
          void                  setTransSupport( BOOLEAN supported ) ;
+
+         void                  setMVCCSupport( BOOLEAN supported ) ;
+
+         OSS_INLINE BOOLEAN isMVCCSupport() const
+         {
+            return _mvccSupport ;
+         }
 
       private:
          /*
@@ -588,6 +596,10 @@ namespace engine
          UINT32                        _segmentSize ; // cache, not use header
 
          BOOLEAN                       _transSupport ;
+         // support MVCC feature
+         BOOLEAN                       _mvccSupport ;
+         // Storage Unit Header upgraded to MVCC version
+         BOOLEAN                       _mvccUpgraded ;
 
       /// for persistence
       private:

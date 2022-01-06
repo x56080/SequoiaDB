@@ -103,6 +103,7 @@ namespace engine
    #define DMS_STATE_READONLY          1
    #define DMS_STATE_ONLINE_BACKUP     2
    #define DMS_STATE_FULLSYNC          3
+   #define DMS_STATE_RESTORE           4
 
    /*
       OTHER DEFINE
@@ -311,6 +312,11 @@ namespace engine
 
       void _registerHandler ( _IDmsEventHandler *pHandler) ;
 
+      INT32 _changeIndexUniqueID( _dmsStorageUnit* su,
+                                  const ossPoolVector<ossPoolString>& changedClVec,
+                                  const ossPoolVector<BSONObj>& idxInfoObj,
+                                  pmdEDUCB* cb ) ;
+
    public:
       _SDB_DMSCB() ;
       virtual ~_SDB_DMSCB() ;
@@ -343,6 +349,9 @@ namespace engine
                               OSS_LATCH_MODE lockType = SHARED,
                               INT32 millisec = -1 ) ;
 
+      INT32 nameToSULID( const CHAR *pName,
+                         UINT32 &suLogicalID ) ;
+
       _dmsStorageUnit *suLock ( dmsStorageUnitID suID ) ;
       void suUnlock ( dmsStorageUnitID suID,
                       OSS_LATCH_MODE lockType = SHARED ) ;
@@ -353,6 +362,9 @@ namespace engine
       INT32 changeUniqueID( const CHAR* csname,
                             utilCSUniqueID csUniqueID,
                             const BSONObj& clInfoObj,
+                            BOOLEAN changeOtherCL,
+                            const ossPoolVector<BSONObj>* pIdxInfoVec,
+                            BOOLEAN changeIdx,
                             pmdEDUCB* cb,
                             SDB_DPSCB* dpsCB,
                             BOOLEAN isLoadCS = FALSE ) ;
@@ -471,6 +483,9 @@ namespace engine
       INT32 registerFullSync( _pmdEDUCB *cb ) ;
       void  fullSyncDown( _pmdEDUCB *cb ) ;
 
+      INT32 registerRestore( _pmdEDUCB *cb ) ;
+      void  restoreDown( _pmdEDUCB *cb ) ;
+
       OSS_INLINE UINT8 getCBState () const
       {
          return _dmsCBState ;
@@ -478,8 +493,6 @@ namespace engine
 
       void  aquireCSMutex( const CHAR *pCSName ) ;
       void  releaseCSMutex( const CHAR *pCSName ) ;
-
-      void fixTransMBStats () ;
 
       void clearAllCRUDCB () ;
       INT32 clearSUCRUDCB ( const CHAR * collectionSpace ) ;

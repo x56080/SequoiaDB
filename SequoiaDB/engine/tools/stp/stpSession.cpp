@@ -174,8 +174,8 @@ namespace engine
       SDB_ASSERT( MSG_BS_QUERY_REQ == message->opCode,
                   "opcode of message is invalid" ) ;
 
-      CHAR *commandName = NULL ;
-      CHAR *optionBuffer = NULL ;
+      const CHAR *commandName = NULL ;
+      const CHAR *optionBuffer = NULL ;
       stpCommand *command = NULL ;
       BOOLEAN finished = FALSE ;
       BSONObj result ;
@@ -183,15 +183,15 @@ namespace engine
       _redirectID = STP_INVALID_REDIRECT_ID ;
 
       // extract field of query, command name and option
-      rc = msgExtractQuery( (CHAR *)message, NULL, &commandName, NULL, NULL,
-                            &optionBuffer, NULL, NULL, NULL ) ;
+      rc = msgExtractQuery( (const CHAR *)message, NULL, &commandName,
+                            NULL, NULL, &optionBuffer, NULL, NULL, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to extract query, rc: %d", rc ) ;
 
       PD_CHECK( NULL != commandName, SDB_INVALIDARG, error, PDERROR,
                 "Failed to get command name" ) ;
 
       // get command
-      rc = stpGetCommand( commandName, &command ) ;
+      rc = stpGetCommand( _stpCB, commandName, &command ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get command [%s], rc: %d",
                    commandName, rc ) ;
       PD_CHECK( NULL != command, SDB_INVALIDARG, error, PDERROR,
@@ -271,7 +271,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to send reply for command [%s], "
-                 "rc: %d", command->getName(), rc ) ;
+                 "rc: %d", commandName, rc ) ;
       }
 
    done:
@@ -280,6 +280,12 @@ namespace engine
          // release command
          stpReleaseCommand( command ) ;
       }
+
+      if ( NULL != commandName )
+      {
+         PD_LOG( PDEVENT, "Done command [%s], rc: %d", commandName, rc ) ;
+      }
+
       PD_TRACE_EXITRC( SDB__STPSESSION__HANDLEQUERYREQ, rc ) ;
       return rc ;
 
@@ -696,6 +702,7 @@ namespace engine
       UINT64 redirectID = makeRedirectID( message->TID,
                                           UINT32( message->requestID ) ) ;
       stpSession *session = NULL ;
+      pmdSessionScopedHold scopedHold ;
 
       // get session ID by redirect ID
       rc = getRedirectSess( redirectID, sessionID ) ;
@@ -707,6 +714,8 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get session by "
                    "session ID [%llu], rc: %d", sessionID, rc ) ;
 
+      scopedHold.setSession( session ) ;
+
       PD_CHECK( session->getRedirectID() == redirectID,
                 SDB_SYS, error, PDERROR,
                 "Failed to handle redirect result, redirect ID of "
@@ -717,9 +726,6 @@ namespace engine
       rc = session->postMessage( message ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to post message to session [%llu], "
                    "rc: %d", session->sessionID(), rc ) ;
-
-      // hold out session
-      session->holdOut() ;
 
    done:
       if ( STP_INVALID_REDIRECT_ID != redirectID )

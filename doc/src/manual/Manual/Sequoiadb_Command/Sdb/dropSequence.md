@@ -6,6 +6,10 @@ dropSequence - 删除指定的序列
 
 **db.dropSequence\(\<name\>\)**
 
+##类别##
+
+Sdb
+
 ##描述##
 
 该函数用于在当前数据库中删除指定的序列。
@@ -49,5 +53,5 @@ v3.4.2 及以上版本
      本文使用的所有引用及链接
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[faq]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md

@@ -130,22 +130,35 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTACPLAN_TOBSON, "_optAccessPlan::toBSON" )
-   INT32 _optAccessPlan::toBSON ( BSONObjBuilder &builder ) const
+   INT32 _optAccessPlan::toBSON ( BSONObjBuilder &builder,
+                                  const rtnExplainOptions *expOptions ) const
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__OPTACPLAN_TOBSON ) ;
 
+      BSONObjBuilderOption builderOption ;
+
+      // copy builder option
+      if ( NULL != expOptions )
+      {
+         builderOption = expOptions->getBuilderOption() ;
+      }
+
       builder.append( OPT_FIELD_CACHE_LEVEL,
                       optAccessPlanKey::getCacheLevelName( getCacheLevel() ) ) ;
 
       // Selector, skip and limit are not used in cached
-      builder.append( OPT_FIELD_QUERY,
-                      _key.getNormalizedQuery().isEmpty() ?
-                      _key.getQuery() :
-                      _key.getNormalizedQuery() ) ;
-      builder.append( OPT_FIELD_SORT, _key.getOrderBy() ) ;
-      builder.append( OPT_FIELD_HINT, _key.getHint() ) ;
+      builder.appendEx( OPT_FIELD_QUERY,
+                        _key.getNormalizedQuery().isEmpty() ?
+                              _key.getQuery() :
+                              _key.getNormalizedQuery(),
+                        builderOption ) ;
+      builder.appendEx( OPT_FIELD_SORT, _key.getOrderBy(),
+                        builderOption ) ;
+      builder.appendEx( OPT_FIELD_HINT, _key.getHint(),
+                        builderOption ) ;
+
       builder.appendBool( OPT_FIELD_SORTED_IDX_REQURED,
                           _key.isSortedIdxRequired() ) ;
       builder.appendBool( OPT_FIELD_EST_FROM_STAT, isEstimatedFromStat() ) ;
@@ -469,7 +482,8 @@ namespace engine
    INT32 _optGeneralAccessPlan::_estimateHintPlans ( dmsStorageUnit *su,
                                                      dmsMBContext *mbContext,
                                                      optAccessPlanHelper &planHelper,
-                                                     dmsStatCache *statCache )
+                                                     dmsStatCache *statCache,
+                                                     BOOLEAN &finished )
    {
       INT32 rc = SDB_OK ;
 
@@ -482,6 +496,7 @@ namespace engine
 
       BOOLEAN sortedIdxRequired = _key.isSortedIdxRequired() ;
 
+      UINT32 hintCnt = 0 ;
       UINT32 validHints = 0 ;
       BSONObjIterator iter( _key.getHint() ) ;
 
@@ -489,6 +504,7 @@ namespace engine
                _key.getHint().toString().c_str() ) ;
 
       rc = SDB_RTN_INVALID_HINT ;
+      finished = FALSE ;
 
       // user can define more than one index name/oid in hint, it will pickup
       // the first valid one
@@ -508,6 +524,8 @@ namespace engine
                                                     OPT_PLAN_SORTED_IDX_REQUIRED :
                                                     OPT_PLAN_IDX_REQUIRED ;
 
+                  ++hintCnt ;
+
                   PD_LOG ( PDDEBUG, "Try to use index: %s", pIndexName ) ;
 
                   rc = _estimateIxScanPlan( su, mbContext, &collectionStat,
@@ -525,7 +543,7 @@ namespace engine
                      continue ;
                   }
 
-                  validHints ++ ;
+                  ++validHints ;
 
                   if ( NULL != _searchPaths )
                   {
@@ -555,6 +573,8 @@ namespace engine
                                                  OPT_PLAN_SORTED_IDX_REQUIRED :
                                                  OPT_PLAN_IDX_REQUIRED ;
 
+               ++hintCnt ;
+
                PD_LOG ( PDDEBUG, "Try to use index: %s",
                         indexOID.toString().c_str() ) ;
 
@@ -573,7 +593,7 @@ namespace engine
                   continue ;
                }
 
-               validHints ++ ;
+               ++validHints ;
 
                if ( NULL != _searchPaths )
                {
@@ -593,7 +613,7 @@ namespace engine
 
                PD_LOG ( PDDEBUG, "Use Collection Scan by Hint" ) ;
 
-               validHints ++ ;
+               ++hintCnt ;
 
                // if we use null in the hint, we use tbscan
                rc = _estimateTbScanPlan( &collectionStat, planHelper,
@@ -605,6 +625,8 @@ namespace engine
                           rc ) ;
                   break ;
                }
+
+               ++validHints ;
 
                if ( NULL != _searchPaths )
                {
@@ -631,10 +653,21 @@ namespace engine
          }
       }
 
-      if ( sortedIdxRequired && validHints > 0 )
+      /// no auto hint, and force hint and have hints
+      if ( !_autoHint && _key.testFlag( FLG_QUERY_FORCE_HINT ) &&
+           hintCnt > 0 )
       {
+         finished = TRUE ;
+      }
+
+      if ( sortedIdxRequired )
+      {
+         if ( !_autoHint && validHints > 0 )
+         {
+            finished = TRUE ;
+         }
          // Report the sort required earlier
-         PD_CHECK ( DMS_INVALID_EXTENT != bestPath.getIndexExtID(),
+         PD_CHECK ( bestPath.isIxScan(),
                     SDB_RTN_QUERYMODIFY_SORT_NO_IDX, error, PDWARNING,
                     "when query and modify, sorting must use index" ) ;
       }
@@ -653,7 +686,10 @@ namespace engine
       PD_TRACE_EXITRC( SDB__OPTGENACPLAN__ESTHINTPLANS, rc ) ;
       return rc ;
    error :
-      _hintFailed = TRUE ;
+      if ( validHints > 0 )
+      {
+         _hintFailed = TRUE ;
+      }
       goto done ;
    }
 
@@ -684,7 +720,6 @@ namespace engine
          priority = OPT_PLAN_SORTED_IDX_REQUIRED ;
       }
       else if ( _autoHint &&
-                _hintFailed &&
                 ( !planHelper.isPredicateSetEmpty() ||
                   !_key.isOrderByEmpty() ) )
       {
@@ -824,14 +859,14 @@ namespace engine
       // Check if sortedIdx is required
       if ( OPT_PLAN_SORTED_IDX_REQUIRED == priority )
       {
-         PD_CHECK( DMS_INVALID_EXTENT != bestPath.getIndexExtID(),
+         PD_CHECK( bestPath.isIxScan(),
                    SDB_RTN_QUERYMODIFY_SORT_NO_IDX, error, PDWARNING,
                    "Failed to estimate plans: when query and modify, sorting "
                     "must use index" ) ;
       }
       else if ( OPT_PLAN_IDX_REQUIRED == priority )
       {
-         PD_CHECK( DMS_INVALID_EXTENT != bestPath.getIndexExtID(),
+         PD_CHECK( bestPath.isIxScan(),
                    SDB_RTN_INVALID_HINT, error, PDWARNING,
                    "Failed to estimate plans: when hint is forced, must use "
                    "index" ) ;
@@ -1038,7 +1073,7 @@ namespace engine
       rc = _prepareSUCaches( su, mbContext ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to prepare for optimize, rc: %d", rc ) ;
 
-      if ( planHelper.isKeepSearchPaths() )
+      if ( planHelper.isKeepPaths() )
       {
          rc = _createSearchPaths() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to create search path list, "
@@ -1054,12 +1089,13 @@ namespace engine
       }
       else
       {
+         BOOLEAN finished = FALSE ;
          // Evaluate hints first
-         rc = _estimateHintPlans( su, mbContext, planHelper, statCache ) ;
-         if ( SDB_OK != rc &&
-              SDB_RTN_QUERYMODIFY_SORT_NO_IDX != rc )
+         rc = _estimateHintPlans( su, mbContext, planHelper, statCache,
+                                  finished ) ;
+         if ( SDB_OK != rc && !finished )
          {
-            // Hint failed, could evaluate with all candidate plans again
+            // could evaluate with all candidate plans again
             // Without sorted index should be reported
             _isAutoPlan = TRUE ;
             rc = _estimatePlans( su, mbContext, planHelper, statCache ) ;
@@ -1158,6 +1194,10 @@ namespace engine
 
       if ( IXSCAN == path.getScanType() )
       {
+         const rtnExplainOptions *explainOptions =
+                                             planHelper.getExplainOptions() ;
+         BOOLEAN isAbbrev = NULL != explainOptions &&
+                            explainOptions->isNeedAbbrev() ;
          rtnPredicateList predList ;
          UINT32 addedLevel = 0 ;
          rc = predList.initialize( planHelper.getPredicateSet(),
@@ -1166,7 +1206,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to generate index bounds, "
                       "rc: %d", rc ) ;
 
-         path.getScanNode()->setIXBound( predList.getBound() ) ;
+         path.getScanNode()->setIXBound( predList.getBound( isAbbrev ) ) ;
       }
 
       _searchPaths->push_back( path ) ;

@@ -191,31 +191,47 @@ namespace engine
    }
 
    INT32 _coordCommandBase::_buildFailedNodeReply( ROUTE_RC_MAP &failedNodes,
-                                                   rtnContextCoord *pContext )
+                                                   rtnContext *pContext,
+                                                   COORD_SHOWERRORMODE_TYPE modeType )
    {
       INT32 rc = SDB_OK ;
       SDB_ASSERT( pContext != NULL, "pContext can't be NULL!" ) ;
 
       if ( failedNodes.size() > 0 )
       {
-         BSONObjBuilder builder ;
-         coordBuildFailedNodeReply( _pResource, failedNodes, builder ) ;
-
-         if ( COORD_SHOWERRORMODE_FLAT == _getShowErrorModeType() )
+         try
          {
-            BSONObjIterator itr ( builder.obj().getObjectField( "ErrNodes" ) ) ;
-            BSONElement elem ;
-            while ( itr.more() )
+            BSONObj boErrorNodes ;
+            BSONObjBuilder builder ;
+            coordBuildFailedNodeReply( _pResource, failedNodes, builder ) ;
+            boErrorNodes = builder.obj() ;
+
+            if ( COORD_SHOWERRORMODE_FLAT == modeType )
             {
-               elem = itr.next() ;
-               rc = pContext->append( elem.Obj() ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to append obj, rc: %d", rc ) ;
+               BSONObjIterator itr(
+                     boErrorNodes.getObjectField( FIELD_NAME_ERROR_NODES ) ) ;
+               BSONElement elem ;
+               while ( itr.more() )
+               {
+                  elem = itr.next() ;
+                  rc = pContext->append( elem.Obj() ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to append obj, rc: %d",
+                               rc ) ;
+               }
+            }
+            else
+            {
+               rc = pContext->append( boErrorNodes ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to append obj, rc: %d",
+                            rc ) ;
             }
          }
-         else
+         catch ( exception &e )
          {
-            rc = pContext->append( builder.obj() ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to append obj, rc: %d", rc ) ;
+            PD_LOG( PDERROR, "Failed to build failed node reply, "
+                    "occur exception %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
          }
       }
 
@@ -232,7 +248,7 @@ namespace engine
                                               BOOLEAN onPrimary,
                                               SET_RC *pIgnoreRC,
                                               CoordGroupList *pSucGrpLst,
-                                              rtnContextCoord **ppContext,
+                                              rtnContextCoord::sharePtr *ppContext,
                                               rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
@@ -264,21 +280,25 @@ namespace engine
 
       if ( ppContext )
       {
-         if ( NULL == *ppContext )
+         if ( NULL == ppContext->get() )
          {
+            rtnContextCoord::sharePtr newContext ;
+
             // create context
             rc = pRtncb->contextNew( RTN_CONTEXT_COORD,
-                                     (rtnContext **)ppContext,
+                                     newContext,
                                      contextID, cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to allocate context(rc=%d)",
                          rc ) ;
+
+            *ppContext = newContext ;
          }
          else
          {
             contextID = (*ppContext)->contextID() ;
             // the context is create in out side, do nothing
          }
-         pTmpContext = *ppContext ;
+         pTmpContext = ppContext->get() ;
 
          // context for catalog: only primary, so query,sel,orderby...will
          // push to catalog
@@ -345,7 +365,7 @@ namespace engine
       {
          pRtncb->contextDelete( contextID, cb ) ;
          contextID = -1 ;
-         *ppContext = NULL ;
+         ppContext->release() ;
       }
       if ( buf && nokRC.size() > 0 )
       {
@@ -365,7 +385,7 @@ namespace engine
                                                  BOOLEAN onPrimary,
                                                  SET_RC *pIgnoreRC,
                                                  CoordGroupList *pSucGrpLst,
-                                                 rtnContextCoord **ppContext,
+                                                 rtnContextCoord::sharePtr *ppContext,
                                                  rtnContextBuf *buf )
    {
       return _executeOnGroups( pMsg, cb, groupLst, MSG_ROUTE_SHARD_SERVCIE,
@@ -377,7 +397,7 @@ namespace engine
                                                 pmdEDUCB *cb,
                                                 BOOLEAN onPrimary,
                                                 SET_RC *pIgnoreRC,
-                                                rtnContextCoord **ppContext,
+                                                rtnContextCoord::sharePtr *ppContext,
                                                 rtnContextBuf *buf )
    {
       CoordGroupList grpList ;
@@ -400,7 +420,7 @@ namespace engine
       PD_TRACE_ENTRY ( COORD_CMDBASE_EXEONCATA ) ;
 
       rtnContextBuf buffObj ;
-      rtnContextCoord *pContext = NULL ;
+      rtnContextCoord::sharePtr pContext ;
 
       rc = executeOnCataGroup( pMsg, cb, onPrimary, pIgnoreRC,
                                &pContext, buf ) ;
@@ -453,7 +473,7 @@ namespace engine
       {
          INT64 contextID = pContext->contextID() ;
          pmdGetKRCB()->getRTNCB()->contextDelete( contextID, cb ) ;
-         pContext = NULL ;
+         pContext.release() ;
       }
       PD_TRACE_EXITRC ( COORD_CMDBASE_EXEONCATA, rc ) ;
       return rc ;
@@ -467,7 +487,7 @@ namespace engine
                                              const CHAR *pCLName,
                                              BOOLEAN onPrimary,
                                              SET_RC *pIgnoreRC,
-                                             rtnContextCoord **ppContext,
+                                             rtnContextCoord::sharePtr *ppContext,
                                              rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
@@ -511,7 +531,7 @@ namespace engine
                                          const CoordGroupList *pSpecGrpLst,
                                          SET_RC *pIgnoreRC,
                                          CoordGroupList *pSucGrpLst,
-                                         rtnContextCoord **ppContext,
+                                         rtnContextCoord::sharePtr *ppContext,
                                          rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
@@ -569,7 +589,7 @@ namespace engine
    INT32 _coordCommandBase::queryOnCL( MsgHeader *pMsg,
                                        pmdEDUCB *cb,
                                        const CHAR *pCLName,
-                                       rtnContextCoord **ppContext,
+                                       rtnContextCoord::sharePtr *ppContext,
                                        BOOLEAN onPrimary,
                                        const CoordGroupList *pSpecGrpLst,
                                        rtnContextBuf *buf )
@@ -621,7 +641,7 @@ namespace engine
    {
       INT32 rc                         = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_CMDBASE_QUERYONCATA ) ;
-      rtnContextCoord *pContext        = NULL ;
+      rtnContextCoord::sharePtr pContext ;
 
       // fill default-reply(list success)
       contextID = -1 ;
@@ -651,7 +671,7 @@ namespace engine
       {
          INT64 contextID = pContext->contextID() ;
          pmdGetKRCB()->getRTNCB()->contextDelete( contextID, cb ) ;
-         pContext = NULL ;
+         pContext.release() ;
       }
       goto done ;
    }
@@ -827,8 +847,8 @@ namespace engine
                                             coordCtrlParam &ctrlParam,
                                             UINT32 mask,
                                             ROUTE_RC_MAP &faileds,
-                                            rtnContextCoord **ppContext,
-                                            BOOLEAN openEmptyContext,
+                                            rtnContextCoord::sharePtr *ppContext,
+                                            coordCmdPushdownCtrl *pCtrl,
                                             SET_RC *pIgnoreRC,
                                             SET_ROUTEID *pSucNodes )
    {
@@ -854,6 +874,7 @@ namespace engine
       INT64 contextID = -1 ;
       rtnContextCoord *pTmpContext = NULL ;
       BOOLEAN needReset = FALSE ;
+      BSONObj mergedSelect ;
 
       /// 1. extrace msg
       rc = queryOption.fromQueryMsg( (CHAR*)pMsg ) ;
@@ -931,6 +952,13 @@ namespace engine
          }
          *pFilterObj = newFilterObj ;
       }
+      else
+      {
+         if ( ctrlParam._useSpecialGrp )
+         {
+            expectGrpLst = ctrlParam._specialGrps ;
+         }
+      }
 
    parseNode:
       /// 5. parse nodes
@@ -988,28 +1016,42 @@ namespace engine
       ///6. open context
       if ( ppContext )
       {
-         if ( NULL == *ppContext )
+         if ( NULL == ppContext->get() )
          {
+            rtnContextCoord::sharePtr newContext ;
+
             // create context
             rc = pRtncb->contextNew( RTN_CONTEXT_COORD,
-                                     (rtnContext **)ppContext,
+                                     newContext,
                                      contextID, cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to allocate context(rc=%d)",
                          rc ) ;
+
+            *ppContext = newContext ;
          }
          else
          {
             contextID = (*ppContext)->contextID() ;
             // the context is create in out side, do nothing
          }
-         pTmpContext = *ppContext ;
+         pTmpContext = ppContext->get() ;
       }
       if ( pTmpContext && !pTmpContext->isOpened() )
       {
-         if ( openEmptyContext )
+         if ( pCtrl && pCtrl->isOpenEmptyContext() )
          {
             rtnQueryOptions defaultOptions ;
             rc = pTmpContext->open( defaultOptions ) ;
+         }
+         else if ( pCtrl && pCtrl->pushdownCommandName() &&
+                   ( '\0' != *( pCtrl->pushdownCommandName() ) ) &&
+                   ( 0 != ossStrcmp( queryOption.getCLFullName(),
+                                     pCtrl->pushdownCommandName() ) ) )
+         {
+            // if has pushdownCommand and it is different than original one,
+            // i.e., the _fullName, coord context shall be opened with
+            // origin query options
+            rc = pTmpContext->open( queryOption ) ;
          }
          else
          {
@@ -1033,11 +1075,11 @@ namespace engine
             }
 
             // build new selector
-            rtnNeedResetSelector( srcSelector, queryOption.getOrderBy(),
-                                  needReset ) ;
+            rtnGetMergedSelector( srcSelector, queryOption.getOrderBy(),
+                                  needReset, &mergedSelect ) ;
             if ( needReset )
             {
-               queryOption.setSelector( BSONObj() ) ;
+               queryOption.setSelector( mergedSelect ) ;
             }
 
             contextOptions = queryOption ;
@@ -1049,6 +1091,19 @@ namespace engine
             rc = pTmpContext->open( contextOptions ) ;
          }
          PD_RC_CHECK( rc, PDERROR, "Open context failed(rc=%d)", rc ) ;
+      }
+
+      if ( pCtrl && pCtrl->pushdownCommandName() &&
+           '\0' != *( pCtrl->pushdownCommandName() ) )
+      {
+         if ( 0 != ossStrcmp( queryOption.getCLFullName(),
+                              pCtrl->pushdownCommandName() ) )
+         {
+            queryOption.reset() ;
+         }
+
+         queryOption.setCLFullName( pCtrl->pushdownCommandName() ) ;
+         needReset = TRUE ;
       }
 
       /// 7. ensure new msg
@@ -1080,23 +1135,12 @@ namespace engine
                            pTmpContext ) ;
       PD_RC_CHECK( rc, PDERROR, "Execute on nodes failed, rc: %d", rc ) ;
 
-      rc = _handleHints( queryOption._hint, _getShowErrorMask() ) ;
-      PD_RC_CHECK( rc, PDERROR, "Handle hints failed, rc: %d", rc ) ;
-
       /// 9. build failed result
-      if ( pTmpContext )
+      if ( pTmpContext && ( !pCtrl || !pCtrl->ignoreFailedNodes() ) )
       {
-         if ( COORD_SHOWERROR_ONLY == _getShowErrorType() )
-         {
-            pTmpContext->killSubContexts( cb ) ;
-         }
-
-         if ( COORD_SHOWERROR_IGNORE != _getShowErrorType() )
-         {
-            rc = _buildFailedNodeReply( faileds, pTmpContext ) ;
-            PD_RC_CHECK( rc, PDERROR, "Build failed node reply failed, rc: %d",
-                        rc ) ;
-         }
+         rc = _buildFailedNodeReply( faileds, pTmpContext ) ;
+         PD_RC_CHECK( rc, PDERROR, "Build failed node reply failed, rc: %d",
+                     rc ) ;
       }
 
    done:
@@ -1111,7 +1155,7 @@ namespace engine
       if ( -1 != contextID )
       {
          pRtncb->contextDelete( contextID, cb ) ;
-         *ppContext = NULL ;
+         ppContext->release() ;
       }
       goto done ;
    }

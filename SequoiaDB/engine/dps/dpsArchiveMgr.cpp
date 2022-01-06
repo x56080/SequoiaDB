@@ -273,7 +273,8 @@ namespace engine
       }
 
       _dpsCB->regEventHandler( this ) ;
-      _inited= TRUE ;
+      _inited = TRUE ;
+      _enabled = TRUE ;
 
    done:
       PD_TRACE_EXITRC ( SDB_DPSARCHIVEMGR_INIT, rc ) ;
@@ -1728,6 +1729,26 @@ namespace engine
    BOOLEAN dpsArchiveMgr::isInterrupted()
    {
       return _isDPSMoving ;
+   }
+
+   BOOLEAN dpsArchiveMgr::isEnabled()
+   {
+      return _enabled ;
+   }
+
+   void dpsArchiveMgr::beforeFS()
+   {
+      _enabled = FALSE ;
+   }
+   
+   void dpsArchiveMgr::afterFS( const DPS_LSN_OFFSET &offset,
+                                const DPS_LSN_VER &version )
+   {
+      DPS_LSN lsn ;
+      
+      lsn.set( offset, version ) ;
+      _enabled = TRUE ;
+      _move( lsn ) ;
    }
 }
 

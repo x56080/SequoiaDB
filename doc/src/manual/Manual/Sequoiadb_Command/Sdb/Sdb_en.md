@@ -55,7 +55,7 @@ The exceptions of `Sdb()` are as below:
 | -250 | SDB_CLS_NODE_BSFAULT | The node is not in normal status | Check the node status of the current replicaGroup. Like check if the catalog node is started. |
 
 
-When exception happen, use [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md)  and use [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) to get [error message](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md). For more detial, please reference to [Troubleshooting](manual/faq.md).
+When exception happen, use [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md)  and use [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) to get [error message](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md). For more detial, please reference to [Troubleshooting](manual/FAQ/faq_sdb.md).
 
 ##HISTORY##
 
