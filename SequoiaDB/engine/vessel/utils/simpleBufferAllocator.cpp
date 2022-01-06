@@ -83,7 +83,7 @@ namespace vessel
       SDB_ASSERT(NULL != buffer, "can not be null");
       BOOLEAN found = FALSE;
       ossPoolVector<_bufferAllocated> *pool = NULL;
-      if (_buffer <= buffer && buffer <= (_buffer + _bufferSize))
+      if (_buffer <= buffer && buffer < (_buffer + _bufferSize))
       {
          pool = &_static;
       }
