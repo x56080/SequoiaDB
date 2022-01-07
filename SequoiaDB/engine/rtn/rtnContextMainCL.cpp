@@ -202,6 +202,11 @@ namespace engine
       _startFrom = buffer.getStartFrom() ;
    }
 
+   void _rtnSubCLContext::releaseBuffer()
+   {
+      _buffer.release() ;
+   }
+
    RTN_CTX_AUTO_REGISTER(_rtnContextMainCL, RTN_CONTEXT_MAINCL, "MAINCL")
 
    _rtnContextMainCL::_rtnContextMainCL( INT64 contextID, UINT64 eduID )
@@ -755,6 +760,10 @@ namespace engine
       }
       else
       {
+         // make sure all data are popped
+         tmpCtx->releaseBuffer() ;
+
+         // save to context map
          try
          {
             _subContextMap.insert(
@@ -784,13 +793,17 @@ namespace engine
 
       // normal sub ctx is in _subContextMap,
       // if sub-context is ended, remove it from context map
-      // otherwise do nothing
       if ( tmpCtx->isHitEnd() )
       {
          sdbGetRTNCB()->contextDelete( subCtx->contextID(),
                                        pmdGetThreadEDUCB() );
          _subContextMap.erase( subCtx->contextID() ) ;
          SDB_OSS_DEL subCtx ;
+      }
+      else
+      {
+         // make sure all data are popped
+         tmpCtx->releaseBuffer() ;
       }
 
       return SDB_OK ;
