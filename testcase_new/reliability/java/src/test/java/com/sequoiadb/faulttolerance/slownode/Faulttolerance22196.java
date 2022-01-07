@@ -255,16 +255,29 @@ public class Faulttolerance22196 extends SdbTestBase {
                 }
 
                 try {
+                    for ( String nodeName : slaveNodeNames ) {
+                        String ft = FaultToleranceUtils.getNodeFTStatus( db,
+                                nodeName );
+                        System.out.println( new Date() + " "
+                                + this.getClass().getName() + " begin insert "
+                                + nodeName + " ft is : " + ft );
+                        sdb.msg( "Faulttolerance22196 begin insert ReplSize -1: "
+                                + nodeName + " ft is : " + ft );
+                    }
                     cl1.insert( "{a:1}" );
                     for ( String nodeName : slaveNodeNames ) {
                         String ft = FaultToleranceUtils.getNodeFTStatus( db,
                                 nodeName );
-                        System.out.println(
-                                new Date() + " " + this.getClass().getName()
-                                        + " " + nodeName + " ft is : " + ft );
+                        System.out.println( new Date() + " "
+                                + this.getClass().getName() + " insert success "
+                                + nodeName + " ft is : " + ft );
+                        sdb.msg( "Faulttolerance22196 insert success ReplSize -1: "
+                                + nodeName + " ft is : " + ft );
                     }
-                    Assert.fail(
-                            "ReplSize:-1 cl write data must be error when node slow" );
+                    // 当节点状态恢复时会插入成功，插入成功后校验数据
+                    // Assert.fail(
+                    // "ReplSize:-1 cl write data must be error when node slow"
+                    // );
                 } catch ( BaseException e ) {
                     if ( e.getErrorCode() != -105
                             && e.getErrorCode() != -252 ) {
@@ -273,16 +286,29 @@ public class Faulttolerance22196 extends SdbTestBase {
                 }
 
                 try {
+                    for ( String nodeName : slaveNodeNames ) {
+                        String ft = FaultToleranceUtils.getNodeFTStatus( db,
+                                nodeName );
+                        System.out.println( new Date() + " "
+                                + this.getClass().getName() + " begin insert "
+                                + nodeName + " ft is : " + ft );
+                        sdb.msg( "Faulttolerance22196 begin insert ReplSize 0: "
+                                + nodeName + " ft is : " + ft );
+                    }
                     cl2.insert( "{a:1}" );
                     for ( String nodeName : slaveNodeNames ) {
                         String ft = FaultToleranceUtils.getNodeFTStatus( db,
                                 nodeName );
-                        System.out.println(
-                                new Date() + " " + this.getClass().getName()
-                                        + " " + nodeName + " ft is : " + ft );
+                        System.out.println( new Date() + " "
+                                + this.getClass().getName() + " insert success "
+                                + nodeName + " ft is : " + ft );
+                        sdb.msg( "Faulttolerance22196 insert success ReplSize 0: "
+                                + nodeName + " ft is : " + ft );
                     }
-                    Assert.fail(
-                            "ReplSize:0 cl write data must be error when node slow" );
+                    // 当节点状态恢复时会插入成功，插入成功后校验数据
+                    // Assert.fail(
+                    // "ReplSize:0 cl write data must be error when node slow"
+                    // );
                 } catch ( BaseException e ) {
                     if ( e.getErrorCode() != -105
                             && e.getErrorCode() != -252 ) {
