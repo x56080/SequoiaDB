@@ -75,7 +75,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       CHAR* oldBuffer = _buffer ;
-      INT32 newSize ;
+      INT32 newSize = 0 ;
+      BOOLEAN isReferenced = FALSE ;
 
       if ( ensuredSize <= _bufferSize )
       {
@@ -109,14 +110,19 @@ namespace engine
          _buffer = ( CHAR* )SDB_THREAD_ALLOC(
                                  RTN_BUFF_TO_PTR_SIZE( newSize ) ) ;
       }
-      else
+      else if ( 0 == *RTN_GET_REFERENCE( _buffer ) )
       {
-         SDB_ASSERT( 0 == *RTN_GET_REFERENCE( _buffer ),
-                     "should have no reference" ) ;
          // reallocate memory
          _buffer = (CHAR*)SDB_THREAD_REALLOC(
                                  RTN_BUFF_TO_REAL_PTR( _buffer ),
                                  RTN_BUFF_TO_PTR_SIZE( newSize ) ) ;
+      }
+      else
+      {
+         // has reference, need leave the old buffer to referencer
+         _buffer = ( CHAR* )SDB_THREAD_ALLOC(
+                                 RTN_BUFF_TO_PTR_SIZE( newSize ) ) ;
+         isReferenced = TRUE ;
       }
 
       if ( NULL == _buffer )
@@ -129,13 +135,26 @@ namespace engine
       }
 
       _buffer = RTN_REAL_PTR_TO_BUFF( _buffer ) ;
-      _bufferSize = newSize ;
 
       if ( NULL == oldBuffer )
       {
          *RTN_GET_REFERENCE( _buffer ) = 0 ;
          *RTN_GET_CONTEXT_FLAG( _buffer ) = 1 ;
       }
+      else if ( isReferenced )
+      {
+         // copy old contents
+         ossMemcpy( _buffer, oldBuffer, _bufferSize ) ;
+
+         // transfer the ownerships of old buffer to referencer
+         *RTN_GET_CONTEXT_FLAG( oldBuffer ) = 0 ;
+
+         // reset new allocated buffer
+         *RTN_GET_REFERENCE( _buffer ) = 0 ;
+         *RTN_GET_CONTEXT_FLAG( _buffer ) = 1 ;
+      }
+
+      _bufferSize = newSize ;
 
    done:
       return rc;

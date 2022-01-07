@@ -72,6 +72,7 @@ namespace engine
       INT32 getOrderKey( rtnOrderKey &orderKey );
       rtnContextBuf buffer() ;
       void setBuffer( rtnContextBuf &buffer ) ;
+      void releaseBuffer() ;
 
       OSS_INLINE INT64 getDataID () const
       {
