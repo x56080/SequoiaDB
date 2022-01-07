@@ -227,7 +227,8 @@ namespace vessel
 
       private:
          INT32 getMoreFromPageInCursor(requestContext *context,
-                                       scanCLCursor *cursor);
+                                       scanCLCursor *cursor,
+                                       UINT32 &count);
 
          INT32 getRecordCountInPage(requestContext *context,
                                     PAGE_ID lpid,

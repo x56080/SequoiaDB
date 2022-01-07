@@ -69,25 +69,25 @@ namespace vessel
          
 
       public:
-         OSS_INLINE void setRowLimit(INT32 v)
+         OSS_INLINE void setRowLimit(UINT32 v)
          {
             _rowLimit = v;
          }
          OSS_INLINE BOOLEAN hasRowLimit()const
          {
-            return 0 <= _rowLimit;
+            return 0 < _rowLimit;
          }
-         OSS_INLINE void setBufferSizeLimit(INT32 v)
+         OSS_INLINE void setBufferSizeLimit(UINT32 v)
          {
             _bufferSizeLimit = v;
          }
          OSS_INLINE BOOLEAN hasBufferSizeLimit()const
          {
-            return 0 <= _bufferSizeLimit;
+            return 0 < _bufferSizeLimit;
          }
       protected:
-         INT32 _rowLimit = -1;
-         INT32 _bufferSizeLimit = -1;
+         UINT32 _rowLimit = 0;
+         UINT32 _bufferSizeLimit = 0;
    };//class rowBatch
 } // namespace vessel
 

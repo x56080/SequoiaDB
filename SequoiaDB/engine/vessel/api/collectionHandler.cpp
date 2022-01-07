@@ -290,7 +290,7 @@ namespace vessel
 
       co.rowCountLimit = o.rowCountLimit;
       co.stepSize = 1024;
-      co.initBufferSize = (INT32)128 << 10;
+      co.defaultBufferSize = (UINT32)128 << 10;
 
       cursor = makeSharedPtrFromPool<scanCLCursor>();
       if (!cursor)
@@ -349,7 +349,7 @@ namespace vessel
 
       co.rowCountLimit = o.rowCountLimit;
       co.stepSize = 8;
-      co.initBufferSize = (INT32)32 << 10;
+      co.defaultBufferSize = (INT32)32 << 10;
 
       cursor = makeSharedPtrFromPool<indexScanCursor>(o, predicate,
                                                       _gcid, indexId);

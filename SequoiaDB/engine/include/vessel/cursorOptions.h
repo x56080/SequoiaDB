@@ -52,15 +52,13 @@ namespace vessel
          cursorOptions(const cursorOptions &o):
          rowCountLimit(o.rowCountLimit),
          stepSize(o.stepSize),
-         hardBufferSizeLimit(o.hardBufferSizeLimit),
-         initBufferSize(o.initBufferSize)
+         bufferSizeLimit(o.bufferSizeLimit)
          {}
          cursorOptions &operator=(const cursorOptions &o)
          {
             rowCountLimit = o.rowCountLimit;
             stepSize = o.stepSize;
-            hardBufferSizeLimit = o.hardBufferSizeLimit;
-            initBufferSize = o.initBufferSize;
+            bufferSizeLimit = o.bufferSizeLimit;
             return *this;
          }
 
@@ -68,12 +66,18 @@ namespace vessel
          {
             return 0 <= rowCountLimit;
          }
-
+         OSS_INLINE BOOLEAN isValid()const
+         {
+            return 0 < stepSize &&
+                   0 < bufferSizeLimit &&
+                   0 < defaultBufferSize &&
+                   defaultBufferSize <= bufferSizeLimit;
+         }
       public:
          INT64 rowCountLimit = -1;
          UINT32 stepSize = 1024;
-         INT32 hardBufferSizeLimit = (INT32)16 << 20;
-         INT32 initBufferSize = (INT32)32 << 10; /// 32KB
+         UINT32 bufferSizeLimit = (UINT32)16 << 20; /// 16MB
+         UINT32 defaultBufferSize = (UINT32)64 << 10; /// 64KB
    };
 }//namespace vessel
 }//namespace engine

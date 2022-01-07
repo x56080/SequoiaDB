@@ -131,6 +131,7 @@ namespace engine
             scanFor = o.scanFor;
             rowCountLimit = o.rowCountLimit;
             filter = o.filter;
+            pageStep = o.pageStep;
             return *this;
          }
 
@@ -138,6 +139,7 @@ namespace engine
          DMS_SCAN_FOR scanFor = DMS_SCAN_FOR_NONE;
          INT64 rowCountLimit = -1;
          IRecordFilter *filter = NULL;
+         INT32 pageStep = -1;
    };//class dmsScanOptions
 
    class dmsIndexScanOptions : public SDBObject

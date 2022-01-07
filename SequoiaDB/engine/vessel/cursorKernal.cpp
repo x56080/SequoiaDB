@@ -161,8 +161,7 @@ namespace vessel
       }
 
       if (NULL != o &&
-          (o->stepSize == 0 ||
-           o->initBufferSize <= 0))
+          !o->isValid())
       {
          SDB_ASSERT(FALSE, "invalid options");
          rc = SDB_INVALIDARG;
@@ -175,8 +174,8 @@ namespace vessel
          _options = *o;
       }
       _db = db;
-      _batch.setBufferSizeLimit(_options.hardBufferSizeLimit);
-      _batch.init(_options.initBufferSize, TRUE);
+      _batch.setBufferSizeLimit(_options.bufferSizeLimit);
+      _batch.setDefaultBlockSize(_options.defaultBufferSize);
    done:
       return rc;
    error:

@@ -1095,6 +1095,9 @@ namespace vessel
                  "must be same");
 
       runtimeMbContext mbContext;
+      UINT32 pageStep = 2;
+      UINT32 totalRead = 0;
+      UINT32 maxPageSeq = 0;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -1110,8 +1113,15 @@ namespace vessel
 
       mbContext.init(_record, _collectionSpace->getIdentifier());
       context->attachMbContext(&mbContext);
+      if (0 < cursor->getOptions().pageStep)
+      {
+         pageStep = cursor->getOptions().pageStep;
+      }
+      maxPageSeq = cursor->getToScanEntry().getSeq() + (UINT32)pageStep;
+
       do
       {
+         UINT32 readCount = 0;
          PAGE_ID lpid = cursor->getLpid();
 
          if (_totalRdpCount <= cursor->getToScanEntry().getSeq())
@@ -1138,7 +1148,7 @@ namespace vessel
             cursor->setLpid(lpid);
          }
 
-         rc = getMoreFromPageInCursor(context, cursor);
+         rc = getMoreFromPageInCursor(context, cursor, readCount);
          if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
          {
             rc = SDB_OK;
@@ -1149,7 +1159,10 @@ namespace vessel
             PD_LOG(PDERROR, "failed to get more from seq saved:%d", rc);
             goto error;
          }
-      } while(TRUE);
+
+         totalRead += readCount;
+      } while(0 == totalRead ||
+              cursor->getToScanEntry().getSeq() < maxPageSeq);
    done:
       if (NULL != context)
       {
@@ -1202,7 +1215,8 @@ namespace vessel
    }
 
    INT32 collection::getMoreFromPageInCursor(requestContext *context,
-                                             scanCLCursor *cursor)
+                                             scanCLCursor *cursor,
+                                             UINT32 &count)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != _collectionSpace, "can not be null");
@@ -1214,6 +1228,7 @@ namespace vessel
       rdpRecordScanner scanner;
       rdpRecordScanner::options o;
       o.so = cursor->getOptions();
+      count = 0;
 
       rc = scanner.open(context, cursor->getLpid(),
                         cursor->getToScanEntry().getPos(),
@@ -1254,6 +1269,7 @@ namespace vessel
             goto error;
          }
          cursor->incToScanSlot();
+         ++count;
 
          if (cursor->noMorePushThisLoop())
          {
