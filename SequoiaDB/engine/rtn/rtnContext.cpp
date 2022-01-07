@@ -111,6 +111,8 @@ namespace engine
       }
       else
       {
+         SDB_ASSERT( 0 == *RTN_GET_REFERENCE( _buffer ),
+                     "should have no reference" ) ;
          // reallocate memory
          _buffer = (CHAR*)SDB_THREAD_REALLOC(
                                  RTN_BUFF_TO_REAL_PTR( _buffer ),
