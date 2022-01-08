@@ -150,7 +150,6 @@ TEST_F(listTest, sdbGetList_SDB_LIST_COLLECTIONS_AND_COLLECTIONSPACES_22063)
    bson_init( &matcher ) ;
    bson_append_string( &matcher, "Name", fullCLName ) ;
    bson_finish( &matcher ) ;
-   bson_init( &matcher ) ;
    bson expectObj ;
    bson_init( &expectObj ) ;
    rc = bson_copy( &expectObj, &matcher ) ;
