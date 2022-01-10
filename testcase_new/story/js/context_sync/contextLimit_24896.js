@@ -2,11 +2,12 @@
  * @Description   : seqDB-24896:会话在多个节点开启上下文超过限制 
  * @Author        : Zhang Yanan
  * @CreateTime    : 2021.12.31
- * @LastEditTime  : 2022.01.08
+ * @LastEditTime  : 2022.01.10
  * @LastEditors   : Zhang Yanan
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.skipOneGroup = true;
+testConf.clOpt = { "ShardingKey": { "no": 1 }, "ShardingType": "range" };
 testConf.clName = COMMCLNAME + "_context_24886";
 testConf.useSrcGroup = true
 testConf.useDstGroup = true
@@ -14,10 +15,7 @@ testConf.useDstGroup = true
 main( test );
 function test ( testPara )
 {
-   commDropCL( db, COMMCSNAME, testConf.clName, true );
-   var options = { "ShardingKey": { "no": 1 }, "ShardingType": "range" };
-   var varCL = commCreateCL( db, COMMCSNAME, testConf.clName, options, true );
-
+   var varCL = testPara.testCL;
    var maxSessioncontextnum = 100;
    var config = { "maxsessioncontextnum": maxSessioncontextnum };
    db.updateConf( config );
@@ -28,7 +26,6 @@ function test ( testPara )
    // 查询覆盖源组和目标组数据，打开上下文
    openContext( 1000, 4000, testConf.clName, maxSessioncontextnum );
 
-   commDropCL( db, COMMCSNAME, testConf.clName, false, false );
    db.deleteConf( { "maxsessioncontextnum": 1 } );
 }
 
