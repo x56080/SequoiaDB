@@ -805,7 +805,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       dmlIndexRequestArray ra;
       runtimeMbContext mbContext;
-      modifyRecordContext mrc;
       ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
 
       recordID rid;
@@ -832,16 +831,15 @@ namespace vessel
       guard.autoLock();
       mbContext.init(_record, _collectionSpace->getIdentifier());
       context->attachMbContext(&mbContext);
-      mrc.setRid(request.rid);
       
-      rc = lockAndFetchRecordToModify(context, &mrc);
+      rc = lockAndFetchRecordToModify(context, request.rid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to fetch record to update:%d", rc);
          goto error;
       }
 
-      targetRecord = mrc.getTargetRecord();
+      targetRecord = context->getMrc().getTargetRecord();
       SDB_ASSERT(targetRecord.isValid(), "impossible");
 
       rc = updater->update(targetRecord.getSize(),
@@ -857,7 +855,8 @@ namespace vessel
          goto done;
       }
 
-      rc = buildUpdateIndexRequests(context, mrc.getTargetRecord(), updater, ra);
+      rc = buildUpdateIndexRequests(context, context->getMrc().getTargetRecord(), 
+                                    updater, ra);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to build index update request:%d", rc);
@@ -883,7 +882,7 @@ namespace vessel
 
       newRecord.reset(updater->getResultRecordSize(), updater->getResultRecord());
 
-      rc = updateRecordData(context, &mrc, request.o.stripingId, newRecord);
+      rc = updateRecordData(context, request.o.stripingId, newRecord);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to update record on disk:%d", rc);
@@ -932,7 +931,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       dmlIndexRequestArray ra;
       runtimeMbContext mbContext;
-      modifyRecordContext mrc;
       ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
 
       indexConsole console;
@@ -954,16 +952,17 @@ namespace vessel
       guard.autoLock();
       mbContext.init(_record, _collectionSpace->getIdentifier());
       context->attachMbContext(&mbContext);
-      mrc.setRid(request.rid);
 
-      rc = lockAndFetchRecordToModify(context, &mrc);
+      rc = lockAndFetchRecordToModify(context, request.rid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to fetch record to update:%d", rc);
          goto error;
       }
 
-      rc = buildRemoveIndexRequest(context, mrc.getTargetRecord(), ra);
+      rc = buildRemoveIndexRequest(context, 
+                                   context->getMrc().getTargetRecord(), 
+                                   ra);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to build remove index requests:%d", rc);
@@ -980,7 +979,7 @@ namespace vessel
          }
       }
 
-      rc = removeRecordData(context, &mrc);
+      rc = removeRecordData(context);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to remove record data:%d", rc);
@@ -4282,18 +4281,13 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::lockAndFetchRecordToModify(dmlContext *context,
-                                                modifyRecordContext *mrc)
+   INT32 collection::lockAndFetchRecordToModify(dmlContext *context, const recordID &rid)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context && context->isMbContextAttached(), "can not be invalid");
-      SDB_ASSERT(NULL != mrc && mrc->getRid().isValid(), "can not be invalid");
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
       rdpRecordScanner scanner;
       BOOLEAN locked = FALSE;
-      const recordID &rid = mrc->getRid();
-
-      mrc->clearData();
 
       rc = context->lockRid(rid, mode);
       if (SDB_OK != rc)
@@ -4310,19 +4304,19 @@ namespace vessel
          goto error;
       }
 
-      rc = mrc->getRecordBuffer().copy(scanner.getCurrentRecord().getSize(),
-                                       scanner.getCurrentRecord().getData());
+      rc = context->saveReocordDataToMrc(scanner.getCurrentRecord());
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to copy record data:%d", rc);
+         PD_LOG(PDERROR, "failed to save record data:%d", rc);
          goto error;
       }
       
-      mrc->setTransID(scanner.getCurrentTransID());
+      context->setMrcTransID(scanner.getCurrentTransID());
       if (scanner.isOverflow())
       {
-         mrc->setOverflowInfo(scanner.isBigRecord(), scanner.getOverflowAddr());
+         context->setMrcOverflowInfo(scanner.isBigRecord(), scanner.getOverflowAddr());
       }
+      context->setDmlRecordInfo(scanner.getCurrentPageSeq(), rid);
 
    done:
       scanner.close();
@@ -4332,22 +4326,19 @@ namespace vessel
       {
          context->unlockRid(rid);
       }
-      mrc->clearData();
       goto done;
    }
 
    INT32 collection::updateRecordData(dmlContext *context,
-                                      const modifyRecordContext *mrc,
                                       const dmsStripingId &striping,
                                       const slice &newRecord)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(NULL != context, "can not be invalid");
-      SDB_ASSERT(NULL != mrc, "can not be invalid");
       SDB_ASSERT(newRecord.isValid(), "can not be invalid");
 
-      if (mrc->isOverflow())
+      if (context->getMrc().isOverflow())
       {
          SDB_ASSERT(FALSE, "TODO");
       }
@@ -4357,7 +4348,7 @@ namespace vessel
       }
       else
       {
-         rc = updateNormalRecord(context, mrc->getRid(), striping, newRecord);
+         rc = updateNormalRecord(context, striping, newRecord);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to update record:%d", rc);
@@ -4372,19 +4363,19 @@ namespace vessel
    }
 
    INT32 collection::updateNormalRecord(dmlContext *context,
-                                        const recordID &rid,
                                         const dmsStripingId &striping,
                                         const slice &newRecord)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be invalid");
       SDB_ASSERT(newRecord.isValid(), "can not be invalid");
-      SDB_ASSERT(rid.isValid(), "can not be invalid");
 
       logicalPageBuffer lpb;
       rdpAccessor accessor;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
       mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
       BOOLEAN outOfSpace = FALSE;
+      recordID rid = context->getRid();
 
       rc = mds.getLogicalPageBuffer(context, rid.getPid(), mode, lpb);
       if (SDB_OK != rc)
@@ -4401,59 +4392,101 @@ namespace vessel
       }
 
       rc = accessor.updateNormalRecord(context, rid.getPos(),
-                                       striping, newRecord,
-                                       outOfSpace);
+                                       striping, newRecord, outOfSpace);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to update record by accessor:%d", rc);
          goto error;
       }
+      lpb.fini();
 
       if (outOfSpace)
       {
-         recordID orid;
-         //TODO:attach oplist
-         rc = insertOverflowedRecord(context, newRecord, striping, orid);
+         rc = updateIfOutOfSpace(context, striping, newRecord);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, 
-                   "failed to insert overflowed record, rc:%d", 
-                    rc);
-            goto error;
-         }
-
-         rc = accessor.setRecordOverflowed(context, rid.getPos(), striping, orid);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, 
-                   "failed to set record to overflowed, rc:%d", 
-                   rc);
+            PD_LOG(PDERROR, "failed to update record, rc:%d", rc);
             goto error;
          }
       }
 
-      lpb.fini();
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 collection::removeRecordData(dmlContext *context,
-                                      const modifyRecordContext *mrc)
+
+   INT32 collection::updateIfOutOfSpace(dmlContext *context,
+                                        const dmsStripingId &striping,
+                                        const slice &newRecord)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be invalid");
+      SDB_ASSERT(newRecord.isValid(), "can not be invalid");
+      ossSharedLatchMode ridMode;
+      recordID rid = context->getRid();
+      SDB_ASSERT(context->testRidLocked(rid, &ridMode) && ridMode.isExclusive(), 
+                 "rid must be locked");
+      logicalPageBuffer lpb;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+      recordID orid;
+      rdpAccessor accessor;
+      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+
+      //TODO:attach oplist
+      rc = insertOverflowedRecord(context, newRecord, striping, orid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, 
+                "failed to insert overflowed record, rc:%d", 
+                rc);
+         goto error;
+      }
+
+      rc = mds.getLogicalPageBuffer(context, rid.getPid(), mode, lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get lpb[%d], rc:%d", rid.getPid(), rc);
+         goto error;
+      }
+
+      rc = accessor.init(context, &lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init accessor:%d", rc);
+         goto error;
+      }
+
+      rc = accessor.setRecordOverflowed(context, rid.getPos(), striping, orid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, 
+                "failed to set record to overflowed, rc:%d", 
+                rc);
+         goto error;
+      }
+
+   done:
+      lpb.fini();
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::removeRecordData(dmlContext *context)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(NULL != context, "can not be invalid");
-      SDB_ASSERT(NULL != mrc, "can not be null");
 
-      if (mrc->isOverflow())
+      if (context->getMrc().isOverflow())
       {
          SDB_ASSERT(FALSE, "TODO");
       }
       else
       {
-         rc = removeNormalRecord(context, mrc->getRid());
+         rc = removeNormalRecord(context);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to remove record:%d", rc);
@@ -4467,16 +4500,16 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::removeNormalRecord(dmlContext *context,
-                                        const recordID &rid)
+   INT32 collection::removeNormalRecord(dmlContext *context)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(rid.isValid(), "can not be invalid");
+      SDB_ASSERT(NULL != context, "can not be invalid");
 
       logicalPageBuffer lpb;
       rdpAccessor accessor;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
       mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      recordID rid = context->getRid();
 
       rc = mds.getLogicalPageBuffer(context, rid.getPid(), mode, lpb);
       if (SDB_OK != rc)

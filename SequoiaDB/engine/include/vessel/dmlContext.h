@@ -48,6 +48,7 @@
 #include "dms.hpp"
 #include "vessel/dmlIndexRequest.h"
 #include "vessel/scanEntry.h"
+#include "vessel/modifyRecordContext.h"
 
 namespace engine
 {
@@ -70,7 +71,6 @@ namespace vessel
          {
             return _uniqueKeyHash.empty() ? NULL : _uniqueKeyHash.data();
          }
-
          OSS_INLINE const recordID &getRid()const
          {
             return _rid;
@@ -102,6 +102,15 @@ namespace vessel
          {
             return _indexReqCount;
          }
+
+         const modifyRecordContext &getMrc()const{return _mrc;}
+
+         INT32 saveReocordDataToMrc(const slice &record);
+
+         void setMrcTransID(const DPS_TRANS_ID &transID);
+
+         void setMrcOverflowInfo(BOOLEAN isBigRecord,
+                                 const recordID &addr);
       public:
          INT32 lockUniqueIndexKeys(const dmlIndexRequestArray &ra);
          void unlockUniqueKeys();
@@ -119,10 +128,11 @@ namespace vessel
          ossPoolVector<UINT32> _uniqueKeyHash;
          _UNIQUE_KEY_CONTEXT _uniqueKeyContext;
 
+         UINT32 _indexReqCount = 0;
          UINT32 _seq = INVALID_CL_PAGE_SEQ;
          DPS_LSN_OFFSET _lsn = DPS_INVALID_LSN_OFFSET;
          recordID _rid;
-         UINT16 _indexReqCount = 0;
+         modifyRecordContext _mrc;
    };//class dmlContext
 }//namespace vessel
 }//namespace engine
