@@ -1322,8 +1322,8 @@ namespace vessel
       CHAR *compactBuf = context->allocateBuffer(compactBufSize);
       if (OSS_UNLIKELY(NULL == compactBuf))
       {
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         PD_LOG(PDERROR, "failed to allocate compact buffer");
+         rc = SDB_OOM;
+         PD_LOG(PDERROR, "failed to allocate compact buffer, rc:%d", rc);
          goto error;
       }
       compactor.reset(compactBuf, compactBufSize);

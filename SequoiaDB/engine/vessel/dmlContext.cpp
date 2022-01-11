@@ -239,6 +239,12 @@ namespace vessel
          _rid = recordID();
          _lsn = DPS_INVALID_LSN_OFFSET;
          _indexReqCount = 0;
+         if (_mrc.getTargetRecord().isValid())
+         {
+            CHAR *ptr = (CHAR *)_mrc.getTargetRecord().getData();
+            releaseBuffer(ptr);
+         }
+         _mrc.clear();
       }
       return;
    }
@@ -261,6 +267,39 @@ namespace vessel
       _lsn = lsn;
       return;
    }
+
+   INT32 dmlContext::saveReocordDataToMrc(const slice &record)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(record.isValid(), "can not be invalid");
+
+      CHAR *buf = allocateBuffer(record.getSize());
+      if (NULL == buf)
+      {
+         rc = SDB_OOM;
+         PD_LOG(PDERROR, "failed to allocate record buffer, rc:%d", rc);
+         goto error;
+      }
+      ossMemcpy(buf, record.getData(), record.getSize());
+      _mrc.setTargetRecord(slice(record.getSize(), buf));
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void dmlContext::setMrcTransID(const DPS_TRANS_ID &transID)
+   {
+      _mrc.setTransID(transID);
+   }
+   void dmlContext::setMrcOverflowInfo(BOOLEAN isBigRecord,
+                                       const recordID &addr)
+   {
+      SDB_ASSERT(addr.isValid(), "can not be invalid");
+      _mrc.setOverflowInfo(isBigRecord, addr);
+   }
+   
 
 }//namespace vessel
 }//namespace engine

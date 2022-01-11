@@ -74,7 +74,7 @@ namespace vessel
                                       recordID &rid);
 
          INT32 updateNormalRecord(dmlContext *context,
-                                  RECORD_SLOT_POS  pos,
+                                  RECORD_SLOT_POS pos,
                                   const dmsStripingId &striping,
                                   const slice &newRowData,
                                   BOOLEAN &outOfSpace);

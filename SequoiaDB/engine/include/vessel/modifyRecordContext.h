@@ -52,11 +52,6 @@ namespace vessel
          modifyRecordContext &operator=(const modifyRecordContext &) = delete;
 
       public:
-         OSS_INLINE const recordID &getRid()const
-         {
-            return _rid;
-         }
-         
          OSS_INLINE BOOLEAN isOverflow()const
          {
             return _overflow;
@@ -70,21 +65,15 @@ namespace vessel
          {
             return _overflowAddr;
          }
-         OSS_INLINE void setRid(const recordID &rid)
-         {
-            _rid = rid;
-         }
-         OSS_INLINE memoryBlock &getRecordBuffer()
-         {
-            return _recordBuffer;
-         }
+
+         void setTargetRecord(const slice &record);
 
          slice getTargetRecord()const;
 
          void setOverflowInfo(BOOLEAN isBigRecord,
                               const recordID &addr);
 
-         void clearData();
+         void clear();
 
          void setTransID(const DPS_TRANS_ID &transID)
          {
@@ -92,8 +81,7 @@ namespace vessel
          }
 
       private:
-         recordID _rid;
-         memoryBlock _recordBuffer;
+         slice _recordData;
          DPS_TRANS_ID _transID;
          BOOLEAN _overflow = FALSE;
          BOOLEAN _bigRecord = FALSE;

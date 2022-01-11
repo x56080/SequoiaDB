@@ -40,11 +40,14 @@ namespace engine
 {
 namespace vessel
 {
+   void modifyRecordContext::setTargetRecord(const slice &record)
+   {
+      SDB_ASSERT(record.isValid(), "can not be invalid");
+      _recordData = record;
+   }
    slice modifyRecordContext::getTargetRecord()const
    {
-      SDB_ASSERT(!_recordBuffer.isEmpty(), "can not be empty");
-      return slice(_recordBuffer.getSize(),
-                   _recordBuffer.getBuffer());
+      return _recordData;
    }
 
    void modifyRecordContext::setOverflowInfo(BOOLEAN isBigRecord,
@@ -57,9 +60,9 @@ namespace vessel
       return;
    }
 
-   void modifyRecordContext::clearData()
+   void modifyRecordContext::clear()
    {
-      _recordBuffer.resize(0);
+      _recordData.reset();
       _transID = DPS_TRANS_ID();
       _overflow = FALSE;
       _bigRecord = FALSE;
