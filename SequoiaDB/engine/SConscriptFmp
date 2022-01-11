@@ -84,7 +84,8 @@ sptFiles = [
       "spt/db/sptDBUser.cpp",
       "spt/db/sptDBCipherUser.cpp",
       "spt/db/sptDBSequence.cpp",
-      "spt/db/sptDBDataSource.cpp"
+      "spt/db/sptDBDataSource.cpp",
+      "spt/db/sptDBRecycleBin.cpp"
       ]
 
 ssh2Files = [

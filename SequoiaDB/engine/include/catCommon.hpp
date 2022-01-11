@@ -603,6 +603,11 @@ namespace engine
    INT32 catCheckDataSourceID( const bson::BSONObj &boObject,
                                UTIL_DS_UID &dsUID ) ;
 
+   /* recycle bin */
+   INT32 catUpdateRecycleBinConf( const utilRecycleBinConf &newConf,
+                                  pmdEDUCB *cb,
+                                  INT16 w ) ;
+
 }
 
 #endif //CAT_COMMON_HPP__

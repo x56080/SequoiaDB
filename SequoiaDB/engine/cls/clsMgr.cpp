@@ -813,6 +813,10 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to init repl session manager, rc: %d",
                    rc ) ;
 
+      rc = _recycleBinMgr.init() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to init recycle bin manager, rc: %d",
+                   rc ) ;
+
       // 4. set bussiness not ok( need wait register to change )
       pmdGetKRCB()->setBusinessOK( FALSE ) ;
 
@@ -1214,10 +1218,15 @@ namespace engine
       {
          if ( primary )
          {
-            if ( SDB_ROLE_DATA == pmdGetDBRole() &&
-                 pDmsCB->nullCSUniqueIDCnt() > 0 )
+            if ( SDB_ROLE_DATA == pmdGetDBRole() )
             {
-               startUniqueIDCheckJob() ;
+               if ( pDmsCB->nullCSUniqueIDCnt() > 0 )
+               {
+                  startUniqueIDCheckJob() ;
+               }
+               // set configure invalid, so the recycle bin manager
+               // will update configure from CATALOG later
+               _recycleBinMgr.setConfInvalid() ;
             }
 
             // start query task
@@ -2463,6 +2472,8 @@ namespace engine
                BSONObj objDCInfo( ( const CHAR* )msg + sizeof( MsgOpReply ) +
                                   ossAlign4( (UINT32)msgObject.objsize() ) ) ;
                _shdObj->getDCMgr()->updateDCBaseInfo( objDCInfo ) ;
+
+               _recycleBinMgr.setConf( pInfo->getRecycleBinConf() ) ;
 
                pmdGetKRCB()->setDBReadonly( pInfo->isReadonly() ) ;
                pmdGetKRCB()->setDBDeactivated( !pInfo->isActivated() ) ;

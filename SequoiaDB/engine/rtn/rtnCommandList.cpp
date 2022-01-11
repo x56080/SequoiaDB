@@ -326,6 +326,23 @@ namespace engine
    {
       return FALSE ;
    }
+
+   /*
+      _rtnListRecycleBin implement
+    */
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnListRecycleBin )
+   BOOLEAN _rtnListRecycleBin::_isCurrent() const
+   {
+      return FALSE ;
+   }
+
+   /*
+      _rtnListRecycleBinInner implement
+    */
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnListRecycleBinInner )
+   BOOLEAN _rtnListRecycleBinInner::_isCurrent() const
+   {
+      return FALSE ;
+   }
+
 }
-
-

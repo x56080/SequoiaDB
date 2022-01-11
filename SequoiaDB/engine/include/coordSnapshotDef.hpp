@@ -342,5 +342,23 @@
                                              {$and:[{IndexDef:{$exists:1}},\
                                                     {IndexDef:{$ne:null}}]}\
                                         }"
+#define COORD_SNAPSHOTRECYBIN_INPUT    "{$group:{\
+                                                _id:\"$RecycleName\",\
+                                                RecycleName:{$first:\"$RecycleName\"},\
+                                                RecycleID:{$first:\"$RecycleID\"},\
+                                                OriginName:{$first:\"$OriginName\"},\
+                                                OriginID:{$first:\"$OriginID\"},\
+                                                Type:{$first:\"$Type\"},\
+                                                OpType:{$first:\"$OpType\"},\
+                                                PageSize:{$first:\"$PageSize\"},\
+                                                LobPageSize:{$first:\"$LobPageSize\"},\
+                                                TotalRecords:{$sum:\"$TotalRecords\"},\
+                                                TotalLobs:{$sum:\"$TotalLobs\"},\
+                                                TotalDataSize:{$sum:\"$TotalDataSize\"},\
+                                                TotalIndexSize:{$sum:\"$TotalIndexSize\"},\
+                                                TotalLobSize:{$sum:\"$TotalLobSize\"},\
+                                                Group:{$addtoset:\"$GroupName\"}\
+                                                }\
+                                       }"
 
 #endif // COORD_SNAPSHOT_DEF_HPP__

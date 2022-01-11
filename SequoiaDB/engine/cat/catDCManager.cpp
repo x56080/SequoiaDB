@@ -1435,7 +1435,19 @@ namespace engine
                            FIELD_NAME_ADDRESS << option->getCatAddr() ) <<
                          FIELD_NAME_ACTIVATED << true <<
                          FIELD_NAME_READONLY << false <<
-                         FIELD_NAME_RESTORE << false ) ;
+                         FIELD_NAME_RESTORE << false <<
+                         FIELD_NAME_RECYCLEBIN <<
+                         BSON( FIELD_NAME_ENABLE <<
+                                     (bool)( UTIL_RECYCLEBIN_DFT_ENABLE ) <<
+                               FIELD_NAME_RECYCLEIDHWM << (INT64)0 <<
+                               FIELD_NAME_EXPIRETIME <<
+                                     UTIL_RECYCLEBIN_DFT_EXPIRETIME <<
+                               FIELD_NAME_MAXITEMNUM <<
+                                     UTIL_RECYCLEBIN_DFT_MAXITEMNUM <<
+                               FIELD_NAME_MAXVERNUM <<
+                                     UTIL_RECYCLEBIN_DFT_MAXVERNUM <<
+                               FIELD_NAME_AUTODROP <<
+                                     (bool)( UTIL_RECYCLEBIN_DFT_AUTODROP ) ) ) ;
          rc = rtnInsert( CAT_SYSDCBASE_COLLECTION_NAME, infoObj, 1, 0,
                          _pEduCB, _pDmsCB, _pDpsCB, 1 ) ;
          PD_RC_CHECK( rc, PDERROR, "Insert global info[%s] to collection[%s] "
@@ -1480,6 +1492,36 @@ namespace engine
                rc = SDB_SYS ;
                goto error ;
             }
+         }
+
+         // add recycle bin if not exists
+         if ( !infoObj.hasField( FIELD_NAME_RECYCLEBIN ) )
+         {
+            BSONObj updator =
+                  BSON( "$set" <<
+                        BSON( FIELD_NAME_RECYCLEBIN <<
+                              BSON( FIELD_NAME_ENABLE <<
+                                       (bool)( UTIL_RECYCLEBIN_DFT_ENABLE ) <<
+                                    FIELD_NAME_RECYCLEIDHWM << (INT64)0 <<
+                                    FIELD_NAME_EXPIRETIME <<
+                                          UTIL_RECYCLEBIN_DFT_EXPIRETIME <<
+                                    FIELD_NAME_MAXITEMNUM <<
+                                          UTIL_RECYCLEBIN_DFT_MAXITEMNUM <<
+                                    FIELD_NAME_MAXVERNUM <<
+                                          UTIL_RECYCLEBIN_DFT_MAXVERNUM <<
+                                    FIELD_NAME_AUTODROP <<
+                                       (bool)( UTIL_RECYCLEBIN_DFT_AUTODROP ) ) ) ) ;
+
+            BSONObj matcher = BSON( FIELD_NAME_TYPE <<
+                                    CAT_BASE_TYPE_GLOBAL_STR ) ;
+            rc = rtnUpdate( CAT_SYSDCBASE_COLLECTION_NAME, matcher, updator,
+                            BSONObj(), 0, _pEduCB, _pDmsCB, _pDpsCB, 1,
+                            &upResult ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to update recycle info [%s], "
+                         "rc: %d", updator.toString().c_str(), rc ) ;
+            PD_CHECK( upResult.updateNum() > 0, SDB_SYS, error, PDERROR,
+                      "Not found global info, matcher: %s",
+                      matcher.toString().c_str() ) ;
          }
       }
 

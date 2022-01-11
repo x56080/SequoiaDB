@@ -566,7 +566,48 @@ namespace engine
          virtual BOOLEAN _isCurrent() const ;
    } ;
 
+   /*
+      _rtnListRecycleBin define
+    */
+   class _rtnListRecycleBin : public _rtnList
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _rtnListRecycleBin()
+      : _rtnList( CMD_NAME_LIST_RECYCLEBIN,
+                  CMD_NAME_LIST_RECYCLEBIN_INTR,
+                  CMD_LIST_RECYCLEBIN,
+                  RTN_FETCH_RECYCLEBIN,
+                  0 )
+      {}
+
+      virtual ~_rtnListRecycleBin() {}
+
+   protected:
+      virtual BOOLEAN _isCurrent() const ;
+   } ;
+
+   /*
+      _rtnListRecycleBinInner define
+    */
+   class _rtnListRecycleBinInner : public _rtnListInner
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+   public:
+      _rtnListRecycleBinInner()
+      : _rtnListInner( CMD_NAME_LIST_RECYCLEBIN_INTR,
+                       CMD_LIST_RECYCLEBIN,
+                       RTN_FETCH_RECYCLEBIN,
+                       0 )
+      {}
+
+      virtual ~_rtnListRecycleBinInner() {}
+
+   protected:
+      virtual BOOLEAN _isCurrent() const ;
+   } ;
+
 }
 
 #endif //RTN_COMMAND_LIST_HPP_
-

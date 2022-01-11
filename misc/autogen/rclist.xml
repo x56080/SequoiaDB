@@ -3074,5 +3074,29 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_RECYCLE_ITEMNOTEXISTS</name>
+         <description>
+            <en>Recycle bin item does not exist</en>
+            <cn>回收站项目不存在</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_RECYCLE_CONFLICT</name>
+         <description>
+            <en>Recycle bin item conflicts</en>
+            <cn>回收站项目存在冲突</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_RECYCLE_FULL</name>
+         <description>
+            <en>Recycle bin is full</en>
+            <cn>回收站已满</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

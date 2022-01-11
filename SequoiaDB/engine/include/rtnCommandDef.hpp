@@ -169,6 +169,13 @@ namespace engine
 #define NAME_DROP_SEQUENCE                   CMD_NAME_DROP_SEQUENCE
 #define NAME_ALTER_SEQUENCE                  CMD_NAME_ALTER_SEQUENCE
 #define NAME_INVALIDATE_DATASOURCE_CACHE     CMD_NAME_INVALIDATE_DATASOURCE_CACHE
+
+#define NAME_LIST_RECYCLEBIN                 CMD_NAME_LIST_RECYCLEBIN
+#define NAME_SNAPSHOT_RECYCLEBIN             CMD_NAME_SNAPSHOT_RECYCLEBIN
+#define NAME_GET_RECYCLEBIN_DETAIL           CMD_NAME_GET_RECYCLEBIN_DETAIL
+#define NAME_GET_RECYCLEBIN_COUNT            CMD_NAME_GET_RECYCLEBIN_COUNT
+#define NAME_ALTER_RECYCLEBIN                CMD_NAME_ALTER_RECYCLEBIN
+
    /*
       Command Type Define
    */
@@ -331,6 +338,13 @@ namespace engine
       CMD_SNAPSHOT_TRANSDEADLOCK             = 273,
 
       CMD_COPY_INDEX                         = 280,
+
+      // recycle bin commands
+      CMD_LIST_RECYCLEBIN                    = 290,
+      CMD_SNAPSHOT_RECYCLEBIN                = 291,
+      CMD_GET_RECYCLEBIN_DETAIL              = 292,
+      CMD_GET_RECYCLEBIN_COUNT               = 293,
+      CMD_ALTER_RECYCLEBIN                   = 294,
 
       CMD_UNKNOW                             = 65535
    };

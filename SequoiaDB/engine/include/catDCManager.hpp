@@ -80,6 +80,8 @@ namespace engine
 
       INT32 updateGlobalAddr() ;
 
+      _clsDCBaseInfo *getDCInfo() { return _pDCBaseInfo ; }
+
       BOOLEAN isDCActivated() const ;
       BOOLEAN isDCReadonly() const ;
       BOOLEAN isImageEnabled() const ;
@@ -88,6 +90,11 @@ namespace engine
 
       void    setWritedCommand( BOOLEAN writed ) { _isWritedCmd = writed ; }
       BOOLEAN isWritedCommand() const { return _isWritedCmd ; }
+
+      INT32 updateDCCache()
+      {
+         return _mapData2DCMgr( _pDCMgr ) ;
+      }
 
    public :
       // functions of _catEventHandler

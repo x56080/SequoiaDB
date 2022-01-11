@@ -1257,5 +1257,70 @@ namespace engine
    _coordCMDListDataSourceIntr::~_coordCMDListDataSourceIntr()
    {
    }
-}
 
+   /*
+      _coordCMDListRecycleBin implement
+    */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDListRecycleBin,
+                                      CMD_NAME_LIST_RECYCLEBIN,
+                                      TRUE ) ;
+   _coordCMDListRecycleBin::_coordCMDListRecycleBin()
+   {
+   }
+
+   _coordCMDListRecycleBin::~_coordCMDListRecycleBin()
+   {
+   }
+
+   INT32 _coordCMDListRecycleBin::_preProcess( rtnQueryOptions &queryOpt,
+                                               string &clName,
+                                               BSONObj &outSelector )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+         builder.appendNull( FIELD_NAME_RECYCLE_NAME ) ;
+         builder.appendNull( FIELD_NAME_RECYCLE_ID ) ;
+         builder.appendNull( FIELD_NAME_ORIGIN_NAME ) ;
+         builder.appendNull( FIELD_NAME_ORIGIN_ID ) ;
+         builder.appendNull( FIELD_NAME_TYPE ) ;
+         builder.appendNull( FIELD_NAME_OPTYPE ) ;
+         builder.appendNull( FIELD_NAME_RECYCLE_TIME ) ;
+
+         outSelector = queryOpt.getSelector() ;
+         queryOpt.setSelector( builder.obj() ) ;
+
+         clName.assign( CAT_SYSRECYCLEBIN_ITEM_COLLECTION ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to pre-process list recycle bin command, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   /*
+      _coordCMDListRecycleBinIntr implement
+    */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDListRecycleBinIntr,
+                                      CMD_NAME_LIST_RECYCLEBIN_INTR,
+                                      TRUE ) ;
+   _coordCMDListRecycleBinIntr::_coordCMDListRecycleBinIntr()
+   {
+   }
+
+   _coordCMDListRecycleBinIntr::~_coordCMDListRecycleBinIntr()
+   {
+   }
+
+}

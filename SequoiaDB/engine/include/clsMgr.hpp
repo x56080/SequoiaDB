@@ -48,6 +48,7 @@
 #include "clsShardMgr.hpp"
 #include "clsReplicateSet.hpp"
 #include "clsCatalogAgent.hpp"
+#include "clsRecycleBinManager.hpp"
 #include "ossLatch.hpp"
 #include "clsTask.hpp"
 #include "ossMemPool.hpp"
@@ -287,6 +288,11 @@ namespace engine
          void     dumpSchedInfo( BSONObjBuilder &builder ) ;
          void     resetDumpSchedInfo() ;
 
+         clsRecycleBinManager *getRecycleBinMgr()
+         {
+            return &_recycleBinMgr ;
+         }
+
       protected:
 
          INT32          _startEDU ( INT32 type, EDU_STATUS waitStatus,
@@ -359,6 +365,7 @@ namespace engine
          _clsShardMgr                  *_shdObj ;
          _clsReplicateSet              *_replObj ;
 
+         clsRecycleBinManager          _recycleBinMgr ;
    };
 
    typedef _clsMgr  clsCB ;

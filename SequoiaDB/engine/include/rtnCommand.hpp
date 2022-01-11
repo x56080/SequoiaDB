@@ -45,6 +45,7 @@
 #include "rtnQueryOptions.hpp"
 #include "rtnSessionProperty.hpp"
 #include "utilResult.hpp"
+#include "utilRecycleBinConf.hpp"
 
 using namespace bson ;
 
@@ -535,6 +536,16 @@ namespace engine
          virtual ~_rtnListDataSources() {}
          virtual const CHAR *name () { return NAME_LIST_DATASOURCES ; }
          virtual RTN_COMMAND_TYPE type () { return CMD_LIST_DATASOURCES ; }
+   } ;
+
+   class _rtnGetRecycleBinDetail : public _rtnCoordOnly
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _rtnGetRecycleBinDetail() {}
+      virtual ~_rtnGetRecycleBinDetail() {}
+      virtual const CHAR *name() { return NAME_GET_RECYCLEBIN_DETAIL ; }
+      virtual RTN_COMMAND_TYPE type() { return CMD_GET_RECYCLEBIN_DETAIL ; }
    } ;
 
    class _rtnBackup : public _rtnCommand
@@ -1731,6 +1742,86 @@ namespace engine
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
          BOOLEAN _isOldRestorePoint() ;
    };
+
+   /*
+      _rtnCMDGetRecycleBinCount define
+    */
+   class _rtnCMDGetRecycleBinCount : public _rtnCommand
+   {
+      DECLARE_CMD_AUTO_REGISTER() ;
+
+   public:
+      _rtnCMDGetRecycleBinCount() ;
+      virtual ~_rtnCMDGetRecycleBinCount() ;
+
+      virtual const CHAR *name() ;
+      virtual RTN_COMMAND_TYPE type() ;
+
+      virtual INT32 init( INT32 flags,
+                          INT64 numToSkip,
+                          INT64 numToReturn,
+                          const CHAR *pMatcherBuff,
+                          const CHAR *pSelectBuff,
+                          const CHAR *pOrderByBuff,
+                          const CHAR *pHintBuff ) ;
+      virtual INT32 doit( _pmdEDUCB *cb,
+                          _SDB_DMSCB *dmsCB,
+                          _SDB_RTNCB *rtnCB,
+                          _dpsLogWrapper *dpsCB,
+                          INT16 w = 1,
+                          INT64 *pContextID = NULL ) ;
+
+   protected:
+      bson::BSONObj _queryObj ;
+   } ;
+
+   typedef class _rtnCMDGetRecycleBinCount rtnCMDGetRecycleBinCount ;
+
+   /*
+      _rtnCMDAlterRecycleBin define
+    */
+   class _rtnCMDAlterRecycleBin : public _rtnCommand
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+   public:
+      _rtnCMDAlterRecycleBin() ;
+      virtual ~_rtnCMDAlterRecycleBin() ;
+
+      virtual const CHAR *name() ;
+      virtual RTN_COMMAND_TYPE type() ;
+
+      virtual BOOLEAN writable()
+      {
+         // need primary node
+         return TRUE ;
+      }
+
+      virtual INT32 init( INT32 flags,
+                          INT64 numToSkip,
+                          INT64 numToReturn,
+                          const CHAR *pMatcherBuff,
+                          const CHAR *pSelectBuff,
+                          const CHAR *pOrderByBuff,
+                          const CHAR *pHintBuff )
+      {
+         // do nothing
+         return SDB_OK ;
+      }
+
+      virtual INT32 doit( _pmdEDUCB *cb,
+                          _SDB_DMSCB *dmsCB,
+                          _SDB_RTNCB *rtnCB,
+                          _dpsLogWrapper *dpsCB,
+                          INT16 w = 1,
+                          INT64 *pContextID = NULL ) ;
+
+   protected:
+      utilRecycleBinConf _newConf ;
+   } ;
+
+   typedef class _rtnCMDAlterRecycleBin rtnCMDAtlerRecycleBin ;
+
 }
 
 const UINT32 pdGetTraceFunctionListNum();

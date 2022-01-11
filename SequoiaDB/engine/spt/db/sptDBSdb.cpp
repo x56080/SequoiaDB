@@ -44,6 +44,7 @@
 #include "sptDBUser.hpp"
 #include "sptDBSequence.hpp"
 #include "sptDBDataSource.hpp"
+#include "sptDBRecycleBin.hpp"
 #include "sptBsonobj.hpp"
 #include "ossSocket.hpp"
 #include "msgDef.hpp"
@@ -138,6 +139,7 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, dropDataSource )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, getDataSource )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, listDataSources )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, getRecycleBin )
    JS_RESOLVE_FUNC_DEFINE( _sptDBSdb, resolve )
 
    JS_BEGIN_MAPPING( _sptDBSdb, "Sdb" )
@@ -210,6 +212,7 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "dropDataSource", dropDataSource )
       JS_ADD_MEMBER_FUNC( "getDataSource", getDataSource )
       JS_ADD_MEMBER_FUNC( "listDataSources", listDataSources )
+      JS_ADD_MEMBER_FUNC( "getRecycleBin", getRecycleBin )
       JS_ADD_RESOLVE_FUNC( resolve )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBSdb::cvtToBSON )
       JS_SET_JSOBJ_TO_BSON_FUNC( _sptDBSdb::fmpToBSON )
@@ -557,6 +560,50 @@ namespace engine
          pDC = NULL ;
       }
       SAFE_OSS_DELETE( pDC ) ;
+      goto done ;
+   }
+
+   INT32 _sptDBSdb::getRecycleBin( const _sptArguments &arg,
+                                   _sptReturnVal &rval,
+                                   bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+
+      _sdbRecycleBin *pRecycleBin = NULL ;
+      sptDBRecycleBin *sptRecycleBin = NULL ;
+
+      rc = _sptSdb.getRecycleBin( &pRecycleBin ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to get recycle bin" ) ;
+         goto error ;
+      }
+      sptRecycleBin = SDB_OSS_NEW sptDBRecycleBin( pRecycleBin ) ;
+      if( NULL == sptRecycleBin )
+      {
+         rc = SDB_OOM ;
+         detail = BSON( SPT_ERR << "Failed to new recycle bin object" ) ;
+         goto error ;
+      }
+      rc = rval.setUsrObjectVal< sptDBRecycleBin >( sptRecycleBin ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to set return obj" ) ;
+         goto error ;
+      }
+      rval.getReturnVal().setAttr( SPT_PROP_READONLY ) ;
+
+   done:
+      return rc ;
+
+   error:
+      if( NULL != sptRecycleBin )
+      {
+         SDB_OSS_DEL sptRecycleBin ;
+         sptRecycleBin = NULL ;
+         pRecycleBin = NULL ;
+      }
+      SAFE_OSS_DELETE( pRecycleBin ) ;
       goto done ;
    }
 

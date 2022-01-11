@@ -132,5 +132,22 @@
 #define CAT_SYSLOG_TYPE_LSNOFF            "{name:\"SYSLSNOFF\",key: {"\
                                           FIELD_NAME_LSN_OFFSET":1}, unique: true, enforced: true } "
 
-#endif // CATDEF_HPP__
+// collection space for recycle bin
+#define CAT_SYSRECYCLEBIN_SPACE_NAME      "SYSRECYCLEBIN"
 
+// collection for recycle bin item
+#define CAT_SYSRECYCLEBIN_ITEM_COLLECTION CAT_SYSRECYCLEBIN_SPACE_NAME".SYSRECYCLEITEMS"
+
+// collection for recycle collection space
+#define CAT_SYSRECYCLEBIN_CS_COLLECTION   CAT_SYSRECYCLEBIN_SPACE_NAME".SYSCOLLECTIONSPACES"
+
+// collection for recycle collection
+#define CAT_SYSRECYCLEBIN_CL_COLLECTION   CAT_SYSRECYCLEBIN_SPACE_NAME".SYSCOLLECTIONS"
+
+// collection for recycle sequence ( auto-incremental field )
+#define CAT_SYSRECYCLEBIN_SEQ_COLLECTION  CAT_SYSRECYCLEBIN_SPACE_NAME".SYSSEQUENCES"
+
+// collection for recycle index
+#define CAT_SYSRECYCLEBIN_IDX_COLLECTION  CAT_SYSRECYCLEBIN_SPACE_NAME".SYSINDEXES"
+
+#endif // CATDEF_HPP__

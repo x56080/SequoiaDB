@@ -6626,6 +6626,367 @@ do                                                            \
    }
 
    /*
+    * _sdbRecycleBinImpl
+    * SequoiaDB Recycle Bin Implementation
+    */
+   _sdbRecycleBinImpl::_sdbRecycleBinImpl()
+   : _connection ( NULL )
+   {
+   }
+
+   _sdbRecycleBinImpl::~_sdbRecycleBinImpl()
+   {
+      if ( _connection )
+      {
+         _connection->_unregRecycleBin( this ) ;
+      }
+   }
+
+   void _sdbRecycleBinImpl::_setConnection( _sdb *connection )
+   {
+      _connection = (_sdbImpl*)connection ;
+      _connection->_regRecycleBin( this ) ;
+   }
+
+   INT32 _sdbRecycleBinImpl::_innerAlter( const BSONObj &options )
+   {
+      return _innerCMD( CMD_ADMIN_PREFIX CMD_NAME_ALTER_RECYCLEBIN, options ) ;
+   }
+
+   INT32 _sdbRecycleBinImpl::_innerCMD( const CHAR *command,
+                                        const BSONObj &options,
+                                        _sdbCursor **cursor )
+   {
+      INT32 rc             = SDB_OK ;
+
+      // check
+      if ( NULL == _connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
+      // run command
+      rc = _connection->_runCommand( command, &options, NULL, NULL, NULL,
+                                     0, 0, 0, -1, cursor ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbRecycleBinImpl::getDetail( BSONObj &retInfo )
+   {
+      INT32 rc                  = SDB_OK ;
+      const CHAR *pCommand      =
+            CMD_ADMIN_PREFIX CMD_NAME_GET_RECYCLEBIN_DETAIL ;
+      _sdbCursor *retInfoCursor = NULL ;
+
+      // check
+      if ( NULL == _connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
+      // run command
+      rc = _connection->_runCommand( pCommand, NULL, NULL, NULL, NULL,
+                                     0, 0, 0, -1, &retInfoCursor ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      // get dc detail
+      rc = retInfoCursor->next( retInfo ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done:
+      if ( NULL != retInfoCursor )
+      {
+         delete retInfoCursor ;
+      }
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbRecycleBinImpl::enable()
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObj cmdOptions ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+         builder.append( FIELD_NAME_ACTION,
+                         CMD_VALUE_NAME_RECYCLEBIN_ENABLE ) ;
+         cmdOptions = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _innerAlter( cmdOptions ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbRecycleBinImpl::disable()
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObj cmdOptions ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+         builder.append( FIELD_NAME_ACTION,
+                         CMD_VALUE_NAME_RECYCLEBIN_DISABLE ) ;
+         cmdOptions = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _innerAlter( cmdOptions ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbRecycleBinImpl::setAttributes( const BSONObj &options )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObj cmdOptions ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+         builder.append( FIELD_NAME_ACTION,
+                         CMD_VALUE_NAME_RECYCLEBIN_SETATTR ) ;
+         builder.append( FIELD_NAME_OPTIONS, options ) ;
+         cmdOptions = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _innerAlter( cmdOptions ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbRecycleBinImpl::alter( const BSONObj &options )
+   {
+      return setAttributes( options ) ;
+   }
+
+   INT32 _sdbRecycleBinImpl::list( _sdbCursor **cursor,
+                                   const BSONObj &condition,
+                                   const BSONObj &selector,
+                                   const BSONObj &orderBy,
+                                   const BSONObj &hint,
+                                   INT64 numToSkip,
+                                   INT64 numToReturn )
+   {
+      INT32 rc             = SDB_OK ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_LIST_RECYCLEBIN ;
+
+      // check
+      if ( NULL == _connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
+      // run command
+      rc = _connection->_runCommand( pCommand,
+                                     &condition,
+                                     &selector,
+                                     &orderBy,
+                                     &hint,
+                                     0,
+                                     0,
+                                     numToSkip,
+                                     numToReturn,
+                                     cursor ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbRecycleBinImpl::snapshot( _sdbCursor **cursor,
+                                       const BSONObj &condition,
+                                       const BSONObj &selector,
+                                       const BSONObj &orderBy,
+                                       const BSONObj &hint,
+                                       INT64 numToSkip,
+                                       INT64 numToReturn )
+   {
+      INT32 rc             = SDB_OK ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_RECYCLEBIN ;
+
+      // check
+      if ( NULL == _connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
+      // run command
+      rc = _connection->_runCommand( pCommand,
+                                     &condition,
+                                     &selector,
+                                     &orderBy,
+                                     &hint,
+                                     0,
+                                     0,
+                                     numToSkip,
+                                     numToReturn,
+                                     cursor ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbRecycleBinImpl::getCount( INT64 &count,
+                                       const BSONObj &condition )
+   {
+      INT32 rc             = SDB_OK ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_GET_RECYCLEBIN_COUNT ;
+      BSONObj countObj ;
+      _sdbCursor *cursor = NULL ;
+
+      // check
+      if ( NULL == _connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
+      // run command
+      rc = _connection->_runCommand( pCommand,
+                                     &condition,
+                                     NULL,
+                                     NULL,
+                                     NULL,
+                                     0,
+                                     0,
+                                     0,
+                                     -1,
+                                     &cursor ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      // check return cursor
+      if ( NULL == cursor )
+      {
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      // there should only 1 record read
+      rc = cursor->next( countObj ) ;
+      if ( SDB_OK != rc )
+      {
+         // if we didn't read anything, let's return unexpected
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_UNEXPECTED_RESULT ;
+         }
+         goto error ;
+      }
+      else
+      {
+         try
+         {
+            BSONElement ele = countObj.getField( FIELD_NAME_TOTAL ) ;
+            if ( ele.type() != NumberLong )
+            {
+               rc = SDB_UNEXPECTED_RESULT ;
+            }
+            else
+            {
+               count = ele.numberLong() ;
+            }
+         }
+         catch ( exception &e )
+         {
+            rc = SDB_DRIVER_BSON_ERROR ;
+            goto error ;
+         }
+      }
+
+   done:
+      if ( NULL != cursor )
+      {
+         delete( cursor ) ;
+      }
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   /*
     * sdbLobImpl
     * SequoiaDB large object Implementation
     */
@@ -8065,6 +8426,12 @@ do                                                            \
       {
          ((_sdbDataSourceImpl*)(*it))->_dropConnection() ;
       }
+      // release recycle bin
+      copySet = _recycleBinSet ;
+      for ( it = copySet.begin() ; it != copySet.end() ; ++ it )
+      {
+         ((_sdbRecycleBinImpl *)( *it ))->_dropConnection() ;
+      }
       if ( NULL != _tb )
       {
          releaseHashTable( &_tb ) ;
@@ -8234,6 +8601,13 @@ do                                                            \
       unlock() ;
    }
 
+   void _sdbImpl::_regRecycleBin( _sdbRecycleBinImpl *recycleBin )
+   {
+      lock() ;
+      _recycleBinSet.insert( (ossValuePtr)recycleBin ) ;
+      unlock() ;
+   }
+
    void _sdbImpl::_unregCursor ( _sdbCursorImpl *cursor )
    {
       lock () ;
@@ -8302,6 +8676,13 @@ do                                                            \
       lock () ;
       _sequences.erase ( (ossValuePtr)sequence ) ;
       unlock () ;
+   }
+
+   void _sdbImpl::_unregRecycleBin( _sdbRecycleBinImpl *recycleBin )
+   {
+      lock() ;
+      _recycleBinSet.erase( (ossValuePtr)recycleBin ) ;
+      unlock() ;
    }
 
    hashTable* _sdbImpl::_getCachedContainer() const
@@ -9304,6 +9685,9 @@ do                                                            \
       case SDB_SNAP_TRANSDEADLOCK :
          p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSDEADLOCK ;
          break ;
+      case SDB_SNAP_RECYCLEBIN :
+         p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_RECYCLEBIN ;
+         break ;
       default :
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -9420,6 +9804,9 @@ do                                                            \
          break ;
       case SDB_LIST_DATASOURCES:
          p = CMD_ADMIN_PREFIX CMD_NAME_LIST_DATASOURCES ;
+         break ;
+      case SDB_LIST_RECYCLEBIN:
+         p = CMD_ADMIN_PREFIX CMD_NAME_LIST_RECYCLEBIN ;
          break ;
       default :
          rc = SDB_INVALIDARG ;
@@ -11546,6 +11933,50 @@ do                                                            \
       if ( NULL != pDC )
       {
          delete pDC ;
+      }
+      goto done ;
+   }
+
+   INT32 _sdbImpl::getRecycleBin( _sdbRecycleBin **recycleBin )
+   {
+      INT32 rc                  = SDB_OK ;
+
+      _sdbRecycleBin *pRecycleBin = NULL ;
+
+      // check
+      if ( NULL == _sock )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+      if ( NULL == recycleBin )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      // build recycle bin object
+      pRecycleBin =
+            (_sdbRecycleBin *)( new( std::nothrow ) _sdbRecycleBinImpl() ) ;
+      if ( NULL == pRecycleBin )
+      {
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+      // register
+      ( (_sdbRecycleBinImpl *)pRecycleBin )->_setConnection( this ) ;
+
+      // return the newly build recycle bin object
+      *recycleBin = pRecycleBin ;
+
+   done:
+      return rc ;
+
+   error:
+      if ( NULL != pRecycleBin )
+      {
+         delete pRecycleBin ;
       }
       goto done ;
    }

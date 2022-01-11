@@ -7570,4 +7570,116 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATUPDATERECYCLEBINCONF, "catUpdateRecycleBinConf" )
+   INT32 catUpdateRecycleBinConf( const utilRecycleBinConf &newConf,
+                                  pmdEDUCB *cb,
+                                  INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATUPDATERECYCLEBINCONF ) ;
+
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
+      SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
+
+      try
+      {
+         BOOLEAN rewriteAll = TRUE ;
+
+         utilRecycleBinConf oldConf ;
+
+         BSONElement ele ;
+         BSONObj dummy, result ;
+         BSONObj matcher = BSON( FIELD_NAME_TYPE << CAT_BASE_TYPE_GLOBAL_STR ) ;
+         BSONObjBuilder builder ;
+         BSONObjBuilder subBuilder( builder.subobjStart( "$set" ) ) ;
+         BSONObj updator ;
+
+         rc = catGetOneObj( CAT_SYSDCBASE_COLLECTION_NAME, dummy, matcher,
+                            dummy, cb, result ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get DC info from "
+                      "collection [%s], rc: %d",
+                      CAT_SYSDCBASE_COLLECTION_NAME, rc ) ;
+
+         ele = result.getField( FIELD_NAME_RECYCLEBIN ) ;
+         if ( EOO == ele.type() )
+         {
+            PD_LOG( PDINFO, "Field [%s] is empty, need initialize",
+                    FIELD_NAME_RECYCLEBIN ) ;
+            rewriteAll = TRUE ;
+         }
+         else if ( Object != ele.type() )
+         {
+            PD_LOG( PDWARNING, "Failed to get field [%s], "
+                    "it is not an object, ele [%s]",
+                    FIELD_NAME_RECYCLEBIN, ele.toPoolString().c_str() ) ;
+            rewriteAll = TRUE ;
+         }
+         else
+         {
+            rc = oldConf.fromBSON( result ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get recycle bin info "
+                         "from BSON, rc: %d", rc ) ;
+         }
+         if ( rewriteAll ||
+              oldConf.getEnable() != newConf.getEnable() )
+         {
+            subBuilder.appendBool(
+                  FIELD_NAME_RECYCLEBIN"."FIELD_NAME_ENABLE,
+                  newConf.getEnable() ) ;
+         }
+         if ( rewriteAll ||
+              oldConf.getExpireTime() != newConf.getExpireTime() )
+         {
+            subBuilder.append(
+                  FIELD_NAME_RECYCLEBIN"."FIELD_NAME_EXPIRETIME,
+                  newConf.getExpireTime() ) ;
+         }
+         if ( rewriteAll ||
+              oldConf.getMaxItemNum() != newConf.getMaxItemNum() )
+         {
+            subBuilder.append(
+                  FIELD_NAME_RECYCLEBIN"."FIELD_NAME_MAXITEMNUM,
+                  newConf.getMaxItemNum() ) ;
+         }
+         if ( rewriteAll ||
+              oldConf.getMaxVersionNum() != newConf.getMaxVersionNum() )
+         {
+            subBuilder.append(
+                  FIELD_NAME_RECYCLEBIN"."FIELD_NAME_MAXVERNUM,
+                  newConf.getMaxVersionNum() ) ;
+         }
+         if ( rewriteAll ||
+              oldConf.getAutoDrop() != newConf.getAutoDrop() )
+         {
+            subBuilder.appendBool(
+                  FIELD_NAME_RECYCLEBIN"."FIELD_NAME_AUTODROP,
+                  newConf.getAutoDrop() ) ;
+         }
+         subBuilder.doneFast() ;
+         updator = builder.done() ;
+
+         rc = rtnUpdate( CAT_SYSDCBASE_COLLECTION_NAME, matcher, updator,
+                         dummy, 0, cb, dmsCB, dpsCB, w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Fail to update obj [%s] to "
+                      "collection [%s], rc: %d", updator.toString().c_str(),
+                      CAT_SYSDCBASE_COLLECTION_NAME, rc ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to update recycle bin, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATUPDATERECYCLEBINCONF, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 }
