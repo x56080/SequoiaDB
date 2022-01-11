@@ -47,6 +47,12 @@ namespace vessel
       ossMemset(_wptr, v, _size);
    }
 
+   void strictBuffer::setBuffer(UINT32 offset, UINT32 size, CHAR v)
+   {
+      SDB_ASSERT(isWritable(), "must be writable");
+      ossMemset(_wptr + offset, v, size);
+   }
+
    INT32 strictBuffer::write(UINT32 offset, UINT32 size, const void *data)
    {
       INT32 rc = SDB_OK;

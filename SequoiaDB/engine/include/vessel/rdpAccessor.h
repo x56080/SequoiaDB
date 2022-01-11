@@ -69,12 +69,20 @@ namespace vessel
          INT32 insertNormalRecord(dmlContext *context,
                                   const dmlInsertRequest &request);
 
+         INT32 insertOverflowedRecord(dmlContext *context,
+                                      const slice &record,
+                                      recordID &rid);
 
          INT32 updateNormalRecord(dmlContext *context,
                                   RECORD_SLOT_POS  pos,
                                   const dmsStripingId &striping,
                                   const slice &newRowData,
                                   BOOLEAN &outOfSpace);
+         
+         INT32 setRecordOverflowed(dmlContext *context,
+                                   RECORD_SLOT_POS pos,
+                                   const dmsStripingId &striping,
+                                   const recordID &overflowAddr);
 
          INT32 deleteNormalRecord(dmlContext *context,
                                   RECORD_SLOT_POS  pos);
@@ -88,6 +96,9 @@ namespace vessel
                                normalRecordHead &rh,
                                slice &data)const;
 
+         INT32 getOverflowedRecord(RECORD_SLOT_POS pos,
+                                   overflowedRecord &ofr)const;
+
          const recordDataPageHead *getReadablePageHead()const;
 
          INT32 getRecordCount(UINT32 &count)const;
@@ -99,11 +110,16 @@ namespace vessel
                                        const dmlInsertRequest &request,
                                        RECORD_SLOT_POS  pos,
                                        UINT16 offset);
+         
+         INT32 insertOverflowedRecordToPos(dmlContext *context,
+                                           const slice &row,
+                                           RECORD_SLOT_POS pos,
+                                           UINT16 offset);
 
       private:
          void updatePageHeadWhenInsert(RECORD_SLOT_POS  pos,
                                        const recordSlot &slot,
-                                       const normalRecordHead &rh,
+                                       const DPS_TRANS_ID &transID,
                                        const dmsStripingId &striping);
 
          void updateStripingInfo(recordDataPageHead *head,

@@ -192,8 +192,12 @@ namespace vessel
       }
       else
       {
-         SDB_ASSERT(FALSE, "TODO");
-         rc = SDB_VESSEL_INTERNAL_ERR;
+         rc = fetchOverflowedRecord(pos);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to fetch overflowed record:%d", rc);
+            goto error;
+         }
       }
    done:
       return rc;
@@ -241,6 +245,75 @@ namespace vessel
       _transID.setNodeID(rh.transNode);
       _transID.setSN(rh.transSN);
       _recordData = recordData;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 rdpRecordScanner::fetchOverflowedRecord(RECORD_SLOT_POS pos)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(INVALID_RECORD_SLOT_POS  != pos, "can not be invalid");
+
+      overflowedRecord ofr;
+      slice recordData;
+      normalRecordHead rh;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
+      LPS_OBJ_PTR lps;
+      rdpAccessor accessor;
+      logicalPageBuffer lpb;
+
+      rc = _accessor.getOverflowedRecord(pos, ofr);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get overflowed record at[%d], rc:%d", pos, rc);
+         goto error;
+      }
+
+      SDB_ASSERT(!ofr.isBigRecord(), "TODO");
+      lps = LPS_OBJ_PTR(_lpb.getLogicalPageSpace());
+      if (!lps.isValid())
+      {
+         PD_LOG(PDERROR, "failed to get lps[%d]", _context->getSpaceID());
+      }
+
+      rc = lps->getLogicalPageBuffer(_context, ofr.lpid, mode, lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get lpb[%d], rc:%d", ofr.lpid, rc);
+         goto error;
+      }
+
+      rc = accessor.init(_context, &lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init rdp accessor:%d", rc);
+         goto error;
+      }
+
+      rc = accessor.getNormalRecord(ofr.pos, rh, recordData);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get normal record at [%d], rc:%d", ofr.pos, rc);
+         goto error;
+      }
+      _recordBuffer = _context->allocateBuffer(recordData.getSize());
+      if (NULL == _recordBuffer)
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to allocate buffer, rc:%d", rc);
+         goto error;
+      }
+      _recordBufferSize = recordData.getSize();
+      ossMemcpy(_recordBuffer, recordData.getData(), _recordBufferSize);
+      
+      _pos = pos;
+      _recordType = RDP_RECORD_HEAD_OVERFLOW;
+      _transID.setNodeID(rh.transNode);
+      _transID.setSN(rh.transSN);
+      _recordData = slice(_recordBufferSize, _recordBuffer);
    done:
       return rc;
    error:

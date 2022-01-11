@@ -242,6 +242,18 @@ namespace vessel
                                         const dmlInsertRequest &request,
                                         fsmCandidate &candidate,
                                         BOOLEAN &outOfSpace);
+         
+         INT32 insertOverflowedRecord(dmlContext *context,
+                                      const slice &newRowData,
+                                      const dmsStripingId &striping,
+                                      recordID &rid);
+
+         INT32 insertOverflowAndUpdateCandidate(dmlContext *context,
+                                                const slice &newRowData,
+                                                const dmsStripingId &striping,
+                                                fsmCandidate &candidate,
+                                                BOOLEAN &outOfSpace,
+                                                recordID &rid);
 
          INT32 updateRecordData(dmlContext *context,
                                 const modifyRecordContext *mrc,
