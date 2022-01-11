@@ -1413,6 +1413,68 @@ namespace vessel
       goto done;
    }
 
+   INT32 collection::insertOverflowedRecord(dmlContext *context,
+                                            const slice &newRowData,
+                                            const dmsStripingId &striping,
+                                            recordID &rid)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(newRowData.isValid(), "can not be invalid");
+      UINT32 size = estimateNormalRecordSavingSize(newRowData.getSize());
+      INT32 targetLvl = getFsmSpaceLvl(getDataPageSize(), size);
+      PAGE_ID lpid = INVALID_PAGE_ID;
+      fsmCandidate candidate;
+      
+      rid.reset();
+      do
+      {
+         BOOLEAN outOfSpace = FALSE;
+         rc = findCandidate(context, targetLvl,
+                            striping,
+                            candidate);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to find free space for record:%d", rc);
+            goto error;
+         }
+
+         lpid = candidate.getLpid();
+         if (INVALID_PAGE_ID == lpid)
+         {
+            rc = getLpidBySequence(context, candidate.getSeq(), lpid);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to find lpid of seq[%d], rc:%d",
+                      candidate.getSeq(), rc);
+               goto error;
+            }
+
+            candidate.setLpid(lpid);
+         }
+
+         rc = insertOverflowAndUpdateCandidate(context, newRowData, striping, 
+                                               candidate, outOfSpace, rid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to insert record to page:%d", rc);
+            goto error;
+         }
+
+         candidate.reset();
+         if (!outOfSpace)
+         {
+            break;
+         }
+      }while(TRUE);
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 collection::insertAndUpdateCandidate(dmlContext *context,
                                               const dmlInsertRequest &request,
                                               fsmCandidate &candidate,
@@ -1490,6 +1552,89 @@ namespace vessel
       return rc;
    error:
       goto done;
+   }
+
+   INT32 collection::insertOverflowAndUpdateCandidate(dmlContext *context,
+                                                      const slice &newRowData,
+                                                      const dmsStripingId &striping,
+                                                      fsmCandidate &candidate,
+                                                      BOOLEAN &outOfSpace,
+                                                      recordID &rid)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context && context->isMbContextAttached(),
+                 "can not be invalid");
+      SDB_ASSERT(newRowData.isValid(), "can not be invalid");
+      SDB_ASSERT(candidate.isValid() && INVALID_PAGE_ID != candidate.getLpid(),
+                 "can not be invalid");
+
+      logicalPageBuffer lpb;
+      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      rdpAccessor accessor;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_UPGRADE);
+      const runtimeMbContext *mbContext = context->getMbContext();
+
+      outOfSpace = FALSE;
+      rid.reset();
+
+      rc = mds.getLogicalPageBuffer(context, candidate.getLpid(), mode, lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get buffer of lpid[%d], rc:%d",
+                candidate.getLpid(), rc);
+         goto error;
+      }
+
+      /// candidate may be reset by prewriter.
+      if (candidate.getSpaceLvl() == FSM_INVALID_SPACE_LVL)
+      {
+         outOfSpace = TRUE;
+         goto done;
+      }
+
+      rc = accessor.init(context, &lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init accessor:%d", rc);
+         goto error;
+      }
+
+      SDB_ASSERT(candidate.getSeq() == accessor.getReadablePageHead()->pageSeq,
+                 "must be same");
+
+      rc = accessor.insertOverflowedRecord(context, newRowData, rid);
+      if (SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE == rc)
+      {
+         candidate.getInfoPtr()->_lvl = FSM_INVALID_SPACE_LVL;
+         outOfSpace = TRUE;
+         rc = SDB_OK;
+         goto done;
+      }
+      else if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to insert normal record into page:%d", rc);
+         goto error;
+      }
+
+      if (accessor.getFreeSpacePercent() < mbContext->getFloatMinFreePercent())
+      {
+         candidate.getInfoPtr()->_lvl = FSM_INVALID_SPACE_LVL;
+      }
+      else
+      {
+         INT32 newLvl = getFsmSpaceLvl(lpb.getPageSize(), accessor.getFreeSpaceAfterLastSlot());
+         if (candidate.getSpaceLvl() != newLvl)
+         {
+            candidate.getInfoPtr()->_lvl = newLvl;
+         }
+      }
+
+   done:
+      lpb.fini();
+      return rc;
+   error:
+      goto done;
+
    }
 
    INT32 collection::findCandidate(requestContext *context,
@@ -4266,7 +4411,25 @@ namespace vessel
 
       if (outOfSpace)
       {
-         SDB_ASSERT(FALSE, "TODO");
+         recordID orid;
+         //TODO:attach oplist
+         rc = insertOverflowedRecord(context, newRecord, striping, orid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, 
+                   "failed to insert overflowed record, rc:%d", 
+                    rc);
+            goto error;
+         }
+
+         rc = accessor.setRecordOverflowed(context, rid.getPos(), striping, orid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, 
+                   "failed to set record to overflowed, rc:%d", 
+                   rc);
+            goto error;
+         }
       }
 
       lpb.fini();

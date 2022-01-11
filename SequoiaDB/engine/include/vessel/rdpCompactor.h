@@ -71,13 +71,12 @@ namespace vessel
          }
          UINT32 getSlotCount()const {return _totalSlotCount;}
          UINT32 getFreeSpace()const {return _totalFreeSpace;}
-         UINT32 getBufferSize()const {return _bufferSize;}
+         UINT32 getBufferSize()const;
 
          const CHAR* getBuffer();
 
       private:
          strictBuffer _buffer;
-         UINT32 _bufferSize = 0;
          UINT32 _backOffset = 0;
          UINT32 _frontOffset = 0;  
          UINT32 _totalFreeSpace = 0;

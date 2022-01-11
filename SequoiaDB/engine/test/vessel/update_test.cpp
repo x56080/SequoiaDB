@@ -572,3 +572,94 @@ TEST_F(update_test, base_update_test5)
 
    db.close(&executor, closeDBOptions());
 }
+
+/*
+Name: base_update_test6
+Description: 
+   普通记录更新为overflowed记录
+   1. 插入多条记录
+   2. 更新第一条记录为overflowed(更新长度超过该页剩余空闲空间)
+   3. 更新后验证该记录及其他记录正确性
+Expected Result: 
+   记录更新正确
+*/
+TEST_F(update_test, base_update_test6)
+{
+   vesselImpl db;
+   outerResource resource = test_outer_resource::getResource();
+   test_executor executor;
+   openDBOptions options;
+   DATA_COLLECTION_PTR handler;
+   options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+   dmsCreateCLOptions clOptions;
+   clOptions.pageMinFreePercent = 0;
+   INT32 rc = SDB_OK;
+   UINT32 count = 100;
+   bson::BSONObjBuilder builder;
+   ossPoolVector<dmsRecordID> rids;
+
+   rc = db.open(&executor, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCS(&executor, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCL(&executor, "foo.bar", 1, clOptions, bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCL(&executor, "foo.bar", dmsOpenCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+
+   // build records
+   string insertStr(2000, 'a');
+   string updateStr(5000, 'b');
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      utilInsertResult insertRes;
+      builder.append("a", insertStr);
+      bson::BSONObj obj = builder.done();
+      insertRes.enableReturnIDInfo();
+      rc = handler->insertRecord(&executor, obj, dmsInsertRecordOptions(), &insertRes);
+      ASSERT_EQ(SDB_OK, rc);
+
+      INT32 page, slot;
+      insertRes.getInsertLoc(page, slot);
+      dmsRecordID rid(page, slot);
+      rids.push_back(rid);
+      builder.reset();
+   }
+
+   bsonRecordUpdater updater;
+   mthModifier modifier;
+   bson::BSONObj pattern = BSON("$set" << BSON("a" << updateStr));
+   rc = modifier.loadPattern(pattern);
+   ASSERT_EQ(SDB_OK , rc);
+   updater.setModifier(&modifier);
+
+   utilUpdateResult updateRes;
+   rc = handler->updateRecord(&executor, rids[0], &updater,
+                              dmsUpdateRecordOptions(), &updateRes);
+   ASSERT_EQ(SDB_OK, rc);
+
+   DATA_CURSOR_PTR cursor;
+   rc = handler->scan(&executor, dmsScanOptions(), cursor);
+   ASSERT_EQ(SDB_OK, rc);
+
+   dmsBsonCursorReader reader;
+   reader.init(cursor, FALSE);
+   rc = reader.fetchNext(&executor);
+   ASSERT_EQ(SDB_OK, rc);
+   const bson::BSONObj &r = reader.getRecord();
+   ASSERT_EQ(r.getStringField("a"), updateStr);
+   for (UINT32 i = 0; i < count - 1; ++i)
+   {
+      rc = reader.fetchNext(&executor);
+      ASSERT_EQ(SDB_OK, rc);
+      const bson::BSONObj &r = reader.getRecord();
+      ASSERT_EQ(r.getStringField("a"), insertStr);
+   }
+   
+   db.close(&executor, closeDBOptions()); 
+}

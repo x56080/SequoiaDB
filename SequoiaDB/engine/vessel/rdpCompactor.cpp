@@ -43,15 +43,7 @@ namespace vessel
    
    rdpCompactor::rdpCompactor(CHAR* buf, UINT32 bufSize)
    {
-      SDB_ASSERT(NULL != buf, "can not be null");
-      SDB_ASSERT(0 < bufSize, "must be larger than zero");
-      ossMemset(buf, 0, bufSize);
-      _buffer.makeWritable(bufSize, buf);
-      _totalSlotCount = 0;
-      _totalFreeSpace = bufSize;
-      _frontOffset = 0;
-      _backOffset = bufSize;
-      _bufferSize = bufSize;
+      reset(buf, bufSize);
    }
 
    void rdpCompactor::reset(CHAR* buf, UINT32 bufSize)
@@ -64,7 +56,6 @@ namespace vessel
       _totalFreeSpace = bufSize;
       _frontOffset = 0;
       _backOffset = bufSize;
-      _bufferSize = bufSize;
    }
 
    INT32 rdpCompactor::push(const UINT16 &slotFlags,
@@ -184,7 +175,13 @@ namespace vessel
    const CHAR* rdpCompactor::getBuffer()
    {
       SDB_ASSERT(_buffer.isValid(), "must be valid");
-      return _buffer.getReadableBuffer().getReadablePtr(0, _bufferSize);
+      return _buffer.getReadableBuffer().getReadablePtr(0, getBufferSize());
+   }
+
+   UINT32 rdpCompactor::getBufferSize()const
+   {
+      SDB_ASSERT(_buffer.isValid(), "must be valid");
+      return _buffer.getSize();
    }
 }
 }

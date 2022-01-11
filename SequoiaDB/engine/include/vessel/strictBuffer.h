@@ -147,7 +147,8 @@ namespace vessel
          }
 
       public:
-         void setBuffer(CHAR v=0x00);
+         void setBuffer(CHAR v = 0x00);
+         void setBuffer(UINT32 offset, UINT32 size, CHAR v = 0x00);
          INT32 write(UINT32 offset, UINT32 size, const void *data);
          INT32 read(UINT32 offset, UINT32 size, void *data)const;
          slice getSlice(UINT32 offset, UINT32 size)const;
