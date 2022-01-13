@@ -8,7 +8,7 @@
 
 SDB_SNAP_TRANSACTIONS_CURRENT
 
-###字段信息###
+##字段信息##
 
 | 字段名                 | 类型     | 描述                                     |
 | ---------------------- | -------- | ---------------------------------------- |
@@ -17,12 +17,15 @@ SDB_SNAP_TRANSACTIONS_CURRENT
 | TransactionID          | 字符串   | 事务 ID                                  |
 | TransactionIDSN        | 长整型   | 事务序列号                               |
 | IsRollback             | 布尔型   | 表示这个事务是否处于回滚中               |
-| CurrentTransLSN        | 长整型   | 事务当前的日志LSN                        |
-| BeginTransLSN          | 长整型   | 事务开始的日志LSN                        |
-| WaitLock               | BSON对象 | 正在等待的锁                             |
+| CurrentTransLSN        | 长整型   | 事务当前的日志 LSN                        |
+| BeginTransLSN          | 长整型   | 事务开始的日志 LSN                        |
+| WaitLock               | BSON 对象 | 正在等待的锁                             |
 | TransactionLocksNum    | 整型     | 事务已经获得的锁                         |
+| IsLockEscalated        | 布尔型  | 事务是否已触发锁升级                     |
+| UsedLogSpace           | 长整型    | 事务已使用的日志空间，单位为字节         |
+| ReservedLogSpace       | 长整型    | 事务为回滚操作保留的日志空间，单位为字节 |
 | RelatedID              | 字符串   | 内部标示                                 |
-| GotLocks               | BSON数组 | 事务已经获得的锁列表                     |
+| GotLocks               | BSON 数组 | 事务已经获得的锁列表                     |
 
 ###锁对象信息###
 
@@ -32,10 +35,10 @@ WaitLock 和 GetLocks 字段中锁对象的信息：
 | ------------ | ---- | ------------------------ |
 | CSID         | 整型 | 锁对象所在集合空间的 ID  |
 | CLID         | 整型 | 锁对象所在集合的 ID      |
-| ExtentID     | 整型 | 锁对象所在记录的ID       |
+| ExtentID     | 整型 | 锁对象所在记录的 ID       |
 | Offset       | 整型 | 锁对象所在记录的偏移量   |
 | Mode         | 字符串 | 锁的类型，对应有"IS","IX","S","U"和"X" |
-| Count        | 整型 | 锁计数器(只在GetLocks中存在) |
+| Count        | 整型 | 锁计数器(只在 GetLocks 中存在) |
 | Duration     | 整型 | 锁的持有或等待时间，单位：毫秒 |
 
 ###锁对象的描述###
@@ -44,7 +47,7 @@ WaitLock 和 GetLocks 字段中锁对象的信息：
 
 | 锁对象       | CSID | CLID  | ExtentID | Offset | 备注 |
 | ------------ | ---- | ----- | ---- | ---- | ------------ |
-| 没有锁对象   | -1   | 65535 | -1   | -1   | 一般在WaitLock为没有锁对象时，表示当前事务没有在等待锁 |
+| 没有锁对象   | -1   | 65535 | -1   | -1   | 一般在 WaitLock 为没有锁对象时，表示当前事务没有在等待锁 |
 | 集合空间锁   | >= 0 | 65535 | -1   | -1   | |
 | 集合锁       | >= 0 | >= 0  | -1   | -1   | |
 | 记录锁       | >= 0 | >= 0  | >= 0 | >= 0 | |
@@ -52,9 +55,9 @@ WaitLock 和 GetLocks 字段中锁对象的信息：
 ##示例##
 
 ```lang-javascript
-> db.snapshot( SDB_SNAP_TRANSACTIONS_CURRENT )
+> db.snapshot(SDB_SNAP_TRANSACTIONS_CURRENT)
 {
-  "NodeName": "ubuntu1604-xjh:20000",
+  "NodeName": "sdbserver:20000",
   "SessionID": 89,
   "TransactionID": "03e80000000001",
   "TransactionIDSN": 1,
@@ -63,6 +66,9 @@ WaitLock 和 GetLocks 字段中锁对象的信息：
   "BeginTransLSN": 491325292,
   "WaitLock": {},
   "TransactionLocksNum": 3,
+  "IsLockEscalated": false,
+  "UsedLogSpace": 100,
+  "ReservedLogSpace": 116,
   "RelatedID": "c0a81457c35000006b75",
   "GotLocks": [
     {

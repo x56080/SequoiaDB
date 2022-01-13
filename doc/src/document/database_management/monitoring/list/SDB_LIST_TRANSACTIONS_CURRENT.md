@@ -8,7 +8,7 @@
 
 SDB_LIST_TRANSACTIONS_CURRENT
 
-###字段信息###
+##字段信息##
 
 | 字段名                 | 类型     | 描述                                     |
 | ---------------------- | -------- | ---------------------------------------- |
@@ -17,9 +17,12 @@ SDB_LIST_TRANSACTIONS_CURRENT
 | SessionID              | 长整型   | 会话 ID                                  |
 | TransactionID          | 字符串   | 事务 ID                                  |
 | IsRollback             | 布尔型   | 表示这个事务是否处于回滚中               |
-| CurrentTransLSN        | 长整型   | 事务当前的日志LSN                        |   
+| CurrentTransLSN        | 长整型   | 事务当前的日志 LSN                        |   
 | WaitLock               | BSON对象 | 正在等待的锁                             |
 | TransactionLocksNum    | 整型     | 事务已经获得的锁                         |
+| IsLockEscalated        | 布尔型  | 事务是否已触发锁升级                     |
+| UsedLogSpace           | 长整型    | 事务已使用的日志空间，单位为字节         |
+| ReservedLogSpace       | 长整型    | 事务为回滚操作保留的日志空间，单位为字节 |
 | RelatedID              | 字符串   | 内部标示                                 |
 
 ###锁对象信息###
@@ -41,7 +44,7 @@ WaitLock 字段中锁对象的信息：
 
 | 锁对象       | CSID | CLID  | ExtentID | Offset | 备注 |
 | ------------ | ---- | ----- | ---- | ---- | ------------ |
-| 没有锁对象   | -1   | 65535 | -1   | -1   | 一般在WaitLock为没有锁对象时，表示当前事务没有在等待锁 |
+| 没有锁对象   | -1   | 65535 | -1   | -1   | 一般在 WaitLock 为没有锁对象时，表示当前事务没有在等待锁 |
 | 集合空间锁   | >= 0 | 65535 | -1   | -1   | |
 | 集合锁       | >= 0 | >= 0  | -1   | -1   | |
 | 记录锁       | >= 0 | >= 0  | >= 0 | >= 0 | |
@@ -51,7 +54,7 @@ WaitLock 字段中锁对象的信息：
 ```lang-javascript
 > db.list(SDB_LIST_TRANSACTIONS_CURRENT)
 {
-  "NodeName": "ubuntu1604-xjh:20000",
+  "NodeName": "sdbserver:20000",
   "GroupName": "db1",
   "SessionID": 89,
   "TransactionID": "03e80000000001",
@@ -59,7 +62,9 @@ WaitLock 字段中锁对象的信息：
   "CurrentTransLSN": -1,
   "WaitLock": {},
   "TransactionLocksNum": 3,
+  "IsLockEscalated": false,
+  "UsedLogSpace": 100,
+  "ReservedLogSpace": 116,
   "RelatedID": "c0a81457c35000006b75"
 }
-Return 1 row(s).
 ```

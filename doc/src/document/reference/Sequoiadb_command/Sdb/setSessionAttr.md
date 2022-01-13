@@ -89,15 +89,21 @@ options（ *object，必填* ）
 
     格式：`TransRCCount : true`
 
-- TransMaxLockNum（ *number* ）：会话事务在一个数据节点上可以持有最大的记录锁个数
+- TransMaxLockNum（ *number* ）：会话事务在一个数据节点上可以持有最大的记录锁个数，默认值为 10000，取值范围为[-1, 2^31 - 1]。
+
+    该参数取值为 -1 时，表示事务对记录锁的个数无限制；取值为 0 时，表示事务不使用记录锁，直接使用集合锁。
 
     格式：`TransMaxLockNum : 10000`
 
-- TransAllowLockEscalation（ *boolean* ）：会话事务持有记录锁个数超过参数 TransMaxLockNum 设置的值后，是否允许锁升级
+- TransAllowLockEscalation（ *boolean* ）：会话事务持有记录锁个数超过参数 TransMaxLockNum 设置的值后，是否允许锁升级，默认值为 true，表示允许锁升级。
+
+    如果事务持有的记录锁个数达到上限，但该参数的值为 false，事务操作将报错。
 
     格式：`TransAllowLockEscalation : true`
 
-- TransMaxLogSpaceRatio（ *number* ）：会话事务在一个数据节点上可以使用的最大日志空间比例(%)
+- TransMaxLogSpaceRatio（ *number* ）：会话事务在一个数据节点上可以使用的最大日志空间比例(%)，默认值为 50，取值范围为[1, 50]。
+
+    该参数表示事务占数据节点日志空间总大小（日志空间总大小=logfilesz*logfilenum）的最大百分比。当事务使用的日志空间达到上限时，事务操作将报错。
 
     格式：`TransMaxLogSpaceRatio : 50`
 
