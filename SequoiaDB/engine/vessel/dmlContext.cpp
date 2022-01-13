@@ -300,6 +300,10 @@ namespace vessel
       _mrc.setOverflowInfo(isBigRecord, addr);
    }
    
+   void dmlContext::setStripingId(const dmsStripingId &striping)
+   {
+      _striping = striping;
+   }
 
 }//namespace vessel
 }//namespace engine

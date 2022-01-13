@@ -49,6 +49,7 @@
 #include "vessel/dmlIndexRequest.h"
 #include "vessel/scanEntry.h"
 #include "vessel/modifyRecordContext.h"
+#include "dmsStripingId.hpp"
 
 namespace engine
 {
@@ -111,6 +112,10 @@ namespace vessel
 
          void setMrcOverflowInfo(BOOLEAN isBigRecord,
                                  const recordID &addr);
+         
+         void setStripingId(const dmsStripingId &striping);
+
+         const dmsStripingId &getStripingId()const{return _striping;}
       public:
          INT32 lockUniqueIndexKeys(const dmlIndexRequestArray &ra);
          void unlockUniqueKeys();
@@ -133,6 +138,7 @@ namespace vessel
          DPS_LSN_OFFSET _lsn = DPS_INVALID_LSN_OFFSET;
          recordID _rid;
          modifyRecordContext _mrc;
+         dmsStripingId _striping;
    };//class dmlContext
 }//namespace vessel
 }//namespace engine

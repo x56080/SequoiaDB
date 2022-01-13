@@ -1191,12 +1191,12 @@ namespace engine
             builder.subarrayStart( MTH_OPERATOR_STR_AND ) ) ;
          subBuilder.append( BSON( FIELD_NAME_DATASOURCE_ID <<
                                   BSON( MTH_OPERATOR_STR_EXISTS << 1 ) ) ) ;
-         subBuilder.append( BSON( FIELD_NAME_CATALOGINFO"."FIELD_NAME_GROUPNAME
+         subBuilder.append( BSON( FIELD_NAME_CATALOGINFO "." FIELD_NAME_GROUPNAME
                                   << "DataSource" ) ) ;
          subBuilder.done() ;
          matcher = builder.done() ;
          updator = BSON( "$set" <<
-                         BSON( FIELD_NAME_CATALOGINFO".0."FIELD_NAME_GROUPNAME
+                         BSON( FIELD_NAME_CATALOGINFO ".0." FIELD_NAME_GROUPNAME
                                << CAT_DATASOURCE_GROUPNAME ) ) ;
 
          PD_LOG( PDDEBUG, "Update collection SYSCOLLECTIONS. Matcher: %s. "

@@ -989,7 +989,7 @@ namespace vessel
                !rrs->isNormalRecord())
       {
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-         PD_LOG(PDERROR, "invalid, invisible and non-normal record" 
+         PD_LOG(PDERROR, "invalid, invisible and non-normal record " 
                          "cannot be set to overflowed, rc:%d", rc);
          goto error;
       }
@@ -1043,6 +1043,7 @@ namespace vessel
       wrs->reserved = 0;
 
       whead->totalFreeSpace += deltaSize;
+      ++whead->outerRecordCount;
       updateStripingInfo(whead, striping);
       updateMaxTransSN(whead, transID.getSN());
 
@@ -1063,8 +1064,223 @@ namespace vessel
 
       _lpb->commit(lrc.getLsn());
       context->setDmlLSN(lrc.getLsn());
-      context->setDmlRecordInfo(whead->pageSeq, recordID(_lpb->getLogicalPid(), pos));
 
+   done:
+      return rc;
+   error:
+      if (lrc.prepared())
+      {
+         pageAccessor::abortLog(context, &lrc);
+      }
+      goto done;
+
+   }
+
+   INT32 rdpAccessor::updateOverflowedInfo(dmlContext *context,
+                                           RECORD_SLOT_POS pos,
+                                           const dmsStripingId &striping,
+                                           const recordID &overflowAddr)
+   {
+      INT32 rc = SDB_OK;
+      strictBuffer buffer;
+      const recordDataPageHead *rhead = NULL;
+      recordDataPageHead *whead = NULL;
+      const recordSlot *rs = NULL;
+      overflowedRecord *ofr = NULL;
+      logRecordContext lrc;
+      DPS_TRANS_ID transID = context->getTransIDWithoutTag();
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       !isValidRecordSlotPosition(pos) ||
+                       !overflowAddr.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rhead = getReadablePageHead();
+      if (OSS_UNLIKELY(NULL == rhead))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to get readable page head, rc:%d", rc);
+         goto error;
+      }
+      else if (rhead->totalSlotCount < pos)
+      {
+         rc = SDB_OUT_OF_BOUND;
+         PD_LOG(PDERROR, "pos is out of page total slot count, rc:%d", rc);
+         goto error;
+      }
+
+      rs = getReadableSlot(pos);
+      if (OSS_UNLIKELY(NULL == rs))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to get readable slot[%d], rc:%d", pos, rc);
+         goto error;
+      }
+      else if (!rs->isValidAndVisible() || 
+               !rs->isOverflowedRecord())
+      {
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         PD_LOG(PDERROR, "can not update invalid record info, rc:%d", rc);
+         goto error;
+      }
+
+      rc = _lpb->autoGetWritableBodyBuffer(buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get writable buffer, rc:%d", rc);
+         goto error;
+      }
+
+      whead = buffer.getWritableObjPtr<recordDataPageHead>(0);
+      if (OSS_UNLIKELY(NULL == whead))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to get writable page head, rc:%d", rc);
+         goto error;
+      }
+      
+      ofr = buffer.getWritableObjPtr<overflowedRecord>(rs->offset);
+      ofr->lpid = overflowAddr.getPid();
+      ofr->pos = overflowAddr.getPos();
+      
+      // dummy log
+      rc = prepareInplaceUpdateLog(context, &(_lpb->getRuntimeBuffer()), &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare redo log:%d", rc);
+         goto error;
+      }
+
+      rc = pageAccessor::commitLog(context, &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
+         goto error;
+      }
+
+      _lpb->commit(lrc.getLsn());
+      context->setDmlLSN(lrc.getLsn());
+
+   done:
+      return rc;
+   error:
+      if (lrc.prepared())
+      {
+         pageAccessor::abortLog(context, &lrc);
+      }
+      goto done;
+
+   }
+
+   INT32 rdpAccessor::destroySlotAndData(dmlContext *context,
+                                         RECORD_SLOT_POS pos)
+   {
+      INT32 rc = SDB_OK;
+      strictBuffer buffer;
+      strictBuffer recordBuf;
+      logRecordContext lrc;
+      const recordDataPageHead *rhead = NULL;
+      recordDataPageHead *whead = NULL;
+      const recordSlot *rrs = NULL;
+      recordSlot *wrs = NULL;
+      UINT32 deltaSize = 0;
+      BOOLEAN isOverflowed = FALSE;
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       !isValidRecordSlotPosition(pos)))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rhead = getReadablePageHead();
+      if (OSS_UNLIKELY(NULL == rhead))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to get readable page head, rc:%d", rc);
+         goto error;
+      }
+      else if (rhead->totalSlotCount < pos)
+      {
+         rc = SDB_OUT_OF_BOUND;
+         PD_LOG(PDERROR, "pos is out of page total slot count, rc:%d", rc);
+         goto error;
+      }
+
+      rrs = getReadableSlot(pos);
+      if (OSS_UNLIKELY(NULL == rrs))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to get readable slot");
+         goto error;
+      }
+      else if (!rrs->isValid())
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "invalid slot[%d], rc:%d", pos, rc);
+         goto error;
+      }
+      isOverflowed = rrs->isOverflowedRecord();
+
+      rc = _lpb->autoGetWritableBodyBuffer(buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get writable buffer, rc:%d", rc);
+         goto error;
+      }
+
+      whead = buffer.getWritableObjPtr<recordDataPageHead>(0);
+      if (OSS_UNLIKELY(NULL == whead))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to get writable page head, rc:%d", rc);
+         goto error;
+      }
+
+      wrs = getWritableSlot(buffer, pos);
+      if (OSS_UNLIKELY(NULL == wrs))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to get writable slot[%d], rc:%d", pos, rc);
+         goto error;
+      }
+
+      deltaSize = wrs->size;
+      recordBuf = buffer.getWritableBuffer(wrs->getMaxSpaceSize(), wrs->offset);
+      recordBuf.setBuffer(0);
+      wrs->reset();
+      
+      whead->totalFreeSpace += deltaSize;
+      if (INVALID_RECORD_SLOT_POS == whead->firstFreeSlot ||
+          pos < whead->firstFreeSlot)
+      {
+         whead->firstFreeSlot = pos;
+      }
+      if (isOverflowed)
+      {
+         SDB_ASSERT(0 < whead->outerRecordCount, "impossible");
+         --whead->outerRecordCount;
+      }
+
+      // dummy log
+      rc = prepareInplaceUpdateLog(context, &(_lpb->getRuntimeBuffer()), &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare redo log:%d", rc);
+         goto error;
+      }
+
+      rc = pageAccessor::commitLog(context, &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
+         goto error;
+      }
+      _lpb->commit(lrc.getLsn());
+      context->setDmlLSN(lrc.getLsn());
    done:
       return rc;
    error:
@@ -1155,8 +1371,11 @@ namespace vessel
          head->totalFreeSpace -= delta;
       }
 
-      updateStripingInfo(head, striping);
-      updateMaxTransSN(head, transID.getSN());
+      if (!rs->isInvisible())
+      {
+         updateStripingInfo(head, striping);
+         updateMaxTransSN(head, transID.getSN());
+      }
 
       ///dummy log
       rc = prepareInplaceUpdateLog(context, &(_lpb->getRuntimeBuffer()), &lrc);
@@ -1175,7 +1394,6 @@ namespace vessel
 
       _lpb->commit(lrc.getLsn());
       context->setDmlLSN(lrc.getLsn());
-      context->setDmlRecordInfo(head->pageSeq, recordID(_lpb->getLogicalPid(), pos));
    done:
       return rc;
    error:
@@ -1263,8 +1481,11 @@ namespace vessel
       SDB_ASSERT(deltaSize <= head->totalFreeSpace, "impossible");
       head->totalFreeSpace -= deltaSize;
       head->backOffset = offset;
-      updateStripingInfo(head, striping);
-      updateMaxTransSN(head, transID.getSN());
+      if (!rs->isInvisible())
+      {
+         updateStripingInfo(head, striping);
+         updateMaxTransSN(head, transID.getSN());
+      }
 
       ///dummy log
       rc = prepareInplaceUpdateLog(context, &(_lpb->getRuntimeBuffer()), &lrc);
@@ -1283,8 +1504,6 @@ namespace vessel
 
       _lpb->commit(lrc.getLsn());
       context->setDmlLSN(lrc.getLsn());
-      context->setDmlRecordInfo(head->pageSeq, 
-                                recordID(_lpb->getLogicalPid(), pos));
 
    done:
       return rc;
@@ -1309,12 +1528,13 @@ namespace vessel
       strictBuffer buffer; 
       const recordDataPageHead *rhead = NULL;
       recordDataPageHead *whead = NULL;
-      const recordSlot *rs = getReadableSlot(pos);
+      const recordSlot *rs = NULL;
       normalRecordHead rh;
 
       logRecordContext lrc;
       DPS_TRANS_ID transID = context->getTransIDWithoutTag();
       rdpCompactor compactor;
+      BOOLEAN isInvisible = FALSE;
 
       // compactor only needs slots and data
       UINT32 compactBufSize = getPageBodySize(_lpb->getPageSize())
@@ -1336,20 +1556,31 @@ namespace vessel
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
+
+      rs = getReadableSlot(pos);
+      if (OSS_UNLIKELY(NULL == rs))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to get readable slot");
+         goto error;
+      }
+
+      SDB_ASSERT(rs->isValid() && rs->isNormalRecord(), "impossible");
       SDB_ASSERT(row.getSize() + NORMAL_RECORD_HEAD_SIZE - rs->size <= 
                  rhead->totalFreeSpace, "not enough free space");
+      isInvisible = rs->isInvisible();
 
       for (UINT16 i = 0; i < rhead->totalSlotCount; ++i)
       {
-         rs = getReadableSlot(i);
-         if (OSS_UNLIKELY(NULL == rs))
+         const recordSlot *tmpRS = getReadableSlot(i);
+         if (OSS_UNLIKELY(NULL == tmpRS))
          {
             rc = SDB_VESSEL_INTERNAL_ERR;
             PD_LOG(PDERROR, "failed to get readable slot[%d]", i);
             goto error;
          }
 
-         if (!rs->isValid())
+         if (!tmpRS->isValid())
          {
             rc = compactor.pushEmptySlot();
             if (SDB_OK != rc)
@@ -1360,9 +1591,9 @@ namespace vessel
          }
          else if (i == pos)
          {
-            normalRecordHead compactRH = *(buffer.getReadableObjPtr<normalRecordHead>(rs->offset));
+            normalRecordHead compactRH = *(buffer.getReadableObjPtr<normalRecordHead>(tmpRS->offset));
             compactRH.setTransID(transID);
-            rc = compactor.push(rs->flags, rs->type, 
+            rc = compactor.push(tmpRS->flags, tmpRS->type, 
                                 slice(NORMAL_RECORD_HEAD_SIZE, &compactRH), 
                                 row);
             if (SDB_OK != rc)
@@ -1373,7 +1604,7 @@ namespace vessel
          }
          else
          {
-            rc = compactor.push(rs->flags, rs->type, buffer.getSlice(rs->offset, rs->size));
+            rc = compactor.push(tmpRS->flags, tmpRS->type, buffer.getSlice(tmpRS->offset, tmpRS->size));
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to compact the page");
@@ -1409,8 +1640,12 @@ namespace vessel
       whead->totalFreeSpace = compactor.getFreeSpace();
       whead->backOffset = compactor.getCorrectBackOffset();
       whead->totalSlotCount = compactor.getSlotCount();
-      updateStripingInfo(whead, striping);
-      updateMaxTransSN(whead, transID.getSN());
+
+      if (!isInvisible)
+      {
+         updateStripingInfo(whead, striping);
+         updateMaxTransSN(whead, transID.getSN());
+      }
 
       ///dummy log
       rc = prepareInplaceUpdateLog(context, &(_lpb->getRuntimeBuffer()), &lrc);
@@ -1429,8 +1664,6 @@ namespace vessel
 
       _lpb->commit(lrc.getLsn());
       context->setDmlLSN(lrc.getLsn());
-      context->setDmlRecordInfo(rhead->pageSeq, 
-                                recordID(_lpb->getLogicalPid(), pos));
 
    done:
       if (NULL != compactBuf)

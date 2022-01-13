@@ -84,8 +84,16 @@ namespace vessel
                                    const dmsStripingId &striping,
                                    const recordID &overflowAddr);
 
+         INT32 updateOverflowedInfo(dmlContext *context,
+                                    RECORD_SLOT_POS pos,
+                                    const dmsStripingId &striping,
+                                    const recordID &overflowAddr);
+
          INT32 deleteNormalRecord(dmlContext *context,
                                   RECORD_SLOT_POS  pos);
+
+         INT32 destroySlotAndData(dmlContext *context,
+                                  RECORD_SLOT_POS pos);
 
       public:
          UINT32 getFreeSpaceAfterLastSlot()const;

@@ -244,27 +244,28 @@ namespace vessel
          
          INT32 insertOverflowedRecord(dmlContext *context,
                                       const slice &newRowData,
-                                      const dmsStripingId &striping,
                                       recordID &rid);
 
          INT32 insertOverflowAndUpdateCandidate(dmlContext *context,
                                                 const slice &newRowData,
-                                                const dmsStripingId &striping,
                                                 fsmCandidate &candidate,
                                                 BOOLEAN &outOfSpace,
                                                 recordID &rid);
 
          INT32 updateRecordData(dmlContext *context,
-                                const dmsStripingId &striping,
                                 const slice &newRecord);
 
          INT32 updateNormalRecord(dmlContext *context,
-                                  const dmsStripingId &striping,
                                   const slice &newRecord);
 
-         INT32 updateIfOutOfSpace(dmlContext *context,
-                                  const dmsStripingId &striping,
-                                  const slice &newRecord);
+         INT32 updateOverflowedRecord(dmlContext *context,
+                                      const slice &newRecord);
+
+         INT32 overflowRecord(dmlContext *context,
+                              const slice &newRecord);
+
+         INT32 reoverflowRecord(dmlContext *context,
+                                const slice &newRecord);
 
          INT32 removeRecordData(dmlContext *context);
 
