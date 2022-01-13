@@ -100,10 +100,13 @@ function test ()
    { a: 21, b: SdbDate( Number( t2 ) ) },
    { a: 22, b: SdbDate( Number( t3 ) ) }];
 
-   var actRecs = cusorToArray( cl, findConf );
-   checkRec( actRecs, expRecs );
-   checkCount( cl, rawData.length, { b: { $type: 1, $et: 9 } } )
-
+   if ( commIsArmArchitecture() == false  )
+   {
+      var actRecs = cusorToArray( cl, findConf );
+      checkRec( actRecs, expRecs );
+      checkCount( cl, rawData.length, { b: { $type: 1, $et: 9 } } )
+   }
+   
    updateDatas( cl, findConf );
    var rc = cl.find( {}, { _id: { $include: 0 } } ).sort( { a: 1 } );
    checkUpdateRec( rc, rawData.length - 1, { up: { $type: 1, $et: 9 } } );
