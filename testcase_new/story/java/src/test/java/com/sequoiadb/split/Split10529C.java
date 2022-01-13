@@ -1,6 +1,7 @@
 package com.sequoiadb.split;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -117,7 +118,11 @@ public class Split10529C extends SdbTestBase {
 
             cl.alterCollection( ( BSONObject ) JSON.parse( "{ReplSize:3}" ) );
             // 检查修改结果，replsize 修改为3
+            System.out.println( new Date() + " " + this.getClass().getName()
+                    + " begin check repl size " );
             CheckReplSize( commSdb, 3 );
+            System.out.println( new Date() + " " + this.getClass().getName()
+                    + " end check repl size " );
             // check split task
             Assert.assertEquals( splitThread.isSuccess(), true,
                     splitThread.getErrorMsg() );
@@ -184,26 +189,22 @@ public class Split10529C extends SdbTestBase {
     class Split extends SdbThreadBase {
         @Override
         public void exec() throws Exception {
-            Sequoiadb sdb = null;
-            try {
-                sdb = new Sequoiadb( coordUrl, "", "" );
+            try ( Sequoiadb sdb = new Sequoiadb( coordUrl, "", "" )) {
                 DBCollection cl = sdb.getCollectionSpace( csName )
                         .getCollection( clName );
                 cl.split( srcGroupName, destGroupName,
                         ( BSONObject ) JSON.parse( "{sk:5000}" ),
                         ( BSONObject ) JSON.parse( "{sk:20000}" ) );
+                System.out.println( new Date() + " " + this.getClass().getName()
+                        + " begin check group data " );
                 checkGroupData( sdb, 15000, "{sk:{$gte:5000,$lt:20000}}", 15000,
                         destGroupName );
                 checkGroupData( sdb, 5000, "{sk:{$gte:0,$lt:5000}}", 5000,
                         srcGroupName );
-            } catch ( BaseException e ) {
-                throw e;
+                System.out.println( new Date() + " " + this.getClass().getName()
+                        + " end check group data " );
             } finally {
-                if ( sdb != null ) {
-                    sdb.close();
-                }
                 flag.set( true );
-
             }
         }
     }

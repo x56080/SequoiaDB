@@ -1,6 +1,7 @@
 package com.sequoiadb.datasrc;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import org.bson.BSONObject;
@@ -107,7 +108,11 @@ public class DataSource24223 extends SdbTestBase {
             insertRecords = DataSrcUtils.insertData( dbcl, recordNum, beginNo );
             queryMatcher = "{$and:[{no:{$gte:" + beginNo + "}},{no:{$lt:"
                     + endNo + "}}]}";
+            System.out.println( new Date() + " " + this.getClass().getName()
+                    + " begin check results , coordUrl:" + url );
             DataSrcUtils.checkRecords( dbcl, insertRecords, queryMatcher );
+            System.out.println( new Date() + " " + this.getClass().getName()
+                    + " end check results , coordUrl:" + url );
         }
 
         @ExecuteOrder(step = 2)
@@ -124,7 +129,11 @@ public class DataSource24223 extends SdbTestBase {
                 obj.put( "testa", "updatetest" + beginNo );
             }
 
+            System.out.println( new Date() + " " + this.getClass().getName()
+                    + " begin check results , coordUrl:" + url );
             DataSrcUtils.checkRecords( dbcl, insertRecords, queryMatcher );
+            System.out.println( new Date() + " " + this.getClass().getName()
+                    + " end check results , coordUrl:" + url );
         }
 
         @ExecuteOrder(step = 3)
@@ -136,7 +145,11 @@ public class DataSource24223 extends SdbTestBase {
             dbcl.delete( matcher );
             List< BSONObject > sublist = insertRecords.subList( 0, removeNum );
             insertRecords.removeAll( sublist );
+            System.out.println( new Date() + " " + this.getClass().getName()
+                    + " begin check results , coordUrl:" + url );
             DataSrcUtils.checkRecords( dbcl, insertRecords, queryMatcher );
+            System.out.println( new Date() + " " + this.getClass().getName()
+                    + " end check results , coordUrl:" + url );
             db.close();
         }
     }
