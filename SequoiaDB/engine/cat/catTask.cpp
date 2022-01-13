@@ -36,6 +36,7 @@
 #include "pdTrace.hpp"
 #include "catTrace.hpp"
 #include "rtn.hpp"
+#include "catCMDBase.hpp"
 
 using namespace bson ;
 
@@ -718,6 +719,8 @@ namespace engine
       clsTask* pMainTask = NULL ;
       clsIdxTask* pIdxTask = NULL ;
       clsIdxTask* pMainIdxTask = NULL ;
+      catCMDBase* pCommand = NULL ;
+      catCMDBase* pMainCommand = NULL ;
       ossPoolVector<BSONObj> subTaskInfoList ;
       INT64 contextID = -1 ;
       pmdKRCB* krcb = pmdGetKRCB() ;
@@ -736,7 +739,22 @@ namespace engine
 
       pIdxTask = (clsIdxTask*)pTask ;
 
-      // 2. remove/add group in this task
+      // 2. migrate task for split
+      rc = pIdxTask->buildMigrateGroup( srcGroupName, dstGroupName,
+                                        updator, matcher ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to migrate group from[%s] to [%s] in task[%d], "
+                   "rc: %d", srcGroupName, dstGroupName, pTask->taskID(), rc ) ;
+
+      rc = catUpdateTask( matcher, updator, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to update task, rc: %d",
+                   rc ) ;
+      PD_LOG( PDDEBUG,
+              "migrate group, update task, matcher: %s, updator: %s",
+              matcher.toString().c_str(), updator.toString().c_str() ) ;
+
+      // 3. remove/add group in this task
       //    Add group before remove group, because remove group may cause group
       //    count to be 0, so task status will change to Finished.
       if ( addDstGroup )
@@ -776,10 +794,28 @@ namespace engine
                  matcher.toString().c_str(), updator.toString().c_str() ) ;
       }
 
-      // 3. remove/add group in this task's main-task
+      // 4. if task finish, then we need to update metadata
+      if ( CLS_TASK_STATUS_FINISH == pTask->status() )
+      {
+         if ( pTask->commandName() )
+         {
+            rc = getCatCmdBuilder()->create( pTask->commandName(),
+                                             pCommand ) ;
+            PD_RC_CHECK ( rc, PDERROR,
+                          "Failed to create command[%s], rc: %d",
+                          pTask->commandName(), rc ) ;
+
+            rc = pCommand->postDoit( pTask, cb ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to post doit for command[%s], rc: %d",
+                         pTask->commandName(), rc ) ;
+         }
+      }
+
+      // 5. remove/add group in this task's main-task
       if ( pTask->hasMainTask() )
       {
-         // 3.1 new main-task
+         // 5.1 new main-task
          rc = catGetTask( pTask->mainTaskID(), mainObj, cb ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get task[%llu] object, rc: %d",
@@ -797,7 +833,7 @@ namespace engine
 
          pMainIdxTask = (clsIdxTask*)pMainTask ;
 
-         // 3.2 add group
+         // 5.2 add group
          if ( addDstGroup )
          {
             matcher = BSONObj() ;
@@ -816,9 +852,10 @@ namespace engine
             PD_LOG( PDDEBUG,
                     "add group, update task, matcher: %s, updator: %s",
                     matcher.toString().c_str(), updator.toString().c_str() ) ;
+
          }
 
-         // 3.3 remove group
+         // 5.3 remove group
          if ( removeSrcGroup )
          {
             matcher = BSONObj() ;
@@ -891,6 +928,24 @@ namespace engine
                     "remove group, update task, matcher: %s, updator: %s",
                     matcher.toString().c_str(), updator.toString().c_str() ) ;
          }
+
+         // 5.4 if task finish, then we need to update metadata
+         if ( CLS_TASK_STATUS_FINISH == pMainTask->status() )
+         {
+            if ( pMainTask->commandName() )
+            {
+               rc = getCatCmdBuilder()->create( pMainTask->commandName(),
+                                                pMainCommand ) ;
+               PD_RC_CHECK ( rc, PDERROR,
+                             "Failed to create command[%s], rc: %d",
+                             pMainTask->commandName(), rc ) ;
+
+               rc = pMainCommand->postDoit( pMainTask, cb ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to post doit for command[%s], rc: %d",
+                            pMainTask->commandName(), rc ) ;
+            }
+         }
       }
 
    done :
@@ -901,6 +956,14 @@ namespace engine
       if ( pMainTask )
       {
          clsReleaseTask( pMainTask ) ;
+      }
+      if ( pCommand )
+      {
+         getCatCmdBuilder()->release( pCommand ) ;
+      }
+      if ( pMainCommand )
+      {
+         getCatCmdBuilder()->release( pMainCommand ) ;
       }
       return rc ;
    error :
@@ -1291,6 +1354,7 @@ namespace engine
    error:
       goto done ;
    }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATTASKSTART, "catTaskStart" )
    INT32 catTaskStart ( const BSONObj &boQuery, pmdEDUCB *cb, INT16 w )
    {

@@ -2957,8 +2957,8 @@ namespace engine
       return catRemoveTask( matcher, checkExist, cb, w ) ;
    }
 
-   static INT32 queryTask( const BSONObj &matcher, pmdEDUCB *cb,
-                           ossPoolSet<UINT64> &taskSet )
+   static INT32 _queryTask( const BSONObj &matcher, pmdEDUCB *cb,
+                            ossPoolSet<UINT64> &taskSet )
    {
       INT32 rc = SDB_OK ;
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
@@ -3016,8 +3016,8 @@ namespace engine
       goto done ;
    }
 
-   static INT32 queryTask( const BSONObj &matcher, pmdEDUCB *cb,
-                           ossPoolMap<UINT64,UINT64> &taskMap )
+   static INT32 _queryTask( const BSONObj &matcher, pmdEDUCB *cb,
+                            ossPoolMap<UINT64,UINT64> &taskMap )
    {
       INT32 rc = SDB_OK ;
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
@@ -3082,8 +3082,8 @@ namespace engine
       goto done ;
    }
 
-   static INT32 updateMainTask( UINT64 mainTaskID,
-                                UINT64 subTaskID, pmdEDUCB *cb )
+   static INT32 _updateMainTaskByRemoveTask( UINT64 mainTaskID,
+                                             UINT64 subTaskID, pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
       BSONObj taskObj, matcher1, matcher2, updator, selector, dummyObj ;
@@ -3148,7 +3148,7 @@ namespace engine
          }
 
          rc = pMainTask->buildRemoveTaskBy( subTaskID, subTaskVec,
-                                       updator, matcher2 ) ;
+                                            updator, matcher2 ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to remove sub task[%llu], rc: %d",
                       subTaskID, rc ) ;
@@ -3225,7 +3225,7 @@ namespace engine
                          FIELD_NAME_IS_MAINTASK << true ) ;
 
          // get these task's id
-         rc = queryTask( matcher, cb, taskSet ) ;
+         rc = _queryTask( matcher, cb, taskSet ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to query task by matcher, rc: %d",
                       rc ) ;
@@ -3249,7 +3249,7 @@ namespace engine
          /// 3. if the task to be deleted is sub task
          matcher = BSON( CAT_COLLECTION_NAME << clName <<
                          FIELD_NAME_MAIN_TASKID << BSON( "$exists" << 1 ) ) ;
-         rc = queryTask( matcher, cb, taskMap ) ;
+         rc = _queryTask( matcher, cb, taskMap ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to query task by matcher, rc: %d",
                       rc ) ;
@@ -3263,7 +3263,7 @@ namespace engine
          for ( ossPoolMap<UINT64,UINT64>::iterator it = taskMap.begin() ;
                it != taskMap.end() ; it++ )
          {
-            rc = updateMainTask( it->second, it->first, cb ) ;
+            rc = _updateMainTaskByRemoveTask( it->second, it->first, cb ) ;
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to update main task[%llu], rc: %s",
                          it->second, rc ) ;
@@ -4190,7 +4190,8 @@ namespace engine
          }
          ob.done () ;
 
-         builder.append( IXM_FIELD_NAME_INDEX_FLAG, "Normal" ) ;
+         builder.append( IXM_FIELD_NAME_INDEX_FLAG,
+                         ixmGetIndexFlagDesp( IXM_INDEX_FLAG_NORMAL ) ) ;
 
          UINT16 idxType = 0 ;
          rc = ixmGetIndexType( indexDef, idxType ) ;

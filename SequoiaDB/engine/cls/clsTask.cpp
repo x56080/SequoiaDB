@@ -2453,15 +2453,14 @@ namespace engine
       {
          if ( _isSucceedTask( it->second ) )
          {
-            _succeededTasks-- ;
+            _decSucceededTasks() ;
          }
          else
          {
-            _failedTasks-- ;
+            _decFailedTasks() ;
          }
       }
-      _totalTasks-- ;
-      _changedMask |= CLS_IDX_MASK_TASKCOUNT ;
+      _decTotalTasks() ;
 
       _mapSubTask.erase( it ) ;
       _changedMask |= CLS_IDX_MASK_PULL_SUBTASK ;
@@ -2507,8 +2506,13 @@ namespace engine
          }
       }
 
+      // reset Groups
       _mapGroupInfo.clear() ;
       _changedMask |= CLS_IDX_MASK_GROUPS ;
+      _succeededGroups = 0 ;
+      _failedGroups = 0 ;
+      _totalGroups = 0 ;
+      _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
 
       // count Groups
       for ( groupIt = groupInfo.begin() ; groupIt != groupInfo.end() ; groupIt++ )
@@ -2524,16 +2528,15 @@ namespace engine
          {
             if ( _isSucceedGroup( newGroup ) )
             {
-               _succeededGroups++ ;
+               _incSucceededGroups() ;
             }
             else
             {
-               _failedGroups++ ;
+               _incFailedGroups() ;
             }
          }
+         _incTotalGroups() ;
       }
-      _totalGroups = _mapGroupInfo.size() ;
-      _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
 
       // other field
       _updateOtherBySubTaskInfo() ;
@@ -2542,6 +2545,77 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to build changed bson", rc ) ;
 
    done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSIDXTASK_BMGTGP, "_clsIdxTask::buildMigrateGroup" )
+   INT32 _clsIdxTask::buildMigrateGroup( const CHAR* srcGroup,
+                                         const CHAR* dstGroup,
+                                         BSONObj& updator,
+                                         BSONObj& matcher )
+   {
+      SDB_ASSERT( srcGroup && dstGroup, "group name can't be null" ) ;
+      SDB_ASSERT( !_isMainTask, "can't be used by main-task" ) ;
+
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CLSIDXTASK_BMGTGP ) ;
+      MAP_GROUP_INFO_IT dIt ;
+      MAP_GROUP_INFO_IT sIt ;
+
+      if ( CLS_TASK_STATUS_FINISH == _status )
+      {
+         PD_LOG( PDWARNING, "Task[%llu] has already finished", _taskID ) ;
+         goto done ;
+      }
+      if ( CLS_TASK_DROP_IDX != _taskType )
+      {
+         goto done ;
+      }
+
+      // Split and drop index are concurrent. If target group has completed
+      // drop-index task( no index ), while source group hasn't complete the
+      // task( has index ). Target group will replay the indexes of source group
+      // while splitting, so target group may recreate index. Therefore, we
+      // should migrate the (drop-index) tasks of source group to target group.
+      dIt = _mapGroupInfo.find( dstGroup ) ;
+      sIt = _mapGroupInfo.find( srcGroup ) ;
+      if ( dIt != _mapGroupInfo.end() && sIt != _mapGroupInfo.end() )
+      {
+         _clsIdxTaskGroupUnit* dstGroupUnit = &(dIt->second) ;
+         _clsIdxTaskGroupUnit* srcGroupUnit = &(sIt->second) ;
+         if ( CLS_TASK_STATUS_FINISH == dstGroupUnit->status &&
+              CLS_TASK_STATUS_FINISH != srcGroupUnit->status )
+         {
+            _clearChangedMask() ;
+
+            // change SucceedGroups/FailedGroups
+            if ( _isSucceedGroup( *dstGroupUnit ) )
+            {
+               _decSucceededGroups() ;
+            }
+            else
+            {
+               _decFailedGroups() ;
+            }
+
+            // change group status
+            dstGroupUnit->status = CLS_TASK_STATUS_READY ;
+            _changedGroupMask |= CLS_IDX_MASK_STATUS ;
+            _changedMask |= CLS_IDX_MASK_GROUPS ;
+
+            // change other field
+            _updateOtherByGroupInfo() ;
+
+            // to bson
+            rc = _toChangedObj( dstGroupUnit, NULL, matcher, updator ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to build changed bson", rc ) ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CLSIDXTASK_BMGTGP, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -2581,8 +2655,7 @@ namespace engine
       _changedMask |= CLS_IDX_MASK_PUSH_GROUP ;
       _pushGroupName = groupName ;
 
-      _totalGroups++ ;
-      _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
+      _incTotalGroups() ;
 
       // change other field
       _updateOtherByGroupInfo() ;
@@ -2711,15 +2784,14 @@ namespace engine
       {
          if ( _isSucceedGroup( it->second ) )
          {
-            _succeededGroups-- ;
+            _decSucceededGroups() ;
          }
          else
          {
-            _failedGroups-- ;
+            _decFailedGroups() ;
          }
       }
-      _totalGroups-- ;
-      _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
+      _decTotalGroups() ;
 
       _mapGroupInfo.erase( it ) ;
       _changedMask |= CLS_IDX_MASK_PULL_GROUP ;
@@ -2777,15 +2849,14 @@ namespace engine
                {
                   if ( _isSucceedGroup( curGroupInfo ) )
                   {
-                     _succeededGroups-- ;
+                     _decSucceededGroups() ;
                   }
                   else
                   {
-                     _failedGroups-- ;
+                     _decFailedGroups() ;
                   }
                }
-               _totalGroups-- ;
-               _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
+               _decTotalGroups() ;
 
                _mapGroupInfo.erase( itGroup ) ;
                _changedMask |= CLS_IDX_MASK_PULL_GROUP ;
@@ -3466,13 +3537,12 @@ namespace engine
       {
          if ( _isSucceedTask( newSubTask ) )
          {
-            _succeededTasks++ ;
+            _incSucceededTasks() ;
          }
          else
          {
-            _failedTasks++ ;
+            _incFailedTasks() ;
          }
-         _changedMask |= CLS_IDX_MASK_TASKCOUNT ;
       }
 
    done:
@@ -3523,6 +3593,78 @@ namespace engine
       return isSucc ;
    }
 
+   void _clsIdxTask::_incSucceededGroups()
+   {
+      _succeededGroups++ ;
+      _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
+   }
+
+   void _clsIdxTask::_decSucceededGroups()
+   {
+      _succeededGroups-- ;
+      _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
+   }
+
+   void _clsIdxTask::_incFailedGroups()
+   {
+      _failedGroups++ ;
+      _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
+   }
+
+   void _clsIdxTask::_decFailedGroups()
+   {
+      _failedGroups-- ;
+      _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
+   }
+
+   void _clsIdxTask::_incTotalGroups()
+   {
+      _totalGroups++ ;
+      _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
+   }
+
+   void _clsIdxTask::_decTotalGroups()
+   {
+      _totalGroups-- ;
+      _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
+   }
+
+   void _clsIdxTask::_incSucceededTasks()
+   {
+      _succeededTasks++ ;
+      _changedMask |= CLS_IDX_MASK_TASKCOUNT ;
+   }
+
+   void _clsIdxTask::_decSucceededTasks()
+   {
+      _succeededTasks-- ;
+      _changedMask |= CLS_IDX_MASK_TASKCOUNT ;
+   }
+
+   void _clsIdxTask::_incFailedTasks()
+   {
+      _failedTasks++ ;
+      _changedMask |= CLS_IDX_MASK_TASKCOUNT ;
+   }
+
+   void _clsIdxTask::_decFailedTasks()
+   {
+      _failedTasks-- ;
+      _changedMask |= CLS_IDX_MASK_TASKCOUNT ;
+   }
+
+   void _clsIdxTask::_incTotalTasks()
+   {
+      _totalTasks++ ;
+      _changedMask |= CLS_IDX_MASK_TASKCOUNT ;
+   }
+
+   void _clsIdxTask::_decTotalTasks()
+   {
+      _totalTasks-- ;
+      _changedMask |= CLS_IDX_MASK_TASKCOUNT ;
+   }
+
    void _clsIdxTask::_updateGroup( clsIdxTaskGroupUnit& curGroupInfo,
                                    const clsIdxTaskGroupUnit& newGroupInfo )
    {
@@ -3542,28 +3684,26 @@ namespace engine
          if (  _isSucceedGroup( curGroupInfo ) &&
               !_isSucceedGroup( newGroupInfo ) )
          {
-            _succeededGroups-- ;
-            _failedGroups++ ;
+            _decSucceededGroups() ;
+            _incFailedGroups() ;
          }
          else if ( !_isSucceedGroup( curGroupInfo ) &&
                     _isSucceedGroup( newGroupInfo ) )
          {
-            _failedGroups-- ;
-            _succeededGroups++ ;
+            _decFailedGroups() ;
+            _incSucceededGroups() ;
          }
-         _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
       }
       else if ( CLS_TASK_STATUS_FINISH == newGroupInfo.status )
       {
          if ( _isSucceedGroup( newGroupInfo ) )
          {
-            _succeededGroups++ ;
+            _incSucceededGroups() ;
          }
          else
          {
-            _failedGroups++ ;
+            _incFailedGroups() ;
          }
-         _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
       }
 
       /// update Groups element

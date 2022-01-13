@@ -523,6 +523,11 @@ namespace engine
          INT32           countGroup() const ;
          INT32           countSubTask() const ;
 
+         INT32           buildMigrateGroup( const CHAR* srcGroup,
+                                            const CHAR* dstGroup,
+                                            BSONObj& updator,
+                                            BSONObj& matcher ) ;
+
          INT32           buildAddGroup( const CHAR* groupName,
                                         BSONObj& updator,
                                         BSONObj& matcher ) ;
@@ -588,6 +593,20 @@ namespace engine
          BOOLEAN _isSucceed( CLS_TASK_TYPE taskType,
                              CLS_TASK_STATUS status,
                              INT32 resultCode ) ;
+
+         void _incSucceededGroups() ;
+         void _decSucceededGroups() ;
+         void _incFailedGroups() ;
+         void _decFailedGroups() ;
+         void _incTotalGroups() ;
+         void _decTotalGroups() ;
+
+         void _incSucceededTasks() ;
+         void _decSucceededTasks() ;
+         void _incFailedTasks() ;
+         void _decFailedTasks() ;
+         void _incTotalTasks() ;
+         void _decTotalTasks() ;
 
       protected:
 
