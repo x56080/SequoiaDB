@@ -48,7 +48,6 @@ function checkEnv ( db, testConf )
    {
       throw new Error( "standalone" );
    }
-
    testPara.groups = commGetGroups( db );
    if( testConf.skipGroupLessThanThree )
    {

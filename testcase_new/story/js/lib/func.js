@@ -144,6 +144,33 @@ function commIsStandalone ( db )
 }
 
 /******************************************************************************
+@description 判断当前系统架构是否为arm架构
+@author Yongqin Liang
+@return  {boolean}  是否是arm架构
+       true   :  是arm架构
+       false  :  不是arm架构
+***************************************************************************** */
+function commIsArmArchitecture ()
+{
+   try
+   {
+      var arch = cmd.run( 'uname -m' );
+      if ( arch == "aarch64\n" || arch == "aarch32\n"  )
+      {
+          return true;
+      }
+      else
+      {
+          return false;
+      }
+   }
+   catch( e )
+   {
+      throw new Error( "Fail to check the system architecture:" + e );
+   }
+}
+
+/******************************************************************************
 @description  创建并返回 cs 对象
 @author Jianhui Xu
 @parameter

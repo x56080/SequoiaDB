@@ -3,8 +3,6 @@
          import type: int
 *@Author     :  2019-8-21  huangxiaoni
 ************************************************************************/
-
-
 main( test );
 
 function test ()
@@ -30,18 +28,20 @@ function test ()
    cl.truncate();
    cmd.run( "rm -rf " + importFile );
 
-
-   // init import file and expect records
-   var recsNum = initImportFile_testPoint2( importFile );
-   var expRecs = initExpectData_testPoint2( recsNum );
-   // import
-   var rc = importData( csName, clName, importFile, type, importFields, true );
-   // check results
-   checkImportRC( rc, recsNum );
-   checkCLData( cl, recsNum, expRecs, findCond );
-   // clean data
-   cl.truncate();
-   cmd.run( "rm -rf " + importFile );
+   if ( commIsArmArchitecture() == false )
+   {
+      // init import file and expect records
+      var recsNum = initImportFile_testPoint2( importFile );
+      var expRecs = initExpectData_testPoint2( recsNum );
+      // import
+      var rc = importData( csName, clName, importFile, type, importFields, true );
+      // check results
+      checkImportRC( rc, recsNum );
+      checkCLData( cl, recsNum, expRecs, findCond );
+      // clean data
+      cl.truncate();
+      cmd.run( "rm -rf " + importFile );
+   }
 
    // init import file and expect records
    var recsNum = initImportFile_testPoint3( importFile );
