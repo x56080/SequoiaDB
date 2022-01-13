@@ -541,7 +541,9 @@ public class MetaDataUtils extends SdbTestBase {
         Sequoiadb dataDB = null;
         // get node address within the group
         List< String > nodeAdrrs = getNodeAddress( sdb, rgName );
-
+        if ( nodeAdrrs.size() < 2 ) {
+            Assert.fail( "at least catalogNodes are required" );
+        }
         // direct node and compare node's data
         int failCnt = 0;
         int maxCnt = 600;
@@ -759,6 +761,8 @@ public class MetaDataUtils extends SdbTestBase {
                 } else if ( eCode == -154 ) {
                     System.out.println( "DataRG is not exist." );
                     break;
+                } else {
+                    throw e;
                 }
             }
         } while ( !checkSucc && svnName < portStop );
