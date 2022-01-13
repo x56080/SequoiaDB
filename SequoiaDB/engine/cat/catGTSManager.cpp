@@ -98,6 +98,8 @@ namespace engine
          goto error ;
       }
 
+      _globTransMgr.clearGlobLowTran() ;
+
    done:
       return rc ;
    error:
