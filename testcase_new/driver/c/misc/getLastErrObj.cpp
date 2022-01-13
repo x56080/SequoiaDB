@@ -1,9 +1,9 @@
 /************************************************************
 
- * @Description: test case for Jira questionaire 
- *				     SEQUOIADBMAINSTREAM-3920
- * @author:      liuxiaoxuan
- *				     2019-01-04
+ * @Description: test case for Jira question SEQUOIADBMAINSTREAM-3920
+ * @author:      liuxiaoxuan init    2019-01-04
+ *		 linyingting edit    2022-01-08
+ *                   
  *************************************************************/
 #include <gtest/gtest.h>
 #include <client.h>
@@ -25,7 +25,7 @@ protected:
    const CHAR* clName ;
 
    void SetUp() 
-   {
+   { 
       INT32 rc = SDB_OK ;
       cs = SDB_INVALID_HANDLE ;
       cl = SDB_INVALID_HANDLE ;
@@ -48,10 +48,63 @@ protected:
    }  
 } ;
 
+// get last errorobj
+void getLastErrObj( sdbConnectionHandle db, bson &errObj, INT32 errExpect )
+{
+   bson_type type ;
+   bson_iterator it ;
+   INT32 rc, errActual ;
+   bson_init( &errObj ) ;
+   rc = sdbGetLastErrorObj( db, &errObj ) ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to get last error obj " << rc ;
+   // standalone
+   if( isStandalone( db ) )
+   {
+      type = bson_find( &it, &errObj, "errno" ) ;
+      ASSERT_NE( type, BSON_EOO ) << "fail to find the field <errno> of LastErrorObj" ;
+      ASSERT_EQ( type, BSON_INT ) << "the type of the field <errno> is not integer" ;
+      errActual = bson_iterator_int( &it ) ;
+      ASSERT_EQ( errExpect, errActual ) << "the expect errno is : " << errExpect << ", but the errno of lastErrorObj is : " << errActual ;
+   }
+   // cluster
+   else
+   {
+      bson_iterator t1,t2,t3 ;
+      type = bson_find( &it, &errObj, "ErrNodes" ) ;
+      ASSERT_NE( type, BSON_EOO ) << "fail to find the field <ErrNodes> of LastErrorObj" ;
+      bson_iterator_subiterator( &it, &t1 ) ;
+      bson errNodesObj ;
+      bson_init( &errNodesObj ) ;
+      bson_iterator_subobject( &t1, &errNodesObj ) ;
+      type = bson_find( &t2, &errNodesObj, "ErrInfo" ) ;
+      ASSERT_NE( type, BSON_EOO ) << "fail to find the field <ErrInfo> in <ErrNodes> of LastErrorObj" ;
+      bson errInfoObj ;
+      bson_init( &errInfoObj ) ;
+      bson_iterator_subobject( &t2, &errInfoObj ) ;
+      type = bson_find( &t3, &errInfoObj, "errno" ) ;
+      ASSERT_NE( type, BSON_EOO ) << "fail to find the field <errno> in <ErrNodes> of LastErrorObj" ;
+      ASSERT_EQ( type, BSON_INT ) << "the type of the field <errno> in <ErrNodes> is not integer" ;
+      INT32 errActual = bson_iterator_int( &t3 ) ;
+      ASSERT_EQ( errActual, errExpect ) << "the expect errno is : " << errExpect << ", but the errno of lastErrorObj is : " << errActual ;
+      
+      bson_destroy( &errNodesObj ) ;
+      bson_destroy( &errInfoObj ) ;      
+   }
+   bson_destroy( &errObj );
+
+   // clean error obj
+   sdbCleanLastErrorObj( db );
+
+   // get null last error obj 
+   bson_init( &errObj ) ;
+   rc = sdbGetLastErrorObj(db, &errObj) ;
+   ASSERT_EQ( SDB_DMS_EOC, rc ) << "fail to get last error obj " << rc ;
+   bson_destroy( &errObj ); 
+}
+
 TEST_F( getLastErrorObjTest17055, returnErrorObj )
 {
    INT32 rc = SDB_OK ;
-
    rc = sdbCreateCollectionSpace( db, csName, SDB_PAGESIZE_4K, &cs ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to create cs " << csName ;
    rc = sdbCreateCollection( cs, clName, &cl ) ;
@@ -59,98 +112,29 @@ TEST_F( getLastErrorObjTest17055, returnErrorObj )
  
    // create existed cl
    rc = sdbCreateCollection( cs, clName, &cl2 ) ;
-   ASSERT_EQ( -22, rc ) << "fail to create cl " << clName ;
-   
+   INT32 expectErr ;
+   expectErr = -22 ;
+   ASSERT_EQ( expectErr, rc ) << "fail to create cl " << clName ;
+
    // get last errorobj from catalog
    bson errObj ;
-   bson_init( &errObj ) ;
-   rc = sdbGetLastErrorObj( db, &errObj ) ; 
-   ASSERT_EQ( SDB_OK, rc ) << "fail to get last error obj " << rc ;
-   bson_iterator it, sub ;
-   bson_find( &it, &errObj, "ErrNodes" ) ;
-   bson_iterator_subiterator( &it, &sub ) ;
+   getLastErrObj( db, errObj, expectErr ) ;
+   
+   // update with invalid param
+   bson rule;
+   bson_init ( &rule ) ;
+   bson_append_start_object( &rule, "$est" ) ;
+   bson_append_int ( &rule, "a", 1 ) ;
+   bson_append_finish_object( &rule ) ;
+   bson_finish ( &rule ) ;
+   rc = sdbUpdate( cl, &rule, NULL, NULL ) ;
+   expectErr = -6 ;
+   ASSERT_EQ( expectErr, rc ) << "fail to update" ;
+   bson_destroy( &rule );
 
-   while( bson_iterator_more( &sub ) )
-   {
-      bson errNodesObj ;
-      bson_init( &errNodesObj ) ;
-      bson_iterator_subobject( &sub, &errNodesObj ) ;
-      bson_iterator i1 ;
-      bson_find( &i1, &errNodesObj, "ErrInfo" ) ;
-      bson errInfoObj ;
-      bson_init( &errInfoObj ) ;
-      bson_iterator_subobject( &i1, &errInfoObj ) ;
-       
-      bson_iterator i2 ;
-      bson_find( &i2, &errInfoObj, "errno" ) ;
-      INT32 errno ;
-      errno = bson_iterator_int( &i2 ) ;
-      ASSERT_EQ( -22, errno ) << "errno: " << errno ;      
-      
-      bson_destroy( &errNodesObj ) ;
-      bson_destroy( &errInfoObj ) ;
-      bson_iterator_next( &sub ) ;
-  }
-  bson_destroy( &errObj );
+   // get last errorobj from data
+   getLastErrObj( db, errObj, expectErr ) ;
 
-  // clean error obj
-  sdbCleanLastErrorObj( db );
-
-  // get null last error obj 
-  bson_init( &errObj ) ;
-  rc = sdbGetLastErrorObj(db, &errObj) ;
-  ASSERT_EQ( SDB_DMS_EOC, rc ) << "fail to get last error obj " << rc ;
-  bson_destroy( &errObj );
-
-  // update with invalid param
-  bson rule;
-  bson_init ( &rule ) ;
-  bson_append_start_object( &rule, "$est" ) ;
-  bson_append_int ( &rule, "a", 1 ) ;
-  bson_append_finish_object( &rule ) ;
-  bson_finish ( &rule ) ;
-  rc = sdbUpdate( cl, &rule, NULL, NULL ) ;
-  ASSERT_EQ( -6, rc ) << "fail to update" ;
-  bson_destroy( &rule );
- 
-  // get last errorobj from data
-  bson_init( &errObj ) ;
-  rc = sdbGetLastErrorObj(db, &errObj) ;
-  ASSERT_EQ( SDB_OK, rc ) << "fail to get last error obj " << rc ;
-  bson_find( &it, &errObj, "ErrNodes" ) ;
-  bson_iterator_subiterator( &it, &sub ) ;
-
-  while( bson_iterator_more( &sub ) )
-  {
-     bson errNodesObj ;
-     bson_init( &errNodesObj ) ;
-     bson_iterator_subobject( &sub, &errNodesObj ) ;
-     bson_iterator i1 ;
-     bson_find( &i1, &errNodesObj, "ErrInfo" ) ;
-     bson errInfoObj ;
-     bson_init( &errInfoObj ) ;
-     bson_iterator_subobject( &i1, &errInfoObj ) ;
-
-     bson_iterator i2 ;
-     bson_find( &i2, &errInfoObj, "errno" ) ;
-     INT32 errno ;
-     errno = bson_iterator_int( &i2 ) ;
-     ASSERT_EQ( -6, errno ) << "errno: " << errno ;
-
-     bson_destroy( &errNodesObj ) ;
-     bson_destroy( &errInfoObj ) ;
-     bson_iterator_next( &sub ) ;
-  }
-  bson_destroy( &errObj ); 
-
-  // clean error obj
-  sdbCleanLastErrorObj( db );
-
-  // get null last error obj
-  bson_init( &errObj ) ;
-  rc = sdbGetLastErrorObj(db, &errObj) ;
-  ASSERT_EQ( SDB_DMS_EOC, rc ) << "fail to get last error obj " << rc ;
-  bson_destroy( &errObj );
 }
 
 TEST_F( getLastErrorObjTest17055, errorObjNULL )
