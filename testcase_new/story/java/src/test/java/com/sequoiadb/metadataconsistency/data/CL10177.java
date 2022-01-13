@@ -1,5 +1,6 @@
 package com.sequoiadb.metadataconsistency.data;
 
+import java.util.Date;
 import java.util.Random;
 
 import org.bson.BSONObject;
@@ -75,7 +76,11 @@ public class CL10177 extends SdbTestBase {
         }
 
         // check results
+        System.out.println( new Date() + " " + this.getClass().getName()
+                + " begin check results " );
         MetaDataUtils.checkCLResult( csName, clName );
+        System.out.println( new Date() + " " + this.getClass().getName()
+                + " end check results " );
     }
 
     private class AlterCL extends SdbThreadBase {

@@ -4,10 +4,7 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.bson.BSONObject;
@@ -104,8 +101,13 @@ public class Split24278 extends SdbTestBase {
 
         Assert.assertEquals( split.getRetCode(), 0 );
         Assert.assertEquals( putlob.getRetCode(), 0 );
+
+        System.out.println( new Date() + " " + this.getClass().getName()
+                + " begin check results " );
         checkLobData();
         checkDataSplitResult();
+        System.out.println( new Date() + " " + this.getClass().getName()
+                + " end check results " );
     }
 
     @AfterClass()
