@@ -261,7 +261,7 @@ namespace vessel
       slice recordData;
       normalRecordHead rh;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
-      LPS_OBJ_PTR lps;
+      logicalPageSpace *lps = NULL;
       rdpAccessor accessor;
       logicalPageBuffer lpb;
 
@@ -273,10 +273,12 @@ namespace vessel
       }
 
       SDB_ASSERT(!ofr.isBigRecord(), "TODO");
-      lps = LPS_OBJ_PTR(_lpb.getLogicalPageSpace());
-      if (!lps.isValid())
+      lps = _lpb.getLogicalPageSpace();
+      if (NULL == lps)
       {
+         rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get lps[%d]", _context->getSpaceID());
+         goto error;
       }
 
       rc = lps->getLogicalPageBuffer(_context, ofr.lpid, mode, lpb);
@@ -314,6 +316,7 @@ namespace vessel
       _transID.setNodeID(rh.transNode);
       _transID.setSN(rh.transSN);
       _recordData = slice(_recordBufferSize, _recordBuffer);
+      _overflowAddr = recordID(ofr.lpid, ofr.pos);
    done:
       return rc;
    error:

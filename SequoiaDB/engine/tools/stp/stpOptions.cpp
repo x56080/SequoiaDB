@@ -167,7 +167,7 @@ namespace engine
       ( PMD_COMMANDS_STRING( STP_OPTION_CONFPATH, ",c" ), \
             po::value<string>(), \
             "STP configuration file path, \n" \
-            "eg: "STP_EXAMPLE_CONF )
+            "eg: " STP_EXAMPLE_CONF )
 
    #define COMMANDS_HIDE_OPTIONS \
       ( STP_OPTION_HELPFULL, \
