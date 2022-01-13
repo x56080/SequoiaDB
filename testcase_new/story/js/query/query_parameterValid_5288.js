@@ -16,8 +16,11 @@ function test ()
    var skipNum = -1;
    queryRecsAndCheckResult( cl, expRecords, skipNum );
 
-   var skipNum = 2147483648;
-   queryRecsAndCheckResult( cl, expRecords, skipNum );
+   if ( commIsArmArchitecture() == false )
+   {
+      var skipNum = 2147483648;
+      queryRecsAndCheckResult( cl, expRecords, skipNum );
+   }
 
    commDropCL( db, COMMCSNAME, clName, false, false );
 

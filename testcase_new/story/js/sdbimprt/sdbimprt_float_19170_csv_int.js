@@ -3,46 +3,47 @@
          import type: int
 *@Author     :  2019-8-21  huangxiaoni
 ************************************************************************/
-
-
 main( test );
 
 function test ()
 {
-   var type = 'csv';
-   var tmpPrefix = "sdbimprt_int_19170";
-   var csName = COMMCSNAME;
-   var clName = tmpPrefix + "_" + type;
-   var cl = readyCL( csName, clName );
-   var importFile = tmpFileDir + tmpPrefix + "." + type;
-   var importFields = 'a int, b int';
-   var findCond = { "b": { "$type": 2, "$et": "int32" } };
+   if ( commIsArmArchitecture() == false )
+   {
+      var type = 'csv';
+      var tmpPrefix = "sdbimprt_int_19170";
+      var csName = COMMCSNAME;
+      var clName = tmpPrefix + "_" + type;
+      var cl = readyCL( csName, clName );
+      var importFile = tmpFileDir + tmpPrefix + "." + type;
+      var importFields = 'a int, b int';
+      var findCond = { "b": { "$type": 2, "$et": "int32" } };
 
-   // init import file and expect records
-   var recsNum = initImportFile_testPoint1( importFile );
-   var expRecs = initExpectData_testPoint1( recsNum );
-   // import
-   var rc = importData( csName, clName, importFile, type, importFields, true );
-   // check results
-   checkImportRC( rc, recsNum );
-   checkCLData( cl, recsNum, expRecs, findCond );
-   // clean data
-   cl.truncate();
-   cmd.run( "rm -rf " + importFile );
+      // init import file and expect records
+      var recsNum = initImportFile_testPoint1( importFile );
+      var expRecs = initExpectData_testPoint1( recsNum );
+      // import
+      var rc = importData( csName, clName, importFile, type, importFields, true );
+      // check results
+      checkImportRC( rc, recsNum );
+      checkCLData( cl, recsNum, expRecs, findCond );
+      // clean data
+      cl.truncate();
+      cmd.run( "rm -rf " + importFile );
 
-   // init import file and expect records
-   var recsNum = initImportFile_testPoint2( importFile );
-   var expRecs = initExpectData_testPoint2( recsNum );
-   // import
-   var rc = importData( csName, clName, importFile, type, importFields, true );
-   // check results
-   checkImportRC( rc, recsNum );
-   checkCLData( cl, recsNum, expRecs, findCond );
-   // clean data
-   cl.truncate();
-   cmd.run( "rm -rf " + importFile );
+      // init import file and expect records
+      var recsNum = initImportFile_testPoint2( importFile );
+      var expRecs = initExpectData_testPoint2( recsNum );
+      // import
+      var rc = importData( csName, clName, importFile, type, importFields, true );
+      // check results
+      checkImportRC( rc, recsNum );
+      checkCLData( cl, recsNum, expRecs, findCond );
+      // clean data
+      cl.truncate();
+      cmd.run( "rm -rf " + importFile );
 
-   cleanCL( csName, clName );
+      cleanCL( csName, clName );
+   }
 }
 
 function initImportFile_testPoint1 ( importFile )

@@ -46,24 +46,27 @@ main( test );
 
 function test ()
 {
-   var cl = commCreateCL( db, csname, clname );
-   var cl1 = commCreateCL( db, csname, clname1 );
+   if ( commIsArmArchitecture() == false )
+   {
+      var cl = commCreateCL( db, csname, clname );
+      var cl1 = commCreateCL( db, csname, clname1 );
 
-   cl.insert( docs );
+      cl.insert( docs );
 
-   testExprtImprtCsv();
-   var cursor = cl1.find( {}, { _id: { $include: 0 } } );
-   var recs = getRecords( cursor );
-   checkRecords( csvRecs, recs );
-   cl1.truncate();
+      testExprtImprtCsv();
+      var cursor = cl1.find( {}, { _id: { $include: 0 } } );
+      var recs = getRecords( cursor );
+      checkRecords( csvRecs, recs );
+      cl1.truncate();
 
-   testExprtImprtJson();
-   cursor = cl1.find( {}, { _id: { $include: 0 } } );
-   recs = getRecords( cursor );
-   checkRecords( jsonRecs, recs );
+      testExprtImprtJson();
+      cursor = cl1.find( {}, { _id: { $include: 0 } } );
+      recs = getRecords( cursor );
+      checkRecords( jsonRecs, recs );
 
-   commDropCL( db, csname, clname );
-   commDropCL( db, csname, clname1 );
+      commDropCL( db, csname, clname );
+      commDropCL( db, csname, clname1 );
+   }
 }
 
 function testExprtImprtCsv ()
