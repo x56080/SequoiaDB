@@ -198,7 +198,7 @@ public class ReleaseConnectionTest7576_7584 extends DataSourceTestBase {
             datasource.releaseConnection( sdb );
             Thread.sleep( 100 );
             int laterNum = datasource.getIdleConnNum();
-            Assert.assertEquals( laterNum, priorNum );
+            Assert.assertEquals( laterNum, option.getMinIdleCount() );
             end = System.currentTimeMillis();
             System.out.println( "step 3 findish" + ( end - start ) );
         } catch ( InterruptedException e ) {
