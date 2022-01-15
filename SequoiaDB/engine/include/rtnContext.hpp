@@ -381,6 +381,8 @@ namespace engine
             return _lastProcessTick ;
          }
 
+         void updateLastProcessTick() ;
+
          virtual optAccessPlanRuntime * getPlanRuntime ()
          {
             return NULL ;

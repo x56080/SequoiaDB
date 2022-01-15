@@ -139,16 +139,7 @@ namespace engine
       INT32   _saveEmptyNormalSubCtx( rtnSubContext* subCtx ) ;
       INT32   _saveNonEmptyNormalSubCtx( rtnSubContext* subCtx ) ;
 
-      virtual INT32 _doAfterPrepareData( _pmdEDUCB *cb )
-      {
-         if ( _subs.empty() &&
-              _subContextMap.empty() &&
-              _orderedContextMap.empty() )
-         {
-            _hitEnd = TRUE ;
-         }
-         return SDB_OK ;
-      }
+      virtual INT32 _doAfterPrepareData( _pmdEDUCB *cb ) ;
 
       void    _deleteSubContexts () ;
 

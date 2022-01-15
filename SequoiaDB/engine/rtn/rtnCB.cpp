@@ -338,6 +338,22 @@ namespace engine
       return _contextMap.find( contextID ).second ? TRUE : FALSE ;
    }
 
+   void _SDB_RTNCB::updateContextLastProcessTick( INT64 contextID )
+   {
+      pair<rtnContextPtr, bool> ret = _contextMap.find( contextID ) ;
+      if ( ret.second )
+      {
+         if ( NULL != ret.first.get() )
+         {
+            ret.first->updateLastProcessTick() ;
+         }
+         else
+         {
+            SDB_ASSERT( FALSE, "context pointer should not be null" ) ;
+         }
+      }
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_RTNCB_CONTEXTDEL, "_SDB_RTNCB::contextDelete" )
    void _SDB_RTNCB::contextDelete ( INT64 contextID, IExecutor *pExe )
    {
