@@ -90,7 +90,8 @@ namespace engine
     _dumpTransCount( 0 )
 #if defined ( SDB_ENGINE )
     ,_transExecutor( this, pmdGetKRCB()->getMonMgr() ),
-    _urgentEventCount( 0 )
+    _urgentEventCount( 0 ),
+    _needCheckUrgentQueue( TRUE )
 #endif // SDB_ENGINE
 
    {
@@ -1104,11 +1105,38 @@ namespace engine
 #endif
    }
 
+   void _pmdEDUCB::enableCheckUrgentEvent()
+   {
+#if defined ( SDB_ENGINE )
+      _needCheckUrgentQueue = FALSE ;
+#endif
+   }
+
+   void _pmdEDUCB::disableCheckUrgentEvent()
+   {
+#if defined ( SDB_ENGINE )
+      _needCheckUrgentQueue = FALSE ;
+#endif
+   }
+
+   BOOLEAN _pmdEDUCB::needCheckUrgentEvent() const
+   {
+#if defined ( SDB_ENGINE )
+      return _needCheckUrgentQueue ;
+#else
+      return FALSE ;
+#endif
+   }
+
    void _pmdEDUCB::checkUrgentEvents()
    {
 #if defined ( SDB_ENGINE )
-      if ( _urgentEventCount.peek() > 0 )
+      if ( needCheckUrgentEvent() &&
+           _urgentEventCount.peek() > 0 )
       {
+         // shield to avoid calling check urgent event recursively
+         pmdUrgentEventShield _shield( this ) ;
+
          pmdEDUEvent event ;
          IContextMgr *ctxMgr = pmdGetKRCB()->getContextMgr() ;
          SDB_ASSERT( NULL != ctxMgr, "context manager should be valid" ) ;

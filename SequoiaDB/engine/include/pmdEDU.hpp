@@ -496,6 +496,9 @@ namespace engine
       }
 
       void checkUrgentEvents() ;
+      void enableCheckUrgentEvent() ;
+      void disableCheckUrgentEvent() ;
+      BOOLEAN needCheckUrgentEvent() const ;
 
       void contextCopy( SET_CONTEXT &contextList ) ;
 
@@ -805,6 +808,7 @@ namespace engine
 
       pmdEDUEventQueue        _urgentQueue ;
       ossAtomic32             _urgentEventCount ;
+      BOOLEAN                 _needCheckUrgentQueue ;
    #endif // SDB_ENGINE
 
       /*
@@ -888,6 +892,42 @@ namespace engine
                              INT32 forceTimeout = -1 ) ;
 
    void  pmdEduEventRelease( pmdEDUEvent &event, pmdEDUCB *cb ) ;
+
+   /*
+      _pmdUrgentEventShield define
+    */
+   // shield to avoid calling check urgent event recursively
+   class _pmdUrgentEventShield
+   {
+   public:
+      _pmdUrgentEventShield( pmdEDUCB *cb )
+      : _eduCB( cb ),
+        _isDisabledByThis( FALSE )
+      {
+         if ( NULL != _eduCB &&
+              _eduCB->needCheckUrgentEvent() )
+         {
+            _eduCB->disableCheckUrgentEvent() ;
+            _isDisabledByThis = TRUE ;
+         }
+      }
+
+      ~_pmdUrgentEventShield()
+      {
+         if ( NULL != _eduCB && _isDisabledByThis )
+         {
+            _eduCB->enableCheckUrgentEvent() ;
+            _eduCB = NULL ;
+            _isDisabledByThis = FALSE ;
+         }
+      }
+
+   protected:
+      pmdEDUCB * _eduCB ;
+      BOOLEAN    _isDisabledByThis ;
+   } ;
+
+   typedef class _pmdUrgentEventShield pmdUrgentEventShield ;
 
 }
 
