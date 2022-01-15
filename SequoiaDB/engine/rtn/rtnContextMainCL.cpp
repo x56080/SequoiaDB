@@ -820,6 +820,30 @@ namespace engine
       return SDB_OK ;
    }
 
+   INT32 _rtnContextMainCL::_doAfterPrepareData( _pmdEDUCB *cb )
+   {
+      if ( _subs.empty() &&
+           _subContextMap.empty() &&
+           _orderedContextMap.empty() )
+      {
+         _hitEnd = TRUE ;
+      }
+      else
+      {
+         // update last process tick for opened contexts
+         SDB_RTNCB *rtnCB = sdbGetRTNCB() ;
+         for ( SUBCL_CTX_MAP::iterator iter = _subContextMap.begin() ;
+               iter != _subContextMap.end() ;
+               ++ iter )
+         {
+            if ( !( iter->second->isHitEnd() ) )
+            {
+               rtnCB->updateContextLastProcessTick( iter->first ) ;
+            }
+         }
+      }
+      return SDB_OK ;
+   }
 
    void _rtnContextMainCL::_deleteSubContexts ()
    {

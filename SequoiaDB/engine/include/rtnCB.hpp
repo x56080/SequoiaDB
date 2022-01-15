@@ -130,6 +130,7 @@ namespace engine
                          _pmdEDUCB *cb = NULL,
                          BOOLEAN closeOnUnexpectType = TRUE ) ;
       BOOLEAN contextExist( INT64 contextID ) ;
+      void updateContextLastProcessTick( INT64 contextID ) ;
 
       INT32 prepareRemoteMessenger() ;
 

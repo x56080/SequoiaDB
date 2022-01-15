@@ -905,6 +905,12 @@ namespace engine
       return _buffer.get( maxNumToReturn, buf ) ;
    }
 
+   void _rtnContextBase::updateLastProcessTick()
+   {
+      // update last process time
+      _lastProcessTick = pmdGetDBTick() ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXBASE_GETMORE, "_rtnContextBase::getMore" )
    INT32 _rtnContextBase::getMore( INT32 maxNumToReturn,
                                    rtnContextBuf &buffObj,
@@ -1030,8 +1036,7 @@ namespace engine
          setQueryActivity( TRUE ) ;
       }
 
-      // update last process time
-      _lastProcessTick = pmdGetDBTick() ;
+      updateLastProcessTick() ;
 
       PD_TRACE_EXITRC ( SDB_RTNCTXBASE_GETMORE, rc ) ;
       return rc ;
@@ -1285,6 +1290,7 @@ namespace engine
       {
          _dataLock.release_r() ;
       }
+      updateLastProcessTick() ;
       PD_TRACE_EXITRC ( SDB_RTNCTXBASE__ADVANCE, rc ) ;
       return rc ;
    error:
