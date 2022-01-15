@@ -1734,6 +1734,10 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_PMDCOORDPROC_PROCOORDMSG ) ;
 
+      // shield to avoid calling check urgent event during
+      // communicating messages with other nodes
+      pmdUrgentEventShield _shield( eduCB() ) ;
+
       if ( MSG_AUTH_VERIFY_REQ == opCode )
       {
          rc = SDB_COORD_UNKNOWN_OP_REQ ;
