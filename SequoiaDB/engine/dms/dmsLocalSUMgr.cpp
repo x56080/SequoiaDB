@@ -129,6 +129,56 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to create collection [%s], rc: %d",
                    DMS_SYSLOCALTASK_CL_NAME, rc ) ;
 
+      rc = rtnTestAndCreateCL( DMS_SYSLOCALRECYCLEITEM_CL_NAME, cb, _dmsCB,
+                               NULL, TRUE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create collection [%s], rc: %d",
+                   DMS_SYSLOCALRECYCLEITEM_CL_NAME, rc ) ;
+
+      {
+         BSONObj idxDef ;
+
+         rc = fromjson( UTIL_RECYCLEBIN_ITEM_NAME_INDEX, idxDef ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse index [%s], rc: %d",
+                      UTIL_RECYCLEBIN_ITEM_NAME_INDEX, rc ) ;
+
+         // Initialized before rtn, so no sorterCreator could be used, set
+         // sort buffer size to 0 to build index without sorterCreator
+         rc = rtnTestAndCreateIndex( DMS_SYSLOCALRECYCLEITEM_CL_NAME, idxDef,
+                                     cb, _dmsCB, NULL, TRUE, 0 ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to create index [%s], rc: %d",
+                      UTIL_RECYCLEBIN_ITEM_NAME_INDEX, rc ) ;
+      }
+
+      {
+         BSONObj idxDef ;
+
+         rc = fromjson( UTIL_RECYCLEBIN_UID_INDEX, idxDef ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse index [%s], rc: %d",
+                      UTIL_RECYCLEBIN_UID_INDEX, rc ) ;
+
+         // Initialized before rtn, so no sorterCreator could be used, set
+         // sort buffer size to 0 to build index without sorterCreator
+         rc = rtnTestAndCreateIndex( DMS_SYSLOCALRECYCLEITEM_CL_NAME, idxDef,
+                                     cb, _dmsCB, NULL, TRUE, 0 ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to create index [%s], rc: %d",
+                      UTIL_RECYCLEBIN_UID_INDEX, rc ) ;
+      }
+
+      {
+         BSONObj idxDef ;
+
+         rc = fromjson( UTIL_RECYCLEBIN_RECYID_INDEX, idxDef ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse index [%s], rc: %d",
+                      UTIL_RECYCLEBIN_RECYID_INDEX, rc ) ;
+
+         // Initialized before rtn, so no sorterCreator could be used, set
+         // sort buffer size to 0 to build index without sorterCreator
+         rc = rtnTestAndCreateIndex( DMS_SYSLOCALRECYCLEITEM_CL_NAME, idxDef,
+                                     cb, _dmsCB, NULL, TRUE, 0 ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to create index [%s], rc: %d",
+                      UTIL_RECYCLEBIN_RECYID_INDEX, rc ) ;
+      }
+
    done :
       return rc ;
    error :
@@ -290,4 +340,3 @@ namespace engine
    }
 
 }
-

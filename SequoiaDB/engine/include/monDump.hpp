@@ -752,6 +752,47 @@ namespace engine
    typedef _monLockWaitsFetch monLockWaitsFetch ;
 
    /*
+     _monRecycleBinFetch define
+    */
+   class _monRecycleBinFetch : public rtnFetchBase
+   {
+      DECLARE_FETCH_AUTO_REGISTER()
+
+   public:
+      _monRecycleBinFetch() ;
+      virtual ~_monRecycleBinFetch() ;
+
+      /*
+          Use isCurrent for isIncludeSystem
+       */
+      virtual INT32 init( pmdEDUCB *cb,
+                          BOOLEAN isCurrent,
+                          BOOLEAN isDetail,
+                          UINT32 addInfoMask,
+                          const BSONObj obj = BSONObj() ) ;
+
+      virtual const CHAR *getName() const ;
+
+      virtual INT32 fetch( BSONObj &obj ) ;
+
+   protected:
+      INT32 _prepareRecycleList() ;
+      INT32 _fillRecycleStats() ;
+      INT32 _fillRecycleCSStats( monRecycleItem &item ) ;
+      INT32 _fillRecycleCLStats( monRecycleItem &item ) ;
+      INT32 _fetchRecycleItem( BSONObj &obj ) ;
+      void _closeSubContext() ;
+
+   private:
+      UINT32            _addInfoMask ;
+      MON_RECYCLE_LIST  _recycleList ;
+      INT64             _subContextID ;
+      BOOLEAN           _isDetail ;
+   } ;
+
+   typedef class _monRecycleBinFetch monRecycleBinFetch ;
+
+   /*
       _monDataSetFetch define
     */
    // NOTE: only use for fetch data from inner context or data set

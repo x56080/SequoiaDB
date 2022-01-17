@@ -3257,6 +3257,7 @@ namespace engine
 
          ++statInfo._clNum ;
          statInfo._totalCount += mbStat->_totalRecords ;
+         statInfo._totalLobs += mbStat->_totalLobs ;
          statInfo._totalDataPages += mbStat->_totalDataPages ;
          statInfo._totalIndexPages += mbStat->_totalIndexPages ;
          statInfo._totalLobPages += mbStat->_totalLobPages ;
@@ -3487,6 +3488,109 @@ namespace engine
       }
 
       PD_TRACE_EXITRC ( SDB__DMSSU__GETINDEX, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_DUMPRECYCLEINFO, "_dmsStorageUnit::dumpRecycleInfo" )
+   INT32 _dmsStorageUnit::dumpRecycleInfo( monRecycleItem &item )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSU_DUMPRECYCLEINFO ) ;
+
+      UINT16 mbID = DMS_INVALID_MBID ;
+
+      if ( UTIL_RECYCLE_CL == item.getType() )
+      {
+         {
+            ossScopedLock lock( &( _pDataSu->_metadataLatch ), SHARED ) ;
+            dmsStorageData::COLNAME_MAP_IT it =
+                  _pDataSu->_collectionNameMap.find( item.getRecycleName() ) ;
+            PD_CHECK( it != _pDataSu->_collectionNameMap.end(),
+                      SDB_RECYCLE_ITEMNOTEXISTS, error, PDWARNING,
+                      "Failed to find recycle item [%s]",
+                      item.getRecycleName() ) ;
+            mbID = it->second ;
+         }
+
+         rc = _dumpRecycleInfo( mbID, item ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to dump recycle item [%s], "
+                      "rc: %d", item.getRecycleName(), rc ) ;
+      }
+      else if ( UTIL_RECYCLE_CS == item.getType() )
+      {
+         rc = _dumpRecycleInfo( item ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to dump recycle item, rc: %d",
+                      rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSSU_DUMPRECYCLEINFO, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU__DUMPRECYCLEINFO_CL, "_dmsStorageUnit::_dumpRecycleInfo" )
+   INT32 _dmsStorageUnit::_dumpRecycleInfo( UINT16 mbID,
+                                            monRecycleItem &item )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSU__DUMPRECYCLEINFO_CL ) ;
+
+      const dmsMBStatInfo *mbStat = NULL ;
+
+      PD_CHECK( mbID < DMS_MME_SLOTS, SDB_INVALIDARG, error, PDERROR,
+                "Invalid mbID [%u]", mbID ) ;
+
+      mbStat = _pDataSu->getMBStatInfo( mbID ) ;
+      SDB_ASSERT( NULL != mbStat, "mb stat info is invalid" ) ;
+
+      item._pageSize = getPageSize() ;
+      item._lobPageSize = getLobPageSize() ;
+
+      item._totalRecords = mbStat->_totalRecords ;
+      item._totalLobs = mbStat->_totalLobs ;
+
+      item._totalDataSize = mbStat->_totalDataPages <<
+                                        _pDataSu->pageSizeSquareRoot() ;
+      item._totalIndexSize = mbStat->_totalIndexPages <<
+                                        _pIndexSu->pageSizeSquareRoot() ;
+      item._totalLobSize = mbStat->_totalLobPages <<
+                                        _pLobSu->pageSizeSquareRoot() ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSSU__DUMPRECYCLEINFO_CL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU__DUMPRECYCLEINFO_CS, "_dmsStorageUnit::_dumpRecycleInfo" )
+   INT32 _dmsStorageUnit::_dumpRecycleInfo( monRecycleItem &item )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSU__DUMPRECYCLEINFO_CS ) ;
+
+      dmsStorageUnitStat statInfo ;
+
+      // get stat info
+      getStatInfo( statInfo ) ;
+
+      item._pageSize = getPageSize() ;
+      item._lobPageSize = getLobPageSize() ;
+      item._totalRecords = statInfo._totalCount ;
+      item._totalLobs = statInfo._totalLobs ;
+      item._totalDataSize = totalSize( DMS_SU_DATA ) ;
+      item._totalIndexSize = totalSize( DMS_SU_INDEX ) ;
+      item._totalLobSize = totalSize( DMS_SU_LOB ) ;
+
+      PD_TRACE_EXITRC( SDB__DMSSU__DUMPRECYCLEINFO_CS, rc ) ;
 
       return rc ;
    }

@@ -41,6 +41,7 @@
 #include "netRouteAgent.hpp"
 #include "ossLatch.hpp"
 #include "clsCatalogAgent.hpp"
+#include "utilRecycleBinConf.hpp"
 #include "sdbInterface.hpp"
 #include <map>
 #include <string>
@@ -117,6 +118,9 @@ namespace engine
 
          BSONObj        getOrgObj() const { return _orgObj ; }
 
+         utilRecycleBinConf getRecycleBinConf() ;
+         void setRecycleBinConf( const utilRecycleBinConf &conf ) ;
+
       protected:
          void           _reset() ;
          INT32          _addGroup( const BSONObj &obj, BOOLEAN check,
@@ -146,6 +150,8 @@ namespace engine
 
          map< string, string >  _imageGroups ;  // source 2 dest
          map< string, string >  _imageRGroups ; // dest 2 source
+
+         utilRecycleBinConf _recycleBinConf ;
 
          ossRWMutex     _rwMutex ;
 

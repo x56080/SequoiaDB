@@ -407,6 +407,7 @@ namespace engine
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnSnapshotSequencesIntr)
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnListSequences)
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnListDataSources)
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnGetRecycleBinDetail)
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnBackup)
    _rtnBackup::_rtnBackup ()
@@ -4884,5 +4885,187 @@ error:
       goto done ;
    }
 
-}
+   /*
+      _rtnCMDGetRecycleBinCount implement
+    */
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnCMDGetRecycleBinCount )
 
+   _rtnCMDGetRecycleBinCount::_rtnCMDGetRecycleBinCount()
+   {
+   }
+
+   _rtnCMDGetRecycleBinCount::~_rtnCMDGetRecycleBinCount()
+   {
+   }
+
+   const CHAR *_rtnCMDGetRecycleBinCount::name()
+   {
+      return NAME_GET_RECYCLEBIN_COUNT ;
+   }
+
+   RTN_COMMAND_TYPE _rtnCMDGetRecycleBinCount::type()
+   {
+      return CMD_GET_RECYCLEBIN_COUNT ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNCMDGETRECYBINCNT_INIT, "_rtnCMDGetRecycleBinCount::init" )
+   INT32 _rtnCMDGetRecycleBinCount::init( INT32 flags,
+                                          INT64 numToSkip,
+                                          INT64 numToReturn,
+                                          const CHAR *pMatcherBuff,
+                                          const CHAR *pSelectBuff,
+                                          const CHAR *pOrderByBuff,
+                                          const CHAR *pHintBuff )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNCMDGETRECYBINCNT_INIT ) ;
+
+      try
+      {
+         _queryObj = BSONObj( pMatcherBuff ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to get query object, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNCMDGETRECYBINCNT_INIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNCMDGETRECYBINCNT_DOIT, "_rtnCMDGetRecycleBinCount::doit" )
+   INT32 _rtnCMDGetRecycleBinCount::doit( _pmdEDUCB *cb,
+                                          _SDB_DMSCB *dmsCB,
+                                          _SDB_RTNCB *rtnCB,
+                                          _dpsLogWrapper *dpsCB,
+                                          INT16 w,
+                                          INT64 *pContextID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNCMDGETRECYBINCNT_DOIT ) ;
+
+      clsRecycleBinManager *recyBinMgr = sdbGetClsCB()->getRecycleBinMgr() ;
+
+      INT64 contextID = -1 ;
+      rtnContextDump::sharePtr context ;
+      INT64 recycleCount = 0 ;
+
+      rc = recyBinMgr->countItems( _queryObj, cb, recycleCount ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get count of recycle bin, rc: %d",
+                   rc ) ;
+
+      rc = rtnCB->contextNew( RTN_CONTEXT_DUMP, context, contextID, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create dump context, rc: %d",
+                   rc ) ;
+
+      try
+      {
+         BSONObj resultObj = BSON( FIELD_NAME_TOTAL << recycleCount ) ;
+         rc = context->append( resultObj ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to save count result, rc: %d",
+                      rc ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build result, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      if ( NULL != pContextID )
+      {
+         *pContextID = contextID ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNCMDGETRECYBINCNT_DOIT, rc ) ;
+      return rc ;
+
+   error:
+      if ( -1 != contextID )
+      {
+         rtnCB->contextDelete( contextID, cb ) ;
+         contextID = -1 ;
+      }
+      goto done ;
+   }
+
+   /*
+      _rtnCMDAlterRecycleBin implement
+    */
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnCMDAlterRecycleBin )
+
+   _rtnCMDAlterRecycleBin::_rtnCMDAlterRecycleBin()
+   {
+   }
+
+   _rtnCMDAlterRecycleBin::~_rtnCMDAlterRecycleBin()
+   {
+   }
+
+   const CHAR *_rtnCMDAlterRecycleBin::name()
+   {
+      return NAME_ALTER_RECYCLEBIN ;
+   }
+
+   RTN_COMMAND_TYPE _rtnCMDAlterRecycleBin::type()
+   {
+      return CMD_ALTER_RECYCLEBIN ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNCMDALTRECYBIN_DOIT, "_rtnCMDAlterRecycleBin::doit" )
+   INT32 _rtnCMDAlterRecycleBin::doit( _pmdEDUCB *cb,
+                                      SDB_DMSCB *dmsCB,
+                                      SDB_RTNCB *rtnCB,
+                                      SDB_DPSCB *dpsCB,
+                                      INT16 w,
+                                      INT64 *pContextID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNCMDALTRECYBIN_DOIT ) ;
+
+      *pContextID = -1 ;
+
+      if ( CMD_SPACE_SERVICE_SHARD == getFromService() )
+      {
+         shardCB *shardCB = sdbGetShardCB() ;
+         clsRecycleBinManager *recyBinMgr = sdbGetClsCB()->getRecycleBinMgr() ;
+
+         recyBinMgr->setConfInvalid() ;
+
+         // update DC from remote
+         rc = shardCB->updateDCBaseInfo() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to update DC info from CATALOG, "
+                      "rc: %d", rc ) ;
+
+         // get conf from DC info
+         recyBinMgr->setConf(
+               shardCB->getDCMgr()->getDCBaseInfo()->getRecycleBinConf() ) ;
+      }
+      else
+      {
+         PD_CHECK( FALSE, SDB_RTN_COORD_ONLY, error, PDERROR,
+                   "Failed to execute alter recycle bin command, "
+                   "it is executed from COORD only" ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNCMDALTRECYBIN_DOIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+}

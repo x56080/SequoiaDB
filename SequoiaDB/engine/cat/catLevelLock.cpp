@@ -538,6 +538,43 @@ namespace engine
    }
 
    /*
+      _catRecycleBinLock implement
+    */
+   _catRecycleBinLock::_catRecycleBinLock()
+   : _catZeroLevelLock( CAT_LOCK_RECYCLEBIN )
+   {
+   }
+
+   _catRecycleBinLock::~_catRecycleBinLock()
+   {
+   }
+
+   /*
+      _catRecycleCSLock implement
+    */
+   _catCSRecycleLock::_catCSRecycleLock( const string &csName )
+   : _catOneLevelLock( CAT_LOCK_RECYCLEBIN, csName )
+   {
+   }
+
+   _catCSRecycleLock::~_catCSRecycleLock()
+   {
+   }
+
+   /*
+      _catRecycleCLLock implement
+    */
+   _catCLRecycleLock::_catCLRecycleLock( const std::string &csName,
+                                         const std::string &clFullName )
+   : _catTwoLevelLock( CAT_LOCK_RECYCLEBIN, csName, clFullName )
+   {
+   }
+
+   _catCLRecycleLock::~_catCLRecycleLock()
+   {
+   }
+
+   /*
       _catCtxLockMgr implement
     */
    _catCtxLockMgr::_catCtxLockMgr ()
@@ -637,6 +674,32 @@ namespace engine
       return _tryLockObject ( CAT_LOCK_NODE, groupName, nodeName, mode ) ;
    }
 
+   BOOLEAN _catCtxLockMgr::tryLockRecycleItem( const std::string &originName,
+                                               UTIL_RECYCLE_TYPE recycleType,
+                                               OSS_LATCH_MODE mode )
+   {
+      if ( UTIL_RECYCLE_CL == recycleType )
+      {
+         CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
+
+         // Resolve collection space from collection full name
+         if ( SDB_OK != rtnResolveCollectionSpaceName(
+                                    originName.c_str(), originName.size(),
+                                    csName, DMS_COLLECTION_SPACE_NAME_SZ ) )
+         {
+            return FALSE ;
+         }
+
+         return _tryLockObject( CAT_LOCK_RECYCLEBIN, csName, originName, mode ) ;
+      }
+      else if ( UTIL_RECYCLE_CS == recycleType )
+      {
+         return _tryLockObject( CAT_LOCK_RECYCLEBIN, originName, mode ) ;
+      }
+      // unknown type
+      return FALSE ;
+   }
+
    BOOLEAN _catCtxLockMgr::_tryLockObject ( CAT_LOCK_TYPE type,
                                             const std::string &name,
                                             OSS_LATCH_MODE mode )
@@ -657,6 +720,9 @@ namespace engine
          break ;
       case CAT_LOCK_SHARDING :
          pLock = SDB_OSS_NEW catCSShardingLock( name ) ;
+         break ;
+      case CAT_LOCK_RECYCLEBIN :
+         pLock = SDB_OSS_NEW catCSRecycleLock( name ) ;
          break ;
       default :
          break ;
@@ -685,6 +751,9 @@ namespace engine
          break ;
       case CAT_LOCK_SHARDING :
          pLock = SDB_OSS_NEW catCLShardingLock( parentName, name ) ;
+         break ;
+      case CAT_LOCK_RECYCLEBIN :
+         pLock = SDB_OSS_NEW catCLRecycleLock( parentName, name ) ;
          break ;
       default :
          break ;

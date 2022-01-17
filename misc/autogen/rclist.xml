@@ -3018,5 +3018,85 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_ERROR_RESERVED_377</name> <!--Not used-->
+         <description>
+            <en>Reserved</en> <!--Not used-->
+            <cn>保留</cn> <!--Not used-->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_378</name> <!--Not used-->
+         <description>
+            <en>Reserved</en> <!--Not used-->
+            <cn>保留</cn> <!--Not used-->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_379</name> <!--Not used-->
+         <description>
+            <en>Reserved</en> <!--Not used-->
+            <cn>保留</cn> <!--Not used-->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_380</name> <!--Not used-->
+         <description>
+            <en>Reserved</en> <!--Not used-->
+            <cn>保留</cn> <!--Not used-->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_381</name> <!--Not used-->
+         <description>
+            <en>Reserved</en> <!--Not used-->
+            <cn>保留</cn> <!--Not used-->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_382</name> <!--Not used-->
+         <description>
+            <en>Reserved</en> <!--Not used-->
+            <cn>保留</cn> <!--Not used-->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_383</name> <!--Not used-->
+         <description>
+            <en>Reserved</en> <!--Not used-->
+            <cn>保留</cn> <!--Not used-->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_RECYCLE_ITEMNOTEXISTS</name>
+         <description>
+            <en>Recycle bin item does not exist</en>
+            <cn>回收站项目不存在</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_RECYCLE_CONFLICT</name>
+         <description>
+            <en>Recycle bin item conflicts</en>
+            <cn>回收站项目存在冲突</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_RECYCLE_FULL</name>
+         <description>
+            <en>Recycle bin is full</en>
+            <cn>回收站已满</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>
