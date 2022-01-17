@@ -5181,7 +5181,7 @@ namespace engine
    _monQueriesFetch::_monQueriesFetch()
       : rtnFetchBase ( MON_DUMP_DFT_BUILDER_SZ, RTN_FETCH_QUERIES )
    {
-      _addInfoMask = MON_MASK_NODEID ;
+      _addInfoMask = MON_MASK_NODE_NAME | MON_MASK_NODEID ;
       _viewArchive = FALSE ;
       _isDetail= TRUE ;
    }
