@@ -677,6 +677,12 @@ namespace engine
             {
                if ( !needWaitForLock() )
                {
+                  // check visibility before testing transaction lock
+                  rc = _callback.checkRecordVisible() ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to check visibility "
+                               "of record [%d, %d], rc: %d", _curRID._extent,
+                               _curRID._offset, rc ) ;
+
                   // for new RC/RR logic, we should first test on S lock instead
                   // of directly wait on the record lock. Under the cover,
                   // the lock call back function would try to use the old copy
@@ -2088,6 +2094,12 @@ namespace engine
          {
             if ( !needWaitForLock() )
             {
+               // check visibility before testing transaction lock
+               rc = _callback.checkRecordVisible() ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to check visibility "
+                            "of record [%d, %d], rc: %d", _curRID._extent,
+                            _curRID._offset, rc ) ;
+
                // for new RC/RR logic, we should first test on S lock instead
                // of directly wait on the record lock. Under the cover,
                // the lock call back function would try to use the old copy

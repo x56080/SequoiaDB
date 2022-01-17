@@ -137,12 +137,9 @@ namespace engine
       }
 
    public:
+      INT32 checkRecordVisible() ;
 
       /// Interface
-      virtual void beforeLockAcquire( const dpsTransLockId &lockId,
-                                      DPS_TRANSLOCK_TYPE requestLockMode,
-                                      DPS_TRANSLOCK_OP_MODE_TYPE opMode );
-
       virtual void afterLockAcquire( const dpsTransLockId &lockId,
                                      INT32 irc,
                                      DPS_TRANSLOCK_TYPE requestLockMode,

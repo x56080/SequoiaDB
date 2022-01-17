@@ -1259,27 +1259,6 @@ namespace engine
          bLatched = TRUE ;
       }
 
-      // in case of reading with isolation mode RR, beforeLockAcquire
-      // will read record on disk to check the visibility. Since the
-      // mblatch latch should be already acquired at this time,
-      // we can read record on disk safely without acquiring bkt latch
-      // or record lock, no need to worry about partial reading.
-      // Although bkt latch is not acquired for calling beforeLockAcquire,
-      // it is possible we hold the bucket latch this time. Here is the
-      // scenario, when getS was put on waiter queue and previous
-      // owner woke it up when released a record lock. It acquires the
-      // bucket latch first, then removes itself from waiter queue and
-      // executes _tryAcquireOrTest again.
-      if ( callback )
-      {
-         callback->beforeLockAcquire( lockId, lockMode, opMode ) ;
-         if ( callback->hasError() )
-         {
-            PD_LOG( PDERROR, "before lock acquire callback failed (rc=%d)",
-                    callback->getResult() ) ;
-         }
-      }
-
       //
       // try to take a shortcut if it is less expensive to find out
       // whether the lock is already acquired
