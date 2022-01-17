@@ -359,6 +359,10 @@
                                                 TotalLobSize:{$sum:\"$TotalLobSize\"},\
                                                 Group:{$addtoset:\"$GroupName\"}\
                                                 }\
+                                       }\n\
+                                       {$match:\
+                                            {$and:[{RecycleName:{$exists:1}},\
+                                                   {RecycleName:{$ne:null}}]}\
                                        }"
 
 #endif // COORD_SNAPSHOT_DEF_HPP__
