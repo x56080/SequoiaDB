@@ -47,7 +47,7 @@ function test ()
    assert.equal( 5, count );
 
    //test find by index 
-   checkExplain( idxCL, { "姓名": "李" } );
+   checkExplain( idxCL, { "姓名": "李" }, "ixscan", "姓名索引" );
 
    //check the result of find  
    checkResult( idxCL, { "姓名": "李" } );

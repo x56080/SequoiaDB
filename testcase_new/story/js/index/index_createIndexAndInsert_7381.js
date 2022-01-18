@@ -48,10 +48,10 @@ function test ()
    }
 
    //test find by index 
-   checkExplain( idxCL, { no: 001 } );
-   checkExplain( idxCL, { name: "B" } );
-   checkExplain( idxCL, { "姓名": "张" } );
-   checkExplain( idxCL, { age: 2 } );
+   checkExplain( idxCL, { no: 001 }, "ixscan", "noIndex" );
+   checkExplain( idxCL, { name: "B" }, "ixscan", "nameIndex" );
+   checkExplain( idxCL, { "姓名": "张" }, "ixscan", "姓名索引" );
+   checkExplain( idxCL, { age: 2 }, "ixscan", "ageIndex" );
 
    //check the result of find  
    checkResult( idxCL, { no: 001 } );

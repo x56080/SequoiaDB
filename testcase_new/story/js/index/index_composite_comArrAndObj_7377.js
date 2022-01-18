@@ -66,7 +66,7 @@ function test ()
    }
 
    //test find by index
-   checkExplain( idxCL, { "object1.object2.object3.object4.object5": "5LayerObject" } );
+   checkExplain( idxCL, { "object1.object2.object3.object4.object5": "5LayerObject" }, "ixscan", "ObjLay5Index" );
 
    //check the result of find  
    var rc = idxCL.find( { "object1.object2.object3.object4.object5": "5LayerObject" } );
