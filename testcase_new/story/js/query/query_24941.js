@@ -1,10 +1,10 @@
 /******************************************************************************
- * @Description : seqDB-24941:删除主集合后新建同名普通集合，从另一个协调节点立刻插入数据
- * @Author      : 钟子明
- * @CreateTime  : 2022.1.8
- * @LastEditTime  : 2022.01.14
+ * @Description   : seqDB-24941:删除主集合后新建同名普通集合，从另一个协调节点立刻插入数据
+ * @Author        : 钟子明
+ * @CreateTime    : 2022.01.8
+ * @LastEditTime  : 2022.01.18
  * @LastEditors   : 钟子明
-******************************************************************************/
+ ******************************************************************************/
 
 test();
 
@@ -26,8 +26,8 @@ function test ()
    var db2 = getAnotherCoord( db );
 
    println( '-- begin test' );
-   commDropCL( db1, csName, clName );
-   db1.getCS( csName ).createCL( clName, { ShardingKey: { a: 1 }, AutoSplit: true } );
+   commDropCL( db, csName, clName );
+   db.getCS( csName ).createCL( clName, { ShardingKey: { a: 1 }, AutoSplit: true } );
    println( '-- begin to insert data' );
    db2.getCS( csName ).getCL( clName ).insert( data );
    println( '-- end test' );
