@@ -1084,6 +1084,12 @@
                            "en": "Isolation"
                         },
                         {
+                           "id": 1642131218,
+                           "file": "transaction_optimization",
+                           "cn": "大事务优化",
+                           "en": "Transaction Optimization"
+                        },
+                        {
                            "id": 1600139505,
                            "file": "configurations",
                            "cn": "事务配置",

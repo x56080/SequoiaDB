@@ -89,15 +89,21 @@ The attributes of the session can be set through the options parameter:
 
     Format: `TransRCCount: true`
 
-- TransMaxLockNum ( *number* ): Maximum number of record locks can be hold by a transaction on a data node.
+- TransMaxLockNum ( *number* ): Maximum number of record locks can be hold by a transaction on a data node, default value is 10000, range is [ -1, 2^31 - 1 ].
+
+    When the value of this parameter is -1, it means that the transaction has no limit on the number of record locks. When the value is 0, it means that the transaction does not use record locks, but directly uses set locks.
 
     Format: `TransMaxLockNum : 10000`
 
-- TransAllowLockEscalation ( *boolean* ): Whether allow lock escalation when number of record locks hold by a transaction exceeds the value set by parameter "TransMaxLockNum".
+- TransAllowLockEscalation ( *boolean* ): Whether to allow lock escalation after the number of record locks held by a transaction exceeds the parameter "transmaxlocknum". The default value is true, which means lock escalation ia allowed.
+
+    If the number of record locks held by the transaction reaches the upper limit, but the value of this parameter is false, the transaction operation will report an error.
 
     Format: `TransAllowLockEscalation: true`
 
-- TransMaxLogSpaceRatio ( *number* ): Maximum ratio of log space can be used by a transaction on a data node.
+- TransMaxLogSpaceRatio ( *number* ): Maximum ratio of log space can be used by a transaction on a data node, default value is 50, range is [1, 50].
+
+    This parameter indicates the maximum percentage of transactions in the total log space of the data node(total log space size=logfilesz*logfilenum). When the log space used by the transaction reaches the upper limit, the transaction operation will report an error.
 
     Format: `TransMaxLogSpaceRatio : 50`
 

@@ -138,26 +138,42 @@ committed to process count() queries.
 Format: \f[C]TransRCCount: true\f[]
 .RE
 .IP \[bu] 2
-TransMaxLockNum ( \f[I]number\f[] ): Maximum number of record locks can be
-hold by a transaction on a data node.
+TransMaxLockNum ( \f[I]number\f[] ): Maximum number of record locks can be hold
+by a transaction on a data node, default value is 10000, range is [ \-1, 2^31 \-
+1 ].
 .RS 2
 .PP
-Format: \f[C]TransMaxLockNum: 10000\f[]
+When the value of this parameter is \-1, it means that the transaction has no
+limit on the number of record locks.
+When the value is 0, it means that the transaction does not use record locks,
+but directly uses set locks.
+.PP
+Format: \f[C]TransMaxLockNum : 10000\f[]
 .RE
 .IP \[bu] 2
-TransAllowLockEscalation ( \f[I]boolean\f[] ): Whether allow lock escalation
-when number of record locks hold by a transaction exceeds the value set by
-parameter "TransMaxLockNum".
+TransAllowLockEscalation ( \f[I]boolean\f[] ): Whether to allow lock escalation
+after the number of record locks held by a transaction exceeds the parameter
+"transmaxlocknum".
+The default value is true, which means lock escalation ia allowed.
 .RS 2
+.PP
+If the number of record locks held by the transaction reaches the upper limit,
+but the value of this parameter is false, the transaction operation will report
+an error.
 .PP
 Format: \f[C]TransAllowLockEscalation: true\f[]
 .RE
 .IP \[bu] 2
 TransMaxLogSpaceRatio ( \f[I]number\f[] ): Maximum ratio of log space can be
-used by a transaction on a data node.
+used by a transaction on a data node, default value is 50, range is [1, 50].
 .RS 2
 .PP
-Format: \f[C]TransMaxLogSpaceRatio: 50\f[]
+This parameter indicates the maximum percentage of transactions in the total log
+space of the data node(total log space size=logfilesz*logfilenum).
+When the log space used by the transaction reaches the upper limit, the
+transaction operation will report an error.
+.PP
+Format: \f[C]TransMaxLogSpaceRatio : 50\f[]
 .RE
 .RS
 .PP

@@ -87,7 +87,7 @@
 | transuserbs | 事务操作是否使用回滚段。 | true/false | true |
 | transrccount | 事务是否使用读已提交来处理 count() 查询。 | true/false | true |
 | transreplsize | 事务提交日志的写副本数。 | -1 表示所有活跃节点，0 表示所有节点，1~7 表示相应的节点数目。 | 2 |
-| transmaxlocknum | 事务在一个数据节点上最多可以持有的记录锁个数。 | [ -1, 2^31-1 ]，-1 表示事务对记录锁的个数没有限制。 | 10000 |
+| transmaxlocknum | 事务在一个数据节点上最多可以持有的记录锁个数。 | [ -1, 2^31 - 1 ] <br> -1 表示事务对记录锁的个数没有限制。0 表示事务不使用记录锁，直接使用集合锁。 | 10000 |
 | transallowlockescalation | 事务持有的记录锁个数超过参数 transmaxlocknum 的值后，是否允许锁升级。 | true/false | true |
 | transmaxlogspaceratio | 事务在一个数据节点上可以使用的最大日志空间比例(%)。 | [ 1, 50 ]，取值为50，表示一半的日志空间都可以被事务使用，另外一半用于事务回滚。 | 50 |
 
