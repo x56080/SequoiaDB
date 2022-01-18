@@ -13,7 +13,7 @@ SystemTest.prototype.testGetSystemConfigs = function()
    var type = ["all"];
    // 动态变化的字段
    var except = ["fs.dentry-state", "fs.inode-nr", "fs.inode-state",
-      "fs.file-nr", "kernel.ns_last_pid"];
+      "fs.file-nr", "kernel.ns_last_pid", "net.netfilter.nf_conntrack_count"];
    for( var i = 0; i < type.length; i++ )
    {
       var configObj = this.system.getSystemConfigs( type[i] ).toObj();
