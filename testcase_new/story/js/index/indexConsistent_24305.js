@@ -2,7 +2,7 @@
  * @Description   : seqDB-24305 :: 多个子表在相同组上，主表创建索引   
  * @Author        : wu yan
  * @CreateTime    : 2021.08.02
- * @LastEditTime  : 2021.11.26
+ * @LastEditTime  : 2022.01.18
  * @LastEditors   : Wu Yan
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -25,15 +25,15 @@ function test ( testPara )
    var expRecs = insertBulkData( maincl, recordNum );
    maincl.createIndex( indexName, { a: 1, b: 1 } );
 
-   checkTasks( mainCLName, subCLName, subclNum, indexName, "Create index" );
    checkIndexConsistentWithSubcls( subCLName, subclNum, indexName, true );
+   checkTasks( mainCLName, subCLName, subclNum, indexName, "Create index" );
    checkExplainByMaincl( maincl, { a: 1, b: 1 }, "ixscan", indexName );
    checkExplainByMaincl( maincl, { a: 10000, b: 10000 }, "ixscan", indexName );
 
    maincl.dropIndex( indexName );
 
-   checkTasks( mainCLName, subCLName, subclNum, indexName, "Drop index" );
    checkIndexConsistentWithSubcls( subCLName, subclNum, indexName, false );
+   checkTasks( mainCLName, subCLName, subclNum, indexName, "Drop index" );
    checkExplainByMaincl( maincl, { a: 1, b: 1 }, "ixscan", "$shard" );
    checkExplainByMaincl( maincl, { a: 10000, b: 10000 }, "ixscan", "$shard" );
 
