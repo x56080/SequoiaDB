@@ -1,16 +1,16 @@
 /******************************************************************************
- * @Description : seqDB-24941:删除主集合后新建同名普通集合，从另一个协调节点立刻插入数据
- * @Author      : 钟子明
- * @CreateTime  : 2022.1.8
- * @LastEditTime  : 2022.01.14
+ * @Description   : seqDB-24941:删除主集合后新建同名普通集合，从另一个协调节点立刻插入数据
+ * @Author        : 钟子明
+ * @CreateTime    : 2022.01.8
+ * @LastEditTime  : 2022.01.18
  * @LastEditors   : 钟子明
-******************************************************************************/
+ ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.csName = COMMCSNAME + "_24941"
 
 main( test );
 
-function test ( para ) 
+function test () 
 {
    var clName = COMMCLNAME + "_24941";
    //进行检测，如果协调节点数量小于2则跳过用例
@@ -25,8 +25,8 @@ function test ( para )
 
    var db2 = getAnotherCoord( db );
 
-   commDropCL( db1, testConf.csName, clName );
-   commCreateCL( db1, testConf.csName, clName, { ShardingKey: { a: 1 }, AutoSplit: true }, false, false );
+   commDropCL( db, testConf.csName, clName );
+   commCreateCL( db, testConf.csName, clName, { ShardingKey: { a: 1 }, AutoSplit: true }, false, false );
    db2.getCS( testConf.csName ).getCL( clName ).insert( data );
 
    db2.close();
