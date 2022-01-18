@@ -2,9 +2,10 @@
  * @Description   : seqDB-24299 :: 等待执行成功的任务   
  * @Author        : wu yan
  * @CreateTime    : 2021.08.02
- * @LastEditTime  : 2021.08.02
- * @LastEditors   : wuyan
+ * @LastEditTime  : 2022.01.18
+ * @LastEditors   : Wu Yan
  ******************************************************************************/
+testConf.skipStandAlone = true;
 testConf.clOpt = { ShardingKey: { a: 1 }, ShardingType: "range" };
 testConf.clName = COMMCLNAME + "_index24299";
 

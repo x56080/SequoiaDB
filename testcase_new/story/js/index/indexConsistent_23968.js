@@ -2,9 +2,10 @@
  * @Description   : seqDB-23968:取消异步创建索引任务   
  * @Author        : wu yan
  * @CreateTime    : 2021.04.07
- * @LastEditTime  : 2021.04.07
- * @LastEditors   : wuyan
+ * @LastEditTime  : 2022.01.18
+ * @LastEditors   : Wu Yan
  ******************************************************************************/
+testConf.skipStandAlone = true;
 testConf.clOpt = { ShardingKey: { a: 1 }, ShardingType: "range" };
 testConf.clName = COMMCLNAME + "_index23968";
 
