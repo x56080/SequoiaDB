@@ -10,12 +10,12 @@ findOne \- 查询符合条件的一条记录
 .PP
 \f[B]db.collectionspace.collection.findOne([cond], [sel])\f[]
 .PP
-\f[B]db.collectionspace.collection.find([cond], [sel]).hint([hint])\f[]
+\f[B]db.collectionspace.collection.findOne([cond], [sel]).hint([hint])\f[]
 .PP
-\f[B]db.collectionspace.collection.find([cond],
+\f[B]db.collectionspace.collection.findOne([cond],
 [sel]).skip([skipNum]).limit([retNum]).sort([sort])\f[]
 .PP
-\f[B]db.collectionspace.collection.find([SdbQueryOption])\f[]
+\f[B]db.collectionspace.collection.findOne([SdbQueryOption])\f[]
 .SH 类别
 .PP
 SdbCollection
@@ -24,7 +24,7 @@ SdbCollection
 该函数用于返回符合查询条件的一条记录，与 find() 方法用法相同。
 .SH 参数
 .PP
-参数说明可参考 find()方法
+参数说明可参考 find() 方法。
 .SH 返回值
 .PP
 函数执行成功时，将返回一个 SdbQuery 的对象。通过该对象获取查询到的结果集。
@@ -32,7 +32,7 @@ SdbCollection
 函数执行失败时，将抛异常并输出错误信息。
 .SH 错误
 .PP
-\f[C]find()\f[] 函数常见异常如下：
+\f[C]findOne()\f[] 函数常见异常如下：
 .PP
 .TS
 tab(@);
@@ -134,7 +134,7 @@ T}
 获取错误码。更多错误处理可以参考常见错误处理指南。
 .SH 版本
 .PP
-v1.0 及以上版本
+v3.4 及以上版本
 .SH 示例
 .IP \[bu] 2
 查询所有记录，不指定 cond 和 sel 字段
@@ -142,7 +142,7 @@ v1.0 及以上版本
 .IP
 .nf
 \f[C]
-> db.sample.employee.find()
+> db.sample.employee.findOne()
 \f[]
 .fi
 .RE
@@ -151,7 +151,7 @@ v1.0 及以上版本
 age 字段值大于 25 且 name 字段值为"Tom"的记录
 .RS 2
 .PP
-\f[C]lang\-javascript db.sample.employee.find({age: {$gt: 25}, name: "Tom"})\f[]
+\f[C]lang\-javascript > db.sample.employee.findOne({age: {$gt: 25}, name: "Tom"})\f[]
 .RE
 .IP \[bu] 2
 指定返回的字段名，即设置 sel 参数的内容，如有记录 {age: 25, type: "system"} 和
@@ -160,7 +160,7 @@ age 字段值大于 25 且 name 字段值为"Tom"的记录
 .IP
 .nf
 \f[C]
-db.sample.employee.find(null, {age: "", name: "" })
+> db.sample.employee.findOne(null, {age: "", name: "" })
     {
         "age": 25,
         "name": ""
@@ -174,7 +174,7 @@ db.sample.employee.find(null, {age: "", name: "" })
 .IP
 .nf
 \f[C]
-> db.sample.test.find({age: {$exists: 1}}).hint({"": "ageIndex"})
+> db.sample.test.findOne({age: {$exists: 1}}).hint({"": "ageIndex"})
 {
         "_id": {
         "$oid": "5812feb6c842af52b6000007"
@@ -191,14 +191,14 @@ db.sample.employee.find(null, {age: "", name: "" })
 .IP
 .nf
 \f[C]
-db.sample.employee.find({age: {$gt: 20}}, {age: "", name: ""}).sort({age: 1})
+> db.sample.employee.findOne({age: {$gt: 20}}, {age: "", name: ""}).sort({age: 1})
 \f[]
 .fi
 .PP
-通过 find()
+通过 findOne()
 方法，我们能任意选择我们想要返回的字段名，在上例中我们选择了返回记录的 age 和
 name 字段，此时用 sort() 方法时，只能对记录的 age 或 name
-字段排序。而如果我们选择返回记录的所有字段，即不设置 find 方法的 sel
+字段排序。而如果我们选择返回记录的所有字段，即不设置 findOne 方法的 sel
 参数内容时，那么 sort() 能对任意字段排序。
 .RE
 .IP \[bu] 2
@@ -207,10 +207,10 @@ name 字段，此时用 sort() 方法时，只能对记录的 age 或 name
 .IP
 .nf
 \f[C]
-db.sample.employee.find({age: {$gt: 20}}, {age: "", name: ""}).sort({"sex": 1})
+> db.sample.employee.findOne({age: {$gt: 20}}, {age: "", name: ""}).sort({"sex": 1})
 \f[]
 .fi
 .PP
-因为 “sex” 字段并不存在 find() 方法的 sel 选项 {age: "", name: ""} 中，所以
+因为“sex”字段并不存在 findOne() 方法的 sel 选项 {age: "", name: ""} 中，所以
 sort() 指定的排序字段 {"sex": 1} 将被忽略。
 .RE

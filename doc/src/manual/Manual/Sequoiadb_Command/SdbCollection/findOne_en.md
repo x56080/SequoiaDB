@@ -6,11 +6,11 @@ findOne - query a record that meets the conditions
 
 **db.collectionspace.collection.findOne\(\[cond\], \[sel\]\)**
 
-**db.collectionspace.collection.find([cond], [sel]).hint([hint])**
+**db.collectionspace.collection.findOne([cond], [sel]).hint([hint])**
 
-**db.collectionspace.collection.find([cond], [sel]).skip([skipNum]).limit([retNum]).sort([sort])**
+**db.collectionspace.collection.findOne([cond], [sel]).skip([skipNum]).limit([retNum]).sort([sort])**
 
-**db.collectionspace.collection.find([SdbQueryOption])**
+**db.collectionspace.collection.findOne([SdbQueryOption])**
 
 ##CATEGORY##
 
@@ -32,7 +32,7 @@ When the function fails, an exception will be thrown and an error message will b
 
 ##ERRORS##
 
-The common exceptions of `find()` function are as follows:
+The common exceptions of `findOne()` function are as follows:
 
 | Error Code | Error Type | Description | Solution |
 | ------ | --- | ------------ | ----------- |
@@ -45,26 +45,26 @@ When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the erro
 
 ##VERSION##
 
-v1.0 and above
+v3.4 and above
 
 ##EXAMPLES##
 
 - Query all records without specifying the "cond" and "sel" fields.
 
     ```lang-javascript
-    > db.sample.employee.find()
+    > db.sample.employee.findOne()
     ```
 
 - Query the records matching the conditions by setting the content of the cond parameter. For example, the following operation returns the records in the collection "employee" whose age field value is greater than 25 and the name field value is "Tom".
 
     ```lang-javascript
-    db.sample.employee.find({age: {$gt: 25}, name: "Tom"})
+    > db.sample.employee.findOne({age: {$gt: 25}, name: "Tom"})
      ```
 
 - Specify the returned field name by setting the content of the sel parameter. For example, there are records {age: 25, type: "system"} and {age: 20, name: "Tom", type: "normal"}, the following operation returns the age field and name field of the record.
 
     ```lang-javascript
-    db.sample.employee.find(null, {age: "", name: "" })
+    > db.sample.employee.findOne(null, {age: "", name: "" })
         {
             "age": 25,
             "name": ""
@@ -74,7 +74,7 @@ v1.0 and above
 - Use the index "ageIndex" to traverse the records in the "age" field under the collection employee, and return the records.
 
     ```lang-javascript
-    > db.sample.test.find({age: {$exists: 1}}).hint({"": "ageIndex"})
+    > db.sample.test.findOne({age: {$exists: 1}}).hint({"": "ageIndex"})
     {
             "_id": {
             "$oid": "5812feb6c842af52b6000007"
@@ -86,18 +86,18 @@ v1.0 and above
 - Return the records in the collection "employee" whose "age" field value is greater than 20 (for example, use [$gt][gt] query) and set to only return the "name" and "age" fields of the records, and sort the age and name fields in ascending order of the "age" field value.
 
     ```lang-javascript
-    db.sample.employee.find({age: {$gt: 20}}, {age: "", name: ""}).sort({age: 1})
+    > db.sample.employee.findOne({age: {$gt: 20}}, {age: "", name: ""}).sort({age: 1})
     ```
 
-    Through the find() method, users can choose any field name they want to return. In the above example, user have chosen to return the "age" and "name" fields of the records. At this time, when using the sort() method, only the "age" or "name" fields of the records can be sorted. And if user choose to return all the fields of the record, that is, without setting the content of the "sel" parameter of the find method, then sort() can sort any field.
+    Through the findOne() method, users can choose any field name they want to return. In the above example, user have chosen to return the "age" and "name" fields of the records. At this time, when using the sort() method, only the "age" or "name" fields of the records can be sorted. And if user choose to return all the fields of the record, that is, without setting the content of the "sel" parameter of the findOne method, then sort() can sort any field.
 
 - Specify an invalid sort field.
 
     ```lang-javascript
-    db.sample.employee.find({age: {$gt: 20}}, {age: "", name: ""}).sort({"sex": 1})
+    > db.sample.employee.findOne({age: {$gt: 20}}, {age: "", name: ""}).sort({"sex": 1})
     ```
 
-    Because the "sex" field does not exist in the "sel" option {age: "", name: ""} of the find() method, the sort field {"sex": 1} specified by sort() will be ignored.
+    Because the "sex" field does not exist in the "sel" option {age: "", name: ""} of the findOne() method, the sort field {"sex": 1} specified by sort() will be ignored.
 
 [^_^]:
     Links
@@ -109,5 +109,4 @@ v1.0 and above
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [faq]:manual/FAQ/faq_sdb.md
 [find]:manual/Manual/Sequoiadb_Command/SdbCollection/find.md
-
 [gt]:manual/Manual/Operator/Match_Operator/gt.md
