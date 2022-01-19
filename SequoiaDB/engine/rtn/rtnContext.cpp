@@ -517,6 +517,7 @@ namespace engine
       _isAffectGIndex      = FALSE ;
 
       _lastProcessTick     = pmdGetDBTick() ;
+      _needTimeout         = TRUE ;
    }
 
    _rtnContextBase::~_rtnContextBase()
