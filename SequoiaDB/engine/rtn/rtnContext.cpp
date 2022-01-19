@@ -515,6 +515,7 @@ namespace engine
       _monCtxCB.setContextID( contextID ) ;
 
       _lastProcessTick     = pmdGetDBTick() ;
+      _needTimeout         = TRUE ;
    }
 
    _rtnContextBase::~_rtnContextBase()
