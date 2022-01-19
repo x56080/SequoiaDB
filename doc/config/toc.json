@@ -2834,12 +2834,6 @@
                            "en": "listTasks()"
                         },
                         {
-                           "id": 1563243400,
-                           "file": "loadCS",
-                           "cn": "loadCS()",
-                           "en": "loadCS()"
-                        },
-                        {
                            "id": 1432190801,
                            "file": "removeBackup",
                            "cn": "removeBackup()",
@@ -3006,12 +3000,6 @@
                            "file": "transRollback",
                            "cn": "transRollback()",
                            "en": "transRollback()"
-                        },
-                        {
-                           "id": 1563243401,
-                           "file": "unloadCS",
-                           "cn": "unloadCS()",
-                           "en": "unloadCS()"
                         },
                         {
                            "id": 1521424274,
