@@ -35,7 +35,14 @@ function test ()
    //PreferedPeriod为400000000000000000000000000
    var options = { PreferedPeriod: 400000000000000000000000000 };
    db.setSessionAttr( options );
-   var expResult = { PreferedInstance: [11, 22, 33], PreferedInstanceMode: "random", PreferedStrict: false, PreferedPeriod: -1 };
+   if( commIsArmArchitecture() )
+   {
+      var expResult = { PreferedInstance: [11, 22, 33], PreferedInstanceMode: "random", PreferedStrict: false, PreferedPeriod: 2147483647 };
+   }
+   else
+   {
+      var expResult = { PreferedInstance: [11, 22, 33], PreferedInstanceMode: "random", PreferedStrict: false, PreferedPeriod: -1 };
+   }
    checkSessionAttr( db, expResult );
 }
 
