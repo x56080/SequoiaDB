@@ -2,21 +2,22 @@
 
 | 列表标示 | 列表类型 | 描述 |
 | -------- | -------- | ---- |
-| [SDB_LIST_CONTEXTS](database_management/monitoring/list/SDB_LIST_CONTEXTS.md) | 上下文列表 | 上下文列表列出当前数据库节点中所有的会话所对应的上下文 |
-| [SDB_LIST_CONTEXTS_CURRENT](database_management/monitoring/list/SDB_LIST_CONTEXTS_CURRENT.md) | 当前会话上下文列表 | 当前上下文列表列出当前数据库节点中当前会话所对应的上下文 |
-| [SDB_LIST_SESSIONS](database_management/monitoring/list/SDB_LIST_SESSIONS.md) | 会话列表 | 会话列表列出当前数据库节点中所有的会话 |
-| [SDB_LIST_SESSIONS_CURRENT](database_management/monitoring/list/SDB_LIST_SESSIONS_CURRENT.md) | 当前会话列表 | 当前会话列表列出当前数据库节点中当前的会话 |
-| [SDB_LIST_COLLECTIONS](database_management/monitoring/list/SDB_LIST_COLLECTIONS.md) | 集合列表 | 集合列表列出当前数据库节点或集群中所有非临时集合 |
-| [SDB_LIST_COLLECTIONSPACES](database_management/monitoring/list/SDB_LIST_COLLECTIONSPACES.md) | 集合空间列表 | 集合空间列表列出当前数据库节点或集群中所有集合空间（编目集合空间除外） |
-| [SDB_LIST_STORAGEUNITS](database_management/monitoring/list/SDB_LIST_STORAGEUNITS.md) | 存储单元列表 | 存储单元列表列出当前数据库节点的全部存储单元信息 |
-| [SDB_LIST_GROUPS](database_management/monitoring/list/SDB_LIST_GROUPS.md) | 分区组列表 | 分区组列表列出当前集群中的所有分区信息 |
-| [SDB_LIST_TRANSACTIONS](database_management/monitoring/list/SDB_LIST_TRANSACTIONS.md) | 事务列表 | 事务列表列出数据库中正在进行的事务信息 |
-| [SDB_LIST_TRANSACTIONS_CURRENT](database_management/monitoring/list/SDB_LIST_TRANSACTIONS_CURRENT.md) | 当前事务列表 | 当前事务列表列出当前会话正在进行的事务信息 |
-| [SDB_LIST_SVCTASKS](database_management/monitoring/list/SDB_LIST_SVCTASKS.md) | 服务任务列表 | 服务任务列表列出当前数据库节点中所有的服务任务 |
-| [SDB_LIST_SEQUENCES](database_management/monitoring/list/SDB_LIST_SEQUENCES.md) | 序列列表 | 序列列表列出当前数据库中所有的序列信息 |
-| [SDB_LIST_USERS](database_management/monitoring/list/SDB_LIST_USERS.md) | 用户列表 | 用户列表列出当前集群中的所有用户信息 |
-| [SDB_LIST_BACKUPS](database_management/monitoring/list/SDB_LIST_BACKUPS.md) | 备份列表 | 备份列表列出当前数据库的备份信息 |
-| [SDB_LIST_DATASOURCES](database_management/monitoring/list/SDB_LIST_DATASOURCES.md) | 数据源列表 | 数据源列表列出当前数据库中所有数据源的元数据信息 |
+| [SDB_LIST_CONTEXTS](database_management/monitoring/list/SDB_LIST_CONTEXTS.md) | 上下文列表 | 列出当前数据库节点中所有的会话所对应的上下文 |
+| [SDB_LIST_CONTEXTS_CURRENT](database_management/monitoring/list/SDB_LIST_CONTEXTS_CURRENT.md) | 当前会话上下文列表 | 列出当前数据库节点中当前会话所对应的上下文 |
+| [SDB_LIST_SESSIONS](database_management/monitoring/list/SDB_LIST_SESSIONS.md) | 会话列表 | 列出当前数据库节点中所有的会话 |
+| [SDB_LIST_SESSIONS_CURRENT](database_management/monitoring/list/SDB_LIST_SESSIONS_CURRENT.md) | 当前会话列表 | 列出当前数据库节点中当前的会话 |
+| [SDB_LIST_COLLECTIONS](database_management/monitoring/list/SDB_LIST_COLLECTIONS.md) | 集合列表 | 列出当前数据库节点或集群中所有非临时集合 |
+| [SDB_LIST_COLLECTIONSPACES](database_management/monitoring/list/SDB_LIST_COLLECTIONSPACES.md) | 集合空间列表 | 列出当前数据库节点或集群中所有集合空间（编目集合空间除外） |
+| [SDB_LIST_STORAGEUNITS](database_management/monitoring/list/SDB_LIST_STORAGEUNITS.md) | 存储单元列表 | 列出当前数据库节点的全部存储单元信息 |
+| [SDB_LIST_GROUPS](database_management/monitoring/list/SDB_LIST_GROUPS.md) | 分区组列表 | 列出当前集群中的所有分区信息 |
+| [SDB_LIST_TASKS](database_management/monitoring/list/SDB_LIST_TASKS.md) | 后台任务列表 | 列出正在运行的后台任务信息 |
+| [SDB_LIST_TRANSACTIONS](database_management/monitoring/list/SDB_LIST_TRANSACTIONS.md) | 事务列表 | 列出数据库中正在进行的事务信息 |
+| [SDB_LIST_TRANSACTIONS_CURRENT](database_management/monitoring/list/SDB_LIST_TRANSACTIONS_CURRENT.md) | 当前事务列表 | 列出当前会话正在进行的事务信息 |
+| [SDB_LIST_SVCTASKS](database_management/monitoring/list/SDB_LIST_SVCTASKS.md) | 服务任务列表 | 列出当前数据库节点中所有的服务任务 |
+| [SDB_LIST_SEQUENCES](database_management/monitoring/list/SDB_LIST_SEQUENCES.md) | 序列列表 | 列出当前数据库中所有的序列信息 |
+| [SDB_LIST_USERS](database_management/monitoring/list/SDB_LIST_USERS.md) | 用户列表 | 列出当前集群中的所有用户信息 |
+| [SDB_LIST_BACKUPS](database_management/monitoring/list/SDB_LIST_BACKUPS.md) | 备份列表 | 列出当前数据库的备份信息 |
+| [SDB_LIST_DATASOURCES](database_management/monitoring/list/SDB_LIST_DATASOURCES.md) | 数据源列表 | 列出当前数据库中所有数据源的元数据信息 |
 
 >   **Note:**
 >
