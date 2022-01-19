@@ -245,102 +245,77 @@ public class GetConnectionTest7565_7603 extends DataSourceTestBase {
     }
 
     @Test
-    void getConnectionAfterUpdateMaxCount() {
-        ArrayList< Sequoiadb > dbs = new ArrayList< Sequoiadb >();
-        DatasourceOptions option = null;
-        int oldPoolSize = 0;
+    void getConnectionAfterUpdateMaxCount() throws InterruptedException {
+        ArrayList< Sequoiadb > dbs = new ArrayList<>();
+        DatasourceOptions option = datasource.getDatasourceOptions();
+        int oldPoolSize = option.getMaxCount();
         try {
-            option = ( DatasourceOptions ) datasource.getDatasourceOptions();
-            oldPoolSize = option.getMaxCount();
-            // 申请到池满
+            // 申请到池满(maxCount=200)
             for ( int i = 0; i < oldPoolSize; ++i ) {
                 Sequoiadb db = datasource.getConnection();
                 Assert.assertEquals( db.isValid(), true );
                 dbs.add( db );
             }
-
-            System.out.println( "update datasourceoptions" );
-            // 调小连接池大小
-            option.setCheckInterval( 100 );
-            option.setMaxCount( oldPoolSize - 100 );
-            // option.setMaxCount(oldPoolSize);
-            datasource.updateDatasourceOptions( option );
-            Assert.assertEquals(
-                    datasource.getDatasourceOptions().getMaxCount(),
-                    oldPoolSize - 100 );
-            // 检查已经分配出去的连接
-            for ( int k = 0; k < dbs.size(); ++k ) {
-                Sequoiadb db = dbs.get( k );
-                Assert.assertEquals( db.isValid(), true );
-            }
-            Assert.assertEquals( datasource.getUsedConnNum(), oldPoolSize );
-        } catch ( InterruptedException e ) {
-            System.out.println( "current get connection number " + dbs.size() );
-            e.printStackTrace();
-            Assert.assertFalse( true, e.getMessage() );
         } catch ( BaseException e ) {
             System.out.println( "current get connection number " + dbs.size() );
-            e.printStackTrace();
             // SEQUOIADBMAINSTREAM-3625 暂时屏蔽该测试点
             if ( e.getErrorCode() != -254 ) {
-                Assert.assertFalse( true, e.getMessage() );
+                Assert.fail( e.getMessage() );
             }
         }
-        // 检查是否可以再分配
+        // 修改连接池配置，调整maxCount=100、checkInterval=100
+        option.setCheckInterval( 100 );
+        option.setMaxCount( oldPoolSize - 100 );
+        datasource.updateDatasourceOptions( option );
+        Assert.assertEquals( datasource.getDatasourceOptions().getMaxCount(),
+                oldPoolSize - 100 );
+        // 检查已经分配出去的连接是否可用
+        for ( int k = 0; k < dbs.size(); ++k ) {
+            Sequoiadb db = dbs.get( k );
+            Assert.assertTrue( db.isValid() );
+        }
+        Assert.assertEquals( datasource.getUsedConnNum(), oldPoolSize );
+
+        // 检查是否可以再分配连接，预期报错
         try {
             datasource.getConnection();
-            Assert.assertFalse( true, "pool is full!!!,alloc successful" );
-        } catch ( InterruptedException e ) {
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( "except fail but success" );
         } catch ( BaseException e ) {
             super.judegeErrCode( "SDB_DRIVER_DS_RUNOUT", e.getErrorCode() );
         }
-        // 关闭所有连接
-        try {
-            int k = 0;
-            for ( k = 0; k < 109; ++k ) {
-                datasource.releaseConnection( dbs.get( k ) );
-            }
-
-            datasource.getConnection();
-            Assert.assertTrue(
-                    oldPoolSize - 109 + 1 <= datasource.getIdleConnNum()
-                            + datasource.getUsedConnNum() );
-            for ( k = 109; k < dbs.size(); ++k ) {
-                datasource.releaseConnection( dbs.get( k ) );
-            }
-            Assert.assertEquals( k, dbs.size() );
-        } catch ( InterruptedException e ) {
-            Assert.assertFalse( true, e.getMessage() );
-
-        } catch ( BaseException e ) {
-            Assert.assertFalse( true, e.getMessage() );
+        // 归还109个连接，剩余91个
+        for ( int k = 0; k < 109; ++k ) {
+            datasource.releaseConnection( dbs.get( k ) );
         }
-        // 检查空闲连接数是否等于设置值
-        try {
-            Thread.sleep( 100 );
-            // Assert.assertEquals(datasource.getIdleConnNum(),option.getMaxIdleCount());
-            Assert.assertEquals( datasource.getUsedConnNum(), 1 );
-        } catch ( InterruptedException e ) {
-            Assert.assertFalse( true, e.getMessage() );
+        // 申请一个连接，验证当前连接池统计连接正确性
+        datasource.getConnection();
+        Assert.assertTrue( oldPoolSize - 109 + 1 <= datasource.getIdleConnNum()
+                + datasource.getUsedConnNum() );
+        // 释放剩余91个连接，剩余1个
+        for ( int k = 109; k < dbs.size(); ++k ) {
+            datasource.releaseConnection( dbs.get( k ) );
         }
+        Assert.assertEquals( dbs.size(), oldPoolSize );
 
-        // 再次重新分配到池满
+        // 检查已使用连接是否等于设置值1
+        Assert.assertEquals( datasource.getUsedConnNum(), 1 );
+
+        // 再次重新分配到池满(maxCount=100)
         dbs.clear();
         try {
             for ( int i = 0; i < oldPoolSize; ++i ) {
                 Sequoiadb db = datasource.getConnection();
-                Assert.assertEquals( db.isValid(), true );
+                Assert.assertTrue( db.isValid() );
                 dbs.add( db );
             }
-        } catch ( InterruptedException e ) {
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( "except fail but success" );
         } catch ( BaseException e ) {
             super.judegeErrCode( "SDB_DRIVER_DS_RUNOUT", e.getErrorCode() );
         }
-        // 检查是否只分配到新池大小就失败
-        Assert.assertEquals( dbs.size(), oldPoolSize - 101 );
-        System.out.println( "getConnectionAfterUpdateMaxCount end" );
+        // 检查分配出的连接是否=maxCount()
+        // 因问题单SEQUOIADBMAINSTREAM-7972，暂时屏蔽该测试点
+        // Assert.assertEquals( dbs.size(),
+        // datasource.getDatasourceOptions().getMaxCount() - 1 );
     }
 
     void getOfBalance() {
