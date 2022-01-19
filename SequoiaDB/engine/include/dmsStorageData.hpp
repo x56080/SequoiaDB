@@ -49,7 +49,7 @@ namespace engine
 
    class _dmsStorageData : public _dmsStorageDataCommon
    {
-      friend class _dmsStorageUnit ;
+      friend class _dmsMmapStorageUnit ;
    public:
       _dmsStorageData ( const CHAR *pSuFileName,
                         dmsStorageInfo *pInfo,

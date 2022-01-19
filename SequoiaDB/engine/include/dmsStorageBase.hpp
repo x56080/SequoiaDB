@@ -55,6 +55,7 @@
 #include "sdbIPersistence.hpp"
 #include "dmsExtDataHandler.hpp"
 #include "dmsEngineDef.hpp"
+#include "dmsMBContext.hpp"
 
 #include <string>
 
@@ -336,22 +337,6 @@ namespace engine
          _dmsStorageBase      *_pBase ;
    } ;
    typedef _dmsExtRW dmsExtRW ;
-
-   /*
-      _dmsContext define
-   */
-   class _dmsContext : public _IContext, public _utilPooledObject
-   {
-      public:
-         _dmsContext () {}
-         virtual ~_dmsContext () {}
-
-      public:
-         virtual string toString () const = 0 ;
-         virtual UINT16 mbID() const = 0 ;
-
-   };
-   typedef _dmsContext  dmsContext ;
 
    #define DMS_SU_FILENAME_SZ       ( DMS_SU_NAME_SZ + 15 )
    #define DMS_HEADER_OFFSET        ( 0 )

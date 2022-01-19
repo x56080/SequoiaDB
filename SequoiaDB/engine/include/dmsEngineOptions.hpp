@@ -40,20 +40,24 @@
 #include "interface/IRecordFilter.h"
 #include "utilCompression.hpp"
 #include "dms.hpp"
+#include "../bson/bson.hpp"
 
 namespace engine
 {
    class dmsCreateCSOptions : public SDBObject
    {
       public:
+         utilCSUniqueID uniqueID = UTIL_UNIQUEID_NULL;
          UINT32 dataPageSize = DMS_PAGE_SIZE32K;
          UINT32 idxPageSize = DMS_PAGE_SIZE32K;
          UINT32 lobPageSize = DMS_PAGE_SIZE256K;
+         DMS_STORAGE_TYPE stype = DMS_STORAGE_NORMAL;
    };//class dmsCreateCSOptions
 
    class dmsCreateCLOptions : public SDBObject
    {
       public:
+         utilCLInnerID innerID = UTIL_UNIQUEID_NULL;
          UTIL_COMPRESSOR_TYPE compressor = UTIL_COMPRESSOR_INVALID;
          UINT8 pageMinFreePercent = 10;
    };//class dmsCreateCLOptions

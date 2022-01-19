@@ -51,6 +51,8 @@
 #include "dmsCachedPlanUnit.hpp"
 #include "ossMemPool.hpp"
 #include "utilInsertResult.hpp"
+#include "dmsEventHolder.hpp"
+#include "dmsCacheHolder.hpp"
 
 using namespace bson ;
 
@@ -67,15 +69,6 @@ namespace engine
    class _mthMatchTree ;
    class _mthMatchRuntime ;
    class _mthModifier ;
-
-   class _dmsStorageUnit ;
-   typedef _dmsStorageUnit dmsStorageUnit ;
-
-   class _dmsCacheHolder ;
-   typedef class _dmsCacheHolder dmsCacheHolder ;
-
-   class _dmsEventHolder ;
-   typedef class _dmsEventHolder dmsEventHolder ;
 
    /*
       _dmsStorageUnitStat define
@@ -96,173 +89,6 @@ namespace engine
    #define DMS_SU_INDEX          ( 0x0002 )
    #define DMS_SU_LOB            ( 0x0004 )
    #define DMS_SU_ALL            ( 0xFFFF )
-
-   /*
-      _dmsCacheHolder
-    */
-   class _dmsCacheHolder : public IDmsSUCacheHolder
-   {
-      public :
-         _dmsCacheHolder ( dmsStorageUnit *su ) ;
-
-         virtual ~_dmsCacheHolder () ;
-
-         virtual const CHAR *getCSName () const ;
-
-         virtual UINT32 getSUID () const ;
-
-         virtual UINT32 getSULID () const ;
-
-         virtual BOOLEAN isSysSU () const ;
-
-         virtual BOOLEAN checkCacheUnit ( utilSUCacheUnit *pCacheUnit ) ;
-
-         virtual BOOLEAN createSUCache ( UINT8 type ) ;
-
-         virtual BOOLEAN deleteSUCache ( UINT8 type ) ;
-
-         virtual void deleteAllSUCaches () ;
-
-         OSS_INLINE virtual dmsSUCache *getSUCache ( UINT8 type )
-         {
-            if ( type < DMS_CACHE_TYPE_NUM )
-            {
-               return _pSUCaches[ type ] ;
-            }
-            return NULL ;
-         }
-
-         dmsStorageUnit *getSU ()
-         {
-            return _su ;
-         }
-
-      protected :
-         INT32 _checkCollectionStat ( dmsCollectionStat *pCollectionStat ) ;
-         INT32 _checkIndexStat ( dmsIndexStat *pIndexStat,
-                                 dmsMBContext *mbContext ) ;
-
-      protected :
-         dmsStorageUnit *     _su ;
-         dmsSUCache *         _pSUCaches [ DMS_CACHE_TYPE_NUM ] ;
-   } ;
-
-   /*
-      _dmsEventHolder define
-    */
-   class _dmsEventHolder : public _IDmsEventHolder
-   {
-      public :
-         _dmsEventHolder( dmsStorageUnit *su ) ;
-
-         virtual ~_dmsEventHolder () ;
-
-         virtual void regHandler ( _IDmsEventHandler *pHandler ) ;
-
-         virtual void unregHandler ( _IDmsEventHandler *pHandler ) ;
-
-         virtual void unregAllHandlers () ;
-
-         virtual INT32 onCreateCS ( UINT32 mask,
-                                    pmdEDUCB *cb,
-                                    SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onLoadCS ( UINT32 mask,
-                                  pmdEDUCB *cb,
-                                  SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onUnloadCS ( UINT32 mask,
-                                    pmdEDUCB *cb,
-                                    SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onRenameCS ( UINT32 mask,
-                                    const CHAR *pOldCSName,
-                                    const CHAR *pNewCSName,
-                                    pmdEDUCB *cb,
-                                    SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onDropCS ( UINT32 mask,
-                                  pmdEDUCB *cb,
-                                  SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onCreateCL ( UINT32 mask,
-                                    const dmsEventCLItem &clItem,
-                                    pmdEDUCB *cb,
-                                    SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onRenameCL ( UINT32 mask,
-                                    const dmsEventCLItem &clItem,
-                                    const CHAR *pNewCLName,
-                                    pmdEDUCB *cb,
-                                    SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onTruncateCL ( UINT32 mask,
-                                      const dmsEventCLItem &clItem,
-                                      UINT32 newCLLID,
-                                      pmdEDUCB *cb,
-                                      SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onDropCL ( UINT32 mask,
-                                  const dmsEventCLItem &clItem,
-                                  pmdEDUCB *cb,
-                                  SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onCreateIndex ( UINT32 mask,
-                                       const dmsEventCLItem &clItem,
-                                       const dmsEventIdxItem &idxItem,
-                                       pmdEDUCB *cb,
-                                       SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onRebuildIndex ( UINT32 mask,
-                                        const dmsEventCLItem &clItem,
-                                        const dmsEventIdxItem &idxItem,
-                                        pmdEDUCB *cb,
-                                        SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onDropIndex ( UINT32 mask,
-                                     const dmsEventCLItem &clItem,
-                                     const dmsEventIdxItem &idxItem,
-                                     pmdEDUCB *cb,
-                                     SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onLinkCL ( UINT32 mask,
-                                  const dmsEventCLItem &clItem,
-                                  const CHAR *pMainCLName,
-                                  pmdEDUCB *cb,
-                                  SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onUnlinkCL ( UINT32 mask,
-                                    const dmsEventCLItem &clItem,
-                                    const CHAR *pMainCLName,
-                                    pmdEDUCB *cb,
-                                    SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onClearSUCaches ( UINT32 mask ) ;
-
-         virtual INT32 onClearCLCaches ( UINT32 mask,
-                                         const dmsEventCLItem &clItem ) ;
-
-         virtual INT32 onChangeSUCaches ( UINT32 mask ) ;
-
-         virtual const CHAR *getCSName () const ;
-
-         virtual UINT32 getSUID () const ;
-
-         virtual UINT32 getSULID () const ;
-
-         OSS_INLINE virtual void setCacheHolder ( dmsCacheHolder *pCacheHolder )
-         {
-            _pCacheHolder = pCacheHolder ;
-         }
-
-      protected :
-         typedef ossPoolList<_IDmsEventHandler *> HANDLER_LIST ;
-
-         dmsStorageUnit *     _su ;
-         dmsCacheHolder *     _pCacheHolder ;
-         HANDLER_LIST         _handlers ;
-   } ;
-
 
    /*
       _dmsStorageUnit define
@@ -618,6 +444,8 @@ namespace engine
          dmsEventHolder                       _eventHolder ;
          dmsCacheHolder                       _cacheHolder ;
    } ;
+
+   typedef class _dmsStorageUnit dmsStorageUnit;
 
    OSS_INLINE INT32 _dmsStorageUnit::extentRemoveRecord( dmsMBContext *context,
                                                          dmsExtRW &extRW,

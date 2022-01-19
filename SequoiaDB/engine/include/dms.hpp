@@ -414,6 +414,12 @@ namespace engine
       DMS_STORAGE_DUMMY
    } ;
 
+   enum DMS_ENGINE_TYPE
+   {
+      DMS_ENGINE_MMAP = 0,
+      DMS_ENGINE_VESSEL = 1,
+   };
+
    /*
       DMS Other define
    */

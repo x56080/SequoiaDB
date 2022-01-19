@@ -362,7 +362,9 @@ dmsFiles = [
       "dms/dmsLightJob.cpp",
       "dms/dmsRBSGCJob.cpp",
       "dms/dmsEngineCB.cpp",
-      "dms/dmsCursorReader.cpp"
+      "dms/dmsCursorReader.cpp",
+      "dms/dmsCacheHolder.cpp",
+      "dms/dmsEventHolder.cpp"
       ]
 
 ixmFiles = [

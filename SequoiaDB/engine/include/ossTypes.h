@@ -109,6 +109,7 @@
 #define OSS_SINT16_MIN    (-32768)
 #define OSS_SINT16_MAX    (32767)
 #define OSS_UINT32_MAX    (0xFFFFFFFF)
+#define OSS_UINT16_MAX    (65535)
 
 
 #if defined (_LINUX) || defined ( _AIX )
