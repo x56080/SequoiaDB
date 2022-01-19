@@ -417,6 +417,7 @@ INT32 fsEnableSignalEvent()
    if ( sigaction ( OSS_STACK_DUMP_SIGNAL, &newact, NULL ) )
    {
       PD_LOG ( PDERROR, "Failed to setup signal handler for dump signal" ) ;
+      ossPrintf("Failed to setup signal handler for dump signal, exit."OSS_NEWLINE);
       rc = SDB_SYS ;
       goto error ;
    }
@@ -558,20 +559,14 @@ INT32 main(INT32 argc, CHAR *argv[])
       rc = sfs.init();
       if(SDB_OK != rc)
       {
-         if(-ENOENT == rc)
-         {
-            ossPrintf("The cl:%s does not exist, exit."OSS_NEWLINE,
-                      sfs._collection.c_str());
-         }
-
-         ossPrintf("Failed to init, exit."OSS_NEWLINE);
+         PD_LOG( PDERROR, "Failed to init, rc: %d", rc);
          goto error;
       }
 
       rc = fsEnableSignalEvent();
       if(SDB_OK != rc)
       {
-         ossPrintf("Failed to EnableSignalEvent, exit."OSS_NEWLINE);
+         PD_LOG( PDERROR, "Failed to EnableSignalEvent, rc: %d", rc);
          goto error;
       }
    }

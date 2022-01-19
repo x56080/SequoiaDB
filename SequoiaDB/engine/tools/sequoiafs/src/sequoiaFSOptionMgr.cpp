@@ -288,13 +288,6 @@ INT32 _sequoiafsOptionMgr::init( INT32 argc,
    rc = pmdCfgRecord::init(&vmFromFile, &vmFromCmd);
    if(SDB_OK != rc)
    {
-      std::cerr << "ERROR: Init configuration record failed[" << rc << "]" << endl;
-      goto error;
-   }
-
-   rc = postLoaded(engine::PMD_CFG_STEP_INIT);
-   if(SDB_OK != rc)
-   {
       goto error;
    }
 
@@ -493,6 +486,7 @@ INT32 _sequoiafsOptionMgr::postLoaded( PMD_CFG_STEP step )
    string tempCLStr;
    string tempDirStr;
    string tempFileStr;
+   CHAR tempPath[OSS_MAX_PATHSIZE + 1] = {0};
 
    rc = parseCollection(_collection, &tempCSStr, &tempCLStr);
    if(SDB_OK != rc)
@@ -520,6 +514,22 @@ INT32 _sequoiafsOptionMgr::postLoaded( PMD_CFG_STEP step )
                      _metaDirCollection,
                      true,
                      true );
+   }
+
+   if(NULL == ossGetRealPath(_mountpoint, tempPath, OSS_MAX_PATHSIZE))
+   {
+      std::cerr << "ERROR: Failed to get real path for mountpoint: "<< _mountpoint<< endl;
+      rc = SDB_INVALIDPATH;
+      goto error;
+   }
+   ossMemcpy(_mountpoint, tempPath, OSS_MAX_PATHSIZE);
+
+   rc = ossAccess(_mountpoint, OSS_MODE_ACCESS | OSS_MODE_READWRITE);
+   if(rc != SDB_OK)
+   {
+      std::cerr << "ERROR: Failed to access the mountpoint: "<< _mountpoint<< endl;
+      rc = SDB_INVALIDPATH;
+      goto error;
    }
 
    if(0 == ossStrlen(_alias))
