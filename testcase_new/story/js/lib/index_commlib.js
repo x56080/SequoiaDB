@@ -240,120 +240,6 @@ function getConfig ( rgName, fieldName )
 }
 
 /******************************************************************************
- * @description: 校验索引是否一致
- * @param {Sequoiadb} db  
- * @param {String} csName  
- * @param {String} clName
- * @param {String} idxName   //检验测索引名
- * @param {Boolean} isExist   //检验主备节点上索引在或不存在
- * @return {*}
- ******************************************************************************/
-function checkIndexConsistent ( db, csname, clname, idxname, isExist )
-{
-   if( isExist )
-   {
-      var expIndex = null;
-      var doTime = 0;
-      var timeOut = 10000;
-      var nodes = commGetCLNodes( db, csname + "." + clname );
-      do
-      {
-         var sucNodes = 0;
-         for( var i = 0; i < nodes.length; i++ )
-         {
-            var seqdb = new Sdb( nodes[i].HostName + ":" + nodes[i].svcname );
-            try
-            {
-               var dbcl = seqdb.getCS( csname ).getCL( clname );
-            } catch( e )
-            {
-               if( e != SDB_DMS_NOTEXIST && e != SDB_DMS_CS_NOTEXIST )
-               {
-                  throw new Error( e );
-               }
-               break;
-            }
-            try
-            {
-               var actIndex = dbcl.getIndex( idxname );
-               sucNodes++;
-            } catch( e )
-            {
-               if( e != SDB_IXM_NOTEXIST )
-               {
-                  throw new Error( e );
-               }
-               break;
-            }
-            if( expIndex == null )
-            {
-               expIndex = actIndex;
-            }
-            else
-            {
-               assert.equal( expIndex.toObj().IndexDef, actIndex.toObj().IndexDef );
-            }
-            seqdb.close();
-         }
-         sleep( 200 );
-         doTime += 200;
-      } while( doTime < timeOut && sucNodes < nodes.length );
-
-      if( doTime >= timeOut )
-      {
-         throw new Error( "check timeout index not synchronized !" );
-      }
-   }
-   else
-   {
-      var indexDef = "";
-      do
-      {
-         var sucNodes = 0;
-         var nodes = commGetCLNodes( db, csname + "." + clname );
-         for( var i = 0; i < nodes.length; i++ )
-         {
-            var seqdb = new Sdb( nodes[i].HostName + ":" + nodes[i].svcname );
-            try
-            {
-               var dbcl = seqdb.getCS( csname ).getCL( clname );
-            }
-            catch( e )
-            {
-               if( e != SDB_DMS_NOTEXIST && e != SDB_DMS_CS_NOTEXIST )
-               {
-                  throw new Error( e );
-               }
-               break;
-            }
-
-            try
-            {
-               indexDef = dbcl.getIndex( idxname );
-            }
-            catch( e )
-            {
-               if( e != SDB_IXM_NOTEXIST )
-               {
-                  throw new Error( e );
-               }
-               sucNodes++;
-            }
-            seqdb.close();
-         }
-         sleep( 200 );
-         doTime += 200;
-      } while( doTime < timeOut && sucNodes < nodes.length )
-
-      if( doTime >= timeOut )
-      {
-         throw new Error( "check timeout index not synchronized ! index exist:" + JSON.string( indexDef ) );
-      }
-   }
-}
-
-
-/******************************************************************************
  * @description: 等待任务执行完成
  * @param {string} csName  
  * @param {string} clName
@@ -807,20 +693,35 @@ function checkExplainUseStandAloneIndex ( csName, clName, indexNodeName, keyValu
  * @param {string} csName      
  * @param {string} clName
  * @param {string} indexName   //使用索引名      
- * @param {string} indexNodeName //预期索引所在节点名
+ * @param {string/array} indexNodeNames //预期索引所在节点名
  * @param {boolean} isExist //预期判断是否存在索引，预期存在则为true，不存在则为false
  * @return {*}
  ******************************************************************************/
-function checkStandaloneIndexOnNode ( db, csName, clName, indexName, indexNodeName, isExist )
+function checkStandaloneIndexOnNode ( db, csName, clName, indexName, indexNodeNames, isExist )
 {
    var nodes = commGetCLNodes( db, csName + "." + clName );
+
    for( var i = 0; i < nodes.length; i++ )
    {
       var dataDB = new Sdb( nodes[i].HostName + ":" + nodes[i].svcname );
-      var dbcl = dataDB.getCS( csName ).getCL( clName );
+      var dbcl = getCL( dataDB, csName, clName );
+      var nodeExist = false;
+      if( typeof ( indexNodeNames ) == "string" )
+      {
+         nodeExist = ( nodes[i].HostName + ":" + nodes[i].svcname == indexNodeNames );
+      }
+      else
+      {
+         nodeExist = ( indexNodeNames.indexOf( nodes[i].HostName + ":" + nodes[i].svcname ) != -1 );
+      }
+
       if( isExist )
       {
-         if( nodes[i].HostName + ":" + nodes[i].svcname != indexNodeName )
+         if( nodeExist )
+         {
+            dbcl.getIndex( indexName );
+         }
+         else
          {
             try
             {
@@ -834,16 +735,12 @@ function checkStandaloneIndexOnNode ( db, csName, clName, indexName, indexNodeNa
                   throw new Error( e );
                }
             }
-         }
-         else
-         {
-            dbcl.getIndex( indexName );
          }
       }
       //验证节点不存在索引，只需要比较指定索引节点上不存在索引
       else
       {
-         if( nodes[i].HostName + ":" + nodes[i].svcname == indexNodeName )
+         if( nodeExist )
          {
             try
             {
@@ -857,7 +754,6 @@ function checkStandaloneIndexOnNode ( db, csName, clName, indexName, indexNodeNa
                   throw new Error( e );
                }
             }
-            break;
          }
       }
       dataDB.close();
@@ -1001,4 +897,38 @@ function getOneNodeName ( db, groupName )
    return nodeName;
 }
 
+function getOneNodeName ( db, groupName )
+{
+   var nodes = commGetGroupNodes( db, groupName );
+   var serialNum = Math.floor( Math.random() * nodes.length );
+   var nodeName = nodes[serialNum].HostName + ":" + nodes[serialNum].svcname;
+   return nodeName;
+}
 
+function getCL ( db, csName, clName )
+{
+   var doTime = 0;
+   var timeOut = 30;
+   while( doTime < timeOut )
+   {
+      try
+      {
+         var dbcl = db.getCS( csName ).getCL( clName );
+         break;
+      }
+      catch( e )
+      {
+         if( e != SDB_DMS_NOTEXIST && e != SDB_DMS_CS_NOTEXIST )
+         {
+            throw new Error( e );
+         }
+      }
+      sleep( 1000 );
+      doTime++;
+   }
+   if( doTime >= timeOut )
+   {
+      throw new Error( "get collection time out" );
+   }
+   return dbcl;
+}

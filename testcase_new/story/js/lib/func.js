@@ -11,6 +11,7 @@ func.js 中方法：
       比较结果集             commCompareResults(cursor,expRecs,exceptId)
       判断两个对象是否相等   commCompareObject(expObj,actObj)
       比较错误码是否一致     commCompareErrorCode(e,code)
+      判断执行机架构是否为arm  commIsArmArchitecture ()
       
    2、创建
       创建并返回 cs          commCreateCS(db,csName,ignoreExisted,message,options)
@@ -27,7 +28,9 @@ func.js 中方法：
       删除 domain            commDropDomain(db,domainName,ignoreNotExist)
 
    4、检查
-      检查索引一致性         commCheckIndexConsistency(cl,indexName,exist,timeout)   
+      检查索引一致性         commCheckIndexConsistency(cl,indexName,exist,timeout) 
+      commCheckIndexConsistency存在漏洞，建议使用commCheckIndexConsistent
+      检查索引一致性         commCheckIndexConsistent ( db, csname, clname, idxname, isExist )
       检查集群状态(retry)    commCheckBusinessStatus(db,timeout,checkLSN)
       检测主备 LSN           commCheckLSN(db,groupNames,timeout)
    
@@ -155,13 +158,13 @@ function commIsArmArchitecture ()
    try
    {
       var arch = cmd.run( 'uname -m' );
-      if ( arch == "aarch64\n" || arch == "aarch32\n"  )
+      if( arch == "aarch64\n" || arch == "aarch32\n" )
       {
-          return true;
+         return true;
       }
       else
       {
-          return false;
+         return false;
       }
    }
    catch( e )
@@ -729,8 +732,8 @@ function commGetDataGroupNames ( db )
    groupName     {string}   :  group name
 @return {array}   存放节点 HostName 和 ServiceName 的数组；
    e.g:
-     array[0] {"HostName": "sdbserver1", "svcname": "11820"}
-     array[1] {"HostName": "sdbserver2", "svcname": "11820"}
+     array[0] {"HostName": "sdbserver1", "svcname": "11820","NodeID":"1002"}
+     array[1] {"HostName": "sdbserver2", "svcname": "11820","NodeID":"1003"}
      ...
 *****************************************************************************/
 function commGetGroupNodes ( db, groupName )
@@ -758,6 +761,7 @@ function commGetGroupNodes ( db, groupName )
       tmpArray[i] = {};
       tmpArray[i].HostName = nodeObj.HostName;
       tmpArray[i].svcname = nodeObj.Service[0].Name;
+      tmpArray[i].NodeID = nodeObj.NodeID;
    }
    return tmpArray;
 }
@@ -2049,6 +2053,123 @@ function commCheckType ( variable, expType )
    } else
    {
       throw new Error( expType + "not exists" );
+   }
+}
+
+/******************************************************************************
+@description  校验索引一致性，包括主备是否都存在索引，是否都不存索引
+@author  liuli
+@parameter
+   idxname        {string}     :     必填项，要检测的 idxname 名
+   isExist        {boolean}    :     默认为 true，检测索引存在且主备一致
+******************************************************************************/
+function commCheckIndexConsistent ( db, csname, clname, idxname, isExist )
+{
+   if( isExist == undefined ) { isExist = true; }
+   if( isExist )
+   {
+      var expIndex = null;
+      var doTime = 0;
+      var timeOut = 300000;
+      var nodes = commGetCLNodes( db, csname + "." + clname );
+      do
+      {
+         var sucNodes = 0;
+         for( var i = 0; i < nodes.length; i++ )
+         {
+            var seqdb = new Sdb( nodes[i].HostName + ":" + nodes[i].svcname );
+            try
+            {
+               var dbcl = seqdb.getCS( csname ).getCL( clname );
+            } catch( e )
+            {
+               if( e != SDB_DMS_NOTEXIST && e != SDB_DMS_CS_NOTEXIST )
+               {
+                  throw new Error( e );
+               }
+               break;
+            }
+            try
+            {
+               var actIndex = dbcl.getIndex( idxname );
+               sucNodes++;
+            } catch( e )
+            {
+               if( e != SDB_IXM_NOTEXIST )
+               {
+                  throw new Error( e );
+               }
+               break;
+            }
+            if( expIndex == null )
+            {
+               expIndex = actIndex;
+            }
+            else
+            {
+               var expDef = expIndex.toObj().IndexDef;
+               var actDef = actIndex.toObj().IndexDef;
+               delete expDef.CreateTime;
+               delete expDef.RebuildTime;
+               delete actDef.CreateTime;
+               delete actDef.RebuildTime;
+               assert.equal( expDef, actDef );
+            }
+            seqdb.close();
+         }
+         sleep( 200 );
+         doTime += 200;
+      } while( doTime < timeOut && sucNodes < nodes.length );
+
+      if( doTime >= timeOut )
+      {
+         throw new Error( "check timeout index not synchronized !" );
+      }
+   }
+   else
+   {
+      var indexDef = "";
+      do
+      {
+         var nodes = commGetCLNodes( db, csname + "." + clname );
+         for( var i = 0; i < nodes.length; i++ )
+         {
+            var seqdb = new Sdb( nodes[i].HostName + ":" + nodes[i].svcname );
+            try
+            {
+               var dbcl = seqdb.getCS( csname ).getCL( clname );
+            }
+            catch( e )
+            {
+               if( e != SDB_DMS_NOTEXIST && e != SDB_DMS_CS_NOTEXIST )
+               {
+                  throw new Error( e );
+               }
+               break;
+            }
+
+            try
+            {
+               indexDef = dbcl.getIndex( idxname );
+               break;
+            }
+            catch( e )
+            {
+               if( e != SDB_IXM_NOTEXIST )
+               {
+                  throw new Error( e );
+               }
+            }
+            seqdb.close();
+         }
+         sleep( 200 );
+         doTime += 200;
+      } while( doTime < timeOut )
+
+      if( doTime >= timeOut )
+      {
+         throw new Error( "check timeout index not synchronized ! index exist:" + JSON.string( indexDef ) + ", nodename : " + seqdb );
+      }
    }
 }
 
