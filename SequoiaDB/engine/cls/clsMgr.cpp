@@ -1679,6 +1679,26 @@ namespace engine
       return rc ;
    }
 
+   INT32 _clsMgr::startAllSplitTaskCheck()
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObj match1 = BSON( CAT_TARGETID_NAME <<
+                                _selfNodeID.columns.groupID ) ;
+
+         rc = startTaskCheck( match1 ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+      return rc ;
+   }
+
    INT32 _clsMgr::startAllTaskCheck()
    {
       // pull all tasks related to this node from catalog

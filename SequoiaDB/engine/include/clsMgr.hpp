@@ -263,6 +263,7 @@ namespace engine
          INT32  startTaskCheck( UINT64 taskID, BOOLEAN isMainTask = FALSE ) ;
          INT32  startIdxTaskCheck( UINT64 taskID, BOOLEAN isMainTask = FALSE ) ;
          INT32  startIdxTaskCheckByCL( utilCLUniqueID clUniqID ) ;
+         INT32  startAllSplitTaskCheck() ;
          INT32  startAllTaskCheck() ;
 
          INT32  stopTask ( UINT64 taskID ) ;

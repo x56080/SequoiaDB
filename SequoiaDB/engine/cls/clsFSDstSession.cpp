@@ -2967,12 +2967,9 @@ namespace engine
       {
          if ( 1 == splitTaskCount )
          {
-            pClsMgr->startAllTaskCheck() ;
+            pClsMgr->startAllSplitTaskCheck() ;
          }
-         else
-         {
-            pClsMgr->startIdxTaskCheckByCL( _pTask->clUniqueID() ) ;
-         }
+         pClsMgr->startIdxTaskCheckByCL( _pTask->clUniqueID() ) ;
       }
 
       _disconnect() ;
