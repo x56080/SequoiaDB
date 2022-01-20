@@ -36,7 +36,7 @@ if [ "$pid"x == ""x ]; then
 
    lines1=`wc -l "$currentPath/plugin.log" | awk '{print $1}'`
 
-   startupPlugin $currentPath "$javaPath -jar $currentPath/$binFileName" $omhttpname ""
+   startupPlugin $currentPath "$javaPath -jar -Xms256m -Xmx256m $currentPath/$binFileName" $omhttpname ""
 
    sleep 5s
 
