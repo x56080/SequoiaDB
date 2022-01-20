@@ -40,7 +40,7 @@ sdbtop --version | -v
 | --usrname     | -u | 指定数据库用户名，默认值为""                                                       |
 | --password    | -p | 指定数据库用户密码，如果不使用该参数指定密码，工具会通过交互式界面提示用户输入密码 |
 | --cipher      |    | 是否使用密文模式输入密码，默认为 false，不使用密文模式输入密码，关于密文模式的介绍可参考[密码管理][passwd] |
-| --token       |    | 指定加密令牌                                                                       |
+| --token       |    | 指定密文文件的加密令牌<br>如果创建密文文件时未指定 token，可忽略该参数                                                                       |
 | --cipherfile  |    | 指定密文文件路径，默认为 `~/sequoiadb/passwd`                                      |
 | --ssl         |    | 是否使用 SSL 连接，默认为 false，不使用 SSL 连接                                   |
 

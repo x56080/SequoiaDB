@@ -61,7 +61,7 @@ PostgreSQL 实例组件安装后，需要将 PostgreSQL 实例与数据库分布
 | sessiontimeout | string | 设置 SequoiaDB 的连接属性会话超时时间，如：sessiontimeout '100' | 否 |
 | transaction | string | 设置 SequoiaDB 与 PostgreSQL 之间的操作是否使用事务，默认为'off'，开启为'on' | 否 | 
 | cipher | string | 设置是否使用加密文件输入密码，默认为'off'，开启为'on'<br> 密文模式的介绍可参考[密码管理][system_security] | 否 |
-| token | string | 设置加密令牌 | 否 |
+| token | string | 设置密文文件的加密令牌<br>如果创建密文文件时未指定 token，可忽略该参数 | 否 |
 | cipherfile | string | 设置加密文件，默认为 `~/sequoiadb/passwd` | 否 |
 
 >**Note:** 
