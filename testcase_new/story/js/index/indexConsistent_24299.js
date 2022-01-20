@@ -2,7 +2,7 @@
  * @Description   : seqDB-24299 :: 等待执行成功的任务   
  * @Author        : wu yan
  * @CreateTime    : 2021.08.02
- * @LastEditTime  : 2022.01.18
+ * @LastEditTime  : 2022.01.20
  * @LastEditors   : Wu Yan
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -19,7 +19,7 @@ function test ( testPara )
 
    db.waitTasks( taskID );
    checkTask( COMMCSNAME, testConf.clName, indexName );
-   checkIndexConsistent( db, COMMCSNAME, testConf.clName, indexName, true );
+   commCheckIndexConsistent( db, COMMCSNAME, testConf.clName, indexName, true );
 }
 
 function checkTask ( csName, clName, indexName )

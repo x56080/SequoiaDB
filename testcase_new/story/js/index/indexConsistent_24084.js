@@ -2,7 +2,7 @@
  * @Description   : 删除已复制索引，再次复制同名索引（索引定义不同）   
  * @Author        : wu yan
  * @CreateTime    : 2021.08.02
- * @LastEditTime  : 2021.12.17
+ * @LastEditTime  : 2022.01.20
  * @LastEditors   : Wu Yan
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -35,7 +35,8 @@ function test ()
    var cursor = maincl.find( {}, { "_id": { "$include": 0 } } ).sort( { "a": 1 } );
    expRecs.sort( sortBy( 'a' ) );
    commCompareResults( cursor, expRecs );
-   commCheckIndexConsistency( subcl1, indexName, true );
+   commCheckIndexConsistent( db, COMMCSNAME, subCLName1, indexName, true );
+
    //分别指定子表1和子表2范围数据查询
    checkExplainByMaincl( maincl, { no: 1 }, "tbscan", "" );
    checkExplainByMaincl( maincl, { a: 1, no: 1 }, "ixscan", indexName );

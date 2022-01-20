@@ -2,7 +2,7 @@
  * @Description   : seqDB-23970:主表取消创建索引任务   
  * @Author        : wu yan
  * @CreateTime    : 2021.04.07
- * @LastEditTime  : 2022.01.18
+ * @LastEditTime  : 2022.01.20
  * @LastEditors   : Wu Yan
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -61,8 +61,8 @@ function test ( testPara )
       println( "---subcl1 task has not be cancel! errorno=" + subcl1ErrorNo + ",subcl2 task has be canceled! errorno=" + subcl2ErrorNo );
       checkIndexTask( "Create index", COMMCSNAME, testConf.clName, indexName, 0 );
       checkIndexTask( "Create index", COMMCSNAME, subCLName2, indexName, errorNo );
-      checkIndexConsistent( db, COMMCSNAME, testConf.clName, indexName, true );
-      checkIndexConsistent( db, COMMCSNAME, subCLName2, indexName, false );
+      commCheckIndexConsistent( db, COMMCSNAME, testConf.clName, indexName, true );
+      commCheckIndexConsistent( db, COMMCSNAME, subCLName2, indexName, false );
    }
    else if( subcl1ErrorNo == errorNo && subcl2ErrorNo !== errorNo )
    {
@@ -70,8 +70,8 @@ function test ( testPara )
       println( "---subcl2 task has not be cancel! errorno=" + subcl2ErrorNo + ",subcl1 task has be canceled! errorno=" + subcl1ErrorNo );
       checkIndexTask( "Create index", COMMCSNAME, testConf.clName, indexName, errorNo );
       checkIndexTask( "Create index", COMMCSNAME, subCLName2, indexName, 0 );
-      checkIndexConsistent( db, COMMCSNAME, testConf.clName, indexName, false );
-      checkIndexConsistent( db, COMMCSNAME, subCLName2, indexName, true );
+      commCheckIndexConsistent( db, COMMCSNAME, testConf.clName, indexName, false );
+      commCheckIndexConsistent( db, COMMCSNAME, subCLName2, indexName, true );
    }
    else( subcl1ErrorNo == errorNo && subcl2ErrorNo == errorNo )
    {
@@ -79,8 +79,8 @@ function test ( testPara )
       println( "---subcl1 task has be canceled! errorno=" + subcl1ErrorNo + ",subcl2 task has be canceled! errorno=" + subcl2ErrorNo );
       checkIndexTask( "Create index", COMMCSNAME, testConf.clName, indexName, errorNo );
       checkIndexTask( "Create index", COMMCSNAME, subCLName2, indexName, errorNo );
-      checkIndexConsistent( db, COMMCSNAME, testConf.clName, indexName, false );
-      checkIndexConsistent( db, COMMCSNAME, subCLName2, indexName, false );
+      commCheckIndexConsistent( db, COMMCSNAME, testConf.clName, indexName, false );
+      commCheckIndexConsistent( db, COMMCSNAME, subCLName2, indexName, false );
    }
 
    var cursor = testPara.testCL.find( {}, { "_id": { "$include": 0 } } ).sort( { "a": 1 } );
@@ -92,12 +92,12 @@ function test ( testPara )
 
 function getCreteTaskErrorNo ( db, csName, clName, indexName )
 {
-   var cursor = db.listTasks( { "Name": csName + '.' + clName, TaskTypeDesc: "Create index", "indexName": indexName } );
+   var cursor = db.listTasks( { "Name": csName + '.' + clName, TaskTypeDesc: "Create index", "IndexName": indexName } );
    while( cursor.next() )
    {
       var taskInfo = cursor.current().toObj();
       var resultCode = taskInfo.ResultCode;
-      println( "--test---" + resultCode )
+      println( "---" + csName + "." + clName + " task resultcode---" + resultCode )
    }
    cursor.close();
    return resultCode;

@@ -2,7 +2,7 @@
  * @Description   :  seqDB-23969:切分表取消创建索引任务   
  * @Author        : wu yan
  * @CreateTime    : 2021.04.07
- * @LastEditTime  : 2021.11.26
+ * @LastEditTime  : 2022.01.20
  * @LastEditors   : Wu Yan
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -25,8 +25,7 @@ function test ( testPara )
       db.cancelTask( taskID );
       checkIndexTask( "Create index", COMMCSNAME, testConf.clName, [indexName], -243 );
       checkIndexExist( db, COMMCSNAME, testConf.clName, indexName, false );
-      checkIndexConsistent( db, COMMCSNAME, testConf.clName, indexName, false );
-      commCheckIndexConsistency( testPara.testCL, indexName, false );
+      commCheckIndexConsistent( db, COMMCSNAME, testConf.clName, indexName, false );
    }
    catch( e )
    {
@@ -34,7 +33,7 @@ function test ( testPara )
       {  //如果任务已执行完成，则取消失败，校验执行完成结果
          checkIndexTask( "Create index", COMMCSNAME, testConf.clName, [indexName], 0 );
          checkIndexExist( db, COMMCSNAME, testConf.clName, indexName, true );
-         commCheckIndexConsistency( testPara.testCL, indexName, true );
+         commCheckIndexConsistent( db, COMMCSNAME, testConf.clName, indexName, true );
       }
       else
       {

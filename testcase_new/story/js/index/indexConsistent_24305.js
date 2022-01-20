@@ -2,7 +2,7 @@
  * @Description   : seqDB-24305 :: 多个子表在相同组上，主表创建索引   
  * @Author        : wu yan
  * @CreateTime    : 2021.08.02
- * @LastEditTime  : 2022.01.18
+ * @LastEditTime  : 2022.01.20
  * @LastEditors   : Wu Yan
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -57,8 +57,7 @@ function checkIndexConsistentWithSubcls ( subclName, subclNum, indexName, isExis
    for( var i = 0; i < subclNum; i++ )
    {
       var name = subclName + "_" + i;
-      var dbcl = db.getCS( COMMCSNAME ).getCL( name );
-      commCheckIndexConsistency( dbcl, indexName, isExistIndex );
+      commCheckIndexConsistent( db, COMMCSNAME, name, indexName, isExistIndex );
    }
 }
 
