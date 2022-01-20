@@ -1,10 +1,10 @@
 ##NAME##
 
-find - Find a file.
+find - find files
 
 ##SYNOPSIS##
 
-***File.find( \<options\>, \[filter\] )***
+**File.find(\<options\>, \[filter\])**
 
 ##CATEGORY##
 
@@ -12,60 +12,62 @@ File
 
 ##DESCRIPTION##
 
-Find a file.
+This function is used to find files in the specified directory.
 
 ##PARAMETERS##
 
-| Name    | Type     | Default | Description                | Required or not |
-| ------- | -------- | ------- | -------------------------- | --------------- |
-| options | JSON     | ---     | find mode and find content | yes             |
-| filter  | JSON     | Default to display all content | Filtered conditions | not |
+| Name | Type| Description | Required or not |
+| ---- | --- | ----------- | --------------- |
+| options   | object   | Find Patterns and Find What.|required      |
+| filter    | object   | Filter conditions, support filtering the result set by "and", "or", "not" or exact match calculation. |not      |
 
-The detail description of 'options' parameter is as follow:
+The options parameter is detailed as follows:
 
-| Attributes | Type | Description | Required or not |
-| ---------- | ---- | ----------- | --------------- |
-| mode       | char | if { mode: 'n' }, then it means that find files based on file name<br>if { mode: 'u' }, then it means that find files based on username<br>if { mode: 'g' }, then it means that find find based on group name<br>if { mode: 'p' }, then it means that find files based on permission | yes |
-| pathname   | string | specify the file path to find, default current directory | not |
-| value      | string | finded content | yes |
-
-The optional parameter filterObj supports the AND, the OR, the NOT and exact matching of some fields in the result, and the result set is filtered.
+| Name | Type| Description | Required or not |
+| ---- | --- | ----------- | --------------- |
+| mode     | string   | The type of search, the values are as follows:<br>'n': Find files by filename.<br>'u': Find files by username.<br>'g': Find files by user group name.<br>'p': Find files by permissions. | required |
+| pathname | string | The search path, the default is to search for files in the current path. | not |
+| value    | string | What to find.                       | required |
 
 ##RETURN VALUE##
 
-On success, return rearch result set.
+When the function executes successfully, it will return an object of type BSONArray. Users can get the path of the file through this object.
 
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will be printed.
 
 ##ERRORS##
 
-when exception happen, use [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) to get the [error code](reference/Sequoiadb_error_code.md)  and use [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) to get [error message](reference/Sequoiadb_command/Global/getLastErrMsg.md). For more detial, please  reference to [Troubleshooting](troubleshooting/general/general_guide.md).
+When the exception happens, use [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) to get the error message or use [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) to get the [error code](reference/Sequoiadb_error_code.md). For more details, refer to [Troubleshooting](troubleshooting/general/general_guide.md).
+
+##VERSION##
+
+v3.2 and above
 
 ##EXAMPLES##
 
-* Find a file;
+- Find the file `file.txt` in the directory `/opt` by file name.
 
-```lang-javascript
-> File.find( { mode: 'n', value: "file.txt", pathname: "/opt" } )
-{
-    "pathname": "/opt/sequoiadb1/file.txt"
-}
-{
-    "pathname": "/opt/sequoiadb2/file.txt"
-}
-{
-    "pathname": "/opt/sequoiadb3/file.txt"
-}
-```
+    ```lang-javascript
+    > File.find({mode: 'n', value: "file.txt", pathname: "/opt"})
+    {
+        "pathname": "/opt/sequoiadb1/file.txt"
+    }
+    {
+        "pathname": "/opt/sequoiadb2/file.txt"
+    }
+    {
+        "pathname": "/opt/sequoiadb3/file.txt"
+    }
+    ```
 
-* Find a file and filter the result set
+- Find the file `file.txt` in the directory `/opt` by file name, and specify filter conditions.
 
-```lang-javascript
-> File.find( { mode: 'n', value: "file.txt", pathname: "/opt" }, { $or: [ { pathname: "/opt/sequoiadb1/file.txt" }, { pathname: "/opt/sequoiadb2/file.txt" } ] } )
-{
-  "pathname": "/opt/sequoiadb1/file.txt"
-}
-{
-  "pathname": "/opt/sequoiadb2/file.txt"
-}
-```
+    ```lang-javascript
+    > File.find({mode: 'n', value: "file.txt", pathname: "/opt"}, {$or: [{pathname: "/opt/sequoiadb1/file.txt"}, {pathname: "/opt/sequoiadb2/file.txt"}]})
+     {
+         "pathname": "/opt/sequoiadb1/file.txt"
+     }
+     {
+         "pathname": "/opt/sequoiadb2/file.txt"
+     }
+    ```
