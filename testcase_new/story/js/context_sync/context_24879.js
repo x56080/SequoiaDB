@@ -2,11 +2,12 @@
  * @Description   : seqDB-24879:上下文过期超时清理 
  * @Author        : Yao Kang
  * @CreateTime    : 2021.12.29
- * @LastEditTime  : 2021.12.31
- * @LastEditors   : Yao Kang
+ * @LastEditTime  : 2022.01.20
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.clName = COMMCLNAME + "_24879";
-main( test );
+// SEQUOIADBMAINSTREAM-7974
+// main( test );
 function test ( testPara )
 {
    var cl = testPara.testCL;
