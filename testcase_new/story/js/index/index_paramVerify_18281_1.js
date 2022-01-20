@@ -1,30 +1,51 @@
+
 /******************************************************************************
-*@Description : seqDB-18281:options参数校验
-*@Author      : 2019-5-6  XiaoNi Huang
-******************************************************************************/
-
-
+ * @Description   : seqDB-18281:options参数校验
+ *                : seqDB-24016:createIndex接口验证
+ * @Author        : XiaoNi Huang
+ * @CreateTime    : 2021.05.12
+ * @LastEditTime  : 2022.01.20
+ * @LastEditors   : liuli
+ ******************************************************************************/
+testConf.clName = COMMCLNAME + "_18281_1";
 main( test );
 
-function test ()
+function test ( testPara )
 {
-   var clName = "cl_18281_1";
-   var indexName = "idx";
+   var cl = testPara.testCL;
+   var indexName = "index_18281";
+   var indexDef = { a: 1 };
 
-   commDropCL( db, COMMCSNAME, clName, true, true );
-   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false );
+   // 字段使用小写
+   var option = { Unique: true, Enforced: true };
+   cl.createIndex( indexName, indexDef, { unique: true, enforced: true } );
 
-   /**************************** test1, field name lowercase ***************************/
-   cl.createIndex( indexName, { a: 1 }, { unique: true, enforced: true } );
-
-   checkIndex( cl, indexName, true, true, false );
-
+   checkIndex( cl, indexName, indexDef, option );
    cl.dropIndex( indexName );
 
-
-   /**************************** test2, field name invalid ***************************/
+   // 指定非法字段
    var keyArr = [{ isUnique: true }, { enforced: true }, { sortBufferSize: true }, { notNull: true }, { aa: true }];
-   for( i = 0; i < keyArr.length; i++ ) 
+   for( var i = 0; i < keyArr.length; i++ ) 
+   {
+      assert.tryThrow( SDB_INVALIDARG, function()
+      {
+         cl.createIndex( indexName, { a: 1 }, keyArr[i] );
+      } );
+
+      assert.tryThrow( SDB_IXM_NOTEXIST, function()
+      {
+         cl.getIndex( indexName );
+      } );
+   }
+
+   // 使用默认字段
+   cl.createIndex( indexName, { a: 1 } );
+   checkIndex( cl, indexName, indexDef );
+   cl.dropIndex( indexName );
+
+   // 同一字段指定不同名称
+   var keyArr = [{ enforced: true, Enforced: false }, { unique: false, Unique: false }, { NotNull: true, aa: false }];
+   for( var i = 0; i < keyArr.length; i++ )
    {
       assert.tryThrow( SDB_INVALIDARG, function()
       {
@@ -32,45 +53,20 @@ function test ()
       } );
    }
 
-   assert.tryThrow( SDB_IXM_NOTEXIST, function()
-   {
-      cl.getIndex( indexName );
-   } );
-
-
-   /**************************** test3, default value ***************************/
-   cl.createIndex( indexName, { a: 1 } );
-
-   checkIndex( cl, indexName, false, false, false );
-
-   // clean index
-   cl.dropIndex( indexName );
-
-
-   /**************************** test4, 2 diff name for same field ***************************/
-   var keyArr = [{ enforced: true, Enforced: false }, { unique: false, Unique: false }, { NotNull: true, aa: false }];
-   assert.tryThrow( SDB_INVALIDARG, function()
-   {
-      cl.createIndex( indexName, { a: 1 }, keyArr[i] );
-   } );
-
-
-   /**************************** test5, boolean:0 ***************************/
+   // 指定boolean类型为0
    cl.createIndex( indexName, { a: 1 }, { unique: 0, enforced: 0, NotNull: 0 } );
-   checkIndex( cl, indexName, false, false, false );
-
    var recs = [{ a: 1, b: 1 }, { b: 2 }, { a: null, b: 3 }, { a: 1, b: 4 }];
    cl.insert( recs );
    checkRecords( cl, recs );
 
-   // clean index
+   checkIndex( cl, indexName, indexDef );
    cl.dropIndex( indexName );
    cl.remove();
 
-
-   /**************************** test6, unique:1, enforced:1,NotNull:1 ***************************/
+   // 指定boolean类型为1
+   var option = { Unique: true, Enforced: true, NotNull: true };
    cl.createIndex( indexName, { a: 1 }, { unique: 1, enforced: 1, NotNull: 1 } );
-   checkIndex( cl, indexName, true, true, true );
+   checkIndex( cl, indexName, indexDef, option );
 
    var valRecs = [{ a: 1, b: 1 }];
    var invRecs = [{ b: 2 }, { a: null, b: 3 }];
@@ -91,60 +87,99 @@ function test ()
    cl.dropIndex( indexName );
    cl.remove();
 
-   /**************************** test7, unique:1, enforced:1 ***************************/
-   cl.createIndex( indexName, { a: 1 }, { unique: 1, enforced: 1 } );
-   checkIndex( cl, indexName, true, true );
-   var insertR1 = [{ b: 1 }];
-   cl.insert( insertR1 );
-   assert.tryThrow( SDB_IXM_DUP_KEY, function()
+   // 指定NotNull对应值为其他数字或字符串
+   var keyArr = [{ NotNull: "true" }, { NotNull: "false" }, { NotNull: 2 }, { NotNull: "a" }];
+   for( var i = 0; i < keyArr.length; i++ )
    {
-      cl.insert( [{ b: 2 }] );
-   } );
-   checkRecords( cl, insertR1 );
-   cl.dropIndex( indexName );
-   cl.remove();
-
-   /**************************** test8, unique:0, enforced:0,NotNull:0 ***************************/
-   cl.createIndex( indexName, { a: 1 }, { unique: 0, enforced: 0, NotNull: 0 } );
-   checkIndex( cl, indexName, false, false, false );
-
-   var insertR1s = [{ a: 1, b: 1 }, { a: 1, b: 2 }, { b: 3 }, { b: 4 }, { a: null, b: 5 }];
-   for( i = 0; i < insertR1s.length; i++ ) 
-   {
-      cl.insert( insertR1s[i] );
+      assert.tryThrow( SDB_INVALIDARG, function()
+      {
+         cl.createIndex( indexName, { a: 1 }, keyArr[i] );
+      } );
    }
-   checkRecords( cl, insertR1s );
+
+   // 指定Enforced对应值为其他数字或字符串
+   var keyArr = [{ Enforced: "true" }, { Enforced: "false" }, { Enforced: 2 }, { Enforced: "a" }];
+   for( var i = 0; i < keyArr.length; i++ )
+   {
+      assert.tryThrow( SDB_INVALIDARG, function()
+      {
+         cl.createIndex( indexName, { a: 1 }, keyArr[i] );
+      } );
+   }
+
+   // 指定Unique对应值为其他数字或字符串
+   var keyArr = [{ Unique: "true" }, { Unique: "false" }, { Unique: 2 }, { Unique: "a" }];
+   for( var i = 0; i < keyArr.length; i++ )
+   {
+      assert.tryThrow( SDB_INVALIDARG, function()
+      {
+         cl.createIndex( indexName, { a: 1 }, keyArr[i] );
+      } );
+   }
+
+   // 索引name正常值
+   var indexName = "index_24016";
+   cl.createIndex( indexName, indexDef );
+   checkIndex( cl, indexName, indexDef );
    cl.dropIndex( indexName );
-   cl.remove();
 
-   /**************************** test9, NotNull:string/otherNum ***************************/
-   var keyArr = [{ NotNull: "true" }, { NotNull: "false" }, { NotNull: 2 }];
+   // 索引name长度为1
+   indexName = "a";
+   cl.createIndex( indexName, indexDef );
+   checkIndex( cl, indexName, indexDef );
+   cl.dropIndex( indexName );
 
+   // 索引name长度为1023
+   for( var i = 0; i < 1021; i++ )
+   {
+      indexName = indexName + "a";
+   }
+   cl.createIndex( indexName, indexDef );
+   checkIndex( cl, indexName, indexDef );
+   cl.dropIndex( indexName );
+
+   // 索引指定合法参数
+   indexName = "index_24016";
+   var option = { Unique: true, Enforced: true, NotNull: true };
+   cl.createIndex( indexName, indexDef, option );
+   checkIndex( cl, indexName, indexDef, option );
+   cl.dropIndex( indexName );
+
+   // 索引指定SortBufferSize
+   var option = { SortBufferSize: 100 };
+   cl.createIndex( indexName, indexDef, option );
+   cl.dropIndex( indexName );
+
+   // 指定非法空name
+   indexName = "";
    assert.tryThrow( SDB_INVALIDARG, function()
    {
-      cl.createIndex( indexName, { a: 1 }, keyArr[i] );
+      cl.createIndex( indexName, indexDef );
    } );
 
-   // clean env
-   commDropCL( db, COMMCSNAME, clName, false, false, "Failed to drop CL in the end-condition" );
+   // 指定已$开头包含.的非法name
+   indexName = "$a.b";
+   assert.tryThrow( SDB_INVALIDARG, function()
+   {
+      cl.createIndex( indexName, indexDef );
+   } );
 }
 
-function checkIndex ( cl, indexName, expUni, expEnf, expNot ) 
+function checkIndex ( cl, indexName, indexDef, option )
 {
-   if( expUni == undefined ) { expUni = false };
-   if( expEnf == undefined ) { expEnf = false };
-   if( expNot == undefined ) { expNot = false };
-
-   var indexDef = cl.getIndex( indexName ).toObj().IndexDef;
-   var actUni = indexDef.unique;
-   var actEnf = indexDef.enforced;
-   var actNot = indexDef.NotNull;
-   if( actUni !== expUni || actEnf !== expEnf || actNot !== expNot )
+   if( option == undefined )
    {
-      var expResults = JSON.stringify( { unique: expUni, enforced: expEnf, NotNull: expNot } );
-      var actResults = JSON.stringify( { unique: actUni, enforced: actEnf, NotNull: actNot } );
-      throw new Error( "checkResult fail,", expResults, "  " + actResults );
+      option = { Unique: false, Enforced: false, NotNull: false };
    }
+   if( option.Unique == undefined ) { option.Unique = false; }
+   if( option.Enforced == undefined ) { option.Enforced = false; }
+   if( option.NotNull == undefined ) { option.NotNull = false; }
+
+   var idx = cl.getIndex( indexName ).toObj();
+   assert.equal( idx.IndexDef.key, indexDef );
+   assert.equal( idx.IndexDef.unique, option.Unique );
+   assert.equal( idx.IndexDef.enforced, option.Enforced );
+   assert.equal( idx.IndexDef.NotNull, option.NotNull );
 }
 
 function checkRecords ( cl, expRecs ) 
@@ -155,6 +190,5 @@ function checkRecords ( cl, expRecs )
    {
       actRecs.push( tmpRecs.toObj() );
    }
-
    assert.equal( expRecs, actRecs );
 }
