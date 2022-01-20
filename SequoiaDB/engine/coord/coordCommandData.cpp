@@ -1528,12 +1528,20 @@ namespace engine
                   BSONObjBuilder errBuilder ;
                   pTask->toErrInfo( errBuilder ) ;
                   BSONObj errObj = errBuilder.done() ;
-                  *buf = rtnContextBuf( errObj ) ;
-                  PD_LOG( PDERROR, "error task: %s", errObj.toString().c_str() ) ;
-                  INT32 rc1 = buf->getOwned() ;
-                  if ( rc1 )
+                  if ( !errObj.isEmpty() )
                   {
-                     PD_LOG( PDERROR, "Failed to build buffer, rc: %d", rc1 ) ;
+                     PD_LOG( PDERROR, "Task[%llu] failed: %s",
+                             pTask->taskID(), errObj.toString().c_str() ) ;
+                     if ( buf )
+                     {
+                        *buf = rtnContextBuf( errObj ) ;
+                        INT32 rc1 = buf->getOwned() ;
+                        if ( rc1 )
+                        {
+                           PD_LOG( PDERROR, "Failed to build buffer, rc: %d",
+                                   rc1 ) ;
+                        }
+                     }
                   }
                }
                catch( std::exception &e )

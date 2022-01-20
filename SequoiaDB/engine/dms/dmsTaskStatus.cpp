@@ -532,8 +532,16 @@ namespace engine
                if ( SDB_TASK_HAS_CANCELED == _resultCode ||
                     SDB_TASK_ROLLBACK == _resultCode )
                {
-                  _resultInfo = BSON( FIELD_NAME_INTERNAL_RESULTCODE <<
-                                      resultCode ) ;
+                  if ( DMS_TASK_CREATE_IDX == _taskType &&
+                       SDB_IXM_NOTEXIST == resultCode )
+                  {
+                     // Index not found during rollback, it is normal
+                  }
+                  else
+                  {
+                     _resultInfo = BSON( FIELD_NAME_INTERNAL_RESULTCODE <<
+                                         resultCode ) ;
+                  }
                }
             }
          }

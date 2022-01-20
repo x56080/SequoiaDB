@@ -251,10 +251,6 @@ namespace engine
                   rc = rtnDropIndexCommand( _clFullName, index.firstElement(),
                                             cb, dmsCB, dpsCB ) ;
                }
-               if ( SDB_IXM_NOTEXIST == rc )
-               {
-                  rc = SDB_OK ;
-               }
                _taskStatusPtr->setStatus2Finish( rc ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to drop index[%s] "
                             "for collection[%s:%llu], rc: %d",

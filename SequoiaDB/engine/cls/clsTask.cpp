@@ -1166,8 +1166,9 @@ namespace engine
             updator = BSON( "$set" <<
                             BSON( FIELD_NAME_STATUS << CLS_TASK_STATUS_FINISH <<
                                   FIELD_NAME_STATUSDESC << VALUE_NAME_FINISH <<
-                                  FIELD_NAME_RESULTCODE << rc <<
-                                  FIELD_NAME_RESULTCODEDESC << getErrDesp(rc) ) ) ;
+                                  FIELD_NAME_RESULTCODE << SDB_TASK_HAS_CANCELED <<
+                                  FIELD_NAME_RESULTCODEDESC <<
+                                  getErrDesp(SDB_TASK_HAS_CANCELED) ) ) ;
          }
          else if ( CLS_TASK_STATUS_CANCELED != _status )
          {
