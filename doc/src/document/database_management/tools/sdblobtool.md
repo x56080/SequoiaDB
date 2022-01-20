@@ -21,7 +21,7 @@ sdblobtool 是 SequoiaDB 集合大对象管理工具。
 | --usrname    | 指定数据库用户              |           | 否       |
 | --passwd     | 指定数据库用户密码，如果不使用该参数指定密码，工具会通过交互式界面提示用户输入密码 |              | 否       |
 | --cipher     | 是否使用密文模式输入密码。关于密文模式的介绍，详细可参考[密码管理](database_management/security/system_security.md) |   false，不使用密文模式输入密码 | 否       |
-| --token      | 指定加密令牌                |           | 否       |
+| --token      | 指定密文文件的加密令牌<br>如果创建密文文件时未指定 token，可忽略该参数   |           | 否       |
 | --cipherfile | 指定密文文件路径            | `~/sequoiadb/passwd` | 否       |
 | --operation  | 指定操作类型                |           | 是，设置为 export |
 | --file       | 指定本地文件全路径          |           | 是       |
@@ -42,7 +42,7 @@ sdblobtool 是 SequoiaDB 集合大对象管理工具。
 | --usrname    | 指定数据库用户              |           | 否       |
 | --passwd     | 指定数据库用户密码，如果不使用该参数指定密码，工具会通过交互式界面提示用户输入密码 |           | 否       |
 | --cipher     | 是否使用密文模式输入密码。关于密文模式的介绍，详细可参考[密码管理](database_management/security/system_security.md) |   false，不使用密文模式输入密码 | 否       |
-| --token      | 指定加密令牌                |           | 否       |
+| --token      | 指定密文文件的加密令牌<br>如果创建密文文件时未指定 token，可忽略该参数   |           | 否       |
 | --cipherfile | 指定密文文件路径            | `~/sequoiadb/passwd` | 否       |
 | --operation  | 指定操作类型                |           | 是，设置为 import |
 | --file       | 指定本地文件全路径          |           | 是       |
@@ -64,7 +64,7 @@ sdblobtool 是 SequoiaDB 集合大对象管理工具。
 | --usrname       | 指定数据库用户                   |           | 否       |
 | --passwd        | 指定数据库用户密码，如果不使用该参数指定密码，工具会通过交互式界面提示用户输入密码 |           | 否       |
 | --cipher        | 是否使用密文模式输入密码。关于密文模式的介绍，详细可参考[密码管理](database_management/security/system_security.md) |   false，不使用密文模式输入密码 | 否       |
-| --token         | 指定加密令牌                 |           | 否       |
+| --token         | 指定密文文件的加密令牌<br>如果创建密文文件时未指定 token，可忽略该参数   |           | 否       |
 | --cipherfile    | 指定密文文件路径             | `~/sequoiadb/passwd` | 否       |
 | --operation     | 指定操作类型                     |           | 是，设置为 migration |
 | --file          | 指定本地文件全路径               |           | 是       |

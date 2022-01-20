@@ -34,7 +34,7 @@ CSV（Comma Separated Value）导出格式以逗号分隔数值。默认情况�
 | --user      | -u   | 指定数据库用户名 |
 | --password  | -w   | 指定数据库用户密码，如果不使用该参数指定密码，工具会通过交互式界面提示用户输入密码 |
 | --cipher    |      | 是否使用密文模式输入密码，默认为 false，不使用密文模式输入密码。<br>关于密文模式的介绍，详细可参考[密码管理](database_management/security/system_security.md) |
-| --token     |      | 指定加密令牌 |
+| --token     |      | 指定密文文件的加密令牌<br>如果创建密文文件时未指定 token，可忽略该参数 |
 | --cipherfile|      | 指定密文文件路径，默认为 `~/sequoiadb/passwd` |
 | --delrecord | -r   | 指定记录分隔符。默认是'\\n' |
 | --type      |      | 指定导出数据格式，为 csv 或 json，默认为 csv |

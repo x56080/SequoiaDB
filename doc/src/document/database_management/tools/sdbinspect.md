@@ -25,7 +25,7 @@ sdbinspect 需要与数据库协调节点（Coord 节点）连接。
 | --view            | -w   | 指定生成 report 文件的内容按组（group）查看和按集合（collection）查看，默认为 group |
 | --auth            | -u   | 指定数据库鉴权需要的用户名和密码，格式：username:password，默认值为 "":""。只提供用户名而不提供密码时，工具会通过交互式界面提示用户输入密码，格式: username |
 | --cipher          |      | 是否使用密文模式输入密码，默认为 false，不使用密文模式输入密码。关于密文模式的介绍，详细可参考[密码管理](database_management/security/system_security.md) |
-| --token           |      | 指定加密令牌 |
+| --token           |      | 指定密文文件的加密令牌<br>如果创建密文文件时未指定 token，可忽略该参数 |
 | --cipherfile      |      | 指定密文文件路径，默认值为 `~/sequoiadb/passwd` |
 
 ##用法##
