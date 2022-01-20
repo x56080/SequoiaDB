@@ -3,21 +3,22 @@
 
 | 列表标识 | 列表类型 | 描述 |
 | -------- | -------- | ---- |
-| [SDB_LIST_CONTEXTS][SDB_LIST_CONTEXTS] | 上下文列表 | 上下文列表列出当前数据库节点中所有的会话所对应的上下文 |
-| [SDB_LIST_CONTEXTS_CURRENT][SDB_LIST_CONTEXTS_CURRENT] | 当前会话上下文列表 | 当前上下文列表列出当前数据库节点中当前会话所对应的上下文 |
-| [SDB_LIST_SESSIONS][SDB_LIST_SESSIONS] | 会话列表 | 会话列表列出当前数据库节点中所有的会话 |
-| [SDB_LIST_SESSIONS_CURRENT][SDB_LIST_SESSIONS_CURRENT] | 当前会话列表 | 当前会话列表列出当前数据库节点中当前的会话 |
-| [SDB_LIST_COLLECTIONS][SDB_LIST_COLLECTIONS] | 集合列表 | 集合列表列出当前数据库节点或集群中所有非临时集合 |
-| [SDB_LIST_COLLECTIONSPACES][SDB_LIST_COLLECTIONSPACES] | 集合空间列表 | 集合空间列表列出当前数据库节点或集群中所有集合空间（编目集合空间除外） |
-| [SDB_LIST_STORAGEUNITS][SDB_LIST_STORAGEUNITS] | 存储单元列表 | 存储单元列表列出当前数据库节点的全部存储单元信息 |
-| [SDB_LIST_GROUPS][SDB_LIST_GROUPS] | 分区组列表 | 分区组列表列出当前集群中的所有分区信息 |
-| [SDB_LIST_TRANSACTIONS][SDB_LIST_TRANSACTIONS] | 事务列表 | 事务列表列出数据库中正在进行的事务信息 |
-| [SDB_LIST_TRANSACTIONS_CURRENT][SDB_LIST_TRANSACTIONS_CURRENT]| 当前事务列表 | 当前事务列表列出当前会话正在进行的事务信息 |
-| [SDB_LIST_SVCTASKS][SDB_LIST_SVCTASKS] | 服务任务列表 | 服务任务列表列出当前数据库节点中所有的服务任务 |
-| [SDB_LIST_SEQUENCES][SDB_LIST_SEQUENCES] | 序列列表 | 序列列表列出当前数据库中所有的序列信息 |
-| [SDB_LIST_USERS][SDB_LIST_USERS]| 用户列表 | 用户列表列出当前集群中的所有用户信息 |
-| [SDB_LIST_BACKUPS][SDB_LIST_BACKUPS] | 备份列表 | 备份列表列出当前数据库的备份信息 |
-| [SDB_LIST_DATASOURCES][SDB_LIST_DATASOURCES] | 数据源列表 | 数据源列表列出当前数据库中所有数据源的元数据信息 |
+| [SDB_LIST_CONTEXTS][SDB_LIST_CONTEXTS] | 上下文列表 | 列出当前数据库节点中所有的会话所对应的上下文 |
+| [SDB_LIST_CONTEXTS_CURRENT][SDB_LIST_CONTEXTS_CURRENT] | 当前会话上下文列表 | 列出当前数据库节点中当前会话所对应的上下文 |
+| [SDB_LIST_SESSIONS][SDB_LIST_SESSIONS] | 会话列表 | 列出当前数据库节点中所有的会话 |
+| [SDB_LIST_SESSIONS_CURRENT][SDB_LIST_SESSIONS_CURRENT] | 当前会话列表 | 列出当前数据库节点中当前的会话 |
+| [SDB_LIST_COLLECTIONS][SDB_LIST_COLLECTIONS] | 集合列表 | 列出当前数据库节点或集群中所有非临时集合 |
+| [SDB_LIST_COLLECTIONSPACES][SDB_LIST_COLLECTIONSPACES] | 集合空间列表 | 列出当前数据库节点或集群中所有集合空间（编目集合空间除外） |
+| [SDB_LIST_STORAGEUNITS][SDB_LIST_STORAGEUNITS] | 存储单元列表 | 列出当前数据库节点的全部存储单元信息 |
+| [SDB_LIST_GROUPS][SDB_LIST_GROUPS] | 分区组列表 | 列出当前集群中的所有分区信息 |
+| [SDB_LIST_TASKS][SDB_LIST_TASKS] | 后台任务列表 | 列出正在运行的后台任务信息 |
+| [SDB_LIST_TRANSACTIONS][SDB_LIST_TRANSACTIONS] | 事务列表 | 列出数据库中正在进行的事务信息 |
+| [SDB_LIST_TRANSACTIONS_CURRENT][SDB_LIST_TRANSACTIONS_CURRENT]| 当前事务列表 | 列出当前会话正在进行的事务信息 |
+| [SDB_LIST_SVCTASKS][SDB_LIST_SVCTASKS] | 服务任务列表 | 列出当前数据库节点中所有的服务任务 |
+| [SDB_LIST_SEQUENCES][SDB_LIST_SEQUENCES] | 序列列表 | 列出当前数据库中所有的序列信息 |
+| [SDB_LIST_USERS][SDB_LIST_USERS]| 用户列表 | 列出当前集群中的所有用户信息 |
+| [SDB_LIST_BACKUPS][SDB_LIST_BACKUPS] | 备份列表 | 列出当前数据库的备份信息 |
+| [SDB_LIST_DATASOURCES][SDB_LIST_DATASOURCES] | 数据源列表 | 列出当前数据库中所有数据源的元数据信息 |
 
 >   **Note:**
 >
@@ -42,5 +43,6 @@
 [SDB_LIST_USERS]:manual/Manual/List/SDB_LIST_USERS.md
 [SDB_LIST_BACKUPS]:manual/Manual/List/SDB_LIST_BACKUPS.md
 [SDB_LIST_DATASOURCES]:manual/Manual/List/SDB_LIST_DATASOURCES.md
+[SDB_LIST_TASKS]:manual/Manual/List/SDB_LIST_TASKS.md
 [list]:manual/Manual/Sequoiadb_Command/Sdb/list.md
 

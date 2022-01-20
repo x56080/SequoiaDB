@@ -6009,6 +6009,12 @@
                      "en": "SDB_LIST_GROUPS"
                   },
                   {
+                     "id": 1641976146,
+                     "file": "SDB_LIST_TASKS",
+                     "cn": "后台任务列表",
+                     "en": "SDB_LIST_TASKS"
+                  },
+                  {
                      "id": 1501230617,
                      "file": "SDB_LIST_TRANSACTIONS",
                      "cn": "事务列表",
