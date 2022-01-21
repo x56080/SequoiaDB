@@ -1,10 +1,10 @@
-
 ##NAME##
 
-cancelTask - cancel the task.
+cancelTask - cancel the background task
 
 ##SYNOPSIS##
-**db.cancelTask( \<id\>, [isAsync] )**
+
+**db.cancelTask(\<id\>, [isAsync])**
 
 ##CATEGORY##
 
@@ -12,45 +12,51 @@ Sdb
 
 ##DESCRIPTION##
 
-cancel the task.
+This function is used to cancel the background task.
 
 ##PARAMETERS##
 
-* `id` ( *Int32*, *Required* )
+- id ( *number, required* )
 
-	Task id.
+    Task ID
 
-* `isAsync` ( *Bool*, *Optional* )
+- isAsync ( *boolean, optional* )
 
-	Whether the asynchronous.
-
+    Whether to cancel the task asynchronously, the default value is false, which means that the task will not be cancelled asynchronously.
 
 ##RETURN VALUE##
 
-On success, return a new object of Collection.
+When the function executes successfully, there is no return value.
 
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will be printed.
 
 ##ERRORS##
 
-the exceptions of `cancelTask ()` are as below:
+The common exceptions of `cancelTask()` function are as follows:
 
 | Error Code | Error Type | Description | Solution |
-| ------ | --- | ------------ | ----------- |
-|-173|SDB_CAT_TASK_NOTFOUND|The specified task does not exist|use [listTasks()](reference/Sequoiadb_command/Sdb/listTasks.md) to check if the task exists |
+| ---------- | ---------- | ----------- | -------- |
+|-173|SDB_CAT_TASK_NOTFOUND|Task does not exist.|Use [listTasks()][listTasks] to check whether the task exists.|
 
+When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
 
-when exception happen, use [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) to get the [error code](Manual/Sequoiadb_error_code.md)  and use [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) to get [error message](reference/Sequoiadb_command/Global/getLastErrMsg.md). For more detial, please reference to [Troubleshooting](troubleshooting/general/general_guide.md).
+##VERSION##
 
-##HISTORY##
-
-since v1.2
+v5.0 and above
 
 ##EXAMPLES##
 
-1. Stop split task.
+Cancel a split task asynchronously.
 
-	```lang-javascript
-	> var taskid1 = db.sample.employee.splitAsync( "group1", "group2", 50 );
-	> db.cancelTask( taskid1, true )
-	```
+```lang-javascript
+> var taskid1 = db.sample.employee.splitAsync("group1", "group2", 50)
+> db.cancelTask(taskid1, true)
+```
+
+[^_^]:
+    Links
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[faq]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md
+[listTasks]:manual/Manual/Sequoiadb_Command/Sdb/listTasks.md
