@@ -2732,9 +2732,15 @@ void _bulkInsert2Test( sdbCollectionHandle cHandle )
    rc = sdbBulkInsert2 ( cHandle, 0, obj, num, &returnObj ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    ASSERT_EQ( BSON_EOO, bson_find( &it, &returnObj, "_id" ) ) ;
+   ASSERT_EQ( BSON_LONG, bson_find( &it, &returnObj, "InsertedNum" ) ) ;
+   ASSERT_EQ( 10, bson_iterator_long( &it) ) ;
+   ASSERT_EQ( BSON_LONG, bson_find( &it, &returnObj, "DuplicatedNum" ) ) ;
+   ASSERT_EQ( 0, bson_iterator_long( &it) ) ;
    rc = sdbBulkInsert2 ( cHandle, FLG_INSERT_RETURN_OID, obj2, num, &returnObj ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    ASSERT_EQ( BSON_ARRAY, bson_find( &it, &returnObj, "_id" ) ) ;
+   ASSERT_EQ( BSON_LONG, bson_find( &it, &returnObj, "InsertedNum" ) ) ;
+   ASSERT_EQ( BSON_LONG, bson_find( &it, &returnObj, "DuplicatedNum" ) ) ;
    printf( "after bulk insert2, return object is: \n" ) ;
    bson_print( &returnObj ) ;
 //   for ( i = 0; i < num; ++i )
@@ -2745,10 +2751,13 @@ void _bulkInsert2Test( sdbCollectionHandle cHandle )
    bson_init( &returnObj ) ;
    rc = sdbBulkInsert2 ( cHandle, FLG_INSERT_RETURN_OID, obj, num, &returnObj ) ;
    ASSERT_EQ( SDB_IXM_DUP_KEY, rc ) ;
-   ASSERT_EQ( BSON_EOO, bson_find( &it, &returnObj, "_id" ) ) ;
    rc = sdbBulkInsert2 ( cHandle, FLG_INSERT_CONTONDUP | FLG_INSERT_RETURN_OID, obj, num, &returnObj ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    ASSERT_EQ( BSON_ARRAY, bson_find( &it, &returnObj, "_id" ) ) ;
+   ASSERT_EQ( BSON_LONG, bson_find( &it, &returnObj, "InsertedNum" ) ) ; 
+   ASSERT_EQ( 0, bson_iterator_long( &it) ) ;
+   ASSERT_EQ( BSON_LONG, bson_find( &it, &returnObj, "DuplicatedNum" ) ) ; 
+   ASSERT_EQ( 10, bson_iterator_long( &it) ) ;
    printf( "after bulk insert2 with the duplicate key, return object is: \n" ) ;
    bson_print( &returnObj ) ;
 
@@ -2853,6 +2862,8 @@ void _insert2Test( sdbCollectionHandle cHandle )
    rc = sdbInsert2( cHandle, &obj, FLG_INSERT_RETURN_OID | FLG_INSERT_CONTONDUP, &resultObj ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    ASSERT_EQ( BSON_OID, bson_find( &it, &resultObj, "_id" ) ) ;
+   ASSERT_EQ( BSON_LONG, bson_find( &it, &resultObj, "InsertedNum" ) ) ;  
+   ASSERT_EQ( BSON_LONG, bson_find( &it, &resultObj, "DuplicatedNum" ) ) ; 
    printf( "after double insert, return obj is: \n" ) ;
    bson_print( &resultObj ) ;
 
@@ -2863,8 +2874,11 @@ void _insert2Test( sdbCollectionHandle cHandle )
    rc = sdbInsert2( cHandle, &obj2, 0, &resultObj ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    ASSERT_EQ( BSON_EOO, bson_find( &it, &resultObj, "_id" ) ) ;
+   ASSERT_EQ( BSON_LONG, bson_find( &it, &resultObj, "InsertedNum" ) ) ;  
+   ASSERT_EQ( BSON_LONG, bson_find( &it, &resultObj, "DuplicatedNum" ) ) ;
    rc = sdbInsert2( cHandle, &obj2, FLG_INSERT_RETURN_OID, &resultObj ) ;
    ASSERT_EQ( SDB_IXM_DUP_KEY, rc ) ;
+   ASSERT_TRUE( bson_is_empty( &resultObj ) ) ;   
    bson_destroy( &resultObj ) ;
    bson_init( &resultObj ) ;
    rc = sdbInsert2( cHandle, &obj2, FLG_INSERT_CONTONDUP, &resultObj ) ;

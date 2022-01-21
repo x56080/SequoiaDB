@@ -63,6 +63,8 @@ struct _sdbConnectionStruct
    ossMutex _sockMutex ;
 
    BOOLEAN _isOldVersionLobServer;
+   const CHAR *_pResultBuf ;
+   INT32       _resultBufsize ;
 } ;
 typedef struct _sdbConnectionStruct sdbConnectionStruct ;
 
