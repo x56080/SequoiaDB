@@ -1014,7 +1014,7 @@ replicaGroup.prototype.checkConsistency =
    function( coll )
    {
 
-      var totalTimeLen = 60000;
+      var totalTimeLen = 300000;
       var sleepTimeLen = 0;
       while( sleepTimeLen < totalTimeLen )
       {
