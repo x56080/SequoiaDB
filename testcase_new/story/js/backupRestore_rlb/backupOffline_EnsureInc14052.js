@@ -3,12 +3,13 @@
 @Modify list :
                2014-3-16  Jianhui Xu  Init
                2014-6-20  xiaojun Hu  Changed
+               2022-1-20  zhongziming
 *******************************************************************************/
 //globle variable
 var backupName = CHANGEDPREFIX + "_bk";
 
 // main entry
-// main( test );
+main( test );
 
 function test ()
 {

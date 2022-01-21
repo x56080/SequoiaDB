@@ -1,8 +1,10 @@
-/*******************************************************************************
-*@Description : Backup all and remove for data node
-*@Modify list :
-*               2018-1-10  wenjing Wang Init
-*******************************************************************************/
+/******************************************************************************
+ * @Description   : Backup all and remove for data node
+ * @Author        : wenjing Wang
+ * @CreateTime    : 2018.01.10
+ * @LastEditTime  : 2022.01.21
+ * @LastEditors   : 钟子明
+ ******************************************************************************/
 testConf.skipStandAlone = true;
 function backupTestCase11701 ()
 {
@@ -57,7 +59,7 @@ backupTestCase11701.prototype.execTest =
          throw new Error( "removeBackup expect backPath is empty, but real is not" );
       }
    }
-// main( test );
+main( test );
 
 function test ()
 {
@@ -78,16 +80,21 @@ function test ()
          println( e.stack );
       }
 
-      var backupDir = "/tmp/ci/rsrvnodelog/11701";
-      File.mkdir( backupDir );
-      for( var i = 0; i < this.logSourcePaths.length; i++ )
-      {
-         File.scp( this.logSourcePaths[i], backupDir + "/sdbdiag" + i + ".log" );
-      }
+      var backupDir = WORKDIR + "ci/rsrvnodelog/11701";
+      commMakeDir( COORDHOSTNAME, backupDir );
+
+      //该变量未定义有可能是文件权限引起的，此处不应该让这个runtime异常阻挡真正的异常
+      //抛出，因为它只是一个错误记录
+      if( this.logSourcePaths != undefined )
+         for( var i = 0; i < this.logSourcePaths.length; i++ )
+         {
+            File.scp( this.logSourcePaths[i], backupDir + "/sdbdiag" + i + ".log" );
+         }
       throw e;
    }
    finally
    {
+      //因为默认teardown没有删除组操作，所以此处保持不变
       commDropCL( db, COMMCSNAME, backupTestCase11701.prototype.clName, true, true, "finally ：Drop CL in the end" );
       db.removeRG( backupandrestoreGroup );
    }
