@@ -59,6 +59,8 @@ struct _sdbConnectionStruct
    // malloc and free
    const CHAR *_pErrObjBuf ;
    INT32       _errObjBufSize ;
+   const CHAR *_pResultBuf ;
+   INT32       _resultBufsize ;
    UINT64      reserveSpace1 ;
    ossMutex    _sockMutex ;
    BOOLEAN     _isOldVersionLobServer;
