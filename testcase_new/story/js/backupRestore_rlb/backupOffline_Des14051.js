@@ -1,9 +1,12 @@
-/*******************************************************************************
-@Description : 1.Test backupOffline, specify["GroupName","Path","Description"]
-@Modify list :
-               2014-6-20  xiaojun Hu  Init
-*******************************************************************************/
-// main( test );
+/******************************************************************************
+ * @Description   : Test backupOffline, specify["GroupName","Path","Description"]
+ * @Author        : xiaojun Hu
+ * @CreateTime    : 2014.06.20
+ * @LastEditTime  : 2022.01.20
+ * @LastEditors   : 钟子明
+ ******************************************************************************/
+
+main( test );
 function test ()
 {
    var alreadStart = false;
