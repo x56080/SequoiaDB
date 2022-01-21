@@ -250,6 +250,7 @@ namespace import
          freeQueue->pushPages( pageInfo.pages ) ;
 
          self->_importedNum.add( pageInfo.recordNum ) ;
+         self->_duplicatedNum.add( pageInfo.duplicatedNum ) ;
       }
 
    done:
@@ -278,7 +279,8 @@ namespace import
                           _importQueue( NULL ),
                           _livingNum( 0 ),
                           _importedNum( 0 ),
-                          _failedNum( 0 )
+                          _failedNum( 0 ),
+                          _duplicatedNum( 0 ) 
    {
    }
 

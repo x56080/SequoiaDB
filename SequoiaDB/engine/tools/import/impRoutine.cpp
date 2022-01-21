@@ -370,6 +370,8 @@ namespace import
          ss << "Imported records: " << _importer.importedNum() << std::endl
             << "Imported failure: " << _importer.failedNum() << std::endl;
 
+         ss << "Duplicated records: " << _importer.duplicatedNum() << std::endl;
+
          if ( _parser.failedNum() > 0 )
          {
             ss << "See " << _parser.logFileName()

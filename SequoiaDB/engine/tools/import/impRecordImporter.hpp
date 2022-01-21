@@ -79,9 +79,12 @@ namespace import
 
       INT32 _setSessionAttr() ;
 
+      INT32 _getLastResultObj( bson *result ) ;
+
    private:
       INT32 _insertBufferSize ;
       INT32 _recvBufferSize ;
+      INT32 _resultBufferSize ;
 
       BOOLEAN  _useSSL ;
       BOOLEAN  _enableTransaction ;
@@ -98,6 +101,7 @@ namespace import
       MsgOpInsert*  _insertMsg ;
       CHAR*         _insertBuffer ;
       CHAR*         _recvBuffer ;
+      CHAR*         _resultBuffer ;
 
       string   _hostname ;
       string   _svcname ;
