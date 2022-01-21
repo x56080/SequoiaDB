@@ -1720,16 +1720,18 @@ SDB_EXPORT INT32 sdbInsert1 ( sdbCollectionHandle cHandle,
 
     \param [out] pResult The result of inserting. Can be NULL or a bson:
          <ul>
-         <li> NULL:
-               when this argument is NULL.
-         <li> empty bson: when this argument is not NULL but there is no
-                          result return.
-         <li> bson which contains the "_id" field:
-               when flag "FLG_INSERT_RETURN_OID" is set, return the
-               value of "_id" field of the inserted record.
-               e.g.: { "_id": { "$oid": "5c456e8eb17ab30cfbf1d5d1" } }
-         </ul>
+         <li> NULL: when this argument is NULL.
+         <li> bson: an empty bson on error, or a bson whose contains the insert details on success, as follows:
 
+              InsertedNum:    The number of records successfully inserted, including
+                              replaced and ignored records.
+              DuplicatedNum:  The number of records ignored or replaced due to duplicate
+                              key conflicts.
+              LastGenerateID: The max value of all autoIncrements in current collection.
+                              The result will include field "LastGenerateID" if current
+                              collection has autoIncrements.
+              _id:            Obecjt ID of the inserted record. The result will include field "_id"
+                              if FLG_INSERT_RETURN_OID is used.
     \retval SDB_OK Operation Success.
     \retval Others Operation Fail.
 */
@@ -1828,15 +1830,18 @@ SDB_EXPORT INT32 sdbBulkInsert ( sdbCollectionHandle cHandle,
     \param [in] num The number of inserted bson objects.
     \param [out] pResult The result of inserting. Can be NULL or a bson:
          <ul>
-         <li> NULL:
-               when this argument is NULL.
-         <li> empty bson: when this argument is not NULL but there is no
-                          result return.
-         <li> bson which contains the "_id" field:
-               when flag "FLG_INSERT_RETURN_OID" is set, return all the
-               values of "_id" field in a bson array.
-               e.g.: { "_id": [ { "$oid": "5c456e8eb17ab30cfbf1d5d1" },
-                                { "$oid": "5c456e8eb17ab30cfbf1d5d2" } ] }
+         <li> NULL: when this argument is NULL.
+         <li> bson: an empty bson on error, or a bson whose contains the insert details on success, as follows:
+
+              InsertedNum:    The number of records successfully inserted, including
+                              replaced and ignored records.
+              DuplicatedNum:  The number of records ignored or replaced due to duplicate
+                              key conflicts.
+              LastGenerateID: The max value of all autoIncrements in current collection.
+                              The result will include field "LastGenerateID" if current
+                              collection has autoIncrements.
+              _id:            Obecjt ID of the inserted record. The result will include field "_id"
+                              if FLG_INSERT_RETURN_OID is used.
     \retval SDB_OK Operation Success.
     \retval Others Operation Fail.
 */
