@@ -1227,10 +1227,10 @@ namespace engine
                // set configure invalid, so the recycle bin manager
                // will update configure from CATALOG later
                _recycleBinMgr.setConfInvalid() ;
-            }
 
-            // start query task
-            startAllTaskCheck() ;
+               // start query task
+               startAllTaskCheck() ;
+            }
          }
          else
          {
@@ -1940,7 +1940,8 @@ namespace engine
          PD_LOG( PDINFO,
                  "Task[%llu] has been finished, do not start thread",
                  taskID ) ;
-         goto done ;
+         // release memory in goto error
+         goto error ;
       }
 
       // add to clsTaskMgr and clsMgr
@@ -2589,11 +2590,13 @@ namespace engine
          {
             if ( 1 == _mapTaskQuery.size() )
             {
-               BSONObj queryAll = BSON( CAT_TARGETID_NAME <<
-                                        _selfNodeID.columns.groupID ) ;
-               if ( 0 != queryAll.woCompare( it->second ) )
+               BSONObj queryAllSplit = BSON( FIELD_NAME_TARGETID <<
+                                             _selfNodeID.columns.groupID <<
+                                             FIELD_NAME_STATUS <<
+                                             BSON( "$ne" << CLS_TASK_STATUS_FINISH ) ) ;
+               if ( 0 != queryAllSplit.woCompare( it->second ) )
                {
-                  _mapTaskQuery[ ++_requestID ] = queryAll ;
+                  _mapTaskQuery[ ++_requestID ] = queryAllSplit ;
                }
             }
          }
@@ -2631,8 +2634,8 @@ namespace engine
             _mapTaskQuery.erase ( it ) ;
          }
 
-         PD_LOG ( PDINFO, "The query task[%lld] has %d jobs", msg->requestID,
-                  numReturned ) ;
+         PD_LOG ( PDINFO, "The query task[requestID:%lld] has %d jobs",
+                  msg->requestID, numReturned ) ;
 
          // start task thread
          for ( UINT32 i = 0 ; i < objList.size() ; i++ )

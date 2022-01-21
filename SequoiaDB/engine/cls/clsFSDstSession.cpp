@@ -2926,6 +2926,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSSPLDS__ONDTH );
       clsCB *pClsMgr = pmdGetKRCB()->getClsCB() ;
       UINT32 splitTaskCount = 0 ;
+      utilCLUniqueID clUniqID = _pTask->clUniqueID() ;
 
       // unregister collection
       if ( _regTask )
@@ -2969,7 +2970,7 @@ namespace engine
          {
             pClsMgr->startAllSplitTaskCheck() ;
          }
-         pClsMgr->startIdxTaskCheckByCL( _pTask->clUniqueID() ) ;
+         pClsMgr->startIdxTaskCheckByCL( clUniqID ) ;
       }
 
       _disconnect() ;
