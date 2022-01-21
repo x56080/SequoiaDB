@@ -322,12 +322,14 @@ namespace import
    struct _PageInfo : public SDBObject
    {
       INT32 recordNum ;
+      INT32 duplicatedNum ;
       BsonPage *pages ;
 
-      _PageInfo( INT32 num = 0, BsonPage* pPages = NULL )
+      _PageInfo( INT32 num = 0, BsonPage* pPages = NULL, INT32 duplNum = 0 )
       {
-         recordNum = num ;
-         pages     = pPages ;
+         recordNum     = num ;
+         pages         = pPages ;
+         duplicatedNum = duplNum ;
       }
    } ;
    typedef struct _PageInfo PageInfo ;

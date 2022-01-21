@@ -246,6 +246,7 @@ CSV类型转换
 | Sharding failure | 根据分区信息打包失败的记录条数 |
 | Imported records | 导入成功的记录条数 |
 | Imported failure | 导入失败的记录条数 |
+| Duplicated records | 因唯一索引键冲突而被替换或被忽略的记录条数 |
 
 > **Note:**
 >

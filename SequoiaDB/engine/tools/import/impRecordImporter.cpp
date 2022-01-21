@@ -45,7 +45,8 @@ namespace import
 {
    #define IMP_MAX_RECORDS_SIZE (SDB_MAX_MSG_LENGTH - 1024 * 1024 * 1)
    #define IMP_DEFAULT_NETWORK_TIMEOUT (-1)
-
+   #define BSON_MIN_SIZE 5
+   #define IMP_DUPLICATED_NUMBER "DuplicatedNum" 
    static INT32 defaultVersion = 1 ;
    static INT16 defaultW = 0 ;
 
@@ -62,6 +63,7 @@ namespace import
                                    INT32 batchSize )
          : _insertBufferSize( 0 ),
            _recvBufferSize( 0 ),
+           _resultBufferSize( 0 ),
            _useSSL( useSSL ),
            _enableTransaction( enableTransaction ),
            _allowKeyDuplication( allowKeyDuplication ),
@@ -73,6 +75,7 @@ namespace import
            _insertMsg( NULL ),
            _insertBuffer( NULL ),
            _recvBuffer( NULL ),
+           _resultBuffer( NULL ),
            _hostname( hostname ),
            _svcname( svcname ),
            _user( user ),
@@ -273,6 +276,37 @@ namespace import
       goto done ;
    }
 
+   INT32 RecordImporter::_getLastResultObj( bson *result )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( !result ) 
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( _resultBuffer && _resultBufferSize >= BSON_MIN_SIZE && *( INT32* )_resultBuffer >= BSON_MIN_SIZE )
+      {
+         //Since the result is obtained from the outside, it will be
+         //used up immediately, so there is no need to add bson_copy proccessing.
+         rc = bson_init_finished_data( result, _resultBuffer ) ;
+         if ( rc )
+         {
+            rc = SDB_CORRUPTED_RECORD ;
+            goto error ;
+         }
+      }
+      else
+      {
+         rc = SDB_DMS_EOC  ;
+         goto error ;
+      }
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
    INT32 RecordImporter::_initInsertMsg()
    {
       INT32 rc = SDB_OK ;
@@ -321,13 +355,18 @@ namespace import
       INT32 rc = SDB_OK ;
       INT32 packetLength = _insertBufferSize ;
       BsonPage* pages = pageInfo->pages ;
+      bson resExtract ;
+      bson_iterator it ;
+      bson_type type ;
 
+      bson_init( &resExtract ) ;
       while( pages )
       {
          packetLength += pages->getRecordsSize() ;
          pages = pages->getNext() ;
       }
 
+      flag |= FLG_INSERT_RETURNNUM ;
       _insertMsg->header.messageLength = packetLength ;
       ossEndianConvertIf( flag, _insertMsg->flags, _endianConvert ) ;
 
@@ -364,7 +403,26 @@ namespace import
          PD_LOG( PDERROR, "Failed to extract message, rc=%d", rc ) ;
          goto error ;
       }
-
+      // Since the memory space of the bson resExtract is shared,
+      // bson_destory(&resExtract) is not required.	  
+      rc = _getLastResultObj( &resExtract ) ;
+      if ( SDB_OK == rc )
+      {
+         type = bson_find( &it, &resExtract, IMP_DUPLICATED_NUMBER ) ;
+         if ( BSON_LONG == type )
+         {
+            pageInfo->duplicatedNum = bson_iterator_long( &it ) ;
+         }
+         else
+         {
+            PD_LOG( PDWARNING, "Failed to get duplicate count. DuplicatedNum's type is %d , "
+                               "but it must be BSON_LONG ", type ) ;
+         }
+      }
+      else
+      {
+         rc = SDB_OK ;
+      }
    done:
       return rc ;
    error:
@@ -413,6 +471,8 @@ namespace import
       INT32 realLen   = 0 ;
       INT32 receivedLen = 0 ;
       INT32 totalReceivedLen = 0 ;
+      _resultBuffer = NULL ;
+      _recvBufferSize = 0 ;
       sdbCollectionStruct *cls = (sdbCollectionStruct*)_collection ;
       Socket* sock = cls->_sock ;
 
@@ -512,13 +572,36 @@ namespace import
 
       rc = clientExtractReply( _recvBuffer, &replyFlag, &contextID,
                                &startFrom, &numReturned, _endianConvert ) ;
-
       if ( rc )
       {
          goto error ;
       }
 
       rc = replyFlag ;
+      if ( SDB_OK == replyFlag && 1 == numReturned &&
+          ( MSG_BS_INSERT_RES == ( (MsgHeader*)_recvBuffer)->opCode ) )
+      {
+         INT32 dataOff   = 0;
+         INT32 dataSize  = 0;
+         MsgOpReply *pTmpReply = ( MsgOpReply* )_recvBuffer ;
+         //get the size of the response packet from the first four bytes of _recvBuffer
+         dataOff = ossRoundUpToMultipleX( sizeof( MsgOpReply ), 4 ) ;
+         dataSize = pTmpReply->header.messageLength - dataOff ;
+         //save result info
+         if ( dataSize > 0 )
+         {
+            _resultBuffer = _recvBuffer + dataOff ;
+            _resultBufferSize = dataSize ;
+            /// should truncate the message size
+            pTmpReply->header.messageLength = sizeof( MsgOpReply ) ;
+            pTmpReply->numReturned = 0 ;
+         }
+         else
+         {
+            _resultBuffer = NULL ;
+            _recvBufferSize = 0 ;
+         }
+      }
 
    done :
       return rc ;

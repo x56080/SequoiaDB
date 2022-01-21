@@ -48,12 +48,13 @@ function importData ( csName, clName, imprtFile )
       + ' --file ' + imprtFile;
    var rc = cmd.run( imprtOption );
 
-   var rcObj = rc.split( "\n" );
-   var rcLen = rcObj.length;
+   var parIndex = rc.indexOf("Parsed records: ");
+   var impIndex = rc.indexOf("Imported records: "); 
    var expParseRecords = "Parsed records: 4";
    var expImportedRecords = "Imported records: 4";
-   var actParseRecords = rcObj[rcLen - 7];
-   var actImportedRecords = rcObj[rcLen - 3];
+   var actParseRecords = "Parsed records: " + rc[parIndex + 16];
+   var actImportedRecords = "Imported records: " + rc [impIndex + 18];
+
    if( expParseRecords !== actParseRecords || expImportedRecords !== actImportedRecords )
    {
       throw new Error( "importData fail,[sdbimprt results]" +
