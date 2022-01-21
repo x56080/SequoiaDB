@@ -5,29 +5,27 @@
 .hy
 .SH NAME
 .PP
-find \- Find a file.
+find \- find files
 .SH SYNOPSIS
 .PP
-\f[B]\f[I]File.find( <options>, [filter] )\f[]\f[]
+\f[B]File.find(<options>, [filter])\f[]
 .SH CATEGORY
 .PP
 File
 .SH DESCRIPTION
 .PP
-Find a file.
+This function is used to find files in the specified directory.
 .SH PARAMETERS
 .PP
 .TS
 tab(@);
-l l l l l l.
+l l l l l.
 T{
 0
 T}@T{
 Name
 T}@T{
 Type
-T}@T{
-Default
 T}@T{
 Description
 T}@T{
@@ -39,20 +37,17 @@ T{
 T}@T{
 options
 T}@T{
-JSON
+object
 T}@T{
-\-\-\-
+Find Patterns and Find
 T}@T{
-find mode and find
-T}@T{
-yes
+required
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-T}@T{
-content
+What.
 T}@T{
 T}
 T{
@@ -60,11 +55,9 @@ T{
 T}@T{
 filter
 T}@T{
-JSON
+object
 T}@T{
-Default to display all
-T}@T{
-Filtered conditions
+Filter conditions,
 T}@T{
 not
 T}
@@ -72,13 +65,33 @@ T{
 T}@T{
 T}@T{
 T}@T{
-content
+support filtering the
 T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+result set by "and", "
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+or", "not" or exact
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+match calculation.
 T}@T{
 T}
 .TE
 .PP
-The detail description of \[aq]options\[aq] parameter is as follow:
+The options parameter is detailed as follows:
 .PP
 .TS
 tab(@);
@@ -86,7 +99,7 @@ l l l l l.
 T{
 0
 T}@T{
-Attributes
+Name
 T}@T{
 Type
 T}@T{
@@ -100,94 +113,66 @@ T{
 T}@T{
 mode
 T}@T{
-char
+string
 T}@T{
-if { mode: \[aq]n\[aq] }, then
+The type of search, the
 T}@T{
-yes
+required
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-it means that find
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-files based on file
+values are as follows:
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-nameif { mode: \[aq]u\[aq]
+\[aq]n\[aq]: Find files by
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-}, then it means that
+filename.\[aq]u\[aq]: Find
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-find files based on
+files by username.\[aq]
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-usernameif { mode:
+g\[aq]: Find files by user
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-\[aq]g\[aq] }, then it means
+group name.\[aq]p\[aq]:
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-that find find based on
+Find files by
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-group nameif {
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-mode: \[aq]p\[aq] }, then it
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-means that find files
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-based on permission
+permissions.
 T}@T{
 T}
 T{
@@ -197,7 +182,7 @@ pathname
 T}@T{
 string
 T}@T{
-specify the file path
+The search path, the
 T}@T{
 not
 T}
@@ -205,14 +190,21 @@ T{
 T}@T{
 T}@T{
 T}@T{
-to find, default
+default is to search
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-current directory
+for files in the
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+current path.
 T}@T{
 T}
 T{
@@ -222,31 +214,35 @@ value
 T}@T{
 string
 T}@T{
-finded content
+What to find.
 T}@T{
-yes
+required
 T}
 .TE
-.PP
-The optional parameter filterObj supports the AND, the OR, the NOT and exact
-matching of some fields in the result, and the result set is filtered.
 .SH RETURN VALUE
 .PP
-On success, return rearch result set.
+When the function executes successfully, it will return an object of type
+BSONArray.
+Users can get the path of the file through this object.
 .PP
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will
+be printed.
 .SH ERRORS
 .PP
-when exception happen, use getLastError() to get the error code and use
-getLastErrMsg() to get error message.
-For more detial, please reference to Troubleshooting.
+When the exception happens, use getLastErrMsg() to get the error message or use
+getLastError() to get the error code.
+For more details, refer to Troubleshooting.
+.SH VERSION
+.PP
+v3.4 and above
 .SH EXAMPLES
 .IP \[bu] 2
-Find a file;
+Find the file \f[C]file.txt\f[] in the directory \f[C]/opt\f[] by file name.
+.RS 2
 .IP
 .nf
 \f[C]
-> File.find( { mode: \[aq]n\[aq], value: "file.txt", pathname: "/opt" } )
+> File.find({mode: \[aq]n\[aq], value: "file.txt", pathname: "/opt"})
 {
     "pathname": "/opt/sequoiadb1/file.txt"
 }
@@ -258,17 +254,21 @@ Find a file;
 }
 \f[]
 .fi
+.RE
 .IP \[bu] 2
-Find a file and filter the result set
+Find the file \f[C]file.txt\f[] in the directory \f[C]/opt\f[] by file name, and
+specify filter conditions.
+.RS 2
 .IP
 .nf
 \f[C]
-> File.find( { mode: \[aq]n\[aq], value: "file.txt", pathname: "/opt" }, { $or: [ { pathname: "/opt/sequoiadb1/file.txt" }, { pathname: "/opt/sequoiadb2/file.txt" } ] } )
-{
-  "pathname": "/opt/sequoiadb1/file.txt"
-}
-{
-  "pathname": "/opt/sequoiadb2/file.txt"
-}
+> File.find({mode: \[aq]n\[aq], value: "file.txt", pathname: "/opt"}, {$or: [{pathname: "/opt/sequoiadb1/file.txt"}, {pathname: "/opt/sequoiadb2/file.txt"}]})
+ {
+     "pathname": "/opt/sequoiadb1/file.txt"
+ }
+ {
+     "pathname": "/opt/sequoiadb2/file.txt"
+ }
 \f[]
 .fi
+.RE
