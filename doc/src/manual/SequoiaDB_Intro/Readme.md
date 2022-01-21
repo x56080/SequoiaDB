@@ -70,7 +70,7 @@ SequoiaDB 巨杉数据库社区版使用 [AGPL-3.0][licensing] 协议授权。
 [expand]:manual/Distributed_Engine/Maintainance/Expand/Readme.md
 [upgrade]:manual/Distributed_Engine/Maintainance/Upgrade/Readme.md
 [performance]:manual/Distributed_Engine/Maintainance/Performance/Readme.md
-[command]:manual/Manual/Sequoiadb_Command/location.md
+[command]:manual/Manual/Sequoiadb_Command/Readme.md
 [operator]:manual/Manual/Operator/Match_Operator/Readme.md
 [errorcode]:manual/Manual/Sequoiadb_error_code.md
 
