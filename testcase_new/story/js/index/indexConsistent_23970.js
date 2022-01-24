@@ -2,7 +2,7 @@
  * @Description   : seqDB-23970:主表取消创建索引任务   
  * @Author        : wu yan
  * @CreateTime    : 2021.04.07
- * @LastEditTime  : 2022.01.20
+ * @LastEditTime  : 2022.01.24
  * @LastEditors   : Wu Yan
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -73,7 +73,7 @@ function test ( testPara )
       commCheckIndexConsistent( db, COMMCSNAME, testConf.clName, indexName, false );
       commCheckIndexConsistent( db, COMMCSNAME, subCLName2, indexName, true );
    }
-   else( subcl1ErrorNo == errorNo && subcl2ErrorNo == errorNo )
+   else if( subcl1ErrorNo == errorNo && subcl2ErrorNo == errorNo )
    {
       //子任务1和子任务2都取消成功
       println( "---subcl1 task has be canceled! errorno=" + subcl1ErrorNo + ",subcl2 task has be canceled! errorno=" + subcl2ErrorNo );
@@ -81,6 +81,11 @@ function test ( testPara )
       checkIndexTask( "Create index", COMMCSNAME, subCLName2, indexName, errorNo );
       commCheckIndexConsistent( db, COMMCSNAME, testConf.clName, indexName, false );
       commCheckIndexConsistent( db, COMMCSNAME, subCLName2, indexName, false );
+   }
+   else
+   {
+      //非预期结果
+      throw new Error( "---subcl1 task errorno=" + subcl1ErrorNo + ",subcl2 task errorno=" + subcl2ErrorNo );
    }
 
    var cursor = testPara.testCL.find( {}, { "_id": { "$include": 0 } } ).sort( { "a": 1 } );
