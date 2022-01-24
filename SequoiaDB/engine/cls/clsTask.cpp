@@ -2841,51 +2841,41 @@ namespace engine
       if ( itGroup != _mapGroupInfo.end() )
       {
          clsIdxTaskGroupUnit& curGroupInfo = itGroup->second ;
-         if ( CLS_TASK_STATUS_FINISH != curGroupInfo.status )
+         if ( subTaskInfoList.empty() )
          {
-            if ( subTaskInfoList.empty() )
+            /// just remove this group
+            if ( CLS_TASK_STATUS_FINISH == curGroupInfo.status )
             {
-               /// just remove this group
-               if ( CLS_TASK_STATUS_FINISH == curGroupInfo.status )
+               if ( _isSucceedGroup( curGroupInfo ) )
                {
-                  if ( _isSucceedGroup( curGroupInfo ) )
-                  {
-                     _decSucceededGroups() ;
-                  }
-                  else
-                  {
-                     _decFailedGroups() ;
-                  }
+                  _decSucceededGroups() ;
                }
-               _decTotalGroups() ;
+               else
+               {
+                  _decFailedGroups() ;
+               }
+            }
+            _decTotalGroups() ;
 
-               _mapGroupInfo.erase( itGroup ) ;
-               _changedMask |= CLS_IDX_MASK_PULL_GROUP ;
-               _pullGroupName = curGroupInfo.groupName ;
-            }
-            else
-            {
-               /// update this group info by sub-tasks
-               clsIdxTaskGroupUnit newGroupInfo ;
-               rc = _buildNewGroupInfo( subTaskInfoList, newGroupInfo ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Failed to build new group info",
-                            rc ) ;
-               _updateGroup( curGroupInfo, newGroupInfo ) ;
-            }
+            _mapGroupInfo.erase( itGroup ) ;
+            _changedMask |= CLS_IDX_MASK_PULL_GROUP ;
+            _pullGroupName = curGroupInfo.groupName ;
          }
          else
          {
-            PD_LOG( PDWARNING, "Group[%s] in task[%llu] has already finished",
-                    groupName, _taskID ) ;
-            goto done ;
+            /// update this group info by sub-tasks
+            clsIdxTaskGroupUnit newGroupInfo ;
+            rc = _buildNewGroupInfo( subTaskInfoList, newGroupInfo ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to build new group info",
+                         rc ) ;
+            _updateGroup( curGroupInfo, newGroupInfo ) ;
          }
       }
       else
       {
          PD_LOG( PDWARNING, "Group[%s] doesn't exist in task[%llu]",
                  groupName, _taskID ) ;
-         goto done ;
       }
 
       /// find out sub-task in SubTasks list
@@ -2902,8 +2892,10 @@ namespace engine
             newSubTask.status     = pSubTask->status() ;
             newSubTask.resultCode = pSubTask->resultCode() ;
 
+            /// change SubTasks / SucceedTasks / FailedTasks
             _updateSubTask( curSubTask, newSubTask ) ;
 
+            /// change other fields
             _updateOtherBySubTaskInfo() ;
          }
          else
