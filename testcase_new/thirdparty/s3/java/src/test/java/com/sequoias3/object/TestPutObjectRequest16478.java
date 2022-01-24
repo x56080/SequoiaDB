@@ -138,9 +138,14 @@ public class TestPutObjectRequest16478 extends S3TestBase {
                     "/dir/test16478", new File( nonexistentFilePath ) ) );
             Assert.fail( "when file path does not exist,it should fail" );
         } catch ( SdkClientException e ) {
-            Assert.assertTrue(
-                    e.getMessage().contains( "No such file or directory" ),
-                    e.getMessage() );
+            String message = e.getMessage();
+            // window客户端报错为“系统找不到指定文件”，arm平台报错为“没有那个文件或目录”，
+            // linux平台报错为“No such file or directory”
+            boolean isMatchResult = message
+                    .contains( "No such file or directory" )
+                    || message.contains( "系统找不到指定的文件" )
+                    || message.contains( "没有那个文件或目录" );
+            Assert.assertTrue( isMatchResult, message );
         }
         actSuccessTests.getAndIncrement();
     }
