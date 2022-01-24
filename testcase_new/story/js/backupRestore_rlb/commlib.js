@@ -17,7 +17,7 @@ function isPortUsed ( port )
 {
    try
    {
-      var cmd = new Remote().getCmd();
+      var cmd = new Cmd();
       cmd.run( "lsof -nP -iTCP:" + port + " -sTCP:LISTEN" );
       return true;
    } catch( e )
@@ -28,7 +28,7 @@ function isPortUsed ( port )
 
 function getLocalHostName ()
 {
-   var cmd = new Remote().getCmd();
+   var cmd = new Cmd();
    return cmd.run( 'hostname' ).split( '\n' )[0];
 }
 
@@ -232,7 +232,7 @@ function getExecPath ( cmd )
 {
    if( cmd === undefined )
    {
-      var cmd = new Remote().getCmd();
+      var cmd = new Cmd();
    }
 
    var path = "";
@@ -269,7 +269,7 @@ function genFile ( path )
 {
    if( path === undefined )
    {
-      var path = WORKDIR + "testdat" + Math.floor( Math.random() * 100 );
+      var path = "/tmp/testdat" + Math.floor( Math.random() * 100 );
    }
 
    var content = "";
@@ -297,10 +297,10 @@ function calcMD5 ( cmd, path )
 
    if( cmd === undefined )
    {
-      var cmd = new Remote().getCmd();
+      var cmd = new Cmd();
    }
 
-   var output = File.md5( path );
+   var output = cmd.run( "md5sum " + path );
    output = output.split( "\n" )[0];
    var detail = output.split( " " );
    if( detail.length == 2 )
@@ -326,7 +326,7 @@ function isTheSameMachine ( cmd, hostName )
 
    if( cmd === undefined )
    {
-      var cmd = new Remote().getCmd();
+      var cmd = new Cmd();
    }
 
    if( hostName === "localhost" || hostName === "127.0.0.1" )
@@ -370,7 +370,7 @@ function sdbRestore ( db, cmd, bakInfo, node )
    var isStandalone = false;
    if( cmd === undefined )
    {
-      var cmd = new Remote().getCmd();
+      var cmd = new Cmd();
    }
 
    if( commIsStandalone( db ) )
@@ -394,7 +394,7 @@ function removeFile ( cmd, filePath )
 
    if( cmd === undefined )
    {
-      var cmd = new Remote().getCmd();
+      var cmd = new Cmd();
    }
 
    var output = cmd.run( "rm -rf " + filePath );
@@ -404,7 +404,7 @@ function stopNode ( db, isStandalone, cmd, node )
 {
    if( cmd === undefined )
    {
-      var cmd = new Remote().getCmd();
+      var cmd = new Cmd();
    }
 
    if( isStandalone )
@@ -426,7 +426,7 @@ function startNode ( db, isStandalone, cmd, node )
 {
    if( cmd === undefined )
    {
-      var cmd = new Remote().getCmd();
+      var cmd = new Cmd();
    }
 
    if( isStandalone )
@@ -454,7 +454,7 @@ function IsBakPathEmpty ( cmd, bakPath )
 
    if( cmd === undefined )
    {
-      cmd = new Remote().getCmd();
+      cmd = new Cmd();
    }
 
    try
@@ -563,7 +563,7 @@ function backupTestCase ( sdb )
    this.sdb = sdb;
    this.db = db;
    this.oids = [];
-   this.localCmd = new Remote().getCmd();
+   this.localCmd = new Cmd();
 }
 
 backupTestCase.prototype.csName = csName;
@@ -654,7 +654,7 @@ backupTestCase.prototype.checkResult =
 
       try
       {
-         var path = WORKDIR + "getdat" + getDateString();
+         var path = "/tmp/getdat" + getDateString();
          for( var i = 0; i < this.oids.length; ++i )
          {
             this.cl.getLob( this.oids[i], path, true );
@@ -724,7 +724,7 @@ backupTestCase.prototype.test =
       try
       {
          var backupName = CHANGEDPREFIX + getDateString();
-         var path = WORKDIR + "testdat" + getDateString();
+         var path = "/tmp/testdat" + getDateString();
          genFile( path );
          this.originMD5 = calcMD5( this.localCmd, path );
          this.execTest( backupName, path );

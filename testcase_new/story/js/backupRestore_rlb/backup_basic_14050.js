@@ -1,12 +1,10 @@
-/******************************************************************************
- * @Description   : Test Backup SDB by use default argument.[db.backupOffline()]
- * @Author        : xiaojun Hu
- * @CreateTime    : 2014.06.20
- * @LastEditTime  : 2022.01.20
- * @LastEditors   : 钟子明
- ******************************************************************************/
+/*******************************************************************************
+@Description : Test Backup SDB by use default argument.[db.backupOffline()]
+@Modify list :
+               2014-6-20  xiaojun Hu Init
+*******************************************************************************/
 
-main( test );
+// main( test );
 
 function test ()
 {

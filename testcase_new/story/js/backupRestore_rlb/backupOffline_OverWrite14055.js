@@ -1,12 +1,10 @@
-/******************************************************************************
- * @Description   : Test backupOffline, specify["OverWrite"]
- * @Author        : xiaojun Hu
- * @CreateTime    : 2014.06.20
- * @LastEditTime  : 2022.01.21
- * @LastEditors   : 钟子明
- ******************************************************************************/
+/*******************************************************************************
+@Description : 1.Test backupOffline, specify["OverWrite"]
+@Modify list :
+               2014-6-20  xiaojun Hu  Init
+*******************************************************************************/
 
-main( test );
+// main( test );
 
 function test ()
 {
@@ -68,7 +66,6 @@ function bakBackupByCheckError ( db, backUpOpt )
       }
       else
       {
-         commDropCL( db, COMMCSNAME, clName, true, false, "Drop CL in the end" );
          throw e;
       }
    }
