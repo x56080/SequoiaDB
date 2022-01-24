@@ -86,7 +86,7 @@ getLastError() to get the error code.
 For more details, refer to Troubleshooting.
 .SH VERSION
 .PP
-v5.0 and above
+v3.2 and above
 .SH EXAMPLES
 .PP
 Cancel a split task asynchronously.
