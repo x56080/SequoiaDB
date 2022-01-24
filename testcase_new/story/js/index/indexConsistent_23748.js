@@ -22,7 +22,7 @@ function test ( testPara )
 
    // 插入数据,执行切分
    var docs = insertBulkData( cl, 1000 );
-   cl.split( srcGroup, dstGroup[1], { Partition: 0 }, { Partition: 150 } );
+   cl.split( srcGroup, dstGroup[0], { Partition: 0 }, { Partition: 150 } );
 
    // 插入重复数据
    cl.insert( { "a": 1, "c": 1, "test": 1 } );
