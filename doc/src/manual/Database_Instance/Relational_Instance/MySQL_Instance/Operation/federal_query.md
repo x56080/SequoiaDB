@@ -39,7 +39,7 @@
 
   > **Note:**
   >
-  > SequoiaDB 联邦查询的 SQL 语法要同时满足 SequoiaDB 的 SQL 法规则和 MySQL 的语法规则。
+  > SequoiaDB 联邦查询的 SQL 语法要同时满足 SequoiaDB 的 SQL 语法规则和 MySQL 的语法规则。
 
 ##SparkSQL 联邦查询##
 
