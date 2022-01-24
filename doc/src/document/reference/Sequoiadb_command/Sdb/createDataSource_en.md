@@ -22,7 +22,12 @@ This function is used to create a data source to achieve cross-cluster data acce
 
 - address ( *string, required* )
 
-    "Addresses" are all or some of the cluster coordinator node addresses of SequoiaDB data source. The addresses pointed by the coordinating nodes should be in the same cluster but the number of addresses must not exceed 7 when multiple addresses are configured.
+    "Addresses" are all or some of the cluster coordinator node addresses of SequoiaDB data source.
+
+    >**Note:**
+    >
+    > - Multiple coordinator node addresses can be configured with commas (,). Users need to ensure that the number of addresses does not exceed seven, and all addresses point to the same cluster.
+    > - The host name of the machine where the coordinator node address is located cannot be the same as that of the local machine.
 
 - user ( *string, optional* )
 
@@ -40,7 +45,7 @@ This function is used to create a data source to achieve cross-cluster data acce
 
     Other optional parameters can be set through the options parameter:
 
-    1. AccessMode ( *string* ): Configure access permissions for the data source, including reading and writing data, default is "ALL".
+    - AccessMode ( *string* ): Configure access permissions for the data source, including reading and writing data, default is "ALL".
 
         The values are as follows:
 
@@ -51,7 +56,7 @@ This function is used to create a data source to achieve cross-cluster data acce
 
         Format: `AccessMode: "READ"`
 
-    2. ErrorFilterMask ( *string* ): Configure error filtering for data operations on data sources, default is "NONE".
+    - ErrorFilterMask ( *string* ): Configure error filtering for data operations on data sources, default is "NONE".
 
         The values are as follows:
 
@@ -62,7 +67,7 @@ This function is used to create a data source to achieve cross-cluster data acce
 
         Format: `ErrorFilterMask: "READ"`
 
-    3. ErrorControlLevel ( *string* ): Configure the error level when performing unsupported data operations (such as DDL) on the mapping collection or collection space, default is "low".
+    - ErrorControlLevel ( *string* ): Configure the error level when performing unsupported data operations (such as DDL) on the mapping collection or collection space, default is "low".
 
         The values are as follows:
 
@@ -71,7 +76,7 @@ This function is used to create a data source to achieve cross-cluster data acce
 
         Format: `ErrorControlLevel: "low"`
 
-    4. TransPropagateMode ( *string* ): Configure transaction propagation mode on data source, default is "never".
+    - TransPropagateMode ( *string* ): Configure transaction propagation mode on data source, default is "never".
 
         The values are as follows:
 
@@ -80,13 +85,15 @@ This function is used to create a data source to achieve cross-cluster data acce
 
         Format: `TransPropagateMode: "never"`
 
-    5. InheritSessionAttr ( *boolean* ): Whether session between local coordinator and data source node inherits session attributes from local session on the coordinator. The supported attributes include PreferedInstance，PreferedInstanceMode，PreferedStrict，PreferedPeriod，Timeout. The default value is true.
+    - InheritSessionAttr ( *boolean* ): Whether session between local coordinator and data source node inherits session attributes from local session on the coordinator, the default value is true.
+
+        The supported attributes include PreferedInstance，PreferedInstanceMode，PreferedStrict，PreferedPeriod and Timeout. 
 
         Format: `InheritSessionAttr: true`
 
 ##RETURN VALUE##
 
-When the function executes successfully, it will return a DataSource object.
+When the function executes successfully, it will return an object of type SdbDataSource.
 
 When the function fails, an exception will be thrown and an error message will be printed.
 
@@ -98,7 +105,7 @@ The common exceptions of `createDataSource()` function are as follows:
 | ------ | -------- | -------------- | -------- |
 | -369 | SDB_CAT_DATASOURCE_EXIST | The specified data source already exists. | Check if there is a data source with the same name. |
 
-When the exception happens, use [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) to get the error message or use [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) to get the error code. For more details, refer to [Troubleshooting](troubleshooting/general/general_guide.md).
+When the exception happens, use [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) to get the error message or use [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) to get the [error code](reference/Sequoiadb_error_code.md). For more details, refer to [Troubleshooting](troubleshooting/general/general_guide.md).
 
 ##VERSION##
 
