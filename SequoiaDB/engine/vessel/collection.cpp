@@ -754,7 +754,12 @@ namespace vessel
       }
       else
       {
-         SDB_ASSERT(FALSE, "todo");
+         rc = insertBigRecord(context, request);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to insert big record, rc:%d", rc);
+            goto error;
+         }
       }
 
       if (ra.hasBuildingIndex())
@@ -1413,6 +1418,57 @@ namespace vessel
       goto done;
    }
 
+   INT32 collection::insertBigRecord(dmlContext *context,
+                                     const dmlInsertRequest &request)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(request.isValid(), "can not be invalid");
+      fsmCandidate candidate;
+      bigRecordStream recordStream(request.record);
+      PAGE_ID lpid = INVALID_PAGE_ID;
+
+      // TODO attach oplist
+      SDB_ASSERT(recordStream.isValid(), "can not be invalid");
+      do
+      {
+         rc = findCandidateExclusively(context, FSM_MAX_SPACE_LVL, candidate);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to find free space for record, rc:%d");
+            goto error;
+         }
+
+         lpid = candidate.getLpid();
+         if (INVALID_PAGE_ID == lpid)
+         {
+            rc = getLpidBySequence(context, candidate.getSeq(), lpid);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to find lpid of seq[%d], rc:%d",
+                     candidate.getSeq(), rc);
+               goto error;
+            }
+            candidate.setLpid(lpid);
+         }
+
+         rc = insertBigRecordSlice(context, recordStream, candidate);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to insert big record "
+                   "entry slice to page, rc:%d", rc);
+            goto error;
+         }
+         candidate.reset();
+      }while(!recordStream.isEndOfStream());
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 collection::insertOverflowedRecord(dmlContext *context,
                                             const slice &newRowData,
                                             recordID &rid)
@@ -1635,6 +1691,62 @@ namespace vessel
 
    }
 
+   INT32 collection::insertBigRecordSlice(dmlContext *context,
+                                          bigRecordStream &recordStream,
+                                          const fsmCandidate &candidate)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be invalid");
+      SDB_ASSERT(recordStream.isValid(), "can not be invalid");
+      SDB_ASSERT(candidate.isValid() && INVALID_PAGE_ID != candidate.getLpid(),
+                 "can not be invalid");
+
+      logicalPageBuffer lpb;
+      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      rdpAccessor accessor;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_UPGRADE);
+      INT32 lvl = FSM_INVALID_SPACE_LVL;
+      const runtimeMbContext *mbContext = context->getMbContext();
+
+      rc = mds.getLogicalPageBuffer(context, candidate.getLpid(), mode, lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get buffer of lpid[%d], rc:%d",
+                candidate.getLpid(), rc);
+         goto error;
+      }
+      
+      rc = accessor.init(context, &lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init accessor, rc:%d", rc);
+         goto error;
+      }
+      SDB_ASSERT(candidate.getSeq() == accessor.getReadablePageHead()->pageSeq,
+                 "must be same");
+
+      lvl = getFsmSpaceLvl(getDataPageSize(), accessor.getFreeSpaceAfterLastSlot());
+      if (FSM_MAX_SPACE_LVL == lvl)
+      {
+         rc = accessor.insertBigRecordSlice(context, recordStream);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to insert big record by accessor, rc:%d", rc);
+            goto error;
+         }
+      }
+      else if (accessor.getFreeSpacePercent() >= mbContext->getFloatMinFreePercent())
+      {
+         _fsm.upgradePageSpaceLvl(candidate.getSeq(), lvl);
+      }
+
+   done:
+      lpb.fini();
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 collection::findCandidate(requestContext *context,
                                    INT32 lvl,
                                    const dmsStripingId &striping,
@@ -1654,6 +1766,62 @@ namespace vessel
          ossXLatchGuard guard(&_extendingLatch, FALSE);
 
          rc = _fsm.find(context, lvl, striping, candidate);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to find candidate from fsm:%d", rc);
+            goto error;
+         }
+
+         if (candidate.isValid())
+         {
+            break;
+         }
+
+         guard.lock();
+         if (totalRdpCount < _totalRdpCount)
+         {
+            continue;
+         }
+
+         rc = allocateNewRecordDataPages(context, PAGE_COUNT_IN_EXTENT,
+                                         firstSeq, lpids);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR,  "failed to allocate new rdps:%d", rc);
+            goto error;
+         }
+
+         rc = _fsm.insertNewPages(firstSeq, lpids, PAGE_COUNT_IN_EXTENT);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to insert new pages into fsm:%d", rc);
+            goto error;
+         }
+      } while (TRUE);
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::findCandidateExclusively(requestContext *context,
+                                              INT32 lvl,
+                                              fsmCandidate &candidate)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(isValidFsmLvL(lvl), "can not be invalid");
+      PAGE_ID lpids[PAGE_COUNT_IN_EXTENT];
+      UINT32 firstSeq = INVALID_CL_PAGE_SEQ;
+      candidate.reset();
+
+      do
+      {
+         UINT32 totalRdpCount = _totalRdpCount;
+         /// do not get latch here.
+         ossXLatchGuard guard(&_extendingLatch, FALSE);
+
+         rc = _fsm.findAndKick(lvl, candidate);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to find candidate from fsm:%d", rc);
@@ -4310,10 +4478,14 @@ namespace vessel
          goto error;
       }
       
-      context->setMrcTransID(scanner.getCurrentTransID());
+      context->getMrc().setTransID(scanner.getCurrentTransID());
+      if (scanner.isBigRecord())
+      {
+         context->getMrc().setIsBigRecord();
+      }
       if (scanner.isOverflow())
       {
-         context->setMrcOverflowInfo(scanner.isBigRecord(), scanner.getOverflowAddr());
+         context->getMrc().setOverflowInfo(scanner.getOverflowAddr());
       }
       context->setDmlRecordInfo(scanner.getCurrentPageSeq(), rid);
 
@@ -4379,8 +4551,6 @@ namespace vessel
       mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
       BOOLEAN outOfSpace = FALSE;
       recordID rid = context->getRid();
-
-      SDB_ASSERT(!isBigRecord(getDataPageSize(), newRecord.getSize()), "TODO");
 
       rc = mds.getLogicalPageBuffer(context, rid.getPid(), mode, lpb);
       if (SDB_OK != rc)
@@ -4516,7 +4686,6 @@ namespace vessel
          PD_LOG(PDERROR, "failed to init accessor:%d", rc);
          goto error;
       }
-
       rc = accessor.setRecordOverflowed(context, rid.getPos(), 
                                         context->getStripingId(), orid);
       if (SDB_OK != rc)
@@ -4624,6 +4793,15 @@ namespace vessel
 
       if (context->getMrc().isOverflow())
       {
+         rc = removeOverflowedRecord(context);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to remove overflowed record, rc:%d", rc);
+            goto error;
+         }
+      }
+      else if (context->getMrc().isBigRecord())
+      {
          SDB_ASSERT(FALSE, "TODO");
       }
       else
@@ -4667,7 +4845,7 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.deleteNormalRecord(context, rid.getPos());
+      rc = accessor.deleteRecord(context, rid.getPos());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to delete record by accessor:%d", rc);
@@ -4675,6 +4853,76 @@ namespace vessel
       }
 
       lpb.fini();
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::removeOverflowedRecord(dmlContext *context)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+
+      logicalPageBuffer lpb;
+      rdpAccessor accessor;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      recordID rid = context->getRid();
+
+      rc = mds.getLogicalPageBuffer(context, rid.getPid(), mode, lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get lpb[%d], rc:%d", rid.getPid(), rc);
+         goto error;
+      }
+
+      rc = accessor.init(context, &lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init accessor, rc:%d", rc);
+         goto error;
+      }
+
+      rc = accessor.deleteRecord(context, rid.getPos());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to delete record by accessor, rc:%d", rc);
+         goto error;
+      }
+
+      if (!context->getMrc().isBigRecord())
+      {
+         logicalPageBuffer tmplpb;
+         recordID overflowAddr = context->getMrc().getOverflowAddr();
+         rdpAccessor tmpAccessor;
+         rc = mds.getLogicalPageBuffer(context, overflowAddr.getPid(), mode, tmplpb);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get lpb[%d], rc:%d", overflowAddr.getPid(), rc);
+            goto error;
+         }
+
+         rc = tmpAccessor.init(context, &tmplpb);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init accessor:%d", rc);
+            goto error;
+         }
+
+         rc = tmpAccessor.destroySlotAndData(context, overflowAddr.getPos());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to destroy record[%d], rc:%d",overflowAddr.getPos(), rc);
+            goto error;
+         }
+         tmplpb.fini();
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "TODO");
+      }
 
    done:
       return rc;

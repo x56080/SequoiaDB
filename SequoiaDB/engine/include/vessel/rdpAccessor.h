@@ -43,6 +43,7 @@
 #include "vessel/strictBuffer.h"
 #include "vessel/dmlRequest.h"
 #include "dmsStripingId.hpp"
+#include "vessel/bigRecordStream.h"
 
 namespace engine
 {
@@ -73,6 +74,9 @@ namespace vessel
                                       const slice &record,
                                       recordID &rid);
 
+         INT32 insertBigRecordSlice(dmlContext *context,
+                                    bigRecordStream &recordStream);
+         
          INT32 updateNormalRecord(dmlContext *context,
                                   RECORD_SLOT_POS pos,
                                   const dmsStripingId &striping,
@@ -89,8 +93,8 @@ namespace vessel
                                     const dmsStripingId &striping,
                                     const recordID &overflowAddr);
 
-         INT32 deleteNormalRecord(dmlContext *context,
-                                  RECORD_SLOT_POS  pos);
+         INT32 deleteRecord(dmlContext *context,
+                            RECORD_SLOT_POS  pos);
 
          INT32 destroySlotAndData(dmlContext *context,
                                   RECORD_SLOT_POS pos);
@@ -107,11 +111,26 @@ namespace vessel
          INT32 getOverflowedRecord(RECORD_SLOT_POS pos,
                                    overflowedRecord &ofr)const;
 
+         INT32 getBigRecordEntrySlice(RECORD_SLOT_POS pos,
+                                      bigRecordEntrySlice &entry,
+                                      slice &data)const;
+
+         INT32 getBigRecordBodySlice(RECORD_SLOT_POS pos,
+                                     bigRecordBodySlice &body,
+                                     slice &data)const;
+
          const recordDataPageHead *getReadablePageHead()const;
 
          INT32 getRecordCount(UINT32 &count)const;
 
          FLOAT32 getFreeSpacePercent()const;
+
+      private:
+         INT32 insertBigRecordEntrySlice(dmlContext *context,
+                                         bigRecordStream &recordStream);
+
+         INT32 insertBigRecordBodySlice(dmlContext *context,
+                                        bigRecordStream &recordStream);
 
       private:
          INT32 insertNormalRecordToPos(dmlContext *context,

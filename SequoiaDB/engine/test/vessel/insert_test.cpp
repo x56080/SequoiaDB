@@ -1094,3 +1094,66 @@ TEST_F(insert_test, DISABLED_death_test_3)
    rc = db.close(&session, co);
    ASSERT_EQ(SDB_OK, rc);
 }
+
+/*
+Name: base_insert_test9
+Description: 
+   插入多条大记录
+   1. 插入多条大记录
+   2. 验证记录插入正确性
+Expected Result: 
+   记录成功插入且查询结果正确
+*/
+TEST_F(insert_test, base_insert_test9)
+{
+   vesselImpl db;
+   outerResource resource = test_outer_resource::getResource();
+   test_executor executor;
+   openDBOptions options;
+   DATA_COLLECTION_PTR handler;
+   options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+   dmsCreateCSOptions csOptions;
+   INT32 rc = SDB_OK;
+   bson::BSONObjBuilder builder;
+   UINT32 count = 1000;
+
+   rc = db.open(&executor, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCS(&executor, "foo", 1, csOptions, bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCL(&executor, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCL(&executor, "foo.bar", dmsOpenCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+
+   string insertStr(csOptions.dataPageSize + 1000, 'x');
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      utilInsertResult insertRes;
+      builder.reset();
+      builder.append("a", insertStr);
+      bson::BSONObj obj = builder.done();
+      rc = handler->insertRecord(&executor, obj, dmsInsertRecordOptions(), &insertRes);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+
+   DATA_CURSOR_PTR cursor;
+   rc = handler->scan(&executor, dmsScanOptions(), cursor);
+   ASSERT_EQ(SDB_OK, rc);
+
+   dmsBsonCursorReader reader;
+   reader.init(cursor, FALSE);
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      rc = reader.fetchNext(&executor);
+      ASSERT_EQ(SDB_OK, rc);
+      const bson::BSONObj &r = reader.getRecord();
+      ASSERT_EQ(r.getStringField("a"), insertStr);
+   }
+   
+   db.close(&executor, closeDBOptions());
+}

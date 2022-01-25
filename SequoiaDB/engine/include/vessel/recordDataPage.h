@@ -170,6 +170,14 @@ namespace vessel
       {
          return type == RDP_RECORD_HEAD_OVERFLOW;
       }
+      OSS_INLINE BOOLEAN isBigRecordEntry()const
+      {
+         return type == RDP_RECORD_HEAD_BIG_RECORD_ENTRY;
+      }
+      OSS_INLINE BOOLEAN isBigRecordBody()const
+      {
+         return type == RDP_RECORD_HEAD_BIG_RECORD_BODY;
+      }
 
       OSS_INLINE UINT32 getMaxSpaceSize()const
       {
@@ -303,7 +311,73 @@ namespace vessel
    };//struct tombstoneRecord
    constexpr UINT32 TOMBSTONE_RECORD_SIZE = sizeof(tombstoneRecord);
    static_assert(TOMBSTONE_RECORD_SIZE == NORMAL_RECORD_HEAD_SIZE, "invalid size");
-   
+
+   struct bigRecordEntrySlice
+   {
+      bigRecordEntrySlice(){}
+      ~bigRecordEntrySlice(){}
+
+      OSS_INLINE void setRid(const recordID &rid)
+      {
+         nextPage = rid.getPid();
+         nextPos = rid.getPos();
+      }
+      OSS_INLINE void setTransID(const DPS_TRANS_ID &transID)
+      {
+         transNode = transID.getNodeID();
+         transSN = transID.getSN();
+      }
+      OSS_INLINE BOOLEAN isCompressed()const
+      {
+         return UTIL_COMPRESSOR_INVALID != compressionType;
+      }
+
+      public:
+         UINT32 nextPage = INVALID_PAGE_ID;
+         INT16  nextPos = INVALID_RECORD_SLOT_POS;
+         UINT16 transNode = DPS_INVALID_TRANSID_NODEID;
+         UINT64 transSN = DPS_INVALID_TRANSID_SN;
+         UINT32 sliceCount = 0;
+         // actual storage length
+         UINT32 totalRecordSize = 0;
+         // If compressiontype is valid, 
+         // originalRecordSize means uncompressed record length
+         UINT32 originalRecordSize = 0;
+         UINT16 flags = 0;
+         UINT8  compressionType = UTIL_COMPRESSOR_INVALID;
+         UINT8  pad = 0;
+   };
+   constexpr UINT32 BIG_RECORD_ENTRY_SIZE = sizeof(bigRecordEntrySlice);
+
+   struct bigRecordBodySlice
+   {
+      bigRecordBodySlice(){}
+      ~bigRecordBodySlice(){}
+      bigRecordBodySlice(const bigRecordBodySlice &bs):
+      flags(bs.flags),
+      nextPos(bs.nextPos),
+      nextPage(bs.nextPage){}
+
+      bigRecordBodySlice &operator=(const bigRecordBodySlice &bs)
+      {
+         flags = bs.flags;
+         nextPos = bs.nextPos;
+         nextPage = bs.nextPage;
+         return *this;
+      }
+
+      OSS_INLINE void setRid(const recordID &rid)
+      {
+         nextPos = rid.getPos();
+         nextPage = rid.getPid();
+      }
+
+      public:
+         UINT16 flags = 0;
+         INT16  nextPos = INVALID_RECORD_SLOT_POS;
+         UINT32 nextPage = INVALID_PAGE_ID;
+   };
+   constexpr UINT32 BIG_RECORD_BODY_SIZE = sizeof(bigRecordBodySlice);
    
 #pragma pack()
 

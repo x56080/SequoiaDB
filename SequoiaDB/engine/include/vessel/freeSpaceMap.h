@@ -91,6 +91,11 @@ namespace vessel
                     INT32 lvl,
                     const dmsStripingId &striping,
                     fsmCandidate &candidate);
+         
+         // only find free space on disk or new page pool,
+         // and the candidate will be removed from free space map at once if found.
+         INT32 findAndKick(INT32 lvl,
+                           fsmCandidate &candidate);
 
          INT32 insertNewPages(UINT32 firstSeq,
                               const PAGE_ID *lpids,

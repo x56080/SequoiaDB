@@ -289,17 +289,6 @@ namespace vessel
       goto done;
    }
 
-   void dmlContext::setMrcTransID(const DPS_TRANS_ID &transID)
-   {
-      _mrc.setTransID(transID);
-   }
-   void dmlContext::setMrcOverflowInfo(BOOLEAN isBigRecord,
-                                       const recordID &addr)
-   {
-      SDB_ASSERT(addr.isValid(), "can not be invalid");
-      _mrc.setOverflowInfo(isBigRecord, addr);
-   }
-   
    void dmlContext::setStripingId(const dmsStripingId &striping)
    {
       _striping = striping;

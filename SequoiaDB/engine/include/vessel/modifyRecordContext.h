@@ -70,8 +70,7 @@ namespace vessel
 
          slice getTargetRecord()const;
 
-         void setOverflowInfo(BOOLEAN isBigRecord,
-                              const recordID &addr);
+         void setOverflowInfo(const recordID &addr);
 
          void clear();
 
@@ -79,6 +78,8 @@ namespace vessel
          {
             _transID = transID;
          }
+
+         void setIsBigRecord();
 
       private:
          slice _recordData;
