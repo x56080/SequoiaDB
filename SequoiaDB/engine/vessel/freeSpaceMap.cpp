@@ -271,6 +271,49 @@ namespace vessel
       goto done;
    }
 
+   INT32 freeSpaceMap::findAndKick(INT32 lvl,
+                                   fsmCandidate &candidate)
+   {
+      INT32 rc = SDB_OK;
+      candidate.reset();
+      
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isValidFsmLvL(lvl)))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = findFromNewPagePool(candidate);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to find candidate from new page pool:%d", rc);
+         goto error;
+      }
+
+      if (candidate.isValid())
+      {
+         goto done;
+      }
+      
+         
+      rc = findFromDiskMap(lvl, candidate);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to find candidate from disk map:%d", rc);
+         goto error;
+      }
+   
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 freeSpaceMap::insertNewPages(UINT32 firstSeq,
                                       const PAGE_ID *lpids,
                                       UINT32 count)

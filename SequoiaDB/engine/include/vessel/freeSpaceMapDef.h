@@ -55,6 +55,7 @@ namespace vessel
    static const INT32 FSM_INVALID_SPACE_LVL = -1;
    static const INT32 FSM_MIN_SPACE_LVL = 0;
    static const INT32 FSM_MAX_SPACE_LVL = (FSM_MIN_SPACE_LVL + FSM_SPACE_LVL_COUNT - 1);
+   constexpr INT32 FSM_SPACE_LVL_2 = 2;
    OSS_INLINE BOOLEAN isValidFsmLvL(INT32 lvl)
    {
       return FSM_MIN_SPACE_LVL <= lvl &&

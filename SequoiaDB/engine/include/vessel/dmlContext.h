@@ -104,18 +104,15 @@ namespace vessel
             return _indexReqCount;
          }
 
-         const modifyRecordContext &getMrc()const{return _mrc;}
-
          INT32 saveReocordDataToMrc(const slice &record);
-
-         void setMrcTransID(const DPS_TRANS_ID &transID);
-
-         void setMrcOverflowInfo(BOOLEAN isBigRecord,
-                                 const recordID &addr);
          
          void setStripingId(const dmsStripingId &striping);
 
          const dmsStripingId &getStripingId()const{return _striping;}
+
+         modifyRecordContext &getMrc() {return _mrc;}
+
+         const modifyRecordContext &getMrc()const {return _mrc;}
       public:
          INT32 lockUniqueIndexKeys(const dmlIndexRequestArray &ra);
          void unlockUniqueKeys();

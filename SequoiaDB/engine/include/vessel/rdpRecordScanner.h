@@ -149,6 +149,8 @@ namespace vessel
 
          INT32 fetchOverflowedRecord(RECORD_SLOT_POS pos);
 
+         INT32 fetchBigRecord(RECORD_SLOT_POS pos);
+
       private:
          static constexpr UINT8 _FLAG_BIG_RECORD = 0x01;
 

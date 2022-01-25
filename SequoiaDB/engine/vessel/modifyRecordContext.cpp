@@ -50,14 +50,17 @@ namespace vessel
       return _recordData;
    }
 
-   void modifyRecordContext::setOverflowInfo(BOOLEAN isBigRecord,
-                                             const recordID &addr)
+   void modifyRecordContext::setOverflowInfo(const recordID &addr)
    {
       SDB_ASSERT(addr.isValid(), "can not be invalid");
       _overflow = TRUE;
-      _bigRecord = isBigRecord;
       _overflowAddr = addr;
       return;
+   }
+
+   void modifyRecordContext::setIsBigRecord()
+   {
+      _bigRecord = TRUE;
    }
 
    void modifyRecordContext::clear()

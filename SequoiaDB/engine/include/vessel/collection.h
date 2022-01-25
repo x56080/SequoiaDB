@@ -70,6 +70,7 @@ namespace vessel
    class buildingIndexContext;
    class indexScanContext;
    class indexScanCursor;
+   class bigRecordStream;
 
    class collection: public SDBObject
    {
@@ -237,20 +238,27 @@ namespace vessel
          INT32 insertNonBigRecord(dmlContext *context,
                                   const dmlInsertRequest &request);
 
+         INT32 insertBigRecord(dmlContext *context,
+                               const dmlInsertRequest &resquest);
+
+         INT32 insertOverflowedRecord(dmlContext *context,
+                                      const slice &newRowData,
+                                      recordID &rid);
+
          INT32 insertAndUpdateCandidate(dmlContext *context,
                                         const dmlInsertRequest &request,
                                         fsmCandidate &candidate,
                                         BOOLEAN &outOfSpace);
          
-         INT32 insertOverflowedRecord(dmlContext *context,
-                                      const slice &newRowData,
-                                      recordID &rid);
-
          INT32 insertOverflowAndUpdateCandidate(dmlContext *context,
                                                 const slice &newRowData,
                                                 fsmCandidate &candidate,
                                                 BOOLEAN &outOfSpace,
                                                 recordID &rid);
+
+         INT32 insertBigRecordSlice(dmlContext *context,
+                                    bigRecordStream &recordStream,
+                                    const fsmCandidate &candidate);
 
          INT32 updateRecordData(dmlContext *context,
                                 const slice &newRecord);
@@ -271,11 +279,17 @@ namespace vessel
 
          INT32 removeNormalRecord(dmlContext *context);
 
+         INT32 removeOverflowedRecord(dmlContext *context);
+
       private:
          INT32 findCandidate(requestContext *context,
                              INT32 lvl,
                              const dmsStripingId &striping,
                              fsmCandidate &candidate);
+         
+         INT32 findCandidateExclusively(requestContext *context,
+                                        INT32 lvl,
+                                        fsmCandidate &candidate);
          
          /// user should hold _extendingLatch first
          INT32 allocateNewRecordDataPages(requestContext *context,
