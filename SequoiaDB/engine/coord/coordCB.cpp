@@ -220,20 +220,7 @@ namespace engine
       pmdSetPrimary( TRUE ) ;
       sdbGetPMDController()->registerNet( _pAgent->getFrame() ) ;
 
-      // 1. start coord net work
-      rc = pEDUMgr->startEDU ( EDU_TYPE_COORDNETWORK, (void*)_pAgent,
-                               &eduID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to start coord network edu, rc: %d",
-                   rc ) ;
-      rc = pEDUMgr->waitUntil( eduID, PMD_EDU_RUNNING ) ;
-      PD_RC_CHECK( rc, PDERROR, "Wait CoordNet active failed, rc: %d", rc ) ;
-
-      /// active data source
-      rc = _dsMgr.active() ;
-      PD_RC_CHECK( rc, PDERROR, "Active data source manager failed, rc: %d",
-                   rc ) ;
-
-      // 2. start coord manager
+      // 1. start coord manager
       _attachEvent.reset() ;
       rc = pEDUMgr->startEDU ( EDU_TYPE_COORDMGR, (_pmdObjBase*)this,
                                &eduID ) ;
@@ -243,7 +230,20 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to wait coord manager edu "
                    "attach, rc: %d", rc ) ;
 
-      // 3. set timer, and send register msg
+      // 2. start coord net work
+      rc = pEDUMgr->startEDU ( EDU_TYPE_COORDNETWORK, (void*)_pAgent,
+                               &eduID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to start coord network edu, rc: %d",
+                   rc ) ;
+      rc = pEDUMgr->waitUntil( eduID, PMD_EDU_RUNNING ) ;
+      PD_RC_CHECK( rc, PDERROR, "Wait CoordNet active failed, rc: %d", rc ) ;
+
+      // 3. active data source
+      rc = _dsMgr.active() ;
+      PD_RC_CHECK( rc, PDERROR, "Active data source manager failed, rc: %d",
+                   rc ) ;
+
+      // 4. set timer, and send register msg
       // if this coord is created before all catalog, don't need to register
       _resource.getCataNodeAddrList( catalogAddrList ) ;
       if ( !catalogAddrList.empty() )
