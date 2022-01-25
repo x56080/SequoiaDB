@@ -18,32 +18,86 @@ using namespace sdbclient ;
 using namespace bson ;
 using namespace std ;
 
+static BOOLEAN origValue ;
+static sdb db ;
+
+static INT32 modifySSLConfig(BOOLEAN value)
+{
+   sdb db ;
+   INT32 rc ;
+   if ( db.isValid() == FALSE )
+   {
+      rc = db.connect( ARGS->hostName(), ARGS->svcName(), ARGS->user(), ARGS->passwd() ) ;
+      if ( rc != SDB_OK )
+      {
+         return rc;
+      }
+   }
+   
+   sdbCursor cursor ;
+   rc = db.getSnapshot(cursor, SDB_SNAP_CONFIGS, BSON("role"<<"coord"), BSON("usessl"<<"")) ;
+   if ( rc != SDB_OK )
+   {
+      return rc ;
+   }
+   
+   BSONObj obj;
+   BOOLEAN val = FALSE ;
+   while( cursor.next(obj) )
+   {
+      string svalue = obj.getField("usessl").String() ;
+      if ( "TRUE"  == svalue  )
+      {
+         origValue = TRUE ;
+      }
+      
+      if ( value != origValue )
+      {
+         break;
+      }
+   }
+   
+   if ( origValue != value )
+   {
+      rc = db.updateConfig(BSON("usessl" << TRUE), BSON("role"<<"coord"));
+   }
+   return rc ;
+}
+
 // 测试开启ssl，sdb( useSSL=true )
 TEST( sslTrueTest9648, sdbTrue9648 )
 {
-	INT32 rc = SDB_OK ;
-
-	sdb db( TRUE ) ;
-	rc = db.connect( ARGS->hostName(), ARGS->svcName(), ARGS->user(), ARGS->passwd() ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to connect secure sdb when ssl is open" ;
+   INT32 rc = SDB_OK ;
+   if ( modifySSLConfig( TRUE ) != SDB_OK )
+   {
+      return ;
+   }
+   sdb db( TRUE ) ;
+   rc = db.connect( ARGS->hostName(), ARGS->svcName(), ARGS->user(), ARGS->passwd() ) ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to connect secure sdb when ssl is open" ;
 
    const CHAR* csName = "sslTestCs9648" ;
    const CHAR* clName = "sslTestCl9648" ;
-	sdbCollectionSpace cs ;
+   sdbCollectionSpace cs ;
    sdbCollection cl ;
-	rc = createNormalCsCl( db, cs, cl, csName, clName ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to create cs " << csName << " cl " << clName ;
+   rc = createNormalCsCl( db, cs, cl, csName, clName ) ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to create cs " << csName << " cl " << clName ;
 
-	rc = db.dropCollectionSpace( csName ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to drop cs " << csName ;
+   rc = db.dropCollectionSpace( csName ) ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to drop cs " << csName ;
 	
-	db.disconnect() ;
+   db.disconnect() ;
+   modifySSLConfig( origValue ); 
 }
 
 // 测试开启ssl，sdb( useSSL=false )
 TEST( sslTrue, sdbFalse )          
 {                          
    INT32 rc = SDB_OK ;
+   if ( modifySSLConfig( TRUE ) != SDB_OK )
+   {
+      return ;
+   }
 
    sdb db( FALSE ) ;
    rc = db.connect( ARGS->hostName(), ARGS->svcName(), ARGS->user(), ARGS->passwd() ) ;
@@ -60,4 +114,5 @@ TEST( sslTrue, sdbFalse )
    ASSERT_EQ( SDB_OK, rc ) << "fail to drop cs " << csName ;
 
    db.disconnect() ;
+   modifySSLConfig( origValue );
 }
