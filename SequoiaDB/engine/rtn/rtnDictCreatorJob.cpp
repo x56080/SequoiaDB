@@ -148,7 +148,7 @@ namespace engine
          eduMgr->activateEDU( cb ) ;
 
          /*
-          * Check with the fetched storage unit id and mb id. Any arror happened
+          * Check with the fetched storage unit id and mb id. Any error happened
           * during the creation of the dictionary, it should be skipped this
           * time, and try again in the next round. If everything goes fine,
           * remove it from the list, and never check it again.
