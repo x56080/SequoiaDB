@@ -1,10 +1,13 @@
-/*******************************************************************************
-@Description : Test db.backupOffline().Specify [GroupID].{GroupID:[1000,1001]}
-@Modify list :
-               2014-6-20  xiaojun Hu Init
-*******************************************************************************/
+/******************************************************************************
+ * @Description   : Test db.backupOffline().Specify [GroupID].{GroupID:[1000,1001]}
+ * @Author        : xiaojun Hu
+ * @CreateTime    : 2014.06.20
+ * @LastEditTime  : 2022.01.20
+ * @LastEditors   : 钟子明
+ ******************************************************************************/
 testConf.skipStandAlone = true;
-// main( test );
+
+main( test );
 
 function test ()
 {
