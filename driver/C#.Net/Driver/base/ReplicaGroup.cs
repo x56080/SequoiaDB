@@ -28,7 +28,7 @@ namespace SequoiaDB
      *  \brief Database operation interfaces of replica group.
      */
     public class ReplicaGroup
-	{
+    {
         private int groupID = -1;
         private string groupName = null;
         private bool isCatalog = false;
@@ -161,11 +161,18 @@ namespace SequoiaDB
             DBCursor cursor = sdb.GetList(SDBConst.SDB_LIST_GROUPS, matcher, dummyobj, dummyobj);
             if (cursor != null)
             {
-                BsonDocument detail = cursor.Next();
-                if (detail != null)
-                    return detail;
-                else
-                    throw new BaseException("SDB_CLS_GRP_NOT_EXIST");
+                try
+                {
+                    BsonDocument detail = cursor.Next();
+                    if (detail != null)
+                        return detail;
+                    else
+                        throw new BaseException("SDB_CLS_GRP_NOT_EXIST");
+                }
+                finally
+                {
+                    cursor.Close();
+                }
             }
             else
             {
