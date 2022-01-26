@@ -1028,6 +1028,8 @@ class collection(object):
             record = None
         except SDBBaseError:
             raise
+        finally:
+            result.close()
 
         del result
 
@@ -1589,6 +1591,8 @@ class collection(object):
             record = None
         except SDBBaseError:
             raise
+        finally:
+            result.close()
 
         del result
 

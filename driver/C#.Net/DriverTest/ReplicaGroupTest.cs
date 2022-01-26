@@ -565,5 +565,21 @@ namespace DriverTest
             node.Start();
         }
 
+        [TestMethod()]
+        public void cursorRelease()
+        {
+            if (!isCluster)
+            {
+                return;
+            }
+            int i ;
+            groupName = "SYSCatalogGroup";
+            //The default maxinum number of open contexts is 100000
+            //call GetReplicaGroup() repeatedly to test for cursor leaks
+            for (i = 0; i < 100001; i++)
+            {
+                group = sdb.GetReplicaGroup(groupName);
+            }
+        }
     }
 }
