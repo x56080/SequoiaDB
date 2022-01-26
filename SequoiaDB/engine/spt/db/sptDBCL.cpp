@@ -517,6 +517,7 @@ namespace engine
          // detail have set in _parseInsertOptions() when rc is not ok.
          goto error ;
       }
+      flags |= FLG_INSERT_RETURNNUM ;
 
       rc = _cl.insert( record, flags, &result ) ;
       if ( rc )
@@ -623,6 +624,7 @@ namespace engine
             flags |= UPDATE_ONE ;
          }
       }
+      flags |= UPDATE_RETURNNUM ;
 
       // Call cpp driver interface
       rc = _cl.update( rule, cond, hint, flags, &result ) ;
@@ -734,6 +736,7 @@ namespace engine
             flags |= FLG_UPDATE_ONE ;
          }
       }
+      flags |= UPDATE_RETURNNUM ;
 
       rc = _cl.upsert( rule, cond, hint, setOnInsert, flags, &result ) ;
       if( SDB_OK != rc )
@@ -809,6 +812,7 @@ namespace engine
             flags |= FLG_DELETE_ONE ;
          }
       }
+      flags |= FLG_DELETE_RETURNNUM ;
 
       rc = _cl.del( cond, hint, flags, &result ) ;
       if( SDB_OK != rc )
@@ -1070,6 +1074,7 @@ namespace engine
          // detail have set in _parseInsertOptions() when rc is not ok.
          goto error ;
       }
+      flags |= FLG_INSERT_RETURNNUM ;
 
       rc = _cl.insert( objVec, flags, &result ) ;
       if ( rc )
