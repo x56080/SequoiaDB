@@ -931,7 +931,22 @@ namespace sdbclient
                                       if the record hit index key duplicate
                                       error, database will replace the existing
                                       record by the inserting new record.
-          \param [out] pResult The detail result for inserting.
+          \param [out] pResult A BSONObj object whose contaions the insert details,
+                               as follows:
+               <ul>
+               <li>
+               InsertedNum: The number of records successfully inserted, including
+                            replaced and ignored records.
+               <li>
+               DuplicatedNum: The number of records ignored or replaced due to duplicate
+                              key conflicts.
+               <li>
+               LastGenerateID: The max value of all auto-increments that the inserted record
+                               contains. The result will include this field if current
+                               collection has auto-increments.
+               <li>
+               _id: Obecjt ID of the inserted record. The result will include field "_id"
+                    if FLG_INSERT_RETURN_OID is used.
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
       */
@@ -974,7 +989,22 @@ namespace sdbclient
                                       if the record hit index key duplicate
                                       error, database will replace the existing
                                       record by the inserting new record.
-          \param [out] pResult The detail result for inserting.
+          \param [out] pResult A BSONObj object whose contaions the insert details,
+                               as follows:
+               <ul>
+               <li>
+               InsertedNum: The number of records successfully inserted, including
+                            replaced and ignored records.
+               <li>
+               DuplicatedNum: The number of records ignored or replaced due to duplicate
+                              key conflicts.
+               <li>
+               LastGenerateID: The max value of all auto-increments that the inserted record
+                               contains. The result will include this field if current
+                               collection has auto-increments.
+               <li>
+               _id: Obecjt ID of the inserted record. The result will include field "_id"
+                    if FLG_INSERT_RETURN_OID is used.
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
       */
@@ -1018,7 +1048,22 @@ namespace sdbclient
                                      record by the inserting new record and then
                                      go on inserting.
 
-          \param [out] pResult The detail result for inserting.
+          \param [out] pResult A BSONObj object whose contaions the insert details,
+                               as follows:
+               <ul>
+               <li>
+               InsertedNum: The number of records successfully inserted, including
+                            replaced and ignored records.
+               <li>
+               DuplicatedNum: The number of records ignored or replaced due to duplicate
+                              key conflicts.
+               <li>
+               LastGenerateID: The max value of all auto-increments that the first record
+                               inserted contains. The result will include this field if
+                               current collection has auto-increments.
+               <li>
+               _id: Obecjt ID of the inserted record. The result will include field "_id"
+                    if FLG_INSERT_RETURN_OID is used.
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
       */
@@ -1064,7 +1109,22 @@ namespace sdbclient
                                      record by the inserting new record and then
                                      go on inserting.
 
-          \param [out] pResult The detail result for inserting.
+          \param [out] pResult A BSONObj object whose contaions the insert details,
+                               as follows:
+               <ul>
+               <li>
+               InsertedNum: The number of records successfully inserted, including
+                            replaced and ignored records.
+               <li>
+               DuplicatedNum: The number of records ignored or replaced due to duplicate
+                              key conflicts.
+               <li>
+               LastGenerateID: The max value of all auto-increments that the first record
+                               inserted contains. The result will include this field if
+                               current collection has auto-increments.
+               <li>
+               _id: Obecjt ID of the inserted record. The result will include field "_id"
+                    if FLG_INSERT_RETURN_OID is used.
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
       */
@@ -1110,7 +1170,22 @@ namespace sdbclient
                                      record by the inserting new record and then
                                      go on inserting.
 
-          \param [out] pResult The detail result for inserting.
+          \param [out] pResult A BSONObj object whose contaions the insert details,
+                               as follows:
+               <ul>
+               <li>
+               InsertedNum: The number of records successfully inserted, including
+                            replaced and ignored records.
+               <li>
+               DuplicatedNum: The number of records ignored or replaced due to duplicate
+                              key conflicts.
+               <li>
+               LastGenerateID: The max value of all auto-increments that the first record
+                               inserted contains. The result will include this field if
+                               current collection has auto-increments.
+               <li>
+               _id: Obecjt ID of the inserted record. The result will include field "_id"
+                    if FLG_INSERT_RETURN_OID is used.
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
       */
@@ -1180,7 +1255,16 @@ namespace sdbclient
               UPDATE_KEEP_SHARDINGKEY
               UPDATE_ONE
           \endcode
-          \param [out] pResult The detail result for updating.
+          \param [out] pResult A BSONObj object whose contaions the update details,
+                               as follows:
+               <ul>
+               <li>
+               UpdatedNum: The number of records successfully updated, including records that match
+                           but have no data changes.
+               <li>
+               ModifiedNum: The number of records successfully updated with data changes.
+               <li>
+               InsertedNum: The number of records successfully inserted.
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
           \note When flag is set to 0, it won't work to update the "ShardingKey" field, but the
@@ -1218,7 +1302,16 @@ namespace sdbclient
               UPDATE_KEEP_SHARDINGKEY
               UPDATE_ONE
           \endcode
-          \param [out] pResult The detail result for upserting
+          \param [out] pResult A BSONObj object whose contaions the upsert details,
+                               as follows:
+               <ul>
+               <li>
+               UpdatedNum: The number of records successfully updated, including records that match
+                           but have no data changes.
+               <li>
+               ModifiedNum: The number of records successfully updated with data changes.
+               <li>
+               InsertedNum: The number of records successfully inserted.
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
           \note When flag is set to 0, it won't work to update the "ShardingKey" field, but the
@@ -1253,7 +1346,11 @@ namespace sdbclient
           \code
               FLG_DELETE_ONE
           \endcode
-          \param [out] pResult The detail result for deleting
+          \param [out] pResult A BSONObj object whose contaions the deletion details,
+                               as follows:
+               <ul>
+               <li>
+               DeletedNum: The number of records successfully deleted.
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
