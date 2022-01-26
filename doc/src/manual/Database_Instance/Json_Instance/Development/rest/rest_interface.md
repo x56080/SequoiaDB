@@ -43,16 +43,18 @@
 | 请求头   | 同通用请求头                                                 |                                                              |
 | 请求内容 | cmd：insert<br>name：集合的全称（集合空间.集合）<br>insertor：待插入的数据 <br>flag：标志位（可选参数，可不填） | cmd=insert&name=sample.employee&insertor={"age":12,"name":"hello"}&flag=SDB_INSERT_CONTONDUP |
 | 响应头   | 同通用响应头                                                 |                                                              |
-| 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述<br>} | [{ "errno": 0 }]                                             |
+| 响应内容 | {<br>errno：返回值，0表示成功，其他为失败<br>description：失败时的错误描述<br>}<br>{<br>返回成功插入的记录数信息<br>}<br>| [{ "errno": 0 },{ "InsertedNum": 0, "DuplicatedNum": 1}]                                             |
 
 > **Note:**
 >
-> flag 取值如下：
-> - SDB_INSERT_RETURNNUM：返回插入记录数
+> 用户设置多个 flag 时，可用 “|” 分隔。flag 取值如下：
 > - SDB_INSERT_CONTONDUP：遇到索引键重复则跳过，并继续插入
 > - SDB_INSERT_REPLACEONDUP：遇到索引键重复则使用新纪录替换现有记录，并继续插入
 >
-> 用户设置多个 flag 时，可用“|”分隔，如：`flag=SDB_QUERY_FORCE_HINT|SDB_QUERY_PARALLED`。
+> 成功插入的记录数信息。字段说明如下：
+> - InsertedNum：成功插入的记录数，不包含替代和忽略的记录
+> - DuplicatedNum：因重复键冲突被忽略或替代的记录数
+> - LastGenerateID：自增字段的值 (仅在集合包含自增字段时显示)
 
 ##查询数据##
 
@@ -97,14 +99,15 @@
 | 请求头   | 同通用请求头                                                 |                                                          |
 | 请求内容 | cmd：delete<br>name：集合的全称（集合空间.集合）<br>deletor：删除条件 <br>flag：标志位（可选参数，可不填） | cmd=delete&name=sample.employee&deletor={"name":"hello"}&flag=SDB_DELETE_ONE |
 | 响应头   | 同通用响应头                                                 |                                                          |
-| 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述<br>} | [{ "errno": 0 }]                                         |
+| 响应内容 | {<br>errno：返回值，0表示成功，其他为失败<br>description：失败时的错误描述<br>}<br>{<br>返回成功删除的记录数信息<br>}<br>| [{ "errno": 0 },{ "DeletedNum": 1 }]                                        |
 
 > **Note:**
 >
-> flag 取值如下：
+> flag 取值如下： 
+> - SDB_DELETE_ONE：指定只删除第一条匹配记录，默认为删除所有匹配记录
 >
-> SDB_DELETE_ONE：指定只删除第一条匹配记录，默认为删除所有匹配记录
-
+> 成功删除的记录数信息，字段说明如下:
+> - DeletedNum：成功删除的记录数
 
 ##更新记录##
 
@@ -113,13 +116,18 @@
 | 请求头   | 同通用请求头                                                 |                                                              |
 | 请求内容 | cmd：update<br>name：集合的全称（集合空间.集合）<br>updator：更新操作<br>filter：更新条件<br>flag：标志位（可选参数，可不填） | cmd=update&name=sample.employee&updator={$set:{"age":100}}&filter={"name":"hello"}&flag=SDB_UPDATE_KEEP_SHARDINGKEY |
 | 响应头   | 同通用响应头                                                 |                                                              |
-| 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述<br>} | [{ "errno": 0 }]                                             |
+| 响应内容 | {<br>errno：返回值，0表示成功，其他为失败<br>description：失败时的错误描述<br>}<br>{<br>返回成功更新的记录数信息<br>}<br>| [{ "errno": 0 },{ "UpdatedNum": 1, "ModifiedNum": 1, "InsertedNum": 0 }]                                             |
 
 > **Note:**  
 > 
 > flag 取值如下：  
 > - SDB_UPDATE_KEEP_SHARDINGKEY：指定不过滤更新规则中的分区键
 > - SDB_UPDATE_ONE：指定只更新第一条匹配记录，默认为更新所有记录
+>
+> 成功更新的记录数信息，字段说明如下：
+> - UpdatedNum：成功更新的记录数，包括匹配但未发生数据变化的记录
+> - ModifiedNum：成功更新且发生数据变化的记录数
+> - InsertedNum：成功插入的记录数 
 
 ##更新或插入记录##
 
@@ -128,13 +136,18 @@
 | 请求头   | 同通用请求头                                                 |                                                              |
 | 请求内容 | cmd：upsert<br>name：集合的全称（集合空间.集合）<br>updator：更新操作<br>filter：更新条件（可选参数，可不填）<br> setoninsert：插入数据（可选参数，可不填）<br>flag：标志位（可选参数，可不填） | cmd=upsert&name=sample.employee&updator={$set:{"age":100}}&filter={"name":"hello"}&setoninsert={"sex":"male"}&flag=SDB_UPDATE_KEEP_SHARDINGKEY |
 | 响应头   | 同通用响应头                                                 |                                                              |
-| 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述<br>} | [{ "errno": 0 }]                                             |
+| 响应内容 | {<br>errno：返回值，0表示成功，其他为失败<br>description：失败时的错误描述<br>}<br>{<br>返回成功更新的记录数信息<br>}<br>| [{ "errno": 0 },{ "UpdatedNum": 0, "ModifiedNum": 0, "InsertedNum": 1 }]                                            |
 
 > **Note:**  
 >
 > flag 取值如下：
 > - SDB_UPDATE_KEEP_SHARDINGKEY：指定不过滤更新规则中的分区键
 > - SDB_UPDATE_ONE：指定只更新第一条匹配记录，默认为更新所有记录
+>
+> 成功更新的记录数信息，字段说明如下：
+> - UpdatedNum：成功更新的记录数，包括匹配但未发生数据变化的记录
+> - ModifiedNum：成功更新且发生数据变化的记录数
+> - InsertedNum：成功插入的记录数
 
 ##获取记录数##
 

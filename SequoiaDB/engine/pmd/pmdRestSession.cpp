@@ -1718,7 +1718,7 @@ namespace engine
             goto error ;
          }
       }
-
+      flag |= FLG_INSERT_RETURNNUM ;
       rc = msgBuildInsertMsg( &pBuff, &buffSize, collectionName.c_str(), flag,
                               0, &insertor );
       if ( SDB_OK != rc )
@@ -1877,7 +1877,7 @@ namespace engine
 
          flag |= FLG_UPDATE_UPSERT ;
       }
-
+      flag |= FLG_UPDATE_RETURNNUM ;
       rc = msgBuildUpdateMsg( &pBuff, &buffSize, collectionName.c_str(), flag,
                               0, &matcher, &updator, &hint ) ;
       if ( SDB_OK != rc )
@@ -1963,7 +1963,7 @@ namespace engine
             goto error ;
          }
       }
-
+      flag |= FLG_DELETE_RETURNNUM ;
       rc = msgBuildDeleteMsg( &pBuff, &buffSize, collectionName.c_str(), flag,
                               0, &deletor, &hint ) ;
       if ( SDB_OK != rc )
