@@ -1036,7 +1036,7 @@ class collection(object):
             return False
 
     def drop_index(self, idx_name):
-        """The index name.
+        """Remove the named index of current collection.
 
         Parameters:
            Name         Type  Info:
@@ -1194,8 +1194,8 @@ class collection(object):
 
         Parameters:
            Name            Type  Info:
-           subcl_full_name str   The name fo the subcollection.
-           options         dict  he low boudary and up boudary
+           subcl_full_name str   The name of the subcollection.
+           options         dict  The low boudary and up boudary
                                        eg: {"LowBound":{a:1},"UpBound":{a:100}}
         Exceptions:
            pysequoiadb.error.SDBBaseError
