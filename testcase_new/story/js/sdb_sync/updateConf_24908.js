@@ -2,7 +2,7 @@
  * @Description   : seqDB-24908:detectdisk参数测试
  * @Author        : liuli
  * @CreateTime    : 2022.01.07
- * @LastEditTime  : 2022.01.07
+ * @LastEditTime  : 2022.01.26
  * @LastEditors   : liuli
  ******************************************************************************/
 main( test );
@@ -33,20 +33,17 @@ function test ()
       db.updateConf( config );
       checkSnapshot( db, actConfig );
 
+      var actConfig = { detectdisk: "TRUE" };
       var config = { detectdisk: -1 };
       db.updateConf( config );
       checkSnapshot( db, actConfig );
 
       var config = { detectdisk: "true" };
       db.updateConf( config );
-      var actConfig = { detectdisk: "TRUE" };
       checkSnapshot( db, actConfig );
 
       var config = { detectdisk: "aaa" };
-      assert.tryThrow( SDB_INVALIDARG, function()
-      {
-         db.updateConf( config );
-      } );
+      db.updateConf( config );
       checkSnapshot( db, actConfig );
    }
    finally
