@@ -1069,6 +1069,8 @@ do                                                            \
       {
          goto error ;
       }
+
+      flags |= FLG_INSERT_RETURNNUM ;
       rc = clientBuildInsertMsgCpp ( &_pSendBuffer, &_sendBufferSize,
                                      _collectionFullName, flags, 0,
                                      newObj.objdata(),
@@ -1183,6 +1185,7 @@ do                                                            \
          goto done ;
       }
 
+      flags |= FLG_INSERT_RETURNNUM ;
       for ( SINT32 count = 0 ; count < num ; ++count )
       {
          rc = _appendOID ( objs[count], newObj ) ;
@@ -1276,6 +1279,7 @@ do                                                            \
          goto done ;
       }
 
+      flags |= FLG_INSERT_RETURNNUM ;
       for ( SINT32 count = 0; count < size; ++count )
       {
          rc = _appendOID ( objs[count], newObj ) ;
@@ -1427,6 +1431,7 @@ do                                                            \
          goto error ;
       }
 
+      flag |= FLG_UPDATE_RETURNNUM ;
       rc = clientBuildUpdateMsgCpp ( &_pSendBuffer, &_sendBufferSize,
                                      _collectionFullName, flag, 0,
                                      condition.objdata(),
@@ -1472,6 +1477,7 @@ do                                                            \
          goto error ;
       }
 
+      flag |= FLG_DELETE_RETURNNUM ;
       rc = clientBuildDeleteMsgCpp ( &_pSendBuffer, &_sendBufferSize,
                                      _collectionFullName, flag, 0,
                                      condition.objdata(),

@@ -2403,6 +2403,7 @@ __METHOD_IMP(cl_update)
    const bson::BSONObj *rule      = NULL ;
    const bson::BSONObj *condition = NULL ;
    const bson::BSONObj *hint      = NULL ;
+   bson::BSONObj pResult ;
 
    if ( !PARSE_PYTHON_ARGS( args, "OOOOi", &obj, &bson_rule,
       &bson_condition, &bson_hint, &flag ) )
@@ -2416,7 +2417,7 @@ __METHOD_IMP(cl_update)
    CAST_PYBSON_TO_CPPBSON( bson_condition, condition ) ;
    CAST_PYBSON_TO_CPPBSON( bson_hint, hint ) ;
 
-   rc = cl->update( *rule, *condition, *hint, flag ) ;
+   rc = cl->update( *rule, *condition, *hint, flag, &pResult ) ;
    if ( rc )
    {
       goto done ;
@@ -2426,7 +2427,7 @@ done:
    DELETE_CPPOBJECT( rule ) ;
    DELETE_CPPOBJECT( condition ) ;
    DELETE_CPPOBJECT( hint ) ;
-   return MAKE_RETURN_INT( rc ) ;
+   return MAKE_RETURN_INT_PYBYTES_SIZE( rc, pResult.objdata(),pResult.objsize() ) ;
 }
 
 __METHOD_IMP(cl_upsert)
@@ -2443,6 +2444,7 @@ __METHOD_IMP(cl_upsert)
    const bson::BSONObj *condition = NULL ;
    const bson::BSONObj *hint      = NULL ;
    const bson::BSONObj *setOnInsert = NULL ;
+   bson::BSONObj pResult ;
 
    if ( !PARSE_PYTHON_ARGS( args, "OOOOOi", &obj, &bson_rule,
       &bson_condition, &bson_hint, &bson_setOnInsert, &flag ) )
@@ -2457,7 +2459,7 @@ __METHOD_IMP(cl_upsert)
    CAST_PYBSON_TO_CPPBSON( bson_hint, hint ) ;
    CAST_PYBSON_TO_CPPBSON( bson_setOnInsert, setOnInsert ) ;
 
-   rc = cl->upsert( *rule, *condition, *hint, *setOnInsert, flag ) ;
+   rc = cl->upsert( *rule, *condition, *hint, *setOnInsert, flag, &pResult ) ;
    if ( rc )
    {
       goto done ;
@@ -2468,20 +2470,22 @@ done:
    DELETE_CPPOBJECT( condition ) ;
    DELETE_CPPOBJECT( hint ) ;
    DELETE_CPPOBJECT( setOnInsert ) ;
-   return MAKE_RETURN_INT( rc ) ;
+   return MAKE_RETURN_INT_PYBYTES_SIZE( rc, pResult.objdata(),pResult.objsize() ) ;
 }
 
 __METHOD_IMP(cl_del)
 {
    INT32 rc                       = 0 ;
+   INT32 flag                     = 0 ;
    PYOBJECT *obj                  = NULL ;
    PYOBJECT *bson_condition       = NULL ;
    PYOBJECT *bson_hint            = NULL ;
    sdbCollection *cl              = NULL ;
    const bson::BSONObj *condition = NULL ;
    const bson::BSONObj *hint      = NULL ;
+   bson::BSONObj pResult ;
 
-   if ( !PARSE_PYTHON_ARGS( args, "OOO", &obj, &bson_condition, &bson_hint ) )
+   if ( !PARSE_PYTHON_ARGS( args, "OOOi", &obj, &bson_condition, &bson_hint, &flag ) )
    {
       rc = SDB_INVALIDARGS ;
       goto done ;
@@ -2491,7 +2495,7 @@ __METHOD_IMP(cl_del)
    CAST_PYBSON_TO_CPPBSON( bson_condition, condition ) ;
    CAST_PYBSON_TO_CPPBSON( bson_hint, hint ) ;
 
-   rc = cl->del( *condition, *hint ) ;
+   rc = cl->del( *condition, *hint, flag, &pResult ) ;
    if ( rc )
    {
       goto done ;
@@ -2500,7 +2504,7 @@ __METHOD_IMP(cl_del)
 done:
    DELETE_CPPOBJECT( condition ) ;
    DELETE_CPPOBJECT( hint ) ;
-   return MAKE_RETURN_INT( rc ) ;
+   return MAKE_RETURN_INT_PYBYTES_SIZE( rc, pResult.objdata(), pResult.objsize() ) ;
 }
 
 __METHOD_IMP(cl_query)

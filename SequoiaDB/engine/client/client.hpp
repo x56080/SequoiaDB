@@ -66,7 +66,7 @@ do                                     \
 
 /** The flag represent whether insert continue(no errors were reported) when hitting index key duplicate error */
 #define FLG_INSERT_CONTONDUP      0x00000001
-/** The flag represent whether insert return detail result */
+// The flag represent whether insert return detail result
 #define FLG_INSERT_RETURNNUM      0x00000002
 /** The flag represent replacing the existing record by the new record and continuing when insert hitting index key duplicate error */
 #define FLG_INSERT_REPLACEONDUP   0x00000004
@@ -107,10 +107,11 @@ do                                     \
 
 /** The sharding key in update rule is not filtered, when executing update or upsert. */
 #define UPDATE_KEEP_SHARDINGKEY           QUERY_KEEP_SHARDINGKEY_IN_UPDATE
-/** The flag represent whether update return detail result */
+
+// The flag represent whether update return detail result
 #define UPDATE_RETURNNUM                  0x00000004
 
-/** The flag represent whether update return detail result */
+// The flag represent whether update return detail result
 #define FLG_DELETE_RETURNNUM              0x00000004
 
 #define SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE   64
@@ -888,19 +889,22 @@ namespace sdbclient
                                       if the record hit index key duplicate
                                       error, database will replace the existing
                                       record by the inserting new record.
-          \param [out] pResult The result of inserting. Can be NULL or a bson:
+          \param [out] pResult A BSONObj object whose contaions the insert details,
+                               as follows:
                <ul>
-               <li> NULL:
-                     when this argument is NULL.
-               <li> empty bson: when this argument is not NULL but there is no
-                                result return.
-               <li> bson which contains the "_id" field:
-                     when flag "FLG_INSERT_RETURN_OID" is set, return the
-                     value of "_id" field of the inserted record.
-                     e.g.: { "_id": { "$oid": "5c456e8eb17ab30cfbf1d5d1" } }
-               </ul>
-
-
+               <li>
+               InsertedNum: The number of records successfully inserted, including
+                            replaced and ignored records.
+               <li>
+               DuplicatedNum: The number of records ignored or replaced due to duplicate
+                              key conflicts.
+               <li>
+               LastGenerateID: The max value of all auto-increments that the inserted record
+                               contains. The result will include this field if current
+                               collection has auto-increments.
+               <li>
+               _id: Obecjt ID of the inserted record. The result will include field "_id"
+                    if FLG_INSERT_RETURN_OID is used.
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
       */
@@ -942,20 +946,22 @@ namespace sdbclient
                                      error, database will replace the existing
                                      record by the inserting new record and then
                                      go on inserting.
-
-          \param [out] pResult The result of inserting. Can be NULL or a bson:
+          \param [out] pResult A BSONObj object whose contaions the insert details,
+                               as follows:
                <ul>
-               <li> NULL:
-                     when this argument is NULL.
-               <li> empty bson: when this argument is not NULL but there is no
-                                result return.
-               <li> bson which contains the field "_id":
-                     when flag "FLG_INSERT_RETURN_OID" is set, return all the
-                     values of "_id" field in a bson array.
-                     e.g.: { "_id": [ { "$oid": "5c456e8eb17ab30cfbf1d5d1" },
-                                      { "$oid": "5c456e8eb17ab30cfbf1d5d2" } ] }
-               </ul>
-
+               <li>
+               InsertedNum: The number of records successfully inserted, including
+                            replaced and ignored records.
+               <li>
+               DuplicatedNum: The number of records ignored or replaced due to duplicate
+                              key conflicts.
+               <li>
+               LastGenerateID: The max value of all auto-increments that the first record
+                               inserted contains. The result will include this field if
+                               current collection has auto-increments.
+               <li>
+               _id: Obecjt ID of the inserted record. The result will include field "_id"
+                    if FLG_INSERT_RETURN_OID is used.
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
       */
@@ -999,21 +1005,22 @@ namespace sdbclient
                                      error, database will replace the existing
                                      record by the inserting new record and then
                                      go on inserting.
-
-          \param [out] pResult The result of inserting.
-                       Can be NULL or a bson:
+          \param [out] pResult A BSONObj object whose contaions the insert details,
+                               as follows:
                <ul>
-               <li> NULL:
-                     when this argument is NULL.
-               <li> empty bson: when this argument is not NULL but there is no
-                                result return.
-               <li> bson which contains the "_id" field:
-                     when flag "FLG_INSERT_RETURN_OID" is set, return all the
-                     values of "_id" field in a bson array.
-                     e.g.: { "_id": [ { "$oid": "5c456e8eb17ab30cfbf1d5d1" },
-                                      { "$oid": "5c456e8eb17ab30cfbf1d5d2" } ] }
-               </ul>
-
+               <li>
+               InsertedNum: The number of records successfully inserted, including
+                            replaced and ignored records.
+               <li>
+               DuplicatedNum: The number of records ignored or replaced due to duplicate
+                              key conflicts.
+               <li>
+               LastGenerateID: The max value of all auto-increments that the first record
+                               inserted contains. The result will include this field if
+                               current collection has auto-increments.
+               <li>
+               _id: Obecjt ID of the inserted record. The result will include field "_id"
+                    if FLG_INSERT_RETURN_OID is used.
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
       */
@@ -1082,7 +1089,16 @@ namespace sdbclient
           \code
               UPDATE_KEEP_SHARDINGKEY
           \endcode
-          \param [out] pResult The detail result for updating.
+          \param [out] pResult A BSONObj object whose contaions the update details,
+                               as follows:
+               <ul>
+               <li>
+               UpdatedNum: The number of records successfully updated, including records that match
+                           but have no data changes.
+               <li>
+               ModifiedNum: The number of records successfully updated with data changes.
+               <li>
+               InsertedNum: The number of records successfully inserted.
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
           \note When flag is set to 0, it won't work to update the "ShardingKey" field, but the
@@ -1119,7 +1135,16 @@ namespace sdbclient
           \code
               UPDATE_KEEP_SHARDINGKEY
           \endcode
-          \param [out] pResult The detail result for upserting
+          \param [out] pResult A BSONObj object whose contaions the upsert details,
+                               as follows:
+               <ul>
+               <li>
+               UpdatedNum: The number of records successfully updated, including records that match
+                           but have no data changes.
+               <li>
+               ModifiedNum: The number of records successfully updated with data changes.
+               <li>
+               InsertedNum: The number of records successfully inserted.
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
           \note When flag is set to 0, it won't work to update the "ShardingKey" field, but the
@@ -1151,7 +1176,11 @@ namespace sdbclient
                           {"":null} means table scan. when hint is not provided,
                           database automatically match the optimal index to scan data
           \param [in] flag Reserved
-          \param [out] pResult The detail result for deleting
+          \param [out] pResult A BSONObj object whose contaions the deletion details,
+                               as follows:
+               <ul>
+               <li>
+               DeletedNum: The number of records successfully deleted.
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
