@@ -43,7 +43,7 @@ static INT32 modifySSLConfig(BOOLEAN value)
    
    BSONObj obj;
    BOOLEAN val = FALSE ;
-   while( cursor.next(obj) )
+   while( (rc = cursor.next(obj)) == SDB_OK )
    {
       string svalue = obj.getField("usessl").String() ;
       if ( "TRUE"  == svalue  )
@@ -59,19 +59,17 @@ static INT32 modifySSLConfig(BOOLEAN value)
    
    if ( origValue != value )
    {
-      rc = db.updateConfig(BSON("usessl" << TRUE), BSON("role"<<"coord"));
+      rc = db.updateConfig(BSON("usessl" << value), BSON("role"<<"coord"));
    }
-   return rc ;
+   return rc == SDB_DMS_EOC ? SDB_OK:rc ;
 }
 
 // 测试开启ssl，sdb( useSSL=true )
 TEST( sslTrueTest9648, sdbTrue9648 )
 {
    INT32 rc = SDB_OK ;
-   if ( modifySSLConfig( TRUE ) != SDB_OK )
-   {
-      return ;
-   }
+   rc =  modifySSLConfig( TRUE ) ;
+   ASSERT_EQ( SDB_OK, rc)  << "updateSSLConfig failed" << rc ;
    sdb db( TRUE ) ;
    rc = db.connect( ARGS->hostName(), ARGS->svcName(), ARGS->user(), ARGS->passwd() ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to connect secure sdb when ssl is open" ;
@@ -94,7 +92,8 @@ TEST( sslTrueTest9648, sdbTrue9648 )
 TEST( sslTrue, sdbFalse )          
 {                          
    INT32 rc = SDB_OK ;
-   if ( modifySSLConfig( TRUE ) != SDB_OK )
+   rc =  modifySSLConfig( TRUE ) ;
+   ASSERT_EQ( SDB_OK, rc)  << "updateSSLConfig failed" << rc ;
    {
       return ;
    }
