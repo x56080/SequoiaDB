@@ -75,11 +75,16 @@ function checkFlagType ( cl, COMMCSNAME, clName, userage, username, flagType, ex
             var cur = cl.find( { 'name': username } );
             commCompareResults( cur, expData );
             //校验兼容SDB_INSERT_RETURNNUM带回单条插入成功的返回值{ "InsertedNum": 1, "DuplicatedNum": 0 }
-            if( flagType == "SDB_INSERT_RETURNNUM" && rc[1]["InsertedNum"] != 1 && rc[1]["DuplicatedNum"] != 0 )
+            if( flagType == "SDB_INSERT_RETURNNUM" )
             {
-               throw new Error( "check SDB_INSERT_RETURNNUM result errno"
-                  + "\nexp:{ 'errno': 0 }{ 'InsertedNum': 1, 'DuplicatedNum': 0 }"
-                  + "\nact:{ 'errno': " + errno + "}{ 'InsertedNum': " + rc[1]["InsertedNum"] + ", 'DuplicatedNum': " + rc[1]["DuplicatedNum"] + " }" );
+               for( let i = 0; i < rc.length; i++ )
+               {
+                  if( rc[i]["InsertedNum"] !== undefined && rc[i]["InsertedNum"] != null )
+                  {
+                     assert.equal( rc[i]["InsertedNum"], 1 );
+                     assert.equal( rc[i]["DuplicatedNum"], 0 );
+                  }
+               }
             }
             break;
       }
