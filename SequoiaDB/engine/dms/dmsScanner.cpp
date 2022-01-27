@@ -811,7 +811,6 @@ namespace engine
                                             &_callback ) ;
                _hasLockedRecord = FALSE ;
             }
-            PD_LOG( PDDEBUG, "skip deleting record " ) ;
             continue ;
          }
          // either we got an old version from RBS(setup in recordData), we
@@ -2597,7 +2596,6 @@ namespace engine
             // remove the duplicate key before continue because the _scanner
             // has already added it to dup buffer in its advance logic
             _scanner->removeDuplicatRID( _curRID ) ;
-            PD_LOG( PDDEBUG, "skip deleting record " ) ;
 
             continue ;
          }
