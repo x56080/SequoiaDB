@@ -136,6 +136,7 @@ testFiles = [
    [ "./cls/getCLDetail22183.cpp" ],
    [ "./misc/snapshotIndexStat22498.cpp" ],
    [ "./list/listTest.cpp" ],
+   [ "./meta/getDomainName25084.cpp" ],
 #   [ "./crud/closeAllCursors20122.cpp" ]
 ]
 
