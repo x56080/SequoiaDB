@@ -77,9 +77,9 @@ INT32 main( INT32 argc, CHAR **argv )
    conf.setConnCntInfo( 10, 10, 20, 500 ) ;        
    // 每隔 60s 将连接池中多于最大空闲连接数限定的空闲连接关闭，并将存活时间过长（连接已停止收发超过 keepAliveTimeout 时间）的连接关闭
    // 0 表示不关心连接隔多长时间没有收发消息
-   conf.setCheckIntervalInfo( 60, 0 ) ;
+   conf.setCheckIntervalInfo( 60 * 1000, 0 ) ;
    // 每隔 30s 从编目节点同步协调节点信息（若为 0，则表示不同步）
-   conf.setSyncCoordInterval( 30 ) ;
+   conf.setSyncCoordInterval( 30 * 1000 ) ;
    // 连接池采用顺序均衡策略生成连接
    conf.setConnectStrategy( SDB_CONN_STY_SERIAL ) ;
    // 当获取一个连接时，是否检查连接的有效性
