@@ -1569,7 +1569,8 @@ static INT32 __sdbUpdate ( sdbCollectionHandle cHandle,
                            SINT32 flag,
                            bson *rule,
                            bson *condition,
-                           bson *hint )
+                           bson *hint,
+                           bson *pResult )
 {
    INT32 rc                        = SDB_OK ;
    SINT64 contextID                = -1 ;
@@ -1578,6 +1579,10 @@ static INT32 __sdbUpdate ( sdbCollectionHandle cHandle,
    HANDLE_CHECK( cHandle, cs, SDB_HANDLE_TYPE_COLLECTION );
    connection                      = (sdbConnectionStruct*)(cs->_connection) ;
 
+   if ( pResult )
+   {
+      flag |= FLG_UPDATE_RETURNNUM ;
+   }
    rc = clientBuildUpdateMsg ( &cs->_pSendBuffer, &cs->_sendBufferSize,
                                 cs->_collectionFullName, flag, 0, condition,
                                 rule, hint, cs->_endianConvert ) ;
@@ -1607,7 +1612,13 @@ static INT32 __sdbUpdate ( sdbCollectionHandle cHandle,
 
    CHECK_RET_MSGHEADER( cs->_pSendBuffer, cs->_pReceiveBuffer,
                         cs->_connection ) ;
-
+   //get result
+   if ( pResult )
+   {
+      bson_destroy( pResult ) ;
+      bson_init( pResult ) ;
+      _getLastResultObj( cs->_connection, pResult ) ;
+   }	  
    rc = updateCachedObject( rc, connection->_tb, cs->_collectionFullName ) ;
    if ( SDB_OK != rc )
    {
@@ -1617,6 +1628,10 @@ static INT32 __sdbUpdate ( sdbCollectionHandle cHandle,
 done :
    return rc ;
 error :
+   if ( pResult )
+   {
+      _resetBsonToEmpty( pResult ) ; 
+   }
    goto done ;
 }
 
@@ -6939,7 +6954,7 @@ SDB_EXPORT INT32 sdbUpdate ( sdbCollectionHandle cHandle,
                              bson *condition,
                              bson *hint )
 {
-   return __sdbUpdate ( cHandle, 0, rule, condition, hint ) ;
+   return __sdbUpdate ( cHandle, 0, rule, condition, hint, NULL ) ;
 }
 
 SDB_EXPORT INT32 sdbUpdate1 ( sdbCollectionHandle cHandle,
@@ -6948,7 +6963,17 @@ SDB_EXPORT INT32 sdbUpdate1 ( sdbCollectionHandle cHandle,
                              bson *hint,
                              INT32 flag )
 {
-   return __sdbUpdate ( cHandle, flag, rule, condition, hint ) ;
+   return __sdbUpdate ( cHandle, flag, rule, condition, hint, NULL ) ;
+}
+
+SDB_EXPORT INT32 sdbUpdate2 ( sdbCollectionHandle cHandle,
+                              bson *rule,
+                              bson *condition,
+                              bson *hint,
+                              INT32 flag,
+                              bson *pResult )
+{
+   return __sdbUpdate ( cHandle, flag, rule, condition, hint, pResult ) ;
 }
 
 SDB_EXPORT INT32 sdbUpsert ( sdbCollectionHandle cHandle,
@@ -6956,7 +6981,7 @@ SDB_EXPORT INT32 sdbUpsert ( sdbCollectionHandle cHandle,
                              bson *condition,
                              bson *hint )
 {
-   return __sdbUpdate ( cHandle, FLG_UPDATE_UPSERT, rule, condition, hint ) ;
+   return __sdbUpdate ( cHandle, FLG_UPDATE_UPSERT, rule, condition, hint, NULL ) ;
 }
 
 SDB_EXPORT INT32 sdbUpsert1 ( sdbCollectionHandle cHandle,
@@ -6965,10 +6990,8 @@ SDB_EXPORT INT32 sdbUpsert1 ( sdbCollectionHandle cHandle,
                               bson *hint,
                               bson *setOnInsert )
 {
-
    return sdbUpsert2 ( cHandle, rule, condition, hint, setOnInsert, 0 ) ;
 }
-
 
 SDB_EXPORT INT32 sdbUpsert2 ( sdbCollectionHandle cHandle,
                               bson *rule,
@@ -6977,38 +7000,52 @@ SDB_EXPORT INT32 sdbUpsert2 ( sdbCollectionHandle cHandle,
                               bson *setOnInsert,
                               INT32 flag )
 {
+   return sdbUpsert3( cHandle, rule, condition, hint, setOnInsert, flag, NULL ) ;
+}
+
+SDB_EXPORT INT32 sdbUpsert3 ( sdbCollectionHandle cHandle,
+                              bson *rule,
+                              bson *condition,
+                              bson *hint,
+                              bson *setOnInsert,
+                              INT32 flag,
+                              bson *pResult )
+{
    INT32 rc = SDB_OK ;
-   BOOLEAN bsoninit = FALSE ;
    bson* hintPtr = hint ;
    bson newHint ;
 
-   BSON_INIT( newHint ) ;
+   bson_init ( &newHint ) ;
    if ( NULL != setOnInsert )
    {
       if ( NULL != hint )
       {
-         rc = bson_append_elements( &newHint, hint ) ;
-         if ( rc )
-         {
-            rc = SDB_SYS ;
-            goto error ;
-         }
+         bson_append_elements( &newHint, hint ) ;
       }
 
-      BSON_APPEND( newHint, FIELD_NAME_SET_ON_INSERT, setOnInsert, bson ) ;
-      BSON_FINISH( newHint ) ;
+      bson_append_bson( &newHint, FIELD_NAME_SET_ON_INSERT, setOnInsert ) ;
+      rc = bson_finish( &newHint ) ;
+      if ( rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
       hintPtr = &newHint ;
    }
-
    rc = __sdbUpdate ( cHandle, flag | FLG_UPDATE_UPSERT,
-                      rule, condition, hintPtr ) ;
+                      rule, condition, hintPtr, pResult ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
 
 done:
-   BSON_DESTROY( newHint ) ;
+   bson_destroy( &newHint ) ;
    return rc ;
 error:
    goto done ;
 }
+
 /*
 static INT32 _sdbDelete ( SOCKET sock, CHAR *pCollectionFullName,
                           CHAR **ppSendBuffer, INT32 *sendBufferSize,
@@ -7055,6 +7092,15 @@ SDB_EXPORT INT32 sdbDelete ( sdbCollectionHandle cHandle,
                              bson *condition,
                              bson *hint )
 {
+   return sdbDelete1( cHandle, condition, hint, 0, NULL ) ;
+}
+
+SDB_EXPORT INT32 sdbDelete1 ( sdbCollectionHandle cHandle,
+                              bson *condition,
+                              bson *hint,
+                              INT32 flag,
+                              bson *pResult )
+{
    INT32 rc                        = SDB_OK ;
    SINT64 contextID                = 0 ;
    sdbConnectionStruct *connection = NULL ;
@@ -7067,8 +7113,12 @@ SDB_EXPORT INT32 sdbDelete ( sdbCollectionHandle cHandle,
       rc = SDB_INVALIDARG ;
       goto error ;
    }
+   if ( pResult )
+   {
+      flag |= FLG_DELETE_RETURNNUM ;
+   }
    rc = clientBuildDeleteMsg ( &cs->_pSendBuffer, &cs->_sendBufferSize,
-                                cs->_collectionFullName, 0, 0, condition,
+                                cs->_collectionFullName, flag, 0, condition,
                                 hint, cs->_endianConvert ) ;
    if ( SDB_OK != rc )
    {
@@ -7097,7 +7147,13 @@ SDB_EXPORT INT32 sdbDelete ( sdbCollectionHandle cHandle,
    // check return msg header
    CHECK_RET_MSGHEADER( cs->_pSendBuffer, cs->_pReceiveBuffer,
                         cs->_connection ) ;
-
+   //get result
+   if ( pResult )
+   {
+      bson_destroy( pResult ) ;
+      bson_init( pResult ) ;
+      _getLastResultObj( cs->_connection, pResult ) ;
+   }
    rc = updateCachedObject( rc, connection->_tb, cs->_collectionFullName ) ;
    if ( SDB_OK != rc )
    {
@@ -7107,6 +7163,10 @@ SDB_EXPORT INT32 sdbDelete ( sdbCollectionHandle cHandle,
 done :
    return rc ;
 error :
+   if ( pResult )
+   {
+      _resetBsonToEmpty( pResult ) ;
+   }
    goto done ;
 }
 
