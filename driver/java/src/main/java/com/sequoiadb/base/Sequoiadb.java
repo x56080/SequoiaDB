@@ -2173,8 +2173,20 @@ public class Sequoiadb implements Closeable {
      *
      * @param rgName replica group's name
      * @return true or false
+     * @deprecated Use isReplicaGroupExist(String rgName) instead.
      */
+    @Deprecated
     public boolean isRelicaGroupExist(String rgName) {
+        return isReplicaGroupExist(rgName);
+    }
+
+    /**
+     * whether the replica group exists in the database or not
+     *
+     * @param rgName replica group's name
+     * @return true or false
+     */
+    public boolean isReplicaGroupExist(String rgName) {
         BSONObject rg = getDetailByName(rgName);
         if (rg == null) {
             return false;
