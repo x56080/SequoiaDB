@@ -562,6 +562,9 @@ TEST(collection,sdbDelete)
    SINT64 totalNum                = 0 ;
    SINT64 NUM                     = 10 ;
    bson obj ;
+   bson result ;
+   bson_iterator it ;
+
    rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    // connect to database
@@ -582,12 +585,25 @@ TEST(collection,sdbDelete)
    ASSERT_EQ( NUM, totalNum ) ;
    // delete all the record
    rc = sdbDelete ( collection, NULL, NULL ) ;
+   CHECK_MSG("%s%d\n","rc = ", rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    // get the record num
    rc = sdbGetCount ( collection, NULL, &totalNum ) ;
+   CHECK_MSG("%s%d\n","rc = ", rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    ASSERT_EQ( 0, totalNum ) ;
+   // test sdbDelete1
+   bson_init( &result ) ;
+   rc = sdbDelete1 ( collection, NULL, NULL, 0, &result ) ;
+   CHECK_MSG("%s%d\n","rc = ", rc) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_EQ( BSON_LONG, bson_find( &it, &result, "DeletedNum" ) ) ;
+   ASSERT_EQ( 0, bson_iterator_long( &it) ) ;
+   rc = sdbDelete1 ( collection, NULL, NULL, -1, &result ) ;
+   CHECK_MSG("%s%d\n","rc = ", rc) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
 
+   bson_destroy( &result ) ;
    sdbDisconnect ( connection ) ;
    sdbReleaseCollection ( collection ) ;
    sdbReleaseConnection ( connection ) ;
@@ -599,6 +615,10 @@ TEST(collection,sdbUpdate)
    sdbCollectionHandle collection = 0 ;
    INT32 rc                       = SDB_OK ;
    bson rule ;
+   bson result ;
+   bson obj ;
+   bson_iterator it ;
+
    rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    // connect to database
@@ -609,6 +629,14 @@ TEST(collection,sdbUpdate)
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    printf( "Update the records with the rule :" OSS_NEWLINE ) ;
+   // build insert record
+   bson_init ( &obj ) ;
+   bson_append_int ( &obj, "age", 1 ) ;
+   bson_finish ( &obj ) ;
+   // insert
+   rc = sdbInsert ( collection, &obj ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   bson_destroy ( &obj ) ;
    // build up the rule
    bson_init( &rule ) ;
    bson_append_start_object ( &rule, "$set" ) ;
@@ -617,11 +645,24 @@ TEST(collection,sdbUpdate)
    bson_finish ( &rule ) ;
    bson_print( &rule ) ;
    // update
+   bson_init( &result ) ;
+   rc = sdbUpdate2( collection, &rule, NULL, NULL, 0, &result ) ;
+   CHECK_MSG("%s%d\n","rc = ",rc) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_EQ( BSON_LONG, bson_find( &it, &result, "UpdatedNum" ) ) ;
+   ASSERT_EQ( 1, bson_iterator_long( &it) ) ;    
+   ASSERT_EQ( BSON_LONG, bson_find( &it, &result, "ModifiedNum" ) ) ;
+   ASSERT_EQ( 1, bson_iterator_long( &it) ) ;    
+   ASSERT_EQ( BSON_LONG, bson_find( &it, &result, "InsertedNum" ) ) ;
+   ASSERT_EQ( 0, bson_iterator_long( &it) ) ;
+   bson_destroy( &result ) ;
    rc = sdbUpdate( collection, &rule, NULL, NULL ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   bson_destroy( &rule );
-
+   rc = sdbUpdate1( collection, &rule, NULL, NULL, 0 ) ;
+   CHECK_MSG("%s%d\n","rc = ",rc) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   bson_destroy( &rule ) ;
    sdbDisconnect ( connection ) ;
    sdbReleaseCollection ( collection ) ;
    sdbReleaseConnection ( connection ) ;
@@ -633,6 +674,12 @@ TEST(collection,sdbUpsert_without_condition)
    sdbCollectionHandle collection = 0 ;
    INT32 rc                       = SDB_OK ;
    bson rule ;
+   bson obj ;
+   bson setOnInsert ;
+   bson condition ;
+   bson result ;
+   bson_iterator it ;
+
    rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    // connect to database
@@ -645,6 +692,24 @@ TEST(collection,sdbUpsert_without_condition)
    ASSERT_EQ( SDB_OK, rc ) ;
 
    printf( "Update the records with the rule :" OSS_NEWLINE ) ;
+   printf( "Update the records with the rule :" OSS_NEWLINE ) ;
+   // build insert record
+   bson_init ( &obj ) ;
+   bson_append_int ( &obj, "ID", 1 ) ;
+   bson_finish ( &obj ) ;
+   // insert
+   rc = sdbInsert ( collection, &obj ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   bson_destroy ( &obj ) ;
+   // build up the setOnInsert
+   bson_init( &setOnInsert ) ;
+   bson_append_string ( &setOnInsert, "name", "liang" ) ;
+   bson_finish ( &setOnInsert ) ;
+   // build up the condition
+   bson_init( &condition ) ;
+   bson_append_int ( &condition, "ID", 1000  ) ;
+   bson_finish ( &condition ) ;
+   bson_print(&condition);
    // build up the rule
    bson_init( &rule ) ;
    bson_append_start_object ( &rule, "$set" ) ;
@@ -653,11 +718,29 @@ TEST(collection,sdbUpsert_without_condition)
    bson_finish ( &rule ) ;
    bson_print( &rule ) ;
    // update
+   bson_init( &result ) ;
+   rc = sdbUpsert3( collection, &rule, &condition, NULL, &setOnInsert, 0, &result ) ;
+   CHECK_MSG("%s%d\n","rc = ",rc) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_EQ( BSON_LONG, bson_find( &it, &result, "UpdatedNum" ) ) ;
+   ASSERT_EQ( 0, bson_iterator_long( &it) ) ;   
+   ASSERT_EQ( BSON_LONG, bson_find( &it, &result, "ModifiedNum" ) ) ;
+   ASSERT_EQ( 0, bson_iterator_long( &it) ) ;   
+   ASSERT_EQ( BSON_LONG, bson_find( &it, &result, "InsertedNum" ) ) ;
+   ASSERT_EQ( 1, bson_iterator_long( &it) ) ;
+   bson_destroy( &setOnInsert ) ;
+   bson_destroy( &condition ) ;
+   bson_destroy( &result ) ;
    rc = sdbUpsert( collection, &rule, NULL, NULL ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbUpsert1( collection, &rule, NULL, NULL, NULL ) ;
+   CHECK_MSG("%s%d\n","rc = ",rc) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbUpsert2( collection, &rule, NULL, NULL, NULL, 0 ) ;
+   CHECK_MSG("%s%d\n","rc = ",rc) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
    bson_destroy( &rule );
-
    sdbDisconnect ( connection ) ;
    sdbReleaseCollection ( collection ) ;
    sdbReleaseConnection ( connection ) ;

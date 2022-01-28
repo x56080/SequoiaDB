@@ -1723,6 +1723,7 @@ SDB_EXPORT INT32 sdbInsert1 ( sdbCollectionHandle cHandle,
          <li> NULL: when this argument is NULL.
          <li> bson: an empty bson on error, or a bson whose contains the insert details on success, as follows:
 
+
               InsertedNum:    The number of records successfully inserted, including
                               replaced and ignored records.
               DuplicatedNum:  The number of records ignored or replaced due to duplicate
@@ -1833,6 +1834,7 @@ SDB_EXPORT INT32 sdbBulkInsert ( sdbCollectionHandle cHandle,
          <li> NULL: when this argument is NULL.
          <li> bson: an empty bson on error, or a bson whose contains the insert details on success, as follows:
 
+
               InsertedNum:    The number of records successfully inserted, including
                               replaced and ignored records.
               DuplicatedNum:  The number of records ignored or replaced due to duplicate
@@ -1899,6 +1901,46 @@ SDB_EXPORT INT32 sdbUpdate1 ( sdbCollectionHandle cHandle,
                              bson *hint,
                              INT32 flag ) ;
 
+/** \fn INT32 sdbUpdate2 ( sdbCollectionHandle cHandle,
+                           bson *rule,
+                           bson *condition,
+                           bson *hint,
+                           INT32 flag,
+                           bson *pResult )
+    \brief Update the matching documents in current collection.
+    \param [in] cHandle The collection handle
+    \param [in] rule The updating rule, cannot be null
+    \param [in] condition The matching rule, update all the documents if this parameter is null
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means
+                    using index "ageIndex" to scan data(index scan);
+                    {"":null} means table scan. when hint is null,
+                    database automatically match the optimal index to scan data
+    \param [in] flag The update flag, default to be 0. Please see the definition of follow flags for more detail.       
+    \code
+        UPDATE_KEEP_SHARDINGKEY
+    \endcode
+    \param [out] pResult The result of updating. Can be NULL or a bson:
+         <ul>
+         <li> NULL: when this argument is NULL.
+         <li> bson: an empty bson on error, or a bson whose contains the update details on success, as follows:
+
+
+              UpdatedNum:     The number of records successfully updated, including
+                              records that matched but did not change data.
+              ModifiedNum:    The number of records successfully updated with data changes.
+              InsertedNum:    The number of records successfully inserted.
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+    \note When flag is set to 0, it won't work to update the "ShardingKey" field, but the
+              other fields take effect
+*/
+SDB_EXPORT INT32 sdbUpdate2 ( sdbCollectionHandle cHandle,
+                              bson *rule,
+                              bson *condition,
+                              bson *hint,
+                              INT32 flag,
+                              bson *pResult ) ;
+
 /** \fn INT32 sdbUpsert ( sdbCollectionHandle cHandle,
                           bson *rule,
                           bson *condition,
@@ -1933,7 +1975,7 @@ SDB_EXPORT INT32 sdbUpsert ( sdbCollectionHandle cHandle,
                     using index "ageIndex" to scan data(index scan);
                     {"":null} means table scan. when hint is null,
                     database automatically match the optimal index to scan data
-    \param [in] setOnInsert The setOnInsert assigns the specified values to the fileds when insert
+    \param [in] setOnInsert The setOnInsert assigns the specified values to the fields when insert
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
     \note It won't work to upsert the "ShardingKey" field, but the other fields take effect
@@ -1958,7 +2000,7 @@ SDB_EXPORT INT32 sdbUpsert1 ( sdbCollectionHandle cHandle,
                     using index "ageIndex" to scan data(index scan);
                     {"":null} means table scan. when hint is null,
                     database automatically match the optimal index to scan data
-    \param [in] setOnInsert The setOnInsert assigns the specified values to the fileds when insert
+    \param [in] setOnInsert The setOnInsert assigns the specified values to the fields when insert
     \param [in] flag The update flag, default to be 0. Please see the definition of follow flags for more detail.
     \code
         UPDATE_KEEP_SHARDINGKEY
@@ -1974,6 +2016,49 @@ SDB_EXPORT INT32 sdbUpsert2 ( sdbCollectionHandle cHandle,
                               bson *hint,
                               bson *setOnInsert,
                               INT32 flag ) ;
+
+/** \fn INT32 sdbUpsert3 ( sdbCollectionHandle cHandle,
+                           bson *rule,
+                           bson *condition,
+                           bson *hint,
+                           bson *setOnInsert,
+                           INT32 flag,
+                           bson *pResult )
+    \brief Update the matching documents in current collection, insert if no matching.
+    \param [in] cHandle The collection handle
+    \param [in] rule The updating rule, cannot be null
+    \param [in] condition The matching rule, update all the records if this parameter is null
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means
+                    using index "ageIndex" to scan data(index scan);
+                    {"":null} means table scan. when hint is null,
+                    database automatically match the optimal index to scan data
+    \param [in] setOnInsert The setOnInsert assigns the specified values to the fields when insert
+    \param [in] flag The update flag, default to be 0. Please see the definition of follow flags for more detail.
+    \code
+        UPDATE_KEEP_SHARDINGKEY
+    \endcode
+    \param [out] pResult The result of upserting. Can be NULL or a bson:
+         <ul>
+         <li> NULL: when this argument is NULL.
+         <li> bson: an empty bson on error, or a bson whose contains the upsert details on success, as follows:
+
+
+              UpdatedNum:     The number of records successfully updated, including
+                              records that matched but did not change data.
+              ModifiedNum:    The number of records successfully updated with data changes.
+              InsertedNum:    The number of records successfully inserted.
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+    \note When flag is set to 0, it won't work to update the "ShardingKey" field, but the
+              other fields take effect
+*/
+SDB_EXPORT INT32 sdbUpsert3 ( sdbCollectionHandle cHandle,
+                              bson *rule,
+                              bson *condition,
+                              bson *hint,
+                              bson *setOnInsert,
+                              INT32 flag,
+                              bson *pResult ) ;
 
 /** \fn INT32 sdbDelete ( sdbCollectionHandle cHandle,
                           bson *condition,
@@ -1991,6 +2076,36 @@ SDB_EXPORT INT32 sdbUpsert2 ( sdbCollectionHandle cHandle,
 SDB_EXPORT INT32 sdbDelete ( sdbCollectionHandle cHandle,
                              bson *condition,
                              bson *hint ) ;
+
+/** \fn INT32 sdbDelete1 ( sdbCollectionHandle cHandle,
+                           bson *condition,
+                           bson *hint,
+                           INT32 flag,
+                           bson *pResult )
+    \brief Delete the matching documents in current collection, never rollback if failed.
+    \param [in] cHandle The collection handle
+    \param [in] condition The matching rule, delete all the documents if null
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means
+                    using index "ageIndex" to scan data(index scan);
+                    {"":null} means table scan. when hint is null,
+                    database automatically match the optimal index to scan data
+    \param [in] flag The update flag, default to be 0.
+    \param [out] pResult The result of deleting. Can be NULL or a bson:
+         <ul>
+         <li> NULL: when this argument is NULL.
+         <li> bson: an empty bson on error, or a bson whose contains the delete details on success, as follows:
+
+
+              DeletedNum:   The number of records successfully deleted.
+    \param [out] pResult The result of deleting.
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbDelete1 ( sdbCollectionHandle cHandle,
+                              bson *condition,
+                              bson *hint,
+                              INT32 flag,
+                              bson *pResult ) ;
 
 /** \fn INT32 sdbQuery1 ( sdbCollectionHandle cHandle,
                           bson *condition,
