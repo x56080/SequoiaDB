@@ -19,62 +19,122 @@ This function is used to set session attributes.
 .PP
 options ( \f[I]object, required\f[] )
 .PP
-The attributes of the session can be set through the options parameter:
+The attributes of the session can be set through the parameter "options":
 .IP \[bu] 2
 PreferedInstance ( \f[I]string/array/number\f[] ): Preferences for session read
 operations.
+The defaul is the value of the parameter "preferdinstance" in the coord node
+configuration file.
+If the "perferedinstance" is not configured, the default is "M".
 .RS 2
-Users can use an array to specify multiple values, and the specific values are
-as follows:
+.PP
+The value type is divided into role value and instance value.
+Users can use an array to specify multiple values, details as follows:
+.PP
+Role value:
 .IP \[bu] 2
 "M", "m": Read and write instance(primary instance).
 .IP \[bu] 2
 "S", "s": Read only instance(secondary instance).
 .IP \[bu] 2
 "A", "a": Any instance.
+.PP
+Instance value:
 .IP \[bu] 2
-1~255: Specify the instance ID by instanceid.
+1~255:instance ID.
+.RS
+.PP
+\f[B]Note:\f[]
+.IP \[bu] 2
+When specifying the value of the instance and the role at the same time, the
+standby node that matches the instance ID of 1 is preferred.
+If the corresponding node is not matched, the node in the data group will be
+randomly selected.For example, when the value is [1, "S"], it means that the
+standby node with instance ID 1 is selected first.
+.IP \[bu] 2
+The symbol "\-" is used to extend the value of the role.
+If users use "\-" to expend the role value, if the corresponding node is not
+matched, the node in the specified role will be randomly selected.
+For example, when the value is [1, "\-S"], if the corresponding node is not
+matched, the node will be randomly selected from the standby nodes included in
+the daa group.
+.IP \[bu] 2
+When multiple role values are specified, the semantics of the role and its
+expanded value are the same, and only the first value takes effect.
+For example, when the value is ["\-M", "S"], only "\-M" takes effect, indicating
+that the standby node in the data group is selected first.
+.IP \[bu] 2
+When specifying an instance value independently, if there is no node
+corresponding to the instance ID in the data group, the instanceid of the node
+will be reassigned from 1 according to the positive sequence of the NodeID in
+the data group.
+At the same time, the server will convert the instance ID according to
+(instanceid \- 1)%(total number of nodes), and then match the converted value
+with the instanceid to obtain the corresponding node.
+.IP \[bu] 2
+If there is a write request before the read request in the same session, the
+read request will use the node (read\-write instance) used by the write request
+for reading by default within the validity period.
+Users can modify the validity period of the read request multiplexed write
+request node by configuring "PreferedPeriod".
+.RE
+.RE
 .PP
 Format: \f[C]PreferedInstance: "M"\f[] or
-\f[C]PreferedInstance: [ 1, 10 ]\f[]
-.RE
+\f[C]PreferedInstance: [1, 10, "S"]\f[]
 .IP \[bu] 2
-PreferedInstanceMode ( \f[I]string\f[] ): Specify the selection mode of the
-session when multiple instances meet the conditions of PreferedInstance.
+PreferedInstanceMode ( \f[I]string\f[] ): When there are multiple candidate
+instances, specify the session selection mode.
+The default is the value of the parameter "preferedinstancemode" in the coord
+node configuration file.
+If there is no configuration "preferedinstancemode", the default is "random".
 .RS 2
-The parameter values are as follows:
+.PP
+The values are as follows:
 .IP \[bu] 2
 "random": Randomly select from candidate instance values.
 .IP \[bu] 2
-"ordered"：Select from the candidate instance values in the order of
-PerferedInstance.
-.PP
-The value of the role in parameter "PreferedInstance" is better than or inferior
-to the value of the instance when selected according to the rules, and has
-nothing to do with the value of parameter "PreferedInstanceMode".
+"ordered"：Select from the candidate instance values in the order of parameter
+"PerferedInstance".
 .PP
 Format: \f[C]PreferedInstaceMode: "random"\f[]
 .RE
 .IP \[bu] 2
-PreferedStrict ( \f[I]boolean\f[] ): Specifies whether the node selection is
-strict mode.
+PreferedPeriod ( \f[I]number\f[] ): Specify the effective period of the
+preferred instance in seconds.
+The default is the value of the parameter "preferedperiod" in the coord node
+configuration file.
+If the "preferedperiod" is not configured, the default is 60.
 .RS 2
-.PP
-When specified as strict mode, the node can only be selected from the ID
-specified by parameter "Preferedinstance".
-.PP
-Format: \f[C]PreferedStrict: true\f[]
-.RE
 .IP \[bu] 2
-PreferedPeriod ( \f[I]number\f[] ): Specify the effective period of the priority
-instance, in seconds.
-.RS 2
+After each "PreferedPeriod" valid period, the read request will will re\-select
+the appropriate instance for query according to the value of "PreferedInstance".
+.IP \[bu] 2
+The value range of this parameter is [\-1, 2^31\-1]; a value of \-1 means no
+invalidation; a value of 0 means that the last selected instance is not used for
+this query and reselected according to parameter "Preferedinstance".
+.IP \[bu] 2
+This parameter is only applicable to SequoiaDB v2.8.9, v3.2.5 and above.
 .PP
 Format: \f[C]PreferedPeriod: 60\f[]
 .RE
 .IP \[bu] 2
+PreferedStrict ( \f[I]boolean\f[] ): Specifies whether the node selection is
+strict mode.
+The default value is false, non\-strict mode.
+.RS 2
+.PP
+When specified as strict mode, the node can only be selected from the instance
+value specified by the parameter "Preferedinstance".
+if "Preferedinstance" does not specify an instance value, this parameter does
+not take effect.
+.PP
+Format: \f[C]PreferedStrict: true\f[]
+.RE
+.IP \[bu] 2
 Timeout ( \f[I]number\f[] ): Specify the timeout period for the session to
-perform operations, in milliseconds.
+perform operations, error message will be returned when timeout, in
+milliseconds, the default value is \-1.
 .RS 2
 .PP
 The minimum value of this parameter is 1000 milliseconds, and a value of \-1
@@ -83,56 +143,62 @@ means no timeout detection is performed.
 Format: \f[C]Timeout: 10000\f[]
 .RE
 .IP \[bu] 2
-TransIsolation ( \f[I]number\f[] ): Isolation level of session transaction.
+TransIsolation ( \f[I]number\f[] ): Isolation level of session transaction, the
+default value is 0.
 .RS 2
-The parameter values are as follows:
+.PP
+The values are as follows:
 .IP \[bu] 2
 0: RU level
 .IP \[bu] 2
-1: RR level
+1: RC level
 .IP \[bu] 2
-2: RS level.
+2: RS level
 .PP
 Format: \f[C]TransIsolation: 1\f[]
 .RE
 .IP \[bu] 2
-TransTimeout ( \f[I]number\f[] ): Session transaction lock wait timeout time, in
-seconds.
+TransTimeout ( \f[I]number\f[] ): Session transaction lock wait timeout time,
+error message will be returned when timeout, in seconds, the default value is
+60.
 .RS 2
 .PP
 Format: \f[C]TransTimeout: 10\f[]
 .RE
 .IP \[bu] 2
 TransLockWait ( \f[I]boolean\f[] ): Whether the session transaction need to wait
-for locks under and the RC isolation level.
+for locks under and the RC isolation level, the default value is true, wait for
+record lock.
 .RS 2
 .PP
 Format: \f[C]TransLockWait: true\f[]
 .RE
 .IP \[bu] 2
 TransUseRBS ( \f[I]boolean\f[] ): Whether the session transcation uses the
-rollback segment.
+rollback segment, the default value is true, use rollback segment.
 .RS 2
 .PP
 Format: \f[C]TransUseRBS: true\f[]
 .RE
 .IP \[bu] 2
 TransAutoCommit ( \f[I]boolean\f[] ): Whether the session transaction supports
-the automatic transaction commit.
+the automatic transaction commit, the default value is false, not open.
 .RS 2
 .PP
 Format: \f[C]TransAutoCommit: true\f[]
 .RE
 .IP \[bu] 2
 TransAutoRollback ( \f[I]boolean\f[] ): Whether the session transaction is
-automatically rolled back when the operation fails.
+automatically rolled back when the operation fails, the default value is true,
+automatic rollback.
 .RS 2
 .PP
 Format: \f[C]TransAutoRollback: true\f[]
 .RE
 .IP \[bu] 2
 TransRCCount ( \f[I]boolean\f[] ): Whether the session transaction uses read
-committed to process count() queries.
+committed to process count() queries, the default value is false, use read
+submitted.
 .RS 2
 .PP
 Format: \f[C]TransRCCount: true\f[]
@@ -148,7 +214,7 @@ limit on the number of record locks.
 When the value is 0, it means that the transaction does not use record locks,
 but directly uses set locks.
 .PP
-Format: \f[C]TransMaxLockNum : 10000\f[]
+Format: \f[C]TransMaxLockNum: 10000\f[]
 .RE
 .IP \[bu] 2
 TransAllowLockEscalation ( \f[I]boolean\f[] ): Whether to allow lock escalation
@@ -173,117 +239,17 @@ space of the data node(total log space size=logfilesz*logfilenum).
 When the log space used by the transaction reaches the upper limit, the
 transaction operation will report an error.
 .PP
-Format: \f[C]TransMaxLogSpaceRatio : 50\f[]
-.RE
+Format: \f[C]TransMaxLogSpaceRatio: 50\f[]
 .RS
 .PP
-\f[B]Note:\f[]
-.IP \[bu] 2
-The default values of "PreferedInstance" and "PreferedInstaceMode" are the
-values of "preferedinstance" and "preferedinstancemode" in the coordination node
-configuration.
-.IP \[bu] 2
-The default value of the coordination node configuration "preferedinstance" is
-"M", and the default value of "preferedinstacemode" is "random".
-.IP \[bu] 2
-The value of "PreferedInstance" is divided into two categories, one is the role
-value, such as "M", "S", etc.
-The other is the instance value.
-That is, the instance ID set by the data node through the configuration
-"instanceid".
-.RS 2
-.IP "1." 3
-Role value: "M", "m": read\-write instance(primary instance); "S", "s":
-read\-only instance(secondary instance); "A", "a": any instance.
-.IP "2." 3
-Instance value: 1~255, specify the node that matches the setting of
-"instanceid".
-Data nodes can be used in conjunction with configuration "instanceid".
-.RS 4
-.IP \[bu] 2
-The ID of the instance can be configurad through the configuration item
-"instanceid" of the data node.
-Multiple data nodes with the same instance ID can be configured in the same data
-group.
-.IP \[bu] 2
-The configuration item "instanceid" of modifying data node cannot take effect
-dynamically, and the data node needs to be stopped and started manually.
-After restarting, users also need to manually call Sdb.invalidateCache() to
-clear the cache of each coordination node.
-.IP \[bu] 2
-When the node is configured with "instanceid", obtain it accroding to
-"instanceid".
-In the case that the node is not configured with "instanceid", select
-"instanceid" accroding to the sequence of the NodeID of the node in the
-group(starting from 1).
-For example, there are three nodes [ {NodeID:1001}, {NodeID:1004}, {NodeID:1002}
-] in the group "db1", then the "instanceid" of the nodes are1, 3, 2.
-.RE
-.IP "3." 3
-If the value of one or more instances and the value of a role are mixed and
-specified, the node that matches the role among a group of nodes matching the
-instance ID is preferentially selected.
-For example, \f[C][ 1, 2, "S" ]\f[] indicates that the secondary node among
-the nodes with the instance ID of 1 to 2 is preferentially selected.
-.IP "4." 3
-For mixed designation, the role value can be expanded by "\-", such as
-"\-M"，"\-S" etc., which means that if there is no node matching the instance
-ID, the role node is preferentially selected.
-For example, \f[C][ 1, 2, "\-S" ]\f[] means that the node with the instance
-ID 1 to 2 is preferentially matched.
-If not, select any secondary node first.
-.IP "5." 3
-When individually specified, the expansion mode of the role value is the same as
-the semantics of the role value.
-For example when specify "S" abd "\-S" separately, before a read request the
-samantics are the same.
-.IP "6." 3
-If there is a write request before the read request in the same session, for a
-period of the time after the write request, the read request will be read by
-default using the same node(read\-write instance) as the write request.
-Users can modify the expiration date of the read request to reuse the write
-request node by setting "PreferedPeriod".
-Validity period of request node with write.
-.IP "7." 3
-If there is no instance that meets "PreferedInstance", and there is no write
-request before, the node is generally selected randomly in the data group.
-For special cases, in order to be compatible with the previous version.
-If an instance value is specified separately, the total number of nodes will be
-modularized the instance ID\-1 and then selected in the group in ascending order
-of "NodeID".
-.RE
-.IP \[bu] 2
-The default value of "PreferedPeriod" is the value of "preferedperiod" in the
-coordination node configuration.
-.RS 2
-.IP \[bu] 2
-If the node that selected the request last time is within the valid period, the
-read request still uses this node for query.
-After the cycle, it will be re\-selected according to "PreferedInstance".
-.IP \[bu] 2
-The default value is 60.
-.IP \[bu] 2
-The value rang is [\-1, 2^31 \- 1].
-.PD 0
-.P
-.PD
-.IP \[bu] 2
-\-1 means no failure.
-.IP \[bu] 2
-0 means that this query does not use the priority instance seleted last time,
-and re\-select accroding to "PreferedInstance".
-.IP \[bu] 2
-This parameter is only applicable to SequoiaDB 2.8.9 version, 3.2.5 and above.
-.RE
-.IP \[bu] 2
-The default value of "Timeout" is \-1.
-That is, no timeout detection is performed.
+\f[B]Note：\f[]
 .IP \[bu] 2
 Transaction\-related properties only allow "TransTimeout" to be set in
 transactions, and other transaction properties need to be set in
 non\-transactions.
 .IP \[bu] 2
-Get session attributes refers to Sdb.getSessionAttr().
+Get session attributes refers to getSessionAttr().
+.RE
 .RE
 .SH RETURN VALUE
 .PP
@@ -343,7 +309,7 @@ getLastError() to get the error code.
 For more details, refer to Troubleshooting.
 .SH VERSION
 .PP
-v2.0 and above
+v3.2 and above
 .SH EXAMPLES
 .IP \[bu] 2
 Set session priority to get data from the "primary" database instance first.
@@ -361,7 +327,7 @@ Set the session to read data from the secondary intance 1 and 3 first.
 .IP
 .nf
 \f[C]
-> db.setSessionAttr({PreferedInstance: [ 1, 3, "S" ]})
+> db.setSessionAttr({PreferedInstance: [1, 3, "S"]})
 \f[]
 .fi
 .RE
