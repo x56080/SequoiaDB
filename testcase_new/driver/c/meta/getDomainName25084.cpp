@@ -8,16 +8,22 @@
 class getDomainName25084: public testBase
 {
 protected:
-   const CHAR* pDomainName        = "domain1" ;
-   const CHAR* csName             = "getDomainName_25083" ;
-   INT32 rc                       = SDB_OK ;
-   sdbCSHandle collectionspace    = 0 ;
-   sdbDomainHandle    dom         = 0 ;
-   CHAR pResult[ NAME_LEN+1 ]     = { 0 } ;
+   const CHAR* pDomainName ;
+   const CHAR* csName ;
+   INT32 rc ;
+   sdbCSHandle collectionspace ;
+   sdbDomainHandle dom ;
+   CHAR pResult[ NAME_LEN+1 ] ;
    bson csOption ;
    bson domObj ;
    void SetUp()
    {
+     pDomainName        = "domain1" ;
+     csName             = "getDomainName_25083" ;
+     rc                 = SDB_OK ;
+     collectionspace    = 0 ;
+     dom                = 0 ;
+     pResult[ 0 ]       = 0 ;
      testBase::SetUp() ;
      std::vector<std::string> groupNames ;
      rc = getGroups( db, groupNames ) ;
