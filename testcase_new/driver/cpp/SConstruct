@@ -3,6 +3,7 @@ EnsureSConsVersion( 1, 1, 0 )
 import platform
 import os
 import re
+import commands
 from os.path import join, dirname, abspath
 
 root_dir = dirname(File('SConstruct').rfile().abspath)
@@ -113,7 +114,22 @@ def get_variant_dir():
     else:
         s += "normal/"
     return s
-    
+
+def check_gcc_version():
+    (status, str) = commands.getstatusoutput( 'gcc -dumpversion' )
+    if status != 0:
+       str = "";
+    return str
+
+def check_lib_version():
+    lib_so_file = client_lib_dir + "/libsdbcpp.so"
+    (status, output) = commands.getstatusoutput( 'strings -a ' + lib_so_file + ' | grep "GCC:"' )
+    if status != 0:
+       str = "";
+    else:   
+       str = (((output.split(')'))[1]).split())[0]
+    return str
+
 add_option( "dd", "debug build no optimization, additional debug logging, etc..." , 0 , True , "debugBuildAndLogging" )
 
 
@@ -201,10 +217,14 @@ elif guess_os == "linux":
     winLibString = "gtest"
     env.Append( LIBS=Split(winLibString) )
     if debugBuild:
-        env.Append( CPPFLAGS=" -D_DEBUG -O0 -fstack-protector")
-        env['ENV']['GLIBCXX_FORCE_NEW']=1
+       env.Append( CPPFLAGS=" -D_DEBUG -O0 -fstack-protector")
+       env['ENV']['GLIBCXX_FORCE_NEW']=1
     else:
-        env.Append( CPPFLAGS=" -O3")
+       env.Append( CPPFLAGS=" -O3")
+    lib_ver = check_lib_version()
+    gcc_ver = check_gcc_version()
+    if (lib_ver < "5.1.0" and gcc_ver >= "5.1.0" ):
+        env.Append( CPPFLAGS = " -D_GLIBCXX_USE_CXX11_ABI=0" )
 elif guess_os == 'aix':
     env.Append( CPPDEFINES=["PHP_ATOM_INC","HAVE_CONFIG_H","PIC"])
     env.Append( CPPFLAGS=" -ggdb" )
