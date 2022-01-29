@@ -601,39 +601,18 @@ namespace engine
          }
          else
          {
-            BSONObj dummyObj, obj ;
-            BSONObj boMatcher = BSON( FIELD_NAME_COLLECTION << cataSet.name() <<
-                                      IXM_FIELD_NAME_INDEX_DEF "."
-                                      IXM_FIELD_NAME_KEY << shardingKey ) ;
-            rc = catGetOneObj( CAT_INDEX_INFO_COLLECTION, dummyObj, boMatcher,
-                               dummyObj, cb, obj ) ;
-            if ( SDB_OK == rc )
-            {
-               PD_LOG( PDWARNING, "An index with the same definition already "
-                       "exists. Skip creating $shard index" ) ;
-            }
-            else if ( SDB_DMS_EOC == rc )
-            {
-               BSONObj def = BSON( IXM_FIELD_NAME_KEY << shardingKey <<
-                                   IXM_FIELD_NAME_NAME << IXM_SHARD_KEY_NAME ) ;
-               rc = _checkTaskConflict( cataSet.name(), def, cb ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Failed to check whether there are conflicting "
-                            "tasks, rc: %d", rc ) ;
+            BSONObj def = BSON( IXM_FIELD_NAME_KEY << shardingKey <<
+                                IXM_FIELD_NAME_NAME << IXM_SHARD_KEY_NAME ) ;
+            rc = _checkTaskConflict( cataSet.name(), def, cb ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to check whether there are conflicting "
+                         "tasks, rc: %d", rc ) ;
 
-               rc = _buildSysIndexInfo( cataSet.name(), IXM_SHARD_KEY_NAME,
-                                        def, cb ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Failed to build system index info, rc: %d",
-                            rc ) ;
-            }
-            else
-            {
-               PD_LOG( PDERROR, "Failed to get obj(%s) from %s, rc: %d",
-                       boMatcher.toString().c_str(),
-                       CAT_INDEX_INFO_COLLECTION, rc ) ;
-               goto error ;
-            }
+            rc = _buildSysIndexInfo( cataSet.name(), IXM_SHARD_KEY_NAME,
+                                     def, cb ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to build system index info, rc: %d",
+                         rc ) ;
          }
       }
 
@@ -826,7 +805,19 @@ namespace engine
                       "Failed to [%s]: Failed to check AutoSplit, rc: %d",
                       _task->getActionName(), rc ) ;
 
-         if ( UTIL_CL_AUTOSPLIT_FIELD != argument.getArgumentMask() )
+         if ( UTIL_CL_AUTOSPLIT_FIELD == argument.getArgumentMask() &&
+              cataSet.hasAutoSplit() &&
+              cataSet.isAutoSplit() == argument.isAutoSplit() )
+         {
+            // the same auto split value is ok
+         }
+         else if ( UTIL_CL_SHDKEY_FIELD == argument.getArgumentMask() &&
+                   !cataSet.getShardingKey().isEmpty() &&
+                   0 == cataSet.getShardingKey().woCompare( argument.getShardingKey() ) )
+         {
+            // the sharding key is ok, it will create $shard index
+         }
+         else
          {
             // Could be only executed on one group
             PD_CHECK( 1 == cataSet.groupCount(),
@@ -834,17 +825,7 @@ namespace engine
                       "Failed to [%s]: should have one group",
                       _task->getActionName() ) ;
          }
-         else
-         {
-            // either the same auto split value or only one group
-            PD_CHECK( ( ( cataSet.hasAutoSplit() &&
-                          cataSet.isAutoSplit() == argument.isAutoSplit() ) ||
-                        1 == cataSet.groupCount() ),
-                        SDB_OPTION_NOT_SUPPORT, error, PDERROR,
-                        "Failed to [%s]: should have one group",
-                        _task->getActionName() ) ;
 
-         }
          if ( cataSet.isSharding() )
          {
             PD_LOG( PDWARNING, "Sharding is already enabled" ) ;
@@ -1465,7 +1446,15 @@ namespace engine
                    "main-collection", _task->getActionName() ) ;
          setBuilder.append( CAT_SHARDINGKEY_NAME, argument.getShardingKey() ) ;
       }
-      else if ( argument.getArgumentMask() != UTIL_CL_AUTOSPLIT_FIELD )
+      else if ( UTIL_CL_AUTOSPLIT_FIELD == argument.getArgumentMask() )
+      {
+         // it is ok
+      }
+      else if ( UTIL_CL_SHDKEY_FIELD == argument.getArgumentMask() )
+      {
+         // it is ok
+      }
+      else
       {
          PD_CHECK( !cataSet.isMainCL(), SDB_OPTION_NOT_SUPPORT, error,
                    PDERROR, "Failed to [%s]: should not be main-collection",

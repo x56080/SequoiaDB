@@ -179,8 +179,8 @@ namespace engine
       {
          rc = SDB_OK ;
       }
-      PD_RC_CHECK( rc, PDERROR, "Failed to get index [%s] on collection [%s], rc: %d",
-                   IXM_SHARD_KEY_NAME, collection, rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get index [%s] on collection [%s], "
+                   "rc: %d", IXM_SHARD_KEY_NAME, collection, rc ) ;
 
       if ( dropIndex )
       {
@@ -191,8 +191,8 @@ namespace engine
          {
             rc = SDB_OK ;
          }
-         PD_RC_CHECK( rc, PDERROR, "Failed to drop id index on collection [%s], "
-                      "rc: %d", collection, rc ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to drop id index on collection [%s],"
+                      " rc: %d", collection, rc ) ;
       }
 
       if ( argument.isEnsureShardingIndex() && createIndex )
