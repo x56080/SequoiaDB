@@ -54,11 +54,11 @@ class taskTest extends PHPUnit_Framework_TestCase
      */
     public function testCancleOfNotExist()
     {
-       $taskID = 1;
+       $taskID = 10000000;
        $err = self::$task->cancle($taskID, true);
        $this->assertEquals(-173, $err);
 
-       $err = self::$task->cancle(new SequoiaInt64( '1' ), true);
+       $err = self::$task->cancle(new SequoiaInt64( '10000000' ), true);
        $this->assertEquals(-173, $err);
     }
 
