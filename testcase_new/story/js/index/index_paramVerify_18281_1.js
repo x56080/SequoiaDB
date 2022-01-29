@@ -4,7 +4,7 @@
  *                : seqDB-24016:createIndex接口验证
  * @Author        : XiaoNi Huang
  * @CreateTime    : 2021.05.12
- * @LastEditTime  : 2022.01.20
+ * @LastEditTime  : 2022.01.29
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.clName = COMMCLNAME + "_18281_1";
@@ -24,7 +24,7 @@ function test ( testPara )
    cl.dropIndex( indexName );
 
    // 指定非法字段
-   var keyArr = [{ isUnique: true }, { enforced: true }, { sortBufferSize: true }, { notNull: true }, { aa: true }];
+   var keyArr = [{ isUnique: true }, { enforced: true }, { sortBufferSize: true }, { notNull: true }, { aa: true }, { notArray: true }];
    for( var i = 0; i < keyArr.length; i++ ) 
    {
       assert.tryThrow( SDB_INVALIDARG, function()
@@ -44,7 +44,7 @@ function test ( testPara )
    cl.dropIndex( indexName );
 
    // 同一字段指定不同名称
-   var keyArr = [{ enforced: true, Enforced: false }, { unique: false, Unique: false }, { NotNull: true, aa: false }];
+   var keyArr = [{ enforced: true, Enforced: false }, { unique: false, Unique: false }, { NotNull: true, aa: false }, { NotArray: true, aa: false }];
    for( var i = 0; i < keyArr.length; i++ )
    {
       assert.tryThrow( SDB_INVALIDARG, function()
@@ -54,7 +54,7 @@ function test ( testPara )
    }
 
    // 指定boolean类型为0
-   cl.createIndex( indexName, { a: 1 }, { unique: 0, enforced: 0, NotNull: 0 } );
+   cl.createIndex( indexName, { a: 1 }, { unique: 0, enforced: 0, NotNull: 0, NotArray: 0 } );
    var recs = [{ a: 1, b: 1 }, { b: 2 }, { a: null, b: 3 }, { a: 1, b: 4 }];
    cl.insert( recs );
    checkRecords( cl, recs );
@@ -64,8 +64,8 @@ function test ( testPara )
    cl.remove();
 
    // 指定boolean类型为1
-   var option = { Unique: true, Enforced: true, NotNull: true };
-   cl.createIndex( indexName, { a: 1 }, { unique: 1, enforced: 1, NotNull: 1 } );
+   var option = { Unique: true, Enforced: true, NotNull: true, NotArray: 1 };
+   cl.createIndex( indexName, { a: 1 }, { unique: 1, enforced: 1, NotNull: 1, NotArray: 1 } );
    checkIndex( cl, indexName, indexDef, option );
 
    var valRecs = [{ a: 1, b: 1 }];
@@ -89,6 +89,16 @@ function test ( testPara )
 
    // 指定NotNull对应值为其他数字或字符串
    var keyArr = [{ NotNull: "true" }, { NotNull: "false" }, { NotNull: 2 }, { NotNull: "a" }];
+   for( var i = 0; i < keyArr.length; i++ )
+   {
+      assert.tryThrow( SDB_INVALIDARG, function()
+      {
+         cl.createIndex( indexName, { a: 1 }, keyArr[i] );
+      } );
+   }
+
+   // 指定NotArray对应值为其他数字或字符串
+   var keyArr = [{ NotArray: "true" }, { NotArray: "false" }, { NotArray: 2 }, { NotArray: "a" }];
    for( var i = 0; i < keyArr.length; i++ )
    {
       assert.tryThrow( SDB_INVALIDARG, function()
@@ -169,17 +179,19 @@ function checkIndex ( cl, indexName, indexDef, option )
 {
    if( option == undefined )
    {
-      option = { Unique: false, Enforced: false, NotNull: false };
+      option = { Unique: false, Enforced: false, NotNull: false, NotArray: false };
    }
    if( option.Unique == undefined ) { option.Unique = false; }
    if( option.Enforced == undefined ) { option.Enforced = false; }
    if( option.NotNull == undefined ) { option.NotNull = false; }
+   if( option.NotArray == undefined ) { option.NotArray = false; }
 
    var idx = cl.getIndex( indexName ).toObj();
    assert.equal( idx.IndexDef.key, indexDef );
    assert.equal( idx.IndexDef.unique, option.Unique );
    assert.equal( idx.IndexDef.enforced, option.Enforced );
    assert.equal( idx.IndexDef.NotNull, option.NotNull );
+   assert.equal( idx.IndexDef.NotArray, option.NotArray );
 }
 
 function checkRecords ( cl, expRecs ) 
