@@ -16,6 +16,7 @@ protected:
    CHAR pResult[ NAME_LEN+1 ] ;
    bson csOption ;
    bson domObj ;
+   BOOLEAN isStandAlone = FALSE ;
    void SetUp()
    {
      pDomainName        = "domain1" ;
@@ -25,6 +26,11 @@ protected:
      dom                = 0 ;
      pResult[ 0 ]       = 0 ;
      testBase::SetUp() ;
+     if ( isStandalone(db) )
+     {
+        isStandAlone = TRUE ;
+        return ;
+     }
      std::vector<std::string> groupNames ;
      rc = getGroups( db, groupNames ) ;
      ASSERT_EQ( SDB_OK, rc ) << "fail to get all groups " ;
@@ -47,6 +53,7 @@ protected:
    }
    void TearDown()
    {
+     if ( isStandAlone ) return ;
      //clear the environment
      rc = sdbDropDomain( db, pDomainName ) ;
      ASSERT_EQ( SDB_OK, rc ) ;
@@ -60,6 +67,10 @@ protected:
 
 TEST_F(getDomainName25084, sdbCSGetDomainName_25084)
 {
+   if ( isStandAlone )
+   {
+      return ;
+   }
    //case 1:domain does not exists
    rc = sdbCreateCollectionSpace( db, csName, SDB_PAGESIZE_4K, &collectionspace ) ;
    ASSERT_EQ( SDB_OK, rc ) << "Failed to create collectionspace, rc = " << rc;
