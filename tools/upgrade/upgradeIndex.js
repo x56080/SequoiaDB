@@ -186,6 +186,11 @@ function getCollectionInfo( clusterCLList, localCLList )
       {
          continue ;
       }
+      if ( rcObj.DataSourceID != undefined )
+      {
+         // it is data source collection, just ignore it
+         continue ;
+      }
 
       var groupList = [] ;
       for ( var i in cataInfoObj )
