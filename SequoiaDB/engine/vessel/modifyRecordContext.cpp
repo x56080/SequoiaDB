@@ -50,15 +50,14 @@ namespace vessel
       return _recordData;
    }
 
-   void modifyRecordContext::setOverflowInfo(const recordID &addr)
+   void modifyRecordContext::setOverflowAddr(const recordID &addr)
    {
       SDB_ASSERT(addr.isValid(), "can not be invalid");
-      _overflow = TRUE;
       _overflowAddr = addr;
       return;
    }
 
-   void modifyRecordContext::setIsBigRecord()
+   void modifyRecordContext::setAsBigRecord()
    {
       _bigRecord = TRUE;
    }
@@ -67,7 +66,6 @@ namespace vessel
    {
       _recordData.reset();
       _transID = DPS_TRANS_ID();
-      _overflow = FALSE;
       _bigRecord = FALSE;
       _overflowAddr = recordID();
    }

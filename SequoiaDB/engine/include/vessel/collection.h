@@ -235,26 +235,40 @@ namespace vessel
                                     UINT32 &count);
 
       private:
-         INT32 insertNonBigRecord(dmlContext *context,
-                                  const dmlInsertRequest &request);
+         INT32 insertRecordData(dmlContext *context, 
+                                const dmlInsertRequest &request);
+
+         INT32 insertNormalRecord(dmlContext *context,
+                                  const slice &record);
 
          INT32 insertBigRecord(dmlContext *context,
-                               const dmlInsertRequest &resquest);
+                               const slice &record);
 
-         INT32 insertOverflowedRecord(dmlContext *context,
-                                      const slice &newRowData,
-                                      recordID &rid);
+         INT32 insertBigRecordSlices(dmlContext *context,
+                                     bigRecordStream &recordStream);
+         
+         INT32 overflowBigRecord(dmlContext *context,
+                                 const recordID &overflowAddr);
+
+         INT32 insertInvisibleRecord(dmlContext *context,
+                                     const slice &newRowData,
+                                     recordID &rid);
 
          INT32 insertAndUpdateCandidate(dmlContext *context,
-                                        const dmlInsertRequest &request,
+                                        const slice &record,
                                         fsmCandidate &candidate,
                                         BOOLEAN &outOfSpace);
          
-         INT32 insertOverflowAndUpdateCandidate(dmlContext *context,
-                                                const slice &newRowData,
-                                                fsmCandidate &candidate,
-                                                BOOLEAN &outOfSpace,
-                                                recordID &rid);
+         INT32 insertInvisiblyAndUpdateCandidate(dmlContext *context,
+                                                 const slice &newRowData,
+                                                 fsmCandidate &candidate,
+                                                 BOOLEAN &outOfSpace,
+                                                 recordID &rid);
+
+         INT32 overflowBigRecordAndUpdateCandidate(dmlContext *context,
+                                                   const recordID &overflowAddr,
+                                                   fsmCandidate &candidate,
+                                                   BOOLEAN &outOfSpace);
 
          INT32 insertBigRecordSlice(dmlContext *context,
                                     bigRecordStream &recordStream,
@@ -268,6 +282,9 @@ namespace vessel
 
          INT32 updateOverflowedRecord(dmlContext *context,
                                       const slice &newRecord);
+         
+         INT32 updateBigRecord(dmlContext *context,
+                               const slice &newRecord);
 
          INT32 overflowRecord(dmlContext *context,
                               const slice &newRecord);
@@ -280,6 +297,10 @@ namespace vessel
          INT32 removeNormalRecord(dmlContext *context);
 
          INT32 removeOverflowedRecord(dmlContext *context);
+
+         INT32 removeBigRecord(dmlContext *context);
+
+         INT32 removeBigRecordSlices(dmlContext *context);
 
       private:
          INT32 findCandidate(requestContext *context,
