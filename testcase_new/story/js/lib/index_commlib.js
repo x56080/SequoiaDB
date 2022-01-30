@@ -932,3 +932,74 @@ function getCL ( db, csName, clName )
    }
    return dbcl;
 }
+
+/******************************************************************************
+ * @description: 创建索引后，校验主备节点上索引一致性（不校验CreateTime、RebuildTime、_id索引属性）
+ * @param {string} csname  
+ * @param {string} clName     
+ * @param {string} idxname      //索引名*
+ ******************************************************************************/
+function checkExistIndexConsistent ( db, csname, clname, idxname )
+{
+   var expIndex = null;
+   var doTime = 0;
+   var timeOut = 300000;
+   var nodes = commGetCLNodes( db, csname + "." + clname );
+   do
+   {
+      var sucNodes = 0;
+      for( var i = 0; i < nodes.length; i++ )
+      {
+         var seqdb = new Sdb( nodes[i].HostName + ":" + nodes[i].svcname );
+         try
+         {
+            var dbcl = seqdb.getCS( csname ).getCL( clname );
+         } catch( e )
+         {
+            if( e != SDB_DMS_NOTEXIST && e != SDB_DMS_CS_NOTEXIST )
+            {
+               throw new Error( e );
+            }
+            break;
+         }
+         try
+         {
+            var actIndex = dbcl.getIndex( idxname );
+            sucNodes++;
+         } catch( e )
+         {
+            if( e != SDB_IXM_NOTEXIST )
+            {
+               throw new Error( e );
+            }
+            break;
+         }
+         if( expIndex == null )
+         {
+            expIndex = actIndex;
+         }
+         else
+         {
+            var expDef = expIndex.toObj().IndexDef;
+            var actDef = actIndex.toObj().IndexDef;
+            delete expDef.CreateTime;
+            delete expDef.RebuildTime;
+            delete expDef._id;
+            delete actDef.CreateTime;
+            delete actDef.RebuildTime;
+            delete actDef._id;
+            assert.equal( expDef, actDef, "---checkout nodename =" + nodes[i].HostName + ":" + nodes[i].svcname );
+         }
+         seqdb.close();
+      }
+      sleep( 200 );
+      doTime += 200;
+   } while( doTime < timeOut && sucNodes < nodes.length );
+
+   if( doTime >= timeOut )
+   {
+      throw new Error( "check timeout index not synchronized !" );
+   }
+}
+
+
