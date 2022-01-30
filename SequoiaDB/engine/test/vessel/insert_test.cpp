@@ -1116,7 +1116,7 @@ TEST_F(insert_test, base_insert_test9)
    dmsCreateCSOptions csOptions;
    INT32 rc = SDB_OK;
    bson::BSONObjBuilder builder;
-   UINT32 count = 1000;
+   UINT32 count = 10000;
 
    rc = db.open(&executor, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
@@ -1155,5 +1155,97 @@ TEST_F(insert_test, base_insert_test9)
       ASSERT_EQ(r.getStringField("a"), insertStr);
    }
    
+   db.close(&executor, closeDBOptions());
+}
+
+/*
+Name: advanced_insert_test1
+Description: 
+   多线程插入大记录
+   1. 插入多条大记录
+   2. 验证记录插入正确性
+Expected Result: 
+   记录成功插入且查询结果正确
+*/
+void big_record_thread_insert(vesselImpl *db, 
+                              const CHAR *fullName, 
+                              const string &record, 
+                              UINT32 count)
+{
+   INT32 rc = SDB_OK;
+   test_executor executor;
+   DATA_COLLECTION_PTR handler;
+   bson::BSONObjBuilder builder;
+
+   rc = db->openCL(&executor, fullName, dmsOpenCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      utilInsertResult insertRes;
+      builder.append("a", record);
+      bson::BSONObj obj = builder.done();
+      rc = handler->insertRecord(&executor, obj, dmsInsertRecordOptions(), &insertRes);
+      ASSERT_EQ(SDB_OK ,rc);
+      builder.reset();
+   }
+}
+
+TEST_F(insert_test, advanced_insert_test1)
+{
+   vesselImpl db;
+   outerResource resource = test_outer_resource::getResource();
+   test_executor executor;
+   openDBOptions options;
+   DATA_COLLECTION_PTR handler;
+   options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+   dmsCreateCSOptions csOptions;
+
+   INT32 rc = SDB_OK;
+   bson::BSONObjBuilder builder;
+   UINT32 count = 10000;
+   static const UINT32 threadCount = 4;
+   UINT32 countPerThread = count / threadCount;
+   std::thread threads[threadCount];
+   string insertStr(csOptions.dataPageSize + 1000, 'x');
+
+   rc = db.open(&executor, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCS(&executor, "foo", 1, csOptions, bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCL(&executor, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCL(&executor, "foo.bar", dmsOpenCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (UINT32 i = 0; i < threadCount; ++i)
+   {
+      threads[i] = std::move(std::thread(big_record_thread_insert, &db,
+                                         "foo.bar", insertStr, countPerThread));
+   }
+
+   for (UINT32 i = 0; i < threadCount; ++i)
+   {
+      threads[i].join();
+   }
+
+   DATA_CURSOR_PTR cursor;
+   rc = handler->scan(&executor, dmsScanOptions(), cursor);
+   ASSERT_EQ(SDB_OK, rc);
+
+   dmsBsonCursorReader reader;
+   reader.init(cursor, FALSE);
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      rc = reader.fetchNext(&executor);
+      ASSERT_EQ(SDB_OK, rc);
+      const bson::BSONObj &r = reader.getRecord();
+      ASSERT_EQ(r.getStringField("a"), insertStr);
+   }
+
    db.close(&executor, closeDBOptions());
 }

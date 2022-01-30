@@ -299,3 +299,96 @@ TEST_F(dml_delete_test, base_delete_test2)
 
    db.close(&executor, closeDBOptions()); 
 }
+
+/*
+Name: base_delete_test3
+Description: 
+   big record删除
+   1. 插入多条big record
+   2. 删除所有big record
+   3. 验证记录操作正确性
+Expected Result: 
+   记录被成功删除
+*/
+TEST_F(dml_delete_test, base_delete_test3)
+{
+   vesselImpl db;
+   outerResource resource = test_outer_resource::getResource();
+   test_executor executor;
+   openDBOptions options;
+   options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+   dmsCreateCSOptions csOption;
+   csOption.dataPageSize = DMS_PAGE_SIZE32K;
+
+   INT32 rc = SDB_OK;
+   bson::BSONObjBuilder builder;
+   UINT32 count = 10000;
+   ossPoolVector<dmsRecordID> rids;
+
+   DATA_COLLECTION_PTR cl;
+
+   rc = db.open(&executor, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCS(&executor, "foo", 1, csOption, bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCL(&executor, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCL(&executor, "foo.bar", dmsOpenCLOptions(), cl);
+   ASSERT_EQ(SDB_OK, rc);
+
+   string insertStr( csOption.dataPageSize + 1000, 'x');
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      utilInsertResult insertRes;
+      builder.append("a", insertStr);
+      insertRes.enableReturnIDInfo();
+      rc = cl->insertRecord(&executor, builder.done(),
+                            dmsInsertRecordOptions(), &insertRes);
+      ASSERT_EQ(SDB_OK, rc);
+
+      INT32 page, slot;
+      insertRes.getInsertLoc(page, slot);
+      dmsRecordID rid(page, slot);
+      rids.push_back(rid);
+      builder.reset();
+   }
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+
+      utilDeleteResult deleteRes;
+      const dmsRecordID &rid = rids[i];
+      rc = cl->deleteRecord(&executor, rid, dmsDeleteRecordOptions(), &deleteRes);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+
+   UINT64 currentCount = 0;
+   rc = cl->getRecordCount(&executor, currentCount);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(0, currentCount);
+
+   DATA_CURSOR_PTR cursor;
+   rc = cl->scan(&executor, dmsScanOptions(), cursor);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = cursor->fetchNext(&executor);
+   ASSERT_EQ(SDB_DMS_EOC, rc);
+
+   db.close(&executor, closeDBOptions());
+
+   rc = db.open(&executor, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCL(&executor, "foo.bar", dmsOpenCLOptions(), cl);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = cl->getRecordCount(&executor, currentCount);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(0, currentCount);
+
+   db.close(&executor, closeDBOptions());
+}

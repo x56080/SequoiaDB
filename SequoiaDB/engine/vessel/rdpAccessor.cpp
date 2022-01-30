@@ -78,7 +78,7 @@ namespace vessel
    }
 
    INT32 rdpAccessor::insertNormalRecord(dmlContext *context,
-                                         const dmlInsertRequest &request)
+                                         const slice &record)
    {
       INT32 rc = SDB_OK;
       const recordDataPageHead *head = NULL;
@@ -90,7 +90,7 @@ namespace vessel
 
       if (OSS_UNLIKELY(NULL == context ||
                        !context->isMbContextAttached() ||
-                       !request.isValid()))
+                       !record.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -105,8 +105,7 @@ namespace vessel
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
       }
-      else if (isBigRecord(_lpb->getPageSize(),
-                           request.record.getSize()))
+      else if (isBigRecord(_lpb->getPageSize(), record.getSize()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -124,7 +123,7 @@ namespace vessel
       SDB_ASSERT(mbContext->getGlobalId().getCLLid() == head->clLogcalID,
                  "must be same");
 
-      if (!findPositionToInsert(request.record.getSize(),
+      if (!findPositionToInsert(record.getSize(),
                                 mbContext->getFloatMinFreePercent(),
                                 pos, offset))
       {
@@ -157,7 +156,7 @@ namespace vessel
       /// do not access old page ptr any more.
       head = NULL;
 
-      rc = insertNormalRecordToPos(context, request, pos, offset);
+      rc = insertNormalRecordToPos(context, record, pos, offset);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to insert with normal record head:%d", rc);
@@ -175,14 +174,14 @@ namespace vessel
    }
 
    INT32 rdpAccessor::insertNormalRecordToPos(dmlContext *context,
-                                              const dmlInsertRequest &request,
+                                              const slice &record,
                                               RECORD_SLOT_POS pos,
                                               UINT16 offset)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != _lpb, "can not be invlaid");
+      SDB_ASSERT(NULL != _lpb, "can not be invalid");
       SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(request.isValid(), "can not be invalid");
+      SDB_ASSERT(record.isValid(), "can not be invalid");
       SDB_ASSERT(isValidRecordSlotPosition(pos), "can not be invalid");
       SDB_ASSERT(0 < offset, "can not be invalid");
 
@@ -197,7 +196,7 @@ namespace vessel
       normalRecordHead rh;
       recordSlot rs;
       DPS_TRANS_ID transID = context->getTransIDWithoutTag();
-      UINT32 size = request.record.getSize() + NORMAL_RECORD_HEAD_SIZE;
+      UINT32 size = record.getSize() + NORMAL_RECORD_HEAD_SIZE;
       UINT32 reserved = 0;
 
       rc = _lpb->prepareToWrite();
@@ -245,13 +244,13 @@ namespace vessel
       *slotPtr = rs;
       *((normalRecordHead *)recordPtr) = rh;
       ossMemcpy(recordPtr + NORMAL_RECORD_HEAD_SIZE,
-                request.record.getData(), request.record.getSize());
+                record.getData(), record.getSize());
       if (0 < rs.reserved)
       {
-         ossMemset((void *)(recordPtr + NORMAL_RECORD_HEAD_SIZE + request.record.getSize()),
+         ossMemset((void *)(recordPtr + NORMAL_RECORD_HEAD_SIZE + record.getSize()),
                    0, rs.reserved);
       }
-      updatePageHeadWhenInsert(pos, rs, transID, request.o.stripingId);
+      updatePageHeadWhenInsert(pos, rs, transID, context->getStripingId());
 
       rid.setPid(_lpb->getLogicalPid());
       rid.setPos(pos);
@@ -383,6 +382,10 @@ namespace vessel
       SDB_ASSERT(size <= head->totalFreeSpace, "impossible");
       head->totalFreeSpace -= size;
       head->backOffset = slot.offset;
+      if (RDP_RECORD_HEAD_OVERFLOW == slot.type)
+      {
+         ++head->overflowedRecordCount;
+      }
 
       updateStripingInfo(head, striping);
       updateMaxTransSN(head, transID.getSN());
@@ -630,7 +633,6 @@ namespace vessel
 
    INT32 rdpAccessor::updateNormalRecord(dmlContext *context,
                                          RECORD_SLOT_POS pos,
-                                         const dmsStripingId &striping,
                                          const slice &newRowData,
                                          BOOLEAN &outOfSpace)
    {
@@ -691,7 +693,7 @@ namespace vessel
 
       if ((newRowData.getSize() + NORMAL_RECORD_HEAD_SIZE) <= rs->getMaxSpaceSize())
       {
-         rc = inplaceUpdate(context, pos, striping, newRowData);
+         rc = inplaceUpdate(context, pos, context->getStripingId(), newRowData);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to inplace update record[%d], rc:%d", pos, rc);
@@ -701,7 +703,7 @@ namespace vessel
       else if ((newRowData.getSize() + NORMAL_RECORD_HEAD_SIZE) <= 
                getFreeSpaceAfterLastSlot())
       {
-         rc = updateByResaving(context, pos, striping, newRowData);
+         rc = updateByResaving(context, pos, context->getStripingId(), newRowData);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to update record[%d] by resaving, rc:%d", 
@@ -712,7 +714,7 @@ namespace vessel
       else if ((newRowData.getSize() + NORMAL_RECORD_HEAD_SIZE - rs->size) <= 
                head->totalFreeSpace)
       {
-         rc = updateByCompaction(context, pos, striping, newRowData);
+         rc = updateByCompaction(context, pos, context->getStripingId(), newRowData);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to update record[%d] by compacting, rc:%d", 
@@ -730,9 +732,9 @@ namespace vessel
       goto done;
    }
 
-   INT32 rdpAccessor::insertOverflowedRecord(dmlContext *context,
-                                             const slice &record,
-                                             recordID &rid)
+   INT32 rdpAccessor::insertInvisibleNormalRecord(dmlContext *context,
+                                                  const slice &record,
+                                                  recordID &rid)
    {
       INT32 rc = SDB_OK;
       const recordDataPageHead *head = NULL;
@@ -788,7 +790,7 @@ namespace vessel
       /// do not access old page ptr any more.
       head = NULL;
 
-      rc = insertOverflowedRecordToPos(context, record, pos, offset);
+      rc = insertInvisibleNormalRecordToPos(context, record, pos, offset);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to insert with normal record head:%d", rc);
@@ -803,10 +805,10 @@ namespace vessel
       goto done;
    }
 
-   INT32 rdpAccessor::insertOverflowedRecordToPos(dmlContext *context,
-                                                  const slice &row,
-                                                  RECORD_SLOT_POS pos,
-                                                  UINT16 offset)
+   INT32 rdpAccessor::insertInvisibleNormalRecordToPos(dmlContext *context,
+                                                       const slice &row,
+                                                       RECORD_SLOT_POS pos,
+                                                       UINT16 offset)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
@@ -938,10 +940,234 @@ namespace vessel
       goto done;
    }
 
+   INT32 rdpAccessor::insertOverflowedRecord(dmlContext *context,
+                                             const recordID &overflowAddr,
+                                             BOOLEAN isBigRecord)
+   {
+      INT32 rc = SDB_OK;
+      const recordDataPageHead *head = NULL;
+      RECORD_SLOT_POS pos = INVALID_RECORD_SLOT_POS;
+      UINT16 offset = 0;
+      recordID rid;
+      BOOLEAN ridLocked = FALSE;
+      const runtimeMbContext *mbContext = NULL;
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       !overflowAddr.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == _lpb))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      else if (!_lpb->getLockingMode().isExclusiveOrUpgrade())
+      {
+         rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
+         goto error;
+      }
+
+      head = _lpb->getReadableBodyBuffer().getReadableObjPtr<recordDataPageHead>(0);
+      if (NULL == head)
+      {
+         PD_LOG(PDERROR, "failed to get readble record page head");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      mbContext = context->getMbContext();
+      SDB_ASSERT(mbContext->getGlobalId().getCLLid() == head->clLogcalID,
+                 "must be same");
+
+      if (!findPositionToInsert(OVERFLOWED_RECORD_SIZE,
+                                mbContext->getFloatMinFreePercent(),
+                                pos, offset))
+      {
+         rc = SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE;
+         goto error;
+      }
+
+      rid.setPid(_lpb->getLogicalPid());
+      rid.setPos(pos);
+
+      if (0 < context->getIndexReqCount())
+      {
+         ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+         rc = context->tryLockRid(rid, mode, ridLocked);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to lock rid[%d,%d], rc:%d",
+                   rid.getPid(), rid.getPos(), rc);
+            goto error;
+         }
+         else if (!ridLocked)
+         {
+            PD_LOG(PDERROR, "failed to lock free rid[%d,%d]",
+                     rid.getPid(), rid.getPos());
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+      }
+      
+      /// do not access old page ptr any more.
+      head = NULL;
+      rc = insertOverflowedRecordToPos(context, overflowAddr, isBigRecord, pos, offset);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to insert overflowed record to pos, rc:%d", rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      if (ridLocked)
+      {
+         context->unlockRid(rid);
+      }
+      goto done;
+      
+   }
+
+   INT32 rdpAccessor::insertOverflowedRecordToPos(dmlContext *context,
+                                                  const recordID &overflowAddr,
+                                                  BOOLEAN isBigRecord,
+                                                  RECORD_SLOT_POS pos,
+                                                  UINT16 offset)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != _lpb, "can not be invalid");
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(overflowAddr.isValid(), "can not be invalid");
+      SDB_ASSERT(isValidRecordSlotPosition(pos), "can not be invalid");
+      SDB_ASSERT(0 < offset, "can not be invalid");
+
+      strictBuffer buffer;
+      strictBuffer slotBuffer;
+      strictBuffer recordBuffer;
+      recordDataPageHead *head = NULL;
+      recordDataPageHead oldHead;
+      const CHAR *recordPtr = NULL;
+      recordSlot rs;
+      overflowedRecord ofr;
+      DPS_TRANS_ID transID = context->getTransIDWithoutTag();
+      recordID rid;
+      logRecordContext lrc;
+
+      rc = _lpb->autoGetWritableBodyBuffer(buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get writable buffer, rc:%d", rc);
+         goto error;
+      }
+
+      head = buffer.getWritableObjPtr<recordDataPageHead>(0);
+      if (OSS_UNLIKELY(NULL == head))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to get readable head, rc:%d", rc);
+         goto error;
+      }
+      
+      slotBuffer = buffer.getWritableBuffer(RDP_RSLOT_SIZE, 
+                                            RECORD_PAGE_HEAD_SIZE +
+                                            (pos * RDP_RSLOT_SIZE));
+      if (!slotBuffer.isWritable())
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to get writable slot buf, rc:%d", rc);
+         goto error;
+      }
+
+      recordBuffer = buffer.getWritableBuffer(OVERFLOWED_RECORD_SIZE, offset);
+      if (!recordBuffer.isWritable())
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to get writable record buf, rc:%d", rc);
+         goto error;
+      }
+
+      oldHead = *head;
+
+      rs.init(RDP_RECORD_HEAD_OVERFLOW, 0, offset, OVERFLOWED_RECORD_SIZE);
+      rc = slotBuffer.write(0, RDP_RSLOT_SIZE, &rs);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to write slot, rc:%d", rc);
+         goto error;
+      }
+
+      ofr.lpid = overflowAddr.getPid();
+      ofr.pos = overflowAddr.getPos();
+      if (isBigRecord)
+      {
+         ofr.setAsBigRecord();
+      }
+      rc = recordBuffer.write(0, OVERFLOWED_RECORD_SIZE, &ofr);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to write overflowed record, rc:%d", rc);
+         goto error;
+      }
+
+      updatePageHeadWhenInsert(pos, rs, transID, context->getStripingId());
+
+      rid.setPid(_lpb->getLogicalPid());
+      rid.setPos(pos);
+
+      // dummy log
+      rc = prepareInsertLog(context, OVERFLOWED_RECORD_SIZE, &(_lpb->getRuntimeBuffer()), &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
+         goto error;
+      }
+
+      recordPtr = recordBuffer.getReadablePtr(0, rs.getMaxSpaceSize());
+      if (OSS_UNLIKELY(NULL == recordPtr))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to get readable record, rc:%d", rc);
+      }
+
+      rc = commitInsertLog(context, rid, rs,
+                           recordPtr, &oldHead, head,
+                           &(_lpb->getRuntimeBuffer()), &lrc);
+      if (SDB_OK != rc)
+      {
+         recordSlot slot;
+         PD_LOG(PDERROR, "failed to commit log:%d", rc);
+         *head = oldHead;
+         rc = slotBuffer.write(0, RDP_RSLOT_SIZE, &slot);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to write slot, rc:%d", rc);
+            goto error;
+         }
+         recordBuffer.setBuffer(0, rs.getMaxSpaceSize(), 0);
+         goto error;
+      }
+      _lpb->commit(lrc.getLsn());
+
+      context->setDmlLSN(lrc.getLsn());
+      context->setDmlRecordInfo(head->pageSeq, rid);
+   
+   done:
+      return rc;
+   error:
+      if (lrc.prepared())
+      {
+         pageAccessor::abortLog(context, &lrc);
+      }
+      goto done;
+   } 
+
    INT32 rdpAccessor::setRecordOverflowed(dmlContext *context,
                                           RECORD_SLOT_POS pos,
-                                          const dmsStripingId &striping,
-                                          const recordID &overflowAddr)
+                                          const recordID &overflowAddr,
+                                          BOOLEAN isBigRecord)
    {
       INT32 rc = SDB_OK;
       strictBuffer buffer;
@@ -1025,6 +1251,10 @@ namespace vessel
       deltaSize = wrs->size - OVERFLOWED_RECORD_SIZE;
       ofr.lpid = overflowAddr.getPid();
       ofr.pos = overflowAddr.getPos();
+      if (isBigRecord)
+      {
+         ofr.setAsBigRecord();
+      }
 
       oldRecordBuf = buffer.getWritableBuffer(wrs->getMaxSpaceSize(), wrs->offset);
       if (OSS_UNLIKELY(!oldRecordBuf.isWritable()))
@@ -1048,8 +1278,8 @@ namespace vessel
       wrs->reserved = 0;
 
       whead->totalFreeSpace += deltaSize;
-      ++whead->outerRecordCount;
-      updateStripingInfo(whead, striping);
+      ++whead->overflowedRecordCount;
+      updateStripingInfo(whead, context->getStripingId());
       updateMaxTransSN(whead, transID.getSN());
 
       // dummy log
@@ -1245,6 +1475,7 @@ namespace vessel
 
       // write slot
       rs.init(RDP_RECORD_HEAD_BIG_RECORD_ENTRY, 0, offset, dataSize);
+      rs.setInvisible();
       rc = slotBuf.write(0, RDP_RSLOT_SIZE, &rs);
       if (SDB_OK != rc)
       {
@@ -1314,8 +1545,6 @@ namespace vessel
       }
 
       recordStream.fillLastSlice(rid);
-      context->setDmlLSN(lrc.getLsn());
-      context->setDmlRecordInfo(head->pageSeq, rid);
       _lpb->commit(lrc.getLsn());
 
    done:
@@ -1490,8 +1719,8 @@ namespace vessel
 
    INT32 rdpAccessor::updateOverflowedInfo(dmlContext *context,
                                            RECORD_SLOT_POS pos,
-                                           const dmsStripingId &striping,
-                                           const recordID &overflowAddr)
+                                           const recordID &overflowAddr,
+                                           BOOLEAN isBigRecord)
    {
       INT32 rc = SDB_OK;
       strictBuffer buffer;
@@ -1556,6 +1785,14 @@ namespace vessel
       ofr = buffer.getWritableObjPtr<overflowedRecord>(rs->offset);
       ofr->lpid = overflowAddr.getPid();
       ofr->pos = overflowAddr.getPos();
+      if (!isBigRecord)
+      {
+         ofr->flags = 0;
+      }
+      else
+      {
+         ofr->setAsBigRecord();
+      }
       
       // dummy log
       rc = prepareInplaceUpdateLog(context, &(_lpb->getRuntimeBuffer()), &lrc);
@@ -1679,8 +1916,8 @@ namespace vessel
       }
       if (isOverflowed)
       {
-         SDB_ASSERT(0 < whead->outerRecordCount, "impossible");
-         --whead->outerRecordCount;
+         SDB_ASSERT(0 < whead->overflowedRecordCount, "impossible");
+         --whead->overflowedRecordCount;
       }
 
       // dummy log
@@ -2539,6 +2776,84 @@ namespace vessel
       return rc;
    error:
       goto done;
+   }
+
+   INT32 rdpAccessor::getNextSliceAddrOfBigRecord(RECORD_SLOT_POS pos,
+                                                  recordID &nextAddr)
+   {
+      INT32 rc = SDB_OK;
+      recordSlot rs;
+      strictBuffer buffer;
+
+      nextAddr.reset();
+      if (OSS_UNLIKELY(INVALID_RECORD_SLOT_POS == pos))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == _lpb))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      buffer = _lpb->getReadableBodyBuffer();
+      if (OSS_UNLIKELY(!buffer.isValid()))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to get readable buffer, rc:%d", rc);
+         goto error;
+      }
+
+      rc = getSlot(pos, rs);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get slot[%d], rc:%d", pos, rc);
+         goto error;
+      }
+      else if (!rs.isValid() || !rs.isInvisible())
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "invalid slot in this pos[%d], rc:%d", pos, rc);
+         goto error;
+      }
+
+      if (RDP_RECORD_HEAD_BIG_RECORD_ENTRY == rs.type)
+      {
+         const bigRecordEntrySlice *entry = 
+               buffer.getReadableObjPtr<bigRecordEntrySlice>(rs.offset);
+         if (OSS_UNLIKELY(NULL == entry))
+         {
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            PD_LOG(PDERROR, "failed to get readable entry slice, rc:%d", rc);
+            goto error;
+         }
+         nextAddr = recordID(entry->nextPage, entry->nextPos);
+
+      }
+      else if(RDP_RECORD_HEAD_BIG_RECORD_BODY == rs.type)
+      {
+         const bigRecordBodySlice *body = 
+               buffer.getReadableObjPtr<bigRecordBodySlice>(rs.offset);
+         if (OSS_UNLIKELY(NULL == body))
+         {
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            PD_LOG(PDERROR, "failed to get readable entry slice, rc:%d", rc);
+            goto error;
+         }
+         nextAddr = recordID(body->nextPage, body->nextPos);
+      }
+      else
+      {
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         PD_LOG(PDERROR, "not a big record slice, rc:%d", rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done; 
    }
                                         
    recordSlot *rdpAccessor::getWritableSlot(strictBuffer &buffer,

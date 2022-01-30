@@ -81,7 +81,7 @@ namespace vessel
       INT32 minStriping = DMS_INVALID_STRIPING_ID;
       INT32 maxStriping = DMS_INVALID_STRIPING_ID;
       UINT64 transSN = DPS_INVALID_TRANSID_SN;
-      UINT16 outerRecordCount = 0;
+      UINT16 overflowedRecordCount = 0;
       CHAR pad[22] = {};
    };//struct recordDataPageHead
    constexpr UINT32 RECORD_PAGE_HEAD_SIZE = sizeof(recordDataPageHead);

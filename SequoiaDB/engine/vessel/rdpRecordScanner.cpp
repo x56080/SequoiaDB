@@ -190,15 +190,6 @@ namespace vessel
             goto error;
          }
       }
-      else if (RDP_RECORD_HEAD_BIG_RECORD_ENTRY == type)
-      {
-         rc = fetchBigRecord(pos);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to fetch big record:%d", rc);
-            goto error;
-         }
-      }
       else if (RDP_RECORD_HEAD_OVERFLOW == type)
       {
          rc = fetchOverflowedRecord(pos);
@@ -324,7 +315,7 @@ namespace vessel
          recordID sliceAddr;
          UINT32 offset = 0;
          UINT32 bodyCount = 0;
-         rc = accessor.getBigRecordEntrySlice(pos, entry, entryData);
+         rc = accessor.getBigRecordEntrySlice(ofr.pos, entry, entryData);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get big record entry, rc:%d", rc);
@@ -387,11 +378,11 @@ namespace vessel
             sliceAddr.setPos(body.nextPos);
 
             // the last slice's next addr must be invalid
-            if (sliceAddr.isValid() && i != bodyCount - 1)
+            if (!sliceAddr.isValid() && i != bodyCount - 1)
             {
                rc = SDB_VESSEL_INTERNAL_ERR;
                PD_LOG(PDERROR, "invalid big record slice at [%d,%d], rc:%d",
-                     sliceAddr.getPid(), sliceAddr.getPos(), rc);
+                      sliceAddr.getPid(), sliceAddr.getPos(), rc);
                goto error;
             }
 
@@ -414,115 +405,6 @@ namespace vessel
       _transID.setSN(rh.transSN);
       _recordData = slice(_recordBufferSize, _recordBuffer);
       _overflowAddr = recordID(ofr.lpid, ofr.pos);
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 rdpRecordScanner::fetchBigRecord(RECORD_SLOT_POS pos)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(isOpen(), "can not be invalid");
-      SDB_ASSERT(INVALID_RECORD_SLOT_POS  != pos, "can not be invalid");
-
-      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
-      logicalPageSpace *lps = _lpb.getLogicalPageSpace();
-      strictBuffer buf;
-      bigRecordEntrySlice entry;
-      slice entryData;
-      UINT32 offset = 0;
-      UINT32 bodyCount = 0;
-      recordID sliceAddr;
-
-      rc = _accessor.getBigRecordEntrySlice(pos, entry, entryData);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get big record entry, rc:%d", rc);
-         goto error;
-      }
-
-      _recordBuffer = _context->allocateBuffer(entry.totalRecordSize);
-      if (NULL == _recordBuffer)
-      {
-         rc = SDB_OOM;
-         PD_LOG(PDERROR, "failed to allocate big record buffer, rc:%d", rc);
-         goto error;
-      }
-      _recordBufferSize = entry.totalRecordSize;
-
-      buf.makeWritable(_recordBufferSize, _recordBuffer);
-
-      // write entry data
-      rc = buf.write(offset, entryData.getSize(), entryData.getData());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to write slice entry data, rc:%d", rc);
-         goto error;
-      }
-      offset += entryData.getSize(); 
-      sliceAddr.setPid(entry.nextPage);
-      sliceAddr.setPos(entry.nextPos);
-      bodyCount = entry.sliceCount - 1;
-
-      for (UINT32 i = 0; i < bodyCount; ++i)
-      {
-         logicalPageBuffer lpb;
-         rdpAccessor accessor;
-         bigRecordBodySlice body;
-         slice bodyData;
-
-         rc = lps->getLogicalPageBuffer(_context, sliceAddr.getPid(), mode, lpb);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get lpb[%d], rc:%d", sliceAddr.getPid(), rc);
-            goto error;
-         }
-
-         rc = accessor.init(_context, &lpb);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to init rdp accessor:%d", rc);
-            goto error;
-         }
-
-         rc = accessor.getBigRecordBodySlice(sliceAddr.getPos(), body, bodyData);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get big record body at [%d,%d], rc:%d", 
-                   sliceAddr.getPid(), sliceAddr.getPos(), rc);
-            goto error;
-         }
-
-         sliceAddr.setPid(body.nextPage);
-         sliceAddr.setPos(body.nextPos);
-
-         // the last slice's next addr must be invalid
-         if (sliceAddr.isValid() && i != bodyCount - 1)
-         {
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            PD_LOG(PDERROR, "invalid big record slice at [%d,%d], rc:%d",
-                   sliceAddr.getPid(), sliceAddr.getPos(), rc);
-            goto error;
-         }
-
-         // write body data
-         rc = buf.write(offset, bodyData.getSize(), bodyData.getData());
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to write body data, rc:%d", rc);
-            goto error;
-         }
-         offset += bodyData.getSize();
-         lpb.fini();
-      }
-
-      _pos = pos;
-      _flags = _FLAG_BIG_RECORD;
-      _recordType = RDP_RECORD_HEAD_BIG_RECORD_ENTRY;
-      _transID.setNodeID(entry.transNode);
-      _transID.setSN(entry.transSN);
-      _recordData = slice(_recordBufferSize, _recordBuffer);
    done:
       return rc;
    error:

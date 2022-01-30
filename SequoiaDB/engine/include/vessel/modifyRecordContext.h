@@ -54,7 +54,7 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isOverflow()const
          {
-            return _overflow;
+            return _overflowAddr.isValid();
          }
          OSS_INLINE BOOLEAN isBigRecord()const
          {
@@ -70,7 +70,7 @@ namespace vessel
 
          slice getTargetRecord()const;
 
-         void setOverflowInfo(const recordID &addr);
+         void setOverflowAddr(const recordID &addr);
 
          void clear();
 
@@ -79,12 +79,11 @@ namespace vessel
             _transID = transID;
          }
 
-         void setIsBigRecord();
+         void setAsBigRecord();
 
       private:
          slice _recordData;
          DPS_TRANS_ID _transID;
-         BOOLEAN _overflow = FALSE;
          BOOLEAN _bigRecord = FALSE;
          recordID _overflowAddr;
          

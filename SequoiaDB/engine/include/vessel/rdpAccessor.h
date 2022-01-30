@@ -66,32 +66,34 @@ namespace vessel
 
          OSS_INLINE void fini() {_lpb = NULL;}
 
-         /// non-big-record
          INT32 insertNormalRecord(dmlContext *context,
-                                  const dmlInsertRequest &request);
+                                  const slice &record);
 
-         INT32 insertOverflowedRecord(dmlContext *context,
-                                      const slice &record,
-                                      recordID &rid);
+         INT32 insertInvisibleNormalRecord(dmlContext *context,
+                                           const slice &record,
+                                           recordID &rid);
 
          INT32 insertBigRecordSlice(dmlContext *context,
                                     bigRecordStream &recordStream);
+
+         INT32 insertOverflowedRecord(dmlContext *context,
+                                      const recordID &overflowAddr,
+                                      BOOLEAN isBigRecord);
          
          INT32 updateNormalRecord(dmlContext *context,
                                   RECORD_SLOT_POS pos,
-                                  const dmsStripingId &striping,
                                   const slice &newRowData,
                                   BOOLEAN &outOfSpace);
          
          INT32 setRecordOverflowed(dmlContext *context,
                                    RECORD_SLOT_POS pos,
-                                   const dmsStripingId &striping,
-                                   const recordID &overflowAddr);
+                                   const recordID &overflowAddr,
+                                   BOOLEAN isBigRecord);
 
          INT32 updateOverflowedInfo(dmlContext *context,
                                     RECORD_SLOT_POS pos,
-                                    const dmsStripingId &striping,
-                                    const recordID &overflowAddr);
+                                    const recordID &overflowAddr,
+                                    BOOLEAN isBigRecord);
 
          INT32 deleteRecord(dmlContext *context,
                             RECORD_SLOT_POS  pos);
@@ -119,6 +121,9 @@ namespace vessel
                                      bigRecordBodySlice &body,
                                      slice &data)const;
 
+         INT32 getNextSliceAddrOfBigRecord(RECORD_SLOT_POS pos,
+                                           recordID &nextAddr);
+
          const recordDataPageHead *getReadablePageHead()const;
 
          INT32 getRecordCount(UINT32 &count)const;
@@ -134,12 +139,18 @@ namespace vessel
 
       private:
          INT32 insertNormalRecordToPos(dmlContext *context,
-                                       const dmlInsertRequest &request,
-                                       RECORD_SLOT_POS  pos,
+                                       const slice &record,
+                                       RECORD_SLOT_POS pos,
                                        UINT16 offset);
          
+         INT32 insertInvisibleNormalRecordToPos(dmlContext *context,
+                                                const slice &row,
+                                                RECORD_SLOT_POS pos,
+                                                UINT16 offset);
+
          INT32 insertOverflowedRecordToPos(dmlContext *context,
-                                           const slice &row,
+                                           const recordID &overflowAddr,
+                                           BOOLEAN isBigRecord,
                                            RECORD_SLOT_POS pos,
                                            UINT16 offset);
 
