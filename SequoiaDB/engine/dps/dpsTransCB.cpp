@@ -432,6 +432,10 @@ namespace engine
 
       if ( isGlobTrans )
       {
+         PD_CHECK( DPS_INVALID_TRANSID_NODEID != _TransIDH16,
+                   SDB_GLOB_TRANS_NOT_AVAILABLE, error, PDERROR,
+                   "Failed to allocate global transaction ID, "
+                   "node ID is invalid" ) ;
          // global transaction by global logical time
          stpLogicalTimeUS transTime ;
          rc = getGlobTransTime( transTime, (INT32)timeout ) ;
