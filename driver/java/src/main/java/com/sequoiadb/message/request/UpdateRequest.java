@@ -16,6 +16,7 @@
 
 package com.sequoiadb.message.request;
 
+import com.sequoiadb.base.options.UpdateOption;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.message.MsgOpCode;
