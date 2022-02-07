@@ -35,6 +35,16 @@ public final class Helper {
 
     public static final String ENCODING_TYPE =  "UTF-8";
 
+    public static final long INVALID_LONG = -1L;
+
+    public static Object getValue( BSONObject srcObj, String key, Object defaultValue ){
+        if ( srcObj == null ){
+            return defaultValue;
+        }
+        Object obj = srcObj.get( key );
+        return obj != null ? obj : defaultValue;
+    }
+
     public static String md5(String str) {
         MessageDigest md5;
         try {
@@ -374,5 +384,13 @@ public final class Helper {
         for (int i = 0; i < len; i++) {
             out.put((byte) 0);
         }
+    }
+
+    public static int eraseFlag( final int flags, int erasedFlag ) {
+        int newFlags = flags;
+        if ( ( newFlags & erasedFlag ) != 0 ) {
+            newFlags &= ~erasedFlag;
+        }
+        return newFlags;
     }
 }

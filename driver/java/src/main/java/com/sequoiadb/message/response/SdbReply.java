@@ -17,6 +17,8 @@
 package com.sequoiadb.message.response;
 
 import com.sequoiadb.message.ResultSet;
+import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
 
 import java.nio.ByteBuffer;
 
@@ -25,6 +27,14 @@ public class SdbReply extends CommonResponse {
 
     public ResultSet getResultSet() {
         return resultSet;
+    }
+
+    public BSONObject getReturnData(){
+        BSONObject result = null;
+        if (resultSet != null && resultSet.hasNext()) {
+            result = resultSet.getNext();
+        }
+        return result;
     }
 
     @Override
