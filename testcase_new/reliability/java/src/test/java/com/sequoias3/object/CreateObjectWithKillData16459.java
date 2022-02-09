@@ -163,8 +163,9 @@ public class CreateObjectWithKillData16459 extends S3TestBase {
             String key = obj.getKey();
             String actEtag = obj.getETag();
             String versionId = obj.getVersionId();
+
             //可能写元数据过程中异常返回失败实际创建成功，导致获取对象时不存在再次创建后存在多个版本对象
-            if( versionId == "1"){
+            if( versionId.equals("1")){
                 multiVersionKeys.add(key);
             }else{
                 Assert.assertEquals( versionId, "0",
