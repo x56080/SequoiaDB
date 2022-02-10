@@ -1,17 +1,15 @@
 /****************************************************
 @description:      ssl, securesdb
-@testlink cases:   seqDB-9652
+@testlink cases:   seqDB-9653
 @modify list:
         2017-11-21 xiaoni huang init
 ****************************************************/
 <?php
 
 include_once dirname(__FILE__).'/../global.php';
-class sslTest965201 extends PHPUnit_Framework_TestCase
+class sslTest965301 extends PHPUnit_Framework_TestCase
 {
    protected static $db;
-   protected static $csName  = 'cs9652_sec';
-   protected static $clName  = 'cl';
 
    public static function setUpBeforeClass()
    {
@@ -24,15 +22,15 @@ class sslTest965201 extends PHPUnit_Framework_TestCase
       {
          throw new Exception("failed to connect db, errno=".$err['errno']);
       }
-      // enable SSL
+      // disable SSL
       $err = self::$db -> updateConfig( array('usessl' => true) );
       if ( $err['errno'] != 0 )
       {
          throw new Exception("failed to enable SSL using updateConfig, errno=".$err['errno']);
       }
-      /*  SEQUOIADBMAINSTREAM-8018
       self::$db -> close();
 
+      /*  SEQUOIADBMAINSTREAM-8018
       // use SSL
       self::$db = new SecureSdb($address);
       $err = self::$db -> getLastErrorMsg();
@@ -44,21 +42,6 @@ class sslTest965201 extends PHPUnit_Framework_TestCase
 
    public function test_ssl()
    {
-      // create cs
-      self::$db -> createCS( self::$csName, null );
-      $this -> assertEquals( 0, self::$db -> getError()['errno'] );
-
-      // get cs
-      $csDB = self::$db -> getCS( self::$csName );
-      $this -> assertEquals( 0, self::$db -> getError()['errno'] );
-
-      // create cl
-      $csDB -> createCL( self::$clName, null );
-      $this -> assertEquals( 0, self::$db -> getError()['errno'] );
-
-      // drop cs
-      self::$db -> dropCS( self::$csName );
-      $this -> assertEquals( 0, self::$db -> getError()['errno'] );
    }
 
    public static function tearDownAfterClass()
