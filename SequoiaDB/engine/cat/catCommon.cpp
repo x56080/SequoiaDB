@@ -3197,6 +3197,10 @@ namespace engine
       {
          getCatCmdBuilder()->release( pCommand ) ;
       }
+      if ( pMainTask )
+      {
+         clsReleaseTask( pMainTask ) ;
+      }
       return rc ;
    error:
       goto done ;

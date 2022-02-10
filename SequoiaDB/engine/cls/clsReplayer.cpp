@@ -3164,6 +3164,7 @@ namespace engine
       }
       else
       {
+         ossPoolString indexName = indexJob->getIndexName() ;
          EDUID jobEduID = PMD_INVALID_EDUID ;
          // if use RTN_JOB_MUTEX_STOP_RET, when create index have complete,
          // drop index should not drop really, so it's error, need to use
@@ -3182,7 +3183,7 @@ namespace engine
             {
                /// when index job is running
                if ( SDB_OK != rtnIndexJob::checkIndexExist( collection,
-                                                            indexJob->getIndexName(),
+                                                            indexName.c_str(),
                                                             indexExist ) ||
                     TRUE == indexExist )
                {

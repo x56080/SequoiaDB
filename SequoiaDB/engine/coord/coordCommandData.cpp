@@ -1463,6 +1463,7 @@ namespace engine
       rtnContextBuf buffObj ;
       BOOLEAN allTaskFinish = TRUE ;
       pmdKRCB *pKRCB        = pmdGetKRCB() ;
+      clsTask *pTask        = NULL ;
       contextID             = -1 ;
       pMsg->opCode          = MSG_CAT_QUERY_TASK_REQ ;
       pMsg->TID             = cb->getTID() ;
@@ -1490,7 +1491,6 @@ namespace engine
          while ( pContext )
          {
             BSONObj taskObj ;
-            clsTask *pTask = NULL ;
 
             rc = pContext->getMore( 1, buffObj, cb ) ;
             if ( SDB_DMS_EOC == rc )
@@ -1516,6 +1516,7 @@ namespace engine
             if ( CLS_TASK_STATUS_FINISH != pTask->status() )
             {
                allTaskFinish = FALSE ;
+               clsReleaseTask( pTask ) ;
                continue ;
             }
 
@@ -1549,6 +1550,8 @@ namespace engine
                   PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
                }
             }
+
+            clsReleaseTask( pTask ) ;
          }
 
          pKRCB->getRTNCB()->contextDelete( pContext->contextID(), cb ) ;
@@ -1566,6 +1569,10 @@ namespace engine
       if ( SDB_OK == rc && SDB_OK != firstResultCode )
       {
          rc = firstResultCode ;
+      }
+      if ( pTask )
+      {
+         clsReleaseTask( pTask ) ;
       }
       if ( pContext )
       {
