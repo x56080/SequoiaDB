@@ -98,9 +98,9 @@ namespace vessel
          /******* btree only end   *******/
 
 
-         /******* lsm only bein   *******/
+         /******* lsm only begin   *******/
          UINT32 columnFamily = 0;
-         /******* lsm only bein   *******/
+         /******* lsm only end   *******/
    };//class indexParameters
 }//namespace vessel
 }//namespace engine

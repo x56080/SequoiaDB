@@ -1100,6 +1100,10 @@ namespace vessel
       runtimePageBuffer rpb;
       PAGE_SNAPSHOT_VERION psv = context->getEnv()->dms.getOnlinePageSnapshotVersion();
       
+      /// TODO: Should we block checkpoint if this is not
+      /// a cow lps to ensure lps's checkpoint contains all
+      /// repl log?
+
       for (UINT32 i = 0; i < mapping.getSize(); ++i)
       {
          if (OSS_UNLIKELY(!mapping[i].isValid()))

@@ -418,6 +418,8 @@ namespace engine
    {
       DMS_ENGINE_MMAP = 0,
       DMS_ENGINE_VESSEL = 1,
+      DMS_ENGINE_MAX = DMS_ENGINE_VESSEL,
+      DMS_ENGINE_INVALID = DMS_ENGINE_MAX + 1,
    };
 
    /*

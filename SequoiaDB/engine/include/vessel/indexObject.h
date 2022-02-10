@@ -114,7 +114,7 @@ namespace vessel
          strSlice _nameSlice;
          ossPoolString _indexName;
          indexKeyPattern _pattern;
-         indexParameters _params;
+         indexParameters _params;/// TODO: save compacted params
          UINT32 _btreeRootSplitTimes = 0;
          PAGE_ID _btreeRoot = INVALID_PAGE_ID;
    };//class indexObject

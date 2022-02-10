@@ -50,8 +50,8 @@ namespace engine
          IDataJournal &operator=(const IDataJournal &) = delete;
 
       public:
-         virtual void abort(IExecutor *executor,
-                            const DPS_LSN_OFFSET &lsn) = 0;
+         virtual void abortToCommit(IExecutor *executor,
+                                    const DPS_LSN_OFFSET &lsn) = 0;
 
    };//class IDataJournal
 } // namespace engine

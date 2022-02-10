@@ -589,6 +589,42 @@ namespace vessel
       goto done;
    }
 
+   INT32 storageFile::fsyncPagesInSeg(UINT32 segmentId,
+                                      UINT32 pageCount)const
+   {
+      INT32 rc = SDB_OK;
+      UINT32 mmapSegId = 0;
+      INT32 len = 0;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(getSegmentCount() <= segmentId))
+      {
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+
+      mmapSegId = getMMapSegmentID(segmentId);
+      if (_headInMem.maxPageCountPerSeg < pageCount)
+      {
+         pageCount = _headInMem.maxPageCountPerSeg;
+      }
+      len = pageCount * _headInMem.pageSize;
+      
+      rc = ossMmapFile::flushBlock(mmapSegId, 0, len, TRUE);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 storageFile::fsyncFileHead(BOOLEAN sync)const
    {
       INT32 rc = SDB_OK;

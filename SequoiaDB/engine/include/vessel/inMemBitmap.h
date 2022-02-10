@@ -45,9 +45,6 @@ namespace engine
 {
 namespace vessel
 {
-   class requestContext;
-   struct spaceManagementPageHead;
-
    class inMemBitmap : public SDBObject
    {
       private:

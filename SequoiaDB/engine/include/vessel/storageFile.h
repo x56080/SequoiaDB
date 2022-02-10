@@ -95,6 +95,9 @@ namespace vessel
 
          INT32 fsyncSegment(UINT32 segmentId, BOOLEAN sync=TRUE)const;
 
+         /// always begin from the first page in segment.
+         INT32 fsyncPagesInSeg(UINT32 segmentId, UINT32 pageCount)const;
+
          INT32 fsyncFileHead(BOOLEAN sync=TRUE)const;
 
          INT32 fsync()const;

@@ -41,13 +41,13 @@
 #include "utilCompression.hpp"
 #include "dms.hpp"
 #include "../bson/bson.hpp"
+#include "dmsStripingId.hpp"
 
 namespace engine
 {
    class dmsCreateCSOptions : public SDBObject
    {
       public:
-         utilCSUniqueID uniqueID = UTIL_UNIQUEID_NULL;
          UINT32 dataPageSize = DMS_PAGE_SIZE32K;
          UINT32 idxPageSize = DMS_PAGE_SIZE32K;
          UINT32 lobPageSize = DMS_PAGE_SIZE256K;
@@ -165,6 +165,12 @@ namespace engine
          BOOLEAN forward = TRUE;
       
    };//class dmsIndexScanOptions
+
+   class dmsCreateDataSnapshotOptions
+   {
+      public:
+
+   };//class dmsCreateDataSnapshotOptions
 } // namespace engine
 
 

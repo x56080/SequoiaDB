@@ -36,7 +36,7 @@
 #ifndef SDB_DMS_ENGINE_DEF_HPP_
 #define SDB_DMS_ENGINE_DEF_HPP_
 
-#include "dmsStripingId.hpp"
+#include "dms.hpp"
 
 namespace engine
 {
@@ -46,6 +46,64 @@ namespace engine
       DMS_SCAN_FOR_SHARE = 1,
       DMS_SCAN_FOR_UPDATE = 2,
    };//enum DMS_SCAN_FOR
+
+   class dmsEngineDescriptor : public SDBObject
+   {
+      public:
+         dmsEngineDescriptor(){}
+         ~dmsEngineDescriptor(){}
+         dmsEngineDescriptor(const dmsEngineDescriptor &o):
+         _name(o._name),
+         _type(o._type),
+         _flags(o._flags){}
+         dmsEngineDescriptor &operator=(const dmsEngineDescriptor &o)
+         {
+            _name = o._name;
+            _type = o._type;
+            _flags = o._flags;
+            return *this;
+         }
+
+      public:
+         static constexpr UINT64 FLAG_DATA_SNAPSHOT_ENABLED = 0x01;
+
+      public:
+         OSS_INLINE BOOLEAN isValid()const
+         {
+            return NULL != _name &&
+                   0 != ossStrlen(_name) &&
+                   DMS_ENGINE_INVALID != _type;
+         }
+         OSS_INLINE void setName(const CHAR *name)
+         {
+            _name = name;
+         }
+         OSS_INLINE const CHAR *getName()const
+         {
+            return _name;
+         }
+         OSS_INLINE void setType(DMS_ENGINE_TYPE type)
+         {
+            _type = type;
+         }
+         OSS_INLINE DMS_ENGINE_TYPE getType()const
+         {
+            return _type;
+         }
+
+         OSS_INLINE void setFlags(UINT64 flags)
+         {
+            _flags = flags;
+         }
+         OSS_INLINE BOOLEAN isDataSnapshotEnabled()const
+         {
+            return 0 != OSS_BIT_TEST(_flags, FLAG_DATA_SNAPSHOT_ENABLED);
+         }
+      private:
+         const CHAR *_name = NULL;
+         DMS_ENGINE_TYPE _type = DMS_ENGINE_INVALID;
+         UINT64 _flags = 0;
+   };//class dmsEngineDescriptor
 } // namespace engine
 
 

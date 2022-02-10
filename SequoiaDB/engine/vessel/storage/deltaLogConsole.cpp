@@ -636,6 +636,7 @@ namespace vessel
       UINT32 pageCount = _workingFile.getCommonHeadInMem().maxPageCountPerSeg;
       UINT32 minSegment = 0;
       UINT32 maxSegment = 0;
+      INT32 rc = SDB_OK;
 
       if (INVALID_PAGE_ID != _lastCheckpointPid)
       {
@@ -645,15 +646,20 @@ namespace vessel
       maxSegment = _checkpointReserved / pageCount;
 
       SDB_ASSERT(minSegment <= maxSegment, "impossible");
-      for (UINT32 i = minSegment; i <= maxSegment; ++i)
+      for (UINT32 i = minSegment; i < maxSegment; ++i)
       {
-         INT32 rc = _workingFile.fsyncSegment(i);
+         rc = _workingFile.fsyncSegment(i);
          if (OSS_UNLIKELY(SDB_OK != rc))
          {
             PD_LOG(PDSEVERE, "failed to fsync delta log segment[%d], rc:%d", i, rc);
          }
       }
 
+      rc = _workingFile.fsyncPagesInSeg(maxSegment, (_checkpointReserved % pageCount) + 1);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDSEVERE, "failed to fsync delta log segment[%d], rc:%d", maxSegment, rc);
+      }
       return;
    }
 }//namespace vessel
