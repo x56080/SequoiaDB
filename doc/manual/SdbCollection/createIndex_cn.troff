@@ -9,7 +9,6 @@ createIndex \- 创建索引
 .PP
 \f[B]db.collectionspace.collection.createIndex(<name>, <indexDef>, [isUnique],
 [enforced], [sortBufferSize])\f[]
-.PP
 \f[B]db.collectionspace.collection.createIndex(<name>, <indexDef>, [indexAttr],
 [option])\f[]
 .SH 类别
@@ -18,6 +17,8 @@ SdbCollection
 .SH 描述
 .PP
 该函数用于为集合创建索引，以提高查询速度。创建前用户需了解索引的相关限制。
+.PP
+如果索引字段在集合中为正序排序或需要匹配值较小的记录时，建议创建升序的索引，可以更快命中目标记录。如果需要匹配值较大的记录，建议创建降序的索引。在实际使用中，根据场景正确地指定索引类型，可以极大地提升索引的查询效率。
 .SH 参数
 .IP \[bu] 2
 name（ \f[I]string，必填\f[] ）
@@ -86,7 +87,7 @@ Enforced（ \f[I]boolean\f[] ）：是否强制唯一，默认值为 false
 .IP \[bu] 2
 取值为 true 时，不能重复插入索引字段值为 null 的记录。
 .IP \[bu] 2
-仅在参数 Unique 为 true 时生效
+仅在参数 Unique 为 true 时生效。
 .PP
 格式：\f[C]Enforced: true\f[]
 .RE
@@ -121,10 +122,18 @@ Standalone（ \f[I]boolean\f[] ）：是否为独立索引，默认值为
 false，表示不为独立索引
 .RS 2
 .PP
-该参数指定为 true 时，必须指定参数 NodeName、NodeID 或 InstanceID。
+该参数取值为 true 时，必须指定参数 NodeName、NodeID 或 InstanceID。
 .PP
 格式：\f[C]Standalone: true\f[]
 .RE
+.RE
+.RS
+.PP
+\f[B]Note:\f[]
+.IP \[bu] 2
+独立索引不支持配置约束，即参数 Unique、NotNull 和 NotArray 不能为 true。
+.IP \[bu] 2
+全文索引不能作为独立索引。
 .RE
 .IP \[bu] 2
 option（ \f[I]object，选填\f[] ）

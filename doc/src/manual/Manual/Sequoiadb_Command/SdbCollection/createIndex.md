@@ -5,7 +5,6 @@ createIndex - 创建索引
 ##语法##
 
 **db.collectionspace.collection.createIndex(\<name\>, \<indexDef\>, [isUnique], [enforced], [sortBufferSize])**
-
 **db.collectionspace.collection.createIndex(\<name\>, \<indexDef\>, [indexAttr], [option])**
 
 ##类别##
@@ -15,6 +14,9 @@ SdbCollection
 ##描述##
 
 该函数用于为集合创建[索引][index]，以提高查询速度。创建前用户需了解索引的相关[限制][limitation]。
+
+如果索引字段在集合中为正序排序或需要匹配值较小的记录时，建议创建升序的索引，可以更快命中目标记录。如果需要匹配值较大的记录，建议创建降序的索引。在实际使用中，根据场景正确地指定索引类型，可以极大地提升索引的查询效率。
+
 
 ##参数##
 
@@ -63,7 +65,7 @@ SdbCollection
     - Enforced（ *boolean* ）：是否强制唯一，默认值为 false
 
         - 取值为 true 时，不能重复插入索引字段值为 null 的记录。
-        - 仅在参数 Unique 为 true 时生效
+        - 仅在参数 Unique 为 true 时生效。
                             
         格式：`Enforced: true`
 
@@ -85,11 +87,16 @@ SdbCollection
 
         格式：`NotArray: true`
 
-    - Standalone（ *boolean* ）：是否为独立索引，默认值为 false，表示不为独立索引
+    - Standalone（ *boolean* ）：是否为[独立索引][standalone]，默认值为 false，表示不为独立索引
 
-        该参数指定为 true 时，必须指定参数 NodeName、NodeID 或 InstanceID。
+        该参数取值为 true 时，必须指定参数 NodeName、NodeID 或 InstanceID。
 
         格式：`Standalone: true`
+
+> **Note:**
+>
+> - 独立索引不支持配置约束，即参数 Unique、NotNull 和 NotArray 不能为 true。
+> - 全文索引不能作为独立索引。
 
 - option（ *object，选填* ）
  
@@ -105,7 +112,7 @@ SdbCollection
     - NodeName（ *string/array* ）：数据节点名
 
         格式：`NodeName: "sdbserver:11820"`
-     
+
     - NodeID（ *number/array* ）：数据节点 ID
 
         格式：`NodeID: 1001`
@@ -186,6 +193,8 @@ v2.0 及以上版本
 [limitation]:manual/Manual/sequoiadb_limitation.md#索引
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[text_index]:manual/Distributed_Engine/Architecture/Data_Model/text_index.md
 [faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
+[text_index]:manual/Distributed_Engine/Operation/Index/text_index.md
+[standalone]:manual/Distributed_Engine/Architecture/Data_Model/index.md#创建索引
+

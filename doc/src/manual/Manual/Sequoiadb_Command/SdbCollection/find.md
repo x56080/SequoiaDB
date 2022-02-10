@@ -179,7 +179,7 @@ v1.0 及以上版本
 [^_^]:
     本文使用的所有引用及链接
 [overview]:manual/Manual/Operator/Match_Operator/Readme.md
-[text_index]:manual/Distributed_Engine/Architecture/Data_Model/text_index.md
+[text_index]:manual/Distributed_Engine/Operation/Index/text_index.md
 [QueryOption]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects/SdbQueryOption.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md

@@ -191,7 +191,7 @@ v1.0 and above
 [^_^]:
     Links
 [overview]:manual/Manual/Operator/Match_Operator/Readme.md
-[text_index]:manual/Distributed_Engine/Architecture/Data_Model/text_index.md
+[text_index]:manual/Distributed_Engine/Operation/Index/text_index.md
 [QueryOption]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects/SdbQueryOption.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md

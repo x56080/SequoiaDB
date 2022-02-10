@@ -16,6 +16,8 @@ SdbCollection
 
 This function is used to create an [index][index] for the collection to improve query speed.User need to understand the [limitations][limitation] of indexes before careating.
 
+If the index field is sorted in positive order in the collection or needs to match records with smaller values, it is recommended to create an index in ascending order, which can hit the target records faster. If you need to match records with large values, it is recommended to create a descending index. In actual use, correctly specifying the index type according to the scenario can greatly improve the query efficiency of the index. 
+
 ##PARAMETERS##
 
 - name ( *string, required* )
@@ -45,7 +47,7 @@ This function is used to create an [index][index] for the collection to improve 
 
     The size of sort buffer. The default value is 64, the unit is MB.
 
-    - Zero means don't use sort buffer.
+    - A value of 0 means not to use the sort buffer.
     - When the collection record data volume more than 10 million records, appropriately increasing the sort cache size can increase the speed of index creation. 
 
 > **Note:**
@@ -89,26 +91,31 @@ This function is used to create an [index][index] for the collection to improve 
 
         Format: `Standalone: true`
 
+> **Note:**
+>
+> - The standalone index does not support configuration constaints, that is, the parameters Unique, NotNull and NotArray cannot be true.
+> * Text indexes cannot be used as standalone indexes.
+
 - option ( *object, optional* )
 
     Control parameters can be set through the parameter "option":
 
     - SortBufferSize ( *number* ): The size of sort buffer. The default value is 64, the unit is MB.
     
-        - Zero means don't use sort buffer.
+        - A value of 0 means not to use the sort buffer.
         - When the collection record data volume more than 10 million records, appropriately increasing the sort cache size can increase the speed of index creation.
 
         Format: `SortBufferSize: 80`
-
-    - NodeName ( *string/array* ): Data node name
+    
+    - NodeName ( *string/array* ): Data node name.
 
         Format: `NodeName: "sdbserver:11820"`
     
-    - NodeID ( *number/array* ): Data node ID
+    - NodeID ( *number/array* ): Data node ID.
 
         Format: `NodeID: 1001`
     
-    - InstanceID ( *number/array* ): Data node instance ID
+    - InstanceID ( *number/array* ): Data node instance ID.
 
         Format: `InstanceID: 100`
 
@@ -186,4 +193,6 @@ v2.0 and above
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
+[standalone]:manual/Distributed_Engine/Architecture/Data_Model/index.md#创建索引
+[limitation]:manual/Manual/sequoiadb_limitation.md#索引
 [text_index]:manual/Distributed_Engine/Architecture/Data_Model/text_index.md
