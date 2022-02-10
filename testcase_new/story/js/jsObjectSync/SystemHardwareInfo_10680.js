@@ -66,9 +66,13 @@ SystemTest.prototype.testGetMemInfo = function()
    var free = memInfo2[2];   // 空闲内存大小
    var unit = "M";
    if( !isApproEqual( size, memInfo1.Size ) ||
-      !isApproEqual( used, memInfo1.Used ) ||
-      !isApproEqual( free, memInfo1.Free ) ||
       unit !== memInfo1.Unit )
+   {
+      throw new Error( "testGetMemInfo fail,check mem info " + this + memInfo2 + JSON.stringify( memInfo1 ) );
+   }
+   if( !(memInfo1.Used >0 &&
+        memInfo1.Free >0 &&
+       memInfo1.Used + memInfo1.Free <= size ))
    {
       throw new Error( "testGetMemInfo fail,check mem info " + this + memInfo2 + JSON.stringify( memInfo1 ) );
    }
