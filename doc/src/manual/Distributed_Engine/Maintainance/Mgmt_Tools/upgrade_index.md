@@ -23,11 +23,11 @@ sdbupgradeidx [ options ] ...
 
 - **--hostname, -s <coord hostname>**  
 
-    指定协调节点所在的主机名，默认为 localhost
+    指定协调节点所在的主机名
   
 - **--svcname, -p <coord port>**  
   
-    指定协调节点的端口号，默认为 11810
+    指定协调节点的端口号
   
 - **--output, -o <output file>**  
 
@@ -35,7 +35,7 @@ sdbupgradeidx [ options ] ...
   
 - **--action <action>**  
 
-    指定操作，默认为"check"，取值如下：
+    指定操作，取值如下：
  
     - "check": 只做升级前的检验
  
