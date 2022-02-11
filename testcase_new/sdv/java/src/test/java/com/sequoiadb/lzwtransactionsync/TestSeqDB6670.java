@@ -61,7 +61,7 @@ public class TestSeqDB6670 extends SdbTestBase {
     @Test()
     public void test() throws Exception {
         // 1. 创建新组及3个数据节点
-        if ( sdb.isRelicaGroupExist( rgName ) ) {
+        if ( sdb.isReplicaGroupExist( rgName ) ) {
             sdb.removeReplicaGroup( rgName );
         }
 
@@ -184,7 +184,7 @@ public class TestSeqDB6670 extends SdbTestBase {
     @AfterClass()
     public void tearDown() {
         cs.dropCollection( clName );
-        if ( sdb.isRelicaGroupExist( rgName ) ) {
+        if ( sdb.isReplicaGroupExist( rgName ) ) {
             sdb.removeReplicaGroup( rgName );
         }
         sdb.close();

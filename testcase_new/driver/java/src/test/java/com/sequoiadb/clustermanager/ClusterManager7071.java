@@ -82,7 +82,7 @@ public class ClusterManager7071 extends SdbTestBase {
             }
         }
         dataRGAdd = sdb.createReplicaGroup( dataRGName );
-        Assert.assertTrue( sdb.isRelicaGroupExist( dataRGName ) );
+        Assert.assertTrue( sdb.isReplicaGroupExist( dataRGName ) );
         int dataRGId = dataRGAdd.getId();
         Assert.assertTrue( sdb.isReplicaGroupExist( dataRGId ) );
 
