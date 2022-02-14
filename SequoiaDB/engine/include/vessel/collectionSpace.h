@@ -168,6 +168,11 @@ namespace vessel
                                  OSS_LATCH_MODE mode,
                                  collection **obj);
 
+         INT32 getCollectionByCLInnerID(requestContext *context,
+                                        utilCLInnerID innerID,
+                                        OSS_LATCH_MODE mode,
+                                        collection **obj);
+
       private:
          void fini();
          INT32 initInMemStructures();

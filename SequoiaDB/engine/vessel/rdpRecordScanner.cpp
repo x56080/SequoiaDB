@@ -306,7 +306,12 @@ namespace vessel
          }
          _recordBufferSize = recordData.getSize();
          buf.makeWritable(_recordBufferSize, _recordBuffer);
-         buf.write(0, _recordBufferSize,  recordData.getData());
+         rc = buf.write(0, _recordBufferSize,  recordData.getData());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to write record data, rc:%d", rc);
+            goto error;
+         }
       }
       else
       {
