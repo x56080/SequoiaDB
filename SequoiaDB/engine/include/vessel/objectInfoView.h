@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = objectInfoView.h
+   Source File Name = clInfoView.h
 
    Descriptive Name =
 
@@ -33,8 +33,8 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_OBJECT_INFO_VIEW_H_
-#define VESSEL_OBJECT_INFO_VIEW_H_
+#ifndef VESSEL_CL_INFO_VIEW_H_
+#define VESSEL_CL_INFO_VIEW_H_
 
 #include "vessel/objectIdentifier.h"
 #include "vessel/objectBaseDef.h"
@@ -45,6 +45,19 @@ namespace engine
 {
 namespace vessel
 {
+   class csInfoView : public SDBObject
+   {
+      public:
+         csInfoView(){}
+         ~csInfoView(){}
+
+      public:
+         collectionSpaceId csid;
+         std::string name;
+
+   };//class csInfoView
+   typedef 
+
    class clInfoView : public SDBObject
    {
       public:
@@ -52,15 +65,27 @@ namespace vessel
          ~clInfoView(){}
 
       public:
-         globalCollectionId gcid;
+         collectionId clid;
          std::string name;
          COLLECTION_TYPE type = COLLECTION_TYPE_INVALID;
          UINT8 compressionType = UTIL_COMPRESSOR_INVALID;
          FLOAT32 minFreePercent = 0.0f;
-         dmsStripingRange _stripingRange;
+         dmsStripingRange stripingRange;
 
    };//class clInfoView
+
+   class indexInfoView : public SDBObject
+   {
+      public:
+         indexInfoView(){}
+         ~indexInfoView(){}
+
+      public:
+         indexIdentifier indexId;
+         UINT32 flags = 0;
+         std::string name;
+   };//class indexInfoView
 }
 }
 
-#endif//VESSEL_OBJECT_INFO_VIEW_H_
+#endif//VESSEL_CL_INFO_VIEW_H_
