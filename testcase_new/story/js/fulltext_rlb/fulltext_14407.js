@@ -25,7 +25,7 @@ function test ()
    var clName = COMMCLNAME + "_ES_14407";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName, ReplSize: 0 } );
 
    // 创建全文索引，插入数据
    var textIndexName = "textIndex_14407";
