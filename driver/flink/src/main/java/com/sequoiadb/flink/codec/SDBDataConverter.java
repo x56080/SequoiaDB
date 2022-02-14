@@ -462,19 +462,21 @@ public class SDBDataConverter implements Serializable {
                 return (v -> v);
 
             case DECIMAL:
-                return (v -> (new BSONDecimal(((DecimalData) v).toBigDecimal())));
+                return (v -> v != null ? new BSONDecimal(((DecimalData) v).toBigDecimal()) : null);
 
             case DATE:
-                return (v -> LocalDate.ofEpochDay((int) v));
+                return (v -> v != null ?
+                        new Date(java.sql.Date.valueOf(LocalDate.ofEpochDay((int) v)).getTime()) :
+                        null);
 
             case TIMESTAMP_WITHOUT_TIME_ZONE:
             case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
             case TIMESTAMP_WITH_TIME_ZONE:
-                return (v -> new BSONTimestamp(((TimestampData) v).toTimestamp()));
+                return (v -> v != null ? new BSONTimestamp(((TimestampData) v).toTimestamp()) : null);
 
             case CHAR:
             case VARCHAR:
-                return (Object::toString);
+                return (v -> v != null ? v.toString() : null);
 
             case BINARY:
             case VARBINARY:
