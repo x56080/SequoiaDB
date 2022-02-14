@@ -110,6 +110,11 @@ namespace engine
                               const dmsOpenCLOptions &o,
                               DATA_COLLECTION_PTR &ptr) = 0;
 
+         virtual INT32 openCL(IExecutor *executor,
+                              const utilCLUniqueID &uniqueId,
+                              const dmsOpenCLOptions &o,
+                              DATA_COLLECTION_PTR &ptr) = 0;
+
          virtual INT32 getCLCount(IExecutor *executor,
                                   const CHAR *csName,
                                   UINT32 &count) = 0;

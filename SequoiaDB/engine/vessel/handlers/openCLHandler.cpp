@@ -91,5 +91,51 @@ namespace vessel
    error:
       goto done;
    }
+
+   INT32 openCLHandler::doit(const utilCLUniqueID &uniqueId,
+                             globalCollectionId &id)
+   {
+      INT32 rc = SDB_OK;
+      collectionSpace *cs = NULL;
+      collection *cl = NULL;
+      requestContext context;
+
+      id.reset();
+      if (OSS_UNLIKELY(!isInitialized()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      if (!UTIL_IS_VALID_CLUNIQUEID(uniqueId))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      context.open(getExecutor(), getEnv());
+
+      rc = getEnv()->dms.getCSByUniqueID(&context, utilGetCSUniqueID(uniqueId), 
+                                         SHARED, &cs);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      rc = cs->getCollectionByCLInnerID(&context, utilGetCLInnerID(uniqueId), 
+                                        SHARED, &cl);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+      
+      id = cl->getGlobalId();
+   done:
+      context.close();
+      return rc;
+   error:
+      goto done;
+      
+   }
 }//namespace vessel
 }//namespace engine

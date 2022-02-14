@@ -1092,7 +1092,8 @@ vesselTestFiles = [
       "test/vessel/dml_delete_test.cpp",
       "test/vessel/index_delete_test.cpp",
       "test/vessel/lsm_compaction_filter_test.cpp",
-      "test/vessel/index_ddl_test.cpp"
+      "test/vessel/index_ddl_test.cpp",
+      "test/vessel/misc_test.cpp"
 ]
 
 vesselUnitTestCommonFiles = [

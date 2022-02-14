@@ -53,6 +53,9 @@ namespace vessel
       public:
          INT32 doit(const CHAR *fullName,
                     globalCollectionId &id);
+         
+         INT32 doit(const utilCLUniqueID &uniqueId,
+                    globalCollectionId &id);
    };//class openCLHandler
 }//namespace vessel
 }//namespace engine

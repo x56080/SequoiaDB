@@ -536,6 +536,14 @@ namespace vessel
          goto error;
       }
 
+      h.init(&_env, executor);
+
+      rc = h.doit(fullName, gcid);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
       ptr = makeSharedPtrFromPool<collectionHandler>();
       if (!ptr)
       {
@@ -545,15 +553,55 @@ namespace vessel
       }
 
       clHandler = static_cast<collectionHandler *>(ptr.get());
+      *clHandler = collectionHandler(this, gcid);
+   done:
+      return rc;
+   error:
+      ptr.reset();
+      goto done;
+   }
+
+   INT32 vesselImpl::openCL(IExecutor *executor,
+                            const utilCLUniqueID &uniqueId,
+                            const dmsOpenCLOptions &o,
+                            DATA_COLLECTION_PTR &ptr)
+   {
+      INT32 rc = SDB_OK;
+      openCLHandler h;
+      globalCollectionId gcid;
+      collectionHandler *clHandler = NULL;
+
+      ptr.reset();
+
+      if (OSS_UNLIKELY(NULL == executor ||
+                       !UTIL_IS_VALID_CLUNIQUEID(uniqueId)))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
 
       h.init(&_env, executor);
 
-      rc = h.doit(fullName, gcid);
+      rc = h.doit(uniqueId, gcid);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
+      ptr = makeSharedPtrFromPool<collectionHandler>();
+      if (!ptr)
+      {
+         PD_LOG(PDERROR, "failed to allocate mem.");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      clHandler = static_cast<collectionHandler *>(ptr.get());
       *clHandler = collectionHandler(this, gcid);
    done:
       return rc;
