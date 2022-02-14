@@ -4801,6 +4801,11 @@ namespace vessel
          rc = accessor.setRecordOverflowed(context, currentAddr.getPos(),
                                            recordStream.getLastSliceAddr(), 
                                            bigRecord);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to set record overflowed, rc:%d", rc);
+            goto error;
+         }
       }
 
    done:

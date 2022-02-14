@@ -788,9 +788,7 @@ namespace vessel
                goto error;
             }
 
-            if (_isMarkedRemoved(_itr) || 
-                _context->getTransIDWithoutTag().getSN() < 
-                _currentEntry.getTransID().getSN())
+            if (_isMarkedRemoved(_itr))
             {
                rc = forwardToNextVisiblePostion();
                if (SDB_OK != rc)

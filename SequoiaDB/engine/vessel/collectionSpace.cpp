@@ -577,6 +577,85 @@ namespace vessel
       goto done;
    }
 
+   INT32 collectionSpace::getCollectionByCLInnerID(requestContext *context,
+                                                   utilCLInnerID innerID,
+                                                   OSS_LATCH_MODE mode,
+                                                   collection **obj)
+   {
+      INT32 rc = SDB_OK;
+      BOOLEAN mbLocked = FALSE;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == context ||
+                            !UTIL_IS_VALID_CL_INNERID(innerID) ||
+                            NULL == obj))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      do
+      {
+         collectionObjHolder *holder = NULL;
+         CL_MB_ID mbID = INVALID_CL_MB_ID;
+         ossSLatchGuard guard(&_latch, SHARED);
+         if (!find(innerID, mbID))
+         {
+            rc = SDB_DMS_NOTEXIST;
+            goto error;
+         }
+
+         rc = getCollectionHolder(mbID, &holder);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get collection holder:%d", rc);
+            goto error;
+         }
+
+         mbLocked = context->tryLockMB(mbID, &(holder->getLatch()), mode);
+
+         if (!mbLocked)
+         {
+            guard.unlock();
+            if (SHARED == mode)
+            {
+               holder->getLatch().lock_r();
+               holder->getLatch().release_r();
+            }
+            else
+            {
+               holder->getLatch().lock_w();
+               holder->getLatch().release_w();
+            }
+            continue;
+         }
+
+         if (holder->isFree())
+         {
+            PD_LOG(PDERROR, "unexpected free holder[%d]", mbID);
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
+         SDB_ASSERT(holder->getObj()->isOpen(), "impossible");
+         *obj = holder->getObj();
+         break;
+      } while (TRUE);
+
+   done:
+      return rc;
+   error:
+      if (mbLocked)
+      {
+         context->unlockMB();
+      }
+      goto done;
+   }
+
    INT32 collectionSpace::getCollectionByMBID(requestContext *context,
                                               CL_MB_ID mbID,
                                               UINT32 logicalID,
