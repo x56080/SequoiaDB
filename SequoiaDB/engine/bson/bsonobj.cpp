@@ -1474,8 +1474,15 @@ namespace bson {
         }
         case Undefined:
         case jstNULL:
-            appendMinForType( fieldName , NumberInt );
-        case Bool: appendBool( fieldName , true); break;
+        {
+           appendMinForType( fieldName, NumberInt ) ;
+           break ;
+        }
+        case Bool:
+        {
+           appendBool( fieldName, true ) ;
+           break;
+        }
         case Date: appendDate( fieldName , 0xFFFFFFFFFFFFFFFFLL ); break;
         case Symbol:
         case String: append( fieldName , BSONObj() ); break;
