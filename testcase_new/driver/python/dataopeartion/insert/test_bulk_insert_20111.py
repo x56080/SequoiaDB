@@ -5,7 +5,7 @@
 
 from dataopeartion.insert.commlib import *
 from lib import testlib
-from pysequoiadb.collection import (INSERT_FLG_RETURN_OID)
+from pysequoiadb.collection import (INSERT_FLG_RETURN_OID, INSERT_FLG_RETURNNUM)
 from bson import ObjectId
 
 class TestBulkInsert20111(testlib.SdbTestBase):
@@ -32,6 +32,10 @@ class TestBulkInsert20111(testlib.SdbTestBase):
          self.assertTrue(isinstance(oid, ObjectId))
          record = {"_id":oid, "a": count, "b": count}
          check_Result(self.cl, {"a":count}, [record], True)
+
+      ret_value = self.cl.bulk_insert(INSERT_FLG_RETURNNUM, records)
+      self.assertEqual({"DuplicatedNum": 0, "InsertedNum": len(records)}, ret_value)
+      self.assertEqual(self.cl.get_count(), 2*len(records))
 
    def tearDown(self):
       if self.should_clean_env():

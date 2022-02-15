@@ -6,6 +6,7 @@
  @author:     laojingtang
 """
 from lib import testlib
+from pysequoiadb.collection import (INSERT_FLG_RETURN_OID,DELETE_FLG_RETURNNUM)
 
 
 class SdbTestDelete12472(testlib.SdbTestBase):
@@ -46,3 +47,11 @@ class SdbTestDelete12472(testlib.SdbTestBase):
       list_insert = [{"a": i} for i in range(10)]
       hint = {"": "index"}
       self.__delete_test(list_insert, [], hint=hint)
+
+      # test delete with DELETE_FLG_RETURNNUM
+      list_insert = [{"a": i} for i in range(10)]
+      self.cl.bulk_insert(INSERT_FLG_RETURN_OID, records=list_insert)
+      ret_value = self.cl.delete(condition={}, flags=DELETE_FLG_RETURNNUM)
+      self.assertEqual({"DeletedNum": 10}, ret_value)
+      self.assertEqual(self.cl.get_count(), 0)
+

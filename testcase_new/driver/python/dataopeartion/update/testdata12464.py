@@ -3,6 +3,7 @@
 # @author:     LaoJingTang 2017-8-30
 
 from lib import testlib
+from pysequoiadb.collection import (INSERT_FLG_RETURN_OID, UPDATE_FLG_RETURNNUM)
 
 
 class Data12464Sdb(testlib.SdbTestBase):
@@ -34,7 +35,14 @@ class Data12464Sdb(testlib.SdbTestBase):
 
       # flags+update
       QUERY_FLG_FORCE_HINT = 128
-      self.update_test(record_to_insert, expect, update_rule, flagss=QUERY_FLG_FORCE_HINT, hint=hint)
+      self.update_test(record_to_insert, expect, update_rule, flags=QUERY_FLG_FORCE_HINT, hint=hint)
+
+      # test update with DELETE_FLG_RETURNNUM
+      self.cl.bulk_insert(INSERT_FLG_RETURN_OID, record_to_insert)
+      update_rule = {"$set": {"a": 10}}
+      ret_value = self.cl.update(update_rule, condition={}, flags=UPDATE_FLG_RETURNNUM)
+      self.assertEqual({"ModifiedNum": 3, "UpdatedNum": 3, "InsertedNum": 0}, ret_value)
+      self.assertEqual(self.cl.get_count({"a":10}), len(record_to_insert))
 
    def tearDown(self):
       if self.should_clean_env():
