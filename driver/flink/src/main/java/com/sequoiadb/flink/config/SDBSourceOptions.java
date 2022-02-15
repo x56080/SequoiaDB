@@ -111,7 +111,7 @@ public class SDBSourceOptions extends SDBClientOptions {
                                  boolean preferredInstanceStrict) {
             List<Integer> ids = new ArrayList<>();
             for (String preferredInstance : preferredInstances) {
-                switch (preferredInstance) {
+                switch (preferredInstance.toUpperCase()) {
                     case PREFERRED_ANY:
                     case PREFERRED_MASTER:
                     case PREFERRED_SLAVE:
