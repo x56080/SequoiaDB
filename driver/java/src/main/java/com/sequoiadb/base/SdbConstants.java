@@ -126,5 +126,8 @@ final class SdbConstants {
     final static String OID = "_id";
 
     final static int FLG_UPDATE_UPSERT = 0x00000001;
+    final static int FLG_INSERT_RETURNNUM = 0x00000002;
+    final static int FLG_UPDATE_RETURNNUM = 0x00000004;
+    final static int FLG_DELETE_RETURNNUM = 0x00000004;
 
 }
