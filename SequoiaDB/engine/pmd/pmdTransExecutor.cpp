@@ -79,12 +79,17 @@ namespace engine
       return PMD_INVALID_EDUID ;
    }
 
-   void _pmdTransExecutor::wakeup()
+   void _pmdTransExecutor::wakeup( INT32 wakeupRC )
    {
       SDB_ASSERT( _pEDUCB, "EDU CB can't be NULL" ) ;
       if ( _pEDUCB )
       {
-         _pEDUCB->postEvent( pmdEDUEvent( PMD_EDU_EVENT_LOCKWAKEUP ) ) ;
+         UINT32 tmpDummy = 0 ;
+         UINT32 tmpRC = (UINT32)wakeupRC ;
+         _pEDUCB->postEvent( pmdEDUEvent( PMD_EDU_EVENT_LOCKWAKEUP,
+                                          PMD_EDU_MEM_NONE,
+                                          NULL,
+                                          ossPack32To64( tmpDummy, tmpRC ) ) ) ;
       }
    }
 
@@ -99,7 +104,9 @@ namespace engine
       {
          if ( _pEDUCB->waitEvent( PMD_EDU_EVENT_LOCKWAKEUP, data, timeout ) )
          {
-            rc = SDB_OK ;
+            UINT32 tmpDummy = 0, tmpRC = 0 ;
+            ossUnpack32From64( data._userData, tmpDummy, tmpRC ) ;
+            rc = (INT32)tmpRC ;
          }
          else if ( _pEDUCB->isInterrupted() )
          {
