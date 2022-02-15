@@ -88,7 +88,7 @@ namespace vessel
 
       _sid = INVALID_SPACE_ID;
 
-      if (OSS_UNLIKELY(!vesselFileName::buildDirName(sid, sizeof(dirName), dirName)))
+      if (OSS_UNLIKELY(!storageFileName::buildDirName(sid, sizeof(dirName), dirName)))
       {
          PD_LOG(PDERROR, "failed to build dir name");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -156,7 +156,7 @@ namespace vessel
          goto error;
       }
 
-      if (!vesselFileName::buildDirName(context->getSpaceID(), sizeof(dirName), dirName))
+      if (!storageFileName::buildDirName(context->getSpaceID(), sizeof(dirName), dirName))
       {
          PD_LOG(PDERROR, "failed to build dir name");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -255,7 +255,7 @@ namespace vessel
          goto error;
       }
 
-      if (!vesselFileName::buildDirName(context->getSpaceID(), sizeof(dirName), dirName))
+      if (!storageFileName::buildDirName(context->getSpaceID(), sizeof(dirName), dirName))
       {
          PD_LOG(PDERROR, "failed to build dir name");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -442,15 +442,6 @@ namespace vessel
       OSSFILE file;
       BOOLEAN rollbackFile = FALSE;
       CHAR fullPath[OSS_MAX_PATHSIZE + 1] = {};
-      CHAR fileName[MAX_FILE_NAME_LEN +1] = {};
-      strSlice suffix(SIMPLE_FILE_SUFFIX_TMPSU);
-      if (!vesselFileName::buildSimpleName(sid, suffix,
-                                           MAX_FILE_NAME_LEN + 1, fileName))
-      {
-         PD_LOG(PDERROR, "failed to build tmp file name");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
 
       rc = utilBuildFullPath(path.dataPath.c_str(),
                              dir.str(),
@@ -463,7 +454,7 @@ namespace vessel
          goto error;
       }
 
-      rc = utilCatPath(fullPath, OSS_MAX_PATHSIZE + 1, fileName);
+      rc = utilCatPath(fullPath, OSS_MAX_PATHSIZE + 1, TMPSU_FILE_NAME);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to cat path:%d", rc);
@@ -506,19 +497,10 @@ namespace vessel
       SDB_ASSERT(!fullDir.empty(), "can not be empty");
       SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
       CHAR fullPath[OSS_MAX_PATHSIZE + 1] = {};
-      CHAR fileName[MAX_FILE_NAME_LEN + 1] = {};
       exists = FALSE;
-      strSlice suffix(SIMPLE_FILE_SUFFIX_TMPSU);
 
-      if (!vesselFileName::buildSimpleName(sid, suffix,
-                                           MAX_FILE_NAME_LEN + 1, fileName))
-      {
-         PD_LOG(PDERROR, "failed to build file name");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      rc = utilBuildFullPath(fullDir.str(), fileName, OSS_MAX_PATHSIZE + 1, fullPath);
+      rc = utilBuildFullPath(fullDir.str(), TMPSU_FILE_NAME, 
+                             OSS_MAX_PATHSIZE + 1, fullPath);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to build full path:%d", rc);
@@ -555,17 +537,7 @@ namespace vessel
       SDB_ASSERT(!dir.empty(), "can not be empty");
       SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
 
-      CHAR fileName[MAX_FILE_NAME_LEN + 1] = {};
       CHAR fullPath[OSS_MAX_PATHSIZE + 1] = {};
-      strSlice suffix(SIMPLE_FILE_SUFFIX_TMPSU);
-
-      if (!vesselFileName::buildSimpleName(sid, suffix,
-                                           MAX_FILE_NAME_LEN + 1, fileName))
-      {
-         PD_LOG(PDERROR, "failed to build file name");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
 
       rc = utilBuildFullPath(path.dataPath.c_str(), dir.str(),
                              OSS_MAX_PATHSIZE, fullPath);
@@ -575,7 +547,7 @@ namespace vessel
          goto error;
       }
 
-      rc = utilCatPath(fullPath, OSS_MAX_PATHSIZE + 1, fileName);
+      rc = utilCatPath(fullPath, OSS_MAX_PATHSIZE + 1, TMPSU_FILE_NAME);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to cat path:%d", rc);
@@ -1007,8 +979,8 @@ namespace vessel
       return;
    }
 
-   INT32 storageUnit::openStorageFile(const vesselFileName &fn,
-                                       storageFile *file)const
+   INT32 storageUnit::openStorageFile(const storageFileName &fn,
+                                      storageFile *file)const
    {
       INT32 rc = SDB_OK;
       ossPoolString fullDir;
@@ -1041,7 +1013,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageUnit::createStorageFile(const vesselFileName &fn,
+   INT32 storageUnit::createStorageFile(const storageFileName &fn,
                                         const createStorageFileOptions &o,
                                         const slice &userDefinedHead,
                                         storageFile *file)const
@@ -1100,7 +1072,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageUnit::destroyStorageFile(const vesselFileName &fn)
+   INT32 storageUnit::destroyStorageFile(const storageFileName &fn)
    {
       INT32 rc = SDB_OK;
       ossPoolString fullPath;

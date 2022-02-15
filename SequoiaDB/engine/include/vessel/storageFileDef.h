@@ -215,12 +215,12 @@ namespace vessel
       UINT64 createTime = 0;
       UINT32 fingerprint = 0;
       UINT32 secretValue = 0;
-      UINT64 flags = 0;
-      UINT32 spaceID = 0;
-      UINT32 spaceType = 0;
-      UINT32 fileType = 0;
+      UINT32 flags = 0;
+      // UINT32 spaceID = 0;
+      // UINT32 spaceType = 0;
+      // UINT32 fileType = 0;
       //UINT32 logicalID = 0;
-      UINT64 sequence = 0;
+      // UINT64 sequence = 0;
       UINT32 pageSize = 0;
       UINT32 maxPageCountPerSeg = 0;
       UINT32 maxSegmentCountPerFile = 0;

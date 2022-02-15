@@ -55,7 +55,7 @@ namespace vessel
    {}
 
    INT32 storageFile::open(const strSlice &dir,
-                           const vesselFileName &fn)
+                           const storageFileName &fn)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!isOpen(), "can not be open");
@@ -107,6 +107,7 @@ namespace vessel
          goto error;
       }
       
+      _fileNameInMem = fn;
    done:
       return rc;
    error:
@@ -114,7 +115,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageFile::openFileHead(const vesselFileName &fn)
+   INT32 storageFile::openFileHead(const storageFileName &fn)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(fn.isValid(), "can not be invalid");
@@ -266,7 +267,7 @@ namespace vessel
    }
 
    INT32 storageFile::create(const strSlice &dir,
-                             const vesselFileName &fn,
+                             const storageFileName &fn,
                              const createStorageFileOptions &options,
                              const slice &userDefinedHead)
    {
@@ -320,7 +321,7 @@ namespace vessel
    }
 
    INT32 storageFile::createFileAndInitHead(const strSlice &dir,
-                                            const vesselFileName &fn,
+                                            const storageFileName &fn,
                                             const createStorageFileOptions &options,
                                             const slice &userDefinedHead)
    {
@@ -330,7 +331,7 @@ namespace vessel
       ossValuePtr headPtr = 0;
       UINT32 createFlags = OSS_READWRITE|OSS_EXCLUSIVE;
       const CHAR *fileName = NULL;
-      vesselFileName tmpFn;
+      storageFileName tmpFn;
 
       if (options.replaceWhenCreate)
       {
@@ -347,8 +348,7 @@ namespace vessel
       }
       else
       {
-          if (!tmpFn.build(fn.getSpaceID(),
-                           fn.getFileType(),
+          if (!tmpFn.build(fn.getFileType(),
                            fn.getSpaceType(),
                            fn.getSequence(),
                            FILE_SHADOW_SUFFIX_TMP))
@@ -421,6 +421,7 @@ namespace vessel
       {
          _shadowSuffix = FILE_SHADOW_SUFFIX_TMP;
       }
+      _fileNameInMem = fn;
       
    done:
       return rc;
@@ -682,7 +683,7 @@ namespace vessel
       return r;
    }
 
-   INT32 storageFile::initCommonHead(const vesselFileName &fn,
+   INT32 storageFile::initCommonHead(const storageFileName &fn,
                                      const createStorageFileOptions &options,
                                      CHAR *headBuf)
    {
@@ -698,10 +699,6 @@ namespace vessel
       head->fingerprint = ossRand();
       head->secretValue = options.secretValue;
       head->flags = 0;
-      head->spaceID = fn.getSpaceID();
-      head->spaceType = fn.getSpaceType();
-      head->fileType = fn.getFileType();
-      head->sequence = fn.getSequence();
       head->pageSize = options.args.pageSize;
       head->maxSegmentCountPerFile = options.args.maxSegmentCountPerFile;
       head->maxPageCountPerSeg = options.args.maxPageCountPerSeg;
@@ -861,7 +858,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageFile::validateHead(const void *head, const vesselFileName &fn)const
+   INT32 storageFile::validateHead(const void *head, const storageFileName &fn)const
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != head, "can not be null");
@@ -900,37 +897,6 @@ namespace vessel
          goto error;
       }
 
-      if (fn.getSpaceID() != suHead->spaceID)
-      {
-         PD_LOG(PDERROR, "space id not match:%d,%d", fn.getSpaceID(), suHead->spaceID);
-         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
-         goto error;
-      }
-
-      if (fn.getSpaceType() != suHead->spaceType)
-      {
-         PD_LOG(PDERROR, "space type not match :%d, %d",
-                fn.getSpaceType(), suHead->spaceType);
-         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
-         goto error;
-      }
-
-      if (suHead->fileType != fn.getFileType())
-      {
-         PD_LOG(PDERROR, "file type not match:%d, %d",
-                fn.getFileType(), suHead->fileType);
-         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
-         goto error;
-      }
-
-      if (suHead->sequence != fn.getSequence())
-      {
-         PD_LOG(PDERROR, "file sequence not match:%lld, %lld",
-                fn.getSequence(), suHead->sequence);
-         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
-         goto error;
-      }
-
       args.pageSize = suHead->pageSize;
       args.maxPageCountPerSeg = suHead->maxPageCountPerSeg;
       args.maxSegmentCountPerFile = suHead->maxSegmentCountPerFile;
@@ -959,7 +925,7 @@ namespace vessel
       ossPoolString fullPath;
       std::size_t pos = std::string::npos;
       BOOLEAN reset = FALSE;
-      vesselFileName fn;
+      storageFileName fn;
 
       if (OSS_UNLIKELY(!isOpen()))
       {

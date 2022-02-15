@@ -106,10 +106,10 @@ namespace vessel
                            storageCoreArgs &args);
 
       public:
-         INT32 openStorageFile(const vesselFileName &fn,
+         INT32 openStorageFile(const storageFileName &fn,
                                storageFile *file)const;
 
-         INT32 createStorageFile(const vesselFileName &fn,
+         INT32 createStorageFile(const storageFileName &fn,
                                  const createStorageFileOptions &o,
                                  const slice &userDefinedHead,
                                  storageFile *file)const;
@@ -117,7 +117,7 @@ namespace vessel
          INT32 getDirPathOfType(SPACE_TYPE type,
                                 ossPoolString &dir)const;
 
-         INT32 destroyStorageFile(const vesselFileName &fn);
+         INT32 destroyStorageFile(const storageFileName &fn);
 
       private:
 

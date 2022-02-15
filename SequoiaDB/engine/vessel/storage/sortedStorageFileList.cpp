@@ -102,7 +102,7 @@ namespace vessel
    {
       SDB_ASSERT(NULL != l, "can not be null");
       SDB_ASSERT(NULL != r, "can not be null");
-      return l->getCommonHeadInMem().sequence < r->getCommonHeadInMem().sequence;
+      return l->getFileNameInMem().getSequence() < r->getFileNameInMem().getSequence();
    }
 
    void sortedStorageFileList::resort()
@@ -125,12 +125,12 @@ namespace vessel
       {
          _list.push_back(file);
       }
-      else if (file->getCommonHeadInMem().sequence <=
-               _list.back()->getCommonHeadInMem().sequence)
+      else if (file->getFileNameInMem().getSequence() <=
+               _list.back()->getFileNameInMem().getSequence())
       {
          PD_LOG(PDERROR, "invalid sequence[%lld], last sequence is[%lld]",
-                file->getCommonHeadInMem().sequence,
-                _list.back()->getCommonHeadInMem().sequence);
+                file->getFileNameInMem().getSequence(),
+                _list.back()->getFileNameInMem().getSequence());
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
@@ -167,7 +167,7 @@ namespace vessel
       while (!_list.empty())
       {
          storageFile *file = _list.front();
-         if (file->getCommonHeadInMem().sequence < sequence)
+         if (file->getFileNameInMem().getSequence() < sequence)
          {
             PD_LOG(PDINFO, "will destroy file[%s]", file->getFullPath());
             file->destroy();
@@ -204,12 +204,12 @@ namespace vessel
       for (;itr != _list.rend(); ++itr)
       {
          storageFile *tmp = *itr;
-         if (sequence == tmp->getCommonHeadInMem().sequence)
+         if (sequence == tmp->getFileNameInMem().getSequence())
          {
             file = tmp;
             break;
          }
-         else if (sequence > tmp->getCommonHeadInMem().sequence)
+         else if (sequence > tmp->getFileNameInMem().getSequence())
          {
             break;
          }
@@ -224,12 +224,12 @@ namespace vessel
       for (;itr != _list.end(); ++itr)
       {
          storageFile *tmp = *itr;
-         if (sequence == tmp->getCommonHeadInMem().sequence)
+         if (sequence == tmp->getFileNameInMem().getSequence())
          {
             file = tmp;
             break;
          }
-         else if (sequence < tmp->getCommonHeadInMem().sequence)
+         else if (sequence < tmp->getFileNameInMem().getSequence())
          {
             break;
          }

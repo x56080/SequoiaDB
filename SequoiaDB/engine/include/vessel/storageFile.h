@@ -40,7 +40,7 @@
 #include "vessel/storageFileDef.h"
 #include "vessel/pageDef.h"
 #include "vessel/vesselIdDef.h"
-#include "vessel/vesselFileName.h"
+#include "vessel/storageFileName.h"
 #include "vessel/slice.h"
 
 namespace engine
@@ -70,12 +70,12 @@ namespace vessel
          }
 
          INT32 create(const strSlice &dir,
-                      const vesselFileName &fn,
+                      const storageFileName &fn,
                       const createStorageFileOptions &options,
                       const slice &userDefinedHead = slice());
 
          INT32 open(const strSlice &dir,
-                    const vesselFileName &fn);
+                    const storageFileName &fn);
 
          void destroy();
          void close();
@@ -105,6 +105,10 @@ namespace vessel
          OSS_INLINE const storageFileHead &getCommonHeadInMem()const
          {
             return _headInMem;
+         }
+         OSS_INLINE const storageFileName &getFileNameInMem()const
+         {
+            return _fileNameInMem;
          }
          OSS_INLINE UINT32 getSegmentCount()const
          {
@@ -139,21 +143,21 @@ namespace vessel
          }
       private:
          INT32 createFileAndInitHead(const strSlice &dir,
-                                     const vesselFileName &fn,
+                                     const storageFileName &fn,
                                      const createStorageFileOptions &options,
                                      const slice &userDefinedHead);
 
-         INT32 openFileHead(const vesselFileName &fn);
+         INT32 openFileHead(const storageFileName &fn);
 
          INT32 openFileSegments();
 
          BOOLEAN validateOptions(const createStorageFileOptions &options)const;
-         INT32 initCommonHead(const vesselFileName &fn,
+         INT32 initCommonHead(const storageFileName &fn,
                               const createStorageFileOptions &options,
                               CHAR *headBuf);
          INT32 extendFileAndMMap(UINT32 len, ossValuePtr *ptr);
 
-         INT32 validateHead(const void *head, const vesselFileName &fn)const;
+         INT32 validateHead(const void *head, const storageFileName &fn)const;
          UINT32 createChecksum(ossValuePtr headPtr)const;
 
       private:
@@ -173,7 +177,8 @@ namespace vessel
          }
 
       private:
-         storageFileHead _headInMem;      
+         storageFileHead _headInMem;
+         storageFileName _fileNameInMem;
          UINT32 _shadowSuffix = INVALID_FILE_SHADOW_SUFFIX;
          UINT32 _dataSegmentCount = 0;
    }; // class storageFile

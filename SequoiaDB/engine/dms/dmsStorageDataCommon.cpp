@@ -2353,12 +2353,12 @@ namespace engine
                {
                   PD_LOG( PDDEBUG,
                           "Failed to test X lock on collection slot, "
-                          "rc: %d"OSS_NEWLINE
-                          "Conflict( representative ):"OSS_NEWLINE
-                          "   EDUID:  %llu"OSS_NEWLINE
-                          "   TID:    %u"OSS_NEWLINE
-                          "   LockId: %s"OSS_NEWLINE
-                          "   Mode:   %s"OSS_NEWLINE,
+                          "rc: %d" OSS_NEWLINE
+                          "Conflict( representative ):" OSS_NEWLINE
+                          "   EDUID:  %llu" OSS_NEWLINE
+                          "   TID:    %u" OSS_NEWLINE
+                          "   LockId: %s" OSS_NEWLINE
+                          "   Mode:   %s" OSS_NEWLINE,
                           testTransLockRC,
                           lockConflict._eduID,
                           lockConflict._tid,

@@ -278,12 +278,12 @@ namespace vessel
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(NULL == _fsm, "must be null");
       fsmFile *file = NULL;
-      const vesselFileName *fn = NULL;
+      const storageFileName *fn = NULL;
       storageUnit *su = context->getEnv()->dms.getStorageUnit(context->getSpaceID());
       SDB_ASSERT(NULL != su, "can not be null");
 
-      const FILE_NAME_LIST *fl = loader.getFileList(SPACE_TYPE_MAIN_DATA,
-                                                    FILE_TYPE_FSM);
+      const STORAGE_FILE_NAME_LIST *fl = loader.getFileList(SPACE_TYPE_MAIN_DATA,
+                                                            FILE_TYPE_FSM);
       if (NULL == fl || fl->empty())
       {
          PD_LOG(PDERROR, "fsm file not found");
@@ -347,7 +347,7 @@ namespace vessel
       o.args = args;
       o.createAsTmpFile = TRUE;
       o.replaceWhenCreate = TRUE;
-      vesselFileName fn;
+      storageFileName fn;
 
       const sortedStorageFileList &imf = getIdMapFileList();
       SDB_ASSERT(!imf.isEmpty(), "can not be empty");
@@ -364,8 +364,7 @@ namespace vessel
          goto error;
       }
 
-      if (!fn.build(context->getSpaceID(), FILE_TYPE_FSM,
-                    SPACE_TYPE_MAIN_DATA, 0))
+      if (!fn.build(FILE_TYPE_FSM, SPACE_TYPE_MAIN_DATA, 0))
       {
          PD_LOG(PDERROR, "failed to build fsm file name");
          rc = SDB_VESSEL_INTERNAL_ERR;

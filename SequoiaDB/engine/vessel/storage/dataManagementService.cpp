@@ -44,7 +44,7 @@
 #include "vessel/listCSCursor.h"
 #include "vessel/instanceEnv.h"
 #include "vessel/spaceIDLockHelper.h"
-#include "vessel/vesselFileName.h"
+#include "vessel/storageFileName.h"
 #include "vessel/storageFileLoader.h"
 
 #include <boost/filesystem.hpp>
@@ -1315,7 +1315,7 @@ namespace vessel
             continue;
          }
 
-         if (!vesselFileName::parseDirName(nameSlice, &sid))
+         if (!storageFileName::parseDirName(nameSlice, &sid))
          {
             continue;
          }

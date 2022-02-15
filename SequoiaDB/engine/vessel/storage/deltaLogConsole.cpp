@@ -59,7 +59,7 @@ namespace vessel
 
    INT32 deltaLogConsole::init(requestContext *context,
                                const idMapFile *base,
-                               const FILE_NAME_LIST *fl)
+                               const STORAGE_FILE_NAME_LIST *fl)
    {
       INT32 rc = SDB_OK;
       fini();
@@ -72,9 +72,9 @@ namespace vessel
          goto error;
       }
 
-      _type = base->getCommonHeadInMem().spaceType;
+      _type = base->getFileNameInMem().getSpaceType();
       _secretValue = base->getCommonHeadInMem().secretValue;
-      _baseSequence = base->getCommonHeadInMem().sequence;
+      _baseSequence = base->getFileNameInMem().getSequence();
 
       rc = load(context, fl);
       if (SDB_OK != rc)
@@ -121,14 +121,13 @@ namespace vessel
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(!_workingFile.isOpen(), "do not reopen");
       storageUnit *su = NULL;
-      vesselFileName fn;
+      storageFileName fn;
       createStorageFileOptions o;
 
 
       su = context->getEnv()->dms.getStorageUnit(context->getSpaceID());
       SDB_ASSERT(NULL != su, "can not be invalid");
-      if (!fn.build(context->getSpaceID(), FILE_TYPE_DELTA_LOG,
-                    _type, _baseSequence))
+      if (!fn.build(FILE_TYPE_DELTA_LOG, _type, _baseSequence))
       {
          PD_LOG(PDERROR, "failed to build file name");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -155,12 +154,12 @@ namespace vessel
    }
 
    INT32 deltaLogConsole::load(requestContext *context,
-                               const FILE_NAME_LIST *fl)
+                               const STORAGE_FILE_NAME_LIST *fl)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be invalid");
 
-      FILE_NAME_LIST::const_iterator itr;
+      STORAGE_FILE_NAME_LIST::const_iterator itr;
       storageUnit *su = context->getEnv()->dms.getStorageUnit(context->getSpaceID());
       SDB_ASSERT(NULL != su, "can not be null");
 
@@ -173,15 +172,14 @@ namespace vessel
       for (; itr != fl->end(); ++itr)
       {
          
-         const vesselFileName &fn = *itr;
+         const storageFileName &fn = *itr;
          if (OSS_UNLIKELY(!fn.isValid()))
          {
             PD_LOG(PDERROR, "invalid file name");
             rc = SDB_INVALIDARG;
             goto error;
          }
-         else if (OSS_UNLIKELY(fn.getSpaceID() != context->getSpaceID() ||
-                               fn.getSpaceType() != _type ||
+         else if (OSS_UNLIKELY(fn.getSpaceType() != _type ||
                                fn.getFileType() != FILE_TYPE_DELTA_LOG ||
                                fn.hasShadowSuffix()))
          {
@@ -255,7 +253,7 @@ namespace vessel
       SDB_ASSERT(NULL != context, "can not be null");
       storageUnit *su = context->getEnv()->dms.getStorageUnit(context->getSpaceID());
       SDB_ASSERT(NULL != su, "can not be null");
-      for (FILE_NAME_LIST::const_iterator itr = _history.begin();
+      for (STORAGE_FILE_NAME_LIST::const_iterator itr = _history.begin();
            itr != _history.end(); ++itr)
       {
          PD_LOG(PDINFO, "begin to remove history file[%s]", itr->getFileName());
@@ -266,10 +264,10 @@ namespace vessel
    }
    
    void deltaLogConsole::rebase(requestContext *context,
-                                 UINT64 base,
-                                 BOOLEAN destroyHistoryFileAtOnce)
+                                UINT32 base,
+                                BOOLEAN destroyHistoryFileAtOnce)
    {
-      vesselFileName fn;
+      storageFileName fn;
       SDB_ASSERT(isReady(), "can not be invalid");
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(_baseSequence <= base, "invalid base sequence");
@@ -300,7 +298,7 @@ namespace vessel
    }
 
    INT32 deltaLogConsole::append(requestContext *context,
-                                  const deltaLogRecord &dlr)
+                                 const deltaLogRecord &dlr)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(NULL == context ||

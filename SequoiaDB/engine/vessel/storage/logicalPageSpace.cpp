@@ -1385,7 +1385,8 @@ namespace vessel
       SDB_ASSERT(NULL != su, "can not be null");
       idMapFile *file = NULL;
 
-      const FILE_NAME_LIST *list = loader.getFileList(getSpaceType(), FILE_TYPE_ID_MAP);
+      const STORAGE_FILE_NAME_LIST *list = loader.getFileList(getSpaceType(), 
+                                                              FILE_TYPE_ID_MAP);
       if (NULL == list || list->empty())
       {
          PD_LOG(PDERROR, "id map file not found");
@@ -1393,21 +1394,14 @@ namespace vessel
          goto error;
       }
 
-      for (FILE_NAME_LIST::const_iterator itr = list->begin();
+      for (STORAGE_FILE_NAME_LIST::const_iterator itr = list->begin();
            itr != list->end(); ++itr)
       {
-         const vesselFileName &fn = *itr;
+         const storageFileName &fn = *itr;
          if (!fn.isValid())
          {
             PD_LOG(PDERROR, "invalid file name");
             rc = SDB_INVALIDARG;
-            goto error;
-         }
-         else if (fn.getSpaceID() != _sid)
-         {
-            PD_LOG(PDERROR, "space id does not match:%d, %d",
-                   fn.getSpaceID(), _sid);
-            rc = SDB_VESSEL_INVALID_VESSEL_FILE;
             goto error;
          }
          else if (fn.getSpaceType() != getSpaceType())
@@ -1537,8 +1531,8 @@ namespace vessel
       {
          const idMapFile *fileInMap = (const idMapFile *)(*itr);
          idMapFileHead h;
-         if (fileInMap->getCommonHeadInMem().sequence ==
-             base->getCommonHeadInMem().sequence)
+         if (fileInMap->getFileNameInMem().getSequence() ==
+             base->getFileNameInMem().getSequence())
          {
             break;
          }
@@ -1811,7 +1805,7 @@ namespace vessel
       SDB_ASSERT(o.isValid(), "can not be invalid");
       SDB_ASSERT(_idMapFiles.isEmpty(), "must be empty");
 
-      vesselFileName fn;
+      storageFileName fn;
       createStorageFileOptions options;
       storageUnit *su = context->getEnv()->dms.getStorageUnit(getSpaceID());
       SDB_ASSERT(NULL != su, "can not be null");
@@ -1829,8 +1823,7 @@ namespace vessel
 
       slice hs(sizeof(idMapFileHead), &imfHead);
 
-      if (!fn.build(_sid, FILE_TYPE_ID_MAP,
-                    getSpaceType(), 0))
+      if (!fn.build(FILE_TYPE_ID_MAP, getSpaceType(), 0))
       {
          PD_LOG(PDERROR, "failed to build file name");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -1918,7 +1911,7 @@ namespace vessel
       o.replaceWhenCreate = TRUE;
       o.secretValue = base->getCommonHeadInMem().secretValue;
 
-      vesselFileName fn;
+      storageFileName fn;
 
       storageUnit *su = context->getEnv()->dms.getStorageUnit(getSpaceID());
       SDB_ASSERT(NULL != su, "can not be null");
@@ -1931,8 +1924,8 @@ namespace vessel
          goto error;
       }
 
-      if (!fn.build(getSpaceID(), FILE_TYPE_ID_MAP,
-                    getSpaceType(), base->getCommonHeadInMem().sequence + 1))
+      if (!fn.build(FILE_TYPE_ID_MAP, getSpaceType(), 
+                    base->getFileNameInMem().getSequence() + 1))
       {
          PD_LOG(PDERROR, "failed to build file name");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -2394,7 +2387,8 @@ namespace vessel
 
       if (_logConsole.getLastCheckpoint().isValid())
       {
-         SDB_ASSERT(_logConsole.getBaseSequence() == base->getCommonHeadInMem().sequence, 
+         SDB_ASSERT(_logConsole.getBaseSequence() == 
+                    base->getFileNameInMem().getSequence(), 
                     "must be same");
          rc = replayDeltaLog(context);
          if (SDB_OK != rc)

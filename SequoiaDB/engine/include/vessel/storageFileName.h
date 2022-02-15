@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = vesselFileName.h
+   Source File Name = storageFileName.h
 
    Descriptive Name =
 
@@ -33,8 +33,8 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_VESSEL_FILE_NAME_H_
-#define VESSEL_VESSEL_FILE_NAME_H_
+#ifndef VESSEL_STORAGE_FILE_NAME_H_
+#define VESSEL_STORAGE_FILE_NAME_H_
 
 #include "vessel/vesselFileDef.h"
 #include "vessel/vesselIdDef.h"
@@ -45,23 +45,23 @@ namespace engine
 {
 namespace vessel
 {
-   /// space dir name: _cs_<space id>
-   /// simple file name: _cs_<space id>.<user defined suffix>   eg: _cs_100.csname
-   /// file name: _cs_<space id>.<sequence>.<file type suffix>.[space type suffix].[shadow suffix]
-
-   class vesselFileName : public SDBObject
+   /// space dir name: _cs_<space id> 
+   /// storage file name: <space type>.<file type>.<sequence suffix>.[shadow suffix] eg: data.ds.000001
+   /// Will not supplement zero if sequence has more than 6 digits.
+   class storageFileName : public SDBObject
    {
       public:
-         vesselFileName(){}
-         vesselFileName(const vesselFileName &);
-         ~vesselFileName();
-         vesselFileName &operator=(const vesselFileName &);
-         BOOLEAN operator==(const vesselFileName &)const;
+         storageFileName(){}
+         storageFileName(const storageFileName &);
+         ~storageFileName();
+         storageFileName &operator=(const storageFileName &);
+         BOOLEAN operator==(const storageFileName &)const;
 
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return INVALID_SPACE_ID != _space;
+            return INVALID_FILE_TYPE != _fileType &&
+                   INVALID_SPACE_TYPE != _spaceType; 
          }
 
          OSS_INLINE FILE_TYPE getFileType()const
@@ -74,12 +74,7 @@ namespace vessel
             return _name;
          }
 
-         OSS_INLINE SPACE_ID getSpaceID()const
-         {
-            return _space;
-         }
-
-         OSS_INLINE UINT64 getSequence()const
+         OSS_INLINE UINT32 getSequence()const
          {
             return _sequence;
          }
@@ -88,10 +83,12 @@ namespace vessel
          {
             return _shadowSuffix;
          }
+
          OSS_INLINE BOOLEAN hasShadowSuffix()const
          {
             return INVALID_FILE_SHADOW_SUFFIX != _shadowSuffix;
          }
+
          OSS_INLINE SPACE_TYPE getSpaceType()const
          {
             return _spaceType;
@@ -105,31 +102,29 @@ namespace vessel
                          BOOLEAN shadowSuffixCompatible=FALSE);
 
          /// sequence will always included in filename
-         BOOLEAN build(SPACE_ID sid,
-                       FILE_TYPE type,
+         BOOLEAN build(FILE_TYPE type,
                        SPACE_TYPE spaceType = INVALID_SPACE_TYPE,
-                       UINT64 sequence = 0,
+                       UINT32 sequence = 0,
                        UINT32 shadowSuffix = INVALID_FILE_SHADOW_SUFFIX);
+         
+
 
          void rebuildWithOutShadowSuffix();
          
-         static BOOLEAN parseDirName(const strSlice &dirName, SPACE_ID *sid);
          static BOOLEAN buildDirName(SPACE_ID sid, UINT32 bufLen, CHAR *buf);
-         static BOOLEAN buildSimpleName(SPACE_ID sid,
-                                        const strSlice &suffix,
-                                        UINT32 bufferSize,
-                                        CHAR *buffer);
+         static BOOLEAN parseDirName(const strSlice &dirName, SPACE_ID *sid);
+
+
       private:
          CHAR _name[MAX_FILE_NAME_LEN + 1] = {};
-         SPACE_ID _space = INVALID_SPACE_ID;
          FILE_TYPE _fileType = INVALID_FILE_TYPE;
          SPACE_TYPE _spaceType = INVALID_SPACE_TYPE;
-         UINT64 _sequence = 0;
+         UINT32 _sequence = 0;
          UINT32 _shadowSuffix = INVALID_FILE_SHADOW_SUFFIX;
-   };//class vesselFileName
+   };//class storageFileName
 
-   typedef ossPoolList<vesselFileName> FILE_NAME_LIST; 
+   typedef ossPoolList<storageFileName> STORAGE_FILE_NAME_LIST; 
 } // namespace vessel
 } // namespace engine
 
-#endif // VESSEL_VESSEL_FILE_NAME_H_
+#endif // VESSEL_STORAGE_FILE_NAME_H_

@@ -38,7 +38,7 @@
 
 #include "vessel/vesselIdDef.h"
 #include "vessel/vesselFileDef.h"
-#include "vessel/vesselFileName.h"
+#include "vessel/storageFileName.h"
 #include "vessel/deltaLogFileDef.h"
 #include "vessel/logicalPageSpaceCheckpoint.h"
 #include "vessel/deltaLogRecord.h"
@@ -68,7 +68,7 @@ namespace vessel
          {
             return INVALID_SPACE_TYPE != _type;
          }
-         OSS_INLINE UINT64 getBaseSequence()const
+         OSS_INLINE UINT32 getBaseSequence()const
          {
             return _baseSequence;
          }
@@ -89,7 +89,7 @@ namespace vessel
       public:
          INT32 init(requestContext *context,
                     const idMapFile *base,
-                    const FILE_NAME_LIST *fl);
+                    const STORAGE_FILE_NAME_LIST *fl);
 
          void fini();
 
@@ -97,7 +97,7 @@ namespace vessel
 
 
          void rebase(requestContext *context,
-                     UINT64 base,
+                     UINT32 base,
                      BOOLEAN destroyHistoryFileAtOnce);
 
          INT32 append(requestContext *context,
@@ -113,7 +113,7 @@ namespace vessel
       private:
 
          INT32 load(requestContext *context,
-                    const FILE_NAME_LIST *fl);
+                    const STORAGE_FILE_NAME_LIST *fl);
 
          INT32 createNewFile(requestContext *context);
 
@@ -134,7 +134,7 @@ namespace vessel
       private:
          SPACE_TYPE _type = INVALID_SPACE_TYPE;
          UINT32 _secretValue = 0;
-         UINT64 _baseSequence = 0;
+         UINT32 _baseSequence = 0;
 
          storageFile _workingFile;
          memoryBlock _buffer;
@@ -142,7 +142,7 @@ namespace vessel
          deltaLogFilePage *_page = NULL;
          LPS_CHECKPOINT _lastCheckpoint;
          PAGE_ID _lastCheckpointPid = INVALID_PAGE_ID;
-         FILE_NAME_LIST _history;
+         STORAGE_FILE_NAME_LIST _history;
          PAGE_ID _checkpointReserved = INVALID_PAGE_ID;
    };//class deltaLogConsole
 }//namespace vessel

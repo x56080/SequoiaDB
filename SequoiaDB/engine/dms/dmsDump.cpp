@@ -173,7 +173,7 @@ namespace engine
                               " Segment Size: %u" OSS_NEWLINE,
                               header->_segmentSize ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " HWM of IdxInnerID: 0x%08x (%u)"OSS_NEWLINE,
+                              " HWM of IdxInnerID: 0x%08x (%u)" OSS_NEWLINE,
                               header->_idxInnerHWM, header->_idxInnerHWM ) ;
 
       }
