@@ -1,6 +1,5 @@
 package com.sequoiadb.subcl;
 
-import java.util.Date;
 import java.util.List;
 
 import org.bson.BSONObject;
@@ -35,37 +34,31 @@ public class AttachAndInsert65 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        Sequoiadb tmpdb = null;
-        try {
-            tmpdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        try ( Sequoiadb tmpdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" )) {
             if ( SubCLUtils.isStandAlone( tmpdb ) ) {
                 throw new SkipException( "is standalone skip testcase" );
             }
             addressList = SubCLUtils.getNodeAddress( tmpdb, "SYSCoord" );
+            if ( addressList.size() < 2 ) {
+                throw new SkipException( "coord quantity is less than 2" );
+            }
             sdb1 = new Sequoiadb( addressList.get( 0 ), "", "" );
             sdb2 = new Sequoiadb( addressList.get( 1 ), "", "" );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() + e.getMessage() );
-        } finally {
-            tmpdb.disconnect();
         }
         createCl( sdb1 );
     }
 
     @AfterClass
     public void tearDown() {
-        Sequoiadb tmpdb = null;
         CollectionSpace cs = null;
-        try {
-            tmpdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        try ( Sequoiadb tmpdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" )) {
             cs = tmpdb.getCollectionSpace( SdbTestBase.csName );
             cs.dropCollection( mainclName );
         } catch ( BaseException e ) {
             Assert.assertEquals( e.getErrorCode(), -23, e.getMessage() );
         } finally {
-            sdb1.disconnect();
-            sdb2.disconnect();
-            tmpdb.disconnect();
+            sdb1.close();
+            sdb2.close();
         }
     }
 
