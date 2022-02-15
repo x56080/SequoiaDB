@@ -36,7 +36,7 @@
 #ifndef VESSEL_STORAGE_UTILS_H_
 #define VESSEL_STORAGE_UTILS_H_
 
-#include "vessel/vesselFileName.h"
+#include "vessel/storageFileName.h"
 #include "ossMemPool.hpp"
 
 namespace engine
@@ -46,13 +46,13 @@ namespace vessel
    class storageFile;
 
    INT32 removeFile(const strSlice &dir,
-                    const vesselFileName &fn);
+                    const storageFileName &fn);
 
    /// rename file between different shadow suffix.
    INT32 renameFileShadowSuffix(const strSlice &dir,
                                 BOOLEAN replaceNewFile,
-                                const vesselFileName &oldFileName,
-                                const vesselFileName &newFileName);
+                                const storageFileName &oldFileName,
+                                const storageFileName &newFileName);
 
 /*
    INT32 renameToFormalAndReopen(const strSlice &dir,
@@ -67,7 +67,7 @@ namespace vessel
                                 UINT32 fileTypesSize,
                                 const FILE_TYPE *fileTypes,
                                 BOOLEAN removeTmpFile,
-                                ossPoolList<vesselFileName> &fl);
+                                STORAGE_FILE_NAME_LIST &fl);
 
 }//namespace vessel
 }//namespace engine

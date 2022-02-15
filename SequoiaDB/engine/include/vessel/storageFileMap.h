@@ -37,7 +37,7 @@
 #define VESSEL_STORAGE_FILE_MAP_H_
 
 #include "ossMemPool.hpp"
-#include "vessel/vesselFileName.h"
+#include "vessel/storageFileName.h"
 
 namespace engine
 {
@@ -68,7 +68,7 @@ namespace vessel
 
          /// will not dump closed file name if list is null.
          void closeIfLess(UINT64 sequence,
-                          FILE_NAME_LIST *list);
+                          STORAGE_FILE_NAME_LIST *list);
 
          void destroyIfLess(UINT64 sequence);
 

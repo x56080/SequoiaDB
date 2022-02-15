@@ -45,7 +45,7 @@ namespace vessel
 { 
    UINT32 VESSEL_FILE_GLOBAL_OPTIONS::_flags = 0;
    
-   static const fileDescriptor VFD_ARRAY[] =
+   static const fileTypeDescriptor VFD_ARRAY[] =
    {
       {"sys"},
       {"idmap"},
@@ -70,10 +70,10 @@ namespace vessel
 
    BOOLEAN parseFileType(const CHAR *suffix,
                          FILE_TYPE &type,
-                         fileDescriptor *descriptor)
+                         fileTypeDescriptor *descriptor)
    {
       BOOLEAN r = FALSE;
-      static const UINT32 _ARRAY_SIZE = sizeof(VFD_ARRAY) / sizeof(fileDescriptor);
+      static const UINT32 _ARRAY_SIZE = sizeof(VFD_ARRAY) / sizeof(fileTypeDescriptor);
 
       if (OSS_UNLIKELY(NULL == suffix))
       {
@@ -83,9 +83,9 @@ namespace vessel
 
       for (UINT32 i = 0; i < _ARRAY_SIZE; ++i)
       {
-         const fileDescriptor &vfd = VFD_ARRAY[i];
-         SDB_ASSERT(NULL != vfd.getSuffix(), "can not be null");
-         if (0 == ossStrcmp(suffix, vfd.getSuffix()))
+         const fileTypeDescriptor &vfd = VFD_ARRAY[i];
+         SDB_ASSERT(NULL != vfd.getTypeName(), "can not be null");
+         if (0 == ossStrcmp(suffix, vfd.getTypeName()))
          {
             type = i;
             if (NULL != descriptor)
@@ -116,7 +116,7 @@ namespace vessel
       {
          const spaceTypeDescriptor &d = VSTD_ARRAY[i];
          SDB_ASSERT(d.isValid(), "must be valid");
-         if (0 == ossStrcmp(suffix, d.getSuffix()))
+         if (0 == ossStrcmp(suffix, d.getTypeName()))
          {
             if (NULL != descriptor)
             {
@@ -132,11 +132,11 @@ namespace vessel
       return r;
    }
 
-   BOOLEAN getFileDescriptor(FILE_TYPE type,
-                             fileDescriptor &descriptor)
+   BOOLEAN getFileTypeDescriptor(FILE_TYPE type,
+                                 fileTypeDescriptor &descriptor)
    {
       BOOLEAN r = FALSE;
-      static const UINT32 _ARRAY_SIZE = sizeof(VFD_ARRAY) / sizeof(fileDescriptor);
+      static const UINT32 _ARRAY_SIZE = sizeof(VFD_ARRAY) / sizeof(fileTypeDescriptor);
       if (OSS_UNLIKELY(INVALID_FILE_TYPE == type ||
                        _ARRAY_SIZE <= (UINT32)type))
       {

@@ -120,7 +120,7 @@ namespace vessel
          strSlice fileNameSlice(fileName.c_str(), fileName.size());
          FILES_WITH_SPACE_TYPE *fileMap = NULL;
          _ALL_FILE_MAP::iterator itr;
-         vesselFileName fn;
+         storageFileName fn;
 
          if (!fs::is_regular_file(dir_iter->status()))
          {
@@ -131,11 +131,6 @@ namespace vessel
          if (!fn.extract(fileNameSlice, TRUE))
          {
             //PD_LOG(PDDEBUG, "not storage file name:%s", fileName.c_str());
-            continue;
-         }
-         else if (fn.getSpaceID() != _sid)
-         {
-            PD_LOG(PDDEBUG, "not target file, file name:%s", fileName.c_str());
             continue;
          }
          else if (INVALID_SPACE_TYPE != specifiedType &&
@@ -219,11 +214,11 @@ namespace vessel
       goto done;
    }
 
-   const FILE_NAME_LIST *storageFileLoader::getFileList(SPACE_TYPE stype,
-                                                        FILE_TYPE ftype)const
+   const STORAGE_FILE_NAME_LIST *storageFileLoader::getFileList(SPACE_TYPE stype,
+                                                                FILE_TYPE ftype)const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
-      const FILE_NAME_LIST *fl = NULL;
+      const STORAGE_FILE_NAME_LIST *fl = NULL;
       _ALL_FILE_MAP::const_iterator itr = _all.find(stype);
       if (_all.end() != itr)
       {

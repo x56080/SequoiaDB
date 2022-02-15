@@ -498,7 +498,7 @@ namespace vessel
       constexpr UINT64 MAX_FILE_SEQUENCE = 1048575;
       
       storageFile *file = NULL;
-      const FILE_NAME_LIST *fileList = NULL;
+      const STORAGE_FILE_NAME_LIST *fileList = NULL;
       constexpr UINT32 DEFAULT_CAPACITY = 16;
 
       storageUnit *su = context->getEnv()->dms.getStorageUnit(getSpaceID());
@@ -529,11 +529,11 @@ namespace vessel
          goto done;
       }
 
-      for (FILE_NAME_LIST::const_iterator itr = fileList->begin();
+      for (STORAGE_FILE_NAME_LIST::const_iterator itr = fileList->begin();
            itr != fileList->end(); ++itr)
       {
          UINT32 sequence = 0;
-         const vesselFileName &fn = *itr;
+         const storageFileName &fn = *itr;
          if (!fn.isValid())
          {
             PD_LOG(PDERROR, "found invalid file name in list");
@@ -543,12 +543,6 @@ namespace vessel
          else if (FILE_TYPE_DATA_STORAGE != fn.getFileType())
          {
             PD_LOG(PDERROR, "invalid file type:%s", fn.getFileName());
-            rc = SDB_VESSEL_INVALID_VESSEL_FILE;
-            goto error;
-         }
-         else if (fn.getSpaceID() != getSpaceID())
-         {
-            PD_LOG(PDERROR, "space id does not match creater:%s", fn.getFileName());
             rc = SDB_VESSEL_INVALID_VESSEL_FILE;
             goto error;
          }
@@ -618,7 +612,7 @@ namespace vessel
             goto error;
          }
 
-         sequence = file->getCommonHeadInMem().sequence;
+         sequence = fn.getSequence();
          rc = _files.set<storageFile>(sequence, file);
          if (SDB_OK != rc)
          {
@@ -762,7 +756,7 @@ namespace vessel
       SDB_ASSERT(NULL != su, "can not be null");
 
       createStorageFileOptions o;
-      vesselFileName fn;
+      storageFileName fn;
 
       storageFile *file = SDB_OSS_NEW storageFile();
       if (OSS_UNLIKELY(NULL == file))
@@ -772,8 +766,7 @@ namespace vessel
          goto error;
       }
 
-      if (!fn.build(getSpaceID(), FILE_TYPE_DATA_STORAGE,
-                    getSpaceType(), _files.getSize()))
+      if (!fn.build(FILE_TYPE_DATA_STORAGE, getSpaceType(), _files.getSize()))
       {
          PD_LOG(PDERROR, "failed to build file name");
          rc = SDB_VESSEL_INTERNAL_ERR;

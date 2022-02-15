@@ -43,7 +43,7 @@
 #include "ossLatch.hpp"
 #include "vessel/slice.h"
 #include "vessel/storageUnitDef.h"
-#include "vessel/vesselFileName.h"
+#include "vessel/storageFileName.h"
 #include "vessel/runtimePageBuffer.h"
 #include "vessel/deltaLogConsole.h"
 #include "vessel/logicalPageIdCache.h"

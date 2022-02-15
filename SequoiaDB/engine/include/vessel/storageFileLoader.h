@@ -39,7 +39,7 @@
 #include "ossMemPool.hpp"
 #include "vessel/vesselFileDef.h"
 #include "vessel/vesselIdDef.h"
-#include "vessel/vesselFileName.h"
+#include "vessel/storageFileName.h"
 
 namespace engine
 {
@@ -54,7 +54,7 @@ namespace vessel
          storageFileLoader &operator=(const storageFileLoader &) = delete;
 
       public:
-         typedef ossPoolMap<FILE_TYPE, FILE_NAME_LIST> FILES_WITH_SPACE_TYPE;
+         typedef ossPoolMap<FILE_TYPE, STORAGE_FILE_NAME_LIST> FILES_WITH_SPACE_TYPE;
 
       private:
          typedef ossPoolMap<SPACE_TYPE, FILES_WITH_SPACE_TYPE*> _ALL_FILE_MAP;
@@ -70,8 +70,8 @@ namespace vessel
          INT32 append(const strSlice &dir, SPACE_TYPE type);
 
          /// return null if type not exists
-         const FILE_NAME_LIST *getFileList(SPACE_TYPE stype,
-                                           FILE_TYPE ftype)const;
+         const STORAGE_FILE_NAME_LIST *getFileList(SPACE_TYPE stype,
+                                                   FILE_TYPE ftype)const;
 
          BOOLEAN isEmpty()const
          {

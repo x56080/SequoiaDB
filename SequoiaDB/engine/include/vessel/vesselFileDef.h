@@ -51,11 +51,11 @@ namespace vessel
    static const CHAR * const FILE_MAGICAL_CHARS = "SDBV";
    static const UINT32 FILE_MAGICSAL_CHARS_LEN = 4;
 
-   static const CHAR * const FILE_NAME_PREFIX = "_cs_";
-   static const UINT32 FILE_NAME_PREFIX_LEN = 4;
+   static const CHAR * const DIR_NAME_PREFIX = "_cs_";
+   static const UINT32 DIR_NAME_PREFIX_LEN = 4;
 
-   static const CHAR * const SIMPLE_FILE_SUFFIX_CSNAME = "csname";
-   static const CHAR * const SIMPLE_FILE_SUFFIX_TMPSU = "tmpsu";
+   static const CHAR * const CSNAME_FILE_NAME = "CSNAME";
+   static const CHAR * const TMPSU_FILE_NAME = "TMPSU";
 
    static const UINT32 INVALID_FILE_SHADOW_SUFFIX = 0xFFFFFFFF;
    static const UINT32 FILE_SHADOW_SUFFIX_TMP = 0;
@@ -92,38 +92,38 @@ namespace vessel
          static UINT32 _flags;
    };//class VESSEL_FILE_GLOBAL_OPTIONS
 
-   class fileDescriptor
+   class fileTypeDescriptor
    {
       public:
-         OSS_INLINE fileDescriptor(){}
-         OSS_INLINE fileDescriptor(const CHAR *s):
-         _suffix(s)
+         OSS_INLINE fileTypeDescriptor(){}
+         OSS_INLINE fileTypeDescriptor(const CHAR *s):
+         _fileTypeName(s)
          {}
 
-         OSS_INLINE fileDescriptor(const fileDescriptor &o):
-         _suffix(o._suffix)
+         OSS_INLINE fileTypeDescriptor(const fileTypeDescriptor &o):
+         _fileTypeName(o._fileTypeName)
          {}
 
-         fileDescriptor &operator=(const fileDescriptor &o)
+         fileTypeDescriptor &operator=(const fileTypeDescriptor &o)
          {
-            _suffix = o._suffix;
+            _fileTypeName = o._fileTypeName;
             return *this;
          }
 
-         ~fileDescriptor(){}
+         ~fileTypeDescriptor(){}
 
       public:
-         OSS_INLINE const CHAR *getSuffix()const
+         OSS_INLINE const CHAR *getTypeName()const
          {
-            return _suffix;
+            return _fileTypeName;
          }
          OSS_INLINE BOOLEAN isValid()const
          {
-            return NULL != _suffix;
+            return NULL != _fileTypeName;
          }
 
       private:
-         const CHAR * _suffix = NULL;
+         const CHAR * _fileTypeName = NULL;
    };//class fileDescriptor
 
    class spaceTypeDescriptor
@@ -132,31 +132,31 @@ namespace vessel
          OSS_INLINE spaceTypeDescriptor(){}
          OSS_INLINE ~spaceTypeDescriptor(){}
          OSS_INLINE spaceTypeDescriptor(const CHAR *s):
-         _suffix(s)
+         _spaceTypeName(s)
          {}
 
          OSS_INLINE spaceTypeDescriptor(const spaceTypeDescriptor &o):
-         _suffix(o._suffix)
+         _spaceTypeName(o._spaceTypeName)
          {}
 
          OSS_INLINE spaceTypeDescriptor &operator=(const spaceTypeDescriptor &o)
          {
-            _suffix = o._suffix;
+            _spaceTypeName = o._spaceTypeName;
             return *this;
          }
 
-         OSS_INLINE const CHAR *getSuffix()const
+         OSS_INLINE const CHAR *getTypeName()const
          {
-            return _suffix;
+            return _spaceTypeName;
          }
 
          OSS_INLINE BOOLEAN isValid()const
          {
-            return NULL != _suffix;
+            return NULL != _spaceTypeName;
          }
 
       private:
-         const CHAR *_suffix = NULL;
+         const CHAR *_spaceTypeName = NULL;
    };//class spaceTypeDescriptor
 
    typedef UINT8 SPACE_TYPE;
@@ -177,14 +177,14 @@ namespace vessel
 
    BOOLEAN parseFileType(const CHAR *typeSuffix,
                          FILE_TYPE &type,
-                         fileDescriptor *descriptor);
+                         fileTypeDescriptor *descriptor);
 
    BOOLEAN parseSpaceType(const CHAR *suffix,
                           SPACE_TYPE &type,
                           spaceTypeDescriptor *descriptor);
 
-   BOOLEAN getFileDescriptor(FILE_TYPE type,
-                             fileDescriptor &descriptor);
+   BOOLEAN getFileTypeDescriptor(FILE_TYPE type,
+                                 fileTypeDescriptor &descriptor);
 
    BOOLEAN getSpaceTypeDescriptor(SPACE_TYPE type,
                                   spaceTypeDescriptor &descriptor);

@@ -1386,10 +1386,8 @@ namespace vessel
    
       ossPoolString fullPath;
       OSSFILE file;
-      CHAR fileName[MAX_FILE_NAME_LEN + 1] = {};
       CHAR nameBuffer[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {};
       strSlice nameSlice(_recordInMem.name);
-      strSlice suffix(SIMPLE_FILE_SUFFIX_CSNAME);
       UINT32 flags = OSS_READWRITE|OSS_EXCLUSIVE|OSS_REPLACE;
 
 
@@ -1408,20 +1406,11 @@ namespace vessel
          goto error;
       }
 
-      if (!vesselFileName::buildSimpleName(_su->getSpaceID(),
-                                           suffix, MAX_FILE_NAME_LEN + 1,
-                                           fileName))
-      {
-         PD_LOG(PDERROR, "failed to build csname file");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
       ossMemcpy(nameBuffer, nameSlice.str(), nameSlice.strLen());
       nameBuffer[nameSlice.strLen()] = '\n';
 
       fullPath.append(OSS_FILE_SEP);
-      fullPath.append(fileName);
+      fullPath.append(CSNAME_FILE_NAME);
 
       rc = ossOpen(fullPath.c_str(), flags, OSS_RU|OSS_WU|OSS_RG, file);
       if (SDB_OK != rc)
@@ -1462,17 +1451,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != _su && _su->isOpen(), "can not be invalid");
 
-      CHAR fileName[MAX_FILE_NAME_LEN + 1] = {};
       ossPoolString fullPath;
-      strSlice suffix(SIMPLE_FILE_SUFFIX_CSNAME);
-
-      if (!vesselFileName::buildSimpleName(_su->getSpaceID(),
-                                           suffix, MAX_FILE_NAME_LEN + 1, fileName))
-      {
-         PD_LOG(PDERROR, "failed to build csname file");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
 
       rc = _su->getDirPathOfType(SPACE_TYPE_MAIN_DATA, fullPath);
       if (SDB_OK != rc)
@@ -1482,7 +1461,7 @@ namespace vessel
       }
 
       fullPath.append(OSS_FILE_SEP);
-      fullPath.append(fileName);
+      fullPath.append(CSNAME_FILE_NAME);
 
       PD_LOG(PDINFO, "removing cs name file:%s", fullPath.c_str());
       rc = ossDelete(fullPath.c_str());

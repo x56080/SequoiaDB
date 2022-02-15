@@ -51,11 +51,11 @@ namespace vessel
 
    INT32 renameFileShadowSuffix(const strSlice &dir,
                                 BOOLEAN replaceNewFile,
-                                const vesselFileName &oldFileName,
-                                const vesselFileName &newFileName)
+                                const storageFileName &oldFileName,
+                                const storageFileName &newFileName)
    {
       INT32 rc = SDB_OK;
-      vesselFileName newFn;
+      storageFileName newFn;
       CHAR src[OSS_MAX_PATHSIZE + 1] = {0};
       CHAR dst[OSS_MAX_PATHSIZE + 1] = {0};
 
@@ -66,8 +66,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(oldFileName.getSpaceID() != newFileName.getSpaceID() ||
-                            oldFileName.getSpaceType() != newFileName.getSpaceType() ||
+      else if (OSS_UNLIKELY(oldFileName.getSpaceType() != newFileName.getSpaceType() ||
                             oldFileName.getFileType() != newFileName.getFileType() ||
                             oldFileName.getSequence() != newFileName.getSequence()))
       {
@@ -191,7 +190,7 @@ namespace vessel
                                 UINT32 fileTypesSize,
                                 const FILE_TYPE *fileTypes,
                                 BOOLEAN removeTmpFile,
-                                ossPoolList<vesselFileName> &fl)
+                                STORAGE_FILE_NAME_LIST &fl)
    {
       INT32 rc = SDB_OK;
 
@@ -221,7 +220,7 @@ namespace vessel
       {
          std::string fileName = dir_iter->path().filename().string();
          strSlice fileNameSlice(fileName.c_str(), fileName.size());
-         vesselFileName fn;
+         storageFileName fn;
 
          if (!fs::is_regular_file(dir_iter->status()))
          {
@@ -235,8 +234,7 @@ namespace vessel
             continue;
          }
 
-         if (fn.getSpaceID() != sid ||
-             fn.getSpaceType() != spaceType)
+         if (fn.getSpaceType() != spaceType)
          {
             PD_LOG(PDDEBUG, "not target file, file name:%s", fileName.c_str());
             continue;

@@ -37,7 +37,7 @@
 #define VESSEL_CL_INFO_VIEW_H_
 
 #include "vessel/objectIdentifier.h"
-#include "vessel/objectBaseDef.h"
+#include "vessel/collectionRecordPage.h"
 #include "dmsStripingId.hpp"
 #include "utilCompression.hpp"
 

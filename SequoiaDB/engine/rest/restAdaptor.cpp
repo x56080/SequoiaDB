@@ -1701,7 +1701,7 @@ namespace engine
    {
       string header = http_method_str( (enum http_method)_method ) ;
 
-      header += " " + _path + " "REST_STRING_HTTP ;
+      header += " " + _path + " " REST_STRING_HTTP ;
 
       return header ;
    }

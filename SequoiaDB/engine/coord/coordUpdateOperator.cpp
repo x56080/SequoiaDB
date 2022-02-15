@@ -166,11 +166,11 @@ namespace engine
          boUpdator = BSONObj( pUpdator ) ;
          BSONObj clientInfo ;
 
-         if ( cb->getMonQueryCB() && !boHint.getField("$"FIELD_NAME_CLIENTINFO).eoo() )
+         if ( cb->getMonQueryCB() && !boHint.getField("$" FIELD_NAME_CLIENTINFO).eoo() )
          {
-            rc = rtnGetObjElement( boHint, "$"FIELD_NAME_CLIENTINFO, clientInfo ) ;
+            rc = rtnGetObjElement( boHint, "$" FIELD_NAME_CLIENTINFO, clientInfo ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s], rc: %d",
-                         "$"FIELD_NAME_CLIENTINFO, rc ) ;
+                         "$" FIELD_NAME_CLIENTINFO, rc ) ;
             cb->getMonQueryCB()->clientInfo = clientInfo.getOwned() ;
          }
 

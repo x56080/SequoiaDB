@@ -567,7 +567,7 @@ namespace engine
       string address ;
 
       BSONElement eleAddr = objQuery.getFieldDotted(
-         FIELD_NAME_OPTIONS"."FIELD_NAME_ADDRESS ) ;
+         FIELD_NAME_OPTIONS "." FIELD_NAME_ADDRESS ) ;
 
       if ( !pBaseInfo->hasImage() )
       {
