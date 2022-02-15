@@ -234,13 +234,15 @@ public class DBQuery {
     /**
      * Set the query flag.
      *
-     * @param flag The query flag as below:
-     *             DBQuery.FLG_QUERY_STRINGOUT
-     *             DBQuery.FLG_QUERY_FORCE_HINT
-     *             DBQuery.FLG_QUERY_PARALLED
-     *             DBQuery.FLG_QUERY_WITH_RETURNDATA
-     *             DBQuery.FLG_QUERY_FOR_UPDATE
-     *             DBQuery.FLG_QUERY_FOR_SHARE
+     * @param flag The query flag as follow:
+     *              <ul>
+     *              <li>{@link DBQuery#FLG_QUERY_STRINGOUT}
+     *              <li>{@link DBQuery#FLG_QUERY_FORCE_HINT}
+     *              <li>{@link DBQuery#FLG_QUERY_PARALLED}
+     *              <li>{@link DBQuery#FLG_QUERY_WITH_RETURNDATA}
+     *              <li>{@link DBQuery#FLG_QUERY_FOR_UPDATE}
+     *              <li>{@link DBQuery#FLG_QUERY_FOR_SHARE}
+     *              </ul>
      */
     public void setFlag(int flag) {
         this.flag = flag;

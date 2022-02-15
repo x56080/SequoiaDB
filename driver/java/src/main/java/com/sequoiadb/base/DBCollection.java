@@ -181,15 +181,11 @@ public class DBCollection {
      * Insert a document into current collection.
      *
      * @param insertor The bson object to be inserted, can't be null.
-     * @param flags    The flag to control the behavior of inserting. The value of flags default to be 0,
-     *                 and it can choose the follow values:
+     * @param flags    The insert flag, default to be 0:
      *                 <ul>
-     *                 <li>0: default value.</li>
-     *                 <li>FLG_INSERT_CONTONDUP: if the record hit index key duplicate error, database
-     *                 will skip them and go on inserting.</li>
-     *                 <li>FLG_INSERT_RETURN_OID: return the value of "_id" field in the record.</li>
-     *                 <li>FLG_INSERT_REPLACEONDUP: if the record hit index key duplicate error, database
-     *                 will replace the existing record by the inserting new record.</li>
+     *                 <li>{@link DBCollection#FLG_INSERT_CONTONDUP}</li>
+     *                 <li>{@link DBCollection#FLG_INSERT_RETURN_OID}</li>
+     *                 <li>{@link DBCollection#FLG_INSERT_REPLACEONDUP}</li>
      *                 </ul>
      * @return The result of inserting, can be the follow values:
      * <ul>
@@ -243,17 +239,11 @@ public class DBCollection {
      * Insert a bulk of bson objects into current collection.
      *
      * @param insertor The Bson object of insertor list, can't be null
-     * @param flags    The flag to control the behavior of inserting. The value of flags default to be 0,
-     *                 and it can choose the follow values:
+     * @param flags    The insert flag, default to be 0:
      *                 <ul>
-     *                 <li>0: default value.</li>
-     *                 <li>FLG_INSERT_CONTONDUP: if the record hit index key duplicate error, database
-     *                 will skip them and go on inserting.</li>
-     *                 <li>FLG_INSERT_RETURN_OID: return the value of "_id" field in the record. When set
-     *                 this flag, ensureOID() will be set to true.</li>
-     *                 <li>FLG_INSERT_REPLACEONDUP: if the record hit index key duplicate error, database
-     *                 will replace the existing record by the inserting new record and them go on
-     *                 inserting.</li>
+     *                 <li>{@link DBCollection#FLG_INSERT_CONTONDUP}</li>
+     *                 <li>{@link DBCollection#FLG_INSERT_RETURN_OID}</li>
+     *                 <li>{@link DBCollection#FLG_INSERT_REPLACEONDUP}</li>
      *                 </ul>
      * @return The result of inserting, can be the follow values:
      * <ul>
@@ -275,15 +265,10 @@ public class DBCollection {
      * Insert a bulk of bson objects into current collection.
      *
      * @param insertor The Bson object of insertor list, can't be null
-     * @param flags    The flag to control the behavior of inserting. The value of flags default to be 0,
-     *                 and it can choose the follow values:
+     * @param flags    The insert flag, default to be 0:
      *                 <ul>
-     *                 <li>0: default value</li>
-     *                 <li>FLG_INSERT_CONTONDUP: if the record hit index key duplicate error, database
-     *                 will skip them and go on inserting.</li>
-     *                 <li>FLG_INSERT_REPLACEONDUP: if the record hit index key duplicate error, database
-     *                 will replace the existing record by the inserting new record and them go on
-     *                 inserting.</li>
+     *                 <li>{@link DBCollection#FLG_INSERT_CONTONDUP}</li>
+     *                 <li>{@link DBCollection#FLG_INSERT_REPLACEONDUP}</li>
      *                 </ul>
      * @throws BaseException If error happens.
      * @since 3.0.2
@@ -420,10 +405,9 @@ public class DBCollection {
      *
      * @param type            The object of insertor, can't be null
      * @param ignoreNullValue true:if type's inner value is null, it will not save to collection;
-     * @param flag            the update flag, default to be 0. Please see the definition of follow flags for
-     *                        more detail.
+     * @param flag            the update flag, default to be 0:
      *                        <ul>
-     *                        <li>DBCollection.FLG_UPDATE_KEEP_SHARDINGKEY
+     *                        <li>{@link DBCollection#FLG_UPDATE_KEEP_SHARDINGKEY}
      *                        </ul>
      * @throws BaseException 1.when the type is not support, throw BaseException with the type
      *                       "SDB_INVALIDARG" 2.when offer main keys by setMainKeys(), and try to update "_id"
@@ -512,10 +496,9 @@ public class DBCollection {
      *
      * @param type            The List instance of insertor, can't be null or empty
      * @param ignoreNullValue true:if type's inner value is null, it will not save to collection;
-     * @param flag            the update flag, default to be 0. Please see the definition of follow flags for
-     *                        more detail.
+     * @param flag            the update flag, default to be 0:
      *                        <ul>
-     *                        <li>DBCollection.FLG_UPDATE_KEEP_SHARDINGKEY
+     *                        <li>{@link DBCollection#FLG_UPDATE_KEEP_SHARDINGKEY}
      *                        </ul>
      * @throws BaseException 1.while the input argument is null or the List instance is empty 2.while the type
      *                       is not support, throw BaseException with the type "SDB_INVALIDARG" 3.while offer
@@ -638,15 +621,10 @@ public class DBCollection {
      * Insert a bulk of bson objects into current collection.
      *
      * @param insertor The Bson object of insertor list, can't be null
-     * @param flags    The flag to control the behavior of inserting. The value of flags default to be 0,
-     *                 and it can choose the follow values:
+     * @param flags    The insert flag, default to be 0:
      *                 <ul>
-     *                 <li>0: default value</li>
-     *                 <li>FLG_INSERT_CONTONDUP: if the record hit index key duplicate error, database
-     *                 will skip them and go on inserting.</li>
-     *                 <li>FLG_INSERT_REPLACEONDUP: if the record hit index key duplicate error, database
-     *                 will replace the existing record by the inserting new record and them go on
-     *                 inserting.</li>
+     *                 <li>{@link DBCollection#FLG_INSERT_CONTONDUP}</li>
+     *                 <li>{@link DBCollection#FLG_INSERT_REPLACEONDUP}</li>
      *                 </ul>
      * @throws BaseException If error happens.
      * @deprecated Use {@link DBCollection#bulkInsert(List, InsertOption)} instead.
@@ -877,8 +855,7 @@ public class DBCollection {
      * @param hint     Specified the index used to scan data. e.g. {"":"ageIndex"} means using index
      *                 "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
      *                 null, database automatically match the optimal index to scan data.
-     * @param flag     the update flag, default to be 0. Please see the definition of follow flags for
-     *                 more detail.
+     * @param flag     the update flag, default to be 0:
      *                 <ul>
      *                 <li>DBCollection.FLG_UPDATE_KEEP_SHARDINGKEY
      *                 </ul>
@@ -929,8 +906,7 @@ public class DBCollection {
      * @param hint     Specified the index used to scan data. e.g. {"":"ageIndex"} means using index
      *                 "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
      *                 null, database automatically match the optimal index to scan data.
-     * @param flag     the update flag, default to be 0. Please see the definition of follow flags for
-     *                 more detail.
+     * @param flag     the update flag, default to be 0:
      *                 <ul>
      *                 <li>DBCollection.FLG_UPDATE_KEEP_SHARDINGKEY
      *                 </ul>
@@ -1007,11 +983,10 @@ public class DBCollection {
      *                    null, database automatically match the optimal index to scan data.
      * @param setOnInsert When "setOnInsert" is not a null or an empty object, it assigns the specified
      *                    values to the fields when insert.
-     * @param flag        the upsert flag, default to be 0. Please see the definition of follow flags for
-     *                    more detail.
-     *                    <ul>
-     *                    <li>DBCollection.FLG_UPDATE_KEEP_SHARDINGKEY
-     *                    </ul>
+     * @param flag        the update flag, default to be 0:
+     *                     <ul>
+     *                     <li>{@link DBCollection#FLG_UPDATE_KEEP_SHARDINGKEY}
+     *                     </ul>
      * @throws BaseException If error happens.
      * @deprecated Use {@link DBCollection#upsertRecords(BSONObject, BSONObject, UpsertOption)} instead.
      */
@@ -1044,15 +1019,13 @@ public class DBCollection {
      * @param skipRows   skip the first numToSkip documents, never skip if this parameter is 0
      * @param returnRows return the specified amount of documents, when returnRows is 0, return nothing,
      *                   when returnRows is -1, return all the documents
-     * @param flag       the query flag, default to be 0. Please see the definition of follow flags for
-     *                   more detail. Usage: e.g. set ( DBQuery.FLG_QUERY_FORCE_HINT |
-     *                   DBQuery.FLG_QUERY_WITH_RETURNDATA ) to param flag
-     *                   <ul>
-     *                   <li>DBQuery.FLG_QUERY_STRINGOUT
-     *                   <li>DBQuery.FLG_QUERY_FORCE_HINT
-     *                   <li>DBQuery.FLG_QUERY_PARALLED
-     *                   <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
-     *                   </ul>
+     * @param flag       the query flag, default to be 0:
+     *                    <ul>
+     *                    <li>{@link DBQuery#FLG_QUERY_STRINGOUT}
+     *                    <li>{@link DBQuery#FLG_QUERY_FORCE_HINT}
+     *                    <li>{@link DBQuery#FLG_QUERY_PARALLED}
+     *                    <li>{@link DBQuery#FLG_QUERY_WITH_RETURNDATA}
+     *                    </ul>
      * @param options    The rules of query explain, the options are as below:
      *                   <ul>
      *                   <li>Run : Whether execute query explain or not, true for executing query explain
@@ -1133,16 +1106,14 @@ public class DBCollection {
      * @param hint     Specified the index used to scan data. e.g. {"":"ageIndex"} means using index
      *                 "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
      *                 null, database automatically match the optimal index to scan data.
-     * @param flag     the query flag, default to be 0. Please see the definition of follow flags for
-     *                 more detail. Usage: e.g. set ( DBQuery.FLG_QUERY_FORCE_HINT |
-     *                 DBQuery.FLG_QUERY_WITH_RETURNDATA ) to param flag
+     * @param flag    the query flag, default to be 0:
      *                 <ul>
-     *                 <li>DBQuery.FLG_QUERY_STRINGOUT
-     *                 <li>DBQuery.FLG_QUERY_FORCE_HINT
-     *                 <li>DBQuery.FLG_QUERY_PARALLED
-     *                 <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
-     *                 <li>DBQuery.FLG_QUERY_FOR_UPDATE
-     *                 <li>DBQuery.FLG_QUERY_FOR_SHARE
+     *                 <li>{@link DBQuery#FLG_QUERY_STRINGOUT}
+     *                 <li>{@link DBQuery#FLG_QUERY_FORCE_HINT}
+     *                 <li>{@link DBQuery#FLG_QUERY_PARALLED}
+     *                 <li>{@link DBQuery#FLG_QUERY_WITH_RETURNDATA}
+     *                 <li>{@link DBQuery#FLG_QUERY_FOR_UPDATE}
+     *                 <li>{@link DBQuery#FLG_QUERY_FOR_SHARE}
      *                 </ul>
      * @return a DBCursor instance of the result or null if no any matched document
      * @throws BaseException If error happens.
@@ -1178,16 +1149,14 @@ public class DBCollection {
      * @param hint     Specified the index used to scan data. e.g. {"":"ageIndex"} means using index
      *                 "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
      *                 null, database automatically match the optimal index to scan data.
-     * @param flag     the query flag, default to be 0. Please see the definition of follow flags for
-     *                 more detail. Usage: e.g. set ( DBQuery.FLG_QUERY_FORCE_HINT |
-     *                 DBQuery.FLG_QUERY_WITH_RETURNDATA ) to param flag
+     * @param flag    the query flag, default to be 0:
      *                 <ul>
-     *                 <li>DBQuery.FLG_QUERY_STRINGOUT
-     *                 <li>DBQuery.FLG_QUERY_FORCE_HINT
-     *                 <li>DBQuery.FLG_QUERY_PARALLED
-     *                 <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
-     *                 <li>DBQuery.FLG_QUERY_FOR_UPDATE
-     *                 <li>DBQuery.FLG_QUERY_FOR_SHARE
+     *                 <li>{@link DBQuery#FLG_QUERY_STRINGOUT}
+     *                 <li>{@link DBQuery#FLG_QUERY_FORCE_HINT}
+     *                 <li>{@link DBQuery#FLG_QUERY_PARALLED}
+     *                 <li>{@link DBQuery#FLG_QUERY_WITH_RETURNDATA}
+     *                 <li>{@link DBQuery#FLG_QUERY_FOR_UPDATE}
+     *                 <li>{@link DBQuery#FLG_QUERY_FOR_SHARE}
      *                 </ul>
      * @return a DBCursor instance of the result or null if no any matched document
      * @throws BaseException If error happens.
@@ -1281,17 +1250,15 @@ public class DBCollection {
      * @param skipRows   skip the first numToSkip documents, never skip if this parameter is 0
      * @param returnRows return the specified amount of documents, when returnRows is 0, return nothing,
      *                   when returnRows is -1, return all the documents
-     * @param flags      the query flags, default to be 0. Please see the definition of follow flags for
-     *                   more detail. Usage: e.g. set ( DBQuery.FLG_QUERY_FORCE_HINT |
-     *                   DBQuery.FLG_QUERY_WITH_RETURNDATA ) to param flag
-     *                   <ul>
-     *                   <li>DBQuery.FLG_QUERY_STRINGOUT
-     *                   <li>DBQuery.FLG_QUERY_FORCE_HINT
-     *                   <li>DBQuery.FLG_QUERY_PARALLED
-     *                   <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
-     *                   <li>DBQuery.FLG_QUERY_FOR_UPDATE
-     *                   <li>DBQuery.FLG_QUERY_FOR_SHARE
-     *                   </ul>
+     * @param flags      the query flag, default to be 0:
+     *                    <ul>
+     *                    <li>{@link DBQuery#FLG_QUERY_STRINGOUT}
+     *                    <li>{@link DBQuery#FLG_QUERY_FORCE_HINT}
+     *                    <li>{@link DBQuery#FLG_QUERY_PARALLED}
+     *                    <li>{@link DBQuery#FLG_QUERY_WITH_RETURNDATA}
+     *                    <li>{@link DBQuery#FLG_QUERY_FOR_UPDATE}
+     *                    <li>{@link DBQuery#FLG_QUERY_FOR_SHARE}
+     *                    </ul>
      * @return a DBCursor instance of the result or null if no any matched document
      * @throws BaseException If error happens.
      */
@@ -1347,17 +1314,15 @@ public class DBCollection {
      * @param hint     Specified the index used to scan data. e.g. {"":"ageIndex"} means using index
      *                 "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
      *                 null, database automatically match the optimal index to scan data.
-     * @param flag     the query flag, default to be 0. Please see the definition of follow flags for
-     *                 more detail. Usage: e.g. set ( DBQuery.FLG_QUERY_FORCE_HINT |
-     *                 DBQuery.FLG_QUERY_WITH_RETURNDATA ) to param flag
-     *                 <ul>
-     *                 <li>DBQuery.FLG_QUERY_STRINGOUT
-     *                 <li>DBQuery.FLG_QUERY_FORCE_HINT
-     *                 <li>DBQuery.FLG_QUERY_PARALLED
-     *                 <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
-     *                 <li>DBQuery.FLG_QUERY_FOR_UPDATE
-     *                 <li>DBQuery.FLG_QUERY_FOR_SHARE
-     *                 </ul>
+     * @param flag     the query flag, default to be 0:
+     *                  <ul>
+     *                  <li>{@link DBQuery#FLG_QUERY_STRINGOUT}
+     *                  <li>{@link DBQuery#FLG_QUERY_FORCE_HINT}
+     *                  <li>{@link DBQuery#FLG_QUERY_PARALLED}
+     *                  <li>{@link DBQuery#FLG_QUERY_WITH_RETURNDATA}
+     *                  <li>{@link DBQuery#FLG_QUERY_FOR_UPDATE}
+     *                  <li>{@link DBQuery#FLG_QUERY_FOR_SHARE}
+     *                  </ul>
      * @return the matched document or null if no such document
      * @throws BaseException If error happens.
      */
@@ -1456,17 +1421,14 @@ public class DBCollection {
      * @param skipRows   skip the first numToSkip documents, never skip if this parameter is 0
      * @param returnRows return the specified amount of documents, when returnRows is 0, return nothing,
      *                   when returnRows is -1, return all the documents
-     * @param flag       the query flags, default to be 0. Please see the definition of follow flags for
-     *                   more detail. Usage: e.g. set ( DBQuery.FLG_QUERY_FORCE_HINT |
-     *                   DBQuery.FLG_QUERY_WITH_RETURNDATA ) to param flag
+     * @param flag      the query flag, default to be 0:
      *                   <ul>
-     *                   <li>DBQuery.FLG_QUERY_STRINGOUT
-     *                   <li>DBQuery.FLG_QUERY_FORCE_HINT
-     *                   <li>DBQuery.FLG_QUERY_PARALLED
-     *                   <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
-     *                   <li>DBQuery.FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE
-     *                   <li>DBQuery.FLG_QUERY_FOR_UPDATE
-     *                   <li>DBQuery.FLG_QUERY_FOR_SHARE
+     *                   <li>{@link DBQuery#FLG_QUERY_STRINGOUT}
+     *                   <li>{@link DBQuery#FLG_QUERY_FORCE_HINT}
+     *                   <li>{@link DBQuery#FLG_QUERY_PARALLED}
+     *                   <li>{@link DBQuery#FLG_QUERY_WITH_RETURNDATA}
+     *                   <li>{@link DBQuery#FLG_QUERY_FOR_UPDATE}
+     *                   <li>{@link DBQuery#FLG_QUERY_FOR_SHARE}
      *                   </ul>
      * @param returnNew  When true, returns the updated document rather than the original
      * @return a DBCursor instance of the result or null if no any matched document
@@ -1492,16 +1454,14 @@ public class DBCollection {
      * @param skipRows   skip the first numToSkip documents, never skip if this parameter is 0
      * @param returnRows return the specified amount of documents, when returnRows is 0, return nothing,
      *                   when returnRows is -1, return all the documents
-     * @param flag       the query flag, default to be 0. Please see the definition of follow flags for
-     *                   more detail. Usage: e.g. set ( DBQuery.FLG_QUERY_FORCE_HINT |
-     *                   DBQuery.FLG_QUERY_WITH_RETURNDATA ) to param flag
+     * @param flag      the query flag, default to be 0:
      *                   <ul>
-     *                   <li>DBQuery.FLG_QUERY_STRINGOUT
-     *                   <li>DBQuery.FLG_QUERY_FORCE_HINT
-     *                   <li>DBQuery.FLG_QUERY_PARALLED
-     *                   <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
-     *                   <li>DBQuery.FLG_QUERY_FOR_UPDATE
-     *                   <li>DBQuery.FLG_QUERY_FOR_SHARE
+     *                   <li>{@link DBQuery#FLG_QUERY_STRINGOUT}
+     *                   <li>{@link DBQuery#FLG_QUERY_FORCE_HINT}
+     *                   <li>{@link DBQuery#FLG_QUERY_PARALLED}
+     *                   <li>{@link DBQuery#FLG_QUERY_WITH_RETURNDATA}
+     *                   <li>{@link DBQuery#FLG_QUERY_FOR_UPDATE}
+     *                   <li>{@link DBQuery#FLG_QUERY_FOR_SHARE}
      *                   </ul>
      * @return a DBCursor instance of the result or null if no any matched document
      * @throws BaseException If error happens.
@@ -2596,7 +2556,13 @@ public class DBCollection {
      * Open an existing lob with id.
      *
      * @param id   the lob's id.
-     * @param mode open mode: DBLob.SDB_LOB_READ for reading, DBLob.SDB_LOB_WRITE for writing.
+     * @param mode open mode as follow:
+     *              <ul>
+     *              <li>{@link DBLob#SDB_LOB_READ}
+     *              <li>{@link DBLob#SDB_LOB_SHAREREAD}
+     *              <li>{@link DBLob#SDB_LOB_WRITE}
+     *              <li>{@link DBLob#SDB_LOB_SHAREREAD} | {@link DBLob#SDB_LOB_WRITE} for both reading and writing
+     *              </ul>
      * @return DBLob object
      * @throws BaseException If error happens..
      */
