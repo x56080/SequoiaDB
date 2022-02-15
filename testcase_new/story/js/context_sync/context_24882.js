@@ -2,13 +2,13 @@
  * @Description   : seqDB-24882:主子表访问一个子表达到上下文超时清理时间 
  * @Author        : Yao Kang
  * @CreateTime    : 2021.12.30
- * @LastEditTime  : 2022.01.29
- * @LastEditors   : 钟子明
+ * @LastEditTime  : 2022.02.15
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.csName = COMMCSNAME + "_24882";
 testConf.skipStandAlone = true;
-// 问题单：http://jira.web:8080/browse/SEQUOIADBMAINSTREAM-7888
-main( test );
+// SEQUOIADBMAINSTREAM-8019
+// main( test );
 function test ( testPara )
 {
    var cs = testPara.testCS;
