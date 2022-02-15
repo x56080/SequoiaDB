@@ -1818,6 +1818,7 @@ namespace engine
 
       UINT32 retryTime = 0 ;
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      dpsTransCB *transCB = pmdGetKRCB()->getTransCB() ;
       UINT32 suLogicalID = DMS_INVALID_LOGICCSID ;
 
       SDB_ASSERT ( pCollectionSpace, "collection space can't be NULL" ) ;
@@ -1856,8 +1857,14 @@ namespace engine
             goto error ;
          }
 
-         // tell others to close contexts on the same collection space
-         if ( rtnCB->preDelContext( pCollectionSpace, suLogicalID ) > 0 )
+         // - tell others to close contexts on the same collection space
+         // - tell other waiting transactions to give up
+         if ( ( rtnCB->preDelContext( pCollectionSpace, suLogicalID ) > 0 ) ||
+              ( cb->getTransExecutor()->useTransLock() &&
+                transCB->transLockKillWaiters( suLogicalID,
+                                               DMS_INVALID_MBID,
+                                               NULL,
+                                               SDB_DPS_TRANS_LOCK_INCOMPATIBLE ) ) )
          {
             ossSleep( 200 ) ;
          }

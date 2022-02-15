@@ -258,6 +258,9 @@ namespace engine
          DPS_TRANS_ID_SET &         incompTrans
       ) ;
 
+      // kill waiters with error code
+      BOOLEAN killWaiters( const dpsTransLockId &lockID, INT32 errorCode ) ;
+
    private:
       // Latch for normal lock operation ( acquire, tryAcquire,
       // testAcquire, release, releaseAll, hasWait etc on ) :
@@ -499,6 +502,9 @@ namespace engine
 
       // wakeup a lock waiting exectuor ( EDU )
       void _wakeUp( _dpsTransExecutor * dpsTxExectr ) ;
+
+      // kill a waiter with error code
+      void _killWaiter( _dpsTransExecutor * dpsTxExectr, INT32 errorCode ) ;
 
       // wait a lock till be woken up, lock timeout elapsed, or be interrupted
       INT32 _waitLock( _dpsTransExecutor * dpsTxExectr ) ;

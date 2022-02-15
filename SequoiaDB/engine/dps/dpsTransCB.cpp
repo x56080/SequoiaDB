@@ -1501,6 +1501,22 @@ namespace engine
                             pdpsTxResInfo, callback ) ;
    }
 
+   BOOLEAN dpsTransCB::transLockKillWaiters( UINT32 logicCSID,
+                                             UINT16 collectionID,
+                                             const dmsRecordID *recordID,
+                                             INT32 errorCode )
+   {
+      BOOLEAN killed = FALSE ;
+
+      if ( _isOn )
+      {
+         dpsTransLockId lockID( logicCSID, collectionID, recordID ) ;
+         killed = _transLockMgr->killWaiters( lockID, errorCode ) ;
+      }
+
+      return killed ;
+   }
+
    BOOLEAN dpsTransCB::transIsHolding( _pmdEDUCB *eduCB, UINT32 logicCSID,
                                         UINT16 collectionID,
                                         const dmsRecordID *recordID )

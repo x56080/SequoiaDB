@@ -487,6 +487,12 @@ namespace engine
                                        dpsTransRetInfo *pdpsTxResInfo = NULL,
                                        _dpsITransLockCallback *callback = NULL ) ;
 
+      // kill waiters for a specified lock ID
+      BOOLEAN transLockKillWaiters( UINT32 logicCSID,
+                                    UINT16 collectionID,
+                                    const dmsRecordID *recordID,
+                                    INT32 errorCode ) ;
+
       BOOLEAN transIsHolding( _pmdEDUCB *eduCB, UINT32 logicCSID,
                               UINT16 collectionID,
                               const dmsRecordID *recordID ) ;
