@@ -2,6 +2,7 @@ package com.sequoiadb.metadataconsistency.data;
 
 import java.util.Random;
 
+import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
@@ -98,8 +99,8 @@ public class Index10216 extends SdbTestBase {
                 clDB.dropIndex( idxName );
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if ( eCode != -47 && eCode != -175 ) {
-                    // -47:Index name does not exist
+                if ( eCode != SDBError.SDB_IXM_NOTEXIST.getErrorCode()
+                        && eCode != SDBError.SDB_IXM_DROPPING.getErrorCode() ) {
                     throw e;
                 }
             } finally {

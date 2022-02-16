@@ -97,8 +97,7 @@ public class Index10211 extends SdbTestBase {
                 int eCode = e.getErrorCode();
                 if ( eCode != SDBError.SDB_IXM_REDEF.getErrorCode()
                         && eCode != SDBError.SDB_LOCK_FAILED.getErrorCode()
-                        && eCode != SDBError.SDB_CLS_MUTEX_TASK_EXIST
-                                .getErrorCode()
+                        && eCode != SDBError.SDB_IXM_CREATING.getErrorCode()
                         && eCode != SDBError.SDB_DMS_INIT_INDEX.getErrorCode()
                         && eCode != SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
                                 .getErrorCode() ) {

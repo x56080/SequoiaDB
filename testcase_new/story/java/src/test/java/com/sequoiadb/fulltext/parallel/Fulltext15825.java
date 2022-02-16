@@ -2,6 +2,7 @@ package com.sequoiadb.fulltext.parallel;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.sequoiadb.exception.SDBError;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -83,7 +84,10 @@ public class Fulltext15825 extends FullTestBase {
                 cl.dropIndex( fullIdxName );
                 atoint.incrementAndGet();
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -47 && e.getErrorCode() != -175 ) {
+                if ( e.getErrorCode() != SDBError.SDB_IXM_NOTEXIST
+                        .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_IXM_DROPPING
+                                .getErrorCode() ) {
                     throw e;
                 }
             } finally {

@@ -123,7 +123,7 @@ public class Fulltext12116 extends FullTestBase {
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != SDBError.SDB_DMS_MAX_INDEX
                         .getErrorCode()
-                        && e.getErrorCode() != SDBError.SDB_CLS_MUTEX_TASK_EXIST
+                        && e.getErrorCode() != SDBError.SDB_IXM_CREATING
                                 .getErrorCode() ) {
                     throw e;
                 }
