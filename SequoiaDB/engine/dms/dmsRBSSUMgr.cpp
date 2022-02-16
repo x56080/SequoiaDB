@@ -121,14 +121,14 @@ namespace engine
                                    pmdGetOptionCB()->getIndexPath(),
                                    pmdGetOptionCB()->getLobPath(),
                                    pmdGetOptionCB()->getLobMetaPath(),
-                                   NULL, _dmsCB, FALSE ) ;
+                                   eduCB, _dmsCB, FALSE ) ;
       // FIXME: remove
       PD_LOG ( PDDEBUG, "load RBS cs %s with rc:%d", _metaCSName, rc ) ;
 
       if ( SDB_OK == rc )
       {
          // Drop existing RBSCS
-         rc = rtnDelCollectionSpaceCommand( _metaCSName, NULL, _dmsCB,
+         rc = rtnDelCollectionSpaceCommand( _metaCSName, eduCB, _dmsCB,
                                             dpsCB, TRUE, TRUE ) ;
          if ( rc )
          {
@@ -157,7 +157,7 @@ namespace engine
          // Rollback Segment not exist, create one
          PD_LOG ( PDDEBUG, "Creating RBS cs %s.", _metaCSName ) ;
 
-         rc = rtnCreateCollectionSpaceCommand( _metaCSName, NULL, _dmsCB,
+         rc = rtnCreateCollectionSpaceCommand( _metaCSName, eduCB, _dmsCB,
                                                dpsCB, UTIL_UNIQUEID_NULL,
                                                pageSize,
                                                DMS_DO_NOT_CREATE_LOB,
