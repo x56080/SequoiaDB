@@ -942,6 +942,8 @@ namespace engine
          { CMD_NAME_LIST_DOMAINS,
                                  &RestToMSGTransfer::_convertListDomains },
          { CMD_NAME_LIST_TASKS,  &RestToMSGTransfer::_convertListTasks },
+         { CMD_NAME_LIST_RECYCLEBIN,
+                                 &RestToMSGTransfer::_convertListRecycleBin },
          { REST_CMD_NAME_LISTINDEXES,
                                  &RestToMSGTransfer::_convertListIndexes },
 //         { CMD_NAME_LIST_CL_IN_DOMAIN, &RestToMSGTransfer::_convertQuery },
@@ -981,6 +983,8 @@ namespace engine
                                  &RestToMSGTransfer::_convertSnapshotTransWaits },
          { CMD_NAME_SNAPSHOT_TRANSDEADLOCK,
                                  &RestToMSGTransfer::_convertSnapshotTransDeadlock },
+         { CMD_NAME_SNAPSHOT_RECYCLEBIN,
+                                 &RestToMSGTransfer::_convertSnapshotRecycleBin },
          { CMD_NAME_LIST_LOBS,   &RestToMSGTransfer::_convertListLobs },
          { OM_LOGIN_REQ,         &RestToMSGTransfer::_convertLogin },
          { REST_CMD_NAME_EXEC,   &RestToMSGTransfer::_convertExec },
@@ -3510,6 +3514,15 @@ namespace engine
       return _convertListBase( pAdaptor, request, pCommand, msg ) ;
    }
 
+   INT32 RestToMSGTransfer::_convertListRecycleBin ( restAdaptor *pAdaptor,
+                                                     restRequest &request,
+                                                     MsgHeader **msg )
+   {
+      const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_LIST_RECYCLEBIN ;
+
+      return _convertListBase( pAdaptor, request, pCommand, msg ) ;
+   }
+
    INT32 RestToMSGTransfer::_convertListIndexes( restAdaptor *pAdaptor,
                                                  restRequest &request,
                                                  MsgHeader **msg )
@@ -3987,6 +4000,15 @@ namespace engine
                                                              MsgHeader ** msg )
    {
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSDEADLOCK ;
+
+      return  _convertSnapshotBase( pAdaptor, request, pCommand, msg ) ;
+   }
+
+   INT32 RestToMSGTransfer::_convertSnapshotRecycleBin ( restAdaptor * pAdaptor,
+                                                         restRequest &request,
+                                                         MsgHeader ** msg )
+   {
+      const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_RECYCLEBIN ;
 
       return  _convertSnapshotBase( pAdaptor, request, pCommand, msg ) ;
    }
