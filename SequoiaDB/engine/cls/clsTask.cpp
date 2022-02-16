@@ -4646,6 +4646,81 @@ namespace engine
       return CMD_NAME_CREATE_INDEX ;
    }
 
+   INT32 _clsCreateIdxTask::checkConflictWithExistTask( const _clsTask *pExistTask )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( 0 != ossStrcmp( collectionName(), pExistTask->collectionName() ) )
+      {
+         goto done ;
+      }
+
+      if ( CLS_TASK_CREATE_IDX == pExistTask->taskType() )
+      {
+         clsCreateIdxTask* pExistIdxTask = (clsCreateIdxTask*)pExistTask ;
+         if ( 0 == ossStrcmp( indexName(), pExistIdxTask->indexName() ) )
+         {
+            if ( ixmIsSameDef( pExistIdxTask->indexDef(), indexDef(), TRUE ) )
+            {
+               rc = SDB_IXM_CREATING ;
+               PD_LOG_MSG( PDERROR,
+                           "The same index '%s' is creating in task[%llu]",
+                           indexName(), pExistIdxTask->taskID() ) ;
+               goto error ;
+            }
+            else
+            {
+               rc = SDB_IXM_SAME_NAME_CREATING ;
+               PD_LOG_MSG( PDERROR,
+                           "An index '%s' which has the same name but with "
+                           "different definition is creating in task[%llu]",
+                           pExistIdxTask->indexName(), pExistIdxTask->taskID() ) ;
+               goto error ;
+            }
+         }
+         else
+         {
+            if ( ixmIsSameDef( pExistIdxTask->indexDef(), indexDef() ) )
+            {
+               rc = SDB_IXM_COVER_CREATING ;
+               PD_LOG_MSG( PDERROR, "An index '%s' which "
+                           "can cover this scene is creating in task[%llu]",
+                           pExistIdxTask->indexName(), pExistIdxTask->taskID() ) ;
+               goto error ;
+            }
+         }
+      }
+      else if ( CLS_TASK_DROP_IDX == pExistTask->taskType() )
+      {
+         clsDropIdxTask* pExistIdxTask = (clsDropIdxTask*)pExistTask ;
+         if ( 0 == ossStrcmp( indexName(), pExistIdxTask->indexName() ) )
+         {
+            rc = SDB_IXM_DROPPING ;
+            PD_LOG_MSG( PDERROR,
+                        "The index '%s' is dropping in task[%llu]",
+                        indexName(), pExistIdxTask->taskID() ) ;
+            goto error ;
+         }
+      }
+      else if ( CLS_TASK_COPY_IDX == pExistTask->taskType() )
+      {
+         clsCopyIdxTask* pExistIdxTask = (clsCopyIdxTask*)pExistTask ;
+         if ( pExistIdxTask->indexList().count( indexName() ) > 0 )
+         {
+            rc = SDB_IXM_CREATING ;
+            PD_LOG_MSG( PDERROR,
+                        "The index '%s' is creating in task[%llu]",
+                        indexName(), pExistIdxTask->taskID() ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _clsCreateIdxTask::_init( const CHAR *objdata )
    {
       INT32 rc = SDB_OK ;
@@ -4819,6 +4894,58 @@ namespace engine
       return CMD_NAME_DROP_INDEX ;
    }
 
+   INT32 _clsDropIdxTask::checkConflictWithExistTask( const _clsTask *pExistTask )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( 0 != ossStrcmp( collectionName(), pExistTask->collectionName() ) )
+      {
+         goto done ;
+      }
+
+      if ( CLS_TASK_CREATE_IDX == pExistTask->taskType() )
+      {
+         clsCreateIdxTask* pExistIdxTask = (clsCreateIdxTask*)pExistTask ;
+         if ( 0 == ossStrcmp( indexName(), pExistIdxTask->indexName() ) )
+         {
+            rc = SDB_IXM_CREATING ;
+            PD_LOG_MSG( PDERROR,
+                        "The same index '%s' is creating in task[%llu]",
+                        indexName(), pExistIdxTask->taskID() ) ;
+            goto error ;
+         }
+      }
+      else if ( CLS_TASK_DROP_IDX == pExistTask->taskType() )
+      {
+         clsDropIdxTask* pExistIdxTask = (clsDropIdxTask*)pExistTask ;
+         if ( 0 == ossStrcmp( indexName(), pExistIdxTask->indexName() ) )
+         {
+            rc = SDB_IXM_DROPPING ;
+            PD_LOG_MSG( PDERROR,
+                        "The index '%s' is dropping in task[%llu]",
+                        indexName(), pExistIdxTask->taskID() ) ;
+            goto error ;
+         }
+      }
+      else if ( CLS_TASK_COPY_IDX == pExistTask->taskType() )
+      {
+         clsCopyIdxTask* pExistIdxTask = (clsCopyIdxTask*)pExistTask ;
+         if ( pExistIdxTask->indexList().count( indexName() ) > 0 )
+         {
+            rc = SDB_IXM_CREATING ;
+            PD_LOG_MSG( PDERROR,
+                        "The index '%s' is creating in task[%llu]",
+                        indexName(), pExistIdxTask->taskID() ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _clsDropIdxTask::_init( const CHAR *objdata )
    {
       return SDB_OK ;
@@ -4986,9 +5113,58 @@ namespace engine
       }
    }
 
+   const ossPoolSet<ossPoolString>& _clsCopyIdxTask::indexList() const
+   {
+      return _indexList ;
+   }
+
    const CHAR* _clsCopyIdxTask::commandName() const
    {
       return CMD_NAME_COPY_INDEX ;
+   }
+
+   INT32 _clsCopyIdxTask::checkConflictWithExistTask( const _clsTask *pExistTask )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( 0 != ossStrcmp( collectionName(), pExistTask->collectionName() ) )
+      {
+         goto done ;
+      }
+
+      if ( CLS_TASK_CREATE_IDX == pExistTask->taskType() )
+      {
+         clsCreateIdxTask* pExistIdxTask = (clsCreateIdxTask*)pExistTask ;
+         if ( _indexList.count( pExistIdxTask->indexName() ) > 0 )
+         {
+            rc = SDB_IXM_CREATING ;
+            PD_LOG_MSG( PDERROR,
+                        "The same index '%s' is creating in task[%llu]",
+                        indexName(), pExistIdxTask->taskID() ) ;
+            goto error ;
+         }
+      }
+      else if ( CLS_TASK_DROP_IDX == pExistTask->taskType() )
+      {
+         clsDropIdxTask* pExistIdxTask = (clsDropIdxTask*)pExistTask ;
+         if ( _indexList.count( pExistIdxTask->indexName() ) > 0 )
+         {
+            rc = SDB_IXM_DROPPING ;
+            PD_LOG_MSG( PDERROR,
+                        "The index '%s' is dropping in task[%llu]",
+                        indexName(), pExistIdxTask->taskID() ) ;
+            goto error ;
+         }
+      }
+      else if ( CLS_TASK_COPY_IDX == pExistTask->taskType() )
+      {
+         // do nothing, copy index check by sub-tasks
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 }
 

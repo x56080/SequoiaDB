@@ -1744,6 +1744,7 @@ namespace engine
       // query tasks
       if ( _pCataSet->isMainCL() )
       {
+         // not only main collection but also its sub collections
          matcher = BSON( FIELD_NAME_STATUS <<
                          BSON( "$ne" << CLS_TASK_STATUS_FINISH ) ) ;
       }
@@ -1792,19 +1793,19 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMDIDX_CHKTASKCONF2, "_catCMDIndexHelper::_checkTaskConflict" )
-   INT32 _catCMDIndexHelper::_checkTaskConflict( const BSONObj &otherIdxObj )
+   INT32 _catCMDIndexHelper::_checkTaskConflict( const BSONObj &existTaskObj )
    {
       PD_TRACE_ENTRY( SDB_CATCMDIDX_CHKTASKCONF2 ) ;
 
       INT32 rc = SDB_OK ;
-      clsTask *pOtherTask = NULL ;
+      clsTask *pExistTask = NULL ;
 
-      rc = clsNewTask( otherIdxObj, pOtherTask ) ;
+      rc = clsNewTask( existTaskObj, pExistTask ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to new task, rc: %d",
                    rc ) ;
 
-      if ( CLS_TASK_STATUS_FINISH == pOtherTask->status() )
+      if ( CLS_TASK_STATUS_FINISH == pExistTask->status() )
       {
          goto done ;
       }
@@ -1812,39 +1813,20 @@ namespace engine
       for( VEC_TASKS_IT it = _vecTasks.begin() ; it != _vecTasks.end() ; ++it )
       {
          clsIdxTask* pCurTask = *it ;
-         if ( pCurTask->taskID() == pOtherTask->taskID() ||
-              pCurTask->muteXOn( pOtherTask ) ||
-              pOtherTask->muteXOn( pCurTask ) )
-         {
-            rc = SDB_CLS_MUTEX_TASK_EXIST ;
-         }
-         else if ( CLS_TASK_CREATE_IDX == pOtherTask->taskType() &&
-                   CLS_TASK_CREATE_IDX == pCurTask->taskType() )
-         {
-            if ( 0 == ossStrcmp( pOtherTask->collectionName(),
-                                 pCurTask->collectionName() ) )
-            {
-               if ( ixmIsSameDef( ((clsCreateIdxTask*)pOtherTask)->indexDef(),
-                                  ((clsCreateIdxTask*)pCurTask)->indexDef() ) )
-               {
-                  rc = SDB_CLS_MUTEX_TASK_EXIST ;
-               }
-            }
-         }
+         rc = pCurTask->checkConflictWithExistTask( pExistTask ) ;
          if ( rc )
          {
-            PD_LOG_MSG( PDERROR,
-                        "New task[%s] conflict with an existing task[%llu,%s]",
-                        pCurTask->taskName(),
-                        pOtherTask->taskID(), pOtherTask->taskName() ) ;
+            PD_LOG( PDERROR,
+                    "Failed to check confilct with existing task[%llu], rc: %d",
+                    pExistTask->taskID(), rc ) ;
             goto error ;
          }
       }
 
    done:
-      if ( pOtherTask )
+      if ( pExistTask )
       {
-         clsReleaseTask( pOtherTask ) ;
+         clsReleaseTask( pExistTask ) ;
       }
       PD_TRACE_EXITRC( SDB_CATCMDIDX_CHKTASKCONF2, rc ) ;
       return rc ;

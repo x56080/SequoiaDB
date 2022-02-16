@@ -472,6 +472,7 @@ namespace engine
 
          virtual INT32       init( const CHAR *objdata ) ;
          virtual BSONObj     toBson( UINT32 mask = CLS_MASK_ALL ) ;
+         virtual INT32       checkConflictWithExistTask( const _clsTask *pExistTask ) = 0 ;
 
          virtual INT32       getSubTasks( ossPoolVector<UINT64>& list ) ;
 
@@ -682,6 +683,8 @@ namespace engine
 
          virtual const CHAR* commandName() const ;
 
+         virtual INT32 checkConflictWithExistTask( const _clsTask *pExistTask ) ;
+
          INT32           sortBufSize() const ;
          const BSONObj&  indexDef() const ;
          INT32           globalIdxCL( const CHAR *&clName,
@@ -722,6 +725,8 @@ namespace engine
 
          virtual const CHAR* commandName() const ;
 
+         virtual INT32 checkConflictWithExistTask( const _clsTask *pExistTask ) ;
+
       protected:
          virtual INT32 _init( const CHAR *objdata ) ;
          virtual void  _toBson( BSONObjBuilder &builder ) ;
@@ -747,6 +752,11 @@ namespace engine
 
          virtual const CHAR* indexName() const { return NULL ; }
          virtual const CHAR* commandName() const ;
+         virtual BOOLEAN muteXOn ( const _clsTask* pOther ) { return FALSE ; }
+
+         const ossPoolSet<ossPoolString>& indexList() const ;
+
+         virtual INT32 checkConflictWithExistTask( const _clsTask *pExistTask ) ;
 
       protected:
          virtual INT32       _init( const CHAR *objdata ) ;

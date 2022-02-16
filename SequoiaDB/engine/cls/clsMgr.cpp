@@ -2403,7 +2403,7 @@ namespace engine
       // send msg
       rc = sendToCatlog( msg ) ;
       PD_LOG ( PDDEBUG,
-               "Send MSG_CAT_QUERY_TASK_REQ[%s] requestID[%llu] to catalog"
+               "Send MSG_CAT_QUERY_TASK_REQ[%s] [requestID:%llu] to catalog"
                "[rc:%d]", match->toString().c_str(), requestID, rc ) ;
    done:
       if ( pBuff )

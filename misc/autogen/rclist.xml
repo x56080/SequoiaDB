@@ -3097,6 +3097,38 @@
             <cn>回收站已满</cn>
          </description>
       </code>
+      
+      <code>
+         <name>SDB_IXM_CREATING</name>
+         <description>
+            <en>The index is creating</en>
+            <cn>索引正在创建</cn>
+         </description>
+      </code>
+      
+      <code>
+         <name>SDB_IXM_SAME_NAME_CREATING</name>
+         <description>
+            <en>An index with the same name is creating</en>
+            <cn>有一个同名的索引正在创建</cn>
+         </description>
+      </code>
+      
+      <code>
+         <name>SDB_IXM_COVER_CREATING</name>
+         <description>
+            <en>An index which can cover this scene is creating</en>
+            <cn>有一个可以处理本场景的索引正在创建</cn>
+         </description>
+      </code>
+      
+      <code>
+         <name>SDB_IXM_DROPPING</name>
+         <description>
+            <en>The index is dropping</en>
+            <cn>索引正在删除</cn>
+         </description>
+      </code>
 
    </codelist>
 </rclist>

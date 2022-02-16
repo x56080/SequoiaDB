@@ -438,10 +438,10 @@ namespace engine
          clsCreateIdxTask* pIdxTask = (clsCreateIdxTask*)pTask ;
          if ( ixmIsSameDef( pIdxTask->indexDef(), indexDef ) )
          {
-            rc = SDB_CLS_MUTEX_TASK_EXIST ;
-            PD_LOG_MSG( PDERROR,
-                        "Conflict with an existing task[%llu,%s]",
-                        pTask->taskID(), pTask->taskName() ) ;
+            rc = SDB_IXM_COVER_CREATING ;
+            PD_LOG_MSG( PDERROR, "An index '%s' "
+                        "which can cover this scene is creating in task[%llu]",
+                        pIdxTask->indexName(), pIdxTask->taskID() ) ;
             goto error ;
          }
 
