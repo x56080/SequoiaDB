@@ -2094,6 +2094,11 @@ do                                                            \
       }
 
    done :
+      if ( NULL != cursor )
+      {
+         delete cursor ;
+         cursor = NULL ;
+      }
       return rc ;
    error :
       goto done ;
@@ -2211,6 +2216,11 @@ do                                                            \
       }
 
    done :
+      if ( NULL != cursor )
+      {
+         delete cursor ;
+         cursor = NULL ;
+      }
       return rc ;
    error :
       goto done ;
@@ -2470,6 +2480,11 @@ do                                                            \
       }
 
    done :
+      if ( NULL != cursor )
+      {
+         delete cursor ;
+         cursor = NULL ;
+      }
       return rc ;
    error :
       goto done ;
@@ -2564,6 +2579,11 @@ do                                                            \
       }
 
    done :
+      if ( NULL != cursor )
+      {
+         delete cursor ;
+         cursor = NULL ;
+      }
       return rc ;
    error :
       goto done ;
