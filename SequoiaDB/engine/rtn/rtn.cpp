@@ -1224,7 +1224,7 @@ namespace engine
          // - tell others to close contexts on the same collection space
          // - tell other waiting transactions to give up
          if ( ( rtnCB->preDelContext( pCollectionSpace, suLogicalID ) > 0 ) ||
-              ( cb->getTransExecutor()->useTransLock() &&
+              ( NULL != cb && cb->getTransExecutor()->useTransLock() &&
                 transCB->transLockKillWaiters( suLogicalID,
                                                DMS_INVALID_MBID,
                                                NULL,
