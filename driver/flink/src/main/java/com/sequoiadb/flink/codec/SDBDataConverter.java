@@ -71,7 +71,9 @@ public class SDBDataConverter implements Serializable {
         for (int pos = 0; pos < rowData.getArity(); pos++) {
             String fieldName = rowFields.get(pos).getName();
             if (record.containsField(fieldName) && record.get(fieldName) != null) {
-                rowData.setField(pos, toInternalConverters[pos].deserialize(record.get(fieldName)));
+                try {
+                    rowData.setField(pos, toInternalConverters[pos].deserialize(record.get(fieldName)));
+                } catch (NumberFormatException ignored) { }
             }
         }
         return rowData;
