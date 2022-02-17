@@ -29,6 +29,7 @@
             <package name="com.sequoiadb.lzw" />
             <package name="com.sequoiadb.crud.compress.concurrency" />
             <package name="com.sequoiadb.transactionsync" />
+            <package name="com.sequoiadb.index.serial" />
         </packages>
     </test>
     
