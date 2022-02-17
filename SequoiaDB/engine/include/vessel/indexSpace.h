@@ -59,12 +59,12 @@ namespace vessel
             return TRUE;
          }
 
+      protected:
+         virtual dataPageCluster *getDataStorageObj() {return &_storage;}
+
       private:
          virtual UINT32 getReservedImpCount()const;
-         virtual dataPageCluster *getDataStorageObj()
-         {
-            return &_storage;
-         }
+         virtual dataPageCluster::options getStorageOptions()const;
 
       private:
          virtual INT32 getRuntimePageBuffer(requestContext *context,

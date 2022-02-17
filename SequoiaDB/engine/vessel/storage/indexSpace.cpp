@@ -322,5 +322,12 @@ namespace vessel
    {
       _storage.destroy();
    }
+
+   dataPageCluster::options indexSpace::getStorageOptions()const
+   {
+      dataPageCluster::options o;
+      o.segmentReusedMinFreePercent = 0.2f;
+      return o;
+   }
 }//namespace vessel
 }//namespace engine

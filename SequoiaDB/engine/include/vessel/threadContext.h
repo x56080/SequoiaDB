@@ -98,7 +98,8 @@ namespace vessel
    class threadContextOnwer : public SDBObject
    {
       public:
-         threadContextOnwer();
+         threadContextOnwer(IExecutor *executor,
+                            instanceEnv *env);
          ~threadContextOnwer();
          threadContextOnwer(const threadContextOnwer &) = delete;
          threadContextOnwer &operator=(const threadContextOnwer &) = delete;
@@ -106,18 +107,12 @@ namespace vessel
       public:
          static THREAD_CONTEXT *getContext(){return _T_CONTEXT;}
 
-      public:
-         void init(IExecutor *executor,
-                   instanceEnv *env);
-
-      private:
-         void fini();
-
       private:
          THREAD_CONTEXT _context;
          static OSS_THREAD_LOCAL THREAD_CONTEXT *_T_CONTEXT;
    };//class threadContextOnwer
-   OSS_THREAD_LOCAL threadContext *threadContextOnwer::_T_CONTEXT = nullptr;
+
+   typedef class threadContextOnwer THREAD_CONTEXT_OWNER;
 
    OSS_INLINE THREAD_CONTEXT *GET_THREAD_CONTEXT()
    {

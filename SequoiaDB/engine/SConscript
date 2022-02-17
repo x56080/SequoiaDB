@@ -1001,6 +1001,7 @@ vesselFiles = [
       "vessel/pageAccessor.cpp",
       "vessel/csgpAccessor.cpp",
       "vessel/requestContext.cpp",
+      "vessel/threadContext.cpp",
       "vessel/modifyRecordContext.cpp",
       "vessel/indexScanContext.cpp",
       "vessel/dmlContext.cpp",

@@ -67,6 +67,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!isOpen(), "do not reopen");
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
       requestContext context;
 
       if (NULL == executor ||
@@ -125,7 +126,6 @@ namespace vessel
          goto error;
       }
 
-      context.open(executor, &_env);
       rc = _env.dms.open(&context);
       if (SDB_OK != rc)
       {
@@ -163,8 +163,8 @@ namespace vessel
       INT32 rc = SDB_OK;
       if (isOpen() && closeDBOptions::CLOSE_MODE_NORMAL == options.closeMode)
       {
+         THREAD_CONTEXT_OWNER tco(executor, &_env);
          requestContext context;
-         context.open(executor, &_env);
 
          _env.cacheWatcher.fini();
          if (NULL != _env.lsm)
@@ -188,6 +188,7 @@ namespace vessel
                                 UINT32 &count)
    {
       INT32 rc = SDB_OK;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
       count = 0;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -210,9 +211,11 @@ namespace vessel
                               const bson::BSONObj &adjunct)
    {
       INT32 rc = SDB_OK;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
       createCSHandler handler;
       collectionSpaceId identifier;
       strSlice csName;
+      
       
       if (OSS_UNLIKELY(NULL == executor ||
                        NULL == name))
@@ -245,6 +248,7 @@ namespace vessel
                               const CHAR *name)
    {
       INT32 rc = SDB_OK;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
       strSlice nameSlice(name);
       removeCSHandler handler;
 
@@ -277,7 +281,7 @@ namespace vessel
                             utilCSUniqueID &uniqueId)
    {
       INT32 rc = SDB_OK;
-
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
       requestContext context;
       collectionSpaceId identifier;
 
@@ -293,7 +297,6 @@ namespace vessel
          goto error;
       }
 
-      context.open(executor, &_env);
       rc = _env.dms.testCS(&context, strSlice(name), identifier);
       if (SDB_OK != rc)
       {
@@ -318,6 +321,7 @@ namespace vessel
                             DATA_CURSOR_PTR &cursor)
    {
       INT32 rc = SDB_OK;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
       listCSCursor *listCursor = NULL;
       cursor.reset();
 
@@ -361,6 +365,7 @@ namespace vessel
                               const bson::BSONObj &adjunct)
 {
       INT32 rc = SDB_OK;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
       createCLHandler handler;
 
       if (OSS_UNLIKELY(!isOpen() ||
@@ -389,6 +394,7 @@ namespace vessel
                               const dmsRemoveCLOptions &o)
    {
       INT32 rc = SDB_OK;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
       globalCollectionId gcid;
 
       if (OSS_UNLIKELY(!isOpen() ||
@@ -428,6 +434,7 @@ namespace vessel
                             DATA_CURSOR_PTR &cursor)
    {
       INT32 rc = SDB_OK;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
       listCLCursor *listCursor = NULL;
       requestContext context;
       collectionSpaceId identifier;
@@ -444,7 +451,6 @@ namespace vessel
          goto error;
       }
 
-      context.open(executor, &_env);
       rc = _env.dms.testCS(&context, strSlice(csName), identifier);
       if (SDB_OK != rc)
       {
@@ -481,6 +487,7 @@ namespace vessel
                                 UINT32 &count)
    {
       INT32 rc = SDB_OK;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
       requestContext context;
       collectionSpace *obj = NULL;
       count = 0;
@@ -495,8 +502,6 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-
-      context.open(executor, &_env);
 
       rc = _env.dms.getCSByName(&context, strSlice(csName), SHARED, &obj);
       if (SDB_OK != rc)
@@ -518,6 +523,7 @@ namespace vessel
                             DATA_COLLECTION_PTR &ptr)
    {
       INT32 rc = SDB_OK;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
       openCLHandler h;
       globalCollectionId gcid;
       collectionHandler *clHandler = NULL;
@@ -567,6 +573,7 @@ namespace vessel
                             DATA_COLLECTION_PTR &ptr)
    {
       INT32 rc = SDB_OK;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
       openCLHandler h;
       globalCollectionId gcid;
       collectionHandler *clHandler = NULL;
@@ -615,6 +622,7 @@ namespace vessel
                             utilCLUniqueID &uniqueId)
    {
       INT32 rc = SDB_OK;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
       openCLHandler h;
       globalCollectionId gcid;
 
@@ -658,6 +666,8 @@ namespace vessel
                                       cursorKernal *cursor)
    {
       INT32 rc = SDB_OK;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
+
       if (OSS_UNLIKELY(NULL == executor ||
                        NULL == cursor ||
                        !cursor->isOpen() ||
@@ -733,6 +743,7 @@ namespace vessel
                                  const bson::BSONObj &adjunct)
    {
       INT32 rc = SDB_OK;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
       createIndexHandler handler;
       if (OSS_UNLIKELY(NULL == executor ||
                        !gcid.isValid()))
@@ -764,6 +775,7 @@ namespace vessel
                                  ossPoolVector<bson::BSONObj> &indexes)
    {
       INT32 rc = SDB_OK;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
       collectionSpace *cs = NULL;
       collection *cl = NULL;
       requestContext context;
@@ -781,7 +793,6 @@ namespace vessel
          goto error;
       }
 
-      context.open(executor, &_env);
       rc = lh.lock(gcid.getSpaceId(), SHARED);
       if (SDB_OK != rc)
       {
@@ -824,6 +835,7 @@ namespace vessel
                                  const CHAR *indexName)
    {
       INT32 rc = SDB_OK;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
       removeIndexHandler handler;
 
       if (OSS_UNLIKELY(NULL == executor ||
@@ -857,6 +869,7 @@ namespace vessel
                                indexIdentifier &indexId)
    {
       INT32 rc = SDB_OK;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
       testIndexHandler handler;
 
       if (OSS_UNLIKELY(NULL == executor ||
@@ -890,6 +903,7 @@ namespace vessel
                             utilInsertResult *res)
    {
       INT32 rc = SDB_OK;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
       dmlHandler handler;
       if (OSS_UNLIKELY(NULL == executor ||
                        !gcid.isValid() ||
@@ -923,6 +937,7 @@ namespace vessel
                                  utilInsertResult *res)
    {
       INT32 rc = SDB_OK;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
       dmlHandler handler;
       if (OSS_UNLIKELY(NULL == executor ||
                        !request.isValid() ||
@@ -962,6 +977,7 @@ namespace vessel
                             utilUpdateResult *res)
    {
       INT32 rc = SDB_OK;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
       dmlHandler handler;
 
       if (OSS_UNLIKELY(NULL == executor ||
@@ -996,6 +1012,7 @@ namespace vessel
                             utilDeleteResult *res)
    {
       INT32 rc = SDB_OK;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
       dmlHandler handler;
 
       if (OSS_UNLIKELY(NULL == executor ||
@@ -1028,6 +1045,7 @@ namespace vessel
                            UINT64 &count)
    {
       INT32 rc = SDB_OK;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
       countCLHandler handler;
 
       count = 0;
@@ -1157,6 +1175,8 @@ namespace vessel
                               const dmsTruncateCLOptions &o)
    {
       INT32 rc = SDB_OK;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
+
       truncateCLHandler handler;
 
       if (!isOpen())

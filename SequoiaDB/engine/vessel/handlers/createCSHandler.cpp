@@ -85,7 +85,6 @@ namespace vessel
          goto error;
       }
 
-      context.open(getExecutor(), getEnv());
       rc = getEnv()->dms.createCS(&context, name,
                                   uniqueId, options,
                                   identifier);

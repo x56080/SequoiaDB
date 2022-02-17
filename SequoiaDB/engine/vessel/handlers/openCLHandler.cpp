@@ -69,8 +69,6 @@ namespace vessel
          goto error;
       }
 
-      context.open(getExecutor(), getEnv());
-
       rc = getEnv()->dms.getCSByName(&context, strSlice(parser.getCSName()),
                                      SHARED, &cs);
       if (SDB_OK != rc)
@@ -112,8 +110,6 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-
-      context.open(getExecutor(), getEnv());
 
       rc = getEnv()->dms.getCSByUniqueID(&context, utilGetCSUniqueID(uniqueId), 
                                          SHARED, &cs);

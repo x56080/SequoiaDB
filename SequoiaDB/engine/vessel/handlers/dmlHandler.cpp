@@ -64,8 +64,6 @@ namespace vessel
          goto error;
       }
 
-      context.open(getExecutor(), getEnv());
-
       rc = getCollectionObject(&context, gcid, SHARED, cl);
       if (SDB_OK != rc)
       {
@@ -118,7 +116,7 @@ namespace vessel
          }
       }
 
-      context.open(getExecutor(), getEnv());
+      
       rc = getCollectionObject(&context, gcid, SHARED, cl);
       if (SDB_OK != rc)
       {
@@ -170,7 +168,7 @@ namespace vessel
          goto error;
       }
 
-      context.open(getExecutor(), getEnv());
+      
       rc = getCollectionObject(&context, gcid, SHARED, cl);
       if (SDB_OK != rc)
       {
@@ -209,7 +207,7 @@ namespace vessel
          goto error;
       }
 
-      context.open(getExecutor(), getEnv());
+      
       rc = getCollectionObject(&context, gcid, SHARED, cl);
       if (SDB_OK != rc)
       {

@@ -65,9 +65,6 @@ namespace vessel
          goto error;
       }
 
-      context.open(getExecutor(),
-                   getEnv());
-
       rc = getEnv()->dms.getCSByCollectionSpaceId(&context,
                                                    cursor->getCollectionId().getCSIdentifier(),
                                                    SHARED, &cs);

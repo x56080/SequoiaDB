@@ -64,7 +64,6 @@ namespace vessel
          goto error;
       }
 
-      context.open(getExecutor(), getEnv());
       rc = requestHandler::getCollectionObject(&context, gcid, SHARED, cl);
       if (SDB_OK != rc)
       {

@@ -66,7 +66,6 @@ namespace vessel
          goto error;
       }
 
-      context.open(getExecutor(), getEnv());
       sid = cursor->getIdentifier().getSpaceId();
       logicalID = cursor->getIdentifier().getLid();
 

@@ -65,8 +65,6 @@ namespace vessel
          goto error;
       }
 
-      context.open(getExecutor(), getEnv());
-
       rc = getEnv()->dms.listCollectionSpaces(&context, cursor);
       if (SDB_OK != rc)
       {

@@ -45,9 +45,9 @@
 #include "dms.hpp"
 #include "sdbInterface.hpp"
 #include "vessel/objectIdentifier.h"
-#include "vessel/simpleBufferAllocator.h"
 #include "vessel/shallowPointer.hpp"
 #include "dpsTransLockDef.hpp"
+#include "vessel/threadContext.h"
 
 /*
 #define LOG_ERR_AND_REPORT(context, rc, fmt, ...) \
@@ -80,8 +80,6 @@ namespace vessel
          virtual ~requestContext();
 
       public:
-         void open(IExecutor *executor,
-                   instanceEnv *env);
          virtual void close()
          {
             _close();
@@ -89,20 +87,16 @@ namespace vessel
 
          OSS_INLINE BOOLEAN isOpen()const
          {
-            return NULL != _executor;
+            return nullptr != _tc;
          }
 
-         OSS_INLINE IExecutor *getExecutor()const
-         {
-            return _executor;
-         }
+         IExecutor *getExecutor()const;
 
-         OSS_INLINE instanceEnv *getEnv()const
-         {
-            return _env;
-         }
+         instanceEnv *getEnv()const;
 
          outerResource *getOuterResource()const;
+
+         DPS_TRANS_ID getOrigTransId()const;
 
       public:
          CHAR *allocateBuffer(UINT32 size);
@@ -111,16 +105,8 @@ namespace vessel
          template<class T>
          shallowArray<T> allocateArray(UINT32 size)
          {
-            shallowArray<T> arr;
-            const CHAR *buffer = this->allocateBuffer(size * sizeof(T));
-            if (OSS_LIKELY(NULL != buffer))
-            {
-               arr = shallowArray<T>((T*)buffer, size);
-            }
-            return arr;
+            return _tc->allocateArray<T>(size);
          }
-
-         /// releaseBuffer(array.data());
          
       public:
 
@@ -133,7 +119,7 @@ namespace vessel
 
          void unlockSpaceID();
 
-         BOOLEAN isSpaceIdLocked(OSS_LATCH_MODE *mode=NULL)const;
+         BOOLEAN isSpaceIdLocked(OSS_LATCH_MODE *mode=nullptr)const;
 
          OSS_INLINE SPACE_ID getSpaceID()const
          {
@@ -151,7 +137,7 @@ namespace vessel
 
          void unlockMB();
 
-         BOOLEAN isMbLocked(OSS_LATCH_MODE *mode=NULL)const;
+         BOOLEAN isMbLocked(OSS_LATCH_MODE *mode=nullptr)const;
 
          OSS_INLINE CL_MB_ID getMBID()const
          {
@@ -165,7 +151,7 @@ namespace vessel
 
          OSS_INLINE BOOLEAN isMbContextAttached()const
          {
-            return NULL != _rmc;
+            return nullptr != _rmc;
          }
          const runtimeMbContext *getMbContext()const
          {
@@ -188,7 +174,7 @@ namespace vessel
          /// test locking in local context
          BOOLEAN testLpidLocked(SPACE_TYPE type,
                                 PAGE_ID lpid,
-                                ossSharedLatchMode *mode=NULL);
+                                ossSharedLatchMode *mode=nullptr);
 
          INT32 lockFromUpgradeToExclusive(SPACE_TYPE type,
                                           PAGE_ID lpid);
@@ -214,7 +200,7 @@ namespace vessel
          void unlockRids();
 
          BOOLEAN testRidLocked(const recordID &rid,
-                               ossSharedLatchMode *mode=NULL);
+                               ossSharedLatchMode *mode=nullptr);
 
          void waitRid(const recordID &rid,
                       const ossSharedLatchMode &mode);
@@ -236,7 +222,7 @@ namespace vessel
          }
          OSS_INLINE void detachOplist()
          {
-            _oplist = NULL;
+            _oplist = nullptr;
          }
          OSS_INLINE atomicOperationList *getOplist()
          {
@@ -244,18 +230,11 @@ namespace vessel
          }
          OSS_INLINE BOOLEAN isOplistAttached()const
          {
-            return NULL != _oplist;
+            return nullptr != _oplist;
          }
          void swtichOplist(atomicOperationList *newOplist,
                            atomicOperationList **oldOplist);
          BOOLEAN isInProcessingOplist()const;
-
-      public:
-         DPS_TRANS_ID getTransIDWithoutTag()const
-         {
-            return _executor->getTransID().getOrigTransID();
-         }
-
       public:
          INT32 acquireTransLock(const recordID &rid,
                                 const DPS_TRANSLOCK_TYPE &mode);
@@ -272,24 +251,20 @@ namespace vessel
          void _unlockAll();
 
       private:
-         IExecutor *_executor = NULL;
-         instanceEnv *_env = NULL;
+         THREAD_CONTEXT *_tc = nullptr;
 
          SPACE_ID _sid = INVALID_SPACE_ID;
          OSS_LATCH_MODE _sidMode = SHARED;
          
          CL_MB_ID _mbID = INVALID_CL_MB_ID;
-         ossRWMutex *_mbMutex = NULL;
+         ossRWMutex *_mbMutex = nullptr;
          OSS_LATCH_MODE _mbMode = SHARED;
-         runtimeMbContext *_rmc = NULL;
+         runtimeMbContext *_rmc = nullptr;
 
          LPID_LATCH_CONTEXT _lpidLatchContext;
          lpsCheckpointBlocker _blocker;
 
-         CHAR _staticBuf[CONTEXT_DEFAULT_BUFFER_POOL_SIZE];
-         simpleBufferAllocator _sba;
-
-         atomicOperationList *_oplist = NULL;
+         atomicOperationList *_oplist = nullptr;
    };//class requestContext
 }
 }

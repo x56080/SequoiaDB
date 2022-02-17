@@ -46,23 +46,9 @@ namespace vessel
 {
 /////////////////////////requestContext
    requestContext::requestContext():
-   _sba(_staticBuf, CONTEXT_DEFAULT_BUFFER_POOL_SIZE)
+   _tc(GET_THREAD_CONTEXT())
    {
-
-   }
-
-   void requestContext::open(IExecutor *executor,
-                              instanceEnv *env)
-   {
-      SDB_ASSERT(NULL != executor, "can not be null");
-      SDB_ASSERT(NULL != env, "can not be null");
-      SDB_ASSERT(env->resource.isValid(), "can not be invalid");
-      SDB_ASSERT(NULL == _executor, "do not reinit");
-      _close();
-
-      _executor = executor;
-      _env = env;
-      return;
+      SDB_ASSERT(nullptr != _tc, "can not be null");
    }
 
    requestContext::~requestContext()
@@ -72,45 +58,43 @@ namespace vessel
 
    void requestContext::_close()
    {
-      if (!isOpen())
-      {
-         goto done;
-      }
-
-      {
-      SDB_ASSERT(!_sba.hasUnfreeBuffer(), "memory leak");
       SDB_ASSERT(!_blocker.isBlocking(), "unblocking missed");
       SDB_ASSERT(_lpidLatchContext.isEmpty(), "unlocking missed");
       SDB_ASSERT(NULL == _oplist, "detaching missed");
 
       _unlockAll();
 
-      _executor = NULL;
-      _env = NULL;
-      
-      _sba.clearBufferAllocated();
       _oplist = NULL;
-      }
-      
-   done:
-     return;
+   }
+
+   IExecutor *requestContext::getExecutor()const
+   {
+      return _tc->getExecutor();
+   }
+
+   instanceEnv *requestContext::getEnv()const
+   {
+      return _tc->getEnv();
+   }
+
+   DPS_TRANS_ID requestContext::getOrigTransId()const
+   {
+      return _tc->getExecutor()->getTransID().getOrigTransID();
    }
 
    outerResource *requestContext::getOuterResource()const
    {
-      SDB_ASSERT(NULL != _env, "can not be null");
-      return &(_env->resource);
+      return &(_tc->getEnv()->resource);
    }
 
    CHAR *requestContext::allocateBuffer(UINT32 size)
    {
-      SDB_ASSERT(isOpen(), "can not be closed");
-      return _sba.allocate(size);
+      return _tc->allocateBuffer(size);
    }
    
    void requestContext::releaseBuffer(void *buffer)
    {
-      _sba.release((CHAR *)buffer);
+      _tc->releaseBuffer(buffer);
       return;
    }
 
@@ -135,7 +119,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _env->spaceLocker.lock(sid, mode);
+      rc = getEnv()->spaceLocker.lock(sid, mode);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock sid[%d], rc:%d", sid, rc);
@@ -174,7 +158,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _env->spaceLocker.tryLock(sid, mode, locked);
+      rc = getEnv()->spaceLocker.tryLock(sid, mode, locked);
       if (SDB_OK != rc)
       {
          goto error;
@@ -345,7 +329,7 @@ namespace vessel
 
       key = logicalPidLatchKey(_sid, type, lpid);
 
-      rc = lh.lock(_env->lpidLatchMap, _lpidLatchContext, key, mode);
+      rc = lh.lock(getEnv()->lpidLatchMap, _lpidLatchContext, key, mode);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", lpid, rc);
@@ -388,7 +372,7 @@ namespace vessel
 
       key = logicalPidLatchKey(_sid, type, lpid);
 
-      rc = lh.tryLock(_env->lpidLatchMap, _lpidLatchContext,
+      rc = lh.tryLock(getEnv()->lpidLatchMap, _lpidLatchContext,
                       key, mode, locked);
       if (SDB_OK != rc)
       {
@@ -425,7 +409,7 @@ namespace vessel
       }
 
       key = logicalPidLatchKey(_sid, type, lpid);
-      lh.autoUnlock(_env->lpidLatchMap, _lpidLatchContext, key);
+      lh.autoUnlock(getEnv()->lpidLatchMap, _lpidLatchContext, key);
    done:
       return;
    }
@@ -628,7 +612,7 @@ namespace vessel
       }
 
       key = recordIdLatchKey(_sid, _mbID, rid);
-      rc = lh.lock(_env->ridLatchMap, _rmc->getRidLatchContext(), key, mode);
+      rc = lh.lock(getEnv()->ridLatchMap, _rmc->getRidLatchContext(), key, mode);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock rid[%s], rc:%d", key.toString().c_str(), rc);
@@ -661,7 +645,7 @@ namespace vessel
       }
 
       key = recordIdLatchKey(_sid, _mbID, rid);
-      rc = lh.tryLock(_env->ridLatchMap,
+      rc = lh.tryLock(getEnv()->ridLatchMap,
                       _rmc->getRidLatchContext(),
                       key, mode, locked);
       if (SDB_OK != rc)
@@ -682,7 +666,7 @@ namespace vessel
       SDB_ASSERT(isMbContextAttached(), "must be attached");
       objectLatchHelper<recordIdLatchKey> lh;
       recordIdLatchKey key(_sid, _mbID, rid);
-      lh.autoUnlock(_env->ridLatchMap, _rmc->getRidLatchContext(), key);
+      lh.autoUnlock(getEnv()->ridLatchMap, _rmc->getRidLatchContext(), key);
    }
 
    void requestContext::unlockRids()
@@ -690,7 +674,7 @@ namespace vessel
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(isMbContextAttached(), "must be attached");
       objectLatchHelper<recordIdLatchKey> lh;
-      lh.releaseAll(_env->ridLatchMap, _rmc->getRidLatchContext());
+      lh.releaseAll(getEnv()->ridLatchMap, _rmc->getRidLatchContext());
    }
 
    BOOLEAN requestContext::testRidLocked(const recordID &rid,
@@ -713,7 +697,7 @@ namespace vessel
 #if defined (_DEBUG)
       SDB_ASSERT(!_rmc->getRidLatchContext().test(key, NULL), "invalid waiting");
 #endif//_DEBUT
-      lh.testNotExistsOrWait(_env->ridLatchMap, key, mode);
+      lh.testNotExistsOrWait(getEnv()->ridLatchMap, key, mode);
    }
 
    void requestContext::_unlockAll()
@@ -732,7 +716,7 @@ namespace vessel
 
       if (!_lpidLatchContext.isEmpty())
       {
-         objectLatchHelper<logicalPidLatchKey>().releaseAll(_env->lpidLatchMap,
+         objectLatchHelper<logicalPidLatchKey>().releaseAll(getEnv()->lpidLatchMap,
                                                             _lpidLatchContext);
          SDB_ASSERT(_lpidLatchContext.isEmpty(), "must be empty");
       }
@@ -744,7 +728,7 @@ namespace vessel
 
       if (isSpaceIdLocked())
       {
-         _env->spaceLocker.unlock(_sid, _sidMode);
+         getEnv()->spaceLocker.unlock(_sid, _sidMode);
          _sid = INVALID_SPACE_ID;
          _sidMode = SHARED;
       }

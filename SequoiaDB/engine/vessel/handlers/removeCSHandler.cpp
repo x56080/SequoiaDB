@@ -60,7 +60,6 @@ namespace vessel
          goto error;
       }
 
-      context.open(getExecutor(), getEnv());
       rc = getEnv()->dms.getCSByName(&context, name, EXCLUSIVE, &cs);
       if (SDB_OK != rc)
       {

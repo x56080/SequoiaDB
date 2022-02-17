@@ -1031,7 +1031,7 @@ namespace vessel
          }
              
          rc = accessor.init(context, req->getContext(),
-                            context->getTransIDWithoutTag());
+                            context->getOrigTransId());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to init btree accessor[%s]:%d",

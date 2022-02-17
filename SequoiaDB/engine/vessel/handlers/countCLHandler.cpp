@@ -62,9 +62,6 @@ namespace vessel
          goto error;
       }
 
-      context.open(getExecutor(),
-                        getEnv());
-
       rc = getEnv()->dms.getCSBySpaceID(&context,
                                         gcid.getSpaceId(),
                                         gcid.getCSLid(),

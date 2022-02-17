@@ -111,9 +111,9 @@ namespace vessel
       SDB_ASSERT(NULL != executor, "can not be null");
       SDB_ASSERT(NULL != _env, "can not be null");
       SDB_ASSERT(!_actived, "already been actived");
-
+      THREAD_CONTEXT_OWNER tco(executor, _env);
       requestContext context;
-      context.open(executor, _env);
+
       UINT32 millis = 10;
       backgroundEvent event;
       diskIOJob _job;

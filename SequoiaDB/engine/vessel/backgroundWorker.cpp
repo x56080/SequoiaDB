@@ -39,6 +39,7 @@
 #include "vessel/requestContext.h"
 #include "vessel/diskIOTask.h"
 #include "vessel/diskIOJob.h"
+#include "vessel/threadContext.h"
 
 namespace engine
 {
@@ -135,8 +136,9 @@ namespace vessel
       SDB_ASSERT(NULL != executor, "can not be invalid");
       SDB_ASSERT(backgroundEvent::EVENT_TYPE_CACHE_TASK == event.getType(),
                  "can not be other type");
+      THREAD_CONTEXT_OWNER tco(executor, _env);
       requestContext context;
-      context.open(executor, _env);
+
       liteCache &cache = context.getEnv()->cacheConsole.get32KBCache();
       diskIOTask task = *((const diskIOTask *)(event.getEventMsg()));
 
@@ -170,8 +172,9 @@ namespace vessel
       SDB_ASSERT(NULL != executor, "can not be invalid");
       SDB_ASSERT(backgroundEvent::EVENT_TYPE_LPS_CHECKPOINT == event.getType(),
                  "can not be other type");
+      THREAD_CONTEXT_OWNER tco(executor, _env);
       requestContext context;
-      context.open(executor, _env);
+
       logicalPageSpace *lps = NULL;
       const lpsCheckpointApplying *msg = (const lpsCheckpointApplying *)(event.getEventMsg());
       
@@ -224,9 +227,9 @@ namespace vessel
       UINT32 count = msg->_count;
 
       //PD_LOG(PDDEBUG, "begin to sync segments[%d, %d]", msg->_segmentId, count);
-
+      THREAD_CONTEXT_OWNER tco(executor, _env);
       requestContext context;
-      context.open(executor, _env);
+
       rc = context.lockSpaceID(msg->_sid, SHARED);
       if (SDB_OK != rc)
       {

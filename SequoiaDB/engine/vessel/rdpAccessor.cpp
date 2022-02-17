@@ -195,7 +195,7 @@ namespace vessel
       CHAR *recordPtr = NULL;
       normalRecordHead rh;
       recordSlot rs;
-      DPS_TRANS_ID transID = context->getTransIDWithoutTag();
+      DPS_TRANS_ID transID = context->getOrigTransId();
       UINT32 size = record.getSize() + NORMAL_RECORD_HEAD_SIZE;
       UINT32 reserved = 0;
 
@@ -433,7 +433,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(0 < recordHeadAndBodySize, "can not be zero");
-      DPS_TRANS_ID transID = context->getTransIDWithoutTag();
+      DPS_TRANS_ID transID = context->getOrigTransId();
       rc = pageAccessor::prepareLog(context, rpb,
                                     LOG_TYPE_VESSEL_RDP_INSERT,
                                     FALSE, lrc);
@@ -546,7 +546,7 @@ namespace vessel
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(lrc->prepared(), "must be prepared");
       
-      DPS_TRANS_ID transID = context->getTransIDWithoutTag();
+      DPS_TRANS_ID transID = context->getOrigTransId();
 
       if (transID.isValid())
       {
@@ -820,7 +820,7 @@ namespace vessel
       recordDataPageHead *head = NULL;
       overflowedRecord orh;
       logRecordContext lrc;
-      DPS_TRANS_ID transID = context->getTransIDWithoutTag();
+      DPS_TRANS_ID transID = context->getOrigTransId();
       recordID rid;
 
       recordDataPageHead oldHead;
@@ -1052,7 +1052,7 @@ namespace vessel
       const CHAR *recordPtr = NULL;
       recordSlot rs;
       overflowedRecord ofr;
-      DPS_TRANS_ID transID = context->getTransIDWithoutTag();
+      DPS_TRANS_ID transID = context->getOrigTransId();
       recordID rid;
       logRecordContext lrc;
 
@@ -1179,7 +1179,7 @@ namespace vessel
       strictBuffer oldRecordBuf;
       UINT32 deltaSize = 0;
       logRecordContext lrc;
-      DPS_TRANS_ID transID = context->getTransIDWithoutTag();
+      DPS_TRANS_ID transID = context->getOrigTransId();
 
       if (OSS_UNLIKELY(NULL == context ||
                        !isValidRecordSlotPosition(pos) ||
@@ -1397,7 +1397,7 @@ namespace vessel
       recordDataPageHead oldHead;
       bigRecordEntrySlice sliceHead;
       recordID lastRid = recordStream.getLastSliceAddr();
-      DPS_TRANS_ID transID = context->getTransIDWithoutTag();
+      DPS_TRANS_ID transID = context->getOrigTransId();
 
       logRecordContext lrc;
       recordID rid;
@@ -1963,7 +1963,7 @@ namespace vessel
       strictBuffer recordBuffer;
       recordDataPageHead *head = NULL;
       logRecordContext lrc;
-      DPS_TRANS_ID transID = context->getTransIDWithoutTag();
+      DPS_TRANS_ID transID = context->getOrigTransId();
       UINT32 totalSize = row.getSize() + NORMAL_RECORD_HEAD_SIZE;
 
       rc = _lpb->autoGetWritableBodyBuffer(buffer);
@@ -2079,7 +2079,7 @@ namespace vessel
       UINT16 deltaSize = 0;
 
       logRecordContext lrc;
-      DPS_TRANS_ID transID = context->getTransIDWithoutTag();
+      DPS_TRANS_ID transID = context->getOrigTransId();
       UINT32 totalSize = row.getSize() + NORMAL_RECORD_HEAD_SIZE;
       SDB_ASSERT(totalSize <= getFreeSpaceAfterLastSlot(), "not enough free space");
 
@@ -2193,7 +2193,7 @@ namespace vessel
       normalRecordHead rh;
 
       logRecordContext lrc;
-      DPS_TRANS_ID transID = context->getTransIDWithoutTag();
+      DPS_TRANS_ID transID = context->getOrigTransId();
       rdpCompactor compactor;
       BOOLEAN isInvisible = FALSE;
 
@@ -2929,7 +2929,7 @@ namespace vessel
       recordDataPageHead *head = NULL;
       tombstoneRecord *tr = NULL;
       logRecordContext lrc;
-      DPS_TRANS_ID transID = context->getTransIDWithoutTag();
+      DPS_TRANS_ID transID = context->getOrigTransId();
       UINT32 size = 0;
       
       rc = _lpb->autoGetWritableBodyBuffer(buffer);

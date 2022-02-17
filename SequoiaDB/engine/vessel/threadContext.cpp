@@ -67,37 +67,24 @@ namespace vessel
    }
 
 /////////////threadContextOnwer
-   threadContextOnwer::threadContextOnwer()
+   OSS_THREAD_LOCAL threadContext *threadContextOnwer::_T_CONTEXT = nullptr;
+
+   threadContextOnwer::threadContextOnwer(IExecutor *executor,
+                                          instanceEnv *env)
    {
       SDB_ASSERT(nullptr == _T_CONTEXT, "can not override context");
+      SDB_ASSERT(nullptr != executor, "can not be null");
+      SDB_ASSERT(nullptr != env, "can not be null");
+      _context._executor = executor;
+      _context._env = env;
+      _T_CONTEXT = &_context;
    }
 
    threadContextOnwer::~threadContextOnwer()
    {
-      fini();
-   }
-
-   void threadContextOnwer::init(IExecutor *executor,
-                                 instanceEnv *env)
-   {
-      SDB_ASSERT(nullptr != executor, "can not be null");
-      SDB_ASSERT(nullptr != env, "can not be null");
-      SDB_ASSERT(nullptr == _T_CONTEXT, "can not override context");
-      _context._executor = executor;
-      _context._env = env;
-      _T_CONTEXT = &_context;
-      return;
-   }
-
-   void threadContextOnwer::fini()
-   {
-      if (nullptr != _T_CONTEXT)
-      {
-         SDB_ASSERT((&_context) == _T_CONTEXT,
+      SDB_ASSERT((&_context) == _T_CONTEXT,
                   "context to be detached does not match our instance");
-         _T_CONTEXT = nullptr;
-      }
-      return;
+      _T_CONTEXT = nullptr;
    }
 } // namespace vessel
 

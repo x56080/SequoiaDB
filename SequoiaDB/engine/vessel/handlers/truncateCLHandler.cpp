@@ -63,7 +63,6 @@ namespace vessel
          goto error;
       }
 
-      context.open(getExecutor(), getEnv());
       rc = getCollectionObject(&context, gcid, EXCLUSIVE, cl);
       if (SDB_OK != rc)
       {

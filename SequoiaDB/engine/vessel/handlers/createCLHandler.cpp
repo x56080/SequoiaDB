@@ -92,7 +92,6 @@ namespace vessel
       options.compressionType = o.compressor;
       options.minFreePercent = o.pageMinFreePercent;
 
-      context.open(getExecutor(), getEnv());
       csName.reset(parser.getCSName());
       rc = getEnv()->dms.getCSByName(&context, csName, SHARED, &csObj);
       if (SDB_OK != rc)
