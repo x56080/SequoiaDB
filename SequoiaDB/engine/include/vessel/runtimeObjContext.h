@@ -64,11 +64,8 @@ namespace vessel
          void close();
          OSS_INLINE BOOLEAN isOpen()const
          {
-            return _csid.isValid() && nullptr != _holder;
-         }
-         OSS_INLINE BOOLEAN isLocked()const
-         {
-            return !_mode.isNone();
+            return _csid.isValid() &&
+                   !_mode.isNone();
          }
 
          OSS_INLINE const collectionSpaceId &getCSId()const
@@ -109,12 +106,7 @@ namespace vessel
 
          OSS_INLINE BOOLEAN isOpen()const
          {
-            return _clid.isValid() && nullptr != _holder;
-         }
-
-         OSS_INLINE BOOLEAN isLocked()const
-         {
-            return !_mode.isNone();
+            return _clid.isValid() && !_mode.isNone();
          }
 
          OSS_INLINE const collectionId &getCollectionId()const

@@ -46,15 +46,14 @@ namespace engine
 namespace vessel
 {
    class instanceEnv;
-   class threadContextGuard;
+   class threadContextOnwer;
 
    class threadContext : public SDBObject
    {
-      friend class threadContextGuard;
+      friend class threadContextOnwer;
          
       public:
-         threadContext(IExecutor *executor,
-                       instanceEnv *env);
+         threadContext();
          ~threadContext(){}
          threadContext(const threadContext &) = delete;
          threadContext &operator=(const threadContext &) = delete;
@@ -91,33 +90,38 @@ namespace vessel
          instanceEnv *_env = nullptr;
          CHAR _staticBuf[_S_BUF_POOL_SIZE];
          simpleBufferAllocator _sba;
-         BOOLEAN _attached = FALSE;
    };//class threadContext
    typedef class threadContext THREAD_CONTEXT;
 
    
 
-   class threadContextGuard : public SDBObject
+   class threadContextOnwer : public SDBObject
    {
       public:
-         threadContextGuard(IExecutor *executor,
-                            instanceEnv *env);
-         ~threadContextGuard();
-         threadContextGuard(const threadContextGuard &) = delete;
-         threadContextGuard &operator=(const threadContextGuard &) = delete;
+         threadContextOnwer();
+         ~threadContextOnwer();
+         threadContextOnwer(const threadContextOnwer &) = delete;
+         threadContextOnwer &operator=(const threadContextOnwer &) = delete;
 
       public:
          static THREAD_CONTEXT *getContext(){return _T_CONTEXT;}
 
+      public:
+         void init(IExecutor *executor,
+                   instanceEnv *env);
+
+      private:
+         void fini();
+
       private:
          THREAD_CONTEXT _context;
          static OSS_THREAD_LOCAL THREAD_CONTEXT *_T_CONTEXT;
-   };//class threadContextGuard
-   OSS_THREAD_LOCAL threadContext *threadContextGuard::_T_CONTEXT = nullptr;
+   };//class threadContextOnwer
+   OSS_THREAD_LOCAL threadContext *threadContextOnwer::_T_CONTEXT = nullptr;
 
    OSS_INLINE THREAD_CONTEXT *GET_THREAD_CONTEXT()
    {
-      return threadContextGuard::getContext();
+      return threadContextOnwer::getContext();
    }
    
 } // namespace vessel

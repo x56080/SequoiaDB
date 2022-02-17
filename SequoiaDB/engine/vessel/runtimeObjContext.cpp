@@ -90,22 +90,19 @@ namespace vessel
 
    void collectionSpaceContext::close()
    {
-      if (isOpen())
+      if (_mode.isShared())
       {
-         if (_mode.isShared())
-         {
-            _holder->getLatch().release_r();
-         }
-         else if (_mode.isExclusive())
-         {
-            _holder->getLatch().release_w();
-         }
-         
-         SDB_ASSERT(_mode.isNone(), "impossible to be upgrade");
-         _csid = collectionSpaceId();
-         _mode.setNone();
-         _holder = nullptr;
+         _holder->getLatch().release_r();
       }
+      else if (_mode.isExclusive())
+      {
+         _holder->getLatch().release_w();
+      }
+      
+      SDB_ASSERT(!_mode.isUpgrade(), "impossible to be upgrade");
+      _csid = collectionSpaceId();
+      _mode.setNone();
+      _holder = nullptr;
       return;
    }
 
@@ -122,24 +119,29 @@ namespace vessel
       SDB_ASSERT(nullptr != _holder && !_holder->isFree(), "can not be invalid");
    }
 
-   void collectionContext::close()
+   collectionContext::~collectionContext()
    {
       if (isOpen())
       {
-         if (_mode.isShared())
-         {
-            _holder->getLatch().release_r();
-         }
-         else if (_mode.isExclusive())
-         {
-            _holder->getLatch().release_w();
-         }
-
-         SDB_ASSERT(_mode.isNone(), "impossible to be upgrade");
-         _clid = collectionId();
-         _mode.setNone();
-         _holder = nullptr;
+         close();
       }
+   }
+
+   void collectionContext::close()
+   {
+      if (_mode.isShared())
+      {
+         _holder->getLatch().release_r();
+      }
+      else if (_mode.isExclusive())
+      {
+         _holder->getLatch().release_w();
+      }
+
+      SDB_ASSERT(!_mode.isUpgrade(), "impossible to be upgrade");
+      _clid = collectionId();
+      _mode.setNone();
+      _holder = nullptr;
       
       return;
 

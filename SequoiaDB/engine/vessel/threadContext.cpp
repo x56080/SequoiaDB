@@ -41,13 +41,10 @@ namespace engine
 {
 namespace vessel
 {
-   threadContext::threadContext(IExecutor *executor,
-                                instanceEnv *env):
-   _executor(executor),
-   _env(env),
+   threadContext::threadContext():
    _sba(_staticBuf, _S_BUF_POOL_SIZE)
    {
-      SDB_ASSERT(nullptr != executor && nullptr != env, "can not be null");
+      
    }
 
    DPS_TRANS_ID threadContext::getTransIDOfExecutor()const
@@ -56,20 +53,51 @@ namespace vessel
       return _executor->getTransID().getOrigTransID();
    }
 
-/////////////threadContextGuard
-   threadContextGuard::threadContextGuard(IExecutor *executor,
-                                          instanceEnv *env):
-   _context(executor, env)
+   CHAR *threadContext::allocateBuffer(UINT32 size)
    {
-      SDB_ASSERT(nullptr == _T_CONTEXT, "can not override context");
-      _T_CONTEXT = &_context;
+      return _sba.allocate(size);
    }
 
-   threadContextGuard::~threadContextGuard()
+   void threadContext::releaseBuffer(void *buffer)
    {
-      SDB_ASSERT((&_context) == _T_CONTEXT,
-                 "context to be detached does not match our instance");
-      _T_CONTEXT = nullptr;
+      if (nullptr != buffer)
+      {
+         _sba.release((CHAR *)buffer);
+      }
+   }
+
+/////////////threadContextOnwer
+   threadContextOnwer::threadContextOnwer()
+   {
+      SDB_ASSERT(nullptr == _T_CONTEXT, "can not override context");
+   }
+
+   threadContextOnwer::~threadContextOnwer()
+   {
+      fini();
+   }
+
+   void threadContextOnwer::init(IExecutor *executor,
+                                 instanceEnv *env)
+   {
+      SDB_ASSERT(nullptr != executor, "can not be null");
+      SDB_ASSERT(nullptr != env, "can not be null");
+      SDB_ASSERT(nullptr == _T_CONTEXT, "can not override context");
+      _context._executor = executor;
+      _context._env = env;
+      _T_CONTEXT = &_context;
+      return;
+   }
+
+   void threadContextOnwer::fini()
+   {
+      if (nullptr != _T_CONTEXT)
+      {
+         SDB_ASSERT((&_context) == _T_CONTEXT,
+                  "context to be detached does not match our instance");
+         _T_CONTEXT = nullptr;
+      }
+      return;
    }
 } // namespace vessel
 
