@@ -2,8 +2,8 @@
  * @Description   : seqDB-25343:分区表查询达到上下文超时清理时间
  * @Author        : 钟子明
  * @CreateTime    : 2022.01.29
- * @LastEditTime  : 2022.02.09
- * @LastEditors   : liuli
+ * @LastEditTime  : 2022.01.29
+ * @LastEditors   : 钟子明
  ******************************************************************************/
 testConf.csName = COMMCSNAME + "_25343";
 testConf.clName = COMMCLNAME + "_25343";
@@ -11,8 +11,7 @@ testConf.clOpt = { ShardingKey: { no: 1 }, ShardingType: "hash", AutoSplit: true
 testConf.skipStandAlone = true;
 testConf.skipOneGroup = true;
 
-// SEQUOIADBMAINSTREAM-8019
-// main( test );
+main( test );
 function test ( testPara )
 {
    var cl = testPara.testCL;
