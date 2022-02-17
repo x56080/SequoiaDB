@@ -441,7 +441,7 @@ getLastError() to get the error code.
 For more details, refer to Troubleshooting.
 .SH VERSION
 .PP
-v2.0 and above
+v3.2 and above
 .SH EXAMPLES
 .PP
 List the information of all indexes in the collection "sample.employee".
