@@ -2305,6 +2305,10 @@ namespace engine
       }
 
    done:
+      if ( contextID != -1 )
+      {
+         rtnKillContexts( 1 , &contextID, cb, rtnCB ) ;
+      }
       PD_TRACE_EXITRC( SDB_CHKIDXEX2, rc ) ;
       return rc ;
    error:
