@@ -23,7 +23,7 @@ changed.
 .RS 2
 .PP
 The specific configurations to update.
-Including configuration name and placeholder, format: { preferedinstance:1,
+Including configuration name and placeholder, format: { preferredinstance:1,
 diaglevel:1 }, \[aq]1\[aq] is just a placeholder with no actual meaning.
 .RE
 .IP \[bu] 2
@@ -148,13 +148,13 @@ Delete and restore configuration \[aq]diaglevel\[aq] on data node 20000.
 .fi
 .RE
 .IP "2." 3
-Delete and restore configuration \[aq]preferedinstance\[aq] and
+Delete and restore configuration \[aq]preferredinstance\[aq] and
 \[aq]diaglevel\[aq] on all nodes of group db2.
 .nf
 \f[C]
 // connect to coord
 > db = new Sdb( "localhost", 11810 )
-> db.deleteConf( { preferedinstance:1, diaglevel:1 }, { GroupName:"db2" } )
+> db.deleteConf( { preferredinstance:1, diaglevel:1 }, { GroupName:"db2" } )
 \f[]
 .fi
 .RE

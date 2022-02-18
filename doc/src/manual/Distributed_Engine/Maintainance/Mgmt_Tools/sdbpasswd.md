@@ -120,7 +120,7 @@ sdbpasswd 工具支持以下设置参数：
 * 与[Sequoiasql-pgsql][connection]配合使用
 
    ```lang-bash
-   SAMPLE=# create server sdb_server foreign data wrapper sdb_fdw options(address '127.0.0.1', service '11810', user 'sdbUserName', cipher 'on', token 'sequoiadb', cipherfile '/opt/sequoiadb/passwd', preferedinstance 'A', transaction 'off');
+   SAMPLE=# create server sdb_server foreign data wrapper sdb_fdw options(address '127.0.0.1', service '11810', user 'sdbUserName', cipher 'on', token 'sequoiadb', cipherfile '/opt/sequoiadb/passwd', preferredinstance 'A', transaction 'off');
    ```
 
 

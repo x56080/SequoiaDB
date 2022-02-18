@@ -150,7 +150,7 @@ $ ls -l /opt/sequoiadb/database/data/11830/replicalog
 }
 >
 > // 设置会话上读请求的策略：优先从备节点上读，查询走备节点
-> db.setSessionAttr( { PreferedInstance: 's' } )
+> db.setSessionAttr( { PreferredInstance: 's' } )
 > db.sample.employee.find().explain( {Run: true } )
 {
   "NodeName": "sdbserver2:11830"

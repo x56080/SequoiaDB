@@ -16,7 +16,7 @@ Restore configurations to their default values, reload to take effect and delete
 
 * `configs` ( json object , *Required* )
 
-	The specific configurations to update. Including configuration name and placeholder, format: { preferedinstance:1, diaglevel:1 }, '1' is just a placeholder with no actual meaning.
+	The specific configurations to update. Including configuration name and placeholder, format: { preferredinstance:1, diaglevel:1 }, '1' is just a placeholder with no actual meaning.
 
 * `options` ( json object )
 
@@ -100,12 +100,12 @@ Since v2.9.
 	> db.deleteConf( { diaglevel:1 }, { GroupName:"db1", ServiceName:"20000" } )
  	```
 
-2. Delete and restore configuration 'preferedinstance' and 'diaglevel' on all nodes of group db2.
+2. Delete and restore configuration 'preferredinstance' and 'diaglevel' on all nodes of group db2.
 
 	```lang-javascript
 	// connect to coord
 	> db = new Sdb( "localhost", 11810 )
-	> db.deleteConf( { preferedinstance:1, diaglevel:1 }, { GroupName:"db2" } )
+	> db.deleteConf( { preferredinstance:1, diaglevel:1 }, { GroupName:"db2" } )
 	```
 
 3. Get more specific informantion on error.

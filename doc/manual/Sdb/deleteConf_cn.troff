@@ -61,7 +61,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-preferedinstance:1,
+preferredinstance:1,
 T}@T{
 T}
 T{
@@ -144,14 +144,15 @@ T}
 .fi
 .RE
 .IP \[bu] 2
-删除数据组 db2 上所有数据节点的 preferedinstance 和 diaglevel 参数，恢复默认值。
+删除数据组 db2 上所有数据节点的 preferredinstance 和 diaglevel
+参数，恢复默认值。
 .RS 2
 .IP
 .nf
 \f[C]
 // 连接协调节点
 > db = new Sdb( "localhost", 11810 )
-> db.deleteConf( { preferedinstance:1, diaglevel:1 }, { GroupName:"db2" } )
+> db.deleteConf( { preferredinstance:1, diaglevel:1 }, { GroupName:"db2" } )
 \f[]
 .fi
 .RE

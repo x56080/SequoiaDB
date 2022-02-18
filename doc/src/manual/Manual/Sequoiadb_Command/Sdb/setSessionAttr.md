@@ -20,7 +20,11 @@ options（ *object，必填* ）
 
 通过该参数可以设置会话的属性
 
-- PreferedInstance（ *string/array/number* ）：会话读操作优先选择的实例
+- PreferredInstance（ *string/array/number* ）：会话读操作优先选择的实例，默认为协调节点配置文件中参数 preferredinstance 的取值。如果节点未配置 preferredinstance，该参数默认值为 "M"。
+
+    取值类型分为角色取值和实例取值，用户可使用数组指定多个取值，具体如下：
+
+    角色取值：
 
     用户可以使用数组指定多个取值，具体取值如下：
     - "M", "m"：可读写实例（主实例）
@@ -28,9 +32,21 @@ options（ *object，必填* ）
     - "A", "a"：任意实例
     - 1~255：通过 instanceid 指定实例 ID
 
-    格式：`PreferedInstance : "M"` 或 `PreferedInstance : [ 1, 10 ]`
+    实例取值：
 
-- PreferedInstanceMode（ *string* ）：指定会话当多个实例符合 PreferedInstance 的条件时的选择模式
+    - 1~255：[实例 ID][instance]
+
+    >**Note:**
+    >
+    > - 同时指定实例和角色取值时，优先选择符合该实例 ID 和角色的节点。如果未匹配到对应节点，将随机选取数据组中的节点。例如取值为 [1, "S"] 时，表示优先选取实例 ID 为 1 的备节点，未匹配到对应节点时则随机选取节点。
+    > - 符号 "-" 用于扩展角色取值。如果使用 "-" 扩展角色取值，在未匹配到对应节点的情况下，将随机选取指定角色中的节点。例如取值为 [1, "-S"] 时，如果未匹配到对应节点，将在数据组包含的备节点中随机选取节点。
+    > - 指定多个角色取值时，角色与其扩展取值的语义相同，且只有第一个取值生效。例如取值为 ["-M", "S"] 时，仅 "-M" 生效，表示优先选择数据组中的主节点。
+    > - 单独指定实例取值时，如果数据组内不存在对应实例 ID 的节点，节点的 instanceid 将根据数据组中 NodeID 的正序顺序，从 1 开始重新分配。同时服务端将按（实例 ID - 1）%（节点总数）对实例 ID 进行转换，转换后的值再与 instanceid 匹配获取对应节点。
+    > - 如果同一个会话中，读请求前有写请求，有效期限内读请求将默认使用写请求使用的节点（主实例）进行读取，用户可通过配置 PreferredPeriod 修改读请求复用写请求节点的有效期限。
+
+    格式：`PreferredInstance: "M"` 或 `PreferredInstance: [1, 10, "S"]`
+
+- PreferredInstanceMode（ *string* ）：当存在多个候选实例时，指定会话的选择模式，默认为协调节点配置文件中参数 preferredinstancemode 的取值。如果节点未配置 preferredinstancemode，该参数默认值为 "random"。
 
     该参数取值如下：
     - "random"：从候选的实例取值中随机选择
@@ -38,17 +54,24 @@ options（ *object，必填* ）
     
     PreferedInstance 中的角色取值，根据规则选择时优于或者次于实例取值，与 PreferedInstanceMode 取值无关。
 
-    格式：`PreferedInstaceMode : "random"`
+    - "random"：从候选实例中随机选择
+    - "ordered"：从候选实例中按照 PreferredInstance 的顺序进行选择
 
-- PreferedStrict（ *boolean* ）：指定节点选择是否为严格模式
+    格式：`PreferredInstaceMode: "random"`
 
-    当指定为严格模式时，节点只能从 preferedinstance 指定的 ID 中选取。
+- PreferredPeriod（ *number* ）：指定优先实例的有效周期，单位为秒，默认为协调节点配置文件中参数 preferredperiod 的取值。如果节点未配置 preferredperiod，该参数默认值为 60。
+ 
+    - 每个 PreferredPeriod 有效周期之后，读请求将按 PreferredInstance 的取值重新选择合适的实例进行查询。
+    - 该参数取值范围为 [-1, 2^31 - 1]；取值为 -1 表示不失效；取值为 0 表示本次查询不使用上次匹配的节点，根据 PreferredInstance 重新选择。
+    - 该参数仅适用于 SequoiaDB v2.8.9、v3.2.5 及以上版本。
 
-    格式：`PreferedStrict : true `
+    格式：`PreferredPeriod: 60`
 
-- PreferedPeriod（ *number* ）：指定优先实例的有效周期，单位为秒
+- PreferredStrict（ *boolean* ）：指定节点选择是否为严格模式，默认值为 false，表示非严格模式。
 
-    格式：`PreferedPeriod : 60`
+    当指定为严格模式时，节点只能从参数 Preferredinstance 指定的实例取值中选取。如果 Preferredinstance 未指定实例取值，该参数不生效。
+
+    格式：`PreferredStrict: true `
 
 - Timeout（ *number* ）：指定会话执行操作的超时时间，单位为毫秒
 
@@ -141,13 +164,13 @@ v2.0 及以上版本
 * 设置会话优先从“主”数据库实例获取数据
 
     ```lang-javascript
-    > db.setSessionAttr({PreferedInstance: "M"})
+    > db.setSessionAttr({PreferredInstance: "M"})
     ```
 
 * 设置会话优先从 1 和 3 的备实例读取数据
 
     ```lang-javascript
-    > db.setSessionAttr({PreferedInstance: [ 1, 3, "S" ]})
+    > db.setSessionAttr({PreferredInstance: [1, 3, "S"]})
     ```
 
 * 设置会话的操作超时时间为 10 秒

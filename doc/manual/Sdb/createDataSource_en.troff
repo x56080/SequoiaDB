@@ -126,7 +126,7 @@ InheritSessionAttr ( \f[I]boolean\f[] ): Whether session between local
 coordinator and data source node inherits session attributes from local session
 on the coordinator.
 The supported attributes include
-PreferedInstance，PreferedInstanceMode，PreferedStrict，PreferedPeriod，Timeout.
+PreferredInstance，PreferredInstanceMode，PreferredStrict，PreferredPeriod，Timeout.
 The default value is true.
 .RS 4
 .PP

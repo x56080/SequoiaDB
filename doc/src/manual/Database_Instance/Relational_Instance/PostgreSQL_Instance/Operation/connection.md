@@ -41,7 +41,7 @@ PostgreSQL 实例组件安装后，需要将 PostgreSQL 实例与数据库分布
 4. 配置 SequoiaDB 连接参数
 
     ```lang-sql
-	sample=# create server sdb_server foreign data wrapper sdb_fdw options(address '127.0.0.1', service '11810', user 'sdbUserName', password 'sdbPassword', preferedinstance 'A', transaction 'off');
+	sample=# create server sdb_server foreign data wrapper sdb_fdw options(address '127.0.0.1', service '11810', user 'sdbUserName', password 'sdbPassword', preferredinstance 'A', transaction 'off');
     ```
 
     >**Note:**
@@ -56,8 +56,8 @@ PostgreSQL 实例组件安装后，需要将 PostgreSQL 实例与数据库分布
 | password | string | 数据库密码 | 否 |
 | address | string | 协调节点地址，需要填写多个协调节点地址时，格式为：'ip1:port1,ip2:port2,ip3:port3'，service 字段可填写任意一个非空字符串 | 是 |
 | service | string | 协调节点 serviceName | 是 |
-| preferedinstance | string | 设置 SequoiaDB 的连接属性，多个属性以逗号分隔，如：preferedinstance '1,2,A'，详细配置可参考 [preferedinstance][preferedinstance] 取值 | 否 |
-| preferedinstancemode | string | 设置 SequoiaDB 的连接属性 preferedinstance 的选择模式 | 否 |
+| preferredinstance | string | 设置 SequoiaDB 的连接属性，多个属性以逗号分隔，如：preferredinstance '1,2,A'，详细配置可参考 [preferredinstance][preferredinstance] 取值 | 否 |
+| preferredinstancemode | string | 设置 SequoiaDB 的连接属性 preferredinstance 的选择模式 | 否 |
 | sessiontimeout | string | 设置 SequoiaDB 的连接属性会话超时时间，如：sessiontimeout '100' | 否 |
 | transaction | string | 设置 SequoiaDB 与 PostgreSQL 之间的操作是否使用事务，默认为'off'，开启为'on' | 否 | 
 | cipher | string | 设置是否使用加密文件输入密码，默认为'off'，开启为'on'<br> 密文模式的介绍可参考[密码管理][system_security] | 否 |
@@ -74,5 +74,5 @@ PostgreSQL 实例组件安装后，需要将 PostgreSQL 实例与数据库分布
 
 [^_^]:
     本文使用到的所有连接及引用
-[preferedinstance]:manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md
+[preferredinstance]:manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md
 [system_security]:manual/Distributed_Engine/Maintainance/Security/system_security.md

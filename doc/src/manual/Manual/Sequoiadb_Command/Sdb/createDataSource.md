@@ -80,7 +80,7 @@ Sdb
 
         格式：`TransPropagateMode:"never"`
 
-    5. InheritSessionAttr（ *boolean* ）：协调节点与数据源之间的会话是否继承本地会话的属性，默认值为 true，支持继承的属性包括：PreferedInstance，PreferedInstanceMode，PreferedStrict，PreferedPeriod，Timeout
+    5. InheritSessionAttr（ *boolean* ）：协调节点与数据源之间的会话是否继承本地会话的属性，默认值为 true，支持继承的属性包括：PreferredInstance，PreferredInstanceMode，PreferredStrict，PreferredPeriod，Timeout
 
         格式：`InheritSessionAttr: true`
 

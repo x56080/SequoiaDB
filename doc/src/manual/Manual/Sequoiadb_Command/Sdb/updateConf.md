@@ -18,7 +18,7 @@ Sdb
 
 | 参数名 | 参数类型 | 描述 | 是否必填 |
 | ------ | ------ | ------ | ------ |
-| config | Json对象 |配置参数，包含配置名和配置值，例如：{ preferedinstance:'A', diaglevel:3 } | 是 |
+| config | Json对象 |配置参数，包含配置名和配置值，例如：{ preferredinstance:'A', diaglevel:3 } | 是 |
 | options| Json对象 | **[命令位置参数](manual/Manual/Sequoiadb_Command/location.md)** | 否 |
 
 > **Note:**
@@ -54,12 +54,12 @@ v2.9 及以上版本
     > db.updateConf( { diaglevel:3 }, { GroupName:"db1", ServiceName:"20000" } )
     ```
 
-* 配置数据组 db2 上所有数据节点的 preferedinstance 和 diaglevel 参数。
+* 配置数据组 db2 上所有数据节点的 preferredinstance 和 diaglevel 参数。
 
     ```lang-javascript
     // 连接协调节点
     > db = new Sdb( "localhost", 11810 )
-    > db.updateConf( { preferedinstance:'A', diaglevel:3 }, { GroupName:"db2" } )
+    > db.updateConf( { preferredinstance:'A', diaglevel:3 }, { GroupName:"db2" } )
     ```
 
 * 报错时获取详细错误信息。
