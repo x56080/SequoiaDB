@@ -47,11 +47,11 @@ namespace vessel
    INT32 scanCLHandler::doit(scanCLCursor *cursor)
    {
       INT32 rc = SDB_OK;
-      collectionSpace *cs = NULL;
-      collection *cl = NULL;
+      collectionSpace *cs = nullptr;
+      collection *cl = nullptr;
       requestContext context;
 
-      if (OSS_UNLIKELY(NULL == cursor ||
+      if (OSS_UNLIKELY(nullptr == cursor ||
                        !cursor->isOpen()))
       {
          rc = SDB_INVALIDARG;
@@ -62,13 +62,8 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isInitialized()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
 
-      rc = getEnv()->dms.getCSBySpaceID(&context, cursor->getCollectionId().getSpaceId(),
+      rc = context.getEnv()->dms.getCSBySpaceID(&context, cursor->getCollectionId().getSpaceId(),
                                         cursor->getCollectionId().getCSLid(), SHARED, &cs);
       if (SDB_OK != rc)
       {

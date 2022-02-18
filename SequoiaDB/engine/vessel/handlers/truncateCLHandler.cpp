@@ -57,11 +57,6 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isInitialized()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
 
       rc = getCollectionObject(&context, gcid, EXCLUSIVE, cl);
       if (SDB_OK != rc)

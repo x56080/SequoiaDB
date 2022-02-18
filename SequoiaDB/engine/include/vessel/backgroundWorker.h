@@ -48,7 +48,6 @@ namespace engine
 {
 namespace vessel
 {
-   class outerResource;
    class instanceEnv;
 
    class backgroundWorker : public SDBObject
@@ -62,8 +61,8 @@ namespace vessel
       public:
          BOOLEAN isValid()const
          {
-            return NULL != _env &&
-                   NULL != _el;
+            return nullptr != _env &&
+                   nullptr != _el;
          }
          void init(instanceEnv *env,
                    autoEventList<backgroundEvent> *el,
@@ -82,10 +81,10 @@ namespace vessel
                                        backgroundEvent &event);
 
       private:
-         instanceEnv *_env = NULL;
-         autoEventList<backgroundEvent> *_el = NULL;
+         instanceEnv *_env = nullptr;
+         autoEventList<backgroundEvent> *_el = nullptr;
          ossEvent _attachEvent;
-         std::atomic_int *_workingCounter = NULL;
+         std::atomic_int *_workingCounter = nullptr;
    };//class backgroundWorker
 }//namespace vessel
 }//namespce engine

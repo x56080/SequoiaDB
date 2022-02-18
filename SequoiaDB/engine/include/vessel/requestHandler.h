@@ -47,14 +47,10 @@ namespace engine
 {
 namespace vessel
 {
-   class instanceEnv;
-   class outerResource;
-
    class requestHandler : public SDBObject
    {
       public:
-         OSS_INLINE requestHandler()
-         {}
+         requestHandler(){}
          virtual ~requestHandler()
          {
          }
@@ -62,31 +58,12 @@ namespace vessel
          requestHandler(const requestHandler &o) = delete;
          requestHandler &operator=(const requestHandler &o) = delete;
 
-      public:
-         void init(instanceEnv *env,
-                   IExecutor *executor);
-
-         BOOLEAN isInitialized()const;
-
-      protected:
-         OSS_INLINE instanceEnv *getEnv()
-         {
-            return _env;
-         }
-         OSS_INLINE IExecutor *getExecutor()
-         {
-            return _executor;
-         }
-
       protected:
          
          INT32 getCollectionObject(requestContext *context,
                                    const globalCollectionId &gcid,
                                    OSS_LATCH_MODE mode,
                                    COLLECTION_PTR &out);
-      private:
-         IExecutor *_executor = NULL;
-         instanceEnv *_env = NULL;
    };//class requestHandler
 }//namespace vessel
 }//namespace engine

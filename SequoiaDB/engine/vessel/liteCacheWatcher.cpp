@@ -38,9 +38,9 @@
 #include "vessel/outerResource.h"
 #include "pdTrace.hpp"
 #include "vessel/liteCache.h"
-#include "vessel/requestContext.h"
 #include "vessel/diskIOTask.h"
 #include "pmdDef.hpp"
+#include "vessel/threadContext.h"
 
 namespace engine
 {
@@ -49,8 +49,8 @@ namespace vessel
    INT32 liteCacheWatcher::init(instanceEnv *env)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL == _env, "do not reinit");
-      if (OSS_UNLIKELY(NULL == env))
+      SDB_ASSERT(nullptr == _env, "do not reinit");
+      if (OSS_UNLIKELY(nullptr == env))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -86,7 +86,7 @@ namespace vessel
    INT32 liteCacheWatcher::_active()
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != _env, "can not be null");
+      SDB_ASSERT(nullptr != _env, "can not be null");
       SDB_ASSERT(!_actived, "do not reactive");
 
       _attachEvent.reset();
@@ -108,18 +108,18 @@ namespace vessel
 
    void liteCacheWatcher::attach(IExecutor *executor)
    {
-      SDB_ASSERT(NULL != executor, "can not be null");
-      SDB_ASSERT(NULL != _env, "can not be null");
+      SDB_ASSERT(nullptr != executor, "can not be null");
+      SDB_ASSERT(nullptr != _env, "can not be null");
       SDB_ASSERT(!_actived, "already been actived");
       THREAD_CONTEXT_OWNER tco(executor, _env);
-      requestContext context;
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
 
       UINT32 millis = 10;
       backgroundEvent event;
       diskIOJob _job;
       BOOLEAN quit = FALSE;
       UINT32 flushDirtyListTimeout =
-      context.getEnv()->options.cacheOptions.flush.flushDirtyListTimeout * 1000;
+      _env->options.cacheOptions.flush.flushDirtyListTimeout * 1000;
       _lastFlushDirtyListTime = ossGetCurrentMilliseconds();
 
       _actived = TRUE;
@@ -139,15 +139,15 @@ namespace vessel
                //PD_LOG(PDDEBUG, "get notification from lite cache");
                if (!quit)
                {
-                  createJobIfNecessary(&context);
+                  createJobIfNecessary();
                }
             }
             else if (backgroundEvent::EVENT_TYPE_FINISHED == event.getType())
             {
-               handleFinishedEvent(&context, event);
+               handleFinishedEvent(event);
                if (!quit)
                {
-                  createJobIfNecessary(&context);
+                  createJobIfNecessary();
                }
             }
             else
@@ -160,7 +160,7 @@ namespace vessel
             /// timeout
             if (!_hasRunningTask())
             {
-               createJobIfNecessary(&context);
+               createJobIfNecessary();
             }
             
             if (0 == _jobs[_JOB_ID_DIRTY_LIST].runningTask)
@@ -168,10 +168,12 @@ namespace vessel
                UINT64 currentTime = ossGetCurrentMilliseconds();
                if ((_lastFlushDirtyListTime + flushDirtyListTimeout) <= currentTime)
                {
-                  flushDirtyListWhenTimeout(&context);
+                  flushDirtyListWhenTimeout();
                }
             }
          }
+
+         SDB_ASSERT(!tc->hasUnfreeBuffer(), "buffer should be free at the end of loop");
       } while (!quit || _hasRunningTask());
 
       _actived = FALSE;
@@ -189,7 +191,7 @@ namespace vessel
 
       do
       {
-         INT32 timeout = _attachEvent.wait(1000, NULL);
+         INT32 timeout = _attachEvent.wait(1000, nullptr);
          if (SDB_OK == timeout)
          {
             PD_LOG(PDINFO, "cache watcher deactived");
@@ -222,32 +224,31 @@ namespace vessel
       _lastFlushDirtyListTime = 0;
       _attachEvent.reset();
       _actived = FALSE;
-      _env = NULL;
+      _env = nullptr;
       _notifyFlag.clear();
    }
 
-   void liteCacheWatcher::createJobIfNecessary(requestContext *context)
+   void liteCacheWatcher::createJobIfNecessary()
    {
-      SDB_ASSERT(NULL != context, "can not be null");
       
       if (!_jobs[_JOB_ID_LRU].job.isRunning())
       {
-         tryToTrimLRU(context);
+         tryToTrimLRU();
       }
 
       if (!_jobs[_JOB_ID_DIRTY_LIST].job.isRunning())
       {
-         tryToFlushDirtyList(context);
+         tryToFlushDirtyList();
       }
 
    done:
       return;
    }
 
-   void liteCacheWatcher::tryToTrimLRU(requestContext *context)
+   void liteCacheWatcher::tryToTrimLRU()
    {
-      SDB_ASSERT(NULL != context, "can not be null");
-      liteCache &cache = context->getEnv()->cacheConsole.get32KBCache();
+
+      liteCache *cache = _env->cacheConsole.getCacheByPoolNo();
       INT32 rc = SDB_OK;
       diskIOJob &job = _jobs[_JOB_ID_LRU].job;
       SDB_ASSERT(!job.isRunning(), "can not be running");
@@ -258,7 +259,7 @@ namespace vessel
       _notifyFlag.test_and_set(std::memory_order_acquire);
       paused = TRUE;
 
-      rc = cache.autoTrimLRU(context, &job, evicted);
+      rc = cache->autoTrimLRU(&job, evicted);
       if (SDB_OK != rc)
       {
          PD_LOG(PDSEVERE, "failed to trim lru:%d", rc);
@@ -267,7 +268,7 @@ namespace vessel
 
       if (0 < job.getTagCount())
       {  
-         dispatch(context, _JOB_ID_LRU);
+         dispatch(_JOB_ID_LRU);
          /// do not notify watcher when job is running.
          paused = FALSE;  
       }
@@ -283,15 +284,14 @@ namespace vessel
       return;
    }
 
-   void liteCacheWatcher::tryToFlushDirtyList(requestContext *context)
+   void liteCacheWatcher::tryToFlushDirtyList()
    {
-      SDB_ASSERT(NULL != context, "can not be null");
-      liteCache &cache = context->getEnv()->cacheConsole.get32KBCache();
+      liteCache *cache = _env->cacheConsole.getCacheByPoolNo();
       INT32 rc = SDB_OK;
       diskIOJob &job = _jobs[_JOB_ID_DIRTY_LIST].job;
       SDB_ASSERT(!job.isRunning(), "can not be running");
 
-      rc = cache.createElasticDirtyListJob(context, &job);
+      rc = cache->createElasticDirtyListJob(&job);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create dirty list io job:%d", rc);
@@ -300,7 +300,7 @@ namespace vessel
 
       if (0 < job.getTagCount())
       {
-         dispatch(context, _JOB_ID_DIRTY_LIST);
+         dispatch(_JOB_ID_DIRTY_LIST);
       }
       else
       {
@@ -311,20 +311,19 @@ namespace vessel
       return;
    }
 
-   void liteCacheWatcher::flushDirtyListWhenTimeout(requestContext *context)
+   void liteCacheWatcher::flushDirtyListWhenTimeout()
    {
-      SDB_ASSERT(NULL != context, "can not be null");
-      liteCache &cache = context->getEnv()->cacheConsole.get32KBCache();
+      liteCache *cache = _env->cacheConsole.getCacheByPoolNo();
       INT32 rc = SDB_OK;
       diskIOJob &job = _jobs[_JOB_ID_DIRTY_LIST].job;
       SDB_ASSERT(!job.isRunning(), "can not be running");
-      UINT32 depth = cache.getDirtyListSizeFast() * 0.3;
+      UINT32 depth = cache->getDirtyListSizeFast() * 0.3;
       if (depth < 128)
       {
          depth = 128;
       }
 
-      rc = cache.createDirtyListIOJob(context, depth,
+      rc = cache->createDirtyListIOJob(depth,
                                       DPS_INVALID_LSN_OFFSET,
                                       &job);
       if (SDB_OK != rc)
@@ -335,7 +334,7 @@ namespace vessel
 
       if (0 < job.getTagCount())
       {
-         dispatch(context, _JOB_ID_DIRTY_LIST);
+         dispatch(_JOB_ID_DIRTY_LIST);
       }
       else
       {
@@ -346,11 +345,11 @@ namespace vessel
       return;
    }
 
-   void liteCacheWatcher::handleFinishedEvent(requestContext *context,
-                                              const backgroundEvent &event)
+   void liteCacheWatcher::handleFinishedEvent(const backgroundEvent &event)
    {
       SDB_ASSERT(backgroundEvent::EVENT_TYPE_FINISHED == event.getType(), "msut be finished");
       const UINT32 *jobID = (const UINT32 *)(event.getEventMsg());
+      liteCache *cache = _env->cacheConsole.getCacheByPoolNo();
 
       for (UINT32 i = 0; i < (UINT32)_JOG_ID_COUNT; ++i)
       {
@@ -363,14 +362,14 @@ namespace vessel
             {
                if (jc.job.isDirtyListJob())
                {
-                  context->getEnv()->cacheConsole.get32KBCache().updateMinCacheLsn();
+                  cache->updateMinCacheLsn();
                   /// reset dirty list flushting time.
                   _lastFlushDirtyListTime = ossGetCurrentMilliseconds();
                   //PD_LOG(PDDEBUG, "dirty list job done, tag count:%d", jc.job.getTagCount());
                }
                else
                {
-                  context->getEnv()->cacheConsole.get32KBCache().resetLRUEvictBegin();
+                  cache->resetLRUEvictBegin();
                   //PD_LOG(PDDEBUG, "lru job done, tag count:%d", jc.job.getTagCount());
                }
 
@@ -385,7 +384,7 @@ namespace vessel
       return;
    }
 
-   void liteCacheWatcher::dispatch(requestContext *context, _JOB_ID jid)
+   void liteCacheWatcher::dispatch(_JOB_ID jid)
    {
       SDB_ASSERT(jid <= _JOB_ID_MAX, "out of bound");
 
@@ -402,7 +401,7 @@ namespace vessel
       {
          backgroundEvent event;
          diskIOTask task;
-         rc = jc.job.getNextTask(context, hitTheEnd, task);
+         rc = jc.job.getNextTask(hitTheEnd, task);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get the next task:%d", rc);
@@ -417,7 +416,7 @@ namespace vessel
          event.setType(backgroundEvent::EVENT_TYPE_CACHE_TASK);
          event.setEventMsg(sizeof(diskIOTask), &task);
          event.setResponseList(&_list);
-         context->getEnv()->workers.pushEvent(event);
+         _env->workers.pushEvent(event);
          ++jc.runningTask;
       } while (TRUE);
       

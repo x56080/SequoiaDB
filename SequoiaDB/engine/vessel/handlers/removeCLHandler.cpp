@@ -57,13 +57,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isInitialized()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-
-      rc = getEnv()->dms.getCSBySpaceID(&context, gcid.getSpaceId(),
+      rc = context.getEnv()->dms.getCSBySpaceID(&context, gcid.getSpaceId(),
                                         gcid.getCSLid(), SHARED, &csObj);
       if (SDB_OK != rc)
       {

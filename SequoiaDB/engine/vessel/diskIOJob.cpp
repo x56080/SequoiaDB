@@ -40,9 +40,9 @@
 #include "pdTrace.hpp"
 #include "vessel/liteCachePageTag.h"
 #include "ossLikely.hpp"
-#include "vessel/requestContext.h"
 #include "vessel/instanceEnv.h"
 #include <algorithm>
+#include "vessel/threadContext.h"
 
 namespace engine
 {
@@ -191,8 +191,7 @@ namespace vessel
    }
    
 
-   INT32 diskIOJob::getNextTask(requestContext *context,
-                                BOOLEAN &hitTheEnd,
+   INT32 diskIOJob::getNextTask(BOOLEAN &hitTheEnd,
                                 diskIOTask &task)
    {
       INT32 rc = SDB_OK;
@@ -205,13 +204,7 @@ namespace vessel
       UINT32 firstSegment = 0;
       hitTheEnd = FALSE;
 
-      if (OSS_UNLIKELY(NULL == context))
-      {
-         SDB_ASSERT(NULL != context, "can not be null");
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(DISPATCHING != _status))
+      if (OSS_UNLIKELY(DISPATCHING != _status))
       {
          SDB_ASSERT(FALSE, "impossible");
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
@@ -229,7 +222,7 @@ namespace vessel
       gpid = tag->id();
       SDB_ASSERT(gpid.isValid(), "can not be invalid");
       count = 1;
-      rc = context->getEnv()->dms.getLogicalPageSpace(gpid.space(),
+      rc = GET_THREAD_CONTEXT()->getEnv()->dms.getLogicalPageSpace(gpid.space(),
                                                       gpid.getSpaceType(),
                                                       &lps);
       if (SDB_OK != rc)

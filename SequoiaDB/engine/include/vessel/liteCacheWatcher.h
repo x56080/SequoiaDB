@@ -48,8 +48,6 @@ namespace engine
 namespace vessel
 {
    class instanceEnv;
-   class outerResource;
-   class requestContext;
 
    class liteCacheWatcher : public SDBObject
    {
@@ -80,15 +78,14 @@ namespace vessel
          INT32 _active();
          void _deactive();
          void _fini();
-         void createJobIfNecessary(requestContext *context);
-         void createDirtyListJobWhenTimeout(requestContext *context);
-         void dispatch(requestContext *context, _JOB_ID jid);
-         void handleFinishedEvent(requestContext *context,
-                                  const backgroundEvent &event);
+         void createJobIfNecessary();
+         void createDirtyListJobWhenTimeout();
+         void dispatch(_JOB_ID jid);
+         void handleFinishedEvent(const backgroundEvent &event);
 
-         void tryToTrimLRU(requestContext *context);
-         void tryToFlushDirtyList(requestContext *context);
-         void flushDirtyListWhenTimeout(requestContext *context);
+         void tryToTrimLRU();
+         void tryToFlushDirtyList();
+         void flushDirtyListWhenTimeout();
 
          BOOLEAN _hasRunningTask()const
          {
@@ -111,7 +108,7 @@ namespace vessel
             diskIOJob job;
          };//struct _JOB_CONTEXT
       private:
-         instanceEnv *_env = NULL;
+         instanceEnv *_env = nullptr;
          UINT64 _lastFlushDirtyListTime = 0;
          autoEventList<backgroundEvent> _list;
          _JOB_CONTEXT _jobs[_JOG_ID_COUNT];

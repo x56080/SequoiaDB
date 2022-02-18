@@ -63,8 +63,8 @@ namespace vessel
    void lcDirtyList::fini()
    {
       _size = 0;
-      _head = NULL;
-      _tail = NULL;
+      _head = nullptr;
+      _tail = nullptr;
       return;
    }
 
@@ -81,7 +81,7 @@ namespace vessel
 
    UINT64 lcDirtyList::getMinDirtyLSN(BOOLEAN lock)
    {
-      ossSpinXLatch *latch = lock ? &_latch : NULL;
+      ossSpinXLatch *latch = lock ? &_latch : nullptr;
       ossScopedLock guard(latch);
       return _minDirtyLsn;
    }
@@ -89,7 +89,7 @@ namespace vessel
    INT32 lcDirtyList::upsert(DPS_LSN_OFFSET lsn, lcPageTagHolder &holder)
    {
       INT32 rc = SDB_OK;
-      liteCachePageTag *tag = NULL;
+      liteCachePageTag *tag = nullptr;
      
       if (OSS_UNLIKELY(DPS_INVALID_LSN_OFFSET == lsn ||
                        !holder.valid()))
@@ -144,7 +144,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       BOOLEAN locked = FALSE;
-      liteCachePageTag *tag = NULL;
+      liteCachePageTag *tag = nullptr;
    
       if (OSS_UNLIKELY(!holder.valid()))
       {
@@ -177,21 +177,20 @@ namespace vessel
       goto done;
    }
 
-   INT32 lcDirtyList::setPendingWrite(requestContext *context,
-                                      UINT32 scanDepth,
+   INT32 lcDirtyList::setPendingWrite(UINT32 scanDepth,
                                       UINT64 minLSN,
                                       diskIOJob *job)
    {
       INT32 rc = SDB_OK;
-      liteCachePageTag *itr = NULL;
-      SDB_ASSERT(NULL != context && NULL != job, "can not be null");
+      liteCachePageTag *itr = nullptr;
+      SDB_ASSERT(nullptr != job, "can not be null");
       SDB_ASSERT(!job->isRunning(), "must be empty");
 
       job->prepare(ossRand(), diskIOJob::DIRTY_LIST, scanDepth);
       ossScopedLock guard(&_latch);
 
       itr = _tail;
-      for (UINT32 i = 0;i < scanDepth &&  NULL != itr; ++i)
+      for (UINT32 i = 0;i < scanDepth &&  nullptr != itr; ++i)
       {
          liteCachePageTag *tag = itr;
          itr = itr->getDirtyListPre();
@@ -223,7 +222,7 @@ namespace vessel
    void lcDirtyList::updateMinDirtyLsn()
    {
       ossScopedLock guard(&_latch);
-      if (NULL == _tail)
+      if (nullptr == _tail)
       {
          _minDirtyLsn = DPS_INVALID_LSN_OFFSET;
       }
@@ -238,14 +237,14 @@ namespace vessel
 
    void lcDirtyList::insertIntoSortedList(liteCachePageTag *tag)
    {
-      SDB_ASSERT(NULL != tag, "should be null");
+      SDB_ASSERT(nullptr != tag, "should be null");
       UINT64 lsn = tag->getMinDirtyLSN();
       SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn,
                  "should not insert tag with invalid lsn");
-      if (NULL != _head)
+      if (nullptr != _head)
       {
          liteCachePageTag *current = _head;
-         liteCachePageTag *pre = NULL;
+         liteCachePageTag *pre = nullptr;
          do
          {
             ///head --> tail
@@ -255,7 +254,7 @@ namespace vessel
                tag->insertIntoDirtyList(pre, current);
                current->setDirtyListPre(tag);
 
-               if (NULL == pre)
+               if (nullptr == pre)
                {
                   _head = tag;
                }
@@ -272,10 +271,10 @@ namespace vessel
                pre = current;
                current = current->getDirtyListNext();
             }
-         } while (NULL != current);
+         } while (nullptr != current);
          
          /// insert to tail
-         tag->insertIntoDirtyList(_tail, NULL);
+         tag->insertIntoDirtyList(_tail, nullptr);
          _tail->setDirtyListNext(tag);
          _tail = tag;
          ++_size;
@@ -288,7 +287,7 @@ namespace vessel
       {
          _head = tag;
          _tail = tag;
-         tag->insertIntoDirtyList(NULL, NULL);
+         tag->insertIntoDirtyList(nullptr, nullptr);
          ++_size;
          _minDirtyLsn = lsn;
       }
@@ -302,25 +301,25 @@ namespace vessel
       liteCachePageTag *pre = tag->getDirtyListPre();
       liteCachePageTag *next = tag->getDirtyListNext();
       
-      if (NULL != pre && NULL != next)
+      if (nullptr != pre && nullptr != next)
       {
          pre->setDirtyListNext(next);
          next->setDirtyListPre(pre);
       }
-      else if (NULL == pre && NULL != next)
+      else if (nullptr == pre && nullptr != next)
       {
          _head = next;
-         next->setDirtyListPre(NULL);
+         next->setDirtyListPre(nullptr);
       }
-      else if (NULL != pre && NULL == next)
+      else if (nullptr != pre && nullptr == next)
       {
          _tail = pre;
-         pre->setDirtyListNext(NULL);
+         pre->setDirtyListNext(nullptr);
       }
       else
       {
-         _head = NULL;
-         _tail = NULL;
+         _head = nullptr;
+         _tail = nullptr;
       }
       
       tag->removeFromDirtyList();

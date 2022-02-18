@@ -66,6 +66,12 @@ namespace vessel
       }
    }
 
+   BOOLEAN threadContext::hasUnfreeBuffer()const
+   {
+      return _sba.hasUnfreeBuffer();
+   }
+
+
 /////////////threadContextOnwer
    OSS_THREAD_LOCAL threadContext *threadContextOnwer::_T_CONTEXT = nullptr;
 

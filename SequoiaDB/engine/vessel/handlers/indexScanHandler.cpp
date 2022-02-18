@@ -47,11 +47,11 @@ namespace vessel
    INT32 indexScanHandler::doit(indexScanCursor *cursor)
    {
       INT32 rc = SDB_OK;
-      collectionSpace *cs = NULL;
-      collection *cl = NULL;
+      collectionSpace *cs = nullptr;
+      collection *cl = nullptr;
       indexScanContext context;
 
-      if (OSS_UNLIKELY(NULL == cursor ||
+      if (OSS_UNLIKELY(nullptr == cursor ||
                        !cursor->isOpen() ||
                        !cursor->getCollectionId().isValid() ||
                        !cursor->getIndexId().isValid()))
@@ -59,13 +59,8 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isInitialized()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
 
-      rc = getEnv()->dms.getCSByCollectionSpaceId(&context,
+      rc = context.getEnv()->dms.getCSByCollectionSpaceId(&context,
                                                    cursor->getCollectionId().getCSIdentifier(),
                                                    SHARED, &cs);
       if (SDB_OK != rc)

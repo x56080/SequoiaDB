@@ -36,7 +36,6 @@
 #include "vessel/liteCacheTuple.h"
 #include "vessel/liteCache.h"
 #include "pdTrace.hpp"
-#include "vessel/requestContext.h"
 #include "vessel/liteCachePageTag.h"
 #include "vessel/lcPageTagHolder.h"
 
@@ -54,9 +53,9 @@ namespace vessel
       INT32 rc = SDB_OK;
       release();
 
-      if (NULL == tag ||
+      if (nullptr == tag ||
           mode.isNone() ||
-          NULL == pool)
+          nullptr == pool)
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -88,7 +87,7 @@ namespace vessel
       return 0 != OSS_BIT_TEST(_flags, TUPLE_FLAG_WRITING_PREPARED);
    }
 
-   INT32 liteCacheTuple::prepareToWrite(requestContext *context)
+   INT32 liteCacheTuple::prepareToWrite()
    {
       INT32 rc = SDB_OK;      
       if (OSS_UNLIKELY(!isValid()))
@@ -114,7 +113,7 @@ namespace vessel
 
       if (!_holder.tag()->isInLruList())
       {
-         rc = _pool->allocateMemPageAndInsertIntoLRU(context, TRUE, _holder);
+         rc = _pool->allocateMemPageAndInsertIntoLRU(TRUE, _holder);
          if (SDB_OK != rc)
          {
             goto error;
@@ -176,8 +175,8 @@ namespace vessel
       {
          _holder.autoUnlock();
          _holder.tag()->decUsageCnt();
-         _holder.reset(NULL);
-         _pool = NULL;
+         _holder.reset(nullptr);
+         _pool = nullptr;
          _flags = 0;
       }
       return;

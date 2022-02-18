@@ -47,13 +47,8 @@ namespace vessel
       requestContext context;
       strSlice nameSlice(indexName);
 
-      if (OSS_UNLIKELY(!isInitialized()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!gcid.isValid() ||
-                            nameSlice.empty()))
+      if (OSS_UNLIKELY(!gcid.isValid() ||
+                       nameSlice.empty()))
       {
          rc = SDB_INVALIDARG;
          goto error;

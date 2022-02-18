@@ -52,13 +52,8 @@ namespace vessel
       COLLECTION_PTR cl;
       dmlContext context;
 
-      if (OSS_UNLIKELY(!isInitialized()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!gcid.isValid() ||
-                            !request.isValid()))
+      if (OSS_UNLIKELY(!gcid.isValid() ||
+                       !request.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -95,13 +90,8 @@ namespace vessel
       COLLECTION_PTR cl;
       dmlContext context;
 
-      if (OSS_UNLIKELY(!isInitialized()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!gcid.isValid() ||
-                            !request.isValid()))
+      if (OSS_UNLIKELY(!gcid.isValid() ||
+                       !request.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -155,14 +145,9 @@ namespace vessel
       INT32 rc = SDB_OK;
       dmlContext context;
       COLLECTION_PTR cl;
-      if (OSS_UNLIKELY(!isInitialized()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!gcid.isValid() ||
-                            !request.isValid() ||
-                            NULL == updater))
+      if (OSS_UNLIKELY(!gcid.isValid() ||
+                        !request.isValid() ||
+                        NULL == updater))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -195,13 +180,8 @@ namespace vessel
       dmlContext context;
       COLLECTION_PTR cl;
 
-      if (OSS_UNLIKELY(!isInitialized()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!gcid.isValid() ||
-                            !request.isValid()))
+      if (OSS_UNLIKELY(!gcid.isValid() ||
+                        !request.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;

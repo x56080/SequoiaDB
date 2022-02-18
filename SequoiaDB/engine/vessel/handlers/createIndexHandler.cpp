@@ -53,12 +53,7 @@ namespace vessel
       COLLECTION_PTR cl;
       requestContext context;
 
-      if (OSS_UNLIKELY(!isInitialized()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (!gcid.isValid() || adjunct.isEmpty())
+      if (!gcid.isValid() || adjunct.isEmpty())
       {
          rc = SDB_INVALIDARG;
          goto error;

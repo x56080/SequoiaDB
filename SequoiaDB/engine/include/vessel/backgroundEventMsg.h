@@ -38,6 +38,7 @@
 
 #include "vessel/vesselIdDef.h"
 #include "vessel/vesselFileDef.h"
+#include "vessel/backgroundEvent.h"
 
 namespace engine
 {
@@ -57,6 +58,7 @@ namespace vessel
          SPACE_ID _sid = INVALID_SPACE_ID;
          SPACE_TYPE _type = INVALID_SPACE_TYPE;
    };//class lpsCheckpointApplying
+   static_assert(sizeof(lpsCheckpointApplying) < BG_EVENT_MSG_BUFFER_SIZE, "out of size");
 
    class lpsFlushingSegments
    {
@@ -72,6 +74,7 @@ namespace vessel
          UINT8 _count = 0;
          UINT32 _segmentId = 0;
    };//class lpsFlushingSegments
+   static_assert(sizeof(lpsFlushingSegments) < BG_EVENT_MSG_BUFFER_SIZE, "out of size");
 #pragma pack()
 } // namespace vessel
 

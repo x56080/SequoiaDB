@@ -53,29 +53,15 @@ namespace vessel
 
       public:
          void fini();
-         INT32 init32KBCache(const liteCacheOptions &o);
+         INT32 init(const liteCacheOptions &o);
 
       public:
-         INT32 allocate(requestContext *context,
-                        const GLOBAL_PAGE_ID &gpid,
-                        const liteCacheAllocateOptions &options,
-                        liteCacheTuple &tuple);
+         liteCache *getCacheByPoolNo(UINT32 poolNo=0);
 
-         INT32 allocateToReset(requestContext *context,
-                               const GLOBAL_PAGE_ID &gpid,
-                               liteCacheTuple &tuple);
-
-      public:
-         liteCache &get32KBCache()
-         {
-            return _32KBCache;
-         }
-
-      private:
          liteCache *getCache(UINT32 pageSize);
       private:
          liteCache _32KBCache;
-         liteCache _64KBCache;
+         //liteCache _64KBCache;
          
    };//class liteCacheConsole
 }//namespace vessel

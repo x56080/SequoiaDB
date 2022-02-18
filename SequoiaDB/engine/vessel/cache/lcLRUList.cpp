@@ -41,7 +41,6 @@
 #include "vessel/diskIOJob.h"
 #include "pdTrace.hpp"
 #include "ossLikely.hpp"
-#include "vessel/requestContext.h"
 #include "ossMemPool.hpp"
 #include "ossLatchGuard.hpp"
 
@@ -64,7 +63,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
 
-      if (OSS_UNLIKELY(NULL == fl))
+      if (OSS_UNLIKELY(nullptr == fl))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -81,13 +80,13 @@ namespace vessel
 
    void lcLRUList::fini()
    {
-      _fl = NULL;
+      _fl = nullptr;
       _size = 0;
       _coldSize = 0;
-      _head = NULL;
-      _middle = NULL;
-      _tail = NULL;
-      _evictBegin = NULL;
+      _head = nullptr;
+      _middle = nullptr;
+      _tail = nullptr;
+      _evictBegin = nullptr;
       return;
    }
 
@@ -107,7 +106,7 @@ namespace vessel
                            UINT32 beginTouchCount)
    {
       INT32 rc = SDB_OK;
-      liteCachePageTag *tag = NULL;
+      liteCachePageTag *tag = nullptr;
       UINT64 cunrrentMillis = ossGetCurrentMilliseconds();
       ossXLatchGuard guard(&_latch, FALSE);
 
@@ -172,7 +171,7 @@ namespace vessel
    INT32 lcLRUList::tryToUpdate(lcPageTagHolder &holder)
    {
       INT32 rc = SDB_OK;
-      liteCachePageTag *tag = NULL;
+      liteCachePageTag *tag = nullptr;
       UINT64 currentMillis = 0;
 
       if (OSS_UNLIKELY(!holder.valid()))
@@ -212,13 +211,12 @@ namespace vessel
    }
 
 
-   INT32 lcLRUList::evict(requestContext *context,
-                          BOOLEAN scanUntilHitMax,
+   INT32 lcLRUList::evict(BOOLEAN scanUntilHitMax,
                           freeListPage &page)
    {
       INT32 rc = SDB_OK;
       UINT32 scanNum = 0;
-      liteCachePageTag *itr = NULL;
+      liteCachePageTag *itr = nullptr;
       UINT32 totalMoved = 0;
       UINT32 totalSkipped = 0;
       BOOLEAN hitTheMiddle = FALSE;
@@ -235,8 +233,8 @@ namespace vessel
          scanNum = _size * _options.lruMaxScanPercent;
       }
 
-      itr = (NULL == _evictBegin) ? _tail : _evictBegin;
-      for (UINT32 i = 0; i < scanNum && NULL != itr; ++i)
+      itr = (nullptr == _evictBegin) ? _tail : _evictBegin;
+      for (UINT32 i = 0; i < scanNum && nullptr != itr; ++i)
       {
          liteCachePageTag *tag = itr;
          if (splited() && !hitTheMiddle && tag == _middle)
@@ -269,13 +267,13 @@ namespace vessel
          break;
       }
 
-      if (NULL != itr && splited() && !hitTheMiddle)
+      if (nullptr != itr && splited() && !hitTheMiddle)
       {
          _evictBegin = itr;
       }
       else
       {
-         _evictBegin = NULL;
+         _evictBegin = nullptr;
       }
    done:
       return rc;
@@ -283,16 +281,15 @@ namespace vessel
       goto done;
    }
 
-   INT32 lcLRUList::setPendingWriteOrEvict(requestContext *context,
-                                           UINT32 scanDepth,
+   INT32 lcLRUList::setPendingWriteOrEvict(UINT32 scanDepth,
                                            diskIOJob *job,
                                            UINT32 *evicted)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context && NULL != job, "can not be null");
+      SDB_ASSERT(nullptr != job, "can not be null");
       SDB_ASSERT(!job->isRunning(), "can not be running");
       UINT32 scanNum = std::min(scanDepth, _options.lruScanDepth);
-      liteCachePageTag *itr = NULL;
+      liteCachePageTag *itr = nullptr;
       UINT32 totalEvicted = 0;
       UINT32 totalPending = 0;
       UINT32 totalMoved = 0;
@@ -304,7 +301,7 @@ namespace vessel
       ossXLatchGuard guard(&_latch);
  
       itr = _tail;
-      for (UINT32 i = 0; i < scanNum && NULL != itr; ++i)
+      for (UINT32 i = 0; i < scanNum && nullptr != itr; ++i)
       {
          liteCachePageTag *tag = itr;
          if (splited() && !hitTheMiddle && tag == _middle)
@@ -350,18 +347,18 @@ namespace vessel
          ++totalSkipped;
       }
 
-      if (NULL != itr && splited() && !hitTheMiddle)
+      if (nullptr != itr && splited() && !hitTheMiddle)
       {
          _evictBegin = itr;
       }
       else
       {
-         _evictBegin = NULL;
+         _evictBegin = nullptr;
       }
 
       guard.unlock();
 
-      if (NULL != evicted)
+      if (nullptr != evicted)
       {
          *evicted = totalEvicted;
       }
@@ -379,13 +376,13 @@ namespace vessel
    void lcLRUList::resetEvictBegin()
    {
       _latch.get();
-      _evictBegin = NULL;
+      _evictBegin = nullptr;
       _latch.release();
    }
 
    void lcLRUList::insertToMiddle(liteCachePageTag *tag)
    {
-      SDB_ASSERT(NULL != _middle, "not splited");
+      SDB_ASSERT(nullptr != _middle, "not splited");
       ++_size;
       ++_coldSize;
       liteCachePageTag *next = _middle->getLruNext();
@@ -397,11 +394,11 @@ namespace vessel
 
    void lcLRUList::splitLRU()
    {
-      SDB_ASSERT(NULL == _middle, "already splited");
+      SDB_ASSERT(nullptr == _middle, "already splited");
       SDB_ASSERT(_size == _options.lruMinSplitSize, "lru size must be split size");
       UINT32 steps = _size * _options.lruColdPercent;
       liteCachePageTag *tag = _tail;
-      for (UINT32 i = 0; i < steps && NULL != tag; ++i)
+      for (UINT32 i = 0; i < steps && nullptr != tag; ++i)
       {
          tag = tag->getLruPre();
       }
@@ -413,7 +410,7 @@ namespace vessel
    void lcLRUList::cancelSplit()
    {
       _coldSize = 0;
-      _middle = NULL;
+      _middle = nullptr;
    }
 
    void lcLRUList::tryToTuneRightMiddle()
@@ -487,7 +484,7 @@ namespace vessel
       liteCachePageTag *next = tag->getLruNext();
       --_size;
       
-      if (NULL != pre)
+      if (nullptr != pre)
       {
          pre->setLruNext(next);
       }
@@ -496,7 +493,7 @@ namespace vessel
          _head = next;
       }
 
-      if (NULL != next)
+      if (nullptr != next)
       {
          next->setLruPre(pre);
       }
@@ -511,20 +508,20 @@ namespace vessel
 
    void lcLRUList::insertToHead(liteCachePageTag *tag)
    {
-      SDB_ASSERT(NULL != tag, "can not be null");
+      SDB_ASSERT(nullptr != tag, "can not be null");
       ++_size;
-      if (OSS_LIKELY(NULL != _head))
+      if (OSS_LIKELY(nullptr != _head))
       {
          liteCachePageTag *oldHead = _head;
          _head = tag;
          oldHead->setLruPre(tag);
-         tag->insertIntoLru(NULL, oldHead);
+         tag->insertIntoLru(nullptr, oldHead);
       }
       else
       {
          _head = tag;
          _tail = tag;
-         tag->insertIntoLru(NULL, NULL);
+         tag->insertIntoLru(nullptr, nullptr);
       }
       return;
    }
@@ -535,7 +532,7 @@ namespace vessel
                                             freeListPage &page)
    {
       BOOLEAN r = FALSE;
-      SDB_ASSERT(NULL != tag, "can not be null");
+      SDB_ASSERT(nullptr != tag, "can not be null");
       lcPageTagHolder holder;
       
       holder.reset(tag);

@@ -36,10 +36,10 @@
 #include "vessel/backgroundWorker.h"
 #include "pdTrace.hpp"
 #include "vessel/instanceEnv.h"
-#include "vessel/requestContext.h"
 #include "vessel/diskIOTask.h"
 #include "vessel/diskIOJob.h"
 #include "vessel/threadContext.h"
+#include "vessel/requestContext.h"
 
 namespace engine
 {
@@ -49,8 +49,8 @@ namespace vessel
                                autoEventList<backgroundEvent> *el,
                                std::atomic_int *counter)
    {
-      SDB_ASSERT(NULL != env, "can not be null");
-      SDB_ASSERT(NULL != el, "can not be null");
+      SDB_ASSERT(nullptr != env, "can not be nullptr");
+      SDB_ASSERT(nullptr != el, "can not be nullptr");
 
       _env = env;
       _el = el;
@@ -66,8 +66,10 @@ namespace vessel
 
    void backgroundWorker::activeEntry(IExecutor *executor)
    {
-      SDB_ASSERT(NULL != executor, "can not be null");
-      SDB_ASSERT(NULL != _env, "can not be null");
+      SDB_ASSERT(nullptr != executor, "can not be nullptr");
+      SDB_ASSERT(nullptr != _env, "can not be nullptr");
+      THREAD_CONTEXT_OWNER tco(executor, _env);
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
       backgroundEvent event;
       _attachEvent.signalAll();
 
@@ -75,13 +77,15 @@ namespace vessel
       {
          _el->popOrWait(event);
          SDB_ASSERT(backgroundEvent::EVENT_TYPE_INVALID != event.getType(), "impossible");
+         
+
          if (event.isQuitEvent())
          {
             //PD_LOG(PDDEBUG, "get quit event, exit");
             goto done;
          }
 
-         if (NULL != _workingCounter)
+         if (nullptr != _workingCounter)
          {
             _workingCounter->fetch_add(1, std::memory_order_relaxed);
          }
@@ -108,11 +112,13 @@ namespace vessel
             break;
          }
 
-         if (NULL != _workingCounter)
+         if (nullptr != _workingCounter)
          {
             _workingCounter->fetch_sub(1, std::memory_order_relaxed);
          }
          event.release();
+
+         SDB_ASSERT(!tc->hasUnfreeBuffer(), "should be free at the end of loop");
       } while (TRUE);
 
    done:
@@ -133,18 +139,16 @@ namespace vessel
    void backgroundWorker::handleCacheEvent(IExecutor *executor,
                                            backgroundEvent &event)
    {
-      SDB_ASSERT(NULL != executor, "can not be invalid");
+      SDB_ASSERT(nullptr != executor, "can not be invalid");
       SDB_ASSERT(backgroundEvent::EVENT_TYPE_CACHE_TASK == event.getType(),
                  "can not be other type");
-      THREAD_CONTEXT_OWNER tco(executor, _env);
-      requestContext context;
 
-      liteCache &cache = context.getEnv()->cacheConsole.get32KBCache();
+      liteCache *cache = _env->cacheConsole.getCacheByPoolNo();
       diskIOTask task = *((const diskIOTask *)(event.getEventMsg()));
 
       UINT32 jobID = task.getJob()->getJobID();
 
-      INT32 rc = cache.executeIOTask(&context, &task);
+      INT32 rc = cache->executeIOTask(&task);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to execute io task:%d", rc);
@@ -169,14 +173,13 @@ namespace vessel
                                                    backgroundEvent &event)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != executor, "can not be invalid");
+      SDB_ASSERT(nullptr != executor, "can not be invalid");
       SDB_ASSERT(backgroundEvent::EVENT_TYPE_LPS_CHECKPOINT == event.getType(),
                  "can not be other type");
-      THREAD_CONTEXT_OWNER tco(executor, _env);
-      requestContext context;
 
-      logicalPageSpace *lps = NULL;
+      logicalPageSpace *lps = nullptr;
       const lpsCheckpointApplying *msg = (const lpsCheckpointApplying *)(event.getEventMsg());
+      requestContext context;
       
       rc = context.lockSpaceID(msg->_sid, SHARED);
       if (SDB_OK != rc)
@@ -219,15 +222,14 @@ namespace vessel
                                                    backgroundEvent &event)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != executor, "can not be invalid");
+      SDB_ASSERT(nullptr != executor, "can not be invalid");
       SDB_ASSERT(backgroundEvent::EVENT_TYPE_SYNC_SEG == event.getType(),
                  "can not be other type");
-      logicalPageSpace *lps = NULL;
+      logicalPageSpace *lps = nullptr;
       const lpsFlushingSegments *msg = (const lpsFlushingSegments *)(event.getEventMsg());
       UINT32 count = msg->_count;
 
       //PD_LOG(PDDEBUG, "begin to sync segments[%d, %d]", msg->_segmentId, count);
-      THREAD_CONTEXT_OWNER tco(executor, _env);
       requestContext context;
 
       rc = context.lockSpaceID(msg->_sid, SHARED);

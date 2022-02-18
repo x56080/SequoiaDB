@@ -113,7 +113,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _env.cacheConsole.init32KBCache(options.cacheOptions);
+      rc = _env.cacheConsole.init(options.cacheOptions);
       if (SDB_OK != rc)
       {
          goto error;
@@ -229,7 +229,7 @@ namespace vessel
          goto error;
       }
 
-      handler.init(&_env, executor);
+      
       csName.reset(name);
 
       rc = handler.doit(csName, uniqueId, o, adjunct, identifier);
@@ -264,7 +264,7 @@ namespace vessel
          goto error;
       }
 
-      handler.init(&_env, executor);
+      
       rc = handler.doit(nameSlice);
       if (SDB_OK != rc)
       {
@@ -375,7 +375,7 @@ namespace vessel
          goto error;
       }
 
-      handler.init(&_env, executor);
+      
 
       rc = handler.doit(fullName, uniqueId, o, adjunct);
       if (SDB_OK != rc)
@@ -406,7 +406,7 @@ namespace vessel
 
       {
          openCLHandler handler;
-         handler.init(&_env, executor);
+         
          rc = handler.doit(fullName, gcid);
          if (SDB_OK != rc)
          {
@@ -416,7 +416,7 @@ namespace vessel
 
       {
          removeCLHandler handler;
-         handler.init(&_env, executor);
+         
          rc = handler.doit(gcid, o);
          if (SDB_OK != rc)
          {
@@ -542,8 +542,6 @@ namespace vessel
          goto error;
       }
 
-      h.init(&_env, executor);
-
       rc = h.doit(fullName, gcid);
       if (SDB_OK != rc)
       {
@@ -592,8 +590,6 @@ namespace vessel
          goto error;
       }
 
-      h.init(&_env, executor);
-
       rc = h.doit(uniqueId, gcid);
       if (SDB_OK != rc)
       {
@@ -640,8 +636,6 @@ namespace vessel
          goto error;
       }
 
-      h.init(&_env, executor);
-
       rc = h.doit(fullName, gcid);
       if (SDB_OK != rc)
       {
@@ -682,7 +676,7 @@ namespace vessel
       case CURSOR_TYPE_LIST_COLLECTION_SPACE:
       {
          listCollectionSpaceHandler handler;
-         handler.init(&_env, executor);
+         
 
          rc = handler.doit(static_cast<listCSCursor*>(cursor));
          if (SDB_OK != rc)
@@ -695,7 +689,7 @@ namespace vessel
       case CURSOR_TYPE_LIST_COLLECTION:
       {
          listCollectionsHandler handler;
-         handler.init(&_env, executor);
+         
 
          rc = handler.doit(static_cast<listCLCursor*>(cursor));
          if (SDB_OK != rc)
@@ -707,7 +701,7 @@ namespace vessel
       case CURSOR_TYPE_SCAN_COLLECTION:
       {
          scanCLHandler handler;
-         handler.init(&_env, executor);
+         
          rc = handler.doit(static_cast<scanCLCursor*>(cursor));
          if (SDB_OK != rc)
          {
@@ -718,7 +712,7 @@ namespace vessel
       case CURSOR_TYPE_INDEX_SCAN:
       {
          indexScanHandler handler;
-         handler.init(&_env, executor);
+         
 
          rc = handler.doit(static_cast<indexScanCursor*>(cursor));
          if (SDB_OK != rc)
@@ -757,7 +751,7 @@ namespace vessel
          goto error;
       }
 
-      handler.init(&_env, executor);
+      
 
       rc = handler.doit(gcid, o, adjunct);
       if (SDB_OK != rc)
@@ -851,7 +845,7 @@ namespace vessel
          goto error;
       }
 
-      handler.init(&_env, executor);
+      
       rc = handler.doit(gcid, indexName);
       if (SDB_OK != rc)
       {
@@ -885,7 +879,7 @@ namespace vessel
          goto error;
       }
 
-      handler.init(&_env, executor);
+      
       rc = handler.doit(gcid, indexName, indexId);
       if (SDB_OK != rc)
       {
@@ -918,7 +912,7 @@ namespace vessel
          goto error;
       }
 
-      handler.init(&_env, executor);
+      
 
       rc = handler.insert(gcid, request, res);
       if (SDB_OK != rc)
@@ -952,7 +946,7 @@ namespace vessel
          goto error;
       }
 
-      handler.init(&_env, executor);
+      
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          PD_LOG(PDERROR, "failed to init handler:%d", rc);
@@ -994,7 +988,7 @@ namespace vessel
          goto error;
       }
 
-      handler.init(&_env, executor);
+      
       rc = handler.update(gcid, request, updater, res);
       if (SDB_OK != rc)
       {
@@ -1028,7 +1022,7 @@ namespace vessel
          goto error;
       }
 
-      handler.init(&_env, executor);
+      
       rc = handler.remove(gcid, request, res);
       if (SDB_OK != rc)
       {
@@ -1062,7 +1056,7 @@ namespace vessel
          goto error;
       }
 
-      handler.init(&_env, executor);
+      
 
       rc = handler.doit(gcid, count);
       if (SDB_OK != rc)
@@ -1091,9 +1085,9 @@ namespace vessel
       do
       {
          /// we'd better dispath tasks to workers.
-         rc = _env.cacheConsole.get32KBCache().createDirtyListIOJob(context, scanDepth,
-                                                                    DPS_INVALID_LSN_OFFSET,
-                                                                    &job);
+         rc = _env.cacheConsole.getCacheByPoolNo()->createDirtyListIOJob(scanDepth,
+                                                                        DPS_INVALID_LSN_OFFSET,
+                                                                        &job);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to create io job of dirty list:%d", rc);
@@ -1111,7 +1105,7 @@ namespace vessel
          {
             diskIOTask task;
             BOOLEAN hitTheEnd = FALSE;
-            rc = job.getNextTask(context, hitTheEnd, task);
+            rc = job.getNextTask(hitTheEnd, task);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to get io task:%d", rc);
@@ -1123,7 +1117,7 @@ namespace vessel
                break;
             }
 
-            rc = _env.cacheConsole.get32KBCache().executeIOTask(context, &task);
+            rc = _env.cacheConsole.getCacheByPoolNo()->executeIOTask(&task);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to execute io task:%d", rc);
@@ -1191,7 +1185,7 @@ namespace vessel
          goto error;
       }
 
-      handler.init(&_env, executor);
+      
       rc = handler.doit(gcid, o);
       if (SDB_OK != rc)
       {

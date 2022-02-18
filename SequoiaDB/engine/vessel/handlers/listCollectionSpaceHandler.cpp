@@ -49,23 +49,17 @@ namespace vessel
    INT32 listCollectionSpaceHandler::doit(listCSCursor *cursor)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "can not be null");
-      SDB_ASSERT(NULL != cursor, "can not be null");
+      SDB_ASSERT(nullptr != cursor, "can not be null");
       requestContext context;
 
-      if (OSS_UNLIKELY(NULL == cursor ||
+      if (OSS_UNLIKELY(nullptr == cursor ||
                        !cursor->isOpen()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isInitialized()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
 
-      rc = getEnv()->dms.listCollectionSpaces(&context, cursor);
+      rc = context.getEnv()->dms.listCollectionSpaces(&context, cursor);
       if (SDB_OK != rc)
       {
          goto error;

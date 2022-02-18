@@ -45,7 +45,6 @@ namespace engine
 namespace vessel
 {
    class diskIOJob;
-   class requestContext;
 
    class lcDirtyList : public SDBObject
    {
@@ -64,8 +63,7 @@ namespace vessel
          /// under w lock
          INT32 remove(lcPageTagHolder &holder);
 
-         INT32 setPendingWrite(requestContext *context,
-                               UINT32 scanDepth,
+         INT32 setPendingWrite(UINT32 scanDepth,
                                UINT64 minLSN,
                                diskIOJob *job);
 

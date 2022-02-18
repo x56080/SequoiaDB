@@ -186,7 +186,7 @@ namespace vessel
       }
       else if (isCacheBuffer())
       {
-         rc = _tuple.prepareToWrite(context);
+         rc = _tuple.prepareToWrite();
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get tuple writing prepared:%d", rc);

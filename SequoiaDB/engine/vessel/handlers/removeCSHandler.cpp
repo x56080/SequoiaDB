@@ -45,31 +45,25 @@ namespace vessel
    INT32 removeCSHandler::doit(const strSlice &name)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "can not be null");
       requestContext context;
-      collectionSpace *cs = NULL;
+      collectionSpace *cs = nullptr;
 
       if (OSS_UNLIKELY(name.empty()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isInitialized()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
 
-      rc = getEnv()->dms.getCSByName(&context, name, EXCLUSIVE, &cs);
+      rc = context.getEnv()->dms.getCSByName(&context, name, EXCLUSIVE, &cs);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
       cs->waitIfCheckpointCreating(&context);
-      cs = NULL;
-      getEnv()->cacheConsole.get32KBCache().discardSpace(&context);
-      getEnv()->dms.removeCS(&context);
+      cs = nullptr;
+      context.getEnv()->cacheConsole.getCacheByPoolNo()->discardSpace(cs->getSpaceId());
+      context.getEnv()->dms.removeCS(&context);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to remove cs[%d], rc:%d", context.getSpaceID(), rc);

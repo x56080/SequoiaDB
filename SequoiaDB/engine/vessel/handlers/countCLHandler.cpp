@@ -47,8 +47,8 @@ namespace vessel
                               UINT64 &count)
    {
       INT32 rc = SDB_OK;
-      collectionSpace *cs = NULL;
-      collection *cl = NULL;
+      collectionSpace *cs = nullptr;
+      collection *cl = nullptr;
       requestContext context;
 
       if (OSS_UNLIKELY(!gcid.isValid()))
@@ -56,13 +56,8 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isInitialized()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
 
-      rc = getEnv()->dms.getCSBySpaceID(&context,
+      rc = context.getEnv()->dms.getCSBySpaceID(&context,
                                         gcid.getSpaceId(),
                                         gcid.getCSLid(),
                                         SHARED, &cs);
@@ -85,11 +80,11 @@ namespace vessel
          goto error;
       }
    done:
-      if (NULL != cl)
+      if (nullptr != cl)
       {
          context.unlockMB();
       }
-      if (NULL != cs)
+      if (nullptr != cs)
       {
          context.unlockSpaceID();
       }

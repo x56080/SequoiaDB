@@ -74,16 +74,16 @@ namespace vessel
       PAGE_ID lpid = COLLECTION_SPACE_GP_LPID;
       PAGE_ID pid = 0;
       PAGE_SNAPSHOT_VERION psv = INVALID_PAGE_SNAPSHOT_VERSION;
-      IExecutor *executor = NULL;
-      IRedoLogger *logger = NULL;
-      csMetaRecord *recordOnDisk = NULL;
+      IExecutor *executor = nullptr;
+      IRedoLogger *logger = nullptr;
+      csMetaRecord *recordOnDisk = nullptr;
       logRecordContext lrc;
       SPACE_ID sid = INVALID_SPACE_ID;
       deltaLogRecordBuilder builder;
       mappedLogicalPageId mid(lpid, pid);
 
 
-      if (OSS_UNLIKELY(NULL == context ||
+      if (OSS_UNLIKELY(nullptr == context ||
                        !record.isValid()))
       {
          rc = SDB_INVALIDARG;
@@ -275,16 +275,16 @@ namespace vessel
                               const storageFileLoader &loader)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(NULL == _fsm, "must be null");
-      fsmFile *file = NULL;
-      const storageFileName *fn = NULL;
+      SDB_ASSERT(nullptr != context, "can not be null");
+      SDB_ASSERT(nullptr == _fsm, "must be null");
+      fsmFile *file = nullptr;
+      const storageFileName *fn = nullptr;
       storageUnit *su = context->getEnv()->dms.getStorageUnit(context->getSpaceID());
-      SDB_ASSERT(NULL != su, "can not be null");
+      SDB_ASSERT(nullptr != su, "can not be null");
 
       const STORAGE_FILE_NAME_LIST *fl = loader.getFileList(SPACE_TYPE_MAIN_DATA,
                                                             FILE_TYPE_FSM);
-      if (NULL == fl || fl->empty())
+      if (nullptr == fl || fl->empty())
       {
          PD_LOG(PDERROR, "fsm file not found");
          rc = SDB_FNE;
@@ -299,7 +299,7 @@ namespace vessel
       fn = &(fl->front());
 
       file = SDB_OSS_NEW fsmFile();
-      if (NULL == file)
+      if (nullptr == file)
       {
          PD_LOG(PDERROR, "failed to allocate mem");
          rc = SDB_OOM;
@@ -322,11 +322,11 @@ namespace vessel
       }
 
       _fsm = file;
-      file = NULL;
+      file = nullptr;
    done:
       return rc;
    error:
-      if (NULL != file)
+      if (nullptr != file)
       {
          file->close();
          SDB_OSS_DEL file;
@@ -337,8 +337,8 @@ namespace vessel
    INT32 mainDataSpace::_create(requestContext *context)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(NULL == _fsm, "must be null");
+      SDB_ASSERT(nullptr != context, "can not be null");
+      SDB_ASSERT(nullptr == _fsm, "must be null");
       storageCoreArgs args(FSM_FILE_PAGE_SIZE,
                            FSM_FILE_PAGE_COUNT_PER_SEG,
                            FSM_FILE_MAX_SEG_COUNT);
@@ -354,10 +354,10 @@ namespace vessel
       o.secretValue = imf.getBack<idMapFile>()->getCommonHeadInMem().secretValue;
 
       storageUnit *su = context->getEnv()->dms.getStorageUnit(context->getSpaceID());
-      SDB_ASSERT(NULL != su, "can not be null");
+      SDB_ASSERT(nullptr != su, "can not be null");
                            
       fsmFile *file = SDB_OSS_NEW fsmFile();
-      if (NULL == file)
+      if (nullptr == file)
       {
          PD_LOG(PDERROR, "failed to allocate mem");
          rc = SDB_OOM;
@@ -396,11 +396,11 @@ namespace vessel
       }
 
       _fsm = file;
-      file = NULL;
+      file = nullptr;
    done:
       return rc;
    error:
-      if (NULL != file)
+      if (nullptr != file)
       {
          file->destroy();
          SDB_OSS_DEL file;
@@ -410,12 +410,12 @@ namespace vessel
 
    void mainDataSpace::_close()
    {
-      if (NULL != _fsm)
+      if (nullptr != _fsm)
       {
          _fsm->fsync();
          _fsm->close();
          SDB_OSS_DEL _fsm;
-         _fsm = NULL;
+         _fsm = nullptr;
          _storage.close();
       }
       return;
@@ -423,11 +423,11 @@ namespace vessel
 
    void mainDataSpace::_destroy(requestContext *context)
    {
-      if (NULL != _fsm)
+      if (nullptr != _fsm)
       {
          _fsm->destroy();
          SDB_OSS_DEL _fsm;
-         _fsm = NULL;
+         _fsm = nullptr;
       }
       _storage.destroy();
       return;
@@ -446,8 +446,9 @@ namespace vessel
       liteCacheTuple tuple;
       GLOBAL_PAGE_ID gpid;
       UINT32 pageSize = 0;
+      liteCache *lc = nullptr;
 
-      if (OSS_UNLIKELY(NULL == context ||
+      if (OSS_UNLIKELY(nullptr == context ||
                       INVALID_PAGE_ID == pid ||
                       mode.isNone()))
       {
@@ -460,7 +461,10 @@ namespace vessel
                  getStorageFileType(),
                  pid);
 
-      rc = context->getEnv()->cacheConsole.allocate(context, gpid, options, tuple);
+      pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
+      lc = context->getEnv()->cacheConsole.getCache(pageSize);
+      SDB_ASSERT(nullptr != lc, "page size did not match pool");
+      rc = lc->allocate(gpid, options, tuple);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to allocate cache tuple of page[%s], rc:%d",
@@ -468,7 +472,6 @@ namespace vessel
          goto error;
       }
 
-      pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
       rc = initer.initWithCache(gpid, pageSize, tuple, rpb);
       if (SDB_OK != rc)
       {
@@ -494,16 +497,19 @@ namespace vessel
                           getSpaceType(),
                           getStorageFileType(),
                           pid);
-      UINT32 pageSize = 0;
+      UINT32 pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
+      liteCache *lc = nullptr;
       
-      if (OSS_UNLIKELY(NULL == context ||
+      if (OSS_UNLIKELY(nullptr == context ||
                        INVALID_PAGE_ID == pid))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = context->getEnv()->cacheConsole.allocateToReset(context, gpid, tuple);
+      lc = context->getEnv()->cacheConsole.getCache(pageSize);
+      SDB_ASSERT(nullptr != lc, "page size did not match pool");
+      rc = lc->allocateToReset(gpid, tuple);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to allocate cache tuple of page[%s], rc:%d",
@@ -511,7 +517,6 @@ namespace vessel
          goto error;
       }
 
-      pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
       rc = initer.initWithCache(gpid, pageSize, tuple, rpb);
       if (SDB_OK != rc)
       {
@@ -544,11 +549,12 @@ namespace vessel
       liteCacheTuple tuple;
       GLOBAL_PAGE_ID gpid;
       UINT32 pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
-      CHAR *buffer = NULL;
+      CHAR *buffer = nullptr;
       logRecordContext lrc;
       slice rs;
+      liteCache *lc = nullptr;
 
-      if (OSS_UNLIKELY(NULL == context ||
+      if (OSS_UNLIKELY(nullptr == context ||
                        INVALID_PAGE_SNAPSHOT_VERSION == psv ||
                        INVALID_PAGE_ID == newPid ||
                        !rpb.isValid() ||
@@ -574,7 +580,10 @@ namespace vessel
                  getSpaceType(),
                  getStorageFileType(),
                  newPid);
-      rc = context->getEnv()->cacheConsole.allocateToReset(context, gpid, tuple);
+      lc = context->getEnv()->cacheConsole.getCache(pageSize);
+      SDB_ASSERT(nullptr != lc, "page size did not match pool");
+
+      rc = lc->allocateToReset(gpid, tuple);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to allocate cache tuple of page[%s], rc:%d",
@@ -629,7 +638,7 @@ namespace vessel
       }
    done:
       tuple.release();
-      if (NULL != buffer)
+      if (nullptr != buffer)
       {
          context->releaseBuffer(buffer);
       }
@@ -643,9 +652,9 @@ namespace vessel
                                        logRecordContext *lrc)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(nullptr != context, "can not be null");
       SDB_ASSERT(isValidPageSize(pageSize), "can not be invalid");
-      SDB_ASSERT(NULL != lrc, "can not be null");
+      SDB_ASSERT(nullptr != lrc, "can not be null");
       IRedoLogger *logger = context->getOuterResource()->logger;
       lrc->open(LOG_TYPE_VESSEL_COPY_PAGE);
       lrc->setResetPage();
@@ -673,12 +682,12 @@ namespace vessel
                                logRecordContext *lrc)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(nullptr != context, "can not be null");
       SDB_ASSERT(isValidPageSize(pageSize), "can not be invalid");
-      SDB_ASSERT(NULL != pageBuffer, "can not be null");
+      SDB_ASSERT(nullptr != pageBuffer, "can not be null");
       SDB_ASSERT(gpid.isValid(), "can not be invalid");
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-      SDB_ASSERT(NULL != lrc, "can not be null");
+      SDB_ASSERT(nullptr != lrc, "can not be null");
       SDB_ASSERT(lrc->prepared(), "must be prepared");
 
       IRedoLogger *logger = context->getOuterResource()->logger;

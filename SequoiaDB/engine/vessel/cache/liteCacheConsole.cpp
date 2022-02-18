@@ -42,8 +42,8 @@ namespace engine
 {
 namespace vessel
 {
-   static const UINT32 POOL_NO_32KB = 0;
-   static const UINT32 POOL_NO_64KB = 1;
+   constexpr UINT32 POOL_NO_32KB = 0;
+   constexpr UINT32 POOL_NO_64KB = 1;
 
    liteCacheConsole::liteCacheConsole()
    {}
@@ -56,10 +56,10 @@ namespace vessel
    void liteCacheConsole::fini()
    {
       _32KBCache.fini();
-      _64KBCache.fini();
+      //_64KBCache.fini();
    }
 
-   INT32 liteCacheConsole::init32KBCache(const liteCacheOptions &o)
+   INT32 liteCacheConsole::init(const liteCacheOptions &o)
    {
       INT32 rc = SDB_OK;
       _32KBCache.fini();
@@ -76,113 +76,26 @@ namespace vessel
       goto done;
    }
 
-   INT32 liteCacheConsole::allocate(requestContext *context,
-                                    const GLOBAL_PAGE_ID &gpid,
-                                    const liteCacheAllocateOptions &options,
-                                    liteCacheTuple &tuple)
-   {
-      INT32 rc = SDB_OK;
-      liteCache *cache = NULL;
-      UINT32 pageSize = 0;
-      SDB_ASSERT(gpid.getSpaceType() == SPACE_TYPE_MAIN_DATA, "must be main data");
-      SDB_ASSERT(gpid.getFileType() == FILE_TYPE_DATA_STORAGE, "must be data storage");
-
-      if (OSS_UNLIKELY(NULL == context ||
-                       !gpid.isValid() ||
-                       tuple.isValid()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = context->getEnv()->dms.getPageSize(gpid.space(), gpid.getSpaceType(),
-                                              gpid.getFileType(), pageSize);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get page size of gpid[%s], rc:%d",
-                gpid.toString().c_str(), rc);
-         goto error;
-      }
-
-      cache = getCache(pageSize);
-      if (OSS_UNLIKELY(NULL == cache))
-      {
-         PD_LOG(PDERROR, "failed to get cache, page size:%d", pageSize);
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      rc = cache->allocate(context, gpid, options, tuple);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 liteCacheConsole::allocateToReset(requestContext *context,
-                                           const GLOBAL_PAGE_ID &gpid,
-                                           liteCacheTuple &tuple)
-   {
-      INT32 rc = SDB_OK;
-      liteCache *cache = NULL;
-      UINT32 pageSize = 0;
-      SDB_ASSERT(gpid.getSpaceType() == SPACE_TYPE_MAIN_DATA, "must be main data");
-      SDB_ASSERT(gpid.getFileType() == FILE_TYPE_DATA_STORAGE, "must be data storage");
-
-      if (OSS_UNLIKELY(NULL == context ||
-                       !gpid.isValid() ||
-                       tuple.isValid()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = context->getEnv()->dms.getPageSize(gpid.space(), gpid.getSpaceType(),
-                                              gpid.getFileType(), pageSize);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get page size of gpid[%s], rc:%d",
-                gpid.toString().c_str(), rc);
-         goto error;
-      }
-
-      cache = getCache(pageSize);
-      if (OSS_UNLIKELY(NULL == cache))
-      {
-         PD_LOG(PDERROR, "failed to get cache, page size:%d", pageSize);
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      rc = cache->allocateToReset(context, gpid, tuple);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
    liteCache *liteCacheConsole::getCache(UINT32 pageSize)
    {
       if (DMS_PAGE_SIZE32K == pageSize)
       {
          return &_32KBCache;
       }
-      else if (DMS_PAGE_SIZE64K == pageSize)
-      {
-         return &_64KBCache;
-      }
       else
       {
-         return NULL;
+         return nullptr;
       }
+   }
+
+   liteCache *liteCacheConsole::getCacheByPoolNo(UINT32 poolNo)
+   {
+      liteCache *pool = nullptr;
+      if (POOL_NO_32KB == poolNo)
+      {
+         pool = &_32KBCache;
+      }
+      return pool;
    }
 }//namespace vessel
 }//namespace engine

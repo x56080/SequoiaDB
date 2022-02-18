@@ -69,7 +69,7 @@ namespace vessel
                          const liteCacheOptions &o)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL == _buckets, "do not reinit");
+      SDB_ASSERT(nullptr == _buckets, "do not reinit");
       liteCacheOptions options;
 
       if (poolNo < 0)
@@ -91,7 +91,7 @@ namespace vessel
       _flushOptions = options.flush;
       
       _buckets = SDB_OSS_NEW lcBuckets();
-      if (NULL == _buckets)
+      if (nullptr == _buckets)
       {
          PD_LOG(PDERROR, "failed to allocate mem");
          rc = SDB_OOM;
@@ -99,7 +99,7 @@ namespace vessel
       }
 
       _fl = SDB_OSS_NEW lcFreeList();
-      if (NULL == _fl)
+      if (nullptr == _fl)
       {
          PD_LOG(PDERROR, "failed to allocate mem");
          rc = SDB_OOM;
@@ -107,7 +107,7 @@ namespace vessel
       }
 
       _lru = SDB_OSS_NEW lcLRUList();
-      if (NULL == _lru)
+      if (nullptr == _lru)
       {
          PD_LOG(PDERROR, "failed to allocate mem");
          rc = SDB_OOM;
@@ -115,7 +115,7 @@ namespace vessel
       }
 
       _dl = SDB_OSS_NEW lcDirtyList();
-      if (NULL == _dl)
+      if (nullptr == _dl)
       {
          PD_LOG(PDERROR, "failed to allocate mem");
          rc = SDB_OOM;
@@ -160,22 +160,22 @@ namespace vessel
 
    void liteCache::fini()
    {
-      if (NULL != _dl)
+      if (nullptr != _dl)
       {
          _dl->fini();
       }
 
-      if (NULL != _lru)
+      if (nullptr != _lru)
       {
          _lru->fini();
       }
 
-      if (NULL != _buckets)
+      if (nullptr != _buckets)
       {
          _buckets->fini();
       }
 
-      if (NULL != _fl)
+      if (nullptr != _fl)
       {
          _fl->fini();
       }
@@ -255,8 +255,7 @@ namespace vessel
       }
    }
 
-   INT32 liteCache::allocate(requestContext *context,
-                             const GLOBAL_PAGE_ID &gpid,
+   INT32 liteCache::allocate(const GLOBAL_PAGE_ID &gpid,
                              const liteCacheAllocateOptions &options,
                              liteCacheTuple &tuple)
    {
@@ -265,11 +264,11 @@ namespace vessel
       UINT32 pageSize = 0;
       mmapPagePointer ptr;
       BOOLEAN isNewTag = FALSE;
+      THREAD_CONTEXT *context = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != context, "can not be null");
 
       tuple.release();
-      if (OSS_UNLIKELY(NULL == context ||
-                       !context->isOpen() ||
-                       !gpid.isValid() ||
+      if (OSS_UNLIKELY(!gpid.isValid() ||
                        options.lockMode.isNone()))
       {
          rc = SDB_INVALIDARG;
@@ -354,8 +353,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 liteCache::allocateToReset(requestContext *context,
-                                    const GLOBAL_PAGE_ID &gpid,
+   INT32 liteCache::allocateToReset(const GLOBAL_PAGE_ID &gpid,
                                     liteCacheTuple &tuple)
    {
       INT32 rc = SDB_OK;
@@ -364,11 +362,11 @@ namespace vessel
       mmapPagePointer ptr;
       BOOLEAN isNewTag = FALSE;
       SDB_ASSERT(!tuple.isValid(), "do not reinit");
+      THREAD_CONTEXT *context = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != context, "can not be null");
 
       tuple.release();
-      if (OSS_UNLIKELY(NULL == context ||
-                       !context->isOpen() ||
-                       !gpid.isValid()))
+      if (OSS_UNLIKELY(!gpid.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -413,8 +411,7 @@ namespace vessel
       holder.lock();
       if (!holder.tag()->isInLruList())
       {
-         rc = allocateMemPageAndInsertIntoLRU(context,
-                                              holder.tag()->isInDirtyList(),
+         rc = allocateMemPageAndInsertIntoLRU(holder.tag()->isInDirtyList(),
                                               holder);
          if (SDB_OK != rc)
          {
@@ -479,13 +476,12 @@ namespace vessel
       return;
    }
 
-   INT32 liteCache::discardSpace(requestContext *context)
+   INT32 liteCache::discardSpace(SPACE_ID sid)
    {
       INT32 rc = SDB_OK;
-      OSS_LATCH_MODE mode = SHARED;
       ossPoolList<liteCachePageTag *> tags;
 
-      if (OSS_UNLIKELY(NULL == context))
+      if (OSS_UNLIKELY(INVALID_SPACE_ID == sid))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -495,15 +491,9 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (!context->isSpaceIdLocked(&mode) ||
-               EXCLUSIVE != mode)
-      {
-         rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
-         goto error;
-      }
 
-      _buckets->discardAndPinTags(context->getSpaceID(), tags);
-      discardPinnedTags(context, tags);
+      _buckets->discardAndPinTags(sid, tags);
+      discardPinnedTags(tags);
       SDB_ASSERT(tags.empty(), "must be empty");
    done:
       return rc;
@@ -511,10 +501,8 @@ namespace vessel
       goto done;
    }
 
-   void liteCache::discardPinnedTags(requestContext *context,
-                                     ossPoolList<liteCachePageTag *> &tags)
+   void liteCache::discardPinnedTags(ossPoolList<liteCachePageTag *> &tags)
    {
-      SDB_ASSERT(NULL != context, "can not be null");
       PD_LOG(PDDEBUG, "begin to discard tags[%d] in pool[%d]", tags.size(), _poolNo);
       while (!tags.empty())
       {
@@ -556,13 +544,12 @@ namespace vessel
       return _lru->tryToUpdate(holder);
    }
 
-   INT32 liteCache::allocateMemPageAndInsertIntoLRU(requestContext *context,
-                                                    BOOLEAN initFromDisk,
+   INT32 liteCache::allocateMemPageAndInsertIntoLRU(BOOLEAN initFromDisk,
                                                     lcPageTagHolder &holder)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(holder.valid(), "invalid holder");
-      liteCachePageTag *tag = NULL;
+      liteCachePageTag *tag = nullptr;
       freeListPage page;
       ossValuePtr diskPtr = 0;
       UINT32 lruSize = 0;
@@ -591,7 +578,7 @@ namespace vessel
       SDB_ASSERT(0 != diskPtr, "can not be invalid");
 
       /// 1. allocate chunk pages
-      rc = ensureMemPage(context, page);
+      rc = ensureMemPage(page);
       if (SDB_OK != rc)
       {
          goto error;
@@ -615,7 +602,7 @@ namespace vessel
          goto error;
       }
 
-      notifyWatcherIfNecessary(context, lruSize);
+      notifyWatcherIfNecessary(lruSize);
 
    done:
       return rc;
@@ -623,12 +610,11 @@ namespace vessel
       goto done;
    }
 
-   INT32 liteCache::batchFlushOrEvictLRU(requestContext *context,
-                                        UINT32 scanDepth,
-                                        diskIOJob *job,
-                                        UINT32 *involvedChunkPageCount)
+   INT32 liteCache::batchFlushOrEvictLRU(UINT32 scanDepth,
+                                         diskIOJob *job,
+                                         UINT32 *involvedChunkPageCount)
    {
-      return _lru->setPendingWriteOrEvict(context, scanDepth, job, involvedChunkPageCount);
+      return _lru->setPendingWriteOrEvict(scanDepth, job, involvedChunkPageCount);
    }
 
    void liteCache::resetLRUEvictBegin()
@@ -636,23 +622,23 @@ namespace vessel
       return _lru->resetEvictBegin();
    }
 
-   INT32 liteCache::createDirtyListIOJob(requestContext *context,
-                                         UINT32 scanDepth,
+   INT32 liteCache::createDirtyListIOJob(UINT32 scanDepth,
                                          UINT64 minLSN,
                                          diskIOJob *job)
    {
-      return _dl->setPendingWrite(context, scanDepth, minLSN, job);
+      return _dl->setPendingWrite(scanDepth, minLSN, job);
    }
    
-   INT32 liteCache::executeIOTask(requestContext *context,
-                                  diskIOTask *task)
+   INT32 liteCache::executeIOTask(diskIOTask *task)
    {
       INT32 rc = SDB_OK;
-      IRedoLogger *logger = NULL;
+      IRedoLogger *logger = nullptr;
       lcPageTagHolder holder;
       BOOLEAN fsync = FALSE;
+      THREAD_CONTEXT *context = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != context, "can not be null");
 
-      if (OSS_UNLIKELY(NULL == context || NULL == task))
+      if (OSS_UNLIKELY(nullptr == task))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -664,14 +650,14 @@ namespace vessel
       }
 
       fsync = task->getJob()->isDirtyListJob();
-      logger = context->getOuterResource()->logger;
-      SDB_ASSERT(NULL != logger, "can not be null");
+      logger = context->getEnv()->resource.logger;
+      SDB_ASSERT(nullptr != logger, "can not be null");
 
       for (UINT32 i = 0; i < task->getSize(); ++i)
       {
-         holder.reset(NULL);
+         holder.reset(nullptr);
          liteCachePageTag *tag = task->getTag(i);
-         SDB_ASSERT(NULL != tag, "can not be null");
+         SDB_ASSERT(nullptr != tag, "can not be null");
 
          holder.reset(tag);
          holder.lockUpgrade();
@@ -692,7 +678,7 @@ namespace vessel
 
             const freeListPage &buffer = tag->getMemPage();
             void *diskPage = (void *)(tag->getDiskPagePtr());
-            SDB_ASSERT(buffer.valid() && NULL != diskPage, "can not be invalid");
+            SDB_ASSERT(buffer.valid() && nullptr != diskPage, "can not be invalid");
             ossMemcpy(diskPage, (const void *)(buffer.getBuf()), _fl->getPageSize());
 
             holder.unlockUpgradeAndLock();
@@ -710,12 +696,12 @@ namespace vessel
          }
 
          holder.autoUnlock();
-         holder.reset(NULL);
+         holder.reset(nullptr);
       }
 
       if (fsync)
       {
-         rc = fsyncIOTask(context, task);
+         rc = fsyncIOTask(task);
          if (SDB_OK != rc)
          {
             PD_LOG(PDSEVERE, "failed to fsync disk pages, current min dirty lsn[%lld], rc:%d",
@@ -724,7 +710,7 @@ namespace vessel
          }
       }
    done:
-      if (NULL != task)
+      if (nullptr != task)
       {
          task->done();
       }
@@ -748,15 +734,15 @@ namespace vessel
       return _dl->getSizeFast();
    }
 
-   INT32 liteCache::fsyncIOTask(requestContext *context,
-                                diskIOTask *task)
+   INT32 liteCache::fsyncIOTask(diskIOTask *task)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(NULL != task, "can not be null");
+      SDB_ASSERT(nullptr != task, "can not be null");
+      THREAD_CONTEXT *context = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != context, "can not be null");
 
       UINT32 segment = 0;
-      logicalPageSpace *lps = NULL;
+      logicalPageSpace *lps = nullptr;
       GLOBAL_PAGE_ID gpid = task->getFirstPID();
       if (!gpid.isValid())
       {
@@ -796,7 +782,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 liteCache::ensureMemPage(requestContext *context, freeListPage &page)
+   INT32 liteCache::ensureMemPage(freeListPage &page)
    {
       INT32 rc = SDB_OK;
       UINT32 scanLoop = 0;
@@ -815,7 +801,7 @@ namespace vessel
             goto error;
          }
          
-         rc = _lru->evict(context, 0 < scanLoop, page);
+         rc = _lru->evict(0 < scanLoop, page);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to evict page from lru:%d", rc);
@@ -869,10 +855,10 @@ namespace vessel
       goto done;
    }
 
-   void liteCache::notifyWatcherIfNecessary(requestContext *context,
-                                            UINT32 lruSize)
+   void liteCache::notifyWatcherIfNecessary(UINT32 lruSize)
    {
-      SDB_ASSERT(NULL != context, "can not be null");
+      THREAD_CONTEXT *context = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != context, "can not be null");
       if ((_fl->getMaxPageCount() * _flushOptions.flushLruListThreshold) <=
           lruSize)
       {
@@ -880,8 +866,7 @@ namespace vessel
       }
    }
 
-   INT32 liteCache::createElasticDirtyListJob(requestContext *context,
-                                              diskIOJob *job)
+   INT32 liteCache::createElasticDirtyListJob(diskIOJob *job)
    {
       INT32 rc = SDB_OK;
       UINT32 maxPageCount = 0;
@@ -895,8 +880,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (NULL == context ||
-               NULL == job ||
+      else if (nullptr == job ||
                job->isRunning())
       {
          SDB_ASSERT(FALSE, "invalid args");
@@ -918,7 +902,7 @@ namespace vessel
             depth = _MAX_FULSH_COUNT;
          }
 
-         rc = _dl->setPendingWrite(context, depth, DPS_INVALID_LSN_OFFSET, job);
+         rc = _dl->setPendingWrite(depth, DPS_INVALID_LSN_OFFSET, job);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to create io job on dirty list:%d", rc);
@@ -931,8 +915,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 liteCache::autoTrimLRU(requestContext *context,
-                                diskIOJob *job,
+   INT32 liteCache::autoTrimLRU(diskIOJob *job,
                                 UINT32 &evicted)
    {
       INT32 rc = SDB_OK;
@@ -945,8 +928,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (NULL == context ||
-               NULL == job ||
+      else if (nullptr == job ||
                job->isRunning())
       {
          SDB_ASSERT(FALSE, "invalid args");
@@ -964,7 +946,7 @@ namespace vessel
          {
             depth = _MAX_TRIM_SIZE;
          }
-         rc = _lru->setPendingWriteOrEvict(context, depth, job, &evicted);
+         rc = _lru->setPendingWriteOrEvict(depth, job, &evicted);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to create io job on lru list:%d", rc);

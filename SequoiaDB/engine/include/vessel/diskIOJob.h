@@ -47,7 +47,6 @@ namespace engine
 namespace vessel
 {
    class liteCachePageTag;
-   class requestContext;
 
    class diskIOJob : public SDBObject
    {
@@ -81,8 +80,7 @@ namespace vessel
          void prepareForDispatching();
 
          /// must be prepared for dispatching.
-         INT32 getNextTask(requestContext *context,
-                           BOOLEAN &hitTheEnd,
+         INT32 getNextTask(BOOLEAN &hitTheEnd,
                            diskIOTask &task);
 
          /// can not abort dispathed task.

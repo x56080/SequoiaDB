@@ -44,39 +44,22 @@ namespace engine
 {
 namespace vessel
 {
-   void requestHandler::init(instanceEnv *env,
-                               IExecutor *executor)
-   {
-      SDB_ASSERT(NULL != env, "can not be null");
-      SDB_ASSERT(env->resource.isValid(), "can not be invalid");
-      SDB_ASSERT(NULL != executor, "can not be null");
-      
-      _env = env;
-      _executor = executor;
-      return;
-   }
-
-   BOOLEAN requestHandler::isInitialized()const
-   {         
-      return NULL != _env &&
-             NULL != _executor;
-   }
-
    INT32 requestHandler::getCollectionObject(requestContext *context,
                                              const globalCollectionId &gcid,
                                              OSS_LATCH_MODE mode,
                                              COLLECTION_PTR &out)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "must be inited");
-      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(nullptr != context, "can not be null");
       SDB_ASSERT(gcid.isValid(), "can not be invalid");
 
-      collectionSpace *cs = NULL;
-      collection *cl = NULL;
+      instanceEnv *env = context->getEnv();
+      SDB_ASSERT(nullptr != env, "can not be null");
+      collectionSpace *cs = nullptr;
+      collection *cl = nullptr;
       out.reset();
 
-      rc = _env->dms.getCSByCollectionSpaceId(context, gcid.getCSIdentifier(), SHARED, &cs);
+      rc = env->dms.getCSByCollectionSpaceId(context, gcid.getCSIdentifier(), SHARED, &cs);
       if (SDB_OK != rc)
       {
          goto error;
@@ -92,7 +75,7 @@ namespace vessel
    done:
       return rc;
    error:
-      if (NULL != cs)
+      if (nullptr != cs)
       {
          context->unlockSpaceID();
       }

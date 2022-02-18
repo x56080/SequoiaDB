@@ -45,7 +45,6 @@ namespace engine
 namespace vessel
 {
    class liteCache;
-   class requestContext;
 
    ///WARNING: Should not share tulpe in multiple threads.
    class liteCacheTuple : public SDBObject
@@ -107,7 +106,7 @@ namespace vessel
 
          ossValuePtr getWritableBuffer()const;
 
-         INT32 prepareToWrite(requestContext *context);
+         INT32 prepareToWrite();
       
       private:/// for liteCache
          INT32 init(liteCachePageTag *tag,

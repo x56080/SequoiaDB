@@ -45,7 +45,7 @@ namespace engine
 {
 namespace vessel
 {
-   static const UINT32 BG_EVENT_MSG_BUFFER_SIZE = 16;
+   constexpr UINT32 BG_EVENT_MSG_BUFFER_SIZE = 16;
 
    class backgroundEvent : public SDBObject
    {

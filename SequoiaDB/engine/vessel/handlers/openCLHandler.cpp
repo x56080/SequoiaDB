@@ -48,20 +48,13 @@ namespace vessel
                              globalCollectionId &id)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "must be inited");
-      collectionSpace *cs = NULL;
-      collection *cl = NULL;
+      collectionSpace *cs = nullptr;
+      collection *cl = nullptr;
       requestContext context;
       utilFullNameParser parser;
-      const CHAR *clName = NULL;
+      const CHAR *clName = nullptr;
 
       id.reset();
-
-      if (OSS_UNLIKELY(!isInitialized()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
 
       if (!parser.parse(fullName, &clName))
       {
@@ -69,8 +62,8 @@ namespace vessel
          goto error;
       }
 
-      rc = getEnv()->dms.getCSByName(&context, strSlice(parser.getCSName()),
-                                     SHARED, &cs);
+      rc = context.getEnv()->dms.getCSByName(&context, strSlice(parser.getCSName()),
+                                             SHARED, &cs);
       if (SDB_OK != rc)
       {
          goto error;
@@ -94,16 +87,11 @@ namespace vessel
                              globalCollectionId &id)
    {
       INT32 rc = SDB_OK;
-      collectionSpace *cs = NULL;
-      collection *cl = NULL;
+      collectionSpace *cs = nullptr;
+      collection *cl = nullptr;
       requestContext context;
 
       id.reset();
-      if (OSS_UNLIKELY(!isInitialized()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
 
       if (!UTIL_IS_VALID_CLUNIQUEID(uniqueId))
       {
@@ -111,8 +99,8 @@ namespace vessel
          goto error;
       }
 
-      rc = getEnv()->dms.getCSByUniqueID(&context, utilGetCSUniqueID(uniqueId), 
-                                         SHARED, &cs);
+      rc = context.getEnv()->dms.getCSByUniqueID(&context, utilGetCSUniqueID(uniqueId), 
+                                                 SHARED, &cs);
       if (SDB_OK != rc)
       {
          goto error;

@@ -61,7 +61,6 @@ namespace vessel
                                const bson::BSONObj &adjunct)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "can not be null");
       collectionSpace *csObj = NULL;
       requestContext context;
       utilFullNameParser parser;
@@ -69,12 +68,6 @@ namespace vessel
       strSlice clNameSlice;
       strSlice csName;
       createCLOptions options;
-
-      if (OSS_UNLIKELY(!isInitialized()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
 
       if (!parser.parse(fullName, &clName))
       {
@@ -93,7 +86,7 @@ namespace vessel
       options.minFreePercent = o.pageMinFreePercent;
 
       csName.reset(parser.getCSName());
-      rc = getEnv()->dms.getCSByName(&context, csName, SHARED, &csObj);
+      rc = context.getEnv()->dms.getCSByName(&context, csName, SHARED, &csObj);
       if (SDB_OK != rc)
       {
          goto error;

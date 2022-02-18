@@ -52,7 +52,6 @@ class lcDirtyList;
 class lcFreeList;
 class diskIOJob;
 class diskIOTask;
-class requestContext;
 class logicalPageSpace;
 
 class liteCache : public SDBObject
@@ -81,57 +80,49 @@ class liteCache : public SDBObject
       }
 
       /// inc usage cnt and lock
-      INT32 allocate(requestContext *request,
-                     const GLOBAL_PAGE_ID &id,
+      INT32 allocate(const GLOBAL_PAGE_ID &id,
                      const liteCacheAllocateOptions &options,
                      liteCacheTuple &tuple);
 
-      INT32 allocateToReset(requestContext *request,
-                            const GLOBAL_PAGE_ID &id,
+      INT32 allocateToReset(const GLOBAL_PAGE_ID &id,
                             liteCacheTuple &tuple);
 
       /// commit data if wrote something.
       void commit(UINT64 lsn,
                   liteCacheTuple &tuple);
 
-      INT32 discardSpace(requestContext *context);
+      INT32 discardSpace(SPACE_ID sid);
 
    public:/// only for callback
-      INT32 allocateMemPageAndInsertIntoLRU(requestContext *context,
-                                            BOOLEAN initFromDisk,
+      INT32 allocateMemPageAndInsertIntoLRU(BOOLEAN initFromDisk,
                                             lcPageTagHolder &holder);
 
       INT32 tryToUpdateLRU(lcPageTagHolder &holder);
 
    public:/// only for background threads
-      INT32 autoTrimLRU(requestContext *context,
-                        diskIOJob *job,
+      INT32 autoTrimLRU(diskIOJob *job,
                         UINT32 &evicted);
 
       /// we should call this func when last flushing task almost done
       /// coz we always begin flushing from tail of lru. too much pending tags
       /// will waste scan steps.
-      INT32 batchFlushOrEvictLRU(requestContext *context,
-                                 UINT32 scanDepth,
+      INT32 batchFlushOrEvictLRU(UINT32 scanDepth,
                                  diskIOJob *job,
-                                 UINT32 *involvedChunkPageCount=NULL);
+                                 UINT32 *involvedChunkPageCount=nullptr);
 
 
       /// if last flushing is done and no more flushing,
       /// reset lru evict begin
       void resetLRUEvictBegin();
 
-      INT32 createElasticDirtyListJob(requestContext *context,
-                                      diskIOJob *job);
+      INT32 createElasticDirtyListJob(diskIOJob *job);
 
       /// it will release exclusive lock of dirty list until hit scanDepth or minLSN.
-      INT32 createDirtyListIOJob(requestContext *context,
-                                 UINT32 scanDepth,
+      INT32 createDirtyListIOJob(UINT32 scanDepth,
                                  UINT64 minLSN,
                                  diskIOJob *job);
 
-      INT32 executeIOTask(requestContext *context,
-                          diskIOTask *task);
+      INT32 executeIOTask(diskIOTask *task);
 
       void updateMinCacheLsn();
 
@@ -139,27 +130,24 @@ class liteCache : public SDBObject
       UINT32 getDirtyListSizeFast()const;
 
    private:
-      INT32 ensureMemPage(requestContext *context, freeListPage &page);
+      INT32 ensureMemPage(freeListPage &page);
 
-      INT32 fsyncIOTask(requestContext *context,
-                        diskIOTask *task);
+      INT32 fsyncIOTask(diskIOTask *task);
 
       void releaseTag();
 
       void correctOptions(liteCacheOptions &options);
 
-      void notifyWatcherIfNecessary(requestContext *context,
-                                    UINT32 lruSize);
+      void notifyWatcherIfNecessary(UINT32 lruSize);
 
-      void discardPinnedTags(requestContext *context,
-                             ossPoolList<liteCachePageTag *> &tags);
+      void discardPinnedTags(ossPoolList<liteCachePageTag *> &tags);
 
    private:
       INT32 _poolNo = -1;
-      lcBuckets *_buckets = NULL;
-      lcLRUList *_lru = NULL;
-      lcDirtyList *_dl = NULL;
-      lcFreeList *_fl = NULL;
+      lcBuckets *_buckets = nullptr;
+      lcLRUList *_lru = nullptr;
+      lcDirtyList *_dl = nullptr;
+      lcFreeList *_fl = nullptr;
       liteCacheOptions::flushOptions _flushOptions;
 
       //UNIQUE_MUTEX _evictLRULock;

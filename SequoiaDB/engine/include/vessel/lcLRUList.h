@@ -49,7 +49,6 @@ namespace vessel
    class lcBuckets;
    class lcFreeList;
    class diskIOJob;
-   class requestContext;
 
    class lcLRUList : public SDBObject
    {
@@ -82,13 +81,11 @@ namespace vessel
          /// should always check free list first.
          /// page scan num will be max(pageCount, lruOptions.lruPageScanNum) when scanUntilHitMax is false
          /// pageBuf may be invalid when return ok
-         INT32 evict(requestContext *context,
-                     BOOLEAN scanUntilHitMax,
+         INT32 evict(BOOLEAN scanUntilHitMax,
                      freeListPage &pageBuf);
 
          /// for background threads
-         INT32 setPendingWriteOrEvict(requestContext *context,
-                                      UINT32 scanDepth,
+         INT32 setPendingWriteOrEvict(UINT32 scanDepth,
                                       diskIOJob *job,
                                       UINT32 *evicted);
 
@@ -99,7 +96,7 @@ namespace vessel
       private:
          OSS_INLINE BOOLEAN splited()const
          {
-            return NULL != _middle;
+            return nullptr != _middle;
          }
 
          void splitLRU();
@@ -120,7 +117,7 @@ namespace vessel
                                        BOOLEAN isCold,
                                        freeListPage &page);
       private:
-         lcFreeList *_fl = NULL;
+         lcFreeList *_fl = nullptr;
          ossSpinXLatch _latch;
 
          /// options
@@ -129,10 +126,10 @@ namespace vessel
          /// runtime
          UINT32 _size = 0;
          UINT32 _coldSize = 0;
-         liteCachePageTag *_head = NULL;
-         liteCachePageTag *_middle = NULL;
-         liteCachePageTag *_tail = NULL;
-         liteCachePageTag *_evictBegin = NULL;
+         liteCachePageTag *_head = nullptr;
+         liteCachePageTag *_middle = nullptr;
+         liteCachePageTag *_tail = nullptr;
+         liteCachePageTag *_evictBegin = nullptr;
    }; /// end of class lcLRUList
 } /// end of namespace vessel
 } /// end of namespace engine

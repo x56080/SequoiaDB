@@ -48,19 +48,13 @@ namespace vessel
    INT32 listCollectionsHandler::doit(listCLCursor *cursor)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "can not be null");
-      collectionSpace *obj = NULL;
-      SDB_ASSERT(NULL != cursor, "can not be null");
+      collectionSpace *obj = nullptr;
+      SDB_ASSERT(nullptr != cursor, "can not be null");
       SPACE_ID sid = INVALID_SPACE_ID;
       UINT32 logicalID = DMS_INVALID_LOGICCSID;
       requestContext context;
 
-      if (OSS_UNLIKELY(NULL == cursor || !cursor->isOpen()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!isInitialized()))
+      if (OSS_UNLIKELY(nullptr == cursor || !cursor->isOpen()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -75,7 +69,7 @@ namespace vessel
          goto error;
       }
 
-      rc = getEnv()->dms.getCSByLockedSpaceID(&context, logicalID, &obj);
+      rc = context.getEnv()->dms.getCSByLockedSpaceID(&context, logicalID, &obj);
       if (SDB_OK != rc)
       {
          goto error;
@@ -88,7 +82,7 @@ namespace vessel
       }
       
    done:
-      if (NULL != obj)
+      if (nullptr != obj)
       {
          context.unlockSpaceID();
       }

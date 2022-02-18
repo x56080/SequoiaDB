@@ -62,17 +62,11 @@ namespace vessel
                                collectionSpaceId &identifier)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "can not be null");
 
       requestContext context;
       createCSOptions options;
 
       if (OSS_UNLIKELY(name.empty()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!isInitialized()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -85,7 +79,7 @@ namespace vessel
          goto error;
       }
 
-      rc = getEnv()->dms.createCS(&context, name,
+      rc = context.getEnv()->dms.createCS(&context, name,
                                   uniqueId, options,
                                   identifier);
       if (SDB_OK != rc)
