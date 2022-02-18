@@ -5412,7 +5412,7 @@ __METHOD_IMP(seq_fetch)
    PYOBJECT *obj         = NULL ;
    sdbSequence *sequence = NULL;
 
-   if ( !PARSE_PYTHON_ARGS( args, "Ol", &obj, &fetchNum ) )
+   if ( !PARSE_PYTHON_ARGS( args, "Oi", &obj, &fetchNum ) )
    {
       rc = SDB_INVALIDARGS ;
       goto error ;
