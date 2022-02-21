@@ -83,6 +83,7 @@ public class SDBDynamicTableFactory implements DynamicTableSourceFactory, Dynami
         optionalOptions.add(SDBOptions.FORMAT);
         optionalOptions.add(SDBOptions.SINK_PARALLELISM);
         optionalOptions.add(SDBOptions.TRANSACTION_ON);
+        optionalOptions.add(SDBOptions.MAX_BULK_FILL_TIME);
         return optionalOptions;
     }
     // create SDB DynamicTable sink
