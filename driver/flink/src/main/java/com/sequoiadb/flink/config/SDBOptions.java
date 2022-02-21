@@ -69,7 +69,7 @@ public class SDBOptions implements Serializable {
     public static final ConfigOption<Boolean> AUTO_SPLIT =
             ConfigOptions.key("autosplit").booleanType().defaultValue(false);
     public static final ConfigOption<Integer> SINK_PARALLELISM =
-            ConfigOptions.key("parallelism").intType().defaultValue(4);
+            ConfigOptions.key("parallelism").intType().defaultValue(1);
     public static final ConfigOption<Long> MAX_BULK_FILL_TIME =
             ConfigOptions.key("maxbulkfilltime").longType().defaultValue(300L);
     public static final ConfigOption<Boolean> TRANSACTION_ON =

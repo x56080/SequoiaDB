@@ -29,6 +29,6 @@ public class SDBOptionsTest {
         Assert.assertEquals(SDBOptions.COMPRESSION_TYPE, ConfigOptions.key("compressiontype").stringType().defaultValue("lzw"));
         Assert.assertEquals(SDBOptions.GROUP, ConfigOptions.key("group").stringType().noDefaultValue());
         Assert.assertEquals(SDBOptions.AUTO_SPLIT, ConfigOptions.key("autosplit").booleanType().defaultValue(false));
-        Assert.assertEquals(SDBOptions.SINK_PARALLELISM, ConfigOptions.key("parallelism").intType().defaultValue(4));
+        Assert.assertEquals(SDBOptions.SINK_PARALLELISM, ConfigOptions.key("parallelism").intType().defaultValue(1));
     }
 }
