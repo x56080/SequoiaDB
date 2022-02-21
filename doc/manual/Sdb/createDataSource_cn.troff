@@ -27,8 +27,15 @@ name（ \f[I]string，必填\f[] ）
 address（ \f[I]string，必填\f[] ）
 .RS 2
 .PP
-作为数据源的 SequoiaDB
-集群中所有或部分协调节点地址；配置多个地址时，需确保地址所指向的协调节点存在于同一集群中，且地址数不超过七个
+作为数据源的 SequoiaDB 集群中所有或部分协调节点地址
+.RS
+.PP
+\f[B]Note:\f[]
+.IP \[bu] 2
+通过逗号(,)可配置多个协调节点地址。用户需确保地址数不超过七个，且所有地址都指向同一集群。
+.IP \[bu] 2
+协调节点地址所在机器的主机名不能与本地机器重名。
+.RE
 .RE
 .IP \[bu] 2
 user（ \f[I]string，选填\f[] ）
@@ -53,10 +60,10 @@ options（ \f[I]object，选填\f[] ）
 .RS 2
 .PP
 通过 options 参数可以设置其他选填参数
-.IP "1." 3
+.IP \[bu] 2
 AccessMode（ \f[I]string\f[]
 ）：配置对该数据源的访问权限，包括读写数据，默认值为"ALL"
-.RS 4
+.RS 2
 .PP
 取值如下：
 .IP \[bu] 2
@@ -68,12 +75,12 @@ AccessMode（ \f[I]string\f[]
 .IP \[bu] 2
 "NONE"：不允许进行任何操作
 .PP
-格式：\f[C]AccessMode:"READ"\f[]
+格式：\f[C]AccessMode: "READ"\f[]
 .RE
-.IP "2." 3
+.IP \[bu] 2
 ErrorFilterMask（ \f[I]string\f[]
 ）：配置对数据源进行数据操作的错误过滤，默认值为"NONE"
-.RS 4
+.RS 2
 .PP
 取值如下：
 .IP \[bu] 2
@@ -85,13 +92,15 @@ ErrorFilterMask（ \f[I]string\f[]
 .IP \[bu] 2
 "NONE"：不对任何错误进行过滤
 .PP
-格式：\f[C]ErrorFilterMask:"READ"\f[]
+格式：\f[C]ErrorFilterMask: "READ"\f[]
 .RE
 .RE
-.IP "3." 3
+.IP \[bu] 2
 ErrorControlLevel（ \f[I]string\f[]
 ）：配置对映射集合或集合空间进行不支持的数据操作（如
 DDL）时的报错级别，默认值为"low"
+.RS 2
+.IP
 .nf
 \f[C]
 取值如下：
@@ -99,13 +108,13 @@ DDL）时的报错级别，默认值为"low"
 \- "high"：报错并输出错误信息
 \- "low"：忽略不支持的数据操作且不执行
 
-格式：`ErrorControlLevel:"low"`
+格式：`ErrorControlLevel: "low"`
 \f[]
 .fi
-.IP "4." 3
+.IP \[bu] 2
 TransPropagateMode（ \f[I]string\f[]
 ）：配置事务操作在数据源上的传播模式，默认值为"never"
-.RS 4
+.RS 2
 .PP
 取值如下：
 .IP \[bu] 2
@@ -114,20 +123,23 @@ TransPropagateMode（ \f[I]string\f[]
 "notsupport":
 事务操作在数据源上不受支持，如果在事务中操作数据源，对应的操作会降级为非事务操作后发送到数据源处理，在数据源上执行的操作不受事务保护
 .PP
-格式：\f[C]TransPropagateMode:"never"\f[]
+格式：\f[C]TransPropagateMode: "never"\f[]
 .RE
-.IP "5." 3
+.IP \[bu] 2
 InheritSessionAttr（ \f[I]boolean\f[]
-）：协调节点与数据源之间的会话是否继承本地会话的属性，默认值为
-true，支持继承的属性包括：PreferredInstance，PreferredInstanceMode，PreferredStrict，PreferredPeriod，Timeout
-.RS 4
+）：协调节点与数据源之间的会话是否继承本地会话的属性，默认值为 true
+.RS 2
+.PP
+支持继承的属性包括
+PreferedInstance、PreferedInstanceMode、PreferedStrict、PreferedPeriod 和
+Timeout。
 .PP
 格式：\f[C]InheritSessionAttr: true\f[]
 .RE
 .RE
 .SH 返回值
 .PP
-函数执行成功时，将返回一个 DataSource 对象。
+函数执行成功时，将返回一个 SdbDataSource 类型对象。
 .PP
 函数执行失败时，将抛异常并输出错误信息。
 .SH 错误
@@ -175,7 +187,7 @@ T}
 获取错误码。更多错误处理可以参考常见错误处理指南。
 .SH 版本
 .PP
-v3.2.8 及以上版本
+v3.4.3 及以上版本
 .SH 示例
 .PP
 创建一个名为“datasource”的数据源，该数据源只允许进行只读操作
