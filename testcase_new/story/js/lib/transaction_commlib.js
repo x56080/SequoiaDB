@@ -128,7 +128,7 @@ function checkIsLockEscalated ( sdb, isLockEscalated )
 }
 
 /******************************************************************************
- * @description: 获取记录锁个数
+ * @description: 获取记录锁个数，仅限在事务中只对一个表进行操作的情况下
  * @param {Sequoiadb} sdb
  * @param {string} lockType  // 需要获取的记录锁类型
  * @return {int}
