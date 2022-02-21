@@ -57,10 +57,9 @@ namespace vessel
    static const CHAR * const CSNAME_FILE_NAME = "CSNAME";
    static const CHAR * const TMPSU_FILE_NAME = "TMPSU";
 
-   static const UINT32 INVALID_FILE_SHADOW_SUFFIX = 0xFFFFFFFF;
-   static const UINT32 FILE_SHADOW_SUFFIX_TMP = 0;
-   static const UINT32 FILE_SHADOW_SUFFIX_READY = 1;
-
+   static const UINT16 INVALID_FILE_SHADOW_SUFFIX = 0xFFFF;
+   static const UINT16 FILE_SHADOW_SUFFIX_TMP = 0;
+   static const UINT16 FILE_SHADOW_SUFFIX_READY = 1;
    
 
    class VESSEL_FILE_GLOBAL_OPTIONS : public SDBObject
@@ -191,7 +190,7 @@ namespace vessel
 
    UINT32 getShadowSuffixType(const CHAR *shadowSuffix);
 
-   BOOLEAN getShadowSuffix(UINT32 t, strSlice &suffix);
+   BOOLEAN getShadowSuffix(UINT16 t, strSlice &suffix);
 }
 }
 

@@ -756,6 +756,7 @@
 #define IXM_FIELD_NAME_REBUILDTIME           "RebuildTime"
 #define IXM_FIELD_NAME_STANDALONE            "Standalone"
 #define IXM_FIELD_NAME_UNIQUEID              "UniqueID"
+#define IXM_FIELD_NAME_INNERID               "InnerID"
 
 #define CMD_ADMIN_PREFIX                     "$"
 #define CMD_NAME_BACKUP_OFFLINE              "backup offline"

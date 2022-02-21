@@ -106,9 +106,9 @@ namespace vessel
          goto error;
       }
 
-      if (_nextIndexId <= obj.getIndexID())
+      if (_nextIndexId <= obj.getLogicalIndexId())
       {
-         _nextIndexId = obj.getIndexID() + 1;
+         _nextIndexId = obj.getLogicalIndexId() + 1;
       }
    done:
       return rc;

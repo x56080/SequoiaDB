@@ -72,7 +72,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (!_map.insert(std::make_pair(file->getFileNameInMem().getSequence(), file)).second)
+      else if (!_map.insert(std::make_pair(file->getSequence(), file)).second)
       {
          rc = SDB_VESSEL_DUPLICATED_KEY;
          goto error;

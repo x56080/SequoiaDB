@@ -1531,8 +1531,7 @@ namespace vessel
       {
          const idMapFile *fileInMap = (const idMapFile *)(*itr);
          idMapFileHead h;
-         if (fileInMap->getFileNameInMem().getSequence() ==
-             base->getFileNameInMem().getSequence())
+         if (fileInMap->getSequence() == base->getSequence())
          {
             break;
          }
@@ -1924,8 +1923,7 @@ namespace vessel
          goto error;
       }
 
-      if (!fn.build(FILE_TYPE_ID_MAP, getSpaceType(), 
-                    base->getFileNameInMem().getSequence() + 1))
+      if (!fn.build(FILE_TYPE_ID_MAP, getSpaceType(), base->getSequence() + 1))
       {
          PD_LOG(PDERROR, "failed to build file name");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -2387,8 +2385,7 @@ namespace vessel
 
       if (_logConsole.getLastCheckpoint().isValid())
       {
-         SDB_ASSERT(_logConsole.getBaseSequence() == 
-                    base->getFileNameInMem().getSequence(), 
+         SDB_ASSERT(_logConsole.getBaseSequence() == base->getSequence(), 
                     "must be same");
          rc = replayDeltaLog(context);
          if (SDB_OK != rc)

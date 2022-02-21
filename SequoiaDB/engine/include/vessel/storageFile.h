@@ -106,9 +106,17 @@ namespace vessel
          {
             return _headInMem;
          }
-         OSS_INLINE const storageFileName &getFileNameInMem()const
+         OSS_INLINE const FILE_TYPE &getFileType()const
          {
-            return _fileNameInMem;
+            return _fileType;
+         }
+         OSS_INLINE const SPACE_TYPE &getSpaceType()const
+         {
+            return _spaceType;
+         }
+         OSS_INLINE const UINT32 &getSequence()const
+         {
+            return _sequence;
          }
          OSS_INLINE UINT32 getSegmentCount()const
          {
@@ -178,8 +186,10 @@ namespace vessel
 
       private:
          storageFileHead _headInMem;
-         storageFileName _fileNameInMem;
-         UINT32 _shadowSuffix = INVALID_FILE_SHADOW_SUFFIX;
+         FILE_TYPE _fileType = INVALID_FILE_TYPE;
+         SPACE_TYPE _spaceType = INVALID_SPACE_TYPE;
+         UINT32 _sequence = 0;
+         UINT16 _shadowSuffix = INVALID_FILE_SHADOW_SUFFIX;
          UINT32 _dataSegmentCount = 0;
    }; // class storageFile
 } // namespace vessel

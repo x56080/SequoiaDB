@@ -69,8 +69,7 @@ namespace vessel
 
       _indexSlot = indexSlot;
       _lpid = lpid;
-      _obj.shallowCopy(obj);
-      _obj.getOwned();
+      _obj = obj;
 
       if (INDEX_STATUS_BUILDING == status)
       {
@@ -115,11 +114,11 @@ namespace vessel
    {
       SDB_ASSERT(isValid(), "can not be invalid");
       builder.append(VESSEL_INDEX_FIELD_NAME_INDEX_SLOT, _indexSlot);
-      builder.append(VESSEL_INDEX_FIELD_NAME_INDEX_ID, _obj.getIndexID());
-      builder.append(IXM_NAME_FIELD, _obj.getIndexName().str());
+      builder.append(VESSEL_INDEX_FIELD_NAME_INDEX_ID, _obj.getLogicalIndexId());
+      // builder.append(IXM_NAME_FIELD, _obj.getIndexName().str());
       builder.append(VESSEL_INDEX_FIELD_NAME_STATUS, _status);
-      builder.append(IXM_KEY_FIELD, _obj.getPattern().getPattern());
-      _obj.getParams().exportToBson(builder);
+      // builder.append(IXM_KEY_FIELD, _obj.getPattern().getPattern());
+      _obj.getDescription().exportToBson(builder);
    }
 
    BOOLEAN indexContext::associates(const CHAR *fieldName)const

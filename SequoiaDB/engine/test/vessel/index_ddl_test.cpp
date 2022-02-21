@@ -120,9 +120,6 @@ void remove_index1(INDEX_TYPE type)
 
    constexpr INT32 indexCount = 32;
 
-   indexParameters params;
-   params.type = type;
-
    ossPoolVector<bson::BSONObj> indexes;
 
    rc = db.open(&session, &resource, options);
@@ -141,8 +138,8 @@ void remove_index1(INDEX_TYPE type)
    {
       ossPoolString indexName = combine("index", i);
       bson::BSONObj pattern = BSON(indexName.c_str() << 1);
-      bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName.c_str(),
-                                                             params, pattern);
+      bson::BSONObj indexDef = indexTestUtil::createIndexObj(type, indexName.c_str(),
+                                                             FALSE, pattern);
       rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
       ASSERT_EQ(SDB_OK, rc);
    }
@@ -155,8 +152,8 @@ void remove_index1(INDEX_TYPE type)
    {
       ossPoolString indexName = combine("index", i);
       bson::BSONObj pattern = BSON(indexName.c_str() << 1);
-      bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName.c_str(),
-                                                             params, pattern);
+      bson::BSONObj indexDef = indexTestUtil::createIndexObj(type, indexName.c_str(),
+                                                             FALSE, pattern);
       rc = handler->removeIndex(&session, indexName.c_str());
       ASSERT_EQ(SDB_OK, rc);
    }
@@ -170,8 +167,8 @@ void remove_index1(INDEX_TYPE type)
    {
       ossPoolString indexName = combine("index", i);
       bson::BSONObj pattern = BSON(indexName.c_str() << 1);
-      bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName.c_str(),
-                                                             params, pattern);
+      bson::BSONObj indexDef = indexTestUtil::createIndexObj(type, indexName.c_str(),
+                                                             FALSE, pattern);
       rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
       ASSERT_EQ(SDB_OK, rc);
    }
@@ -185,8 +182,8 @@ void remove_index1(INDEX_TYPE type)
    {
       ossPoolString indexName = combine("index", i);
       bson::BSONObj pattern = BSON(indexName.c_str() << 1);
-      bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName.c_str(),
-                                                             params, pattern);
+      bson::BSONObj indexDef = indexTestUtil::createIndexObj(type, indexName.c_str(),
+                                                             FALSE, pattern);
       rc = handler->removeIndex(&session, indexName.c_str());
       ASSERT_EQ(SDB_OK, rc);
    }
@@ -228,9 +225,6 @@ void remove_index2(INDEX_TYPE type)
    constexpr const CHAR *fieldName = "a";
    constexpr UINT32 recordCount = 100000;
 
-   indexParameters params;
-   params.type = type;
-
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
@@ -245,8 +239,8 @@ void remove_index2(INDEX_TYPE type)
 
    {
       bson::BSONObj pattern = BSON(fieldName << 1);
-      bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName,
-                                                            params, pattern);
+      bson::BSONObj indexDef = indexTestUtil::createIndexObj(type, indexName,
+                                                             FALSE, pattern);
       rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
       ASSERT_EQ(SDB_OK, rc);
    }

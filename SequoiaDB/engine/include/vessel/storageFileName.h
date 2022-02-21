@@ -79,7 +79,7 @@ namespace vessel
             return _sequence;
          }
 
-         OSS_INLINE UINT32 getShadowSuffix()const
+         OSS_INLINE UINT16 getShadowSuffix()const
          {
             return _shadowSuffix;
          }
@@ -105,7 +105,7 @@ namespace vessel
          BOOLEAN build(FILE_TYPE type,
                        SPACE_TYPE spaceType = INVALID_SPACE_TYPE,
                        UINT32 sequence = 0,
-                       UINT32 shadowSuffix = INVALID_FILE_SHADOW_SUFFIX);
+                       UINT16 shadowSuffix = INVALID_FILE_SHADOW_SUFFIX);
          
 
 
@@ -120,7 +120,7 @@ namespace vessel
          FILE_TYPE _fileType = INVALID_FILE_TYPE;
          SPACE_TYPE _spaceType = INVALID_SPACE_TYPE;
          UINT32 _sequence = 0;
-         UINT32 _shadowSuffix = INVALID_FILE_SHADOW_SUFFIX;
+         UINT16 _shadowSuffix = INVALID_FILE_SHADOW_SUFFIX;
    };//class storageFileName
 
    typedef ossPoolList<storageFileName> STORAGE_FILE_NAME_LIST; 

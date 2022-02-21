@@ -72,9 +72,9 @@ namespace vessel
          goto error;
       }
 
-      _type = base->getFileNameInMem().getSpaceType();
+      _type = base->getSpaceType();
       _secretValue = base->getCommonHeadInMem().secretValue;
-      _baseSequence = base->getFileNameInMem().getSequence();
+      _baseSequence = base->getSequence();
 
       rc = load(context, fl);
       if (SDB_OK != rc)

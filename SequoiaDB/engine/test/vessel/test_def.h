@@ -53,7 +53,6 @@
 #include "dummyTransLockConsole.h"
 #include "ixm_common.hpp"
 #include "vessel/indexDef.h"
-#include "vessel/indexParameters.h"
 
 using namespace engine::vessel;
 using namespace engine;
@@ -298,17 +297,6 @@ class indexTestUtil
       builder.append(IXM_TYPE_FIELD, typeStr);
       builder.append(IXM_KEY_FIELD, pattern);
       builder.appendBool(IXM_UNIQUE_FIELD, unique);
-      return builder.obj();
-   }              
-
-   static bson::BSONObj createIndexObj(const CHAR *name,
-                                       const indexParameters &params,
-                                       const bson::BSONObj &pattern)
-   {
-      bson::BSONObjBuilder builder;
-      builder.append(IXM_NAME_FIELD, name);
-      builder.append(IXM_KEY_FIELD, pattern);
-      params.exportToBson(builder);
       return builder.obj();
    }
 };

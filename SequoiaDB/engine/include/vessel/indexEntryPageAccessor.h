@@ -70,13 +70,10 @@ namespace vessel
                                PAGE_ID root,
                                logicalPageBuffer *lpb)const;
 
-         /// WARNING: Do not accesses obj any more after fini lpb if
-         /// not owned.
-         INT32 getIndexObject(requestContext *context,
-                              const logicalPageBuffer *lpb,
-                              indexObject &obj,
-                              BOOLEAN getOwned = TRUE,
-                              indexEntryPageHead *out = NULL)const;
+         INT32 getIndexDescription(requestContext *context,
+                                   const logicalPageBuffer *lpb,
+                                   indexDescription &desc,
+                                   indexEntryPageHead *out = NULL)const;
 
          INT32 dump(requestContext *context,
                     const logicalPageBuffer *lpb,

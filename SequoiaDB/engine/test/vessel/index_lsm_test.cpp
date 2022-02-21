@@ -100,8 +100,6 @@ TEST_F(index_lsm_test, test1)
    options.path.lobPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
-   indexParameters indexParams;
-   indexParams.type = INDEX_TYPE_LSM;
    DATA_COLLECTION_PTR cl;
    
    ossPoolVector<bson::BSONObj> indexes;
@@ -126,8 +124,9 @@ TEST_F(index_lsm_test, test1)
       ss << "index" << i;
       std::string indexName = ss.str();
       bson::BSONObj patternObj = BSON(indexName.c_str() << 1);
-      bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName.c_str(),
-                                                             indexParams, patternObj);
+      bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_LSM, 
+                                                             indexName.c_str(),
+                                                             FALSE, patternObj);
       rc = cl->createIndex(&session, dmsBuildIndexOptions(), indexDef);
       ASSERT_EQ(SDB_OK, rc);
    }
@@ -137,8 +136,9 @@ TEST_F(index_lsm_test, test1)
       ss << "index" << 64;
       std::string indexName = ss.str();
       bson::BSONObj patternObj = BSON(indexName.c_str() << 1);
-      bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName.c_str(),
-                                                             indexParams, patternObj);
+      bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_LSM, 
+                                                             indexName.c_str(),
+                                                             FALSE, patternObj);
       rc = cl->createIndex(&session, dmsBuildIndexOptions(), indexDef);
       ASSERT_EQ(SDB_DMS_MAX_INDEX, rc);
    }
@@ -200,8 +200,6 @@ TEST_F(index_lsm_test, test2)
    options.path.lobPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
-   indexParameters indexParams;
-   indexParams.type = INDEX_TYPE_LSM;
    DATA_COLLECTION_PTR cl;
 
    static const UINT32 pad_size = 1024;
@@ -242,8 +240,9 @@ TEST_F(index_lsm_test, test2)
       ss << "index" << i;
       std::string indexName = ss.str();
       bson::BSONObj patternObj = BSON(indexName.c_str() << 1);
-      bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName.c_str(),
-                                                             indexParams, patternObj);
+      bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_LSM, 
+                                                             indexName.c_str(),
+                                                             FALSE, patternObj);
       rc = cl->createIndex(&session, dmsBuildIndexOptions(), indexDef);
       ASSERT_EQ(SDB_OK, rc);
    }
@@ -309,9 +308,6 @@ TEST_F(index_lsm_test, test3)
    options.path.lobPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
-   indexParameters indexParams;
-   indexParams.type = INDEX_TYPE_LSM;
-   indexParams.isUnique = TRUE;
    DATA_COLLECTION_PTR cl;
    
    ossPoolVector<bson::BSONObj> indexes;
@@ -331,8 +327,9 @@ TEST_F(index_lsm_test, test3)
 
    std::string indexName("a");
    bson::BSONObj patternObj = BSON(indexName.c_str() << 1);
-   bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName.c_str(),
-                                                          indexParams, patternObj);
+      bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_LSM, 
+                                                             indexName.c_str(),
+                                                             TRUE, patternObj);
    rc = cl->createIndex(&session, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);
 
@@ -400,9 +397,6 @@ TEST_F(index_lsm_test, test4)
    options.path.lobPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
-   indexParameters indexParams;
-   indexParams.type = INDEX_TYPE_LSM;
-   indexParams.isUnique = TRUE;
    DATA_COLLECTION_PTR cl;
 
    static const UINT32 threadCount = 6;
@@ -423,8 +417,9 @@ TEST_F(index_lsm_test, test4)
 
    std::string indexName("a");
    bson::BSONObj patternObj = BSON(indexName.c_str() << 1);
-   bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName.c_str(),
-                                                          indexParams, patternObj);
+      bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_LSM, 
+                                                             indexName.c_str(),
+                                                             TRUE, patternObj);
    rc = cl->createIndex(&session, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);
 

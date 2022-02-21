@@ -40,7 +40,6 @@
 #include "vessel/instanceEnv.h"
 #include "vessel/outerResource.h"
 #include "vessel/indexKeyPattern.h"
-#include "vessel/indexParameters.h"
 #include "vessel/dmlRequest.h"
 
 namespace engine

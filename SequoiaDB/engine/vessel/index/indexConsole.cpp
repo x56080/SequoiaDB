@@ -233,57 +233,6 @@ namespace vessel
       goto done;
    }
 
-   INT32 indexConsole::getOwnedIndexObj(requestContext *context,
-                                        INT32 indexSlot,
-                                        indexObject &obj,
-                                        indexEntryPageHead *head)
-   {
-      INT32 rc = SDB_OK;
-      PAGE_ID lpid = INVALID_PAGE_ID;
-      logicalPageBuffer lpb;
-      indexEntryPageAccessor accessor;
-      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
-
-      if (!isInitialized())
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (NULL == context ||
-               !context->isMbContextAttached() ||
-               !isValidIndexSlot(indexSlot))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = _is->getIndexDefPage(context, _mbID, indexSlot, lpid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get lpid of index def page:%d", rc);
-         goto error;
-      }
-
-      rc = _is->getLogicalPageBuffer(context, lpid, mode, lpb);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d", lpid, rc);
-         goto error;
-      }
-
-      rc = accessor.getIndexObject(context, &lpb, obj, TRUE, head);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get owned in-mem obj:%d", rc);
-         goto error;
-      }
-   done:
-      lpb.fini();
-      return rc;
-   error:
-      goto done;
-   }
-
    INT32 indexConsole::insert(requestContext *context,
                               indexContext *ic,
                               const ixmKey &key,
@@ -599,7 +548,7 @@ namespace vessel
       SDB_ASSERT(gcid.isValid(), "can not be invalid");
       globalIndexID gid(gcid.getCSLid(),
                         gcid.getCLLid(),
-                        obj.getIndexID());
+                        obj.getLogicalIndexId());
       lsmIndexMeta meta(gid, obj.getPattern().getOrdering());
       lsmIndex lsm;
 
@@ -647,6 +596,7 @@ namespace vessel
       for (INT32 i = 0; i < (INT32)DIRECT_MAPPING_INDEX_COUNT_PER_CL; ++i)
       {
          indexObject indexObj;
+         indexDescription desc;
          indexEntryPageHead head;
          logicalPageBuffer lpb;
          PAGE_ID lpid = _is->getDirectMappedIndexLpid(_mbID, i);
@@ -672,7 +622,7 @@ namespace vessel
             goto error;
          }
 
-         rc = accessor.getIndexObject(context, &lpb, indexObj, FALSE, &head);
+         rc = accessor.getIndexDescription(context, &lpb, desc, &head);
          if (SDB_IXM_NOTEXIST == rc)
          {
             PD_LOG(PDDEBUG, "index[%d] def page is not valid", i);
@@ -681,7 +631,15 @@ namespace vessel
          }
          else if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to get index def page head in page[%d], rc:%d", lpid, rc);
+            PD_LOG(PDERROR, "failed to get index description "
+                   "and def page head in page[%d], rc:%d", lpid, rc);
+            goto error;
+         }
+
+         rc = indexObj.init(i, head.clLogicalID, desc, head.btreeRoot);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init index object, rc:%d", rc);
             goto error;
          }
 
@@ -697,6 +655,7 @@ namespace vessel
            i < (INT32)MAX_INDEX_COUNT_PER_CL; ++i)
       {
          indexObject indexObj;
+         indexDescription desc;
          indexEntryPageHead head;
          logicalPageBuffer lpb;
          UINT32 pos = 0;
@@ -736,7 +695,7 @@ namespace vessel
             goto error;
          }
 
-         rc = accessor.getIndexObject(context, &lpb, indexObj, FALSE, &head);
+         rc = accessor.getIndexDescription(context, &lpb, desc, &head);
          if (SDB_IXM_NOTEXIST == rc)
          {
             PD_LOG(PDDEBUG, "index[%d] def page is not valid", i);
@@ -745,7 +704,15 @@ namespace vessel
          }
          else if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to get index def page head in page[%d], rc:%d", lpid, rc);
+            PD_LOG(PDERROR, "failed to get index description "
+                   "and def page head in page[%d], rc:%d", lpid, rc);
+            goto error;
+         }
+
+         rc = indexObj.init(i, head.indexLogicalID, desc, head.btreeRoot);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init index object, rc:%d", rc);
             goto error;
          }
 
@@ -851,7 +818,7 @@ namespace vessel
       {
          const dmlIndexRequest *ir = ra.get(i);
          SDB_ASSERT(NULL != ir && ir->isValid(), "impossible");
-         if (ir->getContext()->getObj().getParams().type != INDEX_TYPE_LSM ||
+         if (ir->getContext()->getObj().getIndexType() != INDEX_TYPE_LSM ||
              ir->isExecuted())
          {
             continue;
@@ -917,7 +884,7 @@ namespace vessel
                        !context->isMbContextAttached() ||
                        NULL == ic ||
                        !ic->isValid() ||
-                       !ic->getObj().getParams().isUnique))
+                       !ic->getObj().getDescription().isUnique()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -1024,7 +991,7 @@ namespace vessel
          btreeAccessor accessor;
          const dmlIndexRequest *req = ra.get(i);
          SDB_ASSERT(NULL != req && req->isValid(), "can not be invalid");
-         if (!req->getContext()->getObj().getParams().isBtreeIndex() |
+         if (!req->getContext()->getObj().getDescription().isBtreeIndex() ||
               req->isExecuted())
          {
             continue;

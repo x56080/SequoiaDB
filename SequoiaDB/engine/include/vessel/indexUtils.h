@@ -39,7 +39,7 @@
 #include "vessel/strSlice.h"
 #include "vessel/indexKeyPattern.h"
 #include "../bson/bson.hpp"
-#include "vessel/indexParameters.h"
+#include "vessel/indexDescription.h"
 #include "rtnPredicate.hpp"
 
 namespace engine
@@ -52,15 +52,13 @@ namespace vessel
          ~indexUtils() = delete;
 
       public:
-         static bson::BSONObj buildIndexDefObj(const strSlice &indexName,
-                                                const indexKeyPattern &keyPattern,
-                                                const indexParameters &params);
+         static bson::BSONObj buildIndexDefObj(const indexDescription &desc);
 
-         /// if output set as null, it will not be parsed.
-         static INT32 parseIndexDefObj(const bson::BSONObj &obj,
-                                       strSlice *indexName,
-                                       indexKeyPattern *keyPattern,
-                                       indexParameters *params);
+         // /// if output set as null, it will not be parsed.
+         // static INT32 parseIndexDefObj(const bson::BSONObj &obj,
+         //                               strSlice *indexName,
+         //                               indexKeyPattern *keyPattern,
+         //                               indexParameters *params);
 
          static OSS_INLINE BOOLEAN isForwardDirection(INT32 direction)
          {
