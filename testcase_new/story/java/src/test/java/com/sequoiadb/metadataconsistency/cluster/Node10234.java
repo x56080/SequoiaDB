@@ -83,10 +83,8 @@ public class Node10234 extends SdbTestBase {
     private class DetachNode extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
                 ReplicaGroup rgDB = db.getReplicaGroup( rgName );
                 Node slaveNode = rgDB.getSlave();
                 String hostName = slaveNode.getHostName();
@@ -98,12 +96,12 @@ public class Node10234 extends SdbTestBase {
                 int eCode = e.getErrorCode();
                 if ( eCode != -204 // -204:Unable to remove the last node or
                                    // primary in a group
-                        && eCode != -155 ) { // -155:Node does not exist(node
-                                             // has been to detach)
+                        && eCode != -155 && eCode != -147 ) { // -155:Node does
+                                                              // not exist(node
+                                                              // has been to
+                                                              // detach)
                     throw e;
                 }
-            } finally {
-                db.close();
             }
         }
     }
@@ -111,10 +109,8 @@ public class Node10234 extends SdbTestBase {
     private class AttachNode extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
                 ReplicaGroup rgDB = db.getReplicaGroup( rgName );
                 Node slaveNode = rgDB.getSlave();
                 String hostName = slaveNode.getHostName();
@@ -124,11 +120,10 @@ public class Node10234 extends SdbTestBase {
                         new BasicBSONObject( "KeepData", false ) );
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if ( eCode != -145 ) { // -145:Node already exists
+                if ( eCode != -145 && eCode != -147 ) { // -145:Node already
+                                                        // exists
                     throw e;
                 }
-            } finally {
-                db.close();
             }
         }
     }
