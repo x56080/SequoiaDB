@@ -527,6 +527,8 @@ class collection(object):
         Note:
            It won't work to update the "ShardingKey" field, but the other fields
                  take effect.
+        Deprecated:
+           This function is deprecated, use upsert() or insert_with_flag() instead of it.
         """
         if not isinstance(doc, dict):
             raise SDBTypeError("rule must be an instance of dict")
