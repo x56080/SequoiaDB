@@ -64,8 +64,6 @@ namespace engine
 {
 namespace vessel
 {
-
-   static const UINT32 CONTEXT_DEFAULT_BUFFER_POOL_SIZE = 8192;
    class instanceEnv;
    class outerResource;
    class atomicOperationList;

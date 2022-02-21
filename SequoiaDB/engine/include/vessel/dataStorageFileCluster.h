@@ -54,51 +54,46 @@ namespace vessel
          virtual ~dataStorageFileCluster();
 
       public:
-         virtual INT32 open(requestContext *context,
+         virtual INT32 open(SPACE_ID sid,
                             SPACE_TYPE type,
                             UINT32 secretValue,
                             const storageFileLoader *loader, 
                             const storageCoreArgs &args,
-                            const options &o);
+                            const options &o) override;
 
-         virtual void close();
+         virtual void close()override;
 
-         virtual void destroy();
+         virtual void destroy()override;
 
-         virtual INT32 allocatePages(requestContext *context,
-                                     UINT32 count,
-                                     PAGE_ID *pids);
+         virtual INT32 allocatePages(UINT32 count,
+                                     PAGE_ID *pids)override;
 
-         virtual INT32 occupyPages(requestContext *context,
-                                   UINT32 count,
-                                   const PAGE_ID *pids);
+         virtual INT32 occupyPages(UINT32 count,
+                                   const PAGE_ID *pids)override;
 
          virtual void releasePages(UINT32 count,
-                                   const PAGE_ID *pids);
+                                   const PAGE_ID *pids)override;
 
-         virtual INT32 ensureSegmentCount(requestContext *context,
-                                          UINT32 totalSegmentCount);
+         virtual INT32 ensureSegmentCount(UINT32 totalSegmentCount)override;
 
-         virtual INT32 ensurePidSpace(requestContext *context,
-                                      PAGE_ID pid);
+         virtual INT32 ensurePidSpace(PAGE_ID pid)override;
 
       public:
-         virtual INT32 fsyncSegment(UINT32 globalSegmentId)const;
+         virtual INT32 fsyncSegment(UINT32 globalSegmentId)const override;
 
-         virtual INT32 fysncPage(PAGE_ID pid)const;
+         virtual INT32 fysncPage(PAGE_ID pid)const override;
 
-         virtual INT32 getDataPagePtr(PAGE_ID pid, mmapPagePointer &ptr)const;
+         virtual INT32 getDataPagePtr(PAGE_ID pid, mmapPagePointer &ptr)const override; 
 
-         virtual FILE_TYPE getDataFileType()const
+         virtual FILE_TYPE getDataFileType()const override
          {
             return FILE_TYPE_DATA_STORAGE;
          }
 
-         virtual UINT32 getTotalSegmentCount();
+         virtual UINT32 getTotalSegmentCount() override;
 
       private:
-         INT32 openFiles(requestContext *context,
-                         const storageFileLoader *loader);
+         INT32 openFiles(const storageFileLoader *loader);
 
          /// must open file first
          INT32 initAllocator();
@@ -107,9 +102,9 @@ namespace vessel
 
          void destroyFiles();
 
-         INT32 _createNewSegment(requestContext *context, UINT32 count);
+         INT32 _createNewSegment(UINT32 count);
 
-         INT32 createNewFile(requestContext *context);
+         INT32 createNewFile();
 
          void _close();
 

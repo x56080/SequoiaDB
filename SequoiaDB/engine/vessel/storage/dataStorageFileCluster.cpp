@@ -38,9 +38,10 @@
 #include "pdTrace.hpp"
 #include "vessel/storageFileLoader.h"
 #include "vessel/storageUtils.h"
-#include "vessel/requestContext.h"
+#include "vessel/storageFileMaintainer.h"
+#include "ossLatchGuard.hpp"
+#include "vessel/threadContext.h"
 #include "vessel/instanceEnv.h"
-#include "vessel/storageUnit.h"
 
 namespace engine
 {
@@ -54,7 +55,7 @@ namespace vessel
       _close();
    }
 
-   INT32 dataStorageFileCluster::open(requestContext *context,
+   INT32 dataStorageFileCluster::open(SPACE_ID sid,
                                       SPACE_TYPE type,
                                       UINT32 secretValue,
                                       const storageFileLoader *loader, 
@@ -64,8 +65,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       close();
 
-      if (NULL == context ||
-          INVALID_SPACE_ID == context->getSpaceID() ||
+      if (INVALID_SPACE_ID == sid ||
           INVALID_SPACE_TYPE == type ||
           !args.isValid())
       {
@@ -73,7 +73,7 @@ namespace vessel
          goto error;
       }
 
-      _sid = context->getSpaceID();
+      _sid = sid;
       _type = type;
       _secretValue = secretValue;
       _args = args;
@@ -83,7 +83,7 @@ namespace vessel
          _o.segmentCountAutoExtending = 1;
       }
 
-      rc = openFiles(context, loader);
+      rc = openFiles(loader);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open files:%d", rc);
@@ -146,8 +146,7 @@ namespace vessel
       return;
    }
 
-   INT32 dataStorageFileCluster::allocatePages(requestContext *context,
-                                               UINT32 count,
+   INT32 dataStorageFileCluster::allocatePages(UINT32 count,
                                                PAGE_ID *pids)
    {
       INT32 rc = SDB_OK;
@@ -158,8 +157,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == context ||
-                            0 == count ||
+      else if (OSS_UNLIKELY(0 == count ||
                             _args.maxPageCountPerSeg < count ||
                             NULL == pids))
       {
@@ -184,7 +182,7 @@ namespace vessel
       }
       else if (_allocator.getCustomizedPageCount() == _segmentsCreatedEver)
       {                                 
-         rc = _createNewSegment(context, _o.segmentCountAutoExtending);
+         rc = _createNewSegment(_o.segmentCountAutoExtending);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to create new segment on disk:%d", rc);
@@ -215,8 +213,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 dataStorageFileCluster::occupyPages(requestContext *context,
-                                             UINT32 count,
+   INT32 dataStorageFileCluster::occupyPages(UINT32 count,
                                              const PAGE_ID *pids)
    {
       INT32 rc = SDB_OK;
@@ -312,8 +309,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 dataStorageFileCluster::ensurePidSpace(requestContext *context,
-                                                PAGE_ID pid)
+   INT32 dataStorageFileCluster::ensurePidSpace(PAGE_ID pid)
    {
       INT32 rc = SDB_OK;
       UINT32 minSegmentCount = 0;
@@ -323,15 +319,14 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == context ||
-                            INVALID_PAGE_ID == pid))
+      else if (OSS_UNLIKELY(INVALID_PAGE_ID == pid))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
       minSegmentCount = pid / _args.maxPageCountPerSeg + 1;
-      rc = ensureSegmentCount(context, minSegmentCount);
+      rc = ensureSegmentCount(minSegmentCount);
       if (SDB_OK != rc)
       {
          goto error;
@@ -343,8 +338,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 dataStorageFileCluster::ensureSegmentCount(requestContext *context,
-                                                    UINT32 totalSegmentCount)
+   INT32 dataStorageFileCluster::ensureSegmentCount(UINT32 totalSegmentCount)
    {
       INT32 rc = SDB_OK;
       ossXLatchGuard guard(&_latch, FALSE);
@@ -352,11 +346,6 @@ namespace vessel
       if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(NULL == context))
-      {
-         rc = SDB_INVALIDARG;
          goto error;
       }
       else if (totalSegmentCount <= _allocator.getCustomizedPageCount())
@@ -370,7 +359,7 @@ namespace vessel
       {
          if (_allocator.getCustomizedPageCount() == _segmentsCreatedEver)
          {
-            rc = _createNewSegment(context, 1);
+            rc = _createNewSegment(1);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to create new segment on disk:%d", rc);
@@ -487,22 +476,20 @@ namespace vessel
       goto done;
    }
 
-   INT32 dataStorageFileCluster::openFiles(requestContext *context,
-                                           const storageFileLoader *loader)
+   INT32 dataStorageFileCluster::openFiles(const storageFileLoader *loader)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be invalid");
       SDB_ASSERT(0 == _segmentsCreatedEver && 0 == _files.getSize(), "do not reopen");
       const storageCoreArgs &args = getCoreArgs();
       SDB_ASSERT(args.isValid(), "must be valid");
-      constexpr UINT64 MAX_FILE_SEQUENCE = 1048575;
+      constexpr UINT32 MAX_FILE_SEQUENCE = 1048575;
       
       storageFile *file = NULL;
       const STORAGE_FILE_NAME_LIST *fileList = NULL;
       constexpr UINT32 DEFAULT_CAPACITY = 16;
 
-      storageUnit *su = context->getEnv()->dms.getStorageUnit(getSpaceID());
-      SDB_ASSERT(NULL != su, "can not be null");
+      const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
+      storageFileMaintainer sfm(&po, _sid);
 
       if (!args.isValid())
       {
@@ -573,7 +560,7 @@ namespace vessel
             goto error;
          }
 
-         rc = su->openStorageFile(fn, file);
+         rc = sfm.openStorageFile(fn, *file);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to open file:%s, rc:%d", fn.getFileName(), rc);
@@ -693,8 +680,7 @@ namespace vessel
       return;
    }
 
-   INT32 dataStorageFileCluster::_createNewSegment(requestContext *context,
-                                                   UINT32 count)
+   INT32 dataStorageFileCluster::_createNewSegment(UINT32 count)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(dataPageCluster::isOpen(), "must be open");
@@ -705,7 +691,7 @@ namespace vessel
       {
          if (0 == _files.getSize())
          {
-            rc = createNewFile(context);
+            rc = createNewFile();
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to create new storage file:%d", rc);
@@ -728,7 +714,7 @@ namespace vessel
             }
             else
             {
-               rc = createNewFile(context);
+               rc = createNewFile();
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to create new storage file:%d", rc);
@@ -745,15 +731,14 @@ namespace vessel
       goto done;
    }
 
-   INT32 dataStorageFileCluster::createNewFile(requestContext *context)
+   INT32 dataStorageFileCluster::createNewFile()
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
       const storageCoreArgs &args = dataPageCluster::getCoreArgs();
       SDB_ASSERT(args.isValid(), "must be valid");
 
-      storageUnit *su = context->getEnv()->dms.getStorageUnit(getSpaceID());
-      SDB_ASSERT(NULL != su, "can not be null");
+      const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
+      storageFileMaintainer sfm(&po, _sid);
 
       createStorageFileOptions o;
       storageFileName fn;
@@ -778,10 +763,10 @@ namespace vessel
       o.replaceWhenCreate = TRUE;
       o.secretValue = getSecretValue();
 
-      rc = su->createStorageFile(fn, o, slice(), file);
+      rc = sfm.createStorageFile(fn, o, slice(), *file);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to create new file[%d], rc:%d", fn.getFileName(), rc);
+         PD_LOG(PDERROR, "failed to create new file[%s], rc:%d", fn.getFileName(), rc);
          goto error;
       }
 

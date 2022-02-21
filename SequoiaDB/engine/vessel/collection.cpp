@@ -3065,7 +3065,7 @@ namespace vessel
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to register unstable index[%s], rc:%d",
-                desc.getName(), rc);
+                desc.getName().c_str(), rc);
          goto error;
       }
       

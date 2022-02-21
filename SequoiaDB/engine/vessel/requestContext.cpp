@@ -60,11 +60,11 @@ namespace vessel
    {
       SDB_ASSERT(!_blocker.isBlocking(), "unblocking missed");
       SDB_ASSERT(_lpidLatchContext.isEmpty(), "unlocking missed");
-      SDB_ASSERT(NULL == _oplist, "detaching missed");
+      SDB_ASSERT(nullptr == _oplist, "detaching missed");
 
       _unlockAll();
 
-      _oplist = NULL;
+      _oplist = nullptr;
    }
 
    IExecutor *requestContext::getExecutor()const
@@ -188,7 +188,7 @@ namespace vessel
    BOOLEAN requestContext::isSpaceIdLocked(OSS_LATCH_MODE *mode)const
    {
       BOOLEAN r = INVALID_SPACE_ID != _sid;
-      if (r && NULL != mode)
+      if (r && nullptr != mode)
       {
          *mode = _sidMode;
       }
@@ -203,7 +203,7 @@ namespace vessel
       SDB_ASSERT(isSpaceIdLocked(), "lock sid first");
       SDB_ASSERT(!isMbLocked(), "do not relock");
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
-      SDB_ASSERT(NULL != mutex, "can not be null");
+      SDB_ASSERT(nullptr != mutex, "can not be null");
       if (SHARED == mode)
       {
          mutex->lock_r();
@@ -226,7 +226,7 @@ namespace vessel
       SDB_ASSERT(isSpaceIdLocked(), "lock sid first");
       SDB_ASSERT(!isMbLocked(), "do not relock");
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
-      SDB_ASSERT(NULL != mutex, "can not be null");
+      SDB_ASSERT(nullptr != mutex, "can not be null");
 
       BOOLEAN r = FALSE;
       if (SHARED == mode)
@@ -249,8 +249,8 @@ namespace vessel
 
    BOOLEAN requestContext::isMbLocked(OSS_LATCH_MODE *mode)const
    {
-      BOOLEAN r = NULL != _mbMutex;
-      if (r && NULL != mode)
+      BOOLEAN r = nullptr != _mbMutex;
+      if (r && nullptr != mode)
       {
          *mode = _mbMode;
       }
@@ -272,7 +272,7 @@ namespace vessel
          }
 
          _mbID = INVALID_CL_MB_ID;
-         _mbMutex = NULL;
+         _mbMutex = nullptr;
          _mbMode = SHARED;
       }
       return;
@@ -280,24 +280,24 @@ namespace vessel
 
    void requestContext::attachMbContext(runtimeMbContext *rmc)
    {
-      SDB_ASSERT(NULL != rmc && rmc->isValid(), "can not be invalid");
+      SDB_ASSERT(nullptr != rmc && rmc->isValid(), "can not be invalid");
       SDB_ASSERT(isMbLocked(), "lock mb first");
       SDB_ASSERT(rmc->getGlobalId().getMbId() == _mbID, "must be same mb");
-      SDB_ASSERT(NULL == _rmc, "do not reattach");
+      SDB_ASSERT(nullptr == _rmc, "do not reattach");
       _rmc = rmc;
    }
 
    void requestContext::detachMbContext()
    {
       SDB_ASSERT(isOpen(), "can not be closed");
-      if (NULL != _rmc)
+      if (nullptr != _rmc)
       {
          if (!_rmc->getRidLatchContext().isEmpty())
          {
             unlockRids();
          }
 
-         _rmc = NULL;
+         _rmc = nullptr;
       }
    }
 
@@ -531,7 +531,7 @@ namespace vessel
 
    BOOLEAN requestContext::isInProcessingOplist()const
    {
-      return NULL != _oplist && !(_oplist->isReadonly());
+      return nullptr != _oplist && !(_oplist->isReadonly());
    }
 
    void requestContext::swtichOplist(atomicOperationList *newOplist,
@@ -695,7 +695,7 @@ namespace vessel
       recordIdLatchKey key(_sid, _mbID, rid);
       objectLatchHelper<recordIdLatchKey> lh;
 #if defined (_DEBUG)
-      SDB_ASSERT(!_rmc->getRidLatchContext().test(key, NULL), "invalid waiting");
+      SDB_ASSERT(!_rmc->getRidLatchContext().test(key, nullptr), "invalid waiting");
 #endif//_DEBUT
       lh.testNotExistsOrWait(getEnv()->ridLatchMap, key, mode);
    }
@@ -739,7 +739,7 @@ namespace vessel
                                           const DPS_TRANSLOCK_TYPE &mode)
    {
       INT32 rc = SDB_OK;
-      ITransLockConsole *console = NULL;
+      ITransLockConsole *console = nullptr;
       dpsTransLockId lockId;
       dmsRecordID dmsRid;
 
@@ -758,7 +758,7 @@ namespace vessel
       console = getOuterResource()->transLockConsole;
       dmsRid = rid.toDMSRid();
       lockId = dpsTransLockId(_sid, _mbID, &dmsRid);
-      rc = console->acquire(getExecutor(), lockId, mode, NULL, NULL, NULL);
+      rc = console->acquire(getExecutor(), lockId, mode, nullptr, nullptr, nullptr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock rid:%s, rc:%d", rid.toString().c_str(), rc);
@@ -776,7 +776,7 @@ namespace vessel
                                              BOOLEAN &locked)
    {
       INT32 rc = SDB_OK;
-      ITransLockConsole *console = NULL;
+      ITransLockConsole *console = nullptr;
       dpsTransLockId lockId;
       dmsRecordID dmsRid;
       locked = FALSE;
@@ -796,7 +796,7 @@ namespace vessel
       console = getOuterResource()->transLockConsole;
       dmsRid = rid.toDMSRid();
       lockId = dpsTransLockId(_sid, _mbID, &dmsRid);
-      rc = console->tryAcquire(getExecutor(), lockId, mode, NULL, NULL);
+      rc = console->tryAcquire(getExecutor(), lockId, mode, nullptr, nullptr);
       if (SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc)
       {
          rc = SDB_OK;
@@ -823,13 +823,13 @@ namespace vessel
       dpsTransLockId lockId;
       dmsRecordID dmsRid = rid.toDMSRid();
       lockId = dpsTransLockId(_sid, _mbID, &dmsRid);
-      getOuterResource()->transLockConsole->release(getExecutor(), lockId, FALSE, NULL);
+      getOuterResource()->transLockConsole->release(getExecutor(), lockId, FALSE, nullptr);
    }
 
    void requestContext::releaseAllTransLock()
    {
       SDB_ASSERT(isOpen(), "can not be closed");
-      getOuterResource()->transLockConsole->releaseAll(getExecutor(), NULL);
+      getOuterResource()->transLockConsole->releaseAll(getExecutor(), nullptr);
    }
 }//namespace vessel
 }//namespace engine

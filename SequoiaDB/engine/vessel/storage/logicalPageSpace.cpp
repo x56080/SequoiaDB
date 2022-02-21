@@ -202,7 +202,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _dpc->open(context, getSpaceType(),
+      rc = _dpc->open(_sid, getSpaceType(),
                       baseFile->getCommonHeadInMem().secretValue,
                       NULL, o.dataArgs,
                       getStorageOptions());
@@ -302,7 +302,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _dpc->open(context, getSpaceType(),
+      rc = _dpc->open(_sid, getSpaceType(),
                       base->getCommonHeadInMem().secretValue,
                       &loader, dataArgs,
                       getStorageOptions());
@@ -1067,7 +1067,7 @@ namespace vessel
       }
 
       /// lpid unmapped
-      rc = _dpc->allocatePage(context, pid);
+      rc = _dpc->allocatePage(pid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to allocate page from page cluster:%d", rc);
@@ -1163,7 +1163,7 @@ namespace vessel
       mappedLogicalPageId mpid;
 
       /// 1. allocate new pid
-      rc = _dpc->allocatePage(context, pid);
+      rc = _dpc->allocatePage(pid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to allocate data page:%d", rc);
@@ -1662,7 +1662,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _dpc->allocatePages(context, pids.getSize(), pids.data());
+      rc = _dpc->allocatePages(pids.getSize(), pids.data());
       if (SDB_OK != rc)
       {
          freeLpidsInMem(context, lpids);
@@ -2175,14 +2175,14 @@ namespace vessel
             }
          }
 
-         rc = _dpc->ensurePidSpace(context, slot.pid);
+         rc = _dpc->ensurePidSpace(slot.pid);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to ensure pid[%d] space:%d", slot.pid, rc);
             goto error;
          }
 
-         rc = _dpc->occupyPage(context, slot.pid);
+         rc = _dpc->occupyPage(slot.pid);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to occupy pid[%d] in storage, rc:%d",
@@ -2474,14 +2474,14 @@ namespace vessel
             }
          }
 
-         rc = _dpc->ensurePidSpace(context, mid.getPid());
+         rc = _dpc->ensurePidSpace(mid.getPid());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to ensure pid[%d] space:%d", mid.getPid(), rc);
             goto error;
          }
 
-         rc = _dpc->occupyPage(context, mid.getPid());
+         rc = _dpc->occupyPage(mid.getPid());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to occupy page[%d] in storage:%d", mid.getPid(), rc);
@@ -2596,14 +2596,14 @@ namespace vessel
             goto error;
          }
 
-         rc = _dpc->ensurePidSpace(context, mid.getPid());
+         rc = _dpc->ensurePidSpace(mid.getPid());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to ensure pid[%d] in storage:%d", mid.getPid(), rc);
             goto error;
          }
 
-         rc = _dpc->occupyPage(context, mid.getPid());
+         rc = _dpc->occupyPage(mid.getPid());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to occupy pid[%d] in storeage:%d", mid.getPid(), rc);

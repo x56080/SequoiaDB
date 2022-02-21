@@ -46,24 +46,25 @@ namespace engine
 {
 namespace vessel
 {
-   static const UINT32 STORAGE_FILE_COMMON_HEAD_SIZE = 65536;
-   static const UINT32 STORAGE_FILE_USER_DEFINED_HEAD_SIZE = 65536;
-   static const UINT32 SOTRAGE_FILE_TOTAL_HEAD_SIZE = STORAGE_FILE_COMMON_HEAD_SIZE +
+   constexpr UINT32 STORAGE_FILE_COMMON_HEAD_SIZE = 32768;
+   constexpr UINT32 STORAGE_FILE_USER_DEFINED_HEAD_SIZE = 32768;
+   constexpr UINT32 SOTRAGE_FILE_TOTAL_HEAD_SIZE = STORAGE_FILE_COMMON_HEAD_SIZE +
                                                       STORAGE_FILE_USER_DEFINED_HEAD_SIZE;
+   static_assert(65536 == SOTRAGE_FILE_TOTAL_HEAD_SIZE, "must be 64K");
 
-   static const UINT32 STORAGE_FILE_HEAD_VERSION = 1;
+   constexpr UINT32 STORAGE_FILE_HEAD_VERSION = 1;
 
-   static const UINT32 INVALID_FILE_HEAD_VERSION = 0;
+   constexpr UINT32 INVALID_FILE_HEAD_VERSION = 0;
 
-   static const UINT64 STORAGE_FILE_SIZE = (UINT64(4) << 30); /// 4GB
+   constexpr UINT64 STORAGE_FILE_SIZE = (UINT64(4) << 30); /// 4GB
 
-   static const UINT32 STORAGE_FILE_SEGMENT_SIZE_4MB = ((UINT32)4 << 20);
-   static const UINT32 STORAGE_FILE_SEGMENT_SIZE_32MB = ((UINT32)32 << 20);
-   static const UINT32 STORAGE_FILE_SEGMENT_SIZE_64MB = ((UINT32)64 << 20);
-   static const UINT32 STORAGE_FILE_SEGMENT_SIZE_128MB = ((UINT32)128 << 20);
-   static const UINT32 STORAGE_FILE_SEGMENT_SIZE_256MB = ((UINT32)256 << 20);
+   constexpr UINT32 STORAGE_FILE_SEGMENT_SIZE_4MB = ((UINT32)4 << 20);
+   constexpr UINT32 STORAGE_FILE_SEGMENT_SIZE_32MB = ((UINT32)32 << 20);
+   constexpr UINT32 STORAGE_FILE_SEGMENT_SIZE_64MB = ((UINT32)64 << 20);
+   constexpr UINT32 STORAGE_FILE_SEGMENT_SIZE_128MB = ((UINT32)128 << 20);
+   constexpr UINT32 STORAGE_FILE_SEGMENT_SIZE_256MB = ((UINT32)256 << 20);
 
-   static const UINT64 STORAGE_FILE_INVALID_SEQUENCE = OSS_UINT64_MAX;
+   constexpr UINT64 STORAGE_FILE_INVALID_SEQUENCE = OSS_UINT64_MAX;
 
    /// Internal files like detalog may not follow segment sizes here.
    BOOLEAN isValidSegmentSize(UINT32 size);
@@ -225,7 +226,7 @@ namespace vessel
       UINT32 maxPageCountPerSeg = 0;
       UINT32 maxSegmentCountPerFile = 0;
    }; // struct storageFileHead
-   static const UINT32 STORAGE_FILE_HEAD_REAL_SIZE = sizeof(storageFileHead);
+   constexpr UINT32 STORAGE_FILE_HEAD_REAL_SIZE = sizeof(storageFileHead);
 
 #pragma pack()
 } /// end of namespace vessel

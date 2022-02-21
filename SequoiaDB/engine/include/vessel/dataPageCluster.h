@@ -46,7 +46,6 @@ namespace engine
 {
 namespace vessel
 {
-   class requestContext;
    class dataPageCluster : public SDBObject
    {
       public:
@@ -102,7 +101,7 @@ namespace vessel
          }
 
       public:
-         virtual INT32 open(requestContext *context,
+         virtual INT32 open(SPACE_ID sid,
                             SPACE_TYPE type,
                             UINT32 secretValue,
                             const storageFileLoader *loader, 
@@ -113,28 +112,22 @@ namespace vessel
 
          virtual void destroy() = 0;
 
-         virtual INT32 allocatePages(requestContext *context,
-                                     UINT32 count,
+         virtual INT32 allocatePages(UINT32 count,
                                      PAGE_ID *pids) = 0;
 
-         virtual INT32 occupyPages(requestContext *context,
-                                   UINT32 count,
+         virtual INT32 occupyPages(UINT32 count,
                                    const PAGE_ID *pids) = 0;
 
          virtual void releasePages(UINT32 count,
                                    const PAGE_ID *pids) = 0;
 
-         virtual INT32 ensureSegmentCount(requestContext *context,
-                                          UINT32 totalSegmentCount) = 0;
+         virtual INT32 ensureSegmentCount(UINT32 totalSegmentCount) = 0;
 
-         virtual INT32 ensurePidSpace(requestContext *context,
-                                      PAGE_ID pid) = 0;
+         virtual INT32 ensurePidSpace(PAGE_ID pid) = 0;
 
       public:
-         INT32 allocatePage(requestContext *context,
-                            PAGE_ID &pid);
-         INT32 occupyPage(requestContext *context,
-                          PAGE_ID pid);
+         INT32 allocatePage(PAGE_ID &pid);
+         INT32 occupyPage(PAGE_ID pid);
          void releasePage(PAGE_ID pid);
 
       public:

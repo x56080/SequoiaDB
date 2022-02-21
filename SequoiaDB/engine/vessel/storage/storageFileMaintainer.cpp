@@ -332,7 +332,7 @@ namespace vessel
    }
 
    BOOLEAN storageFileMaintainer::buildFullDir(SPACE_TYPE type,
-                                             ossPoolString &path)const
+                                               ossPoolString &path)const
    {
       BOOLEAN r = FALSE;
       const std::string *p = nullptr;
@@ -344,14 +344,14 @@ namespace vessel
          p = &(_path->dataPath);
          break;
       case SPACE_TYPE_IDX:
-         p = &(_path->indexPath);
+         p = &(_path->autoGetIndexPath());
          break;
 
       default:
          break;
       }
 
-      if (nullptr == p)
+      if (nullptr == p || p->empty())
       {
          PD_LOG(PDERROR, "failed to get path of type[%d]", type);
          goto done;

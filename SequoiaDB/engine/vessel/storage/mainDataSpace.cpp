@@ -104,14 +104,14 @@ namespace vessel
       builder.buildMappingLog(psv, 1, &mid);
 
       SDB_ASSERT(0 == _storage.getTotalSegmentCount(), "must be empty");
-      rc = _storage.ensureSegmentCount(context, 1);
+      rc = _storage.ensureSegmentCount(1);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to extend storage:%d", rc);
          goto error;
       }
 
-      rc = _storage.occupyPage(context, pid);
+      rc = _storage.occupyPage(pid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to occupy meta page pid:%d", rc);

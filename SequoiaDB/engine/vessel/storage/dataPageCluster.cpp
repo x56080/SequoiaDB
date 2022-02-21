@@ -43,16 +43,14 @@ namespace engine
 {
 namespace vessel
 {
-   INT32 dataPageCluster::allocatePage(requestContext *context,
-                                       PAGE_ID &pid)
+   INT32 dataPageCluster::allocatePage(PAGE_ID &pid)
    {
-      return allocatePages(context, 1, &pid);
+      return allocatePages(1, &pid);
    }
 
-   INT32 dataPageCluster::occupyPage(requestContext *context,
-                                     PAGE_ID pid)
+   INT32 dataPageCluster::occupyPage(PAGE_ID pid)
    {
-      return occupyPages(context, 1, &pid);
+      return occupyPages(1, &pid);
    }
 
    void dataPageCluster::releasePage(PAGE_ID pid)
