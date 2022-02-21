@@ -69,6 +69,9 @@ namespace vessel
                                 BOOLEAN removeTmpFile,
                                 STORAGE_FILE_NAME_LIST &fl);
 
+   BOOLEAN buildSpaceDirName(SPACE_ID sid, UINT32 bufLen, CHAR *buf);
+   BOOLEAN parseSpaceDirName(const strSlice &dirName, SPACE_ID *sid);
+
 }//namespace vessel
 }//namespace engine
 

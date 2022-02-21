@@ -264,5 +264,61 @@ namespace vessel
    error:
       goto done;
    }
+
+   BOOLEAN buildSpaceDirName(SPACE_ID sid, UINT32 bufLen, CHAR *buf)
+   {
+      BOOLEAN r = FALSE;
+      if (INVALID_SPACE_ID == sid ||
+          MAX_SPACE_ID < sid)
+      {
+         goto done;
+      }
+      else if (bufLen < (MAX_SPACE_DIR_LEN + 1) ||
+               nullptr == buf)
+      {
+         goto done;
+      }
+
+      ossMemset(buf, 0, MAX_SPACE_DIR_LEN + 1);
+      ossSnprintf(buf, MAX_SPACE_DIR_LEN + 1, "%s%d",
+                  DIR_NAME_PREFIX, sid);
+      
+      r = TRUE;
+   done:
+      return r;
+   }
+
+   BOOLEAN parseSpaceDirName(const strSlice &dirName, SPACE_ID *sid)
+   {
+      BOOLEAN r = FALSE;
+      UINT32 digit = 0;
+      /// _cs_<space id>
+      if (dirName.strLen() <= DIR_NAME_PREFIX_LEN)
+      {
+         goto done;
+      }
+      else if (0 != ossStrncmp(DIR_NAME_PREFIX, dirName.str(), DIR_NAME_PREFIX_LEN))
+      {
+         goto done;
+      }
+      else if (!utilStrIsDigit(dirName.str() + DIR_NAME_PREFIX_LEN))
+      {
+         goto done;
+      }
+
+      digit = ossAtoi(dirName.str() + DIR_NAME_PREFIX_LEN);
+      if (MAX_SPACE_ID < digit)
+      {
+         goto done;
+      }
+
+      r = TRUE;
+      if (NULL != sid)
+      {
+         *sid = (SPACE_ID)digit;
+      }
+   done:
+      return r;
+   }
 }//namespace vessel
 }//namespace engine
