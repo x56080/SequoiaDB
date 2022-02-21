@@ -211,9 +211,7 @@ TEST_F(update_test, base_update_test2)
    bson::BSONObj pattern = BSON("$inc" << BSON("a" << 1));
    bsonRecordUpdater updater;
    DATA_CURSOR_PTR cursor;
-   indexParameters params;
-   params.type = INDEX_TYPE_BTREE;
-   bson::BSONObj indexDef = indexTestUtil::createIndexObj("index", params, BSON("a" << 1));
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_BTREE, "index", TRUE, BSON("a" << 1));
 
    mthModifier modifier;
    rc = modifier.loadPattern(pattern);

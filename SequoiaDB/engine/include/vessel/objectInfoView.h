@@ -73,18 +73,6 @@ namespace vessel
          dmsStripingRange stripingRange;
 
    };//class clInfoView
-
-   class indexInfoView : public SDBObject
-   {
-      public:
-         indexInfoView(){}
-         ~indexInfoView(){}
-
-      public:
-         indexIdentifier indexId;
-         UINT32 flags = 0;
-         std::string name;
-   };//class indexInfoView
 }
 }
 

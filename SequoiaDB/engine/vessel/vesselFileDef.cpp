@@ -169,14 +169,14 @@ namespace vessel
 
    UINT32 getShadowSuffixType(const CHAR *shadowSuffix)
    {
-      UINT32 t = INVALID_FILE_SHADOW_SUFFIX;
+      UINT16 t = INVALID_FILE_SHADOW_SUFFIX;
       SDB_ASSERT(NULL != shadowSuffix, "can not be null");
-      static const UINT32 _SIZE = sizeof(SHADOW_SUFFIX_ARRAY) / sizeof(strSlice);
+      static const UINT16 _SIZE = sizeof(SHADOW_SUFFIX_ARRAY) / sizeof(strSlice);
       if (OSS_UNLIKELY(NULL == shadowSuffix))
       {
          goto done;
       }
-      for (UINT32 i = 0; i < _SIZE; ++i)
+      for (UINT16 i = 0; i < _SIZE; ++i)
       {
          const strSlice &s = SHADOW_SUFFIX_ARRAY[i];
          if (0 == ossStrcmp(s.str(), shadowSuffix))
@@ -189,10 +189,10 @@ namespace vessel
       return t;
    }
 
-   BOOLEAN getShadowSuffix(UINT32 t, strSlice &suffix)
+   BOOLEAN getShadowSuffix(UINT16 t, strSlice &suffix)
    {
       BOOLEAN r = FALSE;
-      static const UINT32 _SIZE = sizeof(SHADOW_SUFFIX_ARRAY) / sizeof(strSlice);
+      static const UINT16 _SIZE = sizeof(SHADOW_SUFFIX_ARRAY) / sizeof(strSlice);
       if (INVALID_FILE_SHADOW_SUFFIX == t ||
           _SIZE <= t)
       {

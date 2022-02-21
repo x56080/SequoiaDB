@@ -155,7 +155,7 @@ namespace vessel
    BOOLEAN storageFileName::build(FILE_TYPE fileType,
                                   SPACE_TYPE spaceType,
                                   UINT32 sequence,
-                                  UINT32 shadowSuffix)
+                                  UINT16 shadowSuffix)
    {
       BOOLEAN r = FALSE;
       fileTypeDescriptor fd;

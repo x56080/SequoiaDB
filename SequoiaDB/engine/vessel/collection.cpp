@@ -331,9 +331,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       INT32 indexSlot = -1;
       runtimeMbContext mbContext;
-      strSlice indexName;
-      indexParameters params;
-      indexKeyPattern keyPattern;
+      indexDescription desc;
 
       if (!isOpen())
       {
@@ -341,66 +339,46 @@ namespace vessel
          goto error;
       }
       else if (OSS_UNLIKELY(NULL == context ||
-                            !context->isMbLocked()))
+                            !context->isMbLocked() ||
+                            !adjunct.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      indexName.reset(adjunct.getStringField(IXM_NAME_FIELD));
-      if (indexName.empty())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      if (!params.extractFromBson(adjunct))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = keyPattern.set(adjunct.getObjectField(IXM_KEY_FIELD));
+      rc = desc.extractFromBson(adjunct);
       if (SDB_OK != rc)
       {
-         goto error;
-      }
-
-      if (INDEX_TYPE_BTREE == params.type &&
-          params.isPrefixCompressionEnabled() &&
-          keyPattern.getKeyCount() < params.btreeMaxPrefixFields)
-      {
-         rc = SDB_INVALIDARG;
+         PD_LOG(PDERROR, "failed to extract index description, rc:%d", rc);
          goto error;
       }
 
       mbContext.init(_record, _collectionSpace->getIdentifier());
       context->attachMbContext(&mbContext);
 
-      rc = _createIndex(context, indexName, keyPattern, params, indexSlot);
+      rc = _createIndex(context, desc, indexSlot);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to create index[%s]:%d", indexName.str(), rc);
+         PD_LOG(PDERROR, "failed to create index[%s]:%d", 
+                desc.getName().c_str(), rc);
          goto error;
       }
-
-      rc = buildIndexInContext(context, indexSlot, params.type, o);
+   
+      rc = buildIndexInContext(context, indexSlot, desc.getType(), o);
       if (SDB_OK != rc)
       {
          if (SDB_VESSEL_INDEX_BUILDING_TERMINATED != rc)
          {
-            PD_LOG(PDERROR, "failed to build index[%s], rc:%d",
-                   indexName.str(), rc);
+            PD_LOG(PDERROR, "failed to build index[%s], rc:%d", rc);
          }
          else
          {
-            PD_LOG(PDINFO, "index[%s] creating terminated", indexName.str());
+            PD_LOG(PDINFO, "index[%s] creating terminated");
          }
          INT32 tmpRc = rollbackCreatingIndex(context, indexSlot, rc);
          if (SDB_OK != tmpRc)
          {
-            PD_LOG(PDERROR, "failed to rollback index creating[%s], rc:%d",
-                   indexName.str(), rc);
+            PD_LOG(PDERROR, "failed to rollback index creating[%s], rc:%d", rc);
             ossPanic();
          }
          goto error;
@@ -2995,21 +2973,17 @@ namespace vessel
    }
 
    INT32 collection::_createIndex(requestContext *context,
-                                  const strSlice &indexName,
-                                  const indexKeyPattern &pattern,
-                                  const indexParameters &params,
+                                  const indexDescription &desc,
                                   INT32 &indexSlot)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");   
       SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(!indexName.empty(), "can not be empty");
-      SDB_ASSERT(pattern.isValid(), "must be valid");
-      SDB_ASSERT(params.isValid(), "must be valid");
+      SDB_ASSERT(desc.isValid(), "can not be invalid");
 
       indexSlot = -1;
-      bson::BSONObj obj;
       slice objSlice;
+      bson::BSONObj obj;
       ossPoolString fullName;
       strSlice nameSlice;
       UINT32 indexId = INVALID_LOGICAL_INDEX_ID;
@@ -3032,7 +3006,7 @@ namespace vessel
          goto error;
       }
 
-      rc = testIfIndexDuplicated(context, indexName, pattern, duplicated);
+      rc = testIfIndexDuplicated(context, desc.getNameSlice(), desc.getPattern(), duplicated);
       if (SDB_OK != rc)
       { 
          PD_LOG(PDERROR, "failed to test if index duplicated:%d", rc);
@@ -3045,7 +3019,7 @@ namespace vessel
          goto error;
       }
 
-      obj = indexUtils::buildIndexDefObj(indexName, pattern, params);
+      obj = indexUtils::buildIndexDefObj(desc);
       if ((INT32)MAX_INDEX_DEF_OBJ_SIZE < obj.objsize())
       {
          PD_LOG(PDERROR, "index def obj size over max size:%d", obj.objsize());
@@ -3063,7 +3037,7 @@ namespace vessel
       SDB_ASSERT(isValidIndexSlot(indexSlot) && (INVALID_LOGICAL_INDEX_ID != indexId),
                  "impossible");
 
-      rc = indexObj.shallowInit(indexId, indexName, pattern, params);
+      rc = indexObj.init(indexSlot, indexId, desc);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init index obj:%d", rc);
@@ -3071,7 +3045,7 @@ namespace vessel
       }
 
       rc = commitCreateIndexLog(context, nameSlice,
-                               indexId, indexSlot, objSlice);
+                                indexId, indexSlot, objSlice);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to commit create index log:%d", rc);
@@ -3091,7 +3065,7 @@ namespace vessel
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to register unstable index[%s], rc:%d",
-                indexName.str(), rc);
+                desc.getName(), rc);
          goto error;
       }
       
@@ -3102,7 +3076,8 @@ namespace vessel
       if (rollbackLog)
       {
          SDB_ASSERT(SDB_OK != rc, "impossible");
-         INT32 tmpRc = commitCreateIndexEndLog(context, nameSlice, indexName,
+         INT32 tmpRc = commitCreateIndexEndLog(context, nameSlice, 
+                                               desc.getNameSlice(),
                                                indexId, indexSlot, rc);
          if (SDB_OK != tmpRc)
          {
@@ -3116,7 +3091,7 @@ namespace vessel
          if (SDB_OK != tmpRc)
          {
             PD_LOG(PDSEVERE, "failed to rollback index[%d] def page:%d",
-                  indexSlot, tmpRc);
+                   indexSlot, tmpRc);
             ossPanic();
          }
       }
@@ -3408,7 +3383,7 @@ namespace vessel
             record = scanner.getCurrentRecord();
 
             rc = keyGen(ic->getObj().getPattern().getPattern(), 
-                        ic->getObj().getParams().notArray,
+                        ic->getObj().getDescription().isNotArray(),
                         record,
                         keySet);
             if (SDB_OK != rc)
@@ -3518,7 +3493,7 @@ namespace vessel
             batch.reset();
             recordID rid = scanner.getCurrentRid();
             rc = keyGen(ic->getObj().getPattern().getPattern(), 
-                        ic->getObj().getParams().notArray,
+                        ic->getObj().getDescription().isNotArray(),
                         scanner.getCurrentRecord(),
                         keySet);
             if (SDB_OK != rc)
@@ -4016,7 +3991,7 @@ namespace vessel
          }
 
          rc = keyGen(ic->getObj().getPattern().getPattern(),
-                     ic->getObj().getParams().notArray,
+                     ic->getObj().getDescription().isNotArray(),
                      record, keySet);
          if (SDB_OK != rc)
          {
@@ -4087,7 +4062,7 @@ namespace vessel
          }
 
          rc = keyGen(ic->getObj().getPattern().getPattern(),
-                     ic->getObj().getParams().notArray,
+                     ic->getObj().getDescription().isNotArray(),
                      oldRecord, keySetToRemove);
          if (SDB_OK != rc)
          {
@@ -4096,7 +4071,7 @@ namespace vessel
          }
 
          rc = keyGen(ic->getObj().getPattern().getPattern(),
-                     ic->getObj().getParams().notArray,
+                     ic->getObj().getDescription().isNotArray(),
                      newRecord, keySetToInsert);
          if (SDB_OK != rc)
          {
@@ -4142,7 +4117,7 @@ namespace vessel
          }
 
          rc = keyGen(ic->getObj().getPattern().getPattern(),
-                        ic->getObj().getParams().notArray,
+                        ic->getObj().getDescription().isNotArray(),
                         oldRecord, keySetToRemove);
          if (SDB_OK != rc)
          {
@@ -4532,7 +4507,7 @@ namespace vessel
          rdpRecordScanner recordScanner;
          slice recordBody;
          indexScanEntry entry;
-         rc = entry.init(ic->getObj().getParams().type, batch[i]);
+         rc = entry.init(ic->getObj().getIndexType(), batch[i]);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to parse index scan entry:%d", rc);
@@ -4614,7 +4589,7 @@ namespace vessel
          for (UINT32 i = pushed; i < batch.getRowCount(); ++i)
          {
             indexScanEntry entry;
-            rc = entry.init(ic->getObj().getParams().type, batch[i]);
+            rc = entry.init(ic->getObj().getIndexType(), batch[i]);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to parse index scan entry:%d", rc);

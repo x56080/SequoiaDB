@@ -135,9 +135,8 @@ static void insert_test_nonunique_index(INDEX_TYPE type)
    closeDBOptions co;
    co.closeMode = closeDBOptions::CLOSE_MODE_IMMDIETE;
 
-   indexParameters params;
-   params.type = type;
-   bson::BSONObj indexDef = indexTestUtil::createIndexObj("index1", params, BSON("a" << 1));
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(type, "index1", 
+                                                          FALSE, BSON("a" << 1));
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);

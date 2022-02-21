@@ -102,9 +102,6 @@ TEST_F(index_btree_test, test1)
    options.path.lobMetaPath = DATA_PATH;
    options.path.lobPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
-
-   indexParameters indexParams;
-   indexParams.type = INDEX_TYPE_BTREE;
    
    DATA_COLLECTION_PTR cl;
    
@@ -132,8 +129,8 @@ TEST_F(index_btree_test, test1)
       ss << "index" << i;
       std::string indexName = ss.str();
       bson::BSONObj patternObj = BSON(indexName.c_str() << 1);
-      bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName.c_str(),
-                                                             indexParams, patternObj);
+      bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_BTREE, indexName.c_str(),
+                                                             FALSE, patternObj);
       rc = cl->createIndex(&session, dmsBuildIndexOptions(), indexDef);
       ASSERT_EQ(SDB_OK, rc);
    }
@@ -143,8 +140,8 @@ TEST_F(index_btree_test, test1)
       ss << "index" << 64;
       std::string indexName = ss.str();
       bson::BSONObj patternObj = BSON(indexName.c_str() << 1);
-      bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName.c_str(),
-                                                             indexParams, patternObj);
+      bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_BTREE, indexName.c_str(),
+                                                             FALSE, patternObj);
       rc = cl->createIndex(&session, dmsBuildIndexOptions(), indexDef);
       ASSERT_EQ(SDB_DMS_MAX_INDEX, rc);
    }
@@ -206,9 +203,6 @@ TEST_F(index_btree_test, test2)
    options.path.lobPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
-   indexParameters indexParams;
-   indexParams.type = INDEX_TYPE_BTREE;
-
    DATA_COLLECTION_PTR cl;
    bson::BufBuilder builder;
 
@@ -226,7 +220,8 @@ TEST_F(index_btree_test, test2)
 
    const CHAR *indexName = "a0";
    bson::BSONObj patternObj = BSON(indexName << 1);
-   bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName, indexParams, patternObj);
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_BTREE, indexName,
+                                                          FALSE, patternObj);
    rc = cl->createIndex(&session, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);
 
@@ -260,8 +255,6 @@ TEST_F(index_btree_test, test3)
    options.path.lobPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
-   indexParameters indexParams;
-   indexParams.type = INDEX_TYPE_BTREE;
    DATA_COLLECTION_PTR cl;
    bson::BufBuilder builder;
 
@@ -279,7 +272,8 @@ TEST_F(index_btree_test, test3)
 
    const CHAR *indexName = "a0";
    bson::BSONObj patternObj = BSON(indexName << 1);
-   bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName, indexParams, patternObj);
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_BTREE, indexName,
+                                                          FALSE, patternObj);
    rc = cl->createIndex(&session, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);
 

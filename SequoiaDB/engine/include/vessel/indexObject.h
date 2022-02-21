@@ -38,9 +38,10 @@
 
 #include "vessel/indexKeyPattern.h"
 #include "vessel/indexDef.h"
-#include "vessel/indexParameters.h"
+#include "vessel/indexDescription.h"
 #include "ossMemPool.hpp"
 #include "vessel/indexEntryPage.h"
+#include "vessel/objectIdentifier.h"
 
 namespace engine
 {
@@ -52,46 +53,47 @@ namespace vessel
          indexObject(){}
          ~indexObject(){}
          indexObject(const indexObject &) = delete;
-         indexObject &operator=(const indexObject &) = delete;
+         indexObject &operator=(const indexObject &o)
+         {
+            _indexId = o._indexId;
+            _desc = o._desc;
+            _btreeRootSplitTimes = o._btreeRootSplitTimes;
+            _btreeRoot = o._btreeRoot;
+            return *this;
+         }
 
       public:
-         INT32 shallowInit(UINT32 indexId,
-                           const strSlice &indexName,
-                           const indexKeyPattern &pattern,
-                           const indexParameters &params,
-                           PAGE_ID btreeRoot=INVALID_PAGE_ID);
-
-         void shallowCopy(const indexObject &o);
+         INT32 init(INT32 indexSlot,
+                    UINT32 indexLid,
+                    const indexDescription &desc,
+                    PAGE_ID btreeRoot=INVALID_PAGE_ID);
 
          void fini();
 
-         void getOwned();
-
-         BOOLEAN isOwned()const;
-
          OSS_INLINE BOOLEAN isValid()const
          {
-            return INVALID_LOGICAL_INDEX_ID != _indexId;
+            return _indexId.isValid() &&
+                   _desc.isValid();
          }
-         OSS_INLINE UINT32 getIndexID()const
+         OSS_INLINE UINT32 getLogicalIndexId()const
          {
-            return _indexId;
+            return _indexId.getLogicalIndexId();
          }
          OSS_INLINE const strSlice &getIndexName()const
          {
-            return _nameSlice;
-         }
-         OSS_INLINE const indexParameters &getParams()const
-         {
-            return _params;
+            return _desc.getNameSlice();
          }
          OSS_INLINE const indexKeyPattern &getPattern()const
          {
-            return _pattern;
+            return _desc.getPattern();
          }
          OSS_INLINE INDEX_TYPE getIndexType()const
          {
-            return _params.type;
+            return _desc.getType();
+         }
+         OSS_INLINE const indexDescription &getDescription()const
+         {
+            return _desc;
          }
          OSS_INLINE UINT32 getBtreeRootSplitTimes()const
          {
@@ -110,11 +112,8 @@ namespace vessel
          void removeBtreeRoot();
 
       private:
-         UINT32 _indexId = INVALID_LOGICAL_INDEX_ID;
-         strSlice _nameSlice;
-         ossPoolString _indexName;
-         indexKeyPattern _pattern;
-         indexParameters _params;/// TODO: save compacted params
+         indexIdentifier _indexId;
+         indexDescription _desc;
          UINT32 _btreeRootSplitTimes = 0;
          PAGE_ID _btreeRoot = INVALID_PAGE_ID;
    };//class indexObject

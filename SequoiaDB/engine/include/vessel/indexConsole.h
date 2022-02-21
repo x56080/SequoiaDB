@@ -93,11 +93,6 @@ namespace vessel
                                  PAGE_ID lpid,
                                  INDEX_STATUS status);
 
-         INT32 getOwnedIndexObj(requestContext *context,
-                                INT32 indexSlot,
-                                indexObject &obj,
-                                indexEntryPageHead *head=NULL);
-
          INT32 loadIndexesWhenStartup(requestContext *context,
                                       indexContextMap *indexes);
 

@@ -122,11 +122,9 @@ void delete_test1(INDEX_TYPE type)
    DATA_COLLECTION_PTR handler;
    UINT32 count = 10000;
 
-   indexParameters params;
-   params.type = type;
-
    bson::BSONObj pattern = BSON("a" << 1);
-   bson::BSONObj indexDef = indexTestUtil::createIndexObj("index", params, pattern);
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(type, "index", 
+                                                          FALSE, pattern);
 
    bson::BSONObjBuilder builder;
 
@@ -227,11 +225,9 @@ void delete_test2(INDEX_TYPE type)
    DATA_COLLECTION_PTR handler;
    INT32 count = 10000;
 
-   indexParameters params;
-   params.type = type;
-
    bson::BSONObj pattern = BSON("a" << 1);
-   bson::BSONObj indexDef = indexTestUtil::createIndexObj("index", params, pattern);
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(type, "index", 
+                                                          FALSE, pattern);
    bson::BSONObjBuilder builder;
 
    rc = db.open(&session, &resource, options);
@@ -405,12 +401,11 @@ void partial_delete(INDEX_TYPE type)
 
    DATA_COLLECTION_PTR handler;
    UINT32 count = 10000;
-   indexParameters params;
-   params.type = type;
+
    bson::BSONObj pattern = BSON("a" << 1);
    const CHAR *indexName = "index";
-   bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName,
-                                                          params, pattern);
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(type, "index", 
+                                                          FALSE, pattern);
 
    bson::BSONObjBuilder builder;
 
@@ -542,14 +537,12 @@ void backward_delete(INDEX_TYPE type)
 
    ossPoolVector<dmsRecordID> rids;
 
-   indexParameters params;
-   params.type = type;
-
    bson::BSONObjBuilder builder;
 
    bson::BSONObj pattern = BSON("a" << 1);
    const CHAR *indexName = "index";
-   bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName, params, pattern);
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(type, "index", 
+                                                          FALSE, pattern);
    
 
    rc = db.open(&session, &resource, options);

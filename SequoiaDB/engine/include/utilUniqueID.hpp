@@ -166,6 +166,12 @@ namespace engine
                utilIsStandaloneIdx( idxUniqueID ) == isStandaloneIdx ) ;
    }
 
+   OSS_INLINE BOOLEAN utilCheckIdxInnerID(utilIdxInnerID idxInnerID)
+   {
+      return UTIL_UNIQUEID_NULL != idxInnerID &&
+             UTIL_IDXINNERID_MAX > idxInnerID;
+   }
+
    struct util_cmp_str
    {
       bool operator() (const char *a, const char *b) const

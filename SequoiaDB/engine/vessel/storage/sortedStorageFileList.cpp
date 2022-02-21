@@ -102,7 +102,7 @@ namespace vessel
    {
       SDB_ASSERT(NULL != l, "can not be null");
       SDB_ASSERT(NULL != r, "can not be null");
-      return l->getFileNameInMem().getSequence() < r->getFileNameInMem().getSequence();
+      return l->getSequence() < r->getSequence();
    }
 
    void sortedStorageFileList::resort()
@@ -125,12 +125,10 @@ namespace vessel
       {
          _list.push_back(file);
       }
-      else if (file->getFileNameInMem().getSequence() <=
-               _list.back()->getFileNameInMem().getSequence())
+      else if (file->getSequence() <= _list.back()->getSequence())
       {
          PD_LOG(PDERROR, "invalid sequence[%lld], last sequence is[%lld]",
-                file->getFileNameInMem().getSequence(),
-                _list.back()->getFileNameInMem().getSequence());
+                file->getSequence(), _list.back()->getSequence());
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
@@ -167,7 +165,7 @@ namespace vessel
       while (!_list.empty())
       {
          storageFile *file = _list.front();
-         if (file->getFileNameInMem().getSequence() < sequence)
+         if (file->getSequence() < sequence)
          {
             PD_LOG(PDINFO, "will destroy file[%s]", file->getFullPath());
             file->destroy();
@@ -204,12 +202,12 @@ namespace vessel
       for (;itr != _list.rend(); ++itr)
       {
          storageFile *tmp = *itr;
-         if (sequence == tmp->getFileNameInMem().getSequence())
+         if (sequence == tmp->getSequence())
          {
             file = tmp;
             break;
          }
-         else if (sequence > tmp->getFileNameInMem().getSequence())
+         else if (sequence > tmp->getSequence())
          {
             break;
          }
@@ -224,12 +222,12 @@ namespace vessel
       for (;itr != _list.end(); ++itr)
       {
          storageFile *tmp = *itr;
-         if (sequence == tmp->getFileNameInMem().getSequence())
+         if (sequence == tmp->getSequence())
          {
             file = tmp;
             break;
          }
-         else if (sequence < tmp->getFileNameInMem().getSequence())
+         else if (sequence < tmp->getSequence())
          {
             break;
          }

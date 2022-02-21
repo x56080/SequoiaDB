@@ -135,13 +135,11 @@ void test1(INDEX_TYPE type)
    DATA_COLLECTION_PTR handler;
    UINT32 count = 1000;
 
-   indexParameters params;
-   params.type = type;
-
    bson::BSONObj pattern = BSON("a" << 1);
    const CHAR *indexName = "index";
 
-   bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName, params, pattern);
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(type, indexName, 
+                                                          FALSE, pattern);
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
@@ -268,13 +266,11 @@ void test2(INDEX_TYPE type)
    DATA_COLLECTION_PTR handler;
    UINT32 count = 1000000;
 
-   indexParameters params;
-   params.type = type;
-
    bson::BSONObj pattern = BSON("a" << 1);
    const CHAR *indexName = "index1";
 
-   bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName, params, pattern);
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(type, indexName, 
+                                                          FALSE, pattern);
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
@@ -367,12 +363,10 @@ void test3(INDEX_TYPE type)
    DATA_COLLECTION_PTR handler;
    UINT32 count = 100000;
 
-   indexParameters params;
-   params.type = type;
-
    bson::BSONObj pattern = BSON("a" << 1);
    const CHAR *indexName = "index1";
-   bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName, params, pattern);
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(type, indexName, 
+                                                          FALSE, pattern);
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
@@ -475,12 +469,9 @@ void test4(INDEX_TYPE type)
    DATA_COLLECTION_PTR handler;
    UINT32 count = 100000;
 
-   indexParameters params;
-   params.type = type;
-
    bson::BSONObj pattern = BSON("a" << 1);
    const CHAR *indexName = "index1";
-   bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName, params, pattern);
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(type, indexName, FALSE, pattern);
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
@@ -579,12 +570,10 @@ void test5(INDEX_TYPE type)
    DATA_COLLECTION_PTR handler;
    UINT32 count = 100000;
 
-   indexParameters params;
-   params.type = type;
-
    bson::BSONObj pattern = BSON("a" << 1);
    const CHAR *indexName = "index1";
-   bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName, params, pattern);
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(type, indexName, 
+                                                          FALSE, pattern);
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
@@ -679,9 +668,6 @@ void multi_index_scan_test(INDEX_TYPE type)
 
    constexpr INT32 indexCount = 26;
 
-   indexParameters params;
-   params.type = type;
-
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
@@ -699,7 +685,7 @@ void multi_index_scan_test(INDEX_TYPE type)
       CHAR indexName[2] = {};
       indexName[0] = 'a' + i;
       bson::BSONObj pattern = BSON(indexName << 1);
-      bson::BSONObj indexDef = indexTestUtil::createIndexObj(indexName, params, pattern);
+      bson::BSONObj indexDef = indexTestUtil::createIndexObj(type, indexName, FALSE, pattern);
       rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
       ASSERT_EQ(SDB_OK, rc);
    }

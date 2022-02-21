@@ -46,7 +46,7 @@
 #include "vessel/freeSpaceMap.h"
 #include "vessel/indexKeyPattern.h"
 #include "vessel/collectionOptions.h"
-#include "vessel/indexParameters.h"
+#include "vessel/indexDescription.h"
 #include "vessel/indexContextMap.h"
 #include "vessel/dmlIndexRequest.h"
 #include "vessel/btreeRebuildingSortElement.h"
@@ -376,9 +376,7 @@ namespace vessel
       private:
 
          INT32 _createIndex(requestContext *context,
-                            const strSlice &indexName,
-                            const indexKeyPattern &pattern,
-                            const indexParameters &params,
+                            const indexDescription &desc,
                             INT32 &indexSlot);
 
          INT32 rollbackCreatingIndex(requestContext *context,

@@ -40,30 +40,26 @@ namespace engine
 {
 namespace vessel
 {
-   INT32 indexObject::shallowInit(UINT32 indexId,
-                                  const strSlice &indexName,
-                                  const indexKeyPattern &pattern,
-                                  const indexParameters &params,
-                                  PAGE_ID btreeRoot)
+   INT32 indexObject::init(INT32 indexSlot, 
+                           UINT32 indexLid,
+                           const indexDescription &desc,
+                           PAGE_ID btreeRoot)
    {
       INT32 rc = SDB_OK;
       fini();
 
-      if (INVALID_LOGICAL_INDEX_ID == indexId ||
-          indexName.empty() ||
-          !pattern.isValid() ||
-          !params.isValid())
+      if (!isValidIndexSlot(indexSlot) ||
+          INVALID_LOGICAL_INDEX_ID == indexLid ||
+          !desc.isValid())
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      SDB_ASSERT(!(params.isLsmIndex() && INVALID_PAGE_ID != btreeRoot), "impossible");
+      SDB_ASSERT(!(desc.isLsmIndex() && INVALID_PAGE_ID != btreeRoot), "impossible");
 
-      _indexId = indexId;
-      _nameSlice = indexName;
-      _pattern = pattern;
-      _params = params;
+      _indexId.reset(indexSlot, indexLid, desc.getInnerID());
+      _desc = desc;
       _btreeRoot = btreeRoot;
    done:
       return rc;
@@ -71,45 +67,10 @@ namespace vessel
       goto done;
    }
 
-   void indexObject::shallowCopy(const indexObject &o)
-   {
-      fini();
-      if (o.isValid())
-      {
-         _indexId = o._indexId;
-         _nameSlice = o._nameSlice;
-         _pattern = o._pattern;
-         _params = o._params;
-         _btreeRootSplitTimes = o._btreeRootSplitTimes;
-         _btreeRoot = o._btreeRoot;
-      }
-      return;
-   }
-
-   BOOLEAN indexObject::isOwned()const
-   {
-      return !_indexName.empty();
-   }
-
-   void indexObject::getOwned()
-   {
-      SDB_ASSERT(isValid(), "can not be invalid");
-      if (isValid() && !isOwned())
-      {
-         _indexName.assign(_nameSlice.str(), _nameSlice.strLen());
-         _nameSlice.reset(_indexName.c_str(), _indexName.size());
-         _pattern.getOwned();
-      }
-      return;
-   }
-
    void indexObject::fini()
    {
-      _indexId = INVALID_LOGICAL_INDEX_ID;
-      _nameSlice.reset();
-      _indexName.clear();
-      _pattern.reset();
-      _params = indexParameters();
+      _indexId.reset();
+      _desc.reset();
       _btreeRootSplitTimes = 0;
       _btreeRoot = INVALID_PAGE_ID;
       return;
@@ -120,7 +81,7 @@ namespace vessel
    {
       SDB_ASSERT(isValid(), "can not be invalid");
       SDB_ASSERT(INVALID_PAGE_ID != root, "can not be invalid");
-      SDB_ASSERT(INDEX_TYPE_BTREE == _params.type, "must be btree");
+      SDB_ASSERT(INDEX_TYPE_BTREE == _desc.getType(), "must be btree");
       _btreeRoot = root;
       _btreeRootSplitTimes = splitTimes;
       
@@ -135,7 +96,7 @@ namespace vessel
    BOOLEAN indexObject::hasBtreeRoot()const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(INDEX_TYPE_BTREE == _params.type, "must be btree");
+      SDB_ASSERT(INDEX_TYPE_BTREE == _desc.getType(), "must be btree");
       return INVALID_PAGE_ID != _btreeRoot;
    }
 

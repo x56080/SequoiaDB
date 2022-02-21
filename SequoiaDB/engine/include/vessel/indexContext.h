@@ -93,7 +93,7 @@ namespace vessel
          }
          OSS_INLINE UINT32 getLogicalIndexId()const
          {
-            return _obj.getIndexID();
+            return _obj.getLogicalIndexId();
          }
          OSS_INLINE unstableIndexContext *getUnstatbleContext()const
          {
@@ -107,12 +107,13 @@ namespace vessel
 
          OSS_INLINE indexIdentifier getIndexId()const
          {
-            return indexIdentifier(_indexSlot, _obj.getIndexID());
+            return indexIdentifier(_indexSlot, _obj.getLogicalIndexId(), 
+                                   _obj.getDescription().getInnerID());
          }
 
          OSS_INLINE INDEX_TYPE getIndexType()const
          {
-            return _obj.getParams().type;
+            return _obj.getIndexType();
          }
       public:
          INT32 init(INT32 indexSlot,

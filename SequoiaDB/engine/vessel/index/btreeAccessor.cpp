@@ -71,7 +71,7 @@ namespace vessel
                        !context->isMbContextAttached() ||
                        NULL == ic ||
                        !ic->isValid() ||
-                       ic->getObj().getParams().type != INDEX_TYPE_BTREE))
+                       ic->getObj().getIndexType() != INDEX_TYPE_BTREE))
       {
          rc = SDB_INVALIDARG;
          goto error;

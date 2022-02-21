@@ -205,17 +205,19 @@ namespace vessel
    {
       public:
          indexIdentifier(){}
-         explicit indexIdentifier(INT32 slot, UINT32 lid):
-         _indexSlot(slot), _indexLid(lid){}
+         explicit indexIdentifier(INT32 slot, UINT32 lid, utilIdxInnerID innerID):
+         _indexSlot(slot), _indexLid(lid), _indexInnerID(innerID){}
          ~indexIdentifier(){}
 
          indexIdentifier(const indexIdentifier &o):
          _indexSlot(o._indexSlot),
-         _indexLid(o._indexLid){}
+         _indexLid(o._indexLid),
+         _indexInnerID(o._indexInnerID){}
          indexIdentifier &operator=(const indexIdentifier &o)
          {
             _indexSlot = o._indexSlot;
             _indexLid = o._indexLid;
+            _indexInnerID = o._indexInnerID;
             return *this;
          }
 
@@ -234,16 +236,19 @@ namespace vessel
          OSS_INLINE INT32 getIndexSlot()const {return _indexSlot;}
          OSS_INLINE UINT32 getLogicalIndexId()const {return _indexLid;}
          OSS_INLINE void reset(INT32 slot=-1,
-                               UINT32 lid=INVALID_LOGICAL_INDEX_ID)
+                               UINT32 lid=INVALID_LOGICAL_INDEX_ID,
+                               utilIdxInnerID innerID=UTIL_UNIQUEID_NULL)
          {
             _indexSlot = slot;
             _indexLid = lid;
+            _indexInnerID = innerID;
             return;
          }
 
       private:
          INT32 _indexSlot = -1;
          UINT32 _indexLid = INVALID_LOGICAL_INDEX_ID;
+         utilIdxInnerID _indexInnerID = UTIL_UNIQUEID_NULL;
    };//class indexIdentifier
 
 #pragma pack()

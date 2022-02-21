@@ -100,7 +100,7 @@ namespace vessel
          OSS_INLINE BOOLEAN withConstraint()const
          {
             SDB_ASSERT(isValid(), "must be valid");
-            return _index->getObj().getParams().isUnique &&
+            return _index->getObj().getDescription().isUnique() &&
                    _index->isNormal() &&
                    !_toInsert.empty();
          }

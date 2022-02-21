@@ -948,9 +948,8 @@ TEST_F(insert_test, DISABLED_death_test_2)
    rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), cl);
    ASSERT_EQ(SDB_OK, rc);
 
-   indexParameters params;
-   params.type = INDEX_TYPE_BTREE;
-   bson::BSONObj indexDef = indexTestUtil::createIndexObj("index", params, BSON("a" << 1));
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_BTREE, "index", 
+                                                          FALSE, BSON("a" << 1));
    rc = cl->createIndex(&session, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);
 

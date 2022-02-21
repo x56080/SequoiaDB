@@ -107,7 +107,9 @@ namespace vessel
          goto error;
       }
       
-      _fileNameInMem = fn;
+      _fileType = fn.getFileType();
+      _spaceType = fn.getSpaceType();
+      _sequence = fn.getSequence();
    done:
       return rc;
    error:
@@ -421,7 +423,9 @@ namespace vessel
       {
          _shadowSuffix = FILE_SHADOW_SUFFIX_TMP;
       }
-      _fileNameInMem = fn;
+      _fileType = fn.getFileType();
+      _spaceType = fn.getSpaceType();
+      _sequence = fn.getSequence();
       
    done:
       return rc;

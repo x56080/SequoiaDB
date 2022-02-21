@@ -160,8 +160,8 @@ namespace vessel
    BOOLEAN btreeNode::isCompressionDisabled()const
    {
       return !isLeaf() ||
-             !_ic->getObj().getParams().isPrefixCompressionEnabled() ||
-             _depth < _ic->getObj().getParams().btreeMinCompressionDepth;
+             !_ic->getObj().getDescription().isPrefixCompressionEnabled() ||
+             _depth < _ic->getObj().getDescription().getMinCompressionDepth();
    }
 
    UINT32 btreeNode::getKeyDataOffsetToWrite(const btreeNodePageHead *head,
@@ -1560,7 +1560,7 @@ namespace vessel
 
       ixmKeyCompressor::result res;
       ixmKeyCompressor compressor;
-      rc = compressor.initPrefix(_ic->getObj().getParams().btreeMaxPrefixFields,
+      rc = compressor.initPrefix(_ic->getObj().getDescription().getMaxPrefixFields(),
                                  prefix.data());
       if (SDB_OK != rc)
       {

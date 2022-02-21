@@ -348,20 +348,15 @@ namespace vessel
       goto done;
    }
 
-   INT32 indexEntryPageAccessor::getIndexObject(requestContext *context,
-                                              const logicalPageBuffer *lpb,
-                                              indexObject &obj,
-                                              BOOLEAN getOwned,
-                                              indexEntryPageHead *out)const
+   INT32 indexEntryPageAccessor::getIndexDescription(requestContext *context,
+                                                     const logicalPageBuffer *lpb,
+                                                     indexDescription &desc,
+                                                     indexEntryPageHead *out)const
    {
       INT32 rc = SDB_OK;
       const indexEntryPageHead *readableHead = NULL;
       const CHAR *ptr = NULL;
       bson::BSONObj defObj;
-      indexKeyPattern pattern;
-      indexParameters params;
-      strSlice indexName;
-      obj.fini();
 
       if (NULL == context ||
           !context->isMbContextAttached() ||
@@ -413,26 +408,12 @@ namespace vessel
       }
 
       defObj = bson::BSONObj((const CHAR *)ptr);
-      rc = indexUtils::parseIndexDefObj(defObj, &indexName, &pattern, &params);
+      rc = desc.extractFromBson(defObj);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to parse def obj:%d", rc);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to extract description from bson, rc:%d", rc);
          goto error;
-      }
-
-      rc = obj.shallowInit(readableHead->indexLogicalID,
-                           indexName,
-                           pattern, params,
-                           readableHead->btreeRoot);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init index obj:%d", rc);
-         goto error;
-      }
-
-      if (getOwned)
-      {
-         obj.getOwned();
       }
 
       if (NULL != out)
@@ -443,7 +424,6 @@ namespace vessel
    done:
       return rc;
    error:
-      obj.fini();
       goto done;
    }      
 
