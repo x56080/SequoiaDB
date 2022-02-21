@@ -1,58 +1,65 @@
 [^_^]:
     复制组熔断机制
 
-SequoiaDB 巨杉数据库[复制组][replicaSet]是指同一份数据的多个拷贝，其中每一份数据拷贝又被称为数据副本。在系统架构层面上，每个数据副本作为一个独立进程存在，也被称为节点。通常情况下，一个复制组的每份数据副本存放在不同的物理服务器上，数据在同属一个复制组的多台物理服务器之间进行复制同步。
+在 SequoiaDB 巨杉数据库的[复制组][replicaSet]中，所有写入和更新操作均在主节点进行，各备节点通过日志文件与主节点进行数据同步。在节点磁盘空间满、网络异常或其他原因造成不能同步数据时，可能会导致主节点的写操作阻塞。为此，SequoiaDB 提供了容错机制，在发生上述异常的情况下，自动采用降级、限流或剔除节点的方式避免写操作阻塞，以保证业务的正常运行。
 
-SequoiaDB 复制组具有以下优势：  
+##容错诊断##
 
-+ 横向扩展，读写分离     
-在复制组中，所有写入和更新都在主节点上进行，但是读取可能落在一个或多个备节点上，从而提高写入性能（主节点专用于写入更新），并随着备节点数上升同时提高读取效率。   
+在进行容错处理前，数据库需要进行容错诊断，确认是否发生指定类型的故障。用户可通过容错掩码（对应参数 [ftmask][config]）指定需进行容错处理的故障类型。
 
-+ 数据高可用性  
-在单个物理设备故障后，该复制组中其他节点依然能够提供数据服务，从而能够有效避免单点故障问题，满足数据库的高可用性。
+在诊断过程中，数据库将结合故障确认的时间周期（对应参数 [ftconfirmperiod][config]）和故障确认的故障比阈值（对应参数 [ftconfirmratio][config]）确认是否发生故障。如果在时间周期内，故障比阈值超过指定值，则认为故障发生。以参数 ftconfirmperiod=30s、ftconfirmratio=80% 为例，容错数据采样间隔时间固定为 3s，则指定时间周期内将采样 10 次。由于指定的故障比阈值为 80%，10 次采样中如果超过 8 次显示数据异常，数据库会认为故障已发生。
 
-本文档主要介绍复制组间的同步熔断机制，以加深用户对 SequoiaDB 可靠性原理的了解。
+下述将根据参数 ftmask 的取值介绍各类故障的异常确认机制。
 
-数据同步控制策略 
-----
+###NOSPC
 
-在一个复制组中，节点间通过日志文件进行数据同步，所有的备节点会定期将其他数据节点日志文件打包下载到本节点，然后进行日志回放，同步主节点的数据操作。但日志文件同步源并不会局限于主节点，SequoiaDB 期望所有节点的数据版本差距尽可能在一个很小的窗口内，当处于这个窗口内时，所有备节点向主节点请求同步数据，但如果某些节点的数据版本与主节点差距过大，则会选择向其他备节点进行同步。当发生数据版本冲突，则以当前主节点数据版本为准。
+当 ftmask 取值为"NOSPC"，表示处理因磁盘空间不足而发生的故障。数据库将在故障确认周期内多次检查磁盘空间的使用情况。如果采样的数据显示磁盘空间不足，则认为检测到异常。当采样中检测到异常的比率超过故障比阈值，则发生故障。
 
-SequoiaDB 的日志文件是有大小和个数限制的，分别通过配置参数 logfilesz （默认 64MB）和 logfilenum （默认 20 个）进行调整。
->**Note:**  
->
-> 用户修改日志文件大小和个数配置项时，需要离线删除全部日志文件，修改配置文件并启动 SequoiaDB 生效，通常会触发备节点[全量同步][fullSync]。
+###DEADSYNC###
 
-主节点写日志文件是循环写机制，为了避免循环写机制覆盖备节点尚未同步的日志内容，SequoiaDB 支持对数据副本间数据同步策略进行控制（配置参数 syncstrategy），在主节点即将覆盖日志文件时，不同的控制策略会产生不同的控制行为，例如在取值为"keepnormal"或"keepall"下会对业务进行限流限速控制等，从而保证同步日志不会被覆盖，日志被覆盖时，备节点需要进行[全量同步][fullSync]。
+当 ftmask 取值为"DEADSYNC"，表示处理因节点数据不同步而发生的故障。数据库将在故障确认周期内多次检查写操作数据一致性同步等待时间（对应参数 [syncwaittimeout][config]），或主节点停机时等待备节点数据同步的时间（对应参数 [shutdownwaittimeout][config]）是否超时。如果采样的数据显示上述其中一种情况下等待时间超时，则认为检测到异常。当采样中检测到异常的比率超过故障比阈值，则发生故障。
 
-|取值  | 描述  |
-| --- | --- |
-| none |不开启同步控制策略，若主节点处理数据能力远超备节点数据同步能力，则在写操作繁忙场景下，备节点易发生全量同步 |
-| keepnormal |主动降低主节点相对于正常节点的处理速度（可能造成性能影响），但会避免备节点全量同步 | 
-| keepall | 主动降低主节点相对于所有节点的处理速度（可能造成性能影响），但能避免备节点全量同步 |
+###SLOWNODE###
 
->**Note：** 
->
-> - "keepnormal"和"keepall"的区别在于，当有节点异常时"keepall"会降低主节点的处理速度，而"keepnormal"不受异常节点的影响。
-> - syncstrategy 的默认行为为"keepnormal"。
+当 ftmask 取值为"SLOWNODE"，表示处理因节点数据同步过慢而发生的故障。数据库将在故障确认周期内多次检查慢节点检测的日志差阈值（对应参数 [ftslownodethreshold][config]）和日志增量值（对应参数 [ftslownodeincrement][config]）是否在正常范围内。如果采样的数据显示备节点与主节点的日志差阈值超过指定值，且备节点的日志增量值未达到指定值，则认为检测到异常。当采样中检测到异常的比率超过故障比阈值，则发生故障。
 
-备节点剔除机制  
-----
-备节点向主节点请求同步数据时，如果请求的同步日志在对应主节点未能找到，则该备节点会自动从复制组中被剔除，以保证集群正常工作。
+###NONE###
 
-节点心跳机制  
-----
-在同一个复制组中，所有节点两两之间互为[心跳][beat]节点组。一个节点组中任一节点发送心跳报文到对端节点失败，则会认为对端节点异常，继而将对端节点从复制组中剔除。如果异常节点是主节点，则根据实际情况决定是否触发重新选举。 
+当 ftmask 取值为"NONE"，表示关闭所有容错处理。数据库将不对任何操作进行报错，易触发全量同步。
 
-小结
----
-SequoiaDB 在复制组层面上的一系列控制机制，有效地保证复制组数据安全可靠，能够满足于对数据安全可靠性有一定要求的场景。
+###ALL###
+
+当 ftmask 取值为"ALL"，表示开启所有容错处理。
+
+##容错处理##
+
+容错诊断后，容错确认信息会通过[心跳][election]在主备节点间传递。用户可以通过[数据库快照][SDB_SNAP_DATABASE]的字段 FTStatus 确认容错状态。各节点确认容错状态后，数据库将根据容错级别对不同 [ReplSize][createCL] 取值的写操作进行报错或降级处理。用户可通过参数 [ftlevel][config] 指定容错级别。
+
+下述将根据参数 ftlevel 的取值介绍不同容错级别的容错处理机制。
+
+###熔断###
+
+当 ftlevel 的取值为 1，数据库将严格按照 ReplSize 的取值进行写操作，对于不能满足 ReplSize 规则的写操作均报错处理。以三副本为例，当指定集合的 ReplSize 为 3 时，如果复制组中一个节点故障，写操作将报错。
+
+在该级别下，如果指定掩码的异常能在熔断超时时间内恢复，则不对异常节点进行熔断处理。用户可通过参数 [ftfusingtimeout][config] 指定熔断超时时间
+
+###半容错###
+
+当 ftlevel 的取值为 2，数据库仅对 ReplSize 为 -1 的写操作进行降级处理，对于降级后依旧不能满足 ReplSize 规则的写操作则进行报错处理。以三副本为例，当指定集合的 ReplSize 为 -1 时，如果复制组中一个节点故障，写操作将被降级为 2，表示写操作只在两个节点中进行。
+
+###全容错###
+
+当 ftlevel 的取值为 3，数据库将对 ReplSize 为任意取值的写操作都尝试进行降级处理，对于降级后依旧不能满足 ReplSize 规则的写操作则进行报错处理。以三副本为例，当指定集合的 ReplSize 为 3 时，如果复制组中一个节点故障，写操作将被降级为 2，表示写操作只在两个节点中进行。
+
+
+
+
 
 
 [^_^]:
-    TODO:以下链接需要后续根据实际章节继续跳转
+    本文使用的所有引用及链接
 [replicaSet]:manual/Distributed_Engine/Architecture/Replication/Readme.md
-[javaDriver]:manual/Database_Instance/Json_Instance/Development/java_driver/java_datasource_introduction.md
-[coord]:manual/Distributed_Engine/Architecture/Node/coord_node.md
-[beat]:manual/Distributed_Engine/Architecture/Replication/election.md
-[fullSync]:manual/Distributed_Engine/Maintainance/Database_Configuration/Special_Configuration_Modify/log_synchronization.md
+[config]:manual/Distributed_Engine/Maintainance/Database_Configuration/parameter_instructions.md
+[election]:manual/Distributed_Engine/Architecture/Replication/election.md
+[SDB_SNAP_DATABASE]:manual/Manual/Snapshot/SDB_SNAP_DATABASE.md
+[createCL]:manual/Manual/Sequoiadb_Command/SdbCS/createCL.md
