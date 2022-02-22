@@ -40,6 +40,7 @@ public class SplitRange11558A extends SdbTestBase {
     private ArrayList< String > clNames = new ArrayList<>();
     private ArrayList< Object > validDataArr = new ArrayList<>();
     private ArrayList< Object > invalidDataArr = new ArrayList<>();
+    private boolean cancelSplitTaskSuccess = false;
 
     @BeforeClass
     private void setUp() {
@@ -95,7 +96,7 @@ public class SplitRange11558A extends SdbTestBase {
             ThreadExecutor es = new ThreadExecutor( 900000 );// 15min
             es.addWorker( new rangeSplit( clName, new BasicBSONObject( "a", 0 ),
                     new BasicBSONObject( "a", 100 ) ) );
-            es.addWorker( new cancelSplitTask( cl.getFullName() ) );
+            es.addWorker( new cancelSplitTask( clName ) );
             es.run();
 
             this.checkInvalidSrdRecs( cl, invDoc );
@@ -112,7 +113,9 @@ public class SplitRange11558A extends SdbTestBase {
     private void tearDown() {
         try {
             for ( int i = 0; i < clNames.size(); i++ ) {
-                cs.dropCollection( clNames.get( i ) );
+                String clName = clNames.get( i );
+                if ( cs.isCollectionExist( clName ) )
+                    cs.dropCollection( clName );
             }
         } finally {
             if ( sdb != null ) {
@@ -136,8 +139,8 @@ public class SplitRange11558A extends SdbTestBase {
         @ExecuteOrder(step = 1)
         @ExpectBlock(confirmTime = 3, contOnStep = 2)
         private void splitOper() {
-            System.out.println(
-                    new Date() + " " + this.getClass().getName().toString() );
+            System.out.println( new Date() + " "
+                    + this.getClass().getName().toString() + " begin" );
             Sequoiadb db = null;
             try {
                 db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
@@ -153,36 +156,61 @@ public class SplitRange11558A extends SdbTestBase {
             } finally {
                 if ( db != null )
                     db.close();
+                System.out.println( new Date() + " "
+                        + this.getClass().getName().toString() + " end" );
             }
         }
     }
 
     private class cancelSplitTask {
-        private String clFullName;
+        private String clName;
 
-        private cancelSplitTask( String clFullName ) {
-            this.clFullName = clFullName;
+        private cancelSplitTask( String clName ) {
+            this.clName = clName;
         }
 
         @ExecuteOrder(step = 2)
-        private void cancelTaskOper() throws InterruptedException {
-            System.out.println(
-                    new Date() + " " + this.getClass().getName().toString() );
+        private void cancelTaskOper() throws Exception {
+            System.out.println( new Date() + " "
+                    + this.getClass().getName().toString() + " begin" );
             Sequoiadb db = null;
             try {
                 db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-                DBCursor rc = db.listTasks(
-                        new BasicBSONObject( "Name", clFullName ).append(
-                                "Status", new BasicBSONObject( "$ne", 9 ) ),
-                        null, null, null );
-                BSONObject info = rc.getCurrent();
-                if ( null != info ) {
-                    long taskID = ( long ) info.get( "TaskID" );
-                    db.cancelTask( taskID, false );
+                DBCursor cursor;
+                int retryTimes = 300;
+                int currTimes = 0;
+                while ( currTimes < retryTimes ) {
+                    cursor = db.listTasks(
+                            new BasicBSONObject( "Name",
+                                    SdbTestBase.csName + "." + clName ).append(
+                                            "Status",
+                                            new BasicBSONObject( "$ne", 9 ) ),
+                            null, null, null );
+                    if ( cursor.hasNext() ) {
+                        long taskID = ( long ) cursor.getNext().get( "TaskID" );
+                        System.out.println( "taskID = " + taskID );
+                        db.cancelTask( taskID, false );
+                        cancelSplitTaskSuccess = true;
+                        break;
+                    } else {
+                        Thread.sleep( 200 );
+                        currTimes++;
+                        if ( currTimes >= retryTimes ) {
+                            if ( !cancelSplitTaskSuccess ) {
+                                System.out.println(
+                                        "Cancel split task timeout, the split task will wait all the time, drop the cl." );
+                                db.getCollectionSpace( SdbTestBase.csName )
+                                        .dropCollection( clName );
+                            }
+                            throw new Exception( "Timeout get split taskID." );
+                        }
+                    }
                 }
             } finally {
                 if ( db != null )
                     db.close();
+                System.out.println( new Date() + " "
+                        + this.getClass().getName().toString() + " end" );
             }
         }
     }
