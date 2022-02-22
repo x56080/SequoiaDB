@@ -591,14 +591,4 @@ namespace engine
       return rc ;
    }
 
-   /*
-      _rtnSnapshotRecycleBin implement
-    */
-   IMPLEMENT_CMD_AUTO_REGISTER( _rtnSnapshotRecycleBin )
-
-   /*
-      _rtnSnapshotRecycleBinInner implement
-    */
-   IMPLEMENT_CMD_AUTO_REGISTER( _rtnSnapshotRecycleBinInner )
-
 }

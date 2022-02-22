@@ -73,10 +73,6 @@ namespace engine
                    _sptReturnVal &rval,
                    bson::BSONObj &detail ) ;
 
-      INT32 getRecycleBin( const _sptArguments &arg,
-                           _sptReturnVal &rval,
-                           bson::BSONObj &detail ) ;
-
       INT32 createCS( const _sptArguments &arg,
                       _sptReturnVal &rval,
                       bson::BSONObj &detail ) ;

@@ -42,7 +42,6 @@ namespace sdbclient
    class _sdbNodeImpl ;
    class _sdbDomainImpl ;
    class _sdbDataCenterImpl ;
-   class _sdbRecycleBinImpl ;
    class _sdbLobImpl ;
    class _sdbImpl ;
 
@@ -61,8 +60,7 @@ namespace sdbclient
       CLIENT_CLASS_DOMAIN      = 7,
       CLIENT_CLASS_DC          = 8,  // data center
       CLIENT_CLASS_SQ          = 9,  // sequeue
-      CLIENT_CLASS_DS          = 10, // datasource
-      CLIENT_CLASS_RB          = 11  // recycle bin
+      CLIENT_CLASS_DS          = 10  // datasource
    } ;
 
    /*
@@ -1129,100 +1127,6 @@ namespace sdbclient
    typedef class _sdbDataCenterImpl sdbDataCenterImpl ;
 
    /*
-      _sdbRecycleBin
-    */
-   class _sdbRecycleBinImpl : public _sdbRecycleBin, public _sdbBase
-   {
-      friend class _sdbImpl ;
-
-   private:
-      _sdbRecycleBinImpl( const _sdbRecycleBinImpl &other ) ;
-      _sdbRecycleBinImpl &operator =( const _sdbRecycleBinImpl &other ) ;
-
-#if defined CLIENT_THREAD_SAFE
-      ossSpinSLatch           _mutex ;
-#endif
-
-   private:
-      virtual INT32 _setConnection( _sdbImpl *connection )
-      {
-         return _regHandle( connection, (ossValuePtr)this ) ;
-      }
-      virtual void _dropConnection()
-      {
-         _unregHandle( (ossValuePtr)this ) ;
-      }
-
-   protected:
-      INT32 _innerAlter( const bson::BSONObj &options ) ;
-      INT32 _innerCMD( const CHAR *command,
-                       const bson::BSONObj &options,
-                       _sdbCursor **cursor = NULL ) ;
-
-   public:
-      _sdbRecycleBinImpl() ;
-      virtual ~_sdbRecycleBinImpl() ;
-
-      virtual INT32 getDetail( bson::BSONObj &retInfo ) ;
-      virtual INT32 enable() ;
-      virtual INT32 disable() ;
-      virtual INT32 setAttributes( const bson::BSONObj &options ) ;
-      virtual INT32 alter( const bson::BSONObj &options ) ;
-      virtual INT32 list( _sdbCursor **cursor,
-                          const bson::BSONObj &condition = _sdbStaticObject,
-                          const bson::BSONObj &selector = _sdbStaticObject,
-                          const bson::BSONObj &orderBy = _sdbStaticObject,
-                          const bson::BSONObj &hint = _sdbStaticObject,
-                          INT64 numToSkip = 0,
-                          INT64 numToReturn = -1 ) ;
-      virtual INT32 list( sdbCursor &cursor,
-                          const bson::BSONObj &condition = _sdbStaticObject,
-                          const bson::BSONObj &selector = _sdbStaticObject,
-                          const bson::BSONObj &orderBy = _sdbStaticObject,
-                          const bson::BSONObj &hint = _sdbStaticObject,
-                          INT64 numToSkip = 0,
-                          INT64 numToReturn = -1 )
-      {
-         RELEASE_INNER_HANDLE( cursor.pCursor ) ;
-         return list( &( cursor.pCursor ),
-                      condition,
-                      selector,
-                      orderBy,
-                      hint,
-                      numToSkip,
-                      numToReturn ) ;
-      }
-      virtual INT32 snapshot( _sdbCursor **cursor,
-                              const bson::BSONObj &condition = _sdbStaticObject,
-                              const bson::BSONObj &selector = _sdbStaticObject,
-                              const bson::BSONObj &orderBy = _sdbStaticObject,
-                              const bson::BSONObj &hint = _sdbStaticObject,
-                              INT64 numToSkip = 0,
-                              INT64 numToReturn = -1 ) ;
-      virtual INT32 snapshot( sdbCursor &cursor,
-                              const bson::BSONObj &condition = _sdbStaticObject,
-                              const bson::BSONObj &selector = _sdbStaticObject,
-                              const bson::BSONObj &orderBy = _sdbStaticObject,
-                              const bson::BSONObj &hint = _sdbStaticObject,
-                              INT64 numToSkip = 0,
-                              INT64 numToReturn = -1 )
-      {
-         RELEASE_INNER_HANDLE( cursor.pCursor ) ;
-         return snapshot( &( cursor.pCursor ),
-                          condition,
-                          selector,
-                          orderBy,
-                          hint,
-                          numToSkip,
-                          numToReturn ) ;
-      }
-
-      virtual INT32 getCount( INT64 &count,
-                              const bson::BSONObj &condition = _sdbStaticObject ) ;
-   } ;
-   typedef class _sdbRecycleBinImpl sdbRecycleBinImpl ;
-
-   /*
       _sdbLobImpl
    */
    class _sdbLobImpl : public _sdbLob, public _sdbBase
@@ -1402,7 +1306,6 @@ namespace sdbclient
       std::set<ossValuePtr>    _dataCenters ;
       std::set<ossValuePtr>    _lobs ;
       std::set<ossValuePtr>    _dataSources ;
-      std::set<ossValuePtr>    _recycleBinSet ;
       hashTable               *_tb ;
       bson::BSONObj            _attributeCache ;
 
@@ -1489,7 +1392,6 @@ namespace sdbclient
       friend class _sdbDataCenterImpl ;
       friend class _sdbLobImpl ;
       friend class _sdbDataSourceImpl ;
-      friend class _sdbRecycleBinImpl ;
    public :
       _sdbImpl ( BOOLEAN useSSL = FALSE ) ;
       ~_sdbImpl () ;
@@ -1899,14 +1801,6 @@ namespace sdbclient
       {
          RELEASE_INNER_HANDLE( dc.pDC ) ;
          return getDC( &dc.pDC ) ;
-      }
-
-      INT32 getRecycleBin( _sdbRecycleBin **recycleBin ) ;
-
-      INT32 getRecycleBin( sdbRecycleBin &recycleBin )
-      {
-         RELEASE_INNER_HANDLE( recycleBin.pRecycleBin ) ;
-         return getRecycleBin( &( recycleBin.pRecycleBin ) ) ;
       }
 
       // get last alive time

@@ -53,7 +53,6 @@
 #include "catDCManager.hpp"
 #include "sdbInterface.hpp"
 #include "catLevelLock.hpp"
-#include "catRecycleBinManager.hpp"
 
 using namespace bson ;
 
@@ -164,11 +163,6 @@ namespace engine
             return &_levelLockMgr ;
          }
 
-         catRecycleBinManager *getRecycleBinMgr()
-         {
-            return &_recycleBinMgr ;
-         }
-
          void regEventHandler ( _catEventHandler *pHandler ) ;
          void unregEventHandler ( _catEventHandler *pHandler ) ;
 
@@ -209,7 +203,6 @@ namespace engine
          catGTSManager        _catGTSMgr ;
          catDCManager         _catDCMgr ;
          catLevelLockMgr      _levelLockMgr ;
-         catRecycleBinManager _recycleBinMgr ;
 
          MsgRouteID           _primaryID ;
          BOOLEAN              _isActived ;

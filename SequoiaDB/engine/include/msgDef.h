@@ -614,22 +614,6 @@
 #define FIELD_NAME_TRANS_PROPAGATE_MODE      "TransPropagateMode"
 #define FIELD_NAME_INHERIT_SESSION_ATTR      "InheritSessionAttr"
 
-// for recycle-bin
-#define FIELD_NAME_RECYCLEBIN                "RecycleBin"
-#define FIELD_NAME_RECYCLEIDHWM              "RecycleIDHWM"
-#define FIELD_NAME_EXPIRETIME                "ExpireTime"
-#define FIELD_NAME_MAXITEMNUM                "MaxItemNum"
-#define FIELD_NAME_MAXVERNUM                 "MaxVersionNum"
-#define FIELD_NAME_AUTODROP                  "AutoDrop"
-#define FIELD_NAME_RECYCLE_NAME              "RecycleName"
-#define FIELD_NAME_RETURN_NAME               "ReturnName"
-#define FIELD_NAME_ORIGIN_NAME               "OriginName"
-#define FIELD_NAME_RECYCLE_ID                "RecycleID"
-#define FIELD_NAME_ORIGIN_ID                 "OriginID"
-#define FIELD_NAME_RECYCLE_TIME              "RecycleTime"
-#define FIELD_NAME_USERECYCLEBIN             "UseRecycleBin"
-#define FIELD_NAME_RECYCLE_ISCSRECY          "IsCSRecycled"
-
 #define IXM_FIELD_NAME_KEY                   "key"
 #define IXM_FIELD_NAME_NAME                  "name"
 #define IXM_FIELD_NAME_UNIQUE                "unique"
@@ -684,7 +668,6 @@
 #define CMD_NAME_LIST_SVCTASKS               "list service tasks"
 #define CMD_NAME_LIST_SEQUENCES              "list sequences"
 #define CMD_NAME_LIST_DATASOURCES            "list datasources"
-#define CMD_NAME_LIST_RECYCLEBIN             "list recyclebin"
 #define CMD_NAME_RENAME_COLLECTION           "rename collection"
 #define CMD_NAME_RENAME_COLLECTIONSPACE      "rename collectionspace"
 #define CMD_NAME_REORG_OFFLINE               "reorg offline"
@@ -713,7 +696,6 @@
 #define CMD_NAME_SNAPSHOT_LOCKWAITS          "snapshot lockwaits"
 #define CMD_NAME_SNAPSHOT_TRANSWAITS         "snapshot waiting transactions"
 #define CMD_NAME_SNAPSHOT_TRANSDEADLOCK      "snapshot transaction deadlocks"
-#define CMD_NAME_SNAPSHOT_RECYCLEBIN         "snapshot recyclebin"
 #define CMD_NAME_TEST_COLLECTION             "test collection"
 #define CMD_NAME_TEST_COLLECTIONSPACE        "test collectionspace"
 #define CMD_NAME_CREATE_GROUP                "create group"
@@ -770,14 +752,6 @@
 #define CMD_NAME_DROP_DATASOURCE             "drop datasource"
 #define CMD_NAME_ALTER_DATASOURCE            "alter datasource"
 
-#define CMD_NAME_GET_RECYCLEBIN_DETAIL       "get recyclebin detail"
-#define CMD_NAME_GET_RECYCLEBIN_COUNT        "get recyclebin count"
-#define CMD_NAME_ALTER_RECYCLEBIN            "alter recyclebin"
-
-#define CMD_VALUE_NAME_RECYCLEBIN_ENABLE     "enable"
-#define CMD_VALUE_NAME_RECYCLEBIN_DISABLE    "disable"
-#define CMD_VALUE_NAME_RECYCLEBIN_SETATTR    "set attributes"
-
 /**
  * NOTE:
  * As the following names are used as table names in build-in SQL, so they
@@ -804,7 +778,6 @@
 #define CMD_NAME_SNAPSHOT_LOCKWAITS_INTR     "SNAPSHOT_LOCKWAITS"
 #define CMD_NAME_SNAPSHOT_TRANSWAITS_INTR    "SNAPSHOT_TRANSWAIT"
 #define CMD_NAME_SNAPSHOT_TRANSDEADLOCK_INTR "SNAPSHOT_TRANSDEADLOCK"
-#define CMD_NAME_SNAPSHOT_RECYCLEBIN_INTR    "SNAPSHOT_RECYCLEBIN"
 
 #define CMD_NAME_LIST_COLLECTION_INTR        "LIST_CL"
 #define CMD_NAME_LIST_SPACE_INTR             "LIST_CS"
@@ -823,7 +796,6 @@
 #define CMD_NAME_LIST_SVCTASKS_INTR          "LIST_SVCTASKS"
 #define CMD_NAME_LIST_SEQUENCES_INTR         "LIST_SEQUENCES"
 #define CMD_NAME_LIST_DATASOURCE_INTR        "LIST_DATASOURCE"
-#define CMD_NAME_LIST_RECYCLEBIN_INTR        "LIST_RECYCLEBIN"
 
 #define SYS_VIRTUAL_CS                       "SYS_VCS"
 #define SYS_VIRTUAL_CS_LEN                   sizeof( SYS_VIRTUAL_CS )

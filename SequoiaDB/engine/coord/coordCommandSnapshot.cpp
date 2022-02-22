@@ -1107,30 +1107,4 @@ namespace engine
       return CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSWAITS ;
    }
 
-   /*
-      _coordCMDSnapshotRecycleBin implement
-    */
-   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotRecycleBin,
-                                      CMD_NAME_SNAPSHOT_RECYCLEBIN,
-                                      TRUE ) ;
-
-   const CHAR* _coordCMDSnapshotRecycleBin::getInnerAggrContent()
-   {
-      return COORD_SNAPSHOTRECYBIN_INPUT ;
-   }
-
-   /*
-      _coordCMDSnapshotRecycleBinIntr implement
-    */
-   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotRecycleBinIntr,
-                                      CMD_NAME_SNAPSHOT_RECYCLEBIN_INTR,
-                                      TRUE ) ;
-
-   void _coordCMDSnapshotRecycleBinIntr::_preSet( pmdEDUCB *cb,
-                                                  coordCtrlParam &ctrlParam )
-   {
-      ctrlParam.resetRole() ;
-      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
-   }
-
 }

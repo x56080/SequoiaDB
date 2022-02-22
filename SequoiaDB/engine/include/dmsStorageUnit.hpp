@@ -84,7 +84,6 @@ namespace engine
    {
       INT32          _clNum ;
       INT64          _totalCount ;
-      INT64          _totalLobs ;
       INT32          _totalDataPages ;
       INT32          _totalIndexPages ;
       INT32          _totalLobPages ;
@@ -389,8 +388,6 @@ namespace engine
                              const CHAR *pIndexName,
                              _monIndex &resultIndex ) ;
 
-         INT32    dumpRecycleInfo( monRecycleItem &item ) ;
-
       protected :
          // Dump helper functions
          // NOTE: Should be called after mbContext is locked or
@@ -407,10 +404,6 @@ namespace engine
          INT32    _getIndex ( const dmsMB *mb,
                               const CHAR *pIndexName,
                               monIndex &resultIndex ) ;
-
-         INT32    _dumpRecycleInfo( UINT16 mbID,
-                                    monRecycleItem &item ) ;
-         INT32    _dumpRecycleInfo( monRecycleItem &itme ) ;
 
       // only for LOAD
       public:

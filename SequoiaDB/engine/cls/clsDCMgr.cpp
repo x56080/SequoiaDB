@@ -76,8 +76,6 @@ namespace engine
       _orgObj = BSONObj() ;
       _imageGroups.clear() ;
       _imageRGroups.clear() ;
-
-      _recycleBinConf.reset() ;
    }
 
    INT32 _clsDCBaseInfo::lock_r( INT32 millisec )
@@ -227,10 +225,6 @@ namespace engine
       {
          goto error ;
       }
-
-      rc = _recycleBinConf.fromBSON( obj ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to update recycle info from BSON, "
-                   "rc: %d", rc ) ;
 
    done:
       return rc ;
@@ -1747,18 +1741,6 @@ namespace engine
       return rc ;
    error:
       goto done ;
-   }
-
-   utilRecycleBinConf _clsDCBaseInfo::getRecycleBinConf()
-   {
-      ossScopedRWLock _lock( &_rwMutex, SHARED ) ;
-      return _recycleBinConf ;
-   }
-
-   void _clsDCBaseInfo::setRecycleBinConf( const utilRecycleBinConf &conf )
-   {
-      ossScopedRWLock _lock( &_rwMutex, EXCLUSIVE ) ;
-      _recycleBinConf = conf ;
    }
 
 }

@@ -74,8 +74,7 @@ sptFiles = [
       "spt/db/sptDBTraceOption.cpp",
       "spt/db/sptDBUser.cpp",
       "spt/db/sptDBCipherUser.cpp",
-      "spt/db/sptDBDataSource.cpp",
-      "spt/db/sptDBRecycleBin.cpp"
+      "spt/db/sptDBDataSource.cpp"
       ]
 
 ossFiles = [

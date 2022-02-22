@@ -299,10 +299,6 @@ namespace engine
       rc = _catDCMgr.init() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to init cat dc manager, rc: %d", rc ) ;
 
-      rc = _recycleBinMgr.init( _catDCMgr.getDCInfo()->getRecycleBinConf() ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to init recycle bin manager, rc: %d",
-                   rc ) ;
-
       // 4. create listen
       if ( pmdGetOptionCB()->serviceMask() & PMD_SVC_MASK_CATALOG )
       {

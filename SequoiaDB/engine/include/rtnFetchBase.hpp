@@ -85,7 +85,6 @@ namespace engine
       RTN_FETCH_QUERIES,               /// queries
       RTN_FETCH_LATCHWAITS,            /// latch waits
       RTN_FETCH_LOCKWAITS,             /// lock waits
-      RTN_FETCH_RECYCLEBIN,            /// recycle bin
 
       RTN_FETCH_DATASET,               /// fetch from inner data set
 

@@ -136,6 +136,7 @@ namespace engine
             _setCheckDelayTick() ;
          }
       }
+
       _pmdObjBase::onTimer( timerID, interval ) ;
    }
 
@@ -507,6 +508,7 @@ namespace engine
             _pCatCB->killTimer( _checkEventTimerID ) ;
             _checkEventTimerID = NET_INVALID_TIMER_ID ;
          }
+
          _pCatCB->unregEventHandler( this ) ;
       }
       return SDB_OK ;
@@ -742,82 +744,6 @@ namespace engine
          }
       }
 
-      // collection for recycle bin item
-      rc = _createSysCollection( CAT_SYSRECYCLEBIN_ITEM_COLLECTION, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to create system collection [%s], "
-                   "rc: %d", CAT_SYSRECYCLEBIN_ITEM_COLLECTION, rc ) ;
-
-      // index for recycle name
-      rc = _createSysIndex( CAT_SYSRECYCLEBIN_ITEM_COLLECTION,
-                            UTIL_RECYCLEBIN_ITEM_NAME_INDEX, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to create system index [%s] "
-                   "on system collection [%s], rc: %d",
-                   UTIL_RECYCLEBIN_ITEM_NAME_INDEX,
-                   CAT_SYSRECYCLEBIN_ITEM_COLLECTION, rc ) ;
-
-      // index for recycle ID
-      rc = _createSysIndex( CAT_SYSRECYCLEBIN_ITEM_COLLECTION,
-                            UTIL_RECYCLEBIN_RECYID_INDEX, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to create system index [%s] "
-                   "on system collection [%s], rc: %d",
-                   UTIL_RECYCLEBIN_RECYID_INDEX,
-                   CAT_SYSRECYCLEBIN_ITEM_COLLECTION, rc ) ;
-
-      // index for origin ID
-      rc = _createSysIndex( CAT_SYSRECYCLEBIN_ITEM_COLLECTION,
-                            UTIL_RECYCLEBIN_ORIGID_INDEX, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to create system index [%s] "
-                   "on system collection [%s], rc: %d",
-                   UTIL_RECYCLEBIN_ORIGID_INDEX,
-                   CAT_SYSRECYCLEBIN_ITEM_COLLECTION, rc ) ;
-
-      // collection for recycled collection space
-      rc = _createSysCollection( CAT_SYSRECYCLEBIN_CS_COLLECTION, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to create system collection [%s], "
-                   "rc: %d", CAT_SYSRECYCLEBIN_CS_COLLECTION, rc ) ;
-
-      // index for recycle ID of recycled collection space
-      rc = _createSysIndex( CAT_SYSRECYCLEBIN_CS_COLLECTION,
-                            UTIL_RECYCLEBIN_RECYID_INDEX, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to create system index [%s] "
-                   "on system collection [%s], rc: %d",
-                   UTIL_RECYCLEBIN_RECYID_INDEX,
-                   CAT_SYSRECYCLEBIN_CS_COLLECTION, rc ) ;
-
-      // collection for recycled collection
-      rc = _createSysCollection( CAT_SYSRECYCLEBIN_CL_COLLECTION, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to create system collection [%s], "
-                   "rc: %d", CAT_SYSRECYCLEBIN_CL_COLLECTION, rc ) ;
-
-      // index for recycle ID of recycled collection
-      rc = _createSysIndex( CAT_SYSRECYCLEBIN_CL_COLLECTION,
-                            UTIL_RECYCLEBIN_RECYID_INDEX, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to create system index [%s] "
-                   "on system collection [%s], rc: %d",
-                   UTIL_RECYCLEBIN_RECYID_INDEX,
-                   CAT_SYSRECYCLEBIN_CL_COLLECTION, rc ) ;
-
-      // index for unique ID of recycled collection
-      rc = _createSysIndex( CAT_SYSRECYCLEBIN_CL_COLLECTION,
-                            UTIL_RECYCLEBIN_UID_INDEX, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to create system index [%s] "
-                   "on system collection [%s], rc: %d",
-                   UTIL_RECYCLEBIN_UID_INDEX,
-                   CAT_SYSRECYCLEBIN_CL_COLLECTION, rc ) ;
-
-      // collection for recycled sequence
-      rc = _createSysCollection( CAT_SYSRECYCLEBIN_SEQ_COLLECTION, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to create system collection [%s], "
-                   "rc: %d", CAT_SYSRECYCLEBIN_SEQ_COLLECTION, rc ) ;
-
-      // index for recycle ID of recycled sequence
-      rc = _createSysIndex( CAT_SYSRECYCLEBIN_SEQ_COLLECTION,
-                            UTIL_RECYCLEBIN_RECYID_INDEX, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to create system index [%s] "
-                   "on system collection [%s], rc: %d",
-                   UTIL_RECYCLEBIN_RECYID_INDEX,
-                   CAT_SYSRECYCLEBIN_SEQ_COLLECTION, rc ) ;
-
    done :
       PD_TRACE_EXITRC ( SDB_CATMAINCT__ENSUREMETADATA, rc ) ;
       return rc ;
@@ -850,10 +776,6 @@ namespace engine
       rc = _pCatCB->getCatlogueMgr()->active() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to active catalog manager, rc: %d",
                    rc ) ;
-
-      // update recycle bin conf
-      _pCatCB->getRecycleBinMgr()->setConf(
-            _pCatCB->getCatDCMgr()->getDCInfo()->getRecycleBinConf() ) ;
 
    done:
       _changeEvent.signal() ;
