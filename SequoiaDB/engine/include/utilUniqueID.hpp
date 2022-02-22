@@ -152,12 +152,10 @@ namespace engine
    }
 
    OSS_INLINE BOOLEAN utilCheckIdxUniqueID( utilIdxUniqueID idxUniqueID,
-                                            utilCSUniqueID csUniqueID,
-                                            BOOLEAN isStandaloneIdx )
+                                            utilCSUniqueID csUniqueID )
    {
 
-      return ( utilGetCSUniqIDFromIdx( idxUniqueID ) == csUniqueID &&
-               utilIsStandaloneIdx( idxUniqueID ) == isStandaloneIdx ) ;
+      return utilGetCSUniqIDFromIdx( idxUniqueID ) == csUniqueID ;
    }
 
    struct util_cmp_str

@@ -804,7 +804,7 @@ namespace engine
       {
          // If there is no new unique id, the id will be generated locally later.
          // If current unique id is valid, we don't need do anything.
-         if ( utilCheckIdxUniqueID( oldIdxUniqID, csUniqID, TRUE ) )
+         if ( utilCheckIdxUniqueID( oldIdxUniqID, csUniqID ) )
          {
             goto done ;
          }
