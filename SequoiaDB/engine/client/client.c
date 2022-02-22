@@ -546,6 +546,115 @@ error :
    goto done ;
 }
 
+void _msgConvertorReset( sdbConnectionStruct *connection )
+{
+   connection->_msgConvertor->_hasData = FALSE ;
+}
+
+INT32 _msgConvertorEnsureBuff( sdbConnectionStruct *connection, UINT32 size )
+{
+   INT32 rc = SDB_OK ;
+
+   if ( size > connection->_msgConvertor->_buffSize )
+   {
+      CHAR *newBuff = (CHAR *)SDB_OSS_REALLOC( connection->_msgConvertor->_buff, size ) ;
+      if ( !newBuff )
+      {
+         rc = SDB_OOM ;
+         goto error ;
+      }
+      connection->_msgConvertor->_buff = newBuff ;
+      connection->_msgConvertor->_buffSize = size ;
+    }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _msgConvertorDowngradeRequest( sdbConnectionStruct *connection, MsgHeader *header )
+{
+   INT32 rc = SDB_OK ;
+   MsgHeaderV1 newHeader ;
+
+   clientMsgHeaderDowngrade( header, &newHeader ) ;
+   rc = _msgConvertorEnsureBuff( connection, newHeader.messageLength ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   ossMemcpy( connection->_msgConvertor->_buff, &newHeader, sizeof(MsgHeaderV1) ) ;
+   ossMemcpy( connection->_msgConvertor->_buff + sizeof(MsgHeaderV1), (CHAR *)header
+              + sizeof(MsgHeader), header->messageLength - sizeof(MsgHeader) ) ;
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _msgConvertorUpgradeReply( sdbConnectionStruct *connection, MsgOpReplyV1 *reply )
+{
+   INT32 rc = SDB_OK ;
+   MsgOpReply newReply ;
+
+   clientMsgReplyHeaderUpgrade( reply, &newReply ) ;
+   rc = _msgConvertorEnsureBuff( connection, newReply.header.messageLength ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   ossMemcpy( connection->_msgConvertor->_buff, &newReply, sizeof(MsgOpReply) ) ;
+   ossMemcpy( connection->_msgConvertor->_buff + sizeof(MsgOpReply),
+              (CHAR *)reply + sizeof(MsgOpReplyV1),
+               reply->header.messageLength - sizeof(MsgOpReplyV1) ) ;
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _msgConvertorPush( sdbConnectionStruct *connection, const CHAR *data)
+{
+   INT32 rc = SDB_OK ;
+   MsgHeader *msg = (MsgHeader *)data ;
+
+   if ( MSG_COMM_EYE_DEFAULT == ( msg->eye ) )
+   {
+      rc = _msgConvertorDowngradeRequest( connection, (MsgHeader *)data ) ;
+   }
+   else
+   {
+      rc = _msgConvertorUpgradeReply( connection, (MsgOpReplyV1 *)data ) ;
+   }
+   if ( rc )
+   {
+      goto error ;
+   }
+   connection->_msgConvertor->_hasData = TRUE ;
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _msgConvertorOutput( sdbConnectionStruct *connection, CHAR **data, UINT32 *len)
+{
+   *len = 0 ;
+   *data = NULL ;
+   if ( connection->_msgConvertor->_hasData )
+   {
+      *len = *(INT32 *)connection->_msgConvertor->_buff ;
+      *data = connection->_msgConvertor->_buff ;
+   }
+   return SDB_OK ;
+}
+
 static INT32 _send1 ( sdbConnectionHandle cHandle, Socket* sock,
                       const CHAR *pMsg, INT32 len )
 {
@@ -584,9 +693,38 @@ static INT32 _send ( sdbConnectionHandle cHandle, Socket* sock,
 {
    INT32 rc  = SDB_OK ;
    INT32 len = 0 ;
+   sdbConnectionStruct *connection = (sdbConnectionStruct *)cHandle ;
+   CHAR *pbuffer = (CHAR*)msg ;
 
-   ossEndianConvertIf4 ( msg->messageLength, len, endianConvert ) ;
-   rc = _send1 ( cHandle, sock, (const CHAR*)msg, len ) ;
+   if ( NULL == sock )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+   if ( connection->_msgConvertor )
+   {
+      UINT32 tmpLen = 0 ;
+      _msgConvertorReset( connection ) ;
+      rc = _msgConvertorPush( connection, (const CHAR *)pbuffer ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = _msgConvertorOutput( connection, &pbuffer, &tmpLen ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      if ( tmpLen != *(UINT32 *)pbuffer )
+      {
+          rc = SDB_SYS ;
+          goto error ;
+      }
+   }
+
+   ossEndianConvertIf4 ( *(SINT32*)pbuffer, len, endianConvert ) ;
+   rc = _send1 ( cHandle, sock, (const CHAR*)pbuffer, len ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
@@ -607,6 +745,9 @@ static INT32 _recv ( sdbConnectionHandle cHandle, Socket* sock,
    INT32 receivedLen = 0 ;
    INT32 totalReceivedLen = 0 ;
    CHAR **ppBuffer = (CHAR**)msg ;
+   sdbConnectionStruct *connection = (sdbConnectionStruct *)cHandle ;
+   INT32 minReplySize = ( SDB_PROTOCOL_VER_1 == connection->_peerProtocolVersion ) ?
+                        sizeof(MsgOpReplyV1) : sizeof(MsgOpReply) ;
 
    if ( NULL == sock )
    {
@@ -644,8 +785,13 @@ static INT32 _recv ( sdbConnectionHandle cHandle, Socket* sock,
 #endif
       break ;
    }
-
    ossEndianConvertIf4 ( len, realLen, endianConvert ) ;
+   if ( realLen < minReplySize )
+   {
+       rc = SDB_NET_BROKEN_MSG ;
+       goto error ;
+   }
+
    rc = _reallocBuffer ( ppBuffer, size, realLen+1 ) ;
    if ( SDB_OK != rc )
    {
@@ -672,6 +818,38 @@ static INT32 _recv ( sdbConnectionHandle cHandle, Socket* sock,
       }
       break ;
    }
+
+   if ( connection->_msgConvertor )
+   {
+      UINT32 tmpLen = 0 ;
+      CHAR *tmpPtr = NULL ;
+      _msgConvertorReset( connection ) ;
+      rc = _msgConvertorPush( connection, *ppBuffer ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      rc = _msgConvertorOutput( connection, &tmpPtr, &tmpLen ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      if ( tmpLen != *(UINT32 *)tmpPtr )
+      {
+          rc = SDB_SYS ;
+          goto error ;
+      }
+      if ( tmpLen > (UINT32)realLen )
+      {
+         rc = _reallocBuffer( ppBuffer, size, tmpLen ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+      ossMemcpy( *ppBuffer, tmpPtr, tmpLen ) ;
+    }
+
 done :
    return rc ;
 error :
@@ -1130,6 +1308,8 @@ static INT32 requestSysInfo ( sdbConnectionStruct *connection )
    MsgSysInfoReply reply ;
 
    connection->_endianConvert = FALSE;
+   connection->_peerProtocolVersion = SDB_PROTOCOL_VER_INVALID ;
+   connection->_authVersion = 0 ;
    rc = clientBuildSysInfoRequest ( (CHAR**)&connection->_pSendBuffer,
                                     &connection->_sendBufferSize ) ;
    if ( SDB_OK != rc )
@@ -1169,7 +1349,8 @@ static INT32 requestSysInfo ( sdbConnectionStruct *connection )
    rc = clientExtractSysInfoReply ( (CHAR*)&reply,
                                     &(connection->_endianConvert),
                                     NULL, &(connection->_authVersion),
-                                    NULL, NULL, NULL, NULL, NULL ) ;
+                                    &(connection->_peerProtocolVersion),
+                                    NULL, NULL, NULL, NULL ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
@@ -2166,6 +2347,7 @@ static INT32 _sdbConnect ( const CHAR *pHostName, const CHAR *pServiceName,
    // init mutex for the socket
    ossMutexInit ( &connection->_sockMutex ) ;
    hasMutexInit = TRUE ;
+   connection->_msgConvertor = NULL ;
 
    // connect to the specify address
    rc = clientConnect ( pHostName, pServiceName, useSSL, &connection->_sock ) ;
@@ -2179,6 +2361,19 @@ static INT32 _sdbConnect ( const CHAR *pHostName, const CHAR *pServiceName,
    if ( SDB_OK != rc )
    {
       goto error ;
+   }
+
+   if ( SDB_PROTOCOL_VER_1 == connection->_peerProtocolVersion && !connection->_msgConvertor )
+   {
+      connection->_msgConvertor = (sdbMsgConvertor*)SDB_OSS_MALLOC ( sizeof(sdbMsgConvertor) ) ;
+      if ( !connection->_msgConvertor )
+      {
+         rc = SDB_OOM ;
+         goto error ;
+      }
+      connection->_msgConvertor->_buff = NULL ;
+      connection->_msgConvertor->_buffSize = 0 ;
+      connection->_msgConvertor->_hasData = FALSE ;
    }
 
    //encryt the password
@@ -8676,7 +8871,14 @@ SDB_EXPORT void sdbReleaseConnection ( sdbConnectionHandle cHandle )
       releaseHashTable( &(cs->_tb) ) ;
    }
    _sdbClearSessionAttrCache( cs, FALSE ) ;
-
+   if ( cs->_msgConvertor )
+   {
+      if ( cs->_msgConvertor->_buff )
+      {
+         SDB_OSS_FREE( cs->_msgConvertor->_buff ) ;
+      }
+      SDB_OSS_FREE( cs->_msgConvertor ) ;
+   }
    SDB_OSS_FREE ( (sdbConnectionStruct*)cHandle ) ;
 
 done :
