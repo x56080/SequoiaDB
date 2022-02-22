@@ -1364,7 +1364,7 @@
                       {
                         "id": 1432191411,
                         "dir": "Special_Configuration_Modify",
-                        "cn": "特殊配置项修改",
+                        "cn": "特殊参数配置",
                         "en": "Special Configuration Modify",
                         "contents": [
                             {
