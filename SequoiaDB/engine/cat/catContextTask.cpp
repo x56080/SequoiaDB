@@ -300,11 +300,13 @@ namespace engine
    /*
     * _catCtxDropCLTask implement
     */
-   _catCtxDropCLTask::_catCtxDropCLTask ( const string &clName, INT32 version )
+   _catCtxDropCLTask::_catCtxDropCLTask ( const string &clName, INT32 version,
+                                          BOOLEAN rmTaskAndIdx )
    : _catCtxDataTask( clName )
    {
       _version = version ;
       _needUpdateCoord = FALSE ;
+      _rmTaskAndIdx = rmTaskAndIdx ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXDROPCLTASK_CHECK_INT, "_catCtxDropCLTask::_checkInternal" )
@@ -385,37 +387,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXDROPCLTASK_PREEXECUTE_INT, "_catCtxDropCLTask::_preExecuteInternal" )
-   INT32 _catCtxDropCLTask::_preExecuteInternal ( _pmdEDUCB *cb,
-                                                  SDB_DMSCB *pDmsCB,
-                                                  SDB_DPSCB *pDpsCB,
-                                                  INT16 w )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY ( SDB_CATCTXDROPCLTASK_PREEXECUTE_INT ) ;
-
-      // Remove tasks in checking step to avoid tasks to wait for locks
-      rc = catRemoveCLTasks( _dataName, cb, w ) ;
-      if ( SDB_CAT_TASK_NOTFOUND == rc )
-      {
-         rc = SDB_OK ;
-      }
-      PD_RC_CHECK( rc, PDWARNING,
-                   "Failed to remove tasks with the collection [%s], rc: %d",
-                   _dataName.c_str(), rc ) ;
-
-      PD_LOG( PDDEBUG,
-              "Finished pre-execute of drop collection [%s] task",
-              _dataName.c_str() ) ;
-
-   done :
-      PD_TRACE_EXITRC ( SDB_CATCTXDROPCLTASK_PREEXECUTE_INT, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXDROPCLTASK_EXECUTE_INT, "_catCtxDropCLTask::_executeInternal" )
    INT32 _catCtxDropCLTask::_executeInternal ( _pmdEDUCB *cb,
                                                SDB_DMSCB *pDmsCB,
@@ -426,7 +397,8 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATCTXDROPCLTASK_EXECUTE_INT ) ;
 
-      rc = catDropCLStep( _dataName, _version, FALSE, cb, pDmsCB, pDpsCB, w ) ;
+      rc = catDropCLStep( _dataName, _version, FALSE, cb, pDmsCB, pDpsCB, w,
+                          _rmTaskAndIdx ) ;
       PD_RC_CHECK( rc, PDWARNING,
                    "Failed to drop collection [%s], rc=%d",
                    _dataName.c_str(), rc ) ;

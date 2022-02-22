@@ -72,6 +72,8 @@
                                           CAT_TASKID_NAME":1}, unique: true }"
 #define CAT_TASK_INFO_MAINTASKIDIDX       "{name:\"SYSIDX2\",key: {"\
                                           FIELD_NAME_MAIN_TASKID":1} }"
+#define CAT_TASK_INFO_NAMEIDX             "{name:\"SYSIDX3\",key: {"\
+                                          FIELD_NAME_NAME":1} }"
 #define CAT_INDEX_INFO_NAMEIDX            "{name:\"SYSIDX1\",key: {"\
                                           FIELD_NAME_COLLECTION":1, "FIELD_NAME_NAME":1 }, unique: true }"
 #define CAT_DOMAIN_NAMEIDX                "{name:\"SYSIDX1\",key: {"\

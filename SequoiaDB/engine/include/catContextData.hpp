@@ -107,7 +107,8 @@ namespace engine
       INT32 _addDropCLTask ( const std::string &clName,
                              INT32 version,
                              _catCtxDropCLTask **ppCtx,
-                             BOOLEAN pushExec = TRUE ) ;
+                             BOOLEAN pushExec = TRUE,
+                             BOOLEAN rmTaskAndIdx = TRUE ) ;
    } ;
 
    /*

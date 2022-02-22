@@ -178,7 +178,8 @@ namespace engine
    class _catCtxDropCLTask : public _catCtxDataTask
    {
    public :
-      _catCtxDropCLTask ( const std::string &clName, INT32 version ) ;
+      _catCtxDropCLTask ( const std::string &clName, INT32 version,
+                          BOOLEAN rmTaskAndIdx ) ;
 
       virtual ~_catCtxDropCLTask () {}
 
@@ -196,11 +197,6 @@ namespace engine
 
       virtual INT32 _recheckInternal( _pmdEDUCB *cb ) ;
 
-      virtual INT32 _preExecuteInternal ( _pmdEDUCB *cb,
-                                          SDB_DMSCB *pDmsCB,
-                                          SDB_DPSCB *pDpsCB,
-                                          INT16 w ) ;
-
       virtual INT32 _executeInternal ( _pmdEDUCB *cb,
                                        SDB_DMSCB *pDmsCB,
                                        SDB_DPSCB *pDpsCB,
@@ -209,6 +205,7 @@ namespace engine
    protected :
       INT32 _version ;
       BOOLEAN _needUpdateCoord ;
+      BOOLEAN _rmTaskAndIdx ;
       ossPoolList<PAIR_CLNAME_ID> _globalIdxCLList ;
    } ;
 

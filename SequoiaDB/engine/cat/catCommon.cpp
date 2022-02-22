@@ -2163,7 +2163,17 @@ namespace engine
       SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
       SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
       BSONObj dummyObj ;
-      BSONObj boMatcher = BSON( FIELD_NAME_COLLECTION << collection ) ;
+      BSONObj boMatcher ;
+
+      try
+      {
+         boMatcher = BSON( FIELD_NAME_COLLECTION << collection ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
 
       rc = rtnDelete( CAT_INDEX_INFO_COLLECTION, boMatcher, dummyObj,
                       0, cb, dmsCB, dpsCB, w ) ;
@@ -2172,6 +2182,51 @@ namespace engine
                    collection, rc ) ;
    done:
       PD_TRACE_EXITRC ( SDB_CATRMCLIDX, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRMCSIDX, "catRemoveCSIndexes" )
+   INT32 catRemoveCSIndexes( const CHAR *csName, pmdEDUCB *cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATRMCSIDX ) ;
+
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
+      SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
+      BSONObj dummyObj ;
+      BSONObj matcher ;
+      CHAR lowBound[ DMS_COLLECTION_SPACE_NAME_SZ + 1 + 1 ] = { 0 } ;
+      CHAR upBound[  DMS_COLLECTION_SPACE_NAME_SZ + 1 + 1 ] = { 0 } ;
+
+      ossStrncpy( lowBound, csName, DMS_COLLECTION_NAME_SZ ) ;
+      ossStrncat( lowBound, ".", 1 ) ;
+      ossStrncpy( upBound, csName, DMS_COLLECTION_NAME_SZ ) ;
+      ossStrncat( upBound, "/", 1 ) ;
+
+      try
+      {
+         // eg: csName is "test", { Name: { $regex: "^test\\." } } is equal to
+         // { Name: { $gt: "test.", $lt: "test/" } }. So if csName has
+         // metacharacter(eg: "^"), we do not need to escape it.
+         matcher = BSON( FIELD_NAME_COLLECTION <<
+                         BSON( "$gt" << lowBound << "$lt" << upBound ) ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+      rc = rtnDelete( CAT_INDEX_INFO_COLLECTION, matcher, dummyObj,
+                      0, cb, dmsCB, dpsCB, w ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to remove collection space[%s]'s indexes, rc: %d",
+                   csName, rc ) ;
+   done:
+      PD_TRACE_EXITRC ( SDB_CATRMCSIDX, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -2962,13 +3017,19 @@ namespace engine
    }
 
    static INT32 _queryTask( const BSONObj &matcher, pmdEDUCB *cb,
-                            ossPoolSet<UINT64> &taskSet )
+                            BOOLEAN &hasTask,
+                            ossPoolSet<UINT64> &mainTaskSet,
+                            ossPoolMap<UINT64,UINT64> &subTaskMap )
    {
       INT32 rc = SDB_OK ;
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
       INT64 contextID = -1 ;
       BSONObj dummyObj ;
+
+      hasTask = FALSE ;
+      mainTaskSet.clear() ;
+      subTaskMap.clear() ;
 
       try
       {
@@ -2981,65 +3042,8 @@ namespace engine
          while ( TRUE )
          {
             rtnContextBuf contextBuf ;
-            UINT64 taskID = CLS_INVALID_TASKID ;
-
-            rc = rtnGetMore( contextID, 1, contextBuf, cb, rtnCB ) ;
-            if ( SDB_DMS_EOC == rc )
-            {
-               contextID = -1 ;
-               rc = SDB_OK ;
-               break ;
-            }
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to retreive record, rc: %d",
-                         rc ) ;
-
-            BSONObj obj( contextBuf.data() ) ;
-            rc = rtnGetNumberLongElement( obj, FIELD_NAME_TASKID,
-                                          (INT64&)taskID ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to get field[%s] from obj[%s], rc: %d",
-                         FIELD_NAME_TASKID, obj.toString().c_str(), rc ) ;
-
-            taskSet.insert( taskID ) ;
-         }
-      }
-      catch( std::exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
-      }
-
-   done:
-      if ( contextID != -1 )
-      {
-         rtnCB->contextDelete( contextID, cb ) ;
-      }
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   static INT32 _queryTask( const BSONObj &matcher, pmdEDUCB *cb,
-                            ossPoolMap<UINT64,UINT64> &taskMap )
-   {
-      INT32 rc = SDB_OK ;
-      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
-      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
-      INT64 contextID = -1 ;
-      BSONObj dummyObj ;
-
-      try
-      {
-         rc = rtnQuery( CAT_TASK_INFO_COLLECTION, dummyObj, matcher, dummyObj,
-                        dummyObj, 0, cb, 0, -1, dmsCB, rtnCB, contextID ) ;
-         PD_RC_CHECK ( rc, PDERROR,
-                       "Failed to perform query, rc: %d",
-                       rc ) ;
-
-         while ( TRUE )
-         {
-            rtnContextBuf contextBuf ;
+            BOOLEAN isMainTask = FALSE ;
+            BOOLEAN isSubTask = FALSE ;
             UINT64 taskID = CLS_INVALID_TASKID ;
             UINT64 mainTaskID = CLS_INVALID_TASKID ;
 
@@ -3050,24 +3054,58 @@ namespace engine
                rc = SDB_OK ;
                break ;
             }
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to retreive record, rc: %d",
-                         rc ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get more, rc: %d", rc ) ;
 
             BSONObj obj( contextBuf.data() ) ;
+            hasTask = TRUE ;
+
+            rc = rtnGetBooleanElement( obj, FIELD_NAME_IS_MAINTASK,
+                                       isMainTask ) ;
+
+            if ( SDB_FIELD_NOT_EXIST == rc )
+            {
+               rc = SDB_OK ;
+            }
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get field[%s] from obj[%s], rc: %d",
+                         FIELD_NAME_IS_MAINTASK, obj.toString().c_str(), rc ) ;
+
+            if ( !isMainTask )
+            {
+               rc = rtnGetNumberLongElement( obj, FIELD_NAME_MAIN_TASKID,
+                                             (INT64&)mainTaskID ) ;
+               if ( SDB_FIELD_NOT_EXIST == rc )
+               {
+                  rc = SDB_OK ;
+               }
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to get field[%s] from obj[%s], rc: %d",
+                            FIELD_NAME_MAIN_TASKID, obj.toString().c_str(), rc ) ;
+               if ( mainTaskID != CLS_INVALID_TASKID )
+               {
+                  isSubTask = TRUE ;
+               }
+            }
+
+            if ( !isMainTask && !isSubTask )
+            {
+               continue ;
+            }
+
             rc = rtnGetNumberLongElement( obj, FIELD_NAME_TASKID,
                                           (INT64&)taskID ) ;
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to get field[%s] from obj[%s], rc: %d",
                          FIELD_NAME_TASKID, obj.toString().c_str(), rc ) ;
 
-            rc = rtnGetNumberLongElement( obj, FIELD_NAME_MAIN_TASKID,
-                                          (INT64&)mainTaskID ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to get field[%s] from obj[%s], rc: %d",
-                         FIELD_NAME_MAIN_TASKID, obj.toString().c_str(), rc ) ;
-
-            taskMap[ taskID ] = mainTaskID ;
+            if ( isMainTask )
+            {
+               mainTaskSet.insert( taskID ) ;
+            }
+            if ( isSubTask )
+            {
+               subTaskMap[ taskID ] = mainTaskID ;
+            }
          }
       }
       catch( std::exception &e )
@@ -3210,71 +3248,119 @@ namespace engine
       goto done ;
    }
 
-   INT32 catRemoveCLTasks ( const string &clName, pmdEDUCB *cb, INT16 w )
+   INT32 catRemoveCLTasks( const CHAR *clName, pmdEDUCB *cb, INT16 w )
    {
       INT32 rc = SDB_OK ;
       BSONObj dummyObj, matcher ;
-      ossPoolSet<UINT64> taskSet ;
-      ossPoolMap<UINT64,UINT64> taskMap ; // <taskID, mainTaskID>
+      BOOLEAN hasTask = FALSE ;
+      ossPoolSet<UINT64> mainTaskSet ;
+      ossPoolMap<UINT64,UINT64> subTaskMap ; // <taskID, mainTaskID>
 
       try
       {
-         /// 1. if the task to be deleted is normal task
-         matcher = BSON( CAT_COLLECTION_NAME << clName <<
-                         FIELD_NAME_IS_MAINTASK << BSON( "$exists" << 0 ) <<
-                         FIELD_NAME_MAIN_TASKID << BSON( "$exists" << 0 ) ) ;
-         rc = catRemoveTask( matcher, FALSE, cb, w ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to remove task by matcher[%s], rc: %d",
-                      matcher.toString().c_str(), rc ) ;
+         matcher = BSON( CAT_COLLECTION_NAME << clName ) ;
 
-         /// 2. if the task to be deleted is main task
-         matcher = BSON( CAT_COLLECTION_NAME << clName <<
-                         FIELD_NAME_IS_MAINTASK << true ) ;
-
-         // get these task's id
-         rc = _queryTask( matcher, cb, taskSet ) ;
+         rc = _queryTask( matcher, cb, hasTask, mainTaskSet, subTaskMap ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to query task by matcher, rc: %d",
                       rc ) ;
 
-         rc = catRemoveTask( matcher, FALSE, cb, w ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to remove task by matcher[%s], rc: %d",
-                      matcher.toString().c_str(), rc ) ;
-
-         // remove their sub tasks
-         for ( ossPoolSet<UINT64>::iterator it = taskSet.begin() ;
-               it != taskSet.end() ; it++ )
+         // if the task to be deleted is main task, remove their sub tasks
+         for ( ossPoolSet<UINT64>::iterator it = mainTaskSet.begin() ;
+               it != mainTaskSet.end() ; it++ )
          {
-            matcher = BSON( FIELD_NAME_MAIN_TASKID << (INT64)(*it) ) ;
-            rc = catRemoveTask( matcher, FALSE, cb, w ) ;
+            BSONObj matcher1 = BSON( FIELD_NAME_MAIN_TASKID << (INT64)(*it) ) ;
+            rc = catRemoveTask( matcher1, FALSE, cb, w ) ;
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to remove task by matcher[%s], rc: %d",
-                         matcher.toString().c_str(), rc ) ;
+                         matcher1.toString().c_str(), rc ) ;
          }
 
-         /// 3. if the task to be deleted is sub task
-         matcher = BSON( CAT_COLLECTION_NAME << clName <<
-                         FIELD_NAME_MAIN_TASKID << BSON( "$exists" << 1 ) ) ;
-         rc = _queryTask( matcher, cb, taskMap ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to query task by matcher, rc: %d",
-                      rc ) ;
-
-         rc = catRemoveTask( matcher, FALSE, cb, w ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to remove task by matcher[%s], rc: %d",
-                      matcher.toString().c_str(), rc ) ;
-
-         // update their main task's info
-         for ( ossPoolMap<UINT64,UINT64>::iterator it = taskMap.begin() ;
-               it != taskMap.end() ; it++ )
+         // if the task to be deleted is sub task, update their main task's info
+         for ( ossPoolMap<UINT64,UINT64>::iterator it = subTaskMap.begin() ;
+               it != subTaskMap.end() ; it++ )
          {
             rc = _updateMainTaskByRemoveTask( it->second, it->first, cb ) ;
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to update main task[%llu], rc: %s",
                          it->second, rc ) ;
+         }
+
+         if ( hasTask )
+         {
+            rc = catRemoveTask( matcher, FALSE, cb, w ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to remove task by matcher[%s], rc: %d",
+                         matcher.toString().c_str(), rc ) ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 catRemoveCSTasks( const CHAR *csName, pmdEDUCB *cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj dummyObj, matcher ;
+      BOOLEAN hasTask = FALSE ;
+      ossPoolSet<UINT64> mainTaskSet ;
+      ossPoolMap<UINT64,UINT64> subTaskMap ; // <taskID, mainTaskID>
+      CHAR lowBound[ DMS_COLLECTION_SPACE_NAME_SZ + 1 + 1 ] = { 0 } ;
+      CHAR upBound[  DMS_COLLECTION_SPACE_NAME_SZ + 1 + 1 ] = { 0 } ;
+
+      ossStrncpy( lowBound, csName, DMS_COLLECTION_NAME_SZ ) ;
+      ossStrncat( lowBound, ".", 1 ) ;
+      ossStrncpy( upBound, csName, DMS_COLLECTION_NAME_SZ ) ;
+      ossStrncat( upBound, "/", 1 ) ;
+
+      try
+      {
+         // eg: csName is "test", { Name: { $regex: "^test\\." } } is equal to
+         // { Name: { $gt: "test.", $lt: "test/" } }. So if csName has
+         // metacharacter(eg: "^"), we do not need to escape it.
+         matcher = BSON( CAT_COLLECTION_NAME <<
+                         BSON( "$gt" << lowBound << "$lt" << upBound ) ) ;
+
+         rc = _queryTask( matcher, cb, hasTask, mainTaskSet, subTaskMap ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to query task by matcher, rc: %d",
+                      rc ) ;
+
+         // if the task to be deleted is main task, remove their sub tasks
+         for ( ossPoolSet<UINT64>::iterator it = mainTaskSet.begin() ;
+               it != mainTaskSet.end() ; it++ )
+         {
+            BSONObj matcher1 = BSON( FIELD_NAME_MAIN_TASKID << (INT64)(*it) ) ;
+            rc = catRemoveTask( matcher1, FALSE, cb, w ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to remove task by matcher[%s], rc: %d",
+                         matcher1.toString().c_str(), rc ) ;
+         }
+
+         // if the task to be deleted is sub task, update their main task's info
+         for ( ossPoolMap<UINT64,UINT64>::iterator it = subTaskMap.begin() ;
+               it != subTaskMap.end() ; it++ )
+         {
+            rc = _updateMainTaskByRemoveTask( it->second, it->first, cb ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to update main task[%llu], rc: %s",
+                         it->second, rc ) ;
+         }
+
+         if ( hasTask )
+         {
+            rc = catRemoveTask( matcher, FALSE, cb, w ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to remove task by matcher[%s], rc: %d",
+                         matcher.toString().c_str(), rc ) ;
          }
       }
       catch( std::exception &e )
@@ -5289,8 +5375,30 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATDROPCSSTEP ) ;
 
-      BSONObj boMatcher = BSON( CAT_COLLECTION_SPACE_NAME << csName ) ;
-      BSONObj dummyObj ;
+      BSONObj boMatcher, dummyObj ;
+
+      // 1) Remove tasks with the collection space
+      rc = catRemoveCSTasks( csName.c_str(), cb, w ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to remove tasks with the collection [%s], rc: %d",
+                   csName.c_str(), rc ) ;
+
+      // 2) Remove indexes with the collection space
+      rc = catRemoveCSIndexes( csName.c_str(), cb, w ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to remove indexes with the collection [%s], rc: %d",
+                   csName.c_str(), rc ) ;
+
+      // 3) Remove collections with the collection space
+      try
+      {
+         boMatcher = BSON( CAT_COLLECTION_SPACE_NAME << csName ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
 
       rc = rtnDelete( CAT_COLLECTION_SPACE_COLLECTION, boMatcher, dummyObj,
                       0, cb, pDmsCB, pDpsCB, w ) ;
@@ -5494,7 +5602,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATDROPCLSTEP, "catDropCLStep" )
    INT32 catDropCLStep ( const string &clName, INT32 version, BOOLEAN delFromCS,
                          _pmdEDUCB *cb, SDB_DMSCB *pDmsCB, SDB_DPSCB *pDpsCB,
-                         INT16 w )
+                         INT16 w, BOOLEAN rmTaskAndIdx )
    {
       INT32 rc = SDB_OK ;
 
@@ -5502,21 +5610,19 @@ namespace engine
 
       BSONObj boCollection ;
 
-      // 1) Remove tasks with the collection
-      rc = catRemoveCLTasks( clName, cb, w ) ;
-      if ( SDB_CAT_TASK_NOTFOUND == rc )
+      if ( rmTaskAndIdx )
       {
-         rc = SDB_OK ;
+         // 1) Remove tasks with the collection
+         rc = catRemoveCLTasks( clName.c_str(), cb, w ) ;
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to remove tasks with the collection [%s], rc: %d",
+                      clName.c_str(), rc ) ;
+         // 2) Remove indexes with the collection
+         rc = catRemoveCLIndexes( clName.c_str(), cb, w ) ;
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to remove indexes with the collection [%s], rc: %d",
+                      clName.c_str(), rc ) ;
       }
-      PD_RC_CHECK( rc, PDWARNING,
-                   "Failed to remove tasks with the collection [%s], rc: %d",
-                   clName.c_str(), rc ) ;
-
-      // 2) Remove indexes with the collection
-      rc = catRemoveCLIndexes( clName.c_str(), cb, w ) ;
-      PD_RC_CHECK( rc, PDWARNING,
-                   "Failed to remove indexes with the collection [%s], rc: %d",
-                   clName.c_str(), rc ) ;
 
       rc = catGetCollection( clName, boCollection, cb ) ;
       if ( SDB_OK == rc )

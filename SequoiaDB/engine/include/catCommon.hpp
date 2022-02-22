@@ -247,6 +247,7 @@ namespace engine
                          pmdEDUCB *cb, INT16 w,
                          BOOLEAN *pRemoveOldIdx = NULL ) ;
    INT32 catRemoveCLIndexes( const CHAR *collection, pmdEDUCB *cb, INT16 w ) ;
+   INT32 catRemoveCSIndexes( const CHAR *csName, pmdEDUCB *cb, INT16 w ) ;
 
    INT32 catCheckIndexExist( const CHAR *collection, const BSONObj &indexDef,
                              pmdEDUCB *cb,
@@ -299,7 +300,8 @@ namespace engine
                         INT16 w ) ;
    INT32 catRemoveTask( UINT64 taskID, BOOLEAN checkExist, pmdEDUCB *cb,
                         INT16 w ) ;
-   INT32 catRemoveCLTasks( const string &clName, pmdEDUCB *cb, INT16 w ) ;
+   INT32 catRemoveCLTasks( const CHAR *clName, pmdEDUCB *cb, INT16 w ) ;
+   INT32 catRemoveCSTasks( const CHAR *csName, pmdEDUCB *cb, INT16 w ) ;
    INT32 catRemoveSequenceTasks ( const CHAR * sequenceName, pmdEDUCB * cb,
                                   INT16 w ) ;
    INT32 catRemoveTasksByType ( CLS_TASK_TYPE type, pmdEDUCB * cb, INT16 w ) ;
@@ -467,7 +469,7 @@ namespace engine
    /* Drop Collection */
    INT32 catDropCLStep ( const string &clName, INT32 version, BOOLEAN delFromCS,
                          _pmdEDUCB *cb, SDB_DMSCB *pDmsCB, SDB_DPSCB *pDpsCB,
-                         INT16 w ) ;
+                         INT16 w, BOOLEAN rmTaskAndIdx = TRUE ) ;
 
    /* Alter Collection */
    INT32 catAlterCLStep ( const string &clName, const BSONObj &boNewData,

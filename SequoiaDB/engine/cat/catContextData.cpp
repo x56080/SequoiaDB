@@ -233,14 +233,15 @@ namespace engine
    INT32 _catCtxCLMultiTask::_addDropCLTask ( const std::string &clName,
                                               INT32 version,
                                               _catCtxDropCLTask **ppCtx,
-                                              BOOLEAN pushExec )
+                                              BOOLEAN pushExec,
+                                              BOOLEAN rmTaskAndIdx )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY ( SDB_CATCTXCL_DROPCL_TASK ) ;
 
       _catCtxDropCLTask *pCtx = NULL ;
-      pCtx = SDB_OSS_NEW _catCtxDropCLTask( clName, version ) ;
+      pCtx = SDB_OSS_NEW _catCtxDropCLTask( clName, version, rmTaskAndIdx ) ;
       PD_CHECK( pCtx, SDB_SYS, error, PDERROR,
                 "Failed to create drop collection [%s] sub-task",
                 clName.c_str() ) ;
@@ -582,7 +583,7 @@ namespace engine
                   goto error ;
                }
 
-               rc = _addDropCLTask( clFullName, -1, &pDropCLTask );
+               rc = _addDropCLTask( clFullName, -1, &pDropCLTask, TRUE, FALSE );
 
                // Space has been locked already
                pDropCLTask->disableLocks() ;
