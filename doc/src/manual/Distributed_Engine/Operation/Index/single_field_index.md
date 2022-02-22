@@ -3,7 +3,7 @@
 
 SequoiaDB 巨杉数据库支持创建单字段索引。单字段索引是指仅根据记录中某一字段创建的索引。
 
-##在单个字段上创建索引##
+##以单个字段创建索引##
 
 集合 sample.employee 中存在如下记录：
 
@@ -14,7 +14,7 @@ SequoiaDB 巨杉数据库支持创建单字段索引。单字段索引是指仅�
 {"id": 4, "name": "Jenny", "score": 483, "info": {"age": 23, "city": "Guangzhou"}}
 ```
 
-在集合的 score 字段上创建倒序索引，索引名为“scoreIdx”
+以集合的 score 字段创建倒序索引，索引名为“scoreIdx”
 
 ```lang-javascript
 > db.sample.employee.createIndex("scoreIdx", {"score": -1})
@@ -43,9 +43,9 @@ SequoiaDB 巨杉数据库支持创建单字段索引。单字段索引是指仅�
 }
 ```
 
-##在对象字段上创建索引##
+##以对象字段创建索引##
 
-用户可以在对象字段上创建索引，以快速查找对象字段中的数据。
+用户可以在集合中以对象字段创建索引，以快速查找对象字段中的数据。
 
 集合 sample.employee 中存在如下记录：
 
@@ -56,7 +56,7 @@ SequoiaDB 巨杉数据库支持创建单字段索引。单字段索引是指仅�
 {"id": 4, "name": "Jenny", "score": 483, "info": {"age": 23, "city": "Guangzhou"}}
 ```
 
-在集合的 info 字段上创建升序索引，索引名为“infoIdx”
+以集合的 info 字段创建升序索引，索引名为“infoIdx”
 
 ```lang-javascript
 > db.sample.employee.createIndex("infoIdx", {"info": 1})
@@ -81,9 +81,9 @@ SequoiaDB 巨杉数据库支持创建单字段索引。单字段索引是指仅�
 }
 ```
 
-##在对象嵌套字段上创建索引##
+##以对象嵌套字段创建索引##
 
-用户可以在对象嵌套字段上创建索引，以实现更精准的查询。
+用户可以在集合中以对象嵌套字段创建索引，以实现更精准的查询。
 
 集合 sample.employee 中存在如下记录：
 
@@ -94,7 +94,7 @@ SequoiaDB 巨杉数据库支持创建单字段索引。单字段索引是指仅�
 {"id": 4, "name": "Jenny", "score": 483, "info": {"age": 23, "city": "Guangzhou"}}
 ```
 
-在集合的 info.age 字段上创建升序索引，索引名为“ageIdx”
+以集合的 info.age 字段创建升序索引，索引名为“ageIdx”
 
 ```lang-javascript
 > db.sample.employee.createIndex("ageIdx", {"info.age": 1})

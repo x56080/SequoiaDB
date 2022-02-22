@@ -14,7 +14,7 @@ SequoiaDB 巨杉数据库支持创建复合索引。复合索引是指结合记�
 {"area_id": 2, "name": "Jenny", "score": 483, "info": {"age": 23, "city": "Guangzhou"}}
 ```
 
-在集合的 name 和 info 字段上创建正序索引，索引名为“sortIdx”
+以集合的 name 和 info 字段创建正序索引，索引名为“sortIdx”
 
 ```lang-javascript
 > db.sample.employee.createIndex("sortIdx", {"name": 1, "info": 1})

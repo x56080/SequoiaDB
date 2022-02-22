@@ -131,7 +131,7 @@ When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the erro
 
 ##VERSION##
 
-v2.0 and above
+v3.4 and above
 
 ##EXAMPLES##
 

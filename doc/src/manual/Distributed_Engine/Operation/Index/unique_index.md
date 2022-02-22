@@ -12,7 +12,7 @@ SequoiaDB 巨杉数据库支持创建唯一索引，用于保证索引字段值�
 {"id": 2, "name": "Adam", "score": 475, "info": {"age": 32, "city": "Beijing"}}
 ```
 
-在集合的 id 字段上创建唯一索引，索引名为“uniqueIdx”
+以集合的 id 字段创建唯一索引，索引名为“uniqueIdx”
 
 ```lang-javascript
 > db.sample.employee.createIndex("uniqueIdx", {"id": 1}, {"Unique": true})
