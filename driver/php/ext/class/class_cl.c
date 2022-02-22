@@ -872,8 +872,13 @@ PHP_METHOD( SequoiaCL, remove )
    sdbCollectionHandle cl = SDB_INVALID_HANDLE ;
    bson condition ;
    bson hint ;
+   bson result ;
+   bson tmp ;
+
    bson_init( &condition ) ;
    bson_init( &hint ) ;
+   bson_init( &result ) ;
+   bson_init( &tmp ) ;
    PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
    if ( PHP_GET_PARAMETERS( "|zz", &pCondition, &pHint ) == FAILURE )
    {
@@ -895,15 +900,21 @@ PHP_METHOD( SequoiaCL, remove )
    {
       goto error ;
    }
-   rc = sdbDelete( cl, &condition, &hint ) ;
+   rc = sdbDelete1( cl, &condition, &hint, 0, &tmp ) ;
    if( rc )
    {
       goto error ;
    }
+   bson_append_elements( &result, &tmp ) ;
+
 done:
-   PHP_RETURN_AUTO_ERROR( FALSE, pThisObj, rc ) ;
+   bson_append_int( &result, "errno", rc ) ;
+   bson_finish( &result ) ;
+   PHP_RETURN_AUTO_RECORD( FALSE, pThisObj, FALSE, result ) ;
    bson_destroy( &condition ) ;
    bson_destroy( &hint ) ;
+   bson_destroy( &result ) ;
+   bson_destroy( &tmp ) ;
    return ;
 error:
    PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
@@ -923,9 +934,14 @@ PHP_METHOD( SequoiaCL, update )
    bson rule ;
    bson condition ;
    bson hint ;
+   bson result ;
+   bson tmp ;
+
    bson_init( &rule ) ;
    bson_init( &condition ) ;
    bson_init( &hint ) ;
+   bson_init( &result ) ;
+   bson_init( &tmp ) ;
    PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
    if ( PHP_GET_PARAMETERS( "|zzzz",
                             &pRule,
@@ -961,16 +977,22 @@ PHP_METHOD( SequoiaCL, update )
                     sdbCollectionHandle,
                     SDB_CL_HANDLE_NAME,
                     clDesc ) ;
-   rc = sdbUpdate1( cl, &rule, &condition, &hint, flag ) ;
+   rc = sdbUpdate2( cl, &rule, &condition, &hint, flag, &tmp ) ;
    if( rc )
    {
       goto error ;
    }
+   bson_append_elements( &result, &tmp ) ;
+
 done:
-   PHP_RETURN_AUTO_ERROR( FALSE, pThisObj, rc ) ;
+   bson_append_int( &result, "errno", rc ) ;
+   bson_finish( &result ) ;
+   PHP_RETURN_AUTO_RECORD( FALSE, pThisObj, FALSE, result ) ;
    bson_destroy( &rule ) ;
    bson_destroy( &condition ) ;
    bson_destroy( &hint ) ;
+   bson_destroy( &result ) ;
+   bson_destroy( &tmp ) ;
    return ;
 error:
    PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
@@ -992,10 +1014,15 @@ PHP_METHOD( SequoiaCL, upsert )
    bson condition ;
    bson hint ;
    bson setOnInsert ;
+   bson result ;
+   bson tmp ;
+
    bson_init( &rule ) ;
    bson_init( &condition ) ;
    bson_init( &hint ) ;
    bson_init( &setOnInsert ) ;
+   bson_init( &result ) ;
+   bson_init( &tmp ) ;
    PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
    if ( PHP_GET_PARAMETERS( "|zzzzz",
                             &pRule,
@@ -1037,17 +1064,23 @@ PHP_METHOD( SequoiaCL, upsert )
                     sdbCollectionHandle,
                     SDB_CL_HANDLE_NAME,
                     clDesc ) ;
-   rc = sdbUpsert2( cl, &rule, &condition, &hint, &setOnInsert, flag ) ;
+   rc = sdbUpsert3( cl, &rule, &condition, &hint, &setOnInsert, flag, &tmp ) ;
    if( rc )
    {
       goto error ;
    }
+   bson_append_elements( &result, &tmp ) ;
+
 done:
-   PHP_RETURN_AUTO_ERROR( FALSE, pThisObj, rc ) ;
+   bson_append_int( &result, "errno", rc ) ;
+   bson_finish( &result ) ;
+   PHP_RETURN_AUTO_RECORD( FALSE, pThisObj, FALSE, result ) ;
    bson_destroy( &rule ) ;
    bson_destroy( &condition ) ;
    bson_destroy( &hint ) ;
    bson_destroy( &setOnInsert ) ;
+   bson_destroy( &result ) ;
+   bson_destroy( &tmp ) ;
    return ;
 error:
    PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
