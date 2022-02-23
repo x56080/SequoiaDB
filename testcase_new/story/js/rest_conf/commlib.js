@@ -56,7 +56,9 @@ function runCurlByHttps(curlPara){
 	   str+="&";
 	   }
    }
-   str+="' 2>/dev/null";// to get curl command
+   str += "' 2>>" + WORKDIR + "runCurlByHttps.txt"; // to get curl command
+   com.run( "date >> " + WORKDIR + "runCurlByHttps.txt" );
+   com.run( "echo '" + curlPara + "' >>" + WORKDIR + "runCurlByHttps.txt" );
    info = com.run(str);// to get info
 //	println("command: "+str+"\n"+"return: "+info);
    var tem = info.slice(11,18);
