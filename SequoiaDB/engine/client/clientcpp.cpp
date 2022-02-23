@@ -270,12 +270,45 @@ do                                                            \
    }
 
    /*
+    * _sdbBase
+    */
+   _sdbBase::_sdbBase (CLIENT_CLASS_TYPE type) :
+   _type( type ),
+   _connection( NULL )
+   {}
+
+   INT32 _sdbBase::_regHandle( _sdbImpl *connection, ossValuePtr ptr )
+   {
+      INT32 rc = SDB_OK ;
+      if ( connection )
+      {
+         _connection = connection ;
+         rc = _connection->_registerHandle( _type, ptr ) ;
+      }
+      else
+      {
+         rc = SDB_INVALIDARG ;
+      }
+      return rc ;
+   }
+
+   void _sdbBase::_unregHandle( ossValuePtr ptr )
+   {
+      // when we coredump from here, please check wether _connection
+      // had been destroyed or not
+      if ( _connection )
+      {
+         _connection->_unregisterHandle( _type, ptr ) ;
+         _connection = NULL ;
+      }
+   }
+
+   /*
     * sdbCursorImpl
     * Cursor Implementation
     */
    _sdbCursorImpl::_sdbCursorImpl () :
-   _connection ( NULL ),
-   _collection ( NULL ),
+   _sdbBase( CLIENT_CLASS_CURSOR ),
    _pSendBuffer ( NULL ),
    _sendBufferSize ( 0 ),
    _pReceiveBuffer ( NULL ),
@@ -299,12 +332,7 @@ do                                                            \
             }
          }
          // unregister the cursor anyway
-         _detachConnection() ;
-      }
-      if ( _collection )
-      {
-         // unregister the cursor anyway
-         _detachCollection();
+         _dropConnection() ;
       }
       if ( _pSendBuffer )
       {
@@ -313,42 +341,6 @@ do                                                            \
       if ( _pReceiveBuffer )
       {
          SDB_OSS_FREE ( _pReceiveBuffer ) ;
-      }
-   }
-
-   void _sdbCursorImpl::_attachConnection ( _sdbImpl *connection )
-   {
-      if ( NULL != connection )
-      {
-         _connection = connection ;
-         _connection->_regCursor ( this ) ;
-      }
-   }
-
-   void _sdbCursorImpl::_attachCollection ( _sdbCollectionImpl *collection )
-   {
-      if ( NULL != collection )
-      {
-         _collection = collection ;
-         _collection->_regCursor ( this ) ;
-      }
-   }
-
-   void _sdbCursorImpl::_detachConnection()
-   {
-      if ( NULL != _connection )
-      {
-         _connection->_unregCursor( this ) ;
-         _connection = NULL ;
-      }
-   }
-
-   void _sdbCursorImpl::_detachCollection()
-   {
-      if ( NULL != _collection )
-      {
-         _collection->_unregCursor( this ) ;
-         _collection = NULL ;
       }
    }
 
@@ -563,8 +555,7 @@ do                                                            \
       // clean up
       _close() ;
       // unregister
-      _detachConnection() ;
-      _detachCollection() ;
+      _dropConnection() ;
       goto done ;
    }
 
@@ -726,14 +717,7 @@ do                                                            \
       if ( SDB_OK == rc )
       {
          // unregister anyway
-         if ( NULL != _connection )
-         {
-            _detachConnection() ;
-         }
-         if ( NULL != _collection )
-         {
-            _detachCollection() ;
-         }
+         _dropConnection() ;
       }
       return rc ;
    error :
@@ -745,7 +729,7 @@ do                                                            \
     * Collection Implementation
     */
    _sdbCollectionImpl::_sdbCollectionImpl () :
-   _connection ( NULL ),
+   _sdbBase( CLIENT_CLASS_CL ),
    _pSendBuffer ( NULL ),
    _sendBufferSize ( 0 ),
    _pReceiveBuffer ( NULL ),
@@ -759,7 +743,7 @@ do                                                            \
    }
 
    _sdbCollectionImpl::_sdbCollectionImpl ( CHAR *pCollectionFullName ) :
-   _connection ( NULL ),
+   _sdbBase( CLIENT_CLASS_CL ),
    _pSendBuffer ( NULL ),
    _sendBufferSize ( 0 ),
    _pReceiveBuffer ( NULL ),
@@ -773,7 +757,7 @@ do                                                            \
 
    _sdbCollectionImpl::_sdbCollectionImpl ( CHAR *pCollectionSpaceName,
                                             CHAR *pCollectionName ) :
-   _connection ( NULL ),
+   _sdbBase( CLIENT_CLASS_CL ),
    _pSendBuffer ( NULL ),
    _sendBufferSize ( 0 ),
    _pReceiveBuffer ( NULL ),
@@ -851,20 +835,7 @@ do                                                            \
 
    _sdbCollectionImpl::~_sdbCollectionImpl ()
    {
-      std::set<ossValuePtr> copySet ;
-      std::set<ossValuePtr>::iterator it ;
-      // if there's any opened cursor, we should unregister them
-      copySet = _cursors ;
-      for ( it = copySet.begin(); it != copySet.end(); ++it )
-      {
-         ((_sdbCursorImpl*)(*it))->_detachCollection() ;
-      }
-      _cursors.clear() ;
-
-      if ( _connection )
-      {
-         _connection->_unregCollection ( this ) ;
-      }
+      _dropConnection() ;
       if ( _pSendBuffer )
       {
          SDB_OSS_FREE ( _pSendBuffer ) ;
@@ -959,34 +930,9 @@ do                                                            \
       goto done ;
    }
 
-   void _sdbCollectionImpl::_setConnection ( _sdb *connection )
-   {
-      _connection = (_sdbImpl*)connection ;
-      _connection->_regCollection ( this ) ;
-   }
-
    void* _sdbCollectionImpl::_getConnection ()
    {
       return _connection ;
-   }
-
-   void _sdbCollectionImpl::_dropConnection()
-   {
-      _connection = NULL ;
-   }
-
-   void _sdbCollectionImpl::_regCursor ( _sdbCursorImpl *cursor )
-   {
-      lock () ;
-      _cursors.insert ( (ossValuePtr)cursor ) ;
-      unlock () ;
-   }
-
-   void _sdbCollectionImpl::_unregCursor ( _sdbCursorImpl * cursor )
-   {
-      lock () ;
-      _cursors.erase ( (ossValuePtr)cursor ) ;
-      unlock () ;
    }
 
    INT32 _sdbCollectionImpl::getCount ( SINT64 &count,
@@ -998,6 +944,11 @@ do                                                            \
       BSONObj newObj ;
       BSONObj countObj ;
 
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
       try
       {
          BSONObjBuilder newObjBuilder ;
@@ -1093,6 +1044,12 @@ do                                                            \
       INT32 rc = SDB_OK ;
       INT32 version = CATALOG_INVALID_VERSION ;
 
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
       rc = clientBuildQueryMsgCpp ( &_pSendBuffer, &_sendBufferSize, pString,
                                     flag, reqID, numToSkip, numToReturn,
                                     arg1 ? arg1->objdata() : NULL,
@@ -1137,10 +1094,16 @@ do                                                            \
                                        BSONObj *pResult )
    {
       INT32 rc = SDB_OK ;
+
       // make sure the object is initialized
-      if ( _collectionFullName [0] == '\0' || !_connection )
+      if ( _collectionFullName [0] == '\0' )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -1299,9 +1262,14 @@ do                                                            \
       BSONObjBuilder builder ;
       BSONArrayBuilder sub( builder.subarrayStart( CLIENT_RECORD_ID_FIELD ) ) ;
 
-      if ( _collectionFullName[0] == '\0' || !_connection )
+      if ( _collectionFullName[0] == '\0' )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -1405,7 +1373,7 @@ do                                                            \
       BSONObjBuilder builder ;
       BSONArrayBuilder sub( builder.subarrayStart( CLIENT_RECORD_ID_FIELD ) ) ;
 
-      if ( _collectionFullName[0] == '\0' || !_connection )
+      if ( _collectionFullName[0] == '\0' )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -1418,6 +1386,11 @@ do                                                            \
       else if ( 0 == size )
       {
          goto done ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
       }
 
       flags |= FLG_INSERT_RETURNNUM ;
@@ -1582,9 +1555,14 @@ do                                                            \
    {
       INT32 rc = SDB_OK ;
 
-      if ( _collectionFullName [0] == '\0' || !_connection )
+      if ( _collectionFullName [0] == '\0' )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -1639,11 +1617,16 @@ do                                                            \
    {
       INT32 rc = SDB_OK ;
 
-      if ( _collectionFullName [0] == '\0' || !_connection )
+      if ( _collectionFullName [0] == '\0' )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+     if ( !_connection )
+     {
+        rc = SDB_NOT_CONNECTED ;
+        goto error ;
+     }
 
      flag |= FLG_DELETE_RETURNNUM ;
 
@@ -1693,9 +1676,14 @@ do                                                            \
       BSONObj cmdOption ;
       BSONObjBuilder builder ;
 
-      if ( '\0' == _collectionFullName[0] || !_connection )
+      if ( '\0' == _collectionFullName[0] )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -1760,10 +1748,15 @@ do                                                            \
       _sdbCursor *pCursor   = NULL ;
 
       // check
-      if ( _collectionFullName [0] == '\0' || !_connection || !cursor )
+      if ( _collectionFullName [0] == '\0' || !cursor )
       {
          rc = SDB_INVALIDARG ;
          goto done;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
       }
 
       newFlags = regulateQueryFlags( flags ) ;
@@ -1816,15 +1809,16 @@ do                                                            \
          }
       }
 
-      // register cursor to collection, we had register cursor in connection
-      // when we build it
-      ((_sdbCursorImpl*)pCursor)->_attachCollection( this ) ;
-
       // return cursor
       *cursor = pCursor ;
    done :
       return rc ;
    error :
+      if ( NULL != pCursor )
+      {
+         delete pCursor ;
+         pCursor = NULL ;
+      }
       goto done;
    }
 
@@ -1966,10 +1960,15 @@ do                                                            \
       BSONObjBuilder bo ;
       BSONObj newHint ;
 
-      if ( _collectionFullName [0] == '\0' || !_connection || !cursor )
+      if ( _collectionFullName [0] == '\0' || !cursor )
       {
          rc = SDB_INVALIDARG ;
          goto done;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
       }
 
       bo.append( FIELD_NAME_COLLECTION, _collectionFullName ) ;
@@ -1996,12 +1995,10 @@ do                                                            \
          goto error ;
       }
 
-      ((_sdbCursorImpl*)*cursor)->_attachCollection ( this ) ;
-
    done :
       return rc ;
    error :
-      if ( NULL != *cursor )
+      if ( cursor && NULL != *cursor )
       {
          delete *cursor ;
          *cursor = NULL ;
@@ -2018,20 +2015,27 @@ do                                                            \
    {
       INT32 rc = SDB_OK ;
       BSONObj matcher, hint, indexObj, countObj ;
+      // this cursor no need to register to collection, for it only
+      // use temporarily
       _sdbCursor *cursor = NULL ;
 
-      if ( _collectionFullName [0] == '\0' || !_connection ||
+      if ( _collectionFullName [0] == '\0' ||
            !pIndexName )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-
       if ( sortBufferSize < 0 )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
 
       indexObj = BSON( IXM_FIELD_NAME_KEY << indexDef <<
                        IXM_FIELD_NAME_NAME << pIndexName <<
@@ -2070,7 +2074,6 @@ do                                                            \
          rc = SDB_UNEXPECTED_RESULT ;
          goto error ;
       }
-      ((_sdbCursorImpl*)cursor)->_attachCollection ( this ) ;
 
       rc = cursor->next( countObj ) ; // there should only 1 record read
       if ( rc )
@@ -2114,12 +2117,18 @@ do                                                            \
       BSONObj matcher, hint, countObj ;
       BSONObjBuilder indexBuild, matchBuilder, hintBuilder ;
       BOOLEAN foundOutSort = FALSE ;
+      // no need to register in collection
       _sdbCursor *cursor = NULL ;
 
-      if ( _collectionFullName [0] == '\0' || !_connection ||
+      if ( _collectionFullName [0] == '\0' ||
            !pIndexName )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -2192,7 +2201,6 @@ do                                                            \
          rc = SDB_UNEXPECTED_RESULT ;
          goto error ;
       }
-      ((_sdbCursorImpl*)cursor)->_attachCollection ( this ) ;
 
       rc = cursor->next( countObj ) ; // there should only 1 record read
       if ( rc )
@@ -2264,9 +2272,14 @@ do                                                            \
       INT32 rc = SDB_OK ;
       BSONObjBuilder hintBuilder ;
 
-      if ( _collectionFullName [0] == '\0' || !_connection || !cursor )
+      if ( _collectionFullName [0] == '\0' || !cursor )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -2296,12 +2309,10 @@ do                                                            \
          goto error ;
       }
 
-      ((_sdbCursorImpl*)*cursor)->_attachCollection ( this ) ;
-
    done :
       return rc ;
    error :
-      if ( NULL != *cursor )
+      if ( cursor && NULL != *cursor )
       {
          delete *cursor ;
          *cursor = NULL ;
@@ -2316,11 +2327,17 @@ do                                                            \
       BSONObj queryCond ;
       BSONObj newObj ;
 
-      if ( _collectionFullName [0] == '\0' || !_connection || !cursor )
+      if ( _collectionFullName [0] == '\0' || !cursor )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
       /* build query condition */
       if ( pIndexName )
       {
@@ -2341,12 +2358,10 @@ do                                                            \
          goto error ;
       }
 
-      ((_sdbCursorImpl*)*cursor)->_attachCollection ( this ) ;
-
    done :
       return rc ;
    error :
-      if ( NULL != *cursor )
+      if ( cursor && NULL != *cursor )
       {
          delete *cursor ;
          *cursor = NULL ;
@@ -2422,10 +2437,15 @@ do                                                            \
       BSONObj countObj, matchObj ;
       _sdbCursor *cursor = NULL ;
 
-      if ( _collectionFullName [0] == '\0' || !_connection ||
+      if ( _collectionFullName [0] == '\0' ||
            !pIndexName )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -2456,7 +2476,6 @@ do                                                            \
          rc = SDB_UNEXPECTED_RESULT ;
          goto error ;
       }
-      ((_sdbCursorImpl*)cursor)->_attachCollection ( this ) ;
 
       rc = cursor->next( countObj ) ; // there should only 1 record read
       if ( rc )
@@ -2510,9 +2529,14 @@ do                                                            \
       BSONObjBuilder builder ;
       _sdbCursor *cursor = NULL ;
 
-      if ( _collectionFullName [0] == '\0' || !_connection )
+      if ( _collectionFullName [0] == '\0' )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -2546,8 +2570,6 @@ do                                                            \
          {
             goto done ;
          }
-
-         ((_sdbCursorImpl*)cursor)->_attachCollection ( this ) ;
 
          rc = cursor->next( countObj ) ; // there should only 1 record read
          if ( rc )
@@ -2607,9 +2629,14 @@ do                                                            \
       INT32 rc = SDB_OK ;
       BSONObj newObj ;
 
-      if ( _collectionFullName [0] == '\0' || !_connection )
+      if ( _collectionFullName [0] == '\0' )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -2636,9 +2663,14 @@ do                                                            \
       INT32 rc = SDB_OK ;
       BSONObj newObj ;
 
-      if ( _collectionFullName[0] == '\0' || !_connection )
+      if ( _collectionFullName[0] == '\0' )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -2667,11 +2699,16 @@ do                                                            \
       INT32 rc = SDB_OK ;
       BSONObj newObj ;
 
-      if ( _collectionFullName [0] == '\0' || !_connection ||
+      if ( _collectionFullName [0] == '\0' ||
            !pSourceGroupName || !*pSourceGroupName ||
            !pTargetGroupName || !*pTargetGroupName )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -2704,17 +2741,21 @@ do                                                            \
       INT32 rc = SDB_OK ;
       BSONObj newObj ;
 
-      if ( _collectionFullName [0] == '\0' || !_connection ||
+      if ( _collectionFullName [0] == '\0' ||
           !pSourceGroupName || !*pSourceGroupName ||
           !pTargetGroupName || !*pTargetGroupName )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-
       if ( percent <= 0.0 || percent > 100.0 )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -2750,11 +2791,16 @@ do                                                            \
       BSONObj newObj  ;
       BSONObj countObj ;
 
-      if ( _collectionFullName[0] == '\0' || !_connection ||
+      if ( _collectionFullName[0] == '\0' ||
            !pSourceGroupName || !*pSourceGroupName ||
            !pTargetGroupName || !*pTargetGroupName )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -2786,8 +2832,6 @@ do                                                            \
       {
          goto error ;
       }
-
-      ((_sdbCursorImpl*)cursor)->_attachCollection ( this ) ;
 
       // there should only 1 record read
       rc = cursor->next( countObj ) ;
@@ -2832,19 +2876,24 @@ do                                                            \
       BSONObj newObj ;
       BSONObj countObj ;
 
-      if ( _collectionFullName [0] == '\0' || !_connection ||
+      if ( _collectionFullName [0] == '\0' ||
            !pSourceGroupName || !*pSourceGroupName ||
            !pTargetGroupName || !*pTargetGroupName )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-
       if ( percent <= 0.0 || percent > 100.0 )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
       try
       {
          BSONObjBuilder bob ;
@@ -2872,8 +2921,6 @@ do                                                            \
       {
          goto error ;
       }
-
-      ((_sdbCursorImpl*)cursor)->_attachCollection ( this ) ;
 
       // there should only 1 record read
       rc = cursor->next ( countObj ) ;
@@ -2914,9 +2961,14 @@ do                                                            \
       INT32 rc = SDB_OK ;
       SINT32 num = obj.size() ;
 
-      if ( _collectionFullName[0] == '\0' || !_connection )
+      if ( _collectionFullName[0] == '\0' || !cursor )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -2964,12 +3016,10 @@ do                                                            \
          goto error ;
       }
 
-      ((_sdbCursorImpl*)*cursor)->_attachCollection( this ) ;
-
    done:
       return rc ;
    error:
-      if ( NULL != *cursor )
+      if ( cursor && NULL != *cursor )
       {
          delete *cursor ;
          *cursor = NULL ;
@@ -2984,11 +3034,16 @@ do                                                            \
       BSONObjBuilder ob ;
 
       // check argument
-      if ( !subClFullName || !_connection ||
+      if ( !subClFullName ||
             ossStrlen ( subClFullName) > CLIENT_COLLECTION_NAMESZ ||
            _collectionFullName[0] == '\0' )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -3015,11 +3070,16 @@ do                                                            \
       BSONObjBuilder ob ;
 
       // check argument
-      if ( !subClFullName || !_connection ||
+      if ( !subClFullName ||
            ossStrlen ( subClFullName) > CLIENT_COLLECTION_NAMESZ ||
            _collectionFullName[0] == '\0' )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -3047,9 +3107,14 @@ do                                                            \
       BSONObj newObj ;
 
       // check
-      if ( '\0' == _collectionFullName[0] || !_connection )
+      if ( '\0' == _collectionFullName[0] )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -3107,11 +3172,17 @@ do                                                            \
       BSONObj newObj ;
 
       // check
-      if ( '\0' == _collectionFullName[0] || !_connection )
+      if ( '\0' == _collectionFullName[0] )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
       // build bson
       try
       {
@@ -3204,11 +3275,17 @@ do                                                            \
       BSONObj newObj ;
 
       // check
-      if ( '\0' == _collectionFullName[0] || !_connection )
+      if ( '\0' == _collectionFullName[0] )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
       // append info
       try
       {
@@ -3284,8 +3361,6 @@ do                                                            \
       }
 
       // set attribute of the newly created _sdbLob object
-      ((_sdbLobImpl*)*lob)->_attachConnection( _connection ) ;
-      ((_sdbLobImpl*)*lob)->_attachCollection( this ) ;
       if ( NULL != oid )
       {
          ((_sdbLobImpl*)*lob)->_oid = *oid ;
@@ -3296,6 +3371,14 @@ do                                                            \
       ((_sdbLobImpl*)*lob)->_lobSize = 0 ;
       ((_sdbLobImpl*)*lob)->_createTime = 0 ;
       ((_sdbLobImpl*)*lob)->_modificationTime = 0 ;
+
+      // setting connection should behind setting _contextID,
+      // for if setting failed, we need to close the lob
+      rc = ((_sdbLobImpl*)*lob)->_setConnection( _connection ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
 
       ele = obj.getField( FIELD_NAME_LOB_OID ) ;
       if ( !ele.eoo() )
@@ -3422,7 +3505,7 @@ do                                                            \
    done:
       return rc ;
    error:
-      if ( *lob )
+      if ( lob && *lob )
       {
          delete *lob ;
          *lob = NULL ;
@@ -3436,9 +3519,14 @@ do                                                            \
       OID oidObj ;
 
       // check
-      if ( '\0' == _collectionFullName[0] || NULL == _connection )
+      if ( '\0' == _collectionFullName[0] )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -3498,6 +3586,11 @@ do                                                            \
       SINT64 contextID = -1 ;
       BOOLEAN locked = FALSE ;
 
+      if ( !lob )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
       // append info
       try
       {
@@ -3575,7 +3668,7 @@ do                                                            \
       }
       return rc ;
    error:
-      if ( *lob )
+      if ( lob && *lob )
       {
          delete *lob ;
          *lob = NULL ;
@@ -3590,11 +3683,17 @@ do                                                            \
       BSONObj meta ;
 
       // check
-      if ( '\0' == _collectionFullName[0] || NULL == _connection )
+      if ( '\0' == _collectionFullName[0] )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
       // append info
       try
       {
@@ -3639,15 +3738,19 @@ do                                                            \
       BSONObj meta ;
 
       // check
-      if ( '\0' == _collectionFullName[0] || NULL == _connection )
+      if ( '\0' == _collectionFullName[0] )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-
       if ( length < 0 )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -3700,9 +3803,14 @@ do                                                            \
       BOOLEAN locked = FALSE ;
 
       // check
-      if ( '\0' == _collectionFullName[0] || NULL == _connection )
+      if ( '\0' == _collectionFullName[0] || !lob )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -3780,7 +3888,7 @@ do                                                            \
       }
       return rc ;
    error:
-      if ( *lob )
+      if ( lob && *lob )
       {
          delete *lob ;
          *lob = NULL ;
@@ -3801,9 +3909,14 @@ do                                                            \
       BSONObj newHint ;
 
       // check
-      if ( '\0' == _collectionFullName[0] || NULL == _connection )
+      if ( '\0' == _collectionFullName[0] )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -3891,6 +4004,12 @@ do                                                            \
       INT32 rc = SDB_OK ;
       BSONObj newHint ;
 
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
       try
       {
          BSONObjBuilder queryBuilder ;
@@ -3950,9 +4069,14 @@ do                                                            \
       BSONObj dateInfo ;
 
       // check
-      if ( '\0' == _collectionFullName[0] || NULL == _connection )
+      if ( '\0' == _collectionFullName[0] )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -4047,9 +4171,14 @@ do                                                            \
       INT32 rc = SDB_OK ;
 
       // check
-      if ( '\0' == _collectionFullName[0] || NULL == _connection )
+      if ( '\0' == _collectionFullName[0] )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -4063,11 +4192,14 @@ do                                                            \
          goto error ;
       }
 
-      ((_sdbCursorImpl*)*cursor)->_attachCollection ( this ) ;
-
    done:
       return rc ;
    error:
+      if ( cursor && NULL != *cursor )
+      {
+         delete *cursor ;
+         *cursor = NULL ;
+      }
       goto done ;
    }
 
@@ -4076,9 +4208,14 @@ do                                                            \
       INT32 rc = SDB_OK ;
       BSONObj obj ;
 
-      if ( '\0' == _collectionFullName[0] || NULL == _connection )
+      if ( '\0' == _collectionFullName[0] )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -4277,9 +4414,14 @@ do                                                            \
       INT32 rc = SDB_OK ;
       BSONObj obj ;
 
-      if ( '\0' == _collectionFullName[0] || !_connection || !cursor )
+      if ( '\0' == _collectionFullName[0] || !cursor )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -4298,11 +4440,10 @@ do                                                            \
          goto error ;
       }
 
-      ((_sdbCursorImpl*)*cursor)->_attachCollection ( this ) ;
    done:
       return rc ;
    error:
-      if ( NULL != *cursor )
+      if ( cursor && NULL != *cursor )
       {
          delete *cursor ;
          *cursor = NULL ;
@@ -4317,9 +4458,14 @@ do                                                            \
       BSONObj hint ;
       sdbCursor cursor ;
 
-      if ( '\0' == _collectionFullName[0] || !_connection || !pIndexName )
+      if ( '\0' == _collectionFullName[0] || !pIndexName )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -4343,8 +4489,6 @@ do                                                            \
       {
          goto error ;
       }
-
-      ((_sdbCursorImpl*)cursor.pCursor)->_attachCollection ( this ) ;
 
       rc = cursor.next( result, TRUE ) ;
       if ( SDB_DMS_EOC == rc )
@@ -4378,7 +4522,7 @@ do                                                            \
     * Sdb Node Implementation
     */
    _sdbNodeImpl::_sdbNodeImpl () :
-   _connection ( NULL )
+   _sdbBase( CLIENT_CLASS_NODE )
    {
       ossMemset ( _hostName, 0, sizeof(_hostName) ) ;
       ossMemset ( _serviceName, 0, sizeof(_serviceName) ) ;
@@ -4388,10 +4532,7 @@ do                                                            \
 
    _sdbNodeImpl::~_sdbNodeImpl ()
    {
-      if ( _connection )
-      {
-         _connection->_unregNode ( this ) ;
-      }
+      _dropConnection() ;
    }
 
    INT32 _sdbNodeImpl::connect ( _sdb **dbConn )
@@ -4439,7 +4580,7 @@ do                                                            \
 
       if ( !_connection )
       {
-         rc = SDB_INVALIDARG ;
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -4490,10 +4631,14 @@ do                                                            \
       INT32 rc = SDB_OK ;
       BSONObj configuration ;
 
-      if ( !_connection || _hostName[0] == '\0' ||
-           _serviceName[0] == '\0' )
+      if ( _hostName[0] == '\0' || _serviceName[0] == '\0' )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -4518,7 +4663,7 @@ do                                                            \
       _sdbReplicaGroupImpl implement
    */
    _sdbReplicaGroupImpl::_sdbReplicaGroupImpl () :
-   _connection ( NULL )
+   _sdbBase( CLIENT_CLASS_RG )
    {
       ossMemset ( _replicaGroupName, 0, sizeof(_replicaGroupName) ) ;
       _isCatalog = FALSE ;
@@ -4527,10 +4672,7 @@ do                                                            \
 
    _sdbReplicaGroupImpl::~_sdbReplicaGroupImpl ()
    {
-      if ( _connection )
-      {
-         _connection->_unregReplicaGroup ( this ) ;
-      }
+      _dropConnection() ;
    }
 
    INT32 _sdbReplicaGroupImpl::getNodeNum ( sdbNodeStatus status, INT32 *num )
@@ -4579,12 +4721,18 @@ do                                                            \
       BSONObj configuration ;
       BSONObjBuilder ob ;
 
-      if ( !_connection || _replicaGroupName[0] == '\0' ||
+      if ( _replicaGroupName[0] == '\0' ||
            !pHostName || !pServiceName || !pDatabasePath )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
       // GroupName is required
       ob.append ( CAT_GROUPNAME_NAME, _replicaGroupName ) ;
 
@@ -4626,12 +4774,18 @@ do                                                            \
       BSONObjBuilder ob ;
       map<string,string>::iterator it ;
 
-      if ( !_connection || _replicaGroupName[0] == '\0' ||
+      if ( _replicaGroupName[0] == '\0' ||
            !pHostName || !pServiceName || !pDatabasePath )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
       // GroupName is required
       ob.append ( CAT_GROUPNAME_NAME, _replicaGroupName ) ;
       config.erase ( CAT_GROUPNAME_NAME ) ;
@@ -4684,6 +4838,11 @@ do                                                            \
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
 
       // GroupName is required
       ob.append ( CAT_GROUPNAME_NAME, _replicaGroupName ) ;
@@ -4732,9 +4891,10 @@ do                                                            \
 
       if ( !_connection )
       {
-         rc = SDB_INVALIDARG ;
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
+
       newObj = BSON ( CAT_GROUPNAME_NAME << _replicaGroupName ) ;
       rc = _connection->getList ( &cursor.pCursor, SDB_LIST_GROUPS, newObj ) ;
       if ( rc )
@@ -4758,12 +4918,20 @@ do                                                            \
    {
       INT32 rc = SDB_OK ;
       _sdbNodeImpl *pNode = NULL ;
-
-      if ( !_connection || !node || !primaryData )
+      // primaryData is pointed to bson data, it's not a normal
+      // string, so we can't use '!*primaryData' to check it is
+      // an empty string or not
+      if ( !node || !primaryData )
       {
          rc = SDB_INVALIDARG ;
-         goto error1 ;
+         goto error ;
       }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
       // create new node object
       pNode = new ( std::nothrow) _sdbNodeImpl () ;
       if ( !pNode )
@@ -4773,8 +4941,11 @@ do                                                            \
       }
       pNode->_replicaGroupID = _replicaGroupID ;
       // setup connection
-      pNode->_connection = this->_connection ;
-      _connection->_regNode ( pNode ) ;
+      rc = pNode->_setConnection( this->_connection ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
 
       rc = clientReplicaGroupExtractNode ( primaryData,
                                            pNode->_hostName,
@@ -4790,8 +4961,8 @@ do                                                            \
       ossStrncat ( pNode->_nodeName, NODE_NAME_SERVICE_SEP, 1 ) ;
       ossStrncat ( pNode->_nodeName, pNode->_serviceName,
                    OSS_MAX_SERVICENAME ) ;
-   done :
       *node = pNode ;
+   done :
       return rc ;
    error :
       if ( pNode )
@@ -4799,7 +4970,6 @@ do                                                            \
          delete pNode ;
          pNode = NULL ;
       }
-   error1 :
       goto done ;
    }
 
@@ -4811,11 +4981,17 @@ do                                                            \
       BSONObj result ;
       BSONElement ele ;
 
-      if ( !_connection || !node )
+      if ( !node )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
       // get information of nodes from catalog
       rc = getDetail ( result ) ;
       if ( rc )
@@ -4936,11 +5112,17 @@ do                                                            \
       BOOLEAN needGeneratePosition = FALSE ;
 
       // check arguments
-      if ( !_connection || !node )
+      if ( !node )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
       for ( it = positions.begin(); it != positions.end(); it++ )
       {
          vector<INT32>::iterator it_inner = validPositions.begin() ;
@@ -5167,11 +5349,17 @@ do                                                            \
       INT32 rc = SDB_OK ;
       BSONObj result ;
       BSONElement ele ;
-      if ( !_connection || !pHostName || !pServiceName || !node )
+      if ( !pHostName || !pServiceName || !node )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
       *node = NULL ;
       // get detail of the current node's replica group
       rc = getDetail ( result ) ;
@@ -5239,11 +5427,17 @@ do                                                            \
       CHAR *pHostName = NULL ;
       CHAR *pServiceName = NULL ;
       INT32 nodeNameLen = 0 ;
-      if ( !_connection || !pNodeName || !node )
+      if ( !pNodeName || !node )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
       nodeNameLen = ossStrlen ( pNodeName ) ;
       pHostName = (CHAR*)SDB_OSS_MALLOC ( nodeNameLen +1 ) ;
       if ( !pHostName )
@@ -5283,9 +5477,10 @@ do                                                            \
 
       if ( !_connection )
       {
-         rc = SDB_INVALIDARG ;
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
+
       replicaGroupName = BSON ( CAT_GROUPNAME_NAME << _replicaGroupName ) ;
       rc = _connection->_runCommand ( CMD_ADMIN_PREFIX CMD_NAME_ACTIVE_GROUP,
                                       &replicaGroupName ) ;
@@ -5304,11 +5499,17 @@ do                                                            \
       INT32 rc = SDB_OK ;
       BSONObj configuration ;
 
-      if ( !_connection || ossStrlen ( _replicaGroupName ) == 0 )
+      if ( ossStrlen ( _replicaGroupName ) == 0 )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
       configuration = BSON ( CAT_GROUPNAME_NAME << _replicaGroupName ) ;
       rc = _connection->_runCommand ( CMD_ADMIN_PREFIX CMD_NAME_SHUTDOWN_GROUP,
                                       &configuration );
@@ -5331,11 +5532,17 @@ do                                                            \
       BSONObj newObj ;
 
       // check
-      if ( !_connection || _replicaGroupName[0] == '\0' )
+      if ( _replicaGroupName[0] == '\0' )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
       if ( NULL == pHostName || !*pHostName ||
            NULL == pSvcName || !*pSvcName )
       {
@@ -5374,7 +5581,7 @@ do                                                            \
       BSONObj newObj ;
 
       // check
-      if ( !_connection || _replicaGroupName[0] == '\0' )
+      if ( _replicaGroupName[0] == '\0' )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -5383,6 +5590,11 @@ do                                                            \
            NULL == pSvcName || !*pSvcName )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -5414,9 +5626,14 @@ do                                                            \
       BSONObj query ;
 
       // check
-      if ( !_connection || _replicaGroupName[0] == '\0' )
+      if ( _replicaGroupName[0] == '\0' )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -5468,6 +5685,12 @@ do                                                            \
    {
       INT32 rc = SDB_OK ;
 
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
       rc = clientBuildQueryMsgCpp ( &_pSendBuffer, &_sendBufferSize, pString,
                                     flag, reqID, numToSkip, numToReturn,
                                     arg1 ? arg1->objdata() : NULL,
@@ -5515,7 +5738,7 @@ do                                                            \
     * Collection Space Implementation
     */
    _sdbCollectionSpaceImpl::_sdbCollectionSpaceImpl () :
-   _connection ( NULL ),
+   _sdbBase( CLIENT_CLASS_CS ),
    _pSendBuffer ( NULL ),
    _sendBufferSize ( 0 ),
    _pReceiveBuffer ( NULL ),
@@ -5525,7 +5748,7 @@ do                                                            \
    }
 
    _sdbCollectionSpaceImpl::_sdbCollectionSpaceImpl( CHAR *pCollectionSpaceName )
-   : _connection ( NULL ),
+   : _sdbBase( CLIENT_CLASS_CS ),
      _pSendBuffer ( NULL ),
      _sendBufferSize ( 0 ),
      _pReceiveBuffer ( NULL ),
@@ -5536,10 +5759,7 @@ do                                                            \
 
    _sdbCollectionSpaceImpl::~_sdbCollectionSpaceImpl ()
    {
-      if ( _connection )
-      {
-         _connection->_unregCollectionSpace ( this ) ;
-      }
+      _dropConnection() ;
       if ( _pSendBuffer )
       {
          SDB_OSS_FREE ( _pSendBuffer ) ;
@@ -5548,12 +5768,6 @@ do                                                            \
       {
          SDB_OSS_FREE ( _pReceiveBuffer ) ;
       }
-   }
-
-   void _sdbCollectionSpaceImpl::_setConnection ( _sdb *connection )
-   {
-      _connection = (_sdbImpl*)connection ;
-      _connection->_regCollectionSpace ( this ) ;
    }
 
    INT32 _sdbCollectionSpaceImpl::getCollection ( const CHAR *pCollectionName,
@@ -5573,9 +5787,14 @@ do                                                            \
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      if ( _collectionSpaceName [0] == '\0' || !_connection || !collection )
+      if ( _collectionSpaceName [0] == '\0' || !collection )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -5625,14 +5844,18 @@ do                                                            \
          rc = SDB_OOM ;
          goto error ;
       }
-      ((sdbCollectionImpl*)*collection)->_setConnection ( _connection ) ;
       ((sdbCollectionImpl*)*collection)->_setName ( clFullName ) ;
       ((sdbCollectionImpl*)*collection)->setVersion( version );
+      rc = ((sdbCollectionImpl*)*collection)->_setConnection ( _connection ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
 
    done :
       return rc ;
    error :
-      if ( NULL != *collection )
+      if ( collection && NULL != *collection )
       {
          delete *collection ;
          *collection = NULL ;
@@ -5655,15 +5878,20 @@ do                                                            \
       BSONObjBuilder ob ;
       CHAR clFullName[ CLIENT_CL_FULLNAME_SZ + 1 ] = { 0 } ;
 
-      if ( !pCollectionName ||
+      if ( !pCollectionName || !*pCollectionName ||
            ossStrlen ( pCollectionName ) > CLIENT_COLLECTION_NAMESZ )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      if ( _collectionSpaceName [0] == '\0' || !_connection || !collection )
+      if ( _collectionSpaceName [0] == '\0' || !collection )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -5691,9 +5919,13 @@ do                                                            \
          rc = SDB_OOM ;
          goto error ;
       }
-      ((sdbCollectionImpl*)*collection)->_setConnection ( _connection ) ;
       ((sdbCollectionImpl*)*collection)->_setName ( clFullName ) ;
       ((sdbCollectionImpl*)*collection)->setVersion( _getRetVersion() ) ;
+      rc  = ((sdbCollectionImpl*)*collection)->_setConnection ( _connection ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
 
       /// ignore the result
       insertCachedVersion( _connection->_getCachedContainer(),
@@ -5702,7 +5934,7 @@ do                                                            \
    done :
       return rc ;
    error :
-      if ( NULL != *collection )
+      if ( collection && NULL != *collection )
       {
          delete *collection ;
          *collection = NULL ;
@@ -5722,9 +5954,14 @@ do                                                            \
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      if ( _collectionSpaceName [0] == '\0' || !_connection )
+      if ( _collectionSpaceName [0] == '\0' )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -5757,9 +5994,14 @@ do                                                            \
       CHAR    lowBound[ CLIENT_CS_NAMESZ + 1 + 1 ] = { 0 } ;
       CHAR    upBound[ CLIENT_CS_NAMESZ + 1 + 1 ] = { 0 } ;
 
-      if ( !_connection || '\0' == _collectionSpaceName[0] || !cursor )
+      if ( '\0' == _collectionSpaceName[0] || !cursor )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -5802,11 +6044,17 @@ do                                                            \
       INT32 rc            = SDB_OK ;
       BSONObj newObj ;
 
-      if ( _collectionSpaceName [0] == '\0' || !_connection )
+      if ( _collectionSpaceName [0] == '\0' )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
       newObj = BSON ( FIELD_NAME_NAME << _collectionSpaceName ) ;
 
       rc = _connection->_runCommand ( CMD_ADMIN_PREFIX CMD_NAME_CREATE_COLLECTIONSPACE,
@@ -5831,11 +6079,17 @@ do                                                            \
       INT32 rc            = SDB_OK ;
       BSONObj newObj ;
 
-      if ( _collectionSpaceName [0] == '\0' || !_connection )
+      if ( _collectionSpaceName [0] == '\0' )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
       newObj = BSON ( FIELD_NAME_NAME << _collectionSpaceName ) ;
       rc = _connection->_runCommand ( CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTIONSPACE,
                                       &newObj ) ;
@@ -5867,6 +6121,12 @@ do                                                            \
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
       try
       {
          BSONObjBuilder queryBuilder ;
@@ -5910,9 +6170,14 @@ do                                                            \
       BSONObj newObj ;
 
       // check
-      if ( !_connection || '\0' == _collectionSpaceName[0] )
+      if ( '\0' == _collectionSpaceName[0] )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -5988,11 +6253,17 @@ do                                                            \
       sdbCursor cursor ;
       BSONObj   tempObj ;
 
-      if ( !_connection || '\0' == _collectionSpaceName[0] || 0 >= resultLen || NULL == result )
+      if ( '\0' == _collectionSpaceName[0] || 0 >= resultLen || NULL == result )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
       ossMemset( result, 0, resultLen ) ;      
       // build sql
       ossSnprintf( sql, CLIENT_SQL_MAX_LEN + CLIENT_CS_NAMESZ, 
@@ -6086,7 +6357,7 @@ do                                                            \
     * SequoiaDB Domain Implementation
     */
    _sdbDomainImpl::_sdbDomainImpl () :
-   _connection ( NULL ),
+   _sdbBase( CLIENT_CLASS_DOMAIN ),
    _pSendBuffer ( NULL ),
    _sendBufferSize ( 0 ) ,
    _pReceiveBuffer ( NULL ) ,
@@ -6096,7 +6367,7 @@ do                                                            \
    }
 
    _sdbDomainImpl::_sdbDomainImpl ( const CHAR *pDomainName ) :
-   _connection ( NULL ),
+   _sdbBase( CLIENT_CLASS_DOMAIN ),
    _pSendBuffer ( NULL ),
    _sendBufferSize ( 0 ) ,
    _pReceiveBuffer ( NULL ) ,
@@ -6107,10 +6378,7 @@ do                                                            \
 
    _sdbDomainImpl::~_sdbDomainImpl ()
    {
-      if ( _connection )
-      {
-         _connection->_unregDomain ( this ) ;
-      }
+      _dropConnection() ;
       if ( _pSendBuffer )
       {
          SDB_OSS_FREE ( _pSendBuffer ) ;
@@ -6119,12 +6387,6 @@ do                                                            \
       {
          SDB_OSS_FREE ( _pReceiveBuffer ) ;
       }
-   }
-
-   void _sdbDomainImpl::_setConnection ( _sdb *connection )
-   {
-      _connection = (_sdbImpl*)connection ;
-      _connection->_regDomain ( this ) ;
    }
 
    INT32 _sdbDomainImpl::_setName ( const CHAR *pDomainName )
@@ -6177,9 +6439,14 @@ do                                                            \
       BSONObj newObj ;
 
       // check
-      if ( !_connection || '\0' == _domainName[0] )
+      if ( '\0' == _domainName[0] )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -6240,9 +6507,14 @@ do                                                            \
       BSONObj newObj ;
       BSONObjBuilder ob ;
 
-      if ( !_connection || '\0' == _domainName[0] )
+      if ( '\0' == _domainName[0] )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -6281,11 +6553,17 @@ do                                                            \
       BSONObjBuilder ob1 ;
       BSONObjBuilder ob2 ;
 
-      if ( !_connection || '\0' == _domainName[0] || !cursor )
+      if ( '\0' == _domainName[0] || !cursor )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
       // build bson
       try
       {
@@ -6319,11 +6597,17 @@ do                                                            \
       BSONObjBuilder ob1 ;
       BSONObjBuilder ob2 ;
 
-      if ( !_connection || '\0' == _domainName[0] || !cursor )
+      if ( '\0' == _domainName[0] || !cursor )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
       // build bson
       try
       {
@@ -6353,11 +6637,17 @@ do                                                            \
    {
       INT32 rc = SDB_OK ;
       BSONObj condition;
-      if ( !_connection || '\0' == _domainName[0] || !cursor )
+      if ( '\0' == _domainName[0] || !cursor )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
       try
       {
          condition = BSON( FIELD_NAME_NAME << this->getName() ) ;
@@ -6430,7 +6720,7 @@ do                                                            \
     * SequoiaDB Data Center Implementation
     */
    _sdbDataCenterImpl::_sdbDataCenterImpl () :
-   _connection ( NULL ),
+   _sdbBase( CLIENT_CLASS_DC ),
    _pSendBuffer ( NULL ),
    _sendBufferSize ( 0 ) ,
    _pReceiveBuffer ( NULL ) ,
@@ -6441,10 +6731,7 @@ do                                                            \
 
    _sdbDataCenterImpl::~_sdbDataCenterImpl ()
    {
-      if ( _connection )
-      {
-         _connection->_unregDataCenter( this ) ;
-      }
+      _dropConnection() ;
       if ( _pSendBuffer )
       {
          SDB_OSS_FREE ( _pSendBuffer ) ;
@@ -6476,12 +6763,6 @@ do                                                            \
       goto done ;
    }
 
-   void _sdbDataCenterImpl::_setConnection ( _sdb *connection )
-   {
-      _connection = (_sdbImpl*)connection ;
-      _connection->_regDataCenter( this ) ;
-   }
-
    INT32 _sdbDataCenterImpl::_innerAlter( const CHAR *pValue,
                                           const bson::BSONObj *pInfo )
    {
@@ -6491,14 +6772,14 @@ do                                                            \
       BSONObj newObj ;
 
       // check
-      if ( NULL == _connection )
-      {
-         rc = SDB_NOT_CONNECTED ;
-         goto error ;
-      }
       if ( NULL == pValue )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -6650,22 +6931,13 @@ do                                                            \
     * SequoiaDB Recycle Bin Implementation
     */
    _sdbRecycleBinImpl::_sdbRecycleBinImpl()
-   : _connection ( NULL )
+   : _sdbBase( CLIENT_CLASS_RB )
    {
    }
 
    _sdbRecycleBinImpl::~_sdbRecycleBinImpl()
    {
-      if ( _connection )
-      {
-         _connection->_unregRecycleBin( this ) ;
-      }
-   }
-
-   void _sdbRecycleBinImpl::_setConnection( _sdb *connection )
-   {
-      _connection = (_sdbImpl*)connection ;
-      _connection->_regRecycleBin( this ) ;
+      _dropConnection() ;
    }
 
    INT32 _sdbRecycleBinImpl::_innerAlter( const BSONObj &options )
@@ -7011,8 +7283,7 @@ do                                                            \
     * SequoiaDB large object Implementation
     */
    _sdbLobImpl::_sdbLobImpl () :
-   _connection (NULL),
-   _collection (NULL),
+   _sdbBase( CLIENT_CLASS_LOB ),
    _pSendBuffer ( NULL ),
    _sendBufferSize ( 0 ),
    _pReceiveBuffer ( NULL ),
@@ -7042,11 +7313,7 @@ do                                                            \
          {
             close() ;
          }
-         _detachConnection() ;
-      }
-      if ( _collection )
-      {
-         _detachCollection() ;
+         _dropConnection() ;
       }
       if ( _pSendBuffer )
       {
@@ -7060,42 +7327,13 @@ do                                                            \
       }
    }
 
-   void _sdbLobImpl::_attachConnection ( _sdb *connection )
-   {
-      _connection = (_sdbImpl*)connection ;
-      if ( _connection )
-      {
-         _connection->_regLob ( this ) ;
-      }
-   }
-
-   void _sdbLobImpl::_attachCollection ( _sdbCollectionImpl *collection )
-   {
-      _collection = collection ;
-   }
-
-   void _sdbLobImpl::_detachConnection()
-   {
-      if ( NULL != _connection )
-      {
-         _connection->_unregLob( this ) ;
-         _connection = NULL ;
-      }
-   }
-
-   void _sdbLobImpl::_detachCollection()
-   {
-      _collection = NULL ;
-   }
-
    void _sdbLobImpl::_close()
    {
       // 1. we are not going to release send/receive buffer,
       // let destructor do it
-      // 2. we will set _connection to be null in destructor
-      // for we still need to use the lock which is kept in it
+      // 2. we are not set _connection to be null here, let destructor
+      // do it, for we still need to use the lock which is kept in _connection
       _isOpen = FALSE ;
-      _collection = NULL ;
       _contextID = -1 ;
       _mode = -1 ;
       _cachedOffset = 0 ;
@@ -7337,14 +7575,7 @@ do                                                            \
       if ( SDB_OK == rc )
       {
          // unregister anyway
-         if ( NULL != _connection )
-         {
-            _detachConnection() ;
-         }
-         if ( NULL != _collection )
-         {
-            _detachCollection() ;
-         }
+         _dropConnection() ;
       }
       return rc ;
    error:
@@ -7861,27 +8092,18 @@ do                                                            \
     * Collection Space Implementation
     */
    _sdbSequenceImpl::_sdbSequenceImpl () :
-   _connection ( NULL ),
+   _sdbBase( CLIENT_CLASS_SQ ),
    _pSequenceName ( NULL )
    {
    }
 
    _sdbSequenceImpl::~_sdbSequenceImpl ()
    {
-      if ( _connection )
-      {
-         _connection->_unregSequence ( this ) ;
-      }
+      _dropConnection() ;
       if ( _pSequenceName )
       {
          SDB_OSS_FREE ( _pSequenceName ) ;
       }
-   }
-
-   void _sdbSequenceImpl::_setConnection ( _sdb *connection )
-   {
-      _connection = (_sdbImpl*)connection ;
-      _connection->_regSequence ( this ) ;
    }
 
    INT32 _sdbSequenceImpl::_setName ( const CHAR *pSequenceName )
@@ -7926,6 +8148,12 @@ do                                                            \
       INT32 rc = SDB_OK ;
       BSONObjBuilder bob ;
       BSONObj newObj ;
+
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
 
       try
       {
@@ -7984,6 +8212,12 @@ do                                                            \
       _sdbCursor *pCursor = NULL ;
       BSONObj result ;
       BSONElement ele ;
+
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
 
       try
       {
@@ -8077,6 +8311,11 @@ do                                                            \
       if ( fetchNum < 1 )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -8178,7 +8417,7 @@ do                                                            \
    }
 
    _sdbDataSourceImpl::_sdbDataSourceImpl()
-   : _connection( NULL ),
+   : _sdbBase( CLIENT_CLASS_DS ),
      _pSendBuffer ( NULL ),
      _sendBufferSize ( 0 ) ,
      _pReceiveBuffer ( NULL ) ,
@@ -8188,7 +8427,7 @@ do                                                            \
    }
 
    _sdbDataSourceImpl::_sdbDataSourceImpl( const CHAR *pDataSourceName )
-   : _connection( NULL ),
+   : _sdbBase( CLIENT_CLASS_DS ),
      _pSendBuffer ( NULL ),
      _sendBufferSize ( 0 ) ,
      _pReceiveBuffer ( NULL ) ,
@@ -8199,10 +8438,7 @@ do                                                            \
 
    _sdbDataSourceImpl::~_sdbDataSourceImpl()
    {
-      if ( _connection )
-      {
-         _connection->_unregDataSource( this ) ;
-      }
+      _dropConnection() ;
       if ( _pSendBuffer )
       {
          SDB_OSS_FREE( _pSendBuffer ) ;
@@ -8211,13 +8447,6 @@ do                                                            \
       {
          SDB_OSS_FREE( _pReceiveBuffer ) ;
       }
-   }
-
-   void _sdbDataSourceImpl::_setConnection( _sdb *connection )
-   {
-      _connection = (_sdbImpl *)connection ;
-      _connection->_regDataSource( this ) ;
-
    }
 
    INT32 _sdbDataSourceImpl::_setName( const CHAR *pDataSourceName )
@@ -8290,9 +8519,14 @@ do                                                            \
       BSONObj newObj ;
       const CHAR *newName = NULL ;
 
-      if ( !_connection || ( 0 == ossStrlen( _dataSourceName ) ) )
+      if ( 0 == ossStrlen( _dataSourceName ) )
       {
          rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
@@ -8379,79 +8613,7 @@ do                                                            \
 
    _sdbImpl::~_sdbImpl ()
    {
-      std::set<ossValuePtr> copySet ;
-      std::set<ossValuePtr>::iterator it ;
-      // detach handles
-      // when we remove element in the set, we should copy the set,
-      // and the traverse the copy, for we need to remove elements in the
-      // original set
-
-      // release cursors
-      copySet = _cursors ;
-      for ( it = copySet.begin(); it != copySet.end(); ++it )
-      {
-         ((_sdbCursorImpl*)(*it))->_detachConnection () ;
-      }
-      // release collections
-      copySet = _collections ;
-      for ( it = copySet.begin(); it != copySet.end(); ++it )
-      {
-         ((_sdbCollectionImpl*)(*it))->_dropConnection () ;
-      }
-      // release collection spaces
-      copySet = _collectionspaces ;
-      for ( it = copySet.begin(); it != copySet.end(); ++it)
-      {
-         ((_sdbCollectionSpaceImpl*)(*it))->_dropConnection () ;
-      }
-      // release nodes
-      copySet = _nodes ;
-      for ( it = copySet.begin(); it != copySet.end(); ++it )
-      {
-         ((_sdbNodeImpl*)(*it))->_dropConnection () ;
-      }
-      // release _replicaGroups
-      copySet = _replicaGroups ;
-      for ( it = copySet.begin(); it != copySet.end(); ++it )
-      {
-         ((_sdbReplicaGroupImpl*)(*it))->_dropConnection () ;
-      }
-      // release _domains
-      copySet = _domains ;
-      for ( it = copySet.begin(); it != copySet.end(); ++it )
-      {
-         ((_sdbDomainImpl*)(*it))->_dropConnection () ;
-      }
-      // release data center
-      copySet = _dataCenters ;
-      for ( it = copySet.begin(); it != copySet.end(); ++it )
-      {
-         ((_sdbDataCenterImpl*)(*it))->_dropConnection () ;
-      }
-      // release lobs
-      copySet = _lobs ;
-      for ( it = copySet.begin(); it != copySet.end(); ++it )
-      {
-         ((_sdbLobImpl*)(*it))->_detachConnection () ;
-      }
-      // release sequences
-      copySet = _sequences ;
-      for ( it = copySet.begin(); it != copySet.end(); ++it )
-      {
-         ((_sdbSequenceImpl*)(*it))->_dropConnection () ;
-      }
-      // release data sources
-      copySet = _dataSources ;
-      for ( it = copySet.begin(); it != copySet.end(); ++it )
-      {
-         ((_sdbDataSourceImpl*)(*it))->_dropConnection() ;
-      }
-      // release recycle bin
-      copySet = _recycleBinSet ;
-      for ( it = copySet.begin() ; it != copySet.end() ; ++ it )
-      {
-         ((_sdbRecycleBinImpl *)( *it ))->_dropConnection() ;
-      }
+      _removeObjects() ;
       if ( NULL != _tb )
       {
          releaseHashTable( &_tb ) ;
@@ -8470,14 +8632,99 @@ do                                                            \
       }
    }
 
+   /**
+    * remove the connection handle in the associated objects
+    */
+   void _sdbImpl::_removeObjects ()
+   {
+      std::set<ossValuePtr> copySet ;
+      std::set<ossValuePtr>::iterator it ;
+
+      // remove handles
+      // when we remove element in the set, we should copy the set first,
+      // and then traverse the copy, for we need to remove elements in the
+      // original set when we call _dropConnection
+
+      // release cursors
+      copySet = _cursors ;
+      for ( it = copySet.begin(); it != copySet.end(); ++it )
+      {
+         ((_sdbCursorImpl *)(*it))->_dropConnection () ;
+      }
+      // release collections
+      copySet = _collections ;
+      for ( it = copySet.begin(); it != copySet.end(); ++it )
+      {
+         ((_sdbCollectionImpl *)(*it))->_dropConnection () ;
+      }
+      // release collection spaces
+      copySet = _collectionspaces ;
+      for ( it = copySet.begin(); it != copySet.end(); ++it)
+      {
+         ((_sdbCollectionSpaceImpl *)(*it))->_dropConnection () ;
+      }
+      // release nodes
+      copySet = _nodes ;
+      for ( it = copySet.begin(); it != copySet.end(); ++it )
+      {
+         ((_sdbNodeImpl *)(*it))->_dropConnection () ;
+      }
+      // release _replicaGroups
+      copySet = _replicaGroups ;
+      for ( it = copySet.begin(); it != copySet.end(); ++it )
+      {
+         ((_sdbReplicaGroupImpl *)(*it))->_dropConnection () ;
+      }
+      // release _domains
+      copySet = _domains ;
+      for ( it = copySet.begin(); it != copySet.end(); ++it )
+      {
+         ((_sdbDomainImpl *)(*it))->_dropConnection () ;
+      }
+      // release data center
+      copySet = _dataCenters ;
+      for ( it = copySet.begin(); it != copySet.end(); ++it )
+      {
+         ((_sdbDataCenterImpl *)(*it))->_dropConnection () ;
+      }
+      // release lobs
+      copySet = _lobs ;
+      for ( it = copySet.begin(); it != copySet.end(); ++it )
+      {
+         ((_sdbLobImpl *)(*it))->_dropConnection () ;
+      }
+      // release sequences
+      copySet = _sequences ;
+      for ( it = copySet.begin(); it != copySet.end(); ++it )
+      {
+         ((_sdbSequenceImpl *)(*it))->_dropConnection () ;
+      }
+      // release data sources
+      copySet = _dataSources ;
+      for ( it = copySet.begin(); it != copySet.end(); ++it )
+      {
+         ((_sdbDataSourceImpl *)(*it))->_dropConnection () ;
+      }
+      // release recycle bin
+      copySet = _recycleBinSet ;
+      for ( it = copySet.begin() ; it != copySet.end() ; ++ it )
+      {
+         ((_sdbRecycleBinImpl *)(*it))->_dropConnection () ;
+      }
+   }
+
    void _sdbImpl::_disconnect ()
    {
       INT32 rc = SDB_OK ;
-      CHAR buffer [ sizeof ( MsgOpDisconnect ) ] ;
-      CHAR *pBuffer = &buffer[0] ;
-      INT32 bufferSize = sizeof ( buffer ) ;
+
+      // when network error happen, _sock will be deleted and set to NULL
       if ( _sock )
       {
+         CHAR buffer [ sizeof ( MsgOpDisconnect ) ] ;
+         CHAR *pBuffer = &buffer[0] ;
+         INT32 bufferSize = sizeof ( buffer ) ;
+
+         // send disconnect msg to engine
          rc = clientBuildDisconnectMsg ( &pBuffer, &bufferSize, 0,
                                          _endianConvert ) ;
          if ( _sock->isConnected() && !rc )
@@ -8552,157 +8799,80 @@ do                                                            \
       goto done ;
    }
 
-   void _sdbImpl::_regCursor ( _sdbCursorImpl *cursor )
+   INT32 _sdbImpl::_regAndUnregHandle ( CLIENT_CLASS_TYPE type,
+                                        ossValuePtr handle,
+                                        BOOLEAN isRegister )
    {
+      INT32 rc = SDB_OK ;
+      std::set<ossValuePtr> *pSet = NULL ;
+      // get the handle set
+      switch( type )
+      {
+         case CLIENT_CLASS_CS :
+            pSet = &_collectionspaces ;
+            break;
+         case CLIENT_CLASS_CL :
+            pSet = &_collections ;
+            break;
+         case CLIENT_CLASS_CURSOR :
+            pSet = &_cursors ;
+            break;
+         case CLIENT_CLASS_RG :
+            pSet = &_replicaGroups ;
+            break;
+         case CLIENT_CLASS_NODE :
+            pSet = &_nodes ;
+            break;
+         case CLIENT_CLASS_LOB :
+            pSet = &_lobs ;
+            break;
+         case CLIENT_CLASS_DOMAIN :
+            pSet = &_domains ;
+            break;
+         case CLIENT_CLASS_DC :
+            pSet = &_dataCenters ;
+            break;
+         case CLIENT_CLASS_SQ :
+            pSet = &_sequences ;
+            break;
+         case CLIENT_CLASS_DS :
+            pSet = &_dataSources ;
+            break;
+         case CLIENT_CLASS_RB :
+            pSet = &_recycleBinSet ;
+            break;
+         default:
+            return SDB_INVALIDARG ;
+      }
+      // register or unregister
       lock () ;
-      _cursors.insert ( (ossValuePtr)cursor ) ;
+      try
+      {
+         if ( isRegister )
+         {
+            pSet->insert ( handle ) ;
+         }
+         else
+         {
+            pSet->erase ( handle ) ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+      }
       unlock () ;
+      return rc ;
    }
 
-   void _sdbImpl::_regCollection ( _sdbCollectionImpl *collection )
+   INT32 _sdbImpl::_registerHandle ( CLIENT_CLASS_TYPE type, ossValuePtr handle )
    {
-      lock () ;
-      _collections.insert ( (ossValuePtr)collection ) ;
-      unlock () ;
+      return _regAndUnregHandle( type, handle, true ) ;
    }
 
-   void _sdbImpl::_regCollectionSpace ( _sdbCollectionSpaceImpl *collectionspace )
+   INT32 _sdbImpl::_unregisterHandle ( CLIENT_CLASS_TYPE type, ossValuePtr handle )
    {
-      lock () ;
-      _collectionspaces.insert ( (ossValuePtr)collectionspace ) ;
-      unlock () ;
-   }
-
-   void _sdbImpl::_regNode ( _sdbNodeImpl *node )
-   {
-      lock () ;
-      _nodes.insert ( (ossValuePtr)node ) ;
-      unlock () ;
-   }
-
-   void _sdbImpl::_regReplicaGroup ( _sdbReplicaGroupImpl *replicaGroup )
-   {
-      lock () ;
-      _replicaGroups.insert ( (ossValuePtr)replicaGroup ) ;
-      unlock () ;
-   }
-   void _sdbImpl::_regDomain ( _sdbDomainImpl *domain )
-   {
-      lock () ;
-      _domains.insert ( (ossValuePtr)domain ) ;
-      unlock () ;
-   }
-
-   void _sdbImpl::_regDataCenter ( _sdbDataCenterImpl *dc )
-   {
-      lock () ;
-      _dataCenters.insert ( (ossValuePtr)dc ) ;
-      unlock () ;
-   }
-
-   void _sdbImpl::_regLob ( _sdbLobImpl *lob )
-   {
-      lock () ;
-      _lobs.insert ( (ossValuePtr)lob ) ;
-      unlock () ;
-   }
-
-   void _sdbImpl::_regSequence ( _sdbSequenceImpl *sequence )
-   {
-      lock () ;
-      _sequences.insert ( (ossValuePtr)sequence ) ;
-      unlock () ;
-   }
-
-   void _sdbImpl::_regDataSource( _sdbDataSourceImpl *dataSource )
-   {
-      lock() ;
-      _dataSources.insert( (ossValuePtr)dataSource ) ;
-      unlock() ;
-   }
-
-   void _sdbImpl::_regRecycleBin( _sdbRecycleBinImpl *recycleBin )
-   {
-      lock() ;
-      _recycleBinSet.insert( (ossValuePtr)recycleBin ) ;
-      unlock() ;
-   }
-
-   void _sdbImpl::_unregCursor ( _sdbCursorImpl *cursor )
-   {
-      lock () ;
-      _cursors.erase ( (ossValuePtr)cursor ) ;
-      unlock () ;
-   }
-
-   void _sdbImpl::_unregCollection ( _sdbCollectionImpl *collection )
-   {
-      lock () ;
-      _collections.erase ( (ossValuePtr)collection ) ;
-      unlock () ;
-   }
-
-   void _sdbImpl::_unregCollectionSpace ( _sdbCollectionSpaceImpl *collectionspace )
-   {
-      lock () ;
-      _collectionspaces.erase ( (ossValuePtr)collectionspace ) ;
-      unlock () ;
-   }
-
-   void _sdbImpl::_unregNode ( _sdbNodeImpl *node )
-   {
-      lock () ;
-      _nodes.erase ( (ossValuePtr)node ) ;
-      unlock () ;
-   }
-
-   void _sdbImpl::_unregReplicaGroup ( _sdbReplicaGroupImpl *replicaGroup )
-   {
-      lock () ;
-      _replicaGroups.erase ( (ossValuePtr)replicaGroup ) ;
-      unlock () ;
-   }
-
-   void _sdbImpl::_unregDomain ( _sdbDomainImpl *domain )
-   {
-      lock () ;
-      _domains.erase ( (ossValuePtr)domain ) ;
-      unlock () ;
-   }
-
-   void _sdbImpl::_unregDataCenter ( _sdbDataCenterImpl *dc )
-   {
-      lock () ;
-      _dataCenters.erase ( (ossValuePtr)dc ) ;
-      unlock () ;
-   }
-
-   void _sdbImpl::_unregLob ( _sdbLobImpl *lob )
-   {
-      lock () ;
-      _lobs.erase ( (ossValuePtr)lob ) ;
-      unlock () ;
-   }
-
-   void _sdbImpl::_unregDataSource( _sdbDataSourceImpl *dataSource )
-   {
-      lock() ;
-      _dataSources.erase( (ossValuePtr)dataSource ) ;
-      unlock() ;
-   }
-
-   void _sdbImpl::_unregSequence ( _sdbSequenceImpl *sequence )
-   {
-      lock () ;
-      _sequences.erase ( (ossValuePtr)sequence ) ;
-      unlock () ;
-   }
-
-   void _sdbImpl::_unregRecycleBin( _sdbRecycleBinImpl *recycleBin )
-   {
-      lock() ;
-      _recycleBinSet.erase( (ossValuePtr)recycleBin ) ;
-      unlock() ;
+      return _regAndUnregHandle( type, handle, false ) ;
    }
 
    hashTable* _sdbImpl::_getCachedContainer() const
@@ -10169,9 +10339,12 @@ do                                                            \
          rc = SDB_OOM ;
          goto error ;
       }
-
-      ((_sdbCursorImpl*)cursor)->_attachConnection ( this ) ;
       ((_sdbCursorImpl*)cursor)->_contextID = contextID ;
+      rc = ((_sdbCursorImpl*)cursor)->_setConnection ( this ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
 
       // if we can get info from _ppBuffer, do it
       if ( ((UINT32)((MsgHeader*)*ppBuffer)->messageLength) >
@@ -10191,11 +10364,17 @@ do                                                            \
       else
       {
          delete cursor ;
+         cursor = NULL ;
       }
 
    done :
       return rc ;
    error :
+      if ( NULL != cursor )
+      {
+         delete cursor ;
+         cursor = NULL ;
+      }
       goto done ;
    }
 
@@ -10302,14 +10481,22 @@ do                                                            \
          rc = SDB_OOM ;
          goto error ;
       }
-      ((_sdbCursorImpl*)cursor)->_attachConnection ( this ) ;
       ((_sdbCursorImpl*)cursor)->_contextID = -1 ;
-
+      rc = ((_sdbCursorImpl*)cursor)->_setConnection ( this ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
       *ppCursor = cursor ;
 
    done:
       return rc ;
    error:
+      if ( NULL != cursor )
+      {
+         delete cursor ;
+         cursor = NULL ;
+      }
       goto done ;
    }
 
@@ -10368,13 +10555,18 @@ do                                                            \
          rc = SDB_OOM ;
          goto error ;
       }
-      ((sdbCollectionImpl*)*collection)->_setConnection ( this ) ;
       ((sdbCollectionImpl*)*collection)->_setName ( pCollectionFullName ) ;
       ((sdbCollectionImpl*)*collection)->setVersion( version ) ;
+      rc = ((sdbCollectionImpl*)*collection)->_setConnection ( this ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
    done :
       return rc ;
    error :
-      if ( NULL != *collection )
+      if ( collection && NULL != *collection )
       {
          delete *collection ;
          *collection = NULL ;
@@ -10424,13 +10616,17 @@ do                                                            \
          rc = SDB_OOM ;
          goto error ;
       }
-      ((sdbCollectionSpaceImpl*)*cs)->_setConnection ( this ) ;
       ((sdbCollectionSpaceImpl*)*cs)->_setName ( pCollectionSpaceName ) ;
+      rc = ((sdbCollectionSpaceImpl*)*cs)->_setConnection ( this ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
 
    done :
       return rc ;
    error :
-      if ( NULL != *cs )
+      if ( cs && NULL != *cs )
       {
          delete *cs ;
          *cs = NULL ;
@@ -10466,8 +10662,12 @@ do                                                            \
          rc = SDB_OOM ;
          goto error ;
       }
-      ((sdbCollectionSpaceImpl*)*cs)->_setConnection ( this ) ;
       ((sdbCollectionSpaceImpl*)*cs)->_setName ( pCollectionSpaceName ) ;
+      rc = ((sdbCollectionSpaceImpl*)*cs)->_setConnection ( this ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
 
       rc = insertCachedObject( _tb, pCollectionSpaceName ) ;
       if ( SDB_OK != rc )
@@ -10477,7 +10677,7 @@ do                                                            \
    done :
       return rc ;
    error :
-      if ( NULL != *cs )
+      if ( cs && NULL != *cs )
       {
          delete *cs ;
          *cs = NULL ;
@@ -10524,8 +10724,12 @@ do                                                            \
          rc = SDB_OOM ;
          goto error ;
       }
-      ((sdbCollectionSpaceImpl*)*cs)->_setConnection ( this ) ;
       ((sdbCollectionSpaceImpl*)*cs)->_setName ( pCollectionSpaceName ) ;
+      rc = ((sdbCollectionSpaceImpl*)*cs)->_setConnection ( this ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
 
       rc = insertCachedObject( _tb, pCollectionSpaceName ) ;
       if ( SDB_OK != rc )
@@ -10535,7 +10739,7 @@ do                                                            \
    done :
       return rc ;
    error :
-      if ( NULL != *cs )
+      if ( cs && NULL != *cs )
       {
          delete *cs ;
          *cs = NULL ;
@@ -10613,6 +10817,7 @@ do                                                            \
                                      _sdbReplicaGroup **result )
    {
       INT32 rc = SDB_OK ;
+      _sdbReplicaGroupImpl *replset = NULL ;
       sdbCursor resultCursor ;
       BOOLEAN found = FALSE ;
       BSONObj record ;
@@ -10634,11 +10839,15 @@ do                                                            \
       }
       if ( SDB_OK == ( rc = resultCursor.next ( record ) ) )
       {
-         _sdbReplicaGroupImpl *replset =
-                     new(std::nothrow) _sdbReplicaGroupImpl () ;
+         replset = new(std::nothrow) _sdbReplicaGroupImpl () ;
          if ( !replset )
          {
             rc = SDB_OOM ;
+            goto error ;
+         }
+         rc = replset->_setConnection( this ) ;
+         if ( SDB_OK != rc )
+         {
             goto error ;
          }
          ele = record.getField ( CAT_GROUPID_NAME ) ;
@@ -10646,8 +10855,6 @@ do                                                            \
          {
             replset->_replicaGroupID = ele.numberInt() ;
          }
-         replset->_connection = this ;
-         _regReplicaGroup ( replset ) ;
          ossStrncpy ( replset->_replicaGroupName, pName,
                       CLIENT_REPLICAGROUP_NAMESZ ) ;
          if ( ossStrcmp ( pName, CAT_CATALOG_GROUPNAME ) == 0 )
@@ -10669,12 +10876,18 @@ do                                                            \
    done :
       return rc ;
    error :
+      if ( NULL != replset )
+      {
+         delete replset ;
+         replset = NULL ;
+      }
       goto done ;
    }
 
    INT32 _sdbImpl::getReplicaGroup ( SINT32 id, _sdbReplicaGroup **result )
    {
       INT32 rc = SDB_OK ;
+      _sdbReplicaGroupImpl *replset = NULL ;
       sdbCursor resultCursor ;
       BOOLEAN found = FALSE ;
       BSONObj record ;
@@ -10699,15 +10912,17 @@ do                                                            \
          if ( ele.type() == String )
          {
             const CHAR *pReplicaGroupName = ele.valuestr() ;
-            _sdbReplicaGroupImpl *replset =
-                  new(std::nothrow) _sdbReplicaGroupImpl () ;
+            replset = new(std::nothrow) _sdbReplicaGroupImpl () ;
             if ( !replset )
             {
                rc = SDB_OOM ;
                goto error ;
             }
-            replset->_connection = this ;
-            _regReplicaGroup ( replset ) ;
+            rc = replset->_setConnection( this ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
             ossStrncpy ( replset->_replicaGroupName, pReplicaGroupName,
                          CLIENT_REPLICAGROUP_NAMESZ ) ;
             replset->_replicaGroupID = id ;
@@ -10731,6 +10946,11 @@ do                                                            \
    done :
       return rc ;
    error :
+      if ( NULL != replset )
+      {
+         delete replset ;
+         replset = NULL ;
+      }
       goto done ;
    }
 
@@ -10760,8 +10980,11 @@ do                                                            \
          rc = SDB_OOM ;
          goto error ;
       }
-      replset->_connection = this ;
-      _regReplicaGroup ( replset ) ;
+      rc = replset->_setConnection( this ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
       ossStrncpy ( replset->_replicaGroupName, pName,
                    CLIENT_REPLICAGROUP_NAMESZ ) ;
       if ( ossStrcmp ( pName, CAT_CATALOG_GROUPNAME ) == 0 )
@@ -10772,6 +10995,11 @@ do                                                            \
    done :
       return rc ;
    error :
+      if ( NULL != replset )
+      {
+         delete replset ;
+         replset = NULL ;
+      }
       goto done ;
    }
 
@@ -10884,8 +11112,11 @@ do                                                            \
          rc = SDB_OOM ;
          goto error ;
       }
-      replset->_connection = this ;
-      _regReplicaGroup ( replset ) ;
+      rc = replset->_setConnection( this ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
       ossStrncpy ( replset->_replicaGroupName, pName,
                    CLIENT_REPLICAGROUP_NAMESZ ) ;
       if ( ossStrcmp ( pName, CAT_CATALOG_GROUPNAME ) == 0 )
@@ -10896,6 +11127,11 @@ do                                                            \
    done :
       return rc ;
    error :
+      if ( NULL != replset )
+      {
+         delete replset ;
+         replset = NULL ;
+      }
       goto done ;
    }
 
@@ -11180,7 +11416,7 @@ do                                                            \
       BSONObjBuilder ob ;
       const MsgOpReply *replyHeader = NULL ;
 
-      if ( !code || !*code )
+      if ( !code || !*code || !cursor )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -11238,8 +11474,12 @@ do                                                            \
          rc = SDB_OOM ;
          goto error ;
       }
-      ((_sdbCursorImpl*)*cursor)->_attachConnection ( this ) ;
       ((_sdbCursorImpl*)*cursor)->_contextID = contextID ;
+      rc = ((_sdbCursorImpl*)*cursor)->_setConnection ( this ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
 
       replyHeader = ( const MsgOpReply * )_pReceiveBuffer ;
       if ( 1 == replyHeader->numReturned &&
@@ -11274,6 +11514,11 @@ do                                                            \
       }
       return rc ;
    error:
+      if ( cursor && NULL != *cursor )
+      {
+         delete *cursor ;
+         *cursor = NULL ;
+      }
       goto done ;
    }
 
@@ -11620,14 +11865,13 @@ do                                                            \
          goto error ;
       }
 
-      // release resource of cursors in local
+      // release resource of cursors in local,
       // remember to handle cursor._connection,
-      // cursor._collection, cursor._isClose
+      // cursor._isClose
       cursors = _cursors ;
       for ( it = cursors.begin(); it != cursors.end(); ++it )
       {
-         ((_sdbCursorImpl*)(*it))->_detachConnection () ;
-         ((_sdbCursorImpl*)(*it))->_detachCollection () ;
+         ((_sdbCursorImpl*)(*it))->_dropConnection () ;
          ((_sdbCursorImpl*)(*it))->_close () ;
       }
       _cursors.clear();
@@ -11635,8 +11879,7 @@ do                                                            \
       lobs = _lobs ;
       for ( it = lobs.begin(); it != lobs.end(); ++it )
       {
-         ((_sdbLobImpl*)(*it))->_detachConnection () ;
-         ((_sdbLobImpl*)(*it))->_detachCollection () ;
+         ((_sdbLobImpl*)(*it))->_dropConnection () ;
          ((_sdbLobImpl*)(*it))->_close () ;
       }
       _lobs.clear() ;
@@ -11727,7 +11970,7 @@ do                                                            \
       BSONObj newObj ;
       BSONObjBuilder ob ;
 
-      if ( !pDomainName ||
+      if ( !pDomainName || !*pDomainName || !domain ||
            ossStrlen ( pDomainName ) > CLIENT_COLLECTION_NAMESZ )
       {
          rc = SDB_INVALIDARG ;
@@ -11763,11 +12006,21 @@ do                                                            \
          rc = SDB_OOM ;
          goto error ;
       }
-      ((sdbDomainImpl*)*domain)->_setConnection ( this ) ;
       ((sdbDomainImpl*)*domain)->_setName ( pDomainName ) ;
+      rc = ((sdbDomainImpl*)*domain)->_setConnection ( this ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
    done :
       return rc ;
    error :
+      if ( domain && NULL != *domain )
+      {
+         delete *domain ;
+         *domain = NULL ;
+      }
       goto done ;
    }
 
@@ -11777,7 +12030,7 @@ do                                                            \
       BSONObj newObj ;
       BSONObjBuilder ob ;
 
-      if ( !pDomainName ||
+      if ( !pDomainName || !*pDomainName ||
            ossStrlen ( pDomainName ) > CLIENT_COLLECTION_NAMESZ )
       {
          rc = SDB_INVALIDARG ;
@@ -11816,8 +12069,9 @@ do                                                            \
       BSONObjBuilder ob ;
       sdbCursor cursor ;
 
-      if ( !pDomainName || ossStrlen ( pDomainName ) > CLIENT_COLLECTION_NAMESZ
-            || !domain )
+      if ( !pDomainName || !*pDomainName ||
+            ossStrlen ( pDomainName ) > CLIENT_COLLECTION_NAMESZ ||
+            !domain )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -11848,8 +12102,12 @@ do                                                            \
             rc = SDB_OOM ;
             goto error ;
          }
-         ((sdbDomainImpl*)*domain)->_setConnection ( this ) ;
          ((sdbDomainImpl*)*domain)->_setName ( pDomainName ) ;
+         rc = ((sdbDomainImpl*)*domain)->_setConnection ( this ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
       }
       else if ( SDB_DMS_EOC == rc )
       {
@@ -11866,6 +12124,11 @@ do                                                            \
    done :
       return rc ;
    error :
+      if ( domain && NULL != *domain )
+      {
+         delete *domain ;
+         *domain = NULL ;
+      }
       goto done ;
    }
 
@@ -11910,7 +12173,11 @@ do                                                            \
       }
 
       // register
-      ((sdbDataCenterImpl*)pDC)->_setConnection ( this ) ;
+      rc = ((sdbDataCenterImpl*)pDC)->_setConnection ( this ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
 
       // get dc name
       rc = pDC->getDetail( retObj ) ;
@@ -11959,8 +12226,7 @@ do                                                            \
 
    INT32 _sdbImpl::getRecycleBin( _sdbRecycleBin **recycleBin )
    {
-      INT32 rc                  = SDB_OK ;
-
+      INT32 rc                    = SDB_OK ;
       _sdbRecycleBin *pRecycleBin = NULL ;
 
       // check
@@ -11985,7 +12251,11 @@ do                                                            \
       }
 
       // register
-      ( (_sdbRecycleBinImpl *)pRecycleBin )->_setConnection( this ) ;
+      rc = ( (_sdbRecycleBinImpl *)pRecycleBin )->_setConnection( this ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
 
       // return the newly build recycle bin object
       *recycleBin = pRecycleBin ;
@@ -12653,13 +12923,22 @@ do                                                            \
             rc = SDB_OOM ;
             goto error ;
          }
-         ((sdbDataSourceImpl*)*dataSource)->_setConnection( this ) ;
          ((sdbDataSourceImpl*)*dataSource)->_setName( pDataSourceName ) ;
+         rc = ((sdbDataSourceImpl*)*dataSource)->_setConnection( this ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
       }
 
    done:
       return rc ;
    error:
+      if ( dataSource && *dataSource )
+      {
+         delete *dataSource ;
+         *dataSource = NULL ;
+      }
       goto done ;
    }
 
@@ -12708,7 +12987,7 @@ do                                                            \
       BSONObj result ;
       sdbCursor cursor ;
 
-      if ( !pDataSourceName ||
+      if ( !pDataSourceName || !*pDataSourceName ||
            ossStrlen( pDataSourceName) > CLIENT_DATASOURCE_NAMESZ ||
            !dataSource )
       {
@@ -12740,8 +13019,12 @@ do                                                            \
             rc = SDB_OOM ;
             goto error ;
          }
-         ((sdbDataSourceImpl*)*dataSource)->_setConnection( this ) ;
          ((sdbDataSourceImpl*)*dataSource)->_setName( pDataSourceName ) ;
+         rc = ((sdbDataSourceImpl*)*dataSource)->_setConnection( this ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
       }
       else if ( SDB_DMS_EOC == rc )
       {
@@ -12756,6 +13039,11 @@ do                                                            \
    done:
       return rc ;
    error:
+      if ( dataSource && NULL != *dataSource )
+      {
+         delete *dataSource ;
+         *dataSource = NULL ;
+      }
       goto done ;
    }
 
@@ -12854,7 +13142,11 @@ do                                                            \
          rc = SDB_OOM ;
          goto error ;
       }
-      ((sdbSequenceImpl*)*sequence)->_setConnection ( this ) ;
+      rc = ((sdbSequenceImpl*)*sequence)->_setConnection ( this ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
       rc = ((sdbSequenceImpl*)*sequence)->_setName ( pSequenceName ) ;
       if ( rc )
       {
@@ -12925,12 +13217,17 @@ do                                                            \
          goto error ;
       }
 
-      ((sdbSequenceImpl*)*sequence)->_setConnection ( this ) ;
+      rc = ((sdbSequenceImpl*)*sequence)->_setConnection ( this ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
       rc = ((sdbSequenceImpl*)*sequence)->_setName ( pSequenceName ) ;
       if ( rc )
       {
          goto error ;
       }
+
    done:
       return rc ;
    error :
