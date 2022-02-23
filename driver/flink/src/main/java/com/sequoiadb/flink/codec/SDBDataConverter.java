@@ -371,7 +371,7 @@ public class SDBDataConverter implements Serializable {
         else if (v instanceof BSONDecimal)
             return !BigDecimal.ZERO.equals(((BSONDecimal) v).toBigDecimal());
         else if (v instanceof String)
-            return !"true".equalsIgnoreCase((String) v);
+            return "true".equalsIgnoreCase((String) v);
         else if (v instanceof Boolean)
             return (boolean) v;
         else return false;
