@@ -46,6 +46,7 @@
 #include "vessel/IRedoLogger.h"
 #include "vessel/crpIniter.h"
 #include "vessel/collectionRecordPage.h"
+#include "vessel/storageFileMaintainer.h"
 
 namespace engine
 {
@@ -1390,27 +1391,19 @@ namespace vessel
       strSlice nameSlice(_recordInMem.name);
       UINT32 flags = OSS_READWRITE|OSS_EXCLUSIVE|OSS_REPLACE;
 
+      const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
+      storageFileMaintainer sfm(&po, _su->getSpaceID());
 
-      rc = _su->getDirPathOfType(SPACE_TYPE_MAIN_DATA, fullPath);
-      if (SDB_OK != rc)
+      fullPath = sfm.buildFullPath(SPACE_TYPE_MAIN_DATA, CSNAME_FILE_NAME);
+      if (OSS_UNLIKELY(fullPath.empty()))
       {
-         PD_LOG(PDERROR, "failed to get main data space dir:%d", rc);
-         goto error;
-      }
-
-      if (nameSlice.empty() ||
-          DMS_COLLECTION_SPACE_NAME_SZ < nameSlice.strLen())
-      {
-         PD_LOG(PDERROR, "invalid collection space name");
+         PD_LOG(PDERROR, "failed to build full path of name file");
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
       ossMemcpy(nameBuffer, nameSlice.str(), nameSlice.strLen());
       nameBuffer[nameSlice.strLen()] = '\n';
-
-      fullPath.append(OSS_FILE_SEP);
-      fullPath.append(CSNAME_FILE_NAME);
 
       rc = ossOpen(fullPath.c_str(), flags, OSS_RU|OSS_WU|OSS_RG, file);
       if (SDB_OK != rc)
@@ -1452,27 +1445,24 @@ namespace vessel
       SDB_ASSERT(NULL != _su && _su->isOpen(), "can not be invalid");
 
       ossPoolString fullPath;
+      const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
+      storageFileMaintainer sfm(&po, _su->getSpaceID());
 
-      rc = _su->getDirPathOfType(SPACE_TYPE_MAIN_DATA, fullPath);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get main data space dir:%d", rc);
-         goto error;
-      }
+      fullPath = sfm.buildFullPath(SPACE_TYPE_MAIN_DATA, CSNAME_FILE_NAME);
 
-      fullPath.append(OSS_FILE_SEP);
-      fullPath.append(CSNAME_FILE_NAME);
-
-      PD_LOG(PDINFO, "removing cs name file:%s", fullPath.c_str());
-      rc = ossDelete(fullPath.c_str());
-      if (SDB_FNE == rc)
+      if (!fullPath.empty())
       {
-         rc = SDB_OK;
-      }
-      else if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to remove file:%s, rc:%d", fullPath.c_str(), rc);
-         goto error;
+         PD_LOG(PDINFO, "removing cs name file:%s", fullPath.c_str());
+         rc = ossDelete(fullPath.c_str());
+         if (SDB_FNE == rc)
+         {
+            rc = SDB_OK;
+         }
+         else if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to remove file:%s, rc:%d", fullPath.c_str(), rc);
+            goto error;
+         }
       }
    done:
       return rc;

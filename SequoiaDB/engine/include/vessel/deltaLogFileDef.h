@@ -36,7 +36,8 @@
 #ifndef VESSEL_DELTA_LOG_FILE_H_
 #define VESSEL_DELTA_LOG_FILE_H_
 
-#include "vessel/storageFile.h"
+#include "core.hpp"
+#include "oss.hpp"
 
 namespace engine
 {
@@ -68,14 +69,15 @@ namespace vessel
          return sizeof(data);
       }
 
-      void init();
+      void init(UINT32 prechecksum);
 
       UINT32 version = 0;
       UINT32 frontChecksum = 0;
+      UINT32 prechecksum = 0;
       UINT32 flags = 0;
       INT32 checkpointOffset = -1; /// offset in data, not in page
       UINT32 dataOffset = 0;       /// offset in data, not in page
-      CHAR data[4072];
+      CHAR data[4068];
       UINT32 backChecksum = 0;
    };//struct deltaLogFilePage
 

@@ -40,6 +40,7 @@
 #include "vessel/slice.h"
 #include "vessel/storageFile.h"
 #include "vessel/vesselOptions.h"
+#include "vessel/storageFileLoader.h"
 
 namespace engine
 {
@@ -48,12 +49,17 @@ namespace vessel
    class storageFileMaintainer : public SDBObject
    {
       public:
+         storageFileMaintainer(){}
          storageFileMaintainer(const storagePathOptions *path,
-                             SPACE_ID sid);
+                               SPACE_ID sid);
 
          ~storageFileMaintainer(){}
 
       public:
+         OSS_INLINE BOOLEAN isValid()const {return INVALID_SPACE_ID != _sid;}
+         INT32 init(const storagePathOptions *path,
+                    SPACE_ID sid);
+         void reset();
          INT32 createSpaceDir()const;
          INT32 removeSpaceDir()const;
          INT32 createStorageFile(const storageFileName &fn,
@@ -64,10 +70,14 @@ namespace vessel
                                storageFile &file)const;
          INT32 removeStorageFile(const storageFileName &fn)const;
 
-      private:
+         ossPoolString buildFullPath(const storageFileName &fn)const;
+         ossPoolString buildFullPath(SPACE_TYPE type, const CHAR *fileName)const;
+
+         INT32 load(storageFileLoader &loader)const;
+         INT32 testBeforeOpenning()const;
          INT32 testBeforeCreating()const;
          BOOLEAN buildFullDir(SPACE_TYPE type, ossPoolString &path)const;
-         ossPoolString buildFullPath(const storageFileName &fn)const;
+         
 
       private:
          const storagePathOptions *_path = nullptr;

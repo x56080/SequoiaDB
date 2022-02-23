@@ -198,6 +198,11 @@ namespace vessel
                 maxSegmentCountPerFile == h.maxSegmentCountPerFile;
       }
 
+      storageCoreArgs getCoreArgs()const
+      {
+         return storageCoreArgs(pageSize, maxPageCountPerSeg, maxSegmentCountPerFile);
+      }
+
       UINT32 getSegmentSize()const
       {
          return pageSize * maxPageCountPerSeg;

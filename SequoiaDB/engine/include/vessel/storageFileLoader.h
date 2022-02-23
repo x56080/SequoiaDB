@@ -60,9 +60,6 @@ namespace vessel
          typedef ossPoolMap<SPACE_TYPE, FILES_WITH_SPACE_TYPE*> _ALL_FILE_MAP;
 
       public:
-         void init(SPACE_ID sid);
-         void fini();
-
          void clear();
 
          INT32 load(const strSlice &dir);
@@ -77,18 +74,10 @@ namespace vessel
          {
             return _all.empty();
          }
-         SPACE_ID getSpaceID()const
-         {
-            return _sid;
-         }
-         BOOLEAN isValid()const
-         {
-            return INVALID_SPACE_ID != _sid;
-         }
 
-         void doNotRemoveTmpFiles()
+         void autoRemoveTmpFiles(BOOLEAN v)
          {
-            _removeTmpFile = FALSE;
+            _removeTmpFile = v;
          }
 
       private:
@@ -96,7 +85,6 @@ namespace vessel
          INT32 _load(const strSlice &dir, SPACE_TYPE specifiedType);
       
       private:
-         SPACE_ID _sid = INVALID_SPACE_ID;
          BOOLEAN _removeTmpFile = TRUE;
          _ALL_FILE_MAP _all;
 

@@ -46,6 +46,7 @@
 #include "vessel/spaceIDLockHelper.h"
 #include "vessel/storageFileName.h"
 #include "vessel/storageFileLoader.h"
+#include "vessel/storageUtils.h"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -375,7 +376,7 @@ namespace vessel
          goto error;
       }
 
-      rc = su->create(context, suOptions);
+      rc = su->create(sid, suOptions);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create storage unit[%d], rc:%d", sid, rc);
@@ -446,7 +447,7 @@ namespace vessel
 
       if (NULL != su)
       {
-         su->destroy(context);
+         su->destroy();
          _sus.release(sid);
       }
       goto done;
@@ -630,7 +631,7 @@ namespace vessel
       SDB_OSS_DEL space;
       space = NULL;
 
-      rc = su->destroy(context);
+      rc = su->destroy();
       if (SDB_OK != rc)
       {
          PD_LOG(PDSEVERE, "failed to destroy storage unit[%d], rc:%d",
@@ -1315,7 +1316,7 @@ namespace vessel
             continue;
          }
 
-         if (!storageFileName::parseDirName(nameSlice, &sid))
+         if (!parseSpaceDirName(nameSlice, &sid))
          {
             continue;
          }
@@ -1337,7 +1338,7 @@ namespace vessel
             goto error;
          }
 
-         rc = su->open(context);
+         rc = su->open(sid);
          if (SDB_VESSEL_TEMP_SU == rc)
          {
             PD_LOG(PDERROR, "storage unit[%s] may crashed when creating/removing",

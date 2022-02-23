@@ -43,15 +43,15 @@
 #include "vessel/logicalPageSpaceCheckpoint.h"
 #include "vessel/deltaLogRecord.h"
 #include "vessel/memoryBlock.h"
+#include "vessel/storageFile.h"
+#include "vessel/storageFileManifest.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class requestContext;
-   class idMapFile;
    class deltaLogFile;
-   class logicalPageIdCache;
+   class storageFileLoader;
 
    class deltaLogConsole : public SDBObject
    {
@@ -66,7 +66,7 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isReady()const
          {
-            return INVALID_SPACE_TYPE != _type;
+            return _manifest.isValid();
          }
          OSS_INLINE UINT32 getBaseSequence()const
          {
@@ -87,59 +87,55 @@ namespace vessel
             return _workingFile;
          }
       public:
-         INT32 init(requestContext *context,
-                    const idMapFile *base,
-                    const STORAGE_FILE_NAME_LIST *fl);
+         INT32 init(SPACE_ID sid,
+                    SPACE_TYPE type,
+                    UINT32 secretValue,
+                    UINT32 base,
+                    const storageFileLoader *loader);
 
          void fini();
 
          UINT64 getDeltaLogSize()const;
 
-
-         void rebase(requestContext *context,
-                     UINT32 base,
+         void rebase(UINT32 base,
                      BOOLEAN destroyHistoryFileAtOnce);
 
-         INT32 append(requestContext *context,
-                      const deltaLogRecord &dlr);
+         INT32 append(const deltaLogRecord &dlr);
 
-         INT32 reserveCheckpoint(requestContext *context);
+         INT32 reserveCheckpoint();
 
          void commit(const LPS_CHECKPOINT &checkpoint);
 
-         void destroy(requestContext *context);
+         void destroy();
 
-         void destroyHistoryFiles(requestContext *context);
+         void destroyHistoryFiles();
       private:
 
-         INT32 load(requestContext *context,
-                    const STORAGE_FILE_NAME_LIST *fl);
+         INT32 load(const STORAGE_FILE_NAME_LIST *fl);
 
-         INT32 createNewFile(requestContext *context);
+         INT32 createNewFile();
 
          INT32 resumeToLastCheckpoint();
 
          INT32 findLastCheckpointPid(const storageFile &file,
                                      PAGE_ID &pid)const;
 
-         INT32 ensureFileAndBuffer(requestContext *context);
+         INT32 ensureFileAndBuffer();
 
          void flushBufferAndShiftWritingPid();
 
-         INT32 _append(requestContext *context,
-                       const deltaLogRecord &dlr);
+         INT32 _append(const deltaLogRecord &dlr);
 
          void fsyncDirtyPages()const;
    
       private:
-         SPACE_TYPE _type = INVALID_SPACE_TYPE;
-         UINT32 _secretValue = 0;
+         storageFileManifest _manifest;
          UINT32 _baseSequence = 0;
-
+         UINT32 _prechecksum = 0;
          storageFile _workingFile;
          memoryBlock _buffer;
          PAGE_ID _writingPid = INVALID_PAGE_ID;
-         deltaLogFilePage *_page = NULL;
+         deltaLogFilePage *_page = nullptr;
          LPS_CHECKPOINT _lastCheckpoint;
          PAGE_ID _lastCheckpointPid = INVALID_PAGE_ID;
          STORAGE_FILE_NAME_LIST _history;

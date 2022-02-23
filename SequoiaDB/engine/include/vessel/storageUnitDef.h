@@ -63,10 +63,10 @@ namespace vessel
       storageCoreArgs lobArgs;
    };//struct createSUOptions
 
-   struct createLogicalPageSpaceOptions
+   struct createLpsOptions
    {
-      OSS_INLINE createLogicalPageSpaceOptions(){}
-      OSS_INLINE ~createLogicalPageSpaceOptions(){}
+      OSS_INLINE createLpsOptions(){}
+      OSS_INLINE ~createLpsOptions(){}
 
       BOOLEAN isValid()const
       {
@@ -75,7 +75,7 @@ namespace vessel
 
       UINT32 secretValue = 0;
       storageCoreArgs dataArgs;
-   };//struct createLogicalPageSpaceOptions
+   };//struct createLpsOptions
 
 }//namespace vessel
 }//namespace engine

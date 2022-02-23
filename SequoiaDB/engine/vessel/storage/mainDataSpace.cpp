@@ -52,6 +52,7 @@
 #include "vessel/storageUtils.h"
 #include "vessel/logRecordContext.h"
 #include "vessel/idMapFile.h"
+#include "vessel/storageFileMaintainer.h"
 
 namespace engine
 {
@@ -200,7 +201,7 @@ namespace vessel
          goto error;
       }
 
-      rc = logicalPageSpace::getLogConsole().append(context, builder.getDeltaLogRecord());
+      rc = logicalPageSpace::getLogConsole().append(builder.getDeltaLogRecord());
       if (SDB_OK != rc)
       {
          logger->abort(executor, &lrc);
@@ -271,16 +272,14 @@ namespace vessel
       goto done;
    }
 
-   INT32 mainDataSpace::_open(requestContext *context,
-                              const storageFileLoader &loader)
+   INT32 mainDataSpace::_open(const storageFileLoader &loader)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(nullptr != context, "can not be null");
       SDB_ASSERT(nullptr == _fsm, "must be null");
       fsmFile *file = nullptr;
       const storageFileName *fn = nullptr;
-      storageUnit *su = context->getEnv()->dms.getStorageUnit(context->getSpaceID());
-      SDB_ASSERT(nullptr != su, "can not be null");
+      const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
+      storageFileMaintainer sfm(&po, getSpaceID());
 
       const STORAGE_FILE_NAME_LIST *fl = loader.getFileList(SPACE_TYPE_MAIN_DATA,
                                                             FILE_TYPE_FSM);
@@ -306,7 +305,7 @@ namespace vessel
          goto error;
       }
 
-      rc = su->openStorageFile(*fn, file);
+      rc = sfm.openStorageFile(*fn, *file);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open file[%s], rc:%d",
@@ -334,10 +333,9 @@ namespace vessel
       goto done;
    }
 
-   INT32 mainDataSpace::_create(requestContext *context)
+   INT32 mainDataSpace::_create()
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(nullptr != context, "can not be null");
       SDB_ASSERT(nullptr == _fsm, "must be null");
       storageCoreArgs args(FSM_FILE_PAGE_SIZE,
                            FSM_FILE_PAGE_COUNT_PER_SEG,
@@ -348,13 +346,12 @@ namespace vessel
       o.createAsTmpFile = TRUE;
       o.replaceWhenCreate = TRUE;
       storageFileName fn;
+      const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
+      storageFileMaintainer sfm(&po, getSpaceID());
 
       const sortedStorageFileList &imf = getIdMapFileList();
       SDB_ASSERT(!imf.isEmpty(), "can not be empty");
       o.secretValue = imf.getBack<idMapFile>()->getCommonHeadInMem().secretValue;
-
-      storageUnit *su = context->getEnv()->dms.getStorageUnit(context->getSpaceID());
-      SDB_ASSERT(nullptr != su, "can not be null");
                            
       fsmFile *file = SDB_OSS_NEW fsmFile();
       if (nullptr == file)
@@ -371,7 +368,7 @@ namespace vessel
          goto error;
       }
 
-      rc = su->createStorageFile(fn, o, slice(), file);
+      rc = sfm.createStorageFile(fn, o, slice(), *file);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create tmp fsm file:%d", rc);
@@ -421,7 +418,7 @@ namespace vessel
       return;
    }
 
-   void mainDataSpace::_destroy(requestContext *context)
+   void mainDataSpace::_destroy()
    {
       if (nullptr != _fsm)
       {

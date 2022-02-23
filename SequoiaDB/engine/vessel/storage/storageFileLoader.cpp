@@ -49,7 +49,7 @@ namespace vessel
 
    storageFileLoader::~storageFileLoader()
    {
-      fini();
+      clear();
    }
 
    void storageFileLoader::clear()
@@ -58,7 +58,7 @@ namespace vessel
       for (; itr != _all.end(); ++itr)
       {
          FILES_WITH_SPACE_TYPE *filesWithType = itr->second;
-         if (NULL != filesWithType)
+         if (nullptr != filesWithType)
          {
             delete filesWithType;
          }
@@ -74,11 +74,6 @@ namespace vessel
       if (OSS_UNLIKELY(dir.empty()))
       {
          rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!isValid()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
@@ -99,7 +94,6 @@ namespace vessel
    INT32 storageFileLoader::_load(const strSlice &dir, SPACE_TYPE specifiedType)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isValid(), "can not be invalid");
       SDB_ASSERT(!dir.empty(), "can not be empty");
 
    
@@ -118,7 +112,7 @@ namespace vessel
       {
          std::string fileName = dir_iter->path().filename().string();
          strSlice fileNameSlice(fileName.c_str(), fileName.size());
-         FILES_WITH_SPACE_TYPE *fileMap = NULL;
+         FILES_WITH_SPACE_TYPE *fileMap = nullptr;
          _ALL_FILE_MAP::iterator itr;
          storageFileName fn;
 
@@ -162,7 +156,7 @@ namespace vessel
          if (_all.end() == itr)
          {
             FILES_WITH_SPACE_TYPE *files = new FILES_WITH_SPACE_TYPE();
-            if (OSS_UNLIKELY(NULL == files))
+            if (OSS_UNLIKELY(nullptr == files))
             {
                PD_LOG(PDERROR, "failed to allocate mem.");
                rc = SDB_OOM;
@@ -175,7 +169,7 @@ namespace vessel
          else
          {
             fileMap = itr->second;
-            SDB_ASSERT(NULL != fileMap, "impossible");
+            SDB_ASSERT(nullptr != fileMap, "impossible");
          }
          
          (*fileMap)[fn.getFileType()].push_back(fn);
@@ -190,12 +184,7 @@ namespace vessel
    INT32 storageFileLoader::append(const strSlice &dir, SPACE_TYPE type)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!isValid()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(dir.empty() || INVALID_SPACE_TYPE == type))
+      if (OSS_UNLIKELY(dir.empty() || INVALID_SPACE_TYPE == type))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -217,8 +206,7 @@ namespace vessel
    const STORAGE_FILE_NAME_LIST *storageFileLoader::getFileList(SPACE_TYPE stype,
                                                                 FILE_TYPE ftype)const
    {
-      SDB_ASSERT(isValid(), "can not be invalid");
-      const STORAGE_FILE_NAME_LIST *fl = NULL;
+      const STORAGE_FILE_NAME_LIST *fl = nullptr;
       _ALL_FILE_MAP::const_iterator itr = _all.find(stype);
       if (_all.end() != itr)
       {
@@ -230,22 +218,6 @@ namespace vessel
          }
       }
       return fl;
-   }
-
-   void storageFileLoader::init(SPACE_ID sid)
-   {
-      SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
-      fini();
-      _sid = sid;
-      return;
-   }
-   
-   void storageFileLoader::fini()
-   {
-      clear();
-      _sid = INVALID_SPACE_ID;
-      _removeTmpFile = TRUE;
-      return;
    }
 }//namespace vessel
 }//namespace engin

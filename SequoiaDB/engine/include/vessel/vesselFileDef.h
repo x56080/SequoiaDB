@@ -45,21 +45,20 @@ namespace engine
 {
 namespace vessel
 {
-   static const UINT32 MAX_FILE_NAME_LEN = 63;
-   static const UINT32 MAX_SPACE_DIR_LEN = 15;
+   constexpr UINT32 MAX_FILE_NAME_LEN = 63;
+   constexpr UINT32 MAX_SPACE_DIR_LEN = 15;
 
-   static const CHAR * const FILE_MAGICAL_CHARS = "SDBV";
-   static const UINT32 FILE_MAGICSAL_CHARS_LEN = 4;
+   constexpr CHAR * const FILE_MAGICAL_CHARS = "SDBV";
+   constexpr UINT32 FILE_MAGICSAL_CHARS_LEN = 4;
 
-   static const CHAR * const DIR_NAME_PREFIX = "_cs_";
-   static const UINT32 DIR_NAME_PREFIX_LEN = 4;
+   constexpr CHAR * const DIR_NAME_PREFIX = "_cs_";
+   constexpr UINT32 DIR_NAME_PREFIX_LEN = 4;
 
-   static const CHAR * const CSNAME_FILE_NAME = "CSNAME";
-   static const CHAR * const TMPSU_FILE_NAME = "TMPSU";
+   constexpr CHAR * const CSNAME_FILE_NAME = "CSNAME";
 
-   static const UINT16 INVALID_FILE_SHADOW_SUFFIX = 0xFFFF;
-   static const UINT16 FILE_SHADOW_SUFFIX_TMP = 0;
-   static const UINT16 FILE_SHADOW_SUFFIX_READY = 1;
+   constexpr UINT16 INVALID_FILE_SHADOW_SUFFIX = 0xFFFF;
+   constexpr UINT16 FILE_SHADOW_SUFFIX_TMP = 0;
+   constexpr UINT16 FILE_SHADOW_SUFFIX_READY = 1;
    
 
    class VESSEL_FILE_GLOBAL_OPTIONS : public SDBObject
@@ -86,7 +85,7 @@ namespace vessel
          }
 
       private:
-         static const UINT32 FLAG_NOT_SPARSE_EXTENDING = 0x01;
+         static constexpr UINT32 FLAG_NOT_SPARSE_EXTENDING = 0x01;
 
          static UINT32 _flags;
    };//class VESSEL_FILE_GLOBAL_OPTIONS
@@ -159,20 +158,18 @@ namespace vessel
    };//class spaceTypeDescriptor
 
    typedef UINT8 SPACE_TYPE;
-   static const SPACE_TYPE INVALID_SPACE_TYPE = 255;
-   static const SPACE_TYPE SPACE_TYPE_MAIN_DATA = 0;
-   static const SPACE_TYPE SPACE_TYPE_IDX = 1;
-   static const SPACE_TYPE SPACE_TYPE_LOB = 2;
-   static const SPACE_TYPE MAX_SPACE_TYPE = SPACE_TYPE_LOB;
+   constexpr SPACE_TYPE INVALID_SPACE_TYPE = 255;
+   constexpr SPACE_TYPE SPACE_TYPE_MAIN_DATA = 0;
+   constexpr SPACE_TYPE SPACE_TYPE_IDX = 1;
+   constexpr SPACE_TYPE SPACE_TYPE_LOB = 2;
+   constexpr SPACE_TYPE MAX_SPACE_TYPE = SPACE_TYPE_LOB;
 
    typedef UINT8 FILE_TYPE;
-   const FILE_TYPE INVALID_FILE_TYPE = 255;
-   const FILE_TYPE FILE_TYPE_SYS = 0;
-   const FILE_TYPE FILE_TYPE_ID_MAP = 1;
-   const FILE_TYPE FILE_TYPE_DATA_STORAGE = 2;
-   const FILE_TYPE FILE_TYPE_FSM = 3;
-   const FILE_TYPE FILE_TYPE_DELTA_LOG = 4;
-   const FILE_TYPE FILE_TYPE_CONTROL = 5;
+   constexpr FILE_TYPE INVALID_FILE_TYPE = 255;
+   constexpr FILE_TYPE FILE_TYPE_ID_MAP = 0;
+   constexpr FILE_TYPE FILE_TYPE_DATA_STORAGE = 1;
+   constexpr FILE_TYPE FILE_TYPE_FSM = 2;
+   constexpr FILE_TYPE FILE_TYPE_DELTA_LOG = 3;
 
    BOOLEAN parseFileType(const CHAR *typeSuffix,
                          FILE_TYPE &type,

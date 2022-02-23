@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = deltaLogFileDef.cpp
+   Source File Name = storageFileManifest.h
 
    Descriptive Name =
 
@@ -33,25 +33,55 @@
 
 ******************************************************************************/
 
-#include "vessel/deltaLogFileDef.h"
-#include "pdTrace.hpp"
+#ifndef VESSEL_STORAGE_FILE_MANIFEST_H_
+#define VESSEL_STORAGE_FILE_MANIFEST_H_
+
+#include "vessel/vesselIdDef.h"
+#include "vessel/vesselFileDef.h"
+#include "vessel/storageFileDef.h"
 
 namespace engine
 {
 namespace vessel
 {
-
-   void deltaLogFilePage::init(UINT32 prechecksum)
+   struct storageFileManifest : public SDBObject
    {
-      version = CURRENT_VERSION;
-      frontChecksum = ossRand();
-      this->prechecksum = prechecksum;
-      flags = 0;
-      checkpointOffset = -1;
-      dataOffset = 0;
-      ossMemset(data, 0, sizeof(data));
-      backChecksum = frontChecksum;
-   }
+      storageFileManifest &operator=(const storageFileManifest &o)
+      {
+         sid = o.sid;
+         stype = o.stype;
+         ftype = o.ftype;
+         secretValue = o.secretValue;
+         args = o.args;
+         return *this;
+      }
+
+      OSS_INLINE BOOLEAN isValid()const
+      {
+         return INVALID_SPACE_ID != sid &&
+                INVALID_SPACE_TYPE != stype &&
+                INVALID_FILE_TYPE != ftype &&
+                args.isValid();
+      }
+
+      void reset()
+      {
+         sid = INVALID_SPACE_ID;
+         stype = INVALID_SPACE_TYPE;
+         ftype = INVALID_FILE_TYPE;
+         secretValue = 0;
+         args.reset();
+      }
+
+      SPACE_ID sid = INVALID_SPACE_ID;
+      SPACE_TYPE stype = INVALID_SPACE_TYPE;
+      SPACE_TYPE ftype = INVALID_FILE_TYPE;
+      UINT32 secretValue = 0;
+      storageCoreArgs args;
+   };//class storageFileManifest
 } // namespace vessel
 
 } // namespace engine
+
+
+#endif//VESSEL_STORAGE_FILE_MANIFEST_H_

@@ -53,9 +53,89 @@ namespace vessel
       SDB_ASSERT(r, "must be ok");
    }
 
+   INT32 storageFileMaintainer::init(const storagePathOptions *path,
+                                     SPACE_ID sid)
+   {
+      INT32 rc = SDB_OK;
+      reset();
+      if (OSS_UNLIKELY(nullptr == path ||
+                       INVALID_SPACE_ID == sid))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      _path = path;
+      _sid = sid;
+      if (OSS_UNLIKELY(!buildSpaceDirName(sid, sizeof(_subDir), _subDir)))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      reset();
+      goto done;
+   }
+
+   void storageFileMaintainer::reset()
+   {
+      _path = nullptr;
+      _sid = INVALID_SPACE_ID;
+      ossMemset(_subDir, 0, sizeof(_subDir));
+      return;
+   }
+
+   INT32 storageFileMaintainer::testBeforeOpenning()const
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isValid(), "must be valid");
+      ossPoolString fullPath;
+
+      if (!buildFullDir(SPACE_TYPE_MAIN_DATA, fullPath))
+      {
+         PD_LOG(PDERROR, "failed to build full path of data");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = ossAccess(fullPath.c_str());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to test data path:%s, rc:%d", fullPath.c_str(), rc);
+         goto error;
+      }
+
+      if (_path->hasExclusiveIndexPath())
+      {
+         fullPath.clear();
+         if (!buildFullDir(SPACE_TYPE_IDX, fullPath))
+         {
+            PD_LOG(PDERROR, "failed to build full path of data");
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
+         rc = ossAccess(fullPath.c_str());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to test index path:%s, rc:%d", fullPath.c_str(), rc);
+            goto error;
+         }
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 storageFileMaintainer::testBeforeCreating()const
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(isValid(), "must be valid");
       ossPoolString fullPath;
 
       if (!buildFullDir(SPACE_TYPE_MAIN_DATA, fullPath))
@@ -118,6 +198,7 @@ namespace vessel
    INT32 storageFileMaintainer::createSpaceDir()const
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(isValid(), "must be valid");
       ossPoolVector<ossPoolString> created;
       
       rc = testBeforeCreating();
@@ -183,6 +264,7 @@ namespace vessel
    INT32 storageFileMaintainer::removeSpaceDir()const
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(isValid(), "must be valid");
       ossPoolString fullPath;
 
       if (_path->hasExclusiveIndexPath())
@@ -197,7 +279,7 @@ namespace vessel
          rc = ossDelete(fullPath.c_str());
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to mk dir[%s], rc:%d", fullPath.c_str(), rc);
+            PD_LOG(PDERROR, "failed to remove dir[%s], rc:%d", fullPath.c_str(), rc);
             goto error;
          }
       }
@@ -214,7 +296,7 @@ namespace vessel
          rc = ossDelete(fullPath.c_str());
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to mk dir[%s], rc:%d", fullPath.c_str(), rc);
+            PD_LOG(PDERROR, "failed to remove dir[%s], rc:%d", fullPath.c_str(), rc);
             goto error;
          }
       }
@@ -232,6 +314,7 @@ namespace vessel
                                                 storageFile &file)const
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(isValid(), "must be valid");
       SDB_ASSERT(!file.isOpen(), "can not be open");
 
       ossPoolString fullPath;
@@ -267,6 +350,7 @@ namespace vessel
                                               storageFile &file)const
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(isValid(), "must be valid");
       SDB_ASSERT(!file.isOpen(), "can not be open");
 
       ossPoolString fullPath;
@@ -302,6 +386,7 @@ namespace vessel
    INT32 storageFileMaintainer::removeStorageFile(const storageFileName &fn)const
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(isValid(), "must be valid");
       ossPoolString fullPath;
 
       if (OSS_UNLIKELY(!fn.isValid()))
@@ -335,6 +420,7 @@ namespace vessel
                                                ossPoolString &path)const
    {
       BOOLEAN r = FALSE;
+      SDB_ASSERT(isValid(), "must be valid");
       const std::string *p = nullptr;
       path.clear();
 
@@ -369,6 +455,7 @@ namespace vessel
 
    ossPoolString storageFileMaintainer::buildFullPath(const storageFileName &fn)const
    {
+      SDB_ASSERT(isValid(), "must be valid");
       SDB_ASSERT(fn.isValid(), "can not be invalid");
       ossPoolString path;
       if (buildFullDir(fn.getSpaceType(), path))
@@ -377,6 +464,68 @@ namespace vessel
          path.append(fn.getFileName());
       }
       return std::move(path);
+   }
+
+   ossPoolString storageFileMaintainer::buildFullPath(SPACE_TYPE type,
+                                                      const CHAR *fileName)const
+   {
+      SDB_ASSERT(isValid(), "must be valid");
+      SDB_ASSERT(INVALID_SPACE_TYPE != type, "can not be invalid");
+      SDB_ASSERT(nullptr != fileName && 0 < ossStrlen(fileName), "can not be invalid");
+      ossPoolString path;
+      if (buildFullDir(type, path))
+      {
+         path.append(OSS_FILE_SEP);
+         path.append(fileName);
+      }
+      return std::move(path);
+   }
+
+   INT32 storageFileMaintainer::load(storageFileLoader &loader)const
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isValid(), "must be valid");
+      ossPoolString fullDir;
+      loader.clear();
+
+      if (OSS_UNLIKELY(!buildFullDir(SPACE_TYPE_MAIN_DATA, fullDir)))
+      {
+         PD_LOG(PDERROR, "failed to build full dir path");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = loader.load(strSlice(fullDir.c_str(), fullDir.size()));
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to load files under path[%s], rc:%d",
+                fullDir.c_str(), rc);
+         goto error;
+      }
+
+      if (_path->hasExclusiveIndexPath())
+      {
+         fullDir.clear();
+         if (OSS_UNLIKELY(!buildFullDir(SPACE_TYPE_IDX, fullDir)))
+         {
+            PD_LOG(PDERROR, "failed to build full dir path");
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
+         rc = loader.append(strSlice(fullDir.c_str(), fullDir.size()), SPACE_TYPE_IDX);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to load files under path[%s], rc:%d",
+                  fullDir.c_str(), rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      loader.clear();
+      goto done;
    }
 } // namespace vessel
 

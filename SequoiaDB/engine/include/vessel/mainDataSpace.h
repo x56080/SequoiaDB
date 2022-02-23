@@ -55,11 +55,11 @@ namespace vessel
          virtual ~mainDataSpace();
 
       public:
-         virtual SPACE_TYPE getSpaceType()const
+         virtual SPACE_TYPE getSpaceType()const override
          {
             return SPACE_TYPE_MAIN_DATA;
          }
-         virtual BOOLEAN isCopyOnWrite()const
+         virtual BOOLEAN isCopyOnWrite()const override
          {
             return FALSE;
          }
@@ -77,35 +77,34 @@ namespace vessel
             return _fsm;
          }
       private:
-         virtual UINT32 getReservedImpCount()const
+         virtual UINT32 getReservedImpCount()const override
          {
             return 1;
          }
-         virtual dataPageCluster *getDataStorageObj()
+         virtual dataPageCluster *getDataStorageObj() override
          {
             return &_storage;
          }
 
-         virtual INT32 _create(requestContext *context);
-         virtual INT32 _open(requestContext *context,
-                             const storageFileLoader &loader);
-         virtual void _close();
-         virtual void _destroy(requestContext *context);
+         virtual INT32 _create() override;
+         virtual INT32 _open(const storageFileLoader &loader) override;
+         virtual void _close() override;
+         virtual void _destroy() override;
 
       private:
          virtual INT32 getRuntimePageBuffer(requestContext *context,
                                             PAGE_ID pid,
                                             const ossSharedLatchMode &mode,
-                                            runtimePageBuffer &rpb);
+                                            runtimePageBuffer &rpb) override;
 
          virtual INT32 getRuntimePageBufferToReset(requestContext *context,
                                                    PAGE_ID pid,
-                                                   runtimePageBuffer &rpb);
+                                                   runtimePageBuffer &rpb) override;
 
          virtual INT32 copyPageAndReinitBuffer(requestContext *context,
                                                PAGE_SNAPSHOT_VERION psv,
                                                PAGE_ID newPid,
-                                               runtimePageBuffer &rpb);
+                                               runtimePageBuffer &rpb) override;
 
       private:
          INT32 prepareCopyLog(requestContext *context,

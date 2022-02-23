@@ -47,12 +47,10 @@ namespace vessel
    
    static const fileTypeDescriptor VFD_ARRAY[] =
    {
-      {"sys"},
       {"idmap"},
       {"ds"},
       {"fsm"},
       {"delta"},
-      {"control"}
    };
 
    static const spaceTypeDescriptor VSTD_ARRAY [] = 
@@ -73,7 +71,7 @@ namespace vessel
                          fileTypeDescriptor *descriptor)
    {
       BOOLEAN r = FALSE;
-      static const UINT32 _ARRAY_SIZE = sizeof(VFD_ARRAY) / sizeof(fileTypeDescriptor);
+      constexpr UINT32 _ARRAY_SIZE = sizeof(VFD_ARRAY) / sizeof(fileTypeDescriptor);
 
       if (OSS_UNLIKELY(NULL == suffix))
       {
@@ -105,7 +103,7 @@ namespace vessel
                           spaceTypeDescriptor *descriptor)
    {
       BOOLEAN r = FALSE;
-      static const UINT32 _ARRAY_SIZE = sizeof(VSTD_ARRAY) / sizeof(spaceTypeDescriptor);
+      constexpr UINT32 _ARRAY_SIZE = sizeof(VSTD_ARRAY) / sizeof(spaceTypeDescriptor);
       SDB_ASSERT(NULL != suffix, "can not be null");
       if (OSS_UNLIKELY(NULL == suffix))
       {
@@ -136,7 +134,7 @@ namespace vessel
                                  fileTypeDescriptor &descriptor)
    {
       BOOLEAN r = FALSE;
-      static const UINT32 _ARRAY_SIZE = sizeof(VFD_ARRAY) / sizeof(fileTypeDescriptor);
+      constexpr UINT32 _ARRAY_SIZE = sizeof(VFD_ARRAY) / sizeof(fileTypeDescriptor);
       if (OSS_UNLIKELY(INVALID_FILE_TYPE == type ||
                        _ARRAY_SIZE <= (UINT32)type))
       {
@@ -152,7 +150,7 @@ namespace vessel
                                   spaceTypeDescriptor &descriptor)
    {
       BOOLEAN r = FALSE;
-      static const UINT32 _ARRAY_SIZE = sizeof(VSTD_ARRAY) / sizeof(spaceTypeDescriptor);
+      constexpr UINT32 _ARRAY_SIZE = sizeof(VSTD_ARRAY) / sizeof(spaceTypeDescriptor);
 
       if (OSS_UNLIKELY(INVALID_SPACE_TYPE == type ||
                        _ARRAY_SIZE <= type))
@@ -171,7 +169,7 @@ namespace vessel
    {
       UINT16 t = INVALID_FILE_SHADOW_SUFFIX;
       SDB_ASSERT(NULL != shadowSuffix, "can not be null");
-      static const UINT16 _SIZE = sizeof(SHADOW_SUFFIX_ARRAY) / sizeof(strSlice);
+      constexpr UINT16 _SIZE = sizeof(SHADOW_SUFFIX_ARRAY) / sizeof(strSlice);
       if (OSS_UNLIKELY(NULL == shadowSuffix))
       {
          goto done;
@@ -192,7 +190,7 @@ namespace vessel
    BOOLEAN getShadowSuffix(UINT16 t, strSlice &suffix)
    {
       BOOLEAN r = FALSE;
-      static const UINT16 _SIZE = sizeof(SHADOW_SUFFIX_ARRAY) / sizeof(strSlice);
+      constexpr UINT16 _SIZE = sizeof(SHADOW_SUFFIX_ARRAY) / sizeof(strSlice);
       if (INVALID_FILE_SHADOW_SUFFIX == t ||
           _SIZE <= t)
       {

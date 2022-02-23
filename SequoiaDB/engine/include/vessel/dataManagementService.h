@@ -261,8 +261,6 @@ namespace vessel
          inMemBitmap _suAllocator;
          lazyArray<storageUnit> _sus;
    };//class dataManagementService
-
-   typedef class dataManagementService CS_CONTAINER;
 }//namespace vessel
 }//namespace engine
 

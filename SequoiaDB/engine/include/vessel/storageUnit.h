@@ -86,12 +86,12 @@ namespace vessel
          }
 
       public:
-         INT32 create(requestContext *context,
+         INT32 create(SPACE_ID sid,
                       const createSUOptions &options);
 
-         INT32 open(requestContext *context);
+         INT32 open(SPACE_ID sid);
 
-         INT32 destroy(requestContext *context);
+         INT32 destroy();
                     
          void close();
 
@@ -105,76 +105,14 @@ namespace vessel
                            FILE_TYPE fileType,
                            storageCoreArgs &args);
 
-      public:
-         INT32 openStorageFile(const storageFileName &fn,
-                               storageFile *file)const;
-
-         INT32 createStorageFile(const storageFileName &fn,
-                                 const createStorageFileOptions &o,
-                                 const slice &userDefinedHead,
-                                 storageFile *file)const;
-
-         INT32 getDirPathOfType(SPACE_TYPE type,
-                                ossPoolString &dir)const;
-
-         INT32 destroyStorageFile(const storageFileName &fn);
-
       private:
-
-         INT32 testAllDirsBeforeCreating(const storagePathOptions &path,
-                                         const strSlice &dir)const;
-
-         INT32 testAllDirsBeforeOpenning(const storagePathOptions &path,
-                                         const strSlice &dir)const;
-
-         INT32 createMainDataDir(const storagePathOptions &path,
-                                 const strSlice &dir);
-
-
-         INT32 ensureMainDataDirRemoved(const storagePathOptions &path,
-                                        const strSlice &dir);
-
-         INT32 createStatusFile(const storagePathOptions &path,
-                                const strSlice &dir,
-                                SPACE_ID sid);
-
-         INT32 removeStatusFile(const storagePathOptions &path,
-                                const strSlice &dir,
-                                SPACE_ID sid);
-
-         INT32 testStatusFile(const strSlice &fullDir,
-                              SPACE_ID sid,
-                              BOOLEAN &exists)const;
-
-         INT32 testDir(const CHAR *fullPath,
-                       UINT32 &subCount);
-         INT32 createOtherDirs(const storagePathOptions &path,
-                               const strSlice &dir);
-
-         INT32 ensureOtherDirRemoved(const storagePathOptions &path,
-                                     const strSlice &dir);
-
-         INT32 rollbackCreating(requestContext *context,
-                                const storagePathOptions &path,
-                                const strSlice &dir);
-
-      private:
-         INT32 createMainDataSpace(requestContext *context,
-                                   UINT32 secretValue,
+         INT32 createMainDataSpace(UINT32 secretValue,
                                    const storageCoreArgs &args);
 
-         INT32 createIndexSpace(requestContext *context,
-                                UINT32 secretValue,
+         INT32 createIndexSpace(UINT32 secretValue,
                                 const storageCoreArgs &args);
       private:
-         void buildFullDir(const storagePathOptions *path,
-                           SPACE_TYPE type,
-                           FILE_TYPE ftype,
-                           ossPoolString &dir)const;
-      private:
          SPACE_ID _sid = INVALID_SPACE_ID;
-         ossPoolString _unitEntryDir;
-         const storagePathOptions *_path = NULL;
          mainDataSpace _mds;
          indexSpace _is;
 

@@ -302,13 +302,12 @@ namespace vessel
       goto done;
    }
 
-   INT32 indexSpace::_create(requestContext *context)
+   INT32 indexSpace::_create()
    {
       return SDB_OK;
    }
 
-   INT32 indexSpace::_open(requestContext *context,
-                           const storageFileLoader &loader)
+   INT32 indexSpace::_open(const storageFileLoader &loader)
    {
       return SDB_OK;
    }
@@ -318,7 +317,7 @@ namespace vessel
       _storage.close();
    }
    
-   void indexSpace::_destroy(requestContext *context)
+   void indexSpace::_destroy()
    {
       _storage.destroy();
    }

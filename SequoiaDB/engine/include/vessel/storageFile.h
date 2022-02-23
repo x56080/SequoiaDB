@@ -106,15 +106,15 @@ namespace vessel
          {
             return _headInMem;
          }
-         OSS_INLINE const FILE_TYPE &getFileType()const
+         OSS_INLINE FILE_TYPE getFileType()const
          {
             return _fileType;
          }
-         OSS_INLINE const SPACE_TYPE &getSpaceType()const
+         OSS_INLINE SPACE_TYPE getSpaceType()const
          {
             return _spaceType;
          }
-         OSS_INLINE const UINT32 &getSequence()const
+         OSS_INLINE UINT32 getSequence()const
          {
             return _sequence;
          }
@@ -131,6 +131,8 @@ namespace vessel
          {
             return _headInMem.pageSize;
          }
+
+         BOOLEAN getStructuredFileName(storageFileName &fn)const;
 
          INT32 removeShadowSuffix();
    

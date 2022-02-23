@@ -91,13 +91,12 @@ namespace vessel
       public:
          void close();
 
-         void destroy(requestContext *context);
+         void destroy();
 
-         INT32 create(requestContext *context,
-                      const createLogicalPageSpaceOptions &o);
+         INT32 create(SPACE_ID sid,
+                      const createLpsOptions &o);
 
-         INT32 open(requestContext *context,
-                    const storageFileLoader &loader);
+         INT32 open(SPACE_ID sid, const storageFileLoader &loader);
 
          INT32 getLogicalPageBuffer(requestContext *context,
                                     PAGE_ID lpid,
@@ -267,29 +266,24 @@ namespace vessel
                                                runtimePageBuffer &rpb) = 0;
 
       private:/// for openning/creating
-         virtual INT32 _create(requestContext *context) = 0;
-         virtual INT32 _open(requestContext *context,
-                             const storageFileLoader &loader) = 0;
+         virtual INT32 _create() = 0;
+         virtual INT32 _open(const storageFileLoader &loader) = 0;
          virtual void _close() = 0;
-         virtual void _destroy(requestContext *context) = 0;
+         virtual void _destroy() = 0;
 
          virtual UINT32 createIdMapFileHeadFlags()const;
          virtual BOOLEAN validateIdMapFileHeadFlags(UINT32 flags)const;
 
       private:
          void fini();
-         INT32 createFirstIdMapFile(requestContext *context,
-                                    const createLogicalPageSpaceOptions &o);
-         INT32 openIdMapFiles(requestContext *context,
-                              const storageFileLoader &loader);
+         INT32 createFirstIdMapFile(const createLpsOptions &o);
+         INT32 openIdMapFiles(const storageFileLoader &loader);
 
          INT32 validateIdMapFileMap();
 
-         INT32 restoreAllocatorByBaseFile(requestContext *context,
-                                          const idMapFile *base);
+         INT32 restoreAllocatorByBaseFile(const idMapFile *base);
 
-         INT32 restoreAllocatorByImp(requestContext *context,
-                                     PAGE_ID impPid,
+         INT32 restoreAllocatorByImp(PAGE_ID impPid,
                                      const CHAR *page);
 
          INT32 rebaseWhenCreatingCheckpoint(requestContext *context,
@@ -312,7 +306,7 @@ namespace vessel
          INT32 createDeltaCheckpoint(requestContext *context);
          INT32 createFullCheckpoint(requestContext *context);
 
-         INT32 resumeToLatestCheckpoint(requestContext *context);
+         INT32 resumeToLatestCheckpoint();
       private:
          INT32 reserveLpidsInMem(requestContext *context,
                                  PID_ARRAY lpids);
@@ -333,10 +327,10 @@ namespace vessel
                                const LPID_MAPPING_ARRAY &mapping);
 
       private:
-         INT32 replayDeltaLog(requestContext *context);
-         INT32 replayMappingDeltaLog(requestContext *context, const deltaLogRecord &dlr);
-         INT32 replayUnmappingDeltaLog(requestContext *context, const deltaLogRecord &dlr);
-         INT32 replayRemmapingDeltaLog(requestContext *context, const deltaLogRecord &dlr);
+         INT32 replayDeltaLog();
+         INT32 replayMappingDeltaLog(const deltaLogRecord &dlr);
+         INT32 replayUnmappingDeltaLog(const deltaLogRecord &dlr);
+         INT32 replayRemmapingDeltaLog(const deltaLogRecord &dlr);
 
       private:
          void pushIntoWaitingFreeList(const PID_ARRAY &pids);

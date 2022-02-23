@@ -34,6 +34,7 @@
 ******************************************************************************/
 
 #include "vessel/storageFileName.h"
+#include "vessel/storageUtils.h"
 #include <gtest/gtest.h>
 
 using namespace engine::vessel;
@@ -41,16 +42,16 @@ using namespace engine::vessel;
 TEST(filename_test, base_build_test1)
 {
    storageFileName fn;
-   ASSERT_TRUE(fn.build(FILE_TYPE_SYS, SPACE_TYPE_MAIN_DATA, 0));
-   ASSERT_EQ(0, ossStrcmp(fn.getFileName(), "data.sys.000000"));
+   ASSERT_TRUE(fn.build(FILE_TYPE_ID_MAP, SPACE_TYPE_MAIN_DATA, 0));
+   ASSERT_EQ(0, ossStrcmp(fn.getFileName(), "data.idmap.000000"));
    ASSERT_EQ(fn.getSequence(), 0);
-   ASSERT_EQ(fn.getFileType(), FILE_TYPE_SYS);
+   ASSERT_EQ(fn.getFileType(), FILE_TYPE_ID_MAP);
    ASSERT_EQ(fn.getSpaceType(), SPACE_TYPE_MAIN_DATA);
 
-   ASSERT_TRUE(fn.build(FILE_TYPE_SYS, SPACE_TYPE_MAIN_DATA, 1000000));
-   ASSERT_EQ(0, ossStrcmp(fn.getFileName(), "data.sys.1000000"));
+   ASSERT_TRUE(fn.build(FILE_TYPE_ID_MAP, SPACE_TYPE_MAIN_DATA, 1000000));
+   ASSERT_EQ(0, ossStrcmp(fn.getFileName(), "data.idmap.1000000"));
    ASSERT_EQ(fn.getSequence(), 1000000);
-   ASSERT_EQ(fn.getFileType(), FILE_TYPE_SYS);
+   ASSERT_EQ(fn.getFileType(), FILE_TYPE_ID_MAP);
    ASSERT_EQ(fn.getSpaceType(), SPACE_TYPE_MAIN_DATA);
 
    ASSERT_TRUE(fn.build(FILE_TYPE_ID_MAP, SPACE_TYPE_IDX, 101));
@@ -139,7 +140,7 @@ TEST(filename_test, base_dir_test1)
 {
    storageFileName fn;
    CHAR buf[MAX_SPACE_DIR_LEN + 1] = {'\0'};
-   ASSERT_TRUE(fn.buildDirName(0, MAX_SPACE_DIR_LEN + 1, buf));
+   ASSERT_TRUE(buildSpaceDirName(0, MAX_SPACE_DIR_LEN + 1, buf));
    ASSERT_EQ(0, ossStrcmp(buf, "_cs_0"));
 }
 
@@ -147,7 +148,7 @@ TEST(filename_test, base_dir_test2)
 {
    storageFileName fn;
    CHAR buf[MAX_SPACE_DIR_LEN + 1] = {'\0'};
-   ASSERT_FALSE(fn.buildDirName(1, MAX_SPACE_DIR_LEN, buf));
+   ASSERT_FALSE(buildSpaceDirName(1, MAX_SPACE_DIR_LEN, buf));
 }
 
 // parseDirName
@@ -155,18 +156,18 @@ TEST(filename_test, base_dir_test3)
 {
    storageFileName fn;
    SPACE_ID *sid = NULL;
-   ASSERT_TRUE(fn.parseDirName(strSlice("_cs_0"), sid));
-   ASSERT_TRUE(fn.parseDirName(strSlice("_cs_16383"), sid));
+   ASSERT_TRUE(parseSpaceDirName(strSlice("_cs_0"), sid));
+   ASSERT_TRUE(parseSpaceDirName(strSlice("_cs_16383"), sid));
 }
 
 TEST(filename_test, base_dir_test4)
 {
    storageFileName fn;
    SPACE_ID *sid = NULL;
-   ASSERT_FALSE(fn.parseDirName(strSlice("_cs_"), sid));
-   ASSERT_FALSE(fn.parseDirName(strSlice("_cs_16384"), sid));
-   ASSERT_FALSE(fn.parseDirName(strSlice("_cs_abc"), sid));
-   ASSERT_FALSE(fn.parseDirName(strSlice("_cs*"), sid));
-   ASSERT_FALSE(fn.parseDirName(strSlice(""), sid));
-   ASSERT_FALSE(fn.parseDirName(strSlice("xxx"), sid));
+   ASSERT_FALSE(parseSpaceDirName(strSlice("_cs_"), sid));
+   ASSERT_FALSE(parseSpaceDirName(strSlice("_cs_16384"), sid));
+   ASSERT_FALSE(parseSpaceDirName(strSlice("_cs_abc"), sid));
+   ASSERT_FALSE(parseSpaceDirName(strSlice("_cs*"), sid));
+   ASSERT_FALSE(parseSpaceDirName(strSlice(""), sid));
+   ASSERT_FALSE(parseSpaceDirName(strSlice("xxx"), sid));
 }

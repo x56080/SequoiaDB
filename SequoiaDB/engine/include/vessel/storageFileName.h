@@ -110,10 +110,6 @@ namespace vessel
 
 
          void rebuildWithOutShadowSuffix();
-         
-         static BOOLEAN buildDirName(SPACE_ID sid, UINT32 bufLen, CHAR *buf);
-         static BOOLEAN parseDirName(const strSlice &dirName, SPACE_ID *sid);
-
 
       private:
          CHAR _name[MAX_FILE_NAME_LEN + 1] = {};
