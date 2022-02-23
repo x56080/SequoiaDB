@@ -36,12 +36,11 @@
 #ifndef VESSEL_INDEX_OBJECT_H_
 #define VESSEL_INDEX_OBJECT_H_
 
-#include "vessel/indexKeyPattern.h"
-#include "vessel/indexDef.h"
-#include "vessel/indexDescription.h"
-#include "ossMemPool.hpp"
-#include "vessel/indexEntryPage.h"
+#include "vessel/unstableIndexContext.h"
+#include "vessel/vesselIdDef.h"
+#include "vessel/shallowPointer.hpp"
 #include "vessel/objectIdentifier.h"
+#include "vessel/indexDescription.h"
 
 namespace engine
 {
@@ -50,50 +49,51 @@ namespace vessel
    class indexObject : public SDBObject
    {
       public:
-         indexObject(){}
-         ~indexObject(){}
+         indexObject();
+         ~indexObject();
          indexObject(const indexObject &) = delete;
-         indexObject &operator=(const indexObject &o)
-         {
-            _indexId = o._indexId;
-            _desc = o._desc;
-            _btreeRootSplitTimes = o._btreeRootSplitTimes;
-            _btreeRoot = o._btreeRoot;
-            return *this;
-         }
+         indexObject &operator=(const indexObject &) = delete;
 
       public:
-         INT32 init(INT32 indexSlot,
-                    UINT32 indexLid,
-                    const indexDescription &desc,
-                    PAGE_ID btreeRoot=INVALID_PAGE_ID);
-
-         void fini();
-
          OSS_INLINE BOOLEAN isValid()const
          {
-            return _indexId.isValid() &&
-                   _desc.isValid();
+            return _indexId.isValid();
          }
-         OSS_INLINE UINT32 getLogicalIndexId()const
+         OSS_INLINE BOOLEAN isNormal()const
          {
-            return _indexId.getLogicalIndexId();
+            return INDEX_STATUS_NORMAL == _status;
          }
-         OSS_INLINE const strSlice &getIndexName()const
+         OSS_INLINE BOOLEAN isBuilding()const
          {
-            return _desc.getNameSlice();
+            return INDEX_STATUS_BUILDING == _status;
          }
-         OSS_INLINE const indexKeyPattern &getPattern()const
+         OSS_INLINE BOOLEAN isTruncating()const
          {
-            return _desc.getPattern();
+            return INDEX_STATUS_TRUNCATING == _status;
          }
-         OSS_INLINE INDEX_TYPE getIndexType()const
+         OSS_INLINE BOOLEAN isRemoving()const
          {
-            return _desc.getType();
+            return INDEX_STATUS_REMOVING == _status;
+         }
+         OSS_INLINE INDEX_STATUS getStatus()const
+         {
+            return _status;
+         }
+         OSS_INLINE const indexIdentifier &getIndexId()const
+         {
+            return _indexId;
          }
          OSS_INLINE const indexDescription &getDescription()const
          {
             return _desc;
+         }
+         OSS_INLINE unstableIndexContext *getUnstatbleContext()const
+         {
+            return _unstatbleContext;
+         }
+         OSS_INLINE PAGE_ID getEntryLpid()const
+         {
+            return _entryLpid;
          }
          OSS_INLINE UINT32 getBtreeRootSplitTimes()const
          {
@@ -103,6 +103,24 @@ namespace vessel
          {
             return _btreeRoot;
          }
+      public:
+         INT32 init(INT32 indexSlot,
+                    UINT32 indexLid,
+                    const indexDescription &desc,
+                    INDEX_STATUS status,
+                    PAGE_ID lpid,
+                    PAGE_ID btreeRoot = INVALID_PAGE_ID);
+
+         void fini();
+
+         void dump(bson::BSONObjBuilder &builder)const;
+
+         void removeUnstableContext();
+
+         void updateStatus(INDEX_STATUS status);
+
+         BOOLEAN associates(const CHAR *fieldName)const;
+
          void updateBtreeRoot(PAGE_ID root, UINT32 splitTimes);
 
          void updateBtreeRootSplitTimes(UINT32 splitTimes);
@@ -114,10 +132,17 @@ namespace vessel
       private:
          indexIdentifier _indexId;
          indexDescription _desc;
-         UINT32 _btreeRootSplitTimes = 0;
+         INDEX_STATUS _status = INDEX_STATUS_INVALID;
+         PAGE_ID _entryLpid = INVALID_PAGE_ID;
          PAGE_ID _btreeRoot = INVALID_PAGE_ID;
+         UINT32 _btreeRootSplitTimes = 0;
+         unstableIndexContext *_unstatbleContext = NULL;
    };//class indexObject
-}//namespace vessel
-}//namesapce engine
+
+   typedef shallowPointer<indexObject> INDEX_OBJECT_PTR;
+} // namespace vessel
+
+} // namespace engine
+
 
 #endif//VESSEL_INDEX_OBJECT_H_

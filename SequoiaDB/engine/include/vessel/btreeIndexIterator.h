@@ -62,7 +62,7 @@ namespace vessel
          }
 
          virtual INT32 open(requestContext *context,
-                            indexContext *ic,
+                            indexObject *obj,
                             const options &o);
 
          virtual void close();

@@ -35,7 +35,7 @@
 
 #include "vessel/btreeAccessContext.h"
 #include "pdTrace.hpp"
-#include "vessel/indexContext.h"
+#include "vessel/indexObject.h"
 #include "vessel/logicalPageBuffer.h"
 #include "vessel/indexSpace.h"
 #include "vessel/requestContext.h"
@@ -53,17 +53,17 @@ namespace vessel
       }
    }
 
-   void btreeAccessContext::init(indexContext *ic,
+   void btreeAccessContext::init(indexObject *obj,
                                  requestContext *context,
                                  indexSpace *is)
    {
-      SDB_ASSERT(NULL != ic && ic->isValid(), "can not be invalid");
-      SDB_ASSERT(ic->getIndexType() == INDEX_TYPE_BTREE, "msut be btree");
+      SDB_ASSERT(NULL != obj && obj->isValid(), "can not be invalid");
+      SDB_ASSERT(obj->getDescription().getType() == INDEX_TYPE_BTREE, "msut be btree");
       SDB_ASSERT(NULL != context && context->isMbContextAttached(), "can not be invalid");
       SDB_ASSERT(NULL != is && is->isOpen(), "can not be invalid");
 
       fini();
-      _ic = ic;
+      _obj = obj;
       _context = context;
       _is = is;
       return;
@@ -71,7 +71,7 @@ namespace vessel
 
    void btreeAccessContext::fini()
    {
-      _ic = NULL;
+      _obj = NULL;
       _context = NULL;
       _is = NULL;
       for (UINT32 i = 0; i < _path.size(); ++i)
@@ -150,7 +150,7 @@ namespace vessel
 
       do
       {
-         PAGE_ID rootLpid = _ic->getObj().getBtreeRoot();
+         PAGE_ID rootLpid = _obj->getBtreeRoot();
          if (INVALID_PAGE_ID == rootLpid)
          {
             PD_LOG(PDERROR, "no root node exists");
@@ -166,7 +166,7 @@ namespace vessel
             goto error;
          }
 
-         if (_ic->getObj().getBtreeRoot() != rootLpid)
+         if (_obj->getBtreeRoot() != rootLpid)
          {
             buffer->fini();
             continue;
@@ -339,7 +339,7 @@ namespace vessel
       }
       else
       {
-         btreeNode node(buffer, depth, _ic);
+         btreeNode node(buffer, depth, _obj);
          if (node.getSplitedTimes() != _path[depth].getSplitedTimes())
          {
             buffer->fini();
@@ -496,7 +496,7 @@ namespace vessel
       UINT32 depth = _path.size() - 1;
       btreeAccessPathNode &pn = _path[depth];
       SDB_ASSERT(pn.isAccessing(), "end node should always be accessing");
-      return btreeNode(pn.getPageBuffer(), depth, _ic);
+      return btreeNode(pn.getPageBuffer(), depth, _obj);
    }
 
    btreeNode btreeAccessContext::getNodeInPath(UINT32 depth)
@@ -510,7 +510,7 @@ namespace vessel
          btreeAccessPathNode &pn = _path[depth];
          if (pn.isAccessing())
          {
-            node = btreeNode(pn.getPageBuffer(), depth, _ic);
+            node = btreeNode(pn.getPageBuffer(), depth, _obj);
          }
       }
       return node;
@@ -583,7 +583,7 @@ namespace vessel
       {
          mode.setExclusive();
       }
-      else if (_ic->getObj().getBtreeRootSplitTimes() < _SMALL_SCALE)
+      else if (_obj->getBtreeRootSplitTimes() < _SMALL_SCALE)
       {
          mode.setExclusive();
       }
@@ -662,10 +662,11 @@ namespace vessel
          goto error;
       }
 
-      if (_ic->getLogicalIndexId() != head->indexId)
+      if (_obj->getIndexId().getLogicalIndexId() != head->indexId)
       {
          PD_LOG(PDERROR, "different logical index ids found[%d,%d] on page[%s]",
-                _ic->getLogicalIndexId(), head->indexId, rpb.getGlobalPid().toString().c_str());
+                _obj->getIndexId().getLogicalIndexId(), 
+                head->indexId, rpb.getGlobalPid().toString().c_str());
          rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
          goto error;
       }

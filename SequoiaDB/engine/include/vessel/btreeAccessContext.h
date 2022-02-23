@@ -46,7 +46,7 @@ namespace vessel
 {
    class requestContext;
    class logicalPageBuffer;
-   class indexContext;
+   class indexObject;
    class indexSpace;
 
    class btreeAccessContext : public SDBObject
@@ -60,7 +60,7 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return NULL != _ic;
+            return NULL != _obj;
          }
 
          OSS_INLINE BOOLEAN isPathEmpty()const
@@ -84,13 +84,13 @@ namespace vessel
          {
             _readonly = v;
          }
-         OSS_INLINE indexContext *getIndexContext()
+         OSS_INLINE indexObject *getIndexObject()
          {
-            return _ic;
+            return _obj;
          }
 
       public:
-         void init(indexContext *ic,
+         void init(indexObject *obj,
                    requestContext *context,
                    indexSpace *is);
          void fini();
@@ -141,7 +141,7 @@ namespace vessel
          typedef ossPoolVector<logicalPageBuffer *> _FREE_BUFFERS;
 
       private:
-         indexContext *_ic = NULL;
+         indexObject *_obj = NULL;
          requestContext *_context = NULL;
          indexSpace *_is = NULL;
 

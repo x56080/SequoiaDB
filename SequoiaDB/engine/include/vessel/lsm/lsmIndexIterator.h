@@ -42,7 +42,7 @@
 #include "vessel/globalIndexID.h"
 #include "vessel/memoryBlock.h"
 #include "../bson/util/builder.h"
-#include "vessel/indexContext.h"
+#include "vessel/indexObject.h"
 
 namespace engine
 {
@@ -61,7 +61,7 @@ namespace vessel
          
       public:
          virtual INT32 open(requestContext *context,
-                            indexContext *ic,
+                            indexObject *ic,
                             const options &o);
 
          virtual BOOLEAN isOpen()const;
@@ -133,7 +133,7 @@ namespace vessel
 
       private:
          requestContext *_context = NULL;
-         indexContext *_ic = NULL;
+         indexObject *_obj = NULL;
          globalIndexID _globalId;
          LSMDB *_lsmDB = NULL;
          rocksdb::Iterator *_itr = NULL;

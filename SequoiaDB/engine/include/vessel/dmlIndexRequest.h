@@ -36,7 +36,7 @@
 #ifndef VESSEL_DML_INDEX_REQUEST_H_
 #define VESSEL_DML_INDEX_REQUEST_H_
 
-#include "vessel/indexContext.h"
+#include "vessel/indexObject.h"
 #include "../bson/bson.hpp"
 #include "ossMemPool.hpp"
 #include "utilPooledObject.hpp"
@@ -67,7 +67,7 @@ namespace vessel
             return _toInsert.empty() && _toRemove.empty();
          }
 
-         INT32 init(indexContext *index,
+         INT32 init(indexObject *index,
                     const bson::BSONObjSet *toInsert,
                     const bson::BSONObjSet *toRemove);
 
@@ -82,7 +82,7 @@ namespace vessel
             return _toRemove;
          }
 
-         indexContext *getContext()const
+         indexObject *getObject()const
          {
             return _index;
          }
@@ -100,12 +100,12 @@ namespace vessel
          OSS_INLINE BOOLEAN withConstraint()const
          {
             SDB_ASSERT(isValid(), "must be valid");
-            return _index->getObj().getDescription().isUnique() &&
+            return _index->getDescription().isUnique() &&
                    _index->isNormal() &&
                    !_toInsert.empty();
          }
       private:
-         indexContext *_index = NULL;
+         indexObject *_index = NULL;
          ossPoolList<bson::BSONObj> _toInsert;
          ossPoolList<bson::BSONObj> _toRemove;
          UINT32 _flags = 0;
@@ -137,7 +137,7 @@ namespace vessel
          void clear();
 
          ///The appending better to be orderd as index slot.
-         INT32 append(indexContext *index,
+         INT32 append(indexObject *index,
                       const bson::BSONObjSet *keysToInsert,
                       const bson::BSONObjSet *keysToRemove);
 

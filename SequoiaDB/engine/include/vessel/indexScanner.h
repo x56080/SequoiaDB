@@ -36,7 +36,6 @@
 #ifndef VESSEL_INDEX_SCANNER_H_
 #define VESSEL_INDEX_SCANNER_H_
 
-#include "vessel/indexObject.h"
 #include "vessel/recordID.h"
 #include "vessel/indexIterator.h"
 
@@ -45,7 +44,7 @@ namespace engine
 namespace vessel
 {
    class indexScanContext;
-   class indexContext;
+   class indexObject;
 
    class indexScanner : public SDBObject
    {
@@ -62,7 +61,7 @@ namespace vessel
          }
       public:
          INT32 open(indexScanContext *context,
-                    indexContext *ic);
+                    indexObject *obj);
 
          void close();
 
@@ -86,7 +85,7 @@ namespace vessel
       private:
          indexScanContext *_context = NULL;
          indexIterator *_iterator = NULL;
-         const indexContext *_ic = NULL;
+         const indexObject *_obj = NULL;
          bson::BufBuilder _keyBuilder;
    };//class indexScanner
 

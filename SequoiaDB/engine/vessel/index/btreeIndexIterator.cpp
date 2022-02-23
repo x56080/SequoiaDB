@@ -62,7 +62,7 @@ namespace vessel
    }
 
    INT32 btreeIndexIterator::open(requestContext *context,
-                                  indexContext *ic,
+                                  indexObject *obj,
                                   const options &o)
    {
       INT32 rc = SDB_OK;
@@ -70,9 +70,9 @@ namespace vessel
       close();
       if (OSS_UNLIKELY(NULL == context ||
                        !context->isMbContextAttached() ||
-                       NULL == ic ||
-                       !ic->isValid() ||
-                       INDEX_TYPE_BTREE != ic->getIndexType()))
+                       NULL == obj ||
+                       !obj->isValid() ||
+                       INDEX_TYPE_BTREE != obj->getDescription().getType()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -87,7 +87,7 @@ namespace vessel
       }
       _forward = o.isForward();
       _context = context;
-      _bac.init(ic, context, static_cast<indexSpace *>(lps));
+      _bac.init(obj, context, static_cast<indexSpace *>(lps));
    done:
       return rc;
    error:
@@ -197,7 +197,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (!_bac.getIndexContext()->getObj().hasBtreeRoot())
+      else if (!_bac.getIndexObject()->hasBtreeRoot())
       {
          goto done;
       }
@@ -277,7 +277,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (!_bac.getIndexContext()->getObj().hasBtreeRoot())
+      else if (!_bac.getIndexObject()->hasBtreeRoot())
       {
          goto done;
       }
@@ -870,7 +870,7 @@ namespace vessel
       SDB_ASSERT(_bac.isReadonly(), "must be readonly");
       resetLocation();
 
-      if (!_bac.getIndexContext()->getObj().hasBtreeRoot())
+      if (!_bac.getIndexObject()->hasBtreeRoot())
       {
          goto done;
       }

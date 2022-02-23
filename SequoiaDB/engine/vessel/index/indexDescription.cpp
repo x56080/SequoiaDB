@@ -77,12 +77,8 @@ namespace vessel
    INT32 indexDescription::extractFromBson(const bson::BSONObj &obj)
    {
       INT32 rc = SDB_OK;
-      bson::BSONObjIterator itr;
-      indexKeyPattern pattern;
-      BOOLEAN isBtreeCompression = FALSE;
-      UINT32 btreeMaxPrefixFields = 0;
-      UINT32 btreeMinCompressionDepth = 2;
-      UINT32 columnFamily = 0;
+      bson::BSONElement ele;
+      reset();
 
       if (!obj.isValid())
       {
@@ -91,142 +87,206 @@ namespace vessel
          goto error;
       }
 
-      itr = bson::BSONObjIterator(obj);
-      while (itr.more())
+      ele = obj.getField(IXM_NAME_FIELD);
+      if (String != ele.type() || 0 == ele.valuestrsize())
       {
-         bson::BSONElement ele(itr.next());
-
-         if (String == ele.type() &&
-             0 == ossStrcmp(IXM_NAME_FIELD, ele.fieldName()))
-         {
-            if (0 == ele.valuestrsize())
-            {
-               rc = SDB_INVALIDARG;
-               PD_LOG(PDERROR, "invalid index name");
-               goto error;
-            }
-            _name = ele.valuestr();
-            _nameSlice.reset(_name.c_str());
-         }
-         else if (Object == ele.type() &&
-                  0 == ossStrcmp(IXM_KEY_FIELD, ele.fieldName()))
-         {
-            pattern.set(ele.embeddedObject());
-         }
-         else if (String == ele.type() &&
-                  0 == ossStrcmp(IXM_TYPE_FIELD, ele.fieldName()))
-         {
-            if (0 == ossStrcmp(IXM_BTREE_FIELD, ele.valuestr()))
-            {
-               _type = INDEX_TYPE_BTREE;
-            }
-            else if(0 == ossStrcmp(IXM_LSM_FIELD, ele.valuestr()))
-            {
-               _type = INDEX_TYPE_LSM;
-            }
-            else
-            {
-               rc = SDB_INVALIDARG;
-               PD_LOG(PDERROR, "invalid index type[%s]", ele.valuestr());
-            }
-         }
-         else if (ele.isNumber() &&
-                  0 == ossStrcmp(IXM_INNERID_FIELD, ele.fieldName()))
-         {
-            if (utilCheckIdxInnerID(ele.numberInt()))
-            {
-               _innerID = ele.numberInt();
-            }
-         }
-         else if (ele.isBoolean() &&
-                  0 == ossStrcmp(IXM_UNIQUE_FIELD, ele.fieldName()))
-         {
-            if (ele.boolean())
-            {
-               setAsUnique();
-            }
-         }
-         else if (ele.isBoolean() &&
-                  0 == ossStrcmp(IXM_ENFORCED_FIELD, ele.fieldName()))
-         {
-            if (ele.boolean())
-            {
-               setAsEnforced();
-            }
-         }
-         else if (ele.isBoolean() &&
-                  0 == ossStrcmp(IXM_NOTNULL_FIELD, ele.fieldName()))
-         {
-            if (ele.boolean())
-            {
-               setAsNotNull();
-            }
-         }
-         else if (ele.isBoolean() &&
-                  0 == ossStrcmp(IXM_NOTARRAY_FIELD, ele.fieldName()))
-         {
-            if (ele.boolean())
-            {
-               setAsNotArray();
-            }
-         }
-         else if (ele.isBoolean() &&
-                  0 == ossStrcmp(IXM_BTREE_COMPRESSION_FIELD, ele.fieldName()))
-         {
-            if (ele.boolean())
-            {
-               isBtreeCompression = TRUE;
-            }
-         }
-         else if (ele.isNumber() &&
-                  0 == ossStrcmp(IXM_MAX_PREFIX_FIELD, ele.fieldName()))
-         {
-            btreeMaxPrefixFields = ele.numberInt();
-         }
-         else if (ele.isNumber() &&
-                  0 == ossStrcmp(IXM_BTREE_MIN_COMPRESSION_DEPTH_FIELD, 
-                                 ele.fieldName()))
-         {
-            btreeMinCompressionDepth = ele.numberInt();
-         }
-         else if (ele.isNumber() &&
-                  0 == ossStrcmp(IXM_COLUMN_FAMILY_FIELD, ele.fieldName()))
-         {
-            columnFamily = ele.numberInt();
-         }
-         else
-         {
-            rc = SDB_INVALIDARG;
-            PD_LOG(PDERROR, "invalid argument[%s]", ele.fieldName());
-            goto error;
-         }
+         rc = SDB_INVALIDARG;
+         PD_LOG(PDERROR, "invalid index name");
+         goto error;
       }
+      _name = ele.valuestr();
       
-      if (INVALID_INDEX_TYPE == _type)
+      ele = obj.getField(IXM_TYPE_FIELD);
+      if (ele.eoo())
       {
          _type = INDEX_TYPE_LSM;
       }
-      if (INDEX_TYPE_BTREE == _type)
+      else if (0 == ossStrcmp(IXM_BTREE_FIELD, ele.valuestrsafe()))
       {
-         if(isBtreeCompression)
-         {
-            if (pattern.getKeyCount() < btreeMaxPrefixFields)
-            {
-               rc = SDB_INVALIDARG;
-               PD_LOG(PDERROR, "invalid xxx");
-               goto error;
-            }
-            setAsPrefixCompressionEnabled();
-            _btreeMaxPrefixFields = btreeMaxPrefixFields;
-            _btreeMinCompressionDepth = btreeMinCompressionDepth;
-         }
+         _type = INDEX_TYPE_BTREE;
+      }
+      else if (0 == ossStrcmp(IXM_LSM_FIELD, ele.valuestrsafe()))
+      {
+         _type = INDEX_TYPE_LSM;
       }
       else
       {
-         _columnFamily = columnFamily;
+         rc = SDB_INVALIDARG;
+         PD_LOG(PDERROR, "invalid index type");
+         goto error;
       }
-      _pattern = pattern;
+      
+
+      ele = obj.getField(IXM_INNERID_FIELD);
+      if (ele.eoo())
+      {
+         // do nothing
+      }
+      else if(!ele.isNumber())
+      {
+         rc = SDB_INVALIDARG;
+         PD_LOG(PDERROR, "invalid index innerID");
+         goto error;
+      }
+      else
+      {
+         _innerID = ele.numberInt();
+      }
+
+      ele = obj.getField(IXM_UNIQUE_FIELD);
+      if (ele.eoo())
+      {
+         // do nothing
+      }
+      else if (!ele.isBoolean())
+      {
+         rc = SDB_INVALIDARG;
+         PD_LOG(PDERROR, "invalid unique field");
+         goto error;
+      }
+      else if (ele.boolean())
+      {
+         setAsUnique();
+      }
+
+      ele = obj.getField(IXM_ENFORCED_FIELD);
+      if (ele.eoo())
+      {
+         // do nothing
+      }
+      else if (!ele.isBoolean())
+      {
+         rc = SDB_INVALIDARG;
+         PD_LOG(PDERROR, "invalid enforced field");
+         goto error;
+      }
+      else if (ele.boolean())
+      {
+         setAsEnforced();
+      }
+
+      ele = obj.getField(IXM_NOTNULL_FIELD);
+      if (ele.eoo())
+      {
+         // do nothing
+      }
+      else if (!ele.isBoolean())
+      {
+         rc = SDB_INVALIDARG;
+         PD_LOG(PDERROR, "invalid NotNull field");
+         goto error;
+      }
+      else if (ele.boolean())
+      {
+         setAsNotNull();
+      }
+      
+      ele = obj.getField(IXM_NOTARRAY_FIELD);
+      if (ele.eoo())
+      {
+         // do nothing
+      }
+      else if (!ele.isBoolean())
+      {
+         rc = SDB_INVALIDARG;
+         PD_LOG(PDERROR, "invalid NotArray field");
+         goto error;
+      }
+      else if (ele.boolean())
+      {
+         setAsNotArray();
+      }
+
+      if (INDEX_TYPE_LSM == _type)
+      {
+         ele = obj.getField(IXM_COLUMN_FAMILY_FIELD);
+         if (ele.eoo())
+         {
+            //do nothing
+         }
+         else if (!ele.isNumber())
+         {
+            rc = SDB_INVALIDARG;
+            PD_LOG(PDERROR, "invalid ColumnFamily field");
+            goto error;
+         }
+         else
+         {
+            _columnFamily = ele.numberInt();
+         }
+      }
+
+      if (INDEX_TYPE_BTREE == _type)
+      {
+         ele = obj.getField(IXM_BTREE_COMPRESSION_FIELD);
+         if (ele.eoo())
+         {
+            // do nothing
+         }
+         else if (!ele.isBoolean())
+         {
+            rc = SDB_INVALIDARG;
+            PD_LOG(PDERROR, "invalid BTreeCompression field");
+            goto error;
+         }
+         else if (ele.boolean())
+         {
+            setAsPrefixCompressionEnabled();
+         }
+
+         if (isPrefixCompressionEnabled())
+         {
+            ele = obj.getField(IXM_MAX_PREFIX_FIELD);
+            if (ele.eoo())
+            {
+               // do nothing
+            }
+            else if (!ele.isNumber())
+            {
+               rc = SDB_INVALIDARG;
+               PD_LOG(PDERROR, "invalid MaxPrefixFields field");
+               goto error;
+            }
+            else
+            {
+               _btreeMaxPrefixFields = ele.numberInt();
+            }
+
+            ele = obj.getField(IXM_BTREE_MIN_COMPRESSION_DEPTH_FIELD);
+            if (ele.eoo())
+            {
+               // do nothing
+            }
+            else if (!ele.isNumber())
+            {
+               rc = SDB_INVALIDARG;
+               PD_LOG(PDERROR, "invalid BtreeMinCompressionDepth field");
+               goto error;
+            }
+            else
+            {
+               _btreeMinCompressionDepth = ele.numberInt();
+            }
+         }
+      }
+
+      ele = obj.getField(IXM_KEY_FIELD);
+      if (ele.eoo() || Object != ele.type() ||
+          !ele.embeddedObject().isValid())
+      {
+         rc = SDB_INVALIDARG;
+         PD_LOG(PDERROR, "invalid key pattern");
+         goto error;
+      }
+     _pattern.set(ele.embeddedObject());
+      if (_pattern.getKeyCount() < _btreeMaxPrefixFields)
+      {
+         rc = SDB_INVALIDARG;
+         PD_LOG(PDERROR, "invalid key pattern");
+         goto error;
+      }
       _pattern.getOwned();
+
       SDB_ASSERT(isValid(), "can not be invalid");
 
    done:
@@ -238,7 +298,6 @@ namespace vessel
    void indexDescription::reset()
    {
       _name.clear();
-      _nameSlice.reset();
       _pattern.reset();
       _type = INVALID_INDEX_TYPE;
       _innerID = UTIL_UNIQUEID_NULL;
@@ -252,7 +311,7 @@ namespace vessel
    {
       SDB_ASSERT(isValid(), "can not be invalid");
 
-      builder.append(IXM_NAME_FIELD, _nameSlice.str());
+      builder.append(IXM_NAME_FIELD, _name.c_str());
       builder.append(IXM_KEY_FIELD, _pattern.getPattern());
 
       if (INDEX_TYPE_BTREE == _type)
@@ -285,5 +344,13 @@ namespace vessel
          builder.append(IXM_COLUMN_FAMILY_FIELD, _columnFamily);
       }
    }
-}
-}
+
+   strSlice indexDescription::getNameSlice()const
+   {
+      strSlice nameSlice;
+      nameSlice.reset(_name.c_str());
+      return nameSlice;
+   }
+}//namespace vessel
+
+}//namespace engine

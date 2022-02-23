@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexContextMap.h
+   Source File Name = indexObjectMap.h
 
    Descriptive Name =
 
@@ -33,23 +33,23 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INDEX_CONTEXT_MAP_H_
-#define VESSEL_INDEX_CONTEXT_MAP_H_
+#ifndef VESSEL_INDEX_OBJECT_MAP_H_
+#define VESSEL_INDEX_OBJECT_MAP_H_
 
 #include "vessel/unstableIndexContext.h"
-#include "vessel/indexContext.h"
+#include "vessel/indexObject.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class indexContextMap : public SDBObject
+   class indexObjectMap : public SDBObject
    {
       public:
-         indexContextMap(){}
-         ~indexContextMap();
-         indexContextMap(const indexContextMap &) = delete;
-         indexContextMap &operator=(const indexContextMap &) = delete;
+         indexObjectMap(){}
+         ~indexObjectMap();
+         indexObjectMap(const indexObjectMap &) = delete;
+         indexObjectMap &operator=(const indexObjectMap &) = delete;
 
       public:
          OSS_INLINE UINT32 getNextIndexId()const
@@ -58,7 +58,7 @@ namespace vessel
          }
          OSS_INLINE BOOLEAN isEmpty()const
          {
-            return _contexts.empty();
+            return _objects.empty();
          }
          OSS_INLINE BOOLEAN isAllowedToCreateMore()const
          {
@@ -72,43 +72,45 @@ namespace vessel
          INT32 findFreeIndexSlot()const;         
 
          INT32 insert(INT32 indexSlot,
+                      UINT32 indexLid,
                       PAGE_ID lpid,
-                      const indexObject &obj,
-                      INDEX_STATUS status);
+                      const indexDescription &desc,
+                      INDEX_STATUS status,
+                      PAGE_ID btreeRoot = INVALID_PAGE_ID);
 
          void erase(INT32 indexSlot);
                      
-         /// when filter is invalid, return context found with any status.
-         indexContext *find(INT32 indexSlot,
-                            INDEX_STATUS filter=INDEX_STATUS_INVALID)const;
+         /// when filter is invalid, return index object found with any status.
+         indexObject *find(const indexIdentifier &indexId,
+                           INDEX_STATUS filter=INDEX_STATUS_INVALID)const;
 
       private:
          BOOLEAN isIndexSlotFree(INT32 indexSlot);
          void unfreeIndexSlot(INT32 indexSlot);
          void freeIndexSlot(INT32 indexSlot);
 
-         INT32 insert(indexContext *ic);
+         INT32 insert(indexObject *ic);
          
 
       private:
-         typedef ossPoolMap<INT32, indexContext*> _CONTEXT_MAP;
+         typedef ossPoolMap<INT32, indexObject*> _OBJECT_MAP;
 
       public:
-         typedef _CONTEXT_MAP::const_iterator CONST_ITERATOR;
-         CONST_ITERATOR begin()const {return _contexts.begin();}
-         CONST_ITERATOR end()const {return _contexts.end();}
+         typedef _OBJECT_MAP::const_iterator CONST_ITERATOR;
+         CONST_ITERATOR begin()const {return _objects.begin();}
+         CONST_ITERATOR end()const {return _objects.end();}
 
-         typedef _CONTEXT_MAP::iterator ITERATOR;
-         ITERATOR begin() {return _contexts.begin();}
-         ITERATOR end() {return _contexts.end();}
+         typedef _OBJECT_MAP::iterator ITERATOR;
+         ITERATOR begin() {return _objects.begin();}
+         ITERATOR end() {return _objects.end();}
       private:
          UINT32 _nextIndexId = 0;
          UINT64 _freeIndexSlots = OSS_UINT64_MAX;
 
-         _CONTEXT_MAP _contexts;
+         _OBJECT_MAP _objects;
           
-   };//indexContextMap
+   };//class indexObjectMap
 }//namespace vessel
 }//nemespace engine
 
-#endif//VESSEL_INDEX_CONTEXT_MAP_H_
+#endif//VESSEL_INDEX_OBJECT_MAP_H_
