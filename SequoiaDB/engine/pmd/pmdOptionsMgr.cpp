@@ -107,6 +107,7 @@ namespace engine
    #define PMD_DFT_ENABLE_MIX_CMP      (FALSE)
    #define PMD_DFT_PREFINST            ( PREFER_INSTANCE_MASTER_STR )
    #define PMD_DFT_PREFINST_MODE       ( PREFER_INSTANCE_RANDOM_STR )
+   #define PMD_DFT_PREF_CONSTRAINT     ("")
    #define PMD_DFT_INSTANCE_ID         ( NODE_INSTANCE_ID_UNKNOWN )
    #define PMD_DFT_PREFINST_PERIOD     ( PREFER_INSTANCE_DEF_PERIOD )
    #define PMD_DFT_MAX_CONN            (0)   // unlimited
@@ -1863,6 +1864,7 @@ done:
       ossMemset( _syncStrategyStr, 0, PMD_MAX_ENUM_STR_LEN + 1) ;
       ossMemset( _prefInstStr, 0, PMD_MAX_LONG_STR_LEN + 1 ) ;
       ossMemset( _prefInstModeStr, 0, PMD_MAX_SHORT_STR_LEN + 1 ) ;
+      ossMemset( _prefConstraint, 0, sizeof( _prefConstraint ) ) ;
       ossMemset( _catAddrLine, 0, OSS_MAX_PATHSIZE + 1 ) ;
       ossMemset( _dmsTmpBlkPath, 0, OSS_MAX_PATHSIZE + 1 ) ;
       ossMemset( _krcbLobPath, 0, OSS_MAX_PATHSIZE + 1 ) ;
@@ -1960,8 +1962,8 @@ done:
       _svcSchedulerType = 0 ;
       _svcMaxConcurrency= 0 ;
 
-      _preferedStrict = FALSE ;
-      _preferedPeriod = PMD_DFT_PREFINST_PERIOD ;
+      _preferredStrict = FALSE ;
+      _preferredPeriod = PMD_DFT_PREFINST_PERIOD ;
 
       ossMemset( _logWriteModStr, 0, sizeof(_logWriteModStr) ) ;
       _logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT ;
@@ -2182,16 +2184,20 @@ done:
                  sizeof( _prefInstModeStr ), FALSE, PMD_CFG_CHANGE_RUN,
                  _prefInstModeStr ) ;
       // --preferedstrict / --preferredstrict
-      rdxBooleanS( pEX, PMD_OPTION_PREFINST_STRICT, _preferedStrict, FALSE,
+      rdxBooleanS( pEX, PMD_OPTION_PREFINST_STRICT, _preferredStrict, FALSE,
                    PMD_CFG_CHANGE_RUN, FALSE ) ;
-      rdxBooleanS( pEX, PMD_OPTION_PREFERREDINST_STRICT, _preferedStrict, FALSE,
-                   PMD_CFG_CHANGE_RUN, _preferedStrict ) ;
+      rdxBooleanS( pEX, PMD_OPTION_PREFERREDINST_STRICT, _preferredStrict, FALSE,
+                   PMD_CFG_CHANGE_RUN, _preferredStrict ) ;
       // --preferedperiod / --preferredperiod
-      rdxInt( pEX, PMD_OPTION_PREFINST_PERIOD, _preferedPeriod, FALSE,
+      rdxInt( pEX, PMD_OPTION_PREFINST_PERIOD, _preferredPeriod, FALSE,
               PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST_PERIOD, FALSE ) ;
-      rdxInt( pEX, PMD_OPTION_PREFERREDINST_PERIOD, _preferedPeriod, FALSE,
-              PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST_PERIOD, _preferedPeriod ) ;
-      rdvMinMax( pEX, _preferedPeriod, -1, OSS_SINT32_MAX, TRUE ) ;
+      rdxInt( pEX, PMD_OPTION_PREFERREDINST_PERIOD, _preferredPeriod, FALSE,
+              PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST_PERIOD, _preferredPeriod ) ;
+      rdvMinMax( pEX, _preferredPeriod, -1, OSS_SINT32_MAX, TRUE ) ;
+      // --preferredconstraint
+      rdxString( pEX, PMD_OPTION_PREFERRED_CONSTRAINT, _prefConstraint,
+                 sizeof( _prefConstraint ), FALSE, PMD_CFG_CHANGE_RUN,
+                 PMD_DFT_PREF_CONSTRAINT ) ;
       // --instanceid
       rdxUInt( pEX, PMD_OPTION_INSTANCE_ID, _instanceID, FALSE, PMD_CFG_CHANGE_REBOOT,
                PMD_DFT_INSTANCE_ID, FALSE ) ;
@@ -2570,6 +2576,7 @@ done:
       ossPoolList< UINT8 > instanceList ;
       PMD_PREFER_INSTANCE_TYPE specInstance = PMD_PREFER_INSTANCE_TYPE_UNKNOWN ;
       PMD_PREFER_INSTANCE_MODE instanceMode = PMD_PREFER_INSTANCE_MODE_UNKNOWN ;
+      PMD_PREFER_CONSTRAINT constraint = PMD_PREFER_CONSTRAINT_UNKNOWN ;
       BOOLEAN hasInvalidChar = FALSE ;
 
       rc = ossGetPort( _krcbSvcName, _krcbSvcPort ) ;
@@ -2732,7 +2739,7 @@ done:
       rc = pmdParsePreferInstModeStr( _prefInstModeStr, instanceMode ) ;
       if ( rc )
       {
-         std::cerr << "Failed to parse preferd instance mode str, rc: "
+         std::cerr << "Failed to parse preferred instance mode str, rc: "
                    << rc << endl ;
          goto error ;
       }
@@ -2743,6 +2750,23 @@ done:
                    << endl ;
          ossStrncpy( _prefInstModeStr, PMD_DFT_PREFINST_MODE,
                      sizeof( _prefInstModeStr ) ) ;
+         _invalidConfNum++ ;
+      }
+
+      rc = pmdParsePreferConstraintStr( _prefConstraint, constraint ) ;
+      if ( rc )
+      {
+         std::cerr << "Failed to parse preferred constraint, rc: "
+                   << rc << endl ;
+         goto error ;
+      }
+
+      if ( PMD_PREFER_CONSTRAINT_UNKNOWN == constraint )
+      {
+         std::cerr << PMD_OPTION_PREFERRED_CONSTRAINT
+                   << " value error, use default" << endl ;
+         ossStrncpy( _prefConstraint, PMD_DFT_PREF_CONSTRAINT,
+                     sizeof( _prefConstraint ) ) ;
          _invalidConfNum++ ;
       }
 

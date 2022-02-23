@@ -657,8 +657,9 @@ namespace engine
          OSS_INLINE UINT32 getPlanCacheLevel() const { return _planCacheLevel ; }
          OSS_INLINE const CHAR * getPrefInstStr () const { return _prefInstStr ; }
          OSS_INLINE const CHAR * getPrefInstModeStr () const { return _prefInstModeStr ; }
-         OSS_INLINE BOOLEAN isPreferedStrict() const { return _preferedStrict ; }
-         OSS_INLINE INT32 getPreferedPeriod() const { return _preferedPeriod ; }
+         OSS_INLINE BOOLEAN isPreferredStrict() const { return _preferredStrict ; }
+         OSS_INLINE INT32 getPreferredPeriod() const { return _preferredPeriod ; }
+         OSS_INLINE const CHAR * getPrefConstraint() const { return _prefConstraint; }
          OSS_INLINE UINT32 getInstanceID () const { return _instanceID ; }
          OSS_INLINE UINT32 getMaxConn () const { return _maxconn ; }
          OSS_INLINE UINT32 getSvcSchedulerType() const { return _svcSchedulerType ; }
@@ -719,6 +720,7 @@ namespace engine
          CHAR        _syncStrategyStr[ PMD_MAX_ENUM_STR_LEN + 1 ] ;
          CHAR        _prefInstStr[ PMD_MAX_LONG_STR_LEN + 1 ] ;
          CHAR        _prefInstModeStr[ PMD_MAX_SHORT_STR_LEN + 1 ] ;
+         CHAR        _prefConstraint[ PMD_MAX_LONG_STR_LEN + 1 ] ;
          CHAR        _auditMaskStr[ PMD_MAX_LONG_STR_LEN + 1 ] ;
          CHAR        _ftMaskStr[ PMD_MAX_LONG_STR_LEN + 1 ] ;
          CHAR        _memDebugMaskStr[ PMD_MAX_LONG_STR_LEN + 1 ] ;
@@ -801,8 +803,8 @@ namespace engine
          UINT32      _maxconn;
          UINT32      _svcSchedulerType ;
          UINT32      _svcMaxConcurrency ;
-         BOOLEAN     _preferedStrict ;
-         INT32       _preferedPeriod ;
+         BOOLEAN     _preferredStrict ;
+         INT32       _preferredPeriod ;
          CHAR        _logWriteModStr[ PMD_MAX_LOGMOD_STR_LEN + 1 ] ;
          UINT32      _logWriteMod ;
          BOOLEAN     _logTimeOn ;

@@ -519,6 +519,7 @@
 #define FIELD_NAME_PREFERRED_STRICT          "PreferredStrict"
 #define FIELD_NAME_PREFERED_PERIOD           "PreferedPeriod"
 #define FIELD_NAME_PREFERRED_PERIOD          "PreferredPeriod"
+#define FIELD_NAME_PREFERRED_CONSTRAINT      "PreferredConstraint"
 #define FIELD_NAME_TIMEOUT                   "Timeout"
 #define FIELD_NAME_NODE_SELECT               "NodeSelect"
 #define FIELD_NAME_RAWDATA                   "RawData"

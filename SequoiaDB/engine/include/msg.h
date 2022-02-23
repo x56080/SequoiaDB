@@ -994,6 +994,9 @@ typedef union _MsgLobTuple MsgLobTuple ;
 #define PREFER_INSTANCE_RANDOM_STR     "random"
 #define PREFER_INSTANCE_ORDERED_STR    "ordered"
 
+#define PREFER_CONSTRAINT_PRY_ONLY_STR "PrimaryOnly"
+#define PREFER_CONSTRAINT_SND_ONLY_STR "SecondaryOnly"
+
 #define PREFER_INSTANCE_DEF_PERIOD     ( 60 ) // 60 second
 
 // Note: deprecated options, for old version of setSesstionAttr

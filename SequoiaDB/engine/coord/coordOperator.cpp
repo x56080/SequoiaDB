@@ -277,7 +277,11 @@ namespace engine
                processType = COORD_PROCESS_NOK ;
                if ( !result.pushNokRC( routeID.value, pReply ) )
                {
-                  rc = rc ? rc : rcTmp ;
+                  if ( SDB_OK == rc ||
+                       ( _interruptWhenFailed() && SDB_APP_INTERRUPT == rc ) )
+                  {
+                     rc = rcTmp ;
+                  }
                }
                PD_LOG( ( rc ? PDERROR : PDINFO ),
                        "Failed to execute command[%u] on "

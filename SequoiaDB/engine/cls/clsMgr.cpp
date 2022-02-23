@@ -603,8 +603,9 @@ namespace engine
 
       _pSitePropMgr->setInstanceOption( optCB->getPrefInstStr(),
                                         optCB->getPrefInstModeStr(),
-                                        optCB->isPreferedStrict(),
-                                        optCB->getPreferedPeriod(),
+                                        optCB->isPreferredStrict(),
+                                        optCB->getPreferredPeriod(),
+                                        optCB->getPrefConstraint(),
                                         PMD_PREFER_INSTANCE_TYPE_MASTER ) ;
       rc = _remoteSessionMgr.init( netRouteAgent, _pSitePropMgr ) ;
       PD_RC_CHECK ( rc, PDERROR, "Init session manager failed, rc: %d", rc ) ;

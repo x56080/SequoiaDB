@@ -52,6 +52,7 @@ namespace engine
     */
    _rtnInstanceOption::_rtnInstanceOption ()
    : _mode( ( UINT8 )PMD_PREFER_INSTANCE_MODE_UNKNOWN ),
+     _constraint( ( UINT8 )PMD_PREFER_CONSTRAINT_UNKNOWN ),
      _strict( 0 ),
      _specInstance( ( INT8 )PMD_PREFER_INSTANCE_TYPE_UNKNOWN ),
      _period( PREFER_INSTANCE_DEF_PERIOD ),
@@ -61,6 +62,7 @@ namespace engine
 
    _rtnInstanceOption::_rtnInstanceOption ( const rtnInstanceOption & option )
    : _mode( option._mode ),
+     _constraint( ( UINT8 )option._constraint ),
      _strict( option._strict ),
      _specInstance( option._specInstance ),
      _period( option._period ),
@@ -76,6 +78,7 @@ namespace engine
    rtnInstanceOption & _rtnInstanceOption::operator = ( const rtnInstanceOption & option )
    {
       _mode = option._mode ;
+      _constraint = option._constraint ;
       _strict = option._strict ;
       _specInstance = option._specInstance ;
       _period = option._period ;
@@ -89,6 +92,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__RTNINST_RESET ) ;
 
       _mode = ( UINT8 )PMD_PREFER_INSTANCE_MODE_UNKNOWN ;
+      _constraint = ( UINT8 )PMD_PREFER_CONSTRAINT_UNKNOWN ;
       _strict = 0 ;
       _period = PREFER_INSTANCE_DEF_PERIOD ;
       _clearInstance() ;
@@ -174,6 +178,20 @@ namespace engine
       _mode = (UINT8)mode ;
 
       PD_TRACE_EXITRC( SDB__RTNINST_SETPREFINSTMODE, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINST_SETPREFCONSTRNT, "_rtnInstanceOption::setPreferredConstraint" )
+   INT32 _rtnInstanceOption::setPreferredConstraint( PMD_PREFER_CONSTRAINT constraint )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNINST_SETPREFCONSTRNT ) ;
+
+      _constraint = (UINT8)constraint ;
+
+      PD_TRACE_EXITRC( SDB__RTNINST_SETPREFCONSTRNT, rc ) ;
 
       return rc ;
    }
@@ -413,6 +431,32 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINST__PARSEPREFCONSTRAINT, "_rtnInstanceOption::parsePreferredConstraint" )
+   INT32 _rtnInstanceOption::parsePreferredConstraint ( const CHAR *constraintStr )
+   {
+      INT32 rc = SDB_OK ;
+      PMD_PREFER_CONSTRAINT constraintTmp = PMD_PREFER_CONSTRAINT_UNKNOWN ;
+
+      PD_TRACE_ENTRY( SDB__RTNINST__PARSEPREFCONSTRAINT ) ;
+
+      rc = pmdParsePreferConstraintStr( constraintStr, constraintTmp ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to parse preferred constraint str, rc: %d", rc ) ;
+      _constraint = ( UINT8 )constraintTmp ;
+
+      PD_CHECK( PMD_PREFER_CONSTRAINT_UNKNOWN != _constraint,
+                SDB_INVALIDARG, error, PDWARNING,
+                "Failed to parse preferred constraint: "
+                "unknown input string [%s]", constraintStr ) ;
+
+   done :
+      PD_TRACE_EXITRC( SDB__RTNINST__PARSEPREFCONSTRAINT, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
    void _rtnInstanceOption::setPreferredStrict( BOOLEAN strict )
    {
       _strict = strict ? 1 : 0 ;
@@ -427,6 +471,7 @@ namespace engine
       if ( isValidated() )
       {
          const CHAR * modeStr = NULL ;
+         const CHAR * constraintStr = NULL ;
          if ( _instanceList.empty() )
          {
             const CHAR * value = pmdPreferInstInt2String(
@@ -491,6 +536,18 @@ namespace engine
          builder.appendBool( FIELD_NAME_PREFERRED_STRICT, _strict ) ;
          builder.append( FIELD_NAME_PREFERED_PERIOD, _period ) ;
          builder.append( FIELD_NAME_PREFERRED_PERIOD, _period ) ;
+         switch ( _constraint )
+         {
+            case PMD_PREFER_CONSTRAINT_PRY_ONLY :
+               constraintStr = PREFER_CONSTRAINT_PRY_ONLY_STR ;
+               break ;
+            case PMD_PREFER_CONSTRAINT_SND_ONLY :
+               constraintStr = PREFER_CONSTRAINT_SND_ONLY_STR ;
+               break ;
+            default :
+               constraintStr = "" ;
+         }
+         builder.append( FIELD_NAME_PREFERRED_CONSTRAINT, constraintStr ) ;
       }
       else
       {
@@ -538,16 +595,18 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNSESSPROP_SETINSTOPT, "_rtnSessionProperty::setInstanceOption" )
    void _rtnSessionProperty::setInstanceOption ( const CHAR * instanceStr,
                                                  const CHAR * instanceModeStr,
-                                                 BOOLEAN preferedStrict,
-                                                 INT32 preferedPeriod,
+                                                 BOOLEAN preferredStrict,
+                                                 INT32 preferredPeriod,
+                                                 const CHAR * preferredConstraint,
                                                  PMD_PREFER_INSTANCE_TYPE defaultInstance )
    {
       PD_TRACE_ENTRY( SDB__RTNSESSPROP_SETINSTOPT ) ;
 
       _instanceOption.parsePreferredInstance( instanceStr ) ;
       _instanceOption.parsePreferredInstanceMode( instanceModeStr ) ;
-      _instanceOption.setPreferredStrict( preferedStrict ) ;
-      _instanceOption.setPreferedPeriod( preferedPeriod ) ;
+      _instanceOption.setPreferredStrict( preferredStrict ) ;
+      _instanceOption.setPreferedPeriod( preferredPeriod ) ;
+      _instanceOption.parsePreferredConstraint( preferredConstraint ) ;
 
       if ( !_instanceOption.isValidated() )
       {
@@ -780,6 +839,21 @@ namespace engine
                               "Field [%s] should be a number",
                               field.fieldName() ) ;
             instanceOption.setPreferedPeriod( field.numberLong() ) ;
+            gotInstance = TRUE ;
+         }
+         else if ( 0 == ossStrcasecmp( field.fieldName(),
+                                       FIELD_NAME_PREFERRED_CONSTRAINT ) )
+         {
+            /// PreferredConstraint
+            PD_CHECK( String == field.type(), SDB_INVALIDARG, error,
+                      PDERROR, "Field [%s] should be a string",
+                      FIELD_NAME_PREFERRED_CONSTRAINT ) ;
+
+            rc = instanceOption.parsePreferredConstraint(
+                  field.valuestrsafe() ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to parse preferred constraint, rc: %d", rc ) ;
+
             gotInstance = TRUE ;
          }
          else if ( 0 == ossStrcasecmp( field.fieldName(), FIELD_NAME_TIMEOUT ) )

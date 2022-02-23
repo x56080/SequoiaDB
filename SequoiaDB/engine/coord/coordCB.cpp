@@ -162,8 +162,9 @@ namespace engine
 
       _sitePropMgr.setInstanceOption( optCB->getPrefInstStr(),
                                       optCB->getPrefInstModeStr(),
-                                      optCB->isPreferedStrict(),
-                                      optCB->getPreferedPeriod(),
+                                      optCB->isPreferredStrict(),
+                                      optCB->getPreferredPeriod(),
+                                      optCB->getPrefConstraint(),
                                       PMD_PREFER_INSTANCE_TYPE_MASTER ) ;
 
       rc = _remoteSessionMgr.init( _pAgent, &_sitePropMgr, &_dsMgr ) ;
@@ -337,8 +338,9 @@ namespace engine
 
       _sitePropMgr.setInstanceOption( optCB->getPrefInstStr(),
                                       optCB->getPrefInstModeStr(),
-                                      optCB->isPreferedStrict(),
-                                      optCB->getPreferedPeriod(),
+                                      optCB->isPreferredStrict(),
+                                      optCB->getPreferredPeriod(),
+                                      optCB->getPrefConstraint(),
                                       PMD_PREFER_INSTANCE_TYPE_MASTER ) ;
    }
 
