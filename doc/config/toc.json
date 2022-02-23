@@ -741,6 +741,12 @@
                      "file": "primary_secondary_consistency",
                      "cn": "主备一致性",
                      "en": "Primary Secondary Consistency"
+                  },
+                  {
+                     "id": 1599727239,
+                     "file": "replica_set",
+                     "cn": "熔断机制",
+                     "en": "Replication"
                   }
                ]
             },
