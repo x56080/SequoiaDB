@@ -550,7 +550,8 @@ namespace engine
     _requestID ( 0 ),
      _regTimerID ( CLS_INVALID_TIMERID ),
     _regFailedTimes( 0 ),
-    _oneSecTimerID ( CLS_INVALID_TIMERID )
+    _oneSecTimerID ( CLS_INVALID_TIMERID ),
+    _taskTimerID( CLS_INVALID_TIMERID )
    {
       _replServiceName[0] = 0 ;
       _shdServiceName[0]  = 0 ;
@@ -937,11 +938,20 @@ namespace engine
       }
 
       // 3. set timer
-      _oneSecTimerID = setTimer ( CLS_REPL, OSS_ONE_SEC ) ;
+      _oneSecTimerID = setTimer( CLS_REPL, OSS_ONE_SEC ) ;
 
       if ( CLS_INVALID_TIMERID == _oneSecTimerID )
       {
          PD_LOG ( PDERROR, "Register repl/shard/one seccond timer failed" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      _taskTimerID = setTimer( CLS_REPL, 0xFFFFFFFF ) ;
+
+      if ( CLS_INVALID_TIMERID == _taskTimerID )
+      {
+         PD_LOG ( PDERROR, "Register task timer failed" ) ;
          rc = SDB_SYS ;
          goto error ;
       }
@@ -1560,7 +1570,7 @@ namespace engine
    // Another daemon will be triggered every second, it will send the check
    // request to CATALOG to check for task collection
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR_STARTTSKCHK, "_clsMgr::startTaskCheck" )
-   INT32 _clsMgr::startTaskCheck ( const BSONObj & match )
+   INT32 _clsMgr::startTaskCheck( const BSONObj &match, BOOLEAN quickPull )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSMGR_STARTTSKCHK );
@@ -1582,6 +1592,11 @@ namespace engine
             builder.append( FIELD_NAME_IS_MAINTASK,
                             BSON( "$exists" << 0 ) ) ;
             _mapTaskQuery[++_requestID] = builder.obj() ;
+
+            if ( quickPull )
+            {
+               _postTimeoutEvent( _taskTimerID ) ;
+            }
          }
          catch( std::exception &e )
          {
@@ -1628,7 +1643,8 @@ namespace engine
       return rc ;
    }
 
-   INT32 _clsMgr::startIdxTaskCheck( UINT64 taskID, BOOLEAN isMainTask )
+   INT32 _clsMgr::startIdxTaskCheck( UINT64 taskID, BOOLEAN isMainTask,
+                                     BOOLEAN quickPull )
    {
       INT32 rc = SDB_OK ;
 
@@ -1646,7 +1662,7 @@ namespace engine
          builder.append( FIELD_NAME_GROUPS "." FIELD_NAME_GROUPNAME,
                          pmdGetKRCB()->getGroupName() ) ;
 
-         rc = startTaskCheck( builder.done() ) ;
+         rc = startTaskCheck( builder.done(), quickPull ) ;
       }
       catch( std::exception &e )
       {
@@ -1824,6 +1840,10 @@ namespace engine
             _shardSessionMgr.stopUnShardTimer() ;
          }
       }
+      else if ( timerID == _taskTimerID )
+      {
+         _prepareTask () ;
+      }
       else
       {
          // otherwise let's extract the type from timerID, and call onTimer
@@ -1914,6 +1934,27 @@ namespace engine
       }
       PD_TRACE_EXITRC ( SDB__CLSMGR__PREPTASK, rc );
       return rc ;
+   }
+
+   void _clsMgr::_postTimeoutEvent( UINT64 timerID )
+   {
+      UINT32 type = 0 ;
+      UINT32 netTimerID = 0 ;
+
+      ossUnpack32From64( timerID, type, netTimerID ) ;
+
+      if ( CLS_SHARD == type )
+      {
+         _shdTimerHandler->handleTimeout( 0, netTimerID ) ;
+      }
+      else if ( CLS_REPL == type )
+      {
+         _replTimerHandler->handleTimeout( 0, netTimerID ) ;
+      }
+      else
+      {
+         SDB_ASSERT( FALSE, "Invalid timerID" ) ;
+      }
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR_STARTTSKTH, "_clsMgr::startTaskThread" )

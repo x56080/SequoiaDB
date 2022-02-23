@@ -191,7 +191,7 @@ namespace engine
       }
       BSONObj match = matchBuilder.obj() ;
 
-      rc = sdbGetClsCB()->startTaskCheck ( match ) ;
+      rc = sdbGetClsCB()->startTaskCheck ( match, TRUE ) ;
       PD_TRACE_EXITRC ( SDB__CLSSPLIT_DOIT, rc ) ;
       return rc ;
    }
@@ -415,7 +415,7 @@ namespace engine
       {
          SDB_ASSERT( _taskID != CLS_INVALID_TASKID, "task id is invalid" ) ;
 
-         rc = sdbGetClsCB()->startIdxTaskCheck( _taskID ) ;
+         rc = sdbGetClsCB()->startIdxTaskCheck( _taskID, FALSE, TRUE ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to start task check, rc: %d",
                       rc ) ;
@@ -662,7 +662,7 @@ namespace engine
       {
          SDB_ASSERT( _taskID != CLS_INVALID_TASKID, "task id is invalid" ) ;
 
-         rc = sdbGetClsCB()->startIdxTaskCheck( _taskID ) ;
+         rc = sdbGetClsCB()->startIdxTaskCheck( _taskID, FALSE, TRUE ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to start task check, rc: %d",
                       rc ) ;

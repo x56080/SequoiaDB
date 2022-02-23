@@ -1462,6 +1462,7 @@ namespace engine
       rtnContextCoord::sharePtr pContext ;
       rtnContextBuf buffObj ;
       BOOLEAN allTaskFinish = TRUE ;
+      INT32 queryTimes      = 0 ;
       pmdKRCB *pKRCB        = pmdGetKRCB() ;
       clsTask *pTask        = NULL ;
       contextID             = -1 ;
@@ -1562,7 +1563,20 @@ namespace engine
             break ;
          }
          allTaskFinish = TRUE ;
-         ossSleep( OSS_ONE_SEC ) ;
+
+         queryTimes++ ;
+         if ( 1 == queryTimes )
+         {
+            ossSleep( 10 ) ;
+         }
+         else if ( 2 == queryTimes )
+         {
+            ossSleep( 100 ) ;
+         }
+         else
+         {
+            ossSleep( OSS_ONE_SEC ) ;
+         }
       }
 
    done:

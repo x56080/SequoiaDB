@@ -259,9 +259,13 @@ namespace engine
                                           BOOLEAN isCancel = FALSE ) ;
          INT32  restartTaskThread ( UINT64 taskID ) ;
 
-         INT32  startTaskCheck ( const BSONObj& match ) ;
-         INT32  startTaskCheck( UINT64 taskID, BOOLEAN isMainTask = FALSE ) ;
-         INT32  startIdxTaskCheck( UINT64 taskID, BOOLEAN isMainTask = FALSE ) ;
+         INT32  startTaskCheck( const BSONObj& match,
+                                BOOLEAN quickPull = FALSE ) ;
+         INT32  startTaskCheck( UINT64 taskID,
+                                BOOLEAN isMainTask = FALSE) ;
+         INT32  startIdxTaskCheck( UINT64 taskID,
+                                   BOOLEAN isMainTask = FALSE,
+                                   BOOLEAN quickPull = FALSE ) ;
          INT32  startIdxTaskCheckByCL( utilCLUniqueID clUniqID ) ;
          INT32  startAllSplitTaskCheck() ;
          INT32  startAllTaskCheck() ;
@@ -311,6 +315,8 @@ namespace engine
                                           pmdAsycSessionMgr *pSessionMgr ) ;
          INT32       _prepareTask () ;
 
+         void        _postTimeoutEvent( UINT64 timerID ) ;
+
          INT32       _initRemoteSession( _netRouteAgent *netRouteAgent ) ;
 
       //msg and event function
@@ -348,6 +354,7 @@ namespace engine
          UINT64                        _regTimerID ;
          UINT32                        _regFailedTimes ;
          UINT64                        _oneSecTimerID ;
+         UINT64                        _taskTimerID ;
 
          _coordSessionPropMgr          *_pSitePropMgr ;
          _coordResource                *_pResource ;
