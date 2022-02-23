@@ -311,7 +311,7 @@ public class SDBDataConverter implements Serializable {
         else if (v instanceof Date)
             return (double) ((Date) v).getTime();
         else if (v instanceof BSONTimestamp)
-            return ((BSONTimestamp) v).getTime() * 1000 + ((BSONTimestamp) v).getInc() / 1000.0;
+            return ((BSONTimestamp) v).getTime() * 1000L + ((BSONTimestamp) v).getInc() / 1000L;
         else
             return 0.0f;
     }
@@ -401,7 +401,7 @@ public class SDBDataConverter implements Serializable {
         else if (v instanceof Date)
             bd = BigDecimal.valueOf(((Date) v).getTime());
         else if (v instanceof BSONTimestamp)
-            bd = BigDecimal.valueOf(((BSONTimestamp) v).getTime() * 1000L + ((BSONTimestamp) v).getTime() / 1000);
+            bd = BigDecimal.valueOf(((BSONTimestamp) v).getTime() * 1000L + ((BSONTimestamp) v).getInc() / 1000L);
         else
             bd = BigDecimal.ZERO;
 
