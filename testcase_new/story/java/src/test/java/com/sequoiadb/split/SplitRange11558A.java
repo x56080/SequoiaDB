@@ -179,6 +179,7 @@ public class SplitRange11558A extends SdbTestBase {
                 DBCursor cursor;
                 int retryTimes = 300;
                 int currTimes = 0;
+                long taskID = -1;
                 while ( currTimes < retryTimes ) {
                     cursor = db.listTasks(
                             new BasicBSONObject( "Name",
@@ -187,25 +188,19 @@ public class SplitRange11558A extends SdbTestBase {
                                             new BasicBSONObject( "$ne", 9 ) ),
                             null, null, null );
                     if ( cursor.hasNext() ) {
-                        long taskID = ( long ) cursor.getNext().get( "TaskID" );
-                        System.out.println( "taskID = " + taskID );
-                        db.cancelTask( taskID, false );
-                        cancelSplitTaskSuccess = true;
+                        taskID = ( long ) cursor.getNext().get( "TaskID" );
                         break;
                     } else {
                         Thread.sleep( 200 );
                         currTimes++;
                         if ( currTimes >= retryTimes ) {
-                            if ( !cancelSplitTaskSuccess ) {
-                                System.out.println(
-                                        "Cancel split task timeout, the split task will wait all the time, drop the cl." );
-                                db.getCollectionSpace( SdbTestBase.csName )
-                                        .dropCollection( clName );
-                            }
-                            throw new Exception( "Timeout get split taskID." );
+                            db.getCollectionSpace( SdbTestBase.csName )
+                                    .dropCollection( clName );
                         }
+                        throw new Exception( "Timeout get split taskID." );
                     }
                 }
+                db.cancelTask( taskID, false );
             } finally {
                 if ( db != null )
                     db.close();
