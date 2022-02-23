@@ -35,7 +35,7 @@
 
 #include "vessel/btreeNode.h"
 #include "vessel/requestContext.h"
-#include "vessel/indexContext.h"
+#include "vessel/indexObject.h"
 #include "ossLikely.hpp"
 #include "pdTrace.hpp"
 #include "vessel/orderingWrapper.h"
@@ -57,14 +57,14 @@ namespace vessel
 {
    btreeNode::btreeNode(logicalPageBuffer *buffer,
                         UINT32 depth,
-                        const indexContext *ic):
+                        const indexObject *obj):
    _buffer(buffer),
    _depth(depth),
-   _ic(ic)
+   _obj(obj)
    {
       SDB_ASSERT(NULL != _buffer && _buffer->isValid(), "can not be invalid");
-      SDB_ASSERT(NULL != _ic && _ic->isValid(), "can not be invalid");
-      SDB_ASSERT(_ic->getIndexType() == INDEX_TYPE_BTREE, "must be btree");
+      SDB_ASSERT(NULL != _obj && _obj->isValid(), "can not be invalid");
+      SDB_ASSERT(_obj->getDescription().getType() == INDEX_TYPE_BTREE, "must be btree");
    }
 
    BOOLEAN btreeNode::isRoot()const
@@ -160,8 +160,8 @@ namespace vessel
    BOOLEAN btreeNode::isCompressionDisabled()const
    {
       return !isLeaf() ||
-             !_ic->getObj().getDescription().isPrefixCompressionEnabled() ||
-             _depth < _ic->getObj().getDescription().getMinCompressionDepth();
+             !_obj->getDescription().isPrefixCompressionEnabled() ||
+             _depth < _obj->getDescription().getMinCompressionDepth();
    }
 
    UINT32 btreeNode::getKeyDataOffsetToWrite(const btreeNodePageHead *head,
@@ -665,7 +665,7 @@ namespace vessel
       SDB_ASSERT(0 < getItemCount(), "can not be empty");
       SDB_ASSERT(!hasCompressedKeys(), "TODO");
 
-      ow = _ic->getObj().getPattern().getOrdering();
+      ow = _obj->getDescription().getPattern().getOrdering();
       low = 0;
       high = getItemCount() - 1;
       bound = forward ? low : high;
@@ -802,7 +802,7 @@ namespace vessel
       }
 
       SDB_ASSERT(0 < getItemCount(), "can not be empty");
-      ow = _ic->getObj().getPattern().getOrdering();
+      ow = _obj->getDescription().getPattern().getOrdering();
 
       if (forward)
       {
@@ -905,7 +905,7 @@ namespace vessel
       }
 
       head = getReadableHead();
-      ow = _ic->getObj().getPattern().getOrdering();
+      ow = _obj->getDescription().getPattern().getOrdering();
       high = (INT32)(head->totalSlotCount) - 1;
       middle = (low + high) >> 1;
 
@@ -1373,7 +1373,7 @@ namespace vessel
          goto error;
       }
 
-      initer._indexId = _ic->getLogicalIndexId();
+      initer._indexId = _obj->getIndexId().getLogicalIndexId();
       initer._key.reset(keySize, key.data());
       rc = lps->allocatePage(_buffer->getContext(),
                              &initer, extp);
@@ -1455,9 +1455,9 @@ namespace vessel
       buffer = lpb.getReadableBodyBuffer();
       head = buffer.getReadableObjPtr<btreeExternalKeyPageHead>(0);
       if (head->size != slot->data.key.size ||
-          head->indexId != _ic->getLogicalIndexId())
+          head->indexId != _obj->getIndexId().getLogicalIndexId())
       {
-         PD_LOG(PDERROR, "unexpected page head found[%s]",
+         PD_LOG(PDERROR, "unexpected page head found[%d]",
                 getReadableHead()->externalKeyPage);
          rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
          goto error;
@@ -1560,7 +1560,7 @@ namespace vessel
 
       ixmKeyCompressor::result res;
       ixmKeyCompressor compressor;
-      rc = compressor.initPrefix(_ic->getObj().getDescription().getMaxPrefixFields(),
+      rc = compressor.initPrefix(_obj->getDescription().getMaxPrefixFields(),
                                  prefix.data());
       if (SDB_OK != rc)
       {
@@ -1839,7 +1839,8 @@ namespace vessel
          if (SDB_OK != rc)
          {
             PD_LOG(PDSEVERE, "failed to insert key after node[%d,%d] split:%d",
-                   _ic->getLogicalIndexId(), _buffer->getLogicalPid(), rc);
+                   _obj->getIndexId().getLogicalIndexId(), 
+                   _buffer->getLogicalPid(), rc);
             ossPanic();
             goto error;
          }
@@ -1863,7 +1864,7 @@ namespace vessel
          {
             buffer.fini();
             PD_LOG(PDSEVERE, "failed to insert key into right node[%d,%d]:%d",
-                   _ic->getLogicalIndexId(), rightNode, rc);
+                   _obj->getIndexId().getLogicalIndexId(), rightNode, rc);
             ossPanic();
             goto error;
          }
@@ -2333,7 +2334,7 @@ namespace vessel
          goto error;
       }
 
-      node = btreeNode(&buffer, _depth, _ic);
+      node = btreeNode(&buffer, _depth, _obj);
 
    done:
       return node;
@@ -2506,7 +2507,7 @@ namespace vessel
          if (SDB_OK != rc)
          {
             PD_LOG(PDSEVERE, "failed to insert raised key into right node[%d,%d]:%d",
-                   _ic->getLogicalIndexId(), rightNode, rc);
+                   _obj->getIndexId().getLogicalIndexId(), rightNode, rc);
             buffer.fini();
             ossPanic();
             goto error;
@@ -2634,7 +2635,7 @@ namespace vessel
 
       INT32 direction = forward ? 1 : -1;
       btreeIndexItem item;
-      orderingWrapper ow = _ic->getObj().getPattern().getOrdering();
+      orderingWrapper ow = _obj->getDescription().getPattern().getOrdering();
 
       pos = INVALID_RECORD_SLOT_POS;
 

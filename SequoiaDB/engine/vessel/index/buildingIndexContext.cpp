@@ -84,7 +84,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      isUniqueIndex = ir->getContext()->getObj().getDescription().isUnique();
+      isUniqueIndex = ir->getObject()->getDescription().isUnique();
 
       guard.lock();
 

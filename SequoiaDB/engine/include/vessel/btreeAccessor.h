@@ -44,7 +44,7 @@ namespace engine
 {
 namespace vessel
 {
-   class indexContext;
+   class indexObject;
    class requestContext;
    class indexSpace;
 
@@ -63,8 +63,8 @@ namespace vessel
          }
 
          INT32 init(requestContext *context,
-                     indexContext *ic,
-                     const DPS_TRANS_ID &transID);
+                    indexObject *obj,
+                    const DPS_TRANS_ID &transID);
          void fini();
 
          INT32 insert(const ixmKey &key,
@@ -134,7 +134,7 @@ namespace vessel
       private:
          requestContext *_context = NULL;
          indexSpace *_is = NULL;
-         indexContext *_ic = NULL;
+         indexObject *_obj = NULL;
          btreeAccessContext _bac;
          DPS_TRANS_ID _transID;
    };//class btreeAccessor

@@ -34,36 +34,63 @@
 ******************************************************************************/
 
 #include "vessel/indexObject.h"
-#include "pdTrace.hpp"
+#include "ossLikely.hpp"
+#include "vessel/buildingIndexContext.h"
+#include "ixm_common.hpp"
+#include "msgDef.h"
+#include "vessel/indexUtils.h"
 
 namespace engine
 {
 namespace vessel
 {
-   INT32 indexObject::init(INT32 indexSlot, 
+   indexObject::indexObject()
+   {}
+
+   indexObject::~indexObject()
+   {
+      fini();
+   }
+
+   INT32 indexObject::init(INT32 indexSlot,
                            UINT32 indexLid,
                            const indexDescription &desc,
+                           INDEX_STATUS status,
+                           PAGE_ID lpid,
                            PAGE_ID btreeRoot)
    {
       INT32 rc = SDB_OK;
-      fini();
-
-      if (!isValidIndexSlot(indexSlot) ||
-          INVALID_LOGICAL_INDEX_ID == indexLid ||
-          !desc.isValid())
+      if (OSS_UNLIKELY(!isValidIndexSlot(indexSlot) ||
+                       INVALID_LOGICAL_INDEX_ID == indexLid ||
+                       !desc.isValid() ||
+                       INDEX_STATUS_INVALID == status||
+                       INVALID_PAGE_ID == lpid))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      SDB_ASSERT(!(desc.isLsmIndex() && INVALID_PAGE_ID != btreeRoot), "impossible");
-
       _indexId.reset(indexSlot, indexLid, desc.getInnerID());
       _desc = desc;
+      _entryLpid = lpid;
       _btreeRoot = btreeRoot;
+
+      if (INDEX_STATUS_BUILDING == status)
+      {
+         _unstatbleContext = SDB_OSS_NEW buildingIndexContext();
+         if (OSS_UNLIKELY(NULL == _unstatbleContext))
+         {
+            PD_LOG(PDERROR, "failed to alocate mem");
+            rc = SDB_OOM;
+            goto error;
+         }
+      }
+
+      _status = status;
    done:
       return rc;
    error:
+      fini();
       goto done;
    }
 
@@ -71,9 +98,54 @@ namespace vessel
    {
       _indexId.reset();
       _desc.reset();
-      _btreeRootSplitTimes = 0;
+      _status = INDEX_STATUS_INVALID;
+      _entryLpid = INVALID_PAGE_ID;
       _btreeRoot = INVALID_PAGE_ID;
+      _btreeRootSplitTimes = 0;
+      SAFE_OSS_DELETE(_unstatbleContext);
       return;
+   }
+
+   void indexObject::removeUnstableContext()
+   {
+      SAFE_OSS_DELETE(_unstatbleContext);
+   }
+
+   void indexObject::updateStatus(INDEX_STATUS status)
+   {
+      SDB_ASSERT(INDEX_STATUS_INVALID != status, "can not be invalid");
+      _status = status;
+   }
+
+   void indexObject::dump(bson::BSONObjBuilder &builder)const
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      builder.append(VESSEL_INDEX_FIELD_NAME_INDEX_SLOT, _indexId.getIndexSlot());
+      builder.append(VESSEL_INDEX_FIELD_NAME_INDEX_ID, _indexId.getLogicalIndexId());
+      _desc.exportToBson(builder);
+      builder.append(VESSEL_INDEX_FIELD_NAME_STATUS, _status);
+   }
+
+   BOOLEAN indexObject::associates(const CHAR *fieldName)const
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(NULL != fieldName, "can not be null");
+
+      BOOLEAN r = FALSE;
+      const bson::BSONObj pattern = _desc.getPattern().getPattern();
+      bson::BSONObjIterator itr(pattern);
+      while (itr.more())
+      {
+         const CHAR *patternFieldName = itr.next().fieldName();
+         if (indexUtils::fieldNameAssociate(fieldName, patternFieldName))
+         {
+            r = TRUE;
+            goto done;
+         }
+      }
+
+   done:
+      return r;
    }
 
    void indexObject::updateBtreeRoot(PAGE_ID root,
@@ -105,5 +177,7 @@ namespace vessel
       _btreeRoot = INVALID_PAGE_ID;
       _btreeRootSplitTimes = 0;
    }
-}//namespace vessel
+
+} // namespace vessel
+
 }//namespace engine

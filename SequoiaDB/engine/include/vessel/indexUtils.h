@@ -52,8 +52,6 @@ namespace vessel
          ~indexUtils() = delete;
 
       public:
-         static bson::BSONObj buildIndexDefObj(const indexDescription &desc);
-
          // /// if output set as null, it will not be parsed.
          // static INT32 parseIndexDefObj(const bson::BSONObj &obj,
          //                               strSlice *indexName,

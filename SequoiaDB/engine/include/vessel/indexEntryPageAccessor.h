@@ -41,8 +41,8 @@
 #include "vessel/logicalPageBuffer.h"
 #include "vessel/slice.h"
 #include "vessel/indexDef.h"
-#include "vessel/indexObject.h"
 #include "vessel/indexEntryPage.h"
+#include "vessel/indexDescription.h"
 
 namespace engine
 {

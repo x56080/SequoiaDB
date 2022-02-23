@@ -41,7 +41,6 @@
 #include "vessel/strSlice.h"
 #include "ixmKey.hpp"
 #include "vessel/recordID.h"
-#include "vessel/indexObject.h"
 #include "vessel/indexSpace.h"
 #include "vessel/dmlIndexRequest.h"
 #include "vessel/lsm/lsmInsertBatch.h"
@@ -54,7 +53,7 @@ namespace engine
 namespace vessel
 {
    class requestContext;
-   class indexContextMap;
+   class indexObjectMap;
    class dmlContext;
    struct indexEntryPageHead;
 
@@ -86,7 +85,7 @@ namespace vessel
                                      INT32 indexSlot);
 
          INT32 truncateIndex(requestContext *context,
-                             indexContext *ic);
+                             indexObject *obj);
 
          INT32 updateIndexStatus(requestContext *context,
                                  UINT32 indexId,
@@ -94,11 +93,11 @@ namespace vessel
                                  INDEX_STATUS status);
 
          INT32 loadIndexesWhenStartup(requestContext *context,
-                                      indexContextMap *indexes);
+                                      indexObjectMap *indexes);
 
       public:
          INT32 insert(requestContext *context,
-                      indexContext *ic,
+                      indexObject *obj,
                       const ixmKey &key,
                       const recordID &rid,
                       const DPS_TRANS_ID &transID);
@@ -108,25 +107,25 @@ namespace vessel
 
          /// Must hold unique key latch first.
          INT32 checkUniqueConstraint(requestContext *context,
-                                     indexContext *ic,
+                                     indexObject *obj,
                                      const bson::BSONObj &key,
                                      recordID &rid);
          
       private:
          INT32 checkUniqueConstraintByIterator(requestContext *context,
-                                               indexContext *ic,
+                                               indexObject *obj,
                                                indexIterator *iterator,
                                                const bson::BSONObj &key,
                                                recordID &rid)const;
 
          INT32 lsmInsert(requestContext *context,
-                         indexContext *ic,
+                         indexObject *obj,
                          const ixmKey &key,
                          const recordID &rid,
                          const DPS_TRANS_ID &transID);
 
          INT32 lsmTruncate(requestContext *context,
-                           const indexObject &obj);
+                           const indexObject *obj);
 
          INT32 createLsmBatch(dmlContext *context,
                               const dmlIndexRequestArray &ra,
@@ -138,13 +137,13 @@ namespace vessel
                            const dmlIndexRequestArray &ra);
 
          INT32 btreeInsert(requestContext *context,
-                           indexContext *ic,
+                           indexObject *obj,
                            const ixmKey &key,
                            const recordID &rid,
                            const DPS_TRANS_ID &transID);
 
          INT32 btreeTruncate(requestContext *context,
-                             indexContext *ic);
+                             indexObject *obj);
       private:
          INT32 createDirectMappedIndex(requestContext *context,
                                        INT32 indexSlot,
@@ -159,7 +158,7 @@ namespace vessel
                                        PAGE_ID &out)const;
 
          INT32 cacheBtreeRootSplitTimes(requestContext *context,
-                                        indexContextMap *indexes);
+                                        indexObjectMap *indexes);
 
       private:
          INT32 releaseDoubleMappedIndexEntry(requestContext *context,

@@ -55,7 +55,6 @@ namespace vessel
          indexDescription &operator=(const indexDescription &o)
          {
             _name = o._name;
-            _nameSlice.reset(_name.c_str());
             _pattern = o._pattern;
             _pattern.getOwned();
             _type = o._type;
@@ -65,10 +64,12 @@ namespace vessel
             _columnFamily = o._columnFamily;
             return *this;
          }
-      
+         
       public:
          BOOLEAN isValid()const;
          void reset();
+
+         strSlice getNameSlice()const;
 
          INT32 extractFromBson(const bson::BSONObj &obj);
          void exportToBson(bson::BSONObjBuilder &builder)const;
@@ -78,10 +79,6 @@ namespace vessel
          OSS_INLINE const ossPoolString &getName()const
          {
             return _name;
-         }
-         OSS_INLINE const strSlice &getNameSlice()const
-         {
-            return _nameSlice;
          }
          OSS_INLINE const indexKeyPattern &getPattern()const
          {
@@ -164,7 +161,6 @@ namespace vessel
 
       private:
          ossPoolString _name;
-         strSlice _nameSlice;
          indexKeyPattern _pattern;
          INDEX_TYPE _type = INVALID_INDEX_TYPE;
          utilIdxInnerID _innerID = UTIL_UNIQUEID_NULL;
@@ -183,8 +179,8 @@ namespace vessel
          UINT32 _columnFamily = 0;
          /******* lsm only end   *******/
 
-   };
-}
-}
+   };//class indexDescription
+}//namespace vessel
+}//namespace engine
 
-#endif
+#endif//VESSEL_INDEX_DESCRIPTION_H_

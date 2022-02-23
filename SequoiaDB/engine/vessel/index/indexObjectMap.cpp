@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexContextMap.cpp
+   Source File Name = indexObjectMap.cpp
 
    Descriptive Name =
 
@@ -33,7 +33,7 @@
 
 ******************************************************************************/
 
-#include "vessel/indexContextMap.h"
+#include "vessel/indexObjectMap.h"
 #include "ossLikely.hpp"
 #include "pdTrace.hpp"
 
@@ -41,37 +41,41 @@ namespace engine
 {
 namespace vessel
 {
-   indexContextMap::~indexContextMap()
+   indexObjectMap::~indexObjectMap()
    {
       fini();
    }
 
-   void indexContextMap::fini()
+   void indexObjectMap::fini()
    {
-      _CONTEXT_MAP::const_iterator itr = _contexts.begin();
-      for (; itr != _contexts.end(); ++itr)
+      _OBJECT_MAP::const_iterator itr = _objects.begin();
+      for (; itr != _objects.end(); ++itr)
       {
          SDB_OSS_DEL itr->second;
       }
-      _contexts.clear();
+      _objects.clear();
 
       _nextIndexId = 0;
       _freeIndexSlots = OSS_UINT64_MAX;
       return;
    }
 
-   INT32 indexContextMap::insert(INT32 indexSlot,
+   INT32 indexObjectMap::insert(INT32 indexSlot,
+                                 UINT32 indexLid,
                                  PAGE_ID lpid,
-                                 const indexObject &obj,
-                                 INDEX_STATUS status)
+                                 const indexDescription &desc,
+                                 INDEX_STATUS status,
+                                 PAGE_ID btreeRoot)
    {
       INT32 rc = SDB_OK;
-      indexContext *ic = NULL;
+      indexObject *obj = NULL;
+      indexIdentifier id;
 
       if (OSS_UNLIKELY(!isValidIndexSlot(indexSlot) ||
-                        INVALID_PAGE_ID == lpid ||
-                        !obj.isValid() ||
-                        INDEX_STATUS_INVALID == status))
+                       INVALID_LOGICAL_INDEX_ID == indexLid ||
+                       INVALID_PAGE_ID == lpid ||
+                       !desc.isValid() ||
+                       INDEX_STATUS_INVALID == status))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -84,53 +88,53 @@ namespace vessel
          goto error;
       }
 
-      ic = SDB_OSS_NEW indexContext();
-      if (OSS_UNLIKELY(NULL == ic))
+      obj = SDB_OSS_NEW indexObject();
+      if (OSS_UNLIKELY(NULL == obj))
       {
          PD_LOG(PDERROR, "failed to allocate mem");
          rc = SDB_OOM;
          goto error;
       }
 
-      rc = ic->init(indexSlot, lpid, obj, status);
+      rc = obj->init(indexSlot, indexLid, desc, status, lpid, btreeRoot);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init index context:%d", rc);
          goto error;
       }
 
-      rc = insert(ic);
+      rc = insert(obj);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to insert context to map:%d", rc);
          goto error;
       }
 
-      if (_nextIndexId <= obj.getLogicalIndexId())
+      if (_nextIndexId <= indexLid)
       {
-         _nextIndexId = obj.getLogicalIndexId() + 1;
+         _nextIndexId = indexLid + 1;
       }
    done:
       return rc;
    error:
-      SAFE_OSS_DELETE(ic);
+      SAFE_OSS_DELETE(obj);
       goto done;
    }
 
-   void indexContextMap::erase(INT32 indexSlot)
+   void indexObjectMap::erase(INT32 indexSlot)
    {
       SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
-      _CONTEXT_MAP::const_iterator itr = _contexts.find(indexSlot);
-      if (_contexts.end() != itr)
+      _OBJECT_MAP::const_iterator itr = _objects.find(indexSlot);
+      if (_objects.end() != itr)
       {
-         indexContext *ic = itr->second;
-         _contexts.erase(itr);
-         SDB_OSS_DEL ic;
+         indexObject *obj = itr->second;
+         _objects.erase(itr);
+         SDB_OSS_DEL obj;
       }
       freeIndexSlot(indexSlot);
    }
 
-   BOOLEAN indexContextMap::isIndexSlotFree(INT32 indexSlot)
+   BOOLEAN indexObjectMap::isIndexSlotFree(INT32 indexSlot)
    {
       SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
       UINT64 mask = 1;
@@ -139,17 +143,17 @@ namespace vessel
 #if defined (_DEBUG)
       if (r)
       {
-         SDB_ASSERT(0 == _contexts.count(indexSlot), "impossible");
+         SDB_ASSERT(0 == _objects.count(indexSlot), "impossible");
       }
       else
       {
-         SDB_ASSERT(0 != _contexts.count(indexSlot), "impossible");
+         SDB_ASSERT(0 != _objects.count(indexSlot), "impossible");
       }
 #endif//_DEBUG
       return r;
    }
 
-   void indexContextMap::unfreeIndexSlot(INT32 indexSlot)
+   void indexObjectMap::unfreeIndexSlot(INT32 indexSlot)
    {
       SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
       UINT64 mask = 1;
@@ -161,7 +165,7 @@ namespace vessel
       return;
    }
 
-   void indexContextMap::freeIndexSlot(INT32 indexSlot)
+   void indexObjectMap::freeIndexSlot(INT32 indexSlot)
    {
       SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
       UINT64 mask = 1;
@@ -172,45 +176,48 @@ namespace vessel
       OSS_BIT_SET(_freeIndexSlots, mask);
    }
 
-   INT32 indexContextMap::findFreeIndexSlot()const
+   INT32 indexObjectMap::findFreeIndexSlot()const
    {
       return ossGetLowestBit1From64Bits(_freeIndexSlots);
    }
 
-   INT32 indexContextMap::insert(indexContext *ic)
+   INT32 indexObjectMap::insert(indexObject *obj)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != ic, "can not be null");
-      SDB_ASSERT(ic->isValid(), "must be valid");
-      if (!_contexts.insert(std::make_pair(ic->getIndexSlot(), ic)).second)
+      SDB_ASSERT(NULL != obj, "can not be null");
+      SDB_ASSERT(obj->isValid(), "must be valid");
+      if (!_objects.insert(std::make_pair(obj->getIndexId().getIndexSlot(), obj)).second)
       {
-         PD_LOG(PDERROR, "duplicated index slot[%d]", ic->getIndexSlot());
+         PD_LOG(PDERROR, "duplicated index slot[%d]", obj->getIndexId().getIndexSlot());
          rc = SDB_VESSEL_DUPLICATED_KEY;
          goto error;
       }
 
-      unfreeIndexSlot(ic->getIndexSlot());
+      unfreeIndexSlot(obj->getIndexId().getIndexSlot());
    done:
       return rc;
    error:
       goto done;
    }
 
-   indexContext *indexContextMap::find(INT32 indexSlot,
-                                       INDEX_STATUS filter)const
+   indexObject *indexObjectMap::find(const indexIdentifier &indexId,
+                                     INDEX_STATUS filter)const
    {
-      SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
-      indexContext *ic = NULL;
-      _CONTEXT_MAP::const_iterator itr = _contexts.find(indexSlot);
-      if (_contexts.end() != itr)
+      SDB_ASSERT(indexId.isValid(), "can not be invalid");
+      indexObject *obj = NULL;
+      _OBJECT_MAP::const_iterator itr = _objects.find(indexId.getIndexSlot());
+      if (_objects.end() != itr)
       {
-         if (INDEX_STATUS_INVALID == filter ||
-             filter == itr->second->getStatus())
+         if (itr->second->getIndexId() == indexId)
          {
-            ic = itr->second;
+            if (INDEX_STATUS_INVALID == filter ||
+                  filter == itr->second->getStatus())
+            {
+               obj = itr->second;
+            }
          }
       }
-      return ic;
+      return obj;
    }
 
 }//namespace vessel

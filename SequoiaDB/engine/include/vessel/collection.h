@@ -47,7 +47,7 @@
 #include "vessel/indexKeyPattern.h"
 #include "vessel/collectionOptions.h"
 #include "vessel/indexDescription.h"
-#include "vessel/indexContextMap.h"
+#include "vessel/indexObjectMap.h"
 #include "vessel/dmlIndexRequest.h"
 #include "vessel/btreeRebuildingSortElement.h"
 #include "vessel/modifyRecordContext.h"
@@ -174,7 +174,7 @@ namespace vessel
 
       private:
          INT32 _getMoreWhenIndexScan(indexScanContext *context,
-                                     indexContext *ic);
+                                     indexObject *obj);
 
       private:
          INT32 buildDmlIndexRequests(requestContext *context,
@@ -377,43 +377,43 @@ namespace vessel
 
          INT32 _createIndex(requestContext *context,
                             const indexDescription &desc,
-                            INT32 &indexSlot);
+                            indexIdentifier &indexId);
 
          INT32 rollbackCreatingIndex(requestContext *context,
-                                     INT32 indexSlot,
+                                     const indexIdentifier &indexId,
                                      INT32 reason);
 
          INT32 buildIndexInContext(requestContext *context,
-                                   INT32 indexSlot,
+                                   const indexIdentifier &indexId,
                                    INDEX_TYPE type,
                                    const dmsBuildIndexOptions &o);
 
          /// unstable context must be created first.
          INT32 onlineBuildIndex(requestContext *context,
-                                INT32 indexSlot);
+                                const indexIdentifier &indexId);
 
          /// unstable context must be created first.
          INT32 onlineBuildIndexBySorting(requestContext *context,
-                                         INT32 indexSlot,
+                                         const indexIdentifier &indexId,
                                          UINT64 sortBufferSize);
 
-         /// mark index removing and return index slot;
+         /// mark index removing and return index Id;
          /// if index is building, building thread will be terminated.
          /// if index is neither normal nor building, return error. 
          INT32 markIndexRemovingByName(requestContext *context,
                                        const strSlice &indexName,
-                                       INT32 &indexSlot);
+                                       indexIdentifier &indexId);
 
          /// always mark index removing first and truncate it.
          /// at last, release all resources.
          INT32 releaseIndexContextAndEntryPage(requestContext *context,
-                                               INT32 indexSlot);
+                                               const indexIdentifier &indexId);
 
          INT32 markIndexRemovingBySlot(requestContext *context,
-                                       INT32 indexSlot);
+                                       const indexIdentifier &indexId);
                                     
          INT32 truncateIndex(requestContext *context,
-                             INT32 indexSlot);
+                             const indexIdentifier &indexId);
 
          INT32 removeAllIndexes(requestContext *context);
 
@@ -428,24 +428,24 @@ namespace vessel
 
          /// get x latch first
          INT32 indexBuildDone(requestContext *context,
-                              indexContext *ic);
+                              indexObject *obj);
 
          INT32 buildIndexBySortingAndUpdateContext(requestContext *context,
-                                                   indexContext *ic,
+                                                   indexObject *obj,
                                                    UINT32 maxRdpCount,
                                                    memoryBlock &sortBuffer);
 
          INT32 buildIndexAndUpdateContext(requestContext *context,
-                                          indexContext *ic,
+                                          indexObject *obj,
                                           UINT32 maxRdpCount);
 
          INT32 fillSorterAndUpdateEntry(requestContext *context,
-                                        indexContext *ic,
+                                        indexObject *obj,
                                         BTREE_SORTOR *sortor,
                                         UINT32 maxRdpCount);
 
          INT32 mergeSorterAndContextIntoIndex(requestContext *context,
-                                              indexContext *ic,
+                                              indexObject *obj,
                                               BTREE_SORTOR *sorter);
 
          INT32 endToBuildCurrentRange(requestContext *context,
@@ -463,7 +463,7 @@ namespace vessel
          UINT32 _totalRdpCount = 0;
          freeSpaceMap _fsm;
 
-         indexContextMap _indexes;
+         indexObjectMap _indexes;
 
          ossRWMutex _ddlLatch;
          ossSpinXLatch _extendingLatch;

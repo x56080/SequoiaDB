@@ -49,7 +49,7 @@ namespace vessel
       _flags = 0;
    }
 
-   INT32 dmlIndexRequest::init(indexContext *index,
+   INT32 dmlIndexRequest::init(indexObject *index,
                                const bson::BSONObjSet *toInsert,
                                const bson::BSONObjSet *toRemove)
    {
@@ -137,7 +137,7 @@ namespace vessel
       _building = 0;
    }
 
-   INT32 dmlIndexRequestArray::append(indexContext *index,
+   INT32 dmlIndexRequestArray::append(indexObject *index,
                                       const bson::BSONObjSet *keysToInsert,
                                       const bson::BSONObjSet *keysToRemove)
    {

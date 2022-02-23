@@ -43,7 +43,7 @@
 #include "vessel/objectLatchHelper.hpp"
 #include "vessel/instanceEnv.h"
 #include "rtnPredicate.hpp"
-#include "vessel/indexContext.h"
+#include "vessel/indexObject.h"
 #include "vessel/indexScanCursor.h"
 #include "vessel/indexUtils.h"
 #include "rtnPredicate.hpp"
@@ -59,7 +59,7 @@ namespace vessel
    }
 
    INT32 indexScanner::open(indexScanContext *context,
-                            indexContext *ic)
+                            indexObject *obj)
    {
       INT32 rc = SDB_OK;
       indexIterator::options o(FALSE, 
@@ -69,15 +69,15 @@ namespace vessel
       if (OSS_UNLIKELY(NULL == context ||
                        !context->isMbContextAttached() ||
                        !context->isCursorAttached() ||
-                       NULL == ic ||
-                       !ic->isValid()))
+                       NULL == obj ||
+                       !obj->isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
       
       _context = context;
-      _iterator = createIndexIterator(ic->getObj().getIndexType());
+      _iterator = createIndexIterator(obj->getDescription().getType());
       if (NULL == _iterator)
       {
          PD_LOG(PDERROR, "failed to create new itr obj");
@@ -85,15 +85,15 @@ namespace vessel
          goto error;
       }
 
-      rc = _iterator->open(context, ic, o);
+      rc = _iterator->open(context, obj, o);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open iterator of index[%s], rc:%d",
-                ic->getObj().getIndexName().str(), rc);
+                obj->getDescription().getName().c_str(), rc);
          goto error;
       }
 
-      _ic = ic;
+      _obj = obj;
 
    done:
       return rc;
@@ -111,7 +111,7 @@ namespace vessel
          SDB_OSS_DEL _iterator;
          _iterator = NULL;
       }
-      _ic = NULL;
+      _obj = NULL;
       _keyBuilder.reset();
       return;
    }

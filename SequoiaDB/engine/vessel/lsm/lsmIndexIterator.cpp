@@ -57,7 +57,7 @@ namespace vessel
    void lsmIndexIterator::_close()
    {
       _context = NULL;
-      _ic = NULL;
+      _obj = NULL;
       _globalId.reset();
       _lsmDB = NULL;
       if (NULL != _itr)
@@ -94,7 +94,7 @@ namespace vessel
    }
 
    INT32 lsmIndexIterator::open(requestContext *context,
-                                indexContext *ic,
+                                indexObject *obj,
                                 const options &o)
    {
       INT32 rc = SDB_OK;
@@ -106,22 +106,22 @@ namespace vessel
 
       if (OSS_UNLIKELY(NULL == context ||
                        !context->isMbContextAttached() ||
-                       NULL == ic ||
-                       !ic->isValid() ||
-                       INDEX_TYPE_LSM != ic->getIndexType()))
+                       NULL == obj ||
+                       !obj->isValid() ||
+                       INDEX_TYPE_LSM != obj->getDescription().getType()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
       _context = context;
-      _ic = ic;
+      _obj = obj;
 
       gcid = context->getMbContext()->getGlobalId();
 
       indexId = globalIndexID(gcid.getCSLid(),
                               gcid.getCLLid(),
-                              ic->getLogicalIndexId());
+                              obj->getIndexId().getLogicalIndexId());
       _initKeyBoundWhenOpen(indexId);
 
       _forward = o.isForward();
@@ -396,7 +396,7 @@ namespace vessel
       UINT32 bufSize = lsmCalFullDataKeyLen(keySize);
       builder.reset();
       builder.reserveBytes(bufSize);
-      orderingWrapper ow = _ic->getObj().getPattern().getOrdering();
+      orderingWrapper ow = _obj->getDescription().getPattern().getOrdering();
 
       rc = lsmPackIndexFullKey(builder.buf(),
                                bufSize,

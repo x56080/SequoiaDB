@@ -47,7 +47,7 @@
 #include "vessel/globalIndexID.h"
 #include "vessel/instanceEnv.h"
 #include "dmsRBSSUMgr.hpp"
-#include "vessel/indexContextMap.h"
+#include "vessel/indexObjectMap.h"
 #include "vessel/dmlContext.h"
 #include "ixmKey.hpp"
 #include "ossSharedLatch.hpp"
@@ -234,7 +234,7 @@ namespace vessel
    }
 
    INT32 indexConsole::insert(requestContext *context,
-                              indexContext *ic,
+                              indexObject *obj,
                               const ixmKey &key,
                               const recordID &rid,
                               const DPS_TRANS_ID &transID)
@@ -246,8 +246,8 @@ namespace vessel
          goto error;
       }
       else if (OSS_UNLIKELY(NULL == context ||
-                            NULL == ic ||
-                            !ic->isValid() ||
+                            NULL == obj ||
+                            !obj->isValid() ||
                             !key.isValid() ||
                             !rid.isValid()))
       {
@@ -255,9 +255,9 @@ namespace vessel
          goto error;
       }
 
-      if (INDEX_TYPE_LSM == ic->getObj().getIndexType())
+      if (INDEX_TYPE_LSM == obj->getDescription().getType())
       {
-         rc = lsmInsert(context, ic, key, rid, transID);
+         rc = lsmInsert(context, obj, key, rid, transID);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert into lsm index:%d", rc);
@@ -266,7 +266,7 @@ namespace vessel
       }
       else
       {
-         rc = btreeInsert(context, ic, key, rid, transID);
+         rc = btreeInsert(context, obj, key, rid, transID);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert into btree index:%d", rc);
@@ -280,14 +280,14 @@ namespace vessel
    }
 
    INT32 indexConsole::lsmInsert(requestContext *context,
-                                 indexContext *ic,
+                                 indexObject *obj,
                                  const ixmKey &key,
                                  const recordID &rid,
                                  const DPS_TRANS_ID &transID)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context && context->isMbContextAttached(), "can not be null");
-      SDB_ASSERT(NULL != ic, "can not be null");
+      SDB_ASSERT(NULL != obj, "can not be null");
       SDB_ASSERT(key.isValid(), "can not be invalid");
       SDB_ASSERT(rid.isValid(), "can not be invalid");
       DPS_LSN_OFFSET lsn = context->getExecutor()->getEndLsn();
@@ -296,8 +296,8 @@ namespace vessel
 
       globalIndexID gid(gcid.getCSLid(),
                         gcid.getCLLid(),
-                        ic->getLogicalIndexId());
-      lsmIndexMeta lsmMeta(gid, ic->getObj().getPattern().getOrdering());
+                        obj->getIndexId().getLogicalIndexId());
+      lsmIndexMeta lsmMeta(gid, obj->getDescription().getPattern().getOrdering());
       lsmIndex lsm;
       lsmKeyEntry lsmEntry;
 
@@ -323,10 +323,10 @@ namespace vessel
    }
 
    INT32 indexConsole::createDoubleMappedIndex(requestContext *context,
-                                                INT32 indexSlot,
-                                                UINT32 indexId,
-                                                const slice &defObj,
-                                                PAGE_ID &out)const
+                                               INT32 indexSlot,
+                                               UINT32 indexId,
+                                               const slice &defObj,
+                                               PAGE_ID &out)const
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isInitialized(), "must be inited");
@@ -497,7 +497,7 @@ namespace vessel
    }
 
    INT32 indexConsole::truncateIndex(requestContext *context,
-                                     indexContext *ic)
+                                     indexObject *obj)
    {
       INT32 rc = SDB_OK;
 
@@ -507,16 +507,16 @@ namespace vessel
          goto error;
       }
       else if (OSS_UNLIKELY(NULL == context ||
-                            NULL == ic ||
-                            !ic->isValid()))
+                            NULL == obj ||
+                            !obj->isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      if (INDEX_TYPE_LSM == ic->getObj().getIndexType())
+      if (INDEX_TYPE_LSM == obj->getDescription().getType())
       {
-         rc = lsmTruncate(context, ic->getObj());
+         rc = lsmTruncate(context, obj);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to truncate lsm index:%d", rc);
@@ -525,7 +525,7 @@ namespace vessel
       }
       else
       {
-         rc = btreeTruncate(context, ic);
+         rc = btreeTruncate(context, obj);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to truncate btree index:%d", rc);
@@ -539,17 +539,17 @@ namespace vessel
    }
 
    INT32 indexConsole::lsmTruncate(requestContext *context,
-                                   const indexObject &obj)
+                                   const indexObject *obj)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context && context->isMbContextAttached(), "can not be invalid");
-      SDB_ASSERT(obj.isValid(), "must be valid");
+      SDB_ASSERT(obj->isValid(), "must be valid");
       const globalCollectionId &gcid = context->getMbContext()->getGlobalId();
       SDB_ASSERT(gcid.isValid(), "can not be invalid");
       globalIndexID gid(gcid.getCSLid(),
                         gcid.getCLLid(),
-                        obj.getLogicalIndexId());
-      lsmIndexMeta meta(gid, obj.getPattern().getOrdering());
+                        obj->getIndexId().getLogicalIndexId());
+      lsmIndexMeta meta(gid, obj->getDescription().getPattern().getOrdering());
       lsmIndex lsm;
 
       rc = lsm.init(context->getEnv()->lsm, meta);
@@ -563,7 +563,7 @@ namespace vessel
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to truncate lsm index[%s]:%d",
-                obj.getIndexName().str(), rc);
+                obj->getDescription().getName().c_str(), rc);
          goto error;
       }
    done:
@@ -573,7 +573,7 @@ namespace vessel
    }
 
    INT32 indexConsole::loadIndexesWhenStartup(requestContext *context,
-                                              indexContextMap *indexes)
+                                              indexObjectMap *indexes)
    {
       INT32 rc = SDB_OK;
       indexEntryPageAccessor accessor;
@@ -595,7 +595,6 @@ namespace vessel
 
       for (INT32 i = 0; i < (INT32)DIRECT_MAPPING_INDEX_COUNT_PER_CL; ++i)
       {
-         indexObject indexObj;
          indexDescription desc;
          indexEntryPageHead head;
          logicalPageBuffer lpb;
@@ -636,14 +635,9 @@ namespace vessel
             goto error;
          }
 
-         rc = indexObj.init(i, head.clLogicalID, desc, head.btreeRoot);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to init index object, rc:%d", rc);
-            goto error;
-         }
-
-         rc = indexes->insert(i, lpid, indexObj, (INDEX_STATUS)(head.status));
+         rc = indexes->insert(i, head.indexLogicalID, lpid, desc, 
+                              (INDEX_STATUS)(head.status),
+                              head.btreeRoot);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert index[%d] into context map:%d", i, rc);
@@ -654,7 +648,6 @@ namespace vessel
       for (INT32 i = (INT32)DIRECT_MAPPING_INDEX_COUNT_PER_CL;
            i < (INT32)MAX_INDEX_COUNT_PER_CL; ++i)
       {
-         indexObject indexObj;
          indexDescription desc;
          indexEntryPageHead head;
          logicalPageBuffer lpb;
@@ -709,14 +702,9 @@ namespace vessel
             goto error;
          }
 
-         rc = indexObj.init(i, head.indexLogicalID, desc, head.btreeRoot);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to init index object, rc:%d", rc);
-            goto error;
-         }
-
-         rc = indexes->insert(i, lpid, indexObj, (INDEX_STATUS)(head.status));
+         rc = indexes->insert(i, head.indexLogicalID, lpid, desc, 
+                              (INDEX_STATUS)(head.status),
+                              head.btreeRoot);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert index[%d] into context map:%d", i, rc);
@@ -818,7 +806,7 @@ namespace vessel
       {
          const dmlIndexRequest *ir = ra.get(i);
          SDB_ASSERT(NULL != ir && ir->isValid(), "impossible");
-         if (ir->getContext()->getObj().getIndexType() != INDEX_TYPE_LSM ||
+         if (ir->getObject()->getDescription().getType() != INDEX_TYPE_LSM ||
              ir->isExecuted())
          {
             continue;
@@ -826,8 +814,8 @@ namespace vessel
 
          globalIndexID gid(gcid.getCSLid(),
                            gcid.getCLLid(),
-                           ir->getContext()->getLogicalIndexId());
-         lsmIndexMeta meta(gid, ir->getContext()->getObj().getPattern().getOrdering());
+                           ir->getObject()->getIndexId().getLogicalIndexId());
+         lsmIndexMeta meta(gid, ir->getObject()->getDescription().getPattern().getOrdering());
 
 
          ossPoolList<bson::BSONObj>::const_iterator itr = ir->getKeysToInsert().begin();
@@ -873,7 +861,7 @@ namespace vessel
    }
 
    INT32 indexConsole::checkUniqueConstraint(requestContext *context,
-                                             indexContext *ic,
+                                             indexObject *obj,
                                              const bson::BSONObj &key,
                                              recordID &rid)
    {
@@ -882,29 +870,29 @@ namespace vessel
 
       if (OSS_UNLIKELY(NULL == context ||
                        !context->isMbContextAttached() ||
-                       NULL == ic ||
-                       !ic->isValid() ||
-                       !ic->getObj().getDescription().isUnique()))
+                       NULL == obj ||
+                       !obj->isValid() ||
+                       !obj->getDescription().isUnique()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      if (INDEX_TYPE_LSM == ic->getIndexType())
+      if (INDEX_TYPE_LSM == obj->getDescription().getType())
       {
          lsmIndexIterator lsmItr;
          
-         rc = checkUniqueConstraintByIterator(context, ic, &lsmItr, key, rid);
+         rc = checkUniqueConstraintByIterator(context, obj, &lsmItr, key, rid);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to check unique constraint by lsm iterator:%d", rc);
             goto error;
          }
       }
-      else if (INDEX_TYPE_BTREE == ic->getIndexType())
+      else if (INDEX_TYPE_BTREE == obj->getDescription().getType())
       {
          btreeIndexIterator btreeItr;
-         rc = checkUniqueConstraintByIterator(context, ic, &btreeItr, key, rid);
+         rc = checkUniqueConstraintByIterator(context, obj, &btreeItr, key, rid);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to check unique constraint by btree iterator:%d", rc);
@@ -920,7 +908,7 @@ namespace vessel
    }
 
    INT32 indexConsole::checkUniqueConstraintByIterator(requestContext *context,
-                                                       indexContext *ic,
+                                                       indexObject *obj,
                                                        indexIterator *iterator,
                                                        const bson::BSONObj &key,
                                                        recordID &rid)const
@@ -933,7 +921,7 @@ namespace vessel
       indexIterator::options o(FALSE, TRUE);
       rid = recordID();
 
-      rc = iterator->open(context, ic, o);
+      rc = iterator->open(context, obj, o);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open index iterator:%d", rc);
@@ -954,14 +942,14 @@ namespace vessel
    }
 
    INT32 indexConsole::btreeInsert(requestContext *context,
-                                   indexContext *ic,
+                                   indexObject *obj,
                                    const ixmKey &key,
                                    const recordID &rid,
                                    const DPS_TRANS_ID &transID)
    {
       INT32 rc = SDB_OK;
       btreeAccessor accessor;
-      rc = accessor.init(context, ic, transID);
+      rc = accessor.init(context, obj, transID);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init btree accessor:%d", rc);
@@ -991,18 +979,18 @@ namespace vessel
          btreeAccessor accessor;
          const dmlIndexRequest *req = ra.get(i);
          SDB_ASSERT(NULL != req && req->isValid(), "can not be invalid");
-         if (!req->getContext()->getObj().getDescription().isBtreeIndex() ||
+         if (!req->getObject()->getDescription().isBtreeIndex() ||
               req->isExecuted())
          {
             continue;
          }
              
-         rc = accessor.init(context, req->getContext(),
+         rc = accessor.init(context, req->getObject(),
                             context->getOrigTransId());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to init btree accessor[%s]:%d",
-                   req->getContext()->getObj().getIndexName().str(), rc);
+                   req->getObject()->getDescription().getName().c_str(), rc);
             goto error;  
          }
 
@@ -1038,7 +1026,7 @@ namespace vessel
    }
 
    INT32 indexConsole::cacheBtreeRootSplitTimes(requestContext *context,
-                                                indexContextMap *indexes)
+                                                indexObjectMap *indexes)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be invalid");
@@ -1055,27 +1043,27 @@ namespace vessel
          goto error;
       }
       
-      for (indexContextMap::ITERATOR itr = indexes->begin();
+      for (indexObjectMap::ITERATOR itr = indexes->begin();
            itr != indexes->end(); ++itr)
       {
          btreeNode node;
-         indexContext *ic = itr->second;
-         SDB_ASSERT(NULL != ic && ic->isValid(), "can not be invalid");
-         if (INDEX_TYPE_BTREE == ic->getIndexType() &&
-             ic->getObj().hasBtreeRoot())
+         indexObject *obj = itr->second;
+         SDB_ASSERT(NULL != obj && obj->isValid(), "can not be invalid");
+         if (INDEX_TYPE_BTREE == obj->getDescription().getType() &&
+             obj->hasBtreeRoot())
          {
             logicalPageBuffer lpb;
-            rc = lps->getLogicalPageBuffer(context, ic->getObj().getBtreeRoot(),
+            rc = lps->getLogicalPageBuffer(context, obj->getBtreeRoot(),
                                            mode, lpb);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d",
-                      ic->getObj().getBtreeRoot(), rc);
+                      obj->getBtreeRoot(), rc);
                goto error;
             }
 
-            node = btreeNode(&lpb, 0, ic);
-            ic->getObj().updateBtreeRootSplitTimes(node.getSplitedTimes());
+            node = btreeNode(&lpb, 0, obj);
+            obj->updateBtreeRootSplitTimes(node.getSplitedTimes());
 
             lpb.fini();
          }
@@ -1134,16 +1122,16 @@ namespace vessel
    }
 
    INT32 indexConsole::btreeTruncate(requestContext *context,
-                                     indexContext *ic)
+                                     indexObject *obj)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(NULL != ic && ic->isValid(), "can not be invalid");
-      SDB_ASSERT(ic->getIndexType() == INDEX_TYPE_BTREE, "must be btree");
-      SDB_ASSERT(ic->isTruncating() || ic->isRemoving(), "update status first");
+      SDB_ASSERT(NULL != obj && obj->isValid(), "can not be invalid");
+      SDB_ASSERT(obj->getDescription().getType() == INDEX_TYPE_BTREE, "must be btree");
+      SDB_ASSERT(obj->isTruncating() || obj->isRemoving(), "update status first");
 
       btreeAccessor accessor;
-      rc = accessor.init(context, ic, DPS_TRANS_ID());
+      rc = accessor.init(context, obj, DPS_TRANS_ID());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init btree accessor:%d", rc);

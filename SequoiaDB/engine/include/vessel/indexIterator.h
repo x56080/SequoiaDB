@@ -46,7 +46,7 @@
 #include "rtnPredicate.hpp"
 #include "vessel/indexScanContext.h"
 #include "vessel/rowBatch.h"
-#include "vessel/indexContext.h"
+#include "vessel/indexObject.h"
 
 namespace engine
 {
@@ -132,7 +132,7 @@ namespace vessel
 
       public:
          virtual INT32 open(requestContext *context,
-                            indexContext *ic,
+                            indexObject *obj,
                             const options &o) = 0;
 
          virtual BOOLEAN isOpen()const = 0;

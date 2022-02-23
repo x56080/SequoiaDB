@@ -35,7 +35,7 @@
 
 #include "vessel/btreeAccessor.h"
 #include "vessel/requestContext.h"
-#include "vessel/indexContext.h"
+#include "vessel/indexObject.h"
 #include "ossLikely.hpp"
 #include "pdTrace.hpp"
 #include "vessel/instanceEnv.h"
@@ -59,7 +59,7 @@ namespace vessel
    }
 
    INT32 btreeAccessor::init(requestContext *context,
-                             indexContext *ic,
+                             indexObject *obj,
                              const DPS_TRANS_ID &transID)
    {
       INT32 rc = SDB_OK;
@@ -69,16 +69,16 @@ namespace vessel
 
       if (OSS_UNLIKELY(NULL == context ||
                        !context->isMbContextAttached() ||
-                       NULL == ic ||
-                       !ic->isValid() ||
-                       ic->getObj().getIndexType() != INDEX_TYPE_BTREE))
+                       NULL == obj ||
+                       !obj->isValid() ||
+                       obj->getDescription().getType() != INDEX_TYPE_BTREE))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
       _context = context;
-      _ic = ic;
+      _obj = obj;
 
       rc = context->getEnv()->dms.getLogicalPageSpace(context->getSpaceID(),
                                                       SPACE_TYPE_IDX,
@@ -90,7 +90,7 @@ namespace vessel
       }
 
       _is = static_cast<indexSpace *>(lps);
-      _bac.init(_ic, _context, _is);
+      _bac.init(obj, _context, _is);
       _transID = transID;
       
    done:
@@ -104,7 +104,7 @@ namespace vessel
    {
       _context = NULL;
       _is = NULL;
-      _ic = NULL;
+      _obj = NULL;
       _bac.fini();
       _transID = DPS_TRANS_ID();
       return;
@@ -224,7 +224,7 @@ namespace vessel
       }
       checkpointBlocked = TRUE;
 
-      if (!_ic->getObj().hasBtreeRoot())
+      if (!_obj->hasBtreeRoot())
       {
          PD_LOG(PDERROR, "btree has no root yet");
          rc = SDB_VESSEL_IXM_ITEM_NOT_FOUND;
@@ -282,7 +282,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "can not be invalid");
 
-      if (!_ic->getObj().hasBtreeRoot())
+      if (!_obj->hasBtreeRoot())
       {
          PD_LOG(PDDEBUG, "has no btree root");
          goto done;
@@ -311,7 +311,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "must be inited");
-      SDB_ASSERT(_ic->getObj().hasBtreeRoot(), "must has root");
+      SDB_ASSERT(_obj->hasBtreeRoot(), "must has root");
 
       logicalPageBuffer buffer;
       indexEntryPageAccessor accessor;
@@ -327,7 +327,7 @@ namespace vessel
       }
       blocked = TRUE;
 
-      rc = _is->getLogicalPageBuffer(_context, _ic->getEntryLpid(),
+      rc = _is->getLogicalPageBuffer(_context, _obj->getEntryLpid(),
                                      mode, buffer);
       if (SDB_OK != rc)
       {
@@ -342,9 +342,9 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(root == _ic->getObj().getBtreeRoot(), "must be same");
+      SDB_ASSERT(root == _obj->getBtreeRoot(), "must be same");
       _is->releasePage(_context, root);
-      _ic->getObj().removeBtreeRoot();
+      _obj->removeBtreeRoot();
    done:
       buffer.fini();
       if (blocked)
@@ -388,7 +388,8 @@ namespace vessel
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to insert into leaf node[%d,%d]:%d",
-                        _ic->getLogicalIndexId(), node.getBuffer()->getLogicalPid(), rc);
+                         _obj->getIndexId().getLogicalIndexId(), 
+                         node.getBuffer()->getLogicalPid(), rc);
                   goto error;
                }
             }
@@ -700,11 +701,11 @@ namespace vessel
       //UINT32 rootUpdatedTimes = 0;
       BOOLEAN wasLeaf = node.isLeaf();
 
-      SDB_ASSERT(_ic->getObj().getBtreeRoot() == node.getBuffer()->getLogicalPid(),
+      SDB_ASSERT(_obj->getBtreeRoot() == node.getBuffer()->getLogicalPid(),
                  "must be same");
 
       initer._logicalCLID = _context->getMbContext()->getGlobalId().getCLLid();
-      initer._indexId = _ic->getLogicalIndexId();
+      initer._indexId = _obj->getIndexId().getLogicalIndexId();
       initer._isLeaf = FALSE;
       initer._isRoot = TRUE;
       rc = _is->allocatePage(_context, &initer, newRoot);
@@ -765,7 +766,7 @@ namespace vessel
 
       /// set right child of new root first, which init it as non-leaf node.
       newRootStrictBuffer.getWritableObjPtr<btreeNodePageHead>(0)->rightChild = newRaisedKey.rightChild;
-      newRootNode = btreeNode(&newRootBuffer, 0, _ic);
+      newRootNode = btreeNode(&newRootBuffer, 0, _obj);
       rc = newRootNode.insertRaisedKey(newRaisedKey);
       if (SDB_OK != rc)
       {
@@ -793,7 +794,7 @@ namespace vessel
          goto error;
       }
 
-      _ic->getObj().updateBtreeRootSplitTimes(node.getSplitedTimes());
+      _obj->updateBtreeRootSplitTimes(node.getSplitedTimes());
 
       SDB_ASSERT(node.isRoot(), "must be root");
       SDB_ASSERT(!node.isLeaf(), "can not be leaf");
@@ -826,29 +827,29 @@ namespace vessel
       PAGE_ID lpid = INVALID_PAGE_ID;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
-      if (_ic->getObj().hasBtreeRoot())
+      if (_obj->hasBtreeRoot())
       {
          goto done;
       }
 
       rc = _is->getLogicalPageBuffer(_context,
-                                     _ic->getEntryLpid(),
+                                     _obj->getEntryLpid(),
                                      mode, entryBuffer);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get entry page[%d] buffer:%d",
-                _ic->getEntryLpid(), rc);
+                _obj->getEntryLpid(), rc);
          goto error;
       }
 
       /// check again under entry page locking.
-      if (_ic->getObj().hasBtreeRoot())
+      if (_obj->hasBtreeRoot())
       {
          goto done;
       }
 
       initer._logicalCLID = _context->getMbContext()->getGlobalId().getCLLid();
-      initer._indexId = _ic->getLogicalIndexId();
+      initer._indexId = _obj->getIndexId().getLogicalIndexId();
       initer._isLeaf = TRUE;
       initer._isRoot = TRUE;
       rc = _is->allocatePages(_context, &initer, 1, &lpid);
@@ -859,7 +860,7 @@ namespace vessel
       }
 
       rc = accessor.updateBtreeRoot(_context,
-                                    _ic->getLogicalIndexId(),
+                                    _obj->getIndexId().getLogicalIndexId(),
                                     lpid, &entryBuffer);
       if (SDB_OK != rc)
       {
@@ -867,7 +868,7 @@ namespace vessel
          goto error;
       }
 
-      _ic->getObj().updateBtreeRoot(lpid, 1);
+      _obj->updateBtreeRoot(lpid, 1);
 
    done:
       entryBuffer.fini();
@@ -1237,7 +1238,7 @@ namespace vessel
       SDB_ASSERT((UINT32)pos <= node.getItemCount(), "out of bound");
 
       initer._logicalCLID = _context->getMbContext()->getGlobalId().getCLLid();
-      initer._indexId = _ic->getLogicalIndexId();
+      initer._indexId = _obj->getIndexId().getLogicalIndexId();
       initer._isLeaf = TRUE;
       initer._isRoot = FALSE;
 
@@ -1255,7 +1256,7 @@ namespace vessel
          goto error;
       }
 
-      child = btreeNode(&buffer, node.getDepth() + 1, _ic);
+      child = btreeNode(&buffer, node.getDepth() + 1, _obj);
       rc = child.leafInsert(key, rid);
       if (SDB_OK != rc)
       {
@@ -1283,7 +1284,7 @@ namespace vessel
    INT32 btreeAccessor::releaseWholeTreeExceptRoot()
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(_ic->getObj().hasBtreeRoot(), "must be has btree root");
+      SDB_ASSERT(_obj->hasBtreeRoot(), "must be has btree root");
       SDB_ASSERT(_bac.isPathEmpty(), "must be empty");
 
       _bac.setReadonly(FALSE);
@@ -1406,7 +1407,7 @@ namespace vessel
             goto error;
          }
 
-         childNode = btreeNode(&buffer, _bac.getPathSize() + 1, _ic);
+         childNode = btreeNode(&buffer, _bac.getPathSize() + 1, _obj);
          childIsLeaf = childNode.isLeaf();
          buffer.fini();
          if (!childIsLeaf)

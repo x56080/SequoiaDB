@@ -51,7 +51,7 @@ namespace engine
 namespace vessel
 {
    class logicalPageBuffer;
-   class indexContext;
+   class indexObject;
 
    class btreeNode : public SDBObject
    {
@@ -60,19 +60,19 @@ namespace vessel
 
          explicit btreeNode(logicalPageBuffer *buffer,
                             UINT32 depth,
-                            const indexContext *ic);
+                            const indexObject *ic);
 
          ~btreeNode(){}
          btreeNode(const btreeNode &o):
          _buffer(o._buffer),
          _depth(o._depth),
-         _ic(o._ic)
+         _obj(o._obj)
          {}
          btreeNode &operator=(const btreeNode &o)
          {
             _buffer = o._buffer;
             _depth = o._depth;
-            _ic = o._ic;
+            _obj = o._obj;
             return *this;
          }
 
@@ -86,7 +86,7 @@ namespace vessel
          {
             _depth = 0;
             _buffer = NULL;
-            _ic = NULL;
+            _obj = NULL;
             return;
          }
 
@@ -312,7 +312,7 @@ namespace vessel
       private:
          logicalPageBuffer *_buffer = NULL;
          UINT32 _depth = 0;
-         const indexContext *_ic = NULL;
+         const indexObject *_obj = NULL;
    };//class btreeNode
 } // namespace vessel
 
