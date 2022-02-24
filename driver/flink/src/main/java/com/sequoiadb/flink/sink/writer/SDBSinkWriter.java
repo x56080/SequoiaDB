@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.exception.BaseException;
@@ -29,6 +30,7 @@ import com.sequoiadb.flink.client.SDBClient;
 import com.sequoiadb.flink.client.SDBSinkClient;
 import com.sequoiadb.flink.codec.SDBDataConverter;
 import com.sequoiadb.flink.config.SDBSinkOptions;
+import com.sequoiadb.flink.exception.SDBException;
 import com.sequoiadb.flink.sink.Executor.WriteThreads;
 import com.sequoiadb.flink.sink.state.SDBBulk;
 
@@ -268,7 +270,7 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
         int dividedBulkListSize = numOfBulks < numThread ? numOfBulks : numOfBulks / numThread;
 
         CountDownLatch latch = new CountDownLatch(numOfLatch);   
-        
+        List<Future<?>> threadStatus = new ArrayList<>();
         for (int i = 0; i < numThread; i++) {
             int start = 0 + dividedBulkListSize * i;
             int end = dividedBulkListSize + dividedBulkListSize * i;
@@ -278,10 +280,28 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
             host.add(sdbSinkOptions.getHosts().get(i % THREAD_NUMBER));
             SDBClient client = SDBSinkClient.createClientWithHost(sdbSinkOptions, host);
             WriteThreads thread = new WriteThreads(client, sublist, latch);
-            executorService.execute(thread);
+            /*
+             * Here added a future. the reason is if using .execute, it will throw a unexcepted exception by default
+             * flink will simply log it and ignore, we want it to be catched and handled by flink so instead of throw
+             * unexcepted exception, we use future to create a SDB exception this will catched and handled by flink and
+             * trigger retry
+             */
+            try {
+               Future<?>submitted =  executorService.submit(thread);
+               threadStatus.add(submitted);
+            } catch (Exception e) {
+                throw new SDBException("Thread exception:", e);
+            }
         }
         latch.await();
-       
+        // catch exception here
+        try {
+            for (Future<?> submitted: threadStatus){
+                submitted.get();
+            }
+        }catch (Exception e) {
+            throw new SDBException("Thread exceptions", e);
+        }
     }
 
     /*
