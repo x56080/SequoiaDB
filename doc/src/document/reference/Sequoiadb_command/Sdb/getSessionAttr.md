@@ -30,8 +30,13 @@
  > db.getSessionAttr()
  {
    "PreferedInstance": "M",
+   "PreferredInstance": "M",
    "PreferedInstanceMode": "random",
+   "PreferredInstanceMode": "random",
    "PreferedStrict": false,
+   "PreferredStrict": false,
+   "PreferedPeriod": 60,
+   "PreferredPeriod": 60,
    "Timeout": -1,
    "TransIsolation": 0,
    "TransTimeout": 60,
@@ -46,3 +51,8 @@
    "Source": ""
  }
  ```
+
+> **Note:**
+>
+> v3.2.9 及以上版本中，字段 PreferedInstance、PreferedInstanceMode、PreferedStrict 和 PreferedPeriod 已更名为 PreferredInstance、PreferredInstanceMode、PreferredStrict 和 PreferredPeriod，用户应使用更名后的字段。为保证兼容性，SequoiaDB 由低版本升级至 v3.2.9 及以上版本后，仍兼容原字段。
+

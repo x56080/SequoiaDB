@@ -2797,17 +2797,27 @@ void sdbGetOptions( Oid foreignTableId, SdbInputOptions *options )
       collectionName = get_rel_name( foreignTableId ) ;
    }
 
-   /* OPTION_NAME_PREFEREDINSTANCE */
+   /* OPTION_NAME_PREFERREDINSTANCE */
    preferedInstance = sdbGetOptionValue( foreignTableId,
-                                         OPTION_NAME_PREFEREDINSTANCE ) ;
+                                         OPTION_NAME_PREFERREDINSTANCE ) ;
+   if ( NULL == preferedInstance )
+   {
+      preferedInstance = sdbGetOptionValue( foreignTableId,
+                                            OPTION_NAME_PREFEREDINSTANCE ) ;
+   }
    if ( NULL == preferedInstance )
    {
       preferedInstance = pstrdup( DEFAULT_PREFEREDINSTANCE ) ;
    }
 
-   /* OPTION_NAME_PREFEREDINSTANCE_MODE */
+   /* OPTION_NAME_PREFERREDINSTANCE_MODE */
    preferedInstanceMode = sdbGetOptionValue( foreignTableId,
-                                             OPTION_NAME_PREFEREDINSTANCE_MODE) ;
+                                             OPTION_NAME_PREFERREDINSTANCE_MODE) ;
+   if ( NULL == preferedInstanceMode )
+   {
+      preferedInstanceMode = sdbGetOptionValue(
+            foreignTableId, OPTION_NAME_PREFEREDINSTANCE_MODE) ;
+   }
    if ( NULL == preferedInstanceMode )
    {
       preferedInstanceMode = pstrdup( DEFAULT_PREFEREDINSTANCE_MODE ) ;

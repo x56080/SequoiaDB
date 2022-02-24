@@ -76,7 +76,7 @@ None.
 9. com.sequoiadb.datasource.DatasourceOptions 内容变更：
 
    * setSyncCoordInterval(int syncCoordInterval)接口正常的输入参数syncCoordInterval 的值若小于60,000，该接口自动将输入值改为60,000。
-   * 增加getPreferedInstance/setPreferedInstance接口，使连接池支持设置回话属性。
+   * 增加getPreferedInstance/setPreferedInstance接口，使连接池支持设置会话属性。
 
 10. 删除 com.sequoiadb.base.DataCenter 接口，待相关功能发布之后再提供接口。
 

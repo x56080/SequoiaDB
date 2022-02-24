@@ -25,7 +25,7 @@ SYSCAT.SYSNODES 集合中包含了该集群中所有的节点与复制组信息�
 |----------|--------|--------------|
 | HostName | 字符串 | 节点所在的系统名，需要完全匹配该节点所在操作系统中“hostname”命令的输出。                           |
 | dbpath   | 字符串 | 数据库路径，为节点所在的物理节点中对应的绝对路径。|
-| instanceid | 整数 | 节点的实例 ID，用于 --preferedinstance 进行实例选择。 |
+| instanceid | 整数 | 节点的实例 ID，用于 --preferredinstance 进行实例选择。 |
 | NodeID   | 整数   | 节点 ID，该 ID 在集群中唯一。 |
 | Service  | 数组   | 服务名，每个逻辑节点对应4个服务名，每个服务名包括其类型与服务名（可以为端口号或services 文件中的服务名）。类型如下：<br>- 0：直连服务，对应数据库参数 svcname   <br>- 1：复制服务，对应数据库参数 replname   <br>- 2：分区服务，对应数据库参数 shardname   <br>- 3：编目服务，对应数据库参数 catalogname  |
 

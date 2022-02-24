@@ -24,7 +24,7 @@ SYSCAT.SYSDATASOURCES 集合中包含了该集群中所有的数据源的元数�
 | ErrorFilterMaskDesc | string | 数据源的错误过滤掩码描述，取值可参考 [createDataSource()](reference/Sequoiadb_command/Sdb/createDataSource.md) 的参数 ErrorFilterMask |
 | ErrorFilterMask | number | 数据源的错误过滤掩码，与参数 ErrorFilterMaskDesc 对应，取值如下：<br> 	1：对应"READ"  <br>   	2：对应"WRITE" <br> 	3：对应"ALL"或"READ\|WRITE" <br>  0：对应"NONE" |
 | TransPropagateMode | string | 事务在数据源上的传播模式，取值可参考 [createDataSource()](reference/Sequoiadb_command/Sdb/createDataSource.md) 的参数 TransPropagateMode |
-| InheritSessionAttr | boolean | 协调节点与数据源之间的会话是否继承本地会话的属性，支持继承的属性包括：PreferedInstance，PreferedInstanceMode，PreferedStrict，PreferedPeriod，Timeout <br>true：继承 <br>false：不继承 |
+| InheritSessionAttr | boolean | 协调节点与数据源之间的会话是否继承本地会话的属性，支持继承的属性包括：PreferredInstance，PreferredInstanceMode，PreferredStrict，PreferredPeriod，Timeout <br>true：继承 <br>false：不继承 |
 
 
 ##示例##

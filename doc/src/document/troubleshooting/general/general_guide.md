@@ -140,7 +140,7 @@
    * 问题诊断：
       * 检查操作中的集合名是否拼写错误；
       * 使用 *"[db.listCollections()](reference/Sequoiadb_command/Sdb/listCollections.md)"* 确认该集合是否存在，若该集合存在，而其它操作依然报该错误，原因可能为：1）操作位于备节点，而备节点还未同步；2）创建该集合由于节点故障导致在实际节点上不存在。
-   * 问题修复：设置会话访问"主节点"的属性 *"[db.setSessionAttr({PreferedInstanace:"M"})](reference/Sequoiadb_command/Sdb/setSessionAttr.md)"* ，并执行 *"[db.\<cs\>.\<cl\>.find()](reference/Sequoiadb_command/SdbCollection/find.md)"* 操作进行自动重建修复。（如需要修复垂直分区中的主表报错 -23，需要为每个子表执行重建修复。）
+   * 问题修复：设置会话访问"主节点"的属性 *"[db.setSessionAttr({PreferredInstanace:"M"})](reference/Sequoiadb_command/Sdb/setSessionAttr.md)"* ，并执行 *"[db.\<cs\>.\<cl\>.find()](reference/Sequoiadb_command/SdbCollection/find.md)"* 操作进行自动重建修复。（如需要修复垂直分区中的主表报错 -23，需要为每个子表执行重建修复。）
 
 10. SDB_DMS_RECORD_TOO_BIG(-24)
    * 记录超过最大限制
@@ -155,7 +155,7 @@
    * 问题诊断：
       * 请检查集合空间名是否拼写错误；
       * 使用 *"db.listCollectionSpaces()"* 确认该集合空间是否存在，若该集合空间存在，而其它操作仍然报该错误，原因可能为：1）操作位于备节点，而备节点还未同步；2）创建该集合空间空由于节点故障导致在实际节点上不存在。
-   * 问题修复：设置会话访问"主节点"的属性 *"[db.setSessionAttr({PreferedInstance:"M"})](reference/Sequoiadb_command/Sdb/setSessionAttr.md)"*，并重试该操作。
+   * 问题修复：设置会话访问"主节点"的属性 *"[db.setSessionAttr({PreferredInstance:"M"})](reference/Sequoiadb_command/Sdb/setSessionAttr.md)"*，并重试该操作。
 
 13. SDB_IXM_MULTIPLE_ARRAY(-37)
    * 复合索引字段中数组类型过多，目前复合索引只允许1个字段为数组类型

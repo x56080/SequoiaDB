@@ -87,7 +87,7 @@ Sdb
 
     - InheritSessionAttr（ *boolean* ）：协调节点与数据源之间的会话是否继承本地会话的属性，默认值为 true
 
-        支持继承的属性包括 PreferedInstance、PreferedInstanceMode、PreferedStrict、PreferedPeriod 和 Timeout。
+        支持继承的属性包括 PreferredInstance、PreferredInstanceMode、PreferredStrict、PreferredPeriod 和 Timeout。
 
         格式：`InheritSessionAttr: true`
 

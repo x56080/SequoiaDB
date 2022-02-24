@@ -7,7 +7,7 @@
 
 | 参数名 | 参数类型 | 描述 | 是否必填 |
 | ------ | ------ | ------ | ------ |
-| config | Json对象 |配置参数，包含配置名和占位符，例如：{ preferedinstance:1, diaglevel:1 }，其中 1 没有特殊含义，仅作为占位符出现。| 是 |
+| config | Json对象 |配置参数，包含配置名和占位符，例如：{ preferredinstance:1, diaglevel:1 }，其中 1 没有特殊含义，仅作为占位符出现。| 是 |
 | options| Json对象 | **[命令位置参数](reference/Sequoiadb_command/location.md)** | 否 |
 
 > **Note:**
@@ -37,12 +37,12 @@
  > db.deleteConf( { diaglevel:1 }, { GroupName:"db1", ServiceName:"20000" } )
  ```
 
-* 删除数据组 db2 上所有数据节点的 preferedinstance 和 diaglevel 参数，恢复默认值。
+* 删除数据组 db2 上所有数据节点的 preferredinstance 和 diaglevel 参数，恢复默认值。
 
  ```lang-javascript
  // 连接协调节点
  > db = new Sdb( "localhost", 11810 )
- > db.deleteConf( { preferedinstance:1, diaglevel:1 }, { GroupName:"db2" } )
+ > db.deleteConf( { preferredinstance:1, diaglevel:1 }, { GroupName:"db2" } )
  ```
 
 * 报错时获取详细错误信息。

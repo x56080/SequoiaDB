@@ -87,7 +87,7 @@ TransPropagateMode（string）：配置事务操作在数据源上的传播模�
 格式：\f[C]TransPropagateMode:"never"\f[]
 .IP "9." 3
 InheritSessionAttr（boolean）：协调节点与数据源之间的会话是否继承本地会话的属性，默认值为
-true，支持继承的属性包括：PreferedInstance，PreferedInstanceMode，PreferedStrict，PreferedPeriod，Timeout
+true，支持继承的属性包括：PreferredInstance，PreferredInstanceMode，PreferredStrict，PreferredPeriod，Timeout
 .PP
 格式：\f[C]InheritSessionAttr: true\f[]
 .SH 返回值

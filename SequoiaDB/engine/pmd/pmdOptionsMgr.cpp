@@ -2162,19 +2162,28 @@ done:
       // --syncstrategy
       rdxString( pEX, PMD_OPTION_SYNC_STRATEGY, _syncStrategyStr,
                  sizeof( _syncStrategyStr ), FALSE, PMD_CFG_CHANGE_RUN, "", FALSE ) ;
-      // --preferedinstance
+      // --preferedinstance / --preferredinstance
       rdxString( pEX, PMD_OPTION_PREFINST, _prefInstStr,
                  sizeof( _prefInstStr ), FALSE, PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST ) ;
-      // --preferedinstancemode
+      rdxString( pEX, PMD_OPTION_PREFERREDINST, _prefInstStr,
+                 sizeof( _prefInstStr ), FALSE, PMD_CFG_CHANGE_RUN, _prefInstStr ) ;
+      // --preferedinstancemode / --preferredinstancemode
       rdxString( pEX, PMD_OPTION_PREFINST_MODE, _prefInstModeStr,
                  sizeof( _prefInstModeStr ), FALSE, PMD_CFG_CHANGE_RUN,
                  PMD_DFT_PREFINST_MODE ) ;
-      // --preferedstrict
+      rdxString( pEX, PMD_OPTION_PREFERREDINST_MODE, _prefInstModeStr,
+                 sizeof( _prefInstModeStr ), FALSE, PMD_CFG_CHANGE_RUN,
+                 _prefInstModeStr ) ;
+      // --preferedstrict / --preferredstrict
       rdxBooleanS( pEX, PMD_OPTION_PREFINST_STRICT, _preferedStrict, FALSE,
                    PMD_CFG_CHANGE_RUN, FALSE ) ;
-      // --preferedperiod
+      rdxBooleanS( pEX, PMD_OPTION_PREFERREDINST_STRICT, _preferedStrict, FALSE,
+                   PMD_CFG_CHANGE_RUN, _preferedStrict ) ;
+      // --preferedperiod / --preferredperiod
       rdxInt( pEX, PMD_OPTION_PREFINST_PERIOD, _preferedPeriod, FALSE,
               PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST_PERIOD, FALSE ) ;
+      rdxInt( pEX, PMD_OPTION_PREFERREDINST_PERIOD, _preferedPeriod, FALSE,
+              PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST_PERIOD, _preferedPeriod ) ;
       rdvMinMax( pEX, _preferedPeriod, -1, OSS_SINT32_MAX, TRUE ) ;
       // --instanceid
       rdxUInt( pEX, PMD_OPTION_INSTANCE_ID, _instanceID, FALSE, PMD_CFG_CHANGE_REBOOT,
