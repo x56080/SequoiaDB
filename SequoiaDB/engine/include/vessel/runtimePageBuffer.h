@@ -54,6 +54,8 @@ namespace vessel
       public:
          runtimePageBuffer();
          ~runtimePageBuffer();
+         runtimePageBuffer(runtimePageBuffer &&);
+         runtimePageBuffer &operator=(runtimePageBuffer &&);
          runtimePageBuffer(const runtimePageBuffer &) = delete;
          runtimePageBuffer &operator=(const runtimePageBuffer &) = delete;
 

@@ -95,6 +95,15 @@ namespace vessel
             return &_checkpointLatch;
          }
 
+         OSS_INLINE INT32 getCheckpointTick()const
+         {
+            return _checkpointTick;
+         }
+         OSS_INLINE void incCheckpointTick()
+         {
+            ++_checkpointTick;
+         }
+
       public:
          void fini();
          void setCheckpoint(const LPS_CHECKPOINT &checkpoint);
@@ -112,6 +121,7 @@ namespace vessel
 
          DPS_LSN_OFFSET _minDirtyLSN = DPS_INVALID_LSN_OFFSET;
          DPS_LSN_OFFSET _maxDirtyLSN = DPS_INVALID_LSN_OFFSET;
+         INT32 _checkpointTick = 0;
    };//class lpsCheckpointContext
 }//namespace vessel
 }//namespace engine

@@ -944,9 +944,9 @@ vesselFiles = [
       "vessel/storage/dataStorageFileCluster.cpp",
       "vessel/storage/deltaLogConsole.cpp",
       "vessel/storage/lpsCheckpointContext.cpp",
-      "vessel/storage/logicalPageIdCache.cpp",
+      "vessel/storage/lpageMapping.cpp",
+      "vessel/storage/lpageHashTable.cpp",
       "vessel/storage/storageFileLoader.cpp",
-      "vessel/storage/logicalPageIdCache.cpp",
       "vessel/storage/partialImpCache.cpp",
       "vessel/storage/sortedStorageFileList.cpp",
       "vessel/storage/indexMappingPage.cpp",
@@ -1093,16 +1093,12 @@ vesselTestFiles = [
       "test/vessel/index_delete_test.cpp",
       "test/vessel/lsm_compaction_filter_test.cpp",
       "test/vessel/index_ddl_test.cpp",
-      "test/vessel/misc_test.cpp"
+      "test/vessel/misc_test.cpp",
+      "test/vessel/lpid_hash_table_test.cpp"
 ]
 
 vesselUnitTestCommonFiles = [
       "test/vessel/dummyTransLockConsole.cpp"
-]
-
-# insert performance test
-benchmarkTestFiles = [
-      "test/vessel/benchmark_test.cpp"
 ]
 
 #BSON
@@ -1354,10 +1350,6 @@ if hasVessel or hasTestcase:
           _LIBDEPS='$_LIBDEPS_OBJS' )
 
 
-   benchmark_test = env.Program("benchmark_test", benchmarkTestFiles,
-          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel", "zstd","bzip2", "vessel_unit_test_common"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
-
 # Install testcases
 if hasTestcase:
 #   env.Install( '#/tests', cmtest )
@@ -1407,4 +1399,3 @@ if hasTool:
 # Install vessel
 if hasVessel or hasTestcase:
    env.Install( '#/tests', vesselTest )
-   env.Install( '#/tests', benchmark_test )

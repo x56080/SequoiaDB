@@ -201,13 +201,7 @@ namespace vessel
          UINT32 ridLatchMapLatchCount = 256;
 
          UINT32 indexLatchMapBucketCount = 4096;
-         UINT32 indexLatchMapLatchCount = 256;
-         
-         ///invisible options.
-         UINT32 _spaceLpidCacheBucketCount = 16;
-         UINT32 _spaceLpidCacheBucketLatchCount = 4;
-
-         
+         UINT32 indexLatchMapLatchCount = 256;         
    }; /// end of class openDBOptions
 
    class closeDBOptions : public SDBObject

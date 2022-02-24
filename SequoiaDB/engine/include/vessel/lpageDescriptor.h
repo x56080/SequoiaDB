@@ -48,35 +48,45 @@ namespace vessel
    {
       public:
          lpageDescriptor(){}
+         lpageDescriptor(PAGE_ID pi,
+                         INT32 b,
+                         PAGE_SNAPSHOT_VERION pv)
+         :pid(pi),
+          birthTick(b),
+          psv(pv){}
          ~lpageDescriptor(){}
          lpageDescriptor(const lpageDescriptor &o):
-         birthTick(o.birthTick),
          pid(o.pid),
-         pcnt(o.pcnt),
-         flags(o.flags){}
+         birthTick(o.birthTick),
+         psv(o.psv){}
          lpageDescriptor &operator=(const lpageDescriptor &o)
          {
-            birthTick = o.birthTick;
             pid = o.pid;
-            pcnt = o.pcnt;
-            flags = o.flags;
+            birthTick = o.birthTick;
+            psv = o.psv;
             return *this;
          }
       
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return 0 != pcnt &&
-                   INVALID_CHECKPOINT_TICK != birthTick &&
-                   INVALID_PAGE_ID != pid;
+            return INVALID_PAGE_ID != pid &&
+                   INVALID_PAGE_SNAPSHOT_VERSION != psv;
+         }
+         OSS_INLINE void reset(PAGE_ID pid=INVALID_PAGE_ID,
+                               UINT32 birthTick = -1,
+                               PAGE_SNAPSHOT_VERION psv=INVALID_PAGE_SNAPSHOT_VERSION)
+         {
+            this->pid = pid;
+            this->birthTick = birthTick;
+            this->psv = psv;
+            return;
          }
 
       public:
-         CHECKPOINT_TICK birthTick = INVALID_CHECKPOINT_TICK;
          PAGE_ID pid = INVALID_PAGE_ID;
-         UINT16 pcnt = 0;
-         UINT16 flags = 0;
-         UINT32 pad = 0;
+         INT32 birthTick = -1;
+         PAGE_SNAPSHOT_VERION psv = INVALID_PAGE_SNAPSHOT_VERSION;
    };//class lpageDescriptor
    constexpr UINT32 LPAGE_DESC_SIZE = sizeof(lpageDescriptor);
 #pragma pack()

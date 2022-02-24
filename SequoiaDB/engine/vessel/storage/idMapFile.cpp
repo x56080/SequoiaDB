@@ -76,27 +76,10 @@ namespace vessel
       return r;
    }
 
-   INT32 idMapFile::getTotalPageCount(UINT32 &count)const
+   void idMapFile::cacheUserDefinedHead(const void *head)
    {
-      INT32 rc = SDB_OK;
-      idMapFileHead head;
-      rc = getIdMapFileHead(head);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      if (!head.isValid())
-      {
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      count = head.totalPageCount;
-   done:
-      return rc;
-   error:
-      goto done;
+      SDB_ASSERT(NULL != head, "can not be null");
+      _pageCount = ((const idMapFileHead *)head)->totalPageCount;
    }
    
    INT32 idMapFile::getIdMapFileHead(idMapFileHead &h)const
@@ -116,41 +99,6 @@ namespace vessel
       }
 
       h = *((const idMapFileHead *)ptr);
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 idMapFile::ensureSegmentCountAndInit(UINT32 count)
-   {
-      INT32 rc = SDB_OK;
-
-      if (OSS_UNLIKELY(!storageFile::isOpen()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      for (UINT32 i = getSegmentCount(); i < count; ++i)
-      {
-         ossValuePtr ptr = 0;
-         rc = storageFile::allocateNewSegment();
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to allocate new segment:%d", rc);
-            goto error;
-         }
-
-         rc = storageFile::getSegmentPtr(i, ptr);
-         if (OSS_UNLIKELY(SDB_OK != rc))
-         {
-            PD_LOG(PDERROR, "failed to get segment[%d] ptr, rc:%d", i, rc);
-            goto error;
-         }
-
-         ossMemset((void *)ptr, 0xFF, ID_MAP_FILE_SEG_SIZE);
-      }      
    done:
       return rc;
    error:

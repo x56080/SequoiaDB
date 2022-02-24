@@ -1035,6 +1035,7 @@ namespace vessel
       ossMemcpy((void *)ptr, h.getData(), h.getSize());
 
       ((storageFileHead *)commonPtr)->headChecksum = createChecksum(commonPtr);
+      cacheUserDefinedHead((const void *)ptr);
    done:
       return rc;
    error:

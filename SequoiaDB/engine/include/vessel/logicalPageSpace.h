@@ -46,7 +46,6 @@
 #include "vessel/storageFileName.h"
 #include "vessel/runtimePageBuffer.h"
 #include "vessel/deltaLogConsole.h"
-#include "vessel/logicalPageIdCache.h"
 #include "vessel/lpsCheckpointContext.h"
 #include "vessel/storageFileLoader.h"
 #include "vessel/logicalPageBuffer.h"
@@ -55,6 +54,9 @@
 #include "vessel/dataPageCluster.h"
 #include "vessel/containerUtils.h"
 #include "vessel/pidBatchList.h"
+#include "vessel/lpageMapping.h"
+#include "ossMemPool.hpp"
+#include "vessel/idMapPage.h"
 
 namespace engine
 {
@@ -184,9 +186,9 @@ namespace vessel
          {
             return _logConsole;
          }
-         OSS_INLINE logicalPageIdCache &getCache()
+         OSS_INLINE lpageMapping &getMapping()
          {
-            return _lpidCache;
+            return _lpm;
          }
 
          INT32 reservePagesInMem(requestContext *context,
@@ -292,7 +294,9 @@ namespace vessel
          INT32 flushSegmentsAtCheckpoint(requestContext *context,
                                          const ossPoolSet<UINT32> &segments)const;
 
-         void extractDirtySegmentsInCache(ossPoolSet<UINT32> &segments);
+         INT32 mergeDataIntoNewBase(const idMapFile *base,
+                                    const DELTA_PAGE_LIST &delta,
+                                    idMapFile *newBase);
 
       private:
          virtual INT32 getMinUncompletedLSN(requestContext *context,
@@ -343,9 +347,10 @@ namespace vessel
          inMemBitmap _allocator;
          ossSpinXLatch _mappingLatch;
          deltaLogConsole _logConsole;
-         logicalPageIdCache _lpidCache;
+         lpageMapping _lpm;
          dataPageCluster *_dpc = NULL;
          lpsCheckpointContext _checkpointContext;
+         ossPoolSet<UINT32> _dirtySegments;
 
          ossSpinXLatch _freeLatch;
          pidBatchList _waitingToFree;

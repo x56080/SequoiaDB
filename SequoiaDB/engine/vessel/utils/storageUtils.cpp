@@ -280,7 +280,7 @@ namespace vessel
       }
 
       ossMemset(buf, 0, MAX_SPACE_DIR_LEN + 1);
-      ossSnprintf(buf, MAX_SPACE_DIR_LEN + 1, "%s%d",
+      ossSnprintf(buf, MAX_SPACE_DIR_LEN + 1, "%s%05d",
                   DIR_NAME_PREFIX, sid);
       
       r = TRUE;

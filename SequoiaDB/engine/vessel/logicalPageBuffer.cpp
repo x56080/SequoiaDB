@@ -57,7 +57,8 @@ namespace vessel
       _mode.setNone();
       _context = NULL;
       _lps = NULL;
-      _cowTrigger = copyOnWriteTrigger();
+      _birthTick = 0;
+      _psv = INVALID_PAGE_SNAPSHOT_VERSION;
       return;
    }
 
@@ -99,7 +100,7 @@ namespace vessel
                                           type, _rpb.getPageSize(),
                                           _rpb.getGlobalPid().page(),
                                           getLogicalPid(),
-                                          getCowTrigger().getPsv());
+                                          _psv);
       if (SDB_OK != rc)
       {
          goto error;

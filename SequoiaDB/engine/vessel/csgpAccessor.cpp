@@ -68,11 +68,7 @@ namespace vessel
 
       rpb = &(lpb->getRuntimeBuffer());
       buffer = lpb->getReadableBodyBuffer();
-      rc = validatePage((ossValuePtr)(rpb->getSlice().data()),
-                         PAGE_TYPE_CS_META, rpb->getPageSize(),
-                         rpb->getGlobalPid().page(),
-                         lpb->getLogicalPid(),
-                         lpb->getCowTrigger().getPsv());
+      rc = lpb->validatePage(PAGE_TYPE_CS_META);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",

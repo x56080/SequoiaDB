@@ -1416,7 +1416,6 @@ namespace vessel
       logicalPageSpace *lps = _buffer->getLogicalPageSpace();
       requestContext *context = _buffer->getContext();
       logicalPageBuffer lpb;
-      ossValuePtr ptr = 0;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
       strictBuffer buffer;
       const btreeExternalKeyPageHead *head = NULL;
@@ -1441,10 +1440,7 @@ namespace vessel
          goto error;
       }
 
-      ptr = (ossValuePtr)(lpb.getRuntimeBuffer().getSlice().data());
-      rc = validatePage(ptr, PAGE_TYPE_BTREE_EXTERNAL_KEY,
-                        lpb.getPageSize(), lpb.getGlobalPid().page(),
-                        lpb.getLogicalPid(), lpb.getCowTrigger().getPsv());
+      rc = lpb.validatePage(PAGE_TYPE_BTREE_EXTERNAL_KEY);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to validate external key page[%s], rc:%d",

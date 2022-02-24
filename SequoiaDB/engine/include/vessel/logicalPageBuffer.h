@@ -37,7 +37,6 @@
 #define VESSEL_LOGICAL_PAGE_BUFFER_H_
 
 #include "vessel/runtimePageBuffer.h"
-#include "vessel/copyOnWriteTrigger.h"
 #include "utilPooledObject.hpp"
 
 namespace engine
@@ -68,9 +67,13 @@ namespace vessel
                    NULL != _lps &&
                    _rpb.isValid();
          }
-         OSS_INLINE const copyOnWriteTrigger &getCowTrigger()const
+         OSS_INLINE INT32 getBirthTick()const
          {
-            return _cowTrigger;
+            return _birthTick;
+         }
+         OSS_INLINE PAGE_SNAPSHOT_VERION getPsv()const
+         {
+            return _psv;
          }
          OSS_INLINE const ossSharedLatchMode &getLockingMode()const
          {
@@ -125,7 +128,6 @@ namespace vessel
 
          /// must hold upgrade lock first
          void lockExclusiveFromUpgrade();
-
       
       private:
          PAGE_ID _lpid = INVALID_PAGE_ID;
@@ -133,7 +135,8 @@ namespace vessel
          requestContext *_context = NULL;
          logicalPageSpace *_lps = NULL;
          runtimePageBuffer _rpb;
-         copyOnWriteTrigger _cowTrigger;
+         INT32 _birthTick = 0;
+         PAGE_SNAPSHOT_VERION _psv = INVALID_PAGE_SNAPSHOT_VERSION;
    };//class logicalPageBuffer
 }//namespace vessel
 }//namespace engine

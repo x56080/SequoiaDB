@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = vesselIdDef.h
+   Source File Name = deltaPageList.h
 
    Descriptive Name =
 
@@ -33,30 +33,32 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_VESSEL_ID_DEF_H_
-#define VESSEL_VESSEL_ID_DEF_H_
+#ifndef VESSEL_DELTA_PAGE_LIST_H_
+#define VESSEL_DELTA_PAGE_LIST_H_
 
-#include "ossUtil.hpp"
 #include "vessel/pageIdentifier.h"
+#include "vessel/vesselIdDef.h"
+#include "ossMemPool.hpp"
+#include <tuple> //c++11
 
 namespace engine
 {
 namespace vessel
 {
-   typedef UINT16 SPACE_ID;
-   const SPACE_ID INVALID_SPACE_ID = 65535;
-   const SPACE_ID MAX_SPACE_ID = 16383;
-   const SPACE_ID MAX_SU_COUNT = MAX_SPACE_ID + 1;
+   ///<lpid, pid, psv>
+   typedef std::tuple<PAGE_ID, PAGE_ID, PAGE_SNAPSHOT_VERION> DELTA_PAGE_TUPLE;
+   typedef ossPoolVector<DELTA_PAGE_TUPLE> DELTA_PAGE_LIST;
+   struct DELTA_PAGE_LIST_CMP
+   {
+      BOOLEAN operator()(const DELTA_PAGE_TUPLE &l,
+                         const DELTA_PAGE_TUPLE &r)const
+      {
+         return std::get<0>(l) < std::get<0>(r);
+      }
+   };
+} // namespace vessel
 
-   typedef UINT32 PAGE_SNAPSHOT_VERION;
-   const PAGE_SNAPSHOT_VERION INVALID_PAGE_SNAPSHOT_VERSION = 0;
+} // namespace engine
 
-   typedef UINT16 CL_MB_ID;
-   const CL_MB_ID INVALID_CL_MB_ID = 65535;
-   const CL_MB_ID MAX_CL_MB_COUNT = 65535;
 
-   static const UINT32 INVALID_CL_PAGE_SEQ = 0xFFFFFFFF;
-
-} /// end of namespace vessel
-} /// end of namespace engine
-#endif//VESSEL_VESSEL_ID_DEF_H_
+#endif//VESSEL_DELTA_PAGE_LIST_H_

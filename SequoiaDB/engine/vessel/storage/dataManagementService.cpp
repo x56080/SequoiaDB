@@ -1573,7 +1573,7 @@ namespace vessel
 
    PAGE_SNAPSHOT_VERION dataManagementService::getOnlinePageSnapshotVersion()
    {
-      return 0;
+      return 1;
    }
 
    INT32 dataManagementService::isSnapshotEffective(SPACE_ID sid,

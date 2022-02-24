@@ -82,6 +82,7 @@ namespace vessel
       SPACE_ID sid = INVALID_SPACE_ID;
       deltaLogRecordBuilder builder;
       mappedLogicalPageId mid(lpid, pid);
+      lpageDescriptor desc;
 
 
       if (OSS_UNLIKELY(nullptr == context ||
@@ -209,7 +210,10 @@ namespace vessel
          goto error;
       }
 
-      rc = logicalPageSpace::getCache().put(lpid, idMapSlot(psv, pid));
+      desc.pid = pid;
+      desc.birthTick = logicalPageSpace::getCheckpointContext().getCheckpointTick();
+      desc.psv = psv;
+      rc = logicalPageSpace::getMapping().set(lpid, desc);
       if (SDB_OK != rc)
       {
          logger->abort(executor, &lrc);

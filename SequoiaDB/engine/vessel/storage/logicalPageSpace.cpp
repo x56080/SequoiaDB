@@ -63,7 +63,7 @@ namespace engine
 {
 namespace vessel
 {
-   constexpr UINT64 FULL_CHECKPOINT_LPID_CACHE_SIZE = 8388608; /// 8MB
+   constexpr UINT64 FULL_CHECKPOINT_LPID_CACHE_SIZE = 16ull * 1024 * 1024; /// 16MB
    constexpr UINT64 FULL_CHECKPOINT_DELTA_LOG_SIZE = 64ull * 1024 * 1024; // 64MB
    constexpr UINT64 CHECKPOINT_TRIGGER_DIRTY_PAGE_SIZE = 1024ull * 1024 * 1024; // 1GB
 
@@ -107,7 +107,7 @@ namespace vessel
    void logicalPageSpace::fini()
    {
       _sid = INVALID_SPACE_ID;
-      _lpidCache.fini();
+      _lpm.fini();
       _idMapFiles.close();
       _allocator.fini();
       _logConsole.fini();
@@ -136,8 +136,6 @@ namespace vessel
       
       const idMapFile *baseFile = NULL;
       inMemBitmap::options bitmapOptions;
-      logicalPageIdCache::options cacheOptions;
-      const openDBOptions &globalOptions = GET_THREAD_CONTEXT()->getEnv()->options;
 
       if (OSS_UNLIKELY(isOpen()))
       {
@@ -182,14 +180,7 @@ namespace vessel
       }
 
       /// 4. init cache
-      cacheOptions.bucketCount = globalOptions._spaceLpidCacheBucketCount;
-      cacheOptions.bucketLatchCount = globalOptions._spaceLpidCacheBucketLatchCount;
-      rc = _lpidCache.init(cacheOptions, baseFile);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init lpid cache:%d", rc);
-         goto error;
-      }
+      _lpm.rebase(baseFile);
 
       /// 5. init page stoarge
       /// TODO: move to sub class
@@ -233,8 +224,6 @@ namespace vessel
       const idMapFile *base = NULL;
       idMapFileHead baseHead;
       storageCoreArgs dataArgs;
-      logicalPageIdCache::options cacheOptions;
-      const openDBOptions &globalOptions = GET_THREAD_CONTEXT()->getEnv()->options;
 
       if (OSS_UNLIKELY(isOpen()))
       {
@@ -317,14 +306,7 @@ namespace vessel
          goto error;
       }
 
-      cacheOptions.bucketCount = globalOptions._spaceLpidCacheBucketCount;
-      cacheOptions.bucketLatchCount = globalOptions._spaceLpidCacheBucketLatchCount;
-      rc = _lpidCache.init(cacheOptions, base);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init lpid cache:%d", rc);
-         goto error;
-      }
+      _lpm.rebase(base);
 
       rc = resumeToLatestCheckpoint();
       if (SDB_OK != rc)
@@ -458,14 +440,15 @@ namespace vessel
 
       if (isCopyOnWrite())
       {
-         extractDirtySegmentsInCache(segments);
+         segments = std::move(_dirtySegments);
       }
 
-      _lpidCache.setAllPagesImmutable();
+      _lpm.resetCounter();
       mergeWaitingListIntoReadyList();
 
       SDB_ASSERT(lsn.isValid(), "can not be invalid");
       _checkpointContext.clearDirtyLSN();
+      _checkpointContext.incCheckpointTick();
       _checkpointContext.getLatch()->release_w();
       locked = FALSE;
 
@@ -574,15 +557,16 @@ namespace vessel
 
       if (isCopyOnWrite())
       {
-         extractDirtySegmentsInCache(segments);  
+         segments = std::move(_dirtySegments);
       }
 
-      _lpidCache.setAllPagesImmutable();
+      _lpm.archive();
       mergeWaitingListIntoReadyList();
 
       _logConsole.rebase(_logConsole.getBaseSequence() + 1, FALSE);
 
       _checkpointContext.clearDirtyLSN();
+      _checkpointContext.incCheckpointTick();
       _checkpointContext.getLatch()->release_w();
       locked = FALSE;
 
@@ -713,8 +697,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!lpb.isValid(), "impossible");
-      BOOLEAN isMutablePage = FALSE;
-      idMapSlot slot;
+      lpageDescriptor desc;
       BOOLEAN locked = FALSE;
 
       lpb.fini();
@@ -746,18 +729,18 @@ namespace vessel
       }
       locked = TRUE;
 
-      rc = _lpidCache.get(lpid, slot, isMutablePage);
+      rc = _lpm.get(lpid, desc);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to find lpid[%d] in cache:%d", lpid, rc);
          goto error;
       }
 
-      rc = getRuntimePageBuffer(context, slot.pid,
+      rc = getRuntimePageBuffer(context, desc.pid,
                                 mode, lpb._rpb);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get runtime buffer of pid[%d], rc:%d", slot.pid, rc);
+         PD_LOG(PDERROR, "failed to get runtime buffer of pid[%d], rc:%d", desc.pid, rc);
          goto error;
       }
 
@@ -765,7 +748,8 @@ namespace vessel
       lpb._mode = mode;
       lpb._context = context;
       lpb._lps = this;
-      lpb._cowTrigger.reset(slot.psv, isMutablePage);
+      lpb._birthTick = desc.birthTick;
+      lpb._psv = desc.psv;
 
    done:
       return rc;
@@ -788,9 +772,8 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!lpb.isValid(), "impossible");
-      BOOLEAN isMutablePage = FALSE;
-      idMapSlot slot;
       BOOLEAN locked = FALSE;
+      lpageDescriptor desc;
 
       lpb.fini();
       if (OSS_UNLIKELY(!isOpen()))
@@ -824,18 +807,18 @@ namespace vessel
          goto done;
       }
 
-      rc = _lpidCache.get(lpid, slot, isMutablePage);
+      rc = _lpm.get(lpid, desc);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to find lpid[%d] in cache:%d", lpid, rc);
          goto error;
       }
 
-      rc = getRuntimePageBuffer(context, slot.pid,
+      rc = getRuntimePageBuffer(context, desc.pid,
                                 mode, lpb._rpb);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get runtime buffer of pid[%d], rc:%d", slot.pid, rc);
+         PD_LOG(PDERROR, "failed to get runtime buffer of pid[%d], rc:%d", desc.pid, rc);
          goto error;
       }
 
@@ -843,7 +826,8 @@ namespace vessel
       lpb._mode = mode;
       lpb._context = context;
       lpb._lps = this;
-      lpb._cowTrigger.reset(slot.psv, isMutablePage);
+      lpb._birthTick = desc.birthTick;
+      lpb._psv = desc.psv;
    done:
       return rc;
    error:
@@ -863,9 +847,8 @@ namespace vessel
                                                 BOOLEAN &mapped)
    {
       INT32 rc = SDB_OK;
-      BOOLEAN isMutablePage = FALSE;
-      idMapSlot slot;
       BOOLEAN locked = FALSE;
+      lpageDescriptor desc;
       mapped = FALSE;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -904,7 +887,7 @@ namespace vessel
          locked = TRUE;
       }
 
-      rc = _lpidCache.get(lpid, slot, isMutablePage);
+      rc = _lpm.get(lpid, desc);
       if (SDB_VESSEL_LOGICAL_PAGE_UNMAPPED == rc)
       {
          rc = SDB_OK;
@@ -969,7 +952,7 @@ namespace vessel
       }
 
       rc = context->getEnv()->dms.isSnapshotEffective(getSpaceID(),
-                                                      lpb.getCowTrigger().getPsv(),
+                                                      lpb.getPsv(),
                                                       snapshotEffective);
       if (SDB_OK != rc)
       {
@@ -987,7 +970,8 @@ namespace vessel
             goto error;
          }
       }
-      else if (isCopyOnWrite() && !lpb.getCowTrigger().isMutablePid())
+      else if (isCopyOnWrite() &&
+               lpb.getBirthTick() < _checkpointContext.getCheckpointTick())
       {
          rc = remapBufferToNewDataPage(context, TRUE, lpb);
          if (SDB_OK != rc)
@@ -1021,10 +1005,9 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       ossSharedLatchMode mode;
-      idMapSlot slot;
-      BOOLEAN isMutable = FALSE;
       PAGE_ID pid = INVALID_PAGE_ID;
       mappedLogicalPageId mpid;
+      lpageDescriptor desc;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -1050,7 +1033,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _lpidCache.get(lpid, slot, isMutable);
+      rc = _lpm.get(lpid, desc);
       if (SDB_OK == rc)
       {
          goto done;
@@ -1186,7 +1169,8 @@ namespace vessel
       }
 
       /// 4. reset cow trigger
-      lpb._cowTrigger.reset(psv, TRUE);
+      lpb._birthTick = _checkpointContext.getCheckpointTick();
+      lpb._psv = psv;
 
       //PD_LOG(PDDEBUG, "remap lpid[%d] from [%d] to [%d] in lps[%d,%d]",
       //       lpb.getLogicalPid(), oldPid, pid, getSpaceID(), getSpaceType());
@@ -1301,23 +1285,22 @@ namespace vessel
       while (i < count)
       {
          PAGE_ID lpid = lpids[i++];
-         idMapSlot slot;
-         BOOLEAN isMutable = FALSE;
          mappedLogicalPageId mappedId;
          SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
          BOOLEAN snapshotEffective = FALSE;
          ossPoolVector<mappedLogicalPageId> *vec = NULL;
          BOOLEAN releaseOld = FALSE;
+         lpageDescriptor desc;
 
-         INT32 rc = _lpidCache.get(lpid, slot, isMutable);
+         rc = _lpm.get(lpid, desc);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get page[%d] from cache, rc:%d", lpid, rc);
             goto error;
          }
 
-         mappedId.reset(lpid, slot.pid);
-         rc = dms->isSnapshotEffective(getSpaceID(), slot.psv,
+         mappedId.reset(lpid, desc.pid);
+         rc = dms->isSnapshotEffective(getSpaceID(), desc.psv,
                                       snapshotEffective);
          if (SDB_OK != rc)
          {
@@ -1877,11 +1860,13 @@ namespace vessel
       SDB_ASSERT(checkpoint.isValid(), "can not be invalid");
 
       UINT32 oldPageCount = 0;
+      UINT32 deltaPageCount = 0;
+      UINT32 deltaSegCount = 0;
       idMapFile *base = _idMapFiles.getBack<idMapFile>();
       SDB_ASSERT(NULL != base, "can not be null");
-      base->getTotalPageCount(oldPageCount);
       idMapFile *file = NULL;
-      ossPoolMap<PAGE_ID, idMapSlot> sorter;
+      //ossPoolMap<PAGE_ID, lpageDescriptor> delta;
+      DELTA_PAGE_LIST delta;
       
       storageCoreArgs args(ID_MAP_FILE_PAGE_SIZE,
                            ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG,
@@ -1928,67 +1913,47 @@ namespace vessel
          goto error;
       }
 
-      rc = base->copySemgmentsTo(file);
+      PD_LOG(PDDEBUG, "begin to dump delta pages");
+      _lpm.dumpArchivedTable(delta);
+      std::sort(delta.begin(), delta.end(), DELTA_PAGE_LIST_CMP());
+      PD_LOG(PDDEBUG, "end to dump delta pages:%d", delta.size());
+      if (!delta.empty())
+      {
+         PAGE_ID lastLpid = std::get<0>(*delta.rbegin());
+         PAGE_ID maxImp = getImpPidOfLpid(lastLpid);
+         deltaPageCount = maxImp + 1;
+         static_assert(32 == ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG, "must be power of 2");
+         deltaSegCount = ossAlignX(deltaPageCount, ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG) /
+                         ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG;
+         
+      }
+
+      imfHead.totalPageCount = std::max(oldPageCount, deltaPageCount);
+      rc = file->updateUserDefinedHead(hs);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to copy segments to file:%s, rc:%d",
+         PD_LOG(PDERROR, "failed to update user header of file[%s], rc:%d",
                 file->getFullPath(), rc);
          goto error;
       }
 
-      /// to avoid random io, sort first
-      for (UINT32 i = 0; i < _lpidCache.getBucketCount(); ++i)
+      rc = file->ensureSegmentCount(std::max(base->getSegmentCount(), deltaSegCount));
+      if (SDB_OK != rc)
       {
-         const partialImpCacheMap::CACHE_MAP &cm = _lpidCache.getImmutableMap(i);
-         for (partialImpCacheMap::CACHE_MAP::const_iterator itr = cm.begin();
-              itr != cm.end(); ++itr)
-         {
-            SDB_ASSERT(INVALID_PAGE_ID != itr->first, "impossible");
-            sorter[itr->first] = itr->second;
-         }
+         PD_LOG(PDERROR, "failed to extend file space[%s], rc:%d",
+                file->getFullPath(), rc);
+         goto error;
       }
 
-      SDB_ASSERT(ossIsPowerOf2(ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG), "must be power of 2");
-
-      if (!sorter.empty())
+      PD_LOG(PDDEBUG, "begin to merge new base");
+      rc = mergeDataIntoNewBase(base, delta, file);
+      if (SDB_OK != rc)
       {
-         PAGE_ID maxLpid = sorter.rbegin()->first;
-         PAGE_ID maxImp = getImpPidOfLpid(maxLpid);
-         UINT32 minSegCnt = ossAlignX(maxImp + 1, ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG) /
-                            ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG;
-         imfHead.totalPageCount = maxImp + 1;
-         rc = file->updateUserDefinedHead(hs);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to update id map page head:%d", rc);
-            goto error;
-         }
-
-         rc = file->ensureSegmentCountAndInit(minSegCnt);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to extend file space:%d", rc);
-            goto error;
-         }
+         PD_LOG(PDERROR, "failed to merge data into new file:%d", rc);
+         goto error;
       }
+      PD_LOG(PDDEBUG, "end to merge new base");
 
-      for (ossPoolMap<PAGE_ID, idMapSlot>::const_iterator itr = sorter.begin();
-           itr != sorter.end(); ++itr)
-      {
-         UINT32 pos = getIdMapSlotNo(itr->first);
-         ossValuePtr ptr = 0;
-         PAGE_ID imp = getImpPidOfLpid(itr->first);
-         rc = file->getPagePtr(imp, ptr);
-         if (OSS_UNLIKELY(SDB_OK != rc))
-         {
-            PD_LOG(PDERROR, "failed to get page[%d] ptr:%d", imp, rc);
-            goto error;
-         }
-
-         *(((idMapSlot *)ptr) + pos) = itr->second;
-      }
-
-      sorter.clear();
       file->fsync();
 
       rc = file->removeShadowSuffix();
@@ -1999,7 +1964,7 @@ namespace vessel
       }
 
       _idMapFiles.pushBack(file);
-      _lpidCache.resetBaseAndClearImmutableMaps(file);
+      _lpm.rebase(file);
       _logConsole.destroyHistoryFiles();
       _idMapFiles.truncate(3);
       
@@ -2014,20 +1979,108 @@ namespace vessel
       goto done;
    }
 
+   INT32 logicalPageSpace::mergeDataIntoNewBase(const idMapFile *base,
+                                                const DELTA_PAGE_LIST &delta,
+                                                idMapFile *newBase)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != base && base->isOpen(), "can not be invalid");
+      SDB_ASSERT(NULL != newBase && newBase->isOpen(), "can not be invalid");
 
+      strictBuffer buffer;
+      UINT32 basePageCount = base->getTotalPageCount();
+      DELTA_PAGE_LIST::const_iterator iterator = delta.cbegin();
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      CHAR *pageBuffer = tc->allocateBuffer(ID_MAP_FILE_PAGE_SIZE);
+      if (OSS_UNLIKELY(NULL == pageBuffer))
+      {
+         PD_LOG(PDERROR, "failed to allocate mem.");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      buffer.makeWritable(ID_MAP_FILE_PAGE_SIZE, pageBuffer);
+
+      /// to avoid random io.
+      for (UINT32 i = 0; i < basePageCount; ++i)
+      {
+         ossValuePtr ptr, dst = 0;
+
+         rc = base->getPagePtr(i, ptr);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get page[%d] ptr in file[%s], rc:%d",
+                   i, base->getFullPath(), rc);
+            goto error;
+         }
+
+         buffer.write(0, ID_MAP_FILE_PAGE_SIZE, (const void *)ptr);
+         while (delta.cend() != iterator)
+         {
+            PAGE_ID lpid = std::get<0>(*iterator);
+            PAGE_ID imp = getImpPidOfLpid(lpid);
+            UINT32 pos = 0;
+            idMapSlot slot;
+            if (imp != i)
+            {
+               break;
+            }
+
+            slot.pid = std::get<1>(*iterator);
+            slot.psv = std::get<2>(*iterator);
+            pos = getIdMapSlotNo(lpid);
+            *(buffer.getWritableObjPtr<idMapSlot>(pos * sizeof(idMapSlot))) = slot;
+            ++iterator;
+         }
+
+         rc = newBase->getPagePtr(i, dst);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get page[%d] ptr in file[%s], rc:%d",
+                   i, newBase->getFullPath(), rc);
+            goto error;
+         }
+
+         ossMemcpy((void *)dst, pageBuffer, ID_MAP_FILE_PAGE_SIZE);
+      }
+
+      for (; iterator != delta.cend(); ++iterator)
+      {
+         if (INVALID_PAGE_ID == std::get<1>(*iterator))
+         {
+            continue;
+         }
+
+         idMapSlot slot(std::get<2>(*iterator),
+                        std::get<1>(*iterator));
+         UINT32 pos = getIdMapSlotNo(std::get<0>(*iterator));
+         ossValuePtr ptr = 0;
+         PAGE_ID imp = getImpPidOfLpid(std::get<0>(*iterator));
+         rc = newBase->getPagePtr(imp, ptr);
+         if (OSS_UNLIKELY(SDB_OK != rc))
+         {
+            PD_LOG(PDERROR, "failed to get page[%d] ptr:%d", imp, rc);
+            goto error;
+         }
+
+         *(((idMapSlot *)ptr) + pos) = slot;
+      }
+   done:
+      if (NULL != pageBuffer)
+      {
+         tc->releaseBuffer(pageBuffer);
+      }
+      return rc;
+   error:
+      goto done;
+   }
 
    INT32 logicalPageSpace::restoreAllocatorByBaseFile(const idMapFile *base)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(_allocator.isInitialized(), "must be inited");
-      SDB_ASSERT(NULL != base, "can not be null");
-      UINT32 pageCount = 0;
-      rc = base->getTotalPageCount(pageCount);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get page count in id map file:%d", rc);
-         goto error;
-      }
+      SDB_ASSERT(NULL != base && base->isOpen(), "can not be invalid");
+      UINT32 pageCount = base->getTotalPageCount();
 
       if (0 == pageCount)
       {
@@ -2067,7 +2120,7 @@ namespace vessel
    INT32 logicalPageSpace::replayDeltaLog()
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(_lpidCache.isReady(), "can not be invalid");
+      SDB_ASSERT(_lpm.isReady(), "can not be invalid");
       SDB_ASSERT(_logConsole.getLastCheckpoint().isValid(), "can not be invalid");
       dataPageCluster *dpc = getDataStorageObj();
       SDB_ASSERT(NULL != dpc && dpc->isOpen(), "can not be invalid");
@@ -2309,7 +2362,7 @@ namespace vessel
       SDB_ASSERT(NULL != context && context->isOpen(), "can not be invalid");
 
       UINT64 dirtySize = (UINT64)(getStorageCoreArgs().pageSize) *
-                         _lpidCache.getFuzzyMutablePageCount();
+                         _lpm.peekDeltaPageCount();
       if (CHECKPOINT_TRIGGER_DIRTY_PAGE_SIZE <= dirtySize)
       {
          if (_checkpointContext.tryToApplyCheckpoint())
@@ -2329,13 +2382,11 @@ namespace vessel
 
    BOOLEAN logicalPageSpace::needFullCheckpoint()
    {
-      SDB_ASSERT(_lpidCache.isReady(), "can not be invalid");
+      SDB_ASSERT(_lpm.isReady(), "can not be invalid");
       const idMapFile *base = _idMapFiles.getBack<idMapFile>();
-      SDB_ASSERT(NULL != base, "can not be null");
-      UINT32 impCount = 0;
-      base->getTotalPageCount(impCount);
-      UINT64 baseSize = (UINT64)impCount * ID_MAP_FILE_PAGE_SIZE;
-      UINT64 cacheSize = _lpidCache.getFuzzyCacheSize();
+      SDB_ASSERT(NULL != base && base->isOpen(), "can not be null");
+      UINT64 baseSize = (UINT64)(base->getTotalPageCount()) * ID_MAP_FILE_PAGE_SIZE;
+      UINT64 cacheSize = _lpm.getWorkingTableBufferSize();
       UINT64 deltaLogSize = _logConsole.getDeltaLogSize();
       PD_LOG(PDDEBUG, "lps[%d,%d] cache size:%lld, base size:%lld, delta log:%lld",
              getSpaceID(), getSpaceType(), cacheSize, baseSize, deltaLogSize);
@@ -2349,7 +2400,7 @@ namespace vessel
       idMapFile *base = _idMapFiles.getBack<idMapFile>();
       SDB_ASSERT(NULL != base, "base id map file not found");
       SDB_ASSERT(_logConsole.isReady(), "must be ready");
-      SDB_ASSERT(_lpidCache.isReady(), "can not be ready");
+      SDB_ASSERT(_lpm.isReady(), "can not be ready");
 
       idMapFileHead baseHead;
       rc = base->getIdMapFileHead(baseHead);
@@ -2390,31 +2441,10 @@ namespace vessel
       goto done;
    }
 
-   void logicalPageSpace::extractDirtySegmentsInCache(ossPoolSet<UINT32> &segments)
-   {
-      SDB_ASSERT(isOpen(), "can not be invalid");
-      SDB_ASSERT(_lpidCache.isReady(), "can not be invalid");
-      UINT32 pageCountPerSegment = getStorageCoreArgs().maxPageCountPerSeg;
-
-      for (UINT32 i = 0; i < _lpidCache.getBucketCount(); ++i)
-      {
-         const partialImpCacheMap::CACHE_MAP &cm = _lpidCache.getMutableMap(i);
-         for (partialImpCacheMap::CACHE_MAP::const_iterator itr = cm.begin();
-              itr != cm.end(); ++itr)
-         {
-            if (!itr->second.isFree())
-            {
-               segments.insert(itr->second.pid / pageCountPerSegment);
-            }
-         }
-      }
-      return;
-   }
-
    INT32 logicalPageSpace::replayMappingDeltaLog(const deltaLogRecord &dlr)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(_lpidCache.isReady(), "can not be invalid");
+      SDB_ASSERT(_lpm.isReady(), "can not be invalid");
       SDB_ASSERT(dlr.getLogType() == DELTA_LOG_TYPE_MAPPING, "must be mapping log");
       SDB_ASSERT(NULL != _dpc && _dpc->isOpen(), "can not be invalid");
       SDB_ASSERT(_allocator.isInitialized(), "can not be invalid");
@@ -2433,6 +2463,7 @@ namespace vessel
       for (UINT8 i = 0; i < count; ++i)
       {
          PAGE_ID imp = INVALID_PAGE_ID;
+         lpageDescriptor desc;
 
          rc = dlrMappingReader::getItem(dlr, i, mid);
          if (SDB_OK != rc)
@@ -2474,7 +2505,11 @@ namespace vessel
             goto error;
          }
 
-         rc = _lpidCache.upsertWhenRestore(mid.getLpid(), idMapSlot(psv, mid.getPid()));
+         desc.psv = psv;
+         desc.birthTick = -1;
+         desc.pid = mid.getPid();
+
+         rc = _lpm.set(mid.getLpid(), desc);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to upsert lpid[%d] to id cache:%d", mid.getLpid(), rc);
@@ -2491,7 +2526,7 @@ namespace vessel
    INT32 logicalPageSpace::replayUnmappingDeltaLog(const deltaLogRecord &dlr)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(_lpidCache.isReady(), "can not be invalid");
+      SDB_ASSERT(_lpm.isReady(), "can not be invalid");
       SDB_ASSERT(dlr.getLogType() == DELTA_LOG_TYPE_UNMAPPING, "must be mapping log");
       SDB_ASSERT(NULL != _dpc && _dpc->isOpen(), "can not be invalid");
       SDB_ASSERT(_allocator.isInitialized(), "can not be invalid");
@@ -2513,6 +2548,7 @@ namespace vessel
       {
          PAGE_ID imp = INVALID_PAGE_ID;
          mappedLogicalPageId mid;
+
          rc = dlrUnmapingReader::getItem(dlr, i, mid);
          if (SDB_OK != rc)
          {
@@ -2531,7 +2567,7 @@ namespace vessel
             _dpc->releasePage(mid.getPid());
          }
 
-         rc = _lpidCache.upsertWhenRestore(mid.getLpid(), idMapSlot());
+         rc = _lpm.set(mid.getLpid(), lpageDescriptor());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to upsert lpid[%d] into cache:%d", mid.getLpid(), rc);
@@ -2547,7 +2583,7 @@ namespace vessel
    INT32 logicalPageSpace::replayRemmapingDeltaLog(const deltaLogRecord &dlr)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(_lpidCache.isReady(), "can not be invalid");
+      SDB_ASSERT(_lpm.isReady(), "can not be invalid");
       SDB_ASSERT(dlr.getLogType() == DELTA_LOG_TYPE_REMAPPING, "must be mapping log");
       SDB_ASSERT(NULL != _dpc && _dpc->isOpen(), "can not be invalid");
       SDB_ASSERT(_allocator.isInitialized(), "can not be invalid");
@@ -2571,6 +2607,8 @@ namespace vessel
       {
          mappedLogicalPageId mid;
          PAGE_ID oldPid = INVALID_PAGE_ID;
+         lpageDescriptor desc;
+
          rc = dlrRemappingReader::getItem(dlr, i, mid, oldPid);
          if (SDB_OK != rc)
          {
@@ -2597,7 +2635,11 @@ namespace vessel
             _dpc->releasePage(oldPid);
          }
 
-         rc = _lpidCache.upsertWhenRestore(mid.getLpid(), idMapSlot(psv, mid.getPid()));
+         desc.pid = mid.getPid();
+         desc.psv = psv;
+         desc.birthTick = -1;
+         rc = _lpm.set(mid.getLpid(), desc);
+
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to upsert lpid[%d] into lpid cache:%d", mid.getLpid(), rc);
@@ -2655,13 +2697,26 @@ namespace vessel
          }
 
          _checkpointContext.updateDirtyLsn(lsn);
+         if (isCopyOnWrite())
+         {
+            for (UINT32 i = 0; i < mapping.getSize(); ++i)
+            {
+               UINT32 segment = mapping[i].getPid() /
+                                _dpc->getCoreArgs().maxPageCountPerSeg;
+               _dirtySegments.insert(segment);
+            }
+         }
       }
 
       ///update cache
       for (UINT32 i = 0; i < mapping.getSize(); ++i)
       {
-         idMapSlot slot(psv, mapping[i].getPid());
-         rc = _lpidCache.put(mapping[i].getLpid(), slot);
+         lpageDescriptor desc;
+         desc.pid = mapping[i].getPid();
+         desc.birthTick = _checkpointContext.getCheckpointTick();
+         desc.psv = psv;
+
+         rc = _lpm.set(mapping[i].getLpid(), desc);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to upsert lpid[%d] in cache:%d", mapping[i].getLpid(), rc);
@@ -2731,12 +2786,25 @@ namespace vessel
          }
 
          _checkpointContext.updateDirtyLsn(lsn);
+
+         if (isCopyOnWrite())
+         {
+            for (UINT32 i = 0; i < mapping.getSize(); ++i)
+            {
+               UINT32 segment = mapping[i].getPid() /
+                                _dpc->getCoreArgs().maxPageCountPerSeg;
+               _dirtySegments.insert(segment);
+            }
+         }
       }
 
       for (UINT32 i = 0; i < mapping.getSize(); ++i)
       {
-         idMapSlot slot(psv, mapping[i].getPid());
-         rc = _lpidCache.put(mapping[i].getLpid(), slot);
+         lpageDescriptor desc;
+         desc.birthTick = _checkpointContext.getCheckpointTick();
+         desc.psv = psv;
+         desc.pid = mapping[i].getPid();
+         rc = _lpm.set(mapping[i].getLpid(), desc);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to upsert lpid[%d] in cache:%d", mapping[i].getLpid(), rc);
@@ -2826,7 +2894,7 @@ namespace vessel
 
       for (UINT32 i = 0; i < mapping.getSize(); ++i)
       {
-         _lpidCache.remove(mapping[i].getLpid());
+         _lpm.set(mapping[i].getLpid(), lpageDescriptor());
       }
 
       if (releasePid)

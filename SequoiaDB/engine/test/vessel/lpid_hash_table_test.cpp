@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = vesselIdDef.h
+   Source File Name = lpid_hash_table_test.cpp
 
    Descriptive Name =
 
@@ -33,30 +33,42 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_VESSEL_ID_DEF_H_
-#define VESSEL_VESSEL_ID_DEF_H_
+#include "test_def.h"
+#include "vessel/lpageHashTable.h"
+#include <gtest/gtest.h>
+#include <thread>
 
-#include "ossUtil.hpp"
-#include "vessel/pageIdentifier.h"
-
-namespace engine
+class lpid_hash_table_test : public testing::Test
 {
-namespace vessel
+
+};
+
+void insert(engine::vessel::lpageHashTable *ht, INT32 factor, INT32 count)
 {
-   typedef UINT16 SPACE_ID;
-   const SPACE_ID INVALID_SPACE_ID = 65535;
-   const SPACE_ID MAX_SPACE_ID = 16383;
-   const SPACE_ID MAX_SU_COUNT = MAX_SPACE_ID + 1;
+   engine::vessel::lpageDescriptor v;
+   for (INT32 i = 0; i < count; ++i)
+   {
+      engine::vessel::PAGE_ID lpid = ((factor << 24) | i);
+      INT32 rc = ht->set(lpid, v);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+}
 
-   typedef UINT32 PAGE_SNAPSHOT_VERION;
-   const PAGE_SNAPSHOT_VERION INVALID_PAGE_SNAPSHOT_VERSION = 0;
+TEST_F(lpid_hash_table_test, test1)
+{
+   engine::vessel::lpageHashTable ht;
+   constexpr INT32 TCOUNT = 8;
+   INT32 count = 125000 * 2;
+   std::thread threads[TCOUNT];
+   for (INT32 i = 0; i < TCOUNT; ++i)
+   {
+      threads[i] = std::move(std::thread(insert, &ht, i, count));
+   }
 
-   typedef UINT16 CL_MB_ID;
-   const CL_MB_ID INVALID_CL_MB_ID = 65535;
-   const CL_MB_ID MAX_CL_MB_COUNT = 65535;
+   for (INT32 i = 0; i < TCOUNT; ++i)
+   {
+      threads[i].join();
+   }
 
-   static const UINT32 INVALID_CL_PAGE_SEQ = 0xFFFFFFFF;
-
-} /// end of namespace vessel
-} /// end of namespace engine
-#endif//VESSEL_VESSEL_ID_DEF_H_
+   ASSERT_EQ(count * TCOUNT, ht.peek());
+}

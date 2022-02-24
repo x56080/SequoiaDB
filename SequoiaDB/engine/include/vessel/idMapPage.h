@@ -73,7 +73,8 @@ namespace vessel
 
       OSS_INLINE BOOLEAN isFree()const
       {
-         return INVALID_PAGE_ID == pid;
+         return INVALID_PAGE_SNAPSHOT_VERSION == psv ||
+                INVALID_PAGE_ID == pid;
       }
    };// struct idMapSlot
 #pragma pack()
@@ -89,6 +90,7 @@ namespace vessel
 
    OSS_INLINE UINT32 getIdMapSlotNo(PAGE_ID lpid)
    {
+      static_assert(4096 == ID_MAP_PAGE_CAPACITY, "must be power of 2");
       return lpid & (ID_MAP_PAGE_CAPACITY - 1);
    }
 }//namespace vessel

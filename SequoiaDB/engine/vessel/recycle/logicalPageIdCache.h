@@ -38,10 +38,10 @@
 
 #include "vessel/pageIdentifier.h"
 #include "ossMemPool.hpp"
-#include "vessel/partialImpCache.h"
 #include "ossLatch.hpp"
 #include "ossRWMutex.hpp"
 #include "vessel/memoryBlock.h"
+#include "vessel/idMapPage.h"
 
 #include <atomic> // c++11
 
@@ -56,29 +56,17 @@ namespace vessel
 
    class partialImpCacheMap : public SDBObject
    {
-      public:
-         ///<imp pid, pos in imp page>
-         typedef std::pair<PAGE_ID, UINT32> KEY;
-         struct cmp
+      private:
+         struct _hash
          {
-            OSS_INLINE BOOLEAN operator()(const KEY &l, const KEY &r)const
+            size_t operator()(const PAGE_ID &v)const
             {
-               if (l.first < r.first)
-               {
-                  return TRUE;
-               }
-               else if (l.first > r.first)
-               {
-                  return FALSE;
-               }
-               else
-               {
-                  return l.second < r.second;
-               }
+               return v;
             }
-         };
+         };//struct _hash
       public:
-         typedef ossPoolMap<KEY, partialImpCache *, cmp> CACHE_MAP;
+         typedef ossPoolUnorderedMap<PAGE_ID, idMapSlot, _hash> CACHE_MAP;
+
       public:
          partialImpCacheMap(){}
          ~partialImpCacheMap()
@@ -90,35 +78,48 @@ namespace vessel
 
       public:
          void fini();
-         const partialImpCache *find(const KEY &key)const;
-         INT32 insert(const KEY &key, partialImpCache *cache);
-         void upsert(const KEY &key, partialImpCache *cache);
-         partialImpCache *find(const KEY &key);
-         void exportTo(partialImpCacheMap &o, UINT32 &replaced);
-         const CACHE_MAP &get()const {return _map;} 
-         CACHE_MAP &get(){return _map;}
-         OSS_INLINE UINT32 getMapSize()const
+         BOOLEAN find(PAGE_ID lpid, idMapSlot &value, BOOLEAN &isMutable)const;
+         BOOLEAN insert(PAGE_ID lpid, const idMapSlot &value);
+         void upsert(PAGE_ID lpid, const idMapSlot &value);
+         void restoreToImmutableMap(PAGE_ID lpid, const idMapSlot &value);
+         void remove(PAGE_ID lpid);
+         void switchMap();
+         void clearImmutableMap();
+         OSS_INLINE UINT32 getMutableMapSize()const
          {
-            return _map.size();
+            return getMutableMap().size();
          }
-         OSS_INLINE BOOLEAN isEmpty()const
+         OSS_INLINE UINT32 getImmutableMapSize()const
          {
-            return _map.empty();
+            return getImmutableMap().size();
+         }
+
+         static constexpr UINT32 getCacheItemSize()
+         {
+            return sizeof(PAGE_ID) + sizeof(idMapSlot);
          }
 
       public:
-         CACHE_MAP::iterator begin() {return _map.begin();}
-         CACHE_MAP::iterator end() {return _map.end();}
-         CACHE_MAP::const_iterator begin()const {return _map.begin();}
-         CACHE_MAP::const_iterator end()const {return _map.end();}
-         static BOOLEAN isValidKey(const KEY &key);
-         static constexpr UINT32 getCacheItemSize()
+         OSS_INLINE CACHE_MAP &getMutableMap()
          {
-            return sizeof(KEY) + sizeof(partialImpCache);
+            return _maps[_mutablePos];
+         }
+         OSS_INLINE const CACHE_MAP &getMutableMap()const
+         {
+            return _maps[_mutablePos];
+         }
+         OSS_INLINE const CACHE_MAP &getImmutableMap()const
+         {
+            return _maps[_mutablePos ^ 1];
          }
       private:
-         CACHE_MAP _map;
-         //UINT32 _size = 0;
+         OSS_INLINE CACHE_MAP &_getImmutableMap()
+         {
+            return _maps[_mutablePos ^ 1];
+         }
+      private:
+         UINT32 _mutablePos = 0;
+         CACHE_MAP _maps[2];
    };//class partialImpCacheMap
    
    class logicalPageIdCache : public SDBObject
@@ -180,62 +181,52 @@ namespace vessel
 
          void fini();
 
-         /// WARNING:Will not hold any latch. The result may not be real.
-         UINT64 getTotalCacheSize();
+         /// WARNING:The result may not be real.
+         UINT64 getFuzzyCacheSize();
+
+         UINT32 getFuzzyMutablePageCount()const;
 
          ///WARNING: User should ensure that no one can update lpid's mapping when
          /// call put/get.
-         INT32 upsert(PAGE_ID lpid, const idMapSlot &slot);
+         INT32 put(PAGE_ID lpid, const idMapSlot &slot);
 
          INT32 get(PAGE_ID lpid, idMapSlot &slot, BOOLEAN &isMutable);
 
-         /// Set slot as null if do not care about slot before removing.
-         INT32 remove(PAGE_ID lpid, idMapSlot *slot=NULL);
-
-         INT32 estimateMutablePageCount()const;
-
-         INT32 upsertWhenRestore(const deltaLogDumpRecord *lr);
+         void remove(PAGE_ID lpid);
 
       public:         
-         /// set mutableSegmentIds as null if do not care about mutable segments.
-         INT32 prepareToCreateNewBase(UINT32 pageCountPerSeg,
-                                      ossPoolSet<UINT32> *mutableSegmentIds);
+         INT32 resetBaseAndClearImmutableMaps(const idMapFile *file);
 
-         INT32 flushPreparedCacheToFile(idMapFile *file);
+         void setAllPagesImmutable();
 
-         INT32 resetBaseFileAndClearFlushedMaps(const idMapFile *file);
+      public:
+         /// WARNING: not thread-safe
+         const partialImpCacheMap::CACHE_MAP getImmutableMap(UINT32 pos)const;
 
-         INT32 dumpBufferAndSetImmutable(UINT32 pageCountPerSeg,
-                                         ossPoolVector<memoryBlock> &buffers,
-                                         ossPoolSet<UINT32> *mutableSegmentIds);
+         /// WARNING: not thread-safe
+         const partialImpCacheMap::CACHE_MAP getMutableMap(UINT32 pos)const;
 
-         const partialImpCacheMap &getImmutableMap()const
-         {
-            return _immutableMap;
-         }
+         /// WARNING: can be used only when startup
+         INT32 upsertWhenRestore(PAGE_ID lpid, const idMapSlot &slot);
 
       private:
-         INT32 _upsert(PAGE_ID lpid,
-                       const idMapSlot &slot);
+         INT32 _put(PAGE_ID lpid,
+                    const idMapSlot &slot);
          INT32 _get(PAGE_ID lpid, idMapSlot &slot, BOOLEAN &isMutable);
-         INT32 _remove(PAGE_ID lpid,
-                       idMapSlot *slot);
-         INT32 getFromBase(PAGE_ID lpid, idMapSlot &slot);
-
-         INT32 createCacheFromBase(const partialImpCacheMap::KEY &key,
-                                   partialImpCache **cache);
-
-         INT32 findInMemToUpdate(UINT32 bucketPos,
-                                 const partialImpCacheMap::KEY &key,
-                                 partialImpCache **out);
-
-      private:
+         void _remove(PAGE_ID lpid);
+         INT32 getFromBase(PAGE_ID lpid, idMapSlot &slot)const;
          INT32 resetBase(const idMapFile *base);
 
       private:
-         UINT32 getBucketAndPartialCacheIdentity(PAGE_ID lpid,
-                                                 partialImpCacheMap::KEY &key,
-                                                 UINT32 &slotInPartialCache)const;
+         OSS_INLINE UINT32 getBucket(PAGE_ID lpid, ossSLatch **latch)
+         {
+            UINT32 pos = (lpid & (_buckets.size() - 1));
+            if (NULL != latch)
+            {
+               *latch = getBucketLatch(pos);
+            }
+            return pos;
+         }
 
          OSS_INLINE ossSLatch *getBucketLatch(UINT32 bucketNo)
          {
@@ -250,12 +241,8 @@ namespace vessel
          ossPoolVector<_ossSpinSLatchPOSIX> _latches;
          ossPoolVector<partialImpCacheMap *> _buckets;
 
-         const partialImpCacheMap *_immutableCache = NULL;
-         partialImpCacheMap _immutableMap;
-
          /// fuzzy counter
          std::atomic_int _counter = {0};
-         std::atomic_int _bucketsCacheCounter = {0};
    };//class logicalPageIdCache
 }//namespace vessel
 }//namespace engine

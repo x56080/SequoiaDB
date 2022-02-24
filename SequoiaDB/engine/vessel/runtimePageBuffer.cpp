@@ -50,6 +50,44 @@ namespace vessel
       fini();
    }
 
+   runtimePageBuffer::runtimePageBuffer(runtimePageBuffer &&o)
+   {
+      if (o.isValid())
+      {
+         _gpid = o._gpid;
+         o._gpid.reset();
+         _pageSize = o._pageSize;
+         o._pageSize = 0;
+         _flags = o._flags;
+         o._flags = 0;
+         _tuple = std::move(o._tuple);
+         _buffer = o._buffer;
+         o._buffer = 0;
+         _commitedLsn = o._commitedLsn;
+         o._commitedLsn = DPS_INVALID_LSN_OFFSET;
+      }
+   }
+
+   runtimePageBuffer &runtimePageBuffer::operator=(runtimePageBuffer &&o)
+   {
+      fini();
+      if (o.isValid())
+      {
+         _gpid = o._gpid;
+         o._gpid.reset();
+         _pageSize = o._pageSize;
+         o._pageSize = 0;
+         _flags = o._flags;
+         o._flags = 0;
+         _tuple = std::move(o._tuple);
+         _buffer = o._buffer;
+         o._buffer = 0;
+         _commitedLsn = o._commitedLsn;
+         o._commitedLsn = DPS_INVALID_LSN_OFFSET;
+      }
+      return *this;
+   }
+
    void runtimePageBuffer::fini()
    {
       if (_tuple.isValid())
