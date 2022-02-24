@@ -32,6 +32,7 @@ SequoiaDB 的节点可以以多种角色运行，其中[数据节点][data]与[�
 + [复制组选举][election]
 + [部署复制组][create]
 + [主备一致性][consistency]
++ [复制组熔断][replica_set]
 + [复制组监控][monitor]
 
 [^_^]:
@@ -44,6 +45,7 @@ SequoiaDB 的节点可以以多种角色运行，其中[数据节点][data]与[�
 [election]:manual/Distributed_Engine/Architecture/Replication/election.md
 [create]:manual/Distributed_Engine/Architecture/Replication/create.md
 [consistency]:manual/Distributed_Engine/Architecture/Replication/primary_secondary_consistency.md
+[replica_set]:manual/Distributed_Engine/Architecture/Replication/replica_set.md
 [monitor]:manual/Distributed_Engine/Architecture/Replication/monitoring.md
 
 

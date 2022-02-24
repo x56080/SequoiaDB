@@ -1037,6 +1037,12 @@
                            "en": "Primary Secondary Consistency"
                         },
                         {
+                           "id": 1599727239,
+                           "file": "replica_set",
+                           "cn": "复制组熔断",
+                           "en": "Circuit Breaker"
+                        },
+                        {
                            "id": 1600677192,
                            "file": "monitoring",
                            "cn": "复制组监控",
@@ -1861,26 +1867,6 @@
                            "file": "analyze",
                            "cn": "trace分析方法",
                            "en": "trace analysis"
-                        }
-                     ]
-                  },
-                  {
-                     "id": 1599727016,
-                     "dir": "CircuitBreaker",
-                     "cn": "熔断机制",
-                     "en": "Circuit Breaker",
-                     "contents": [
-                        {
-                           "id": 1599727157,
-                           "file": "connection_pool",
-                           "cn": "连接池熔断机制",
-                           "en": "Connection Pool"
-                        },
-                        {
-                           "id": 1599727239,
-                           "file": "replica_set",
-                           "cn": "复制组熔断机制",
-                           "en": "Replication"
                         }
                      ]
                   },
