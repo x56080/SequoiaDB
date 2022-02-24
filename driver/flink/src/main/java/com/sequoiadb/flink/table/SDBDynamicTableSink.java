@@ -48,6 +48,7 @@ public class SDBDynamicTableSink implements DynamicTableSink {
     public SDBDynamicTableSink(
         SDBSinkOptions sdboptions,
         DataType producedDataType) {
+            LOG.info("sink options: {}", sdboptions);
             this.sdbOptions = sdboptions;
             this.producedDataType = producedDataType;
             this.parallel = sdboptions.getSinkParallelism();

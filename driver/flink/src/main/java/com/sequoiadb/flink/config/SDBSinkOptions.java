@@ -102,4 +102,27 @@ public class SDBSinkOptions extends SDBClientOptions {
     public Boolean getTransactionOn() {
         return transactionOn;
     }
+    @Override
+    public String toString() {
+        return "SDBSinkOptions [" 
+        + "hosts= " + getHosts() 
+        + ", collectionSpace=" + getCollectionSpace() 
+        + ", collection=" + getCollection() 
+        + ", username=" + getUsername() 
+        + " autoSplit=" + autoSplit 
+        + ", bulkSize=" + bulkSize 
+        + ", compressionType=" + compressionType 
+        + ", domain=" + domain 
+        + ", group=" + group 
+        + ", ignoreNullField=" + ignoreNullField
+        + ", idempotent=" + idempotent 
+        + ", maxBulkFillTime=" + maxBulkFillTime 
+        + ", pageSize=" + pageSize
+        + ", replSize=" + replSize 
+        + ", shardingKey=" + shardingKey 
+        + ", shardingType=" + shardingType
+        + ", sinkParallelism=" + sinkParallelism 
+        + ", transactionOn=" + transactionOn + "]";
+    }
+
 }
