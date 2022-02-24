@@ -18,6 +18,7 @@ package com.sequoiadb.flink.table;
 
 import com.sequoiadb.flink.codec.SDBDataConverter;
 import com.sequoiadb.flink.config.SDBSinkOptions;
+import com.sequoiadb.flink.exception.SDBException;
 import com.sequoiadb.flink.sink.SDBSink;
 
 import org.apache.flink.table.connector.ChangelogMode;
@@ -35,7 +36,8 @@ public class SDBDynamicTableSink implements DynamicTableSink {
     private SDBSinkOptions sdbOptions;
     private DataType producedDataType;
     private int parallel;
-
+    private final String SDB_BSON_OID = "_id";
+    
     private final static Logger LOG = LoggerFactory.getLogger(SDBDynamicTableSink.class);
 
     /*
@@ -72,9 +74,12 @@ public class SDBDynamicTableSink implements DynamicTableSink {
     @Override
     public SinkRuntimeProvider getSinkRuntimeProvider(Context context) {
         LOG.debug("create sink runtime provider");
-        SDBDataConverter dataConverter
-            = new SDBDataConverter(((RowType) producedDataType.getLogicalType()));
-        return SinkProvider.of( new SDBSink<RowData>(sdbOptions, dataConverter), parallel);
+        SDBDataConverter dataConverter = new SDBDataConverter(((RowType) producedDataType.getLogicalType()));
+        if (sdbOptions.getTransactionOn() && !sdbOptions.getIdempotent()
+                && ((RowType) producedDataType.getLogicalType()).getFieldNames().contains(SDB_BSON_OID)) {
+            throw new SDBException("Table Schema Contains _id, when transaction on is set and no unique index");
+        }
+        return SinkProvider.of(new SDBSink<RowData>(sdbOptions, dataConverter), parallel);
     }
 
     @Override

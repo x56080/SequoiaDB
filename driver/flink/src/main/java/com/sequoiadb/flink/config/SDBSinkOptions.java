@@ -35,7 +35,7 @@ public class SDBSinkOptions extends SDBClientOptions {
     private final long maxBulkFillTime;
     private final Boolean transactionOn;
 
-    private final Boolean indempotent;
+    private final Boolean idempotent;
 
     public SDBSinkOptions(ReadableConfig options) {
         super(options);
@@ -54,12 +54,12 @@ public class SDBSinkOptions extends SDBClientOptions {
         this.maxBulkFillTime = options.get(SDBOptions.MAX_BULK_FILL_TIME);
         this.transactionOn = options.get(SDBOptions.TRANSACTION_ON);
 
-        this.indempotent = SDBSinkClient.checkUniqueIndex(super.getHosts(), super.getCollectionSpace(),
+        this.idempotent = SDBSinkClient.checkUniqueIndex(super.getHosts(), super.getCollectionSpace(),
                 super.getCollection(), super.getUsername(), super.getPassword());
     }
 
-    public Boolean getIndempotent() {
-        return indempotent;
+    public Boolean getIdempotent() {
+        return idempotent;
     }
 
     public int getSinkParallelism() {

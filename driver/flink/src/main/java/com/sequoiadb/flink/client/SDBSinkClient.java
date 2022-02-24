@@ -130,26 +130,27 @@ public class SDBSinkClient implements SDBClient {
         List<String> hosts, String collectionSpace, String collection, String username, String password){
         ConfigOptions options = new ConfigOptions();
         Sequoiadb db = new Sequoiadb(hosts, username, password, options); 
-        Boolean indempotent = false;
-        LOG.info("check indempotent");
+        Boolean idempotent = false;
+        LOG.info("check idempotent");
         try {
             DBCursor indexes =db.getCollectionSpace(collectionSpace).getCollection(collection).getIndexes();
             while (indexes.hasNext()) {
-                indempotent = (Boolean)(
+                idempotent = (Boolean)(
                     (BSONObject) indexes
                                     .getNext()
                                     .get(SDBConstant.INDEX_DEF)
                     )
                     .get(SDBConstant.UNIQUE);
-                if (indempotent) return true; //break out if there is a unique index
+                if (idempotent) return true; //break out if there is a unique index
             }
+            db.getCollectionSpace(collectionSpace).getCollection(collection).createIdIndex(null);            
         } catch (BaseException e) {
-            indempotent = false;
+            idempotent = false;
         } finally {
             db.close();
         }
 
-        return indempotent;
+        return idempotent;
     }
 
     /*
