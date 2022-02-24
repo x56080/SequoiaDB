@@ -9,7 +9,7 @@ SequoiaDB 巨杉数据库是一款金融级分布式关系型数据库，产品�
 **接口变更：**
 
 - SQL引擎
-  - MySQL/MariaDB 增加 preferedinstance 配置参数
+  - MySQL/MariaDB 增加 preferredinstance 配置参数
 - fap 支持 findAndModify 功能
 - fap 支持 bulkWrite 功能
 

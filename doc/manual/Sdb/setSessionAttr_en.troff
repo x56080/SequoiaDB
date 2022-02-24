@@ -21,11 +21,11 @@ options ( \f[I]object, required\f[] )
 .PP
 The attributes of the session can be set through the parameter "options":
 .IP \[bu] 2
-PreferedInstance ( \f[I]string/array/number\f[] ): Preferences for session read
+PreferredInstance ( \f[I]string/array/number\f[] ): Preferences for session read
 operations.
 The defaul is the value of the parameter "preferdinstance" in the coord node
 configuration file.
-If the "perferedinstance" is not configured, the default is "M".
+If the "preferredinstance" is not configured, the default is "M".
 .RS 2
 .PP
 The value type is divided into role value and instance value.
@@ -76,18 +76,18 @@ If there is a write request before the read request in the same session, the
 read request will use the node (read\-write instance) used by the write request
 for reading by default within the validity period.
 Users can modify the validity period of the read request multiplexed write
-request node by configuring "PreferedPeriod".
+request node by configuring "PreferredPeriod".
 .RE
 .RE
 .PP
-Format: \f[C]PreferedInstance: "M"\f[] or
-\f[C]PreferedInstance: [1, 10, "S"]\f[]
+Format: \f[C]PreferredInstance: "M"\f[] or
+\f[C]PreferredInstance: [1, 10, "S"]\f[]
 .IP \[bu] 2
-PreferedInstanceMode ( \f[I]string\f[] ): When there are multiple candidate
+PreferredInstanceMode ( \f[I]string\f[] ): When there are multiple candidate
 instances, specify the session selection mode.
-The default is the value of the parameter "preferedinstancemode" in the coord
+The default is the value of the parameter "preferredinstancemode" in the coord
 node configuration file.
-If there is no configuration "preferedinstancemode", the default is "random".
+If there is no configuration "preferredinstancemode", the default is "random".
 .RS 2
 .PP
 The values are as follows:
@@ -97,39 +97,40 @@ The values are as follows:
 "ordered"：Select from the candidate instance values in the order of parameter
 "PerferedInstance".
 .PP
-Format: \f[C]PreferedInstaceMode: "random"\f[]
+Format: \f[C]PreferredInstaceMode: "random"\f[]
 .RE
 .IP \[bu] 2
-PreferedPeriod ( \f[I]number\f[] ): Specify the effective period of the
+PreferredPeriod ( \f[I]number\f[] ): Specify the effective period of the
 preferred instance in seconds.
-The default is the value of the parameter "preferedperiod" in the coord node
+The default is the value of the parameter "preferredperiod" in the coord node
 configuration file.
-If the "preferedperiod" is not configured, the default is 60.
+If the "preferredperiod" is not configured, the default is 60.
 .RS 2
 .IP \[bu] 2
-After each "PreferedPeriod" valid period, the read request will will re\-select
-the appropriate instance for query according to the value of "PreferedInstance".
+After each "PreferredPeriod" valid period, the read request will will re\-select
+the appropriate instance for query according to the value of
+"PreferredInstance".
 .IP \[bu] 2
 The value range of this parameter is [\-1, 2^31\-1]; a value of \-1 means no
 invalidation; a value of 0 means that the last selected instance is not used for
-this query and reselected according to parameter "Preferedinstance".
+this query and reselected according to parameter "Preferredinstance".
 .IP \[bu] 2
 This parameter is only applicable to SequoiaDB v2.8.9, v3.2.5 and above.
 .PP
-Format: \f[C]PreferedPeriod: 60\f[]
+Format: \f[C]PreferredPeriod: 60\f[]
 .RE
 .IP \[bu] 2
-PreferedStrict ( \f[I]boolean\f[] ): Specifies whether the node selection is
+PreferredStrict ( \f[I]boolean\f[] ): Specifies whether the node selection is
 strict mode.
 The default value is false, non\-strict mode.
 .RS 2
 .PP
 When specified as strict mode, the node can only be selected from the instance
-value specified by the parameter "Preferedinstance".
-if "Preferedinstance" does not specify an instance value, this parameter does
+value specified by the parameter "Preferredinstance".
+if "Preferredinstance" does not specify an instance value, this parameter does
 not take effect.
 .PP
-Format: \f[C]PreferedStrict: true\f[]
+Format: \f[C]PreferredStrict: true\f[]
 .RE
 .IP \[bu] 2
 Timeout ( \f[I]number\f[] ): Specify the timeout period for the session to
@@ -154,8 +155,6 @@ The values are as follows:
 1: RC level
 .IP \[bu] 2
 2: RS level
-.IP \[bu] 2
-3：RR level
 .PP
 Format: \f[C]TransIsolation: 1\f[]
 .RE
@@ -311,7 +310,7 @@ getLastError() to get the error code.
 For more details, refer to Troubleshooting.
 .SH VERSION
 .PP
-v5.0 and above
+v3.4 and above
 .SH EXAMPLES
 .IP \[bu] 2
 Set session priority to get data from the "primary" database instance first.
@@ -319,7 +318,7 @@ Set session priority to get data from the "primary" database instance first.
 .IP
 .nf
 \f[C]
-> db.setSessionAttr({PreferedInstance: "M"})
+> db.setSessionAttr({PreferredInstance: "M"})
 \f[]
 .fi
 .RE
@@ -329,7 +328,7 @@ Set the session to read data from the secondary intance 1 and 3 first.
 .IP
 .nf
 \f[C]
-> db.setSessionAttr({PreferedInstance: [1, 3, "S"]})
+> db.setSessionAttr({PreferredInstance: [1, 3, "S"]})
 \f[]
 .fi
 .RE

@@ -136,7 +136,7 @@ on the coordinator, the default value is true.
 .RS 2
 .PP
 The supported attributes include
-PreferedInstance，PreferedInstanceMode，PreferedStrict，PreferedPeriod and
+PreferredInstance，PreferredInstanceMode，PreferredStrict，PreferredPeriod and
 Timeout.
 .PP
 Format: \f[C]InheritSessionAttr: true\f[]

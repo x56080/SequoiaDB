@@ -131,7 +131,7 @@ InheritSessionAttr（ \f[I]boolean\f[]
 .RS 2
 .PP
 支持继承的属性包括
-PreferedInstance、PreferedInstanceMode、PreferedStrict、PreferedPeriod 和
+PreferredInstance、PreferredInstanceMode、PreferredStrict、PreferredPeriod 和
 Timeout。
 .PP
 格式：\f[C]InheritSessionAttr: true\f[]

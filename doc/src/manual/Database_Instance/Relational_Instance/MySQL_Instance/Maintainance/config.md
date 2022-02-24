@@ -238,7 +238,7 @@
 
 **sequoiadb_preferred_instance**
 
-该参数可以配置 MySQL 会话进行读操作时，优先选择的 SequoiaDB 节点，取值规则可参考 [PreferedInstance][setSessionAttr] 参数说明。
+该参数可以配置 MySQL 会话进行读操作时，优先选择的 SequoiaDB 节点，取值规则可参考 [PreferredInstance][setSessionAttr] 参数说明。
 
 + 类型：string
 + 默认值："M"
@@ -247,7 +247,7 @@
 
 **sequoiadb_preferred_instance_mode**
 
-该参数可以配置多个节点符合 sequoiadb_preferred_instance 条件时，节点的选择模式，取值可参考 [PreferedInstanceMode][setSessionAttr] 参数说明。
+该参数可以配置多个节点符合 sequoiadb_preferred_instance 条件时，节点的选择模式，取值可参考 [PreferredInstanceMode][setSessionAttr] 参数说明。
 
 + 类型：string
 + 默认值："random"

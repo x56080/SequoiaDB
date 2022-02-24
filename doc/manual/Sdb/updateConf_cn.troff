@@ -61,7 +61,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-preferedinstance:\[aq]A\[aq],
+preferredinstance:\[aq]A\[aq],
 T}@T{
 T}
 T{
@@ -125,14 +125,14 @@ v2.9 及以上版本
 .fi
 .RE
 .IP \[bu] 2
-配置数据组 db2 上所有数据节点的 preferedinstance 和 diaglevel 参数。
+配置数据组 db2 上所有数据节点的 preferredinstance 和 diaglevel 参数。
 .RS 2
 .IP
 .nf
 \f[C]
 // 连接协调节点
 > db = new Sdb( "localhost", 11810 )
-> db.updateConf( { preferedinstance:\[aq]A\[aq], diaglevel:3 }, { GroupName:"db2" } )
+> db.updateConf( { preferredinstance:\[aq]A\[aq], diaglevel:3 }, { GroupName:"db2" } )
 \f[]
 .fi
 .RE

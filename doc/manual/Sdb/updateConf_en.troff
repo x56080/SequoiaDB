@@ -22,7 +22,7 @@ changed.
 .RS 2
 .PP
 The specific configurations to update.
-Including configuration name and value, format: { preferedinstance:\[aq]A\[aq],
+Including configuration name and value, format: { preferredinstance:\[aq]A\[aq],
 diaglevel:3 }
 .RE
 .IP \[bu] 2
@@ -150,13 +150,13 @@ Set configuration \[aq]diaglevel\[aq] on data node 20000.
 .fi
 .RE
 .IP "2." 3
-Set configuration \[aq]preferedinstance\[aq] and \[aq]diaglevel\[aq] on all
+Set configuration \[aq]preferredinstance\[aq] and \[aq]diaglevel\[aq] on all
 nodes of group db2.
 .nf
 \f[C]
 // connect to coord
 > db = new Sdb( "localhost", 11810 )
-> db.updateConf( { preferedinstance:\[aq]A\[aq], diaglevel:3 }, { GroupName:"db2" } )
+> db.updateConf( { preferredinstance:\[aq]A\[aq], diaglevel:3 }, { GroupName:"db2" } )
 \f[]
 .fi
 .RE

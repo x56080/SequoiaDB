@@ -16,7 +16,7 @@ Update node configuration and reload all configurations. Some configurations req
 
 * `configs` ( json object , *Required* )
 
-	The specific configurations to update. Including configuration name and value,  	format: { preferedinstance:'A', diaglevel:3 }
+	The specific configurations to update. Including configuration name and value,  	format: { preferredinstance:'A', diaglevel:3 }
 
 * `options` ( json object )
 
@@ -100,12 +100,12 @@ Since v2.9.
 	> db.updateConf( { diaglevel:3 }, { GroupName:"db1", ServiceName:"20000" } )
  	```
 
-2. Set configuration 'preferedinstance' and 'diaglevel' on all nodes of group db2.
+2. Set configuration 'preferredinstance' and 'diaglevel' on all nodes of group db2.
 
 	```lang-javascript
 	// connect to coord
 	> db = new Sdb( "localhost", 11810 )
-	> db.updateConf( { preferedinstance:'A', diaglevel:3 }, { GroupName:"db2" } )
+	> db.updateConf( { preferredinstance:'A', diaglevel:3 }, { GroupName:"db2" } )
 	```
 
 3. Get more specific informantion on error.

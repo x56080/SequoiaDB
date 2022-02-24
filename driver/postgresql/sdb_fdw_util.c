@@ -1115,8 +1115,8 @@ sdbConnectionHandle sdbGetConnectionHandle( const char **serverList,
                           errmsg( "set connection's preference instance failed"
                                   ":rc=%d,preference=%s", rc,
                                   preference_instance ),
-                          errhint( "Make sure the OPTION_NAME_PREFEREDINSTANCE "
-                                   "are valid" ) ) ) ;
+                          errhint( "Make sure the "OPTION_NAME_PREFERREDINSTANCE
+                                   " are valid" ) ) ) ;
    }
 
    sdbSetConnectionInterruptFunc( hConnection, sdbIsInterrupt ) ;

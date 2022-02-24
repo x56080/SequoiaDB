@@ -9600,7 +9600,8 @@ SDB_EXPORT INT32 sdbSetSessionAttr ( sdbConnectionHandle cHandle,
       // get key
       const CHAR * key = bson_iterator_key( &it ) ;
 
-      if ( 0 == ossStrcasecmp( FIELD_NAME_PREFERED_INSTANCE, key ) )
+      if ( 0 == ossStrcasecmp( FIELD_NAME_PREFERED_INSTANCE, key ) ||
+           0 == ossStrcasecmp( FIELD_NAME_PREFERRED_INSTANCE, key ) )
       {
          switch ( bson_iterator_type( &it ) )
          {

@@ -20,7 +20,7 @@ options ( *object, required* )
 
 The attributes of the session can be set through the parameter "options":
 
-- PreferedInstance ( *string/array/number* ): Preferences for session read operations. The defaul is the value of the parameter "preferdinstance" in the coord node configuration file. If the "perferedinstance" is not configured, the default is "M".
+- PreferredInstance ( *string/array/number* ): Preferences for session read operations. The defaul is the value of the parameter "preferdinstance" in the coord node configuration file. If the "preferredinstance" is not configured, the default is "M".
 
     The value type is divided into role value and instance value. Users can use an array to specify multiple values, details as follows:
 
@@ -40,32 +40,32 @@ The attributes of the session can be set through the parameter "options":
     > - The symbol "-" is used to extend the value of the role. If users use "-" to expend the role value, if the corresponding node is not matched, the node in the specified role will be randomly selected. For example, when the value is [1, "-S"], if the corresponding node is not matched, the node will be randomly selected from the standby nodes included in the daa group.
     > - When multiple role values are specified, the semantics of the role and its expanded value are the same, and only the first value takes effect. For example, when the value is ["-M", "S"], only "-M" takes effect, indicating that the standby node in the data group is selected first.
     > - When specifying an instance value independently, if there is no node corresponding to the instance ID in the data group, the instanceid of the node will be reassigned from 1 according to the positive sequence of the NodeID in the data group. At the same time, the server will convert the instance ID according to (instanceid - 1)%(total number of nodes), and then match the converted value with the instanceid to obtain the corresponding node.
-    > - If there is a write request before the read request in the same session, the read request will use the node (read-write instance) used by the write request for reading by default within the validity period. Users can modify the validity period of the read request multiplexed write request node by configuring "PreferedPeriod".
+    > - If there is a write request before the read request in the same session, the read request will use the node (read-write instance) used by the write request for reading by default within the validity period. Users can modify the validity period of the read request multiplexed write request node by configuring "PreferredPeriod".
 
-   Format: `PreferedInstance: "M"` or `PreferedInstance: [1, 10, "S"]`
+   Format: `PreferredInstance: "M"` or `PreferredInstance: [1, 10, "S"]`
 
-- PreferedInstanceMode ( *string* ): When there are multiple candidate instances, specify the session selection mode. The default is the value of the parameter "preferedinstancemode" in the coord node configuration file. If there is no configuration "preferedinstancemode", the default is "random".
+- PreferredInstanceMode ( *string* ): When there are multiple candidate instances, specify the session selection mode. The default is the value of the parameter "preferredinstancemode" in the coord node configuration file. If there is no configuration "preferredinstancemode", the default is "random".
 
     The values are as follows:
 
     - "random": Randomly select from candidate instance values.
     - "ordered"：Select from the candidate instance values in the order of parameter "PerferedInstance".
 
-    Format: `PreferedInstaceMode: "random"`
+    Format: `PreferredInstaceMode: "random"`
 
-- PreferedPeriod ( *number* ): Specify the effective period of the preferred instance in seconds. The default is the value of the parameter "preferedperiod" in the coord node configuration file. If the "preferedperiod" is not configured, the default is 60.
+- PreferredPeriod ( *number* ): Specify the effective period of the preferred instance in seconds. The default is the value of the parameter "preferredperiod" in the coord node configuration file. If the "preferredperiod" is not configured, the default is 60.
 
-    - After each "PreferedPeriod" valid period, the read request will will re-select the appropriate instance for query according to the value of "PreferedInstance".
-    - The value range of this parameter is [-1, 2^31-1]; a value of -1 means no invalidation; a value of 0 means that the last selected instance is not used for this query and reselected according to parameter "Preferedinstance".
+    - After each "PreferredPeriod" valid period, the read request will will re-select the appropriate instance for query according to the value of "PreferredInstance".
+    - The value range of this parameter is [-1, 2^31-1]; a value of -1 means no invalidation; a value of 0 means that the last selected instance is not used for this query and reselected according to parameter "Preferredinstance".
     - This parameter is only applicable to SequoiaDB v2.8.9, v3.2.5 and above.
 
-    Format: `PreferedPeriod: 60`
+    Format: `PreferredPeriod: 60`
 
-- PreferedStrict ( *boolean* ): Specifies whether the node selection is strict mode. The default value is false, non-strict mode.
+- PreferredStrict ( *boolean* ): Specifies whether the node selection is strict mode. The default value is false, non-strict mode.
 
-    When specified as strict mode, the node can only be selected from the instance value specified by the parameter "Preferedinstance". if "Preferedinstance" does not specify an instance value, this parameter does not take effect.
+    When specified as strict mode, the node can only be selected from the instance value specified by the parameter "Preferredinstance". if "Preferredinstance" does not specify an instance value, this parameter does not take effect.
 
-    Format: `PreferedStrict: true`
+    Format: `PreferredStrict: true`
 
 - Timeout ( *number* ): Specify the timeout period for the session to perform operations, error message will be returned when timeout, in milliseconds, the default value is -1.
 
@@ -156,13 +156,13 @@ v5.0 and above
 * Set session priority to get data from the "primary" database instance first.
 
     ```lang-javascript
-    > db.setSessionAttr({PreferedInstance: "M"})
+    > db.setSessionAttr({PreferredInstance: "M"})
     ```
 
 * Set the session to read data from the secondary intance 1 and 3 first.
 
     ```lang-javascript
-    > db.setSessionAttr({PreferedInstance: [1, 3, "S"]})
+    > db.setSessionAttr({PreferredInstance: [1, 3, "S"]})
     ```
 
 * Set the operation timeout for the sessions to 10 seconds.
