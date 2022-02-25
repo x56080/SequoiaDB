@@ -2,8 +2,8 @@
  * @Description   : 删除已复制索引，再次复制同名索引（索引定义不同）   
  * @Author        : wu yan
  * @CreateTime    : 2021.08.02
- * @LastEditTime  : 2022.01.20
- * @LastEditors   : Wu Yan
+ * @LastEditTime  : 2022.02.25
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 
@@ -25,11 +25,21 @@ function test ()
    //主表上复制索引到指定子表
    var expRecs = insertBulkData( maincl, recordNum );
    maincl.copyIndex( COMMCSNAME + "." + subCLName1, indexName );
+   commCheckIndexConsistent( db, COMMCSNAME, subCLName1, indexName, true );
 
    //删除索引，构造只有主表上存在索引场景
    maincl.dropIndex( indexName );
+   checkIndexExist( db, COMMCSNAME, mainCLName, indexName, false );
+   commCheckIndexConsistent( db, COMMCSNAME, subCLName1, indexName, false );
+
    maincl.createIndex( indexName, { a: 1, no: 1 } );
+   checkIndexExist( db, COMMCSNAME, mainCLName, indexName, true );
+   commCheckIndexConsistent( db, COMMCSNAME, subCLName1, indexName, true );
+   commCheckIndexConsistent( db, COMMCSNAME, subCLName2, indexName, true );
+
    subcl1.dropIndex( indexName );
+   commCheckIndexConsistent( db, COMMCSNAME, subCLName1, indexName, false );
+
    maincl.copyIndex( COMMCSNAME + "." + subCLName1, indexName );
 
    var cursor = maincl.find( {}, { "_id": { "$include": 0 } } ).sort( { "a": 1 } );

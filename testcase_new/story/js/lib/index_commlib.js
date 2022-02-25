@@ -1002,4 +1002,53 @@ function checkExistIndexConsistent ( db, csname, clname, idxname )
    }
 }
 
+/******************************************************************************
+ * @description: 等待所有索引任务结束（不能用于包含取消任务的用例）
+ * @param {string} csName      //集合空间名称 
+ * @param {string} clName      //集合名称 
+ * @param {string} indexName   //索引名称
+ ******************************************************************************/
+function waitAllTaskEnd ( db, csName, clName, indexName )
+{
+   var doTime = 0;
+   var timeOut = 120000;
+   var nodes = commGetCLNodes( db, csName + "." + clName );
+   var i = 0;
+   do
+   {
+      var taskEnd = true;
+      var cursorNum = 0;
+      var cursor = db.snapshot( SDB_SNAP_TASKS, { "Name": csName + "." + clName, "IndexDef.name": indexName } );
+      while( cursor.next() )
+      {
+         var snapshotTasks = [];
+         var obj = cursor.current().toObj();
+         snapshotTasks.push( obj );
+         var status = obj.Status;
+         if( status != 9 )
+         {
+            taskEnd = false;
+            sleep( 200 );
+            doTime += 200;
+            continue;
+         }
+         cursorNum++;
+      }
+      if( cursorNum % nodes.length != 0 )
+      {
+         taskEnd = false;
+         sleep( 200 );
+         doTime += 200;
+      }
+      if( taskEnd )
+      {
+         break;
+      }
+   } while( doTime < timeOut );
 
+   if( doTime >= timeOut )
+   {
+      throw new Error( "wait timeout all tasks end ! " + JSON.stringify( snapshotTasks ) );
+   }
+
+}

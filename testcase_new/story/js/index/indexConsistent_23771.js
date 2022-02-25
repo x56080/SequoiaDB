@@ -2,7 +2,7 @@
  * @Description   : seqDB-23771:连续创建/删除相同索引
  * @Author        : Yi Pan
  * @CreateTime    : 2021.03.29
- * @LastEditTime  : 2021.09.23
+ * @LastEditTime  : 2022.02.25
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -25,6 +25,9 @@ function test ()
 
    maincl.createIndex( indexName, { c: 1 } );
    var docs = insertBulkData( maincl, 1000 );
+   checkIndexExist( db, csName, mainCLName, indexName, true );
+   commCheckIndexConsistent( db, csName, subCLName1, indexName, true );
+   commCheckIndexConsistent( db, csName, subCLName2, indexName, true );
 
    // 删除索引再次创建相同索引
    maincl.dropIndex( indexName );

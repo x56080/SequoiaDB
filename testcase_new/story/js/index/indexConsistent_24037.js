@@ -2,7 +2,7 @@
  * @Description   : seqDB-24037:创建删除id索引
  * @Author        : Yi Pan
  * @CreateTime    : 2021.05.11
- * @LastEditTime  : 2021.09.24
+ * @LastEditTime  : 2022.02.25
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -30,7 +30,7 @@ function test ( testPara )
 function checkExistIndex ( db, csName, clName, indexName )
 {
    var doTime = 0;
-   var timeOut = 10000;
+   var timeOut = 600000;
    var nodes = commGetCLNodes( db, csName + "." + clName );
    do
    {

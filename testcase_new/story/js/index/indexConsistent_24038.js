@@ -2,7 +2,7 @@
  * @Description   : seqDB-24038:创建集合开启、关闭切分功能
  * @Author        : Yi Pan
  * @CreateTime    : 2021.05.11
- * @LastEditTime  : 2021.09.24
+ * @LastEditTime  : 2022.02.25
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -57,7 +57,7 @@ function test ( testPara )
 function checkExistIndex ( db, csName, clName, indexName )
 {
    var doTime = 0;
-   var timeOut = 10000;
+   var timeOut = 600000;
    var nodes = commGetCLNodes( db, csName + "." + clName );
    do
    {
