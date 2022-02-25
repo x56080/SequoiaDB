@@ -5458,9 +5458,9 @@ namespace engine
             // holder transId
             dpsTransIDToString( info.holder, strTransID, DPS_TRANS_STR_LEN ) ;
             ob.append( FIELD_NAME_HOLDER_TRANSID, strTransID ) ;
-            // waiter trans cost 
+            // waiter trans cost
             ob.append( FIELD_NAME_WAITER_TRANS_COST,(INT64)info.waiterCost );
-            // holder trans cost 
+            // holder trans cost
             ob.append( FIELD_NAME_HOLDER_TRANS_COST,(INT64)info.holderCost );
             // waiter sessionID
             ob.append( FIELD_NAME_WAITER_SESSIONID,(INT64)info.waiterSessionID);
@@ -5479,7 +5479,7 @@ namespace engine
             // waiter related sessionID
             ob.append( FIELD_NAME_WAITER_RELATED_SESSIONID,
                        (INT64)info.waiterRelatedSessionID ) ;
-            // holder related sessionID 
+            // holder related sessionID
             ob.append( FIELD_NAME_HOLDER_RELATED_SESSIONID,
                        (INT64)info.holderRelatedSessionID ) ;
             // waiter related GroupID

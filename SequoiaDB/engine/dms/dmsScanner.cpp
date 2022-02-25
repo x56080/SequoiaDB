@@ -138,6 +138,7 @@ namespace engine
                                            dmsMBContext *context,
                                            mthMatchRuntime *matchRuntime,
                                            dmsExtentID curExtentID,
+                                           dmsExtentID lastExtentID,
                                            DMS_ACCESS_TYPE accessType,
                                            INT64 maxRecords,
                                            INT64 skipNum,
@@ -153,6 +154,7 @@ namespace engine
       _extent              = NULL ;
       _pTransCB            = NULL ;
       _curRID._extent      = curExtentID ;
+      _lastExtentID        = lastExtentID ;
       _recordLock          = DPS_TRANSLOCK_MAX ;
       _selectLockMode      = DPS_TRANSLOCK_MAX ;
       _needUnLock          = FALSE ;
@@ -197,6 +199,11 @@ namespace engine
       return _callback.getTransRecordInfo() ;
    }
 
+   dmsExtentID _dmsExtScannerBase::curExtentID() const
+   {
+      return _curRID._extent ;
+   }
+
    dmsExtentID _dmsExtScannerBase::nextExtentID() const
    {
       if ( _extent )
@@ -211,6 +218,7 @@ namespace engine
       if ( 0 != _maxRecords &&
            DMS_INVALID_EXTENT != nextExtentID() )
       {
+         _lastExtentID = _curRID._extent ;
          _curRID._extent = nextExtentID() ;
          releaseCSCLLock() ;
          _firstRun = TRUE ;
@@ -382,12 +390,13 @@ namespace engine
                                    _dmsMBContext *context,
                                    mthMatchRuntime *matchRuntime,
                                    dmsExtentID curExtentID,
+                                   dmsExtentID lastExtentID,
                                    DMS_ACCESS_TYPE accessType,
                                    INT64 maxRecords,
                                    INT64 skipNum,
                                    INT32 flag )
-   : _dmsExtScannerBase( su, context, matchRuntime, curExtentID, accessType,
-                         maxRecords, skipNum, flag )
+   : _dmsExtScannerBase( su, context, matchRuntime, curExtentID, lastExtentID,
+                         accessType, maxRecords, skipNum, flag )
    {
    }
 
@@ -529,6 +538,47 @@ namespace engine
       if ( rc )
       {
          goto error ;
+      }
+
+      // if we span different segment, we should get next extent again
+      if ( _lastExtentID != DMS_INVALID_EXTENT &&
+           _curRID._extent != DMS_INVALID_EXTENT &&
+           _pSu->extent2Segment( _lastExtentID ) !=
+           _pSu->extent2Segment( _curRID._extent ) )
+      {
+         dmsExtRW extRW = _pSu->extent2RW( _lastExtentID, _context->mbID() ) ;
+         extRW.setNothrow( TRUE ) ;
+         const dmsExtent* extent = extRW.readPtr<dmsExtent>() ;
+         if ( NULL == extent )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR,
+                    "Failed to read collection[%s.%s]'s extent[%d], rc: %d",
+                    _pSu->getSuName(), _context->mb()->_collectionName,
+                    _lastExtentID, rc ) ;
+            goto error ;
+         }
+         if ( DMS_INVALID_EXTENT == extent->_nextExtent )
+         {
+            rc = SDB_DMS_EOC ;
+            goto error ;
+         }
+         if ( extent->_nextExtent != _curRID._extent )
+         {
+            _curRID._extent = extent->_nextExtent ;
+            _extRW = _pSu->extent2RW( _curRID._extent, _context->mbID() ) ;
+            _extRW.setNothrow( TRUE ) ;
+            _extent = _extRW.readPtr<dmsExtent>() ;
+            if ( NULL == _extent )
+            {
+               rc = SDB_SYS ;
+               PD_LOG( PDERROR,
+                       "Failed to read collection[%s.%s]'s extent[%d], rc: %d",
+                       _pSu->getSuName(), _context->mb()->_collectionName,
+                       _curRID._extent, rc ) ;
+               goto error ;
+            }
+         }
       }
 
       // WARNING: once the collection has been locked eXclusively by
@@ -866,12 +916,13 @@ namespace engine
                                                dmsMBContext *context,
                                                mthMatchRuntime *matchRuntime,
                                                dmsExtentID curExtentID,
+                                               dmsExtentID lastExtentID,
                                                DMS_ACCESS_TYPE accessType,
                                                INT64 maxRecords,
                                                INT64 skipNum,
                                                INT32 flag )
-   : _dmsExtScannerBase( su, context, matchRuntime, curExtentID, accessType,
-                         maxRecords, skipNum, flag )
+   : _dmsExtScannerBase( su, context, matchRuntime, curExtentID, lastExtentID,
+                         accessType, maxRecords, skipNum, flag )
    {
       _maxRecords = maxRecords ;
       _skipNum = skipNum ;
@@ -1305,6 +1356,7 @@ namespace engine
       _extScanner = dmsGetScannerFactory()->create( _pSu, _context,
                                                     _matchRuntime,
                                                     _curExtentID,
+                                                    DMS_INVALID_EXTENT,
                                                     _accessType,
                                                     _maxRecords,
                                                     _skipNum,
@@ -2900,6 +2952,7 @@ namespace engine
                                                      dmsMBContext *context,
                                                      mthMatchRuntime *matchRuntime,
                                                      dmsExtentID curExtentID,
+                                                     dmsExtentID lastExtentID,
                                                      DMS_ACCESS_TYPE accessType,
                                                      INT64 maxRecords,
                                                      INT64 skipNum,
@@ -2912,6 +2965,7 @@ namespace engine
          scanner = SDB_OSS_NEW dmsCappedExtScanner( su, context,
                                                     matchRuntime,
                                                     curExtentID,
+                                                    lastExtentID,
                                                     accessType,
                                                     maxRecords,
                                                     skipNum,
@@ -2922,6 +2976,7 @@ namespace engine
          scanner = SDB_OSS_NEW dmsExtScanner( su, context,
                                               matchRuntime,
                                               curExtentID,
+                                              lastExtentID,
                                               accessType,
                                               maxRecords,
                                               skipNum,
