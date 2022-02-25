@@ -26,7 +26,7 @@ id（ \f[I]number，必填\f[] ）
 isAsync（ \f[I]boolean，选填\f[] ）
 .RS 2
 .PP
-是否以异步方式取消任务，默认值为 false，表示不异步取消任务
+是否以异步方式取消任务，默认值为 false，表示同步取消任务
 .RE
 .SH 返回值
 .PP

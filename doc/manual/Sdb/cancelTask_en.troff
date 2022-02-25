@@ -27,7 +27,7 @@ isAsync ( \f[I]boolean, optional\f[] )
 .RS 2
 .PP
 Whether to cancel the task asynchronously, the default value is false, which
-means that the task will not be cancelled asynchronously.
+means that the task is canceled synchronously.
 .RE
 .SH RETURN VALUE
 .PP

@@ -22,7 +22,7 @@ This function is used to cancel the background task.
 
 - isAsync ( *boolean, optional* )
 
-    Whether to cancel the task asynchronously, the default value is false, which means that the task will not be cancelled asynchronously.
+    Whether to cancel the task asynchronously, the default value is false, which means that the task is canceled synchronously.
 
 ##RETURN VALUE##
 
