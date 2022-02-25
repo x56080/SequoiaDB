@@ -108,11 +108,19 @@ namespace vessel
    {
       _sid = INVALID_SPACE_ID;
       _lpm.fini();
-      _idMapFiles.close();
+      if (NULL != _baseMap)
+      {
+         _baseMap->close();
+         SDB_OSS_DEL _baseMap;
+         _baseMap = NULL;
+      }
       _allocator.fini();
       _logConsole.fini();
       _dpc = NULL;
       _checkpointContext.fini();
+      _dirtySegments.clear();
+      _waitingToFree.clear();
+      _readyToFree.clear();
       return;
    }
 
@@ -123,7 +131,13 @@ namespace vessel
       {
          _logConsole.destroy();
       }
-      _idMapFiles.destroy();
+
+      if (NULL != _baseMap)
+      {
+         _baseMap->destroy();
+         SDB_OSS_DEL _baseMap;
+         _baseMap = NULL;
+      }
       fini();
       return;
    }
@@ -134,7 +148,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(!isOpen(), "do not reinit");
       
-      const idMapFile *baseFile = NULL;
       inMemBitmap::options bitmapOptions;
 
       if (OSS_UNLIKELY(isOpen()))
@@ -158,8 +171,8 @@ namespace vessel
          PD_LOG(PDERROR, "failed to create id map file:%d", rc);
          goto error;
       }
-      baseFile = _idMapFiles.getBack<idMapFile>();
-      SDB_ASSERT(NULL != baseFile, "can not be null");
+
+      SDB_ASSERT(NULL != _baseMap, "can not be null");
 
       /// 2. init lpid allocator.
       bitmapOptions.bitmapBeginPage = getReservedImpCount();
@@ -180,7 +193,7 @@ namespace vessel
       }
 
       /// 4. init cache
-      _lpm.rebase(baseFile);
+      _lpm.rebase(_baseMap);
 
       /// 5. init page stoarge
       /// TODO: move to sub class
@@ -193,7 +206,7 @@ namespace vessel
       }
 
       rc = _dpc->open(_sid, getSpaceType(),
-                      baseFile->getCommonHeadInMem().secretValue,
+                      _baseMap->getCommonHeadInMem().secretValue,
                       NULL, o.dataArgs,
                       getStorageOptions());
       if (SDB_OK != rc)
@@ -221,7 +234,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       inMemBitmap::options o;
-      const idMapFile *base = NULL;
       idMapFileHead baseHead;
       storageCoreArgs dataArgs;
 
@@ -247,10 +259,9 @@ namespace vessel
          goto error;
       }
 
-      base = _idMapFiles.getBack<idMapFile>();
-      SDB_ASSERT(NULL != base, "can not be null");
+      SDB_ASSERT(NULL != _baseMap, "can not be null");
 
-      rc = base->getIdMapFileHead(baseHead);
+      rc = _baseMap->getIdMapFileHead(baseHead);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get imf head:%d", rc);
@@ -287,7 +298,7 @@ namespace vessel
       }
 
       rc = _dpc->open(_sid, getSpaceType(),
-                      base->getCommonHeadInMem().secretValue,
+                      _baseMap->getCommonHeadInMem().secretValue,
                       &loader, dataArgs,
                       getStorageOptions());
       if (SDB_OK != rc)
@@ -298,15 +309,15 @@ namespace vessel
 
       /// open delta log files
       rc = _logConsole.init(_sid, getSpaceType(),
-                            base->getCommonHeadInMem().secretValue,
-                            base->getSequence(), &loader);
+                            _baseMap->getCommonHeadInMem().secretValue,
+                            _baseMap->getSequence(), &loader);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init log console:%d", rc);
          goto error;
       }
 
-      _lpm.rebase(base);
+      _lpm.rebase(_baseMap);
 
       rc = resumeToLatestCheckpoint();
       if (SDB_OK != rc)
@@ -382,6 +393,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be invalid");
+      SDB_ASSERT(NULL != _baseMap, "can not be null");
       SDB_ASSERT(NULL != context, "can not be null");
       checkpointLSN lsn;
       logicalPageSpaceCheckpoint checkpoint;
@@ -389,8 +401,6 @@ namespace vessel
       BOOLEAN abortCheckpoint = FALSE;
       IRedoLogger *logger = context->getOuterResource()->logger;
       ossPoolSet<UINT32> segments;
-      idMapFile *base = _idMapFiles.getBack<idMapFile>();
-      SDB_ASSERT(NULL != base, "can not be null");
       DPS_LSN_OFFSET pushLSN = DPS_INVALID_LSN_OFFSET;
       DPS_LSN_OFFSET minDirtyLSN = DPS_INVALID_LSN_OFFSET;
       DPS_LSN_OFFSET maxDirtyLSN = DPS_INVALID_LSN_OFFSET;
@@ -509,6 +519,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be invalid");
       SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(NULL != _baseMap, "can not be null");
       checkpointLSN lsn;
       LPS_CHECKPOINT checkpoint;
       BOOLEAN locked = FALSE;
@@ -518,6 +529,7 @@ namespace vessel
       DPS_LSN_OFFSET pushLSN = DPS_INVALID_LSN_OFFSET;
       DPS_LSN_OFFSET minDirtyLSN = DPS_INVALID_LSN_OFFSET;
       DPS_LSN_OFFSET maxDirtyLSN = DPS_INVALID_LSN_OFFSET;
+      storageFileTrashCan trashCan;
 
       if (!_checkpointContext.tryToSetRunningFromNoneOrApplying())
       {
@@ -563,7 +575,8 @@ namespace vessel
       _lpm.archive();
       mergeWaitingListIntoReadyList();
 
-      _logConsole.rebase(_logConsole.getBaseSequence() + 1, FALSE);
+      ///TODO: should do something if failed to complete checkpoint.
+      _logConsole.rebase(_baseMap->getSequence() + 1, trashCan);
 
       _checkpointContext.clearDirtyLSN();
       _checkpointContext.incCheckpointTick();
@@ -587,7 +600,7 @@ namespace vessel
                       ossGetCurrentMilliseconds());
 
       _checkpointContext.setStatus(lpsCheckpointContext::STATUS::CREATING_NEW_BASE);
-      rc = rebaseWhenCreatingCheckpoint(context, checkpoint);
+      rc = rebaseWhenCreatingCheckpoint(context, checkpoint, trashCan);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to rebase id map file:%d", rc);
@@ -607,6 +620,8 @@ namespace vessel
       PD_LOG(PDINFO, "end to create checkpoint (full) on lps[%d,%d], :%s",
             getSpaceID(), getSpaceType(),
             _checkpointContext.getCheckpoint().toString().c_str());
+
+      trashCan.clear();
    done:
       if (locked)
       {
@@ -1361,6 +1376,7 @@ namespace vessel
       const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
       storageFileMaintainer sfm(&po, _sid);
       idMapFile *file = NULL;
+      storageFileTrashCan trashCan;
 
       const STORAGE_FILE_NAME_LIST *list = loader.getFileList(getSpaceType(), 
                                                               FILE_TYPE_ID_MAP);
@@ -1442,32 +1458,31 @@ namespace vessel
             goto error;
          }
 
-         rc = _idMapFiles.unsortedPushBack(file);
-         if (SDB_OK != rc)
+         if (NULL == _baseMap)
          {
-            PD_LOG(PDERROR, "failed to insert file[%s] into map:%d",
-                   file->getFullPath(), rc);
-            goto error;
+            _baseMap = file;
+         }
+         else if (_baseMap->getSequence() < file->getSequence())
+         {
+            trashCan.push(_baseMap);
+            _baseMap = file;
+         }
+         else
+         {
+            trashCan.push(file);
          }
 
          file = NULL;
       }
 
-      if (_idMapFiles.isEmpty())
+      if (NULL == _baseMap)
       {
-         PD_LOG(PDERROR, "id map file map is empty");
+         PD_LOG(PDERROR, "no base id map file found");
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      _idMapFiles.resort();
-
-      rc = validateIdMapFileMap();
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to validate id map file list:%d", rc);
-         goto error;
-      }
+      trashCan.clear();
    done:
       return rc;
    error:
@@ -1476,73 +1491,8 @@ namespace vessel
          file->close();
          SDB_OSS_DEL file;
       }
-      _idMapFiles.close();
       goto done;
    }
-
-   INT32 logicalPageSpace::validateIdMapFileMap()
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(!_idMapFiles.isEmpty(), "can not be empty");
-      const idMapFile *base = NULL;
-      idMapFileHead baseHead;
-
-      base = (const idMapFile *)(_idMapFiles.getBack());
-      rc = base->getIdMapFileHead(baseHead);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get imf head of file[%s], rc:%d",
-                base->getFullPath(), rc);
-         goto error;
-      }
-
-      if (!validateIdMapFileHeadFlags(baseHead.flags))
-      {
-         PD_LOG(PDERROR, "flags[%d] of base file head is not valid", baseHead.flags);
-         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
-         goto error;
-      }
-
-      for (sortedStorageFileList::CONST_ITERATOR itr = _idMapFiles.begin();
-           itr != _idMapFiles.end(); ++itr)
-      {
-         const idMapFile *fileInMap = (const idMapFile *)(*itr);
-         idMapFileHead h;
-         if (fileInMap->getSequence() == base->getSequence())
-         {
-            break;
-         }
-
-         rc = fileInMap->getIdMapFileHead(h);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get id map file head of file[%s], rc:%d",
-                   fileInMap->getFullPath(), rc);
-            goto error;
-         }
-
-         if (!baseHead.hasSameArgs(h))
-         {
-            PD_LOG(PDERROR, "different args found in id map files");
-            rc = SDB_VESSEL_INVALID_VESSEL_FILE;
-            goto error;
-         }
-
-         if (fileInMap->getCommonHeadInMem().secretValue != 
-             base->getCommonHeadInMem().secretValue)
-         {
-            PD_LOG(PDERROR, "different secret value found in file:%s",
-                   fileInMap->getFullPath());
-            rc = SDB_VESSEL_INVALID_VESSEL_FILE;
-            goto error;
-         }
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
 
    FILE_TYPE logicalPageSpace::getStorageFileType()const
    {
@@ -1777,7 +1727,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_SPACE_ID != _sid, "can not be invalid");
       SDB_ASSERT(o.isValid(), "can not be invalid");
-      SDB_ASSERT(_idMapFiles.isEmpty(), "must be empty");
+      SDB_ASSERT(NULL == _baseMap, "must be null");
 
       const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
       storageFileMaintainer sfm(&po, _sid);
@@ -1790,7 +1740,7 @@ namespace vessel
 
       idMapFileHead imfHead;
       imfHead.version = ID_MAP_FILE_HEAD_VERSION;
-      imfHead.flags = createIdMapFileHeadFlags();
+      imfHead.flags = 0;
       imfHead.dataPageSize = o.dataArgs.pageSize;
       imfHead.dataPageCountInSeg = o.dataArgs.maxPageCountPerSeg;
       imfHead.dataSegCountInFile = o.dataArgs.maxSegmentCountPerFile;
@@ -1837,7 +1787,7 @@ namespace vessel
          goto error;
       }
 
-      _idMapFiles.pushBack(file);
+      _baseMap = file;
       file = NULL;
 
    done:
@@ -1852,19 +1802,19 @@ namespace vessel
    }
 
    INT32 logicalPageSpace::rebaseWhenCreatingCheckpoint(requestContext *context,
-                                                        const LPS_CHECKPOINT &checkpoint)
+                                                        const LPS_CHECKPOINT &checkpoint,
+                                                        storageFileTrashCan &trashCan)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(NULL != _baseMap, "can not be null");
       SDB_ASSERT(checkpoint.isValid(), "can not be invalid");
 
       UINT32 oldPageCount = 0;
       UINT32 deltaPageCount = 0;
       UINT32 deltaSegCount = 0;
-      idMapFile *base = _idMapFiles.getBack<idMapFile>();
-      SDB_ASSERT(NULL != base, "can not be null");
-      idMapFile *file = NULL;
+      idMapFile *newBaseMap = NULL;
       //ossPoolMap<PAGE_ID, lpageDescriptor> delta;
       DELTA_PAGE_LIST delta;
       
@@ -1873,7 +1823,7 @@ namespace vessel
                            ID_MAP_FILE_MAX_SEG_COUNT_IN_FILE);
       idMapFileHead imfHead;
       imfHead.version = ID_MAP_FILE_HEAD_VERSION;
-      imfHead.flags = createIdMapFileHeadFlags();
+      imfHead.flags = 0;
       imfHead.dataPageSize = getStorageCoreArgs().pageSize;
       imfHead.dataPageCountInSeg = getStorageCoreArgs().maxPageCountPerSeg;
       imfHead.dataSegCountInFile = getStorageCoreArgs().maxSegmentCountPerFile;
@@ -1885,28 +1835,28 @@ namespace vessel
       o.args = args;
       o.createAsTmpFile = TRUE;
       o.replaceWhenCreate = TRUE;
-      o.secretValue = base->getCommonHeadInMem().secretValue;
+      o.secretValue = _baseMap->getCommonHeadInMem().secretValue;
 
       storageFileName fn;
       const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
       storageFileMaintainer sfm(&po, _sid);
 
-      file = SDB_OSS_NEW idMapFile();
-      if (OSS_UNLIKELY(NULL == file))
+      newBaseMap = SDB_OSS_NEW idMapFile();
+      if (OSS_UNLIKELY(NULL == newBaseMap))
       {
          PD_LOG(PDERROR, "failed to allocate mem");
          rc = SDB_OOM;
          goto error;
       }
 
-      if (!fn.build(FILE_TYPE_ID_MAP, getSpaceType(), base->getSequence() + 1))
+      if (!fn.build(FILE_TYPE_ID_MAP, getSpaceType(), _baseMap->getSequence() + 1))
       {
          PD_LOG(PDERROR, "failed to build file name");
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      rc = sfm.createStorageFile(fn, o, hs, *file);
+      rc = sfm.createStorageFile(fn, o, hs, *newBaseMap);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create new file:%s, rc:%d", fn.getFileName(), rc);
@@ -1929,24 +1879,24 @@ namespace vessel
       }
 
       imfHead.totalPageCount = std::max(oldPageCount, deltaPageCount);
-      rc = file->updateUserDefinedHead(hs);
+      rc = newBaseMap->updateUserDefinedHead(hs);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to update user header of file[%s], rc:%d",
-                file->getFullPath(), rc);
+                newBaseMap->getFullPath(), rc);
          goto error;
       }
 
-      rc = file->ensureSegmentCount(std::max(base->getSegmentCount(), deltaSegCount));
+      rc = newBaseMap->ensureSegmentCount(std::max(_baseMap->getSegmentCount(), deltaSegCount));
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to extend file space[%s], rc:%d",
-                file->getFullPath(), rc);
+                newBaseMap->getFullPath(), rc);
          goto error;
       }
 
       PD_LOG(PDDEBUG, "begin to merge new base");
-      rc = mergeDataIntoNewBase(base, delta, file);
+      rc = mergeDataIntoNewBase(_baseMap, delta, newBaseMap);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to merge data into new file:%d", rc);
@@ -1954,27 +1904,26 @@ namespace vessel
       }
       PD_LOG(PDDEBUG, "end to merge new base");
 
-      file->fsync();
+      newBaseMap->fsync();
 
-      rc = file->removeShadowSuffix();
+      rc = newBaseMap->removeShadowSuffix();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to remvoe file suffix:%d", rc);
          goto error;
       }
 
-      _idMapFiles.pushBack(file);
-      _lpm.rebase(file);
-      _logConsole.destroyHistoryFiles();
-      _idMapFiles.truncate(3);
-      
+
+      trashCan.push(_baseMap);
+      _baseMap = newBaseMap;
+      _lpm.rebase(newBaseMap);
    done:
       return rc;
    error:
-      if (NULL != file)
+      if (NULL != newBaseMap)
       {
-         file->destroy();
-         SDB_OSS_DEL file;
+         newBaseMap->destroy();
+         SDB_OSS_DEL newBaseMap;
       }
       goto done;
    }
@@ -2124,8 +2073,8 @@ namespace vessel
       SDB_ASSERT(_logConsole.getLastCheckpoint().isValid(), "can not be invalid");
       dataPageCluster *dpc = getDataStorageObj();
       SDB_ASSERT(NULL != dpc && dpc->isOpen(), "can not be invalid");
-      const storageFile &delta = _logConsole.getWorkingFile();
-      SDB_ASSERT(delta.isOpen(), "can not be closed");
+      const storageFile *delta = _logConsole.getWorkingFile();
+      SDB_ASSERT(NULL != delta && delta->isOpen(), "can not be closed");
       PAGE_ID maxPid = _logConsole.getLastCheckpointPid();
       SDB_ASSERT(INVALID_PAGE_ID != maxPid, "can not be invalid");
 
@@ -2133,7 +2082,7 @@ namespace vessel
       {
          const deltaLogFilePage *page = NULL;
          ossValuePtr ptr = 0;
-         rc = delta.getPagePtr(i, ptr);
+         rc = delta->getPagePtr(i, ptr);
          if (OSS_UNLIKELY(SDB_OK != rc))
          {
             PD_LOG(PDERROR, "failed to get page[%d] ptr:%d", i, rc);
@@ -2148,7 +2097,7 @@ namespace vessel
             if (!dlr.isValid())
             {
                PD_LOG(PDERROR, "failed to load log record at file[%s], page[%d], offset[%d]",
-                      delta.getFullPath(), i, offset);
+                      delta->getFullPath(), i, offset);
                rc = SDB_VESSEL_INVALID_VESSEL_FILE;
                goto error;
             }
@@ -2173,7 +2122,7 @@ namespace vessel
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to replay log record at file[%s], page[%d], offset[%d], rc:%d",
-                      delta.getFullPath(), i, offset, rc);
+                      delta->getFullPath(), i, offset, rc);
                goto error;
             }
 
@@ -2265,6 +2214,12 @@ namespace vessel
    {
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
       return lpid < (getReservedImpCount() * ID_MAP_PAGE_CAPACITY);
+   }
+
+   UINT32 logicalPageSpace::getSecretValue()const
+   {
+      SDB_ASSERT(NULL != _baseMap, "can not be invalid");
+      return _baseMap->getCommonHeadInMem().secretValue;
    }
 
    INT32 logicalPageSpace::validateLpidBeforeGet(PAGE_ID lpid)const
@@ -2383,9 +2338,8 @@ namespace vessel
    BOOLEAN logicalPageSpace::needFullCheckpoint()
    {
       SDB_ASSERT(_lpm.isReady(), "can not be invalid");
-      const idMapFile *base = _idMapFiles.getBack<idMapFile>();
-      SDB_ASSERT(NULL != base && base->isOpen(), "can not be null");
-      UINT64 baseSize = (UINT64)(base->getTotalPageCount()) * ID_MAP_FILE_PAGE_SIZE;
+      SDB_ASSERT(NULL != _baseMap, "can not be null");
+      UINT64 baseSize = (UINT64)(_baseMap->getTotalPageCount()) * ID_MAP_FILE_PAGE_SIZE;
       UINT64 cacheSize = _lpm.getWorkingTableBufferSize();
       UINT64 deltaLogSize = _logConsole.getDeltaLogSize();
       PD_LOG(PDDEBUG, "lps[%d,%d] cache size:%lld, base size:%lld, delta log:%lld",
@@ -2397,20 +2351,19 @@ namespace vessel
    INT32 logicalPageSpace::resumeToLatestCheckpoint()
    {
       INT32 rc = SDB_OK;
-      idMapFile *base = _idMapFiles.getBack<idMapFile>();
-      SDB_ASSERT(NULL != base, "base id map file not found");
+      SDB_ASSERT(NULL != _baseMap, "can not be null");
       SDB_ASSERT(_logConsole.isReady(), "must be ready");
       SDB_ASSERT(_lpm.isReady(), "can not be ready");
 
       idMapFileHead baseHead;
-      rc = base->getIdMapFileHead(baseHead);
+      rc = _baseMap->getIdMapFileHead(baseHead);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get base file head:%d", rc);
          goto error;
       }
 
-      rc = restoreAllocatorByBaseFile(base);
+      rc = restoreAllocatorByBaseFile(_baseMap);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to restore allocator by base file:%d", rc);
@@ -2424,7 +2377,7 @@ namespace vessel
 
       if (_logConsole.getLastCheckpoint().isValid())
       {
-         SDB_ASSERT(_logConsole.getBaseSequence() == base->getSequence(), 
+         SDB_ASSERT(_logConsole.getBaseSequence() == _baseMap->getSequence(), 
                     "must be same");
          rc = replayDeltaLog();
          if (SDB_OK != rc)
@@ -2971,21 +2924,6 @@ namespace vessel
 
       bl.clear();
       return;
-   }
-
-   UINT32 logicalPageSpace::createIdMapFileHeadFlags()const
-   {
-      UINT32 flags = 0;
-      if (isCopyOnWrite())
-      {
-         OSS_BIT_SET(flags, IMF_FLAG_COPY_ON_WRITE);
-      }
-      return flags;
-   }
-
-   BOOLEAN logicalPageSpace::validateIdMapFileHeadFlags(UINT32 flags)const
-   {
-      return createIdMapFileHeadFlags() == flags;
    }
 
    INT32 logicalPageSpace::getMinUncompletedLSN(requestContext *context,

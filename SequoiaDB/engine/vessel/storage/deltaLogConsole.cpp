@@ -99,7 +99,7 @@ namespace vessel
             }
          }
 
-         if (_workingFile.isOpen())
+         if (nullptr != _workingFile)
          {
             rc = resumeToLastCheckpoint();
             if (SDB_OK != rc)
@@ -122,13 +122,17 @@ namespace vessel
       _manifest.reset();
       _baseSequence = 0;
       _prechecksum = 0;
-      _workingFile.close();
+      if (nullptr != _workingFile)
+      {
+         _workingFile->close();
+         SDB_OSS_DEL _workingFile;
+         _workingFile = nullptr;
+      }
       _buffer.release();
       _writingPid = INVALID_PAGE_ID;
       _page = nullptr;
       _lastCheckpoint = LPS_CHECKPOINT();
       _lastCheckpointPid = INVALID_PAGE_ID;
-      _history.clear();
       _checkpointReserved = INVALID_PAGE_ID;
       return;
    }
@@ -137,13 +141,21 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isReady(), "can not be invalid");
-      SDB_ASSERT(!_workingFile.isOpen(), "do not reopen");
+      SDB_ASSERT(nullptr == _workingFile, "do not reopen");
       storageFileName fn;
       createStorageFileOptions o;
 
-
       const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
       storageFileMaintainer sfm(&po, _manifest.sid);
+
+      _workingFile = SDB_OSS_NEW storageFile();
+      if (OSS_UNLIKELY(nullptr == _workingFile))
+      {
+         PD_LOG(PDERROR, "failed to allocate mem.");
+         rc = SDB_OOM;
+         goto error;
+      }
+
       if (!fn.build(_manifest.ftype, _manifest.stype, _baseSequence))
       {
          PD_LOG(PDERROR, "failed to build file name");
@@ -156,17 +168,16 @@ namespace vessel
       o.replaceWhenCreate = TRUE;
       o.secretValue = _manifest.secretValue;
 
-      rc = sfm.createStorageFile(fn, o, slice(), _workingFile);
+      rc = sfm.createStorageFile(fn, o, slice(), *_workingFile);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create file[%s], rc:%d", fn.getFileName(), rc);
          goto error;
       }
-
-      _workingFile.fsync();
    done:
       return rc;
    error:
+      SAFE_OSS_DELETE(_workingFile);
       goto done;
    }
 
@@ -176,6 +187,7 @@ namespace vessel
       SDB_ASSERT(isReady(), "must be ready");
       SDB_ASSERT(nullptr != fl, "can not be null");
 
+      STORAGE_FILE_NAME_LIST expiredList;
       STORAGE_FILE_NAME_LIST::const_iterator itr;
       const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
       storageFileMaintainer sfm(&po, _manifest.sid);
@@ -203,17 +215,25 @@ namespace vessel
          if (fn.getSequence() != _baseSequence)
          {
             PD_LOG(PDERROR, "unmatched file found:%s", fn.getFileName());
-            _history.push_back(fn);
+            expiredList.push_back(fn);
             continue;
          }
-         else if (_workingFile.isOpen())
+         else if (nullptr != _workingFile)
          {
             PD_LOG(PDERROR, "duplidated working file found[%s]", fn.getFileName());
             rc = SDB_VESSEL_INTERNAL_ERR;
             goto error;
          }
 
-         rc = sfm.openStorageFile(fn, _workingFile);
+         _workingFile = SDB_OSS_NEW storageFile();
+         if (OSS_UNLIKELY(nullptr == _workingFile))
+         {
+            PD_LOG(PDERROR, "failed to allocate mem.");
+            rc = SDB_OOM;
+            goto error;
+         }
+
+         rc = sfm.openStorageFile(fn, *_workingFile);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to open delta log file[%s], rc:%d",
@@ -221,29 +241,33 @@ namespace vessel
             goto error;
          }
 
-         if (_workingFile.getCommonHeadInMem().getCoreArgs() != _manifest.args)
+         if (_workingFile->getCommonHeadInMem().getCoreArgs() != _manifest.args)
          {
-            PD_LOG(PDERROR, "invalid core args of log file:%s", _workingFile.getFullPath());
+            PD_LOG(PDERROR, "invalid core args of log file:%s", _workingFile->getFullPath());
             rc = SDB_VESSEL_INVALID_VESSEL_FILE;
             goto error;
          }
 
-         if (_workingFile.getCommonHeadInMem().secretValue !=
+         if (_workingFile->getCommonHeadInMem().secretValue !=
              _manifest.secretValue)
          {
             PD_LOG(PDERROR, "invalid secret value found in file:%s",
-                   _workingFile.getFullPath());
+                   _workingFile->getFullPath());
             rc = SDB_VESSEL_INVALID_VESSEL_FILE;
             goto error;
          }
       }
 
-      destroyHistoryFiles();
+      destroyExpiredFiles(expiredList);
    done:
       return rc;
    error:
-      _workingFile.close();
-      _history.clear();
+      if (nullptr != _workingFile)
+      {
+         _workingFile->close();
+         SDB_OSS_DEL _workingFile;
+         _workingFile = nullptr;
+      }
       goto done;
    }
 
@@ -251,57 +275,51 @@ namespace vessel
    {
       if (isReady())
       {
-         destroyHistoryFiles();
-         if (_workingFile.isOpen())
+         if (nullptr != _workingFile)
          {
-            _workingFile.destroy();
+            _workingFile->destroy();
+            SDB_OSS_DEL _workingFile;
+            _workingFile = nullptr;
          }
          fini();
       }
    }
 
-   void deltaLogConsole::destroyHistoryFiles()
+   void deltaLogConsole::destroyExpiredFiles(const STORAGE_FILE_NAME_LIST &fl)
    {
       const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
       storageFileMaintainer sfm(&po, _manifest.sid);
-      for (STORAGE_FILE_NAME_LIST::const_iterator itr = _history.begin();
-           itr != _history.end(); ++itr)
+      for (STORAGE_FILE_NAME_LIST::const_iterator itr = fl.begin();
+           itr != fl.end(); ++itr)
       {
          PD_LOG(PDINFO, "begin to remove history file[%s]", itr->getFileName());
          sfm.removeStorageFile(*itr);
       }
-      _history.clear();
       return;
    }
    
    void deltaLogConsole::rebase(UINT32 base,
-                                BOOLEAN destroyHistoryFileAtOnce)
+                                storageFileTrashCan &trashCan)
    {
       storageFileName fn;
       SDB_ASSERT(isReady(), "can not be invalid");
       SDB_ASSERT(_baseSequence <= base, "invalid base sequence");
       
-      _baseSequence = base;
-
-      if (_workingFile.isOpen())
+      if (nullptr != _workingFile)
       {
-         SDB_ASSERT(_workingFile.getSequence() < base, "must be over current seq");
-         BOOLEAN r = _workingFile.getStructuredFileName(fn);
-         SDB_ASSERT(r, "must be valid");
-         _history.push_back(fn);
-         _workingFile.close();
+         SDB_ASSERT(_workingFile->getSequence() < base, "must be over current seq");
+         trashCan.push(_workingFile);
+         _workingFile = nullptr;
       }
 
+      _baseSequence = base;
+      _prechecksum = 0;
       _writingPid = INVALID_PAGE_ID;
+      _buffer.release();
       _page = nullptr;
       _lastCheckpoint = LPS_CHECKPOINT();
       _lastCheckpointPid = INVALID_PAGE_ID;
       _checkpointReserved = INVALID_PAGE_ID;
-
-      if (destroyHistoryFileAtOnce)
-      {
-         destroyHistoryFiles();
-      }
 
       return;
    }
@@ -412,13 +430,13 @@ namespace vessel
       SDB_ASSERT(isReady(), "can not be invalid");
       SDB_ASSERT(checkpoint.isValid(), "can not be invalid");
       SDB_ASSERT(INVALID_PAGE_ID != _checkpointReserved, "can not be invalid");
-      SDB_ASSERT(_workingFile.isOpen(), "must be open");
+      SDB_ASSERT(nullptr != _workingFile, "must be open");
       deltaLogFilePage *page = nullptr;
       deltaLogRecordBuilder builder;
       builder.buildCheckpointLog(checkpoint);
       deltaLogRecord dlr = builder.getDeltaLogRecord();
       ossValuePtr ptr = 0;
-      INT32 rc = _workingFile.getPagePtr(_checkpointReserved, ptr);
+      INT32 rc = _workingFile->getPagePtr(_checkpointReserved, ptr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get page[%d] ptr, rc:%d", _checkpointReserved, rc);
@@ -446,12 +464,12 @@ namespace vessel
    void deltaLogConsole::flushBufferAndShiftWritingPid()
    {
       SDB_ASSERT(_manifest.isValid(), "must be valid");
-      SDB_ASSERT(_workingFile.isOpen(), "can not be closed");
+      SDB_ASSERT(nullptr != _workingFile, "can not be closed");
       SDB_ASSERT(INVALID_PAGE_ID != _writingPid, "can not be invalid");
       SDB_ASSERT(nullptr != _page && _page->isValid(), "can not be null");
 
       ossValuePtr ptr = 0;
-      _workingFile.getPagePtr(_writingPid, ptr);
+      _workingFile->getPagePtr(_writingPid, ptr);
       SDB_ASSERT(0 != ptr, "impossible");
 
       ossMemcpy((void *)ptr, _page, _manifest.args.pageSize);
@@ -468,7 +486,7 @@ namespace vessel
       UINT32 minSegmentCount = 0;
       const storageCoreArgs &args = _manifest.args;
 
-      if (!_workingFile.isOpen())
+      if (nullptr == _workingFile)
       {
          rc = createNewFile();
          if (SDB_OK != rc)
@@ -483,7 +501,7 @@ namespace vessel
       SDB_ASSERT(ossIsPowerOf2(args.maxPageCountPerSeg), "must be power of 2");
       minSegmentCount = ossAlignX(_writingPid + 1, args.maxPageCountPerSeg) /
                                   args.maxPageCountPerSeg;
-      rc = _workingFile.ensureSegmentCount(minSegmentCount);
+      rc = _workingFile->ensureSegmentCount(minSegmentCount);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to ensure file segment space:%d", rc);
@@ -595,14 +613,14 @@ namespace vessel
    INT32 deltaLogConsole::resumeToLastCheckpoint()
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(_workingFile.isOpen(), "must be open");
+      SDB_ASSERT(nullptr != _workingFile, "must be open");
       PAGE_ID pid = INVALID_PAGE_ID;
    
-      rc = findLastCheckpointPid(_workingFile, pid);
+      rc = findLastCheckpointPid(*_workingFile, pid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to find last checkpoint page in file:%s, rc:%d",
-                _workingFile.getFullPath(), rc);
+                _workingFile->getFullPath(), rc);
          goto error;
       }
 
@@ -616,7 +634,7 @@ namespace vessel
          deltaLogRecord dlr;
          const deltaLogFilePage *page = nullptr;
          ossValuePtr ptr = 0;
-         _workingFile.getPagePtr(pid, ptr);
+         _workingFile->getPagePtr(pid, ptr);
          page = (const deltaLogFilePage *)ptr;
          SDB_ASSERT(page->isValid() && page->hasCheckpoint(), "impossible");
          dlr.reset((const CHAR *)(page->data) + page->checkpointOffset);
@@ -624,6 +642,7 @@ namespace vessel
          _lastCheckpoint = *checkpoint;
          _lastCheckpointPid = pid;
          _writingPid = pid + 1; /// move to the next page
+         _prechecksum = page->frontChecksum;
       }
    done:
       return rc;
@@ -634,8 +653,8 @@ namespace vessel
    void deltaLogConsole::fsyncDirtyPages()const
    {
       SDB_ASSERT(INVALID_PAGE_ID != _checkpointReserved, "can not be invalid");
-      SDB_ASSERT(_workingFile.isOpen(), "can not be closed");
-      UINT32 pageCount = _workingFile.getCommonHeadInMem().maxPageCountPerSeg;
+      SDB_ASSERT(nullptr != _workingFile, "can not be closed");
+      UINT32 pageCount = _workingFile->getCommonHeadInMem().maxPageCountPerSeg;
       UINT32 minSegment = 0;
       UINT32 maxSegment = 0;
       INT32 rc = SDB_OK;
@@ -650,14 +669,14 @@ namespace vessel
       SDB_ASSERT(minSegment <= maxSegment, "impossible");
       for (UINT32 i = minSegment; i < maxSegment; ++i)
       {
-         rc = _workingFile.fsyncSegment(i);
+         rc = _workingFile->fsyncSegment(i);
          if (OSS_UNLIKELY(SDB_OK != rc))
          {
             PD_LOG(PDSEVERE, "failed to fsync delta log segment[%d], rc:%d", i, rc);
          }
       }
 
-      rc = _workingFile.fsyncPagesInSeg(maxSegment, (_checkpointReserved % pageCount) + 1);
+      rc = _workingFile->fsyncPagesInSeg(maxSegment, (_checkpointReserved % pageCount) + 1);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          PD_LOG(PDSEVERE, "failed to fsync delta log segment[%d], rc:%d", maxSegment, rc);

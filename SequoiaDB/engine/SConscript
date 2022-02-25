@@ -954,6 +954,7 @@ vesselFiles = [
       "vessel/storage/btreeNodePage.cpp",
       "vessel/storage/btreeExternalKeyPage.cpp",
       "vessel/storage/deltaLogFileDef.cpp",
+      "vessel/storage/storageFileTrashCan.cpp",
       "vessel/storage/storageFileName.cpp",
       "vessel/handlers/createCSHandler.cpp",
       "vessel/handlers/createCLHandler.cpp",

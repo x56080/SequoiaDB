@@ -57,6 +57,7 @@
 #include "vessel/lpageMapping.h"
 #include "ossMemPool.hpp"
 #include "vessel/idMapPage.h"
+#include "vessel/storageFileTrashCan.h"
 
 namespace engine
 {
@@ -201,10 +202,9 @@ namespace vessel
 
          BOOLEAN isReservedLpid(PAGE_ID lpid)const;
 
-         const sortedStorageFileList &getIdMapFileList()
-         {
-            return _idMapFiles;
-         }
+      protected:
+         UINT32 getSecretValue()const;
+         
       protected:
          class _runtimePageBufferIniter : public SDBObject
          {
@@ -273,15 +273,10 @@ namespace vessel
          virtual void _close() = 0;
          virtual void _destroy() = 0;
 
-         virtual UINT32 createIdMapFileHeadFlags()const;
-         virtual BOOLEAN validateIdMapFileHeadFlags(UINT32 flags)const;
-
       private:
          void fini();
          INT32 createFirstIdMapFile(const createLpsOptions &o);
          INT32 openIdMapFiles(const storageFileLoader &loader);
-
-         INT32 validateIdMapFileMap();
 
          INT32 restoreAllocatorByBaseFile(const idMapFile *base);
 
@@ -289,7 +284,8 @@ namespace vessel
                                      const CHAR *page);
 
          INT32 rebaseWhenCreatingCheckpoint(requestContext *context,
-                                            const LPS_CHECKPOINT &checkpoint);
+                                            const LPS_CHECKPOINT &checkpoint,
+                                            storageFileTrashCan &trashCan);
 
          INT32 flushSegmentsAtCheckpoint(requestContext *context,
                                          const ossPoolSet<UINT32> &segments)const;
@@ -343,7 +339,7 @@ namespace vessel
 
       private:
          SPACE_ID _sid = INVALID_SPACE_ID;
-         sortedStorageFileList _idMapFiles;
+         idMapFile *_baseMap = NULL;
          inMemBitmap _allocator;
          ossSpinXLatch _mappingLatch;
          deltaLogConsole _logConsole;

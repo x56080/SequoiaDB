@@ -81,6 +81,11 @@ namespace vessel
       SDB_ASSERT(NULL != head, "can not be null");
       _pageCount = ((const idMapFileHead *)head)->totalPageCount;
    }
+
+   void idMapFile::resetCachedUserDefinedHead()
+   {
+      _pageCount = 0;
+   }
    
    INT32 idMapFile::getIdMapFileHead(idMapFileHead &h)const
    {

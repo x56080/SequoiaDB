@@ -106,10 +106,7 @@ namespace vessel
       {
          goto error;
       }
-      
-      _fileType = fn.getFileType();
-      _spaceType = fn.getSpaceType();
-      _sequence = fn.getSequence();
+   
    done:
       return rc;
    error:
@@ -163,6 +160,10 @@ namespace vessel
       }
 
       _headInMem = *((const storageFileHead *)headBuf);
+      _fileType = fn.getFileType();
+      _spaceType = fn.getSpaceType();
+      _sequence = fn.getSequence();
+      cacheUserDefinedHead((const CHAR *)headBuf + STORAGE_FILE_COMMON_HEAD_SIZE);
    done:
       return rc;
    error:
@@ -426,6 +427,10 @@ namespace vessel
       _fileType = fn.getFileType();
       _spaceType = fn.getSpaceType();
       _sequence = fn.getSequence();
+      if (userDefinedHead.isValid())
+      {
+         cacheUserDefinedHead(userDefinedHead.data());
+      }
       
    done:
       return rc;
@@ -440,7 +445,11 @@ namespace vessel
 
    void storageFile::destroy()
    {
+      resetCachedUserDefinedHead();
       _headInMem.reset();
+      _fileType = INVALID_FILE_TYPE;
+      _spaceType = INVALID_SPACE_TYPE;
+      _sequence = 0;
       _dataSegmentCount = 0;
       if (ossMmapFile::_file.isOpened())
       {
@@ -452,7 +461,11 @@ namespace vessel
 
    void storageFile::close()
    {
+      resetCachedUserDefinedHead();
       _headInMem.reset();
+      _fileType = INVALID_FILE_TYPE;
+      _spaceType = INVALID_SPACE_TYPE;
+      _sequence = 0;
       _dataSegmentCount = 0;
       _shadowSuffix = INVALID_FILE_SHADOW_SUFFIX;
       ossMmapFile::close();

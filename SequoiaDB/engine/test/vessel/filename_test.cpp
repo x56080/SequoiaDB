@@ -141,7 +141,7 @@ TEST(filename_test, base_dir_test1)
    storageFileName fn;
    CHAR buf[MAX_SPACE_DIR_LEN + 1] = {'\0'};
    ASSERT_TRUE(buildSpaceDirName(0, MAX_SPACE_DIR_LEN + 1, buf));
-   ASSERT_EQ(0, ossStrcmp(buf, "_cs_0"));
+   ASSERT_EQ(0, ossStrcmp(buf, "_cs_00000"));
 }
 
 TEST(filename_test, base_dir_test2)
@@ -156,7 +156,7 @@ TEST(filename_test, base_dir_test3)
 {
    storageFileName fn;
    SPACE_ID *sid = NULL;
-   ASSERT_TRUE(parseSpaceDirName(strSlice("_cs_0"), sid));
+   ASSERT_TRUE(parseSpaceDirName(strSlice("_cs_00000"), sid));
    ASSERT_TRUE(parseSpaceDirName(strSlice("_cs_16383"), sid));
 }
 

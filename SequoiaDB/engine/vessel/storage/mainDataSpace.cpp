@@ -120,14 +120,12 @@ namespace vessel
          goto error;
       }
 
-      psv = context->getEnv()->dms.getOnlinePageSnapshotVersion();
       rc = _storage.getDataPagePtr(pid, ptr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get page[%d] ptr:%d", pid, rc);
          goto error;
       }
-
 
       /// init page
       if (!initGmp(_storage.getCoreArgs().pageSize,
@@ -352,10 +350,7 @@ namespace vessel
       storageFileName fn;
       const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
       storageFileMaintainer sfm(&po, getSpaceID());
-
-      const sortedStorageFileList &imf = getIdMapFileList();
-      SDB_ASSERT(!imf.isEmpty(), "can not be empty");
-      o.secretValue = imf.getBack<idMapFile>()->getCommonHeadInMem().secretValue;
+      o.secretValue = logicalPageSpace::getSecretValue();
                            
       fsmFile *file = SDB_OSS_NEW fsmFile();
       if (nullptr == file)

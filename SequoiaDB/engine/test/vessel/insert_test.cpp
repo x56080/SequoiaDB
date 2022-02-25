@@ -870,8 +870,9 @@ TEST_F(insert_test, DISABLED_death_test_1)
    constexpr UINT32 threadCount = 8;
    std::thread threads[threadCount];
    atomic_int counters[threadCount] = {};
-   UINT32 countPerThread = 10000000;
+   UINT32 countPerThread = 15000000;
    UINT32 count = 0;
+   UINT64 readCount = 0;
 
    closeDBOptions co;
 
@@ -909,6 +910,17 @@ TEST_F(insert_test, DISABLED_death_test_1)
    {
       threads[i].join();
    }
+
+   rc = db.close(&session, co);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+   rc = handler->getRecordCount(&session, readCount);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(count, readCount);
 
    rc = db.close(&session, co);
    ASSERT_EQ(SDB_OK, rc);

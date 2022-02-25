@@ -45,6 +45,7 @@
 #include "vessel/memoryBlock.h"
 #include "vessel/storageFile.h"
 #include "vessel/storageFileManifest.h"
+#include "vessel/storageFileTrashCan.h"
 
 namespace engine
 {
@@ -82,7 +83,7 @@ namespace vessel
             return _lastCheckpointPid;
          }
 
-         OSS_INLINE const storageFile &getWorkingFile()const
+         OSS_INLINE const storageFile *getWorkingFile()const
          {
             return _workingFile;
          }
@@ -98,7 +99,7 @@ namespace vessel
          UINT64 getDeltaLogSize()const;
 
          void rebase(UINT32 base,
-                     BOOLEAN destroyHistoryFileAtOnce);
+                     storageFileTrashCan &trashCan);
 
          INT32 append(const deltaLogRecord &dlr);
 
@@ -108,7 +109,6 @@ namespace vessel
 
          void destroy();
 
-         void destroyHistoryFiles();
       private:
 
          INT32 load(const STORAGE_FILE_NAME_LIST *fl);
@@ -127,18 +127,19 @@ namespace vessel
          INT32 _append(const deltaLogRecord &dlr);
 
          void fsyncDirtyPages()const;
+
+         void destroyExpiredFiles(const STORAGE_FILE_NAME_LIST &fl);
    
       private:
          storageFileManifest _manifest;
          UINT32 _baseSequence = 0;
          UINT32 _prechecksum = 0;
-         storageFile _workingFile;
+         storageFile *_workingFile = nullptr;
          memoryBlock _buffer;
          PAGE_ID _writingPid = INVALID_PAGE_ID;
          deltaLogFilePage *_page = nullptr;
          LPS_CHECKPOINT _lastCheckpoint;
          PAGE_ID _lastCheckpointPid = INVALID_PAGE_ID;
-         STORAGE_FILE_NAME_LIST _history;
          PAGE_ID _checkpointReserved = INVALID_PAGE_ID;
    };//class deltaLogConsole
 }//namespace vessel

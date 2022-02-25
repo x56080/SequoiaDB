@@ -155,6 +155,10 @@ namespace vessel
          {
             return;
          }
+         virtual void resetCachedUserDefinedHead()
+         {
+            return;
+         }
       private:
          INT32 createFileAndInitHead(const strSlice &dir,
                                      const storageFileName &fn,

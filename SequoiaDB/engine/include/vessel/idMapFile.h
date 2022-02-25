@@ -45,8 +45,6 @@ namespace vessel
 {
    constexpr UINT32 ID_MAP_FILE_HEAD_VERSION = 1;
 
-   constexpr UINT32 IMF_FLAG_COPY_ON_WRITE = 0x01;
-
 #pragma pack(4)
    struct idMapFileHead
    {
@@ -79,16 +77,6 @@ namespace vessel
                 dataSegCountInFile == h.dataSegCountInFile;
       }
 
-      void setCopyOnWrite()
-      {
-         OSS_BIT_SET(flags, IMF_FLAG_COPY_ON_WRITE);
-      }
-      BOOLEAN isCopyOnWrite()const
-      {
-         return 0 != OSS_BIT_TEST(flags, IMF_FLAG_COPY_ON_WRITE);
-      }
-
-
       UINT32 version = 0;
       UINT32 flags = 0;
       UINT32 dataPageSize = 0;
@@ -114,6 +102,7 @@ namespace vessel
       public:
          virtual BOOLEAN validateUserDefinedHead(const void *head)const override;
          virtual void cacheUserDefinedHead(const void *head) override;
+         virtual void resetCachedUserDefinedHead() override;
          INT32 getIdMapFileHead(idMapFileHead &h)const;
          UINT32 getTotalPageCount()const {return _pageCount;}
       private:
