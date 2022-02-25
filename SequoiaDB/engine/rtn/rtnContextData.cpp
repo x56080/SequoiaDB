@@ -71,6 +71,7 @@ namespace engine
       _numToSkip        = 0 ;
 
       _extentID         = DMS_INVALID_EXTENT ;
+      _lastExtentID     = DMS_INVALID_EXTENT ;
       _lastExtLID       = DMS_INVALID_EXTENT ;
       _segmentScan      = FALSE ;
       _indexBlockScan   = FALSE ;
@@ -1020,7 +1021,7 @@ namespace engine
       }
 
       extScanner = extFactory->create( _su->data(), _mbContext, matchRuntime,
-                                       _extentID, accessType,
+                                       _extentID, _lastExtentID, accessType,
                                        _numToReturn, _numToSkip,
                                        _returnOptions.getFlag() ) ;
       if ( !extScanner )
@@ -1145,6 +1146,7 @@ namespace engine
          }
          else
          {
+            _lastExtentID = extScanner->curExtentID() ;
             _extentID = extScanner->nextExtentID() ;
          }
          _lastExtLID = extScanner->curExtent()->_logicID ;

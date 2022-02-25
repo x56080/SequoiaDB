@@ -5746,7 +5746,8 @@ namespace engine
       // Scan a whole extent for once
       try
       {
-         dmsExtScanner scanner( _su->data(), _mbContext, NULL, _curExtentID,
+         dmsExtScanner scanner( _su->data(), _mbContext, NULL,
+                                _curExtentID, DMS_INVALID_EXTENT,
                                 DMS_ACCESS_TYPE_FETCH, -1L, 0 ) ;
          _mthRecordGenerator generator ;
          dmsRecordID recordID ;

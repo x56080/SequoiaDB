@@ -59,6 +59,7 @@ namespace engine
       _indexCB = NULL ;
       _scanExtLID = DMS_INVALID_EXTENT ;
       _currentExtentID = DMS_INVALID_EXTENT ;
+      _lastExtentID = DMS_INVALID_EXTENT ;
       _extent = NULL ;
       _unique = FALSE ;
       _dropDups = FALSE ;
