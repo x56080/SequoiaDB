@@ -3140,6 +3140,13 @@ namespace engine
       {
          /// 1. get main-task object from SYSTASKS
          rc = catGetTask( mainTaskID, taskObj, cb ) ;
+         if ( SDB_CAT_TASK_NOTFOUND == rc )
+         {
+            // main-collection and sub-collection belongs to the same cs, so
+            // main task has been deleted
+            rc = SDB_OK ;
+            goto done ;
+         }
          PD_RC_CHECK ( rc, PDERROR,
                        "Failed to get task[%llu], rc: %d",
                        mainTaskID, rc ) ;
@@ -3265,6 +3272,14 @@ namespace engine
                       "Failed to query task by matcher, rc: %d",
                       rc ) ;
 
+         if ( hasTask )
+         {
+            rc = catRemoveTask( matcher, FALSE, cb, w ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to remove task by matcher[%s], rc: %d",
+                         matcher.toString().c_str(), rc ) ;
+         }
+
          // if the task to be deleted is main task, remove their sub tasks
          for ( ossPoolSet<UINT64>::iterator it = mainTaskSet.begin() ;
                it != mainTaskSet.end() ; it++ )
@@ -3282,16 +3297,8 @@ namespace engine
          {
             rc = _updateMainTaskByRemoveTask( it->second, it->first, cb ) ;
             PD_RC_CHECK( rc, PDERROR,
-                         "Failed to update main task[%llu], rc: %s",
+                         "Failed to update main task[%llu], rc: %d",
                          it->second, rc ) ;
-         }
-
-         if ( hasTask )
-         {
-            rc = catRemoveTask( matcher, FALSE, cb, w ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to remove task by matcher[%s], rc: %d",
-                         matcher.toString().c_str(), rc ) ;
          }
       }
       catch( std::exception &e )
@@ -3334,6 +3341,14 @@ namespace engine
                       "Failed to query task by matcher, rc: %d",
                       rc ) ;
 
+         if ( hasTask )
+         {
+            rc = catRemoveTask( matcher, FALSE, cb, w ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to remove task by matcher[%s], rc: %d",
+                         matcher.toString().c_str(), rc ) ;
+         }
+
          // if the task to be deleted is main task, remove their sub tasks
          for ( ossPoolSet<UINT64>::iterator it = mainTaskSet.begin() ;
                it != mainTaskSet.end() ; it++ )
@@ -3351,16 +3366,8 @@ namespace engine
          {
             rc = _updateMainTaskByRemoveTask( it->second, it->first, cb ) ;
             PD_RC_CHECK( rc, PDERROR,
-                         "Failed to update main task[%llu], rc: %s",
+                         "Failed to update main task[%llu], rc: %d",
                          it->second, rc ) ;
-         }
-
-         if ( hasTask )
-         {
-            rc = catRemoveTask( matcher, FALSE, cb, w ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to remove task by matcher[%s], rc: %d",
-                         matcher.toString().c_str(), rc ) ;
          }
       }
       catch( std::exception &e )
