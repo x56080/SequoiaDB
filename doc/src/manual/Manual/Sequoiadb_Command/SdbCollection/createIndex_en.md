@@ -18,6 +18,7 @@ This function is used to create an [index][index] for the collection to improve 
 
 If the index field is sorted in positive order in the collection or needs to match records with smaller values, it is recommended to create an index in ascending order, which can hit the target records faster. If you need to match records with large values, it is recommended to create a descending index. In actual use, correctly specifying the index type according to the scenario can greatly improve the query efficiency of the index. 
 
+
 ##PARAMETERS##
 
 - name ( *string, required* )
