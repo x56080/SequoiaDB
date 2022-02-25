@@ -195,6 +195,7 @@ namespace engine
 
          // TBSCAN
          dmsExtentID                _extentID ;
+         dmsExtentID                _lastExtentID ;
          dmsExtentID                _lastExtLID ;
          BOOLEAN                    _segmentScan ;
          std::vector< dmsExtentID > _segments ;

@@ -120,6 +120,7 @@ namespace engine
       OID                _indexOID ;
       dmsExtentID        _scanExtLID ;
       dmsExtentID        _currentExtentID ;
+      dmsExtentID        _lastExtentID ;
       dmsExtRW           _extRW ;
       const dmsExtent*   _extent ;
       BOOLEAN            _unique ;

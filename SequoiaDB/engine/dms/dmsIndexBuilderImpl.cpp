@@ -84,7 +84,8 @@ namespace engine
             goto error ;
          }
 
-         dmsExtScanner extScanner( _suData, _mbContext, NULL, _currentExtentID ) ;
+         dmsExtScanner extScanner( _suData, _mbContext, NULL,
+                                   _currentExtentID, _lastExtentID ) ;
          _mthRecordGenerator generator ;
          dmsRecordID recordID ;
          ossValuePtr recordDataPtr ;
@@ -109,7 +110,8 @@ namespace engine
             rc = SDB_OK ;
          }
 
-         _currentExtentID = _extent->_nextExtent ;
+         _lastExtentID = extScanner.curExtentID() ;
+         _currentExtentID = extScanner.nextExtentID() ;
 
          rc = _afterExtent() ;
          if ( SDB_OK != rc )
@@ -221,7 +223,8 @@ namespace engine
             goto error ;
          }
 
-         dmsExtScanner extScanner( _suData, _mbContext, NULL, _currentExtentID ) ;
+         dmsExtScanner extScanner( _suData, _mbContext, NULL,
+                                   _currentExtentID, _lastExtentID ) ;
          _mthRecordGenerator generator ;
          dmsRecordID recordID ;
          ossValuePtr recordDataPtr ;
@@ -259,7 +262,8 @@ namespace engine
             goto error ;
          }
 
-         _currentExtentID = _extent->_nextExtent ;
+         _lastExtentID = extScanner.curExtentID() ;
+         _currentExtentID = extScanner.nextExtentID() ;
 
          rc = _afterExtent() ;
          if ( SDB_OK != rc )
