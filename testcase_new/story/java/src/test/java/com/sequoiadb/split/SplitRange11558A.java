@@ -196,8 +196,8 @@ public class SplitRange11558A extends SdbTestBase {
                         if ( currTimes >= retryTimes ) {
                             db.getCollectionSpace( SdbTestBase.csName )
                                     .dropCollection( clName );
+                            throw new Exception( "Timeout get split taskID." );
                         }
-                        throw new Exception( "Timeout get split taskID." );
                     }
                 }
                 db.cancelTask( taskID, false );
