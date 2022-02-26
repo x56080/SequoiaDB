@@ -136,6 +136,7 @@ namespace seadapter
       reply.header.requestID = msg->requestID ;
       reply.header.TID = msg->TID ;
       reply.header.routeID.value = 0 ;
+      reply.header.globalID = msg->globalID ;
 
       if ( objBuff.valid() )
       {
@@ -364,7 +365,7 @@ namespace seadapter
       }
       else
       {
-         rc = routeAgent()->syncSend( handle, (void *)header ) ;
+         rc = routeAgent()->syncSend( handle, (MsgHeader *)header ) ;
       }
 
       PD_RC_CHECK( rc, PDERROR, "Session[ %s ] send reply message failed[ %d ]",

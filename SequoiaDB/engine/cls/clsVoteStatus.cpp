@@ -284,7 +284,7 @@ namespace engine
               local.version, local.offset,
               (localAbnormal ? "TRUE":"FALSE") ) ;
       msg.header.res = SDB_OK ;
-      _agent->syncSend( id, &msg ) ;
+      _agent->syncSend( id, (MsgHeader *)&msg ) ;
    done:
       PD_TRACE_EXITRC ( SDB__CLSVTSTUS__LAU1, rc ) ;
       return rc ;
@@ -300,7 +300,7 @@ namespace engine
               local.version, local.offset,
               (localAbnormal ? "TRUE":"FALSE") ) ;
       msg.header.res = SDB_CLS_VOTE_FAILED ;
-      _agent->syncSend( id, &msg ) ;
+      _agent->syncSend( id, (MsgHeader *)&msg ) ;
       goto error ;
    }
 
@@ -312,7 +312,7 @@ namespace engine
                                     _groupInfo->alives.begin() ;
       for ( ; itr != _groupInfo->alives.end(); itr++ )
       {
-         _agent->syncSend( itr->second->beat.identity, msg ) ;
+         _agent->syncSend( itr->second->beat.identity, (MsgHeader *)msg ) ;
       }
       PD_TRACE_EXIT ( SDB__CLSVTSTUS__BCALIVES ) ;
    }

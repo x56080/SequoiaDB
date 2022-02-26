@@ -1863,7 +1863,7 @@ namespace engine
 
       reply = ( MsgOpReply *) pbuffer ;
       reply->header.TID = pSrcMsg->TID ;
-      rc = _netAgent.syncSend( handle, pbuffer ) ;
+      rc = _netAgent.syncSend( handle, (MsgHeader *)pbuffer ) ;
       if ( rc != SDB_OK )
       {
          PD_LOG ( PDERROR, "send response to agent failed:rc=%d", rc ) ;
@@ -1895,6 +1895,7 @@ namespace engine
       reply.header.TID           = pSrcMsg->TID ;
       reply.header.routeID.value = 0 ;
       reply.header.requestID     = pSrcMsg->requestID ;
+      reply.header.globalID      = pSrcMsg->globalID ;
       reply.contextID            = contextID ;
       reply.flags                = flag ;
       reply.startFrom            = 0 ;
@@ -1907,7 +1908,7 @@ namespace engine
       }
       else
       {
-         rc = _netAgent.syncSend ( handle, (void *)( &reply ) ) ;
+         rc = _netAgent.syncSend ( handle, (MsgHeader *)( &reply ) ) ;
       }
 
       if ( rc != SDB_OK )
@@ -1931,6 +1932,7 @@ namespace engine
       reply.contextID            = contextID ;
       reply.flags                = flag ;
       reply.startFrom            = 0 ;
+      reply.header.globalID      = pSrcMsg->globalID ;
 
       if ( !obj.isEmpty() )
       {
@@ -1945,7 +1947,7 @@ namespace engine
       {
          reply.header.messageLength = sizeof( MsgOpReply ) ;
          reply.numReturned          = 0 ;
-         rc = _netAgent.syncSend ( handle, (void *)( &reply ) ) ;
+         rc = _netAgent.syncSend ( handle, (MsgHeader *)( &reply ) ) ;
       }
 
       if ( rc != SDB_OK )
@@ -2145,8 +2147,7 @@ namespace engine
       rc = msgExtractGetMore ( (CHAR*)pMsg, &numToRead, &contextID ) ;
       PD_RC_CHECK( rc, PDERROR, "Extract get more msg failed(rc=%d)!", rc ) ;
 
-      rc = rtnGetMore ( contextID, numToRead, buf,
-                        _pEDUCB, _pRtnCB ) ;
+      rc = rtnGetMore( contextID, numToRead, buf, _pEDUCB, _pRtnCB ) ;
       if ( rc )
       {
          rtnDel = FALSE ;
@@ -2554,7 +2555,7 @@ namespace engine
       }
       else
       {
-         rc = _netAgent.syncSend ( handle, (void *)pReply ) ;
+         rc = _netAgent.syncSend ( handle, (MsgHeader *)pReply ) ;
       }
 
       PD_RC_CHECK ( rc, PDDEBUG, "Fail to send reply message[opCode:(%d)%d, "

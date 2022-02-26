@@ -297,6 +297,7 @@ namespace engine
       reply.header.requestID = msg->requestID ;
       reply.header.routeID.value = 0 ;
       reply.header.TID = msg->TID ;
+      reply.header.globalID = msg->globalID ;
       reply.flags = rc ;
       reply.contextID = -1 ;
       reply.numReturned = buf.recordNum() ;
@@ -331,6 +332,7 @@ namespace engine
          reply.header.requestID = msg->requestID ;
          reply.header.routeID.value = 0 ;
          reply.header.TID = msg->TID ;
+         reply.header.globalID = msg->globalID ;
          reply.flags = rc ;
          reply.contextID = -1 ;
          reply.numReturned = 0 ;

@@ -231,7 +231,7 @@ namespace engine
       {
          if ( !pBody )
          {
-            rc = _agent->syncSend( _connHandle, (void*)pMsg) ;
+            rc = _agent->syncSend( _connHandle, pMsg ) ;
          }
          else
          {
@@ -259,7 +259,7 @@ namespace engine
          NET_HANDLE handle = NET_INVALID_HANDLE ;
          if ( !pBody )
          {
-            rc = _agent->syncSend( id, (void*)pMsg, &handle ) ;
+            rc = _agent->syncSend( id, pMsg, &handle ) ;
          }
          else
          {

@@ -41,7 +41,8 @@
 #include "ossMem.hpp"
 #include "pmdEnv.hpp"
 #include "msgDef.h"
-#include "pd.hpp"
+#include "msgMessage.hpp"
+
 #include "pdTrace.hpp"
 #include "netTrace.hpp"
 #include "msgMessageFormat.hpp"
@@ -66,8 +67,9 @@ namespace engine
    : netEventHandlerBase( handle ),
      _evSuitPtr( evSuitPtr ),
      _sock( evSuitPtr->getIOService() ),
-     _buf(NULL),
-     _bufLen(0),
+     _headerSz( sizeof(MsgHeader ) ),
+     _buf( NULL ),
+     _bufLen( 0 ),
      _state(NET_EVENT_HANDLER_STATE_HEADER)
    {
       _hasRecvMsg    = FALSE ;
@@ -177,7 +179,7 @@ namespace engine
       INT32 res = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__NETEVNHND_SETOPT );
 
-      _isConnected = TRUE ;
+_isConnected = TRUE ;
       _isNew = FALSE ;
 
       INT32 keepAlive = 1 ;
@@ -279,53 +281,6 @@ namespace engine
          _sock.close( ec ) ;
       }
 
-      /*try
-      {
-         boost::system::error_code ec ;
-         tcp::resolver::query query ( tcp::v4(), hostName, serviceName ) ;
-         tcp::resolver resolver ( _evSuitPtr->getIOService() ) ;
-         tcp::resolver::iterator itr = resolver.resolve ( query ) ;
-         ip::tcp::endpoint endpoint = *itr ;
-         _sock.open( tcp::v4()) ;
-
-         _sock.connect( endpoint, ec ) ;
-         /// may return ok when we in a local area network.
-         if ( ec )
-         {
-            if ( boost::asio::error::would_block == ec )
-            {
-               rc = _complete( _sock.native() ) ;
-               if ( SDB_OK != rc )
-               {
-                  _sock.close() ;
-                  PD_LOG ( PDWARNING, "Connection[Handle:%d] failed to connect "
-                           "to %s:%s, rc: %d", _handle,
-                           hostName, serviceName, rc ) ;
-                  goto error ;
-               }
-            }
-            else
-            {
-               PD_LOG ( PDWARNING, "Connection[Handle:%d] failed to connect "
-                        "to %s:%s, error:%s,%d", _handle,
-                        hostName, serviceName, ec.message().c_str(),
-                        ec.value() ) ;
-               rc = SDB_NET_CANNOT_CONNECT ;
-               _sock.close() ;
-               goto error ;
-            }
-         }
-      }
-      catch ( boost::system::system_error &e )
-      {
-         PD_LOG ( PDWARNING, "Connection[Handle:%d] failed to connect "
-                  "to %s:%s, error:%s", _handle,
-                  hostName, serviceName, e.what() ) ;
-         rc = SDB_NET_CANNOT_CONNECT ;
-         _sock.close() ;
-         goto error ;
-      }*/
-
       UINT16 port = 0 ;
       rc = ossGetPort( serviceName, port ) ;
       if ( SDB_OK != rc )
@@ -367,11 +322,70 @@ namespace engine
             _sock.close() ;
             goto error ;
          }
+
+         setOpt() ;
+
+         rc = _syncCheckSysInfo( sock ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Connection[Handle%d] checking system info of "
+                    "node[%s:%s] failed[%d]",
+                    _handle, hostName, serviceName, rc ) ;
+            sock.close() ;
+            _sock.close() ;
+            goto error ;
+         }
       }
 
-      setOpt() ;
    done:
       PD_TRACE_EXITRC ( SDB__NETEVNHND_SYNCCONN, rc );
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETEVNHND__SYNCCHECKSYSINFO, "_netEventHandler::_syncCheckSysInfo" )
+   INT32 _netEventHandler::_syncCheckSysInfo( ossSocket &socket )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__NETEVNHND__SYNCCHECKSYSINFO ) ;
+      INT32 sentLen = 0 ;
+      INT32 recvLen = 0 ;
+      BOOLEAN endianConvert = FALSE ;
+      MsgSysInfoRequest sysInfoReq ;
+      MsgSysInfoReply sysInfoReply ;
+
+      sysInfoReq.header.specialSysInfoLen = MSG_SYSTEM_INFO_LEN ;
+      sysInfoReq.header.eyeCatcher = MSG_SYSTEM_INFO_EYECATCHER ;
+      sysInfoReq.header.realMessageLength = sizeof(MsgSysInfoRequest) ;
+
+      rc = socket.send( (const CHAR *)&sysInfoReq,
+                        sizeof(MsgSysInfoRequest), sentLen ) ;
+      PD_RC_CHECK( rc, PDERROR, "Send system info request failed[%d]", rc ) ;
+
+      rc = socket.recv( (CHAR *)&sysInfoReply, sizeof(MsgSysInfoReply),
+                        recvLen ) ;
+      PD_RC_CHECK( rc, PDERROR, "Receive system info reply failed[%d]", rc ) ;
+      SDB_ASSERT( sizeof(MsgSysInfoReply) == recvLen,
+                  "Received length is not as expected" ) ;
+
+      rc = msgExtractSysInfoReply( (const CHAR *)&sysInfoReply, endianConvert,
+                                   NULL, &_peerVersion ) ;
+      PD_RC_CHECK( rc, PDERROR, "Extract system info reply failed[%d]", rc ) ;
+
+      if ( SDB_PROTOCOL_VER_1 == _peerVersion )
+      {
+         _headerSz = sizeof(MsgHeaderV1) ;
+         rc = _enableMsgConvertor() ;
+         PD_RC_CHECK( rc, PDERROR, "Enabled message convertor for remote node"
+                      "[%s:%d] failed[%d]", remoteAddr().c_str(), remotePort(),
+                      rc ) ;
+         PD_LOG( PDDEBUG, "Message convertor enabled for remote node[%s:%d]",
+                 remoteAddr().c_str(), remotePort() ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__NETEVNHND__SYNCCHECKSYSINFO, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -399,7 +413,7 @@ namespace engine
             {
                async_read( _sock, buffer(
                            (CHAR*)&_header + sizeof(MsgSysInfoRequest),
-                           sizeof(_MsgHeader) - sizeof(MsgSysInfoRequest) ),
+                           _headerSz - sizeof(MsgSysInfoRequest) ),
                            boost::bind(&_netEventHandler::_readCallback,
                                        _getShared(),
                                        boost::asio::placeholders::error ) ) ;
@@ -414,7 +428,7 @@ namespace engine
             }
             else
             {
-               async_read( _sock, buffer(&_header, sizeof(_MsgHeader)),
+               async_read( _sock, buffer(&_header, _headerSz),
                            boost::bind(&_netEventHandler::_readCallback,
                                        _getShared(),
                                        boost::asio::placeholders::error )) ;
@@ -435,7 +449,8 @@ namespace engine
          {
             goto error ;
          }
-         ossMemcpy( _buf, &_header, sizeof( _MsgHeader ) ) ;
+
+         ossMemcpy( _buf, &_header, _headerSz ) ;
 
          if ( !_isConnected )
          {
@@ -446,8 +461,8 @@ namespace engine
          try
          {
             async_read( _sock, buffer(
-                        (CHAR *)((ossValuePtr)_buf + sizeof(_MsgHeader)),
-                        len - sizeof(_MsgHeader)),
+                        (CHAR *)((ossValuePtr)_buf + _headerSz ),
+                        len - _headerSz ),
                         boost::bind( &_netEventHandler::_readCallback,
                                      _getShared(),
                                      boost::asio::placeholders::error ) ) ;
@@ -474,11 +489,11 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETEVNHND_SYNCSND, "_netEventHandler::syncSend" )
-   INT32 _netEventHandler::syncSend( const void *buf, UINT32 len )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETEVNHND_SYNCSNDRAW, "_netEventHandler::syncSendRaw" )
+   INT32 _netEventHandler::syncSendRaw( const void *buf, UINT32 len )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__NETEVNHND_SYNCSND );
+      PD_TRACE_ENTRY ( SDB__NETEVNHND_SYNCSNDRAW );
       UINT32 send = 0 ;
 
       /// not care send suc or failed
@@ -540,7 +555,7 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC ( SDB__NETEVNHND_SYNCSND, rc );
+      PD_TRACE_EXITRC ( SDB__NETEVNHND_SYNCSNDRAW, rc );
       return rc ;
    error:
       goto done ;
@@ -586,7 +601,7 @@ namespace engine
          if ( error.value() == boost::system::errc::timed_out ||
               error.value() == boost::system::errc::resource_unavailable_try_again )
          {
-            PD_LOG( PDWARNING, "Connection[Handle:%d, Node:%s] recieve "
+            PD_LOG( PDWARNING, "Connection[Handle:%d, Node:%s] receive "
                     "timeout: %s,%d", _handle, routeID2String( _id ).c_str(),
                     error.message().c_str(), error.value() ) ;
             asyncRead() ;
@@ -615,10 +630,17 @@ namespace engine
 
       if ( NET_EVENT_HANDLER_STATE_HEADER == _state )
       {
+         UINT32 minMsgLen = (SDB_PROTOCOL_VER_2 == _peerVersion) ?
+                            sizeof(MsgHeader) : sizeof(MsgHeaderV1) ;
+
          /// error header
          if ( ( UINT32 )MSG_SYSTEM_INFO_LEN == (UINT32)_header.messageLength )
          {
-            // sys info request
+            // Only node of new version will send the system info request.
+            // But some places in the new version will not send the system info
+            // request too. So we can NOT be sure the version of peer node is
+            // 1 if it hasn't sent the system info request.
+            _peerVersion = SDB_PROTOCOL_VER_2 ;
             if ( SDB_OK != _allocateBuf( sizeof(MsgSysInfoRequest) ))
             {
                goto error_close ;
@@ -630,7 +652,7 @@ namespace engine
             asyncRead() ;
             goto done ;
          }
-         else if ( sizeof(_MsgHeader) > (UINT32)_header.messageLength ||
+         else if ( minMsgLen > (UINT32)_header.messageLength ||
                    SDB_MAX_MSG_LENGTH < (UINT32)_header.messageLength )
          {
             PD_LOG( PDERROR, "Connection[Handle:%d, Node:%s] received invalid "
@@ -645,12 +667,42 @@ namespace engine
             if ( FALSE == _hasRecvMsg )
             {
                _hasRecvMsg = TRUE ;
+
+               if ( SDB_PROTOCOL_VER_INVALID == _peerVersion )
+               {
+                  // If we hit this code, it means no sys info request has been
+                  // received. As the first received length is
+                  // sizeof(MsgSysInfoRequest), the MsgHeader::eye is received
+                  // already. We can check the version based on that.
+                  _peerVersion =
+                        ( MSG_COMM_EYE_DEFAULT == _header.eye ) ?
+                        SDB_PROTOCOL_VER_2 : SDB_PROTOCOL_VER_1 ;
+                  if ( SDB_PROTOCOL_VER_1 == _peerVersion )
+                  {
+                     _headerSz = sizeof( MsgHeaderV1 ) ;
+                     INT32 rcTmp = _enableMsgConvertor() ;
+                     if ( rcTmp )
+                     {
+                        PD_LOG( PDERROR, "Enabled message convertor for "
+                                "node[%s] failed[%d]",
+                                routeID2String( _id ).c_str(), rcTmp ) ;
+                        goto error_close ;
+                     }
+                     PD_LOG( PDDEBUG, "Message convertor is enabled for "
+                             "node[%s] successfully",
+                             routeID2String( _id ).c_str() ) ;
+                  }
+               }
+
                // need to recv the last header msg
                _state = NET_EVENT_HANDLER_STATE_HEADER_LAST ;
                asyncRead() ;
                _state = NET_EVENT_HANDLER_STATE_HEADER ;
                goto done ;
             }
+
+            SDB_ASSERT( SDB_PROTOCOL_VER_INVALID != _peerVersion,
+                        "Peer node version should not be invalid" ) ;
 
             /// add to route table
             if ( MSG_INVALID_ROUTEID == _id.value )
@@ -678,20 +730,26 @@ namespace engine
                }
             }
 
-            PD_LOG( PDDEBUG, "Connection[Handle:%d, Node:%s] received "
-                    "message[%s] from %s:%d", _handle,
-                    routeID2String( _id ).c_str(),
-                    msg2String( &_header, MSG_MASK_ALL, 0 ).c_str(),
-                    remoteAddr().c_str(), remotePort() ) ;
+            // If peer node protocol version is 1, we can not print the message
+            // like this, as the structure of the message is different. Once all
+            // nodes in the cluster finish upgrading, the message can be logged.
+            if ( SDB_PROTOCOL_VER_2 == _peerVersion )
+            {
+               PD_LOG( PDDEBUG, "Connection[Handle:%d, Node:%s] received "
+                                "message[%s] from %s:%d", _handle,
+                       routeID2String( _id ).c_str(),
+                       msg2String( &_header, MSG_MASK_ALL, 0 ).c_str(),
+                       remoteAddr().c_str(), remotePort() ) ;
+            }
          }
          /// msg has only header
-         if ( (UINT32)sizeof(_MsgHeader) == (UINT32)_header.messageLength )
+         if ( _headerSz == (UINT32)_header.messageLength )
          {
-            if ( SDB_OK != _allocateBuf( sizeof(_MsgHeader) ) )
+            if ( SDB_OK != _allocateBuf( _headerSz ) )
             {
                goto error_close ;
             }
-            ossMemcpy( _buf, &_header, sizeof( _MsgHeader ) ) ;
+            ossMemcpy( _buf, &_header, _headerSz ) ;
             _evSuitPtr->getFrame()->handleMsg( _getSharedBase() ) ;
             _state = NET_EVENT_HANDLER_STATE_HEADER ;
             asyncRead() ;

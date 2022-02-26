@@ -142,7 +142,7 @@ namespace engine
             goto error ;
          }
       }
-      
+
    done:
       return rc ;
    error:
@@ -181,7 +181,7 @@ namespace engine
                  reply.header.eyeCatcher ) ;
          goto error ;
       }
-      
+
    done:
       return rc ;
    error:
@@ -200,7 +200,7 @@ namespace engine
 
       auth     = BSON( SDB_AUTH_USER << user << SDB_AUTH_PASSWD << passwd ) ;
       authSize = auth.objsize() ;
-      
+
       msgLen = sizeof( MsgAuthentication ) +
                ossRoundUpToMultipleX( authSize, 4 ) ;
       buff = (CHAR *)SDB_OSS_MALLOC( msgLen ) ;
@@ -215,9 +215,13 @@ namespace engine
       reqMsg->header.requestID     = 0 ;
       reqMsg->header.opCode        = MSG_AUTH_VERIFY_REQ ;
       reqMsg->header.messageLength = sizeof( MsgAuthentication ) + authSize ;
+      reqMsg->header.eye           = MSG_COMM_EYE_DEFAULT ;
+      reqMsg->header.version       = SDB_PROTOCOL_VER_2 ;
+      reqMsg->header.flags         = 0 ;
       reqMsg->header.routeID.value = 0 ;
       reqMsg->header.TID           = ossGetCurrentThreadID() ;
-      ossMemcpy( buff + sizeof( MsgAuthentication ), auth.objdata(), 
+      ossMemset( reqMsg->header.reserve, 0, sizeof(reqMsg->header.reserve) ) ;
+      ossMemcpy( buff + sizeof( MsgAuthentication ), auth.objdata(),
                  authSize ) ;
 
       rc = sendMessage( (MsgHeader *)reqMsg ) ;
@@ -252,11 +256,11 @@ namespace engine
       }
       return rc ;
    error:
-      
+
       goto done ;
    }
 
-   INT32 _omSdbConnector::_negotiation( const string &user, 
+   INT32 _omSdbConnector::_negotiation( const string &user,
                                         const string &passwd )
    {
       INT32 rc = SDB_OK ;
@@ -270,7 +274,7 @@ namespace engine
       rc = _authority( user, passwd ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "authority failed:user=%s,rc=%d", 
+         PD_LOG( PDERROR, "authority failed:user=%s,rc=%d",
                  user.c_str(), rc ) ;
          goto error ;
       }
@@ -297,11 +301,11 @@ namespace engine
       }
 
       match = BSON( FIELD_NAME_PREFERED_INSTANCE << preferedInstance ) ;
-      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &match, 
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &match,
                              NULL, NULL, NULL ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDWARNING, "build command failed:command=%s, rc=%d", 
+         PD_LOG( PDWARNING, "build command failed:command=%s, rc=%d",
                  pCommand, rc ) ;
          goto error ;
       }
@@ -343,7 +347,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _omSdbConnector::init( const string &hostName, UINT32 port, 
+   INT32 _omSdbConnector::init( const string &hostName, UINT32 port,
                                 const string &user, const string &passwd,
                                 INT32 preferedInstance )
    {
@@ -356,7 +360,7 @@ namespace engine
       rc = _connect( hostName.c_str(), port ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "connect failed:host=%s,port=%u,rc=%d", 
+         PD_LOG( PDERROR, "connect failed:host=%s,port=%u,rc=%d",
                  hostName.c_str(), port, rc ) ;
          goto error ;
       }
@@ -373,7 +377,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDWARNING, "set attribute failed:host=%s,port=%u,user=%s,"
-                 "preferedInstance=%d,rc=%d", hostName.c_str(), port, 
+                 "preferedInstance=%d,rc=%d", hostName.c_str(), port,
                  user.c_str(), preferedInstance, rc ) ;
          rc = SDB_OK ;
       }
@@ -420,7 +424,7 @@ namespace engine
 
       if ( rspHeader.messageLength > msgHeaderSize )
       {
-         rc = _recvResponse( rspMsg + msgHeaderSize, 
+         rc = _recvResponse( rspMsg + msgHeaderSize,
                              rspHeader.messageLength - msgHeaderSize ) ;
          if ( SDB_OK != rc )
          {

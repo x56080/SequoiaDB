@@ -428,7 +428,7 @@ namespace engine
       }
       else
       {
-         rc = _pAgent->syncSend ( handle, (void *)pReply ) ;
+         rc = _pAgent->syncSend ( handle, (MsgHeader *)pReply ) ;
       }
 
       PD_RC_CHECK ( rc, PDERROR, "Send reply message[opCode:(%d)%d, "
@@ -521,7 +521,7 @@ retry :
       }
 
       // send to catalog primary node
-      rc = _pAgent->syncSend ( nodeID, (void*)pMsg, pHandle ) ;
+      rc = _pAgent->syncSend ( nodeID, pMsg, pHandle ) ;
       if ( rc != SDB_OK )
       {
          PD_LOG ( PDWARNING, "Send message to primary catalog[%u, "
@@ -561,13 +561,14 @@ retry :
       buff = (CHAR *)SDB_THREAD_ALLOC( length ) ;
       if ( buff == NULL )
       {
-         PD_LOG ( PDERROR, "Failed to allocate memroy for register req" ) ;
+         PD_LOG ( PDERROR, "Failed to allocate memory for register req" ) ;
          rc = SDB_OOM ;
          goto error ;
       }
 
       pReq = (MsgCatRegisterReq*)buff ;
       pReq->header.messageLength = length ;
+      pReq->header.flags = 0 ;
       pReq->header.opCode = MSG_CAT_REG_REQ ;
       pReq->header.requestID = 0 ;
       pReq->header.TID = 0 ;
@@ -812,6 +813,7 @@ retry :
             /// send reply
             _replyHeader.header.messageLength = sizeof( MsgOpReply ) +
                                                 buffObj.size();
+            _replyHeader.header.globalID      = pMsg->globalID ;
             _replyHeader.flags                = rc ;
             _replyHeader.contextID            = contextID ;
             _replyHeader.startFrom            = (INT32)buffObj.getStartFrom() ;
@@ -850,7 +852,7 @@ retry :
                           "ContextID:%lld, NumToRead:%d",
                           contextID, numToRead ) ;
 
-      rc = rtnGetMore ( contextID, numToRead, buffObj, _pEDUCB, _pRtnCB ) ;
+      rc = rtnGetMore( contextID, numToRead, buffObj, _pEDUCB, _pRtnCB ) ;
       if ( rc )
       {
          rtnDel = FALSE ;

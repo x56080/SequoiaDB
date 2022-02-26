@@ -41,11 +41,9 @@
 #include "netRoute.hpp"
 #include "ossMem.hpp"
 #include "pmdEnv.hpp"
-#include "msgDef.h"
 #include "pd.hpp"
 #include "pdTrace.hpp"
 #include "netTrace.hpp"
-#include "msgMessageFormat.hpp"
 #include <boost/bind.hpp>
 
 using namespace boost::asio::ip ;
@@ -279,6 +277,14 @@ namespace engine
             PD_LOG( PDERROR, "Failed to save handle, rc: %d", rc ) ;
             goto error ;
          }
+      }
+
+      // When process the sysinfo message, the route id is not set in the event
+      // handler. So it should be updated when a normal message is received.
+      if ( MSG_INVALID_ROUTEID == tmpEH->id().value &&
+           MSG_INVALID_ROUTEID != routeID.value )
+      {
+         dynamic_cast<netUDPEventHandler *>(tmpEH.get())->setRouteID( routeID ) ;
       }
 
       eh = tmpEH ;
@@ -522,6 +528,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__NETUDPEVENTSUIT__READCALLBACK ) ;
 
       NET_EH eh ;
+      MsgRouteID routeID ;
       MsgHeader *message = (MsgHeader *)_buffer ;
 
       if ( error )
@@ -556,7 +563,19 @@ namespace engine
          goto error_close ;
       }
 
-      if ( SDB_OK == getEH( _remoteEndPoint, message->routeID, eh ) )
+      // In version >= 3.4.5/5.0.3, sysinfo is sent between nodes in cluster
+      // too.
+      if ( MSG_SYSTEM_INFO_LEN == (UINT32)message->messageLength )
+      {
+         routeID.value = MSG_INVALID_ROUTEID ;
+      }
+      else
+      {
+         routeID = message->routeID ;
+      }
+
+      // The _remoteEndPoint is used to get the eh, not the route id.
+      if ( SDB_OK == getEH( _remoteEndPoint, routeID, eh ) )
       {
          netUDPEventHandler *handler = NULL ;
 

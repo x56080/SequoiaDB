@@ -216,7 +216,8 @@ namespace engine
    /*
      _netEHSegment define
      This class is only used by netFrame as the container/manager of
-     netEventHandler
+     netEventHandler. All handles in the segment are used to communicate with
+     the same node.
    */
    class _netEHSegment ;
    typedef class _netEHSegment netEHSegment ;
@@ -378,14 +379,14 @@ namespace engine
          INT32 syncConnect( NET_EH &eh ) ;
 
          INT32 syncSend( const NET_HANDLE &handle,
-                         void *header ) ;
+                         MsgHeader *header ) ;
 
          INT32 syncSendRaw( const NET_HANDLE &handle,
                             const CHAR *pBuff,
                             UINT32 buffSize ) ;
 
          INT32 syncSend( const _MsgRouteID &id,
-                         void *header,
+                         MsgHeader *header,
                          NET_HANDLE *pHandle = NULL ) ;
 
          INT32 syncSend( const NET_HANDLE &handle,
@@ -493,6 +494,10 @@ namespace engine
          void     _checkBreak( UINT32 timeout, const netFrameMon &mon ) ;
 
          void     _closeHandle( NET_HANDLE handle ) ;
+
+         INT32    _syncSendCompatible( NET_EH eh, MsgHeader *message ) ;
+
+         INT32    _msgConvertAndSend( IMsgConvertor *convertor, NET_EH eh ) ;
 
       private:
          UINT32                           _protocolMask ;

@@ -307,11 +307,11 @@ namespace seadapter
 
       if ( NET_INVALID_HANDLE != _dataNetHandle )
       {
-         rc = _routeAgent.syncSend( _dataNetHandle, (void *)msg ) ;
+         rc = _routeAgent.syncSend( _dataNetHandle, (MsgHeader *)msg ) ;
       }
       else
       {
-         rc = _routeAgent.syncSend( _dataNodeID, (void *)msg ) ;
+         rc = _routeAgent.syncSend( _dataNodeID, (MsgHeader *)msg ) ;
       }
       PD_RC_CHECK( rc, PDERROR, "Send message to data node failed[%d]", rc ) ;
 
@@ -332,7 +332,7 @@ namespace seadapter
          goto error ;
       }
 
-      rc = _routeAgent.syncSend( handle, (void *)msg ) ;
+      rc = _routeAgent.syncSend( handle, (MsgHeader *)msg ) ;
       PD_RC_CHECK( rc, PDERROR, "Send message failed[%d]", rc ) ;
 
    done:
@@ -381,12 +381,13 @@ namespace seadapter
 
       if ( NET_INVALID_HANDLE != _cataNetHandle )
       {
-         rc = _routeAgent.syncSend( _cataNetHandle, (void *)msg ) ;
+         rc = _routeAgent.syncSend( _cataNetHandle, (MsgHeader *)msg ) ;
       }
       else
       {
          rc = _routeAgent.syncSend(
-                 _cataGrpInfo.primary( MSG_ROUTE_CAT_SERVICE ), (void *)msg ) ;
+                 _cataGrpInfo.primary( MSG_ROUTE_CAT_SERVICE ),
+                 (MsgHeader *)msg ) ;
       }
       PD_RC_CHECK( rc, PDERROR, "Send message to catalogue node failed[%d]",
                    rc ) ;

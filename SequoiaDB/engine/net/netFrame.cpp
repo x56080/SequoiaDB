@@ -396,6 +396,60 @@ namespace engine
       }
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME__SYNCSENDCOMPATIBLE, "_netFrame::_syncSendCompatible" )
+   INT32 _netFrame::_syncSendCompatible( NET_EH eh, MsgHeader *message )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__NETFRAME__SYNCSENDCOMPATIBLE ) ;
+      IMsgConvertor *convertor = eh->getOutMsgConvertor() ;
+
+      convertor->reset( FALSE ) ;
+      rc = convertor->push( (const CHAR *)message, message->messageLength ) ;
+      PD_RC_CHECK( rc, PDERROR, "Push message into convertor failed[%d]. "
+                   "Message: %s", rc, msg2String( message ).c_str() ) ;
+
+      rc = _msgConvertAndSend( convertor, eh ) ;
+      PD_RC_CHECK( rc, PDERROR, "Convert message and send failed[%d]. "
+                   "Message: %s", rc, msg2String( message ).c_str() ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__NETFRAME__SYNCSENDCOMPATIBLE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME__MSGCONVERTANDSEND, "_netFrame::_msgConvertAndSend" )
+   INT32 _netFrame::_msgConvertAndSend( IMsgConvertor *convertor, NET_EH eh )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__NETFRAME__MSGCONVERTANDSEND ) ;
+      CHAR *data = NULL ;
+      UINT32 len = 0 ;
+
+      while ( TRUE )
+      {
+         rc = convertor->output( data, len ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get message from message convertor "
+                      "failed[%d]", rc ) ;
+         if ( !data )
+         {
+            break ;
+         }
+
+         rc = eh->syncSendRaw( data, len ) ;
+         PD_RC_CHECK( rc, PDERROR, "Send message to [%s:%u] failed[%d]",
+                      eh->remoteAddr().c_str(), eh->remotePort(), rc ) ;
+         _netOut.add( len ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__NETFRAME__MSGCONVERTANDSEND, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    void _netFrame::onSuitTimer( netEvSuitPtr evSuitPtr )
    {
       ossScopedLock lock( &_suiteMtx, EXCLUSIVE ) ;
@@ -614,6 +668,7 @@ namespace engine
       NET_EH eh ;
       NET_HANDLE handle = NET_INVALID_HANDLE ;
       MAP_EVENT_IT itr ;
+      IMsgConvertor *convertor = NULL ;
 
       beat.messageLength = sizeof( MsgHeader ) ;
       beat.opCode = MSG_HEARTBEAT ;
@@ -651,7 +706,15 @@ namespace engine
          {
             ossScopedLock lock( &( eh->mtx() ) ) ;
             beat.requestID = eh->getAndIncMsgID() ;
-            eh->syncSend( &beat, beat.messageLength ) ;
+            convertor = eh->getOutMsgConvertor() ;
+            if ( convertor )
+            {
+               _syncSendCompatible( eh, (MsgHeader *)&beat ) ;
+            }
+            else
+            {
+               eh->syncSendRaw( &beat, beat.messageLength ) ;
+            }
          }
       }
    }
@@ -660,11 +723,13 @@ namespace engine
    {
       SDB_ASSERT( NULL != message, "message is invalid" ) ;
       MsgOpReply reply ;
+      IMsgConvertor *convertor = NULL ;
       reply.header.messageLength = sizeof( MsgOpReply ) ;
       reply.header.opCode = MSG_HEARTBEAT_RES ;
       reply.header.requestID = message->requestID ;
       reply.header.routeID.value = 0 ;
       reply.header.TID = message->TID ;
+      reply.header.globalID = message->globalID ;
       reply.contextID = -1 ;
       reply.numReturned = 0 ;
       reply.startFrom = 0 ;
@@ -677,7 +742,15 @@ namespace engine
       if ( lock.isLocked() )
       {
          reply.header.routeID = _local ;
-         eh->syncSend( (const void*)&reply, reply.header.messageLength ) ;
+         convertor = eh->getOutMsgConvertor() ;
+         if ( convertor )
+         {
+            _syncSendCompatible( eh, (MsgHeader *)&reply ) ;
+         }
+         else
+         {
+            eh->syncSendRaw( &reply, reply.header.messageLength ) ;
+         }
       }
    }
 
@@ -1247,16 +1320,17 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME_SYNCSEND, "_netFrame::syncSend" )
    INT32 _netFrame::syncSend( const _MsgRouteID &id,
-                              void *header,
+                              MsgHeader *header,
                               NET_HANDLE *pHandle )
    {
       SDB_ASSERT( NULL != header, "header should not be NULL") ;
       SDB_ASSERT( MSG_INVALID_ROUTEID != id.value,
                   "id.value should not be zero" ) ;
       INT32 rc = SDB_OK ;
-      MsgHeader *msgHeader = NULL ;
       PD_TRACE_ENTRY ( SDB__NETFRAME_SYNCSEND );
       NET_EH eh ;
+      BOOLEAN compatibleMode = FALSE ;
+      IMsgConvertor *convertor = NULL ;
 
       rc = _getHandle( id, eh ) ;
       if ( rc )
@@ -1272,26 +1346,42 @@ namespace engine
          }
       }
 
-      msgHeader = ( MsgHeader* )header ;
-      if ( MSG_INVALID_ROUTEID == msgHeader->routeID.value )
+      if ( MSG_INVALID_ROUTEID == header->routeID.value )
       {
-         msgHeader->routeID = _local ;
+         header->routeID = _local ;
       }
+
+      header->eye = MSG_COMM_EYE_DEFAULT ;
+      header->version = SDB_PROTOCOL_VER_2 ;
+      ossMemset( header->reserve, 0, sizeof(header->reserve) ) ;
 
       {
       ossScopedLock lock( &( eh->mtx() ) ) ;
-      rc = eh->syncSend( msgHeader, msgHeader->messageLength ) ;
       if ( pHandle )
       {
          *pHandle = eh->handle() ;
       }
+      convertor = eh->getOutMsgConvertor() ;
+      if ( convertor )
+      {
+         compatibleMode = TRUE ;
+         rc = _syncSendCompatible( eh, header ) ;
       }
+      else
+      {
+         rc = eh->syncSendRaw( header, header->messageLength ) ;
+      }
+      }      
       if ( SDB_OK != rc )
       {
          eh->close() ;
          goto error ;
       }
-      _netOut.add( msgHeader->messageLength ) ;
+
+      if ( !compatibleMode )
+      {
+         _netOut.add( header->messageLength ) ;
+      }
 
    done:
       PD_TRACE_EXITRC ( SDB__NETFRAME_SYNCSEND, rc );
@@ -1301,31 +1391,59 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME_SYNCSEND2, "_netFrame::syncSend" )
-   INT32 _netFrame::syncSend( const NET_HANDLE &handle,
-                              void *header )
+   INT32 _netFrame::syncSend( const NET_HANDLE &handle, MsgHeader *header )
    {
-      SDB_ASSERT( NULL != header, "header should not be NULL") ;
-      SDB_ASSERT( NET_INVALID_HANDLE != handle,
-                  "handle should not be invalid" ) ;
       INT32 rc = SDB_OK ;
-      MsgHeader *msgHeader = NULL ;
-      PD_TRACE_ENTRY ( SDB__NETFRAME_SYNCSEND2 ) ;
+      NET_EH eh ;
+      MAP_EVENT_IT itr ;
+      BOOLEAN compatibleMode = FALSE ;
+      IMsgConvertor *convertor = NULL ;
 
-      msgHeader = ( MsgHeader * )header ;
-      if ( MSG_INVALID_ROUTEID == msgHeader->routeID.value )
+      _mtx.get_shared() ;
+      itr = _opposite.find( handle ) ;
+      if ( _opposite.end() == itr )
       {
-         msgHeader->routeID = _local ;
-      }
-
-      rc = syncSendRaw( handle, (const CHAR * )msgHeader,
-                        msgHeader->messageLength ) ;
-      if ( SDB_OK != rc )
-      {
+         _mtx.release_shared() ;
+         rc = SDB_NET_INVALID_HANDLE ;
          goto error ;
       }
 
+      eh = itr->second ;
+      _mtx.release_shared() ;
+
+      if ( MSG_INVALID_ROUTEID == header->routeID.value )
+      {
+         header->routeID = _local ;
+      }
+
+      header->eye = MSG_COMM_EYE_DEFAULT ;
+      header->version = SDB_PROTOCOL_VER_2 ;
+      ossMemset( header->reserve, 0, sizeof(header->reserve) ) ;
+
+      eh->mtx().get() ;
+      convertor = eh->getOutMsgConvertor() ;
+      if ( convertor )
+      {
+         compatibleMode = TRUE ;
+         rc = _syncSendCompatible( eh, header ) ;
+      }
+      else
+      {
+         rc = eh->syncSendRaw( header, header->messageLength ) ;
+      }
+      eh->mtx().release() ;
+      if ( SDB_OK != rc )
+      {
+         eh->close() ;
+         goto error ;
+      }
+
+      if ( !compatibleMode )
+      {
+         _netOut.add( header->messageLength ) ;
+      }
+
    done:
-      PD_TRACE_EXITRC ( SDB__NETFRAME_SYNCSEND2, rc );
       return rc ;
    error:
       goto done ;
@@ -1356,7 +1474,7 @@ namespace engine
 
       {
          ossScopedLock lock( &( eh->mtx() ) ) ;
-         rc = eh->syncSend( pBuff, buffSize ) ;
+         rc = eh->syncSendRaw( pBuff, buffSize ) ;
       }
       if ( SDB_OK != rc )
       {
@@ -1384,10 +1502,14 @@ namespace engine
 
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__NETFRAME_SYNCSEND3 );
+      // The header length should be calculated instead of using
+      // sizeof(MsgHeader), as the message may be a reply message, whose header
+      // size is greater than sizeof(MsgHeader).
       UINT32 headLen = header->messageLength - bodyLen ;
       NET_EH eh ;
       MAP_EVENT_IT itr ;
       UINT32 netOut = 0 ;
+      IMsgConvertor *convertor = NULL ;
 
       {
       ossScopedLock lock( &_mtx, SHARED ) ;
@@ -1408,24 +1530,64 @@ namespace engine
          header->routeID = _local ;
       }
 
+      header->eye = MSG_COMM_EYE_DEFAULT ;
+      header->version = SDB_PROTOCOL_VER_2 ;
+      ossMemset( header->reserve, 0, sizeof(header->reserve) ) ;
+
       {
       ossScopedLock lock( &( eh->mtx() ) ) ;
-      /// header len should be computed. can not get sizeof(MsgHeader)
-      rc = eh->syncSend( header, headLen ) ;
-      if ( SDB_OK != rc )
+      convertor = eh->getOutMsgConvertor() ;
+      // If message convertor is enabled, the peer version is 1. Message should
+      // be converted before sending.
+      if ( convertor )
       {
-         goto error ;
-      }
-      netOut += headLen ;
+         PD_LOG( PDDEBUG, "Message convertor is enabled. Convert the message "
+                 "for sending. Message: %s", msg2String( header ).c_str() ) ;
+         convertor->reset( FALSE ) ;
+         rc = convertor->push( (const CHAR *)header, headLen ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Push message into message convertor failed[%d]",
+                    rc ) ;
+            goto error ;
+         }
+         if ( body && bodyLen > 0 )
+         {
+            rc = convertor->push( (const CHAR *)body, bodyLen ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Push message into message convertor failed[%d]",
+                       rc ) ;
+               goto error ;
+            }
+         }
 
-      if ( NULL != body )
+         rc = _msgConvertAndSend( convertor, eh ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+      else
       {
-         rc = eh->syncSend( body, bodyLen ) ;
+         // eh->mtx().get() ;
+         /// header len should be computed. can not get sizeof(MsgHeader)
+         rc = eh->syncSendRaw( header, headLen ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
          }
-         netOut += bodyLen ;
+         netOut += headLen ;
+
+         if ( NULL != body )
+         {
+            rc = eh->syncSendRaw( body, bodyLen ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+            netOut += bodyLen ;
+         }
       }
       }
 
@@ -1455,6 +1617,7 @@ namespace engine
       NET_EH eh ;
       MAP_EVENT_IT itHandle ;
       UINT32 netOut = 0 ;
+      IMsgConvertor *convertor = NULL ;
 
       INT32 origLen = header->messageLength ;
       header->messageLength = sizeof( MsgHeader ) + netCalcIOVecSize( iov ) ;
@@ -1468,6 +1631,10 @@ namespace engine
       {
          header->routeID = _local ;
       }
+
+      header->eye = MSG_COMM_EYE_DEFAULT ;
+      header->version = SDB_PROTOCOL_VER_2 ;
+      ossMemset( header->reserve, 0, sizeof(header->reserve) ) ;
 
       {
       ossScopedLock lock( &_mtx, SHARED ) ;
@@ -1485,26 +1652,60 @@ namespace engine
 
       {
       ossScopedLock lock( &( eh->mtx() ) ) ;
-      rc = eh->syncSend( header, sizeof( MsgHeader ) ) ;
-      if ( SDB_OK != rc )
+      convertor = eh->getOutMsgConvertor() ;
+      if ( convertor )
       {
-         goto error ;
-      }
-      netOut += sizeof(MsgHeader) ;
-
-      for ( netIOVec::const_iterator itr = iov.begin() ; itr != iov.end();
-            ++itr )
-      {
-         SDB_ASSERT( NULL != itr->iovBase, "should not be NULL" ) ;
-
-         if ( itr->iovBase )
+         PD_LOG( PDDEBUG, "Message convertor is enabled. Convert the message "
+                 "for sending. Message: %s", msg2String( header ).c_str() ) ;
+         convertor->reset( FALSE ) ;
+         rc = convertor->push( (const CHAR *)header, sizeof(MsgHeader) ) ;
+         if ( rc )
          {
-            rc = eh->syncSend( itr->iovBase, itr->iovLen ) ;
-            if ( SDB_OK != rc )
+            goto error ;
+         }
+
+         for ( netIOVec::const_iterator itr = iov.begin(); itr != iov.end();
+               ++itr )
+         {
+            if ( itr->iovBase && itr->iovLen > 0 )
             {
-               goto error ;
+               rc = convertor->push( (const CHAR *)itr->iovBase, itr->iovLen ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
             }
-            netOut += itr->iovLen ;
+         }
+
+         rc = _msgConvertAndSend( convertor, eh ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+      else
+      {
+         rc = eh->syncSendRaw( header, sizeof( MsgHeader ) ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+         netOut += sizeof(MsgHeader) ;
+
+         for ( netIOVec::const_iterator itr = iov.begin() ; itr != iov.end();
+               ++itr )
+         {
+            SDB_ASSERT( NULL != itr->iovBase, "should not be NULL" ) ;
+
+            if ( itr->iovBase )
+            {
+               rc = eh->syncSendRaw( itr->iovBase, itr->iovLen ) ;
+               if ( SDB_OK != rc )
+               {
+                  goto error ;
+               }
+               netOut += itr->iovLen ;
+            }
          }
       }
       }
@@ -1539,6 +1740,7 @@ namespace engine
       UINT32 headLen = header->messageLength - bodyLen ;
       NET_EH eh ;
       UINT32 netOut = 0 ;
+      IMsgConvertor *convertor = NULL ;
 
       rc = _getHandle( id, eh ) ;
       if ( rc )
@@ -1560,27 +1762,59 @@ namespace engine
          header->routeID = _local ;
       }
 
-      {
+      header->eye = MSG_COMM_EYE_DEFAULT ;
+      header->version = SDB_PROTOCOL_VER_2 ;
+      ossMemset( header->reserve, 0, sizeof(header->reserve) ) ;
+
+{
       ossScopedLock lock( &( eh->mtx() ) ) ;
       if ( pHandle )
       {
          *pHandle = eh->handle() ;
       }
-      rc = eh->syncSend( header, headLen ) ;
-      if ( SDB_OK != rc )
+      convertor = eh->getOutMsgConvertor() ;
+      if ( convertor )
       {
-         goto error ;
+         PD_LOG( PDDEBUG, "Message convertor is enabled. Convert the message "
+                 "for sending. Message: %s", msg2String( header ).c_str() ) ;
+         convertor->reset( FALSE ) ;
+         rc = convertor->push( (const CHAR *)header, headLen ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         if ( body )
+         {
+            rc = convertor->push( (const CHAR *)body, bodyLen ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+         }
+         rc = _msgConvertAndSend( convertor, eh ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
       }
-      netOut += headLen ;
-
-      if ( NULL != body )
+      else
       {
-         rc = eh->syncSend( body, bodyLen ) ;
+         rc = eh->syncSendRaw( header, headLen ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
          }
-         netOut += bodyLen ;
+         netOut += headLen ;
+
+         if ( NULL != body )
+         {
+            rc = eh->syncSendRaw( body, bodyLen ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+            netOut += bodyLen ;
+         }
       }
       }
 
@@ -1612,6 +1846,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       NET_EH eh ;
       UINT32 netOut = 0 ;
+      IMsgConvertor *convertor = NULL ;
 
       INT32 origLen = header->messageLength ;
       header->messageLength = sizeof( MsgHeader ) + netCalcIOVecSize( iov ) ;
@@ -1625,6 +1860,10 @@ namespace engine
       {
          header->routeID = _local ;
       }
+
+      header->eye = MSG_COMM_EYE_DEFAULT ;
+      header->version = SDB_PROTOCOL_VER_2 ;
+      ossMemset( header->reserve, 0, sizeof(header->reserve) ) ;
 
       rc = _getHandle( id, eh ) ;
       if ( rc )
@@ -1641,32 +1880,66 @@ namespace engine
          }
       }
 
-      {
+{
       ossScopedLock lock( &( eh->mtx() ) ) ;
       if ( pHandle )
       {
          *pHandle = eh->handle() ;
       }
-      rc = eh->syncSend( header, sizeof(MsgHeader) ) ;
-      if ( SDB_OK != rc )
+      convertor = eh->getOutMsgConvertor() ;
+      if ( convertor )
       {
-         goto error ;
-      }
-      netOut += sizeof(MsgHeader) ;
-
-      for ( netIOVec::const_iterator itr = iov.begin() ; itr != iov.end() ;
-            ++itr )
-      {
-         SDB_ASSERT( NULL != itr->iovBase, "should not be NULL" ) ;
-
-         if ( itr->iovBase && itr->iovLen > 0 )
+         PD_LOG( PDDEBUG, "Message convertor is enabled. Convert the message "
+                 "for sending. Message: %s", msg2String( header ).c_str() ) ;
+         convertor->reset( FALSE ) ;
+         rc = convertor->push( (const CHAR *)header, sizeof(MsgHeader) ) ;
+         if ( rc )
          {
-            rc = eh->syncSend( itr->iovBase, itr->iovLen ) ;
-            if ( SDB_OK != rc )
+            goto error ;
+         }
+         for ( netIOVec::const_iterator itr = iov.begin(); itr != iov.end();
+               ++itr )
+         {
+            if ( itr->iovBase && itr->iovLen > 0 )
             {
-               goto error ;
+               rc = convertor->push( (const CHAR *)itr->iovBase, itr->iovLen ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
             }
-            netOut += itr->iovLen ;
+         }
+
+         rc = _msgConvertAndSend( convertor, eh ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+      else
+      {
+         rc = eh->syncSendRaw( header, sizeof( MsgHeader ) ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+
+         netOut += sizeof(MsgHeader) ;
+
+         for ( netIOVec::const_iterator itr = iov.begin() ; itr != iov.end() ;
+               ++itr )
+         {
+            SDB_ASSERT( NULL != itr->iovBase, "should not be NULL" ) ;
+
+            if ( itr->iovBase && itr->iovLen > 0 )
+            {
+               rc = eh->syncSendRaw( itr->iovBase, itr->iovLen ) ;
+               if ( SDB_OK != rc )
+               {
+                  goto error ;
+               }
+               netOut += itr->iovLen ;
+            }
          }
       }
       }
@@ -1698,6 +1971,8 @@ namespace engine
       MsgHeader *message = (MsgHeader *)header ;
       netUDPEndPoint endPoint ;
       NET_EH eh ;
+      IMsgConvertor *convertor = NULL ;
+      BOOLEAN ehLocked = FALSE ;
 
       PD_CHECK( NULL != _udpMainSuit.get() && _udpMainSuit->isOpened(),
                 SDB_NET_INVALID_HANDLE, error, PDERROR,
@@ -1717,11 +1992,38 @@ namespace engine
          message->routeID.value = _local.value ;
       }
 
-      rc = eh->syncSend( message, message->messageLength ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to send message by UDP, rc: %d",
-                   rc ) ;
+      message->eye = MSG_COMM_EYE_DEFAULT ;
+      message->version = SDB_PROTOCOL_VER_2 ;
+      ossMemset( message->reserve, 0, sizeof(message->reserve) ) ;
+
+      eh->mtx().get() ;
+      ehLocked = TRUE ;
+      convertor = eh->getOutMsgConvertor() ;
+      if ( convertor )
+      {
+         PD_LOG( PDDEBUG, "Message convertor is enabled. Convert the message "
+                 "for sending. Message: %s", msg2String( message ).c_str() ) ;
+
+         convertor->reset( FALSE ) ;
+         rc = convertor->push( (const CHAR *)message, message->messageLength ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to push message to convertor, "
+                      "rc: %d", rc ) ;
+         rc = _msgConvertAndSend( convertor, eh ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to convert and send message by UDP, "
+                      "rc: %d", rc ) ;
+      }
+      else
+      {
+         rc = eh->syncSendRaw( message, message->messageLength ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to send message by UDP, rc: %d",
+                      rc ) ;
+      }
 
    done:
+      if ( ehLocked )
+      {
+         eh->mtx().release() ;
+      }
       PD_TRACE_EXITRC( SDB__NETFRAME_SYNCSENDUDP, rc ) ;
       return rc ;
 
@@ -1951,27 +2253,64 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__NETFRAME_HNDMSG );
       INT32 rc = SDB_OK ;
       MsgHeader *pMsg = (_MsgHeader *)eh->msg() ;
+      UINT32 len = 0 ;
+      CHAR *message = NULL ;
+      IMsgConvertor *convertor = NULL ;
+      BOOLEAN isNotSysInfoMsg =
+         ( (INT32)MSG_SYSTEM_INFO_LEN != pMsg->messageLength );
 
-      if ( MSG_HEARTBEAT == pMsg->opCode )
+      // For mutex with enable message convertor.
+      eh->mtx().get() ;
+      convertor = eh->getInMsgConvertor() ;
+      eh->mtx().release() ;
+
+      if ( isNotSysInfoMsg && ( MSG_COMM_EYE_DEFAULT != pMsg->eye ) && convertor )
+      {
+         PD_LOG( PDDEBUG, "Message convertor is enabled. Convert the message "
+                 "for processing" ) ;
+         convertor->reset( FALSE ) ;
+         rc = convertor->push( (const CHAR *)pMsg, pMsg->messageLength ) ;
+         if ( SDB_OK != rc )
+         {
+            eh->close() ;
+            goto error ;
+         }
+         else
+         {
+            rc = convertor->output( message, len ) ;
+            if ( SDB_OK != rc )
+            {
+               eh->close() ;
+               goto error ;
+            }
+
+            pMsg = (MsgHeader *)message ;
+         }
+      }
+
+      if ( isNotSysInfoMsg && ( MSG_HEARTBEAT == pMsg->opCode ) )
       {
          _handleHeartBeat( eh, pMsg ) ;
       }
-      else if ( MSG_HEARTBEAT_RES == pMsg->opCode )
+      else if ( isNotSysInfoMsg && ( MSG_HEARTBEAT_RES == pMsg->opCode ) )
       {
          _handleHeartBeatRes( eh, pMsg ) ;
       }
       else
       {
-         rc = _handler->handleMsg( eh->handle(), pMsg, eh->msg() ) ;
+         rc = _handler->handleMsg( eh->handle(), pMsg, (const CHAR *)pMsg ) ;
          _netIn.add( pMsg->messageLength ) ;
          if ( SDB_NET_BROKEN_MSG == rc )
          {
             eh->close() ;
          }
       }
+   done:
       PD_TRACE1 ( SDB__NETFRAME_HNDMSG, PD_PACK_INT(rc) );
       PD_TRACE_EXIT ( SDB__NETFRAME_HNDMSG );
       return ;
+   error:
+      goto done ;
    }
 
    void _netFrame::handleClose( NET_EH eh, _MsgRouteID id )
@@ -2283,7 +2622,8 @@ namespace engine
 
       eh->setOpt() ;
 
-      /// add to map
+      /// add to map. All event handler add to opposite here(both TCP and UDP)
+      /// will be used to send heart beat.
       if ( SDB_OK == _addOpposite( eh ) )
       {
          // callback: handleConnect

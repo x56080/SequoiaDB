@@ -38,6 +38,7 @@
 #include "pmdDef.hpp"
 #include "rtnContext.hpp"
 #include "../bson/bson.h"
+#include "msgConvertor.hpp"
 
 using namespace bson ;
 
@@ -59,6 +60,7 @@ namespace engine
 
       protected:
          INT32          _processMsg( MsgHeader *msg ) ;
+         INT32          _preprocessMsg( MsgHeader *&msg ) ;
          virtual INT32  _onMsgBegin( MsgHeader *msg ) ;
          virtual void   _onMsgEnd( INT32 result, MsgHeader *msg ) ;
 
@@ -66,8 +68,22 @@ namespace engine
                                          INT32 &buffLen ) ;
          INT32          _processSysInfoRequest( const CHAR *msg ) ;
 
+         BOOLEAN        _clientVersionMatch() const ;
+
+         BOOLEAN        _msgConvertorEnabled() const ;
+
+         INT32          _enableMsgConvertor() ;
+
          INT32          _reply( MsgOpReply* responseMsg, const CHAR *pBody,
                                 INT32 bodyLen ) ;
+
+         INT32          _replyInCompatibleMode( MsgOpReply *responseMsg,
+                                                const CHAR *data,
+                                                INT32 dataLen ) ;
+
+         INT32          _replyInNormalMode( MsgOpReply *responseMsg,
+                                            const CHAR *data,
+                                            INT32 dataLen ) ;
 
       protected:
          virtual void            _onAttach () ;
@@ -79,6 +95,12 @@ namespace engine
 
          BSONObj              _errorInfo ;
 
+         // Client protocol version of this session. If it's different from
+         // local version, message conversion should be done. It will be set
+         // when the first message is received.
+         UINT16               _clientVer ;
+         IMsgConvertor        *_inMsgConvertor ;   // For request from client.
+         IMsgConvertor        *_outMsgConvertor ;  // For reply to client.
    } ;
    typedef _pmdLocalSession pmdLocalSession ;
 

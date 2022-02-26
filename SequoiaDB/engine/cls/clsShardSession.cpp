@@ -38,7 +38,6 @@
 #include "pd.hpp"
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
-#include "rtnDataSet.hpp"
 #include "rtnContextShdOfLob.hpp"
 #include "rtnContextExplain.hpp"
 #include "rtnContextMainCL.hpp"
@@ -639,7 +638,7 @@ namespace engine
       }
       else
       {
-         rc = routeAgent()->syncSend ( _netHandle, (void *)header ) ;
+         rc = routeAgent()->syncSend ( _netHandle, (MsgHeader *)header ) ;
       }
 
       if ( rc != SDB_OK )
@@ -1172,6 +1171,7 @@ namespace engine
          _replyHeader.header.opCode = MAKE_REPLY_TYPE( opCode ) ;
          _replyHeader.header.messageLength = sizeof ( MsgOpReply ) ;
          _replyHeader.header.requestID = msg->requestID ;
+         _replyHeader.header.globalID = msg->globalID ;
          _replyHeader.header.TID = msg->TID ;
          _replyHeader.header.routeID.value = 0 ;
 
@@ -2468,6 +2468,9 @@ namespace engine
                   goto error ;
                }
             }
+            // If error happened during executing the command, put it in the
+            // result bson. If the result bson is empty, it means the command
+            // is executed successfully.
             if ( rc && pBuilder && pCommand->getResult() )
             {
                pCommand->getResult()->toBSON( *pBuilder ) ;

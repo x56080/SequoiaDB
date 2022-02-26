@@ -583,7 +583,7 @@ namespace engine
             goto error ;
          }
          else if ( 0 != ossStrlen( eleAddr.valuestr() ) )
-         {         
+         {
             rc = SDB_CAT_IMAGE_IS_CONFIGURED ;
             goto error ;
          }
@@ -1209,6 +1209,7 @@ namespace engine
       rspMsg->requestID = reqMsg->requestID ;
       rspMsg->routeID.value = 0 ;
       rspMsg->TID = reqMsg->TID ;
+      rspMsg->globalID = reqMsg->globalID ;
    }
 
    INT32 _catDCManager::_mapData2DCMgr( _clsDCMgr *pDCMgr )

@@ -1080,8 +1080,7 @@ namespace engine
       // primary node exist
       if ( tmpPrimary >= 0 && (UINT32)tmpPrimary < _vecOmNode.size() )
       {
-         rc = _netAgent.syncSend ( _vecOmNode[tmpPrimary],
-                                   (void*)msg ) ;
+         rc = _netAgent.syncSend ( _vecOmNode[tmpPrimary], msg ) ;
          if ( rc != SDB_OK )
          {
             PD_LOG ( PDWARNING,
@@ -1109,7 +1108,7 @@ namespace engine
 
          while ( index < _vecOmNode.size () )
          {
-            rc1 = _netAgent.syncSend ( _vecOmNode[index], (void*)msg ) ;
+            rc1 = _netAgent.syncSend ( _vecOmNode[index], msg ) ;
             if ( rc1 == SDB_OK )
             {
                rc = rc1 ;

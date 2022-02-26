@@ -503,6 +503,7 @@ namespace engine
       pReply->header.opCode        = MSG_CAT_QUERY_CATALOG_RSP ;
       pReply->header.TID           = pCatReq->header.TID ;
       pReply->header.requestID     = pCatReq->header.requestID ;
+      pReply->header.globalID      = pCatReq->header.globalID ;
       pReply->header.routeID.value = 0 ;
    done :
       if ( !_pCatCB->isDelayed() )
@@ -519,6 +520,7 @@ namespace engine
             replyMsg.header.TID           = pCatReq->header.TID;
             replyMsg.header.routeID.value = 0;
             replyMsg.header.requestID     = pCatReq->header.requestID;
+            replyMsg.header.globalID      = pCatReq->header.globalID ;
             replyMsg.numReturned          = 0;
             replyMsg.flags                = rc;
             replyMsg.contextID            = -1 ;
@@ -617,6 +619,7 @@ namespace engine
       pReply->header.TID           = pTaskRequest->header.TID ;
       pReply->header.requestID     = pTaskRequest->header.requestID ;
       pReply->header.routeID.value = 0 ;
+      pReply->header.globalID      = pTaskRequest->header.globalID ;
 
    done :
       if ( !_pCatCB->isDelayed() )
@@ -634,6 +637,7 @@ namespace engine
             replyMsg.header.TID           = pTaskRequest->header.TID;
             replyMsg.header.routeID.value = 0;
             replyMsg.header.requestID     = pTaskRequest->header.requestID;
+            replyMsg.header.globalID      = pTaskRequest->header.globalID ;
             replyMsg.numReturned          = 0;
             replyMsg.flags                = rc;
             replyMsg.contextID            = -1 ;
@@ -1549,6 +1553,7 @@ namespace engine
       rspMsg->requestID = reqMsg->requestID ;
       rspMsg->routeID.value = 0 ;
       rspMsg->TID = reqMsg->TID ;
+      rspMsg->globalID = reqMsg->globalID ;
    }
 
    INT16 catCatalogueManager::_majoritySize()

@@ -37,16 +37,10 @@
 
 #include "core.hpp"
 #include "netEventHandlerBase.hpp"
-#include "netFrame.hpp"
 #include "ossMem.hpp"
 #include "pmdEnv.hpp"
-#include "msgDef.h"
-#include "pd.hpp"
 #include "pdTrace.hpp"
-#include "netTrace.hpp"
-#include "msgMessageFormat.hpp"
-#include "netEventSuit.hpp"
-#include <boost/bind.hpp>
+#include "msgConvertorImpl.hpp"
 #if defined (_WINDOWS)
 #include <mstcpip.h>
 #endif
@@ -72,13 +66,26 @@ namespace engine
      _lastBeatTick( _lastSendTick ),
      _lastStatTick( _lastSendTick ),
      _totalIOTimes( 0 ),
-     _iops( 0 )
+     _iops( 0 ),
+     _peerVersion( SDB_PROTOCOL_VER_INVALID ),
+     _inMsgConvertor( NULL ),
+     _outMsgConvertor( NULL )
    {
       _id.value = MSG_INVALID_ROUTEID ;
    }
 
    _netEventHandlerBase::~_netEventHandlerBase()
    {
+      if ( _inMsgConvertor )
+      {
+         SDB_OSS_DEL _inMsgConvertor ;
+         _inMsgConvertor = NULL ;
+      }
+      if ( _outMsgConvertor )
+      {
+         SDB_OSS_DEL _outMsgConvertor ;
+         _outMsgConvertor = NULL ;
+      }
    }
 
    void _netEventHandlerBase::syncLastBeatTick()
@@ -101,4 +108,48 @@ namespace engine
       }
    }
 
+   INT32 _netEventHandlerBase::_enableMsgConvertor()
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( SDB_PROTOCOL_VER_1 != _peerVersion )
+      {
+         SDB_ASSERT( FALSE, "Version is not 1" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      if ( !_inMsgConvertor )
+      {
+         _inMsgConvertor = SDB_OSS_NEW msgConvertorImpl ;
+      }
+
+      if ( !_outMsgConvertor )
+      {
+         _outMsgConvertor = SDB_OSS_NEW msgConvertorImpl ;
+      }
+
+      if ( !(_inMsgConvertor && _outMsgConvertor) )
+      {
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      SAFE_OSS_DELETE( _inMsgConvertor ) ;
+      SAFE_OSS_DELETE( _outMsgConvertor ) ;
+      goto done ;
+   }
+
+   IMsgConvertor *_netEventHandlerBase::getInMsgConvertor()
+   {
+      return _inMsgConvertor ;
+   }
+
+   IMsgConvertor *_netEventHandlerBase::getOutMsgConvertor()
+   {
+      return _outMsgConvertor ;
+   }
 }

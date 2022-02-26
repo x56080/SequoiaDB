@@ -1269,15 +1269,18 @@ namespace engine
 
       // Fill error reply message
       pErrReply->header.messageLength = sizeof( MsgOpReply ) ;
+      pErrReply->header.flags = pReply->header.flags ;
       pErrReply->header.opCode = pReply->header.opCode ;
       pErrReply->header.requestID = pReply->header.requestID ;
       pErrReply->header.routeID.value = pReply->header.routeID.value ;
       pErrReply->header.TID = pReply->header.TID ;
+      pErrReply->header.globalID = pReply->header.globalID ;
 
       pErrReply->flags = rc ;
       pErrReply->contextID = -1 ;
       pErrReply->numReturned = 0 ;
       pErrReply->startFrom = pReply->startFrom ;
+      pErrReply->returnMask = pReply->returnMask ;
    }
 
    /*

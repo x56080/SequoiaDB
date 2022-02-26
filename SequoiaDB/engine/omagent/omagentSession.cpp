@@ -245,7 +245,7 @@ namespace engine
       }
       else
       {
-         rc = routeAgent()->syncSend ( _netHandle, (void *)header ) ;
+         rc = routeAgent()->syncSend ( _netHandle, (MsgHeader *)header ) ;
       }
 
       if ( rc != SDB_OK )
@@ -264,8 +264,7 @@ namespace engine
                               const CHAR *pBody, const INT32 *bodyLen )
    {
       const CHAR *body = pBody ;
-      INT32 bLen = NULL == bodyLen ?
-                   0 : *bodyLen ;
+      INT32 bLen = ( NULL == bodyLen ) ? 0 : *bodyLen ;
 
       //Build reply message
       _replyHeader.header.opCode = MAKE_REPLY_TYPE( pSrcReqMsg->opCode ) ;
@@ -273,6 +272,7 @@ namespace engine
       _replyHeader.header.requestID = pSrcReqMsg->requestID ;
       _replyHeader.header.TID = pSrcReqMsg->TID ;
       _replyHeader.header.routeID.value = 0 ;
+      _replyHeader.header.globalID = pSrcReqMsg->globalID ;
       _replyHeader.flags = flags ;
       _replyHeader.contextID = -1 ;
 
@@ -568,7 +568,7 @@ namespace engine
       _replyHeader.header.TID           = pMsg->TID ;
       _replyHeader.header.routeID.value = 0 ;
       _replyHeader.header.requestID     = pMsg->requestID ;
-
+      _replyHeader.header.globalID      = pMsg->globalID ;
       _replyHeader.contextID            = -1 ;
       _replyHeader.flags                = 0 ;
       _replyHeader.numReturned          = 0 ;
