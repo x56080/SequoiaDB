@@ -317,11 +317,24 @@ For more details, refer to Troubleshooting.
 .PP
 v1.2 and above
 .SH EXAMPLES
-.PP
+.IP \[bu] 2
 Perform a full backup of the replication group "group1".
+.RS 2
 .IP
 .nf
 \f[C]
 > db.backup({Name: "backupName", Description: "backup group1", GroupName: "group1"})
 \f[]
 .fi
+.RE
+.IP \[bu] 2
+Perform a full backup on the secondary node.
+.RS 2
+.IP
+.nf
+\f[C]
+> db.setSessionAttr({PreferredInstance: "S", PreferredConstraint: "secondaryonly"})
+> db.backup({Name: "backupName", Description: "backup on secondary"})
+\f[]
+.fi
+.RE

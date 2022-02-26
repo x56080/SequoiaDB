@@ -117,12 +117,18 @@ v1.2 and above
 
 ##EXAMPLES##
 
-Perform a full backup of the replication group "group1".
+- Perform a full backup of the replication group "group1".
 
-```lang-javascript
-> db.backup({Name: "backupName", Description: "backup group1", GroupName: "group1"})
-```
+    ```lang-javascript
+    > db.backup({Name: "backupName", Description: "backup group1", GroupName: "group1"})
+    ```
 
+- Perform a full backup on the secondary node.
+
+    ```lang-javascript
+    > db.setSessionAttr({PreferredInstance: "S", PreferredConstraint: "secondaryonly"})
+    > db.backup({Name: "backupName", Description: "backup on secondary"})
+    ```
 
 [^_^]:
     links

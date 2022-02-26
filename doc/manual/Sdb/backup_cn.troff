@@ -270,11 +270,24 @@ T}
 .PP
 v1.2 及以上版本
 .SH 示例
-.PP
+.IP \[bu] 2
 对复制组 group1 进行全量备份
+.RS 2
 .IP
 .nf
 \f[C]
 > db.backup({Name: "backupName", Description: "backup group1", GroupName: "group1"})
 \f[]
 .fi
+.RE
+.IP \[bu] 2
+指定备节点进行全量备份
+.RS 2
+.IP
+.nf
+\f[C]
+> db.setSessionAttr({PreferredInstance: "S", PreferredConstraint: "secondaryonly"})
+> db.backup({Name: "backupName", Description: "backup on secondary"})
+\f[]
+.fi
+.RE
