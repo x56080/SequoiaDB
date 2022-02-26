@@ -2,7 +2,7 @@
  * @Description   : seqDB-23748:切分表创建唯一索引
  * @Author        : Yi Pan
  * @CreateTime    : 2021.03.29
- * @LastEditTime  : 2022.02.25
+ * @LastEditTime  : 2022.02.26
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -35,7 +35,7 @@ function test ( testPara )
 
    // 校验创建索引失败任务
    checkIndexTask( "Create index", COMMCSNAME, testConf.clName, indexName, SDB_IXM_DUP_KEY );
-   waitAllTaskEnd( db, COMMCSNAME, testConf.clName, indexName );
+   commCheckBusinessStatus( db, 180 );
    commCheckIndexConsistent( db, COMMCSNAME, testConf.clName, indexName, false );
 
    // 删除重复记录，再次创建相同索引

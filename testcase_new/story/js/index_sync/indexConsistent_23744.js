@@ -2,7 +2,7 @@
  * @Description   : seqDB-23744:分区表创建唯一索引
  * @Author        : Yi Pan
  * @CreateTime    : 2021.03.29
- * @LastEditTime  : 2022.02.25
+ * @LastEditTime  : 2022.02.26
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -30,7 +30,7 @@ function test ( testPara )
 
    //3.检查任务和索引
    checkIndexTaskResult( "Create index", csName, clName, indexName, SDB_IXM_DUP_KEY );
-   waitAllTaskEnd( db, csName, clName, indexName );
+   commCheckBusinessStatus( db, 180 );
    commCheckIndexConsistent( db, csName, clName, indexName, false );
 
    //4.删除重复记录
