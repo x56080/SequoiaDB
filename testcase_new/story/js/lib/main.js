@@ -6,6 +6,7 @@
 
 /*
 入参配置项：
+testConf.skipTest = true;                       跳过测试，在commlib.js中指定可跳过当前目录下的所有用例，用于屏蔽用例使用
 testConf.skipStandAlone = true;                 跳过独立模式
 testConf.skipOneGroup = true;                   跳过只有一个组的环境
 testConf.skipGroupLessThanThree = true;         跳过数据组小于三个的环境，指定为true时skipOneGroup将被忽略不生效
@@ -29,7 +30,8 @@ testPara.dstGroupNames    获取创建的 cl 不在的组，需要指定 testCon
 
 var testConf = {
    skipStandAlone: false, skipOneDuplicatePerGroup: false, skipOneGroup: false,
-   useSrcGroup: false, useDstGroup: false, skipGroupLessThanThree: false, skipExistOneNodeGroup: false
+   useSrcGroup: false, useDstGroup: false, skipGroupLessThanThree: false, skipExistOneNodeGroup: false,
+   skipTest: false
 };
 // e.g. testConf.csName = COMMCSNAME, testConf.csOpt = {PageSize:4096} ;
 // e.g. testConf.clName = COMMCLNAME, testConf.clOpt = {AutoSplit:true} ;
@@ -44,6 +46,10 @@ var nodeNum = 1;
 var threeGroup = 3;
 function checkEnv ( db, testConf )
 {
+   if( testConf.skipTest )
+   {
+      throw new Error( "skip test" );
+   }
    if( testConf.skipStandAlone && commIsStandalone( db ) )
    {
       throw new Error( "standalone" );
@@ -272,7 +278,8 @@ function main ()
             e.message === "one data group" ||
             e.message === "one duplicate per group" ||
             e.message === "group less than three" ||
-            e.message === "exist one node group" )
+            e.message === "exist one node group" ||
+            e.message === "skip test" )
          {
             return;
          }
