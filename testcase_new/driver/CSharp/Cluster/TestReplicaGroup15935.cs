@@ -33,7 +33,9 @@ namespace CSharp.Cluster
            
         }
 
-        [TestMethod]
+        //SEQUOIADBMAINSTREAM-6488
+        //[TestMethod]
+        [Ignore]
         public void Test15935()
         {
             Assert.AreEqual(false, sdb.IsReplicaGroupExist("csq"));
