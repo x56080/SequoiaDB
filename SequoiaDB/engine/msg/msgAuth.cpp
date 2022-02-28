@@ -100,11 +100,15 @@ namespace engine
       }
 
       msg                       = ( MsgAuthentication * )(*ppBuffer) ;
+      msg->header.eye           = MSG_COMM_EYE_DEFAULT ;
       msg->header.requestID     = reqID ;
       msg->header.opCode        = MSG_AUTH_VERIFY_REQ ;
       msg->header.messageLength = msgLen ;
       msg->header.routeID.value = 0 ;
       msg->header.TID           = ossGetCurrentThreadID() ;
+      msg->header.version       = SDB_PROTOCOL_VER_2 ;
+      msg->header.flags         = 0 ;
+      ossMemset( msg->header.reserve, 0, sizeof(msg->header.reserve) ) ;
 
       ossMemcpy( *ppBuffer + sizeof(MsgAuthentication),
                  obj.objdata(), obj.objsize() ) ;

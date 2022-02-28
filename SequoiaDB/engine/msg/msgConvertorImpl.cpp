@@ -214,7 +214,7 @@ namespace engine
 
       SDB_PROTOCOL_VERSION msgVersion =
          ( MSG_COMM_EYE_DEFAULT == ((MsgHeader *)header)->eye ) ?
-         (SDB_PROTOCOL_VERSION)((MsgHeader *)header)->version : SDB_PROTOCOL_VER_1 ;
+         SDB_PROTOCOL_VER_2 : SDB_PROTOCOL_VER_1 ;
 
       if ( SDB_PROTOCOL_VER_2 == msgVersion )
       {

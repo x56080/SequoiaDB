@@ -41,12 +41,14 @@
 #include "msgAuth.hpp"
 #include "msgMessage.hpp"
 #include "coordTrace.hpp"
+#include "msgConvertorImpl.hpp"
 
 namespace engine
 {
    _coordRemoteConnection::_coordRemoteConnection()
    : _socket( NULL ),
-     _newSocket( FALSE )
+     _newSocket( FALSE ),
+     _msgConvertor( NULL )
    {
    }
 
@@ -61,6 +63,8 @@ namespace engine
          }
          SDB_OSS_DEL _socket ;
       }
+
+      SAFE_OSS_DELETE( _msgConvertor ) ;
    }
 
    INT32 _coordRemoteConnection::init( ossSocket *socket )
@@ -171,7 +175,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDREMOTECONNECTION_SYNCSEND, "_coordRemoteConnection::syncSend" )
    INT32 _coordRemoteConnection::syncSend( MsgHeader *header,
-                                           pmdEDUEvent *recvEvent,
+                                           pmdEDUEvent &recvEvent,
                                            pmdEDUCB *cb, INT32 timeout,
                                            INT32 forceTimeout )
    {
@@ -185,17 +189,10 @@ namespace engine
          goto error ;
       }
 
-      if ( recvEvent )
-      {
-         rc = pmdSyncSendMsg( header, *recvEvent, _socket, cb,
-                              timeout, forceTimeout ) ;
-         PD_RC_CHECK( rc, PDERROR, "Sync send message failed[%d]", rc ) ;
-      }
-      else
-      {
-         rc = pmdSend( (const CHAR *)header, header->messageLength, _socket,
-                       cb, timeout ) ;
-      }
+      rc = pmdSyncSendMsg( header, recvEvent, _socket, cb,
+                           timeout, forceTimeout ) ;
+      PD_RC_CHECK( rc, PDERROR, "Sync send message[opCode: %d] failed[%d]",
+                   header->opCode, rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__COORDREMOTECONNECTION_SYNCSEND, rc ) ;
@@ -210,6 +207,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__COORDREMOTECONNECTION_DISCONNECT  ) ;
       CHAR *msg = NULL ;
+      CHAR *finalMsg = NULL ;
+      UINT32 finalLen = 0 ;
       INT32 buffLen = 0 ;
 
       if ( !_socket || _socket->isClosed() )
@@ -220,7 +219,10 @@ namespace engine
       rc = msgBuildDisconnectMsg( &msg, &buffLen, 0, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Build disconnect message failed[%d]", rc ) ;
 
-      rc = pmdSend( msg, ((MsgHeader *)msg)->messageLength, _socket, cb ) ;
+      rc = _onSendMsg( (MsgHeader *)msg, finalMsg, finalLen ) ;
+      PD_RC_CHECK( rc, PDERROR, "Prepare message for sending failed[%d]", rc ) ;
+
+      rc = pmdSend( finalMsg, finalLen, _socket, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Send disconnect message to data source "
                                 "failed[%d]", rc ) ;
    done:
@@ -231,6 +233,10 @@ namespace engine
       PD_TRACE_EXITRC( SDB__COORDREMOTECONNECTION_DISCONNECT, rc ) ;
       return rc ;
    error:
+      if ( _socket )
+      {
+         _socket->close() ;
+      }
       goto done ;
    }
 
@@ -265,8 +271,46 @@ namespace engine
          goto error ;
       }
 
+      // Check message protocol compatibility.
+      rc = _checkProtocolCompatibility( sysInfoRes ) ;
+      PD_RC_CHECK( rc, PDERROR, "Check protocol compatibility failed[%d]",
+                   rc ) ;
+
    done:
       PD_TRACE_EXITRC( SDB__COORDREMOTECONNECTION__DOSYSINFO, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDREMOTECONNECTION__CHECKPROTOCOLCOMPATIBILITY, "_coordRemoteConnection::_checkProtocolCompatibility" )
+   INT32 _coordRemoteConnection::_checkProtocolCompatibility(
+                                          const MsgSysInfoReply &sysInfoReply )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__COORDREMOTECONNECTION__CHECKPROTOCOLCOMPATIBILITY ) ;
+      BOOLEAN endianConvert = FALSE ;
+      SDB_PROTOCOL_VERSION peerVersion = SDB_PROTOCOL_VER_INVALID ;
+
+      rc = msgExtractSysInfoReply( (const CHAR *)&sysInfoReply, endianConvert,
+                                   NULL, &peerVersion ) ;
+      PD_RC_CHECK( rc, PDERROR, "Extract system info reply failed[%d]", rc ) ;
+
+      if ( SDB_PROTOCOL_VER_1 == peerVersion )
+      {
+         _msgConvertor = SDB_OSS_NEW msgConvertorImpl ;
+         if ( !_msgConvertor )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Allocate memory for message convertor[size: %u] "
+                    "failed[%d]", sizeof(msgConvertorImpl), rc ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__COORDREMOTECONNECTION__CHECKPROTOCOLCOMPATIBILITY,
+                       rc ) ;
       return rc ;
    error:
       goto done ;
@@ -281,7 +325,6 @@ namespace engine
       PD_TRACE_ENTRY( SDB__COORDREMOTECONNECTION__DOAUTH ) ;
       CHAR *pAuthMsgBuf = NULL ;
       INT32 authMsgSize = 0 ;
-      MsgHeader *pAuthMsg = NULL ;
       pmdEDUEvent recvEvent ;
       MsgAuthReply *pReply = NULL ;
 
@@ -292,17 +335,11 @@ namespace engine
          PD_LOG( PDERROR, "Build auth message failed, rc: %d", rc ) ;
          goto error ;
       }
-      pAuthMsg = ( MsgHeader* )pAuthMsgBuf ;
 
-      rc = pmdSyncSendMsg( pAuthMsg, recvEvent,
-                           _socket, cb,
-                           OSS_SOCKET_DFT_TIMEOUT,
-                           COORD_SDB_CONNECTION_FORCE_TIMEOUT ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Do auth failed, rc: %d", rc ) ;
-         goto error ;
-      }
+      rc = syncSend( (MsgHeader *)pAuthMsgBuf, recvEvent, cb,
+                     OSS_SOCKET_DFT_TIMEOUT,
+                     COORD_SDB_CONNECTION_FORCE_TIMEOUT ) ;
+      PD_RC_CHECK( rc, PDERROR, "Do auth on remote node failed[%d]", rc ) ;
 
       pReply = ( MsgAuthReply* )recvEvent._Data ;
       if ( SDB_OK != pReply->flags )
@@ -321,6 +358,39 @@ namespace engine
       PD_TRACE_EXITRC( SDB__COORDREMOTECONNECTION__DOAUTH, rc ) ;
       return rc ;
   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDREMOTECONNECTION__ONSENDMSG, "_coordRemoteConnection::_onSendMsg" )
+   INT32 _coordRemoteConnection::_onSendMsg( MsgHeader *origMsg,
+                                             CHAR *&finalMsg, UINT32 &finalLen )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__COORDREMOTECONNECTION__ONSENDMSG ) ;
+
+      if ( _msgConvertor )
+      {
+         _msgConvertor->reset( FALSE ) ;
+         rc = _msgConvertor->push( (const CHAR *)origMsg,
+                                   origMsg->messageLength ) ;
+         PD_RC_CHECK( rc, PDERROR, "Push message into message convertor "
+                      "failed[%d]", rc ) ;
+         rc = _msgConvertor->output( finalMsg, finalLen ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get message from message convertor "
+                      "failed[%d]", rc ) ;
+         SDB_ASSERT( finalLen == *(UINT32 *)finalMsg,
+                     "Converted message length is not as expected" ) ;
+      }
+      else
+      {
+         finalMsg = (CHAR *)origMsg ;
+         finalLen = origMsg->messageLength ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__COORDREMOTECONNECTION__ONSENDMSG, rc ) ;
+      return rc ;
+   error:
       goto done ;
    }
 }

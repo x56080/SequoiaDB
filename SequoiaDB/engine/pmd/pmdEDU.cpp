@@ -1428,11 +1428,41 @@ namespace engine
       return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDCONVERTMSG, "_pmdConvertMsg" )
+   static INT32 _pmdConvertMsg( IMsgConvertor *msgConvertor,
+                                const MsgHeader *pMsg,
+                                CHAR *&outMsg, UINT32 &outMsgLen )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__PMDCONVERTMSG ) ;
+
+      SDB_ASSERT( msgConvertor && pMsg, "Argument invalid" ) ;
+
+      msgConvertor->reset( FALSE ) ;
+      rc = msgConvertor->push( (CHAR *)pMsg, pMsg->messageLength ) ;
+      PD_RC_CHECK( rc, PDERROR, "Push message[opCode: %d] into message "
+                   "convertor failed[%d]", pMsg->opCode, rc ) ;
+      rc = msgConvertor->output( outMsg, outMsgLen ) ;
+      PD_RC_CHECK( rc, PDERROR, "Get converted message[opCode: %d] "
+                   "from the message convertor failed[%d]",
+                   pMsg->opCode, rc ) ;
+      SDB_ASSERT( outMsgLen == *(UINT32 *)outMsg,
+                  "Converted message length is not as expected" ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__PMDCONVERTMSG, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDSYNCSENDMSG, "pmdSyncSendMsg" )
    INT32 pmdSyncSendMsg( const MsgHeader *pMsg, pmdEDUEvent &recvEvent,
                          ossSocket *sock, pmdEDUCB *cb,
                          INT32 timeout, INT32 forceTimeout )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_PMDSYNCSENDMSG ) ;
       UINT32 msgLen = 0 ;
       CHAR *pRecvBuf = NULL ;
       UINT32 buffSize = 0 ;
@@ -1499,10 +1529,8 @@ namespace engine
          // request and send again. And when the reply is received, it also
          // needs to be converted.
          MsgOpReplyV1 *reply = (MsgOpReplyV1 *)pRecvBuf ;
-         INT32 result = reply->flags ;
          CHAR *convertedMsg = NULL ;
          UINT32 finalSize = 0 ;
-         BOOLEAN newConvertor = FALSE ;
 
          if ( !msgConvertor )
          {
@@ -1515,55 +1543,40 @@ namespace engine
                        sizeof(msgConvertorImpl), rc ) ;
                goto error ;
             }
-            newConvertor = TRUE ;
-         }
 
-         // If the result is not unknown message, it failed for some other
-         // reason. No need to retry and just convert the reply.
-         if ( newConvertor && ( SDB_UNKNOWN_MESSAGE == result ||
-                                SDB_CLS_UNKNOW_MSG == result ) )
-         {
-            PD_LOG( PDDEBUG, "Node[%s] may be using old protocol version. Try "
-                    "to convert the request message[opCode: %d] and resend",
-                    routeID2String( pMsg->routeID ).c_str(), pMsg->opCode ) ;
+            // Convert the request.
+            rc = _pmdConvertMsg( msgConvertor, pMsg, convertedMsg, finalSize ) ;
+            PD_RC_CHECK( rc, PDERROR, "Convert request message[opCode: %d] "
+                         "failed[%d]", pMsg->opCode, rc ) ;
 
-            rc = msgConvertor->push( (CHAR *)pMsg, pMsg->messageLength ) ;
-            PD_RC_CHECK( rc, PDERROR, "Push message[opCode: %d] into message "
-                         "convertor failed[%d]", pMsg->opCode, rc ) ;
-            rc = msgConvertor->output( convertedMsg, finalSize ) ;
-            PD_RC_CHECK( rc, PDERROR, "Get converted message[opCode: %d] "
-                         "from the message convertor failed[%d]",
-                         pMsg->opCode, rc ) ;
             pMsg = (MsgHeader *)convertedMsg ;
             reserveSize = sizeof(MsgOpReply) - sizeof(MsgOpReplyV1) ;
-
-            SDB_ASSERT( (UINT32)pMsg->messageLength == finalSize,
-                        "Message length is invalid") ;
             goto reSend ;
          }
-
-         msgConvertor->reset( FALSE ) ;
-         rc = msgConvertor->push( (CHAR *)reply, reply->header.messageLength ) ;
-         PD_RC_CHECK( rc, PDERROR, "Push reply message into message convertor "
-                      "failed[%d]", rc ) ;
-         rc = msgConvertor->output( convertedMsg, finalSize ) ;
-         PD_RC_CHECK( rc, PDERROR, "Get converted reply message from message "
-                      "convertor failed[%d]", rc ) ;
-
-         if ( finalSize > buffSize )
+         else
          {
-            CHAR *newBuff = (CHAR *)SDB_THREAD_REALLOC( pRecvBuf, finalSize ) ;
-            if ( !newBuff )
+            // Convert the reply.
+            rc = _pmdConvertMsg( msgConvertor, (const MsgHeader *)reply,
+                                 convertedMsg, finalSize ) ;
+            PD_RC_CHECK( rc, PDERROR, "Convert reply of message[opCode: %d] "
+                         "failed[%d]", pMsg->opCode, rc ) ;
+
+            // Copy the message to out buffer.
+            if ( finalSize > buffSize )
             {
-               rc = SDB_OOM ;
-               PD_LOG( PDERROR, "Allocate memory[size: %u] for converted "
-                       "message failed[%d]", finalSize, rc ) ;
-               goto error ;
+               CHAR *newBuff = (CHAR *)SDB_THREAD_REALLOC( pRecvBuf, finalSize ) ;
+               if ( !newBuff )
+               {
+                  rc = SDB_OOM ;
+                  PD_LOG( PDERROR, "Allocate memory[size: %u] for converted "
+                                   "message failed[%d]", finalSize, rc ) ;
+                  goto error ;
+               }
+               pRecvBuf = newBuff ;
+               buffSize = finalSize ;
             }
-            pRecvBuf = newBuff ;
-            buffSize = finalSize ;
+            ossMemcpy( pRecvBuf, convertedMsg, finalSize ) ;
          }
-         ossMemcpy( pRecvBuf, convertedMsg, finalSize ) ;
       }
       else if ( msgLen < sizeof(MsgHeader) )
       {
@@ -1584,6 +1597,7 @@ namespace engine
       {
          SDB_OSS_DEL msgConvertor ;
       }
+      PD_TRACE_EXITRC( SDB_PMDSYNCSENDMSG, rc ) ;
       return rc ;
    error:
       if ( pRecvBuf )
