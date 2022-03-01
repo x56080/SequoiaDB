@@ -243,8 +243,9 @@ namespace engine
       if ( pmdGetOptionCB()->detectDisk() )
       {
          rc = _diskDetector.detect() ;
-         if ( rc )
+         if ( rc == SDB_IO )
          {
+            PD_LOG( PDERROR, "Unexpected error" ) ;
             goto error ;
          }
       }
