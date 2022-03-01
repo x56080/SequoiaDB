@@ -4,7 +4,7 @@
  * @date        ：2018.3.30
  ******************************************************************************/
 testConf.skipStandAlone = true;
-
+testConf.skipTest = true; // SEQUOIADBMAINSTREAM-8093
 main( test );
 
 function test ()
