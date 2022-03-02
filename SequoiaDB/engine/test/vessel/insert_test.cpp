@@ -1106,6 +1106,85 @@ TEST_F(insert_test, DISABLED_death_test_3)
    ASSERT_EQ(SDB_OK, rc);
 }
 
+/// insert into single cl with multi lsm indexes.
+TEST_F(insert_test, DISABLED_death_test_4)
+{
+   INT32 rc = SDB_OK;
+   vesselImpl db;
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
+   openDBOptions options;
+
+   options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+   DATA_COLLECTION_PTR handler;
+
+   constexpr UINT32 threadCount = 8;
+   std::thread threads[threadCount];
+   atomic_int counters[threadCount] = {};
+   UINT32 countPerThread = 10000000;
+   UINT32 count = 0;
+
+   closeDBOptions co;
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   DATA_COLLECTION_PTR cl;
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), cl);
+   ASSERT_EQ(SDB_OK, rc);
+
+   {
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_LSM, "index", 
+                                                          FALSE, BSON("a" << 1));
+   rc = cl->createIndex(&session, dmsBuildIndexOptions(), indexDef);
+   ASSERT_EQ(SDB_OK, rc);
+   }
+
+   /*
+   {
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_LSM, "index", 
+                                                          FALSE, BSON("b" << 1));
+   rc = cl->createIndex(&session, dmsBuildIndexOptions(), indexDef);
+   ASSERT_EQ(SDB_OK, rc);
+   }*/
+
+   for (UINT32 i = 0; i < threadCount; ++i)
+   {
+      threads[i] = std::move(std::thread(death_thread_insert, &db,
+                                         "foo.bar", countPerThread,
+                                         i, counters+i));
+   }
+
+   do
+   {
+      ossSleep(1000);
+      UINT32 countPerSecond = 0;
+      for (UINT32 i = 0; i < threadCount; ++i)
+      {
+         countPerSecond += counters[i].exchange(0, std::memory_order_relaxed);
+      }
+
+      cout << "total count per second:" << countPerSecond << endl;
+      count += countPerSecond;
+   } while (count < (countPerThread * threadCount));
+   
+
+   for (UINT32 i = 0; i < threadCount; ++i)
+   {
+      threads[i].join();
+   }
+
+   rc = db.close(&session, co);
+   ASSERT_EQ(SDB_OK, rc);
+}
+
 /*
 Name: base_insert_test9
 Description: 

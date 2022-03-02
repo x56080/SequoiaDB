@@ -36,6 +36,7 @@
 #include "vessel/lsm/lsmInsertBatch.h"
 #include "ossLikely.hpp"
 #include "pdTrace.hpp"
+#include "vessel/threadContext.h"
 
 namespace engine
 {
@@ -54,9 +55,11 @@ namespace vessel
       UINT32 keyObjSize = 0;
       UINT32 fullKeySize = 0;
       UINT32 bufferSize = 0;
+      CHAR *buffer = nullptr;
       rocksdb::Slice k, v;
       rocksdb::Status status;
-      _mb.resize(0);
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
 
       if (OSS_UNLIKELY(!meta.isValid() ||
                        !ke.isValid()))
@@ -68,19 +71,16 @@ namespace vessel
       keyObjSize = ke.getKey().dataSize();
       fullKeySize = lsmCalFullDataKeyLen(keyObjSize);
       bufferSize = fullKeySize;
-      if (NULL != value)
-      {
-         bufferSize += sizeof(lsmIndexValue);
-      }
 
-      rc = _mb.reserve(bufferSize);
-      if (SDB_OK != rc)
+      buffer = tc->allocateBuffer(bufferSize);
+      if (nullptr == buffer)
       {
-         PD_LOG(PDERROR, "failed to reserve mb size:%d", rc);
+         PD_LOG(PDERROR, "failed to allocate mem.");
+         rc = SDB_OOM;
          goto error;
       }
 
-      rc = lsmPackIndexFullKey(_mb.getBuffer(),
+      rc = lsmPackIndexFullKey(buffer,
                                bufferSize,
                                meta.getIdxId(),
                                meta.getOrdering(),
@@ -93,12 +93,12 @@ namespace vessel
          PD_LOG(PDERROR, "failed to pack full key:%d", rc);
          goto error;
       }
-      k = rocksdb::Slice(_mb.getBuffer(), fullKeySize);
+      k = rocksdb::Slice(buffer, fullKeySize);
 
-      if (NULL != value)
+      if (nullptr != value)
       {
-         ossMemcpy((CHAR *)(_mb.getBuffer()) + fullKeySize, value, sizeof(lsmIndexValue));
-         v = rocksdb::Slice((CHAR *)(_mb.getBuffer()) + fullKeySize, sizeof(lsmIndexValue));
+         v = rocksdb::Slice((const CHAR *)value, sizeof(lsmIndexValue));
+
       }
 
       status = _batch.Put(k, v);
@@ -110,6 +110,10 @@ namespace vessel
          goto error;
       }
    done:
+      if (nullptr != buffer)
+      {
+         tc->releaseBuffer(buffer);
+      }
       return rc;
    error:
       goto done;
@@ -118,7 +122,6 @@ namespace vessel
    void lsmInsertBatch::clear()
    {
       _batch.Clear();
-      _mb.release();
       return;
    }
 }//namespace vessel

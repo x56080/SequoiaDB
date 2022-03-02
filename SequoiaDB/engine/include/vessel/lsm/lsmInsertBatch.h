@@ -40,7 +40,6 @@
 #include "vessel/lsm/lsmIndexMeta.hpp"
 #include "vessel/lsm/lsmIndexValue.hpp"
 #include "rocksdb/write_batch.h"
-#include "vessel/memoryBlock.h"
 
 namespace engine
 {
@@ -73,7 +72,6 @@ namespace vessel
 
       private:
          rocksdb::WriteBatch _batch;
-         memoryBlock _mb;
    };//class lsmInsertBatch
 }//namespace vessel
 }//namesapce engine
