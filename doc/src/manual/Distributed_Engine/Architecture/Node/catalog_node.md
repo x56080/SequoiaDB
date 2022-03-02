@@ -60,7 +60,7 @@
 
   - **dbpath** ：指定编目节点数据文件的存放路径，必须输入绝对路径，且需要确保数据管理员（安装时创建，默认为sdbadmin）用户在该路径下有写权限；
 
-  - **config** ：该参数为可选参数，用于配置更多细节参数，格式必须为 json 格式，细节参数可参考[数据库配置][cluster_config]一节；如需要配置日志大小参数｛logfilesz:64｝。
+  - **config** ：该参数为可选参数，用于指定节点的配置信息。如配置日志大小、是否打开事务等，配置格式应为 json 格式，具体配置可参考[参数说明][cluster_config]。
 
 ### 编目复制组中新增节点
 
@@ -120,7 +120,7 @@
 [storeprocedures]:manual/Manual/Catalog_Table/STOREPROCEDURES.md
 [sequences]:manual/Manual/Catalog_Table/SEQUENCES.md
 [expand]:manual/Distributed_Engine/Maintainance/Expand/expand.md
-[cluster_config]:manual/Deployment/cluster_deployment.md
+[cluster_config]:manual/Distributed_Engine/Maintainance/Database_Configuration/parameter_instructions.md
 [createCataRG]:manual/Manual/Sequoiadb_Command/Sdb/createCataRG.md
 [getCataRG]:manual/Manual/Sequoiadb_Command/Sdb/getCataRG.md
 [create_group]:manual/Distributed_Engine/Architecture/Node/catalog_node.md#新建编目复制组
