@@ -61,7 +61,7 @@
 
   - **dbpath** ：指定编目节点数据文件的存放路径，必须输入绝对路径，且需要确保数据管理员（安装时创建，默认为 sdbadmin）用户在该路径下有写权限；
 
-  - **config** ：该参数为可选参数，用于配置更多细节参数，格式必须为 json 格式，细节参数可参考[数据库配置](database_management/database_configuration/configuration_parameters.md)一节；如需要配置日志大小参数｛logfilesz:64｝。
+  - **config** ：该参数为可选参数，用于指定节点的配置信息。如配置日志大小、是否打开事务等，配置格式应为 json 格式，具体配置可参考[参数说明](database_management/database_configuration/parameters_instructions.md)。
 
 ###编目分区组中新增节点###
 
