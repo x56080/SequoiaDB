@@ -217,6 +217,7 @@ namespace engine
       _confirmRatio = PMD_FT_CACL_RATIO_DFT ;
       _isCatchup = TRUE ;
       _confirmedStat = 0 ;
+      _heldMask = 0 ;
       _indoubtErr = SDB_OK ;
       _ftLevel = FT_LEVEL_SEMI ;
 
@@ -240,6 +241,7 @@ namespace engine
 
       _isCatchup = TRUE ;
       _confirmedStat = 0 ;
+      _heldMask = 0 ;
 
       return SDB_OK ;
    }
@@ -826,6 +828,16 @@ namespace engine
       {
          _sampleWnd.reportErr( FT_ERR_NOSPC ) ;
       }
+   }
+
+   void _pmdFTMgr::holdStatus( UINT32 status )
+   {
+      OSS_BIT_SET( _heldMask, status ) ;
+   }
+
+   void _pmdFTMgr::unholdStatus( UINT32 status )
+   {
+      OSS_BIT_CLEAR( _heldMask, status ) ;
    }
 
    /*

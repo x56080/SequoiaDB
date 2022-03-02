@@ -1256,7 +1256,7 @@ int sdbSetConnectionPreference( sdbConnectionHandle hConnection, CHAR *preferenc
          CHAR *tmpResult = NULL ;
          INT32 i         = 0 ;
 
-         sdbbson_append_start_array( &recordObj, FIELD_NAME_PREFERED_INSTANCE ) ;
+         sdbbson_append_start_array( &recordObj, FIELD_NAME_PREFERRED_INSTANCE_LEGACY ) ;
 
          while( ( tmpResult = strtok_r( tmpSrc, SDB_FIELD_COMMA, &tmpPtr ) ) != NULL )
          {
@@ -1287,12 +1287,12 @@ int sdbSetConnectionPreference( sdbConnectionHandle hConnection, CHAR *preferenc
          intPreferenece_instance = atoi( preference_instance ) ;
          if ( 0 != intPreferenece_instance )
          {
-            sdbbson_append_int( &recordObj, FIELD_NAME_PREFERED_INSTANCE,
+            sdbbson_append_int( &recordObj, FIELD_NAME_PREFERRED_INSTANCE_LEGACY,
                                 intPreferenece_instance ) ;
          }
          else
          {
-            sdbbson_append_string( &recordObj, FIELD_NAME_PREFERED_INSTANCE,
+            sdbbson_append_string( &recordObj, FIELD_NAME_PREFERRED_INSTANCE_LEGACY,
                                    preference_instance ) ;
          }
       }
@@ -1300,7 +1300,7 @@ int sdbSetConnectionPreference( sdbConnectionHandle hConnection, CHAR *preferenc
 
    if ( NULL != preference_instance_mode && strlen( preference_instance_mode ) > 0 )
    {
-      sdbbson_append_string( &recordObj, FIELD_NAME_PREFERED_INSTANCE_MODE, preference_instance_mode ) ;
+      sdbbson_append_string( &recordObj, FIELD_NAME_PREFERRED_INSTANCE_MODE_LEGACY, preference_instance_mode ) ;
    }
 
    if ( -1 != session_timeout )

@@ -556,7 +556,7 @@ namespace engine
          _rtnBackup () ;
          virtual ~_rtnBackup () ;
 
-         virtual BOOLEAN      writable () { return TRUE ; }
+         virtual BOOLEAN      writable () { return FALSE ; }
          virtual const CHAR * name () ;
          virtual RTN_COMMAND_TYPE type () ;
          virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,

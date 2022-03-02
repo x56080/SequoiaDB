@@ -157,6 +157,74 @@ namespace engine
    {
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORD_BK_OFFLINE_EXEC, "_coordBackupOffline::execute" )
+   INT32 _coordBackupOffline::execute( MsgHeader *pMsg,
+                                       pmdEDUCB *cb,
+                                       INT64 &contextID,
+                                       rtnContextBuf *buf )
+   {
+      PD_TRACE_ENTRY( SDB__COORD_BK_OFFLINE_EXEC ) ;
+
+      INT32 rc = SDB_OK ;
+      CoordGroupList groupLst ;
+
+      rc = _parseGroupList( pMsg, groupLst, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse group list, rc: %d", rc ) ;
+
+      rc = _executeOnGroups( pMsg, cb, groupLst, MSG_ROUTE_SHARD_SERVCIE,
+                             FALSE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to do backup on groups, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__COORD_BK_OFFLINE_EXEC, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORD_BK_OFFLINE__PARSE_GRP_LST, "_coordBackupOffline::_parseGroupList" )
+   INT32 _coordBackupOffline::_parseGroupList( MsgHeader *pMsg,
+                                               CoordGroupList &groupLst,
+                                               pmdEDUCB *cb )
+   {
+      PD_TRACE_ENTRY( SDB__COORD_BK_OFFLINE__PARSE_GRP_LST ) ;
+
+      INT32 rc = SDB_OK ;
+      rtnQueryOptions queryOption ;
+      BSONObj *pFilterObj = NULL ;
+      BSONObj newFilterObj ;
+      INT32 roleFilter[ SDB_ROLE_MAX ] = { 0 } ;
+
+      rc = queryOption.fromQueryMsg( (CHAR*)pMsg ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to extract query msg, rc: %d", rc ) ;
+
+      pFilterObj = coordGetFilterByID( _getGroupMatherIndex(), queryOption ) ;
+
+      rc = coordParseGroupList( _pResource, cb, *pFilterObj, groupLst,
+                                &newFilterObj, TRUE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse group list, rc: %d", rc ) ;
+
+      // use all group when nothing specified
+      if ( pFilterObj->equal( newFilterObj ) )
+      {
+         rc = _pResource->updateGroupList( groupLst, cb, NULL, FALSE, FALSE,
+                                           TRUE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get all group list, rc: %d", rc ) ;
+      }
+
+      roleFilter[ SDB_ROLE_DATA ] = 1 ;
+      roleFilter[ SDB_ROLE_CATALOG ] = 1 ;
+      coordFilterGroupsByRole( groupLst, roleFilter ) ;
+
+      // TODO: reject group argument when cpID was specified.
+
+   done:
+      PD_TRACE_EXITRC( SDB__COORD_BK_OFFLINE__PARSE_GRP_LST, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    FILTER_BSON_ID _coordBackupOffline::_getGroupMatherIndex ()
    {
       return FILTER_ID_MATCHER ;
@@ -179,7 +247,10 @@ namespace engine
 
    BOOLEAN _coordBackupOffline::_interruptWhenFailed() const
    {
-      return TRUE ;
+      // TODO: There are some issues of interruption.
+      // Wait SEQUOIADBMAINSTREAM-8068 to fix it.
+      // return TRUE ;
+      return FALSE ;
    }
 
 }

@@ -476,20 +476,20 @@ namespace engine
          {
             const CHAR * value = pmdPreferInstInt2String(
                   ( PMD_PREFER_INSTANCE_TYPE )_specInstance ) ;
-            builder.append( FIELD_NAME_PREFERED_INSTANCE, value ) ;
+            builder.append( FIELD_NAME_PREFERRED_INSTANCE_LEGACY, value ) ;
             builder.append( FIELD_NAME_PREFERRED_INSTANCE, value ) ;
          }
          else if ( _instanceList.size() == 1 &&
                    PMD_PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance )
          {
             INT32 value = ( INT32 )_instanceList.front() ;
-            builder.append( FIELD_NAME_PREFERED_INSTANCE, value ) ;
+            builder.append( FIELD_NAME_PREFERRED_INSTANCE_LEGACY, value ) ;
             builder.append( FIELD_NAME_PREFERRED_INSTANCE, value ) ;
          }
          else
          {
             BSONArrayBuilder instanceBuilder(
-                  builder.subarrayStart( FIELD_NAME_PREFERED_INSTANCE ) ) ;
+                  builder.subarrayStart( FIELD_NAME_PREFERRED_INSTANCE_LEGACY ) ) ;
             for ( RTN_INSTANCE_LIST::const_iterator iter = _instanceList.begin() ;
                   iter != _instanceList.end() ;
                   iter ++ )
@@ -530,11 +530,11 @@ namespace engine
                modeStr = PREFER_INSTANCE_RANDOM_STR ;
                break ;
          }
-         builder.append( FIELD_NAME_PREFERED_INSTANCE_MODE, modeStr ) ;
+         builder.append( FIELD_NAME_PREFERRED_INSTANCE_MODE_LEGACY, modeStr ) ;
          builder.append( FIELD_NAME_PREFERRED_INSTANCE_MODE, modeStr ) ;
-         builder.appendBool( FIELD_NAME_PREFERED_STRICT, _strict ) ;
+         builder.appendBool( FIELD_NAME_PREFERRED_STRICT_LEGACY, _strict ) ;
          builder.appendBool( FIELD_NAME_PREFERRED_STRICT, _strict ) ;
-         builder.append( FIELD_NAME_PREFERED_PERIOD, _period ) ;
+         builder.append( FIELD_NAME_PREFERRED_PERIOD_LEGACY, _period ) ;
          builder.append( FIELD_NAME_PREFERRED_PERIOD, _period ) ;
          switch ( _constraint )
          {
@@ -552,11 +552,11 @@ namespace engine
       else
       {
          // Invalid options, use the default one
-         builder.append( FIELD_NAME_PREFERED_INSTANCE,
+         builder.append( FIELD_NAME_PREFERRED_INSTANCE_LEGACY,
                          PREFER_INSTANCE_MASTER_STR ) ;
          builder.append( FIELD_NAME_PREFERRED_INSTANCE,
                          PREFER_INSTANCE_MASTER_STR ) ;
-         builder.append( FIELD_NAME_PREFERED_INSTANCE_MODE,
+         builder.append( FIELD_NAME_PREFERRED_INSTANCE_MODE_LEGACY,
                          PREFER_INSTANCE_RANDOM_STR ) ;
          builder.append( FIELD_NAME_PREFERRED_INSTANCE_MODE,
                          PREFER_INSTANCE_RANDOM_STR ) ;
@@ -638,7 +638,7 @@ namespace engine
          PD_CHECK( !property.isEmpty(), SDB_INVALIDARG, error, PDERROR,
                    "Failed to parse session property: empty property" ) ;
 
-         if ( property.hasField( FIELD_NAME_PREFERED_INSTANCE ) &&
+         if ( property.hasField( FIELD_NAME_PREFERRED_INSTANCE_LEGACY ) &&
               !property.hasField( FIELD_NAME_PREFERED_INSTANCE_V1 ) )
          {
             newVersion = FALSE ;
@@ -704,14 +704,15 @@ namespace engine
       {
          BSONElement field = iter.next() ;
 
-         if ( 0 == ossStrcmp( field.fieldName(), FIELD_NAME_PREFERED_INSTANCE ) )
+         if ( 0 == ossStrcmp( field.fieldName(),
+                              FIELD_NAME_PREFERRED_INSTANCE_LEGACY ) )
          {
             /// PreferedInstance
             INT32 replType = PREFER_REPL_ANYONE ;
 
             PD_CHECK( field.type() == NumberInt, SDB_INVALIDARG, error,
                       PDERROR, "Field[%s] is not integer",
-                      FIELD_NAME_PREFERED_INSTANCE ) ;
+                      FIELD_NAME_PREFERRED_INSTANCE_LEGACY ) ;
 
             replType = field.numberInt();
             PD_CHECK( replType > PREFER_REPL_TYPE_MIN &&
@@ -802,7 +803,7 @@ namespace engine
          else if ( 0 == ossStrcasecmp( field.fieldName(),
                                        FIELD_NAME_PREFERRED_INSTANCE_MODE ) ||
                    0 == ossStrcasecmp( field.fieldName(),
-                                       FIELD_NAME_PREFERED_INSTANCE_MODE ) )
+                                       FIELD_NAME_PREFERRED_INSTANCE_MODE_LEGACY ) )
          {
             /// PreferedInstanceMode
             PD_LOG_MSG_CHECK( String == field.type(), SDB_INVALIDARG, error,
@@ -819,7 +820,7 @@ namespace engine
          else if ( 0 == ossStrcasecmp( field.fieldName(),
                                        FIELD_NAME_PREFERRED_STRICT ) ||
                    0 == ossStrcasecmp( field.fieldName(),
-                                       FIELD_NAME_PREFERED_STRICT ) )
+                                       FIELD_NAME_PREFERRED_STRICT_LEGACY ) )
          {
             /// PreferedStrict
             PD_LOG_MSG_CHECK( Bool == field.type(), SDB_INVALIDARG, error,
@@ -832,7 +833,7 @@ namespace engine
          else if ( 0 == ossStrcasecmp( field.fieldName(),
                                        FIELD_NAME_PREFERRED_PERIOD ) ||
                    0 == ossStrcasecmp( field.fieldName(),
-                                       FIELD_NAME_PREFERED_PERIOD ) )
+                                       FIELD_NAME_PREFERRED_PERIOD_LEGACY ) )
          {
             /// PreferedPeriod
             PD_LOG_MSG_CHECK( field.isNumber(), SDB_INVALIDARG, error, PDERROR,
@@ -869,7 +870,7 @@ namespace engine
          else if ( 0 == ossStrcasecmp( field.fieldName(),
                                        FIELD_NAME_PREFERRED_INSTANCE ) ||
                    0 == ossStrcasecmp( field.fieldName(),
-                                       FIELD_NAME_PREFERED_INSTANCE ) )
+                                       FIELD_NAME_PREFERRED_INSTANCE_LEGACY ) )
          {
             /// do nothing
          }

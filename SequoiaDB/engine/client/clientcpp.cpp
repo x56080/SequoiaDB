@@ -11693,8 +11693,8 @@ do                                                            \
       {
          BSONElement ele = it.next() ;
          const CHAR * key = ele.fieldName() ;
-         if ( 0 == ossStrcasecmp( FIELD_NAME_PREFERED_INSTANCE, key ) ||
-              0 == ossStrcasecmp( FIELD_NAME_PREFERRED_INSTANCE, key ) )
+         if ( 0 == ossStrcasecmp( FIELD_NAME_PREFERRED_INSTANCE, key ) ||
+              0 == ossStrcasecmp( FIELD_NAME_PREFERRED_INSTANCE_LEGACY, key ) )
          {
             switch ( ele.type() )
             {

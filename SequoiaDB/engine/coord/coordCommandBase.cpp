@@ -924,7 +924,7 @@ namespace engine
                                    groupLst, &newFilterObj,
                                    ppContext ? FALSE : TRUE ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to parse groups, rc: %d", rc  ) ;
-         if ( pFilterObj->objdata() != newFilterObj.objdata() )
+         if ( !pFilterObj->equal( newFilterObj ) )
          {
             hasNodeOrGroupFilter = TRUE ;
 
@@ -976,7 +976,7 @@ namespace engine
          rc = SDB_CLS_NODE_NOT_EXIST ;
          goto error ;
       }
-      else if ( pFilterObj->objdata() != newFilterObj.objdata() )
+      else if ( !pFilterObj->equal( newFilterObj ) )
       {
          hasNodeOrGroupFilter = TRUE ;
 

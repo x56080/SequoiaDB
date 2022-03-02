@@ -1445,6 +1445,8 @@ namespace engine
 
          rc = _pDMSCB->registerBackup( cb, TRUE ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to register backup, rc: %d", rc ) ;
+
+         pmdGetKRCB()->getFTMgr()->holdStatus( PMD_FT_MASK_DEADSYNC ) ;
          _hasRegBackup = TRUE ;
 
          /// sync
@@ -1550,6 +1552,10 @@ namespace engine
       if ( _hasRegBackup )
       {
          _pDMSCB->backupDown( cb ) ;
+         if ( BAR_BACKUP_OP_TYPE_FULL == _metaHeader._opType )
+         {
+            pmdGetKRCB()->getFTMgr()->unholdStatus( PMD_FT_MASK_DEADSYNC ) ;
+         }
          _hasRegBackup = FALSE ;
       }
       if ( _blockSync )
@@ -1570,6 +1576,10 @@ namespace engine
       if ( _hasRegBackup )
       {
          _pDMSCB->backupDown( cb ) ;
+         if ( BAR_BACKUP_OP_TYPE_FULL == _metaHeader._opType )
+         {
+            pmdGetKRCB()->getFTMgr()->unholdStatus( PMD_FT_MASK_DEADSYNC ) ;
+         }
          _hasRegBackup = FALSE ;
       }
       if ( _blockSync )
