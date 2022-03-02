@@ -292,13 +292,6 @@ namespace engine
          else
          {
             context = ret.first ;
-#ifdef _DEBUG
-            if ( context && cb && context->getMonQueryCB() )
-            {
-               SDB_ASSERT( cb->getMonQueryCB() == context->getMonQueryCB(),
-                           "Mismatch monQuery" ) ;
-            }
-#endif
          }
       }
       else
@@ -384,6 +377,24 @@ namespace engine
             pContext->getDPSCB()->completeOpr( cb, pContext->getW() ) ;
          }
 
+         monClassQuery *monQueryCB = pContext->getMonQueryCB() ;
+         if ( NULL != monQueryCB )
+         {
+            monQueryCB->anchorToContext = FALSE ;
+            // Usuaully the monQuery will get removed/archived
+            // at the point when pmd processMsg ends with data
+            // collected at that time.
+            // But if this context is cleaned and pmd currently
+            // is not processing the query this context belongs to.
+            // Which also means the original query this context
+            // belongs to ends unexpectedly.
+            // We need to clean the monQuery.
+            if ( cb->getMonQueryCB() != monQueryCB )
+            {
+               pmdGetKRCB()->getMonMgr()->removeMonitorObject( monQueryCB ) ;
+            }
+            pContext->setMonQueryCB( NULL ) ;
+         }
          pContext.release() ;
 
          PD_LOG( PDDEBUG, "delete context(contextID=%lld, reference: %u, "

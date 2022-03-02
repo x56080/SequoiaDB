@@ -542,12 +542,6 @@ namespace engine
          }
       }
 
-      if ( _monQueryCB )
-      {
-         _monQueryCB->anchorToContext = FALSE ;
-         _monQueryCB = NULL ;
-      }
-
       SDB_ASSERT( 0 == _waitPrefetchNum.peek(), "Has wait prefetch jobs" ) ;
       SDB_ASSERT( FALSE == _isInPrefetch, "Has prefetch job run" ) ;
    }

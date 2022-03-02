@@ -1199,7 +1199,7 @@ namespace engine
          MON_START_OP( _pEDUCB->getMonAppCB() ) ;
          _pEDUCB->getMonAppCB()->setLastOpType( opCode ) ;
 
-         if ( _pEDUCB->getMonQueryCB() == NULL )
+         if ( _pEDUCB->getMonQueryCB() == NULL && MSG_BS_GETMORE_REQ != opCode )
          {
             monQuery = pmdGetKRCB()->getMonMgr()->
                        registerMonitorObject<monClassQuery>() ;
@@ -1494,8 +1494,8 @@ namespace engine
             if ( !monQuery->anchorToContext )
             {
                pmdGetKRCB()->getMonMgr()->removeMonitorObject( monQuery ) ;
-               _pEDUCB->setMonQueryCB( NULL ) ;
             }
+            _pEDUCB->setMonQueryCB( NULL ) ;
          }
 
          loop = FALSE ;
@@ -3280,6 +3280,7 @@ namespace engine
          PD_LOG ( PDERROR, "Context %lld does not exist, rc: %d", contextID, rc ) ;
          goto error ;
       }
+      eduCB()->setMonQueryCB( pContext->getMonQueryCB() );
       needRollback = pContext->needRollback() ;
 
       /// trans context
