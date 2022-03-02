@@ -593,12 +593,18 @@ function upgradeIdx( clName, idxDef )
    UPGRADE_RESULT_FMT.push( clName, idxDef.name, errCode ) ;
 }
 
-function isEqualIdx( def1, def2 )
+function isEqualIdx( def1, def2 ) 
 {
    delete def1._id ;
    delete def2._id ;
    delete def1.UniqueID ;
    delete def2.UniqueID ;
+   delete def1.CreateTime ;  // v5.0.3 has this field
+   delete def2.CreateTime ;  // v5.0.3 has this field
+   delete def1.RebuildTime ; // v5.0.3 has this field   
+   delete def2.RebuildTime ; // v5.0.3 has this field   
+   delete def1.Standalone ;
+   delete def2.Standalone ;
    return isEqual( def1, def2 )
 }
 
@@ -661,39 +667,6 @@ function getIdxAttrDesc( idxDef )
    {
       return "-" ;
    }
-}
-
-function isSameIdxDef( def1, def2 )
-{
-   var sameName = false ;
-   var sameUniqID = false ;
-   var sameKey = false ;
-   var sameAttr = false ;
-
-   if ( def1.name == def2.name )
-   {
-      sameName = true ;
-   }
-   if ( def1.UniqueID == def2.UniqueID )
-   {
-      sameUniqID = true ;
-   }
-   if ( JSON.stringify( def1.key ) == JSON.stringify( def2.key ) )
-   {
-      sameKey = true ;
-   }
-   if ( def1.unique   == def1.unique &&
-        def1.enforced == def1.enforced &&
-        def1.NotNull  == def1.NotNull &&
-        def1.NotArray == def1.NotArray &&
-        def1.Global   == def1.Global )
-   {
-      sameAttr = true ;
-   }
-   return { SameName: sameName,
-            SameUniqueID: sameUniqID,
-            SameKey: sameKey,
-            SameAttr: sameAttr } ;
 }
 
 function NoNeedUpgradeFormator()
@@ -993,7 +966,8 @@ function DetailFormator()
                lineNum++ ;
                if ( lineNum != 1 )
                {
-                  this._str += pad( "", nameLen + keyLen + attrLen + 3 ) ;
+                  // +5: before groupname has 5 space
+                  this._str += pad( "", nameLen + keyLen + attrLen + 5 ) ;
                }
                this._str += pad( gUnit.groupName, groupLen ) + "  " +
                             nodeStr                          + "\n" ;
@@ -1342,11 +1316,7 @@ function IndexUnit( idxDef, isInCata, groupObjList )
    }
    this.is = function( idxDef )
    {
-      delete idxDef._id ;
-      delete idxDef.UniqueID ;
-      delete idxDef.CreateTime ;  // v5.0.3 has this field
-      delete idxDef.RebuildTime ; // v5.0.3 has this field
-      return isEqual( this._idxDef, idxDef ) ;
+      return isEqualIdx( this._idxDef, idxDef ) ;
    }
    this.hasBeenSet = function()
    {
@@ -1392,7 +1362,7 @@ function IndexUnit( idxDef, isInCata, groupObjList )
          return IDX_TYPE_CAN_UPGRADE ;
       }
       else
-      {
+      { 
          return IDX_TYPE_MISSING ;
       }
    }
@@ -1408,6 +1378,37 @@ function IndexUnit( idxDef, isInCata, groupObjList )
    }
 }
 
+// return true:  index1 equal to index2
+// return false: not equal
+function compareIndexDef( def1, def2 )
+{
+   if ( isEqual( def1.key, def2.key ) )
+   {
+      if ( def1.unique )
+      {
+         return true ;
+      }
+      else if ( def2.unique )
+      {
+         // def1 is not unique, def2 is unique
+         return false ;
+      }
+      if ( def1.NotNull != def2.NotNull )
+      {
+         return false ;
+      }
+      if ( def1.NotArray != def2.NotArray )
+      {
+         return false ;
+      }
+      return true ;
+   }
+   else
+   {
+      return false ;
+   }
+}
+
 // cataObjList format:
 // [
 //   { GroupName: "group1", NodeNameList: [ "hostname1:11810", ... ] },
@@ -1418,8 +1419,8 @@ function ClusterCLUnit( clName, cataObjList, autoIndexId, ensureShardingIdx )
    this._clName = clName ;
    this._cataObjList = cataObjList ;
    this.idxUnitList = [] ;
-   this._keyMap = new UtilMap() ; // < index key, pos of this.idxUnitList >
-   this._nameMap = new UtilMap() ; // < index name, pos of this.idxUnitList >
+   this._defMap = new UtilMap( compareIndexDef ) ; // < index def, array of this.idxUnitList pos >
+   this._nameMap = new UtilMap() ; // < index name, array of this.idxUnitList pos >
    this._canUpgradeCnt = 0 ;
    this._autoIndexId = autoIndexId ;
    this._ensureShardingIdxx = ensureShardingIdx ;
@@ -1462,13 +1463,13 @@ function ClusterCLUnit( clName, cataObjList, autoIndexId, ensureShardingIdx )
       }
       //this.print() ;
    }
-   this._checkConflict = function( idxUnit, posInList )
+   this._checkConflict = function( idxUnit, pos )
    {
-      // check it is conflict index by index key and name
-      var posList = this._keyMap.get( idxUnit.getIdxKey() ) ;
+      // check it is conflict index by index key
+      var posList = this._defMap.get( idxUnit.getIdxDef() ) ;
       if ( posList == null )
       {
-         this._keyMap.add( idxUnit.getIdxKey(), [ posInList ] ) ;
+         this._defMap.add( idxUnit.getIdxDef(), [ pos ] ) ;
       }
       else
       {
@@ -1477,13 +1478,14 @@ function ClusterCLUnit( clName, cataObjList, autoIndexId, ensureShardingIdx )
             this.idxUnitList[posList[0]].setConflict() ;
          }
          idxUnit.setConflict() ;
-         posList.push( posInList ) ;
-         this._keyMap.set( idxUnit.getIdxKey(), posList ) ;
+         posList.push( pos ) ;
+         this._defMap.set( idxUnit.getIdxDef(), posList ) ;
       }
+      // check it is conflict index by index name
       posList = this._nameMap.get( idxUnit.getIdxName() ) ;
       if ( posList == null )
       {
-         this._nameMap.add( idxUnit.getIdxName(), [ posInList ] ) ;
+         this._nameMap.add( idxUnit.getIdxName(), [ pos ] ) ;
       }
       else
       {
@@ -1492,7 +1494,7 @@ function ClusterCLUnit( clName, cataObjList, autoIndexId, ensureShardingIdx )
             this.idxUnitList[posList[0]].setConflict() ;
          }
          idxUnit.setConflict() ;
-         posList.push( posInList ) ;
+         posList.push( pos ) ;
          this._nameMap.set( idxUnit.getIdxName(), posList ) ;
       }
    }
@@ -1551,12 +1553,41 @@ function ClusterCLUnit( clName, cataObjList, autoIndexId, ensureShardingIdx )
                this._canUpgradeCnt++ ;
                break ;
             case IDX_TYPE_MISSING:
-               var id = cannotFmtor.push( this._clName,
-                                          idxUnit.getIdxName(),
-                                          JSON.stringify( idxUnit.getIdxKey() ),
-                                          getIdxAttrDesc( idxUnit.getIdxDef() ),
-                                          "Missing" ) ;
-               detailFmtor.pushMissing( id, idxUnit ) ;
+               // If index1 {name:'a1',key:{a:1}} is missing, but index2 
+               // {name:'a2',key:{a:1},unique:true} exists, so index1 is conflict
+               var conflictUnitList = [] ;
+               conflictUnitList.push( this.idxUnitList[i] ) ;// push myself to print myself first
+               if ( ! idxUnit.getIdxDef().unique )
+               {
+                  for ( var j in this.idxUnitList )
+                  {
+                     if ( j != i && this.idxUnitList[j].getIdxDef().unique &&
+                          isEqual( idxUnit.getIdxKey(), 
+                                   this.idxUnitList[j].getIdxKey() ) )
+                     {
+                        idxUnit.setConflict() ;
+                        conflictUnitList.push( this.idxUnitList[j] ) ;
+                     }
+                  }
+               }
+               if ( conflictUnitList.length > 1 )
+               {
+                  var id = cannotFmtor.push( this._clName,
+                                             idxUnit.getIdxName(),
+                                             JSON.stringify( idxUnit.getIdxKey() ),
+                                             getIdxAttrDesc( idxUnit.getIdxDef() ),
+                                             "Conflict" ) ;
+                  detailFmtor.pushConflict( id, conflictUnitList ) ;
+               }
+               else
+               {
+                  var id = cannotFmtor.push( this._clName,
+                                             idxUnit.getIdxName(),
+                                             JSON.stringify( idxUnit.getIdxKey() ),
+                                             getIdxAttrDesc( idxUnit.getIdxDef() ),
+                                             "Missing" ) ;
+                  detailFmtor.pushMissing( id, idxUnit ) ;
+               }
                break ;
             case IDX_TYPE_CONFLICT:
             {
@@ -1566,7 +1597,7 @@ function ClusterCLUnit( clName, cataObjList, autoIndexId, ensureShardingIdx )
                                           getIdxAttrDesc( idxUnit.getIdxDef() ),
                                           "Conflict" ) ;
                // remove duplicate pos
-               var conflictPosList = this._keyMap.get( idxUnit.getIdxKey() ) ;
+               var conflictPosList = this._defMap.get( idxUnit.getIdxDef() ) ;
                var conflictPosSet = new UtilSet() ;
                conflictPosSet.push( i ) ; // push myself to print myself first
                if ( conflictPosList != null )
@@ -1607,7 +1638,7 @@ function ClusterCLUnit( clName, cataObjList, autoIndexId, ensureShardingIdx )
       {
          this.idxUnitList[i].print() ;
       }
-      print( "keyMap: " ) ; this._keyMap.print() ;
+      print( "defMap: " ) ; this._defMap.print() ;
       print( "nameMap: " ) ; this._nameMap.print() ;
    }
 }
@@ -1680,9 +1711,15 @@ function isEqual( k1, k2 )
    }
 }
 
-function UtilMap()
+function UtilMap( compareFunc )
 {
    this._data = [] ;
+   this._compareFunc = isEqual ;
+   if ( typeof( compareFunc ) != "undefined" )
+   {
+      this._compareFunc = compareFunc ;
+   }
+
    this.add = function( key, value )
    {
       this._data.push( { Key: key, Value: value } ) ;
@@ -1692,7 +1729,7 @@ function UtilMap()
       var found = false ;
       for( var i = 0 ; i < this._data.length ; i++ )
       {
-         if ( isEqual( key, this._data[i].Key ) )
+         if ( this._compareFunc( this._data[i].Key, key ) )
          {
             this._data[i] = { Key: key, Value: value } ;
             found = true ;
@@ -1708,7 +1745,7 @@ function UtilMap()
    {
       for( var i = 0 ; i < this._data.length ; i++ )
       {
-         if ( isEqual( key, this._data[i].Key ) )
+         if ( this._compareFunc( this._data[i].Key, key ) )
          {
             return this._data[i].Value ;
          }
@@ -1719,7 +1756,7 @@ function UtilMap()
    {
       for( var i = 0 ; i < this._data.length ; i++ )
       {
-         if ( isEqual( key, this._data[i].Key ) )
+         if ( this._compareFunc( this._data[i].Key, key ) )
          {
             this._data.splice( i, 1 ) ;
             return ;
