@@ -288,8 +288,10 @@ namespace engine
       /// register repl net agent to net monitor for connections
       pNetFrame->setBeatInfo( pmdGetOptionCB()->getOprTimeout() ) ;
 
-      sdbGetPMDController()->registerNet( pNetFrame,
-                                          MSG_ROUTE_REPL_SERVICE ) ;
+      rc = sdbGetPMDController()->registerNet( pNetFrame,
+                                               MSG_ROUTE_REPL_SERVICE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register net monitor on "
+                   "REPL service, rc: %d", rc ) ;
 
       _totalLogSize = pmdGetOptionCB()->getTotalLogSpace() ;
       // init sync control param

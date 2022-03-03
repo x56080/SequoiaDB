@@ -90,7 +90,149 @@ namespace engine
    typedef _netInnerTimeHandle netInnerTimeHandle ;
 
    #define NET_HEARTBEAT_INTERVAL            ( 5000 )
+   #define NET_HEARTBEAT_PASSIVE_INTERVAL    ( 7500 )
    #define NET_MAKE_STAT_INTERVAL            ( 5000 )
+
+   /*
+      _netFrameMon define
+    */
+   // to monitor network connections, we send heart beats to detect the
+   // alive of connections
+   // NONE: do not monitor
+   #define NET_FRAME_MONITOR_NONE    ( 0 )
+   // ACtIVE: send network heart beats in each 1/5 optimeout
+   #define NET_FRAME_MONITOR_ACTIVE  ( 1 )
+   // PASSIVE: send network heart beats in each 3/10 optimeout
+   #define NET_FRAME_MONITOR_PASSIVE ( 2 )
+
+   class _netFrameMonitor : public _utilPooledObject
+   {
+   public:
+      _netFrameMonitor()
+      {
+         for ( UINT16 serviceType = 0 ;
+               serviceType < MSG_ROUTE_SERVICE_TYPE_MAX ;
+               ++ serviceType )
+         {
+            _monitorType[ serviceType ] = NET_FRAME_MONITOR_NONE ;
+         }
+      }
+
+      _netFrameMonitor( const _netFrameMonitor &monitor )
+      {
+         for ( UINT16 serviceType = 0 ;
+               serviceType < MSG_ROUTE_SERVICE_TYPE_MAX ;
+               ++ serviceType )
+         {
+            _monitorType[ serviceType ] = monitor._monitorType[ serviceType ] ;
+         }
+      }
+
+      ~_netFrameMonitor()
+      {
+      }
+
+      _netFrameMonitor &operator =( const _netFrameMonitor &monitor )
+      {
+         for ( UINT16 serviceType = 0 ;
+               serviceType < MSG_ROUTE_SERVICE_TYPE_MAX ;
+               ++ serviceType )
+         {
+            _monitorType[ serviceType ] = monitor._monitorType[ serviceType ] ;
+         }
+         return (*this) ;
+      }
+
+      void setAllMonitorActive()
+      {
+         for ( UINT16 serviceType = 0 ;
+               serviceType < MSG_ROUTE_SERVICE_TYPE_MAX ;
+               ++ serviceType )
+         {
+            _monitorType[ serviceType ] = NET_FRAME_MONITOR_ACTIVE ;
+         }
+      }
+
+      void setMonitorActive( UINT16 serviceType )
+      {
+         if ( serviceType < MSG_ROUTE_SERVICE_TYPE_MAX )
+         {
+            _monitorType[ serviceType ] = NET_FRAME_MONITOR_ACTIVE ;
+         }
+      }
+
+      void setAllMonitorPassive()
+      {
+         for ( UINT16 i = 0 ; i < MSG_ROUTE_SERVICE_TYPE_MAX ; ++ i )
+         {
+            _monitorType[ i ] = NET_FRAME_MONITOR_PASSIVE ;
+         }
+      }
+
+      void setMonitorPassive( UINT16 serviceType )
+      {
+         if ( serviceType < MSG_ROUTE_SERVICE_TYPE_MAX )
+         {
+            _monitorType[ serviceType ] = NET_FRAME_MONITOR_PASSIVE ;
+         }
+      }
+
+      BOOLEAN isInMonitor( UINT16 serviceType ) const
+      {
+         if ( serviceType < MSG_ROUTE_SERVICE_TYPE_MAX )
+         {
+            return NET_FRAME_MONITOR_NONE != _monitorType[ serviceType ] ;
+         }
+         return FALSE ;
+      }
+
+      BOOLEAN isInMonitorActive( UINT16 serviceType ) const
+      {
+         if ( serviceType < MSG_ROUTE_SERVICE_TYPE_MAX )
+         {
+            return NET_FRAME_MONITOR_ACTIVE == _monitorType[ serviceType ] ;
+         }
+         return FALSE ;
+      }
+
+      BOOLEAN isInMonitorPassive( UINT16 serviceType ) const
+      {
+         if ( serviceType < MSG_ROUTE_SERVICE_TYPE_MAX )
+         {
+            return NET_FRAME_MONITOR_PASSIVE == _monitorType[ serviceType ] ;
+         }
+         return FALSE ;
+      }
+
+      BOOLEAN hasInMonActive() const
+      {
+         for ( UINT16 i = 0 ; i < MSG_ROUTE_SERVICE_TYPE_MAX ; ++ i )
+         {
+            if ( NET_FRAME_MONITOR_ACTIVE == _monitorType[ i ] )
+            {
+               return TRUE ;
+            }
+         }
+         return FALSE ;
+      }
+
+      BOOLEAN hasInMonPassive() const
+      {
+         for ( UINT16 i = 0 ; i < MSG_ROUTE_SERVICE_TYPE_MAX ; ++ i )
+         {
+            if ( NET_FRAME_MONITOR_PASSIVE == _monitorType[ i ] )
+            {
+               return TRUE ;
+            }
+         }
+         return FALSE ;
+      }
+
+   protected:
+      UINT8 _monitorType[ MSG_ROUTE_SERVICE_TYPE_MAX ] ;
+   } ;
+
+   typedef class _netFrameMonitor netFrameMon ;
 
    /*
      _netEHSegment define
@@ -211,7 +353,7 @@ namespace engine
          static UINT32 getLocalAddress() ;
 
       public:
-         void     heartbeat( UINT32 interval, INT32 serviceType = -1 ) ;
+         void     heartbeat( UINT32 interval, const netFrameMon &mon ) ;
 
          void     setBeatInfo( UINT32 beatTimeout,
                                UINT32 beatInteval = 0 ) ;
@@ -313,9 +455,8 @@ namespace engine
          INT32    _addRoute( NET_EH eh ) ;
          void     _eraseRoute( NET_EH eh ) ;
 
-         void     _heartbeat( INT32 serviceType ) ;
-
-         void     _checkBreak( UINT32 timeout, INT32 serviceType ) ;
+         void     _heartbeat( const netFrameMon &mon ) ;
+         void     _checkBreak( UINT32 timeout, const netFrameMon &mon ) ;
 
          void     _closeHandle( NET_HANDLE handle ) ;
 
@@ -342,8 +483,10 @@ namespace engine
          ossAtomicSigned64                _netIn;
 
          UINT32                           _beatInterval ;
+         UINT32                           _beatPassiveInterval ;
          UINT32                           _beatTimeout ;
          UINT64                           _beatLastTick ;
+         UINT64                           _beatPassiveLastTick ;
          BOOLEAN                          _checkBeat ;
 
          netInnerTimeHandle               _innerTimeHandle ;
