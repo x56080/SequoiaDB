@@ -44,6 +44,7 @@
 #include "pdTrace.hpp"
 #include "catTrace.hpp"
 #include "pmd.hpp"
+#include "pmdController.hpp"
 #include "utilLightJobBase.hpp"
 #include "IDataSource.hpp"
 #include <stdlib.h>
@@ -406,6 +407,10 @@ namespace engine
       {
          PD_TRACE1 ( SDB_CATALOGCB_INIT,
                      PD_PACK_ULONG ( _routeID.value ) ) ;
+
+         _pNetWork->getFrame()->setBeatInfo(
+               pmdGetOptionCB()->getOprTimeout() ) ;
+
          _pNetWork->setLocalID( _routeID );
          rc = _pNetWork->updateRoute( _routeID,
                                       _strHostName.c_str(),
@@ -456,6 +461,12 @@ namespace engine
                    "attach, rc: %d", rc ) ;
 
       // 2. start net edu
+      rc = sdbGetPMDController()->registerNet( _pNetWork->getFrame(),
+                                               MSG_ROUTE_SHARD_SERVCIE,
+                                               FALSE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register net monitor on "
+                   "SHARD service, rc: %d", rc ) ;
+
       rc = pEDUMgr->startEDU ( EDU_TYPE_CATNETWORK,
                                (netRouteAgent*)netWork(),
                                &eduID ) ;
@@ -472,15 +483,13 @@ namespace engine
 
    INT32 sdbCatalogueCB::deactive ()
    {
-      // 1. stop listen
-      if ( _pNetWork )
+      if ( NULL != _pNetWork )
       {
+         // unregister monitor
+         sdbGetPMDController()->unregNet( _pNetWork->getFrame() ) ;
+         // stop listen
          _pNetWork->shutdownListen() ;
-      }
-
-      // 2. stop io
-      if ( _pNetWork )
-      {
+         // stop IO
          _pNetWork->stop() ;
       }
 
@@ -509,6 +518,11 @@ namespace engine
 
    void sdbCatalogueCB::onConfigChange ()
    {
+      if ( NULL != _pNetWork )
+      {
+         _pNetWork->getFrame()->setBeatInfo(
+               pmdGetOptionCB()->getOprTimeout() ) ;
+      }
    }
 
    void sdbCatalogueCB::onConfigSave()

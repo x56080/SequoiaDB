@@ -219,7 +219,9 @@ namespace engine
 
       // set to primary
       pmdSetPrimary( TRUE ) ;
-      sdbGetPMDController()->registerNet( _pAgent->getFrame() ) ;
+      rc = sdbGetPMDController()->registerNet( _pAgent->getFrame() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register net monitor on "
+                   "all services, rc: %d", rc ) ;
 
       // 1. start coord manager
       _attachEvent.reset() ;
