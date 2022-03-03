@@ -1153,8 +1153,8 @@
       <name>PMD_OPTION_PREFERRED_CONSTRAINT</name>
       <long>preferredconstraint</long>
       <description>
-         <en>The constraint of the priority instance. Value enumeration: 'primaryonly', 'secondaryonly', ''. Default: ''.</en>
-         <cn>优先实例的约束条件。取值：'primaryonly'，'secondaryonly'，''。默认：''</cn>
+         <en>The constraint of the preferred instance. Value enumeration: 'primaryonly', 'secondaryonly', ''. Default: ''. For more details can refer to setSessionAttr()</en>
+         <cn>优先实例的约束条件，默认值为“”，取值包括“primaryonly”、“secondaryonly”、“”。取值说明可参考 setSessionAttr()。</cn>
       </description>
       <reloadable>
          <en>Take effect immediately</en>
@@ -1165,20 +1165,8 @@
          <cn>新连接生效</cn>
       </reloadstrategy>
       <detail>
-         <en>1. The constraint of the priority instance.<fig></fig>
-             2. value enumeration:<fig></fig>
-             ● 'primaryonly'--the priority instance must be the primary node.<fig></fig>
-             ● 'secondaryonly'--the priority instance must be the secondary node.<fig></fig>
-             ● ''--no constraint.<fig></fig>
-             3. if not specified, default value is ''.<fig></fig>
-             4. For more details can refer to [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md).</en>
-         <cn>1. 优先实例的约束条件。<fig></fig>
-             2. 取值列表：<fig></fig>
-             ● 'primaryonly': 优先实例须为主节点。<fig></fig>
-             ● 'secondaryonly': 优先实例须为备节点。<fig></fig>
-             ● '': 无约束条件。<fig></fig>
-             3. 如果不指定，默认为 ''。<fig></fig>
-             4. 更多内容可参考 [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。</cn>
+         <en>The constraint of the preferred instance. Value enumeration: 'primaryonly', 'secondaryonly', ''. Default: ''. For more details can refer to [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr_en.md)</en>
+         <cn>优先实例的约束条件，默认值为""，取值包括"primaryonly"、"secondaryonly"、""。取值说明可参考 [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。</cn>
       </detail>
       <typeofweb>str</typeofweb>
       <default></default>

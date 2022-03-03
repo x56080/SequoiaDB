@@ -53,7 +53,7 @@ options（ *object，必填* ）
 
     格式：`PreferredInstaceMode: "random"`
 
-- PreferredPeriod（ *number* ）：指定优先实例的有效周期，单位为秒，默认为协调节点配置文件中参数 preferredperiod 的取值。如果节点未配置 preferredperiod，该参数默认值为 60。
+- PreferredPeriod（ *number* ）：优先实例的有效周期，单位为秒，默认为协调节点配置文件中参数 preferredperiod 的取值。如果节点未配置 preferredperiod，该参数默认值为 60。
  
     - 每个 PreferredPeriod 有效周期之后，读请求将按 PreferredInstance 的取值重新选择合适的实例进行查询。
     - 该参数取值范围为 [-1, 2^31 - 1]；取值为 -1 表示不失效；取值为 0 表示本次查询不使用上次匹配的节点，根据 PreferredInstance 重新选择。
@@ -61,13 +61,25 @@ options（ *object，必填* ）
 
     格式：`PreferredPeriod: 60`
 
-- PreferredStrict（ *boolean* ）：指定节点选择是否为严格模式，默认值为 false，表示非严格模式。
+- PreferredStrict（ *boolean* ）：节点选择是否为严格模式，默认值为 false，表示非严格模式。
 
-    当指定为严格模式时，节点只能从参数 Preferredinstance 指定的实例取值中选取。如果 Preferredinstance 未指定实例取值，该参数不生效。
+    当指定为严格模式时，节点只能从参数 PreferredInstance 指定的实例取值中选取。如果 PreferredInstance 未指定实例取值，该参数不生效。
 
     格式：`PreferredStrict: true `
 
-- Timeout（ *number* ）：指定会话执行操作的超时时间，超时则返回错误提示信息，单位为毫秒，默认值为 -1。
+- PreferredConstraint（ *string* ）：优先实例的约束条件，默认值为""，表示无约束条件。
+
+    该参数取值如下：
+
+    - "primaryonly"：仅选取主实例作为优先实例
+    - "secondaryonly"：仅选取备实例作为优先实例
+    - ""：无约束条件
+
+    设置约束条件时，该参数指定的行为需与参数 PreferredInstance 一致。如 PreferredInstance 取值为"S"，PreferredConstraint 取值应为"secondaryonly"。
+
+    格式：`PreferredConstraint: "secondaryonly"`
+
+- Timeout（ *number* ）：会话执行操作的超时时间，超时则返回错误提示信息，单位为毫秒，默认值为 -1。
 
     该参数最小取值为 1000 毫秒；取值为 -1 表示不进行超时检测。
 

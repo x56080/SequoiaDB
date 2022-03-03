@@ -100,8 +100,8 @@ The values are as follows:
 Format: \f[C]PreferredInstaceMode: "random"\f[]
 .RE
 .IP \[bu] 2
-PreferredPeriod ( \f[I]number\f[] ): Specify the effective period of the
-preferred instance in seconds.
+PreferredPeriod ( \f[I]number\f[] ): The effective period of the preferred
+instance in seconds.
 The default is the value of the parameter "preferredperiod" in the coord node
 configuration file.
 If the "preferredperiod" is not configured, the default is 60.
@@ -120,8 +120,7 @@ This parameter is only applicable to SequoiaDB v2.8.9, v3.2.5 and above.
 Format: \f[C]PreferredPeriod: 60\f[]
 .RE
 .IP \[bu] 2
-PreferredStrict ( \f[I]boolean\f[] ): Specifies whether the node selection is
-strict mode.
+PreferredStrict ( \f[I]boolean\f[] ): Whether the node selection is strict mode.
 The default value is false, non\-strict mode.
 .RS 2
 .PP
@@ -133,9 +132,29 @@ not take effect.
 Format: \f[C]PreferredStrict: true\f[]
 .RE
 .IP \[bu] 2
-Timeout ( \f[I]number\f[] ): Specify the timeout period for the session to
-perform operations, error message will be returned when timeout, in
-milliseconds, the default value is \-1.
+PreferredConstraint ( \f[I]string\f[] ): The constraint of the preferred
+instance.
+The default value is "", no constraint.
+.RS 2
+.PP
+The values are as follows:
+.IP \[bu] 2
+"primaryonly": Pick only the primary instance as the preferred instance.
+.IP \[bu] 2
+"secondaryonly": Pick only the secondary instance as the preferred instance.
+.IP \[bu] 2
+"": no constraint.
+.PP
+When setting constraints, the behavior specified by this parameter needs to be
+consistent with the parameter PreferredInstance.
+If PreferredInstance is "S", PreferredConstraint should be "secondaryonly".
+.PP
+Format: \f[C]PreferredConstraint: "secondaryonly"\f[]
+.RE
+.IP \[bu] 2
+Timeout ( \f[I]number\f[] ): The timeout period for the session to perform
+operations, error message will be returned when timeout, in milliseconds, the
+default value is \-1.
 .RS 2
 .PP
 The minimum value of this parameter is 1000 milliseconds, and a value of \-1

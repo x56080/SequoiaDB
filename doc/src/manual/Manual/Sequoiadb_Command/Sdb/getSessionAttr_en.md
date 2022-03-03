@@ -47,6 +47,7 @@ Get the session attributes.
   "PreferredStrict": false,
   "PreferedPeriod": 60,
   "PreferredPeriod": 60,
+  "PreferredConstraint": "",
   "Timeout": -1,
   "TransIsolation": 0,
   "TransTimeout": 60,

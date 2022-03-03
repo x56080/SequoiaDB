@@ -53,7 +53,7 @@ The attributes of the session can be set through the parameter "options":
 
     Format: `PreferredInstaceMode: "random"`
 
-- PreferredPeriod ( *number* ): Specify the effective period of the preferred instance in seconds. The default is the value of the parameter "preferredperiod" in the coord node configuration file. If the "preferredperiod" is not configured, the default is 60.
+- PreferredPeriod ( *number* ): The effective period of the preferred instance in seconds. The default is the value of the parameter "preferredperiod" in the coord node configuration file. If the "preferredperiod" is not configured, the default is 60.
 
     - After each "PreferredPeriod" valid period, the read request will will re-select the appropriate instance for query according to the value of "PreferredInstance".
     - The value range of this parameter is [-1, 2^31-1]; a value of -1 means no invalidation; a value of 0 means that the last selected instance is not used for this query and reselected according to parameter "Preferredinstance".
@@ -61,13 +61,25 @@ The attributes of the session can be set through the parameter "options":
 
     Format: `PreferredPeriod: 60`
 
-- PreferredStrict ( *boolean* ): Specifies whether the node selection is strict mode. The default value is false, non-strict mode.
+- PreferredStrict ( *boolean* ): Whether the node selection is strict mode. The default value is false, non-strict mode.
 
     When specified as strict mode, the node can only be selected from the instance value specified by the parameter "Preferredinstance". if "Preferredinstance" does not specify an instance value, this parameter does not take effect.
 
     Format: `PreferredStrict: true`
 
-- Timeout ( *number* ): Specify the timeout period for the session to perform operations, error message will be returned when timeout, in milliseconds, the default value is -1.
+- PreferredConstraint ( *string* ): The constraint of the preferred instance. The default value is "", no constraint.
+
+    The values are as follows:
+
+    - "primaryonly": Pick only the primary instance as the preferred instance.
+    - "secondaryonly": Pick only the secondary instance as the preferred instance.
+    - "": no constraint.
+
+    When setting constraints, the behavior specified by this parameter needs to be consistent with the parameter PreferredInstance. If PreferredInstance is "S", PreferredConstraint should be "secondaryonly".
+
+    Format: `PreferredConstraint: "secondaryonly"`
+
+- Timeout ( *number* ): The timeout period for the session to perform operations, error message will be returned when timeout, in milliseconds, the default value is -1.
 
     The minimum value of this parameter is 1000 milliseconds, and a value of -1 means no timeout detection is performed.
 
