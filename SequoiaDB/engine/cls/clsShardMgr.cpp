@@ -912,8 +912,15 @@ namespace engine
       pNetFrame->setMaxSockPerThread( pmdGetOptionCB()->maxSockPerThread() ) ;
       pNetFrame->setMaxThreadNum( pmdGetOptionCB()->maxSockThread() ) ;
 
-      sdbGetPMDController()->registerNet( pNetFrame,
-                                          MSG_ROUTE_CAT_SERVICE ) ;
+      rc = sdbGetPMDController()->registerNet( pNetFrame,
+                                               MSG_ROUTE_CAT_SERVICE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register net monitor on "
+                   "CAT service, rc: %d", rc ) ;
+      rc = sdbGetPMDController()->registerNet( pNetFrame,
+                                               MSG_ROUTE_SHARD_SERVCIE,
+                                               FALSE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register net monitor on "
+                   "SHARD service, rc: %d", rc ) ;
 
       // init param, get configured catalog address
       for ( UINT32 i = 0 ; i < catAddrs.size() ; ++i )

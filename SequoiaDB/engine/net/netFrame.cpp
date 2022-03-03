@@ -283,8 +283,10 @@ namespace engine
       _pThreadFunc = NULL ;
       _local.value = MSG_INVALID_ROUTEID ;
       _beatInterval = NET_HEARTBEAT_INTERVAL ;
+      _beatPassiveInterval = NET_HEARTBEAT_PASSIVE_INTERVAL ;
       _beatTimeout = 0 ;
       _beatLastTick = pmdGetDBTick() ;
+      _beatPassiveLastTick = _beatLastTick ;
       _checkBeat = FALSE ;
 
       _statInterval = NET_MAKE_STAT_INTERVAL ;
@@ -580,24 +582,33 @@ namespace engine
 
    void _netFrame::setBeatInfo( UINT32 beatTimeout, UINT32 beatInteval )
    {
+      // beat passive interval will be 1.5x of beat interval
+      UINT32 beatPassiveInterval = 0 ;
       if ( beatTimeout > 0 && beatTimeout < 2000 )
       {
          beatTimeout = 2000 ;
          beatInteval = 1000 ;
+         beatPassiveInterval = 1500 ;
       }
       if ( 0 == beatInteval )
       {
          beatInteval = beatTimeout / 5 ;
+         beatPassiveInterval = beatTimeout / 10 * 3 ;
       }
       if ( beatInteval < 1000 )
       {
          beatInteval = 1000 ;
       }
+      if ( beatPassiveInterval < 1500 )
+      {
+         beatPassiveInterval = 1500 ;
+      }
       _beatInterval = beatInteval ;
+      _beatPassiveInterval = beatPassiveInterval ;
       _beatTimeout = beatTimeout ;
    }
 
-   void _netFrame::_heartbeat( INT32 serviceType )
+   void _netFrame::_heartbeat( const netFrameMon &mon )
    {
       MsgHeader beat ;
       NET_EH eh ;
@@ -612,6 +623,8 @@ namespace engine
 
       while( TRUE )
       {
+         UINT64 lastBeatPassed = 0 ;
+
          _mtx.get_shared() ;
          itr = _opposite.upper_bound( handle ) ;
          if ( itr == _opposite.end() )
@@ -630,9 +643,11 @@ namespace engine
          }
 
          /// send msg if had not received message for a while
-         if ( pmdGetTickSpanTime( eh->getLastBeatTick() ) >= _beatInterval &&
-              ( -1 == serviceType ||
-                serviceType == eh->id().columns.serviceID ) )
+         lastBeatPassed = pmdGetTickSpanTime( eh->getLastBeatTick() ) ;
+         if ( ( ( lastBeatPassed >= _beatInterval ) &&
+                ( mon.isInMonitorActive( eh->id().columns.serviceID ) ) ) ||
+              ( ( lastBeatPassed >= _beatPassiveInterval ) &&
+                ( mon.isInMonitorPassive( eh->id().columns.serviceID ) ) ) )
          {
             eh->mtx().get() ;
             beat.requestID = eh->getAndIncMsgID() ;
@@ -676,7 +691,7 @@ namespace engine
       }
    }
 
-   void _netFrame::_checkBreak( UINT32 timeout, INT32 serviceType )
+   void _netFrame::_checkBreak( UINT32 timeout, const netFrameMon &mon )
    {
       NET_EH eh ;
       NET_HANDLE handle = NET_INVALID_HANDLE ;
@@ -705,8 +720,7 @@ namespace engine
 
          spanTime = pmdGetTickSpanTime( eh->getLastRecvTick() ) ;
          /// check break
-         if ( ( -1 == serviceType ||
-                serviceType == eh->id().columns.serviceID ) &&
+         if ( mon.isInMonitor( eh->id().columns.serviceID ) &&
               spanTime >= timeout )
          {
             routeid = eh->id() ;
@@ -719,10 +733,11 @@ namespace engine
       }
    }
 
-   void _netFrame::heartbeat( UINT32 interval, INT32 serviceType )
+   void _netFrame::heartbeat( UINT32 interval, const netFrameMon &mon )
    {
       UINT32 beatTimeout = _beatTimeout ;
       UINT64 spanTime = pmdGetTickSpanTime( _beatLastTick ) ;
+      UINT64 passiveSpanTime = pmdGetTickSpanTime( _beatPassiveLastTick ) ;
 
       if ( 0 == beatTimeout )
       {
@@ -732,19 +747,38 @@ namespace engine
       if ( _checkBeat )
       {
          _checkBeat = FALSE ;
-         _checkBreak( beatTimeout, serviceType ) ;
+         _checkBreak( beatTimeout, mon ) ;
       }
-      else if ( spanTime >= _beatInterval )
+      else
       {
-         _beatLastTick = pmdGetDBTick() ;
-         _checkBeat = TRUE ;
-         _heartbeat( serviceType ) ;
-
-         if ( spanTime > 3 * _beatInterval )
+         if ( mon.hasInMonActive() && spanTime >= _beatInterval )
          {
-            PD_LOG( PDWARNING, "Heartbeat span time[%u] is more than "
-                    "interval time[%u], the thread maybe blocked by "
-                    "some operations", spanTime, _beatInterval ) ;
+            _beatLastTick = pmdGetDBTick() ;
+            _checkBeat = TRUE ;
+
+            if ( spanTime > 3 * _beatInterval )
+            {
+               PD_LOG( PDWARNING, "Heartbeat span time[%u] is more than "
+                       "interval time[%u], the thread maybe blocked by "
+                       "some operations", spanTime, _beatInterval ) ;
+            }
+         }
+         if ( mon.hasInMonPassive() && spanTime >= _beatPassiveInterval )
+         {
+            _beatPassiveInterval = pmdGetDBTick() ;
+            _checkBeat = TRUE ;
+
+            if ( passiveSpanTime > 3 * _beatPassiveInterval )
+            {
+               PD_LOG( PDWARNING, "Heartbeat passive span time[%u] is more than "
+                       "passive interval time[%u], the thread maybe blocked by "
+                       "some operations", passiveSpanTime, _beatPassiveInterval ) ;
+            }
+         }
+
+         if ( _checkBeat )
+         {
+            _heartbeat( mon ) ;
          }
       }
    }
