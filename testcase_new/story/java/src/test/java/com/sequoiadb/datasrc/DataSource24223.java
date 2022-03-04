@@ -105,14 +105,16 @@ public class DataSource24223 extends SdbTestBase {
             db = new Sequoiadb( url, "", "" );
             dbcl = db.getCollectionSpace( csName ).getCollection( clName );
             int recordNum = endNo - beginNo;
+            System.out.println( "begin insert , coordUrl:" + url );
             insertRecords = DataSrcUtils.insertData( dbcl, recordNum, beginNo );
+            System.out.println( "end insert , coordUrl:" + url );
             queryMatcher = "{$and:[{no:{$gte:" + beginNo + "}},{no:{$lt:"
                     + endNo + "}}]}";
             System.out.println( new Date() + " " + this.getClass().getName()
-                    + " begin check results , coordUrl:" + url );
+                    + " begin insert check results , coordUrl:" + url );
             DataSrcUtils.checkRecords( dbcl, insertRecords, queryMatcher );
             System.out.println( new Date() + " " + this.getClass().getName()
-                    + " end check results , coordUrl:" + url );
+                    + " end insert check results , coordUrl:" + url );
         }
 
         @ExecuteOrder(step = 2)
@@ -122,7 +124,9 @@ public class DataSource24223 extends SdbTestBase {
             String matcher = "{$and:[{no:{$gte:" + beginNo + "}},{no:{$lt:"
                     + endCond + "}}]}";
             String modifier = "{$set:{testa:'updatetest" + beginNo + "'}}";
+            System.out.println( "begin update , coordUrl:" + url );
             dbcl.update( matcher, modifier, "" );
+            System.out.println( "end update , coordUrl:" + url );
 
             for ( int i = 0; i < updateNum; i++ ) {
                 BSONObject obj = insertRecords.get( i );
@@ -130,10 +134,10 @@ public class DataSource24223 extends SdbTestBase {
             }
 
             System.out.println( new Date() + " " + this.getClass().getName()
-                    + " begin check results , coordUrl:" + url );
+                    + " begin update check results , coordUrl:" + url );
             DataSrcUtils.checkRecords( dbcl, insertRecords, queryMatcher );
             System.out.println( new Date() + " " + this.getClass().getName()
-                    + " end check results , coordUrl:" + url );
+                    + " end update check results , coordUrl:" + url );
         }
 
         @ExecuteOrder(step = 3)
@@ -142,14 +146,16 @@ public class DataSource24223 extends SdbTestBase {
             int endCond = beginNo + removeNum;
             String matcher = "{$and:[{no:{$gte:" + beginNo + "}},{no:{$lt:"
                     + endCond + "}}]}";
+            System.out.println( "begin remove , coordUrl:" + url );
             dbcl.delete( matcher );
+            System.out.println( "end remove , coordUrl:" + url );
             List< BSONObject > sublist = insertRecords.subList( 0, removeNum );
             insertRecords.removeAll( sublist );
             System.out.println( new Date() + " " + this.getClass().getName()
-                    + " begin check results , coordUrl:" + url );
+                    + " begin remove check results , coordUrl:" + url );
             DataSrcUtils.checkRecords( dbcl, insertRecords, queryMatcher );
             System.out.println( new Date() + " " + this.getClass().getName()
-                    + " end check results , coordUrl:" + url );
+                    + " end remove check results , coordUrl:" + url );
             db.close();
         }
     }
