@@ -331,8 +331,9 @@ _isConnected = TRUE ;
             PD_LOG( PDERROR, "Connection[Handle%d] checking system info of "
                     "node[%s:%s] failed[%d]",
                     _handle, hostName, serviceName, rc ) ;
-            sock.close() ;
-            _sock.close() ;
+            boost::system::error_code ec ;
+            close() ;
+            _sock.close( ec ) ;
             goto error ;
          }
       }
