@@ -37,7 +37,7 @@
 *******************************************************************************/
 
 #include "utilRecycleItem.hpp"
-#include "utilCommon.hpp"
+#include "utilUniqueID.hpp"
 #include "pdTrace.hpp"
 #include "utilTrace.hpp"
 #include "../bson/bson.hpp"
@@ -128,6 +128,44 @@ namespace engine
          return UTIL_RECYCLE_OP_TRUNCATE ;
       }
       return UTIL_RECYCLE_OP_UNKNOWN ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_UTILGETRECYCLSINCSBOUNDS, "utilGetRecyCLsInCSBounds")
+   INT32 utilGetRecyCLsInCSBounds( const CHAR *fieldName,
+                                   utilCSUniqueID csUniqueID,
+                                   BSONObj &matcher )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_UTILGETRECYCLSINCSBOUNDS ) ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+
+         rc = utilGetCSBounds( fieldName, csUniqueID, builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get bounds with collection "
+                      "space unique ID [%u], rc: %d", csUniqueID, rc ) ;
+
+         builder.append( FIELD_NAME_TYPE,
+                         utilGetRecycleTypeName( UTIL_RECYCLE_CL ) ) ;
+
+         matcher = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_UTILGETRECYCLSINCSBOUNDS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    /*
@@ -461,6 +499,42 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB_UTILRECYCLEITEM_FROMBSON_FIELD, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_UTILRECYCLEITEM_FROMRECYCLENAME, "_utilRecycleItem::fromRecycleName")
+   INT32 _utilRecycleItem::fromRecycleName( const CHAR *recycleName )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_UTILRECYCLEITEM_FROMRECYCLENAME ) ;
+
+      SDB_ASSERT( NULL != recycleName, "recycle name is invalid" ) ;
+
+      utilGlobalID originID = UTIL_GLOBAL_NULL ;
+      utilRecycleID recycleID = UTIL_RECYCLEID_NULL ;
+      INT32 parsedNum = 0 ;
+
+      PD_CHECK( NULL != recycleName, SDB_SYS, error, PDERROR,
+                "Failed to parse from recycle name, it is invalid" ) ;
+
+      parsedNum = ossSscanf( recycleName,
+                             UTIL_RECYCLE_FORMAT,
+                             &recycleID,
+                             &originID ) ;
+      PD_CHECK( parsedNum == 2, SDB_INVALIDARG, error, PDERROR,
+                "Failed to parse from recycle name [%s], it is invalid",
+                recycleName ) ;
+
+      setRecycleName( recycleName ) ;
+      setRecycleID( recycleID ) ;
+      setOriginID( originID ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_UTILRECYCLEITEM_FROMRECYCLENAME, rc ) ;
       return rc ;
 
    error:

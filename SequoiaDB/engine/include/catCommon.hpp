@@ -419,6 +419,9 @@ namespace engine
    INT32 catGetCollectionGroupSet ( const BSONObj &boCollection,
                                     vector<UINT32> &groupIDList ) ;
 
+   INT32 catGetCollectionGroupSet ( const BSONObj &boCollection,
+                                    SET_UINT32 &groupIDSet ) ;
+
    /* Lock groups */
    INT32 catLockGroups( vector<UINT32> &groupIDList,
                         _pmdEDUCB *cb,
@@ -609,6 +612,21 @@ namespace engine
    INT32 catUpdateRecycleBinConf( const utilRecycleBinConf &newConf,
                                   pmdEDUCB *cb,
                                   INT16 w ) ;
+   const CHAR *catGetOriginCL( UTIL_RECYCLE_TYPE type ) ;
+   const CHAR *catGetRecycleBinCL( UTIL_RECYCLE_TYPE type ) ;
+   INT32 catGetGroupListForRecycleCS( utilCSUniqueID csUniqueID,
+                                      pmdEDUCB *cb,
+                                      std::vector<UINT32> &groupIDList ) ;
+   INT32 catGetGroupListForRecycleItem( utilRecycleID recycleID,
+                                        pmdEDUCB *cb,
+                                        vector<UINT32> &groupIDList ) ;
+   INT32 catSaveToGroupIDSet( const VEC_GROUP_ID &groupIDVec,
+                              SET_UINT32 &groupIDSet ) ;
+   INT32 catSaveToGroupIDList( SET_UINT32 &groupIDSet,
+                               std::vector<UINT32> &groupIDList ) ;
+   INT32 catParseUniqueID( const bson::BSONObj &object,
+                           utilGlobalID &globalID,
+                           const CHAR *fieldName = FIELD_NAME_UNIQUEID ) ;
 
 }
 

@@ -5067,6 +5067,72 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCLGRPSET_SET, "catGetCollectionGroupSet" )
+   INT32 catGetCollectionGroupSet ( const BSONObj &boCollection,
+                                    SET_UINT32 &groupIDSet )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATGETCLGRPSET_SET ) ;
+
+      try
+      {
+         BSONElement beCataInfo ;
+
+         if ( boCollection.isEmpty() )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         beCataInfo = boCollection.getField( CAT_CATALOGINFO_NAME ) ;
+         if ( Array != beCataInfo.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         {
+            BSONObj boCataInfo = beCataInfo.embeddedObject() ;
+            BSONObjIterator iterArr( boCataInfo ) ;
+            while ( iterArr.more() )
+            {
+               BSONElement beTmp = iterArr.next() ;
+               if ( Object != beTmp.type() )
+               {
+                  rc = SDB_INVALIDARG ;
+                  goto error ;
+               }
+               else
+               {
+                  BSONObj boTmp = beTmp.embeddedObject();
+                  BSONElement beGroupId = boTmp.getField( CAT_GROUPID_NAME ) ;
+                  if ( !beGroupId.isNumber() )
+                  {
+                     rc = SDB_INVALIDARG ;
+                     goto error ;
+                  }
+                  groupIDSet.insert( beGroupId.numberInt() ) ;
+               }
+            }
+         }
+      }
+      catch( exception &e )
+      {
+         PD_LOG( PDWARNING, "Failed to get group ID set from collection, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATGETCLGRPSET_SET, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATLOCKGROUPS, "catLockGroups" )
    INT32 catLockGroups ( vector<UINT32> &groupIDList,
                          _pmdEDUCB *cb,
@@ -7798,6 +7864,323 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB_CATUPDATERECYCLEBINCONF, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   const CHAR *catGetOriginCL( UTIL_RECYCLE_TYPE type )
+   {
+      switch ( type )
+      {
+         case UTIL_RECYCLE_CS :
+         {
+            return CAT_COLLECTION_SPACE_COLLECTION ;
+         }
+         case UTIL_RECYCLE_CL :
+         {
+            return CAT_COLLECTION_INFO_COLLECTION ;
+         }
+         case UTIL_RECYCLE_SEQ :
+         {
+            return GTS_SEQUENCE_COLLECTION_NAME ;
+         }
+         case UTIL_RECYCLE_IDX :
+         {
+            return CAT_INDEX_INFO_COLLECTION ;
+         }
+         default :
+         {
+            SDB_ASSERT( FALSE, "invalid recycle object type" ) ;
+            break ;
+         }
+      }
+      return NULL ;
+   }
+
+   const CHAR *catGetRecycleBinCL( UTIL_RECYCLE_TYPE type )
+   {
+      switch ( type )
+      {
+         case UTIL_RECYCLE_CS :
+         {
+            return CAT_SYSRECYCLEBIN_CS_COLLECTION ;
+         }
+         case UTIL_RECYCLE_CL :
+         {
+            return CAT_SYSRECYCLEBIN_CL_COLLECTION ;
+         }
+         case UTIL_RECYCLE_SEQ :
+         {
+            return CAT_SYSRECYCLEBIN_SEQ_COLLECTION ;
+         }
+         case UTIL_RECYCLE_IDX :
+         {
+            return CAT_SYSRECYCLEBIN_IDX_COLLECTION ;
+         }
+         default :
+         {
+            SDB_ASSERT( FALSE, "invalid recycle object type" ) ;
+            break ;
+         }
+      }
+      return NULL ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATGETGRPSFORRECYCLE, "_catGetGroupListForRecycle" )
+   static INT32 _catGetGroupListForRecycle( const BSONObj &matcher,
+                                            pmdEDUCB *cb,
+                                            vector<UINT32> &groupIDList )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATGETGRPSFORRECYCLE ) ;
+
+      SET_UINT32 groupIDSet ;
+
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
+      SDB_RTNCB *rtnCB = krcb->getRTNCB() ;
+      INT64 contextID = -1 ;
+
+      rtnQueryOptions options ;
+      options.setCLFullName( CAT_SYSRECYCLEBIN_CL_COLLECTION ) ;
+      options.setQuery( matcher ) ;
+
+      rc = rtnQuery( options, cb, dmsCB, rtnCB, contextID ) ;
+      PD_RC_CHECK ( rc, PDERROR, "Failed to execute query on collection [%s], "
+                    "rc: %d", CAT_SYSRECYCLEBIN_CL_COLLECTION, rc ) ;
+
+      while ( TRUE )
+      {
+         rtnContextBuf buffObj ;
+         BSONObj boCollection ;
+
+         rc = rtnGetMore( contextID, 1, buffObj, cb, rtnCB ) ;
+         if ( SDB_OK != rc )
+         {
+            if ( SDB_DMS_EOC == rc )
+            {
+               contextID = -1 ;
+               rc = SDB_OK ;
+               break ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to get record, rc: %d",
+                         rc ) ;
+         }
+
+         try
+         {
+            BSONElement element ;
+
+            boCollection = BSONObj( buffObj.data() ) ;
+
+            element = boCollection.getField( CAT_IS_MAINCL ) ;
+            if ( EOO != element.type() && element.booleanSafe() )
+            {
+               // skip main-collection
+               continue ;
+            }
+
+            element = boCollection.getField( FIELD_NAME_DATASOURCE_ID ) ;
+            if ( EOO != element.type() )
+            {
+               // skip data source
+               continue ;
+            }
+         }
+         catch ( exception &e )
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Failed to get result for collection, "
+                    "occur exception: %s", e.what() ) ;
+            goto error ;
+         }
+
+         rc = catGetCollectionGroupSet( boCollection, groupIDSet ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get group ID set from "
+                      "collection object, rc: %d", rc ) ;
+      }
+
+      rc = catSaveToGroupIDList( groupIDSet, groupIDList ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to save group ID list, rc: %d", rc ) ;
+
+   done:
+      if ( -1 != contextID )
+      {
+         rtnCB->contextDelete( contextID, cb ) ;
+      }
+      PD_TRACE_EXITRC( SDB__CATGETGRPSFORRECYCLE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETGRPSFORRECYCLECS, "catGetGroupListForRecycleCS" )
+   INT32 catGetGroupListForRecycleCS( utilCSUniqueID csUniqueID,
+                                      pmdEDUCB *cb,
+                                      vector<UINT32> &groupIDList )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATGETGRPSFORRECYCLECS ) ;
+
+      BSONObj matcher ;
+
+      rc = utilGetCSBounds( FIELD_NAME_UNIQUEID, csUniqueID, matcher ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build collection space matcher by "
+                   "unique ID [%u], rc: %d", csUniqueID, rc ) ;
+
+      rc = _catGetGroupListForRecycle( matcher, cb, groupIDList ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get group list for "
+                   "collection space[%u] from recycle collection, rc: %d",
+                   csUniqueID, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATGETGRPSFORRECYCLECS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETGRPSFORRECYITEM, "catGetGroupListForRecycleItem" )
+   INT32 catGetGroupListForRecycleItem( utilRecycleID recycleID,
+                                        pmdEDUCB *cb,
+                                        vector<UINT32> &groupIDList )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATGETGRPSFORRECYITEM ) ;
+
+      BSONObj matcher ;
+
+      try
+      {
+         matcher = BSON( FIELD_NAME_RECYCLE_ID << (INT64)recycleID ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = _catGetGroupListForRecycle( matcher, cb, groupIDList ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get group list for "
+                   "recycle item [%llu], rc: %d", recycleID, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATGETGRPSFORRECYITEM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATSAVETOGROUPIDSET, "catSaveToGroupIDSet" )
+   INT32 catSaveToGroupIDSet( const VEC_GROUP_ID &groupIDVec,
+                              SET_UINT32 &groupIDSet )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATSAVETOGROUPIDSET ) ;
+
+      try
+      {
+         for ( VEC_GROUP_ID::const_iterator iter = groupIDVec.begin() ;
+               iter != groupIDVec.end() ;
+               ++ iter )
+         {
+            groupIDSet.insert( *iter ) ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to save group ID, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATSAVETOGROUPIDSET, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATSAVETOGROUPIDLIST, "catSaveToGroupIDList" )
+   INT32 catSaveToGroupIDList( SET_UINT32 &groupIDSet,
+                               vector<UINT32> &groupIDList )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATSAVETOGROUPIDLIST ) ;
+
+      try
+      {
+         /// Remove duplicate groups
+         for ( UINT32 i = 0 ; i < groupIDList.size() ; ++i )
+         {
+            groupIDSet.insert( groupIDList[ i ] ) ;
+         }
+         groupIDList.clear() ;
+         SET_UINT32::iterator iterGroupID = groupIDSet.begin() ;
+         while ( iterGroupID != groupIDSet.end() )
+         {
+            groupIDList.push_back( *iterGroupID ) ;
+            ++ iterGroupID ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to save group ID, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATSAVETOGROUPIDLIST, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATPARSEUNIQUEID, "catParseUniqueID" )
+   INT32 catParseUniqueID( const bson::BSONObj &object,
+                           utilGlobalID &uniqueID,
+                           const CHAR *fieldName )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATPARSEUNIQUEID ) ;
+
+      try
+      {
+         BSONElement element = object.getField( fieldName ) ;
+         PD_CHECK( element.isNumber(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s] from object [%s], "
+                   "it is not a number", fieldName,
+                   object.toPoolString().c_str() ) ;
+         uniqueID = (utilGlobalID)( element.numberLong() ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to get unique ID from object, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATPARSEUNIQUEID, rc ) ;
       return rc ;
 
    error:

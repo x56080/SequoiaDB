@@ -46,6 +46,7 @@
 #include "rtnSessionProperty.hpp"
 #include "utilResult.hpp"
 #include "utilRecycleBinConf.hpp"
+#include "utilRecycleItem.hpp"
 
 using namespace bson ;
 
@@ -1821,6 +1822,90 @@ namespace engine
    } ;
 
    typedef class _rtnCMDAlterRecycleBin rtnCMDAtlerRecycleBin ;
+
+   /*
+      _rtnCMDDropRecycleBinBase define
+    */
+   class _rtnCMDDropRecycleBinBase : public _rtnCommand
+   {
+   public:
+      _rtnCMDDropRecycleBinBase() ;
+      virtual ~_rtnCMDDropRecycleBinBase() ;
+
+      virtual BOOLEAN writable()
+      {
+         return TRUE ;
+      }
+
+      virtual INT32 init( INT32 flags,
+                          INT64 numToSkip,
+                          INT64 numToReturn,
+                          const CHAR *pMatcherBuff,
+                          const CHAR *pSelectBuff,
+                          const CHAR *pOrderByBuff,
+                          const CHAR *pHintBuff ) ;
+      virtual INT32 doit( _pmdEDUCB *cb,
+                          _SDB_DMSCB *dmsCB,
+                          _SDB_RTNCB *rtnCB,
+                          _dpsLogWrapper *dpsCB,
+                          INT16 w = 1,
+                          INT64 *pContextID = NULL ) ;
+
+   protected:
+      virtual BOOLEAN _isDropAll() const = 0 ;
+
+   protected:
+      BOOLEAN              _isAsync ;
+      const CHAR *         _recycleItemName ;
+   } ;
+
+   typedef class _rtnCMDDropRecycleBinBase rtnCMDDropRecycleBinBase ;
+
+   /*
+      _rtnCMDDropRecycleBinItem define
+    */
+   class _rtnCMDDropRecycleBinItem : public _rtnCMDDropRecycleBinBase
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+   public:
+      _rtnCMDDropRecycleBinItem() ;
+      virtual ~_rtnCMDDropRecycleBinItem() ;
+
+      virtual const CHAR *name() ;
+      virtual RTN_COMMAND_TYPE type() ;
+
+   protected:
+      virtual BOOLEAN _isDropAll() const
+      {
+         return FALSE ;
+      }
+   } ;
+
+   typedef class _rtnCMDDropRecycleBinItem rtnCMDDropRecycleBinItem ;
+
+   /*
+      _rtnCMDDropRecycleBinAll define
+    */
+   class _rtnCMDDropRecycleBinAll : public _rtnCMDDropRecycleBinBase
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+   public:
+      _rtnCMDDropRecycleBinAll() ;
+      virtual ~_rtnCMDDropRecycleBinAll() ;
+
+      virtual const CHAR *name() ;
+      virtual RTN_COMMAND_TYPE type() ;
+
+   protected:
+      virtual BOOLEAN _isDropAll() const
+      {
+         return TRUE ;
+      }
+   } ;
+
+   typedef class _rtnCMDDropRecycleBinAll rtnCMDDropRecycleBinAll ;
 
 }
 

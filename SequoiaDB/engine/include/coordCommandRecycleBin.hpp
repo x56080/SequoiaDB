@@ -107,6 +107,60 @@ namespace engine
 
    typedef class _coordGetRecycleBinCount coordGetRecycleBinCount ;
 
+   /*
+      _coordDropRecycleBinBase define
+    */
+   class _coordDropRecycleBinBase : public _coordCommandBase
+   {
+   public:
+      _coordDropRecycleBinBase( BOOLEAN isDropAll ) ;
+      virtual ~_coordDropRecycleBinBase() ;
+
+      virtual INT32 execute( MsgHeader *pMsg,
+                             pmdEDUCB *cb,
+                             INT64 &contextID,
+                             rtnContextBuf *buf ) ;
+
+   protected:
+      INT32 _parseMessage( MsgHeader *pMsg ) ;
+      INT32 _doAudit( INT32 rc ) ;
+
+   protected:
+      bson::BSONObj  _options ;
+      BOOLEAN        _isDropAll ;
+      const CHAR *   _recycleItemName ;
+   } ;
+
+   typedef class _coordDropRecycleBinBase coordDropRecycleBinBase ;
+
+   /*
+      _coordDropRecycleBinItem define
+    */
+   class _coordDropRecycleBinItem : public _coordDropRecycleBinBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+
+   public:
+      _coordDropRecycleBinItem() ;
+      virtual ~_coordDropRecycleBinItem() ;
+   } ;
+
+   typedef class _coordDropRecycleBinItem coordDropRecycleBinItem ;
+
+   /*
+      _coordDropRecycleBinAll define
+    */
+   class _coordDropRecycleBinAll : public _coordDropRecycleBinBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+
+   public:
+      _coordDropRecycleBinAll() ;
+      virtual ~_coordDropRecycleBinAll() ;
+   } ;
+
+   typedef class _coordDropRecycleBinAll coordDropRecycleBinAll ;
+
 }
 
 #endif // COORD_CMD_RECYCLEBIN_HPP__

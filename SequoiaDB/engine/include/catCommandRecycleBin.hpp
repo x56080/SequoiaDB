@@ -155,6 +155,119 @@ namespace engine
 
    typedef class _catCMDGetRecycleBinCount catCMDGetRecycleBinCount ;
 
+   /*
+      _catCMDDropRecycleBinBase define
+    */
+   class _catCMDDropRecycleBinBase : public _catWriteCMDBase
+   {
+   public:
+      _catCMDDropRecycleBinBase() ;
+      virtual ~_catCMDDropRecycleBinBase() ;
+
+      INT32 init( const CHAR *pQuery,
+                  const CHAR *pSelector = NULL,
+                  const CHAR *pOrderBy = NULL,
+                  const CHAR *pHint = NULL,
+                  INT32 flags = 0,
+                  INT64 numToSkip = 0,
+                  INT64 numToReturn = -1 ) ;
+
+      INT32 doit( _pmdEDUCB *cb,
+                  rtnContextBuf &ctxBuf,
+                  INT64 &contextID ) ;
+
+   protected:
+      virtual BOOLEAN _isDropAll() const = 0 ;
+      virtual INT32 _check( _pmdEDUCB *cb ) = 0 ;
+      virtual INT32 _execute( _pmdEDUCB *cb,
+                              INT16 w,
+                              rtnContextBuf &ctxBuf ) = 0 ;
+
+   protected:
+      catRecycleBinManager *  _recycleBinMgr ;
+
+      // cache of command options
+      bson::BSONObj _queryObj ;
+      bson::BSONObj _hintObj ;
+      const CHAR *  _recycleItemName ;
+      BOOLEAN       _isEnforced ;
+      BOOLEAN       _isRecursive ;
+      BOOLEAN       _isIgnoreLock ;
+   } ;
+
+   typedef class _catCMDDropRecycleBinBase catCMDDropRecycleBinBase ;
+
+   /*
+      _catCMDDropRecycleBinItem define
+    */
+   class _catCMDDropRecycleBinItem : public _catCMDDropRecycleBinBase
+   {
+      CAT_DECLARE_CMD_AUTO_REGISTER() ;
+
+   public:
+      _catCMDDropRecycleBinItem() {}
+      virtual ~_catCMDDropRecycleBinItem() {}
+
+      virtual const CHAR *name() const
+      {
+         return CMD_NAME_DROP_RECYCLEBIN_ITEM ;
+      }
+
+   protected:
+      virtual BOOLEAN _isDropAll() const
+      {
+         return FALSE ;
+      }
+
+      virtual INT32 _check( _pmdEDUCB *cb ) ;
+      virtual INT32 _execute( _pmdEDUCB *cb,
+                              INT16 w,
+                              rtnContextBuf &ctxBuf ) ;
+
+      INT32 _checkRecycledCLInCS( const utilRecycleItem &item,
+                                  _pmdEDUCB *cb ) ;
+      INT32 _checkCLInRecycledCS( const utilRecycleItem &item,
+                                  _pmdEDUCB *cb ) ;
+      INT32 _checkSubCLInRecycledCS( utilRecycleItem &item,
+                                     _pmdEDUCB *cb ) ;
+
+   protected:
+      utilRecycleItem _recycleItem ;
+      std::vector<UINT32> _groupList ;
+   } ;
+
+   typedef class _catCMDDropRecycleBinItem catCMDDropRecycleBinItem ;
+
+   /*
+      _catCMDDropRecycleBinAll define
+    */
+   class _catCMDDropRecycleBinAll : public _catCMDDropRecycleBinBase
+   {
+      CAT_DECLARE_CMD_AUTO_REGISTER() ;
+
+   public:
+      _catCMDDropRecycleBinAll() {}
+      virtual ~_catCMDDropRecycleBinAll() {}
+
+      virtual const CHAR *name() const
+      {
+         return CMD_NAME_DROP_RECYCLEBIN_ALL ;
+      }
+
+   protected:
+      virtual BOOLEAN _isDropAll() const
+      {
+         return TRUE ;
+      }
+
+      virtual INT32 _check( _pmdEDUCB *cb ) ;
+      virtual INT32 _execute( _pmdEDUCB *cb,
+                              INT16 w,
+                              rtnContextBuf &ctxBuf ) ;
+   } ;
+
+   typedef class _catCMDDropRecycleBinAll catCMDDropRecycleBinAll ;
+
 }
 
 #endif // CAT_COMMAND_RECYCLEBIN_HPP__

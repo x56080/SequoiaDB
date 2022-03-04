@@ -487,6 +487,7 @@ clsFiles = [
       "cls/clsRemoteOperator.cpp",
       "cls/clsResourceContainer.cpp",
       "cls/clsIndexJob.cpp",
+      "cls/clsRecycleBinJob.cpp",
       "cls/clsRecycleBinManager.cpp"
       ]
 
@@ -580,7 +581,8 @@ catFiles = [
       "cat/catCommand.cpp",
       "cat/catTask.cpp",
       "cat/catCommandRecycleBin.cpp",
-      "cat/catRecycleBinManager.cpp"
+      "cat/catRecycleBinManager.cpp",
+      "cat/catRecycleBinProcessor.cpp"
       ]
 
 coordFiles = [

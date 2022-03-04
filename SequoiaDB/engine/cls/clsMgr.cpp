@@ -976,6 +976,10 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR,
                       "Start storage checking job thread failed, rc: %d",
                       rc ) ;
+
+         rc = _recycleBinMgr.active() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to active recycle bin manager, "
+                      "rc: %d", rc ) ;
       }
 
    done:
@@ -1073,6 +1077,8 @@ namespace engine
       _mapTaskQuery.clear() ;
       _mapTaskID.clear() ;
       _vecInnerSessionParam.clear() ;
+
+      _recycleBinMgr.fini() ;
 
       PD_TRACE_EXIT ( SDB__CLSMGR_FINAL );
       return SDB_OK ;

@@ -43,6 +43,7 @@
 #include "catDef.hpp"
 #include "utilRecycleBinConf.hpp"
 #include "rtnRecycleBinManager.hpp"
+#include "catRecycleBinProcessor.hpp"
 #include "utilRecycleItem.hpp"
 #include "catLevelLock.hpp"
 #include "pmdEDU.hpp"
@@ -72,12 +73,69 @@ namespace engine
                         pmdEDUCB *cb,
                         INT16 w ) ;
 
+      INT32 dropItem( const utilRecycleItem &item,
+                      pmdEDUCB *cb,
+                      INT16 w ) ;
+      INT32 dropAllItems( pmdEDUCB *cb, INT16 w ) ;
+
+      INT32 countItemsInCS( utilCSUniqueID csUniqueID,
+                            pmdEDUCB *cb,
+                            INT64 &count ) ;
+
+      INT32 processObjects( catRecycleBinProcessor &processor,
+                            pmdEDUCB *cb,
+                            INT16 w ) ;
+
+      OSS_INLINE BOOLEAN tryLockDropLatch()
+      {
+         return _dropLatch.try_get() ;
+      }
+
+      OSS_INLINE void unlockDropLatch()
+      {
+         _dropLatch.release() ;
+      }
+
    protected:
       virtual const CHAR *_getRecyItemCL() const
       {
          return CAT_SYSRECYCLEBIN_ITEM_COLLECTION ;
       }
 
+      virtual ossXLatch *_getDropLatch()
+      {
+         return &_dropLatch ;
+      }
+
+      virtual INT32 _dropItem( const utilRecycleItem &item,
+                               pmdEDUCB *cb,
+                               INT16 w,
+                               BOOLEAN ignoreNotExists,
+                               BOOLEAN &isDropped ) ;
+
+      INT32 _dropItemImpl( const utilRecycleItem &item,
+                           pmdEDUCB *cb,
+                           INT16 w,
+                           BOOLEAN ignoreNotExists ) ;
+      INT32 _deleteObjects( UTIL_RECYCLE_TYPE type,
+                            const bson::BSONObj &matcher,
+                            pmdEDUCB *cb,
+                            INT16 w ) ;
+
+      INT32 _processObjects( catRecycleBinProcessor &processor,
+                             const bson::BSONObj &matcher,
+                             pmdEDUCB *cb,
+                             INT16 w ) ;
+
+      INT32 _getItemsInCS( utilCSUniqueID csUniqueID,
+                           pmdEDUCB *cb,
+                           UTIL_RECY_ITEM_LIST &itemList ) ;
+
+   protected:
+      // exclude drop item and return item
+      // WARNING: drop item background job is in another thread which can not
+      //          use level lock, use this latch instead
+      ossSpinXLatch        _dropLatch ;
    } ;
 
    typedef class _catRecycleBinManager catRecycleBinManager ;

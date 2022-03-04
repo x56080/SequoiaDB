@@ -703,7 +703,8 @@ const CHAR* pdAuditObjType2String( AUDIT_OBJ_TYPE objtype )
       "FILE",
       "SESSION",
       "USER",
-      "SEQUENCE"
+      "SEQUENCE",
+      "RECYCLEBIN"
       } ;
    if ( (UINT32)objtype >= 0 &&
         (UINT32)objtype < sizeof(s_objtypeString) / sizeof(const CHAR*) )

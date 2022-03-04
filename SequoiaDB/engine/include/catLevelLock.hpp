@@ -374,6 +374,16 @@ namespace engine
 
       void unlockObjects () ;
 
+      OSS_INLINE void setIgnoreLock( BOOLEAN ignoreLock )
+      {
+         _ignoreLock = ignoreLock ;
+      }
+
+      OSS_INLINE BOOLEAN isIgnoreLock() const
+      {
+         return _ignoreLock ;
+      }
+
    protected:
       BOOLEAN _tryLockObject ( CAT_LOCK_TYPE type,
                                const std::string &name,
@@ -388,6 +398,7 @@ namespace engine
 
    protected:
       LOCK_LIST _lockList ;
+      BOOLEAN   _ignoreLock ;
    } ;
 
    typedef class _catCtxLockMgr catCtxLockMgr ;

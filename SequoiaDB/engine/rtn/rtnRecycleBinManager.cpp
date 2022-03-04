@@ -48,6 +48,10 @@ namespace engine
     */
    _rtnRecycleBinManager::_rtnRecycleBinManager()
    : _isConfValid( FALSE ),
+     _returnCount( 0 ),
+     _limitCheckFlag( 1 ),
+     _emptyCheckFlag( 1 ),
+     _isEmptyFlag( FALSE ),
      _rtnCB( NULL ),
      _dmsCB( NULL ),
      _dpsCB( NULL )
@@ -70,9 +74,70 @@ namespace engine
       _dmsCB = krcb->getDMSCB() ;
       _dpsCB = krcb->getDPSCB() ;
 
-      PD_TRACE_EXITRC( SDB__RTNRECYBINMGR_INIT, rc ) ;
+      try
+      {
+         BSONObjBuilder matcherBuilder ;
+         BSONArrayBuilder tmpBuilder( matcherBuilder.subarrayStart( "$or" ) ) ;
+         tmpBuilder.append( BSON( FIELD_NAME_RECYCLE_ISCSRECY << false ) ) ;
+         tmpBuilder.append( BSON( FIELD_NAME_RECYCLE_ISCSRECY <<
+                                  BSON( "$exists" << 0 ) ) ) ;
+         tmpBuilder.doneFast() ;
+         _matchValidItems = matcherBuilder.obj() ;
 
+         _hintRecyID = BSON( "" << UTIL_RECYCLEBIN_RECYID_INDEX_NAME ) ;
+         _hintName = BSON( "" << UTIL_RECYCLEBIN_NAME_INDEX_NAME ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to init query hints, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNRECYBINMGR_INIT, rc ) ;
       return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR_FINI, "_rtnRecycleBinManager::fini" )
+   void _rtnRecycleBinManager::fini()
+   {
+      PD_TRACE_ENTRY( SDB__RTNRECYBINMGR_FINI ) ;
+
+      _hintRecyID = BSONObj() ;
+      _hintName = BSONObj() ;
+      _matchValidItems = BSONObj() ;
+
+      PD_TRACE_EXIT( SDB__RTNRECYBINMGR_FINI ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR_ACTIVE, "_rtnRecycleBinManager::active" )
+   INT32 _rtnRecycleBinManager::active()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNRECYBINMGR_ACTIVE ) ;
+
+      utilLightJob *job = NULL ;
+
+      rc = _createBGJob( &job ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to submit drop recycle bin "
+                   "background job, rc: %d", rc ) ;
+      rc = job->submit( TRUE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to submit drop recycle bin "
+                   "background job, rc: %d", rc ) ;
+      PD_LOG( PDDEBUG, "Submit drop recycle bin background job done" ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNRECYBINMGR_ACTIVE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR_GETITEM_RECYNAME, "_rtnRecycleBinManager::getItem" )
@@ -123,6 +188,197 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__RTNRECYBINMGR_GETITEM_ORIGID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR_DROPEXPIREDITEMS, "_rtnRecycleBinManager::dropExpiredItems" )
+   INT32 _rtnRecycleBinManager::dropExpiredItems( pmdEDUCB *cb,
+                                                  BOOLEAN &isFinished )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNRECYBINMGR_DROPEXPIREDITEMS ) ;
+
+      UINT64 currentTime = 0, expiredTime = 0 ;
+      utilRecycleItem oldestItem ;
+      UTIL_RECY_ITEM_LIST itemList ;
+      UTIL_RECY_ITEM_LIST_IT iter ;
+
+      utilRecycleBinConf conf = getConf() ;
+      BOOLEAN checkLimit = FALSE ;
+      BOOLEAN checkEmpty = FALSE ;
+
+      isFinished = FALSE ;
+
+      if ( conf.isTimeUnlimited() )
+      {
+         isFinished = TRUE ;
+         goto done ;
+      }
+
+      currentTime = ossGetCurrentMilliseconds() ;
+      expiredTime = currentTime - conf.getExpireTimeInMS() ;
+
+      // check if we need to check limit of configure or empty of recycle bin
+      checkLimit = _limitCheckFlag.compareAndSwap( 1, 0 ) &&
+                   conf.getAutoDrop() &&
+                   !conf.isCapacityUnlimited() ;
+      checkEmpty = _emptyCheckFlag.compareAndSwap( 1, 0 ) ;
+      if ( checkLimit || checkEmpty )
+      {
+         INT64 count = 0 ;
+
+         rc = countAllItems( cb, count ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to count items, rc: %d", rc ) ;
+
+         if ( 0 == count )
+         {
+            _isEmptyFlag = TRUE ;
+         }
+         else
+         {
+            _isEmptyFlag = FALSE ;
+
+            // check if count is exceed maximum number of items
+            if ( checkLimit && count > (INT64)( conf.getMaxItemNum() ) )
+            {
+               INT64 expectDropCount = count - conf.getMaxItemNum() ;
+               rc = _getOldestItems( OSS_UINT64_MAX, expectDropCount, cb,
+                                     itemList ) ;
+               PD_RC_CHECK( rc, PDWARNING, "Failed to get oldest expired items, "
+                            "rc: %d", rc ) ;
+            }
+            else
+            {
+               // passed limit check
+               checkLimit = FALSE ;
+            }
+         }
+         // passed empty check
+         checkEmpty = FALSE ;
+      }
+
+      if ( _isEmptyFlag )
+      {
+         // recycle bin is empty
+         PD_LOG( PDDEBUG, "Recycle bin is empty" ) ;
+         isFinished = TRUE ;
+         goto done ;
+      }
+      else if ( itemList.empty() )
+      {
+         if ( !_isOldestItemExpired( expiredTime ) )
+         {
+            // oldest item is not expired yet
+            isFinished = TRUE ;
+            goto done ;
+         }
+
+         rc = _getOldestItems( expiredTime, -1, cb, itemList ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to get oldest expired items, "
+                      "rc: %d", rc ) ;
+      }
+
+      for ( iter = itemList.begin() ;
+            iter != itemList.end() ;
+            ++ iter )
+      {
+         utilRecycleItem &item = *iter ;
+         UINT32 returnCount = 0 ;
+         BOOLEAN isDropped = FALSE ;
+
+         // take drop latch
+         ossScopedLock _lock( _getDropLatch() ) ;
+
+         PD_CHECK( pmdIsPrimary(), SDB_CLS_NOT_PRIMARY, error, PDINFO,
+                   "Failed to check primary status" ) ;
+         PD_CHECK( !cb->isInterrupted(), SDB_APP_INTERRUPT, error, PDWARNING,
+                   "Failed to drop item, session is interrupted" ) ;
+
+         returnCount = _returnCount.fetch() ;
+         if ( 0 != returnCount )
+         {
+            PD_LOG( PDINFO, "Pause dropping expired recycle items, found [%u] "
+                    "returning contexts", returnCount ) ;
+            goto done ;
+         }
+
+         rc = _dropItem( item, cb, 1, FALSE, isDropped ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to drop item "
+                      "[origin %s, recycle %s], rc: %d", item.getOriginName(),
+                      item.getRecycleName(), rc ) ;
+
+         if ( !isDropped )
+         {
+            // not dropped yet, mark not finished
+            isFinished = FALSE ;
+            break ;
+         }
+      }
+
+      // cache the oldest one if the list had been dropped entirely
+      if ( iter == itemList.end() )
+      {
+         utilRecycleItem item ;
+         BOOLEAN fromCache = FALSE ;
+         rc = _getAndCacheOldestItem( cb, item, fromCache ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to get oldest recycle item, "
+                      "rc: %d", rc ) ;
+         if ( item.isValid() )
+         {
+            if ( !_isOldestItemExpired( expiredTime ) )
+            {
+               isFinished = TRUE ;
+            }
+         }
+         else
+         {
+            isFinished = TRUE ;
+            // all items are dropped, check empty in next round
+            checkEmpty = TRUE ;
+         }
+      }
+
+   done:
+      if ( checkLimit )
+      {
+         // make sure back ground job will start limit check again
+         enableLimitCheck() ;
+      }
+      else if ( isFinished && checkEmpty )
+      {
+         // make sure back ground job will start empty check again
+         enableEmptyCheck() ;
+      }
+      PD_TRACE_EXITRC( SDB__RTNRECYBINMGR_DROPEXPIREDITEMS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR__CREATEBGJOB, "_rtnRecycleBinManager::_createBGJob" )
+   INT32 _rtnRecycleBinManager::_createBGJob( utilLightJob **pJob )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNRECYBINMGR__CREATEBGJOB ) ;
+
+      rtnDropRecycleBinBGJob *job = NULL ;
+
+      SDB_ASSERT( NULL != pJob, "job pointer is invalid" ) ;
+
+      job = SDB_OSS_NEW rtnDropRecycleBinBGJob( this ) ;
+      PD_CHECK( NULL != job, SDB_OOM, error, PDERROR, "Failed to allocate BG "
+                "job, rc: %d", rc ) ;
+
+      *pJob = (utilLightJob *)job ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNRECYBINMGR__CREATEBGJOB, rc ) ;
       return rc ;
 
    error:
@@ -370,6 +626,355 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__RTNRECYBINMGR__COUNTITEMS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR__DELITEM, "_rtnRecycleBinManager::_deleteItem" )
+   INT32 _rtnRecycleBinManager::_deleteItem( const utilRecycleItem &item,
+                                             pmdEDUCB *cb,
+                                             INT16 w,
+                                             BOOLEAN ignoreNotExists )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNRECYBINMGR__DELITEM ) ;
+
+      BSONObj matcher ;
+      UINT64 deletedCount = 0 ;
+
+      try
+      {
+         matcher = BSON( FIELD_NAME_RECYCLE_NAME << item.getRecycleName() ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = _deleteItems( matcher, cb, w, deletedCount ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to delete recycle item [%s], rc: %d",
+                   item.getRecycleName(), rc ) ;
+
+      PD_CHECK( ignoreNotExists || deletedCount > 0,
+                SDB_RECYCLE_ITEMNOTEXISTS, error, PDWARNING,
+                "Failed to delete recycle item [origin %s, recycle %s], "
+                "it does not exist any more", item.getOriginName(),
+                item.getRecycleName() ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNRECYBINMGR__DELITEM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR__DELITEMS, "_rtnRecycleBinManager::_deleteItems" )
+   INT32 _rtnRecycleBinManager::_deleteItems( const BSONObj &matcher,
+                                              pmdEDUCB *cb,
+                                              INT16 w,
+                                              UINT64 &deletedCount )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNRECYBINMGR__DELITEMS ) ;
+
+      utilDeleteResult deleteResult ;
+      rtnQueryOptions options ;
+
+      deletedCount = 0 ;
+
+      options.setCLFullName( _getRecyItemCL() ) ;
+      options.setQuery( matcher ) ;
+
+      rc = rtnDelete( options, cb, _dmsCB, _dpsCB, w, &deleteResult ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to delete recycle items "
+                   "from collection [%s], rc: %d", _getRecyItemCL(), rc ) ;
+
+      deletedCount = deleteResult.deletedNum() ;
+
+#if defined (_DEBUG)
+      PD_LOG( PDDEBUG, "Deleted [%llu] items by [%s]", deletedCount,
+              matcher.toPoolString().c_str() ) ;
+#endif
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNRECYBINMGR__DELITEMS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR__DELALLITEMS, "_rtnRecycleBinManager::_deleteAllItems" )
+   INT32 _rtnRecycleBinManager::_deleteAllItems( pmdEDUCB *cb,
+                                                 INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNRECYBINMGR__DELALLITEMS ) ;
+
+      rtnQueryOptions options ;
+      options.setCLFullName( _getRecyItemCL() ) ;
+      rc = rtnDelete( options, cb, _dmsCB, _dpsCB, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to delete all recycle items "
+                   "from collection [%s], rc: %d", _getRecyItemCL(), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNRECYBINMGR__DELALLITEMS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR__GETOLDESTITEMS, "_rtnRecycleBinManager::_getOldestItems" )
+   INT32 _rtnRecycleBinManager::_getOldestItems( UINT64 expiredTime,
+                                                 INT64 numToReturn,
+                                                 pmdEDUCB *cb,
+                                                 UTIL_RECY_ITEM_LIST &itemList )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNRECYBINMGR__GETOLDESTITEMS ) ;
+
+      BSONObj matcher, orderBy ;
+
+      try
+      {
+         BSONObjBuilder matcherBuilder( 64 ) ;
+
+         matcherBuilder.appendElements( _matchValidItems ) ;
+
+         if ( expiredTime < OSS_UINT64_MAX )
+         {
+            BSONObjBuilder timeBuilder(
+                  matcherBuilder.subobjStart( FIELD_NAME_RECYCLE_TIME ) ) ;
+            timeBuilder.appendTimestamp( "$lt", (INT64)expiredTime, 0 ) ;
+            timeBuilder.done() ;
+         }
+         matcher = matcherBuilder.obj() ;
+
+         // the recycle ID is increased with time
+         orderBy = BSON( FIELD_NAME_RECYCLE_ID << 1 ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = _getItems( matcher, orderBy, _hintRecyID, numToReturn, cb, itemList ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get the oldest recycle item, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNRECYBINMGR__GETOLDESTITEMS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR__GETANDCACHEOLDESTITEM, "_rtnRecycleBinManager::_getAndCacheOldestItem" )
+   INT32 _rtnRecycleBinManager::_getAndCacheOldestItem( pmdEDUCB *cb,
+                                                        utilRecycleItem &item,
+                                                        BOOLEAN &fromCache )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNRECYBINMGR__GETANDCACHEOLDESTITEM ) ;
+
+      fromCache = TRUE ;
+
+      // get from cache first
+      _getOldestItem( item ) ;
+
+      // cache is not valid, get from disk
+      if ( !item.isValid() )
+      {
+         fromCache = FALSE ;
+
+         UTIL_RECY_ITEM_LIST itemList ;
+         rc = _getOldestItems( OSS_UINT64_MAX, 1, cb, itemList ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get oldest item list, rc: %d",
+                      rc ) ;
+         if ( !itemList.empty() )
+         {
+            item = itemList.front() ;
+
+            // cache to oldest item
+            _cacheOldestItem( item ) ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNRECYBINMGR__GETANDCACHEOLDESTITEM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR__ISOLDESTITEMEXPIRED, "_rtnRecycleBinManager::_isOldestItemExpired" )
+   BOOLEAN _rtnRecycleBinManager::_isOldestItemExpired( UINT64 expiredTime )
+   {
+      BOOLEAN isExpired = FALSE ;
+
+      PD_TRACE_ENTRY( SDB__RTNRECYBINMGR__ISOLDESTITEMEXPIRED ) ;
+
+      ossScopedLock lock( &_oldestItemLatch ) ;
+
+      // oldest one is not expired yet
+      if ( _oldestItem.isValid() )
+      {
+         if ( _oldestItem.getRecycleTime() <= expiredTime )
+         {
+            isExpired = TRUE ;
+            _oldestItem.reset() ;
+         }
+      }
+      else
+      {
+         // cache is invalid, we don't know yet, mark it expired
+         isExpired = TRUE ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNRECYBINMGR__ISOLDESTITEMEXPIRED ) ;
+
+      return isExpired ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR__GETOLDESTITEM, "_rtnRecycleBinManager::_getOldestItem" )
+   void _rtnRecycleBinManager::_getOldestItem( utilRecycleItem &item )
+   {
+      PD_TRACE_ENTRY( SDB__RTNRECYBINMGR__GETOLDESTITEM ) ;
+
+      ossScopedLock lock( &_oldestItemLatch ) ;
+      item = _oldestItem ;
+
+      PD_TRACE_EXIT( SDB__RTNRECYBINMGR__GETOLDESTITEM ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR__CACHEOLDESTITEM, "_rtnRecycleBinManager::_cacheOldestItem" )
+   void _rtnRecycleBinManager::_cacheOldestItem( const utilRecycleItem &item )
+   {
+      PD_TRACE_ENTRY( SDB__RTNRECYBINMGR__CACHEOLDESTITEM ) ;
+
+      ossScopedLock lock( &_oldestItemLatch ) ;
+
+      if ( !_oldestItem.isValid() )
+      {
+         _oldestItem = item ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNRECYBINMGR__CACHEOLDESTITEM ) ;
+   }
+
+   /*
+      _rtnDropRecycleBinBGJob implement
+    */
+   _rtnDropRecycleBinBGJob::_rtnDropRecycleBinBGJob(
+                                          rtnRecycleBinManager *recycleBinMgr )
+   : _recycleBinMgr( recycleBinMgr )
+   {
+      SDB_ASSERT( NULL != _recycleBinMgr,
+                  "recycle bin manager is invalid" ) ;
+   }
+
+   _rtnDropRecycleBinBGJob::~_rtnDropRecycleBinBGJob()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINBGJOB_DOIT, "_rtnDropRecycleBinBGJob::doit" )
+   INT32 _rtnDropRecycleBinBGJob::doit( IExecutor *pExe,
+                                        UTIL_LJOB_DO_RESULT &result,
+                                        UINT64 &sleepTime )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNRECYBINBGJOB_DOIT ) ;
+
+      // This is an async task, check primary first
+      pmdEDUCB *cb = (pmdEDUCB *)pExe ;
+      BOOLEAN isFinished = FALSE ;
+
+      sleepTime = RTN_RECYCLE_RETRY_INTERVAL ;
+      result = UTIL_LJOB_DO_CONT ;
+
+      if ( PMD_IS_DB_DOWN() || pExe->isInterrupted() || pExe->isForced() )
+      {
+         PD_LOG( PDWARNING, "Failed to check EDU, it is interrupted" ) ;
+         result = UTIL_LJOB_DO_FINISH ;
+         rc = SDB_APP_INTERRUPT ;
+         goto error ;
+      }
+      else if ( !pmdIsPrimary() )
+      {
+         sleepTime = RTN_RECYCLE_CHECK_INTERVAL ;
+         result = UTIL_LJOB_DO_CONT ;
+         rc = SDB_CLS_NOT_PRIMARY ;
+         goto error ;
+      }
+
+      PD_LOG( PDDEBUG, "Begin to drop expired recycle items" ) ;
+
+      rc = _recycleBinMgr->dropExpiredItems( cb, isFinished ) ;
+      if ( SDB_APP_INTERRUPT == rc )
+      {
+         PD_LOG( PDINFO, "Failed to check EDU, it is interrupted" ) ;
+         result = UTIL_LJOB_DO_FINISH ;
+         goto error ;
+      }
+      else if ( SDB_CLS_NOT_PRIMARY == rc )
+      {
+         PD_LOG( PDINFO, "Failed to check primary" ) ;
+         sleepTime = RTN_RECYCLE_CHECK_INTERVAL ;
+         result = UTIL_LJOB_DO_CONT ;
+         goto error ;
+      }
+      else if ( SDB_RECYCLE_ITEMNOTEXISTS == rc )
+      {
+         // recycle item does not exist, retry later
+         result = UTIL_LJOB_DO_CONT ;
+         sleepTime = RTN_RECYCLE_RETRY_INTERVAL ;
+         goto error ;
+      }
+      PD_RC_CHECK( rc, PDWARNING, "Failed to drop expired items, "
+                   "rc: %d", rc ) ;
+
+      if ( isFinished )
+      {
+         // current expired items are dropped, begin interval check
+         sleepTime = RTN_RECYCLE_CHECK_INTERVAL ;
+         result = UTIL_LJOB_DO_CONT ;
+      }
+      else
+      {
+         // current expired items are not dropped, begin next check
+         // immediately
+         sleepTime = RTN_RECYCLE_RETRY_INTERVAL ;
+         result = UTIL_LJOB_DO_CONT ;
+      }
+
+   done:
+      if ( UTIL_LJOB_DO_FINISH == result )
+      {
+         PD_LOG( PDDEBUG, "Stop to drop expired recycle items" ) ;
+      }
+      else
+      {
+         PD_LOG( PDDEBUG, "Pause to drop expired recycle items" ) ;
+      }
+      PD_TRACE_EXITRC( SDB__RTNRECYBINBGJOB_DOIT, rc ) ;
       return rc ;
 
    error:

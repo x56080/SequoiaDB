@@ -34,6 +34,7 @@
 #include "sptDBRecycleBin.hpp"
 #include "sptDBSnapshotOption.hpp"
 #include "sptDBCursor.hpp"
+#include "msgDef.h"
 
 using namespace std ;
 
@@ -54,6 +55,8 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBRecycleBin, list )
    JS_MEMBER_FUNC_DEFINE( _sptDBRecycleBin, snapshot )
    JS_MEMBER_FUNC_DEFINE( _sptDBRecycleBin, count )
+   JS_MEMBER_FUNC_DEFINE( _sptDBRecycleBin, dropItem )
+   JS_MEMBER_FUNC_DEFINE( _sptDBRecycleBin, dropAll )
 
    JS_BEGIN_MAPPING( _sptDBRecycleBin, SPT_RECYCLEBIN_NAME )
       JS_ADD_CONSTRUCT_FUNC( construct )
@@ -66,6 +69,8 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "list", list )
       JS_ADD_MEMBER_FUNC( "snapshot", snapshot )
       JS_ADD_MEMBER_FUNC( "count", count )
+      JS_ADD_MEMBER_FUNC( "dropItem", dropItem )
+      JS_ADD_MEMBER_FUNC( "dropAll", dropAll )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBRecycleBin::cvtToBSON )
       JS_SET_BSON_TO_JSOBJ_FUNC( _sptDBRecycleBin::bsonToJSObj )
    JS_MAPPING_END()
@@ -450,6 +455,131 @@ namespace engine
          goto error ;
       }
       rval.getReturnVal().setValue( count ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBRecycleBin::dropItem( const _sptArguments &arg,
+                                     _sptReturnVal &rval,
+                                     BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+
+      string recycleName ;
+      INT32 isRecursive = FALSE ;
+      BSONObj options, cmdOptions ;
+
+      rc = arg.getString( 0, recycleName, TRUE ) ;
+      if( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "Recycle name must be config" ) ;
+         goto error ;
+      }
+      else if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Recycle name must be string" ) ;
+         goto error ;
+      }
+
+      if ( arg.argc() > 1 )
+      {
+         if ( arg.isBoolean( 1 ) )
+         {
+            rc = arg.getNative( 1,
+                                (void *)( &isRecursive ),
+                                SPT_NATIVE_INT32 ) ;
+            if ( SDB_OK != rc )
+            {
+               detail = BSON( SPT_ERR << ( arg.hasErrMsg() ?
+                                           arg.getErrMsg() :
+                                           "Recursive must be boolean" ) ) ;
+               goto error ;
+            }
+         }
+         else
+         {
+            detail = BSON( SPT_ERR << "Recursive must be boolean" ) ;
+         }
+      }
+
+      if ( arg.argc() > 2 )
+      {
+         rc = arg.getBsonobj( 2, options ) ;
+         if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+         {
+            detail = BSON( SPT_ERR << ( arg.hasErrMsg() ?
+                                        arg.getErrMsg() :
+                                        "Options must be object" ) ) ;
+            goto error ;
+         }
+      }
+
+      try
+      {
+         BSONObjBuilder builder ;
+         // skip recursive field
+         BSONObjIterator iterOptions( options ) ;
+         while ( iterOptions.more() )
+         {
+            BSONElement ele = iterOptions.next() ;
+            if ( 0 != ossStrcmp( FIELD_NAME_RECURSIVE, ele.fieldName() ) )
+            {
+               builder.append( ele ) ;
+            }
+         }
+         builder.appendBool( FIELD_NAME_RECURSIVE, (BOOLEAN)isRecursive ) ;
+         cmdOptions = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         detail = BSON( SPT_ERR << "Failed to build options" ) ;
+         goto error ;
+      }
+
+      rc = _recycleBin.dropItem( recycleName.c_str(), cmdOptions ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to drop recycle item" ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBRecycleBin::dropAll( const _sptArguments &arg,
+                                    _sptReturnVal &rval,
+                                    BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObj options ;
+
+      if ( arg.argc() > 0 )
+      {
+         rc = arg.getBsonobj( 0, options ) ;
+         if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+         {
+            detail = BSON( SPT_ERR << ( arg.hasErrMsg() ?
+                                        arg.getErrMsg() :
+                                        "Options must be object" ) ) ;
+            goto error ;
+         }
+      }
+
+      rc = _recycleBin.dropAll( options ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to drop recycle item" ) ;
+         goto error ;
+      }
 
    done:
       return rc ;

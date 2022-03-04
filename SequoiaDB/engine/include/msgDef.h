@@ -585,6 +585,7 @@
 #define FIELD_NAME_KEEP_DATA                 "KeepData"
 #define FIELD_NAME_ENFORCED                  "enforced"
 #define FIELD_NAME_ENFORCED1                 "Enforced"
+#define FIELD_NAME_RECURSIVE                 "Recursive"
 #define FIELD_NAME_DEEP                      "Deep"
 #define FIELD_NAME_BLOCK                     "Block"
 #define FIELD_NAME_CAPPED                    "Capped"
@@ -739,6 +740,7 @@
 #define FIELD_NAME_RECYCLE_ID                "RecycleID"
 #define FIELD_NAME_ORIGIN_ID                 "OriginID"
 #define FIELD_NAME_RECYCLE_TIME              "RecycleTime"
+#define FIELD_NAME_IGNORE_LOCK               "IgnoreLock"
 #define FIELD_NAME_USERECYCLEBIN             "UseRecycleBin"
 #define FIELD_NAME_RECYCLE_ISCSRECY          "IsCSRecycled"
 
@@ -913,6 +915,8 @@
 #define CMD_NAME_GET_RECYCLEBIN_DETAIL       "get recyclebin detail"
 #define CMD_NAME_GET_RECYCLEBIN_COUNT        "get recyclebin count"
 #define CMD_NAME_ALTER_RECYCLEBIN            "alter recyclebin"
+#define CMD_NAME_DROP_RECYCLEBIN_ITEM        "drop recyclebin item"
+#define CMD_NAME_DROP_RECYCLEBIN_ALL         "drop recyclebin all"
 
 #define CMD_VALUE_NAME_RECYCLEBIN_ENABLE     "enable"
 #define CMD_VALUE_NAME_RECYCLEBIN_DISABLE    "disable"

@@ -48,6 +48,11 @@
 namespace engine
 {
 
+   // check interval in each 1 minute
+   // in microseconds
+   #define RTN_RECYCLE_CHECK_INTERVAL  ( 60 * 1000 * 1000 )
+   #define RTN_RECYCLE_RETRY_INTERVAL  ( 1000 * 1000 )
+
    /*
       _rtnRecycleBinManager define
     */
@@ -58,6 +63,9 @@ namespace engine
       virtual ~_rtnRecycleBinManager() ;
 
       INT32 init() ;
+      void  fini() ;
+
+      INT32 active() ;
 
       // set config of recycle bin
       OSS_INLINE void setConf( const utilRecycleBinConf &conf )
@@ -65,6 +73,10 @@ namespace engine
          ossScopedLock _lock( &_confLatch, EXCLUSIVE ) ;
          _conf = conf ;
          _isConfValid = TRUE ;
+
+         // make sure back ground job will start checks with new configures
+         // e.g. limits of items may be changed
+         enableBGJob() ;
       }
 
       // get config of recycle bin
@@ -86,6 +98,24 @@ namespace engine
       {
          ossScopedLock _lock( &_confLatch, SHARED ) ;
          return _isConfValid ;
+      }
+
+      // register return item process
+      OSS_INLINE void registerReturn()
+      {
+         _returnCount.inc() ;
+      }
+
+      // unregister return item process
+      OSS_INLINE void unregisterReturn()
+      {
+        _returnCount.dec() ;
+      }
+
+      // check if has returning items in progress
+      OSS_INLINE BOOLEAN hasReturningItems()
+      {
+         return !( _returnCount.compare( 0 ) ) ;
       }
 
       // get recycle item by recycle name
@@ -134,9 +164,43 @@ namespace engine
          return _countItems( matcher, cb, count ) ;
       }
 
+      // drop expired items
+      INT32 dropExpiredItems( pmdEDUCB *cb,
+                              BOOLEAN &isFinished ) ;
+
+      // enable back ground job
+      void enableBGJob()
+      {
+         enableLimitCheck() ;
+         enableEmptyCheck() ;
+      }
+
+      // enable back ground job to check limit
+      void enableLimitCheck()
+      {
+         _limitCheckFlag.poke( 1 ) ;
+      }
+
+      // enable back ground job to check empty of recycle bin
+      void enableEmptyCheck()
+      {
+         _emptyCheckFlag.poke( 1 ) ;
+      }
+
    protected:
       // get collection to save recycle items
       virtual const CHAR *_getRecyItemCL() const = 0 ;
+      // get drop latch
+      virtual ossXLatch *_getDropLatch() = 0 ;
+      // drop given recycle item
+      virtual INT32 _dropItem( const utilRecycleItem &item,
+                               pmdEDUCB *cb,
+                               INT16 w,
+                               BOOLEAN ignoreNotExists,
+                               BOOLEAN &isDropped ) = 0 ;
+      // create background job for recycle bin
+      // e.g. clear expired or out of limit recycle items
+      virtual INT32 _createBGJob( utilLightJob **pJob ) ;
 
       // get recycle item in BSON by recycle name
       INT32 _getItemObject( const CHAR *recycleName,
@@ -171,6 +235,36 @@ namespace engine
                          pmdEDUCB *cb,
                          INT64 &count ) ;
 
+      // delete given recycle item
+      INT32 _deleteItem( const utilRecycleItem &item,
+                         pmdEDUCB *cb,
+                         INT16 w,
+                         BOOLEAN ignoreNotExists ) ;
+      // delete recycle items by matcher
+      INT32 _deleteItems( const bson::BSONObj &matcher,
+                          pmdEDUCB *cb,
+                          INT16 w,
+                          UINT64 &deletedCount ) ;
+      // delete all recycle items
+      INT32 _deleteAllItems( pmdEDUCB *cb, INT16 w ) ;
+
+      // get oldest recycle items
+      INT32 _getOldestItems( UINT64 expiredTime,
+                             INT64 numToReturn,
+                             pmdEDUCB *cb,
+                             UTIL_RECY_ITEM_LIST &itemList ) ;
+
+      // get and cache oldest recycle item
+      INT32 _getAndCacheOldestItem( pmdEDUCB *cb,
+                                    utilRecycleItem &item,
+                                    BOOLEAN &fromCache ) ;
+      // check if oldest recycle item is expired
+      BOOLEAN _isOldestItemExpired( UINT64 expiredTime ) ;
+      // get oldest recycle item
+      void _getOldestItem( utilRecycleItem &item ) ;
+      // cache oldest recycle item
+      void _cacheOldestItem( const utilRecycleItem &item ) ;
+
    protected:
       // latch to protect configuration
       ossSpinSLatch        _confLatch ;
@@ -179,12 +273,58 @@ namespace engine
       // indicates if configure is valid
       BOOLEAN              _isConfValid ;
 
+      // latch to protect oldest item
+      ossSpinXLatch        _oldestItemLatch ;
+      // cache of oldest recycle item
+      utilRecycleItem      _oldestItem ;
+
+      // count of returning recycle items
+      // NOTE: if someone is returning recycle items, we should not do any
+      //       dropping in background job
+      ossAtomic32          _returnCount ;
+
+      // flag to notify background job to check configure limit for
+      // number of recycle bin items
+      ossAtomic32          _limitCheckFlag ;
+      // flag to notify background job to check recycle bin is empty
+      ossAtomic32          _emptyCheckFlag ;
+      // indicates whether recycle bin is empty
+      BOOLEAN              _isEmptyFlag ;
+
       SDB_RTNCB * _rtnCB ;
       SDB_DMSCB * _dmsCB ;
       SDB_DPSCB * _dpsCB ;
+
+      bson::BSONObj        _hintRecyID ;
+      bson::BSONObj        _hintName ;
+      bson::BSONObj        _matchValidItems ;
    } ;
 
    typedef class _rtnRecycleBinManager rtnRecycleBinManager ;
+
+   /*
+      _rtnDropRecycleBinBGJob define
+    */
+   class _rtnDropRecycleBinBGJob : public _utilLightJob
+   {
+   public:
+      _rtnDropRecycleBinBGJob( rtnRecycleBinManager *recycleBinMgr ) ;
+      virtual ~_rtnDropRecycleBinBGJob() ;
+
+      virtual const CHAR *name() const
+      {
+         return "DropRecycleBinBG" ;
+      }
+
+      virtual INT32 doit( IExecutor *pExe,
+                          UTIL_LJOB_DO_RESULT &result,
+                          UINT64 &sleepTime ) ;
+
+   protected:
+      rtnRecycleBinManager *  _recycleBinMgr ;
+   } ;
+
+   typedef class _rtnDropRecycleBinBGJob rtnDropRecycleBinBGJob ;
 
 }
 

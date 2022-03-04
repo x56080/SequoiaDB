@@ -359,6 +359,18 @@ namespace engine
             *buf = rtnContextBuf( retBuilder.obj() ) ;
          }
       }
+      if ( NULL != pSucGrpLst )
+      {
+         try
+         {
+            *pSucGrpLst = result._sucGroupLst ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDWARNING, "Failed to get succeed group list, "
+                    "occur exception %s", e.what() ) ;
+         }
+      }
       return rc ;
    error:
       if ( -1 != contextID  )

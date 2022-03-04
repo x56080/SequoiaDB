@@ -39,6 +39,7 @@
 #include "msgAuth.hpp"
 #include "msgCatalog.hpp"
 #include "pmdController.hpp"
+#include "pmdDummySession.hpp"
 #include "../bson/bson.h"
 #include "rtnQueryOptions.hpp"
 #include "pdTrace.hpp"
@@ -3219,6 +3220,107 @@ namespace engine
          SDB_OSS_DEL item ;
       }
       return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR_RGETRECYITEM, "_clsShardMgr::rGetRecycleItem" )
+   INT32 _clsShardMgr::rGetRecycleItem( pmdEDUCB *cb,
+                                        utilRecycleID recycleID,
+                                        utilRecycleItem &recycleItem )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSSHDMGR_RGETRECYITEM ) ;
+
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      IRemoteOperator *pRemoteOpr = NULL ;
+      BSONObj query ;
+      INT64 contextID = -1 ;
+      vector< BSONObj > objList ;
+      BOOLEAN attachedDummySession = FALSE ;
+
+      pmdDummySession session ;
+
+      if ( NULL == cb->getSession() )
+      {
+         session.attachCB( cb ) ;
+         attachedDummySession = TRUE ;
+      }
+
+      try
+      {
+         query = BSON( FIELD_NAME_RECYCLE_ID << (INT64)recycleID ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build query object, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = cb->getOrCreateRemoteOperator( &pRemoteOpr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get remote operator, rc: %d",
+                   rc ) ;
+
+      rc = pRemoteOpr->list( contextID,
+                             CMD_ADMIN_PREFIX CMD_NAME_LIST_RECYCLEBIN,
+                             query ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get recycle bin from remote "
+                   "operator, rc: %d", rc ) ;
+
+      while ( -1 != contextID )
+      {
+         rtnContextBuf buf ;
+         rc = rtnGetMore( contextID, -1, buf, cb, rtnCB ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            contextID = -1 ;
+            rc = SDB_OK ;
+            break ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to call get more, rc: %d", rc ) ;
+
+         while ( !buf.eof() )
+         {
+            BSONObj obj ;
+            try
+            {
+               rc = buf.nextObj( obj ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get object from result, "
+                            "rc: %d", rc ) ;
+               objList.push_back( obj ) ;
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to get object from result, "
+                       "occur exception %s", e.what() ) ;
+               rc = ossException2RC( &e ) ;
+               goto error ;
+            }
+         }
+      }
+
+      PD_CHECK( 0 < objList.size(), SDB_RECYCLE_ITEMNOTEXISTS, error, PDWARNING,
+                "Failed to get recycle item [%llu], it is not found",
+                recycleID ) ;
+      PD_CHECK( 1 == objList.size(), SDB_RECYCLE_CONFLICT, error, PDWARNING,
+                "Failed to get recycle item [%llu], [%d] items are returned",
+                recycleID, objList.size() ) ;
+
+      rc = recycleItem.fromBSON( objList.front() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse recycle item [%llu] "
+                   "from BSON, rc: %d", recycleID, rc ) ;
+
+   done:
+      if ( attachedDummySession )
+      {
+         session.detachCB() ;
+      }
+      PD_TRACE_EXITRC( SDB__CLSSHDMGR_RGETRECYITEM, rc ) ;
+      return rc ;
+
    error:
       goto done ;
    }

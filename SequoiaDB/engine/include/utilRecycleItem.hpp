@@ -108,6 +108,10 @@ namespace engine
    const CHAR *utilGetRecycleOpTypeName( UTIL_RECYCLE_OPTYPE type ) ;
    UTIL_RECYCLE_OPTYPE utilGetRecycleOpType( const CHAR *typeName ) ;
 
+   INT32 utilGetRecyCLsInCSBounds( const CHAR *fieldName,
+                                   utilCSUniqueID csUniqueID,
+                                   bson::BSONObj &matcher ) ;
+
    /*
       _utilRecycleItem define
     */
@@ -238,6 +242,8 @@ namespace engine
                     const CHAR *fieldName ) const ;
       INT32 fromBSON( const bson::BSONObj &object ) ;
       INT32 fromBSON( const bson::BSONObj &object, const CHAR *fieldName ) ;
+
+      INT32 fromRecycleName( const CHAR *recycleName ) ;
 
       _utilRecycleItem &operator =( const _utilRecycleItem &item ) ;
       BOOLEAN operator ==( const _utilRecycleItem &item ) const ;

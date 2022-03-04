@@ -53,6 +53,7 @@
 #include "msgMessageFormat.hpp"
 #include "rtnRollbackManager.hpp"
 #include "utilBSON.hpp"
+#include "clsRecycleBinJob.hpp"
 
 #if defined (_DEBUG)
 // for qgmDebugQuery function
@@ -5218,6 +5219,242 @@ error:
 
    error:
       goto done ;
+   }
+
+   /*
+      _rtnCMDDropRecycleBinBase implement
+    */
+   _rtnCMDDropRecycleBinBase::_rtnCMDDropRecycleBinBase()
+   : _isAsync( FALSE ),
+     _recycleItemName( NULL )
+   {
+   }
+
+   _rtnCMDDropRecycleBinBase::~_rtnCMDDropRecycleBinBase()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNCMDDRPRECYBINBASE_INIT, "_rtnCMDDropRecycleBinBase::init" )
+   INT32 _rtnCMDDropRecycleBinBase::init( INT32 flags,
+                                          INT64 numToSkip,
+                                          INT64 numToReturn,
+                                          const CHAR *pMatcherBuff,
+                                          const CHAR *pSelectBuff,
+                                          const CHAR *pOrderByBuff,
+                                          const CHAR *pHintBuff )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNCMDDRPRECYBINBASE_INIT ) ;
+
+      try
+      {
+         utilRecycleItem recycleItem ;
+
+         BSONObj query( pMatcherBuff ) ;
+         BSONElement element ;
+
+         // check async
+         element = query.getField( FIELD_NAME_ASYNC ) ;
+         if ( EOO != element.type() )
+         {
+            PD_CHECK( Bool == element.type(), SDB_INVALIDARG, error, PDERROR,
+                      "Failed to get field [%s], it is not boolean",
+                      FIELD_NAME_ASYNC ) ;
+            _isAsync = element.boolean() ;
+         }
+
+         if ( _isDropAll() )
+         {
+            element = query.getField( FIELD_NAME_RECYCLE_NAME ) ;
+            PD_CHECK( EOO == element.type(), SDB_INVALIDARG, error, PDERROR,
+                      "Failed to parse message, should not get field [%s] "
+                      "from options", FIELD_NAME_RECYCLE_NAME ) ;
+         }
+         else
+         {
+            element = query.getField( FIELD_NAME_RECYCLE_NAME ) ;
+            PD_CHECK( String == element.type(), SDB_INVALIDARG, error, PDERROR,
+                      "Failed to parse message, failed to get field [%s]",
+                      FIELD_NAME_RECYCLE_NAME ) ;
+            _recycleItemName = element.valuestr() ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to initialize command, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNCMDDRPRECYBINBASE_INIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNCMDDRPRECYBINBASE_DOIT, "_rtnCMDDropRecycleBinBase::doit" )
+   INT32 _rtnCMDDropRecycleBinBase::doit( _pmdEDUCB *cb,
+                                          SDB_DMSCB *dmsCB,
+                                          SDB_RTNCB *rtnCB,
+                                          SDB_DPSCB *dpsCB,
+                                          INT16 w,
+                                          INT64 *pContextID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNCMDDRPRECYBINBASE_DOIT ) ;
+
+      SDB_ASSERT( cb, "cb is invalid" ) ;
+      SDB_ASSERT( rtnCB, "rtnCB is invalid" ) ;
+      SDB_ASSERT( dmsCB, "dmsCB is invalid" ) ;
+      SDB_ASSERT( pContextID, "context ID is invalid" ) ;
+
+      clsRecycleBinManager *recycleBinMgr = NULL ;
+      UTIL_RECY_ITEM_LIST recycleItems ;
+
+      *pContextID = -1 ;
+
+      PD_CHECK( CMD_SPACE_SERVICE_SHARD == getFromService(),
+                SDB_RTN_COORD_ONLY, error, PDERROR,
+                "Failed to execute drop recycle bin command, "
+                "it is executed from COORD only" ) ;
+
+      recycleBinMgr = sdbGetClsCB()->getRecycleBinMgr() ;
+
+      if ( !_isDropAll() )
+      {
+         utilRecycleItem recycleItem ;
+
+         rc = recycleBinMgr->getItem( _recycleItemName, cb, recycleItem ) ;
+         if ( SDB_OK == rc )
+         {
+            try
+            {
+               recycleItems.push_back( recycleItem ) ;
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to save recycle item, "
+                       "occur exception %s", e.what() ) ;
+               rc = ossException2RC( &e ) ;
+               goto error ;
+            }
+         }
+         else if ( SDB_RECYCLE_ITEMNOTEXISTS == rc )
+         {
+            // it may from main-collection recycle item, check if we can
+            // find sub-collection recycle items by the same recycle ID
+            rc = recycleItem.fromRecycleName( _recycleItemName ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse recycle name [%s], "
+                         "rc: %d", _recycleItemName, rc ) ;
+            rc = recycleBinMgr->getSubItems( recycleItem, cb, recycleItems ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get sub recycle items [%s], "
+                         "rc: %d", _recycleItemName, rc ) ;
+            PD_CHECK( !recycleItems.empty(),
+                      SDB_RECYCLE_ITEMNOTEXISTS, error, PDERROR,
+                      "Failed to found recycle item [%s]", _recycleItemName ) ;
+         }
+         else
+         {
+            PD_RC_CHECK( rc, PDERROR, "Failed to get recycle item [%s], "
+                         "rc: %d", _recycleItemName, rc ) ;
+         }
+      }
+
+      if ( _isAsync )
+      {
+         if ( _isDropAll() )
+         {
+            rc = clsStartDropRecycleBinAllJob() ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to start drop all job", rc ) ;
+         }
+         else
+         {
+            rc = clsStartDropRecycleBinItemJob( recycleItems ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to start drop item job", rc ) ;
+         }
+      }
+      else
+      {
+         clsDropRecycleBinJob job ;
+
+         if ( _isDropAll() )
+         {
+            // for job all, should always check existence from CATALOG,
+            // since may have new recycled items added after we drop all
+            // items from CATALOG
+            rc = job.dropAll( cb, TRUE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to drop all recycle items, "
+                         "rc: %d", rc ) ;
+         }
+         else
+         {
+            // no need to check existence from CATALOG, since already dropped
+            // from CATALOG first
+            rc = job.dropItems( recycleItems, cb, FALSE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to drop recycle item, rc: %d",
+                         rc ) ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNCMDDRPRECYBINBASE_DOIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   /*
+      _rtnCMDDropRecycleBinItem implement
+    */
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnCMDDropRecycleBinItem )
+
+   _rtnCMDDropRecycleBinItem::_rtnCMDDropRecycleBinItem()
+   : _rtnCMDDropRecycleBinBase()
+   {
+   }
+
+   _rtnCMDDropRecycleBinItem::~_rtnCMDDropRecycleBinItem()
+   {
+   }
+
+   const CHAR *_rtnCMDDropRecycleBinItem::name()
+   {
+      return NAME_DROP_RECYCLEBIN_ITEM ;
+   }
+
+   RTN_COMMAND_TYPE _rtnCMDDropRecycleBinItem::type()
+   {
+      return CMD_DROP_RECYCLEBIN_ITEM ;
+   }
+
+   /*
+      _rtnCMDDropRecycleBinAll implement
+    */
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnCMDDropRecycleBinAll )
+
+   _rtnCMDDropRecycleBinAll::_rtnCMDDropRecycleBinAll()
+   : _rtnCMDDropRecycleBinBase()
+   {
+   }
+
+   _rtnCMDDropRecycleBinAll::~_rtnCMDDropRecycleBinAll()
+   {
+   }
+
+   const CHAR *_rtnCMDDropRecycleBinAll::name()
+   {
+      return NAME_DROP_RECYCLEBIN_ALL ;
+   }
+
+   RTN_COMMAND_TYPE _rtnCMDDropRecycleBinAll::type()
+   {
+      return CMD_DROP_RECYCLEBIN_ALL ;
    }
 
 }

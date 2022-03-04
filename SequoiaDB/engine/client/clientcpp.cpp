@@ -7115,6 +7115,104 @@ do                                                            \
       return setAttributes( options ) ;
    }
 
+   INT32 _sdbRecycleBinImpl::dropItem( const CHAR *recycleName,
+                                       const BSONObj &options )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObj cmdOptions ;
+
+      if ( NULL == recycleName )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         BSONObjBuilder builder ;
+         if ( !options.isEmpty() )
+         {
+            // skip recycle name field
+            BSONObjIterator iterOptions( options ) ;
+            while ( iterOptions.more() )
+            {
+               BSONElement ele = iterOptions.next() ;
+               if ( 0 != ossStrcmp( FIELD_NAME_RECYCLE_NAME,
+                                    ele.fieldName() ) )
+               {
+                  builder.append( ele ) ;
+               }
+            }
+         }
+         builder.append( FIELD_NAME_RECYCLE_NAME, recycleName ) ;
+         cmdOptions = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _innerCMD( CMD_ADMIN_PREFIX CMD_NAME_DROP_RECYCLEBIN_ITEM,
+                      cmdOptions ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbRecycleBinImpl::dropAll( const BSONObj &options )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObj cmdOptions ;
+
+      try
+      {
+         if ( !options.isEmpty() )
+         {
+            BSONObjBuilder builder ;
+            // skip recycle name field
+            BSONObjIterator iterOptions( options ) ;
+            while ( iterOptions.more() )
+            {
+               BSONElement ele = iterOptions.next() ;
+               if ( 0 != ossStrcmp( FIELD_NAME_RECYCLE_NAME,
+                                    ele.fieldName() ) )
+               {
+                  builder.append( ele ) ;
+               }
+            }
+            cmdOptions = builder.obj() ;
+         }
+      }
+      catch ( exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _innerCMD( CMD_ADMIN_PREFIX CMD_NAME_DROP_RECYCLEBIN_ALL,
+                      cmdOptions ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    INT32 _sdbRecycleBinImpl::list( _sdbCursor **cursor,
                                    const BSONObj &condition,
                                    const BSONObj &selector,

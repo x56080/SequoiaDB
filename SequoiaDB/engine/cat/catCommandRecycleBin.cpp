@@ -283,4 +283,463 @@ namespace engine
       goto done ;
    }
 
+   /*
+      _catCMDDropRecycleBinBase implement
+    */
+   _catCMDDropRecycleBinBase::_catCMDDropRecycleBinBase()
+   : _recycleBinMgr( sdbGetCatalogueCB()->getRecycleBinMgr() ),
+     _recycleItemName( NULL ),
+     _isEnforced( FALSE ),
+     _isRecursive( FALSE ),
+     _isIgnoreLock( FALSE )
+   {
+   }
+
+   _catCMDDropRecycleBinBase::~_catCMDDropRecycleBinBase()
+   {
+   }
+
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATCMDDROPRECYCLEBIN_INIT, "_catCMDDropRecycleBinBase::init" )
+   INT32 _catCMDDropRecycleBinBase::init( const CHAR *pQuery,
+                                          const CHAR *pSelector,
+                                          const CHAR *pOrderBy,
+                                          const CHAR *pHint,
+                                          INT32 flags,
+                                          INT64 numToSkip,
+                                          INT64 numToReturn )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATCMDDROPRECYCLEBIN_INIT ) ;
+
+      try
+      {
+         _queryObj = BSONObj( pQuery ) ;
+         _hintObj = BSONObj( pHint ) ;
+
+         rc = rtnGetStringElement( _queryObj,
+                                   FIELD_NAME_RECYCLE_NAME,
+                                   &_recycleItemName ) ;
+         if ( SDB_OK == rc )
+         {
+            utilRecycleItem dummyItem ;
+
+            PD_CHECK( !_isDropAll(), SDB_INVALIDARG, error, PDERROR,
+                      "Failed to parse options, should not get "
+                      "field [%s] in drop all command",
+                      FIELD_NAME_RECYCLE_NAME ) ;
+
+            rc = dummyItem.fromRecycleName( _recycleItemName ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse recycle item "
+                         "name [%s], rc: %d", _recycleItemName, rc ) ;
+         }
+         else if ( SDB_FIELD_NOT_EXIST == rc && _isDropAll() )
+         {
+            rc = SDB_OK ;
+         }
+         else
+         {
+            PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s], rc: %d",
+                         FIELD_NAME_RECYCLE_NAME, rc ) ;
+         }
+
+         rc = rtnGetBooleanElement( _queryObj,
+                                    FIELD_NAME_ENFORCED1,
+                                    _isEnforced ) ;
+         if ( SDB_FIELD_NOT_EXIST == rc )
+         {
+            rc = rtnGetBooleanElement( _queryObj,
+                                       FIELD_NAME_ENFORCED,
+                                       _isEnforced ) ;
+            if ( SDB_FIELD_NOT_EXIST == rc )
+            {
+               rc = SDB_OK ;
+               _isEnforced = FALSE ;
+            }
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s], rc: %d",
+                      FIELD_NAME_ENFORCED1, rc ) ;
+
+         if ( _isDropAll() )
+         {
+            // drop all items must enable recursive
+            _isRecursive = TRUE ;
+         }
+         else
+         {
+            rc = rtnGetBooleanElement( _queryObj,
+                                       FIELD_NAME_RECURSIVE,
+                                       _isRecursive ) ;
+            if ( SDB_FIELD_NOT_EXIST == rc )
+            {
+               _isRecursive = FALSE ;
+               rc = SDB_OK ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s], rc: %d",
+                         FIELD_NAME_RECURSIVE, rc ) ;
+         }
+
+         // check ignore lock
+         rc = rtnGetBooleanElement( _hintObj,
+                                    FIELD_NAME_IGNORE_LOCK,
+                                    _isIgnoreLock ) ;
+         if ( SDB_FIELD_NOT_EXIST == rc )
+         {
+            // default is false
+            _isIgnoreLock = FALSE ;
+            rc = SDB_OK ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s], rc: %d",
+                      FIELD_NAME_IGNORE_LOCK, rc ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to get query object, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATCMDDROPRECYCLEBIN_INIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATCMDDROPRECYCLEBIN_DOIT, "_catCMDDropRecycleBinBase::doit" )
+   INT32 _catCMDDropRecycleBinBase::doit( _pmdEDUCB *cb,
+                                          rtnContextBuf &ctxBuf,
+                                          INT64 &contextID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATCMDDROPRECYCLEBIN_DOIT ) ;
+
+      BOOLEAN lockedRecycleBin = FALSE ;
+      INT16 w = sdbGetCatalogueCB()->majoritySize() ;
+
+      PD_CHECK( _recycleBinMgr->tryLockDropLatch(), SDB_LOCK_FAILED, error,
+                PDERROR, "Failed to lock recycle bin to block drop expired "
+                "background job" ) ;
+      lockedRecycleBin = TRUE ;
+
+      rc = _check( cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check drop recycle bin items, "
+                   "rc: %d", rc ) ;
+
+      rc = _execute( cb, w, ctxBuf ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to execute drop recycle bin items, "
+                   "rc: %d", rc ) ;
+
+   done:
+      if ( lockedRecycleBin )
+      {
+         _recycleBinMgr->unlockDropLatch() ;
+         lockedRecycleBin = FALSE ;
+      }
+      contextID = -1 ;
+      PD_TRACE_EXITRC( SDB__CATCMDDROPRECYCLEBIN_DOIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   /*
+      _catCMDDropRecycleBinItem implement
+    */
+   CAT_IMPLEMENT_CMD_AUTO_REGISTER( _catCMDDropRecycleBinItem )
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATCMDDROPRECYCLEBINITEM__CHECK, "_catCMDDropRecycleBinItem::_check" )
+   INT32 _catCMDDropRecycleBinItem::_check( _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATCMDDROPRECYCLEBINITEM__CHECK ) ;
+
+      // NOTE: drop is long time job, only use short lock here
+      catCtxLockMgr localLockMgr ;
+      localLockMgr.setIgnoreLock( _isIgnoreLock ) ;
+
+      rc = _recycleBinMgr->getItem( _recycleItemName, cb, _recycleItem ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get recycle item [%s], rc: %d",
+                   _recycleItemName, rc ) ;
+
+      if ( UTIL_RECYCLE_CS == _recycleItem.getType() )
+      {
+         utilCSUniqueID csUniqueID =
+               (utilCSUniqueID)( _recycleItem.getOriginID() ) ;
+
+         if ( !_isRecursive )
+         {
+            // if there are recursive recycled collections inside,
+            // we can not drop it if not recursive
+            rc = _checkRecycledCLInCS( _recycleItem, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to check collection space "
+                         "recycle item [origin %s, recycle %s], rc: %d",
+                         _recycleItem.getOriginName(),
+                         _recycleItem.getRecycleName(), rc ) ;
+         }
+
+         rc = catGetGroupListForRecycleCS( csUniqueID, cb, _groupList ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get group list for "
+                      "recycle collection space item [%s], rc: %d",
+                      _recycleItemName, rc ) ;
+      }
+      else if ( UTIL_RECYCLE_CL == _recycleItem.getType() )
+      {
+         if ( _recycleItem.isCSRecycled() )
+         {
+            // the recycle item is in a recycled collection space
+            // it should not be dropped if not enforced
+            if ( _isEnforced )
+            {
+               // if it is enforced, force to dropped it
+               PD_LOG( PDDEBUG, "Enforce to drop recycle item "
+                       "[origin %s, recycle %s]",
+                       _recycleItem.getOriginName(),
+                       _recycleItem.getRecycleName() ) ;
+            }
+            else
+            {
+               // double check if a dropping recycle item of collection is
+               // still in a recycled collection space
+               // if so, we can not drop it, otherwise, we can drop it
+               rc = _checkCLInRecycledCS( _recycleItem, cb ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to check collection "
+                            "recycle item [origin %s, recycle %s], rc: %d",
+                            _recycleItem.getOriginName(),
+                            _recycleItem.getRecycleName(), rc ) ;
+            }
+         }
+
+         if ( _recycleItem.isMainCL() && !_isEnforced )
+         {
+            // check if sub-collections in a dropping recycle item of
+            // main-collection is in a recycled collection space
+            // if so, we can not drop it
+            rc = _checkSubCLInRecycledCS( _recycleItem, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to check sub-collections in "
+                         "recycle item [origin %s, recycle %s], rc: %d",
+                         _recycleItem.getOriginName(),
+                         _recycleItem.getRecycleName(), rc ) ;
+         }
+
+         rc = catGetGroupListForRecycleItem( _recycleItem.getRecycleID(), cb,
+                                             _groupList ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to group list for recycle "
+                      "collection item [%s], rc: %d", _recycleItemName, rc ) ;
+      }
+      else
+      {
+         PD_LOG( PDWARNING, "Unknown recycle type [%s]",
+                 utilGetRecycleTypeName( _recycleItem.getType() ) ) ;
+         SDB_ASSERT( FALSE, "invalid recycle type" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      PD_CHECK( localLockMgr.tryLockRecycleItem( _recycleItem.getOriginName(),
+                                                 _recycleItem.getType(),
+                                                 EXCLUSIVE ),
+                SDB_LOCK_FAILED, error, PDERROR,
+                "Failed to lock recycle item [%s]", _recycleItemName ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATCMDDROPRECYCLEBINITEM__CHECK, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATCMDDROPRECYCLEBINITEM__CHKRECYCLCS, "_catCMDDropRecycleBinItem::_checkRecycledCLInCS" )
+   INT32 _catCMDDropRecycleBinItem::_checkRecycledCLInCS( const utilRecycleItem &item,
+                                                          _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATCMDDROPRECYCLEBINITEM__CHKRECYCLCS ) ;
+
+      SDB_ASSERT( UTIL_RECYCLE_CS == item.getType(),
+                  "should be recycle collection space" ) ;
+
+      utilCSUniqueID csUniqueID = (utilCSUniqueID)( item.getOriginID() ) ;
+      INT64 count = 0 ;
+
+      rc = _recycleBinMgr->countItemsInCS( csUniqueID, cb, count ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get count of recycle items in "
+                   "collection space recycle item [origin: %s, recycle: %s], "
+                   "rc: %d", item.getOriginName(), item.getRecycleName(),
+                   rc ) ;
+
+      PD_LOG_MSG_CHECK( 0 == count, SDB_RECYCLE_CONFLICT, error, PDERROR,
+                        "Failed to drop collection space recycle item "
+                        "[origin %s, recycle %s], there are recursive "
+                        "collection recycle items inside",
+                        item.getOriginName(), item.getRecycleName() ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATCMDDROPRECYCLEBINITEM__CHKRECYCLCS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATCMDDROPRECYCLEBINITEM__CHKRECYCS, "_catCMDDropRecycleBinItem::_checkCLInRecycledCS" )
+   INT32 _catCMDDropRecycleBinItem::_checkCLInRecycledCS( const utilRecycleItem &item,
+                                                          _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATCMDDROPRECYCLEBINITEM__CHKRECYCS ) ;
+
+      SDB_ASSERT( UTIL_RECYCLE_CL == item.getType(),
+                  "should be recycle collection" ) ;
+
+      utilCLUniqueID clUniqueID = (utilCLUniqueID)( item.getOriginID() ) ;
+      utilCSUniqueID csUniqueID = utilGetCSUniqueID( clUniqueID ) ;
+      utilRecycleItem csItem ;
+
+      rc = _recycleBinMgr->getItem( csUniqueID, cb, csItem ) ;
+      if ( SDB_RECYCLE_ITEMNOTEXISTS == rc )
+      {
+         rc = SDB_OK ;
+         goto done ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to get recycle item of collection "
+                   "space, rc: %d", rc ) ;
+
+      PD_LOG_MSG_CHECK( FALSE, SDB_RECYCLE_CONFLICT, error, PDERROR,
+                        "Failed to drop collection recycle item "
+                        "[origin %s, recycle %s], collection space recycle "
+                        "item [origin: %s, recycle: %s] is also "
+                        "in recycle bin", item.getOriginName(),
+                        item.getRecycleName(), csItem.getOriginName(),
+                        csItem.getRecycleName() ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATCMDDROPRECYCLEBINITEM__CHKRECYCS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATCMDDROPRECYCLEBINITEM__CHKSUBCLRECYCS, "_catCMDDropRecycleBinItem::_checkSubCLInRecycledCS" )
+   INT32 _catCMDDropRecycleBinItem::_checkSubCLInRecycledCS( utilRecycleItem &item,
+                                                             _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATCMDDROPRECYCLEBINITEM__CHKSUBCLRECYCS ) ;
+
+      SDB_ASSERT( UTIL_RECYCLE_CL == item.getType() && item.isMainCL(),
+                  "should be recycle item for main collection" ) ;
+
+      catDropItemSubCLChecker checker( _recycleBinMgr, item ) ;
+
+      rc = _recycleBinMgr->processObjects( checker, cb, 1 ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check sub collections for drop "
+                   "recycle item [origin %s, recycle %s], rc: %d",
+                   item.getOriginName(), item.getRecycleName(), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATCMDDROPRECYCLEBINITEM__CHKSUBCLRECYCS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATCMDDROPRECYCLEBINITEM__EXECUTE, "_catCMDDropRecycleBinItem::_execute" )
+   INT32 _catCMDDropRecycleBinItem::_execute( _pmdEDUCB *cb,
+                                              INT16 w,
+                                              rtnContextBuf &ctxBuf )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATCMDDROPRECYCLEBINITEM__EXECUTE ) ;
+
+      BSONObjBuilder retObjBuilder ;
+
+      rc = _recycleBinMgr->dropItem( _recycleItem, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to drop recycle item [%s], "
+                   "rc: %d", _recycleItemName, rc ) ;
+
+      rc = sdbGetCatalogueCB()->makeGroupsObj( retObjBuilder, _groupList, TRUE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to make group object, rc: %d", rc ) ;
+
+      try
+      {
+         ctxBuf = rtnContextBuf( retObjBuilder.obj() ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build return object, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATCMDDROPRECYCLEBINITEM__EXECUTE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   /*
+      _catCMDDropRecycleBinAll implement
+    */
+   CAT_IMPLEMENT_CMD_AUTO_REGISTER( _catCMDDropRecycleBinAll )
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATCMDDROPRECYCLEBINALL__CHECK, "_catCMDDropRecycleBinAll::_check" )
+   INT32 _catCMDDropRecycleBinAll::_check( _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATCMDDROPRECYCLEBINALL__CHECK ) ;
+
+      // there is no global lock for whole recycle bin, but the only
+      // excluded operation against drop all items in recycle bin is returning
+      // items from recycle bin, so we check number of returning items here
+      PD_CHECK( !( _recycleBinMgr->hasReturningItems() ),
+                SDB_LOCK_FAILED, error, PDERROR,
+                "Failed to lock recycle bin, has returning items" ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATCMDDROPRECYCLEBINALL__CHECK, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATCMDDROPRECYCLEBINALL__EXECUTE, "_catCMDDropRecycleBinAll::_execute" )
+   INT32 _catCMDDropRecycleBinAll::_execute( _pmdEDUCB *cb,
+                                             INT16 w,
+                                             rtnContextBuf &ctxBuf )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATCMDDROPRECYCLEBINALL__EXECUTE ) ;
+
+      rc = _recycleBinMgr->dropAllItems( cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to drop all recycle items, rc: %d",
+                   rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATCMDDROPRECYCLEBINALL__EXECUTE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 }

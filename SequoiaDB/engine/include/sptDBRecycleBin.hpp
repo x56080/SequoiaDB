@@ -89,6 +89,12 @@ namespace engine
                    _sptReturnVal &rval,
                    bson::BSONObj &detail ) ;
 
+      INT32 dropItem( const _sptArguments &arg,
+                      _sptReturnVal &rval,
+                      bson::BSONObj &detail ) ;
+      INT32 dropAll( const _sptArguments &arg,
+                     _sptReturnVal &rval,
+                     bson::BSONObj &detail ) ;
       static INT32 cvtToBSON( const CHAR *key,
                               const sptObject &value,
                               BOOLEAN isSpecialObj,

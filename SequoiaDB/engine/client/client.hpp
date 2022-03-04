@@ -4358,6 +4358,9 @@ namespace sdbclient
       virtual INT32 disable() = 0 ;
       virtual INT32 setAttributes( const bson::BSONObj &options ) = 0 ;
       virtual INT32 alter( const bson::BSONObj &options ) = 0 ;
+      virtual INT32 dropItem( const CHAR *recycleName,
+                              const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
+      virtual INT32 dropAll( const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
       virtual INT32 list( _sdbCursor **cursor,
                           const bson::BSONObj &condition = _sdbStaticObject,
                           const bson::BSONObj &selector = _sdbStaticObject,
@@ -4508,6 +4511,38 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pRecycleBin->alter( options ) ;
+      }
+
+      /** \fn INT32 dropItem( const CHAR *recycleName )
+          \brief Drop item from recycle bin permanently
+          \param [in] recycleName The name of item to be cleared
+          \param [in] options Reserved argument
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 dropItem( const CHAR *recycleName,
+                      const bson::BSONObj &options = _sdbStaticObject )
+      {
+         if ( NULL == pRecycleBin )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pRecycleBin->dropItem( recycleName, options ) ;
+      }
+
+      /** \fn INT32 dropAll()
+          \brief Drop all items from recycle bin permanently
+          \param [in] options Reserved argument
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 dropAll( const bson::BSONObj &options = _sdbStaticObject )
+      {
+         if ( NULL == pRecycleBin )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pRecycleBin->dropAll( options ) ;
       }
 
       /** \fn INT32 list( _sdbCursor **cursor,

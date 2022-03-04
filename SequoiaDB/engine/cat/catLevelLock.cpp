@@ -578,6 +578,7 @@ namespace engine
       _catCtxLockMgr implement
     */
    _catCtxLockMgr::_catCtxLockMgr ()
+   : _ignoreLock( FALSE )
    {
    }
 
@@ -706,6 +707,11 @@ namespace engine
    {
       catOneLevelLock *pLock = NULL ;
 
+      if ( _ignoreLock )
+      {
+         return TRUE ;
+      }
+
       // Create lock by lock type
       switch ( type )
       {
@@ -740,6 +746,11 @@ namespace engine
 
       SDB_ASSERT( parentName != name, "Names of 2 levels are the same" ) ;
 
+      if ( _ignoreLock )
+      {
+         return TRUE ;
+      }
+
       // Create lock by lock type
       switch ( type )
       {
@@ -766,7 +777,15 @@ namespace engine
                                             OSS_LATCH_MODE mode )
    {
       if ( !pLock )
+      {
          return FALSE ;
+      }
+
+      if ( _ignoreLock )
+      {
+         SAFE_OSS_DELETE( pLock ) ;
+         return TRUE ;
+      }
 
       if ( pLock->tryLock( mode ) )
       {

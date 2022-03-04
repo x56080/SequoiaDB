@@ -372,6 +372,10 @@ namespace engine
                            BSONObj *clInfo = NULL,
                            INT64 waitMillSec = CLS_SHARD_TIMEOUT ) ;
 
+         INT32 rGetRecycleItem( pmdEDUCB *cb,
+                                utilRecycleID recycleID,
+                                utilRecycleItem &recycleItem ) ;
+
          INT32 updateDCBaseInfo() ;
 
       public:
