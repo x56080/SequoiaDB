@@ -68,6 +68,7 @@ testFiles = [
    [ "./misc/resetSnapshot14424.cpp" ], # sync
    [ "./misc/configs14875.cpp" ], # sync
    [ "./misc/invalidFlag15382.cpp" ],
+   [ "./misc/snapshot25411.cpp" ],
    [ "./load/loadUnloadCS.cpp" ],
    [ "./load/rename.cpp" ],   # sync
    [ "./load/setPDLevel.cpp" ],
