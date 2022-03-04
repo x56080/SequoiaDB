@@ -2559,9 +2559,7 @@ public class DBCollection {
      * @param mode open mode as follow:
      *              <ul>
      *              <li>{@link DBLob#SDB_LOB_READ}
-     *              <li>{@link DBLob#SDB_LOB_SHAREREAD}
      *              <li>{@link DBLob#SDB_LOB_WRITE}
-     *              <li>{@link DBLob#SDB_LOB_SHAREREAD} | {@link DBLob#SDB_LOB_WRITE} for both reading and writing
      *              </ul>
      * @return DBLob object
      * @throws BaseException If error happens..
