@@ -486,6 +486,9 @@ namespace engine
       INT32 _checkIndexExist( const CHAR* collection,
                               const CHAR* indexName,
                               _pmdEDUCB *cb ) ;
+
+   private:
+      BOOLEAN _ignoreIdxNotExist ;
    } ;
    typedef _catCMDDropIndex catCMDDropIndex ;
 

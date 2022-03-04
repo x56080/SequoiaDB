@@ -2765,7 +2765,7 @@ namespace engine
    */
    CAT_IMPLEMENT_CMD_AUTO_REGISTER(_catCMDDropIndex)
    _catCMDDropIndex::_catCMDDropIndex( BOOLEAN sysCall )
-   : _catCMDIndexHelper( sysCall )
+   : _catCMDIndexHelper( sysCall ), _ignoreIdxNotExist( FALSE )
    {}
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMDDROPIDX_INIT, "_catCMDDropIndex::init" )
@@ -2779,21 +2779,17 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_CATCMDDROPIDX_INIT ) ;
+      BOOLEAN enforce = FALSE ;
 
       // message formate:
       // macher: { Collection: "foo.bar", Index: { "": "aIdx" }, Async: true }
-      // hint:   { Prepare: true }
 
       try
       {
-         BSONObj query, hint, idxObj ;
+         BSONObj query, idxObj ;
          if ( pQuery )
          {
             query = BSONObj( pQuery ) ;
-         }
-         if ( pHint )
-         {
-            hint = BSONObj( pHint ) ;
          }
 
          // get collection name
@@ -2812,6 +2808,19 @@ namespace engine
                    SDB_INVALIDARG, error, PDERROR,
                    "Invalid index obj type: %s", idxObj.toString().c_str() ) ;
          _pIndexName = ele.valuestr() ;
+
+         // get hint
+         rc = rtnGetBooleanElement( query, FIELD_NAME_ENFORCED1, enforce ) ;
+         if ( SDB_FIELD_NOT_EXIST == rc )
+         {
+            rc = SDB_OK ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
+                      FIELD_NAME_ENFORCED1, rc ) ;
+
+         // if it is 'enforce' mode, then we ignore catalog's -47 error, and
+         // continue to drop index on the data node
+         _ignoreIdxNotExist = enforce ;
       }
       catch( std::exception &e )
       {
@@ -3003,6 +3012,10 @@ namespace engine
       else
       {
          rc = _checkIndexExist( _pCollection, _pIndexName, cb ) ;
+         if ( SDB_IXM_NOTEXIST == rc && _ignoreIdxNotExist )
+         {
+            rc = SDB_OK ;
+         }
          if ( rc )
          {
             goto error ;
@@ -3157,11 +3170,18 @@ namespace engine
          rc = _checkIndexExist( subclName, _pIndexName, cb ) ;
          if ( SDB_IXM_NOTEXIST == rc )
          {
-            // if the subcl's index already exists, DON'T build the subcl's task
-            rc = SDB_OK ;
-            PD_LOG( PDWARNING, "Collection[%s] index[%s] doesn't exists",
-                    subclName, _pIndexName ) ;
-            continue ;
+            if ( _ignoreIdxNotExist )
+            {
+               rc = SDB_OK ;
+            }
+            else
+            {
+               // if the subcl's index already exists, DON'T build the subcl's
+               // task
+               PD_LOG( PDWARNING, "Collection[%s] index[%s] doesn't exists",
+                       subclName, _pIndexName ) ;
+               continue ;
+            }
          }
          if ( rc )
          {
@@ -3190,9 +3210,16 @@ namespace engine
       if ( 0 == subTaskList.size() && mainCLIdxNotExist )
       {
          rc = SDB_IXM_NOTEXIST ;
-         PD_LOG( PDERROR, "Index does't exists: [%s:%s]",
-                 _pCollection, _pIndexName ) ;
-         goto error ;
+         if ( _ignoreIdxNotExist )
+         {
+            rc = SDB_OK ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Index does't exists: [%s:%s]",
+                    _pCollection, _pIndexName ) ;
+            goto error ;
+         }
       }
 
       /// 4. build main task

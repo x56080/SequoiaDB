@@ -1104,11 +1104,13 @@ namespace engine
                                    INT64 &contextID,
                                    rtnContextBuf *buf ) ;
          INT32 _getIndexInfoFromObj( const BSONObj &obj,
+                                     BOOLEAN &isOldVersionIdx,
                                      BOOLEAN &isStandaloneIdx,
                                      const CHAR *&nodeName ) ;
          INT32 _snapshotIndex( pmdEDUCB *cb,
                                BOOLEAN &hasConsistentIdx,
                                BOOLEAN &hasStandaloneIdx,
+                               BOOLEAN &hasOldVersionIdx,
                                ossPoolVector<ossPoolString> &standIdxNodeList ) ;
 
       protected :

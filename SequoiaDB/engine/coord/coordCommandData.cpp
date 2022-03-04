@@ -6286,12 +6286,14 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( COORDDROPIDX_GETIDXINFO, "_coordCMDDropIndex::_getIndexInfoFromObj" )
    INT32 _coordCMDDropIndex::_getIndexInfoFromObj( const BSONObj &obj,
+                                                   BOOLEAN &isOldVersionIdx,
                                                    BOOLEAN &isStandaloneIdx,
                                                    const CHAR *&nodeName )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( COORDDROPIDX_GETIDXINFO ) ;
       BSONObj def ;
+      isOldVersionIdx = FALSE ;
       isStandaloneIdx = FALSE ;
 
       /* obj format:
@@ -6342,6 +6344,11 @@ namespace engine
 
       rc = rtnGetBooleanElement( def, IXM_FIELD_NAME_STANDALONE,
                                  isStandaloneIdx ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
+      {
+         isOldVersionIdx = TRUE ;
+         rc = SDB_OK ;
+      }
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get field[%s] from obj[%s], rc: %d",
                    IXM_FIELD_NAME_STANDALONE, def.toString().c_str(), rc ) ;
@@ -6362,6 +6369,7 @@ namespace engine
    INT32 _coordCMDDropIndex::_snapshotIndex( pmdEDUCB *cb,
                                              BOOLEAN &hasConsistentIdx,
                                              BOOLEAN &hasStandaloneIdx,
+                                             BOOLEAN &hasOldVersionIdx,
                                              ossPoolVector<ossPoolString> &standIdxNodeList )
    {
       INT32 rc = SDB_OK ;
@@ -6377,6 +6385,7 @@ namespace engine
 
       hasStandaloneIdx = FALSE ;
       hasConsistentIdx = FALSE ;
+      hasOldVersionIdx = FALSE ; // before v3.6&v5.0.3, index has no unique id
 
       try
       {
@@ -6429,6 +6438,7 @@ namespace engine
             while ( !buf.eof() )
             {
                const CHAR* nodeName = NULL ;
+               BOOLEAN isOldVerIdx = FALSE ;
                BOOLEAN isStandIdx = FALSE ;
                BSONObj obj ;
 
@@ -6436,10 +6446,15 @@ namespace engine
                PD_RC_CHECK( rc, PDERROR,
                             "Failed to get obj from obj buf, rc: %d", rc ) ;
 
-               rc = _getIndexInfoFromObj( obj, isStandIdx, nodeName ) ;
+               rc = _getIndexInfoFromObj( obj, isOldVerIdx, isStandIdx,
+                                          nodeName ) ;
                if ( SDB_OK == rc )
                {
-                  if ( isStandIdx )
+                  if ( isOldVerIdx )
+                  {
+                     hasOldVersionIdx = TRUE ;
+                  }
+                  else if ( isStandIdx )
                   {
                      hasStandaloneIdx = TRUE ;
                      standIdxNodeList.push_back( nodeName ) ;
@@ -6487,8 +6502,11 @@ namespace engine
       PD_TRACE_ENTRY( COORDDROPIDX_EXE ) ;
       BOOLEAN hasStandaloneIdx = FALSE ;
       BOOLEAN hasConsistentIdx = FALSE ;
+      BOOLEAN hasOldVersionIdx = FALSE ;
       ossPoolVector<ossPoolString> nodeList ;
       INT32 retryCnt = 0 ;
+      CHAR *pBuf = NULL ;
+      INT32 bufSize = 0 ;
 
       rc = _parseMsg( pMsg ) ;
       if ( rc )
@@ -6499,7 +6517,8 @@ namespace engine
    retry:
       // If there is a mix of standalone index and consistent index, we need to
       // drop index twice.
-      rc = _snapshotIndex( cb, hasConsistentIdx, hasStandaloneIdx, nodeList ) ;
+      rc = _snapshotIndex( cb, hasConsistentIdx, hasStandaloneIdx,
+                           hasOldVersionIdx, nodeList ) ;
       if ( rc )
       {
          goto error ;
@@ -6534,6 +6553,34 @@ namespace engine
 
       // If hasConsistentIdx=false, maybe catalog has index info. We need to
       // execute _executeConsistent() anyway.
+
+      if ( hasOldVersionIdx )
+      {
+         // old version index doesn't has meta data on catalog, so we should
+         // use 'enforce' mode to ignore catalog's error -47
+         try
+         {
+            BSONObjBuilder builder ;
+            builder.appendElements( _boQuery ) ;
+            builder.append( FIELD_NAME_ENFORCED1, true ) ;
+            BSONObj newQuery = builder.done() ;
+            rc = msgBuildQueryMsg( &pBuf, &bufSize,
+                                   CMD_ADMIN_PREFIX CMD_NAME_DROP_INDEX,
+                                   0, 0, 0, -1,
+                                   &newQuery, NULL, NULL, NULL,
+                                   cb ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to build message, rc: %d",
+                         rc ) ;
+            pMsg = (MsgHeader*)pBuf ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+         }
+      }
+
       rc = _executeConsistent( pMsg, cb, contextID, buf ) ;
       if ( hasStandaloneIdx )
       {
@@ -6554,6 +6601,10 @@ namespace engine
                         _pCollection, rc, "IndexName: %s, Async: %s",
                         _index.toString().c_str(), _async ? "true" : "false" ) ;
    done:
+      if ( pBuf )
+      {
+         msgReleaseBuffer( pBuf, cb ) ;
+      }
       PD_TRACE_EXITRC( COORDDROPIDX_EXE, rc ) ;
       return rc ;
    error:
