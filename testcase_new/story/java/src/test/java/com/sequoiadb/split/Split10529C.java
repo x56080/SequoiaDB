@@ -196,9 +196,11 @@ public class Split10529C extends SdbTestBase {
                         ( BSONObject ) JSON.parse( "{sk:5000}" ),
                         ( BSONObject ) JSON.parse( "{sk:20000}" ) );
                 System.out.println( new Date() + " " + this.getClass().getName()
-                        + " begin check group data " );
+                        + " begin check group data :" + destGroupName );
                 checkGroupData( sdb, 15000, "{sk:{$gte:5000,$lt:20000}}", 15000,
                         destGroupName );
+                System.out.println( new Date() + " " + this.getClass().getName()
+                        + " begin check group data :" + srcGroupName );
                 checkGroupData( sdb, 5000, "{sk:{$gte:0,$lt:5000}}", 5000,
                         srcGroupName );
                 System.out.println( new Date() + " " + this.getClass().getName()

@@ -105,6 +105,8 @@ public class Split24278 extends SdbTestBase {
         System.out.println( new Date() + " " + this.getClass().getName()
                 + " begin check results " );
         checkLobData();
+        System.out.println( new Date() + " " + this.getClass().getName()
+                + " end check lob data " );
         checkDataSplitResult();
         System.out.println( new Date() + " " + this.getClass().getName()
                 + " end check results " );
