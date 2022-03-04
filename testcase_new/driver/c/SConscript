@@ -110,6 +110,7 @@ testFiles = [
    #[ "./crud/queryAndUpdateShardingKey.cpp" ],
    #[ "./crud/upsertShardingKey.cpp"],
    [ "./crud/queryMeta.cpp" ],
+   [ "./crud/query25369_25370.cpp" ],
    [ "./crud/specialDecimal_14004.cpp" ],
    [ "./crud/snapshotPlan14515.cpp" ],
    [ "./crud/pop14506.cpp" ],
