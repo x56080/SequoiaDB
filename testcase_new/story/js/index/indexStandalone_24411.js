@@ -2,7 +2,7 @@
  * @Description   : seqDB-24411:备节点创建本地索引，创建/删除相同一致性索引    
  * @Author        : wu yan
  * @CreateTime    : 2021.09.26
- * @LastEditTime  : 2022.01.29
+ * @LastEditTime  : 2022.03.04
  * @LastEditors   : Wu Yan
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -122,7 +122,10 @@ function checkIndexConsistent ( db, csname, clname, idxname, standaloneNodeName,
    var standaloneIndexKey = standaloneIndexAttr.key;
    assert.equal( standaloneIndexKey, indexKey1 );
    //检查一致性索引信息
-   assert.equal( indexAttrs[0], indexAttrs[1] );
+   for( var i = 0; i < indexAttrs.length; i++ )
+   {
+      assert.equal( indexAttrs[0], indexAttrs[i] );
+   }
    var indexIndexKey = indexAttrs[0].key;
    assert.equal( indexIndexKey, indexKey2 );
 }
