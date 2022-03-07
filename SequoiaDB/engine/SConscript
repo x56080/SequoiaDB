@@ -1062,6 +1062,7 @@ vesselFiles = [
       "vessel/builtinRecordUpdater.cpp",
       "vessel/runtimeMbContext.cpp",
       "vessel/pidBatchList.cpp",
+      "vessel/blockBasedMemPool.cpp",
       "vessel/lsm/lsmDB.cpp",
       "vessel/lsm/lsmIdxKey.cpp",
       "vessel/lsm/lsmIndex.cpp",
@@ -1095,7 +1096,8 @@ vesselTestFiles = [
       "test/vessel/lsm_compaction_filter_test.cpp",
       "test/vessel/index_ddl_test.cpp",
       "test/vessel/misc_test.cpp",
-      "test/vessel/lpid_hash_table_test.cpp"
+      "test/vessel/lpid_hash_table_test.cpp",
+      "test/vessel/fixed_bitmap_test.cpp"
 ]
 
 vesselUnitTestCommonFiles = [

@@ -43,6 +43,7 @@ namespace engine
 {
 namespace vessel
 {
+   ///WARNING: strictBuffer does not own the memory!
    class strictBuffer : public SDBObject
    {
       public:

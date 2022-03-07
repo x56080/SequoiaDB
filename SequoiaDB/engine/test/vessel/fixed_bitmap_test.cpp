@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = pidBatchList.cpp
+   Source File Name = fixed_bitmap_test.cpp
 
    Descriptive Name =
 
@@ -27,44 +27,45 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          09/08/2020  WY  Initial Draft
+          11/08/2021  WY  Initial Draft
 
    Last Changed =
 
 ******************************************************************************/
+#include "test_def.h"
+#include "vessel/fixedBitmap.hpp"
+#include <gtest/gtest.h>
+#include "ossUtil.h"
+#include "ossMemPool.hpp"
 
-#include "vessel/pidBatchList.h"
-#include "pdTrace.hpp"
+using namespace engine::vessel;
 
-namespace engine
+
+TEST(fixedBitmapTest, base_test1)
 {
-namespace vessel
-{
-   constexpr UINT32 RESERVE_SIZE = 64;
+   fixedBitmap<> bitmap;
+   UINT32 unitCount = 128;
+   bitmap.init(unitCount);
 
-   void pidBatchList::push(PAGE_ID pid)
+   for (UINT32 i = 0; i < bitmap.getTotalBitNum(); ++i)
    {
-      SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
-   
-      if (!_bl.empty() && _bl.back().size() < RESERVE_SIZE)
-      {
-         _bl.back().push_back(pid);
-      }
-      else
-      {
-         BATCH batch;
-         batch.reserve(RESERVE_SIZE);
-         batch.push_back(pid);
-         _bl.push_back(std::move(batch));
-      }
-
-      return;
+      INT32 bit = bitmap.pop();
+      ASSERT_EQ((INT32)i, bit);
    }
 
-   void pidBatchList::transferTo(pidBatchList &o)
-   {
-      o._bl.merge(std::move(_bl));
-   }
-} // namespace vessel
+   ASSERT_FALSE(bitmap.hasNonzeroBit());
+   INT32 bit = bitmap.pop();
+   ASSERT_EQ(-1, bit);
 
-} // namespace engine
+   for (UINT32 i = 0; i < bitmap.getTotalBitNum(); ++i)
+   {
+      BOOLEAN old = FALSE;
+      bitmap.set(i, &old);
+      ASSERT_FALSE(old);
+      INT32 bit = bitmap.pop();
+      ASSERT_EQ((INT32)i, bit);
+   }
+
+   ASSERT_FALSE(bitmap.hasNonzeroBit());
+}
+

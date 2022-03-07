@@ -71,7 +71,6 @@ namespace vessel
          {
             std::unique_lock<std::mutex> lk(_mutex);
             _list.push_back(e);
-            lk.unlock();
             _cv.notify_one();
          }
 
@@ -79,7 +78,6 @@ namespace vessel
          {
             std::unique_lock<std::mutex> lk(_mutex);
             _list.push_front(e);
-            lk.unlock();
             _cv.notify_one();
          }
 
@@ -95,7 +93,6 @@ namespace vessel
             _list.pop_back();
             if (!_list.empty() && 0 < _waiting)
             {
-               lk.unlock();
                _cv.notify_one();
             }
 
@@ -116,7 +113,6 @@ namespace vessel
                r = TRUE;
                if (!_list.empty() && 0 < _waiting)
                {
-                  lk.unlock();
                   _cv.notify_one();
                }
             }
@@ -138,7 +134,6 @@ namespace vessel
                r = TRUE;
                if (!_list.empty() && 0 < _waiting)
                {
-                  lk.unlock();
                   _cv.notify_one();
                }
             }
