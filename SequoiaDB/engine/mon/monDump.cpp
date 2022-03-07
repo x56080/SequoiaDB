@@ -746,20 +746,8 @@ namespace engine
       CHAR fsName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
       rc = ossGetDiskInfo( dbPath, diskTotalBytes, diskFreeBytes,
-                           fsName, OSS_MAX_PATHSIZE + 1 ) ;
+                           loadPercent, fsName, OSS_MAX_PATHSIZE + 1 ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get disk info, rc = %d", rc ) ;
-
-      if ( diskTotalBytes != 0 )
-      {
-         loadPercent = 100 * ( diskTotalBytes - diskFreeBytes ) /
-                       diskTotalBytes ;
-         loadPercent = loadPercent > 100 ? 100 : loadPercent ;
-         loadPercent = loadPercent < 0 ? 0 : loadPercent ;
-      }
-      else
-      {
-         loadPercent = 0 ;
-      }
 
       {
          BSONObjBuilder diskOb( ob.subobjStart( FIELD_NAME_DISK ) ) ;
@@ -3731,6 +3719,7 @@ namespace engine
       ossTime userTime, sysTime ;
       INT64 diskTotalBytes    = 0 ;
       INT64 diskFreeBytes     = 0 ;
+      INT32 loadPercent       = 0 ;
       const CHAR *dbPath = pmdGetOptionCB()->getDbPath() ;
 
       if ( _hitEnd )
@@ -3739,8 +3728,8 @@ namespace engine
          goto error ;
       }
 
-      ossGetCPUUsage( userTime, sysTime ) ;
-      ossGetDiskInfo ( dbPath, diskTotalBytes, diskFreeBytes ) ;
+      ossGetCPUUsage ( userTime, sysTime ) ;
+      ossGetDiskInfo ( dbPath, diskTotalBytes, diskFreeBytes, loadPercent ) ;
 
       try
       {
@@ -3768,18 +3757,6 @@ namespace engine
 
          {
             BSONObjBuilder diskOb( ob.subobjStart( FIELD_NAME_DISK ) ) ;
-            INT32 loadPercent = 0 ;
-            if ( diskTotalBytes != 0 )
-            {
-               loadPercent = 100 * ( diskTotalBytes - diskFreeBytes ) /
-                             diskTotalBytes ;
-               loadPercent = loadPercent > 100 ? 100 : loadPercent ;
-               loadPercent = loadPercent < 0 ? 0 : loadPercent ;
-            }
-            else
-            {
-               loadPercent = 0 ;
-            }
             diskOb.append ( FIELD_NAME_DATABASEPATH, dbPath ) ;
             diskOb.append ( FIELD_NAME_LOADPERCENT, loadPercent ) ;
             diskOb.append ( FIELD_NAME_TOTALSPACE, diskTotalBytes ) ;
