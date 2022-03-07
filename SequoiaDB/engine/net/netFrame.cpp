@@ -671,10 +671,15 @@ namespace engine
       reply.startFrom = 0 ;
       reply.flags = pmdDBIsAbnormal() ? SDB_SYS : SDB_OK ;
 
-      eh->mtx().get() ;
-      reply.header.routeID = _local ;
-      eh->syncSend( (const void*)&reply, reply.header.messageLength ) ;
-      eh->mtx().release() ;
+      // try to get lock of event handle
+      // if failed, means someone is using the handle to send data
+      // which can be just instead of heart beat
+      if ( eh->mtx().try_get() )
+      {
+         reply.header.routeID = _local ;
+         eh->syncSend( (const void*)&reply, reply.header.messageLength ) ;
+         eh->mtx().release() ;
+      }
    }
 
    void _netFrame::_handleHeartBeatRes( NET_EH eh, MsgHeader *message )
