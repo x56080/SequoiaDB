@@ -1245,7 +1245,7 @@ INT32 ossGetMemoryInfo ( INT32 &loadPercent,
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSGETDISKINFO, "ossGetDiskInfo" )
 INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
-                       CHAR* fsName, INT32 fsNameSize )
+                       INT32 &loadPercent, CHAR* fsName, INT32 fsNameSize )
 {
    INT32 rc                = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_OSSGETDISKINFO );
@@ -1286,6 +1286,19 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
       goto done ;
    }
 
+   // get percentage of disk load in space
+   if ( 0 != totalBytes )
+   {
+      loadPercent = 100 * ( totalBytes - freeBytes ) /
+                    totalBytes ;
+      loadPercent = loadPercent > 100 ? 100 : loadPercent ;
+      loadPercent = loadPercent < 0 ? 0 : loadPercent ;
+   }
+   else
+   {
+      loadPercent = 0 ;
+   }
+
    success = GetVolumePathName ( pszWString, volumePath, OSS_MAX_PATHSIZE+1) ;
    PD_CHECK( success, SDB_SYS, error, PDERROR, "Failed to get disk name"
              ", errno: %d, rc = %d", ossGetLastError(), rc );
@@ -1306,6 +1319,7 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
    struct stat pathStat ;
    BOOLEAN findOut = FALSE ;
    dev_t pathDevID ;
+   INT64 totalAvailale = 0 ;
 
    /// 1. get total and free space
    if ( statvfs ( pPath, &vfs ) )
@@ -1315,7 +1329,7 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
    }
 
    totalBytes = vfs.f_frsize * vfs.f_blocks ;
-   freeBytes = vfs.f_bsize * vfs.f_bfree ;
+   freeBytes = vfs.f_bsize * vfs.f_bavail ;
 
    /// 2. get disk name ( device name )
    if ( NULL == fsName )
@@ -1338,6 +1352,23 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
    {
       retcode = ossGetLastError() ;
       goto error ;
+   }
+
+   // 2.3 get percentage of disk load in space
+   // f_blocks means total space, f_bfree means free space in disk
+   // f_bavail means free space excluded system reserved space
+   // so total available space should be total space excluded system reserved space
+   totalAvailale = vfs.f_blocks - vfs.f_bfree + vfs.f_bavail ;
+   if ( 0 != totalAvailale )
+   {
+      loadPercent = 1 + 100 * ( vfs.f_blocks - vfs.f_bfree ) /
+                    totalAvailale ;
+      loadPercent = loadPercent > 100 ? 100 : loadPercent ;
+      loadPercent = loadPercent < 0 ? 0 : loadPercent ;
+   }
+   else
+   {
+      loadPercent = 0 ;
    }
 
    while ( NULL != ( me = getmntent_r ( fp, &dummy,
