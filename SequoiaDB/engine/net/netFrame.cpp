@@ -750,7 +750,8 @@ namespace engine
       }
       else
       {
-         if ( mon.hasInMonActive() && spanTime >= _beatInterval )
+         if ( mon.hasInMonActive() &&
+              spanTime >= _beatInterval )
          {
             _beatLastTick = pmdGetDBTick() ;
             _checkBeat = TRUE ;
@@ -762,9 +763,10 @@ namespace engine
                        "some operations", spanTime, _beatInterval ) ;
             }
          }
-         if ( mon.hasInMonPassive() && spanTime >= _beatPassiveInterval )
+         if ( mon.hasInMonPassive() &&
+              passiveSpanTime >= _beatPassiveInterval )
          {
-            _beatPassiveInterval = pmdGetDBTick() ;
+            _beatPassiveLastTick = pmdGetDBTick() ;
             _checkBeat = TRUE ;
 
             if ( passiveSpanTime > 3 * _beatPassiveInterval )
