@@ -741,11 +741,12 @@ namespace engine
       INT32 rc             = SDB_OK ;
       INT64 diskTotalBytes = 0 ;
       INT64 diskFreeBytes  = 0 ;
+      INT64 diskAvailBytes = 0 ;
       INT32 loadPercent    = 0 ;
       const CHAR *dbPath   = pmdGetOptionCB()->getDbPath () ;
       CHAR fsName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
-      rc = ossGetDiskInfo( dbPath, diskTotalBytes, diskFreeBytes,
+      rc = ossGetDiskInfo( dbPath, diskTotalBytes, diskFreeBytes, diskAvailBytes,
                            loadPercent, fsName, OSS_MAX_PATHSIZE + 1 ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get disk info, rc = %d", rc ) ;
 
@@ -758,7 +759,7 @@ namespace engine
          }
          diskOb.append( FIELD_NAME_LOADPERCENT, loadPercent ) ;
          diskOb.append( FIELD_NAME_TOTALSPACE, diskTotalBytes ) ;
-         diskOb.append( FIELD_NAME_FREESPACE, diskFreeBytes ) ;
+         diskOb.append( FIELD_NAME_FREESPACE, diskAvailBytes ) ;
          diskOb.done();
       }
 
@@ -3719,6 +3720,7 @@ namespace engine
       ossTime userTime, sysTime ;
       INT64 diskTotalBytes    = 0 ;
       INT64 diskFreeBytes     = 0 ;
+      INT64 diskAvailBytes    = 0 ;
       INT32 loadPercent       = 0 ;
       const CHAR *dbPath = pmdGetOptionCB()->getDbPath() ;
 
@@ -3729,7 +3731,8 @@ namespace engine
       }
 
       ossGetCPUUsage ( userTime, sysTime ) ;
-      ossGetDiskInfo ( dbPath, diskTotalBytes, diskFreeBytes, loadPercent ) ;
+      ossGetDiskInfo ( dbPath, diskTotalBytes, diskFreeBytes,
+                       diskAvailBytes, loadPercent ) ;
 
       try
       {
@@ -3760,7 +3763,7 @@ namespace engine
             diskOb.append ( FIELD_NAME_DATABASEPATH, dbPath ) ;
             diskOb.append ( FIELD_NAME_LOADPERCENT, loadPercent ) ;
             diskOb.append ( FIELD_NAME_TOTALSPACE, diskTotalBytes ) ;
-            diskOb.append ( FIELD_NAME_FREESPACE, diskFreeBytes ) ;
+            diskOb.append ( FIELD_NAME_FREESPACE, diskAvailBytes ) ;
             diskOb.done() ;
          }
 
