@@ -63,7 +63,7 @@ options（ *object，必填* ）
 
 - PreferredStrict（ *boolean* ）：指定节点选择是否为严格模式，默认值为 false，表示非严格模式。
 
-    当指定为严格模式时，节点只能从参数 Preferredinstance 指定的实例取值中选取。如果 Preferredinstance 未指定实例取值，该参数不生效。
+    当指定为严格模式时，节点只能从参数 PreferredInstance 指定的实例取值中选取。如果 PreferredInstance 未指定实例取值，该参数不生效。
 
     格式：`PreferredStrict: true `
 
@@ -152,19 +152,19 @@ v3.2 及以上版本
 
 ##示例##
 
-* 设置会话优先从“主”数据库实例获取数据
+- 指定会话优先从主实例中读数据
 
     ```lang-javascript
     > db.setSessionAttr({PreferredInstance: "M"})
     ```
 
-* 设置会话优先从 1 和 3 的备实例读取数据
+- 指定会话优先从实例 ID 为 1 的备实例中读数据
 
     ```lang-javascript
     > db.setSessionAttr({PreferredInstance: [1, 3, "S"]})
     ```
 
-* 设置会话的操作超时时间为 10 秒
+- 指定会话执行操作的超时时间为 10 秒
 
     ```lang-javascript
     > db.setSessionAttr({Timeout: 10000})

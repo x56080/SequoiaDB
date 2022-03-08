@@ -68,8 +68,8 @@ PreferredPeriod 修改读请求复用写请求节点的有效期限。
 .IP \[bu] 2
 PreferredInstanceMode（ \f[I]string\f[]
 ）：当存在多个候选实例时，指定会话的选择模式，默认为协调节点配置文件中参数
-preferredinstancemode 的取值。如果节点未配置 preferredinstancemode，该参数默认值为
-"random"。
+preferredinstancemode 的取值。如果节点未配置
+preferredinstancemode，该参数默认值为 "random"。
 .RS 2
 .PP
 该参数取值如下：
@@ -101,8 +101,8 @@ PreferredStrict（ \f[I]boolean\f[] ）：指定节点选择是否为严格模�
 false，表示非严格模式。
 .RS 2
 .PP
-当指定为严格模式时，节点只能从参数 Preferredinstance 指定的实例取值中选取。如果
-Preferredinstance 未指定实例取值，该参数不生效。
+当指定为严格模式时，节点只能从参数 PreferredInstance 指定的实例取值中选取。如果
+PreferredInstance 未指定实例取值，该参数不生效。
 .PP
 格式：\f[C]PreferredStrict: true\f[]
 .RE
@@ -262,7 +262,7 @@ T}
 v3.2 及以上版本
 .SH 示例
 .IP \[bu] 2
-设置会话优先从“主”数据库实例获取数据
+指定会话优先从主实例中读数据
 .RS 2
 .IP
 .nf
@@ -272,7 +272,7 @@ v3.2 及以上版本
 .fi
 .RE
 .IP \[bu] 2
-设置会话优先从 1 和 3 的备实例读取数据
+指定会话优先从实例 ID 为 1 的备实例中读数据
 .RS 2
 .IP
 .nf
@@ -282,7 +282,7 @@ v3.2 及以上版本
 .fi
 .RE
 .IP \[bu] 2
-设置会话的操作超时时间为 10 秒
+指定会话执行操作的超时时间为 10 秒
 .RS 2
 .IP
 .nf
