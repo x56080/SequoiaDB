@@ -100,11 +100,13 @@ namespace vessel
          virtual ~idMapFile(){}
 
       public:
-         virtual BOOLEAN validateUserDefinedHead(const void *head)const override;
-         virtual void cacheUserDefinedHead(const void *head) override;
-         virtual void resetCachedUserDefinedHead() override;
          INT32 getIdMapFileHead(idMapFileHead &h)const;
          UINT32 getTotalPageCount()const {return _pageCount;}
+
+      private:
+         virtual void _close() override;
+         virtual INT32 _open(BOOLEAN isCreating) override;
+         virtual void _onHeaderUpdated(const slice &hs) override;
       private:
          UINT32 _pageCount = 0;
    }; // class idMapFile

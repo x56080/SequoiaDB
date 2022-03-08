@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = deltaLogFileScanner.cpp
+   Source File Name = lobDef.h
 
    Descriptive Name =
 
@@ -33,42 +33,21 @@
 
 ******************************************************************************/
 
-#include "vessel/deltaLogFileScanner.h"
-#include "pdTrace.hpp"
+#ifndef VESSEL_LOB_DEF_H_
+#define VESSEL_LOB_DEF_H_
+
+#include "core.hpp"
+#include "oss.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   INT32 deltaLogFileScanner::open(const deltaLogFile *file)
-   {
-      INT32 rc = SDB_OK;
-      close();
-
-      if (NULL == file || !file->isOpen())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = _file->getDeltaLogFileHead(_header);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get file header:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   void deltaLogFileScanner::close()
-   {
-      _file = NULL;
-      _header = deltaLogFileHead();
-      _pos = 0;
-   }
-} // namespace vessel
+   typedef UINT32 LOB_CHUNK_ID;
+   constexpr LOB_CHUNK_ID INVALID_LOB_CHUNK_ID = 0xFFFFFFFF;
+} // namespace vesel
 
 } // namespace engine
+
+
+#endif//VESSEL_LOB_DEF_H_

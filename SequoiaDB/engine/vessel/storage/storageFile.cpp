@@ -101,9 +101,25 @@ namespace vessel
          goto error;
       }
 
+      if (0 != _headInMem.reservedAreaSize)
+      {
+         rc = openReservedArea();
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+      }
+
       rc = openFileSegments();
       if (SDB_OK != rc)
       {
+         goto error;
+      }
+
+      rc = _open(FALSE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to _open file:%d", rc);
          goto error;
       }
    
@@ -150,32 +166,24 @@ namespace vessel
          goto error;
       }
 
-      if (!validateUserDefinedHead((const CHAR *)headBuf + STORAGE_FILE_COMMON_HEAD_SIZE))
-      {
-         PD_LOG(PDERROR, "failed to validate user defined head of file[%s], rc:%d",
-                ossMmapFile::_fileName, rc);
-         /// checksum is correct but validation not passed.
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
       _headInMem = *((const storageFileHead *)headBuf);
       _fileType = fn.getFileType();
       _spaceType = fn.getSpaceType();
       _sequence = fn.getSequence();
-      cacheUserDefinedHead((const CHAR *)headBuf + STORAGE_FILE_COMMON_HEAD_SIZE);
+
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 storageFile::openFileSegments()
+   INT32 storageFile::openReservedArea()
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(ossMmapFile::_file.isOpened(), "must be open");
       SDB_ASSERT(getHeadMMapSegmentCount() == ossMmapFile::segmentSize(),
                  "file head must be open");
+      SDB_ASSERT(0 < _headInMem.reservedAreaSize, "can not be zero");
       UINT64 mmapOffset = 0;
       UINT64 fileSize = 0;
       UINT32 segmentSize = 0;
@@ -187,7 +195,46 @@ namespace vessel
          goto error;
       }
 
+      if (fileSize < (SOTRAGE_FILE_TOTAL_HEAD_SIZE + _headInMem.reservedAreaSize))
+      {
+         PD_LOG(PDERROR, "invalid file size to open reserved area");
+         rc = SDB_VESSEL_CRASHED_WHEN_CREATING;
+         goto error;
+      }
+
       mmapOffset = SOTRAGE_FILE_TOTAL_HEAD_SIZE;
+      segmentSize = _headInMem.reservedAreaSize;
+      rc = map(mmapOffset, segmentSize, NULL);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to mmap file[%s] at reserved area",
+                ossMmapFile::_fileName, rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 storageFile::openFileSegments()
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(ossMmapFile::_file.isOpened(), "must be open");
+      SDB_ASSERT(getExtraMmapSegCount() == ossMmapFile::segmentSize(),
+                 "extra segments must be open");
+      UINT64 mmapOffset = 0;
+      UINT64 fileSize = 0;
+      UINT32 segmentSize = 0;
+
+      rc = ossMmapFile::size(fileSize);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get file size:%d", rc);
+         goto error;
+      }
+
+      mmapOffset = SOTRAGE_FILE_TOTAL_HEAD_SIZE + _headInMem.reservedAreaSize;
       segmentSize = _headInMem.maxPageCountPerSeg * _headInMem.pageSize;
 
       while ((mmapOffset + segmentSize) <= fileSize)
@@ -223,56 +270,32 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageFile::getCommonHeadPtr(ossValuePtr &ptr)const
+   ossValuePtr storageFile::getCommonHeaderPtr()const
    {
-      INT32 rc = SDB_OK;
-      if (!isOpen())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      if (0 == ossMmapFile::segmentSize())
-      {
-         PD_LOG(PDERROR, "not valid file");
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      ptr = getSegmentInfo(0, NULL, NULL);
-      if (0 == ptr)
-      {
-         PD_LOG(PDERROR, "invalid head segment");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
+      return 0 < ossMmapFile::segmentSize() ?
+             getSegmentInfo(0, NULL, NULL) : 0;
    }
 
-   INT32 storageFile::getUserDefinedHeadPtr(ossValuePtr &ptr)const
+   ossValuePtr storageFile::getUserDefinedHeaderPtr()const
    {
-      INT32 rc = SDB_OK;
-      ossValuePtr commonHeadPtr = 0;
-      rc = getCommonHeadPtr(commonHeadPtr);
-      if (SDB_OK != rc)
+      ossValuePtr ptr = 0;
+      ossValuePtr commonPtr = getCommonHeaderPtr();
+      if (0 != commonPtr)
       {
-         goto error;
+         ptr = commonPtr + STORAGE_FILE_COMMON_HEAD_SIZE;
       }
+      return ptr;
+   }
 
-      ptr = commonHeadPtr + STORAGE_FILE_COMMON_HEAD_SIZE;
-   done:
-      return rc;
-   error:
-      goto done;
+   ossValuePtr storageFile::getReservedAreaPtr()const
+   {
+      return getExtraMmapSegCount() <= ossMmapFile::segmentSize() ?
+             getSegmentInfo(getHeadMMapSegmentCount(), NULL, NULL) : 0;
    }
 
    INT32 storageFile::create(const strSlice &dir,
                              const storageFileName &fn,
-                             const createStorageFileOptions &options,
-                             const slice &userDefinedHead)
+                             const createStorageFileOptions &options)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!isOpen(), "do not recreate file");
@@ -283,8 +306,9 @@ namespace vessel
          close();
       }
 
-      if (OSS_UNLIKELY(!fn.isValid() ||
-                        fn.hasShadowSuffix()))
+      if (OSS_UNLIKELY(dir.empty() ||
+                       !fn.isValid() ||
+                       fn.hasShadowSuffix()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -299,21 +323,18 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(STORAGE_FILE_USER_DEFINED_HEAD_SIZE < userDefinedHead.getSize()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(fn.hasShadowSuffix()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
 
-      rc = createFileAndInitHead(dir, fn, options, userDefinedHead);
+      rc = createFileAndInit(dir, fn, options);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create file:%d", rc);
+         goto error;
+      }
+
+      rc = _open(TRUE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to _open file:%d", rc);
          goto error;
       }
    done:
@@ -323,12 +344,12 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageFile::createFileAndInitHead(const strSlice &dir,
-                                            const storageFileName &fn,
-                                            const createStorageFileOptions &options,
-                                            const slice &userDefinedHead)
+   INT32 storageFile::createFileAndInit(const strSlice &dir,
+                                        const storageFileName &fn,
+                                        const createStorageFileOptions &options)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(!dir.empty(), "can not be empty");
       SDB_ASSERT(fn.isValid(), "must be valid");
       CHAR fullPath[OSS_MAX_PATHSIZE+1] = {0};
       ossValuePtr headPtr = 0;
@@ -386,7 +407,7 @@ namespace vessel
       rc = extendFileAndMMap(SOTRAGE_FILE_TOTAL_HEAD_SIZE, &headPtr);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to extent file:%d", rc);
+         PD_LOG(PDERROR, "failed to extend file:%d", rc);
          goto error;
       }
       ossMemset((void *)headPtr, 0, SOTRAGE_FILE_TOTAL_HEAD_SIZE);
@@ -399,37 +420,37 @@ namespace vessel
       }
 
       /// init user defined file head
-      if (userDefinedHead.isValid())
+      if (options.userDefinedHeader.isValid())
       {
+         UINT32 copySize = std::min(options.userDefinedHeader.getSize(),
+                                    STORAGE_FILE_USER_DEFINED_HEAD_SIZE);
          ossMemcpy((void *)(headPtr + STORAGE_FILE_COMMON_HEAD_SIZE),
-                   userDefinedHead.getData(), userDefinedHead.getSize());
+                   options.userDefinedHeader.getData(), copySize);
       }
 
-      /// create checksum
-      ((storageFileHead *)headPtr)->headChecksum =  createChecksum(headPtr);
-
-      /// do not flush head if create as tmp one.
-      if (!options.createAsTmpFile)
+      if (0 < options.reservedAreaSize)
       {
-         rc = ossMmapFile::flush(0, TRUE);
+         rc = extendFileAndMMap(options.reservedAreaSize, NULL);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to fsync file head:%d", rc);
+            PD_LOG(PDERROR, "failed to extend file:%d", rc);
             goto error;
          }
       }
 
+      /// create checksum
+      ((storageFileHead *)headPtr)->headChecksum = createChecksum(headPtr);
       _headInMem = *((const storageFileHead *)headPtr);
+      _fileType = fn.getFileType();
+      _spaceType = fn.getSpaceType();
+      _sequence = fn.getSequence();
       if (options.createAsTmpFile)
       {
          _shadowSuffix = FILE_SHADOW_SUFFIX_TMP;
       }
-      _fileType = fn.getFileType();
-      _spaceType = fn.getSpaceType();
-      _sequence = fn.getSequence();
-      if (userDefinedHead.isValid())
+      else
       {
-         cacheUserDefinedHead(userDefinedHead.data());
+         fsync();
       }
       
    done:
@@ -445,7 +466,7 @@ namespace vessel
 
    void storageFile::destroy()
    {
-      resetCachedUserDefinedHead();
+      _close();
       _headInMem.reset();
       _fileType = INVALID_FILE_TYPE;
       _spaceType = INVALID_SPACE_TYPE;
@@ -461,7 +482,7 @@ namespace vessel
 
    void storageFile::close()
    {
-      resetCachedUserDefinedHead();
+      _close();
       _headInMem.reset();
       _fileType = INVALID_FILE_TYPE;
       _spaceType = INVALID_SPACE_TYPE;
@@ -691,6 +712,19 @@ namespace vessel
       if (!options.args.isValid())
       {
          PD_LOG(PDERROR, "invalid file core args");
+         goto done;
+      }
+
+      if (STORAGE_FILE_USER_DEFINED_HEAD_SIZE < options.userDefinedHeader.getSize())
+      {
+         PD_LOG(PDERROR, "invalid user defined header size");
+         goto done;
+      }
+
+      if (0 != options.reservedAreaSize &&
+          0 != (options.reservedAreaSize % options.args.pageSize))
+      {
+         PD_LOG(PDERROR, "invalid reserved area size");
          goto done;
       }
 
@@ -1017,6 +1051,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       ossValuePtr ptr = 0;
       ossValuePtr commonPtr = 0;
+      UINT32 checksum = 0;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -1030,15 +1065,15 @@ namespace vessel
          goto error;
       }
 
-      rc = getUserDefinedHeadPtr(ptr);
-      if (SDB_OK != rc)
+      ptr = getUserDefinedHeaderPtr();
+      if (0 == ptr)
       {
          PD_LOG(PDERROR, "failed to get head ptr:%d", rc);
          goto error;
       }
 
-      rc = getCommonHeadPtr(commonPtr);
-      if (SDB_OK != rc)
+      commonPtr = getCommonHeaderPtr();
+      if (0 == commonPtr)
       {
          PD_LOG(PDERROR, "failed to get common ptr:%d", rc);
          goto error;
@@ -1047,73 +1082,15 @@ namespace vessel
       ossMemset((void *)ptr, 0x00, STORAGE_FILE_USER_DEFINED_HEAD_SIZE);
       ossMemcpy((void *)ptr, h.getData(), h.getSize());
 
-      ((storageFileHead *)commonPtr)->headChecksum = createChecksum(commonPtr);
-      cacheUserDefinedHead((const void *)ptr);
+      checksum = createChecksum(commonPtr);
+      ((storageFileHead *)commonPtr)->headChecksum = checksum;
+      _headInMem.headChecksum = checksum;
+      _onHeaderUpdated(h);
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 storageFile::copySemgmentsTo(storageFile *file)const
-   {
-      INT32 rc = SDB_OK;
-      UINT32 segmentSize = 0;
-
-      if (OSS_UNLIKELY(NULL == file || !file->isOpen()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (!_headInMem.compareCoreArgs(file->_headInMem))
-      {
-         PD_LOG(PDERROR, "different args found");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-         goto error;
-      }
-      
-
-      rc = file->ensureSegmentCount(getSegmentCount());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to extend target file:%d", rc);
-         goto error;
-      }
-
-      segmentSize = _headInMem.getSegmentSize();
-      for (UINT32 i = 0; i < getSegmentCount(); ++i)
-      {
-         ossValuePtr src, dst = 0;
-         rc = getSegmentPtr(i, src);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get src ptr:%d", rc);
-            goto error;
-         }
-         rc = file->getSegmentPtr(i, dst);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get dst ptr:%d", rc);
-            goto error;
-         }
-
-         ossMemcpy((void *)dst, (const void *)src, segmentSize);
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   BOOLEAN storageFile::getStructuredFileName(storageFileName &fn)const
-   {
-      fn.reset();
-      return isOpen() && fn.build(_fileType, _spaceType, _sequence, _shadowSuffix);
-   }
 } // namespace vessel
 } // namespace engine

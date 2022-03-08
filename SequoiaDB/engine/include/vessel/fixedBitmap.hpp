@@ -98,6 +98,11 @@ namespace vessel
          BOOLEAN hasNonzeroBit()const {return !_fl.empty();}
          UINT32 getUnitCount()const {return _units.size();}
          constexpr UINT32 getUnitSize()const {return UNIT_SIZE;}
+         BOOLEAN allSet()const
+         {
+            return !_units.empty() &&
+                   ((_units.size() * UNIT_SIZE) == _nonzeroBits);
+         }
 
          void init(UINT32 unitCount)
          {
@@ -106,6 +111,7 @@ namespace vessel
                       "out of bound");
             fini();
 
+            _nonzeroBits = unitCount * UNIT_SIZE;
             _units.resize(unitCount);
             for (INT32 i = 0; i < _units.size(); ++i)
             {
@@ -117,6 +123,7 @@ namespace vessel
 
          void fini()
          {
+            _nonzeroBits = 0;
             _fl.clear();
             _units.clear();
          }
@@ -140,6 +147,7 @@ namespace vessel
                }
 
                bitPos = (unitId * UNIT_SIZE) + static_cast<INT32>(first);
+               --_nonzeroBits;
                break;
             }
 
@@ -165,6 +173,7 @@ namespace vessel
                {
                   _fl.push_back(unitId);
                }
+               ++_nonzeroBits;
             }
 
             return;
@@ -186,6 +195,7 @@ namespace vessel
          }
 
       private:
+         UINT32 _nonzeroBits = 0;
          _UNIT_FREE_LIST _fl;
          _BITMAP_UNIT_VEC _units;
 

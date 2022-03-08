@@ -64,15 +64,10 @@ namespace vessel
          {
             return INVALID_FILE_SHADOW_SUFFIX != _shadowSuffix;
          }
-         OSS_INLINE UINT64 getTotalSegmentSize()const
-         {
-            return (UINT64)_dataSegmentCount * _headInMem.getSegmentSize();
-         }
 
          INT32 create(const strSlice &dir,
                       const storageFileName &fn,
-                      const createStorageFileOptions &options,
-                      const slice &userDefinedHead = slice());
+                      const createStorageFileOptions &options);
 
          INT32 open(const strSlice &dir,
                     const storageFileName &fn);
@@ -132,40 +127,29 @@ namespace vessel
             return _headInMem.pageSize;
          }
 
-         BOOLEAN getStructuredFileName(storageFileName &fn)const;
-
          INT32 removeShadowSuffix();
    
          /// will auto update checksum in common header.
          /// file may not be reopen when crashed.
          INT32 updateUserDefinedHead(const slice &h);
 
-         INT32 copySemgmentsTo(storageFile *file)const;
-
       protected:
+         ossValuePtr getCommonHeaderPtr()const;
+         ossValuePtr getUserDefinedHeaderPtr()const;
+         ossValuePtr getReservedAreaPtr()const;
          
-         INT32 getCommonHeadPtr(ossValuePtr &ptr)const;
-         INT32 getUserDefinedHeadPtr(ossValuePtr &ptr)const;
       private:
-         virtual BOOLEAN validateUserDefinedHead(const void *head)const
-         {
-            return TRUE;
-         }
-         virtual void cacheUserDefinedHead(const void *head)
-         {
-            return;
-         }
-         virtual void resetCachedUserDefinedHead()
-         {
-            return;
-         }
+         virtual void _close() {return;}
+         virtual INT32 _open(BOOLEAN isCreating) {return SDB_OK;}
+         virtual void _onHeaderUpdated(const slice &hs) {return;}
       private:
-         INT32 createFileAndInitHead(const strSlice &dir,
-                                     const storageFileName &fn,
-                                     const createStorageFileOptions &options,
-                                     const slice &userDefinedHead);
+         INT32 createFileAndInit(const strSlice &dir,
+                                 const storageFileName &fn,
+                                 const createStorageFileOptions &options);
 
          INT32 openFileHead(const storageFileName &fn);
+
+         INT32 openReservedArea();
 
          INT32 openFileSegments();
 
@@ -181,12 +165,22 @@ namespace vessel
       private:
          OSS_INLINE UINT32 getMMapSegmentID(UINT32 dataSegmentID)const
          {
-            return dataSegmentID + getHeadMMapSegmentCount();
+            return dataSegmentID + getExtraMmapSegCount();
          }
 
          static constexpr UINT32 getHeadMMapSegmentCount()
          {
             return 1;
+         }
+
+         OSS_INLINE UINT32 getReservedAreaSegCount() const
+         {
+            return 0 == _headInMem.reservedAreaSize ? 0 : 1;
+         }
+
+         OSS_INLINE UINT32 getExtraMmapSegCount()const
+         {
+            return getHeadMMapSegmentCount() + getReservedAreaSegCount();
          }
 
          OSS_INLINE UINT32 getSegmentIDFromPageID(PAGE_ID pid)const

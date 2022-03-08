@@ -41,6 +41,7 @@ namespace engine
 {
 namespace vessel
 {
+   /*
    BOOLEAN idMapFile::validateUserDefinedHead(const void *head)const
    {
       BOOLEAN r = FALSE;
@@ -74,17 +75,39 @@ namespace vessel
       r = TRUE;
    done:
       return r;
-   }
+   }*/
 
-   void idMapFile::cacheUserDefinedHead(const void *head)
-   {
-      SDB_ASSERT(NULL != head, "can not be null");
-      _pageCount = ((const idMapFileHead *)head)->totalPageCount;
-   }
 
-   void idMapFile::resetCachedUserDefinedHead()
+   void idMapFile::_close()
    {
       _pageCount = 0;
+   }
+
+   INT32 idMapFile::_open(BOOLEAN isCreating)
+   {
+      INT32 rc = SDB_OK;
+      ossValuePtr ptr = getUserDefinedHeaderPtr();
+      if (0 == ptr)
+      {
+         PD_LOG(PDERROR, "failed to get user defined header ptr");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      _pageCount = ((const idMapFileHead *)(ptr))->totalPageCount;
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void idMapFile::_onHeaderUpdated(const slice &hs)
+   {
+      SDB_ASSERT(hs.isValid(), "can not be invalid");
+      SDB_ASSERT(hs.getSize() == sizeof(idMapFileHead), "must be same");
+      _pageCount = ((const idMapFileHead *)hs.getData())->totalPageCount;
+      return;
    }
    
    INT32 idMapFile::getIdMapFileHead(idMapFileHead &h)const
@@ -97,9 +120,11 @@ namespace vessel
          goto error;
       }
 
-      rc = getUserDefinedHeadPtr(ptr);
-      if (SDB_OK != rc)
+      ptr = getUserDefinedHeaderPtr();
+      if (0 == ptr)
       {
+         PD_LOG(PDERROR, "failed to get user defined header ptr");
+         rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 

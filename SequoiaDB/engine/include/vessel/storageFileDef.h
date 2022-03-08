@@ -40,7 +40,7 @@
 #include "vessel/vesselIdDef.h"
 #include "ossUtil.hpp"
 #include "dms.hpp"
-#include "vessel/strSlice.h"
+#include "vessel/slice.h"
 
 namespace engine
 {
@@ -146,8 +146,8 @@ namespace vessel
 
    struct createStorageFileOptions
    {
-      OSS_INLINE createStorageFileOptions(){}
-      OSS_INLINE ~createStorageFileOptions(){}
+      createStorageFileOptions(){}
+      ~createStorageFileOptions(){}
 
       createStorageFileOptions &operator=(const createStorageFileOptions &o)
       {
@@ -159,8 +159,6 @@ namespace vessel
          return *this;
       }
 
-      public:
-      //strSlice dir;
       UINT32 secretValue = 0;
       storageCoreArgs args;
       BOOLEAN replaceWhenCreate = FALSE;
@@ -171,6 +169,13 @@ namespace vessel
       /// WARNING: file with tmp suffix will be removed automaticly
       /// when startup.
       BOOLEAN createAsTmpFile = FALSE;
+
+      slice userDefinedHeader;
+
+      /// file will be auto extended when creating.
+      /// must be aligned by page size.
+      UINT32 reservedAreaSize = 0;
+
    }; // struct createStorageFileOptions
 
 
@@ -222,14 +227,10 @@ namespace vessel
       UINT32 fingerprint = 0;
       UINT32 secretValue = 0;
       UINT32 flags = 0;
-      // UINT32 spaceID = 0;
-      // UINT32 spaceType = 0;
-      // UINT32 fileType = 0;
-      //UINT32 logicalID = 0;
-      // UINT64 sequence = 0;
       UINT32 pageSize = 0;
       UINT32 maxPageCountPerSeg = 0;
       UINT32 maxSegmentCountPerFile = 0;
+      UINT32 reservedAreaSize = 0;/// the area between header and first data segment
    }; // struct storageFileHead
    constexpr UINT32 STORAGE_FILE_HEAD_REAL_SIZE = sizeof(storageFileHead);
 

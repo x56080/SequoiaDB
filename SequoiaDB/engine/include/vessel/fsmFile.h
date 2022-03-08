@@ -58,11 +58,6 @@ namespace vessel
          ///releasing will not fsync file.
          INT32 releasePages(UINT32 count, const PAGE_ID *pids);
 
-      private:
-         virtual FILE_TYPE getFileType()const
-         {
-            return FILE_TYPE_FSM;
-         }
 
       private:
          INT32 findFreePageFromSmp(PAGE_ID &pid);

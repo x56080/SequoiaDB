@@ -367,7 +367,7 @@ namespace vessel
          goto error;
       }
 
-      rc = sfm.createStorageFile(fn, o, slice(), *file);
+      rc = sfm.createStorageFile(fn, o, *file);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create tmp fsm file:%d", rc);

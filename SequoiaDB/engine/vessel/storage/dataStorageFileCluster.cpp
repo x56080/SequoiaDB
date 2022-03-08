@@ -763,7 +763,7 @@ namespace vessel
       o.replaceWhenCreate = TRUE;
       o.secretValue = getSecretValue();
 
-      rc = sfm.createStorageFile(fn, o, slice(), *file);
+      rc = sfm.createStorageFile(fn, o, *file);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create new file[%s], rc:%d", fn.getFileName(), rc);

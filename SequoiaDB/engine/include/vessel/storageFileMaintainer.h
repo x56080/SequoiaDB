@@ -64,7 +64,6 @@ namespace vessel
          INT32 removeSpaceDir()const;
          INT32 createStorageFile(const storageFileName &fn,
                                  const createStorageFileOptions &o,
-                                 const slice &userDefinedHead,
                                  storageFile &file)const;
          INT32 openStorageFile(const storageFileName &fn,
                                storageFile &file)const;

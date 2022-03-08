@@ -47,25 +47,37 @@ TEST(fixedBitmapTest, base_test1)
    UINT32 unitCount = 128;
    bitmap.init(unitCount);
 
-   for (UINT32 i = 0; i < bitmap.getTotalBitNum(); ++i)
+   for (UINT32 loop = 0; loop < 100; ++loop)
    {
+      for (UINT32 i = 0; i < bitmap.getTotalBitNum(); ++i)
+      {
+         INT32 bit = bitmap.pop();
+         ASSERT_EQ((INT32)i, bit);
+      }
+
+      ASSERT_FALSE(bitmap.hasNonzeroBit());
       INT32 bit = bitmap.pop();
-      ASSERT_EQ((INT32)i, bit);
+      ASSERT_EQ(-1, bit);
+
+      for (UINT32 i = 0; i < bitmap.getTotalBitNum(); ++i)
+      {
+         BOOLEAN old = FALSE;
+         bitmap.set(i, &old);
+         ASSERT_FALSE(old);
+         INT32 bit = bitmap.pop();
+         ASSERT_EQ((INT32)i, bit);
+      }
+
+      ASSERT_FALSE(bitmap.hasNonzeroBit());
+
+      for (UINT32 i = 0; i < bitmap.getTotalBitNum(); ++i)
+      {
+         BOOLEAN old = FALSE;
+         bitmap.set(i, &old);
+         ASSERT_FALSE(old);
+      }
+
+      ASSERT_TRUE(bitmap.allSet());
    }
-
-   ASSERT_FALSE(bitmap.hasNonzeroBit());
-   INT32 bit = bitmap.pop();
-   ASSERT_EQ(-1, bit);
-
-   for (UINT32 i = 0; i < bitmap.getTotalBitNum(); ++i)
-   {
-      BOOLEAN old = FALSE;
-      bitmap.set(i, &old);
-      ASSERT_FALSE(old);
-      INT32 bit = bitmap.pop();
-      ASSERT_EQ((INT32)i, bit);
-   }
-
-   ASSERT_FALSE(bitmap.hasNonzeroBit());
 }
 

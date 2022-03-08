@@ -168,7 +168,7 @@ namespace vessel
       o.replaceWhenCreate = TRUE;
       o.secretValue = _manifest.secretValue;
 
-      rc = sfm.createStorageFile(fn, o, slice(), *_workingFile);
+      rc = sfm.createStorageFile(fn, o, *_workingFile);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create file[%s], rc:%d", fn.getFileName(), rc);

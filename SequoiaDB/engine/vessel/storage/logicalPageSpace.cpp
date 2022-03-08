@@ -1766,7 +1766,8 @@ namespace vessel
       options.args = args;
       options.createAsTmpFile = TRUE;
       options.replaceWhenCreate = TRUE;
-      rc = sfm.createStorageFile(fn, options, hs, *file);
+      options.userDefinedHeader = hs;
+      rc = sfm.createStorageFile(fn, options, *file);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create id map file[%s], rc:%d", fn.getFileName(), rc);
@@ -1836,6 +1837,7 @@ namespace vessel
       o.createAsTmpFile = TRUE;
       o.replaceWhenCreate = TRUE;
       o.secretValue = _baseMap->getCommonHeadInMem().secretValue;
+      o.userDefinedHeader = hs;
 
       storageFileName fn;
       const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
@@ -1856,7 +1858,7 @@ namespace vessel
          goto error;
       }
 
-      rc = sfm.createStorageFile(fn, o, hs, *newBaseMap);
+      rc = sfm.createStorageFile(fn, o, *newBaseMap);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create new file:%s, rc:%d", fn.getFileName(), rc);

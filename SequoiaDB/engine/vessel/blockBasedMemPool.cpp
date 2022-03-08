@@ -76,6 +76,7 @@ namespace vessel
    {
       SDB_ASSERT(_wl.empty(), "must be empty");
       _blockSize = 0;
+      SDB_ASSERT(_allocator.allSet(), "some blocks still not released");
       _allocator.fini();
       _chunks.clear();
       return;

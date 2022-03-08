@@ -310,7 +310,6 @@ namespace vessel
 
    INT32 storageFileMaintainer::createStorageFile(const storageFileName &fn,
                                                 const createStorageFileOptions &o,
-                                                const slice &userDefinedHead,
                                                 storageFile &file)const
    {
       INT32 rc = SDB_OK;
@@ -333,7 +332,7 @@ namespace vessel
       }
 
       rc = file.create(strSlice(fullPath.c_str(), fullPath.size()),
-                        fn, o, userDefinedHead);
+                        fn, o);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create file[%s] under dir[%s], rc:%d",
