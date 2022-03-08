@@ -12,7 +12,7 @@ SdbCollection
 
 ##DESCRIPTION##
 
-This function is used to list the information of all [indexes][index] in the specified collection. When the users executes the function through the coordinatio node, the index information will be obtained from the catalog node. If the function is executed through the data node, the index information will be obtained from the data node.
+This function is used to list the information of all [indexes][index] in the specified collection. When the users executes the function through the coordination node, the index information will be obtained from the catalog node. If the function is executed through the data node, the index information will be obtained from the data node.
 
 ##PARAMETERS##
 
