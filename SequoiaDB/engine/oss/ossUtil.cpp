@@ -1245,7 +1245,8 @@ INT32 ossGetMemoryInfo ( INT32 &loadPercent,
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSGETDISKINFO, "ossGetDiskInfo" )
 INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
-                       INT32 &loadPercent, CHAR* fsName, INT32 fsNameSize )
+                       INT64 &availBytes, INT32 &loadPercent,
+                       CHAR* fsName, INT32 fsNameSize )
 {
    INT32 rc                = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_OSSGETDISKINFO );
@@ -1279,6 +1280,7 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
 
    freeBytes = freeClusters * sectorsPerCluster * bytesPerSector ;
    totalBytes = totalClusters * sectorsPerCluster * bytesPerSector ;
+   availBytes = freeBytes ;
 
    // get disk name
    if ( NULL == fsName )
@@ -1329,7 +1331,8 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
    }
 
    totalBytes = vfs.f_frsize * vfs.f_blocks ;
-   freeBytes = vfs.f_bsize * vfs.f_bavail ;
+   freeBytes = vfs.f_bsize * vfs.f_bfree ;
+   availBytes = vfs.f_bsize * vfs.f_bavail ;
 
    /// 2. get disk name ( device name )
    if ( NULL == fsName )
@@ -1357,10 +1360,10 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
    // f_blocks means total space, f_bfree means free space in disk
    // f_bavail means free space excluded system reserved space
    // so total available space should be total space excluded system reserved space
-   totalAvailale = vfs.f_blocks - vfs.f_bfree + vfs.f_bavail ;
+   totalAvailale = totalBytes - freeBytes + availBytes ;
    if ( 0 != totalAvailale )
    {
-      loadPercent = 1 + 100 * ( vfs.f_blocks - vfs.f_bfree ) /
+      loadPercent = 1 + 100 * ( totalBytes - freeBytes ) /
                     totalAvailale ;
       loadPercent = loadPercent > 100 ? 100 : loadPercent ;
       loadPercent = loadPercent < 0 ? 0 : loadPercent ;
