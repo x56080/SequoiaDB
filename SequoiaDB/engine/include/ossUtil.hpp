@@ -1071,7 +1071,8 @@ INT32 ossGetMemoryInfo ( INT32 &loadPercent,
                          INT64 &totalVirtual, INT64 &availVirtual ) ;
 
 INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
-                       INT32 &loadPercent, CHAR* fsName = NULL, INT32 fsNameSize = 0 ) ;
+                       INT64 &availBytes, INT32 &loadPercent,
+                       CHAR* fsName = NULL, INT32 fsNameSize = 0 ) ;
 
 INT32 ossGetFileDesp ( INT64 &usedNum ) ;
 
