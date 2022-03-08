@@ -1056,7 +1056,6 @@ public class DBCollection {
      *                    <li>{@link DBQuery#FLG_QUERY_STRINGOUT}
      *                    <li>{@link DBQuery#FLG_QUERY_FORCE_HINT}
      *                    <li>{@link DBQuery#FLG_QUERY_PARALLED}
-     *                    <li>{@link DBQuery#FLG_QUERY_WITH_RETURNDATA}
      *                    </ul>
      * @param options    The rules of query explain, the options are as below:
      *                   <ul>
@@ -1143,7 +1142,6 @@ public class DBCollection {
      *                 <li>{@link DBQuery#FLG_QUERY_STRINGOUT}
      *                 <li>{@link DBQuery#FLG_QUERY_FORCE_HINT}
      *                 <li>{@link DBQuery#FLG_QUERY_PARALLED}
-     *                 <li>{@link DBQuery#FLG_QUERY_WITH_RETURNDATA}
      *                 <li>{@link DBQuery#FLG_QUERY_FOR_UPDATE}
      *                 <li>{@link DBQuery#FLG_QUERY_FOR_SHARE}
      *                 </ul>
@@ -1186,7 +1184,6 @@ public class DBCollection {
      *                 <li>{@link DBQuery#FLG_QUERY_STRINGOUT}
      *                 <li>{@link DBQuery#FLG_QUERY_FORCE_HINT}
      *                 <li>{@link DBQuery#FLG_QUERY_PARALLED}
-     *                 <li>{@link DBQuery#FLG_QUERY_WITH_RETURNDATA}
      *                 <li>{@link DBQuery#FLG_QUERY_FOR_UPDATE}
      *                 <li>{@link DBQuery#FLG_QUERY_FOR_SHARE}
      *                 </ul>
@@ -1287,7 +1284,6 @@ public class DBCollection {
      *                    <li>{@link DBQuery#FLG_QUERY_STRINGOUT}
      *                    <li>{@link DBQuery#FLG_QUERY_FORCE_HINT}
      *                    <li>{@link DBQuery#FLG_QUERY_PARALLED}
-     *                    <li>{@link DBQuery#FLG_QUERY_WITH_RETURNDATA}
      *                    <li>{@link DBQuery#FLG_QUERY_FOR_UPDATE}
      *                    <li>{@link DBQuery#FLG_QUERY_FOR_SHARE}
      *                    </ul>
@@ -1310,9 +1306,7 @@ public class DBCollection {
         if (returnRows < 0) {
             returnRows = -1;
         }
-        if (returnRows == 1) {
-            newFlags |= DBQuery.FLG_QUERY_WITH_RETURNDATA;
-        }
+        newFlags |= DBQuery.FLG_QUERY_WITH_RETURNDATA;
         newFlags |= DBQuery.FLG_QUERY_PREPARE_MORE;
         newFlags |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
 
@@ -1352,7 +1346,6 @@ public class DBCollection {
      *                  <li>{@link DBQuery#FLG_QUERY_STRINGOUT}
      *                  <li>{@link DBQuery#FLG_QUERY_FORCE_HINT}
      *                  <li>{@link DBQuery#FLG_QUERY_PARALLED}
-     *                  <li>{@link DBQuery#FLG_QUERY_WITH_RETURNDATA}
      *                  <li>{@link DBQuery#FLG_QUERY_FOR_UPDATE}
      *                  <li>{@link DBQuery#FLG_QUERY_FOR_SHARE}
      *                  </ul>
@@ -1361,7 +1354,6 @@ public class DBCollection {
      */
     public BSONObject queryOne(BSONObject matcher, BSONObject selector, BSONObject orderBy,
                                BSONObject hint, int flag) throws BaseException {
-        flag = flag | DBQuery.FLG_QUERY_WITH_RETURNDATA;
         DBCursor cursor = query(matcher, selector, orderBy, hint, 0, 1, flag);
         BSONObject obj;
         try {
@@ -1459,7 +1451,6 @@ public class DBCollection {
      *                   <li>{@link DBQuery#FLG_QUERY_STRINGOUT}
      *                   <li>{@link DBQuery#FLG_QUERY_FORCE_HINT}
      *                   <li>{@link DBQuery#FLG_QUERY_PARALLED}
-     *                   <li>{@link DBQuery#FLG_QUERY_WITH_RETURNDATA}
      *                   <li>{@link DBQuery#FLG_QUERY_FOR_UPDATE}
      *                   <li>{@link DBQuery#FLG_QUERY_FOR_SHARE}
      *                   </ul>
@@ -1492,7 +1483,6 @@ public class DBCollection {
      *                   <li>{@link DBQuery#FLG_QUERY_STRINGOUT}
      *                   <li>{@link DBQuery#FLG_QUERY_FORCE_HINT}
      *                   <li>{@link DBQuery#FLG_QUERY_PARALLED}
-     *                   <li>{@link DBQuery#FLG_QUERY_WITH_RETURNDATA}
      *                   <li>{@link DBQuery#FLG_QUERY_FOR_UPDATE}
      *                   <li>{@link DBQuery#FLG_QUERY_FOR_SHARE}
      *                   </ul>
