@@ -165,19 +165,19 @@ v5.0 及以上版本
 
 ##示例##
 
-* 设置会话优先从“主”数据库实例获取数据
+- 指定会话优先从主实例中读数据
 
     ```lang-javascript
     > db.setSessionAttr({PreferredInstance: "M"})
     ```
 
-* 设置会话优先从 1 和 3 的备实例读取数据
+- 指定会话优先从实例 ID 为 1 的备实例中读数据
 
     ```lang-javascript
-    > db.setSessionAttr({PreferredInstance: [1, 3, "S"]})
+    > db.setSessionAttr({PreferredInstance: [1, "S"]})
     ```
 
-* 设置会话的操作超时时间为 10 秒
+- 指定会话执行操作的超时时间为 10 秒
 
     ```lang-javascript
     > db.setSessionAttr({Timeout: 10000})

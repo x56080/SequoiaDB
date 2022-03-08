@@ -55,15 +55,15 @@ The attributes of the session can be set through the parameter "options":
 
 - PreferredPeriod ( *number* ): The effective period of the preferred instance in seconds. The default is the value of the parameter "preferredperiod" in the coord node configuration file. If the "preferredperiod" is not configured, the default is 60.
 
-    - After each "PreferredPeriod" valid period, the read request will will re-select the appropriate instance for query according to the value of "PreferredInstance".
-    - The value range of this parameter is [-1, 2^31-1]; a value of -1 means no invalidation; a value of 0 means that the last selected instance is not used for this query and reselected according to parameter "Preferredinstance".
+    - After each "PreferredPeriod" valid period, the read request will re-select the appropriate instance for query according to the value of "PreferredInstance".
+    - The value range of this parameter is [-1, 2^31-1]; a value of -1 means no invalidation; a value of 0 means that the last selected instance is not used for this query and reselected according to parameter "PreferredInstance".
     - This parameter is only applicable to SequoiaDB v2.8.9, v3.2.5 and above.
 
     Format: `PreferredPeriod: 60`
 
 - PreferredStrict ( *boolean* ): Whether the node selection is strict mode. The default value is false, non-strict mode.
 
-    When specified as strict mode, the node can only be selected from the instance value specified by the parameter "Preferredinstance". if "Preferredinstance" does not specify an instance value, this parameter does not take effect.
+    When specified as strict mode, the node can only be selected from the instance value specified by the parameter "PreferredInstance". If "PreferredInstance" does not specify an instance value, this parameter does not take effect.
 
     Format: `PreferredStrict: true`
 
@@ -73,7 +73,7 @@ The attributes of the session can be set through the parameter "options":
 
     - "primaryonly": Pick only the primary instance as the preferred instance.
     - "secondaryonly": Pick only the secondary instance as the preferred instance.
-    - "": no constraint.
+    - "": No constraint.
 
     When setting constraints, the behavior specified by this parameter needs to be consistent with the parameter PreferredInstance. If PreferredInstance is "S", PreferredConstraint should be "secondaryonly".
 
@@ -104,7 +104,7 @@ The attributes of the session can be set through the parameter "options":
 
     Format: `TransLockWait: true`
 
-- TransUseRBS ( *boolean* ): Whether the session transcation uses the rollback segment, the default value is true, use rollback segment.
+- TransUseRBS ( *boolean* ): Whether the session transaction uses the rollback segment, the default value is true, use rollback segment.
 
     Format: `TransUseRBS: true`
 
@@ -165,19 +165,19 @@ v5.0 and above
 
 ##EXAMPLES##
 
-* Set session priority to get data from the "primary" database instance first.
+- Specifies that the session preferentially reads data from the primary.
 
     ```lang-javascript
     > db.setSessionAttr({PreferredInstance: "M"})
     ```
 
-* Set the session to read data from the secondary intance 1 and 3 first.
+- Specifies that the session preferentially reads data from the standby instance whose instance ID is 1.
 
     ```lang-javascript
-    > db.setSessionAttr({PreferredInstance: [1, 3, "S"]})
+    > db.setSessionAttr({PreferredInstance: [1, "S"]})
     ```
 
-* Set the operation timeout for the sessions to 10 seconds.
+- Specifies a timeout of 10 seconds for session execution.
 
     ```lang-javascript
     > db.setSessionAttr({Timeout: 10000})
