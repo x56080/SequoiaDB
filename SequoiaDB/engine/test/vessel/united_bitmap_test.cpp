@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = fixed_bitmap_test.cpp
+   Source File Name = united_bitmap_test.cpp
 
    Descriptive Name =
 
@@ -33,7 +33,7 @@
 
 ******************************************************************************/
 #include "test_def.h"
-#include "vessel/fixedBitmap.hpp"
+#include "vessel/unitedBitmap.hpp"
 #include <gtest/gtest.h>
 #include "ossUtil.h"
 #include "ossMemPool.hpp"
@@ -41,11 +41,12 @@
 using namespace engine::vessel;
 
 
-TEST(fixedBitmapTest, base_test1)
+TEST(unitedBitmapTest, base_test1)
 {
-   fixedBitmap<> bitmap;
+   unitedBitmap<512> bitmap;
    UINT32 unitCount = 128;
-   bitmap.init(unitCount);
+   INT32 rc = bitmap.extendUnitNum(unitCount);
+   ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 loop = 0; loop < 100; ++loop)
    {
@@ -55,7 +56,7 @@ TEST(fixedBitmapTest, base_test1)
          ASSERT_EQ((INT32)i, bit);
       }
 
-      ASSERT_FALSE(bitmap.hasNonzeroBit());
+      ASSERT_FALSE(bitmap.isFreeToAlloc());
       INT32 bit = bitmap.pop();
       ASSERT_EQ(-1, bit);
 
@@ -68,7 +69,7 @@ TEST(fixedBitmapTest, base_test1)
          ASSERT_EQ((INT32)i, bit);
       }
 
-      ASSERT_FALSE(bitmap.hasNonzeroBit());
+      ASSERT_FALSE(bitmap.isFreeToAlloc());
 
       for (UINT32 i = 0; i < bitmap.getTotalBitNum(); ++i)
       {
@@ -76,8 +77,6 @@ TEST(fixedBitmapTest, base_test1)
          bitmap.set(i, &old);
          ASSERT_FALSE(old);
       }
-
-      ASSERT_TRUE(bitmap.allSet());
    }
 }
 

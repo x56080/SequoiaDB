@@ -42,8 +42,9 @@ namespace engine
 {
 namespace vessel
 {
-   static const UINT32 BM_UTIL_BITWISE_64 = 6;
-   static const UINT32 BM_UTIL_BIT_MOD_64 = 0x3f;
+   constexpr UINT32 BM_UTIL_BITWISE_64 = 6;
+   constexpr UINT32 BM_UTIL_BIT_AND_MOD_64 = 63;
+   constexpr UINT32 BM_UTIL_BIT_COUNT_PER_WORD = 64;
 
    BOOLEAN findAndClearFirstNonzeroBit(UINT32 bitsCount,
                                        UINT32 searchBegin,
@@ -107,7 +108,7 @@ namespace vessel
       SDB_ASSERT(offset < (count << BM_UTIL_BITWISE_64), "can not be out of bound");
       BOOLEAN r = FALSE;
       UINT32 slot = offset >> BM_UTIL_BITWISE_64;
-      UINT64 mask = (UINT64)1 << (offset & BM_UTIL_BIT_MOD_64);
+      UINT64 mask = (UINT64)1 << (offset & BM_UTIL_BIT_AND_MOD_64);
 
       if (0 == OSS_BIT_TEST(bits[slot], mask))
       {
@@ -126,7 +127,7 @@ namespace vessel
 
       BOOLEAN r = FALSE;
       UINT32 slot = offset >> BM_UTIL_BITWISE_64;
-      UINT64 mask = (UINT64)1 << (offset & BM_UTIL_BIT_MOD_64);
+      UINT64 mask = (UINT64)1 << (offset & BM_UTIL_BIT_AND_MOD_64);
       
       if (0 != OSS_BIT_TEST(bits[slot], mask))
       {
@@ -145,7 +146,7 @@ namespace vessel
       SDB_ASSERT(NULL != bits, "can not be null");
       SDB_ASSERT(offset < (count << BM_UTIL_BITWISE_64), "can not be out of bound");
       UINT32 slot = offset >> BM_UTIL_BITWISE_64;
-      UINT64 mask = (UINT64)1 << (offset & BM_UTIL_BIT_MOD_64);
+      UINT64 mask = (UINT64)1 << (offset & BM_UTIL_BIT_AND_MOD_64);
       return 0 != OSS_BIT_TEST(bits[slot], mask);
    }
 
@@ -159,7 +160,7 @@ namespace vessel
       SDB_ASSERT(offset < (count << BM_UTIL_BITWISE_64), "can not be out of bound");
       UINT32 slot = offset >> BM_UTIL_BITWISE_64;
       UINT64 mask = 1;
-      UINT32 n = (offset & BM_UTIL_BIT_MOD_64);
+      UINT32 n = (offset & BM_UTIL_BIT_AND_MOD_64);
       mask <<= n;
       UINT64 old = ossFetchAndAND64(bits + slot, ~mask);
       if (NULL != nonzeroBeforeClear)
@@ -179,25 +180,12 @@ namespace vessel
       SDB_ASSERT(offset < (count << BM_UTIL_BITWISE_64), "can not be out of bound");
       UINT32 slot = offset >> BM_UTIL_BITWISE_64;
       UINT64 mask = 1;
-      UINT32 n = (offset & BM_UTIL_BIT_MOD_64);
+      UINT32 n = (offset & BM_UTIL_BIT_AND_MOD_64);
       mask <<= n;
       UINT64 old = ossFetchAndOR64(bits + slot, mask);
       if (NULL != zeroBeforeSet)
       {
          *zeroBeforeSet = (0 == OSS_BIT_TEST(old, mask));
-      }
-      return;
-   }
-
-   void bitsAndMerge(UINT32 count, const UINT64 *toAnd, UINT64 *bits)
-   {
-      SDB_ASSERT(0 < count, "can not be zero");
-      SDB_ASSERT(NULL != toAnd, "can not be null");
-      SDB_ASSERT(NULL != bits, "can not be null");
-
-      for (UINT32 i = 0; i < count; ++i)
-      {
-         bits[i] = (bits[i] & toAnd[i]);
       }
       return;
    }
@@ -211,7 +199,7 @@ namespace vessel
       SDB_ASSERT(NULL != bits, "can not be null");
 
       UINT32 begin = offset >> BM_UTIL_BITWISE_64;
-      UINT32 n = (offset & BM_UTIL_BIT_MOD_64);
+      UINT32 n = (offset & BM_UTIL_BIT_AND_MOD_64);
       if (0 != n)
       {
          UINT32 totalCount = 64 - n;
@@ -240,21 +228,14 @@ namespace vessel
       BOOLEAN r = FALSE;
       UINT32 delta = 0;
       UINT32 begin = bitOffset >> BM_UTIL_BITWISE_64;
-      UINT32 n = (bitOffset & BM_UTIL_BIT_MOD_64);
+      UINT32 n = (bitOffset & BM_UTIL_BIT_AND_MOD_64);
 
       if (0 < n)
       {
          UINT64 firstBits = 0;
          INT32 freeInFirstBits = -1;
-         UINT64 mask = 1;
-
-         for (UINT32 i = 1; i < n; ++i)
-         {
-            mask <<= 1;
-            mask |= 1;
-         }
-
-         mask = (~mask);
+         UINT64 mask = OSS_UINT64_MAX;
+         mask <<= n;
          firstBits = *(bits + begin);
          firstBits = (firstBits & mask);
          freeInFirstBits = ossGetLowestBit1From64Bits(firstBits);

@@ -61,8 +61,14 @@ namespace vessel
          goto error;
       }
 
+      rc = _allocator.extendUnitNum(maxChunk);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init bitmap allocator:%d", rc);
+         goto error;
+      }
+
       _blockSize = blockSize;
-      _allocator.init(maxChunk);
       _chunks.resize(maxChunk);
 
    done:
@@ -76,7 +82,6 @@ namespace vessel
    {
       SDB_ASSERT(_wl.empty(), "must be empty");
       _blockSize = 0;
-      SDB_ASSERT(_allocator.allSet(), "some blocks still not released");
       _allocator.fini();
       _chunks.clear();
       return;
@@ -163,7 +168,7 @@ namespace vessel
       pos = _wl.insert(_wl.end(), &cv);
       do
       {
-         cv.wait(guard, [this]{return _allocator.hasNonzeroBit();});
+         cv.wait(guard, [this]{return _allocator.isFreeToAlloc();});
          UINT32 n = 0;
          rc = _tryToAllocate(blockNum - allocated, blocks + allocated, n);
          if (SDB_OK != rc)
@@ -176,7 +181,7 @@ namespace vessel
       } while (allocated < blockNum);
 
       _wl.erase(pos);
-      if (!_wl.empty() && _allocator.hasNonzeroBit())
+      if (!_wl.empty() && _allocator.isFreeToAlloc())
       {
          _wl.front()->notify_one();
       }

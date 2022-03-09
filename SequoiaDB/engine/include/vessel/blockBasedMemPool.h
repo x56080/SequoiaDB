@@ -36,7 +36,8 @@
 #ifndef VESSEL_BLOCK_BASED_MEM_POOL_H_
 #define VESSEL_BLOCK_BASED_MEM_POOL_H_
 
-#include "vessel/fixedBitmap.hpp"
+
+#include "vessel/unitedBitmap.hpp"
 #include "ossMemPool.hpp"
 #include "vessel/memoryBlock.h"
 
@@ -159,7 +160,7 @@ namespace vessel
          _WAITING_LIST _wl;
 
          UINT32 _blockSize = 0;
-         fixedBitmap<_CHUNK_CAPACITY> _allocator;
+         unitedBitmap<_CHUNK_CAPACITY> _allocator;
          _CHUNK_VEC _chunks;
    };//class blockBasedMemPool
 } // namespace vessel

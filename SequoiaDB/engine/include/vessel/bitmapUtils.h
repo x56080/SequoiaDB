@@ -43,6 +43,25 @@ namespace engine
 {
 namespace vessel
 {
+   class bitmapUtils : public SDBObject
+   {
+      public:
+         bitmapUtils() = delete;
+
+      private:
+         static constexpr UINT32 _BIT_COUNT_PER_WORD_64 = 64;
+         static constexpr UINT32 _BIT_AND_MOD_64 = 63;
+         static constexpr UINT32 _BITWISE_64_COUNT = 6;
+
+      public:
+         static void reset(UINT32 bitsCount, UINT64 *bits, BOOLEAN zero);
+
+         /// return -1 if all zeroed
+         static INT32 findFirst(UINT32 bitsCount,
+                                const UINT64 *bits,
+                                UINT32 begin = 0);
+   };//class bitmapUtils
+
    void resetBitmap(UINT32 count, UINT64 *bits, BOOLEAN zeroed);
 
    /// searchBegin is offset of uint64, not offset of bit
@@ -77,7 +96,6 @@ namespace vessel
                             const UINT64 *bits,
                             UINT32 offset);
 
-   void bitsAndMerge(UINT32 count, const UINT64 *toAnd, UINT64 *bits);
 
    void clearFromOffsetToTheEnd(UINT32 bitsCount,
                                 UINT32 offset,

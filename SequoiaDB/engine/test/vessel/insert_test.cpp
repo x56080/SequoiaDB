@@ -870,7 +870,7 @@ TEST_F(insert_test, DISABLED_death_test_1)
    constexpr UINT32 threadCount = 8;
    std::thread threads[threadCount];
    atomic_int counters[threadCount] = {};
-   UINT32 countPerThread = 15000000;
+   UINT32 countPerThread = 12000000;
    UINT32 count = 0;
    UINT64 readCount = 0;
 
@@ -901,8 +901,8 @@ TEST_F(insert_test, DISABLED_death_test_1)
          countPerSecond += counters[i].exchange(0, std::memory_order_relaxed);
       }
 
-      cout << "total count per second:" << countPerSecond << endl;
       count += countPerSecond;
+      cout << "count per second:" << countPerSecond << ", total count:" << count << endl;
    } while (count < (countPerThread * threadCount));
    
 
