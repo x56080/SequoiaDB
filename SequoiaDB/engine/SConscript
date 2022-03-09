@@ -947,7 +947,6 @@ vesselFiles = [
       "vessel/storage/lpageMapping.cpp",
       "vessel/storage/lpageHashTable.cpp",
       "vessel/storage/storageFileLoader.cpp",
-      "vessel/storage/partialImpCache.cpp",
       "vessel/storage/sortedStorageFileList.cpp",
       "vessel/storage/indexMappingPage.cpp",
       "vessel/storage/indexEntryPage.cpp",
