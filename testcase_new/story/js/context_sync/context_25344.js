@@ -2,9 +2,10 @@
  * @Description   : seqDB-25344:分区表上下文过期超时清理
  * @Author        : 钟子明
  * @CreateTime    : 2022.01.29
- * @LastEditTime  : 2022.01.29
- * @LastEditors   : 钟子明
+ * @LastEditTime  : 2022.03.09
+ * @LastEditors   : liuli
  ******************************************************************************/
+testConf.skipTest = true; //SEQUOIADBMAINSTREAM-8144
 testConf.csName = COMMCSNAME + "_25344";
 testConf.clName = COMMCLNAME + "_25344";
 testConf.clOpt = { ShardingKey: { no: 1 }, ShardingType: "hash", AutoSplit: true };
