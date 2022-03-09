@@ -5,7 +5,7 @@
 .hy
 .SH NAME
 .PP
-listIndexes \- enumerate the index information under the collection
+listIndexes \- list the index information in the collection
 .SH SYNOPSIS
 .PP
 \f[B]db.collectionspace.collection.listIndexes()\f[]
@@ -14,9 +14,12 @@ listIndexes \- enumerate the index information under the collection
 SdbCollection
 .SH DESCRIPTION
 .PP
-This function is used to enumerate index.
-Executing this method will display all the index information under the specified
+This function is used to list the information of all indexes in the specified
 collection.
+When the users executes the function through the coordination node, the index
+information will be obtained from the catalog node.
+If the function is executed through the data node, the index information will be
+obtained from the data node.
 .SH PARAMETERS
 .PP
 None
@@ -24,7 +27,7 @@ None
 .PP
 When the function executes successfully, it will return an object of type
 SdbCursor.
-Users can get a list of index details through this object, and the field
+Users can get a list of index details through this object, the field
 descriptions are as follows:
 .PP
 .TS
@@ -56,13 +59,37 @@ key
 T}@T{
 json
 T}@T{
-Index key, refer to
+Index key, the value is
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-indexDef
+as follows:1:
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+Ascending by field
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+\-1: Descending order by
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+field"text": Full\-
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+text index
 T}
 T{
 3
@@ -80,61 +107,55 @@ unique
 T}@T{
 boolean
 T}@T{
-Whether the index is
+Is the index unique,
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-unique. "true": The
+the value is as follows
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-index is a unique
+: "true": Unique
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-index, and duplicate
+index, no duplicate
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-values are not allowed
+values in the
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-in the collection.
+collection are allowed.
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-"false": The index is a
+ "false": Ordinary
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-normal index, and
+index, allowing
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-duplicate values are
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-allowed in the
+duplicate values in the
 T}
 T{
 T}@T{
@@ -144,15 +165,6 @@ collection.
 T}
 T{
 5
-T}@T{
-dropDups
-T}@T{
-boolean
-T}@T{
-Not open
-T}
-T{
-6
 T}@T{
 enforced
 T}@T{
@@ -170,10 +182,46 @@ T{
 T}@T{
 T}@T{
 T}@T{
-refer to enforced.
+the value is as
 T}
 T{
-7
+T}@T{
+T}@T{
+T}@T{
+follows:"false":
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+Not mandatory."true
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+": Mandatory unique,
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+which means that more
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+than one empty index
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+key is not allowed.
+T}
+T{
+6
 T}@T{
 NotNull
 T}@T{
@@ -191,60 +239,70 @@ T{
 T}@T{
 T}@T{
 T}@T{
-be "null" or does not
+be "null" or non\-
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-exist.
- "true": Not
+existent, the value is
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-allowed to be "null"
+as follows: "true"
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-or not exist.
- "
+: Not allowed to be "
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-false": Allow null or
+null" or non\-existent.
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-not exist.
+ "false": Allow "
 T}
 T{
-8
+T}@T{
+T}@T{
+T}@T{
+null" or not exist.
+T}
+T{
+7
 T}@T{
 IndexFlag
 T}@T{
 string
 T}@T{
-Current state of Index
+Index current state,
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
- "Normal": Normal <
+the value is as follows
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-br> "Creating":
+: "Normal": Normal
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+ "Creating":
 T}
 T{
 T}@T{
@@ -262,22 +320,34 @@ T{
 T}@T{
 T}@T{
 T}@T{
-Truncating": Emptying <
+Truncating": Truncating
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-br> "Invalid": Invalid
+ "Invalid":
 T}
 T{
-9
+T}@T{
+T}@T{
+T}@T{
+Invalid
+T}
+T{
+8
 T}@T{
 Type
 T}@T{
 string
 T}@T{
-Index type "
+Index type, the value
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+is as follows: "
 T}
 T{
 T}@T{
@@ -304,7 +374,7 @@ T}@T{
 Text": Full\-text index
 T}
 T{
-10
+9
 T}@T{
 NotArray
 T}@T{
@@ -322,8 +392,13 @@ T{
 T}@T{
 T}@T{
 T}@T{
-be an array.
- "
+be an array, the value
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+is as follows: "
 T}
 T{
 T}@T{
@@ -350,6 +425,30 @@ T}@T{
 T}@T{
 array.
 T}
+T{
+10
+T}@T{
+Standalone
+T}@T{
+boolean
+T}@T{
+Whether it is an
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+independent index.
+T}
+T{
+11
+T}@T{
+dropDups
+T}@T{
+boolean
+T}@T{
+Not open
+T}
 .TE
 .PP
 When the function fails, an exception will be thrown and an error message will
@@ -361,10 +460,10 @@ getLastError() to get the error code.
 For more details, refer to Troubleshooting.
 .SH VERSION
 .PP
-v2.0 and above
+v3.4 and above
 .SH EXAMPLES
 .PP
-Return all index information under the collection "sample.employee".
+List the information of all indexes in the collection "sample.employee".
 .IP
 .nf
 \f[C]
