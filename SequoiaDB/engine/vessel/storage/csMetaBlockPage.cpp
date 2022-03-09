@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = crpIniter.h
+   Source File Name = csMetaBlockPage.cpp
 
    Descriptive Name =
 
@@ -33,25 +33,62 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_CRP_INITER_H_
-#define VESSEL_CRP_INITER_H_
-
-#include "vessel/pageInitializer.h"
+#include "vessel/csMetaBlockPage.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class crpIniter : public pageInitializer
+   BOOLEAN csMetaBlock::isValid()const
    {
-      public:
-         virtual INT32 initPage(requestContext *context,
-                                PAGE_ID lpid,
-                                PAGE_SNAPSHOT_VERION psv,
-                                runtimePageBuffer *rpb);
+      BOOLEAN r = FALSE;
+      if (CS_META_BLOCK_VERSION_1 != version)
+      {
+         goto done;
+      }
+      else if (CS_STATUS_INVALID == status)
+      {
+         goto done;
+      }
+      else if (CS_TYPE_NORMAL != type)
+      {
+         goto done;
+      }
+      else if (DMS_INVALID_LOGICCSID == logicalID)
+      {
+         goto done;
+      }
+      else if (0 == name[0] ||
+               0 != name[DMS_COLLECTION_SPACE_NAME_SZ])
+      {
+         goto done;
+      }
 
-   };//class crpIniter
+      r = TRUE;
+   done:
+      return r;
+   }
+
+   BOOLEAN initCSMetaBlockPage(UINT32 pageSize,
+                               PAGE_ID pid,
+                               PAGE_ID lpid,
+                               PAGE_SNAPSHOT_VERION psv,
+                               void *buf)
+   {
+      BOOLEAN r = FALSE;
+      csMetaBlock record;
+
+      if (!initCommonPage(PAGE_TYPE_CS_META, pageSize, pid, lpid, psv, buf))
+      {
+         goto done;
+      }
+      
+      ossMemcpy((void *)((ossValuePtr)buf + PAGE_HEAD_SIZE), &record, CS_META_BLOCK_LEN);
+
+      r = TRUE;
+   done:
+      return r;
+   }
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_CRP_INITER_H_

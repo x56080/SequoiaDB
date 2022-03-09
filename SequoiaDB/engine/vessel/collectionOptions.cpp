@@ -42,7 +42,7 @@ namespace vessel
    BOOLEAN createCLOptions::isValid()const
    {
       BOOLEAN r = FALSE;
-      if (COLLECTION_TYPE_NORMAL != type)
+      if (CL_TYPE_NORMAL != type)
       {
          goto done;
       }

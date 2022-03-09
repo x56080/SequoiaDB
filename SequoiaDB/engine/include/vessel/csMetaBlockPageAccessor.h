@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = csgpAccessor.h
+   Source File Name = csMetaBlockPageAccessor.h
 
    Descriptive Name =
 
@@ -33,11 +33,11 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_CSGP_ACCESSOR_H_
-#define VESSEL_CSGP_ACCESSOR_H_
+#ifndef VESSEL_CS_META_BLOCK_PAGE_ACCESSOR_H_
+#define VESSEL_CS_META_BLOCK_PAGE_ACCESSOR_H_
 
 #include "vessel/pageAccessor.h"
-#include "vessel/collectionSpaceGlobalPage.h"
+#include "vessel/csMetaBlockPage.h"
 
 namespace engine
 {
@@ -45,19 +45,19 @@ namespace vessel
 {
    class logicalPageBuffer;
    ///collection space global page
-   class csgpAccessor : public pageAccessor
+   class csMetaBlockPageAccessor : public pageAccessor
    {
       public:
-         csgpAccessor();
-         virtual ~csgpAccessor();
+         csMetaBlockPageAccessor();
+         virtual ~csMetaBlockPageAccessor();
 
       public:
          INT32 read(requestContext *context,
                     const logicalPageBuffer *lpb,
-                    csMetaRecord &cmr);
+                    csMetaBlock &cmb);
       
-   };//class csgpAccessor
+   };//class csMetaBlockPageAccessor
 }//class vessel
 }//class engine
 
-#endif//VESSEL_CSGP_ACCESSOR_H_
+#endif//VESSEL_CS_META_BLOCK_PAGE_ACCESSOR_H_

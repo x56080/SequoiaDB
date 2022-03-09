@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = csgpAccessor.cpp
+   Source File Name = csMetaBlockPageAccessor.cpp
 
    Descriptive Name =
 
@@ -33,7 +33,7 @@
 
 ******************************************************************************/
 
-#include "vessel/csgpAccessor.h"
+#include "vessel/csMetaBlockPageAccessor.h"
 #include "pdTrace.hpp"
 #include "vessel/logicalPageBuffer.h"
 
@@ -43,19 +43,19 @@ namespace vessel
 {
    static const UINT32 UPDATE_CS_META_TYPE_LID = 0;
 
-   csgpAccessor::csgpAccessor()
+   csMetaBlockPageAccessor::csMetaBlockPageAccessor()
    {}
 
-   csgpAccessor::~csgpAccessor()
+   csMetaBlockPageAccessor::~csMetaBlockPageAccessor()
    {}
 
-   INT32 csgpAccessor::read(requestContext *context,
-                            const logicalPageBuffer *lpb,
-                            csMetaRecord &cmr)
+   INT32 csMetaBlockPageAccessor::read(requestContext *context,
+                                       const logicalPageBuffer *lpb,
+                                       csMetaBlock &cmb)
    {
       INT32 rc = SDB_OK;
       const runtimePageBuffer *rpb = NULL;
-      const csMetaRecord *record = NULL;
+      const csMetaBlock *record = NULL;
       strictBuffer buffer;
 
       if (NULL == context ||
@@ -76,7 +76,7 @@ namespace vessel
          goto error;
       }
 
-      record = buffer.getReadableObjPtr<csMetaRecord>(0);
+      record = buffer.getReadableObjPtr<csMetaBlock>(0);
       if (NULL == record)
       {
          PD_LOG(PDERROR, "failed to get readable record ptr");
@@ -90,7 +90,7 @@ namespace vessel
          rc = SDB_VESSEL_PAGE_CRASHED;
          goto error;
       }
-      cmr = *record;      
+      cmb = *record;      
    done:
       return rc;
    error:

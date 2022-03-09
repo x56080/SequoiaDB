@@ -38,7 +38,6 @@
 #include "ossLikely.hpp"
 #include "dpsLogRecordDef.hpp"
 #include "vessel/vesselOptions.h"
-#include "vessel/collectionRecordPage.h"
 #include "vessel/logRecordContext.h"
 #include "vessel/IRedoLogger.h"
 #include "vessel/strSlice.h"

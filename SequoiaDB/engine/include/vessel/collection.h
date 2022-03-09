@@ -36,7 +36,7 @@
 #ifndef VESSEL_COLLECTION_H_
 #define VESSEL_COLLECTION_H_
 
-#include "vessel/collectionRecordPage.h"
+#include "vessel/clMetaBlockPage.h"
 #include "vessel/recordID.h"
 #include "vessel/strSlice.h"
 #include "vessel/vesselOptions.h"
@@ -85,29 +85,29 @@ namespace vessel
          {
             return NULL != _collectionSpace;
          }
-         OSS_INLINE const collectionRecord &getRecord()const
+         OSS_INLINE const clMetaBlock &getRecord()const
          {
-            return _record;
+            return _block;
          }
          OSS_INLINE const CHAR *getName()const
          {
-            return _record.name;
+            return _block.name;
          }
          OSS_INLINE UINT32 getLogicalID()const
          {
-            return _record.logicalCLID;
+            return _block.logicalCLID;
          }
          OSS_INLINE CL_MB_ID getMBID()const
          {
-            return _record.mbID;
+            return _block.mbID;
          }
          OSS_INLINE utilCLInnerID getInnerID()const
          {
-            return _record.innerID;
+            return _block.innerID;
          }
          OSS_INLINE UTIL_COMPRESSOR_TYPE getCompressionType()const
          {
-            return (UTIL_COMPRESSOR_TYPE)(_record.compressionType);
+            return (UTIL_COMPRESSOR_TYPE)(_block.compressionType);
          }
 
          globalCollectionId getGlobalId()const;
@@ -122,7 +122,7 @@ namespace vessel
 
          /// init when startup
          INT32 initWhenOpen(requestContext *context,
-                            const collectionRecord &record,
+                            const clMetaBlock &block,
                             collectionSpace *cs);
 
          INT32 destroy(requestContext *context);
@@ -457,7 +457,7 @@ namespace vessel
          
       private:
          //ossSpinSLatch _recordLatch;
-         collectionRecord _record;
+         clMetaBlock _block;
          collectionSpace *_collectionSpace = NULL;
          UINT32 _totalLvl0Count = 0;
          UINT32 _totalRdpCount = 0;

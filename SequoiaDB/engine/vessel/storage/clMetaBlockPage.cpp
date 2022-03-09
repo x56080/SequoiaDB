@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = collectionRecordPage.cpp
+   Source File Name = clMetaBlockPage.cpp
 
    Descriptive Name =
 
@@ -33,13 +33,13 @@
 
 ******************************************************************************/
 
-#include "vessel/collectionRecordPage.h"
+#include "vessel/clMetaBlockPage.h"
 
 namespace engine
 {
 namespace vessel
 {
-   INT32 getCapacityOfCLRecordPage(UINT32 pageSize, UINT32 &capacity)
+   INT32 getCapacityOfCLMetaBlockPage(UINT32 pageSize, UINT32 &capacity)
    {
       INT32 rc = SDB_OK;
       if (DMS_PAGE_SIZE32K != pageSize &&
@@ -49,24 +49,24 @@ namespace vessel
          goto error;
       }
 
-      capacity = (pageSize - PAGE_HEAD_SIZE - PAGE_TAIL_SIZE) / COLLECTION_DISK_RECORD_LEN;
+      capacity = (pageSize - PAGE_HEAD_SIZE - PAGE_TAIL_SIZE) / CL_DISK_META_BLOCK_LEN;
    done:
       return rc;
    error:
       goto done;
    }
 
-   BOOLEAN initCollectionRecordPage(UINT32 pageSize,
-                                    PAGE_ID pid,
-                                    PAGE_ID lpid,
-                                    PAGE_SNAPSHOT_VERION psv,
-                                    void *buf)
+   BOOLEAN initCLMetaBlockPage(UINT32 pageSize,
+                               PAGE_ID pid,
+                               PAGE_ID lpid,
+                               PAGE_SNAPSHOT_VERION psv,
+                               void *buf)
    {
       BOOLEAN r = FALSE;
       UINT32 capacity = 0;
-      collectionRecord record;
+      clMetaBlock block;
       UINT32 offset = 0;
-      if (SDB_OK != getCapacityOfCLRecordPage(pageSize, capacity))
+      if (SDB_OK != getCapacityOfCLMetaBlockPage(pageSize, capacity))
       {
          goto done;
       }
@@ -80,25 +80,25 @@ namespace vessel
       offset = PAGE_HEAD_SIZE;
       for (UINT32 i = 0; i < capacity; ++i)
       {
-         collectionRecord *recordPtr = (collectionRecord *)((ossValuePtr)buf + offset);
-         ossMemcpy(recordPtr, &record, COLLECTION_RECORD_LEN);
-         offset += COLLECTION_DISK_RECORD_LEN;
+         clMetaBlock *blockPtr = (clMetaBlock *)((ossValuePtr)buf + offset);
+         ossMemcpy(blockPtr, &block, CL_META_BLOCK_LEN);
+         offset += CL_DISK_META_BLOCK_LEN;
       }
       r = TRUE;
    done:
       return r;
    }
 
-    BOOLEAN getCollectionRecordIfValid(const void *ptr,
-                                       UINT32 i,
-                                       collectionRecord &record)
+   BOOLEAN getCLMetaBlockIfValid(const void *ptr,
+                                 UINT32 i,
+                                 clMetaBlock &record)
    {
       BOOLEAN r = FALSE;
       SDB_ASSERT(NULL != ptr, "can not be null");
-      const collectionRecord *cr = (const collectionRecord *)
-                                   ((ossValuePtr)ptr +
-                                    PAGE_HEAD_SIZE +
-                                    i * COLLECTION_DISK_RECORD_LEN);
+      const clMetaBlock *cr = (const clMetaBlock *)
+                              ((ossValuePtr)ptr +
+                              PAGE_HEAD_SIZE +
+                              i * CL_DISK_META_BLOCK_LEN);
    
       if (cr->isValid())
       {
@@ -108,17 +108,17 @@ namespace vessel
       return r;             
    }
 
-   PAGE_ID getCrpLpidOfCollection(UINT32 pageSize, CL_MB_ID mbID)
+   PAGE_ID getMbpLpidOfCollection(UINT32 pageSize, CL_MB_ID mbID)
    {
       PAGE_ID lpid = INVALID_PAGE_ID;
       UINT32 capacity = 0;
-      INT32 rc = getCapacityOfCLRecordPage(pageSize, capacity);
+      INT32 rc = getCapacityOfCLMetaBlockPage(pageSize, capacity);
       if (SDB_OK != rc)
       {
          goto done;
       }
 
-      lpid = mbID / capacity + COLLECTION_RECORD_PAGE_MIN_LPID;
+      lpid = mbID / capacity + CL_META_BLOCK_PAGE_MIN_LPID;
    done:
       return lpid;
    }

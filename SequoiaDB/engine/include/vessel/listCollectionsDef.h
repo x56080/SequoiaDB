@@ -38,7 +38,7 @@
 
 #include "vessel/vesselIdDef.h"
 #include "../bson/bson.hpp"
-#include "vessel/collectionRecordPage.h"
+#include "vessel/clMetaBlockPage.h"
 
 namespace engine
 {
@@ -54,7 +54,7 @@ namespace vessel
    static const CHAR * const CL_DUMP_RECORD_FIELD_MAX_STRIPING = "max_striping";
 
    bson::BSONObj dumpCollectionWhenList(UINT32 csLogicalID,
-                                        const collectionRecord &record);
+                                        const clMetaBlock &block);
 
 }//namespace vessel
 }//namespace engine

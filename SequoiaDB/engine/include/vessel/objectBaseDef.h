@@ -50,7 +50,14 @@ namespace vessel
    {
       CS_TYPE_INVALID = 0,
       CS_TYPE_NORMAL = 1,
-   };
+   };//enum CS_TYPE
+
+   enum CL_TYPE
+   {
+      CL_TYPE_INVALID = 0,
+      CL_TYPE_NORMAL = 1,
+      CL_TYPE_MAX = 65535,
+   };//enum CL_TYPE
 } // namespace vessel
 
 } // namespace engine
