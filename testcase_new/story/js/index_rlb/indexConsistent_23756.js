@@ -2,7 +2,7 @@
  * @Description   : seqDB-23756:创建索引后，组内新增节点
  * @Author        : Yi Pan
  * @CreateTime    : 2021.03.29
- * @LastEditTime  : 2022.01.20
+ * @LastEditTime  : 2022.03.09
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -38,7 +38,7 @@ function test ( testPara )
       // 校验任务和索引一致性
       for( var i = 1; i < 6; i++ )
       {
-         commCheckIndexConsistent( db, COMMCSNAME, COMMCLNAME + "_23756", indexName + i, false );
+         commCheckIndexConsistent( db, COMMCSNAME, COMMCLNAME + "_23756", indexName + i, true );
       }
    }
    finally

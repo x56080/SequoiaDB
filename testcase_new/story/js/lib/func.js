@@ -2066,12 +2066,12 @@ function commCheckType ( variable, expType )
 function commCheckIndexConsistent ( db, csname, clname, idxname, isExist )
 {
    if( isExist == undefined ) { isExist = true; }
+   var nodes = commGetCLNodes( db, csname + "." + clname );
+   var timeOut = 300000;
+   var doTime = 0;
    if( isExist )
    {
       var expIndex = null;
-      var doTime = 0;
-      var timeOut = 300000;
-      var nodes = commGetCLNodes( db, csname + "." + clname );
       do
       {
          var sucNodes = 0;
@@ -2123,7 +2123,7 @@ function commCheckIndexConsistent ( db, csname, clname, idxname, isExist )
 
       if( doTime >= timeOut )
       {
-         throw new Error( "check timeout index not synchronized !" );
+         throw new Error( "check timeout index not synchronized ! index exist:" + expIndex );
       }
    }
    else
@@ -2131,7 +2131,7 @@ function commCheckIndexConsistent ( db, csname, clname, idxname, isExist )
       var indexDef = "";
       do
       {
-         var nodes = commGetCLNodes( db, csname + "." + clname );
+         var sucNodes = 0;
          for( var i = 0; i < nodes.length; i++ )
          {
             var seqdb = new Sdb( nodes[i].HostName + ":" + nodes[i].svcname );
@@ -2159,16 +2159,16 @@ function commCheckIndexConsistent ( db, csname, clname, idxname, isExist )
                {
                   throw new Error( e );
                }
+               sucNodes++;
             }
             seqdb.close();
          }
          sleep( 200 );
          doTime += 200;
-      } while( doTime < timeOut )
-
+      } while( doTime < timeOut && sucNodes < nodes.length )
       if( doTime >= timeOut )
       {
-         throw new Error( "check timeout index not synchronized ! index exist:" + JSON.string( indexDef ) + ", nodename : " + seqdb );
+         throw new Error( "check timeout index not synchronized ! index exist:" + indexDef + ", nodename : " + seqdb );
       }
    }
 }

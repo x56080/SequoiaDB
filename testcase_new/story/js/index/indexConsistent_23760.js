@@ -2,7 +2,7 @@
  * @Description   : seqDB-23760:主表上创建索引，所有子表上存在相同索引
  * @Author        : Yi Pan
  * @CreateTime    : 2021.03.29
- * @LastEditTime  : 2021.09.22
+ * @LastEditTime  : 2022.03.09
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -49,7 +49,7 @@ function test ()
    } );
    checkNoTask( "Create index", csName, mainCLName, indexName2 );
    checkIndexExist( db, csName, mainCLName, indexName2, false );
-   commCheckIndexConsistent( db, csName, subCLName2, indexName1, false );
+   commCheckIndexConsistent( db, csName, subCLName2, indexName1, true );
    commCheckIndexConsistent( db, csName, subCLName2, indexName2, false );
 
    //清除环境
