@@ -36,9 +36,9 @@ import com.sequoiadb.task.TaskMgr;
 public class NetSplit2569 extends SdbTestBase {
     private String clName = "testcaseCL2569";
     private String srcGroupName;
-    private String destGroupName;
+    private String dstGroupName;
     private GroupMgr groupMgr = null;
-    private int totalCount;
+    private int writeLobCount;
     private String connectUrl;
     private String brokenNetHost;
     private boolean clearFlag = false;
@@ -48,19 +48,16 @@ public class NetSplit2569 extends SdbTestBase {
     public void setUp() {
         Sequoiadb sdb = null;
         try {
-
             groupMgr = GroupMgr.getInstance();
-
             if ( !groupMgr.checkBusiness( 20 ) ) {
                 throw new SkipException( "checkBusiness return false" );
             }
             sdb = new Sequoiadb( coordUrl, "", "" );
             List< GroupWrapper > glist = groupMgr.getAllDataGroup();
-
             srcGroupName = glist.get( 0 ).getGroupName();
-            destGroupName = glist.get( 1 ).getGroupName();
-            System.out.println( "split srcRG:" + srcGroupName + " destRG:"
-                    + destGroupName );
+            dstGroupName = glist.get( 1 ).getGroupName();
+            System.out.println(
+                    "split srcRG:" + srcGroupName + " destRG:" + dstGroupName );
 
             CollectionSpace commCS = sdb.getCollectionSpace( csName );
             DBCollection cl = commCS.createCollection( clName,
@@ -70,7 +67,7 @@ public class NetSplit2569 extends SdbTestBase {
             insertData( cl, 0, 1000 );// 写入待切分的记录（1000普通记录，1000lob）
 
             // 调整主机
-            brokenNetHost = groupMgr.getGroupByName( destGroupName ).getMaster()
+            brokenNetHost = groupMgr.getGroupByName( dstGroupName ).getMaster()
                     .hostName();
             Utils.reelect( brokenNetHost, srcGroupName, Utils.CATA_RG_NAME );
             connectUrl = CommLib.getSafeCoordUrl( brokenNetHost );
@@ -94,8 +91,8 @@ public class NetSplit2569 extends SdbTestBase {
             String id = lob.getID().toString();
             lob.write( id.getBytes() );
             lob.close();
+            writeLobCount++;
         }
-        totalCount = totalCount + ( end - begin );
     }
 
     @Test
@@ -109,7 +106,6 @@ public class NetSplit2569 extends SdbTestBase {
             mgr.addTask( new Split() );
             mgr.addTask( new Insert() );
             mgr.execute();
-
             Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
             // 最长等待2分钟的环境恢复
@@ -132,9 +128,15 @@ public class NetSplit2569 extends SdbTestBase {
                 // Assert.assertEquals(srcGroup.checkInspect(60), true);
                 // Assert.assertEquals(destGroup.checkInspect(60), true);
 
-                long destCount = checkGroupLob( db, destGroupName );
-                long srcCount = checkGroupLob( db, srcGroupName );
-                Assert.assertEquals( destCount + srcCount, totalCount );
+                long dstLobCount = checkGroupLob( db, dstGroupName );
+                long srcLobCount = checkGroupLob( db, srcGroupName );
+                DBCursor cursor = cl.listLobs();
+                int dbLobCount = 0;
+                while ( cursor.hasNext() ) {
+                    cursor.getNext();
+                    dbLobCount++;
+                }
+                Assert.assertEquals( dstLobCount + srcLobCount, dbLobCount );
             }
             clearFlag = true;
         } catch ( ReliabilityException e ) {
@@ -148,37 +150,34 @@ public class NetSplit2569 extends SdbTestBase {
 
     }
 
-    private long checkGroupLob( Sequoiadb sdb, String destGroupName ) {
-        Sequoiadb destDataNode = null;
+    private long checkGroupLob( Sequoiadb sdb, String groupName ) {
+        Sequoiadb dataNode = null;
         DBCursor cursor = null;
         int lobCount = 0;
         try {
-            destDataNode = sdb.getReplicaGroup( destGroupName ).getMaster()
-                    .connect();// 获得源主节点链接
-            DBCollection destCL = destDataNode.getCollectionSpace( csName )
+            dataNode = sdb.getReplicaGroup( groupName ).getMaster().connect();// 获得源主节点链接
+            DBCollection destCL = dataNode.getCollectionSpace( csName )
                     .getCollection( clName );
-
             cursor = destCL.listLobs();
-
             while ( cursor.hasNext() ) {
                 cursor.getNext();
                 lobCount++;
             }
             // 数据量应在totalCount / 2条左右（切分范围2048-4096）
             Assert.assertEquals(
-                    lobCount > totalCount / 2 - ( totalCount / 2 * 0.3 )
-                            && lobCount < totalCount / 2
-                                    + ( totalCount / 2 * 0.3 ),
-                    true, "srcGroup count:" + lobCount );
-
+                    lobCount > writeLobCount / 2 - ( writeLobCount / 2 * 0.3 )
+                            && lobCount < writeLobCount / 2
+                                    + ( writeLobCount / 2 * 0.3 ),
+                    true, groupName + " = " + lobCount + ", totalCount = "
+                            + writeLobCount );
         } catch ( BaseException e ) {
             Assert.fail( e.getMessage() + "\r\n" + Utils.getStackString( e ) );
         } finally {
             if ( cursor != null ) {
                 cursor.close();
             }
-            if ( destDataNode != null ) {
-                destDataNode.close();
+            if ( dataNode != null ) {
+                dataNode.close();
             }
         }
         return lobCount;
@@ -231,7 +230,7 @@ public class NetSplit2569 extends SdbTestBase {
                 DBCollection cl = sdb.getCollectionSpace( csName )
                         .getCollection( clName );
                 try {
-                    cl.split( srcGroupName, destGroupName,
+                    cl.split( srcGroupName, dstGroupName,
                             ( BSONObject ) JSON.parse( "{Partition:2048}" ), // 切分
                             ( BSONObject ) JSON.parse( "{Partition:4096}" ) );
                     splitComplete = true;
