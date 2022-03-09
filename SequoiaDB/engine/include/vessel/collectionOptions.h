@@ -37,7 +37,7 @@
 #define VESSEL_COLLECTION_OPTIONS_H_
 
 #include "vessel/vesselIdDef.h"
-#include "vessel/collectionRecordPage.h"
+#include "vessel/clMetaBlockPage.h"
 #include "../bson/bson.hpp"
 #include "dmsEngineDef.hpp"
 #include "dmsStripingId.hpp"
@@ -67,7 +67,7 @@ namespace vessel
 
 
       public:
-         UINT16 type = COLLECTION_TYPE_NORMAL;
+         UINT16 type = CL_TYPE_NORMAL;
          UINT16 minFreePercent = 10; ///valid range [0, 50]
          UTIL_COMPRESSOR_TYPE compressionType = UTIL_COMPRESSOR_INVALID;
          dmsStripingRange stripingRange;

@@ -39,7 +39,7 @@
 #include "vessel/logicalPageSpace.h"
 #include "vessel/dataStorageFileCluster.h"
 #include "vessel/collectionSpaceOptions.h"
-#include "vessel/collectionSpaceGlobalPage.h"
+#include "vessel/csMetaBlockPage.h"
 
 namespace engine
 {
@@ -66,11 +66,11 @@ namespace vessel
 
       public:
          INT32 initMetaPageWhenCreateCS(requestContext *context,
-                                        const csMetaRecord &record,
+                                        const csMetaBlock &block,
                                         const slice &options);
 
-         INT32 readMetaRecordWhenOpen(requestContext *context,
-                                      csMetaRecord &record);
+         INT32 readMetaBlockWhenOpen(requestContext *context,
+                                     csMetaBlock &block);
 
          fsmFile *getFsmFile()
          {

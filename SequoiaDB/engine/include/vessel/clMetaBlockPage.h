@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = collectionRecordPage.h
+   Source File Name = clMetaBlockPage.h
 
    Descriptive Name =
 
@@ -33,8 +33,8 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_COLLECTION_RECORD_PAGE_H_
-#define VESSEL_COLLECTION_RECORD_PAGE_H_
+#ifndef VESSEL_CL_META_BLOCK_PAGE_H_
+#define VESSEL_CL_META_BLOCK_PAGE_H_
 
 #include "vessel/vesselIdDef.h"
 #include "dms.hpp"
@@ -42,49 +42,45 @@
 #include "utilCompression.hpp"
 #include "vessel/indexDef.h"
 #include "dmsStripingId.hpp"
+#include "vessel/objectBaseDef.h"
 
 namespace engine
 {
 namespace vessel
 {
-   static constexpr PAGE_ID COLLECTION_RECORD_PAGE_MIN_LPID = 1;
+   constexpr PAGE_ID CL_META_BLOCK_PAGE_MIN_LPID = 1;
 
-   const static UINT32 COLLECTION_RECORD_VERSION = 1;
-   const static UINT32 COLLECTION_RECORD_INVALID_VERSION = 0;
-   const static UINT32 COLLECTION_ROUTE_PAGE_SLOT_COUNT = 4;
-   const static UINT32 COLLECTION_ROOT_LVL0 = 0;
-   const static UINT32 COLLECTION_FIRST_ROOT_LVL1 = 1;
-   const static UINT32 COLLECTION_SECOND_ROOT_LVL1 = 2;
-   const static UINT32 COLLECTION_ROOT_LVL2 = 3;
-   const static UINT32 COLLECTION_MAX_ROUTE_ROOT = COLLECTION_ROOT_LVL2;
-   const static UINT32 COLLECTION_MIN_ROUTE_ROOT = COLLECTION_ROOT_LVL0;
+   constexpr UINT32 CL_META_BLOCK_VERSION = 1;
+   constexpr UINT32 CL_META_BLOCK_INVALID_VERSION = 0;
+   constexpr UINT32 COLLECTION_ROUTE_PAGE_SLOT_COUNT = 4;
+   constexpr UINT32 COLLECTION_ROOT_LVL0 = 0;
+   constexpr UINT32 COLLECTION_FIRST_ROOT_LVL1 = 1;
+   constexpr UINT32 COLLECTION_SECOND_ROOT_LVL1 = 2;
+   constexpr UINT32 COLLECTION_ROOT_LVL2 = 3;
+   constexpr UINT32 COLLECTION_MAX_ROUTE_ROOT = COLLECTION_ROOT_LVL2;
+   constexpr UINT32 COLLECTION_MIN_ROUTE_ROOT = COLLECTION_ROOT_LVL0;
 
-   const static UINT64 COLLECTION_UPDATE_MASK_ROUTE_PAGES = 0x01ull;
+   constexpr UINT64 COLLECTION_UPDATE_MASK_ROUTE_PAGES = 0x01ull;
 
-   enum COLLECTION_TYPE
-   {
-      COLLECTION_TYPE_INVALID = 0,
-      COLLECTION_TYPE_NORMAL = 1,
-      COLLECTION_TYPE_MAX = 65535,
-   };//enum COLLECTION_TYPE
+
    
 #pragma pack(4)
-   struct collectionRecord
+   struct clMetaBlock
    {
-      collectionRecord()
+      clMetaBlock()
       {
       }
 
-      OSS_INLINE collectionRecord &operator=(const collectionRecord &o)
+      OSS_INLINE clMetaBlock &operator=(const clMetaBlock &o)
       {
-         ossMemcpy(this, &o, sizeof(collectionRecord));
+         ossMemcpy(this, &o, sizeof(clMetaBlock));
          return *this;
       }
 
       OSS_INLINE BOOLEAN isValid()const
       {
-         return COLLECTION_RECORD_VERSION == version &&
-                COLLECTION_TYPE_INVALID != type &&
+         return CL_META_BLOCK_VERSION == version &&
+                CL_TYPE_INVALID != type &&
                 DMS_INVALID_LOGICCLID != logicalCLID &&
                 INVALID_CL_MB_ID != mbID;
       }
@@ -96,8 +92,8 @@ namespace vessel
 
       void reset()
       {
-         version = COLLECTION_RECORD_INVALID_VERSION;
-         type = COLLECTION_TYPE_INVALID;
+         version = CL_META_BLOCK_INVALID_VERSION;
+         type = CL_TYPE_INVALID;
          mbID = INVALID_CL_MB_ID;
          innerID = UTIL_UNIQUEID_NULL;
          logicalCLID = DMS_INVALID_LOGICCLID;
@@ -112,7 +108,7 @@ namespace vessel
       }
 
       UINT32 version = 0;
-      UINT16 type = COLLECTION_TYPE_INVALID;
+      UINT16 type = CL_TYPE_INVALID;
       UINT16 mbID = INVALID_CL_MB_ID;
       UINT32 innerID = UTIL_UNIQUEID_NULL;
       UINT32 logicalCLID = DMS_INVALID_LOGICCLID;
@@ -125,36 +121,37 @@ namespace vessel
       UINT8 compressionType = UTIL_COMPRESSOR_INVALID;
       UINT8 minFreePercent = 0;
       UINT16 pad = 0;
-   };//class collectionRecord
-   const UINT32 COLLECTION_RECORD_LEN = sizeof(collectionRecord);
+   };//class clMetaBlock
+   constexpr UINT32 CL_META_BLOCK_LEN = sizeof(clMetaBlock);
 
-   struct collectionRecordOnDisk
+   struct clMetaBlockOnDisk
    {
-      collectionRecordOnDisk()
+      clMetaBlockOnDisk()
       {
          ossMemset(pad, 0, sizeof(pad));
       }
-      collectionRecord record;
-      CHAR pad[1024 - COLLECTION_RECORD_LEN];
-   };//class collectionRecordOnDisk
-   const UINT32 COLLECTION_DISK_RECORD_LEN = sizeof(collectionRecordOnDisk);
+      clMetaBlock block;
+      CHAR pad[1024 - CL_META_BLOCK_LEN];
+   };//class clMetaBlockOnDisk
+   constexpr UINT32 CL_DISK_META_BLOCK_LEN = sizeof(clMetaBlockOnDisk);
+   static_assert(1024 == CL_DISK_META_BLOCK_LEN, "invalid size");
 
-   INT32 getCapacityOfCLRecordPage(UINT32 pageSize, UINT32 &capacity);
+   INT32 getCapacityOfCLMetaBlockPage(UINT32 pageSize, UINT32 &capacity);
 
-   BOOLEAN initCollectionRecordPage(UINT32 pageSize,
-                                    PAGE_ID pid,
-                                    PAGE_ID lpid,
-                                    PAGE_SNAPSHOT_VERION psv,
-                                    void *buf);
+   BOOLEAN initCLMetaBlockPage(UINT32 pageSize,
+                               PAGE_ID pid,
+                               PAGE_ID lpid,
+                               PAGE_SNAPSHOT_VERION psv,
+                               void *buf);
 
-   BOOLEAN getCollectionRecordIfValid(const void *ptr,
-                                      UINT32 i,
-                                      collectionRecord &record);
+   BOOLEAN getCLMetaBlockIfValid(const void *ptr,
+                                 UINT32 i,
+                                 clMetaBlock &block);
 
-   PAGE_ID getCrpLpidOfCollection(UINT32 pageSize, CL_MB_ID mbID);
+   PAGE_ID getMbpLpidOfCollection(UINT32 pageSize, CL_MB_ID mbID);
 #pragma pack()
 
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_COLLECTION_RECORD_H_
+#endif//VESSEL_CL_META_BLOCK_PAGE_H_

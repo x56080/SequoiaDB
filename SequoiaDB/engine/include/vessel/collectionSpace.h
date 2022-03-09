@@ -37,7 +37,7 @@
 #define VESSEL_COLLECTION_SPACE_H_
 
 #include "vessel/vesselIdDef.h"
-#include "vessel/collectionSpaceGlobalPage.h"
+#include "vessel/csMetaBlockPage.h"
 #include "vessel/strSlice.h"
 #include "vessel/listCollectionSpaceDef.h"
 #include "vessel/listCollectionsDef.h"
@@ -80,36 +80,36 @@ namespace vessel
          }
          OSS_INLINE const CHAR *getCSName()const
          {
-            return _recordInMem.name;
+            return _blockInMem.name;
          }
          OSS_INLINE strSlice getCSNameSlice()const
          {
-            return strSlice(_recordInMem.name);
+            return strSlice(_blockInMem.name);
          }
          OSS_INLINE UINT32 getUniqueID()const
          {
-            return _recordInMem.uniqueID; 
+            return _blockInMem.uniqueID; 
          }
 
          OSS_INLINE UINT32 getStatus()const
          {
-            return _recordInMem.status;
+            return _blockInMem.status;
          }
          OSS_INLINE UINT32 getFlags()const
          {
-            return _recordInMem.flags;
+            return _blockInMem.flags;
          }
          OSS_INLINE UINT32 getVersion()const
          {
-            return _recordInMem.version;
+            return _blockInMem.version;
          }
          OSS_INLINE BOOLEAN isOnline()const
          {
-            return _recordInMem.isOnline();
+            return _blockInMem.isOnline();
          }
          OSS_INLINE UINT32 getLogicalID()const
          {
-            return _recordInMem.logicalID;
+            return _blockInMem.logicalID;
          }
          OSS_INLINE storageUnit *getSU()const
          {
@@ -185,7 +185,7 @@ namespace vessel
 
          INT32 initCollectionsFromDisk(requestContext *context);
          INT32 initCollection(requestContext *context,
-                              const collectionRecord *record);
+                              const clMetaBlock *record);
 
          INT32 ensureCollectionHolder(CL_MB_ID mbID, collectionObjHolder **holder);
 
@@ -193,8 +193,8 @@ namespace vessel
 
          void releaseCollectionObject(CL_MB_ID mbID);
 
-         INT32 ensureCollectionRecordPage(requestContext *context,
-                                          CL_MB_ID mbID);
+         INT32 ensureCLMetaBlockPage(requestContext *context,
+                                     CL_MB_ID mbID);
 
          INT32 precreateCL(const strSlice &clName,
                            utilCLInnerID innerID,
@@ -248,7 +248,7 @@ namespace vessel
          BOOLEAN _isOpen = FALSE;
          storageUnit *_su = NULL;
          ossSpinSLatchPOSIX _latch;
-         csMetaRecord _recordInMem;
+         csMetaBlock _blockInMem;
 
          inMemBitmap _allocator;
          lazyArray<collectionObjHolderGroup> _collections;

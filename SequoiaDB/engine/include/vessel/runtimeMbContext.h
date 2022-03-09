@@ -39,7 +39,7 @@
 #include "vessel/strSlice.h"
 #include "vessel/objectIdentifier.h"
 #include "vessel/objectLatchMap.hpp"
-#include "vessel/collectionRecordPage.h"
+#include "vessel/clMetaBlockPage.h"
 
 namespace engine
 {
@@ -54,7 +54,7 @@ namespace vessel
          runtimeMbContext &operator=(const runtimeMbContext &) = delete;
 
       public:
-         void init(const collectionRecord &cmr,
+         void init(const clMetaBlock &cmb,
                    const collectionSpaceId &csIdentifer);
          void fini();
 

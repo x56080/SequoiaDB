@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = collectionSpaceGlobalPage.h
+   Source File Name = csMetaBlockPage.h
 
    Descriptive Name =
 
@@ -33,38 +33,24 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_COLLECTION_SPACE_GLOBAL_PAGE_H_
-#define VESSEL_COLLECTION_SPACE_GLOBAL_PAGE_H_
+#ifndef VESSEL_CS_META_BLOCK_PAGE_H_
+#define VESSEL_CS_META_BLOCK_PAGE_H_
 
 #include "vessel/pageDef.h"
 #include "dms.hpp"
 #include "utilUniqueID.hpp"
 #include "vessel/strSlice.h"
+#include "vessel/objectBaseDef.h"
 
 namespace engine
 {
 namespace vessel
 {
-   static const UINT32 CMR_VERSION_1 = 1;
-
-   enum CMR_STATUS
-   {
-      CMR_STATUS_INVALID = 0,
-      CMR_STATUS_ONLINE = 1,
-      CMR_STATUS_REMOVING = 2,
-      CMR_STATUS_REMOVED_BUT_SNAPSHOT = 3,
-   };
-
-   enum CMR_TYPE
-   {
-      CMR_TYPE_INVALID = 0,
-      CMR_TYPE_NORMAL = 1,
-   };
-
-   static const PAGE_ID COLLECTION_SPACE_GP_LPID = 0;
+   constexpr UINT32 CS_META_BLOCK_VERSION_1 = 1;
+   constexpr PAGE_ID CS_META_BLOCK_PAGE_LPID = 0;
 
 #pragma pack(4)
-   struct csMetaRecord
+   struct csMetaBlock
    {
       UINT32 version = 0;
       UINT16 status = 0;
@@ -74,7 +60,7 @@ namespace vessel
       UINT32 logicalID = DMS_INVALID_LOGICCSID;
       CHAR name[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {};
 
-      csMetaRecord &operator=(const csMetaRecord &o)
+      csMetaBlock &operator=(const csMetaBlock &o)
       {
          version = o.version;
          status = o.status;
@@ -86,13 +72,13 @@ namespace vessel
          return *this;
       }
    
-      OSS_INLINE csMetaRecord(){}
+      OSS_INLINE csMetaBlock(){}
 
-      OSS_INLINE ~csMetaRecord(){}
+      OSS_INLINE ~csMetaBlock(){}
 
       OSS_INLINE BOOLEAN isOnline()const
       {
-         return CMR_STATUS_ONLINE == status;
+         return CS_STATUS_ONLINE == status;
       }
 
       BOOLEAN isValid()const;
@@ -107,18 +93,18 @@ namespace vessel
          logicalID = DMS_INVALID_LOGICCSID;
          ossMemset(name, 0, sizeof(name));
       }
-   };//struct csMetaRecord
-   const UINT32 CS_META_RECORD_LEN = sizeof(csMetaRecord);
+   };//struct csMetaBlock
+   const UINT32 CS_META_BLOCK_LEN = sizeof(csMetaBlock);
 
 #pragma pack()
 
 
-   BOOLEAN initGmp(UINT32 pageSize,
-                   PAGE_ID pid,
-                   PAGE_ID lpid,
-                   PAGE_SNAPSHOT_VERION psv,
-                   void *buf);
+   BOOLEAN initCSMetaBlockPage(UINT32 pageSize,
+                               PAGE_ID pid,
+                               PAGE_ID lpid,
+                               PAGE_SNAPSHOT_VERION psv,
+                               void *buf);
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_COLLECTION_SPACE_GLOBAL_PAGE_H_
+#endif//VESSEL_CS_META_BLOCK_PAGE_H_

@@ -44,8 +44,8 @@
 #include "vessel/collection.h"
 #include "vessel/listCLCursor.h"
 #include "vessel/IRedoLogger.h"
-#include "vessel/crpIniter.h"
-#include "vessel/collectionRecordPage.h"
+#include "vessel/clMetaBlockPageIniter.h"
+#include "vessel/csMetaBlockPageAccessor.h"
 #include "vessel/storageFileMaintainer.h"
 
 namespace engine
@@ -67,8 +67,8 @@ namespace vessel
    collectionSpaceId collectionSpace::getIdentifier()const
    {
       SDB_ASSERT(isOpen(), "must be open");
-      return collectionSpaceId(_recordInMem.logicalID,
-                               _recordInMem.uniqueID,
+      return collectionSpaceId(_blockInMem.logicalID,
+                               _blockInMem.uniqueID,
                                getSpaceId());
    }
 
@@ -114,18 +114,18 @@ namespace vessel
          goto error;
       }
 
-      _recordInMem.version = CMR_VERSION_1;
-      _recordInMem.status = CMR_STATUS_ONLINE;
-      _recordInMem.type = CMR_TYPE_NORMAL;
-      _recordInMem.flags = 0;
-      _recordInMem.logicalID = logicalID;
-      _recordInMem.uniqueID = uniqueId;
-      ossMemcpy(_recordInMem.name, name.str(), name.strLen() + 1);
+      _blockInMem.version = CS_META_BLOCK_VERSION_1;
+      _blockInMem.status = CS_STATUS_ONLINE;
+      _blockInMem.type = CS_TYPE_NORMAL;
+      _blockInMem.flags = 0;
+      _blockInMem.logicalID = logicalID;
+      _blockInMem.uniqueID = uniqueId;
+      ossMemcpy(_blockInMem.name, name.str(), name.strLen() + 1);
 
       optionsObj = options.toBson();
       optionsSlice.reset(optionsObj.objsize(), optionsObj.objdata());
       rc = su->getMainDataSpace().initMetaPageWhenCreateCS(context,
-                                                           _recordInMem,
+                                                           _blockInMem,
                                                            optionsSlice);
       if (SDB_OK != rc)
       {
@@ -166,7 +166,7 @@ namespace vessel
       _isOpen = TRUE;
       _su = su;
 
-      rc = su->getMainDataSpace().readMetaRecordWhenOpen(context, _recordInMem);
+      rc = su->getMainDataSpace().readMetaBlockWhenOpen(context, _blockInMem);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to read meta data when open:%d", rc);
@@ -197,7 +197,7 @@ namespace vessel
    {
       _isOpen = FALSE;
       _su = NULL;
-      _recordInMem.reset();
+      _blockInMem.reset();
       _allocator.fini();
       _collections.fini();
       _nextCLLogicalId = 0;
@@ -260,10 +260,10 @@ namespace vessel
          goto error;
       }
 
-      rc = ensureCollectionRecordPage(context, mbID);
+      rc = ensureCLMetaBlockPage(context, mbID);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to ensure cl record page:%d", rc);
+         PD_LOG(PDERROR, "failed to ensure cl meta block page:%d", rc);
          goto error;
       }
 
@@ -833,29 +833,29 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != _su, "can not be null");
-      UINT32 crpCapacity = 0;
+      UINT32 clmbpCapacity = 0;
       const storageCoreArgs &args = _su->getMainDataSpace().getStorageCoreArgs();
       mainDataSpace *mds = &(_su->getMainDataSpace());
-      collectionRecord record;
-      UINT32 totalCrpCount = 0;
+      clMetaBlock block;
+      UINT32 totalCLmbpCount = 0;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
 
-      rc = getCapacityOfCLRecordPage(args.pageSize, crpCapacity);
+      rc = getCapacityOfCLMetaBlockPage(args.pageSize, clmbpCapacity);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get capacity of cl record page:%d", rc);
+         PD_LOG(PDERROR, "failed to get capacity of cl meta block page:%d", rc);
          goto error;
       }
 
-      totalCrpCount = MAX_CL_MB_COUNT / crpCapacity;
-      if (0 != MAX_CL_MB_COUNT % crpCapacity)
+      totalCLmbpCount = MAX_CL_MB_COUNT / clmbpCapacity;
+      if (0 != MAX_CL_MB_COUNT % clmbpCapacity)
       {
-         ++totalCrpCount;
+         ++totalCLmbpCount;
       }
 
-      for (UINT32 i = 0; i < totalCrpCount; ++i)
+      for (UINT32 i = 0; i < totalCLmbpCount; ++i)
       {
-         PAGE_ID lpid = COLLECTION_RECORD_PAGE_MIN_LPID + i;
+         PAGE_ID lpid = CL_META_BLOCK_PAGE_MIN_LPID + i;
          logicalPageBuffer lpb;
          BOOLEAN mapped = FALSE;
 
@@ -880,20 +880,20 @@ namespace vessel
          rc = lpb.validatePage(PAGE_TYPE_CL_META);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "collection record page[%d] may be broken:%d", lpid, rc);
+            PD_LOG(PDERROR, "cl meta block page[%d] may be broken:%d", lpid, rc);
             goto error;
          }
 
-         for (UINT32 j = 0; j < crpCapacity; ++j)
+         for (UINT32 j = 0; j < clmbpCapacity; ++j)
          {
-            UINT32 tmp = i * crpCapacity + j;
+            UINT32 tmp = i * clmbpCapacity + j;
             if (MAX_CL_MB_COUNT <= tmp)
             {
                break;
             }
 
-            if (!getCollectionRecordIfValid(lpb.getRuntimeBuffer().getPageHead(),
-                                            j, record))
+            if (!getCLMetaBlockIfValid(lpb.getRuntimeBuffer().getPageHead(),
+                                       j, block))
             {
                continue;
             }
@@ -905,7 +905,7 @@ namespace vessel
                goto error;
             }
 
-            rc = initCollection(context, &record);
+            rc = initCollection(context, &block);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to init collection[%d]:%d", i, rc);
@@ -924,24 +924,24 @@ namespace vessel
    }
 
    INT32 collectionSpace::initCollection(requestContext *context,
-                                         const collectionRecord *record)
+                                         const clMetaBlock *block)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != record, "can not be null");
-      SDB_ASSERT(record->isValid(), "can not be invalid");
+      SDB_ASSERT(NULL != block, "can not be null");
+      SDB_ASSERT(block->isValid(), "can not be invalid");
       SDB_ASSERT(!context->isMbLocked(), "can not be locked");
 
       collectionObjHolder *holder = NULL;
       collection *cl = NULL;
 
-      rc = _allocator.occupy(record->mbID);
+      rc = _allocator.occupy(block->mbID);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to occupy mbid[%d], rc:%d", record->mbID, rc);
+         PD_LOG(PDERROR, "failed to occupy mbid[%d], rc:%d", block->mbID, rc);
          goto error;
       }
 
-      rc = ensureCollectionHolder(record->mbID, &holder);
+      rc = ensureCollectionHolder(block->mbID, &holder);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to ensure collection holder:%d", rc);
@@ -952,13 +952,13 @@ namespace vessel
       cl = holder->ensureObj();
       if (NULL == cl)
       {
-         PD_LOG(PDERROR, "failed to ensure cl obj[%d]", record->mbID);
+         PD_LOG(PDERROR, "failed to ensure cl obj[%d]", block->mbID);
          rc = SDB_OOM;
          goto error;
       }
 
-      context->lockMB(record->mbID, &holder->getLatch(), EXCLUSIVE);
-      rc = cl->initWhenOpen(context, *record, this);
+      context->lockMB(block->mbID, &holder->getLatch(), EXCLUSIVE);
+      rc = cl->initWhenOpen(context, *block, this);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init cl obj:%d", rc);
@@ -972,9 +972,9 @@ namespace vessel
          goto error;
       }
 
-      if (_nextCLLogicalId <= record->logicalCLID)
+      if (_nextCLLogicalId <= block->logicalCLID)
       {
-         _nextCLLogicalId = record->logicalCLID + 1;
+         _nextCLLogicalId = block->logicalCLID + 1;
       }
       
    done:
@@ -1062,8 +1062,8 @@ namespace vessel
       return;
    }
 
-   INT32 collectionSpace::ensureCollectionRecordPage(requestContext *context,
-                                                     CL_MB_ID mbID)
+   INT32 collectionSpace::ensureCLMetaBlockPage(requestContext *context,
+                                                CL_MB_ID mbID)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "must be open");
@@ -1072,14 +1072,14 @@ namespace vessel
 
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
       atomicOperationList *oplist = NULL;
-      crpIniter initer;
+      clMetaBlockPageIniter initer;
       BOOLEAN locked = FALSE;
       mainDataSpace &mds = _su->getMainDataSpace();
       UINT32 pageSize = mds.getStorageCoreArgs().pageSize;
-      PAGE_ID lpid = getCrpLpidOfCollection(pageSize, mbID);
+      PAGE_ID lpid = getMbpLpidOfCollection(pageSize, mbID);
       if (INVALID_PAGE_ID == lpid)
       {
-         PD_LOG(PDERROR, "failed to crp lpid of mb[%d]", mbID);
+         PD_LOG(PDERROR, "failed to get cl meta block page lpid of mb[%d]", mbID);
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
@@ -1388,7 +1388,7 @@ namespace vessel
       ossPoolString fullPath;
       OSSFILE file;
       CHAR nameBuffer[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {};
-      strSlice nameSlice(_recordInMem.name);
+      strSlice nameSlice(_blockInMem.name);
       UINT32 flags = OSS_READWRITE|OSS_EXCLUSIVE|OSS_REPLACE;
 
       const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;

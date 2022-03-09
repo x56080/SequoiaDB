@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = crpAccessor.h
+   Source File Name = clMetaBlockPageAccessor.h
 
    Descriptive Name =
 
@@ -33,11 +33,11 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_CRP_ACCESSOR_H_
-#define VESSEL_CRP_ACCESSOR_H_
+#ifndef VESSEL_CL_META_BLOCK_PAGE_ACCESSOR_H_
+#define VESSEL_CL_META_BLOCK_PAGE_ACCESSOR_H_
 
 #include "vessel/pageAccessor.h"
-#include "vessel/collectionRecordPage.h"
+#include "vessel/clMetaBlockPage.h"
 #include "vessel/strSlice.h"
 #include "vessel/slice.h"
 #include "vessel/collectionOptions.h"
@@ -48,15 +48,15 @@ namespace vessel
 {
    class logicalPageBuffer;
 
-   class crpAccessor : public pageAccessor
+   class clMetaBlockPageAccessor : public pageAccessor
    {
       public:
-         crpAccessor();
-         virtual ~crpAccessor();
+         clMetaBlockPageAccessor();
+         virtual ~clMetaBlockPageAccessor();
       public:
 
          INT32 createCL(requestContext *context,
-                        const collectionRecord &record,
+                        const clMetaBlock &block,
                         const createCLOptions &options,
                         logicalPageBuffer *lpb);
 
@@ -65,15 +65,15 @@ namespace vessel
 
          /// record on disk must be valid.
          INT32 updateRoutePages(requestContext *context,
-                                const collectionRecord &record,
+                                const clMetaBlock &block,
                                 logicalPageBuffer *lpb);
 
          INT32 truncateRouteMap(requestContext *context,
                                 logicalPageBuffer *lpb);
 
       private:
-         const collectionRecordOnDisk *getReadableDiskRecordPtr(const runtimePageBuffer *rpb,
-                                                                 UINT32 i);
+         const clMetaBlockOnDisk *getReadableDiskRecordPtr(const runtimePageBuffer *rpb,
+                                                           UINT32 i);
 
       private:
          INT32 prepareCreateCLLog(requestContext *context,
@@ -83,7 +83,7 @@ namespace vessel
 
          INT32 commitCreateCLLog(requestContext *context,
                                  const GLOBAL_PAGE_ID &gpid,
-                                 const collectionRecord &record,
+                                 const clMetaBlock &block,
                                  const slice &adjunct,
                                  logRecordContext *lrc);
                                   
@@ -96,15 +96,15 @@ namespace vessel
                                const GLOBAL_PAGE_ID &gpid,
                                PAGE_ID lpid,
                                UINT64 mask,
-                               const collectionRecord &oldRecord,
-                               const collectionRecord &newRecord);
+                               const clMetaBlock &oldBlock,
+                               const clMetaBlock &newBlock);
 
          INT32 commitRemoveLog(requestContext *context,
                                const runtimePageBuffer *rpb,
                                DPS_LSN_OFFSET &lsn);
 
-   };//class crpAccessor
+   };//class clMetaBlockPageAccessor
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_CRP_ACCESSOR_H_
+#endif//VESSEL_CL_META_BLOCK_PAGE_ACCESSOR_H_

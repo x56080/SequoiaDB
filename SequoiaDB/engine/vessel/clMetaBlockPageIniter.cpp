@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = crpIniter.cpp
+   Source File Name = clMetaBlockPageIniter.cpp
 
    Descriptive Name =
 
@@ -33,9 +33,9 @@
 
 ******************************************************************************/
 
-#include "vessel/crpIniter.h"
+#include "vessel/clMetaBlockPageIniter.h"
 #include "vessel/runtimePageBuffer.h"
-#include "vessel/collectionRecordPage.h"
+#include "vessel/clMetaBlockPage.h"
 #include "vessel/logRecordContext.h"
 #include "vessel/outerResource.h"
 #include "vessel/IRedoLogger.h"
@@ -46,10 +46,10 @@ namespace engine
 {
 namespace vessel
 {
-   INT32 crpIniter::initPage(requestContext *context,
-                             PAGE_ID lpid,
-                             PAGE_SNAPSHOT_VERION psv,
-                             runtimePageBuffer *rpb)
+   INT32 clMetaBlockPageIniter::initPage(requestContext *context,
+                                         PAGE_ID lpid,
+                                         PAGE_SNAPSHOT_VERION psv,
+                                         runtimePageBuffer *rpb)
    {
       INT32 rc = SDB_OK;
       logRecordContext lrc;
@@ -78,9 +78,9 @@ namespace vessel
          goto error;
       }
 
-      if (!initCollectionRecordPage(rpb->getPageSize(),
-                                    rpb->getGlobalPid().page(),
-                                    lpid, psv, rpb->getWritableBuffer().getWPtr()))
+      if (!initCLMetaBlockPage(rpb->getPageSize(),
+                               rpb->getGlobalPid().page(),
+                               lpid, psv, rpb->getWritableBuffer().getWPtr()))
       {
          PD_LOG(PDERROR, "failed to init crp");
          rc = SDB_VESSEL_INTERNAL_ERR;

@@ -35,8 +35,8 @@
 
 #include "vessel/mainDataSpace.h"
 #include "ossLikely.hpp"
-#include "vessel/collectionRecordPage.h"
-#include "vessel/csgpAccessor.h"
+#include "vessel/clMetaBlockPage.h"
+#include "vessel/csMetaBlockPageAccessor.h"
 #include "vessel/logicalPageBuffer.h"
 #include "vessel/requestContext.h"
 #include "vessel/instanceEnv.h"
@@ -67,17 +67,17 @@ namespace vessel
    }
    
    INT32 mainDataSpace::initMetaPageWhenCreateCS(requestContext *context,
-                                                 const csMetaRecord &record,
+                                                 const csMetaBlock &block,
                                                  const slice &options)
    {
       INT32 rc = SDB_OK;
       mmapPagePointer ptr;
-      PAGE_ID lpid = COLLECTION_SPACE_GP_LPID;
+      PAGE_ID lpid = CS_META_BLOCK_PAGE_LPID;
       PAGE_ID pid = 0;
       PAGE_SNAPSHOT_VERION psv = INVALID_PAGE_SNAPSHOT_VERSION;
       IExecutor *executor = nullptr;
       IRedoLogger *logger = nullptr;
-      csMetaRecord *recordOnDisk = nullptr;
+      csMetaBlock *blockOnDisk = nullptr;
       logRecordContext lrc;
       SPACE_ID sid = INVALID_SPACE_ID;
       deltaLogRecordBuilder builder;
@@ -86,7 +86,7 @@ namespace vessel
 
 
       if (OSS_UNLIKELY(nullptr == context ||
-                       !record.isValid()))
+                       !block.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -128,23 +128,23 @@ namespace vessel
       }
 
       /// init page
-      if (!initGmp(_storage.getCoreArgs().pageSize,
-                   pid, lpid, psv, (void *)(ptr.get())))
+      if (!initCSMetaBlockPage(_storage.getCoreArgs().pageSize,
+                               pid, lpid, psv, (void *)(ptr.get())))
       {
          PD_LOG(PDERROR, "faield to init gmp");
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      recordOnDisk = (csMetaRecord *)(ptr.get() + PAGE_HEAD_SIZE);
-      *recordOnDisk = record;
+      blockOnDisk = (csMetaBlock *)(ptr.get() + PAGE_HEAD_SIZE);
+      *blockOnDisk = block;
 
       /// prepare dps log
       lrc.open(LOG_TYPE_CS_CRT);
       lrc.setDDL();
       lrc.setResetPage();
       lrc.prepush(sizeof(SPACE_ID));
-      lrc.prepush(CS_META_RECORD_LEN);
+      lrc.prepush(CS_META_BLOCK_LEN);
       lrc.prepush(options.getSize());
       lrc.prepushDone();
       rc = logger->prepare(executor, &lrc);
@@ -181,7 +181,7 @@ namespace vessel
       }
 
       rc = logger->pushLogRecordElement(executor, &lrc, DPS_LOG_CSCRT_VESSEL_META,
-                                        CS_META_RECORD_LEN, &record);
+                                        CS_META_BLOCK_LEN, &block);
       if (SDB_OK != rc)
       {
          logger->abort(executor, &lrc);
@@ -236,13 +236,13 @@ namespace vessel
       goto done;
    }
 
-   INT32 mainDataSpace::readMetaRecordWhenOpen(requestContext *context,
-                                               csMetaRecord &record)
+   INT32 mainDataSpace::readMetaBlockWhenOpen(requestContext *context,
+                                              csMetaBlock &block)
    {
       INT32 rc = SDB_OK;
       UINT32 pageSize = 0;
       logicalPageBuffer lpb;
-      csgpAccessor accessor;
+      csMetaBlockPageAccessor accessor;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -253,7 +253,7 @@ namespace vessel
       pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
       SDB_ASSERT(isValidPageSize(pageSize), "must be valid");
 
-      rc = getLogicalPageBuffer(context, COLLECTION_SPACE_GP_LPID,
+      rc = getLogicalPageBuffer(context, CS_META_BLOCK_PAGE_LPID,
                                 ossSharedLatchMode(OSS_SHARED_LATCH_MODE_ENUM_SHARED), lpb);
       if (SDB_OK != rc)
       {
@@ -261,7 +261,7 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.read(context, &lpb, record);
+      rc = accessor.read(context, &lpb, block);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to read meta data:%d", rc);

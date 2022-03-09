@@ -45,18 +45,18 @@ namespace vessel
       SDB_ASSERT(_rlc.isEmpty(), "unlocking missed");
    }
 
-   void runtimeMbContext::init(const collectionRecord &cmr,
+   void runtimeMbContext::init(const clMetaBlock &cmb,
                                const collectionSpaceId &csIdentifer)
    {
-      SDB_ASSERT(cmr.isValid(), "can not be invalid");
+      SDB_ASSERT(cmb.isValid(), "can not be invalid");
       SDB_ASSERT(csIdentifer.isValid(), "can not be invalid");
       SDB_ASSERT(_rlc.isEmpty(), "do not reinit");
       _gcid.reset(csIdentifer,
-                  collectionId(cmr.logicalCLID, cmr.innerID, cmr.mbID));
-      _name.reset(cmr.name);
-      SDB_ASSERT(cmr.minFreePercent <= 100, "out of range");
-      _minFreePercent = cmr.minFreePercent;
-      _compressionType = (UTIL_COMPRESSOR_TYPE)(cmr.compressionType);
+                  collectionId(cmb.logicalCLID, cmb.innerID, cmb.mbID));
+      _name.reset(cmb.name);
+      SDB_ASSERT(cmb.minFreePercent <= 100, "out of range");
+      _minFreePercent = cmb.minFreePercent;
+      _compressionType = (UTIL_COMPRESSOR_TYPE)(cmb.compressionType);
    }
 
    void runtimeMbContext::fini()

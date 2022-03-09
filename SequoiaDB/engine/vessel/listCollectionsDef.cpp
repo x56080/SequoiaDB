@@ -40,17 +40,17 @@ namespace engine
 namespace vessel
 {
    bson::BSONObj dumpCollectionWhenList(UINT32 csLogicalID,
-                                        const collectionRecord &record)
+                                        const clMetaBlock &block)
    {
       bson::BSONObjBuilder builder;
       builder.append(CL_DUMP_RECORD_FIELD_CS_LOGICAL_ID, csLogicalID)
-             .append(CL_DUMP_RECORD_FIELD_MB_ID, record.mbID)
-             .append(CL_DUMP_RECORD_FIELD_NAME, record.name)
-             .append(CL_DUMP_RECORD_FIELD_CL_LOGICAL_ID, record.logicalCLID)
-             .append(CL_DUMP_RECORD_FIELD_INNER_ID, record.innerID)
-             .append(CL_DUMP_RECORD_FIELD_COMPRESSION, record.compressionType)
-             .append(CL_DUMP_RECORD_FIELD_MIN_STRIPING, record.minStriping)
-             .append(CL_DUMP_RECORD_FIELD_MAX_STRIPING, record.maxStriping);
+             .append(CL_DUMP_RECORD_FIELD_MB_ID, block.mbID)
+             .append(CL_DUMP_RECORD_FIELD_NAME, block.name)
+             .append(CL_DUMP_RECORD_FIELD_CL_LOGICAL_ID, block.logicalCLID)
+             .append(CL_DUMP_RECORD_FIELD_INNER_ID, block.innerID)
+             .append(CL_DUMP_RECORD_FIELD_COMPRESSION, block.compressionType)
+             .append(CL_DUMP_RECORD_FIELD_MIN_STRIPING, block.minStriping)
+             .append(CL_DUMP_RECORD_FIELD_MAX_STRIPING, block.maxStriping);
       return builder.obj();
    }
 }//namespace vessel

@@ -34,7 +34,7 @@
 ******************************************************************************/
 
 #include "vessel/indexConsole.h"
-#include "vessel/collectionRecordPage.h"
+#include "vessel/clMetaBlockPage.h"
 #include "ossLikely.hpp"
 #include "vessel/indexSpace.h"
 #include "vessel/logicalPageBuffer.h"
