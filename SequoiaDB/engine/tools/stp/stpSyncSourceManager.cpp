@@ -558,7 +558,7 @@ namespace engine
       response.port = client.getSyncPort() ;
 
       // send by net agent
-      rc = _netAgent->syncSend( handle, &response ) ;
+      rc = _netAgent->syncSend( handle, (MsgHeader *)&response ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to send register response, "
                    "rc: %d", rc ) ;
 

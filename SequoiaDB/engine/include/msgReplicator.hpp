@@ -60,7 +60,7 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
          header.messageLength = sizeof( _MsgClsBeat ) ;
          header.opCode = MSG_CLS_BEAT ;
          header.routeID.value = MSG_INVALID_ROUTEID ;
-         header.TID= 0 ;
+         header.TID = 0 ;
       }
    } ;
    typedef class _MsgClsBeat MsgClsBeat ;

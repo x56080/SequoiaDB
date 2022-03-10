@@ -46,6 +46,7 @@ namespace sdbclient
    class _sdbRecycleBinImpl ;
    class _sdbLobImpl ;
    class _sdbImpl ;
+   class _sdbMsgConvertor ;
 
    /*
       CLIENT_CLASS_TYPE define
@@ -1535,6 +1536,8 @@ namespace sdbclient
       // If the authVersion is 0, we use MD5 authentication.
       // And if the authVersion is 1, we use SCRAM-SHA256 authentication.
       INT32                    _authVersion ;
+      INT16                    _peerProtocolVersion ;
+      _sdbMsgConvertor        *_msgConvertor ;
       bson::BSONObj            _attributeCache ;
 
       const CHAR*              _pErrorBuf ;
@@ -2178,6 +2181,28 @@ namespace sdbclient
                              const bson::BSONObj &hint = _sdbStaticObject ) ;
    } ;
    typedef class _sdbImpl sdbImpl ;
+
+   class _sdbMsgConvertor
+   {
+   public:
+      _sdbMsgConvertor() ;
+      ~_sdbMsgConvertor() ;
+
+      void reset( BOOLEAN releaseBuff = FALSE ) ;
+      INT32 push( const CHAR *data, UINT32 size ) ;
+      INT32 output( CHAR *&data, UINT32 &len ) ;
+
+   private:
+      INT32 _downgradeRequest( MsgHeader *header ) ;
+      INT32 _upgradeReply( MsgOpReplyV1 *reply ) ;
+      INT32 _ensureBuff( UINT32 size ) ;
+
+   private:
+      BOOLEAN     _hasData ;
+      CHAR       *_buff ;
+      UINT32      _buffSize ;
+   } ;
+   typedef class _sdbMsgConvertor sdbMsgConvertor ;
 }
 
 #endif //CLIENTIMPL_HPP__

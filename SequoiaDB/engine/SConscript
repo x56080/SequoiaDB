@@ -311,7 +311,8 @@ msgFiles = [
       "msg/msgMessage.cpp",
       "msg/msgMessageFormat.cpp",
       "msg/msgCatalog.cpp",
-      "msg/msgAuth.cpp"
+      "msg/msgAuth.cpp",
+      "msg/msgConvertorImpl.cpp"
       ]
 
 dmsFiles = [

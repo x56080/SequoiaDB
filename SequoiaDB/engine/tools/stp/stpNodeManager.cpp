@@ -457,7 +457,7 @@ namespace engine
       request.type = (UINT16)type ;
 
       // send server request
-      rc = _netAgent->syncSend( routeID, &request ) ;
+      rc = _netAgent->syncSend( routeID, (MsgHeader *)&request ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to send server request to %s, "
                    "rc: %d", routeID2String( routeID ).c_str(), rc ) ;
 

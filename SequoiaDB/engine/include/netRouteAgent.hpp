@@ -142,14 +142,14 @@ namespace engine
                             NET_HANDLE *pHandle = NULL ) ;
 
          INT32 syncSend( const _MsgRouteID &id,
-                         void *header,
+                         MsgHeader *header,
                          NET_HANDLE *pHandle = NULL ) ;
 
          INT32 syncSendUDP( const MsgRouteID &id,
                             void *header ) ;
 
          INT32 syncSend( const NET_HANDLE &handle,
-                         void *header ) ;
+                         MsgHeader *header ) ;
 
          INT32 syncSendRaw( const NET_HANDLE &handle,
                             const CHAR *pBuff,

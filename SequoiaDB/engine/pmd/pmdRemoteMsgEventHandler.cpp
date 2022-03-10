@@ -140,6 +140,7 @@ namespace engine
       msg.header.TID = 0 ;
       msg.numReturned = 0 ;
       msg.startFrom = 0 ;
+      msg.returnMask = 0 ;
 
       _postMsg( handle, (_MsgHeader *)&msg ) ;
       PD_LOG ( PDDEBUG, "posting event handle close %u", (UINT32)handle ) ;

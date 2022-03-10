@@ -614,8 +614,8 @@ namespace engine
 
       if ( 0 == len )
       {
-         goto done ;
          read = 0 ;
+         goto done ;
       }
 
       if ( _meta._lobLen <= _offset )

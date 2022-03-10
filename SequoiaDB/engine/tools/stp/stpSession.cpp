@@ -409,7 +409,7 @@ namespace engine
       else
       {
          // send reply only
-         rc = routeAgent()->syncSend( _netHandle, (void *)reply ) ;
+         rc = routeAgent()->syncSend( _netHandle, (MsgHeader *)reply ) ;
       }
 
       PD_RC_CHECK( rc, PDERROR, "Session[%s]: Failed to send reply message, "
@@ -517,7 +517,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__STPSESSION__SENDREPLY_HANDLE ) ;
 
       // send reply via handle
-      rc = routeAgent()->syncSend( _netHandle, (void *)message ) ;
+      rc = routeAgent()->syncSend( _netHandle, (MsgHeader *)message ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s]: Failed to send reply message, "
                    "rc: %d", sessionName(), rc ) ;
 

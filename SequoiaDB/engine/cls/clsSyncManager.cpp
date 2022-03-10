@@ -254,7 +254,7 @@ namespace engine
          }
          if ( !has )
          {
-            status[merge].offset = 0 ; 
+            status[merge].offset = 0 ;
             status[merge].id.value = itr->first ;
             status[merge].valid = newNodeValid ;
             ++merge ;
@@ -379,7 +379,7 @@ namespace engine
          msg.next = lsn ;
          msg.from = id ;
          msg.header.TID = TID ;
-         _agent->syncSend( primary, &msg ) ;
+         _agent->syncSend( primary, (MsgHeader *)&msg ) ;
       }
       else
       {
@@ -428,7 +428,7 @@ namespace engine
          else if ( offset == _notifyList[i].offset )
          {
             msg.header.routeID = _notifyList[i].id ;
-            _agent->syncSend( _notifyList[i].id, &msg ) ;
+            _agent->syncSend( _notifyList[i].id, (MsgHeader *)&msg ) ;
          }
          else
          {
@@ -563,7 +563,6 @@ namespace engine
       SDB_ASSERT( alives <= _validSync, "impossible" ) ;
       if ( _validSync < alives )
       {
-         
          PD_LOG( PDWARNING, "sync: alives is bigger than valid sync."
                  "[alives:%d][valid:%d]", alives, _validSync ) ;
          goto done ;
@@ -862,7 +861,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG__CRSYNCLIST, "_clsSyncManager::_clearSyncList" )
    void _clsSyncManager::_clearSyncList( UINT32 removed, UINT32 removedAlives,
-                                         UINT32 preAlives, UINT32 preSyncNum,                           
+                                         UINT32 preAlives, UINT32 preSyncNum,
                                          _clsSyncStatus *left )
    {
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG__CRSYNCLIST ) ;

@@ -6014,7 +6014,7 @@ do                                                            \
       try
       {
          BSONObjBuilder builder ;
-         BSONObjBuilder subBuilder ( builder.subobjStart( FIELD_NAME_NAME ) ) ; 
+         BSONObjBuilder subBuilder ( builder.subobjStart( FIELD_NAME_NAME ) ) ;
          subBuilder.append( "$gt", lowBound ) ;
          subBuilder.append( "$lt", upBound ) ;
          subBuilder.doneFast() ;
@@ -6245,7 +6245,7 @@ do                                                            \
       return _alterInternal( SDB_ALTER_CS_SET_DOMAIN, &options, FALSE ) ;
    }
 
-   INT32 _sdbCollectionSpaceImpl::getDomainName ( CHAR *result, 
+   INT32 _sdbCollectionSpaceImpl::getDomainName ( CHAR *result,
                                                   INT32 resultLen )
    {
       INT32 rc = SDB_OK ;
@@ -6264,10 +6264,10 @@ do                                                            \
          goto error ;
       }
 
-      ossMemset( result, 0, resultLen ) ;      
+      ossMemset( result, 0, resultLen ) ;
       // build sql
-      ossSnprintf( sql, CLIENT_SQL_MAX_LEN + CLIENT_CS_NAMESZ, 
-                   "select Domain from $LIST_CS where Name = '%s'", 
+      ossSnprintf( sql, CLIENT_SQL_MAX_LEN + CLIENT_CS_NAMESZ,
+                   "select Domain from $LIST_CS where Name = '%s'",
                    _collectionSpaceName ) ;
 
       rc = _connection->exec( sql, cursor ) ;
@@ -6291,7 +6291,7 @@ do                                                            \
 
       if ( jstNULL != tempObj.firstElement().type() )
       {
-         ossStrncpy( result, 
+         ossStrncpy( result,
                      tempObj.getStringField( "Domain" ),
                      resultLen - 1 ) ;
       }
@@ -8694,6 +8694,8 @@ do                                                            \
    _useSSL ( useSSL ),
    _tb ( NULL ),
    _authVersion( 0 ),
+   _peerProtocolVersion( SDB_PROTOCOL_VER_INVALID ),
+   _msgConvertor( NULL ),
    _attributeCache ()
    {
       _pErrorBuf = NULL ;
@@ -8727,6 +8729,10 @@ do                                                            \
       if ( _pReceiveBuffer )
       {
          SDB_OSS_FREE ( _pReceiveBuffer ) ;
+      }
+      if ( _msgConvertor )
+      {
+         delete _msgConvertor ;
       }
    }
 
@@ -9008,8 +9014,9 @@ do                                                            \
          goto error ;
       }
       rc = clientExtractSysInfoReply ( (CHAR*)pReply, &_endianConvert, NULL,
-                                       &_authVersion, &_dbStartTime,
-                                       &_version, &_subVersion, &_fixVersion ) ;
+                                       &_authVersion, &_peerProtocolVersion,
+                                       &_dbStartTime, &_version, &_subVersion,
+                                       &_fixVersion ) ;
       if ( rc )
       {
          goto error ;
@@ -9500,6 +9507,16 @@ do                                                            \
       if ( rc )
       {
          goto error ;
+      }
+
+      if ( SDB_PROTOCOL_VER_1 == _peerProtocolVersion && !_msgConvertor )
+      {
+         _msgConvertor = new(std::nothrow)sdbMsgConvertor() ;
+         if ( !_msgConvertor )
+         {
+            rc = SDB_OOM ;
+            goto error ;
+         }
       }
 
 #if !defined( SDB_FMP )
@@ -10218,6 +10235,25 @@ do                                                            \
          rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
+      if ( _msgConvertor )
+      {
+         UINT32 tmpLen = 0 ;
+         _msgConvertor->reset() ;
+         rc = _msgConvertor->push( pBuffer, *(SINT32 *)pBuffer ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+
+         rc = _msgConvertor->output( pBuffer, tmpLen ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         SDB_ASSERT( tmpLen == *(UINT32 *)pBuffer,
+                     "Length of converted message is not as expected" ) ;
+      }
+
       ossEndianConvertIf4 ( *(SINT32*)pBuffer, len, _endianConvert ) ;
       rc = clientSocketSend ( _sock, pBuffer, len ) ;
       if ( rc )
@@ -10238,6 +10274,8 @@ do                                                            \
       INT32 length = 0 ;
       INT32 realLen = 0 ;
       BOOLEAN isNeedDiscWithErr = FALSE ;
+      INT32 minReplySize = ( SDB_PROTOCOL_VER_1 == _peerProtocolVersion ) ?
+                           sizeof(MsgOpReplyV1) : sizeof(MsgOpReply) ;
 
       if ( !isConnected () )
       {
@@ -10261,7 +10299,7 @@ do                                                            \
       _sock->quickAck() ;
 
       ossEndianConvertIf4 ( length, realLen, _endianConvert ) ;
-      if ( (UINT32)realLen < sizeof(MsgOpReply) )
+      if ( realLen < minReplySize )
       {
          rc = SDB_NET_BROKEN_MSG ;
          goto error ;
@@ -10280,6 +10318,36 @@ do                                                            \
       if ( rc )
       {
          goto error ;
+      }
+
+      if ( _msgConvertor )
+      {
+         UINT32 tmpLen = 0 ;
+         CHAR *tmpPtr = NULL ;
+         _msgConvertor->reset() ;
+         rc = _msgConvertor->push( *ppBuffer, length ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         rc = _msgConvertor->output( tmpPtr, tmpLen ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+
+         SDB_ASSERT( tmpLen == *(UINT32 *)tmpPtr,
+                     "Converted message length is not as expected" ) ;
+
+         if ( tmpLen > (UINT32)realLen )
+         {
+            rc = _reallocBuffer( ppBuffer, size, tmpLen ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+         }
+         ossMemcpy( *ppBuffer, tmpPtr, tmpLen ) ;
       }
 
       // get current time
@@ -13401,4 +13469,131 @@ do                                                            \
       goto done ;
    }
 
+   _sdbMsgConvertor::_sdbMsgConvertor()
+   : _hasData( FALSE  ),
+     _buff( NULL ),
+     _buffSize( 0 )
+   {
+   }
+
+   _sdbMsgConvertor::~_sdbMsgConvertor()
+   {
+      if ( _buff )
+      {
+         SDB_OSS_FREE( _buff ) ;
+      }
+   }
+
+   void _sdbMsgConvertor::reset( BOOLEAN releaseBuff )
+   {
+      _hasData = FALSE ;
+   }
+
+   INT32 _sdbMsgConvertor::push( const CHAR *data, UINT32 size )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( MSG_COMM_EYE_DEFAULT == ((MsgHeader *)data)->eye )
+      {
+         rc = _downgradeRequest( (MsgHeader *)data ) ;
+      }
+      else
+      {
+         rc = _upgradeReply( (MsgOpReplyV1 *)data ) ;
+      }
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      _hasData = TRUE ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbMsgConvertor::output( CHAR *&data, UINT32 &len )
+   {
+      data = NULL ;
+      len = 0 ;
+
+      if ( _hasData )
+      {
+         data = _buff ;
+         len = *(INT32 *)_buff ;
+      }
+
+      return SDB_OK ;
+   }
+
+   INT32 _sdbMsgConvertor::_downgradeRequest( MsgHeader *header )
+   {
+      INT32 rc = SDB_OK ;
+      MsgHeaderV1 newHeader ;
+
+      clientMsgHeaderDowngrade( header, &newHeader ) ;
+      rc = _ensureBuff( newHeader.messageLength ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      ossMemcpy( _buff, &newHeader, sizeof(MsgHeaderV1) ) ;
+      ossMemcpy( _buff + sizeof(MsgHeaderV1), (CHAR *)header + sizeof(MsgHeader),
+                 header->messageLength - sizeof(MsgHeader) ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbMsgConvertor::_upgradeReply( MsgOpReplyV1 *reply )
+   {
+      INT32 rc = SDB_OK ;
+      MsgOpReply newReply ;
+
+      clientMsgReplyHeaderUpgrade( reply, &newReply ) ;
+      rc = _ensureBuff( newReply.header.messageLength ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      ossMemcpy( _buff, &newReply, sizeof(MsgOpReply) ) ;
+      ossMemcpy( _buff + sizeof(MsgOpReply),
+                (CHAR *)reply + sizeof(MsgOpReplyV1),
+                reply->header.messageLength - sizeof(MsgOpReplyV1) ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbMsgConvertor::_ensureBuff( UINT32 size )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( size > _buffSize )
+      {
+         CHAR *newBuff =
+            (CHAR *)SDB_OSS_REALLOC( _buff, size ) ;
+         if ( !newBuff )
+         {
+            rc = SDB_OOM ;
+            goto error ;
+         }
+
+         _buff = newBuff ;
+         _buffSize = size ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
 }

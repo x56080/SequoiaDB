@@ -46,6 +46,7 @@
 #include "msgDef.hpp"
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
+#include "msgConvertorImpl.hpp"
 #include "coordRemoteSession.hpp"
 
 using namespace bson ;
@@ -70,11 +71,14 @@ namespace engine
                   PD_PACK_INT ( remoCode ) ) ;
       CHAR *pCMRequest = NULL ;
       CHAR *pReceiveBuffer = NULL ;
+      CHAR *replyPtr = NULL ;
       CHAR conf[OSS_MAX_PATHSIZE + 1] = { 0 } ;
       const CHAR *svcname = NULL ;
       UINT16 port = SDBCM_DFT_PORT ;
       INT32 reqSize = 0 ;
       SINT32 packetLength = 0 ;
+      CHAR *finalRequest = NULL ;
+      msgConvertorImpl *msgConvertor = NULL ;
 
       pmdEDUCB *eduCB = pmdGetThreadEDUCB() ;
       INT32 execTimeout = -1 ;
@@ -153,6 +157,8 @@ namespace engine
       }
 
       {
+         UINT32 reserveSize = 0 ;
+         UINT32 buffSize = 0 ;
          ossSocket sock ( hostname, port, OSS_SOCKET_DFT_TIMEOUT ) ;
          rc = sock.initSocket () ;
          if ( rc )
@@ -191,8 +197,10 @@ namespace engine
             goto error ;
          }
 
+         finalRequest = pCMRequest ;
+   reSend:
          // send message
-         rc = pmdSend ( pCMRequest, ((MsgHeader*)pCMRequest)->messageLength,
+         rc = pmdSend ( finalRequest, ((MsgHeader*)finalRequest)->messageLength,
                         &sock, eduCB ) ;
          if ( rc )
          {
@@ -210,24 +218,33 @@ namespace engine
                      rc ) ;
             goto error ;
          }
-         else if ( (UINT32)packetLength < sizeof(MsgHeader) ||
+         else if ( (UINT32)packetLength < sizeof(MsgHeaderV1) ||
                    (UINT32)packetLength > SDB_MAX_MSG_LENGTH )
          {
             PD_LOG( PDERROR, "Recv msg size[%d] is less than "
                     "MsgHeader size[%d] or more than max msg size[%d]",
-                    packetLength, sizeof(MsgHeader), SDB_MAX_MSG_LENGTH ) ;
-            rc = SDB_INVALIDARG ;
+                    packetLength, sizeof(MsgHeaderV1), SDB_MAX_MSG_LENGTH ) ;
+            rc = SDB_SYS ;
             goto error ;
          }
+
          // free at the end of this function
-         pReceiveBuffer = (CHAR*)SDB_OSS_MALLOC ( packetLength + 1 ) ;
-         if ( !pReceiveBuffer )
+         if ( buffSize < packetLength + reserveSize )
          {
-            rc = SDB_OOM ;
-            PD_LOG ( PDERROR, "Failed to allocate %d bytes receive buffer",
-                     packetLength ) ;
-            goto error ;
+            CHAR *newBuff =
+                  (CHAR *)SDB_OSS_REALLOC( pReceiveBuffer,
+                                           packetLength + reserveSize ) ;
+            if ( !newBuff )
+            {
+               rc = SDB_OOM ;
+               PD_LOG( PDERROR, "Allocate memory[size: %u] failed, rc=%d",
+                       packetLength + reserveSize, rc ) ;
+               goto error ;
+            }
+            pReceiveBuffer = newBuff ;
+            buffSize = packetLength + reserveSize ;
          }
+
          *(SINT32*)(pReceiveBuffer) = packetLength ;
          rc = pmdRecv ( &pReceiveBuffer[sizeof (SINT32)],
                         packetLength-sizeof (SINT32), &sock,
@@ -238,7 +255,75 @@ namespace engine
                      rc ) ;
             goto error ;
          }
-         pReceiveBuffer[ packetLength ] = 0 ;
+         replyPtr = pReceiveBuffer ;
+
+         if ( MSG_COMM_EYE_DEFAULT != ((MsgHeader*)pReceiveBuffer)->eye )
+         {
+            // The eye is not as expected, so the peer node is most likely to be
+            // using old protocol. The first reply should report unknown message
+            // as the original request has not been converted. So convert the
+            // request and send again. And when the reply is received, it also
+            // needs to be converted.
+            MsgOpReplyV1 *reply = (MsgOpReplyV1 *)pReceiveBuffer ;
+            INT32 result = reply->flags ;
+            UINT32 finalSize = 0 ;
+            BOOLEAN newConvertor = FALSE ;
+
+            if ( !msgConvertor )
+            {
+               msgConvertor = SDB_OSS_NEW msgConvertorImpl ;
+               if ( !msgConvertor )
+               {
+                  rc = SDB_OOM ;
+                  PD_LOG( PDERROR, "Allocate memory for message "
+                          "convertor[size: %d] failed, rc=%d",
+                          sizeof(msgConvertorImpl), rc ) ;
+                  goto error ;
+               }
+               newConvertor = TRUE ;
+            }
+
+            // If the result is not unknown message, it failed for some other
+            // reason. No need to retry and just convert the reply.
+            if ( newConvertor &&
+                 ( SDB_UNKNOWN_MESSAGE == result ||
+                   SDB_CLS_UNKNOW_MSG == result ) )
+            {
+               rc = msgConvertor->push( (CHAR *)pCMRequest,
+                                        ((MsgHeader *)pCMRequest)->messageLength ) ;
+               PD_RC_CHECK( rc, PDERROR, "Push cm request message into "
+                            "message convertor failed, rc=%d", rc ) ;
+               rc = msgConvertor->output( finalRequest, finalSize ) ;
+               PD_RC_CHECK( rc, PDERROR, "Get converted cm request message "
+                            "from the message convertor failed, rc=%d",
+                            rc ) ;
+               reserveSize = sizeof(MsgOpReply) - sizeof(MsgOpReplyV1) ;
+
+               SDB_ASSERT( ((MsgHeaderV1 *)finalRequest)->messageLength
+                           == (INT32)finalSize,
+                           "Message length is invalid") ;
+               goto reSend ;
+            }
+            else
+            {
+               // The converted message is process successfully by remote node.
+               // Convert the reply.
+               msgConvertor->reset( FALSE ) ;
+               rc = msgConvertor->push( pReceiveBuffer, packetLength ) ;
+               PD_RC_CHECK( rc, PDERROR, "Push cm reply message into message "
+                            "convertor failed, rc=%d", rc ) ;
+               rc = msgConvertor->output( replyPtr, finalSize ) ;
+               PD_RC_CHECK( rc, PDERROR, "Get converted cm reply message from "
+                            "message convertor failed, rc=%d", rc ) ;
+            }
+         }
+         else if ( (UINT32)packetLength < sizeof(MsgHeader) )
+         {
+            PD_LOG( PDERROR, "Recv msg size[%d] is less than MsgHeader size[%d]",
+                    packetLength, sizeof(MsgHeader) ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
       }
 
       // process reply
@@ -249,7 +334,7 @@ namespace engine
          vector<BSONObj> objLst ;
 
          // extract message
-         rc = msgExtractReply ( pReceiveBuffer, retCode, &contextID,
+         rc = msgExtractReply ( replyPtr, retCode, &contextID,
                                 &startFrom, &numReturned, objLst ) ;
          if ( rc )
          {
@@ -278,6 +363,10 @@ namespace engine
       if ( pReceiveBuffer )
       {
          SDB_OSS_FREE ( pReceiveBuffer ) ;
+      }
+      if ( msgConvertor )
+      {
+         SDB_OSS_DEL msgConvertor ;
       }
       PD_TRACE_EXITRC ( SDB_REMOTEEXEC, rc ) ;
       return rc ;

@@ -525,6 +525,7 @@ namespace engine
       rspMsg->requestID = reqMsg->requestID ;
       rspMsg->routeID.value = 0 ;
       rspMsg->TID = reqMsg->TID ;
+      rspMsg->globalID = reqMsg->globalID ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMGR_REGREQ, "catNodeManager::processRegReq" )

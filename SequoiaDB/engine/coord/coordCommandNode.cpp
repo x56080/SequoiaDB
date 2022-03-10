@@ -2550,7 +2550,7 @@ namespace engine
          while ( SDB_OK == groupPtr->getNodeID( index++, routeID,
                                                 MSG_ROUTE_SHARD_SERVCIE ) )
          {
-            pAgent->syncSend( routeID, (void*)&updated ) ;
+            pAgent->syncSend( routeID, (MsgHeader *)&updated ) ;
          }
       }
    }

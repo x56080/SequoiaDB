@@ -153,7 +153,7 @@ namespace engine
          disMsg.header.TID = ossGetCurrentThreadID() ;
 
          if ( SDB_NET_INVALID_HANDLE !=
-              _routeAgent->syncSend( _handle, (void*)&disMsg ) )
+              _routeAgent->syncSend( _handle, (MsgHeader *)&disMsg ) )
          {
             _routeAgent->close( _handle ) ;
          }
@@ -182,7 +182,7 @@ namespace engine
 
       if ( NET_INVALID_HANDLE != _handle )
       {
-         rc = _routeAgent->syncSend( _handle, header, NULL, 0 ) ;
+         rc = _routeAgent->syncSend( _handle, (MsgHeader *)header, NULL, 0 ) ;
       }
       else
       {

@@ -38,6 +38,16 @@
 #define MSG_H__
 #pragma warning( disable: 4200 )
 #include "core.h"
+#include "ossUtil.h"
+
+// Message protocol version. Client and server may use different versions. in
+// this case, the messages may need to transform.
+enum SDB_PROTOCOL_VERSION
+{
+   SDB_PROTOCOL_VER_INVALID = 0,
+   SDB_PROTOCOL_VER_1 = 1,
+   SDB_PROTOCOL_VER_2 = 2
+} ;
 
 // indicates the message is a reply
 #define MAKE_REPLY_TYPE(type)       (INT32)((UINT32)type | 0x80000000)
@@ -475,6 +485,27 @@ union _MsgRouteID
 typedef union _MsgRouteID MsgRouteID ;
 #define MSG_INVALID_ROUTEID  0
 
+// A global unique ID for each message. It can be used to trace the message in
+// the whole cluster.
+typedef struct _MsgGlobalID
+{
+   SINT32 ip ;
+   UINT16 port ;
+   SINT16 random ;
+   UINT32 tid ;
+   UINT32 sequence ;
+#ifdef __cplusplus
+   _MsgGlobalID()
+   : ip(0),
+     port(0),
+     random(0),
+     tid(0),
+     sequence(0)
+   {
+   }
+#endif /* __cplusplus */
+} MsgGlobalID ;
+
 // system info request packet is very special since we do NOT know the endianess
 // of server and client
 // Therefore we are using a special length "-1" to indicate the request, and we
@@ -512,7 +543,8 @@ struct _MsgSysInfoReply
    UINT8            version ;
    UINT8            subVersion ;
    UINT8            fixVersion ;
-   CHAR             pad[97] ; // total 128 bytes for reply
+   CHAR             pad[93] ;
+   UINT32           myHash ; // total 128 bytes for reply
 } ;
 typedef struct _MsgSysInfoReply MsgSysInfoReply ;
 // end system info requests
@@ -530,21 +562,73 @@ typedef enum _MSG_ROUTE_SERVICE_TYPE
    MSG_ROUTE_SERVICE_TYPE_MAX
 }MSG_ROUTE_SERVICE_TYPE;
 
+#define FLAG_RESULT_DETAIL          0x0001
+#define FLAG_PROCESS_DETAIL         0x0002
+
 // 28 bytes
-struct _MsgHeader
+struct _MsgHeaderV1
 {
    SINT32 messageLength ; // total message size, including this
    SINT32 opCode ;        // operation code
    UINT32 TID ;           // client thead id
    MsgRouteID routeID ;   // route id 8 bytes
    UINT64 requestID ;     // identifier for this message
+#ifdef __cplusplus
+   _MsgHeaderV1()
+   : messageLength(0),
+     opCode(0),
+     TID(0),
+     requestID(0)
+   {
+      routeID.value = MSG_INVALID_ROUTEID ;
+   }
+#endif
+} ;
+typedef struct _MsgHeaderV1 MsgHeaderV1 ;
+
+// Some new fields are added into the message header structure, and the old
+// structure is renamed to MsgHeaderV1.
+// The member named eye is used to identify if it's a message of version 1. As
+// in the message header structure of version 1, it's the 'opCode' in this
+// position.
+// And its value is always non-zero in a valid message. By checking this, we can
+// know if its a message of version 1.
+
+#define MSG_COMM_EYE_DEFAULT           0
+#define MSG_COMM_EYE_DEFAULT_BACK      MAKE_REPLY_TYPE(0)
+struct _MsgHeader
+{
+   SINT32 messageLength ; // total message size, including this
+   SINT32 eye ;
+   UINT32 TID ;           // client thead id
+   MsgRouteID routeID ;   // route id 8 bytes
+   UINT64 requestID ;     // identifier for this message
+   SINT32 opCode ;        // operation code
+   SINT16 version ;
+   SINT16 flags ;         // Common flags for a query.
+   MsgGlobalID globalID;
+   CHAR reserve[4] ;
+#ifdef __cplusplus
+   _MsgHeader()
+   : messageLength(0),
+     eye(MSG_COMM_EYE_DEFAULT),
+     TID(0),
+     requestID(0),
+     opCode(0),
+     version(SDB_PROTOCOL_VER_2),
+     flags(0)
+   {
+      routeID.value = MSG_INVALID_ROUTEID ;
+      ossMemset( reserve, 0, sizeof( reserve ) ) ;
+   }
+#endif
 } ;
 typedef struct _MsgHeader MsgHeader ;
 
 struct _MsgInternalReplyHeader
 {
    MsgHeader header ;
-   SINT32     res ;
+   SINT32    res ;
 } ;
 typedef struct _MsgInternalReplyHeader MsgInternalReplyHeader ;
 
@@ -736,16 +820,56 @@ struct _MsgOpMsg
 } ;
 typedef struct _MsgOpMsg MsgOpMsg ;
 
+// Common flag in the header of a reply.
+#define SDB_REPLY_COMM_FLG_DEFAULT     0
+
+// The first bson object after the header is the result object.
+#define SDB_REPLY_MASK_NONE            0
+#define SDB_REPLY_MASK_DATA            0x00000001
+#define SDB_REPLY_MASK_RESULT          0x00000002
+#define SDB_REPLY_MASK_PROCESS         0X00000003
+
+struct _MsgOpReplyV1
+{
+   // 0-27 bytes
+   MsgHeaderV1 header ;     // message header
+   // 28-35 bytes
+   SINT64    contextID ;   // context id if client need to get more
+   // 36-39 bytes
+   SINT32    flags ;      // reply flags
+   // 40-43 bytes
+   // 1. In most cases, startFrom (>=0) is where "this" reply is starting
+   // in the context given by contextID
+   // 2. If flags is SDB_CLS_NOT_PRIMARY, startFrom might be the new primary
+   //    node to re-send the request
+   // 3. If startFrom (<0) is between RTN_CTX_PROCESSOR_BEGIN and
+   //    RTN_CTX_PROCESSOR_END, it is the type of data dispatcher which is
+   //    used to process "this" reply
+   SINT32    startFrom ;
+   // 44-47 bytes
+   SINT32    numReturned ;// number of records returned in the reply
+#ifdef __cplusplus
+   _MsgOpReplyV1()
+   : contextID(-1),
+     flags(0),
+     startFrom(0),
+     numReturned(-1)
+   {
+   }
+#endif /* __cplusplus */
+} ;
+typedef struct _MsgOpReplyV1 MsgOpReplyV1 ;
+
 // Followed by numReturned BSON objects
 struct _MsgOpReply
 {
-   // 0-27 bytes
+   // 0-55 bytes
    MsgHeader header ;     // message header
-   // 28-31 bytes
+   // 56-63 bytes
    SINT64    contextID ;   // context id if client need to get more
-   // 32-35 bytes
+   // 64-67 bytes
    SINT32    flags ;      // reply flags
-   // 36-39 bytes
+   // 68-71 bytes
    // 1. In most cases, startFrom (>=0) is where "this" reply is starting
    // in the context given by contextID
    // 2. If flags is SDB_CLS_NOT_PRIMARY, startFrom might be the new primary
@@ -757,8 +881,26 @@ struct _MsgOpReply
    // 5. test collection cata reply to coord success,
    //    startFrom might be the collection metadata version
    SINT32    startFrom ;
-   // 40-43 bytes
-   SINT32    numReturned ;// number of records returned in the reply
+   // 72-75 bytes
+   SINT32    numReturned ;// Number of records returned in the reply. If there
+                          // is result object or processing object, they are
+                          // also included.
+   // 76-79
+   SINT32    returnMask ;
+   // 80-84
+   SINT32    dataLen ; // Data length after the reply header. Used to find the
+                       // offset of Result BSON/Process BSON
+#ifdef __cplusplus
+   _MsgOpReply()
+   : contextID(-1),
+     flags(0),
+     startFrom(0),
+     numReturned(-1),
+     returnMask( SDB_REPLY_MASK_NONE ),
+     dataLen(0)
+   {
+   }
+#endif /* __cplusplus */
 } ;
 typedef struct _MsgOpReply MsgOpReply ;
 

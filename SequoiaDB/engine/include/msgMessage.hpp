@@ -415,7 +415,8 @@ INT32 msgBuildSysInfoReply ( CHAR **ppBuffer, INT32 *pBufferSize,
                              engine::IExecutor *cb = NULL ) ;
 
 INT32 msgExtractSysInfoReply ( const CHAR *pBuffer, BOOLEAN &endianConvert,
-                               INT32 *osType ) ;
+                               INT32 *osType,
+                               SDB_PROTOCOL_VERSION *protocolVer ) ;
 
 INT32 msgBuildSequenceAcquireMsg( CHAR **ppBuffer, INT32 *bufferSize,
                                   UINT64 reqID, const BSONObj& options,

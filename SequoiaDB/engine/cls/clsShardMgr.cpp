@@ -38,9 +38,9 @@
 #include "msgMessage.hpp"
 #include "msgAuth.hpp"
 #include "msgCatalog.hpp"
+#include "msgConvertorImpl.hpp"
 #include "pmdController.hpp"
 #include "pmdDummySession.hpp"
-#include "../bson/bson.h"
 #include "rtnQueryOptions.hpp"
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
@@ -1148,8 +1148,11 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__CLSSHDMGR_SYNCSND ) ;
       INT32 rc = SDB_OK ;
+      CHAR* buff = NULL ;
       std::vector< _hostAndPort > hosts ;
       BOOLEAN hasUpdateGroup = FALSE ;
+      UINT16 reserveSize = 0 ;
+      msgConvertorImpl *msgConvertor = NULL ;
 
    retry:
       // if we are sending to catalog group
@@ -1188,7 +1191,7 @@ namespace engine
          UINT32 msgLength = 0 ;
          INT32 receivedLen = 0 ;
          INT32 sentLen = 0 ;
-         CHAR* buff = NULL ;
+         UINT32 buffSize = 0 ;
          UINT16 port = 0 ;
          // randomly pickup a starting position
          UINT32 pos = ossRand() % hosts.size() ;
@@ -1227,6 +1230,7 @@ namespace engine
                                     OSS_SOCKET_KEEP_INTERVAL,
                                     OSS_SOCKET_KEEP_CONTER ) ;
 
+   reSend:
             // send msg, if we can connect to the node but failed to send
             // let's skip and retry
             if ( NULL != buffer && bufferSize > 0 )
@@ -1280,15 +1284,23 @@ namespace engine
                goto error ;
             }
             // buff is freed outside the function
-            buff = (CHAR*)SDB_OSS_MALLOC( msgLength + 1 ) ;
-            if ( !buff )
+            if ( buffSize < msgLength + reserveSize )
             {
-               rc = SDB_OOM ;
-               PD_LOG ( PDERROR, "Failed to allocate memory for %d bytes",
-                        msgLength + 1 ) ;
-               goto error ;
+               CHAR *newBuff =
+                     (CHAR*)SDB_OSS_REALLOC( buff, msgLength + reserveSize ) ;
+               if ( !newBuff )
+               {
+                  rc = SDB_OOM ;
+                  PD_LOG ( PDERROR, "Allocate memory[size: %u] failed[%d]",
+                           msgLength + reserveSize, rc ) ;
+                  goto error ;
+               }
+               buff = newBuff ;
+               buffSize = msgLength + reserveSize ;
             }
+            ossMemset( buff, 0, buffSize ) ;
             *(INT32*)buff = msgLength ;
+
             // do not loop and retry, simply return error message when we failed to
             // recv, including timeout, because this is internal communication and
             // we should control the timeout value
@@ -1297,9 +1309,89 @@ namespace engine
                                  millisec ) ;
             if ( rc )
             {
-               SDB_OSS_FREE( buff ) ;
                PD_LOG ( PDERROR, "Recieve response message failed, rc: %d", rc ) ;
                goto error ;
+            }
+
+            if ( MSG_COMM_EYE_DEFAULT != ((MsgHeader *)buff)->eye )
+            {
+               // The eye is not as expected, so the peer node is most likely to be
+               // using old protocol. The first reply should report unknown message
+               // as the original request has not been converted. So convert the
+               // request and send again. And when the reply is received, it also
+               // needs to be converted.
+               MsgOpReplyV1 *reply = (MsgOpReplyV1 *)buff ;
+               INT32 result = reply->flags ;
+               CHAR *convertedMsg = NULL ;
+               UINT32 len = 0 ;
+               BOOLEAN newConvertor = FALSE ;
+
+               if ( !msgConvertor )
+               {
+                  msgConvertor = SDB_OSS_NEW msgConvertorImpl ;
+                  if ( !msgConvertor )
+                  {
+                     rc = SDB_OOM ;
+                     PD_LOG( PDERROR, "Allocate memory for message "
+                             "convertor[size: %d] failed[%d]",
+                             sizeof(msgConvertorImpl), rc ) ;
+                     goto error ;
+                  }
+                  newConvertor = TRUE ;
+               }
+
+               // If the result is not unknown message, it failed for some other
+               // reason. No need to retry and just convert the reply.
+               if ( newConvertor && ( SDB_UNKNOWN_MESSAGE == result ||
+                                      SDB_CLS_UNKNOW_MSG == result ) )
+               {
+                  PD_LOG( PDDEBUG, "Node[%s:%d] may be using old protocol "
+                          "version. Try to convert the request "
+                          "message[opCode: %d] and resend",
+                          tmpInfo._host.c_str(), port, msg->opCode ) ;
+
+                  rc = msgConvertor->push((const CHAR *)msg,
+                                          msg->messageLength ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Push message[opCode: %d] into "
+                               "message convertor failed[%d]",
+                               msg->opCode, rc ) ;
+                  rc = msgConvertor->output( convertedMsg, len ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Get converted message[opCode: %d] "
+                               "from the message convertor failed[%d]",
+                               msg->opCode, rc ) ;
+                  msg = (MsgHeader *)convertedMsg ;
+                  reserveSize = sizeof(MsgOpReply) - sizeof(MsgOpReplyV1) ;
+
+                  SDB_ASSERT( (UINT32)msg->messageLength == len,
+                              "Message length is invalid" ) ;
+                  goto reSend ;
+               }
+
+               msgConvertor->reset( FALSE ) ;
+               rc = msgConvertor->push((const CHAR *)reply,
+                                       reply->header.messageLength ) ;
+               PD_RC_CHECK( rc, PDERROR, "Push message into convertor "
+                            "failed[%d]", rc ) ;
+               rc = msgConvertor->output( convertedMsg, len ) ;
+               PD_RC_CHECK( rc, PDERROR, "Get converted message failed[%d]",
+                            rc ) ;
+               SDB_ASSERT( len == *(UINT32 *)convertedMsg, "Length of the "
+                           "converted message is not as expected") ;
+
+               if ( len > buffSize )
+               {
+                  CHAR *newBuff = (CHAR *)SDB_OSS_REALLOC( buff, len ) ;
+                  if ( !newBuff )
+                  {
+                     rc = SDB_OOM ;
+                     PD_LOG( PDERROR, "Allocate memory[size: %u] for "
+                             "message failed[%d]", len, rc ) ;
+                     goto error ;
+                  }
+                  buff = newBuff ;
+                  buffSize = len ;
+               }
+               ossMemcpy( buff, convertedMsg, len ) ;
             }
             // Once we received something, we just break out the loop
             // so no memory leak here
@@ -1333,9 +1425,15 @@ namespace engine
             unlockGroupItem( item ) ;
          }
       }
+
+      if ( msgConvertor )
+      {
+         SDB_OSS_DEL msgConvertor ;
+      }
       PD_TRACE_EXITRC ( SDB__CLSSHDMGR_SYNCSND, rc );
       return rc ;
    error:
+      SAFE_OSS_FREE( buff ) ;
       goto done ;
    update_group:
       if ( !hasUpdateGroup )
@@ -1444,7 +1542,7 @@ namespace engine
            SDB_OK == _cataGrpItem.getNodeInfo( tmpPos, status ) &&
            NET_NODE_STAT_NORMAL == status )
       {
-         rc = _pNetRtAgent->syncSend ( nodeID, (void*)msg, pHandle ) ;
+         rc = _pNetRtAgent->syncSend ( nodeID, msg, pHandle ) ;
          if ( rc != SDB_OK )
          {
             string hostName ;
@@ -1475,7 +1573,7 @@ namespace engine
                  SDB_OK == _cataGrpItem.getNodeInfo( tmpPos, status ) &&
                  NET_NODE_STAT_NORMAL == status )
             {
-               rc = _pNetRtAgent->syncSend ( nodeID, (void*)msg, pHandle ) ;
+               rc = _pNetRtAgent->syncSend ( nodeID, msg, pHandle ) ;
                if ( SDB_OK == rc )
                {
                   goto done ;
@@ -1485,7 +1583,7 @@ namespace engine
                   string hostName ;
                   string svcName ;
                   _cataGrpItem.getNodeInfo( nodeID, hostName, svcName ) ;
-                  PD_LOG ( PDWARNING, "Send message to catlog[%s:%s, "
+                  PD_LOG ( PDWARNING, "Send message to catalog[%s:%s, "
                            "NodeID: %u] failed[rc:%d]", hostName.c_str(),
                            svcName.c_str(), nodeID.columns.nodeID, rc ) ;
                   /// updata node status
@@ -2214,6 +2312,10 @@ namespace engine
       INT32 sentLen = 0, receivedLen = 0 ;
       INT32 replyLength = 0 ;
       CHAR *replyBuffer = NULL ;
+      BOOLEAN tryInCompatibleMode = FALSE ;
+      msgConvertorImpl *msgConvertor = NULL ;
+      UINT16 reserveSize = 0 ;
+      UINT32 recvBuffSize = 0 ;
 
       // initialize socket
       rc = tmpSocket.initSocket() ;
@@ -2251,6 +2353,7 @@ namespace engine
                       "rc: %d", hostName, port, rc ) ;
       }
 
+   try_recv:
       // receive message
       rc = tmpSocket.recv( (CHAR *)( &replyLength ), sizeof( INT32 ),
                            receivedLen, millisec ) ;
@@ -2262,11 +2365,21 @@ namespace engine
                 SDB_SYS, error, PDERROR,
                 "Failed to check length of reply [%d]", replyLength ) ;
 
-      replyBuffer = (CHAR *)SDB_OSS_MALLOC( replyLength + 1 ) ;
-      PD_CHECK( NULL != replyBuffer, SDB_OOM, error, PDERROR,
-                "Failed to allocate reply buffer for %d bytes",
-                replyLength + 1 ) ;
-
+      if ( recvBuffSize < (UINT32)(replyLength + reserveSize) )
+      {
+         CHAR *newBuff = (CHAR *)
+               SDB_OSS_REALLOC( replyBuffer, replyLength + reserveSize ) ;
+         if ( !newBuff )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Allocate memory[size: %u] failed[%d]",
+                    replyLength + reserveSize, rc ) ;
+            goto error ;
+         }
+         replyBuffer = newBuff ;
+         recvBuffSize = replyLength + reserveSize ;
+      }
+      ossMemset( replyBuffer, 0, recvBuffSize ) ;
       *(INT32 *)replyBuffer = replyLength ;
 
       rc = tmpSocket.recv( &replyBuffer[ sizeof( INT32 ) ],
@@ -2276,12 +2389,72 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to receive reply message, rc: %d",
                    rc ) ;
 
+      if ( MSG_COMM_EYE_DEFAULT != ((MsgHeader *)replyBuffer)->eye )
+      {
+         CHAR *convertedMsg = NULL ;
+         UINT32 convertedMsgLen = 0 ;
+         if ( tryInCompatibleMode )
+         {
+            rc = msgConvertor->push( replyBuffer, replyLength ) ;
+            PD_RC_CHECK( rc, PDERROR, "Push reply message into message "
+                         "convertor failed[%d]", rc ) ;
+            rc = msgConvertor->output( convertedMsg, convertedMsgLen ) ;
+            PD_RC_CHECK( rc, PDERROR, "Get message from message convertor "
+                                      "failed[%d]", rc ) ;
+            SDB_ASSERT( recvBuffSize >= convertedMsgLen,
+                        "Converted message length is not as expected" ) ;
+            ossMemcpy( replyBuffer, convertedMsg, convertedMsgLen ) ;
+         }
+         else
+         {
+            msgConvertor = SDB_OSS_NEW msgConvertorImpl ;
+            if ( !msgConvertor )
+            {
+               rc = SDB_OOM ;
+               PD_LOG( PDERROR, "Allocate memory for message convertor "
+                       "failed[%d]", rc ) ;
+               goto error ;
+            }
+
+            if ( buffer && bufferSize > 0 )
+            {
+               rc = msgConvertor->push( (const CHAR *)message,
+                                        message->messageLength - bufferSize ) ;
+               PD_RC_CHECK( rc, PDERROR, "Push message into message convertor "
+                            "failed[%d]", rc ) ;
+               rc = msgConvertor->push( buffer, bufferSize ) ;
+               PD_RC_CHECK( rc, PDERROR, "Push message into message convertor "
+                            "failed[%d]", rc ) ;
+            }
+            else
+            {
+               rc = msgConvertor->push( (const CHAR *)message,
+                                        message->messageLength ) ;
+               PD_RC_CHECK( rc, PDERROR, "Push message into message convertor "
+                                         "failed[%d]", rc ) ;
+            }
+
+            rc = msgConvertor->output( convertedMsg, convertedMsgLen ) ;
+            PD_RC_CHECK( rc, PDERROR, "Get message from message convertor "
+                         "failed[%d]", rc ) ;
+            rc = tmpSocket.send( convertedMsg, convertedMsgLen,
+                                 sentLen, millisec ) ;
+            PD_RC_CHECK( rc, PDERROR, "Send message to %s:%d failed[%d]",
+                         hostName, port, rc ) ;
+
+            tryInCompatibleMode = TRUE ;
+            reserveSize = sizeof(MsgOpReply) - sizeof(MsgOpReplyV1) ;
+            goto try_recv ;
+         }
+      }
+
       // buffer will be freed outside the function
       *receiveMessage = (MsgHeader *)replyBuffer ;
       replyBuffer = NULL ;
 
    done:
       SAFE_OSS_FREE( replyBuffer ) ;
+      SAFE_OSS_DELETE( msgConvertor ) ;
       PD_TRACE_EXITRC( SDB__CLSSHDMGR__SENDANDRECV, rc ) ;
       return rc ;
 
@@ -3733,6 +3906,7 @@ namespace engine
          reply->header.TID = msg->TID ;
          reply->header.routeID.value = 0 ;
          reply->header.requestID = msg->requestID ;
+         reply->header.globalID = msg->globalID ;
          reply->flags = rc ;
          reply->startFrom = 0 ;
          if ( SDB_OK == rc && !myInfoObj.isEmpty() )
@@ -3994,7 +4168,7 @@ namespace engine
       _shardLatch.get_shared() ;
       hasLock = TRUE ;
 
-      rc = _pNetRtAgent->syncSend( handle, (void *)msg ) ;
+      rc = _pNetRtAgent->syncSend( handle, (MsgHeader *)msg ) ;
       PD_RC_CHECK( rc, PDERROR, "Send message to search engine adapter "
                    "failed[ %d ]", rc ) ;
 

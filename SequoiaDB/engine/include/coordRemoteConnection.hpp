@@ -43,6 +43,7 @@
 #include "msg.hpp"
 #include "pmdDef.hpp"
 #include "pmdEDU.hpp"
+#include "msgConvertor.hpp"
 
 #define COORD_SDB_CONNECTION_FORCE_TIMEOUT         ( 60 * OSS_ONE_SEC )
 
@@ -100,7 +101,7 @@ namespace engine
        * The recvEvent contain the reply. Don't forget to release the memory
        * hold by the recvEvent by pmdEduEventRelease.
        */
-      INT32 syncSend( MsgHeader *header, pmdEDUEvent *recvEvent, pmdEDUCB *cb,
+      INT32 syncSend( MsgHeader *header, pmdEDUEvent &recvEvent, pmdEDUCB *cb,
                       INT32 timeout = OSS_SOCKET_DFT_TIMEOUT,
                       INT32 forceTimeout = -1 ) ;
 
@@ -116,9 +117,15 @@ namespace engine
       INT32 _doAuth( const CHAR *user, const CHAR *encryptPasswd,
                      pmdEDUCB *cb ) ;
 
+      INT32 _checkProtocolCompatibility( const MsgSysInfoReply &sysInfoReply ) ;
+
+      INT32 _onSendMsg( MsgHeader *origMsg, CHAR *&finalMsg,
+                        UINT32 &finalLen ) ;
+
    private:
-      ossSocket *_socket ;
-      BOOLEAN _newSocket ;
+      ossSocket        *_socket ;
+      BOOLEAN           _newSocket ;
+      IMsgConvertor    *_msgConvertor ;
    } ;
    typedef _coordRemoteConnection coordRemoteConnection ;
 }

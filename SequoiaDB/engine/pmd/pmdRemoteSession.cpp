@@ -1724,6 +1724,9 @@ namespace engine
          if ( pMsg )
          {
             pMsg->header.messageLength = sizeof( MsgOpReply ) ;
+            pMsg->header.eye = MSG_COMM_EYE_DEFAULT ;
+            pMsg->header.version = SDB_PROTOCOL_VER_2 ;
+            pMsg->header.flags = 0 ;
             pMsg->header.opCode = MSG_BS_DISCONNECT ;
             // WARNING: could not use incCurRequestID()
             // The _curRequestID of eduCB is not protected by locks,
@@ -1734,10 +1737,12 @@ namespace engine
             pMsg->header.requestID = eduCB()->getCurRequestID() ;
             pMsg->header.TID = eduCB()->getTID() ;
             pMsg->header.routeID.value = id.value ;
+            ossMemset( pMsg->header.reserve, 0, sizeof(pMsg->header.reserve) ) ;
             pMsg->contextID = -1 ;
             pMsg->flags = SDB_COORD_REMOTE_DISC ;
             pMsg->numReturned = 0 ;
             pMsg->startFrom = 0 ;
+            pMsg->returnMask = 0 ;
 
             if ( _pHandler )
             {

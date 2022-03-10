@@ -175,7 +175,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETRTAG_SYNCSND, "_netRouteAgent::syncSend" )
    INT32 _netRouteAgent::syncSend( const _MsgRouteID &id,
-                                   void *header,
+                                   MsgHeader *header,
                                    NET_HANDLE *pHandle )
    {
       SDB_ASSERT( NULL != header, "should not be NULL" ) ;
@@ -220,7 +220,7 @@ namespace engine
    }
 
    INT32 _netRouteAgent::syncSend( const NET_HANDLE &handle,
-                                   void *header )
+                                   MsgHeader *header )
    {
      SDB_ASSERT( NULL != header,
                   "should not be NULL" ) ;

@@ -230,7 +230,7 @@ namespace engine
             PD_LOG( PDDEBUG, "Session[%s]: last doc sync has hit the end.",
                     sessionName() ) ;
             msg.eof = CLS_FS_EOF ;
-            _agent->syncSend( handle, &msg ) ;
+            _agent->syncSend( handle, (MsgHeader *)&msg ) ;
          }
          else
          {
@@ -247,7 +247,7 @@ namespace engine
             PD_LOG( PDDEBUG, "Session[%s]: last log sync has hit the end.",
                     sessionName() ) ;
             msg.eof = CLS_FS_EOF ;
-            _agent->syncSend( handle, &msg ) ;
+            _agent->syncSend( handle, (MsgHeader *)&msg ) ;
          }
          else
          {
@@ -286,7 +286,7 @@ namespace engine
             }
             else
             {
-               _agent->syncSend( handle, &msg ) ;
+               _agent->syncSend( handle, (MsgHeader *)&msg ) ;
             }
          }
          else
@@ -820,7 +820,7 @@ namespace engine
          }
          else
          {
-            _agent->syncSend( handle, &msg ) ;
+            _agent->syncSend( handle, (MsgHeader *)&msg ) ;
          }
       }
 
@@ -1111,7 +1111,7 @@ namespace engine
                msg.lsn.offset = _beginLSNOffset ;
             }
             _LSNlatch.release() ;
-            _agent->syncSend( handle, &msg ) ;
+            _agent->syncSend( handle, (MsgHeader *)&msg ) ;
          }
          else
          {
@@ -1384,7 +1384,7 @@ namespace engine
          // destination node to restart the sync process
          res.header.res = rc ;
          res.header.header.messageLength = sizeof ( MsgClsFSMetaRes ) ;
-         if ( SDB_OK == _agent->syncSend ( handle, (void*)&res ) )
+         if ( SDB_OK == _agent->syncSend ( handle, (MsgHeader *)&res ) )
          {
             _hasMeta = TRUE ;
          }
@@ -1682,7 +1682,7 @@ namespace engine
                  sessionName(), rc ) ;
          msg.header.res = rc ;
          _quit = TRUE ;
-         _agent->syncSend( handle, &msg ) ;
+         _agent->syncSend( handle, (MsgHeader *)&msg ) ;
          goto done ;
       }
 
@@ -1874,7 +1874,7 @@ namespace engine
       msg.header.header.routeID = header->routeID ;
       msg.header.header.requestID = header->requestID ;
 
-      if ( SDB_OK == _agent->syncSend( handle, &msg ) )
+      if ( SDB_OK == _agent->syncSend( handle, (MsgHeader *)&msg ) )
       {
          PD_LOG( PDEVENT, "Session[%s]: Full sync has been done",
                  sessionName() ) ;

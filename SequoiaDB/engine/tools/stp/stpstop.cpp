@@ -252,7 +252,10 @@ namespace engine
 
             itrNode = listNodes.erase( itrNode ) ;
          }
-         ++ itrNode ;
+         else
+         {
+            ++itrNode ;
+         }
       }
 
       /// The second time for wait

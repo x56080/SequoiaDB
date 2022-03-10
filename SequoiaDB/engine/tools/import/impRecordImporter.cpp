@@ -334,8 +334,13 @@ namespace import
       _insertMsg = (MsgOpInsert*)_insertBuffer ;
       _insertMsg->header.requestID     = 0 ;
       _insertMsg->header.opCode        = MSG_BS_INSERT_REQ ;
+      _insertMsg->header.eye           = MSG_COMM_EYE_DEFAULT ;
+      _insertMsg->header.version       = SDB_PROTOCOL_VER_2 ;
+      _insertMsg->header.flags         = 0 ;
       _insertMsg->header.routeID.value = 0 ;
       _insertMsg->header.TID           = ossGetCurrentThreadID() ;
+      ossMemset( _insertMsg->header.reserve, 0,
+                sizeof( _insertMsg->header.reserve ) ) ;
 
       ossEndianConvertIf( defaultVersion, _insertMsg->version, _endianConvert );
       ossEndianConvertIf( defaultW, _insertMsg->w, _endianConvert ) ;

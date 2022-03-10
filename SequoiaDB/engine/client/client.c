@@ -1164,7 +1164,7 @@ static INT32 requestSysInfo ( sdbConnectionStruct *connection )
    rc = clientExtractSysInfoReply ( (CHAR*)&reply,
                                     &(connection->_endianConvert),
                                     NULL, &(connection->_authVersion),
-                                    NULL, NULL, NULL, NULL ) ;
+                                    NULL, NULL, NULL, NULL, NULL ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
