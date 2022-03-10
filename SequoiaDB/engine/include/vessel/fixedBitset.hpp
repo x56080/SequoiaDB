@@ -55,7 +55,6 @@ namespace vessel
    but _Find_xx functions are not in common use on all os platforms.
 */
 
-#if defined (_LINUX ) || defined (_AIX)
    template<UINT32 SET_SIZE>
    class fixedBitset : public SDBObject
    {
@@ -66,6 +65,12 @@ namespace vessel
 
             /// we use int32 as return value when do find.
             static_assert(SET_SIZE < OSS_SINT32_MAX, "out of bound");
+
+#if defined (_LINUX ) || defined (_AIX)
+            /// do no thing
+#else
+            _bs.resize(SET_SIZE, FALSE);
+#endif
          }
          ~fixedBitset(){}
 
@@ -76,23 +81,53 @@ namespace vessel
             return _bs.count();
          }
 
+         BOOLEAN none()const
+         {
+            return _bs.none();
+         }
+
+         BOOLEAN all()const
+         {
+            /// dynamic_bitset does has all() function.
+            return SET_SIZE == _bs.count();
+         }
+
+         BOOLEAN any()const
+         {
+            return _bs.any();
+         }
+
          INT32 findFirst()const
          {
-            INT32 pos = _bs._Find_first();
+            INT32 pos = -1;
+#if defined (_LINUX ) || defined (_AIX)
+            pos = _bs._Find_first();
             if (pos == SET_SIZE)
             {
                pos = -1;
             }
+#else
+            boost::dynamic_bitset<>::size_type t = _bs.find_first();
+            pos = (t == boost::dynamic_bitset<>::nops) ?
+                  -1 : static_cast<INT32>(t);
+#endif
             return pos;
          }
 
          INT32 findNext(UINT32 prev)const
          {
-            INT32 pos = _bs._Find_next(prev);
+            INT32 pos = -1;
+#if defined (_LINUX ) || defined (_AIX)
+            pos = _bs._Find_next(prev);
             if (pos == SET_SIZE)
             {
                pos = -1;
             }
+#else
+            boost::dynamic_bitset<>::size_type t = _bs.find_next(prev);
+            pos = (t == boost::dynamic_bitset<>::nops) ?
+                  -1 : static_cast<INT32>(t);
+#endif
             return pos;
          }
 
@@ -124,6 +159,11 @@ namespace vessel
             _bs.reset();
          }
 
+         void flipAll()
+         {
+            _bs.flip();
+         }
+
          void flip(UINT32 pos, BOOLEAN *old=nullptr)
          {
             if (nullptr != old)
@@ -137,101 +177,14 @@ namespace vessel
          {
             return _bs.test(pos);
          }
+
       private:
+#if defined (_LINUX ) || defined (_AIX)
          std::bitset<SET_SIZE> _bs;
-   };//class fixedBitset
-
 #else
-   template<UINT32 SET_SIZE>
-   class fixedBitset : public SDBObject
-   {
-      public:
-         fixedBitset()
-         {
-            static_assert(0 < SET_SIZE, "can not be zero");
-
-            /// we use int32 as return value when do find.
-            static_assert(SET_SIZE < OSS_SINT32_MAX, "out of bound");
-
-            _bs.resize(SET_SIZE, FALSE);
-         }
-         ~fixedBitset()
-         {
-            _bs.clear();
-         }
-
-      public:
-         constexpr UINT32 getSize()const {return SET_SIZE;}
-         UINT32 getNonzeroBitCount()const
-         {
-            return _bs.count();
-         }
-
-         INT32 findFirst()const
-         {
-            boost::dynamic_bitset<>::size_type p = _bs.find_first();
-            return boost::dynamic_bitset<>::npos == p ?
-                   -1 : static_cast<INT32>(p);
-         }
-
-         INT32 findNext(UINT32 prev)const
-         {
-            boost::dynamic_bitset<>::size_type p = _bs.find_next(prev);
-            return boost::dynamic_bitset<>::npos == p ?
-                   -1 : static_cast<INT32>(p);
-         }
-
-         void set(UINT32 pos)
-         {
-            _bs.set(pos);
-         }
-
-         void set(UINT32 pos, BOOLEAN &old)
-         {
-            old = _bs.test(pos);
-            _bs.set(pos);
-         }
-
-         void clear(UINT32 pos, BOOLEAN &old)
-         {
-            old = _bs.test(pos);
-            _bs.reset(pos);
-         }
-
-         void clear(UINT32 pos)
-         {
-            _bs.reset(pos);
-         }
-
-         void setAll()
-         {
-            _bs.set();
-         }
-
-         void clearAll()
-         {
-            _bs.reset();
-         }
-
-         void flip(UINT32 pos)
-         {
-            _bs.flip(pos);
-         }
-
-         void flip(UINT32 pos, BOOLEAN &old)
-         {
-            old = _bs.test(pos);
-            _bs.flip(pos);
-         }
-
-         BOOLEAN test(UINT32 pos)const
-         {
-            return _bs.test(pos);
-         }
-      private:
          boost::dynamic_bitset<> _bs;
+#endif
    };//class fixedBitset
-#endif// defined (_LINUX ) || defined (_AIX)
 } // namespace vessel
 
 } // namespace engine

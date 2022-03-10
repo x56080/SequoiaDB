@@ -1096,7 +1096,7 @@ vesselTestFiles = [
       "test/vessel/index_ddl_test.cpp",
       "test/vessel/misc_test.cpp",
       "test/vessel/lpid_hash_table_test.cpp",
-      "test/vessel/united_bitmap_test.cpp"
+      "test/vessel/bitmap_misc_test.cpp"
 ]
 
 vesselUnitTestCommonFiles = [

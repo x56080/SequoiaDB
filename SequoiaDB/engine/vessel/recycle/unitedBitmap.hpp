@@ -40,7 +40,7 @@
 #include "pdTrace.hpp"
 #include "ossLikely.hpp"
 #include "vessel/fixedBitset.hpp"
-#include "vessel/bitsetTree.hpp"
+#include <boost/dynamic_bitset.hpp>
 
 namespace engine
 {
@@ -89,7 +89,7 @@ namespace vessel
 
       public:
          UINT32 getTotalBitNum()const {return UNIT_SIZE * _units.size();}
-         BOOLEAN isFreeToAlloc()const {return !_indexTree.none();}
+         BOOLEAN isFreeToAlloc()const {return 0 < _nonzeroUnits;}
          UINT32 getUnitCount()const {return _units.size();}
          constexpr UINT32 getUnitSize()const {return UNIT_SIZE;}
 
@@ -101,7 +101,9 @@ namespace vessel
          void fini()
          {
             _o = options();
-            _indexTree.clear();
+            _nonzeroUnits = 0;
+            _prev = -1;
+            _unitIndex.clear();
             for (UINT32 i = 0; i < _units.size(); ++i)
             {
                _bitmapUnit *unit = _units[i];
@@ -116,10 +118,10 @@ namespace vessel
          INT32 extendUnitNum(UINT32 num, BOOLEAN unzero=TRUE)
          {
             INT32 rc = SDB_OK;
+            constexpr UINT32 _MAX_UNIT_NUM = 32 << 20;
             UINT32 current = _units.size();
 
-            if (OSS_UNLIKELY(_indexTree.getMaxBitCount() <
-                             (current + _indexTree.getTotalBitCount())))
+            if (OSS_UNLIKELY(_MAX_UNIT_NUM == current))
             {
                rc = SDB_VESSEL_OUT_OF_RESOURCE;
                goto error;
@@ -149,12 +151,20 @@ namespace vessel
                _units.push_back(unit);
             }
 
-            for (UINT32 i = 0; i < num; ++i)
+            /// do not goto error from here.
+            if (unzero)
             {
-               _indexTree.pushBack(unzero);
+               _nonzeroUnits += num;
+               _unitIndex.resize(current + num, TRUE);
+               if (num == _nonzeroUnits && num < _units.size())
+               {
+                  _prev = (_units.size() * UNIT_SIZE) - 1;
+               }
             }
-
-            
+            else
+            {
+                _unitIndex.resize(current + num, FALSE);
+            }
          done:
             return rc;
          error:
@@ -170,27 +180,12 @@ namespace vessel
             goto done;
          }
 
-         INT32 findFirst()const
-         {
-            INT32 bitPos = -1;
-            INT32 unitId = _indexTree.findFirst();
-            if (0 <= unitId)
-            {
-               const _bitmapUnit *unit = _units[i];
-               bitPos = unit->bs.findFirst();
-               SDB_ASSERT(0 <= bitPos, "must be found");
-               bitPos = (unitId * UNIT_SIZE) + bitPos;
-            }
-
-            return bitPos;
-         }
-
          /// find a unzero bit and clear it.
          /// return -1 if no unzero bit found.
          INT32 pop()
          {
             INT32 bitPos = -1;
-            INT32 unitId = _indexTree.findFirst();
+            INT32 unitId = findUnzeroUnitIdAndUpdatePrev();
             if (0 <= unitId)
             {
                _bitmapUnit *unit = _units[unitId];
@@ -202,7 +197,13 @@ namespace vessel
    
                if (0 == --unit->nonzeroBits)
                {
-                  _indexTree.reset(unitId);
+                  --_nonzeroUnits;
+                  _unitIndex.reset(unitId);
+
+                  if (0 == _nonzeroUnits)
+                  {
+                     _prev = -1;
+                  }
                }
 
                bitPos = (unitId * UNIT_SIZE) + first;
@@ -229,12 +230,18 @@ namespace vessel
             {
                unit->bs.set(bitInUnit);
                ++unit->nonzeroBits;
-               if (!_indexTree.test(unitId))
+               if (!_unitIndex.test(unitId))
                {
                   FLOAT32 freePct = (FLOAT32)(unit->nonzeroBits) / UNIT_SIZE;
                   if (_o.percentFreeReused <= freePct)
                   {
-                     _indexTree.set(unitId);
+                     ++_nonzeroUnits;
+                     _unitIndex.set(unitId);
+
+                     if (1 == _nonzeroUnits)
+                     {
+                        _prev = (0 < unitId) ? (unitId - 1) : -1;
+                     }
                   }
                }
             }
@@ -260,9 +267,15 @@ namespace vessel
             {
                unit->bs.clear(bitInUnit);
                --unit->nonzeroBits;
-               if (0 == unit->nonzeroBits)
+               if (0 == unit->nonzeroBits &&
+                   _unitIndex.test(unitId))
                {
-                  _indexTree.reset(unitId);
+                  --_nonzeroUnits;
+                  _unitIndex.reset(unitId);
+                  if (0 == _nonzeroUnits)
+                  {
+                     _prev = -1;
+                  }
                }
             }
 
@@ -277,7 +290,7 @@ namespace vessel
             _bitmapUnit *unit = _units[unitId];
             if (nullptr != freeToAlloc)
             {
-               *freeToAlloc = _indexTree.test(unitId);
+               *freeToAlloc = _unitIndex.test(unitId);
             }
             return unit->bs.test(bitInUnit);
          }
@@ -292,9 +305,56 @@ namespace vessel
             return bitPos % UNIT_SIZE;
          }
 
+         INT32 findUnzeroUnitIdAndUpdatePrev()
+         {
+            INT32 unitId = -1;
+            
+            if (0 < _nonzeroUnits)
+            {
+               boost::dynamic_bitset<>::size_type pos = boost::dynamic_bitset<>::npos;
+               if (0 <= _prev)
+               {
+                  pos = _unitIndex.find_next(_prev);
+                  if (boost::dynamic_bitset<>::npos != pos)
+                  {
+                     unitId = pos;
+                     if ((_prev + 1) < pos)
+                     {
+                        _prev = pos - 1;
+                     }
+                     goto done;
+                  }
+                  else
+                  {
+                     _prev = -1;
+                  }
+               }
+
+               /// no prev or bit not found after prev
+               pos = _unitIndex.find_first();
+               if (OSS_LIKELY(boost::dynamic_bitset<>::npos != pos))
+               {
+                  unitId = pos;
+                  if (0 < pos)
+                  {
+                     _prev = pos - 1;
+                  }
+               }
+               else
+               {
+                  SDB_ASSERT(FALSE, "impossible");
+               }
+            }
+
+         done:
+            return unitId;
+         }
+
       private:
          options _o;
-         bitsetTree _indexTree;
+         UINT32 _nonzeroUnits = 0;
+         INT32 _prev = -1;
+         boost::dynamic_bitset<> _unitIndex;
          _BITMAP_UNIT_VEC _units;
 
    };//class unitedBitmap
