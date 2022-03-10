@@ -113,6 +113,7 @@ testFiles = [
    [ "./crud/query25369_25370.cpp" ],
    [ "./crud/specialDecimal_14004.cpp" ],
    [ "./crud/snapshotPlan14515.cpp" ],
+   [ "./crud/closeAllCursors20122.cpp" ],
    [ "./crud/pop14506.cpp" ],
    [ "./crud/delete25407.cpp" ],
    [ "./crud/update25408.cpp" ],
