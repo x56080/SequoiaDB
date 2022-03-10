@@ -1259,7 +1259,6 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
    DWORD bytesPerSector    = 0 ;
    DWORD freeClusters      = 0 ;
    DWORD totalClusters     = 0 ;
-   INT64 availBytes        = 0 ;
    WCHAR volumePath[ OSS_MAX_PATHSIZE ] = L"" ;
 
    rc = ossANSI2WC ( pPath, &pszWString, &dwString ) ;
