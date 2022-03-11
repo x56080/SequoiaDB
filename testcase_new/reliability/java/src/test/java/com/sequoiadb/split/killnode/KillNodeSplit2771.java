@@ -87,7 +87,7 @@ public class KillNodeSplit2771 extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws Exception {
         try {
             // 获取源组主节点的主机名端口号
             GroupWrapper srcGroup = groupMgr.getGroupByName( srcGroupName );

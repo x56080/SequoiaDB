@@ -93,7 +93,7 @@ public class NetSplit2583 extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws Exception {
         Sequoiadb db = null;
         try {
             // 建立并行任务
