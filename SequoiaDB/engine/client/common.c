@@ -3880,7 +3880,7 @@ INT32 clientBuildTransactionCommitMsg( CHAR **ppBuffer, INT32 *bufferSize,
    transCommitMsg                       = ( MsgOpTransCommit *)( *ppBuffer ) ;
    transCommitMsg->header.requestID     = reqID ;
    transCommitMsg->header.opCode        = MSG_BS_TRANS_COMMIT_REQ ;
-   transCommitMsg->header.messageLength = sizeof( MsgOpTransBegin ) + 0 ;
+   transCommitMsg->header.messageLength = len ;
    transCommitMsg->header.eye           = MSG_COMM_EYE_DEFAULT ;
    transCommitMsg->header.version       = SDB_PROTOCOL_VER_2 ;
    transCommitMsg->header.flags         = 0 ;
