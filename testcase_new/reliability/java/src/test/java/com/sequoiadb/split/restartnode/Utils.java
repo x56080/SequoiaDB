@@ -8,7 +8,9 @@ import com.sequoiadb.commlib.GroupWrapper;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
 import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
+import org.testng.Assert;
 import org.testng.SkipException;
 
 import java.util.ArrayList;
@@ -95,20 +97,29 @@ public class Utils {
         }
     }
 
-    public static void waitSplit( Sequoiadb db, String clFullName ) {
+    public static void waitSplit( Sequoiadb db, String clFullName )
+            throws Exception {
         DBCursor cursor = null;
-        while ( true ) {
-            try {
-                cursor = db.getList( Sequoiadb.SDB_LIST_TASKS,
-                        ( BSONObject ) JSON
-                                .parse( "{Name:'" + clFullName + "'}" ),
-                        null, null );
-                if ( !cursor.hasNext() ) {
+        try {
+            int retryTimes = 300;
+            int currTimes = 0;
+            while ( currTimes < retryTimes ) {
+                cursor = db.listTasks(
+                        new BasicBSONObject( "Name", clFullName ).append(
+                                "Status", new BasicBSONObject( "$et", 9 ) ),
+                        null, null, null );
+                if ( cursor.hasNext() ) {
                     break;
+                } else {
+                    Thread.sleep( 200 );
+                    currTimes++;
+                    if ( currTimes >= retryTimes ) {
+                        Assert.fail( "Timeout get successful task." );
+                    }
                 }
-            } finally {
-                cursor.close();
             }
+        } finally {
+            cursor.close();
         }
     }
 
