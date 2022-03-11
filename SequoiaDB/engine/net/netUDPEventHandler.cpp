@@ -298,7 +298,6 @@ namespace engine
             ( MSG_COMM_EYE_DEFAULT == message->eye ||
               MSG_COMM_EYE_DEFAULT_BACK == message->eye ) ?
             SDB_PROTOCOL_VER_2 : SDB_PROTOCOL_VER_1 ;
-         SDB_ASSERT( 0 != message->routeID.value, "Message is invalid" ) ;
          if ( SDB_PROTOCOL_VER_1 == _peerVersion )
          {
             _mtx.get() ;
