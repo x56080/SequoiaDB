@@ -37,7 +37,7 @@ v3.2 and above
 
 ##EXAMPLES##
 
-- Insert the file `mylob.txt` into the collection "sample.employee" as a LOB, and specify the LOB "oid"
+- Insert the file `mylob.txt` into the collection "sample.employee" as a LOB, and specify the LOB "oid".
 
     ```lang-javascript
     > db.sample.employee.putLob('/opt/mylob/mylob.txt', '5bf3a024ed9954d596420256')
@@ -48,7 +48,7 @@ v3.2 and above
     >
     > Users can create a LOB oid through [createLobID()][createLobID].
 
-- Insert the file `mylob.txt` into the collection sample.employee as a LOB, without specifying the LOB "oid".
+- Insert the file `mylob.txt` into the collection "sample.employee" as a LOB, without specifying the LOB "oid".
 
     ```lang-javascript
     > db.sample.employee.putLob('/opt/mylob/mylob.txt')
