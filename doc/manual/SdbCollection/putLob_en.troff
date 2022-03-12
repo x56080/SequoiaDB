@@ -95,7 +95,7 @@ v5.0 and above
 .SH EXAMPLES
 .IP \[bu] 2
 Insert the file \f[C]mylob.txt\f[] into the collection "sample.employee" as a
-LOB, and specify the LOB "oid"
+LOB, and specify the LOB "oid".
 .RS 2
 .IP
 .nf
@@ -112,8 +112,8 @@ Users can create a LOB oid through createLobID().
 .RE
 .RE
 .IP \[bu] 2
-Insert the file \f[C]mylob.txt\f[] into the collection sample.employee as a LOB,
-without specifying the LOB "oid".
+Insert the file \f[C]mylob.txt\f[] into the collection "sample.employee" as a
+LOB, without specifying the LOB "oid".
 .RS 2
 .IP
 .nf
