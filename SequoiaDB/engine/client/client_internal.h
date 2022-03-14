@@ -41,6 +41,14 @@ struct _Node
 } ;
 typedef struct _Node Node ;
 
+struct _sdbMsgConvertor
+{
+   BOOLEAN     _hasData ;
+   CHAR       *_buff ;
+   UINT32      _buffSize ;
+};
+typedef struct _sdbMsgConvertor sdbMsgConvertor ;
+
 struct _sdbConnectionStruct
 {
    // generic variables, to validate which type does this handle belongs to
@@ -67,6 +75,8 @@ struct _sdbConnectionStruct
    // If the authVersion is 0, we use MD5 authentication.
    // And if the authVersion is 1, we use SCRAM-SHA256 authentication.
    INT32       _authVersion ;
+   INT16       _peerProtocolVersion ;
+   sdbMsgConvertor  *_msgConvertor ;
 } ;
 typedef struct _sdbConnectionStruct sdbConnectionStruct ;
 
