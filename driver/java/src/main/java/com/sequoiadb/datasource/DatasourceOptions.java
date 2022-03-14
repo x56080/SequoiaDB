@@ -33,7 +33,7 @@ import java.util.List;
  */
 public class DatasourceOptions implements Cloneable {
     private static final List<String> MODE = Arrays.asList("M", "m", "S", "s", "A", "a");
-    private static final String DEFAULT_PREFERRD_INSTANCE_MODE = DatasourceConstants.PREFERED_INSTANCE_MODE_RANDON;
+    private static final String DEFAULT_PREFERRED_INSTANCE_MODE = DatasourceConstants.PREFERRED_INSTANCE_MODE_RANDOM;
     private static final int DEFAULT_SESSION_TIMEOUT = -1;
     private int _deltaIncCount = 10;
     private int _maxIdleCount = 10;
@@ -44,8 +44,8 @@ public class DatasourceOptions implements Cloneable {
     private int _syncCoordInterval = 0; // 0 min
     private boolean _validateConnection = false;
     private ConnectStrategy _connectStrategy = ConnectStrategy.SERIAL;
-    private List<Object> _preferedInstance = null;
-    private String _preferedInstanceMode = DEFAULT_PREFERRD_INSTANCE_MODE; // "random" or "ordered"
+    private List<Object> _preferredInstance = null;
+    private String _preferredInstanceMode = DEFAULT_PREFERRED_INSTANCE_MODE; // "random" or "ordered"
     private int _sessionTimeout = DEFAULT_SESSION_TIMEOUT;
     private int _networkBlockTimeout = 6000; //network block timeout, default 6s
     private int _cacheLimit = 131072; // 128k
@@ -181,30 +181,37 @@ public class DatasourceOptions implements Cloneable {
     }
 
     /**
-     * Set Preferred instance for read request in the session..
-     * When user does not set any preferred instance,
-     * use the setting in the coord's setting file.
+     * Set preferred instance for read request in the session.
+     * When user does not set any preferred instance, use the setting in the coord's setting file.
      * Note: When specifying preferred instance, Datasource will set the session attribute only
      * when it creating a connection. That means when user get a connection out from the Datasource,
-     * if user reset the session attribute of the connection, Datasource will keep the latest changes of the setting.
+     * if user reset the session attribute of the connection, Datasource will keep the latest changes
+     * of the setting.
      *
-     * @param preferedInstance Could be single value in "M", "m", "S", "s", "A", "a", "1"-"255", or multiple values of them.
+     * @param preferredInstance Could be single value in "M", "m", "S", "s", "A", "a", "1"-"255", or
+     *                          multiple values of them.
      *                         <ul>
-     *                         <li>"M", "m": read and write instance( master instance ). If multiple numeric instances are given with "M", matched master instance will be chosen in higher priority. If multiple numeric instances are given with "M" or "m", master instance will be chosen if no numeric instance is matched.</li>
-     *                         <li>"S", "s": read only instance( slave instance ). If multiple numeric instances are given with "S", matched slave instances will be chosen in higher priority. If multiple numeric instances are given with "S" or "s", slave instance will be chosen if no numeric instance is matched.</li>
+     *                         <li>"M", "m": read and write instance( master instance ). If multiple numeric
+     *                          instances are given with "M", matched master instance will be chosen in higher
+     *                          priority. If multiple numeric instances are given with "M" or "m", master
+     *                          instance will be chosen if no numeric instance is matched.</li>
+     *                         <li>"S", "s": read only instance( slave instance ). If multiple numeric instances
+     *                          are given with "S", matched slave instances will be chosen in higher priority.
+     *                          If multiple numeric instances are given with "S" or "s", slave instance will
+     *                          be chosen if no numeric instance is matched.</li>
      *                         <li>"A", "a": any instance.</li>
      *                         <li>"1"-"255": the instance with specified instance ID.</li>
      *                         <li>If multiple alphabet instances are given, only first one will be used.</li>
      *                         <li>If matched instance is not found, will choose instance by random.</li>
      *                         </ul>
      */
-    public void setPreferedInstance(final List<String> preferedInstance) {
-        if (preferedInstance == null || preferedInstance.size() == 0) {
+    public void setPreferredInstance(final List<String> preferredInstance) {
+        if (preferredInstance == null || preferredInstance.size() == 0) {
             return;
         }
         List<String> list = new ArrayList<String>();
 
-        for (String s : preferedInstance) {
+        for (String s : preferredInstance) {
             if (isValidMode(s)) {
                 if (!list.contains(s)) {
                     list.add(s);
@@ -216,12 +223,12 @@ public class DatasourceOptions implements Cloneable {
         if (list.size() == 0) {
             return;
         }
-        _preferedInstance = new ArrayList<Object>();
+        _preferredInstance = new ArrayList<Object>();
         for (String s : list) {
             try {
-                _preferedInstance.add(Integer.valueOf(s));
+                _preferredInstance.add(Integer.valueOf(s));
             } catch (NumberFormatException e) {
-                _preferedInstance.add(s);
+                _preferredInstance.add(s);
             }
         }
     }
@@ -232,14 +239,15 @@ public class DatasourceOptions implements Cloneable {
      * @param mode can be one of the follow, default to be "random".
      *             <ul>
      *             <li>"random": choose the instance from matched instances by random.</li>
-     *             <li>"ordered": choose the instance from matched instances by the order of "PreferedInstance".</li>
+     *             <li>"ordered": choose the instance from matched instances by the order of
+     *             "PreferedInstance".</li>
      *             </ul>
      */
-    public void setPreferedInstanceMode(String mode) {
+    public void setPreferredInstanceMode(String mode) {
         if (mode == null || mode.isEmpty()) {
-            _preferedInstanceMode = DEFAULT_PREFERRD_INSTANCE_MODE;
+            _preferredInstanceMode = DEFAULT_PREFERRED_INSTANCE_MODE;
         } else {
-            _preferedInstanceMode = mode;
+            _preferredInstanceMode = mode;
         }
     }
 
@@ -361,12 +369,12 @@ public class DatasourceOptions implements Cloneable {
      *
      * @return The preferred instance or null for no any setting.
      */
-    public List<String> getPreferedInstance() {
-        if (_preferedInstance == null) {
+    public List<String> getPreferredInstance() {
+        if (_preferredInstance == null) {
             return null;
         }
         List<String> list = new ArrayList<String>();
-        for (Object o : _preferedInstance) {
+        for (Object o : _preferredInstance) {
             if (o instanceof String) {
                 list.add((String) o);
             } else if (o instanceof Integer) {
@@ -376,8 +384,9 @@ public class DatasourceOptions implements Cloneable {
         return list;
     }
 
-    List<Object> getPreferedInstanceObjects() {
-        return _preferedInstance;
+
+    List<Object> getPreferredInstanceObjects() {
+        return _preferredInstance;
     }
 
     /**
@@ -385,9 +394,10 @@ public class DatasourceOptions implements Cloneable {
      *
      * @return The preferred instance node.
      */
-    public String getPreferedInstanceMode() {
-        return _preferedInstanceMode;
+    public String getPreferredInstanceMode() {
+        return _preferredInstanceMode;
     }
+
 
     /**
      * The Session timeout value.
@@ -404,6 +414,26 @@ public class DatasourceOptions implements Cloneable {
      */
     public int getCacheLimit() {
         return _cacheLimit;
+    }
+
+    /**
+     * Set the network block timeout, which is used to set the send and receive timeout of the connections
+     * inside the connection pool. After a connection get out from the connection pool, its send and receive
+     * timeout will be restored to the original state.
+     *
+     * @param networkBlockTimeout The network block timeout, default to be 6000ms, 0ms and means no timeout
+     */
+    public void setNetworkBlockTimeout(int networkBlockTimeout) {
+        this._networkBlockTimeout = networkBlockTimeout;
+    }
+
+    /**
+     * Get the network block timeout
+     *
+     * @return The network block timeout
+     */
+    public int getNetworkBlockTimeout() {
+        return _networkBlockTimeout;
     }
 
     /// the follow APIs are deprecated
@@ -574,37 +604,87 @@ public class DatasourceOptions implements Cloneable {
     }
 
     /**
-     * Set the network block timeout, which is used to set the send and receive timeout of the connections
-     * inside the connection pool. After a connection get out from the connection pool, its send and receive
-     * timeout will be restored to the original state.
+     * Set preferred instance for read request in the session.
+     * When user does not set any preferred instance, use the setting in the coord's setting file.
+     * Note: When specifying preferred instance, Datasource will set the session attribute only
+     * when it creating a connection. That means when user get a connection out from the Datasource,
+     * if user reset the session attribute of the connection, Datasource will keep the latest changes
+     * of the setting.
      *
-     * @param networkBlockTimeout The network block timeout, default to be 6000ms, 0ms and means no timeout
+     * @param preferredInstance Could be single value in "M", "m", "S", "s", "A", "a", "1"-"255", or
+     *                          multiple values of them.
+     *                         <ul>
+     *                         <li>"M", "m": read and write instance( master instance ). If multiple numeric
+     *                          instances are given with "M", matched master instance will be chosen in higher
+     *                          priority. If multiple numeric instances are given with "M" or "m", master
+     *                          instance will be chosen if no numeric instance is matched.</li>
+     *                         <li>"S", "s": read only instance( slave instance ). If multiple numeric instances
+     *                          are given with "S", matched slave instances will be chosen in higher priority.
+     *                          If multiple numeric instances are given with "S" or "s", slave instance will
+     *                          be chosen if no numeric instance is matched.</li>
+     *                         <li>"A", "a": any instance.</li>
+     *                         <li>"1"-"255": the instance with specified instance ID.</li>
+     *                         <li>If multiple alphabet instances are given, only first one will be used.</li>
+     *                         <li>If matched instance is not found, will choose instance by random.</li>
+     *                         </ul>
+     * @deprecated Use {@link DatasourceOptions#setPreferredInstance(List)} instead.
      */
-    public void setNetworkBlockTimeout(int networkBlockTimeout) {
-        this._networkBlockTimeout = networkBlockTimeout;
+    @Deprecated
+    public void setPreferedInstance(final List<String> preferredInstance) {
+        setPreferredInstance( preferredInstance );
     }
 
     /**
-     * Get the network block timeout
+     * Set the mode to choose query instance when multiple preferred instances are found in the session.
      *
-     * @return The network block timeout
+     * @param mode can be one of the follow, default to be "random".
+     *             <ul>
+     *             <li>"random": choose the instance from matched instances by random.</li>
+     *             <li>"ordered": choose the instance from matched instances by the order of
+     *             "PreferedInstance".</li>
+     *             </ul>
+     * @deprecated Use {@link DatasourceOptions#setPreferredInstanceMode(String)} instead.
      */
-    public int getNetworkBlockTimeout() {
-        return _networkBlockTimeout;
+    @Deprecated
+    public void setPreferedInstanceMode(String mode) {
+        setPreferredInstanceMode( mode );
+    }
+
+    /**
+     * Get the preferred instance.
+     *
+     * @return The preferred instance or null for no any setting.
+     * @deprecated Use {@link DatasourceOptions#getPreferredInstance()} instead.
+     */
+    @Deprecated
+    public List<String> getPreferedInstance() {
+        return getPreferredInstance();
+    }
+
+    /**
+     * Get the preferred instance node.
+     *
+     * @return The preferred instance node.
+     * @deprecated Use {@link DatasourceOptions#getPreferredInstanceMode()} instead.
+     */
+    @Deprecated
+    public String getPreferedInstanceMode() {
+        return getPreferredInstanceMode();
     }
 
     BSONObject getSessionAttr() {
         BSONObject obj = new BasicBSONObject();
-        if (_preferedInstance != null && _preferedInstance.size() > 0) {
+        if (_preferredInstance != null && _preferredInstance.size() > 0) {
             // preferred instance
             BSONObject list = new BasicBSONList();
             int i = 0;
-            for (Object o : _preferedInstance) {
+            for (Object o : _preferredInstance) {
                 list.put("" + i++, o);
             }
-            obj.put(DatasourceConstants.FIELD_NAME_PREFERED_INSTANCE, list);
-            // preferred instance mode
-            obj.put(DatasourceConstants.FIELD_NAME_PREFERED_INSTANCE_MODE, _preferedInstanceMode);
+            // XXX_LEGACY is used for compatibility with older versions, they can only
+            // be replaced when everyone is on 3.6 and above.
+            obj.put(DatasourceConstants.FIELD_NAME_PREFERRED_INSTANCE_LEGACY, list);
+            obj.put(DatasourceConstants.FIELD_NAME_PREFERRED_INSTANCE_MODE_LEGACY, _preferredInstanceMode);
             // timeout
             obj.put(DatasourceConstants.FIELD_NAME_SESSION_TIMEOUT, _sessionTimeout);
         }

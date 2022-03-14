@@ -7,6 +7,7 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.test.common.Constants;
 import com.sequoiadb.test.common.Helper;
+import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.junit.*;
 
@@ -57,8 +58,8 @@ public class SequoiadbDatasourceTest {
         ConfigOptions configOptions = new ConfigOptions();
         DatasourceOptions options = new DatasourceOptions();
         options.setMaxCount(maxCount);
-        options.setPreferedInstance(Arrays.asList("M", "1", "2", "012"));
-        options.setPreferedInstanceMode("ordered");
+        options.setPreferredInstance(Arrays.asList("M", "1", "2", "012"));
+        options.setPreferredInstanceMode("ordered");
         options.setSessionTimeout(100);
         SequoiadbDatasource sds = new SequoiadbDatasource(coords, "", "", configOptions, options);
         Sequoiadb[] dbs = new Sequoiadb[threadCount];
@@ -508,7 +509,36 @@ public class SequoiadbDatasourceTest {
         dsOpt.setMaxIdleCount(500);
         datasource = new SequoiadbDatasource(coords, "", "", null, dsOpt);
         datasource.close();
-
     }
 
+    @Test
+    public void preferredInstanceTest(){
+        String mode = "random";
+        String instance = "A";
+        List<String> instanceList = new ArrayList<>();
+        instanceList.add( instance );
+
+        DatasourceOptions options = new DatasourceOptions();
+        options.setPreferredInstanceMode( mode );
+        options.setPreferredInstance( instanceList );
+
+        Assert.assertEquals( mode, options.getPreferredInstanceMode() );
+        Assert.assertEquals( instanceList, options.getPreferredInstance() );
+
+        SequoiadbDatasource ds = new SequoiadbDatasource( coords, "", "", null, options );
+        Sequoiadb db = null;
+        try {
+            db = ds.getConnection();
+            BSONObject obj = db.getSessionAttr( false );
+            Assert.assertEquals( mode, obj.get( "PreferredInstanceMode" ) );
+            Assert.assertEquals( instance, obj.get( "PreferredInstance" ) );
+        } catch ( Exception e ){
+            e.printStackTrace();
+        } finally {
+            if ( db != null ){
+                ds.releaseConnection( db );
+            }
+            ds.close();
+        }
+    }
 }

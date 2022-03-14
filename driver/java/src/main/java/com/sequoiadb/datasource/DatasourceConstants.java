@@ -23,10 +23,14 @@ final class DatasourceConstants {
     private DatasourceConstants() {
     }
 
-    final static String FIELD_NAME_PREFERED_INSTANCE = "PreferedInstance";
-    final static String FIELD_NAME_PREFERED_INSTANCE_MODE = "PreferedInstanceMode";
+    // Compatible with old versions
+    final static String FIELD_NAME_PREFERRED_INSTANCE_LEGACY = "PreferedInstance";
+    final static String FIELD_NAME_PREFERRED_INSTANCE_MODE_LEGACY = "PreferedInstanceMode";
+
+    final static String FIELD_NAME_PREFERRED_INSTANCE = "PreferredInstance";
+    final static String FIELD_NAME_PREFERRED_INSTANCE_MODE = "PreferredInstanceMode";
     final static String FIELD_NAME_SESSION_TIMEOUT = "Timeout";
 
-    final static String PREFERED_INSTANCE_MODE_RANDON = "random";
-    final static String PREFERED_INSTANCE_MODE_ORDERED = "ordered";
+    final static String PREFERRED_INSTANCE_MODE_RANDOM = "random";
+    final static String PREFERRED_INSTANCE_MODE_ORDERED = "ordered";
 }

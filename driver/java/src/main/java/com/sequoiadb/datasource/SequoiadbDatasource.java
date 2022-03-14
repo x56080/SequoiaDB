@@ -1193,8 +1193,8 @@ public class SequoiadbDatasource {
         int keepAliveTimeout = newOpt.getKeepAliveTimeout();
         int checkInterval = newOpt.getCheckInterval();
         int syncCoordInterval = newOpt.getSyncCoordInterval();
-        List<Object> preferredInstanceList = newOpt.getPreferedInstanceObjects();
-        String preferredInstanceMode = newOpt.getPreferedInstanceMode();
+        List<Object> preferredInstanceList = newOpt.getPreferredInstanceObjects();
+        String preferredInstanceMode = newOpt.getPreferredInstanceMode();
         int sessionTimeout = newOpt.getSessionTimeout();
 
         // 1. maxCount
@@ -1261,12 +1261,12 @@ public class SequoiadbDatasource {
                 }
             }
             // check preferred instance mode
-            if (!DatasourceConstants.PREFERED_INSTANCE_MODE_ORDERED.equals(preferredInstanceMode) &&
-                    !DatasourceConstants.PREFERED_INSTANCE_MODE_RANDON.equals(preferredInstanceMode)) {
+            if (!DatasourceConstants.PREFERRED_INSTANCE_MODE_ORDERED.equals(preferredInstanceMode) &&
+                    !DatasourceConstants.PREFERRED_INSTANCE_MODE_RANDOM.equals(preferredInstanceMode)) {
                 throw new BaseException(SDBError.SDB_INVALIDARG,
                         String.format("the preferred instance mode should be '%s' or '%s', but it is %s",
-                                DatasourceConstants.PREFERED_INSTANCE_MODE_ORDERED,
-                                DatasourceConstants.PREFERED_INSTANCE_MODE_RANDON,
+                                DatasourceConstants.PREFERRED_INSTANCE_MODE_ORDERED,
+                                DatasourceConstants.PREFERRED_INSTANCE_MODE_RANDOM,
                                 preferredInstanceMode));
             }
             // check session timeout

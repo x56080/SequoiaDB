@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class SdbSetSessionAttr {
@@ -183,13 +184,25 @@ public class SdbSetSessionAttr {
     public void setSessionAttr_test_array() {
         if (!isCluster)
             return;
-        BSONObject conf = new BasicBSONObject();
+        BSONObject conf1 = new BasicBSONObject();
+        BSONObject conf2 = new BasicBSONObject();
         BSONObject arr = new BasicBSONList();
         arr.put("0", 1);
         arr.put("1", "S");
-        conf.put("PreferedInstance", arr);
-        conf.put("PreferedInstanceMode", "ordered");
-        // test
+
+        // case 1: PreferedInstance
+        conf1.put("PreferedInstance", arr);
+        conf1.put("PreferedInstanceMode", "ordered");
+        setConfAndCheck( conf1 );
+
+        // case 2: PreferredInstance
+        arr.put("1", "M");
+        conf2.put("PreferredInstance", arr);
+        conf2.put("PreferredInstanceMode", "ordered");
+        setConfAndCheck( conf2 );
+    }
+
+    private void setConfAndCheck( BSONObject conf ){
         try {
             sdb.setSessionAttr(conf);
         } catch (BaseException e) {
@@ -199,6 +212,11 @@ public class SdbSetSessionAttr {
         final int num = 10;
         for (int i = 0; i < num; i++) {
             cl.query();
+        }
+
+        BSONObject result = sdb.getSessionAttr( false );
+        for ( String key: conf.keySet() ){
+            assertEquals( conf.get( key ), result.get( key ));
         }
     }
 
