@@ -611,11 +611,22 @@ namespace engine
 
       if ( pSubContext->contextID() != pReply->contextID )
       {
-         rc = SDB_INVALIDARG;
-         PD_LOG ( PDERROR, "Failed to append the data, no match context"
-                  "(expectContextID=%lld, contextID=%lld)",
-                  pSubContext->contextID(), pReply->contextID ) ;
-         goto error ;
+         if ( -1 == pReply->contextID )
+         {
+            PD_LOG( PDDEBUG, "Context %lld closed by node "
+                    "[ groupID=%u, nodeID=%u, serviceID=%u ]",
+                    pReply->header.routeID.columns.groupID,
+                    pReply->header.routeID.columns.nodeID ) ;
+            pSubContext->setContextID( pReply->contextID ) ;
+         }
+         else
+         {
+            rc = SDB_INVALIDARG;
+            PD_LOG ( PDERROR, "Failed to append the data, no match context"
+                     "(expectContextID=%lld, contextID=%lld)",
+                     pSubContext->contextID(), pReply->contextID ) ;
+            goto error ;
+         }
       }
 
       // after appendData success, the data-pointer is manage by subContext.

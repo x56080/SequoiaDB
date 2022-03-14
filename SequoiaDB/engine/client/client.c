@@ -1062,6 +1062,11 @@ static INT32 _readNextBuffer ( sdbCursorHandle cursor )
       }
       goto error ;
    }
+   else if ( -1 == lcontextID )
+   {
+      // early closed
+      pCursor->_contextID = -1 ;
+   }
 
 done :
    return rc ;
@@ -7235,6 +7240,7 @@ static INT32 _sdbQuery ( sdbCollectionHandle cHandle,
    newFlags = regulateQueryFlags( flags ) ;
    newFlags |= FLG_QUERY_WITH_RETURNDATA ;
    newFlags |= QUERY_PREPARE_MORE ;
+   newFlags |= FLG_QUERY_CLOSE_EOF_CTX ;
 
    rc = _runCommand2( cs->_connection,
                       &cs->_pSendBuffer, &cs->_sendBufferSize,

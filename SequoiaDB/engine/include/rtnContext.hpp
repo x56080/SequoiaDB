@@ -402,6 +402,16 @@ namespace engine
             return NULL ;
          }
 
+         BOOLEAN needCloseOnEOF() const
+         {
+            return _needCloseOnEOF ;
+         }
+
+         void enableCloseOnEOF()
+         {
+            _needCloseOnEOF = TRUE ;
+         }
+
       // Monitor
       public :
          void setMonQueryCB(monClassQuery *cb)
@@ -578,6 +588,8 @@ namespace engine
          UINT64                  _lastProcessTick ;
          // indicates whether to check timeout
          BOOLEAN                 _needTimeout ;
+         // indicates whether to close when EOF
+         BOOLEAN                 _needCloseOnEOF ;
    } ;
    typedef _rtnContextBase rtnContextBase ;
    typedef _rtnContextBase rtnContext ;

@@ -1314,6 +1314,7 @@ public class DBCollection {
             newFlags |= DBQuery.FLG_QUERY_WITH_RETURNDATA;
         }
         newFlags |= DBQuery.FLG_QUERY_PREPARE_MORE;
+        newFlags |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
 
         QueryRequest request = new QueryRequest(collectionFullName, matcher, selector, orderBy,
                 hint, skipRows, returnRows, newFlags);

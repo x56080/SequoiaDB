@@ -2875,6 +2875,10 @@ namespace engine
             }
 
             // query with return data
+            if ( ( flags & FLG_QUERY_CLOSE_EOF_CTX ) && pContext )
+            {
+               pContext->enableCloseOnEOF() ;
+            }
             if ( ( flags & FLG_QUERY_WITH_RETURNDATA ) && pContext )
             {
                rc = pContext->getMore( -1, buffObj, _pEDUCB ) ;
@@ -3096,7 +3100,8 @@ namespace engine
             {
                buffObj = pCommand->getBuff() ;
             }
-            else if ( ( flags & FLG_QUERY_WITH_RETURNDATA ) &&
+            else if ( ( ( flags & FLG_QUERY_WITH_RETURNDATA ) ||
+                        ( flags & FLG_QUERY_CLOSE_EOF_CTX ) ) &&
                       ( -1 != contextID ) )
             {
                rtnContextPtr context ;
@@ -3104,21 +3109,28 @@ namespace engine
                                                     context,
                                                     _pEDUCB ) )
                {
-                  rc = context->getMore( -1, buffObj, _pEDUCB ) ;
-                  if ( rc || context->eof() )
+                  if ( flags & FLG_QUERY_CLOSE_EOF_CTX )
                   {
-                     _pRtnCB->contextDelete( contextID, _pEDUCB ) ;
-                     contextID = -1 ;
+                     context->enableCloseOnEOF() ;
                   }
-                  startingPos = ( INT32 )buffObj.getStartFrom() ;
-                  if ( SDB_DMS_EOC == rc )
+                  if ( flags & FLG_QUERY_WITH_RETURNDATA )
                   {
-                     rc = SDB_OK ;
-                  }
-                  else if ( rc )
-                  {
-                     PD_LOG( PDERROR, "Failed to get more, rc: %d", rc ) ;
-                     goto error ;
+                     rc = context->getMore( -1, buffObj, _pEDUCB ) ;
+                     if ( rc || context->eof() )
+                     {
+                        _pRtnCB->contextDelete( contextID, _pEDUCB ) ;
+                        contextID = -1 ;
+                     }
+                     startingPos = ( INT32 )buffObj.getStartFrom() ;
+                     if ( SDB_DMS_EOC == rc )
+                     {
+                        rc = SDB_OK ;
+                     }
+                     else if ( rc )
+                     {
+                        PD_LOG( PDERROR, "Failed to get more, rc: %d", rc ) ;
+                        goto error ;
+                     }
                   }
                }
                else
@@ -3306,6 +3318,11 @@ namespace engine
       }
 
       startingPos = ( INT32 )buffObj.getStartFrom() ;
+      if ( pContext->eof() && pContext->needCloseOnEOF() )
+      {
+         _pRtnCB->contextDelete( contextID, eduCB() ) ;
+         contextID = -1 ;
+      }
 
    done:
       if ( SDB_DMS_EOC == rc )
@@ -3316,6 +3333,10 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__CLSSHDSESS__ONGETMOREREQMSG, rc ) ;
       return rc ;
    error:
+      if ( -1 != contextID )
+      {
+         _pRtnCB->contextDelete( contextID, eduCB() ) ;
+      }
       goto done ;
    }
 

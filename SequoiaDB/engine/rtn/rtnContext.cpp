@@ -518,6 +518,7 @@ namespace engine
 
       _lastProcessTick     = pmdGetDBTick() ;
       _needTimeout         = TRUE ;
+      _needCloseOnEOF      = FALSE ;
    }
 
    _rtnContextBase::~_rtnContextBase()
@@ -925,6 +926,8 @@ namespace engine
       }
       else if ( eof() && isEmpty() )
       {
+         _monCtxCB.monReturnInc( 1, 0 ) ;
+
          rc = SDB_DMS_EOC ;
          _isOpened = FALSE ;
          goto error ;

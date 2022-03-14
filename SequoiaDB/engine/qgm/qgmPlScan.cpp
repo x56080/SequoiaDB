@@ -302,7 +302,9 @@ namespace engine
       /// build message
       rc = msgBuildQueryMsg ( &qMsg, &bufSize,
                               _collection.toString().c_str(),
-                              FLG_QUERY_WITH_RETURNDATA, 0,
+                              ( FLG_QUERY_WITH_RETURNDATA |
+                                FLG_QUERY_PREPARE_MORE |
+                                FLG_QUERY_CLOSE_EOF_CTX ), 0,
                               _skip, _return,
                               &_condition, &selector,
                               &_orderby, &_hint,

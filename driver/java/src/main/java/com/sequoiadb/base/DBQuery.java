@@ -92,6 +92,10 @@ public class DBQuery {
       */
     public static final int FLG_QUERY_FOR_SHARE = 0x00040000;
 
+    /** Close context when EOF
+      */
+    public static final int FLG_QUERY_CLOSE_EOF_CTX = 0x00080000;
+
     // [ [ oldFlag, newFlag ], ... ]
     private final static int[][] flagsMap = new int[0][2];
 

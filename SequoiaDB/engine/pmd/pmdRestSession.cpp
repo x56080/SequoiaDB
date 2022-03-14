@@ -1448,7 +1448,10 @@ namespace engine
                         "value=%s", REST_KEY_NAME_FLAG, flagStr.c_str() ) ;
             goto error ;
          }
-         *flag = *flag | FLG_QUERY_WITH_RETURNDATA | FLG_QUERY_PREPARE_MORE ;
+         *flag = *flag |
+                 FLG_QUERY_WITH_RETURNDATA |
+                 FLG_QUERY_PREPARE_MORE |
+                 FLG_QUERY_CLOSE_EOF_CTX ;
       }
 
       if ( FALSE == skipStr.empty() )

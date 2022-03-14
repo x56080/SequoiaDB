@@ -166,6 +166,9 @@ public class DBCursor implements Closeable {
             }
             sequoiadb.throwIfError(response);
         }
+        else if (-1 == response.getContextId()) {
+            contextId = -1;
+        }
 
         return response.getResultSet();
     }

@@ -188,6 +188,10 @@ namespace engine
                   PD_RC_CHECK( rc, PDERROR, "Failed process data in run mode, "
                                "rc: %d", rc ) ;
 
+                  if ( queryContext->eof() )
+                  {
+                     _explainRunned = TRUE ;
+                  }
                   goto done ;
                }
             }

@@ -884,27 +884,35 @@ namespace engine
          }
       }
 
-      if ( ( flags & FLG_QUERY_WITH_RETURNDATA ) &&
+      if ( ( ( flags & FLG_QUERY_WITH_RETURNDATA ) ||
+             ( flags & FLG_QUERY_CLOSE_EOF_CTX ) ) &&
            ( ( pContext ) ||
              ( -1 != contextID &&
                SDB_OK == _pRTNCB->contextFind( contextID, pContext ) ) ) )
       {
-         rc = pContext->getMore( -1, buffObj, eduCB() ) ;
-         if ( rc || pContext->eof() )
+         if ( flags & FLG_QUERY_CLOSE_EOF_CTX )
          {
-            _pRTNCB->contextDelete( contextID, eduCB() ) ;
-            contextID = -1 ;
+            pContext->enableCloseOnEOF() ;
          }
+         if ( flags & FLG_QUERY_WITH_RETURNDATA )
+         {
+            rc = pContext->getMore( -1, buffObj, eduCB() ) ;
+            if ( rc || pContext->eof() )
+            {
+               _pRTNCB->contextDelete( contextID, eduCB() ) ;
+               contextID = -1 ;
+            }
 
-         if ( SDB_DMS_EOC == rc )
-         {
-            rc = SDB_OK ;
-         }
-         else if ( rc )
-         {
-            PD_LOG( PDERROR, "Session[%s] failed to query with return "
-                    "data, rc: %d", getSession()->sessionName(), rc ) ;
-            goto error ;
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+            }
+            else if ( rc )
+            {
+               PD_LOG( PDERROR, "Session[%s] failed to query with return "
+                       "data, rc: %d", getSession()->sessionName(), rc ) ;
+               goto error ;
+            }
          }
       }
 
@@ -1035,7 +1043,7 @@ namespace engine
       rc = _pRTNCB->contextFind ( contextID, pContext, eduCB() ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG ( PDERROR, "Context %lld does not exist, rc: %d", contextID,
+         PD_LOG ( PDERROR, "Failed to find context %lld, rc: %d", contextID,
                   rc ) ;
          goto error ;
       }
@@ -1049,10 +1057,19 @@ namespace engine
          contextID = -1 ;
          goto error ;
       }
-      else if ( pContext->eof() &&
-                contextID == eduCB()->getCurAutoTransCtxID() )
+      else if ( pContext->eof() )
       {
-         eduCB()->setCurAutoTransCtxID( -1 ) ;
+         if ( contextID == eduCB()->getCurAutoTransCtxID() )
+         {
+            eduCB()->setCurAutoTransCtxID( -1 ) ;
+         }
+
+         if ( pContext->needCloseOnEOF() )
+         {
+            // early close to save get-more round-trips
+            _pRTNCB->contextDelete( contextID, eduCB() ) ;
+            contextID = -1 ;
+         }
       }
 
    done:
@@ -1063,6 +1080,10 @@ namespace engine
 
       return rc ;
    error:
+      if ( -1 != contextID )
+      {
+         _pRTNCB->contextDelete( contextID, eduCB() ) ;
+      }
       goto done ;
    }
 
@@ -2185,25 +2206,33 @@ namespace engine
       }
 
       // query with return data
-      if ( ( flag & FLG_QUERY_WITH_RETURNDATA ) &&
+      if ( ( ( flag & FLG_QUERY_WITH_RETURNDATA ) ||
+             ( flag & FLG_QUERY_CLOSE_EOF_CTX ) ) &&
            -1 != contextID &&
            SDB_OK == _pRTNCB->contextFind( contextID, pContext ) )
       {
-         rc = pContext->getMore( -1, buffObj, eduCB() ) ;
-         if ( rc || pContext->eof() )
+         if ( flag & FLG_QUERY_CLOSE_EOF_CTX )
          {
-            _pRTNCB->contextDelete( contextID, eduCB() ) ;
-            contextID = -1 ;
+            pContext->enableCloseOnEOF() ;
          }
+         if ( flag & FLG_QUERY_WITH_RETURNDATA )
+         {
+            rc = pContext->getMore( -1, buffObj, eduCB() ) ;
+            if ( rc || pContext->eof() )
+            {
+               _pRTNCB->contextDelete( contextID, eduCB() ) ;
+               contextID = -1 ;
+            }
 
-         if ( SDB_DMS_EOC == rc )
-         {
-            rc = SDB_OK ;
-         }
-         else if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to query with return data, "
-                    "rc: %d", rc ) ;
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+            }
+            else if ( rc )
+            {
+               PD_LOG( PDERROR, "Failed to query with return data, "
+                       "rc: %d", rc ) ;
+            }
          }
       }
 
