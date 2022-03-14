@@ -96,12 +96,14 @@ namespace engine
          return _mapData2DCMgr( _pDCMgr ) ;
       }
 
+      INT32 getCATVersion( UINT32 &version ) ;
+      INT32 setCATVersion( UINT32 version ) ;
+
    public :
       // functions of _catEventHandler
       virtual const CHAR *getHandlerName () { return "catDCManager" ; }
       virtual INT32 onBeginCommand ( MsgHeader *pReqMsg ) ;
       virtual INT32 onEndCommand ( MsgHeader *pReqMsg, INT32 result ) ;
-      virtual INT32 onSendReply ( MsgOpReply *pReply, INT32 result ) ;
 
    // message process functions
    protected:

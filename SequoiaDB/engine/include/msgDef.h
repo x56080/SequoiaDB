@@ -424,6 +424,7 @@
 #define FIELD_NAME_CSUNIQUEHWM               "CSUniqueHWM"
 #define FIELD_NAME_TASKHWM                   "TaskHWM"
 #define FIELD_NAME_IDXUNIQUEHWM              "IdxUniqueHWM"
+#define FIELD_NAME_CAT_VERSION               "CATVersion"
 #define FIELD_NAME_GLOBALID                  "GlobalID"
 #define FIELD_NAME_ENABLE                    "Enable"
 #define FIELD_NAME_ACTION                    "Action"

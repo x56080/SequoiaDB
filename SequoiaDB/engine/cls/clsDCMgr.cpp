@@ -72,6 +72,7 @@ namespace engine
       _readonly = FALSE ;
       _hasCsUniqueHWM = FALSE ;
       _csUniqueHWM = 0 ;
+      _catVersion = CATALOG_VERSION_CUR ;
 
       _orgObj = BSONObj() ;
       _imageGroups.clear() ;
@@ -180,6 +181,22 @@ namespace engine
          {
             goto error ;
          }
+      }
+
+      e = obj.getField( FIELD_NAME_CAT_VERSION ) ;
+      if ( e.eoo() )
+      {
+         _catVersion = CATALOG_VERSION_V0 ;
+      }
+      else if ( e.isNumber() )
+      {
+         _catVersion = (UINT32)( e.numberInt() ) ;
+      }
+      else
+      {
+         PD_LOG( PDERROR, "Failed to parse field [%s]",
+                 FIELD_NAME_CAT_VERSION ) ;
+         goto error ;
       }
 
       e = obj.getField( FIELD_NAME_IMAGE ) ;

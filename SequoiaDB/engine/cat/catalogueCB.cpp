@@ -252,6 +252,7 @@ namespace engine
       _curSysNodeId        = SYS_NODE_ID_BEGIN;
       _primaryID.value     = MSG_INVALID_ROUTEID ;
       _isActived           = FALSE ;
+      _needForceSecondary  = FALSE ;
 
       _inPacketLevel       = 0 ;
    }
@@ -475,9 +476,9 @@ namespace engine
       rc = pEDUMgr->waitUntil( eduID, PMD_EDU_RUNNING ) ;
       PD_RC_CHECK( rc, PDERROR, "Wait CATNET active failed, rc: %d", rc ) ;
 
-      rc = _recycleBinMgr.active() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to active recycle bin manager, "
-                   "rc: %d", rc ) ;
+      rc = _recycleBinMgr.startBGJob() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to start background job for "
+                   "recycle bin manager, rc: %d", rc ) ;
 
    done:
       return rc ;
@@ -518,6 +519,10 @@ namespace engine
          SDB_OSS_DEL _pNetWork;
          _pNetWork = NULL;
       }
+
+      SDB_ASSERT( _vecEventHandler.empty(),
+                  "should not have event handlers" ) ;
+
       return SDB_OK ;
    }
 
@@ -1153,6 +1158,13 @@ namespace engine
          }
       }
 
+      // check if we need force to secondary
+      if ( _needForceSecondary )
+      {
+         sdbGetReplCB()->voteMachine()->force( CLS_ELECTION_STATUS_SEC ) ;
+         _needForceSecondary = FALSE ;
+      }
+
       PD_TRACE_EXIT( SDB_CATALOGCB_ONENDCMD ) ;
 
       // ignore errors
@@ -1183,6 +1195,145 @@ namespace engine
       return rc ;
    error :
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGCB_CHKUPGRADE, "sdbCatalogueCB::checkUpgrade" )
+   INT32 sdbCatalogueCB::checkUpgrade()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATALOGCB_CHKUPGRADE ) ;
+
+      UINT32 currentVersion = CATALOG_VERSION_V0 ;
+
+      rc = _catDCMgr.getCATVersion( currentVersion ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get CATALOG version, rc: %d", rc ) ;
+
+      // check current version
+      if ( CATALOG_VERSION_CUR == currentVersion )
+      {
+         // no need to upgrade
+         goto done ;
+      }
+      else if ( isDCReadonly() )
+      {
+         // read only could not upgrade
+         goto done ;
+      }
+
+      if ( currentVersion > CATALOG_VERSION_CUR )
+      {
+         rc = _onDowngrade( currentVersion ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to downgrade CATALOG version, "
+                      "rc: %d", rc ) ;
+      }
+      else
+      {
+         rc = _onUpgrade( currentVersion ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to upgrade CATALOG version, "
+                      "rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATALOGCB_CHKUPGRADE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGCB__ONUPGRADE, "sdbCatalogueCB::_onUpgrade" )
+   INT32 sdbCatalogueCB::_onUpgrade( UINT32 beginVersion )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATALOGCB__ONUPGRADE ) ;
+
+      UINT32 endVersion = beginVersion ;
+
+      // upgrade versions one by one to resolve dependency on versions
+      for ( UINT32 version = beginVersion + 1 ;
+            version <= CATALOG_VERSION_CUR ;
+            ++ version )
+      {
+         for ( VEC_EVENT_HANDLER::iterator iter = _vecEventHandler.begin();
+               iter != _vecEventHandler.end() ;
+               ++ iter )
+         {
+            _catEventHandler *pHandler = (*iter) ;
+            rc = pHandler->onUpgrade( version ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to upgrade CATALOG version to [%u] "
+                       "on handler [%s], rc: %d", pHandler->getHandlerName(),
+                       rc ) ;
+               break ;
+            }
+         }
+         if ( SDB_OK != rc )
+         {
+            break ;
+         }
+         PD_LOG( PDEVENT, "Done upgrade CATALOG events for version [%u]",
+                 version ) ;
+         endVersion = version ;
+      }
+
+      if ( endVersion > beginVersion )
+      {
+         INT32 tmpRC = _catDCMgr.setCATVersion( endVersion ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDERROR, "Failed to set CATALOG version to [%u] "
+                    "in DC manager, rc: %d", endVersion, rc ) ;
+            if ( SDB_OK == rc )
+            {
+               rc = tmpRC ;
+            }
+         }
+         else
+         {
+            PD_LOG( PDEVENT, "Upgraded CATALOG version from [%u] to to [%u]",
+                    beginVersion, endVersion ) ;
+         }
+      }
+
+      PD_TRACE_EXITRC( SDB_CATALOGCB__ONUPGRADE, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGCB__ONDOWNGRADE, "sdbCatalogueCB::_onDowngrade" )
+   INT32 sdbCatalogueCB::_onDowngrade( UINT32 beginVersion )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATALOGCB__ONDOWNGRADE ) ;
+
+      // no downgrade events, we can set the version to current version
+      // so the next upgrade will notify something may be changed
+      if ( beginVersion < CATALOG_VERSION_CUR )
+      {
+         INT32 tmpRC = _catDCMgr.setCATVersion( CATALOG_VERSION_CUR ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDERROR, "Failed to set CATALOG version to [%u] "
+                    "in DC manager, rc: %d", CATALOG_VERSION_CUR, rc ) ;
+            if ( SDB_OK == rc )
+            {
+               rc = tmpRC ;
+            }
+         }
+         else
+         {
+            PD_LOG( PDEVENT, "Downgraded CATALOG version from [%u] to to [%u]",
+                    beginVersion, CATALOG_VERSION_CUR ) ;
+         }
+      }
+
+      PD_TRACE_EXITRC( SDB_CATALOGCB__ONDOWNGRADE, rc ) ;
+
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGCB_SENDREPLY, "sdbCatalogueCB::sendReply" )

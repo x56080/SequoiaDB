@@ -76,7 +76,9 @@ namespace engine
       INT32 active() ;
       INT32 deactive() ;
 
-      INT32 createSequence( const std::string& name, const bson::BSONObj& options,
+      INT32 createSequence( const std::string& name,
+                            utilCLUniqueID clUniqueID,
+                            const bson::BSONObj& options,
                             _pmdEDUCB* eduCB, INT16 w ) ;
       INT32 insertSequence ( const std::string& name,
                              bson::BSONObj& options, _pmdEDUCB* eduCB,

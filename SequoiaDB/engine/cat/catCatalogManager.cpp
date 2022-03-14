@@ -69,9 +69,55 @@ namespace engine
 
    INT32 catCatalogueManager::active()
    {
+      if ( !_pCatCB->isDCReadonly() )
+      {
+         // WARNING: should not write DPS logs if DC is readonly
+      }
+      return SDB_OK ;
+   }
+
+   INT32 catCatalogueManager::deactive()
+   {
+      return SDB_OK ;
+   }
+
+   INT32 catCatalogueManager::init()
+   {
+      pmdKRCB *krcb  = pmdGetKRCB();
+      _pDmsCB        = krcb->getDMSCB();
+      _pDpsCB        = krcb->getDPSCB();
+      _pCatCB        = krcb->getCATLOGUECB();
+
+      _pCatCB->regEventHandler( this ) ;
+
+      return SDB_OK ;
+   }
+
+   INT32 catCatalogueManager::fini()
+   {
+      _pCatCB->unregEventHandler( this ) ;
+
+      return SDB_OK ;
+   }
+
+   void catCatalogueManager::attachCB( pmdEDUCB * cb )
+   {
+      _pEduCB = cb ;
+   }
+
+   void catCatalogueManager::detachCB( pmdEDUCB * cb )
+   {
+      _pEduCB = NULL ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR_ONUPGRADE, "catCatalogueManager::onUpgrade")
+   INT32 catCatalogueManager::onUpgrade( UINT32 version )
+   {
       INT32 rc = SDB_OK ;
 
-      if ( !_pCatCB->isDCReadonly() )
+      PD_TRACE_ENTRY( SDB_CATALOGMGR_ONUPGRADE ) ;
+
+      if ( CATALOG_VERSION_V1 == version )
       {
          rc = _checkAllCSCLUniqueID() ;
          PD_RC_CHECK( rc, PDERROR,
@@ -86,38 +132,11 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB_CATALOGMGR_ONUPGRADE, rc ) ;
       return rc ;
+
    error:
       goto done ;
-   }
-
-   INT32 catCatalogueManager::deactive()
-   {
-      return SDB_OK ;
-   }
-
-   INT32 catCatalogueManager::init()
-   {
-      pmdKRCB *krcb  = pmdGetKRCB();
-      _pDmsCB        = krcb->getDMSCB();
-      _pDpsCB        = krcb->getDPSCB();
-      _pCatCB        = krcb->getCATLOGUECB();
-      return SDB_OK ;
-   }
-
-   INT32 catCatalogueManager::fini()
-   {
-      return SDB_OK ;
-   }
-
-   void catCatalogueManager::attachCB( pmdEDUCB * cb )
-   {
-      _pEduCB = cb ;
-   }
-
-   void catCatalogueManager::detachCB( pmdEDUCB * cb )
-   {
-      _pEduCB = NULL ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR_CRT_PROCEDURES, "catCatalogueManager::processCmdCrtProcedures")

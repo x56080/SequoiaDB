@@ -57,9 +57,11 @@
 #define CAT_SEQUENCE_INITIAL           FIELD_NAME_INITIAL
 #define CAT_SEQUENCE_NEXT_VALUE        FIELD_NAME_NEXT_VALUE
 #define CAT_SEQUENCE_EXPECT_VALUE      FIELD_NAME_EXPECT_VALUE
+#define CAT_SEQUENCE_CLUID             FIELD_NAME_CL_UNIQUEID
 
 #define GTS_SEQUENCE_COLLECTION_NAME         GTS_SYS_COLLECTION_SPACE_NAME".SEQUENCES"
 #define GTS_SEQUENCE_NAME_INDEX              "{name:\"name_index\",key: {\""CAT_SEQUENCE_NAME"\": 1}, unique: true, enforced: true}"
+#define GTS_SEQUENCE_CLUID_INDEX             "{name:\"cluid_index\",key: {\""CAT_SEQUENCE_CLUID"\": 1}}"
 
 #endif /* CAT_GTS_DEF_HPP_ */
 

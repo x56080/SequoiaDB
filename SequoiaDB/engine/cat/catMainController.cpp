@@ -884,15 +884,18 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to active cata dc manager, rc: %d",
                    rc ) ;
 
-      // catCatalogueManager::active() should be executed after
-      // catDCManager::active(), because it need to query SYSDCBASE
       rc = _pCatCB->getCatlogueMgr()->active() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to active catalog manager, rc: %d",
                    rc ) ;
 
-      // update recycle bin conf
-      _pCatCB->getRecycleBinMgr()->setConf(
+      rc = _pCatCB->getRecycleBinMgr()->active(
             _pCatCB->getCatDCMgr()->getDCInfo()->getRecycleBinConf() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to active recycle bin manager, "
+                   "rc: %d", rc ) ;
+
+      // all managers are active, now we can perform upgrade
+      rc = _pCatCB->checkUpgrade() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to upgrade CATALOG, rc: %d", rc ) ;
 
    done:
       _changeEvent.signal() ;

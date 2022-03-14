@@ -40,6 +40,7 @@
 
 #include "pmd.hpp"
 #include "catTask.hpp"
+#include "catEventHandler.hpp"
 #include "rtnContextBuff.hpp"
 #include "utilCompressor.hpp"
 #include "utilArguments.hpp"
@@ -133,7 +134,8 @@ namespace engine
    /*
       catCatalogueManager define
    */
-   class catCatalogueManager : public SDBObject
+   class catCatalogueManager : public SDBObject,
+                               public _catEventHandler
    {
    public:
       catCatalogueManager() ;
@@ -150,6 +152,9 @@ namespace engine
       INT32 deactive() ;
 
       UINT64 assignTaskID () ;
+
+      virtual const CHAR *getHandlerName() { return "catCatalogueManager" ; }
+      virtual INT32 onUpgrade( UINT32 version ) ;
 
    // message process functions
    protected:

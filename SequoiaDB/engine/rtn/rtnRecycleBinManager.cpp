@@ -115,12 +115,12 @@ namespace engine
       PD_TRACE_EXIT( SDB__RTNRECYBINMGR_FINI ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR_ACTIVE, "_rtnRecycleBinManager::active" )
-   INT32 _rtnRecycleBinManager::active()
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR_STARTBGJOB, "_rtnRecycleBinManager::startBGJob" )
+   INT32 _rtnRecycleBinManager::startBGJob()
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__RTNRECYBINMGR_ACTIVE ) ;
+      PD_TRACE_ENTRY( SDB__RTNRECYBINMGR_STARTBGJOB ) ;
 
       utilLightJob *job = NULL ;
 
@@ -133,7 +133,7 @@ namespace engine
       PD_LOG( PDDEBUG, "Submit drop recycle bin background job done" ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__RTNRECYBINMGR_ACTIVE, rc ) ;
+      PD_TRACE_EXITRC( SDB__RTNRECYBINMGR_STARTBGJOB, rc ) ;
       return rc ;
 
    error:

@@ -592,7 +592,8 @@ namespace engine
 
       name = ele.String() ;
 
-      rc = seqMgr->createSequence( name, options, eduCB, _catCB->majoritySize( TRUE ) ) ;
+      rc = seqMgr->createSequence( name, UTIL_UNIQUEID_NULL, options, eduCB,
+                                   _catCB->majoritySize( TRUE ) ) ;
       if ( SDB_OK != rc )
       {
          goto error ;

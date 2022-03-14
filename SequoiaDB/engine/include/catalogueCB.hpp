@@ -127,6 +127,7 @@ namespace engine
          BOOLEAN  isDCActivated() const { return _catDCMgr.isDCActivated() ; }
          BOOLEAN  isImageEnabled() const { return _catDCMgr.isImageEnabled() ; }
          BOOLEAN  isDCReadonly() const { return _catDCMgr.isDCReadonly() ; }
+         BOOLEAN  isActived() const { return _isActived ; }
 
          UINT32   setTimer( UINT32 milliSec ) ;
          void     killTimer( UINT32 timerID ) ;
@@ -175,6 +176,7 @@ namespace engine
          INT32 onBeginCommand ( MsgHeader *pReqMsg ) ;
          INT32 onEndCommand ( MsgHeader *pReqMsg, INT32 result ) ;
          INT32 onSendReply ( MsgOpReply *pReply, INT32 result ) ;
+         INT32 checkUpgrade() ;
 
          INT32 sendReply ( const NET_HANDLE &handle,
                            MsgOpReply *pReply,
@@ -192,6 +194,15 @@ namespace engine
 
          // callback on create group, remove group, create node or remove node
          void     onGroupChange() ;
+
+         void setNeedForceSecondary( BOOLEAN needForce )
+         {
+            _needForceSecondary = needForce ;
+         }
+
+      protected:
+         INT32 _onUpgrade( UINT32 beginVersion ) ;
+         INT32 _onDowngrade( UINT32 beginVersion ) ;
 
       private:
          _netRouteAgent       *_pNetWork ;
@@ -216,6 +227,7 @@ namespace engine
 
          MsgRouteID           _primaryID ;
          BOOLEAN              _isActived ;
+         BOOLEAN              _needForceSecondary ;
 
          VEC_EVENT_HANDLER    _vecEventHandler ;
 

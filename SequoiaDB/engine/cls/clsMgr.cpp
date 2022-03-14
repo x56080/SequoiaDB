@@ -977,9 +977,9 @@ namespace engine
                       "Start storage checking job thread failed, rc: %d",
                       rc ) ;
 
-         rc = _recycleBinMgr.active() ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to active recycle bin manager, "
-                      "rc: %d", rc ) ;
+         rc = _recycleBinMgr.startBGJob() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to start background job for "
+                      "recycle bin manager, rc: %d", rc ) ;
       }
 
    done:

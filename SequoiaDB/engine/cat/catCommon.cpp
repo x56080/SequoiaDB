@@ -7322,9 +7322,10 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCREATEAUTOINCSEQUENCE, "catCreateAutoIncSequence" )
    INT32 catCreateAutoIncSequence( const BSONObj &option,
-                                    const clsAutoIncSet &autoIncSet,
-                                    _pmdEDUCB *cb,
-                                    INT16 w )
+                                   const clsAutoIncSet &autoIncSet,
+                                   utilCLUniqueID clUniqueID,
+                                   _pmdEDUCB *cb,
+                                   INT16 w )
    {
       PD_TRACE_ENTRY( SDB_CATCREATEAUTOINCSEQUENCE ) ;
       INT32 rc = SDB_OK ;
@@ -7345,13 +7346,13 @@ namespace engine
       seqName = field->sequenceName() ;
       seqID = field->sequenceID() ;
       seqOpt = catBuildSequenceOptions( option, seqID ) ;
-      rc = pSeqMgr->createSequence( seqName, seqOpt, cb, w ) ;
+      rc = pSeqMgr->createSequence( seqName, clUniqueID, seqOpt, cb, w ) ;
       if ( SDB_SEQUENCE_EXIST == rc )
       {
          // Got sequence with the same name, remove previous one
          catRemoveSequenceTasks( seqName, cb, w ) ;
          pSeqMgr->dropSequence( seqName, cb, w ) ;
-         rc = pSeqMgr->createSequence( seqName, seqOpt, cb, w ) ;
+         rc = pSeqMgr->createSequence( seqName, clUniqueID, seqOpt, cb, w ) ;
       }
       PD_RC_CHECK ( rc, PDWARNING,
                     "Failed to create sequence on field [%s] with ""options "
@@ -7373,6 +7374,7 @@ namespace engine
       BSONElement ele ;
       BSONObj autoIncObj = clInfo._autoIncFields ;
       const clsAutoIncSet &autoIncSet = clInfo._autoIncSet ;
+      utilCLUniqueID clUniqueID = clInfo._clUniqueID ;
 
       ele = autoIncObj.getField( CAT_AUTOINCREMENT ) ;
       PD_CHECK( Object == ele.type() || Array == ele.type(),
@@ -7381,7 +7383,8 @@ namespace engine
                 CAT_AUTOINCREMENT, ele.type() ) ;
       if ( Object == ele.type() )
       {
-         rc = catCreateAutoIncSequence( ele.Obj(), autoIncSet, cb, w ) ;
+         rc = catCreateAutoIncSequence( ele.Obj(), autoIncSet, clUniqueID, cb,
+                                        w ) ;
          if( SDB_OK != rc )
          {
             goto error ;
@@ -7392,7 +7395,8 @@ namespace engine
          BSONObjIterator it( ele.embeddedObject() ) ;
          while ( it.more() )
          {
-            rc = catCreateAutoIncSequence( it.next().Obj(), autoIncSet, cb, w ) ;
+            rc = catCreateAutoIncSequence( it.next().Obj(), autoIncSet,
+                                           clUniqueID, cb, w ) ;
             if( SDB_OK != rc )
             {
                goto error ;

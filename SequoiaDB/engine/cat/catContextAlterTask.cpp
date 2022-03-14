@@ -2712,7 +2712,7 @@ namespace engine
                       "field[%s], rc: %d", fieldName ) ;
          fldList[i]->setID( ID ) ;
          seqOpt = catBuildSequenceOptions( fldList[i]->getArgument(), ID ) ;
-         rc = pSeqMgr->createSequence( seqName, seqOpt, cb, w ) ;
+         rc = pSeqMgr->createSequence( seqName, clUniqueID, seqOpt, cb, w ) ;
          if( SDB_SEQUENCE_EXIST == rc )
          {
             rc = SDB_AUTOINCREMENT_FIELD_CONFLICT ;

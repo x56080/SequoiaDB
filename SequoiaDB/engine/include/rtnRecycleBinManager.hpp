@@ -65,7 +65,7 @@ namespace engine
       INT32 init() ;
       void  fini() ;
 
-      INT32 active() ;
+      INT32 startBGJob() ;
 
       // set config of recycle bin
       OSS_INLINE void setConf( const utilRecycleBinConf &conf )

@@ -67,6 +67,7 @@ namespace engine
       virtual ~_catRecycleBinManager() ;
 
       INT32 init( const utilRecycleBinConf &conf ) ;
+      INT32 active( const utilRecycleBinConf &conf ) ;
 
       // update config of recycle bin
       INT32 updateConf( const utilRecycleBinConf &newConf,

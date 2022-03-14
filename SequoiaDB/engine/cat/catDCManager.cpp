@@ -262,10 +262,54 @@ namespace engine
       goto done ;
    }
 
-   INT32 _catDCManager::onSendReply ( MsgOpReply *pReply, INT32 result )
+   INT32 _catDCManager::getCATVersion( UINT32 &version )
    {
-      // Do nothing
-      return SDB_OK ;
+      INT32 rc = SDB_OK ;
+
+      // update catalog cache
+      rc = updateDCCache() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update DC cache, rc: %d", rc ) ;
+
+      version = _pDCBaseInfo->getCATVersion() ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _catDCManager::setCATVersion( UINT32 version )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObj matcher, updator, dummy ;
+
+      try
+      {
+         matcher = BSON( FIELD_NAME_TYPE << CAT_BASE_TYPE_GLOBAL_STR ) ;
+         updator = BSON( "$set" <<
+                         BSON( FIELD_NAME_CAT_VERSION << (INT32)version ) ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher and updator, "
+                 "occur exception %s", e.what() ) ;
+      }
+
+      rc = rtnUpdate( CAT_SYSDCBASE_COLLECTION_NAME, matcher, updator,
+                      dummy, 0, _pEduCB, _pDmsCB, _pDpsCB, _majoritySize() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update collection [%s], rc: %d",
+                   CAT_SYSDCBASE_COLLECTION_NAME, rc ) ;
+
+      // update catalog cache
+      updateDCCache() ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    INT32 _catDCManager::active()
@@ -1208,6 +1252,10 @@ namespace engine
          }
       }
 
+      // force to secondary to reelect, then the primary node can resume
+      // active works did not finish in read-only mode
+      _pCatCB->setNeedForceSecondary( TRUE ) ;
+
    done:
       return rc ;
    error:
@@ -1437,6 +1485,9 @@ namespace engine
                          FIELD_NAME_ACTIVATED << true <<
                          FIELD_NAME_READONLY << false <<
                          FIELD_NAME_RESTORE << false <<
+                         FIELD_NAME_CSUNIQUEHWM << 0 <<
+                         FIELD_NAME_TASKHWM << 0 <<
+                         FIELD_NAME_CAT_VERSION << CATALOG_VERSION_CUR <<
                          FIELD_NAME_RECYCLEBIN <<
                          BSON( FIELD_NAME_ENABLE <<
                                      (bool)( UTIL_RECYCLEBIN_DFT_ENABLE ) <<
@@ -1467,62 +1518,65 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Parse dc base info[%s] failed, rc: %d",
                       infoObj.toString().c_str() ) ;
 
-         tmpClsName = dcBaseInfo.getClusterName() ;
-         tmpBusName = dcBaseInfo.getBusinessName() ;
-
-         if ( clusterName != tmpClsName || businessName != tmpBusName )
+         if ( !dcBaseInfo.isReadonly() )
          {
-            PD_LOG( PDEVENT, "Cluster name[%s] or business name[%s] has "
-                    "changed to %s:%s", tmpClsName.c_str(), tmpBusName.c_str(),
-                    clusterName.c_str(), businessName.c_str() ) ;
-            BSONObj updator = BSON( "$set" << BSON(
-              FIELD_NAME_DATACENTER"."FIELD_NAME_CLUSTERNAME << clusterName <<
-              FIELD_NAME_DATACENTER"."FIELD_NAME_BUSINESSNAME << businessName )
-                                   ) ;
-            BSONObj matcher = BSON( FIELD_NAME_TYPE <<
-                                    CAT_BASE_TYPE_GLOBAL_STR ) ;
-            rc = rtnUpdate( CAT_SYSDCBASE_COLLECTION_NAME, matcher, updator,
-                            BSONObj(), 0, _pEduCB, _pDmsCB, _pDpsCB, 1,
-                            &upResult ) ;
-            PD_RC_CHECK( rc, PDERROR, "Update global info[%s] failed, rc: %d",
-                         updator.toString().c_str(), rc ) ;
-            if ( upResult.updateNum() <= 0 )
+            tmpClsName = dcBaseInfo.getClusterName() ;
+            tmpBusName = dcBaseInfo.getBusinessName() ;
+
+            if ( clusterName != tmpClsName || businessName != tmpBusName )
             {
-               PD_LOG( PDERROR, "Not found global info, matcher: %s",
-                       matcher.toString().c_str() ) ;
-               rc = SDB_SYS ;
-               goto error ;
+               PD_LOG( PDEVENT, "Cluster name[%s] or business name[%s] has "
+                       "changed to %s:%s", tmpClsName.c_str(), tmpBusName.c_str(),
+                       clusterName.c_str(), businessName.c_str() ) ;
+               BSONObj updator = BSON( "$set" << BSON(
+                 FIELD_NAME_DATACENTER"."FIELD_NAME_CLUSTERNAME << clusterName <<
+                 FIELD_NAME_DATACENTER"."FIELD_NAME_BUSINESSNAME << businessName )
+                                      ) ;
+               BSONObj matcher = BSON( FIELD_NAME_TYPE <<
+                                       CAT_BASE_TYPE_GLOBAL_STR ) ;
+               rc = rtnUpdate( CAT_SYSDCBASE_COLLECTION_NAME, matcher, updator,
+                               BSONObj(), 0, _pEduCB, _pDmsCB, _pDpsCB, 1,
+                               &upResult ) ;
+               PD_RC_CHECK( rc, PDERROR, "Update global info[%s] failed, rc: %d",
+                            updator.toString().c_str(), rc ) ;
+               if ( upResult.updateNum() <= 0 )
+               {
+                  PD_LOG( PDERROR, "Not found global info, matcher: %s",
+                          matcher.toString().c_str() ) ;
+                  rc = SDB_SYS ;
+                  goto error ;
+               }
             }
-         }
 
-         // add recycle bin if not exists
-         if ( !infoObj.hasField( FIELD_NAME_RECYCLEBIN ) )
-         {
-            BSONObj updator =
-                  BSON( "$set" <<
-                        BSON( FIELD_NAME_RECYCLEBIN <<
-                              BSON( FIELD_NAME_ENABLE <<
-                                       (bool)( UTIL_RECYCLEBIN_DFT_ENABLE ) <<
-                                    FIELD_NAME_RECYCLEIDHWM << (INT64)0 <<
-                                    FIELD_NAME_EXPIRETIME <<
-                                          UTIL_RECYCLEBIN_DFT_EXPIRETIME <<
-                                    FIELD_NAME_MAXITEMNUM <<
-                                          UTIL_RECYCLEBIN_DFT_MAXITEMNUM <<
-                                    FIELD_NAME_MAXVERNUM <<
-                                          UTIL_RECYCLEBIN_DFT_MAXVERNUM <<
-                                    FIELD_NAME_AUTODROP <<
-                                       (bool)( UTIL_RECYCLEBIN_DFT_AUTODROP ) ) ) ) ;
+            // add recycle bin if not exists
+            if ( !infoObj.hasField( FIELD_NAME_RECYCLEBIN ) )
+            {
+               BSONObj updator =
+                     BSON( "$set" <<
+                           BSON( FIELD_NAME_RECYCLEBIN <<
+                                 BSON( FIELD_NAME_ENABLE <<
+                                          (bool)( UTIL_RECYCLEBIN_DFT_ENABLE ) <<
+                                       FIELD_NAME_RECYCLEIDHWM << (INT64)0 <<
+                                       FIELD_NAME_EXPIRETIME <<
+                                             UTIL_RECYCLEBIN_DFT_EXPIRETIME <<
+                                       FIELD_NAME_MAXITEMNUM <<
+                                             UTIL_RECYCLEBIN_DFT_MAXITEMNUM <<
+                                       FIELD_NAME_MAXVERNUM <<
+                                             UTIL_RECYCLEBIN_DFT_MAXVERNUM <<
+                                       FIELD_NAME_AUTODROP <<
+                                          (bool)( UTIL_RECYCLEBIN_DFT_AUTODROP ) ) ) ) ;
 
-            BSONObj matcher = BSON( FIELD_NAME_TYPE <<
-                                    CAT_BASE_TYPE_GLOBAL_STR ) ;
-            rc = rtnUpdate( CAT_SYSDCBASE_COLLECTION_NAME, matcher, updator,
-                            BSONObj(), 0, _pEduCB, _pDmsCB, _pDpsCB, 1,
-                            &upResult ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to update recycle info [%s], "
-                         "rc: %d", updator.toString().c_str(), rc ) ;
-            PD_CHECK( upResult.updateNum() > 0, SDB_SYS, error, PDERROR,
-                      "Not found global info, matcher: %s",
-                      matcher.toString().c_str() ) ;
+               BSONObj matcher = BSON( FIELD_NAME_TYPE <<
+                                       CAT_BASE_TYPE_GLOBAL_STR ) ;
+               rc = rtnUpdate( CAT_SYSDCBASE_COLLECTION_NAME, matcher, updator,
+                               BSONObj(), 0, _pEduCB, _pDmsCB, _pDpsCB, 1,
+                               &upResult ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to update recycle info [%s], "
+                            "rc: %d", updator.toString().c_str(), rc ) ;
+               PD_CHECK( upResult.updateNum() > 0, SDB_SYS, error, PDERROR,
+                         "Not found global info, matcher: %s",
+                         matcher.toString().c_str() ) ;
+            }
          }
       }
 
@@ -1612,5 +1666,3 @@ namespace engine
       goto done ;
    }
 }
-
-

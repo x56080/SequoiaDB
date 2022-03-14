@@ -87,6 +87,22 @@ namespace engine
       goto done ;
    }
 
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR_ACTIVE, "_catRecycleBinManager::active" )
+   INT32 _catRecycleBinManager::active( const utilRecycleBinConf &conf )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR_ACTIVE ) ;
+
+      // set configure in cache
+      setConf( conf ) ;
+
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR_ACTIVE, rc ) ;
+
+      return rc ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR_UPDATECONF, "_catRecycleBinManager::updateConf" )
    INT32 _catRecycleBinManager::updateConf( const utilRecycleBinConf &newConf,
                                             pmdEDUCB *cb,

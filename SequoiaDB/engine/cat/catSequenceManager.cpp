@@ -133,6 +133,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_SEQ_MGR_CREATE_SEQ, "_catSequenceManager::createSequence" )
    INT32 _catSequenceManager::createSequence( const std::string& name,
+                                              utilCLUniqueID clUniqueID,
                                               const BSONObj& options,
                                               _pmdEDUCB* eduCB, INT16 w )
    {
@@ -194,6 +195,7 @@ namespace engine
       sequence.setID( ID ) ;
       sequence.setOID( OID::gen() ) ;
       sequence.setVersion( 0 ) ;
+      sequence.setCLUniqueID( clUniqueID ) ;
       sequence.setInitial( TRUE ) ;
 
       rc = sequence.validate() ;

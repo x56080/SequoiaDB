@@ -1165,5 +1165,17 @@ typedef enum _PREFER_REPLICA_TYPE
 
 #pragma pack()
 
+// CATALOG versions
+#define CATALOG_VERSION_V0    ( 0 )
+// VERSION 1
+// add UniqueID to collections and collection spaces
+// add TaskIDHWM to DC
+// add transaction options to data sources
+#define CATALOG_VERSION_V1    ( 1 )
+// VERSION 2
+// add CLUniqueID to sequences
+#define CATALOG_VERSION_V2    ( 2 )
+#define CATALOG_VERSION_CUR   ( CATALOG_VERSION_V2 )
+
 #endif // MSG_H__
 
