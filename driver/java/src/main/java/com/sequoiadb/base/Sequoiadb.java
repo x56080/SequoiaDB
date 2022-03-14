@@ -1991,7 +1991,8 @@ public class Sequoiadb implements Closeable {
         BSONObject newObj = new BasicBSONObject();
         for (String key: options.keySet()) {
             Object value = options.get(key);
-            if (key.equalsIgnoreCase(SdbConstants.FIELD_NAME_PREFERED_INSTANCE)){
+            if (key.equalsIgnoreCase(SdbConstants.FIELD_NAME_PREFERRED_INSTANCE_LEGACY) ||
+                    key.equalsIgnoreCase(SdbConstants.FIELD_NAME_PREFERRED_INSTANCE)) {
                 if (value instanceof String) {
                     String valueStr = (String)value;
                     int v ;
@@ -2004,13 +2005,13 @@ public class Sequoiadb implements Closeable {
                     } else {
                         throw new BaseException(SDBError.SDB_INVALIDARG, options.toString());
                     }
-                    newObj.put(SdbConstants.FIELD_NAME_PREFERED_INSTANCE, v);
+                    newObj.put(key, v);
                 } else if (value instanceof Integer) {
-                    newObj.put(SdbConstants.FIELD_NAME_PREFERED_INSTANCE, value);
+                    newObj.put(key, value);
                 }
                 // Add new version of preferred instance
-                newObj.put(SdbConstants.FIELD_NAME_PREFERED_INSTANCE_V1, value);
-            }else {
+                newObj.put(SdbConstants.FIELD_NAME_PREFERRED_INSTANCE_V1_LEGACY, value);
+            } else {
                 newObj.put(key, value);
             }
         }
