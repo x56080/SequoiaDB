@@ -358,16 +358,16 @@
       <long>httpname</long>
       <short>s</short>
       <description>
-         <en>The HTTP service port is svcname+4 by default.</en>
-         <cn>HTTP 服务端口，默认端口为 svcname+4</cn>
+         <en>The REST service port is svcname+4 by default.</en>
+         <cn>REST 服务端口，默认端口为 svcname+4</cn>
       </description>
       <catalogdft>11804</catalogdft>
       <coorddft>11814</coorddft>
       <datadft>11824</datadft>
       <standdft>11814</standdft>
       <detail>
-         <en>Specify the HTTP service port, which is svcname+4 by default.</en>
-         <cn>指定 HTTP 服务端口，默认端口为 svcname+4</cn>
+         <en>Specify the REST service port, which is svcname+4 by default.</en>
+         <cn>指定 REST 服务端口，默认端口为 svcname+4</cn>
       </detail>
       <typeofweb>str</typeofweb>
    </opt>
@@ -2604,22 +2604,22 @@
       <name>PMD_OPTION_SERVICE_MASK</name>
       <long>servicemask</long>
       <description>
-         <en>Block the mask of service port. The values include LOCAL,REPL,SHARD,CATALOG and HTTP. Users can use '|' to connect multiple values. The default value is NONE.</en>
-         <cn>屏蔽服务端口的掩码，取值为 LOCAL、REPL、SHARD、CATALOG 和 HTTP，可以使用'|'连接多个值，默认值为 NONE。</cn>
+         <en>Block the mask of service port. The values include LOCAL,REPL,SHARD,CATALOG and REST. Users can use '|' to connect multiple values. The default value is NONE.</en>
+         <cn>屏蔽服务端口的掩码，取值为 LOCAL、REPL、SHARD、CATALOG 和 REST，可以使用'|'连接多个值，默认值为 NONE。</cn>
       </description>
       <detail>
-         <en>Block the mask of service port. The values include LOCAL、REPL、SHARD、CATALOG and HTTP. Users can use ‘|’ to connect multiple values. The default value is NONE.<fig></fig>
+         <en>Block the mask of service port. The values include LOCAL、REPL、SHARD、CATALOG and REST. Users can use ‘|’ to connect multiple values. The default value is NONE.<fig></fig>
          LOCAL: Disable the local service port. If the local service port of the coordination node is disabled, the database will not be able to provide services to clients.<fig></fig>
          REPL: Disable the replication service port. If the replication service port of the catalog node or data node is disabled, the data of the primary node and the standby node will be inconsistent. Generally, it should not be disabled.<fig></fig>
          SHARD: Disable the shard service port. If the shard service port of any node is disabled, data operations will fail. Generally, it should not be disabled.<fig></fig>
          CATALOG: Disable the catalog service port. If the catalog service port of the catalog node is disabled, the node operation will fail and the data operation will fail. Generally, it should not be disabled.<fig></fig>
-         HTTP: Disable the HTTP service port. If the HTTP service port of a node is disabled, the node cannot provide HTTP services.<fig></fig></en>
-         <cn>屏蔽服务端口的掩码，取值为 LOCAL、REPL、SHARD、CATALOG 和 HTTP，可以使用'|'连接多个值，默认值为 NONE。<fig></fig>
+         REST: Disable the REST service port. If the REST service port of a node is disabled, the node cannot provide REST services.<fig></fig></en>
+         <cn>屏蔽服务端口的掩码，取值为 LOCAL、REPL、SHARD、CATALOG 和 REST，可以使用'|'连接多个值，默认值为 NONE。<fig></fig>
          LOCAL：禁用本地服务端口。如果禁用协调节点的本地服务端口，会导致数据库不能为客户端提供服务。<fig></fig>
          REPL：禁用数据同步服务端口。如果禁用编目节点或数据节点的数据同步服务端口，会导致主节点和备节点数据不一致，通常不应该禁用。<fig></fig>
          SHARD：禁用数据分区服务端口。如果禁用任一节点的数据分区服务端口，会导致数据操作失败，通常不应该禁用。<fig></fig>
          CATALOG：禁用编目服务端口。如果禁用编目节点的编目服务端口，会导致节点操作失败、数据操作失败，通常不应该禁用。<fig></fig>
-         HTTP：禁用 HTTP 服务端口。如果禁用节点的 HTTP 服务端口，会导致该节点不能提供 HTTP 服务。<fig></fig></cn>
+         REST：禁用 REST 服务端口。如果禁用节点的 REST 服务端口，会导致该节点不能提供 REST 服务。<fig></fig></cn>
       </detail>
       <reloadable>
          <en>Take effect after restart</en>
