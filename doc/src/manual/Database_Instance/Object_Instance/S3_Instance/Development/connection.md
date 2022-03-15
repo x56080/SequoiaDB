@@ -15,7 +15,7 @@
 ----
 配置 Access Key、Secret Key、S3 Endpoint、HTTPS protocol 和 DNS-style
 
-```lang-bash
+```lang-text
 $ ./s3cmd --configure
 
 Enter new values or accept defaults in brackets with Enter.
