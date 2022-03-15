@@ -2,7 +2,7 @@
  * @Description   : seqDB-24887:maxcontextnum配置参数校验
  * @Author        : Zhang Yanan
  * @CreateTime    : 2021.12.31
- * @LastEditTime  : 2022.01.07
+ * @LastEditTime  : 2022.03.15
  * @LastEditors   : Zhang Yanan
  ******************************************************************************/
 testConf.clName = COMMCLNAME + "_context_24887";
@@ -59,14 +59,18 @@ function test ( testPara )
       db.updateConf( config );
       checkConf( db, minConfig );
 
-      maxContextnum = 2147483648;
+      maxContextnum = -1000;
       config = { "maxcontextnum": maxContextnum };
       db.updateConf( config );
       checkConf( db, maxConfig );
 
-      maxContextnum = -1000;
+      maxContextnum = 2147483648;
       config = { "maxcontextnum": maxContextnum };
       db.updateConf( config );
+      if( commIsArmArchitecture() == true )
+      {
+         maxConfig = { "maxcontextnum": 2147483647 };
+      }
       checkConf( db, maxConfig );
    }
    finally
