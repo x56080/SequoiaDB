@@ -2,16 +2,18 @@
  * @Description   : SEQUOIADBMAINSTREAM-7485：C 驱动需要支持死锁检测功能 seqDB-25411
  * @Author        : xiao zhenfan
  * @CreateTime    : 2022.02.25
- * @LastEditTime  : 2022.03.03
+ * @LastEditTime  : 2022.03.12
  * @LastEditors   : xiao zhenfan
  */
 #include <gtest/gtest.h>
 #include <client.h>
 #include <pthread.h>
+#include <time.h>
 #include "impWorker.hpp"
 #include "testcommon.hpp"
 #include "testBase.hpp"
 #include "arguments.hpp"
+
 
 using namespace import ;
 
@@ -21,10 +23,13 @@ int thread2Continue = 0 ;
 
 void wait( int *control )  //用于控制两个线程中的删除操作在更新操作完成之后再发生
 {
+   clock_t start,end ;
+   start = time( NULL ) ;
    do
    {
       sleep(1);
-   }while( *control == 0 );
+      end = time( NULL ) ;
+   }while( *control == 0 || difftime(end,start)>60 );
 }
 
 class snapshot25411 : public testBase
