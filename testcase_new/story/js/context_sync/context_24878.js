@@ -2,8 +2,8 @@
  * @Description   : seqDB-24878:contexttimeout配置参数校验 
  * @Author        : Yao Kang
  * @CreateTime    : 2021.12.28
- * @LastEditTime  : 2021.12.31
- * @LastEditors   : Yao Kang
+ * @LastEditTime  : 2022.03.15
+ * @LastEditors   : Zhang Yanan
  ******************************************************************************/
 main( test );
 function test ()
@@ -49,7 +49,13 @@ function test ()
 
       db.updateConf( { "contexttimeout": Math.pow( 2, 31 ) } );
       snapshots = db.snapshot( SDB_SNAP_CONFIGS );
-      checkSnashopt( snapshots, 0 );
+      if( commIsArmArchitecture() == true )
+      {
+         checkSnashopt( snapshots, Math.pow( 2, 31 ) - 1 );
+      } else
+      {
+         checkSnashopt( snapshots, 0 );
+      }
    }
    finally
    {
