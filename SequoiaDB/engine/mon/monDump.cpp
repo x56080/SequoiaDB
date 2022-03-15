@@ -1416,6 +1416,31 @@ namespace engine
             ob.append( FIELD_NAME_REPL_NETIN, pReplCB->netIn() ) ;
             ob.append( FIELD_NAME_REPL_NETOUT, pReplCB->netOut() ) ;
          }
+         else if ( SDB_ROLE_COORD == role )
+         {
+            netRouteAgent *shardAgent = sdbGetCoordCB()->getRouteAgent() ;
+            if ( shardAgent )
+            {
+               ob.append( FIELD_NAME_SHARD_NETIN, shardAgent->netIn() ) ;
+               ob.append( FIELD_NAME_SHARD_NETOUT, shardAgent->netOut() ) ;
+            }
+            else
+            {
+               ob.append( FIELD_NAME_SHARD_NETIN, 0 ) ;
+               ob.append( FIELD_NAME_SHARD_NETOUT, 0 ) ;
+            }
+
+            ob.append( FIELD_NAME_REPL_NETIN, 0 ) ;
+            ob.append( FIELD_NAME_REPL_NETOUT, 0 ) ;
+         }
+         else
+         {
+            ob.append( FIELD_NAME_SHARD_NETIN, 0 ) ;
+            ob.append( FIELD_NAME_SHARD_NETOUT, 0 ) ;
+
+            ob.append( FIELD_NAME_REPL_NETIN, 0 ) ;
+            ob.append( FIELD_NAME_REPL_NETOUT, 0 ) ;
+         }
       }
       catch ( std::exception &e )
       {
