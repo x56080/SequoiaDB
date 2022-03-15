@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.annotations.AfterClass;
@@ -176,7 +177,10 @@ public class Index11416 extends SdbTestBase {
                 cl.query( null, null, null,
                         new BasicBSONObject( "", indexName ), 0, 10 );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -10 )
+                // -48:SDB_IXM_UNEXPECTED_STATUS
+                if ( e.getErrorCode() != SDBError.SDB_SYS.getErrorCode() && e
+                        .getErrorCode() != SDBError.SDB_IXM_UNEXPECTED_STATUS
+                                .getErrorCode() )
                     throw e;
             } finally {
                 if ( db != null )
