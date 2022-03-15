@@ -47,7 +47,8 @@ public class TestCloseAllCursors10376 extends SdbTestBase {
         this.cl = this.cs.createCollection( clName );
     }
 
-    @Test
+    // 问题单SEQUOIADBMAINSTREAM-8175，屏蔽该用例
+    @Test(enabled = false)
     public void testCloseAllCursors() {
         this.insertData();
         try {
