@@ -5,16 +5,16 @@
 .hy
 .SH NAME
 .PP
-getLob \- read LOB
+getLob \- get LOB in the collection
 .SH SYNOPSIS
 .PP
-\f[B]db.collectionspace.collection.getLob(<oid>, <file path>, [forced])\f[]
+\f[B]db.collectionspace.collection.getLob(<oid>, <filepath>, [forced])\f[]
 .SH CATEGORY
 .PP
 SdbCollection
 .SH DESCRIPTION
 .PP
-This function is used to read Lob in the collection.
+This function is used to get LOB in the collection.
 .SH PARAMETERS
 .PP
 .TS
@@ -39,7 +39,7 @@ oid
 T}@T{
 string
 T}@T{
-Unique descriptor for
+Unique identifier of
 T}@T{
 required
 T}
@@ -47,13 +47,13 @@ T{
 T}@T{
 T}@T{
 T}@T{
-Lob
+LOB.
 T}@T{
 T}
 T{
 2
 T}@T{
-file path
+filepath
 T}@T{
 string
 T}@T{
@@ -72,7 +72,22 @@ T{
 T}@T{
 T}@T{
 T}@T{
-written
+written.
+The file does
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+not need to be created
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+manually.
 T}@T{
 T}
 T{
@@ -82,7 +97,7 @@ forced
 T}@T{
 boolean
 T}@T{
-Overwrite local file if
+Whether to force the
 T}@T{
 not
 T}
@@ -90,22 +105,42 @@ T{
 T}@T{
 T}@T{
 T}@T{
-they already exists.
+overwriting of existing
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+local files, the
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+default value is "false
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+", which means that
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+overwrite is not forced.
 T}@T{
 T}
 .TE
-.RS
-.PP
-\f[B]Note:\f[]
-.IP \[bu] 2
-Local files do not need to be created manually in advance.
-.IP \[bu] 2
-The "forced" is false by default.
-.RE
 .SH RETURN VALUE
 .PP
 When the function executes successfully, it will return an object of type
-String.
+BSONObj.
 .PP
 When the function fails, an exception will be thrown and an error message will
 be printed.
@@ -116,14 +151,20 @@ getLastError() to get the error code.
 For more details, refer to Troubleshooting.
 .SH VERSION
 .PP
-v2.0 and above
+v3.4 and above
 .SH EXAMPLES
 .PP
-Write the LOB with the identifier "5435e7b69487faa663000897" to the local
-\f[C]/opt/newlob\f[] file.
+Write the LOB whose "oid" is "5435e7b69487faa663000897" to the local file
+\f[C]/opt/mylob.txt\f[]
 .IP
 .nf
 \f[C]
-> db.sample.employee.getLob(\[aq]5435e7b69487faa663000897\[aq], \[aq]/opt/newlob\[aq])
+> db.sample.employee.getLob(\[aq]5435e7b69487faa663000897\[aq], \[aq]/opt/mylob.txt\[aq])
+{
+  "LobSize": 0,
+  "CreateTime": {
+    "$timestamp": "2021\-11\-10\-14.15.46.466000"
+  }
+}
 \f[]
 .fi

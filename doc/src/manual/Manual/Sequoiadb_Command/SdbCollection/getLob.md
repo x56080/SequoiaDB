@@ -4,7 +4,7 @@ getLob - 读取大对象
 
 ##语法##
 
-**db.collectionspace.collection.getLob\(\<oid\>, \<file path\>, \[forced\]\)**
+**db.collectionspace.collection.getLob\(\<oid\>, \<filepath\>, \[forced\]\)**
 
 ##类别##
 
@@ -16,20 +16,15 @@ SdbCollection
 
 ##参数##
 
-| 参数名    | 类型 | 描述   | 是否必填 |
-| --------- | -------- | ------ | -------- |
-| oid       | string   | 大对象的唯一描述符              | 是 |
-| file path | string   | 待写入的本地文件全路径          | 是 |
-| forced    | boolean     | 本地文件如果已经存在是否强制覆盖| 否 |
-
-> **Note:**
->
-> - 本地文件不需要事先手工创建。
-> - forced 默认为 false。
+| 参数名 | 类型 | 描述 | 是否必填 |
+| ------ | ---- | ---- | -------- |
+|  oid   | string | 大对象的唯一标识 | 是 |
+| filepath | string | 待写入的本地文件全路径，该文件不需要手动创建 | 是 |
+| forced | boolean | 是否强制覆盖已存在的本地文件，默认值为 false，表示不强制覆盖 | 否 |
 
 ##返回值##
 
-函数执行成功时，将返回一个 String 类型的对象。
+函数执行成功时，将返回一个 BSONObj 类型的对象。
 
 函数执行失败时，将抛异常并输出错误信息。
 
@@ -39,14 +34,20 @@ SdbCollection
 
 ##版本##
 
-v2.0 及以上版本
+v3.4 及以上版本
 
 ##示例##
 
-将标示符为"5435e7b69487faa663000897"的 LOB 写入本地 `/opt/newlob` 文件
+将 oid 为"5435e7b69487faa663000897"的大对象写入本地文件 `/opt/mylob.txt`
 
 ```lang-javascript
-> db.sample.employee.getLob('5435e7b69487faa663000897', '/opt/newlob')
+> db.sample.employee.getLob('5435e7b69487faa663000897', '/opt/mylob.txt')
+{
+  "LobSize": 0,
+  "CreateTime": {
+    "$timestamp": "2021-11-10-14.15.46.466000"
+  }
+}
 ```
 
 [^_^]:

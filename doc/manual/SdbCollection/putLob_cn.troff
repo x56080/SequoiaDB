@@ -8,7 +8,7 @@
 putLob \- 在集合中插入大对象
 .SH 语法
 .PP
-\f[B]db.collectionspace.collection.putLob(<file path>, [oid])\f[]
+\f[B]db.collectionspace.collection.putLob(<filepath>, [oid])\f[]
 .SH 类别
 .PP
 SdbCollection
@@ -35,11 +35,11 @@ _
 T{
 1
 T}@T{
-file path
+filepath
 T}@T{
 string
 T}@T{
-待上传文件的绝
+待上传的本地文
 T}@T{
 是
 T}
@@ -47,21 +47,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-对路径，用户需
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-拥有该文件的读
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-权限
+件全路径
 T}@T{
 T}
 T{
@@ -71,9 +57,16 @@ oid
 T}@T{
 string
 T}@T{
-指定大对象的 oid
+大对象的唯一标
 T}@T{
 否
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+识
+T}@T{
 T}
 .TE
 .SH 返回值
@@ -88,38 +81,35 @@ T}
 获取错误码。更多错误处理可以参考常见错误处理指南。
 .SH 版本
 .PP
-v2.0 及以上版本
+v3.4 及以上版本
 .SH 示例
 .IP \[bu] 2
-创建集合空间与集合
-.RS 2
-.IP
-.nf
-\f[C]
-> db.createCS(\[aq]sample\[aq] )
-> db.sample.createCL(\[aq]employee\[aq])
-\f[]
-.fi
-.RE
-.IP \[bu] 2
-上传大对象文件 \f[C]mylob.txt\f[]
-.RS 2
-.IP
-.nf
-\f[C]
-> db.sample.employee.putLob(\[aq]/opt/mylob/mylob.txt\[aq])
-0000604f989a390002db009e
-\f[]
-.fi
-.RE
-.IP \[bu] 2
-上传指定 oid 的大对象文件 \f[C]mylob.txt\f[]
+将文件 \f[C]mylob.txt\f[] 以大对象形式插入集合 sample.employee 中，并指定大对象
+oid
 .RS 2
 .IP
 .nf
 \f[C]
 > db.sample.employee.putLob(\[aq]/opt/mylob/mylob.txt\[aq], \[aq]5bf3a024ed9954d596420256\[aq])
 5bf3a024ed9954d596420256
+\f[]
+.fi
+.RS
+.PP
+\f[B]Note:\f[]
+.PP
+用户可通过 createLobID() 创建大对象 oid
+.RE
+.RE
+.IP \[bu] 2
+将文件 \f[C]mylob.txt\f[] 以大对象形式插入集合 sample.employee 中，不指定大对象
+oid
+.RS 2
+.IP
+.nf
+\f[C]
+> db.sample.employee.putLob(\[aq]/opt/mylob/mylob.txt\[aq])
+0000604f989a390002db009e
 \f[]
 .fi
 .RE

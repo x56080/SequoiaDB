@@ -4,7 +4,7 @@ putLob - 在集合中插入大对象
 
 ##语法##
 
-**db.collectionspace.collection.putLob\(\<file path\>, [oid]\)**
+**db.collectionspace.collection.putLob\(\<filepath\>, [oid]\)**
 
 ##类别##
 
@@ -16,10 +16,10 @@ SdbCollection
 
 ##参数##
 
-| 参数名    | 类型 | 描述     | 是否必填 |
-| --------- | -------- | -------- | -------- |
-| file path | string   | 待上传文件的绝对路径，用户需拥有该文件的读权限 | 是 |
-| oid       | string   | 指定大对象的 oid | 否 |
+| 参数名 | 类型 | 描述 | 是否必填 |
+| ------ | ---- | ---- | -------- |
+| filepath | string | 待上传的本地文件全路径 | 是 |
+| oid | string | 大对象的唯一标识 | 否 |
 
 ##返回值##
 
@@ -33,30 +33,28 @@ SdbCollection
 
 ##版本##
 
-v2.0 及以上版本
+v3.4 及以上版本
 
 ##示例##
 
-- 创建集合空间与集合
+- 将文件 `mylob.txt` 以大对象形式插入集合 sample.employee 中，并指定大对象 oid
 
     ```lang-javascript
-    > db.createCS('sample' )
-    > db.sample.createCL('employee')
+    > db.sample.employee.putLob('/opt/mylob/mylob.txt', '5bf3a024ed9954d596420256')
+    5bf3a024ed9954d596420256
     ```
 
-- 上传大对象文件 `mylob.txt`
+    >**Note:**
+    >
+    > 用户可通过 [createLobID()][createLobID] 创建大对象 oid
+
+- 将文件 `mylob.txt` 以大对象形式插入集合 sample.employee 中，不指定大对象 oid
 
     ```lang-javascript
     > db.sample.employee.putLob('/opt/mylob/mylob.txt')
     0000604f989a390002db009e
     ```
 
-- 上传指定 oid 的大对象文件 `mylob.txt`
-
-    ```lang-javascript
-    > db.sample.employee.putLob('/opt/mylob/mylob.txt', '5bf3a024ed9954d596420256')
-    5bf3a024ed9954d596420256
-    ```
 
 [^_^]:
      本文使用的所有引用及链接
@@ -64,3 +62,4 @@ v2.0 及以上版本
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
+[createLobID]:manual/Manual/Sequoiadb_Command/SdbCollection/createLobID.md

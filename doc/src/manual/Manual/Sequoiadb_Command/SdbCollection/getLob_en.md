@@ -1,10 +1,10 @@
 ##NAME##
 
-getLob - read LOB
+getLob - get LOB in the collection
 
 ##SYNOPSIS##
 
-**db.collectionspace.collection.getLob\(\<oid\>, \<file path\>, \[forced\]\)**
+**db.collectionspace.collection.getLob\(\<oid\>, \<filepath\>, \[forced\]\)**
 
 ##CATEGORY##
 
@@ -12,24 +12,19 @@ SdbCollection
 
 ##DESCRIPTION##
 
-This function is used to read Lob in the collection.
+This function is used to get LOB in the collection.
 
 ##PARAMETERS##
 
 | Name | Type| Description | Required or not |
-| --------- | -------- | ------ | -------- |
-| oid       | string   | Unique descriptor for Lob             | required |
-| file path | string   | The full path of the local file to be written          | required |
-| forced    | boolean     |Overwrite local file if they already exists.| not |
-
-> **Note:**
->
-> - Local files do not need to be created manually in advance.
-> - The "forced" is false by default.
+| ---- | --- | ----------- | --------------- |
+| oid  | string | Unique identifier of LOB. | required |
+| filepath | string | The full path of the local file to be written. The file does not need to be created manually. | required |
+| forced | boolean | Whether to force the overwriting of existing local files, the default value is "false", which means that overwrite is not forced. | not |
 
 ##RETURN VALUE##
 
-When the function executes successfully, it will return an object of type String.
+When the function executes successfully, it will return an object of type BSONObj. 
 
 When the function fails, an exception will be thrown and an error message will be printed.
 
@@ -39,14 +34,20 @@ When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the erro
 
 ##VERSION##
 
-v2.0 and above
+v3.4 and above
 
 ##EXAMPLES##
 
-Write the LOB with the identifier "5435e7b69487faa663000897" to the local `/opt/newlob` file.
+Write the LOB whose "oid" is "5435e7b69487faa663000897" to the local file `/opt/mylob.txt`
 
 ```lang-javascript
-> db.sample.employee.getLob('5435e7b69487faa663000897', '/opt/newlob')
+> db.sample.employee.getLob('5435e7b69487faa663000897', '/opt/mylob.txt')
+{
+  "LobSize": 0,
+  "CreateTime": {
+    "$timestamp": "2021-11-10-14.15.46.466000"
+  }
+}
 ```
 
 [^_^]:

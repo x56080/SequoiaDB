@@ -1,10 +1,10 @@
 ##NAME##
 
-putLob - insert a LOB in the collection
+putLob - put LOB in the collection
 
 ##SYNOPSIS##
 
-**db.collectionspace.collection.putLob\(\<file path\>, [oid]\)**
+**db.collectionspace.collection.putLob\(\<filepath\>, [oid]\)**
 
 ##CATEGORY##
 
@@ -17,9 +17,9 @@ This function is used to insert LOB in the collection.
 ##PARAMETERS##
 
 | Name | Type| Description | Required or not |
-| --------- | -------- | -------- | -------- |
-| file path | string   | The absolute path of the file to be uploaded, and users need to have the read permission of the file. | required |
-| oid       | string   | Specify the oid of the LOB. | not |
+| ---- | --- | ----------- | --------------- |
+| filepath | string | The full path of the local file to be uploaded. | required |
+| oid | string |  Unique identifier of LOB. | not |
 
 ##RETURN VALUE##
 
@@ -33,30 +33,28 @@ When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the erro
 
 ##VERSION##
 
-v2.0 and above
+v3.4 and above
 
 ##EXAMPLES##
 
-- Create collection space and collection.
+- Insert the file `mylob.txt` into the collection "sample.employee" as a LOB, and specify the LOB "oid".
 
     ```lang-javascript
-    > db.createCS('sample' )
-    > db.sample.createCL('employee')
+    > db.sample.employee.putLob('/opt/mylob/mylob.txt', '5bf3a024ed9954d596420256')
+    5bf3a024ed9954d596420256
     ```
 
-- Upload the LOB file `mylob.txt`.
+    >**Note:**
+    >
+    > Users can create a LOB oid through [createLobID()][createLobID].
+
+- Insert the file `mylob.txt` into the collection "sample.employee" as a LOB, without specifying the LOB "oid".
 
     ```lang-javascript
     > db.sample.employee.putLob('/opt/mylob/mylob.txt')
     0000604f989a390002db009e
     ```
 
-- Upload the LOB file `mylob.txt` of the specified "oid".
-
-    ```lang-javascript
-    > db.sample.employee.putLob('/opt/mylob/mylob.txt', '5bf3a024ed9954d596420256')
-    5bf3a024ed9954d596420256
-    ```
 
 [^_^]:
      Links
@@ -64,3 +62,4 @@ v2.0 and above
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
+[createLobID]:manual/Manual/Sequoiadb_Command/SdbCollection/createLobID.md
