@@ -71,8 +71,9 @@ public class Transaction19191 extends SdbTestBase {
             TransUtils.beginTransaction( db2 );
             DBCollection cl2 = db2.getCollectionSpace( SdbTestBase.csName )
                     .getCollection( clName );
-            DBCursor cursor = cl2.query();
+            DBCursor cursor;
             try {
+                cursor = cl2.query();
                 TransUtils.getReadActList( cursor );
                 Assert.fail();
             } catch ( BaseException e ) {
