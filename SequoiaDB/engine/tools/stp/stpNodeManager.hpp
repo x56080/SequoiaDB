@@ -341,12 +341,7 @@ namespace engine
 
       // update time error of local node
       // NOTE: update by time synchronization
-      OSS_INLINE void updateLocalTimeError( UINT32 timeError )
-      {
-         ossScopedRWLock lock( &_mutex, EXCLUSIVE ) ;
-         _local.setTimeError( OSS_MIN( _local.getMaxTimeError(),
-                                       timeError ) ) ;
-      }
+      void updateLocalTimeError( UINT32 timeError ) ;
 
       // check whether version of servers is expired
       // if expired, set the status to query servers
