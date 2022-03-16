@@ -62,12 +62,10 @@ namespace engine
      _mthMatchRuntimeHolder(),
      _key( planKey ),
      _isInitialized( FALSE ),
-     _isInvalid( FALSE ),
      _hintFailed( FALSE ),
      _isAutoPlan( FALSE ),
      _activityID( OPT_INVALID_ACT_ID ),
-     _refCount( 1 ),
-     _scanPath( &_planAllocator )
+     _refCount( 1 )
    {
       getMatchTree()->setMatchConfig( config ) ;
 
@@ -90,11 +88,6 @@ namespace engine
       /// because _scanPath used the _planAllocator, but _planAllocator
       /// will destroyed out of the ~_optAccessPlan
       _scanPath.clearPath() ;
-   }
-
-   void _optAccessPlan::markInvalid()
-   {
-      _isInvalid = TRUE ;
    }
 
    void _optAccessPlan::release ()
@@ -239,7 +232,6 @@ namespace engine
                                                   const mthNodeConfig &config )
    : _optAccessPlan( planKey, config ),
      _cachedPlanMgr( NULL ),
-     _autoHint( FALSE ),
      _searchPaths( NULL )
    {
    }
@@ -483,7 +475,7 @@ namespace engine
       optCollectionStat collectionStat( su->getPageSizeLog2(), mbContext,
                                         planHelper, statCache ) ;
 
-      optScanPath bestPath( &_planAllocator ) ;
+      optScanPath bestPath ;
 
       BOOLEAN sortedIdxRequired = _key.isSortedIdxRequired() ;
 
@@ -509,7 +501,7 @@ namespace engine
                const CHAR *pIndexName = hint.valuestr() ;
                if ( '\0' != *( pIndexName ) )
                {
-                  optScanPath ixScanPath( &_planAllocator ) ;
+                  optScanPath ixScanPath ;
 
                   OPT_PLAN_PATH_PRIORITY priority = sortedIdxRequired ?
                                                     OPT_PLAN_SORTED_IDX_REQUIRED :
@@ -549,7 +541,7 @@ namespace engine
                else if ( bestPath.isEmpty() )
                {
                   // First { "" : "" } goto auto hint
-                  _autoHint = TRUE ;
+                  planHelper.setAutoHint( TRUE ) ;
                   rc = SDB_RTN_INVALID_HINT ;
                   goto error ;
                }
@@ -558,7 +550,7 @@ namespace engine
             case jstOID :
             {
                const OID &indexOID = hint.__oid() ;
-               optScanPath ixScanPath( &_planAllocator ) ;
+               optScanPath ixScanPath ;
 
                OPT_PLAN_PATH_PRIORITY priority = sortedIdxRequired ?
                                                  OPT_PLAN_SORTED_IDX_REQUIRED :
@@ -600,7 +592,7 @@ namespace engine
             }
             case jstNULL :
             {
-               optScanPath tbScanPath( &_planAllocator ) ;
+               optScanPath tbScanPath ;
 
                PD_LOG ( PDDEBUG, "Use Collection Scan by Hint" ) ;
 
@@ -645,7 +637,8 @@ namespace engine
       }
 
       /// no auto hint, and force hint and have hints
-      if ( !_autoHint && _key.testFlag( FLG_QUERY_FORCE_HINT ) &&
+      if ( !planHelper.isAutoHint() &&
+           _key.testFlag( FLG_QUERY_FORCE_HINT ) &&
            hintCnt > 0 )
       {
          finished = TRUE ;
@@ -653,7 +646,7 @@ namespace engine
 
       if ( sortedIdxRequired )
       {
-         if ( !_autoHint && validHints > 0 )
+         if ( !planHelper.isAutoHint() && validHints > 0 )
          {
             finished = TRUE ;
          }
@@ -696,7 +689,7 @@ namespace engine
 
       dmsExtentID bestIdxExtID = DMS_INVALID_EXTENT ;
 
-      optScanPath tbScanPath( &_planAllocator ), bestPath( &_planAllocator ) ;
+      optScanPath tbScanPath, bestPath ;
 
       optCollectionStat collectionStat( su->getPageSizeLog2(), mbContext,
                                         planHelper, statCache ) ;
@@ -710,7 +703,7 @@ namespace engine
          // Have order-by and with query flags to required sorted index
          priority = OPT_PLAN_SORTED_IDX_REQUIRED ;
       }
-      else if ( _autoHint &&
+      else if ( planHelper.isAutoHint() &&
                 ( !planHelper.isPredicateSetEmpty() ||
                   !_key.isOrderByEmpty() ) )
       {
@@ -750,7 +743,7 @@ namespace engine
          if ( collectionStat.getBestIndexName() )
          {
             const CHAR *pIndexName = collectionStat.getBestIndexName() ;
-            optScanPath ixScanPath( &_planAllocator ) ;
+            optScanPath ixScanPath ;
 
             rc = _estimateIxScanPlan( su, mbContext, &collectionStat,
                                       planHelper, pIndexName, priority,
@@ -786,7 +779,7 @@ namespace engine
          for ( INT32 idx = 0 ; idx < DMS_COLLECTION_MAX_INDEX ; idx ++ )
          {
             dmsExtentID indexCBExtent = DMS_INVALID_EXTENT ;
-            optScanPath ixScanPath( &_planAllocator ) ;
+            optScanPath ixScanPath ;
 
             rc = su->index()->getIndexCBExtent( mbContext, idx,
                                                 indexCBExtent ) ;
@@ -920,7 +913,7 @@ namespace engine
       SDB_ASSERT( _matchRuntime, "matchRuntime is invalid" ) ;
 
       dmsExtentID idxExtID = path.getIndexExtID() ;
-      optScanPath emptyPath( &_planAllocator ) ;
+      optScanPath emptyPath ;
 
       // Clear earlier settings
       _matchRuntime->clearPredList() ;
@@ -1099,7 +1092,7 @@ namespace engine
       _key.setValid( TRUE ) ;
 
       // Clear hint failing marks
-      if ( _autoHint && _hintFailed && IXSCAN == getScanType() )
+      if ( planHelper.isAutoHint() && _hintFailed && IXSCAN == getScanType() )
       {
          _hintFailed = FALSE ;
       }
@@ -1448,6 +1441,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTMAINACPLAN_BINDSUBACPLAN, "_optMainCLAccessPlan::bindSubCLAccessPlan" )
    INT32 _optMainCLAccessPlan::bindSubCLAccessPlan ( optAccessPlanHelper &planHelper,
                                                      optGeneralAccessPlan *subPlan,
+                                                     dmsMBContext *mbContext,
                                                      const BSONObj &parameters )
    {
       INT32 rc = SDB_OK ;
@@ -1466,7 +1460,9 @@ namespace engine
       _hintFailed = subPlan->isHintFailed() ;
       _isAutoPlan = subPlan->isAutoGen() ;
 
-      _saveSubCL( subPlan->getCLFullName(), subPlan->getScore(), parameters ) ;
+      _saveSubCL( subPlan->getCLFullName(),
+                  mbContext->mb()->_clUniqueID,
+                  subPlan->getScore(), parameters ) ;
 
       rc = bindMatchRuntime( planHelper, subPlan ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to bind match runtime, rc: %d", rc ) ;
@@ -1485,6 +1481,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTMAINCLACPLAN_VALIDSUBCLPLAN, "_optMainCLAccessPlan::validateSubCLPlan" )
    BOOLEAN _optMainCLAccessPlan::validateSubCLPlan ( const optGeneralAccessPlan *plan,
+                                                     dmsMBContext *mbContext,
                                                      const BSONObj &parameters )
    {
       BOOLEAN result = FALSE ;
@@ -1514,7 +1511,10 @@ namespace engine
 
       if ( result )
       {
-         _saveSubCL( plan->getCLFullName(), plan->getScore(), parameters ) ;
+         _saveSubCL( plan->getCLFullName(),
+                     mbContext->mb()->_clUniqueID,
+                     plan->getScore(),
+                     parameters ) ;
       }
 
       PD_TRACE_EXIT( SDB__OPTMAINCLACPLAN_VALIDSUBCLPLAN ) ;
@@ -1585,14 +1585,12 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTPARAMACPLAN_CHKSAVEDSUBCL, "_optMainCLAccessPlan::checkSavedSubCL" )
-   BOOLEAN _optMainCLAccessPlan::checkSavedSubCL ( const CHAR * subCLName,
+   BOOLEAN _optMainCLAccessPlan::checkSavedSubCL ( utilCLUniqueID subCLUID,
                                                    const BSONObj & parameters )
    {
       BOOLEAN res = FALSE ;
 
       PD_TRACE_ENTRY( SDB__OPTPARAMACPLAN_CHKSAVEDSUBCL ) ;
-
-      SDB_ASSERT( NULL != subCLName, "sub-collection name is invalid" ) ;
 
       UINT32 savedCount = _mainCLValidCount.peek() ;
 
@@ -1600,8 +1598,7 @@ namespace engine
 
       for ( UINT32 i = 0 ; i < savedCount ; i++ )
       {
-         if ( 0 == ossStrncmp( subCLName, _records[ i ]._subCLName,
-                               DMS_COLLECTION_FULL_NAME_SZ ) &&
+         if ( _records[ i ]._subCLUID == subCLUID &&
               parameters.shallowEqual( _records[ i ]._parameters ) )
          {
             res = TRUE ;
@@ -1739,6 +1736,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTMAINCLACPLAN__SAVESUBCL, "_optMainCLAccessPlan::_saveSubCL" )
    void _optMainCLAccessPlan::_saveSubCL ( const CHAR *pSubCLName,
+                                           utilCLUniqueID subCLUID,
                                            double score,
                                            const BSONObj &parameters )
    {
@@ -1748,9 +1746,19 @@ namespace engine
       if ( paramIndex < OPT_MAINCL_VALID_PLAN_NUM )
       {
          // Save the specified plan for validation
-         ossStrncpy( _records[ paramIndex ]._subCLName, pSubCLName,
-                     DMS_COLLECTION_FULL_NAME_SZ ) ;
-         _records[ paramIndex ]._subCLName[ DMS_COLLECTION_FULL_NAME_SZ ] = '\0' ;
+         try
+         {
+            if ( NULL != pSubCLName )
+            {
+               _records[ paramIndex ]._subCLName.assign( pSubCLName ) ;
+            }
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDWARNING, "Failed to save sub collection name, "
+                    "occur exception %s", e.what() ) ;
+         }
+         _records[ paramIndex ]._subCLUID = subCLUID ;
          _records[ paramIndex ]._parameters = parameters ;
          _records[ paramIndex ]._score = score ;
 
@@ -1802,7 +1810,7 @@ namespace engine
             {
                BSONObjBuilder subBuilder( subCLBuilder.subobjStart() ) ;
                subBuilder.append( OPT_FIELD_COLLECTION,
-                                  _records[index]._subCLName ) ;
+                                  _records[index]._subCLName.c_str() ) ;
                if ( !_records[index]._parameters.isEmpty() )
                {
                   subBuilder.appendElements( _records[index]._parameters ) ;

@@ -52,18 +52,6 @@
 
 using namespace bson;
 
-// Memory for _optPlanNode may be allocated in two ways:
-// 1. By using malloc.
-// 2. By using user specified allocator(instances of optPlanAllocator).
-// The actions when releasing these two kinds of node are different.
-// So a type flag is added at the head of the actual allocated memory.
-// NOTE: we only use 4 bytes in memory header, but for arm64, it requires
-//       8 bytes align for atomic variables inside struct or class, so
-//       we make the memory header 8 bytes here
-#define OPT_MEM_TYPE_SIZE            sizeof(INT64)
-#define OPT_MEM_BY_USER_ALLOCATOR    0
-#define OPT_MEM_BY_DFT_ALLOCATOR     1
-
 namespace engine
 {
 
@@ -102,68 +90,6 @@ namespace engine
 
    _optPlanNode::~_optPlanNode ()
    {
-   }
-
-   void * _optPlanNode::operator new ( size_t size,
-                                       optPlanAllocator *allocator,
-                                       std::nothrow_t )
-   {
-      void *p = NULL ;
-      if ( size > 0 )
-      {
-         // In order to know if the memory is allocated by malloc() when
-         // deleting the object, reserve space for a flag at the head of the
-         // allocated space.
-         size_t reserveSize = size + OPT_MEM_TYPE_SIZE ;
-         if ( allocator )
-         {
-            p = allocator->allocate( reserveSize ) ;
-         }
-
-         if ( NULL == p )
-         {
-            p = SDB_THREAD_ALLOC( reserveSize ) ;
-            if ( NULL == p )
-            {
-               goto error ;
-            }
-            *(INT32 *)p = OPT_MEM_BY_DFT_ALLOCATOR ;
-         }
-         else
-         {
-            *(INT32 *)p = OPT_MEM_BY_USER_ALLOCATOR ;
-         }
-         // Seek address which can actually be used by the user.
-         p = (CHAR *)p + OPT_MEM_TYPE_SIZE ;
-      }
-
-   done:
-      return p ;
-   error:
-      goto done ;
-   }
-
-   void _optPlanNode::operator delete ( void *p )
-   {
-      if ( p )
-      {
-         void *beginAddr = (void *)( (CHAR *)p - OPT_MEM_TYPE_SIZE ) ;
-         // Only release memory allocted by SDB_THREAD_ALLOC().
-         // Objects allocated by instances of _utilAllocator(allocator is not
-         // NULL in new) will not be released seperately, as they are allocated
-         // in a stack. They space is released when the allocator is destroyed.
-         if ( OPT_MEM_BY_DFT_ALLOCATOR == *(INT32 *)beginAddr )
-         {
-            SDB_THREAD_FREE( beginAddr ) ;
-         }
-      }
-   }
-
-   void _optPlanNode::operator delete ( void *p,
-                                        optPlanAllocator *allocator,
-                                        std::nothrow_t )
-   {
-      _optPlanNode::operator delete( p ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTPLANNODE_ADDCHILDNODE, "_optPlanNode::addChildNode" )
@@ -3148,8 +3074,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTMERGENODEBASE_ADDCHILDEXP, "_optMergeNodeBase::addChildExplain" )
-   INT32 _optMergeNodeBase::addChildExplain ( optPlanAllocator * pAllocator,
-                                              const BSONObj & childExplain,
+   INT32 _optMergeNodeBase::addChildExplain ( const BSONObj & childExplain,
                                               const ossTickDelta & queryTime,
                                               const ossTickDelta & waitTime,
                                               BOOLEAN needParse,
@@ -3210,23 +3135,23 @@ namespace engine
 
             if ( 0 == ossStrcmp( optrName, OPT_PLAN_NODE_NAME_TBSCAN ) )
             {
-               newNode = new ( pAllocator, std::nothrow ) optTbScanNode() ;
+               newNode = SDB_OSS_NEW optTbScanNode() ;
             }
             else if ( 0 == ossStrcmp( optrName, OPT_PLAN_NODE_NAME_IXSCAN ) )
             {
-               newNode = new ( pAllocator, std::nothrow ) optIxScanNode() ;
+               newNode = SDB_OSS_NEW optIxScanNode() ;
             }
             else if ( 0 == ossStrcmp( optrName, OPT_PLAN_NODE_NAME_SORT ) )
             {
-               newNode = new ( pAllocator, std::nothrow ) optSortNode() ;
+               newNode = SDB_OSS_NEW optSortNode() ;
             }
             else if ( 0 == ossStrcmp( optrName, OPT_PLAN_NODE_NAME_MERGE ) )
             {
-               newNode = new ( pAllocator, std::nothrow ) optMainCLMergeNode() ;
+               newNode = SDB_OSS_NEW optMainCLMergeNode() ;
             }
             else if ( 0 == ossStrcmp( optrName, OPT_PLAN_NODE_NAME_COORD ) )
             {
-               newNode = new ( pAllocator, std::nothrow ) optCoordMergeNode() ;
+               newNode = SDB_OSS_NEW optCoordMergeNode() ;
             }
             else
             {

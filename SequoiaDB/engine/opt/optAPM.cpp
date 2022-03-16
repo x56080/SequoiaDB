@@ -967,9 +967,8 @@ namespace engine
             curClearScore = (double)accessCount /
                             (double)( currentTimestamp - accessTime ) ;
 
-            if ( activity.getPlan()->isInvalid() ||
-                 ( curClearScore > -OSS_EPSILON &&
-                   curClearScore < avgClearScore ) )
+            if ( curClearScore > -OSS_EPSILON &&
+                 curClearScore < avgClearScore )
             {
                // The score is smaller than average score, clear the plan
                // NOTE: the score < 0.0, means access time is larger than
@@ -2443,7 +2442,10 @@ namespace engine
       subPlan = dynamic_cast<optGeneralAccessPlan *>( planRuntime.getPlan() ) ;
       SDB_ASSERT( subPlan, "subPlan is invalid " ) ;
 
-      rc = mainPlan->bindSubCLAccessPlan( planHelper, subPlan, parameters ) ;
+      rc = mainPlan->bindSubCLAccessPlan( planHelper,
+                                          subPlan,
+                                          mbContext,
+                                          parameters ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to bind main-collection access "
                    "plan, rc: %d" ) ;
 
@@ -2495,7 +2497,7 @@ namespace engine
 
       // Check whether the sub-collection and parameters had been
       // already validated
-      if ( mainPlan->checkSavedSubCL( subOptions.getCLFullName(),
+      if ( mainPlan->checkSavedSubCL( mbContext->mb()->_clUniqueID,
                                       parameters ) )
       {
          rc = _bindMainCLPlan( mainPlan, subOptions, su, mbContext,
@@ -2515,7 +2517,7 @@ namespace engine
       subPlan = dynamic_cast<optGeneralAccessPlan *>( planRuntime.getPlan() ) ;
       SDB_ASSERT( subPlan, "subPlan is invalid " ) ;
 
-      if ( !mainPlan->validateSubCLPlan( subPlan, parameters ) )
+      if ( !mainPlan->validateSubCLPlan( subPlan, mbContext, parameters ) )
       {
          // The sub-collection is not validate for the main-collection
          // plan, mark the collection invalidate for main-collection plans

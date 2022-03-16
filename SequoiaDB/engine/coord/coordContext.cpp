@@ -1414,7 +1414,7 @@ namespace engine
    _rtnContextCoordExplain::_rtnContextCoordExplain ( INT64 contextID, UINT64 eduID,
                                                       BOOLEAN preRead )
    : _rtnContextCoord( contextID, eduID, preRead ),
-     _explainCoordPath( getPlanAllocator() )
+     _explainCoordPath()
    {
    }
 
