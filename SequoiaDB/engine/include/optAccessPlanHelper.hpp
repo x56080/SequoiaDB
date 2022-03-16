@@ -158,7 +158,17 @@ namespace engine
             scanSelectivity = _scanSelectivity ;
          }
 
-         OSS_INLINE BOOLEAN isPredEstimated ()
+         OSS_INLINE BOOLEAN isAutoHint() const
+         {
+            return _isAutoHint ;
+         }
+
+         OSS_INLINE void setAutoHint( BOOLEAN isAutoHint )
+         {
+            _isAutoHint = isAutoHint ;
+         }
+
+         OSS_INLINE BOOLEAN isPredEstimated () const
          {
             return _isPredEstimated ;
          }
@@ -211,6 +221,9 @@ namespace engine
          OPT_PLAN_CACHE_LEVEL _cacheLevel ;
          mthMatchNormalizer   _normalizer ;
          rtnPredicateSet      _predicateSet ;
+
+         // Flag to indicate whether is a auto hint, e.g. { "" : "" }
+         BOOLEAN           _isAutoHint ;
 
          /// Cost or selectivity estimations
          // Flag to indicate whether the cost and selectivity are estimated

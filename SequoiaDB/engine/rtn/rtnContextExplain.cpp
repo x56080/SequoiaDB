@@ -709,11 +709,6 @@ namespace engine
       return rc ;
    }
 
-   optPlanAllocator* _rtnExplainBase::getPlanAllocator()
-   {
-      return &_planAllocator ;
-   }
-
    /*
       _rtnContextExplain implement
     */
@@ -723,7 +718,7 @@ namespace engine
                                             UINT64 eduID )
    : _rtnContextBase( contextID, eduID ),
      _fromLocal( FALSE ),
-     _explainScanPath( getPlanAllocator() )
+     _explainScanPath()
    {
    }
 

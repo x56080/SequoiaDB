@@ -89,13 +89,6 @@ namespace engine
             return _isInitialized ;
          }
 
-         OSS_INLINE BOOLEAN isInvalid() const
-         {
-            return _isInvalid ;
-         }
-
-         void markInvalid() ;
-
          virtual OPT_PLAN_TYPE getPlanType () const = 0 ;
 
          /// Information for plan execution and explanation
@@ -362,7 +355,6 @@ namespace engine
 
          INT64   _accessPlanID ;
          BOOLEAN _isInitialized ;
-         BOOLEAN _isInvalid ;
 
          // Hint related
          BOOLEAN _hintFailed ;
@@ -378,7 +370,6 @@ namespace engine
          ossAtomic32 _refCount ;
 
          /// Scan path
-         optPlanAllocator _planAllocator ;
          optScanPath _scanPath ;
    } ;
 
@@ -488,7 +479,6 @@ namespace engine
 
       protected :
          dmsCachedPlanMgr *_cachedPlanMgr ;
-         BOOLEAN _autoHint ;
          optScanPathList * _searchPaths ;
    } ;
 
@@ -566,12 +556,13 @@ namespace engine
          typedef struct _optSubCLRecord
          {
             _optSubCLRecord ()
-            : _score( OPT_PRED_DEFAULT_SELECTIVITY )
+            : _subCLUID( UTIL_UNIQUEID_NULL ),
+              _score( OPT_PRED_DEFAULT_SELECTIVITY )
             {
-               _subCLName[0] = '\0' ;
             }
 
-            CHAR     _subCLName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
+            ossPoolString  _subCLName ;
+            utilCLUniqueID _subCLUID ;
             BSONObj  _parameters ;
             double   _score ;
          } _optSubCLRecord, optSubCLRecord ;
@@ -613,9 +604,11 @@ namespace engine
 
          INT32 bindSubCLAccessPlan ( optAccessPlanHelper &planHelper,
                                      optGeneralAccessPlan *subPlan,
+                                     dmsMBContext *mbContext,
                                      const BSONObj &parameters ) ;
 
          BOOLEAN validateSubCLPlan ( const optGeneralAccessPlan *plan,
+                                     dmsMBContext *mbContext,
                                      const BSONObj &parameters ) ;
 
          INT32 validateSubCL ( dmsStorageUnit *su,
@@ -623,7 +616,7 @@ namespace engine
                                dmsExtentID &indexExtID,
                                dmsExtentID &indexLID ) ;
 
-         BOOLEAN checkSavedSubCL ( const CHAR * subCLName,
+         BOOLEAN checkSavedSubCL ( utilCLUniqueID subCLUID,
                                    const BSONObj & parameters ) ;
 
          INT32 markMainCLInvalid ( dmsCachedPlanMgr *pCachedPlanMgr,
@@ -636,7 +629,9 @@ namespace engine
                                   optGeneralAccessPlan * subPlan ) ;
 
       protected :
-         void _saveSubCL ( const CHAR *pSubCLName, double score,
+         void _saveSubCL ( const CHAR *pSubCLName,
+                           utilCLUniqueID subCLUID,
+                           double score,
                            const BSONObj &parameters ) ;
 
          virtual INT32 _toBSONInternal ( BSONObjBuilder &builder ) const ;

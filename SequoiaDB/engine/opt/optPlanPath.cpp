@@ -58,9 +58,8 @@ namespace engine
    /*
       _optPlanPath implement
     */
-   _optPlanPath::_optPlanPath ( optPlanAllocator * pAllocator )
+   _optPlanPath::_optPlanPath ()
    : _ownedPath( TRUE ),
-     _pAllocator( pAllocator ),
      _pRootNode( NULL )
    {
    }
@@ -107,7 +106,6 @@ namespace engine
 
       clearPath() ;
       _pRootNode = path._pRootNode ;
-      _pAllocator = path._pAllocator ;
       if ( takeOwned && path._ownedPath )
       {
          _ownedPath = TRUE ;
@@ -125,21 +123,14 @@ namespace engine
       _optScanPath implement
     */
    _optScanPath::_optScanPath ()
-   : _optPlanPath( NULL ),
-     _pScanNode( NULL ),
-     _sortRequired( FALSE )
-   {
-   }
-
-   _optScanPath::_optScanPath ( optPlanAllocator * pAllocator )
-   : _optPlanPath( pAllocator ),
+   : _optPlanPath(),
      _pScanNode( NULL ),
      _sortRequired( FALSE )
    {
    }
 
    _optScanPath::_optScanPath ( const _optScanPath & path )
-   : _optPlanPath( NULL ),
+   : _optPlanPath(),
      _pScanNode( NULL ),
      _sortRequired( FALSE )
    {
@@ -178,7 +169,7 @@ namespace engine
          _pScanNode = NULL ;
       }
 
-      pTbScan = new ( _pAllocator, std::nothrow )
+      pTbScan = SDB_OSS_NEW
                       optTbScanNode( pCollection,
                                      planHelper.getOptCostThreshold() ) ;
       PD_CHECK( pTbScan, SDB_OOM, error, PDWARNING,
@@ -223,9 +214,9 @@ namespace engine
          _pScanNode = NULL ;
       }
 
-      pIdxScan = new ( _pAllocator, std::nothrow )
-                       optIxScanNode( pCollection, indexCB,
-                                      planHelper.getOptCostThreshold() ) ;
+      pIdxScan = SDB_OSS_NEW
+                        optIxScanNode( pCollection, indexCB,
+                                       planHelper.getOptCostThreshold() ) ;
       PD_CHECK( pIdxScan, SDB_OOM, error, PDWARNING,
                 "Failed to allocate optIxScanNode" ) ;
 
@@ -262,7 +253,7 @@ namespace engine
          goto done ;
       }
 
-      pSort = new ( _pAllocator, std::nothrow ) optSortNode() ;
+      pSort = SDB_OSS_NEW optSortNode() ;
       PD_CHECK( pSort, SDB_OOM, error, PDWARNING,
                 "Failed to allocate optSortNode" ) ;
 
@@ -355,9 +346,7 @@ namespace engine
                      dynamic_cast<const optTbScanNode *>( srcNode ) ;
                PD_CHECK( NULL != tbScanNode, SDB_SYS, error, PDERROR,
                          "Failed to get table scan node" ) ;
-               newNode = new ( _pAllocator, std::nothrow )
-                                             optTbScanNode( *tbScanNode,
-                                                            NULL ) ;
+               newNode = SDB_OSS_NEW optTbScanNode( *tbScanNode, NULL ) ;
                break ;
             }
             case OPT_PLAN_IX_SCAN :
@@ -366,9 +355,7 @@ namespace engine
                      dynamic_cast<const optIxScanNode *>( srcNode ) ;
                PD_CHECK( NULL != ixScanNode, SDB_SYS, error, PDERROR,
                          "Failed to get index scan node" ) ;
-               newNode = new ( _pAllocator, std::nothrow )
-                                             optIxScanNode( *ixScanNode,
-                                                            NULL ) ;
+               newNode = SDB_OSS_NEW optIxScanNode( *ixScanNode, NULL ) ;
                break ;
             }
             case OPT_PLAN_SORT :
@@ -377,9 +364,7 @@ namespace engine
                      dynamic_cast<const optSortNode *>( srcNode ) ;
                PD_CHECK( NULL != sortNode, SDB_SYS, error, PDERROR,
                          "Failed to get sort node" ) ;
-               newNode = new ( _pAllocator, std::nothrow )
-                                             optSortNode( *sortNode,
-                                                          NULL ) ;
+               newNode = SDB_OSS_NEW optSortNode( *sortNode, NULL ) ;
                break ;
             }
             default :
@@ -558,8 +543,8 @@ namespace engine
    /*
       _optExplainPath implement
     */
-   _optExplainPath::_optExplainPath ( optPlanAllocator * pAllocator )
-   : _optPlanPath( pAllocator ),
+   _optExplainPath::_optExplainPath ()
+   : _optPlanPath(),
      _beginDataRead( 0 ),
      _beginIndexRead( 0 ),
      _beginUsrCpu( 0.0 ),
@@ -751,8 +736,8 @@ namespace engine
    /*
       _optExplainScanPath implement
     */
-   _optExplainScanPath::_optExplainScanPath ( optPlanAllocator * pAllocator )
-   : _optExplainPath( pAllocator ),
+   _optExplainScanPath::_optExplainScanPath ()
+   : _optExplainPath(),
      _mthMatchConfigHolder(),
      _optAccessPlanConfigHolder(),
      _pScanNode( NULL ),
@@ -900,8 +885,7 @@ namespace engine
       PD_CHECK( NULL != dataContext, SDB_SYS, error, PDERROR,
                 "Failed to get data context" ) ;
 
-      newNode = new ( _pAllocator, std::nothrow )
-                optTbScanNode( *tbScanNode, srcContext ) ;
+      newNode = SDB_OSS_NEW optTbScanNode( *tbScanNode, srcContext ) ;
       PD_CHECK( NULL != newNode, SDB_OOM, error, PDERROR,
                 "Failed to allocate node" ) ;
 
@@ -938,8 +922,7 @@ namespace engine
       PD_CHECK( NULL != dataContext, SDB_SYS, error, PDERROR,
                 "Failed to get data context" ) ;
 
-      newNode = new ( _pAllocator, std::nothrow )
-                optIxScanNode( *ixScanNode, srcContext ) ;
+      newNode = SDB_OSS_NEW optIxScanNode( *ixScanNode, srcContext ) ;
       PD_CHECK( NULL != newNode, SDB_OOM, error, PDERROR,
                 "Failed to allocate node" ) ;
 
@@ -976,8 +959,7 @@ namespace engine
       sortContext = dynamic_cast<const rtnContextSort *>( srcContext ) ;
       PD_CHECK( NULL != sortContext, SDB_SYS, error, PDERROR,
                 "Failed to get sort context" ) ;
-      newNode = new ( _pAllocator, std::nothrow )
-                optSortNode( *sortNode, srcContext ) ;
+      newNode = SDB_OSS_NEW optSortNode( *sortNode, srcContext ) ;
       PD_CHECK( NULL != newNode, SDB_OOM, error, PDERROR,
                 "Failed to allocate node" ) ;
 
@@ -1288,8 +1270,8 @@ namespace engine
    /*
       _optExplainMergePathBase implement
     */
-   _optExplainMergePathBase::_optExplainMergePathBase ( optPlanAllocator * pAllocator )
-   : _optExplainPath( pAllocator ),
+   _optExplainMergePathBase::_optExplainMergePathBase ()
+   : _optExplainPath(),
      _pMergeNode( NULL )
    {
    }
@@ -1358,8 +1340,8 @@ namespace engine
    /*
       _optExplainMergePath implement
     */
-   _optExplainMergePath::_optExplainMergePath ( optPlanAllocator * pAllocator )
-   : _optExplainMergePathBase( pAllocator )
+   _optExplainMergePath::_optExplainMergePath ()
+   : _optExplainMergePathBase()
    {
    }
 
@@ -1416,8 +1398,7 @@ namespace engine
       mainCLContext = dynamic_cast<const rtnContextMainCL *>( srcContext ) ;
       PD_CHECK( NULL != mainCLContext, SDB_SYS, error, PDERROR,
                 "Failed to get main-collection context" ) ;
-      newNode = new ( _pAllocator, std::nothrow )
-                optMainCLMergeNode( srcContext ) ;
+      newNode = SDB_OSS_NEW optMainCLMergeNode( srcContext ) ;
       PD_CHECK( NULL != newNode, SDB_OOM, error, PDERROR,
                 "Failed to allocate MERGE node" ) ;
 
@@ -1455,8 +1436,8 @@ namespace engine
    /*
       _optExplainCoordPath implement
     */
-   _optExplainCoordPath::_optExplainCoordPath ( optPlanAllocator * pAllocator )
-   : _optExplainMergePathBase( pAllocator )
+   _optExplainCoordPath::_optExplainCoordPath ()
+   : _optExplainMergePathBase()
    {
    }
 
@@ -1584,8 +1565,7 @@ namespace engine
       coordContext = dynamic_cast<const rtnContextCoord *>( srcContext ) ;
       PD_CHECK( NULL != coordContext, SDB_SYS, error, PDERROR,
                 "Failed to get coord context" ) ;
-      newNode = new ( _pAllocator, std::nothrow )
-                optCoordMergeNode( srcContext ) ;
+      newNode = SDB_OSS_NEW optCoordMergeNode( srcContext ) ;
       PD_CHECK( NULL != newNode, SDB_OOM, error, PDERROR,
                 "Failed to allocate COORD-MERGE node" ) ;
 

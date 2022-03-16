@@ -55,7 +55,6 @@ using namespace bson ;
 
 namespace engine
 {
-   #define OPT_NODE_ALLOCATOR_SIZE        ( 1024 )
 
    enum OPT_PLAN_NODE_TYPE
    {
@@ -101,9 +100,6 @@ namespace engine
    class _pmdEDUCB ;
    typedef class _pmdEDUCB pmdEDUCB ;
 
-   // Allocator of
-   typedef _utilAllocator< OPT_NODE_ALLOCATOR_SIZE > optPlanAllocator ;
-
    // Store explain results of sub-contexts
    typedef ossPoolList< BSONObj > optExplainResultList ;
 
@@ -142,7 +138,7 @@ namespace engine
 
    typedef ossPoolList< optPlanNode * > optPlanNodeList ;
 
-   class _optPlanNode
+   class _optPlanNode : public utilPooledObject
    {
       public :
          _optPlanNode () ;
@@ -151,13 +147,6 @@ namespace engine
                         const rtnContext * context ) ;
 
          virtual ~_optPlanNode () ;
-
-         void * operator new ( size_t size, optPlanAllocator *allocator,
-                               std::nothrow_t ) ;
-
-         void operator delete ( void *p ) ;
-         void operator delete ( void *p, optPlanAllocator *allocator,
-                                std::nothrow_t ) ;
 
          OSS_INLINE optPlanNodeList & getChildNodes ()
          {
@@ -739,7 +728,7 @@ namespace engine
 
    class _optIxScanNode : public _optScanNode
    {
-      typedef _utilString<128>   idxNameString ;
+      typedef _utilString<32>   idxNameString ;
 
       public :
          _optIxScanNode () ;
@@ -1084,8 +1073,7 @@ namespace engine
             return _childExplainList ;
          }
 
-         INT32 addChildExplain ( optPlanAllocator * pAllocator,
-                                 const BSONObj & childExplain,
+         INT32 addChildExplain ( const BSONObj & childExplain,
                                  const ossTickDelta & queryTime,
                                  const ossTickDelta & waitTime,
                                  BOOLEAN needParse,

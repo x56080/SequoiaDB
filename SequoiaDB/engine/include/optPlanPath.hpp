@@ -69,7 +69,7 @@ namespace engine
    class _optPlanPath : public SDBObject
    {
       public :
-         _optPlanPath ( optPlanAllocator * pAllocator ) ;
+         _optPlanPath () ;
 
          virtual ~_optPlanPath () ;
 
@@ -108,7 +108,6 @@ namespace engine
 
       protected :
          mutable BOOLEAN      _ownedPath ;
-         optPlanAllocator *   _pAllocator ;
          optPlanNode *        _pRootNode ;
    } ;
 
@@ -125,8 +124,6 @@ namespace engine
    {
       public :
          _optScanPath () ;
-
-         _optScanPath ( optPlanAllocator * pAllocator ) ;
 
          _optScanPath ( const _optScanPath & path ) ;
 
@@ -320,7 +317,7 @@ namespace engine
    class _optExplainPath : public _optPlanPath
    {
       public :
-         _optExplainPath ( optPlanAllocator * pAllocator ) ;
+         _optExplainPath () ;
 
          virtual ~_optExplainPath () ;
 
@@ -374,7 +371,7 @@ namespace engine
                                public _optAccessPlanConfigHolder
    {
       public :
-         _optExplainScanPath ( optPlanAllocator * pAllocator ) ;
+         _optExplainScanPath () ;
 
          virtual ~_optExplainScanPath () ;
 
@@ -485,7 +482,7 @@ namespace engine
    class _optExplainMergePathBase : public _optExplainPath
    {
       public :
-         _optExplainMergePathBase ( optPlanAllocator * pAllocator ) ;
+         _optExplainMergePathBase () ;
 
          virtual ~_optExplainMergePathBase () ;
 
@@ -500,7 +497,7 @@ namespace engine
          {
             SDB_ASSERT( NULL != _pMergeNode, "merge node is invalid" ) ;
             return _pMergeNode->addChildExplain(
-                        _pAllocator, childExplain, queryTime, waitTime,
+                        childExplain, queryTime, waitTime,
                         needParse, needChildExplain, expOptions ) ;
          }
 
@@ -550,7 +547,7 @@ namespace engine
    class _optExplainMergePath : public _optExplainMergePathBase
    {
       public :
-         _optExplainMergePath ( optPlanAllocator * pAllocator ) ;
+         _optExplainMergePath () ;
 
          virtual ~_optExplainMergePath () ;
 
@@ -579,7 +576,7 @@ namespace engine
    class _optExplainCoordPath : public _optExplainMergePathBase
    {
       public :
-         _optExplainCoordPath ( optPlanAllocator * pAllocator ) ;
+         _optExplainCoordPath () ;
 
          virtual ~_optExplainCoordPath () ;
 
