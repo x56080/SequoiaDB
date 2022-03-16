@@ -2,9 +2,8 @@
  * @Description   : 
  * @Author        : liuli
  * @CreateTime    : 2021.02.04
- * @LastEditTime  : 2022.03.01
+ * @LastEditTime  : 2021.02.05
  * @LastEditors   : liuli
  ******************************************************************************/
 import( "../lib/datasource_commlib.js" );
 import( "../lib/index_commlib.js" );
-testConf.skipTest = true; // SEQUOIADBMAINSTREAM-8112

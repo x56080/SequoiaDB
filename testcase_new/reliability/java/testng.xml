@@ -49,9 +49,8 @@
     <!-- 磁盘满的用例请放到testng_release.xml中 -->
     <test name="reliability_normal" preserve-order="true">
         <packages>
-            <!--             SEQUOIADBMAINSTREAM-8112-->
-<!--            <package name="com.sequoiadb.datasrc.brokennetwork" />-->
-<!--            <package name="com.sequoiadb.datasrc.killnode" />-->
+            <package name="com.sequoiadb.datasrc.brokennetwork" />
+            <package name="com.sequoiadb.datasrc.killnode" />
             <package name="com.sequoiadb.snapshot" />
             <package name="com.sequoiadb.subcl.brokennetwork" />
             <package name="com.sequoiadb.subcl.killnode"></package>
