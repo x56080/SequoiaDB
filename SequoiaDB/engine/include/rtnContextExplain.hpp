@@ -139,8 +139,6 @@ namespace engine
          INT32 _buildBSONQueryOptions ( BSONObjBuilder & builder,
                                         const rtnExplainOptions &expOptions ) const ;
 
-         optPlanAllocator*          getPlanAllocator() ;
-
          virtual optExplainPath*    getExplainPath() = 0 ;
 
       protected :
@@ -154,10 +152,6 @@ namespace engine
          BOOLEAN _explainRunned ;
          BOOLEAN _explainPrepared ;
          BOOLEAN _explained ;
-
-      private:
-         /// Explain path
-         optPlanAllocator     _planAllocator ;
    } ;
 
    /*
