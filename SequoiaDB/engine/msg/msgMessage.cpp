@@ -44,6 +44,7 @@
 #include "pdTrace.hpp"
 #include "msgTrace.hpp"
 #include "../bson/bsonobj.h"
+#include "../bson/lib/md5.hpp"
 #include <stddef.h>
 #include "ossVer.hpp"
 
@@ -2665,6 +2666,7 @@ INT32 msgBuildSysInfoReply ( CHAR **ppBuffer, INT32 *pBufferSize,
    INT32 version = 0 ;
    INT32 subVersion = 0 ;
    INT32 fixVersion = 0 ;
+   md5::md5digest digest ;
    MsgSysInfoReply *reply = NULL ;
    PD_TRACE_ENTRY ( SDB_MSGBUILDSYSINFOREPLY ) ;
    rc = msgCheckBuffer ( ppBuffer, pBufferSize, sizeof(MsgSysInfoReply), cb ) ;
@@ -2681,9 +2683,10 @@ INT32 msgBuildSysInfoReply ( CHAR **ppBuffer, INT32 *pBufferSize,
    reply->fixVersion                         = fixVersion ;
    ossMemset( reply->pad, 0, sizeof( reply->pad ) ) ;
 
-   reply->myHash =
-      ossHash( (const CHAR *)reply,
-               INT32(sizeof(MsgSysInfoReply) - sizeof(reply->myHash) ) ) ;
+   md5::md5( (const void *)reply,
+             sizeof(MsgSysInfoReply) - sizeof(reply->fingerprint),
+             digest ) ;
+   ossMemcpy( reply->fingerprint, digest, sizeof(reply->fingerprint) ) ;
 
 done :
    PD_TRACE_EXITRC ( SDB_MSGBUILDSYSINFOREPLY, rc ) ;
@@ -2721,15 +2724,18 @@ INT32 msgExtractSysInfoReply ( const CHAR *pBuffer, BOOLEAN &endianConvert,
    {
       ossEndianConvertIf4(reply->osType, *osType, endianConvert ) ;
    }
+
    if ( protocolVer )
    {
-      UINT32 expectHash = 0 ;
-      UINT32 actualHash =
-         ossHash( (const CHAR *)reply,
-                  INT32( sizeof(MsgSysInfoReply) - sizeof(reply->myHash) ) ) ;
-      ossEndianConvertIf4( reply->myHash, expectHash, endianConvert ) ;
-      *protocolVer = ( actualHash == expectHash ) ?
-         SDB_PROTOCOL_VER_2 : SDB_PROTOCOL_VER_1 ;
+      md5::md5digest digest ;
+      md5::md5( (const void *)reply,
+                sizeof(MsgSysInfoReply) - sizeof(reply->fingerprint),
+                digest ) ;
+      *protocolVer =
+            ( 0 == ossStrncmp( reply->fingerprint,
+                               (const char *)digest,
+                               sizeof(reply->fingerprint) ) ) ?
+            SDB_PROTOCOL_VER_2 : SDB_PROTOCOL_VER_1 ;
    }
 done :
    PD_TRACE_EXITRC ( SDB_MSGEXTRACTSYSINFOREPLY, rc ) ;

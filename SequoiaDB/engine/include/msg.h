@@ -544,7 +544,8 @@ struct _MsgSysInfoReply
    UINT8            subVersion ;
    UINT8            fixVersion ;
    CHAR             pad[93] ;
-   UINT32           myHash ; // total 128 bytes for reply
+   CHAR             fingerprint[4] ;   // Fingerprint of the reply message.
+                                       // Actually part of the md5 value.
 } ;
 typedef struct _MsgSysInfoReply MsgSysInfoReply ;
 // end system info requests

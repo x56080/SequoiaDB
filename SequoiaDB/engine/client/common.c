@@ -4057,13 +4057,17 @@ INT32 clientExtractSysInfoReply ( CHAR *pBuffer, BOOLEAN *endianConvert,
    }
    if ( peerProtocolVersion )
    {
-      UINT32 expectHash = 0 ;
-      UINT32 actualHash =
-         ossHash( (const CHAR *)reply,
-                  (INT32)( sizeof(MsgSysInfoReply) - sizeof(reply->myHash) ) ) ;
-      ossEndianConvertIf4( reply->myHash, expectHash, e ) ;
-      *peerProtocolVersion = ( actualHash == expectHash ) ?
-         SDB_PROTOCOL_VER_2 : SDB_PROTOCOL_VER_1 ;
+      BYTE digest[ SDB_MD5_DIGEST_LENGTH ] = { 0 } ;
+      md5_state_t st ;
+      md5_init( &st ) ;
+      md5_append( &st, (const md5_byte_t *)reply ,
+                  sizeof(MsgSysInfoReply) - sizeof(reply->fingerprint) ) ;
+      md5_finish( &st, digest ) ;
+      *peerProtocolVersion =
+            ( 0 == ossStrncmp( reply->fingerprint,
+                               (const CHAR *)digest,
+                               sizeof(reply->fingerprint) ) ) ?
+            SDB_PROTOCOL_VER_2 : SDB_PROTOCOL_VER_1 ;
    }
    if ( endianConvert )
    {

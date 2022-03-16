@@ -41,6 +41,7 @@
 #include "ossVer.hpp"
 #include "rtnContext.hpp"
 #include "msgConvertorImpl.hpp"
+#include "../bson/lib/md5.hpp"
 
 using namespace bson ;
 
@@ -307,6 +308,7 @@ namespace engine
       INT32 subVersion = 0 ;
       INT32 fixVersion = 0 ;
       BOOLEAN endianConvert = FALSE ;
+      md5::md5digest digest ;
       MsgSysInfoReply reply ;
       reply.header.specialSysInfoLen      = MSG_SYSTEM_INFO_LEN ;
       reply.header.eyeCatcher             = MSG_SYSTEM_INFO_EYECATCHER ;
@@ -319,9 +321,11 @@ namespace engine
       reply.subVersion                    = subVersion ;
       reply.fixVersion                    = fixVersion ;
       ossMemset( reply.pad, 0, sizeof( reply.pad ) ) ;
-      reply.myHash =
-         ossHash( (const CHAR *)&reply,
-                  INT32(sizeof(MsgSysInfoReply) - sizeof(reply.myHash) ) ) ;
+
+      md5::md5( (const void *)&reply,
+                sizeof(MsgSysInfoReply) - sizeof(reply.fingerprint),
+                digest ) ;
+      ossMemcpy( reply.fingerprint, digest, sizeof(reply.fingerprint) ) ;
 
       rc = msgExtractSysInfoRequest ( (CHAR*)msg, endianConvert ) ;
       PD_RC_CHECK ( rc, PDERROR, "Session[%s] failed to extract sys info "
