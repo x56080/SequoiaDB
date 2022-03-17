@@ -157,7 +157,8 @@ namespace engine
          INT32   _renameCSByCatalog( const CHAR* csName,
                                      utilCSUniqueID csUniqueID ) ;
          INT32   _renameCLByCatalog( const CHAR* clFullName,
-                                     utilCLUniqueID clUniqueID ) ;
+                                     utilCLUniqueID clUniqueID,
+                                     const CHAR* mainCLFullName ) ;
          INT32   _processSubCLResult( INT32 result,
                                       const CHAR *clFullName,
                                       const CHAR *pParent ) ;
@@ -397,6 +398,13 @@ namespace engine
                                INT32 waitSyncTimeout = OSS_ONE_SEC * 60,
                                BOOLEAN ignoreWaitSyncError = FALSE ) ;
 
+         void _clearCollectionAndSpaceName()
+         {
+            _cmdCollectionName.clear() ;
+            _pCollectionName = NULL ;
+            _pCollectionSpaceName = NULL ;
+         }
+
       protected:
          _clsReplicateSet       *_pReplSet ;
          _clsShardMgr           *_pShdMgr ;
@@ -411,8 +419,9 @@ namespace engine
          MsgRouteID             _primaryID ;
          BSONObj                _errorInfo ;
          const CHAR             *_pCollectionName ;
-         std::string             _cmdCollectionName ;
-         INT32                   _clVersion ;
+         std::string            _cmdCollectionName ;
+         const CHAR             *_pCollectionSpaceName ;
+         INT32                  _clVersion ;
 
          BOOLEAN                _isMainCL ;
          BOOLEAN                _hasUpdateCataInfo ;

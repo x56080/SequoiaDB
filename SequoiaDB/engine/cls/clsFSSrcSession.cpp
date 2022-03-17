@@ -3016,6 +3016,29 @@ namespace engine
          dpsTransCB *transCB = sdbGetTransCB() ;
          dpsTransLockId lockID( _curCSLID, _curMBID, NULL ) ;
          DPS_TRANS_ID_SET incompList ;
+         CHAR mainCLName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+         clsCatalogSet* pCatSet = NULL ;
+
+         rc = sdbGetShardCB()->getAndLockCataSet( _curCollecitonName.c_str(),
+                                                  &pCatSet ) ;
+         if ( SDB_OK == rc && pCatSet )
+         {
+            if ( !pCatSet->getMainCLName().empty() )
+            {
+               ossStrncpy( mainCLName, pCatSet->getMainCLName().c_str(),
+                           DMS_COLLECTION_FULL_NAME_SZ ) ;
+            }
+            sdbGetShardCB()->unlockCataSet( pCatSet ) ;
+         }
+         else
+         {
+            sdbGetShardCB()->unlockCataSet( pCatSet ) ;
+            PD_LOG( PDWARNING, "Session[%s]: Failed to get collection[%s]'s "
+                    "catalog information, rc: %d", sessionName(),
+                    _curCollecitonName.c_str(), rc ) ;
+            // failed to get main-collection, retry later
+            return FALSE ;
+         }
 
          // Step 1. check writing EDU with blocking ID, if no smaller
          //         operation ID than blocking ID on the same collection,
@@ -3028,9 +3051,9 @@ namespace engine
          //         as white list for blocking, so they won't be blocked
 
          // check if writing EDU on the same collection
-         if ( pEDUMgr->hasWritingEDU( -1,
-                                      _ntyOverTime,
-                                      EDU_BLOCK_FREEZING_WND ) )
+         if ( pEDUMgr->hasWritingEDU( -1, _ntyOverTime, EDU_BLOCK_FREEZING_WND,
+                                      _curCollecitonName.c_str(),
+                                      mainCLName[0] == 0 ? NULL : mainCLName ) )
          {
             PD_LOG( PDINFO, "Session[%s] operator ID [%llu] : Waiting for "
                     "other operations to finish", sessionName(),
