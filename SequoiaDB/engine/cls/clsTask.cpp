@@ -3988,17 +3988,30 @@ namespace engine
             // all groups succeed( may include -247/-47 )
             setFinish() ;
          }
-         else if ( cntFailGroup - cntIgnoreError > 0 )
+         else if ( CLS_TASK_DROP_IDX == _taskType )
          {
-            // some groups failed
-            if ( cntReadyGroup + cntFailGroup == cntTotalGroup )
+            // When drop index is running, we can't roll back it.
+            if ( cntSucGroup + cntFailGroup == cntTotalGroup )
             {
-               // none of groups did it, so just finish task
+               // all groups finish
                setFinish( firstResultCode, firstResultInfo ) ;
             }
-            else
+         }
+         else
+         {
+            if ( cntFailGroup - cntIgnoreError > 0 )
             {
-               setStatus( CLS_TASK_STATUS_ROLLBACK ) ;
+               // some groups failed
+               if ( cntReadyGroup + cntFailGroup == cntTotalGroup )
+               {
+                  // none of groups did it, so just finish task
+                  setFinish( firstResultCode, firstResultInfo ) ;
+               }
+               else
+               {
+                  // some groups failed, we need rollback other groups
+                  setStatus( CLS_TASK_STATUS_ROLLBACK ) ;
+               }
             }
          }
       }
