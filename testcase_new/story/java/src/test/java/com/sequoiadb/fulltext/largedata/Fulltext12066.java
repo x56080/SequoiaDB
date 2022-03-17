@@ -8,7 +8,6 @@ import org.testng.annotations.Test;
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.fulltext.utils.FullTextDBUtils;
 import com.sequoiadb.fulltext.utils.FullTextUtils;
 import com.sequoiadb.testcommon.FullTestBase;
@@ -45,6 +44,8 @@ public class Fulltext12066 extends FullTestBase {
         FullTextDBUtils.insertData( cl, FullTextUtils.INSERT_NUMS );
         Assert.assertTrue( FullTextUtils.isIndexCreated( cl, fullIndexName,
                 FullTextUtils.INSERT_NUMS ) );
+        cappedName = FullTextDBUtils.getCappedName( cl, fullIndexName );
+        esIndexName = FullTextDBUtils.getESIndexName( cl, fullIndexName );
 
         // 直连主数据节点使用游标的方式获取固定集合中的一条记录
         List< DBCollection > cappedCLs = FullTextDBUtils.getCappedCLs( cl,
@@ -53,28 +54,9 @@ public class Fulltext12066 extends FullTestBase {
         DBCursor cursor = cappedCL.query();
         cursor.getNext();
 
-        // 多次执行删除集合的操作
-        if ( cappedCL.getCount() > 2 ) {
-            for ( int i = 0; i < 3; i++ ) {
-                try {
-                    cs.dropCollection( clName );
-                    Assert.fail( "drop collection need to return -147!" );
-                } catch ( BaseException e ) {
-                    Assert.assertEquals( e.getErrorCode(), -147,
-                            e.getMessage() );
-                }
-            }
-        }
-
-        // 关闭打开的游标
-        if ( cursor != null ) {
-            cursor.close();
-        }
-
-        // 关闭步骤2中的游标，再次删除集合
-        cappedName = FullTextDBUtils.getCappedName( cl, fullIndexName );
-        esIndexName = FullTextDBUtils.getESIndexName( cl, fullIndexName );
-        FullTextDBUtils.dropCollection( cs, clName );
+        // 删除集合
+        cs.dropCollection( clName );
+        Assert.assertFalse( cs.isCollectionExist( clName ) );
         Assert.assertTrue(
                 FullTextUtils.isIndexDeleted( sdb, esIndexName, cappedName ) );
     }
