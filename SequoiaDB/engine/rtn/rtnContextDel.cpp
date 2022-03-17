@@ -1170,9 +1170,9 @@ namespace engine
       dmsStorageUnitID suID = DMS_INVALID_CS ;
       UINT32 logicCSID = DMS_INVALID_LOGICCSID ;
       dmsStorageUnit *su = NULL ;
-      pmdEDUMgr *eduMgr = cb->getEDUMgr() ;
       dpsTransCB *transCB = sdbGetTransCB() ;
       UINT32 i = 0 ;
+      ossPoolSet<UINT64> excludeIdList ;
 
       /// get cs logical id
       rc = _pDmsCB->nameToSUAndLock( pCSName, suID, &su ) ;
@@ -1245,19 +1245,18 @@ namespace engine
       {
          ++ i ;
          // check if writing EDU on the same collection
-         if ( eduMgr->hasWritingEDU( -1, _blockID, ( EDU_BLOCK_FREEZING_WND |
-                                                     EDU_BLOCK_RENAMECHK ) ) )
+         if ( _hasWritingEDU( cb, excludeIdList ) )
          {
-            if ( i < RTN_RENAME_BLOCKWRITE_TIMES )
+            if ( cb->isInterrupted() )
+            {
+               // current session is interrupted
+               rc = SDB_APP_INTERRUPT ;
+            }
+            else if ( i < RTN_RENAME_BLOCKWRITE_TIMES )
             {
                // can retry
                ossSleep( OSS_ONE_SEC ) ;
                continue ;
-            }
-            else if ( cb->isInterrupted() )
-            {
-               // current session is interrupted
-               rc = SDB_APP_INTERRUPT ;
             }
             else
             {
@@ -1373,6 +1372,97 @@ namespace engine
       goto done;
    }
 
+   BOOLEAN _rtnContextRenameCS::_hasWritingEDU( _pmdEDUCB *cb,
+                                                ossPoolSet<UINT64>& excludeIdList )
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN has = FALSE ;
+      pmdEDUMgr* eduMgr = cb->getEDUMgr() ;
+      ossPoolVector< std::pair<UINT64, ossPoolString> > writingEDUList ;
+      ossPoolVector< std::pair<UINT64, ossPoolString> >::iterator it ;
+      EDU_BLOCK_TYPE excludeType = EDU_BLOCK_FREEZING_WND |
+                                   EDU_BLOCK_RENAMECHK ;
+
+      has = eduMgr->hasWritingEDU( -1, _blockID, excludeType, _oldName ) ;
+      if ( has )
+      {
+         goto done ;
+      }
+
+      rc = eduMgr->getWritingEDUs( -1, _blockID, excludeType,
+                                   excludeIdList, writingEDUList ) ;
+      if ( rc )
+      {
+         PD_LOG( PDWARNING, "Failed to get writing edu, rc: %d", rc ) ;
+         has = TRUE ;
+         // treat as true, retry later
+         goto error ;
+      }
+
+      for ( it = writingEDUList.begin() ; it != writingEDUList.end() ; it++ )
+      {
+         UINT64 opID = it->first ;
+         const CHAR* clOrCsName = it->second.c_str() ;
+
+         if ( NULL == ossStrchr( clOrCsName, '.' ) )
+         {
+            // it is collection space name, just add to ignore list
+            try
+            {
+               excludeIdList.insert( opID ) ;
+            }
+            catch( std::exception &e )
+            {
+               PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            }
+            continue ;
+         }
+
+         // check it is a main-collection or not, and check it's sub-collection
+         // locate on my cs or not
+         clsCatalogSet* pCatSet = NULL ;
+         rc = sdbGetShardCB()->getAndLockCataSet( clOrCsName, &pCatSet ) ;
+         if ( rc || NULL == pCatSet )
+         {
+            sdbGetShardCB()->unlockCataSet( pCatSet ) ;
+            PD_LOG( PDWARNING,
+                    "Failed to get collection[%s]'s catalog info, rc: %d",
+                    clOrCsName, rc ) ;
+            // treat unknown collection as true, retry later
+            has = TRUE ;
+            goto error ;
+         }
+         if ( pCatSet->isMainCL() &&
+              pCatSet->hasSubCLLocateOnCS( _oldName ) )
+         {
+            has = TRUE ;
+         }
+         sdbGetShardCB()->unlockCataSet( pCatSet ) ;
+
+         if ( has )
+         {
+            break ;
+         }
+         else
+         {
+            // it is not the related main-collection, just add to ignore list
+            try
+            {
+               excludeIdList.insert( opID ) ;
+            }
+            catch( std::exception &e )
+            {
+               PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            }
+         }
+      }
+
+   done:
+      return has ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCTXRENAMECS__RELLOCK, "_rtnContextRenameCS::_releaseLock" )
    INT32 _rtnContextRenameCS::_releaseLock( _pmdEDUCB *cb )
    {
@@ -1471,6 +1561,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCTXRENAMECL_OPEN, "_rtnContextRenameCL::open" )
    INT32 _rtnContextRenameCL::open( const CHAR *csName, const CHAR *clShortName,
                                     const CHAR *newCLShortName,
+                                    const CHAR *mainCLFullName,
                                     _pmdEDUCB *cb, INT16 w,
                                     BOOLEAN useLocalTask )
    {
@@ -1554,7 +1645,7 @@ namespace engine
       }
 
       /// lock
-      rc = _tryLock( csName, cb ) ;
+      rc = _tryLock( csName, mainCLFullName, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to lock, rc: %d", rc ) ;
       _lockDms = TRUE ;
 
@@ -1681,7 +1772,9 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCTXRENAMECL__TRYLOCK, "_rtnContextRenameCL::_tryLock" )
-   INT32 _rtnContextRenameCL::_tryLock( const CHAR *csName, _pmdEDUCB *cb )
+   INT32 _rtnContextRenameCL::_tryLock( const CHAR *csName,
+                                        const CHAR* mainCLName,
+                                        _pmdEDUCB *cb )
    {
       INT32 rc                = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNCTXRENAMECL__TRYLOCK ) ;
@@ -1772,18 +1865,19 @@ namespace engine
          ++ i ;
          // check if writing EDU on the same collection
          if ( eduMgr->hasWritingEDU( -1, _blockID, ( EDU_BLOCK_FREEZING_WND |
-                                                     EDU_BLOCK_RENAMECHK ) ) )
+                                                     EDU_BLOCK_RENAMECHK ),
+                                     _clFullName, mainCLName ) )
          {
-            if ( i < RTN_RENAME_BLOCKWRITE_TIMES )
+            if ( cb->isInterrupted() )
+            {
+               // current session is interrupted
+               rc = SDB_APP_INTERRUPT ;
+            }
+            else if ( i < RTN_RENAME_BLOCKWRITE_TIMES )
             {
                // can retry
                ossSleep( OSS_ONE_SEC ) ;
                continue ;
-            }
-            else if ( cb->isInterrupted() )
-            {
-               // current session is interrupted
-               rc = SDB_APP_INTERRUPT ;
             }
             else
             {

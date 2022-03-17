@@ -192,7 +192,7 @@ namespace engine
       }
 
       // wait for operation which register this cl
-      cb->writingDB( TRUE ) ;
+      cb->writingDB( TRUE, _clFullName ) ;
       writeDB = TRUE ;
 
       rc = pWindow->waitForOpr( _clFullName, cb, TRUE ) ;

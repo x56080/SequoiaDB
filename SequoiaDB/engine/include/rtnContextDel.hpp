@@ -217,7 +217,8 @@ namespace engine
    private:
       INT32 _tryLock( const CHAR *pCSName,
                      _pmdEDUCB *cb );
-
+      BOOLEAN _hasWritingEDU( _pmdEDUCB *cb,
+                              ossPoolSet<UINT64>& excludeIdList ) ;
       INT32 _releaseLock( _pmdEDUCB *cb );
 
    private:
@@ -254,6 +255,7 @@ namespace engine
 
       INT32 open( const CHAR *csName, const CHAR *clShortName,
                   const CHAR *newCLShortName,
+                  const CHAR *mainCLFullName,
                   _pmdEDUCB *cb, INT16 w = 1,
                   BOOLEAN useLocalTask = TRUE ) ;
 
@@ -262,7 +264,9 @@ namespace engine
       virtual void  _toString( stringstream &ss ) ;
 
    private:
-      INT32 _tryLock( const CHAR *pCSName, _pmdEDUCB *cb );
+      INT32 _tryLock( const CHAR *pCSName,
+                      const CHAR* mainCLName,
+                      _pmdEDUCB *cb );
       INT32 _releaseLock( _pmdEDUCB *cb );
 
    private:

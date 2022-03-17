@@ -2405,6 +2405,26 @@ namespace engine
       return FALSE ;
    }
 
+   BOOLEAN _clsCatalogSet::hasSubCLLocateOnCS( const CHAR* csName ) const
+   {
+      INT32 csNameLen = ossStrlen( csName ) ;
+
+      std::multimap<UINT32, std::string>::const_iterator it = _subCLList.begin() ;
+      while( it != _subCLList.end() )
+      {
+         const CHAR* subclName = it->second.c_str() ;
+         // check this subcl is on the cs
+         if ( 0 == ossStrncmp( subclName, csName, csNameLen ) &&
+              subclName[csNameLen]   == '.' &&
+              subclName[csNameLen+1] != '\0' )
+         {
+            return TRUE ;
+         }
+         ++it ;
+      }
+      return FALSE ;
+   }
+
    INT32 _clsCatalogSet::getSubCLCount () const
    {
       return _subCLList.size() ;

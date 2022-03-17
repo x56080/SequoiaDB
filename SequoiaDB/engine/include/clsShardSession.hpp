@@ -287,7 +287,8 @@ namespace engine
          INT32   _renameCSByCatalog( const CHAR* csName,
                                      utilCSUniqueID csUniqueID ) ;
          INT32   _renameCLByCatalog( const CHAR* clFullName,
-                                     utilCLUniqueID clUniqueID ) ;
+                                     utilCLUniqueID clUniqueID,
+                                     const CHAR* mainCLFullName ) ;
          INT32   _processSubCLResult( INT32 result,
                                       const CHAR *clFullName,
                                       const CHAR *pParent ) ;
@@ -592,10 +593,11 @@ namespace engine
             _pCollectionName = _cmdCollectionName.c_str() ;
          }
 
-         void _clearCollectionName()
+         void _clearCollectionAndSpaceName()
          {
             _cmdCollectionName.clear() ;
             _pCollectionName = NULL ;
+            _pCollectionSpaceName = NULL ;
          }
 
          INT32 _getCSInfoWhenLoadCS( _rtnLoadCollectionSpace* pCommand ) ;
@@ -617,8 +619,9 @@ namespace engine
          MsgRouteID             _primaryID ;
          BSONObj                _errorInfo ;
          const CHAR             *_pCollectionName ;
-         ossPoolString           _cmdCollectionName ;
-         INT32                   _clVersion ;
+         ossPoolString          _cmdCollectionName ;
+         const CHAR             *_pCollectionSpaceName ;
+         INT32                  _clVersion ;
 
          BOOLEAN                _isMainCL ;
          BOOLEAN                _hasUpdateCataInfo ;

@@ -169,7 +169,7 @@ namespace engine
 
       if ( _dpsCB )
       {
-         eduCB()->writingDB( TRUE ) ;
+         eduCB()->writingDB( TRUE, _clFullName.c_str() ) ;
       }
 
       while ( TRUE )
@@ -374,7 +374,7 @@ namespace engine
       {
          INT32 range = clsPartition( page._oid, page._sequence,
                                      catSet->getPartitionBit() ) ;
-         need2Remove = _splitKeyObj.firstElement().Int() <= range && 
+         need2Remove = _splitKeyObj.firstElement().Int() <= range &&
            ( _splitEndKeyObj.isEmpty() ||
              range < _splitEndKeyObj.firstElement().Int() ) ;
       }
@@ -733,7 +733,7 @@ namespace engine
                      break ;
                   }
                }
- 
+
                PD_LOG ( PDWARNING, "Job[%s] filter del not found collection[%s]"
                         " catalog info", name(), _clFullName.c_str() ) ;
                rc = SDB_DMS_NOTEXIST ;
