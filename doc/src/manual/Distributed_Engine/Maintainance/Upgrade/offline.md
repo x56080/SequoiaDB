@@ -85,7 +85,7 @@
     安装程序已经完成安装 SequoiaDB Server 于你的电脑中.
    ```
 
-6. 在集群中所有主机完成软件升级后，如果 SequoiaDB 是由 v3.4.5/5.0.3 以下版本升级至 v3.4.5/5.0.3 及以上版本，需要手动执行 [sdbupgradeidx][upgrade_index] 工具进行索引升级。
+6. 在集群中所有主机完成软件升级后，如果 SequoiaDB 是由 v3.6/5.0.3 以下版本升级至 v3.6/5.0.3 及以上版本，需要手动执行 [sdbupgradeidx][upgrade_index] 工具进行索引升级。
 
 
 

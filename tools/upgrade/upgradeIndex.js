@@ -1334,28 +1334,27 @@ function SuggestionFormator()
 "  For missing index on data nodes, you can choose one of the following\n" +
 "  options:\n" +
 "    Option 1\n" +
-"      Description: Make existing indexes become standalone index\n" +
-"      Operation:   Connect to data node which exists index to create\n" +
-"                   index, and UniqueID will generate for it.\n" +
-"      Influence:   Generate UniqueID only at data node.\n" +
-"    Option 2\n" +
-"      Description: Create missing indexes to become consistent index\n" +
-"      Operation:   Connect to data node with missing index to create\n" +
-"                   index, then execute upgradeIndex.sh again.\n" +
+"      Description: Create missing indexes to become consistent index.\n" +
+"      Operation:   Connect to coord node to create index.\n" +
 "      Influence:   It may takes a long time to create index.\n" +
+"    Option 2\n" +
+"      Description: Make existing indexes become standalone index.\n" +
+"      Operation:   Specify the data node which exists index to create\n" +
+"                   standalone index, and UniqueID will generate for it.\n" +
+"      Influence:   Generate UniqueID only at data node.\n" +
 "\n" +
 "  For conflicting index on data nodes, you can choose one of the\n" +
 "  following options:\n" +
 "    Option 1\n" +
-"      Description: Make existing indexes become standalone index\n" +
-"      Operation:   Connect to data node which exists index to create\n" +
-"                   index, and UniqueID will generate for it.\n" +
-"      Influence:   Generate UniqueID only at data node.\n" +
-"    Option 2\n" +
-"      Description: Drop conflicting indexes to become consistent index\n" +
+"      Description: Drop conflicting indexes to become consistent index.\n" +
 "      Operation:   Connect to data node with conflicting index to drop\n" +
-"                   index, then execute upgradeIndex.sh again.\n" +
+"                   index, then connect to coord node to create index.\n" +
 "      Influence:   It may takes a long time to create index.\n" +
+"    Option 2\n" +
+"      Description: Make existing indexes become standalone index.\n" +
+"      Operation:   Specify the data node which exists index to create\n" +
+"                   standalone index, and UniqueID will generate for it.\n" +
+"      Influence:   Generate UniqueID only at data node.\n" +
 "\n" +
 "  For local collection's indexes, you can do nothing.\n"
 ) ;

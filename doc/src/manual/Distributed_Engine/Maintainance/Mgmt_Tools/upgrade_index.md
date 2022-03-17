@@ -3,7 +3,7 @@
 
 sdbupgradeidx 是 SequoiaDB 巨杉数据库的索引升级工具，用于在编目节点上添加索引的元数据信息，并生成 UniqueID。
 
-在 SequoiaDB v3.4.5/5.0.3 及以上版本创建索引时，编目节点上会添加索引的元数据信息并生成 UniqueID。因此，将 SequoiaDB v3.4.5/5.0.3 以下版本创建的索引，升级至 v3.4.5/5.0.3 及以上版本后，需手动执行 sdbupgradeidx 升级工具。
+在 SequoiaDB v3.6/5.0.3 及以上版本创建索引时，编目节点上会添加索引的元数据信息并生成 UniqueID。因此，用户将 SequoiaDB 升级至 v3.6/5.0.3 及以上版本后，需手动执行 sdbupgradeidx 工具以升级索引。
 
 ##语法规则##
 
@@ -163,28 +163,29 @@ Standalone：[独立索引][standalone]
 
     解决办法：
      
-    - 方案1：通过数据节点创建索引，让已存在的索引成为独立索引，可以为已存在的索引生成本地的 UniqueID
+    - 方案1：通过协调节点补充缺失的索引，使原索引升级为一致性索引
      
         ```lang-javascript
-        > data3 = new Sdb('sdbserver3:11830')
-        > data3.sample.February.createIndex('nameIdx', {name: 1})
+        > db.sample.February.createIndex('nameIdx', {name: 1})
         ```
 
-    - 方案2：通过数据节点补充缺失的索引
+    - 方案2：将已存在的索引转换为独立索引
      
         ```lang-javascript
-        > data1 = new Sdb('sdbserver1:11830')
-        > data1.sample.February.createIndex('nameIdx', {name: 1})
-        > data2 = new Sdb('sdbserver2:11830')
-        > data2.sample.February.createIndex('nameIdx', {name: 1})
+        > db.sample.February.createIndex('nameIdx', {name: 1}, {Standalone: true}, {NodeName: "sdbserver3:11830"})
         ```
 
-        再执行本工具，将独立索引转换为一致性索引
+        通过 createIndex() 转换索引时，会输出如下信息，用户可忽略该提示：
 
-        ```lang-bash
-        $ ./sdbupgradeidx -s sdbserver1 -p 11810 --action upgrade
-        $ ./sdbupgradeidx -s sdbserver2 -p 11810 --action upgrade
+        ```lang-text
+        (shell):1 uncaught exception: -247
+        Redefine index:
+        The same index 'ageIdx' has been defined already
         ```
+
+    > **Note:**
+    > 
+    > 具有约束性的索引（唯一索引、NotNull 索引等）无法升级为独立索引，需将其删除或升级为一致性索引。
    
 - **索引冲突**
 
@@ -200,27 +201,33 @@ Standalone：[独立索引][standalone]
     冲突的索引无法通过本工具升级，用户需要手工干预。
 
     解决办法：
-     
-    - 方案1：通过数据节点创建索引，让已存在的索引成为独立索引，可以为已存在的索引生成本地的 UniqueID
-     
-        ```lang-javascript
-        > data1 = new Sdb('sdbserver1:11830')
-        > data1.sample.February.createIndex('ageIdx', {age: 1})
-        ```
 
-    - 方案2：通过数据节点删除冲突的索引后，重新创建目标索引
+    - 方案1：在数据节点上删除冲突的索引后，重新创建目标索引，使原索引升级为一致性索引
      
         ```lang-javascript
         > data3 = new Sdb('sdbserver3:11830')
         > data3.sample.February.dropIndex('ageIdx')
-        > data3.sample.February.createIndex('ageIdx', {age: 1})
+        > db.sample.February.createIndex('ageIdx', {age: 1})
+        ```
+     
+    - 方案2：将已存在的索引转换为独立索引
+     
+        ```lang-javascript
+        > db.sample.February.createIndex('ageIdx', {age: 1}, {Standalone: true}, {NodeName: ["sdbserver1:11830", "sdbserver2:11830"]})
+        > db.sample.February.createIndex('ageIdx', {age1: 1}, {Standalone: true}, {NodeName: "sdbserver3:11830"})
         ```
 
-        再执行本工具，将独立索引转换为一致性索引
+        通过 createIndex() 转换索引时，会输出如下信息，用户可忽略该提示：
 
-        ```lang-bash
-        $ ./sdbupgradeidx -s sdbserver3 -p 11810 --action upgrade
+        ```lang-text
+        (shell):1 uncaught exception: -247
+        Redefine index:
+        The same index 'ageIdx' has been defined already
         ```
+
+    > **Note:**
+    > 
+    >  具有约束性的索引（唯一索引、NotNull 索引等）无法升级为独立索引，需将其删除或升级为一致性索引。
      
 - **本地残留集合上的索引**
 
