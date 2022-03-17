@@ -482,7 +482,7 @@ public class SDBDataConverter implements Serializable {
 
             case BINARY:
             case VARBINARY:
-                return (v -> new Binary((byte[]) v));
+                return (v -> v != null ? new Binary((byte[]) v) : null);
 
             default:
                 throw new SDBException(String.format("unsupported type: %s.", type.getTypeRoot()));
