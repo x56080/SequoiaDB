@@ -1013,9 +1013,118 @@ namespace engine
       return count ;
    }
 
+   BOOLEAN _pmdEDUMgr::_isRelatedEDU( const CHAR* checkName, pmdEDUCB* cb )
+   {
+      // The name may be collection name or collection space name
+      // "foo"     "foo.bar" is related edu
+      // "foo.bar" "foo"     is related edu
+      // "foo.bar" "foo.bar" is related edu
+      // "foo"     "foo"     is related edu
+
+      BOOLEAN is = FALSE ;
+
+      if ( checkName && cb )
+      {
+         const CHAR* targetNameInEdu = cb->getCollectionOrSpaceName() ;
+         if ( targetNameInEdu[0] == 0 )
+         {
+            // treat unknown name as true
+            is = TRUE ;
+         }
+         else
+         {
+            BOOLEAN sameCL = FALSE ;
+            BOOLEAN sameCS = FALSE ;
+            pmdIsSameName( checkName, targetNameInEdu, sameCL, sameCS ) ;
+            if ( sameCL || sameCS )
+            {
+               is = TRUE ;
+            }
+         }
+      }
+
+      return is ;
+   }
+
+   INT32 _pmdEDUMgr::_getWritingEDUs( INT32 eduTypeFilter,
+                                      UINT64 idThreshold,
+                                      EDU_BLOCK_TYPE excludeBlockType,
+                                      const ossPoolSet<UINT64>& excludeIdList,
+                                      ossPoolVector< std::pair<UINT64, ossPoolString> >& writingEDUList )
+   {
+      pmdEDUCB *self = pmdGetThreadEDUCB() ;
+      INT32 rc = SDB_OK ;
+
+      ossScopedLock _lock( &_latch, SHARED ) ;
+
+      for ( MAP_EDUCB_IT it = _mapRuns.begin () ; it != _mapRuns.end () ;
+            ++ it )
+      {
+         pmdEDUCB *cb = it->second ;
+         if ( self == cb )
+         {
+            continue ;
+         }
+         else if ( cb->isWritingDB() )
+         {
+            UINT64 opID = cb->getWritingID() ;
+
+            if ( -1 != eduTypeFilter && eduTypeFilter != cb->getType() )
+            {
+               continue ;
+            }
+            else if ( !excludeIdList.empty() &&
+                      excludeIdList.count( opID ) > 0 )
+            {
+               continue ;
+            }
+            else if ( 0 != idThreshold && opID > idThreshold )
+            {
+               continue ;
+            }
+            else if ( EDU_BLOCK_ALL == excludeBlockType && cb->isBlocked() )
+            {
+               continue ;
+            }
+            else if ( EDU_BLOCK_NONE != excludeBlockType &&
+                      OSS_BIT_TEST( cb->getBlockType(), excludeBlockType ) )
+            {
+               continue ;
+            }
+            PD_LOG ( PDDEBUG, "Session [%lld] TID [%u] name [%s] writing ID "
+                     "[%llu] is writing", cb->getID(), cb->getTID(),
+                     cb->getCollectionOrSpaceName(), opID ) ;
+
+            try
+            {
+               writingEDUList.push_back(
+                  std::make_pair( opID, cb->getCollectionOrSpaceName() ) ) ;
+            }
+            catch( std::exception &e )
+            {
+               rc = ossException2RC( &e ) ;
+               PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+            }
+
+            // if the writingID has been changed, just discard it
+            if ( 0 != idThreshold && opID != cb->getWritingID() )
+            {
+               writingEDUList.pop_back() ;
+            }
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    BOOLEAN _pmdEDUMgr::_hasWritingEDU( INT32 eduTypeFilter,
                                        UINT64 idThreshold,
-                                       EDU_BLOCK_TYPE excludeBlockType )
+                                       EDU_BLOCK_TYPE excludeBlockType,
+                                       const CHAR* clOrCsName,
+                                       const CHAR* mainCLName )
    {
       BOOLEAN hasWriting = FALSE ;
 
@@ -1053,6 +1162,18 @@ namespace engine
             {
                continue ;
             }
+            else if ( clOrCsName && !mainCLName &&
+                      !_isRelatedEDU( clOrCsName, cb ) )
+            {
+               continue ;
+            }
+            else if ( clOrCsName && mainCLName &&
+                      !_isRelatedEDU( clOrCsName, cb ) &&
+                      !_isRelatedEDU( mainCLName, cb ) )
+            {
+               continue ;
+            }
+
             PD_LOG ( PDDEBUG, "Session [%lld] TID [%u] writing ID [%llu] "
                      "is writing", cb->getID(), cb->getTID(), opID ) ;
             hasWriting = TRUE ;
@@ -1110,9 +1231,22 @@ namespace engine
 
    BOOLEAN _pmdEDUMgr::hasWritingEDU( INT32 eduTypeFilter,
                                       UINT64 idThreshold,
-                                      EDU_BLOCK_TYPE excludeBlockType )
+                                      EDU_BLOCK_TYPE excludeBlockType,
+                                      const CHAR* clOrCsName,
+                                      const CHAR* mainCLName )
    {
-      return _hasWritingEDU( eduTypeFilter, idThreshold, excludeBlockType ) ;
+      return _hasWritingEDU( eduTypeFilter, idThreshold, excludeBlockType,
+                             clOrCsName, mainCLName ) ;
+   }
+
+   INT32 _pmdEDUMgr::getWritingEDUs( INT32 eduTypeFilter,
+                                     UINT64 idThreshold,
+                                     EDU_BLOCK_TYPE excludeBlockType,
+                                     const ossPoolSet<UINT64>& excludeIdList,
+                                     ossPoolVector< std::pair<UINT64, ossPoolString> >& writingEDUList )
+   {
+      return _getWritingEDUs( eduTypeFilter, idThreshold, excludeBlockType,
+                                 excludeIdList, writingEDUList ) ;
    }
 
    void _pmdEDUMgr::resetIOService()

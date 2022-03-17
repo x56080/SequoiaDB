@@ -125,7 +125,9 @@ namespace engine
 
          virtual BOOLEAN   isWritingDB() const { return _writingDB ; }
          virtual UINT64    getWritingID() const { return _writingID ; }
-         virtual void      writingDB( BOOLEAN writing ) ;
+         virtual void      writingDB( BOOLEAN writing,
+                                      const CHAR* name = NULL ) ;
+         virtual const CHAR* getCollectionOrSpaceName() const ;
 
          virtual UINT32    getProcessedNum() const { return _processEventCount ; }
          virtual void      incEventCount( UINT32 step = 1 ) ;
@@ -722,6 +724,10 @@ namespace engine
       INT32                   _interruptRC ;
       BOOLEAN                 _writingDB ;
       UINT64                  _writingID ;
+
+      // it is cl name or cs name
+      CHAR                    _collectionOrSpaceName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
+
       EDU_BLOCK_TYPE          _blockType ;
       /// aligned memory.
       void                    *_alignedMem ;
@@ -738,6 +744,10 @@ namespace engine
       BOOLEAN                 _doReplay ;
    };
    typedef class _pmdEDUCB pmdEDUCB ;
+
+   void pmdIsSameName( const CHAR *name1, const CHAR *name2,
+                       BOOLEAN &sameCL, BOOLEAN &sameCS,
+                       INT32 *pCSNameLen = NULL ) ;
 
    _pmdEDUCB* pmdGetThreadEDUCB() ;
    _pmdEDUCB* pmdDeclareEDUCB( _pmdEDUCB *p ) ;

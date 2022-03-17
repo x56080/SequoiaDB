@@ -277,6 +277,7 @@ namespace engine
                                       CLS_ORDER2SUBCLIDX_MAP &subCLIdxMap ) ;
          BOOLEAN           isSortSubCLPrepared() const ;
          BOOLEAN           isContainSubCL( const string &subCLName ) const ;
+         BOOLEAN           hasSubCLLocateOnCS( const CHAR* csName ) const ;
          INT32             getSubCLCount () const ;
          const string&     getMainCLName() const ;
          INT32             addSubCL ( const CHAR *subCLName,

@@ -153,7 +153,15 @@ namespace engine
          */
          BOOLEAN           hasWritingEDU( INT32 eduTypeFilter = -1,
                                           UINT64 idThreshold = 0,
-                                          EDU_BLOCK_TYPE excludeBlockType = EDU_BLOCK_FREEZING_WND ) ;
+                                          EDU_BLOCK_TYPE excludeBlockType = EDU_BLOCK_FREEZING_WND,
+                                          const CHAR* clOrCsName = NULL,
+                                          const CHAR* mainCLName = NULL ) ;
+
+         INT32             getWritingEDUs( INT32 eduTypeFilter,
+                                           UINT64 idThreshold,
+                                           EDU_BLOCK_TYPE excludeBlockType,
+                                           const ossPoolSet<UINT64>& excludeIdList,
+                                           ossPoolVector< std::pair<UINT64, ossPoolString> >& writingEDUList ) ;
 
          void              resetMon( EDUID eduID = PMD_INVALID_EDUID ) ;
          void              resetIOService() ;
@@ -209,7 +217,14 @@ namespace engine
          */
          BOOLEAN           _hasWritingEDU( INT32 eduTypeFilter = -1,
                                            UINT64 idThreshold = 0,
-                                           EDU_BLOCK_TYPE excludeBlockType = EDU_BLOCK_FREEZING_WND ) ;
+                                           EDU_BLOCK_TYPE excludeBlockType = EDU_BLOCK_FREEZING_WND,
+                                           const CHAR* clOrCsName = NULL,
+                                           const CHAR* mainCLName = NULL ) ;
+         INT32             _getWritingEDUs( INT32 eduTypeFilter,
+                                            UINT64 idThreshold,
+                                            EDU_BLOCK_TYPE excludeBlockType,
+                                            const ossPoolSet<UINT64>& excludeIdList,
+                                            ossPoolVector< std::pair<UINT64, ossPoolString> >& writingEDUList ) ;
 
          void              setDestroyed( BOOLEAN b ) ;
          void              setQuiesced( BOOLEAN b ) ;
@@ -235,6 +250,8 @@ namespace engine
                                             UINT32 idleSize,
                                             UINT32 sysSize,
                                             UINT32 poolSize ) ;
+         BOOLEAN           _isRelatedEDU( const CHAR* checkName,
+                                          pmdEDUCB* cb ) ;
 
       private:
          VEC_IOSERVICE              _vecIOServices ;
