@@ -21,7 +21,7 @@ import com.sequoiadb.message.MsgOpCode;
 import java.nio.ByteBuffer;
 
 public class LobReadRequest extends LobRequest {
-    private static final int FIXED_LENGTH = 68; // LOB_HEADER_LENGTH + 16
+    private static final int FIXED_LENGTH = 96;  // LOB_HEADER_LENGTH + 16
     private int readLength;
     private static final int sequence = 0;
     private long offset;

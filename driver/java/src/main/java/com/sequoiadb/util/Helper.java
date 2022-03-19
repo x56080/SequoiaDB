@@ -19,6 +19,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 import org.bson.BSON;
 import org.bson.BSONObject;
@@ -392,5 +393,19 @@ public final class Helper {
             newFlags &= ~erasedFlag;
         }
         return newFlags;
+    }
+
+    public static byte[] genMD5( ByteBuffer data, int length ) {
+        MessageDigest md5;
+        try {
+            md5 = MessageDigest.getInstance( "MD5" );
+        } catch (Exception e) {
+            throw new BaseException( SDBError.SDB_SYS, e );
+        }
+        byte[] arr = new byte[data.limit()];
+        for ( int i = 0; i < arr.length; i++ ) {
+            arr[i] = data.get();
+        }
+        return Arrays.copyOf( md5.digest( arr ), length );
     }
 }

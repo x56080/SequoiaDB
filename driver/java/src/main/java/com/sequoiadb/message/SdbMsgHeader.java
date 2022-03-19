@@ -20,10 +20,16 @@ package com.sequoiadb.message;
  * @since 2.9
  */
 public abstract class SdbMsgHeader {
-    protected static final int HEADER_LENGTH = 28;
+    protected static final int HEADER_LENGTH = 56;
+    protected static final int HEADER_LENGTH_V1 = 28;
     protected int length;
-    protected int opCode;
-    protected int tid;
+    protected int eye = 0;
+    protected int tid;  // client thead id
     protected long routeId;
-    protected long requestId;
+    protected long requestId;  // identifier for this message
+    protected int opCode;
+    protected short version = SdbProtocolVersion.SDB_PROTOCOL_VERSION_V2.getCode();
+    protected short flags;  // Common flags for a query
+    protected MsgGlobalID globalID = new MsgGlobalID();  // globalID 16 bytes
+    protected byte reserve[] = new byte[ 4 ]; // 4 bytes, default is 0
 }

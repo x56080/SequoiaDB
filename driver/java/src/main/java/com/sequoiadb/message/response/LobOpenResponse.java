@@ -37,7 +37,7 @@ public class LobOpenResponse extends CommonResponse {
     }
 
     @Override
-    protected void decodeCommonBody(ByteBuffer in) {
+    protected void decodeData(ByteBuffer in) {
         if (in.hasRemaining()) {
             metaInfo = Helper.decodeBSONObject(in);
         }

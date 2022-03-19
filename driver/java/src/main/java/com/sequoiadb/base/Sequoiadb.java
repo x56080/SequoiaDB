@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import com.sequoiadb.message.SdbProtocolVersion;
 import com.sequoiadb.util.Helper;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
@@ -83,6 +84,7 @@ public class Sequoiadb implements Closeable {
 
     private final static int DEFAULT_BUFF_LENGTH = 512;
     private ByteBuffer requestBuffer = null;
+    private SdbProtocolVersion protocolVersion = SdbProtocolVersion.SDB_PROTOCOL_VERSION_INVALID;
 
     /**
      * specified the package size of the collections in current collection space to be 4K
@@ -639,9 +641,11 @@ public class Sequoiadb implements Closeable {
 
         connProxy = new ConnectionProxy(connection);
 
-        byteOrder = getSysInfo();
-        authenticate(username, password);
+        SysInfoResponse sysInfoResponse = getSysInfo();
+        byteOrder = sysInfoResponse.byteOrder();
+        protocolVersion = sysInfoResponse.getPeerProtocolVersion();
 
+        authenticate(username, password);
         this.userName = username;
         this.password = password;
     }
@@ -2924,7 +2928,7 @@ public class Sequoiadb implements Closeable {
         SysInfoResponse response = new SysInfoResponse();
         byte[] lengthBytes = connection.receive(response.length());
         ByteBuffer buffer = ByteBuffer.wrap(lengthBytes);
-        response.decode(buffer);
+        response.decode(buffer, null);
         return response;
     }
 
@@ -2960,7 +2964,7 @@ public class Sequoiadb implements Closeable {
     private ByteBuffer encodeRequest(Request request) {
         resetRequestBuff(request.length());
         request.setRequestId(getNextRequestId());
-        request.encode(requestBuffer);
+        request.encode(requestBuffer, protocolVersion);
         return requestBuffer;
     }
 
@@ -2981,7 +2985,7 @@ public class Sequoiadb implements Closeable {
         } catch (Exception e) {
             throw new BaseException(SDBError.SDB_INVALIDARG, e);
         }
-        response.decode(buffer);
+        response.decode(buffer, protocolVersion);
         return response;
     }
 
@@ -3069,13 +3073,9 @@ public class Sequoiadb implements Closeable {
         }
     }
 
-    private ByteOrder getSysInfo() {
-        SysInfoRequest request = new SysInfoRequest();
-        sendRequest(request);
-
-        SysInfoResponse response = receiveSysInfoResponse();
-
-        return response.byteOrder();
+    private SysInfoResponse getSysInfo() {
+        sendRequest(new SysInfoRequest());
+        return receiveSysInfoResponse();
     }
 
     private void killContext() {

@@ -19,7 +19,7 @@ package com.sequoiadb.message.request;
 import java.nio.ByteBuffer;
 
 public abstract class LobRequest extends SdbRequest {
-    protected static final int LOB_HEADER_LENGTH = 52; // HEADER_LENGTH + 24
+    protected static final int LOB_HEADER_LENGTH = 80; // HEADER_LENGTH + 24
     protected static final int version = 1;
     protected static final short w = 1;
     protected static final short padding = 0;

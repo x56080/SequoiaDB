@@ -41,7 +41,7 @@ public class LobReadResponse extends CommonResponse {
     }
 
     @Override
-    protected void decodeCommonBody(ByteBuffer in) {
+    protected void decodeData(ByteBuffer in) {
         if (flag == 0 && in.hasRemaining()) {
             lobLen = in.getInt();
             sequence = in.getInt();

@@ -16,6 +16,9 @@
 
 package com.sequoiadb.message.response;
 
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
+import com.sequoiadb.message.SdbProtocolVersion;
 import com.sequoiadb.util.Helper;
 import org.bson.BSONObject;
 
@@ -27,7 +30,12 @@ public abstract class CommonResponse extends SdbResponse {
     protected int flag;
     protected int startFrom;
     protected int returnedNum;
+    private int returnedMask = 0;
+    private int dataLen;
+
     private BSONObject errorObj;
+    private BSONObject resultBSON;
+    private BSONObject processBSON;
 
     protected CommonResponse() {
         length = FIXED_LENGTH;
@@ -54,13 +62,27 @@ public abstract class CommonResponse extends SdbResponse {
     }
 
     @Override
-    protected void decodeBody(ByteBuffer in) {
+    protected void decodeBody(ByteBuffer in, SdbProtocolVersion version) {
+        switch ( version ) {
+            case SDB_PROTOCOL_VERSION_V1:
+                decodeCommonBodyV1( in );
+                break;
+            case SDB_PROTOCOL_VERSION_V2:
+                decodeCommonBodyV2( in );
+                break;
+            default:
+                throw new BaseException( SDBError.SDB_NET_BROKEN_MSG,
+                        "Message protocol version error!" );
+        }
+    }
+
+    private void decodeCommonBodyV1(ByteBuffer in) {
         contextId = in.getLong();
         flag = in.getInt();
         startFrom = in.getInt();
         returnedNum = in.getInt();
         if (flag == 0) {
-            decodeCommonBody(in);
+            decodeData(in);
         } else {
             if (in.hasRemaining()) {
                 errorObj = Helper.decodeBSONObject(in);
@@ -68,5 +90,27 @@ public abstract class CommonResponse extends SdbResponse {
         }
     }
 
-    protected abstract void decodeCommonBody(ByteBuffer in);
+    private void decodeCommonBodyV2(ByteBuffer in) {
+        contextId = in.getLong();
+        flag = in.getInt();
+        startFrom = in.getInt();
+        returnedNum = in.getInt();
+        returnedMask = in.getInt();
+        dataLen = in.getInt();
+        if (flag == 0) {
+            decodeData(in);
+        } else {
+            if (in.hasRemaining()) {
+                errorObj = Helper.decodeBSONObject(in);
+            }
+        }
+        decodeTailContent();
+    }
+
+    public void decodeTailContent() {
+        // resultBSON, processBSON is an extension, currently not in use.
+        // temporarily not resolved.
+    }
+
+    protected abstract void decodeData(ByteBuffer in);
 }

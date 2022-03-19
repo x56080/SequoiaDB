@@ -28,7 +28,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 
 public class UpdateRequest extends SdbRequest {
-    private static final int FIXED_LENGTH = 44;
+    private static final int FIXED_LENGTH = 72;
     private static final byte[] EMPTY_BSON_BYTES = Helper.encodeBSONObj(new BasicBSONObject());
     private static final int ALIGNED_EMPTY_BSON_LENGTH = Helper.alignedSize(EMPTY_BSON_BYTES.length);
     private static final int version = 1;
