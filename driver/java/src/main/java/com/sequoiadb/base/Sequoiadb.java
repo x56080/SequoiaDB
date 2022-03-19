@@ -30,6 +30,7 @@ import com.sequoiadb.message.*;
 import com.sequoiadb.message.request.*;
 import com.sequoiadb.message.response.*;
 import com.sequoiadb.util.AuthAlgorithmSHA256;
+import com.sequoiadb.message.SdbProtocolVersion;
 import com.sequoiadb.util.Helper;
 import org.bson.BSON;
 import org.bson.BSONObject;
@@ -71,6 +72,7 @@ public class Sequoiadb implements Closeable {
 
     private final static int DEFAULT_BUFF_LENGTH = 512;
     private ByteBuffer requestBuffer = null;
+    private SdbProtocolVersion protocolVersion = SdbProtocolVersion.SDB_PROTOCOL_VERSION_INVALID;
 
     private SdbAuthVersion authVersion = SdbAuthVersion.SDB_AUTH_MD5;
 
@@ -606,9 +608,13 @@ public class Sequoiadb implements Closeable {
 
         SysInfoResponse sysInfoResponse = getSysInfo();
         byteOrder = sysInfoResponse.byteOrder();
+
+        protocolVersion = sysInfoResponse.getPeerProtocolVersion();
+
         authVersion = sysInfoResponse.getAuthVersion();
 
         authenticate(username, password, authVersion);
+
         this.userName = username;
         this.password = password;
     }
@@ -2965,7 +2971,7 @@ public class Sequoiadb implements Closeable {
         SysInfoResponse response = new SysInfoResponse();
         byte[] lengthBytes = connection.receive(response.length());
         ByteBuffer buffer = ByteBuffer.wrap(lengthBytes);
-        response.decode(buffer);
+        response.decode(buffer, null);
         return response;
     }
 
@@ -3001,7 +3007,7 @@ public class Sequoiadb implements Closeable {
     private ByteBuffer encodeRequest(Request request) {
         resetRequestBuff(request.length());
         request.setRequestId(getNextRequestId());
-        request.encode(requestBuffer);
+        request.encode(requestBuffer, protocolVersion);
         return requestBuffer;
     }
 
@@ -3022,7 +3028,7 @@ public class Sequoiadb implements Closeable {
         } catch (Exception e) {
             throw new BaseException(SDBError.SDB_INVALIDARG, e);
         }
-        response.decode(buffer);
+        response.decode(buffer, protocolVersion);
         return response;
     }
 

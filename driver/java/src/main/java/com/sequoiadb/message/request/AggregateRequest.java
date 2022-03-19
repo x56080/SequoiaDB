@@ -28,7 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AggregateRequest extends SdbRequest {
-    private static final int FIXED_LENGTH = 44;
+    private static final int FIXED_LENGTH = 72;
     private static final int version = 1;
     private static final short w = 0;
     private static final short padding = 0;

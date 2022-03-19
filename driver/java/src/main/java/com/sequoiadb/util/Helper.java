@@ -20,6 +20,7 @@ import java.nio.ByteOrder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import java.util.Arrays;
 
 import com.sequoiadb.base.UserConfig;
 import com.sequoiadb.exception.BaseException;
@@ -415,5 +416,19 @@ public final class Helper {
 
     public static byte[] Base64Decode(String data) {
         return Base64.getDecoder().decode(data);
+    }
+
+    public static byte[] genMD5( ByteBuffer data, int length ) {
+        MessageDigest md5;
+        try {
+            md5 = MessageDigest.getInstance( "MD5" );
+        } catch (Exception e) {
+            throw new BaseException( SDBError.SDB_SYS, e );
+        }
+        byte[] arr = new byte[data.limit()];
+        for ( int i = 0; i < arr.length; i++ ) {
+            arr[i] = data.get();
+        }
+        return Arrays.copyOf( md5.digest( arr ), length );
     }
 }

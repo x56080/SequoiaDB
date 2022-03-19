@@ -21,7 +21,7 @@ import com.sequoiadb.message.MsgOpCode;
 import java.nio.ByteBuffer;
 
 public class GetMoreRequest extends SdbRequest {
-    private static final int LENGTH = 40;
+    private static final int LENGTH = 68;
     private long contextId;
     private int returnedNum;
 

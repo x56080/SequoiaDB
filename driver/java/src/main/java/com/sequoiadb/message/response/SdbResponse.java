@@ -16,7 +16,10 @@
 
 package com.sequoiadb.message.response;
 
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.message.SdbMsgHeader;
+import com.sequoiadb.message.SdbProtocolVersion;
 
 import java.nio.ByteBuffer;
 
@@ -36,12 +39,22 @@ public abstract class SdbResponse extends SdbMsgHeader implements Response {
     }
 
     @Override
-    public void decode(ByteBuffer in) {
-        decodeMsgHeader(in);
-        decodeBody(in);
+    public void decode( ByteBuffer in, SdbProtocolVersion version ) {
+        switch ( version ) {
+            case SDB_PROTOCOL_VERSION_V1:
+                decodeMsgHeaderV1( in );
+                break;
+            case SDB_PROTOCOL_VERSION_V2:
+                decodeMsgHeaderV2( in );
+                break;
+            default:
+                throw new BaseException( SDBError.SDB_NET_BROKEN_MSG,
+                        "Message protocol version error!" );
+        }
+        decodeBody(in, version);
     }
 
-    protected void decodeMsgHeader(ByteBuffer in) {
+    protected void decodeMsgHeaderV1(ByteBuffer in) {
         length = in.getInt();
         opCode = in.getInt();
         tid = in.getInt();
@@ -49,5 +62,20 @@ public abstract class SdbResponse extends SdbMsgHeader implements Response {
         requestId = in.getLong();
     }
 
-    protected abstract void decodeBody(ByteBuffer in);
+    protected void decodeMsgHeaderV2(ByteBuffer in) {
+        length = in.getInt();
+        eye = in.getInt();
+        tid = in.getInt();
+        routeId = in.getLong();
+        requestId = in.getLong();
+        opCode = in.getInt();
+        version = in.getShort();
+        flags = in.getShort();
+        globalID.decode( in );
+        for ( int i = 0; i < reserve.length; i++ ){
+            reserve[i] = in.get();
+        }
+    }
+
+    protected abstract void decodeBody(ByteBuffer in, SdbProtocolVersion version);
 }

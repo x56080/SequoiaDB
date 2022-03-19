@@ -17,6 +17,7 @@
 package com.sequoiadb.message.request;
 
 import com.sequoiadb.message.MsgOpCode;
+import com.sequoiadb.message.SdbProtocolVersion;
 import com.sequoiadb.message.SysInfoHeader;
 
 import java.nio.ByteBuffer;
@@ -40,7 +41,7 @@ public class SysInfoRequest extends SysInfoHeader implements Request {
     }
 
     @Override
-    public void encode(ByteBuffer out) {
+    public void encode( ByteBuffer out, SdbProtocolVersion version ) {
         out.putInt(SYS_INFO_SPECIAL_LEN);
         out.putInt(SYS_INFO_EYE_CATCHER);
         out.putInt(HEADER_LENGTH);
