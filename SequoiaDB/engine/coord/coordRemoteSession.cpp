@@ -776,9 +776,9 @@ namespace engine
            COORD_GROUP_SEL_INVALID == _pos )
       {
          if ( _groupPtr->nodePos( nodeID.columns.nodeID ) >= 0 &&
-              _meetPreferConstraint( nodeID ) )
+              _meetPreferConstraint( nodeID ) &&
+              _svcType == nodeID.columns.serviceID )
          {
-            nodeID.columns.serviceID = _svcType ;
             _pos = COORD_GROUP_SEL_NONE ;
             PD_LOG( PDDEBUG, "Select node: %s",
                     routeID2String( nodeID ).c_str() ) ;
