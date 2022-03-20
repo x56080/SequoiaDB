@@ -94,7 +94,8 @@ namespace engine
    // size of receive buffer for UDP socket
    #define NET_UDP_SOCKET_BUFFER_SIZE        ( 1024 * 1024 )
    // size of buffer for each UDP message
-   #define NET_UDP_DEFAULT_BUFFER_SIZE       ( 128 )
+   // maximum UDP package is 65507
+   #define NET_UDP_DEFAULT_BUFFER_SIZE       ( 65536 )
 
    typedef boost::asio::ip::tcp::endpoint netTCPEndPoint ;
    typedef boost::asio::ip::udp::endpoint netUDPEndPoint ;
