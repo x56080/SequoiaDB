@@ -69,8 +69,8 @@ public class SDBShardingSplitStrategy implements SDBSplitStrategy {
                     List<NodeInfo> nodeInfos = dataGroups.get(shardingInfo.groupName);
                     if (nodeInfos.isEmpty()) {
                         throw new SDBException(
-                                String.format("replica group " +
-                                        "%s has no normal nodes, please check!", shardingInfo.groupName));
+                                String.format("group %s has no normal nodes, please check replicas group's " +
+                                        "health status.\n", shardingInfo.groupName));
                     }
                     urls.addAll(nodeInfos.stream().map(nodeInfo -> nodeInfo.url)
                             .collect(Collectors.toList()));

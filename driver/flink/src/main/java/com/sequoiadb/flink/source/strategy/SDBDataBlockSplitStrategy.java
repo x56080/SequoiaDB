@@ -225,9 +225,12 @@ public class SDBDataBlockSplitStrategy implements SDBSplitStrategy {
         }
 
         List<QueryMeta> queryMeta = null;
+        List<String> exceptionMessages = new ArrayList<>();
         try {
             queryMeta = getQueryMeta(url, shardingInfo.csName, shardingInfo.clName, sourceOptions);
         } catch (Throwable ex) {
+            exceptionMessages.add(ex.getMessage());
+
             final String fUrl = url;
             // quickly retry current node when failed to solve the
             // problem that cs/cl synchronization may not be timely
@@ -250,20 +253,21 @@ public class SDBDataBlockSplitStrategy implements SDBSplitStrategy {
                (nodeInfo = selector.select(candidateNodes, preferredInstance)) != null) {
             try {
                 queryMeta = getQueryMeta(nodeInfo.url, shardingInfo.csName, shardingInfo.clName, sourceOptions);
+                return queryMeta;
             } catch (Throwable ex) {
+                exceptionMessages.add(ex.getMessage());
+
                 candidateNodes.remove(nodeInfo);
             }
         }
 
         // if still failed, throw exception to prompt user to check
         // the replica group.
-        if (queryMeta == null) {
-            throw new SDBException(
-                    String.format("failed to get query meta, group %s has no normal node, please check!",
-                            shardingInfo.groupName));
-        }
-
-        return queryMeta;
+        throw new SDBException(
+                String.format("failed to get query meta, group %s has no normal nodes, please check replicas group's " +
+                        "health status.\n" +
+                        "exceptions on each retry:\n" +
+                        "%s", shardingInfo.groupName, String.join("\n", exceptionMessages)));
     }
 
     private static class QueryMeta {
