@@ -57,4 +57,5 @@ public class SDBConstant {
     
     public static final String INDEX_DEF = "IndexDef";
     public static final String UNIQUE = "unique";
+    public static final String KEY = "key";
 }

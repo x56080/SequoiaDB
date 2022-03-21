@@ -16,9 +16,15 @@
 
 package com.sequoiadb.flink.config;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
 import com.sequoiadb.flink.client.SDBSinkClient;
 
 import org.apache.flink.configuration.ReadableConfig;
+import org.apache.flink.table.catalog.UniqueConstraint;
 
 public class SDBSinkOptions extends SDBClientOptions {
     private final int sinkParallelism;
@@ -35,7 +41,9 @@ public class SDBSinkOptions extends SDBClientOptions {
     private final long maxBulkFillTime;
     private final Boolean transactionOn;
 
-    private final Boolean idempotent;
+    private Boolean idempotent;
+    // private Boolean primarykey;
+    private List<HashSet<String>> unique_indexes;
 
     public SDBSinkOptions(ReadableConfig options) {
         super(options);
@@ -54,8 +62,7 @@ public class SDBSinkOptions extends SDBClientOptions {
         this.maxBulkFillTime = options.get(SDBOptions.MAX_BULK_FILL_TIME);
         this.transactionOn = options.get(SDBOptions.TRANSACTION_ON);
 
-        this.idempotent = SDBSinkClient.checkUniqueIndex(super.getHosts(), super.getCollectionSpace(),
-                super.getCollection(), super.getUsername(), super.getPassword());
+      
     }
 
     public Boolean getIdempotent() {
@@ -125,4 +132,30 @@ public class SDBSinkOptions extends SDBClientOptions {
         + ", transactionOn=" + transactionOn + "]";
     }
 
+    public void computeIdempotentWriteOptimization(Optional<UniqueConstraint> primarykey) {
+
+        if (primarykey.isPresent()){
+            HashSet<String> pks = new HashSet<>(primarykey.get().getColumns());
+
+            List<HashSet<String>> unique_indexes = SDBSinkClient.checkUniqueIndex(
+                super.getHosts(), 
+                super.getCollectionSpace(),
+                super.getCollection(), 
+                super.getUsername(), 
+                super.getPassword());
+
+            boolean hasIndex = false;
+            for (HashSet<String> uniquekeyset : unique_indexes){
+                if (uniquekeyset.equals(pks)) {
+                    hasIndex = true;
+                    break;
+                }
+            }
+
+            this.idempotent = !unique_indexes.isEmpty() && hasIndex;
+        } else {
+            this.idempotent = false;
+        }
+       
+    }
 }

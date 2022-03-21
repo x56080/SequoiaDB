@@ -17,19 +17,23 @@
 package com.sequoiadb.flink.table;
 
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 import com.sequoiadb.flink.config.SDBOptions;
 import com.sequoiadb.flink.config.SDBSinkOptions;
 import com.sequoiadb.flink.config.SDBSourceOptions;
+import com.sequoiadb.flink.exception.SDBException;
 
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ReadableConfig;
+import org.apache.flink.table.catalog.UniqueConstraint;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.factories.DynamicTableSinkFactory;
 import org.apache.flink.table.factories.DynamicTableSourceFactory;
 import org.apache.flink.table.factories.FactoryUtil;
+import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.table.types.DataType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +41,8 @@ import org.slf4j.LoggerFactory;
 public class SDBDynamicTableFactory implements DynamicTableSourceFactory, DynamicTableSinkFactory {
 
     public static final String IDENTIFIER = "sequoiadb";
-    
+    private final String SDB_BSON_OID = "_id";
+
     private final static Logger LOG = LoggerFactory.getLogger(SDBDynamicTableFactory.class);
 
     // This is how Flink id our factory
@@ -104,7 +109,17 @@ public class SDBDynamicTableFactory implements DynamicTableSourceFactory, Dynami
         // get Datatype from schema, this will be carry to format serializer.
         final DataType producedDataType =
             context.getCatalogTable().getResolvedSchema().toPhysicalRowDataType();
-
+        
+        // check if primary key exist in table schema
+        final Optional<UniqueConstraint> pk =
+            context.getCatalogTable().getResolvedSchema().getPrimaryKey();
+        
+        sdboptions.computeIdempotentWriteOptimization(pk);
+        
+        if (sdboptions.getTransactionOn() && !sdboptions.getIdempotent()
+            && ((RowType) producedDataType.getLogicalType()).getFieldNames().contains(SDB_BSON_OID)) {
+            throw new SDBException("Table Schema Contains _id, when transaction on is set and no unique index");
+        }
         return new SDBDynamicTableSink(sdboptions, producedDataType);
     }
 

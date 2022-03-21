@@ -16,7 +16,11 @@
 
 package com.sequoiadb.flink.client;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.ConfigOptions;
@@ -28,6 +32,7 @@ import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.flink.config.SDBSinkOptions;
 import com.sequoiadb.flink.constant.SDBConstant;
 
+import org.apache.calcite.profile.Profiler.Unique;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
@@ -126,31 +131,30 @@ public class SDBSinkClient implements SDBClient {
      * @param password              SDB password
      * @return boolean
      */
-    public static Boolean checkUniqueIndex(
+    public static List<HashSet<String>> checkUniqueIndex(
         List<String> hosts, String collectionSpace, String collection, String username, String password){
         ConfigOptions options = new ConfigOptions();
         Sequoiadb db = new Sequoiadb(hosts, username, password, options); 
-        Boolean idempotent = false;
+        Boolean unique = false;
+        List<HashSet<String>> unique_indexes = new ArrayList<HashSet<String>>();
         LOG.info("check idempotent");
         try {
             DBCursor indexes =db.getCollectionSpace(collectionSpace).getCollection(collection).getIndexes();
             while (indexes.hasNext()) {
-                idempotent = (Boolean)(
-                    (BSONObject) indexes
-                                    .getNext()
-                                    .get(SDBConstant.INDEX_DEF)
-                    )
-                    .get(SDBConstant.UNIQUE);
-                if (idempotent) return true; //break out if there is a unique index
+                BSONObject index = (BSONObject)indexes.getNext().get(SDBConstant.INDEX_DEF);
+                unique = (Boolean)index.get(SDBConstant.UNIQUE);
+                if (unique) {
+                    BSONObject keys = (BSONObject)index.get(SDBConstant.KEY);
+                    unique_indexes.add(new HashSet<String>(keys.toMap().keySet()));
+                }
             }
             db.getCollectionSpace(collectionSpace).getCollection(collection).createIdIndex(null);            
         } catch (BaseException e) {
-            idempotent = false;
         } finally {
             db.close();
         }
 
-        return idempotent;
+        return unique_indexes;
     }
 
     /*

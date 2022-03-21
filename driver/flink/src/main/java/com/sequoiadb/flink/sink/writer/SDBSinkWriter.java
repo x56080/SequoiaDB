@@ -61,6 +61,12 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
     private final SDBClient client;
     private final ExecutorService executorService;
     
+    private enum SDBSinkWriteMethod {
+        NO_TRANSACTION,
+        CHECK_POINT_TRANSACTION,
+        IDEMPOTENT_WRITE
+    }
+    private SDBSinkWriteMethod method;
     private final String SDB_BSON_OID = "_id";
     private final SDBDataConverter dataConverter;
     private static final Logger LOG = LoggerFactory.getLogger(SDBSinkWriter.class);
@@ -100,9 +106,21 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
 
         // create thread pool for write out, when it is transaction and don't have unique index
         executorService = Executors.newFixedThreadPool(THREAD_NUMBER); 
+        
+        if (transactionOn && !idempotent) {
+            method = SDBSinkWriteMethod.CHECK_POINT_TRANSACTION;
+        } // For transaction and have unique index 
+        else if (transactionOn && idempotent){
+            method = SDBSinkWriteMethod.IDEMPOTENT_WRITE;
+        } // For non transaction when error, it requres user to stop and clear tables from sdb and restart flink task
+        else if (!transactionOn) {
+            method = SDBSinkWriteMethod.NO_TRANSACTION;
+        }
 
         //log info
         LOG.info("Sink Writer {} started", context.getSubtaskId());
+        LOG.info("Sink Writer options {}", sdbSinkOptions.toString());
+        LOG.info("Sink write method: {}", method.toString());
 
     }
 
@@ -131,7 +149,7 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
         // convert data from Rowdata to Bson
         BSONObject bsonObject = dataConverter.toExternal((RowData) element, ignoreNullField);
         //if dont have unique index, create one 
-        if (transactionOn && !idempotent) {
+        if (method == SDBSinkWriteMethod.CHECK_POINT_TRANSACTION) {
             bsonObject.put(SDB_BSON_OID, ObjectId.get());
         }
 
@@ -142,34 +160,32 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
          * to make sure idempotent insert, we need to keep it in the state and checkpoint first
          * so when it don't have unique index, we write them out in committer
          */
-        if (checkTransactionWriteOutCondition() 
-            && !idempotent) {
+        boolean pushCondition = checkPushToPendingCondition();
+        if (method == SDBSinkWriteMethod.CHECK_POINT_TRANSACTION && pushCondition) {
             pushToPendingBulks();
-
         } // For transaction and have unique index 
-        else if (checkTransactionWriteOutCondition() 
-            && idempotent){
-                dataInsert(transactionOn);
+        else if (method == SDBSinkWriteMethod.IDEMPOTENT_WRITE && pushCondition){
+            dataInsert(transactionOn);
         } // For non transaction when error, it requres user to stop and clear tables from sdb and restart flink task
-        else if (!transactionOn && checkPushToPendingCondition()) {
+        else if (method == SDBSinkWriteMethod.NO_TRANSACTION && pushCondition) {
             dataInsert(transactionOn);
         }
-      
+
         currentBulk.add(bsonObject);
     }
-    /*
-     * return true if a transaction sink is about to write
-     * @return Boolean
-     */
-    private Boolean checkTransactionWriteOutCondition(){
-        return transactionOn && checkPushToPendingCondition();
-    }
+
     /*
      * return true currentBulk is full or timer is up
      * @return Boolean
      */
     private Boolean checkPushToPendingCondition(){
+        
         long currentTime = getCurrentTimeSeconds();
+        long timeInterval = currentTime - currentBulkSpawnTime;
+
+        LOG.debug ("timeInterval: {}", timeInterval);
+        LOG.debug ("currentBulkTTL: {}", currentBulkTTL);
+        
         return currentBulk.isFull() || currentTime - currentBulkSpawnTime >= currentBulkTTL;
     }
 
@@ -191,21 +207,21 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
         LOG.info("Sink writer {} prepareCommit" , context.getSubtaskId());
         // when transaction and no unique index, and need to be flushed
         // since it is aready end of data (flush set) we need to flush manually
-        if (transactionOn && !idempotent && flush) {
+        if (method == SDBSinkWriteMethod.CHECK_POINT_TRANSACTION && flush) {
             pushToPendingBulks();
             flush();    
         } // when transaction and no unique index, times up it will be pushed to pendingbulks
           // committer will flush them out
-        else if (transactionOn && !idempotent && checkPushToPendingCondition()) {
+        else if (method == SDBSinkWriteMethod.CHECK_POINT_TRANSACTION && checkPushToPendingCondition()) {
             pushToPendingBulks();
         } // when non transaction, this is to ensure lingering data get flushed at least every checkpoint.
-        else if (!transactionOn && (flush || checkPushToPendingCondition())){
+        else if (method == SDBSinkWriteMethod.NO_TRANSACTION && (flush || checkPushToPendingCondition())){
             if (currentBulk.size() > 0) {
                 dataInsert(transactionOn);
             }
         } // when transaction with unique index, same reason as before, 
           // this will ensure lingering data get flushed as lease every checkpoint
-        else if (transactionOn && idempotent && (flush || checkPushToPendingCondition())) {
+        else if (method == SDBSinkWriteMethod.IDEMPOTENT_WRITE && (flush || checkPushToPendingCondition())) {
             if (currentBulk.size() > 0) {
                 dataInsert(transactionOn);
             }
