@@ -1000,7 +1000,7 @@
                            "file": "replica_set",
                            "cn": "复制组熔断",
                            "en": "Replication"
-                        }
+                        },
                         {
                            "id": 1600677192,
                            "file": "monitoring",
