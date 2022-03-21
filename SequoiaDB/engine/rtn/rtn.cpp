@@ -949,34 +949,9 @@ namespace engine
       SDB_ASSERT ( lobMetaPath, "lob meta path can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dmsCB can't be NULL" ) ;
 
-      utilRenameLogger logger ;
-      utilRenameLog renameLog ;
-      BOOLEAN hasRenameInfo = TRUE ;
-
-      rc = logger.init( UTIL_RENAME_LOGGER_READ ) ;
-      if ( SDB_FNE == rc )
-      {
-         rc = SDB_OK ;
-         hasRenameInfo = FALSE ;
-      }
-      PD_RC_CHECK( rc, PDERROR, "Failed to init logger, rc: %d" , rc ) ;
-
-      if ( hasRenameInfo )
-      {
-         rc = logger.load( renameLog ) ;
-         if ( SDB_SYS == rc )
-         {
-            PD_LOG( PDWARNING, "Failed to load rename log file, rc: %d. "
-                    "And delete rename log file" , rc ) ;
-            logger.clear() ;
-            hasRenameInfo = FALSE ;
-         }
-         else if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to load rename log file, rc: %d" , rc ) ;
-            goto error ;
-         }
-      }
+      utilRenameLogManager logManager ;
+      rc = logManager.load() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to load rename logs, rc: %d", rc ) ;
 
       try
       {
@@ -1002,28 +977,43 @@ namespace engine
                                                    DMS_SU_FILENAME_SZ,
                                                    sequence ) )
             {
-               if ( hasRenameInfo &&
-                    ( 0 == ossStrcmp( csName, renameLog.oldName ) ||
-                    0 == ossStrcmp( csName, renameLog.newName ) ) )
+               // check if rename is interrupted
+               if ( logManager.hasRenamed() )
                {
-                  rc = rtnCorrectCollectionSpaceFile( dataPath, indexPath,
-                                                      lobPath, lobMetaPath,
-                                                      sequence, renameLog ) ;
-                  PD_RC_CHECK( rc, PDERROR,
-                               "Correct cs file failed, rc: %d", rc ) ;
+                  utilRenameLog renameLog ;
+                  rc = logManager.getRenameLog( csName, renameLog ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to get rename log "
+                               "for collection space [%s], rc: %d",
+                               csName, renameLog ) ;
 
-                  if ( 0 == ossStrcmp( csName, renameLog.oldName ) )
+                  if ( renameLog.isValid() )
                   {
-                     ossStrcpy( csName, renameLog.newName );
-                  }
+                     PD_LOG( PDEVENT, "Got rename log [%s] -> [%s]",
+                             renameLog.oldName, renameLog.newName ) ;
 
-                  rc = logger.clear() ;
-                  if ( rc )
-                  {
-                     PD_LOG( PDWARNING,
-                             "Failed to clear rename log, rc: %d" , rc ) ;
+                     // try correct file names
+                     rc = rtnCorrectCollectionSpaceFile( dataPath, indexPath,
+                                                         lobPath, lobMetaPath,
+                                                         sequence, renameLog ) ;
+                     PD_RC_CHECK( rc, PDERROR, "Failed to correct collection "
+                                  "space file [%s] -> [%s], rc: %d",
+                                  renameLog.oldName, renameLog.newName, rc ) ;
+
+                     if ( 0 == ossStrcmp( csName, renameLog.oldName ) )
+                     {
+                        ossStrcpy( csName, renameLog.newName );
+                     }
+
+                     rc = logManager.clear( renameLog ) ;
+                     if ( SDB_OK != rc )
+                     {
+                        // clear failed, we can ignore
+                        PD_LOG( PDWARNING, "Failed to clear rename log "
+                                "[%s] -> [%s], rc: %d",
+                                renameLog.oldName, renameLog.newName, rc ) ;
+                        rc = SDB_OK ;
+                     }
                   }
-                  hasRenameInfo = FALSE ;
                }
 
                /// skip SYSTEMP file
@@ -1102,10 +1092,9 @@ namespace engine
                        dataPath, e.what() ) ;
       }
 
-      if ( hasRenameInfo )
+      if ( logManager.hasRenamed() )
       {
-         logger.clear() ;
-         hasRenameInfo = FALSE ;
+         logManager.clearAll() ;
       }
 
    done :

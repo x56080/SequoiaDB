@@ -36,6 +36,7 @@
 #include "utilRenameLogger.hpp"
 #include "utilTrace.hpp"
 #include "utilStr.hpp"
+#include "ossPath.hpp"
 #include "pmd.hpp"
 
 using namespace std ;
@@ -121,17 +122,44 @@ namespace engine
    INT32 _utilRenameLogger::init( UTIL_RENAME_LOGGER_MODE mode )
    {
       INT32 rc = SDB_OK ;
+
       PD_TRACE_ENTRY( SDB_UTILRENAMELOGGER_INIT ) ;
+
+      CHAR fileName[ 64 ] = { 0 } ;
+
+      static ossAtomic64 s_suffixID( 0 ) ;
+
+      ossSnprintf( fileName, sizeof( fileName ) - 1, "%s_%llu",
+                   UTIL_RENAME_LOG_FILENAME, s_suffixID.inc() ) ;
+
+      rc = init( fileName, mode ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to initialize rename logger [%s], "
+                   "rc: %d", fileName, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_UTILRENAMELOGGER_INIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_UTILRENAMELOGGER_INIT_NAME, "_utilRenameLogger::init" )
+   INT32 _utilRenameLogger::init( const CHAR *fileName,
+                                  UTIL_RENAME_LOGGER_MODE mode )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_UTILRENAMELOGGER_INIT_NAME ) ;
 
       INT32 fileMode = OSS_READWRITE ;
       INT32 permission = OSS_RU | OSS_WU | OSS_RG | OSS_RO ;
 
       rc = utilBuildFullPath( pmdGetOptionCB()->getDbPath(),
-                              UTIL_RENAME_LOG_FILENAME,
+                              fileName,
                               OSS_MAX_PATHSIZE,
                               _fileName ) ;
       PD_RC_CHECK( rc, PDERROR,
-                   "Failed to build full file path , rc: %d", rc  );
+                   "Failed to build full file path , rc: %d", rc  ) ;
 
       rc = ossFile::exists( _fileName, _fileExist ) ;
       PD_RC_CHECK( rc, PDERROR,
@@ -185,7 +213,7 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC( SDB_UTILRENAMELOGGER_INIT, rc ) ;
+      PD_TRACE_EXITRC( SDB_UTILRENAMELOGGER_INIT_NAME, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -309,6 +337,313 @@ namespace engine
    {
       return _fileName ;
    }
+
+   /*
+      _utilRenameLogManager implement
+    */
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_UTILRENAMELOGMGR_LOAD, "_utilRenameLogManager::load" )
+   INT32 _utilRenameLogManager::load()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_UTILRENAMELOGMGR_LOAD ) ;
+
+      try
+      {
+         multimap< string, string > mapFiles ;
+
+         const CHAR *dbPath = pmdGetOptionCB()->getDbPath() ;
+
+         // use wildcard to match all rename log files including old version
+         // file
+         rc = ossEnumFiles( dbPath, mapFiles, UTIL_RENAME_LOG_FILENAME "*" ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to enum rename log files in "
+                      "dbpath [%s], rc: %d", dbPath, rc ) ;
+
+         for ( multimap< string, string >::iterator iter = mapFiles.begin() ;
+               iter != mapFiles.end() ;
+               ++ iter )
+         {
+            BOOLEAN canIgnore = FALSE ;
+
+            utilRenameLogger logger ;
+            utilRenameLog log ;
+
+            _UTIL_STRING_MAP_IT oldToNewIter, newToOldIter ;
+
+            // NOTE: first is file name, second is full name
+            const CHAR *fileName = iter->first.c_str() ;
+
+            rc = logger.init( fileName, UTIL_RENAME_LOGGER_READ ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to initialize rename log file "
+                         "[%s], rc: %d", fileName, rc ) ;
+
+            rc = logger.load( log ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to load rename log from file "
+                         "[%s], rc: %d", fileName, rc ) ;
+
+            // check if already have conflict or duplicated logs
+            oldToNewIter = _find( log.oldName, _oldToNewMap ) ;
+            newToOldIter = _find( log.newName, _newToOldMap ) ;
+
+            if ( ( oldToNewIter != _oldToNewMap.end() ) ||
+                 ( newToOldIter != _newToOldMap.end() ) )
+            {
+               if ( oldToNewIter != _oldToNewMap.end() )
+               {
+                  PD_CHECK( 0 == ossStrcmp( oldToNewIter->second.c_str(),
+                                            log.newName ),
+                            SDB_SYS, error, PDERROR,
+                            "Failed to load rename log file [%s], "
+                            "[%s] -> [%s] is conflict to [%s] -> [%s]",
+                            fileName, log.oldName, log.newName,
+                            oldToNewIter->first.c_str(),
+                            oldToNewIter->second.c_str() ) ;
+               }
+               if ( newToOldIter != _newToOldMap.end() )
+               {
+                  PD_CHECK( 0 == ossStrcmp( newToOldIter->second.c_str(),
+                                            log.oldName ),
+                            SDB_SYS, error, PDERROR,
+                            "Failed to load rename log file [%s], "
+                            "[%s] -> [%s] is conflict to [%s] -> [%s]",
+                            fileName, log.oldName, log.newName,
+                            newToOldIter->second.c_str(),
+                            newToOldIter->second.c_str() ) ;
+               }
+               PD_LOG( PDDEBUG, "Got duplicated rename log file [%s]: "
+                       "[%s] -> [%s]", fileName, log.oldName, log.newName ) ;
+               canIgnore = TRUE ;
+            }
+
+            if ( canIgnore )
+            {
+               // can be ignored, clear file
+               logger.clear() ;
+            }
+            else
+            {
+               // save to mapping
+               _oldToFileMap.insert( make_pair( log.oldName, fileName ) ) ;
+               _oldToNewMap.insert( make_pair( log.oldName, log.newName ) ) ;
+               _newToOldMap.insert( make_pair( log.newName, log.oldName ) ) ;
+            }
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to check rename collection spaces, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_UTILRENAMELOGMGR_LOAD, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_UTILRENAMELOGMGR__CLEAR, "_utilRenameLogManager::_clear" )
+   INT32 _utilRenameLogManager::_clear( const CHAR *fileName )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_UTILRENAMELOGMGR__CLEAR ) ;
+
+      SDB_ASSERT( NULL != fileName, "file name is invalid" ) ;
+
+      CHAR filePath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+      rc = utilBuildFullPath( pmdGetOptionCB()->getDbPath(),
+                              fileName,
+                              OSS_MAX_PATHSIZE,
+                              filePath ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build path for file [%s], rc: %d",
+                   fileName, rc ) ;
+
+      rc = ossDelete( filePath ) ;
+      if ( SDB_FNE == rc )
+      {
+         rc = SDB_OK ;
+      }
+      PD_RC_CHECK( rc, PDWARNING, "Failed to delete file [%s], rc: %d",
+                   fileName, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_UTILRENAMELOGMGR__CLEAR, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   _utilRenameLogManager::_UTIL_STRING_MAP_IT
+   _utilRenameLogManager::_find( const CHAR *name,
+                                 _UTIL_STRING_MAP &targetMap )
+   {
+      SDB_ASSERT( NULL != name, "name is invalid" ) ;
+
+      _UTIL_STRING_MAP_IT iter ;
+
+      try
+      {
+         iter = targetMap.find( name ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDWARNING, "Failed to get iterators, occur exception %s",
+                 e.what() ) ;
+
+         for ( _UTIL_STRING_MAP_IT tempIter = targetMap.begin() ;
+               tempIter != targetMap.end() ;
+               ++ tempIter )
+         {
+            if ( 0 == ossStrncmp( name,
+                                  tempIter->first.c_str(),
+                                  DMS_COLLECTION_SPACE_NAME_SZ ) )
+            {
+               iter = tempIter ;
+               break ;
+            }
+         }
+      }
+
+      return iter ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_UTILRENAMELOGMGR_CLEARALL, "_utilRenameLogManager::clearAll" )
+   INT32 _utilRenameLogManager::clearAll()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_UTILRENAMELOGMGR_CLEARALL ) ;
+
+      for ( _UTIL_STRING_MAP::iterator iter = _oldToFileMap.begin() ;
+            iter != _oldToFileMap.end() ;
+            ++ iter )
+      {
+         const CHAR *fileName = iter->second.c_str() ;
+
+         // remove file
+         rc = _clear( fileName ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to clear rename log file [%s], "
+                      "rc: %d", fileName, rc ) ;
+      }
+
+      // clear mapping
+      _oldToFileMap.clear() ;
+      _oldToNewMap.clear() ;
+      _newToOldMap.clear() ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_UTILRENAMELOGMGR_CLEARALL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_UTILRENAMELOGMGR_CLEAR, "_utilRenameLogManager::clear" )
+   INT32 _utilRenameLogManager::clear( const utilRenameLog &log )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_UTILRENAMELOGMGR_CLEAR ) ;
+
+      _UTIL_STRING_MAP_IT oldToFileIter = _find( log.oldName, _oldToFileMap ) ;
+      _UTIL_STRING_MAP_IT oldToNewIter = _find( log.oldName, _oldToNewMap ) ;
+      _UTIL_STRING_MAP_IT newToOldIter = _find( log.newName, _newToOldMap ) ;
+
+      if ( oldToFileIter != _oldToFileMap.end() )
+      {
+         const CHAR *fileName = oldToFileIter->second.c_str() ;
+
+         // remove file
+         rc = _clear( fileName ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to clear rename log file [%s], "
+                      "rc: %d", fileName, rc ) ;
+
+         _oldToFileMap.erase( oldToFileIter ) ;
+      }
+
+      if ( oldToNewIter != _oldToNewMap.end() )
+      {
+         _oldToNewMap.erase( oldToNewIter ) ;
+      }
+
+      if ( newToOldIter != _newToOldMap.end() )
+      {
+         _newToOldMap.erase( newToOldIter ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_UTILRENAMELOGMGR_CLEAR, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   BOOLEAN _utilRenameLogManager::hasRenamed()
+   {
+      return _oldToFileMap.size() > 0 ? TRUE : FALSE ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_UTILRENAMELOGMGR_GETRENAMELOG, "_utilRenameLogManager::getRenameLog" )
+   INT32 _utilRenameLogManager::getRenameLog( const CHAR *csName,
+                                              utilRenameLog &log )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_UTILRENAMELOGMGR_GETRENAMELOG ) ;
+
+      _UTIL_STRING_MAP_IT oldToNewIter = _find( csName, _oldToNewMap ) ;
+      _UTIL_STRING_MAP_IT newToOldIter = _find( csName, _newToOldMap ) ;
+
+      if ( ( oldToNewIter != _oldToNewMap.end() ) &&
+           ( newToOldIter != _newToOldMap.end() ) )
+      {
+         // name in both mappings, should be conflict
+         PD_LOG( PDERROR, "Failed to get rename log for [%s], has conflicts: "
+                 "[%s] -> [%s] and [%s] -> [%s]",
+                 oldToNewIter->first.c_str(), oldToNewIter->second.c_str(),
+                 newToOldIter->second.c_str(), newToOldIter->first.c_str() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+      else if ( oldToNewIter != _oldToNewMap.end() )
+      {
+         // found in old -> new mapping, the given name is old name
+         ossStrncpy( log.oldName,
+                     oldToNewIter->first.c_str(),
+                     DMS_COLLECTION_SPACE_NAME_SZ ) ;
+         log.oldName[ DMS_COLLECTION_SPACE_NAME_SZ ] = 0 ;
+         ossStrncpy( log.newName,
+                     oldToNewIter->second.c_str(),
+                     DMS_COLLECTION_SPACE_NAME_SZ ) ;
+         log.newName[ DMS_COLLECTION_SPACE_NAME_SZ ] = 0 ;
+      }
+      else if ( newToOldIter != _newToOldMap.end() )
+      {
+         // found in new -> old mapping, the given name is new name
+         ossStrncpy( log.oldName,
+                     newToOldIter->second.c_str(),
+                     DMS_COLLECTION_SPACE_NAME_SZ ) ;
+         log.oldName[ DMS_COLLECTION_SPACE_NAME_SZ ] = 0 ;
+         ossStrncpy( log.newName,
+                     newToOldIter->first.c_str(),
+                     DMS_COLLECTION_SPACE_NAME_SZ ) ;
+         log.newName[ DMS_COLLECTION_SPACE_NAME_SZ ] = 0 ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_UTILRENAMELOGMGR_GETRENAMELOG, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 }
-
-
