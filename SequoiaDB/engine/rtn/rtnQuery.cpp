@@ -688,6 +688,8 @@ namespace engine
       rtnQueryType queryType = RTN_QUERY_NORMAL ;
       rtnRemoteMessenger* messenger = rtnCB->getRemoteMessenger() ;
 
+      UINT32 scannerRetryTime = 0 ;
+
       // check if the adapter is registered.
       if ( messenger && messenger->isReady() )
       {
@@ -866,6 +868,7 @@ namespace engine
       apm = rtnCB->getAPM() ;
       SDB_ASSERT( apm, "apm shouldn't be NULL" ) ;
 
+retry:
       // plan is released in context destructor
       // selector, numToSkip and numToReturn are not considered in plan cache
       // now, so put dummy ones to find the plan
@@ -911,6 +914,16 @@ namespace engine
          // open context
          rc = dataContext->open( su, mbContext, cb, options, pBlockObj,
                                  direction ) ;
+         if ( SDB_IXM_NOTEXIST == rc && scannerRetryTime < 1 )
+         {
+            // Maybe in the process of scanning the index,
+            // the index is deleted
+            planRuntime->reset() ;
+            scannerRetryTime++ ;
+            // We only need to try to scan once. In most cases,
+            // the next scan is normal
+            goto retry ;
+         }
          PD_RC_CHECK( rc, PDERROR, "Open data context failed, rc: %d", rc ) ;
 
          /// when open succeed, plan and mbcontext and su is take over
@@ -960,6 +973,16 @@ namespace engine
 
          rc = dataContext->open( su, mbContext, cb, returnOptions, pBlockObj,
                                  direction ) ;
+         if ( SDB_IXM_NOTEXIST == rc && scannerRetryTime < 1 )
+         {
+            // Maybe in the process of scanning the index,
+            // the index is deleted
+            planRuntime->reset() ;
+            scannerRetryTime++ ;
+            // We only need to try to scan once. In most cases,
+            // the next scan is normal
+            goto retry ;
+         }
          PD_RC_CHECK( rc, PDERROR, "Open data context failed, rc: %d", rc ) ;
 
          /// when open succeed, plan and mbcontext and su is take over

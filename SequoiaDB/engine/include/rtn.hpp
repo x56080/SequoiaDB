@@ -731,6 +731,13 @@ namespace engine
    INT32 rtnLoadCollectionDict( const CHAR *pCollectionName,
                                 const CHAR *dictionary,
                                 UINT32 dictSize, BOOLEAN force = FALSE ) ;
+
+   INT32 rtnIsIndexCBValid( ixmIndexCB *indexCB,
+                            dmsExtentID expectedExtentID,
+                            const CHAR* expectedIndexName,
+                            dmsExtentID expectedIndexLID,
+                            dmsStorageUnit *su,
+                            dmsMBContext *mbContext ) ;
 }
 
 #endif

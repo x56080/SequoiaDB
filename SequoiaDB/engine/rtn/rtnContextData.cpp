@@ -445,20 +445,13 @@ namespace engine
 
       // for index scan, we maintain context by runtime instead of by DMS
       ixmIndexCB indexCB ( _planRuntime.getIndexCBExtent(),
-                           su->index(),
-                           NULL ) ;
-      if ( !indexCB.isInitialized() )
+                           su->index(), NULL ) ;
+
+      rc = rtnIsIndexCBValid( &indexCB, _planRuntime.getIndexCBExtent(),
+                              _planRuntime.getIndexName(),
+                              _planRuntime.getIndexLID(), su, mbContext ) ;
+      if ( rc )
       {
-         PD_LOG ( PDERROR, "unable to get proper index control block" ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-      if ( indexCB.getLogicalID() != _planRuntime.getIndexLID() )
-      {
-         PD_LOG( PDERROR, "Index[extent id: %d] logical id[%d] is not "
-                 "expected[%d]", _planRuntime.getIndexCBExtent(),
-                 indexCB.getLogicalID(), _planRuntime.getIndexLID() ) ;
-         rc = SDB_IXM_NOTEXIST ;
          goto error ;
       }
 
@@ -1713,6 +1706,7 @@ namespace engine
       {
          _su = NULL ;
       }
+      _isOpened = FALSE ;
       goto done ;
    }
 

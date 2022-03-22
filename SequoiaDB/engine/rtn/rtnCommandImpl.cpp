@@ -821,21 +821,14 @@ namespace engine
       }
 
       {
-         ixmIndexCB indexCB( planRuntime->getIndexCBExtent(), su->index(), NULL ) ;
+         ixmIndexCB indexCB( planRuntime->getIndexCBExtent(),
+                             su->index(), NULL ) ;
 
-         if ( !indexCB.isInitialized() )
+         rc = rtnIsIndexCBValid( &indexCB, planRuntime->getIndexCBExtent(),
+                                 planRuntime->getIndexName(),
+                                 planRuntime->getIndexLID(), su, mbContext ) ;
+         if ( rc )
          {
-            PD_LOG ( PDERROR, "unable to get proper index control block" ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-
-         if ( indexCB.getLogicalID() != planRuntime->getIndexLID() )
-         {
-            PD_LOG( PDERROR, "Index[extent id: %d] logical id[%d] is not "
-                    "expected[%d]", planRuntime->getIndexCBExtent(),
-                    indexCB.getLogicalID(), planRuntime->getIndexLID() ) ;
-            rc = SDB_IXM_NOTEXIST ;
             goto error ;
          }
 
@@ -1077,6 +1070,7 @@ namespace engine
       dmsMBContext *mbContext = NULL ;
       optAccessPlanRuntime planRuntime ;
       optAccessPlanManager *apm = NULL ;
+      UINT32 scannerRetryTime = 0 ;
 
       ossTick startTime, endTime ;
       monContextCB monCtxCB ;
@@ -1100,6 +1094,7 @@ namespace engine
       apm = rtnCB->getAPM() ;
       SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 
+retry:
       // plan is released in context destructor
       rc = apm->getAccessPlan( copiedOptions, su, mbContext, planRuntime, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s, "
@@ -1125,6 +1120,17 @@ namespace engine
       else if ( IXSCAN == planRuntime.getScanType() )
       {
          rc = rtnGetIndexblocks( su, &planRuntime, cb, context, mbContext ) ;
+         if ( SDB_IXM_NOTEXIST == rc && scannerRetryTime < 1 )
+         {
+            // Maybe in the process of scanning the index,
+            // the index is deleted
+            planRuntime.reset() ;
+            scannerRetryTime++ ;
+            // We only need to try to scan once. In most cases,
+            // the next scan is normal
+            mbContext->mbUnlock() ;
+            goto retry ;
+         }
       }
       else
       {
