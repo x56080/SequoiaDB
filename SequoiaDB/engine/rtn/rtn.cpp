@@ -1720,6 +1720,78 @@ namespace engine
       return fullPathName ;
    }
 
+   INT32 rtnIsIndexCBValid( ixmIndexCB *indexCB,
+                            dmsExtentID expectedExtentID,
+                            const CHAR* expectedIndexName,
+                            dmsExtentID expectedIndexLID,
+                            dmsStorageUnit *su,
+                            dmsMBContext *mbContext )
+   {
+      SDB_ASSERT ( indexCB, "indexCB can't be NULL" ) ;
+      SDB_ASSERT ( expectedIndexName, "planRuntimeIndexName can't be NULL" ) ;
+      SDB_ASSERT ( su, "su can't be NULL" ) ;
+      SDB_ASSERT ( mbContext, "mbContext can't be NULL" ) ;
+
+      INT32 rc = SDB_OK ;
+      BOOLEAN hasLocked = FALSE ;
+      BOOLEAN exist = FALSE ;
+
+      if ( !mbContext->isMBLock() )
+      {
+         rc = mbContext->mbLock( SHARED ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to lock dms mb context[%s], rc: %d",
+                      mbContext->toString().c_str(), rc ) ;
+         hasLocked = TRUE ;
+      }
+
+      if ( !indexCB->isInitialized() )
+      {
+         rc = su->index()->checkIndexCBExtentExist( mbContext,
+                                                    expectedExtentID,
+                                                    exist ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to check index[extent id: %d, name: %s],"
+                    " rc: %d", expectedExtentID, expectedIndexName, rc ) ;
+            goto error ;
+         }
+
+         if ( exist )
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Invalid index page[extent id: %d, name: %s], "
+                    "rc: %d", expectedExtentID, expectedIndexName, rc ) ;
+            goto error ;
+         }
+         else
+         {
+            rc = SDB_IXM_NOTEXIST ;
+            PD_LOG( PDWARNING, "Index[extent id: %d, name: %s] does not exist, "
+                    "rc: %d", expectedExtentID, expectedIndexName, rc ) ;
+            goto error ;
+         }
+      }
+
+      if ( indexCB->getLogicalID() != expectedIndexLID )
+      {
+         rc = SDB_IXM_NOTEXIST ;
+         PD_LOG( PDWARNING, "Index[extent id: %d, name: %s] logical id[%d] "
+                 "is not expected[%d], rc: %d", expectedExtentID,
+                 expectedIndexName, indexCB->getLogicalID(),
+                 expectedIndexLID, rc ) ;
+         goto error ;
+      }
+
+   done:
+      if ( hasLocked )
+      {
+         mbContext->mbUnlock() ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // Note that Only delete and update are calling this interface
    // In the future, if there are other cases, we should carefully
    // review the usage and decide what scanner to initialize with.
@@ -1762,19 +1834,14 @@ namespace engine
       {
          rtnPredicateList *predList = NULL ;
          // for index scan, we maintain context by runtime instead of by DMS
-         ixmIndexCB indexCB ( planRuntime->getIndexCBExtent(), su->index(), NULL ) ;
-         if ( !indexCB.isInitialized() )
+         ixmIndexCB indexCB ( planRuntime->getIndexCBExtent(),
+                              su->index(), NULL ) ;
+
+         rc = rtnIsIndexCBValid( &indexCB, planRuntime->getIndexCBExtent(),
+                                 planRuntime->getIndexName(),
+                                 planRuntime->getIndexLID(), su, mbContext ) ;
+         if ( rc )
          {
-            PD_LOG ( PDERROR, "unable to get proper index control block" ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         if ( indexCB.getLogicalID() != planRuntime->getIndexLID() )
-         {
-            PD_LOG( PDERROR, "Index[extent id: %d] logical id[%d] is not "
-                    "expected[%d]", planRuntime->getIndexCBExtent(),
-                    indexCB.getLogicalID(), planRuntime->getIndexLID() ) ;
-            rc = SDB_IXM_NOTEXIST ;
             goto error ;
          }
 

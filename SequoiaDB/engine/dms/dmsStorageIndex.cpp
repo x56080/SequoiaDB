@@ -3310,6 +3310,49 @@ namespace engine
       goto done ;
    }
 
+   INT32 _dmsStorageIndex::checkIndexCBExtentExist( dmsMBContext *context,
+                                                    dmsExtentID indexExtent,
+                                                    BOOLEAN &exist )
+   {
+      SDB_ASSERT( context, "context can't be NULL" ) ;
+
+      INT32 rc          = SDB_OK ;
+      BOOLEAN hasLocked = FALSE ;
+
+      exist = FALSE ;
+
+      if ( !context->isMBLock() )
+      {
+         rc = context->mbLock( SHARED ) ;
+         PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
+         hasLocked = TRUE ;
+      }
+
+      for ( UINT32 indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ;
+            ++indexID )
+      {
+         if ( DMS_INVALID_EXTENT == context->mb()->_indexExtent[indexID] )
+         {
+            break ;
+         }
+
+         if ( context->mb()->_indexExtent[indexID] == indexExtent )
+         {
+            exist = TRUE ;
+            goto done ;
+         }
+      }
+
+   done:
+      if ( hasLocked )
+      {
+         context->mbUnlock() ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
    void _dmsStorageIndex::addStatFreeSpace( UINT16 mbID, UINT16 size )
    {
       if ( mbID < DMS_MME_SLOTS && _pDataSu )

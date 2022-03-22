@@ -65,7 +65,7 @@ namespace engine
 
    class _dmsExtraRecord : public SDBObject
    {
-   public:
+   public:
       _dmsExtraRecord( const CHAR *clName, BSONObj record, BOOLEAN isInsert )
       {
          _clName = clName ;
@@ -226,6 +226,10 @@ namespace engine
          INT32    getIndexCBExtent ( _dmsMBContext *context,
                                      INT32 indexID,
                                      dmsExtentID &indexExtent ) ;
+
+         INT32    checkIndexCBExtentExist( _dmsMBContext *context,
+                                           dmsExtentID indexExtent,
+                                           BOOLEAN &exist ) ;
 
          void     addStatFreeSpace ( UINT16 mbID, UINT16 size ) ;
          void     decStatFreeSpace ( UINT16 mbID, UINT16 size ) ;

@@ -120,6 +120,7 @@ namespace engine
       BOOLEAN writable                 = FALSE ;
       BOOLEAN strictDataMode           = FALSE ;
       dmsScanner *pScanner             = NULL ;
+      UINT32 scannerRetryTime          = 0 ;
       BSONObj emptyObj ;
       mthModifier modifier ;
       vector<INT64> dollarList ;
@@ -195,6 +196,7 @@ namespace engine
          apm = rtnCB->getAPM() ;
          SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 
+retry:
          // plan is released when exiting the function
          rc = apm->getAccessPlan( options, su, mbContext, planRuntime, NULL ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s for update, "
@@ -211,6 +213,16 @@ namespace engine
             rc = rtnGetIXScanner( pCollectionShortName, &planRuntime, su,
                                   mbContext, cb, &pScanner,
                                   DMS_ACCESS_TYPE_UPDATE ) ;
+            if ( SDB_IXM_NOTEXIST == rc && scannerRetryTime < 1 )
+            {
+               // Maybe in the process of scanning the index,
+               // the index is deleted
+               planRuntime.reset() ;
+               scannerRetryTime++ ;
+               // We only need to try to scan once. In most cases,
+               // the next scan is normal
+               goto retry ;
+            }
          }
          else
          {
