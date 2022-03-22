@@ -643,6 +643,7 @@ namespace engine
          virtual INT32  resume () ;
 
          void setSubContext( _IContext *subContext ) ;
+         void swap( _dmsMBContext &other ) ;
 
          OSS_INLINE INT32   mbLock( INT32 lockType ) ;
          OSS_INLINE INT32   mbTryLock( INT32 lockType ) ;
@@ -1018,7 +1019,8 @@ namespace engine
                                 _pmdEDUCB *cb,
                                 SDB_DPSCB *dpscb,
                                 BOOLEAN sysCollection = TRUE,
-                                dmsMBContext *context = NULL ) ;
+                                dmsMBContext *context = NULL,
+                                dmsDropCLOptions *options = NULL ) ;
 
          INT32 truncateCollection ( const CHAR *pName,
                                     _pmdEDUCB *cb,
@@ -1026,7 +1028,8 @@ namespace engine
                                     BOOLEAN sysCollection = TRUE,
                                     dmsMBContext *context = NULL,
                                     BOOLEAN needChangeCLID = TRUE,
-                                    BOOLEAN truncateLob = TRUE ) ;
+                                    BOOLEAN truncateLob = TRUE,
+                                    dmsTruncCLOptions *options = NULL ) ;
 
          INT32 truncateCollectionLoads( const CHAR *pName,
                                         dmsMBContext *context = NULL ) ;
@@ -1039,7 +1042,15 @@ namespace engine
 
          INT32 renameCollection ( const CHAR *oldName, const CHAR *newName,
                                   _pmdEDUCB *cb, SDB_DPSCB *dpscb,
-                                  BOOLEAN sysCollection = FALSE ) ;
+                                  BOOLEAN sysCollection = FALSE,
+                                  utilCLUniqueID newCLUniqueID = UTIL_UNIQUEID_NULL ) ;
+
+         INT32 copyCollection( dmsMBContext *mbContext,
+                               const CHAR *newName,
+                               utilCLUniqueID newCLUniqueID,
+                               pmdEDUCB *cb,
+                               SDB_DPSCB *dpsCB,
+                               dmsMBContext **newMBContext ) ;
 
          INT32 findCollection ( const CHAR *pName,
                                 UINT16 &collectionID,
@@ -1233,6 +1244,11 @@ namespace engine
                                                dmsRecordRW  &recordRW,
                                                _pmdEDUCB    *cb,
                                                BOOLEAN      bSetOvfRecrd ) = 0 ;
+
+         INT32 _copyIndexes( dmsMBContext *oldContext,
+                             dmsMBContext *newContext,
+                             _pmdEDUCB *cb ) ;
+
       private:
          virtual UINT64 _dataOffset() ;
          virtual UINT32 _curVersion() const ;

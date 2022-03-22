@@ -237,7 +237,8 @@ namespace engine
     * _catCtxDataTask implement
     */
    _catCtxDataTask::_catCtxDataTask ( const std::string &dataName )
-   : _catCtxTaskBase ()
+   : _catCtxTaskBase (),
+     _dsUID( UTIL_INVALID_DS_UID )
    {
       _dataName = dataName ;
    }
@@ -263,6 +264,11 @@ namespace engine
       PD_RC_CHECK( rc, PDWARNING,
                    "Failed to get the collection space [%s], rc: %d",
                    _dataName.c_str(), rc ) ;
+
+      // check data source ID
+      rc = catCheckDataSourceID( _boData, _dsUID ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to check data source ID from "
+                   "collection space [%s], rc: %d", _dataName.c_str(), rc ) ;
 
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXDROPCSTASK_CHECK_INT, rc ) ;
@@ -305,7 +311,6 @@ namespace engine
    : _catCtxDataTask( clName )
    {
       _version = version ;
-      _needUpdateCoord = FALSE ;
       _rmTaskAndIdx = rmTaskAndIdx ;
    }
 
@@ -325,17 +330,16 @@ namespace engine
                    "Failed to get the collection [%s], rc: %d",
                    _dataName.c_str(), rc ) ;
 
+      // check data source ID
+      rc = catCheckDataSourceID( _boData, _dsUID ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to check data source ID from "
+                   "collection [%s], rc: %d", _dataName.c_str(), rc ) ;
+
       // Check version
       rc = rtnGetIntElement( _boData, CAT_VERSION_NAME, curVersion ) ;
       PD_RC_CHECK( rc, PDWARNING,
                    "Failed to get the field [%s], rc: %d",
                    CAT_VERSION_NAME, rc ) ;
-
-      if ( -1 != _version )
-      {
-         // Always update Coord
-         _needUpdateCoord = TRUE ;
-      }
 
       _version = curVersion ;
 

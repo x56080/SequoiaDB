@@ -620,7 +620,7 @@ namespace sdbclient
                               INT64 numToReturn  = -1 ) = 0 ;
 
       /// truncate
-      virtual INT32 truncate() = 0 ;
+      virtual INT32 truncate( const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
 
       /// create/drop $id index
       virtual INT32 createIdIndex( const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
@@ -2330,18 +2330,20 @@ namespace sdbclient
          return pCollection->createLobID( oid, pTimeStamp ) ;
       }
 
-      /** \fn INT32 truncate()
+      /** \fn INT32 truncate( const bson::BSONObj &options )
           \brief truncate the collection
+          \param [in] options The arguments of truncate
+              UseRecycleBin      : Whether to use recycle bin, default is true
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
-      INT32 truncate()
+      INT32 truncate( const bson::BSONObj &options = _sdbStaticObject )
       {
          if ( !pCollection )
          {
             return SDB_NOT_CONNECTED ;
          }
-         return pCollection->truncate() ;
+         return pCollection->truncate( options ) ;
       }
 
       /** \fn INT32 createIdIndex( const bson::BSONObj &options )
@@ -3429,8 +3431,9 @@ namespace sdbclient
       virtual INT32 createCollection ( const CHAR *pCollection,
                                        sdbCollection &collection ) = 0 ;
 
-      // drop an existing collection
-      virtual INT32 dropCollection ( const CHAR *pCollection ) = 0 ;
+      // drop an existing collection with options
+      virtual INT32 dropCollection( const CHAR *pCollection,
+                                    const bson::BSONObj &options ) = 0 ;
 
       virtual INT32 listCollections ( _sdbCursor **cursor ) = 0 ;
 
@@ -3615,19 +3618,23 @@ namespace sdbclient
                                                      collection ) ;
       }
 
-      /** \fn INT32 dropCollection ( const CHAR *pCollection )
+      /** \fn INT32 dropCollection( const CHAR *pCollection,
+                                    const bson::BSONObj &options )
           \brief Drop the specified collection in current collection space.
           \param [in] pCollection  The collection name.
+          \param [in] options The arguments of drop collection
+              UseRecycleBin      : Whether to use recycle bin, default is true
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
-      INT32 dropCollection ( const CHAR *pCollection )
+      INT32 dropCollection( const CHAR *pCollection,
+                            const bson::BSONObj &options = _sdbStaticObject )
       {
          if ( !pCollectionSpace )
          {
             return SDB_NOT_CONNECTED ;
          }
-         return pCollectionSpace->dropCollection ( pCollection ) ;
+         return pCollectionSpace->dropCollection( pCollection, options ) ;
       }
 
       /** \fn INT32 listCollections (  _sdbCursor **cursor )
@@ -6532,9 +6539,8 @@ namespace sdbclient
       /** \fn INT32 dropCollectionSpace ( const CHAR *pCollectionSpaceName, const bson::BSONObj &options )
           \brief Remove the specified collection space.
           \param [in] pCollectionSpaceName The name of collection space.
-          \param [in] options The options for dropping collection or NULL for not specified any options.
-                              Please reference <a href="http://doc.sequoiadb.com/cn/index-cat_id-1432190778-edition_id-@SDB_SYMBOL_VERSION">here</a>
-                              for more detail.
+          \param [in] options The arguments of drop collection space
+              UseRecycleBin      : Whether to use recycle bin, default is true
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */

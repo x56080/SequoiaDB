@@ -5097,9 +5097,9 @@ namespace engine
 
       case CMD_DROP_COLLECTION:
          /// wait sync in context, not set writable
-         rc = _dropMainCL( pCommand->collectionFullName(), w,
-                           contextID ) ;
-         break ;
+         rc = _dropMainCL( pCommand->collectionFullName(), pQuery, pHint,
+                           w, contextID );
+         break;
 
       case CMD_RENAME_COLLECTION:
          /// wait sync in context, not set writable
@@ -5107,8 +5107,9 @@ namespace engine
          break ;
 
       case CMD_TRUNCATE:
-         writable = TRUE ;
-         rc = _truncateMainCL( pCommand->collectionFullName() ) ;
+         /// wait sync in context, not set writable
+         rc = _truncateMainCL( pCommand->collectionFullName(), pQuery, pHint,
+                               w, contextID ) ;
          break ;
 
       case CMD_ANALYZE :
@@ -5817,28 +5818,54 @@ namespace engine
    }
 
    INT32 _clsShdSession::_dropMainCL( const CHAR *pCollection,
+                                      const CHAR *pQuery,
+                                      const CHAR *pHint,
                                       INT16 w,
                                       SINT64 &contextID )
    {
       INT32 rc = SDB_OK ;
-      CLS_SUBCL_LIST subCLLst ;
-      contextID = -1 ;
-      rtnContextDelMainCL::sharePtr delContext ;
 
-      rc = _getAndChkAllSubCL( pCollection, TRUE, subCLLst ) ;
+      utilRecycleItem recycleItem ;
+      CLS_SUBCL_LIST subCLList ;
+
+      rtnContextDelMainCL::sharePtr delContext ;
+      contextID = -1 ;
+
+      try
+      {
+         BSONObj options( pHint ) ;
+
+         if ( options.hasElement( FIELD_NAME_RECYCLE_ITEM ) )
+         {
+            BSONElement ele = options.getField( FIELD_NAME_RECYCLE_ITEM ) ;
+            PD_CHECK( Object == ele.type(), SDB_SYS, error, PDERROR,
+                      "Failed to get field [%s], it is not an object",
+                      FIELD_NAME_RECYCLE_ITEM ) ;
+
+            rc = recycleItem.fromBSON( ele.embeddedObject() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get recycle item from "
+                         "options, rc: %d", rc ) ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to get options from query, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = _getAndChkAllSubCL( pCollection, TRUE, subCLList ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s]: Failed to get sub collection "
                    "list, rc: %d", sessionName(), rc ) ;
 
-      rc = _pRtnCB->contextNew( RTN_CONTEXT_DELMAINCL,
-                                delContext,
+      rc = _pRtnCB->contextNew( RTN_CONTEXT_DELMAINCL, delContext,
                                 contextID, _pEDUCB );
       PD_RC_CHECK( rc, PDERROR, "Failed to create context, drop "
-                   "main collection[%s] failed, rc: %d", pCollection,
-                   rc ) ;
-      rc = delContext->open( pCollection, subCLLst, _pEDUCB, w ) ;
+                   "main collection[%s] failed, rc: %d", pCollection, rc ) ;
+      rc = delContext->open( pCollection, subCLList, &recycleItem, _pEDUCB, w ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open context, drop "
-                   "main collection[%s] failed, rc: %d", pCollection,
-                   rc ) ;
+                   "main collection[%s] failed, rc: %d", pCollection, rc ) ;
 
    done:
       return rc;
@@ -6663,64 +6690,61 @@ namespace engine
       goto done ;
    }
 
-   INT32 _clsShdSession::_truncateMainCL( const CHAR *fullName )
+   INT32 _clsShdSession::_truncateMainCL( const CHAR *fullName,
+                                          const CHAR *pQuery,
+                                          const CHAR *pHint,
+                                          INT16 w,
+                                          SINT64 &contextID )
    {
       INT32 rc = SDB_OK ;
-      const CHAR *pSubCLName = NULL ;
-      CLS_SUBCL_LIST subCLs ;
-      CLS_SUBCL_LIST_IT itr ;
-      BOOLEAN lockDms = FALSE ;
 
-      // we need to check dms writable when invalidate cata/plan/statistics
-      rc = _pDmsCB->writable ( _pEDUCB ) ;
-      PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
-      lockDms = TRUE ;
+      utilRecycleItem recycleItem ;
+      CLS_SUBCL_LIST subCLList ;
 
-      rc = _getAndChkAllSubCL( fullName, TRUE, subCLs ) ;
+      rtnContextTruncMainCL::sharePtr truncContext ;
+
+      contextID = -1 ;
+
+      try
+      {
+         BSONObj options( pHint ) ;
+
+         if ( options.hasElement( FIELD_NAME_RECYCLE_ITEM ) )
+         {
+            BSONElement ele = options.getField( FIELD_NAME_RECYCLE_ITEM ) ;
+            PD_CHECK( Object == ele.type(), SDB_SYS, error, PDERROR,
+                      "Failed to get field [%s], it is not an object",
+                      FIELD_NAME_RECYCLE_ITEM ) ;
+
+            rc = recycleItem.fromBSON( ele.embeddedObject() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get recycle item from "
+                         "options, rc: %d", rc ) ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to get options from query, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = _getAndChkAllSubCL( fullName, TRUE, subCLList ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s]: Get sub collection list "
                    "failed, rc: %d", sessionName(), rc ) ;
 
-      itr = subCLs.begin() ;
-      while ( itr != subCLs.end() )
-      {
-         pSubCLName = itr->c_str() ;
-
-         rc = rtnTruncCollectionCommand( pSubCLName, _pEDUCB,
-                                         _pDmsCB, _pDpsCB ) ;
-         if ( rc )
-         {
-            rc = _processSubCLResult( rc, pSubCLName, fullName ) ;
-            if ( SDB_OK == rc )
-            {
-               continue ;
-            }
-         }
-
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "Session[%s]: Failed to truncate sub-"
-                    "collection[%s] fo main-collection[%s] failed, rc: %d",
-                    sessionName(), pSubCLName, fullName, rc ) ;
-            goto error ;
-         }
-         ++itr ;
-      }
-
-      // Clear cached main-collection plans
-      // Note: cached sub-collection plans are cleared inside truncate
-      // of sub-collections
-      _pRtnCB->getAPM()->invalidateCLPlans( _pCollectionName ) ;
-
-      // Tell secondary nodes to clear cached main-collection plans
-      sdbGetClsCB()->invalidatePlan( _pCollectionName ) ;
+      rc = _pRtnCB->contextNew( RTN_CONTEXT_TRUNCATEMAINCL,
+                                truncContext,
+                                contextID, _pEDUCB );
+      PD_RC_CHECK( rc, PDERROR, "Failed to create context, truncate "
+                   "main collection[%s] failed, rc: %d", fullName, rc ) ;
+      rc = truncContext->open( fullName, subCLList, &recycleItem, _pEDUCB, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open context, truncate "
+                   "main collection[%s] failed, rc: %d", fullName, rc ) ;
 
    done:
-      if ( lockDms )
-      {
-         _pDmsCB->writeDown( _pEDUCB ) ;
-         lockDms = FALSE ;
-      }
       return rc ;
+
    error:
       goto done ;
    }

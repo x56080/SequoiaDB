@@ -388,26 +388,7 @@ namespace engine
       _suFileName[ DMS_SU_FILENAME_SZ ] = 0 ;
       ossMemset( _fullPathName, 0, sizeof(_fullPathName) ) ;
 
-      if ( 0 == ossStrcmp( pInfo->_suName, SDB_DMSTEMP_NAME ) )
-      {
-         _isTempSU = TRUE ;
-         _isSysSU = TRUE ;
-         _blockScanSupport = FALSE ;
-      }
-      else if ( 0 == ossStrncmp( pInfo->_suName,
-                                 SDB_DMSRBS_NAME,
-                                 SDB_DMSRBS_NAME_SIZE ) )
-      {
-         _isSysSU = TRUE ;
-         _blockScanSupport = FALSE ;
-         // SYSRBS supports MVCC always
-         _mvccSupport = TRUE ;
-      }
-      else if ( 0 == ossStrncmp( pInfo->_suName, "SYS", 3 ) )
-      {
-         _isSysSU = TRUE ;
-         _blockScanSupport = FALSE ;
-      }
+      _resetInfoByName( pInfo->_suName ) ;
 
       _pSyncMgr           = NULL ;
       _isClosed           = TRUE ;
@@ -1174,6 +1155,8 @@ namespace engine
       flushHeader( TRUE ) ;
 
 #endif // _WINDOWS
+
+      _resetInfoByName( csName ) ;
 
    done:
       return rc ;
@@ -2013,6 +1996,39 @@ namespace engine
       }
       PD_TRACE_EXITRC( SDB__DMSSTORAGEBASE_FLUSHDIRTYSEGS, rc ) ;
       return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEBASE__RESETINOFBYNAME, "_dmsStorageBase::_resetInfoByName" )
+   void _dmsStorageBase::_resetInfoByName( const CHAR *csName )
+   {
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEBASE__RESETINOFBYNAME ) ;
+
+      _isTempSU = FALSE ;
+      _isSysSU = FALSE ;
+      _blockScanSupport = TRUE ;
+
+      if ( 0 == ossStrcmp( csName, SDB_DMSTEMP_NAME ) )
+      {
+         _isTempSU = TRUE ;
+         _isSysSU = TRUE ;
+         _blockScanSupport = FALSE ;
+      }
+      else if ( 0 == ossStrncmp( csName,
+                                 SDB_DMSRBS_NAME,
+                                 SDB_DMSRBS_NAME_SIZE ) )
+      {
+         _isSysSU = TRUE ;
+         _blockScanSupport = FALSE ;
+         // SYSRBS supports MVCC always
+         _mvccSupport = TRUE ;
+      }
+      else if ( 0 == ossStrncmp( csName, "SYS", 3 ) )
+      {
+         _isSysSU = TRUE ;
+         _blockScanSupport = FALSE ;
+      }
+
+      PD_TRACE_EXIT( SDB__DMSSTORAGEBASE__RESETINOFBYNAME ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEBASE__MARKHEADEERINVALID, "_dmsStorageBase::_markHeaderInvalid" )

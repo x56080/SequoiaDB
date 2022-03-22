@@ -43,17 +43,23 @@
 #include "utilRenameLogger.hpp"
 #include "rtnLocalTaskFactory.hpp"
 #include "clsCatalogAgent.hpp"
+#include "dmsEventHandler.hpp"
+#include "utilRecycleItem.hpp"
 
 namespace engine
 {
-   /*
-      _rtnContextDelCS define
-   */
+
+   // forward declare
    class _clsCatalogAgent ;
    class _clsFreezingWindow ;
    class dpsTransCB ;
    class _SDB_DMSCB ;
+   class _SDB_RTNCB ;
+   typedef ossPoolMap<std::string, SINT64>  SUBCL_CONTEXT_LIST ;
 
+   /*
+      _rtnContextDelCS define
+   */
    class _rtnContextDelCS : public _rtnContextBase
    {
       enum delCSPhase
@@ -76,6 +82,7 @@ namespace engine
       virtual BOOLEAN          isWrite() const { return TRUE ; }
 
       INT32 open( const CHAR *pCollectionName,
+                  const utilRecycleItem *recycleItem,
                   _pmdEDUCB *cb );
 
    protected:
@@ -83,8 +90,9 @@ namespace engine
       virtual void  _toString( stringstream &ss ) ;
 
    private:
-      INT32 _tryLock( const CHAR *pCollectionName,
-                     _pmdEDUCB *cb );
+      INT32 _tryLock( const CHAR *pCollectionSpaceName,
+                      const utilRecycleItem *recycleItem,
+                      _pmdEDUCB *cb );
 
       INT32 _releaseLock( _pmdEDUCB *cb );
 
@@ -96,9 +104,11 @@ namespace engine
       dpsTransCB           *_pTransCB;
       _clsCatalogAgent     *_pCatAgent;
       CHAR                 _name[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ];
-      UINT32               _gotLogSize;
       BOOLEAN              _gotDmsCBWrite;
-      UINT32               _logicCSID;
+      BOOLEAN              _gotTransLock ;
+
+      dmsEventSUItem       _eventItem ;
+      dmsDropCSOptions     _options ;
    };
    typedef class _rtnContextDelCS rtnContextDelCS;
 
@@ -116,7 +126,9 @@ namespace engine
       virtual _dmsStorageUnit* getSU () { return NULL ; }
       virtual BOOLEAN          isWrite() const { return TRUE ; }
 
-      INT32 open( const CHAR *pCollectionName, _pmdEDUCB *cb,
+      INT32 open( const CHAR *pCollectionName,
+                  const utilRecycleItem *recycleItem,
+                  _pmdEDUCB *cb,
                   INT16 w ) ;
 
    protected:
@@ -125,6 +137,7 @@ namespace engine
 
    private:
       INT32 _tryLock( const CHAR *pCollectionName,
+                      const utilRecycleItem *recycleItem,
                       _pmdEDUCB *cb );
 
       INT32 _releaseLock( _pmdEDUCB *cb );
@@ -143,13 +156,15 @@ namespace engine
 
       _dmsStorageUnit      *_su ;
       _dmsMBContext        *_mbContext ;
+
+      dmsEventCLItem       _eventItem ;
+      dmsDropCLOptions     _options ;
    };
    typedef class _rtnContextDelCL rtnContextDelCL;
 
    /*
       _rtnContextDelMainCL define
    */
-   class _SDB_RTNCB;
    class _rtnContextDelMainCL : public _rtnContextBase
    {
       typedef ossPoolMap< std::string, SINT64>  SUBCL_CONTEXT_LIST ;
@@ -164,6 +179,7 @@ namespace engine
 
       INT32 open( const CHAR *pCollectionName,
                   CLS_SUBCL_LIST &subCLList,
+                  const utilRecycleItem *recycleItem,
                   _pmdEDUCB *cb,
                   INT16 w ) ;
 
@@ -193,6 +209,7 @@ namespace engine
    */
    class _rtnContextRenameCS : public _rtnContextBase
    {
+   protected:
       enum renameCSPhase
       {
          RENAMECSPHASE_0 = 0,
@@ -214,14 +231,40 @@ namespace engine
       virtual INT32 _prepareData( _pmdEDUCB *cb ) ;
       virtual void  _toString( stringstream &ss ) ;
 
-   private:
-      INT32 _tryLock( const CHAR *pCSName,
-                     _pmdEDUCB *cb );
+   protected:
       BOOLEAN _hasWritingEDU( _pmdEDUCB *cb,
                               ossPoolSet<UINT64>& excludeIdList ) ;
-      INT32 _releaseLock( _pmdEDUCB *cb );
+      virtual INT32 _tryLock( const CHAR *pCSName,
+                              _pmdEDUCB *cb ) ;
+      virtual INT32 _releaseLock( _pmdEDUCB *cb ) ;
+      virtual INT32 _doRenameP1( _pmdEDUCB *cb ) ;
+      virtual INT32 _doRename( _pmdEDUCB *cb ) ;
+      virtual INT32 _cancelRename( _pmdEDUCB *cb ) ;
+      virtual INT32 _initLocalTask( rtnLocalTaskPtr &taskPtr,
+                                    const CHAR *oldName,
+                                    const CHAR *newName ) ;
 
-   private:
+      virtual RTN_LOCAL_TASK_TYPE _getLocakTaskType() const
+      {
+         return RTN_LOCAL_TASK_RENAMECS ;
+      }
+
+      virtual BOOLEAN _flagAllowNewSYS() const
+      {
+         return FALSE ;
+      }
+
+      virtual BOOLEAN _flagAllowOldSYS() const
+      {
+         return FALSE ;
+      }
+
+      virtual BOOLEAN _flagLockExclusive() const
+      {
+         return FALSE ;
+      }
+
+   protected:
       _SDB_DMSCB           *_pDmsCB ;
       dpsTransCB           *_pTransCB ;
       _clsCatalogAgent     *_pCatAgent ;
@@ -263,13 +306,42 @@ namespace engine
       virtual INT32 _prepareData( _pmdEDUCB *cb ) ;
       virtual void  _toString( stringstream &ss ) ;
 
-   private:
-      INT32 _tryLock( const CHAR *pCSName,
-                      const CHAR* mainCLName,
-                      _pmdEDUCB *cb );
-      INT32 _releaseLock( _pmdEDUCB *cb );
+   protected:
+      virtual INT32 _tryLock( const CHAR *pCSName,
+                              const CHAR *mainCLName,
+                              _pmdEDUCB *cb ) ;
+      virtual INT32 _releaseLock( _pmdEDUCB *cb ) ;
+      virtual INT32 _doRename( _pmdEDUCB *cb ) ;
+      virtual INT32 _initLocalTask( rtnLocalTaskPtr &taskPtr,
+                                    const CHAR *oldName,
+                                    const CHAR *newName ) ;
 
-   private:
+      virtual RTN_LOCAL_TASK_TYPE _getLocakTaskType() const
+      {
+         return RTN_LOCAL_TASK_RENAMECL ;
+      }
+
+      virtual BOOLEAN _flagAllowNewSYS() const
+      {
+         return FALSE ;
+      }
+
+      virtual BOOLEAN _flagAllowOldSYS() const
+      {
+         return FALSE ;
+      }
+
+      virtual BOOLEAN _flagLockExclusive() const
+      {
+         return FALSE ;
+      }
+
+      virtual BOOLEAN _flagAllowNewExist() const
+      {
+         return FALSE ;
+      }
+
+   protected:
       _SDB_DMSCB           *_pDmsCB ;
       _clsCatalogAgent     *_pCatAgent ;
       _clsFreezingWindow   *_pFreezingWnd ;
@@ -321,6 +393,91 @@ namespace engine
 
    };
    typedef class _rtnContextRenameMainCL rtnContextRenameMainCL ;
+
+   /*
+      rtnContextTruncateCL define
+   */
+   class _rtnContextTruncateCL : public _rtnContextBase
+   {
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextTruncateCL ) ;
+   public:
+      _rtnContextTruncateCL( SINT64 contextID, UINT64 eduID ) ;
+      ~_rtnContextTruncateCL() ;
+      virtual const CHAR*      name() const ;
+      virtual RTN_CONTEXT_TYPE getType () const ;
+      virtual _dmsStorageUnit* getSU () { return _su ; }
+      virtual BOOLEAN          isWrite() const { return TRUE ; }
+
+      INT32 open( const CHAR *pCollectionName,
+                  const utilRecycleItem *recycleItem,
+                  _pmdEDUCB *cb,
+                  INT16 w ) ;
+
+   protected:
+      virtual INT32 _prepareData( _pmdEDUCB *cb ) ;
+      virtual void  _toString( stringstream &ss ) ;
+
+   private:
+      INT32 _tryLock( const CHAR *pCollectionName,
+                      const utilRecycleItem *recycleItem,
+                      _pmdEDUCB *cb ) ;
+      INT32 _releaseLock( _pmdEDUCB *cb ) ;
+      void _clean( _pmdEDUCB *cb ) ;
+
+   private:
+      _SDB_DMSCB           *_pDmsCB;
+      _clsCatalogAgent     *_pCatAgent;
+      dpsTransCB           *_pTransCB;
+      CHAR                 _collectionName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
+      const CHAR           *_clShortName ;
+      BOOLEAN              _gotDmsCBWrite ;
+      BOOLEAN              _hasTransLockCL ;
+
+      _dmsStorageUnit      *_su ;
+      _dmsMBContext        *_mbContext ;
+
+      dmsEventCLItem       _eventItem ;
+      dmsTruncCLOptions    _options ;
+   };
+   typedef class _rtnContextTruncateCL rtnContextTruncateCL ;
+
+   /*
+      _rtnContextTruncMainCL define
+   */
+   class _rtnContextTruncMainCL : public _rtnContextBase
+   {
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextTruncMainCL )
+   public:
+      _rtnContextTruncMainCL( SINT64 contextID, UINT64 eduID ) ;
+      ~_rtnContextTruncMainCL() ;
+      virtual const CHAR*      name() const ;
+      virtual RTN_CONTEXT_TYPE getType () const ;
+      virtual _dmsStorageUnit* getSU () { return NULL ; }
+      virtual BOOLEAN          isWrite() const { return TRUE ; }
+
+      INT32 open( const CHAR *pCollectionName,
+                  CLS_SUBCL_LIST &subCLList,
+                  const utilRecycleItem *recycleItem,
+                  _pmdEDUCB *cb,
+                  INT16 w ) ;
+
+   protected:
+      virtual INT32 _prepareData( _pmdEDUCB *cb ) ;
+      virtual void  _toString( stringstream &ss ) ;
+
+   private:
+      void _clean( _pmdEDUCB *cb ) ;
+
+   private:
+      _clsCatalogAgent *   _cataAgent ;
+      _SDB_RTNCB *         _rtnCB ;
+      CHAR                 _name[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
+      SUBCL_CONTEXT_LIST   _subContextList ;
+      BOOLEAN              _lockDms ;
+
+   };
+   typedef class _rtnContextTruncMainCL rtnContextTruncMainCL ;
+
 }
 
 #endif /* RTN_CONTEXT_DEL_HPP_ */

@@ -57,6 +57,8 @@ namespace engine
       RTN_LOCAL_TASK_MIN               = 0,
       RTN_LOCAL_TASK_RENAMECS          = 1,
       RTN_LOCAL_TASK_RENAMECL          = 2,
+      RTN_LOCAL_TASK_RECYCLECS         = 3,
+      RTN_LOCAL_TASK_RECYCLECL         = 4,
 
       RTN_LOCAL_TASK_MAX
    } ;
@@ -97,7 +99,7 @@ namespace engine
          virtual BOOLEAN   muteXOn ( const _rtnLocalTaskBase *pOther ) const = 0 ;
 
       protected:
-         virtual void      _toBson( BSONObjBuilder &builder ) const = 0 ;
+         virtual INT32     _toBson( BSONObjBuilder &builder ) const = 0 ;
 
       private:
          void              _setTaskID( UINT64 taskID ) { _taskID = taskID ; }

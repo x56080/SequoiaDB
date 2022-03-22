@@ -745,8 +745,10 @@
 #define FIELD_NAME_ORIGIN_ID                 "OriginID"
 #define FIELD_NAME_RECYCLE_TIME              "RecycleTime"
 #define FIELD_NAME_IGNORE_LOCK               "IgnoreLock"
-#define FIELD_NAME_USERECYCLEBIN             "UseRecycleBin"
+#define FIELD_NAME_SKIPRECYCLEBIN            "SkipRecycleBin"
 #define FIELD_NAME_RECYCLE_ISCSRECY          "IsCSRecycled"
+#define FIELD_NAME_RECYCLE_ITEM              "RecycleItem"
+#define FIELD_NAME_DROP_RECYCLE_ITEM         "DropRecycleItem"
 
 #define IXM_FIELD_NAME_KEY                   "key"
 #define IXM_FIELD_NAME_NAME                  "name"

@@ -43,6 +43,7 @@
 #include "rtnLocalTaskFactory.hpp"
 #include "ossUtil.hpp"
 #include "../bson/bson.h"
+#include "utilRecycleItem.hpp"
 
 using namespace bson ;
 
@@ -95,7 +96,9 @@ namespace engine
          virtual BOOLEAN   muteXOn ( const _rtnLocalTaskBase *pOther ) const ;
 
       protected:
-         virtual void      _toBson( BSONObjBuilder &builder ) const ;
+         virtual INT32     _toBson( BSONObjBuilder &builder ) const ;
+
+         BOOLEAN _isSameLevel( const _rtnLocalTaskBase *pOther ) const ;
 
       private:
          CHAR  _from[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
@@ -132,6 +135,81 @@ namespace engine
          virtual RTN_LOCAL_TASK_TYPE getTaskType() const ;
    } ;
    typedef _rtnLTRenameCL rtnLTRenameCL ;
+
+   /*
+      _rtnLTRecycleBase define
+    */
+   class _rtnLTRecycleBase : public _rtnLTRename
+   {
+   protected:
+      typedef class _rtnLTRename _BASE ;
+
+   public:
+      _rtnLTRecycleBase() ;
+      virtual ~_rtnLTRecycleBase() ;
+
+      OSS_INLINE void setRecycleItem( const utilRecycleItem &recycleItem )
+      {
+         _recycleItem = recycleItem ;
+      }
+
+      OSS_INLINE const utilRecycleItem &getRecycleItem() const
+      {
+         return _recycleItem ;
+      }
+
+      void setInfo( const CHAR *from,
+                    const CHAR *to,
+                    const utilRecycleItem &item ) ;
+
+      virtual INT32 initFromBson( const BSONObj &obj ) ;
+
+   protected:
+      virtual INT32 _toBson( BSONObjBuilder &builder ) const ;
+
+   protected:
+      utilRecycleItem _recycleItem ;
+   } ;
+
+   typedef class _rtnLTRecycleBase rtnLTRecycleBase ;
+
+   /*
+      _rtnLTRecycleCS define
+    */
+   class _rtnLTRecycleCS : public _rtnLTRecycleBase
+   {
+      RTN_DECLARE_LT_AUTO_REGISTER() ;
+
+   public:
+      _rtnLTRecycleCS() {}
+      virtual ~_rtnLTRecycleCS() {}
+
+      RTN_LOCAL_TASK_TYPE getTaskType() const
+      {
+         return RTN_LOCAL_TASK_RECYCLECS ;
+      }
+   } ;
+
+   typedef class _rtnLTRecycleCS rtnLTRecycleCS ;
+
+   /*
+      _rtnLTRecycleCL define
+    */
+   class _rtnLTRecycleCL : public _rtnLTRecycleBase
+   {
+      RTN_DECLARE_LT_AUTO_REGISTER() ;
+
+   public:
+      _rtnLTRecycleCL() {}
+      virtual ~_rtnLTRecycleCL() {}
+
+      RTN_LOCAL_TASK_TYPE getTaskType() const
+      {
+         return RTN_LOCAL_TASK_RECYCLECL ;
+      }
+   } ;
+
+   typedef class _rtnLTRecycleCL rtnLTRecycleCL ;
 
 }
 

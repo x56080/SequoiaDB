@@ -1503,28 +1503,43 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETDOMAINCSS, "catGetDomainCSs" )
-   INT32 catGetDomainCSs ( const CHAR * domain, pmdEDUCB * cb,
-                           ossPoolList< string > & collectionSpaces )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATGETDOMAINCSS, "catGetDomainCSs" )
+   INT32 _catGetDomainCSs( const CHAR *sysCL,
+                           const CHAR *domain,
+                           pmdEDUCB *cb,
+                           ossPoolList< utilCSUniqueID > &collectionSpaces )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY ( SDB_CATGETDOMAINCSS ) ;
+      PD_TRACE_ENTRY ( SDB__CATGETDOMAINCSS ) ;
+
+      SDB_ASSERT( NULL != sysCL, "collection is invalid" ) ;
+      SDB_ASSERT( NULL != domain, "domain name is invalid" ) ;
+
       BSONObj matcher ;
       BSONObj dummyObj ;
       SDB_DMSCB * dmsCB = pmdGetKRCB()->getDMSCB() ;
       SDB_RTNCB * rtnCB = pmdGetKRCB()->getRTNCB() ;
       INT64 contextID = -1 ;
 
-      // Query
-      matcher = BSON( CAT_DOMAIN_NAME << domain ) ;
+      try
+      {
+         // Query
+         matcher = BSON( CAT_DOMAIN_NAME << domain ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
 
-      rc = rtnQuery( CAT_COLLECTION_SPACE_COLLECTION, dummyObj, matcher,
+      rc = rtnQuery( sysCL, dummyObj, matcher,
                      dummyObj, dummyObj, 0, cb, 0, -1, dmsCB, rtnCB,
                      contextID ) ;
       PD_RC_CHECK( rc, PDERROR, "Query collection[%s] failed, matcher: %s, "
-                   "rc: %d", CAT_COLLECTION_SPACE_COLLECTION,
-                   matcher.toString().c_str(), rc ) ;
+                   "rc: %d", sysCL, matcher.toString().c_str(), rc ) ;
 
       // Get more
       while ( TRUE )
@@ -1534,6 +1549,7 @@ namespace engine
          rc = rtnGetMore( contextID, 1, contextBuf, cb, rtnCB ) ;
          if ( SDB_DMS_EOC == rc )
          {
+            contextID = -1 ;
             rc = SDB_OK ;
             break ;
          }
@@ -1542,16 +1558,19 @@ namespace engine
          try
          {
             obj = BSONObj( contextBuf.data() ) ;
-            BSONElement csName = obj.getField( CAT_COLLECTION_SPACE_NAME ) ;
-            if ( String != csName.type() )
+            BSONElement element = obj.getField( CAT_CS_UNIQUEID ) ;
+            if ( !element.isNumber() )
             {
+               PD_LOG( PDWARNING, "Failed to parse collection space "
+                       "for unique ID [%s]", obj.toPoolString().c_str() ) ;
+               SDB_ASSERT( FALSE, "should have unique ID" ) ;
                continue ;
             }
-            collectionSpaces.push_back ( csName.valuestr() ) ;
+            collectionSpaces.push_back(
+                        (utilCSUniqueID)( element.numberInt() ) ) ;
          }
          catch( exception & e )
          {
-            rtnKillContexts( 1 , &contextID, cb, rtnCB ) ;
             PD_LOG( PDERROR,
                     "Get collection space name from obj[%s] occur exception: %s",
                     obj.toString().c_str(), e.what() ) ;
@@ -1559,6 +1578,32 @@ namespace engine
             goto error ;
          }
       }
+
+   done:
+      if ( -1 != contextID )
+      {
+         rtnCB->contextDelete( contextID, cb ) ;
+         contextID = -1 ;
+      }
+      PD_TRACE_EXITRC( SDB__CATGETDOMAINCSS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETDOMAINCSS, "catGetDomainCSs" )
+   INT32 catGetDomainCSs ( const CHAR * domain, pmdEDUCB * cb,
+                           ossPoolList< utilCSUniqueID > & collectionSpaces )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATGETDOMAINCSS ) ;
+
+      rc = _catGetDomainCSs( CAT_COLLECTION_SPACE_COLLECTION, domain, cb,
+                             collectionSpaces ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get collection space for "
+                   "domain [%s], rc: %d", domain, rc ) ;
 
    done :
       PD_TRACE_EXITRC ( SDB_CATGETDOMAINCSS, rc ) ;
@@ -1769,172 +1814,151 @@ namespace engine
       goto done ;
    }
 
-   INT32 catGetCSGroupsFromCLs( const CHAR *csName, pmdEDUCB *cb,
-                                vector< UINT32 > &groups,
-                                BOOLEAN includeSubCLGroups,
-                                BOOLEAN checkDataSource )
+   static INT32 _catBuildCLMatcher( const CHAR *fieldName,
+                                    const CHAR *csName,
+                                    BSONObjBuilder &builder )
    {
       INT32 rc = SDB_OK ;
 
-      ossPoolSet< UINT32 > groupSet ;
-
-      rc = catGetCSGroups( csName, cb, groupSet, includeSubCLGroups,
-                           checkDataSource ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get groups of "
-                   "collection space [%s], rc: %d", csName, rc ) ;
-
-      for ( UINT32 i = 0 ; i < groups.size() ; ++i )
-      {
-         groupSet.insert( groups[ i ] ) ;
-      }
-      groups.clear() ;
-      for ( ossPoolSet< UINT32 >::iterator iterGroup = groupSet.begin() ;
-            iterGroup != groupSet.end() ;
-            iterGroup ++ )
-      {
-         groups.push_back( *iterGroup ) ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCSGRPS, "catGetCSGroups" )
-   INT32 catGetCSGroups ( const CHAR * csName,
-                          pmdEDUCB * cb,
-                          ossPoolSet< UINT32 > & groups,
-                          BOOLEAN includeSubCLGroups,
-                          BOOLEAN checkDataSource )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_CATGETCSGRPS ) ;
-
-      SDB_DMSCB * dmsCB = pmdGetKRCB()->getDMSCB() ;
-      SDB_RTNCB * rtnCB = pmdGetKRCB()->getRTNCB() ;
-      BSONObj matcher, matcherMaincl ;
       CHAR lowBound[ DMS_COLLECTION_SPACE_NAME_SZ + 1 + 1 ] = { 0 } ;
       CHAR upBound[  DMS_COLLECTION_SPACE_NAME_SZ + 1 + 1 ] = { 0 } ;
-
-      rtnQueryOptions queryOptions ;
-      queryOptions.setCLFullName( CAT_COLLECTION_INFO_COLLECTION ) ;
 
       // eg: csName is "test", { Name: { $regex: "^test\\." } } is equal to
       // { Name: { $gt: "test.", $lt: "test/" } }. So if csName has
       // metacharacter(eg: "^"), we do not need to escape it.
-      ossStrncpy( lowBound, csName, DMS_COLLECTION_NAME_SZ ) ;
+      ossStrncpy( lowBound, csName, DMS_COLLECTION_SPACE_NAME_SZ ) ;
       ossStrncat( lowBound, ".", 1 ) ;
-      ossStrncpy( upBound, csName, DMS_COLLECTION_NAME_SZ ) ;
+      ossStrncpy( upBound, csName, DMS_COLLECTION_SPACE_NAME_SZ ) ;
       ossStrncat( upBound, "/", 1 ) ;
 
-      matcher = BSON( CAT_COLLECTION_NAME
-                   << BSON( "$gt" << lowBound << "$lt" << upBound ) ) ;
-
-      // if includeSubCLGroups = TRUE, and this cs has main cl, we should also
-      // get groups of subcl
-      matcherMaincl = BSON( CAT_MAINCL_NAME
-                         << BSON( "$gt" << lowBound << "$lt" << upBound ) ) ;
-
-      INT8 loopTime = includeSubCLGroups ? 2 : 1 ;
-      INT64 contextID = -1 ;
-      for ( INT8 i = 0; i < loopTime; i++ )
+      try
       {
-         if ( 0 == i )
-         {
-            queryOptions.setQuery( matcher ) ;
-         }
-         else
-         {
-            queryOptions.setQuery( matcherMaincl ) ;
-         }
+         BSONObjBuilder subBuilder( builder.subobjStart( fieldName ) ) ;
+         subBuilder.append( "$gt", lowBound ) ;
+         subBuilder.append( "$lt", upBound ) ;
+         subBuilder.doneFast() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher for collection space, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
 
-         // query
-         rc = rtnQuery( queryOptions, cb, dmsCB, rtnCB, contextID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Query collection[%s] failed, "
-                      "rc: %d", CAT_COLLECTION_INFO_COLLECTION, rc ) ;
+   done:
+      return rc ;
 
-         // get more
-         while ( TRUE )
+   error:
+      goto done ;
+   }
+
+   static INT32 _catBuildCLMatcher( const CHAR *fieldName,
+                                    const CHAR *csName,
+                                    BSONObj &matcher )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+
+         rc = _catBuildCLMatcher( fieldName, csName, builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build matcher, rc: %d", rc ) ;
+
+         matcher = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher for collection space, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCSSUBCLGRPS, "catGetCSSubCLGroups" )
+   INT32 catGetCSSubCLGroups ( const CHAR * csName,
+                               pmdEDUCB * cb,
+                               ossPoolSet< UINT32 > & groups )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATGETCSSUBCLGRPS ) ;
+
+      SDB_DMSCB * dmsCB = pmdGetKRCB()->getDMSCB() ;
+      SDB_RTNCB * rtnCB = pmdGetKRCB()->getRTNCB() ;
+
+      INT64 contextID = -1 ;
+      rtnQueryOptions queryOptions ;
+
+      queryOptions.setCLFullName( CAT_COLLECTION_INFO_COLLECTION ) ;
+      BSONObj matcherMaincl ;
+
+      rc = _catBuildCLMatcher( CAT_MAINCL_NAME, csName, matcherMaincl ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build [%s] matcher for "
+                   "collection space [%s], rc: %d", CAT_MAINCL_NAME,
+                   csName, rc ) ;
+      queryOptions.setQuery( matcherMaincl ) ;
+
+      // query
+      rc = rtnQuery( queryOptions, cb, dmsCB, rtnCB, contextID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Query collection[%s] failed, "
+                   "rc: %d", CAT_COLLECTION_INFO_COLLECTION, rc ) ;
+
+      // get more
+      while ( TRUE )
+      {
+         BSONObj obj ;
+         rtnContextBuf contextBuf ;
+         rc = rtnGetMore( contextID, 1, contextBuf, cb, rtnCB ) ;
+         if ( SDB_DMS_EOC == rc )
          {
-            BSONObj obj ;
-            rtnContextBuf contextBuf ;
-            rc = rtnGetMore( contextID, 1, contextBuf, cb, rtnCB ) ;
-            if ( SDB_DMS_EOC == rc )
+            contextID = -1 ;
+            rc = SDB_OK ;
+            break ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Get more failed, rc: %d", rc ) ;
+
+         try
+         {
+            obj = BSONObj( contextBuf.data() ) ;
+            BSONElement eleCataInfo = obj.getField( CAT_CATALOGINFO_NAME ) ;
+            if ( Array != eleCataInfo.type() )
             {
-               contextID = -1 ;
-               rc = SDB_OK ;
-               break ;
+               continue ;
             }
-            PD_RC_CHECK( rc, PDERROR, "Get more failed, rc: %d", rc ) ;
-
-            try
+            BSONObjIterator itr( eleCataInfo.embeddedObject() ) ;
+            while( itr.more() )
             {
-               obj = BSONObj( contextBuf.data() ) ;
-               BSONElement eleCataInfo = obj.getField( CAT_CATALOGINFO_NAME ) ;
-               if ( Array != eleCataInfo.type() )
+               BSONElement e = itr.next() ;
+               if ( Object != e.type() )
                {
                   continue ;
                }
-               BSONObjIterator itr( eleCataInfo.embeddedObject() ) ;
-               while( itr.more() )
+               BSONObj cataItemObj = e.embeddedObject() ;
+               BSONElement eleGID = cataItemObj.getField( CAT_GROUPID_NAME ) ;
+               if ( eleGID.isNumber() )
                {
-                  BSONElement e = itr.next() ;
-                  if ( Object != e.type() )
-                  {
-                     continue ;
-                  }
-                  BSONObj cataItemObj = e.embeddedObject() ;
-                  BSONElement eleGID = cataItemObj.getField( CAT_GROUPID_NAME ) ;
-                  if ( eleGID.isNumber() )
-                  {
-                     groups.insert( eleGID.numberInt() ) ;
-                  }
+                  groups.insert( eleGID.numberInt() ) ;
                }
             }
-            catch( exception & e )
-            {
-               PD_LOG( PDERROR,
-                       "Get collection name from obj[%s] occur exception: %s",
-                       obj.toString().c_str(), e.what() ) ;
-               rc = SDB_SYS ;
-               goto error ;
-            }
-         }// end of get more
-      }
-
-      // check if this collection space is mapped from data source
-      if ( groups.empty() && checkDataSource )
-      {
-         BOOLEAN isMappingCS = FALSE ;
-         BSONObj boCollectionSpace ;
-         rc = catCheckPureMappingCS( csName, cb, isMappingCS,
-                                     &boCollectionSpace ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to check collection space [%s] for "
-                      "data source mapping, rc: %d", csName, rc ) ;
-
-         if ( isMappingCS )
-         {
-            UTIL_DS_UID dsUID = UTIL_INVALID_DS_UID ;
-            rc = catCheckDataSourceID( boCollectionSpace, dsUID ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to check data source ID from "
-                         "collection space [%s], rc: %d", csName, rc ) ;
-
-            try
-            {
-               groups.insert( SDB_DSID_2_GROUPID( dsUID ) ) ;
-            }
-            catch ( exception &e )
-            {
-               PD_LOG( PDERROR, "Failed to save data source group ID, "
-                       "occur exception %s", e.what() ) ;
-               rc = ossException2RC( &e ) ;
-               goto error ;
-            }
          }
-      }
-
+         catch( exception & e )
+         {
+            PD_LOG( PDERROR,
+                    "Get collection name from obj[%s] occur exception: %s",
+                    obj.toString().c_str(), e.what() ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }// end of get more
 
    done :
       if ( -1 != contextID )
@@ -1942,10 +1966,241 @@ namespace engine
          rtnCB->contextDelete( contextID, cb ) ;
          contextID = -1 ;
       }
-      PD_TRACE_EXITRC( SDB_CATGETCSGRPS, rc ) ;
+      PD_TRACE_EXITRC( SDB_CATGETCSSUBCLGRPS, rc ) ;
       return rc ;
 
    error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATGETCSGRPS_UID, "_catGetCSGroups" )
+   INT32 _catGetCSGroups( const CHAR *sysCL,
+                          utilCSUniqueID csUniqueID,
+                          pmdEDUCB *cb,
+                          ossPoolSet< UINT32 > &groups )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATGETCSGRPS_UID ) ;
+
+      SDB_DMSCB * dmsCB = pmdGetKRCB()->getDMSCB() ;
+      SDB_RTNCB * rtnCB = pmdGetKRCB()->getRTNCB() ;
+
+      rtnQueryOptions queryOptions ;
+      BSONObj matcher ;
+      INT64 contextID = -1 ;
+
+      rc = utilGetCSBounds( CAT_CL_UNIQUEID, csUniqueID, matcher ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build [%s] matcher for "
+                   "collection space [%u], rc: %d", CAT_CS_UNIQUEID,
+                   csUniqueID, rc ) ;
+
+      queryOptions.setCLFullName( sysCL ) ;
+      queryOptions.setQuery( matcher ) ;
+
+      // query
+      rc = rtnQuery( queryOptions, cb, dmsCB, rtnCB, contextID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Query collection[%s] failed, "
+                   "rc: %d", sysCL, rc ) ;
+
+      // get more
+      while ( TRUE )
+      {
+         BSONObj obj ;
+         rtnContextBuf contextBuf ;
+         rc = rtnGetMore( contextID, 1, contextBuf, cb, rtnCB ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            contextID = -1 ;
+            rc = SDB_OK ;
+            break ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Get more failed, rc: %d", rc ) ;
+
+         try
+         {
+            obj = BSONObj( contextBuf.data() ) ;
+            BSONElement eleCataInfo = obj.getField( CAT_CATALOGINFO_NAME ) ;
+            if ( Array != eleCataInfo.type() )
+            {
+               continue ;
+            }
+            BSONObjIterator itr( eleCataInfo.embeddedObject() ) ;
+            while( itr.more() )
+            {
+               BSONElement e = itr.next() ;
+               if ( Object != e.type() )
+               {
+                  continue ;
+               }
+               BSONObj cataItemObj = e.embeddedObject() ;
+               BSONElement eleGID = cataItemObj.getField( CAT_GROUPID_NAME ) ;
+               if ( eleGID.isNumber() )
+               {
+                  groups.insert( eleGID.numberInt() ) ;
+               }
+            }
+         }
+         catch( exception & e )
+         {
+            PD_LOG( PDERROR,
+                    "Get collection name from obj[%s] occur exception: %s",
+                    obj.toString().c_str(), e.what() ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }// end of get more
+
+   done:
+      if ( -1 != contextID )
+      {
+         rtnCB->contextDelete( contextID, cb ) ;
+      }
+      PD_TRACE_EXITRC( SDB__CATGETCSGRPS_UID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCSGRPS_VEC, "catGetCSGroups" )
+   INT32 catGetCSGroups( utilCSUniqueID csUniqueID,
+                         pmdEDUCB *cb,
+                         BOOLEAN includeRecycleBin,
+                         BOOLEAN includeRunningTask,
+                         vector< UINT32 > &groups )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATGETCSGRPS_VEC ) ;
+
+      ossPoolSet< UINT32 > groupSet ;
+
+      rc = catGetCSGroups( csUniqueID, cb, includeRecycleBin,
+                           includeRunningTask, groupSet ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get groups for collection "
+                   "space [%u], rc: %d", csUniqueID, rc ) ;
+
+      rc = catSaveToGroupIDList( groupSet, groups ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to save group ID list, rc: %d",
+                   rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATGETCSGRPS_VEC, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCSGRPS_UID, "catGetCSGroups" )
+   INT32 catGetCSGroups( utilCSUniqueID csUniqueID,
+                         pmdEDUCB *cb,
+                         BOOLEAN includeRecycleBin,
+                         BOOLEAN includeRunningTask,
+                         ossPoolSet< UINT32 > &groups )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATGETCSGRPS_UID ) ;
+
+      rc = _catGetCSGroups( CAT_COLLECTION_INFO_COLLECTION, csUniqueID,
+                            cb, groups ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get groups for collection "
+                   "space [%u], rc: %d", csUniqueID, rc ) ;
+
+      if ( includeRecycleBin )
+      {
+         rc = _catGetCSGroups( CAT_SYSRECYCLEBIN_CL_COLLECTION, csUniqueID,
+                               cb, groups ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get groups for collection "
+                      "space [%u] in recycle bin, rc: %d", csUniqueID, rc ) ;
+      }
+
+      if ( includeRunningTask )
+      {
+         rc = catGetCSSplitTargetGroups( csUniqueID, cb, groups ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get splitting "
+                      "group list of collection space [%u]: rc: %d",
+                      csUniqueID, rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATGETCSGRPS_UID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATGETCLCNTFROMCS_UID, "_catGetCLCountFromCS" )
+   static INT32 _catGetCLCountFromCS( utilCSUniqueID csUniqueID,
+                                      pmdEDUCB *cb,
+                                      UINT32 &count )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATGETCLCNTFROMCS_UID ) ;
+
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+
+      INT64 curCount = 0, recycledCount = 0 ;
+      rtnQueryOptions queryOptions ;
+      BSONObj matcher ;
+
+      rc = utilGetCSBounds( CAT_CL_UNIQUEID, csUniqueID, matcher ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build [%s] matcher for "
+                   "collection space [%u], rc: %d", CAT_CL_UNIQUEID,
+                   csUniqueID, rc ) ;
+      queryOptions.setQuery( matcher ) ;
+
+      queryOptions.setCLFullName( CAT_COLLECTION_INFO_COLLECTION ) ;
+      rc = rtnGetCount( queryOptions, dmsCB, cb, rtnCB, &curCount ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to query collection [%s], "
+                   "rc: %d", CAT_COLLECTION_INFO_COLLECTION, rc ) ;
+
+      // check recycle bin
+      queryOptions.setCLFullName( CAT_SYSRECYCLEBIN_CL_COLLECTION ) ;
+      rc = rtnGetCount( queryOptions, dmsCB, cb, rtnCB, &curCount ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to query collection [%s], "
+                   "rc: %d", CAT_COLLECTION_INFO_COLLECTION, rc ) ;
+
+      count = (UINT32)curCount + (UINT32)recycledCount ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATGETCLCNTFROMCS_UID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCHKCSCAP_UID, "catCheckCSCapacity" )
+   INT32 catCheckCSCapacity( utilCSUniqueID csUniqueID,
+                             UINT32 newAdding,
+                             pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCHKCSCAP_UID ) ;
+
+      UINT32 currentCount = 0 ;
+
+      rc = _catGetCLCountFromCS( csUniqueID, cb, currentCount ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get collection count from "
+                   "collection space [%u], rc: %d", csUniqueID, rc ) ;
+
+      PD_CHECK( currentCount + newAdding <= DMS_MME_SLOTS,
+                SDB_DMS_NOSPC, error, PDERROR,
+                "Failed to check capacity of collection space, current "
+                "[%u], adding [%u]", currentCount, newAdding ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCHKCSCAP_UID, rc ) ;
+      return rc ;
+
+   error:
       goto done ;
    }
 
@@ -2198,27 +2453,9 @@ namespace engine
       SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
       BSONObj dummyObj ;
       BSONObj matcher ;
-      CHAR lowBound[ DMS_COLLECTION_SPACE_NAME_SZ + 1 + 1 ] = { 0 } ;
-      CHAR upBound[  DMS_COLLECTION_SPACE_NAME_SZ + 1 + 1 ] = { 0 } ;
 
-      ossStrncpy( lowBound, csName, DMS_COLLECTION_NAME_SZ ) ;
-      ossStrncat( lowBound, ".", 1 ) ;
-      ossStrncpy( upBound, csName, DMS_COLLECTION_NAME_SZ ) ;
-      ossStrncat( upBound, "/", 1 ) ;
-
-      try
-      {
-         // eg: csName is "test", { Name: { $regex: "^test\\." } } is equal to
-         // { Name: { $gt: "test.", $lt: "test/" } }. So if csName has
-         // metacharacter(eg: "^"), we do not need to escape it.
-         matcher = BSON( FIELD_NAME_COLLECTION <<
-                         BSON( "$gt" << lowBound << "$lt" << upBound ) ) ;
-      }
-      catch( std::exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
-      }
+      rc = _catBuildCLMatcher( FIELD_NAME_COLLECTION, csName, matcher ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build matcher, rc: %d", rc ) ;
 
       rc = rtnDelete( CAT_INDEX_INFO_COLLECTION, matcher, dummyObj,
                       0, cb, dmsCB, dpsCB, w ) ;
@@ -2549,7 +2786,7 @@ namespace engine
    }
 
    INT32 catGetCLGlobalIndexesInfo( const CHAR *collection, pmdEDUCB *cb,
-                                    ossPoolList<PAIR_CLNAME_ID>& indexCLList )
+                                    CAT_PAIR_CLNAME_ID_LIST& indexCLList )
    {
       INT32 rc = SDB_OK ;
       ossPoolVector<BSONObj> indexObjList ;
@@ -2712,23 +2949,27 @@ namespace engine
       SDB_ASSERT( NULL != csName, "cs is invalid" ) ;
 
       BSONObj dummyObj, matcher ;
-      CHAR lowBound[ DMS_COLLECTION_SPACE_NAME_SZ + 1 + 1 ] = { 0 } ;
-      CHAR upBound[  DMS_COLLECTION_SPACE_NAME_SZ + 1 + 1 ] = { 0 } ;
 
-      ossStrncpy( lowBound, csName, DMS_COLLECTION_NAME_SZ ) ;
-      ossStrncat( lowBound, ".", 1 ) ;
-      ossStrncpy( upBound, csName, DMS_COLLECTION_NAME_SZ ) ;
-      ossStrncat( upBound, "/", 1 ) ;
+      try
+      {
+         BSONObjBuilder builder ;
 
-      // eg: csName is "test", { Name: { $regex: "^test\\." } } is equal to
-      // { Name: { $gt: "test.", $lt: "test/" } }. So if csName has
-      // metacharacter(eg: "^"), we do not need to escape it.
-      matcher = BSON( CAT_COLLECTION_NAME <<
-                      BSON( "$gt" << lowBound << "$lt" << upBound ) <<
-                      CAT_TASKTYPE_NAME <<
-                      type <<
-                      CAT_STATUS_NAME <<
-                      BSON( "$ne" << CLS_TASK_STATUS_FINISH ) ) ;
+         rc = _catBuildCLMatcher( CAT_COLLECTION_NAME, csName, builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build matcher, rc: %d", rc ) ;
+
+         builder.append( CAT_TASKTYPE_NAME, type ) ;
+         builder.append( CAT_STATUS_NAME,
+                         BSON( "$ne" << CLS_TASK_STATUS_FINISH ) ) ;
+
+         matcher = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
 
       rc = catGetObjectCount( CAT_TASK_INFO_COLLECTION, dummyObj, matcher,
                               dummyObj, cb, count ) ;
@@ -2770,6 +3011,98 @@ namespace engine
       PD_TRACE_EXITRC( SDB_CATGETTASKCOUNTBYTYPE, rc ) ;
       return rc ;
    error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCSSPLITTARGETGRPS, "catGetCSSplitTargetGroups" )
+   INT32 catGetCSSplitTargetGroups( utilCSUniqueID csUniqueID,
+                                    pmdEDUCB * cb,
+                                    ossPoolSet< UINT32 > & groups )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATGETCSSPLITTARGETGRPS ) ;
+
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      INT64 contextID = -1 ;
+      BSONObj matcher ;
+      rtnQueryOptions queryOptions ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+
+         // status
+         BSONObjBuilder statusBuilder(
+                                 builder.subobjStart( CAT_STATUS_NAME ) ) ;
+         statusBuilder.append( "$ne", (INT32)CLS_TASK_STATUS_FINISH ) ;
+         statusBuilder.doneFast() ;
+
+         // cs unique ID bound
+         rc = utilGetCSBounds( CAT_CL_UNIQUEID, csUniqueID, builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build [%s] matcher for "
+                      "collection space [%u], rc: %d", CAT_CS_UNIQUEID,
+                      csUniqueID, rc ) ;
+
+         // split task
+         builder.append( CAT_TASKTYPE_NAME, (INT32)CLS_TASK_SPLIT ) ;
+
+         matcher = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      queryOptions.setCLFullName( CAT_TASK_INFO_COLLECTION ) ;
+      queryOptions.setQuery( matcher ) ;
+
+      rc = rtnQuery( queryOptions, cb, dmsCB, rtnCB, contextID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Query collection[%s] failed, "
+                   "rc: %d", CAT_TASK_INFO_COLLECTION, rc ) ;
+
+      // get more
+      while ( TRUE )
+      {
+         BSONObj obj ;
+         rtnContextBuf contextBuf ;
+         rc = rtnGetMore( contextID, 1, contextBuf, cb, rtnCB ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            contextID = -1 ;
+            rc = SDB_OK ;
+            break ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Get more failed, rc: %d", rc ) ;
+
+         try
+         {
+            obj = BSONObj( contextBuf.data() ) ;
+            BSONElement ele = obj.getField( CAT_TARGETID_NAME ) ;
+            groups.insert( ele.numberInt() ) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Get group id from obj[%s] occur exception: %s",
+                    obj.toString().c_str(), e.what() ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
+
+   done :
+      if ( -1 != contextID )
+      {
+         rtnCB->contextDelete ( contextID, cb ) ;
+      }
+      PD_TRACE_EXITRC( SDB_CATGETCSSPLITTARGETGRPS, rc ) ;
+      return rc ;
+
+   error :
       goto done ;
    }
 
@@ -3320,21 +3653,11 @@ namespace engine
       BOOLEAN hasTask = FALSE ;
       ossPoolSet<UINT64> mainTaskSet ;
       ossPoolMap<UINT64,UINT64> subTaskMap ; // <taskID, mainTaskID>
-      CHAR lowBound[ DMS_COLLECTION_SPACE_NAME_SZ + 1 + 1 ] = { 0 } ;
-      CHAR upBound[  DMS_COLLECTION_SPACE_NAME_SZ + 1 + 1 ] = { 0 } ;
-
-      ossStrncpy( lowBound, csName, DMS_COLLECTION_NAME_SZ ) ;
-      ossStrncat( lowBound, ".", 1 ) ;
-      ossStrncpy( upBound, csName, DMS_COLLECTION_NAME_SZ ) ;
-      ossStrncat( upBound, "/", 1 ) ;
 
       try
       {
-         // eg: csName is "test", { Name: { $regex: "^test\\." } } is equal to
-         // { Name: { $gt: "test.", $lt: "test/" } }. So if csName has
-         // metacharacter(eg: "^"), we do not need to escape it.
-         matcher = BSON( CAT_COLLECTION_NAME <<
-                         BSON( "$gt" << lowBound << "$lt" << upBound ) ) ;
+         rc = _catBuildCLMatcher( CAT_COLLECTION_NAME, csName, matcher ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build matcher, rc: %d", rc ) ;
 
          rc = _queryTask( matcher, cb, hasTask, mainTaskSet, subTaskMap ) ;
          PD_RC_CHECK( rc, PDERROR,
@@ -3491,107 +3814,6 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_CATRMEXPTASK, rc ) ;
       return rc ;
    error:
-      goto done ;
-   }
-
-   INT32 catGetCSGroupsFromTasks( const CHAR *csName, pmdEDUCB *cb,
-                                  vector< UINT32 > &groups )
-   {
-      INT32 rc = SDB_OK ;
-
-      ossPoolSet< UINT32 > groupSet ;
-
-      rc = catGetCSTaskGroups( csName, cb, groupSet ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get task groups of "
-                   "collection space [%s], rc: %d", csName, rc ) ;
-
-      for ( UINT32 i = 0 ; i < groups.size() ; ++i )
-      {
-         groupSet.insert( groups[ i ] ) ;
-      }
-      groups.clear() ;
-      for ( ossPoolSet< UINT32 >::iterator iterGroup = groupSet.begin() ;
-            iterGroup != groupSet.end() ;
-            iterGroup ++ )
-      {
-         groups.push_back( *iterGroup ) ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCSTASKGRPS, "catGetCSTaskGroups" )
-   INT32 catGetCSTaskGroups ( const CHAR * csName,
-                              pmdEDUCB * cb,
-                              ossPoolSet< UINT32 > & groups )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_CATGETCSTASKGRPS ) ;
-
-      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
-      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
-      INT64 contextID = -1 ;
-      BSONObj matcher ;
-      rtnQueryOptions queryOptions ;
-      CHAR lowBound[ DMS_COLLECTION_SPACE_NAME_SZ + 1 + 1 ] = { 0 } ;
-      CHAR upBound[  DMS_COLLECTION_SPACE_NAME_SZ + 1 + 1 ] = { 0 } ;
-
-      ossStrncpy( lowBound, csName, DMS_COLLECTION_NAME_SZ ) ;
-      ossStrncat( lowBound, ".", 1 ) ;
-      ossStrncpy( upBound, csName, DMS_COLLECTION_NAME_SZ ) ;
-      ossStrncat( upBound, "/", 1 ) ;
-
-      // eg: csName is "test", { Name: { $regex: "^test\\." } } is equal to
-      // { Name: { $gt: "test.", $lt: "test/" } }. So if csName has
-      // metacharacter(eg: "^"), we do not need to escape it.
-      matcher = BSON( CAT_COLLECTION_NAME
-                   << BSON( "$gt" << lowBound << "$lt" << upBound ) ) ;
-
-      queryOptions.setCLFullName( CAT_TASK_INFO_COLLECTION ) ;
-      queryOptions.setQuery( matcher ) ;
-
-      rc = rtnQuery( queryOptions, cb, dmsCB, rtnCB, contextID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Query collection[%s] failed, "
-                   "rc: %d", CAT_TASK_INFO_COLLECTION, rc ) ;
-
-      // get more
-      while ( TRUE )
-      {
-         BSONObj obj ;
-         rtnContextBuf contextBuf ;
-         rc = rtnGetMore( contextID, 1, contextBuf, cb, rtnCB ) ;
-         if ( SDB_DMS_EOC == rc )
-         {
-            rc = SDB_OK ;
-            break ;
-         }
-         PD_RC_CHECK( rc, PDERROR, "Get more failed, rc: %d", rc ) ;
-
-         try
-         {
-            obj = BSONObj( contextBuf.data() ) ;
-            BSONElement ele = obj.getField( CAT_TARGETID_NAME ) ;
-            groups.insert( ele.numberInt() ) ;
-         }
-         catch( std::exception &e )
-         {
-            rtnKillContexts( 1 , &contextID, cb, rtnCB ) ;
-            PD_LOG( PDERROR, "Get group id from obj[%s] occur exception: %s",
-                    obj.toString().c_str(), e.what() ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-      }
-
-   done :
-      PD_TRACE_EXITRC( SDB_CATGETCSTASKGRPS, rc ) ;
-      return rc ;
-
-   error :
       goto done ;
    }
 
@@ -4495,6 +4717,9 @@ namespace engine
          break ;
       case MSG_CAT_DROP_IDX_REQ :
          contextType = RTN_CONTEXT_CAT_DROP_IDX ;
+         break ;
+      case MSG_CAT_TRUNCATE_REQ :
+         contextType = RTN_CONTEXT_CAT_TRUNCATE_CL ;
          break ;
       case MSG_CAT_CREATE_NODE_REQ :
          contextType = RTN_CONTEXT_CAT_CREATE_NODE ;
@@ -7874,7 +8099,9 @@ namespace engine
       goto done ;
    }
 
-   const CHAR *catGetOriginCL( UTIL_RECYCLE_TYPE type )
+   // collections of catalog meta data to recycle from
+   // e.g. collections in SYSCAT collection space
+   const CHAR *catGetRecycleBinMetaCL( UTIL_RECYCLE_TYPE type )
    {
       switch ( type )
       {
@@ -7903,7 +8130,9 @@ namespace engine
       return NULL ;
    }
 
-   const CHAR *catGetRecycleBinCL( UTIL_RECYCLE_TYPE type )
+   // collections of catalog meta data to recycle to
+   // e.g. collections in SYSRECYCLEBIN collection space
+   const CHAR *catGetRecycleBinRecyCL( UTIL_RECYCLE_TYPE type )
    {
       switch ( type )
       {
@@ -8168,7 +8397,7 @@ namespace engine
 
       try
       {
-         BSONElement element = object.getField( fieldName ) ;
+         BSONElement element = object.getFieldDotted( fieldName ) ;
          PD_CHECK( element.isNumber(), SDB_SYS, error, PDERROR,
                    "Failed to get field [%s] from object [%s], "
                    "it is not a number", fieldName,
@@ -8185,6 +8414,112 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB_CATPARSEUNIQUEID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATINCANDFETCHRECYID, "catIncAndFetchRecycleID" )
+   INT32 catIncAndFetchRecycleID( utilRecycleID &recycleID,
+                                  pmdEDUCB *cb,
+                                  INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATINCANDFETCHRECYID ) ;
+
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
+      SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
+
+      try
+      {
+         BSONElement ele ;
+         BSONObj dummy, result ;
+         BSONObj matcher = BSON( FIELD_NAME_TYPE << CAT_BASE_TYPE_GLOBAL_STR ) ;
+         BSONObj updator ;
+
+         rc = catGetOneObj( CAT_SYSDCBASE_COLLECTION_NAME, dummy, matcher,
+                            dummy, cb, result ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get DC info from "
+                      "collection [%s], rc: %d",
+                      CAT_SYSDCBASE_COLLECTION_NAME, rc ) ;
+
+         ele = result.getField( FIELD_NAME_RECYCLEBIN ) ;
+         PD_CHECK( Object == ele.type(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s]", FIELD_NAME_RECYCLEBIN ) ;
+         ele = ele.embeddedObject().getField( FIELD_NAME_RECYCLEIDHWM ) ;
+         PD_CHECK( NumberLong == ele.type(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s]", FIELD_NAME_RECYCLEIDHWM ) ;
+         recycleID = ( utilRecycleID )ele.numberLong() ;
+         PD_CHECK( recycleID < UTIL_GLOGALID_MAX, SDB_CAT_GLOBALID_EXCEEDED,
+                   error, PDERROR, "Failed to get recycle ID, it can't "
+                   "exceed %llu" ) ;
+         recycleID += 1 ;
+
+         updator = BSON( "$set" <<
+                         BSON( FIELD_NAME_RECYCLEBIN"."FIELD_NAME_RECYCLEIDHWM <<
+                               (INT64)recycleID ) ) ;
+         rc = rtnUpdate( CAT_SYSDCBASE_COLLECTION_NAME, matcher, updator,
+                         dummy, 0, cb, dmsCB, dpsCB, w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Fail to update obj [%s] to "
+                      "collection [%s], rc: %d", updator.toString().c_str(),
+                      CAT_SYSDCBASE_COLLECTION_NAME, rc ) ;
+      }
+      catch ( exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATINCANDFETCHRECYID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETDOMAINRECYCS, "catGetDomainRecycleCSs" )
+   INT32 catGetDomainRecycleCSs( const CHAR *domain,
+                                 pmdEDUCB *cb,
+                                 ossPoolList< utilCSUniqueID > &collectionSpaces )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATGETDOMAINRECYCS ) ;
+
+      rc = _catGetDomainCSs( CAT_SYSRECYCLEBIN_CS_COLLECTION, domain, cb,
+                             collectionSpaces ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get collection space for "
+                   "domain [%s] in recycle bin, rc: %d", domain, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATGETDOMAINRECYCS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETRECYCSGRPS, "catGetRecyCSGroups" )
+   INT32 catGetRecyCSGroups( utilCSUniqueID csUniqueID,
+                             pmdEDUCB *cb,
+                             SET_UINT32 &groups )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATGETRECYCSGRPS ) ;
+
+      rc = _catGetCSGroups( CAT_SYSRECYCLEBIN_CL_COLLECTION, csUniqueID,
+                            cb, groups ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get groups for collection "
+                   "space [%u], rc: %d", csUniqueID, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATGETRECYCSGRPS, rc ) ;
       return rc ;
 
    error:

@@ -1997,12 +1997,13 @@ retry:
                                          SDB_DMSCB *dmsCB,
                                          SDB_DPSCB *dpsCB,
                                          BOOLEAN   sysCall,
-                                         BOOLEAN   ensureEmpty )
+                                         BOOLEAN   ensureEmpty,
+                                         dmsDropCSOptions *options )
    {
       PD_TRACE_ENTRY ( SDB_RTNDROPCSCOMMAND ) ;
       INT32 rc = rtnDelCollectionSpaceCommand( pCollectionSpace, cb,
                                                dmsCB, dpsCB, sysCall,
-                                               TRUE, ensureEmpty ) ;
+                                               TRUE, ensureEmpty, options ) ;
       if ( SDB_OK == rc )
       {
          PD_LOG( PDEVENT, "Drop collectionspace[%s] succeed",
@@ -2136,7 +2137,8 @@ retry:
                                     _pmdEDUCB *cb,
                                     SDB_DMSCB *dmsCB,
                                     SDB_DPSCB *dpsCB,
-                                    BOOLEAN   sysCall )
+                                    BOOLEAN   sysCall,
+                                    dmsDropCSOptions *options )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNDROPCSP2 ) ;
@@ -2152,7 +2154,7 @@ retry:
          goto error ;
       }
       dmsCB->aquireCSMutex( pCollectionSpace ) ;
-      rc = dmsCB->dropCollectionSpaceP2( pCollectionSpace, cb, dpsCB ) ;
+      rc = dmsCB->dropCollectionSpaceP2( pCollectionSpace, cb, dpsCB, options ) ;
       dmsCB->releaseCSMutex( pCollectionSpace ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to drop cs(name:%s, rc=%d)",
@@ -2172,7 +2174,8 @@ retry:
                                     _pmdEDUCB *cb,
                                     SDB_DMSCB *dmsCB,
                                     SDB_DPSCB *dpsCB,
-                                    utilCLUniqueID clUniqueID )
+                                    utilCLUniqueID clUniqueID,
+                                    dmsDropCLOptions *options )
    {
       INT32 rc                            = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNDROPCLCOMMAND ) ;
@@ -2221,7 +2224,7 @@ retry:
       }
 
       rc = su->data()->dropCollection ( pCollectionShortName, cb, dpsCB,
-                                        TRUE, mbContext ) ;
+                                        TRUE, mbContext, options ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to drop collection %s, rc: %d",
@@ -2338,7 +2341,9 @@ retry:
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNTRUNCCLCOMMAND, "rtnTruncCollectionCommand" )
    INT32 rtnTruncCollectionCommand( const CHAR *pCollection, pmdEDUCB *cb,
-                                    SDB_DMSCB *dmsCB, SDB_DPSCB *dpsCB )
+                                    SDB_DMSCB *dmsCB, SDB_DPSCB *dpsCB,
+                                    dmsMBContext *mbContext,
+                                    dmsTruncCLOptions *options )
    {
       INT32 rc                         = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNTRUNCCLCOMMAND ) ;
@@ -2348,8 +2353,8 @@ retry:
       dmsStorageUnit *su               = NULL ;
       const CHAR *pCollectionShortName = NULL ;
       BOOLEAN writable                 = FALSE ;
-      dmsMBContext *context            = NULL ;
       dmsMB *mb                        = NULL ;
+      BOOLEAN getContext               = FALSE ;
 
       // Check writable before su lock
       rc = dmsCB->writable( cb ) ;
@@ -2365,7 +2370,9 @@ retry:
          goto error ;
       }
 
-      rc = su->data()->truncateCollection( pCollectionShortName, cb, dpsCB ) ;
+      rc = su->data()->truncateCollection( pCollectionShortName, cb, dpsCB,
+                                           TRUE, mbContext, TRUE, TRUE,
+                                           options ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to truncate collection %s, rc: %d",
@@ -2378,27 +2385,39 @@ retry:
        * truncation. So it should be pushed to the dictionary creating list
        * again after truncation.
        */
-      rc = su->data()->getMBContext( &context, pCollectionShortName, SHARED ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to get mb context of collection %s, rc: %d",
-                   pCollection, rc ) ;
-      mb = context->mb() ;
+      if ( NULL == mbContext )
+      {
+         rc = su->data()->getMBContext( &mbContext, pCollectionShortName,
+                                        SHARED ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get mb context of collection %s, rc: %d",
+                      pCollection, rc ) ;
+         getContext = TRUE ;
+      }
+      else if ( !mbContext->isMBLock() )
+      {
+         rc = mbContext->mbLock( SHARED ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to lock mb context of "
+                      "collection %s, rc: %d", pCollection, rc ) ;
+      }
+
+      mb = mbContext->mb() ;
 
       if ( OSS_BIT_TEST( mb->_attributes, DMS_MB_ATTR_COMPRESSED ) &&
            UTIL_COMPRESSOR_LZW == mb->_compressorType &&
            DMS_INVALID_EXTENT == mb->_dictExtentID )
       {
          dmsCB->pushDictJob( dmsDictJob( suID, su->LogicalCSID(),
-                             context->mbID(), context->clLID() ) ) ;
+                             mbContext->mbID(), mbContext->clLID() ) ) ;
       }
 
       PD_LOG( PDEVENT, "Truncate collection[%s] succeed",
               pCollection ) ;
 
    done :
-      if ( context )
+      if ( getContext && mbContext )
       {
-         su->data()->releaseMBContext( context ) ;
+         su->data()->releaseMBContext( mbContext ) ;
       }
       if ( DMS_INVALID_CS != suID )
       {

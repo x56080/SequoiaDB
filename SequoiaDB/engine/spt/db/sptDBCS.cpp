@@ -171,6 +171,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       string clName ;
+      BSONObj options ;
 
       rc = arg.getString( 0, clName ) ;
       if( SDB_OUT_OF_BOUND == rc )
@@ -183,7 +184,20 @@ namespace engine
          detail = BSON( SPT_ERR << "CLName must be string" ) ;
          goto error ;
       }
-      rc = _cs.dropCollection( clName.c_str() ) ;
+
+      if ( arg.argc() > 1 )
+      {
+         rc = arg.getBsonobj( 1, options ) ;
+         if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+         {
+            detail = BSON( SPT_ERR << ( arg.hasErrMsg() ?
+                                        arg.getErrMsg() :
+                                        "Options must be object" ) ) ;
+            goto error ;
+         }
+      }
+
+      rc = _cs.dropCollection( clName.c_str(), options ) ;
       if( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Failed to drop cl" ) ;

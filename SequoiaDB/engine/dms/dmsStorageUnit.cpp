@@ -51,63 +51,56 @@
 
 namespace engine
 {
+
+   static OSS_THREAD_LOCAL BOOLEAN s_isInCallback = FALSE ;
+
+   class _dmsCallbackShield
+   {
+   public:
+      _dmsCallbackShield()
+      {
+         if ( !s_isInCallback )
+         {
+            s_isInCallback = TRUE ;
+            _isRecursive = FALSE ;
+         }
+         else
+         {
+            _isRecursive = TRUE ;
+         }
+      }
+
+      ~_dmsCallbackShield()
+      {
+         if ( !_isRecursive )
+         {
+            s_isInCallback = FALSE ;
+         }
+      }
+
+      BOOLEAN isRecursive()
+      {
+         return _isRecursive ;
+      }
+
+   protected:
+      BOOLEAN _isRecursive ;
+   } ;
+
+   typedef class _dmsCallbackShield dmsCallbackShield ;
+
    /*
       _dmsEventHolder implement
     */
    _dmsEventHolder::_dmsEventHolder ( dmsStorageUnit *su )
+   : _handlers( NULL )
    {
       SDB_ASSERT( su, "Storage Unit is no valid" ) ;
       _su = su ;
-      unregAllHandlers() ;
    }
 
    _dmsEventHolder::~_dmsEventHolder ()
    {
-      unregAllHandlers() ;
-   }
-
-   void _dmsEventHolder::regHandler ( _IDmsEventHandler *pHandler )
-   {
-      if ( !pHandler )
-      {
-         return ;
-      }
-
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
-            ++ iter )
-      {
-         if ( *iter == pHandler )
-         {
-            return ;
-         }
-      }
-
-      _handlers.push_back( pHandler ) ;
-   }
-
-   void _dmsEventHolder::unregHandler ( _IDmsEventHandler *pHandler )
-   {
-      if ( pHandler )
-      {
-         return ;
-      }
-
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
-            ++ iter )
-      {
-         if ( *iter == pHandler )
-         {
-            _handlers.erase( iter ) ;
-            break ;
-         }
-      }
-   }
-
-   void _dmsEventHolder::unregAllHandlers ()
-   {
-      _handlers.clear() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSEVTHLD_ONCRTCS, "_dmsEventHolder::onCreateCS" )
@@ -117,15 +110,26 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONCRTCS ) ;
 
+      // avoid recursively calling
+      dmsCallbackShield shield ;
+      if ( shield.isRecursive() )
+      {
+         goto done ;
+      }
+
       // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -153,15 +157,26 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONLOADCS ) ;
 
+      // avoid recursively calling
+      dmsCallbackShield shield ;
+      if ( shield.isRecursive() )
+      {
+         goto done ;
+      }
+
       // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -189,15 +204,26 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONUNLOADCS ) ;
 
+      // avoid recursively calling
+      dmsCallbackShield shield ;
+      if ( shield.isRecursive() )
+      {
+         goto done ;
+      }
+
       // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -227,15 +253,26 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONRENAMECS ) ;
 
+      // avoid recursively calling
+      dmsCallbackShield shield ;
+      if ( shield.isRecursive() )
+      {
+         goto done ;
+      }
+
       // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -257,12 +294,23 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSEVTHLD_ONDROPCS, "_dmsEventHolder::onDropCS" )
-   INT32 _dmsEventHolder::onDropCS ( UINT32 mask, pmdEDUCB *cb, SDB_DPSCB *dpsCB )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSEVTHLD_ONCHECKDROPCS, "_dmsEventHolder::onCheckDropCS" )
+   INT32 _dmsEventHolder::onCheckDropCS( UINT32 mask,
+                                         const dmsEventSUItem &suItem,
+                                         dmsDropCSOptions *options,
+                                         pmdEDUCB *cb,
+                                         SDB_DPSCB *dpsCB )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONDROPCS ) ;
+      PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONCHECKDROPCS ) ;
+
+      // avoid recursively calling
+      dmsCallbackShield shield ;
+      if ( shield.isRecursive() )
+      {
+         goto done ;
+      }
 
       // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
@@ -270,25 +318,135 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
          if ( pHandler && ( pHandler->getMask() & mask ) )
          {
-            INT32 tmprc = pHandler->onDropCS( this, _pCacheHolder,
-                                              cb, dpsCB ) ;
-            if ( SDB_OK != tmprc )
-            {
-               rc = tmprc ;
-            }
+            rc = pHandler->onCheckDropCS( this, _pCacheHolder, suItem,
+                                          options, cb, dpsCB ) ;
+            PD_RC_CHECK( rc,  PDERROR, "Failed to call check drop "
+                         "collection space event in handle [%s],rc: %d",
+                         pHandler->getName(), rc ) ;
+         }
+      }
+
+   done :
+      PD_TRACE_EXITRC( SDB__DMSEVTHLD_ONCHECKDROPCS, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSEVTHLD_ONDROPCS, "_dmsEventHolder::onDropCS" )
+   INT32 _dmsEventHolder::onDropCS ( UINT32 mask,
+                                     SDB_EVENT_OCCUR_TYPE type,
+                                     const dmsEventSUItem &suItem,
+                                     dmsDropCSOptions *options,
+                                     pmdEDUCB *cb,
+                                     SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONDROPCS ) ;
+
+      // avoid recursively calling
+      dmsCallbackShield shield ;
+      if ( shield.isRecursive() )
+      {
+         goto done ;
+      }
+
+      // Event could not be handled in main thread
+      if ( !cb || cb->getType() == EDU_TYPE_MAIN )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
+
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
+            ++ iter )
+      {
+         _IDmsEventHandler *pHandler = (*iter) ;
+         if ( pHandler && ( pHandler->getMask() & mask ) )
+         {
+            rc = pHandler->onDropCS( type, this, _pCacheHolder, suItem,
+                                     options, cb, dpsCB ) ;
+            PD_RC_CHECK( rc,  PDERROR, "Failed to call [%s] drop collection "
+                         "space event in handle [%s],rc: %d",
+                         SDB_EVT_OCCUR_BEFORE == type ? "before" : "after",
+                         pHandler->getName(), rc ) ;
          }
       }
 
    done :
       PD_TRACE_EXITRC( SDB__DMSEVTHLD_ONDROPCS, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSEVTHLD_ONCLEANDROPCS, "_dmsEventHolder::onCleanDropCS" )
+   INT32 _dmsEventHolder::onCleanDropCS( UINT32 mask,
+                                         const dmsEventSUItem &suItem,
+                                         dmsDropCSOptions *options,
+                                         pmdEDUCB *cb,
+                                         SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONCLEANDROPCS ) ;
+
+      // avoid recursively calling
+      dmsCallbackShield shield ;
+      if ( shield.isRecursive() )
+      {
+         goto done ;
+      }
+
+      // Event could not be handled in main thread
+      if ( !cb || cb->getType() == EDU_TYPE_MAIN )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
+
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
+            ++ iter )
+      {
+         _IDmsEventHandler *pHandler = (*iter) ;
+         if ( pHandler && ( pHandler->getMask() & mask ) )
+         {
+            INT32 tmpRC = pHandler->onCleanDropCS( this, _pCacheHolder, suItem,
+                                                    options, cb, dpsCB ) ;
+            if ( SDB_OK != tmpRC )
+            {
+               PD_LOG( PDWARNING, "Failed to call clean drop collection space"
+                       "event in handle [%s],rc: %d",
+                       pHandler->getName(), rc ) ;
+            }
+         }
+      }
+
+   done :
+      PD_TRACE_EXITRC( SDB__DMSEVTHLD_ONCLEANDROPCS, rc ) ;
       return rc ;
    error :
       goto done ;
@@ -304,15 +462,26 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONCRTCL ) ;
 
+      // avoid recursively calling
+      dmsCallbackShield shield ;
+      if ( shield.isRecursive() )
+      {
+         goto done ;
+      }
+
       // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -345,15 +514,26 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONRENAMECL ) ;
 
+      // avoid recursively calling
+      dmsCallbackShield shield ;
+      if ( shield.isRecursive() )
+      {
+         goto done ;
+      }
+
       // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -375,16 +555,23 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSEVTHLD_ONTRUNCCL, "_dmsEventHolder::onTruncateCL" )
-   INT32 _dmsEventHolder::onTruncateCL ( UINT32 mask,
-                                         const dmsEventCLItem &clItem,
-                                         UINT32 newCLLID,
-                                         pmdEDUCB *cb,
-                                         SDB_DPSCB *dpsCB )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSEVTHLD_ONCHECKTRUNCCL, "_dmsEventHolder::onCheckTruncCL" )
+   INT32 _dmsEventHolder::onCheckTruncCL( UINT32 mask,
+                                          const dmsEventCLItem &clItem,
+                                          dmsTruncCLOptions *options,
+                                          pmdEDUCB *cb,
+                                          SDB_DPSCB *dpsCB )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONTRUNCCL ) ;
+      PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONCHECKTRUNCCL ) ;
+
+      // avoid recursively calling
+      dmsCallbackShield shield ;
+      if ( shield.isRecursive() )
+      {
+         goto done ;
+      }
 
       // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
@@ -392,20 +579,76 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
          if ( pHandler && ( pHandler->getMask() & mask ) )
          {
-            INT32 tmprc = pHandler->onTruncateCL( this, _pCacheHolder, clItem,
-                                                  newCLLID, cb, dpsCB ) ;
-            if ( SDB_OK != tmprc )
-            {
-               rc = tmprc ;
-            }
+            rc = pHandler->onCheckTruncCL( this, _pCacheHolder, clItem,
+                                           options, cb, dpsCB ) ;
+            PD_RC_CHECK( rc,  PDERROR, "Failed to call check truncate "
+                         "collection event in handle [%s],rc: %d",
+                         pHandler->getName(), rc ) ;
+         }
+      }
+
+   done :
+      PD_TRACE_EXITRC( SDB__DMSEVTHLD_ONCHECKTRUNCCL, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSEVTHLD_ONTRUNCCL, "_dmsEventHolder::onTruncateCL" )
+   INT32 _dmsEventHolder::onTruncateCL ( UINT32 mask,
+                                         SDB_EVENT_OCCUR_TYPE type,
+                                         const dmsEventCLItem &clItem,
+                                         dmsTruncCLOptions *options,
+                                         pmdEDUCB *cb,
+                                         SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONTRUNCCL ) ;
+
+      // avoid recursively calling
+      dmsCallbackShield shield ;
+      if ( shield.isRecursive() )
+      {
+         goto done ;
+      }
+
+      // Event could not be handled in main thread
+      if ( !cb || cb->getType() == EDU_TYPE_MAIN )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
+
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
+            ++ iter )
+      {
+         _IDmsEventHandler *pHandler = (*iter) ;
+         if ( pHandler && ( pHandler->getMask() & mask ) )
+         {
+            rc = pHandler->onTruncateCL( type, this, _pCacheHolder, clItem,
+                                         options, cb, dpsCB ) ;
+            PD_RC_CHECK( rc,  PDERROR, "Failed to call [%s] truncate "
+                         "collection event in handle [%s], rc: %d",
+                         SDB_EVT_OCCUR_BEFORE == type ? "before" : "after",
+                         pHandler->getName(), rc ) ;
          }
       }
 
@@ -416,15 +659,23 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSEVTHLD_ONDROPCL, "_dmsEventHolder::onDropCL" )
-   INT32 _dmsEventHolder::onDropCL ( UINT32 mask,
-                                     const dmsEventCLItem &clItem,
-                                     pmdEDUCB *cb,
-                                     SDB_DPSCB *dpsCB )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSEVTHLD_ONCLEANTRUNCCL, "_dmsEventHolder::onCleanTruncCL" )
+   INT32 _dmsEventHolder::onCleanTruncCL( UINT32 mask,
+                                          const dmsEventCLItem &clItem,
+                                          dmsTruncCLOptions *options,
+                                          pmdEDUCB *cb,
+                                          SDB_DPSCB *dpsCB )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONDROPCL ) ;
+      PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONCLEANTRUNCCL ) ;
+
+      // avoid recursively calling
+      dmsCallbackShield shield ;
+      if ( shield.isRecursive() )
+      {
+         goto done ;
+      }
 
       // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
@@ -432,25 +683,189 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
          if ( pHandler && ( pHandler->getMask() & mask ) )
          {
-            INT32 tmprc = pHandler->onDropCL( this, _pCacheHolder, clItem,
-                                              cb, dpsCB ) ;
-            if ( SDB_OK != tmprc )
+            INT32 tmpRC = pHandler->onCleanTruncCL( this, _pCacheHolder, clItem,
+                                                    options, cb, dpsCB ) ;
+            if ( SDB_OK != tmpRC )
             {
-               rc = tmprc ;
+               PD_LOG( PDWARNING, "Failed to call clean truncate collection "
+                       "event in handle [%s],rc: %d",
+                       pHandler->getName(), rc ) ;
             }
          }
       }
 
    done :
+      PD_TRACE_EXITRC( SDB__DMSEVTHLD_ONCLEANTRUNCCL, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSEVTHLD_ONCHECKDROPCL, "_dmsEventHolder::onCheckDropCL" )
+   INT32 _dmsEventHolder::onCheckDropCL( UINT32 mask,
+                                         const dmsEventCLItem &clItem,
+                                         dmsDropCLOptions *options,
+                                         pmdEDUCB *cb,
+                                         SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONCHECKDROPCL ) ;
+
+      // avoid recursively calling
+      dmsCallbackShield shield ;
+      if ( shield.isRecursive() )
+      {
+         goto done ;
+      }
+
+      // Event could not be handled in main thread
+      if ( !cb || cb->getType() == EDU_TYPE_MAIN )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
+
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
+            ++ iter )
+      {
+         _IDmsEventHandler *pHandler = (*iter) ;
+         if ( pHandler && ( pHandler->getMask() & mask ) )
+         {
+            rc = pHandler->onCheckDropCL( this, _pCacheHolder, clItem,
+                                          options, cb, dpsCB ) ;
+            PD_RC_CHECK( rc,  PDERROR, "Failed to call check drop collection "
+                         "event in handle [%s],rc: %d",
+                         pHandler->getName(), rc ) ;
+         }
+      }
+
+   done :
+      PD_TRACE_EXITRC( SDB__DMSEVTHLD_ONCHECKDROPCL, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSEVTHLD_ONDROPCL, "_dmsEventHolder::onDropCL" )
+   INT32 _dmsEventHolder::onDropCL ( UINT32 mask,
+                                     SDB_EVENT_OCCUR_TYPE type,
+                                     const dmsEventCLItem &clItem,
+                                     dmsDropCLOptions *options,
+                                     pmdEDUCB *cb,
+                                     SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONDROPCL ) ;
+
+      // avoid recursively calling
+      dmsCallbackShield shield ;
+      if ( shield.isRecursive() )
+      {
+         goto done ;
+      }
+
+      // Event could not be handled in main thread
+      if ( !cb || cb->getType() == EDU_TYPE_MAIN )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
+
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
+            ++ iter )
+      {
+         _IDmsEventHandler *pHandler = (*iter) ;
+         if ( pHandler && ( pHandler->getMask() & mask ) )
+         {
+            rc = pHandler->onDropCL( type, this, _pCacheHolder, clItem,
+                                     options, cb, dpsCB ) ;
+            PD_RC_CHECK( rc,  PDERROR, "Failed to call [%s] drop collection "
+                       "event in handle [%s],rc: %d",
+                       SDB_EVT_OCCUR_BEFORE == type ? "before" : "after",
+                       pHandler->getName(), rc ) ;
+         }
+      }
+
+   done :
       PD_TRACE_EXITRC( SDB__DMSEVTHLD_ONDROPCL, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSEVTHLD_ONCLEANDROPCL, "_dmsEventHolder::onCleanDropCL" )
+   INT32 _dmsEventHolder::onCleanDropCL( UINT32 mask,
+                                         const dmsEventCLItem &clItem,
+                                         dmsDropCLOptions *options,
+                                         pmdEDUCB *cb,
+                                         SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONCLEANDROPCL ) ;
+
+      // avoid recursively calling
+      dmsCallbackShield shield ;
+      if ( shield.isRecursive() )
+      {
+         goto done ;
+      }
+
+      // Event could not be handled in main thread
+      if ( !cb || cb->getType() == EDU_TYPE_MAIN )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
+
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
+            ++ iter )
+      {
+         _IDmsEventHandler *pHandler = (*iter) ;
+         if ( pHandler && ( pHandler->getMask() & mask ) )
+         {
+            INT32 tmpRC = pHandler->onCleanDropCL( this, _pCacheHolder, clItem,
+                                                   options, cb, dpsCB ) ;
+            if ( SDB_OK != tmpRC )
+            {
+               PD_LOG( PDWARNING, "Failed to call clean drop collection "
+                       "event in handle [%s],rc: %d",
+                       pHandler->getName(), rc ) ;
+            }
+         }
+      }
+
+   done :
+      PD_TRACE_EXITRC( SDB__DMSEVTHLD_ONCLEANDROPCL, rc ) ;
       return rc ;
    error :
       goto done ;
@@ -467,15 +882,26 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONCRTIDX ) ;
 
+      // avoid recursively calling
+      dmsCallbackShield shield ;
+      if ( shield.isRecursive() )
+      {
+         goto done ;
+      }
+
       // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -508,15 +934,26 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONREBUILDIDX ) ;
 
+      // avoid recursively calling
+      dmsCallbackShield shield ;
+      if ( shield.isRecursive() )
+      {
+         goto done ;
+      }
+
       // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -550,15 +987,26 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONDROPIDX ) ;
 
+      // avoid recursively calling
+      dmsCallbackShield shield ;
+      if ( shield.isRecursive() )
+      {
+         goto done ;
+      }
+
       // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -591,15 +1039,26 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONLINKCL ) ;
 
+      // avoid recursively calling
+      dmsCallbackShield shield ;
+      if ( shield.isRecursive() )
+      {
+         goto done ;
+      }
+
       // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -632,15 +1091,26 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONUNLINKCL ) ;
 
+      // avoid recursively calling
+      dmsCallbackShield shield ;
+      if ( shield.isRecursive() )
+      {
+         goto done ;
+      }
+
       // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -669,8 +1139,19 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONCLRSUCACHES ) ;
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      // avoid recursively calling
+      dmsCallbackShield shield ;
+      if ( shield.isRecursive() )
+      {
+         goto done ;
+      }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
+
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -684,6 +1165,7 @@ namespace engine
          }
       }
 
+   done:
       PD_TRACE_EXITRC( SDB__DMSEVTHLD_ONCLRSUCACHES, rc ) ;
 
       return rc ;
@@ -697,8 +1179,19 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONCLRCLCACHES ) ;
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      // avoid recursively calling
+      dmsCallbackShield shield ;
+      if ( shield.isRecursive() )
+      {
+         goto done ;
+      }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
+
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -713,6 +1206,7 @@ namespace engine
          }
       }
 
+   done:
       PD_TRACE_EXITRC( SDB__DMSEVTHLD_ONCLRCLCACHES, rc ) ;
 
       return rc ;
@@ -725,8 +1219,19 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONCHGSUCACHES ) ;
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      // avoid recursively calling
+      dmsCallbackShield shield ;
+      if ( shield.isRecursive() )
+      {
+         goto done ;
+      }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
+
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -740,6 +1245,7 @@ namespace engine
          }
       }
 
+   done:
       PD_TRACE_EXITRC( SDB__DMSEVTHLD_ONCHGSUCACHES, rc ) ;
 
       return rc ;
@@ -1155,7 +1661,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DMSSU_DESC ) ;
       close() ;
 
-      _eventHolder.unregAllHandlers() ;
       _cacheHolder.deleteAllSUCaches() ;
 
       if ( _pIndexSu )
@@ -3908,19 +4413,14 @@ namespace engine
       return &_eventHolder ;
    }
 
-   void _dmsStorageUnit::regEventHandler ( _IDmsEventHandler *pHandler )
+   void _dmsStorageUnit::setEventHandlers ( DMS_HANDLER_LIST *handlers )
    {
-      _eventHolder.regHandler( pHandler ) ;
+      _eventHolder.setHandlers( handlers ) ;
    }
 
-   void _dmsStorageUnit::unregEventHandler ( _IDmsEventHandler *pHandler )
+   void _dmsStorageUnit::unsetEventHandlers ()
    {
-      _eventHolder.unregHandler( pHandler ) ;
-   }
-
-   void _dmsStorageUnit::unregEventHandlers ()
-   {
-      _eventHolder.unregAllHandlers() ;
+      _eventHolder.unsetHandlers() ;
    }
 
    dmsSUCache *_dmsStorageUnit::getSUCache ( UINT32 type )

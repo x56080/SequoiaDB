@@ -267,6 +267,7 @@ namespace engine
          UINT32            getAttribute() const { return _attribute ; }
 
          BOOLEAN           isMainCL() const ;
+         BOOLEAN           isSubCL() const ;
          INT32             getSubCLList(
                               CLS_SUBCL_LIST &subCLLst,
                               CLS_SUBCL_SORT_TYPE sortType = SUBCL_SORT_BY_ID ) ;

@@ -61,10 +61,6 @@ namespace engine
                                           CHAR **ppMsgBuf,
                                           INT32 *pBufSize ) ;
 
-         virtual void  _releaseDataMsg( CHAR *pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB *cb ) ;
-
          virtual INT32 _generateRollbackDataMsg ( MsgHeader *pMsg,
                                                   pmdEDUCB *cb,
                                                   coordCMDArguments *pArgs,
@@ -316,10 +312,6 @@ namespace engine
                                           CHAR **ppMsgBuf,
                                           INT32 *pBufSize ) ;
 
-         virtual void  _releaseCataMsg( CHAR *pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB *cb ) ;
-
          virtual INT32 _doOnCataGroup ( MsgHeader *pMsg,
                                         pmdEDUCB *cb,
                                         rtnContextCoord::sharePtr *ppContext,
@@ -364,10 +356,6 @@ namespace engine
                                           CHAR **ppMsgBuf,
                                           INT32 *pBufSize ) ;
 
-         virtual void  _releaseCataMsg( CHAR *pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB *cb ) ;
-
          virtual INT32 _doOnDataGroup ( MsgHeader *pMsg,
                                         pmdEDUCB *cb,
                                         rtnContextCoord::sharePtr *ppContext,
@@ -404,10 +392,6 @@ namespace engine
                                           coordCMDArguments *pArgs,
                                           CHAR **ppMsgBuf,
                                           INT32 *pBufSize ) ;
-
-         virtual void  _releaseCataMsg( CHAR *pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB *cb ) ;
 
          virtual INT32 _doOnDataGroup ( MsgHeader *pMsg,
                                         pmdEDUCB *cb,
@@ -456,10 +440,6 @@ namespace engine
                                           coordCMDArguments *pArgs,
                                           CHAR **ppMsgBuf,
                                           INT32 *pBufSize ) ;
-
-         virtual void  _releaseCataMsg( CHAR *pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB *cb ) ;
 
          virtual INT32 _doOnDataGroup ( MsgHeader *pMsg,
                                         pmdEDUCB *cb,
@@ -513,10 +493,6 @@ namespace engine
                                           coordCMDArguments *pArgs,
                                           CHAR **ppMsgBuf,
                                           INT32 *pBufSize ) ;
-
-         virtual void  _releaseCataMsg( CHAR *pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB *cb ) ;
 
          virtual INT32 _doOnDataGroup ( MsgHeader *pMsg,
                                         pmdEDUCB *cb,

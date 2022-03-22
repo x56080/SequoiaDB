@@ -32,7 +32,8 @@
 *******************************************************************************/
 
 #include "clsRecycleBinManager.hpp"
-#include "clsMgr.hpp"
+#include "rtnLocalTask.hpp"
+#include "clsUniqueIDCheckJob.hpp"
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
 #include "../bson/bson.hpp"
@@ -50,11 +51,51 @@ namespace engine
       _clsRecycleBinManager implement
     */
    _clsRecycleBinManager::_clsRecycleBinManager()
+   : _freezingWindow( NULL ),
+     _localTaskManager( NULL )
    {
    }
 
    _clsRecycleBinManager::~_clsRecycleBinManager()
    {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR_INIT, "_clsRecycleBinManager::init" )
+   INT32 _clsRecycleBinManager::init()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSRECYBINMGR_INIT ) ;
+
+      rc = _BASE::init() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to init based recycle bin manager, "
+                   "rc: %d", rc ) ;
+
+      _freezingWindow =
+            pmdGetKRCB()->getClsCB()->getShardCB()->getFreezingWindow() ;
+      _localTaskManager = pmdGetKRCB()->getRTNCB()->getLTMgr() ;
+
+      SDB_ASSERT( NULL != _freezingWindow, "freezing window is invalid" ) ;
+      SDB_ASSERT( NULL != _localTaskManager, "local task manager is invalid" ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSRECYBINMGR_INIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR_FINI, "_clsRecycleBinManager::fini" )
+   void _clsRecycleBinManager::fini()
+   {
+      PD_TRACE_ENTRY( SDB__CLSRECYBINMGR_FINI ) ;
+
+      _BASE::fini() ;
+      _freezingWindow = NULL ;
+      _localTaskManager = NULL ;
+
+      PD_TRACE_EXIT( SDB__CLSRECYBINMGR_FINI ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR_DROPITEMCHK, "_clsRecycleBinManager::dropItemWithCheck" )
@@ -209,6 +250,806 @@ namespace engine
 
    error:
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR__REGBLOCKCL, "_clsRecycleBinManager::_regBlockCL" )
+   INT32 _clsRecycleBinManager::_regBlockCL( const CHAR *originName,
+                                             const CHAR *recycleName,
+                                             UINT64 &opID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSRECYBINMGR__REGBLOCKCL ) ;
+
+      UINT64 origOpID = 0, recyOpID = 0 ;
+
+      // already lock Z, so no need to wait
+      rc = _freezingWindow->registerCL( originName, origOpID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register origin name [%s], "
+                   "rc: %d", originName, rc ) ;
+
+      recyOpID = origOpID ;
+      rc = _freezingWindow->registerCL( recycleName, recyOpID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register recycle name [%s], "
+                   "rc: %d", recycleName, rc ) ;
+
+      opID = origOpID ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSRECYBINMGR__REGBLOCKCL, rc ) ;
+      return rc ;
+
+   error:
+      if ( 0 != origOpID )
+      {
+         _freezingWindow->unregisterCL( originName, origOpID ) ;
+      }
+      if ( 0 != recyOpID )
+      {
+         _freezingWindow->unregisterCL( recycleName, recyOpID ) ;
+      }
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR__UNREGBLOCKCL, "_clsRecycleBinManager::_unregBlockCL" )
+   void _clsRecycleBinManager::_unregBlockCL( const CHAR *originName,
+                                              const CHAR *recycleName,
+                                              UINT64 opID )
+   {
+      PD_TRACE_ENTRY( SDB__CLSRECYBINMGR__UNREGBLOCKCL ) ;
+
+      _freezingWindow->unregisterCL( originName, opID ) ;
+      _freezingWindow->unregisterCL( recycleName, opID ) ;
+
+      PD_TRACE_EXIT( SDB__CLSRECYBINMGR__UNREGBLOCKCL ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR__REGBLOCKCS, "_clsRecycleBinManager::_regBlockCS" )
+   INT32 _clsRecycleBinManager::_regBlockCS( const CHAR *originName,
+                                             const CHAR *recycleName,
+                                             UINT64 &opID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSRECYBINMGR__REGBLOCKCS ) ;
+
+      UINT64 origOpID = 0, recyOpID = 0 ;
+
+      // already lock Z, so no need to wait
+      rc = _freezingWindow->registerCS( originName, origOpID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register origin name [%s], "
+                   "rc: %d", originName, rc ) ;
+
+      recyOpID = origOpID ;
+      rc = _freezingWindow->registerCS( recycleName, recyOpID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register recycle name [%s], "
+                   "rc: %d", recycleName, rc ) ;
+
+      opID = origOpID ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSRECYBINMGR__REGBLOCKCS, rc ) ;
+      return rc ;
+
+   error:
+      if ( 0 != origOpID )
+      {
+         _freezingWindow->unregisterCS( originName, origOpID ) ;
+      }
+      if ( 0 != recyOpID )
+      {
+         _freezingWindow->unregisterCS( recycleName, recyOpID ) ;
+      }
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR__UNREGBLOCKCS, "_clsRecycleBinManager::_unregBlockCS" )
+   void _clsRecycleBinManager::_unregBlockCS( const CHAR *originName,
+                                              const CHAR *recycleName,
+                                              UINT64 opID )
+   {
+      PD_TRACE_ENTRY( SDB__CLSRECYBINMGR__UNREGBLOCKCS ) ;
+
+      _freezingWindow->unregisterCS( originName, opID ) ;
+      _freezingWindow->unregisterCS( recycleName, opID ) ;
+
+      PD_TRACE_EXIT( SDB__CLSRECYBINMGR__UNREGBLOCKCS ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR__CRTRECYCLTASK, "_clsRecycleBinManager::_createRecycleCLTask" )
+   INT32 _clsRecycleBinManager::_createRecycleCLTask( const CHAR *originName,
+                                                      const CHAR *recycleName,
+                                                      const utilRecycleItem &item,
+                                                      pmdEDUCB *cb,
+                                                      UINT64 &taskID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSRECYBINMGR__CRTRECYCLTASK ) ;
+
+      rtnLocalTaskPtr taskPtr ;
+      rtnLTRecycleCL *pRenameTask = NULL ;
+
+      rc = rtnGetLTFactory()->create( RTN_LOCAL_TASK_RECYCLECL, taskPtr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to allocate recycle "
+                   "collection task, rc: %d", rc ) ;
+
+      pRenameTask = dynamic_cast< rtnLTRecycleCL * >( taskPtr.get() ) ;
+      SDB_ASSERT( NULL != pRenameTask, "local task is invalid" ) ;
+
+      pRenameTask->setInfo( originName, recycleName, item ) ;
+
+      rc = _localTaskManager->addTask( taskPtr, cb, _dpsCB ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to add task [%s], rc: %d",
+                   taskPtr->toPrintString().c_str(), rc ) ;
+
+      taskID = taskPtr->getTaskID() ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSRECYBINMGR__CRTRECYCLTASK, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR__CRTRECYCSTASK, "_clsRecycleBinManager::_createRecycleCSTask" )
+   INT32 _clsRecycleBinManager::_createRecycleCSTask( const CHAR *originName,
+                                                      const CHAR *recycleName,
+                                                      const utilRecycleItem &item,
+                                                      pmdEDUCB *cb,
+                                                      UINT64 &taskID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSRECYBINMGR__CRTRECYCSTASK ) ;
+
+      rtnLocalTaskPtr taskPtr ;
+      rtnLTRecycleCS *pRenameTask = NULL ;
+
+      rc = rtnGetLTFactory()->create( RTN_LOCAL_TASK_RECYCLECS, taskPtr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to allocate recycle "
+                   "collection task, rc: %d", rc ) ;
+
+      pRenameTask = dynamic_cast< rtnLTRecycleCS * >( taskPtr.get() ) ;
+      SDB_ASSERT( NULL != pRenameTask, "local task is invalid" ) ;
+
+      pRenameTask->setInfo( originName, recycleName, item ) ;
+
+      rc = _localTaskManager->addTask( taskPtr, cb, _dpsCB ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to add task [%s], rc: %d",
+                   taskPtr->toPrintString().c_str(), rc ) ;
+
+      taskID = taskPtr->getTaskID() ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSRECYBINMGR__CRTRECYCSTASK, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR__CLEANLOCALTASK, "_clsRecycleBinManager::_cleanLocalTask" )
+   void _clsRecycleBinManager::_cleanLocalTask( UINT64 taskID,
+                                                UINT64 &opID,
+                                                pmdEDUCB *cb )
+   {
+      PD_TRACE_ENTRY( SDB__CLSRECYBINMGR__CLEANLOCALTASK ) ;
+
+      rtnLocalTaskPtr taskPtr ;
+
+      taskPtr = _localTaskManager->getTask( taskID ) ;
+      if ( NULL != taskPtr.get() && taskPtr->isTaskValid() )
+      {
+         /// context is killed by interrupted
+         if ( cb->isInterrupted() )
+         {
+            if ( SDB_OK == clsStartRenameCheckJob( taskPtr, opID ) )
+            {
+               opID = 0 ;
+            }
+            else
+            {
+               _localTaskManager->removeTask( taskPtr, cb, _dpsCB ) ;
+            }
+         }
+         else
+         {
+            _localTaskManager->removeTask( taskPtr, cb, _dpsCB ) ;
+         }
+      }
+
+      PD_TRACE_EXIT( SDB__CLSRECYBINMGR__CLEANLOCALTASK ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR_ONCHECKTRUNCCL, "_clsRecycleBinManager::onCheckTruncCL" )
+   INT32 _clsRecycleBinManager::onCheckTruncCL( IDmsEventHolder *pEventHolder,
+                                                IDmsSUCacheHolder *pCacheHolder,
+                                                const dmsEventCLItem &clItem,
+                                                dmsTruncCLOptions *options,
+                                                pmdEDUCB *cb,
+                                                SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSRECYBINMGR_ONCHECKTRUNCCL ) ;
+
+      if ( NULL != dpsCB &&
+           NULL != options &&
+           options->_recycleItem.isValid() )
+      {
+         UINT64 opID = 0 ;
+         UINT64 taskID = 0 ;
+
+         const utilRecycleItem &item = options->_recycleItem ;
+         const CHAR *origFullName = item.getOriginName() ;
+         CHAR recyFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+
+         ossSnprintf( recyFullName, DMS_COLLECTION_FULL_NAME_SZ, "%s.%s",
+                      pEventHolder->getCSName(), item.getRecycleName() ) ;
+
+         rc = _regBlockCL( origFullName, recyFullName, opID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to register block ID, rc: %d",
+                      rc ) ;
+
+         rc = _createRecycleCLTask( origFullName, recyFullName, item, cb,
+                                    taskID ) ;
+         if ( SDB_OK != rc )
+         {
+            _unregBlockCL( origFullName, recyFullName, opID ) ;
+            opID = 0 ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to create local task to "
+                      "recycle truncate collection, rc: %d", rc ) ;
+
+         options->_blockOpID = opID ;
+         options->_localTaskID = taskID ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSRECYBINMGR_ONCHECKTRUNCCL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR__RECYTRUNCCL, "_clsRecycleBinManager::_recycleTruncCL" )
+   INT32 _clsRecycleBinManager::_recycleTruncCL( const CHAR *clShortName,
+                                                 dmsStorageUnit *su,
+                                                 dmsMBContext *mbContext,
+                                                 const utilRecycleItem &item,
+                                                 pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSRECYBINMGR__RECYTRUNCCL ) ;
+
+      SDB_ASSERT( NULL != clShortName, "collection short name is invalid" ) ;
+
+      const CHAR *newName = item.getRecycleName() ;
+      utilCLUniqueID origUniqueID = (utilCLUniqueID)( item.getOriginID() ) ;
+      dmsMBContext *copiedMBContext = NULL ;
+
+      PD_CHECK( NULL != su, SDB_SYS, error, PDERROR,
+                "Failed to recycle collection [%s], "
+                "storage unit is invalid",
+                item.getOriginName() ) ;
+      PD_CHECK( NULL != mbContext, SDB_SYS, error, PDERROR,
+                "Failed to recycle collection [%s], "
+                "meta block context is invalid",
+                item.getOriginName() ) ;
+      PD_CHECK( mbContext->isMBLock( EXCLUSIVE ), SDB_SYS, error, PDERROR,
+                "Failed to recycle collection [%s], "
+                "meta block context is not locked in exclusive",
+                item.getOriginName() ) ;
+
+      rc = su->data()->renameCollection( clShortName, newName, cb, NULL, TRUE,
+                                         UTIL_CLUNIQUEID_LOCAL ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to recycle collection from "
+                   "[%s] to [%s], rc: %d", clShortName, newName, rc ) ;
+
+      // change start logical ID, and set truncate flag
+      // so other mbContext can detect collection truncated
+      mbContext->mbStat()->_startLID = DMS_INVALID_CLID ;
+      DMS_MB_STATINFO_SET_TRUNCATED( mbContext->mbStat()->_flag ) ;
+
+      rc = su->data()->copyCollection( mbContext, clShortName, origUniqueID,
+                                       cb, NULL, &copiedMBContext ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to copy collection [%s], "
+                   "rc: %d", clShortName, rc ) ;
+
+      mbContext->swap( *copiedMBContext ) ;
+      su->data()->releaseMBContext( copiedMBContext ) ;
+
+      PD_LOG( PDEVENT, "Recycle truncate collection [%s] to [%s]",
+              item.getOriginName(), item.getRecycleName() ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSRECYBINMGR__RECYTRUNCCL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR_ONTRUNCCL, "_clsRecycleBinManager::onTruncateCL" )
+   INT32 _clsRecycleBinManager::onTruncateCL( SDB_EVENT_OCCUR_TYPE type,
+                                              IDmsEventHolder *pEventHolder,
+                                              IDmsSUCacheHolder *pCacheHolder,
+                                              const dmsEventCLItem &clItem,
+                                              dmsTruncCLOptions *options,
+                                              pmdEDUCB *cb,
+                                              SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSRECYBINMGR_ONTRUNCCL ) ;
+
+      if ( SDB_EVT_OCCUR_BEFORE == type )
+      {
+         if ( NULL != options &&
+              options->_recycleItem.isValid() )
+         {
+            const utilRecycleItem &item = options->_recycleItem ;
+            dmsStorageUnit *su = NULL ;
+            dmsMBContext *mbContext = clItem._mbContext ;
+
+            dmsEventHolder *holder =
+                                 dynamic_cast<dmsEventHolder *>( pEventHolder ) ;
+            PD_CHECK( NULL != holder, SDB_SYS, error, PDERROR,
+                      "Failed to recycle collection [%s], failed to get "
+                      "dms event holder from event holder",
+                      item.getOriginName() ) ;
+
+            su = holder->getSU() ;
+            PD_CHECK( NULL != su, SDB_SYS, error, PDERROR,
+                      "Failed to recycle collection [%s], failed to get "
+                      "storage unit from event holder",
+                      item.getOriginName() ) ;
+
+            if ( options->_needSaveItem && NULL != dpsCB )
+            {
+               rc = saveItem( item, cb ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to save recycle item "
+                            "[origin %s, recycle %s], rc: %d",
+                            item.getOriginName(),
+                            item.getRecycleName(), rc ) ;
+            }
+
+            rc = _recycleTruncCL( clItem._pCLName, su, mbContext, item, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to recycle truncate collection "
+                         "[origin %s, recycle %s], rc: %d",
+                         item.getOriginName(),
+                         item.getRecycleName(), rc ) ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSRECYBINMGR_ONTRUNCCL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR_ONCLEANTRUNCCL, "_clsRecycleBinManager::onCleanTruncCL" )
+   INT32 _clsRecycleBinManager::onCleanTruncCL( IDmsEventHolder *pEventHolder,
+                                                IDmsSUCacheHolder *pCacheHolder,
+                                                const dmsEventCLItem &clItem,
+                                                dmsTruncCLOptions *options,
+                                                pmdEDUCB *cb,
+                                                SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSRECYBINMGR_ONCLEANTRUNCCL ) ;
+
+      if ( NULL != options &&
+           options->_recycleItem.isValid() )
+      {
+         UINT64 blockID = options->_blockOpID ;
+         UINT64 taskID = options->_localTaskID ;
+
+         const utilRecycleItem &item = options->_recycleItem ;
+         const CHAR *origFullName = item.getOriginName() ;
+         CHAR recyFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+
+         ossSnprintf( recyFullName, DMS_COLLECTION_FULL_NAME_SZ, "%s.%s",
+                      pEventHolder->getCSName(), item.getRecycleName() ) ;
+
+         if ( 0 != taskID )
+         {
+            _cleanLocalTask( taskID, blockID, cb ) ;
+         }
+         if ( 0 != blockID )
+         {
+            _unregBlockCL( origFullName, recyFullName, blockID ) ;
+         }
+      }
+
+      PD_TRACE_EXITRC( SDB__CLSRECYBINMGR_ONCLEANTRUNCCL, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR_ONCHECKDROPCL, "_clsRecycleBinManager::onCheckDropCL" )
+   INT32 _clsRecycleBinManager::onCheckDropCL( IDmsEventHolder *pEventHolder,
+                                               IDmsSUCacheHolder *pCacheHolder,
+                                               const dmsEventCLItem &clItem,
+                                               dmsDropCLOptions *options,
+                                               pmdEDUCB *cb,
+                                               SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSRECYBINMGR_ONCHECKDROPCL ) ;
+
+      if ( NULL != dpsCB &&
+           NULL != options &&
+           options->_recycleItem.isValid() )
+      {
+         UINT64 opID = 0 ;
+         UINT64 taskID = 0 ;
+
+         const utilRecycleItem &item = options->_recycleItem ;
+         const CHAR *origFullName = item.getOriginName() ;
+         CHAR recyFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+
+         ossSnprintf( recyFullName, DMS_COLLECTION_FULL_NAME_SZ, "%s.%s",
+                      pEventHolder->getCSName(), item.getRecycleName() ) ;
+
+         rc = _regBlockCL( origFullName, recyFullName, opID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to register block ID, rc: %d",
+                      rc ) ;
+
+         rc = _createRecycleCLTask( origFullName, recyFullName, item, cb,
+                                    taskID ) ;
+         if ( SDB_OK != rc )
+         {
+            _unregBlockCL( origFullName, recyFullName, opID ) ;
+            opID = 0 ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to create local task to "
+                      "recycle drop collection, rc: %d", rc ) ;
+
+         options->_blockOpID = opID ;
+         options->_localTaskID = taskID ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSRECYBINMGR_ONCHECKDROPCL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR__RECYDROPCL, "_clsRecycleBinManager::_recycleDropCL" )
+   INT32 _clsRecycleBinManager::_recycleDropCL( const CHAR *clShortName,
+                                                dmsStorageUnit *su,
+                                                dmsMBContext *mbContext,
+                                                const utilRecycleItem &item,
+                                                pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSRECYBINMGR__RECYDROPCL ) ;
+
+      SDB_ASSERT( NULL != clShortName, "collection short name is invalid" ) ;
+
+      const CHAR *newName = item.getRecycleName() ;
+
+      PD_CHECK( NULL != su, SDB_SYS, error, PDERROR,
+                "Failed to recycle collection [%s], "
+                "storage unit is invalid",
+                item.getOriginName() ) ;
+      PD_CHECK( NULL != mbContext, SDB_SYS, error, PDERROR,
+                "Failed to recycle collection [%s], "
+                "meta block context is invalid",
+                item.getOriginName() ) ;
+      PD_CHECK( mbContext->isMBLock( EXCLUSIVE ), SDB_SYS, error, PDERROR,
+                "Failed to recycle collection [%s], "
+                "meta block context is not locked in exclusive",
+                item.getOriginName() ) ;
+
+      rc = su->data()->renameCollection( clShortName, newName, cb, NULL, TRUE,
+                                         UTIL_CLUNIQUEID_LOCAL ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to recycle collection from "
+                   "[%s] to [%s], rc: %d", clShortName, newName, rc ) ;
+
+      // change start logical ID, and clear truncate flag
+      // so other mbContext can detect collection dropped
+      mbContext->mbStat()->_startLID = DMS_INVALID_CLID ;
+      DMS_MB_STATINFO_CLEAR_TRUNCATED( mbContext->mbStat()->_flag ) ;
+
+
+
+      PD_LOG( PDEVENT, "Recycle drop collection [%s] to [%s]",
+              item.getOriginName(), item.getRecycleName() ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSRECYBINMGR__RECYDROPCL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR_ONDROPCL, "_clsRecycleBinManager::onDropCL" )
+   INT32 _clsRecycleBinManager::onDropCL( SDB_EVENT_OCCUR_TYPE type,
+                                          IDmsEventHolder *pEventHolder,
+                                          IDmsSUCacheHolder *pCacheHolder,
+                                          const dmsEventCLItem &clItem,
+                                          dmsDropCLOptions *options,
+                                          pmdEDUCB *cb,
+                                          SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSRECYBINMGR_ONDROPCL ) ;
+
+      if ( SDB_EVT_OCCUR_BEFORE == type )
+      {
+         if ( NULL != options &&
+              options->_recycleItem.isValid() )
+         {
+            const utilRecycleItem &item = options->_recycleItem ;
+            dmsStorageUnit *su = NULL ;
+            dmsMBContext *mbContext = clItem._mbContext ;
+
+            dmsEventHolder *holder =
+                              dynamic_cast<dmsEventHolder *>( pEventHolder ) ;
+            PD_CHECK( NULL != holder, SDB_SYS, error, PDERROR,
+                      "Failed to recycle collection [%s], failed to get "
+                      "dms event holder from event holder",
+                      item.getOriginName() ) ;
+
+            su = holder->getSU() ;
+            PD_CHECK( NULL != su, SDB_SYS, error, PDERROR,
+                      "Failed to recycle collection [%s], failed to get "
+                      "storage unit from event holder",
+                      item.getOriginName() ) ;
+
+            if ( options->_needSaveItem && NULL != dpsCB )
+            {
+               rc = saveItem( item, cb ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to save recycle item "
+                            "[origin %s, recycle %s], rc: %d",
+                            item.getOriginName(),
+                            item.getRecycleName(), rc ) ;
+            }
+
+            rc = _recycleDropCL( clItem._pCLName, su, mbContext, item, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to recycle drop collection "
+                         "[origin %s, recycle %s], rc: %d",
+                         item.getOriginName(),
+                         item.getRecycleName(), rc ) ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSRECYBINMGR_ONDROPCL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR_ONCLEANDROPCL, "_clsRecycleBinManager::onCleanDropCL" )
+   INT32 _clsRecycleBinManager::onCleanDropCL( IDmsEventHolder *pEventHolder,
+                                               IDmsSUCacheHolder *pCacheHolder,
+                                               const dmsEventCLItem &clItem,
+                                               dmsDropCLOptions *options,
+                                               pmdEDUCB *cb,
+                                               SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSRECYBINMGR_ONCLEANDROPCL ) ;
+
+      if ( NULL != options &&
+           options->_recycleItem.isValid() )
+      {
+         UINT64 blockID = options->_blockOpID ;
+         UINT64 taskID = options->_localTaskID ;
+
+         const utilRecycleItem &item = options->_recycleItem ;
+         const CHAR *origFullName = item.getOriginName() ;
+         CHAR recyFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+
+         ossSnprintf( recyFullName, DMS_COLLECTION_FULL_NAME_SZ, "%s.%s",
+                      pEventHolder->getCSName(), item.getRecycleName() ) ;
+
+         if ( 0 != taskID )
+         {
+            _cleanLocalTask( taskID, blockID, cb ) ;
+         }
+         if ( 0 != blockID )
+         {
+            _unregBlockCL( origFullName, recyFullName, blockID ) ;
+         }
+      }
+
+      PD_TRACE_EXITRC( SDB__CLSRECYBINMGR_ONCLEANDROPCL, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR_ONCHECKDROPCS, "_clsRecycleBinManager::onCheckDropCS" )
+   INT32 _clsRecycleBinManager::onCheckDropCS( IDmsEventHolder *pEventHolder,
+                                               IDmsSUCacheHolder *pCacheHolder,
+                                               const dmsEventSUItem &suItem,
+                                               dmsDropCSOptions *options,
+                                               pmdEDUCB *cb,
+                                               SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSRECYBINMGR_ONCHECKDROPCS ) ;
+
+      if ( NULL != dpsCB &&
+           NULL != options &&
+           options->_recycleItem.isValid() )
+      {
+         UINT64 opID = 0 ;
+         UINT64 taskID = 0 ;
+
+         const utilRecycleItem &item = options->_recycleItem ;
+         const CHAR *originName = item.getOriginName() ;
+         const CHAR *recycleName = item.getRecycleName() ;
+
+         rc = _regBlockCS( originName, recycleName, opID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to register block ID, rc: %d",
+                      rc ) ;
+
+         rc = _createRecycleCSTask( originName, recycleName, item, cb, taskID ) ;
+         if ( SDB_OK != rc )
+         {
+            _unregBlockCS( originName, recycleName, opID ) ;
+            opID = 0 ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to create local task to "
+                      "recycle drop collection collection, rc: %d", rc ) ;
+
+         options->_blockOpID = opID ;
+         options->_localTaskID = taskID ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSRECYBINMGR_ONCHECKDROPCS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR__RECYDROPCS, "_clsRecycleBinManager::_recycleDropCS" )
+   INT32 _clsRecycleBinManager::_recycleDropCS( const CHAR *csName,
+                                                const utilRecycleItem &item,
+                                                pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSRECYBINMGR__RECYDROPCS ) ;
+
+      const CHAR *newName = item.getRecycleName() ;
+
+      // the storage unit is now in deleting list (temp list), need
+      // to be restored to do the rename
+      rc = _dmsCB->restoreCollectionSpace( csName ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to restore collection space "
+                   "[%s] from deleting, rc: %d", csName, rc ) ;
+
+      rc = _dmsCB->renameCollectionSpaceP2( csName, newName, cb, NULL ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to recycle collection space from "
+                   "[%s] to [%s], rc: %d", csName, newName, rc ) ;
+
+      PD_LOG( PDEVENT, "Recycle drop collection space [%s] to [%s]",
+              item.getOriginName(), item.getRecycleName() ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSRECYBINMGR__RECYDROPCS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR_ONDROPCS, "_clsRecycleBinManager::onDropCS" )
+   INT32 _clsRecycleBinManager::onDropCS( SDB_EVENT_OCCUR_TYPE type,
+                                          IDmsEventHolder *pEventHolder,
+                                          IDmsSUCacheHolder *pCacheHolder,
+                                          const dmsEventSUItem &suItem,
+                                          dmsDropCSOptions *options,
+                                          pmdEDUCB *cb,
+                                          SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSRECYBINMGR_ONDROPCS ) ;
+
+      if ( SDB_EVT_OCCUR_BEFORE == type )
+      {
+         if ( NULL != options &&
+              options->_recycleItem.isValid() )
+         {
+            const utilRecycleItem &item = options->_recycleItem ;
+
+            if ( options->_needSaveItem && NULL != dpsCB )
+            {
+               rc = saveItem( item, cb ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to save recycle item "
+                            "[origin %s, recycle %s], rc: %d",
+                            item.getOriginName(),
+                            item.getRecycleName(), rc ) ;
+            }
+
+            rc = _recycleDropCS( suItem._pCSName, item, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to recycle drop collection "
+                         "space [origin %s, recycle %s], rc: %d",
+                         item.getOriginName(),
+                         item.getRecycleName(), rc ) ;
+         }
+      }
+      else
+      {
+         if ( ( NULL == options ) ||
+              ( !( options->_recycleItem.isValid() ) ) )
+         {
+            // drop collection space without recycle bin,
+            // drop all recycle items in collection space
+            if ( UTIL_UNIQUEID_NULL != suItem._csUniqueID && NULL != dpsCB )
+            {
+               deleteItemsInCS( suItem._csUniqueID, cb ) ;
+            }
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSRECYBINMGR_ONDROPCS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR_ONCLEANDROPCS, "_clsRecycleBinManager::onCleanDropCS" )
+   INT32 _clsRecycleBinManager::onCleanDropCS( IDmsEventHolder *pEventHolder,
+                                               IDmsSUCacheHolder *pCacheHolder,
+                                               const dmsEventSUItem &suItem,
+                                               dmsDropCSOptions *options,
+                                               pmdEDUCB *cb,
+                                               SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSRECYBINMGR_ONCLEANDROPCS ) ;
+
+      if ( NULL != options &&
+           options->_recycleItem.isValid() )
+      {
+         UINT64 blockID = options->_blockOpID ;
+         UINT64 taskID = options->_localTaskID ;
+
+         const utilRecycleItem &item = options->_recycleItem ;
+         const CHAR *originName = item.getOriginName() ;
+         const CHAR *recycleName = item.getRecycleName() ;
+
+         if ( 0 != taskID )
+         {
+            _cleanLocalTask( taskID, blockID, cb ) ;
+         }
+         if ( 0 != blockID )
+         {
+            _unregBlockCS( originName, recycleName, blockID ) ;
+         }
+      }
+
+      PD_TRACE_EXITRC( SDB__CLSRECYBINMGR_ONCLEANDROPCS, rc ) ;
+
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR__DROPITEM_DONE, "_clsRecycleBinManager::_dropItem" )
@@ -590,6 +1431,34 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__CLSRECYBINMGR_GETSUBITEMS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR_SAVEITEM, "_clsRecycleBinManager::saveItem" )
+   INT32 _clsRecycleBinManager::saveItem( const utilRecycleItem &item,
+                                          pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSRECYBINMGR_SAVEITEM ) ;
+
+      BSONObj itemObject ;
+
+      rc = item.toBSON( itemObject ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for recycle item "
+                   "[origin %s, recycle %s], rc: %d", item.getOriginName(),
+                   item.getRecycleName(), rc ) ;
+
+      rc = _saveItemObject( itemObject, cb, 1 ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to save object for recycle item "
+                   "[origin %s, recycle %s], rc: %d", item.getOriginName(),
+                   item.getRecycleName(), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSRECYBINMGR_SAVEITEM, rc ) ;
       return rc ;
 
    error:

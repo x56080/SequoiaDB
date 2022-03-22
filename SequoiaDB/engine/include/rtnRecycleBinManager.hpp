@@ -233,6 +233,14 @@ namespace engine
       // count recycle items by matcher
       INT32 _countItems( const bson::BSONObj &matcher,
                          pmdEDUCB *cb,
+                         INT64 &count )
+      {
+         return _countItems( matcher, BSONObj(), cb, count ) ;
+      }
+
+      INT32 _countItems( const bson::BSONObj &matcher,
+                         const bson::BSONObj &hint,
+                         pmdEDUCB *cb,
                          INT64 &count ) ;
 
       // delete given recycle item
@@ -264,6 +272,19 @@ namespace engine
       void _getOldestItem( utilRecycleItem &item ) ;
       // cache oldest recycle item
       void _cacheOldestItem( const utilRecycleItem &item ) ;
+      // reset oldest recycle item cache
+      void _resetOldestItem( const utilRecycleItem &curItem ) ;
+
+      // save recycle item
+      INT32 _saveItemObject( const bson::BSONObj &object,
+                             pmdEDUCB *cb,
+                             INT16 w ) ;
+
+      // update recycle items by matcher
+      INT32 _updateItems( const bson::BSONObj &matcher,
+                          const bson::BSONObj &updator,
+                          pmdEDUCB *cb,
+                          INT16 w ) ;
 
    protected:
       // latch to protect configuration
@@ -296,8 +317,8 @@ namespace engine
       SDB_DPSCB * _dpsCB ;
 
       bson::BSONObj        _hintRecyID ;
+      bson::BSONObj        _hintOrigID ;
       bson::BSONObj        _hintName ;
-      bson::BSONObj        _matchValidItems ;
    } ;
 
    typedef class _rtnRecycleBinManager rtnRecycleBinManager ;

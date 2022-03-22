@@ -341,7 +341,8 @@ namespace engine
                                         SDB_DPSCB *dpsCB,
                                         BOOLEAN sysCall,
                                         BOOLEAN dropFile,
-                                        BOOLEAN ensureEmpty = FALSE ) ;
+                                        BOOLEAN ensureEmpty = FALSE,
+                                        dmsDropCSOptions *options = NULL ) ;
 
    INT32 rtnUnloadCollectionSpace( const CHAR *pCollectionSpace,
                                    _pmdEDUCB *cb,
@@ -450,7 +451,8 @@ namespace engine
                                     _pmdEDUCB *cb,
                                     SDB_DMSCB *dmsCB,
                                     SDB_DPSCB *dpsCB,
-                                    utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ) ;
+                                    utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL,
+                                    dmsDropCLOptions *options = NULL ) ;
 
    INT32 rtnRenameCollectionCommand ( const CHAR *csName,
                                       const CHAR *clShortName,
@@ -463,7 +465,9 @@ namespace engine
    INT32 rtnTruncCollectionCommand( const CHAR *pCollection,
                                     _pmdEDUCB *cb,
                                     SDB_DMSCB *dmsCB,
-                                    SDB_DPSCB *dpsCB ) ;
+                                    SDB_DPSCB *dpsCB,
+                                    dmsMBContext *mbContext = NULL,
+                                    dmsTruncCLOptions *options = NULL ) ;
 
    INT32 rtnRenameCollectionSpaceCommand ( const CHAR *pCSName,
                                            const CHAR *pNewCSName,
@@ -477,7 +481,8 @@ namespace engine
                                          SDB_DMSCB *dmsCB,
                                          SDB_DPSCB *dpsCB,
                                          BOOLEAN   sysCall = FALSE,
-                                         BOOLEAN   ensureEmpty = FALSE ) ;
+                                         BOOLEAN   ensureEmpty = FALSE,
+                                         dmsDropCSOptions *options = NULL ) ;
 
    INT32 rtnDropCollectionSpaceP1 ( const CHAR *pCollectionSpace,
                                     _pmdEDUCB *cb,
@@ -489,7 +494,8 @@ namespace engine
                                     _pmdEDUCB *cb,
                                     SDB_DMSCB *dmsCB,
                                     SDB_DPSCB *dpsCB,
-                                    BOOLEAN   sysCall = FALSE );
+                                    BOOLEAN   sysCall = FALSE,
+                                    dmsDropCSOptions *options = NULL );
 
    INT32 rtnDropCollectionSpaceP1Cancel ( const CHAR *pCollectionSpace,
                                     _pmdEDUCB *cb,

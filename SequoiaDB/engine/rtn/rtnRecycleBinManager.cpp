@@ -76,15 +76,8 @@ namespace engine
 
       try
       {
-         BSONObjBuilder matcherBuilder ;
-         BSONArrayBuilder tmpBuilder( matcherBuilder.subarrayStart( "$or" ) ) ;
-         tmpBuilder.append( BSON( FIELD_NAME_RECYCLE_ISCSRECY << false ) ) ;
-         tmpBuilder.append( BSON( FIELD_NAME_RECYCLE_ISCSRECY <<
-                                  BSON( "$exists" << 0 ) ) ) ;
-         tmpBuilder.doneFast() ;
-         _matchValidItems = matcherBuilder.obj() ;
-
          _hintRecyID = BSON( "" << UTIL_RECYCLEBIN_RECYID_INDEX_NAME ) ;
+         _hintOrigID = BSON( "" << UTIL_RECYCLEBIN_ORIGID_INDEX_NAME ) ;
          _hintName = BSON( "" << UTIL_RECYCLEBIN_NAME_INDEX_NAME ) ;
       }
       catch ( exception &e )
@@ -109,8 +102,8 @@ namespace engine
       PD_TRACE_ENTRY( SDB__RTNRECYBINMGR_FINI ) ;
 
       _hintRecyID = BSONObj() ;
+      _hintOrigID = BSONObj() ;
       _hintName = BSONObj() ;
-      _matchValidItems = BSONObj() ;
 
       PD_TRACE_EXIT( SDB__RTNRECYBINMGR_FINI ) ;
    }
@@ -607,25 +600,27 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR__COUNTITEMS, "_rtnRecycleBinManager::_countItems" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR__COUNTITEMS_HINT, "_rtnRecycleBinManager::_countItems" )
    INT32 _rtnRecycleBinManager::_countItems( const BSONObj &matcher,
+                                             const BSONObj &hint,
                                              pmdEDUCB *cb,
                                              INT64 &count )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__RTNRECYBINMGR__COUNTITEMS ) ;
+      PD_TRACE_ENTRY( SDB__RTNRECYBINMGR__COUNTITEMS_HINT ) ;
 
       rtnQueryOptions options ;
       options.setCLFullName( _getRecyItemCL() ) ;
       options.setQuery( matcher ) ;
+      options.setHint( hint ) ;
 
       rc = rtnGetCount( options, _dmsCB, cb, _rtnCB, &count ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get count on collection [%s], "
                    "rc: %d", _getRecyItemCL(), rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__RTNRECYBINMGR__COUNTITEMS, rc ) ;
+      PD_TRACE_EXITRC( SDB__RTNRECYBINMGR__COUNTITEMS_HINT, rc ) ;
       return rc ;
 
    error:
@@ -749,9 +744,6 @@ namespace engine
       try
       {
          BSONObjBuilder matcherBuilder( 64 ) ;
-
-         matcherBuilder.appendElements( _matchValidItems ) ;
-
          if ( expiredTime < OSS_UINT64_MAX )
          {
             BSONObjBuilder timeBuilder(
@@ -877,6 +869,73 @@ namespace engine
       }
 
       PD_TRACE_EXIT( SDB__RTNRECYBINMGR__CACHEOLDESTITEM ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR__RESETOLDESTITEM, "_rtnRecycleBinManager::_resetOldestItem" )
+   void _rtnRecycleBinManager::_resetOldestItem( const utilRecycleItem &curItem )
+   {
+      PD_TRACE_ENTRY( SDB__RTNRECYBINMGR__RESETOLDESTITEM ) ;
+
+      ossScopedLock lock( &_oldestItemLatch ) ;
+
+      // only reset in below cases
+      if ( _oldestItem.isValid() &&
+           _oldestItem.getRecycleID() == curItem.getRecycleID() )
+      {
+         _oldestItem.reset() ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNRECYBINMGR__RESETOLDESTITEM ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR__SAVEITEMOBJ, "_rtnRecycleBinManager::_saveItemObject" )
+   INT32 _rtnRecycleBinManager::_saveItemObject( const BSONObj &object,
+                                                 pmdEDUCB *cb,
+                                                 INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNRECYBINMGR__SAVEITEMOBJ ) ;
+
+      rc = rtnInsert( _getRecyItemCL(), object, 1, 0, cb,
+                      _dmsCB, _dpsCB, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to insert object to collection [%s], "
+                   "rc: %d", _getRecyItemCL(), rc ) ;
+
+      enableEmptyCheck() ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNRECYBINMGR__SAVEITEMOBJ, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR__UPDATEITEMS, "_rtnRecycleBinManager::_updateItems" )
+   INT32 _rtnRecycleBinManager::_updateItems( const BSONObj &matcher,
+                                              const BSONObj &updator,
+                                              pmdEDUCB *cb,
+                                              INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNRECYBINMGR__UPDATEITEMS ) ;
+
+      rtnQueryOptions options ;
+      options.setCLFullName( _getRecyItemCL() ) ;
+      options.setQuery( matcher ) ;
+
+      rc = rtnUpdate( options, updator, cb, _dmsCB, _dpsCB, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update items in collection [%s], "
+                   "rc: %d", _getRecyItemCL(), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNRECYBINMGR__UPDATEITEMS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    /*

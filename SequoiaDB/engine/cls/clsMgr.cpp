@@ -837,6 +837,13 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSMGR_ACTIVE ) ;
 
+      if ( SDB_ROLE_DATA == pmdGetDBRole() )
+      {
+         rc = pmdGetKRCB()->getDMSCB()->regHandler( &_recycleBinMgr ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to register event handler of "
+                      "recycle bin manager to DMS, rc: %d", rc ) ;
+      }
+
       if ( pmdGetStartup().isOK() )
       {
          SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
@@ -1026,6 +1033,11 @@ namespace engine
 
       _shardSessionMgr.setForced() ;
       _replSessionMgr.setForced() ;
+
+      if ( SDB_ROLE_DATA == pmdGetDBRole() )
+      {
+         pmdGetKRCB()->getDMSCB()->unregHandler( &_recycleBinMgr ) ;
+      }
 
       return SDB_OK ;
    }

@@ -74,10 +74,33 @@ namespace engine
                         pmdEDUCB *cb,
                         INT16 w ) ;
 
+      INT32 prepareItem( utilRecycleItem &item,
+                         UTIL_RECY_ITEM_LIST &droppingItems,
+                         catCtxLockMgr &lockMgr,
+                         pmdEDUCB *cb,
+                         INT16 w ) ;
+
+      INT32 commitItem( utilRecycleItem &item,
+                        pmdEDUCB *cb,
+                        INT16 w ) ;
+
       INT32 dropItem( const utilRecycleItem &item,
                       pmdEDUCB *cb,
                       INT16 w ) ;
       INT32 dropAllItems( pmdEDUCB *cb, INT16 w ) ;
+      INT32 dropItemsInCS( utilCSUniqueID csUniqueID,
+                           pmdEDUCB *cb,
+                           INT16 w ) ;
+
+      OSS_INLINE void reserveItem()
+      {
+         ++ _reservedCount ;
+      }
+
+      OSS_INLINE void unreserveItem()
+      {
+         -- _reservedCount ;
+      }
 
       INT32 countItemsInCS( utilCSUniqueID csUniqueID,
                             pmdEDUCB *cb,
@@ -123,6 +146,61 @@ namespace engine
                             pmdEDUCB *cb,
                             INT16 w ) ;
 
+      INT32 _checkAvailable( const CHAR *originName,
+                             utilGlobalID originID,
+                             const utilRecycleBinConf &conf,
+                             pmdEDUCB *cb,
+                             BOOLEAN &isAvailable,
+                             BOOLEAN &isLimitedByVersion ) ;
+      INT32 _acquireID( utilRecycleID &recycleID,
+                        pmdEDUCB *cb,
+                        INT16 w ) ;
+
+      INT32 _checkCapacity( const utilRecycleBinConf &conf,
+                            pmdEDUCB *cb ) ;
+      INT32 _checkVersion( const CHAR *originName,
+                           utilGlobalID originID,
+                           const utilRecycleBinConf &conf,
+                           pmdEDUCB *cb ) ;
+      INT32 _tryLockItems( const utilRecycleItem &item,
+                           const UTIL_RECY_ITEM_LIST &droppingItems,
+                           catCtxLockMgr &lockMgr ) ;
+      INT32 _saveItem( utilRecycleItem &item,
+                       pmdEDUCB *cb,
+                       INT16 w ) ;
+      INT32 _recycleItem( utilRecycleItem &item, pmdEDUCB *cb, INT16 w ) ;
+      INT32 _recycleCSObjects( utilRecycleItem &item, pmdEDUCB *cb, INT16 w ) ;
+      INT32 _recycleCLObjects( utilRecycleItem &item, pmdEDUCB *cb, INT16 w ) ;
+      INT32 _recycleSeqObjects( utilRecycleItem &item, pmdEDUCB *cb, INT16 w ) ;
+      INT32 _recycleIdxObjects( utilRecycleItem &item, pmdEDUCB *cb, INT16 w ) ;
+
+      INT32 _setCSRecycled( const utilRecycleItem &item,
+                            pmdEDUCB *cb,
+                            INT16 w ) ;
+
+      INT32 _tryFindOldestItem( pmdEDUCB *cb,
+                                utilRecycleItem &oldestItem ) ;
+      INT32 _tryFindOldestItem( const CHAR *originName,
+                                utilGlobalID originID,
+                                pmdEDUCB *cb,
+                                utilRecycleItem &oldestItem ) ;
+      INT32 _getOldestItem( const CHAR *originName,
+                            pmdEDUCB *cb,
+                            utilRecycleItem &oldestItem ) ;
+      INT32 _getOldestItem( utilGlobalID originID,
+                            pmdEDUCB *cb,
+                            utilRecycleItem &oldestItem ) ;
+      INT32 _getOldestItem( const bson::BSONObj &matcher,
+                            const bson::BSONObj &hint,
+                            pmdEDUCB *cb,
+                            utilRecycleItem &oldestItem ) ;
+
+      INT32 _saveObject( const CHAR *collection,
+                         const bson::BSONObj &object,
+                         BOOLEAN canReplace,
+                         pmdEDUCB *cb,
+                         INT16 w ) ;
+
       INT32 _processObjects( catRecycleBinProcessor &processor,
                              const bson::BSONObj &matcher,
                              pmdEDUCB *cb,
@@ -133,6 +211,10 @@ namespace engine
                            UTIL_RECY_ITEM_LIST &itemList ) ;
 
    protected:
+      // cache of recycle bin information
+      // reserved recycle item counts during any contexts with recycle items
+      // which is not added to recycle bin yet
+      UINT32               _reservedCount ;
       // exclude drop item and return item
       // WARNING: drop item background job is in another thread which can not
       //          use level lock, use this latch instead

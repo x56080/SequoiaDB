@@ -124,9 +124,10 @@ namespace engine
                         UTIL_RECYCLE_OPTYPE opType ) ;
       ~_utilRecycleItem() ;
 
-      void init( utilRecycleID recycleID,
-                 const CHAR *originName,
-                 utilGlobalID originID ) ;
+      void inherit( const _utilRecycleItem &item,
+                    const CHAR *originName,
+                    utilGlobalID originID ) ;
+      void init( utilRecycleID recycleID ) ;
       void reset() ;
 
       OSS_INLINE BOOLEAN isValid() const
@@ -134,7 +135,7 @@ namespace engine
          return UTIL_RECYCLEID_NULL != _recycleID ;
       }
 
-      OSS_INLINE const utilRecycleID &getRecycleID() const
+      OSS_INLINE utilRecycleID getRecycleID() const
       {
          return _recycleID ;
       }
@@ -160,7 +161,7 @@ namespace engine
          _originID = originID ;
       }
 
-      OSS_INLINE const utilGlobalID &getOriginID() const
+      OSS_INLINE utilGlobalID getOriginID() const
       {
          return _originID ;
       }
@@ -279,6 +280,10 @@ namespace engine
    typedef ossPoolList< utilRecycleItem > UTIL_RECY_ITEM_LIST ;
    typedef UTIL_RECY_ITEM_LIST::iterator UTIL_RECY_ITEM_LIST_IT ;
    typedef UTIL_RECY_ITEM_LIST::const_iterator UTIL_RECY_ITEM_LIST_CIT ;
+
+   typedef ossPoolList< ossPoolString > UTIL_RECY_ITEM_NAME_LIST ;
+   typedef UTIL_RECY_ITEM_NAME_LIST::iterator UTIL_RECY_ITEM_NAME_LIST_IT ;
+   typedef UTIL_RECY_ITEM_NAME_LIST::const_iterator UTIL_RECY_ITEM_NAME_LIST_CIT ;
 
    // index for recycle name
    #define UTIL_RECYCLEBIN_NAME_INDEX_NAME      "SYSRECYBINNAMEIDX"

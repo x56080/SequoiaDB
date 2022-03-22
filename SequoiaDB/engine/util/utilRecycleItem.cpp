@@ -215,24 +215,41 @@ namespace engine
    {
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_UTILRECYCLEITEM_INIT, "_utilRecycleItem::init")
-   void _utilRecycleItem::init( utilRecycleID recycleID,
-                                const CHAR *originName,
-                                utilGlobalID originID )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_UTILRECYCLEITEM_INHERIT, "_utilRecycleItem::inherit")
+   void _utilRecycleItem::inherit( const _utilRecycleItem &item,
+                                   const CHAR *originName,
+                                   utilGlobalID originID )
    {
-      PD_TRACE_ENTRY( SDB_UTILRECYCLEITEM_INIT ) ;
+      PD_TRACE_ENTRY( SDB_UTILRECYCLEITEM_INHERIT ) ;
 
-      SDB_ASSERT( NULL != originName, "origin name is invalid" ) ;
-      SDB_ASSERT( UTIL_RECYCLEID_NULL != recycleID, "recycle ID is invalid" ) ;
-      SDB_ASSERT( UTIL_GLOBAL_NULL != originID, "origin ID is invalid" ) ;
+      // inherit type
+      _type = item._type ;
+      _opType = item._opType ;
 
+      // set with different origin ID and name
       setOriginID( originID ) ;
       setOriginName( originName ) ;
+
+      // inherit recycle ID
+      init( item._recycleID ) ;
+
+      PD_TRACE_EXIT( SDB_UTILRECYCLEITEM_INHERIT ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_UTILRECYCLEITEM_INIT_RECYID, "_utilRecycleItem::init")
+   void _utilRecycleItem::init( utilRecycleID recycleID )
+   {
+      PD_TRACE_ENTRY( SDB_UTILRECYCLEITEM_INIT_RECYID ) ;
+
+      SDB_ASSERT( NULL != _originName, "origin name is invalid" ) ;
+      SDB_ASSERT( UTIL_RECYCLEID_NULL != recycleID, "recycle ID is invalid" ) ;
+      SDB_ASSERT( UTIL_GLOBAL_NULL != _originID, "origin ID is invalid" ) ;
+
       setRecycleID( recycleID ) ;
-      _setRecycleName( recycleID, originID ) ;
+      _setRecycleName( recycleID, _originID ) ;
       setRecycleTime( ossGetCurrentMilliseconds() ) ;
 
-      PD_TRACE_EXIT( SDB_UTILRECYCLEITEM_INIT ) ;
+      PD_TRACE_EXIT( SDB_UTILRECYCLEITEM_INIT_RECYID ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_UTILRECYCLEITEM_RESET, "_utilRecycleItem::reset")

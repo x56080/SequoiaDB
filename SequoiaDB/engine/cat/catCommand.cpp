@@ -1452,7 +1452,7 @@ namespace engine
 
       {
       catCtxCreateCL catCtx( -1, cb->getID() ) ;
-      rc = catCtx.open( boQuery.objdata(), ctxBuf, cb ) ;
+      rc = catCtx.open( boQuery, ctxBuf, cb ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to open context, rc: %d",
                    rc ) ;
@@ -1484,7 +1484,8 @@ namespace engine
 
       try
       {
-         boQuery = BSON( FIELD_NAME_NAME << clName ) ;
+         boQuery = BSON( FIELD_NAME_NAME << clName <<
+                         FIELD_NAME_SKIPRECYCLEBIN << true ) ;
       }
       catch( std::exception &e )
       {
@@ -1494,7 +1495,7 @@ namespace engine
 
       {
       catCtxDropCL catCtx( -1, cb->getID() ) ;
-      rc = catCtx.open( boQuery.objdata(), ctxBuf, cb ) ;
+      rc = catCtx.open( boQuery, ctxBuf, cb ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to open context, rc: %d",
                    rc ) ;
@@ -1527,7 +1528,8 @@ namespace engine
       try
       {
          boQuery = BSON( FIELD_NAME_NAME << csName <<
-                         FIELD_NAME_ENSURE_EMPTY << true ) ;
+                         FIELD_NAME_ENSURE_EMPTY << true <<
+                         FIELD_NAME_SKIPRECYCLEBIN << true ) ;
       }
       catch( std::exception &e )
       {
@@ -1537,7 +1539,7 @@ namespace engine
 
       {
       catCtxDropCS catCtx( -1, cb->getID() ) ;
-      rc = catCtx.open( boQuery.objdata(), ctxBuf, cb ) ;
+      rc = catCtx.open( boQuery, ctxBuf, cb ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to open context, rc: %d",
                    rc ) ;

@@ -96,6 +96,8 @@ namespace engine
       RTN_CONTEXT_LIST_LOB,
       RTN_CONTEXT_OM_TRANSFER,
       RTN_CONTEXT_TS,            // Context of text search
+      RTN_CONTEXT_TRUNCATECL,
+      RTN_CONTEXT_TRUNCATEMAINCL,
 
       /// Alter contexts
       RTN_CONTEXT_ALTERCS,
@@ -124,6 +126,7 @@ namespace engine
       RTN_CONTEXT_CAT_LINK_CL,
       RTN_CONTEXT_CAT_UNLINK_CL,
       RTN_CONTEXT_CAT_RENAME_CL,
+      RTN_CONTEXT_CAT_TRUNCATE_CL,
       /// Index related
       RTN_CONTEXT_CAT_CREATE_IDX,
       RTN_CONTEXT_CAT_DROP_IDX,

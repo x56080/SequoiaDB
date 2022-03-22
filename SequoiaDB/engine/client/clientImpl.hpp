@@ -622,7 +622,7 @@ namespace sdbclient
                                hint, numToSkip, numToReturn ) ;
       }
       /// truncate
-      INT32 truncate() ;
+      INT32 truncate( const bson::BSONObj &options = _sdbStaticObject ) ;
 
       /// create/drop index
       INT32 createIdIndex( const bson::BSONObj &options = _sdbStaticObject ) ;
@@ -1008,8 +1008,10 @@ namespace sdbclient
                                    options,
                                    &collection.pCollection ) ;
       }
-      // drop an existing collection
-      INT32 dropCollection ( const CHAR *pCollection ) ;
+
+      // drop an existing collection with options
+      INT32 dropCollection( const CHAR *pCollection,
+                            const bson::BSONObj &options = _sdbStaticObject ) ;
 
       INT32 listCollections ( _sdbCursor **cursor ) ;
 

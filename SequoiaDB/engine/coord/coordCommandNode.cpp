@@ -76,12 +76,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   void _coordNodeCMD2Phase::_releaseDataMsg( CHAR *pMsgBuf,
-                                              INT32 bufSize,
-                                              pmdEDUCB *cb )
-   {
-   }
-
    INT32 _coordNodeCMD2Phase::_generateRollbackDataMsg ( MsgHeader *pMsg,
                                                          pmdEDUCB *cb,
                                                          coordCMDArguments *pArgs,
@@ -1328,12 +1322,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   void _coordCMDActiveGroup::_releaseCataMsg( CHAR *pMsgBuf,
-                                               INT32 bufSize,
-                                               pmdEDUCB *cb )
-   {
-   }
-
    // PD_TRACE_DECLARE_FUNCTION( COORD_ACTIVEGRP_DOONCATAGROUP, "_coordCMDActiveGroup::_doOnCataGroup" )
    INT32 _coordCMDActiveGroup::_doOnCataGroup( MsgHeader *pMsg,
                                                pmdEDUCB *cb,
@@ -1500,12 +1488,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   void _coordCMDShutdownGroup::_releaseCataMsg( CHAR *pMsgBuf,
-                                                 INT32 bufSize,
-                                                 pmdEDUCB *cb )
-   {
-   }
-
    // PD_TRACE_DECLARE_FUNCTION( COORD_SHUTDOWNGRP_DOONDATA, "_coordCMDShutdownGroup::_doOnDataGroup" )
    INT32 _coordCMDShutdownGroup::_doOnDataGroup ( MsgHeader *pMsg,
                                                   pmdEDUCB *cb,
@@ -1648,12 +1630,6 @@ namespace engine
       *pBufSize = pMsg->messageLength ;
 
       return SDB_OK ;
-   }
-
-   void _coordCMDRemoveGroup::_releaseCataMsg( CHAR *pMsgBuf,
-                                               INT32 bufSize,
-                                               pmdEDUCB *cb )
-   {
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_REMOGEGRP_DOONDATA, "_coordCMDRemoveGroup::_doOnDataGroup" )
@@ -2038,16 +2014,6 @@ namespace engine
       goto done ;
    }
 
-   void _coordCMDCreateNode::_releaseCataMsg( CHAR *pMsgBuf,
-                                              INT32 bufSize,
-                                              pmdEDUCB *cb )
-   {
-      if ( pMsgBuf && _onlyAttach )
-      {
-         msgReleaseBuffer( pMsgBuf, cb ) ;
-      }
-   }
-
    // PD_TRACE_DECLARE_FUNCTION( COORD_CREATENODE_DOONDATA, "_coordCMDCreateNode::_doOnDataGroup" )
    INT32 _coordCMDCreateNode::_doOnDataGroup ( MsgHeader *pMsg,
                                                pmdEDUCB *cb,
@@ -2376,12 +2342,6 @@ namespace engine
       *pBufSize = pMsg->messageLength ;
 
       return SDB_OK ;
-   }
-
-   void _coordCMDRemoveNode::_releaseCataMsg( CHAR *pMsgBuf,
-                                              INT32 bufSize,
-                                              pmdEDUCB *cb )
-   {
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_REMOVENODE_DOONDATA, "_coordCMDRemoveNode::_doOnDataGroup" )

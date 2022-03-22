@@ -46,9 +46,18 @@
 #include "pmd.hpp"
 #include "dpsLogWrapper.hpp"
 #include "dmsSUCache.hpp"
+#include "utilUniqueID.hpp"
+#include "utilRecycleItem.hpp"
 
 namespace engine
 {
+
+   // forward define
+   class _dmsStorageUnit ;
+   typedef class _dmsStorageUnit dmsStorageUnit ;
+
+   class _dmsMBContext ;
+   typedef class _dmsMBContext dmsMBContext ;
 
    class _IDmsEventHolder ;
    typedef class _IDmsEventHolder IDmsEventHolder ;
@@ -58,6 +67,7 @@ namespace engine
    #define DMS_EVENT_MASK_ALL    0xFFFFFFFF
    #define DMS_EVENT_MASK_STAT   0x00000001
    #define DMS_EVENT_MASK_PLAN   0x00000002
+   #define DMS_EVENT_MASK_RECY   0x00000004
 
    /*
       _dmsEventSUItem define
@@ -67,7 +77,8 @@ namespace engine
       _dmsEventSUItem ()
       : _pCSName( NULL ),
         _suID( DMS_INVALID_SUID ),
-        _suLID( DMS_INVALID_LOGICCSID )
+        _suLID( DMS_INVALID_LOGICCSID ),
+        _csUniqueID( UTIL_UNIQUEID_NULL )
       {
       }
 
@@ -75,13 +86,31 @@ namespace engine
                        UINT32 suLID )
       : _pCSName( pCSName ),
         _suID( suID ),
-        _suLID( suLID )
+        _suLID( suLID ),
+        _csUniqueID( UTIL_UNIQUEID_NULL )
       {
+      }
+
+      void init( const CHAR *pCSName,
+                 dmsStorageUnitID suID,
+                 UINT32 suLID,
+                 utilCSUniqueID csUniqueID )
+      {
+         _pCSName = pCSName ;
+         _suID = suID ;
+         _suLID = suLID ;
+         _csUniqueID = csUniqueID ;
+      }
+
+      BOOLEAN isValid() const
+      {
+         return DMS_INVALID_SUID != _suID ;
       }
 
       const CHAR *      _pCSName ;
       dmsStorageUnitID  _suID ;
       UINT32            _suLID ;
+      utilCSUniqueID    _csUniqueID ;
    } dmsEventSUItem ;
 
    /*
@@ -92,20 +121,45 @@ namespace engine
       _dmsEventCLItem ()
       : _pCLName( NULL ),
         _mbID( DMS_INVALID_MBID ),
-        _clLID( DMS_INVALID_CLID )
+        _clLID( DMS_INVALID_CLID ),
+        _mbContext( NULL )
       {
       }
 
       _dmsEventCLItem ( const CHAR *pCLName, UINT16 mbID, UINT32 clLID )
       : _pCLName( pCLName ),
+        _logicCSID( DMS_INVALID_LOGICCSID ),
         _mbID( mbID ),
-        _clLID( clLID )
+        _clLID( clLID ),
+        _mbContext( NULL )
       {
       }
 
+      void init( const CHAR *pCLName,
+                 UINT32 logicCSID,
+                 UINT16 mbID,
+                 UINT32 clLID,
+                 _dmsMBContext *mbContext )
+      {
+         SDB_ASSERT( NULL != pCLName, "collection name is invalid" ) ;
+         SDB_ASSERT( NULL != mbContext, "meta block context is invalid" ) ;
+         _pCLName = pCLName ;
+         _logicCSID = logicCSID ;
+         _mbID = mbID ;
+         _clLID = clLID ;
+         _mbContext = mbContext ;
+      }
+
+      BOOLEAN isValid() const
+      {
+         return DMS_INVALID_MBID != _mbID ;
+      }
+
       const CHAR *   _pCLName ;
+      UINT32         _logicCSID ;
       UINT16         _mbID ;
       UINT32         _clLID ;
+      _dmsMBContext * _mbContext ;
    } dmsEventCLItem ;
 
    /*
@@ -131,6 +185,231 @@ namespace engine
       dmsExtentID    _idxLID ;
       BSONObj        _boDefine ;
    } dmsEventIdxItem ;
+
+   /*
+      _dmsRecycleOptions define
+    */
+   typedef struct _dmsRecycleOptions
+   {
+      _dmsRecycleOptions()
+      : _blockOpID( 0 ),
+        _localTaskID( 0 ),
+        _needSaveItem( TRUE )
+      {
+      }
+
+      _dmsRecycleOptions( const utilRecycleItem &recycleItem,
+                          BOOLEAN needSaveItem )
+      : _recycleItem( recycleItem ),
+        _blockOpID( 0 ),
+        _localTaskID( 0 ),
+        _needSaveItem( needSaveItem )
+      {
+      }
+
+      BOOLEAN isTakenOver() const
+      {
+         return _recycleItem.isValid() ;
+      }
+
+      utilRecycleItem _recycleItem ;
+      UINT64          _blockOpID ;
+      UINT64          _localTaskID ;
+      BOOLEAN         _needSaveItem ;
+   } dmsRecycleOptions ;
+
+   /*
+      _dmsTruncCLOptions define
+    */
+   typedef struct _dmsTruncCLOptions : public _dmsRecycleOptions
+   {
+      _dmsTruncCLOptions()
+      : _dmsRecycleOptions(),
+        _isPrepared( FALSE )
+      {
+      }
+
+      _dmsTruncCLOptions( const utilRecycleItem &recycleItem,
+                          BOOLEAN needSaveItem )
+      : _dmsRecycleOptions( recycleItem, needSaveItem ),
+        _isPrepared( FALSE )
+      {
+      }
+
+      INT32 parseOptions( const bson::BSONObj &boOptions )
+      {
+         INT32 rc = SDB_OK ;
+
+         try
+         {
+            if ( boOptions.hasField( FIELD_NAME_RECYCLE_ITEM ) )
+            {
+               rc = _recycleItem.fromBSON( boOptions,
+                                           FIELD_NAME_RECYCLE_ITEM ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to parse recycle item, "
+                            "rc: %d", rc ) ;
+            }
+
+            _boOptions = boOptions ;
+            _isPrepared = TRUE ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to parse options, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
+      }
+
+      INT32 prepareOptions()
+      {
+         INT32 rc = SDB_OK ;
+
+         try
+         {
+            if ( !_isPrepared )
+            {
+               bson::BSONObjBuilder builder ;
+               if ( _recycleItem.isValid() )
+               {
+                  rc = _recycleItem.toBSON( builder, FIELD_NAME_RECYCLE_ITEM ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to build recycle item, "
+                               "rc: %d", rc ) ;
+                  _boOptions = builder.obj() ;
+               }
+               _isPrepared = TRUE ;
+            }
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to build options, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
+      }
+
+      bson::BSONObj _boOptions ;
+      BOOLEAN       _isPrepared ;
+   } dmsTruncCLOptions ;
+
+   /*
+      _dmsDropCLOptions define
+    */
+   typedef struct _dmsDropCLOptions : public _dmsTruncCLOptions
+   {
+      _dmsDropCLOptions()
+      : _dmsTruncCLOptions()
+      {
+      }
+
+      _dmsDropCLOptions( const utilRecycleItem &recycleItem,
+                         BOOLEAN needSaveItem )
+      : _dmsTruncCLOptions( recycleItem, needSaveItem )
+      {
+      }
+   } dmsDropCLOptions ;
+
+   /*
+      _dmsDropCSOptions define
+    */
+   typedef struct _dmsDropCSOptions : public _dmsRecycleOptions
+   {
+      _dmsDropCSOptions()
+      : _dmsRecycleOptions(),
+        _isPrepared( FALSE )
+      {
+      }
+
+      _dmsDropCSOptions( const utilRecycleItem &recycleItem,
+                         BOOLEAN needSaveItem )
+      : _dmsRecycleOptions( recycleItem, needSaveItem ),
+        _isPrepared( FALSE )
+      {
+      }
+
+      INT32 parseOptions( const bson::BSONObj &boOptions )
+      {
+         INT32 rc = SDB_OK ;
+
+         try
+         {
+            if ( boOptions.hasField( FIELD_NAME_RECYCLE_ITEM ) )
+            {
+               rc = _recycleItem.fromBSON( boOptions,
+                                           FIELD_NAME_RECYCLE_ITEM ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to parse recycle item, "
+                            "rc: %d", rc ) ;
+            }
+
+            _boOptions = boOptions ;
+            _isPrepared = TRUE ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to parse options, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
+      }
+
+      INT32 prepareOptions()
+      {
+         INT32 rc = SDB_OK ;
+
+         try
+         {
+            if ( !_isPrepared )
+            {
+               bson::BSONObjBuilder builder ;
+               if ( _recycleItem.isValid() )
+               {
+                  rc = _recycleItem.toBSON( builder, FIELD_NAME_RECYCLE_ITEM ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to build recycle item, "
+                               "rc: %d", rc ) ;
+                  _boOptions = builder.obj() ;
+               }
+               _isPrepared = TRUE ;
+            }
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to build options, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
+      }
+
+      bson::BSONObj _boOptions ;
+      BOOLEAN       _isPrepared ;
+   } dmsDropCSOptions ;
 
    /*
       _IDmsEventHandler
@@ -176,10 +455,34 @@ namespace engine
             return SDB_OK ;
          }
 
-         OSS_INLINE virtual INT32 onDropCS ( IDmsEventHolder *pEventHolder,
+         // drop collection space callbacks
+         OSS_INLINE virtual INT32 onCheckDropCS( IDmsEventHolder *pEventHolder,
+                                                 IDmsSUCacheHolder *pCacheHolder,
+                                                 const dmsEventSUItem &suItem,
+                                                 dmsDropCSOptions *options,
+                                                 pmdEDUCB *cb,
+                                                 SDB_DPSCB *dpsCB )
+         {
+            return SDB_OK ;
+         }
+
+         OSS_INLINE virtual INT32 onDropCS ( SDB_EVENT_OCCUR_TYPE type,
+                                             IDmsEventHolder *pEventHolder,
                                              IDmsSUCacheHolder *pCacheHolder,
+                                             const dmsEventSUItem &suItem,
+                                             dmsDropCSOptions *options,
                                              pmdEDUCB *cb,
                                              SDB_DPSCB *dpsCB )
+         {
+            return SDB_OK ;
+         }
+
+         OSS_INLINE virtual INT32 onCleanDropCS( IDmsEventHolder *pEventHolder,
+                                                 IDmsSUCacheHolder *pCacheHolder,
+                                                 const dmsEventSUItem &suItem,
+                                                 dmsDropCSOptions *options,
+                                                 pmdEDUCB *cb,
+                                                 SDB_DPSCB *dpsCB )
          {
             return SDB_OK ;
          }
@@ -203,21 +506,66 @@ namespace engine
             return SDB_OK ;
          }
 
-         OSS_INLINE virtual INT32 onTruncateCL ( IDmsEventHolder *pEventHolder,
+         // truncate collection callbacks
+         OSS_INLINE virtual INT32 onCheckTruncCL( IDmsEventHolder *pEventHolder,
+                                                  IDmsSUCacheHolder *pCacheHolder,
+                                                  const dmsEventCLItem &clItem,
+                                                  dmsTruncCLOptions *options,
+                                                  pmdEDUCB *cb,
+                                                  SDB_DPSCB *dpsCB )
+         {
+            return SDB_OK ;
+         }
+
+         OSS_INLINE virtual INT32 onTruncateCL ( SDB_EVENT_OCCUR_TYPE type,
+                                                 IDmsEventHolder *pEventHolder,
                                                  IDmsSUCacheHolder *pCacheHolder,
                                                  const dmsEventCLItem &clItem,
-                                                 UINT32 newCLLID,
+                                                 dmsTruncCLOptions *options,
                                                  pmdEDUCB *cb,
                                                  SDB_DPSCB *dpsCB )
          {
             return SDB_OK ;
          }
 
-         OSS_INLINE virtual INT32 onDropCL ( IDmsEventHolder *pEventHolder,
+         OSS_INLINE virtual INT32 onCleanTruncCL( IDmsEventHolder *pEventHolder,
+                                                  IDmsSUCacheHolder *pCacheHolder,
+                                                  const dmsEventCLItem &clItem,
+                                                  dmsTruncCLOptions *options,
+                                                  pmdEDUCB *cb,
+                                                  SDB_DPSCB *dpsCB )
+         {
+            return SDB_OK ;
+         }
+
+         // drop collection callbacks
+         OSS_INLINE virtual INT32 onCheckDropCL( IDmsEventHolder *pEventHolder,
+                                                 IDmsSUCacheHolder *pCacheHolder,
+                                                 const dmsEventCLItem &clItem,
+                                                 dmsDropCLOptions *options,
+                                                 pmdEDUCB *cb,
+                                                 SDB_DPSCB *dpsCB )
+         {
+            return SDB_OK ;
+         }
+
+         OSS_INLINE virtual INT32 onDropCL ( SDB_EVENT_OCCUR_TYPE type,
+                                             IDmsEventHolder *pEventHolder,
                                              IDmsSUCacheHolder *pCacheHolder,
                                              const dmsEventCLItem &clItem,
+                                             dmsDropCLOptions *options,
                                              pmdEDUCB *cb,
                                              SDB_DPSCB *dpsCB )
+         {
+            return SDB_OK ;
+         }
+
+         OSS_INLINE virtual INT32 onCleanDropCL( IDmsEventHolder *pEventHolder,
+                                                 IDmsSUCacheHolder *pCacheHolder,
+                                                 const dmsEventCLItem &clItem,
+                                                 dmsDropCLOptions *options,
+                                                 pmdEDUCB *cb,
+                                                 SDB_DPSCB *dpsCB )
          {
             return SDB_OK ;
          }
@@ -290,8 +638,12 @@ namespace engine
             return SDB_OK ;
          }
 
-         virtual UINT32 getMask () = 0 ;
+         virtual UINT32 getMask () const = 0 ;
+
+         virtual const CHAR *getName() const = 0 ;
    } ;
+
+   typedef ossPoolList<_IDmsEventHandler *> DMS_HANDLER_LIST ;
 
    /*
       _IDmsEventHolder
@@ -303,11 +655,9 @@ namespace engine
 
          virtual ~_IDmsEventHolder () {}
 
-         virtual void regHandler ( _IDmsEventHandler *pHandler ) = 0 ;
+         virtual void setHandlers ( DMS_HANDLER_LIST *handlers ) = 0 ;
 
-         virtual void unregHandler ( _IDmsEventHandler *pHandler ) = 0 ;
-
-         virtual void unregAllHandlers () = 0 ;
+         virtual void unsetHandlers () = 0 ;
 
          virtual INT32 onCreateCS ( UINT32 mask,
                                     pmdEDUCB *cb,
@@ -327,9 +677,25 @@ namespace engine
                                     pmdEDUCB *cb,
                                     SDB_DPSCB *dpsCB ) = 0 ;
 
+         // drop collection space callbacks
+         virtual INT32 onCheckDropCS( UINT32 mask,
+                                      const dmsEventSUItem &suItem,
+                                      dmsDropCSOptions *options,
+                                      pmdEDUCB *cb,
+                                      SDB_DPSCB *dpsCB ) = 0 ;
+
          virtual INT32 onDropCS ( UINT32 mask,
+                                  SDB_EVENT_OCCUR_TYPE type,
+                                  const dmsEventSUItem &suItem,
+                                  dmsDropCSOptions *options,
                                   pmdEDUCB *cb,
                                   SDB_DPSCB *dpsCB ) = 0 ;
+
+         virtual INT32 onCleanDropCS( UINT32 mask,
+                                      const dmsEventSUItem &suItem,
+                                      dmsDropCSOptions *options,
+                                      pmdEDUCB *cb,
+                                      SDB_DPSCB *dpsCB ) = 0 ;
 
          virtual INT32 onCreateCL ( UINT32 mask,
                                     const dmsEventCLItem &clItem,
@@ -342,16 +708,45 @@ namespace engine
                                     pmdEDUCB *cb,
                                     SDB_DPSCB *dpsCB ) = 0 ;
 
+         // truncate collection callbacks
+         virtual INT32 onCheckTruncCL( UINT32 mask,
+                                       const dmsEventCLItem &clItem,
+                                       dmsTruncCLOptions *options,
+                                       pmdEDUCB *cb,
+                                       SDB_DPSCB *dpsCB ) = 0 ;
+
          virtual INT32 onTruncateCL ( UINT32 mask,
+                                      SDB_EVENT_OCCUR_TYPE type,
                                       const dmsEventCLItem &clItem,
-                                      UINT32 newCLLID,
+                                      dmsTruncCLOptions *options,
+                                      pmdEDUCB *cb,
+                                      SDB_DPSCB *dpsCB ) = 0 ;
+
+         virtual INT32 onCleanTruncCL( UINT32 mask,
+                                       const dmsEventCLItem &clItem,
+                                       dmsTruncCLOptions *options,
+                                       pmdEDUCB *cb,
+                                       SDB_DPSCB *dpsCB ) = 0 ;
+
+         // drop collection callbacks
+         virtual INT32 onCheckDropCL( UINT32 mask,
+                                      const dmsEventCLItem &clItem,
+                                      dmsDropCLOptions *options,
                                       pmdEDUCB *cb,
                                       SDB_DPSCB *dpsCB ) = 0 ;
 
          virtual INT32 onDropCL ( UINT32 mask,
+                                  SDB_EVENT_OCCUR_TYPE type,
                                   const dmsEventCLItem &clItem,
+                                  dmsDropCLOptions *options,
                                   pmdEDUCB *cb,
                                   SDB_DPSCB *dpsCB ) = 0 ;
+
+         virtual INT32 onCleanDropCL( UINT32 mask,
+                                      const dmsEventCLItem &clItem,
+                                      dmsDropCLOptions *options,
+                                      pmdEDUCB *cb,
+                                      SDB_DPSCB *dpsCB ) = 0 ;
 
          virtual INT32 onCreateIndex ( UINT32 mask,
                                        const dmsEventCLItem &clItem,

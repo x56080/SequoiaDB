@@ -50,10 +50,15 @@ namespace engine
 {
 
    #define COORD_CMD_RETRY_TIMES ( 10 )
+
+   /*
+      _coordCMDEventHandler implement
+    */
+
    /*
       _coordCMD2Phase implement
    */
-  _coordCMD2Phase::_coordCMD2Phase()
+   _coordCMD2Phase::_coordCMD2Phase()
    {
    }
 
@@ -84,9 +89,11 @@ namespace engine
 
       CHAR *pCataMsgBuf = NULL ;
       INT32 cataMsgSize = 0 ;
+      BOOLEAN isCataMsgRewritten = FALSE ;
 
       CHAR *pDataMsgBuf = NULL ;
       INT32 dataMsgSize = 0 ;
+      BOOLEAN isDataMsgRewritten = FALSE ;
 
       coordCMDArguments arguments ;
       coordCMDArguments *pArguments = NULL ;
@@ -128,6 +135,10 @@ namespace engine
          goto error ;
       }
 
+      rc = _regEventHandlers() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register event handlers for "
+                   "command [%s, target:%s], rc: %d", getName(),
+                   pArguments->_targetName.c_str(), rc ) ;
 
    retryCata :
       /************************************************************************
@@ -143,6 +154,10 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Generate message to catalog failed for "
                    "command[%s, target:%s], rc: %d",
                    getName(), pArguments->_targetName.c_str(), rc ) ;
+      if ( pMsg != (MsgHeader *)pCataMsgBuf )
+      {
+         isCataMsgRewritten = TRUE ;
+      }
 
       // Execute P1 on Catalog
       rc = _doOnCataGroup( (MsgHeader*)pCataMsgBuf, cb, &pCoordCtxForCata,
@@ -165,6 +180,11 @@ namespace engine
 
       pArguments->_groupList = groupLst ;
 
+      rc = _parseCatReturn( pArguments, cataObjs ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse CATALOG return objects "
+                   "for command[%s, target:%s], rc: %d", getName(),
+                   pArguments->_targetName.c_str(), rc ) ;
+
       PD_LOG( PDINFO, "Do phase 1 on catalog done for command[%s, target:%s], "
               "get %u target groups back", getName(),
               pArguments->_targetName.c_str(), groupLst.size() ) ;
@@ -175,9 +195,41 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Generate message to data failed for "
                    "command[%s, target:%s], rc: %d", getName(),
                    pArguments->_targetName.c_str(), rc ) ;
+      if ( (MsgHeader *)pDataMsgBuf != pMsg )
+      {
+         isDataMsgRewritten = TRUE ;
+      }
+
+      if ( _needRewriteDataMsg() )
+      {
+         CHAR *pNewDataMsgBuf = NULL ;
+         INT32 newDataMsgSize = 0 ;
+
+         rc = _rewriteDataMsg( (MsgHeader *)pDataMsgBuf,
+                               pArguments,
+                               cb,
+                               &pNewDataMsgBuf,
+                               &newDataMsgSize ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to rewrite data message for "
+                      "command[%s, target:%s], rc: %d", getName(),
+                      pArguments->_targetName.c_str(), rc ) ;
+
+         if ( isDataMsgRewritten )
+         {
+            msgReleaseBuffer( pDataMsgBuf, cb ) ;
+         }
+         pDataMsgBuf = pNewDataMsgBuf ;
+         dataMsgSize = newDataMsgSize ;
+         isDataMsgRewritten = TRUE ;
+      }
 
    retryData :
       // Execute P1 on Data Groups
+      rc = _onDataP1Event( SDB_EVT_OCCUR_BEFORE, pArguments, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to call before data P1 events "
+                   "for command[%s, target:%s], rc: %d", getName(),
+                   pArguments->_targetName.c_str(), rc ) ;
+
       rc = _doOnDataGroup( (MsgHeader*)pDataMsgBuf, cb, &pCoordCtxForData,
                            pArguments, groupLst, cataObjs, sucGroupLst ) ;
       if ( retryCount < COORD_CMD_RETRY_TIMES &&
@@ -199,6 +251,11 @@ namespace engine
                    "target:%s, suc group size:%u], rc: %d",
                    getName(), pArguments->_targetName.c_str(),
                    sucGroupLst.size(), rc ) ;
+
+      rc = _onDataP1Event( SDB_EVT_OCCUR_AFTER, pArguments, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to call after data P1 events "
+                   "for command[%s, target:%s], rc: %d", getName(),
+                   pArguments->_targetName.c_str(), rc ) ;
 
       PD_LOG( PDINFO, "Do phase 1 on data done for command[%s, target:%s], "
               "succeed group size: %u", getName(),
@@ -226,17 +283,19 @@ namespace engine
             pCoordCtxForData.release() ;
          }
 
-         if ( pCataMsgBuf )
+         if ( isCataMsgRewritten )
          {
-            _releaseCataMsg( pCataMsgBuf, cataMsgSize, cb ) ;
+            msgReleaseBuffer( pCataMsgBuf, cb ) ;
             pCataMsgBuf = NULL ;
             cataMsgSize = 0 ;
+            isCataMsgRewritten = FALSE ;
          }
          if ( pDataMsgBuf )
          {
-            _releaseDataMsg( pDataMsgBuf, dataMsgSize, cb ) ;
+            msgReleaseBuffer( pDataMsgBuf, cb ) ;
             pDataMsgBuf = NULL ;
             dataMsgSize = 0 ;
+            isDataMsgRewritten = FALSE ;
          }
 
          groupLst.clear() ;
@@ -257,10 +316,20 @@ namespace engine
               getName(), pArguments->_targetName.c_str() ) ;
 
       // Execute P2 on Data Groups
+      rc = _onDataP2Event( SDB_EVT_OCCUR_BEFORE, pArguments, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to call before data P2 events "
+                   "for command[%s, target:%s], rc: %d", getName(),
+                   pArguments->_targetName.c_str(), rc ) ;
+
       rc = _doOnDataGroupP2( (MsgHeader*)pDataMsgBuf, cb, &pCoordCtxForData,
                              pArguments, groupLst, cataObjs ) ;
       PD_RC_CHECK( rc, PDERROR, "Do phase 2 on data failed for command[%s, "
                    "target:%s], rc: %d", getName(),
+                   pArguments->_targetName.c_str(), rc ) ;
+
+      rc = _onDataP2Event( SDB_EVT_OCCUR_AFTER, pArguments, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to call after data P2 events "
+                   "for command[%s, target:%s], rc: %d", getName(),
                    pArguments->_targetName.c_str(), rc ) ;
 
       PD_LOG( PDINFO, "Do phase 2 on data done for command[%s, target:%s]",
@@ -314,14 +383,22 @@ namespace engine
          pCoordCtxForData.release() ;
       }
 
-      if ( pCataMsgBuf )
+      if ( isCataMsgRewritten )
       {
-         _releaseCataMsg( pCataMsgBuf, cataMsgSize, cb ) ;
+         msgReleaseBuffer( pCataMsgBuf, cb ) ;
+         pCataMsgBuf = NULL ;
+         cataMsgSize = 0 ;
+         isCataMsgRewritten = FALSE ;
       }
-      if ( pDataMsgBuf )
+      if ( isDataMsgRewritten )
       {
-         _releaseDataMsg( pDataMsgBuf, dataMsgSize, cb ) ;
+         msgReleaseBuffer( pDataMsgBuf, cb ) ;
+         pDataMsgBuf = NULL ;
+         dataMsgSize = 0 ;
+         isDataMsgRewritten = FALSE ;
       }
+
+      _unregEventHandlers() ;
 
       PD_TRACE_EXITRC ( COORD_CMD2PHASE_EXE, rc ) ;
       return rc ;
@@ -399,7 +476,6 @@ namespace engine
    {
       return SDB_OK ;
    }
-
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_CMD2PHASE_DOONCATAGROUP, "_coordCMD2Phase::_doOnCataGroup" )
    INT32 _coordCMD2Phase::_doOnCataGroup ( MsgHeader *pMsg,
@@ -663,6 +739,268 @@ namespace engine
       }
       goto done ;
    }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_CMD2PHASE__REGEVENTHANDLER, "_coordCMD2Phase::_regEventHandler" )
+   INT32 _coordCMD2Phase::_regEventHandler( coordCMDEventHandler *handler )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_CMD2PHASE__REGEVENTHANDLER ) ;
+
+      SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
+
+      for ( COORD_CMD_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
+            iter != _eventHandlers.end() ;
+            ++ iter )
+      {
+         coordCMDEventHandler *temp = *iter ;
+         if ( handler == temp )
+         {
+            PD_LOG( PDDEBUG, "Handler [%s] already registered to command [%s]",
+                    handler->getName(), getName() ) ;
+            goto done ;
+         }
+      }
+
+      try
+      {
+         _eventHandlers.push_back( handler ) ;
+         PD_LOG( PDDEBUG, "Registered handler [%s] to command [%s]",
+                 handler->getName(), getName() ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to register event handler, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_CMD2PHASE__REGEVENTHANDLER, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_CMD2PHASE__UNREGEVENTHANDLERS, "_coordCMD2Phase::_unregEventHandlers" )
+   void _coordCMD2Phase::_unregEventHandlers()
+   {
+      PD_TRACE_ENTRY( COORD_CMD2PHASE__UNREGEVENTHANDLERS ) ;
+
+      _eventHandlers.clear() ;
+
+      PD_TRACE_EXIT( COORD_CMD2PHASE__UNREGEVENTHANDLERS ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_CMD2PHASE__PARSECATRETURN, "_coordCMD2Phase::_parseCatReturn" )
+   INT32 _coordCMD2Phase::_parseCatReturn( coordCMDArguments *pArgs,
+                                           const vector<BSONObj> &cataObjs )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_CMD2PHASE__PARSECATRETURN ) ;
+
+      for ( COORD_CMD_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
+            iter != _eventHandlers.end() ;
+            ++ iter )
+      {
+         coordCMDEventHandler *handler = *iter ;
+         SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
+
+         rc = handler->parseCatReturn( pArgs, cataObjs ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to call parse catalog return "
+                      "for handler [%s] of command [%s], rc: %d",
+                      handler->getName(), getName(), rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_CMD2PHASE__PARSECATRETURN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_CMD2PHASE__NEEDREWRITEDATAMSG, "_coordCMD2Phase::_needRewriteDataMsg" )
+   BOOLEAN _coordCMD2Phase::_needRewriteDataMsg()
+   {
+      BOOLEAN needRewrite = FALSE ;
+
+      PD_TRACE_ENTRY( COORD_CMD2PHASE__NEEDREWRITEDATAMSG ) ;
+
+      for ( COORD_CMD_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
+            iter != _eventHandlers.end() ;
+            ++ iter )
+      {
+         coordCMDEventHandler *handler = *iter ;
+         SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
+
+         if ( handler->needRewriteDataMsg() )
+         {
+            needRewrite = TRUE ;
+            break ;
+         }
+      }
+
+      PD_TRACE_EXIT( COORD_CMD2PHASE__NEEDREWRITEDATAMSG ) ;
+
+      return needRewrite ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_CMD2PHASE__REWRITEDATAMSG, "_coordCMD2Phase::_rewriteDataMsg" )
+   INT32 _coordCMD2Phase::_rewriteDataMsg( MsgHeader *pMsg,
+                                           coordCMDArguments *pArgs,
+                                           pmdEDUCB *cb,
+                                           CHAR **ppMsgBuf,
+                                           INT32 *pBufSize )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_CMD2PHASE__REWRITEDATAMSG ) ;
+
+      INT32 flag = 0 ;
+      const CHAR *pCommandName = NULL ;
+      INT64 numToSkip = 0 ;
+      INT64 numToReturn = 0 ;
+      const CHAR *pQuery = NULL ;
+      const CHAR *pSelector = NULL ;
+      const CHAR *pOrder = NULL ;
+      const CHAR *pHint = NULL ;
+
+      CHAR *newBuffer = NULL ;
+      INT32 newBufferSize = 0 ;
+
+      SDB_ASSERT( NULL != pMsg, "message is invalid" ) ;
+      SDB_ASSERT( NULL != ppMsgBuf, "message buffer is invalid" ) ;
+      SDB_ASSERT( NULL != pBufSize, "message buffer size is invalid" ) ;
+
+      rc = msgExtractQuery( (const CHAR *)pMsg, &flag, &pCommandName,
+                            &numToSkip, &numToReturn, &pQuery, &pSelector,
+                            &pOrder, &pHint ) ;
+      PD_RC_CHECK( rc, PDERROR, "Parse message for command[%s] failed, "
+                   "rc: %d", getName(), rc ) ;
+
+      try
+      {
+         BSONObjBuilder queryBuilder, hintBuilder ;
+
+         BSONObj boQuery = BSONObj( pQuery ) ;
+         BSONObj boSelector = BSONObj( pSelector ) ;
+         BSONObj boOrder = BSONObj( pOrder ) ;
+         BSONObj boHint = BSONObj( pHint ) ;
+         BSONObj boNewQuery, boNewHint ;
+
+         queryBuilder.appendElements( boQuery ) ;
+         hintBuilder.appendElements( boHint ) ;
+
+         for ( COORD_CMD_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
+               iter != _eventHandlers.end() ;
+               ++ iter )
+         {
+            coordCMDEventHandler *handler = *iter ;
+            SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
+
+            if ( handler->needRewriteDataMsg() )
+            {
+               rc = handler->rewriteDataMsg( queryBuilder, hintBuilder ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to call rewrite data message "
+                            "for handler [%s] of command [%s], rc: %d",
+                            handler->getName(), getName(), rc ) ;
+            }
+         }
+
+         boNewQuery = queryBuilder.done() ;
+         boNewHint = hintBuilder.done() ;
+
+         rc = msgBuildQueryMsg( &newBuffer, &newBufferSize, pCommandName,
+                                flag, 0, numToSkip, numToReturn, &boNewQuery,
+                                &boSelector, &boOrder, &boNewHint, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build query message for "
+                      "command[%s], rc: %d", getName(), rc ) ;
+
+         *ppMsgBuf = newBuffer ;
+         *pBufSize = newBufferSize ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to rewrite data message for command[%s], "
+                 "occur exception %s", getName(), e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_CMD2PHASE__REWRITEDATAMSG, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_CMD2PHASE__ONDATAP1EVENT, "_coordCMD2Phase::_onDataP1Event" )
+   INT32 _coordCMD2Phase::_onDataP1Event( SDB_EVENT_OCCUR_TYPE type,
+                                          coordCMDArguments *pArgs,
+                                          pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_CMD2PHASE__ONDATAP1EVENT ) ;
+
+      for ( COORD_CMD_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
+            iter != _eventHandlers.end() ;
+            ++ iter )
+      {
+         coordCMDEventHandler *handler = *iter ;
+         SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
+
+         rc = handler->onDataP1Event( type, _pResource, pArgs, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to call [%s] execute event on "
+                      "handler [%s] of command [%s], rc: %d",
+                      SDB_EVT_OCCUR_BEFORE == type ? "before" : "after",
+                      handler->getName(), getName(), rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_CMD2PHASE__ONDATAP1EVENT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_CMD2PHASE__ONDATAP2EVENT, "_coordCMD2Phase::_onDataP2Event" )
+   INT32 _coordCMD2Phase::_onDataP2Event( SDB_EVENT_OCCUR_TYPE type,
+                                          coordCMDArguments *pArgs,
+                                          pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_CMD2PHASE__ONDATAP2EVENT ) ;
+
+      for ( COORD_CMD_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
+            iter != _eventHandlers.end() ;
+            ++ iter )
+      {
+         coordCMDEventHandler *handler = *iter ;
+         SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
+
+         rc = handler->onDataP2Event( type, _pResource, pArgs, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to call [%s] execute event on "
+                      "handler [%s] of command [%s], rc: %d",
+                      SDB_EVT_OCCUR_BEFORE == type ? "before" : "after",
+                      handler->getName(), getName(), rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_CMD2PHASE__ONDATAP2EVENT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 
 }
 

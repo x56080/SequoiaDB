@@ -65,12 +65,15 @@ namespace engine
       virtual INT32 _initQuery ( const NET_HANDLE &handle,
                                  MsgHeader *pMsg,
                                  const CHAR *pQuery,
+                                 const CHAR *pHint,
                                  _pmdEDUCB *cb ) ;
 
       INT32 _countNodes ( const CHAR *pCollection,
                           const BSONObj &matcher,
                           UINT64 &count,
                           _pmdEDUCB *cb ) ;
+
+      virtual INT32 _buildP1Reply( bson::BSONObjBuilder &builder ) ;
 
    protected :
       UINT32 _groupID ;
@@ -104,8 +107,6 @@ namespace engine
       virtual INT32 _checkInternal ( _pmdEDUCB *cb ) ;
 
       virtual INT32 _executeInternal ( _pmdEDUCB *cb, INT16 w ) ;
-
-      virtual INT32 _makeReply ( rtnContextBuf &buffObj ) ;
    } ;
 
    typedef class _catCtxActiveGrp catCtxActiveGrp ;
@@ -137,8 +138,6 @@ namespace engine
       virtual INT32 _checkInternal ( _pmdEDUCB *cb ) ;
 
       virtual INT32 _executeInternal ( _pmdEDUCB *cb, INT16 w ) ;
-
-      virtual INT32 _makeReply ( rtnContextBuf &buffObj ) ;
    } ;
 
    typedef class _catCtxShutdownGrp catCtxShutdownGrp ;
@@ -170,8 +169,6 @@ namespace engine
       virtual INT32 _checkInternal ( _pmdEDUCB *cb ) ;
 
       virtual INT32 _executeInternal ( _pmdEDUCB *cb, INT16 w ) ;
-
-      virtual INT32 _makeReply ( rtnContextBuf &buffObj ) ;
    } ;
 
    typedef class _catCtxRemoveGrp catCtxRemoveGrp ;
@@ -205,8 +202,6 @@ namespace engine
       virtual INT32 _executeInternal ( _pmdEDUCB *cb, INT16 w ) ;
 
       virtual INT32 _rollbackInternal ( _pmdEDUCB *cb, INT16 w ) ;
-
-      virtual INT32 _makeReply ( rtnContextBuf &buffObj ) ;
 
       INT32 _checkLocalHost ( BOOLEAN isLocalHost,
                               BOOLEAN &isValid,
@@ -259,8 +254,6 @@ namespace engine
       virtual INT32 _checkInternal ( _pmdEDUCB *cb ) ;
 
       virtual INT32 _executeInternal ( _pmdEDUCB *cb, INT16 w ) ;
-
-      virtual INT32 _makeReply ( rtnContextBuf &buffObj ) ;
 
       INT32 _getRemovedGroupsObj ( const BSONObj &boNodeList,
                                    UINT16 &removeNodeID ) ;

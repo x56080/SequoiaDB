@@ -505,6 +505,8 @@ namespace engine
          virtual BOOLEAN isOpened() const { return ossMmapFile::_opened ; }
 
       private:
+         void _resetInfoByName( const CHAR *csName ) ;
+
          virtual const CHAR*  _getEyeCatcher() const = 0 ;
          virtual UINT64 _dataOffset()  = 0 ;
          virtual UINT32 _curVersion() const = 0 ;

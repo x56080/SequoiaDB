@@ -50,78 +50,665 @@
 #include "coordDSChecker.hpp"
 #include "coordCacheAssist.hpp"
 #include "coordCommandWithLocation.hpp"
+#include "coordCommandRecycleBin.hpp"
 #include "coordUtil.hpp"
 
 using namespace bson;
 
 namespace engine
 {
-    /* cataObj:
-    *     { GlobalIndex:[ { Collection: "GIDX_1.100_a", CLUniqueID: 123 },
-    *                     { Collection: "GIDX_2.200_a", CLUniqueID: 456 }, ... ]
-    * =>
-    * gIdxCLList:
-    *     [ 123, 456, ... ]
+
+   /*
+      _coordDataCMDHelper implement
     */
-   static INT32 extractGlobalIndexFromCataObj( const BSONObj &cataObj,
-                                               ossPoolList<utilCLUniqueID>& gIdxCLList )
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDHELPER_DROPCL, "_coordDataCMDHelper::dropCL" )
+   INT32 _coordDataCMDHelper::dropCL( coordResource *resource,
+                                      const CHAR *clName,
+                                      BOOLEAN useRecycleBin,
+                                      BOOLEAN ignoreLock,
+                                      pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
-      BSONObj gIndexObjs ;
-      BOOLEAN haveGlobalIndex = FALSE ;
 
+      PD_TRACE_ENTRY( COORD_DATACMDHELPER_DROPCL ) ;
+
+      INT64 contextID = -1 ;
+      rtnContextBuf contextBuff ;
+      CHAR *pMsg = NULL ;
+      INT32 buffSize = 0 ;
+
+      coordCMDDropCollection cmdDropCL ;
+
+      rc = cmdDropCL.init( resource, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to init drop cl command:rc=%d", rc ) ;
+
+      rc = msgBuildDropCLMsg( &pMsg, &buffSize, clName, useRecycleBin,
+                              ignoreLock, 0, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build drop cl request:"
+                   "cl=%s,rc=%d", clName, rc ) ;
+
+      rc = cmdDropCL.execute( (MsgHeader *)pMsg, cb, contextID, &contextBuff ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to drop cl(%s):rc=%d",
+                   clName, rc ) ;
+      SDB_ASSERT( -1 == contextID, "contextID must be -1" ) ;
+
+   done:
+      if ( NULL != pMsg )
+      {
+         msgReleaseBuffer( pMsg, cb ) ;
+      }
+      PD_TRACE_EXITRC( COORD_DATACMDHELPER_DROPCL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDHELPER_TRUNCCL, "_coordDataCMDHelper::truncateCL" )
+   INT32 _coordDataCMDHelper::truncateCL( coordResource *resource,
+                                          const CHAR *clName,
+                                          BOOLEAN useRecycleBin,
+                                          BOOLEAN ignoreLock,
+                                          pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATACMDHELPER_TRUNCCL ) ;
+
+      INT64 contextID = -1 ;
+      rtnContextBuf contextBuff ;
+      CHAR *pMsg = NULL ;
+      INT32 buffSize = 0 ;
+
+      coordCMDTruncate cmdTruncateCL ;
+
+      rc = cmdTruncateCL.init( resource, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to init truncate collection "
+                   "command, rc: %d", rc ) ;
+
+      rc = msgBuildTruncateCLMsg( &pMsg, &buffSize, clName, useRecycleBin,
+                                  ignoreLock, 0, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build truncate collection "
+                   "request [%s], rc: %d", clName, rc ) ;
+
+      rc = cmdTruncateCL.execute( (MsgHeader *)pMsg, cb, contextID,
+                                  &contextBuff ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to truncate collection [%s], rc: %d",
+                   clName, rc ) ;
+      SDB_ASSERT( -1 == contextID, "contextID must be -1" ) ;
+
+   done:
+      if ( NULL != pMsg )
+      {
+         msgReleaseBuffer( pMsg, cb ) ;
+      }
+      PD_TRACE_EXITRC( COORD_DATACMDHELPER_TRUNCCL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDHELPER_ALTERCL, "_coordDataCMDHelper::alterCL" )
+   INT32 _coordDataCMDHelper::alterCL( coordResource *resource,
+                                       const CHAR *clName,
+                                       const BSONObj &options,
+                                       pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATACMDHELPER_ALTERCL ) ;
+
+      INT64 contextID = -1 ;
+      rtnContextBuf contextBuff ;
+      CHAR *pMsg = NULL ;
+      INT32 buffSize = 0 ;
+
+      coordCMDAlterCollection cmdAlterCL ;
+
+      rc = cmdAlterCL.init( resource, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to init alter collection "
+                   "command, rc: %d", rc ) ;
+
+      rc = msgBuildAlterCLMsg( &pMsg, &buffSize, clName, options, 0, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build alter collection "
+                   "request [%s], rc: %d", clName, rc ) ;
+
+      rc = cmdAlterCL.execute( (MsgHeader *)pMsg, cb, contextID,
+                               &contextBuff ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to alter collection [%s], rc: %d",
+                   clName, rc ) ;
+      SDB_ASSERT( -1 == contextID, "contextID must be -1" ) ;
+
+   done:
+      if ( NULL != pMsg )
+      {
+         msgReleaseBuffer( pMsg, cb ) ;
+      }
+      PD_TRACE_EXITRC( COORD_DATACMDHELPER_ALTERCL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   /*
+      _coordCMDGlobIdxHandler implement
+    */
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDGLOBIDXHANDLER_PARSECATRETURN, "_coordCMDGlobIdxHandler::parseCatReturn" )
+   INT32 _coordCMDGlobIdxHandler::parseCatReturn( coordCMDArguments *pArgs,
+                                                  const vector<BSONObj> &cataObjs )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATACMDGLOBIDXHANDLER_PARSECATRETURN ) ;
+
+      BSONObj cataReplyObj ;
+
+      if ( cataObjs.empty() )
+      {
+         goto done ;
+      }
+
+      cataReplyObj = cataObjs[ 0 ] ;
+
+      /* cataObj:
+       * { GlobalIndex:[ { Collection: "GIDX_1.100_a", CLUniqueID: 123 },
+       *                 { Collection: "GIDX_2.200_a", CLUniqueID: 456 }, ... ]
+       */
       try
       {
+         BSONObj gIndexObjs ;
+         BOOLEAN haveGlobalIndex = FALSE ;
 
-      rc = rtnGetArrayElement( cataObj, CAT_GLOBAL_INDEX, gIndexObjs ) ;
-      if ( SDB_OK == rc )
-      {
-         haveGlobalIndex = TRUE ;
-      }
-      else if ( SDB_FIELD_NOT_EXIST == rc )
-      {
-         haveGlobalIndex = FALSE ;
-         rc = SDB_OK ;
-      }
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to get field(%s):obj=%s,rc=%d",
-                   CAT_GLOBAL_INDEX, cataObj.toString().c_str(), rc ) ;
-
-      if ( haveGlobalIndex )
-      {
-         BSONElement element ;
-         BSONObj gIndexInfo ;
-         BSONObjIterator indexIter( gIndexObjs ) ;
-         while ( indexIter.more() )
+         rc = rtnGetArrayElement( cataReplyObj, CAT_GLOBAL_INDEX, gIndexObjs ) ;
+         if ( SDB_OK == rc )
          {
-            INT64 clUID = 0 ;
+            haveGlobalIndex = TRUE ;
+         }
+         else if ( SDB_FIELD_NOT_EXIST == rc )
+         {
+            haveGlobalIndex = FALSE ;
+            rc = SDB_OK ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s] from obj [%s], "
+                      "rc: %d", CAT_GLOBAL_INDEX,
+                      cataReplyObj.toPoolString().c_str(), rc ) ;
 
-            element = indexIter.next() ;
-            PD_CHECK( Object == element.type(), SDB_INVALIDARG, error, PDERROR,
-                      "Element must be object:element=%s,rc=%d",
-                      element.toString().c_str(), rc ) ;
+         if ( haveGlobalIndex )
+         {
+            BSONElement element ;
+            BSONObj gIndexInfo ;
+            BSONObjIterator indexIter( gIndexObjs ) ;
+            while ( indexIter.more() )
+            {
+               const CHAR *clName = NULL ;
 
-            // { CLUniqueID: 12345 }
-            gIndexInfo = element.embeddedObject() ;
-            rc = rtnGetNumberLongElement( gIndexInfo, CAT_GIDX_CL_UNIQUEID,
-                                          clUID ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to get index cl name from "
-                         "index info(%s):rc=%d", gIndexInfo.toString().c_str(),
+               element = indexIter.next() ;
+               PD_CHECK( Object == element.type(),
+                         SDB_INVALIDARG, error, PDERROR,
+                         "Failed to get element from field [%s], "
+                         "element [%s] should be object",
+                         CAT_GLOBAL_INDEX, element.toPoolString().c_str(),
                          rc ) ;
 
-            gIdxCLList.push_back( (utilCLUniqueID)clUID ) ;
+               gIndexInfo = element.embeddedObject() ;
+               rc = rtnGetStringElement( gIndexInfo, CAT_COLLECTION,
+                                         &clName ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s] from "
+                            "index info [%s], rc: %d", CAT_COLLECTION,
+                            gIndexInfo.toPoolString().c_str(), rc ) ;
+
+               _globalIndexes.push_back( clName ) ;
+            }
          }
       }
-
-      }
-      catch( std::exception &e )
+      catch ( exception &e )
       {
+         PD_LOG( PDERROR, "Failed to get global index name list, "
+                 "occur exception %s", e.what() ) ;
          rc = ossException2RC( &e ) ;
-         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
       }
 
    done:
+      PD_TRACE_EXITRC( COORD_DATACMDGLOBIDXHANDLER_PARSECATRETURN, rc ) ;
       return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDGLOBIDXHANDLER_ONDATAP1EVENT, "_coordCMDGlobIdxHandler::onDataP1Event" )
+   INT32 _coordCMDGlobIdxHandler::onDataP1Event( SDB_EVENT_OCCUR_TYPE type,
+                                                 coordResource *pResource,
+                                                 coordCMDArguments *pArgs,
+                                                 pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATACMDGLOBIDXHANDLER_ONDATAP1EVENT ) ;
+
+      if ( SDB_EVT_OCCUR_AFTER == type )
+      {
+         // now collection on data nodes are locked,
+         // alter global indexes to enable repair check
+         rc = _repairCheckGlobIdxCLs( pResource, TRUE, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to enable repair check on global "
+                      "index collections, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_DATACMDGLOBIDXHANDLER_ONDATAP1EVENT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDGLOBIDXHANDLER__REPAIRCHECKGLOBIDXCLS, "_coordCMDGlobIdxHandler::_repairCheckGlobIdxCLs" )
+   INT32 _coordCMDGlobIdxHandler::_repairCheckGlobIdxCLs( coordResource *resource,
+                                                          BOOLEAN enableRepairCheck,
+                                                          pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATACMDGLOBIDXHANDLER__REPAIRCHECKGLOBIDXCLS ) ;
+
+      BSONObj options ;
+      coordDataCMDHelper helper ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+         builder.appendBool( FIELD_NAME_REPARECHECK, enableRepairCheck ) ;
+         options = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build alter options, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      for ( COORD_GLOBIDXCL_NAME_LIST_CIT iter = _globalIndexes.begin() ;
+            iter != _globalIndexes.end() ;
+            ++ iter )
+      {
+         const CHAR *globIdxCLName = iter->c_str() ;
+
+         rc = helper.alterCL( resource, globIdxCLName, options, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to alter collection [%s] with "
+                      "[%s] : [%s], rc: %d",
+                      globIdxCLName, FIELD_NAME_REPARECHECK,
+                      enableRepairCheck ? "TRUE" : "FALSE", rc ) ;
+
+         PD_LOG( PDEVENT, "Alter global index collection [%s] to [%s] "
+                 "repair check success", globIdxCLName,
+                 enableRepairCheck ? "enable" : "disable" ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_DATACMDGLOBIDXHANDLER__REPAIRCHECKGLOBIDXCLS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   /*
+      _coordDropGlobIdxHelper implement
+    */
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATADROPGLOBIDXHANDLER_ONDATAP2EVENT, "_coordDropGlobIdxHandler::onDataP2Event" )
+   INT32 _coordDropGlobIdxHandler::onDataP2Event( SDB_EVENT_OCCUR_TYPE type,
+                                                  coordResource *pResource,
+                                                  coordCMDArguments *pArgs,
+                                                  pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATADROPGLOBIDXHANDLER_ONDATAP2EVENT ) ;
+
+      if ( SDB_EVT_OCCUR_BEFORE == type )
+      {
+         rc = _dropGlobIdxCLs( pResource, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to drop global index collections, "
+                      "rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_DATADROPGLOBIDXHANDLER_ONDATAP2EVENT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATADROPGLOBIDXHANDLER__DROPGLOBIDXCLS, "_coordDropGlobIdxHandler::_dropGlobIdxCLs" )
+   INT32 _coordDropGlobIdxHandler::_dropGlobIdxCLs( coordResource *resource,
+                                                    pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATADROPGLOBIDXHANDLER__DROPGLOBIDXCLS ) ;
+
+      coordDataCMDHelper helper ;
+
+      for ( COORD_GLOBIDXCL_NAME_LIST_CIT iter = _globalIndexes.begin() ;
+            iter != _globalIndexes.end() ;
+            ++ iter )
+      {
+         const CHAR *globIdxCLName = iter->c_str() ;
+         rc = helper.dropCL( resource, globIdxCLName, FALSE, FALSE, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to drop collection [%s], "
+                      "rc: %d", globIdxCLName, rc ) ;
+
+         PD_LOG( PDEVENT, "Drop global index collection [%s] success",
+                 globIdxCLName ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_DATADROPGLOBIDXHANDLER__DROPGLOBIDXCLS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   /*
+      _coordTruncGlobIdxHelper implement
+    */
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATATRUNCGLOBIDXHANDLER_ONDATAP2EVENT, "_coordTruncGlobIdxHandler::onDataP2Event" )
+   INT32 _coordTruncGlobIdxHandler::onDataP2Event( SDB_EVENT_OCCUR_TYPE type,
+                                                   coordResource *resource,
+                                                   coordCMDArguments *arguments,
+                                                   pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATATRUNCGLOBIDXHANDLER_ONDATAP2EVENT ) ;
+
+      if ( SDB_EVT_OCCUR_BEFORE == type )
+      {
+         rc = _truncGlobIdxCLs( resource, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to drop global index collections, "
+                      "rc: %d", rc ) ;
+      }
+      else if ( SDB_EVT_OCCUR_AFTER == type )
+      {
+         // collection is truncated, disable repair check
+         rc = _repairCheckGlobIdxCLs( resource, FALSE, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to disable repair check on global "
+                      "index collections, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_DATATRUNCGLOBIDXHANDLER_ONDATAP2EVENT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATATRUNCGLOBIDXHANDLER__TRUNCGLOBIDXCLS, "_coordTruncGlobIdxHandler::_truncGlobIdxCLs" )
+   INT32 _coordTruncGlobIdxHandler::_truncGlobIdxCLs( coordResource *resource,
+                                                      pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATATRUNCGLOBIDXHANDLER__TRUNCGLOBIDXCLS ) ;
+
+      coordDataCMDHelper helper ;
+
+      for ( COORD_GLOBIDXCL_NAME_LIST_CIT iter = _globalIndexes.begin() ;
+            iter != _globalIndexes.end() ;
+            ++ iter )
+      {
+         const CHAR *globIdxCLName = iter->c_str() ;
+         rc = helper.truncateCL( resource, globIdxCLName, FALSE, FALSE, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to truncate collection [%s], "
+                      "rc: %d", globIdxCLName, rc ) ;
+
+         PD_LOG( PDEVENT, "Truncate global index collection [%s] success",
+                 globIdxCLName ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_DATATRUNCGLOBIDXHANDLER__TRUNCGLOBIDXCLS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   /*
+      _coordCMDRecycleHandler implement
+    */
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATARECYHANDLER_PARSECATRETURN, "_coordCMDRecycleHandler::parseCatReturn" )
+   INT32 _coordCMDRecycleHandler::parseCatReturn( coordCMDArguments *pArgs,
+                                                  const vector<BSONObj> &cataObjs )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATARECYHANDLER_PARSECATRETURN ) ;
+
+      BSONObj cataReplyObj ;
+
+      if ( cataObjs.empty() )
+      {
+         goto done ;
+      }
+
+      cataReplyObj = cataObjs[ 0 ] ;
+
+      try
+      {
+         BSONElement element ;
+
+         // get recycle item
+         element = cataReplyObj.getField( FIELD_NAME_RECYCLE_ITEM ) ;
+         if ( EOO != element.type() )
+         {
+            PD_CHECK( Object == element.type(), SDB_SYS, error, PDERROR,
+                      "Failed to get field [%s], it is not object",
+                      FIELD_NAME_RECYCLE_ITEM ) ;
+
+            _recycleOptions = element.embeddedObject().copy() ;
+
+            try
+            {
+               // as rename, retry when lock failed in data node
+               pArgs->_retryRCList.insert( SDB_LOCK_FAILED ) ;
+            }
+            catch ( exception  &e )
+            {
+               PD_LOG( PDERROR, "Failed to save retry return code, "
+                       "occur exception %s", e.what() ) ;
+               rc = ossException2RC( &e ) ;
+               goto error ;
+            }
+
+            PD_LOG( PDDEBUG, "Got recycle options [%s]",
+                    _recycleOptions.toPoolString().c_str() ) ;
+         }
+         else
+         {
+            goto done ;
+         }
+
+         // get dropping items
+         element = cataReplyObj.getField( FIELD_NAME_DROP_RECYCLE_ITEM ) ;
+         if ( Array == element.type() )
+         {
+            BSONObjIterator iter( element.embeddedObject() ) ;
+            while ( iter.more() )
+            {
+               BSONElement subEle = iter.next() ;
+               PD_CHECK( String == subEle.type(), SDB_SYS, error, PDERROR,
+                         "Failed to get dropping recycle items, "
+                         "sub-element should be string" ) ;
+               _droppingItems.push_back( subEle.valuestrsafe() ) ;
+            }
+         }
+         else if ( EOO != element.type() )
+         {
+            PD_CHECK( FALSE, SDB_SYS, error, PDERROR,
+                      "Failed to get dropping recycle items, "
+                      "field [%s] should be array",
+                      FIELD_NAME_DROP_RECYCLE_ITEM ) ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse catalog return objects, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_DATARECYHANDLER_PARSECATRETURN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATARECYHANDLER_REWRITEDATAMSG, "_coordCMDRecycleHandler::rewriteDataMsg" )
+   INT32 _coordCMDRecycleHandler::rewriteDataMsg( BSONObjBuilder &queryBuilder,
+                                                  BSONObjBuilder &hintBuilder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATARECYHANDLER_REWRITEDATAMSG ) ;
+
+      try
+      {
+         hintBuilder.append( FIELD_NAME_RECYCLE_ITEM, _recycleOptions ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to rewrite data message, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_DATARECYHANDLER_REWRITEDATAMSG, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATARECYHANDLER_ONDATAP1EVENT, "_coordCMDRecycleHandler::onDataP1Event" )
+   INT32 _coordCMDRecycleHandler::onDataP1Event( SDB_EVENT_OCCUR_TYPE type,
+                                                 coordResource *resource,
+                                                 coordCMDArguments *arguments,
+                                                 pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATARECYHANDLER_ONDATAP1EVENT ) ;
+
+      if ( SDB_EVT_OCCUR_AFTER == type )
+      {
+         // drop old recycle items first to give room for current recycle item
+         // if needed
+         rc = _dropRecycleItems( resource, TRUE, TRUE, TRUE, TRUE, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to drop dropping recycle items "
+                      "from in recycle bin, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_DATARECYHANDLER_ONDATAP1EVENT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATARECYHANDLER__DROPRECYITEM, "_coordCMDRecycleHandler::_dropRecycleItem" )
+   INT32 _coordCMDRecycleHandler::_dropRecycleItem( coordResource *resource,
+                                                    const CHAR *recycleName,
+                                                    BOOLEAN ignoreIfNotExists,
+                                                    BOOLEAN isRecursive,
+                                                    BOOLEAN isEnforced,
+                                                    BOOLEAN ignoreLock,
+                                                    pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATARECYHANDLER__DROPRECYITEM ) ;
+
+      INT64 contextID = -1 ;
+      rtnContextBuf contextBuff ;
+      CHAR *pMsg = NULL ;
+      INT32 buffSize = 0 ;
+
+      coordDropRecycleBinItem command ;
+
+      rc = command.init( resource, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to init drop recycle bin item command, "
+                   "rc: %d", rc ) ;
+
+      rc = msgBuildDropRecyBinItemMsg( &pMsg, &buffSize, recycleName,
+                                       isRecursive, isEnforced, ignoreLock,
+                                       0, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build drop recycle bin item "
+                   "request [%s], rc: %d", recycleName, rc ) ;
+
+      rc = command.execute( (MsgHeader *)pMsg, cb, contextID, &contextBuff ) ;
+      if ( ignoreIfNotExists && SDB_RECYCLE_ITEMNOTEXISTS == rc )
+      {
+         rc = SDB_OK ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to drop recycle bin item [%s], rc: %d",
+                   recycleName, rc ) ;
+      SDB_ASSERT( -1 == contextID, "contextID must be -1" ) ;
+
+   done:
+      if ( NULL != pMsg )
+      {
+         msgReleaseBuffer( pMsg, cb ) ;
+      }
+      PD_TRACE_EXITRC( COORD_DATARECYHANDLER__DROPRECYITEM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATARECYHANDLER__DROPRECYITEMS, "_coordCMDRecycleHandler::_dropRecycleItems" )
+   INT32 _coordCMDRecycleHandler::_dropRecycleItems( coordResource *resource,
+                                                     BOOLEAN ignoreIfNotExists,
+                                                     BOOLEAN isRecursive,
+                                                     BOOLEAN isEnforced,
+                                                     BOOLEAN ignoreLock,
+                                                     pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATARECYHANDLER__DROPRECYITEMS ) ;
+
+      for ( UTIL_RECY_ITEM_NAME_LIST_CIT iter = _droppingItems.begin() ;
+            iter != _droppingItems.end() ;
+            ++ iter )
+      {
+         const CHAR *recycleName = iter->c_str() ;
+
+         rc = _dropRecycleItem( resource, recycleName, ignoreIfNotExists,
+                                isRecursive, isEnforced, ignoreLock, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to drop recycle bin item [%s], "
+                      "rc: %d", recycleName, rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_DATARECYHANDLER__DROPRECYITEMS, rc ) ;
+      return rc ;
+
    error:
       goto done ;
    }
@@ -130,7 +717,6 @@ namespace engine
       _coordDataCMD2Phase implement
    */
    _coordDataCMD2Phase::_coordDataCMD2Phase()
-   : _needReleaseDataMsg( FALSE )
    {
    }
 
@@ -150,17 +736,6 @@ namespace engine
       *pBufSize = pMsg->messageLength ;
 
       return SDB_OK ;
-   }
-
-   void _coordDataCMD2Phase::_releaseDataMsg( CHAR *pMsgBuf,
-                                              INT32 bufSize,
-                                              pmdEDUCB *cb )
-   {
-      if ( pMsgBuf && _needReleaseDataMsg )
-      {
-         msgReleaseBuffer( pMsgBuf, cb ) ;
-         _needReleaseDataMsg = FALSE ;
-      }
    }
 
    INT32 _coordDataCMD2Phase::_generateRollbackDataMsg ( MsgHeader *pMsg,
@@ -329,37 +904,6 @@ namespace engine
    done :
       return rc ;
    error :
-      goto done ;
-   }
-
-   INT32 _coordDataCMD2Phase::_dropCL( const CHAR *clName, pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-      INT64 contextID = -1 ;
-      rtnContextBuf contextBuff ;
-      CHAR *pMsg = NULL ;
-      INT32 buffSize = 0 ;
-
-      _coordCMDDropCollection cmdDropCL ;
-      rc = cmdDropCL.init( _pResource, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to init drop cl ommand:rc=%d", rc ) ;
-
-      rc = msgBuildDropCLMsg( &pMsg, &buffSize, clName, 0, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build drop cl request:"
-                   "cl=%s,rc=%d", clName, rc ) ;
-
-      rc = cmdDropCL.execute( (MsgHeader *)pMsg, cb, contextID, &contextBuff ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to drop cl(%s):rc=%d",
-                   clName, rc ) ;
-      SDB_ASSERT( -1 == contextID, "contextID must be -1" ) ;
-
-   done:
-      if ( NULL != pMsg )
-      {
-         msgReleaseBuffer( pMsg, cb ) ;
-      }
-      return rc ;
-   error:
       goto done ;
    }
 
@@ -807,13 +1351,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   void _coordDataCMDAlter::_releaseCataMsg ( CHAR * pMsgBuf,
-                                              INT32 bufSize,
-                                              pmdEDUCB * cb )
-   {
-      /// Nothing to be release
-   }
-
    // PD_TRACE_DECLARE_FUNCTION( COORD_ALTER_GENDATAMSG, "_coordDataCMDAlter::_generateDataMsg" )
    INT32 _coordDataCMDAlter::_generateDataMsg( MsgHeader *pMsg,
                                                pmdEDUCB *cb,
@@ -876,7 +1413,6 @@ namespace engine
 
       *ppMsgBuf = (CHAR*)pBuf ;
       *pBufSize = bufSize ;
-      _needReleaseDataMsg = TRUE ;
 
    done :
       PD_TRACE_EXITRC( COORD_ALTER_GENDATAMSG, rc ) ;
@@ -1746,158 +2282,185 @@ namespace engine
    {
    }
 
-   INT32 _coordCMDTruncate::_truncateCL( const CHAR *clName, pmdEDUCB *cb )
+   // PD_TRACE_DECLARE_FUNCTION( COORD_TRUNCATECL_REGEVENTHANDLERS, "_coordCMDTruncate::_regEventHandlers" )
+   INT32 _coordCMDTruncate::_regEventHandlers()
    {
       INT32 rc = SDB_OK ;
-      INT64 contextID = -1 ;
-      rtnContextBuf contextBuff ;
-      CHAR *pMsg = NULL ;
-      INT32 buffSize = 0 ;
-      BSONObj query ;
-      const CHAR *pCommand    = CMD_ADMIN_PREFIX CMD_NAME_TRUNCATE ;
-      _coordCMDTruncate cmdTruncateCL ;
 
-      try
-      {
-         BSONObjBuilder ob ;
-         ob.append ( FIELD_NAME_COLLECTION, clName ) ;
-         query = ob.obj () ;
-      }
-      catch ( std::exception &e )
-      {
-         PD_LOG_MSG( PDERROR, "Failed to create BSON object: %s", e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
+      PD_TRACE_ENTRY( COORD_TRUNCATECL_REGEVENTHANDLERS ) ;
 
-      rc = msgBuildQueryMsg( &pMsg, &buffSize, pCommand, 0, 0, 0, -1,
-                             &query, NULL, NULL, NULL, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build command, command: %s, rc: %d",
-                   pCommand, rc ) ;
+      rc = _regEventHandler( &_globIdxHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register global index handler, "
+                   "rc: %d", rc ) ;
 
-      rc = cmdTruncateCL.init( _pResource, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to init drop cl ommand:rc=%d", rc ) ;
-
-      rc = cmdTruncateCL.execute( (MsgHeader *)pMsg, cb, contextID, &contextBuff ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to drop cl(%s):rc=%d",
-                   clName, rc ) ;
-      SDB_ASSERT( -1 == contextID, "contextID must be -1" ) ;
+      rc = _regEventHandler( &_recycleHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register recycle handler, rc: %d",
+                   rc ) ;
 
    done:
-      if ( NULL != pMsg )
-      {
-         msgReleaseBuffer( pMsg, cb ) ;
-      }
+      PD_TRACE_EXITRC( COORD_TRUNCATECL_REGEVENTHANDLERS, rc ) ;
       return rc ;
+
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION( COORD_TRUNCATE_EXE, "_coordCMDTruncate::execute" )
-   INT32 _coordCMDTruncate::execute( MsgHeader *pMsg,
-                                     pmdEDUCB *cb,
-                                     INT64 &contextID,
-                                     rtnContextBuf *buf )
+   // PD_TRACE_DECLARE_FUNCTION( COORD_TRUNCATECL_PARSEMSG, "_coordCMDTruncate::_parseMsg" )
+   INT32 _coordCMDTruncate::_parseMsg( MsgHeader *pMsg,
+                                       coordCMDArguments *pArgs )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( COORD_TRUNCATE_EXE ) ;
-      const CHAR *option = NULL;
-      BSONObj boQuery ;
-      const CHAR *fullName = NULL ;
-      vector<BSONObj> cataObjs ;
 
-      rc = msgExtractQuery( ( CHAR * )pMsg, NULL, NULL,
-                            NULL, NULL, &option, NULL,
-                            NULL, NULL );
-      PD_RC_CHECK( rc, PDERROR, "failed to extract msg:%d", rc ) ;
+      PD_TRACE_ENTRY( COORD_TRUNCATECL_PARSEMSG ) ;
 
       try
       {
-         boQuery = BSONObj( option );
-         rc = rtnGetStringElement( boQuery, FIELD_NAME_COLLECTION, &fullName ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get cl name, rc: %d", rc ) ;
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG( PDERROR, "unexpected err happened:%s", e.what() ) ;
-         rc = SDB_SYS ;
-         goto error;
-      }
-
-      // remove all data
-      rc = executeOnCL( pMsg, cb, fullName, FALSE, NULL, NULL,
-                        NULL, NULL, buf ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to truncate cl:%s on data group, rc:%d",
-                 fullName, rc ) ;
-         goto error ;
-      }
-
-      // reset cl related sequences
-      pMsg->opCode = MSG_CAT_TRUNCATE_REQ ;
-      rc = executeOnCataGroup ( pMsg, cb, NULL,
-                                &cataObjs, TRUE, NULL, buf ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to truncate cl:%s on cata group, rc:%d",
-                 fullName, rc ) ;
-         goto error ;
-      }
-
-      // remove cache of related sequences.
-      rc = coordInvalidateSequenceCache( getCataPtr(), cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to invalidate sequence cache of "
-                   "cl[%s], rc: %d", fullName, rc ) ;
-
-      // remove global index if any
-      if ( !cataObjs.empty() )
-      {
-         ossPoolList<utilCLUniqueID> gIndexCLList ;
-         rc = extractGlobalIndexFromCataObj( cataObjs[0], gIndexCLList ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to extract global index cl list from catalog "
-                      "reply, rc: %d", rc ) ;
-
-         for ( ossPoolList<utilCLUniqueID>::iterator it = gIndexCLList.begin();
-               it != gIndexCLList.end() ; ++it )
+         rc = rtnGetSTDStringElement( pArgs->_boQuery, CAT_COLLECTION,
+                                      pArgs->_targetName ) ;
+         if ( rc )
          {
-            CoordCataInfoPtr cataPtr ;
-            utilCLUniqueID clUID = *it ;
+            PD_LOG( PDERROR, "Get field[%s] failed on command[%s], rc: %d",
+                    CAT_COLLECTION, getName(), rc ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
 
-            rc = _pResource->updateCataInfoByCLUID( clUID, cataPtr, cb ) ;
-            if ( SDB_DMS_NOTEXIST == rc || SDB_DMS_EOC == rc )
-            {
-               rc = SDB_OK ;
-               continue ;
-            }
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDWARNING, "Failed to get cata info:clUID=%lld,rc=%d",
-                       clUID, rc ) ;
-               continue ;
-            }
-
-            rc = _truncateCL( cataPtr->getName(), cb ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDWARNING, "Failed to truncate cl:cl=%s,rc=%d",
-                       cataPtr->getName(), rc ) ;
-               continue ;
-            }
-
-            PD_LOG( PDEVENT, "Truncate index cl(%s) success",
-                    cataPtr->getName() ) ;
+         if ( dmsCheckFullCLName( pArgs->_targetName.c_str() ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Collection name is invalid[%s], rc: %d",
+                    pArgs->_targetName.c_str(), rc ) ;
+            goto error ;
          }
       }
-   done:
-      if ( fullName )
+      catch ( exception &e )
       {
-         PD_AUDIT_COMMAND( AUDIT_DDL, CMD_NAME_TRUNCATE, AUDIT_OBJ_CL,
-                           fullName, rc, "" ) ;
+         PD_LOG( PDERROR, "Failed to parse truncate message, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
       }
-      PD_TRACE_EXITRC( COORD_TRUNCATE_EXE, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( COORD_TRUNCATECL_PARSEMSG, rc ) ;
       return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _coordCMDTruncate::_generateCataMsg( MsgHeader *pMsg,
+                                              pmdEDUCB *cb,
+                                              coordCMDArguments *pArgs,
+                                              CHAR **ppMsgBuf,
+                                              INT32 *pBufSize )
+   {
+      pMsg->opCode = MSG_CAT_TRUNCATE_REQ ;
+      *ppMsgBuf = (CHAR *)pMsg ;
+      *pBufSize = pMsg->messageLength ;
+
+      return SDB_OK ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_TRUNCATE__GENDATAMSG, "_coordCMDTruncate::_generateDataMsg" )
+   INT32 _coordCMDTruncate::_generateDataMsg( MsgHeader *pMsg,
+                                              pmdEDUCB *cb,
+                                              coordCMDArguments *pArgs,
+                                              const vector<BSONObj> &cataObjs,
+                                              CHAR **ppMsgBuf,
+                                              INT32 *pBufSize )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_TRUNCATE__GENDATAMSG ) ;
+
+      BSONObj cataReplyObj ;
+
+      if ( cataObjs.empty() )
+      {
+         goto done ;
+      }
+
+      cataReplyObj = cataObjs[ 0 ] ;
+
+      rc = _BASE::_generateDataMsg( pMsg, cb, pArgs, cataObjs, ppMsgBuf,
+                                    pBufSize ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to generate truncate CL message, "
+                   "rc: %d", rc ) ;
+
+      try
+      {
+         CoordCataInfoPtr cataPtr ;
+         BSONObj objCata ;
+         BSONElement beCollection = cataReplyObj.getField( CAT_COLLECTION ) ;
+         if ( Object == beCollection.type() )
+         {
+            objCata = beCollection.embeddedObject() ;
+            // The catalog info of collection maybe too old
+            // The reply from Catalog implies that info need to be updated
+            PD_LOG( PDDEBUG, "Updating catalog info of collection [%s]",
+                    pArgs->_targetName.c_str() ) ;
+            rc = coordInitCataPtrFromObj( objCata, cataPtr ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Init catalog info from obj[%s] failed, "
+                       "collection:%s, rc: %d", pArgs->_targetName.c_str(),
+                       objCata.toString().c_str(), rc ) ;
+               goto error ;
+            }
+            // update with latest catalog info
+            _pResource->addCataInfo( cataPtr ) ;
+            _cataPtr = cataPtr ;
+            ((MsgOpQuery*)(*ppMsgBuf))->version = cataPtr->getVersion() ;
+         }
+      }
+      catch ( exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG ( PDERROR, "Occur exception when parse catalog "
+                  "object info: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_TRUNCATE__GENDATAMSG, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_TRUNCATE__DODATAGRP, "_coordCMDTruncate::_doOnDataGroup" )
+   INT32 _coordCMDTruncate::_doOnDataGroup( MsgHeader *pMsg,
+                                            pmdEDUCB *cb,
+                                            rtnContextCoord::sharePtr *ppContext,
+                                            coordCMDArguments *pArgs,
+                                            const CoordGroupList &groupLst,
+                                            const vector<BSONObj> &cataObjs,
+                                            CoordGroupList &sucGroupLst )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_TRUNCATE__DODATAGRP ) ;
+
+      // do on data for P1 to lock collection on data nodes
+      rc = _BASE::_doOnDataGroup( pMsg, cb, ppContext, pArgs, groupLst,
+                                  cataObjs, sucGroupLst ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to do on data group, rc: %d", rc ) ;
+
+      // now collection on data nodes are locked,
+      // remove cache of related sequences
+      if ( getCataPtr().get() )
+      {
+         rc = coordInvalidateSequenceCache( getCataPtr(), cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to invalidate sequence cache of "
+                      "cl[%s], rc: %d", pArgs->_targetName.c_str(), rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_TRUNCATE__DODATAGRP, rc ) ;
+      return rc ;
+
    error:
       goto done ;
    }
@@ -2098,6 +2661,29 @@ namespace engine
    {
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DROPCS_REGEVENTHANDLERS, "_coordCMDDropCollectionSpace::_regEventHandlers" )
+   INT32 _coordCMDDropCollectionSpace::_regEventHandlers()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DROPCS_REGEVENTHANDLERS ) ;
+
+      rc = _regEventHandler( &_globIdxHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register global index handler, "
+                   "rc: %d", rc ) ;
+
+      rc = _regEventHandler( &_recycleHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register recycle handler, rc: %d",
+                   rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( COORD_DROPCS_REGEVENTHANDLERS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION( COORD_DROPCS_PARSEMSG, "_coordCMDDropCollectionSpace::_parseMsg" )
    INT32 _coordCMDDropCollectionSpace::_parseMsg ( MsgHeader *pMsg,
                                                    coordCMDArguments *pArgs )
@@ -2154,101 +2740,6 @@ namespace engine
       *pBufSize = pMsg->messageLength ;
 
       return SDB_OK ;
-   }
-
-   void _coordCMDDropCollectionSpace::_releaseCataMsg( CHAR *pMsgBuf,
-                                                       INT32 bufSize,
-                                                       pmdEDUCB *cb )
-   {
-   }
-
-   INT32 _coordCMDDropCollectionSpace::_generateDataMsg (
-                                                MsgHeader *pMsg,
-                                                pmdEDUCB *cb,
-                                                coordCMDArguments *pArgs,
-                                                const vector<BSONObj> &cataObjs,
-                                                CHAR **ppMsgBuf,
-                                                INT32 *pBufSize )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_CHECK( cataObjs.size() == 1, SDB_INVALIDARG , error, PDERROR,
-                "Catalog objs size must be 1" ) ;
-
-      rc = extractGlobalIndexFromCataObj( cataObjs[0], _indexCLList ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to extract global index cl list from catalog reply, "
-                   "rc: %d", rc ) ;
-
-      pMsg->opCode = MSG_BS_QUERY_REQ ;
-      *ppMsgBuf = (CHAR*)pMsg ;
-      *pBufSize = pMsg->messageLength ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _coordCMDDropCollectionSpace::_doOnDataGroup (
-                                              MsgHeader *pMsg,
-                                              pmdEDUCB *cb,
-                                              rtnContextCoord::sharePtr *ppContext,
-                                              coordCMDArguments *pArgs,
-                                              const CoordGroupList &groupLst,
-                                              const vector<BSONObj> &cataObjs,
-                                              CoordGroupList &sucGroupLst )
-   {
-      INT32 rc = SDB_OK ;
-
-      rc = _coordDataCMD2Phase::_doOnDataGroup( pMsg, cb, ppContext, pArgs,
-                                                groupLst, cataObjs,
-                                                sucGroupLst ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to do on data group:rc=%d", rc ) ;
-
-      for ( UTIL_UNIQUE_LIST_ITER iter = _indexCLList.begin() ;
-            iter != _indexCLList.end(); ++iter )
-      {
-         CoordCataInfoPtr cataPtr ;
-         rc = _pResource->updateCataInfoByCLUID( *iter, cataPtr, cb ) ;
-         if ( SDB_DMS_NOTEXIST == rc || SDB_DMS_EOC == rc )
-         {
-            rc = SDB_OK ;
-            continue ;
-         }
-
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDWARNING, "Failed to get cata info:clUID=%lld,rc=%d",
-                    *iter, rc ) ;
-            rc = SDB_OK ;
-            continue ;
-         }
-
-         rc = _dropCL( cataPtr->getName(), cb ) ;
-         if ( SDB_DMS_NOTEXIST == rc )
-         {
-            rc = SDB_OK ;
-            continue ;
-         }
-
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "Failed to drop cl:cl=%s,rc=%d",
-                    cataPtr->getName(), rc ) ;
-            rc = SDB_OK ;
-            continue ;
-         }
-
-         // TODO YUTING drop empty cs, after merge youbin's code
-
-         PD_LOG( PDEVENT, "Drop index cl(%s) success", cataPtr->getName() ) ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_DROPCS_DOCOMPLETE, "_coordCMDDropCollectionSpace::_doComplete" )
@@ -2381,12 +2872,6 @@ namespace engine
       *pBufSize = pMsg->messageLength ;
 
       return SDB_OK ;
-   }
-
-   void _coordCMDRenameCollectionSpace::_releaseCataMsg( CHAR *pMsgBuf,
-                                                       INT32 bufSize,
-                                                       pmdEDUCB *cb )
-   {
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_RENAMECS_DOCOMPLETE, "_coordCMDRenameCollectionSpace::_doComplete" )
@@ -2731,12 +3216,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   void _coordCMDCreateCollection::_releaseCataMsg( CHAR *pMsgBuf,
-                                                    INT32 bufSize,
-                                                    pmdEDUCB *cb )
-   {
-   }
-
    // PD_TRACE_DECLARE_FUNCTION( COORD_CRTCL_GENDATAMSG, "_coordCMDCreateCollection::_generateDataMsg" )
    INT32 _coordCMDCreateCollection::_generateDataMsg( MsgHeader *pMsg,
                                                       pmdEDUCB *cb,
@@ -2785,7 +3264,6 @@ namespace engine
 
          *ppMsgBuf = (CHAR*)pBuf ;
          *pBufSize = bufSize ;
-         _needReleaseDataMsg = TRUE ;
       }
       catch ( std::exception &e )
       {
@@ -2819,9 +3297,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_CREATECL_GENROLLBACKMSG ) ;
 
-      rc = msgBuildDropCLMsg( ppMsgBuf, pBufSize,
-                              pArgs->_targetName.c_str(),
-                              0, cb ) ;
+      rc = msgBuildDropCLMsg( ppMsgBuf, pBufSize, pArgs->_targetName.c_str(),
+                              FALSE, FALSE, 0, cb ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Build rollback message failed on command[%s], "
@@ -2954,6 +3431,29 @@ namespace engine
    {
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DROPCL_REGEVENTHANDLERS, "_coordCMDDropCollection::_regEventHandlers" )
+   INT32 _coordCMDDropCollection::_regEventHandlers()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DROPCL_REGEVENTHANDLERS ) ;
+
+      rc = _regEventHandler( &_globIdxHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register global index handler, "
+                   "rc: %d", rc ) ;
+
+      rc = _regEventHandler( &_recycleHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register recycle handler, rc: %d",
+                   rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( COORD_DROPCL_REGEVENTHANDLERS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION( COORD_DROPCL_PARSEMSG, "_coordCMDDropCollection::_parseMsg" )
    INT32 _coordCMDDropCollection::_parseMsg ( MsgHeader *pMsg,
                                               coordCMDArguments *pArgs )
@@ -3010,12 +3510,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   void _coordCMDDropCollection::_releaseCataMsg( CHAR *pMsgBuf,
-                                                  INT32 bufSize,
-                                                  pmdEDUCB *cb )
-   {
-   }
-
    // PD_TRACE_DECLARE_FUNCTION( COORD_DROPCL_GENDATAMSG, "_coordCMDDropCollection::_generateDataMsg" )
    INT32 _coordCMDDropCollection::_generateDataMsg ( MsgHeader *pMsg,
                                                      pmdEDUCB *cb,
@@ -3027,122 +3521,59 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_DROPCL_GENDATAMSG ) ;
 
-      /// alloc message
+      BSONObj cataReplyObj ;
+
+      if ( cataObjs.empty() )
+      {
+         goto done ;
+      }
+
+      cataReplyObj = cataObjs[ 0 ] ;
+
       rc = _coordDataCMD3Phase::_generateDataMsg( pMsg, cb, pArgs,
                                                   cataObjs, ppMsgBuf,
                                                   pBufSize ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
-      else if ( cataObjs.size() > 0 )
-      {
-         try
-         {
-            // { Collection: { Name: xxx, UniqueID:123, ... },
-            //   GlobalIndex: [ { Collection: "GIDX_1.100_a",
-            //                    CLUniqueID: 456 } ,... ]
-            BSONElement beCollection = cataObjs[0].getField( CAT_COLLECTION ) ;
-            if ( Object == beCollection.type() )
-            {
-               BSONObj objCata = beCollection.embeddedObject() ;
-               // The catalog info of collection maybe too old
-               // The reply from Catalog implies that info need to be updated
-               PD_LOG( PDDEBUG, "Updating catalog info of collection [%s]",
-                       pArgs->_targetName.c_str() ) ;
-               CoordCataInfoPtr cataPtr ;
-               rc = coordInitCataPtrFromObj( objCata, cataPtr ) ;
-               if ( rc )
-               {
-                  PD_LOG( PDERROR, "Init catalog info from obj[%s] failed, "
-                          "collection:%s, rc: %d", objCata.toString().c_str(),
-                          pArgs->_targetName.c_str(), rc ) ;
-                  goto error ;
-               }
-               _pResource->addCataInfo( cataPtr ) ;
-               ((MsgOpQuery*)(*ppMsgBuf))->version = cataPtr->getVersion() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to generate drop CL message, "
+                   "rc: %d", rc ) ;
 
-               rc = extractGlobalIndexFromCataObj( cataObjs[0], _globalIndexes ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Failed to extract global index cl list from catalog "
-                            "reply, rc: %d", rc ) ;
-            }
-         }
-         catch ( std::exception &e )
+      try
+      {
+         CoordCataInfoPtr cataPtr ;
+         BSONObj objCata ;
+         BSONElement beCollection = cataReplyObj.getField( CAT_COLLECTION ) ;
+         if ( Object == beCollection.type() )
          {
-            rc = SDB_SYS ;
-            PD_LOG ( PDERROR, "Occur exception when parse catalog "
-                     "object info: %s", e.what() ) ;
-            goto error ;
+            objCata = beCollection.embeddedObject() ;
+            // The catalog info of collection maybe too old
+            // The reply from Catalog implies that info need to be updated
+            PD_LOG( PDDEBUG, "Updating catalog info of collection [%s]",
+                    pArgs->_targetName.c_str() ) ;
+            rc = coordInitCataPtrFromObj( objCata, cataPtr ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Init catalog info from obj[%s] failed, "
+                       "collection:%s, rc: %d", pArgs->_targetName.c_str(),
+                       objCata.toString().c_str(), rc ) ;
+               goto error ;
+            }
+            // update with latest catalog info
+            _pResource->addCataInfo( cataPtr ) ;
+            _cataPtr = cataPtr ;
+            ((MsgOpQuery*)(*ppMsgBuf))->version = cataPtr->getVersion() ;
          }
+      }
+      catch ( exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG ( PDERROR, "Occur exception when parse catalog "
+                  "object info: %s", e.what() ) ;
+         goto error ;
       }
 
    done :
       PD_TRACE_EXITRC( COORD_DROPCL_GENDATAMSG, rc ) ;
       return rc ;
    error :
-      if ( *ppMsgBuf )
-      {
-         _coordDataCMD3Phase::_releaseDataMsg( *ppMsgBuf, *pBufSize, cb ) ;
-         *ppMsgBuf = NULL ;
-         *pBufSize = 0 ;
-      }
-      goto done ;
-   }
-
-   INT32 _coordCMDDropCollection::_doOnDataGroup (
-                                                MsgHeader *pMsg,
-                                                pmdEDUCB *cb,
-                                                rtnContextCoord::sharePtr *ppContext,
-                                                coordCMDArguments *pArgs,
-                                                const CoordGroupList &groupLst,
-                                                const vector<BSONObj> &cataObjs,
-                                                CoordGroupList &sucGroupLst )
-   {
-      INT32 rc = SDB_OK ;
-      rc = _coordDataCMD3Phase::_doOnDataGroup( pMsg, cb, ppContext, pArgs,
-                                                groupLst, cataObjs,
-                                                sucGroupLst ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to do on data group:rc=%d", rc ) ;
-
-      for ( UTIL_UNIQUE_LIST_ITER iter = _globalIndexes.begin();
-            iter != _globalIndexes.end() ; ++iter )
-      {
-         CoordCataInfoPtr cataPtr ;
-         utilCLUniqueID clUID = *iter ;
-         rc = _pResource->updateCataInfoByCLUID( clUID, cataPtr, cb ) ;
-         if ( SDB_DMS_NOTEXIST == rc || SDB_DMS_EOC == rc )
-         {
-            rc = SDB_OK ;
-            continue ;
-         }
-
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDWARNING, "Failed to get cata info:clUID=%lld,rc=%d",
-                    clUID, rc ) ;
-            continue ;
-         }
-
-         rc = _dropCL( cataPtr->getName(), cb ) ;
-         if ( SDB_DMS_NOTEXIST == rc )
-         {
-            rc = SDB_OK ;
-         }
-
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDWARNING, "Failed to drop cl:cl=%s,rc=%d",
-                    cataPtr->getName(), rc ) ;
-            continue ;
-         }
-
-         PD_LOG( PDEVENT, "Drop index cl(%s) success", cataPtr->getName() ) ;
-      }
-
-   done:
-      return rc ;
-   error:
       goto done ;
    }
 
@@ -3344,12 +3775,6 @@ namespace engine
       *pBufSize = pMsg->messageLength ;
 
       return SDB_OK ;
-   }
-
-   void _coordCMDRenameCollection::_releaseCataMsg( CHAR *pMsgBuf,
-                                                    INT32 bufSize,
-                                                    pmdEDUCB *cb )
-   {
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_RENAMECL_DOCOMPLETE, "_coordCMDRenameCollection::_doComplete" )
@@ -4070,12 +4495,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   void _coordCMDLinkCollection::_releaseCataMsg( CHAR *pMsgBuf,
-                                                  INT32 bufSize,
-                                                  pmdEDUCB *cb )
-   {
-   }
-
    // PD_TRACE_DECLARE_FUNCTION( COORD_LINKCL_GENROLLBACKMSG, "_coordCMDLinkCollection::_generateRollbackDataMsg" )
    INT32 _coordCMDLinkCollection::_generateRollbackDataMsg ( MsgHeader *pMsg,
                                                              pmdEDUCB *cb,
@@ -4222,12 +4641,6 @@ namespace engine
       *pBufSize = pMsg->messageLength ;
 
       return SDB_OK ;
-   }
-
-   void _coordCMDUnlinkCollection::_releaseCataMsg( CHAR *pMsgBuf,
-                                                    INT32 bufSize,
-                                                    pmdEDUCB *cb )
-   {
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_UNLINKCL_GENROLLBACKMSG, "_coordCMDUnlinkCollection::_generateRollbackDataMsg" )

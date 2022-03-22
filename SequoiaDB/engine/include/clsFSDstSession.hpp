@@ -187,6 +187,12 @@ namespace engine
          BOOLEAN        _findCollectionSpace( const CHAR *collectionSpace ) ;
          UINT32         _addCollection ( const CHAR *pCollectionName ) ;
          UINT32         _removeCollection ( const CHAR *pCollectionName ) ;
+         INT32          _renameCollection( const CHAR *oldFullName,
+                                           const CHAR *newFullName,
+                                           INT32 replayRC ) ;
+         INT32          _renameCollectionSpace( const CHAR *oldCSName,
+                                                const CHAR *newCSName,
+                                                INT32 replayRC ) ;
          vector<string> _removeCS ( const CHAR *pCSName ) ;
          INT32          _removeValidCLs( const vector<string> &validCLs,
                                          UINT32 *pHasRemoved = NULL ) ;

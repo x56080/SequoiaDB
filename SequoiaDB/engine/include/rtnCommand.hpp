@@ -669,7 +669,7 @@ namespace engine
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
       protected:
          const CHAR           *_collectionName ;
-
+         utilRecycleItem      _recycleItem ;
    };
 
    class _rtnDropCollectionspace : public _rtnCommand
@@ -696,6 +696,7 @@ namespace engine
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
       protected:
          const CHAR           *_spaceName ;
+         utilRecycleItem      _recycleItem ;
          BOOLEAN              _ensureEmpty ;
    };
 
@@ -1392,9 +1393,8 @@ namespace engine
    DECLARE_CMD_AUTO_REGISTER()
    public:
       _rtnTruncate()
-      :_fullName( NULL )
+      : _collectionName( NULL )
       {
-
       }
 
       virtual ~_rtnTruncate() {}
@@ -1409,7 +1409,7 @@ namespace engine
 
       virtual const CHAR * collectionFullName()
       {
-         return _fullName ;
+         return _collectionName ;
       }
 
       virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
@@ -1421,7 +1421,8 @@ namespace engine
                            _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                            INT16 w = 1, INT64 *pContextID = NULL ) ;
    private:
-      const CHAR * _fullName ;
+      const CHAR * _collectionName ;
+      utilRecycleItem _recycleItem ;
    } ;
 
    class _rtnPop : public _rtnCommand

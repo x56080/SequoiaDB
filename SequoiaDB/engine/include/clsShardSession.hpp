@@ -449,8 +449,10 @@ namespace engine
                                    INT16 w ) ;
 
          INT32 _dropMainCL( const CHAR *pCollection,
-                           INT16 w,
-                           SINT64 &contextID ) ;
+                            const CHAR *pQuery,
+                            const CHAR *pHint,
+                            INT16 w,
+                            SINT64 &contextID ) ;
 
          INT32 _renameMainCL( const CHAR *pCollection,
                               INT16 w,
@@ -493,7 +495,11 @@ namespace engine
                               CLS_SUBCL_LIST &subCLList,
                               CLS_SUBCL_SORT_TYPE sortType = SUBCL_SORT_BY_ID ) ;
 
-         INT32 _truncateMainCL( const CHAR *fullName ) ;
+         INT32 _truncateMainCL( const CHAR *fullName,
+                                const CHAR *pQuery,
+                                const CHAR *pHint,
+                                INT16 w,
+                                SINT64 &contextID ) ;
 
          INT32 _testMainCollection( const CHAR *fullName ) ;
 

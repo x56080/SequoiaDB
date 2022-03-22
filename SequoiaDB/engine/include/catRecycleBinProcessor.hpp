@@ -148,6 +148,156 @@ namespace engine
 
    typedef class _catDropItemSubCLChecker catDropItemSubCLChecker ;
 
+   /*
+      _catRecycleProcessor define
+    */
+   class _catRecycleProcessor : public _catRecycleBinProcessor
+   {
+   public:
+      _catRecycleProcessor( _catRecycleBinManager *recyBinMgr,
+                            utilRecycleItem &item,
+                            UTIL_RECYCLE_TYPE type ) ;
+      virtual ~_catRecycleProcessor() ;
+
+      virtual const CHAR *getCollection() const ;
+
+      virtual INT32 processObject( const bson::BSONObj &object,
+                                   pmdEDUCB *cb,
+                                   INT16 w ) ;
+   protected:
+      INT32 _saveObject( const bson::BSONObj &returnObject,
+                         pmdEDUCB *cb,
+                         INT16 w ) ;
+
+      virtual INT32 _postSaveObject( const bson::BSONObj &originObject,
+                                     bson::BSONObj &recycleObject,
+                                     pmdEDUCB *cb,
+                                     INT16 w )
+      {
+         return SDB_OK ;
+      }
+
+      INT32 _buildObject( const bson::BSONObj &originObject,
+                          pmdEDUCB *cb,
+                          INT16 w,
+                          BSONObj &recycleObject ) ;
+
+   protected:
+      _SDB_DMSCB *            _dmsCB ;
+      _dpsLogWrapper *        _dpsCB ;
+      UTIL_RECYCLE_TYPE       _type ;
+   } ;
+
+   typedef class _catRecycleProcessor catRecycleProcessor ;
+
+   /*
+      _catRecycleCSProcessor define
+    */
+   class _catRecycleCSProcessor : public _catRecycleProcessor
+   {
+   public:
+      _catRecycleCSProcessor( _catRecycleBinManager *recyBinMgr,
+                              utilRecycleItem &item ) ;
+      virtual ~_catRecycleCSProcessor() ;
+
+      virtual const CHAR *getName() const
+      {
+         return "RecycleCSProcessor" ;
+      }
+
+      virtual INT32 getMatcher( ossPoolList< bson::BSONObj > &matcherList ) ;
+   } ;
+
+   typedef class _catRecycleCSProcessor catRecycleCSProcessor ;
+
+   /*
+      _catRecycleCLProcessor define
+    */
+   class _catRecycleCLProcessor : public _catRecycleProcessor
+   {
+   public:
+      _catRecycleCLProcessor( _catRecycleBinManager *recyBinMgr,
+                              utilRecycleItem &item ) ;
+      virtual ~_catRecycleCLProcessor() ;
+
+      virtual const CHAR *getName() const
+      {
+         return "RecycleCLProcessor" ;
+      }
+
+      virtual INT32 getMatcher( ossPoolList< bson::BSONObj > &matcherList ) ;
+      virtual INT32 _postSaveObject( const bson::BSONObj &originObject,
+                                     bson::BSONObj &recycleObject,
+                                     pmdEDUCB *cb,
+                                     INT16 w ) ;
+   } ;
+
+   typedef class _catRecycleCLProcessor catRecycleCLProcessor ;
+
+   /*
+      _catRecycleSubCLProcessor define
+    */
+   class _catRecycleSubCLProcessor : public _catRecycleProcessor
+   {
+   public:
+      _catRecycleSubCLProcessor( _catRecycleBinManager *recyBinMgr,
+                                 utilRecycleItem &item ) ;
+      virtual ~_catRecycleSubCLProcessor() ;
+
+      virtual const CHAR *getName() const
+      {
+         return "RecycleSubCLProcessor" ;
+      }
+
+      virtual INT32 getMatcher( ossPoolList< bson::BSONObj > &matcherList ) ;
+      virtual INT32 _postSaveObject( const bson::BSONObj &originObject,
+                                     bson::BSONObj &recycleObject,
+                                     pmdEDUCB *cb,
+                                     INT16 w ) ;
+   } ;
+
+   typedef class _catRecycleSubCLProcessor catRecycleSubCLProcessor ;
+
+   /*
+      _catRecycleSeqProcessor define
+    */
+   class _catRecycleSeqProcessor : public _catRecycleProcessor
+   {
+   public:
+      _catRecycleSeqProcessor( _catRecycleBinManager *recyBinMgr,
+                               utilRecycleItem &item ) ;
+      virtual ~_catRecycleSeqProcessor() ;
+
+      virtual const CHAR *getName() const
+      {
+         return "RecycleSeqProcessor" ;
+      }
+
+      virtual INT32 getMatcher( ossPoolList< bson::BSONObj > &matcherList ) ;
+   } ;
+
+   typedef class _catRecycleSeqProcessor catRecycleSeqProcessor ;
+
+   /*
+      _catRecycleIdxProcessor define
+    */
+   class _catRecycleIdxProcessor : public _catRecycleProcessor
+   {
+   public:
+      _catRecycleIdxProcessor( _catRecycleBinManager *recyBinMgr,
+                               utilRecycleItem &item ) ;
+      virtual ~_catRecycleIdxProcessor() ;
+
+      virtual const CHAR *getName() const
+      {
+         return "RecycleIdxProcessor" ;
+      }
+
+      virtual INT32 getMatcher( ossPoolList< bson::BSONObj > &matcherList ) ;
+   } ;
+
+   typedef class _catRecycleIdxProcessor catRecycleIdxProcessor ;
+
 }
 
 #endif // CAT_RECYCLE_BIN_PROCESSOR_HPP__

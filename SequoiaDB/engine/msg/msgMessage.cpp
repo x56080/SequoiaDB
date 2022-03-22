@@ -2164,7 +2164,10 @@ error :
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGBLDDROPCLMSG, "msgBuildDropCLMsg" )
 INT32 msgBuildDropCLMsg ( CHAR **ppBuffer, INT32 *bufferSize,
-                          const CHAR *CollectionName, UINT64 reqID,
+                          const CHAR *CollectionName,
+                          BOOLEAN useRecycleBin,
+                          BOOLEAN ignoreLock,
+                          UINT64 reqID,
                           IExecutor *cb )
 {
    PD_TRACE_ENTRY ( SDB_MSGBLDDROPCLMSG );
@@ -2173,12 +2176,20 @@ INT32 msgBuildDropCLMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                 "Invalid input" ) ;
    PD_TRACE1 ( SDB_MSGBLDDROPCLMSG, PD_PACK_STRING(CollectionName) );
    INT32 rc             = SDB_OK ;
-   BSONObj boQuery;
+   BSONObj boQuery, boHint ;
    try
    {
       bson::BSONObjBuilder bobQuery;
-      bobQuery.append( FIELD_NAME_NAME, CollectionName );
+      bobQuery.append( FIELD_NAME_NAME, CollectionName ) ;
+      if ( !useRecycleBin )
+      {
+         bobQuery.appendBool( FIELD_NAME_SKIPRECYCLEBIN, TRUE ) ;
+      }
       boQuery = bobQuery.obj() ;
+
+      BSONObjBuilder bobHint ;
+      bobHint.appendBool( FIELD_NAME_IGNORE_LOCK, ignoreLock ) ;
+      boHint = bobHint.obj() ;
    }
    catch ( exception &e )
    {
@@ -2191,7 +2202,7 @@ INT32 msgBuildDropCLMsg ( CHAR **ppBuffer, INT32 *bufferSize,
 
    rc = msgBuildQueryCMDMsg( ppBuffer, bufferSize,
                              CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTION,
-                             boQuery, __emptyObj, __emptyObj, __emptyObj,
+                             boQuery, __emptyObj, __emptyObj, boHint,
                              reqID, cb ) ;
    PD_RC_CHECK( rc, PDERROR, "Failed to build query command, rc: %d", rc ) ;
 
@@ -2199,6 +2210,108 @@ done :
    PD_TRACE_EXITRC ( SDB_MSGBLDDROPCLMSG, rc );
    return rc ;
 error :
+   goto done ;
+}
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_MSGBLDTRUNCCLMSG, "msgBuildTruncateCLMsg" )
+INT32 msgBuildTruncateCLMsg( CHAR **ppBuffer,
+                             INT32 *bufferSize,
+                             const CHAR *CollectionName,
+                             BOOLEAN useRecycleBin,
+                             BOOLEAN ignoreLock,
+                             UINT64 reqID,
+                             IExecutor *cb )
+{
+   INT32 rc = SDB_OK ;
+
+   PD_TRACE_ENTRY( SDB_MSGBLDTRUNCCLMSG ) ;
+
+   SDB_ASSERT( ppBuffer && bufferSize && CollectionName, "Invalid input" ) ;
+   PD_TRACE1( SDB_MSGBLDTRUNCCLMSG, PD_PACK_STRING( CollectionName ) ) ;
+
+   BSONObj boQuery, boHint ;
+   const BSONObj emptyObj ;
+
+   try
+   {
+      BSONObjBuilder bobQuery ;
+      bobQuery.append( FIELD_NAME_COLLECTION, CollectionName ) ;
+      if ( !useRecycleBin )
+      {
+         bobQuery.appendBool( FIELD_NAME_SKIPRECYCLEBIN, TRUE ) ;
+      }
+      boQuery = bobQuery.obj() ;
+
+      BSONObjBuilder bobHint ;
+      bobHint.appendBool( FIELD_NAME_IGNORE_LOCK, ignoreLock ) ;
+      boHint = bobHint.obj() ;
+   }
+   catch ( exception &e )
+   {
+      PD_LOG ( PDERROR, "Failed to build truncate collection message, "
+               "occur exception %s", e.what() ) ;
+      rc = ossException2RC( &e ) ;
+      goto error;
+   }
+
+   rc = msgBuildQueryCMDMsg( ppBuffer, bufferSize,
+                             CMD_ADMIN_PREFIX CMD_NAME_TRUNCATE,
+                             boQuery, emptyObj, emptyObj, boHint,
+                             reqID, cb ) ;
+   PD_RC_CHECK( rc, PDERROR, "Failed to build query command, rc: %d", rc ) ;
+
+done:
+   PD_TRACE_EXITRC( SDB_MSGBLDTRUNCCLMSG, rc ) ;
+   return rc ;
+
+error:
+   goto done ;
+}
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_MSGBLDALTERCLMSG, "msgBuildAlterCLMsg" )
+INT32 msgBuildAlterCLMsg( CHAR **ppBuffer,
+                          INT32 *bufferSize,
+                          const CHAR *collectionName,
+                          const BSONObj &options,
+                          UINT64 reqID,
+                          engine::IExecutor *cb )
+{
+   INT32 rc = SDB_OK ;
+
+   PD_TRACE_ENTRY( SDB_MSGBLDALTERCLMSG ) ;
+
+   SDB_ASSERT( ppBuffer && bufferSize && collectionName, "Invalid input" ) ;
+   PD_TRACE1( SDB_MSGBLDALTERCLMSG, PD_PACK_STRING( collectionName ) ) ;
+
+   BSONObj boQuery ;
+   const BSONObj emptyObj ;
+
+   try
+   {
+      BSONObjBuilder bobQuery ;
+      bobQuery.append ( FIELD_NAME_NAME, collectionName ) ;
+      bobQuery.append ( FIELD_NAME_OPTIONS, options ) ;
+      boQuery = bobQuery.obj() ;
+   }
+   catch ( exception &e )
+   {
+      PD_LOG ( PDERROR, "Failed to build alter collection message, "
+               "occur exception %s", e.what() ) ;
+      rc = ossException2RC( &e ) ;
+      goto error;
+   }
+
+   rc = msgBuildQueryCMDMsg( ppBuffer, bufferSize,
+                             CMD_ADMIN_PREFIX CMD_NAME_ALTER_COLLECTION,
+                             boQuery, emptyObj, emptyObj, emptyObj,
+                             reqID, cb ) ;
+   PD_RC_CHECK( rc, PDERROR, "Failed to build query command, rc: %d", rc ) ;
+
+done:
+   PD_TRACE_EXITRC( SDB_MSGBLDALTERCLMSG, rc ) ;
+   return rc ;
+
+error:
    goto done ;
 }
 
@@ -2354,6 +2467,57 @@ done :
    PD_TRACE_EXITRC ( SDB_MSGBLDDROPINXMSG, rc );
    return rc ;
 error :
+   goto done ;
+}
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_MSGBLDDROPRECYBINITEMMSG, "msgBuildDropRecyBinItemMsg" )
+INT32 msgBuildDropRecyBinItemMsg( CHAR **ppBuffer,
+                                  INT32 *bufferSize,
+                                  const CHAR *recycleName,
+                                  BOOLEAN isRecursive,
+                                  BOOLEAN isEnforced,
+                                  BOOLEAN ignoreLock,
+                                  UINT64 reqID,
+                                  engine::IExecutor *cb )
+{
+   INT32 rc = SDB_OK ;
+
+   PD_TRACE_ENTRY( SDB_MSGBLDDROPRECYBINITEMMSG ) ;
+
+   BSONObj boQuery ;
+   BSONObj boHint ;
+
+   try
+   {
+      BSONObjBuilder bobQuery ;
+      bobQuery.append( FIELD_NAME_RECYCLE_NAME, recycleName ) ;
+      bobQuery.appendBool( FIELD_NAME_ENFORCED1, isEnforced ) ;
+      bobQuery.appendBool( FIELD_NAME_RECURSIVE, isRecursive ) ;
+      boQuery = bobQuery.obj() ;
+
+      BSONObjBuilder bobHint ;
+      bobHint.appendBool( FIELD_NAME_IGNORE_LOCK, ignoreLock ) ;
+      boHint = bobHint.obj() ;
+   }
+   catch ( exception &e )
+   {
+      PD_LOG( PDERROR, "Failed to build drop recycle bin item message, "
+              "occur exception %s", e.what() ) ;
+      rc = ossException2RC( &e ) ;
+      goto error;
+   }
+
+   rc = msgBuildQueryCMDMsg( ppBuffer, bufferSize,
+                             CMD_ADMIN_PREFIX CMD_NAME_DROP_RECYCLEBIN_ITEM,
+                             boQuery, __emptyObj, __emptyObj, boHint,
+                             reqID, cb ) ;
+   PD_RC_CHECK( rc, PDERROR, "Failed to build query command, rc: %d", rc ) ;
+
+done:
+   PD_TRACE_EXITRC( SDB_MSGBLDDROPRECYBINITEMMSG, rc ) ;
+   return rc ;
+
+error:
    goto done ;
 }
 

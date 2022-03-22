@@ -39,6 +39,7 @@
 #include "catCommon.hpp"
 #include "catRecycleBinManager.hpp"
 #include "rtn.hpp"
+#include "utilCSKeyName.hpp"
 #include "pdTrace.hpp"
 #include "catTrace.hpp"
 #include "../bson/bson.hpp"
@@ -55,7 +56,8 @@ namespace engine
       _catRecycleBinManager implement
     */
    _catRecycleBinManager::_catRecycleBinManager()
-   : _BASE()
+   : _BASE(),
+     _reservedCount( 0 )
    {
    }
 
@@ -356,7 +358,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__CATRECYBINMGR__DELOBJS ) ;
 
       rtnQueryOptions options ;
-      const CHAR *recycleCollection = catGetRecycleBinCL( type ) ;
+      const CHAR *recycleCollection = catGetRecycleBinRecyCL( type ) ;
 
       options.setCLFullName( recycleCollection ) ;
       options.setQuery( matcher ) ;
@@ -391,12 +393,935 @@ namespace engine
                    "with collection space unique ID [%u], rc: %d", csUniqueID,
                    rc ) ;
 
-      rc = _countItems( matcher, cb, count ) ;
+      rc = _countItems( matcher, _hintOrigID, cb, count ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get counts of items for "
                    "collection space [%u], rc: %d", csUniqueID, rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__CATRECYBINMGR_COUNTITEMSINCS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR_DROPITEMSINCS, "_catRecycleBinManager::dropItemsInCS" )
+   INT32 _catRecycleBinManager::dropItemsInCS( utilCSUniqueID csUniqueID,
+                                               pmdEDUCB *cb,
+                                               INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR_DROPITEMSINCS ) ;
+
+      UTIL_RECY_ITEM_LIST relatedItems ;
+      rc = _getItemsInCS( csUniqueID, cb, relatedItems ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get related collection "
+                   "recycle items in collection space, rc: %d", rc ) ;
+
+      for ( UTIL_RECY_ITEM_LIST_IT iter = relatedItems.begin() ;
+            iter != relatedItems.end() ;
+            ++ iter )
+      {
+         utilRecycleItem &tmpItem = *iter ;
+         rc = _dropItemImpl( tmpItem, cb, w, TRUE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to drop recycle item "
+                      "[origin %s, recycle %s], rc: %d",
+                      tmpItem.getOriginName(), tmpItem.getRecycleName(),
+                      rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR_DROPITEMSINCS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR_PREPAREITEM, "_catRecycleBinManager::prepareItem" )
+   INT32 _catRecycleBinManager::prepareItem( utilRecycleItem &item,
+                                             UTIL_RECY_ITEM_LIST &droppingItems,
+                                             catCtxLockMgr &lockMgr,
+                                             pmdEDUCB *cb,
+                                             INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR_PREPAREITEM ) ;
+
+      utilRecycleID recycleID = UTIL_RECYCLEID_NULL ;
+      BOOLEAN isAvailable = FALSE, isLimitedByVersion = FALSE ;
+      const CHAR *originName = item.getOriginName() ;
+      utilGlobalID originID = item.getOriginID() ;
+
+      utilRecycleBinConf conf = getConf() ;
+
+      rc = _checkAvailable( originName, originID, conf, cb, isAvailable,
+                            isLimitedByVersion ) ;
+      if( SDB_RECYCLE_FULL == rc && conf.getAutoDrop() )
+      {
+         utilRecycleItem droppingItem ;
+         if ( isLimitedByVersion )
+         {
+            rc = _tryFindOldestItem( originName, originID, cb, droppingItem ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to drop oldest recycle item "
+                         "for [%s] in different versions, rc: %d",
+                         originName, rc ) ;
+         }
+         else
+         {
+            rc = _tryFindOldestItem( cb, droppingItem ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to drop oldest recycle item, "
+                         "rc: %d", rc ) ;
+         }
+         if ( droppingItem.isValid() )
+         {
+            PD_LOG( PDDEBUG, "Released capacity for recycle item, dropping "
+                    "recycle item [%s]", droppingItem.getRecycleName() ) ;
+
+            try
+            {
+               droppingItems.push_back( droppingItem ) ;
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to add dropping item, "
+                       "occur exception %s", e.what() ) ;
+               rc = ossException2RC( &e ) ;
+               goto error ;
+            }
+
+            isAvailable = TRUE ;
+            rc = SDB_OK ;
+         }
+         else
+         {
+            // didn't drop any oldest item, may background job do it,
+            // we can check available again
+            rc = _checkAvailable( originName, originID, conf, cb, isAvailable,
+                                  isLimitedByVersion ) ;
+         }
+      }
+      if ( SDB_RECYCLE_FULL == rc )
+      {
+         PD_LOG_MSG( PDERROR, "Failed to check recycle bin, "
+                     "the number of recycle bin items is up to limit [%s: %d]",
+                     isLimitedByVersion ?
+                           FIELD_NAME_MAXVERNUM : FIELD_NAME_MAXITEMNUM,
+                     isLimitedByVersion ?
+                           conf.getMaxVersionNum() : conf.getMaxItemNum() ) ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to check recycle bin, rc: %d",
+                   rc ) ;
+
+      if ( !isAvailable )
+      {
+         goto done ;
+      }
+
+      rc = _tryLockItems( item, droppingItems, lockMgr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle items, "
+                   "rc: %d", rc ) ;
+
+      // acquire recycle ID
+      rc = _acquireID( recycleID, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to acquire recycle ID, "
+                   "rc: %d", rc ) ;
+
+      // initialize recycle item
+      item.init( recycleID ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR_PREPAREITEM, rc ) ;
+      return rc ;
+
+   error:
+      item.reset() ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR_ACQID, "_catRecycleBinManager::_acquireID" )
+   INT32 _catRecycleBinManager::_acquireID( utilRecycleID &recycleID,
+                                            pmdEDUCB *cb,
+                                            INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR_ACQID ) ;
+
+      rc = catIncAndFetchRecycleID( recycleID, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get recycle ID, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR_ACQID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__CHECKAVAILABLE, "_catRecycleBinManager::_checkAvailable" )
+   INT32 _catRecycleBinManager::_checkAvailable( const CHAR *originName,
+                                                 utilGlobalID originID,
+                                                 const utilRecycleBinConf &conf,
+                                                 pmdEDUCB *cb,
+                                                 BOOLEAN &isAvailable,
+                                                 BOOLEAN &isLimitedByVersion )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__CHECKAVAILABLE ) ;
+
+      isAvailable = FALSE ;
+      isLimitedByVersion = FALSE ;
+
+      if ( !conf.isEnabled() )
+      {
+         goto done ;
+      }
+
+      rc = _checkVersion( originName, originID, conf, cb ) ;
+      if ( SDB_RECYCLE_FULL == rc )
+      {
+         isLimitedByVersion = TRUE ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to check version number of "
+                   "recycle bin, rc: %d", rc ) ;
+
+      rc = _checkCapacity( conf, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check capacity of recycle bin, "
+                   "rc: %d", rc ) ;
+
+      isAvailable = TRUE ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__CHECKAVAILABLE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR_COMMITITEM, "_catRecycleBinManager::commitItem" )
+   INT32 _catRecycleBinManager::commitItem( utilRecycleItem &item,
+                                            pmdEDUCB *cb,
+                                            INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR_COMMITITEM ) ;
+
+      if ( !item.isValid() )
+      {
+         goto done ;
+      }
+
+      rc = _recycleItem( item, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to recycle item "
+                   "[origin %s, recycle %s], rc: %d", item.getOriginName(),
+                   item.getRecycleName(), rc ) ;
+
+      // save recycle item itself
+      rc = _saveItem( item, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to save recycle item, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR_COMMITITEM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__RECYITEM, "_catRecycleBinManager::_recycleItem" )
+   INT32 _catRecycleBinManager::_recycleItem( utilRecycleItem &item,
+                                              pmdEDUCB *cb,
+                                              INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__RECYITEM ) ;
+
+      switch ( item.getType() )
+      {
+         case UTIL_RECYCLE_CS :
+         {
+            rc = _recycleCSObjects( item, cb, w ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to recycle collection space "
+                         "objects, rc: %d", rc ) ;
+
+            rc = _recycleCLObjects( item, cb, w ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to recycle collection objects, "
+                         "rc: %d", rc ) ;
+
+            rc = _recycleSeqObjects( item, cb, w ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to recycle sequence objects, "
+                         "rc: %d", rc ) ;
+
+            rc = _recycleIdxObjects( item, cb, w ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to recycle index objects, "
+                         "rc: %d", rc ) ;
+
+            // update recycle items for collections inside this collections
+            // space
+            rc = _setCSRecycled( item, cb, w ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to update recycle items in "
+                         "collection space [%s], rc: %d",
+                         item.getOriginName(), rc ) ;
+
+            break ;
+         }
+         case UTIL_RECYCLE_CL :
+         {
+            rc = _recycleCLObjects( item, cb, w ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to recycle collection objects, "
+                         "rc: %d", rc ) ;
+
+            rc = _recycleSeqObjects( item, cb, w ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to recycle sequence objects, "
+                         "rc: %d", rc ) ;
+
+            rc = _recycleIdxObjects( item, cb, w ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to recycle index objects, "
+                         "rc: %d", rc ) ;
+
+            break ;
+         }
+         default :
+         {
+            SDB_ASSERT( FALSE, "invalid recycle type" ) ;
+            PD_CHECK( FALSE, SDB_SYS, error, PDERROR, "Failed to recycle "
+                      "item, invalid recycle type [%d]", item.getType() ) ;
+            break ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__RECYITEM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__COPYCSOBJS, "_catRecycleBinManager::_recycleCSObjects" )
+   INT32 _catRecycleBinManager::_recycleCSObjects( utilRecycleItem &item,
+                                                   pmdEDUCB *cb,
+                                                   INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__COPYCSOBJS ) ;
+
+      catRecycleCSProcessor processor( this, item ) ;
+      rc = processObjects( processor, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to process recycle collection spaces, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__COPYCSOBJS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__RECYCLOBJS, "_catRecycleBinManager::_recycleCLObjects" )
+   INT32 _catRecycleBinManager::_recycleCLObjects( utilRecycleItem &item,
+                                                   pmdEDUCB *cb,
+                                                   INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__RECYCLOBJS ) ;
+
+      catRecycleCLProcessor processor( this, item ) ;
+      rc = processObjects( processor, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to process recycle collections, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__RECYCLOBJS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__RECYSEQOBJS, "_catRecycleBinManager::_recycleSeqObjects" )
+   INT32 _catRecycleBinManager::_recycleSeqObjects( utilRecycleItem &item,
+                                                    pmdEDUCB *cb,
+                                                    INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__RECYSEQOBJS ) ;
+
+      catRecycleSeqProcessor processor( this, item ) ;
+      rc = processObjects( processor, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to process recycle sequences, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__RECYSEQOBJS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__RECYIDXOBJS, "_catRecycleBinManager::_recycleIdxObjects" )
+   INT32 _catRecycleBinManager::_recycleIdxObjects( utilRecycleItem &item,
+                                                    pmdEDUCB *cb,
+                                                    INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__RECYIDXOBJS ) ;
+
+      catRecycleIdxProcessor processor( this, item ) ;
+      rc = processObjects( processor, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to process recycle indexes, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__RECYIDXOBJS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__SETCSRECY, "_catRecycleBinManager::_setCSRecycled" )
+   INT32 _catRecycleBinManager::_setCSRecycled( const utilRecycleItem &item,
+                                                pmdEDUCB *cb,
+                                                INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__SETCSRECY ) ;
+
+      SDB_ASSERT( UTIL_RECYCLE_CS == item.getType(),
+                  "should be recycle item for collection space" ) ;
+
+      BSONObj matcher, updator ;
+
+      utilCSUniqueID csUniqueID = (utilCSUniqueID)( item.getOriginID() ) ;
+      rc = utilGetRecyCLsInCSBounds( FIELD_NAME_ORIGIN_ID,
+                                     csUniqueID,
+                                     matcher ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get bounds of recycled collections "
+                   "with collection space unique ID [%u], rc: %d", csUniqueID,
+                   rc ) ;
+
+      try
+      {
+         updator = BSON( "$set" <<
+                         BSON( FIELD_NAME_RECYCLE_ISCSRECY << true ) ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build BSON object, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = _updateItems( matcher, updator, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update times for recycle "
+                   "collection space [%s], rc: %d", item.getOriginName(),
+                   rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__SETCSRECY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__CHKCAPACITY, "_catRecycleBinManager::_checkCapacity" )
+   INT32 _catRecycleBinManager::_checkCapacity( const utilRecycleBinConf &conf,
+                                                pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__CHKCAPACITY ) ;
+
+      BSONObj matcher ;
+      UINT64 recycleCount = 0 ;
+
+      if ( conf.isCapacityUnlimited() )
+      {
+         PD_LOG( PDDEBUG, "Passed capacity check of recycle bin, "
+                 "which is unlimited" ) ;
+         goto done ;
+      }
+
+      // quickly check counts with all items
+      rc = _countItems( matcher, cb, (INT64 &)recycleCount ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get recycle count, rc: %d", rc ) ;
+
+      PD_CHECK( recycleCount + _reservedCount < (UINT64)( conf.getMaxItemNum() ),
+                SDB_RECYCLE_FULL, error, PDWARNING,
+                "Failed to check capacity of recycle bin, it is full "
+                "[current %llu, reserved %llu, max %llu]",
+                recycleCount, (UINT64)_reservedCount,
+                (UINT64)( conf.getMaxItemNum() ) ) ;
+
+      PD_LOG( PDDEBUG, "Passed capacity check of recycle bin [%llu/%llu]",
+              recycleCount, (UINT64)( conf.getMaxItemNum() ) ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__CHKCAPACITY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__CHKVERSION, "_catRecycleBinManager::_checkVersion" )
+   INT32 _catRecycleBinManager::_checkVersion( const CHAR *originName,
+                                               utilGlobalID originID,
+                                               const utilRecycleBinConf &conf,
+                                               pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__CHKVERSION ) ;
+
+      BSONObj matcher ;
+      UINT64 recycleCountUID = 0, recycleCountName = 0 ;
+
+      if ( conf.isVersionUnlimited() )
+      {
+         PD_LOG( PDDEBUG, "Passed version number check of recycle bin, "
+                 "is is unlimited" ) ;
+         goto done ;
+      }
+
+      // count with the same UID
+      try
+      {
+         BSONObjBuilder builder ;
+         builder.append( FIELD_NAME_ORIGIN_ID, (INT64)originID ) ;
+         matcher = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = _countItems( matcher, _hintOrigID, cb, (INT64 &)recycleCountUID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get recycle count, rc: %d", rc ) ;
+
+      PD_CHECK( recycleCountUID < (UINT64)( conf.getMaxVersionNum() ),
+                SDB_RECYCLE_FULL, error, PDWARNING,
+                "Failed to check version number of recycle bin, it is full "
+                "[current with the same unique ID %llu, max %llu]",
+                recycleCountUID, (UINT64)( conf.getMaxVersionNum() ) ) ;
+
+      // count with the same name, but with different unique ID
+      try
+      {
+         BSONObjBuilder builder ;
+         builder.append( FIELD_NAME_ORIGIN_NAME, originName ) ;
+         builder.append( FIELD_NAME_ORIGIN_ID,
+                         BSON( "$ne" << (INT64)originID ) ) ;
+         matcher = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = _countItems( matcher, _hintName, cb, (INT64 &)recycleCountName ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get recycle count, rc: %d", rc ) ;
+
+      PD_CHECK( recycleCountName + recycleCountUID <
+                                           (UINT64)( conf.getMaxVersionNum() ),
+                SDB_RECYCLE_FULL, error, PDWARNING,
+                "Failed to check version number of recycle bin, it is full "
+                "[current %llu, max %llu]",
+                recycleCountName + recycleCountUID,
+                (UINT64)( conf.getMaxVersionNum() ) ) ;
+
+      PD_LOG( PDDEBUG, "Passed version number check of recycle bin [%llu/%llu]",
+              recycleCountName + recycleCountUID,
+              (UINT64)( conf.getMaxVersionNum() ) ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__CHKVERSION, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__TRYLOCKITEMS, "_catRecycleBinManager::_tryLockItems" )
+   INT32 _catRecycleBinManager::_tryLockItems( const utilRecycleItem &item,
+                                               const UTIL_RECY_ITEM_LIST &droppingItems,
+                                               catCtxLockMgr &lockMgr )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__TRYLOCKITEMS ) ;
+
+      try
+      {
+         const CHAR *originName = NULL ;
+
+         ossPoolSet< utilCSKeyName > lockedCSItems ;
+         ossPoolSet< ossPoolString > lockedCLItems ;
+
+         // round 1: lock for collection spaces
+         for ( UTIL_RECY_ITEM_LIST_CIT iter = droppingItems.begin() ;
+               iter != droppingItems.end() ;
+               ++ iter )
+         {
+            const CHAR *droppingName = iter->getOriginName() ;
+            if ( ( UTIL_RECYCLE_CS == iter->getType() ) &&
+                 ( lockedCSItems.end() == lockedCSItems.find( droppingName ) ) )
+            {
+               PD_CHECK( lockMgr.tryLockRecycleItem( droppingName,
+                                                     iter->getType(),
+                                                     EXCLUSIVE ),
+                         SDB_LOCK_FAILED, error, PDERROR,
+                         "Failed to lock recycle item [origin %s]",
+                         droppingName ) ;
+
+               lockedCSItems.insert( droppingName ) ;
+            }
+         }
+
+         // round 2: lock for collections
+         for ( UTIL_RECY_ITEM_LIST_CIT iter = droppingItems.begin() ;
+               iter != droppingItems.end() ;
+               ++ iter )
+         {
+            const CHAR *droppingName = iter->getOriginName() ;
+            if ( ( UTIL_RECYCLE_CL == iter->getType() ) &&
+                 ( lockedCSItems.end() == lockedCSItems.find( droppingName ) ) &&
+                 ( lockedCLItems.end() == lockedCLItems.find( droppingName ) ) )
+            {
+               PD_CHECK( lockMgr.tryLockRecycleItem( droppingName,
+                                                     iter->getType(),
+                                                     EXCLUSIVE ),
+                         SDB_LOCK_FAILED, error, PDERROR,
+                         "Failed to lock recycle item [origin %s]",
+                         droppingName ) ;
+
+               lockedCLItems.insert( droppingName ) ;
+            }
+         }
+
+         // check target item
+         originName = item.getOriginName() ;
+         if ( ( lockedCSItems.end() == lockedCSItems.find( originName ) ) &&
+              ( lockedCLItems.end() == lockedCLItems.find( originName ) ) )
+         {
+            PD_CHECK( lockMgr.tryLockRecycleItem( originName,
+                                                  item.getType(),
+                                                  EXCLUSIVE ),
+                      SDB_LOCK_FAILED, error, PDERROR,
+                      "Failed to lock recycle item [origin %s]",
+                      originName ) ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to lock recycle items, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__TRYLOCKITEMS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__SAVEITEM, "_catRecycleBinManager::_saveItem" )
+   INT32 _catRecycleBinManager::_saveItem( utilRecycleItem &item,
+                                           pmdEDUCB *cb,
+                                           INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__SAVEITEM ) ;
+
+      BSONObj itemObject ;
+
+      rc = item.toBSON( itemObject ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for "
+                   "recycle item [%s] for [%s], rc: %d",
+                   item.getRecycleName(), item.getOriginName(), rc ) ;
+
+      rc = _saveItemObject( itemObject, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to save recycle item [%s], "
+                   "rc: %d", item.getRecycleName(), item.getOriginName(),
+                   rc ) ;
+
+      PD_LOG( PDEVENT, "Saved recycle item [origin %s, recycle %s]",
+              item.getOriginName(), item.getRecycleName() ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__SAVEITEM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__TRYFINDOLDESTITEM, "_catRecycleBinManager::_tryFindOldestItem" )
+   INT32 _catRecycleBinManager::_tryFindOldestItem( pmdEDUCB *cb,
+                                                    utilRecycleItem &oldestItem )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__TRYFINDOLDESTITEM ) ;
+
+      while ( TRUE )
+      {
+         utilRecycleItem tempItem ;
+         BOOLEAN fromCache = FALSE ;
+
+         rc = _getAndCacheOldestItem( cb, tempItem, fromCache ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get oldest recycle item, rc: %d",
+                      rc ) ;
+
+         // no oldest item is found
+         if ( !tempItem.isValid() )
+         {
+            PD_LOG( PDINFO, "No oldest item is found" ) ;
+            goto done ;
+         }
+
+         if ( fromCache )
+         {
+            BSONObj recycleObject ;
+            rc = _getItemObject( tempItem.getRecycleName(), cb, recycleObject ) ;
+            if ( SDB_RECYCLE_ITEMNOTEXISTS == rc )
+            {
+               rc = SDB_OK ;
+               _resetOldestItem( tempItem ) ;
+               continue ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to get recycle item [%s], "
+                         "rc: %d", tempItem.getRecycleName(), rc ) ;
+         }
+
+         oldestItem = tempItem ;
+
+         break ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__TRYFINDOLDESTITEM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__TRYFINDOLDESTITEM_VER, "_catRecycleBinManager::_tryFindOldestItem" )
+   INT32 _catRecycleBinManager::_tryFindOldestItem( const CHAR *originName,
+                                                    utilGlobalID originID,
+                                                    pmdEDUCB *cb,
+                                                    utilRecycleItem &oldestItem )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__TRYFINDOLDESTITEM_VER ) ;
+
+      utilRecycleItem tempItemName, tempItemUID, tempItem ;
+
+      // fetch oldest item by name
+      rc = _getOldestItem( originName, cb, tempItemName ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get the oldest recycle item "
+                   "by name [%s], rc: %d", originName, rc ) ;
+
+      // fetch oldest item by unique ID
+      rc = _getOldestItem( originID, cb, tempItemUID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get the oldest recycle item "
+                   "by unique ID [%llu], rc: %d", originID, rc ) ;
+
+      if ( tempItemName.isValid() && tempItemUID.isValid() )
+      {
+         tempItem =
+               ( tempItemName.getRecycleID() < tempItemUID.getRecycleID() ) ?
+                     tempItemName : tempItemUID ;
+      }
+      else if ( tempItemName.isValid() )
+      {
+         tempItem = tempItemName ;
+      }
+      else if ( tempItemUID.isValid() )
+      {
+         tempItem = tempItemUID ;
+      }
+      else
+      {
+         PD_LOG( PDINFO, "No oldest version item is found" ) ;
+         goto done ;
+      }
+
+      oldestItem = tempItem ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__TRYFINDOLDESTITEM_VER, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__GETOLDITEM_UID, "_catRecycleBinManager::_getOldestItem" )
+   INT32 _catRecycleBinManager::_getOldestItem( utilGlobalID originID,
+                                                pmdEDUCB *cb,
+                                                utilRecycleItem &item )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__GETOLDITEM_UID ) ;
+
+      BSONObj matcher ;
+
+      SDB_ASSERT( UTIL_GLOBAL_NULL != originID, "origin ID is invalid" ) ;
+
+      try
+      {
+         matcher = BSON( FIELD_NAME_ORIGIN_ID << (INT64)originID ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build query, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         return rc ;
+      }
+
+      rc = _getOldestItem( matcher, _hintOrigID, cb, item ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get the oldest recycle item, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__GETOLDITEM_UID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__GETOLDITEM_NAME, "_catRecycleBinManager::_getOldestItem" )
+   INT32 _catRecycleBinManager::_getOldestItem( const CHAR *originName,
+                                                pmdEDUCB *cb,
+                                                utilRecycleItem &item )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__GETOLDITEM_NAME ) ;
+
+      BSONObj matcher ;
+
+      SDB_ASSERT( NULL != originName, "origin name is invalid" ) ;
+
+      try
+      {
+         matcher = BSON( FIELD_NAME_ORIGIN_NAME << originName ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build query, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         return rc ;
+      }
+
+      rc = _getOldestItem( matcher, _hintName, cb, item ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get the oldest recycle item, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__GETOLDITEM_NAME, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__GETOLDITEM, "_catRecycleBinManager::_getOldestItem" )
+   INT32 _catRecycleBinManager::_getOldestItem( const BSONObj &matcher,
+                                                const BSONObj &hint,
+                                                pmdEDUCB *cb,
+                                                utilRecycleItem &item )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__GETOLDITEM ) ;
+
+      UTIL_RECY_ITEM_LIST itemList ;
+      BSONObj orderBy ;
+
+      try
+      {
+         // the recycle ID is increased with time
+         orderBy = BSON( FIELD_NAME_RECYCLE_ID << 1 ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build query, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         return rc ;
+      }
+
+      rc = _getItems( matcher, orderBy, hint, 1, cb, itemList ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get the oldest recycle item, "
+                   "rc: %d", rc ) ;
+
+      if ( !itemList.empty() )
+      {
+         item = itemList.front() ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__GETOLDITEM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__SAVEOBJ, "_catRecycleBinManager::_saveObject" )
+   INT32 _catRecycleBinManager::_saveObject( const CHAR *collection,
+                                             const BSONObj &object,
+                                             BOOLEAN canReplace,
+                                             pmdEDUCB *cb,
+                                             INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__SAVEOBJ ) ;
+
+      rc = rtnInsert( collection, object, 1,
+                      canReplace ? FLG_INSERT_REPLACEONDUP : 0, cb, _dmsCB,
+                      _dpsCB, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to insert object to collection [%s], "
+                   "rc: %d", collection, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__SAVEOBJ, rc ) ;
       return rc ;
 
    error:

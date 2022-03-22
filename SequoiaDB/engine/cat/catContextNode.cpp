@@ -68,6 +68,7 @@ namespace engine
    INT32 _catCtxNodeBase::_initQuery ( const NET_HANDLE &handle,
                                        MsgHeader *pMsg,
                                        const CHAR *pQuery,
+                                       const CHAR *pHint,
                                        _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
@@ -76,7 +77,7 @@ namespace engine
 
       NET_EH eh ;
 
-      rc = _catContextBase::_initQuery( handle, pMsg, pQuery, cb ) ;
+      rc = _catContextBase::_initQuery( handle, pMsg, pQuery, pHint, cb ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to init query, rc: %d",
                    rc ) ;
@@ -128,6 +129,33 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXNODE__BUILDP1REPLY, "_catCtxNodeBase::_buildP1Reply" )
+   INT32 _catCtxNodeBase::_buildP1Reply( BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXNODE__BUILDP1REPLY ) ;
+
+      try
+      {
+         builder.appendElements( _boTarget ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build phase 1 reply, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXNODE__BUILDP1REPLY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    /*
     * _catCtxActiveGrp implement
     */
@@ -137,7 +165,7 @@ namespace engine
    _catCtxActiveGrp::_catCtxActiveGrp ( INT64 contextID, UINT64 eduID )
    : _catCtxNodeBase( contextID, eduID )
    {
-      _executeAfterLock = TRUE ;
+      _executeOnP1 = TRUE ;
       _needRollback = FALSE ;
    }
 
@@ -259,17 +287,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXACTIVEGRP_MAKEREPLY, "_catCtxActiveGrp::_makeReply" )
-   INT32 _catCtxActiveGrp::_makeReply ( rtnContextBuf &buffObj )
-   {
-      PD_TRACE_ENTRY ( SDB_CATCTXACTIVEGRP_MAKEREPLY ) ;
-
-      buffObj = rtnContextBuf( _boTarget.getOwned() ) ;
-
-      PD_TRACE_EXIT ( SDB_CATCTXACTIVEGRP_MAKEREPLY ) ;
-      return SDB_OK ;
-   }
-
    /*
     * _catCtxShutdownGrp implement
     */
@@ -279,7 +296,7 @@ namespace engine
    _catCtxShutdownGrp::_catCtxShutdownGrp ( INT64 contextID, UINT64 eduID )
    : _catCtxNodeBase( contextID, eduID )
    {
-      _executeAfterLock = TRUE ;
+      _executeOnP1 = TRUE ;
       _needRollback = FALSE ;
    }
 
@@ -355,18 +372,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXSHUTDOWNGRP_MAKEREPLY, "_catCtxShutdownGrp::_makeReply" )
-   INT32 _catCtxShutdownGrp::_makeReply ( rtnContextBuf &buffObj )
-   {
-      PD_TRACE_ENTRY ( SDB_CATCTXSHUTDOWNGRP_MAKEREPLY ) ;
-
-      buffObj = rtnContextBuf( _boTarget.getOwned() ) ;
-
-      PD_TRACE_EXIT ( SDB_CATCTXSHUTDOWNGRP_MAKEREPLY ) ;
-
-      return SDB_OK ;
-   }
-
    /*
     * _catCtxRemoveGrp implement
     */
@@ -376,7 +381,7 @@ namespace engine
    _catCtxRemoveGrp::_catCtxRemoveGrp ( INT64 contextID, UINT64 eduID )
    : _catCtxNodeBase( contextID, eduID )
    {
-      _executeAfterLock = FALSE ;
+      _executeOnP1 = FALSE ;
       _needRollback = FALSE ;
    }
 
@@ -470,7 +475,7 @@ namespace engine
          /// hard code.
          BSONObj matcher = BSON( FIELD_NAME_CATALOGINFO".GroupID" << _groupID ) ;
 
-         /// confirm that no there is no data in this group.
+         /// confirm that there is no collections in this group.
          rc = _countNodes( CAT_COLLECTION_INFO_COLLECTION, matcher, count, cb ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to count collection: %s, match: %s, rc: %d",
@@ -480,7 +485,17 @@ namespace engine
                    SDB_CAT_RM_GRP_FORBIDDEN, error, PDERROR,
                    "Can not remove a group with data in it" ) ;
 
-         /// confirm that no there is no task in this group.
+         /// confirm that there is no recycled collections in this group.
+         rc = _countNodes( CAT_SYSRECYCLEBIN_CL_COLLECTION, matcher, count, cb ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to count collection: %s, match: %s, rc: %d",
+                      CAT_SYSRECYCLEBIN_CL_COLLECTION,
+                      matcher.toString().c_str(), rc ) ;
+         PD_CHECK( count == 0,
+                   SDB_CAT_RM_GRP_FORBIDDEN, error, PDERROR,
+                   "Can not remove a group with data in it" ) ;
+
+         /// confirm that there is no task in this group.
          matcher = BSON( FIELD_NAME_TARGETID << _groupID ) ;
          rc = _countNodes( CAT_TASK_INFO_COLLECTION, matcher, count, cb ) ;
          PD_RC_CHECK( rc, PDERROR,
@@ -554,27 +569,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXRMGRP_MAKEREPLY, "_catCtxRemoveGrp::_makeReply" )
-   INT32 _catCtxRemoveGrp::_makeReply ( rtnContextBuf &buffObj )
-   {
-      PD_TRACE_ENTRY ( SDB_CATCTXRMGRP_MAKEREPLY ) ;
-
-      if ( CAT_CONTEXT_READY == _status )
-      {
-         buffObj = rtnContextBuf( _boTarget.getOwned() ) ;
-      }
-      else if ( CAT_CONTEXT_END != _status )
-      {
-         // Send dummy object to keep one GetMore for one step.
-         BSONObj dummy ;
-         buffObj = rtnContextBuf( dummy.getOwned() ) ;
-      }
-
-      PD_TRACE_EXIT ( SDB_CATCTXRMGRP_MAKEREPLY ) ;
-
-      return SDB_OK ;
-   }
-
    /*
     * _catCtxCreateNode implement
     */
@@ -584,7 +578,7 @@ namespace engine
    _catCtxCreateNode::_catCtxCreateNode ( INT64 contextID, UINT64 eduID )
    : _catCtxNodeBase( contextID, eduID )
    {
-      _executeAfterLock = FALSE ;
+      _executeOnP1 = FALSE ;
       _needRollback = TRUE ;
       _nodeID = CAT_INVALID_NODEID ;
       _nodeStatus = SDB_CAT_GRP_DEACTIVE ;
@@ -909,20 +903,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXCREATENODE_MAKEREPLY, "_catCtxCreateNode::_makeReply" )
-   INT32 _catCtxCreateNode::_makeReply ( rtnContextBuf &buffObj )
-   {
-      PD_TRACE_ENTRY ( SDB_CATCTXCREATENODE_MAKEREPLY ) ;
-
-      // Send dummy object to keep one GetMore for one step.
-      BSONObj dummy ;
-      buffObj = rtnContextBuf( dummy.getOwned() ) ;
-
-      PD_TRACE_EXIT ( SDB_CATCTXCREATENODE_MAKEREPLY ) ;
-
-      return SDB_OK ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXCREATENODE_CHECKLOCALHOST, "_catCtxCreateNode::_checkLocalHost" )
    INT32 _catCtxCreateNode::_checkLocalHost( BOOLEAN isLocalHost,
                                              BOOLEAN &isValid,
@@ -985,7 +965,7 @@ namespace engine
    _catCtxRemoveNode::_catCtxRemoveNode ( INT64 contextID, UINT64 eduID )
    : _catCtxNodeBase( contextID, eduID )
    {
-      _executeAfterLock = FALSE ;
+      _executeOnP1 = FALSE ;
       _needRollback = TRUE ;
       _nodeCount = 0 ;
       _nodeID = CAT_INVALID_NODEID ;
@@ -1297,20 +1277,6 @@ namespace engine
       return rc ;
    error :
       goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXRMNODE_MAKEREPLY, "_catCtxRemoveNode::_makeReply" )
-   INT32 _catCtxRemoveNode::_makeReply ( rtnContextBuf &buffObj )
-   {
-      PD_TRACE_ENTRY ( SDB_CATCTXRMNODE_MAKEREPLY ) ;
-
-      // Send dummy object to keep one GetMore for one step.
-      BSONObj dummy ;
-      buffObj = rtnContextBuf( dummy.getOwned() ) ;
-
-      PD_TRACE_EXIT ( SDB_CATCTXRMNODE_MAKEREPLY ) ;
-
-      return SDB_OK ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXRMNODE_GETRMGRPOBJ, "_catCtxRemoveNode::_getRemovedGroupsObj" )

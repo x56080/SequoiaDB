@@ -1062,16 +1062,21 @@ namespace engine
          case LOG_TYPE_CS_DELETE :
          {
             const CHAR *cs = NULL ;
+            BSONObj boOptions ;
+            dmsDropCSOptions options ;
             rc = dpsRecord2CSDel( (CHAR *)recordHeader,
-                                  &cs ) ;
+                                  &cs, &boOptions ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
             }
+            rc = options.parseOptions( boOptions ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse drop collection "
+                         "space options, rc: %d", rc ) ;
             while ( TRUE )
             {
                rc = rtnDropCollectionSpaceCommand( cs, eduCB, _dmsCB, _dpsCB,
-                                                   TRUE ) ;
+                                                   TRUE, FALSE, &options ) ;
                if ( SDB_LOCK_FAILED == rc )
                {
                   ossSleep ( 100 ) ;
@@ -1153,13 +1158,20 @@ namespace engine
          case LOG_TYPE_CL_DELETE :
          {
             const CHAR *cl = NULL ;
+            BSONObj boOptions ;
+            dmsDropCLOptions options ;
             rc = dpsRecord2CLDel( (CHAR *)recordHeader,
-                                   &cl ) ;
+                                   &cl,
+                                   &boOptions ) ;
             if ( rc )
             {
                goto error ;
             }
-            rc = rtnDropCollectionCommand( cl, eduCB, _dmsCB, _dpsCB ) ;
+            rc = options.parseOptions( boOptions ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse drop collection "
+                         "options, rc: %d", rc ) ;
+            rc = rtnDropCollectionCommand( cl, eduCB, _dmsCB, _dpsCB,
+                                           UTIL_UNIQUEID_NULL, &options ) ;
             if ( SDB_DMS_NOTEXIST == rc )
             {
                PD_LOG( PDWARNING, "Collection [%s] not exist when drop", cl ) ;
@@ -1298,18 +1310,25 @@ namespace engine
          case LOG_TYPE_CL_TRUNC :
          {
             const CHAR *clname = NULL ;
-            rc = dpsRecord2CLTrunc( (const CHAR *)recordHeader, &clname ) ;
+            BSONObj boOptions ;
+            dmsTruncCLOptions options ;
+            rc = dpsRecord2CLTrunc( (const CHAR *)recordHeader, &clname,
+                                    &boOptions ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
             }
+            rc = options.parseOptions( boOptions ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse truncate collection "
+                         "options, rc: %d", rc ) ;
             // truncate will reset index flag of dropping indexes,
             // so we need to wait for collection jobs ( for drop indexes )
             while ( rtnGetIndexJobHolder()->hasCLJob( clname ) )
             {
                ossSleep( CLS_REPLAY_CHECK_INTERVAL ) ;
             }
-            rc = rtnTruncCollectionCommand( clname, eduCB, _dmsCB, _dpsCB ) ;
+            rc = rtnTruncCollectionCommand( clname, eduCB, _dmsCB, _dpsCB,
+                                            NULL, &options ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "Failed to truncate collection[%s], rc: %d",

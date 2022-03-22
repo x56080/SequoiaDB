@@ -57,8 +57,7 @@ namespace engine
       _pCatCB       = krcb->getCATLOGUECB() ;
       _status       = CAT_CONTEXT_NEW ;
 
-      _executeAfterLock = FALSE ;
-      _commitAfterExecute = FALSE ;
+      _executeOnP1 = FALSE ;
       _needPreExecute = FALSE ;
       _needRollbackAlways = FALSE ;
       _needRollback = FALSE ;
@@ -80,6 +79,7 @@ namespace engine
    INT32 _catContextBase::open ( const NET_HANDLE &handle,
                                  MsgHeader *pMsg,
                                  const CHAR *pQuery,
+                                 const CHAR *pHint,
                                  rtnContextBuf &buffObj,
                                  _pmdEDUCB *cb )
    {
@@ -90,13 +90,69 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_CATCTXBASE_OPEN ) ;
 
-      _isOpened = TRUE ;
-
-      rc = _initQuery( handle, pMsg, pQuery, cb ) ;
+      rc = _initQuery( handle, pMsg, pQuery, pHint, cb ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed in catContext [%lld]: "
                    "failed to initialize query, rc: %d",
                    contextID(), rc) ;
+
+      rc = _open( buffObj, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open context, rc: %d", rc ) ;
+
+   done :
+      PD_TRACE_EXITRC( SDB_CATCTXBASE_OPEN, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXBASE__OPEN_OBJ, "_catContextBase::_open" )
+   INT32 _catContextBase::_open( const BSONObj &queryObject,
+                                 MSG_TYPE cmdType,
+                                 rtnContextBuf &buffObj,
+                                 _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      SDB_ASSERT ( _status == CAT_CONTEXT_NEW,
+                   "Wrong catalog status before opening" ) ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXBASE__OPEN_OBJ ) ;
+
+      try
+      {
+         _boQuery = queryObject.getOwned() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to get query object, rc: %d", rc ) ;
+      }
+
+      _cmdType = cmdType ;
+
+      rc = _open( buffObj, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open context, rc: %d", rc ) ;
+
+   done :
+      PD_TRACE_EXITRC( SDB_CATCTXBASE__OPEN_OBJ, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXBASE__OPEN, "_catContextBase::_open" )
+   INT32 _catContextBase::_open ( rtnContextBuf &buffObj,
+                                  _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXBASE__OPEN ) ;
+
+      rc = _regEventHandlers() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register event handlers, "
+                   "rc: %d", rc ) ;
 
       rc = _parseQuery( cb ) ;
       if ( SDB_FIELD_NOT_EXIST == rc )
@@ -108,27 +164,9 @@ namespace engine
                    "failed to parse query, rc: %d",
                    contextID(), rc ) ;
 
-      rc = _open( buffObj, cb ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
-
-   done :
-      PD_TRACE_EXITRC( SDB_CATCTXBASE_OPEN, rc ) ;
-      return rc ;
-
-   error :
-      _changeStatusOnError() ;
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXBASE__OPEN, "_catContextBase::_open" )
-   INT32 _catContextBase::_open ( rtnContextBuf &buffObj,
-                                  _pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB_CATCTXBASE__OPEN ) ;
+      rc = _parseQueryForHandlers( cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse query for handlers, "
+                   "rc: %d", rc ) ;
 
       _setStatus( CAT_CONTEXT_LOCKING ) ;
 
@@ -138,7 +176,7 @@ namespace engine
                    "failed to check and lock catalog objects, rc: %d",
                    contextID(), rc ) ;
 
-      if ( _executeAfterLock )
+      if ( _executeOnP1 )
       {
          if ( _needPreExecute )
          {
@@ -158,7 +196,7 @@ namespace engine
          }
       }
 
-      rc = _makeReply( buffObj ) ;
+      rc = _makeReply( CAT_CONTEXT_PHASE_1, buffObj ) ;
       PD_RC_CHECK ( rc, PDERROR,
                     "Failed in catContext [%lld]: "
                     "failed to make reply message, rc: %d",
@@ -168,11 +206,13 @@ namespace engine
               "catContext [%lld]: open finished",
               contextID() ) ;
 
+      _isOpened = TRUE ;
+
    done :
       PD_TRACE_EXITRC( SDB_CATCTXBASE__OPEN, rc ) ;
       return rc ;
 
-   error :
+   error:
       _changeStatusOnError() ;
       goto done ;
    }
@@ -184,6 +224,8 @@ namespace engine
       rtnContextBuf buffObj ;
 
       PD_TRACE_ENTRY( SDB_CATCTXBASE_PREPAREDATA ) ;
+
+      CAT_CONTEXT_PHASE phase = CAT_CONTEXT_PHASE_2 ;
 
       switch ( _status )
       {
@@ -224,6 +266,7 @@ namespace engine
                       "failed to commit catalog changes, rc: %d",
                       contextID(), rc ) ;
          _clear( cb ) ;
+         phase = CAT_CONTEXT_PHASE_COMMIT ;
          break ;
       }
       default :
@@ -235,7 +278,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _makeReply( buffObj ) ;
+      rc = _makeReply( phase, buffObj ) ;
       PD_RC_CHECK ( rc, PDERROR,
                     "Failed in catContext [%lld]: "
                     "failed to make reply message, rc: %d",
@@ -284,13 +327,23 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATCTXBASE_CHECKCTX ) ;
 
+      INT16 w = _pCatCB->majoritySize() ;
+
       try
       {
+         rc = _onCheckEvent( SDB_EVT_OCCUR_BEFORE, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to call before check event "
+                      "on context [%s], rc: %d", name(), rc ) ;
+
          rc = _checkInternal( cb ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed in catContext [%lld]: "
                       "failed to check context internal, rc: %d",
                       contextID(), rc ) ;
+
+         rc = _onCheckEvent( SDB_EVT_OCCUR_AFTER, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to call after check event "
+                      "on context [%s], rc: %d", name(), rc ) ;
 
          _needUpdate = TRUE ;
       }
@@ -378,10 +431,15 @@ namespace engine
 
       try
       {
+         rc = _onExecuteEvent( SDB_EVT_OCCUR_BEFORE, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to call before execute event "
+                      "on context [%s], rc: %d", name(), rc ) ;
+
          if ( _needRollbackAlways )
          {
             _hasUpdated = TRUE ;
          }
+
          rc = _executeInternal( cb, w ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed in catContext [%lld]: "
@@ -389,6 +447,10 @@ namespace engine
                       contextID(), rc ) ;
 
          _hasUpdated = TRUE ;
+
+         rc = _onExecuteEvent( SDB_EVT_OCCUR_AFTER, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to call after execute event "
+                      "on context [%s], rc: %d", name(), rc ) ;
       }
       catch ( std::exception &e )
       {
@@ -406,19 +468,6 @@ namespace engine
       {
          // Update status
          _setStatus( CAT_CONTEXT_CAT_DONE ) ;
-
-         // Continue to commit if needed
-         if ( _commitAfterExecute )
-         {
-            rc = _commit( cb ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDERROR,
-                       "Failed in catContext [%lld]: "
-                       "failed to commit catalog changes, rc: %d",
-                       contextID(), rc ) ;
-            }
-         }
       }
       PD_TRACE_EXITRC ( SDB_CATCTXBASE_EXECUTE, rc ) ;
       return rc ;
@@ -431,7 +480,13 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB_CATCTXBASE_COMMIT ) ;
 
+      INT16 w = _pCatCB->majoritySize() ;
+
+      _onCommitEvent( SDB_EVT_OCCUR_BEFORE, cb, w ) ;
+
       _setStatus( CAT_CONTEXT_DATA_DONE ) ;
+
+      _onCommitEvent( SDB_EVT_OCCUR_AFTER, cb, w ) ;
 
       PD_TRACE_EXIT ( SDB_CATCTXBASE_COMMIT ) ;
 
@@ -460,11 +515,15 @@ namespace engine
       {
          INT16 w = _pCatCB->majoritySize() ;
 
+         _onRollbackEvent( SDB_EVT_OCCUR_BEFORE, cb, w ) ;
+
          rc = _rollbackInternal( cb, w ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed in catContext [%lld]: "
                       "failed to rollback context, rc: %d",
                       contextID(), rc ) ;
+
+         _onRollbackEvent( SDB_EVT_OCCUR_AFTER, cb, w ) ;
       }
       catch ( std::exception &e )
       {
@@ -488,11 +547,14 @@ namespace engine
    INT32 _catContextBase::_initQuery ( const NET_HANDLE &handle,
                                        MsgHeader *pMsg,
                                        const CHAR *pQuery,
+                                       const CHAR *pHint,
                                        _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY ( SDB_CATCTXBASE_INITQUERY ) ;
+
+      BOOLEAN ignoreLock = FALSE ;
 
       MsgOpQuery *pQueryReq = (MsgOpQuery *)pMsg ;
 
@@ -503,12 +565,32 @@ namespace engine
       {
          BSONObj dump( pQuery ) ;
          _boQuery = dump.getOwned() ;
+
+         BSONObj dumpHint( pHint ) ;
+
+         // check ignore lock
+         rc = rtnGetBooleanElement( dumpHint,
+                                    FIELD_NAME_IGNORE_LOCK,
+                                    ignoreLock ) ;
+         if ( SDB_FIELD_NOT_EXIST == rc )
+         {
+            // default is false
+            ignoreLock = FALSE ;
+            rc = SDB_OK ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s], rc: %d",
+                      FIELD_NAME_IGNORE_LOCK, rc ) ;
       }
       catch ( std::exception &e )
       {
          PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
          rc = SDB_INVALIDARG;
          goto error ;
+      }
+
+      if ( ignoreLock )
+      {
+         _lockMgr.setIgnoreLock( ignoreLock ) ;
       }
 
       PD_LOG( PDDEBUG,
@@ -583,6 +665,9 @@ namespace engine
          break ;
       }
 
+      _onDeleteEvent() ;
+      _unregEventHandlers() ;
+
       PD_LOG( PDDEBUG,
               "catContext [%lld]: finished context delete",
               contextID() ) ;
@@ -631,4 +716,376 @@ namespace engine
          ss << ",Query:" << _boQuery.toString() ;
       }
    }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXBASE__MAKEREPLY, "_catContextBase::_makeReply" )
+   INT32 _catContextBase::_makeReply( CAT_CONTEXT_PHASE phase,
+                                      rtnContextBuf &buffObj )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXBASE__MAKEREPLY ) ;
+
+      BSONObjBuilder builder ;
+
+      if ( CAT_CONTEXT_PHASE_1 == phase )
+      {
+         rc = _buildP1Reply( builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build phase 1 reply, "
+                      "rc: %d", rc ) ;
+
+         rc = _buildP1HandlerReply( builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build phase 1 reply "
+                      "for handlers, rc: %d", rc ) ;
+      }
+      else if ( CAT_CONTEXT_PHASE_2 == phase )
+      {
+         rc = _buildP2Reply( builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build phase 2 reply, "
+                      "rc: %d", rc ) ;
+
+         rc = _buildP2HandlerReply( builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build phase 2 reply "
+                      "for handlers, rc: %d", rc ) ;
+      }
+      else if ( CAT_CONTEXT_PHASE_COMMIT == phase )
+      {
+         rc = _buildPCReply( builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build phase commit reply, "
+                      "rc: %d", rc ) ;
+
+         rc = _buildPCHandlerReply( builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build phase commit reply "
+                      "for handlers, rc: %d", rc ) ;
+      }
+
+      buffObj = rtnContextBuf( builder.obj() ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXBASE__MAKEREPLY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXBASE__REGEVENTHANDLER, "_catContextBase::_regEventHandler" )
+   INT32 _catContextBase::_regEventHandler( catCtxEventHandler *handler )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXBASE__REGEVENTHANDLER ) ;
+
+      SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
+
+      for ( CAT_CTX_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
+            iter != _eventHandlers.end() ;
+            ++ iter )
+      {
+         catCtxEventHandler *temp = *iter ;
+         if ( handler == temp )
+         {
+            PD_LOG( PDDEBUG, "Handler [%s] already registered to context [%s]",
+                    handler->getName(), name() ) ;
+            goto done ;
+         }
+      }
+
+      try
+      {
+         _eventHandlers.push_back( handler ) ;
+         PD_LOG( PDDEBUG, "Registered handler [%s] to context [%s]",
+                 handler->getName(), name() ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to register event handler, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXBASE__REGEVENTHANDLER, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXBASE__UNREGEVENTHANDLERS, "_catContextBase::_unregEventHandlers" )
+   void _catContextBase::_unregEventHandlers()
+   {
+      PD_TRACE_ENTRY( SDB_CATCTXBASE__UNREGEVENTHANDLERS ) ;
+
+      _eventHandlers.clear() ;
+
+      PD_TRACE_EXIT( SDB_CATCTXBASE__UNREGEVENTHANDLERS ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXBASE__PARSEQUERYHANDLERS, "_catContextBase::_parseQueryForHandlers" )
+   INT32 _catContextBase::_parseQueryForHandlers( _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXBASE__PARSEQUERYHANDLERS ) ;
+
+      for ( CAT_CTX_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
+            iter != _eventHandlers.end() ;
+            ++ iter )
+      {
+         catCtxEventHandler *handler = *iter ;
+         SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
+
+         rc = handler->parseQuery( _boQuery, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse query on "
+                      "handler [%s] of context [%s], rc: %d",
+                      handler->getName(), name(), rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXBASE__PARSEQUERYHANDLERS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXBASE__ONCHECKEVENT, "_catContextBase::_onCheckEvent" )
+   INT32 _catContextBase::_onCheckEvent( SDB_EVENT_OCCUR_TYPE type,
+                                         _pmdEDUCB *cb,
+                                         INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXBASE__ONCHECKEVENT ) ;
+
+      for ( CAT_CTX_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
+            iter != _eventHandlers.end() ;
+            ++ iter )
+      {
+         catCtxEventHandler *handler = *iter ;
+         SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
+
+         rc = handler->onCheckEvent( type, _targetName.c_str(), _boTarget, cb,
+                                     w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to call [%s] check event on "
+                      "handler [%s] of context [%s], rc: %d",
+                      SDB_EVT_OCCUR_BEFORE == type ? "before" : "after",
+                      handler->getName(), name(), rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXBASE__ONCHECKEVENT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXBASE__ONEXECUTEEVENT, "_catContextBase::_onExecuteEvent" )
+   INT32 _catContextBase::_onExecuteEvent( SDB_EVENT_OCCUR_TYPE type,
+                                           _pmdEDUCB *cb,
+                                           INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXBASE__ONEXECUTEEVENT ) ;
+
+      for ( CAT_CTX_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
+            iter != _eventHandlers.end() ;
+            ++ iter )
+      {
+         catCtxEventHandler *handler = *iter ;
+         SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
+
+         rc = handler->onExecuteEvent( type, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to call [%s] execute event on "
+                      "handler [%s] of context [%s], rc: %d",
+                      SDB_EVT_OCCUR_BEFORE == type ? "before" : "after",
+                      handler->getName(), name(), rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXBASE__ONEXECUTEEVENT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXBASE__ONCOMMITEVENT, "_catContextBase::_onCommitEvent" )
+   INT32 _catContextBase::_onCommitEvent( SDB_EVENT_OCCUR_TYPE type,
+                                          _pmdEDUCB *cb,
+                                          INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXBASE__ONCOMMITEVENT ) ;
+
+      // commit event must be handled for all handlers
+      for ( CAT_CTX_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
+            iter != _eventHandlers.end() ;
+            ++ iter )
+      {
+         catCtxEventHandler *handler = *iter ;
+         SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
+
+         INT32 tmpRC = handler->onCommitEvent( type, cb, w ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDWARNING, "Failed to call [%s] commit event on "
+                    "handler [%s] of context [%s], rc: %d",
+                    SDB_EVT_OCCUR_BEFORE == type ? "before" : "after",
+                    handler->getName(), name(), tmpRC ) ;
+            if ( SDB_OK == rc )
+            {
+               rc = tmpRC ;
+            }
+         }
+      }
+
+      PD_TRACE_EXITRC( SDB_CATCTXBASE__ONCOMMITEVENT, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXBASE__ONROLLBACKEVENT, "_catContextBase::_onRollbackEvent" )
+   INT32 _catContextBase::_onRollbackEvent( SDB_EVENT_OCCUR_TYPE type,
+                                            _pmdEDUCB *cb,
+                                            INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXBASE__ONROLLBACKEVENT ) ;
+
+      // rollback event must be handled for all handlers
+      for ( CAT_CTX_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
+            iter != _eventHandlers.end() ;
+            ++ iter )
+      {
+         catCtxEventHandler *handler = *iter ;
+         SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
+
+         INT32 tmpRC = handler->onRollbackEvent( type, cb, w ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDWARNING, "Failed to call [%s] rollback event on "
+                    "handler [%s] of context [%s], rc: %d",
+                    SDB_EVT_OCCUR_BEFORE == type ? "before" : "after",
+                    handler->getName(), name(), tmpRC ) ;
+            if ( SDB_OK == rc )
+            {
+               rc = tmpRC ;
+            }
+         }
+      }
+
+      PD_TRACE_EXITRC( SDB_CATCTXBASE__ONROLLBACKEVENT, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXBASE__ONDELETEEVENT, "_catContextBase::_onDeleteEvent" )
+   void _catContextBase::_onDeleteEvent()
+   {
+      PD_TRACE_ENTRY( SDB_CATCTXBASE__ONDELETEEVENT ) ;
+
+      // rollback event must be handled for all handlers
+      for ( CAT_CTX_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
+            iter != _eventHandlers.end() ;
+            ++ iter )
+      {
+         catCtxEventHandler *handler = *iter ;
+         SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
+
+         handler->onDeleteEvent() ;
+      }
+
+      PD_TRACE_EXIT( SDB_CATCTXBASE__ONDELETEEVENT ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXBASE__BLDP1HANDLERREPLY, "_catContextBase::_buildP1HandlerReply" )
+   INT32 _catContextBase::_buildP1HandlerReply( BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXBASE__BLDP1HANDLERREPLY ) ;
+
+      for ( CAT_CTX_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
+            iter != _eventHandlers.end() ;
+            ++ iter )
+      {
+         catCtxEventHandler *handler = *iter ;
+         SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
+
+         rc = handler->buildP1Reply( builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build phase 1 reply for "
+                      "handler [%s] of context [%s], rc: %d",
+                      handler->getName(), name(), rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXBASE__BLDP1HANDLERREPLY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXBASE__BLDP2HANDLERREPLY, "_catContextBase::_buildP2HandlerReply" )
+   INT32 _catContextBase::_buildP2HandlerReply( BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXBASE__BLDP2HANDLERREPLY ) ;
+
+      for ( CAT_CTX_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
+            iter != _eventHandlers.end() ;
+            ++ iter )
+      {
+         catCtxEventHandler *handler = *iter ;
+         SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
+
+         rc = handler->buildP2Reply( builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build phase 2 reply for "
+                      "handler [%s] of context [%s], rc: %d",
+                      handler->getName(), name(), rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXBASE__BLDP2HANDLERREPLY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXBASE__BLDPCHANDLERREPLY, "_catContextBase::_buildPCHandlerReply" )
+   INT32 _catContextBase::_buildPCHandlerReply( BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXBASE__BLDPCHANDLERREPLY ) ;
+
+      for ( CAT_CTX_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
+            iter != _eventHandlers.end() ;
+            ++ iter )
+      {
+         catCtxEventHandler *handler = *iter ;
+         SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
+
+         rc = handler->buildPCReply( builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build phase commit reply for "
+                      "handler [%s] of context [%s], rc: %d",
+                      handler->getName(), name(), rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXBASE__BLDPCHANDLERREPLY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 }

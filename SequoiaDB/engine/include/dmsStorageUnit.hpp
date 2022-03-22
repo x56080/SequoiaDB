@@ -158,11 +158,15 @@ namespace engine
 
          virtual ~_dmsEventHolder () ;
 
-         virtual void regHandler ( _IDmsEventHandler *pHandler ) ;
+         void setHandlers ( DMS_HANDLER_LIST *handlers )
+         {
+            _handlers = handlers ;
+         }
 
-         virtual void unregHandler ( _IDmsEventHandler *pHandler ) ;
-
-         virtual void unregAllHandlers () ;
+         virtual void unsetHandlers ()
+         {
+            _handlers = NULL ;
+         }
 
          virtual INT32 onCreateCS ( UINT32 mask,
                                     pmdEDUCB *cb,
@@ -182,9 +186,25 @@ namespace engine
                                     pmdEDUCB *cb,
                                     SDB_DPSCB *dpsCB ) ;
 
+         // drop collection space callbacks
+         virtual INT32 onCheckDropCS( UINT32 mask,
+                                      const dmsEventSUItem &suItem,
+                                      dmsDropCSOptions *options,
+                                      pmdEDUCB *cb,
+                                      SDB_DPSCB *dpsCB ) ;
+
          virtual INT32 onDropCS ( UINT32 mask,
+                                  SDB_EVENT_OCCUR_TYPE type,
+                                  const dmsEventSUItem &suItem,
+                                  dmsDropCSOptions *options,
                                   pmdEDUCB *cb,
                                   SDB_DPSCB *dpsCB ) ;
+
+         virtual INT32 onCleanDropCS( UINT32 mask,
+                                      const dmsEventSUItem &suItem,
+                                      dmsDropCSOptions *options,
+                                      pmdEDUCB *cb,
+                                      SDB_DPSCB *dpsCB ) ;
 
          virtual INT32 onCreateCL ( UINT32 mask,
                                     const dmsEventCLItem &clItem,
@@ -197,16 +217,45 @@ namespace engine
                                     pmdEDUCB *cb,
                                     SDB_DPSCB *dpsCB ) ;
 
+         // truncate collection callbacks
+         virtual INT32 onCheckTruncCL( UINT32 mask,
+                                       const dmsEventCLItem &clItem,
+                                       dmsTruncCLOptions *options,
+                                       pmdEDUCB *cb,
+                                       SDB_DPSCB *dpsCB ) ;
+
          virtual INT32 onTruncateCL ( UINT32 mask,
+                                      SDB_EVENT_OCCUR_TYPE type,
                                       const dmsEventCLItem &clItem,
-                                      UINT32 newCLLID,
+                                      dmsTruncCLOptions *options,
+                                      pmdEDUCB *cb,
+                                      SDB_DPSCB *dpsCB ) ;
+
+         virtual INT32 onCleanTruncCL( UINT32 mask,
+                                       const dmsEventCLItem &clItem,
+                                       dmsTruncCLOptions *options,
+                                       pmdEDUCB *cb,
+                                       SDB_DPSCB *dpsCB ) ;
+
+         // drop collection callbacks
+         virtual INT32 onCheckDropCL( UINT32 mask,
+                                      const dmsEventCLItem &clItem,
+                                      dmsDropCLOptions *options,
                                       pmdEDUCB *cb,
                                       SDB_DPSCB *dpsCB ) ;
 
          virtual INT32 onDropCL ( UINT32 mask,
+                                  SDB_EVENT_OCCUR_TYPE type,
                                   const dmsEventCLItem &clItem,
+                                  dmsDropCLOptions *options,
                                   pmdEDUCB *cb,
                                   SDB_DPSCB *dpsCB ) ;
+
+         virtual INT32 onCleanDropCL( UINT32 mask,
+                                      const dmsEventCLItem &clItem,
+                                      dmsDropCLOptions *options,
+                                      pmdEDUCB *cb,
+                                      SDB_DPSCB *dpsCB ) ;
 
          virtual INT32 onCreateIndex ( UINT32 mask,
                                        const dmsEventCLItem &clItem,
@@ -251,17 +300,20 @@ namespace engine
 
          virtual UINT32 getSULID () const ;
 
+         dmsStorageUnit *getSU()
+         {
+            return _su ;
+         }
+
          OSS_INLINE virtual void setCacheHolder ( dmsCacheHolder *pCacheHolder )
          {
             _pCacheHolder = pCacheHolder ;
          }
 
       protected :
-         typedef ossPoolList<_IDmsEventHandler *> HANDLER_LIST ;
-
          dmsStorageUnit *     _su ;
          dmsCacheHolder *     _pCacheHolder ;
-         HANDLER_LIST         _handlers ;
+         DMS_HANDLER_LIST *   _handlers ;
    } ;
 
 
@@ -589,9 +641,8 @@ namespace engine
       public :
          _IDmsEventHolder * getEventHolder () ;
 
-         void regEventHandler ( _IDmsEventHandler *pHandler ) ;
-         void unregEventHandler ( _IDmsEventHandler *pHandler ) ;
-         void unregEventHandlers () ;
+         void setEventHandlers ( DMS_HANDLER_LIST *handlers ) ;
+         void unsetEventHandlers () ;
 
          dmsSUCache *getSUCache ( UINT32 type ) ;
 

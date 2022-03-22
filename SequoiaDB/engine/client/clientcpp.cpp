@@ -4209,7 +4209,7 @@ do                                                            \
       goto done ;
    }
 
-   INT32 _sdbCollectionImpl::truncate()
+   INT32 _sdbCollectionImpl::truncate( const BSONObj &options )
    {
       INT32 rc = SDB_OK ;
       BSONObj obj ;
@@ -4225,7 +4225,26 @@ do                                                            \
          goto error ;
       }
 
-      obj = BSON( FIELD_NAME_COLLECTION << _collectionFullName ) ;
+      try
+      {
+         BSONObjBuilder builder ;
+         BSONObjIterator iterOptions( options ) ;
+         while ( iterOptions.more() )
+         {
+            BSONElement ele = iterOptions.next() ;
+            // skip collection field
+            if ( 0 != ossStrcmp( FIELD_NAME_COLLECTION, ele.fieldName() ) )
+            {
+               builder.append( ele ) ;
+            }
+         }
+         builder.append( FIELD_NAME_COLLECTION, _collectionFullName ) ;
+         obj = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+      }
 
       rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_TRUNCATE,
                                      &obj ) ;
@@ -5948,10 +5967,13 @@ do                                                            \
       goto done ;
    }
 
-   INT32 _sdbCollectionSpaceImpl::dropCollection ( const CHAR *pCollectionName )
+   INT32 _sdbCollectionSpaceImpl::dropCollection( const CHAR *pCollectionName,
+                                                  const BSONObj &options )
    {
-      INT32 rc            = SDB_OK ;
+      INT32 rc = SDB_OK ;
+
       BSONObj newObj ;
+
       CHAR clFullName[ CLIENT_CL_FULLNAME_SZ + 1 ] = { 0 } ;
 
       if ( !pCollectionName ||
@@ -5974,7 +5996,27 @@ do                                                            \
       ossSnprintf( clFullName, sizeof( clFullName ), "%s.%s",
                    _collectionSpaceName, pCollectionName ) ;
 
-      newObj = BSON ( FIELD_NAME_NAME << clFullName ) ;
+      try
+      {
+         BSONObjBuilder builder ;
+         BSONObjIterator iterOptions( options ) ;
+         while ( iterOptions.more() )
+         {
+            BSONElement ele = iterOptions.next() ;
+            // skip name field
+            if ( 0 != ossStrcmp( FIELD_NAME_NAME, ele.fieldName() ) )
+            {
+               builder.append( ele ) ;
+            }
+         }
+         builder.append( FIELD_NAME_NAME, clFullName ) ;
+         newObj = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
 
       rc = _connection->_runCommand ( CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTION,
                                       &newObj ) ;
@@ -10923,7 +10965,6 @@ do                                                            \
                                          const bson::BSONObj &options )
    {
       INT32 rc = SDB_OK ;
-      BSONObjBuilder builder ;
       BSONObj newObj ;
 
       if ( !pCollectionSpaceName || !*pCollectionSpaceName ||
@@ -10935,12 +10976,18 @@ do                                                            \
 
       try
       {
-         builder.append( FIELD_NAME_NAME, pCollectionSpaceName ) ;
-         if ( !options.isEmpty() )
+         BSONObjBuilder builder ;
+         BSONObjIterator iterOptions( options ) ;
+         while ( iterOptions.more() )
          {
-            builder.appendElements( options ) ;
+            BSONElement ele = iterOptions.next() ;
+            // skip name field
+            if ( 0 != ossStrcmp( FIELD_NAME_NAME, ele.fieldName() ) )
+            {
+               builder.append( ele ) ;
+            }
          }
-
+         builder.append( FIELD_NAME_NAME, pCollectionSpaceName ) ;
          newObj = builder.obj() ;
       }
       catch ( std::exception )

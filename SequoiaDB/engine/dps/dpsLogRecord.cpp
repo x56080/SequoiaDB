@@ -771,7 +771,7 @@ namespace engine
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  " Type   : %s(%d)"OSS_NEWLINE,
                                  "CS DROP", LOG_TYPE_CS_DELETE ) ;
-            dpsLogRecord::iterator itrCS ;
+            dpsLogRecord::iterator itrCS, itrOptions ;
             itrCS = this->find( DPS_LOG_CSCRT_CSNAME ) ;
             if ( !itrCS.valid() )
             {
@@ -785,6 +785,26 @@ namespace engine
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  " CSName : %s"OSS_NEWLINE,
                                  itrCS.value() ) ;
+
+            itrOptions = find( DPS_LOG_CSDEL_OPTIONS ) ;
+            if ( itrOptions.valid() )
+            {
+               try
+               {
+                  BSONObj boOptions( itrOptions.value() ) ;
+                  len += ossSnprintf ( outBuf + len, outSize - len,
+                                       " Options : %s"OSS_NEWLINE,
+                                       boOptions.toPoolString().c_str() ) ;
+               }
+               catch ( std::exception &e )
+               {
+                  len += ossSnprintf ( outBuf + len, outSize - len,
+                                       "*ERROR* : %s: %s"OSS_NEWLINE,
+                                       "Invalid drop collection space record",
+                                       e.what() ) ;
+                  goto done ;
+               }
+            }
 
             break ;
          }
@@ -929,6 +949,27 @@ namespace engine
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  " CLName : %s"OSS_NEWLINE,
                                  itrCL.value() ) ;
+
+            dpsLogRecord::iterator itrOptions = find( DPS_LOG_CLDEL_OPTIONS ) ;
+            if ( itrOptions.valid() )
+            {
+               try
+               {
+                  BSONObj boOptions( itrOptions.value() ) ;
+                  len += ossSnprintf ( outBuf + len, outSize - len,
+                                       " Options : %s"OSS_NEWLINE,
+                                       boOptions.toPoolString().c_str() ) ;
+               }
+               catch ( std::exception &e )
+               {
+                  len += ossSnprintf ( outBuf + len, outSize - len,
+                                       "*ERROR* : %s: %s"OSS_NEWLINE,
+                                       "Invalid drop collection record",
+                                       e.what() ) ;
+                  goto done ;
+               }
+            }
+
             break ;
 
          }
@@ -1114,6 +1155,27 @@ namespace engine
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  " CLName : %s"OSS_NEWLINE,
                                  itrCL.value() ) ;
+
+            dpsLogRecord::iterator itrOptions = find( DPS_LOG_CLTRUNC_OPTIONS ) ;
+            if ( itrOptions.valid() )
+            {
+               try
+               {
+                  BSONObj boOptions( itrOptions.value() ) ;
+                  len += ossSnprintf ( outBuf + len, outSize - len,
+                                       " Options : %s"OSS_NEWLINE,
+                                       boOptions.toPoolString().c_str() ) ;
+               }
+               catch ( std::exception &e )
+               {
+                  len += ossSnprintf ( outBuf + len, outSize - len,
+                                       "*ERROR* : %s: %s"OSS_NEWLINE,
+                                       "Invalid truncate collection record",
+                                       e.what() ) ;
+                  goto done ;
+               }
+            }
+
             break ;
          }
          case LOG_TYPE_INVALIDATE_CATA :

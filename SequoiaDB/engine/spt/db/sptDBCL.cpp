@@ -2388,7 +2388,21 @@ namespace engine
                              bson::BSONObj &detail )
    {
       INT32 rc = SDB_OK ;
-      rc = _cl.truncate() ;
+      BSONObj options ;
+
+      if ( arg.argc() > 0 )
+      {
+         rc = arg.getBsonobj( 0, options ) ;
+         if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+         {
+            detail = BSON( SPT_ERR << ( arg.hasErrMsg() ?
+                                        arg.getErrMsg() :
+                                        "Options must be object" ) ) ;
+            goto error ;
+         }
+      }
+
+      rc = _cl.truncate( options ) ;
       if( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Failed to truncate collection" ) ;

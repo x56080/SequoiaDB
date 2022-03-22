@@ -43,6 +43,151 @@
 
 namespace engine
 {
+
+   typedef std::vector<UINT32> CAT_GROUP_LIST ;
+   typedef CAT_GROUP_LIST::iterator CAT_GROUP_LIST_IT ;
+
+   /*
+      _catCtxGroupHandler define
+    */
+   class _catCtxGroupHandler : public _catCtxEventHandler
+   {
+   public:
+      _catCtxGroupHandler( catCtxLockMgr &lockMgr ) ;
+      virtual ~_catCtxGroupHandler() ;
+
+      virtual const CHAR *getName() const
+      {
+         return "group" ;
+      }
+
+      CAT_GROUP_LIST &getGroupList()
+      {
+         return _groupList ;
+      }
+
+      BOOLEAN isGroupEmpty() const
+      {
+         return _groupList.empty() ;
+      }
+
+      INT32 addGroup( UINT32 groupID ) ;
+      INT32 addGroups( const bson::BSONObj &boCollection ) ;
+      INT32 addGroups( SET_UINT32 &groupIDSet ) ;
+      INT32 addGroupsInRecycleBin( utilCSUniqueID csUniqueID ) ;
+
+      virtual INT32 onCheckEvent( SDB_EVENT_OCCUR_TYPE type,
+                                  _pmdEDUCB *cb,
+                                  INT16 w ) ;
+
+      virtual INT32 buildP1Reply( bson::BSONObjBuilder &builder ) ;
+
+   protected:
+      CAT_GROUP_LIST _groupList ;
+   } ;
+
+   typedef class _catCtxGroupHandler catCtxGroupHandler ;
+
+   /*
+      _catCtxGlobIdxHandler define
+    */
+   class _catCtxGlobIdxHandler : public _catCtxEventHandler
+   {
+   public:
+      _catCtxGlobIdxHandler( catCtxLockMgr &lockMgr ) ;
+      virtual ~_catCtxGlobIdxHandler() ;
+
+      virtual const CHAR *getName() const
+      {
+         return "global index" ;
+      }
+
+      void setExclusedCSUniqueID( utilCSUniqueID excludedCSUniqueID )
+      {
+         _excludedCSUniqueID = excludedCSUniqueID ;
+      }
+
+      CAT_PAIR_CLNAME_ID_LIST &getGlobIdxCLList()
+      {
+         return _globIdxList ;
+      }
+
+      INT32 addGlobIdxs( const CAT_PAIR_CLNAME_ID_LIST &globIdxList ) ;
+      INT32 addGlobIdxs( const CHAR *collectionName ) ;
+
+      virtual INT32 buildP1Reply( bson::BSONObjBuilder &builder ) ;
+
+   protected:
+      // exclude global index collections from specified collection space
+      utilCSUniqueID          _excludedCSUniqueID ;
+      CAT_PAIR_CLNAME_ID_LIST _globIdxList ;
+   } ;
+
+   typedef class _catCtxGlobIdxHandler catCtxGlobIdxHandler ;
+
+   /*
+      _catCtxRecycleHelper define
+    */
+   class _catCtxRecycleHelper
+   {
+   protected:
+      _catCtxRecycleHelper( UTIL_RECYCLE_TYPE type,
+                            UTIL_RECYCLE_OPTYPE opType ) ;
+      ~_catCtxRecycleHelper() ;
+
+   protected:
+      catRecycleBinManager *  _recycleBinMgr ;
+      utilRecycleItem         _recycleItem ;
+   } ;
+
+   typedef class _catCtxRecycleHelper catCtxRecycleHelper ;
+
+   /*
+      _catCtxRecycleHandler define
+    */
+   class _catCtxRecycleHandler : public _catCtxEventHandler,
+                                 public _catCtxRecycleHelper
+   {
+   public:
+      _catCtxRecycleHandler( UTIL_RECYCLE_TYPE type,
+                             UTIL_RECYCLE_OPTYPE opType,
+                             catCtxLockMgr &lockMgr ) ;
+      virtual ~_catCtxRecycleHandler() ;
+
+      virtual const CHAR *getName() const
+      {
+         return "recycle" ;
+      }
+
+      virtual INT32 parseQuery( const bson::BSONObj &boQuery,
+                                 _pmdEDUCB *cb ) ;
+
+      virtual INT32 onCheckEvent( SDB_EVENT_OCCUR_TYPE type,
+                                  const CHAR *targetName,
+                                  const bson::BSONObj &boTarget,
+                                  _pmdEDUCB *cb,
+                                  INT16 w ) ;
+
+      virtual INT32 onExecuteEvent( SDB_EVENT_OCCUR_TYPE type,
+                                    _pmdEDUCB *cb,
+                                    INT16 w ) ;
+
+      virtual void onDeleteEvent() ;
+
+      virtual INT32 buildP1Reply( bson::BSONObjBuilder &builder ) ;
+
+      INT32 _checkRecycle( _pmdEDUCB *cb, INT16 w ) ;
+      INT32 _executeRecycle( _pmdEDUCB *cb, INT16 w ) ;
+      INT32 _executeWithoutRecycle( _pmdEDUCB *cb, INT16 w ) ;
+
+   protected:
+      BOOLEAN              _isUseRecycleBin ;
+      BOOLEAN              _isReservedItem ;
+      UTIL_RECY_ITEM_LIST  _droppingItems ;
+   } ;
+
+   typedef class _catCtxRecycleHandler catCtxRecycleHandler ;
+
    /*
     * _catCtxDataBase define
     */
@@ -53,7 +198,7 @@ namespace engine
       virtual ~_catCtxDataBase () ;
 
    protected :
-      virtual INT32 _makeReply ( rtnContextBuf &buffObj ) ;
+      virtual INT32 _regEventHandlers() ;
 
       virtual INT32 _preExecuteInternal ( _pmdEDUCB *cb, INT16 w )
       { return SDB_OK ; }
@@ -64,7 +209,7 @@ namespace engine
       { return SDB_OK ; }
 
    protected :
-      std::vector<UINT32> _groupList ;
+      catCtxGroupHandler _groupHandler ;
    } ;
 
    /*
@@ -132,16 +277,18 @@ namespace engine
          return RTN_CONTEXT_CAT_DROP_CS ;
       }
 
-      INT32 open ( const CHAR *pQuery,
+      INT32 open ( const bson::BSONObj &query,
                    rtnContextBuf &buffObj,
                    _pmdEDUCB *cb ) ;
 
    protected :
+      typedef _catCtxCLMultiTask _BASE ;
+
+      virtual INT32 _regEventHandlers() ;
+
       virtual INT32 _parseQuery ( _pmdEDUCB *cb ) ;
 
       virtual INT32 _checkInternal ( _pmdEDUCB *cb ) ;
-
-      virtual INT32 _makeReply ( rtnContextBuf & buffObj ) ;
 
       INT32 _addDropCSTask ( const std::string &csName,
                              _catCtxDropCSTask **ppCtx,
@@ -166,7 +313,8 @@ namespace engine
    private:
       /* ensure collectionspace is empty or not */
       BOOLEAN _ensureEmpty ;
-      ossPoolList<PAIR_CLNAME_ID> _globalIdxCLList ;
+      catCtxGlobIdxHandler _globIdxHandler ;
+      catCtxRecycleHandler _recycleHandler ;
    } ;
 
    typedef class _catCtxDropCS catCtxDropCS ;
@@ -202,7 +350,6 @@ namespace engine
 
       protected :
          std::string _newCSName ;
-         BSONObj _boCollectionspace ;
    } ;
 
    typedef class _catCtxRenameCS catCtxRenameCS ;
@@ -264,7 +411,7 @@ namespace engine
          return RTN_CONTEXT_CAT_CREATE_CL ;
       }
 
-      INT32 open ( const CHAR *pQuery,
+      INT32 open ( const bson::BSONObj &query,
                    rtnContextBuf &buffObj,
                    _pmdEDUCB *cb ) ;
 
@@ -275,7 +422,7 @@ namespace engine
 
       virtual INT32 _executeInternal ( _pmdEDUCB *cb, INT16 w ) ;
 
-      virtual INT32 _makeReply ( rtnContextBuf &buffObj ) ;
+      virtual INT32 _buildP1Reply( bson::BSONObjBuilder &builder ) ;
 
       virtual INT32 _rollbackInternal ( _pmdEDUCB *cb, INT16 w ) ;
 
@@ -346,16 +493,20 @@ namespace engine
          return RTN_CONTEXT_CAT_DROP_CL ;
       }
 
-      INT32 open ( const CHAR *pQuery,
+      INT32 open ( const bson::BSONObj &query,
                    rtnContextBuf &buffObj,
                    _pmdEDUCB *cb ) ;
 
    protected :
+      typedef _catCtxCLMultiTask _BASE ;
+
+      virtual INT32 _regEventHandlers() ;
+
       virtual INT32 _parseQuery ( _pmdEDUCB *cb ) ;
 
       virtual INT32 _checkInternal ( _pmdEDUCB *cb ) ;
 
-      virtual INT32 _makeReply ( rtnContextBuf &buffObj ) ;
+      virtual INT32 _buildP1Reply( bson::BSONObjBuilder &builder ) ;
 
       INT32 _addDropCLSubTasks ( _catCtxDropCLTask *pDropCLTask,
                                  _pmdEDUCB *cb ) ;
@@ -369,8 +520,8 @@ namespace engine
                                    BOOLEAN pushExec = TRUE ) ;
 
    protected :
-      INT32 _needUpdateCoord ;
-      ossPoolList<PAIR_CLNAME_ID> _globalIdxCLList ;
+      catCtxGlobIdxHandler _globIdxHandler ;
+      catCtxRecycleHandler _recycleHandler ;
    } ;
 
    typedef class _catCtxDropCL catCtxDropCL ;
@@ -457,8 +608,7 @@ namespace engine
       INT32 _addAlterSubCLTask ( catCtxAlterCLTask * catTask,
                                  pmdEDUCB * cb,
                                  catCtxLockMgr & lockMgr,
-                                 std::set< std::string > & collectionSet,
-                                 std::vector< UINT32 > & groupList ) ;
+                                 std::set< std::string > & collectionSet ) ;
       INT32 _addSequenceTask( const string & collection,
                               const rtnAlterTask * task,
                               catCtxTaskBase ** catAutoIncTask ) ;
@@ -472,7 +622,22 @@ namespace engine
                                   const rtnAlterTask * task,
                                   catCtxTaskBase ** catAutoIncTask ) ;
 
-      virtual INT32 _makeReply ( rtnContextBuf &buffObj ) ;
+      virtual INT32 _buildP1Reply( bson::BSONObjBuilder &builder )
+      {
+         return _buildTaskReply( builder ) ;
+      }
+
+      virtual INT32 _buildP2Reply( bson::BSONObjBuilder &builder )
+      {
+         return _buildTaskReply( builder ) ;
+      }
+
+      virtual INT32 _buildPCReply( bson::BSONObjBuilder &builder )
+      {
+         return _buildTaskReply( builder ) ;
+      }
+
+      INT32 _buildTaskReply( bson::BSONObjBuilder &builder ) ;
 
    protected :
       rtnAlterJob _alterJob ;
@@ -559,7 +724,48 @@ namespace engine
    } ;
 
    typedef class _catCtxUnlinkCL catCtxUnlinkCL ;
+
+   /*
+      _catCtxTruncCL define
+    */
+   class _catCtxTruncCL : public _catCtxDataBase
+   {
+      DECLARE_RTN_CTX_AUTO_REGISTER( _catCtxTruncCL )
+   public :
+      _catCtxTruncCL( INT64 contextID, UINT64 eduID ) ;
+
+      virtual ~_catCtxTruncCL() ;
+
+      virtual const CHAR* name() const
+      {
+         return "CAT_TRUNCATE_CL" ;
+      }
+
+      virtual RTN_CONTEXT_TYPE getType () const
+      {
+         return RTN_CONTEXT_CAT_TRUNCATE_CL ;
+      }
+
+   protected :
+      typedef _catCtxDataBase _BASE ;
+
+      virtual INT32 _regEventHandlers() ;
+
+      virtual INT32 _parseQuery( _pmdEDUCB *cb ) ;
+
+      virtual INT32 _checkInternal( _pmdEDUCB *cb ) ;
+
+      virtual INT32 _buildP1Reply( bson::BSONObjBuilder &builder ) ;
+
+      virtual INT32 _executeInternal( _pmdEDUCB *cb, INT16 w ) ;
+
+   protected :
+      catCtxGlobIdxHandler _globIdxHandler ;
+      catCtxRecycleHandler _recycleHandler ;
+   } ;
+
+   typedef class _catCtxTruncCL catCtxTruncCL ;
+
 }
 
 #endif //CATCONTEXTDATA_HPP_
-

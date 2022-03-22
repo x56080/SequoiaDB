@@ -42,6 +42,7 @@
 #include "rtnContext.hpp"
 #include "catLevelLock.hpp"
 #include "catalogueCB.hpp"
+#include "IDataSource.hpp"
 
 using namespace bson ;
 
@@ -50,6 +51,10 @@ namespace engine
    class _SDB_DMSCB ;
    typedef _SDB_DMSCB SDB_DMSCB;
    typedef std::vector< UINT32 > CAT_GROUP_LIST ;
+
+   typedef ossPoolList<PAIR_CLNAME_ID> CAT_PAIR_CLNAME_ID_LIST ;
+   typedef CAT_PAIR_CLNAME_ID_LIST::iterator CAT_PAIR_CLNAME_ID_LIST_IT ;
+   typedef CAT_PAIR_CLNAME_ID_LIST::const_iterator CAT_PAIR_CLNAME_ID_LIST_CIT ;
 
    /*
     * _catCtxTaskBase define
@@ -135,6 +140,16 @@ namespace engine
 
       const std::string &getDataName () const { return _dataName ; }
 
+      BOOLEAN isDataSource() const
+      {
+         return UTIL_INVALID_DS_UID != _dsUID ;
+      }
+
+      UTIL_DS_UID getDataSourceUID() const
+      {
+         return _dsUID ;
+      }
+
    protected :
       virtual INT32 _preExecuteInternal ( _pmdEDUCB *cb,
                                           SDB_DMSCB *pDmsCB,
@@ -151,6 +166,7 @@ namespace engine
    protected :
       std::string _dataName ;
       BSONObj _boData ;
+      UTIL_DS_UID _dsUID ;
    } ;
 
    typedef _catCtxDataTask catCtxDataTask ;
@@ -183,11 +199,9 @@ namespace engine
 
       virtual ~_catCtxDropCLTask () {}
 
-      BOOLEAN needUpdateCoord () const { return _needUpdateCoord ; }
-
       INT32 getVersion () const { return _version ; }
 
-      const ossPoolList<PAIR_CLNAME_ID>& globalIndexCLList() const
+      const CAT_PAIR_CLNAME_ID_LIST& globalIndexCLList() const
       {
          return _globalIdxCLList ;
       }
@@ -204,9 +218,8 @@ namespace engine
 
    protected :
       INT32 _version ;
-      BOOLEAN _needUpdateCoord ;
       BOOLEAN _rmTaskAndIdx ;
-      ossPoolList<PAIR_CLNAME_ID> _globalIdxCLList ;
+      CAT_PAIR_CLNAME_ID_LIST _globalIdxCLList ;
    } ;
 
    /*

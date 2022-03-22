@@ -685,20 +685,30 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSSTATSUMGR_ONDROPCS, "_dmsStatSUMgr::onDropCS" )
-   INT32 _dmsStatSUMgr::onDropCS ( IDmsEventHolder *pEventHolder,
+   INT32 _dmsStatSUMgr::onDropCS ( SDB_EVENT_OCCUR_TYPE type,
+                                   IDmsEventHolder *pEventHolder,
                                    IDmsSUCacheHolder *pCacheHolder,
+                                   const dmsEventSUItem &suItem,
+                                   dmsDropCSOptions *options,
                                    pmdEDUCB *cb,
                                    SDB_DPSCB *dpsCB )
    {
-      INT32 rc = SDB_OK ;
-      BOOLEAN needDelete = FALSE ;
-
       PD_TRACE_ENTRY( SDB_DMSSTATSUMGR_ONDROPCS ) ;
 
-      SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
+      BOOLEAN needDelete = FALSE ;
 
-      PD_CHECK( _initialized, SDB_INVALIDARG, error, PDWARNING,
-                "Statistics SU is not initialized" ) ;
+      if ( SDB_EVT_OCCUR_BEFORE == type )
+      {
+         goto done ;
+      }
+
+      if ( !_initialized )
+      {
+         PD_LOG( PDWARNING, "Statistics SU is not initialized" ) ;
+         goto done ;
+      }
+
+      SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
 
       if ( pCacheHolder )
       {
@@ -712,26 +722,38 @@ namespace engine
 
       if ( needDelete && pEventHolder && SDB_DB_NORMAL == PMD_DB_STATUS() )
       {
-         const CHAR *pCSName = pEventHolder->getCSName() ;
+         INT32 tmpRC = SDB_OK ;
 
-         BSONObj boMatcher( BSON( DMS_STAT_COLLECTION_SPACE << pCSName ) ) ;
+         const CHAR *pCSName = suItem._pCSName ;
 
-         rc = _deleteCollectionStat( boMatcher, cb, NULL ) ;
-         PD_RC_CHECK( rc, PDWARNING,
-                      "Failed to drop collection statistics when dropping "
-                      "collection space [%s], rc: %d", pCSName, rc ) ;
+         BSONObj boMatcher ;
 
-         rc = _deleteIndexStat( boMatcher, cb, NULL ) ;
-         PD_RC_CHECK( rc, PDWARNING,
-                      "Failed to delete index statistics when dropping "
-                      "collection space [%s], rc: %d", pCSName, rc ) ;
+         try
+         {
+            boMatcher = BSON( DMS_STAT_COLLECTION_SPACE << pCSName ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDWARNING, "Failed to build matcher, occur exception %s",
+                    e.what() ) ;
+            goto done ;
+         }
+
+         tmpRC = _deleteCollectionStat( boMatcher, cb, NULL ) ;
+         PD_LOG( PDWARNING,
+                 "Failed to drop collection statistics when dropping "
+                 "collection space [%s], rc: %d", pCSName, tmpRC ) ;
+
+         tmpRC = _deleteIndexStat( boMatcher, cb, NULL ) ;
+         PD_LOG( PDWARNING,
+                 "Failed to delete index statistics when dropping "
+                 "collection space [%s], rc: %d", pCSName, tmpRC ) ;
       }
 
    done :
-      PD_TRACE_EXITRC( SDB_DMSSTATSUMGR_ONDROPCS, rc ) ;
-      return rc ;
-   error :
-      goto done ;
+      PD_TRACE_EXIT( SDB_DMSSTATSUMGR_ONDROPCS ) ;
+      // ignore errors
+      return SDB_OK ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSSTATSUMGR_ONRENAMECL, "_dmsStatSUMgr::onRenameCL" )
@@ -806,124 +828,175 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSSTATSUMGR_ONTRUNCCL, "_dmsStatSUMgr::onTruncateCL" )
-   INT32 _dmsStatSUMgr::onTruncateCL ( IDmsEventHolder *pEventHolder,
+   INT32 _dmsStatSUMgr::onTruncateCL ( SDB_EVENT_OCCUR_TYPE type,
+                                       IDmsEventHolder *pEventHolder,
                                        IDmsSUCacheHolder *pCacheHolder,
                                        const dmsEventCLItem &clItem,
-                                       UINT32 newCLLID,
+                                       dmsTruncCLOptions *options,
                                        pmdEDUCB *cb,
                                        SDB_DPSCB *dpsCB )
    {
-      INT32 rc = SDB_OK ;
-      BOOLEAN needDelete = FALSE ;
-
       PD_TRACE_ENTRY( SDB_DMSSTATSUMGR_ONTRUNCCL ) ;
 
-      SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
-
-      PD_CHECK( _initialized, SDB_INVALIDARG, error, PDWARNING,
-                "Statistics SU is not initialized" ) ;
-
-      if ( pCacheHolder )
+      if ( SDB_EVT_OCCUR_AFTER == type )
       {
-         dmsSUCache *pCache = pCacheHolder->getSUCache( DMS_CACHE_TYPE_STAT ) ;
-         if ( pCache )
+         if ( _initialized )
          {
-            if ( UTIL_SU_CACHE_UNIT_STATUS_EMPTY == pCache->getStatus( clItem._mbID ) )
+            BOOLEAN needDelete = FALSE ;
+
+            SDB_ASSERT( pCacheHolder, "Event holder is invalid" ) ;
+
+            if ( pCacheHolder )
             {
-               needDelete = TRUE ;
+               dmsSUCache *pCache = pCacheHolder->getSUCache( DMS_CACHE_TYPE_STAT ) ;
+               if ( pCache )
+               {
+                  if ( UTIL_SU_CACHE_UNIT_STATUS_EMPTY == pCache->getStatus( clItem._mbID ) )
+                  {
+                     needDelete = TRUE ;
+                  }
+                  else
+                  {
+                     // For statistics cache, mbID is key of cache unit
+                     needDelete = pCache->removeCacheUnit( clItem._mbID, TRUE ) ;
+                  }
+               }
             }
-            else
+
+            if ( needDelete && pEventHolder && SDB_DB_NORMAL == PMD_DB_STATUS() )
             {
-               // For statistics cache, mbID is key of cache unit
-               needDelete = pCache->removeCacheUnit( clItem._mbID, TRUE ) ;
+               INT32 tmpRC = SDB_OK ;
+
+               const CHAR *pCSName = pEventHolder->getCSName() ;
+               const CHAR *pCLName = clItem._pCLName ;
+
+               BSONObj boMatcher ;
+
+               try
+               {
+                  boMatcher = BSON( DMS_STAT_COLLECTION_SPACE << pCSName <<
+                                    DMS_STAT_COLLECTION << pCLName ) ;
+               }
+               catch ( exception &e )
+               {
+                  PD_LOG( PDWARNING, "Failed to build matcher, occur exception %s",
+                          e.what() ) ;
+                  goto done ;
+               }
+
+               tmpRC = _deleteCollectionStat( boMatcher, cb, NULL ) ;
+               if ( SDB_OK != tmpRC )
+               {
+                  PD_LOG( PDWARNING,
+                          "Failed to delete collection statistics when truncating "
+                          "collection [%s.%s], rc: %d", pCSName, pCLName, tmpRC ) ;
+               }
+
+               tmpRC = _deleteIndexStat( boMatcher, cb, NULL ) ;
+               if ( SDB_OK != tmpRC )
+               {
+                  PD_LOG( PDWARNING,
+                          "Failed to delete index statistics when truncating "
+                          "collection [%s.%s], rc: %d", pCSName, pCLName, tmpRC ) ;
+               }
             }
+         }
+         else
+         {
+            PD_LOG( PDWARNING, "Statistics SU is not initialized" ) ;
          }
       }
 
-      if ( needDelete && pEventHolder && SDB_DB_NORMAL == PMD_DB_STATUS() )
-      {
-         const CHAR *pCSName = pEventHolder->getCSName() ;
-         const CHAR *pCLName = clItem._pCLName ;
-
-         BSONObj boMatcher( BSON( DMS_STAT_COLLECTION_SPACE << pCSName <<
-                                  DMS_STAT_COLLECTION << pCLName ) ) ;
-
-         rc = _deleteCollectionStat( boMatcher, cb, NULL ) ;
-         PD_RC_CHECK( rc, PDWARNING,
-                      "Failed to delete collection statistics when truncating "
-                      "collection [%s.%s], rc: %d", pCSName, pCLName, rc ) ;
-
-         rc = _deleteIndexStat( boMatcher, cb, NULL ) ;
-         PD_RC_CHECK( rc, PDWARNING,
-                      "Failed to delete index statistics when truncating "
-                      "collection [%s.%s], rc: %d", pCSName, pCLName, rc ) ;
-      }
-
    done :
-      PD_TRACE_EXITRC( SDB_DMSSTATSUMGR_ONTRUNCCL, rc ) ;
-      return rc ;
-   error :
-      goto done ;
+      PD_TRACE_EXIT( SDB_DMSSTATSUMGR_ONTRUNCCL ) ;
+      // ignore errors
+      return SDB_OK ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSSTATSUMGR_ONDROPCL, "_dmsStatSUMgr::onDropCL" )
-   INT32 _dmsStatSUMgr::onDropCL ( IDmsEventHolder *pEventHolder,
+   INT32 _dmsStatSUMgr::onDropCL ( SDB_EVENT_OCCUR_TYPE type,
+                                   IDmsEventHolder *pEventHolder,
                                    IDmsSUCacheHolder *pCacheHolder,
                                    const dmsEventCLItem &clItem,
+                                   dmsDropCLOptions *options,
                                    pmdEDUCB *cb,
                                    SDB_DPSCB *dpsCB )
    {
-      INT32 rc = SDB_OK ;
-      BOOLEAN needDelete = FALSE ;
-
       PD_TRACE_ENTRY( SDB_DMSSTATSUMGR_ONDROPCL ) ;
 
-      SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
-
-      PD_CHECK( _initialized, SDB_INVALIDARG, error, PDWARNING,
-                "Statistics SU is not initialized" ) ;
-
-      if ( pCacheHolder )
+      if ( SDB_EVT_OCCUR_AFTER == type )
       {
-         dmsSUCache *pCache = pCacheHolder->getSUCache( DMS_CACHE_TYPE_STAT ) ;
-         if ( pCache )
+         if ( _initialized )
          {
-            if ( UTIL_SU_CACHE_UNIT_STATUS_EMPTY == pCache->getStatus( clItem._mbID ) )
+            BOOLEAN needDelete = FALSE ;
+
+            SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
+
+            if ( pCacheHolder )
             {
-               needDelete = TRUE ;
+               dmsSUCache *pCache = pCacheHolder->getSUCache( DMS_CACHE_TYPE_STAT ) ;
+               if ( pCache )
+               {
+                  if ( UTIL_SU_CACHE_UNIT_STATUS_EMPTY == pCache->getStatus( clItem._mbID ) )
+                  {
+                     needDelete = TRUE ;
+                  }
+                  else
+                  {
+                     // For statistics cache, mbID is key of cache unit
+                     needDelete = pCache->removeCacheUnit( clItem._mbID, TRUE ) ;
+                  }
+               }
             }
-            else
+
+            if ( needDelete && pEventHolder && SDB_DB_NORMAL == PMD_DB_STATUS() )
             {
-               // For statistics cache, mbID is key of cache unit
-               needDelete = pCache->removeCacheUnit( clItem._mbID, TRUE ) ;
+               INT32 tmpRC = SDB_OK ;
+
+               const CHAR *pCSName = pEventHolder->getCSName() ;
+               const CHAR *pCLName = clItem._pCLName ;
+
+               BSONObj boMatcher ;
+
+               try
+               {
+                  boMatcher = BSON( DMS_STAT_COLLECTION_SPACE << pCSName <<
+                                    DMS_STAT_COLLECTION << pCLName ) ;
+               }
+               catch ( exception &e )
+               {
+                  PD_LOG( PDWARNING, "Failed to build matcher, occur exception %s",
+                          e.what() ) ;
+                  goto done ;
+               }
+
+               tmpRC = _deleteCollectionStat( boMatcher, cb, NULL ) ;
+               if ( SDB_OK != tmpRC )
+               {
+                  PD_LOG( PDWARNING,
+                          "Failed to delete collection statistics when dropping "
+                          "collection [%s.%s], rc: %d", pCSName, pCLName, tmpRC ) ;
+               }
+
+               tmpRC = _deleteIndexStat( boMatcher, cb, NULL ) ;
+               if ( SDB_OK != tmpRC )
+               {
+                  PD_LOG( PDWARNING,
+                          "Failed to delete index statistics when dropping "
+                          "collection [%s.%s], rc: %d", pCSName, pCLName, tmpRC ) ;
+               }
             }
+         }
+         else
+         {
+            PD_LOG( PDWARNING, "Statistics SU is not initialized" ) ;
          }
       }
 
-      if ( needDelete && pEventHolder && SDB_DB_NORMAL == PMD_DB_STATUS() )
-      {
-         const CHAR *pCSName = pEventHolder->getCSName() ;
-         const CHAR *pCLName = clItem._pCLName ;
-
-         BSONObj boMatcher( BSON( DMS_STAT_COLLECTION_SPACE << pCSName <<
-                                  DMS_STAT_COLLECTION << pCLName ) ) ;
-
-         rc = _deleteCollectionStat( boMatcher, cb, NULL ) ;
-         PD_RC_CHECK( rc, PDWARNING,
-                      "Failed to delete collection statistics when dropping "
-                      "collection [%s.%s], rc: %d", pCSName, pCLName, rc ) ;
-
-         rc = _deleteIndexStat( boMatcher, cb, NULL ) ;
-         PD_RC_CHECK( rc, PDWARNING,
-                      "Failed to delete index statistics when dropping "
-                      "collection [%s.%s], rc: %d", pCSName, pCLName, rc ) ;
-      }
-
    done :
-      PD_TRACE_EXITRC( SDB_DMSSTATSUMGR_ONDROPCL, rc ) ;
-      return rc ;
-   error :
-      goto done ;
+      PD_TRACE_EXIT( SDB_DMSSTATSUMGR_ONDROPCL ) ;
+      // ignore errors
+      return SDB_OK ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSSTATSUMGR__ONIDXOPTR, "_dmsStatSUMgr::_onIndexOperator" )

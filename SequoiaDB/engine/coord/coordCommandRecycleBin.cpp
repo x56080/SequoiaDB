@@ -61,7 +61,6 @@ namespace engine
    {
    }
 
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB_COORDGETRECYCLEBINDETAIL__PREPROCESS, "_coordGetRecycleBinDetail::_preProcess" )
    INT32 _coordGetRecycleBinDetail::_preProcess( rtnQueryOptions &queryOpt,
                                                  string &clName,

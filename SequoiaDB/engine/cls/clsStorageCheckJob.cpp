@@ -197,7 +197,7 @@ namespace engine
                }
 
                // Open the context, execute phase 1
-               rc = pDelContext->open( cs._name, cb ) ;
+               rc = pDelContext->open( cs._name, NULL, cb ) ;
                if ( SDB_OK != rc )
                {
                   PD_LOG( PDWARNING,

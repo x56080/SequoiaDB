@@ -3060,7 +3060,14 @@ namespace engine
          if ( localTask->testArgumentMask( UTIL_CS_PAGESIZE_FIELD ) )
          {
             // get groups of cs : _groups
-            rc = catGetCSGroupsFromCLs( _dataName.c_str(), cb, _groups ) ;
+            utilCSUniqueID uniqueID = UTIL_UNIQUEID_NULL ;
+
+            rc = catParseUniqueID( _boData, (utilGlobalID &)uniqueID ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get unique ID of "
+                         "collection space [%s], rc: %d",
+                         _dataName.c_str(), rc ) ;
+
+            rc = catGetCSGroups( uniqueID, cb, TRUE, FALSE, _groups ) ;
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to get group list of cs[%s], rc: %d",
                          _dataName.c_str(), rc ) ;
@@ -3285,8 +3292,15 @@ namespace engine
       sdbCatalogueCB * catCB = pmdGetKRCB()->getCATLOGUECB() ;
       const CHAR * collectionSpace = _dataName.c_str() ;
       BSONObj boDomain ;
-      ossPoolSet< UINT32 > occupiedGroups ;
+      vector< UINT32 > occupiedGroups ;
       map< string, UINT32 > domainGroups ;
+
+      utilCSUniqueID uniqueID = UTIL_UNIQUEID_NULL ;
+
+      rc = catParseUniqueID( _boData, (utilGlobalID &)uniqueID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get unique ID of "
+                   "collection space [%s], rc: %d",
+                   _dataName.c_str(), rc ) ;
 
       rc = catGetAndLockDomain( domain, boDomain, cb, &lockMgr, SHARED ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get domain [%s], rc: %d",
@@ -3300,11 +3314,11 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get groups of domain [%s], "
                    "rc: %d", domain, rc ) ;
 
-      rc = catGetCSGroups( collectionSpace, cb, occupiedGroups, FALSE ) ;
+      rc = catGetCSGroups( uniqueID, cb, TRUE, FALSE, occupiedGroups ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get group list of collection "
                    "space [%s], rc: %d", collectionSpace, rc ) ;
 
-      for ( ossPoolSet< UINT32 >::iterator iterGroup = occupiedGroups.begin() ;
+      for ( vector< UINT32 >::iterator iterGroup = occupiedGroups.begin() ;
             iterGroup != occupiedGroups.end() ;
             iterGroup ++ )
       {
@@ -3956,7 +3970,8 @@ namespace engine
 
       if ( !removingGroups.empty() )
       {
-         ossPoolList< string > collectionSpaces ;
+         ossPoolList< utilCSUniqueID > collectionSpaces ;
+         ossPoolList< utilCSUniqueID > recycledCSs ;
          ossPoolSet< UINT32 > occupiedGroups ;
 
          /// Get collection spaces for domain
@@ -3964,21 +3979,36 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to get collection spaces for "
                       "domain [%s], rc: %d", _dataName.c_str(), rc ) ;
 
-         for ( ossPoolList< string >::iterator itCS = collectionSpaces.begin() ;
+         for ( ossPoolList< utilCSUniqueID >::iterator itCS =
+                                                   collectionSpaces.begin() ;
                itCS != collectionSpaces.end() ;
                itCS ++ )
          {
             /// For each collection space:
             /// 1. Get groups from collections
             /// 2. Get groups under splitting tasks
-            const CHAR * collectionSpace = itCS->c_str() ;
-            rc = catGetCSGroups( collectionSpace, cb, occupiedGroups, FALSE ) ;
+            /// 3. Get groups from recycled collections
+            utilCSUniqueID csUniqueID = *itCS ;
+
+            rc = catGetCSGroups( csUniqueID, cb, TRUE, TRUE, occupiedGroups ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get group list of collection "
-                         "space [%s], rc: %d", collectionSpace, rc ) ;
-            rc = catGetCSTaskGroups( collectionSpace, cb, occupiedGroups ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to get splitting "
-                         "group list of collection space [%s]: rc: %d",
-                         collectionSpace, rc ) ;
+                         "space [%u], rc: %d", csUniqueID, rc ) ;
+         }
+
+         // check recycled collection spaces
+         rc = catGetDomainRecycleCSs( _dataName.c_str(), cb, recycledCSs ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get recycled collections for "
+                      "domain [%s], rc: %d", _dataName.c_str(), rc ) ;
+
+         for ( ossPoolList< utilCSUniqueID >::iterator itRecyCS =
+                                                         recycledCSs.begin() ;
+               itRecyCS != recycledCSs.end() ;
+               ++ itRecyCS )
+         {
+            utilCSUniqueID csUniqueID = *itRecyCS ;
+            rc = catGetRecyCSGroups( csUniqueID, cb, occupiedGroups ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get group list of collection "
+                         "space [%u], rc: %d", csUniqueID, rc ) ;
          }
 
          for ( ossPoolSet< UINT32 >::iterator itGroup = removingGroups.begin() ;

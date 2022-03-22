@@ -76,17 +76,23 @@ namespace engine
          builder.append( RTN_LT_FIELD_TASKTYPE, (INT32)getTaskType() ) ;
          builder.append( FTN_LT_FIELD_TASKTYPE_DESP,
                          rtnLocalTaskType2Str( getTaskType() ) ) ;
-         _toBson( builder ) ;
+
+         rc = _toBson( builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build BSON, rc: %d", rc ) ;
 
          obj = builder.obj() ;
       }
       catch( std::exception &e )
       {
          PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = SDB_OOM ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
       }
 
+   done:
       return rc ;
+   error:
+      goto done ;
    }
 
    ossPoolString _rtnLocalTaskBase::toPrintString() const

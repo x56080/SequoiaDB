@@ -37,6 +37,7 @@
 #include "rtnLocalTask.hpp"
 #include "rtn.hpp"
 #include "clsTrace.hpp"
+#include "clsRecycleBinJob.hpp"
 
 namespace engine
 {
@@ -230,8 +231,10 @@ namespace engine
                                            UINT64 opID )
    {
       _tick = pmdGetDBTick() ;
-      shardCB *shardCB = pmdGetKRCB()->getClsCB()->getShardCB() ;
+      clsCB *clsCB = pmdGetKRCB()->getClsCB() ;
+      shardCB *shardCB = clsCB->getShardCB() ;
       _pFreezeWindow = shardCB->getFreezingWindow() ;
+      _recycleBinMgr = clsCB->getRecycleBinMgr() ;
       _taskPtr = taskPtr ;
       _opID = opID ;
    }
@@ -247,19 +250,55 @@ namespace engine
       {
          rtnLTRename *pRename = (rtnLTRename*)_taskPtr.get() ;
 
-         if ( RTN_LOCAL_TASK_RENAMECS == _taskPtr->getTaskType() )
+         switch ( _taskPtr->getTaskType() )
          {
-            _pFreezeWindow->unregisterCS( pRename->getFrom(), _opID ) ;
-            PD_LOG( PDEVENT, "End to block all write operations of "
-                    "collectionspace(%s), ID: %llu",
-                    pRename->getFrom(), _opID ) ;
-         }
-         else
-         {
-            _pFreezeWindow->unregisterCL( pRename->getFrom(), _opID ) ;
-            PD_LOG( PDEVENT, "End to block all write operations of "
-                    "collection(%s), ID: %llu",
-                    pRename->getFrom(), _opID ) ;
+            case RTN_LOCAL_TASK_RENAMECS :
+            {
+               _pFreezeWindow->unregisterCS( pRename->getFrom(), _opID ) ;
+               PD_LOG( PDEVENT, "End to block all write operations of "
+                       "collectionspace(%s), ID: %llu",
+                       pRename->getFrom(), _opID ) ;
+               break ;
+            }
+            case RTN_LOCAL_TASK_RENAMECL :
+            {
+               _pFreezeWindow->unregisterCL( pRename->getFrom(), _opID ) ;
+               PD_LOG( PDEVENT, "End to block all write operations of "
+                       "collection(%s), ID: %llu",
+                       pRename->getFrom(), _opID ) ;
+               break ;
+            }
+            case RTN_LOCAL_TASK_RECYCLECS :
+            {
+               _pFreezeWindow->unregisterCS( pRename->getFrom(), _opID ) ;
+               PD_LOG( PDEVENT, "End to block all write operations of "
+                       "collectionspace(%s), ID: %llu",
+                       pRename->getFrom(), _opID ) ;
+               _pFreezeWindow->unregisterCS( pRename->getTo(), _opID ) ;
+               PD_LOG( PDEVENT, "End to block all write operations of "
+                       "collectionspace(%s), ID: %llu",
+                       pRename->getTo(), _opID ) ;
+               break ;
+            }
+            case RTN_LOCAL_TASK_RECYCLECL :
+            {
+               _pFreezeWindow->unregisterCL( pRename->getFrom(), _opID ) ;
+               PD_LOG( PDEVENT, "End to block all write operations of "
+                       "collection(%s), ID: %llu",
+                       pRename->getFrom(), _opID ) ;
+               _pFreezeWindow->unregisterCL( pRename->getTo(), _opID ) ;
+               PD_LOG( PDEVENT, "End to block all write operations of "
+                       "collection(%s), ID: %llu",
+                       pRename->getTo(), _opID ) ;
+               break ;
+            }
+            default :
+            {
+               SDB_ASSERT( FALSE, "invalid type of local task" ) ;
+               PD_LOG( PDWARNING, "Unknown local task(%s)",
+                       _taskPtr->toPrintString().c_str() ) ;
+               break ;
+            }
          }
 
          _opID = 0 ;
@@ -287,41 +326,82 @@ namespace engine
       {
          rtnLTRename *pRename = (rtnLTRename*)_taskPtr.get() ;
 
-         if ( RTN_LOCAL_TASK_RENAMECS == _taskPtr->getTaskType() )
+         switch ( _taskPtr->getTaskType() )
          {
-            rc = _pFreezeWindow->registerCS( pRename->getFrom(), _opID ) ;
-            if ( rc )
+            case RTN_LOCAL_TASK_RENAMECS :
             {
-               PD_LOG( PDERROR, "Block all write operations of "
-                       "collectionspace[%s] failed, rc: %d",
-                       pRename->getFrom(), rc ) ;
-            }
-            else
-            {
+               rc = _pFreezeWindow->registerCS( pRename->getFrom(), _opID ) ;
+               PD_RC_CHECK( rc, PDERROR, "Block all write operations of "
+                            "collectionspace[%s] failed, rc: %d",
+                            pRename->getFrom(), rc ) ;
                PD_LOG( PDEVENT, "Begin to block all write operations "
-                       "of collectionspace[%s], ID: %llu", pRename->getFrom(),
-                       _opID ) ;
+                       "of collectionspace[%s], ID: %llu",
+                       pRename->getFrom(), _opID ) ;
+               break ;
             }
-         }
-         else
-         {
-            rc = _pFreezeWindow->registerCL( pRename->getFrom(), _opID ) ;
-            if ( rc )
+            case RTN_LOCAL_TASK_RENAMECL :
             {
-               PD_LOG( PDERROR, "Block all write operations of "
-                       "collection[%s] failed, rc: %d",
-                       pRename->getFrom(), rc ) ;
-            }
-            else
-            {
+               rc = _pFreezeWindow->registerCL( pRename->getFrom(), _opID ) ;
+               PD_RC_CHECK( rc, PDERROR, "Block all write operations of "
+                            "collection[%s] failed, rc: %d",
+                            pRename->getFrom(), rc ) ;
                PD_LOG( PDEVENT, "Begin to block all write operations "
                        "of collection[%s], ID: %llu", pRename->getFrom(),
                        _opID ) ;
+               break ;
+            }
+            case RTN_LOCAL_TASK_RECYCLECS :
+            {
+               rc = _pFreezeWindow->registerCS( pRename->getFrom(), _opID ) ;
+               PD_RC_CHECK( rc, PDERROR, "Block all write operations of "
+                            "collectionspace[%s] failed, rc: %d",
+                            pRename->getFrom(), rc ) ;
+               PD_LOG( PDEVENT, "Begin to block all write operations "
+                       "of collectionspace[%s], ID: %llu",
+                       pRename->getFrom(), _opID ) ;
+               rc = _pFreezeWindow->registerCS( pRename->getTo(), _opID ) ;
+               PD_RC_CHECK( rc, PDERROR, "Block all write operations of "
+                            "collectionspace[%s] failed, rc: %d",
+                            pRename->getTo(), rc ) ;
+               PD_LOG( PDEVENT, "Begin to block all write operations "
+                       "of collectionspace[%s], ID: %llu",
+                       pRename->getTo(), _opID ) ;
+               break ;
+            }
+            case RTN_LOCAL_TASK_RECYCLECL :
+            {
+               rc = _pFreezeWindow->registerCL( pRename->getFrom(), _opID ) ;
+               PD_RC_CHECK( rc, PDERROR, "Block all write operations of "
+                            "collection[%s] failed, rc: %d",
+                            pRename->getFrom(), rc ) ;
+               PD_LOG( PDEVENT, "Begin to block all write operations "
+                       "of collection[%s], ID: %llu",
+                       pRename->getFrom(), _opID ) ;
+               rc = _pFreezeWindow->registerCL( pRename->getTo(), _opID ) ;
+               PD_RC_CHECK( rc, PDERROR, "Block all write operations of "
+                            "collection[%s] failed, rc: %d",
+                            pRename->getTo(), rc ) ;
+               PD_LOG( PDEVENT, "Begin to block all write operations "
+                       "of collection[%s], ID: %llu",
+                       pRename->getTo(), _opID ) ;
+               break ;
+            }
+            default :
+            {
+               SDB_ASSERT( FALSE, "invalid type of local task" ) ;
+               PD_LOG( PDWARNING, "Unknown local task(%s)",
+                       _taskPtr->toPrintString().c_str() ) ;
+               rc = SDB_SYS ;
+               break ;
             }
          }
       }
 
+   done:
       return rc ;
+
+   error:
+      goto done ;
    }
 
    INT32 _clsRenameCheckJob::doit( IExecutor *pExe,
@@ -329,17 +409,12 @@ namespace engine
                                    UINT64 &sleepTime )
    {
       INT32 rc = SDB_OK ;
-      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
-      shardCB *pShdMgr = sdbGetShardCB() ;
+
       clsCB *pClsCB = sdbGetClsCB() ;
-      _dpsLogWrapper *dpsCB = pmdGetKRCB()->getDPSCB() ;
+      SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
       _rtnLocalTaskMgr *pLTMgr = pmdGetKRCB()->getRTNCB()->getLTMgr() ;
 
-      rtnLTRename *pRename = (rtnLTRename*)_taskPtr.get() ;
       BOOLEAN needRemove = FALSE ;
-
-      dmsStorageUnitID suID = DMS_INVALID_SUID ;
-      _dmsStorageUnit *su = NULL ;
 
       /*
          When not primary, finish the light job
@@ -364,182 +439,67 @@ namespace engine
 
       needRemove = TRUE ;
 
-      if ( RTN_LOCAL_TASK_RENAMECS == _taskPtr->getTaskType() )
+      switch ( _taskPtr->getTaskType() )
       {
-         utilCSUniqueID remoteCSUID = UTIL_UNIQUEID_NULL ;
-         utilCSUniqueID localCSUID = UTIL_UNIQUEID_NULL ;
-
-         /// Get to cs info
-         rc = pShdMgr->rGetCSInfo( pRename->getTo(), remoteCSUID ) ;
-         if ( SDB_DMS_CS_NOTEXIST == rc )
+         case RTN_LOCAL_TASK_RENAMECS :
          {
-            /// The dest collectionspace is not exist, finish
-            goto finish ;
+            rc = _doRenameCS( pExe ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDWARNING, "Failed to finish rename collection space "
+                       "task, rc: %d", rc ) ;
+               result = UTIL_LJOB_DO_CONT ;
+               sleepTime = CLS_RENAME_RETRY_TIME ;
+               goto error ;
+            }
+            break ;
          }
-         else if ( rc )
+         case RTN_LOCAL_TASK_RENAMECL :
          {
-            PD_LOG( PDINFO, "Get collectionspace(%s) information failed, "
-                    "rc: %d", pRename->getTo(), rc ) ;
-            result = UTIL_LJOB_DO_CONT ;
-            sleepTime = CLS_RENAME_RETRY_TIME ;
-            goto error ;
+            rc = _doRenameCL( pExe ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDWARNING, "Failed to finish rename collection task, "
+                       "rc: %d", rc ) ;
+               result = UTIL_LJOB_DO_CONT ;
+               sleepTime = CLS_RENAME_RETRY_TIME ;
+               goto error ;
+            }
+            break ;
          }
-
-         /// test from cs
-         rc = dmsCB->nameToSUAndLock( pRename->getFrom(), suID, &su ) ;
-         if ( SDB_DMS_CS_NOTEXIST == rc )
+         case RTN_LOCAL_TASK_RECYCLECS :
          {
-            /// The source colletionspace is not exist, finish
-            goto finish ;
+            rc = _doRenameRecycleCS( pExe ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDWARNING, "Failed to finish recycle collection space "
+                       "task, rc: %d", rc ) ;
+               result = UTIL_LJOB_DO_CONT ;
+               sleepTime = CLS_RENAME_RETRY_TIME ;
+               goto error ;
+            }
+            break ;
          }
-         else if ( rc )
+         case RTN_LOCAL_TASK_RECYCLECL :
          {
-            PD_LOG( PDWARNING, "Lock collectionspace(%s) failed, rc: %d",
-                    pRename->getFrom(), rc ) ;
-            result = UTIL_LJOB_DO_CONT ;
-            sleepTime = CLS_RENAME_RETRY_TIME ;
-            goto error ;
+            rc = _doRenameRecycleCL( pExe ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDWARNING, "Failed to finish recycle collection task, "
+                       "rc: %d", rc ) ;
+               result = UTIL_LJOB_DO_CONT ;
+               sleepTime = CLS_RENAME_RETRY_TIME ;
+               goto error ;
+            }
+            break ;
          }
-
-         localCSUID = su->CSUniqueID() ;
-
-         dmsCB->suUnlock( suID ) ;
-         suID = DMS_INVALID_SUID ;
-
-         /// check suid
-         if ( remoteCSUID != localCSUID )
+         default :
          {
-            goto finish ;
+            SDB_ASSERT( FALSE, "invalid task type" ) ;
+            PD_LOG( PDWARNING, "Unknown local task(%s)",
+                    _taskPtr->toPrintString().c_str() ) ;
+            break ;
          }
-
-         /// rename cs
-         rc = rtnRenameCollectionSpaceCommand( pRename->getFrom(),
-                                               pRename->getTo(),
-                                               (pmdEDUCB*)pExe,
-                                               dmsCB,
-                                               dpsCB,
-                                               FALSE ) ;
-         if ( rc )
-         {
-            PD_LOG( PDWARNING, "Rename collectionspace(%s) to (%s) failed, "
-                    "rc: %d", pRename->getFrom(), pRename->getTo(), rc ) ;
-            result = UTIL_LJOB_DO_CONT ;
-            sleepTime = CLS_RENAME_RETRY_TIME ;
-            goto error ;
-         }
-
-         goto finish ;
-      }
-      else
-      {
-         utilCLUniqueID remoteCLUID = UTIL_UNIQUEID_NULL ;
-         utilCLUniqueID localCLUID = UTIL_UNIQUEID_NULL ;
-         clsCatalogSet *pSet = NULL ;
-         UINT32 groupCount = 0 ;
-         const CHAR *pShortName = NULL ;
-         const CHAR *pNewShortName = NULL ;
-         UINT16 mbID = DMS_INVALID_MBID ;
-         CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
-
-         pNewShortName = ossStrchr( pRename->getTo(), '.' ) + 1 ;
-
-         /// clear local catalog info
-         pShdMgr->getCataAgent()->lock_w() ;
-         pShdMgr->getCataAgent()->clear( pRename->getTo() ) ;
-         pShdMgr->getCataAgent()->release_w() ;
-
-         /// Get to cl info
-         rc = pShdMgr->getAndLockCataSet( pRename->getTo(), &pSet ) ;
-         if ( SDB_DMS_NOTEXIST == rc )
-         {
-            /// The dest collection is not exist, finish
-            goto finish ;
-         }
-         else if ( rc )
-         {
-            PD_LOG( PDINFO, "Update collection(%s)'s catalog information "
-                    "failed, rc: %d", pRename->getTo(), rc ) ;
-            result = UTIL_LJOB_DO_CONT ;
-            sleepTime = CLS_RENAME_RETRY_TIME ;
-            goto error ;
-         }
-
-         remoteCLUID = pSet->clUniqueID() ;
-         groupCount = pSet->groupCount() ;
-         pShdMgr->unlockCataSet( pSet ) ;
-
-         if ( 0 == groupCount )
-         {
-            /// The collection is not on the group
-            pShdMgr->getCataAgent()->lock_w() ;
-            pShdMgr->getCataAgent()->clear( pRename->getTo() ) ;
-            pShdMgr->getCataAgent()->release_w() ;
-
-            goto finish ;
-         }
-
-         /// get local cl unique id
-         rc = rtnResolveCollectionNameAndLock( pRename->getFrom(), dmsCB,
-                                               &su, &pShortName, suID ) ;
-         if ( SDB_DMS_CS_NOTEXIST == rc )
-         {
-            /// The source collectionspace not exist, finish
-            goto finish ;
-         }
-         else if ( rc )
-         {
-            PD_LOG( PDWARNING, "Lock collectionspace(%s) failed, rc: %d",
-                    pRename->getFrom(), rc ) ;
-            result = UTIL_LJOB_DO_CONT ;
-            sleepTime = CLS_RENAME_RETRY_TIME ;
-            goto error ;
-         }
-
-         /// copy cs name
-         ossStrncpy( csName, pRename->getFrom(),
-                     pShortName - pRename->getFrom() - 1 ) ;
-
-         rc = su->data()->findCollection( pShortName, mbID, &localCLUID ) ;
-         if ( SDB_DMS_NOTEXIST == rc )
-         {
-            /// The source collection not exist, finish
-            goto finish ;
-         }
-         else if ( rc )
-         {
-            PD_LOG( PDWARNING, "Get collection(%s)'s unique id failed, rc: %d",
-                    pRename->getFrom(), rc ) ;
-            result = UTIL_LJOB_DO_CONT ;
-            sleepTime = CLS_RENAME_RETRY_TIME ;
-         }
-
-         dmsCB->suUnlock( suID ) ;
-         suID = DMS_INVALID_SUID ;
-
-         /// check unique id
-         if ( remoteCLUID != localCLUID )
-         {
-            goto finish ;
-         }
-
-         /// rename cl
-         rc = rtnRenameCollectionCommand( csName,
-                                          pShortName,
-                                          pNewShortName,
-                                          (pmdEDUCB*)pExe,
-                                          dmsCB,
-                                          dpsCB,
-                                          FALSE ) ;
-         if ( rc )
-         {
-            PD_LOG( PDWARNING, "Rename collection(%s) to (%s) failed, "
-                    "rc: %d", pRename->getFrom(), pRename->getTo(), rc ) ;
-            result = UTIL_LJOB_DO_CONT ;
-            sleepTime = CLS_RENAME_RETRY_TIME ;
-            goto error ;
-         }
-
-         goto finish ;
       }
 
    finish:
@@ -550,12 +510,736 @@ namespace engine
       {
          pLTMgr->removeTask( _taskPtr,(pmdEDUCB*)pExe, dpsCB ) ;
       }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _clsRenameCheckJob::_doRenameCS( IExecutor *pExe )
+   {
+      INT32 rc = SDB_OK ;
+
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
+      shardCB *pShdMgr = sdbGetShardCB() ;
+      rtnLTRenameCS *pRename = (rtnLTRenameCS *)( _taskPtr.get() ) ;
+      pmdEDUCB *cb = (pmdEDUCB *)pExe ;
+
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      dmsStorageUnit *su = NULL ;
+
+      utilCSUniqueID remoteCSUID = UTIL_UNIQUEID_NULL ;
+      utilCSUniqueID localCSUID = UTIL_UNIQUEID_NULL ;
+
+      /// Get to cs info
+      rc = pShdMgr->rGetCSInfo( pRename->getTo(), remoteCSUID ) ;
+      if ( SDB_DMS_CS_NOTEXIST == rc )
+      {
+         /// The dest collectionspace is not exist, finish
+         rc = SDB_OK ;
+         goto done ;
+      }
+      PD_RC_CHECK( rc, PDINFO, "Get collectionspace(%s) information failed, "
+                   "rc: %d", pRename->getTo(), rc ) ;
+
+      /// test from cs
+      rc = dmsCB->nameToSUAndLock( pRename->getFrom(), suID, &su ) ;
+      if ( SDB_DMS_CS_NOTEXIST == rc )
+      {
+         /// The source colletionspace is not exist, finish
+         rc = SDB_OK ;
+         goto done ;
+      }
+      PD_RC_CHECK( rc,PDWARNING, "Lock collectionspace(%s) failed, rc: %d",
+                   pRename->getFrom(), rc ) ;
+
+      localCSUID = su->CSUniqueID() ;
+
+      dmsCB->suUnlock( suID ) ;
+      suID = DMS_INVALID_SUID ;
+
+      /// check suid
+      if ( remoteCSUID != localCSUID )
+      {
+         goto done ;
+      }
+
+      /// rename cs
+      rc = rtnRenameCollectionSpaceCommand( pRename->getFrom(),
+                                            pRename->getTo(),
+                                            cb,
+                                            dmsCB,
+                                            dpsCB,
+                                            FALSE ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Rename collectionspace(%s) to (%s) failed, "
+                   "rc: %d", pRename->getFrom(), pRename->getTo(), rc ) ;
+
    done:
       if ( DMS_INVALID_SUID != suID )
       {
          dmsCB->suUnlock( suID ) ;
       }
       return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _clsRenameCheckJob::_doRenameCL( IExecutor *pExe )
+   {
+      INT32 rc = SDB_OK ;
+
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
+      shardCB *pShdMgr = sdbGetShardCB() ;
+      rtnLTRenameCL *pRename = (rtnLTRenameCL *)( _taskPtr.get() ) ;
+
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      dmsStorageUnit *su = NULL ;
+
+      utilCLUniqueID remoteCLUID = UTIL_UNIQUEID_NULL ;
+      utilCLUniqueID localCLUID = UTIL_UNIQUEID_NULL ;
+      clsCatalogSet *pSet = NULL ;
+      UINT32 groupCount = 0 ;
+      const CHAR *pShortName = NULL ;
+      const CHAR *pNewShortName = NULL ;
+      UINT16 mbID = DMS_INVALID_MBID ;
+      CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
+
+      pNewShortName = ossStrchr( pRename->getTo(), '.' ) + 1 ;
+
+      /// clear local catalog info
+      pShdMgr->getCataAgent()->lock_w() ;
+      pShdMgr->getCataAgent()->clear( pRename->getTo() ) ;
+      pShdMgr->getCataAgent()->release_w() ;
+
+      /// Get to cl info
+      rc = pShdMgr->getAndLockCataSet( pRename->getTo(), &pSet ) ;
+      if ( SDB_DMS_NOTEXIST == rc )
+      {
+         /// The dest collection is not exist, finish
+         rc = SDB_OK ;
+         goto done ;
+      }
+      PD_RC_CHECK( rc, PDINFO, "Update collection(%s)'s catalog information "
+                   "failed, rc: %d", pRename->getTo(), rc ) ;
+
+      remoteCLUID = pSet->clUniqueID() ;
+      groupCount = pSet->groupCount() ;
+      pShdMgr->unlockCataSet( pSet ) ;
+
+      if ( 0 == groupCount )
+      {
+         /// The collection is not on the group
+         pShdMgr->getCataAgent()->lock_w() ;
+         pShdMgr->getCataAgent()->clear( pRename->getTo() ) ;
+         pShdMgr->getCataAgent()->release_w() ;
+
+         goto done ;
+      }
+
+      /// get local cl unique id
+      rc = rtnResolveCollectionNameAndLock( pRename->getFrom(), dmsCB,
+                                            &su, &pShortName, suID ) ;
+      if ( SDB_DMS_CS_NOTEXIST == rc )
+      {
+         /// The source collectionspace not exist, finish
+         rc = SDB_OK ;
+         goto done ;
+      }
+      PD_RC_CHECK( rc, PDWARNING, "Lock collectionspace(%s) failed, rc: %d",
+                   pRename->getFrom(), rc ) ;
+
+      /// copy cs name
+      ossStrncpy( csName, pRename->getFrom(),
+                  pShortName - pRename->getFrom() - 1 ) ;
+
+      rc = su->data()->findCollection( pShortName, mbID, &localCLUID ) ;
+      if ( SDB_DMS_NOTEXIST == rc )
+      {
+         /// The source collection not exist, finish
+         rc = SDB_OK ;
+         goto done ;
+      }
+      PD_RC_CHECK( rc, PDWARNING, "Get collection(%s)'s unique id failed, "
+                   "rc: %d", pRename->getFrom(), rc ) ;
+
+      dmsCB->suUnlock( suID ) ;
+      suID = DMS_INVALID_SUID ;
+
+      /// check unique id
+      if ( remoteCLUID != localCLUID )
+      {
+         goto done ;
+      }
+
+      /// rename cl
+      rc = rtnRenameCollectionCommand( csName,
+                                       pShortName,
+                                       pNewShortName,
+                                       (pmdEDUCB*)pExe,
+                                       dmsCB,
+                                       dpsCB,
+                                       FALSE ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Rename collection(%s) to (%s) failed, "
+                   "rc: %d", pRename->getFrom(), pRename->getTo(), rc ) ;
+
+   done:
+      if ( DMS_INVALID_SUID != suID )
+      {
+         dmsCB->suUnlock( suID ) ;
+      }
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _clsRenameCheckJob::_checkCSWithRecyItem( const utilRecycleItem &recycleItem,
+                                                   IExecutor *pExe,
+                                                   BOOLEAN &isRemoteItemExist,
+                                                   BOOLEAN &isRemoteCSExist,
+                                                   BOOLEAN &isLocalItemExist,
+                                                   BOOLEAN &isLocalCSExist,
+                                                   BOOLEAN &isLocalRecyCSExist )
+   {
+      INT32 rc = SDB_OK ;
+
+      const CHAR *originName = recycleItem.getOriginName() ;
+      const CHAR *recycleName = recycleItem.getRecycleName() ;
+      utilCSUniqueID originUID = (utilCSUniqueID)( recycleItem.getOriginID() ) ;
+
+      rc = _checkRemoteItem( recycleItem, pExe, isRemoteItemExist ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to check recycle item [origin %s, "
+                   "recycle %s] from CATALOG, rc: %d", originName, recycleName,
+                   rc ) ;
+
+      rc = _checkLocalItem( recycleItem, pExe, isLocalItemExist ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to check recycle item [origin %s, "
+                   "recycle %s], rc: %d", originName, recycleName, rc ) ;
+
+      rc = _checkRemoteCS( originName, originUID, isRemoteCSExist ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to check collection space "
+                   "[%s] on CATALOG, rc: %d", originName, rc ) ;
+
+      rc = _checkLocalCS( originName, originUID, isLocalCSExist ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to check local collection space "
+                   "[%s], rc: %d", originName, rc ) ;
+
+      rc = _checkLocalCS( recycleName, UTIL_UNIQUEID_NULL, isLocalRecyCSExist ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to check local collection space "
+                   "[%s], rc: %d", recycleName, rc ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _clsRenameCheckJob::_checkCLWithRecyItem( const utilRecycleItem &recycleItem,
+                                                   IExecutor *pExe,
+                                                   BOOLEAN &isRemoteItemExist,
+                                                   BOOLEAN &isRemoteCLExist,
+                                                   BOOLEAN &isLocalItemExist,
+                                                   BOOLEAN &isLocalCLExist,
+                                                   BOOLEAN &isLocalRecyCLExist )
+   {
+      INT32 rc = SDB_OK ;
+
+      const CHAR *originName = recycleItem.getOriginName() ;
+      const CHAR *recycleName = recycleItem.getRecycleName() ;
+      CHAR szSpace[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
+      CHAR origCLShortName[ DMS_COLLECTION_NAME_SZ + 1 ] = { 0 } ;
+      utilCLUniqueID originUID = (utilCLUniqueID)( recycleItem.getOriginID() ) ;
+
+      rc = rtnResolveCollectionName( originName, ossStrlen( originName ),
+                                     szSpace, DMS_COLLECTION_SPACE_NAME_SZ,
+                                     origCLShortName, DMS_COLLECTION_NAME_SZ ) ;
+      SDB_ASSERT( SDB_OK == rc, "old collection name is invalid" ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to resolve collection name [%s], "
+                   "rc: %d", originName, rc ) ;
+
+      rc = _checkRemoteItem( recycleItem, pExe, isRemoteItemExist ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to check recycle item [origin %s, "
+                   "recycle %s] from CATALOG, rc: %d", originName, recycleName,
+                   rc ) ;
+
+      rc = _checkLocalItem( recycleItem, pExe, isLocalItemExist ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to check recycle item [origin %s, "
+                   "recycle %s], rc: %d", originName, recycleName, rc ) ;
+
+      rc = _checkRemoteCL( szSpace, origCLShortName, originUID,
+                           isRemoteCLExist ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to check remote "
+                   "collection [%s.%s], rc: %d", szSpace, origCLShortName,
+                   rc ) ;
+
+      rc = _checkLocalCL( szSpace, origCLShortName, originUID,
+                          isLocalCLExist ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to check local collection [%s.%s], "
+                 "rc: %d", szSpace, origCLShortName, rc ) ;
+
+      rc = _checkLocalCL( szSpace, recycleName, UTIL_UNIQUEID_NULL,
+                          isLocalRecyCLExist ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to check local recycled "
+                   "collection [%s.%s], rc: %d", szSpace, recycleName,
+                   rc ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _clsRenameCheckJob::_doRenameRecycleCS( IExecutor *pExe )
+   {
+      INT32 rc = SDB_OK ;
+
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
+      rtnLTRecycleBase *pRename = (rtnLTRecycleBase *)( _taskPtr.get() ) ;
+      pmdEDUCB *cb = (pmdEDUCB *)pExe ;
+
+      const utilRecycleItem &recycleItem = pRename->getRecycleItem() ;
+      const CHAR *originName = recycleItem.getOriginName() ;
+      const CHAR *recycleName = recycleItem.getRecycleName() ;
+
+      BOOLEAN isRemoteItemExist = FALSE,
+              isLocalItemExist = FALSE,
+              isRemoteCSExist = FALSE,
+              isLocalCSExist = FALSE,
+              isLocalRecyCSExist = FALSE ;
+
+      rc = _checkCSWithRecyItem( recycleItem, pExe,
+                                 isRemoteItemExist,
+                                 isRemoteCSExist,
+                                 isLocalItemExist,
+                                 isLocalCSExist,
+                                 isLocalRecyCSExist ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check collection with recycle item "
+                   "[origin: %s, recycle: %s], rc: %d",
+                   originName, recycleName, rc ) ;
+
+      if ( isRemoteItemExist )
+      {
+         // need finish job
+         if ( isLocalCSExist && !isLocalRecyCSExist )
+         {
+            // recycle collection space
+            dmsDropCSOptions options( recycleItem, FALSE ) ;
+            rc = rtnDropCollectionSpaceCommand( originName, cb, dmsCB, dpsCB,
+                                                TRUE, FALSE, &options ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Failed to recycle drop collection space "
+                         "[%s] to [%s], rc: %d", originName, recycleName, rc ) ;
+         }
+         if ( !isLocalItemExist )
+         {
+            // save item
+            rc = _recycleBinMgr->saveItem( recycleItem, cb ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Failed to save recycle item "
+                         "[origin %s, recycle %s], rc: %d", originName,
+                         recycleName, rc ) ;
+         }
+      }
+      else
+      {
+         PD_LOG( PDWARNING, "Unknown status of recycle collection space "
+                 "item [origin:%s, recycle %s]", originName, recycleName ) ;
+
+         if ( isLocalItemExist || isLocalRecyCSExist )
+         {
+            // drop item and recycled collection space
+            BOOLEAN isDropped = FALSE ;
+            rc = _recycleBinMgr->dropItemWithCheck( recycleItem, cb, FALSE,
+                                                    isDropped ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Failed to drop recycle item "
+                         "[origin %s, recycle %s], rc: %d", originName,
+                         recycleName, rc ) ;
+         }
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _clsRenameCheckJob::_doRenameRecycleCL( IExecutor *pExe )
+   {
+      INT32 rc = SDB_OK ;
+
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
+      rtnLTRecycleBase *pRename = (rtnLTRecycleBase *)( _taskPtr.get() ) ;
+      pmdEDUCB *cb = (pmdEDUCB *)pExe ;
+
+      BOOLEAN isRemoteItemExist = FALSE,
+              isLocalItemExist = FALSE,
+              isRemoteCLExist = FALSE,
+              isLocalCLExist = FALSE,
+              isLocalRecyCLExist = FALSE ;
+
+      const utilRecycleItem &recycleItem = pRename->getRecycleItem() ;
+      SDB_ASSERT( recycleItem.isValid(), "recycle item should be valid" ) ;
+      const CHAR *originName = recycleItem.getOriginName() ;
+      const CHAR *recycleName = recycleItem.getRecycleName() ;
+
+      rc = _checkCLWithRecyItem( recycleItem, pExe,
+                                 isRemoteItemExist,
+                                 isRemoteCLExist,
+                                 isLocalItemExist,
+                                 isLocalCLExist,
+                                 isLocalRecyCLExist ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check collection with recycle item "
+                   "[origin: %s, recycle: %s], rc: %d",
+                   originName, recycleName, rc ) ;
+
+      if ( isRemoteItemExist )
+      {
+         // finish the job
+         if ( isLocalCLExist && !isLocalRecyCLExist )
+         {
+            switch ( recycleItem.getOpType() )
+            {
+               case UTIL_RECYCLE_OP_DROP :
+               {
+                  dmsDropCLOptions options( recycleItem, FALSE ) ;
+                  rc = rtnDropCollectionCommand( originName, cb, dmsCB, dpsCB,
+                                                 UTIL_UNIQUEID_NULL, &options ) ;
+                  PD_RC_CHECK( rc, PDWARNING, "Failed to recycle drop "
+                               "collection [%s] to [%s], rc: %d", originName,
+                               recycleName, rc ) ;
+                  break ;
+               }
+               case UTIL_RECYCLE_OP_TRUNCATE :
+               {
+                  dmsTruncCLOptions options( recycleItem, FALSE ) ;
+                  rc = rtnTruncCollectionCommand( originName, cb, dmsCB, dpsCB,
+                                                  NULL, &options ) ;
+                  PD_RC_CHECK( rc, PDWARNING, "Failed to recycle truncate "
+                               "collection [%s] to [%s], rc: %d", originName,
+                               recycleName, rc ) ;
+                  break ;
+               }
+               default :
+               {
+                  SDB_ASSERT( FALSE, "invalid op type" ) ;
+                  PD_CHECK( FALSE, SDB_SYS, error, PDERROR,
+                            "Failed to finish recycle collection drop, "
+                            "invalid op type [%d]", recycleItem.getOpType() ) ;
+                  break ;
+               }
+            }
+         }
+
+         if ( !isLocalItemExist )
+         {
+            // save item
+            rc = _recycleBinMgr->saveItem( recycleItem, cb ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Failed to save recycle item "
+                         "[origin %s, recycle %s], rc: %d", originName,
+                         recycleName, rc ) ;
+         }
+      }
+      else
+      {
+         if ( isLocalItemExist || isLocalRecyCLExist )
+         {
+            // drop item and recycled collection
+            BOOLEAN isDropped = FALSE ;
+            rc = _recycleBinMgr->dropItemWithCheck( recycleItem, cb, FALSE,
+                                                    isDropped ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Failed to drop recycle item "
+                         "[origin %s, recycle %s], rc: %d", originName,
+                         recycleName, rc ) ;
+         }
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _clsRenameCheckJob::_checkRemoteItem( const utilRecycleItem &recycleItem,
+                                               IExecutor *pExe,
+                                               BOOLEAN &isExist )
+   {
+      INT32 rc = SDB_OK ;
+
+      pmdEDUCB *cb = (pmdEDUCB *)pExe ;
+
+      shardCB *pShdMgr = sdbGetShardCB() ;
+      const CHAR *recycleName = recycleItem.getRecycleName() ;
+      utilRecycleID recycleID = recycleItem.getRecycleID() ;
+      utilRecycleItem remoteItem ;
+
+      rc = pShdMgr->rGetRecycleItem( cb, recycleID, remoteItem ) ;
+      if ( SDB_RECYCLE_ITEMNOTEXISTS == rc )
+      {
+         isExist = FALSE ;
+         rc = SDB_OK ;
+      }
+      else if ( SDB_OK == rc )
+      {
+         isExist = TRUE ;
+      }
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get recycle item [%s] "
+                   "from CATALOG, rc: %d", recycleName, rc ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _clsRenameCheckJob::_checkLocalItem( const utilRecycleItem &recycleItem,
+                                              IExecutor *pExe,
+                                              BOOLEAN &isExist )
+   {
+      INT32 rc = SDB_OK ;
+
+      pmdEDUCB *cb = (pmdEDUCB *)pExe ;
+
+      const CHAR *recycleName = recycleItem.getRecycleName() ;
+      utilRecycleItem localItem ;
+
+      rc = _recycleBinMgr->getItem( recycleName, cb, localItem ) ;
+      if ( SDB_RECYCLE_ITEMNOTEXISTS == rc )
+      {
+         isExist = FALSE ;
+         rc = SDB_OK ;
+      }
+      else if ( SDB_OK == rc )
+      {
+         isExist = TRUE ;
+      }
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get recycle item [%s], "
+                   "rc: %d", recycleName, rc ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _clsRenameCheckJob::_checkLocalCL( const CHAR *csName,
+                                            const CHAR *clShortName,
+                                            utilCLUniqueID clUniqueID,
+                                            BOOLEAN &isExist )
+   {
+      INT32 rc = SDB_OK ;
+
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      _dmsStorageUnit *su = NULL ;
+      UINT16 mbID = DMS_INVALID_MBID ;
+
+      /// get local cl unique id
+      rc = dmsCB->nameToSUAndLock( csName,  suID,  &su ) ;
+      if ( SDB_DMS_CS_NOTEXIST == rc )
+      {
+         isExist = FALSE ;
+         rc = SDB_OK ;
+      }
+      PD_RC_CHECK( rc, PDWARNING, "Failed to lock collection space [%s], "
+                   "rc: %d", csName, rc ) ;
+
+      if ( NULL != su )
+      {
+         utilCLUniqueID localCLUID = UTIL_UNIQUEID_NULL ;
+
+         rc = su->data()->findCollection( clShortName, mbID, &localCLUID ) ;
+         if ( SDB_DMS_NOTEXIST == rc )
+         {
+            isExist = FALSE ;
+            rc = SDB_OK ;
+         }
+         else if ( SDB_OK == rc )
+         {
+            if ( ( UTIL_UNIQUEID_NULL == clUniqueID ) ||
+                 ( localCLUID == clUniqueID ) )
+            {
+               isExist = TRUE ;
+            }
+            else
+            {
+               isExist = FALSE ;
+            }
+         }
+         PD_RC_CHECK( rc, PDWARNING, "Failed to get collection [%s] from "
+                      "collection space [%s], rc: %d", clShortName, csName,
+                      rc ) ;
+      }
+
+   done:
+      if ( DMS_INVALID_SUID != suID )
+      {
+         dmsCB->suUnlock( suID ) ;
+         suID = DMS_INVALID_SUID ;
+      }
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _clsRenameCheckJob::_checkLocalCS( const CHAR *csName,
+                                            utilCSUniqueID csUniqueID,
+                                            BOOLEAN &isExist )
+   {
+      INT32 rc = SDB_OK ;
+
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      _dmsStorageUnit *su = NULL ;
+
+      /// test from cs
+      rc = dmsCB->nameToSUAndLock( csName, suID, &su ) ;
+      if ( SDB_DMS_CS_NOTEXIST == rc )
+      {
+         isExist = FALSE ;
+         rc = SDB_OK ;
+         goto done ;
+      }
+      else if ( SDB_OK == rc )
+      {
+         if ( ( UTIL_UNIQUEID_NULL == csUniqueID ) ||
+              ( su->CSUniqueID() == csUniqueID ) )
+         {
+            isExist = TRUE ;
+         }
+         else
+         {
+            isExist = FALSE ;
+         }
+      }
+      PD_RC_CHECK( rc, PDWARNING, "Failed to lock collection space [%s], "
+                   "rc: %d", csName, rc ) ;
+
+   done:
+      if ( DMS_INVALID_SUID != suID )
+      {
+         dmsCB->suUnlock( suID ) ;
+         suID = DMS_INVALID_SUID ;
+      }
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _clsRenameCheckJob::_checkRemoteCL( const CHAR *csName,
+                                             const CHAR *clShortName,
+                                             utilCLUniqueID clUniqueID,
+                                             BOOLEAN &isExist )
+   {
+      INT32 rc = SDB_OK ;
+
+      shardCB *pShdMgr = sdbGetShardCB() ;
+
+      clsCatalogSet *pSet = NULL ;
+      UINT32 groupCount = 0 ;
+
+      CHAR clFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+      ossSnprintf( clFullName, DMS_COLLECTION_FULL_NAME_SZ, "%s.%s",
+                   csName, clShortName ) ;
+
+      BOOLEAN needClear = FALSE ;
+
+      /// clear local catalog info
+      pShdMgr->getCataAgent()->lock_w() ;
+      pShdMgr->getCataAgent()->clear( clFullName ) ;
+      pShdMgr->getCataAgent()->release_w() ;
+
+      /// Get to cl info
+      rc = pShdMgr->getAndLockCataSet( clFullName, &pSet ) ;
+      if ( SDB_DMS_NOTEXIST == rc ||
+           SDB_DMS_CS_NOTEXIST == rc )
+      {
+         isExist = FALSE ;
+         rc = SDB_OK ;
+      }
+      else if ( SDB_OK == rc )
+      {
+         if ( 0 == groupCount )
+         {
+            isExist = FALSE ;
+            needClear = TRUE ;
+         }
+         else if ( clUniqueID != pSet->clUniqueID() )
+         {
+            isExist = FALSE ;
+         }
+         else
+         {
+            isExist = TRUE ;
+         }
+         pShdMgr->unlockCataSet( pSet ) ;
+      }
+      PD_RC_CHECK( rc, PDINFO, "Failed to get catalog information for "
+                   "collection [%s], rc: %d", clFullName, rc ) ;
+
+      if ( needClear )
+      {
+         /// The collection is not on the group
+         pShdMgr->getCataAgent()->lock_w() ;
+         pShdMgr->getCataAgent()->clear( clFullName ) ;
+         pShdMgr->getCataAgent()->release_w() ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _clsRenameCheckJob::_checkRemoteCS( const CHAR *csName,
+                                             utilCSUniqueID localCSUID,
+                                             BOOLEAN &isExist )
+   {
+      INT32 rc = SDB_OK ;
+
+      shardCB *pShdMgr = sdbGetShardCB() ;
+
+      utilCSUniqueID remoteCSUID = UTIL_UNIQUEID_NULL ;
+
+      /// Get to cs info
+      rc = pShdMgr->rGetCSInfo( csName, remoteCSUID ) ;
+      if ( SDB_DMS_CS_NOTEXIST == rc )
+      {
+         isExist = FALSE ;
+         rc = SDB_OK ;
+      }
+      else if ( SDB_OK == rc )
+      {
+         if ( remoteCSUID != localCSUID )
+         {
+            isExist = FALSE ;
+         }
+         else
+         {
+            isExist = TRUE ;
+         }
+      }
+      PD_RC_CHECK( rc, PDINFO, "Failed to get catalog information for "
+                   "collection space [%s], rc: %d", csName, rc ) ;
+
+   done:
+      return rc ;
+
    error:
       goto done ;
    }
@@ -635,7 +1319,9 @@ namespace engine
          const rtnLocalTaskPtr &taskPtr = it->second ;
 
          if ( RTN_LOCAL_TASK_RENAMECS == taskPtr->getTaskType() ||
-              RTN_LOCAL_TASK_RENAMECL == taskPtr->getTaskType() )
+              RTN_LOCAL_TASK_RENAMECL == taskPtr->getTaskType() ||
+              RTN_LOCAL_TASK_RECYCLECS == taskPtr->getTaskType() ||
+              RTN_LOCAL_TASK_RECYCLECL == taskPtr->getTaskType() )
          {
             rc = clsStartRenameCheckJob( it->second, 0 ) ;
             if ( rc )

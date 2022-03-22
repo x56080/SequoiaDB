@@ -76,6 +76,55 @@ namespace engine
    typedef _coordCMDArguments coordCMDArguments ;
 
    /*
+      _coordCMDEventHandler implement
+    */
+   class _coordCMDEventHandler
+   {
+   public:
+      _coordCMDEventHandler() {}
+      virtual ~_coordCMDEventHandler() {}
+
+      virtual const CHAR *getName() const = 0 ;
+
+      virtual INT32 parseCatReturn( coordCMDArguments *pArgs,
+                                    const std::vector<bson::BSONObj> &cataObjs )
+      {
+         return SDB_OK ;
+      }
+
+      virtual BOOLEAN needRewriteDataMsg()
+      {
+         return FALSE ;
+      }
+
+      virtual INT32 rewriteDataMsg( bson::BSONObjBuilder &queryBuilder,
+                                    bson::BSONObjBuilder &hintBuilder )
+      {
+         return SDB_OK ;
+      }
+
+      virtual INT32 onDataP1Event( SDB_EVENT_OCCUR_TYPE type,
+                                   coordResource *pResource,
+                                   coordCMDArguments *pArgs,
+                                   pmdEDUCB *cb )
+      {
+         return SDB_OK ;
+      }
+
+      virtual INT32 onDataP2Event( SDB_EVENT_OCCUR_TYPE type,
+                                   coordResource *pResource,
+                                   coordCMDArguments *pArgs,
+                                   pmdEDUCB *cb )
+      {
+         return SDB_OK ;
+      }
+   } ;
+
+   typedef class _coordCMDEventHandler coordCMDEventHandler ;
+   typedef ossPoolList< coordCMDEventHandler * > COORD_CMD_EVENT_HANDLER_LIST ;
+   typedef COORD_CMD_EVENT_HANDLER_LIST::iterator COORD_CMD_EVENT_HANDLER_LIST_IT ;
+
+   /*
     * _coordCMD2Phase define
     */
    class _coordCMD2Phase : public _coordCommandBase
@@ -104,20 +153,12 @@ namespace engine
                                           CHAR **ppMsgBuf,
                                           INT32 *pBufSize ) = 0 ;
 
-         virtual void  _releaseCataMsg( CHAR *pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB *cb ) = 0 ;
-
          virtual INT32 _generateDataMsg ( MsgHeader *pMsg,
                                           pmdEDUCB *cb,
                                           coordCMDArguments *pArgs,
                                           const vector<BSONObj> &cataObjs,
                                           CHAR **ppMsgBuf,
                                           INT32 *pBufSize ) = 0 ;
-
-         virtual void  _releaseDataMsg( CHAR *pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB *cb ) = 0 ;
 
          virtual INT32 _generateRollbackDataMsg ( MsgHeader *pMsg,
                                                   pmdEDUCB *cb,
@@ -215,6 +256,35 @@ namespace engine
          */
          virtual INT32 _setVer2Context( rtnContextBuf *buf );
 
+         virtual INT32 _regEventHandlers()
+         {
+            return SDB_OK ;
+         }
+
+         INT32 _regEventHandler( coordCMDEventHandler *handler ) ;
+         void _unregEventHandlers() ;
+
+         INT32 _parseCatReturn( coordCMDArguments *pArgs,
+                                const std::vector<bson::BSONObj> &cataObjs ) ;
+
+         BOOLEAN _needRewriteDataMsg() ;
+
+         INT32 _rewriteDataMsg( MsgHeader *pMsg,
+                                coordCMDArguments *pArgs,
+                                pmdEDUCB *cb,
+                                CHAR **ppMsgBuf,
+                                INT32 *pBufSize ) ;
+
+         INT32 _onDataP1Event( SDB_EVENT_OCCUR_TYPE type,
+                               coordCMDArguments *pArgs,
+                               pmdEDUCB *cb ) ;
+
+         INT32 _onDataP2Event( SDB_EVENT_OCCUR_TYPE type,
+                               coordCMDArguments *pArgs,
+                               pmdEDUCB *cb ) ;
+
+      protected:
+         COORD_CMD_EVENT_HANDLER_LIST  _eventHandlers ;
    } ;
    typedef _coordCMD2Phase coordCMD2Phase ;
 

@@ -850,7 +850,8 @@ namespace engine
                                     _pEduCB ) ;
             if ( SDB_OK == rc )
             {
-               rc = pCatCtx->open( handle, pMsg, pQuery, ctxBuff, _pEduCB ) ;
+               rc = pCatCtx->open( handle, pMsg, pQuery, pHint, ctxBuff,
+                                   _pEduCB ) ;
                if ( SDB_OK != rc )
                {
                   catDeleteContext( contextID, _pEduCB ) ;

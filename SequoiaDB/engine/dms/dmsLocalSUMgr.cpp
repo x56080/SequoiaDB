@@ -152,16 +152,16 @@ namespace engine
       {
          BSONObj idxDef ;
 
-         rc = fromjson( UTIL_RECYCLEBIN_UID_INDEX, idxDef ) ;
+         rc = fromjson( UTIL_RECYCLEBIN_ORIGID_INDEX, idxDef ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to parse index [%s], rc: %d",
-                      UTIL_RECYCLEBIN_UID_INDEX, rc ) ;
+                      UTIL_RECYCLEBIN_ORIGID_INDEX, rc ) ;
 
          // Initialized before rtn, so no sorterCreator could be used, set
          // sort buffer size to 0 to build index without sorterCreator
          rc = rtnTestAndCreateIndex( DMS_SYSLOCALRECYCLEITEM_CL_NAME, idxDef,
                                      cb, _dmsCB, NULL, TRUE, 0 ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to create index [%s], rc: %d",
-                      UTIL_RECYCLEBIN_UID_INDEX, rc ) ;
+                      UTIL_RECYCLEBIN_ORIGID_INDEX, rc ) ;
       }
 
       {

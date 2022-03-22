@@ -383,7 +383,24 @@ INT32 msgBuildCreateCLMsg( CHAR **ppBuffer, INT32 *bufferSize,
                            engine::IExecutor *cb = NULL ) ;
 
 INT32 msgBuildDropCLMsg ( CHAR **ppBuffer, INT32 *bufferSize,
-                          const CHAR *CollectionName, UINT64 reqID,
+                          const CHAR *CollectionName,
+                          BOOLEAN useRecycleBin,
+                          BOOLEAN ignoreLock,
+                          UINT64 reqID,
+                          engine::IExecutor *cb = NULL ) ;
+
+INT32 msgBuildTruncateCLMsg( CHAR **ppBuffer, INT32 *bufferSize,
+                             const CHAR *CollectionName,
+                             BOOLEAN useRecycleBin,
+                             BOOLEAN ignoreLock,
+                             UINT64 reqID,
+                             engine::IExecutor *cb = NULL ) ;
+
+INT32 msgBuildAlterCLMsg( CHAR **ppBuffer,
+                          INT32 *bufferSize,
+                          const CHAR *collectionName,
+                          const bson::BSONObj &options,
+                          UINT64 reqID,
                           engine::IExecutor *cb = NULL ) ;
 
 INT32 msgBuildLinkCLMsg ( CHAR **ppBuffer, INT32 *bufferSize,
@@ -404,6 +421,15 @@ INT32 msgBuildDropIndexMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                              const CHAR *IndexName,
                              UINT64 reqID,
                              engine::IExecutor *cb = NULL ) ;
+
+INT32 msgBuildDropRecyBinItemMsg( CHAR **ppBuffer,
+                                  INT32 *bufferSize,
+                                  const CHAR *recycleName,
+                                  BOOLEAN isRecursive,
+                                  BOOLEAN isEnforced,
+                                  BOOLEAN ignoreLock,
+                                  UINT64 reqID,
+                                  engine::IExecutor *cb = NULL ) ;
 
 INT32 msgBuildSysInfoRequest ( CHAR **ppBuffer, INT32 *pBufferSize,
                                engine::IExecutor *cb = NULL ) ;
@@ -494,7 +520,6 @@ INT32 msgBuildDataSourceInvalidateCacheMsg( CHAR **ppBuffer, INT32 *bufferSize,
                                             const BSONObj &boQuery,
                                             UINT64 reqID,
                                             engine::IExecutor *cb = NULL ) ;
-
 
 #endif // MSGMESSAGE_HPP_
 

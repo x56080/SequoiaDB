@@ -38,6 +38,7 @@
 *******************************************************************************/
 
 #include "rtnLocalTask.hpp"
+#include "msgDef.hpp"
 
 using namespace bson ;
 
@@ -154,10 +155,10 @@ namespace engine
       _rtnLTRename *pOtherRename = NULL ;
 
       /*
-         RenameCS  <->  RenameCS
-         RenameCL  <->  RenameCL
+         RenameCS\RecycleCS <-> RenameCS\RecycleCS
+         RenameCL\RecycleCL <-> RenameCL\RecycleCL
       */
-      if ( pOther->getTaskType() == getTaskType() )
+      if ( _isSameLevel( pOther ) )
       {
          pOtherRename = ( _rtnLTRename* )pOther ;
 
@@ -175,10 +176,11 @@ namespace engine
          }
       }
       /*
-         RenameCL  <->  RenameCS
-         RenameCS  <->  RenameCL ignored by( == Reverse muteXOn )
+         RenameCL\RecycleCL  <->  RenameCS\RecycleCS
+         reverse is ignored by( == Reverse muteXOn )
       */
-      else if ( RTN_LOCAL_TASK_RENAMECS == pOther->getTaskType() )
+      else if ( RTN_LOCAL_TASK_RENAMECS == pOther->getTaskType() ||
+                RTN_LOCAL_TASK_RECYCLECS == pOther->getTaskType() )
       {
          const CHAR *pFromDot = ossStrchr( _from, '.' ) ;
          const CHAR *pToDot = ossStrchr( _to, '.' ) ;
@@ -210,11 +212,52 @@ namespace engine
       return muted ;
    }
 
-   void _rtnLTRename::_toBson( BSONObjBuilder &builder ) const
+   BOOLEAN _rtnLTRename::_isSameLevel( const _rtnLocalTaskBase *pOther ) const
    {
-      builder.append( RTN_LT_FIELD_FROM, _from ) ;
-      builder.append( RTN_LT_FIELD_TO, _to ) ;
-      builder.append( RTN_LT_FIELD_TIME, _time ) ;
+      BOOLEAN isSame = FALSE ;
+
+      switch ( getTaskType() )
+      {
+         case RTN_LOCAL_TASK_RENAMECS :
+         case RTN_LOCAL_TASK_RECYCLECS :
+            isSame = ( RTN_LOCAL_TASK_RENAMECS == pOther->getTaskType() ||
+                       RTN_LOCAL_TASK_RECYCLECS == pOther->getTaskType() ) ;
+            break ;
+         case RTN_LOCAL_TASK_RENAMECL :
+         case RTN_LOCAL_TASK_RECYCLECL :
+            isSame = ( RTN_LOCAL_TASK_RENAMECL == pOther->getTaskType() ||
+                       RTN_LOCAL_TASK_RECYCLECL == pOther->getTaskType() ) ;
+            break ;
+         default :
+            break ;
+      }
+
+      return isSame ;
+   }
+
+   INT32 _rtnLTRename::_toBson( BSONObjBuilder &builder ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         builder.append( RTN_LT_FIELD_FROM, _from ) ;
+         builder.append( RTN_LT_FIELD_TO, _to ) ;
+         builder.append( RTN_LT_FIELD_TIME, _time ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build BSON object for rename task, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    /*
@@ -251,6 +294,72 @@ namespace engine
       return RTN_LOCAL_TASK_RENAMECL ;
    }
 
+   /*
+      _rtnLTRecycleBase implement
+    */
+   _rtnLTRecycleBase::_rtnLTRecycleBase()
+   : _BASE()
+   {
+   }
+
+   _rtnLTRecycleBase::~_rtnLTRecycleBase()
+   {
+   }
+
+   void _rtnLTRecycleBase::setInfo( const CHAR *from,
+                                    const CHAR *to,
+                                    const utilRecycleItem &recycleItem )
+   {
+      _BASE::setInfo( from, to ) ;
+      setRecycleItem( recycleItem ) ;
+   }
+
+   INT32 _rtnLTRecycleBase::initFromBson( const BSONObj &obj )
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = _BASE::initFromBson( obj ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to initialize rename task from BSON, "
+                   "rc: %d", rc ) ;
+
+      rc = _recycleItem.fromBSON( obj, FIELD_NAME_RECYCLE_ITEM ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse recycle item from BSON, "
+                   "rc: %d", rc ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnLTRecycleBase::_toBson( BSONObjBuilder &builder ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = _BASE::_toBson( builder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for rename task, "
+                   "rc: %d", rc ) ;
+
+      rc = _recycleItem.toBSON( builder, FIELD_NAME_RECYCLE_ITEM ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for recycle item, "
+                   "rc: %d", rc ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   /*
+      _rtnLTRecycleCS implement
+    */
+   RTN_IMPLEMENT_LT_AUTO_REGISTER( _rtnLTRecycleCS ) ;
+
+   /*
+      _rtnLTRecycleCL implement
+    */
+   RTN_IMPLEMENT_LT_AUTO_REGISTER( _rtnLTRecycleCL ) ;
+
 }
-
-

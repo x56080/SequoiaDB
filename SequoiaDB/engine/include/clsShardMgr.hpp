@@ -47,6 +47,7 @@
 #include "monDMS.hpp"
 #include "ossMemPool.hpp"
 #include "dpsTransID.hpp"
+#include "utilCSKeyName.hpp"
 
 using namespace bson ;
 
@@ -191,53 +192,7 @@ namespace engine
       typedef ossPoolSet< clsFreezingItem >        OP_SET ;
       typedef ossPoolMap< ossPoolString, OP_SET >  MAP_WINDOW ;
 
-      typedef struct _csKeyName
-      {
-         ossPoolString        _name ;
-
-         _csKeyName( const ossPoolString &name )
-         {
-            _name = name ;
-         }
-
-         _csKeyName()
-         {
-         }
-
-         bool operator< ( const _csKeyName &rhs ) const
-         {
-            UINT32 llen = _name.length() ;
-            UINT32 rlen = rhs._name.length() ;
-            UINT32 len = llen <= rlen ? llen : rlen ;
-
-            INT32 cmp = ossStrncmp( _name.c_str(), rhs._name.c_str(), len ) ;
-            if ( 0 == cmp && llen == len && rlen != len &&
-                 '.' != rhs._name[len] )
-            {
-               cmp = -1 ;
-            }
-
-            return cmp < 0 ? true : false ;
-         }
-
-         bool operator== ( const _csKeyName &rhs ) const
-         {
-            UINT32 llen = _name.length() ;
-            UINT32 rlen = rhs._name.length() ;
-            UINT32 len = llen <= rlen ? llen : rlen ;
-
-            INT32 cmp = ossStrncmp( _name.c_str(), rhs._name.c_str(), len ) ;
-            if ( 0 == cmp && ( llen == len || '.' == _name[len] ) &&
-                 ( rlen == len || '.' == rhs._name[len] ) )
-            {
-               return true ;
-            }
-            return false ;
-         }
-
-      } csKeyName ;
-
-      typedef ossPoolMap< csKeyName, OP_SET >   MAP_CS_WINDOW ;
+      typedef ossPoolMap< utilCSKeyName, OP_SET >   MAP_CS_WINDOW ;
 
       public:
          _clsFreezingWindow() ;

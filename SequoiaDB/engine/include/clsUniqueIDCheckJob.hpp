@@ -91,9 +91,52 @@ namespace engine
       protected:
          void                    _release() ;
 
+         INT32 _doRenameCS( IExecutor *pExe ) ;
+         INT32 _doRenameCL( IExecutor *pExe ) ;
+
+         INT32 _checkCSWithRecyItem( const utilRecycleItem &recycleItem,
+                                     IExecutor *pExe,
+                                     BOOLEAN &isRemoteItemExist,
+                                     BOOLEAN &isRemoteCSExist,
+                                     BOOLEAN &isLocalItemExist,
+                                     BOOLEAN &isLocalCSExist,
+                                     BOOLEAN &isLocalRecyCSExist ) ;
+         INT32 _checkCLWithRecyItem( const utilRecycleItem &recycleItem,
+                                     IExecutor *pExe,
+                                     BOOLEAN &isRemoteItemExist,
+                                     BOOLEAN &isRemoteCLExist,
+                                     BOOLEAN &isLocalItemExist,
+                                     BOOLEAN &isLocalCLExist,
+                                     BOOLEAN &isLocalRecyCLExist ) ;
+
+         INT32 _doRenameRecycleCS( IExecutor *pExe ) ;
+         INT32 _doRenameRecycleCL( IExecutor *pExe ) ;
+
+         INT32 _checkRemoteItem( const utilRecycleItem &recycleItem,
+                                 IExecutor *pExe,
+                                 BOOLEAN &isExist ) ;
+         INT32 _checkLocalItem( const utilRecycleItem &recycleItem,
+                                IExecutor *pExe,
+                                BOOLEAN &isExist ) ;
+         INT32 _checkLocalCL( const CHAR *csName,
+                              const CHAR *clShortName,
+                              utilCLUniqueID clUniqueID,
+                              BOOLEAN &isExist ) ;
+         INT32 _checkLocalCS( const CHAR *csName,
+                              utilCSUniqueID csUniqueID,
+                              BOOLEAN &isExist ) ;
+         INT32 _checkRemoteCL( const CHAR *csName,
+                               const CHAR *clShortName,
+                               utilCLUniqueID clUniqueID,
+                               BOOLEAN &isExist ) ;
+         INT32 _checkRemoteCS( const CHAR *csName,
+                               utilCSUniqueID localCSUID,
+                               BOOLEAN &isExist ) ;
+
       protected:
          UINT64                  _tick ;
          clsFreezingWindow*      _pFreezeWindow ;
+         clsRecycleBinManager *  _recycleBinMgr ;
          rtnLocalTaskPtr         _taskPtr ;
          UINT64                  _opID ;
 

@@ -1094,8 +1094,92 @@ namespace engine
                                     const CHAR * pOrderByBuff,
                                     const CHAR * pHintBuff )
    {
-      BSONObj arg ( pMatcherBuff ) ;
-      return rtnGetStringElement ( arg, FIELD_NAME_NAME, &_collectionName ) ;
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObj arg ( pMatcherBuff ) ;
+         BSONObj hintArg( pHintBuff ) ;
+
+         BOOLEAN isSkipRecycleBin = FALSE ;
+
+         BSONObjIterator iter( arg ) ;
+         while ( iter.more() )
+         {
+            BSONElement ele = iter.next() ;
+            if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_NAME ) )
+            {
+               PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                         "Field [%s] type is not String, type: %d, obj: %s, "
+                         "rc: %d", FIELD_NAME_NAME, ele.type(),
+                         arg.toString().c_str(), rc ) ;
+               _collectionName = ele.valuestr() ;
+            }
+            else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_SKIPRECYCLEBIN ) )
+            {
+               PD_CHECK( Bool == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                         "Failed to get field [%s], it is not a boolean",
+                         FIELD_NAME_SKIPRECYCLEBIN ) ;
+               isSkipRecycleBin = ele.Bool() ;
+            }
+         }
+
+         if ( NULL == _collectionName || '\0' == _collectionName[0] )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Collection can't be empty, obj: %s",
+                    arg.toString().c_str() ) ;
+            goto error ;
+         }
+
+         if ( hintArg.hasElement( FIELD_NAME_RECYCLE_ITEM ) )
+         {
+            BSONElement ele = hintArg.getField( FIELD_NAME_RECYCLE_ITEM ) ;
+            PD_CHECK( Object == ele.type(), SDB_SYS, error, PDERROR,
+                      "Failed to get field [%s], it is not an object",
+                      FIELD_NAME_RECYCLE_ITEM ) ;
+
+            rc = _recycleItem.fromBSON( ele.embeddedObject() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get recycle item from "
+                         "options, rc: %d", rc ) ;
+         }
+
+         if ( isSkipRecycleBin )
+         {
+            PD_CHECK( !_recycleItem.isValid(), SDB_SYS, error, PDERROR,
+                      "Failed to initialize drop collection command, "
+                      "should not have recycle item if skip recycle bin" ) ;
+         }
+
+         if ( _recycleItem.isValid() )
+         {
+            PD_CHECK( 0 == ossStrcmp( _recycleItem.getOriginName(),
+                                      _collectionName ),
+                      SDB_SYS, error, PDERROR, "Failed to initialize "
+                      "drop collection command, origin name [%s] of recycle "
+                      "item [%s] is different from collection name [%s]",
+                      _recycleItem.getOriginName(),
+                      _recycleItem.getRecycleName(),
+                      _collectionName ) ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to initialize drop collection command, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      PD_LOG( PDDEBUG, "Got drop collection command [%s], recycle [%s]",
+              _collectionName,
+              _recycleItem.isValid() ? _recycleItem.getRecycleName() : "" ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDROPCL_DOIT, "_rtnDropCollection::doit" )
@@ -1116,13 +1200,13 @@ namespace engine
                                  *pContextID, cb );
          PD_RC_CHECK( rc, PDERROR, "Failed to create context, drop "
                       "collection failed(rc=%d)", rc );
-         rc = delContext->open( _collectionName, cb, w ) ;
+         rc = delContext->open( _collectionName, &_recycleItem, cb, w ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open context, drop "
-                      "collection failed(rc=%d)",
-                      rc );
+                      "collection failed(rc=%d)", rc );
       }
       else
       {
+         // not support recycle in local service
          rc = rtnDropCollectionCommand ( _collectionName, cb, dmsCB, dpsCB ) ;
          /// AUDIT
          PD_AUDIT_COMMAND( AUDIT_DDL, name(), AUDIT_OBJ_CL,
@@ -1178,11 +1262,15 @@ namespace engine
                                          const CHAR * pOrderByBuff,
                                          const CHAR * pHintBuff )
    {
-      BSONObj arg ( pMatcherBuff ) ;
       INT32 rc = SDB_OK ;
 
       try
       {
+         BSONObj arg ( pMatcherBuff ) ;
+         BSONObj hintArg( pHintBuff ) ;
+
+         BOOLEAN isSkipRecycleBin = FALSE ;
+
          BSONObjIterator iter( arg ) ;
          while ( iter.more() )
          {
@@ -1193,23 +1281,25 @@ namespace engine
                                  PDERROR, "More than one collection space "
                                  "name in options" ) ;
                PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
-                         "Field type is not String, type: %d, obj: %s, rc: %d",
-                         ele.type(), arg.toString().c_str(), rc ) ;
+                         "Field [%s] type is not String, type: %d, obj: %s, "
+                         "rc: %d", CAT_COLLECTION_SPACE_NAME, ele.type(),
+                         arg.toString().c_str(), rc ) ;
                _spaceName = ele.valuestr() ;
             }
             else if ( 0 == ossStrcmp(ele.fieldName(), CAT_ENSURE_CS_IS_EMPTY) )
             {
                PD_CHECK( Bool == ele.type(), SDB_INVALIDARG, error, PDERROR,
-                         "Field type is not Bool, type: %d, obj: %s, rc: %d",
-                         ele.type(), arg.toString().c_str(), rc ) ;
+                         "Field [%s] type is not Bool, type: %d, obj: %s, "
+                         "rc: %d", CAT_ENSURE_CS_IS_EMPTY, ele.type(),
+                         arg.toString().c_str(), rc ) ;
                _ensureEmpty = ele.Bool() ;
             }
-            else
+            else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_SKIPRECYCLEBIN ) )
             {
-               rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "Field name is unreconigzed, name: %s, obj: %s",
-                       ele.fieldName(), arg.toString().c_str() ) ;
-               goto error ;
+               PD_CHECK( Bool == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                         "Failed to get field [%s], it is not a boolean",
+                         FIELD_NAME_SKIPRECYCLEBIN ) ;
+               isSkipRecycleBin = ele.Bool() ;
             }
          }
 
@@ -1220,6 +1310,36 @@ namespace engine
                     arg.toString().c_str() ) ;
             goto error ;
          }
+
+         if ( hintArg.hasElement( FIELD_NAME_RECYCLE_ITEM ) )
+         {
+            BSONElement ele = hintArg.getField( FIELD_NAME_RECYCLE_ITEM ) ;
+            PD_CHECK( Object == ele.type(), SDB_SYS, error, PDERROR,
+                      "Failed to get field [%s], it is not an object",
+                      FIELD_NAME_RECYCLE_ITEM ) ;
+
+            rc = _recycleItem.fromBSON( ele.embeddedObject() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get recycle item from "
+                         "options, rc: %d", rc ) ;
+         }
+
+         if ( isSkipRecycleBin )
+         {
+            PD_CHECK( !_recycleItem.isValid(), SDB_SYS, error, PDERROR,
+                      "Failed to initialize drop collection command, "
+                      "should not have recycle item if skip recycle bin" ) ;
+         }
+
+         if ( _recycleItem.isValid() )
+         {
+            PD_CHECK( 0 == ossStrcmp( _recycleItem.getOriginName(),
+                                      _spaceName ),
+                      SDB_SYS, error, PDERROR, "Failed to initialize "
+                      "drop collection space command, origin name [%s] "
+                      "of recycle item [%s] is different from collection "
+                      "space name [%s]", _recycleItem.getOriginName(),
+                      _recycleItem.getRecycleName(), _spaceName ) ;
+         }
       }
       catch ( std::exception &e )
       {
@@ -1227,6 +1347,10 @@ namespace engine
          rc = SDB_INVALIDARG;
          goto error ;
       }
+
+      PD_LOG( PDDEBUG, "Got drop collection space command [%s], "
+              "recycle [%s]", _spaceName,
+              _recycleItem.isValid() ? _recycleItem.getRecycleName() : "" ) ;
 
    done:
       return rc ;
@@ -1254,7 +1378,7 @@ namespace engine
                                  *pContextID, cb );
          PD_RC_CHECK( rc, PDERROR, "Failed to create context, "
                       "drop cs failed(rc=%d)", rc );
-         rc = delContext->open( _spaceName, cb );
+         rc = delContext->open( _spaceName, &_recycleItem, cb );
          PD_RC_CHECK( rc, PDERROR, "Failed to open context, drop cs "
                       "failed(rc=%d)", rc );
       }
@@ -4075,9 +4199,14 @@ error:
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNTRUNCATE_INIT ) ;
+
+      BOOLEAN isSkipRecycleBin = FALSE ;
+
       try
       {
          BSONObj query( pMatcherBuff ) ;
+         BSONObj hintArg( pHintBuff ) ;
+
          BSONElement ele = query.getField( FIELD_NAME_COLLECTION ) ;
          if ( String != ele.type() )
          {
@@ -4086,7 +4215,28 @@ error:
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         _fullName = ele.valuestr() ;
+         _collectionName = ele.valuestr() ;
+
+         ele = query.getField( FIELD_NAME_SKIPRECYCLEBIN ) ;
+         if ( EOO != ele.type() )
+         {
+            PD_CHECK( Bool == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                      "Failed to get field [%s], it is not a boolean",
+                      FIELD_NAME_SKIPRECYCLEBIN ) ;
+            isSkipRecycleBin = ele.Bool() ;
+         }
+
+         if ( hintArg.hasElement( FIELD_NAME_RECYCLE_ITEM ) )
+         {
+            BSONElement ele = hintArg.getField( FIELD_NAME_RECYCLE_ITEM ) ;
+            PD_CHECK( Object == ele.type(), SDB_SYS, error, PDERROR,
+                      "Failed to get field [%s], it is not an object",
+                      FIELD_NAME_RECYCLE_ITEM ) ;
+
+            rc = _recycleItem.fromBSON( ele.embeddedObject() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get recycle item from "
+                         "options, rc: %d", rc ) ;
+         }
       }
       catch ( std::exception &e )
       {
@@ -4095,6 +4245,26 @@ error:
          rc = SDB_SYS ;
          goto error ;
       }
+
+      if ( isSkipRecycleBin )
+      {
+         PD_CHECK( !_recycleItem.isValid(), SDB_SYS, error, PDERROR,
+                   "Failed to initialize drop collection command, "
+                   "should not have recycle item if skip recycle bin" ) ;
+      }
+
+      if ( _recycleItem.isValid() )
+      {
+         PD_CHECK( 0 == ossStrcmp( _recycleItem.getOriginName(),
+                                   _collectionName ),
+                   SDB_SYS, error, PDERROR, "Failed to initialize "
+                   "drop collection command, origin name [%s] of recycle "
+                   "item [%s] is different from collection name [%s]",
+                   _recycleItem.getOriginName(),
+                   _recycleItem.getRecycleName(),
+                   _collectionName ) ;
+      }
+
    done:
       PD_TRACE_EXITRC( SDB__RTNTRUNCATE_INIT, rc ) ;
       return rc ;
@@ -4109,15 +4279,28 @@ error:
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNTRUNCATE_DOIT ) ;
-      rc = rtnTruncCollectionCommand( _fullName,
-                                      cb,
-                                      dmsCB,
-                                      dpsCB ) ;
-      if ( SDB_OK != rc )
+      *pContextID = -1;
+
+      if ( CMD_SPACE_SERVICE_SHARD == getFromService() )
       {
-         PD_LOG( PDERROR, "failed to truncate collection[%s], rc:%d",
-                 _fullName, rc ) ;
-         goto error ;
+         rtnContextTruncateCL::sharePtr truncateCLContext ;
+         rc = rtnCB->contextNew( RTN_CONTEXT_TRUNCATECL, truncateCLContext,
+                                 *pContextID, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to create context, truncate "
+                      "collection: rc=%d", rc );
+         rc = truncateCLContext->open( _collectionName, &_recycleItem, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open context, truncate "
+                      "collection: rc=%d", rc ) ;
+      }
+      else
+      {
+         rc = rtnTruncCollectionCommand( _collectionName, cb, dmsCB, dpsCB ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to truncate collection[%s], rc:%d",
+                    _collectionName, rc ) ;
+            goto error ;
+         }
       }
    done:
       PD_TRACE_EXITRC( SDB__RTNTRUNCATE_DOIT, rc ) ;

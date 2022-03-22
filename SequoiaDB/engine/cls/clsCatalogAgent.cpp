@@ -2281,6 +2281,11 @@ namespace engine
       return _isMainCL;
    }
 
+   BOOLEAN _clsCatalogSet::isSubCL() const
+   {
+      return !( _mainCLName.empty() ) ;
+   }
+
    INT32 _clsCatalogSet::getLobShardingKeyFormat()
    {
       return _lobShardingKeyFormat ;

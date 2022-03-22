@@ -512,6 +512,100 @@ namespace engine
       return nDelNum ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSDATADBS__RENAMECL, "_clsDataDstBaseSession::_renameCollection" )
+   INT32 _clsDataDstBaseSession::_renameCollection( const CHAR *oldFullName,
+                                                    const CHAR *newFullName,
+                                                    INT32 replayRC )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSDATADBS__RENAMECL ) ;
+
+      if ( SDB_OK != replayRC )
+      {
+         // collection is not exist, check if we will synchronize later
+         // if so, do not report error, and synchronize this collection
+         // later
+         // NOTE: if the collection list is getting after rename done
+         //       but before the dps log is notified to LSN queue,
+         //       the new name may be in the list, so we need to check
+         //       either
+         if ( !_findCollection( oldFullName ) &&
+              !_findCollection( newFullName ) )
+         {
+            PD_LOG ( PDWARNING, "Session[%s] failed to find collection [%s] "
+                     "and [%s] from waiting list, need restart full "
+                     "synchronize", sessionName(), oldFullName, newFullName ) ;
+            rc = replayRC ;
+            goto error ;
+         }
+      }
+
+      if ( _removeCollection( oldFullName ) > 0 )
+      {
+         _addCollection( newFullName ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSDATADBS__RENAMECL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSDATADBS__RENAMECS, "_clsDataDstBaseSession::_renameCollectionSpace" )
+   INT32 _clsDataDstBaseSession::_renameCollectionSpace( const CHAR *oldCSName,
+                                                         const CHAR *newCSName,
+                                                         INT32 replayRC )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSDATADBS__RENAMECS ) ;
+
+      std::vector<std::string> oldCLList ;
+      std::vector<std::string>::iterator it ;
+
+      if ( SDB_OK != replayRC )
+      {
+         // collection space is not exist, check if we will synchronize
+         // later if so, do not report error, and synchronize this
+         // collection space later
+         // NOTE: if the collection list is getting after rename done
+         //       but before the dps log is notified to LSN queue,
+         //       the new name may be in the list, so we need to check
+         //       either
+         if ( !_findCollectionSpace( oldCSName ) &&
+              !_findCollectionSpace( newCSName ) )
+         {
+            PD_LOG ( PDWARNING, "Session[%s] failed to find collection space "
+                     "[%s] and [%s] from waiting list, need restart full "
+                     "synchronize", sessionName(), oldCSName, newCSName ) ;
+            rc = replayRC ;
+            goto error ;
+         }
+      }
+
+      oldCLList = _removeCS( oldCSName ) ;
+      for( std::vector<std::string>::iterator it = oldCLList.begin() ;
+           it != oldCLList.end() ;
+           ++ it )
+      {
+         string shortName = dmsGetCLShortNameFromFullName( *it ) ;
+         string newCLName = newCSName ;
+         newCLName += "." ;
+         newCLName += shortName ;
+         _addCollection ( newCLName.c_str() ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSDATADBS__RENAMECS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    INT32 _clsDataDstBaseSession::_removeValidCLs( const vector< string > &validCLs,
                                                   UINT32 *pHasRemoved )
    {
@@ -1397,7 +1491,8 @@ namespace engine
          if ( LOG_TYPE_CL_TRUNC == header->_type )
          {
             dpsLogRecord record ;
-            dpsLogRecord::iterator itrName ;
+            dpsLogRecord::iterator itrName, itrOptions ;
+            dmsTruncCLOptions options ;
             rc = record.load( itr ) ;
             if ( SDB_OK != rc )
             {
@@ -1412,6 +1507,37 @@ namespace engine
                rc = SDB_SYS ;
                goto error ;
             }
+
+            itrOptions = record.find( DPS_LOG_CLTRUNC_OPTIONS ) ;
+            if ( itrOptions.valid() )
+            {
+               BSONObj boOptions( itrOptions.value() ) ;
+               rc = options.parseOptions( boOptions ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to parse truncate collection "
+                            "options, rc: %d", rc ) ;
+            }
+
+            if ( options._recycleItem.isValid() )
+            {
+               // if recycle is valid, check rename collection
+               CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
+               CHAR recyFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+               const CHAR *originFullName = options._recycleItem.getOriginName() ;
+
+               rc  = rtnResolveCollectionSpaceName( originFullName,
+                                                    ossStrlen( originFullName ),
+                                                    csName,
+                                                    DMS_COLLECTION_SPACE_NAME_SZ ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to parse collection space "
+                            "name from %s, rc: %d", originFullName, rc ) ;
+
+               ossSnprintf( recyFullName, DMS_COLLECTION_FULL_NAME_SZ, "%s.%s",
+                            csName, options._recycleItem.getRecycleName() ) ;
+
+               _renameCollection( originFullName, recyFullName, replayRC ) ;
+               replayRC = SDB_OK ;
+            }
+
             if ( SDB_OK != replayRC )
             {
                // collection is not exist, check if we will synchronize later
@@ -1434,7 +1560,8 @@ namespace engine
          else if ( LOG_TYPE_CL_DELETE == header->_type )
          {
             dpsLogRecord record ;
-            dpsLogRecord::iterator itrName ;
+            dpsLogRecord::iterator itrName, itrOptions ;
+            dmsDropCLOptions options ;
             rc = record.load( itr ) ;
             if ( SDB_OK != rc )
             {
@@ -1449,13 +1576,46 @@ namespace engine
                rc = SDB_SYS ;
                goto error ;
             }
-            _removeCollection ( itrName.value() ) ;
+
+            itrOptions = record.find( DPS_LOG_CLDEL_OPTIONS ) ;
+            if ( itrOptions.valid() )
+            {
+               BSONObj boOptions( itrOptions.value() ) ;
+               rc = options.parseOptions( boOptions ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to parse drop collection "
+                            "options, rc: %d", rc ) ;
+            }
+
+            // if recycle name is valid, check rename collection
+            if ( options._recycleItem.isValid() )
+            {
+               CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
+               CHAR recyFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+               const CHAR *originFullName = options._recycleItem.getOriginName() ;
+
+               rc  = rtnResolveCollectionSpaceName( originFullName,
+                                                    ossStrlen( originFullName ),
+                                                    csName,
+                                                    DMS_COLLECTION_SPACE_NAME_SZ ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to parse collection space "
+                            "name from %s, rc: %d", originFullName, rc ) ;
+
+               ossSnprintf( recyFullName, DMS_COLLECTION_FULL_NAME_SZ, "%s.%s",
+                            csName, options._recycleItem.getRecycleName() ) ;
+
+               _renameCollection( originFullName, recyFullName, replayRC ) ;
+            }
+            else
+            {
+               _removeCollection ( itrName.value() ) ;
+            }
             replayRC = SDB_OK ;
          }
          else if ( LOG_TYPE_CS_DELETE == header->_type )
          {
             dpsLogRecord record ;
-            dpsLogRecord::iterator itrName ;
+            dpsLogRecord::iterator itrName, itrOptions ;
+            dmsDropCSOptions options ;
             rc = record.load( itr ) ;
             if ( SDB_OK != rc )
             {
@@ -1470,15 +1630,37 @@ namespace engine
                rc = SDB_SYS ;
                goto error ;
             }
-            _removeCS ( itrName.value() ) ;
+
+            itrOptions = record.find( DPS_LOG_CSDEL_OPTIONS ) ;
+            if ( itrOptions.valid() )
+            {
+               BSONObj boOptions( itrOptions.value() ) ;
+               rc = options.parseOptions( boOptions ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to parse drop collection "
+                            "space options, rc: %d", rc ) ;
+            }
+
+            if ( options._recycleItem.isValid() )
+            {
+               // if recycle name is valid, check rename collection
+               _renameCollectionSpace( options._recycleItem.getOriginName(),
+                                       options._recycleItem.getRecycleName(),
+                                       replayRC ) ;
+            }
+            else
+            {
+               _removeCS ( itrName.value() ) ;
+            }
             replayRC = SDB_OK ;
          }
          else if ( LOG_TYPE_CL_RENAME == header->_type )
          {
             dpsLogRecord record ;
             dpsLogRecord::iterator cs, oldname, newname ;
-            std::string newFullName ;
-            std::string oldFullName ;
+
+            CHAR newFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+            CHAR oldFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+
             rc = record.load( itr ) ;
             if ( SDB_OK != rc )
             {
@@ -1513,39 +1695,19 @@ namespace engine
             }
 
             // get old name
-            oldFullName = cs.value() ;
-            oldFullName += "." ;
-            oldFullName += oldname.value() ;
+            ossSnprintf( oldFullName, DMS_COLLECTION_FULL_NAME_SZ, "%s.%s",
+                         cs.value(), oldname.value() ) ;
 
             // get new name
-            newFullName = cs.value() ;
-            newFullName += "." ;
-            newFullName += newname.value() ;
+            ossSnprintf( newFullName, DMS_COLLECTION_FULL_NAME_SZ, "%s.%s",
+                         cs.value(), newname.value() ) ;
 
-            if ( SDB_OK != replayRC )
-            {
-               // collection is not exist, check if we will synchronize later
-               // if so, do not report error, and synchronize this collection
-               // later
-               // NOTE: if the collection list is getting after rename done
-               //       but before the dps log is notified to LSN queue,
-               //       the new name may be in the list, so we need to check
-               //       either
-               if ( !_findCollection( oldFullName.c_str() ) &&
-                    !_findCollection( newFullName.c_str() ) )
-               {
-                  PD_LOG ( PDWARNING, "Session[%s] replay dps log record failed"
-                           "[rc:%d]", sessionName(), replayRC ) ;
-                  rc = replayRC ;
-                  goto error ;
-               }
-               replayRC = SDB_OK ;
-            }
+            rc = _renameCollection( oldFullName, newFullName, replayRC ) ;
+            PD_RC_CHECK( rc, PDERROR, "Session[%s] failed to replay rename "
+                         "collection DPS log record, rc: %d", sessionName(),
+                         rc ) ;
 
-            if ( _removeCollection( oldFullName.c_str() ) > 0 )
-            {
-               _addCollection( newFullName.c_str() ) ;
-            }
+            replayRC = SDB_OK ;
          }
          else if ( LOG_TYPE_CS_RENAME == header->_type )
          {
@@ -1553,8 +1715,6 @@ namespace engine
             dpsLogRecord::iterator csIt, newcsIt ;
             const CHAR *oldCSName = NULL ;
             const CHAR *newCSName = NULL ;
-            std::vector<std::string> oldCLList ;
-            std::vector<std::string>::iterator it ;
 
             rc = record.load( itr ) ;
             if ( SDB_OK != rc )
@@ -1583,35 +1743,12 @@ namespace engine
             oldCSName = csIt.value() ;
             newCSName = newcsIt.value() ;
 
-            if ( SDB_OK != replayRC )
-            {
-               // collection space is not exist, check if we will synchronize
-               // later if so, do not report error, and synchronize this
-               // collection space later
-               // NOTE: if the collection list is getting after rename done
-               //       but before the dps log is notified to LSN queue,
-               //       the new name may be in the list, so we need to check
-               //       either
-               if ( !_findCollectionSpace( oldCSName ) &&
-                    !_findCollectionSpace( newCSName ) )
-               {
-                  PD_LOG ( PDWARNING, "Session[%s] replay dps log record "
-                           "failed [rc:%d]", sessionName(), replayRC ) ;
-                  rc = replayRC ;
-                  goto error ;
-               }
-               replayRC = SDB_OK ;
-            }
+            rc = _renameCollectionSpace( oldCSName, newCSName, replayRC ) ;
+            PD_RC_CHECK( rc, PDERROR, "Session[%s] failed to replay rename "
+                         "collection space DPS log record, rc: %d",
+                         sessionName(), rc ) ;
 
-            oldCLList = _removeCS( oldCSName ) ;
-            for( it = oldCLList.begin(); it != oldCLList.end(); it++ )
-            {
-               string shortName = dmsGetCLShortNameFromFullName( *it ) ;
-               string newCLName = newCSName ;
-               newCLName += "." ;
-               newCLName += shortName ;
-               _addCollection ( newCLName.c_str() ) ;
-            }
+            replayRC = SDB_OK ;
          }
 
          // process replay error code, check if we will synchronize the same

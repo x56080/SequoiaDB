@@ -185,8 +185,19 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       UINT64 jobID = 0 ;
-      rtnClearExpireContextJob *job =
-            SDB_OSS_NEW rtnClearExpireContextJob( this ) ;
+      rtnClearExpireContextJob *job = NULL ;
+
+      if ( SDB_ROLE_DATA == pmdGetDBRole() ||
+           SDB_ROLE_CATALOG == pmdGetDBRole() ||
+           SDB_ROLE_STANDALONE == pmdGetDBRole() ||
+           SDB_ROLE_OM == pmdGetDBRole() )
+      {
+         rc = pmdGetKRCB()->getDMSCB()->regHandler( &_accessPlanManager ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to register event handler of "
+                      "access plan manager to DMS, rc: %d", rc ) ;
+      }
+
+      job = SDB_OSS_NEW rtnClearExpireContextJob( this ) ;
       PD_CHECK( NULL != job, SDB_OOM, error, PDERROR,
                 "Failed to allocate clear context job" ) ;
 
@@ -217,6 +228,13 @@ namespace engine
          _remoteMessenger->deactive() ;
       }
 
+      if ( SDB_ROLE_DATA == pmdGetDBRole() ||
+           SDB_ROLE_CATALOG == pmdGetDBRole() ||
+           SDB_ROLE_STANDALONE == pmdGetDBRole() ||
+           SDB_ROLE_OM == pmdGetDBRole() )
+      {
+         pmdGetKRCB()->getDMSCB()->unregHandler( &_accessPlanManager ) ;
+      }
       return SDB_OK ;
    }
 

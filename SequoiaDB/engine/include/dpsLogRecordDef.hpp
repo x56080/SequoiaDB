@@ -115,6 +115,7 @@ namespace engine
    enum DPS_LOG_CSDEL
    {
       DPS_LOG_CSDEL_CSNAME = 1,
+      DPS_LOG_CSDEL_OPTIONS = 2,
    } ;
 
    enum DPS_LOG_CSRENAME
@@ -134,6 +135,7 @@ namespace engine
 
    enum DPS_LOG_CLDEL
    {
+      DPS_LOG_CLDEL_OPTIONS = 1
    } ;
 
    enum DPS_LOG_IXCRT
@@ -158,6 +160,7 @@ namespace engine
 
    enum DPS_LOG_CLTRUNC
    {
+      DPS_LOG_CLTRUNC_OPTIONS = 1
    } ;
 
    enum DPS_LOG_TS_COMMIT

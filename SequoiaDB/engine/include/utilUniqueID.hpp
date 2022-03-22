@@ -182,7 +182,7 @@ namespace engine
    INT32 utilGetCSBounds( const CHAR *fieldName,
                           utilCSUniqueID csUniqueID,
                           bson::BSONObj &matcher ) ;
+
 }
 
 #endif //UTIL_UNIQUEID_HPP_
-

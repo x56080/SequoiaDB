@@ -241,7 +241,9 @@ utilFiles = [
       "util/utilLobID.cpp",
       "util/utilIniParser.c",
       "util/utilIniParserEx.cpp",
-      "util/utilAuthSCRAMSHA.cpp"
+      "util/utilAuthSCRAMSHA.cpp",
+      "util/utilRecycleItem.cpp",
+      "util/utilUniqueID.cpp"
       ]
 
 dpsFiles = [
