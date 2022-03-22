@@ -2176,6 +2176,12 @@
                      "file": "sequoiaperf_deployment",
                      "cn": "部署SequoiaPerf实例",
                      "en": "Deploy Instance"
+                  },
+                  {
+                     "id": 1635327651,
+                     "file": "sequoiaperf_agent_deployment",
+                     "cn": "部署 SequoiaPerf Agent 服务",
+                     "en": "Deploy Agent Service"
                   }
                ]
             },
@@ -2196,6 +2202,12 @@
                      "file": "sequoiaperf_mysql_monitor_page",
                      "cn": "MySQL概览",
                      "en": "MySQL Overview"
+                  },
+                  {
+                     "id": 1635324402,
+                     "file": "sequoiaperf_host_monitor_page",
+                     "cn": "主机概览",
+                     "en": "Host Overview"
                   },
                   {
                      "id": 1611539811,
@@ -2222,6 +2234,12 @@
                      "file": "sequoiaperf_add_sql",
                      "cn": "添加SQL实例",
                      "en": "Add SQL Instance"
+                  },
+                  {
+                     "id": 1636718292,
+                     "file": "sequoiaperf_add_agent",
+                     "cn": "添加 Agent 服务",
+                     "en": "Add Agent Service"
                   }
                ]
             },
@@ -2286,6 +2304,12 @@
                      "file": "sdb_perf_archive",
                      "cn": "归档管理工具",
                      "en": "Archive Management Tool"
+                  },
+				  {
+                     "id": 1635324450,
+                     "file": "sdb_perf_agent_ctl",
+                     "cn": "Agent 管理工具",
+                     "en": "Agent Management Tool"
                   }
                ]
             },

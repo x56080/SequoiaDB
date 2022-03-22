@@ -4,9 +4,11 @@
 
 - [SequoiaPerf 配置][configuration]
 - [添加 SQL 实例][add_sql]
+- [添加 Agent 服务][add_agent]
 
 
 [^_^]:
     本文使用的所有引用及链接
 [configuration]:manual/SequoiaPerf/Configuration/sequoiaperf_configuration_page.md
 [add_sql]:manual/SequoiaPerf/Configuration/sequoiaperf_add_sql.md
+[add_agent]:manual/SequoiaPerf/Configuration/sequoiaperf_add_agent.md
