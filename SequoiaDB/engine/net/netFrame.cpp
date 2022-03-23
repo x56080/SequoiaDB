@@ -2296,15 +2296,12 @@ namespace engine
       BOOLEAN isNotSysInfoMsg =
          ( (INT32)MSG_SYSTEM_INFO_LEN != pMsg->messageLength );
 
-      // For mutex with enable message convertor.
-      eh->mtx().get() ;
-      convertor = eh->getInMsgConvertor() ;
-      eh->mtx().release() ;
-
-      if ( isNotSysInfoMsg && ( MSG_COMM_EYE_DEFAULT != pMsg->eye ) && convertor )
+      if ( isNotSysInfoMsg && ( MSG_COMM_EYE_DEFAULT != pMsg->eye ) )
       {
-         PD_LOG( PDDEBUG, "Message convertor is enabled. Convert the message "
-                 "for processing" ) ;
+         // The convertor should have been enabled in the net event handler, if
+         // any non sysinfo message has been received.
+         convertor = eh->getInMsgConvertor() ;
+         SDB_ASSERT( convertor, "In message is invalid" ) ;
          convertor->reset( FALSE ) ;
          rc = convertor->push( (const CHAR *)pMsg, pMsg->messageLength ) ;
          if ( SDB_OK != rc )
@@ -2325,11 +2322,11 @@ namespace engine
          }
       }
 
-      if ( isNotSysInfoMsg && ( MSG_HEARTBEAT == pMsg->opCode ) )
+      if ( MSG_HEARTBEAT == pMsg->opCode )
       {
          _handleHeartBeat( eh, pMsg ) ;
       }
-      else if ( isNotSysInfoMsg && ( MSG_HEARTBEAT_RES == pMsg->opCode ) )
+      else if ( MSG_HEARTBEAT_RES == pMsg->opCode )
       {
          _handleHeartBeatRes( eh, pMsg ) ;
       }

@@ -181,8 +181,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__COORDREMOTECONNECTION_SYNCSEND ) ;
-      CHAR *finalMsg = NULL ;
-      UINT32 finalLen = 0 ;
 
       if ( !_socket->isConnected() )
       {
