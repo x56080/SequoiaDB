@@ -2266,8 +2266,6 @@ namespace engine
          convertor = eh->getInMsgConvertor() ;
          SDB_ASSERT( convertor, "In message is invalid" ) ;
 
-         PD_LOG( PDDEBUG, "Message convertor is enabled. Convert the message "
-                 "for processing" ) ;
          convertor->reset( FALSE ) ;
          rc = convertor->push( (const CHAR *)pMsg, pMsg->messageLength ) ;
          if ( SDB_OK != rc )
