@@ -3130,5 +3130,13 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_IXM_ADVANCE_EOC</name>
+         <description>
+            <en>End of index advance section</en>
+            <cn>当前索引范围结束</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

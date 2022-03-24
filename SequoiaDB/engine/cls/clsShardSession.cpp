@@ -4427,21 +4427,38 @@ namespace engine
          /// do locate
          try
          {
-            BSONElement e = options.getHint().getField( FIELD_NAME_POSITION ) ;
-            if ( Object == e.type() )
+            BSONObj hintTmp = options.getHint() ;
+            BSONElement ePos = hintTmp.getField( FIELD_NAME_POSITION ) ;
+            BSONElement eRange = hintTmp.getField( FIELD_NAME_RANGE ) ;
+
+            if ( !ePos.eoo() && !eRange.eoo() )
             {
-               rc = pContextMainCL->locate( e.embeddedObject(), cb ) ;
+               PD_LOG( PDERROR, "Field[%s] and Field[%s] cannot be specified at the "
+                       "same time", FIELD_NAME_POSITION, FIELD_NAME_RANGE ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+            else if ( !ePos.eoo() && Object != ePos.type() )
+            {
+               PD_LOG( PDERROR, "Field[%s] is invalid", FIELD_NAME_POSITION ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+            else if ( !eRange.eoo() && Object != eRange.type() )
+            {
+               PD_LOG( PDERROR, "Field[%s] is invalid", FIELD_NAME_RANGE ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+
+            if ( Object == ePos.type() )
+            {
+               rc = pContextMainCL->locate( ePos.embeddedObject(), cb ) ;
                if ( rc )
                {
                   PD_LOG( PDERROR, "Do context locate failed, rc: %d", rc ) ;
                   goto error ;
                }
-            }
-            else if ( !e.eoo() )
-            {
-               PD_LOG( PDERROR, "Field[%s] is invalid", FIELD_NAME_POSITION ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
             }
          }
          catch( std::exception &e )

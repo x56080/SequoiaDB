@@ -802,12 +802,26 @@ namespace engine
 
       try
       {
-      BSONElement eMeta = hintTmp.getField( FIELD_NAME_META ) ;
-      BSONElement ePos = hintTmp.getField( FIELD_NAME_POSITION ) ;
+      BSONElement eMeta  = hintTmp.getField( FIELD_NAME_META ) ;
+      BSONElement ePos   = hintTmp.getField( FIELD_NAME_POSITION ) ;
+      BSONElement eRange = hintTmp.getField( FIELD_NAME_RANGE ) ;
 
-      if ( !ePos.eoo() && Object != ePos.type() )
+      if ( !ePos.eoo() && !eRange.eoo() )
+      {
+         PD_LOG( PDERROR, "Field[%s] and Field[%s] cannot be specified at the "
+                 "same time", FIELD_NAME_POSITION, FIELD_NAME_RANGE ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      else if ( !ePos.eoo() && Object != ePos.type() )
       {
          PD_LOG( PDERROR, "Field[%s] is invalid", FIELD_NAME_POSITION ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      else if ( !eRange.eoo() && Object != eRange.type() )
+      {
+         PD_LOG( PDERROR, "Field[%s] is invalid", FIELD_NAME_RANGE ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
@@ -954,6 +968,16 @@ retry:
                goto error ;
             }
          }
+         else if ( Object == eRange.type() )
+         {
+            rc = dataContext->setAdvanceSection( eRange.embeddedObject() ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Do context set advance condition failed "
+                                ", rc: %d", rc ) ;
+               goto error ;
+            }
+         }
 
          context = dataContext ;
       }
@@ -1003,6 +1027,16 @@ retry:
             if ( rc )
             {
                PD_LOG( PDERROR, "Do context locate failed, rc: %d", rc ) ;
+               goto error ;
+            }
+         }
+         else if ( Object == eRange.type() )
+         {
+            rc = dataContext->setAdvanceSection( eRange.embeddedObject() ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Do context set advance condition "
+                       "failed, rc: %d", rc ) ;
                goto error ;
             }
          }

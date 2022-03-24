@@ -162,12 +162,31 @@ namespace engine
       goto done ;
    }
 
-   INT32 _rtnContextStoreBuf::append( const BSONObj& obj )
+   INT32 _rtnContextStoreBuf::append( const BSONObj& obj,
+                                      const BSONObj *orgObj )
    {
       INT32 rc = SDB_OK ;
 
       if ( !isCountMode() )
       {
+         if ( _contextValidator )
+         {
+            if ( !orgObj )
+            {
+               orgObj = &obj ;  
+            }
+            rc = _contextValidator->validate( *orgObj ) ;
+            if ( SDB_IXM_ADVANCE_EOC == rc )
+            {
+               goto done ;  
+            }
+            else if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to validate record, rc: %d", rc ) ;
+               goto error ; 
+            }
+         }
+
          _writeOffset = ossAlign4( (UINT32)_writeOffset ) ;
          if ( _writeOffset + obj.objsize () > _bufferSize )
          {
@@ -460,6 +479,12 @@ namespace engine
       }
    }
 
+   void _rtnContextStoreBuf::setContextValidator( 
+                             _rtnContextValidator *contextValidator )
+   {
+      _contextValidator = contextValidator ;   
+   }
+
    /*
       Functions
    */
@@ -519,6 +544,8 @@ namespace engine
       _lastProcessTick     = pmdGetDBTick() ;
       _needTimeout         = TRUE ;
       _needCloseOnEOF      = FALSE ;
+
+      _buffer.setContextValidator( this ) ;
    }
 
    _rtnContextBase::~_rtnContextBase()
@@ -614,7 +641,8 @@ namespace engine
       return ss.str() ;
    }
 
-   INT32 _rtnContextBase::append( const BSONObj &result )
+   INT32 _rtnContextBase::append( const BSONObj &result,
+                                  const BSONObj *orgResult )
    {
       INT32 rc = SDB_OK ;
 
@@ -624,8 +652,12 @@ namespace engine
          _isOpened = TRUE ;
       }
 
-      rc = _buffer.append( result ) ;
-      if ( SDB_OK != rc )
+      rc = _buffer.append( result, orgResult ) ;
+      if ( SDB_IXM_ADVANCE_EOC == rc )
+      {
+         goto done ; 
+      }
+      else if ( SDB_OK != rc )
       {
          PD_LOG ( PDERROR, "Failed to append obj to context buffer, rc: "
                            "%d", rc ) ;
@@ -812,8 +844,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       UINT64 beginTime ;
 
-      SDB_ASSERT( isEmpty(), "buf is not empty" ) ;
-
       beginTime = ossGetCurrentMicroseconds() ;
 
       while ( !eof() )
@@ -967,13 +997,35 @@ namespace engine
          UINT64 startDataRead = cb->getMonAppCB()->totalDataRead ;
          UINT64 startIndexRead = cb->getMonAppCB()->totalIndexRead ;
 
-         if ( _canPrepareMoreData() )
+         while ( TRUE )
          {
-            rc = _prepareMoreData( cb ) ;
-         }
-         else
-         {
-            rc = _prepareDataMonitor( cb ) ;
+            if ( _canPrepareMoreData() )
+            {
+               rc = _prepareMoreData( cb ) ;
+            }
+            else
+            {
+               rc = _prepareDataMonitor( cb ) ;
+            }
+
+            // For Data node: cl.query.sort(...).hint("$Range":{ ... })
+            if ( rc == SDB_IXM_ADVANCE_EOC ) 
+            {
+               rc = _prepareDoAdvance( cb ) ;
+               if ( SDB_DMS_EOC == rc )
+               {
+                  break ;  
+               }
+               else if ( rc ) 
+               {
+                  PD_LOG( PDERROR, "Prepare do advance failed, rc: %d", rc ) ;
+                  goto error ;
+               }
+            }
+            else 
+            {
+               break;
+            }
          }
 
          if ( rc && SDB_DMS_EOC != rc )
@@ -1161,7 +1213,8 @@ namespace engine
          orderbyFieldNum = orderby.nFields() ;
          if ( prefixNum > orderbyFieldNum )
          {
-            SDB_ASSERT( FALSE, "Invalid prefix number" ) ;
+            PD_LOG ( PDWARNING, "PrefixNum[%d] is too long, truncate to "
+                     "the same as the order by's field number", prefixNum ) ;
             prefixNum = orderbyFieldNum ;
          }
 
