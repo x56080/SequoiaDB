@@ -48,6 +48,7 @@
             <package name="com.sequoiadb.split.serial" />
             <package name="com.sequoiadb.lob.serial" />
             <package name="com.sequoiadb.explain.serial" />
+            <package name="com.sequoiadb.index.serial" />
       </packages>    
    </test>
 </suite>
