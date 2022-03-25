@@ -1540,7 +1540,9 @@ retry:
       if ( !shardIdxDef.isEmpty() )
       {
          rc = rtnCreateIndexCommand ( pCollection, shardIdxDef,
-                                      cb, dmsCB, dpsCB, TRUE ) ;
+                                      cb, dmsCB, dpsCB, TRUE,
+                                      SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE,
+                                      NULL, NULL, addIdxIDIfNotExist ) ;
          if ( SDB_IXM_REDEF == rc || SDB_IXM_EXIST_COVERD_ONE == rc )
          {
             /// same defined index already exists.

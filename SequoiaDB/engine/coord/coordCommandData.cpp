@@ -2760,6 +2760,14 @@ namespace engine
          BSONObj newHint ;
 
          BSONElement ele = cataObjs[0].getField( FIELD_NAME_INDEX ) ;
+         if ( ele.eoo() )
+         {
+            // old version of catalog doesn't has this field, just ignore error
+            rc = _coordDataCMD2Phase::_generateDataMsg( pMsg, cb, pArgs,
+                                                        cataObjs, ppMsgBuf,
+                                                        pBufSize ) ;
+            goto done ;
+         }
          PD_CHECK( Array == ele.type(), SDB_INVALIDARG, error, PDERROR,
                    "Invalid field[%s] type[%d] in obj[%s]",
                    FIELD_NAME_INDEX, ele.type(),
