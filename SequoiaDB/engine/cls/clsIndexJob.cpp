@@ -59,6 +59,8 @@ namespace engine
       {
          clsCreateIdxTask* pTask1 = (clsCreateIdxTask*)pTask ;
          _indexObj = pTask1->indexDef() ;
+         _hasSetIndexObj = TRUE ;
+         _indexName = pTask1->indexName() ;
          _sortBufSize = pTask1->sortBufSize() ;
       }
       else if ( CLS_TASK_DROP_IDX == pTask->taskType() )
@@ -66,11 +68,14 @@ namespace engine
          try
          {
             _indexObj = BSON( "" << pTask->indexName() ) ;
+            _hasSetIndexObj = TRUE ;
          }
          catch( std::exception &e )
          {
+            _hasSetIndexObj = FALSE ;
             PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
          }
+         _indexName = pTask->indexName() ;
          _sortBufSize = 0 ;
       }
 
@@ -97,8 +102,29 @@ namespace engine
       _locationID = _taskStatusPtr->locationID() ;
       _mainTaskID = _taskStatusPtr->mainTaskID() ;
 
-      _indexObj = _taskStatusPtr->indexDef() ;
-      _sortBufSize = _taskStatusPtr->sortBufSize() ;
+      if ( DMS_TASK_CREATE_IDX == _taskStatusPtr->taskType() )
+      {
+         _indexObj = _taskStatusPtr->indexDef() ;
+         _hasSetIndexObj = TRUE ;
+         _indexName = _taskStatusPtr->indexName() ;
+         _sortBufSize = _taskStatusPtr->sortBufSize() ;
+      }
+      else if ( DMS_TASK_DROP_IDX == _taskStatusPtr->taskType() )
+      {
+         try
+         {
+            // DON'T use _taskStatusPtr->indexDef(), it may be empty
+            _indexObj = BSON( "" << _taskStatusPtr->indexName() ) ;
+            _hasSetIndexObj = TRUE ;
+         }
+         catch( std::exception &e )
+         {
+            _hasSetIndexObj = FALSE ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         }
+         _indexName = _taskStatusPtr->indexName() ;
+         _sortBufSize = 0 ;
+      }
 
       _taskStatusPtr->collectionName( _clFullName, sizeof( _clFullName ) ) ;
       _clUniqID = _taskStatusPtr->clUniqueID() ;
@@ -162,7 +188,21 @@ namespace engine
    // master node use the function
    INT32 _clsIndexJob::init ()
    {
-      return _buildJobName() ;
+      if ( !_hasSetIndexObj )
+      {
+         try
+         {
+            _indexObj = BSON( "" << _indexName ) ;
+            _hasSetIndexObj = TRUE ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            return ossException2RC( &e ) ;
+         }
+      }
+
+      return _buildNames( FALSE ) ;
    }
 
    INT32 _clsIndexJob::doit()

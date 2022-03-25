@@ -87,7 +87,7 @@ namespace engine
 
       protected:
          virtual INT32 _onDoit( INT32 resultCode ) { return SDB_OK ; }
-         INT32 _buildJobName() ;
+         INT32 _buildNames( BOOLEAN buildIndexName = TRUE ) ;
          BOOLEAN _needRetry( INT32 rc ) ;
 
       protected:

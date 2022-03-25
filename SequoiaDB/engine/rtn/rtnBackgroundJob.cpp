@@ -228,7 +228,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _rtnIndexJob::_buildJobName()
+   INT32 _rtnIndexJob::_buildNames( BOOLEAN buildIndexName )
    {
       INT32 rc = SDB_OK ;
       stringstream ss ;
@@ -238,7 +238,10 @@ namespace engine
          if ( RTN_JOB_CREATE_INDEX == _type )
          {
             ss << "CreateIndex-" ;
-            _indexName = _indexObj.getStringField( IXM_NAME_FIELD ) ;
+            if ( buildIndexName )
+            {
+               _indexName = _indexObj.getStringField( IXM_NAME_FIELD ) ;
+            }
          }
          else if ( RTN_JOB_DROP_INDEX == _type )
          {
@@ -248,7 +251,10 @@ namespace engine
             {
                _indexEle = _indexObj.firstElement () ;
             }
-            _indexName = _indexEle.str() ;
+            if ( buildIndexName )
+            {
+               _indexName = _indexEle.str() ;
+            }
          }
          else
          {
@@ -285,7 +291,7 @@ namespace engine
       dmsTaskStatusMgr* taskStatMgr = sdbGetRTNCB()->getTaskStatusMgr() ;
       DMS_TASK_TYPE taskType = DMS_TASK_UNKNOWN ;
 
-      rc = _buildJobName() ;
+      rc = _buildNames() ;
       if ( rc )
       {
          goto error ;
