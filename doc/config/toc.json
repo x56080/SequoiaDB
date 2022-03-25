@@ -1223,6 +1223,12 @@
                      "file": "collection_operation",
                      "cn": "集合操作",
                      "en": "Collection Operation"
+                  },
+                  {
+                     "id": 1617245375,
+                     "file": "build_datasource",
+                     "cn": "搭建数据源",
+                     "en": "Build DataSource"
                   }
                ]
             },
@@ -1618,12 +1624,6 @@
                            "en": "Statistics"
                         }
                      ]
-                  },
-                  {
-                     "id": 1617245375,
-                     "file": "build_datasource",
-                     "cn": "搭建数据源",
-                     "en": "Build DataSource"
                   },
                   {
                      "id": 1432190663,
