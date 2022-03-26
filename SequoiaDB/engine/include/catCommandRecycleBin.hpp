@@ -233,7 +233,7 @@ namespace engine
 
    protected:
       utilRecycleItem _recycleItem ;
-      std::vector<UINT32> _groupList ;
+      CAT_GROUP_SET _groupIDSet ;
    } ;
 
    typedef class _catCMDDropRecycleBinItem catCMDDropRecycleBinItem ;

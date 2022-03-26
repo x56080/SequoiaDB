@@ -438,11 +438,10 @@ namespace engine
                         catCtxLockMgr &lockMgr,
                         OSS_LATCH_MODE mode ) ;
 
-   /* Get groups of Collection including its sub-collections */
-   INT32 catGetCollectionGroupsCascade ( const std::string &clName,
-                                         const BSONObj &boCollection,
-                                         _pmdEDUCB *cb,
-                                         std::vector<UINT32> &groupIDList ) ;
+   INT32 catLockGroups( const CAT_GROUP_SET &groupIDSet,
+                        _pmdEDUCB *cb,
+                        catCtxLockMgr &lockMgr,
+                        OSS_LATCH_MODE mode ) ;
 
    /* Check available of groups */
    INT32 catCheckGroupsByID ( std::vector<UINT32> &groupIDList ) ;
@@ -551,7 +550,7 @@ namespace engine
                                  catCollectionInfo &clInfo,
                                  UINT32 mask,
                                  UINT32 attribute,
-                                 const std::vector<UINT32> &grpIDLst,
+                                 const CAT_GROUP_SET &grpIDSet,
                                  const std::map<std::string, UINT32> &splitLst,
                                  BSONObj &catRecord,
                                  INT16 w ) ;
@@ -624,14 +623,12 @@ namespace engine
                                   INT16 w ) ;
    const CHAR *catGetRecycleBinMetaCL( UTIL_RECYCLE_TYPE type ) ;
    const CHAR *catGetRecycleBinRecyCL( UTIL_RECYCLE_TYPE type ) ;
-   INT32 catGetGroupListForRecycleCS( utilCSUniqueID csUniqueID,
-                                      pmdEDUCB *cb,
-                                      std::vector<UINT32> &groupIDList ) ;
-   INT32 catGetGroupListForRecycleItem( utilRecycleID recycleID,
-                                        pmdEDUCB *cb,
-                                        vector<UINT32> &groupIDList ) ;
-   INT32 catSaveToGroupIDSet( const VEC_GROUP_ID &groupIDVec,
-                              SET_UINT32 &groupIDSet ) ;
+   INT32 catGetGroupsForRecycleCS( utilCSUniqueID csUniqueID,
+                                   pmdEDUCB *cb,
+                                   CAT_GROUP_SET &groupIDSet ) ;
+   INT32 catGetGroupsForRecycleItem( utilRecycleID recycleID,
+                                     pmdEDUCB *cb,
+                                     CAT_GROUP_SET &groupIDSet ) ;
    INT32 catSaveToGroupIDList( SET_UINT32 &groupIDSet,
                                std::vector<UINT32> &groupIDList ) ;
    INT32 catParseUniqueID( const bson::BSONObj &object,

@@ -221,7 +221,8 @@ namespace engine
                                                  pmdEDUCB *cb,
                                                  rtnContextCoord::sharePtr *ppContext,
                                                  coordCMDArguments *pArgs,
-                                                 const CoordGroupList &pGroupLst )
+                                                 const CoordGroupList &pGroupLst,
+                                                 vector<BSONObj> &cataObjs )
    {
       INT32 rc = SDB_OK ;
 
@@ -230,10 +231,33 @@ namespace engine
       rtnContextBuf buffObj ;
 
       rc = _processContext( cb, ppContext, 1, buffObj ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to process context, rc: %d", rc ) ;
 
+      try
+      {
+         while ( !buffObj.eof() )
+         {
+            BSONObj reply ;
+            rc = buffObj.nextObj( reply ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get obj from obj buf, rc: %d",
+                         rc ) ;
+            cataObjs.push_back( reply.getOwned() ) ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to get reply object, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
       PD_TRACE_EXITRC ( COORD_NODE3PHASE_DOONCATAP2, rc ) ;
-
       return rc ;
+
+   error:
+      goto done ;
    }
 
    /*

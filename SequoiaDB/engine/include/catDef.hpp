@@ -40,6 +40,7 @@
 
 #include "msgCatalog.hpp"
 #include "fmpDef.hpp"
+#include "utilUniqueID.hpp"
 
 /*
    SYSCAT CollectionSpace define
@@ -151,5 +152,18 @@
 
 // collection for recycle index
 #define CAT_SYSRECYCLEBIN_IDX_COLLECTION  CAT_SYSRECYCLEBIN_SPACE_NAME".SYSINDEXES"
+
+namespace engine
+{
+   typedef std::vector<UINT32> CAT_GROUP_LIST ;
+   typedef CAT_GROUP_LIST::iterator CAT_GROUP_LIST_IT ;
+
+   typedef SET_UINT32 CAT_GROUP_SET ;
+   typedef CAT_GROUP_SET::iterator CAT_GROUP_SET_IT ;
+
+   typedef ossPoolList<PAIR_CLNAME_ID> CAT_PAIR_CLNAME_ID_LIST ;
+   typedef CAT_PAIR_CLNAME_ID_LIST::iterator CAT_PAIR_CLNAME_ID_LIST_IT ;
+   typedef CAT_PAIR_CLNAME_ID_LIST::const_iterator CAT_PAIR_CLNAME_ID_LIST_CIT ;
+}
 
 #endif // CATDEF_HPP__

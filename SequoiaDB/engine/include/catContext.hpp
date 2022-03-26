@@ -42,90 +42,13 @@
 #include "rtnContext.hpp"
 #include "catLevelLock.hpp"
 #include "catalogueCB.hpp"
+#include "catCtxEventHandler.hpp"
 #include "catContextTask.hpp"
 #include "catContextAlterTask.hpp"
-#include "utilRecycleItem.hpp"
 
 namespace engine
 {
    class sdbCatalogueCB ;
-
-   /*
-      _catCtxEventHandler define
-    */
-   class _catCtxEventHandler
-   {
-   public:
-      _catCtxEventHandler( catCtxLockMgr & lockMgr )
-      : _lockMgr( lockMgr )
-      {
-      }
-
-      virtual ~_catCtxEventHandler() {}
-
-      virtual const CHAR *getName() const = 0 ;
-
-      virtual INT32 parseQuery( const bson::BSONObj &boQuery,
-                                _pmdEDUCB *cb )
-      {
-         return SDB_OK ;
-      }
-
-      virtual INT32 onCheckEvent( SDB_EVENT_OCCUR_TYPE type,
-                                  const CHAR *targetName,
-                                  const bson::BSONObj &boTarget,
-                                  _pmdEDUCB *cb,
-                                  INT16 w )
-      {
-         return SDB_OK ;
-      }
-
-      virtual INT32 onExecuteEvent( SDB_EVENT_OCCUR_TYPE type,
-                                    _pmdEDUCB *cb,
-                                    INT16 w )
-      {
-         return SDB_OK ;
-      }
-
-      virtual INT32 onCommitEvent( SDB_EVENT_OCCUR_TYPE type,
-                                   _pmdEDUCB *cb,
-                                   INT16 w )
-      {
-         return SDB_OK ;
-      }
-
-      virtual INT32 onRollbackEvent( SDB_EVENT_OCCUR_TYPE type,
-                                     _pmdEDUCB *cb,
-                                     INT16 w )
-      {
-         return SDB_OK ;
-      }
-
-      virtual void onDeleteEvent()
-      {
-      }
-
-      virtual INT32 buildP1Reply( bson::BSONObjBuilder &builder )
-      {
-         return SDB_OK ;
-      }
-
-      virtual INT32 buildP2Reply( bson::BSONObjBuilder &builder )
-      {
-         return SDB_OK ;
-      }
-
-      virtual INT32 buildPCReply( bson::BSONObjBuilder &builder )
-      {
-         return SDB_OK ;
-      }
-
-   protected:
-      catCtxLockMgr & _lockMgr ;
-   } ;
-   typedef class _catCtxEventHandler catCtxEventHandler ;
-   typedef ossPoolList< catCtxEventHandler * > CAT_CTX_EVENT_HANDLER_LIST ;
-   typedef CAT_CTX_EVENT_HANDLER_LIST::iterator CAT_CTX_EVENT_HANDLER_LIST_IT ;
 
    /*
     * _catContextBase define

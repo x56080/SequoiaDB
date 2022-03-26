@@ -374,7 +374,10 @@ INT32 msgBuildTestCSMsg( CHAR **ppBuffer, INT32 *bufferSize,
                          UINT64 reqID, engine::IExecutor *cb = NULL ) ;
 
 INT32 msgBuildDropCSMsg( CHAR **ppBuffer, INT32 *bufferSize,
-                         const CHAR *CollectionSpaceName, UINT64 reqID,
+                         const CHAR *CollectionSpaceName,
+                         BOOLEAN skipRecycleBin,
+                         BOOLEAN ignoreLock,
+                         UINT64 reqID,
                          engine::IExecutor *cb = NULL ) ;
 
 INT32 msgBuildCreateCLMsg( CHAR **ppBuffer, INT32 *bufferSize,
@@ -384,14 +387,14 @@ INT32 msgBuildCreateCLMsg( CHAR **ppBuffer, INT32 *bufferSize,
 
 INT32 msgBuildDropCLMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                           const CHAR *CollectionName,
-                          BOOLEAN useRecycleBin,
+                          BOOLEAN skipRecycleBin,
                           BOOLEAN ignoreLock,
                           UINT64 reqID,
                           engine::IExecutor *cb = NULL ) ;
 
 INT32 msgBuildTruncateCLMsg( CHAR **ppBuffer, INT32 *bufferSize,
                              const CHAR *CollectionName,
-                             BOOLEAN useRecycleBin,
+                             BOOLEAN skipRecycleBin,
                              BOOLEAN ignoreLock,
                              UINT64 reqID,
                              engine::IExecutor *cb = NULL ) ;

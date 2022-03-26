@@ -484,7 +484,7 @@ namespace engine
                          _recycleItem.getRecycleName(), rc ) ;
          }
 
-         rc = catGetGroupListForRecycleCS( csUniqueID, cb, _groupList ) ;
+         rc = catGetGroupsForRecycleCS( csUniqueID, cb, _groupIDSet ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get group list for "
                       "recycle collection space item [%s], rc: %d",
                       _recycleItemName, rc ) ;
@@ -528,8 +528,8 @@ namespace engine
                          _recycleItem.getRecycleName(), rc ) ;
          }
 
-         rc = catGetGroupListForRecycleItem( _recycleItem.getRecycleID(), cb,
-                                             _groupList ) ;
+         rc = catGetGroupsForRecycleItem( _recycleItem.getRecycleID(), cb,
+                                          _groupIDSet ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to group list for recycle "
                       "collection item [%s], rc: %d", _recycleItemName, rc ) ;
       }
@@ -671,7 +671,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to drop recycle item [%s], "
                    "rc: %d", _recycleItemName, rc ) ;
 
-      rc = sdbGetCatalogueCB()->makeGroupsObj( retObjBuilder, _groupList, TRUE ) ;
+      rc = sdbGetCatalogueCB()->makeGroupsObj( retObjBuilder, _groupIDSet, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to make group object, rc: %d", rc ) ;
 
       try

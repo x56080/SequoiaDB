@@ -1,0 +1,648 @@
+/*******************************************************************************
+
+
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+   Source File Name = catContextData.cpp
+
+   Descriptive Name = Runtime Context of Catalog
+
+   When/how to use: this program may be used on binary and text-formatted
+   versions of Runtime component. This file contains Runtime Context of Catalog
+   helper functions.
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+
+   Last Changed =
+
+*******************************************************************************/
+
+#include "catCtxEventHandler.hpp"
+#include "pdTrace.hpp"
+#include "catTrace.hpp"
+#include "rtn.hpp"
+#include "catCommon.hpp"
+#include "catRecycleBinManager.hpp"
+
+using namespace bson ;
+using namespace std ;
+
+namespace engine
+{
+
+   /*
+      _catCtxGroupHandler implement
+    */
+   _catCtxGroupHandler::_catCtxGroupHandler( catCtxLockMgr &lockMgr )
+   : _catCtxEventHandler( lockMgr )
+   {
+   }
+
+   _catCtxGroupHandler::~_catCtxGroupHandler()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXGRPHANDLER_ADDGRP, "_catCtxGroupHandler::addGroup" )
+   INT32 _catCtxGroupHandler::addGroup( UINT32 groupID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXGRPHANDLER_ADDGRP ) ;
+
+      try
+      {
+         _groupIDSet.insert( groupID ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to add group ID, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXGRPHANDLER_ADDGRP, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXGRPHANDLER_ADDGRPS_CL, "_catCtxGroupHandler::addGroups" )
+   INT32 _catCtxGroupHandler::addGroups( const BSONObj &boCollection )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXGRPHANDLER_ADDGRPS_CL ) ;
+
+      rc = catGetCollectionGroupSet( boCollection, _groupIDSet ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to collect groups for collection [%s], "
+                   "rc: %d", boCollection.toPoolString().c_str(), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXGRPHANDLER_ADDGRPS_CL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXGRPHANDLER_ADDGRPS_SET, "_catCtxGroupHandler::addGroups" )
+   INT32 _catCtxGroupHandler::addGroups( const CAT_GROUP_SET &groupIDSet )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXGRPHANDLER_ADDGRPS_SET ) ;
+
+      try
+      {
+         _groupIDSet.insert( groupIDSet.begin(), groupIDSet.end() ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to add groups, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXGRPHANDLER_ADDGRPS_SET, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXGRPHANDLER_ADDGRPS_LIST, "_catCtxGroupHandler::addGroups" )
+   INT32 _catCtxGroupHandler::addGroups( const CAT_GROUP_LIST &groupIDList )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXGRPHANDLER_ADDGRPS_LIST ) ;
+
+      try
+      {
+         _groupIDSet.insert( groupIDList.begin(), groupIDList.end() ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to add groups, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXGRPHANDLER_ADDGRPS_LIST, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXGRPHANDLER_ADDGRPS_RECYCLEBIN, "_catCtxGroupHandler::addGroupsInRecycleBin" )
+   INT32 _catCtxGroupHandler::addGroupsInRecycleBin( utilCSUniqueID csUniqueID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXGRPHANDLER_ADDGRPS_RECYCLEBIN ) ;
+
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+
+      rc = catGetGroupsForRecycleCS( csUniqueID, cb, _groupIDSet ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get group list for recycle "
+                   "collections from collection space [%llu], rc: %d",
+                   csUniqueID, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXGRPHANDLER_ADDGRPS_RECYCLEBIN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXGRPHANDLER_ONCHECKEVENT, "_catCtxGroupHandler::onCheckEvent" )
+   INT32 _catCtxGroupHandler::onCheckEvent( SDB_EVENT_OCCUR_TYPE type,
+                                            _pmdEDUCB *cb,
+                                            INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXGRPHANDLER_ONCHECKEVENT ) ;
+
+      if ( SDB_EVT_OCCUR_AFTER == type )
+      {
+         // Lock groups in shared
+         rc = catLockGroups( _groupIDSet, cb, _lockMgr, SHARED ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to lock groups, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXGRPHANDLER_ONCHECKEVENT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXGRPHANDLER_BUILDP1REPLY, "_catCtxGroupHandler::buildP1Reply" )
+   INT32 _catCtxGroupHandler::buildP1Reply( BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXGRPHANDLER_BUILDP1REPLY ) ;
+
+      // return group list to COORD, so COORD can send command to
+      // specified groups
+      rc = sdbGetCatalogueCB()->makeGroupsObj( builder, _groupIDSet, TRUE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to make group object, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXGRPHANDLER_BUILDP1REPLY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   /*
+      _catCtxGlobIdxHandler implement
+    */
+   _catCtxGlobIdxHandler::_catCtxGlobIdxHandler( catCtxLockMgr &lockMgr )
+   : _catCtxEventHandler( lockMgr ),
+     _excludedCSUniqueID( UTIL_UNIQUEID_NULL )
+   {
+   }
+
+   _catCtxGlobIdxHandler::~_catCtxGlobIdxHandler()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXGLOBIDXHANDLER_ADDGLOBIDXS, "_catCtxGlobIdxHandler::addGlobIdxs" )
+   INT32 _catCtxGlobIdxHandler::addGlobIdxs( const CAT_PAIR_CLNAME_ID_LIST &globIdxList )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXGLOBIDXHANDLER_ADDGLOBIDXS ) ;
+
+      try
+      {
+         _globIdxList.insert( _globIdxList.end(),
+                                globIdxList.begin(),
+                                globIdxList.end() ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to add global index collections, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXGLOBIDXHANDLER_ADDGLOBIDXS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXGLOBIDXHANDLER_ADDGLOBIDXS_CL, "_catCtxGlobIdxHandler::addGlobIdxs" )
+   INT32 _catCtxGlobIdxHandler::addGlobIdxs( const CHAR *collectionName )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXGLOBIDXHANDLER_ADDGLOBIDXS_CL ) ;
+
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+
+      // get collection's global index
+      rc = catGetCLGlobalIndexesInfo( collectionName, cb, _globIdxList ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get collection[%s]'s "
+                   "global indexes, rc: %d", collectionName, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXGLOBIDXHANDLER_ADDGLOBIDXS_CL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXGLOBIDXHANDLER_BUILDP1REPLY, "_catCtxGlobIdxHandler::buildP1Reply" )
+   INT32 _catCtxGlobIdxHandler::buildP1Reply( BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXGLOBIDXHANDLER_BUILDP1REPLY ) ;
+
+      if ( _globIdxList.empty() )
+      {
+         goto done ;
+      }
+
+      try
+      {
+         // build global index list
+         BSONArrayBuilder indexArrBuilder(
+                     builder.subarrayStart( CAT_GLOBAL_INDEX ) ) ;
+
+         for ( CAT_PAIR_CLNAME_ID_LIST_IT it = _globIdxList.begin() ;
+               it != _globIdxList.end() ;
+               ++ it )
+         {
+            // if collection space is excluded, no need to return
+            if ( ( UTIL_UNIQUEID_NULL == _excludedCSUniqueID ) ||
+                 ( utilGetCSUniqueID( it->second ) != _excludedCSUniqueID ) )
+            {
+               indexArrBuilder.append(
+                     BSON( CAT_COLLECTION << it->first <<
+                           CAT_GIDX_CL_UNIQUEID << (INT64)( it->second ) ) ) ;
+            }
+         }
+
+         indexArrBuilder.done() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build reply with global indexes, "
+                 "occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXGLOBIDXHANDLER_BUILDP1REPLY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   /*
+      _catCtxRecycleHelper implement
+    */
+   _catCtxRecycleHelper::_catCtxRecycleHelper( UTIL_RECYCLE_TYPE type,
+                                               UTIL_RECYCLE_OPTYPE opType )
+   : _recycleBinMgr( sdbGetCatalogueCB()->getRecycleBinMgr() ),
+     _recycleItem( type, opType )
+   {
+   }
+
+   _catCtxRecycleHelper::~_catCtxRecycleHelper()
+   {
+   }
+
+   /*
+      _catCtxRecycleHandler implement
+    */
+   _catCtxRecycleHandler::_catCtxRecycleHandler( UTIL_RECYCLE_TYPE type,
+                                                 UTIL_RECYCLE_OPTYPE opType,
+                                                 catCtxLockMgr &lockMgr )
+   : _catCtxEventHandler( lockMgr ),
+     _catCtxRecycleHelper( type, opType ),
+     _isUseRecycleBin( TRUE ),
+     _isReservedItem( FALSE )
+   {
+   }
+
+   _catCtxRecycleHandler::~_catCtxRecycleHandler()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXRECYHANDLER_PARSEQUERY, "_catCtxRecycleHandler::parseQuery" )
+   INT32 _catCtxRecycleHandler::parseQuery( const BSONObj &boQuery,
+                                            _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXRECYHANDLER_PARSEQUERY ) ;
+
+      try
+      {
+         BOOLEAN isSkipRecycleBin = FALSE ;
+
+         BSONElement ele = boQuery.getField( FIELD_NAME_SKIPRECYCLEBIN ) ;
+
+         if ( EOO != ele.type() )
+         {
+            PD_CHECK( Bool == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                      "Failed to get field [%s], type is not Bool, "
+                      "type: %d, obj: %s",
+                      FIELD_NAME_SKIPRECYCLEBIN, ele.type(),
+                      boQuery.toString().c_str() ) ;
+            isSkipRecycleBin = ele.Bool() ;
+         }
+
+         // skip to use recycle bin
+         if ( isSkipRecycleBin )
+         {
+            _isUseRecycleBin = FALSE ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse message, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXRECYHANDLER_PARSEQUERY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXRECYHANDLER_ONCHECKEVENT, "_catCtxRecycleHandler::onCheckEvent" )
+   INT32 _catCtxRecycleHandler::onCheckEvent( SDB_EVENT_OCCUR_TYPE type,
+                                              const CHAR *targetName,
+                                              const BSONObj &boTarget,
+                                              _pmdEDUCB *cb,
+                                              INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXRECYHANDLER_ONCHECKEVENT ) ;
+
+      if ( SDB_EVT_OCCUR_AFTER == type )
+      {
+         utilGlobalID originID = UTIL_GLOBAL_NULL ;
+
+         PD_CHECK( NULL != targetName, SDB_SYS, error, PDERROR,
+                   "Failed to check target name, it is invalid" ) ;
+
+         rc = catParseUniqueID( boTarget, originID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse unique ID from [%s], "
+                      "rc: %d", boTarget.toPoolString().c_str(), rc ) ;
+
+         _recycleItem.setOriginName( targetName ) ;
+         _recycleItem.setOriginID( originID ) ;
+
+         // check data source
+         if ( boTarget.hasField( FIELD_NAME_DATASOURCE_ID ) )
+         {
+            // it is from data source, not use recycle bin
+            _isUseRecycleBin = FALSE ;
+         }
+
+         if ( _isUseRecycleBin )
+         {
+            rc = _checkRecycle( cb, w ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to check recycle, rc: %d", rc ) ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXRECYHANDLER_ONCHECKEVENT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXRECYHANDLER__CHECKRECYCKE, "_catCtxRecycleHandler::_checkRecycle" )
+   INT32 _catCtxRecycleHandler::_checkRecycle( _pmdEDUCB *cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXRECYHANDLER__CHECKRECYCKE ) ;
+
+      rc = _recycleBinMgr->prepareItem( _recycleItem, _droppingItems,
+                                        _lockMgr, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to prepare dropping items, "
+                   "rc: %d", rc ) ;
+
+      if ( !_recycleItem.isValid() )
+      {
+         _isUseRecycleBin = FALSE ;
+      }
+      else
+      {
+         _recycleBinMgr->reserveItem() ;
+         _isReservedItem = TRUE ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXRECYHANDLER__CHECKRECYCKE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXRECYHANDLER_ONEXECUTEEVENT, "_catCtxRecycleHandler::onExecuteEvent" )
+   INT32 _catCtxRecycleHandler::onExecuteEvent( SDB_EVENT_OCCUR_TYPE type,
+                                                _pmdEDUCB *cb,
+                                                INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXRECYHANDLER_ONEXECUTEEVENT ) ;
+
+      if ( SDB_EVT_OCCUR_BEFORE == type )
+      {
+         if ( _isUseRecycleBin )
+         {
+            rc = _executeRecycle( cb, w ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to execute recycle, "
+                         "rc: %d", rc ) ;
+         }
+         else
+         {
+            rc = _executeWithoutRecycle( cb, w ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to execute without recycle, "
+                         "rc: %d", rc ) ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXRECYHANDLER_ONEXECUTEEVENT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXRECYHANDLER__EXECRECYCKE, "_catCtxRecycleHandler::_executeRecycle" )
+   INT32 _catCtxRecycleHandler::_executeRecycle( _pmdEDUCB *cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXRECYHANDLER__EXECRECYCKE ) ;
+
+      SDB_ASSERT( _recycleItem.isValid(), "recycle item should be valid" ) ;
+
+      rc = _recycleBinMgr->commitItem( _recycleItem, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to commit recycle item, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXRECYHANDLER__EXECRECYCKE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXRECYHANDLER__EXECWITHOUTRECYCKE, "_catCtxRecycleHandler::_executeWithoutRecycle" )
+   INT32 _catCtxRecycleHandler::_executeWithoutRecycle( _pmdEDUCB *cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXRECYHANDLER__EXECWITHOUTRECYCKE ) ;
+
+      // if drop CS without recycle, drop recycled items inside
+      // the collection space
+      if ( UTIL_RECYCLE_CS == _recycleItem.getType() &&
+           UTIL_RECYCLE_OP_DROP == _recycleItem.getOpType() &&
+           UTIL_GLOBAL_NULL != _recycleItem.getOriginID() )
+      {
+         utilCSUniqueID csUniqueID =
+               (utilCSUniqueID)( _recycleItem.getOriginID() ) ;
+         rc = _recycleBinMgr->dropItemsInCS( csUniqueID, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to drop recycle items in "
+                      "collection space [%s], rc: %d",
+                      _recycleItem.getOriginName(), rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXRECYHANDLER__EXECWITHOUTRECYCKE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXRECYHANDLER_ONDELETEEVENT, "_catCtxRecycleHandler::onDeleteEvent" )
+   void _catCtxRecycleHandler::onDeleteEvent()
+   {
+      PD_TRACE_ENTRY( SDB_CATCTXRECYHANDLER_ONDELETEEVENT ) ;
+
+      if ( _isReservedItem )
+      {
+         _recycleBinMgr->unreserveItem() ;
+      }
+
+      PD_TRACE_EXIT( SDB_CATCTXRECYHANDLER_ONDELETEEVENT ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXRECYHANDLER_BUILDP1REPLY, "_catCtxRecycleHandler::buildP1Reply" )
+   INT32 _catCtxRecycleHandler::buildP1Reply( BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXRECYHANDLER_BUILDP1REPLY ) ;
+
+      if ( !_isUseRecycleBin )
+      {
+         goto done ;
+      }
+
+      if ( _recycleItem.isValid() )
+      {
+         rc = _recycleItem.toBSON( builder, FIELD_NAME_RECYCLE_ITEM ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build reply for "
+                      "recycle item [origin %s, recycle %s], rc: %d",
+                      _recycleItem.getOriginName(),
+                      _recycleItem.getRecycleName(), rc ) ;
+      }
+
+      if ( !_droppingItems.empty() )
+      {
+         try
+         {
+            BSONArrayBuilder subBuilder(
+                  builder.subarrayStart( FIELD_NAME_DROP_RECYCLE_ITEM ) ) ;
+
+            for ( UTIL_RECY_ITEM_LIST_CIT iter = _droppingItems.begin() ;
+                  iter != _droppingItems.end() ;
+                  ++ iter )
+            {
+               subBuilder.append( iter->getRecycleName() ) ;
+            }
+
+            subBuilder.doneFast() ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to build reply with dropping items, "
+                    "occur exception %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            return rc ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXRECYHANDLER_BUILDP1REPLY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+}

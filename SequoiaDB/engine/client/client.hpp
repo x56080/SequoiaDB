@@ -2333,7 +2333,7 @@ namespace sdbclient
       /** \fn INT32 truncate( const bson::BSONObj &options )
           \brief truncate the collection
           \param [in] options The arguments of truncate
-              UseRecycleBin      : Whether to use recycle bin, default is true
+              SkipRecycleBin      : Whether to skip recycle bin, default is true
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
@@ -3623,7 +3623,7 @@ namespace sdbclient
           \brief Drop the specified collection in current collection space.
           \param [in] pCollection  The collection name.
           \param [in] options The arguments of drop collection
-              UseRecycleBin      : Whether to use recycle bin, default is true
+              SkipRecycleBin      : Whether to skip recycle bin, default is false
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
@@ -6540,7 +6540,7 @@ namespace sdbclient
           \brief Remove the specified collection space.
           \param [in] pCollectionSpaceName The name of collection space.
           \param [in] options The arguments of drop collection space
-              UseRecycleBin      : Whether to use recycle bin, default is true
+              SkipRecycleBin      : Whether to skip recycle bin, default is false
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */

@@ -48,171 +48,6 @@ using namespace bson ;
 namespace engine
 {
 
-   typedef ossPoolList< ossPoolString >   COORD_GLOBIDXCL_NAME_LIST ;
-   typedef COORD_GLOBIDXCL_NAME_LIST::iterator
-                                          COORD_GLOBIDXCL_NAME_LIST_IT ;
-   typedef COORD_GLOBIDXCL_NAME_LIST::const_iterator
-                                          COORD_GLOBIDXCL_NAME_LIST_CIT ;
-
-   /*
-      _coordDataCMDHelper define
-    */
-   class _coordDataCMDHelper
-   {
-   public:
-      _coordDataCMDHelper() {}
-      ~_coordDataCMDHelper() {}
-
-      INT32 dropCL( coordResource *resource,
-                    const CHAR *clName,
-                    BOOLEAN useRecycleBin,
-                    BOOLEAN ignoreLock,
-                    pmdEDUCB *cb ) ;
-      INT32 truncateCL( coordResource *resource,
-                        const CHAR *clName,
-                        BOOLEAN useRecycleBin,
-                        BOOLEAN ignoreLock,
-                        pmdEDUCB *cb ) ;
-      INT32 alterCL( coordResource *resource,
-                     const CHAR *clName,
-                     const bson::BSONObj &options,
-                     pmdEDUCB *cb ) ;
-   } ;
-   typedef class _coordDataCMDHelper coordDataCMDHelper ;
-
-   /*
-      _coordCMDGlobIdxHandler define
-    */
-   class _coordCMDGlobIdxHandler : public _coordCMDEventHandler
-   {
-   public:
-      _coordCMDGlobIdxHandler() {}
-      virtual ~_coordCMDGlobIdxHandler() {}
-
-      virtual INT32 parseCatReturn( coordCMDArguments *pArgs,
-                                    const std::vector<bson::BSONObj> &cataObjs ) ;
-
-      virtual INT32 onDataP1Event( SDB_EVENT_OCCUR_TYPE type,
-                                   coordResource *pResource,
-                                   coordCMDArguments *pArgs,
-                                   pmdEDUCB *cb ) ;
-
-   protected:
-      INT32 _repairCheckGlobIdxCLs( coordResource *resource,
-                                    BOOLEAN enableRepairCheck,
-                                    pmdEDUCB *cb ) ;
-
-   protected:
-      COORD_GLOBIDXCL_NAME_LIST _globalIndexes ;
-   } ;
-
-   typedef class _coordCMDGlobIdxHandler coordCMDGlobIdxHandler ;
-
-   /*
-      _coordDropGlobIdxHandler define
-    */
-   class _coordDropGlobIdxHandler : public _coordCMDGlobIdxHandler
-   {
-   public:
-      _coordDropGlobIdxHandler() {}
-      virtual ~_coordDropGlobIdxHandler() {}
-
-      virtual const CHAR *getName() const
-      {
-         return "drop global index" ;
-      }
-
-      virtual INT32 onDataP2Event( SDB_EVENT_OCCUR_TYPE type,
-                                   coordResource *pResource,
-                                   coordCMDArguments *pArgs,
-                                   pmdEDUCB *cb ) ;
-
-   protected:
-      INT32 _dropGlobIdxCLs( coordResource *resource,
-                             pmdEDUCB *cb ) ;
-   } ;
-
-   typedef class _coordDropGlobIdxHandler coordDropGlobIdxHandler ;
-
-   /*
-      _coordTruncGlobIdxHandler define
-    */
-   class _coordTruncGlobIdxHandler : public _coordCMDGlobIdxHandler
-   {
-   public:
-      _coordTruncGlobIdxHandler() {}
-      virtual ~_coordTruncGlobIdxHandler() {}
-
-      virtual const CHAR *getName() const
-      {
-         return "truncate global index" ;
-      }
-
-      virtual INT32 onDataP2Event( SDB_EVENT_OCCUR_TYPE type,
-                                   coordResource *resource,
-                                   coordCMDArguments *arguments,
-                                   pmdEDUCB *cb ) ;
-
-   protected:
-      INT32 _truncGlobIdxCLs( coordResource *resource,
-                              pmdEDUCB *cb ) ;
-   } ;
-
-   typedef class _coordTruncGlobIdxHandler coordTruncGlobIdxHandler ;
-
-   /*
-      _coordCMDRecycleHandler define
-    */
-   class _coordCMDRecycleHandler : public _coordCMDEventHandler
-   {
-   public:
-      _coordCMDRecycleHandler() {}
-      virtual ~_coordCMDRecycleHandler() {}
-
-      virtual const CHAR *getName() const
-      {
-         return "recycle" ;
-      }
-
-      virtual INT32 parseCatReturn( coordCMDArguments *pArgs,
-                                    const std::vector<bson::BSONObj> &cataObjs ) ;
-
-      virtual BOOLEAN needRewriteDataMsg()
-      {
-         return _recycleOptions.isEmpty() ? FALSE : TRUE ;
-      }
-
-      virtual INT32 rewriteDataMsg( bson::BSONObjBuilder &queryBuilder,
-                                    bson::BSONObjBuilder &hintBuilder ) ;
-
-      virtual INT32 onDataP1Event( SDB_EVENT_OCCUR_TYPE type,
-                                   coordResource *resource,
-                                   coordCMDArguments *arguments,
-                                   pmdEDUCB *cb ) ;
-
-   protected:
-      INT32 _dropRecycleItem( coordResource *resource,
-                              const CHAR *recycleName,
-                              BOOLEAN ignoreIfNotExists,
-                              BOOLEAN isRecursive,
-                              BOOLEAN isEnforced,
-                              BOOLEAN ignoreLock,
-                              pmdEDUCB *cb ) ;
-
-      INT32 _dropRecycleItems( coordResource *resource,
-                               BOOLEAN ignoreIfNotExists,
-                               BOOLEAN isRecursive,
-                               BOOLEAN isEnforced,
-                               BOOLEAN ignoreLock,
-                               pmdEDUCB *cb ) ;
-
-   protected:
-      bson::BSONObj            _recycleOptions ;
-      UTIL_RECY_ITEM_NAME_LIST _droppingItems ;
-   } ;
-
-   typedef class _coordCMDRecycleHandler coordCMDRecycleHandler;
-
    /*
       _coordDataCMD2Phase define
    */
@@ -302,7 +137,8 @@ namespace engine
                                           pmdEDUCB *cb,
                                           rtnContextCoord::sharePtr *ppContext,
                                           coordCMDArguments *pArgs,
-                                          const CoordGroupList &pGroupLst ) ;
+                                          const CoordGroupList &pGroupLst,
+                                          vector<BSONObj> &cataObjs ) ;
 
          virtual INT32 _doOnDataGroupP2 ( MsgHeader *pMsg,
                                           pmdEDUCB *cb,
@@ -390,7 +226,8 @@ namespace engine
                                           pmdEDUCB * cb,
                                           rtnContextCoord::sharePtr *ppContext,
                                           coordCMDArguments * pArgs,
-                                          const CoordGroupList & groupLst ) ;
+                                          const CoordGroupList & groupLst,
+                                          vector<BSONObj> &cataObjs ) ;
 
          virtual INT32 _doOnDataGroupP2 ( MsgHeader * pMsg,
                                           pmdEDUCB * cb,

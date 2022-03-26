@@ -49,12 +49,6 @@ using namespace bson ;
 namespace engine
 {
    class _SDB_DMSCB ;
-   typedef _SDB_DMSCB SDB_DMSCB;
-   typedef std::vector< UINT32 > CAT_GROUP_LIST ;
-
-   typedef ossPoolList<PAIR_CLNAME_ID> CAT_PAIR_CLNAME_ID_LIST ;
-   typedef CAT_PAIR_CLNAME_ID_LIST::iterator CAT_PAIR_CLNAME_ID_LIST_IT ;
-   typedef CAT_PAIR_CLNAME_ID_LIST::const_iterator CAT_PAIR_CLNAME_ID_LIST_CIT ;
 
    /*
     * _catCtxTaskBase define

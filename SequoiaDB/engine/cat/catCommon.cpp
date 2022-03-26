@@ -5398,77 +5398,43 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCLGRPCASCADE, "catGetCollectionGroupsCascade" )
-   INT32 catGetCollectionGroupsCascade ( const std::string &clName,
-                                         const BSONObj &boCollection,
-                                         _pmdEDUCB *cb,
-                                         std::vector<UINT32> &groupIDList )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATLOCKGROUPS_SET, "catLockGroups" )
+   INT32 catLockGroups ( const CAT_GROUP_SET &groupIDSet,
+                         _pmdEDUCB *cb,
+                         catCtxLockMgr &lockMgr,
+                         OSS_LATCH_MODE mode )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY ( SDB_CATGETCLGRPCASCADE ) ;
+      PD_TRACE_ENTRY ( SDB_CATLOCKGROUPS_SET ) ;
 
-      if ( boCollection.isEmpty() )
+      // Lock groups
+      for ( CAT_GROUP_SET_IT iter = groupIDSet.begin() ;
+            iter != groupIDSet.end() ;
+            ++ iter )
       {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
+         string groupName ;
+         UINT32 groupID = *iter ;
 
-      try
-      {
-         clsCatalogSet cataSet( clName.c_str() );
+         if ( SDB_IS_DSID( groupID ) )
+         {
+            // Do nothing for data source groups.
+            continue ;
+         }
 
-         rc = cataSet.updateCatSet( boCollection ) ;
+         rc = catGroupID2Name( groupID, groupName, cb ) ;
          PD_RC_CHECK( rc, PDWARNING,
-                      "Failed to parse catalog info of collection [%s], rc: %d",
-                      clName.c_str(), rc ) ;
+                      "Failed to convert group id [%d] to group name, rc: %d",
+                      groupID, rc ) ;
 
-         if ( cataSet.isMainCL() )
-         {
-            CLS_SUBCL_LIST subCLLst ;
-            CLS_SUBCL_LIST_IT iterSubCL ;
-            rc = cataSet.getSubCLList( subCLLst );
-            PD_RC_CHECK( rc, PDWARNING,
-                         "Failed to get sub-collection list of collection [%s], "
-                         "rc: %d",
-                         clName.c_str(), rc ) ;
-            iterSubCL = subCLLst.begin() ;
-            while( iterSubCL != subCLLst.end() )
-            {
-               const std::string &subCLName = (*iterSubCL) ;
-               BSONObj boSubCL ;
-
-               rc = catGetCollection( subCLName, boSubCL, cb ) ;
-               PD_RC_CHECK( rc, PDWARNING,
-                            "Failed to get sub-collection [%s], rc: %d",
-                            subCLName.c_str(), rc ) ;
-
-               rc = catGetCollectionGroupSet( boSubCL, groupIDList ) ;
-               PD_RC_CHECK( rc, PDWARNING,
-                            "Failed to collect groups of sub-collection [%s], "
-                            "rc: %d",
-                            subCLName.c_str(), rc ) ;
-
-               ++iterSubCL ;
-            }
-         }
-         else
-         {
-            rc = catGetCollectionGroupSet( boCollection, groupIDList ) ;
-            PD_RC_CHECK( rc, PDWARNING,
-                         "Failed to collect groups for collection [%s], rc: %d",
-                         boCollection.toString().c_str(), rc ) ;
-         }
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
+         PD_CHECK( lockMgr.tryLockGroup( groupName, mode ),
+                   SDB_LOCK_FAILED, error, PDWARNING,
+                   "Failed to lock group [%s]",
+                   groupName.c_str() ) ;
       }
 
    done :
-      PD_TRACE_EXITRC ( SDB_CATGETCLGRPCASCADE, rc ) ;
+      PD_TRACE_EXITRC ( SDB_CATLOCKGROUPS_SET, rc ) ;
       return rc ;
    error :
       goto done ;
@@ -6989,7 +6955,7 @@ namespace engine
    INT32 catBuildCatalogRecord( _pmdEDUCB *cb,
                                 catCollectionInfo &clInfo,
                                 UINT32 mask, UINT32 attribute,
-                                const std::vector<UINT32> &grpIDLst,
+                                const CAT_GROUP_SET &grpIDSet,
                                 const std::map<std::string, UINT32> &splitLst,
                                 BSONObj &catRecord,
                                 INT16 w )
@@ -7139,10 +7105,10 @@ namespace engine
 
          if ( UTIL_INVALID_DS_UID == clInfo._dsUID )
          {
-            PD_CHECK( grpIDLst.size() == 1,
+            PD_CHECK( grpIDSet.size() == 1,
                       SDB_INVALIDARG, error, PDWARNING,
                       "Must has only one group specified" ) ;
-            grpID = grpIDLst[0] ;
+            grpID = *( grpIDSet.begin() ) ;
          }
          else
          {
@@ -7911,7 +7877,7 @@ namespace engine
             UINT32 mask = UTIL_CL_NAME_FIELD ;
             const CHAR *csMapping =
                   csMetaData.getStringField( FIELD_NAME_MAPPING ) ;
-            vector<UINT32> grpList ;
+            CAT_GROUP_SET grpIDset ;
             map<string, UINT32> splitList ;
 
             SDB_ASSERT( csMapping, "cs mapping is NULL" ) ;
@@ -7922,11 +7888,11 @@ namespace engine
             clInfo._pCLName = clFullName ;
             ossStrncpy( clInfo._fullMapping, mappingName,
                         DMS_COLLECTION_FULL_NAME_SZ ) ;
-            grpList.push_back( SDB_DSID_2_GROUPID( dsID ) ) ;
+            grpIDset.insert( SDB_DSID_2_GROUPID( dsID ) ) ;
             clInfo._dsUID = dsID ;
             clInfo._version = CATALOG_INVALID_VERSION ;
 
-            rc = catBuildCatalogRecord( cb, clInfo, mask, 0, grpList,
+            rc = catBuildCatalogRecord( cb, clInfo, mask, 0, grpIDset,
                                         splitList, catalog, 1 ) ;
             PD_RC_CHECK( rc, PDERROR, "Build catalogue record for collection"
                                       "[%s] failed[%d]", clFullName, rc ) ;
@@ -8161,16 +8127,14 @@ namespace engine
       return NULL ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATGETGRPSFORRECYCLE, "_catGetGroupListForRecycle" )
-   static INT32 _catGetGroupListForRecycle( const BSONObj &matcher,
-                                            pmdEDUCB *cb,
-                                            vector<UINT32> &groupIDList )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATGETGRPSFORRECYCLE, "_catGetGroupsForRecycle" )
+   static INT32 _catGetGroupsForRecycle( const BSONObj &matcher,
+                                         pmdEDUCB *cb,
+                                         CAT_GROUP_SET &groupIDSet )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__CATGETGRPSFORRECYCLE ) ;
-
-      SET_UINT32 groupIDSet ;
 
       pmdKRCB *krcb = pmdGetKRCB() ;
       SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
@@ -8236,9 +8200,6 @@ namespace engine
                       "collection object, rc: %d", rc ) ;
       }
 
-      rc = catSaveToGroupIDList( groupIDSet, groupIDList ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to save group ID list, rc: %d", rc ) ;
-
    done:
       if ( -1 != contextID )
       {
@@ -8251,10 +8212,10 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETGRPSFORRECYCLECS, "catGetGroupListForRecycleCS" )
-   INT32 catGetGroupListForRecycleCS( utilCSUniqueID csUniqueID,
-                                      pmdEDUCB *cb,
-                                      vector<UINT32> &groupIDList )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETGRPSFORRECYCLECS, "catGetGroupsForRecycleCS" )
+   INT32 catGetGroupsForRecycleCS( utilCSUniqueID csUniqueID,
+                                   pmdEDUCB *cb,
+                                   CAT_GROUP_SET &groupIDSet )
    {
       INT32 rc = SDB_OK ;
 
@@ -8266,7 +8227,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to build collection space matcher by "
                    "unique ID [%u], rc: %d", csUniqueID, rc ) ;
 
-      rc = _catGetGroupListForRecycle( matcher, cb, groupIDList ) ;
+      rc = _catGetGroupsForRecycle( matcher, cb, groupIDSet ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get group list for "
                    "collection space[%u] from recycle collection, rc: %d",
                    csUniqueID, rc ) ;
@@ -8279,10 +8240,10 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETGRPSFORRECYITEM, "catGetGroupListForRecycleItem" )
-   INT32 catGetGroupListForRecycleItem( utilRecycleID recycleID,
-                                        pmdEDUCB *cb,
-                                        vector<UINT32> &groupIDList )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETGRPSFORRECYITEM, "catGetGroupsForRecycleItem" )
+   INT32 catGetGroupsForRecycleItem( utilRecycleID recycleID,
+                                     pmdEDUCB *cb,
+                                     CAT_GROUP_SET &groupIDSet )
    {
       INT32 rc = SDB_OK ;
 
@@ -8302,45 +8263,12 @@ namespace engine
          goto error ;
       }
 
-      rc = _catGetGroupListForRecycle( matcher, cb, groupIDList ) ;
+      rc = _catGetGroupsForRecycle( matcher, cb, groupIDSet ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get group list for "
                    "recycle item [%llu], rc: %d", recycleID, rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB_CATGETGRPSFORRECYITEM, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATSAVETOGROUPIDSET, "catSaveToGroupIDSet" )
-   INT32 catSaveToGroupIDSet( const VEC_GROUP_ID &groupIDVec,
-                              SET_UINT32 &groupIDSet )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_CATSAVETOGROUPIDSET ) ;
-
-      try
-      {
-         for ( VEC_GROUP_ID::const_iterator iter = groupIDVec.begin() ;
-               iter != groupIDVec.end() ;
-               ++ iter )
-         {
-            groupIDSet.insert( *iter ) ;
-         }
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to save group ID, occur exception %s",
-                 e.what() ) ;
-         rc = ossException2RC( &e ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB_CATSAVETOGROUPIDSET, rc ) ;
       return rc ;
 
    error:

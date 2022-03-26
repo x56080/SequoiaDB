@@ -100,7 +100,8 @@ namespace engine
                                           pmdEDUCB *cb,
                                           rtnContextCoord::sharePtr *ppContext,
                                           coordCMDArguments *pArgs,
-                                          const CoordGroupList &pGroupLst ) ;
+                                          const CoordGroupList &pGroupLst,
+                                          vector<BSONObj> &cataObjs ) ;
 
    } ;
    typedef _coordNodeCMD3Phase coordNodeCMD3Phase ;

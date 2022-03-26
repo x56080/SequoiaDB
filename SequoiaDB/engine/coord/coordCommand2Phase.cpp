@@ -83,7 +83,7 @@ namespace engine
 
       CoordGroupList groupLst ;
       CoordGroupList sucGroupLst ;
-      vector<BSONObj> cataObjs ;
+      vector<BSONObj> cataObjs, cataP2Objs ;
       rtnContextCoord::sharePtr pCoordCtxForCata ;
       rtnContextCoord::sharePtr pCoordCtxForData ;
 
@@ -141,6 +141,9 @@ namespace engine
                    pArguments->_targetName.c_str(), rc ) ;
 
    retryCata :
+      rc = _onBeginEvent( pArguments, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to call begin events, rc: %d", rc ) ;
+
       /************************************************************************
        * Phase 1
        * 1. Generate P1 message to Catalog
@@ -268,7 +271,7 @@ namespace engine
        ************************************************************************/
       // Execute P2 on Catalog
       rc = _doOnCataGroupP2( (MsgHeader*)pCataMsgBuf, cb, &pCoordCtxForCata,
-                             pArguments, groupLst ) ;
+                             pArguments, groupLst, cataP2Objs ) ;
       if ( SDB_CLS_COORD_NODE_CAT_VER_OLD == rc &&
            retryCount < COORD_CMD_RETRY_TIMES )
       {
@@ -312,6 +315,11 @@ namespace engine
                    "command[%s, target:%s], rc: %d", getName(),
                    pArguments->_targetName.c_str(), rc ) ;
 
+      rc = _parseCatP2Return( pArguments, cataP2Objs ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse CATALOG P2 return objects "
+                   "for command[%s, target:%s], rc: %d", getName(),
+                   pArguments->_targetName.c_str(), rc ) ;
+
       PD_LOG( PDINFO, "Do phase 2 on catalog done for command[%s, target:%s]",
               getName(), pArguments->_targetName.c_str() ) ;
 
@@ -346,6 +354,8 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Do commit phase on catalog failed for "
                    "command[%s, target:%s], rc: %d", getName(),
                    pArguments->_targetName.c_str(), rc ) ;
+
+      _onCommitEvent( pArguments, cb ) ;
 
       PD_LOG( PDINFO, "Do commit phase on catalog done for command[%s, "
               "target:%s]", getName(), pArguments->_targetName.c_str() ) ;
@@ -564,7 +574,8 @@ namespace engine
                                              pmdEDUCB *cb,
                                              rtnContextCoord::sharePtr *ppContext,
                                              coordCMDArguments *pArgs,
-                                             const CoordGroupList &pGroupLst )
+                                             const CoordGroupList &pGroupLst,
+                                             vector<BSONObj> &cataObjs )
    {
 
       /// Do nothing
@@ -823,6 +834,35 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_CMD2PHASE__PARSECATP2RETURN, "_coordCMD2Phase::_parseCatP2Return" )
+   INT32 _coordCMD2Phase::_parseCatP2Return( coordCMDArguments *pArgs,
+                                             const vector<BSONObj> &cataObjs )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_CMD2PHASE__PARSECATP2RETURN ) ;
+
+      for ( COORD_CMD_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
+            iter != _eventHandlers.end() ;
+            ++ iter )
+      {
+         coordCMDEventHandler *handler = *iter ;
+         SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
+
+         rc = handler->parseCatP2Return( pArgs, cataObjs ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to call parse catalog P2 return "
+                      "for handler [%s] of command [%s], rc: %d",
+                      handler->getName(), getName(), rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_CMD2PHASE__PARSECATP2RETURN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( COORD_CMD2PHASE__NEEDREWRITEDATAMSG, "_coordCMD2Phase::_needRewriteDataMsg" )
    BOOLEAN _coordCMD2Phase::_needRewriteDataMsg()
    {
@@ -939,6 +979,35 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_CMD2PHASE__ONBEGINEVENT, "_coordCMD2Phase::_onBeginEvent" )
+   INT32 _coordCMD2Phase::_onBeginEvent( coordCMDArguments *pArgs,
+                                         pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_CMD2PHASE__ONBEGINEVENT ) ;
+
+      for ( COORD_CMD_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
+            iter != _eventHandlers.end() ;
+            ++ iter )
+      {
+         coordCMDEventHandler *handler = *iter ;
+         SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
+
+         rc = handler->onBeginEvent( _pResource, pArgs, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to call begin event on "
+                      "handler [%s] of command [%s], rc: %d",
+                      handler->getName(), getName(), rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_CMD2PHASE__ONBEGINEVENT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( COORD_CMD2PHASE__ONDATAP1EVENT, "_coordCMD2Phase::_onDataP1Event" )
    INT32 _coordCMD2Phase::_onDataP1Event( SDB_EVENT_OCCUR_TYPE type,
                                           coordCMDArguments *pArgs,
@@ -1001,6 +1070,29 @@ namespace engine
       goto done ;
    }
 
+   void _coordCMD2Phase::_onCommitEvent( coordCMDArguments *pArgs,
+                                         pmdEDUCB *cb )
+   {
+      PD_TRACE_ENTRY( COORD_CMD2PHASE__ONDATAP2EVENT ) ;
+
+      for ( COORD_CMD_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
+            iter != _eventHandlers.end() ;
+            ++ iter )
+      {
+         coordCMDEventHandler *handler = *iter ;
+         SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
+
+         // on commit phase, ignore error
+         INT32 tmpRC = handler->onCommitEvent( _pResource, pArgs, cb ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDWARNING, "Failed to call commit event on "
+                    "handler [%s] of command [%s], rc: %d",
+                    handler->getName(), getName(), tmpRC ) ;
+         }
+      }
+
+      PD_TRACE_EXIT( COORD_CMD2PHASE__ONDATAP2EVENT ) ;
+   }
 
 }
-

@@ -118,6 +118,9 @@ namespace engine
          INT32       makeGroupsObj( BSONObjBuilder &builder,
                                     vector< UINT32 > &groups,
                                     BOOLEAN ignoreErr = FALSE ) ;
+         INT32       makeGroupsObj( BSONObjBuilder &builder,
+                                    const CAT_GROUP_SET &groups,
+                                    BOOLEAN ignoreErr = FALSE ) ;
 
          INT16    majoritySize( BOOLEAN needWaitSync = FALSE ) ;
          INT32    primaryCheck( _pmdEDUCB *cb, BOOLEAN canDelay,

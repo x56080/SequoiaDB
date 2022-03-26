@@ -741,6 +741,48 @@ namespace engine
    }
 
    INT32 sdbCatalogueCB::makeGroupsObj( BSONObjBuilder &builder,
+                                        const CAT_GROUP_SET &groups,
+                                        BOOLEAN ignoreErr )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         string groupName ;
+         BSONArrayBuilder sub( builder.subarrayStart( CAT_GROUP_NAME ) ) ;
+         for ( CAT_GROUP_SET_IT iter = groups.begin() ;
+               iter != groups.end() ;
+               ++ iter )
+         {
+            UINT32 groupID = *iter ;
+            const CHAR *groupName = groupID2Name( groupID ) ;
+            SDB_ASSERT( NULL != groupName && 0 != groupName[ 0 ],
+                        "Group name can't be empty" ) ;
+            if ( !ignoreErr && ( NULL == groupName || 0 == groupName[ 0 ] ) )
+            {
+               rc = SDB_CLS_GRP_NOT_EXIST ;
+               goto error ;
+            }
+            sub.append( BSON( CAT_GROUPID_NAME << groupID <<
+                              CAT_GROUPNAME_NAME << groupName ) ) ;
+         }
+         sub.doneFast() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to make group object, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 sdbCatalogueCB::makeGroupsObj( BSONObjBuilder &builder,
                                         vector < string > &groups,
                                         BOOLEAN ignoreErr )
    {
