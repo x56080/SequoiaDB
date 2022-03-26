@@ -580,6 +580,14 @@ namespace engine
             needRetry = TRUE ;
          }
       }
+      else
+      {
+         // if the collection is truncated when creating index, we can retry
+         if ( SDB_DMS_TRUNCATED == rc )
+         {
+            needRetry = TRUE ;
+         }
+      }
 
       if ( needRetry )
       {
