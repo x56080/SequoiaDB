@@ -87,6 +87,8 @@ public class Transaction24851 extends SdbTestBase {
                     } catch ( BaseException e ) {
                         if ( e.getErrorCode() == SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE.getErrorCode() ) {
                             break;
+                        } else if ( e.getErrorCode() == SDBError.SDB_CLS_COORD_NODE_CAT_VER_OLD.getErrorCode() ) {
+                            continue;
                         }
                         throw e;
                     }
