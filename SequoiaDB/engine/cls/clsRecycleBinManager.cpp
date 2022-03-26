@@ -71,12 +71,17 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to init based recycle bin manager, "
                    "rc: %d", rc ) ;
 
-      _freezingWindow =
-            pmdGetKRCB()->getClsCB()->getShardCB()->getFreezingWindow() ;
-      _localTaskManager = pmdGetKRCB()->getRTNCB()->getLTMgr() ;
-
-      SDB_ASSERT( NULL != _freezingWindow, "freezing window is invalid" ) ;
-      SDB_ASSERT( NULL != _localTaskManager, "local task manager is invalid" ) ;
+      if ( NULL != pmdGetKRCB()->getClsCB() &&
+           NULL != pmdGetKRCB()->getClsCB()->getShardCB() )
+      {
+         _freezingWindow =
+               pmdGetKRCB()->getClsCB()->getShardCB()->getFreezingWindow() ;
+      }
+      if ( NULL != pmdGetKRCB()->getRTNCB() &&
+           NULL != pmdGetKRCB()->getRTNCB()->getLTMgr() )
+      {
+         _localTaskManager = pmdGetKRCB()->getRTNCB()->getLTMgr() ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__CLSRECYBINMGR_INIT, rc ) ;
@@ -263,15 +268,18 @@ namespace engine
 
       UINT64 origOpID = 0, recyOpID = 0 ;
 
-      // already lock Z, so no need to wait
-      rc = _freezingWindow->registerCL( originName, origOpID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to register origin name [%s], "
-                   "rc: %d", originName, rc ) ;
+      if ( NULL != _freezingWindow )
+      {
+         // already lock Z, so no need to wait
+         rc = _freezingWindow->registerCL( originName, origOpID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to register origin name [%s], "
+                      "rc: %d", originName, rc ) ;
 
-      recyOpID = origOpID ;
-      rc = _freezingWindow->registerCL( recycleName, recyOpID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to register recycle name [%s], "
-                   "rc: %d", recycleName, rc ) ;
+         recyOpID = origOpID ;
+         rc = _freezingWindow->registerCL( recycleName, recyOpID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to register recycle name [%s], "
+                      "rc: %d", recycleName, rc ) ;
+      }
 
       opID = origOpID ;
 
@@ -298,8 +306,11 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__CLSRECYBINMGR__UNREGBLOCKCL ) ;
 
-      _freezingWindow->unregisterCL( originName, opID ) ;
-      _freezingWindow->unregisterCL( recycleName, opID ) ;
+      if ( NULL != _freezingWindow )
+      {
+         _freezingWindow->unregisterCL( originName, opID ) ;
+         _freezingWindow->unregisterCL( recycleName, opID ) ;
+      }
 
       PD_TRACE_EXIT( SDB__CLSRECYBINMGR__UNREGBLOCKCL ) ;
    }
@@ -315,15 +326,18 @@ namespace engine
 
       UINT64 origOpID = 0, recyOpID = 0 ;
 
-      // already lock Z, so no need to wait
-      rc = _freezingWindow->registerCS( originName, origOpID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to register origin name [%s], "
-                   "rc: %d", originName, rc ) ;
+      if ( NULL != _freezingWindow )
+      {
+         // already lock Z, so no need to wait
+         rc = _freezingWindow->registerCS( originName, origOpID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to register origin name [%s], "
+                      "rc: %d", originName, rc ) ;
 
-      recyOpID = origOpID ;
-      rc = _freezingWindow->registerCS( recycleName, recyOpID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to register recycle name [%s], "
-                   "rc: %d", recycleName, rc ) ;
+         recyOpID = origOpID ;
+         rc = _freezingWindow->registerCS( recycleName, recyOpID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to register recycle name [%s], "
+                      "rc: %d", recycleName, rc ) ;
+      }
 
       opID = origOpID ;
 
@@ -350,8 +364,11 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__CLSRECYBINMGR__UNREGBLOCKCS ) ;
 
-      _freezingWindow->unregisterCS( originName, opID ) ;
-      _freezingWindow->unregisterCS( recycleName, opID ) ;
+      if ( NULL != _freezingWindow )
+      {
+         _freezingWindow->unregisterCS( originName, opID ) ;
+         _freezingWindow->unregisterCS( recycleName, opID ) ;
+      }
 
       PD_TRACE_EXIT( SDB__CLSRECYBINMGR__UNREGBLOCKCS ) ;
    }
@@ -367,23 +384,26 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__CLSRECYBINMGR__CRTRECYCLTASK ) ;
 
-      rtnLocalTaskPtr taskPtr ;
-      rtnLTRecycleCL *pRenameTask = NULL ;
+      if ( NULL != _localTaskManager )
+      {
+         rtnLocalTaskPtr taskPtr ;
+         rtnLTRecycleCL *pRenameTask = NULL ;
 
-      rc = rtnGetLTFactory()->create( RTN_LOCAL_TASK_RECYCLECL, taskPtr ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to allocate recycle "
-                   "collection task, rc: %d", rc ) ;
+         rc = rtnGetLTFactory()->create( RTN_LOCAL_TASK_RECYCLECL, taskPtr ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to allocate recycle "
+                      "collection task, rc: %d", rc ) ;
 
-      pRenameTask = dynamic_cast< rtnLTRecycleCL * >( taskPtr.get() ) ;
-      SDB_ASSERT( NULL != pRenameTask, "local task is invalid" ) ;
+         pRenameTask = dynamic_cast< rtnLTRecycleCL * >( taskPtr.get() ) ;
+         SDB_ASSERT( NULL != pRenameTask, "local task is invalid" ) ;
 
-      pRenameTask->setInfo( originName, recycleName, item ) ;
+         pRenameTask->setInfo( originName, recycleName, item ) ;
 
-      rc = _localTaskManager->addTask( taskPtr, cb, _dpsCB ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to add task [%s], rc: %d",
-                   taskPtr->toPrintString().c_str(), rc ) ;
+         rc = _localTaskManager->addTask( taskPtr, cb, _dpsCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to add task [%s], rc: %d",
+                      taskPtr->toPrintString().c_str(), rc ) ;
 
-      taskID = taskPtr->getTaskID() ;
+         taskID = taskPtr->getTaskID() ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__CLSRECYBINMGR__CRTRECYCLTASK, rc ) ;
@@ -404,23 +424,26 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__CLSRECYBINMGR__CRTRECYCSTASK ) ;
 
-      rtnLocalTaskPtr taskPtr ;
-      rtnLTRecycleCS *pRenameTask = NULL ;
+      if ( NULL != _localTaskManager )
+      {
+         rtnLocalTaskPtr taskPtr ;
+         rtnLTRecycleCS *pRenameTask = NULL ;
 
-      rc = rtnGetLTFactory()->create( RTN_LOCAL_TASK_RECYCLECS, taskPtr ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to allocate recycle "
-                   "collection task, rc: %d", rc ) ;
+         rc = rtnGetLTFactory()->create( RTN_LOCAL_TASK_RECYCLECS, taskPtr ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to allocate recycle "
+                      "collection task, rc: %d", rc ) ;
 
-      pRenameTask = dynamic_cast< rtnLTRecycleCS * >( taskPtr.get() ) ;
-      SDB_ASSERT( NULL != pRenameTask, "local task is invalid" ) ;
+         pRenameTask = dynamic_cast< rtnLTRecycleCS * >( taskPtr.get() ) ;
+         SDB_ASSERT( NULL != pRenameTask, "local task is invalid" ) ;
 
-      pRenameTask->setInfo( originName, recycleName, item ) ;
+         pRenameTask->setInfo( originName, recycleName, item ) ;
 
-      rc = _localTaskManager->addTask( taskPtr, cb, _dpsCB ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to add task [%s], rc: %d",
-                   taskPtr->toPrintString().c_str(), rc ) ;
+         rc = _localTaskManager->addTask( taskPtr, cb, _dpsCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to add task [%s], rc: %d",
+                      taskPtr->toPrintString().c_str(), rc ) ;
 
-      taskID = taskPtr->getTaskID() ;
+         taskID = taskPtr->getTaskID() ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__CLSRECYBINMGR__CRTRECYCSTASK, rc ) ;
@@ -437,26 +460,29 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__CLSRECYBINMGR__CLEANLOCALTASK ) ;
 
-      rtnLocalTaskPtr taskPtr ;
-
-      taskPtr = _localTaskManager->getTask( taskID ) ;
-      if ( NULL != taskPtr.get() && taskPtr->isTaskValid() )
+      if ( NULL != _localTaskManager )
       {
-         /// context is killed by interrupted
-         if ( cb->isInterrupted() )
+         rtnLocalTaskPtr taskPtr ;
+
+         taskPtr = _localTaskManager->getTask( taskID ) ;
+         if ( NULL != taskPtr.get() && taskPtr->isTaskValid() )
          {
-            if ( SDB_OK == clsStartRenameCheckJob( taskPtr, opID ) )
+            /// context is killed by interrupted
+            if ( cb->isInterrupted() )
             {
-               opID = 0 ;
+               if ( SDB_OK == clsStartRenameCheckJob( taskPtr, opID ) )
+               {
+                  opID = 0 ;
+               }
+               else
+               {
+                  _localTaskManager->removeTask( taskPtr, cb, _dpsCB ) ;
+               }
             }
             else
             {
                _localTaskManager->removeTask( taskPtr, cb, _dpsCB ) ;
             }
-         }
-         else
-         {
-            _localTaskManager->removeTask( taskPtr, cb, _dpsCB ) ;
          }
       }
 

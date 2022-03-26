@@ -49,6 +49,7 @@
 #include "dmsCB.hpp"
 #include "rtnCB.hpp"
 #include "barRestoreJob.hpp"
+#include "clsRecycleBinManager.hpp"
 #include "ossVer.h"
 #include "pmdStartup.hpp"
 #include "pdTrace.hpp"
@@ -664,6 +665,7 @@ namespace engine
       CHAR diaglog[ OSS_MAX_PATHSIZE + 1 ] = {0} ;
 
       barRSOfflineLogger restoreLogger ;
+      clsRecycleBinManager recycleBinMgr ;
       rsOptionMgr optMgr ;
       BSONObj baseConf ;
 
@@ -767,6 +769,21 @@ namespace engine
          return rc ;
       }
 
+      rc = recycleBinMgr.init() ;
+      if ( rc )
+      {
+         std::cerr << "init recycle bin manager failed, " << rc << std::endl ;
+         return rc ;
+      }
+
+      // register recycle bin manager
+      rc = sdbGetDMSCB()->regHandler( &recycleBinMgr ) ;
+      if ( rc )
+      {
+         std::cerr << "register recycle bin manager failed, " << rc << std::endl ;
+         return rc ;
+      }
+
       std::cout << "Begin to restore... " << std::endl ;
       // start restore task
       rc = startRestoreJob( &agentEDU, &restoreLogger ) ;
@@ -786,6 +803,10 @@ namespace engine
       rc = krcb->getShutdownCode() ;
 
    done :
+      // unregister recycle bin manager
+      sdbGetDMSCB()->unregHandler( &recycleBinMgr ) ;
+      recycleBinMgr.fini() ;
+
       PMD_SHUTDOWN_DB( rc ) ;
       pmdSetQuit() ;
       krcb->destroy () ;
