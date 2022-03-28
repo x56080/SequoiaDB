@@ -1869,7 +1869,7 @@ namespace engine
 
    void _coordResource::invalidateCataInfo( const CHAR *clFullName )
    {
-      ossScopedLock _lock( &_nodeMutex, EXCLUSIVE ) ;
+      ossScopedLock _lock( &_cataMutex, EXCLUSIVE ) ;
 
       if ( clFullName )
       {
