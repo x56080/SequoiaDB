@@ -1635,7 +1635,11 @@ namespace engine
    retry:
       if ( _pStorageInfo->_enableSparse )
       {
+#if defined( _LINUX )
+         rc = ossFallocate( &_file, 0, fileSize, (UINT64)_getSegmentSize() * numSeg ) ;
+#else
          rc = ossExtentBySparse( &_file, (UINT64)_getSegmentSize() * numSeg ) ;
+#endif
       }
       else
       {

@@ -2932,4 +2932,55 @@ error:
 #endif // _LINUX
 }
 
+INT32 ossFallocate( OSSFILE *file,
+                    UINT32 mode,
+                    UINT64 offset,
+                    UINT64 size)
+{
+   INT32 rc = SDB_OK ;
+
+#if defined( _LINUX )
+
+   if ( NULL == file ||
+        !file->isOpened() ||
+        0 == size )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   rc = fallocate( file->fd, mode, offset, size ) ;
+   if ( rc < 0 )
+   {
+      UINT32 lastErr = ossGetLastError() ;
+      switch ( lastErr )
+      {
+      case EBADF:
+         rc = SDB_PERM ;
+         break ;
+      case EINTR:
+         rc = SDB_INTERRUPT ;
+         break ;
+      case EINVAL:
+         rc = SDB_INVALIDARG ;
+         break ;
+      case ENOSPC:
+         rc = SDB_NOSPC ;
+         break ;
+      default:
+         rc = SDB_IO ;
+         break ;
+      }
+   }
+#else
+   /// Windows does not support.
+   rc = SDB_SYS ;
+   goto error ;
+#endif //_LINUX
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
 

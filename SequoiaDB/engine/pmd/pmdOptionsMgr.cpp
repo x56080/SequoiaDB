@@ -1922,7 +1922,7 @@ done:
       _syncwaitTimeout     = PMD_DFT_SYNCWAIT_TIMEOUT ;
       _shutdownWaitTimeout = PMD_DFT_SHUTDOWN_WAIT_TIMEOUT ;
       _directIOInLob       = FALSE ;
-      _sparseFile          = FALSE ;
+      _sparseFile          = TRUE ;
       _weight              = 0 ;
       _auth                = TRUE ;
       _planBucketNum       = OPT_PLAN_DEF_CACHE_BUCKETS ;
@@ -2310,7 +2310,7 @@ done:
                    FALSE, PMD_CFG_CHANGE_RUN, FALSE, FALSE ) ;
 
       rdxBooleanS( pEX, PMD_OPTION_SPARSE_FILE, _sparseFile,
-                   FALSE, PMD_CFG_CHANGE_RUN, FALSE, FALSE ) ;
+                   FALSE, PMD_CFG_CHANGE_RUN, TRUE, FALSE ) ;
 
       // --weight
       rdxUInt( pEX, PMD_OPTION_WEIGHT, _weight,

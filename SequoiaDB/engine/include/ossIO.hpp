@@ -661,5 +661,10 @@ INT32 ossGetUserInfo( const CHAR *username, OSSUID &uid, OSSGID &gid ) ;
 
 INT32 ossGetUserInfo( OSSUID uid, CHAR *pUserName, UINT32 nameLen ) ;
 
+INT32 ossFallocate( OSSFILE *file,
+                    UINT32 mode,
+                    UINT64 offset,
+                    UINT64 size ) ;
+
 #endif // OSSIO_HPP_
 
