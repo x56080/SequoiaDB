@@ -682,7 +682,7 @@ namespace engine
 
       PD_TRACE_ENTRY( COORD_DATARECYHANDLER_ONDATAP1EVENT ) ;
 
-      if ( SDB_EVT_OCCUR_AFTER == type )
+      if ( SDB_EVT_OCCUR_BEFORE == type )
       {
          // drop old recycle items first to give room for current recycle item
          // if needed

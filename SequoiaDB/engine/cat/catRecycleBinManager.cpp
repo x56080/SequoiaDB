@@ -976,12 +976,24 @@ namespace engine
 
       try
       {
-         const CHAR *originName = NULL ;
+         const CHAR *originName = item.getOriginName() ;
 
          ossPoolSet< utilCSKeyName > lockedCSItems ;
          ossPoolSet< ossPoolString > lockedCLItems ;
 
          // round 1: lock for collection spaces
+         // check target item
+         if ( UTIL_RECYCLE_CS == item.getType() )
+         {
+            PD_CHECK( lockMgr.tryLockRecycleItem( originName,
+                                                  UTIL_RECYCLE_CS,
+                                                  EXCLUSIVE ),
+                      SDB_LOCK_FAILED, error, PDERROR,
+                      "Failed to lock recycle item [origin %s]", originName ) ;
+
+            lockedCSItems.insert( originName ) ;
+         }
+         // check dropping items
          for ( UTIL_RECY_ITEM_LIST_CIT iter = droppingItems.begin() ;
                iter != droppingItems.end() ;
                ++ iter )
@@ -1002,6 +1014,19 @@ namespace engine
          }
 
          // round 2: lock for collections
+         // check target item
+         if ( ( UTIL_RECYCLE_CL == item.getType() ) &&
+              ( lockedCSItems.end() == lockedCSItems.find( originName ) ) )
+         {
+            PD_CHECK( lockMgr.tryLockRecycleItem( originName,
+                                                  UTIL_RECYCLE_CL,
+                                                  EXCLUSIVE ),
+                      SDB_LOCK_FAILED, error, PDERROR,
+                      "Failed to lock recycle item [origin %s]", originName ) ;
+
+            lockedCLItems.insert( originName ) ;
+         }
+         // check dropping items
          for ( UTIL_RECY_ITEM_LIST_CIT iter = droppingItems.begin() ;
                iter != droppingItems.end() ;
                ++ iter )
@@ -1020,19 +1045,6 @@ namespace engine
 
                lockedCLItems.insert( droppingName ) ;
             }
-         }
-
-         // check target item
-         originName = item.getOriginName() ;
-         if ( ( lockedCSItems.end() == lockedCSItems.find( originName ) ) &&
-              ( lockedCLItems.end() == lockedCLItems.find( originName ) ) )
-         {
-            PD_CHECK( lockMgr.tryLockRecycleItem( originName,
-                                                  item.getType(),
-                                                  EXCLUSIVE ),
-                      SDB_LOCK_FAILED, error, PDERROR,
-                      "Failed to lock recycle item [origin %s]",
-                      originName ) ;
          }
       }
       catch ( exception &e )
