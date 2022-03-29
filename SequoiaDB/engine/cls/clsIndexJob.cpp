@@ -932,8 +932,8 @@ namespace engine
 
       cataTaskStat = ( CLS_TASK_STATUS )ele.numberInt() ;
       PD_LOG( PDINFO,
-              "Get task[%llu] status[%d] from catalog reply",
-              cataTaskID, cataTaskStat ) ;
+              "Get task[%llu] status[%s] from catalog reply",
+              cataTaskID, clsTaskStatusStr( cataTaskStat ) ) ;
 
       /// process different task status
       if ( CLS_TASK_STATUS_FINISH == cataTaskStat )

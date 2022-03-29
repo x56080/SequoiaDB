@@ -3375,6 +3375,15 @@ namespace engine
                 "Failed to find out group[%s] from task[%llu]",
                 newGroupInfo.groupName.c_str(), _taskID ) ;
 
+      if ( CLS_TASK_STATUS_READY == it->second.status &&
+           CLS_TASK_STATUS_FINISH == newGroupInfo.status )
+      {
+         rc = SDB_CAT_TASK_STATUS_ERROR ;
+         PD_LOG( PDWARNING, "Group[%s] status[%s] error in task[%llu], rc: %d",
+                 newGroupInfo.groupName.c_str(), VALUE_NAME_READY, _taskID, rc ) ;
+         goto error ;
+      }
+
       if ( CLS_TASK_STATUS_FINISH == it->second.status &&
            newGroupInfo.resultCode == it->second.resultCode )
       {
