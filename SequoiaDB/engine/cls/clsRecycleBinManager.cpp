@@ -557,6 +557,7 @@ namespace engine
       const CHAR *newName = item.getRecycleName() ;
       utilCLUniqueID origUniqueID = (utilCLUniqueID)( item.getOriginID() ) ;
       dmsMBContext *copiedMBContext = NULL ;
+      utilCLUniqueID newUniqueID = UTIL_UNIQUEID_NULL ;
 
       PD_CHECK( NULL != su, SDB_SYS, error, PDERROR,
                 "Failed to recycle collection [%s], "
@@ -571,8 +572,12 @@ namespace engine
                 "meta block context is not locked in exclusive",
                 item.getOriginName() ) ;
 
+      // keep collection space unique ID
+      newUniqueID = utilBuildCLUniqueID( su->CSUniqueID(),
+                                         UTIL_CLINNERID_LOCAL ) ;
+
       rc = su->data()->renameCollection( clShortName, newName, cb, NULL, TRUE,
-                                         UTIL_CLUNIQUEID_LOCAL ) ;
+                                         newUniqueID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to recycle collection from "
                    "[%s] to [%s], rc: %d", clShortName, newName, rc ) ;
 
@@ -766,6 +771,7 @@ namespace engine
       SDB_ASSERT( NULL != clShortName, "collection short name is invalid" ) ;
 
       const CHAR *newName = item.getRecycleName() ;
+      utilCLUniqueID newUniqueID = UTIL_UNIQUEID_NULL ;
 
       PD_CHECK( NULL != su, SDB_SYS, error, PDERROR,
                 "Failed to recycle collection [%s], "
@@ -780,8 +786,12 @@ namespace engine
                 "meta block context is not locked in exclusive",
                 item.getOriginName() ) ;
 
+      // keep collection space unique ID
+      newUniqueID = utilBuildCLUniqueID( su->CSUniqueID(),
+                                         UTIL_CLINNERID_LOCAL ) ;
+
       rc = su->data()->renameCollection( clShortName, newName, cb, NULL, TRUE,
-                                         UTIL_CLUNIQUEID_LOCAL ) ;
+                                         newUniqueID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to recycle collection from "
                    "[%s] to [%s], rc: %d", clShortName, newName, rc ) ;
 
