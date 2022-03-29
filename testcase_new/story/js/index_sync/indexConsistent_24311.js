@@ -2,7 +2,7 @@
  * @Description   : seqDB-24311 :: 创建/删除索引，renameCS/CL名   
  * @Author        : wu yan
  * @CreateTime    : 2021.08.03
- * @LastEditTime  : 2021.12.02
+ * @LastEditTime  : 2022.03.29
  * @LastEditors   : Wu Yan
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -30,9 +30,8 @@ function test ( testPara )
    db.renameCS( csName, newCSName );
    checkListTask( createTaskId, newCSName, clName, indexName, "Create index" );
    checkListTask( dropTaskId, newCSName, clName, indexName, "Drop index" );
-   //TODO:http://jira.web:8080/browse/SEQUOIADBMAINSTREAM-7762
-   //checkSnapTask( createTaskId, newCSName, clName, indexName, "Create index" );
-   // checkSnapTask( dropTaskId, newCSName, clName, indexName, "Drop index" );
+   checkSnapTask( createTaskId, newCSName, clName, indexName, "Create index" );
+   checkSnapTask( dropTaskId, newCSName, clName, indexName, "Drop index" );
    checkNoTask( csName, clName, "Create index" );
    checkNoTask( csName, clName, "Drop index" );
 
@@ -69,13 +68,48 @@ function checkListTask ( taskId, csName, clName, indexName, taskTypeDesc )
 
 function checkSnapTask ( taskId, csName, clName, indexName, taskTypeDesc )
 {
-   var cursor = db.snapshot( SDB_SNAP_TASKS, { "TaskID": taskId } );
-   while( cursor.next() )
+   var nodes = commGetCLNodes( db, csName + "." + clName );
+   var timeOut = 300000;
+   var doTime = 0;
+   var taskInfos = [];
+   do
    {
-      var taskInfo = cursor.current().toObj();
-      assert.equal( taskInfo.Name, csName + "." + clName, "check name error! \ntask=" + JSON.stringify( taskInfo ) );
-      assert.equal( taskInfo.IndexName, indexName, "check indexName error!\ntask=" + JSON.stringify( taskInfo ) );
-      assert.equal( taskInfo.TaskTypeDesc, taskTypeDesc, "check taskType error!\ntask=" + JSON.stringify( taskInfo ) );
+      var successCount = 0;
+      for( var i = 0; i < nodes.length; i++ )
+      {
+         var seqDB = new Sdb( nodes[i].HostName + ":" + nodes[i].svcname );
+         try
+         {
+            seqDB.getCS( csName ).getCL( clName );
+            successCount++;
+         }
+         catch( e )
+         {
+            if( e != SDB_DMS_NOTEXIST && e != SDB_DMS_CS_NOTEXIST )
+            {
+               throw new Error( e );
+            }
+            break;
+         }
+         seqDB.close();
+
+         var cursor = db.snapshot( SDB_SNAP_TASKS, { "NodeName": nodes[i].HostName + ":" + nodes[i].svcname, "TaskID": taskId } );
+         while( cursor.next() )
+         {
+            var taskInfo = cursor.current().toObj();
+            taskInfos.push( taskInfo );
+            assert.equal( taskInfo.Name, csName + "." + clName, "check name error! \ntask=" + JSON.stringify( taskInfo ) );
+            assert.equal( taskInfo.IndexName, indexName, "check indexName error!\ntask=" + JSON.stringify( taskInfo ) );
+            assert.equal( taskInfo.TaskTypeDesc, taskTypeDesc, "check taskType error!\ntask=" + JSON.stringify( taskInfo ) );
+         }
+         cursor.close();
+      }
+      sleep( 200 );
+      doTime += 200;
+   } while( doTime < timeOut && successCount < nodes.length );
+
+   if( doTime >= timeOut )
+   {
+      throw new Error( "check timeout indextask error ! index task info:" + JSON.stringify( taskInfos ) );
    }
-   cursor.close();
 }
