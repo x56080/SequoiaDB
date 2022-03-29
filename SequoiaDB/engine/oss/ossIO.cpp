@@ -2967,6 +2967,12 @@ INT32 ossFallocate( OSSFILE *file,
       case ENOSPC:
          rc = SDB_NOSPC ;
          break ;
+      case EOPNOTSUPP:
+         rc = SDB_INVALIDARG ;
+         break ;
+      case ENOSYS:
+         rc = SDB_INVALIDARG ;
+         break ;
       default:
          rc = SDB_IO ;
          break ;
