@@ -38,6 +38,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Date;
@@ -339,22 +340,21 @@ public class SDBDataConverter implements Serializable {
 
     private static TimestampData toTimestamp(Object v) {
         if (v instanceof Integer)
-            return TimestampData.fromTimestamp(new Timestamp((int) v));
+            return TimestampData.fromInstant(Instant.ofEpochMilli(((Integer) v).longValue()));
         else if (v instanceof Long)
-            return TimestampData.fromTimestamp(new Timestamp((long) v));
+            return TimestampData.fromInstant(Instant.ofEpochMilli((long) v));
         else if (v instanceof Date)
-            return TimestampData.fromTimestamp(new Timestamp(((Date) v).getTime()));
+            return TimestampData.fromInstant(Instant.ofEpochMilli(((Date) v).getTime()));
         else if (v instanceof BSONTimestamp)
-            return TimestampData.fromTimestamp(((BSONTimestamp) v).toTimestamp());
+            return TimestampData.fromInstant(((BSONTimestamp) v).toTimestamp().toInstant());
         else if (v instanceof String) {
             Timestamp ts = null;
             try {
                 ts = new Timestamp(new SimpleDateFormat("yyyy-MM-dd.HH:mm:ss").parse((String) v).getTime());
-            } catch (ParseException ignored) {
-            }
-            return TimestampData.fromTimestamp(ts != null ? ts : new Timestamp(0));
+            } catch (ParseException ignored) {}
+            return TimestampData.fromInstant(ts != null ? ts.toInstant() : Instant.ofEpochMilli(0));
         } else
-            return TimestampData.fromTimestamp(new Timestamp(0));
+            return TimestampData.fromInstant(Instant.ofEpochMilli(0));
     }
 
     private static boolean toBoolean(Object v) {
@@ -412,12 +412,18 @@ public class SDBDataConverter implements Serializable {
     }
 
     private static StringData toStringData(Object v) {
-        if (v instanceof BSONDecimal) return new BinaryStringData(((BSONDecimal) v).getValue());
+        if (v instanceof BSONDecimal)
+            return new BinaryStringData(((BSONDecimal) v).getValue());
+        else if (v instanceof Date) {
+            return new BinaryStringData(((Date) v).toInstant().atZone(ZoneId.systemDefault())
+                    .toLocalDate().toString());
+        }
         else if (v instanceof BSONTimestamp)
             return new BinaryStringData(((BSONTimestamp) v).toTimestamp().toString());
         else if (v instanceof Binary)
             return new BinaryStringData(new String(((Binary) v).getData(), StandardCharsets.UTF_8));
-        else return new BinaryStringData(v.toString());
+        else
+            return new BinaryStringData(v.toString());
     }
 
     private static byte[] toBinary(Object v) {
