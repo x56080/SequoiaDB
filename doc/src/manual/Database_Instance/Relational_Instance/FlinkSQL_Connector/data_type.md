@@ -36,6 +36,7 @@
 >**Note:**
 >
 > - 不兼容的数据类型发生转换时，原数据将转换为目标类型的零值。
+> - string 类型编码格式为 UTF-8。
 > - string 类型支持将数值字符串转换为 TINYINT、SMALLINT、INT、BIGINT、FLOAT、DOUBLE 等数值类型。如果转换发生溢出，则视为数据类型不兼容。
 > - string 类型支持将"yyyy-MM-dd.HH:mm:ss"格式的日期字符串，转换为 DATE 或 TIMESTAMP 类型，格式不匹配时将转换为零值。
 > - boolean 类型转换为数值类型时，true 对应 1，false 对应 0。
