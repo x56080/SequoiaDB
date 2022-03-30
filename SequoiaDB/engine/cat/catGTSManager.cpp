@@ -93,16 +93,19 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      _globTransMgr.clearGlobLowTran() ;
+
+      if ( NULL != _catCB )
+      {
+         _catCB->unregEventHandler( this ) ;
+      }
+
       rc = _msgHandler.fini();
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to finalize GTS msg handler, rc=%d", rc ) ;
          goto error ;
       }
-
-      _globTransMgr.clearGlobLowTran() ;
-
-      _catCB->unregEventHandler( this ) ;
 
    done:
       return rc ;

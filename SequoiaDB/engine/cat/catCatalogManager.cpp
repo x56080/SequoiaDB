@@ -95,7 +95,10 @@ namespace engine
 
    INT32 catCatalogueManager::fini()
    {
-      _pCatCB->unregEventHandler( this ) ;
+      if ( NULL != _pCatCB )
+      {
+         _pCatCB->unregEventHandler( this ) ;
+      }
 
       return SDB_OK ;
    }
