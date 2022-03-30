@@ -20,7 +20,7 @@
       * 请检查是否配置防火墙策略；
       * 请检查交换机是否配置安全策略，是否故障；
       * 请检查机器网卡是否故障；
-      * 可以用 *"ping \<hostname\>"* 或 *"telent \<hostname:port\>"* 进行相关的测试；
+      * 可以用 *"ping \<hostname\>"* 或 *"telnet \<hostname:port\>"* 进行相关的测试；
       * 请检查节点或客户端是否重启或关闭。
 
 2. SDB_NET_CANNOT_LISTEN(-78)
