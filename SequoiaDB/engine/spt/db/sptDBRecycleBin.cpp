@@ -470,7 +470,8 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       string recycleName ;
-      INT32 isRecursive = FALSE ;
+      BOOLEAN isRecursive = FALSE ;
+      BOOLEAN hasRecursive = FALSE ;
       BSONObj options, cmdOptions ;
 
       rc = arg.getString( 0, recycleName, TRUE ) ;
@@ -489,9 +490,7 @@ namespace engine
       {
          if ( arg.isBoolean( 1 ) )
          {
-            rc = arg.getNative( 1,
-                                (void *)( &isRecursive ),
-                                SPT_NATIVE_INT32 ) ;
+            rc = arg.getBoolean( 1, isRecursive ) ;
             if ( SDB_OK != rc )
             {
                detail = BSON( SPT_ERR << ( arg.hasErrMsg() ?
@@ -499,10 +498,32 @@ namespace engine
                                            "Recursive must be boolean" ) ) ;
                goto error ;
             }
+            hasRecursive = TRUE ;
+         }
+         else if ( arg.isObject( 1 ) )
+         {
+            if ( arg.argc() > 2 )
+            {
+               rc = SDB_INVALIDARG ;
+               detail = BSON( SPT_ERR << "If the second arg is Options, "
+                                         "the third arg is not supported" ) ;
+               goto error ;
+            }
+            rc = arg.getBsonobj( 1, options ) ;
+            if ( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+            {
+               detail = BSON( SPT_ERR << ( arg.hasErrMsg() ?
+                                           arg.getErrMsg() :
+                                           "Options must be object" ) ) ;
+               goto error ;
+            }
          }
          else
          {
-            detail = BSON( SPT_ERR << "Recursive must be boolean" ) ;
+            rc = SDB_INVALIDARG ;
+            detail = BSON( SPT_ERR << "The secord arg must be boolean for Recursive"
+                                      " or object for Options" ) ;
+            goto error ;
          }
       }
 
@@ -520,19 +541,26 @@ namespace engine
 
       try
       {
-         BSONObjBuilder builder ;
-         // skip recursive field
-         BSONObjIterator iterOptions( options ) ;
-         while ( iterOptions.more() )
+         if ( hasRecursive )
          {
-            BSONElement ele = iterOptions.next() ;
-            if ( 0 != ossStrcmp( FIELD_NAME_RECURSIVE, ele.fieldName() ) )
+            BSONObjBuilder builder ;
+            // skip recursive field
+            BSONObjIterator iterOptions( options ) ;
+            while ( iterOptions.more() )
             {
-               builder.append( ele ) ;
+               BSONElement ele = iterOptions.next() ;
+               if ( 0 != ossStrcmp( FIELD_NAME_RECURSIVE, ele.fieldName() ) )
+               {
+                  builder.append( ele ) ;
+               }
             }
+            builder.appendBool( FIELD_NAME_RECURSIVE, (BOOLEAN)isRecursive ) ;
+            cmdOptions = builder.obj() ;
          }
-         builder.appendBool( FIELD_NAME_RECURSIVE, (BOOLEAN)isRecursive ) ;
-         cmdOptions = builder.obj() ;
+         else
+         {
+            cmdOptions = options ;
+         }
       }
       catch ( exception &e )
       {
