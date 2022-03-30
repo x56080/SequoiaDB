@@ -3029,6 +3029,11 @@ namespace engine
             }
             sdbGetShardCB()->unlockCataSet( pCatSet ) ;
          }
+         else if ( SDB_DMS_NOTEXIST == rc || SDB_DMS_CS_NOTEXIST == rc )
+         {
+            // the collection has been dropped
+            sdbGetShardCB()->unlockCataSet( pCatSet ) ;
+         }
          else
          {
             sdbGetShardCB()->unlockCataSet( pCatSet ) ;
