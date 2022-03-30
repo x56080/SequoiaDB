@@ -114,19 +114,20 @@ namespace engine
     _taskStatus( DMS_TASK_STATUS_READY ),
     _clUniqueID( UTIL_UNIQUEID_NULL ),
     _sortBufSize( SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE ),
-    _isStandaloneIdx( FALSE ),
+    _retryCnt( 0 ),
+    _resultCode( SDB_OK ),
+    _opInfo( OPINFO_UNKNOWN ),
+    _isInitialized( FALSE ),
+    _pauseReport( FALSE ),
+    _hasSetDef( FALSE ),
     _isGlobalIdx( FALSE ),
     _totalRecNum( 0 ),
     _pcsedRecNum( 0 ),
     _pcsRecNumLastTime( 0 ),
-    _retryCnt( 0 ),
-    _resultCode( SDB_OK ),
-    _opInfo( OPINFO_UNKNOWN ),
     _progress( 0 ),
     _speed( 0 ),
     _timeSpent( 0.0 ),
-    _timeLeft( 0.0 ),
-    _isInitialized( FALSE )
+    _timeLeft( 0.0 )
    {
       if ( DMS_IS_DUMMY_CATTASKID( taskID ) )
       {
@@ -136,7 +137,6 @@ namespace engine
       {
          _hasCatalogTask = TRUE ;
       }
-      _pauseReport = FALSE ;
       ossMemset( _clFullName, 0, DMS_COLLECTION_FULL_NAME_SZ + 1 ) ;
       ossMemset( _indexName,  0, IXM_INDEX_NAME_SIZE + 1 ) ;
       ossGetCurrentTime( _beginTimestamp ) ;
@@ -157,7 +157,6 @@ namespace engine
       _indexDef = rhs._indexDef.getOwned() ;
       ossStrncpy( _indexName, rhs._indexName, IXM_INDEX_NAME_SIZE ) ;
       _sortBufSize = rhs._sortBufSize ;
-      _isStandaloneIdx = rhs._isStandaloneIdx ;
       _isGlobalIdx = rhs._isGlobalIdx ;
       _totalRecNum = rhs._totalRecNum ;
       _pcsedRecNum = rhs._pcsedRecNum ;
@@ -205,6 +204,7 @@ namespace engine
          if ( index.hasField( IXM_NAME_FIELD ) )
          {
             _indexDef = index.getOwned() ;
+            _hasSetDef = TRUE ;
 
             // create index, idxDef: { "name": "aIdx", "key": { "a": 1 }, ... }
             BSONElement ele = _indexDef.getField( IXM_FIELD_NAME_NAME ) ;
@@ -213,7 +213,6 @@ namespace engine
                        IXM_FIELD_NAME_NAME, _indexDef.toString().c_str() ) ;
             ossStrncpy( _indexName, ele.valuestr(), IXM_INDEX_NAME_SIZE ) ;
 
-            _isStandaloneIdx = _indexDef[ IXM_STANDALONE_FIELD ].trueValue() ;
             _isGlobalIdx = _indexDef[ IXM_GLOBAL_FIELD ].trueValue() ;
          }
          else
@@ -248,9 +247,11 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSIDXTASKSTAT_TOBSON, "_dmsIdxTaskStatus::toBSON" )
-   BSONObj _dmsIdxTaskStatus::toBSON( UINT32 mask ) const
+   BSONObj _dmsIdxTaskStatus::toBSON( UINT32 mask )
    {
       PD_TRACE_ENTRY( SDB_DMSIDXTASKSTAT_TOBSON ) ;
+
+      ossScopedLock lock( &_latch, SHARED ) ;
 
       BSONObjBuilder builder ;
 
@@ -296,7 +297,7 @@ namespace engine
       }
       if ( DMS_TASK_MASK_IDXDEF & mask )
       {
-         if ( !_indexDef.isEmpty() )
+         if ( _hasSetDef )
          {
             builder.append( IXM_FIELD_NAME_INDEX_DEF, _indexDef ) ;
          }
@@ -346,11 +347,13 @@ namespace engine
 
       if ( DMS_TASK_MASK_TOTALSZ & mask )
       {
-         builder.append( FIELD_NAME_TOTAL_RECORDS, (INT64)_totalRecNum ) ;
+         builder.append( FIELD_NAME_TOTAL_RECORDS,
+                         (INT64)(_totalRecNum.fetch()) ) ;
       }
       if ( DMS_TASK_MASK_PROCESSSZ & mask )
       {
-         builder.append( FIELD_NAME_PROCESSED_RECORDS, (INT64)_pcsedRecNum ) ;
+         builder.append( FIELD_NAME_PROCESSED_RECORDS,
+                         (INT64)(_pcsedRecNum.fetch()) ) ;
       }
 
       PD_TRACE_EXIT( SDB_DMSIDXTASKSTAT_TOBSON ) ;
@@ -362,6 +365,8 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB_DMSIDXTASKSTAT_UPPGS ) ;
 
+      ossScopedLock lock( &_latch, EXCLUSIVE ) ;
+
       BOOLEAN isFirstCalculate = _pcsRecNumLastTime == 0 ? TRUE : FALSE ;
       ossTimestamp currentTimestamp ;
       ossGetCurrentTime( currentTimestamp ) ;
@@ -371,6 +376,9 @@ namespace engine
       UINT64 calTime = _calculateTimestamp.time * 1000000 +
                        _calculateTimestamp.microtm  ;
       FLOAT64 calTimeInterval = ( curTime - calTime ) / 1000000.0 ;
+
+      UINT64 totalRecNum = _totalRecNum.fetch() ;
+      UINT64 pcsedRecNum = _pcsedRecNum.fetch() ;
 
       // If it is first time, we should calculate. If task has finished, we
       // only calculate ONE time. If calculate frequently, we just skip.
@@ -396,7 +404,7 @@ namespace engine
 
          if ( calTimeInterval != 0.0 )
          {
-            _speed = ( _pcsedRecNum - _pcsRecNumLastTime ) / calTimeInterval ;
+            _speed = ( pcsedRecNum - _pcsRecNumLastTime ) / calTimeInterval ;
          }
          else
          {
@@ -412,9 +420,9 @@ namespace engine
       else
       {
          // progress
-         if ( _totalRecNum != 0 )
+         if ( totalRecNum != 0 )
          {
-            FLOAT64 percentage = (FLOAT64)_pcsedRecNum / _totalRecNum ;
+            FLOAT64 percentage = (FLOAT64)pcsedRecNum / totalRecNum ;
             _progress = percentage * 100 ;
          }
          else
@@ -437,7 +445,7 @@ namespace engine
          // speed
          if ( calTimeInterval != 0.0 )
          {
-            _speed = ( _pcsedRecNum - _pcsRecNumLastTime ) / calTimeInterval ;
+            _speed = ( pcsedRecNum - _pcsRecNumLastTime ) / calTimeInterval ;
          }
          else
          {
@@ -447,7 +455,7 @@ namespace engine
          // time left
          if ( _speed != 0 )
          {
-            _timeLeft = ( _totalRecNum - _pcsedRecNum ) / _speed ;
+            _timeLeft = ( totalRecNum - pcsedRecNum ) / _speed ;
          }
          else if ( _progress != 0 )
          {
@@ -464,31 +472,49 @@ namespace engine
       }
 
       _calculateTimestamp = currentTimestamp ;
-      _pcsRecNumLastTime = _pcsedRecNum ;
+      _pcsRecNumLastTime = pcsedRecNum ;
 
    done :
       PD_TRACE_EXIT( SDB_DMSIDXTASKSTAT_UPPGS ) ;
       return ;
    }
 
+   const CHAR* _dmsIdxTaskStatus::collectionName() const
+   {
+      // Not under the protection of latch
+      return _clFullName ;
+   }
+
+   void _dmsIdxTaskStatus::collectionName( CHAR* name, INT32 size ) const
+   {
+      SDB_ASSERT( name, "point can't be null") ;
+      SDB_ASSERT( size > DMS_COLLECTION_FULL_NAME_SZ, "size is too small") ;
+
+      ossScopedLock lock( &_nameLatch, SHARED ) ;
+      ossStrncpy( name, _clFullName, DMS_COLLECTION_FULL_NAME_SZ ) ;
+      name[ DMS_COLLECTION_FULL_NAME_SZ ] = 0 ;
+   }
+
    void _dmsIdxTaskStatus::collectionRename( const CHAR* newCLName )
    {
+      ossScopedLock lock( &_nameLatch, EXCLUSIVE ) ;
       ossStrncpy( _clFullName, newCLName, DMS_COLLECTION_FULL_NAME_SZ ) ;
+      _clFullName[ DMS_COLLECTION_FULL_NAME_SZ ] = 0 ;
    }
 
    void _dmsIdxTaskStatus::setTotalRecNum( UINT64 num )
    {
-      _totalRecNum = num ;
+      _totalRecNum.swap( num ) ;
    }
 
    void _dmsIdxTaskStatus::incPcsedRecNum( UINT64 delta )
    {
-      _pcsedRecNum += delta ;
+      _pcsedRecNum.add( delta ) ;
    }
 
    void _dmsIdxTaskStatus::resetPcsedRecNum()
    {
-      _pcsedRecNum = 0 ;
+      _pcsedRecNum.swap( 0 ) ;
    }
 
    void _dmsIdxTaskStatus::incRetryCnt()
@@ -496,11 +522,53 @@ namespace engine
       _retryCnt++ ;
    }
 
+   void _dmsIdxTaskStatus::_buildResultInfo( INT32 resultCode,
+                                             const CHAR* resultDetail,
+                                             utilWriteResult* wResultDetail )
+   {
+      if ( resultCode == SDB_OK )
+      {
+         return ;
+      }
+
+      try
+      {
+         if ( resultDetail )
+         {
+            _resultInfo = BSON( FIELD_NAME_DETAIL << resultDetail ) ;
+         }
+         else if ( wResultDetail )
+         {
+            _resultInfo = wResultDetail->toBSON().getOwned() ;
+         }
+         if ( _resultInfo.isEmpty() )
+         {
+            if ( SDB_TASK_HAS_CANCELED == _resultCode ||
+                 SDB_TASK_ROLLBACK == _resultCode )
+            {
+               if ( DMS_TASK_CREATE_IDX == _taskType &&
+                    SDB_IXM_NOTEXIST == resultCode )
+               {
+                  // Index not found during rollback, it is normal
+               }
+               else
+               {
+                  _resultInfo = BSON( FIELD_NAME_INTERNAL_RESULTCODE <<
+                                      resultCode ) ;
+               }
+            }
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+   }
+
    void _dmsIdxTaskStatus::setStatus2Finish( INT32 resultCode,
                                              const CHAR* resultDetail,
                                              utilWriteResult* wResultDetail )
    {
-      // result code
       if ( DMS_TASK_STATUS_CANCELED == _taskStatus )
       {
          _resultCode = SDB_TASK_HAS_CANCELED ;
@@ -514,47 +582,16 @@ namespace engine
          _resultCode = resultCode ;
       }
 
-      // result info
-      if ( resultCode != SDB_OK )
-      {
-         try
-         {
-            if ( resultDetail )
-            {
-               _resultInfo = BSON( FIELD_NAME_DETAIL << resultDetail ) ;
-            }
-            else if ( wResultDetail )
-            {
-               _resultInfo = wResultDetail->toBSON().getOwned() ;
-            }
-            if ( _resultInfo.isEmpty() )
-            {
-               if ( SDB_TASK_HAS_CANCELED == _resultCode ||
-                    SDB_TASK_ROLLBACK == _resultCode )
-               {
-                  if ( DMS_TASK_CREATE_IDX == _taskType &&
-                       SDB_IXM_NOTEXIST == resultCode )
-                  {
-                     // Index not found during rollback, it is normal
-                  }
-                  else
-                  {
-                     _resultInfo = BSON( FIELD_NAME_INTERNAL_RESULTCODE <<
-                                         resultCode ) ;
-                  }
-               }
-            }
-         }
-         catch( std::exception &e )
-         {
-            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         }
-      }
-
-      // other
-      _taskStatus = DMS_TASK_STATUS_FINISH ;
-      ossGetCurrentTime( _endTimestamp ) ;
       resetOpInfo() ;
+
+      {
+         ossScopedLock lock( &_latch, EXCLUSIVE ) ;
+
+         _buildResultInfo( resultCode, resultDetail, wResultDetail ) ;
+
+         ossGetCurrentTime( _endTimestamp ) ;
+         _taskStatus = DMS_TASK_STATUS_FINISH ; // set before updateProgress()
+      }
       updateProgress() ;
    }
 
@@ -586,11 +623,6 @@ namespace engine
    void _dmsIdxTaskStatus::resetOpInfo()
    {
       _opInfo = OPINFO_UNKNOWN ;
-   }
-
-   BOOLEAN _dmsIdxTaskStatus::isStandaloneIdx() const
-   {
-      return _isStandaloneIdx ;
    }
 
    BOOLEAN _dmsIdxTaskStatus::isGlobalIdx() const
@@ -632,24 +664,37 @@ namespace engine
       return rc ;
    }
 
+   const static BSONObj emptyObj ;
+
    const BSONObj& _dmsIdxTaskStatus::indexDef() const
    {
-      return _indexDef ;
+      if ( _hasSetDef )
+      {
+         return _indexDef ;
+      }
+      else
+      {
+         return emptyObj ; ;
+      }
    }
 
    INT32 _dmsIdxTaskStatus::setIndexDef( const BSONObj &indexDef )
    {
       INT32 rc = SDB_OK ;
-      try
+
+      if ( !_hasSetDef )
       {
-         _indexDef = indexDef.getOwned() ;
-         _isStandaloneIdx = _indexDef[ IXM_STANDALONE_FIELD ].trueValue() ;
-         _isGlobalIdx = _indexDef[ IXM_GLOBAL_FIELD ].trueValue() ;
-      }
-      catch( std::exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+         try
+         {
+            _indexDef = indexDef.getOwned() ;
+            _hasSetDef = TRUE ;
+            _isGlobalIdx = _indexDef[ IXM_GLOBAL_FIELD ].trueValue() ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+         }
       }
       return rc ;
    }

@@ -1157,7 +1157,7 @@ namespace engine
       }
 
       INT32 truncate ( BOOLEAN removeRoot, UINT16 indexFlag,
-                       UINT64 *pDelKeyCnt = NULL ) ;
+                       ossAtomic64* pDelKeyCnt = NULL ) ;
 
       BOOLEAN isSameDef( const BSONObj &defObj,
                          BOOLEAN strict = FALSE ) const ;

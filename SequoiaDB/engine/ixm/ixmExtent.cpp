@@ -2171,7 +2171,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_TRUNC, "_ixmExtent::truncate" )
    void _ixmExtent::truncate( ixmIndexCB *indexCB, dmsExtentID parent,
-                              BOOLEAN &valid, UINT64 *pDelKeyCnt )
+                              BOOLEAN &valid, ossAtomic64 *pDelKeyCnt )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT_TRUNC );
@@ -2216,7 +2216,7 @@ namespace engine
                      pPageMap->rmItem( childExtentID ) ;
                      if ( pDelKeyCnt )
                      {
-                        (*pDelKeyCnt) += keyCnt ;
+                        pDelKeyCnt->add( keyCnt ) ;
                      }
                   }
                }

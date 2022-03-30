@@ -231,34 +231,40 @@ namespace engine
    INT32 _rtnIndexJob::_buildJobName()
    {
       INT32 rc = SDB_OK ;
+      stringstream ss ;
 
-      // build index name, job name
-      if ( RTN_JOB_CREATE_INDEX == _type )
+      try
       {
-         _jobName = "CreateIndex-" ;
-         _indexName = _indexObj.getStringField( IXM_NAME_FIELD ) ;
-      }
-      else if ( RTN_JOB_DROP_INDEX == _type )
-      {
-         _jobName = "DropIndex-" ;
-         _indexEle = _indexObj.getField( IXM_NAME_FIELD ) ;
-         if ( _indexEle.eoo() )
+         if ( RTN_JOB_CREATE_INDEX == _type )
          {
-            _indexEle = _indexObj.firstElement () ;
+            ss << "CreateIndex-" ;
+            _indexName = _indexObj.getStringField( IXM_NAME_FIELD ) ;
          }
-         _indexName = _indexEle.str() ;
-      }
-      else
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG ( PDERROR, "Index job not support this type[%d]", _type ) ;
-         goto error ;
-      }
+         else if ( RTN_JOB_DROP_INDEX == _type )
+         {
+            ss << "DropIndex-" ;
+            _indexEle = _indexObj.getField( IXM_NAME_FIELD ) ;
+            if ( _indexEle.eoo() )
+            {
+               _indexEle = _indexObj.firstElement () ;
+            }
+            _indexName = _indexEle.str() ;
+         }
+         else
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG ( PDERROR, "Index job not support this type[%d]", _type ) ;
+            goto error ;
+         }
 
-      _jobName += _clFullName ;
-      _jobName += "[" ;
-      _jobName += _indexName ;
-      _jobName += "]" ;
+         ss << _clFullName << "/" << _clUniqID << "[" << _indexName << "]" ;
+         _jobName = ss.str() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
 
    done:
       return rc ;
@@ -266,6 +272,7 @@ namespace engine
       goto done ;
    }
 
+   // slave node use the function
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINDEXJOB_INIT, "_rtnIndexJob::init" )
    INT32 _rtnIndexJob::init ()
    {
@@ -447,6 +454,11 @@ namespace engine
       return _clFullName ;
    }
 
+   utilCLUniqueID _rtnIndexJob::getCLUniqueID() const
+   {
+      return _clUniqID ;
+   }
+
    RTN_JOB_TYPE _rtnIndexJob::type () const
    {
       return _type ;
@@ -461,7 +473,11 @@ namespace engine
    BOOLEAN _rtnIndexJob::muteXOn ( const _rtnBaseJob * pOther )
    {
       PD_TRACE_ENTRY ( SDB__RTNINDEXJOB_MUTEXON ) ;
-      BOOLEAN ret = FALSE;
+
+      BOOLEAN ret = FALSE ;
+      BOOLEAN sameCL = FALSE ;
+      _rtnIndexJob *pIndexJob = NULL ;
+
       if ( RTN_JOB_CREATE_INDEX != pOther->type() &&
            RTN_JOB_DROP_INDEX != pOther->type() )
       {
@@ -469,16 +485,28 @@ namespace engine
          goto done ;
       }
 
-      {
-         _rtnIndexJob *pIndexJob = ( _rtnIndexJob* )pOther ;
+      pIndexJob = ( _rtnIndexJob* )pOther ;
 
-         if ( 0 == ossStrcmp( getIndexName(), pIndexJob->getIndexName() ) &&
-              0 == ossStrcmp( getCollectionName(),
-                              pIndexJob->getCollectionName() ) )
-         {
-            ret = TRUE ;
-            goto done ;
-         }
+      // if they all have valid unique id, then compare by unique id
+      if ( UTIL_IS_VALID_CLUNIQUEID( getCLUniqueID() ) &&
+           UTIL_IS_VALID_CLUNIQUEID( pIndexJob->getCLUniqueID() ) &&
+           getCLUniqueID() == pIndexJob->getCLUniqueID() )
+      {
+         sameCL = TRUE ;
+      }
+      else if ( ! UTIL_IS_VALID_CLUNIQUEID( getCLUniqueID() ) &&
+                ! UTIL_IS_VALID_CLUNIQUEID( pIndexJob->getCLUniqueID() ) &&
+                0 == ossStrcmp( getCollectionName(),
+                                pIndexJob->getCollectionName() ) )
+      {
+         sameCL = TRUE ;
+      }
+
+      if ( sameCL && 0 == ossStrcmp( getIndexName(),
+                                     pIndexJob->getIndexName() ) )
+      {
+         ret = TRUE ;
+         goto done ;
       }
    done :
       PD_TRACE_EXIT ( SDB__RTNINDEXJOB_MUTEXON ) ;

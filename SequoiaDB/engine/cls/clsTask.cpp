@@ -2232,6 +2232,7 @@ namespace engine
    BOOLEAN _clsIdxTask::muteXOn ( const _clsTask* pOther )
    {
       BOOLEAN ret = FALSE ;
+      BOOLEAN sameCL = FALSE ;
       _clsIdxTask *pOtherIdx = NULL ;
 
       if ( pOther->taskType() != CLS_TASK_CREATE_IDX &&
@@ -2242,16 +2243,27 @@ namespace engine
 
       pOtherIdx = (clsIdxTask*)pOther ;
 
-      if ( 0 != ossStrcmp ( collectionName(), pOtherIdx->collectionName() ) )
+      // if they all have valid unique id, then compare by unique id
+      if ( UTIL_IS_VALID_CLUNIQUEID( clUniqueID() ) &&
+           UTIL_IS_VALID_CLUNIQUEID( pOtherIdx->clUniqueID() ) &&
+           clUniqueID() == pOtherIdx->clUniqueID() )
       {
-         goto done ;
+         sameCL = TRUE ;
       }
-      if ( 0 != ossStrcmp ( indexName(), pOtherIdx->indexName() ) )
+      else if ( ! UTIL_IS_VALID_CLUNIQUEID( clUniqueID() ) &&
+                ! UTIL_IS_VALID_CLUNIQUEID( pOtherIdx->clUniqueID() ) &&
+                0 == ossStrcmp( collectionName(),
+                                pOtherIdx->collectionName() ) )
       {
-         goto done ;
+         sameCL = TRUE ;
       }
 
-      ret = TRUE ;
+      if ( sameCL && 0 == ossStrcmp( indexName(),
+                                     pOtherIdx->indexName() ) )
+      {
+         ret = TRUE ;
+         goto done ;
+      }
 
    done :
       return ret ;
@@ -3965,8 +3977,12 @@ namespace engine
       }
       else if ( CLS_TASK_STATUS_READY == _status )
       {
-         // If buildAddGroup() add another Ready group, just keep Ready status
-         if ( cntReadyGroup < cntTotalGroup )
+         if ( cntReadyGroup == cntTotalGroup )
+         {
+            // If buildAddGroup() add another Ready group,
+            // just keep Ready status
+         }
+         else
          {
             setRun() ;
          }

@@ -145,7 +145,7 @@ namespace engine
          virtual DMS_TASK_STATUS status() const = 0 ;
          virtual void setStatus( DMS_TASK_STATUS status ) = 0 ;
          virtual INT32 resultCode() const = 0 ;
-         virtual BSONObj toBSON( UINT32 mask = DMS_TASK_MASK_ALL ) const = 0 ;
+         virtual BSONObj toBSON( UINT32 mask = DMS_TASK_MASK_ALL ) = 0 ;
 
          virtual const CHAR* collectionName() const = 0 ;
          virtual void collectionRename( const CHAR* newCLName ) = 0 ;
@@ -182,9 +182,9 @@ namespace engine
          virtual DMS_TASK_STATUS status() const { return _taskStatus ; }
          virtual void setStatus( DMS_TASK_STATUS status ) ;
          virtual INT32 resultCode() const { return _resultCode ; }
-         virtual BSONObj toBSON( UINT32 mask = DMS_TASK_MASK_ALL ) const ;
+         virtual BSONObj toBSON( UINT32 mask = DMS_TASK_MASK_ALL ) ;
 
-         virtual const CHAR* collectionName() const { return _clFullName ; }
+         virtual const CHAR* collectionName() const ;
          virtual void collectionRename( const CHAR* newCLName ) ;
 
          virtual const ossTimestamp& beginTimestamp() const ;
@@ -209,6 +209,7 @@ namespace engine
 
          UINT64 mainTaskID() const { return _mainTaskID ; }
 
+         void collectionName( CHAR* name, INT32 size ) const ;
          utilCLUniqueID clUniqueID() const { return _clUniqueID ; }
 
          const CHAR* indexName() const { return _indexName ; }
@@ -223,7 +224,7 @@ namespace engine
 
          void    setTotalRecNum( UINT64 num ) ;
 
-         UINT64* pcsedRecNumPtr() { return &_pcsedRecNum ; }
+         ossAtomic64* pcsedRecNumPtr() { return &_pcsedRecNum ; }
          void    incPcsedRecNum( UINT64 delta ) ;
          void    resetPcsedRecNum() ;
 
@@ -232,52 +233,54 @@ namespace engine
          void    setOpInfo( DMS_OPINFO_TYPE infoType ) ;
          void    resetOpInfo() ;
 
-         BOOLEAN isStandaloneIdx() const ;
+         const BSONObj& indexDef() const ;
+         INT32   setIndexDef( const BSONObj &indexDef ) ;
          BOOLEAN isGlobalIdx() const ;
          INT32   globalIdxCL( const CHAR *&clName, UINT64 &clUniqID ) const ;
 
-         INT32   setIndexDef( const BSONObj &indexDef ) ;
-         const BSONObj& indexDef() const ;
+      private:
+         void _buildResultInfo( INT32 resultCode,
+                                const CHAR* resultDetail,
+                                utilWriteResult* wResultDetail ) ;
 
       private:
-         DMS_TASK_TYPE   _taskType ;
-         UINT32          _locationID ;     // locationID in data
-         UINT64          _mainTaskID ;     // main taskID
-         DMS_TASK_STATUS _taskStatus ;
+         DMS_TASK_TYPE    _taskType ;
+         UINT32           _locationID ;     // locationID in data
+         UINT64           _mainTaskID ;     // main taskID
 
-         BOOLEAN         _hasCatalogTask ;
-         BOOLEAN         _pauseReport ;
+         volatile DMS_TASK_STATUS _taskStatus ;
 
-         CHAR           _clFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
-         utilCLUniqueID _clUniqueID ;
-         BSONObj        _indexDef ;
-         CHAR           _indexName[ IXM_INDEX_NAME_SIZE + 1 ] ;
-         INT32          _sortBufSize ;
+         utilCLUniqueID   _clUniqueID ;
+         CHAR             _indexName[ IXM_INDEX_NAME_SIZE ] ;
+         INT32            _sortBufSize ;
 
-         BOOLEAN        _isStandaloneIdx ;
-         BOOLEAN        _isGlobalIdx ;
+         ossTimestamp     _beginTimestamp ;
+         volatile UINT32  _retryCnt ;
+         volatile INT32   _resultCode ;
+         volatile DMS_OPINFO_TYPE _opInfo ;
 
-         UINT64         _totalRecNum ;
-         UINT64         _pcsedRecNum ;
-         UINT64         _pcsRecNumLastTime ;
+         volatile BOOLEAN _isInitialized ;
+         volatile BOOLEAN _pauseReport ;
+         BOOLEAN          _hasCatalogTask ;
 
-         ossTimestamp   _beginTimestamp ;
-         ossTimestamp   _endTimestamp ;
-         ossTimestamp   _calculateTimestamp ;
+         volatile BOOLEAN _hasSetDef ;      // protect _indexDef
+         BSONObj          _indexDef ;
+         BOOLEAN          _isGlobalIdx ;
 
-         UINT32         _retryCnt ;
-         INT32          _resultCode ;
-         BSONObj        _resultInfo ;
+         mutable ossSpinSLatch _nameLatch ; // protect _clFullName
+         CHAR             _clFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
 
-         DMS_OPINFO_TYPE _opInfo ;
-
-         // need to calculate
-         UINT32         _progress ;
-         UINT64         _speed ;
-         FLOAT64        _timeSpent ;
-         FLOAT64        _timeLeft ;
-
-         BOOLEAN        _isInitialized ;
+         mutable ossSpinSLatch _latch ;     // protect below variable
+         BSONObj          _resultInfo ;
+         ossTimestamp     _endTimestamp ;
+         ossTimestamp     _calculateTimestamp ;
+         ossAtomic64      _totalRecNum ;
+         ossAtomic64      _pcsedRecNum ;
+         UINT64           _pcsRecNumLastTime ;
+         UINT32           _progress ;
+         UINT64           _speed ;
+         FLOAT64          _timeSpent ;
+         FLOAT64          _timeLeft ;
    } ;
    typedef _dmsIdxTaskStatus dmsIdxTaskStatus ;
 

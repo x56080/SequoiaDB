@@ -78,10 +78,14 @@ namespace engine
                                      const CHAR* collectionName,
                                      const CHAR* indexName ) ;
          INT32 _startCatalogTask( UINT64 taskID ) ;
+         INT32 _checkAndFixCLNameByID( BOOLEAN& isOk ) ;
+         INT32 _buildTaskStatus( BOOLEAN setFinish = FALSE,
+                                 INT32 resultCode = SDB_OK) ;
 
       private:
          _pmdDummySession      _session ;
          CLS_INDEX_THREAD_MODE _threadMode ;
+         BOOLEAN               _retryLater ;
    };
    typedef class _clsIndexJob clsIndexJob ;
 
