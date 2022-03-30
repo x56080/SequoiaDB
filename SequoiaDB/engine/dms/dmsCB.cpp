@@ -3025,6 +3025,9 @@ namespace engine
 
          _latchVec[ suID ]->lock_w() ;
          isSULocked = TRUE ;
+
+         // enable MVCC when return
+         csCB->_su->setMVCCSupport( transCB->isMVCCOn() ) ;
       }
 
       if ( dpsCB )

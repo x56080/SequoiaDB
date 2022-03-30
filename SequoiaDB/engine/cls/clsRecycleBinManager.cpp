@@ -1029,6 +1029,9 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to recycle collection space [%s], "
                    "rc: %d", item.getRecycleName(), rc ) ;
 
+      // disable support MVCC for recycled collection space
+      su->setMVCCSupport( FALSE ) ;
+
       PD_LOG( PDEVENT, "Recycle drop collection space [%s] to [%s]",
               item.getOriginName(), item.getRecycleName() ) ;
 
