@@ -3192,7 +3192,8 @@ namespace engine
                                                   pmdEDUCB * cb,
                                                   SDB_DPSCB * dpscb,
                                                   BOOLEAN sysCollection,
-                                                  utilCLUniqueID newCLUniqueID )
+                                                  utilCLUniqueID newCLUniqueID,
+                                                  UINT32 *newStartLID )
    {
       INT32 rc                = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_RENAMECOLLECTION ) ;
@@ -3297,6 +3298,10 @@ namespace engine
          _dmsMME->_mbList[ mbID ]._clUniqueID = newCLUniqueID ;
       }
       clLID = _dmsMME->_mbList[mbID]._logicalID ;
+      if ( NULL != newStartLID )
+      {
+         _mbStatInfo[ mbID ]._startLID = *newStartLID ;
+      }
 
       if ( dpscb )
       {

@@ -758,6 +758,33 @@ namespace engine
             return SDB_DMS_NOTEXIST ;
          }
       }
+      else if ( _startLID != _mbStat->_startLID )
+      {
+         // start logical IDs are different
+         // NOTE: recycle or return cases will keep the logical ID
+         if ( (UINT32)DMS_INVALID_CLID == _mbStat->_startLID )
+         {
+            // collection is recycled by drop or truncate
+            if ( DMS_MB_STATINFO_IS_TRUNCATED( _mbStat->_flag) )
+            {
+               ossUnlatch( _latch, (OSS_LATCH_MODE)lockType ) ;
+               return SDB_DMS_TRUNCATED ;
+            }
+            else
+            {
+               ossUnlatch( _latch, (OSS_LATCH_MODE)lockType ) ;
+               return SDB_DMS_NOTEXIST ;
+            }
+         }
+         else if ( (UINT32)DMS_INVALID_CLID == _startLID )
+         {
+            // recycle collection is returned
+            ossUnlatch( _latch, (OSS_LATCH_MODE)lockType ) ;
+            return SDB_RECYCLE_ITEMNOTEXISTS ;
+         }
+         ossUnlatch( _latch, (OSS_LATCH_MODE)lockType ) ;
+         return SDB_DMS_NOTEXIST ;
+      }
 
       _mbLockType = lockType ;
       _resumeType = -1 ;
@@ -1043,7 +1070,8 @@ namespace engine
          INT32 renameCollection ( const CHAR *oldName, const CHAR *newName,
                                   _pmdEDUCB *cb, SDB_DPSCB *dpscb,
                                   BOOLEAN sysCollection = FALSE,
-                                  utilCLUniqueID newCLUniqueID = UTIL_UNIQUEID_NULL ) ;
+                                  utilCLUniqueID newCLUniqueID = UTIL_UNIQUEID_NULL,
+                                  UINT32 *newStartLID = NULL ) ;
 
          INT32 copyCollection( dmsMBContext *mbContext,
                                const CHAR *newName,

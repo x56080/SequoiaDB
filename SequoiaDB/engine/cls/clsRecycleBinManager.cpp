@@ -558,6 +558,7 @@ namespace engine
       utilCLUniqueID origUniqueID = (utilCLUniqueID)( item.getOriginID() ) ;
       dmsMBContext *copiedMBContext = NULL ;
       utilCLUniqueID newUniqueID = UTIL_UNIQUEID_NULL ;
+      UINT32 newStartLID = DMS_INVALID_CLID ;
 
       PD_CHECK( NULL != su, SDB_SYS, error, PDERROR,
                 "Failed to recycle collection [%s], "
@@ -576,14 +577,14 @@ namespace engine
       newUniqueID = utilBuildCLUniqueID( su->CSUniqueID(),
                                          UTIL_CLINNERID_LOCAL ) ;
 
+      // change the start LID in meta data lock, so other mb context won't
+      // get the origin name with new start LID
       rc = su->data()->renameCollection( clShortName, newName, cb, NULL, TRUE,
-                                         newUniqueID ) ;
+                                         newUniqueID, &newStartLID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to recycle collection from "
                    "[%s] to [%s], rc: %d", clShortName, newName, rc ) ;
 
-      // change start logical ID, and set truncate flag
-      // so other mbContext can detect collection truncated
-      mbContext->mbStat()->_startLID = DMS_INVALID_CLID ;
+      // clear truncate flag, so other mbContext can detect collection truncated
       DMS_MB_STATINFO_SET_TRUNCATED( mbContext->mbStat()->_flag ) ;
 
       rc = su->data()->copyCollection( mbContext, clShortName, origUniqueID,
@@ -772,6 +773,7 @@ namespace engine
 
       const CHAR *newName = item.getRecycleName() ;
       utilCLUniqueID newUniqueID = UTIL_UNIQUEID_NULL ;
+      UINT32 newStartLID = DMS_INVALID_CLID ;
 
       PD_CHECK( NULL != su, SDB_SYS, error, PDERROR,
                 "Failed to recycle collection [%s], "
@@ -790,14 +792,14 @@ namespace engine
       newUniqueID = utilBuildCLUniqueID( su->CSUniqueID(),
                                          UTIL_CLINNERID_LOCAL ) ;
 
+      // change the start LID in meta data lock, so other mb context won't
+      // get the origin name with new start LID
       rc = su->data()->renameCollection( clShortName, newName, cb, NULL, TRUE,
-                                         newUniqueID ) ;
+                                         newUniqueID, &newStartLID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to recycle collection from "
                    "[%s] to [%s], rc: %d", clShortName, newName, rc ) ;
 
-      // change start logical ID, and clear truncate flag
-      // so other mbContext can detect collection dropped
-      mbContext->mbStat()->_startLID = DMS_INVALID_CLID ;
+      // clear truncate flag, so other mbContext can detect collection dropped
       DMS_MB_STATINFO_CLEAR_TRUNCATED( mbContext->mbStat()->_flag ) ;
 
 
