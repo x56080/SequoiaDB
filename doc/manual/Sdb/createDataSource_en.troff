@@ -135,9 +135,8 @@ coordinator and data source node inherits session attributes from local session
 on the coordinator, the default value is true.
 .RS 2
 .PP
-The supported attributes include
-PreferedInstance，PreferedInstanceMode，PreferedStrict，PreferedPeriod and
-Timeout.
+The supported attributes include PreferredInstance, PreferredInstanceMode,
+PreferredStrict, PreferredPeriod and Timeout.
 .PP
 Format: \f[C]InheritSessionAttr: true\f[]
 .RE
