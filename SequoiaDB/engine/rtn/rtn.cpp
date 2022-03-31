@@ -1052,7 +1052,7 @@ namespace engine
                   rc = logManager.getRenameLog( csName, renameLog ) ;
                   PD_RC_CHECK( rc, PDERROR, "Failed to get rename log "
                                "for collection space [%s], rc: %d",
-                               csName, renameLog ) ;
+                               csName, rc ) ;
 
                   if ( renameLog.isValid() )
                   {
