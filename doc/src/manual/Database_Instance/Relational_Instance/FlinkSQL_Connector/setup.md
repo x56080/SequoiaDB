@@ -23,7 +23,6 @@ Flink 提供了多种集群部署方式，用户可根据实际需求参考 [Fli
 
 3. 重启 Flink 集群使改动生效
 
-
 ##配置 SequoiaDB 主机名映射##
 
 在使用 FlinkSQL 连接器之前，用户需要将 SequoiaDB 集群中所有主机的主机名/IP映射关系，配置到 Flink 节点所在主机的 `/etc/hosts` 文件中。

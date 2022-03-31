@@ -1,11 +1,11 @@
-[^_^]:
+ [^_^]:
     FlinkSQL 连接器-连接
 
-Flink 集群启动成功后，用户可通过 FlinkSQL 客户端访问 SequoiaDB 巨杉数据库。
+Flink 集群启动成功后，用户可通过 FlinkSQL 客户端访问 SequoiaDB 巨杉数据库。 
 
 ##配置读取并发度##
 
-对于 Source，用户需在 FlinkSQL 客户端中配置读取并发度，以保证性能。配置读取并发度时，建议取值与 SequoiaDB 集群中复制组的数量成比例。如集群中存在 6 个复制组，建议将读取并发度配置为 6、12 或 24。
+从 SequoiaDB 读取数据时，用户需在 FlinkSQL 客户端中配置读取并发度，以保证性能。配置读取并发度时，建议取值与 SequoiaDB 集群中复制组的数量成比例。如集群中存在 6 个复制组，建议将读取并发度配置为 6、12 或 24。
 
 1. 切换至 Flink 安装目录，并启动 FlinkSQL 客户端
 
@@ -86,6 +86,10 @@ WITH(
 | group                   | string  | insert into select 创建集合时指定创建在某个复制组<br>所指定的复制组必须存在于集合空间所属的域中                                                         | 否   |
 |  parallelism            | int32   | Sink 并发度，默认值为 1，取值应小于当前 Flink 集群的总 Slot 数量 <br> 建议取值为 SequoiaDB 集群中协调节点数量的倍数                           | 否   |  
 | transactionon           | boolean | Sink 是否开启事务，默认值为 false，表示不开启事务 <br> 建议取值如下： <br> 1）在批量写入的场景下，建议取值为 false，以提高写入效率  <br>  2）在实时写入的场景下，建议取值为 true，以保证数据一致性  <br> 3）在实时写入但不要求数据保持一致性的场景下，建议取值为 false， 以提高写入效率                                                              | 否   |
+
+
+
+
 
 [^_^]:
     本文使用的所有引用及链接
