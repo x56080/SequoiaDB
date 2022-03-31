@@ -29,8 +29,8 @@
 |**string**|支持数值字符串|支持数值字符串|支持数值字符串|支持数值字符串|支持数值字符串|支持数值字符串|支持Date字符串|支持Timestamp字符串|支持Bool字符串|支持数值字符串|Y|Y|
 |**OID**|N|N|N|N|N|N|N|N|N|N|Y|Y|
 |**boolean**|Y|Y|Y|Y|Y|Y|N|N|Y|Y|Y|Y|
-|**date**|可能溢出|可能溢出|可能溢出|Y|Y|Y|Y|Y|N|Y|Y|Y|
-|**timestamp**|可能溢出|可能溢出|可能溢出|Y|Y|Y|Y|Y|N|Y|Y|Y|
+|**date**|可能溢出|可能溢出|可能溢出|Y|可能精度丢失|可能精度丢失|Y|Y|N|Y|Y|Y|
+|**timestamp**|可能溢出|可能溢出|可能溢出|Y|可能精度丢失|可能精度丢失|Y|Y|N|Y|Y|Y|
 |**binary**|N|N|N|N|N|N|N|N|N|N|Y|Y|
 
 >**Note:**
