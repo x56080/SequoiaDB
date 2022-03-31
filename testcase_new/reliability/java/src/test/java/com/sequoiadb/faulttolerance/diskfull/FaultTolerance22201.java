@@ -113,8 +113,8 @@ public class FaultTolerance22201 extends SdbTestBase {
 
         FaultToleranceUtils.insertError( csName, clName, 0 );
 
-        Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true );
-        Assert.assertEquals( dataGroup.checkInspect( 1 ), true );
+        Assert.assertTrue( groupMgr.checkBusinessWithLSN( 600 ) );
+        Assert.assertTrue( dataGroup.checkInspect( 1 ) );
     }
 
     @AfterClass
@@ -157,6 +157,8 @@ public class FaultTolerance22201 extends SdbTestBase {
                         if ( e.getErrorCode() != SDBError.SDB_CLS_WAIT_SYNC_FAILED
                                 .getErrorCode()
                                 && e.getErrorCode() != SDBError.SDB_CLS_NODE_NOT_ENOUGH
+                                        .getErrorCode()
+                                && e.getErrorCode() != SDBError.SDB_CLS_NOT_PRIMARY
                                         .getErrorCode() ) {
                             throw e;
                         }
