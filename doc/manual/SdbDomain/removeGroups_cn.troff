@@ -5,7 +5,7 @@
 .hy
 .SH 名称
 .PP
-removeGroups \- 从域中删除复制组
+removeGroups \- 删除域包含的复制组
 .SH 语法
 .PP
 \f[B]domain.removeGroups(<object>)\f[]
@@ -14,22 +14,20 @@ removeGroups \- 从域中删除复制组
 SdbDomain
 .SH 描述
 .PP
-该函数用于删除域中复制组。
-.RS
-.PP
-\f[B]Note:\f[]
-.PP
-删除复制组前必须保证组内不包含任何数据，否则操作将失败。
-.RE
+该函数用于删除域包含的复制组。
 .SH 参数
 .PP
 options ( \f[I]object，必填\f[] )
 .PP
-需要修改的属性列表：
+通过参数 options 可以指定需要删除的复制组：
 .IP \[bu] 2
-Groups ( \f[I]string/array\f[] )：域将删除的复制组
+Groups ( \f[I]string/array\f[] )：域包含的复制组
+.RS 2
+.PP
+该参数指定的复制组中不允许存在数据，否则操作报错。
 .PP
 格式：\f[C]Groups: [\[aq]group1\[aq], \[aq]group2\[aq]]\f[]
+.RE
 .SH 返回值
 .PP
 函数执行成功时，无返回值。
@@ -81,7 +79,7 @@ SDB_DOMAIN_IS_OCCUPIED
 T}@T{
 域已被使用
 T}@T{
-使用 domain.
+使用
 T}
 T{
 T}@T{
@@ -110,33 +108,50 @@ T}
 获取错误码。更多错误处理可以参考常见错误处理指南。
 .SH 版本
 .PP
-v2.0 及以上版本
+v3.4 及以上版本
 .SH 示例
-.PP
-创建一个包含三个复制组的域，并开启自动切分
-.IP
-.nf
-\f[C]
-> var domain = db.createDomain(\[aq]mydomain\[aq], [\[aq]group1\[aq], \[aq]group2\[aq], \[aq]group3\[aq]], {AutoSplit: true})
-\f[]
-.fi
 .IP \[bu] 2
-从域中删除复制组 group2
+创建一个包含复制组 group1 和 group2 的域，复制组中不存在数据
 .RS 2
 .IP
 .nf
 \f[C]
-> domain.removeGroups({Groups: [\[aq]group2\[aq]]})
+> var domain = db.createDomain(\[aq]mydomain\[aq], [\[aq]group1\[aq], \[aq]group2\[aq]])
+\f[]
+.fi
+.PP
+删除域包含的复制组 group1
+.IP
+.nf
+\f[C]
+> domain.removeGroups({Groups: [\[aq]group1\[aq]]})
 \f[]
 .fi
 .RE
 .IP \[bu] 2
-从域中删除复制组 group1 和 group2
+创建一个包含复制组 group1 的域，复制组中存在数据
 .RS 2
 .IP
 .nf
 \f[C]
-> domain.removeGroups({Groups: [\[aq]group1\[aq], \[aq]group2\[aq]]})
+> var domain = db.createDomain(\[aq]mydomain\[aq], [\[aq]group1\[aq]])
+\f[]
+.fi
+.PP
+删除域包含的复制组 group1
+.IP
+.nf
+\f[C]
+> domain.removeGroups({Groups: [\[aq]group1\[aq]]})
+\f[]
+.fi
+.PP
+由于 group1 中存在数据，操作报错
+.IP
+.nf
+\f[C]
+(nofile):0 uncaught exception: \-256
+Domain has been used
 \f[]
 .fi
 .RE

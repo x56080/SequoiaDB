@@ -1,6 +1,6 @@
 ##NAME##
 
-listCollectionSpaces - enumerate the collection space information in the domain
+listCollectionSpaces - list the collection space contained in the domain
 
 ##SYNOPSIS##
 
@@ -12,7 +12,7 @@ SdbDomain
 
 ##DESCRIPTION##
 
-This function is used to enumerate all the collection space information in the specified domain.
+This function is used to list the collection space contained in the specified domain.
 
 ##PARAMETERS##
 
@@ -20,10 +20,9 @@ None
 
 ##RETURN VALUE##
 
-When the function executes successfully, it will return an object of type SdbCursor. Users can get a list of collection details through this object. For field descriptions, refer to [collectionspaces_list][collectionspaces_list].
+When the function executes successfully, it will return an object of type SdbCursor. Users can get a list of collection space information contained in the domain through this object.
 
 When the function fails, an exception will be thrown and an error message will be printed.
-
 
 ##ERRORS##
 
@@ -31,16 +30,20 @@ When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the erro
 
 ##VERSION##
 
-v2.0 and above
+v3.4 and above
 
 ##EXAMPLES##
 
-Get the collection space information under the specified domain.
+List the collection space information contained in the specified domain.
 
 ```lang-javascript
+> var domain = db.getDomain('mydomain')
 > domain.listCollectionSpaces()
 {
-    "Name": "sample" 
+  "Name": "sample1"
+}
+{
+  "Name": "sample2"
 }
 ```
 

@@ -15,30 +15,31 @@ SdbDomain
 .SH DESCRIPTION
 .PP
 This function is used to modify the properties of the domain.
-.RS
-.PP
-\f[B]Note:\f[]
-.IP \[bu] 2
-User must ensure that the group does not contain any data before deleting a
-replication group, otherwise the operation will fail.
-.IP \[bu] 2
-Changing "AutoSplit" will not affect the existing collection and collection
-space.
-.RE
 .SH PARAMETERS
 .PP
 options ( \f[I]object, required\f[] )
 .PP
-Modify the propertys of the domain through the options parameters:
+Modify the properties of the domain through the parameter "options":
 .IP \[bu] 2
-Groups ( \f[I]string/array\f[] ): All replication groups contained in the
-domain.
+Groups ( \f[I]string/array\f[] ): The replication group contained in the domain.
+.RS 2
+.PP
+When modifying the replication group contained in the domain, if it involves
+deleting the replication group, make sure that there is no data in the
+replication group, otherwise the operation will report an error.
 .PP
 Format: \f[C]Groups: [\[aq]group1\[aq], \[aq]group2\[aq]]\f[]
+.RE
 .IP \[bu] 2
-AutoSplit ( \f[I]boolean\f[] ): Whether the domain is automatically split.
+AutoSplit ( \f[I]boolean\f[] ): Whether to enable automatic segmentation, the
+default value is false, not enabled.
+.RS 2
 .PP
-Format: \f[C]AutoSplit: true|false\f[]
+After this parameter is modified, it will only take effect for the newly created
+collection space and collection.
+.PP
+Format: \f[C]AutoSplit: true\f[]
+.RE
 .SH RETURN VALUE
 .PP
 When the function executes successfully, there is no return value.
@@ -79,7 +80,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-not exist
+not exist.
 T}@T{
 whether the partition
 T}
@@ -97,7 +98,7 @@ T}@T{
 T}@T{
 SDB_CAT_DOMAIN_NOT_
 T}@T{
-Domain does not exist
+Domain does not exist.
 T}@T{
 Use listDomains() to
 T}
@@ -123,7 +124,7 @@ T}@T{
 T}@T{
 SDB_DOMAIN_IS_OCCUPIED
 T}@T{
-This domain has been
+Domain has been used.
 T}@T{
 Use
 T}
@@ -131,7 +132,6 @@ T{
 T}@T{
 T}@T{
 T}@T{
-used
 T}@T{
 listCollectionSpaces()
 T}
@@ -163,25 +163,20 @@ getLastError() to get the error code.
 For more details, refer to Troubleshooting.
 .SH VERSION
 .PP
-v2.0 and above
+v3.4 and above
 .SH EXAMPLES
 .IP \[bu] 2
-Create a domain containing two replication groups, and then turn on automatic
-split.
+Create a domain containing the replication group "group1" and "group2", no data
+exists in the replication groups.
 .RS 2
 .IP
 .nf
 \f[C]
-> var domain = db.createDomain(\[aq]mydomain\[aq], [\[aq]group1\[aq], \[aq]group2\[aq]], {AutoSplit: true})
+> var domain = db.createDomain(\[aq]mydomain\[aq], [\[aq]group1\[aq], \[aq]group2\[aq]])
 \f[]
 .fi
-.RE
-.IP \[bu] 2
-Delete a replication group "group2" from the domain and add another replication
-group "group3".
-Two replication groups "group1" and "group3" are contained in the domain at
-list.
-.RS 2
+.PP
+Modify the replication group contained in the domain to "group1" and group3.
 .IP
 .nf
 \f[C]
@@ -190,8 +185,8 @@ list.
 .fi
 .RE
 .IP \[bu] 2
-First create a domain containng a replication group, and the replication group
-contains the table "sample.employee".
+Create a domain containing the replication group "group1" with data in the
+replication group.
 .RS 2
 .IP
 .nf
@@ -199,16 +194,19 @@ contains the table "sample.employee".
 > var domain = db.createDomain(\[aq]mydomain\[aq], [\[aq]group1\[aq]])
 \f[]
 .fi
-.RE
-.IP \[bu] 2
-Delete the original replication group from the domain and add another
-replication group.
-Deleting a "group1" with data from the domain will report an error.
-.RS 2
+.PP
+Modify the replication group contained in the domain to "group2".
 .IP
 .nf
 \f[C]
 > domain.setAttributes({Groups: [\[aq]group2\[aq]]})
+\f[]
+.fi
+.PP
+Because there is data in "group1", the operation reports an error.
+.IP
+.nf
+\f[C]
 (nofile):0 uncaught exception: \-256
 Domain has been used
 \f[]

@@ -5,7 +5,7 @@
 .hy
 .SH NAME
 .PP
-removeGroups \- remove the replication group from the domain
+removeGroups \- delete the replication group contained in the domain
 .SH SYNOPSIS
 .PP
 \f[B]domain.removeGroups(<object>)\f[]
@@ -14,24 +14,21 @@ removeGroups \- remove the replication group from the domain
 SdbDomain
 .SH DESCRIPTION
 .PP
-This function is used to remove the replication group in the domain.
-.RS
-.PP
-\f[B]Note:\f[]
-.PP
-User must ensure that the group does not contain any data before removing a
-replication group, otherwise the operation will fail.
-.RE
+This function is used to delete the replication group contained in the domain.
 .SH PARAMETERS
 .PP
 options ( \f[I]object, required\f[] )
 .PP
-Modify the property list through the options parameter:
+Specify the replication group to be deleted through the parameter "options":
 .IP \[bu] 2
-Groups ( \f[I]string/array\f[] ): The replication group that the domain will
-remove.
+Groups ( \f[I]string/array\f[] ): The replication group contained in the domain.
+.RS 2
+.PP
+Data is not allowed in the replication group specified by this parameter,
+otherwise the operation will report an error.
 .PP
 Format: \f[C]Groups: [\[aq]group1\[aq], \[aq]group2\[aq]]\f[]
+.RE
 .SH RETURN VALUE
 .PP
 When the function executes successfully, there is no return value.
@@ -72,7 +69,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-not exist
+not exist.
 T}@T{
 whether the partition
 T}
@@ -90,15 +87,14 @@ T}@T{
 T}@T{
 SDB_DOMAIN_IS_OCCUPIED
 T}@T{
-The domain has been
+Domain has been used.
 T}@T{
-Use domain.
+Use
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-used
 T}@T{
 listCollectionSpaces()
 T}
@@ -130,33 +126,52 @@ getLastError() to get the error code.
 For more details, refer to Troubleshooting.
 .SH VERSION
 .PP
-v2.0 and above
+v3.4 and above
 .SH EXAMPLES
-.PP
-Create a domain containing three replication groups and turn on automatic split.
-.IP
-.nf
-\f[C]
-> var domain = db.createDomain(\[aq]mydomain\[aq], [\[aq]group1\[aq], \[aq]group2\[aq], \[aq]group3\[aq]], {AutoSplit: true})
-\f[]
-.fi
 .IP \[bu] 2
-Remove the replication group "group2" from the domain.
+Create a domain containing the replication group "group1" and "group2", no data
+exists in the replication groups.
 .RS 2
 .IP
 .nf
 \f[C]
-> domain.removeGroups({Groups: [\[aq]group2\[aq]]})
+> var domain = db.createDomain(\[aq]mydomain\[aq], [\[aq]group1\[aq], \[aq]group2\[aq]])
+\f[]
+.fi
+.PP
+Delete the replication group "group1" contained in the domain.
+.IP
+.nf
+\f[C]
+> domain.removeGroups({Groups: [\[aq]group1\[aq]]})
 \f[]
 .fi
 .RE
 .IP \[bu] 2
-Remove the replication group "group1" and "group2" from the domain.
+Create a domain containing the replication group "group1" with data in the
+replication group.
 .RS 2
 .IP
 .nf
 \f[C]
-> domain.removeGroups({Groups: [\[aq]group1\[aq], \[aq]group2\[aq]]})
+> var domain = db.createDomain(\[aq]mydomain\[aq], [\[aq]group1\[aq]])
+\f[]
+.fi
+.PP
+Delete the replication group "group1" contained in the domain.
+.IP
+.nf
+\f[C]
+> domain.removeGroups({Groups: [\[aq]group1\[aq]]})
+\f[]
+.fi
+.PP
+Because there is data in "group1", the operation reports an error.
+.IP
+.nf
+\f[C]
+(nofile):0 uncaught exception: \-256
+Domain has been used
 \f[]
 .fi
 .RE

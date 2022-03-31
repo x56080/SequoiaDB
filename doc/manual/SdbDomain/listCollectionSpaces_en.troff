@@ -4,7 +4,7 @@
 .hy
 .SH NAME
 .PP
-listCollectionSpaces \- enumerate the collection space information in the domain
+listCollectionSpaces \- list the collection space contained in the domain
 .SH SYNOPSIS
 .PP
 \f[B]domain.listCollectionSpaces()\f[]
@@ -13,8 +13,8 @@ listCollectionSpaces \- enumerate the collection space information in the domain
 SdbDomain
 .SH DESCRIPTION
 .PP
-This function is used to enumerate all the collection space information in the
-specified domain.
+This function is used to list the collection space contained in the specified
+domain.
 .SH PARAMETERS
 .PP
 None
@@ -22,8 +22,8 @@ None
 .PP
 When the function executes successfully, it will return an object of type
 SdbCursor.
-Users can get a list of collection details through this object.
-For field descriptions, refer to collectionspaces_list.
+Users can get a list of collection space information contained in the domain
+through this object.
 .PP
 When the function fails, an exception will be thrown and an error message will
 be printed.
@@ -34,16 +34,20 @@ getLastError() to get the error code.
 For more details, refer to Troubleshooting.
 .SH VERSION
 .PP
-v2.0 and above
+v3.4 and above
 .SH EXAMPLES
 .PP
-Get the collection space information under the specified domain.
+List the collection space information contained in the specified domain.
 .IP
 .nf
 \f[C]
+> var domain = db.getDomain(\[aq]mydomain\[aq])
 > domain.listCollectionSpaces()
 {
-    "Name": "sample" 
+  "Name": "sample1"
+}
+{
+  "Name": "sample2"
 }
 \f[]
 .fi
