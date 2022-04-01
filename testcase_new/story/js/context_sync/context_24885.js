@@ -2,12 +2,13 @@
  * @Description   : seqDB-24885:catalog上上下文超时清理 
  * @Author        : Yao Kang
  * @CreateTime    : 2021.12.30
- * @LastEditTime  : 2021.12.31
- * @LastEditors   : Yao Kang
+ * @LastEditTime  : 2022.04.01
+ * @LastEditors   : liuli
  ******************************************************************************/
+testConf.skipStandAlone = true;
 testConf.clName = COMMCLNAME + "_24885";
-// 问题单：http://jira.web:8080/browse/SEQUOIADBMAINSTREAM-7896
-// main( test );
+
+main( test );
 function test ( testPara )
 {
    var cl = testPara.testCL;
@@ -27,7 +28,7 @@ function test ( testPara )
 
       cursor = db.list( SDB_LIST_CONTEXTS );
       cursor.next();
-      sleep( 1000 * 60 * 2 );
+      sleep( 1000 * 60 * 3 );
       assert.tryThrow( SDB_RTN_CONTEXT_NOTEXIST, function()
       {
          while( cursor.next() ) { }
