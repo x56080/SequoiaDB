@@ -216,6 +216,9 @@ namespace engine
          void _onCommitEvent( coordCMDArguments *pArgs,
                               pmdEDUCB *cb ) ;
 
+         void _onRollbackEvent( coordCMDArguments *pArgs,
+                                pmdEDUCB *cb ) ;
+
       protected:
          COORD_CMD_EVENT_HANDLER_LIST  _eventHandlers ;
    } ;

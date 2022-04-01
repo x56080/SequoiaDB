@@ -342,6 +342,211 @@ namespace engine
    }
 
    /*
+      _catCtxTaskHandler implement
+    */
+   _catCtxTaskHandler::_catCtxTaskHandler( catCtxLockMgr & lockMgr )
+   : _catCtxEventHandler( lockMgr )
+   {
+   }
+
+   _catCtxTaskHandler::~_catCtxTaskHandler()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXTASKHANDLER__BUILDTASKREPLY, "_catCtxTaskHandler::_buildTaskReply" )
+   INT32 _catCtxTaskHandler::_buildTaskReply( BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXTASKHANDLER__BUILDTASKREPLY ) ;
+
+      if ( !_taskSet.empty() )
+      {
+         try
+         {
+            BSONArrayBuilder taskBuilder(
+                                    builder.subarrayStart( CAT_TASKID_NAME ) ) ;
+            for ( ossPoolSet< UINT64 >::iterator iter = _taskSet.begin() ;
+                  iter != _taskSet.end() ;
+                  ++ iter )
+            {
+               taskBuilder.append( (INT64)( *iter ) ) ;
+            }
+            taskBuilder.doneFast() ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to build reply for tasks, "
+                    "occur exception %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXTASKHANDLER__BUILDTASKREPLY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXTASKHANDLER__CANCELTASKS, "_catCtxTaskHandler::_cancelTasks" )
+   INT32 _catCtxTaskHandler::_cancelTasks( _pmdEDUCB *cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXTASKHANDLER__CANCELTASKS ) ;
+
+      for ( ossPoolSet< UINT64 >::iterator iter = _taskSet.begin() ;
+            iter != _taskSet.end() ;
+            ++ iter )
+      {
+         INT32 tmpRC = SDB_OK ;
+         BSONObj query ;
+         UINT32 returnGroupID = 0 ;
+
+         UINT64 taskID = *iter ;
+
+         try
+         {
+            query = BSON( CAT_TASKID_NAME << (INT64)taskID ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to build cancel query, "
+                    "occur exception: %s", e.what() ) ;
+            continue ;
+         }
+
+         tmpRC = catTaskCancel( query, cb, w, returnGroupID ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDWARNING, "Failed to cancel task [%llu], rc: %d",
+                    taskID, tmpRC ) ;
+         }
+      }
+
+      PD_TRACE_EXITRC( SDB_CATCTXTASKHANDLER__CANCELTASKS, rc ) ;
+
+      return rc ;
+   }
+
+   /*
+      _catRecyCtxTaskHandler implement
+    */
+   _catRecyCtxTaskHandler::_catRecyCtxTaskHandler( catCtxLockMgr & lockMgr )
+   : _catCtxTaskHandler( lockMgr )
+   {
+   }
+
+   _catRecyCtxTaskHandler::~_catRecyCtxTaskHandler()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRECYCTXTASKHANDLER_ONCHECKEVENT, "_catRecyCtxTaskHandler::onCheckEvent" )
+   INT32 _catRecyCtxTaskHandler::onCheckEvent( SDB_EVENT_OCCUR_TYPE type,
+                                               const CHAR *targetName,
+                                               const BSONObj &boTarget,
+                                               _pmdEDUCB *cb,
+                                               INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATRECYCTXTASKHANDLER_ONCHECKEVENT ) ;
+
+      rc = _checkSplitTasks( cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check split tasks, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATRECYCTXTASKHANDLER_ONCHECKEVENT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRECYCTXTASKHANDLER__CHECKSPLITTASKS, "_catRecyCtxTaskHandler::_checkSplitTasks" )
+   INT32 _catRecyCtxTaskHandler::_checkSplitTasks( _pmdEDUCB *cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATRECYCTXTASKHANDLER__CHECKSPLITTASKS ) ;
+
+      if ( !_recycleItem.isValid() )
+      {
+         goto done ;
+      }
+
+      if ( UTIL_RECYCLE_CS == _recycleItem.getType() )
+      {
+         const CHAR *csName = _recycleItem.getOriginName() ;
+         rc = catGetCSTaskByType( csName, CLS_TASK_SPLIT, cb, _taskSet ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get split tasks on collection "
+                      "space [%s], rc: %d", csName, rc ) ;
+      }
+      else if ( UTIL_RECYCLE_CL == _recycleItem.getType() )
+      {
+         const CHAR *clName = _recycleItem.getOriginName() ;
+         if ( _recycleItem.isMainCL() )
+         {
+            clsCatalogSet catSet( clName ) ;
+            BSONObj boCollection ;
+            CLS_SUBCL_LIST subCLList ;
+
+            rc = catGetCollection( clName, boCollection, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get collection [%s], rc: %d",
+                         rc ) ;
+
+            rc = catSet.updateCatSet( boCollection ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse catalog for "
+                         "collection [%s], rc: %d", clName, rc ) ;
+
+            rc = catSet.getSubCLList( subCLList ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get sub-collection list from "
+                         "main collection [%s], rc: %d", clName, rc ) ;
+
+            for ( CLS_SUBCL_LIST_IT iter = subCLList.begin() ;
+                  iter != subCLList.end() ;
+                  ++ iter )
+            {
+               const CHAR *subCLName = iter->c_str() ;
+
+               rc = catGetCLTaskByType( subCLName, CLS_TASK_SPLIT, cb, _taskSet ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get split tasks on collection "
+                            "space [%s], rc: %d", subCLName, rc ) ;
+            }
+         }
+         else
+         {
+            rc = catGetCLTaskByType( clName, CLS_TASK_SPLIT, cb, _taskSet ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get split tasks on collection "
+                         "space [%s], rc: %d", clName, rc ) ;
+         }
+      }
+
+      // for both drop and truncate, we need to cancel split tasks
+      // once collection or collection space recycled, the clean job of
+      // split tasks will not be able to find the origin collection
+      // NOTE: the reason of truncate need cancel split tasks is because
+      // once the split hangs by error (e.g. array sharding keys), the truncate
+      // hangs also
+      rc = _cancelTasks( cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to cancel split tasks before "
+                   "recycle item [origin: %s, recycle: %s], rc: %d",
+                   _recycleItem.getOriginName(),
+                   _recycleItem.getRecycleName(), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATRECYCTXTASKHANDLER__CHECKSPLITTASKS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   /*
       _catCtxRecycleHelper implement
     */
    _catCtxRecycleHelper::_catCtxRecycleHelper( UTIL_RECYCLE_TYPE type,
@@ -360,9 +565,11 @@ namespace engine
     */
    _catCtxRecycleHandler::_catCtxRecycleHandler( UTIL_RECYCLE_TYPE type,
                                                  UTIL_RECYCLE_OPTYPE opType,
+                                                 catRecyCtxTaskHandler &taskHandler,
                                                  catCtxLockMgr &lockMgr )
    : _catCtxEventHandler( lockMgr ),
      _catCtxRecycleHelper( type, opType ),
+     _taskHandler( taskHandler ),
      _isUseRecycleBin( TRUE ),
      _isReservedItem( FALSE )
    {
@@ -465,12 +672,12 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXRECYHANDLER__CHECKRECYCKE, "_catCtxRecycleHandler::_checkRecycle" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXRECYHANDLER__CHECKRECYCLE, "_catCtxRecycleHandler::_checkRecycle" )
    INT32 _catCtxRecycleHandler::_checkRecycle( _pmdEDUCB *cb, INT16 w )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB_CATCTXRECYHANDLER__CHECKRECYCKE ) ;
+      PD_TRACE_ENTRY( SDB_CATCTXRECYHANDLER__CHECKRECYCLE ) ;
 
       rc = _recycleBinMgr->prepareItem( _recycleItem, _droppingItems,
                                         _lockMgr, cb, w ) ;
@@ -487,8 +694,14 @@ namespace engine
          _isReservedItem = TRUE ;
       }
 
+      if ( _isUseRecycleBin )
+      {
+         // tell the task handler to handle recycle item
+         _taskHandler.setRecycleItem( _recycleItem ) ;
+      }
+
    done:
-      PD_TRACE_EXITRC( SDB_CATCTXRECYHANDLER__CHECKRECYCKE, rc ) ;
+      PD_TRACE_EXITRC( SDB_CATCTXRECYHANDLER__CHECKRECYCLE, rc ) ;
       return rc ;
 
    error:

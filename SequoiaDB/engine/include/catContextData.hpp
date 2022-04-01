@@ -170,6 +170,7 @@ namespace engine
       /* ensure collectionspace is empty or not */
       BOOLEAN _ensureEmpty ;
       catCtxGlobIdxHandler _globIdxHandler ;
+      catRecyCtxTaskHandler _taskHandler ;
       catCtxRecycleHandler _recycleHandler ;
    } ;
 
@@ -377,6 +378,7 @@ namespace engine
 
    protected :
       catCtxGlobIdxHandler _globIdxHandler ;
+      catRecyCtxTaskHandler _taskHandler ;
       catCtxRecycleHandler _recycleHandler ;
    } ;
 
@@ -617,6 +619,7 @@ namespace engine
 
    protected :
       catCtxGlobIdxHandler _globIdxHandler ;
+      catRecyCtxTaskHandler _taskHandler ;
       catCtxRecycleHandler _recycleHandler ;
    } ;
 

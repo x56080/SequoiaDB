@@ -705,6 +705,8 @@ namespace engine
          pCoordCtxForCata = NULL ;
       }
 
+      _onRollbackEvent( pArguments, cb ) ;
+
       PD_LOG( PDINFO, "Do rollback phase on data done for command[%s, "
               "target:%s]", getName(), pArguments->_targetName.c_str() ) ;
 
@@ -1095,10 +1097,11 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_CMD2PHASE__ONCOMMITEVENT, "_coordCMD2Phase::_onCommitEvent" )
    void _coordCMD2Phase::_onCommitEvent( coordCMDArguments *pArgs,
                                          pmdEDUCB *cb )
    {
-      PD_TRACE_ENTRY( COORD_CMD2PHASE__ONDATAP2EVENT ) ;
+      PD_TRACE_ENTRY( COORD_CMD2PHASE__ONCOMMITEVENT ) ;
 
       for ( COORD_CMD_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
             iter != _eventHandlers.end() ;
@@ -1117,7 +1120,33 @@ namespace engine
          }
       }
 
-      PD_TRACE_EXIT( COORD_CMD2PHASE__ONDATAP2EVENT ) ;
+      PD_TRACE_EXIT( COORD_CMD2PHASE__ONCOMMITEVENT ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_CMD2PHASE__ONROLLBACKEVENT, "_coordCMD2Phase::_onRollbackEvent" )
+   void _coordCMD2Phase::_onRollbackEvent( coordCMDArguments *pArgs,
+                                           pmdEDUCB *cb )
+   {
+      PD_TRACE_ENTRY( COORD_CMD2PHASE__ONROLLBACKEVENT ) ;
+
+      for ( COORD_CMD_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
+            iter != _eventHandlers.end() ;
+            ++ iter )
+      {
+         coordCMDEventHandler *handler = *iter ;
+         SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
+
+         // on rollback phase, ignore error
+         INT32 tmpRC = handler->onRollbackEvent( _pResource, pArgs, cb ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDWARNING, "Failed to call rollback event on "
+                    "handler [%s] of command [%s], rc: %d",
+                    handler->getName(), getName(), tmpRC ) ;
+         }
+      }
+
+      PD_TRACE_EXIT( COORD_CMD2PHASE__ONROLLBACKEVENT ) ;
    }
 
 }

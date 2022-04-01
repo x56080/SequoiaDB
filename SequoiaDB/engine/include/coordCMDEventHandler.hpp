@@ -273,6 +273,69 @@ namespace engine
    typedef class _coordTruncGlobIdxHandler coordTruncGlobIdxHandler ;
 
    /*
+      _coordCMDTaskHandler define
+    */
+   class _coordCMDTaskHandler : public _coordCMDEventHandler
+   {
+   public:
+      _coordCMDTaskHandler() ;
+      virtual ~_coordCMDTaskHandler() ;
+
+      virtual const CHAR *getName() const
+      {
+         return "task" ;
+      }
+
+      virtual INT32 onBeginEvent( coordResource *resource,
+                                  coordCMDArguments *arguments,
+                                  pmdEDUCB *cb ) ;
+
+      virtual INT32 parseCatReturn( coordCMDArguments *pArgs,
+                                    const std::vector<bson::BSONObj> &cataObjs ) ;
+
+      virtual INT32 parseCatP2Return( coordCMDArguments *pArgs,
+                                      const std::vector<bson::BSONObj> &cataObjs ) ;
+
+   protected:
+      INT32 _parseTaskSet( const bson::BSONObj &cataObj ) ;
+      INT32 _waitTasks( coordResource *resource,
+                        BOOLEAN ignoreCanceled,
+                        pmdEDUCB *cb ) ;
+      INT32 _waitTask( coordResource *resource,
+                       UINT64 taskID,
+                       pmdEDUCB *cb ) ;
+
+   protected:
+      ossPoolSet< UINT64 > _taskSet ;
+   } ;
+
+   typedef class _coordCMDTaskHandler coordCMDTaskHandler ;
+
+   /*
+      _coordCMDRecyTaskHandler define
+    */
+   // when recycle dropCS, dropCL, truncate, need wait for split tasks to
+   // be finished or cancelled
+   class _coordCMDRecyTaskHandler : public coordCMDTaskHandler
+   {
+   public:
+      _coordCMDRecyTaskHandler() {}
+      virtual ~_coordCMDRecyTaskHandler() {}
+
+      virtual const CHAR *getName() const
+      {
+         return "recycle task" ;
+      }
+
+      virtual INT32 onDataP1Event( SDB_EVENT_OCCUR_TYPE type,
+                                   coordResource *resource,
+                                   coordCMDArguments *arguments,
+                                   pmdEDUCB *cb ) ;
+   } ;
+
+   typedef class _coordCMDRecyTaskHandler coordCMDRecyTaskHandler ;
+
+   /*
       _coordCMDRecycleHandler define
     */
    class _coordCMDRecycleHandler : public _coordCMDEventHandler

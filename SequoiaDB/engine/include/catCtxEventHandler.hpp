@@ -225,6 +225,79 @@ namespace engine
    typedef class _catCtxRecycleHelper catCtxRecycleHelper ;
 
    /*
+      _catCtxTaskHandler define
+    */
+   class _catCtxTaskHandler : public _catCtxEventHandler
+   {
+   public:
+      _catCtxTaskHandler( catCtxLockMgr & lockMgr ) ;
+      virtual ~_catCtxTaskHandler() ;
+
+      virtual const CHAR *getName() const
+      {
+         return "task" ;
+      }
+
+      ossPoolSet< UINT64 > &getTaskSet()
+      {
+         return _taskSet ;
+      }
+
+      virtual INT32 buildP1Reply( bson::BSONObjBuilder &builder )
+      {
+         return _buildTaskReply( builder ) ;
+      }
+
+      virtual INT32 buildP2Reply( bson::BSONObjBuilder &builder )
+      {
+         return _buildTaskReply( builder ) ;
+      }
+
+   protected:
+      INT32 _buildTaskReply( bson::BSONObjBuilder &builder ) ;
+      INT32 _cancelTasks( _pmdEDUCB *cb, INT16 w ) ;
+
+   protected:
+      ossPoolSet< UINT64 > _taskSet ;
+   } ;
+
+   typedef class _catCtxTaskHandler catCtxTaskHandler ;
+
+   /*
+      _catRecyCtxTaskHandler define
+    */
+   class _catRecyCtxTaskHandler : public _catCtxTaskHandler
+   {
+   public:
+      _catRecyCtxTaskHandler( catCtxLockMgr & lockMgr ) ;
+      virtual ~_catRecyCtxTaskHandler() ;
+
+      virtual const CHAR *getName() const
+      {
+         return "recycle task" ;
+      }
+
+      virtual INT32 onCheckEvent( SDB_EVENT_OCCUR_TYPE type,
+                                  const CHAR *targetName,
+                                  const bson::BSONObj &boTarget,
+                                  _pmdEDUCB *cb,
+                                  INT16 w ) ;
+
+      void setRecycleItem( const utilRecycleItem &item )
+      {
+         _recycleItem = item ;
+      }
+
+   protected:
+      INT32 _checkSplitTasks( _pmdEDUCB *cb, INT16 w ) ;
+
+   protected:
+      utilRecycleItem _recycleItem ;
+   } ;
+
+   typedef class _catRecyCtxTaskHandler catRecyCtxTaskHandler ;
+
+   /*
       _catCtxRecycleHandler define
     */
    class _catCtxRecycleHandler : public _catCtxEventHandler,
@@ -233,6 +306,7 @@ namespace engine
    public:
       _catCtxRecycleHandler( UTIL_RECYCLE_TYPE type,
                              UTIL_RECYCLE_OPTYPE opType,
+                             catRecyCtxTaskHandler &taskHandler,
                              catCtxLockMgr &lockMgr ) ;
       virtual ~_catCtxRecycleHandler() ;
 
@@ -263,6 +337,7 @@ namespace engine
       INT32 _executeWithoutRecycle( _pmdEDUCB *cb, INT16 w ) ;
 
    protected:
+      catRecyCtxTaskHandler & _taskHandler ;
       BOOLEAN              _isUseRecycleBin ;
       BOOLEAN              _isReservedItem ;
       UTIL_RECY_ITEM_LIST  _droppingItems ;

@@ -293,6 +293,14 @@ namespace engine
    INT32 catGetCSSplitTargetGroups( utilCSUniqueID csUniqueID,
                                     pmdEDUCB * cb,
                                     ossPoolSet< UINT32 > & groups ) ;
+   INT32 catGetCLTaskByType( const CHAR *clName,
+                             CLS_TASK_TYPE type,
+                             pmdEDUCB *cb,
+                             ossPoolSet< UINT64 > &tasks ) ;
+   INT32 catGetCSTaskByType( const CHAR *csName,
+                             CLS_TASK_TYPE type,
+                             pmdEDUCB *cb,
+                             ossPoolSet< UINT64 > &tasks ) ;
    INT32 catGetTaskStatus( UINT64 taskID, INT32 &status, pmdEDUCB *cb ) ;
    INT32 catUpdateTask( UINT64 taskID, const BSONObj *pSetInfo,
                         const BSONObj *pUnsetInfo, pmdEDUCB *cb, INT16 w ) ;

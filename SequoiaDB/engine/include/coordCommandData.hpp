@@ -414,6 +414,7 @@ namespace engine
       protected:
          coordDropGlobIdxHandler _globIdxHandler ;
          coordCMDRecycleHandler  _recycleHandler ;
+         coordCMDRecyTaskHandler _taskHandler ;
    } ;
    typedef _coordCMDTruncate coordCMDTruncate ;
 
@@ -473,6 +474,7 @@ namespace engine
       private:
          coordDropGlobIdxHandler _globIdxHandler ;
          coordCMDRecycleHandler  _recycleHandler ;
+         coordCMDRecyTaskHandler _taskHandler ;
    } ;
    typedef _coordCMDDropCollectionSpace coordCMDDropCollectionSpace ;
 
@@ -643,6 +645,7 @@ namespace engine
       protected:
          coordDropGlobIdxHandler _globIdxHandler ;
          coordCMDRecycleHandler  _recycleHandler ;
+         coordCMDRecyTaskHandler _taskHandler ;
    } ;
    typedef _coordCMDDropCollection coordCMDDropCollection ;
 

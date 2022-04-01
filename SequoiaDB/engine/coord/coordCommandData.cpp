@@ -1678,6 +1678,10 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to register recycle handler, rc: %d",
                    rc ) ;
 
+      rc = _regEventHandler( &_taskHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register task handler, rc: %d",
+                   rc ) ;
+
    done:
       PD_TRACE_EXITRC( COORD_TRUNCATECL_REGEVENTHANDLERS, rc ) ;
       return rc ;
@@ -2055,6 +2059,10 @@ namespace engine
 
       rc = _regEventHandler( &_recycleHandler ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to register recycle handler, rc: %d",
+                   rc ) ;
+
+      rc = _regEventHandler( &_taskHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register task handler, rc: %d",
                    rc ) ;
 
    done:
@@ -2825,6 +2833,10 @@ namespace engine
 
       rc = _regEventHandler( &_recycleHandler ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to register recycle handler, rc: %d",
+                   rc ) ;
+
+      rc = _regEventHandler( &_taskHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register task handler, rc: %d",
                    rc ) ;
 
    done:

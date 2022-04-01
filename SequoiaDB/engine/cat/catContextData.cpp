@@ -262,7 +262,9 @@ namespace engine
    _catCtxDropCS::_catCtxDropCS ( INT64 contextID, UINT64 eduID )
    : _catCtxCLMultiTask( contextID, eduID ),
      _globIdxHandler( _lockMgr ),
-     _recycleHandler( UTIL_RECYCLE_CS, UTIL_RECYCLE_OP_DROP, _lockMgr )
+     _taskHandler( _lockMgr ),
+     _recycleHandler( UTIL_RECYCLE_CS, UTIL_RECYCLE_OP_DROP, _taskHandler,
+                      _lockMgr )
    {
       _executeOnP1 = FALSE ;
       _needRollback = FALSE ;
@@ -311,6 +313,12 @@ namespace engine
 
       rc = _regEventHandler( &_recycleHandler ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to register recycle handler, "
+                   "rc: %d", rc ) ;
+
+      // NOTE: behavior of task handler depends on recycle handler, so
+      // must register task handler after recycle handler
+      rc = _regEventHandler( &_taskHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register task handler, "
                    "rc: %d", rc ) ;
 
    done:
@@ -1958,7 +1966,9 @@ namespace engine
    _catCtxDropCL::_catCtxDropCL ( INT64 contextID, UINT64 eduID )
    : _catCtxCLMultiTask( contextID, eduID ),
      _globIdxHandler( _lockMgr ),
-     _recycleHandler( UTIL_RECYCLE_CL, UTIL_RECYCLE_OP_DROP, _lockMgr )
+     _taskHandler( _lockMgr ),
+     _recycleHandler( UTIL_RECYCLE_CL, UTIL_RECYCLE_OP_DROP, _taskHandler,
+                      _lockMgr )
    {
       _executeOnP1 = FALSE ;
       _needRollback = FALSE ;
@@ -2006,6 +2016,12 @@ namespace engine
 
       rc = _regEventHandler( &_recycleHandler ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to register recycle handler, "
+                   "rc: %d", rc ) ;
+
+      // NOTE: behavior of task handler depends on recycle handler, so
+      // must register task handler after recycle handler
+      rc = _regEventHandler( &_taskHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register task handler, "
                    "rc: %d", rc ) ;
 
    done:
@@ -3750,7 +3766,9 @@ namespace engine
    _catCtxTruncCL::_catCtxTruncCL( INT64 contextID, UINT64 eduID )
    : _catCtxDataBase( contextID, eduID ),
      _globIdxHandler( _lockMgr ),
-     _recycleHandler( UTIL_RECYCLE_CL, UTIL_RECYCLE_OP_TRUNCATE, _lockMgr )
+     _taskHandler( _lockMgr ),
+     _recycleHandler( UTIL_RECYCLE_CL, UTIL_RECYCLE_OP_TRUNCATE, _taskHandler,
+                      _lockMgr )
    {
       _executeOnP1 = FALSE ;
       _needRollback = FALSE ;
@@ -3778,6 +3796,12 @@ namespace engine
 
       rc = _regEventHandler( &_recycleHandler ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to register recycle handler, "
+                   "rc: %d", rc ) ;
+
+      // NOTE: behavior of task handler depends on recycle handler, so
+      // must register task handler after recycle handler
+      rc = _regEventHandler( &_taskHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register task handler, "
                    "rc: %d", rc ) ;
 
    done:

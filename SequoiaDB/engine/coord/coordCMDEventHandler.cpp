@@ -535,6 +535,245 @@ namespace engine
    }
 
    /*
+      _cocrdCMDTaskHandler implement
+    */
+   _coordCMDTaskHandler::_coordCMDTaskHandler()
+   {
+   }
+
+   _coordCMDTaskHandler::~_coordCMDTaskHandler()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDTASKHANDLER_ONBEGINEVENT, "_coordCMDTaskHandler::onBeginEvent" )
+   INT32 _coordCMDTaskHandler::onBeginEvent( coordResource *resource,
+                                                coordCMDArguments *arguments,
+                                                pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATACMDTASKHANDLER_ONBEGINEVENT ) ;
+
+      _taskSet.clear() ;
+
+      PD_TRACE_EXITRC( COORD_DATACMDTASKHANDLER_ONBEGINEVENT, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATATASKHANDLER_PARSECATRETURN, "_coordCMDTaskHandler::parseCatReturn" )
+   INT32 _coordCMDTaskHandler::parseCatReturn( coordCMDArguments *pArgs,
+                                               const vector<BSONObj> &cataObjs )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATATASKHANDLER_PARSECATRETURN ) ;
+
+      if ( cataObjs.empty() )
+      {
+         goto done ;
+      }
+
+      rc = _parseTaskSet( cataObjs[ 0 ] ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse task set, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( COORD_DATATASKHANDLER_PARSECATRETURN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATATASKHANDLER_PARSECATP2RETURN, "_coordCMDTaskHandler::parseCatP2Return" )
+   INT32 _coordCMDTaskHandler::parseCatP2Return( coordCMDArguments *pArgs,
+                                                 const vector<BSONObj> &cataObjs )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATATASKHANDLER_PARSECATP2RETURN ) ;
+
+      if ( cataObjs.empty() )
+      {
+         goto done ;
+      }
+
+      rc = _parseTaskSet( cataObjs[ 0 ] ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse task set, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( COORD_DATATASKHANDLER_PARSECATP2RETURN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATATASKHANDLER__PARSETASKSET, "_coordCMDTaskHandler::_parseTaskSet" )
+   INT32 _coordCMDTaskHandler::_parseTaskSet( const BSONObj &cataObj )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATATASKHANDLER__PARSETASKSET ) ;
+
+      try
+      {
+         BSONElement ele = cataObj.getField( CAT_TASKID_NAME ) ;
+
+         if ( EOO != ele.type() )
+         {
+            PD_CHECK( Array == ele.type(), SDB_SYS, error, PDERROR,
+                      "Failed to get tasks from CATALOG reply, field [%s] "
+                      "is not an array", CAT_TASKID_NAME ) ;
+
+            {
+               BSONObjIterator iterTask( ele.embeddedObject() ) ;
+               while ( iterTask.more() )
+               {
+                  BSONElement beTask = iterTask.next() ;
+                  PD_CHECK( beTask.isNumber(), SDB_SYS, error, PDERROR,
+                            "Failed to get tasks from CATALOG reply, "
+                            "element in field [%s] is not a number",
+                            CAT_TASKID_NAME ) ;
+
+                  _taskSet.insert( (UINT64)( beTask.numberLong() ) ) ;
+               }
+            }
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse tasks, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_DATATASKHANDLER__PARSETASKSET, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDTASKHANDLER__WAITTASKS, "_coordCMDTaskHandler::_waitTasks" )
+   INT32 _coordCMDTaskHandler::_waitTasks( coordResource *resource,
+                                           BOOLEAN ignoreCanceled,
+                                           pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATACMDTASKHANDLER__WAITTASKS ) ;
+
+      for ( ossPoolSet< UINT64 >::iterator iter = _taskSet.begin() ;
+            iter != _taskSet.end() ;
+            ++ iter )
+      {
+         UINT64 taskID = *iter ;
+         rc = _waitTask( resource, taskID, cb ) ;
+         if ( ignoreCanceled && SDB_TASK_HAS_CANCELED == rc )
+         {
+            rc = SDB_OK ;
+         }
+         PD_RC_CHECK( rc, PDWARNING, "Failed to wait task [%llu], rc: %d",
+                      taskID, rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_DATACMDTASKHANDLER__WAITTASKS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDTASKHANDLER__WAITTASK, "_coordCMDTaskHandler::_waitTask" )
+   INT32 _coordCMDTaskHandler::_waitTask( coordResource *resource,
+                                          UINT64 taskID,
+                                          pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATACMDTASKHANDLER__WAITTASK ) ;
+
+      coordCmdWaitTask cmd ;
+
+      CHAR *msgBuff = NULL ;
+      INT32 msgSize = 0 ;
+      BSONObj query ;
+      INT64 contextID = -1 ;
+      rtnContextBuf contextBuff ;
+
+      try
+      {
+         query = BSON( CAT_TASKID_NAME << (INT64)taskID ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build cancel task query, "
+                 "occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = msgBuildQueryMsg( &msgBuff, &msgSize,
+                             CMD_ADMIN_PREFIX CMD_NAME_WAITTASK,
+                             0, 0, 0, -1, &query, NULL, NULL, NULL, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build cancel task message, rc: %d",
+                   rc ) ;
+
+      rc = cmd.init( resource, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to init cancel task command, rc: %d",
+                   rc ) ;
+
+      rc = cmd.execute( (MsgHeader *)msgBuff, cb, contextID,  &contextBuff ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to cancel task [%llu], rc: %d",
+                   taskID, rc ) ;
+      SDB_ASSERT( -1 == contextID, "contextID must be -1" ) ;
+
+   done:
+      if ( NULL != msgBuff )
+      {
+         msgReleaseBuffer( msgBuff, cb ) ;
+      }
+      PD_TRACE_EXITRC( COORD_DATACMDTASKHANDLER__WAITTASK, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   /*
+      _coordCMDRecyTaskHandler implement
+    */
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATARECYTASKHANDLER_ONDATAP1EVENT, "_coordCMDRecyTaskHandler::onDataP1Event" )
+   INT32 _coordCMDRecyTaskHandler::onDataP1Event( SDB_EVENT_OCCUR_TYPE type,
+                                                  coordResource *resource,
+                                                  coordCMDArguments *arguments,
+                                                  pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATARECYTASKHANDLER_ONDATAP1EVENT ) ;
+
+      if ( SDB_EVT_OCCUR_BEFORE == type )
+      {
+         // wait split tasks to be finished or cancelled
+         rc = _waitTasks( resource, TRUE, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to wait tasks finish, "
+                      "rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_DATARECYTASKHANDLER_ONDATAP1EVENT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   /*
       _coordCMDRecycleHandler implement
     */
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATARECYHANDLER_PARSECATRETURN, "_coordCMDRecycleHandler::parseCatReturn" )
