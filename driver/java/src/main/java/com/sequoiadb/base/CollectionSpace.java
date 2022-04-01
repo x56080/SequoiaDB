@@ -198,14 +198,33 @@ public class CollectionSpace {
      * @throws BaseException If error happens.
      */
     public void dropCollection(String collectionName) throws BaseException {
+        dropCollection(collectionName, null);
+    }
+
+    /**
+     * Remove the named collection of current collection space.
+     *
+     * @param collectionName The collection name
+     * @param options The options for drop specified collection
+     *                <ul>
+     *                <li>SkipRecycleBin : Indicates whether to skip recycle bin, default is false.
+     *                </ul>
+     * @throws BaseException If error happens.
+     */
+    public void dropCollection(String collectionName, BSONObject options)
+            throws BaseException {
         if (collectionName == null || collectionName.equals("")) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "collectionName can't be null or empty");
+            throw new BaseException(SDBError.SDB_INVALIDARG,
+                                    "collectionName can't be null or empty");
         }
         String collectionFullName = name + "." + collectionName;
-        BSONObject obj = new BasicBSONObject();
-        obj.put(SdbConstants.FIELD_NAME_NAME, collectionFullName);
-
-        AdminRequest request = new AdminRequest(AdminCommand.DROP_CL, obj);
+        BSONObject rebuildOptions = new BasicBSONObject();
+        rebuildOptions.put(SdbConstants.FIELD_NAME_NAME, collectionFullName);
+        if (options != null) {
+            rebuildOptions.putAll(options);
+        }
+        AdminRequest request = new AdminRequest(AdminCommand.DROP_CL,
+                                                rebuildOptions);
         SdbReply response = sequoiadb.requestAndResponse(request);
         sequoiadb.throwIfError(response, collectionName);
         sequoiadb.removeCache(collectionFullName);

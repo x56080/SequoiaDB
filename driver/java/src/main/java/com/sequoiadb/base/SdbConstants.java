@@ -78,6 +78,9 @@ final class SdbConstants {
     final static String SDB_ALTER_CL_CRT_AUTOINC_FLD = "create autoincrement";
     final static String SDB_ALTER_CL_DROP_AUTOINC_FLD = "drop autoincrement";
 
+    final static String SDB_ALTER_ENABLE_RECYCLEBIN = "enable";
+    final static String SDB_ALTER_DISABLE_RECYCLEBIN = "disable";
+
     final static String FIELD_NAME_MODIFY = "$Modify";
     final static String FIELD_NAME_OP = "OP";
     final static String FIELD_NAME_OP_UPDATE = "Update";
@@ -114,6 +117,10 @@ final class SdbConstants {
     final static String FIELD_NAME_USER = "User";
     final static String FIELD_NAME_PASSWD = "Password";
     final static String FIELD_NAME_TYPE = "Type";
+
+    final static String FIELD_NAME_ENABLE = "Enable";
+    final static String FIELD_NAME_RECYCLE_NAME = "RecycleName";
+    final static String FIELD_NAME_RETURN_NAME = "ReturnName";
 
     final static String IXM_NAME = "name";
     final static String IXM_KEY = "key";

@@ -2892,12 +2892,29 @@ public class DBCollection {
      * @throws BaseException If error happens.
      */
     public void truncate() throws BaseException {
-        BSONObject options = new BasicBSONObject();
-        options.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
+        truncate(null);
+    }
 
-        AdminRequest request = new AdminRequest(AdminCommand.TRUNCATE, options);
+    /**
+     * Truncate the collection.
+     *
+     * @param options The options for truncate current collection
+     *                <ul>
+     *                <li>SkipRecycleBin : Indicates whether to skip recycle bin, default is false.
+     *                </ul>
+     * @throws BaseException If error happens.
+     */
+    public void truncate(BSONObject options) throws BaseException {
+        BSONObject rebuildOptions = new BasicBSONObject();
+        rebuildOptions.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
+        if (options != null) {
+            rebuildOptions.putAll(options);
+        }
+
+        AdminRequest request = new AdminRequest(AdminCommand.TRUNCATE,
+                                                rebuildOptions);
         SdbReply response = sequoiadb.requestAndResponse(request);
-        sequoiadb.throwIfError(response, options);
+        sequoiadb.throwIfError(response, rebuildOptions);
         sequoiadb.upsertCache(collectionFullName);
     }
 

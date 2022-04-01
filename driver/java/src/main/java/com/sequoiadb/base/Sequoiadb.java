@@ -187,8 +187,8 @@ public class Sequoiadb implements Closeable {
      * List of data source
      */
     public final static int SDB_LIST_DATASOURCES = 22;
-    //public final static int SDB_LIST_RESERVED6 = 23 ;
     //public final static int SDB_LIST_RESERVED7 = 24 ;
+    public final static int SDB_LIST_RECYCLEBIN = 27;
     // reserved
     public final static int SDB_LIST_CL_IN_DOMAIN = 129;
     // reserved
@@ -293,6 +293,7 @@ public class Sequoiadb implements Closeable {
      * Snapshot of transaction deadlock
      */
     public final static int SDB_SNAP_TRANSDEADLOCK = 26;
+    public final static int SDB_SNAP_RECYCLEBIN = 27;
 
     public final static int FMP_FUNC_TYPE_INVALID = -1;
     public final static int FMP_FUNC_TYPE_JS = 0;
@@ -882,17 +883,19 @@ public class Sequoiadb implements Closeable {
      *                <ul>
      *                <li>EnsureEmpty(boolean) : check whether the collection space is empty when drop,
      *                false means drop directly, true means only empty can drop, default value is false
+     *                <li>SkipRecycleBin(boolean) : Indicates whether to skip recycle bin, default is false.
      *                </ul>
      * @throws BaseException If error happens.
      */
     public void dropCollectionSpace(String csName, BSONObject options) throws BaseException {
         if (csName == null || csName.isEmpty()) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "cs name can not be null or empty");
+            throw new BaseException(SDBError.SDB_INVALIDARG,
+                                    "cs name can not be null or empty");
         }
 
         BSONObject innerOptions = new BasicBSONObject();
         innerOptions.put(SdbConstants.FIELD_NAME_NAME, csName);
-        if (null != options) {
+        if (options != null) {
             innerOptions.putAll(options);
         }
 
@@ -1282,6 +1285,7 @@ public class Sequoiadb implements Closeable {
      *                   <li>{@link Sequoiadb#SDB_LIST_USERS}
      *                   <li>{@link Sequoiadb#SDB_LIST_BACKUPS}
      *                   <li>{@link Sequoiadb#SDB_LIST_DATASOURCES}
+     *                   <li>{@link Sequoiadb#SDB_LIST_RECYCLEBIN}
      *                   </ul>
      * @param query      The matching rule, match all the documents if null.
      * @param selector   The selective rule, return the whole document if null.
@@ -1331,6 +1335,7 @@ public class Sequoiadb implements Closeable {
      *                   <li>{@link Sequoiadb#SDB_LIST_USERS}
      *                   <li>{@link Sequoiadb#SDB_LIST_BACKUPS}
      *                   <li>{@link Sequoiadb#SDB_LIST_DATASOURCES}
+     *                   <li>{@link Sequoiadb#SDB_LIST_RECYCLEBIN}
      *                   </ul>
      * @param query    The matching rule, match all the documents if null.
      * @param selector The selective rule, return the whole document if null.
@@ -1477,6 +1482,7 @@ public class Sequoiadb implements Closeable {
      *                  <li>{@link Sequoiadb#SDB_SNAP_INDEXES}
      *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSWAITS}
      *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSDEADLOCK}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_RECYCLEBIN}
      *                  </ul>
      * @param matcher  the matching rule, match all the documents if null
      * @param selector the selective rule, return the whole document if null
@@ -1531,6 +1537,7 @@ public class Sequoiadb implements Closeable {
      *                  <li>{@link Sequoiadb#SDB_SNAP_INDEXES}
      *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSWAITS}
      *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSDEADLOCK}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_RECYCLEBIN}
      *                  </ul>
      * @param matcher  the matching rule, match all the documents if null
      * @param selector the selective rule, return the whole document if null
@@ -1658,6 +1665,8 @@ public class Sequoiadb implements Closeable {
                 return AdminCommand.SNAP_TRANSWAITS;
             case SDB_SNAP_TRANSDEADLOCK:
                 return AdminCommand.SNAP_TRANSDEADLOCK;
+            case SDB_SNAP_RECYCLEBIN:
+                return AdminCommand.SNAP_RECYCLEBIN;
             default:
                 throw new BaseException(SDBError.SDB_INVALIDARG,
                         String.format("Invalid snapshot type: %d", snapType));
@@ -2806,6 +2815,14 @@ public class Sequoiadb implements Closeable {
         }
     }
 
+    /**
+     * Get recycle bin.
+     *
+     * @return The recycle bin object
+     */
+    public DBRecycleBin getRecycleBin(){
+        return new DBRecycleBin(this);
+    }
 
     private boolean _checkIsExistByList(int listType, String targetName) throws BaseException {
         if (null == targetName || targetName.equals("")) {
@@ -2865,6 +2882,8 @@ public class Sequoiadb implements Closeable {
                 return AdminCommand.LIST_BACKUPS;
             case SDB_LIST_DATASOURCES:
                 return AdminCommand.LIST_DATASOURCES;
+            case SDB_LIST_RECYCLEBIN:
+                return AdminCommand.LIST_RECYCLEBIN;
             case SDB_LIST_CL_IN_DOMAIN:
                 return AdminCommand.LIST_CL_IN_DOMAIN;
             case SDB_LIST_CS_IN_DOMAIN:
