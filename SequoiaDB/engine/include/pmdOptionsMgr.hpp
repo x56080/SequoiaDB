@@ -56,9 +56,6 @@
 #include <map>
 #include "../bson/bson.h"
 
-using namespace std ;
-using namespace bson ;
-
 namespace engine
 {
    #define PMD_MAX_ENUM_STR_LEN        ( 32 )
@@ -145,13 +142,13 @@ namespace engine
 
       public:
          _pmdCfgExchange ( MAP_K2V *pMapField,
-                           const BSONObj &dataObj,
+                           const bson::BSONObj &dataObj,
                            BOOLEAN load = TRUE,
                            PMD_CFG_STEP step = PMD_CFG_STEP_INIT,
                            UINT32 mask = 0 ) ;
          _pmdCfgExchange ( MAP_K2V *pMapField,
                            MAP_K2V *pMapColdField,
-                           const BSONObj &dataObj,
+                           const bson::BSONObj &dataObj,
                            BOOLEAN load = TRUE,
                            PMD_CFG_STEP step = PMD_CFG_STEP_INIT,
                            UINT32 mask = 0 ) ;
@@ -228,8 +225,8 @@ namespace engine
 
          PMD_CFG_DATA_TYPE       _dataType ;
          //
-         BSONObj                 _dataObj ;
-         BSONObjBuilder          _dataBuilder ;
+         bson::BSONObj           _dataObj ;
+         bson::BSONObjBuilder    _dataBuilder ;
          po::variables_map       *_pVMFile ;
          po::variables_map       *_pVMCmd ;
          stringstream            _strStream ;
@@ -292,16 +289,16 @@ namespace engine
          void  resetResult () { _result = SDB_OK ; }
 
          INT32 init( po::variables_map *pVMFile, po::variables_map *pVMCMD ) ;
-         INT32 restore( const BSONObj &objData,
+         INT32 restore( const bson::BSONObj &objData,
                         po::variables_map *pVMCMD ) ;
-         INT32 change( const BSONObj &objData,
+         INT32 change( const bson::BSONObj &objData,
                        BOOLEAN isWhole = FALSE ) ;
 
-         INT32 update( const BSONObj &userConfig,
+         INT32 update( const bson::BSONObj &userConfig,
                        BOOLEAN setForRestore,
-                       BSONObj &errorObj ) ;
+                       bson::BSONObj &errorObj ) ;
 
-         INT32 toBSON ( BSONObj &objData,
+         INT32 toBSON ( bson::BSONObj &objData,
                         UINT32 mask = PMD_CFG_MASK_SKIP_HIDEDFT ) ;
          INT32 toString( string &str,
                          UINT32 mask = PMD_CFG_MASK_SKIP_HIDEDFT ) ;
@@ -340,7 +337,7 @@ namespace engine
          INT32  _saveUpdateChange( MAP_K2V &mapKeyField,
                                    MAP_K2V &mapColdKeyField,
                                    BOOLEAN setForRestore,
-                                   BSONObj &errorObj ) ;
+                                   bson::BSONObj &errorObj ) ;
 
       protected:
          virtual INT32 doDataExchange( pmdCfgExchange *pEX ) = 0 ;
