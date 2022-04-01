@@ -114,6 +114,40 @@ namespace engine
    #define PMD_DFT_LOGWRITEMOD         ( PMD_OPTION_LOG_WRITEMOD_INCREMENT_STR )
    #define PMD_DFT_MVCCRBSNUM          ( 16 )
    #define PMD_MAX_MVCCRBSNUM          ( 128 )
+
+   #define PMD_RDX_WITH_ALIAS( formalName, aliasName, rdxFunc, pEX, ... ) \
+      if ( pEX->isLoad() ) \
+      { \
+         if ( pEX->isWhole() && (!pEX->hasField( formalName ) || \
+                                 !pEX->hasField( aliasName ) ) ) \
+         { \
+            if ( !pEX->hasField( formalName ) ) \
+            { \
+               rdxFunc( pEX, formalName, __VA_ARGS__ ) ; \
+            } \
+            if ( !pEX->hasField( aliasName ) ) \
+            { \
+               rdxFunc( pEX, aliasName, __VA_ARGS__ ) ; \
+            } \
+         } \
+         else \
+         { \
+            if ( pEX->hasField( aliasName ) ) \
+            { \
+               rdxFunc( pEX, aliasName, __VA_ARGS__ ) ;\
+            } \
+            if ( pEX->hasField( formalName ) ) \
+            { \
+               rdxFunc( pEX, formalName, __VA_ARGS__ ) ;\
+            } \
+         } \
+      } \
+      else \
+      { \
+         rdxFunc( pEX, formalName, __VA_ARGS__ ) ;\
+         rdxFunc( pEX, aliasName, __VA_ARGS__ ) ;\
+      }
+
    /*
       _pmdCfgExchange implement
    */
@@ -2172,27 +2206,23 @@ done:
       rdxString( pEX, PMD_OPTION_SYNC_STRATEGY, _syncStrategyStr,
                  sizeof( _syncStrategyStr ), FALSE, PMD_CFG_CHANGE_RUN, "", FALSE ) ;
       // --preferedinstance / --preferredinstance
-      rdxString( pEX, PMD_OPTION_PREFINST, _prefInstStr,
-                 sizeof( _prefInstStr ), FALSE, PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST ) ;
-      rdxString( pEX, PMD_OPTION_PREFERREDINST, _prefInstStr,
-                 sizeof( _prefInstStr ), FALSE, PMD_CFG_CHANGE_RUN, _prefInstStr ) ;
+      PMD_RDX_WITH_ALIAS( PMD_OPTION_PREFERREDINST, PMD_OPTION_PREFINST,
+                          rdxString, pEX, _prefInstStr, sizeof( _prefInstStr ),
+                          FALSE, PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST ) ;
       // --preferedinstancemode / --preferredinstancemode
-      rdxString( pEX, PMD_OPTION_PREFINST_MODE, _prefInstModeStr,
-                 sizeof( _prefInstModeStr ), FALSE, PMD_CFG_CHANGE_RUN,
-                 PMD_DFT_PREFINST_MODE ) ;
-      rdxString( pEX, PMD_OPTION_PREFERREDINST_MODE, _prefInstModeStr,
-                 sizeof( _prefInstModeStr ), FALSE, PMD_CFG_CHANGE_RUN,
-                 _prefInstModeStr ) ;
+      PMD_RDX_WITH_ALIAS( PMD_OPTION_PREFERREDINST_MODE,
+                          PMD_OPTION_PREFINST_MODE, rdxString, pEX,
+                          _prefInstModeStr, sizeof( _prefInstModeStr ), FALSE,
+                          PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST_MODE ) ;
       // --preferedstrict / --preferredstrict
-      rdxBooleanS( pEX, PMD_OPTION_PREFINST_STRICT, _preferredStrict, FALSE,
-                   PMD_CFG_CHANGE_RUN, FALSE ) ;
-      rdxBooleanS( pEX, PMD_OPTION_PREFERREDINST_STRICT, _preferredStrict, FALSE,
-                   PMD_CFG_CHANGE_RUN, _preferredStrict ) ;
+      PMD_RDX_WITH_ALIAS( PMD_OPTION_PREFERREDINST_STRICT,
+                          PMD_OPTION_PREFINST_STRICT, rdxBooleanS, pEX,
+                          _preferredStrict, FALSE, PMD_CFG_CHANGE_RUN, FALSE ) ;
       // --preferedperiod / --preferredperiod
-      rdxInt( pEX, PMD_OPTION_PREFINST_PERIOD, _preferredPeriod, FALSE,
-              PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST_PERIOD, FALSE ) ;
-      rdxInt( pEX, PMD_OPTION_PREFERREDINST_PERIOD, _preferredPeriod, FALSE,
-              PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST_PERIOD, _preferredPeriod ) ;
+      PMD_RDX_WITH_ALIAS( PMD_OPTION_PREFERREDINST_PERIOD,
+                          PMD_OPTION_PREFINST_PERIOD, rdxInt, pEX,
+                          _preferredPeriod, FALSE, PMD_CFG_CHANGE_RUN,
+                          PMD_DFT_PREFINST_PERIOD, FALSE ) ;
       rdvMinMax( pEX, _preferredPeriod, -1, OSS_SINT32_MAX, TRUE ) ;
       // --preferredconstraint
       rdxString( pEX, PMD_OPTION_PREFERRED_CONSTRAINT, _prefConstraint,
