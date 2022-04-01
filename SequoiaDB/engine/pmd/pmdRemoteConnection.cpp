@@ -189,15 +189,12 @@ namespace engine
          rc = _routeAgent->syncSend( _routeID, header, NULL, 0, &_handle ) ;
       }
 
-      if ( rc )
+      if ( SDB_NET_INVALID_HANDLE == rc )
       {
-         PD_LOG( PDERROR, "Send message to node(%u.%u) failed, rc: %d",
-                 _routeID.columns.groupID, _routeID.columns.nodeID,
-                 rc ) ;
-         if ( SDB_NET_INVALID_HANDLE == rc )
-         {
-            _handle = NET_INVALID_HANDLE ;
-         }
+         _handle = NET_INVALID_HANDLE ;
+      }
+      else if ( rc )
+      {
          goto error ;
       }
 
@@ -229,15 +226,12 @@ namespace engine
                                      bodyLen, &_handle ) ;
       }
 
-      if ( rc )
+      if ( SDB_NET_INVALID_HANDLE == rc )
       {
-         PD_LOG( PDERROR, "Send message to node(%u.%u) failed, rc: %d",
-                 _routeID.columns.groupID, _routeID.columns.nodeID,
-                 rc ) ;
-         if ( SDB_NET_INVALID_HANDLE == rc )
-         {
-            _handle = NET_INVALID_HANDLE ;
-         }
+         _handle = NET_INVALID_HANDLE ;
+      }
+      else if ( rc )
+      {
          goto error ;
       }
 
@@ -267,15 +261,12 @@ namespace engine
          rc = _routeAgent->syncSendv( _routeID, header, iov, &_handle ) ;
       }
 
-      if ( rc )
+      if ( SDB_NET_INVALID_HANDLE == rc )
       {
-         PD_LOG( PDERROR, "Send message to node(%u.%u) failed, rc: %d",
-                 _routeID.columns.groupID, _routeID.columns.nodeID,
-                 rc ) ;
-         if ( SDB_NET_INVALID_HANDLE == rc )
-         {
-            _handle = NET_INVALID_HANDLE ;
-         }
+         _handle = NET_INVALID_HANDLE ;
+      }
+      else if ( rc )
+      {
          goto error ;
       }
 
