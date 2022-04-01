@@ -16,10 +16,17 @@ This function is used to truncate LOB in the collection.
 
 ##PARAMETERS##
 
-| Name | Type| Description | Required or not |
-| ------ | -------- | ---- | -------- |
-| oid    | string | The unique descriptor of the LOB | required |
-| length | number | The truncated length must be a value greater than or equal to 0. When length is greater than or equal to the size of the LOB, the LOB does not change. | required |
+- oid ( *string, required* )
+
+    Unique identifier of LOB.
+
+- length（ *number, required* )
+
+    The length of the LOB after truncation.
+
+    - When the value of length is less than 0, output error message.
+    - When the value of length is greater than the length of the LOB, no truncation occurs.
+
 
 ##RETURN VALUE##
 
@@ -37,10 +44,10 @@ v3.0 and above
 
 ##EXAMPLES##
 
-Truncate the length of a LOB whose descriptor is "5435e7b69487faa663000897" to 0.
+Specify a LOB whose oid is "5435e7b69487faa663000897" and truncate its length to 0.
 
 ```lang-javascript
-> db.sample.employee.truncateLob('5435e7b69487faa663000897', 0)
+> db.sample.employee.truncateLob("5435e7b69487faa663000897", 0)
 ```
 
 [^_^]:
