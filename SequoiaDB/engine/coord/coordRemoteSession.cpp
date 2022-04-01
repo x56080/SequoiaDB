@@ -820,6 +820,8 @@ namespace engine
       if ( _pos < 0 )
       {
          rc = SDB_CLS_NODE_NOT_EXIST ;
+         PD_LOG_MSG( PDERROR, "No preferred instance found in group [%s]",
+                     _groupPtr->groupName().c_str() ) ;
          goto error ;
       }
       rc = _nextPos( _groupPtr, _pPropSite->getInstanceOption(),
