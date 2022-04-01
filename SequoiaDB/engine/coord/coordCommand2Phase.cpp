@@ -157,6 +157,11 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Generate message to catalog failed for "
                    "command[%s, target:%s], rc: %d",
                    getName(), pArguments->_targetName.c_str(), rc ) ;
+      SDB_ASSERT( NULL != pCataMsgBuf,
+                  "catalog message buffer should be valid" ) ;
+      PD_CHECK( NULL != pCataMsgBuf, SDB_SYS, error, PDERROR,
+                "Failed to generate catalog message for command[%s, target:%s]",
+                getName(), pArguments->_targetName.c_str() ) ;
       if ( pMsg != (MsgHeader *)pCataMsgBuf )
       {
          isCataMsgRewritten = TRUE ;
@@ -198,6 +203,12 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Generate message to data failed for "
                    "command[%s, target:%s], rc: %d", getName(),
                    pArguments->_targetName.c_str(), rc ) ;
+      SDB_ASSERT( NULL != pDataMsgBuf,
+                  "data message buffer should be valid" ) ;
+      PD_CHECK( NULL != pDataMsgBuf, SDB_SYS, error, PDERROR,
+                "Failed to generate data message for command[%s, target:%s]",
+                getName(), pArguments->_targetName.c_str() ) ;
+
       if ( (MsgHeader *)pDataMsgBuf != pMsg )
       {
          isDataMsgRewritten = TRUE ;
@@ -220,9 +231,17 @@ namespace engine
          if ( isDataMsgRewritten )
          {
             msgReleaseBuffer( pDataMsgBuf, cb ) ;
+            isDataMsgRewritten = FALSE ;
          }
          pDataMsgBuf = pNewDataMsgBuf ;
          dataMsgSize = newDataMsgSize ;
+
+         SDB_ASSERT( NULL != pDataMsgBuf,
+                     "data message buffer should be valid" ) ;
+         PD_CHECK( NULL != pDataMsgBuf, SDB_SYS, error, PDERROR,
+                   "Failed to generate data message for command[%s, target:%s]",
+                   getName(), pArguments->_targetName.c_str() ) ;
+
          isDataMsgRewritten = TRUE ;
       }
 
@@ -666,6 +685,12 @@ namespace engine
          PD_RC_CHECK( rc, PDWARNING, "Generate rollback message to data failed "
                       "for command[%s, target:%s], rc: %d", getName(),
                       pArguments->_targetName.c_str(), rc ) ;
+         SDB_ASSERT( NULL != pRollbackMsgBuf,
+                     "rollback message buffer should be valid" ) ;
+         PD_CHECK( NULL != pRollbackMsgBuf, SDB_SYS, error, PDERROR,
+                   "Failed to generate rollback message for "
+                   "command[%s, target:%s]", getName(),
+                   pArguments->_targetName.c_str() ) ;
          cb->startTransRollback() ;
          rc = _rollbackOnDataGroup( (MsgHeader*)pRollbackMsgBuf, cb,
                                     pArguments, sucGroupLst ) ;

@@ -1757,17 +1757,17 @@ namespace engine
 
       BSONObj cataReplyObj ;
 
+      rc = _BASE::_generateDataMsg( pMsg, cb, pArgs, cataObjs, ppMsgBuf,
+                                    pBufSize ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to generate truncate CL message, "
+                   "rc: %d", rc ) ;
+
       if ( cataObjs.empty() )
       {
          goto done ;
       }
 
       cataReplyObj = cataObjs[ 0 ] ;
-
-      rc = _BASE::_generateDataMsg( pMsg, cb, pArgs, cataObjs, ppMsgBuf,
-                                    pBufSize ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to generate truncate CL message, "
-                   "rc: %d", rc ) ;
 
       try
       {
@@ -2904,18 +2904,18 @@ namespace engine
 
       BSONObj cataReplyObj ;
 
+      rc = _coordDataCMD3Phase::_generateDataMsg( pMsg, cb, pArgs,
+                                                  cataObjs, ppMsgBuf,
+                                                  pBufSize ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to generate drop CL message, "
+                   "rc: %d", rc ) ;
+
       if ( cataObjs.empty() )
       {
          goto done ;
       }
 
       cataReplyObj = cataObjs[ 0 ] ;
-
-      rc = _coordDataCMD3Phase::_generateDataMsg( pMsg, cb, pArgs,
-                                                  cataObjs, ppMsgBuf,
-                                                  pBufSize ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to generate drop CL message, "
-                   "rc: %d", rc ) ;
 
       try
       {
