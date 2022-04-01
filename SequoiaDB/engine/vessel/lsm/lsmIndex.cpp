@@ -63,7 +63,7 @@ INT32 lsmIndex::init( LSMDB * lsmdb, const lsmIndexMeta & idxMeta )
 
    // construct upper_bound, lower_bound key and ReadOptions
    globalIndexID upIdxId(_idxMeta.getIdxId().getLogicalCSID(),
-                         _idxMeta.getIdxId().getLogicalCSID(),
+                         _idxMeta.getIdxId().getLogicalCLID(),
                          _idxMeta.getIdxId().getLogicalIndexID() + 1);
 
    _uBuf[0] = LSM_ENTRY_TYPE_DATA;
