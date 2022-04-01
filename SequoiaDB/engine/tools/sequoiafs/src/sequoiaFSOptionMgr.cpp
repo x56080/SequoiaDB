@@ -42,6 +42,7 @@
 #include "utilStr.hpp"
 
 using namespace engine;
+using namespace bson;
 using namespace sequoiafs;
 
 #define FS_COMMANDS_OPTIONS \
