@@ -2,12 +2,11 @@
  * @Description   : seqDB-24881:主子表上下文过期超时清理
  * @Author        : Yao Kang
  * @CreateTime    : 2021.12.29
- * @LastEditTime  : 2022.01.29
- * @LastEditors   : 钟子明
+ * @LastEditTime  : 2022.04.01
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.csName = COMMCSNAME + "_24881";
 testConf.skipStandAlone = true;
-// SEQUOIADBMAINSTREAM-7974
 
 main( test );
 function test ( testPara )
@@ -36,7 +35,7 @@ function test ( testPara )
       cursor = cl.find();
       cursor.next();
 
-      sleep( 1000 * 60 * 2 );
+      sleep( 1000 * 60 * 3 );
       assert.tryThrow( SDB_RTN_CONTEXT_NOTEXIST, function()
       {
          while( cursor.next() ) { }

@@ -2,10 +2,9 @@
  * @Description   : seqDB-25344:分区表上下文过期超时清理
  * @Author        : 钟子明
  * @CreateTime    : 2022.01.29
- * @LastEditTime  : 2022.03.09
+ * @LastEditTime  : 2022.04.01
  * @LastEditors   : liuli
  ******************************************************************************/
-testConf.skipTest = true; //SEQUOIADBMAINSTREAM-8144
 testConf.csName = COMMCSNAME + "_25344";
 testConf.clName = COMMCLNAME + "_25344";
 testConf.clOpt = { ShardingKey: { no: 1 }, ShardingType: "hash", AutoSplit: true };
@@ -26,7 +25,7 @@ function test ( testPara )
       cursor = cl.find();
       cursor.next();
 
-      sleep( 1000 * 60 * 2 );
+      sleep( 1000 * 60 * 3 );
       assert.tryThrow( SDB_RTN_CONTEXT_NOTEXIST, function()
       {
          while( cursor.next() ) { }
