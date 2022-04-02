@@ -102,8 +102,7 @@ public class IndexConsistent24347 extends SdbTestBase {
         indexNames.add( indexName3 );
     }
 
-    // SEQUOIADBMAINSTREAM-7833
-    @Test(enabled = false)
+    @Test
     public void test() throws Exception {
         // 并发主表删除索引，子表切分
         ThreadExecutor es = new ThreadExecutor();
