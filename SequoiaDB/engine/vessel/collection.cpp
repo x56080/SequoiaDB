@@ -1853,6 +1853,7 @@ namespace vessel
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_UPGRADE);
       const runtimeMbContext *mbContext = context->getMbContext();
 
+      outOfSpace = FALSE;
       rc = mds.getLogicalPageBuffer(context, candidate.getLpid(), mode, lpb);
       if (SDB_OK != rc)
       {
@@ -1864,6 +1865,7 @@ namespace vessel
       /// candidate may be reset by prewriter.
       if (candidate.getSpaceLvl() == FSM_INVALID_SPACE_LVL)
       {
+         outOfSpace = TRUE;
          goto done;
       }
 
