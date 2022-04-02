@@ -65,7 +65,7 @@ public class Fulltext15797 extends FullTestBase {
         }
     }
 
-    @Test(enabled = false)
+    @Test()
     public void test() throws Exception {
         // 执行并发测试及结果校验
         te.addWorker( new Insert() );
