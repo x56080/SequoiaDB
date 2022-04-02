@@ -7148,6 +7148,10 @@ namespace engine
                   ( _primaryID.value = _pReplSet->getPrimary().value ) &&
                   _pReplSet->isSendNormal( _primaryID.value ) )
          {
+            if ( _pReplSet->primaryIsMe () )
+            {
+               continue ;
+            }
             rc = SDB_CLS_NOT_PRIMARY ;
             goto error ;
          }

@@ -181,6 +181,10 @@ namespace engine
       OSS_INLINE BOOLEAN isSendNormal( UINT64 nodeID )
       {
          ossScopedRWLock lock( _getRuntimeLock(), SHARED ) ;
+         if ( _info.local.value == nodeID )
+         {
+            return TRUE ;
+         }
          return ( _info.getNodeSendFailedTimes( nodeID ) == 0 ) ;
       }
 
