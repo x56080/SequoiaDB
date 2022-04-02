@@ -55,9 +55,17 @@ namespace vessel
       }
       _objects.clear();
 
-      _nextIndexId = 0;
+      _maxIndexLid = 0;
       _freeIndexSlots = OSS_UINT64_MAX;
       return;
+   }
+
+   void indexObjectMap::setMaxIndexLid(UINT32 indexLid)
+   {
+      if (indexLid > _maxIndexLid)
+      {
+         _maxIndexLid = indexLid;  
+      }
    }
 
    INT32 indexObjectMap::insert(INT32 indexSlot,
@@ -110,9 +118,9 @@ namespace vessel
          goto error;
       }
 
-      if (_nextIndexId <= indexLid)
+      if (_maxIndexLid < indexLid)
       {
-         _nextIndexId = indexLid + 1;
+         _maxIndexLid = indexLid;
       }
    done:
       return rc;

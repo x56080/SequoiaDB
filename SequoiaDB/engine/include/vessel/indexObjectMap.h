@@ -52,9 +52,13 @@ namespace vessel
          indexObjectMap &operator=(const indexObjectMap &) = delete;
 
       public:
-         OSS_INLINE UINT32 getNextIndexId()const
+         OSS_INLINE UINT32 getMaxIndexLid()const
          {
-            return _nextIndexId;
+            return _maxIndexLid;
+         }
+         OSS_INLINE UINT32 getNextIndexLid()const
+         {
+            return _maxIndexLid + 1;
          }
          OSS_INLINE BOOLEAN isEmpty()const
          {
@@ -62,7 +66,7 @@ namespace vessel
          }
          OSS_INLINE BOOLEAN isAllowedToCreateMore()const
          {
-            return INVALID_LOGICAL_INDEX_ID != _nextIndexId &&
+            return INVALID_LOGICAL_INDEX_ID != (_maxIndexLid + 1) &&
                    0 != _freeIndexSlots;
          }
 
@@ -84,6 +88,8 @@ namespace vessel
          indexObject *find(const indexIdentifier &indexId,
                            INDEX_STATUS filter=INDEX_STATUS_INVALID)const;
 
+         void setMaxIndexLid(UINT32 indexLid);
+
       private:
          BOOLEAN isIndexSlotFree(INT32 indexSlot);
          void unfreeIndexSlot(INT32 indexSlot);
@@ -104,7 +110,7 @@ namespace vessel
          ITERATOR begin() {return _objects.begin();}
          ITERATOR end() {return _objects.end();}
       private:
-         UINT32 _nextIndexId = 0;
+         UINT32 _maxIndexLid = 0;
          UINT64 _freeIndexSlots = OSS_UINT64_MAX;
 
          _OBJECT_MAP _objects;

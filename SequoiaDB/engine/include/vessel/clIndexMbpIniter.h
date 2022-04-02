@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = clMetaBlockPageIniter.h
+   Source File Name = clIndexMbpIniter.h
 
    Descriptive Name =
 
@@ -27,14 +27,14 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          09/08/2020  WY  Initial Draft
+          03/16/2022  LYC  Initial Draft
 
    Last Changed =
 
 ******************************************************************************/
 
-#ifndef VESSEL_CL_META_BLOCK_PAGE_INITER_H_
-#define VESSEL_CL_META_BLOCK_PAGE_INITER_H_
+#ifndef VESSEL_CL_INDEX_META_BLOCK_PAGE_INITER_
+#define VESSEL_CL_INDEX_META_BLOCK_PAGE_INITER_
 
 #include "vessel/pageInitializer.h"
 
@@ -42,16 +42,16 @@ namespace engine
 {
 namespace vessel
 {
-   class clMetaBlockPageIniter : public pageInitializer
+   class clIndexMbpIniter : public pageInitializer
    {
       public:
          virtual INT32 initPage(requestContext *context,
                                 PAGE_ID lpid,
                                 PAGE_SNAPSHOT_VERION psv,
                                 runtimePageBuffer *rpb);
+   }; // class clIndexMbpIniter
 
-   };//class clMetaBlockPageIniter
-}//namespace vessel
-}//namespace engine
+} // namespace vessel
+} // namespace engine
 
-#endif//VESSEL_CL_META_BLOCK_PAGE_INITER_H_
+#endif //VESSEL_CL_INDEX_META_BLOCK_PAGE_INITER_

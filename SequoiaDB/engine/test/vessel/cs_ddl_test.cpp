@@ -592,7 +592,7 @@ void thread_create(vesselImpl *db, atomic<UINT32> &createdCount, UINT32 sum)
    }
 }
 
-void thread_confilix_create(vesselImpl *db, UINT32 sum)
+void thread_interference_create(vesselImpl *db, UINT32 sum)
 {
    INT32 rc = SDB_OK;
    test_executor session;
@@ -720,7 +720,7 @@ TEST_F(cs_ddl_test, advanced_createCS_2)
 
    for (UINT32 i = 0; i < threadCount; ++i)
    {
-      threads[i] = std::move(std::thread(thread_confilix_create, 
+      threads[i] = std::move(std::thread(thread_interference_create, 
                                          &db, createNum));
    }
    for (UINT32 i = 0; i < threadCount; ++i)
@@ -745,7 +745,7 @@ Expected Result:
    1. CS创建成功
    2. CS计数正确
 */
-TEST_F(cs_ddl_test, death_createCS_1)
+TEST_F(cs_ddl_test, DISABLED_death_createCS_1)
 {
    INT32 rc = SDB_OK;
    outerResource resource = test_outer_resource::getResource();

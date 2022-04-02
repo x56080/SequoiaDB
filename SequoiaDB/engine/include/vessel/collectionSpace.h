@@ -185,7 +185,7 @@ namespace vessel
 
          INT32 initCollectionsFromDisk(requestContext *context);
          INT32 initCollection(requestContext *context,
-                              const clMetaBlock *record);
+                              const clMetaBlock *block);
 
          INT32 ensureCollectionHolder(CL_MB_ID mbID, collectionObjHolder **holder);
 
@@ -195,6 +195,9 @@ namespace vessel
 
          INT32 ensureCLMetaBlockPage(requestContext *context,
                                      CL_MB_ID mbID);
+
+         INT32 ensureCLIndexMetaBlockPage(requestContext *context,
+                                          CL_MB_ID mbID);
 
          INT32 precreateCL(const strSlice &clName,
                            utilCLInnerID innerID,

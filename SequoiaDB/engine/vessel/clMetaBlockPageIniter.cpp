@@ -82,7 +82,7 @@ namespace vessel
                                rpb->getGlobalPid().page(),
                                lpid, psv, rpb->getWritableBuffer().getWPtr()))
       {
-         PD_LOG(PDERROR, "failed to init crp");
+         PD_LOG(PDERROR, "failed to init cl meta block page");
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }

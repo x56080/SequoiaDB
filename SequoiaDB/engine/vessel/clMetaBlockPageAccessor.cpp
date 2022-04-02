@@ -544,8 +544,8 @@ namespace vessel
    }
    */
 
-   const clMetaBlockOnDisk *clMetaBlockPageAccessor::getReadableDiskRecordPtr(const runtimePageBuffer *rpb,
-                                                                              UINT32 i)
+   const clMetaBlockOnDisk *clMetaBlockPageAccessor::getReadableDiskBlockPtr(const runtimePageBuffer *rpb,
+                                                                             UINT32 i)
    {
       SDB_ASSERT(NULL != rpb && rpb->isValid(), "can not be null");
       UINT32 offset = CL_DISK_META_BLOCK_LEN * i;
