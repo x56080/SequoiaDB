@@ -966,7 +966,6 @@ INT32 sequoiaFS::_initRootPath(sdb *db)
    }
 
 done:
-   releaseConnection(db);
    return rc;
 
 error:
@@ -976,7 +975,7 @@ error:
 INT32 sequoiaFS::writeMapHistory(const CHAR *hosts)
 {
    INT32 rc = SDB_OK;
-   sdb *db;
+   sdb *db = NULL;
    BSONObj obj;
    BSONObj timeObj;
    sdbCollection cl;
@@ -1856,7 +1855,7 @@ error:
 INT32 sequoiaFS::unlink(const CHAR *path)
 {
    INT32 rc = SDB_OK;
-   sdb *db;
+   sdb *db = NULL;
    CHAR *fileName = NULL;
    sdbCollection sysFileMetaCL;
    sdbCollection cl;
@@ -2130,7 +2129,7 @@ error:
 INT32 sequoiaFS::symlink(const CHAR *path, const CHAR *link, struct fuse_context *context)
 {
    INT32 rc = SDB_OK;
-   sdb *db;
+   sdb *db = NULL;
    CHAR *linkName = NULL;
    sdbCollection sysFileMetaCL;
    OID oid;
@@ -2380,7 +2379,7 @@ error:
 INT32 sequoiaFS::link(const CHAR *path, const CHAR *newpath)
 {
    INT32 rc = SDB_OK;
-   sdb *db;
+   sdb *db = NULL;
    CHAR *linkName = NULL;
    CHAR *fileName = NULL;
    sdbCollection sysFileMetaCL;

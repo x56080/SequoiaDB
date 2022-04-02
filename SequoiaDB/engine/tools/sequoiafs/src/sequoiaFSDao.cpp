@@ -398,7 +398,7 @@ INT32 fsConnectionDao::getLobSize(const CHAR *clFullName,
    }
 
    //open lob according to the mode of open
-   rc = cl.openLob(lob, lobId, SDB_LOB_READ);
+   rc = cl.openLob(lob, lobId, SDB_LOB_SHAREREAD);
    if(SDB_OK != rc)
    {
       PD_LOG(PDERROR, "Failed to open lob for file, name=%s, rc=%d",
