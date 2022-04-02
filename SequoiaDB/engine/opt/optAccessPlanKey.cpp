@@ -134,11 +134,17 @@ namespace engine
          return FALSE ;
       }
 
-      // Query with modifier should use index to sort
+      // Query with modifier should use index to sort or forced index
       if ( getFlag() != planKey.getFlag() )
       {
-         BOOLEAN lhsFlag = isSortedIdxRequired() ? TRUE : FALSE ;
-         BOOLEAN rhsFlag = planKey.isSortedIdxRequired() ? TRUE : FALSE ;
+         BOOLEAN lhsFlag = isSortedIdxRequired() ;
+         BOOLEAN rhsFlag = planKey.isSortedIdxRequired() ;
+         if ( lhsFlag != rhsFlag )
+         {
+            return FALSE ;
+         }
+         lhsFlag = isForceHint() ;
+         rhsFlag = planKey.isForceHint() ;
          if ( lhsFlag != rhsFlag )
          {
             return FALSE ;
@@ -296,6 +302,13 @@ namespace engine
             continue ;
          keyCode ^= ossHash( e.value(), e.valuesize() ) ;
       }
+
+      // flags
+      INT32 tmpFlag = OSS_BIT_TEST( _flag,
+                                    ( FLG_QUERY_MODIFY |
+                                      FLG_QUERY_FORCE_IDX_BY_SORT |
+                                      FLG_QUERY_FORCE_HINT ) ) ;
+      keyCode ^= ossHash( (CHAR *)( &tmpFlag ), sizeof( tmpFlag ), 5 ) ;
 
       return keyCode ;
    }
