@@ -72,8 +72,8 @@ namespace vessel
                                 logicalPageBuffer *lpb);
 
       private:
-         const clMetaBlockOnDisk *getReadableDiskRecordPtr(const runtimePageBuffer *rpb,
-                                                           UINT32 i);
+         const clMetaBlockOnDisk *getReadableDiskBlockPtr(const runtimePageBuffer *rpb,
+                                                          UINT32 i);
 
       private:
          INT32 prepareCreateCLLog(requestContext *context,

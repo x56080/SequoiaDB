@@ -87,27 +87,27 @@ namespace vessel
          }
          OSS_INLINE const clMetaBlock &getRecord()const
          {
-            return _block;
+            return _clMetaBlock;
          }
          OSS_INLINE const CHAR *getName()const
          {
-            return _block.name;
+            return _clMetaBlock.name;
          }
          OSS_INLINE UINT32 getLogicalID()const
          {
-            return _block.logicalCLID;
+            return _clMetaBlock.logicalCLID;
          }
          OSS_INLINE CL_MB_ID getMBID()const
          {
-            return _block.mbID;
+            return _clMetaBlock.mbID;
          }
          OSS_INLINE utilCLInnerID getInnerID()const
          {
-            return _block.innerID;
+            return _clMetaBlock.innerID;
          }
          OSS_INLINE UTIL_COMPRESSOR_TYPE getCompressionType()const
          {
-            return (UTIL_COMPRESSOR_TYPE)(_block.compressionType);
+            return (UTIL_COMPRESSOR_TYPE)(_clMetaBlock.compressionType);
          }
 
          globalCollectionId getGlobalId()const;
@@ -218,10 +218,10 @@ namespace vessel
                                              UINT32 &count,
                                              PAGE_ID &element);
 
-         INT32 saveOnDiskWhenCreating(requestContext *context,
-                                      const createCLOptions &options);
+         INT32 initCLMetaBlockOnDisk(requestContext *context,
+                                     const createCLOptions &options);
 
-         INT32 removeMetaRecordOnDisk(requestContext *context);
+         INT32 removeCLMetaBlockOnDisk(requestContext *context);
 
          INT32 resetRouteRootOnDisk(requestContext *context);
 
@@ -406,8 +406,8 @@ namespace vessel
 
          /// always mark index removing first and truncate it.
          /// at last, release all resources.
-         INT32 releaseIndexContextAndEntryPage(requestContext *context,
-                                               const indexIdentifier &indexId);
+         INT32 releaseIndexObjectAndEntryPage(requestContext *context,
+                                              const indexIdentifier &indexId);
 
          INT32 markIndexRemovingBySlot(requestContext *context,
                                        const indexIdentifier &indexId);
@@ -457,7 +457,7 @@ namespace vessel
          
       private:
          //ossSpinSLatch _recordLatch;
-         clMetaBlock _block;
+         clMetaBlock _clMetaBlock;
          collectionSpace *_collectionSpace = NULL;
          UINT32 _totalLvl0Count = 0;
          UINT32 _totalRdpCount = 0;

@@ -75,15 +75,29 @@ namespace vessel
          void fini();
 
       public:
+         INT32 initIndexMetaBlock(requestContext *context);
+
+         // removeIndexMetaBlock() is an atomic operation.
+         // When the function is invoked, two steps will be performed:
+         // 1. reset cl index meta block on disk.
+         // 2. release all index entry pages in this collection.
+         // Note: We need to truncate all indexes in this collection before invoking this function.
+         INT32 removeIndexMetaBlock(requestContext *context);
+
          INT32 createIndex(requestContext *context,
                            INT32 indexSlot,
                            UINT32 indexId,
                            const slice &defObj,
                            PAGE_ID &lpid)const;
 
-         INT32 releaseIndexEntryPage(requestContext *context,
-                                     INT32 indexSlot);
-
+         // releaseIndexEntryInBlock() is an atomic operation.
+         // When this function is invoked, two steps will be performed:
+         // 1. reset index entry page lpid in cl index meta block. 
+         // 2. release specified index entry page.
+         // Note: We need to truncate specified index before invoking this function.
+         INT32 releaseIndexEntryInBlock(requestContext *context,
+                                        INT32 indexSlot);
+         
          INT32 truncateIndex(requestContext *context,
                              indexObject *obj);
 
@@ -104,7 +118,6 @@ namespace vessel
 
          INT32 handleDmlRequest(dmlContext *context,
                                 const dmlIndexRequestArray &ra);
-
          /// Must hold unique key latch first.
          INT32 checkUniqueConstraint(requestContext *context,
                                      indexObject *obj,
@@ -145,24 +158,8 @@ namespace vessel
          INT32 btreeTruncate(requestContext *context,
                              indexObject *obj);
       private:
-         INT32 createDirectMappedIndex(requestContext *context,
-                                       INT32 indexSlot,
-                                       UINT32 indexId,
-                                       const slice &defObj,
-                                       PAGE_ID &out)const;
-
-         INT32 createDoubleMappedIndex(requestContext *context,
-                                       INT32 indexSlot,
-                                       UINT32 indexId,
-                                       const slice &defObj,
-                                       PAGE_ID &out)const;
-
          INT32 cacheBtreeRootSplitTimes(requestContext *context,
                                         indexObjectMap *indexes);
-
-      private:
-         INT32 releaseDoubleMappedIndexEntry(requestContext *context,
-                                             INT32 indexSlot);
 
       private:
          CL_MB_ID _mbID = INVALID_CL_MB_ID;

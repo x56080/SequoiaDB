@@ -176,7 +176,7 @@ namespace vessel
             INT32 unitId = _indexTree.findFirst();
             if (0 <= unitId)
             {
-               const _bitmapUnit *unit = _units[i];
+               const _bitmapUnit *unit = _units[unitId];
                bitPos = unit->bs.findFirst();
                SDB_ASSERT(0 <= bitPos, "must be found");
                bitPos = (unitId * UNIT_SIZE) + bitPos;

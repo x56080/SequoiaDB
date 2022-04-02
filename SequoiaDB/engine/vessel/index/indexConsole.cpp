@@ -40,8 +40,6 @@
 #include "vessel/logicalPageBuffer.h"
 #include "vessel/indexEntryPageAccessor.h"
 #include "vessel/indexEntryPageIniter.h"
-#include "vessel/indexMappingPageIniter.h"
-#include "vessel/indexMappingPageAccessor.h"
 #include "vessel/requestContext.h"
 #include "vessel/indexDef.h"
 #include "vessel/globalIndexID.h"
@@ -53,6 +51,9 @@
 #include "ossSharedLatch.hpp"
 #include "vessel/indexIterator.h"
 #include "vessel/runtimeMbContext.h"
+#include "vessel/clIndexMbpIniter.h"
+#include "vessel/clIndexMbpAccessor.h"
+#include "vessel/clIndexMetaBlockPage.h"
 
 #include "vessel/lsm/lsmIndexMeta.hpp"
 #include "vessel/lsm/lsmIndex.hpp"
@@ -80,6 +81,172 @@ namespace vessel
       return;
    }
 
+   INT32 indexConsole::initIndexMetaBlock(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      logicalPageBuffer lpb;
+      clIndexMbpAccessor accessor;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+      PAGE_ID mbpLpid = INVALID_PAGE_ID;
+      INT32 blockPos = -1;
+
+      if (OSS_UNLIKELY(nullptr == context))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isInitialized()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      mbpLpid = getIndexMetaBlockPageLpid(_is->getStorageCoreArgs().pageSize,
+                                          _mbID);
+      if (OSS_UNLIKELY(INVALID_PAGE_ID == mbpLpid))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to get index meta block page lpid, rc:%d");
+         goto error;
+      }
+      blockPos = getIndexMetaBlockPos(_is->getStorageCoreArgs().pageSize,
+                                      _mbID);
+      if (OSS_UNLIKELY(0 > blockPos))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to get index meta block position, rc:%d", rc);
+         goto error;
+      }
+
+      rc = _is->getLogicalPageBuffer(context, mbpLpid, mode, lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get logical page buffer[%d], rc:%d", mbpLpid, rc);
+         goto error;
+      }
+
+      rc = accessor.init(&lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init index meta block page accessor, rc:%d", rc);
+         goto error;
+      }
+
+      rc = accessor.initIndexMetaBlock(context, blockPos);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init index meta block by accessor,rc :%d", rc);
+         goto error;
+      }
+
+   done:
+      lpb.fini();
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 indexConsole::removeIndexMetaBlock(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      BOOLEAN blocked = FALSE;
+      logicalPageBuffer lpb;
+      clIndexMbpAccessor accessor;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+      INT32 blockPos = 0;
+      PAGE_ID mbpLpid = INVALID_PAGE_ID;
+      clIndexMetaBlock block;
+      
+      if (OSS_UNLIKELY(nullptr == context))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isInitialized()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = _is->blockCheckpoint(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to block checkpoint:%d", rc);
+         goto error;
+      }
+      blocked = TRUE;
+
+      mbpLpid = getIndexMetaBlockPageLpid(_is->getStorageCoreArgs().pageSize, _mbID);
+      if (OSS_UNLIKELY(INVALID_PAGE_ID == mbpLpid))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "faild to get cl index meta block page lpid of mb[%d], rc:%d", 
+                _mbID, rc);
+         goto error;
+      }
+
+      blockPos = getIndexMetaBlockPos(_is->getStorageCoreArgs().pageSize, _mbID);
+      if (OSS_UNLIKELY(0 > blockPos))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to get index meta block position, rc:%d", rc);
+         goto error;
+      }
+
+      rc = _is->getLogicalPageBuffer(context, mbpLpid, mode, lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get logical page buffer[%d], rc:%d", mbpLpid, rc);
+         goto error;
+      }
+
+      rc = accessor.init(&lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init index meta block page accessor, rc:%d", rc);
+         goto error; 
+      }
+
+      rc = accessor.getIndexMetaBlock(context, blockPos, block);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get index meta block, rc:%d", rc);
+         goto error;
+      }
+
+      rc = accessor.resetIndexMetaBlock(context, blockPos);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to reset index meta block, rc:%d", rc);
+         goto error;
+      }
+      accessor.fini();
+
+      for (UINT32 i = 0; i < MAX_INDEX_COUNT_PER_CL; ++i)
+      {
+         if (INVALID_PAGE_ID != block.entryPageLpids[i])
+         {
+            rc = _is->releasePage(context, block.entryPageLpids[i]);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to release index entry page[%d], rc:%d",
+                      block.entryPageLpids[i], rc);
+               goto error;
+            }
+         }
+      }
+
+   done:
+      lpb.fini();
+      if (blocked)
+      {
+         context->unblockCheckpoint();
+      }
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 indexConsole::createIndex(requestContext *context,
                                    INT32 indexSlot,
                                    UINT32 indexId,
@@ -88,6 +255,20 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       BOOLEAN checkpointBlocked = FALSE;
+
+      logicalPageBuffer lpb;
+      indexEntryPageIniter entryIniter;
+      indexEntryPageAccessor entryAccessor;
+      clIndexMbpIniter mbpIniter;
+      clIndexMbpAccessor mbpAccessor;
+
+      INT32 blockPos = 0;
+      PAGE_ID entryLpid = INVALID_PAGE_ID;
+      PAGE_ID mbpLpid = INVALID_PAGE_ID;
+      BOOLEAN mbpLocked = FALSE;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+
+      lpid = INVALID_PAGE_ID;
 
       if (OSS_UNLIKELY(!isInitialized()))
       {
@@ -103,6 +284,22 @@ namespace vessel
          goto error;
       }
 
+      mbpLpid = getIndexMetaBlockPageLpid(_is->getStorageCoreArgs().pageSize, _mbID);
+      if (OSS_UNLIKELY(INVALID_PAGE_ID == mbpLpid))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to get index meta block page lpid, rc:%d", rc);
+         goto error;
+      }
+
+      blockPos = getIndexMetaBlockPos(_is->getStorageCoreArgs().pageSize, _mbID);
+      if (OSS_UNLIKELY(0 > blockPos))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to get index meta block position, rc:%d", rc);
+         goto error;
+      }
+
       rc = _is->blockCheckpoint(context);
       if (SDB_OK != rc)
       {
@@ -111,25 +308,77 @@ namespace vessel
       }
       checkpointBlocked = TRUE;
 
-      if (indexSlot < (INT32)DIRECT_MAPPING_INDEX_COUNT_PER_CL)
+      rc = context->lockLpid(SPACE_TYPE_IDX, mbpLpid, mode);
+      if (SDB_OK != rc)
       {
-         rc = createDirectMappedIndex(context, indexSlot, indexId, defObj, lpid);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to create direct mapped index:%d", rc);
-            goto error;
-         }
+         PD_LOG(PDERROR, "failed to lock index meta block page lpid[%d], rc:%d", mbpLpid, rc);
+         goto error;
       }
-      else
+      mbpLocked = TRUE;
+
+      rc = _is->ensureReservedPageMapped(context, mbpLpid, &mbpIniter);
+      if (SDB_OK != rc)
       {
-         rc = createDoubleMappedIndex(context, indexSlot, indexId, defObj, lpid);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to create double mapped index:%d", rc);
-            goto error;
-         }
+         PD_LOG(PDERROR, "failed to ensure index meta block page mapped, rc:%d", rc);
+         goto error;
       }
+      
+      context->unlockLpid(SPACE_TYPE_IDX, mbpLpid);
+      mbpLocked = FALSE;
+
+      rc = _is->allocatePage(context, &entryIniter, entryLpid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to allocate page, rc:%d", rc);
+         goto error;
+      }
+
+      rc = _is->getLogicalPageBuffer(context, entryLpid, mode, lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get logical page buffer[%d], rc:%d", entryLpid, rc);
+         goto error;
+      }
+
+      rc = entryAccessor.createIndex(context, indexId, defObj, &lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create index on entry page, rc:%d", rc);
+         goto error;
+      }
+
+      lpb.fini();
+
+      rc = _is->getLogicalPageBuffer(context, mbpLpid, mode, lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get logical page buffer[%d], rc:%d", mbpLpid, rc);
+         goto error;
+      }
+
+      rc = mbpAccessor.init(&lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init index meta block page accessor, rc:%d", rc);
+         goto error;
+      }
+
+      rc = mbpAccessor.setIndexEntryPageLpid(context, blockPos, indexSlot, 
+                                             entryLpid, indexId);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to set index entry page lpid[%d] rc:%d", entryLpid, rc);
+         goto error;
+      }
+
+      lpid = entryLpid;
+
    done:
+      mbpAccessor.fini();
+      if (mbpLocked)
+      {
+         context->unlockLpid(SPACE_TYPE_IDX, mbpLpid);
+      }
       if (checkpointBlocked)
       {
          context->unblockCheckpoint();
@@ -139,11 +388,17 @@ namespace vessel
       goto done;
    }
 
-   INT32 indexConsole::releaseIndexEntryPage(requestContext *context,
-                                             INT32 indexSlot)
+   INT32 indexConsole::releaseIndexEntryInBlock(requestContext *context,
+                                                INT32 indexSlot)
    {
       INT32 rc = SDB_OK;
       BOOLEAN blocked = FALSE;
+      logicalPageBuffer lpb;
+      clIndexMbpAccessor accessor;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+      INT32 blockPos = 0;
+      PAGE_ID mbpLpid = INVALID_PAGE_ID;
+      clIndexMetaBlock block;
       
       if (OSS_UNLIKELY(NULL == context ||
                        !isValidIndexSlot(indexSlot)))
@@ -165,21 +420,63 @@ namespace vessel
       }
       blocked = TRUE;
 
-      if (indexSlot < (INT32)DIRECT_MAPPING_INDEX_COUNT_PER_CL)
+      mbpLpid = getIndexMetaBlockPageLpid(_is->getStorageCoreArgs().pageSize, _mbID);
+      if (OSS_UNLIKELY(INVALID_PAGE_ID == mbpLpid))
       {
-         SDB_ASSERT(FALSE, "impossible");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "faild to get cl index meta block page lpid of mb[%d], rc:%d", 
+                _mbID, rc);
+         goto error;
       }
-      else
+
+      blockPos = getIndexMetaBlockPos(_is->getStorageCoreArgs().pageSize, _mbID);
+      if (OSS_UNLIKELY(0 > blockPos))
       {
-         rc = releaseDoubleMappedIndexEntry(context, indexSlot);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to release index entry:%d", rc);
-            goto error;
-         }
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to get index meta block position, rc:%d", rc);
+         goto error;
+      }
+
+      rc = _is->getLogicalPageBuffer(context, mbpLpid, mode, lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get logical page buffer[%d], rc:%d", mbpLpid, rc);
+         goto error;
+      }
+
+      rc = accessor.init(&lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init index meta block page accessor, rc:%d", rc);
+         goto error;
       }
       
+      rc = accessor.getIndexMetaBlock(context, blockPos, block);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get index meta block, rc:%d", rc);
+         goto error;
+      }
+
+      rc = accessor.resetIndexEntryPageLpid(context, blockPos, indexSlot);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to reset index entry page lpid[%d], rc:%d",
+                block.entryPageLpids[indexSlot], rc);
+         goto error;
+      }
+      accessor.fini();
+
+      rc = _is->releasePage(context, block.entryPageLpids[indexSlot]);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to release index entry page[%d], rc:%d",
+                block.entryPageLpids[indexSlot], rc);
+         goto error;
+      }
+
    done:
+      lpb.fini();
       if (blocked)
       {
          context->unblockCheckpoint();
@@ -188,6 +485,7 @@ namespace vessel
    error:
       goto done;
    }
+
 
    INT32 indexConsole::updateIndexStatus(requestContext *context,
                                          UINT32 indexId,
@@ -322,179 +620,6 @@ namespace vessel
       goto done;
    }
 
-   INT32 indexConsole::createDoubleMappedIndex(requestContext *context,
-                                               INT32 indexSlot,
-                                               UINT32 indexId,
-                                               const slice &defObj,
-                                               PAGE_ID &out)const
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "must be inited");
-      SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
-      SDB_ASSERT((INT32)DIRECT_MAPPING_INDEX_COUNT_PER_CL <= indexSlot, "impossible");
-
-      
-      indexMappingPageIniter mappingIniter;
-      indexEntryPageIniter defIniter;
-      PAGE_ID lpid = INVALID_PAGE_ID;
-      logicalPageBuffer lpb;
-      indexEntryPageAccessor accessor;
-      indexMappingPageAccessor mappingAccessor;
-      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
-      BOOLEAN mappingPageLocked = FALSE;
-
-      UINT32 pos = 0;
-      PAGE_ID mappingPage = _is->getMappingPageLpid(_mbID, indexSlot, pos);
-      if (INVALID_PAGE_ID == mappingPage)
-      {
-         PD_LOG(PDERROR, "failed to get mapping page of [%d,%d]", _mbID, indexSlot);
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      rc = context->lockLpid(SPACE_TYPE_IDX, mappingPage, mode);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", mappingPage, rc);
-         goto error;
-      }
-      mappingPageLocked = TRUE;
-
-      rc = _is->ensureReservedPageMapped(context, mappingPage, &mappingIniter);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to ensure mapping page:%d", rc);
-         goto error;
-      }
-
-      context->unlockLpid(SPACE_TYPE_IDX, mappingPage);
-      mappingPageLocked = FALSE;
-
-      rc = _is->allocatePage(context, &defIniter, lpid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to allocate index def page:%d", rc);
-         goto error;
-      }
-
-      rc = _is->getLogicalPageBuffer(context, lpid, mode, lpb);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d", lpid, rc);
-         goto error;
-      }
-
-      rc = accessor.createIndex(context, indexId, defObj, &lpb);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to create save index info on page:%d", rc);
-         goto error;
-      }
-
-      lpb.fini();
-      rc = _is->getLogicalPageBuffer(context, mappingPage, mode, lpb);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get page[%d] buffer:%d", mappingPage, rc);
-         goto error;
-      }
-
-      rc = mappingAccessor.addNewMapping(context, pos, lpid, lpb);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "faield to add new index mapping:%d", rc);
-         goto error;
-      }
-
-      out = lpid;
-      
-   done:
-      if (mappingPageLocked)
-      {
-         context->unlockLpid(SPACE_TYPE_IDX, mappingPage);
-      }
-      lpb.fini();
-      return rc;
-   error:
-      if (INVALID_PAGE_ID != lpid)
-      {
-         _is->releasePage(context, lpid);
-      }
-      out = INVALID_PAGE_ID;
-      goto done;
-   }
-
-   INT32 indexConsole::createDirectMappedIndex(requestContext *context,
-                                               INT32 indexSlot,
-                                               UINT32 indexId,
-                                               const slice &defObj,
-                                               PAGE_ID &out)const
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "must be inited");
-      SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
-      SDB_ASSERT(indexSlot < (INT32)DIRECT_MAPPING_INDEX_COUNT_PER_CL, "impossible");
-      
-      indexEntryPageIniter initer;
-      logicalPageBuffer lpb;
-      indexEntryPageAccessor accessor;
-      PAGE_ID lpid = INVALID_PAGE_ID;
-      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
-      BOOLEAN locked = FALSE;
-
-      lpid = _is->getDirectMappedIndexLpid(_mbID, indexSlot);
-      if (INVALID_PAGE_ID == lpid)
-      {
-         PD_LOG(PDERROR, "failed to get lpid of index def page");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      rc = context->lockLpid(SPACE_TYPE_IDX, lpid, mode);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", lpid, rc);
-         goto error;
-      }
-      locked = TRUE;
-
-      rc = _is->ensureReservedPageMapped(context, lpid, &initer);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to ensure reserved page:%d", rc);
-         goto error;
-      }
-
-      context->unlockLpid(SPACE_TYPE_IDX, lpid);
-      locked = FALSE;
-
-      rc = _is->getLogicalPageBuffer(context, lpid, mode, lpb);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d",
-                lpid, rc);
-         goto error;
-      }
-
-      rc = accessor.createIndex(context, indexId, defObj, &lpb);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to save index info when creating:%d", rc);
-         goto error;
-      }
-
-      out = lpid;
-   done:
-      if (locked)
-      {
-         context->unlockLpid(SPACE_TYPE_IDX, lpid);
-      }
-      lpb.fini();
-      return rc;
-   error:
-      out = INVALID_PAGE_ID;
-      goto done;
-   }
 
    INT32 indexConsole::truncateIndex(requestContext *context,
                                      indexObject *obj)
@@ -576,8 +701,13 @@ namespace vessel
                                               indexObjectMap *indexes)
    {
       INT32 rc = SDB_OK;
-      indexEntryPageAccessor accessor;
+      clIndexMbpAccessor mbpAccessor;
+      indexEntryPageAccessor entryAccessor;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
+      PAGE_ID mbpLpid = INVALID_PAGE_ID;
+      BOOLEAN mapped = FALSE;
+      INT32 blockPos = 0;
+      clIndexMetaBlock block;
 
       if (OSS_UNLIKELY(!isInitialized()))
       {
@@ -593,123 +723,112 @@ namespace vessel
 
       indexes->fini();
 
-      for (INT32 i = 0; i < (INT32)DIRECT_MAPPING_INDEX_COUNT_PER_CL; ++i)
+      mbpLpid = getIndexMetaBlockPageLpid(_is->getStorageCoreArgs().pageSize, _mbID);
+      if ((OSS_UNLIKELY(INVALID_PAGE_ID == mbpLpid)))
       {
-         indexDescription desc;
-         indexEntryPageHead head;
-         logicalPageBuffer lpb;
-         PAGE_ID lpid = _is->getDirectMappedIndexLpid(_mbID, i);
-         SDB_ASSERT(INVALID_PAGE_ID != lpid, "impossible");
-         BOOLEAN mapped = FALSE;
-
-         rc = _is->isLogicalPageMapped(context, lpid, mapped);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get test if lpid[%d] mapped:%d", lpid, rc);
-            goto error;
-         }
-         
-         if (!mapped)
-         {
-            continue;
-         }
-
-         rc = _is->getLogicalPageBuffer(context, lpid, mode, lpb);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d", lpid, rc);
-            goto error;
-         }
-
-         rc = accessor.getIndexDescription(context, &lpb, desc, &head);
-         if (SDB_IXM_NOTEXIST == rc)
-         {
-            PD_LOG(PDDEBUG, "index[%d] def page is not valid", i);
-            rc = SDB_OK;
-            continue;
-         }
-         else if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get index description "
-                   "and def page head in page[%d], rc:%d", lpid, rc);
-            goto error;
-         }
-
-         rc = indexes->insert(i, head.indexLogicalID, lpid, desc, 
-                              (INDEX_STATUS)(head.status),
-                              head.btreeRoot);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to insert index[%d] into context map:%d", i, rc);
-            goto error;
-         }
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to get index meta block page lpid, rc:%d", rc);
+         goto error;
       }
 
-      for (INT32 i = (INT32)DIRECT_MAPPING_INDEX_COUNT_PER_CL;
-           i < (INT32)MAX_INDEX_COUNT_PER_CL; ++i)
+      blockPos = getIndexMetaBlockPos(_is->getStorageCoreArgs().pageSize, _mbID);
+      if (OSS_UNLIKELY(0 > blockPos))
       {
-         indexDescription desc;
-         indexEntryPageHead head;
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to get index meta block position, rc:%d", rc);
+         goto error;
+      }
+      
+      rc = _is->isLogicalPageMapped(context, mbpLpid, mapped);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to test if lpid[%d] is mapped, rc:%d", mbpLpid, rc);
+         goto error;
+      }
+      
+      if (!mapped)
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "index meta block page[%d] is not mapped, rc:%d", mbpLpid, rc);
+         goto error;
+      }
+      else
+      {
          logicalPageBuffer lpb;
-         UINT32 pos = 0;
-         PAGE_ID lpid = INVALID_PAGE_ID;
-         PAGE_ID mappingLpid = _is->getMappingPageLpid(_mbID, i, pos);
-         SDB_ASSERT(INVALID_PAGE_ID != mappingLpid, "impossible");
-         BOOLEAN mapped = FALSE;
-
-         rc = _is->isLogicalPageMapped(context, mappingLpid, mapped);
+         rc = _is->getLogicalPageBuffer(context, mbpLpid, mode, lpb);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to get test if lpid[%d] mapped:%d", lpid, rc);
+            PD_LOG(PDERROR, "failed to get logical page buffer[%d], rc:%d", mbpLpid, rc);
             goto error;
          }
-         
-         if (!mapped)
-         {
-            continue;
-         }
 
-         rc = _is->getIndexDefPage(context, _mbID, i, lpid);
+         rc = mbpAccessor.init(&lpb);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to get index def lpid of slot[%d], rc:%d", i, rc);
+            PD_LOG(PDERROR, "failed to init index meta block page accessor, rc:%d", rc);
             goto error;
          }
 
-         if (INVALID_PAGE_ID == lpid)
-         {
-            continue;
-         }
-
-         rc = _is->getLogicalPageBuffer(context, lpid, mode, lpb);
+         rc = mbpAccessor.getIndexMetaBlock(context, blockPos, block);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d", lpid, rc);
+            PD_LOG(PDERROR, "failed to get index meta block, rc:%d", rc);
             goto error;
          }
 
-         rc = accessor.getIndexDescription(context, &lpb, desc, &head);
-         if (SDB_IXM_NOTEXIST == rc)
+         for (UINT32 i = 0; i < MAX_INDEX_COUNT_PER_CL; ++i)
          {
-            PD_LOG(PDDEBUG, "index[%d] def page is not valid", i);
-            rc = SDB_OK;
-            continue;
-         }
-         else if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get index description "
-                   "and def page head in page[%d], rc:%d", lpid, rc);
-            goto error;
+            PAGE_ID entryLpid = INVALID_PAGE_ID;
+            logicalPageBuffer entryLpb;
+            indexEntryPageHead head;
+            indexDescription desc;
+
+            entryLpid = block.entryPageLpids[i];
+            if (INVALID_PAGE_ID == entryLpid)
+            {
+               continue;
+            }
+
+            rc = _is->getLogicalPageBuffer(context, entryLpid, mode, entryLpb);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to get logical page buffer[%d], rc:%d", entryLpid, rc);
+               goto error;
+            }
+
+            rc = entryAccessor.getIndexDescription(context, &entryLpb, desc, &head);
+            if (SDB_IXM_NOTEXIST == rc)
+            {
+               PD_LOG(PDERROR, "index def page[%d] is not valid, rc:%d", entryLpid, rc);
+               rc = SDB_OK;
+               continue;
+            }
+            else if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to get index description "
+                      "and entry page head in page[%d], rc:%d", entryLpid, rc);
+               goto error;
+            }
+
+            if (OSS_UNLIKELY(head.indexLogicalID > block.maxIndexLid))
+            {
+               rc = SDB_VESSEL_INTERNAL_ERR;
+               PD_LOG(PDERROR, "current index logical id[%d] exceed the max[%d], rc:%d",
+                      head.indexLogicalID, block.maxIndexLid, rc);
+               goto error;
+            }
+
+            rc = indexes->insert(i, head.indexLogicalID, entryLpid, desc,
+                                 (INDEX_STATUS)head.status, head.btreeRoot);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to insert index[%d] into index object map, rc:%d",i, rc);
+               goto error;
+            }
          }
 
-         rc = indexes->insert(i, head.indexLogicalID, lpid, desc, 
-                              (INDEX_STATUS)(head.status),
-                              head.btreeRoot);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to insert index[%d] into context map:%d", i, rc);
-            goto error;
-         }
+         indexes->setMaxIndexLid(block.maxIndexLid);
+         mbpAccessor.fini();
       }
 
       rc = cacheBtreeRootSplitTimes(context, indexes);
@@ -727,6 +846,7 @@ namespace vessel
       }
       goto done;
    }
+
 
 
    INT32 indexConsole::handleDmlRequest(dmlContext *context,
@@ -1069,52 +1189,6 @@ namespace vessel
          }
 
       }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 indexConsole::releaseDoubleMappedIndexEntry(requestContext *context,
-                                                     INT32 indexSlot)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
-
-      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
-      UINT32 pos = 0;
-      logicalPageBuffer mappingBuffer;
-      indexMappingPageAccessor accessor;
-      PAGE_ID entryPage = INVALID_PAGE_ID;
-
-      PAGE_ID mappingPage = _is->getMappingPageLpid(_mbID, indexSlot, pos);
-      if (INVALID_PAGE_ID == mappingPage)
-      {
-         PD_LOG(PDERROR, "failed to get mapping page of [%d,%d]", _mbID, indexSlot);
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      rc = _is->getLogicalPageBuffer(context, mappingPage, mode, mappingBuffer);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d", mappingPage, rc);
-         goto error;
-      }
-
-      rc = accessor.unmapIndex(context, mappingBuffer, pos, entryPage);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to unmap index at[%d, %d], rc:%d",
-                mappingPage, pos, rc);
-         goto error;
-      }
-
-      mappingBuffer.fini();
-
-      _is->releasePage(context, entryPage);
-      
    done:
       return rc;
    error:

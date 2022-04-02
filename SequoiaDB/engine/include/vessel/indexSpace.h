@@ -63,7 +63,7 @@ namespace vessel
          virtual dataPageCluster *getDataStorageObj() override {return &_storage;}
 
       private:
-         virtual UINT32 getReservedImpCount()const override;
+         virtual UINT32 getReservedImpCount()const override {return 1;};
          virtual dataPageCluster::options getStorageOptions()const override;
 
       private:
@@ -92,17 +92,6 @@ namespace vessel
       private:
          virtual INT32 getMinUncompletedLSN(requestContext *context,
                                             DPS_LSN_OFFSET &lsn) override;
-
-      public:
-         ///lpid may be invalid 
-         INT32 getIndexDefPage(requestContext *context,
-                               CL_MB_ID mbID,
-                               INT32 slot,
-                               PAGE_ID &lpid);
-         PAGE_ID getDirectMappedIndexLpid(CL_MB_ID mbID, INT32 slot)const;
-         PAGE_ID getMappingPageLpid(CL_MB_ID mbID,
-                                    INT32 slot,
-                                    UINT32 &pos)const;
 
       private:
          dataStorageFileCluster _storage;

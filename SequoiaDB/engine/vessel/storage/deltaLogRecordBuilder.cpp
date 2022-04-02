@@ -248,6 +248,12 @@ namespace vessel
          goto error;
       }
 
+      rc = append(sizeof(UINT8), &count);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+      
       for (UINT8 i = 0; i < count; ++i)
       {
          UINT64 v = 0;
