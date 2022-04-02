@@ -2291,6 +2291,61 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_RECYCS, "_dmsStorageUnit::recycleCollectionSpace" )
+   INT32 _dmsStorageUnit::recycleCollectionSpace( _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSU_RECYCS ) ;
+
+      for ( UINT16 mbID = 0 ; mbID < DMS_MME_SLOTS ; ++mbID )
+      {
+         if ( DMS_IS_MB_INUSE ( _pDataSu->_dmsMME->_mbList[ mbID ]._flag ) )
+         {
+            INT32 tmpRC = SDB_OK ;
+
+            dmsMBContext *mbContext = NULL ;
+
+            tmpRC = _pDataSu->getMBContext( &mbContext, mbID,
+                                            DMS_INVALID_CLID, DMS_INVALID_CLID ) ;
+            if ( SDB_OK != tmpRC )
+            {
+               PD_LOG( PDWARNING, "Failed to get metablock context for "
+                       "collection on slot [%u], rc: %d", mbID, tmpRC ) ;
+               continue ;
+            }
+
+            tmpRC = mbContext->mbTryLock( EXCLUSIVE ) ;
+            if ( SDB_OK != tmpRC )
+            {
+               PD_LOG( PDWARNING, "Failed to lock collection on slot [%u], "
+                       "rc: %d", mbID, tmpRC ) ;
+               _pDataSu->releaseMBContext( mbContext ) ;
+               continue ;
+            }
+
+            // drop all indexes with external data
+            // ( text index and global index )
+            tmpRC = _pDataSu->_dropIndexesWithTypes( mbContext, cb,
+                                                     ( IXM_EXTENT_TYPE_TEXT |
+                                                       IXM_EXTENT_TYPE_GLOBAL ) ) ;
+            if ( SDB_OK != tmpRC )
+            {
+               PD_LOG( PDWARNING, "Failed to drop indexes with external data "
+                       "from collection [%s], rc: %d",
+                       mbContext->mb()->_collectionName, tmpRC ) ;
+            }
+
+            _pDataSu->releaseMBContext( mbContext ) ;
+
+         }
+      }
+
+      PD_TRACE_EXITRC( SDB__DMSSU_RECYCS, rc ) ;
+
+      return rc ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_REBUILDINDEXES, "_dmsStorageUnit::rebuildIndexes" )
    INT32 _dmsStorageUnit::rebuildIndexes( const CHAR *pName,
                                           pmdEDUCB * cb,

@@ -101,6 +101,10 @@ namespace engine
       {
          type |= IXM_EXTENT_TYPE_TEXT ;
       }
+      if ( IXM_EXTENT_HAS_TYPE( indexType, IXM_EXTENT_TYPE_GLOBAL ) )
+      {
+         type |= IXM_EXTENT_TYPE_GLOBAL ;
+      }
 
    done:
       return rc ;
@@ -137,6 +141,11 @@ namespace engine
       {
          _appendString( szTmp, IXM_INDEXTYPE_TMP_STR_SZ, "Text" ) ;
          OSS_BIT_CLEAR( type, IXM_EXTENT_TYPE_TEXT ) ;
+      }
+      if ( IXM_EXTENT_HAS_TYPE( type, IXM_EXTENT_TYPE_GLOBAL ) )
+      {
+         _appendString( szTmp, IXM_INDEXTYPE_TMP_STR_SZ, "Global" ) ;
+         OSS_BIT_CLEAR( type, IXM_EXTENT_TYPE_GLOBAL ) ;
       }
 
       if ( type )

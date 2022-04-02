@@ -1076,9 +1076,8 @@ namespace engine
          INT32 copyCollection( dmsMBContext *mbContext,
                                const CHAR *newName,
                                utilCLUniqueID newCLUniqueID,
-                               pmdEDUCB *cb,
-                               SDB_DPSCB *dpsCB,
-                               dmsMBContext **newMBContext ) ;
+                               pmdEDUCB *cb ) ;
+         INT32 recycleCollection( dmsMBContext *mbContext, pmdEDUCB *cb ) ;
 
          INT32 findCollection ( const CHAR *pName,
                                 UINT16 &collectionID,
@@ -1273,9 +1272,14 @@ namespace engine
                                                _pmdEDUCB    *cb,
                                                BOOLEAN      bSetOvfRecrd ) = 0 ;
 
-         INT32 _copyIndexes( dmsMBContext *oldContext,
-                             dmsMBContext *newContext,
-                             _pmdEDUCB *cb ) ;
+         INT32 _copyIndexesWithoutTypes( dmsMBContext *oldContext,
+                                         dmsMBContext *newContext,
+                                         _pmdEDUCB *cb,
+                                         UINT16 types ) ;
+         INT32 _dropIndexesWithTypes( dmsMBContext *context,
+                                      _pmdEDUCB *cb,
+                                      UINT16 types,
+                                      ossPoolVector< bson::BSONObj > *droppedIndexList = NULL ) ;
 
       private:
          virtual UINT64 _dataOffset() ;

@@ -523,6 +523,8 @@ namespace engine
                                   dmsMBContext *context = NULL,
                                   utilDeleteResult *pResult = NULL ) ;
 
+         INT32    recycleCollectionSpace( _pmdEDUCB *cb ) ;
+
          INT32    rebuildIndexes ( const CHAR *pName,
                                    _pmdEDUCB * cb,
                                    dmsMBContext *context = NULL ) ;

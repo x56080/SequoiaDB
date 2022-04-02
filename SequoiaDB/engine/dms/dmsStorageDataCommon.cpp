@@ -3348,9 +3348,7 @@ namespace engine
    INT32 _dmsStorageDataCommon::copyCollection( dmsMBContext *oldMBContext,
                                                 const CHAR *newName,
                                                 utilCLUniqueID newCLUniqueID,
-                                                pmdEDUCB *cb,
-                                                SDB_DPSCB *dpsCB,
-                                                dmsMBContext **newMBContext )
+                                                pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
 
@@ -3358,23 +3356,28 @@ namespace engine
 
       SDB_ASSERT( oldMBContext->isMBLock(), "mb context should be locked" ) ;
 
-      const CHAR *oldCLName = oldMBContext->mb()->_collectionName ;
+      const CHAR *oldName = oldMBContext->mb()->_collectionName ;
       BSONObj extOptions ;
       UINT16 newMBID = DMS_INVALID_MBID ;
       UINT32 newCLLID = DMS_INVALID_CLID ;
       BOOLEAN added = FALSE ;
       dmsMBContext *tmpMBContext = NULL ;
+      UINT32 attributes = oldMBContext->mb()->_attributes ;
+      UINT8 compressorType = oldMBContext->mb()->_compressorType ;
+      ossPoolVector< BSONObj > droppedIndexList ;
 
       PD_LOG( PDDEBUG, "Start copy collection [from: %s.%s, "
-              "to %s.%s]", getSuName(), oldCLName, getSuName(), newName ) ;
+              "to %s.%s]", getSuName(), oldName, getSuName(), newName ) ;
 
       rc = dumpExtOptions( oldMBContext, extOptions ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get ext options for "
-                   "collection [%s], rc: %d", oldCLName, rc ) ;
+                   "collection [%s], rc: %d", oldName, rc ) ;
 
-      rc = addCollection( newName, &newMBID, newCLUniqueID,
-                          oldMBContext->mb()->_attributes, cb, NULL, 0, FALSE,
-                          oldMBContext->mb()->_compressorType, &newCLLID,
+      // not create id index, will copy index later
+      OSS_BIT_CLEAR( attributes, DMS_MB_ATTR_NOIDINDEX ) ;
+
+      rc = addCollection( newName, &newMBID, newCLUniqueID, attributes, cb,
+                          NULL, 0, FALSE, compressorType, &newCLLID,
                           &extOptions ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to add collection [%s], rc: %d",
                    newName, rc ) ;
@@ -3386,18 +3389,40 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get mb context for copy collection "
                    "[%s], rc: %d", newName, rc ) ;
 
-      rc = _copyIndexes( oldMBContext, tmpMBContext, cb ) ;
+      // drop indexes with external data ( text and global index )
+      rc = _dropIndexesWithTypes( oldMBContext, cb,
+                                  ( IXM_EXTENT_TYPE_TEXT |
+                                    IXM_EXTENT_TYPE_GLOBAL ),
+                                  &droppedIndexList ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to drop text and global index "
+                   "from collection [%s], rc: %d", oldName, rc ) ;
+
+      // copy indexes without external data ( text and global index )
+      rc = _copyIndexesWithoutTypes( oldMBContext, tmpMBContext, cb,
+                                     ( IXM_EXTENT_TYPE_TEXT |
+                                       IXM_EXTENT_TYPE_GLOBAL ) ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to copy indexes for collection [%s], "
                    "rc: %d", newName, rc ) ;
 
-      if ( NULL != newMBContext )
+      for ( ossPoolVector< BSONObj >::iterator iter = droppedIndexList.begin() ;
+            iter != droppedIndexList.end() ;
+            ++ iter )
       {
-         *newMBContext = tmpMBContext ;
-         tmpMBContext = NULL ;
+         BSONObj indexDef = *iter ;
+         // copy text and global index to new collection
+         INT32 tmpRC = _pIdxSU->createIndex( tmpMBContext, indexDef, cb, NULL ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDWARNING, "Failed to create index [%s] to collection "
+                    "[%s.%s], rc: %d", indexDef.toPoolString().c_str(),
+                    getSuName(), newName, tmpRC ) ;
+         }
       }
 
+      oldMBContext->swap( *tmpMBContext ) ;
+
       PD_LOG( PDDEBUG, "Finish copy collection [from: %s.%s, "
-              "to: %s.%s]", getSuName(), oldCLName, getSuName(), newName ) ;
+              "to: %s.%s]", getSuName(), oldName, getSuName(), newName ) ;
 
    done:
       if ( NULL != tmpMBContext )
@@ -3421,79 +3446,214 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__COPYINDEXES, "_dmsStorageDataCommon::_copyIndexes" )
-   INT32 _dmsStorageDataCommon::_copyIndexes( dmsMBContext *oldContext,
-                                              dmsMBContext *newContext,
-                                              _pmdEDUCB *cb )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_RECYCOLLECTION, "_dmsStorageDataCommon::recycleCollection" )
+   INT32 _dmsStorageDataCommon::recycleCollection( dmsMBContext *mbContext,
+                                                   pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON__COPYINDEXES ) ;
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON_RECYCOLLECTION ) ;
 
-      UINT32 indexIndex = 0 ;
+      SDB_ASSERT( mbContext->isMBLock(), "mb context should be locked" ) ;
 
-      while ( DMS_INVALID_EXTENT != oldContext->mb()->_indexExtent[ indexIndex ] )
+      // drop all indexes with external data ( text index and global index )
+      rc = _dropIndexesWithTypes( mbContext, cb,
+                                  ( IXM_EXTENT_TYPE_TEXT |
+                                    IXM_EXTENT_TYPE_GLOBAL ) ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to drop indexes with external data "
+                   "from collection [%s.%s], rc: %d", getSuName(),
+                   mbContext->mb()->_collectionName, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACOMMON_RECYCOLLECTION, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__COPYINDEXESWITHOUTTYPES, "_dmsStorageDataCommon::_copyIndexesWithoutTypes" )
+   INT32 _dmsStorageDataCommon::_copyIndexesWithoutTypes( dmsMBContext *oldContext,
+                                                          dmsMBContext *newContext,
+                                                          _pmdEDUCB *cb,
+                                                          UINT16 types )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON__COPYINDEXESWITHOUTTYPES ) ;
+
+      UINT32 idxSlot = 0 ;
+
+      const CHAR *oldName = oldContext->mb()->_collectionName ;
+      const CHAR *newName = newContext->mb()->_collectionName ;
+
+      while ( idxSlot < DMS_COLLECTION_MAX_INDEX &&
+              DMS_INVALID_EXTENT != oldContext->mb()->_indexExtent[ idxSlot ] )
       {
          INT32 tmpRC = SDB_OK ;
-         ixmIndexCB indexCB( oldContext->mb()->_indexExtent[ indexIndex ],
+         ixmIndexCB indexCB( oldContext->mb()->_indexExtent[ idxSlot ],
                              _pIdxSU, oldContext ) ;
          BSONObj indexDef ;
+         BOOLEAN isSysIndex = FALSE ;
 
-         // $id index is created by addCollection()
-         if ( indexCB.isIDIndex() )
+         if ( !indexCB.isInitialized() )
          {
-            ++ indexIndex ;
+            PD_LOG( PDWARNING, "Failed to get index on slot [%u] of "
+                    "collection [%s.%s], it is not initialized", idxSlot,
+                    getSuName(), oldName ) ;
+            ++ idxSlot ;
+            continue ;
+         }
+         else if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(), types ) )
+         {
+            ++ idxSlot ;
             continue ;
          }
 
-         if ( IXM_EXTENT_HAS_TYPE( IXM_EXTENT_TYPE_TEXT,
-                                   indexCB.getIndexType() ) )
+         // copy index definition
+         try
          {
-            try
+            if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(),
+                                      IXM_EXTENT_TYPE_TEXT ) )
             {
                BSONObjBuilder builder ;
                BSONObjIterator iter( indexCB.getDef() ) ;
                while ( iter.more() )
                {
                   BSONElement element = iter.next() ;
-                  if ( 0 == ossStrcmp( FIELD_NAME_EXT_DATA_NAME,
+                  if ( 0 != ossStrcmp( FIELD_NAME_EXT_DATA_NAME,
                                        element.fieldName() ) )
-                  {
-                     continue ;
-                  }
-                  else
                   {
                      builder.append( element ) ;
                   }
                }
                indexDef = builder.obj() ;
             }
-            catch ( exception &e )
+            else
             {
-               PD_LOG( PDERROR, "Failed to build copy index define BSON, "
-                       "occur exception %s", e.what() ) ;
-               ++ indexIndex ;
-               continue ;
+               indexDef = indexCB.getDef().copy() ;
             }
          }
-         else
+         catch ( exception &e )
          {
-            indexDef = indexCB.getDef() ;
+            PD_LOG( PDERROR, "Failed to build copy index define BSON, "
+                    "occur exception %s", e.what() ) ;
+            ++ idxSlot ;
+            continue ;
          }
 
+         PD_LOG( PDDEBUG, "Copy index [%s] to [%s]",
+                 indexDef.toPoolString().c_str(), newName ) ;
+
+         isSysIndex = dmsIsSysIndexName( indexCB.getName() ) ;
+
+         // copy index to new collection
          tmpRC = _pIdxSU->createIndex( newContext, indexDef, cb, NULL,
-                                       dmsIsSysIndexName( indexCB.getName() ) ) ;
+                                       isSysIndex ) ;
          if ( SDB_OK != tmpRC )
          {
             PD_LOG( PDWARNING, "Failed to create index [%s] to collection "
-                    "[%s], rc: %d", indexCB.getName(),
-                    newContext->mb()->_collectionName, tmpRC ) ;
+                    "[%s.%s], rc: %d", indexDef.toPoolString().c_str(),
+                    getSuName(), newName, tmpRC ) ;
          }
 
-         ++ indexIndex ;
+         ++ idxSlot ;
       }
 
-      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACOMMON__COPYINDEXES, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACOMMON__COPYINDEXESWITHOUTTYPES, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__DROPINDEXESWITHTYPES, "_dmsStorageDataCommon::_dropIndexesWithTypes" )
+   INT32 _dmsStorageDataCommon::_dropIndexesWithTypes( dmsMBContext *context,
+                                                       _pmdEDUCB *cb,
+                                                       UINT16 types,
+                                                       ossPoolVector< BSONObj > *droppedIndexList )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON__DROPINDEXESWITHTYPES ) ;
+
+      UINT32 idxSlot = 0 ;
+
+      // text index and global index will be rebuild, so drop the old ones
+      while ( idxSlot < DMS_COLLECTION_MAX_INDEX )
+      {
+         if ( DMS_INVALID_EXTENT == context->mb()->_indexExtent[ idxSlot ] )
+         {
+            break ;
+         }
+         else
+         {
+            dmsExtentID indexExtentID =
+                              context->mb()->_indexExtent[ idxSlot ] ;
+            ixmIndexCB indexCB( indexExtentID, _pIdxSU, context ) ;
+
+            if ( ( indexCB.isInitialized() ) &&
+                 ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(), types ) ) )
+            {
+               INT32 tmpRC = SDB_OK ;
+
+               if ( NULL != droppedIndexList )
+               {
+                  // copy index definition
+                  try
+                  {
+                     BSONObj indexDef ;
+
+                     if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(),
+                                               IXM_EXTENT_TYPE_TEXT ) )
+                     {
+                        BSONObjBuilder builder ;
+                        BSONObjIterator iter( indexCB.getDef() ) ;
+                        while ( iter.more() )
+                        {
+                           BSONElement element = iter.next() ;
+                           if ( 0 != ossStrcmp( FIELD_NAME_EXT_DATA_NAME,
+                                                element.fieldName() ) )
+                           {
+                              builder.append( element ) ;
+                           }
+                        }
+                        indexDef = builder.obj() ;
+                     }
+                     else
+                     {
+                        indexDef = indexCB.getDef().copy() ;
+                     }
+
+                     droppedIndexList->push_back( indexDef ) ;
+                  }
+                  catch ( exception &e )
+                  {
+                     PD_LOG( PDERROR, "Failed to build define BSON, "
+                             "occur exception %s", e.what() ) ;
+                     // Failed to copy ignore this index
+                     ++ idxSlot ;
+                     continue ;
+                  }
+               }
+
+               tmpRC = _pIdxSU->dropIndex( context, idxSlot,
+                                           indexCB.getLogicalID(), cb,
+                                           NULL ) ;
+               if ( SDB_OK != tmpRC )
+               {
+                  PD_LOG( PDWARNING, "Failed to drop index on slot [%u], "
+                          "rc: %d", idxSlot, tmpRC ) ;
+               }
+               else
+               {
+                  continue ;
+               }
+            }
+         }
+
+         ++ idxSlot ;
+      }
+
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACOMMON__DROPINDEXESWITHTYPES, rc ) ;
 
       return rc ;
    }

@@ -221,7 +221,8 @@ namespace engine
                              const utilRecycleItem &item,
                              pmdEDUCB *cb ) ;
 
-      INT32 _recycleDropCS( const CHAR *csName,
+      INT32 _recycleDropCS( dmsStorageUnit *su,
+                            const CHAR *csName,
                             const utilRecycleItem &item,
                             pmdEDUCB *cb ) ;
 

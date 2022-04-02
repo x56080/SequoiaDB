@@ -556,7 +556,6 @@ namespace engine
 
       const CHAR *newName = item.getRecycleName() ;
       utilCLUniqueID origUniqueID = (utilCLUniqueID)( item.getOriginID() ) ;
-      dmsMBContext *copiedMBContext = NULL ;
       utilCLUniqueID newUniqueID = UTIL_UNIQUEID_NULL ;
       UINT32 newStartLID = DMS_INVALID_CLID ;
 
@@ -588,12 +587,9 @@ namespace engine
       DMS_MB_STATINFO_SET_TRUNCATED( mbContext->mbStat()->_flag ) ;
 
       rc = su->data()->copyCollection( mbContext, clShortName, origUniqueID,
-                                       cb, NULL, &copiedMBContext ) ;
+                                       cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to copy collection [%s], "
                    "rc: %d", clShortName, rc ) ;
-
-      mbContext->swap( *copiedMBContext ) ;
-      su->data()->releaseMBContext( copiedMBContext ) ;
 
       PD_LOG( PDEVENT, "Recycle truncate collection [%s] to [%s]",
               item.getOriginName(), item.getRecycleName() ) ;
@@ -799,10 +795,12 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to recycle collection from "
                    "[%s] to [%s], rc: %d", clShortName, newName, rc ) ;
 
+      rc = su->data()->recycleCollection( mbContext, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to recycle collection [%s], rc: %d",
+                   newName, rc ) ;
+
       // clear truncate flag, so other mbContext can detect collection dropped
       DMS_MB_STATINFO_CLEAR_TRUNCATED( mbContext->mbStat()->_flag ) ;
-
-
 
       PD_LOG( PDEVENT, "Recycle drop collection [%s] to [%s]",
               item.getOriginName(), item.getRecycleName() ) ;
@@ -964,7 +962,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR__RECYDROPCS, "_clsRecycleBinManager::_recycleDropCS" )
-   INT32 _clsRecycleBinManager::_recycleDropCS( const CHAR *csName,
+   INT32 _clsRecycleBinManager::_recycleDropCS( dmsStorageUnit *su,
+                                                const CHAR *csName,
                                                 const utilRecycleItem &item,
                                                 pmdEDUCB *cb )
    {
@@ -983,6 +982,10 @@ namespace engine
       rc = _dmsCB->renameCollectionSpaceP2( csName, newName, cb, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to recycle collection space from "
                    "[%s] to [%s], rc: %d", csName, newName, rc ) ;
+
+      rc = su->recycleCollectionSpace( cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to recycle collection space [%s], "
+                   "rc: %d", item.getRecycleName(), rc ) ;
 
       PD_LOG( PDEVENT, "Recycle drop collection space [%s] to [%s]",
               item.getOriginName(), item.getRecycleName() ) ;
@@ -1014,6 +1017,19 @@ namespace engine
               options->_recycleItem.isValid() )
          {
             const utilRecycleItem &item = options->_recycleItem ;
+            dmsStorageUnit *su = NULL ;
+            dmsEventHolder *holder =
+                              dynamic_cast<dmsEventHolder *>( pEventHolder ) ;
+            PD_CHECK( NULL != holder, SDB_SYS, error, PDERROR,
+                      "Failed to recycle collection [%s], failed to get "
+                      "dms event holder from event holder",
+                      item.getOriginName() ) ;
+
+            su = holder->getSU() ;
+            PD_CHECK( NULL != su, SDB_SYS, error, PDERROR,
+                      "Failed to recycle collection [%s], failed to get "
+                      "storage unit from event holder",
+                      item.getOriginName() ) ;
 
             if ( options->_needSaveItem && NULL != dpsCB )
             {
@@ -1024,7 +1040,7 @@ namespace engine
                             item.getRecycleName(), rc ) ;
             }
 
-            rc = _recycleDropCS( suItem._pCSName, item, cb ) ;
+            rc = _recycleDropCS( su, suItem._pCSName, item, cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to recycle drop collection "
                          "space [origin %s, recycle %s], rc: %d",
                          item.getOriginName(),
