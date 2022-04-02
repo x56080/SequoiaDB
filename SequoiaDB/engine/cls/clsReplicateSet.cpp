@@ -626,9 +626,17 @@ namespace engine
    BOOLEAN _clsReplicateSet::isSendNormal( UINT64 nodeID )
    {
       PD_TRACE_ENTRY ( SDB__CLSREPSET_ISSENDNORMAL );
+      BOOLEAN isNormal = TRUE ;
       _info.mtx.lock_r() ;
-      BOOLEAN isNormal = _info.getNodeSendFailedTimes( nodeID ) == 0 ?
-                         TRUE : FALSE ;
+
+      if ( _info.local.value == nodeID )
+      {
+         goto done ;
+      }
+
+      isNormal = _info.getNodeSendFailedTimes( nodeID ) == 0 ? TRUE : FALSE ;
+
+   done:
       _info.mtx.release_r() ;
       PD_TRACE_EXIT ( SDB__CLSREPSET_ISSENDNORMAL );
       return isNormal ;
