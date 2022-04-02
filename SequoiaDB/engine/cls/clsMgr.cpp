@@ -548,8 +548,9 @@ namespace engine
     _replServiceID ( MSG_ROUTE_REPL_SERVICE ),
     _taskMgr( 0x7FFFFFFF ),
     _requestID ( 0 ),
-     _regTimerID ( CLS_INVALID_TIMERID ),
+    _regTimerID ( CLS_INVALID_TIMERID ),
     _regFailedTimes( 0 ),
+    _needUpdateNode( FALSE ),
     _oneSecTimerID ( CLS_INVALID_TIMERID ),
     _taskTimerID( CLS_INVALID_TIMERID )
    {
@@ -567,6 +568,8 @@ namespace engine
       _shardNetRtAgent     = NULL ;
       _shdObj              = NULL ;
       _replObj             = NULL ;
+      _pSitePropMgr        = NULL ;
+      _pResource           = NULL ;
    }
 
    _clsMgr::~_clsMgr ()
@@ -2470,6 +2473,53 @@ namespace engine
       return _shdObj->updateCatGroup ( millisec ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR__UPDATEDCINFO, "_clsMgr::_updateDCInfo" )
+   INT32 _clsMgr::_updateDCInfo( MsgHeader *msg )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSMGR__UPDATEDCINFO ) ;
+
+      try
+      {
+         /// update dc base info
+         BSONObj msgObject ( MSG_GET_INNER_REPLY_DATA( msg ) ) ;
+         if ( msgIsInnerOpReply( msg ) &&
+              msg->messageLength > (INT32)sizeof( MsgOpReply ) +
+              msgObject.objsize() + 5 )
+         {
+            MsgOpReply *pReply = ( MsgOpReply* )msg ;
+            if ( pReply->numReturned > 1 )
+            {
+               clsDCBaseInfo *pInfo = _shdObj->getDCMgr()->getDCBaseInfo() ;
+               BSONObj objDCInfo( ( const CHAR* )msg + sizeof( MsgOpReply ) +
+                                  ossAlign4( (UINT32)msgObject.objsize() ) ) ;
+               _shdObj->getDCMgr()->updateDCBaseInfo( objDCInfo ) ;
+
+               _recycleBinMgr.setConf( pInfo->getRecycleBinConf() ) ;
+
+               pmdGetKRCB()->setDBReadonly( pInfo->isReadonly() ) ;
+               pmdGetKRCB()->setDBDeactivated( !pInfo->isActivated() ) ;
+               pmdGetKRCB()->setDBRestoring( pInfo->isRestoring() ) ;
+            }
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse DC info, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSMGR__UPDATEDCINFO, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    //message function
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR__ONCATREGRES, "_clsMgr::_onCatRegisterRes" )
    INT32 _clsMgr::_onCatRegisterRes ( NET_HANDLE handle, MsgHeader* msg )
@@ -2481,6 +2531,7 @@ namespace engine
       const CHAR *hostname = NULL ;
       NodeID routeID ;
       clsRegAssit regAssit ;
+      MsgCatRegisterRsp *rsp = (MsgCatRegisterRsp *)msg ;
 
       // have register succeed
       if ( _regTimerID == CLS_INVALID_TIMERID )
@@ -2507,10 +2558,63 @@ namespace engine
       nodeID = regAssit.getNodeID () ;
       hostname = regAssit.getHostname () ;
 
-      //Kill register timer
-      killTimer ( _regTimerID ) ;
-      _regTimerID = CLS_INVALID_TIMERID ;
-      _regFailedTimes = 0 ;
+      rc = _updateDCInfo( msg ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update DC info, rc: %d", rc ) ;
+
+      if ( _needUpdateNode )
+      {
+         if ( 0 == rsp->startFrom )
+         {
+            // update node done
+            //Kill register timer
+            killTimer ( _regTimerID ) ;
+            _regTimerID = CLS_INVALID_TIMERID ;
+            _regFailedTimes = 0 ;
+
+            _needUpdateNode = FALSE ;
+
+            PD_LOG ( PDEVENT, "Update node succeed, groupID:%u, nodeID:%u",
+                     _selfNodeID.columns.groupID,
+                     _selfNodeID.columns.nodeID ) ;
+         }
+
+         if ( 0 == rsp->startFrom )
+         {
+            if ( SDB_OK != _shdObj->updatePrimary( msg->routeID, TRUE ) )
+            {
+               _shdObj->updateCatGroup () ;
+            }
+         }
+         else if ( -1 != rsp->startFrom )
+         {
+            if ( SDB_OK != _shdObj->updatePrimaryByReply( msg ) )
+            {
+               _shdObj->updateCatGroup() ;
+            }
+         }
+         else
+         {
+            // primary is unknown
+            _shdObj->updateCatGroup() ;
+         }
+
+         goto done ;
+      }
+      else if ( SDB_ROLE_CATALOG == pmdGetKRCB()->getDBRole() &&
+                0 != rsp->startFrom )
+      {
+         // for CATALOG, need a secondary register message to update
+         // node information to the primary node
+         _needUpdateNode = TRUE ;
+         _regFailedTimes = 0 ;
+      }
+      else
+      {
+         //Kill register timer
+         killTimer ( _regTimerID ) ;
+         _regTimerID = CLS_INVALID_TIMERID ;
+         _regFailedTimes = 0 ;
+      }
 
       //Update the net route agent the local id
       _selfNodeID.columns.groupID = groupID ;
@@ -2527,30 +2631,6 @@ namespace engine
        */
       pmdGetKRCB()->setHostName( hostname ) ;
 
-      {
-         /// update dc base info
-         BSONObj msgObject ( MSG_GET_INNER_REPLY_DATA( msg ) ) ;
-         if ( msgIsInnerOpReply( msg ) &&
-              msg->messageLength > (INT32)sizeof( MsgOpReply ) +
-              msgObject.objsize() + 5 )
-         {
-            MsgOpReply *pReply = ( MsgOpReply* )msg ;
-            if ( pReply->numReturned > 1 )
-            {
-               clsDCBaseInfo *pInfo = _shdObj->getDCMgr()->getDCBaseInfo() ;
-               BSONObj objDCInfo( ( const CHAR* )msg + sizeof( MsgOpReply ) +
-                                  ossAlign4( (UINT32)msgObject.objsize() ) ) ;
-               _shdObj->getDCMgr()->updateDCBaseInfo( objDCInfo ) ;
-
-               _recycleBinMgr.setConf( pInfo->getRecycleBinConf() ) ;
-
-               pmdGetKRCB()->setDBReadonly( pInfo->isReadonly() ) ;
-               pmdGetKRCB()->setDBDeactivated( !pInfo->isActivated() ) ;
-               pmdGetKRCB()->setDBRestoring( pInfo->isRestoring() ) ;
-            }
-         }
-      }
-
       routeID.value = _selfNodeID.value ;
       routeID.columns.serviceID = _replServiceID ;
       _replNetRtAgent->setLocalID ( routeID ) ;
@@ -2564,9 +2644,24 @@ namespace engine
       pmdGetKRCB()->setBusinessOK( TRUE ) ;
 
       //Update the primary catlog node
-      if ( SDB_OK != _shdObj->updatePrimary( msg->routeID, TRUE ) )
+      if ( 0 == rsp->startFrom )
       {
-         _shdObj->updateCatGroup () ;
+         if ( SDB_OK != _shdObj->updatePrimary( msg->routeID, TRUE ) )
+         {
+            _shdObj->updateCatGroup () ;
+         }
+      }
+      else if ( -1 != rsp->startFrom )
+      {
+         if ( SDB_OK != _shdObj->updatePrimaryByReply( msg ) )
+         {
+            _shdObj->updateCatGroup() ;
+         }
+      }
+      else
+      {
+         // primary is unknown
+         _shdObj->updateCatGroup() ;
       }
 
       //Active the shard and repl CBs

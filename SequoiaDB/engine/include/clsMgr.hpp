@@ -328,7 +328,7 @@ namespace engine
          BOOLEAN _findAndCheckTaskStatus( UINT64 taskID,
                                           dmsTaskStatusPtr &statusPtr,
                                           BOOLEAN &needRollback ) ;
-
+         INT32 _updateDCInfo( MsgHeader* msg ) ;
       private:
          clsShardSessionMgr            _shardSessionMgr ;
          clsReplSessionMgr             _replSessionMgr ;
@@ -353,6 +353,7 @@ namespace engine
 
          UINT64                        _regTimerID ;
          UINT32                        _regFailedTimes ;
+         BOOLEAN                       _needUpdateNode ;
          UINT64                        _oneSecTimerID ;
          UINT64                        _taskTimerID ;
 

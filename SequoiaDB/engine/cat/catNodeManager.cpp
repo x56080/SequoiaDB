@@ -654,6 +654,18 @@ namespace engine
 
    done:
       PD_TRACE1 ( SDB_CATNODEMGR_REGREQ, PD_PACK_INT ( rc ) ) ;
+      if ( !pmdIsPrimary() )
+      {
+         if ( INVALID_NODEID != _pCatCB->getPrimaryNode() )
+         {
+            replyHeader.startFrom = _pCatCB->getPrimaryNode() ;
+         }
+         else
+         {
+            // don't know who is primary
+            replyHeader.startFrom = -1 ;
+         }
+      }
       if ( 0 == dataLen )
       {
          rc = _pCatCB->sendReply( handle, &replyHeader, rc ) ;
