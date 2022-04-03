@@ -19,6 +19,7 @@
 | [SDB_LIST_USERS][SDB_LIST_USERS]| 用户列表 | 列出当前集群中的所有用户信息 |
 | [SDB_LIST_BACKUPS][SDB_LIST_BACKUPS] | 备份列表 | 列出当前数据库的备份信息 |
 | [SDB_LIST_DATASOURCES][SDB_LIST_DATASOURCES] | 数据源列表 | 列出当前数据库中所有数据源的元数据信息 |
+| [SDB_LIST_RECYCLEBIN][SDB_LIST_RECYCLEBIN] | 回收站项目列表 | 列出当前回收站中已回收项目的元数据信息 |
 
 >   **Note:**
 >
@@ -44,5 +45,6 @@
 [SDB_LIST_BACKUPS]:manual/Manual/List/SDB_LIST_BACKUPS.md
 [SDB_LIST_DATASOURCES]:manual/Manual/List/SDB_LIST_DATASOURCES.md
 [SDB_LIST_TASKS]:manual/Manual/List/SDB_LIST_TASKS.md
+[SDB_LIST_RECYCLEBIN]:manual/Manual/List/SDB_LIST_RECYCLEBIN.md
 [list]:manual/Manual/Sequoiadb_Command/Sdb/list.md
 

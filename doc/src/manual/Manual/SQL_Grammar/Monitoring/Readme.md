@@ -29,6 +29,7 @@
 | [$SNAPSHOT_INDEXSTATS][SNAPSHOT_INDEXSTATS] | [SDB_SNAP_INDEXSTATS][SDB_SNAP_INDEXSTATS] | 索引统计信息快照 | 索引统计信息快照列出当前数据库中所有索引统计信息 |
 | [$SNAPSHOT_TRANSWAIT][SNAPSHOT_TRANSWAIT] | [SDB_SNAP_TRANSWAITS][SDB_SNAP_TRANSWAITS] | 事务等待快照 | 事务等待快照可以列出数据库中因锁等待而产生的事务等待信息 |
 | [$SNAPSHOT_TRANSDEADLOCK][SNAPSHOT_TRANSDEADLOCK] | [SDB_SNAP_TRANSDEADLOCK][SDB_SNAP_TRANSDEADLOCK] | 事务死锁检测快照 | 事务死锁检测快照可以列出数据库中处于死锁状态的事务信息 |
+| [$SNAPSHOT_RECYCLEBIN][SNAPSHOT_RECYCLEBIN] | [SDB_SNAP_RECYCLEBIN][SDB_SNAP_RECYCLEBIN] | 回收站项目快照 | 回收站项目快照可以列出当前回收站中已回收项目的详细信息 |
 
 ##列表视图##
 
@@ -51,6 +52,7 @@
 | [$LIST_SVCTASKS][LIST_SVCTASKS]  | [SDB_LIST_SVCTASKS][SDB_LIST_SVCTASKS] | 服务任务列表 | 服务任务列表列出当前数据库节点中所有的服务任务 |
 | [$LIST_USER][LIST_USER] | [SDB_LIST_USERS][SDB_LIST_USERS] | 用户列表 | 用户列表列出当前集群中的所有用户信息 |
 | [$LIST_DATASOURCE][LIST_DATASOURCE] | [SDB_LIST_DATASOURCES][SDB_LIST_DATASOURCES] | 数据源列表 | 数据源列表列出当前数据库中所有数据源的元数据信息 |
+| [$LIST_RECYCLEBIN][LIST_RECYCLEBIN] | [SDB_LIST_RECYCLEBIN][SDB_LIST_RECYCLEBIN] | 回收站项目列表 | 回收站项目列表可以列出当前回收站中已回收项目的元数据信息 |
 
 ##SQL到SequoiaDB映射表##
 
@@ -228,6 +230,8 @@ SdbSnapshotOption[.cond(<cond>)]
 [SDB_SNAP_TRANSWAITS]:manual/Manual/Snapshot/SDB_SNAP_TRANSWAITS.md
 [SNAPSHOT_TRANSDEADLOCK]:manual/Manual/SQL_Grammar/Monitoring/SNAPSHOT_TRANSDEADLOCK.md
 [SDB_SNAP_TRANSDEADLOCK]:manual/Manual/Snapshot/SDB_SNAP_TRANSDEADLOCK.md
+[SNAPSHOT_RECYCLEBIN]:manual/Manual/SQL_Grammar/Monitoring/SNAPSHOT_RECYCLEBIN.md
+[SDB_SNAP_RECYCLEBIN]:manual/Manual/Snapshot/SDB_SNAP_RECYCLEBIN.md
 
 [LIST_CONTEXT]:manual/Manual/SQL_Grammar/Monitoring/LIST_CONTEXT.md
 [SDB_LIST_CONTEXTS]:manual/Manual/List/SDB_LIST_CONTEXTS.md
@@ -259,6 +263,8 @@ SdbSnapshotOption[.cond(<cond>)]
 [SDB_LIST_USERS]:manual/Manual/List/SDB_LIST_USERS.md
 [LIST_DATASOURCE]:manual/Manual/SQL_Grammar/Monitoring/LIST_DATASOURCE.md
 [SDB_LIST_DATASOURCES]:manual/Manual/List/SDB_LIST_DATASOURCES.md
+[LIST_RECYCLEBIN]:manual/Manual/SQL_Grammar/Monitoring/LIST_RECYCLEBIN.md
+[SDB_LIST_RECYCLEBIN]:manual/Manual/List/SDB_LIST_RECYCLEBIN.md
 
 [snapshot]:manual/Manual/Sequoiadb_Command/Sdb/snapshot.md
 [SdbSnapshotOption]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects/SdbSnapshotOption.md

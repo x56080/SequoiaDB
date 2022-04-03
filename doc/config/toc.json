@@ -1807,6 +1807,12 @@
                      "en": "Deadlock detection"
                   },
                   {
+                     "id": 1640749000,
+                     "file": "recycle_bin",
+                     "cn": "回收站",
+                     "en": "Recycle Bin"
+                  },
+                  {
                      "id": 1610960736,
                      "file": "hot_spare",
                      "cn": "热备节点",
@@ -2765,6 +2771,12 @@
                            "en": "getDomain()"
                         },
                         {
+                           "id": 1610377718,
+                           "file": "getRecycleBin",
+                           "cn": "getRecycleBin()",
+                           "en": "getRecycleBin()"
+                        },
+                        {
                            "id": 1432190791,
                            "file": "getRG",
                            "cn": "getRG()",
@@ -3697,6 +3709,86 @@
                            "file": "alter",
                            "cn": "alter()",
                            "en": "alter()"
+                        }
+                     ]
+                  },
+                  {
+                     "id": 1642123100,
+                     "dir": "SdbRecycleBin",
+                     "cn": "SdbRecycleBin",
+                     "en": "SdbRecycleBin",
+                     "contents": [
+                        {
+                           "id": 1642123101,
+                           "file": "alter",
+                           "cn": "alter()",
+                           "en": "alter()"
+                        },
+                        {
+                           "id": 1642123102,
+                           "file": "count",
+                           "cn": "count()",
+                           "en": "count()"
+                        },
+                        {
+                           "id": 1642123103,
+                           "file": "disable",
+                           "cn": "disable()",
+                           "en": "disable()"
+                        },
+                        {
+                           "id": 1642123104,
+                           "file": "dropAll",
+                           "cn": "dropAll()",
+                           "en": "dropAll()"
+                        },
+                        {
+                           "id": 1642123105,
+                           "file": "dropItem",
+                           "cn": "dropItem()",
+                           "en": "dropItem()"
+                        },
+                        {
+                           "id": 1642123106,
+                           "file": "enable",
+                           "cn": "enable()",
+                           "en": "enable()"
+                        },
+                        {
+                           "id": 1642123107,
+                           "file": "getDetail",
+                           "cn": "getDetail()",
+                           "en": "getDetail()"
+                        },
+                        {
+                           "id": 1642123108,
+                           "file": "list",
+                           "cn": "list()",
+                           "en": "list()"
+                        },
+                        {
+                           "id": 1642123109,
+                           "file": "returnItem",
+                           "cn": "returnItem()",
+                           "en": "returnItem()"
+                        },
+                        {
+                           "id": 1642123110,
+                           "file": "returnItemToName",
+                           "cn": "returnItemToName()",
+                           "en": "returnItemToName()"
+                        },
+                        {
+                           "id": 1642123111,
+                           "file": "setAttributes",
+                           "cn": "setAttributes()",
+                           "en": "setAttributes()"
+                        },
+                        {
+                           "id": 1642123112,
+                           "file": "snapshot",
+                           "cn": "snapshot()",
+                           "en": "snapshot()"
                         }
                      ]
                   },
@@ -5863,6 +5955,12 @@
                            "en": "$SNAPSHOT_TRANSDEADLOCK"
                         },
                         {
+                           "id": 1631086817,
+                           "file": "SNAPSHOT_RECYCLEBIN",
+                           "cn": "$SNAPSHOT_RECYCLEBIN",
+                           "en": "$SNAPSHOT_RECYCLEBIN"
+                        },
+                        {
                            "id": 1559282949,
                            "file": "LIST_CONTEXT",
                            "cn": "$LIST_CONTEXT",
@@ -5951,6 +6049,12 @@
                            "file": "LIST_DATASOURCE",
                            "cn": "$LIST_DATASOURCE",
                            "en": "$LIST_DATASOURCE"
+                        },
+                        {
+                           "id": 1611220899,
+                           "file": "LIST_RECYCLEBIN",
+                           "cn": "$LIST_RECYCLEBIN",
+                           "en": "$LIST_RECYCLEBIN"
                         }
                      ]
                   },
@@ -6185,6 +6289,12 @@
                      "file": "SDB_SNAP_TRANSDEADLOCK",
                      "cn": "事务死锁检测快照",
                      "en": "SDB_SNAP_TRANSDEADLOCK"
+                  },
+                  {
+                     "id": 1631066570,
+                     "file": "SDB_SNAP_RECYCLEBIN",
+                     "cn": "回收站项目快照",
+                     "en": "SDB_SNAP_RECYCLEBIN"
                   }
                ]
             },
@@ -6289,6 +6399,12 @@
                      "file": "SDB_LIST_DATASOURCES",
                      "cn": "数据源列表",
                      "en": "SDB_LIST_DATASOURCES"
+                  },
+                  {
+                     "id": 1611158408,
+                     "file": "SDB_LIST_RECYCLEBIN",
+                     "cn": "回收站项目列表",
+                     "en": "SDB_LIST_RECYCLEBIN"
                   }
                ]
             },

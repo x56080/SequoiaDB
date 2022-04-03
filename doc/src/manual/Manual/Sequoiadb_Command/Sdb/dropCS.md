@@ -31,6 +31,13 @@ Sdb
 
         格式：`EnsureEmpty:true|false`
 
+    2. `SkipRecycleBin` ( *Bool* )：删除集合空间时，是否禁用[回收站][recycle_bin]机制，默认是 false。其可选取值如下：
+
+        * true：删除集合空间时，将不生成对应的回收站项目
+        * false：根据字段 [Enable][getDetail] 的值决定是否启用回收站机制
+
+        格式：`SkipRecycleBin:true|false`
+
 ##返回值##
 
 成功：指定的集合空间被删除。
@@ -45,6 +52,8 @@ Sdb
 | ------ | ------ | --- | ------ |
 | -34 | SDB_DMS_CS_NOTEXIST | 集合空间不存在。| 检查集合空间是否存在。|
 | -275 | SDB_DMS_CS_NOT_EMPTY | 集合空间中存在集合。| 检查是否开启了 `EnsureEmpty` 选项。|
+| -386 | SDB_RECYCLE_FULL | 回收站已满。 | 检查回收站是否已满，并通过 [dropItem()][dropItem] 或 [dropAll()][dropAll] 手动清理回收站。 |
+
 当异常抛出时，可以通过 [getLastError()][getLastError] 获取[错误码][error_code]，
 或通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息。
 可以参考[常见错误处理指南][faq]了解更多内容。
@@ -67,3 +76,7 @@ v1.0及以上版本。
 [error_code]:manual/Manual/Sequoiadb_error_code.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [faq]:manual/FAQ/faq_sdb.md
+[recycle_bin]:doc/src/manual/Distributed_Engine/Maintainance/recycle_bin.md
+[dropItem]:manual/Manual/Sequoiadb_Command/SdbRecycleBin/dropItem.md
+[dropAll]:manual/Manual/Sequoiadb_Command/SdbRecycleBin/dropAll.md
+[getDetail]:manual/Manual/Sequoiadb_Command/SdbRecycleBin/getDetail.md
