@@ -128,8 +128,6 @@ namespace engine
          virtual UINT64    getWritingID() const { return _writingID ; }
          virtual void      writingDB( BOOLEAN writing,
                                       const CHAR* name = NULL ) ;
-         virtual const CHAR* getCollectionOrSpaceName() const ;
-
          virtual UINT32    getProcessedNum() const { return _processEventCount ; }
          virtual void      incEventCount( UINT32 step = 1 ) ;
 
@@ -199,6 +197,79 @@ namespace engine
          virtual INT64     contextPeek() ;
          virtual BOOLEAN   contextFind( INT64 contextID ) ;
          virtual UINT32    contextNum() ;
+
+         INT64 getCurrentContextID() const
+         {
+            return _currentContextID ;
+         }
+
+         void setCurrentContextID( INT64 contextID )
+         {
+            // only set the first context ID
+            if ( -1 == _currentContextID )
+            {
+               _currentContextID = contextID ;
+            }
+         }
+
+         void setCurMainCLName( const CHAR *mainCLName )
+         {
+            if ( NULL != mainCLName )
+            {
+               ossStrncpy( _curMainCLName,
+                           mainCLName,
+                           DMS_COLLECTION_FULL_NAME_SZ ) ;
+               _curMainCLName[ DMS_COLLECTION_FULL_NAME_SZ ] = 0 ;
+            }
+            else
+            {
+               _curMainCLName[ 0 ] = 0 ;
+            }
+         }
+
+         void switchToSubCL( const CHAR *subCLName )
+         {
+            setCurMainCLName( _curProcessName ) ;
+            setCurProcessName( subCLName ) ;
+         }
+
+         void switchToMainCL()
+         {
+            setCurProcessName( _curMainCLName ) ;
+            setCurMainCLName( NULL ) ;
+         }
+
+         const CHAR *getCurMainCLName()
+         {
+            return _curMainCLName ;
+         }
+
+         void setCurProcessName( const CHAR *processName )
+         {
+            if ( NULL != processName )
+            {
+               ossStrncpy( _curProcessName,
+                           processName,
+                           DMS_COLLECTION_FULL_NAME_SZ ) ;
+               _curProcessName[ DMS_COLLECTION_FULL_NAME_SZ ] = 0 ;
+            }
+            else
+            {
+               _curProcessName[ 0 ] = 0 ;
+            }
+         }
+
+         const CHAR *getCurProcessName() const
+         {
+            return _curProcessName ;
+         }
+
+         void clearProcessInfo()
+         {
+            _curProcessName[ 0 ] = 0 ;
+            _curMainCLName[ 0 ] = 0 ;
+            _currentContextID = -1 ;
+         }
 
          /*
             Log config
@@ -841,9 +912,6 @@ namespace engine
       BOOLEAN                 _writingDB ;
       UINT64                  _writingID ;
 
-      // it is cl name or cs name
-      CHAR                    _collectionOrSpaceName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
-
       EDU_BLOCK_TYPE          _blockType ;
       /// aligned memory.
       void                    *_alignedMem ;
@@ -854,6 +922,11 @@ namespace engine
 
       SET_CONTEXT             _contextList ;
       INT64                   _curAutoTransCtxID ;
+      INT64                   _currentContextID ;
+
+      CHAR                    _curProcessName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
+      CHAR                    _curMainCLName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
+
       utilMemListPool         *_pMemPool ;
       monClassQuery           *_monQueryCB ;
 
@@ -862,10 +935,6 @@ namespace engine
       BOOLEAN                 _doReplay ;
    };
    typedef class _pmdEDUCB pmdEDUCB ;
-
-   void pmdIsSameName( const CHAR *name1, const CHAR *name2,
-                       BOOLEAN &sameCL, BOOLEAN &sameCS,
-                       INT32 *pCSNameLen = NULL ) ;
 
    _pmdEDUCB* pmdGetThreadEDUCB() ;
    _pmdEDUCB* pmdDeclareEDUCB( _pmdEDUCB *p ) ;

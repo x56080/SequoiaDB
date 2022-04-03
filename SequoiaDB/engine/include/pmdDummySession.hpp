@@ -45,7 +45,12 @@ namespace engine
    class _pmdDummySession : public _pmdSessionBase
    {
    public:
-      _pmdDummySession() {}
+      _pmdDummySession()
+      : _pEDUCB( NULL ),
+        _eduID( PMD_INVALID_EDUID )
+      {
+      }
+
       virtual ~_pmdDummySession() {}
 
    public:

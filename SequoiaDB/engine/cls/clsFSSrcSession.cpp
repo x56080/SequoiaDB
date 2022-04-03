@@ -2975,10 +2975,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      dpsTransCB *transCB = sdbGetTransCB() ;
-      dpsTransLockId lockID( _curCSLID, _curMBID, NULL ) ;
-      DPS_TRANS_ID_SET incompList ;
-
       if ( _ntyOverTime > 0 )
       {
          /// Blocking has been started, the sync process might be restarted
@@ -3005,24 +3001,22 @@ namespace engine
               "of collection[%s], ID: %llu", sessionName(), clFullName,
               _ntyOverTime ) ;
 
-      // get white list of transactions, who had already acquired write
-      // locks on the same collection, they must be finished before split
-      // NOTE: use S lock to exclusive X, IX, Z locks
-      rc = transCB->getIncompTrans( eduCB(),
-                                    lockID,
-                                    DPS_TRANSLOCK_S,
-                                    TRUE,
-                                    incompList ) ;
-      PD_RC_CHECK( rc, PDERROR, "Session[%s]: Failed to get white list for "
-                   "collection [%s], rc: %d", sessionName(), clFullName, rc ) ;
+      // use freezing checker to generate transaction white list
+      // no need to check for now, do the check when switch logs and records
+      {
+         clsFreezingCLChecker checker( _pFreezingWindow,
+                                       _ntyOverTime,
+                                       clFullName,
+                                       NULL ) ;
 
-      // set white list to freezing window
-      rc = _pFreezingWindow->updateCLWhiteList( clFullName,
-                                                _ntyOverTime,
-                                                incompList ) ;
-      PD_RC_CHECK( rc, PDERROR, "Session[%s]: Failed to set white list for "
-                   "collection [%s], ID: %llu, rc: %d", sessionName(),
-                   clFullName, _ntyOverTime, rc ) ;
+         // get white list of transactions, who had already acquired write
+         // locks on the same collection, they must be finished before split
+         // NOTE: use S lock to exclusive X, IX, Z locks
+         rc = checker.enableTransCheck( eduCB(), _curCSLID, _curMBID,
+                                        DPS_TRANSLOCK_S, TRUE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to enable transaction check for "
+                      "collection [%s], rc: %d", clFullName, rc ) ;
+      }
 
    done:
       return rc ;
@@ -3046,11 +3040,8 @@ namespace engine
       {
          INT32 rc = SDB_OK ;
 
-         pmdEDUMgr *pEDUMgr = eduCB()->getEDUMgr() ;
-         dpsTransCB *transCB = sdbGetTransCB() ;
-         dpsTransLockId lockID( _curCSLID, _curMBID, NULL ) ;
-         DPS_TRANS_ID_SET incompList ;
          CHAR mainCLName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+         BOOLEAN isSubCL = FALSE ;
          clsCatalogSet* pCatSet = NULL ;
 
          rc = sdbGetShardCB()->getAndLockCataSet( _curCollecitonName.c_str(),
@@ -3061,6 +3052,7 @@ namespace engine
             {
                ossStrncpy( mainCLName, pCatSet->getMainCLName().c_str(),
                            DMS_COLLECTION_FULL_NAME_SZ ) ;
+               isSubCL = TRUE ;
             }
             sdbGetShardCB()->unlockCataSet( pCatSet ) ;
          }
@@ -3079,60 +3071,60 @@ namespace engine
             return FALSE ;
          }
 
-         // Step 1. check writing EDU with blocking ID, if no smaller
-         //         operation ID than blocking ID on the same collection,
-         //         it means all running operations on the same collection
-         //         before blocking ID had been finished
-         // Step 2. check transaction with incompatible locks on the same
-         //         collection, if no incompatible transactions, it means all
-         //         running transactions on the same collection had been
-         //         finished, otherwise, add the incompatible transactions
-         //         as white list for blocking, so they won't be blocked
-
-         // check if writing EDU on the same collection
-         if ( pEDUMgr->hasWritingEDU( -1, _ntyOverTime, EDU_BLOCK_FREEZING_WND,
-                                      _curCollecitonName.c_str(),
-                                      mainCLName[0] == 0 ? NULL : mainCLName ) )
          {
-            PD_LOG( PDINFO, "Session[%s] operator ID [%llu] : Waiting for "
-                    "other operations to finish", sessionName(),
-                    _ntyOverTime ) ;
-            return FALSE ;
-         }
+            BOOLEAN isPassed = FALSE ;
 
-         // get white list of transactions, who had already acquired write
-         // locks on the same collection, they must be finished before split
-         // NOTE: use S lock to exclusive X, IX, Z locks
-         rc = transCB->getIncompTrans( eduCB(),
-                                       lockID,
-                                       DPS_TRANSLOCK_S,
-                                       TRUE,
-                                       incompList ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDWARNING, "Session[%s]: Failed to get incompatible "
-                    "transaction list for collection [%s], rc: %d",
-                    sessionName(), _curCollecitonName.c_str(), rc ) ;
-            // failed to check, retry later
-            return FALSE ;
-         }
+            clsFreezingCLChecker checker( _pFreezingWindow,
+                                          _ntyOverTime,
+                                          _curCollecitonName.c_str(),
+                                          isSubCL ? mainCLName : NULL ) ;
 
-         if ( incompList.size() > 0 )
-         {
-            // update white list to freezing window
-            rc = _pFreezingWindow->updateCLWhiteList(
-                                                   _curCollecitonName.c_str(),
-                                                   _ntyOverTime,
-                                                   incompList ) ;
+            rc = checker.enableEDUCheck( eduCB(), EDU_BLOCK_FREEZING_WND ) ;
             if ( SDB_OK != rc )
             {
-               PD_LOG( PDWARNING, "Session[%s]: Failed to set white list for "
-                       "collection [%s], ID: %llu, rc: %d", sessionName(),
-                       _curCollecitonName.c_str(), _ntyOverTime, rc ) ;
+               PD_LOG( PDWARNING, "Session[%s]: Failed to enable EDU check "
+                       "for collection [%s], rc: %d", sessionName(),
+                       _curCollecitonName.c_str(), rc ) ;
+               return FALSE ;
             }
 
-            // still have incompatible transactions, retry later
-            return FALSE ;
+            // get white list of transactions, who had already acquired write
+            // locks on the same collection, they must be finished before split
+            // NOTE: use S lock to exclusive X, IX, Z locks
+            rc = checker.enableTransCheck( eduCB(), _curCSLID, _curMBID,
+                                           DPS_TRANSLOCK_S, TRUE ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDWARNING, "Session[%s]: Failed to enable transaction "
+                       "check for collection [%s], rc: %d", sessionName(),
+                       _curCollecitonName.c_str(), rc ) ;
+               return FALSE ;
+            }
+
+            rc = checker.check( eduCB(), isPassed ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDWARNING, "Session[%s]: Failed to check freezing "
+                       "window for collection [%s], rc: %d", sessionName(),
+                       _curCollecitonName.c_str(), rc ) ;
+               return FALSE ;
+            }
+            else if ( !isPassed )
+            {
+               if ( CLS_FREEZING_CHECKER_TRANS == checker.getStep() )
+               {
+                  PD_LOG( PDINFO, "Session[%s] operator ID [%llu] : "
+                          "Waiting for other transactions to finish",
+                          sessionName(), _ntyOverTime ) ;
+               }
+               else
+               {
+                  PD_LOG( PDINFO, "Session[%s] operator ID [%llu] : "
+                          "Waiting for other operations to finish",
+                          sessionName(), _ntyOverTime ) ;
+               }
+               return FALSE ;
+            }
          }
 
          // stop fetching logs after all blocking operators are finished

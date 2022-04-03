@@ -59,6 +59,8 @@ namespace engine
       virtual RTN_CONTEXT_TYPE getType() const { return RTN_CONTEXT_SHARD_OF_LOB ; }
       virtual _dmsStorageUnit*  getSU () ;
 
+      virtual BOOLEAN isWrite() const ;
+
       virtual UINT32 getSULogicalID() const
       {
          return _suLogicalID ;

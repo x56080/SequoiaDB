@@ -519,6 +519,69 @@ namespace engine
       return contexts.size() ;
    }
 
+   INT32 _SDB_RTNCB::dumpWritingContext( RTN_CTX_PROCESS_LIST &contextProcessList,
+                                         EDUID filterEDUID,
+                                         UINT64 blockID )
+   {
+      INT32 rc = SDB_OK ;
+
+      FOR_EACH_CMAP_ELEMENT_S( RTN_CTX_MAP, _contextMap )
+      {
+         rtnContext *pContext = it->second.get() ;
+
+         if ( pContext &&
+              pContext->isOpened() &&
+              pContext->isWrite() )
+         {
+            if ( PMD_INVALID_EDUID != filterEDUID &&
+                 pContext->eduID() != filterEDUID )
+            {
+               continue ;
+            }
+            else if ( blockID > 0 &&
+                      pContext->getOpID() >= blockID )
+            {
+               continue ;
+            }
+            else
+            {
+               const CHAR *processName = pContext->getProcessName() ;
+               if ( NULL == processName || 0 == processName[ 0 ] )
+               {
+                  continue ;
+               }
+               else
+               {
+                  try
+                  {
+                     INT64 contextID = pContext->contextID() ;
+                     contextProcessList.push_back(
+                           make_pair( contextID, processName ) ) ;
+
+                     PD_LOG( PDDEBUG, "Got writing context [%lld] with "
+                             "writing ID [%llu] on [%s] edu [%llu]",
+                             contextID, pContext->getOpID(), processName,
+                             pContext->eduID() ) ;
+                  }
+                  catch ( exception &e )
+                  {
+                     PD_LOG( PDERROR, "Failed to save context, "
+                             "occur exception %s", e.what() ) ;
+                     rc = ossException2RC( &e ) ;
+                     goto error ;
+                  }
+               }
+            }
+         }
+      }
+      FOR_EACH_CMAP_ELEMENT_END
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    void _SDB_RTNCB::_notifyKillContexts( const _RTN_EDU_CTX_MAP &contexts )
    {
       pmdEDUMgr *pEDUMgr = pmdGetKRCB()->getEDUMgr() ;
@@ -630,6 +693,7 @@ namespace engine
       {
          context->getMonCB()->recordStartTimestamp() ;
       }
+      context->setOpID( pEDUCB->getWritingID() ) ;
 
       // only check timeout for contexts from local service
       if ( !pEDUCB->isFromLocal() )

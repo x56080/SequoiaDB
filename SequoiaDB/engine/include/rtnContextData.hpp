@@ -166,6 +166,12 @@ namespace engine
          virtual _dmsStorageUnit* getSU () { return _su ; }
          virtual BOOLEAN          isWrite() const ;
          virtual BOOLEAN          needRollback() const ;
+         virtual const CHAR *     getProcessName() const
+         {
+            return ( NULL != _planRuntime.getPlan() ) ?
+                   ( _planRuntime.getPlan()->getCLFullName() ) :
+                   ( NULL ) ;
+         }
 
          virtual UINT32 getSULogicalID() const
          {

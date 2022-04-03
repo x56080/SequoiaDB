@@ -58,6 +58,7 @@ namespace engine
       virtual const CHAR*        name() const ;
       virtual RTN_CONTEXT_TYPE   getType() const { return RTN_CONTEXT_LOB ; }
       virtual _dmsStorageUnit*   getSU () ;
+      virtual BOOLEAN            isWrite() const ;
 
       virtual UINT32 getSULogicalID() const
       {

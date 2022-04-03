@@ -217,8 +217,9 @@ namespace engine
       INT32 retryCnt = 0 ;
 
    retry:
+      cb->setCurProcessName( _clFullName ) ;
       // wait for operation which register this cl
-      cb->writingDB( TRUE, _clFullName ) ;
+      cb->writingDB( TRUE ) ;
       writeDB = TRUE ;
 
       rc = pWindow->waitForOpr( _clFullName, cb, TRUE ) ;
@@ -248,6 +249,7 @@ namespace engine
          writeDB = FALSE ;
          if ( retryCnt++ < 5 )
          {
+            cb->clearProcessInfo() ;
             goto retry ;
          }
          else
@@ -348,6 +350,7 @@ namespace engine
       {
          cb->writingDB( FALSE ) ;
       }
+      cb->clearProcessInfo() ;
       return rc ;
    error:
       goto done ;

@@ -106,6 +106,11 @@ namespace engine
       return _su ;
    }
 
+   BOOLEAN _rtnContextShdOfLob::isWrite() const
+   {
+      return SDB_IS_LOBREADONLY_MODE( _mode ) ? FALSE : TRUE ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTSHDOFLOB_OPEN, "_rtnContextShdOfLob::open" )
    INT32 _rtnContextShdOfLob::open( const BSONObj &lob,
                                     SINT32 flag,

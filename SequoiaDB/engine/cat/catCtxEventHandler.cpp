@@ -650,11 +650,43 @@ namespace engine
          _recycleItem.setOriginName( targetName ) ;
          _recycleItem.setOriginID( originID ) ;
 
-         // check data source
-         if ( boTarget.hasField( FIELD_NAME_DATASOURCE_ID ) )
+         try
          {
-            // it is from data source, not use recycle bin
-            _isUseRecycleBin = FALSE ;
+            // check data source
+            if ( boTarget.hasField( FIELD_NAME_DATASOURCE_ID ) )
+            {
+               // it is from data source, not use recycle bin
+               _isUseRecycleBin = FALSE ;
+            }
+
+            if ( UTIL_RECYCLE_CS == _recycleItem.getType() )
+            {
+               BSONElement ele = boTarget.getField( CAT_TYPE_NAME ) ;
+               if ( ( NumberInt == ele.type() ) &&
+                    ( DMS_STORAGE_CAPPED == ele.numberInt() ) )
+               {
+                  // for capped collection space, not use recycle bin
+                  _isUseRecycleBin = FALSE ;
+               }
+            }
+            else if ( UTIL_RECYCLE_CL == _recycleItem.getType() )
+            {
+               BSONElement ele = boTarget.getField( CAT_ATTRIBUTE_NAME ) ;
+               if ( ( NumberInt == ele.type() ) &&
+                    ( OSS_BIT_TEST( (UINT32)( ele.numberInt() ),
+                                    DMS_MB_ATTR_CAPPED ) ) )
+               {
+                  // for capped collection space, not use recycle bin
+                  _isUseRecycleBin = FALSE ;
+               }
+            }
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to parse target object, "
+                    "occur exception: %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
          }
 
          if ( _isUseRecycleBin )

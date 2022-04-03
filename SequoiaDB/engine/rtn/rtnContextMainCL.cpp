@@ -262,11 +262,14 @@ namespace engine
       goto done;
    }
 
-   INT32 _rtnContextMainCL::open( const bson::BSONObj & orderBy,
+   INT32 _rtnContextMainCL::open( const CHAR *mainCLName,
+                                  const bson::BSONObj & orderBy,
                                   INT64 numToReturn,
                                   INT64 numToSkip )
    {
       INT32 rc = SDB_OK ;
+
+      _options.setCLFullName( mainCLName ) ;
 
       _options.setOrderBy( orderBy ) ;
       _options.setSkip( numToSkip ) ;

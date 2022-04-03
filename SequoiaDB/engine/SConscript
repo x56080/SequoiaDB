@@ -462,6 +462,7 @@ clsFiles = [
       "cls/clsShardSession.cpp",
       "cls/clsReplSession.cpp",
       "cls/clsShardMgr.cpp",
+      "cls/clsFreezingWindow.cpp",
       "cls/clsCatalogAgent.cpp",
       "cls/clsSyncManager.cpp",
       "cls/clsCatalogCaller.cpp",

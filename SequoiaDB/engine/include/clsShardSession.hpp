@@ -254,9 +254,7 @@ namespace engine
          /// do multi things to reduce times of getting lock
          INT32 _checkCLStatusAndGetSth( const CHAR *name,
                                         INT32 version,
-                                        BOOLEAN *isMainCL = NULL,
                                         INT16 *w = NULL,
-                                        CHAR *mainCLName = NULL,
                                         utilCLUniqueID *clUniqueID = NULL,
                                         BOOLEAN *repairCheck = NULL ) ;
 
@@ -287,8 +285,7 @@ namespace engine
          INT32   _renameCSByCatalog( const CHAR* csName,
                                      utilCSUniqueID csUniqueID ) ;
          INT32   _renameCLByCatalog( const CHAR* clFullName,
-                                     utilCLUniqueID clUniqueID,
-                                     const CHAR* mainCLFullName ) ;
+                                     utilCLUniqueID clUniqueID ) ;
          INT32   _processSubCLResult( INT32 result,
                                       const CHAR *clFullName,
                                       const CHAR *pParent ) ;
@@ -593,17 +590,27 @@ namespace engine
                                     const stpLogicalTimeUS &sendTime,
                                     stpLogicalTimeUS &preCommitTime ) ;
 
-         void _copyCollectionName( const CHAR *collectionName )
+         void _setCollectionName( const CHAR *collectionName )
          {
-            _cmdCollectionName.assign( collectionName ) ;
-            _pCollectionName = _cmdCollectionName.c_str() ;
+            _pEDUCB->setCurProcessName( collectionName ) ;
+            _pCollectionName = _pEDUCB->getCurProcessName() ;
          }
 
-         void _clearCollectionAndSpaceName()
+         void _setCollectionSpaceName( const CHAR *collectionSpaceName )
          {
-            _cmdCollectionName.clear() ;
+            _pEDUCB->setCurProcessName( collectionSpaceName ) ;
             _pCollectionName = NULL ;
-            _pCollectionSpaceName = NULL ;
+         }
+
+         void _clearCollectionName()
+         {
+            _pCollectionName = NULL ;
+         }
+
+         void _clearProcessInfo()
+         {
+            _pCollectionName = NULL ;
+            _pEDUCB->clearProcessInfo() ;
          }
 
          INT32 _getCSInfoWhenLoadCS( _rtnLoadCollectionSpace* pCommand ) ;
@@ -625,10 +632,7 @@ namespace engine
          MsgRouteID             _primaryID ;
          BSONObj                _errorInfo ;
          const CHAR             *_pCollectionName ;
-         ossPoolString          _cmdCollectionName ;
-         const CHAR             *_pCollectionSpaceName ;
          INT32                  _clVersion ;
-
          BOOLEAN                _isMainCL ;
          BOOLEAN                _hasUpdateCataInfo ;
 

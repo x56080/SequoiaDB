@@ -512,6 +512,7 @@ namespace engine
    {
       _contextID           = contextID ;
       _eduID               = eduID ;
+      _opID                = 0 ;
 
       _totalRecords        = 0 ;
 

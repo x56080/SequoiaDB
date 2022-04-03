@@ -144,6 +144,10 @@ namespace engine
 
          virtual BOOLEAN   isWrite() const { return _isModify ; }
          virtual BOOLEAN   needRollback() const { return _isModify ; }
+         virtual const CHAR *getProcessName() const
+         {
+            return _options.getCLFullName() ;
+         }
 
       public:
          virtual const CHAR*      name() const ;
