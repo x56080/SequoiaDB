@@ -98,8 +98,6 @@ namespace engine
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL ) = 0 ;
 
-         virtual void setMainCLName ( const CHAR * mainCL ) {}
-
       protected:
          INT32             _fromService ;
          rtnContextBuf     _buff ;
@@ -687,6 +685,7 @@ namespace engine
          virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
+
       protected:
          const CHAR           *_collectionName ;
 
@@ -878,15 +877,11 @@ namespace engine
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
 
-         virtual void setMainCLName ( const CHAR *mainCL ) ;
-
       protected:
          const CHAR           *_clShortName ;
          const CHAR           *_newCLShortName ;
          const CHAR           *_csName ;
          std::string          _fullCollectionName ;
-         // the rename collection's main-collection
-         const CHAR           *_mainCLName ;
    } ;
 
    class _rtnRenameCollectionSpace : public _rtnCommand
@@ -1478,6 +1473,7 @@ namespace engine
       virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                            _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                            INT16 w = 1, INT64 *pContextID = NULL ) ;
+
    private:
       const CHAR * _fullName ;
    } ;

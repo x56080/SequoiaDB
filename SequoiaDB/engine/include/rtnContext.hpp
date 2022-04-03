@@ -271,6 +271,16 @@ namespace engine
          INT64    contextID () const { return _contextID ; }
          UINT64   eduID () const { return _eduID ; }
 
+         void     setOpID( UINT64 opID )
+         {
+            _opID = opID ;
+         }
+
+         UINT64   getOpID() const
+         {
+            return _opID ;
+         }
+
          ossRWMutex*       dataLock () { return &_dataLock ; }
 
          _mthSelector & getSelector ()
@@ -368,6 +378,14 @@ namespace engine
          virtual _dmsStorageUnit* getSU () = 0 ;
          virtual BOOLEAN          isWrite() const { return FALSE ; }
          virtual BOOLEAN          needRollback() const { return FALSE ; }
+
+         // name of processing object ( collection space or collection )
+         virtual const CHAR *getProcessName() const
+         {
+            return NULL ;
+         }
+
+         void updateLastProcessTick() ;
 
          virtual _optAccessPlanRuntime * getPlanRuntime ()
          {
@@ -529,6 +547,7 @@ namespace engine
       private:
          INT64                   _contextID ;
          UINT64                  _eduID ;
+         UINT64                  _opID ;
          _rtnContextStoreBuf     _buffer ;
          INT64                   _totalRecords ;
          // mutex
@@ -553,6 +572,9 @@ namespace engine
    } ;
    typedef _rtnContextBase rtnContextBase ;
    typedef _rtnContextBase rtnContext ;
+
+   typedef ossPoolSet< INT64 > RTN_CTX_ID_SET ;
+   typedef ossPoolVector< std::pair< UINT64, ossPoolString > > RTN_CTX_PROCESS_LIST ;
 
    /*
       _rtnContextBase OSS_INLINE functions

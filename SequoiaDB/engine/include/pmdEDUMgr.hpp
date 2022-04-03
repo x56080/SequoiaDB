@@ -71,6 +71,8 @@ namespace engine
    #define PMD_STOP_TIMEOUT               ( 600000 )  /// 10 mins
    #define PMD_STOP_DEADCHECK_TIMEOUT     ( PMD_STOP_TIMEOUT + 60000 )
 
+   typedef ossPoolVector< std::pair< UINT64, ossPoolString > > PMD_EDU_PROCESS_LIST ;
+
    /*
       _pmdEDUMgr define
    */
@@ -153,15 +155,11 @@ namespace engine
          */
          BOOLEAN           hasWritingEDU( INT32 eduTypeFilter = -1,
                                           UINT64 idThreshold = 0,
-                                          EDU_BLOCK_TYPE excludeBlockType = EDU_BLOCK_FREEZING_WND,
-                                          const CHAR* clOrCsName = NULL,
-                                          const CHAR* mainCLName = NULL ) ;
-
+                                          EDU_BLOCK_TYPE excludeBlockType = EDU_BLOCK_FREEZING_WND ) ;
          INT32             getWritingEDUs( INT32 eduTypeFilter,
                                            UINT64 idThreshold,
                                            EDU_BLOCK_TYPE excludeBlockType,
-                                           const ossPoolSet<UINT64>& excludeIdList,
-                                           ossPoolVector< std::pair<UINT64, ossPoolString> >& writingEDUList ) ;
+                                           PMD_EDU_PROCESS_LIST& writingEDUList ) ;
 
          void              resetMon( EDUID eduID = PMD_INVALID_EDUID ) ;
          void              resetIOService() ;
@@ -215,16 +213,13 @@ namespace engine
             When excludeBlockType = -1, will exclude all block type.
             0 will exclude none
          */
-         BOOLEAN           _hasWritingEDU( INT32 eduTypeFilter = -1,
-                                           UINT64 idThreshold = 0,
-                                           EDU_BLOCK_TYPE excludeBlockType = EDU_BLOCK_FREEZING_WND,
-                                           const CHAR* clOrCsName = NULL,
-                                           const CHAR* mainCLName = NULL ) ;
+         BOOLEAN           _hasWritingEDU( INT32 eduTypeFilter,
+                                           UINT64 idThreshold,
+                                           EDU_BLOCK_TYPE excludeBlockType = EDU_BLOCK_FREEZING_WND ) ;
          INT32             _getWritingEDUs( INT32 eduTypeFilter,
                                             UINT64 idThreshold,
                                             EDU_BLOCK_TYPE excludeBlockType,
-                                            const ossPoolSet<UINT64>& excludeIdList,
-                                            ossPoolVector< std::pair<UINT64, ossPoolString> >& writingEDUList ) ;
+                                            PMD_EDU_PROCESS_LIST& writingEDUList ) ;
 
          void              setDestroyed( BOOLEAN b ) ;
          void              setQuiesced( BOOLEAN b ) ;
@@ -250,8 +245,6 @@ namespace engine
                                             UINT32 idleSize,
                                             UINT32 sysSize,
                                             UINT32 poolSize ) ;
-         BOOLEAN           _isRelatedEDU( const CHAR* checkName,
-                                          pmdEDUCB* cb ) ;
 
       private:
          VEC_IOSERVICE              _vecIOServices ;

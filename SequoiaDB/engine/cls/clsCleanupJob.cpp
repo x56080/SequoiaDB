@@ -169,7 +169,8 @@ namespace engine
 
       if ( _dpsCB )
       {
-         eduCB()->writingDB( TRUE, _clFullName.c_str() ) ;
+         eduCB()->setCurProcessName( _clFullName.c_str() ) ;
+         eduCB()->writingDB( TRUE ) ;
       }
 
       while ( TRUE )
@@ -299,6 +300,7 @@ namespace engine
 
    done:
       eduCB()->writingDB( FALSE ) ;
+      eduCB()->clearProcessInfo() ;
       PD_TRACE_EXITRC ( SDB__CLSCLNJOB_DOIT, rc );
       return rc ;
    error:

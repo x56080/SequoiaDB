@@ -118,6 +118,10 @@ namespace engine
 
       INT32 prepareRemoteMessenger() ;
 
+      INT32 dumpWritingContext( RTN_CTX_PROCESS_LIST &contextProcessList,
+                                EDUID filterEDUID = PMD_INVALID_EDUID,
+                                UINT64 blockID = 0 ) ;
+
       OSS_INLINE INT32 contextNum ()
       {
          return _contextMap.size() ;

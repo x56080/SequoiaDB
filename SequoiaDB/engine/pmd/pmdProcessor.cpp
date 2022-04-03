@@ -1018,6 +1018,8 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract get more msg failed, "
                    "rc: %d", getSession()->sessionName(), rc ) ;
 
+      eduCB()->setCurrentContextID( contextID ) ;
+
       // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld, NumToRead:%d",

@@ -59,6 +59,8 @@ namespace engine
       virtual RTN_CONTEXT_TYPE getType() const { return RTN_CONTEXT_SHARD_OF_LOB ; }
       virtual _dmsStorageUnit*  getSU () ;
 
+      virtual BOOLEAN isWrite() const ;
+
    public:
       INT32 open( const bson::BSONObj &lob,
                   SINT32 flag,

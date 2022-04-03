@@ -104,7 +104,6 @@ namespace engine
       _interruptRC      = SDB_OK ;
       _writingDB        = FALSE ;
       _writingID        = 0 ;
-      ossMemset( _collectionOrSpaceName, 0, sizeof( _collectionOrSpaceName ) ) ;
       _blockType        = EDU_BLOCK_NONE ;
       _processEventCount= 0 ;
       ossMemset( _name, 0, sizeof( _name ) ) ;
@@ -159,6 +158,11 @@ namespace engine
       ossMemset( _doingBuff, 0, sizeof( _doingBuff ) ) ;
 
       _curAutoTransCtxID = -1 ;
+      _currentContextID = -1 ;
+
+      ossMemset( _curProcessName, 0, sizeof( _curProcessName ) ) ;
+      ossMemset( _curMainCLName, 0, sizeof( _curMainCLName ) ) ;
+
       _pMemPool = NULL ;
       _monQueryCB = NULL ;
 
@@ -202,7 +206,6 @@ namespace engine
       resetLsn() ;
       resetMon() ;
       writingDB( FALSE ) ;
-      _collectionOrSpaceName[0] = 0 ;
       unsetBlock() ;
       releaseAlignedBuff() ;
       releaseBuffer() ;
@@ -714,57 +717,18 @@ namespace engine
 
    void _pmdEDUCB::writingDB( BOOLEAN writing, const CHAR* name )
    {
-      if ( _writingDB == writing )
-      {
-         if ( writing )
-         {
-            BOOLEAN sameCL = FALSE ;
-            BOOLEAN sameCS = FALSE ;
-            INT32 csNameLen = 0 ;
-            pmdIsSameName( name, _collectionOrSpaceName,
-                           sameCL, sameCS, &csNameLen ) ;
-            if ( sameCL )
-            {
-               // do nothing
-            }
-            else if ( sameCS )
-            {
-               _collectionOrSpaceName[ csNameLen ] = 0 ;
-            }
-            else
-            {
-               _collectionOrSpaceName[0] = 0 ;
-            }
-         }
-         return ;
-      }
+      if ( _writingDB == writing ) return ;
 
       if ( writing )
       {
-         if ( name )
-         {
-            // 1. set name before setting writingDB, because in function
-            // _pmdEDUMgr::_hasWritingEDU() if it is a writing edu then the
-            // name will be read.
-            // 2. The name may be collection name or collection space name
-            ossStrncpy( _collectionOrSpaceName, name,
-                        DMS_COLLECTION_FULL_NAME_SZ ) ;
-            _collectionOrSpaceName[ DMS_COLLECTION_FULL_NAME_SZ ] = 0 ;
-         }
          _writingDB = TRUE ;
          _writingID = pmdAcquireGlobalID() ;
       }
-      else if ( 0 == getLockItem(SDB_LOCK_DMS)->lockCount() )
+      else if ( !writing && 0 == getLockItem(SDB_LOCK_DMS)->lockCount() )
       {
          _writingDB = FALSE ;
          _writingID = 0 ;
-         _collectionOrSpaceName[0] = 0 ;
       }
-   }
-
-   const CHAR* _pmdEDUCB::getCollectionOrSpaceName() const
-   {
-      return _collectionOrSpaceName ;
    }
 
    void _pmdEDUCB::setBlock( EDU_BLOCK_TYPE type, const CHAR *pBlockDesp )
@@ -850,6 +814,7 @@ namespace engine
       {
          ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
          _contextList.insert ( contextID ) ;
+         setCurrentContextID( contextID ) ;
          result = TRUE ;
       }
       catch ( exception &e )
@@ -1327,52 +1292,6 @@ namespace engine
    }
 
 #endif // SDB_ENGINE
-
-   void pmdIsSameName( const CHAR *name1, const CHAR *name2,
-                       BOOLEAN &sameCL, BOOLEAN &sameCS, INT32 *pCSNameLen )
-   {
-      sameCL = FALSE ;
-      sameCS = FALSE ;
-
-      if ( pCSNameLen )
-      {
-         *pCSNameLen = 0 ;
-      }
-
-      if ( name1 && name2 )
-      {
-         int i = 0 ;
-         while ( i <= DMS_COLLECTION_FULL_NAME_SZ &&
-                 name1[i] != 0 && name2[i] != 0 &&
-                 name1[i] == name2[i] )
-         {
-            i++ ;
-         }
-
-         if ( name1[i] == 0 && name2[i] == 0 )
-         {
-            sameCL = TRUE ;
-         }
-         else if ( name1[i] == 0 && name2[i] == '.' )
-         {
-            // eg: "foo" "foo.bar"
-            sameCS = TRUE ;
-            if ( pCSNameLen )
-            {
-               *pCSNameLen = i ;
-            }
-         }
-         else if ( name2[i] == 0 && name1[i] == '.' )
-         {
-            // eg: "foo.bar" "foo"
-            sameCS = TRUE ;
-            if ( pCSNameLen )
-            {
-               *pCSNameLen = i ;
-            }
-         }
-      }
-   }
 
    static OSS_THREAD_LOCAL _pmdEDUCB *__eduCB ;
    extern OSS_THREAD_LOCAL IExecutor *__executor ;
