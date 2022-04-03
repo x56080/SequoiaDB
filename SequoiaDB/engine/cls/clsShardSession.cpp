@@ -107,7 +107,6 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__CLSSDSESS__CLSSHDSESS ) ;
       _pCollectionName      = NULL ;
-      _pCollectionSpaceName = NULL ;
       _clVersion            = 0 ;
       _isMainCL             = FALSE ;
       _hasUpdateCataInfo    = FALSE ;
@@ -144,10 +143,7 @@ namespace engine
       _pDmsCB    = NULL ;
       _pRtnCB    = NULL ;
       _pDpsCB    = NULL ;
-      _pCollectionName = NULL ;
-      _pCollectionSpaceName = NULL ;
       _clVersion = 0 ;
-      _cmdCollectionName.clear() ;
    }
 
    const CHAR* _clsShdSession::sessionName() const
@@ -676,7 +672,7 @@ namespace engine
       monClassQueryTmpData tmpData ;
       tmpData = *(eduCB()->getMonAppCB()) ;
 
-      _clearCollectionAndSpaceName() ;
+      _clearProcessInfo() ;
 
       _primaryID.value = MSG_INVALID_ROUTEID ;
 
@@ -918,6 +914,8 @@ namespace engine
             loopTime++ ;
             PD_LOG ( PDWARNING, "Catalog is empty or older[rc:%d] in "
                      "session[%s]", rc, sessionName() ) ;
+            const CHAR *collectionName = _pCollectionName ;
+            SDB_ASSERT( NULL != collectionName, "collection name is invalid" ) ;
             rc = _pShdMgr->syncUpdateCatalog( _pCollectionName ) ;
             if ( SDB_OK == rc )
             {
@@ -928,6 +926,7 @@ namespace engine
          else if ( (SDB_DMS_CS_NOTEXIST == rc || SDB_DMS_NOTEXIST == rc) &&
                    _pCollectionName )
          {
+            const CHAR *collectionName = _pCollectionName ;
             if ( _pReplSet->primaryIsMe() )
             {
                // catalog has the collection, so need to create, no compression
@@ -936,7 +935,7 @@ namespace engine
                   /// if main collection, need update catalog info first
                   if ( !_hasUpdateCataInfo )
                   {
-                     rc = _pShdMgr->syncUpdateCatalog( _pCollectionName ) ;
+                     rc = _pShdMgr->syncUpdateCatalog( collectionName ) ;
                      if ( SDB_OK == rc )
                      {
                         ++loopTime ;
@@ -946,11 +945,11 @@ namespace engine
                }
                else if ( SDB_DMS_CS_NOTEXIST == rc )
                {
-                  rc = _createCSByCatalog( _pCollectionName ) ;
+                  rc = _createCSByCatalog( collectionName ) ;
                }
                else if ( SDB_DMS_NOTEXIST == rc )
                {
-                  rc = _createCLByCatalog( _pCollectionName ) ;
+                  rc = _createCLByCatalog( collectionName ) ;
                }
 
                if ( SDB_OK == rc )
@@ -962,7 +961,7 @@ namespace engine
             {
                // if slave data node doesn't have the cs/cl, but catalog has the
                // cs/cl, it may be that rename operation hasn't been replayed.
-               rc = _pShdMgr->syncUpdateCatalog( _pCollectionName ) ;
+               rc = _pShdMgr->syncUpdateCatalog( collectionName ) ;
                if ( SDB_OK == rc )
                {
                   rc = SDB_CLS_DATA_NOT_SYNC ;
@@ -1155,7 +1154,10 @@ namespace engine
 
    done:
       eduCB()->writingDB( FALSE ) ;
+      _clearProcessInfo() ;
+
       MON_END_OP( _pEDUCB->getMonAppCB() ) ;
+
       PD_TRACE_EXITRC ( SDB__CLSSHDSESS__ONOPMSG, rc ) ;
       return rc ;
    }
@@ -1244,7 +1246,6 @@ namespace engine
       UTIL_COMPRESSOR_TYPE compType = UTIL_COMPRESSOR_INVALID ;
       BSONObj extOptions ;
       BSONObjBuilder builder ;
-      CHAR mainCLName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
 
       /// get sharding key
    retry:
@@ -1293,8 +1294,7 @@ namespace engine
 
       if ( !set->getMainCLName().empty() )
       {
-         ossStrncpy( mainCLName, set->getMainCLName().c_str(),
-                     DMS_COLLECTION_FULL_NAME_SZ ) ;
+         _pEDUCB->setCurMainCLName( set->getMainCLName().c_str() ) ;
       }
 
       _pCatAgent->release_r() ;
@@ -1342,8 +1342,7 @@ namespace engine
          }
          else if ( SDB_DMS_UNIQUEID_CONFLICT == rc )
          {
-            rc = _renameCLByCatalog( clFullName, clUniqueID,
-                                     mainCLName[0] == 0 ? NULL : mainCLName ) ;
+            rc = _renameCLByCatalog( clFullName, clUniqueID ) ;
             if ( rc )
             {
                if ( NULL == pParent )
@@ -1494,8 +1493,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__RENAMECLBYC, "_clsShdSession::_renameCLByCatalog" )
    INT32 _clsShdSession::_renameCLByCatalog( const CHAR* clFullName,
-                                             utilCLUniqueID clUniqueID,
-                                             const CHAR* mainCLFullName )
+                                             utilCLUniqueID clUniqueID )
    {
       PD_TRACE_ENTRY ( SDB__CLSSHDSESS__RENAMECLBYC ) ;
 
@@ -1567,8 +1565,7 @@ namespace engine
                    "rename collection[%s.%s] to [%s.%s], rc: %d",
                    csName, clNameInData, csName, clName, rc ) ;
 
-      rc = pCtx->open( csName, clNameInData, clName, mainCLFullName,
-                       _pEDUCB, 1, FALSE );
+      rc = pCtx->open( csName, clNameInData, clName, _pEDUCB, 1, FALSE );
       PD_RC_CHECK( rc, PDERROR, "Failed to open context, "
                    "rename collection[%s.%s] to [%s.%s], rc: %d",
                    csName, clNameInData, csName, clName, rc ) ;
@@ -1675,7 +1672,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       MsgOpUpdate *pUpdate = (MsgOpUpdate*)msg ;
       INT32 flags = 0 ;
-      CHAR mainCLName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
       const CHAR *pCollectionName = NULL ;
       const CHAR *pMatcherBuffer = NULL ;
       const CHAR *pUpdatorBuffer = NULL ;
@@ -1692,7 +1688,7 @@ namespace engine
                   "session[%s]", rc, sessionName() ) ;
          goto error ;
       }
-      _pCollectionName = pCollectionName ;
+      _setCollectionName( pCollectionName ) ;
 
       MONQUERY_SET_NAME( eduCB(), pCollectionName ) ;
 
@@ -1726,7 +1722,7 @@ namespace engine
       }
 
       rc = _checkCLStatusAndGetSth( pCollectionName, pUpdate->version,
-                                    &_isMainCL, &replSize, mainCLName ) ;
+                                    &replSize ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -1750,7 +1746,7 @@ namespace engine
          // matcher, selector, order, hint, collection, skip, limit, flag
          rtnQueryOptions options( matcher, dummy, dummy, hint, pCollectionName,
                                   0, -1, flags ) ;
-         options.setMainCLName( mainCLName ) ;
+         options.setMainCLName( eduCB()->getCurMainCLName() ) ;
          options.setUpdator( updator ) ;
 
          // add last op info
@@ -1834,7 +1830,7 @@ namespace engine
          goto error ;
       }
 
-      _pCollectionName = pCollectionName ;
+      _setCollectionName( pCollectionName ) ;
 
       rc = _checkWriteStatus() ;
       if ( SDB_OK != rc )
@@ -1845,7 +1841,7 @@ namespace engine
 
       rc = _checkCLStatusAndGetSth( pCollectionName,
                                     pInsert->version,
-                                    &_isMainCL, &replSize ) ;
+                                    &replSize ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -1915,7 +1911,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSSHDSESS__ONDELREQMSG ) ;
       INT32 flags = 0 ;
-      CHAR mainCLName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
       const CHAR *pCollectionName = NULL ;
       const CHAR *pMatcherBuffer = NULL ;
       const CHAR *pHintBuffer = NULL ;
@@ -1932,7 +1927,7 @@ namespace engine
                   sessionName(), rc ) ;
          goto error ;
       }
-      _pCollectionName = pCollectionName ;
+      _setCollectionName( pCollectionName ) ;
 
       MONQUERY_SET_NAME( eduCB(), pCollectionName ) ;
 
@@ -1944,7 +1939,7 @@ namespace engine
       }
 
       rc = _checkCLStatusAndGetSth( pCollectionName, pDelete->version,
-                                    &_isMainCL, &replSize, mainCLName ) ;
+                                    &replSize ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -1971,7 +1966,7 @@ namespace engine
          // matcher, selector, order, hint, collection, skip, limit, flag
          rtnQueryOptions options( matcher, dummy, dummy, hint, pCollectionName,
                                   0, -1, flags ) ;
-         options.setMainCLName( mainCLName ) ;
+         options.setMainCLName( eduCB()->getCurMainCLName() ) ;
 
          // add last op info
          MON_SAVE_OP_OPTION( eduCB()->getMonAppCB(), msg, options ) ;
@@ -2028,7 +2023,6 @@ namespace engine
       _rtnCommand *pCommand = NULL ;
       monClassQuery *monQuery = NULL ;
       utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
-      CHAR mainCLName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
 
       rc = msgExtractQuery ( (const CHAR *)msg, &flags, &pCollectionName,
                              &numToSkip, &numToReturn, &pQueryBuff,
@@ -2045,7 +2039,7 @@ namespace engine
       if ( !rtnIsCommand ( pCollectionName ) )
       {
          rtnContextPtr pContext ;
-         _pCollectionName = pCollectionName ;
+         _setCollectionName( pCollectionName ) ;
 
          if ( flags & FLG_QUERY_MODIFY )
          {
@@ -2058,8 +2052,7 @@ namespace engine
             }
 
             rc = _checkCLStatusAndGetSth( pCollectionName, pQuery->version,
-                                          &_isMainCL, &replSize,
-                                          mainCLName ) ;
+                                          &replSize ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
@@ -2089,8 +2082,7 @@ namespace engine
                }
             }
 
-            rc = _checkCLStatusAndGetSth( pCollectionName, pQuery->version,
-                                          &_isMainCL, NULL, mainCLName ) ;
+            rc = _checkCLStatusAndGetSth( pCollectionName, pQuery->version ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
@@ -2109,7 +2101,7 @@ namespace engine
             rtnQueryOptions options( matcher, selector, orderBy, hint,
                                      pCollectionName, numToSkip, numToReturn,
                                      flags ) ;
-            options.setMainCLName( mainCLName ) ;
+            options.setMainCLName( eduCB()->getCurMainCLName() ) ;
 
             // add last op info
             MON_SAVE_OP_OPTION( eduCB()->getMonAppCB(), msg, options ) ;
@@ -2188,7 +2180,7 @@ namespace engine
       }
       else
       {
-         _clearCollectionAndSpaceName() ;
+         _clearProcessInfo() ;
 
          rc = rtnParserCommand( pCollectionName, &pCommand ) ;
 
@@ -2213,18 +2205,18 @@ namespace engine
 
          if ( NULL != pCommand->collectionFullName() )
          {
-            _copyCollectionName( pCommand->collectionFullName() ) ;
+            _setCollectionName( pCommand->collectionFullName() ) ;
          }
          else if ( NULL != pCommand->spaceName() )
          {
-            _pCollectionSpaceName = pCommand->spaceName() ;
+            _setCollectionSpaceName( pCommand->spaceName() ) ;
          }
 
          MON_SAVE_CMD_DETAIL( _pEDUCB->getMonAppCB(), pCommand->type(),
                               "Command:%s, Collection:%s, Match:%s, "
                               "Selector:%s, OrderBy:%s, Hint:%s, Skip:%llu, "
                               "Limit:%lld, Flag:0x%08x(%u)",
-                              pCollectionName, _cmdCollectionName.c_str(),
+                              pCollectionName, _pEDUCB->getCurProcessName(),
                               BSONObj(pQueryBuff).toString().c_str(),
                               BSONObj(pFieldSelector).toString().c_str(),
                               BSONObj(pOrderByBuffer).toString().c_str(),
@@ -2262,8 +2254,8 @@ namespace engine
          if ( pCommand->collectionFullName() )
          {
             rc = _checkCLStatusAndGetSth( pCommand->collectionFullName(),
-                                          pQuery->version, &_isMainCL,
-                                          &replSize, mainCLName, &clUniqueID ) ;
+                                          pQuery->version, &replSize,
+                                          &clUniqueID ) ;
 
             if ( SDB_OK != rc )
             {
@@ -2279,8 +2271,6 @@ namespace engine
                   goto error ;
                }
             }
-
-            pCommand->setMainCLName( mainCLName ) ;
 
             if ( CMD_CREATE_COLLECTION == pCommand->type() )
             {
@@ -2459,6 +2449,8 @@ namespace engine
          goto error ;
       }
 
+      eduCB()->setCurrentContextID( contextID ) ;
+
       // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld, NumToRead:%d",
@@ -2483,6 +2475,19 @@ namespace engine
          {
             goto error ;
          }
+      }
+
+      // check write status
+      if ( pContext->isWrite() )
+      {
+         rc = _checkWriteStatus() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check write status for "
+                      "context [%llu], rc: %d", pContext->contextID(), rc ) ;
+         rc = _pFreezingWindow->waitForOpr( pContext->getProcessName(),
+                                            _pEDUCB,
+                                            _pEDUCB->isWritingDB() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to wait freezing window for "
+                    "context [%llu], rc: %d", pContext->contextID(), rc ) ;
       }
 
       rc = rtnGetMore ( pContext, numToRead, buffObj, eduCB(), _pRtnCB ) ;
@@ -3032,6 +3037,11 @@ namespace engine
       ossValuePtr pCurPos = 0 ;
       INT32 totalObjsNum = 0 ;
 
+      const CHAR *collectionName = _pCollectionName ;
+      SDB_ASSERT( NULL != collectionName, "collection name is invalid" ) ;
+      PD_CHECK( NULL != collectionName, SDB_SYS, error, PDERROR,
+                "Failed to get main-collection name" ) ;
+
       try
       {
          PD_CHECK( !objs.isEmpty(), SDB_INVALIDARG, error, PDERROR,
@@ -3086,8 +3096,7 @@ namespace engine
                                    &inResult ) ;
                   if ( rc )
                   {
-                     rc = _processSubCLResult( rc, pSubCLName,
-                                               _pCollectionName ) ;
+                     rc = _processSubCLResult( rc, pSubCLName, collectionName ) ;
                      if ( SDB_OK == rc )
                      {
                         continue ;
@@ -3099,7 +3108,7 @@ namespace engine
                {
                   PD_LOG( PDERROR, "Session[%s]: Failed to insert to "
                           "sub-collection[%s] of main-collection[%s], rc: %d",
-                          sessionName(), pSubCLName, _pCollectionName, rc ) ;
+                          sessionName(), pSubCLName, collectionName, rc ) ;
                   goto error ;
                }
             }
@@ -3119,9 +3128,9 @@ namespace engine
       if ( onlyCheck )
       {
          // need recheck version of main-collection
-         rc = _checkCLVersion( _pCollectionName, _clVersion ) ;
+         rc = _checkCLVersion( collectionName, _clVersion ) ;
          PD_RC_CHECK( rc, PDDEBUG, "Failed to check message version [%d] of "
-                      "collection [%s], rc: %d", _clVersion, _pCollectionName,
+                      "collection [%s], rc: %d", _clVersion, collectionName,
                       rc ) ;
       }
 
@@ -3962,7 +3971,8 @@ namespace engine
    {
       INT32 rc = SDB_OK;
       BOOLEAN writable = FALSE ;
-      SDB_ASSERT( pCommandName && pCommand, "pCommand can't be null!" );
+      SDB_ASSERT( pCommandName && pCommand, "pCommand can't be null!" ) ;
+
       switch( pCommand->type() )
       {
       case CMD_GET_COUNT:
@@ -4137,7 +4147,7 @@ namespace engine
          pContextMainCL->setPrepareMoreData( TRUE ) ;
       }
 
-      rc = pContextMainCL->open( orderBy, numToReturn, numToSkip ) ;
+      rc = pContextMainCL->open( pCollection, orderBy, numToReturn, numToSkip ) ;
       PD_RC_CHECK( rc, PDERROR, "open main-collection context failed(rc=%d)",
                    rc );
 
@@ -4183,8 +4193,6 @@ namespace engine
                        "rc: %d", sessionName(), pCommand, rc ) ;
                break ;
             }
-
-            pCommandTmp->setMainCLName( pCollection ) ;
 
             rc = rtnRunCommand( pCommandTmp, CMD_SPACE_SERVICE_SHARD, _pEDUCB,
                                 _pDmsCB, _pRtnCB, _pDpsCB, w, &subContextID );
@@ -4325,7 +4333,7 @@ namespace engine
             PD_LOG( PDERROR, "Session[%s]: Create index[%s] for "
                     "sub-collection[%s] of main-collection[%s] failed, "
                     "rc: %d", sessionName(), boIndex.toString().c_str(),
-                    pSubCLName, _pCollectionName, rcTmp ) ;
+                    pSubCLName, pCollection, rcTmp ) ;
 
             if ( SDB_OK == rc )
             {
@@ -4342,10 +4350,10 @@ namespace engine
       // Clear cached main-collection plans
       // Note: cached sub-collection plans are cleared inside create-index
       // of sub-collections
-      _pRtnCB->getAPM()->invalidateCLPlans( _pCollectionName ) ;
+      _pRtnCB->getAPM()->invalidateCLPlans( pCollection ) ;
 
       // Tell secondary nodes to clear cached main-collection plans
-      sdbGetClsCB()->invalidatePlan( _pCollectionName ) ;
+      sdbGetClsCB()->invalidatePlan( pCollection ) ;
 
    done:
       if ( lockDms )
@@ -4432,7 +4440,7 @@ namespace engine
             PD_LOG( PDERROR, "Session[%s]: Drop index[%s] for "
                     "sub-collection[%s] of main-collection[%s] "
                     "failed, rc: %d", sessionName(), ele.toString().c_str(),
-                    pSubCLName, _pCollectionName, rcTmp ) ;
+                    pSubCLName, pCollection, rcTmp ) ;
          }
          ++iter ;
       }
@@ -4445,10 +4453,10 @@ namespace engine
       // Clear cached main-collection plans
       // Note: cached sub-collection plans are cleared inside create-index
       // of sub-collections
-      _pRtnCB->getAPM()->invalidateCLPlans( _pCollectionName ) ;
+      _pRtnCB->getAPM()->invalidateCLPlans( pCollection ) ;
 
       // Tell secondary nodes to clear cached main-collection plans
-      sdbGetClsCB()->invalidatePlan( _pCollectionName ) ;
+      sdbGetClsCB()->invalidatePlan( pCollection ) ;
 
    done:
       if ( lockDms )
@@ -4553,7 +4561,7 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      _pCollectionName = fullName.valuestr() ;
+      _setCollectionName( fullName.valuestr() ) ;
 
       mode = lob.getField( FIELD_NAME_LOB_OPEN_MODE ) ;
       if ( NumberInt != mode.type() )
@@ -4601,7 +4609,6 @@ namespace engine
 
       rc = _checkCLStatusAndGetSth( fullName.valuestr(),
                                     header->version,
-                                    &_isMainCL,
                                     &replSize ) ;
 
       if ( SDB_OK != rc )
@@ -4681,6 +4688,8 @@ namespace engine
          goto error ;
       }
 
+      eduCB()->setCurrentContextID( header->contextID ) ;
+
       rc = rtnCB->contextFind ( header->contextID, RTN_CONTEXT_SHARD_OF_LOB,
                                 lobContext, eduCB() ) ;
       if ( SDB_OK != rc )
@@ -4690,7 +4699,7 @@ namespace engine
          goto error ;
       }
 
-      _copyCollectionName( lobContext->getFullName() ) ;
+      _setCollectionName( lobContext->getFullName() ) ;
       wWhenOpen = lobContext->getW() ;
 
       // add last op info
@@ -4706,8 +4715,7 @@ namespace engine
       }
 
       rc = _checkCLStatusAndGetSth( lobContext->getFullName(),
-                                    header->version,
-                                    &_isMainCL, NULL ) ;
+                                    header->version ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -4803,7 +4811,7 @@ namespace engine
            SDB_CLS_NO_CATALOG_INFO != rc )
       {
          // Do not re-create
-         _clearCollectionAndSpaceName() ;
+         _clearCollectionName() ;
          // do not delete main shard context
          if ( !lobContext->isMainShard() )
          {
@@ -4829,6 +4837,8 @@ namespace engine
          goto error ;
       }
 
+      eduCB()->setCurrentContextID( header->contextID ) ;
+
       rc = rtnCB->contextFind ( header->contextID, RTN_CONTEXT_SHARD_OF_LOB,
                                 lobContext, eduCB() ) ;
       if ( SDB_OK != rc )
@@ -4838,7 +4848,7 @@ namespace engine
          goto error ;
       }
 
-      _copyCollectionName( lobContext->getFullName() ) ;
+      _setCollectionName( lobContext->getFullName() ) ;
 
       // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
@@ -4853,8 +4863,7 @@ namespace engine
       }
 
       rc = _checkCLStatusAndGetSth( lobContext->getFullName(),
-                                    header->version,
-                                    &_isMainCL, NULL ) ;
+                                    header->version ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -4876,7 +4885,7 @@ namespace engine
            SDB_CLS_NO_CATALOG_INFO != rc )
       {
          // Do not re-create
-         _clearCollectionAndSpaceName() ;
+         _clearCollectionName() ;
          // do not delete main shard context
          if ( !lobContext->isMainShard() )
          {
@@ -4899,6 +4908,8 @@ namespace engine
          PD_LOG( PDERROR, "failed to extract close msg:%d", rc ) ;
          goto error ;
       }
+
+      eduCB()->setCurrentContextID( header->contextID ) ;
 
       rc = rtnCB->contextFind ( header->contextID, RTN_CONTEXT_SHARD_OF_LOB,
                                 lobContext, eduCB() ) ;
@@ -4956,6 +4967,8 @@ namespace engine
          goto error ;
       }
 
+      eduCB()->setCurrentContextID( header->contextID ) ;
+
       rc = rtnCB->contextFind ( header->contextID, RTN_CONTEXT_SHARD_OF_LOB,
                                 lobContext, eduCB() ) ;
       if ( SDB_OK != rc )
@@ -4965,12 +4978,13 @@ namespace engine
          goto error ;
       }
 
-      _copyCollectionName( lobContext->getFullName() ) ;
+      _setCollectionName( lobContext->getFullName() ) ;
 
       // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld, Collection:%s, TupleSize:%u",
-                          header->contextID, _pCollectionName, tuplesSize ) ;
+                          header->contextID, lobContext->getFullName(),
+                          tuplesSize ) ;
 
       rc = _checkPrimaryWhenRead(FLG_LOBREAD_PRIMARY,  header->flags ) ;
       if ( SDB_OK != rc )
@@ -4992,12 +5006,11 @@ namespace engine
 
       /// When split, use writingCB to prevent reading lob conflicted
       /// with clean job
-      eduCB()->writingDB( TRUE, lobContext->getFullName() ) ;
+      eduCB()->writingDB( TRUE ) ;
 
       /// check catalog version
       rc = _checkCLStatusAndGetSth( lobContext->getFullName(),
-                                    header->version,
-                                    &_isMainCL, NULL ) ;
+                                    header->version ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -5021,7 +5034,7 @@ namespace engine
            SDB_CLS_NO_CATALOG_INFO != rc )
       {
          // Do not re-create
-         _clearCollectionAndSpaceName() ;
+         _clearCollectionName() ;
          // do not delete main shard context
          if ( !lobContext->isMainShard() )
          {
@@ -5052,6 +5065,8 @@ namespace engine
          goto error ;
       }
 
+      eduCB()->setCurrentContextID( header->contextID ) ;
+
       rc = rtnCB->contextFind ( header->contextID, RTN_CONTEXT_SHARD_OF_LOB,
                                 lobContext, eduCB() ) ;
       if ( SDB_OK != rc )
@@ -5061,13 +5076,13 @@ namespace engine
          goto error ;
       }
 
-      _copyCollectionName( lobContext->getFullName() ) ;
+      _setCollectionName( lobContext->getFullName() ) ;
       wWhenOpen = lobContext->getW() ;
 
       // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld, Collection:%s, TupleSize:%u",
-                          header->contextID, _pCollectionName,
+                          header->contextID, lobContext->getFullName(),
                           tuplesSize ) ;
 
       rc = _checkWriteStatus() ;
@@ -5078,8 +5093,7 @@ namespace engine
       }
 
       rc = _checkCLStatusAndGetSth( lobContext->getFullName(),
-                                    header->version,
-                                    &_isMainCL, NULL ) ;
+                                    header->version ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -5136,7 +5150,7 @@ namespace engine
            SDB_CLS_NO_CATALOG_INFO != rc )
       {
          // Do not re-create
-         _clearCollectionAndSpaceName() ;
+         _clearCollectionName() ;
          // do not delete main shard context
          if ( !lobContext->isMainShard() )
          {
@@ -5170,6 +5184,8 @@ namespace engine
          goto error ;
       }
 
+      eduCB()->setCurrentContextID( header->contextID ) ;
+
       rc = rtnCB->contextFind ( header->contextID, RTN_CONTEXT_SHARD_OF_LOB,
                                 lobContext, eduCB() ) ;
       if ( SDB_OK != rc )
@@ -5179,13 +5195,13 @@ namespace engine
          goto error ;
       }
 
-      _copyCollectionName( lobContext->getFullName() ) ;
+      _setCollectionName( lobContext->getFullName() ) ;
       wWhenOpen = lobContext->getW() ;
 
       // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld, Collection:%s, TupleSize:%u",
-                          header->contextID, _pCollectionName, tSize ) ;
+                          header->contextID, lobContext->getFullName(), tSize ) ;
 
       rc = _checkWriteStatus() ;
       if ( SDB_OK != rc )
@@ -5195,8 +5211,7 @@ namespace engine
       }
 
       rc = _checkCLStatusAndGetSth( lobContext->getFullName(),
-                                    header->version,
-                                    &_isMainCL, NULL ) ;
+                                    header->version ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -5255,7 +5270,7 @@ namespace engine
            SDB_CLS_NO_CATALOG_INFO != rc )
       {
          // Do not re-create
-         _clearCollectionAndSpaceName() ;
+         _clearCollectionName() ;
          // do not delete main shard context
          if ( !lobContext->isMainShard() )
          {
@@ -5505,10 +5520,10 @@ namespace engine
       // Clear cached main-collection plans
       // Note: cached sub-collection plans are cleared inside create-index
       // of sub-collections
-      _pRtnCB->getAPM()->invalidateCLPlans( _pCollectionName ) ;
+      _pRtnCB->getAPM()->invalidateCLPlans( collectionName ) ;
 
       // Tell secondary nodes to clear cached main-collection plans
-      sdbGetClsCB()->invalidatePlan( _pCollectionName ) ;
+      sdbGetClsCB()->invalidatePlan( collectionName ) ;
 
    done:
       if ( lockDms )
@@ -5818,14 +5833,7 @@ namespace engine
       {
          setWrite = TRUE ;
       }
-      if ( _pCollectionName )
-      {
-         _pEDUCB->writingDB( TRUE, _pCollectionName ) ;
-      }
-      else
-      {
-         _pEDUCB->writingDB( TRUE, _pCollectionSpaceName ) ;
-      }
+      _pEDUCB->writingDB( TRUE ) ;
 
       rc = _checkPrimaryStatus() ;
       if ( SDB_OK != rc )
@@ -5937,13 +5945,13 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__CHECKCLSANDGET, "_clsShdSession::_checkCLStatusAndGetSth" )
    INT32 _clsShdSession::_checkCLStatusAndGetSth( const CHAR *name,
                                                   INT32 version,
-                                                  BOOLEAN *isMainCL,
                                                   INT16 *w,
-                                                  CHAR *mainCLName,
                                                   utilCLUniqueID *clUniqueID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSSHDSESS__CHECKCLSANDGET ) ;
+
+      CHAR mainCLName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
 
       rc = _checkReplStatus() ;
       if ( SDB_OK != rc )
@@ -5973,12 +5981,14 @@ namespace engine
          goto error ;
       }
 
-      rc = _checkCLVersion( name, version, isMainCL, w, mainCLName,
+      rc = _checkCLVersion( name, version, &_isMainCL, w, mainCLName,
                             clUniqueID ) ;
       if ( rc )
       {
          goto error ;
       }
+
+      eduCB()->setCurMainCLName( mainCLName ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__CLSSHDSESS__CHECKCLSANDGET, rc ) ;
@@ -6100,10 +6110,18 @@ namespace engine
       {
          *clUniqueID = set->clUniqueID() ;
       }
-      if ( NULL != mainCLName && !set->getMainCLName().empty() )
+      if ( NULL != mainCLName )
       {
-         ossStrncpy( mainCLName, set->getMainCLName().c_str(),
-                     DMS_COLLECTION_FULL_NAME_SZ ) ;
+         if ( !set->getMainCLName().empty() )
+         {
+            ossStrncpy( mainCLName, set->getMainCLName().c_str(),
+                        DMS_COLLECTION_FULL_NAME_SZ ) ;
+            mainCLName[ DMS_COLLECTION_FULL_NAME_SZ ] = 0 ;
+         }
+         else
+         {
+            mainCLName[ 0 ] = 0 ;
+         }
       }
       _pCatAgent->release_r () ;
       agentLocked = FALSE ;

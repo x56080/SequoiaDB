@@ -309,6 +309,8 @@ namespace engine
 
    INT32 _pmdLocalSession::_onMsgBegin( MsgHeader *msg )
    {
+      _pEDUCB->clearProcessInfo() ;
+
       getClient()->registerInMsg( msg ) ;
 
       // set reply header ( except flags, length )
@@ -355,6 +357,8 @@ namespace engine
       MON_END_OP( _pEDUCB->getMonAppCB() ) ;
 
       getClient()->unregisterInMsg() ;
+
+      _pEDUCB->clearProcessInfo() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDLOCALSN_PROMSG, "_pmdLocalSession::_processMsg" )

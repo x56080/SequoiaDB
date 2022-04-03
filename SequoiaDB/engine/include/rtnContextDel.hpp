@@ -74,6 +74,11 @@ namespace engine
       }
       virtual BOOLEAN          isWrite() const { return TRUE ; }
 
+      virtual const CHAR *     getProcessName() const
+      {
+         return _name ;
+      }
+
       INT32 open( const CHAR *pCollectionName,
                   _pmdEDUCB *cb );
 
@@ -114,6 +119,10 @@ namespace engine
       virtual RTN_CONTEXT_TYPE getType () const;
       virtual _dmsStorageUnit* getSU () { return NULL ; }
       virtual BOOLEAN          isWrite() const { return TRUE ; }
+      virtual const CHAR *     getProcessName() const
+      {
+         return _collectionName ;
+      }
 
       INT32 open( const CHAR *pCollectionName, _pmdEDUCB *cb,
                   INT16 w ) ;
@@ -161,6 +170,11 @@ namespace engine
       virtual _dmsStorageUnit* getSU () { return NULL ; }
       virtual BOOLEAN          isWrite() const { return TRUE ; }
 
+      virtual const CHAR *     getProcessName() const
+      {
+         return _name ;
+      }
+
       INT32 open( const CHAR *pCollectionName,
                   CLS_SUBCL_LIST &subCLList,
                   _pmdEDUCB *cb,
@@ -205,6 +219,10 @@ namespace engine
       virtual RTN_CONTEXT_TYPE getType () const;
       virtual _dmsStorageUnit* getSU () { return NULL ; }
       virtual BOOLEAN          isWrite() const { return TRUE ; }
+      virtual const CHAR *     getProcessName() const
+      {
+         return _oldName ;
+      }
 
       INT32 open( const CHAR *pCSName, const CHAR *pNewCSName,
                   _pmdEDUCB *cb, BOOLEAN useLocalTask = TRUE );
@@ -216,8 +234,6 @@ namespace engine
    private:
       INT32 _tryLock( const CHAR *pCSName,
                      _pmdEDUCB *cb );
-      BOOLEAN _hasWritingEDU( _pmdEDUCB *cb,
-                              ossPoolSet<UINT64>& excludeIdList ) ;
       INT32 _releaseLock( _pmdEDUCB *cb );
 
    private:
@@ -251,10 +267,13 @@ namespace engine
       virtual RTN_CONTEXT_TYPE getType () const;
       virtual _dmsStorageUnit* getSU () { return NULL ; }
       virtual BOOLEAN          isWrite() const { return TRUE ; }
+      virtual const CHAR *     getProcessName() const
+      {
+         return _clFullName ;
+      }
 
       INT32 open( const CHAR *csName, const CHAR *clShortName,
                   const CHAR *newCLShortName,
-                  const CHAR *mainCLFullName,
                   _pmdEDUCB *cb, INT16 w = 1,
                   BOOLEAN useLocalTask = TRUE ) ;
 
@@ -264,7 +283,6 @@ namespace engine
 
    private:
       INT32 _tryLock( const CHAR *pCSName,
-                      const CHAR* mainCLName,
                       _pmdEDUCB *cb );
       INT32 _releaseLock( _pmdEDUCB *cb );
 
@@ -301,6 +319,7 @@ namespace engine
       virtual RTN_CONTEXT_TYPE getType () const;
       virtual _dmsStorageUnit* getSU () { return NULL ; }
       virtual BOOLEAN          isWrite() const { return TRUE ; }
+      virtual const CHAR *     getProcessName() const { return _name ; }
 
       INT32 open( const CHAR *pCollectionName, _pmdEDUCB *cb, INT16 w ) ;
 

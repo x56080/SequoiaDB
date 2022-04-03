@@ -112,7 +112,8 @@ namespace engine
       virtual RTN_CONTEXT_TYPE getType () const;
       virtual _dmsStorageUnit* getSU () { return NULL ; }
 
-      INT32 open( const bson::BSONObj & orderBy,
+      INT32 open( const CHAR *mainCLName,
+                  const bson::BSONObj & orderBy,
                   INT64 numToReturn,
                   INT64 numToSkip ) ;
 
@@ -130,6 +131,11 @@ namespace engine
 
       virtual BOOLEAN          isWrite() const { return _isWrite ; }
       virtual BOOLEAN          needRollback() const { return _isWrite ; }
+
+      virtual const CHAR *     getProcessName() const
+      {
+         return _options.getCLFullName() ;
+      }
 
    protected:
       virtual void _toString( stringstream &ss ) ;
