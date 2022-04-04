@@ -150,6 +150,11 @@ namespace engine
 
       const CHAR* name() const ;
 
+      virtual const CHAR *getProcessName() const
+      {
+         return _dsInfo._dsName ;
+      }
+
    private:
       catDSInfo _dsInfo ;
    } ;
@@ -175,6 +180,11 @@ namespace engine
                   INT64 &contextID ) ;
 
       const CHAR* name() const ;
+
+      virtual const CHAR *getProcessName() const
+      {
+         return _name ;
+      }
 
    private:
       /**
@@ -213,10 +223,16 @@ namespace engine
 
       const CHAR* name() const ;
 
+      virtual const CHAR *getProcessName() const
+      {
+         return _dsName ;
+      }
+
    private:
       INT32 _getDataSourceMeta( const CHAR *name, BSONObj &record ) ;
 
    private:
+      const CHAR * _dsName ;
       UTIL_DS_UID _dsID ;
       BSONObjBuilder _optionBuilder ;
    } ;
@@ -242,6 +258,11 @@ namespace engine
                   INT64 &contextID ) ;
 
       const CHAR *name() const ;
+
+      virtual const CHAR *getProcessName() const
+      {
+         return _name ;
+      }
 
    private:
       const CHAR *_name ;
@@ -333,6 +354,12 @@ namespace engine
       {
          return CMD_NAME_CREATE_COLLECTIONSPACE ;
       }
+
+      virtual const CHAR *getProcessName() const
+      {
+         return _csInfo._pCSName ;
+      }
+
       virtual BOOLEAN needCheckPrimary() const { return TRUE ; }
       virtual BOOLEAN needCheckDCStatus() const { return TRUE ; }
 
@@ -353,6 +380,11 @@ namespace engine
    public:
       _catCMDIndexHelper( BOOLEAN sysCall ) ;
       virtual ~_catCMDIndexHelper() ;
+
+      virtual const CHAR *getProcessName() const
+      {
+         return _pCollection ;
+      }
 
       const CHAR* collectionName() { return _pCollection ; }
       const CHAR* indexName()      { return _pIndexName ; }
@@ -518,6 +550,7 @@ namespace engine
                           INT64 &contextID ) ;
 
       virtual const CHAR *name() const { return CMD_NAME_COPY_INDEX ; }
+      virtual const CHAR *getProcessName() const { return _pCollection ; }
       virtual BOOLEAN needCheckPrimary() const { return TRUE ; }
       virtual BOOLEAN needCheckDCStatus() const { return TRUE ; }
 

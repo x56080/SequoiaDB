@@ -603,7 +603,8 @@ namespace engine
 
    CAT_IMPLEMENT_CMD_AUTO_REGISTER( _catCMDAlterDataSource )
    _catCMDAlterDataSource::_catCMDAlterDataSource()
-   : _dsID( UTIL_INVALID_DS_UID )
+   : _dsName( NULL ),
+     _dsID( UTIL_INVALID_DS_UID )
    {
 
    }
@@ -624,7 +625,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CATCMDALTERATASOURCE_INIT ) ;
-      const CHAR *name = NULL ;
 
       try
       {
@@ -639,7 +639,7 @@ namespace engine
                    "Failed to get field[%s] from query when altering data "
                    "source: %s", FIELD_NAME_NAME,
                    alterObj.toString().c_str() ) ;
-         name = argEle.valuestr() ;
+         _dsName = argEle.valuestr() ;
          argEle = alterObj.getField( FIELD_NAME_OPTIONS ) ;
          if ( argEle.eoo() )
          {
@@ -651,9 +651,9 @@ namespace engine
          PD_LOG( PDDEBUG, "Alter data source options: %s",
                  argEle.toString().c_str() ) ;
 
-         rc = _getDataSourceMeta( name, currentMeta ) ;
+         rc = _getDataSourceMeta( _dsName, currentMeta ) ;
          PD_RC_CHECK( rc, PDERROR, "Get metadata of data source[%s] failed[%d]",
-                      name, rc ) ;
+                      _dsName, rc ) ;
 
          {
             BSONObjIterator itr( argEle.embeddedObject() );

@@ -89,6 +89,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to parse aggregate request "
                    "message, rc: %d", rc ) ;
 
+      cb->setCurProcessName( pCollectionName ) ;
       MONQUERY_SET_NAME( cb, pCollectionName ) ;
 
       try

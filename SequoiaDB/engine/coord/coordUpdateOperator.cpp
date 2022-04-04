@@ -149,6 +149,7 @@ namespace engine
          goto error ;
       }
 
+      cb->setCurProcessName( pCollectionName ) ;
       MONQUERY_SET_NAME( cb, pCollectionName ) ;
 
       if ( 0 == ossStrncmp( pCollectionName, CMD_ADMIN_PREFIX SYS_VIRTUAL_CS".",

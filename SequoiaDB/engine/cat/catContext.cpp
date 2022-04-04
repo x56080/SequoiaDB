@@ -164,6 +164,8 @@ namespace engine
                    "failed to parse query, rc: %d",
                    contextID(), rc ) ;
 
+      cb->setCurProcessName( _targetName.c_str() ) ;
+
       rc = _parseQueryForHandlers( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse query for handlers, "
                    "rc: %d", rc ) ;

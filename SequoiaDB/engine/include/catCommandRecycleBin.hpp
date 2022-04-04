@@ -176,6 +176,11 @@ namespace engine
                   rtnContextBuf &ctxBuf,
                   INT64 &contextID ) ;
 
+      virtual const CHAR *getProcessName() const
+      {
+         return _isDropAll() ? "" : _recycleItemName ;
+      }
+
    protected:
       virtual BOOLEAN _isDropAll() const = 0 ;
       virtual INT32 _check( _pmdEDUCB *cb ) = 0 ;
