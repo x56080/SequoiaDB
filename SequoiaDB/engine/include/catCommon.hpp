@@ -325,13 +325,6 @@ namespace engine
    INT32 catRemoveTasksByType ( CLS_TASK_TYPE type, pmdEDUCB * cb, INT16 w ) ;
    INT32 catRemoveExpiredTasks ( pmdEDUCB * cb, INT16 w,
                                  INT32 expirationTimeS ) ;
-
-   INT32 catGetCSGroupsFromTasks( const CHAR *csName, pmdEDUCB *cb,
-                                  vector< UINT32 > &groups ) ;
-   INT32 catGetCSTaskGroups ( const CHAR * csName,
-                              pmdEDUCB * cb,
-                              ossPoolSet< UINT32 > & groups ) ;
-
    INT32 catRenameCLInTasks( const CHAR *clFullName, const CHAR *newCLFullName,
                              pmdEDUCB *cb, INT16 w ) ;
 
@@ -390,7 +383,9 @@ namespace engine
                                     _pmdEDUCB *cb ) ;
 
    /* Get collection's name by unique id */
-   INT32 catGetCollectionNameByUID( utilCLUniqueID clUID, string &clName,
+   INT32 catGetCollectionNameByUID( utilCLUniqueID clUID,
+                                    string &clName,
+                                    bson::BSONObj &clInfo,
                                     _pmdEDUCB *cb ) ;
 
    /* Check whether collection is main collection */
@@ -418,14 +413,20 @@ namespace engine
    /* Get and lock Collection Space */
    INT32 catGetAndLockCollectionSpace ( const string &csName, BSONObj &boSpace,
                                         _pmdEDUCB *cb,
-                                        catCtxLockMgr *pLockMgr,
-                                        OSS_LATCH_MODE mode ) ;
+                                        catCtxLockMgr *pLockMgr = NULL,
+                                        OSS_LATCH_MODE mode = SHARED ) ;
+   INT32 catGetAndLockCollectionSpace( utilCSUniqueID csUniqueID,
+                                       BSONObj &boSpace,
+                                       const CHAR *&csName,
+                                       _pmdEDUCB *cb,
+                                       catCtxLockMgr *pLockMgr = NULL,
+                                       OSS_LATCH_MODE mode = SHARED ) ;
 
    /* Get and lock Collection */
    INT32 catGetAndLockCollection ( const string &clName, BSONObj &boCollection,
                                    _pmdEDUCB *cb,
-                                   catCtxLockMgr *pLockMgr,
-                                   OSS_LATCH_MODE mode ) ;
+                                   catCtxLockMgr *pLockMgr = NULL,
+                                   OSS_LATCH_MODE mode = SHARED ) ;
 
    /* Get and lock groups of Collection */
    INT32 catGetAndLockCollectionGroups ( const BSONObj &boCollection,
@@ -608,6 +609,10 @@ namespace engine
    /* Data Source */
    INT32 catCheckDataSourceExist( const CHAR *dsName, BOOLEAN &exist,
                                   BSONObj &obj, pmdEDUCB *cb ) ;
+   INT32 catCheckDataSourceExist( UTIL_DS_UID dsUID,
+                                  BOOLEAN &exist,
+                                  bson::BSONObj &obj,
+                                  pmdEDUCB *cb ) ;
 
    INT32 catCheckPureMappingCS( const CHAR *csName,
                                 pmdEDUCB *cb,
@@ -651,6 +656,10 @@ namespace engine
    INT32 catGetRecyCSGroups( utilCSUniqueID csUniqueID,
                              pmdEDUCB *cb,
                              SET_UINT32 &groups ) ;
+   INT32 catGetReturnCLUID( utilCLUniqueID clUniqueID,
+                            utilCLUniqueID &returnCLUniqueID,
+                            pmdEDUCB *cb,
+                            INT16 w ) ;
 
 }
 

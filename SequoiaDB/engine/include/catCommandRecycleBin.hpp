@@ -273,6 +273,93 @@ namespace engine
 
    typedef class _catCMDDropRecycleBinAll catCMDDropRecycleBinAll ;
 
+   /*
+      _catCMDReturnRecycleBinBase define
+    */
+   class _catCMDReturnRecycleBinBase : public _catWriteCMDBase
+   {
+   public:
+      _catCMDReturnRecycleBinBase() ;
+      virtual ~_catCMDReturnRecycleBinBase() ;
+
+      INT32 init( const CHAR *pQuery,
+                  const CHAR *pSelector = NULL,
+                  const CHAR *pOrderBy = NULL,
+                  const CHAR *pHint = NULL,
+                  INT32 flags = 0,
+                  INT64 numToSkip = 0,
+                  INT64 numToReturn = -1 ) ;
+
+      INT32 doit( _pmdEDUCB *cb,
+                  rtnContextBuf &ctxBuf,
+                  INT64 &contextID ) ;
+
+      virtual const CHAR *getProcessName() const
+      {
+         return _recycleItemName ;
+      }
+
+   protected:
+      virtual BOOLEAN _isReturnToName() const = 0 ;
+
+   protected:
+      // cache of command options
+      bson::BSONObj _queryObj ;
+      const CHAR * _recycleItemName ;
+   } ;
+
+   typedef class _catCMDReturnRecycleBinBase catCMDReturnRecycleBinBase ;
+
+   /*
+      _catCMDReturnRecycleBinItem define
+    */
+   class _catCMDReturnRecycleBinItem : public _catCMDReturnRecycleBinBase
+   {
+      CAT_DECLARE_CMD_AUTO_REGISTER() ;
+
+   public:
+      _catCMDReturnRecycleBinItem() {}
+      virtual ~_catCMDReturnRecycleBinItem() {}
+
+      virtual const CHAR *name() const
+      {
+         return CMD_NAME_RETURN_RECYCLEBIN_ITEM ;
+      }
+
+   protected:
+      virtual BOOLEAN _isReturnToName() const
+      {
+         return FALSE ;
+      }
+   } ;
+
+   typedef class _catCMDReturnRecycleBinItem catCMDReturnRecycleBinItem ;
+
+   /*
+      _catCMDReturnRecycleBinItemToName define
+    */
+   class _catCMDReturnRecycleBinItemToName : public _catCMDReturnRecycleBinBase
+   {
+      CAT_DECLARE_CMD_AUTO_REGISTER() ;
+
+   public:
+      _catCMDReturnRecycleBinItemToName() {}
+      virtual ~_catCMDReturnRecycleBinItemToName() {}
+
+      virtual const CHAR *name() const
+      {
+         return CMD_NAME_RETURN_RECYCLEBIN_ITEM_TO_NAME ;
+      }
+
+   protected:
+      virtual BOOLEAN _isReturnToName() const
+      {
+         return TRUE ;
+      }
+   } ;
+
+   typedef class _catCMDReturnRecycleBinItem catCMDReturnRecycleBinItem ;
+
 }
 
 #endif // CAT_COMMAND_RECYCLEBIN_HPP__

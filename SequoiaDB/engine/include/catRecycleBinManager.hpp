@@ -84,13 +84,31 @@ namespace engine
                         pmdEDUCB *cb,
                         INT16 w ) ;
 
+      INT32 getRecycleObject( const utilRecycleItem &item,
+                              pmdEDUCB *cb,
+                              bson::BSONObj &recycleObject,
+                              const CHAR *origUIDField = FIELD_NAME_UNIQUEID ) ;
+      INT32 getRecycleCLObject( const utilRecycleItem &item,
+                                const CHAR *collectionName,
+                                pmdEDUCB *cb,
+                                bson::BSONObj &recycleObject ) ;
+
       INT32 dropItem( const utilRecycleItem &item,
                       pmdEDUCB *cb,
                       INT16 w ) ;
       INT32 dropAllItems( pmdEDUCB *cb, INT16 w ) ;
+
+      INT32 countItemsInCS( utilCSUniqueID csUniqueID,
+                            pmdEDUCB *cb,
+                            INT64 &count ) ;
       INT32 dropItemsInCS( utilCSUniqueID csUniqueID,
                            pmdEDUCB *cb,
                            INT16 w ) ;
+
+      INT32 returnItem( utilRecycleItem &item,
+                        catRecycleReturnInfo &info,
+                        pmdEDUCB *cb,
+                        INT16 w ) ;
 
       OSS_INLINE void reserveItem()
       {
@@ -101,10 +119,6 @@ namespace engine
       {
          -- _reservedCount ;
       }
-
-      INT32 countItemsInCS( utilCSUniqueID csUniqueID,
-                            pmdEDUCB *cb,
-                            INT64 &count ) ;
 
       INT32 processObjects( catRecycleBinProcessor &processor,
                             pmdEDUCB *cb,
@@ -168,6 +182,22 @@ namespace engine
       INT32 _saveItem( utilRecycleItem &item,
                        pmdEDUCB *cb,
                        INT16 w ) ;
+      INT32 _returnCSObjects( utilRecycleItem &item,
+                              catRecycleReturnInfo &info,
+                              pmdEDUCB *cb,
+                              INT16 w ) ;
+      INT32 _returnCLObjects( utilRecycleItem &item,
+                              catRecycleReturnInfo &info,
+                              pmdEDUCB *cb,
+                              INT16 w ) ;
+      INT32 _returnSeqObjects( utilRecycleItem &item,
+                               catRecycleReturnInfo &info,
+                               pmdEDUCB *cb,
+                               INT16 w ) ;
+      INT32 _returnIdxObjects( utilRecycleItem &item,
+                               catRecycleReturnInfo &info,
+                               pmdEDUCB *cb,
+                               INT16 w ) ;
       INT32 _recycleItem( utilRecycleItem &item, pmdEDUCB *cb, INT16 w ) ;
       INT32 _recycleCSObjects( utilRecycleItem &item, pmdEDUCB *cb, INT16 w ) ;
       INT32 _recycleCLObjects( utilRecycleItem &item, pmdEDUCB *cb, INT16 w ) ;
@@ -177,6 +207,9 @@ namespace engine
       INT32 _setCSRecycled( const utilRecycleItem &item,
                             pmdEDUCB *cb,
                             INT16 w ) ;
+      INT32 _unsetCSRecycled( const utilRecycleItem &item,
+                              pmdEDUCB *cb,
+                              INT16 w ) ;
 
       INT32 _tryFindOldestItem( pmdEDUCB *cb,
                                 utilRecycleItem &oldestItem ) ;

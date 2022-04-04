@@ -310,4 +310,233 @@ namespace engine
    {
    }
 
+   /*
+      _coordReturnRecycleBinBase implement
+    */
+   // PD_TRACE_DECLARE_FUNCTION( SDB_COORDRTRNRECYCLEBINBASE_REGEVENTHANDLERS, "_coordReturnRecycleBinBase::_regEventHandlers" )
+   INT32 _coordReturnRecycleBinBase::_regEventHandlers()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_COORDRTRNRECYCLEBINBASE_REGEVENTHANDLERS ) ;
+
+      rc = _regEventHandler( &_taskHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register task handler, "
+                   "rc: %d", rc ) ;
+
+      rc = _regEventHandler( &_recycleHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register recycle handler, "
+                   "rc: %d", rc ) ;
+
+      rc = _regEventHandler( &_returnHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register return handler, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_COORDRTRNRECYCLEBINBASE_REGEVENTHANDLERS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB_COORDRTRNRECYBINBASE__DOAUDIT "_coordReturnRecycleBinBase::_doAudit" )
+   INT32 _coordReturnRecycleBinBase::_doAudit( coordCMDArguments *pArgs, INT32 rc )
+   {
+      PD_TRACE_ENTRY( SDB_COORDRTRNRECYBINBASE__DOAUDIT ) ;
+
+      PD_AUDIT_COMMAND( AUDIT_DDL, getName(), AUDIT_OBJ_RECYCLEBIN,
+                        pArgs->_targetName.c_str(), rc, "Option: %s",
+                        pArgs->_boQuery.toString().c_str() ) ;
+
+      PD_TRACE_EXIT( SDB_COORDRTRNRECYBINBASE__DOAUDIT ) ;
+
+      return SDB_OK ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_RTRNRECYBINBASE__DOOUTPUT "_coordReturnRecycleBinBase::_doOutput" )
+   INT32 _coordReturnRecycleBinBase::_doOutput( rtnContextBuf *buf )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_RTRNRECYBINBASE__DOOUTPUT ) ;
+
+      utilRecycleItem recycleItem ;
+
+      if ( NULL == buf )
+      {
+         goto done ;
+      }
+
+      if ( SDB_OK == recycleItem.fromBSON(
+                                 _recycleHandler.getRecycleOptions() ) )
+      {
+         utilReturnNameInfo info( recycleItem.getOriginName() ) ;
+         if ( UTIL_RECYCLE_CS == recycleItem.getType() )
+         {
+
+            rc = _returnHandler.getReturnInfo().getReturnCSName( info ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get return name for "
+                         "collection space [%s], rc: %d",
+                         info.getOriginName(), rc ) ;
+
+         }
+         else if ( UTIL_RECYCLE_CL == recycleItem.getType() )
+         {
+            rc = _returnHandler.getReturnInfo().getReturnCLName( info ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get return name for "
+                         "collection [%s], rc: %d",
+                         info.getOriginName(), rc ) ;
+         }
+
+         if ( info.isRenamed() )
+         {
+            PD_LOG( PDDEBUG, "Return recycle item renamed from [%s] to [%s]",
+                    info.getOriginName(), info.getReturnName() ) ;
+         }
+
+         try
+         {
+            BSONObjBuilder builder ;
+            builder.append( FIELD_NAME_RETURN_NAME, info.getReturnName() ) ;
+            *buf = rtnContextBuf( builder.obj() ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to build reply BSON object, "
+                    "occur exception %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_RTRNRECYBINBASE__DOOUTPUT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   /*
+      _coordReturnRecycleBinItem implement
+    */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordReturnRecycleBinItem,
+                                      CMD_NAME_RETURN_RECYCLEBIN_ITEM,
+                                      TRUE ) ;
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB_COORDRTRNRECYCLEBINITEM__PARSEMSG, "_coordReturnRecycleBinItem::_parseMsg" )
+   INT32 _coordReturnRecycleBinItem::_parseMsg( MsgHeader *pMsg,
+                                                coordCMDArguments *pArgs )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_COORDRTRNRECYCLEBINITEM__PARSEMSG ) ;
+
+      try
+      {
+         utilRecycleItem dummyItem ;
+         const CHAR *recycleName = NULL ;
+
+         BSONElement element = pArgs->_boQuery.getField( FIELD_NAME_RECYCLE_NAME ) ;
+         PD_CHECK( String == element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to get field [%s] from command",
+                   FIELD_NAME_RECYCLE_NAME ) ;
+         recycleName = element.valuestr() ;
+
+         rc = dummyItem.fromRecycleName( recycleName ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse recycle item "
+                      "name [%s], rc: %d", recycleName, rc ) ;
+
+         pArgs->_targetName.assign( recycleName ) ;
+
+         PD_LOG_MSG_CHECK( !pArgs->_boQuery.hasField( FIELD_NAME_RETURN_NAME ),
+                           SDB_INVALIDARG, error, PDERROR,
+                           "Failed to parse message, should not have "
+                           "field [%s]", FIELD_NAME_RETURN_NAME ) ;
+
+         // as rename, retry when lock failed in data node
+         pArgs->_retryRCList.insert( SDB_LOCK_FAILED ) ;
+      }
+      catch( exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_COORDRTRNRECYCLEBINITEM__PARSEMSG, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   /*
+      _coordReturnRecycleBinItemToName implement
+    */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordReturnRecycleBinItemToName,
+                                      CMD_NAME_RETURN_RECYCLEBIN_ITEM_TO_NAME,
+                                      TRUE ) ;
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB_COORDRTRNRECYCLEBINITEMTONAME__PARSEMSG, "_coordReturnRecycleBinItemToName::_parseMsg" )
+   INT32 _coordReturnRecycleBinItemToName::_parseMsg( MsgHeader *pMsg,
+                                                      coordCMDArguments *pArgs )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_COORDRTRNRECYCLEBINITEMTONAME__PARSEMSG ) ;
+
+      try
+      {
+         utilRecycleItem dummyItem ;
+         const CHAR *recycleName = NULL ;
+
+         BSONElement element ;
+
+         element = pArgs->_boQuery.getField( FIELD_NAME_RECYCLE_NAME ) ;
+         PD_CHECK( String == element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to get field [%s] from command",
+                   FIELD_NAME_RECYCLE_NAME ) ;
+         recycleName = element.valuestr() ;
+
+         rc = dummyItem.fromRecycleName( recycleName ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse recycle item "
+                      "name [%s], rc: %d", recycleName, rc ) ;
+
+         pArgs->_targetName.assign( recycleName ) ;
+
+         element = pArgs->_boQuery.getField( FIELD_NAME_RETURN_NAME ) ;
+         PD_CHECK( String == element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to get field [%s] from command",
+                   FIELD_NAME_RETURN_NAME ) ;
+
+         PD_LOG_MSG_CHECK( !pArgs->_boQuery.hasField( FIELD_NAME_ENFORCED ),
+                           SDB_INVALIDARG, error, PDERROR,
+                           "Failed to parse message, should not have "
+                           "field [%s]", FIELD_NAME_ENFORCED ) ;
+         PD_LOG_MSG_CHECK( !pArgs->_boQuery.hasField( FIELD_NAME_ENFORCED1 ),
+                           SDB_INVALIDARG, error, PDERROR,
+                           "Failed to parse message, should not have "
+                           "field [%s]", FIELD_NAME_ENFORCED1 ) ;
+
+         // as rename, retry when lock failed in data node
+         pArgs->_retryRCList.insert( SDB_LOCK_FAILED ) ;
+      }
+      catch( exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_COORDRTRNRECYCLEBINITEMTONAME__PARSEMSG, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 }

@@ -1242,6 +1242,13 @@ namespace sdbclient
       virtual INT32 disable() ;
       virtual INT32 setAttributes( const bson::BSONObj &options ) ;
       virtual INT32 alter( const bson::BSONObj &options ) ;
+      virtual INT32 returnItem( const CHAR *recycleName,
+                                const bson::BSONObj &options = _sdbStaticObject,
+                                bson::BSONObj *result = NULL ) ;
+      virtual INT32 returnItemToName( const CHAR *recycleName,
+                                      const CHAR *returnName,
+                                      const bson::BSONObj &options = _sdbStaticObject,
+                                      bson::BSONObj *result = NULL ) ;
       virtual INT32 dropItem( const CHAR *recycleName,
                               const bson::BSONObj &options = _sdbStaticObject ) ;
       virtual INT32 dropAll( const bson::BSONObj &options = _sdbStaticObject ) ;

@@ -39,6 +39,7 @@
 #include "pmd.hpp"
 #include "pmdCB.hpp"
 #include "rtnContextDel.hpp"
+#include "rtnContextRecycle.hpp"
 #include "rtnContext.hpp"
 #include "dmsStorageUnit.hpp"
 #include "pdTrace.hpp"
@@ -5640,6 +5641,193 @@ error:
    RTN_COMMAND_TYPE _rtnCMDDropRecycleBinAll::type()
    {
       return CMD_DROP_RECYCLEBIN_ALL ;
+   }
+
+   /*
+      _rtnCMDReturnRecycleBinBase implement
+    */
+
+   _rtnCMDReturnRecycleBinBase::_rtnCMDReturnRecycleBinBase()
+   {
+   }
+
+   _rtnCMDReturnRecycleBinBase::~_rtnCMDReturnRecycleBinBase()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNCMDRTRNRECYBINBASE_INIT, "_rtnCMDReturnRecycleBinBase::init" )
+   INT32 _rtnCMDReturnRecycleBinBase::init( INT32 flags,
+                                            INT64 numToSkip,
+                                            INT64 numToReturn,
+                                            const CHAR *pMatcherBuff,
+                                            const CHAR *pSelectBuff,
+                                            const CHAR *pOrderByBuff,
+                                            const CHAR *pHintBuff )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNCMDRTRNRECYBINBASE_INIT ) ;
+
+      try
+      {
+         BSONObj hint( pHintBuff ) ;
+
+         rc = _recycleItem.fromBSON( hint, FIELD_NAME_RECYCLE_ITEM ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get recycle item from "
+                      "options, rc: %d", rc ) ;
+
+         rc = _returnInfo.fromBSON( hint, UTIL_RETURN_MASK_RENAME ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get return info from options, "
+                      "rc: %d", rc ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to initialize command, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNCMDRTRNRECYBINBASE_INIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNCMDRTRNRECYBINBASE_DOIT, "_rtnCMDReturnRecycleBinBase::doit" )
+   INT32 _rtnCMDReturnRecycleBinBase::doit( _pmdEDUCB *cb,
+                                            SDB_DMSCB *dmsCB,
+                                            SDB_RTNCB *rtnCB,
+                                            SDB_DPSCB *dpsCB,
+                                            INT16 w,
+                                            INT64 *pContextID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNCMDRTRNRECYBINBASE_DOIT ) ;
+
+      SDB_ASSERT( cb, "cb is invalid" ) ;
+      SDB_ASSERT( rtnCB, "rtnCB is invalid" ) ;
+      SDB_ASSERT( dmsCB, "dmsCB is invalid" ) ;
+      SDB_ASSERT( pContextID, "context ID is invalid" ) ;
+
+      *pContextID = -1 ;
+
+      PD_CHECK( CMD_SPACE_SERVICE_SHARD == getFromService(),
+                SDB_RTN_COORD_ONLY, error, PDERROR,
+                "Failed to execute return recycle bin command, "
+                "it is executed from COORD only" ) ;
+
+      if ( UTIL_RECYCLE_CS == _recycleItem.getType() )
+      {
+         rtnContextReturnCS::sharePtr returnContext ;
+         rc = rtnCB->contextNew( RTN_CONTEXT_RETURNCS, returnContext,
+                                 *pContextID, cb );
+         PD_RC_CHECK( rc, PDERROR, "Failed to create return context "
+                      "to return collection space, rc: %d", rc ) ;
+         rc = returnContext->open( _recycleItem, _returnInfo, cb, 1 ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open return context "
+                      "to return collection space, rc: %d", rc ) ;
+      }
+      else if ( UTIL_RECYCLE_CL == _recycleItem.getType() )
+      {
+         if ( _recycleItem.isMainCL() )
+         {
+            rtnContextReturnMainCL::sharePtr returnContext ;
+            rc = rtnCB->contextNew( RTN_CONTEXT_RETURNMAINCL, returnContext,
+                                    *pContextID, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to create recycle "
+                         "main-collection context to return collection, "
+                         "rc: %d", rc ) ;
+            rc = returnContext->open( _recycleItem, _returnInfo, cb, w ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to open recycle "
+                         "main-collection context to return collection, "
+                         "rc: %d", rc ) ;
+         }
+         else
+         {
+            rtnContextReturnCL::sharePtr returnContext ;
+            rc = rtnCB->contextNew( RTN_CONTEXT_RETURNCL, returnContext,
+                                    *pContextID, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to create return collection "
+                         "context to return collection, rc: %d", rc ) ;
+
+            rc = returnContext->open( _recycleItem, _returnInfo, cb, w ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to open return collection "
+                         "context to return collection, rc: %d", rc ) ;
+         }
+      }
+      else
+      {
+         PD_LOG( PDERROR, "Failed to execute return recycle bin item [%s], "
+                 "type [%d] is unknown", _recycleItem.getRecycleName(),
+                 _recycleItem.getType() ) ;
+         SDB_ASSERT( FALSE, "invalid recycle type" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNCMDRTRNRECYBINBASE_DOIT, rc ) ;
+      return rc ;
+
+   error:
+      if ( -1 != *pContextID )
+      {
+         rtnCB->contextDelete( *pContextID, cb );
+         *pContextID = -1;
+      }
+      goto done ;
+   }
+
+   /*
+      _rtnCMDReturnRecycleBinItem implement
+    */
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnCMDReturnRecycleBinItem )
+
+   _rtnCMDReturnRecycleBinItem::_rtnCMDReturnRecycleBinItem()
+   : _rtnCMDReturnRecycleBinBase()
+   {
+   }
+
+   _rtnCMDReturnRecycleBinItem::~_rtnCMDReturnRecycleBinItem()
+   {
+   }
+
+   const CHAR *_rtnCMDReturnRecycleBinItem::name()
+   {
+      return NAME_RETURN_RECYCLEBIN_ITEM ;
+   }
+
+   RTN_COMMAND_TYPE _rtnCMDReturnRecycleBinItem::type()
+   {
+      return CMD_RETURN_RECYCLEBIN_ITEM ;
+   }
+
+   /*
+      _rtnCMDReturnRecycleBinItemToName implement
+    */
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnCMDReturnRecycleBinItemToName )
+
+   _rtnCMDReturnRecycleBinItemToName::_rtnCMDReturnRecycleBinItemToName()
+   : _rtnCMDReturnRecycleBinBase()
+   {
+   }
+
+   _rtnCMDReturnRecycleBinItemToName::~_rtnCMDReturnRecycleBinItemToName()
+   {
+   }
+
+   const CHAR *_rtnCMDReturnRecycleBinItemToName::name()
+   {
+      return NAME_RETURN_RECYCLEBIN_ITEM_TO_NAME ;
+   }
+
+   RTN_COMMAND_TYPE _rtnCMDReturnRecycleBinItemToName::type()
+   {
+      return CMD_RETURN_RECYCLEBIN_ITEM_TO_NAME ;
    }
 
 }

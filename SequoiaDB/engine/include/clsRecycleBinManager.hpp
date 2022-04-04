@@ -77,6 +77,10 @@ namespace engine
 
       INT32 saveItem( const utilRecycleItem &item, pmdEDUCB *cb ) ;
 
+      INT32 getItem( const CHAR *recycleName,
+                     pmdEDUCB *cb,
+                     utilRecycleItem &item ) ;
+
       INT32 deleteItem( const utilRecycleItem &item, pmdEDUCB *cb )
       {
          return _BASE::_deleteItem( item, cb, 1, TRUE ) ;

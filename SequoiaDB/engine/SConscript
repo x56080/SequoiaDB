@@ -206,7 +206,8 @@ utilFiles = [
       "util/utilAddress.cpp",
       "util/utilDataSource.cpp",
       "util/utilRecycleItem.cpp",
-      "util/utilRecycleBinConf.cpp"
+      "util/utilRecycleBinConf.cpp",
+      "util/utilRecycleReturnInfo.cpp"
       ]
 
 rtnFiles = [
@@ -223,6 +224,7 @@ rtnFiles = [
       "rtn/rtnContextMain.cpp",
       "rtn/rtnSubContext.cpp",
       "rtn/rtnContextExplain.cpp",
+      "rtn/rtnContextRecycle.cpp",
       "rtn/rtnFetchBase.cpp",
       "rtn/rtnUpdate.cpp",
       "rtn/rtnInsert.cpp",
@@ -585,7 +587,9 @@ catFiles = [
       "cat/catTask.cpp",
       "cat/catCommandRecycleBin.cpp",
       "cat/catRecycleBinManager.cpp",
-      "cat/catRecycleBinProcessor.cpp"
+      "cat/catRecycleBinProcessor.cpp",
+      "cat/catRecycleReturnInfo.cpp",
+      "cat/catContextRecycleBin.cpp"
       ]
 
 coordFiles = [

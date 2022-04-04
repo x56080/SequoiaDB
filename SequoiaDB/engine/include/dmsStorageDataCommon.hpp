@@ -722,6 +722,29 @@ namespace engine
             return SDB_DMS_NOTEXIST ;
          }
       }
+      else if ( _startLID != _mbStat->_startLID )
+      {
+         // start logical IDs are different
+         // NOTE: recycle or return cases will keep the logical ID
+         if ( (UINT32)DMS_INVALID_CLID == _mbStat->_startLID )
+         {
+            // collection is recycled by drop or truncate
+            if ( DMS_MB_STATINFO_IS_TRUNCATED( _mbStat->_flag) )
+            {
+               return SDB_DMS_TRUNCATED ;
+            }
+            else
+            {
+               return SDB_DMS_NOTEXIST ;
+            }
+         }
+         else if ( (UINT32)DMS_INVALID_CLID == _startLID )
+         {
+            // recycle collection is returned
+            return SDB_RECYCLE_ITEMNOTEXISTS ;
+         }
+         return SDB_DMS_NOTEXIST ;
+      }
 
       if ( isTry )
       {
@@ -1078,6 +1101,13 @@ namespace engine
                                utilCLUniqueID newCLUniqueID,
                                pmdEDUCB *cb ) ;
          INT32 recycleCollection( dmsMBContext *mbContext, pmdEDUCB *cb ) ;
+
+         INT32 returnCollection( const CHAR *originName,
+                                 const CHAR *recycleName,
+                                 dmsReturnOptions &options,
+                                 pmdEDUCB *cb,
+                                 SDB_DPSCB *dpsCB,
+                                 dmsMBContext **returnedMBContext ) ;
 
          INT32 findCollection ( const CHAR *pName,
                                 UINT16 &collectionID,

@@ -389,6 +389,8 @@ namespace engine
       const CHAR* collectionName() { return _pCollection ; }
       const CHAR* indexName()      { return _pIndexName ; }
 
+      void disableLevelLock() { _needLevelLock = FALSE ; }
+
    protected:
       INT32 _makeReply( UINT64 taskID, rtnContextBuf &ctxBuf ) ;
 
@@ -410,6 +412,7 @@ namespace engine
       VEC_TASKS       _vecTasks ;
 
       BOOLEAN         _sysCall ;
+      BOOLEAN         _needLevelLock ;
    };
    typedef _catCMDIndexHelper catCMDIndexHelper ;
 

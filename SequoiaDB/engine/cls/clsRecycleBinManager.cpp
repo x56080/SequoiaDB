@@ -1561,6 +1561,77 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR_GETITEM, "_clsRecycleBinManager::getItem" )
+   INT32 _clsRecycleBinManager::getItem( const CHAR *recycleName,
+                                         pmdEDUCB *cb,
+                                         utilRecycleItem &item )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSRECYBINMGR_GETITEM ) ;
+
+      SDB_ASSERT( NULL != recycleName, "recycle name is invalid" ) ;
+
+      BSONObj matcher, dummy ;
+      INT64 contextID = -1 ;
+      rtnContextBuf buffObj ;
+
+      try
+      {
+         matcher = BSON( FIELD_NAME_RECYCLE_NAME << recycleName ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = _getItems( matcher, dummy, dummy, 1, cb, contextID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to query recycle item [%s], "
+                   "rc: %d", recycleName, rc ) ;
+
+      rc = rtnGetMore( contextID, 1, buffObj, cb, _rtnCB ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         PD_LOG( PDINFO, "Failed to get recycle item [%s], it does not exist",
+                 recycleName ) ;
+         rc = SDB_RECYCLE_ITEMNOTEXISTS ;
+         goto error ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to get recycle item [%s], rc: %d",
+                   recycleName, rc ) ;
+
+      try
+      {
+         BSONObj object( buffObj.data() ) ;
+
+         rc = item.fromBSON( object ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get recycle item from BSON, "
+                      "rc: %d", rc ) ;
+
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to get recycle item, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      if ( -1 != contextID )
+      {
+         _rtnCB->contextDelete( contextID, cb ) ;
+      }
+      PD_TRACE_EXITRC( SDB__CLSRECYBINMGR_GETITEM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    /*
       _clsDropRecycleBinBGJob implement
     */

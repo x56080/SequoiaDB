@@ -1991,6 +1991,172 @@ retry:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRTRNCLCMD, "_rtnReturnCLCommand" )
+   static INT32 _rtnReturnCLCommand( dmsReturnOptions &options,
+                                     _pmdEDUCB *cb,
+                                     SDB_DMSCB *dmsCB,
+                                     SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNRTRNCLCMD ) ;
+
+      const CHAR *originName = options._recycleItem.getOriginName() ;
+      const CHAR *recycleName = options._recycleItem.getRecycleName() ;
+
+      const CHAR *originCLName = NULL ;
+      dmsStorageUnit *su = NULL ;
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      dmsMBContext *origMBContext = NULL ;
+
+      rc = rtnResolveCollectionNameAndLock( originName, dmsCB, &su,
+                                            &originCLName, suID, SHARED ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get storage unit for collection "
+                   "[%s], rc: %d", originName, rc ) ;
+
+      rc = su->data()->returnCollection( originCLName, recycleName, options, cb,
+                                         dpsCB, &origMBContext ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to return collection [%s] to [%s], "
+                   "rc: %d", recycleName, originCLName, rc ) ;
+
+      if ( NULL != origMBContext &&
+           OSS_BIT_TEST( origMBContext->mb()->_attributes,
+                         DMS_MB_ATTR_COMPRESSED ) &&
+           UTIL_COMPRESSOR_LZW == origMBContext->mb()->_compressorType )
+      {
+         dmsCB->pushDictJob( dmsDictJob( su->CSID(),
+                                         su->LogicalCSID(),
+                                         origMBContext->mbID(),
+                                         origMBContext->clLID() ) ) ;
+      }
+
+   done:
+      if ( NULL != origMBContext && NULL != su )
+      {
+         su->data()->releaseMBContext( origMBContext ) ;
+      }
+      if ( DMS_INVALID_SUID != suID )
+      {
+         dmsCB->suUnlock( suID, SHARED ) ;
+      }
+      PD_TRACE_EXITRC( SDB__RTNRTRNCLCMD, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRTRNCSCMD, "_rtnReturnCSCommand" )
+   static INT32 _rtnReturnCSCommand( dmsReturnOptions &options,
+                                     _pmdEDUCB *cb,
+                                     SDB_DMSCB *dmsCB,
+                                     SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNRTRNCSCMD ) ;
+
+      const CHAR *originName = options._recycleItem.getOriginName() ;
+      const CHAR *recycleName = options._recycleItem.getRecycleName() ;
+
+      UINT32 suLogicalID = DMS_INVALID_LOGICCSID ;
+
+      rc = dmsCB->nameToSULID( recycleName, suLogicalID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get logical ID for "
+                   "collection space [%s], rc: %d", recycleName,
+                   suLogicalID, rc ) ;
+      SDB_ASSERT( DMS_INVALID_LOGICCSID != suLogicalID,
+                  "logical ID should be valid" ) ;
+
+      rc = dmsCB->returnCollectionSpace( options, cb, dpsCB ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to return collection space "
+                   "[origin %s, recycle %s], rc: %d", originName,
+                   recycleName, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNRTRNCSCMD, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNRTRNCMD, "rtnReturnCommand" )
+   INT32 rtnReturnCommand( dmsReturnOptions &options,
+                           _pmdEDUCB *cb,
+                           SDB_DMSCB *dmsCB,
+                           SDB_DPSCB *dpsCB,
+                           BOOLEAN blockWrite )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_RTNRTRNCMD ) ;
+
+      BOOLEAN lockDMS = FALSE ;
+
+      PD_CHECK( options._recycleItem.isValid(), SDB_SYS, error, PDERROR,
+                "Failed to run return command, recycle item is invalid" ) ;
+
+      if ( blockWrite )
+      {
+         // When two threads concurrently do rename, blockWrite() will report
+         // -148. We retry multiple times to reduce the error.
+         INT16 i = 0 ;
+         while ( ( rc = dmsCB->blockWrite( cb ) )  &&
+                 ( i < RTN_RENAME_BLOCKWRITE_TIMES ) )
+         {
+            ossSleep( RTN_RENAME_BLOCKWRITE_INTERAL ) ;
+            i++ ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Block dms write failed, rc: %d", rc ) ;
+      }
+      else
+      {
+         rc = dmsCB->writable( cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
+      }
+      lockDMS = TRUE ;
+
+      if ( UTIL_RECYCLE_CS == options._recycleItem.getType() )
+      {
+         rc = _rtnReturnCSCommand( options, cb, dmsCB, dpsCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to return collection space, "
+                      "rc: %d", rc ) ;
+      }
+      else if ( UTIL_RECYCLE_CL == options._recycleItem.getType() )
+      {
+         rc = _rtnReturnCLCommand( options, cb, dmsCB, dpsCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to return collection, rc: %d",
+                      rc ) ;
+      }
+      else
+      {
+         SDB_ASSERT( FALSE, "invalid recycle type" ) ;
+         PD_CHECK( FALSE, SDB_SYS, error, PDERROR, "Failed to run return "
+                   "command, invalid recycle type [%d]",
+                   options._recycleItem.getType() ) ;
+      }
+
+   done:
+      if ( lockDMS )
+      {
+         if ( blockWrite )
+         {
+            dmsCB->unblockWrite( cb ) ;
+         }
+         else
+         {
+            dmsCB->writeDown( cb ) ;
+         }
+         lockDMS = FALSE ;
+      }
+      PD_TRACE_EXITRC( SDB_RTNRTRNCMD, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNDROPCSCOMMAND, "rtnDropCollectionSpaceCommand" )
    INT32 rtnDropCollectionSpaceCommand ( const CHAR *pCollectionSpace,
                                          _pmdEDUCB *cb,

@@ -57,6 +57,8 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBRecycleBin, count )
    JS_MEMBER_FUNC_DEFINE( _sptDBRecycleBin, dropItem )
    JS_MEMBER_FUNC_DEFINE( _sptDBRecycleBin, dropAll )
+   JS_MEMBER_FUNC_DEFINE( _sptDBRecycleBin, returnItem )
+   JS_MEMBER_FUNC_DEFINE( _sptDBRecycleBin, returnItemToName )
 
    JS_BEGIN_MAPPING( _sptDBRecycleBin, SPT_RECYCLEBIN_NAME )
       JS_ADD_CONSTRUCT_FUNC( construct )
@@ -71,6 +73,8 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "count", count )
       JS_ADD_MEMBER_FUNC( "dropItem", dropItem )
       JS_ADD_MEMBER_FUNC( "dropAll", dropAll )
+      JS_ADD_MEMBER_FUNC( "returnItem", returnItem )
+      JS_ADD_MEMBER_FUNC( "returnItemToName", returnItemToName )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBRecycleBin::cvtToBSON )
       JS_SET_BSON_TO_JSOBJ_FUNC( _sptDBRecycleBin::bsonToJSObj )
    JS_MAPPING_END()
@@ -608,6 +612,119 @@ namespace engine
          detail = BSON( SPT_ERR << "Failed to drop recycle item" ) ;
          goto error ;
       }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBRecycleBin::returnItem( const _sptArguments &arg,
+                                       _sptReturnVal &rval,
+                                       BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+
+      string recycleName ;
+      BSONObj options, result ;
+
+      rc = arg.getString( 0, recycleName, TRUE ) ;
+      if( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "Recycle name must be config" ) ;
+         goto error ;
+      }
+      else if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Recycle name must be string" ) ;
+         goto error ;
+      }
+
+      if ( arg.argc() > 1 )
+      {
+         rc = arg.getBsonobj( 1, options ) ;
+         if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+         {
+            detail = BSON( SPT_ERR << ( arg.hasErrMsg() ?
+                                        arg.getErrMsg() :
+                                        "Options must be object" ) ) ;
+            goto error ;
+         }
+      }
+
+      rc = _recycleBin.returnItem( recycleName.c_str(), options, &result ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to return recycle item" ) ;
+         goto error ;
+      }
+
+      rval.getReturnVal().setValue( result ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBRecycleBin::returnItemToName( const _sptArguments &arg,
+                                             _sptReturnVal &rval,
+                                             BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+
+      string recycleName, returnName ;
+      BSONObj options, result ;
+
+      rc = arg.getString( 0, recycleName, TRUE ) ;
+      if( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "Recycle name must be config" ) ;
+         goto error ;
+      }
+      else if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Recycle name must be string" ) ;
+         goto error ;
+      }
+
+      rc = arg.getString( 1, returnName, TRUE ) ;
+      if( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "Return name must be config" ) ;
+         goto error ;
+      }
+      else if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Return name must be string" ) ;
+         goto error ;
+      }
+
+      if ( arg.argc() > 2 )
+      {
+         rc = arg.getBsonobj( 2, options ) ;
+         if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+         {
+            detail = BSON( SPT_ERR << ( arg.hasErrMsg() ?
+                                        arg.getErrMsg() :
+                                        "Options must be object" ) ) ;
+            goto error ;
+         }
+      }
+
+      rc = _recycleBin.returnItemToName( recycleName.c_str(),
+                                         returnName.c_str(),
+                                         options,
+                                         &result ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to return recycle item" ) ;
+         goto error ;
+      }
+
+      rval.getReturnVal().setValue( result ) ;
 
    done:
       return rc ;

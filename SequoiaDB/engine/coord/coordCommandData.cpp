@@ -196,7 +196,7 @@ namespace engine
       else
       {
          rc = executeOnDataGroup( pMsg, cb, groupLst, TRUE,
-                                  &(pArgs->_ignoreRCList), NULL,
+                                  &(pArgs->_ignoreRCList), &sucGroupLst,
                                   ppContext, pArgs->_pBuf ) ;
       }
 
@@ -231,25 +231,16 @@ namespace engine
       return SDB_OK ;
    }
 
-   INT32 _coordDataCMD2Phase::_setVer2Context( rtnContextBuf *buf )
+   INT32 _coordDataCMD2Phase::_doOutput( rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
 
-      if( ! _flagDoOnCollection ())
+      if( _flagDoOnCollection () && getCataPtr() && NULL != buf )
       {
-          goto done;
+         buf->setStartFrom( getCataPtr()->getVersion() ) ;
       }
 
-      if( NULL == getCataPtr() )
-      {
-         goto error;
-      }
-
-      buf->setStartFrom(getCataPtr()->getVersion());
-   done :
       return rc ;
-   error :
-      goto done ;
    }
 
    /*

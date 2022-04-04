@@ -267,6 +267,7 @@ namespace engine
                                    BOOLEAN isMainTask = FALSE,
                                    BOOLEAN quickPull = FALSE ) ;
          INT32  startIdxTaskCheckByCL( utilCLUniqueID clUniqID ) ;
+         INT32  startIdxTaskCheckByCS( utilCSUniqueID csUniqueID ) ;
          INT32  startAllSplitTaskCheck() ;
          INT32  startAllTaskCheck() ;
 

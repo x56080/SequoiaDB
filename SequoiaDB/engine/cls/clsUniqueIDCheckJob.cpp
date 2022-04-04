@@ -269,6 +269,7 @@ namespace engine
                break ;
             }
             case RTN_LOCAL_TASK_RECYCLECS :
+            case RTN_LOCAL_TASK_RETURNCS :
             {
                _pFreezeWindow->unregisterCS( pRename->getFrom(), _opID ) ;
                PD_LOG( PDEVENT, "End to block all write operations of "
@@ -281,6 +282,7 @@ namespace engine
                break ;
             }
             case RTN_LOCAL_TASK_RECYCLECL :
+            case RTN_LOCAL_TASK_RETURNCL :
             {
                _pFreezeWindow->unregisterCL( pRename->getFrom(), _opID ) ;
                PD_LOG( PDEVENT, "End to block all write operations of "
@@ -351,6 +353,7 @@ namespace engine
                break ;
             }
             case RTN_LOCAL_TASK_RECYCLECS :
+            case RTN_LOCAL_TASK_RETURNCS :
             {
                rc = _pFreezeWindow->registerCS( pRename->getFrom(), _opID ) ;
                PD_RC_CHECK( rc, PDERROR, "Block all write operations of "
@@ -369,6 +372,7 @@ namespace engine
                break ;
             }
             case RTN_LOCAL_TASK_RECYCLECL :
+            case RTN_LOCAL_TASK_RETURNCL :
             {
                rc = _pFreezeWindow->registerCL( pRename->getFrom(), _opID ) ;
                PD_RC_CHECK( rc, PDERROR, "Block all write operations of "
@@ -486,6 +490,32 @@ namespace engine
             if ( SDB_OK != rc )
             {
                PD_LOG( PDWARNING, "Failed to finish recycle collection task, "
+                       "rc: %d", rc ) ;
+               result = UTIL_LJOB_DO_CONT ;
+               sleepTime = CLS_RENAME_RETRY_TIME ;
+               goto error ;
+            }
+            break ;
+         }
+         case RTN_LOCAL_TASK_RETURNCS :
+         {
+            rc = _doRenameReturnCS( pExe ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDWARNING, "Failed to finish return collection space "
+                       "task, rc: %d", rc ) ;
+               result = UTIL_LJOB_DO_CONT ;
+               sleepTime = CLS_RENAME_RETRY_TIME ;
+               goto error ;
+            }
+            break ;
+         }
+         case RTN_LOCAL_TASK_RETURNCL :
+         {
+            rc = _doRenameReturnCL( pExe ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDWARNING, "Failed to finish return collection task, "
                        "rc: %d", rc ) ;
                result = UTIL_LJOB_DO_CONT ;
                sleepTime = CLS_RENAME_RETRY_TIME ;
@@ -870,6 +900,74 @@ namespace engine
       goto done ;
    }
 
+   INT32 _clsRenameCheckJob::_doRenameReturnCS( IExecutor *pExe )
+   {
+      INT32 rc = SDB_OK ;
+
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
+      rtnLTRecycleBase *pRename = (rtnLTRecycleBase *)( _taskPtr.get() ) ;
+      pmdEDUCB *cb = (pmdEDUCB *)pExe ;
+
+      const utilRecycleItem &recycleItem = pRename->getRecycleItem() ;
+      const CHAR *originName = recycleItem.getOriginName() ;
+      const CHAR *recycleName = recycleItem.getRecycleName() ;
+
+      BOOLEAN isRemoteItemExist = FALSE,
+              isLocalItemExist = FALSE,
+              isRemoteCSExist = FALSE,
+              isLocalCSExist = FALSE,
+              isLocalRecyCSExist = FALSE ;
+
+      rc = _checkCSWithRecyItem( recycleItem, pExe,
+                                 isRemoteItemExist,
+                                 isRemoteCSExist,
+                                 isLocalItemExist,
+                                 isLocalCSExist,
+                                 isLocalRecyCSExist ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check collection with recycle item "
+                   "[origin: %s, recycle: %s], rc: %d",
+                   originName, recycleName, rc ) ;
+
+      if ( isRemoteItemExist )
+      {
+         PD_LOG( PDWARNING, "Unknown status of return collection space "
+                 "item [origin:%s, recycle %s]", originName, recycleName ) ;
+      }
+      else
+      {
+         // need finish the job
+         if ( !isLocalCSExist && isLocalRecyCSExist )
+         {
+            // return collection space
+            dmsReturnOptions options ;
+            options._recycleItem = recycleItem ;
+
+            rc = rtnReturnCommand( options, cb, dmsCB, dpsCB, FALSE ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Failed to return collection space "
+                         "[%s] to [%s], rc: %d", recycleName, originName, rc ) ;
+
+            // start index tasks
+            sdbGetClsCB()->startIdxTaskCheckByCS(
+                  (utilCSUniqueID)( recycleItem.getOriginID() ) ) ;
+         }
+         else if ( isLocalItemExist )
+         {
+            // delete item only
+            rc = _recycleBinMgr->deleteItem( recycleItem, cb ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Failed to delete recycle item "
+                         "[origin %s, recycle %s], rc: %d", originName,
+                         recycleName, rc ) ;
+         }
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    INT32 _clsRenameCheckJob::_doRenameRecycleCL( IExecutor *pExe )
    {
       INT32 rc = SDB_OK ;
@@ -956,6 +1054,75 @@ namespace engine
             rc = _recycleBinMgr->dropItemWithCheck( recycleItem, cb, FALSE,
                                                     isDropped ) ;
             PD_RC_CHECK( rc, PDWARNING, "Failed to drop recycle item "
+                         "[origin %s, recycle %s], rc: %d", originName,
+                         recycleName, rc ) ;
+         }
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _clsRenameCheckJob::_doRenameReturnCL( IExecutor *pExe )
+   {
+      INT32 rc = SDB_OK ;
+
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
+      rtnLTRecycleBase *pRename = (rtnLTRecycleBase *)( _taskPtr.get() ) ;
+      pmdEDUCB *cb = (pmdEDUCB *)pExe ;
+
+      BOOLEAN isRemoteItemExist = FALSE,
+              isLocalItemExist = FALSE,
+              isRemoteCLExist = FALSE,
+              isLocalCLExist = FALSE,
+              isLocalRecyCLExist = FALSE ;
+
+      const utilRecycleItem &recycleItem = pRename->getRecycleItem() ;
+      SDB_ASSERT( recycleItem.isValid(), "recycle item should be valid" ) ;
+      const CHAR *originName = recycleItem.getOriginName() ;
+      const CHAR *recycleName = recycleItem.getRecycleName() ;
+
+      rc = _checkCLWithRecyItem( recycleItem, pExe,
+                                 isRemoteItemExist,
+                                 isRemoteCLExist,
+                                 isLocalItemExist,
+                                 isLocalCLExist,
+                                 isLocalRecyCLExist ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check collection with recycle item "
+                   "[origin: %s, recycle: %s], rc: %d",
+                   originName, recycleName, rc ) ;
+
+      if ( isRemoteItemExist )
+      {
+         PD_LOG( PDWARNING, "Unknown status of return collection "
+                 "item [origin:%s, recycle %s]", originName, recycleName ) ;
+      }
+      else
+      {
+         // need finish the job
+         if ( !isLocalCLExist && isLocalRecyCLExist )
+         {
+            // return collection space
+            dmsReturnOptions options ;
+            options._recycleItem = recycleItem ;
+
+            rc = rtnReturnCommand( options, cb, dmsCB, dpsCB, FALSE ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Failed to return collection "
+                         "[%s] to [%s], rc: %d", recycleName, originName, rc ) ;
+
+            // start index tasks
+            sdbGetClsCB()->startIdxTaskCheckByCL(
+                  (utilCLUniqueID)( recycleItem.getOriginID() ) ) ;
+         }
+         else if ( isLocalItemExist )
+         {
+            // delete item only
+            rc = _recycleBinMgr->deleteItem( recycleItem, cb ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Failed to delete recycle item "
                          "[origin %s, recycle %s], rc: %d", originName,
                          recycleName, rc ) ;
          }
@@ -1321,7 +1488,9 @@ namespace engine
          if ( RTN_LOCAL_TASK_RENAMECS == taskPtr->getTaskType() ||
               RTN_LOCAL_TASK_RENAMECL == taskPtr->getTaskType() ||
               RTN_LOCAL_TASK_RECYCLECS == taskPtr->getTaskType() ||
-              RTN_LOCAL_TASK_RECYCLECL == taskPtr->getTaskType() )
+              RTN_LOCAL_TASK_RECYCLECL == taskPtr->getTaskType() ||
+              RTN_LOCAL_TASK_RETURNCS == taskPtr->getTaskType() ||
+              RTN_LOCAL_TASK_RETURNCL == taskPtr->getTaskType() )
          {
             rc = clsStartRenameCheckJob( it->second, 0 ) ;
             if ( rc )

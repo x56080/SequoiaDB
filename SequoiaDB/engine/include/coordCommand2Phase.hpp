@@ -176,9 +176,9 @@ namespace engine
          virtual BOOLEAN _allowInTransaction() const { return TRUE ; }
 
          /*
-            set new collection version to buf
-         */
-         virtual INT32 _setVer2Context( rtnContextBuf *buf );
+            Get output to client
+          */
+         virtual INT32 _doOutput( rtnContextBuf *buf ) ;
 
          virtual INT32 _regEventHandlers()
          {

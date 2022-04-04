@@ -161,6 +161,33 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXGRPHANDLER_ADDGRPS_VEC, "_catCtxGroupHandler::addGroups" )
+   INT32 _catCtxGroupHandler::addGroups( const VEC_GROUP_ID &groupIDVec )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXGRPHANDLER_ADDGRPS_VEC ) ;
+
+      try
+      {
+         _groupIDSet.insert( groupIDVec.begin(), groupIDVec.end() ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to add groups, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXGRPHANDLER_ADDGRPS_VEC, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXGRPHANDLER_ADDGRPS_RECYCLEBIN, "_catCtxGroupHandler::addGroupsInRecycleBin" )
    INT32 _catCtxGroupHandler::addGroupsInRecycleBin( utilCSUniqueID csUniqueID )
    {
@@ -888,6 +915,38 @@ namespace engine
 
    error:
       goto done ;
+   }
+
+   /*
+      _catRtrnCtxTaskHandler implement
+    */
+   _catRtrnCtxTaskHandler::_catRtrnCtxTaskHandler( catCtxLockMgr & lockMgr )
+   : _catCtxTaskHandler( lockMgr )
+   {
+   }
+
+
+   _catRtrnCtxTaskHandler::~_catRtrnCtxTaskHandler()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRTRNCTXTASKHANDLER__ONROLLBACKEVENT, "_catRtrnCtxTaskHandler::onRollbackEvent" )
+   INT32 _catRtrnCtxTaskHandler::onRollbackEvent( SDB_EVENT_OCCUR_TYPE type,
+                                                  _pmdEDUCB *cb,
+                                                  INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATRTRNCTXTASKHANDLER__ONROLLBACKEVENT ) ;
+
+      if ( SDB_EVT_OCCUR_AFTER == type )
+      {
+         _cancelTasks( cb, w ) ;
+      }
+
+      PD_TRACE_EXITRC( SDB_CATRTRNCTXTASKHANDLER__ONROLLBACKEVENT, rc ) ;
+
+      return rc ;
    }
 
 }

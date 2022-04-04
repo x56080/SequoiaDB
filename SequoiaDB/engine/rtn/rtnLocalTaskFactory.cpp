@@ -55,6 +55,14 @@ namespace engine
             return "RENAMECS" ;
          case RTN_LOCAL_TASK_RENAMECL :
             return "RENAMECL" ;
+         case RTN_LOCAL_TASK_RECYCLECS :
+            return "RECYCLECS" ;
+         case RTN_LOCAL_TASK_RECYCLECL :
+            return "RECYCLECL" ;
+         case RTN_LOCAL_TASK_RETURNCS :
+            return "RETURNCS" ;
+         case RTN_LOCAL_TASK_RETURNCL :
+            return "RETURNCL" ;
          default:
             break ;
       }

@@ -4927,11 +4927,12 @@ namespace engine
       return SDB_OK ;
    }
 
-   INT32 catGetCollectionNameByUID( utilCLUniqueID clUID, string &clName,
+   INT32 catGetCollectionNameByUID( utilCLUniqueID clUID,
+                                    string &clName,
+                                    BSONObj &clInfo,
                                     _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
-      BSONObj clInfo ;
       BSONObj matcher = BSON( CAT_CL_UNIQUEID << (INT64) clUID ) ;
       BSONObj dummyObj ;
 
@@ -5311,6 +5312,59 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_CATGETANDLOCKCOLLECTIONSPACE, rc ) ;
       return rc ;
    error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETANDLOCKCOLLECTIONSPACE_UID, "catGetAndLockCollectionSpace" )
+   INT32 catGetAndLockCollectionSpace( utilCSUniqueID csUniqueID,
+                                       BSONObj &boSpace,
+                                       const CHAR *&csName,
+                                       pmdEDUCB *cb,
+                                       catCtxLockMgr *pLockMgr,
+                                       OSS_LATCH_MODE mode )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATGETANDLOCKCOLLECTIONSPACE_UID ) ;
+
+      try
+      {
+         BOOLEAN isExist = FALSE ;
+         BSONElement ele ;
+
+         rc = catCheckSpaceExist( NULL, csUniqueID, isExist, boSpace, cb ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to get info of collection "
+                      "space [%u], rc: %d", csUniqueID, rc ) ;
+         PD_CHECK( isExist, SDB_DMS_CS_NOTEXIST, error, PDWARNING,
+                   "Collection space [%u] does not exist!", csUniqueID ) ;
+
+         ele = boSpace.getField( CAT_COLLECTION_SPACE_NAME ) ;
+         PD_CHECK( String == ele.type(), SDB_CAT_CORRUPTION, error, PDWARNING,
+                   "Failed to get field [%s], it is not string",
+                   CAT_COLLECTION_SPACE_NAME ) ;
+         csName = ele.valuestr() ;
+
+         // Lock collection space
+         if ( pLockMgr &&
+              !pLockMgr->tryLockCollectionSpace( csName, mode ) )
+         {
+            rc = SDB_LOCK_FAILED ;
+            goto error ;
+         }
+      }
+      catch( exception &e )
+      {
+         PD_LOG( PDWARNING, "Failed to check collection space, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATGETANDLOCKCOLLECTIONSPACE_UID, rc ) ;
+      return rc ;
+
+   error:
       goto done ;
    }
 
@@ -7926,6 +7980,56 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCHECKDATASRUOCEEXIST_UID, "catCheckDataSourceExist" )
+   INT32 catCheckDataSourceExist( UTIL_DS_UID dsUID,
+                                  BOOLEAN &exist,
+                                  BSONObj &obj,
+                                  pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCHECKDATASRUOCEEXIST_UID ) ;
+
+      exist = FALSE ;
+
+      try
+      {
+         BSONObj matcher, dummy ;
+         matcher = BSON( FIELD_NAME_ID << (INT32)dsUID ) ;
+         rc = catGetOneObj( CAT_DATASOURCE_COLLECTION, dummy, matcher,
+                            dummy, cb, obj ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            exist = FALSE ;
+            rc = SDB_OK ;
+         }
+         else if ( SDB_OK == rc )
+         {
+            exist = TRUE ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Failed to get metadata of data source[%llu], "
+                    "rc: %d", dsUID, rc ) ;
+            goto error ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to get metadata of data source, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCHECKDATASRUOCEEXIST_UID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCHECKPUREMAPPINGCS, "catCheckPureMappingCS" )
    INT32 catCheckPureMappingCS( const CHAR *csName,
                                 pmdEDUCB *cb,
@@ -8600,6 +8704,98 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB_CATGETRECYCSGRPS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATACQCLUID, "_catAcquireCLUniqueID" )
+   INT32 _catAcquireCLUniqueID( utilCSUniqueID csUniqueID,
+                                utilCLUniqueID &clUniqueID,
+                                pmdEDUCB *cb,
+                                INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATACQCLUID ) ;
+
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
+
+      BOOLEAN isExist = FALSE ;
+      BSONObj boSpace ;
+
+      rc = catCheckSpaceExist( NULL, csUniqueID, isExist, boSpace, cb ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get info of collection "
+                   "space [%u], rc: %d", csUniqueID, rc ) ;
+      PD_CHECK( isExist, SDB_DMS_CS_NOTEXIST, error, PDWARNING,
+                "Collection space [%u] does not exist", csUniqueID ) ;
+
+      try
+      {
+         BSONObj matcher, updator, dummy ;
+
+         BSONElement ele = boSpace.getField( CAT_CS_CLUNIQUEHWM ) ;
+         PD_CHECK( ele.isNumber(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s], type: %d",
+                   CAT_CS_CLUNIQUEHWM, ele.type() );
+
+         clUniqueID = (UINT64)( ele.numberLong() ) + 1 ;
+
+         PD_CHECK( utilGetCLInnerID( clUniqueID ) <=
+                                     (utilCLInnerID)UTIL_CLINNERID_MAX,
+                   SDB_CAT_CL_UNIQUEID_EXCEEDED, error, PDERROR,
+                   "Failed to get collection unique ID, inner ID "
+                    "can not exceed %u, current collection unique id: %llu",
+                    UTIL_CLINNERID_MAX, utilGetCLInnerID( clUniqueID ) ) ;
+
+         matcher = BSON( CAT_CS_UNIQUEID << (INT32)csUniqueID ) ;
+         updator = BSON( "$set" <<
+                         BSON( CAT_CS_CLUNIQUEHWM << (INT64)clUniqueID ) ) ;
+
+         rc = rtnUpdate( CAT_COLLECTION_SPACE_COLLECTION, matcher, updator,
+                         dummy, 0, cb, dmsCB, dpsCB, w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to update collection: %s, "
+                      "match: %s, updator: %s, rc: %d",
+                      CAT_COLLECTION_SPACE_COLLECTION,
+                      matcher.toPoolString().c_str(),
+                      updator.toPoolString().c_str(), rc ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to acquire collection unique ID, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATACQCLUID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETRTRNCLUID, "catGetReturnCLUID" )
+   INT32 catGetReturnCLUID( utilCLUniqueID clUniqueID,
+                            utilCLUniqueID &returnCLUniqueID,
+                            pmdEDUCB *cb,
+                            INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATGETRTRNCLUID ) ;
+
+      utilCSUniqueID csUniqueID = utilGetCSUniqueID( clUniqueID ) ;
+
+      rc = _catAcquireCLUniqueID( csUniqueID, returnCLUniqueID, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to acquire collection unique ID, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATGETRTRNCLUID, rc ) ;
       return rc ;
 
    error:

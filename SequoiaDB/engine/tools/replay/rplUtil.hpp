@@ -61,6 +61,7 @@ namespace replay
    #define RPL_LOG_OP_INVALIDATE_CATA  "invalidatecata"
    #define RPL_LOG_OP_CS_RENAME        "renamecs"
    #define RPL_LOG_OP_POP              "pop"
+   #define RPL_LOG_OP_RETURN           "return"
 
    CHAR* getOPName(UINT16 type);
 

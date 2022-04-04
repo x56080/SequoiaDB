@@ -4365,6 +4365,13 @@ namespace sdbclient
       virtual INT32 disable() = 0 ;
       virtual INT32 setAttributes( const bson::BSONObj &options ) = 0 ;
       virtual INT32 alter( const bson::BSONObj &options ) = 0 ;
+      virtual INT32 returnItem( const CHAR *recycleName,
+                                const bson::BSONObj &options = _sdbStaticObject,
+                                bson::BSONObj *result = NULL ) = 0 ;
+      virtual INT32 returnItemToName( const CHAR *recycleName,
+                                      const CHAR *returnName,
+                                      const bson::BSONObj &options = _sdbStaticObject,
+                                      bson::BSONObj *result = NULL ) = 0 ;
       virtual INT32 dropItem( const CHAR *recycleName,
                               const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
       virtual INT32 dropAll( const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
@@ -4482,11 +4489,13 @@ namespace sdbclient
 
       /** \fn INT32 setAttributes( const bson::BSONObj &options )
           \brief Alter options of the recycle bin.
-          \param [in] options The options of sequence to be changed.
+          \param [in] options The options of recycle bin to be changed.
 
               Enable         : Indicates whether to enable the recycle bin
               ExpireTime     : Indicates the expired time of items in the recycle bin
               MaxItemNum     : Indicates the maximum number of items allowed in the recycle bin
+              MaxVersionNum  : Indicates the maximum number of versions of the same item allowed in the recycle bin
+              AutoDrop       : Indicates whether to drop old items automatically when number of items is up to the limit of MaxItemNum or MaxVersionNum
 
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
@@ -4502,11 +4511,13 @@ namespace sdbclient
 
       /** \fn INT32 alter( const bson::BSONObj &options )
           \brief Alter options of the recycle bin.
-          \param [in] options The options of sequence to be changed.
+          \param [in] options The options of recycle bin to be changed.
 
               Enable         : Indicates whether to enable the recycle bin
               ExpireTime     : Indicates the expired time of items in the recycle bin
               MaxItemNum     : Indicates the maximum number of items allowed in the recycle bin
+              MaxVersionNum  : Indicates the maximum number of versions of the same item allowed in the recycle bin
+              AutoDrop       : Indicates whether to drop old items automatically when number of items is up to the limit of MaxItemNum or MaxVersionNum
 
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
@@ -4518,6 +4529,54 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pRecycleBin->alter( options ) ;
+      }
+
+      /** \fn INT32 returnItem( const CHAR *recycleName,
+                                const bson::BSONObj &options,
+                                bson::BSONObj *result = NULL )
+          \brief Return item from recycle bin.
+          \param [in] recycleName The name of item to be returned
+          \param [in] options Reserved argument
+          \param [out] return result
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 returnItem( const CHAR *recycleName,
+                        const bson::BSONObj &options = _sdbStaticObject,
+                        bson::BSONObj *result = NULL )
+      {
+         if ( NULL == pRecycleBin )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pRecycleBin->returnItem( recycleName, options, result ) ;
+      }
+
+      /** \fn INT32 returnItemToName( const CHAR *recycleName,
+                                      const CHAR *returnName,
+                                      const bson::BSONObj &options,
+                                      bson::BSONObj *result )
+          \brief Return item to specified name from recycle bin.
+          \param [in] recycleName The name of item to be returned
+          \param [in] returnName The name of collection or collection space to be returned to
+          \param [in] options Reserved argument
+          \param [out] return result
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 returnItemToName( const CHAR *recycleName,
+                              const CHAR *returnName,
+                              const bson::BSONObj &options = _sdbStaticObject,
+                              bson::BSONObj *result = NULL )
+      {
+         if ( NULL == pRecycleBin )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pRecycleBin->returnItemToName( recycleName,
+                                               returnName,
+                                               options,
+                                               result ) ;
       }
 
       /** \fn INT32 dropItem( const CHAR *recycleName )
@@ -4714,7 +4773,7 @@ namespace sdbclient
 
       /** \fn INT32 getCount ( SINT64 &count,
                                const bson::BSONObj &condition )
-          \brief Get the count of matching recycle items in recycle bin/
+          \brief Get the count of matching recycle items in recycle bin
           \param [in] condition The matching rule, return the count of all documents if this parameter is empty
           \param [out] count The count of matching recycle items.
           \retval SDB_OK Operation Success

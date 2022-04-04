@@ -42,6 +42,8 @@
 #include "oss.hpp"
 #include "catDef.hpp"
 #include "utilRecycleItem.hpp"
+#include "catRecycleReturnInfo.hpp"
+#include "catCtxEventHandler.hpp"
 #include "clsCatalogAgent.hpp"
 #include "pmdEDU.hpp"
 #include "../bson/bson.hpp"
@@ -297,6 +299,442 @@ namespace engine
    } ;
 
    typedef class _catRecycleIdxProcessor catRecycleIdxProcessor ;
+
+   /*
+      _catReturnCheckerBase define
+    */
+   class _catReturnCheckerBase : public _catRecycleBinProcessor
+   {
+   public:
+      _catReturnCheckerBase( _catRecycleBinManager *recyBinMgr,
+                             utilRecycleItem &item,
+                             const catReturnConfig &conf,
+                             catRecycleReturnInfo &info ) ;
+      _catReturnCheckerBase( _catReturnCheckerBase &checker ) ;
+      virtual ~_catReturnCheckerBase() ;
+
+   protected:
+      const catReturnConfig & _conf ;
+      catRecycleReturnInfo &  _info ;
+   } ;
+
+   typedef class _catReturnCheckerBase catReturnCheckerBase ;
+
+   /*
+      _catReturnChecker define
+    */
+   class _catReturnChecker : public _catReturnCheckerBase
+   {
+   public:
+      _catReturnChecker( _catRecycleBinManager *recyBinMgr,
+                         utilRecycleItem &item,
+                         const catReturnConfig &conf,
+                         catRecycleReturnInfo &info,
+                         catCtxLockMgr &lockMgr,
+                         catCtxGroupHandler &groupHandler ) ;
+      _catReturnChecker( _catReturnChecker &checker ) ;
+      virtual ~_catReturnChecker() ;
+
+      virtual INT32 getMatcher( ossPoolList< bson::BSONObj > &matcherList ) ;
+
+   protected:
+      virtual const CHAR *_getOrigUIDField() const
+      {
+         return FIELD_NAME_UNIQUEID ;
+      }
+
+   protected:
+      catCtxLockMgr &         _lockMgr ;
+      catCtxGroupHandler &    _groupHandler ;
+   } ;
+
+   typedef class _catReturnChecker catReturnChecker ;
+
+   /*
+      _catReturnCSChecker define
+    */
+   class _catReturnCSChecker : public _catReturnChecker
+   {
+   public:
+      _catReturnCSChecker( _catRecycleBinManager *recyBinMgr,
+                           utilRecycleItem &item,
+                           const catReturnConfig &conf,
+                           catRecycleReturnInfo &info,
+                           catCtxLockMgr &lockMgr,
+                           catCtxGroupHandler &groupHandler ) ;
+      virtual ~_catReturnCSChecker() ;
+
+      virtual const CHAR *getCollection() const ;
+
+      virtual const CHAR *getName() const
+      {
+         return "ReturnCSChecker" ;
+      }
+
+      virtual INT32 getExpectedCount() const
+      {
+         return 1 ;
+      }
+
+      virtual INT32 processObject( const bson::BSONObj &object,
+                                   pmdEDUCB *cb,
+                                   INT16 w ) ;
+
+   protected:
+      INT32 _checkCS( const CHAR *csName,
+                      const bson::BSONObj &object,
+                      pmdEDUCB *cb ) ;
+      INT32 _checkReturnCSToName( utilRecycleItem &recycleItem,
+                                  const CHAR *returnName,
+                                  pmdEDUCB *cb ) ;
+      INT32 _checkConflictCSByName( const utilRecycleItem &item,
+                                    const utilReturnNameInfo &nameInfo,
+                                    _pmdEDUCB *cb,
+                                    BOOLEAN &isConflict ) ;
+      INT32 _checkReturnCLInCS( utilRecycleItem &recycleItem,
+                                _pmdEDUCB *cb ) ;
+      INT32 _lockCollectionSpace( const utilReturnNameInfo &nameInfo,
+                                  BOOLEAN isConflict ) ;
+   } ;
+
+   typedef class _catReturnCSChecker catReturnCSChecker ;
+
+   /*
+      _catReturnCLChecker define
+    */
+   class _catReturnCLChecker : public _catReturnChecker
+   {
+   public:
+      _catReturnCLChecker( _catRecycleBinManager *recyBinMgr,
+                           utilRecycleItem &item,
+                           const catReturnConfig &conf,
+                           catRecycleReturnInfo &info,
+                           catCtxLockMgr &lockMgr,
+                           catCtxGroupHandler &groupHandler ) ;
+      virtual ~_catReturnCLChecker() ;
+
+      virtual const CHAR *getCollection() const ;
+
+      virtual const CHAR *getName() const
+      {
+         return "ReturnCLChecker" ;
+      }
+
+      virtual INT32 getExpectedCount() const
+      {
+         return 1 ;
+      }
+
+      virtual INT32 processObject( const bson::BSONObj &object,
+                                   pmdEDUCB *cb,
+                                   INT16 w ) ;
+
+   protected:
+      _catReturnCLChecker( _catReturnChecker &checker ) ;
+
+      virtual INT32 _checkCL( const CHAR *clName,
+                              const bson::BSONObj &object,
+                              clsCatalogSet &catSet,
+                              pmdEDUCB *cb ) ;
+
+      INT32 _checkConflictCLByName( const utilRecycleItem &item,
+                                    const utilReturnNameInfo &nameInfo,
+                                    const clsCatalogSet &recycleSet,
+                                    _pmdEDUCB *cb,
+                                    BOOLEAN &isConflict ) ;
+      INT32 _checkConflictCLByUID( const utilRecycleItem &item,
+                                   const utilReturnNameInfo &nameInfo,
+                                   const clsCatalogSet &recycleSet,
+                                   _pmdEDUCB *cb,
+                                   BOOLEAN &isConflict ) ;
+      INT32 _checkConflictSeqByUID( const clsCatalogSet &recycleSet ) ;
+      INT32 _checkReturnCLToName( utilRecycleItem &item,
+                                  const CHAR *returnName,
+                                  _pmdEDUCB *cb ) ;
+      INT32 _checkReturnMainCL( const clsCatalogSet &mainCLSet,
+                                _pmdEDUCB *cb ) ;
+      INT32 _lockCollection( const utilReturnNameInfo &nameInfo,
+                             BOOLEAN isConflict ) ;
+   } ;
+
+   typedef class _catReturnCLChecker catReturnCLChecker ;
+
+   /*
+      _catReturnCLInCSChecker define
+    */
+   class _catReturnCLInCSChecker : public _catReturnCLChecker
+   {
+   public:
+      _catReturnCLInCSChecker( catReturnCSChecker &checker ) ;
+      virtual ~_catReturnCLInCSChecker() ;
+
+      virtual const CHAR *getCollection() const ;
+
+      virtual const CHAR *getName() const
+      {
+         return "ReturnCLInCSChecker" ;
+      }
+
+      virtual INT32 getMatcher( ossPoolList< bson::BSONObj > &matcherList ) ;
+
+      virtual INT32 getExpectedCount() const
+      {
+         return -1 ;
+      }
+
+   protected:
+      virtual INT32 _checkCL( const CHAR *clName,
+                              const bson::BSONObj &object,
+                              clsCatalogSet &catSet,
+                              pmdEDUCB *cb ) ;
+   } ;
+
+   typedef class _catReturnCLInCSChecker catReturnCLInCSChecker ;
+
+   /*
+      _catReturnSubCLChecker define
+    */
+   class _catReturnSubCLChecker : public _catReturnCLChecker
+   {
+   public:
+      _catReturnSubCLChecker( catReturnCLChecker &mainCLChecker,
+                              UINT32 subCLCount ) ;
+      virtual ~_catReturnSubCLChecker() ;
+
+      virtual const CHAR *getName() const
+      {
+         return "ReturnSubCLChecker" ;
+      }
+
+      virtual INT32 getMatcher( ossPoolList< bson::BSONObj > &matcherList ) ;
+
+      virtual INT32 getExpectedCount() const
+      {
+         return (INT32)_subCLCount ;
+      }
+
+   protected:
+      INT32 _checkCL( const CHAR *clName,
+                      const bson::BSONObj &object,
+                      clsCatalogSet &catSet,
+                      pmdEDUCB *cb ) ;
+
+   protected:
+      UINT32 _subCLCount ;
+   } ;
+
+   typedef class _catReturnSubCLChecker catReturnSubCLChecker ;
+
+   /*
+      _catReturnIdxChecker define
+    */
+   class _catReturnIdxChecker : public _catReturnCheckerBase
+   {
+   public:
+      _catReturnIdxChecker( _catReturnChecker &checker,
+                            UINT16 rebuildTypes ) ;
+      virtual ~_catReturnIdxChecker() ;
+
+      virtual const CHAR *getCollection() const ;
+
+      virtual const CHAR *getName() const
+      {
+         return "ReturnIdxChecker" ;
+      }
+
+      virtual INT32 getMatcher( ossPoolList< bson::BSONObj > &matcherList ) ;
+
+      virtual INT32 processObject( const bson::BSONObj &object,
+                                   pmdEDUCB *cb,
+                                   INT16 w ) ;
+   protected:
+      UINT16 _rebuildTypes ;
+   } ;
+
+   typedef class _catReturnIdxChecker catReturnIdxChecker ;
+
+   /*
+      _catReturnProcessor define
+    */
+   class _catReturnProcessor : public _catRecycleBinProcessor
+   {
+   public:
+      _catReturnProcessor( _catRecycleBinManager *recyBinMgr,
+                           utilRecycleItem &item,
+                           catRecycleReturnInfo &info,
+                           UTIL_RECYCLE_TYPE type ) ;
+      virtual ~_catReturnProcessor() ;
+
+      virtual const CHAR *getCollection() const ;
+
+      virtual INT32 getMatcher( ossPoolList< bson::BSONObj > &matcherList ) ;
+      virtual INT32 processObject( const bson::BSONObj &object,
+                                   pmdEDUCB *cb,
+                                   INT16 w ) ;
+   protected:
+      INT32 _saveObject( const bson::BSONObj &returnObject,
+                         pmdEDUCB *cb,
+                         INT16 w ) ;
+      virtual INT32 _buildObject( const bson::BSONObj &recycleObject,
+                                  pmdEDUCB *cb,
+                                  INT16 w,
+                                  BSONObj &returnObject,
+                                  BOOLEAN &needProcess ) = 0 ;
+
+      virtual INT32 _postSaveObject( const bson::BSONObj &recycleObject,
+                                     pmdEDUCB *cb,
+                                     INT16 w )
+      {
+         return SDB_OK ;
+      }
+
+   protected:
+      _SDB_DMSCB *            _dmsCB ;
+      _dpsLogWrapper *        _dpsCB ;
+      catRecycleReturnInfo &  _info ;
+      UTIL_RECYCLE_TYPE       _type ;
+   } ;
+
+   typedef class _catReturnProcessor catReturnProcessor ;
+
+   /*
+      _catReturnCSProcessor define
+    */
+   class _catReturnCSProcessor : public _catReturnProcessor
+   {
+   public:
+      _catReturnCSProcessor( _catRecycleBinManager *recyBinMgr,
+                             utilRecycleItem &item,
+                             catRecycleReturnInfo &info ) ;
+      virtual ~_catReturnCSProcessor() ;
+
+      virtual const CHAR *getName() const
+      {
+         return "ReturnCSProcessor" ;
+      }
+
+   protected:
+      virtual INT32 _buildObject( const bson::BSONObj &recycleObject,
+                                  pmdEDUCB *cb,
+                                  INT16 w,
+                                  bson::BSONObj &returnObject,
+                                  BOOLEAN &needProcess ) ;
+   } ;
+
+   typedef class _catReturnCSProcessor catReturnCSProcessor ;
+
+   /*
+      _catReturnCLProcessor define
+    */
+   class _catReturnCLProcessor : public _catReturnProcessor
+   {
+   public:
+      _catReturnCLProcessor( _catRecycleBinManager *recyBinMgr,
+                             utilRecycleItem &item,
+                             catRecycleReturnInfo &info ) ;
+      virtual ~_catReturnCLProcessor() ;
+
+      virtual const CHAR *getName() const
+      {
+         return "ReturnCLProcessor" ;
+      }
+
+   protected:
+      virtual INT32 _buildObject( const bson::BSONObj &recycleObject,
+                                  pmdEDUCB *cb,
+                                  INT16 w,
+                                  bson::BSONObj &returnObject,
+                                  BOOLEAN &needProcess ) ;
+
+      INT32 _buildCLObject( const CHAR *clName,
+                            const bson::BSONObj &recycleObject,
+                            pmdEDUCB *cb,
+                            INT16 w,
+                            bson::BSONObj &returnObject,
+                            BOOLEAN &needProcess ) ;
+      INT32 _rebuildCLName( const CHAR *targetCLName,
+                            utilReturnNameInfo &nameInfo,
+                            BOOLEAN needCheckCS,
+                            BOOLEAN &isInSameCS ) ;
+      INT32 _rebuildObject( const bson::BSONObj &recycleObject,
+                            INT32 clVersion,
+                            const utilReturnUIDInfo &uidInfo,
+                            const utilReturnNameInfo &nameInfo,
+                            const utilReturnNameInfo &mainCLNameInfo,
+                            BOOLEAN rebuildSubCL,
+                            const bson::BSONObj &subCLInfo,
+                            BOOLEAN rebuildAutoInc,
+                            const bson::BSONObj &autoIncInfo,
+                            bson::BSONObj &returnObject ) ;
+      INT32 _rebuildAutoInc( const _clsCatalogSet &returnSet,
+                             bson::BSONObj &autoIncInfo ) ;
+
+      virtual INT32 _postSaveObject( const bson::BSONObj &recycleObject,
+                                     pmdEDUCB *cb,
+                                     INT16 w ) ;
+
+   protected:
+      utilReturnNameInfo _returnNameInfo ;
+      utilReturnUIDInfo  _returnUIDInfo ;
+   } ;
+
+   typedef class _catReturnCLProcessor catReturnCLProcessor ;
+
+   /*
+      _catReturnSeqProcessor define
+    */
+   class _catReturnSeqProcessor : public _catReturnProcessor
+   {
+   public:
+      _catReturnSeqProcessor( _catRecycleBinManager *recyBinMgr,
+                              utilRecycleItem &item,
+                              catRecycleReturnInfo &info ) ;
+      virtual ~_catReturnSeqProcessor() ;
+
+      virtual const CHAR *getName() const
+      {
+         return "ReturnSeqProcessor" ;
+      }
+
+   protected:
+      virtual INT32 _buildObject( const bson::BSONObj &recycleObject,
+                                  pmdEDUCB *cb,
+                                  INT16 w,
+                                  bson::BSONObj &returnObject,
+                                  BOOLEAN &needProcess ) ;
+   } ;
+
+   typedef class _catReturnSeqProcessor catReturnSeqProcessor ;
+
+   /*
+      _catReturnIdxProcessor define
+    */
+   class _catReturnIdxProcessor : public _catReturnProcessor
+   {
+   public:
+      _catReturnIdxProcessor( _catRecycleBinManager *recyBinMgr,
+                              utilRecycleItem &item,
+                              catRecycleReturnInfo &info,
+                              UINT16 rebuildTypes ) ;
+      virtual ~_catReturnIdxProcessor() ;
+
+      virtual const CHAR *getName() const
+      {
+         return "ReturnIdxProcessor" ;
+      }
+
+   protected:
+      virtual INT32 _buildObject( const bson::BSONObj &recycleObject,
+                                  pmdEDUCB *cb,
+                                  INT16 w,
+                                  bson::BSONObj &returnObject,
+                                  BOOLEAN &needProcess ) ;
+
+   protected:
+      UINT16 _rebuildTypes ;
+   } ;
+
+   typedef class _catReturnIdxProcessor catReturnIdxProcessor ;
 
 }
 

@@ -634,6 +634,174 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR_RTRNITEM, "_catRecycleBinManager::returnItem" )
+   INT32 _catRecycleBinManager::returnItem( utilRecycleItem &item,
+                                            catRecycleReturnInfo &info,
+                                            pmdEDUCB *cb,
+                                            INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR_RTRNITEM ) ;
+
+      if ( UTIL_RECYCLE_CS == item.getType() )
+      {
+         rc = _returnCSObjects( item, info, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to return collection space "
+                      "objects, rc: %d", rc ) ;
+
+         rc = _returnCLObjects( item, info, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to return collection objects, "
+                      "rc: %d", rc ) ;
+
+         rc = _returnSeqObjects( item, info, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to return sequence objects, "
+                      "rc: %d", rc ) ;
+
+         rc = _returnIdxObjects( item, info, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to return index objects, "
+                      "rc: %d", rc ) ;
+
+         rc = _unsetCSRecycled( item, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to update recycle items in "
+                      "collection space [%s], rc: %d",
+                      item.getOriginName(), rc ) ;
+
+      }
+      else if ( UTIL_RECYCLE_CL == item.getType() )
+      {
+         rc = _returnCLObjects( item, info, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to return collection objects, "
+                      "rc: %d", rc ) ;
+
+         rc = _returnSeqObjects( item, info, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to return sequence objects, "
+                      "rc: %d", rc ) ;
+
+         rc = _returnIdxObjects( item, info, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to return index objects, "
+                      "rc: %d", rc ) ;
+      }
+      else
+      {
+         SDB_ASSERT( FALSE, "invalid recycle type" ) ;
+         PD_LOG( PDWARNING, "Found invalid recycle type [%d]",
+                 item.getType() ) ;
+      }
+
+      rc = _dropItemImpl( item, cb, w, TRUE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to drop recycle item, rc: %d",
+                   rc ) ;
+
+      PD_LOG( PDEVENT, "Returned recycle item [origin %s, recycle %s]",
+              item.getOriginName(), item.getRecycleName() ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR_RTRNITEM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__RTRNCSOBJS, "_catRecycleBinManager::_returnCSObjects" )
+   INT32 _catRecycleBinManager::_returnCSObjects( utilRecycleItem &item,
+                                                  catRecycleReturnInfo &info,
+                                                  pmdEDUCB *cb,
+                                                  INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__RTRNCSOBJS ) ;
+
+      catReturnCSProcessor processor( this, item, info ) ;
+
+      rc = processObjects( processor, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to process return collection spaces, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__RTRNCSOBJS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__RTRNCLOBJS, "_catRecycleBinManager::_returnCLObjects" )
+   INT32 _catRecycleBinManager::_returnCLObjects( utilRecycleItem &item,
+                                                  catRecycleReturnInfo &info,
+                                                  pmdEDUCB *cb,
+                                                  INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__RTRNCLOBJS ) ;
+
+      catReturnCLProcessor processor( this, item, info ) ;
+
+      rc = processObjects( processor, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to process return collections, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__RTRNCLOBJS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__RTRNSEQOBJS, "_catRecycleBinManager::_returnSeqObjects" )
+   INT32 _catRecycleBinManager::_returnSeqObjects( utilRecycleItem &item,
+                                                   catRecycleReturnInfo &info,
+                                                   pmdEDUCB *cb,
+                                                   INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__RTRNSEQOBJS ) ;
+
+      catReturnSeqProcessor processor( this, item, info ) ;
+
+      rc = processObjects( processor, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to process return sequences, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__RTRNSEQOBJS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__RTRNIDXOBJS, "_catRecycleBinManager::_returnIdxObjects" )
+   INT32 _catRecycleBinManager::_returnIdxObjects( utilRecycleItem &item,
+                                                   catRecycleReturnInfo &info,
+                                                   pmdEDUCB *cb,
+                                                   INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__RTRNIDXOBJS ) ;
+
+      catReturnIdxProcessor processor( this, item, info,
+                                       ( IXM_EXTENT_TYPE_TEXT |
+                                         IXM_EXTENT_TYPE_GLOBAL ) ) ;
+
+      rc = processObjects( processor, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to process return indexes, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__RTRNIDXOBJS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__RECYITEM, "_catRecycleBinManager::_recycleItem" )
    INT32 _catRecycleBinManager::_recycleItem( utilRecycleItem &item,
                                               pmdEDUCB *cb,
@@ -835,6 +1003,54 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__CATRECYBINMGR__SETCSRECY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__UNSETCSRECY, "_catRecycleBinManager::_unsetCSRecycled" )
+   INT32 _catRecycleBinManager::_unsetCSRecycled( const utilRecycleItem &item,
+                                                  pmdEDUCB *cb,
+                                                  INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__UNSETCSRECY ) ;
+
+      SDB_ASSERT( UTIL_RECYCLE_CS == item.getType(),
+                  "should be recycle item for collection space" ) ;
+
+      BSONObj matcher, updator ;
+
+      utilCSUniqueID csUniqueID = (utilCSUniqueID)( item.getOriginID() ) ;
+      rc = utilGetRecyCLsInCSBounds( FIELD_NAME_ORIGIN_ID,
+                                     csUniqueID,
+                                     matcher ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get bounds of recycled collections "
+                   "with collection space unique ID [%u], rc: %d", csUniqueID,
+                   rc ) ;
+
+      try
+      {
+         updator = BSON( "$unset" <<
+                         BSON( FIELD_NAME_RECYCLE_ISCSRECY << true ) ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build BSON object, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = _updateItems( matcher, updator, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update times for recycle "
+                   "collection space [%s], rc: %d", item.getOriginName(),
+                   rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__UNSETCSRECY, rc ) ;
       return rc ;
 
    error:

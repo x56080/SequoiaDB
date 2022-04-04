@@ -505,6 +505,12 @@ namespace engine
                                  utilCSUniqueID& csUniqueID,
                                  bson::BSONObj & clInfoObj ) ;
 
+   INT32 dpsReturn2Record( bson::BSONObj *boOptions,
+                           dpsLogRecord &record ) ;
+
+   INT32 dpsRecord2Return( const CHAR *logRecord,
+                           bson::BSONObj *boOptions ) ;
+
    // get transaction ID from record
    INT32 dpsGetTransIDFromRecord( const CHAR *logRecord,
                                   DPS_TRANS_ID &transID ) ;

@@ -42,6 +42,7 @@
 
 #include "catDef.hpp"
 #include "catLevelLock.hpp"
+#include "clsCatalogAgent.hpp"
 #include "utilRecycleItem.hpp"
 #include "pmd.hpp"
 
@@ -156,6 +157,7 @@ namespace engine
       INT32 addGroups( const bson::BSONObj &boCollection ) ;
       INT32 addGroups( const CAT_GROUP_SET &groupIDSet ) ;
       INT32 addGroups( const CAT_GROUP_LIST &groupIDList ) ;
+      INT32 addGroups( const VEC_GROUP_ID &groupIDVec ) ;
       INT32 addGroupsInRecycleBin( utilCSUniqueID csUniqueID ) ;
 
       virtual INT32 onCheckEvent( SDB_EVENT_OCCUR_TYPE type,
@@ -344,6 +346,23 @@ namespace engine
    } ;
 
    typedef class _catCtxRecycleHandler catCtxRecycleHandler ;
+
+   /*
+      _catRtrnCtxTaskHandler define
+    */
+   class _catRtrnCtxTaskHandler : public _catCtxTaskHandler
+   {
+   public:
+      _catRtrnCtxTaskHandler( catCtxLockMgr & lockMgr ) ;
+      virtual ~_catRtrnCtxTaskHandler() ;
+
+      virtual INT32 onRollbackEvent( SDB_EVENT_OCCUR_TYPE type,
+                                     _pmdEDUCB *cb,
+                                     INT16 w ) ;
+
+   } ;
+
+   typedef class _catRtrnCtxTaskHandler catRtrnCtxTaskHandler ;
 
 }
 

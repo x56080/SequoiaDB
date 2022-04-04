@@ -412,6 +412,94 @@ namespace engine
    } dmsDropCSOptions ;
 
    /*
+      _dmsReturnOptions define
+    */
+   typedef struct _dmsReturnOptions : public _dmsRecycleOptions
+   {
+      _dmsReturnOptions()
+      : _dmsRecycleOptions(),
+        _isPrepared( FALSE )
+      {
+         _needSaveItem = FALSE ;
+      }
+
+      _dmsReturnOptions( const utilRecycleItem &recycleItem )
+      : _dmsRecycleOptions( recycleItem, FALSE ),
+        _isPrepared( FALSE )
+      {
+      }
+
+      INT32 parseOptions( const bson::BSONObj &boOptions )
+      {
+         INT32 rc = SDB_OK ;
+
+         try
+         {
+            if ( boOptions.hasField( FIELD_NAME_RECYCLE_ITEM ) )
+            {
+               rc = _recycleItem.fromBSON( boOptions,
+                                           FIELD_NAME_RECYCLE_ITEM ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to parse recycle item, "
+                            "rc: %d", rc ) ;
+            }
+
+            _boOptions = boOptions ;
+            _isPrepared = TRUE ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to parse options, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
+      }
+
+      INT32 prepareOptions()
+      {
+         INT32 rc = SDB_OK ;
+
+         try
+         {
+            if ( !_isPrepared )
+            {
+               bson::BSONObjBuilder builder ;
+               if ( _recycleItem.isValid() )
+               {
+                  rc = _recycleItem.toBSON( builder, FIELD_NAME_RECYCLE_ITEM ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to build recycle item, "
+                               "rc: %d", rc ) ;
+                  _boOptions = builder.obj() ;
+               }
+               _isPrepared = TRUE ;
+            }
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to build options, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
+      }
+
+      bson::BSONObj _boOptions ;
+      BOOLEAN       _isPrepared ;
+   } dmsReturnOptions ;
+
+   /*
       _IDmsEventHandler
     */
    class _IDmsEventHandler

@@ -395,6 +395,19 @@ namespace engine
                                      _pmdEDUCB *cb,
                                      SDB_DPSCB *dpsCB ) ;
       INT32 restoreCollectionSpace( const CHAR *pName ) ;
+      INT32 returnCollectionSpaceP1( dmsReturnOptions &options,
+                                     _pmdEDUCB *cb,
+                                     SDB_DPSCB *dpsCB ) ;
+      INT32 returnCollectionSpaceP1Cancel( dmsReturnOptions &options,
+                                           _pmdEDUCB *cb,
+                                           SDB_DPSCB *dpsCB ) ;
+      INT32 returnCollectionSpaceP2( dmsReturnOptions &options,
+                                     _pmdEDUCB *cb,
+                                     SDB_DPSCB *dpsCB ) ;
+      INT32 returnCollectionSpace( dmsReturnOptions &options,
+                                   _pmdEDUCB *cb,
+                                   SDB_DPSCB *dpsCB ) ;
+
       INT32 dumpInfo ( MON_CL_SIM_LIST &collectionList,
                        BOOLEAN sys = FALSE ) ;
       INT32 dumpInfo ( MON_CS_SIM_LIST &csList,

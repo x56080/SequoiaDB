@@ -1381,6 +1381,10 @@ namespace engine
          {
             created = TRUE ;
          }
+         else
+         {
+            PD_LOG( PDWARNING, "Failed to create cache unit [%u]", type ) ;
+         }
       }
 
       PD_TRACE_EXIT( SDB__DMSCACHEHOLDER_CRTCACHE ) ;

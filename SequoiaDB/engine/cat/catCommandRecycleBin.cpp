@@ -39,6 +39,7 @@
 
 #include "catCommandRecycleBin.hpp"
 #include "catCommon.hpp"
+#include "catContextRecycleBin.hpp"
 #include "rtnCB.hpp"
 #include "catTrace.hpp"
 #include "pdTrace.hpp"
@@ -741,5 +742,103 @@ namespace engine
    error:
       goto done ;
    }
+
+   /*
+      _catCMDReturnRecycleBinBase implement
+    */
+   _catCMDReturnRecycleBinBase::_catCMDReturnRecycleBinBase()
+   : _recycleItemName( NULL )
+   {
+   }
+
+   _catCMDReturnRecycleBinBase::~_catCMDReturnRecycleBinBase()
+   {
+   }
+
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATCMDRETURNRECYCLEBINBASE_INIT, "_catCMDReturnRecycleBinBase::init" )
+   INT32 _catCMDReturnRecycleBinBase::init( const CHAR *pQuery,
+                                            const CHAR *pSelector,
+                                            const CHAR *pOrderBy,
+                                            const CHAR *pHint,
+                                            INT32 flags,
+                                            INT64 numToSkip,
+                                            INT64 numToReturn )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATCMDRETURNRECYCLEBINBASE_INIT ) ;
+
+      try
+      {
+         _queryObj = BSONObj( pQuery ) ;
+
+         BSONElement ele = _queryObj.getField( FIELD_NAME_RECYCLE_NAME ) ;
+         PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to get field [%s], it is not a string",
+                   FIELD_NAME_RECYCLE_NAME ) ;
+         _recycleItemName = ele.valuestr() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to get query object, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATCMDRETURNRECYCLEBINBASE_INIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATCMDRETURNRECYCLEBINBASE_DOIT, "_catCMDReturnRecycleBinBase::doit" )
+   INT32 _catCMDReturnRecycleBinBase::doit( _pmdEDUCB *cb,
+                                            rtnContextBuf &ctxBuf,
+                                            INT64 &contextID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATCMDRETURNRECYCLEBINBASE_DOIT ) ;
+
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      catCtxReturnRecycleBin::sharePtr context ;
+
+      rc = rtnCB->contextNew( RTN_CONTEXT_CAT_RETURN_RECYCLEBIN,
+                              context,
+                              contextID,
+                              cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create return recycle context, "
+                   "rc: %d", rc ) ;
+
+      rc = context->open( _queryObj, _isReturnToName(), ctxBuf, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open return recycle context, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATCMDRETURNRECYCLEBINBASE_DOIT, rc ) ;
+      return rc ;
+
+   error:
+      if ( -1 != contextID )
+      {
+         rtnCB->contextDelete( contextID, cb ) ;
+         contextID = -1 ;
+      }
+      goto done ;
+   }
+
+   /*
+      _catCMDReturnRecycleBinItem
+    */
+   CAT_IMPLEMENT_CMD_AUTO_REGISTER( _catCMDReturnRecycleBinItem )
+
+   /*
+      _catCMDReturnRecycleBinItemToName
+    */
+   CAT_IMPLEMENT_CMD_AUTO_REGISTER( _catCMDReturnRecycleBinItemToName )
 
 }

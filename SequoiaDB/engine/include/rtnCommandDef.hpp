@@ -177,6 +177,8 @@ namespace engine
 #define NAME_ALTER_RECYCLEBIN                CMD_NAME_ALTER_RECYCLEBIN
 #define NAME_DROP_RECYCLEBIN_ITEM            CMD_NAME_DROP_RECYCLEBIN_ITEM
 #define NAME_DROP_RECYCLEBIN_ALL             CMD_NAME_DROP_RECYCLEBIN_ALL
+#define NAME_RETURN_RECYCLEBIN_ITEM          CMD_NAME_RETURN_RECYCLEBIN_ITEM
+#define NAME_RETURN_RECYCLEBIN_ITEM_TO_NAME  CMD_NAME_RETURN_RECYCLEBIN_ITEM_TO_NAME
 
    /*
       Command Type Define
@@ -349,6 +351,8 @@ namespace engine
       CMD_ALTER_RECYCLEBIN                   = 294,
       CMD_DROP_RECYCLEBIN_ITEM               = 295,
       CMD_DROP_RECYCLEBIN_ALL                = 296,
+      CMD_RETURN_RECYCLEBIN_ITEM             = 297,
+      CMD_RETURN_RECYCLEBIN_ITEM_TO_NAME     = 298,
 
       CMD_UNKNOW                             = 65535
    };

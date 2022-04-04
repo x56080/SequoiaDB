@@ -3658,6 +3658,159 @@ namespace engine
       return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_RTRNCL, "_dmsStorageDataCommon::returnCollection" )
+   INT32 _dmsStorageDataCommon::returnCollection( const CHAR *originName,
+                                                  const CHAR *recycleName,
+                                                  dmsReturnOptions &options,
+                                                  pmdEDUCB *cb,
+                                                  SDB_DPSCB *dpsCB,
+                                                  dmsMBContext **returnedMBContext )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON_RTRNCL ) ;
+
+      dpsTransCB *transCB     = pmdGetKRCB()->getTransCB() ;
+      UINT32 logRecSize       = 0 ;
+      dpsMergeInfo info ;
+      dpsLogRecord &record    = info.getMergeBlock().record() ;
+
+      dmsMBContext *mbContext = NULL ;
+      BOOLEAN isLogReserved = FALSE, isTransLocked = FALSE ;
+      UINT16 recyMBID = DMS_INVALID_MBID ;
+      utilCLUniqueID newUniqueID = UTIL_UNIQUEID_NULL ;
+      UINT32 newStartLID = DMS_INVALID_CLID ;
+
+      PD_LOG( PDDEBUG, "Start return collection [origin: %s.%s, "
+              "recycle %s.%s]", getSuName(), originName, getSuName(),
+              recycleName ) ;
+
+      // reserved log-size
+      if ( dpsCB )
+      {
+         rc = options.prepareOptions() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to prepare return options, "
+                      "rc: %d", rc ) ;
+
+         rc = dpsReturn2Record( &( options._boOptions ), record ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build log record, rc: %d", rc ) ;
+
+         rc = dpsCB->checkSyncControl( record.alignedLen(), cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check sync control, rc: %d",
+                      rc ) ;
+
+         logRecSize = record.alignedLen() ;
+         rc = transCB->reservedLogSpace( logRecSize, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to reserve log space [length %u], "
+                      "rc: %d", rc ) ;
+
+         isLogReserved = TRUE ;
+      }
+
+      // drop origin collection
+      if ( UTIL_RECYCLE_OP_TRUNCATE == options._recycleItem.getOpType() )
+      {
+         rc = dropCollection( originName, cb, NULL ) ;
+         if ( SDB_DMS_NOTEXIST == rc )
+         {
+            rc = SDB_OK ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to drop collection [%s], rc: %d",
+                      originName, rc ) ;
+      }
+
+      rc = getMBContext( &mbContext, recycleName, EXCLUSIVE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get metadata block for collection "
+                   "[%s], rc: %d", recycleName, rc ) ;
+
+      recyMBID = mbContext->mbID() ;
+
+      if ( cb && cb->getTransExecutor()->useTransLock() )
+      {
+         dpsTransRetInfo lockConflict ;
+         rc = transCB->transLockTryX( cb, _logicalCSID, recyMBID, NULL,
+                                      &lockConflict ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to lock the collection, rc: %d"OSS_NEWLINE
+                      "Conflict( representative ):"OSS_NEWLINE
+                      "   EDUID:  %llu"OSS_NEWLINE
+                      "   TID:    %u"OSS_NEWLINE
+                      "   LockId: %s"OSS_NEWLINE
+                      "   Mode:   %s"OSS_NEWLINE,
+                      rc,
+                      lockConflict._eduID,
+                      lockConflict._tid,
+                      lockConflict._lockID.toString().c_str(),
+                      lockModeToString( lockConflict._lockType ) ) ;
+         isTransLocked = TRUE ;
+      }
+
+      newUniqueID = (utilCLUniqueID)( options._recycleItem.getOriginID() ) ;
+      newStartLID = mbContext->mb()->_logicalID ;
+
+      // release mb context during rename
+      // NOTE: should block both origin and recycle collections
+      releaseMBContext( mbContext ) ;
+
+      rc = renameCollection( recycleName, originName, cb, NULL, TRUE,
+                             newUniqueID, &newStartLID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to rename collection, rc: %d", rc ) ;
+
+      // re-fetch mb context during rename
+      // NOTE: should block both origin and recycle collections
+      rc = getMBContext( &mbContext, originName, EXCLUSIVE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get metadata block for collection "
+                   "[%s], rc: %d", originName, rc ) ;
+
+      // clear truncate flag
+      DMS_MB_STATINFO_CLEAR_TRUNCATED( mbContext->mbStat()->_flag ) ;
+
+      if ( dpsCB )
+      {
+         rc = _logDPS( dpsCB, info, cb, mbContext, DMS_INVALID_EXTENT,
+                       FALSE, DMS_FILE_ALL, NULL ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to write recycle record to log, "
+                      "rc: %d", rc ) ;
+      }
+      else if ( cb->getLsnCount() > 0 )
+      {
+         mbContext->mbStat()->updateLastLSN( cb->getEndLsn(), DMS_FILE_ALL ) ;
+      }
+
+      if ( NULL != mbContext )
+      {
+         if ( NULL != returnedMBContext )
+         {
+            *returnedMBContext = mbContext ;
+            mbContext = NULL ;
+         }
+      }
+
+      PD_LOG( PDDEBUG, "Finish return collection [origin: %s.%s, "
+              "recycle %s.%s]", getSuName(), originName, getSuName(),
+              recycleName ) ;
+
+   done:
+      if ( NULL != mbContext )
+      {
+         releaseMBContext( mbContext ) ;
+      }
+      if ( isTransLocked )
+      {
+         transCB->transLockRelease( cb, _logicalCSID, recyMBID ) ;
+         isTransLocked = FALSE ;
+      }
+      if ( isLogReserved )
+      {
+         transCB->releaseLogSpace( logRecSize, cb ) ;
+      }
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACOMMON_RTRNCL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_FINDCOLLECTION, "_dmsStorageDataCommon::findCollection" )
    INT32 _dmsStorageDataCommon::findCollection( const CHAR * pName,
                                                 UINT16 & collectionID,

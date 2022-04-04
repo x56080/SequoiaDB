@@ -155,8 +155,8 @@ namespace engine
       _rtnLTRename *pOtherRename = NULL ;
 
       /*
-         RenameCS\RecycleCS <-> RenameCS\RecycleCS
-         RenameCL\RecycleCL <-> RenameCL\RecycleCL
+         RenameCS\RecycleCS\ReturnCS <-> RenameCS\RecycleCS\ReturnCS
+         RenameCL\RecycleCL\ReturnCL <-> RenameCL\RecycleCL\ReturnCL
       */
       if ( _isSameLevel( pOther ) )
       {
@@ -176,11 +176,12 @@ namespace engine
          }
       }
       /*
-         RenameCL\RecycleCL  <->  RenameCS\RecycleCS
+         RenameCL\RecycleCL\ReturnCL  <->  RenameCS\RecycleCS\ReturnCS
          reverse is ignored by( == Reverse muteXOn )
       */
       else if ( RTN_LOCAL_TASK_RENAMECS == pOther->getTaskType() ||
-                RTN_LOCAL_TASK_RECYCLECS == pOther->getTaskType() )
+                RTN_LOCAL_TASK_RECYCLECS == pOther->getTaskType() ||
+                RTN_LOCAL_TASK_RETURNCS == pOther->getTaskType() )
       {
          const CHAR *pFromDot = ossStrchr( _from, '.' ) ;
          const CHAR *pToDot = ossStrchr( _to, '.' ) ;
@@ -220,13 +221,17 @@ namespace engine
       {
          case RTN_LOCAL_TASK_RENAMECS :
          case RTN_LOCAL_TASK_RECYCLECS :
+         case RTN_LOCAL_TASK_RETURNCS :
             isSame = ( RTN_LOCAL_TASK_RENAMECS == pOther->getTaskType() ||
-                       RTN_LOCAL_TASK_RECYCLECS == pOther->getTaskType() ) ;
+                       RTN_LOCAL_TASK_RECYCLECS == pOther->getTaskType() ||
+                       RTN_LOCAL_TASK_RETURNCS == pOther->getTaskType() ) ;
             break ;
          case RTN_LOCAL_TASK_RENAMECL :
          case RTN_LOCAL_TASK_RECYCLECL :
+         case RTN_LOCAL_TASK_RETURNCL :
             isSame = ( RTN_LOCAL_TASK_RENAMECL == pOther->getTaskType() ||
-                       RTN_LOCAL_TASK_RECYCLECL == pOther->getTaskType() ) ;
+                       RTN_LOCAL_TASK_RECYCLECL == pOther->getTaskType() ||
+                       RTN_LOCAL_TASK_RETURNCL == pOther->getTaskType() ) ;
             break ;
          default :
             break ;
@@ -361,5 +366,15 @@ namespace engine
       _rtnLTRecycleCL implement
     */
    RTN_IMPLEMENT_LT_AUTO_REGISTER( _rtnLTRecycleCL ) ;
+
+   /*
+      _rtnLTReturnCS implement
+    */
+   RTN_IMPLEMENT_LT_AUTO_REGISTER( _rtnLTReturnCS ) ;
+
+   /*
+      _rtnLTReturnCL implement
+    */
+   RTN_IMPLEMENT_LT_AUTO_REGISTER( _rtnLTReturnCL ) ;
 
 }

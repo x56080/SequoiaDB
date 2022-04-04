@@ -211,7 +211,44 @@ namespace engine
 
    typedef class _rtnLTRecycleCL rtnLTRecycleCL ;
 
+   /*
+      _rtnLTReturnCS define
+    */
+   class _rtnLTReturnCS : public _rtnLTRecycleBase
+   {
+      RTN_DECLARE_LT_AUTO_REGISTER() ;
+
+   public:
+      _rtnLTReturnCS() {}
+      virtual ~_rtnLTReturnCS() {}
+
+      RTN_LOCAL_TASK_TYPE getTaskType() const
+      {
+         return RTN_LOCAL_TASK_RETURNCS ;
+      }
+   } ;
+
+   typedef class _rtnLTReturnCS rtnLTReturnCS ;
+
+   /*
+      _rtnLTReturnCL define
+    */
+   class _rtnLTReturnCL : public _rtnLTRecycleBase
+   {
+      RTN_DECLARE_LT_AUTO_REGISTER() ;
+
+   public:
+      _rtnLTReturnCL() {}
+      virtual ~_rtnLTReturnCL() {}
+
+      RTN_LOCAL_TASK_TYPE getTaskType() const
+      {
+         return RTN_LOCAL_TASK_RETURNCL ;
+      }
+   } ;
+
+   typedef class _rtnLTReturnCL rtnLTReturnCL ;
+
 }
 
 #endif //RTN_LOCAL_TASK_HPP__
-

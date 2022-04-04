@@ -3361,6 +3361,87 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_RTRN2REC, "dpsReturn2Record" )
+   INT32 dpsReturn2Record( bson::BSONObj *boOptions,
+                           dpsLogRecord &record )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DPS_RTRN2REC ) ;
+
+      dpsLogRecordHeader &header = record.head() ;
+      header._type = LOG_TYPE_RETURN ;
+
+      SDB_ASSERT( NULL != boOptions && !boOptions->isEmpty(),
+                  "options should be valid" ) ;
+      PD_CHECK( NULL != boOptions && !boOptions->isEmpty(),
+                SDB_SYS, error, PDERROR,
+                "Failed to build return record, options is invalid" ) ;
+
+      rc = record.push( DPS_LOG_RETURN_OPTIONS,
+                        boOptions->objsize(),
+                        boOptions->objdata() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to push return options, "
+                   "rc: %d", rc ) ;
+
+      rc = checkAndAddTimeInfo( record ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to add time info, rc: %d", rc ) ;
+
+      header._length = record.alignedLen() ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_RTRN2REC, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_REC2RTRN, "dpsRecord2Return" )
+   INT32 dpsRecord2Return( const CHAR *logRecord,
+                           BSONObj *boOptions )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DPS_REC2RTRN ) ;
+
+      dpsLogRecord record ;
+
+      rc = record.load( logRecord ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to load recycle record, rc: %d", rc ) ;
+
+      if ( NULL != boOptions )
+      {
+         dpsLogRecord::iterator itrOptions =
+                                 record.find( DPS_LOG_RETURN_OPTIONS ) ;
+         try
+         {
+            if ( itrOptions.valid() )
+            {
+               *boOptions = BSONObj( itrOptions.value() ) ;
+            }
+            else
+            {
+               *boOptions = BSONObj() ;
+            }
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to get options, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_REC2RTRN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_GETTRANSIDFROMEREC, "dpsGetTransIDFromRecord" )
    INT32 dpsGetTransIDFromRecord( const CHAR* logRecord,
                                   DPS_TRANS_ID &transID )

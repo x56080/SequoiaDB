@@ -1636,7 +1636,8 @@ namespace engine
    : _pCataSet( NULL ),
      _pCollection( NULL ),
      _pIndexName( NULL ),
-     _sysCall( sysCall )
+     _sysCall( sysCall ),
+     _needLevelLock( TRUE )
    {
    }
 
@@ -2109,12 +2110,15 @@ namespace engine
          }
       }
 
-      // lock collection, create/drop index and rename cs/cl are mutually
-      // exclusive
-      PD_CHECK( lockMgr.tryLockCollection( _pCollection, SHARED ),
-                SDB_LOCK_FAILED, error, PDERROR,
-                "Failed to lock collection[%s], rc: %d",
-                _pCollection, rc ) ;
+      if ( _needLevelLock )
+      {
+         // lock collection, create/drop index and rename cs/cl are mutually
+         // exclusive
+         PD_CHECK( lockMgr.tryLockCollection( _pCollection, SHARED ),
+                   SDB_LOCK_FAILED, error, PDERROR,
+                   "Failed to lock collection[%s], rc: %d",
+                   _pCollection, rc ) ;
+      }
 
       // check index exist and build tasks
       if ( _pCataSet->isMainCL() )
@@ -2981,13 +2985,6 @@ namespace engine
          goto error ;
       }
 
-      // lock collection, create/drop index and rename cs/cl are mutually
-      // exclusive
-      PD_CHECK( lockMgr.tryLockCollection( _pCollection, SHARED ),
-                SDB_LOCK_FAILED, error, PDERROR,
-                "Failed to lock collection[%s], rc: %d",
-                _pCollection, rc ) ;
-
       // check index exist, and build tasks
       if ( _pCataSet->isMainCL() )
       {
@@ -3035,6 +3032,16 @@ namespace engine
       if ( rc )
       {
          goto error ;
+      }
+
+      if ( _needLevelLock )
+      {
+         // lock collection, create/drop index and rename cs/cl are mutually
+         // exclusive
+         PD_CHECK( lockMgr.tryLockCollection( _pCollection, SHARED ),
+                   SDB_LOCK_FAILED, error, PDERROR,
+                   "Failed to lock collection[%s], rc: %d",
+                   _pCollection, rc ) ;
       }
 
    done:

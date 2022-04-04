@@ -110,7 +110,9 @@ namespace engine
                                      BOOLEAN &isLocalRecyCLExist ) ;
 
          INT32 _doRenameRecycleCS( IExecutor *pExe ) ;
+         INT32 _doRenameReturnCS( IExecutor *pExe ) ;
          INT32 _doRenameRecycleCL( IExecutor *pExe ) ;
+         INT32 _doRenameReturnCL( IExecutor *pExe ) ;
 
          INT32 _checkRemoteItem( const utilRecycleItem &recycleItem,
                                  IExecutor *pExe,

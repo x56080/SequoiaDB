@@ -749,6 +749,11 @@
 #define FIELD_NAME_RECYCLE_ISCSRECY          "IsCSRecycled"
 #define FIELD_NAME_RECYCLE_ITEM              "RecycleItem"
 #define FIELD_NAME_DROP_RECYCLE_ITEM         "DropRecycleItem"
+#define FIELD_NAME_REPLACE_CS                "ReplaceCS"
+#define FIELD_NAME_REPLACE_CL                "ReplaceCL"
+#define FIELD_NAME_RENAME_CS                 "RenameCS"
+#define FIELD_NAME_RENAME_CL                 "RenameCL"
+#define FIELD_NAME_CHANGEUID_CL              "ChangeUIDCL"
 
 #define IXM_FIELD_NAME_KEY                   "key"
 #define IXM_FIELD_NAME_NAME                  "name"
@@ -923,6 +928,8 @@
 #define CMD_NAME_ALTER_RECYCLEBIN            "alter recyclebin"
 #define CMD_NAME_DROP_RECYCLEBIN_ITEM        "drop recyclebin item"
 #define CMD_NAME_DROP_RECYCLEBIN_ALL         "drop recyclebin all"
+#define CMD_NAME_RETURN_RECYCLEBIN_ITEM      "return recyclebin item"
+#define CMD_NAME_RETURN_RECYCLEBIN_ITEM_TO_NAME "return recyclebin item to name"
 
 #define CMD_VALUE_NAME_RECYCLEBIN_ENABLE     "enable"
 #define CMD_VALUE_NAME_RECYCLEBIN_DISABLE    "disable"

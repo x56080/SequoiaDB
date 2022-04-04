@@ -1750,6 +1750,71 @@ namespace engine
 
             replayRC = SDB_OK ;
          }
+         else if ( LOG_TYPE_RETURN == header->_type )
+         {
+            BSONObj boOptions ;
+            dmsReturnOptions options ;
+            dpsLogRecord record ;
+            dpsLogRecord::iterator itrOptions ;
+
+            rc = record.load( itr ) ;
+            PD_RC_CHECK( rc, PDERROR, "Session[%s]: Failed to load record, "
+                         "rc: %d", sessionName(), rc ) ;
+
+            itrOptions = record.find( DPS_LOG_RETURN_OPTIONS ) ;
+            PD_CHECK( itrOptions.valid(), SDB_SYS, error, PDERROR,
+                      "Session[%s]: Failed to find tag return options",
+                      sessionName() ) ;
+
+            boOptions = BSONObj( itrOptions.value() ) ;
+            rc = options.parseOptions( boOptions ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse return options, "
+                         "rc: %d", rc ) ;
+
+            if ( UTIL_RECYCLE_CL == options._recycleItem.getType() )
+            {
+               CHAR szCSName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
+               CHAR recycleFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+
+               const CHAR *originFullName = options._recycleItem.getOriginName() ;
+               const CHAR *recycleName = options._recycleItem.getRecycleName() ;
+
+               rc = rtnResolveCollectionSpaceName(
+                     originFullName, ossStrlen( originFullName ), szCSName,
+                     DMS_COLLECTION_SPACE_NAME_SZ ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get collection space "
+                            "name from [%s], rc: %d", originFullName, rc ) ;
+
+               ossSnprintf( recycleFullName, DMS_COLLECTION_FULL_NAME_SZ,
+                            "%s.%s", szCSName, recycleName ) ;
+
+               rc = _renameCollection( recycleFullName, originFullName,
+                                       replayRC ) ;
+               PD_RC_CHECK( rc, PDERROR, "Session[%s] failed to replay "
+                            "return collection DPS log record, rc: %d",
+                            sessionName(), rc ) ;
+            }
+            else if ( UTIL_RECYCLE_CS == options._recycleItem.getType() )
+            {
+               const CHAR *originCSName = options._recycleItem.getOriginName() ;
+               const CHAR *recycleCSName = options._recycleItem.getRecycleName() ;
+
+               rc = _renameCollectionSpace( recycleCSName, originCSName,
+                                            replayRC ) ;
+               PD_RC_CHECK( rc, PDERROR, "Session[%s] failed to replay "
+                            "return collection space DPS log record, "
+                            "rc: %d", sessionName(), rc ) ;
+            }
+            else
+            {
+               SDB_ASSERT( FALSE, "invalid recycle type" ) ;
+               PD_CHECK( FALSE, SDB_SYS, error, PDERROR, "Failed to replay "
+                         "DPS log record, invalid recycle type [%d]",
+                         options._recycleItem.getType() ) ;
+            }
+
+            replayRC = SDB_OK ;
+         }
 
          // process replay error code, check if we will synchronize the same
          // collection or collection space later, if so, we could ignore this

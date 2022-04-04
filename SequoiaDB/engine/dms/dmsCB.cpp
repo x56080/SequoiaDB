@@ -2821,6 +2821,330 @@ namespace engine
       return _restoreCSCBFromTmpList( csName ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_RTRNCSP1, "_SDB_DMSCB::returnCollectionSpaceP1" )
+   INT32 _SDB_DMSCB::returnCollectionSpaceP1( dmsReturnOptions &options,
+                                              _pmdEDUCB *cb,
+                                              SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__SDB_DMSCB_RTRNCSP1 ) ;
+
+      INT32 rcNew = SDB_OK ;
+      SDB_DMS_CSCB *csCB = NULL ;
+
+      const CHAR *originName = options._recycleItem.getOriginName() ;
+      const CHAR *recycleName = options._recycleItem.getRecycleName() ;
+
+      dmsCSMutexScope csLock( this, recycleName ) ;
+
+      /// check origin collection space and recycle collection space
+      _mutex.get_shared() ;
+      rc = _CSCBNameLookup( recycleName, &csCB, NULL, TRUE ) ;
+      // need check dropping storage unit either
+      rcNew = _CSCBNameLookup( originName, &csCB, NULL, FALSE ) ;
+      _mutex.release_shared() ;
+
+      PD_RC_CHECK( rc, PDERROR, "Failed to check origin collection space "
+                   "[%s], rc: %d", recycleName, rc ) ;
+
+      if ( SDB_DMS_CS_NOTEXIST == rcNew )
+      {
+         rcNew = SDB_OK ;
+      }
+      else if ( SDB_OK == rcNew )
+      {
+         rcNew = SDB_DMS_CS_EXIST ;
+      }
+      PD_CHECK( SDB_OK == rcNew, rcNew, error, PDERROR, "Failed to check "
+                "recycle collection space [%s], rc: %d", originName,
+                rcNew ) ;
+
+      /// prepare rename
+      rc = _CSCBRenameP1( recycleName, originName, cb, dpsCB ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to rename collection space at phase 1 "
+                   "from [%s] to [%s], rc: %d", recycleName, originName, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__SDB_DMSCB_RTRNCSP1, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_RTRNCSP1CANCEL, "_SDB_DMSCB::returnCollectionSpaceP1Cancel" )
+   INT32 _SDB_DMSCB::returnCollectionSpaceP1Cancel( dmsReturnOptions &options,
+                                                    _pmdEDUCB *cb,
+                                                    SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__SDB_DMSCB_RTRNCSP1CANCEL ) ;
+
+      INT32 rcNew = SDB_OK ;
+
+      SDB_DMS_CSCB *origCSCB = NULL ;
+      SDB_DMS_CSCB *recyCSCB = NULL ;
+
+      const CHAR *originName = options._recycleItem.getOriginName() ;
+      const CHAR *recycleName = options._recycleItem.getRecycleName() ;
+
+      dmsCSMutexScope csLock( this, recycleName ) ;
+
+      /// check old cs and new cs
+      _mutex.get_shared() ;
+      rc = _CSCBNameLookup( recycleName, &recyCSCB, NULL, FALSE ) ;
+      rcNew = _CSCBNameLookup( originName, &origCSCB, NULL, FALSE ) ;
+      _mutex.release_shared() ;
+
+      PD_RC_CHECK( rc, PDWARNING, "Failed to check recycle collection "
+                   "space [%s], rc: %d", recycleName, rc ) ;
+
+      if ( SDB_DMS_CS_NOTEXIST == rcNew )
+      {
+         rcNew = SDB_OK ;
+      }
+      else if ( SDB_OK == rcNew )
+      {
+         rcNew = SDB_DMS_CS_EXIST ;
+      }
+      PD_CHECK( SDB_OK == rcNew, rcNew, error, PDWARNING, "Failed to check "
+                "origin collection space [%s], rc: %d", originName, rcNew ) ;
+
+      /// cancel rename
+      rc = _CSCBRenameP1Cancel( recycleName, originName, cb, dpsCB ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to cancel rename collection space "
+                   "at phase 1 [%s] to [%s], rc: %d", recycleName, originName,
+                   rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__SDB_DMSCB_RTRNCSP1CANCEL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_RTRNCSP2, "_SDB_DMSCB::returnCollectionSpaceP2" )
+   INT32 _SDB_DMSCB::returnCollectionSpaceP2( dmsReturnOptions &options,
+                                              _pmdEDUCB *cb,
+                                              SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__SDB_DMSCB_RTRNCSP2 ) ;
+
+      SDB_DMS_CSCB *csCB = NULL ;
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      UINT32 csLID = ~0 ;
+
+      dpsTransCB *transCB = pmdGetKRCB()->getTransCB() ;
+      BOOLEAN isLogReserved = FALSE,
+              isSULocked = FALSE ;
+      UINT32 logRecSize = 0 ;
+      dpsMergeInfo info ;
+      dpsLogRecord &record = info.getMergeBlock().record() ;
+
+      const CHAR *originName = options._recycleItem.getOriginName() ;
+      const CHAR *recycleName = options._recycleItem.getRecycleName() ;
+
+      // lock recycle name
+      dmsCSMutexScope csLock( this, recycleName ) ;
+
+      PD_LOG( PDDEBUG, "Start return collection space P2 [origin: %s, "
+              "recycle %s]", originName, recycleName ) ;
+
+      /// reserved log-size
+      if ( NULL != dpsCB )
+      {
+         rc = options.prepareOptions() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to prepare return options, "
+                      "rc: %d", rc ) ;
+
+         rc = dpsReturn2Record( &( options._boOptions ), record ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build log record, rc: %d", rc ) ;
+
+         rc = dpsCB->checkSyncControl( record.alignedLen(), cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check sync control, rc: %d",
+                      rc ) ;
+
+         logRecSize = record.alignedLen() ;
+         rc = transCB->reservedLogSpace( logRecSize, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to reserve log space [length %u], "
+                      "rc: %d", rc ) ;
+
+         isLogReserved = TRUE ;
+      }
+
+      {
+         ossScopedLock lock( &_mutex, SHARED ) ;
+
+         rc = _CSCBNameLookup( recycleName, &csCB, &suID, FALSE ) ;
+         SDB_ASSERT( SDB_OK == rc, "impossible" ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get storage unit [%s], rc: %d",
+                      recycleName, rc ) ;
+
+         if ( csCB != _tmpCscbVec[ suID ] )
+         {
+            SDB_ASSERT( FALSE, "impossible" ) ;
+            PD_CHECK( FALSE, SDB_SYS, error, PDERROR, "Failed to check "
+                      "storage unit [%s], it is not deleting", recycleName ) ;
+         }
+
+         csLID = csCB->_su->LogicalCSID() ;
+      }
+
+      /// rename su
+      rc = csCB->_su->renameCS( originName ) ;
+      PD_RC_CHECK( rc, PDERROR, "Rename collection space [%s] to [%s] failed, "
+                   "rc: %d", recycleName, originName, rc ) ;
+
+      /// rename map
+      rc = _CSCBRenameP2( recycleName, originName, cb, NULL ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to rename collection space at "
+                   "phase 2 [%s] to [%s], rc: %d", recycleName, originName,
+                   rc ) ;
+
+      {
+         ossScopedLock lock( &_mutex, SHARED ) ;
+         dmsStorageUnitID tmpSUID = DMS_INVALID_SUID ;
+
+         rc = _CSCBNameLookup( originName, &csCB, &tmpSUID, TRUE ) ;
+         SDB_ASSERT( SDB_OK == rc, "impossible" ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get storage unit [%s], rc: %d",
+                      originName, rc ) ;
+
+         if ( suID != tmpSUID )
+         {
+            SDB_ASSERT( FALSE, "impossible" ) ;
+            PD_CHECK( FALSE, SDB_SYS, error, PDERROR, "Failed to check "
+                      "storage unit [%s], different suID, current [%d], "
+                      "expected [%d]", originName, suID, tmpSUID ) ;
+         }
+
+         _latchVec[ suID ]->lock_w() ;
+         isSULocked = TRUE ;
+      }
+
+      if ( dpsCB )
+      {
+         info.setInfoEx( csLID, ~0, DMS_INVALID_EXTENT, cb ) ;
+         rc = dpsCB->prepare( info ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to insert DPS log, rc: %d", rc ) ;
+
+         _latchVec[ suID ]->release_w() ;
+         isSULocked = FALSE ;
+
+         dpsCB->writeData( info ) ;
+      }
+
+      PD_LOG( PDDEBUG, "Finish return collection space P2 [origin: %s, "
+              "recycle %s]", originName, recycleName ) ;
+
+   done:
+      if ( isSULocked )
+      {
+         _latchVec[ suID ]->release_w() ;
+         isSULocked = FALSE ;
+      }
+      if ( isLogReserved )
+      {
+         transCB->releaseLogSpace( logRecSize, cb ) ;
+         isLogReserved = FALSE ;
+      }
+      PD_TRACE_EXITRC( SDB__SDB_DMSCB_RTRNCSP2, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_RTRNCS, "_SDB_DMSCB::returnCollectionSpace" )
+   INT32 _SDB_DMSCB::returnCollectionSpace( dmsReturnOptions &options,
+                                            _pmdEDUCB *cb,
+                                             SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__SDB_DMSCB_RTRNCS ) ;
+
+      UINT32 csLID = ~0 ;
+      dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
+      BOOLEAN isTransLocked = FALSE ;
+      SDB_DMS_CSCB *csCB = NULL ;
+
+      const CHAR *originName = options._recycleItem.getOriginName() ;
+      const CHAR *recycleName = options._recycleItem.getRecycleName() ;
+
+      PD_LOG( PDDEBUG, "Start return collection space [origin: %s, "
+              "recycle %s]", originName, recycleName ) ;
+
+      // get cs cb
+      _mutex.get_shared() ;
+      rc = _CSCBNameLookup( recycleName, &csCB, NULL, TRUE ) ;
+      _mutex.release_shared() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get storage unit [%s], "
+                   "rc: %d", recycleName, rc)  ;
+
+      SDB_ASSERT( csCB->_su, "su can't be null" ) ;
+
+      // lock transaction, standalone need lock trans here
+      csLID = csCB->_su->LogicalCSID() ;
+      if ( cb && cb->getTransExecutor()->useTransLock() )
+      {
+         dpsTransRetInfo lockConflict ;
+         rc = pTransCB->transLockTryX( cb, csLID, DMS_INVALID_MBID,
+                                       NULL, &lockConflict ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR,
+                     "Failed to lock collection-space, rc:%d"OSS_NEWLINE
+                     "Conflict( representative ):"OSS_NEWLINE
+                     "   EDUID:  %llu"OSS_NEWLINE
+                     "   TID:    %u"OSS_NEWLINE
+                     "   LockId: %s"OSS_NEWLINE
+                     "   Mode:   %s"OSS_NEWLINE,
+                     rc,
+                     lockConflict._eduID,
+                     lockConflict._tid,
+                     lockConflict._lockID.toString().c_str(),
+                     lockModeToString( lockConflict._lockType ) ) ;
+            goto error ;
+         }
+         isTransLocked = TRUE ;
+      }
+
+      rc = returnCollectionSpaceP1( options, cb, dpsCB ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to return collection space P1, "
+                   "from [%s] to [%s], rc: %d", recycleName, originName,
+                   rc ) ;
+
+      rc = returnCollectionSpaceP2( options, cb, dpsCB ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to return collection space P2 from [%s] "
+                 "to [%s], rc: %d", recycleName, originName, rc ) ;
+         returnCollectionSpaceP1Cancel( options, cb, dpsCB ) ;
+         goto error ;
+      }
+
+      PD_LOG( PDDEBUG, "Finish return collection space [origin: %s, "
+              "recycle %s]", originName, recycleName ) ;
+
+   done:
+      if ( isTransLocked )
+      {
+         pTransCB->transLockRelease( cb, csLID ) ;
+         isTransLocked = FALSE ;
+      }
+      PD_TRACE_EXITRC( SDB__SDB_DMSCB_RTRNCS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_DUMPCLSIMPLE, "_SDB_DMSCB::dumpInfo" )
    INT32 _SDB_DMSCB::dumpInfo( MON_CL_SIM_LIST &collectionList,
                                BOOLEAN sys )

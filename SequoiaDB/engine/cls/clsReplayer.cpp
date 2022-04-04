@@ -1583,6 +1583,35 @@ namespace engine
 
             break ;
          }
+         case LOG_TYPE_RETURN :
+         {
+            BSONObj boOptions ;
+            dmsReturnOptions options ;
+
+            rc = dpsRecord2Return( (CHAR *)recordHeader, &( boOptions ) ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get return options from "
+                         "DPS log, rc: %d", rc ) ;
+
+            rc = options.parseOptions( boOptions ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse return options, "
+                         "rc: %d", rc ) ;
+
+            while ( TRUE )
+            {
+               rc = rtnReturnCommand( options, eduCB, _dmsCB, _dpsCB, FALSE ) ;
+               if ( SDB_LOCK_FAILED == rc )
+               {
+                  // retry for lock failed
+                  rc = SDB_OK ;
+                  ossSleep( 100 ) ;
+                  continue ;
+               }
+               break ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to return item, rc: %d", rc ) ;
+
+            break ;
+         }
          case LOG_TYPE_DUMMY :
          {
             rc = SDB_OK ;
@@ -1994,6 +2023,11 @@ namespace engine
             }
             PD_RC_CHECK( rc, PDERROR, "Failed to add unique id, rc: %d", rc ) ;
 
+            break ;
+         }
+         case LOG_TYPE_RETURN :
+         {
+            rc = SDB_CLS_REPLAY_LOG_FAILED ;
             break ;
          }
          case LOG_TYPE_TS_COMMIT :

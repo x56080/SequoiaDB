@@ -395,7 +395,8 @@ namespace engine
       PD_LOG( PDINFO, "Do complete phase done for command[%s, target:%s]",
               getName(), pArguments->_targetName.c_str() ) ;
 
-      _setVer2Context( buf );
+      rc = _doOutput( buf ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to output result, rc: %d", rc ) ;
 
    done :
       /************************************************************************
@@ -509,7 +510,7 @@ namespace engine
       return SDB_OK ;
    }
 
-   INT32 _coordCMD2Phase::_setVer2Context( rtnContextBuf *buf )
+   INT32 _coordCMD2Phase::_doOutput( rtnContextBuf *buf )
    {
       return SDB_OK ;
    }

@@ -1717,6 +1717,36 @@ namespace engine
       return rc ;
    }
 
+   INT32 _clsMgr::startIdxTaskCheckByCS( utilCSUniqueID csUniqueID )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+         builder.append( FIELD_NAME_GROUPS "." FIELD_NAME_GROUPNAME,
+                         pmdGetKRCB()->getGroupName() ) ;
+
+         rc = utilGetCSBounds( FIELD_NAME_UNIQUEID, csUniqueID, builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get collection space bound "
+                      "[%u], rc: %d", csUniqueID, rc ) ;
+
+         rc = startTaskCheck( builder.done() ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    INT32 _clsMgr::startAllSplitTaskCheck()
    {
       INT32 rc = SDB_OK ;

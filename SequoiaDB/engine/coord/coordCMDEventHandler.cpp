@@ -744,6 +744,89 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDTASKHANDLER__CANCELTASKS, "_coordCMDTaskHandler::_cancelTasks" )
+   INT32 _coordCMDTaskHandler::_cancelTasks( coordResource *resource,
+                                             pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATACMDTASKHANDLER__CANCELTASKS ) ;
+
+      for ( ossPoolSet< UINT64 >::iterator iter = _taskSet.begin() ;
+            iter != _taskSet.end() ;
+            ++ iter )
+      {
+         UINT64 taskID = *iter ;
+
+         INT32 tmpRC = _cancelTask( resource, taskID, cb ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDWARNING, "Failed to cancel task [%llu], rc: %d",
+                    taskID, tmpRC ) ;
+         }
+      }
+
+      PD_TRACE_EXITRC( COORD_DATACMDTASKHANDLER__CANCELTASKS, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDTASKHANDLER__CANCELTASK, "_coordCMDTaskHandler::_cancelTask" )
+   INT32 _coordCMDTaskHandler::_cancelTask( coordResource *resource,
+                                            UINT64 taskID,
+                                            pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATACMDTASKHANDLER__CANCELTASK ) ;
+
+      coordCmdCancelTask cmd ;
+
+      CHAR *msgBuff = NULL ;
+      INT32 msgSize = 0 ;
+      BSONObj query ;
+      INT64 contextID = -1 ;
+      rtnContextBuf contextBuff ;
+
+      try
+      {
+         query = BSON( CAT_TASKID_NAME << (INT64)taskID ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build cancel task query, "
+                 "occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = msgBuildQueryMsg( &msgBuff, &msgSize,
+                             CMD_ADMIN_PREFIX CMD_NAME_CANCEL_TASK,
+                             0, 0, 0, -1, &query, NULL, NULL, NULL, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build cancel task message, rc: %d",
+                   rc ) ;
+
+      rc = cmd.init( resource, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to init cancel task command, rc: %d",
+                   rc ) ;
+
+      rc = cmd.execute( (MsgHeader *)msgBuff, cb, contextID,  &contextBuff ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to cancel task [%llu], rc: %d",
+                   taskID, rc ) ;
+      SDB_ASSERT( -1 == contextID, "contextID must be -1" ) ;
+
+   done:
+      if ( NULL != msgBuff )
+      {
+         msgReleaseBuffer( msgBuff, cb ) ;
+      }
+      PD_TRACE_EXITRC( COORD_DATACMDTASKHANDLER__CANCELTASK, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    /*
       _coordCMDRecyTaskHandler implement
     */
@@ -1015,6 +1098,166 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( COORD_DATARECYHANDLER__DROPRECYITEMS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDRTRNTASKHANDLER_ONCOMMITEVENT, "_coordCMDRtrnTaskHandler::onCommitEvent" )
+   INT32 _coordCMDRtrnTaskHandler::onCommitEvent( coordResource *resource,
+                                                  coordCMDArguments *pArgs,
+                                                  pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATACMDRTRNTASKHANDLER_ONCOMMITEVENT ) ;
+
+      // wait for rebuild index tasks
+      _waitTasks( resource, FALSE, cb ) ;
+
+      PD_TRACE_EXITRC( COORD_DATACMDRTRNTASKHANDLER_ONCOMMITEVENT, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDRTRNTASKHANDLER_ONROLLBACKEVENT, "_coordCMDRtrnTaskHandler::onRollbackEvent" )
+   INT32 _coordCMDRtrnTaskHandler::onRollbackEvent( coordResource *resource,
+                                                    coordCMDArguments *pArgs,
+                                                    pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATACMDRTRNTASKHANDLER_ONROLLBACKEVENT ) ;
+
+      // cancel rebuild index tasks
+      _cancelTasks( resource, cb ) ;
+
+      PD_TRACE_EXITRC( COORD_DATACMDRTRNTASKHANDLER_ONROLLBACKEVENT, rc ) ;
+
+      return rc ;
+   }
+
+   /*
+      _coordCMDReturnHandler implement
+    */
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATARTRNHANDLER_PARSECATRETURN, "_coordCMDReturnHandler::parseCatReturn" )
+   INT32 _coordCMDReturnHandler::parseCatReturn( coordCMDArguments *pArgs,
+                                                 const vector<BSONObj> &cataObjs )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATARTRNHANDLER_PARSECATRETURN ) ;
+
+      if ( cataObjs.empty() )
+      {
+         goto done ;
+      }
+
+      _returnOptions = cataObjs[ 0 ].copy() ;
+      rc = _returnInfo.fromBSON( _returnOptions, UTIL_RETURN_MASK_ALL ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse return info from BSON, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( COORD_DATARTRNHANDLER_PARSECATRETURN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATARTRNHANDLER_REWRITEDATAMSG, "_coordCMDReturnHandler::rewriteDataMsg" )
+   INT32 _coordCMDReturnHandler::rewriteDataMsg( BSONObjBuilder &queryBuilder,
+                                                 BSONObjBuilder &hintBuilder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATARTRNHANDLER_REWRITEDATAMSG ) ;
+
+      rc = utilRecycleReturnInfo::rebuildBSON( _returnOptions,
+                                               hintBuilder,
+                                               UTIL_RETURN_MASK_RENAME ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to rebuild BSON for return "
+                   "info, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( COORD_DATARTRNHANDLER_REWRITEDATAMSG, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATARTRNHANDLER_ONBEGINEVENT, "_coordCMDReturnHandler::onBeginEvent" )
+   INT32 _coordCMDReturnHandler::onBeginEvent( coordResource *resource,
+                                               coordCMDArguments *arguments,
+                                               pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATARTRNHANDLER_ONBEGINEVENT ) ;
+
+      _returnInfo.clear() ;
+
+      PD_TRACE_EXITRC( COORD_DATARTRNHANDLER_ONBEGINEVENT, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATARTRNHANDLER_ONDATAP1EVENT, "_coordCMDReturnHandler::onDataP1Event" )
+   INT32 _coordCMDReturnHandler::onDataP1Event( SDB_EVENT_OCCUR_TYPE type,
+                                                coordResource *resource,
+                                                coordCMDArguments *arguments,
+                                                pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATARTRNHANDLER_ONDATAP1EVENT ) ;
+
+      if ( SDB_EVT_OCCUR_BEFORE == type )
+      {
+         const UTIL_RETURN_NAME_SET &replaceCS = _returnInfo.getReplaceCS() ;
+         const UTIL_RETURN_NAME_SET &replaceCL = _returnInfo.getReplaceCL() ;
+
+         coordDataCMDHelper helper ;
+
+         for ( UTIL_RETURN_NAME_SET_CIT iter = replaceCS.begin() ;
+               iter != replaceCS.end() ;
+               ++ iter )
+         {
+            const CHAR *csName = iter->c_str() ;
+            // skip recycle bin, and ignore catalog locks
+            rc = helper.dropCS( resource, csName, TRUE, TRUE, cb ) ;
+            if ( SDB_DMS_CS_NOTEXIST == rc )
+            {
+               rc = SDB_OK ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to drop collection space [%s], "
+                         "rc: %d", csName, rc ) ;
+            PD_LOG( PDDEBUG, "Dropped collection space [%s]", csName ) ;
+         }
+
+         for ( UTIL_RETURN_NAME_SET_CIT iter = replaceCL.begin() ;
+               iter != replaceCL.end() ;
+               ++ iter )
+         {
+            const CHAR *clName = iter->c_str() ;
+            // skip recycle bin, and ignore catalog locks
+            rc = helper.dropCL( resource, clName, TRUE, TRUE, cb ) ;
+            if ( SDB_DMS_CS_NOTEXIST == rc ||
+                 SDB_DMS_NOTEXIST == rc )
+            {
+               rc = SDB_OK ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to drop collection [%s], "
+                         "rc: %d", clName, rc ) ;
+            PD_LOG( PDDEBUG, "Dropped collection [%s]", clName ) ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_DATARTRNHANDLER_ONDATAP1EVENT, rc ) ;
       return rc ;
 
    error:

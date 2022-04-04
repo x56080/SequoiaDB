@@ -476,6 +476,12 @@ namespace engine
                                            SDB_DPSCB *dpsCB,
                                            BOOLEAN blockWrite ) ;
 
+   INT32 rtnReturnCommand( dmsReturnOptions &options,
+                           _pmdEDUCB *cb,
+                           SDB_DMSCB *dmsCB,
+                           SDB_DPSCB *dpsCB,
+                           BOOLEAN blockWrite ) ;
+
    INT32 rtnDropCollectionSpaceCommand ( const CHAR *pCollectionSpace,
                                          _pmdEDUCB *cb,
                                          SDB_DMSCB *dmsCB,

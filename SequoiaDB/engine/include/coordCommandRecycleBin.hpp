@@ -161,6 +161,88 @@ namespace engine
 
    typedef class _coordDropRecycleBinAll coordDropRecycleBinAll ;
 
+   /*
+      _coordReturnRecycleBinBase define
+    */
+   class _coordReturnRecycleBinBase : public _coordDataCMD3Phase
+   {
+   public:
+      _coordReturnRecycleBinBase() {}
+      virtual ~_coordReturnRecycleBinBase() {}
+
+   protected:
+      typedef _coordDataCMD3Phase _BASE ;
+
+      /*
+         command on collection
+       */
+      virtual BOOLEAN _flagDoOnCollection () { return FALSE ; }
+
+      virtual INT32 _regEventHandlers() ;
+      virtual INT32 _generateCataMsg( MsgHeader *pMsg,
+                                      pmdEDUCB *cb,
+                                      coordCMDArguments *pArgs,
+                                      CHAR **ppMsgBuf,
+                                      INT32 *pBufSize )
+      {
+         *ppMsgBuf = (CHAR*)pMsg ;
+         *pBufSize = pMsg->messageLength ;
+
+         return SDB_OK ;
+      }
+
+      // rewrite do audit
+      virtual INT32 _doAudit( coordCMDArguments *pArgs, INT32 rc ) ;
+
+      /*
+         Get output to client
+       */
+      virtual INT32 _doOutput( rtnContextBuf *buf ) ;
+
+   protected:
+      coordCMDRtrnTaskHandler _taskHandler ;
+      coordCMDRecycleHandler  _recycleHandler ;
+      coordCMDReturnHandler   _returnHandler ;
+   } ;
+
+   typedef class _coordReturnRecycleBinBase coordReturnRecycleBinBase ;
+
+   /*
+      _coordReturnRecycleBinItem define
+    */
+   class _coordReturnRecycleBinItem : public _coordReturnRecycleBinBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+
+   public:
+      _coordReturnRecycleBinItem() {}
+      virtual ~_coordReturnRecycleBinItem() {}
+
+   protected:
+      virtual INT32 _parseMsg( MsgHeader *pMsg,
+                               coordCMDArguments *pArgs ) ;
+   } ;
+
+   typedef class _coordReturnRecycleBinItem coordReturnRecycleBinItem ;
+
+   /*
+      _coordReturnRecycleBinItemToName define
+    */
+   class _coordReturnRecycleBinItemToName : public _coordReturnRecycleBinBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+
+   public:
+      _coordReturnRecycleBinItemToName() {}
+      virtual ~_coordReturnRecycleBinItemToName() {}
+
+   protected:
+      virtual INT32 _parseMsg( MsgHeader *pMsg,
+                               coordCMDArguments *pArgs ) ;
+   } ;
+
+   typedef class _coordReturnRecycleBinItemToName coordReturnRecycleBinItemToName ;
+
 }
 
 #endif // COORD_CMD_RECYCLEBIN_HPP__

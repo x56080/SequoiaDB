@@ -98,6 +98,9 @@ namespace engine
       RTN_CONTEXT_TS,            // Context of text search
       RTN_CONTEXT_TRUNCATECL,
       RTN_CONTEXT_TRUNCATEMAINCL,
+      RTN_CONTEXT_RETURNCL,
+      RTN_CONTEXT_RETURNCS,
+      RTN_CONTEXT_RETURNMAINCL,
 
       /// Alter contexts
       RTN_CONTEXT_ALTERCS,
@@ -130,6 +133,8 @@ namespace engine
       /// Index related
       RTN_CONTEXT_CAT_CREATE_IDX,
       RTN_CONTEXT_CAT_DROP_IDX,
+      /// recycle bin related
+      RTN_CONTEXT_CAT_RETURN_RECYCLEBIN,
 
       /// The last
       RTN_CONTEXT_CAT_END

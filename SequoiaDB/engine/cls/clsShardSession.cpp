@@ -42,6 +42,7 @@
 #include "rtnContextExplain.hpp"
 #include "rtnContextMainCL.hpp"
 #include "rtnContextDel.hpp"
+#include "rtnContextRecycle.hpp"
 #include "rtnCommandSnapshot.hpp"
 #include "utilCompressor.hpp"
 #include "pmdStartup.hpp"

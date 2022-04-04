@@ -59,6 +59,8 @@ namespace engine
       RTN_LOCAL_TASK_RENAMECL          = 2,
       RTN_LOCAL_TASK_RECYCLECS         = 3,
       RTN_LOCAL_TASK_RECYCLECL         = 4,
+      RTN_LOCAL_TASK_RETURNCS          = 5,
+      RTN_LOCAL_TASK_RETURNCL          = 6,
 
       RTN_LOCAL_TASK_MAX
    } ;

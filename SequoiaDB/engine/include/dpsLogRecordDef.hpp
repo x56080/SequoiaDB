@@ -226,6 +226,11 @@ namespace engine
       DPS_LOG_ADDUNIQUEID_CLINFO
    } ;
 
+   enum DPS_LOG_RETURN
+   {
+      DPS_LOG_RETURN_OPTIONS = 1
+   } ;
+
 }
 
 #endif

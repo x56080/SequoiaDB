@@ -40,6 +40,7 @@
 
 #include "coordCommandBase.hpp"
 #include "coordFactory.hpp"
+#include "utilRecycleReturnInfo.hpp"
 
 using namespace bson ;
 
@@ -304,6 +305,11 @@ namespace engine
       INT32 _waitTask( coordResource *resource,
                        UINT64 taskID,
                        pmdEDUCB *cb ) ;
+      INT32 _cancelTasks( coordResource *resource,
+                         pmdEDUCB *cb ) ;
+      INT32 _cancelTask( coordResource *resource,
+                         UINT64 taskID,
+                         pmdEDUCB *cb ) ;
 
    protected:
       ossPoolSet< UINT64 > _taskSet ;
@@ -369,6 +375,11 @@ namespace engine
                                    coordCMDArguments *arguments,
                                    pmdEDUCB *cb ) ;
 
+      const bson::BSONObj &getRecycleOptions() const
+      {
+         return _recycleOptions ;
+      }
+
    protected:
       INT32 _dropRecycleItem( coordResource *resource,
                               const CHAR *recycleName,
@@ -391,6 +402,81 @@ namespace engine
    } ;
 
    typedef class _coordCMDRecycleHandler coordCMDRecycleHandler ;
+
+   /*
+      _coordCMDRtrnTaskHandler define
+    */
+   // when return recycle item, use return task handler to rebuild
+   // indexes with external data, e.g. text indexes and global indexes
+   class _coordCMDRtrnTaskHandler : public _coordCMDTaskHandler
+   {
+   public:
+      _coordCMDRtrnTaskHandler() {}
+      virtual ~_coordCMDRtrnTaskHandler() {}
+
+      virtual const CHAR *getName() const
+      {
+         return "return task" ;
+      }
+
+      virtual INT32 onCommitEvent( coordResource *resource,
+                                   coordCMDArguments *arguments,
+                                   pmdEDUCB *cb ) ;
+
+      virtual INT32 onRollbackEvent( coordResource *resource,
+                                     coordCMDArguments *arguments,
+                                     pmdEDUCB *cb ) ;
+   } ;
+
+   typedef class _coordCMDRtrnTaskHandler coordCMDRtrnTaskHandler ;
+
+   /*
+      _coordCMDReturnHandler define
+    */
+   class _coordCMDReturnHandler : public _coordCMDEventHandler
+   {
+   public:
+      _coordCMDReturnHandler() {}
+      virtual ~_coordCMDReturnHandler() {}
+
+      virtual const CHAR *getName() const
+      {
+         return "return" ;
+      }
+
+      virtual INT32 parseCatReturn( coordCMDArguments *pArgs,
+                                    const std::vector<bson::BSONObj> &cataObjs ) ;
+
+      virtual BOOLEAN needRewriteDataMsg()
+      {
+         return ( ( _returnInfo.hasChangeUIDCL() ) ||
+                  ( _returnInfo.hasRenameCL() ) ||
+                  ( _returnInfo.hasRenameCS() ) ) ;
+      }
+
+      virtual INT32 rewriteDataMsg( bson::BSONObjBuilder &queryBuilder,
+                                    bson::BSONObjBuilder &hintBuilder ) ;
+
+      virtual INT32 onBeginEvent( coordResource *resource,
+                                  coordCMDArguments *arguments,
+                                  pmdEDUCB *cb ) ;
+
+      virtual INT32 onDataP1Event( SDB_EVENT_OCCUR_TYPE type,
+                                   coordResource *resource,
+                                   coordCMDArguments *arguments,
+                                   pmdEDUCB *cb ) ;
+
+      const utilRecycleReturnInfo &getReturnInfo() const
+      {
+         return _returnInfo ;
+      }
+
+   protected:
+      bson::BSONObj         _returnOptions ;
+      utilRecycleReturnInfo _returnInfo ;
+   } ;
+
+   typedef class _coordCMDReturnHandler coordCMDReturnHandler ;
 
 }
 

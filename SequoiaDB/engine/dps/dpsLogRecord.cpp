@@ -47,6 +47,7 @@
 #include "dpsUtil.hpp"
 #include "pdTrace.hpp"
 #include "dpsTrace.hpp"
+#include "utilRecycleItem.hpp"
 
 using namespace bson ;
 namespace engine
@@ -1744,6 +1745,41 @@ namespace engine
                len += ossSnprintf ( outBuf + len, outSize - len,
                                     "*ERROR* : %s: %s"OSS_NEWLINE,
                                     "Invalid add unique id record", e.what() ) ;
+               goto done ;
+            }
+
+            break ;
+         }
+         case LOG_TYPE_RETURN:
+         {
+            len += ossSnprintf( outBuf + len, outSize - len,
+                                " Type   : %s(%d)"OSS_NEWLINE,
+                                "RETURN", LOG_TYPE_RETURN ) ;
+
+            dpsLogRecord::iterator itrOptions = find( DPS_LOG_RETURN_OPTIONS ) ;
+            if ( itrOptions.valid() )
+            {
+               try
+               {
+                  BSONObj boOptions( itrOptions.value() ) ;
+                  len += ossSnprintf ( outBuf + len, outSize - len,
+                                       " Options : %s"OSS_NEWLINE,
+                                       boOptions.toPoolString().c_str() ) ;
+               }
+               catch ( std::exception &e )
+               {
+                  len += ossSnprintf ( outBuf + len, outSize - len,
+                                       "*ERROR* : %s: %s"OSS_NEWLINE,
+                                       "Invalid truncate collection record",
+                                       e.what() ) ;
+                  goto done ;
+               }
+            }
+            else
+            {
+               len += ossSnprintf ( outBuf + len, outSize - len,
+                                    "*ERROR* : %s: no return options"OSS_NEWLINE,
+                                    "Invalid truncate collection record" ) ;
                goto done ;
             }
 
