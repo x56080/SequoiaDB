@@ -130,6 +130,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_CATCTXBASE__OPEN ) ;
 
+      cb->setCurProcessName( _targetName.c_str() ) ;
+
       _setStatus( CAT_CONTEXT_LOCKING ) ;
 
       rc = _checkContext( cb ) ;

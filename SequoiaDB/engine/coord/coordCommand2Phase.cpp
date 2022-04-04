@@ -41,6 +41,7 @@
 #include "utilCommon.hpp"
 #include "msgMessage.hpp"
 #include "coordUtil.hpp"
+#include "utilString.hpp"
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
 
@@ -82,6 +83,8 @@ namespace engine
       rtnContextCoord *pCoordCtxForCata = NULL ;
       rtnContextCoord *pCoordCtxForData = NULL ;
 
+      _utilString< DMS_COLLECTION_FULL_NAME_SZ > lastProcessName ;
+
       CHAR *pCataMsgBuf = NULL ;
       INT32 cataMsgSize = 0 ;
 
@@ -93,6 +96,8 @@ namespace engine
 
       contextID = -1 ;
       INT32 retryCount = 0 ;
+
+      lastProcessName.append( cb->getCurProcessName() ) ;
 
       /************************************************************************
        * Prepare phase
@@ -119,6 +124,8 @@ namespace engine
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to parse arguments for command[%s], "
                    "rc: %d", getName(), rc ) ;
+
+      cb->setCurProcessName( pArguments->_targetName.c_str() ) ;
 
       if ( !_allowInTransaction() && cb->isTransaction() )
       {
@@ -322,6 +329,8 @@ namespace engine
       {
          _releaseDataMsg( pDataMsgBuf, dataMsgSize, cb ) ;
       }
+
+      cb->setCurProcessName( lastProcessName.str() ) ;
 
       PD_TRACE_EXITRC ( COORD_CMD2PHASE_EXE, rc ) ;
       return rc ;
