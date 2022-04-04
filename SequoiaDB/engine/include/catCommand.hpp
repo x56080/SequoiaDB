@@ -149,6 +149,11 @@ namespace engine
 
       const CHAR* name() ;
 
+      virtual const CHAR *getProcessName() const
+      {
+         return _dsInfo._dsName ;
+      }
+
    private:
       catDSInfo _dsInfo ;
    } ;
@@ -174,6 +179,11 @@ namespace engine
                   INT64 &contextID ) ;
 
       const CHAR* name() ;
+
+      virtual const CHAR *getProcessName() const
+      {
+         return _name ;
+      }
 
    private:
       /**
@@ -212,10 +222,16 @@ namespace engine
 
       const CHAR* name() ;
 
+      virtual const CHAR *getProcessName() const
+      {
+         return _dsName ;
+      }
+
    private:
       INT32 _getDataSourceMeta( const CHAR *name, BSONObj &record ) ;
 
    private:
+      const CHAR * _dsName ;
       UTIL_DS_UID _dsID ;
       BSONObjBuilder _optionBuilder ;
    } ;
@@ -241,6 +257,11 @@ namespace engine
                   INT64 &contextID ) ;
 
       const CHAR *name() ;
+
+      virtual const CHAR *getProcessName() const
+      {
+         return _name ;
+      }
 
    private:
       const CHAR *_name ;

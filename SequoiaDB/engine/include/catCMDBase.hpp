@@ -75,6 +75,11 @@ namespace engine
 
       virtual const CHAR * name() = 0 ;
 
+      virtual const CHAR *getProcessName() const
+      {
+         return "" ;
+      }
+
       // If this command can only be executed on primary node, we need check
       // primary
       virtual BOOLEAN needCheckPrimary() = 0 ;

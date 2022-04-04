@@ -108,6 +108,8 @@ namespace engine
                    "failed to parse query, rc: %d",
                    contextID(), rc ) ;
 
+      cb->setCurProcessName( _targetName.c_str() ) ;
+
       _setStatus( CAT_CONTEXT_LOCKING ) ;
 
       rc = _checkContext( cb ) ;
