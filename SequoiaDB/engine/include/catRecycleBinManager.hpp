@@ -159,6 +159,9 @@ namespace engine
                             const bson::BSONObj &matcher,
                             pmdEDUCB *cb,
                             INT16 w ) ;
+      INT32 _deleteAllObjects( UTIL_RECYCLE_TYPE type,
+                               pmdEDUCB *cb,
+                               INT16 w ) ;
 
       INT32 _checkAvailable( const CHAR *originName,
                              utilGlobalID originID,

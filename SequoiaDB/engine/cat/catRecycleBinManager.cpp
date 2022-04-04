@@ -317,21 +317,20 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__CATRECYBINMGR_DROPALLITEMS ) ;
 
-      BSONObj dummy ;
 
-      rc = _deleteObjects( UTIL_RECYCLE_IDX, dummy, cb, w ) ;
+      rc = _deleteAllObjects( UTIL_RECYCLE_IDX, cb, w ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to delete recycle "
                    "index objects, rc: %d", rc ) ;
 
-      rc = _deleteObjects( UTIL_RECYCLE_SEQ, dummy, cb, w ) ;
+      rc = _deleteAllObjects( UTIL_RECYCLE_SEQ, cb, w ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to delete all recycle "
                    "sequence objects, rc: %d", rc ) ;
 
-      rc = _deleteObjects( UTIL_RECYCLE_CL, dummy, cb, w ) ;
+      rc = _deleteAllObjects( UTIL_RECYCLE_CL, cb, w ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to delete all recycle "
                    "collection objects, rc: %d", rc ) ;
 
-      rc = _deleteObjects( UTIL_RECYCLE_CS, dummy, cb, w ) ;
+      rc = _deleteAllObjects( UTIL_RECYCLE_CS, cb, w ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to delete all recycle "
                    "collection space objects, rc: %d", rc ) ;
 
@@ -369,6 +368,30 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__CATRECYBINMGR__DELOBJS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__DELALLOBJS, "_catRecycleBinManager::_deleteAllObjects" )
+   INT32 _catRecycleBinManager::_deleteAllObjects( UTIL_RECYCLE_TYPE type,
+                                                   pmdEDUCB *cb,
+                                                   INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__DELALLOBJS ) ;
+
+      const CHAR *recycleCollection = catGetRecycleBinRecyCL( type ) ;
+
+      // use truncate instead of delete
+      rc = rtnTruncCollectionCommand( recycleCollection, cb, _dmsCB, _dpsCB ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to delete all objects from recycle "
+                   "collection [%s], rc: %d", recycleCollection, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__DELALLOBJS, rc ) ;
       return rc ;
 
    error:

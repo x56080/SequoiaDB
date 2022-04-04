@@ -715,11 +715,12 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__RTNRECYBINMGR__DELALLITEMS ) ;
 
-      rtnQueryOptions options ;
-      options.setCLFullName( _getRecyItemCL() ) ;
-      rc = rtnDelete( options, cb, _dmsCB, _dpsCB, w ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to delete all recycle items "
-                   "from collection [%s], rc: %d", _getRecyItemCL(), rc ) ;
+      const CHAR *recycleCollection = _getRecyItemCL() ;
+
+      // use truncate instead of delete
+      rc = rtnTruncCollectionCommand( recycleCollection, cb, _dmsCB, _dpsCB ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to delete all recycle items from "
+                   "collection [%s], rc: %d", recycleCollection, rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__RTNRECYBINMGR__DELALLITEMS, rc ) ;
