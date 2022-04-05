@@ -57,8 +57,7 @@ public class IndexConsistent23961 extends SdbTestBase {
         IndexUtils.insertData( cl, recsNum );
     }
 
-    // http://jira.web:8080/browse/SEQUOIADBMAINSTREAM-8140
-    @Test(enabled = false)
+    @Test
     public void test() throws Exception {
         String indexName = "testindex23961";
         ThreadExecutor es = new ThreadExecutor();
@@ -72,15 +71,16 @@ public class IndexConsistent23961 extends SdbTestBase {
         if ( createIndex.getRetCode() != 0 ) {
             Assert.assertEquals( createIndex.getRetCode(),
                     SDBError.SDB_DMS_TRUNCATED.getErrorCode() );
-            int resultCode = -321;
+            int[] resultCodes = { -321, -247 };
             IndexUtils.checkIndexTask( sdb, "Create index", csName, clName,
-                    indexName, resultCode );
+                    indexName, resultCodes );
             IndexUtils.checkIndexConsistent( sdb, csName, clName, indexName,
                     false );
         } else {
-            int resultCode = 0;
+            //SEQUOIADBMAINSTREAM-8140发生-321错误重试一次，主节点Group Result可能报错-247，最终索引创建成功
+            int[] resultCodes = { 0, -247 };
             IndexUtils.checkIndexTask( sdb, "Create index", csName, clName,
-                    indexName, resultCode );
+                    indexName, resultCodes );
             IndexUtils.checkIndexConsistent( sdb, csName, clName, indexName,
                     true );
         }
@@ -144,5 +144,4 @@ public class IndexConsistent23961 extends SdbTestBase {
             }
         }
     }
-
 }
