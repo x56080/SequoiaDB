@@ -95,7 +95,6 @@ testFiles = [
    [ "./crud/getCount14682.cpp" ],
    [ "./crud/cudtest26312_4.cpp" ],
    [ "./decimal/absAndGetSign8892.cpp" ],
-   [ "./crud/cudtest26312_4.cpp" ],
    [ "./decimal/add8895.cpp" ],
    [ "./decimal/append8865.cpp" ],
    [ "./decimal/ceilAndFloor8902.cpp" ],
