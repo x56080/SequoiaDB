@@ -51,7 +51,7 @@ public class Fulltext15841 extends FullTestBase {
         indexObj.put( "e", "text" );
     }
 
-    @Test(enabled = false) // SEQUOIADBMAINSTREAM-7907
+    @Test
     public void test() throws Exception {
         ThreadExecutor thread = new ThreadExecutor(
                 FullTextUtils.THREAD_TIMEOUT );

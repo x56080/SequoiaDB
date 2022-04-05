@@ -43,7 +43,7 @@ public class Fulltext11988 extends FullTestBase {
                 "{ShardingKey:{a:1}, ShardingType:'hash', AutoSplit:true}" );
     }
 
-    @Test(enabled = false) // SEQUOIADBMAINSTREAM-7907
+    @Test
     public void test() throws Exception {
         FullTextDBUtils.insertData( cl, FullTextUtils.INSERT_NUMS );
 
