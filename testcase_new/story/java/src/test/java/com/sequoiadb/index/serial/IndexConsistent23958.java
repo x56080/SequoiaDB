@@ -64,8 +64,7 @@ public class IndexConsistent23958 extends SdbTestBase {
         IndexUtils.insertData( maincl, recsNum );
     }
 
-    // http://jira:8080/browse/SEQUOIADBMAINSTREAM-7463
-    @Test(enabled = false)
+    @Test
     public void test() throws Exception {
         ThreadExecutor es = new ThreadExecutor();
         DropIndex dropIndex = new DropIndex();
@@ -134,8 +133,8 @@ public class IndexConsistent23958 extends SdbTestBase {
                 if ( sdb.isCollectionSpaceExist( newMainCSName ) ) {
                     sdb.dropCollectionSpace( newMainCSName );
                 }
-                if ( sdb.isCollectionSpaceExist( csName ) ) {
-                    sdb.dropCollectionSpace( csName );
+                if ( sdb.isCollectionSpaceExist( mainCSName ) ) {
+                    sdb.dropCollectionSpace( mainCSName );
                 }
             }
         } finally {
@@ -232,5 +231,9 @@ public class IndexConsistent23958 extends SdbTestBase {
                 subclName1, indexName, resultCode );
         IndexUtils.checkIndexTaskResult( db, "Drop index", csName, subclName2,
                 indexName, resultCode );
+        IndexUtils.checkIndexConsistent( db, csName, subclName1, indexName,
+                false );
+        IndexUtils.checkIndexConsistent( db, csName, subclName2, indexName,
+                false );
     }
 }
