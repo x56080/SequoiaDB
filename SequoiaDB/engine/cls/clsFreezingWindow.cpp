@@ -976,7 +976,7 @@ namespace engine
          if ( blockList.size() > 0 )
          {
             PD_LOG( PDDEBUG, "Freezing checker [%s]: got [%u] blocking "
-                    "transactions", _objName, blockList ) ;
+                    "transactions", _objName, blockList.size() ) ;
          }
 
          OSS_BIT_SET( _checkMask, CLS_FREEZING_CHECKER_MASK_TRANS ) ;
