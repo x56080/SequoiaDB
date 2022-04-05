@@ -7,7 +7,7 @@
  ******************************************************************************/
 testConf.skipStandAlone = true;
 
-// main( test );
+main( test );
 
 function test ()
 {
