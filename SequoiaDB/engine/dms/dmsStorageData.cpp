@@ -909,6 +909,9 @@ namespace engine
       dmsRecord* pRecord               = NULL ;
       dmsOffset  myOffset              = DMS_INVALID_OFFSET ;
 
+      UINT32     recordAvgSize         = 0 ;
+      dmsMBStatInfo* mbStat            = NULL ;
+      
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATA__EXTENTINSERTRECORD ) ;
       rc = context->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
@@ -934,8 +937,21 @@ namespace engine
       pRecord->setNormal() ;
       pRecord->resetAttr() ;
 
+      //Calculate the average size of records in this collection. If the free
+      //spaces in the delete record after inserting the new record is greater
+      //then the average size.Let's split it.
+      mbStat = context->mbStat() ;
+      if ( mbStat->_totalRecords > 0 )
+      {
+         recordAvgSize = mbStat->_totalDataLen / mbStat->_totalRecords ;
+      }
+      else 
+      {
+         recordAvgSize = needRecordSize ;
+      }
+      
       // and then need to check if we need to split deleted record
-      if ( pRecord->getSize() - needRecordSize > DMS_MIN_RECORD_SZ )
+      if ( pRecord->getSize() - needRecordSize >= recordAvgSize )
       {
          // original offset+new size = new delete offset
          dmsOffset newOffset = myOffset + needRecordSize ;
