@@ -578,7 +578,8 @@ namespace engine
                   if ( cmp > 0 )
                   {
                      rc = SDB_INVALIDARG ;
-                     PD_LOG_MSG( PDERROR, "The section[%s, %s] is valid", 
+                     PD_LOG_MSG( PDERROR, "The start and end values of section "
+                                 "[%s, %s] don't meet the index scan order", 
                                  section.startKey.toString().c_str(),
                                  section.endKey.toString().c_str() ) ;
                      goto error ;     
