@@ -445,8 +445,9 @@ namespace engine
          recycleName = element.valuestr() ;
 
          rc = dummyItem.fromRecycleName( recycleName ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to parse recycle item "
-                      "name [%s], rc: %d", recycleName, rc ) ;
+         PD_LOG_MSG_CHECK( SDB_OK == rc, rc, error, PDERROR,
+                           "Failed to parse recycle item name [%s], "
+                           "rc: %d", recycleName, rc ) ;
 
          pArgs->_targetName.assign( recycleName ) ;
 
@@ -502,8 +503,9 @@ namespace engine
          recycleName = element.valuestr() ;
 
          rc = dummyItem.fromRecycleName( recycleName ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to parse recycle item "
-                      "name [%s], rc: %d", recycleName, rc ) ;
+         PD_LOG_MSG_CHECK( SDB_OK == rc, rc, error, PDERROR,
+                           "Failed to parse recycle item name [%s], "
+                           "rc: %d", recycleName, rc ) ;
 
          pArgs->_targetName.assign( recycleName ) ;
 
