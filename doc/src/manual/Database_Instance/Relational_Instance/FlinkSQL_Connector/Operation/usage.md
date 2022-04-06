@@ -87,6 +87,3 @@ groupItem:
 ```lang-sql
 Flink SQL> SELECT * FROM employee;
 ```
-
-
-
