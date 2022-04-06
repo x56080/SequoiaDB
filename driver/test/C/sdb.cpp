@@ -190,6 +190,7 @@ TEST(sdb,sdbDropCollectionSpace)
    ASSERT_EQ(  SDB_OK, rc ) ;  
    bson_destroy( &options2 ) ;
    sdbDisconnect ( connection ) ;
+   sdbReleaseCollection ( collection ) ;
    sdbReleaseCS ( collectionspace ) ;
    sdbReleaseConnection ( connection ) ;
 }
