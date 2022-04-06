@@ -120,6 +120,7 @@ namespace engine
    {
       _dmsEventCLItem ()
       : _pCLName( NULL ),
+        _logicCSID( DMS_INVALID_LOGICCSID ),
         _mbID( DMS_INVALID_MBID ),
         _clLID( DMS_INVALID_CLID ),
         _mbContext( NULL )

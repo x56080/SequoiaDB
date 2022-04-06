@@ -135,7 +135,8 @@ namespace engine
       CHAR   _name [ DMS_SU_NAME_SZ+1 ] ;                // storage unit name
       UINT32 _sequence ;                                 // storage unit seq
       UINT32 _numMB ;                                    // Number of MB
-      UINT32 _MBHWM ;
+      UINT32 _MBHWM ;                                    // maximum of logical ID
+                                                         // WARNING: need acquire in atomic
       UINT32 _pageNum ;                                  // current page number
       UINT64 _secretValue ;                              // with the index
       UINT32 _lobdPageSize ;                             // lobd page size

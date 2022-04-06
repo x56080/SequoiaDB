@@ -1651,7 +1651,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_OPTAPM_ONDROPCL ) ;
 
-      if ( SDB_EVT_OCCUR_AFTER == type )
+      if ( SDB_EVT_OCCUR_BEFORE == type )
       {
          SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
 

@@ -2419,7 +2419,7 @@ namespace engine
       }
 
       // set mb meta data and header data
-      logicalID = _dmsHeader->_MBHWM++ ;
+      logicalID = ossFetchAndIncrement32( &( _dmsHeader->_MBHWM ) ) ;
       mb = &_dmsMME->_mbList[newCollectionID] ;
       mb->reset( pName, clUniqueID, newCollectionID, logicalID,
                  attributes, compressionType ) ;
@@ -2951,17 +2951,10 @@ namespace engine
       if ( ( NULL == options ) ||
            ( !( options->isTakenOver() ) ) )
       {
-         // pause mb lock and change metadata
          if ( needChangeCLID )
          {
-            context->pause() ;
-            ossLatch( &_metadataLatch, EXCLUSIVE ) ;
-            newCLID = _dmsHeader->_MBHWM++ ;
-            ossUnlatch( &_metadataLatch, EXCLUSIVE ) ;
-            // resume context lock
-            rc = context->resume() ;
-            PD_RC_CHECK( rc, PDERROR, "dms mb context resume falied, rc: %d",
-                         rc ) ;
+            // use atomic increment to avoid lock on meta data
+            newCLID = ossFetchAndIncrement32( &( _dmsHeader->_MBHWM ) ) ;
          }
 
          oldRecords = context->mbStat()->_totalRecords ;
