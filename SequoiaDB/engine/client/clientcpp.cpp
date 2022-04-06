@@ -1594,16 +1594,6 @@ do                                                            \
          goto error ;
       }
 
-      // check return cursor
-      if ( NULL == pCursor )
-      {
-         rc = _connection->_buildEmptyCursor( &pCursor ) ;
-         if ( SDB_OK != rc )
-         {
-            goto error ;
-         }
-      }
-
       // return cursor
       *cursor = pCursor ;
    done :
@@ -8020,16 +8010,6 @@ do                                                            \
          goto error ;
       }
 
-      // check return cursor
-      if ( NULL == *result )
-      {
-         rc = _buildEmptyCursor( result ) ;
-         if ( SDB_OK != rc )
-         {
-            goto error ;
-         }
-      }
-
    done :
       return rc ;
    error :
@@ -8135,16 +8115,6 @@ do                                                            \
       if ( rc )
       {
          goto error ;
-      }
-
-      // check return cursor
-      if ( NULL == *result )
-      {
-         rc = _buildEmptyCursor( result ) ;
-         if ( SDB_OK != rc )
-         {
-            goto error ;
-         }
       }
 
    done :
@@ -8438,29 +8408,19 @@ do                                                            \
       INT32 rc           = SDB_OK ;
       _sdbCursor *cursor = NULL ;
 
-      // if nothing return by engine, see we need to return cursor or not
-      if ( -1 == contextID &&
-           ( ((UINT32)((MsgHeader*)*ppBuffer)->messageLength) <=
-              ossRoundUpToMultipleX( sizeof(MsgOpReply), 4 ) ) )
+      if ( !ppCursor )
       {
          goto done ;
       }
-
-      // build cursor obj
-      cursor = (_sdbCursor*)( new(std::nothrow) sdbCursorImpl() ) ;
-      if ( NULL == cursor )
-      {
-         rc = SDB_OOM ;
-         goto error ;
-      }
-      ((_sdbCursorImpl*)cursor)->_contextID = contextID ;
-      rc = ((_sdbCursorImpl*)cursor)->_setConnection ( this ) ;
+      // when ppCursor != NULL, we mush return a cursor
+      rc = _buildEmptyCursor( &cursor ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
       }
-
-      // if we can get info from _ppBuffer, do it
+      // set contextID got from engine
+      ((_sdbCursorImpl*)cursor)->_contextID = contextID ;
+      // set the receive buffer into cursor
       if ( ((UINT32)((MsgHeader*)*ppBuffer)->messageLength) >
            ossRoundUpToMultipleX( sizeof(MsgOpReply), 4 ) )
       {
@@ -8469,26 +8429,12 @@ do                                                            \
          ((_sdbCursorImpl*)cursor)->_receiveBufferSize = *size ;
          *size = 0 ;
       }
-
       // return cursor
-      if ( ppCursor )
-      {
-         *ppCursor = cursor ;
-      }
-      else
-      {
-         delete cursor ;
-         cursor = NULL ;
-      }
+      *ppCursor = cursor ;
 
    done :
       return rc ;
    error :
-      if ( NULL != cursor )
-      {
-         delete cursor ;
-         cursor = NULL ;
-      }
       goto done ;
    }
 
@@ -8504,6 +8450,12 @@ do                                                            \
                                  _sdbCursor **ppCursor )
    {
       INT32 rc            = SDB_OK ;
+
+      // when need return cursor, add these flags for optimization
+      if ( ppCursor )
+      {
+         flag |= FLG_QUERY_WITH_RETURNDATA ;
+      }
 
       lock () ;
 
@@ -9509,7 +9461,8 @@ do                                                            \
       ob.appendCode ( FIELD_NAME_FUNC, code ) ;
       ob.appendIntOrLL ( FIELD_NAME_FUNCTYPE, FMP_FUNC_TYPE_JS ) ;
       newObj = ob.obj() ;
-
+      // CAN NOT add FLG_QUERY_WITH_RETURNDATA flag, for the return result
+      // is not the expected result
       rc = clientBuildQueryMsgCpp( &_pSendBuffer, &_sendBufferSize,
                                    CMD_ADMIN_PREFIX CMD_NAME_EVAL,
                                    0, 0, 0, -1, newObj.objdata(),

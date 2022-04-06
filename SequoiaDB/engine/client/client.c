@@ -1355,10 +1355,8 @@ error :
    goto done ;
 }
 
-static INT32 _getRetInfo ( sdbConnectionHandle cHandle,
-                           CHAR **ppBuffer, INT32 *size,
-                           SINT64 contextID,
-                           sdbCursorHandle *pCursor )
+static INT32 _buildEmptyCursor( sdbConnectionHandle cHandle,
+                                sdbCursorHandle *handle )
 {
    INT32 rc                = SDB_OK ;
    sdbCursorStruct *cursor = NULL ;
@@ -1367,32 +1365,9 @@ static INT32 _getRetInfo ( sdbConnectionHandle cHandle,
    // check
    HANDLE_CHECK( cHandle, db, SDB_HANDLE_TYPE_CONNECTION ) ;
 
-   if ( pCursor )
-   {
-      *pCursor = SDB_INVALID_HANDLE ;
-   }
-
-   // if nothing return by engine, see we need to return cursor or not
-   if ( -1 == contextID &&
-        ( ((UINT32)((MsgHeader*)*ppBuffer)->messageLength) <=
-           ossRoundUpToMultipleX( sizeof(MsgOpReply), 4 ) ) )
-   {
-      goto done ;
-   }
-
-   // build cursor
+   // build empty cursor
    ALLOC_HANDLE( cursor, sdbCursorStruct ) ;
-   INIT_CURSOR( cursor, cHandle, db, contextID ) ;
-
-   // query with return data
-   if ( ((UINT32)((MsgHeader*)*ppBuffer)->messageLength) >
-           ossRoundUpToMultipleX( sizeof(MsgOpReply), 4 ) )
-   {
-      cursor->_pReceiveBuffer = *ppBuffer ;
-      *ppBuffer = NULL ;
-      cursor->_receiveBufferSize = *size ;
-      *size = 0 ;
-   }
+   INIT_CURSOR( cursor, cHandle, db, -1 ) ;
 
    // register cursor in connection handle
    rc = _regCursor ( cHandle, (sdbCursorHandle)cursor ) ;
@@ -1401,16 +1376,8 @@ static INT32 _getRetInfo ( sdbConnectionHandle cHandle,
       goto error ;
    }
 
-   // return cursor
-   if ( pCursor )
-   {
-      *pCursor = (sdbCursorHandle)cursor ;
-   }
-   else
-   {
-      sdbReleaseCursor( (sdbCursorHandle)cursor ) ;
-   }
-
+   // return
+   *handle = (sdbCursorHandle)cursor ;
 done:
    return rc ;
 error:
@@ -1418,6 +1385,53 @@ error:
    {
       sdbReleaseCursor( (sdbCursorHandle)cursor ) ;
    }
+   goto done ;
+}
+
+
+static INT32 _getRetInfo ( sdbConnectionHandle cHandle,
+                           CHAR **ppBuffer, INT32 *size,
+                           SINT64 contextID,
+                           sdbCursorHandle *pCursor )
+{
+   INT32 rc                = SDB_OK ;
+   sdbCursorHandle cursor  = SDB_INVALID_HANDLE ;
+   sdbConnectionStruct *db = (sdbConnectionStruct *)cHandle ;
+
+   // check
+   HANDLE_CHECK( cHandle, db, SDB_HANDLE_TYPE_CONNECTION ) ;
+   if ( !pCursor )
+   {
+      goto done ;
+   }
+   // when pCursor != NULL, we mush return a cursor
+   rc = _buildEmptyCursor( cHandle, &cursor ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+   if ( SDB_INVALID_HANDLE == cursor )
+   {
+      rc = SDB_SYS ;
+      goto error ;
+   }
+   // set contextID got from engine
+   ((sdbCursorStruct *)cursor)->_contextID = contextID ;
+   // set the receive buffer into cursor
+   if ( ((UINT32)((MsgHeader*)*ppBuffer)->messageLength) >
+           ossRoundUpToMultipleX( sizeof(MsgOpReply), 4 ) )
+   {
+      ((sdbCursorStruct *)cursor)->_pReceiveBuffer = *ppBuffer ;
+      *ppBuffer = NULL ;
+      ((sdbCursorStruct *)cursor)->_receiveBufferSize = *size ;
+      *size = 0 ;
+   }
+   // return cursor
+   *pCursor = cursor ;
+
+done:
+   return rc ;
+error:
    goto done ;
 }
 
@@ -1431,10 +1445,10 @@ static INT32 _runCommand2 ( sdbConnectionHandle cHandle,
                             UINT64 reqID,
                             SINT64 numToSkip,
                             SINT64 numToReturn,
-                            bson *arg1,
-                            bson *arg2,
-                            bson *arg3,
-                            bson *arg4,
+                            const bson *arg1,
+                            const bson *arg2,
+                            const bson *arg3,
+                            const bson *arg4,
                             sdbCursorHandle *handle
                             )
 {
@@ -1444,6 +1458,12 @@ static INT32 _runCommand2 ( sdbConnectionHandle cHandle,
 
    // check
    HANDLE_CHECK( cHandle, db, SDB_HANDLE_TYPE_CONNECTION ) ;
+
+   // when need return cursor, add these flags for optimization
+   if ( handle )
+   {
+      flag |= FLG_QUERY_WITH_RETURNDATA ;
+   }
 
    // build message
    rc = clientBuildQueryMsg ( ppSendBuffer,
@@ -1484,28 +1504,6 @@ static INT32 _runCommand2 ( sdbConnectionHandle cHandle,
    }
 
 done :
-   return rc ;
-error :
-   goto done ;
-}
-
-static INT32 _buildEmptyCursor( sdbConnectionHandle cHandle,
-                                sdbCursorHandle *handle )
-{
-   INT32 rc                = SDB_OK ;
-   sdbCursorStruct *cursor = NULL ;
-   sdbConnectionStruct *db = (sdbConnectionStruct *)cHandle ;
-
-   // check
-   HANDLE_CHECK( cHandle, db, SDB_HANDLE_TYPE_CONNECTION ) ;
-
-   // build empty cursor
-   ALLOC_HANDLE( cursor, sdbCursorStruct ) ;
-   INIT_CURSOR( cursor, cHandle, db, -1 ) ;
-
-   // return
-   *handle = (sdbCursorHandle)cursor ;
-done:
    return rc ;
 error:
    goto done ;
@@ -1726,8 +1724,7 @@ static INT32 _sdbGetList ( sdbConnectionHandle cHandle,
                            sdbCursorHandle *handle )
 {
    INT32 rc                        = SDB_OK ;
-   sdbCursorStruct *cursor         = NULL ;
-   SINT64 contextID                = -1 ;
+   sdbCursorHandle cursor          = SDB_INVALID_HANDLE ;
    const CHAR *p                   = NULL ;
    sdbConnectionStruct *connection = NULL ;
 
@@ -1805,60 +1802,27 @@ static INT32 _sdbGetList ( sdbConnectionHandle cHandle,
 
    connection = (sdbConnectionStruct *)cHandle ;
    HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
-   rc = clientBuildQueryMsg ( &connection->_pSendBuffer,
-                              &connection->_sendBufferSize,
-                              p, 0, 0,
-                              numToSkip, numToReturn,
-                              condition, selector, orderBy, hint,
-                              connection->_endianConvert ) ;
+
+   rc = _runCommand2( cHandle,
+                      &connection->_pSendBuffer, &connection->_sendBufferSize,
+                      &connection->_pReceiveBuffer, &connection->_receiveBufferSize,
+                      p,
+                      0, 0, numToSkip, numToReturn,
+                      condition, selector, orderBy, hint,
+                      &cursor ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
+   /// set output result
+   *handle = cursor ;
 
-   // send and recv
-   rc = _sendAndRecv( cHandle, connection->_sock,
-                      (MsgHeader*)connection->_pSendBuffer,
-                      (MsgHeader**)&connection->_pReceiveBuffer,
-                      &connection->_receiveBufferSize,
-                      TRUE, connection->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // extract revc message
-   rc = _extract( cHandle,
-                  (MsgHeader*)connection->_pReceiveBuffer,
-                  connection->_receiveBufferSize,
-                  &contextID,
-                  connection->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check the return header
-   CHECK_RET_MSGHEADER( connection->_pSendBuffer, connection->_pReceiveBuffer,
-           cHandle ) ;
-   ALLOC_HANDLE( cursor, sdbCursorStruct ) ;
-   INIT_CURSOR ( cursor, connection, connection, contextID ) ;
-
-   // register cursor in connection
-   rc = _regCursor ( cursor->_connection, (sdbCursorHandle)cursor ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // set output result
-   *handle = (sdbCursorHandle)cursor ;
-done :
+done:
    return rc ;
-error :
-   if ( cursor )
+error:
+   if ( SDB_INVALID_HANDLE != cursor )
    {
-      SDB_OSS_FREE ( cursor ) ;
+      sdbReleaseCursor( cursor ) ;
    }
    SET_INVALID_HANDLE( handle ) ;
    goto done ;
@@ -2447,9 +2411,8 @@ SDB_EXPORT INT32 sdbGetDataBlocks ( sdbCollectionHandle cHandle,
                                     sdbCursorHandle *handle )
 {
    INT32 rc                        = SDB_OK ;
-   SINT64 contextID                = 0 ;
    CHAR *p                         = CMD_ADMIN_PREFIX CMD_NAME_GET_DATABLOCKS ;
-   sdbCursorStruct *cursor         = NULL ;
+   sdbCursorHandle cursor          = SDB_INVALID_HANDLE ;
    sdbConnectionStruct *connection = NULL ;
    sdbCollectionStruct *cs         = (sdbCollectionStruct*)cHandle ;
    HANDLE_CHECK( cHandle, cs, SDB_HANDLE_TYPE_COLLECTION ) ;
@@ -2461,59 +2424,31 @@ SDB_EXPORT INT32 sdbGetDataBlocks ( sdbCollectionHandle cHandle,
       goto error ;
    }
 
-   rc = clientBuildQueryMsg ( &cs->_pSendBuffer, &cs->_sendBufferSize,
-                              p, 0, 0,
-                              numToSkip, numToReturn, condition,
-                              select, orderBy, hint, cs->_endianConvert ) ;
+   rc = _runCommand2( cs->_connection,
+                      &cs->_pSendBuffer, &cs->_sendBufferSize,
+                      &cs->_pReceiveBuffer, &cs->_receiveBufferSize,
+                      p,
+                      0, 0, numToSkip, numToReturn,
+                      condition, select, orderBy, hint,
+                      &cursor ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
-
-   // send and recv
-   rc = _sendAndRecv( cs->_connection, cs->_sock, (MsgHeader*)cs->_pSendBuffer,
-                      (MsgHeader**)&cs->_pReceiveBuffer,
-                      &cs->_receiveBufferSize,
-                      TRUE, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // extract revc message
-   rc = _extract( cs->_connection,
-                  (MsgHeader*)cs->_pReceiveBuffer, cs->_receiveBufferSize,
-                  &contextID, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-   // check return msg header
-   CHECK_RET_MSGHEADER( cs->_pSendBuffer, cs->_pReceiveBuffer, cHandle ) ;
    rc = updateCachedObject( rc, connection->_tb, cs->_collectionFullName ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
-   ALLOC_HANDLE( cursor, sdbCursorStruct ) ;
-   INIT_CURSOR ( cursor, cs->_connection, cs, contextID ) ;
-
-   // register cursor in connection
-   rc = _regCursor ( cursor->_connection, (sdbCursorHandle)cursor ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // set output result
-   *handle = (sdbCursorHandle)cursor ;
+   /// set output result
+   *handle = cursor ;
 
 done:
    return rc ;
 error:
-   if ( cursor )
+   if ( SDB_INVALID_HANDLE != cursor )
    {
-      SDB_OSS_FREE ( cursor ) ;
+      sdbReleaseCursor( cursor ) ;
    }
    SET_INVALID_HANDLE( handle ) ;
    goto done ;
@@ -2529,8 +2464,7 @@ SDB_EXPORT INT32 sdbGetQueryMeta ( sdbCollectionHandle cHandle,
 {
    INT32 rc                        = SDB_OK ;
    CHAR *p                         = CMD_ADMIN_PREFIX CMD_NAME_GET_QUERYMETA ;
-   sdbCursorStruct *cursor         = NULL ;
-   SINT64 contextID                = 0 ;
+   sdbCursorHandle cursor          = SDB_INVALID_HANDLE ;
    sdbConnectionStruct *connection = NULL ;
    sdbCollectionStruct *cs         = (sdbCollectionStruct*)cHandle ;
    BOOLEAN bsoninit                = FALSE ;
@@ -2571,66 +2505,34 @@ SDB_EXPORT INT32 sdbGetQueryMeta ( sdbCollectionHandle cHandle,
        rc = SDB_DRIVER_BSON_ERROR ;
        goto error ;
    }
-
-
    BSON_FINISH ( newHint ) ;
 
-   /// build msg
-   rc = clientBuildQueryMsg ( &cs->_pSendBuffer,
-                              &cs->_sendBufferSize,
-                              p, 0, 0, numToSkip, numToReturn, condition,
-                              NULL, orderBy, &newHint,
-                              cs->_endianConvert ) ;
+   rc = _runCommand2( cs->_connection,
+                      &cs->_pSendBuffer, &cs->_sendBufferSize,
+                      &cs->_pReceiveBuffer, &cs->_receiveBufferSize,
+                      p,
+                      0, 0, numToSkip, numToReturn,
+                      condition, NULL, orderBy, &newHint,
+                      &cursor ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
-
-   /// send and recv
-   rc = _sendAndRecv( cs->_connection, cs->_sock, (MsgHeader*)cs->_pSendBuffer,
-                      (MsgHeader**)&cs->_pReceiveBuffer,
-                      &cs->_receiveBufferSize,
-                      TRUE, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   /// extract revc message
-   rc = _extract( cs->_connection,
-                  (MsgHeader*)cs->_pReceiveBuffer, cs->_receiveBufferSize,
-                  &contextID, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-   /// check return msg header
-   CHECK_RET_MSGHEADER( cs->_pSendBuffer, cs->_pReceiveBuffer,
-                        cs->_connection ) ;
    rc = updateCachedObject( rc, connection->_tb, cs->_collectionFullName ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
-   ALLOC_HANDLE( cursor, sdbCursorStruct ) ;
-   INIT_CURSOR( cursor, cs->_connection, cs, contextID ) ;
-
-   /// register cursor in connection
-   rc = _regCursor ( cursor->_connection, (sdbCursorHandle)cursor ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
    /// set output result
-   *handle = (sdbCursorHandle)cursor ;
+   *handle = cursor ;
 
 done:
    BSON_DESTROY( newHint ) ;
    return rc ;
 error:
-   if ( cursor )
+   if ( SDB_INVALID_HANDLE != cursor )
    {
-      SDB_OSS_FREE ( cursor ) ;
+      sdbReleaseCursor( cursor ) ;
    }
    SET_INVALID_HANDLE( handle ) ;
    goto done ;
@@ -2647,8 +2549,7 @@ static INT32 _sdbGetSnapshot ( sdbConnectionHandle cHandle,
                                sdbCursorHandle *handle )
 {
    INT32 rc                        = SDB_OK ;
-   sdbCursorStruct *cursor         = NULL ;
-   SINT64 contextID                = -1 ;
+   sdbCursorHandle cursor          = SDB_INVALID_HANDLE ;
    const CHAR *p                   = NULL ;
    sdbConnectionStruct *connection = NULL ;
 
@@ -2729,57 +2630,27 @@ static INT32 _sdbGetSnapshot ( sdbConnectionHandle cHandle,
 
    connection = (sdbConnectionStruct*)cHandle ;
    HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
-   rc = clientBuildQueryMsg ( &connection->_pSendBuffer,
-                              &connection->_sendBufferSize,
-                              p, 0, 0, numToSkip, numToReturn,
-                              condition, selector, orderBy, hint,
-                              connection->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
 
-   // send and recv
-   rc = _sendAndRecv( cHandle, connection->_sock,
-                      (MsgHeader*)connection->_pSendBuffer,
-                      (MsgHeader**)&connection->_pReceiveBuffer,
-                      &connection->_receiveBufferSize,
-                      TRUE, connection->_endianConvert ) ;
+   rc = _runCommand2( cHandle,
+                      &connection->_pSendBuffer, &connection->_sendBufferSize,
+                      &connection->_pReceiveBuffer, &connection->_receiveBufferSize,
+                      p,
+                      0, 0, numToSkip, numToReturn,
+                      condition, selector, orderBy, hint,
+                      &cursor ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
+   /// set output result
+   *handle = cursor ;
 
-   // extract revc message
-   rc = _extract( cHandle,
-                  (MsgHeader*)connection->_pReceiveBuffer,
-                  connection->_receiveBufferSize,
-                  &contextID,
-                  connection->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check return msg header
-   CHECK_RET_MSGHEADER( connection->_pSendBuffer, connection->_pReceiveBuffer,
-                        cHandle ) ;
-   ALLOC_HANDLE( cursor, sdbCursorStruct ) ;
-   INIT_CURSOR( cursor, connection, connection, contextID ) ;
-   // register cursor in connection
-   rc = _regCursor ( cursor->_connection, (sdbCursorHandle)cursor ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-   // set output result
-   *handle = (sdbCursorHandle)cursor ;
-done :
+done:
    return rc ;
-error :
-   if ( cursor )
+error:
+   if ( SDB_INVALID_HANDLE != cursor )
    {
-      SDB_OSS_FREE ( cursor ) ;
+      sdbReleaseCursor( cursor ) ;
    }
    SET_INVALID_HANDLE( handle ) ;
    goto done ;
@@ -4498,46 +4369,23 @@ SDB_EXPORT INT32 sdbListReplicaGroups ( sdbConnectionHandle cHandle,
 SDB_EXPORT INT32 sdbFlushConfigure( sdbConnectionHandle cHandle,
                                     bson *options )
 {
-   INT32 rc         = SDB_OK ;
-   SINT64 contextID = 0 ;
+   INT32 rc                        = SDB_OK ;
    sdbConnectionStruct *connection = (sdbConnectionStruct*)cHandle ;
 
    HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
-   rc = clientBuildQueryMsg( &(connection->_pSendBuffer),
-                             &(connection->_sendBufferSize),
-                             (CMD_ADMIN_PREFIX CMD_NAME_EXPORT_CONFIG),
-                             0, 0, 0, -1, options, NULL, NULL, NULL,
-                             connection->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      ossPrintf ( "Failed to build flush msg, rc = %d"OSS_NEWLINE, rc ) ;
-      goto error ;
-   }
 
-   // send and recv
-   rc = _sendAndRecv( cHandle, connection->_sock,
-                      (MsgHeader*)connection->_pSendBuffer,
-                      (MsgHeader**)&connection->_pReceiveBuffer,
-                      &connection->_receiveBufferSize,
-                      TRUE, connection->_endianConvert ) ;
+   rc = _runCommand2( cHandle,
+                      &connection->_pSendBuffer, &connection->_sendBufferSize,
+                      &connection->_pReceiveBuffer, &connection->_receiveBufferSize,
+                      (CMD_ADMIN_PREFIX CMD_NAME_EXPORT_CONFIG),
+                      0, 0, 0, -1,
+                      options, NULL, NULL, NULL,
+                      NULL ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
 
-   // extract revc message
-   rc = _extract( cHandle, (MsgHeader*)connection->_pReceiveBuffer,
-                  connection->_receiveBufferSize,
-                  &contextID,
-                  connection->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check return msg header
-   CHECK_RET_MSGHEADER( connection->_pSendBuffer, connection->_pReceiveBuffer,
-                        cHandle ) ;
 done:
    return rc ;
 error:
@@ -4548,7 +4396,6 @@ SDB_EXPORT INT32 sdbCrtJSProcedure( sdbConnectionHandle cHandle,
                                     const CHAR *code )
 {
    INT32 rc         = SDB_OK ;
-   SINT64 contextID = 0 ;
    BOOLEAN bsoninit = FALSE ;
    bson bs ;
    sdbConnectionStruct *connection = (sdbConnectionStruct*)cHandle ;
@@ -4566,41 +4413,18 @@ SDB_EXPORT INT32 sdbCrtJSProcedure( sdbConnectionHandle cHandle,
 
    BSON_FINISH( bs ) ;
 
-   rc = clientBuildQueryMsg( &(connection->_pSendBuffer),
-                             &(connection->_sendBufferSize),
-                             (CMD_ADMIN_PREFIX CMD_NAME_CRT_PROCEDURE),
-                             0, 0, 0, -1, &bs, NULL, NULL, NULL,
-                             connection->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      ossPrintf ( "Failed to build crt procedure msg, rc = %d"OSS_NEWLINE, rc ) ;
-      goto error ;
-   }
-
-   // send and recv
-   rc = _sendAndRecv( cHandle, connection->_sock,
-                      (MsgHeader*)connection->_pSendBuffer,
-                      (MsgHeader**)&connection->_pReceiveBuffer,
-                      &connection->_receiveBufferSize,
-                      TRUE, connection->_endianConvert ) ;
+   rc = _runCommand2( cHandle,
+                      &connection->_pSendBuffer, &connection->_sendBufferSize,
+                      &connection->_pReceiveBuffer, &connection->_receiveBufferSize,
+                      (CMD_ADMIN_PREFIX CMD_NAME_CRT_PROCEDURE),
+                      0, 0, 0, -1,
+                      &bs, NULL, NULL, NULL,
+                      NULL ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
 
-   // extract revc message
-   rc = _extract( cHandle, (MsgHeader*)connection->_pReceiveBuffer,
-                  connection->_receiveBufferSize,
-                  &contextID,
-                  connection->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check return msg header
-   CHECK_RET_MSGHEADER( connection->_pSendBuffer, connection->_pReceiveBuffer,
-                        cHandle ) ;
 done:
    BSON_DESTROY( bs ) ;
    return rc ;
@@ -4612,7 +4436,6 @@ SDB_EXPORT INT32 sdbRmProcedure( sdbConnectionHandle cHandle,
                                  const CHAR *spName )
 {
    INT32 rc = SDB_OK ;
-   SINT64 contextID = 0 ;
    sdbConnectionStruct *connection = (sdbConnectionStruct*)cHandle ;
    BOOLEAN bsoninit = FALSE ;
    bson bs ;
@@ -4627,42 +4450,19 @@ SDB_EXPORT INT32 sdbRmProcedure( sdbConnectionHandle cHandle,
 
    BSON_APPEND( bs, FIELD_NAME_FUNC, spName, string ) ;
    BSON_FINISH( bs ) ;
-   rc = clientBuildQueryMsg( &(connection->_pSendBuffer),
-                             &(connection->_sendBufferSize),
-                             (CMD_ADMIN_PREFIX CMD_NAME_RM_PROCEDURE),
-                             0, 0, 0, -1, &bs, NULL, NULL, NULL,
-                             connection->_endianConvert ) ;
 
-   if ( SDB_OK != rc )
-   {
-      ossPrintf ( "Failed to build rm procedues msg, rc = %d"OSS_NEWLINE, rc ) ;
-      goto error ;
-   }
-
-   // send and recv
-   rc = _sendAndRecv( cHandle, connection->_sock,
-                      (MsgHeader*)connection->_pSendBuffer,
-                      (MsgHeader**)&connection->_pReceiveBuffer,
-                      &connection->_receiveBufferSize,
-                      TRUE, connection->_endianConvert ) ;
+   rc = _runCommand2( cHandle,
+                      &connection->_pSendBuffer, &connection->_sendBufferSize,
+                      &connection->_pReceiveBuffer, &connection->_receiveBufferSize,
+                      (CMD_ADMIN_PREFIX CMD_NAME_RM_PROCEDURE),
+                      0, 0, 0, -1,
+                      &bs, NULL, NULL, NULL,
+                      NULL ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
 
-   // extract revc message
-   rc = _extract( cHandle, (MsgHeader*)connection->_pReceiveBuffer,
-                  connection->_receiveBufferSize,
-                  &contextID,
-                  connection->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check return msg header
-   CHECK_RET_MSGHEADER( connection->_pSendBuffer, connection->_pReceiveBuffer,
-                        cHandle ) ;
 done:
    BSON_DESTROY( bs ) ;
    return rc ;
@@ -4709,11 +4509,13 @@ SDB_EXPORT INT32 sdbEvalJS(sdbConnectionHandle cHandle,
    BSON_APPEND( bs, FIELD_NAME_FUNC, code, code );
    BSON_APPEND( bs, FIELD_NAME_FUNCTYPE, FMP_FUNC_TYPE_JS, int ) ;
    BSON_FINISH( bs ) ;
-
+   // CAN NOT add FLG_QUERY_WITH_RETURNDATA flag, for the return result
+   // is not the expected result
    rc = clientBuildQueryMsg( &(connection->_pSendBuffer),
                              &(connection->_sendBufferSize),
                              (CMD_ADMIN_PREFIX CMD_NAME_EVAL),
-                             0, 0, 0, -1, &bs, NULL, NULL, NULL,
+                             0, 0, 0, -1,
+                             &bs, NULL, NULL, NULL,
                              connection->_endianConvert ) ;
    if ( SDB_OK != rc )
    {
@@ -4948,7 +4750,6 @@ static INT32 _sdbAlterCollectionV1 ( sdbCollectionHandle cHandle,
                                      bson *options  )
 {
    INT32 rc                        = SDB_OK ;
-   SINT64 contextID                = 0 ;
    sdbConnectionStruct *connection = NULL ;
    sdbCollectionStruct *cs = (sdbCollectionStruct*)cHandle ;
    BOOLEAN bsoninit = FALSE ;
@@ -4969,38 +4770,18 @@ static INT32 _sdbAlterCollectionV1 ( sdbCollectionHandle cHandle,
 
    BSON_APPEND( newObj, FIELD_NAME_OPTIONS, options, bson ) ;
    BSON_FINISH ( newObj ) ;
-   rc = clientBuildQueryMsg ( &cs->_pSendBuffer, &cs->_sendBufferSize,
-                              CMD_ADMIN_PREFIX CMD_NAME_ALTER_COLLECTION,
-                              0, 0, -1, -1, &newObj,
-                              NULL, NULL, NULL, cs->_endianConvert ) ;
+
+   rc = _runCommand2( cs->_connection,
+                      &cs->_pSendBuffer, &cs->_sendBufferSize,
+                      &cs->_pReceiveBuffer, &cs->_receiveBufferSize,
+                      (CMD_ADMIN_PREFIX CMD_NAME_ALTER_COLLECTION),
+                      0, 0, 0, -1,
+                      &newObj, NULL, NULL, NULL,
+                      NULL ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
-
-   // send and recv
-   rc = _sendAndRecv( cs->_connection, cs->_sock, (MsgHeader*)cs->_pSendBuffer,
-                      (MsgHeader**)&cs->_pReceiveBuffer,
-                      &cs->_receiveBufferSize,
-                      TRUE, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // extract revc message
-   rc = _extract( cs->_connection,
-                  (MsgHeader*)cs->_pReceiveBuffer, cs->_receiveBufferSize,
-                  &contextID, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check return msg header
-   CHECK_RET_MSGHEADER( cs->_pSendBuffer, cs->_pReceiveBuffer,
-                        cs->_connection) ;
-
    rc = updateCachedObject( rc, connection->_tb, cs->_collectionFullName ) ;
    if ( SDB_OK != rc )
    {
@@ -5018,7 +4799,6 @@ static INT32 _sdbAlterCollectionV2( sdbCollectionHandle cHandle,
                                     bson *options )
 {
    INT32 rc = SDB_OK ;
-   SINT64 contextID = -1 ;
    sdbConnectionStruct *connection = NULL ;
    sdbCollectionStruct *cs = (sdbCollectionStruct*)cHandle ;
    BOOLEAN bsoninit = FALSE ;
@@ -5074,35 +4854,17 @@ static INT32 _sdbAlterCollectionV2( sdbCollectionHandle cHandle,
 
    BSON_FINISH( obj ) ;
 
-   rc = clientBuildQueryMsg ( &cs->_pSendBuffer, &cs->_sendBufferSize,
-                              CMD_ADMIN_PREFIX CMD_NAME_ALTER_COLLECTION,
-                              0, 0, -1, -1, &obj,
-                              NULL, NULL, NULL, cs->_endianConvert ) ;
+   rc = _runCommand2( cs->_connection,
+                      &cs->_pSendBuffer, &cs->_sendBufferSize,
+                      &cs->_pReceiveBuffer, &cs->_receiveBufferSize,
+                      (CMD_ADMIN_PREFIX CMD_NAME_ALTER_COLLECTION),
+                      0, 0, 0, -1,
+                      &obj, NULL, NULL, NULL,
+                      NULL ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
-
-   rc = _sendAndRecv( cs->_connection, cs->_sock, (MsgHeader*)cs->_pSendBuffer,
-                      (MsgHeader**)&cs->_pReceiveBuffer,
-                      &cs->_receiveBufferSize,
-                      TRUE, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   rc = _extract( cs->_connection,
-                  (MsgHeader*)cs->_pReceiveBuffer, cs->_receiveBufferSize,
-                  &contextID, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   CHECK_RET_MSGHEADER( cs->_pSendBuffer, cs->_pReceiveBuffer,
-                        cs->_connection) ;
-
    rc = updateCachedObject( rc, connection->_tb, cs->_collectionFullName ) ;
    if ( SDB_OK != rc )
    {
@@ -5649,7 +5411,6 @@ SDB_EXPORT INT32 sdbSplitCollection ( sdbCollectionHandle cHandle,
                                       const bson *pSplitEndCondition )
 {
    INT32 rc                        = SDB_OK ;
-   SINT64 contextID                = 0 ;
    sdbConnectionStruct *connection = NULL;
    sdbCollectionStruct *cs         = (sdbCollectionStruct*)cHandle ;
    BOOLEAN bsoninit                = FALSE ;
@@ -5677,38 +5438,18 @@ SDB_EXPORT INT32 sdbSplitCollection ( sdbCollectionHandle cHandle,
    }
 
    BSON_FINISH ( newObj ) ;
-   rc = clientBuildQueryMsg ( &cs->_pSendBuffer, &cs->_sendBufferSize,
-                              CMD_ADMIN_PREFIX CMD_NAME_SPLIT,
-                              0, 0, -1, -1, &newObj,
-                              NULL, NULL, NULL, cs->_endianConvert ) ;
+
+   rc = _runCommand2( cs->_connection,
+                      &cs->_pSendBuffer, &cs->_sendBufferSize,
+                      &cs->_pReceiveBuffer, &cs->_receiveBufferSize,
+                      (CMD_ADMIN_PREFIX CMD_NAME_SPLIT),
+                      0, 0, 0, -1,
+                      &newObj, NULL, NULL, NULL,
+                      NULL ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
-
-   // send and recv
-   rc = _sendAndRecv( cs->_connection, cs->_sock, (MsgHeader*)cs->_pSendBuffer,
-                      (MsgHeader**)&cs->_pReceiveBuffer,
-                      &cs->_receiveBufferSize,
-                      TRUE, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // extract revc message
-   rc = _extract( cs->_connection,
-                  (MsgHeader*)cs->_pReceiveBuffer, cs->_receiveBufferSize,
-                  &contextID, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check return msg header
-   CHECK_RET_MSGHEADER( cs->_pSendBuffer, cs->_pReceiveBuffer,
-                        cs->_connection ) ;
-
    rc = updateCachedObject( rc, connection->_tb, cs->_collectionFullName ) ;
    if ( SDB_OK != rc )
    {
@@ -5730,8 +5471,7 @@ SDB_EXPORT INT32 sdbSplitCLAsync ( sdbCollectionHandle cHandle,
                                    SINT64 *taskID )
 {
    INT32 rc                = SDB_OK ;
-   SINT64 contextID        = 0 ;
-   sdbCursorStruct *cursor = NULL ;
+   sdbCursorHandle cursor  = SDB_INVALID_HANDLE ;
    sdbConnectionStruct *connection = NULL ;
    sdbCollectionStruct *cs         = (sdbCollectionStruct *)cHandle ;
    BOOLEAN bsoninit                = FALSE ;
@@ -5767,51 +5507,25 @@ SDB_EXPORT INT32 sdbSplitCLAsync ( sdbCollectionHandle cHandle,
    // async:true
    BSON_APPEND( newObj, FIELD_NAME_ASYNC, TRUE, bool ) ;
    BSON_FINISH ( newObj ) ;
-   // build message
-   rc = clientBuildQueryMsg ( &cs->_pSendBuffer, &cs->_sendBufferSize,
-                              CMD_ADMIN_PREFIX CMD_NAME_SPLIT,
-                              0, 0, -1, -1, &newObj,
-                              NULL, NULL, NULL, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
 
-   // send and recv
-   rc = _sendAndRecv( cs->_connection, cs->_sock, (MsgHeader*)cs->_pSendBuffer,
-                      (MsgHeader**)&cs->_pReceiveBuffer,
-                      &cs->_receiveBufferSize,
-                      TRUE, cs->_endianConvert ) ;
+   rc = _runCommand2( cs->_connection,
+                      &cs->_pSendBuffer, &cs->_sendBufferSize,
+                      &cs->_pReceiveBuffer, &cs->_receiveBufferSize,
+                      (CMD_ADMIN_PREFIX CMD_NAME_SPLIT),
+                      0, 0, 0, -1,
+                      &newObj, NULL, NULL, NULL,
+                      &cursor ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
-
-   // extract revc message
-   rc = _extract( cs->_connection,
-                  (MsgHeader*)cs->_pReceiveBuffer, cs->_receiveBufferSize,
-                  &contextID, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-   // check return msg header
-   CHECK_RET_MSGHEADER( cs->_pSendBuffer, cs->_pReceiveBuffer,
-                        cs->_connection ) ;
    rc = updateCachedObject( rc, connection->_tb, cs->_collectionFullName ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
-
-   // build a cursor
-   ALLOC_HANDLE( cursor, sdbCursorStruct ) ;
-   INIT_CURSOR( cursor, cs->_connection, cs, contextID ) ;
-   ossMemcpy ( cursor->_collectionFullName, cs->_collectionFullName,
-               sizeof(cursor->_collectionFullName) ) ;
-
    // get the taskid
-   rc = sdbNext ( (sdbCursorHandle)cursor, &retObj ) ;
+   rc = sdbNext ( cursor, &retObj ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
@@ -5823,18 +5537,15 @@ SDB_EXPORT INT32 sdbSplitCLAsync ( sdbCollectionHandle cHandle,
    else
    {
       rc = SDB_SYS ;
-     goto error ;
+      goto error ;
    }
-
-
 
 done :
    BSON_DESTROY( newObj ) ;
    BSON_DESTROY( retObj ) ;
-
-   if ( cursor )
+   if ( SDB_INVALID_HANDLE != cursor )
    {
-      sdbReleaseCursor ( (sdbCursorHandle)cursor ) ;
+      sdbReleaseCursor ( cursor ) ;
    }
    return rc ;
 error :
@@ -5847,7 +5558,6 @@ SDB_EXPORT INT32 sdbSplitCollectionByPercent( sdbCollectionHandle cHandle,
                                               double percent )
 {
    INT32 rc                        = SDB_OK ;
-   SINT64 contextID                = 0 ;
    sdbConnectionStruct *connection = NULL;
    sdbCollectionStruct *cs         = (sdbCollectionStruct*)cHandle ;
    BOOLEAN bsoninit                = FALSE;
@@ -5873,38 +5583,18 @@ SDB_EXPORT INT32 sdbSplitCollectionByPercent( sdbCollectionHandle cHandle,
    BSON_APPEND( newObj, CAT_TARGET_NAME, pTargetGroup, string ) ;
    BSON_APPEND( newObj, CAT_SPLITPERCENT_NAME, percent, double ) ;
    BSON_FINISH ( newObj ) ;
-   rc = clientBuildQueryMsg ( &cs->_pSendBuffer, &cs->_sendBufferSize,
-                              CMD_ADMIN_PREFIX CMD_NAME_SPLIT,
-                              0, 0, -1, -1, &newObj,
-                              NULL, NULL, NULL, cs->_endianConvert ) ;
+
+   rc = _runCommand2( cs->_connection,
+                      &cs->_pSendBuffer, &cs->_sendBufferSize,
+                      &cs->_pReceiveBuffer, &cs->_receiveBufferSize,
+                      (CMD_ADMIN_PREFIX CMD_NAME_SPLIT),
+                      0, 0, 0, -1,
+                      &newObj, NULL, NULL, NULL,
+                      NULL ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
-
-   // send and recv
-   rc = _sendAndRecv( cs->_connection, cs->_sock, (MsgHeader*)cs->_pSendBuffer,
-                      (MsgHeader**)&cs->_pReceiveBuffer,
-                      &cs->_receiveBufferSize,
-                      TRUE, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // extract revc message
-   rc = _extract( cs->_connection,
-                  (MsgHeader*)cs->_pReceiveBuffer, cs->_receiveBufferSize,
-                  &contextID, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check return msg header
-   CHECK_RET_MSGHEADER( cs->_pSendBuffer, cs->_pReceiveBuffer,
-                        cs->_connection ) ;
-
    rc = updateCachedObject( rc, connection->_tb, cs->_collectionFullName ) ;
    if ( SDB_OK != rc )
    {
@@ -5925,8 +5615,7 @@ SDB_EXPORT INT32 sdbSplitCLByPercentAsync ( sdbCollectionHandle cHandle,
                                             SINT64 *taskID )
 {
    INT32 rc                        = SDB_OK ;
-   SINT64 contextID                = 0 ;
-   sdbCursorStruct *cursor         = NULL;
+   sdbCursorHandle cursor          = SDB_INVALID_HANDLE ;
    sdbConnectionStruct *connection = NULL ;
    sdbCollectionStruct *cs         = (sdbCollectionStruct *)cHandle ;
    BOOLEAN bsoninit                = FALSE;
@@ -5958,47 +5647,25 @@ SDB_EXPORT INT32 sdbSplitCLByPercentAsync ( sdbCollectionHandle cHandle,
    // async:true
    BSON_APPEND( newObj, FIELD_NAME_ASYNC, TRUE, bool ) ;
    BSON_FINISH ( newObj ) ;
-   rc = clientBuildQueryMsg ( &cs->_pSendBuffer, &cs->_sendBufferSize,
-                              CMD_ADMIN_PREFIX CMD_NAME_SPLIT,
-                              0, 0, -1, -1, &newObj,
-                              NULL, NULL, NULL, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
 
-   // send and recv
-   rc = _sendAndRecv( cs->_connection, cs->_sock, (MsgHeader*)cs->_pSendBuffer,
-                      (MsgHeader**)&cs->_pReceiveBuffer,
-                      &cs->_receiveBufferSize,
-                      TRUE, cs->_endianConvert ) ;
+   rc = _runCommand2( cs->_connection,
+                      &cs->_pSendBuffer, &cs->_sendBufferSize,
+                      &cs->_pReceiveBuffer, &cs->_receiveBufferSize,
+                      (CMD_ADMIN_PREFIX CMD_NAME_SPLIT),
+                      0, 0, 0, -1,
+                      &newObj, NULL, NULL, NULL,
+                      &cursor ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
-
-   // extract revc message
-   rc = _extract( cs->_connection,
-                  (MsgHeader*)cs->_pReceiveBuffer, cs->_receiveBufferSize,
-                  &contextID, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-   // check return msg header
-   CHECK_RET_MSGHEADER( cs->_pSendBuffer, cs->_pReceiveBuffer,
-                        cs->_connection ) ;
    rc = updateCachedObject( rc, connection->_tb, cs->_collectionFullName ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
-   ALLOC_HANDLE( cursor, sdbCursorStruct ) ;
-   INIT_CURSOR( cursor, cs->_connection, cs, contextID );
-   ossMemcpy ( cursor->_collectionFullName, cs->_collectionFullName,
-               sizeof(cursor->_collectionFullName) ) ;
-
-   rc = sdbNext ( (sdbCursorHandle)cursor, &retObj ) ;
+   // get return tasdkID
+   rc = sdbNext ( cursor, &retObj ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
@@ -6016,9 +5683,9 @@ SDB_EXPORT INT32 sdbSplitCLByPercentAsync ( sdbCollectionHandle cHandle,
 done :
    BSON_DESTROY( newObj ) ;
    BSON_DESTROY( retObj ) ;
-   if ( cursor )
+   if ( SDB_INVALID_HANDLE != cursor )
    {
-      sdbReleaseCursor ( (sdbCursorHandle)cursor ) ;
+      sdbReleaseCursor ( cursor ) ;
    }
    return rc ;
 error :
@@ -6033,7 +5700,6 @@ static INT32 _sdbCreateIndex( sdbCollectionHandle cHandle,
                               INT32 sortBufferSize )
 {
    INT32 rc                        = SDB_OK ;
-   SINT64 contextID                = 0 ;
    sdbConnectionStruct *connection = NULL ;
    sdbCollectionStruct *cs         = (sdbCollectionStruct*)cHandle ;
    BOOLEAN indexInit               = FALSE;
@@ -6077,38 +5743,17 @@ static INT32 _sdbCreateIndex( sdbCollectionHandle cHandle,
    BSON_FINISH ( hintObj ) ;
    hint = &hintObj ;
 
-   rc = clientBuildQueryMsg ( &cs->_pSendBuffer, &cs->_sendBufferSize,
-                              CMD_ADMIN_PREFIX CMD_NAME_CREATE_INDEX,
-                              0, 0, -1, -1, &newObj,
-                              NULL, NULL, hint, cs->_endianConvert ) ;
+   rc = _runCommand2( cs->_connection,
+                      &cs->_pSendBuffer, &cs->_sendBufferSize,
+                      &cs->_pReceiveBuffer, &cs->_receiveBufferSize,
+                      (CMD_ADMIN_PREFIX CMD_NAME_CREATE_INDEX),
+                      0, 0, 0, -1,
+                      &newObj, NULL, NULL, hint,
+                      NULL ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
-
-   // send and recv
-   rc = _sendAndRecv( cs->_connection, cs->_sock, (MsgHeader*)cs->_pSendBuffer,
-                      (MsgHeader**)&cs->_pReceiveBuffer,
-                      &cs->_receiveBufferSize,
-                      TRUE, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // extract revc message
-   rc = _extract( cs->_connection,
-                  (MsgHeader*)cs->_pReceiveBuffer, cs->_receiveBufferSize,
-                  &contextID, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check return msg header
-   CHECK_RET_MSGHEADER( cs->_pSendBuffer, cs->_pReceiveBuffer,
-                        cs->_connection ) ;
-
    rc = updateCachedObject( rc, connection->_tb, cs->_collectionFullName ) ;
    if ( SDB_OK != rc )
    {
@@ -6130,7 +5775,6 @@ static INT32 _sdbCreateIndexV1( sdbCollectionHandle cHandle,
                                 bson *options )
 {
    INT32 rc                        = SDB_OK ;
-   SINT64 contextID                = 0 ;
    sdbConnectionStruct *connection = NULL ;
    sdbCollectionStruct *cs         = (sdbCollectionStruct*)cHandle ;
    bson matcher, hint, index ;
@@ -6183,38 +5827,17 @@ static INT32 _sdbCreateIndexV1( sdbCollectionHandle cHandle,
    BSON_APPEND( matcher, FIELD_NAME_INDEX, &index, bson ) ;
    BSON_FINISH ( matcher ) ;
 
-   rc = clientBuildQueryMsg ( &cs->_pSendBuffer, &cs->_sendBufferSize,
-                              CMD_ADMIN_PREFIX CMD_NAME_CREATE_INDEX,
-                              0, 0, -1, -1, &matcher,
-                              NULL, NULL, &hint, cs->_endianConvert ) ;
+   rc = _runCommand2( cs->_connection,
+                      &cs->_pSendBuffer, &cs->_sendBufferSize,
+                      &cs->_pReceiveBuffer, &cs->_receiveBufferSize,
+                      (CMD_ADMIN_PREFIX CMD_NAME_CREATE_INDEX),
+                      0, 0, 0, -1,
+                      &matcher, NULL, NULL, &hint,
+                      NULL ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
-
-   // send and recv
-   rc = _sendAndRecv( cs->_connection, cs->_sock, (MsgHeader*)cs->_pSendBuffer,
-                      (MsgHeader**)&cs->_pReceiveBuffer,
-                      &cs->_receiveBufferSize,
-                      TRUE, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // extract revc message
-   rc = _extract( cs->_connection,
-                  (MsgHeader*)cs->_pReceiveBuffer, cs->_receiveBufferSize,
-                  &contextID, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check return msg header
-   CHECK_RET_MSGHEADER( cs->_pSendBuffer, cs->_pReceiveBuffer,
-                        cs->_connection ) ;
-
    rc = updateCachedObject( rc, connection->_tb, cs->_collectionFullName ) ;
    if ( SDB_OK != rc )
    {
@@ -6263,8 +5886,6 @@ static INT32 _sdbGetIndexes ( sdbCollectionHandle cHandle,
                               sdbCursorHandle *handle )
 {
    INT32 rc                        = SDB_OK ;
-   SINT64 contextID                = 0 ;
-   sdbCursorStruct *cursor         = NULL ;
    sdbConnectionStruct *connection = NULL ;
    sdbCollectionStruct *cs         = (sdbCollectionStruct*)cHandle ;
    BOOLEAN bsoninit                = FALSE ;
@@ -6273,13 +5894,16 @@ static INT32 _sdbGetIndexes ( sdbCollectionHandle cHandle,
 
    BSON_INIT( queryCond ) ;
    BSON_INIT( newObj ) ;
-   HANDLE_CHECK( cHandle, cs, SDB_HANDLE_TYPE_COLLECTION ) ;
-   connection = (sdbConnectionStruct*)(cs->_connection) ;
+
    if ( !handle )
    {
       rc = SDB_CLT_INVALID_HANDLE ;
       goto error ;
    }
+   *handle = SDB_INVALID_HANDLE ;
+
+   HANDLE_CHECK( cHandle, cs, SDB_HANDLE_TYPE_COLLECTION ) ;
+   connection = (sdbConnectionStruct*)(cs->_connection) ;
    if ( !cs->_collectionFullName[0] )
    {
       rc = SDB_INVALIDARG ;
@@ -6298,67 +5922,35 @@ static INT32 _sdbGetIndexes ( sdbCollectionHandle cHandle,
                 cs->_collectionFullName, string ) ;
    BSON_FINISH ( newObj ) ;
 
-   rc = clientBuildQueryMsg ( &cs->_pSendBuffer, &cs->_sendBufferSize,
-                              CMD_ADMIN_PREFIX CMD_NAME_GET_INDEXES,
-                              0, 0, -1, -1,
-                              pIndexName?&queryCond:NULL,
-                              NULL, NULL, &newObj, cs->_endianConvert ) ;
+   rc = _runCommand2( cs->_connection,
+                      &cs->_pSendBuffer, &cs->_sendBufferSize,
+                      &cs->_pReceiveBuffer, &cs->_receiveBufferSize,
+                      CMD_ADMIN_PREFIX CMD_NAME_GET_INDEXES,
+                      0, 0, -1, -1,
+                      pIndexName ? &queryCond : NULL,
+                      NULL, NULL, &newObj,
+                      handle ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
 
-   // send and recv
-   rc = _sendAndRecv( cs->_connection, cs->_sock, (MsgHeader*)cs->_pSendBuffer,
-                      (MsgHeader**)&cs->_pReceiveBuffer,
-                      &cs->_receiveBufferSize,
-                      TRUE, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // extract revc message
-   rc = _extract( cs->_connection,
-                  (MsgHeader*)cs->_pReceiveBuffer, cs->_receiveBufferSize,
-                  &contextID, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check return msg header
-   CHECK_RET_MSGHEADER( cs->_pSendBuffer, cs->_pReceiveBuffer,
-                        cs->_connection ) ;
    rc = updateCachedObject( rc, connection->_tb, cs->_collectionFullName ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
-   ALLOC_HANDLE( cursor, sdbCursorStruct ) ;
-   INIT_CURSOR( cursor, cs->_connection, cs, contextID ) ;
-   ossMemcpy ( cursor->_collectionFullName, cs->_collectionFullName,
-               sizeof(cursor->_collectionFullName) ) ;
-   // register cursor in connection
-   rc = _regCursor ( cursor->_connection, (sdbCursorHandle)cursor ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // set output result
-   *handle                  = (sdbCursorHandle)cursor ;
 
 done :
    BSON_DESTROY( queryCond ) ;
    BSON_DESTROY( newObj ) ;
    return rc ;
 error :
-   if ( cursor )
+   if ( handle && SDB_INVALID_HANDLE != *handle )
    {
-      SDB_OSS_FREE ( cursor ) ;
+      sdbReleaseCursor ( *handle ) ;
+      SET_INVALID_HANDLE( handle ) ;
    }
-   SET_INVALID_HANDLE( handle ) ;
    goto done ;
 }
 
@@ -6449,7 +6041,6 @@ SDB_EXPORT INT32 sdbDropIndex ( sdbCollectionHandle cHandle,
                                 const CHAR *pIndexName )
 {
    INT32 rc                        = SDB_OK ;
-   SINT64 contextID                = 0 ;
    sdbConnectionStruct *connection = NULL ;
    sdbCollectionStruct *cs         = (sdbCollectionStruct*)cHandle ;
    BOOLEAN bsoninit                = FALSE ;
@@ -6474,38 +6065,18 @@ SDB_EXPORT INT32 sdbDropIndex ( sdbCollectionHandle cHandle,
                 cs->_collectionFullName, string ) ;
    BSON_APPEND( newObj, FIELD_NAME_INDEX,  &indexObj, bson ) ;
    BSON_FINISH ( newObj ) ;
-   rc = clientBuildQueryMsg ( &cs->_pSendBuffer, &cs->_sendBufferSize,
-                              CMD_ADMIN_PREFIX CMD_NAME_DROP_INDEX,
-                              0, 0, -1, -1, &newObj,
-                              NULL, NULL, NULL, cs->_endianConvert ) ;
+
+   rc = _runCommand2( cs->_connection,
+                      &cs->_pSendBuffer, &cs->_sendBufferSize,
+                      &cs->_pReceiveBuffer, &cs->_receiveBufferSize,
+                      (CMD_ADMIN_PREFIX CMD_NAME_DROP_INDEX),
+                      0, 0, 0, -1,
+                      &newObj, NULL, NULL, NULL,
+                      NULL ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
-
-   // send and recv
-   rc = _sendAndRecv( cs->_connection, cs->_sock, (MsgHeader*)cs->_pSendBuffer,
-                      (MsgHeader**)&cs->_pReceiveBuffer,
-                      &cs->_receiveBufferSize,
-                      TRUE, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // extract revc message
-   rc = _extract( cs->_connection,
-                  (MsgHeader*)cs->_pReceiveBuffer, cs->_receiveBufferSize,
-                  &contextID, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check return msg header
-   CHECK_RET_MSGHEADER( cs->_pSendBuffer, cs->_pReceiveBuffer,
-                        cs->_connection ) ;
-
    rc = updateCachedObject( rc, connection->_tb, cs->_collectionFullName ) ;
    if ( SDB_OK != rc )
    {
@@ -7208,23 +6779,8 @@ static INT32 _sdbQuery ( sdbCollectionHandle cHandle,
    {
       goto error ;
    }
-   // check return cursor
-   if ( SDB_INVALID_HANDLE == cursor )
-   {
-      // build an empty cursor for return
-      rc = _buildEmptyCursor( cs->_connection, &cursor ) ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
-      if ( SDB_INVALID_HANDLE == cursor )
-      {
-         rc = SDB_SYS ;
-         goto error ;
-      }
-   }
-
    *handle = cursor ;
+
 done :
    return rc ;
 error :
@@ -7968,12 +7524,12 @@ SDB_EXPORT INT32 sdbCloseCursor ( sdbCursorHandle cHandle )
    // check return msg header
    CHECK_RET_MSGHEADER( cs->_pSendBuffer, cs->_pReceiveBuffer,
                         cs->_connection ) ;
+
 unregister:
    // unregister from connection handle
    _unregCursor ( cs->_connection, cHandle ) ;
    cs->_contextID = -1 ;
    cs->_isClosed = TRUE ;
-
 done :
    return rc ;
 error :
@@ -8284,8 +7840,7 @@ SDB_EXPORT INT32 sdbTraceStatus ( sdbConnectionHandle cHandle,
                                   sdbCursorHandle *handle )
 {
    INT32 rc                = SDB_OK ;
-   SINT64 contextID        = 0 ;
-   sdbCursorStruct *cursor = NULL;
+   sdbCursorHandle cursor  = SDB_INVALID_HANDLE ;
    sdbConnectionStruct *connection = (sdbConnectionStruct*)cHandle ;
 
    HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
@@ -8295,58 +7850,25 @@ SDB_EXPORT INT32 sdbTraceStatus ( sdbConnectionHandle cHandle,
       goto error ;
    }
 
-   rc = clientBuildQueryMsg ( &connection->_pSendBuffer,
-                              &connection->_sendBufferSize,
-                              CMD_ADMIN_PREFIX CMD_NAME_TRACE_STATUS,
-                              0, 0, 0, -1, NULL, NULL, NULL,
-                              NULL, connection->_endianConvert ) ;
+   rc = _runCommand2( cHandle,
+                      &connection->_pSendBuffer, &connection->_sendBufferSize,
+                      &connection->_pReceiveBuffer, &connection->_receiveBufferSize,
+                      (CMD_ADMIN_PREFIX CMD_NAME_TRACE_STATUS),
+                      0, 0, 0, -1,
+                      NULL, NULL, NULL, NULL,
+                      &cursor ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
+   *handle = cursor ;
 
-   // send and recv
-   rc = _sendAndRecv( cHandle, connection->_sock,
-                      (MsgHeader*)connection->_pSendBuffer,
-                      (MsgHeader**)&connection->_pReceiveBuffer,
-                      &connection->_receiveBufferSize,
-                      TRUE, connection->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // extract revc message
-   rc = _extract( cHandle,
-                  (MsgHeader*)connection->_pReceiveBuffer,
-                  connection->_receiveBufferSize,
-                  &contextID,
-                  connection->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check return msg header
-   CHECK_RET_MSGHEADER( connection->_pSendBuffer, connection->_pReceiveBuffer,
-                        cHandle ) ;
-   ALLOC_HANDLE( cursor, sdbCursorStruct ) ;
-   INIT_CURSOR( cursor, connection, connection, contextID );
-
-   // register curosr in connection
-   rc = _regCursor ( cursor->_connection, (sdbCursorHandle)cursor ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-   // set output result
-   *handle = (sdbCursorHandle)cursor ;
 done :
    return rc ;
 error :
-   if ( cursor )
+   if ( SDB_INVALID_HANDLE != cursor )
    {
-      SDB_OSS_FREE ( cursor ) ;
+      sdbReleaseCursor( cursor ) ;
    }
    SET_INVALID_HANDLE( handle ) ;
    goto done ;
@@ -8984,7 +8506,6 @@ SDB_EXPORT INT32 sdbAttachCollection ( sdbCollectionHandle cHandle,
                                        bson *options )
 {
    INT32 rc                        = SDB_OK ;
-   SINT64 contextID                = 0 ;
    BOOLEAN bsoninit                = TRUE ;
    bson_iterator it ;
    bson newObj ;
@@ -9012,38 +8533,18 @@ SDB_EXPORT INT32 sdbAttachCollection ( sdbCollectionHandle cHandle,
       BSON_APPEND ( newObj, NULL, &it, element ) ;
    }
    BSON_FINISH ( newObj ) ;
-   rc = clientBuildQueryMsg ( &cs->_pSendBuffer, &cs->_sendBufferSize,
-                              CMD_ADMIN_PREFIX CMD_NAME_LINK_CL,
-                              0, 0, 0, -1, &newObj,
-                              NULL, NULL, NULL, cs->_endianConvert ) ;
+
+   rc = _runCommand2( cs->_connection,
+                      &cs->_pSendBuffer, &cs->_sendBufferSize,
+                      &cs->_pReceiveBuffer, &cs->_receiveBufferSize,
+                      (CMD_ADMIN_PREFIX CMD_NAME_LINK_CL),
+                      0, 0, 0, -1,
+                      &newObj, NULL, NULL, NULL,
+                      NULL ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
-
-   // send and recv
-   rc = _sendAndRecv( cs->_connection, cs->_sock, (MsgHeader*)cs->_pSendBuffer,
-                      (MsgHeader**)&cs->_pReceiveBuffer,
-                      &cs->_receiveBufferSize,
-                      TRUE, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // extract revc message
-   rc = _extract( cs->_connection,
-                  (MsgHeader*)cs->_pReceiveBuffer, cs->_receiveBufferSize,
-                  &contextID, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check return msg header
-   CHECK_RET_MSGHEADER( cs->_pSendBuffer, cs->_pReceiveBuffer,
-                        cs->_connection ) ;
-
    rc = updateCachedObject( rc, connection->_tb, cs->_collectionFullName ) ;
    if ( SDB_OK != rc )
    {
@@ -9061,7 +8562,6 @@ SDB_EXPORT INT32 sdbDetachCollection( sdbCollectionHandle cHandle,
                                       const CHAR *subClFullName)
 {
    INT32 rc                        = SDB_OK ;
-   SINT64 contextID                = 0 ;
    sdbConnectionStruct* connection = NULL ;
    sdbCollectionStruct *cs         = (sdbCollectionStruct*)cHandle ;
    BOOLEAN bsoninit                = FALSE ;
@@ -9083,38 +8583,17 @@ SDB_EXPORT INT32 sdbDetachCollection( sdbCollectionHandle cHandle,
    BSON_APPEND( newObj, FIELD_NAME_SUBCLNAME, subClFullName, string ) ;
    BSON_FINISH ( newObj ) ;
 
-   rc = clientBuildQueryMsg ( &cs->_pSendBuffer, &cs->_sendBufferSize,
-                              CMD_ADMIN_PREFIX CMD_NAME_UNLINK_CL,
-                              0, 0, 0, -1, &newObj,
-                              NULL, NULL, NULL, cs->_endianConvert ) ;
+   rc = _runCommand2( cs->_connection,
+                      &cs->_pSendBuffer, &cs->_sendBufferSize,
+                      &cs->_pReceiveBuffer, &cs->_receiveBufferSize,
+                      (CMD_ADMIN_PREFIX CMD_NAME_UNLINK_CL),
+                      0, 0, 0, -1,
+                      &newObj, NULL, NULL, NULL,
+                      NULL ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
-
-   // send and recv
-   rc = _sendAndRecv( cs->_connection, cs->_sock, (MsgHeader*)cs->_pSendBuffer,
-                      (MsgHeader**)&cs->_pReceiveBuffer,
-                      &cs->_receiveBufferSize,
-                      TRUE, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // extract revc message
-   rc = _extract( cs->_connection,
-                  (MsgHeader*)cs->_pReceiveBuffer, cs->_receiveBufferSize,
-                  &contextID, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check the return header
-   CHECK_RET_MSGHEADER( cs->_pSendBuffer, cs->_pReceiveBuffer,
-                        cs->_connection ) ;
-
    rc = updateCachedObject( rc, connection->_tb, cs->_collectionFullName ) ;
    if ( SDB_OK != rc )
    {
@@ -9136,7 +8615,6 @@ SDB_EXPORT INT32 sdbBackupOffline ( sdbConnectionHandle cHandle, bson *options )
 SDB_EXPORT INT32 sdbBackup ( sdbConnectionHandle cHandle, bson *options )
 {
    INT32 rc                      = SDB_OK ;
-   SINT64 contextID              = 0 ;
    sdbConnectionStruct *connection = (sdbConnectionStruct*)cHandle ;
    BOOLEAN bsoninit              = FALSE ;
    bson_iterator it ;
@@ -9154,41 +8632,19 @@ SDB_EXPORT INT32 sdbBackup ( sdbConnectionHandle cHandle, bson *options )
       }
    }
    BSON_FINISH ( newObj ) ;
-   rc = clientBuildQueryMsg ( &connection->_pSendBuffer,
-                              &connection->_sendBufferSize,
-                              CMD_ADMIN_PREFIX CMD_NAME_BACKUP_OFFLINE,
-                              0, 0, 0, -1, &newObj,
-                              NULL, NULL, NULL, connection->_endianConvert ) ;
+
+   rc = _runCommand2( cHandle,
+                      &connection->_pSendBuffer, &connection->_sendBufferSize,
+                      &connection->_pReceiveBuffer, &connection->_receiveBufferSize,
+                      (CMD_ADMIN_PREFIX CMD_NAME_BACKUP_OFFLINE),
+                      0, 0, 0, -1,
+                      &newObj, NULL, NULL, NULL,
+                      NULL ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
 
-   // send and recv
-   rc = _sendAndRecv( cHandle, connection->_sock,
-                      (MsgHeader*)connection->_pSendBuffer,
-                      (MsgHeader**)&connection->_pReceiveBuffer,
-                      &connection->_receiveBufferSize,
-                      TRUE, connection->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // extract revc message
-   rc = _extract( cHandle,
-                  (MsgHeader*)connection->_pReceiveBuffer,
-                  connection->_receiveBufferSize,
-                  &contextID,
-                  connection->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check the return header
-   CHECK_RET_MSGHEADER( connection->_pSendBuffer, connection->_pReceiveBuffer,
-                        cHandle ) ;
 done :
    BSON_DESTROY( newObj ) ;
    return rc ;
@@ -9204,8 +8660,7 @@ SDB_EXPORT INT32 sdbListBackup ( sdbConnectionHandle cHandle,
                                  sdbCursorHandle *handle )
 {
    INT32 rc                      = SDB_OK ;
-   SINT64 contextID              = 0 ;
-   sdbCursorStruct *cursor       = NULL ;
+   sdbCursorHandle cursor        = SDB_INVALID_HANDLE ;
    sdbConnectionStruct *connection = (sdbConnectionStruct*)cHandle ;
    BOOLEAN bsoninit              = FALSE ;
    bson_iterator it ;
@@ -9229,60 +8684,27 @@ SDB_EXPORT INT32 sdbListBackup ( sdbConnectionHandle cHandle,
       }
    }
    BSON_FINISH ( newObj ) ;
-   rc = clientBuildQueryMsg ( &connection->_pSendBuffer,
-                              &connection->_sendBufferSize,
-                              CMD_ADMIN_PREFIX CMD_NAME_LIST_BACKUPS,
-                              0, 0, 0, -1, condition,
-                              selector, orderBy, &newObj,
-                              connection->_endianConvert ) ;
+
+   rc = _runCommand2( cHandle,
+                      &connection->_pSendBuffer, &connection->_sendBufferSize,
+                      &connection->_pReceiveBuffer, &connection->_receiveBufferSize,
+                      (CMD_ADMIN_PREFIX CMD_NAME_LIST_BACKUPS),
+                      0, 0, 0, -1,
+                      condition, selector, orderBy, &newObj,
+                      &cursor ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
+   *handle = cursor ;
 
-   // send and recv
-   rc = _sendAndRecv( cHandle, connection->_sock,
-                      (MsgHeader*)connection->_pSendBuffer,
-                      (MsgHeader**)&connection->_pReceiveBuffer,
-                      &connection->_receiveBufferSize,
-                      TRUE, connection->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // extract revc message
-   rc = _extract( cHandle,
-                  (MsgHeader*)connection->_pReceiveBuffer,
-                  connection->_receiveBufferSize,
-                  &contextID,
-                  connection->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check the return header
-   CHECK_RET_MSGHEADER( connection->_pSendBuffer, connection->_pReceiveBuffer,
-                        cHandle ) ;
-   ALLOC_HANDLE( cursor, sdbCursorStruct ) ;
-   INIT_CURSOR( cursor, connection, connection, contextID ) ;
-
-   // register cursor in connection
-   rc = _regCursor ( cursor->_connection, (sdbCursorHandle)cursor ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-   // set output result
-   *handle = (sdbCursorHandle)cursor ;
 done :
    BSON_DESTROY( newObj ) ;
    return rc ;
 error :
-   if ( cursor )
+   if ( SDB_INVALID_HANDLE != cursor )
    {
-      SDB_OSS_FREE ( cursor ) ;
+      sdbReleaseCursor( cursor ) ;
    }
    SET_INVALID_HANDLE( handle ) ;
    goto done ;
@@ -9291,10 +8713,9 @@ error :
 SDB_EXPORT INT32 sdbRemoveBackup ( sdbConnectionHandle cHandle,
                                    bson* options )
 {
-   INT32 rc                      = SDB_OK ;
-   SINT64 contextID              = 0 ;
+   INT32 rc                        = SDB_OK ;
    sdbConnectionStruct *connection = (sdbConnectionStruct*)cHandle ;
-   BOOLEAN bsoninit              = FALSE ;
+   BOOLEAN bsoninit                = FALSE ;
    bson_iterator it ;
    bson newObj ;
 
@@ -9310,41 +8731,19 @@ SDB_EXPORT INT32 sdbRemoveBackup ( sdbConnectionHandle cHandle,
       }
    }
    BSON_FINISH ( newObj ) ;
-   rc = clientBuildQueryMsg ( &connection->_pSendBuffer,
-                                &connection->_sendBufferSize,
-                              CMD_ADMIN_PREFIX CMD_NAME_REMOVE_BACKUP,
-                              0, 0, 0, -1, &newObj,
-                              NULL, NULL, NULL, connection->_endianConvert ) ;
+
+   rc = _runCommand2( cHandle,
+                      &connection->_pSendBuffer, &connection->_sendBufferSize,
+                      &connection->_pReceiveBuffer, &connection->_receiveBufferSize,
+                      (CMD_ADMIN_PREFIX CMD_NAME_REMOVE_BACKUP),
+                      0, 0, 0, -1,
+                      &newObj, NULL, NULL, NULL,
+                      NULL ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
 
-   // send and recv
-   rc = _sendAndRecv( cHandle, connection->_sock,
-                      (MsgHeader*)connection->_pSendBuffer,
-                      (MsgHeader**)&connection->_pReceiveBuffer,
-                      &connection->_receiveBufferSize,
-                      TRUE, connection->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // extract revc message
-   rc = _extract( cHandle,
-                  (MsgHeader*)connection->_pReceiveBuffer,
-                  connection->_receiveBufferSize,
-                  &contextID,
-                  connection->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check the return header
-   CHECK_RET_MSGHEADER( connection->_pSendBuffer, connection->_pReceiveBuffer,
-                        cHandle ) ;
 done :
    BSON_DESTROY( newObj ) ;
    return rc ;
@@ -9368,7 +8767,6 @@ SDB_EXPORT INT32 sdbWaitTasks ( sdbConnectionHandle cHandle,
                                 SINT32 num )
 {
    INT32 rc                      = SDB_OK ;
-   SINT64 contextID              = 0 ;
    SINT32 i                      = 0 ;
    INT32 pos                     = 0 ;
    CHAR pos_buf[128]             = { 0 } ;
@@ -9417,43 +8815,19 @@ SDB_EXPORT INT32 sdbWaitTasks ( sdbConnectionHandle cHandle,
       goto error ;
    }
    BSON_FINISH ( newObj ) ;
-   // build msg
-   rc = clientBuildQueryMsg ( &connection->_pSendBuffer,
-                              &connection->_sendBufferSize,
-                              CMD_ADMIN_PREFIX CMD_NAME_WAITTASK,
-                              0, 0, 0, -1,
-                              &newObj, NULL, NULL, NULL,
-                              connection->_endianConvert ) ;
+
+   rc = _runCommand2( cHandle,
+                      &connection->_pSendBuffer, &connection->_sendBufferSize,
+                      &connection->_pReceiveBuffer, &connection->_receiveBufferSize,
+                      (CMD_ADMIN_PREFIX CMD_NAME_WAITTASK),
+                      0, 0, 0, -1,
+                      &newObj, NULL, NULL, NULL,
+                      NULL ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
 
-   // send and recv
-   rc = _sendAndRecv( cHandle, connection->_sock,
-                      (MsgHeader*)connection->_pSendBuffer,
-                      (MsgHeader**)&connection->_pReceiveBuffer,
-                      &connection->_receiveBufferSize,
-                      TRUE, connection->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // extract revc message
-   rc = _extract( cHandle,
-                  (MsgHeader*)connection->_pReceiveBuffer,
-                  connection->_receiveBufferSize,
-                  &contextID,
-                  connection->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check the return header
-   CHECK_RET_MSGHEADER( connection->_pSendBuffer, connection->_pReceiveBuffer,
-                        cHandle ) ;
 done :
    BSON_DESTROY( newObj ) ;
    return rc ;
@@ -9465,10 +8839,9 @@ SDB_EXPORT INT32 sdbCancelTask ( sdbConnectionHandle cHandle,
                                  SINT64 taskID,
                                  BOOLEAN isAsync )
 {
-   INT32 rc                      = SDB_OK ;
-   SINT64 contextID              = 0 ;
+   INT32 rc                        = SDB_OK ;
    sdbConnectionStruct *connection = (sdbConnectionStruct*) cHandle ;
-   BOOLEAN bsoninit              = FALSE ;
+   BOOLEAN bsoninit                = FALSE ;
    bson newObj ;
 
    BSON_INIT( newObj ) ;
@@ -9483,43 +8856,19 @@ SDB_EXPORT INT32 sdbCancelTask ( sdbConnectionHandle cHandle,
    BSON_APPEND ( newObj, FIELD_NAME_TASKID, taskID, long ) ;
    BSON_APPEND ( newObj, FIELD_NAME_ASYNC, isAsync, bool ) ;
    BSON_FINISH ( newObj ) ;
-   // build msg
-   rc = clientBuildQueryMsg ( &connection->_pSendBuffer,
-                              &connection->_sendBufferSize,
-                              CMD_ADMIN_PREFIX CMD_NAME_CANCEL_TASK,
-                              0, 0, 0, -1,
-                              &newObj, NULL, NULL, NULL,
-                              connection->_endianConvert ) ;
+
+   rc = _runCommand2( cHandle,
+                      &connection->_pSendBuffer, &connection->_sendBufferSize,
+                      &connection->_pReceiveBuffer, &connection->_receiveBufferSize,
+                      (CMD_ADMIN_PREFIX CMD_NAME_CANCEL_TASK),
+                      0, 0, 0, -1,
+                      &newObj, NULL, NULL, NULL,
+                      NULL ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
 
-   // send and recv
-   rc = _sendAndRecv( cHandle, connection->_sock,
-                      (MsgHeader*)connection->_pSendBuffer,
-                      (MsgHeader**)&connection->_pReceiveBuffer,
-                      &connection->_receiveBufferSize,
-                      TRUE, connection->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // extract revc message
-   rc = _extract( cHandle,
-                  (MsgHeader*)connection->_pReceiveBuffer,
-                  connection->_receiveBufferSize,
-                  &contextID,
-                  connection->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check the return header
-   CHECK_RET_MSGHEADER( connection->_pSendBuffer, connection->_pReceiveBuffer,
-                        cHandle ) ;
 done :
    BSON_DESTROY( newObj ) ;
    return rc ;
@@ -9550,10 +8899,9 @@ error :
 SDB_EXPORT INT32 sdbSetSessionAttr ( sdbConnectionHandle cHandle,
                                      bson *options )
 {
-   INT32 rc              = SDB_OK ;
-   SINT64 contextID      = 0 ;
+   INT32 rc                        = SDB_OK ;
    sdbConnectionStruct *connection = (sdbConnectionStruct*) cHandle ;
-   BOOLEAN bsoninit      = FALSE ;
+   BOOLEAN bsoninit                = FALSE ;
    bson_iterator it ;
    bson newObj ;
 
@@ -9658,42 +9006,17 @@ SDB_EXPORT INT32 sdbSetSessionAttr ( sdbConnectionHandle cHandle,
 
    _sdbClearSessionAttrCache( connection, TRUE ) ;
 
-   rc = clientBuildQueryMsg ( &connection->_pSendBuffer,
-                              &connection->_sendBufferSize,
-                              CMD_ADMIN_PREFIX CMD_NAME_SETSESS_ATTR,
-                              0, 0, 0, -1,
-                              &newObj, NULL, NULL, NULL,
-                              connection->_endianConvert) ;
+   rc = _runCommand2( cHandle,
+                      &connection->_pSendBuffer, &connection->_sendBufferSize,
+                      &connection->_pReceiveBuffer, &connection->_receiveBufferSize,
+                      (CMD_ADMIN_PREFIX CMD_NAME_SETSESS_ATTR),
+                      0, 0, 0, -1,
+                      &newObj, NULL, NULL, NULL,
+                      NULL ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
-
-   // send and recv
-   rc = _sendAndRecv( cHandle, connection->_sock,
-                      (MsgHeader*)connection->_pSendBuffer,
-                      (MsgHeader**)&connection->_pReceiveBuffer,
-                      &connection->_receiveBufferSize,
-                      TRUE, connection->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // extract revc message
-   rc = _extract( cHandle,
-                  (MsgHeader*)connection->_pReceiveBuffer,
-                  connection->_receiveBufferSize,
-                  &contextID,
-                  connection->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check the return header
-   CHECK_RET_MSGHEADER( connection->_pSendBuffer, connection->_pReceiveBuffer,
-                        cHandle ) ;
 
 done :
    BSON_DESTROY( newObj ) ;
@@ -11884,64 +11207,26 @@ static INT32 _sdbRunCmdOfLob( sdbCollectionHandle cHandle,
                               INT64 numToReturn,
                               sdbCursorHandle *cursorHandle )
 {
-   INT32 rc = SDB_OK ;
-   SINT64 contextID = -1 ;
-   sdbCursorStruct *cursor = NULL ;
+   INT32 rc                = SDB_OK ;
    sdbCollectionStruct *cs = (sdbCollectionStruct*)cHandle ;
 
    HANDLE_CHECK( cHandle, cs, SDB_HANDLE_TYPE_COLLECTION ) ;
-   rc = clientBuildQueryMsg ( &cs->_pSendBuffer, &cs->_sendBufferSize,
-                              cmd,
-                              0, 0, numToSkip, numToReturn, query,
-                              selected, orderBy, hint, cs->_endianConvert ) ;
+
+   rc = _runCommand2( cs->_connection,
+                      &cs->_pSendBuffer, &cs->_sendBufferSize,
+                      &cs->_pReceiveBuffer, &cs->_receiveBufferSize,
+                      cmd,
+                      0, 0, numToSkip, numToReturn,
+                      query, selected, orderBy, hint,
+                      cursorHandle ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
-   }
-
-   // send and recv
-   rc = _sendAndRecv( cs->_connection, cs->_sock, (MsgHeader*)cs->_pSendBuffer,
-                      (MsgHeader**)&cs->_pReceiveBuffer,
-                      &cs->_receiveBufferSize,
-                      TRUE, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // extract revc message
-   rc = _extract( cs->_connection,
-                  (MsgHeader*)cs->_pReceiveBuffer, cs->_receiveBufferSize,
-                  &contextID, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check return msg header
-   CHECK_RET_MSGHEADER( cs->_pSendBuffer, cs->_pReceiveBuffer,
-                        cs->_connection ) ;
-   if ( -1 != contextID && NULL != cursorHandle )
-   {
-      ALLOC_HANDLE( cursor, sdbCursorStruct ) ;
-      INIT_CURSOR( cursor, cs->_connection, cs, contextID ) ;
-      ossMemcpy ( cursor->_collectionFullName, cs->_collectionFullName,
-                  sizeof(cursor->_collectionFullName) ) ;
-      rc = _regCursor ( cursor->_connection, (sdbCursorHandle)cursor ) ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
-      *cursorHandle = (sdbCursorHandle)cursor ;
    }
 
 done:
    return rc ;
 error:
-   if ( cursor )
-   {
-      SDB_OSS_FREE ( cursor ) ;
-   }
    SET_INVALID_HANDLE( cursorHandle ) ;
    goto done ;
 }
@@ -12183,7 +11468,6 @@ SDB_EXPORT INT32 sdbReelect( sdbReplicaGroupHandle cHandle,
 {
    INT32 rc         = SDB_OK ;
    sdbRGStruct *rg  = (sdbRGStruct*)cHandle ;
-   SINT64 contextID = -1 ;
    bson ops ;
    bson_iterator itr ;
    bson_init( &ops ) ;
@@ -12219,39 +11503,18 @@ SDB_EXPORT INT32 sdbReelect( sdbReplicaGroupHandle cHandle,
       goto error ;
    }
 
-   rc = clientBuildQueryMsg( &(rg->_pSendBuffer),
-                             &(rg->_sendBufferSize),
-                             (CMD_ADMIN_PREFIX CMD_NAME_REELECT),
-                             0, 0, 0, -1, &ops, NULL, NULL, NULL,
-                             rg->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      ossPrintf ( "Failed to build flush msg, rc = %d"OSS_NEWLINE, rc ) ;
-      goto error ;
-   }
-
-   // send and recv
-   rc = _sendAndRecv( rg->_connection, rg->_sock, (MsgHeader*)rg->_pSendBuffer,
-                      (MsgHeader**)&rg->_pReceiveBuffer,
-                      &rg->_receiveBufferSize,
-                      TRUE, rg->_endianConvert ) ;
+   rc = _runCommand2( rg->_connection,
+                      &rg->_pSendBuffer, &rg->_sendBufferSize,
+                      &rg->_pReceiveBuffer, &rg->_receiveBufferSize,
+                      (CMD_ADMIN_PREFIX CMD_NAME_REELECT),
+                      0, 0, 0, -1,
+                      &ops, NULL, NULL, NULL,
+                      NULL ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
 
-   // extract revc message
-   rc = _extract( rg->_connection,
-                  (MsgHeader*)rg->_pReceiveBuffer, rg->_receiveBufferSize,
-                  &contextID, rg->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check return msg header
-   CHECK_RET_MSGHEADER( rg->_pSendBuffer, rg->_pReceiveBuffer,
-                        rg->_connection ) ;
 done:
    bson_destroy( &ops ) ;
    return rc ;
@@ -12262,44 +11525,22 @@ error:
 SDB_EXPORT INT32 sdbForceStepUp( sdbConnectionHandle cHandle,
                                  const bson *options )
 {
-   INT32 rc = SDB_OK ;
-   sdbConnectionStruct *conn = ( sdbConnectionStruct *)cHandle ;
-   SINT64 contextID = -1 ;
-   HANDLE_CHECK( cHandle, conn, SDB_HANDLE_TYPE_CONNECTION ) ;
+   INT32 rc                        = SDB_OK ;
+   sdbConnectionStruct *connection = ( sdbConnectionStruct *)cHandle ;
+   HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
 
-   rc = clientBuildQueryMsg( &(conn->_pSendBuffer),
-                             &(conn->_sendBufferSize),
-                             (CMD_ADMIN_PREFIX CMD_NAME_FORCE_STEP_UP ),
-                             0, 0, 0, -1, options, NULL, NULL, NULL,
-                             conn->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      ossPrintf ( "Failed to build flush msg, rc = %d"OSS_NEWLINE, rc ) ;
-      goto error ;
-   }
-
-   // send and recv
-   rc = _sendAndRecv( cHandle, conn->_sock, (MsgHeader*)conn->_pSendBuffer,
-                      (MsgHeader**)&conn->_pReceiveBuffer,
-                      &conn->_receiveBufferSize,
-                      TRUE, conn->_endianConvert ) ;
+   rc = _runCommand2( cHandle,
+                      &connection->_pSendBuffer, &connection->_sendBufferSize,
+                      &connection->_pReceiveBuffer, &connection->_receiveBufferSize,
+                      (CMD_ADMIN_PREFIX CMD_NAME_FORCE_STEP_UP),
+                      0, 0, 0, -1,
+                      options, NULL, NULL, NULL,
+                      NULL ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
 
-   // extract revc message
-   rc = _extract( cHandle,
-                  (MsgHeader*)conn->_pReceiveBuffer, conn->_receiveBufferSize,
-                  &contextID, conn->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check return msg header
-   CHECK_RET_MSGHEADER( conn->_pSendBuffer, conn->_pReceiveBuffer,
-                        cHandle ) ;
 done:
    return rc ;
 error:
@@ -12660,21 +11901,22 @@ SDB_EXPORT INT32 sdbCLGetDetail( sdbCollectionHandle cHandle,
                                  sdbCursorHandle *handle )
 {
    INT32 rc                        = SDB_OK ;
-   SINT64 contextID                = 0 ;
-   sdbCursorStruct *cursor         = NULL ;
    sdbConnectionStruct *connection = NULL ;
    sdbCollectionStruct *cs         = (sdbCollectionStruct*)cHandle ;
    BOOLEAN bsoninit                = FALSE ;
    bson newObj ;
 
    BSON_INIT( newObj ) ;
-   HANDLE_CHECK( cHandle, cs, SDB_HANDLE_TYPE_COLLECTION ) ;
-   connection = (sdbConnectionStruct*)(cs->_connection) ;
+
    if ( !handle )
    {
       rc = SDB_CLT_INVALID_HANDLE ;
       goto error ;
    }
+   *handle = SDB_INVALID_HANDLE ;
+
+   HANDLE_CHECK( cHandle, cs, SDB_HANDLE_TYPE_COLLECTION ) ;
+   connection = (sdbConnectionStruct*)(cs->_connection) ;
    if ( !cs->_collectionFullName[0] )
    {
       rc = SDB_INVALIDARG ;
@@ -12686,65 +11928,33 @@ SDB_EXPORT INT32 sdbCLGetDetail( sdbCollectionHandle cHandle,
                 cs->_collectionFullName, string ) ;
    BSON_FINISH ( newObj ) ;
 
-   rc = clientBuildQueryMsg ( &cs->_pSendBuffer, &cs->_sendBufferSize,
-                              CMD_ADMIN_PREFIX CMD_NAME_GET_CL_DETAIL,
-                              0, 0, -1, -1,
-                              NULL, NULL, NULL, &newObj, cs->_endianConvert ) ;
+   rc = _runCommand2( cs->_connection,
+                      &cs->_pSendBuffer, &cs->_sendBufferSize,
+                      &cs->_pReceiveBuffer, &cs->_receiveBufferSize,
+                      CMD_ADMIN_PREFIX CMD_NAME_GET_CL_DETAIL,
+                      0, 0, -1, -1,
+                      NULL, NULL, NULL, &newObj,
+                      handle ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
 
-   // send and recv
-   rc = _sendAndRecv( cs->_connection, cs->_sock, (MsgHeader*)cs->_pSendBuffer,
-                      (MsgHeader**)&cs->_pReceiveBuffer,
-                      &cs->_receiveBufferSize,
-                      TRUE, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // extract revc message
-   rc = _extract( cs->_connection,
-                  (MsgHeader*)cs->_pReceiveBuffer, cs->_receiveBufferSize,
-                  &contextID, cs->_endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // check return msg header
-   CHECK_RET_MSGHEADER( cs->_pSendBuffer, cs->_pReceiveBuffer,
-                        cs->_connection ) ;
    rc = updateCachedObject( rc, connection->_tb, cs->_collectionFullName ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
-   ALLOC_HANDLE( cursor, sdbCursorStruct ) ;
-   INIT_CURSOR( cursor, cs->_connection, cs, contextID ) ;
-   ossMemcpy ( cursor->_collectionFullName, cs->_collectionFullName,
-               sizeof(cursor->_collectionFullName) ) ;
-   // register cursor in connection
-   rc = _regCursor ( cursor->_connection, (sdbCursorHandle)cursor ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-   // set output result
-   *handle                  = (sdbCursorHandle)cursor ;
 
 done :
    BSON_DESTROY( newObj ) ;
    return rc ;
 error :
-   if ( cursor )
+   if ( handle && SDB_INVALID_HANDLE != *handle )
    {
-      SDB_OSS_FREE ( cursor ) ;
+      sdbReleaseCursor ( *handle ) ;
+      SET_INVALID_HANDLE( handle ) ;
    }
-   SET_INVALID_HANDLE( handle ) ;
    goto done ;
 }
 
