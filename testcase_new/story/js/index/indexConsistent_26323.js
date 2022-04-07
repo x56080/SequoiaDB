@@ -2,7 +2,7 @@
  * @Description   : seqDB-26323:异步复制索引后立即创建/删除索引 
  * @Author        : liuli
  * @CreateTime    : 2022.04.02
- * @LastEditTime  : 2022.04.02
+ * @LastEditTime  : 2022.04.07
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -51,16 +51,16 @@ function test ()
    db.waitTasks( taskId );
 
    // 主表异步复制索引
-   var taskId = maincl.copyIndexAsync( csName + "." + subCLName1, indexName1 );
+   var taskId = maincl.copyIndexAsync( csName + "." + subCLName1, indexName2 );
 
    // 子表删除索引
    try
    {
-      subcl1.dropIndex( indexName1 );
+      subcl1.dropIndex( indexName2 );
    }
    catch( e )
    {
-      if( e != SDB_IXM_CREATING )
+      if( e != SDB_IXM_NOTEXIST && e != SDB_IXM_CREATING )
       {
          throw e;
       }
