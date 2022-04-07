@@ -319,7 +319,7 @@ namespace engine
             cataMsgSize = 0 ;
             isCataMsgRewritten = FALSE ;
          }
-         if ( pDataMsgBuf )
+         if ( isDataMsgRewritten )
          {
             msgReleaseBuffer( pDataMsgBuf, cb ) ;
             pDataMsgBuf = NULL ;
