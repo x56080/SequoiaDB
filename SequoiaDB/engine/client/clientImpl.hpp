@@ -22,9 +22,8 @@
 #include <set>
 #include "ossUtil.hpp"
 #include "utilAuthSCRAMSHA.hpp"
-#if defined CLIENT_THREAD_SAFE
 #include "ossLatch.hpp"
-#endif
+
 using namespace bson ;
 
 namespace sdbclient
@@ -1512,10 +1511,7 @@ namespace sdbclient
       _sdbImpl ( const _sdbImpl& other ) ;
       _sdbImpl& operator=( const _sdbImpl& ) ;
 
-#if defined CLIENT_THREAD_SAFE
       ossSpinSLatch            _mutex ;
-#endif
-
       ossSocket               *_sock ;
       CHAR                     _hostName [ OSS_MAX_HOSTNAME + 1 ] ;
       CHAR                     _serviceName [ OSS_MAX_SERVICENAME + 1 ] ;
