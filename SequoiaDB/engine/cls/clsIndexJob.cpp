@@ -188,21 +188,30 @@ namespace engine
    // master node use the function
    INT32 _clsIndexJob::init ()
    {
-      if ( !_hasSetIndexObj )
+      try
       {
-         try
+         if ( !_hasSetIndexObj )
          {
             _indexObj = BSON( "" << _indexName ) ;
             _hasSetIndexObj = TRUE ;
          }
-         catch( std::exception &e )
+
+         if ( RTN_JOB_DROP_INDEX == _type )
          {
-            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-            return ossException2RC( &e ) ;
+            _indexEle = _indexObj.getField( IXM_NAME_FIELD ) ;
+            if ( _indexEle.eoo() )
+            {
+               _indexEle = _indexObj.firstElement() ;
+            }
          }
       }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         return ossException2RC( &e ) ;
+      }
 
-      return _buildNames( FALSE ) ;
+      return _buildJobName() ;
    }
 
    INT32 _clsIndexJob::doit()

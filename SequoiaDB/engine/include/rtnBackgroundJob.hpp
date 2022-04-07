@@ -87,7 +87,7 @@ namespace engine
 
       protected:
          virtual INT32 _onDoit( INT32 resultCode ) { return SDB_OK ; }
-         INT32 _buildNames( BOOLEAN buildIndexName = TRUE ) ;
+         INT32 _buildJobName() ;
          BOOLEAN _needRetry( INT32 rc ) ;
 
       protected:
@@ -97,7 +97,7 @@ namespace engine
          std::string             _indexName ;
          std::string             _jobName ;
          BSONObj                 _indexObj ;
-         BSONElement             _indexEle ;
+         BSONElement             _indexEle ; // This is for index dropping
          BOOLEAN                 _hasAddUnique ;
          BOOLEAN                 _hasAddGlobal ;
          UINT32                  _csLID ;

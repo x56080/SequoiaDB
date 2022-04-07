@@ -228,7 +228,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _rtnIndexJob::_buildNames( BOOLEAN buildIndexName )
+   INT32 _rtnIndexJob::_buildJobName()
    {
       INT32 rc = SDB_OK ;
       stringstream ss ;
@@ -238,29 +238,10 @@ namespace engine
          if ( RTN_JOB_CREATE_INDEX == _type )
          {
             ss << "CreateIndex-" ;
-            if ( buildIndexName )
-            {
-               _indexName = _indexObj.getStringField( IXM_NAME_FIELD ) ;
-            }
          }
          else if ( RTN_JOB_DROP_INDEX == _type )
          {
             ss << "DropIndex-" ;
-            _indexEle = _indexObj.getField( IXM_NAME_FIELD ) ;
-            if ( _indexEle.eoo() )
-            {
-               _indexEle = _indexObj.firstElement () ;
-            }
-            if ( buildIndexName )
-            {
-               _indexName = _indexEle.str() ;
-            }
-         }
-         else
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG ( PDERROR, "Index job not support this type[%d]", _type ) ;
-            goto error ;
          }
 
          ss << _clFullName << "/" << _clUniqID << "[" << _indexName << "]" ;
@@ -291,10 +272,27 @@ namespace engine
       dmsTaskStatusMgr* taskStatMgr = sdbGetRTNCB()->getTaskStatusMgr() ;
       DMS_TASK_TYPE taskType = DMS_TASK_UNKNOWN ;
 
-      rc = _buildNames() ;
-      if ( rc )
+      // build index name, index element
+      try
       {
-         goto error ;
+         if ( RTN_JOB_CREATE_INDEX == _type )
+         {
+            _indexName = _indexObj.getStringField( IXM_NAME_FIELD ) ;
+         }
+         else if ( RTN_JOB_DROP_INDEX == _type )
+         {
+            _indexEle = _indexObj.getField( IXM_NAME_FIELD ) ;
+            if ( _indexEle.eoo() )
+            {
+               _indexEle = _indexObj.firstElement() ;
+            }
+            _indexName = _indexEle.str() ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
       }
 
       rc = rtnResolveCollectionNameAndLock ( _clFullName, _dmsCB,
@@ -412,6 +410,13 @@ namespace engine
 
       // get collection unique id
       _clUniqID = mbContext->mb()->_clUniqueID ;
+
+      // build job name after we get the collection unique id
+      rc = _buildJobName() ;
+      if ( rc )
+      {
+         goto error ;
+      }
 
       // unlock mb and su
       su->data()->releaseMBContext( mbContext ) ;
