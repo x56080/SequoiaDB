@@ -1028,6 +1028,140 @@ TEST_F(index_ddl_test, advanced_create_index_test2_2)
 }
 
 /*
+Name: advanced_create_index_test3
+Description: 
+   多个cl创建多个索引
+   1. 创建单个cs
+   2. cs下创建1000个cl
+   3. 每个cl创建最大数量索引
+   4. 验证索引和cl数量是否符合预期
+   5. 重启vessel，验证索引索引和cl数量
+Expected Result: 
+   索引和cl数量验证正确
+*/
+TEST_F(index_ddl_test, advanced_create_index_test3)
+{
+   INT32 rc = SDB_OK;
+   vesselImpl db;
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
+   openDBOptions options;
+   DATA_COLLECTION_PTR handler;
+   ossPoolVector<bson::BSONObj> indexes;
+   dmsBsonCursorReader reader;
+
+   options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+
+   string fullNamePrefix = "foo.bar";
+   string indexNamePrefix = "index";
+   constexpr INT32 createdCLNum = 1000;
+   UINT16 clCount = 0;
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (INT32 i = 0; i < createdCLNum; ++i)
+   {
+      string fullName = fullNamePrefix + to_string(i);
+      rc = db.createCL(&session, fullName.c_str(), i, dmsCreateCLOptions(), bson::BSONObj());
+      if (SDB_OK == rc)
+      {
+         ++clCount;
+      }
+      else if (SDB_NOSPC == rc)
+      {
+         rc = SDB_OK;
+         break;
+      }
+      else
+      {
+         ASSERT_EQ(SDB_NOSPC, rc);
+      }
+
+      rc = db.openCL(&session, fullName.c_str(), dmsOpenCLOptions(), handler);
+      ASSERT_EQ(SDB_OK, rc);
+
+      UINT32 indexCount = 0;
+      for (UINT32 i = 0; i < MAX_INDEX_COUNT_PER_CL; ++i)
+      {
+         string indexName = indexNamePrefix + to_string(i);
+         bson::BSONObj pattern = BSON(indexName.c_str() << 1);
+         bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_BTREE, 
+                                                                indexName.c_str(),
+                                                                FALSE, pattern);
+         rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
+         if (SDB_OK == rc)
+         {
+            ++indexCount;
+         }
+         else if (SDB_NOSPC == rc)
+         {
+            rc = SDB_OK;
+            break;
+         }
+         else
+         {
+            ASSERT_EQ(SDB_NOSPC, rc);
+         }
+      }
+
+      indexes.clear();
+      rc = handler->listIndex(&session, indexes); 
+      ASSERT_EQ(SDB_OK, rc);
+      ASSERT_EQ(indexCount, indexes.size());
+      handler->close();
+   }
+
+   DATA_CURSOR_PTR cursor;
+   rc = db.listCL(&session, "foo", cursor);
+   ASSERT_EQ(SDB_OK, rc);
+
+   reader.init(cursor, TRUE);
+   for (UINT32 i = 0; i < clCount; ++i)
+   {
+      rc = reader.fetchNext(&session);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+   rc = reader.fetchNext(&session);
+   ASSERT_EQ(SDB_DMS_EOC, rc);
+   
+
+   rc = db.close(&session, closeDBOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (INT32 i = 0; i < createdCLNum; ++i)
+   {
+      string fullName = fullNamePrefix + to_string(i);
+
+      rc = db.openCL(&session, fullName.c_str(), dmsOpenCLOptions(), handler);
+      ASSERT_EQ(SDB_OK, rc);
+
+      indexes.clear();
+      rc = handler->listIndex(&session, indexes); 
+      ASSERT_EQ(SDB_OK, rc);
+      ASSERT_EQ(MAX_INDEX_COUNT_PER_CL, indexes.size());
+
+      string indexName = "index";
+      bson::BSONObj pattern = BSON(indexName.c_str() << 1);
+      bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_BTREE, indexName.c_str(),
+                                                             FALSE, pattern);
+      rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
+      ASSERT_EQ(SDB_DMS_MAX_INDEX, rc);
+      handler->close();
+   }
+
+   db.close(&session, closeDBOptions());
+   
+}
+
+/*
 Name: death_create_index_test1
 Description: 
    最大数量cl最大索引数创建测试
@@ -1039,7 +1173,7 @@ Description:
 Expected Result: 
    索引和cl数量验证正确
 */
-void death_create_index_test(INDEX_TYPE type)
+TEST_F(index_ddl_test, DISABLED_death_create_index_test1)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
@@ -1048,6 +1182,7 @@ void death_create_index_test(INDEX_TYPE type)
    openDBOptions options;
    DATA_COLLECTION_PTR handler;
    ossPoolVector<bson::BSONObj> indexes;
+   dmsBsonCursorReader reader;
 
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
@@ -1088,7 +1223,7 @@ void death_create_index_test(INDEX_TYPE type)
       {
          string indexName = indexNamePrefix + to_string(i);
          bson::BSONObj pattern = BSON(indexName.c_str() << 1);
-         bson::BSONObj indexDef = indexTestUtil::createIndexObj(type, indexName.c_str(),
+         bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_LSM, indexName.c_str(),
                                                                FALSE, pattern);
          rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
          if (SDB_OK == rc)
@@ -1112,7 +1247,20 @@ void death_create_index_test(INDEX_TYPE type)
       ASSERT_EQ(indexCount, indexes.size());
       handler->close();
    }
-   ASSERT_EQ(clCount, MAX_CL_MB_COUNT);
+
+   DATA_CURSOR_PTR cursor;
+   rc = db.listCL(&session, "foo", cursor);
+   ASSERT_EQ(SDB_OK, rc);
+
+   reader.init(cursor, TRUE);
+   for (UINT32 i = 0; i < clCount; ++i)
+   {
+      rc = reader.fetchNext(&session);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+   rc = reader.fetchNext(&session);
+   ASSERT_EQ(SDB_DMS_EOC, rc);
+   
 
    rc = db.close(&session, closeDBOptions());
    ASSERT_EQ(SDB_OK, rc);
@@ -1134,7 +1282,7 @@ void death_create_index_test(INDEX_TYPE type)
 
       string indexName = "index";
       bson::BSONObj pattern = BSON(indexName.c_str() << 1);
-      bson::BSONObj indexDef = indexTestUtil::createIndexObj(type, indexName.c_str(),
+      bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_LSM, indexName.c_str(),
                                                             FALSE, pattern);
       rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
       ASSERT_EQ(SDB_DMS_MAX_INDEX, rc);
@@ -1142,15 +1290,5 @@ void death_create_index_test(INDEX_TYPE type)
    }
 
    db.close(&session, closeDBOptions());
-}
-
-TEST_F(index_ddl_test, death_create_index_test1_1)
-{
-   death_create_index_test(INDEX_TYPE_BTREE);
-}
-
-TEST_F(index_ddl_test, death_create_index_test1_2)
-{
-   death_create_index_test(INDEX_TYPE_LSM);
 }
 
