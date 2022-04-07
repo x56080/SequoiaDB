@@ -11880,6 +11880,7 @@ SDB_EXPORT INT32 sdbCreateAutoIncrement( sdbCollectionHandle cHandle,
 
    rc = _sdbAlterCollectionInternal( cHandle, SDB_ALTER_CL_CRT_AUTOINC_FLD, &obj, FALSE ) ;
 done:
+   bson_destroy( &obj ) ;
    return rc ;
 error:
    goto done ;

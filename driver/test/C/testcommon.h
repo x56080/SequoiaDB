@@ -13,12 +13,11 @@
 #include "client.h"
 
 //#define HOST                  "localhost"
-#define SERVER                "11810" // for coord
-#define HOST                  "192.168.31.17"
-//#define HOST                  "192.168.20.42"
-//#define SERVER                "50000" // for coord
-#define SERVER1               "11820" // for catalog
-#define SERVER2               "11870" // for data
+//#define SERVER                "11810" // for coord
+#define HOST                  "localhost"
+#define SERVER                "50000" // for coord
+#define SERVER1               "30000" // for catalog
+#define SERVER2               "20000" // for data
 #define USER                  ""
 #define PASSWD                ""
 #define USER1                 "sequoiadb"
@@ -37,9 +36,8 @@
 
 
 // for rg
-#define GROUPNAME1            "testgroup1"
-#define GROUPNAME2            "testgroup2"
-#define GROUPNAME3            "testgroup3"
+#define GROUPNAME1            "db1"
+#define GROUPNAME2            "db2"
 
 #define DATAPATH1             "/opt/sequoiadb/database/test/data1"
 #define DATAPATH2             "/opt/sequoiadb/database/test/data2"
