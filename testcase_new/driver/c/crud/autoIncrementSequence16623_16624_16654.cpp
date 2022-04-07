@@ -155,6 +155,7 @@ TEST_F( autoIncrementSequence16623_16624_16654, createDropAutoIncrement16623_166
   bson_destroy( &autoIncObj ) ;
   bson_destroy( &matcher ) ;
   sdbCloseCursor( cursor ) ;
+  sdbReleaseCursor( cursor ) ;
 
   // check sequence snapshot
   bson_init( &matcher ) ;
@@ -194,6 +195,7 @@ TEST_F( autoIncrementSequence16623_16624_16654, createDropAutoIncrement16623_166
   bson_destroy( &autoIncObj ) ;
   bson_destroy( &matcher ) ;
   sdbCloseCursor( cursor ) ;
+  sdbReleaseCursor( cursor ) ;
 
   // drop not exist autoincrement 
   bson nonExistField ;
@@ -218,6 +220,7 @@ TEST_F( autoIncrementSequence16623_16624_16654, createDropAutoIncrement16623_166
   bson_append_string( &matcher, "Name", sequenceName ) ;
   bson_finish( &matcher ) ;
   rc = sdbGetList( db, SDB_LIST_SEQUENCES, &matcher, NULL, NULL, &cursor ) ;
+  ASSERT_EQ( SDB_OK, rc ) << "fail to list" << rc ;
   rc = sdbNext( cursor, &autoIncObj ) ;
   bson_print( &autoIncObj ) ;
   ASSERT_EQ( SDB_DMS_EOC, rc ) << "fail to next" << rc ;
@@ -297,6 +300,7 @@ TEST_F( autoIncrementSequence16623_16624_16654, createAlterCollection16654 )
    printf( "sequenceName: %s\n", sequenceName ) ;
    bson_destroy( &matcher ) ;
    sdbCloseCursor( cursor ) ;
+   sdbReleaseCursor( cursor ) ;
 
    // check sequence snapshot before alter
    bson_init( &matcher ) ;
@@ -320,6 +324,7 @@ TEST_F( autoIncrementSequence16623_16624_16654, createAlterCollection16654 )
    increment = bson_iterator_int( &it ) ;
    ASSERT_EQ( 5, increment ) << "actual increment " << increment ;
    sdbCloseCursor( cursor ) ;
+   sdbReleaseCursor( cursor ) ;
 
    // alter autoincrement
    bson_init( &field );
@@ -352,6 +357,7 @@ TEST_F( autoIncrementSequence16623_16624_16654, createAlterCollection16654 )
    increment = bson_iterator_int( &it ) ;
    ASSERT_EQ( 10, increment ) << "actual increment " << increment ;
    sdbCloseCursor( cursor ) ;
+   sdbReleaseCursor( cursor ) ;
 
    // alter autoincrement
    bson_init( &field ) ;
