@@ -66,6 +66,11 @@ namespace engine
          virtual INT32 init () ;
          virtual INT32 doit () ;
 
+         virtual BOOLEAN useTransLock() const
+         {
+            return TRUE ;
+         }
+
       protected:
          virtual void _onAttach() ;
          virtual void _onDetach() ;
