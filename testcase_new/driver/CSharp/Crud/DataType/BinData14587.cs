@@ -46,11 +46,11 @@ namespace CSharp.Crud.DataType
             //
             validDocs = new List<BsonDocument> 
             {
-                new BsonDocument("zeroBin", new BsonBinaryData(new byte[0])),
-                new BsonDocument("bigBin", new BsonBinaryData(new byte[15 * 1024 * 1024], BsonBinarySubType.Binary)),
-                new BsonDocument("udfBin", new BsonBinaryData(new byte[16], BsonBinarySubType.UserDefined)),
-                new BsonDocument("zeroBson", new BsonDocument { { "$binary", "" }, { "$type", 1 } }),
-                new BsonDocument("normalBson", new BsonDocument { { "$binary", "aGVsbG8gd29ybGQ="}, { "$type", 1 } }),
+                new BsonDocument("zeroBin", new BsonBinaryData(new byte[0])).Add("a",1),
+                new BsonDocument("bigBin", new BsonBinaryData(new byte[15 * 1024 * 1024], BsonBinarySubType.Binary)).Add("a",2),
+                new BsonDocument("udfBin", new BsonBinaryData(new byte[16], BsonBinarySubType.UserDefined)).Add("a",3),
+                new BsonDocument("zeroBson", new BsonDocument { { "$binary", "" }, { "$type", 1 } }).Add("a",4),
+                new BsonDocument("normalBson", new BsonDocument { { "$binary", "aGVsbG8gd29ybGQ="}, { "$type", 1 } }).Add("a",5),
             };
             invalidDocs = new List<BsonDocument>
             {
@@ -109,7 +109,7 @@ namespace CSharp.Crud.DataType
         public List<BsonDocument> QueryAndReturnAll(DBCollection cl)
         {
             List<BsonDocument> result = new List<BsonDocument>();
-            DBCursor cursor = cl.Query();
+            DBCursor cursor = cl.Query(null,null,new BsonDocument("a",1),null);
             while (cursor.Next() != null)
             {
                 BsonDocument doc = cursor.Current();
