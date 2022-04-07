@@ -7405,7 +7405,7 @@ do                                                            \
             return SDB_INVALIDARG ;
       }
       // register or unregister
-      lock () ;
+      _mutex.get() ;
       try
       {
          if ( isRegister )
@@ -7421,7 +7421,7 @@ do                                                            \
       {
          rc = ossException2RC( &e ) ;
       }
-      unlock () ;
+      _mutex.release() ;
       return rc ;
    }
 
