@@ -1767,13 +1767,43 @@ namespace engine
             else
             {
                rc = SDB_DOMAIN_IS_OCCUPIED ;
-               PD_LOG ( PDERROR,
-                        "There are one or more collection spaces "
-                        "are using the domain, rc: %d",
-                        rc ) ;
+               PD_LOG_MSG( PDERROR,
+                           "There are one or more collection spaces, "
+                           "e.g. [%s], are using the domain [%s], rc: %d",
+                           resultObj.getField(
+                                 CAT_COLLECTION_SPACE_NAME ).valuestrsafe(),
+                           pDomainName, rc ) ;
                goto error ;
             }
          }
+         rc = SDB_OK ;
+
+         // check recycle bin
+         rc = catGetOneObj ( CAT_SYSRECYCLEBIN_CS_COLLECTION, tempObj,
+                             queryObj, tempObj, _pEduCB, resultObj ) ;
+         if ( SDB_DMS_EOC != rc )
+         {
+            if ( rc )
+            {
+               PD_LOG ( PDERROR,
+                        "Failed to get object from %s, rc: %d",
+                        CAT_SYSRECYCLEBIN_CS_COLLECTION, rc ) ;
+               goto error ;
+            }
+            else
+            {
+               rc = SDB_DOMAIN_IS_OCCUPIED ;
+               PD_LOG_MSG( PDERROR,
+                           "There are one or more collection spaces in "
+                           "recycle bin, e.g. [%s], are using the domain [%s], "
+                           "rc: %d",
+                           resultObj.getField(
+                                 CAT_COLLECTION_SPACE_NAME ).valuestrsafe(),
+                           pDomainName, rc ) ;
+               goto error ;
+            }
+         }
+         rc = SDB_OK ;
 
          // Lock domain
          PD_CHECK( lockMgr.tryLockDomain( pDomainName, EXCLUSIVE ),

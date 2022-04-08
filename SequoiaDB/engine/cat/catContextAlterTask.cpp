@@ -3972,7 +3972,7 @@ namespace engine
       {
          ossPoolList< utilCSUniqueID > collectionSpaces ;
          ossPoolList< utilCSUniqueID > recycledCSs ;
-         ossPoolSet< UINT32 > occupiedGroups ;
+         ossPoolSet< UINT32 > occupiedGroups, recyOccupiedGroups ;
 
          /// Get collection spaces for domain
          rc = catGetDomainCSs( _dataName.c_str(), cb, collectionSpaces ) ;
@@ -4006,7 +4006,7 @@ namespace engine
                ++ itRecyCS )
          {
             utilCSUniqueID csUniqueID = *itRecyCS ;
-            rc = catGetRecyCSGroups( csUniqueID, cb, occupiedGroups ) ;
+            rc = catGetRecyCSGroups( csUniqueID, cb, recyOccupiedGroups ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get group list of collection "
                          "space [%u], rc: %d", csUniqueID, rc ) ;
          }
@@ -4019,12 +4019,22 @@ namespace engine
             const CHAR * groupName = catCB->groupID2Name( groupID ) ;
 
             // The group should not be occupied
-            PD_CHECK( occupiedGroups.end() == occupiedGroups.find( groupID ),
-                      SDB_DOMAIN_IS_OCCUPIED, error, PDERROR,
-                      "Failed to checkout removing groups from domain [%s]:"
-                      "clear data(of this domain) before remove it "
-                      "from domain. groups to be removed[%s]",
-                      _dataName.c_str(), groupName ) ;
+            PD_LOG_MSG_CHECK(
+                     occupiedGroups.end() == occupiedGroups.find( groupID ),
+                     SDB_DOMAIN_IS_OCCUPIED, error, PDERROR,
+                     "Failed to checkout removing groups from domain [%s]: "
+                     "clear data (of this domain) before remove it "
+                     "from domain. groups to be removed [%s]",
+                     _dataName.c_str(), groupName ) ;
+
+            // The group should not be occupied by recycle items
+            PD_LOG_MSG_CHECK(
+                     recyOccupiedGroups.end() == recyOccupiedGroups.find( groupID ),
+                     SDB_DOMAIN_IS_OCCUPIED, error, PDERROR,
+                     "Failed to checkout removing groups from domain [%s]: "
+                     "clear recycle bin items (of this domain) before "
+                     "remove it from domain. groups to be removed [%s]",
+                     _dataName.c_str(), groupName ) ;
 
             _groupMap.erase( groupName ) ;
          }
