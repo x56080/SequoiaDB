@@ -113,7 +113,7 @@ namespace vessel
          PD_LOG(PDERROR, "failed to get capacity of index meta block page, rc:%d", rc);
          goto error;
       }
-      else if (OSS_UNLIKELY(blockPos >= capacity))
+      else if (OSS_UNLIKELY(blockPos >= (INT32)capacity))
       {
          rc = SDB_OUT_OF_BOUND;
          PD_LOG(PDERROR, "block position is out of bound, rc:%d", rc);
@@ -192,7 +192,7 @@ namespace vessel
          PD_LOG(PDERROR, "failed to get capacity of index meta block page");
          goto error;
       }
-      else if (OSS_UNLIKELY(blockPos >= capacity))
+      else if (OSS_UNLIKELY(blockPos >= (INT32)capacity))
       {
          rc = SDB_OUT_OF_BOUND;
          PD_LOG(PDERROR, "block position is out of bound, rc:%d", rc);
@@ -291,7 +291,7 @@ namespace vessel
          PD_LOG(PDERROR, "failed to get capacity of index meta block page");
          goto error;
       }
-      else if (OSS_UNLIKELY(blockPos >= capacity))
+      else if (OSS_UNLIKELY(blockPos >= (INT32)capacity))
       {
          rc = SDB_OUT_OF_BOUND;
          PD_LOG(PDERROR, "block position is out of bound, rc:%d", rc);
@@ -371,7 +371,7 @@ namespace vessel
          PD_LOG(PDERROR, "failed to get capacity of index meta block page");
          goto error;
       }
-      else if (OSS_UNLIKELY(blockPos >= capacity))
+      else if (OSS_UNLIKELY(blockPos >= (INT32)capacity))
       {
          rc = SDB_OUT_OF_BOUND;
          PD_LOG(PDERROR, "block position is out of bound, rc:%d", rc);
@@ -479,7 +479,7 @@ namespace vessel
          PD_LOG(PDERROR, "failed to get capacity of index meta block page");
          goto error;
       }
-      else if (OSS_UNLIKELY(blockPos >= capacity))
+      else if (OSS_UNLIKELY(blockPos >= (INT32)capacity))
       {
          rc = SDB_OUT_OF_BOUND;
          PD_LOG(PDERROR, "block position is out of bound, rc:%d", rc);
