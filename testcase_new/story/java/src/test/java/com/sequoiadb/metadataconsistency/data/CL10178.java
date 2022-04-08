@@ -20,8 +20,7 @@ import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
- * TestLink: seqDB-10172: create autoSplit collection seqDB-10178:
- * concurrency[alterCL, dropCL]
+ * TestLink: seqDB-10178:修改cl过程中删除该cl
  * 
  * @author xiaoni huang init
  * @Date 2016.10.11
@@ -85,7 +84,7 @@ public class CL10178 extends SdbTestBase {
         MetaDataUtils.sleep( random.nextInt( msec ) );
         dropCL.start();
 
-        if ( !( alterCL.isSuccess() && dropCL.isSuccess() ) ) {
+        if ( !( alterCL.isSuccess() || dropCL.isSuccess() ) ) {
             Assert.fail( alterCL.getErrorMsg() + dropCL.getErrorMsg() );
         }
 
@@ -96,9 +95,8 @@ public class CL10178 extends SdbTestBase {
     private class AlterCL extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
                 CollectionSpace csDB = db.getCollectionSpace( csName );
 
                 BSONObject opt = new BasicBSONObject();
@@ -113,8 +111,6 @@ public class CL10178 extends SdbTestBase {
                         && eCode != -190 ) {
                     throw e;
                 }
-            } finally {
-                db.close();
             }
         }
     }
@@ -122,59 +118,44 @@ public class CL10178 extends SdbTestBase {
     private class DropCL extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
                 CollectionSpace csDB = db.getCollectionSpace( csName );
 
                 csDB.dropCollection( clName );
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if ( eCode == -147 && eCode != -190 ) {
+                if ( eCode != -147 && eCode != -190 ) {
                     throw e;
                 }
-            } finally {
-                db.close();
             }
         }
     }
 
     public void createDomain() {
-        try {
-            BSONObject opt = new BasicBSONObject();
-            opt.put( "Groups", dataGroups );
-            opt.put( "AutoSplit", true );
-            sdb.createDomain( domainName, opt );
-        } catch ( BaseException e ) {
-            throw e;
-        }
+        BSONObject opt = new BasicBSONObject();
+        opt.put( "Groups", dataGroups );
+        opt.put( "AutoSplit", true );
+        sdb.createDomain( domainName, opt );
     }
 
     public void createCS() {
-        try {
-            BSONObject opt = new BasicBSONObject();
-            opt.put( "Domain", domainName );
-            sdb.createCollectionSpace( csName, opt );
-        } catch ( BaseException e ) {
-            throw e;
-        }
+        BSONObject opt = new BasicBSONObject();
+        opt.put( "Domain", domainName );
+        sdb.createCollectionSpace( csName, opt );
     }
 
     public void createCL() {
-        try {
-            CollectionSpace csDB = sdb.getCollectionSpace( csName );
+        CollectionSpace csDB = sdb.getCollectionSpace( csName );
 
-            BSONObject opt = new BasicBSONObject();
-            BSONObject subObj = new BasicBSONObject();
-            subObj.put( "a", 1 );
-            opt.put( "ShardingType", "hash" );
-            opt.put( "ShardingKey", subObj );
-            opt.put( "ReplSize", 1 );
-            opt.put( "AutoSplit", true );
-            csDB.createCollection( clName, opt );
-        } catch ( BaseException e ) {
-            throw e;
-        }
+        BSONObject opt = new BasicBSONObject();
+        BSONObject subObj = new BasicBSONObject();
+        subObj.put( "a", 1 );
+        opt.put( "ShardingType", "hash" );
+        opt.put( "ShardingKey", subObj );
+        opt.put( "ReplSize", 1 );
+        opt.put( "AutoSplit", true );
+        csDB.createCollection( clName, opt );
     }
 
 }
