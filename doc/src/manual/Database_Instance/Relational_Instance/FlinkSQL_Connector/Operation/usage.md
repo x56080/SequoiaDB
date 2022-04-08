@@ -28,8 +28,8 @@ select_statment:
 在映射表 employee 中插入如下数据：
 
 ```lang-sql
-Flink SQL> INSERT INTO employee VALUES (1, "Jacky", 36);
-Flink SQL> INSERT INTO employee VALUES (2, "Alice", 18);
+Flink SQL> INSERT INTO employee VALUES (1, 'Jacky', 36);
+Flink SQL> INSERT INTO employee VALUES (2, 'Alice', 18);
 ```
 
 ##数据读取##

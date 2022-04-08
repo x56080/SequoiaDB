@@ -37,7 +37,7 @@ Flink 与 SequoiaDB 通过映射表进行数据交互。
     'connector' = 'sequoiadb',
     'hosts' = 'sdbserver1:11810',
     'collectionspace' = 'sample',
-    'collection' = 'employee',
+    'collection' = 'employee'
     );
     ```
 
