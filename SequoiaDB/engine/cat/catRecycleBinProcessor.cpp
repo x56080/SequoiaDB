@@ -946,7 +946,7 @@ namespace engine
          // renamed collection space conflicts with exist collection
          PD_LOG_MSG_CHECK( FALSE, SDB_DMS_CS_EXIST, error, PDERROR,
                            "Failed to return collection space [%s] to [%s], "
-                           "collection [%s] already exists",
+                           "collection space [%s] already exists",
                            nameInfo.getOriginName(),
                            nameInfo.getReturnName(),
                            nameInfo.getReturnName() ) ;
