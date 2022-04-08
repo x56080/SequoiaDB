@@ -50,7 +50,6 @@ namespace engine
       public:
          UINT32 dataPageSize = DMS_PAGE_SIZE32K;
          UINT32 idxPageSize = DMS_PAGE_SIZE32K;
-         UINT32 lobPageSize = DMS_PAGE_SIZE256K;
          DMS_STORAGE_TYPE stype = DMS_STORAGE_NORMAL;
    };//class dmsCreateCSOptions
 

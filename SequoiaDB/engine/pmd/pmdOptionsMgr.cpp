@@ -3694,13 +3694,13 @@ done:
       o.path.indexPath.append(OSS_FILE_SEP);
       o.path.indexPath.append("vessel");
 
-      o.path.lobMetaPath.append(_krcbLobMetaPath);
-      o.path.lobMetaPath.append(OSS_FILE_SEP);
-      o.path.lobMetaPath.append("vessel");
+      o.path.lobmPath.append(_krcbLobMetaPath);
+      o.path.lobmPath.append(OSS_FILE_SEP);
+      o.path.lobmPath.append("vessel");
 
-      o.path.lobPath.append(_krcbLobPath);
-      o.path.lobPath.append(OSS_FILE_SEP);
-      o.path.lobPath.append("vessel");
+      o.path.lobdPath.append(_krcbLobPath);
+      o.path.lobdPath.append(OSS_FILE_SEP);
+      o.path.lobdPath.append("vessel");
 
       o.path.lsmPath.append(_krcbIndexPath);
       o.path.lsmPath.append(OSS_FILE_SEP);

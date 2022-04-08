@@ -256,6 +256,7 @@ namespace engine
       /// vessel begin
       EDU_TYPE_VESSEL_CACHE_WATCHER,
       EDU_TYPE_VESSEL_WORKER,
+      EDU_TYPE_VESSEL_LOBC_BUFFER_POOL_WATCHER,
       /// vessel end
 
       EDU_TYPE_UNKNOWN,

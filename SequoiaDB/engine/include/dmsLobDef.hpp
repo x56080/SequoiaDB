@@ -322,6 +322,15 @@ namespace engine
       bson::OID _oid ;
    } ;
    typedef struct _dmsLobInfoOnPage dmsLobInfoOnPage ;
+
+   constexpr UINT32 MAX_LOB_CHUNK_SIZE = 4 << 20;
+
+   struct lobChunkProfile : public SDBObject
+   {
+      UINT32 chunkSize = 0;
+      UINT32 chainSize = 0;
+   };//struct lobChunkProfile
+
 }
 
 #endif // DMS_LOBDEF_HPP_

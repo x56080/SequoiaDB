@@ -41,6 +41,7 @@
 
 #include "vessel/liteCacheWatcher.h"
 #include "vessel/backgroundWorker.h"
+#include "vessel/vesselImpl.h"
 
 namespace engine
 {
@@ -76,6 +77,26 @@ namespace engine
 
       watcher = (vessel::liteCacheWatcher *)pData;
       watcher->attach(cb);
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 pmdVesselLobcWatcherEntryPoint(pmdEDUCB *cb, void *pData)
+   {
+      INT32 rc = SDB_OK;
+      vessel::vesselImpl *impl = nullptr;
+      rc = cb->getEDUMgr()->activateEDU(cb);
+      if ( SDB_OK != rc )
+      {
+         PD_LOG ( PDERROR, "Failed to active EDU" ) ;
+         goto error ;
+      }
+
+      impl = (vessel::vesselImpl *)pData;
+      impl->attachLobcWatcher(cb);
 
    done:
       return rc;
