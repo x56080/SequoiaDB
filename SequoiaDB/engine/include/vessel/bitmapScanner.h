@@ -58,6 +58,8 @@ namespace vessel
          void load(UINT64 *bitmap,
                    UINT32 capacity);
 
+         void extend(UINT32 deltaCapacity, BOOLEAN zeroed);
+
          void reset();
 
          OSS_INLINE BOOLEAN isReady()const

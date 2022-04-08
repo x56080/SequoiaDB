@@ -79,7 +79,8 @@ namespace vessel
                                        backgroundEvent &event);
          void handleLpsSegmentFlushing(IExecutor *executor,
                                        backgroundEvent &event);
-
+         void handleLobdBufferEvent(IExecutor *executor,
+                                    backgroundEvent &event);
       private:
          instanceEnv *_env = nullptr;
          autoEventList<backgroundEvent> *_el = nullptr;

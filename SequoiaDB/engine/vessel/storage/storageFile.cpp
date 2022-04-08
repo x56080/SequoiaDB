@@ -48,14 +48,14 @@ namespace engine
 namespace vessel
 {
    storageFile::storageFile()
-   :_dataSegmentCount(0)
    {}
 
    storageFile::~storageFile()
    {}
 
    INT32 storageFile::open(const strSlice &dir,
-                           const storageFileName &fn)
+                           const storageFileName &fn,
+                           UINT32 flags)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!isOpen(), "can not be open");
@@ -94,6 +94,8 @@ namespace vessel
          PD_LOG(PDERROR, "failed to open file:%s, %d", fullPath, rc);
          goto error;
       }
+
+      _ctl = flags;
 
       rc = openFileHead(fn);
       if (SDB_OK != rc)
@@ -188,6 +190,14 @@ namespace vessel
       UINT64 fileSize = 0;
       UINT32 segmentSize = 0;
 
+      if (_getReservedAreaSize() != _headInMem.reservedAreaSize)
+      {
+         PD_LOG(PDERROR, "reserved size[%d] does not match the one in head[%d]",
+                _getReservedAreaSize(), _headInMem.reservedAreaSize);
+         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+         goto error;
+      }
+      
       rc = ossMmapFile::size(fileSize);
       if (SDB_OK != rc)
       {
@@ -239,14 +249,18 @@ namespace vessel
 
       while ((mmapOffset + segmentSize) <= fileSize)
       {
-         rc = map(mmapOffset, segmentSize, NULL);
-         if (SDB_OK != rc)
+         if (isSegmentMmaped())
          {
-            PD_LOG(PDERROR, "failed to mmap file[%s] segment:%d",
-                   ossMmapFile::_fileName, rc);
-            goto error;
+            rc = map(mmapOffset, segmentSize, NULL);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to mmap file[%s] segment:%d",
+                     ossMmapFile::_fileName, rc);
+               goto error;
+            }
          }
          mmapOffset += segmentSize;
+         ++_dataSegmentCount;
       }
 
       if (mmapOffset < fileSize)
@@ -262,8 +276,6 @@ namespace vessel
             goto error;
          }
       }
-
-      _dataSegmentCount = ossMmapFile::segmentSize() - getHeadMMapSegmentCount();
    done:
       return rc;
    error:
@@ -289,7 +301,8 @@ namespace vessel
 
    ossValuePtr storageFile::getReservedAreaPtr()const
    {
-      return getExtraMmapSegCount() <= ossMmapFile::segmentSize() ?
+      return (0 < _headInMem.reservedAreaSize &&
+             getExtraMmapSegCount() <= ossMmapFile::segmentSize()) ?
              getSegmentInfo(getHeadMMapSegmentCount(), NULL, NULL) : 0;
    }
 
@@ -323,6 +336,8 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
+
+      _ctl = options.flags;
 
       rc = createFileAndInit(dir, fn, options);
       if (SDB_OK != rc)
@@ -404,7 +419,7 @@ namespace vessel
       }
 
       /// extend file space for file head
-      rc = extendFileAndMMap(SOTRAGE_FILE_TOTAL_HEAD_SIZE, &headPtr);
+      rc = extendFileAndMmap(SOTRAGE_FILE_TOTAL_HEAD_SIZE, &headPtr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to extend file:%d", rc);
@@ -428,9 +443,9 @@ namespace vessel
                    options.userDefinedHeader.getData(), copySize);
       }
 
-      if (0 < options.reservedAreaSize)
+      if (0 < _getReservedAreaSize())
       {
-         rc = extendFileAndMMap(options.reservedAreaSize, NULL);
+         rc = extendFileAndMmap(_getReservedAreaSize(), NULL);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to extend file:%d", rc);
@@ -467,6 +482,7 @@ namespace vessel
    void storageFile::destroy()
    {
       _close();
+      _ctl = 0;
       _headInMem.reset();
       _fileType = INVALID_FILE_TYPE;
       _spaceType = INVALID_SPACE_TYPE;
@@ -503,10 +519,15 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-
-      if (OSS_UNLIKELY(!isOpen()))
+      else if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isSegmentMmaped()))
+      {
+         SDB_ASSERT(FALSE, "not a mmap file");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
 
@@ -524,6 +545,24 @@ namespace vessel
       goto done;
    }
 
+   INT32 storageFile::getPagePtr(PAGE_ID pid, mmapPagePointer &ptr)const
+   {
+      INT32 rc = SDB_OK;
+      ossValuePtr p = 0;
+      ptr.reset();
+      rc = getPagePtr(pid, p);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      ptr.reset(p);
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 storageFile::getSegmentPtr(UINT32 seg, ossValuePtr &ptr)const
    {
       INT32 rc = SDB_OK;
@@ -534,6 +573,12 @@ namespace vessel
       {
          PD_LOG(PDERROR, "file has not been open");
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isSegmentMmaped()))
+      {
+         SDB_ASSERT(FALSE, "not a mmap file");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
 
@@ -573,6 +618,12 @@ namespace vessel
       else if (OSS_UNLIKELY(INVALID_PAGE_ID == pid))
       {
          rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isSegmentMmaped()))
+      {
+         SDB_ASSERT(FALSE, "not a mmap file");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
 
@@ -615,6 +666,12 @@ namespace vessel
          rc = SDB_OUT_OF_BOUND;
          goto error;
       }
+      else if (OSS_UNLIKELY(!isSegmentMmaped()))
+      {
+         SDB_ASSERT(FALSE, "not a mmap file");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
 
       mmapSegId = getMMapSegmentID(segmentId);
       rc = ossMmapFile::flush(mmapSegId, sync);
@@ -643,6 +700,12 @@ namespace vessel
       else if (OSS_UNLIKELY(getSegmentCount() <= segmentId))
       {
          rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isSegmentMmaped()))
+      {
+         SDB_ASSERT(FALSE, "not a mmap file");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
 
@@ -721,11 +784,10 @@ namespace vessel
          goto done;
       }
 
-      if (0 != options.reservedAreaSize &&
-          0 != (options.reservedAreaSize % options.args.pageSize))
+      if (0 != _getReservedAreaSize() &&
+          0 != _getReservedAreaSize() % options.args.pageSize)
       {
-         PD_LOG(PDERROR, "invalid reserved area size");
-         goto done;
+         PD_LOG(PDERROR, "reserved area size must be aligned by page size");
       }
 
       r = TRUE;
@@ -753,99 +815,96 @@ namespace vessel
       head->pageSize = options.args.pageSize;
       head->maxSegmentCountPerFile = options.args.maxSegmentCountPerFile;
       head->maxPageCountPerSeg = options.args.maxPageCountPerSeg;
+      head->reservedAreaSize = _getReservedAreaSize();
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 storageFile::extendFileAndMMap(UINT32 len, ossValuePtr *ptr)
+   INT32 storageFile::extendFile(UINT32 len)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(0 != len, "can not be zero");
       UINT64 originalFileSize = 0;
-      void *mmapAddr = NULL;
-      BOOLEAN needTruncate = FALSE;
-   
-      if (OSS_UNLIKELY(0 == len))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
 
       rc = ossMmapFile::size(originalFileSize);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get file size：%s, %d", _fileName, rc);
+         PD_LOG(PDERROR, "failed to get file size:%d", rc);
          goto error;
       }
-      needTruncate = TRUE;
 
-      if (VESSEL_FILE_GLOBAL_OPTIONS::isSparseExtending())
-      {
 #if defined( _LINUX )
-         rc = ossFallocate(&_file, 0, originalFileSize, len);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to extend file with fallocate: %s, %d, %d",
-                   _fileName, len, rc);
-            goto error;
-         }
-#else
-         rc = ossExtentBySparse(&_file, len);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to extend file by sparse:%d", rc);
-            goto error;
-         }
-#endif//#if defined( _LINUX )
-      }
-      else
-      {
-         rc = ossExtendFile(&_file, len);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to extent file: %s, %d, %d", _fileName, len, rc);
-            goto error;
-         }
-      }
-
-      rc = ossMmapFile::map(originalFileSize, len, &mmapAddr);
+      rc = ossFallocate(&_file, 0, originalFileSize, len);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to mmap: %s, %d", _fileName, rc);
+         PD_LOG(PDERROR, "failed to extend file with fallocate: %s, %d, %d",
+                  _fileName, len, rc);
          goto error;
       }
-      needTruncate = FALSE;
-
-      if (NULL != ptr)
+#else
+      rc = ossExtendFile(&_file, len);
+      if (SDB_OK != rc)
       {
-         *ptr = (ossValuePtr)mmapAddr;
+         PD_LOG(PDERROR, "failed to extent file: %s, %d, %d", _fileName, len, rc);
+         goto error;
       }
+#endif//#if defined( _LINUX )
+
    done:
       return rc;
    error:
-      if (needTruncate)
+      goto done;
+   }
+
+   INT32 storageFile::extendFileAndMmap(UINT32 len, ossValuePtr *ptr)
+   {
+      INT32 rc = SDB_OK;
+      UINT64 originalFileSize = 0;
+      void *mmapPtr = nullptr;
+      
+      rc = ossMmapFile::size(originalFileSize);
+      if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to get file size:%d", rc);
+         goto error;
+      }
+
+      rc = extendFile(len);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to extend file[%s], rc:%d", getFullPath(), rc);
+         goto error;
+      }
+
+      rc = ossMmapFile::map(originalFileSize, len, &mmapPtr);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to mmap: %s, %d", _fileName, rc);
          INT32 trc = ossTruncateFile(&_file, originalFileSize);
          if (SDB_OK != trc)
          {
             PD_LOG(PDSEVERE, "failed to rollback file to orignal size:%s, %lld, %d", _fileName, originalFileSize, rc);
             ossPanic();
          }
+         goto error;
       }
+
+      if (NULL != ptr)
+      {
+         *ptr = (ossValuePtr)mmapPtr;
+      }
+   done:
+      return rc;
+   error:
       goto done;
    }
 
-   INT32 storageFile::allocateNewSegment(ossValuePtr *out)
+   INT32 storageFile::allocateNewSegment()
    {
       INT32 rc = SDB_OK;
       UINT32 extendLen = 0;
-      ossValuePtr ptr = 0;
-
-      if (NULL != out)
-      {
-         *out = 0;
-      }
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -861,18 +920,26 @@ namespace vessel
       }
 
       extendLen = _headInMem.pageSize * _headInMem.maxPageCountPerSeg;
-      rc = extendFileAndMMap(extendLen, &ptr);
-      if (SDB_OK != rc)
+      if (isSegmentMmaped())
       {
-         PD_LOG(PDERROR, "failed to extend file:%d", rc);
-         goto error;
+         rc = extendFileAndMmap(extendLen, nullptr);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to extend and mmap file:%d", rc);
+            goto error;
+         }
+      }
+      else
+      {
+         rc = extendFile(extendLen);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to extend file:%d", rc);
+            goto error;
+         }
       }
 
       ++_dataSegmentCount;
-      if (NULL != out)
-      {
-         *out = ptr;
-      }
    done:
       return rc;
    error:
@@ -1092,5 +1159,283 @@ namespace vessel
       goto done;
    }
 
+   INT32 storageFile::readDataFromPage(PAGE_ID pid,
+                                       UINT32 offset,
+                                       UINT32 size,
+                                       CHAR *data)
+   {
+      INT32 rc = SDB_OK;
+      INT64 seekOffset = 0;
+      UINT32 read = 0;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      if (OSS_UNLIKELY(INVALID_PAGE_ID == pid ||
+                       0 == size ||
+                       _headInMem.pageSize < (offset + size) ||
+                       nullptr == data))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if ((_dataSegmentCount * _headInMem.maxPageCountPerSeg) <= pid)
+      {
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+
+      seekOffset = static_cast<INT64>(STORAGE_FILE_COMMON_HEAD_SIZE) +
+                   _headInMem.reservedAreaSize;
+      seekOffset += static_cast<INT64>(_headInMem.pageSize) * pid;
+      do
+      {
+         SINT64 readThisLoop = 0;
+         rc = ossSeekAndRead(&_file, seekOffset,
+                             data + read,
+                             static_cast<INT64>(size - read),
+                             &readThisLoop);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to read file[%s], [%lld,%d], rc:%d",
+                   getFullPath(), seekOffset, size - read, rc);
+            goto error;
+         }
+
+         read += readThisLoop;
+         seekOffset += readThisLoop;
+      } while (read < size);
+      
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 storageFile::writeDataToPage(PAGE_ID pid,
+                                      UINT32 offset,
+                                      UINT32 size,
+                                      const CHAR *data)
+   {
+      INT32 rc = SDB_OK;
+      INT64 seekOffset = 0;
+      UINT32 written = 0;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      if (OSS_UNLIKELY(INVALID_PAGE_ID == pid ||
+                       0 == size ||
+                       _headInMem.pageSize < (offset + size) ||
+                       nullptr == data))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if ((_dataSegmentCount * _headInMem.maxPageCountPerSeg) <= pid)
+      {
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+
+      seekOffset = static_cast<INT64>(STORAGE_FILE_COMMON_HEAD_SIZE) +
+                   _headInMem.reservedAreaSize;
+      seekOffset += static_cast<INT64>(_headInMem.pageSize) * pid;
+      do
+      {
+         SINT64 writtenThisLoop = 0;
+         rc = ossSeekAndWrite(&_file, seekOffset,
+                              data + written,
+                              static_cast<INT64>(size - written),
+                              &writtenThisLoop);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to write file[%s], [%lld,%d], rc:%d",
+                   getFullPath(), seekOffset, size - written, rc);
+            goto error;
+         }
+
+         written += writtenThisLoop;
+         seekOffset += writtenThisLoop;
+      } while (written < size);
+      
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 storageFile::readPages(PAGE_ID pid,
+                                UINT32 pcnt,
+                                CHAR *data)
+   {
+      INT32 rc = SDB_OK;
+      INT64 seekOffset = 0;
+      INT64 read = 0;
+      INT64 totalSize = 0;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      if (OSS_UNLIKELY(INVALID_PAGE_ID == pid ||
+                       0 == pcnt ||
+                       nullptr == data))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if ((_dataSegmentCount * _headInMem.maxPageCountPerSeg) <
+               (pid + pcnt))
+      {
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+
+      totalSize = static_cast<INT64>(_headInMem.pageSize) * pcnt;
+      seekOffset = static_cast<INT64>(STORAGE_FILE_COMMON_HEAD_SIZE) +
+                   _headInMem.reservedAreaSize;
+      seekOffset += static_cast<INT64>(_headInMem.pageSize) * pid;
+      do
+      {
+         SINT64 readThisLoop = 0;
+         rc = ossSeekAndRead(&_file, seekOffset,
+                             data + read,
+                             static_cast<INT64>(totalSize - read),
+                             &readThisLoop);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to read file[%s], [%lld,%d], rc:%d",
+                   getFullPath(), seekOffset, totalSize - read, rc);
+            goto error;
+         }
+
+         read += readThisLoop;
+         seekOffset += readThisLoop;
+      } while (read < totalSize);
+      
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 storageFile::writePages(PAGE_ID pid,
+                                 UINT32 pcnt,
+                                 const CHAR *data)
+   {
+      INT32 rc = SDB_OK;
+      INT64 seekOffset = 0;
+      INT64 written = 0;
+      INT64 totalSize = 0;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      if (OSS_UNLIKELY(INVALID_PAGE_ID == pid ||
+                       0 == pcnt ||
+                       nullptr == data))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if ((_dataSegmentCount * _headInMem.maxPageCountPerSeg) <
+               (pid + pcnt))
+      {
+         SDB_ASSERT(FALSE, "out of bound");
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+
+      totalSize = static_cast<INT64>(_headInMem.pageSize) * pcnt;
+      seekOffset = static_cast<INT64>(STORAGE_FILE_COMMON_HEAD_SIZE) +
+                   _headInMem.reservedAreaSize;
+      seekOffset += static_cast<INT64>(_headInMem.pageSize) * pid;
+      do
+      {
+         SINT64 writtenThisLoop = 0;
+         rc = ossSeekAndWrite(&_file, seekOffset,
+                              data + written,
+                              static_cast<INT64>(totalSize - written),
+                              &writtenThisLoop);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to write file[%s], [%lld,%d], rc:%d",
+                   getFullPath(), seekOffset, totalSize - written, rc);
+            goto error;
+         }
+
+         written += writtenThisLoop;
+         seekOffset += writtenThisLoop;
+      } while (written < totalSize);
+   
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 storageFile::readData(UINT64 offset, UINT64 size, CHAR *buf)
+   {
+      INT32 rc = SDB_OK;
+      UINT64 fileSize = 0;
+      UINT64 readSize = 0;
+      INT64 readOffset = 0;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(0 == size || nullptr == buf))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      fileSize = static_cast<UINT64>(_dataSegmentCount) *
+                 _headInMem.pageSize * _headInMem.maxPageCountPerSeg;
+      if (fileSize < (offset + size))
+      {
+         SDB_ASSERT(FALSE, "out of bound");
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+
+      readOffset = static_cast<INT64>(STORAGE_FILE_COMMON_HEAD_SIZE) +
+                   _headInMem.reservedAreaSize;
+
+      do
+      {
+         SINT64 readThisLoop = 0;
+         rc = ossSeekAndRead(&_file, readOffset + readSize,
+                             buf + readSize,
+                             static_cast<INT64>(size - readSize),
+                             &readThisLoop);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to read file[%s], [%lld,%d], rc:%d",
+                   getFullPath(), readOffset + readSize, size - readSize, rc);
+            goto error;
+         }
+
+         readSize += readThisLoop;
+      } while (readSize < size);
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 } // namespace vessel
 } // namespace engine

@@ -37,15 +37,19 @@
 #define VESSEL_LOB_CHUNK_BUFFER_POOL_H_
 
 #include "ossMemPool.hpp"
-#include "vessel/blockBasedMemPool.h"
-#include "vessel/lobChunkBuffer.h"
-
-#include <mutex> //c++11
+#include "vessel/lobcBufferPoolEnv.h"
+#include "vessel/lobcBufferPoolWatcherEnv.h"
+#include "vessel/strictBuffer.h"
+#include "vessel/lextentDescriptor.h"
+#include "vessel/lobcExtentChain.h"
+#include "vessel/lobcBufferPoolOptions.h"
 
 namespace engine
 {
 namespace vessel
 {
+   class storageFileCluster;
+
    class lobChunkBufferPool : public SDBObject
    {
       public:
@@ -55,26 +59,137 @@ namespace vessel
          lobChunkBufferPool &operator=(const lobChunkBufferPool &) = delete;
 
       public:
-         class options : public SDBObject
+         struct writeOptions : public SDBObject
          {
-            public:
-               UINT32 bucketMutexCount = 0;
-               UINT32 bucketCount = 0;
-         };//class options
+            UINT32 originalChunkSize = 0;
+            BOOLEAN commitMetaData = FALSE;
+         };//struct writeOptions
+
       public:
-         typedef ossPoolList<lobChunkBufferPtr> BUFFER_BUCKET;
+         OSS_INLINE BOOLEAN isValid()const
+         {
+            return _env.isValid();
+         }
+         INT32 init(const lobcBufferPoolOptions &o);
+         void fini();
+
+         /// get x lock of key outside first
+         INT32 write(const globalLobChunkKey &key,
+                     const lobcExtentChain &chain,
+                     UINT32 offset,
+                     const slice &data,
+                     const writeOptions &o);
+
+         /// get s/x lock of key outside first
+         INT32 read(const globalLobChunkKey &key,
+                    const lobcExtentChain &chain,
+                    UINT32 offset,
+                    UINT32 size,
+                    CHAR *buf);
+
+      public:
+         BOOLEAN isWatcherAttached()const;
+         
+         void attachWatcher();
+
+         void waitUntilWatcherAttached();
+
+         void detachWatcher();
+
+         void flushAllDirtyBuffers();
+
+         /// only for background workers!
+         INT32 executeFlushTask(const lobcFlushTaskBuilder::taskId &task);
 
       private:
-         typedef std::vector<BUFFER_BUCKET> _BUFFER_BUCKET_VEC;
-         typedef std::vector<std::mutex> _BUCKET_MUTEX_VEC;
-         typedef ossPoolList<lobChunkBufferPtr> _DIRTY_BUFFER_LIST;
-      private:
-         options _options;
-         _BUCKET_MUTEX_VEC _mutexVec;
-         _BUFFER_BUCKET_VEC _bucketVec;
+         struct _accessingContext : public SDBObject
+         {
+            void resetToRead(const globalLobChunkKey *key,
+                             const lobcExtentChain *chain,
+                             UINT32 offset, UINT32 size, CHAR *buf,
+                             lobChunkBuffer *chunkBuffer)
+            {
+               this->key = key;
+               this->chain = chain;
+               this->offset = offset;
+               requestBuffer.makeWritable(size, buf);
+               this->chunkBuffer = chunkBuffer;
+            }
 
-         std::mutex _dlMutex;
-         _DIRTY_BUFFER_LIST _dirtyList;
+            BOOLEAN isReadyToRead()const
+            {
+               return nullptr != key && key->isValid() &&
+                      nullptr != chain && !chain->isEmpty() &&
+                      requestBuffer.isWritable();
+            }
+
+            void resetToWrite(const globalLobChunkKey *key,
+                              const lobcExtentChain *chain,
+                              UINT32 offset, UINT32 size,
+                              const CHAR *buf,
+                              lobChunkBuffer *chunkBuffer)
+            {
+               this->key = key;
+               this->chain = chain;
+               this->offset = offset;
+               requestBuffer.reset(size, buf);
+               this->chunkBuffer = chunkBuffer;
+            }
+
+            BOOLEAN isReadyToWrite()const
+            {
+               return nullptr != key && key->isValid() &&
+                      nullptr != chain && !chain->isEmpty() &&
+                      requestBuffer.isValid() &&
+                      nullptr != chunkBuffer &&
+                      chunkBuffer->isValid();
+            }
+
+            const globalLobChunkKey *key = nullptr;
+            const lobcExtentChain *chain = nullptr;
+            UINT32 offset = 0;
+            strictBuffer requestBuffer;
+            lobChunkBuffer *chunkBuffer = nullptr;
+         };//struct _accessingContext
+
+      private:///bucket accessing
+         BOOLEAN _findBufferToRead(const globalLobChunkKey &key,
+                                   sharedLobChunkBuffer &out);
+         INT32 _ensureBufferToWrite(const globalLobChunkKey &key,
+                                    UINT32 pageSize,
+                                    sharedLobChunkBuffer &out);
+
+         INT32 _write(_accessingContext &context,
+                      const writeOptions &o,
+                      storageFileCluster *fcluster);
+
+         INT32 _read(_accessingContext &context,
+                     storageFileCluster *fcluster);
+
+      private:
+         INT32 _writeNewData(_accessingContext &context);
+
+         INT32 _overwrite(_accessingContext &context,
+                          UINT32 originalChunkSize,
+                          storageFileCluster *fcluster);
+
+         void _endToRead(lobChunkBuffer *buffer);
+
+         UINT32 getSizeToOverwrite(UINT32 originalSize,
+                                   UINT32 offset,
+                                   UINT32 size)const;
+
+      private:/// for pool watcher
+         void flushDirtyList(UINT64 flushBufferSize);
+         BOOLEAN betterToFlush(UINT64 &flushSize)const;
+         BOOLEAN isFlushing()const;
+         void handleFlushTaskRes(const backgroundEvent &event);
+
+      private:
+         lobcBufferPoolOptions _o;
+         lobcBufferPoolEnv _env;
+         lobcBufferPoolWatcherEnv _watcherEnv;
+         
    };//class lobChunkBufferPool
 } // namespace vessel
 

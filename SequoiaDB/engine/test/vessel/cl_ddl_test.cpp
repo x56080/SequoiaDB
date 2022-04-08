@@ -87,8 +87,8 @@ TEST_F(cl_ddl_test, test1)
 
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
-   options.path.lobMetaPath = DATA_PATH;
-   options.path.lobPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
    
    bson::BSONObj adjunct;
@@ -149,8 +149,8 @@ TEST_F(cl_ddl_test, test2)
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
-   options.path.lobMetaPath = DATA_PATH;
-   options.path.lobPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
    rc = db.open(&session, &resource, options);
@@ -206,8 +206,8 @@ TEST_F(cl_ddl_test, test3)
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
-   options.path.lobMetaPath = DATA_PATH;
-   options.path.lobPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
    UINT32 creatingCount = 65535;
    UINT32 count = 0;
@@ -274,8 +274,8 @@ TEST_F(cl_ddl_test, test4)
    dmsCreateCLOptions clOptions;
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
-   options.path.lobMetaPath = DATA_PATH;
-   options.path.lobPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
    UINT32 creatingCount = 65535;
    UINT32 count = 0;
@@ -333,8 +333,8 @@ TEST_F(cl_ddl_test, base_remove_cl_1)
 
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
-   options.path.lobMetaPath = DATA_PATH;
-   options.path.lobPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
    INT32 rc = SDB_OK;
@@ -404,8 +404,8 @@ TEST_F(cl_ddl_test, base_remove_cl_2)
 
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
-   options.path.lobMetaPath = DATA_PATH;
-   options.path.lobPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
    INT32 rc = SDB_OK;
@@ -485,8 +485,8 @@ TEST_F(cl_ddl_test, base_truncate_cl_1)
 
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
-   options.path.lobMetaPath = DATA_PATH;
-   options.path.lobPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
    INT32 rc = SDB_OK;

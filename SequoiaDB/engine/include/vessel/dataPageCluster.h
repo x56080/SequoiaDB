@@ -76,6 +76,8 @@ namespace vessel
 
                /// extend segments when failed to allocate free pages.
                INT32 segmentCountAutoExtending = 1;
+
+               BOOLEAN mmapMode = TRUE; /// mmap data file segments.
          };//class options
 
       public:
@@ -112,6 +114,7 @@ namespace vessel
 
          virtual void destroy() = 0;
 
+      public:///space management to be removed from page cluster.
          virtual INT32 allocatePages(UINT32 count,
                                      PAGE_ID *pids) = 0;
 
@@ -121,9 +124,15 @@ namespace vessel
          virtual void releasePages(UINT32 count,
                                    const PAGE_ID *pids) = 0;
 
+      public:
+
          virtual INT32 ensureSegmentCount(UINT32 totalSegmentCount) = 0;
 
          virtual INT32 ensurePidSpace(PAGE_ID pid) = 0;
+
+         virtual FILE_TYPE getDataFileType()const = 0;
+
+         virtual UINT32 getTotalSegmentCount() = 0;
 
       public:
          INT32 allocatePage(PAGE_ID &pid);
@@ -131,6 +140,17 @@ namespace vessel
          void releasePage(PAGE_ID pid);
 
       public:
+         /// data size must be (pcnt * page size)
+         virtual INT32 readPages(PAGE_ID pid,
+                                 UINT32 pcnt,
+                                 CHAR *data) = 0;
+
+         /// data size must be (pcnt * page size)
+         virtual INT32 writePages(PAGE_ID pid,
+                                  UINT32 pcnt,
+                                  const CHAR *data) = 0;
+
+      public:/// mmap mode only
          virtual INT32 fsyncSegment(UINT32 globalSegmentId)const = 0;
 
          virtual INT32 fysncPage(PAGE_ID pid)const = 0;
@@ -141,10 +161,6 @@ namespace vessel
 
          virtual INT32 getDataPagePtr(PAGE_ID pid, mmapPagePointer &ptr)const = 0;
 
-         virtual FILE_TYPE getDataFileType()const = 0;
-
-         virtual UINT32 getTotalSegmentCount() = 0;
-      
       protected:
          void _reset();
 

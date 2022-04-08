@@ -79,10 +79,10 @@ namespace vessel
                                  utilCSUniqueID uniqueId,
                                  UINT32 logicalID,
                                  storageUnit *su,
-                                 const createCSOptions &options)
+                                 const dmsCreateCSOptions &options)
    {
       INT32 rc = SDB_OK;
-      bson::BSONObj optionsObj;
+      bson::BSONObj optionsObj = bson::BSONObj();
       slice optionsSlice;
       OSS_LATCH_MODE mode = SHARED;
       SDB_ASSERT(!isOpen(), "do not recreate");
@@ -95,11 +95,6 @@ namespace vessel
                        DMS_INVALID_LOGICCSID == logicalID ||
                        NULL == su ||
                        !su->isOpen()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (!options.isValid())
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -124,7 +119,6 @@ namespace vessel
       _blockInMem.uniqueID = uniqueId;
       ossMemcpy(_blockInMem.name, name.str(), name.strLen() + 1);
 
-      optionsObj = options.toBson();
       optionsSlice.reset(optionsObj.objsize(), optionsObj.objdata());
       rc = su->getMainDataSpace().initMetaPageWhenCreateCS(context,
                                                            _blockInMem,

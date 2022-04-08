@@ -1377,6 +1377,7 @@ namespace vessel
       storageFileMaintainer sfm(&po, _sid);
       idMapFile *file = NULL;
       storageFileTrashCan trashCan;
+      UINT32 fileCtlFlags = storageFileCtlFlag::MMAP_DATA_SEGMENT;
 
       const STORAGE_FILE_NAME_LIST *list = loader.getFileList(getSpaceType(), 
                                                               FILE_TYPE_ID_MAP);
@@ -1427,7 +1428,7 @@ namespace vessel
             goto error;
          }
 
-         rc = sfm.openStorageFile(fn, *file);
+         rc = sfm.openStorageFile(fn, fileCtlFlags, *file);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to open id map file[%s], :%d", fn.getFileName(), rc);
@@ -1767,6 +1768,7 @@ namespace vessel
       options.createAsTmpFile = TRUE;
       options.replaceWhenCreate = TRUE;
       options.userDefinedHeader = hs;
+      options.flags = storageFileCtlFlag::MMAP_DATA_SEGMENT;
       rc = sfm.createStorageFile(fn, options, *file);
       if (SDB_OK != rc)
       {
@@ -1838,6 +1840,7 @@ namespace vessel
       o.replaceWhenCreate = TRUE;
       o.secretValue = _baseMap->getCommonHeadInMem().secretValue;
       o.userDefinedHeader = hs;
+      OSS_BIT_SET(o.flags, storageFileCtlFlag::MMAP_DATA_SEGMENT);
 
       storageFileName fn;
       const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
@@ -2273,14 +2276,12 @@ namespace vessel
              !workers.isCommonFamilyBusy())
          {
             backgroundEvent event;
-            lpsFlushingSegments msg;
-            msg._sid = getSpaceID();
-            msg._type = getSpaceType();
-            msg._segmentId = *itr;
-            msg._count = 1;
-            event.setType(backgroundEvent::EVENT_TYPE_SYNC_SEG);
-            event.setEventMsg(sizeof(lpsFlushingSegments), &msg);
-            event.setResponseList(&rl);
+            event.initAsRequest(BACKGROUND_EVENT_TYPE::FLUSH_SEG);
+            event.getShortData<lpsFlushingSegments>()._sid = getSpaceID();
+            event.getShortData<lpsFlushingSegments>()._type = getSpaceType();
+            event.getShortData<lpsFlushingSegments>()._segmentId = *itr;
+            event.getShortData<lpsFlushingSegments>()._count = 1;
+            event.setResponser(&rl);
             workers.pushEvent(event);
             ++dispatched;
          }
@@ -2300,8 +2301,11 @@ namespace vessel
       {
          backgroundEvent event;
          rl.popOrWait(event);
-         SDB_ASSERT(event.getType() == backgroundEvent::EVENT_TYPE_FINISHED,
-                     ", must be finish");
+         SDB_ASSERT(event.isResponse(), ", must be finish");
+         if (SDB_OK != event.getRC())
+         {
+            PD_LOG(PDERROR, "failed to flush segment:%d", event.getRC());
+         }
          ++responsed;
       }
 
@@ -2325,11 +2329,9 @@ namespace vessel
          if (_checkpointContext.tryToApplyCheckpoint())
          {
             backgroundEvent event;
-            lpsCheckpointApplying msg;
-            msg._sid = getSpaceID();
-            msg._type = getSpaceType();
-            event.setType(backgroundEvent::EVENT_TYPE_LPS_CHECKPOINT);
-            event.setEventMsg(sizeof(lpsCheckpointApplying), &msg);
+            event.initAsRequest(BACKGROUND_EVENT_TYPE::LPS_CHECKPOINT);
+            event.getShortData<lpsCheckpointApplying>()._sid = getSpaceID();
+            event.getShortData<lpsCheckpointApplying>()._type = getSpaceType();
             context->getEnv()->workers.pushEvent(event);
          }
       }

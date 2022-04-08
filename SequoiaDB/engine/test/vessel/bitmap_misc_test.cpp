@@ -36,6 +36,7 @@
 #include "vessel/unitedBitmap.hpp"
 #include <gtest/gtest.h>
 #include "vessel/bitsetTree.hpp"
+#include "vessel/blockBasedMemPool.h"
 
 using namespace engine::vessel;
 
@@ -55,7 +56,7 @@ TEST(bitmapMiscTest, united_bitmap_test1)
          ASSERT_EQ((INT32)i, bit);
       }
 
-      ASSERT_FALSE(bitmap.isFreeToAlloc());
+      ASSERT_TRUE(bitmap.none());
       INT32 bit = bitmap.pop();
       ASSERT_EQ(-1, bit);
 
@@ -68,7 +69,7 @@ TEST(bitmapMiscTest, united_bitmap_test1)
          ASSERT_EQ((INT32)i, bit);
       }
 
-      ASSERT_FALSE(bitmap.isFreeToAlloc());
+      ASSERT_TRUE(bitmap.none());
 
       for (UINT32 i = 0; i < bitmap.getTotalBitNum(); ++i)
       {
@@ -97,18 +98,18 @@ TEST(bitmapMiscTest, united_bitmap_test2)
    {
       bitmap.set(i);
       ASSERT_EQ(-1, bitmap.pop());
-      ASSERT_FALSE(bitmap.isFreeToAlloc());
+      ASSERT_TRUE(bitmap.none());
    }
 
    bitmap.set(_SIZE * o.percentFreeReused);
-   ASSERT_TRUE(bitmap.isFreeToAlloc());
+   ASSERT_FALSE(bitmap.none());
 
    for (UINT32 i = 0; i < (_SIZE * o.percentFreeReused); ++i)
    {
       ASSERT_EQ(i, bitmap.pop());
    }
 
-   ASSERT_FALSE(bitmap.isFreeToAlloc());
+   ASSERT_TRUE(bitmap.none());
    INT32 bit = bitmap.pop();
    ASSERT_EQ(-1, bit);
 }
@@ -214,4 +215,20 @@ TEST(bitmapMiscTest, bitset_tree_test3)
    }
    ASSERT_TRUE(tree.none());
    ASSERT_EQ(-1, tree.findFirst());
+}
+
+TEST(bitmapMiscTest, mem_pool_test1)
+{
+   INT32 rc = SDB_OK;
+   UINT32 maxChunkSize = 128;
+   blockBasedMemPool pool;
+   rc = pool.init(maxChunkSize);
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (UINT32 i = 0; i < pool.getTotalBlockNum(); ++i)
+   {
+      blockBasedMemPool::memBlock block;
+      rc = pool.allocate(block);
+      ASSERT_EQ(SDB_OK, rc);
+   }
 }

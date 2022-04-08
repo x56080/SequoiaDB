@@ -45,6 +45,7 @@
 #include "vessel/lazyArray.hpp"
 #include "ossRWMutex.hpp"
 #include "vessel/objectIdentifier.h"
+#include "dmsEngineOptions.hpp"
 
 namespace engine
 {
@@ -55,6 +56,7 @@ namespace vessel
    class listCSCursor;
    class storageUnit;
    class storageFileLoader;
+   class storageFileCluster;
 
    class dataManagementService : public SDBObject
    {
@@ -77,7 +79,7 @@ namespace vessel
          INT32 createCS(requestContext *context,
                         const strSlice &csName,
                         utilCSUniqueID uniqueId,
-                        const createCSOptions &options,
+                        const dmsCreateCSOptions &options,
                         collectionSpaceId &identifier);
 
          INT32 removeCS(requestContext *context);
@@ -155,6 +157,8 @@ namespace vessel
 
          storageUnit *getStorageUnit(SPACE_ID sid);
 
+         storageFileCluster *getLobdFileCluster(SPACE_ID sid);
+
       public:
          INT32 createCheckpointBeforeClosing(requestContext *context);
 
@@ -185,14 +189,14 @@ namespace vessel
                               SPACE_ID sid);
 
          INT32 createSU(requestContext *context,
-                        const createCSOptions &options,
+                        const dmsCreateCSOptions &options,
                         storageUnit **out);
 
          INT32 createCS(requestContext *context,
                         const strSlice &csName,
                         utilCSUniqueID uniqueId,
                         UINT32 logicalID,
-                        const createCSOptions &options,
+                        const dmsCreateCSOptions &options,
                         collectionSpace **out);
 
          INT32 _getCSByName(requestContext *context,

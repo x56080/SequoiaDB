@@ -179,14 +179,36 @@ namespace vessel
                      UINT64 &count);
 
       public:
+         INT32 insertLobChunk(IExecutor *executor,
+                              const globalCollectionId &gcid,
+                              const bson::OID &oid,
+                              UINT32 chunkId,
+                              UINT32 offset,
+                              UINT32 size,
+                              const CHAR *data);
+
+         INT32 readLobChunk(IExecutor *executor,
+                            const globalCollectionId &gcid,
+                            const bson::OID &oid,
+                            UINT32 chunkId,
+                            UINT32 offset,
+                            UINT32 size,
+                            CHAR *data,
+                            UINT32 &readSize);
+
+      public:
          INT32 pushMoreToCursor(IExecutor *executor,
                                  cursorKernal *cursor);   
+
+      public:
+         void attachLobcWatcher(IExecutor *executor);
          
       private:
 
          void fini();
          INT32 initLsmDB(const openDBOptions &options);
          INT32 flushWholeDirtyList(requestContext *context);
+         INT32 activeBackgroundThreads(const openDBOptions &options);
 
       private:
          BOOLEAN _open = FALSE;

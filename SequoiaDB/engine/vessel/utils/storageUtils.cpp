@@ -320,5 +320,169 @@ namespace vessel
    done:
       return r;
    }
+
+   bson::BSONObj buildSuManifestObj(const storageUnitManifest &manifest)
+   {
+      SDB_ASSERT(manifest.isValid(), "can not be invalid");
+      bson::BSONObjBuilder builder;
+      builder.append("SpaceId", manifest.sid);
+      builder.append("Flags", manifest.flags);
+      builder.append("SecretValue", manifest.secretValue);
+
+      bson::BSONObjBuilder data(builder.subobjStart("DataArgs"));
+      data.append("PageSize", manifest.dataArgs.pageSize);
+      data.append("PageCountPerSeg", manifest.dataArgs.maxPageCountPerSeg);
+      data.append("SegCountPerFile", manifest.dataArgs.maxSegmentCountPerFile);
+      data.done();
+
+      bson::BSONObjBuilder index(builder.subobjStart("IndexArgs"));
+      index.append("PageSize", manifest.idxArgs.pageSize);
+      index.append("PageCountPerSeg", manifest.idxArgs.maxPageCountPerSeg);
+      index.append("SegCountPerFile", manifest.idxArgs.maxSegmentCountPerFile);
+      index.done();
+
+      bson::BSONObjBuilder lob(builder.subobjStart("LobArgs"));
+      lob.append("PageSize", manifest.lobArgs.pageSize);
+      lob.append("PageCountPerSeg", manifest.lobArgs.maxPageCountPerSeg);
+      lob.append("SegCountPerFile", manifest.lobArgs.maxSegmentCountPerFile);
+      lob.done();
+
+      return builder.obj();
+   }
+
+   BOOLEAN parseSuManifestObj(const bson::BSONObj &obj,
+                              storageUnitManifest &manifest)
+   {
+      BOOLEAN r = FALSE;
+      bson::BSONElement e;
+      manifest.reset();
+
+      e = obj.getField("SpaceId");
+      if (!e.isNumber() ||
+          (INT32)MAX_SPACE_ID < e.numberInt() ||
+          e.numberInt() < 0)
+      {
+         goto done;
+      }
+      manifest.sid = e.numberInt();
+
+      e = obj.getField("Flags");
+      if (!e.isNumber())
+      {
+         goto done;
+      }
+      manifest.flags = e.numberInt();
+
+      e = obj.getField("SecretValue");
+      if (!e.isNumber())
+      {
+         goto done;
+      }
+      manifest.secretValue = e.numberInt();
+
+      e = obj.getField("DataArgs");
+      if (!e.isABSONObj())
+      {
+         goto done;
+      }
+      else
+      {
+         bson::BSONObj args = e.embeddedObject();
+         e = args.getField("PageSize");
+         if (!e.isNumber())
+         {
+            goto done;
+         }
+         manifest.dataArgs.pageSize = e.numberInt();
+
+         e = args.getField("PageCountPerSeg");
+         if (!e.isNumber())
+         {
+            goto done;
+         }
+         manifest.dataArgs.maxPageCountPerSeg = e.numberInt();
+
+         e = args.getField("SegCountPerFile");
+         if (!e.isNumber())
+         {
+            goto done;
+         }
+         manifest.dataArgs.maxSegmentCountPerFile = e.numberInt();
+      }
+
+      e = obj.getField("IndexArgs");
+      if (!e.isABSONObj())
+      {
+         goto done;
+      }
+      else
+      {
+         bson::BSONObj args = e.embeddedObject();
+         e = args.getField("PageSize");
+         if (!e.isNumber())
+         {
+            goto done;
+         }
+         manifest.idxArgs.pageSize = e.numberInt();
+
+         e = args.getField("PageCountPerSeg");
+         if (!e.isNumber())
+         {
+            goto done;
+         }
+         manifest.idxArgs.maxPageCountPerSeg = e.numberInt();
+
+         e = args.getField("SegCountPerFile");
+         if (!e.isNumber())
+         {
+            goto done;
+         }
+         manifest.idxArgs.maxSegmentCountPerFile = e.numberInt();
+      }
+
+      e = obj.getField("LobArgs");
+      if (!e.isABSONObj())
+      {
+         goto done;
+      }
+      else
+      {
+         bson::BSONObj args = e.embeddedObject();
+         e = args.getField("PageSize");
+         if (!e.isNumber())
+         {
+            goto done;
+         }
+         manifest.lobArgs.pageSize = e.numberInt();
+
+         e = args.getField("PageCountPerSeg");
+         if (!e.isNumber())
+         {
+            goto done;
+         }
+         manifest.lobArgs.maxPageCountPerSeg = e.numberInt();
+
+         e = args.getField("SegCountPerFile");
+         if (!e.isNumber())
+         {
+            goto done;
+         }
+         manifest.lobArgs.maxSegmentCountPerFile = e.numberInt();
+      }
+
+      if (!manifest.isValid())
+      {
+         goto done;
+      }
+
+      r = TRUE;
+
+   done:
+      if (!r)
+      {
+         manifest.reset();
+      }
+      return r;
+   }
 }//namespace vessel
 }//namespace engine

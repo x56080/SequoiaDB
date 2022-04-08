@@ -51,6 +51,7 @@
 #include "vessel/lsm/lsmDB.hpp"
 #include "utilSharedPtrMaker.hpp"
 #include "vessel/api/collectionHandler.h"
+#include "dmsLobDef.hpp"
 
 namespace engine
 {
@@ -70,8 +71,8 @@ namespace vessel
       THREAD_CONTEXT_OWNER tco(executor, &_env);
       requestContext context;
 
-      if (NULL == executor ||
-          NULL == resource ||
+      if (nullptr == executor ||
+          nullptr == resource ||
           !resource->isValid())
       {
          rc = SDB_INVALIDARG;
@@ -81,7 +82,6 @@ namespace vessel
       _open = TRUE;
       _env.options = options;
       _env.resource = *resource;
-      VESSEL_FILE_GLOBAL_OPTIONS::setSparseExtending(options.sparseExtendingFile);
 
       rc = _env.spaceLocker.init();
       if (SDB_OK != rc)
@@ -89,7 +89,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _env.lpidLatchMap.init(options.lpidLatchMapBucketCount,
+      rc = _env.latchEnv.lpidLatchMap.init(options.lpidLatchMapBucketCount,
                                    options.lpidLatchMapLatchCount);
       if (SDB_OK != rc)
       {
@@ -97,7 +97,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _env.ridLatchMap.init(options.ridLatchMapBucketCount,
+      rc = _env.latchEnv.ridLatchMap.init(options.ridLatchMapBucketCount,
                                   options.ridLatchMapLatchCount);
       if (SDB_OK != rc)
       {
@@ -105,7 +105,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _env.uniqueIndexLathMap.init(options.indexLatchMapBucketCount,
+      rc = _env.latchEnv.uniqueIndexLathMap.init(options.indexLatchMapBucketCount,
                                         options.indexLatchMapLatchCount);
       if (SDB_OK != rc)
       {
@@ -113,9 +113,26 @@ namespace vessel
          goto error;
       }
 
+      rc = _env.latchEnv.lobcLatchMap.init(options.lobcLatchBucketCount,
+                                        options.lobcLatchMapLatchCount);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init lobc latch map:%d", rc);
+         goto error;
+      }
+
+      _env.latchEnv.lobRegionLatchVec.init(1024);
+
       rc = _env.cacheConsole.init(options.cacheOptions);
       if (SDB_OK != rc)
       {
+         goto error;
+      }
+
+      rc = _env.lobcBufferPool.init(options.lobcPoolOptions);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init lobc buffer pool:%d", rc);
          goto error;
       }
 
@@ -129,26 +146,14 @@ namespace vessel
       rc = _env.dms.open(&context);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to open stoarge units:%d", rc);
+         PD_LOG(PDERROR, "failed to open storage units:%d", rc);
          goto error;
       }
 
-      {
-         backgroundWorkers::options o;
-         o.cacheCleaner = options.cacheCleanerCount;
-         o.commonWorker = options.commonBackgroundWorkers;
-         rc = _env.workers.init(&_env, o);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to init background workers:%d", rc);
-            goto error;
-         }
-      }
-
-      rc = _env.cacheWatcher.init(&_env);
+      rc = activeBackgroundThreads(options);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to init cache watcher:%d", rc);
+         PD_LOG(PDERROR, "failed to active background threads:%d", rc);
          goto error;
       }
    done:
@@ -166,16 +171,19 @@ namespace vessel
          THREAD_CONTEXT_OWNER tco(executor, &_env);
          requestContext context;
 
+         _env.lobcBufferPool.flushAllDirtyBuffers();
+
          _env.cacheWatcher.fini();
-         if (NULL != _env.lsm)
+         _env.workers.fini();
+
+         if (nullptr != _env.lsm)
          {
             _env.lsm->closeLsmDB(TRUE, FALSE);
          }
 
          ///TODO: flush db by workers.
          flushWholeDirtyList(&context);
-         _env.dms.createCheckpointBeforeClosing(&context);
-         _env.workers.fini();
+         _env.dms.createCheckpointBeforeClosing(&context); 
       }
    done:
       fini();
@@ -217,8 +225,8 @@ namespace vessel
       strSlice csName;
       
       
-      if (OSS_UNLIKELY(NULL == executor ||
-                       NULL == name))
+      if (OSS_UNLIKELY(nullptr == executor ||
+                       nullptr == name))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -252,7 +260,7 @@ namespace vessel
       strSlice nameSlice(name);
       removeCSHandler handler;
 
-      if (OSS_UNLIKELY(NULL == executor ||
+      if (OSS_UNLIKELY(nullptr == executor ||
                        nameSlice.empty()))
       {
          rc = SDB_INVALIDARG;
@@ -285,8 +293,8 @@ namespace vessel
       requestContext context;
       collectionSpaceId identifier;
 
-      if (OSS_UNLIKELY(NULL == executor ||
-                       NULL == name))
+      if (OSS_UNLIKELY(nullptr == executor ||
+                       nullptr == name))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -322,10 +330,10 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       THREAD_CONTEXT_OWNER tco(executor, &_env);
-      listCSCursor *listCursor = NULL;
+      listCSCursor *listCursor = nullptr;
       cursor.reset();
 
-      if (OSS_UNLIKELY(NULL == executor))
+      if (OSS_UNLIKELY(nullptr == executor))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -369,7 +377,7 @@ namespace vessel
       createCLHandler handler;
 
       if (OSS_UNLIKELY(!isOpen() ||
-                       NULL == fullName))
+                       nullptr == fullName))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -398,7 +406,7 @@ namespace vessel
       globalCollectionId gcid;
 
       if (OSS_UNLIKELY(!isOpen() ||
-                       NULL == fullName))
+                       nullptr == fullName))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -435,12 +443,12 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       THREAD_CONTEXT_OWNER tco(executor, &_env);
-      listCLCursor *listCursor = NULL;
+      listCLCursor *listCursor = nullptr;
       requestContext context;
       collectionSpaceId identifier;
       cursor.reset();
 
-      if (OSS_UNLIKELY(NULL == executor || NULL == csName))
+      if (OSS_UNLIKELY(nullptr == executor || nullptr == csName))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -489,10 +497,10 @@ namespace vessel
       INT32 rc = SDB_OK;
       THREAD_CONTEXT_OWNER tco(executor, &_env);
       requestContext context;
-      collectionSpace *obj = NULL;
+      collectionSpace *obj = nullptr;
       count = 0;
 
-      if (OSS_UNLIKELY(NULL == executor || NULL == csName))
+      if (OSS_UNLIKELY(nullptr == executor || nullptr == csName))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -526,12 +534,12 @@ namespace vessel
       THREAD_CONTEXT_OWNER tco(executor, &_env);
       openCLHandler h;
       globalCollectionId gcid;
-      collectionHandler *clHandler = NULL;
+      collectionHandler *clHandler = nullptr;
 
       ptr.reset();
       
-      if (OSS_UNLIKELY(NULL == executor ||
-                       NULL == fullName))
+      if (OSS_UNLIKELY(nullptr == executor ||
+                       nullptr == fullName))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -574,11 +582,11 @@ namespace vessel
       THREAD_CONTEXT_OWNER tco(executor, &_env);
       openCLHandler h;
       globalCollectionId gcid;
-      collectionHandler *clHandler = NULL;
+      collectionHandler *clHandler = nullptr;
 
       ptr.reset();
 
-      if (OSS_UNLIKELY(NULL == executor ||
+      if (OSS_UNLIKELY(nullptr == executor ||
                        !UTIL_IS_VALID_CLUNIQUEID(uniqueId)))
       {
          rc = SDB_INVALIDARG;
@@ -624,8 +632,8 @@ namespace vessel
 
       uniqueId = UTIL_UNIQUEID_NULL;
 
-      if (OSS_UNLIKELY(NULL == executor ||
-                       NULL == fullName))
+      if (OSS_UNLIKELY(nullptr == executor ||
+                       nullptr == fullName))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -662,8 +670,8 @@ namespace vessel
       INT32 rc = SDB_OK;
       THREAD_CONTEXT_OWNER tco(executor, &_env);
 
-      if (OSS_UNLIKELY(NULL == executor ||
-                       NULL == cursor ||
+      if (OSS_UNLIKELY(nullptr == executor ||
+                       nullptr == cursor ||
                        !cursor->isOpen() ||
                        CURSOR_TYPE_INVALID == cursor->getType()))
       {
@@ -739,7 +747,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       THREAD_CONTEXT_OWNER tco(executor, &_env);
       createIndexHandler handler;
-      if (OSS_UNLIKELY(NULL == executor ||
+      if (OSS_UNLIKELY(nullptr == executor ||
                        !gcid.isValid()))
       {
          rc = SDB_INVALIDARG;
@@ -770,12 +778,12 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       THREAD_CONTEXT_OWNER tco(executor, &_env);
-      collectionSpace *cs = NULL;
-      collection *cl = NULL;
+      collectionSpace *cs = nullptr;
+      collection *cl = nullptr;
       requestContext context;
       spaceIDLockHelper lh(&context);
 
-      if (OSS_UNLIKELY(NULL == executor ||
+      if (OSS_UNLIKELY(nullptr == executor ||
                        !gcid.isValid()))
       {
          rc = SDB_INVALIDARG;
@@ -814,7 +822,7 @@ namespace vessel
          goto error;
       }
    done:
-      if (NULL != cl)
+      if (nullptr != cl)
       {
          context.unlockMB();
       }
@@ -832,9 +840,9 @@ namespace vessel
       THREAD_CONTEXT_OWNER tco(executor, &_env);
       removeIndexHandler handler;
 
-      if (OSS_UNLIKELY(NULL == executor ||
+      if (OSS_UNLIKELY(nullptr == executor ||
                        !gcid.isValid() ||
-                       NULL == indexName))
+                       nullptr == indexName))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -866,7 +874,7 @@ namespace vessel
       THREAD_CONTEXT_OWNER tco(executor, &_env);
       testIndexHandler handler;
 
-      if (OSS_UNLIKELY(NULL == executor ||
+      if (OSS_UNLIKELY(nullptr == executor ||
                        !gcid.isValid() ||
                        indexName.empty()))
       {
@@ -899,7 +907,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       THREAD_CONTEXT_OWNER tco(executor, &_env);
       dmlHandler handler;
-      if (OSS_UNLIKELY(NULL == executor ||
+      if (OSS_UNLIKELY(nullptr == executor ||
                        !gcid.isValid() ||
                        !request.isValid()))
       {
@@ -911,8 +919,6 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-
-      
 
       rc = handler.insert(gcid, request, res);
       if (SDB_OK != rc)
@@ -933,7 +939,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       THREAD_CONTEXT_OWNER tco(executor, &_env);
       dmlHandler handler;
-      if (OSS_UNLIKELY(NULL == executor ||
+      if (OSS_UNLIKELY(nullptr == executor ||
                        !request.isValid() ||
                        !gcid.isValid()))
       {
@@ -974,10 +980,10 @@ namespace vessel
       THREAD_CONTEXT_OWNER tco(executor, &_env);
       dmlHandler handler;
 
-      if (OSS_UNLIKELY(NULL == executor ||
+      if (OSS_UNLIKELY(nullptr == executor ||
                        !gcid.isValid() ||
                        !request.isValid() ||
-                       NULL == updater))
+                       nullptr == updater))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -1009,7 +1015,7 @@ namespace vessel
       THREAD_CONTEXT_OWNER tco(executor, &_env);
       dmlHandler handler;
 
-      if (OSS_UNLIKELY(NULL == executor ||
+      if (OSS_UNLIKELY(nullptr == executor ||
                        !gcid.isValid() ||
                        !request.isValid()))
       {
@@ -1044,7 +1050,7 @@ namespace vessel
 
       count = 0;
 
-      if (OSS_UNLIKELY(NULL == executor ||
+      if (OSS_UNLIKELY(nullptr == executor ||
                        !gcid.isValid()))
       {
          rc = SDB_INVALIDARG;
@@ -1140,24 +1146,27 @@ namespace vessel
       if (_open)
       {
          _open = FALSE;
+         _env.lobcBufferPool.fini();
          _env.cacheWatcher.fini();
          _env.workers.fini();  
          _env.checkpointer.fini();
          _env.cacheConsole.fini();
          _env.dms.close();
-         _env.lpidLatchMap.fini();
-         _env.ridLatchMap.fini();
-         _env.uniqueIndexLathMap.fini();
+         _env.latchEnv.lpidLatchMap.fini();
+         _env.latchEnv.ridLatchMap.fini();
+         _env.latchEnv.uniqueIndexLathMap.fini();
+         _env.latchEnv.lobcLatchMap.fini();
+         _env.latchEnv.lobRegionLatchVec.fini();
          _env.spaceLocker.fini();
          _env.options = openDBOptions();
-         if (NULL != _env.lsm)
+         if (nullptr != _env.lsm)
          {
             if (_env.lsm->isDBOpened())
             {
                _env.lsm->closeLsmDB(FALSE, TRUE);
             }
             SDB_OSS_DEL _env.lsm;
-            _env.lsm = NULL;
+            _env.lsm = nullptr;
          }
          _env.resource.reset();
       }
@@ -1178,7 +1187,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == executor ||
+      else if (OSS_UNLIKELY(nullptr == executor ||
                             !gcid.isValid()))
       {
          rc = SDB_INVALIDARG;
@@ -1200,7 +1209,7 @@ namespace vessel
    INT32 vesselImpl::initLsmDB(const openDBOptions &options)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL == _env.lsm, "do not reinit");
+      SDB_ASSERT(nullptr == _env.lsm, "do not reinit");
       rocksdb::Status status;
       LSMConfig conf;
       conf.createDBIfMissing = TRUE;
@@ -1213,7 +1222,7 @@ namespace vessel
 
       conf.dbPath = options.path.lsmPath;
       _env.lsm = SDB_OSS_NEW lsmDB();
-      if (OSS_UNLIKELY(NULL == _env.lsm))
+      if (OSS_UNLIKELY(nullptr == _env.lsm))
       {
          PD_LOG(PDERROR, "failed to allocate mem.");
          rc = SDB_OOM;
@@ -1233,12 +1242,130 @@ namespace vessel
    done:
       return rc;
    error:
-      if (NULL != _env.lsm)
+      if (nullptr != _env.lsm)
       {
          SDB_OSS_DEL _env.lsm;
-         _env.lsm = NULL;
+         _env.lsm = nullptr;
       }
       goto done;
+   }
+
+   INT32 vesselImpl::insertLobChunk(IExecutor *executor,
+                                    const globalCollectionId &gcid,
+                                    const bson::OID &oid,
+                                    UINT32 chunkId,
+                                    UINT32 offset,
+                                    UINT32 size,
+                                    const CHAR *data)
+   {
+      INT32 rc = SDB_OK;
+      lobChunkHandler handler;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
+
+      if (OSS_UNLIKELY(nullptr == executor))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = handler.insert(gcid, oid, chunkId,
+                          offset, size, data);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to insert lob chunk:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 vesselImpl::readLobChunk(IExecutor *executor,
+                                  const globalCollectionId &gcid,
+                                  const bson::OID &oid,
+                                  UINT32 chunkId,
+                                  UINT32 offset,
+                                  UINT32 size,
+                                  CHAR *data,
+                                  UINT32 &readSize)
+   {
+      INT32 rc = SDB_OK;
+      lobChunkHandler handler;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
+
+      if (OSS_UNLIKELY(nullptr == executor))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = handler.read(gcid, oid, chunkId, offset,
+                        size, data, readSize);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to read lob chunk:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 vesselImpl::activeBackgroundThreads(const openDBOptions &options)
+   {
+      INT32 rc = SDB_OK;
+
+      backgroundWorkers::options o;
+      o.cacheCleaner = options.cacheCleanerCount;
+      o.commonWorker = options.commonBackgroundWorkers;
+      rc = _env.workers.init(&_env, o);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init background workers:%d", rc);
+         goto error;
+      }
+
+      rc = _env.cacheWatcher.init(&_env);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init cache watcher:%d", rc);
+         goto error;
+      }
+
+      rc = _env.resource.executorPool->startEDU(EDU_TYPE_VESSEL_LOBC_BUFFER_POOL_WATCHER,
+                                                this);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to active lobc buffer pool watcher:%d", rc);
+         goto error;
+      }
+
+      _env.lobcBufferPool.waitUntilWatcherAttached();
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void vesselImpl::attachLobcWatcher(IExecutor *executor)
+   {
+      SDB_ASSERT(nullptr != executor, "can not be invalid");
+      SDB_ASSERT(_env.lobcBufferPool.isValid(), "can not be invalid");
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
+
+      _env.lobcBufferPool.attachWatcher();
    }
 } // namespace vessel
 } // namespace engine

@@ -37,12 +37,55 @@
 #include "ossLikely.hpp"
 #include "pdTrace.hpp"
 #include "vessel/threadContext.h"
+#include "utilSharedPtrMaker.hpp"
 #include <chrono>//c++11
 
 namespace engine
 {
 namespace vessel
 {
+/////////////////////////////blockBasedMemPool::memBlockGroup
+   blockBasedMemPool::sharedMemBlock::sharedMemBlock(sharedMemBlock &&o):
+   _pool(o._pool),
+   _block(std::move(o._block))
+   {
+      o._pool = nullptr;
+   }
+
+   blockBasedMemPool::sharedMemBlock::sharedMemBlock(blockBasedMemPool *pool,
+                                                     const memBlock &b):
+   _pool(pool),
+   _block(b)
+   {
+      SDB_ASSERT(isValid(), "must be valid");
+   }
+
+   blockBasedMemPool::sharedMemBlock &
+   blockBasedMemPool::sharedMemBlock::operator=(blockBasedMemPool::sharedMemBlock &&o)
+   {
+      clear();
+      _pool = o._pool;
+      o._pool = nullptr;
+      _block = std::move(o._block);
+      return *this;
+   }
+
+   blockBasedMemPool::sharedMemBlock::~sharedMemBlock()
+   {
+      clear();
+   }
+
+   void blockBasedMemPool::sharedMemBlock::clear()
+   {
+      if (isValid())
+      {
+         _pool->release(1, &_block);
+         _pool = nullptr;
+         _block.reset();
+      }
+   }
+
+/////////////////////////////blockBasedMemPool::memBlockGroup end
 
    blockBasedMemPool::blockBasedMemPool(){}
 
@@ -51,7 +94,7 @@ namespace vessel
       fini();
    }
 
-   INT32 blockBasedMemPool::init(UINT32 blockSize, UINT32 maxChunk)
+   INT32 blockBasedMemPool::init(UINT32 maxChunk, UINT32 blockSize)
    {
       INT32 rc = SDB_OK;
       fini();
@@ -139,6 +182,37 @@ namespace vessel
       goto done;
    }
 
+   INT32 blockBasedMemPool::allocateSharedBlock(sharedMemBlockPtr &out)
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      INT32 rc = SDB_OK;
+      memBlock block;
+      out.reset();
+
+      rc = _allocate(1, &block);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to allocate mem blocks:%d", rc);
+         goto error;
+      }
+
+      out = makeSharedPtrFromPool<sharedMemBlock>(this, block);
+      if (!out)
+      {
+         PD_LOG(PDERROR, "failed to allocate mem");
+         rc = SDB_OOM;
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      if (block.isValid())
+      {
+         _release(1, &block);
+      }
+      goto done;
+   }
+
    INT32 blockBasedMemPool::_allocate(UINT32 blockNum, memBlock *blocks)
    {
       INT32 rc = SDB_OK;
@@ -168,7 +242,7 @@ namespace vessel
       pos = _wl.insert(_wl.end(), &cv);
       do
       {
-         cv.wait(guard, [this]{return _allocator.isFreeToAlloc();});
+         cv.wait(guard, [this]{return !_allocator.none();});
          UINT32 n = 0;
          rc = _tryToAllocate(blockNum - allocated, blocks + allocated, n);
          if (SDB_OK != rc)
@@ -181,7 +255,7 @@ namespace vessel
       } while (allocated < blockNum);
 
       _wl.erase(pos);
-      if (!_wl.empty() && _allocator.isFreeToAlloc())
+      if (!_wl.empty() && !_allocator.none())
       {
          _wl.front()->notify_one();
       }
@@ -226,10 +300,11 @@ namespace vessel
          rc = ensureMemChunk(chunkId);
          if (SDB_OK != rc)
          {
+            _allocator.set(blockId);
             goto error;
          }
          
-         mb.set(blockId, _blockSize,
+         mb.set(blockId,
                (CHAR *)(_chunks[chunkId].getBuffer()) + getOffsetInChunk(blockId));
          ++allocated;
       }
@@ -302,7 +377,7 @@ namespace vessel
                 "can not be invalid");
 
       memoryBlock &block = _chunks[chunkId];
-      if (block.isEmpty())
+      if (0 == block.getCapacity())
       {
          rc = block.reserve(getChunkMemSize());
          if (SDB_OK != rc)

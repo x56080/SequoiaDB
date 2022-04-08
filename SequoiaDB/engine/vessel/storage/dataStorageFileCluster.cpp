@@ -484,6 +484,7 @@ namespace vessel
       SDB_ASSERT(args.isValid(), "must be valid");
       constexpr UINT32 MAX_FILE_SEQUENCE = 1048575;
       
+      UINT32 flags = storageFileCtlFlag::MMAP_DATA_SEGMENT;
       storageFile *file = NULL;
       const STORAGE_FILE_NAME_LIST *fileList = NULL;
       constexpr UINT32 DEFAULT_CAPACITY = 16;
@@ -560,7 +561,7 @@ namespace vessel
             goto error;
          }
 
-         rc = sfm.openStorageFile(fn, *file);
+         rc = sfm.openStorageFile(fn, flags, *file);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to open file:%s, rc:%d", fn.getFileName(), rc);
@@ -741,6 +742,7 @@ namespace vessel
       storageFileMaintainer sfm(&po, _sid);
 
       createStorageFileOptions o;
+      o.flags = storageFileCtlFlag::MMAP_DATA_SEGMENT;
       storageFileName fn;
 
       storageFile *file = SDB_OSS_NEW storageFile();
@@ -840,6 +842,156 @@ namespace vessel
          *pidInFile = (pid & (pageCountPerFile - 1));
       }
       return fileId;
+   }
+
+   INT32 dataStorageFileCluster::readPages(PAGE_ID pid,
+                                           UINT32 pcnt,
+                                           CHAR *data)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 totalSegments = 0;
+      UINT32 maxSegment = 0;
+      UINT32 pageCountPerFile = 0;
+      UINT32 rcnt = 0;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      if (OSS_UNLIKELY(INVALID_PAGE_ID == pid ||
+                       0 == pcnt ||
+                       nullptr == data))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      totalSegments = getTotalSegmentCount();
+      maxSegment = (pid + pcnt - 1) / getCoreArgs().maxPageCountPerSeg;
+      if (totalSegments <= maxSegment)
+      {
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+
+      pageCountPerFile = getCoreArgs().getMaxPageCountInFile();
+
+      do
+      {
+         PAGE_ID p = pid + rcnt;
+         UINT32 count = 1;
+         UINT32 fileId = p / pageCountPerFile;
+         for (UINT32 i = rcnt + 1; i < pcnt; ++i)
+         {
+            UINT32 nextFileId = (p + count) / pageCountPerFile;
+            if (nextFileId == fileId)
+            {
+               ++count;
+            }
+            else
+            {
+               break;
+            }
+         }
+
+         storageFile *file = _files.get<storageFile>(fileId);
+         if (OSS_UNLIKELY(nullptr == file))
+         {
+            PD_LOG(PDERROR, "failed to get file[%d]", fileId);
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+         rc = file->readPages(p % pageCountPerFile, count,
+                              data + (rcnt * getCoreArgs().pageSize));
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to read file pages:%d", rc);
+            goto error;
+         }
+
+         rcnt += count;
+
+      } while(rcnt < pcnt);
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 dataStorageFileCluster::writePages(PAGE_ID pid,
+                                            UINT32 pcnt,
+                                            const CHAR *data)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 totalSegments = 0;
+      UINT32 maxSegment = 0;
+      UINT32 pageCountPerFile = 0;
+      UINT32 wcnt = 0;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      if (OSS_UNLIKELY(INVALID_PAGE_ID == pid ||
+                       0 == pcnt ||
+                       nullptr == data))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      totalSegments = getTotalSegmentCount();
+      maxSegment = (pid + pcnt - 1) / getCoreArgs().maxPageCountPerSeg;
+      if (totalSegments <= maxSegment)
+      {
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+
+      pageCountPerFile = getCoreArgs().getMaxPageCountInFile();
+
+      do
+      {
+         PAGE_ID p = pid + wcnt;
+         UINT32 count = 1;
+         UINT32 fileId = p / pageCountPerFile;
+         for (UINT32 i = wcnt + 1; i < pcnt; ++i)
+         {
+            UINT32 nextFileId = (p + count) / pageCountPerFile;
+            if (nextFileId == fileId)
+            {
+               ++count;
+            }
+            else
+            {
+               break;
+            }
+         }
+
+         storageFile *file = _files.get<storageFile>(fileId);
+         if (OSS_UNLIKELY(nullptr == file))
+         {
+            PD_LOG(PDERROR, "failed to get file[%d]", fileId);
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+         rc = file->writePages(p % pageCountPerFile, count,
+                               data + (wcnt * getCoreArgs().pageSize));
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to read file pages:%d", rc);
+            goto error;
+         }
+
+         wcnt += count;
+
+      } while(wcnt < pcnt);
+   done:
+      return rc;
+   error:
+      goto done;
    }
 }//namespace vessel
 }//namespace engine

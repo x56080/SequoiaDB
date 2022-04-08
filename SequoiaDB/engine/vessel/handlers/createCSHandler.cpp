@@ -64,7 +64,6 @@ namespace vessel
       INT32 rc = SDB_OK;
 
       requestContext context;
-      createCSOptions options;
 
       if (OSS_UNLIKELY(name.empty()))
       {
@@ -72,16 +71,15 @@ namespace vessel
          goto error;
       }
 
-      options.init(o);
-      rc = validateOptions(name, options);
+      rc = validateOptions(name, o);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
       rc = context.getEnv()->dms.createCS(&context, name,
-                                  uniqueId, options,
-                                  identifier);
+                                          uniqueId, o,
+                                          identifier);
       if (SDB_OK != rc)
       {
          goto error;
@@ -94,7 +92,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 createCSHandler::validateOptions(const strSlice &name, const createCSOptions &options)
+   INT32 createCSHandler::validateOptions(const strSlice &name,
+                                          const dmsCreateCSOptions &options)
    {
       INT32 rc = SDB_OK;
       if (name.empty() || DMS_COLLECTION_SPACE_NAME_SZ < name.strLen())
@@ -118,20 +117,6 @@ namespace vessel
       {
          rc = SDB_INVALIDARG;
          PD_LOG(PDERROR, "invalid index pagesize:%d", options.idxPageSize);
-         goto error;
-      }
-
-      if (!isValidSegmentSize(options.dataSegSize))
-      {
-         PD_LOG(PDERROR, "invalid data segment size:%d", options.dataSegSize);
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      if (!isValidSegmentSize(options.idxSegSize))
-      {
-         PD_LOG(PDERROR, "invalid index segment size:%d", options.idxSegSize);
-         rc = SDB_INVALIDARG;
          goto error;
       }
    done:

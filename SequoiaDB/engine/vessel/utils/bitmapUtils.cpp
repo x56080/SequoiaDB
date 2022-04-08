@@ -38,6 +38,8 @@
 #include "pdTrace.hpp"
 #include "ossLikely.hpp"
 
+#include <bitset>
+
 namespace engine
 {
 namespace vessel
@@ -45,6 +47,17 @@ namespace vessel
    constexpr UINT32 BM_UTIL_BITWISE_64 = 6;
    constexpr UINT32 BM_UTIL_BIT_AND_MOD_64 = 63;
    constexpr UINT32 BM_UTIL_BIT_COUNT_PER_WORD = 64;
+
+   typedef std::bitset<64> BITSET_64;
+
+   OSS_INLINE BITSET_64 *GET_BITSET_64(UINT64 *bitmap, UINT32 pos)
+   {
+      return (BITSET_64 *)(bitmap + pos);
+   }
+   OSS_INLINE const BITSET_64 *GET_BITSET_64(const UINT64 *bitmap, UINT32 pos)
+   {
+      return (BITSET_64 *)(bitmap + pos);
+   }
 
    BOOLEAN findAndClearFirstNonzeroBit(UINT32 bitsCount,
                                        UINT32 searchBegin,
@@ -215,6 +228,198 @@ namespace vessel
          resetBitmap(bitsCount - begin, bits + begin, TRUE);
       }
       return;
+   }
+
+   void batchClearBits(UINT32 bitsCount,
+                       UINT32 begin,
+                       UINT32 end,
+                       UINT64 *bits)
+   {
+      SDB_ASSERT(0 < bitsCount, "can not be zero");
+      SDB_ASSERT(begin <= end, "can not be invalid");
+      SDB_ASSERT(end < (bitsCount << BM_UTIL_BITWISE_64), "out of bound");
+      SDB_ASSERT(nullptr != bits, "can not be null");
+
+      UINT32 pos = begin >> BM_UTIL_BITWISE_64;
+      UINT32 offset = begin;
+      while (0 != (offset & BM_UTIL_BIT_AND_MOD_64) &&
+             offset <= end)
+      {
+         BITSET_64 *bitset = GET_BITSET_64(bits, pos);
+         bitset->reset(offset & BM_UTIL_BIT_AND_MOD_64);
+         ++offset;
+      }
+
+      while ((offset + BM_UTIL_BIT_COUNT_PER_WORD - 1) <= end)
+      {
+         pos = offset >> BM_UTIL_BITWISE_64;
+         bits[pos] = 0;
+         offset += BM_UTIL_BIT_COUNT_PER_WORD;
+      }
+
+      if (offset <= end)
+      {
+         pos = offset >> BM_UTIL_BITWISE_64;
+         BITSET_64 *bitset = GET_BITSET_64(bits, pos);
+         do
+         {
+            bitset->reset(offset & BM_UTIL_BIT_AND_MOD_64);
+            ++offset;
+         } while (offset < end);
+      }
+
+      return;
+   }
+
+   void batchSetBits(UINT32 bitsCount,
+                     UINT32 begin,
+                     UINT32 end,
+                     UINT64 *bits)
+   {
+      SDB_ASSERT(0 < bitsCount, "can not be zero");
+      SDB_ASSERT(begin <= end, "can not be invalid");
+      SDB_ASSERT(end < (bitsCount << BM_UTIL_BITWISE_64), "out of bound");
+      SDB_ASSERT(nullptr != bits, "can not be null");
+
+      UINT32 pos = begin >> BM_UTIL_BITWISE_64;
+      UINT32 offset = begin;
+      while (0 != (offset & BM_UTIL_BIT_AND_MOD_64) &&
+             offset <= end)
+      {
+         BITSET_64 *bitset = GET_BITSET_64(bits, pos);
+         bitset->set(offset & BM_UTIL_BIT_AND_MOD_64);
+         ++offset;
+      }
+
+      while ((offset + BM_UTIL_BIT_COUNT_PER_WORD - 1) <= end)
+      {
+         pos = offset >> BM_UTIL_BITWISE_64;
+         bits[pos] = OSS_UINT64_MAX;
+         offset += BM_UTIL_BIT_COUNT_PER_WORD;
+      }
+
+      if (offset <= end)
+      {
+         pos = offset >> BM_UTIL_BITWISE_64;
+         BITSET_64 *bitset = GET_BITSET_64(bits, pos);
+         do
+         {
+            bitset->set(offset & BM_UTIL_BIT_AND_MOD_64);
+            ++offset;
+         } while (offset < end);
+      }
+
+      return;
+   }
+
+   BOOLEAN batchTestBitsAllZeroed(UINT32 bitsCount,
+                                  UINT32 begin,
+                                  UINT32 end,
+                                  const UINT64 *bits)
+   {
+      SDB_ASSERT(0 < bitsCount, "can not be zero");
+      SDB_ASSERT(begin <= end, "can not be invalid");
+      SDB_ASSERT(end < (bitsCount << BM_UTIL_BITWISE_64), "out of bound");
+      SDB_ASSERT(nullptr != bits, "can not be null");
+
+      BOOLEAN r = FALSE;
+      UINT32 pos = begin >> BM_UTIL_BITWISE_64;
+      UINT32 offset = begin;
+      while (0 != (offset & BM_UTIL_BIT_AND_MOD_64) &&
+             offset <= end)
+      {
+         const BITSET_64 *bitset = GET_BITSET_64(bits, pos);
+         if (bitset->test(offset & BM_UTIL_BIT_AND_MOD_64))
+         {
+            goto done;
+         }
+         ++offset;
+      }
+
+      while ((offset + BM_UTIL_BIT_COUNT_PER_WORD - 1) <= end)
+      {
+         pos = offset >> BM_UTIL_BITWISE_64;
+         if (0 != bits[pos])
+         {
+            goto done;
+         }
+         offset += BM_UTIL_BIT_COUNT_PER_WORD;
+      }
+
+      if (offset <= end)
+      {
+         pos = offset >> BM_UTIL_BITWISE_64;
+         const BITSET_64 *bitset = GET_BITSET_64(bits, pos);
+         do
+         {
+            if (bitset->test(offset & BM_UTIL_BIT_AND_MOD_64))
+            {
+               goto done;
+            }
+            ++offset;
+         } while (offset < end);
+      }
+
+      r = TRUE;
+
+   done:
+      return r;
+   }
+
+   BOOLEAN batchTestBitsNonZeroed(UINT32 bitsCount,
+                                  UINT32 begin,
+                                  UINT32 end,
+                                  const UINT64 *bits)
+   {
+      {
+      SDB_ASSERT(0 < bitsCount, "can not be zero");
+      SDB_ASSERT(begin <= end, "can not be invalid");
+      SDB_ASSERT(end < (bitsCount << BM_UTIL_BITWISE_64), "out of bound");
+      SDB_ASSERT(nullptr != bits, "can not be null");
+
+      BOOLEAN r = FALSE;
+      UINT32 pos = begin >> BM_UTIL_BITWISE_64;
+      UINT32 offset = begin;
+      while (0 != (offset & BM_UTIL_BIT_AND_MOD_64) &&
+             offset <= end)
+      {
+         const BITSET_64 *bitset = GET_BITSET_64(bits, pos);
+         if (!bitset->test(offset & BM_UTIL_BIT_AND_MOD_64))
+         {
+            goto done;
+         }
+         ++offset;
+      }
+
+      while ((offset + BM_UTIL_BIT_COUNT_PER_WORD - 1) <= end)
+      {
+         pos = offset >> BM_UTIL_BITWISE_64;
+         if (OSS_UINT64_MAX != bits[pos])
+         {
+            goto done;
+         }
+         offset += BM_UTIL_BIT_COUNT_PER_WORD;
+      }
+
+      if (offset <= end)
+      {
+         pos = offset >> BM_UTIL_BITWISE_64;
+         const BITSET_64 *bitset = GET_BITSET_64(bits, pos);
+         do
+         {
+            if (!bitset->test(offset & BM_UTIL_BIT_AND_MOD_64))
+            {
+               goto done;
+            }
+            ++offset;
+         } while (offset < end);
+      }
+
+      r = TRUE;
+
+   done:
+      return r;
+   }
    }
 
    BOOLEAN lowerBoundFirstNonzeroBit(UINT32 bitsCount,

@@ -47,6 +47,7 @@
 #include "vessel/storageFileName.h"
 #include "vessel/storageFileLoader.h"
 #include "vessel/storageUtils.h"
+#include "vessel/lobcDef.h"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -256,7 +257,7 @@ namespace vessel
    INT32 dataManagementService::createCS(requestContext *context,
                                          const strSlice &csName,
                                          utilCSUniqueID uniqueID,
-                                         const createCSOptions &options,
+                                         const dmsCreateCSOptions &options,
                                          collectionSpaceId &identifier)
    {
       INT32 rc = SDB_OK;
@@ -269,8 +270,7 @@ namespace vessel
 
       if (OSS_UNLIKELY(NULL == context ||
                        context->isSpaceIdLocked() ||
-                       csName.empty() ||
-                       !options.isValid()))
+                       csName.empty()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -334,7 +334,7 @@ namespace vessel
    
 
    INT32 dataManagementService::createSU(requestContext *context,
-                                         const createCSOptions &options,
+                                         const dmsCreateCSOptions &options,
                                          storageUnit **out)
    {
       INT32 rc = SDB_OK;
@@ -343,24 +343,22 @@ namespace vessel
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(context->isSpaceIdLocked(&lockingMode), "must holding lock");
       SDB_ASSERT(EXCLUSIVE == lockingMode, "must be exslusive");
-      SDB_ASSERT(options.isValid(), "can not be invalid");
 
       SPACE_ID sid = context->getSpaceID();
       storageUnit *su = NULL;
       createSUOptions suOptions;
 
       suOptions.dataArgs.pageSize = options.dataPageSize;
-      suOptions.dataArgs.maxPageCountPerSeg = options.dataSegSize / options.dataPageSize;
-      suOptions.dataArgs.maxSegmentCountPerFile = STORAGE_FILE_SIZE / options.dataSegSize;
+      suOptions.dataArgs.maxPageCountPerSeg = STORAGE_FILE_SEGMENT_SIZE_32MB / options.dataPageSize;
+      suOptions.dataArgs.maxSegmentCountPerFile = STORAGE_FILE_SIZE / STORAGE_FILE_SEGMENT_SIZE_32MB;
 
       suOptions.indexArgs.pageSize = options.idxPageSize;
-      suOptions.indexArgs.maxPageCountPerSeg = options.idxSegSize / options.idxPageSize;
-      suOptions.indexArgs.maxSegmentCountPerFile = STORAGE_FILE_SIZE / options.idxSegSize;
+      suOptions.indexArgs.maxPageCountPerSeg = STORAGE_FILE_SEGMENT_SIZE_32MB / options.idxPageSize;
+      suOptions.indexArgs.maxSegmentCountPerFile = STORAGE_FILE_SIZE / STORAGE_FILE_SEGMENT_SIZE_32MB;
 
-      suOptions.lobArgs.pageSize = options.lobPageSize;
-      suOptions.lobArgs.maxPageCountPerSeg = options.lobSegSize / options.lobPageSize;
-      /// single lobd file.
-      suOptions.lobArgs.maxSegmentCountPerFile = DMS_MAX_PG / suOptions.lobArgs.maxPageCountPerSeg;
+      suOptions.lobArgs.pageSize = LOBD_PAGE_SIZE;
+      suOptions.lobArgs.maxPageCountPerSeg = LOBD_PAGE_COUNT_PER_SEG;
+      suOptions.lobArgs.maxSegmentCountPerFile = STORAGE_FILE_SIZE / LOBD_SEG_SIZE;
 
       if (!suOptions.isValid())
       {
@@ -401,7 +399,7 @@ namespace vessel
                                          const strSlice &csName,
                                          utilCSUniqueID uniqueId,
                                          UINT32 logicalID,
-                                         const createCSOptions &options,
+                                         const dmsCreateCSOptions &options,
                                          collectionSpace **out)
    {
       INT32 rc = SDB_OK;
@@ -1645,6 +1643,7 @@ namespace vessel
          rc = lh.lock(itr->first, SHARED);
          if (SDB_OK != rc)
          {
+            ++count;
             PD_LOG(PDERROR, "failed to lock space[%d], rc:%d", itr->first, rc);
             rc = SDB_OK;
             continue;
@@ -1667,11 +1666,24 @@ namespace vessel
          PD_LOG(PDERROR, "total [%d] collection spaces failed to create checkpoint", count);
       }
 
-      rc = SDB_OK;
    done:
       return rc;
    error:
       goto done;
+   }
+
+   storageFileCluster *dataManagementService::getLobdFileCluster(SPACE_ID sid)
+   {
+      SDB_ASSERT(INVALID_SPACE_ID != sid, "can nto be invalid");
+      SDB_ASSERT(isOpen(), "can not be invalid");
+      storageFileCluster *fcluster = nullptr;
+      storageUnit *su = getStorageUnit(sid);
+      if (OSS_UNLIKELY(nullptr != su))
+      {
+         fcluster = su->getLobSpace().getFileCluster();
+      }
+
+      return fcluster;
    }
 
    storageUnit *dataManagementService::getStorageUnit(SPACE_ID sid)

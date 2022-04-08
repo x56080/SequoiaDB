@@ -84,7 +84,7 @@ namespace vessel
          /// will return false when closed
          void popOrWait(EVENT &e)
          {
-            e.release();
+            e.reset();
             std::unique_lock<std::mutex> lk(_mutex);
             ++_waiting;
             _cv.wait(lk, [this]{return !_list.empty();});
@@ -104,7 +104,7 @@ namespace vessel
          BOOLEAN tryToPop(EVENT &e)
          {
             BOOLEAN r = FALSE;
-            e.release();
+            e.reset();
             std::unique_lock<std::mutex> lk(_mutex);
             if (!_list.empty())
             {
@@ -122,7 +122,7 @@ namespace vessel
          BOOLEAN popOrWaitFor(UINT32 millis, EVENT &e)
          {
             BOOLEAN r = FALSE;
-            e.release();
+            e.reset();
             std::unique_lock<std::mutex> lk(_mutex);
             ++_waiting;
             if (_cv.wait_for(lk, std::chrono::milliseconds(millis),

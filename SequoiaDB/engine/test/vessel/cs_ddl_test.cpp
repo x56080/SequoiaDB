@@ -117,8 +117,8 @@ TEST_F(cs_ddl_test, base_createCS_1)
     
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
-   options.path.lobMetaPath = DATA_PATH;
-   options.path.lobPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
    utilCSUniqueID uniqueId = UTIL_UNIQUEID_NULL;
@@ -182,8 +182,8 @@ TEST_F(cs_ddl_test, base_createCS_2)
     
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
-   options.path.lobMetaPath = DATA_PATH;
-   options.path.lobPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
    utilCSUniqueID uniqueId = UTIL_UNIQUEID_NULL;
@@ -251,8 +251,8 @@ TEST_F(cs_ddl_test, base_createCS_3)
     
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
-   options.path.lobMetaPath = DATA_PATH;
-   options.path.lobPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
    bson::BSONObj adjunct;
@@ -361,8 +361,8 @@ TEST_F(cs_ddl_test, base_createCS_4)
    collectionSpaceId identifier;
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
-   options.path.lobMetaPath = DATA_PATH;
-   options.path.lobPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
    utilCSUniqueID uniqueId = UTIL_UNIQUEID_NULL;
@@ -417,8 +417,8 @@ TEST_F(cs_ddl_test, base_createCS_5)
     
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
-   options.path.lobMetaPath = DATA_PATH;
-   options.path.lobPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
    
    bson::BSONObj adjunct;
@@ -459,8 +459,8 @@ TEST_F(cs_ddl_test, base_listCS_1)
     
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
-   options.path.lobMetaPath = DATA_PATH;
-   options.path.lobPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
    DATA_CURSOR_PTR cursor;
@@ -533,8 +533,8 @@ TEST_F(cs_ddl_test, base_getCount_1)
     
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
-   options.path.lobMetaPath = DATA_PATH;
-   options.path.lobPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
    UINT32 count = 0;
@@ -651,8 +651,8 @@ TEST_F(cs_ddl_test, advanced_createCS_1)
    collectionSpaceId identifier;
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
-   options.path.lobMetaPath = DATA_PATH;
-   options.path.lobPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
    atomic<UINT32> createdCount(0);
@@ -705,8 +705,8 @@ TEST_F(cs_ddl_test, advanced_createCS_2)
    collectionSpaceId identifier;
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
-   options.path.lobMetaPath = DATA_PATH;
-   options.path.lobPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
    UINT32 createNum = 32;
@@ -755,8 +755,8 @@ TEST_F(cs_ddl_test, DISABLED_death_createCS_1)
     
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
-   options.path.lobMetaPath = DATA_PATH;
-   options.path.lobPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
    UINT32 count = 0;
@@ -829,8 +829,8 @@ TEST_F(cs_ddl_test, DISABLED_death_createCS_2)
     
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
-   options.path.lobMetaPath = DATA_PATH;
-   options.path.lobPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
    UINT32 createNum = MAX_SU_COUNT;

@@ -425,5 +425,70 @@ namespace vessel
    error:
       goto done;
    }
+
+   INT32 collectionHandler::insertLobChunk(IExecutor *executor,
+                                           const bson::OID &oid,
+                                           UINT32 chunkId,
+                                           UINT32 offset,
+                                           UINT32 size,
+                                           const CHAR *data)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == executor))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = _db->insertLobChunk(executor, _gcid, oid,
+                               chunkId, offset, size, data);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to insert lob chunk:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collectionHandler::readLobChunk(IExecutor *executor,
+                                         const bson::OID &oid,
+                                         UINT32 chunkId,
+                                         UINT32 offset,
+                                         UINT32 size,
+                                         CHAR *data,
+                                         UINT32 &readSize)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == executor))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = _db->readLobChunk(executor, _gcid, oid,
+                             chunkId, offset, size,
+                             data, readSize);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 }//namespace vessel
 }//namespace engine

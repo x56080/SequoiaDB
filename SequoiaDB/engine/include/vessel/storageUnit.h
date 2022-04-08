@@ -47,6 +47,7 @@
 #include "vessel/mainDataSpace.h"
 #include "vessel/mmapPagePointer.h"
 #include "vessel/indexSpace.h"
+#include "vessel/largeObjectSpace.h"
 
 namespace engine
 {
@@ -69,11 +70,11 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isOpen()const
          {
-            return INVALID_SPACE_ID != _sid;
+            return INVALID_SPACE_ID != _manifest.sid;
          }
          OSS_INLINE SPACE_ID getSpaceID()const
          {
-            return _sid;
+            return _manifest.sid;
          }
 
          OSS_INLINE mainDataSpace &getMainDataSpace()
@@ -83,6 +84,10 @@ namespace vessel
          OSS_INLINE indexSpace &getIndexSpace()
          {
             return _is;
+         }
+         OSS_INLINE largeObjectSpace &getLobSpace()
+         {
+            return _los;
          }
 
       public:
@@ -101,20 +106,15 @@ namespace vessel
                                   PAGE_ID pid,
                                   mmapPagePointer &ptr)const;
 
-         INT32 getCoreArgs(SPACE_TYPE spaceType,
-                           FILE_TYPE fileType,
-                           storageCoreArgs &args);
-
       private:
-         INT32 createMainDataSpace(UINT32 secretValue,
-                                   const storageCoreArgs &args);
+         INT32 createMainDataSpace();
 
-         INT32 createIndexSpace(UINT32 secretValue,
-                                const storageCoreArgs &args);
+         INT32 createIndexSpace();
       private:
-         SPACE_ID _sid = INVALID_SPACE_ID;
+         storageUnitManifest _manifest;
          mainDataSpace _mds;
          indexSpace _is;
+         largeObjectSpace _los;
 
    };//class storageUnit
 }//namespace vessel

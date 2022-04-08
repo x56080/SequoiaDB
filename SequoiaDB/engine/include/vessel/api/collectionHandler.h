@@ -71,11 +71,11 @@ namespace vessel
          }
 
       public:
-         virtual BOOLEAN isClosed()const
+         virtual BOOLEAN isClosed()const override
          {
             return !isOpen();
          }
-         virtual void close()
+         virtual void close() override
          {
             _gcid.reset();
             _db = NULL;
@@ -84,52 +84,68 @@ namespace vessel
       public:
          virtual INT32 createIndex(IExecutor *executor,
                                    const dmsBuildIndexOptions &o,
-                                   const bson::BSONObj &indexDef);
+                                   const bson::BSONObj &indexDef) override;
 
          virtual INT32 listIndex(IExecutor *executor,
-                                 ossPoolVector<bson::BSONObj> &indexes);
+                                 ossPoolVector<bson::BSONObj> &indexes) override;
 
          virtual INT32 removeIndex(IExecutor *executor,
-                                   const CHAR *indexName);
+                                   const CHAR *indexName) override;
 
       public:
          virtual INT32 truncate(IExecutor *executor,
-                                const dmsTruncateCLOptions &o);
+                                const dmsTruncateCLOptions &o) override;
 
       public:
          virtual INT32 insertRecord(IExecutor *executor,
                                     const bson::BSONObj &record,
                                     const dmsInsertRecordOptions &o,
-                                    utilInsertResult *result);
+                                    utilInsertResult *result) override;
          virtual INT32 insertBatch(IExecutor *executor,
                                    const ossPoolVector<bson::BSONObj> &batch,
                                    const dmsInsertRecordOptions &o,
-                                   utilInsertResult *result);
+                                   utilInsertResult *result) override;
 
          virtual INT32 updateRecord(IExecutor *executor,
                                     const dmsRecordID &rid,
                                     IRecordUpdater *updater,
                                     const dmsUpdateRecordOptions &o,
-                                    utilUpdateResult *result);
+                                    utilUpdateResult *result) override;
 
          virtual INT32 deleteRecord(IExecutor *executor,
                                     const dmsRecordID &rid,
                                     const dmsDeleteRecordOptions &o,
-                                    utilDeleteResult *result);
+                                    utilDeleteResult *result) override;
 
       public:
          virtual INT32 scan(IExecutor *executor,
                             const dmsScanOptions &o,
-                            DATA_CURSOR_PTR &cursor);
+                            DATA_CURSOR_PTR &cursor) override;
 
          virtual INT32 scanIndex(IExecutor *executor,
                                  const CHAR *indexName,
                                  const rtnPredicateList &predicate,
                                  const dmsIndexScanOptions &o,
-                                 DATA_CURSOR_PTR &cursor);
+                                 DATA_CURSOR_PTR &cursor) override;
 
          virtual INT32 getRecordCount(IExecutor *executor,
-                                      UINT64 &count);
+                                      UINT64 &count) override;
+
+      public:
+         virtual INT32 insertLobChunk(IExecutor *executor,
+                                      const bson::OID &oid,
+                                      UINT32 chunkId,
+                                      UINT32 offset,
+                                      UINT32 size,
+                                      const CHAR *data) override;
+
+         virtual INT32 readLobChunk(IExecutor *executor,
+                                    const bson::OID &oid,
+                                    UINT32 chunkId,
+                                    UINT32 offset,
+                                    UINT32 size,
+                                    CHAR *data,
+                                    UINT32 &readSize) override;
           
       private:
          globalCollectionId _gcid;

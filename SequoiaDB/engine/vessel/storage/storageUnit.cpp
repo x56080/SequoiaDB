@@ -50,7 +50,11 @@ namespace engine
 {
 namespace vessel
 {
-   storageUnit::storageUnit(){}
+   storageUnit::storageUnit():
+   _los(&_manifest)
+   {
+
+   }
 
    storageUnit::~storageUnit()
    {
@@ -61,9 +65,11 @@ namespace vessel
    {
       if (isOpen())
       {
-         _sid = INVALID_SPACE_ID;
          _mds.close();
          _is.close();
+         _los.close();
+
+         _manifest.reset();
       }
       return;
    }
@@ -78,17 +84,14 @@ namespace vessel
          goto done;
       }
 
-      sfm.init(&po, _sid);
-      _sid = INVALID_SPACE_ID;
+      sfm.init(&po, _manifest.sid);
+
       _mds.destroy();
       _is.destroy();
+      _los.destroy();
 
-      rc = sfm.removeSpaceDir();
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to remove space dirs:%d", rc);
-         goto error;
-      }
+      sfm.removeSpaceDir();
+      _manifest.reset();
    done:
       return rc;
    error:
@@ -102,15 +105,11 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(!isOpen(), "do not reinit");
 
-      UINT32 secretValue = ossRand();
       BOOLEAN dirCreated = FALSE;
-      const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be invalid");
+      const storagePathOptions &po = tc->getEnv()->options.path;
       storageFileMaintainer sfm;
-
-      if (OSS_UNLIKELY(isOpen()))
-      {
-         close();
-      }
 
       if (OSS_UNLIKELY(INVALID_SPACE_ID == sid ||
                        !options.isValid()))
@@ -118,31 +117,31 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (!options.isValid())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
       
-      _sid = sid;
-      sfm.init(&po, _sid);
+      _manifest.sid = sid;
+      _manifest.secretValue = ossRand();
+      _manifest.dataArgs = options.dataArgs;
+      _manifest.idxArgs = options.indexArgs;
+      _manifest.lobArgs = options.lobArgs;
+
+      sfm.init(&po, sid);
 
       rc = sfm.createSpaceDir();
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to create space[%d] dir, rc:%d", _sid, rc);
+         PD_LOG(PDERROR, "failed to create space[%d] dir, rc:%d", sid, rc);
          goto error;
       }
       dirCreated = TRUE;
 
-      rc = createMainDataSpace(secretValue, options.dataArgs);
+      rc = createMainDataSpace();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create main data space:%d", rc);
          goto error;
       }
 
-      rc = createIndexSpace(secretValue, options.indexArgs);
+      rc = createIndexSpace();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create index space:%d", rc);
@@ -150,6 +149,7 @@ namespace vessel
          goto error;
       }
 
+      /// delay to create lob space
    done:
       return rc;
    error:
@@ -157,7 +157,8 @@ namespace vessel
       {
          sfm.removeSpaceDir();
       }
-      _sid = INVALID_SPACE_ID;
+      
+      _manifest.reset();
       goto done;
    }
 
@@ -181,8 +182,10 @@ namespace vessel
          goto error;
       }
 
-      _sid = sid;
-      sfm.init(&po, _sid);
+      /// TODO: init manifest from MANIFEST file
+      _manifest.sid = sid;
+      
+      sfm.init(&po, sid);
 
       rc = sfm.testBeforeOpenning();
       if (SDB_OK != rc)
@@ -198,19 +201,22 @@ namespace vessel
          goto error;
       }
 
-      rc = _mds.open(_sid, loader);
+      rc = _mds.open(sid, loader);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open main data space:%d", rc);
          goto error;
       }
 
-      rc = _is.open(_sid, loader);
+      rc = _is.open(sid, loader);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open index space:%d", rc);
          goto error;
       }
+
+      _manifest.dataArgs = _mds.getStorageCoreArgs();
+      _manifest.idxArgs = _is.getStorageCoreArgs();
    done:
       return rc;
    error:
@@ -218,17 +224,15 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageUnit::createMainDataSpace(UINT32 secretValue,
-                                          const storageCoreArgs &args)
+   INT32 storageUnit::createMainDataSpace()
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(INVALID_SPACE_ID != _sid, "can not be invalid");
-      SDB_ASSERT(args.isValid(), "must be valid");
+      SDB_ASSERT(_manifest.isValid(), "can not be invalid");
       createLpsOptions o;
-      o.dataArgs = args;
-      o.secretValue = secretValue;
+      o.dataArgs = _manifest.dataArgs;
+      o.secretValue = _manifest.secretValue;
 
-      rc = _mds.create(_sid, o);
+      rc = _mds.create(_manifest.sid, o);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create main data space:%d", rc);
@@ -240,17 +244,15 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageUnit::createIndexSpace(UINT32 secretValue,
-                                       const storageCoreArgs &args)
+   INT32 storageUnit::createIndexSpace()
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(INVALID_SPACE_ID != _sid, "can not be invalid");
-      SDB_ASSERT(args.isValid(), "must be valid");
+      SDB_ASSERT(_manifest.isValid(), "can not be invalid");
       createLpsOptions o;
-      o.dataArgs = args;
-      o.secretValue = secretValue;
+      o.dataArgs = _manifest.idxArgs;
+      o.secretValue = _manifest.secretValue;
 
-      rc = _is.create(_sid, o);
+      rc = _is.create(_manifest.sid, o);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create main data space:%d", rc);

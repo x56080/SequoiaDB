@@ -64,7 +64,7 @@ namespace vessel
 
          INT32 load(const strSlice &dir);
 
-         INT32 append(const strSlice &dir, SPACE_TYPE type);
+         INT32 append(const strSlice &dir, SPACE_TYPE filter=INVALID_SPACE_TYPE);
 
          /// return null if type not exists
          const STORAGE_FILE_NAME_LIST *getFileList(SPACE_TYPE stype,

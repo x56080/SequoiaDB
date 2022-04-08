@@ -63,7 +63,7 @@ namespace vessel
 
    void pidBatchList::transferTo(pidBatchList &o)
    {
-      o._bl.merge(std::move(_bl));
+      o._bl.splice(o._bl.end(), _bl);
    }
 } // namespace vessel
 

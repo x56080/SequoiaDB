@@ -92,12 +92,11 @@ TEST_F(index_lsm_test, test1)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   createCSOptions csOptions;
    createCLOptions clOptions;
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
-   options.path.lobMetaPath = DATA_PATH;
-   options.path.lobPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
    DATA_COLLECTION_PTR cl;
@@ -192,12 +191,11 @@ TEST_F(index_lsm_test, test2)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   createCSOptions csOptions;
    createCLOptions clOptions;
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
-   options.path.lobMetaPath = DATA_PATH;
-   options.path.lobPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
    DATA_COLLECTION_PTR cl;
@@ -300,12 +298,11 @@ TEST_F(index_lsm_test, test3)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   createCSOptions csOptions;
    createCLOptions clOptions;
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
-   options.path.lobMetaPath = DATA_PATH;
-   options.path.lobPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
    DATA_COLLECTION_PTR cl;
@@ -389,12 +386,11 @@ TEST_F(index_lsm_test, test4)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   createCSOptions csOptions;
    createCLOptions clOptions;
    options.path.dataPath = DATA_PATH;
    options.path.indexPath = DATA_PATH;
-   options.path.lobMetaPath = DATA_PATH;
-   options.path.lobPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
    DATA_COLLECTION_PTR cl;

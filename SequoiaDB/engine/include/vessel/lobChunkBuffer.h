@@ -37,26 +37,99 @@
 #define VESSEL_LOB_CHUNK_BUFFER_H_
 
 #include "vessel/lobChunkKey.h"
+#include "vessel/bufferControlBlock.h"
+#include "ossMemPool.hpp"
+#include "dpsDef.hpp"
+#include "vessel/multiPageBufferContext.h"
+#include "vessel/bufferFlushTask.h"
+
 #include <memory> //c++11
 
 namespace engine
 {
 namespace vessel
 {
+   class lobcBufferPoolEnv;
+
    class lobChunkBuffer : public SDBObject
    {
       public:
-         lobChunkBuffer();
+         lobChunkBuffer(const globalLobChunkKey &key,
+                        const bufferControlBlock &blk,
+                        UINT32 pageSize,
+                        lobcBufferPoolEnv *env);
          ~lobChunkBuffer();
          lobChunkBuffer(const lobChunkBuffer &) = delete;
          lobChunkBuffer &operator=(const lobChunkBuffer &) = delete;
 
-      private:
-         lobChunkKey _key;
-         UINT32 _hash = 0;
-   };//class lobChunkBuffer
+      public:
+         OSS_INLINE BOOLEAN isValid()const {return _key.isValid();}
+         OSS_INLINE const globalLobChunkKey &getKey()const {return _key;}
 
-   typedef class std::shared_ptr<lobChunkBuffer> lobChunkBufferPtr;
+         OSS_INLINE const atomicBufferCtlBlock &ctl()const {return _ctl;}
+         OSS_INLINE atomicBufferCtlBlock &ctl() {return _ctl;}
+
+         OSS_INLINE DPS_LSN_OFFSET getMinLSN()const {return _minLSN;}
+         OSS_INLINE DPS_LSN_OFFSET getMaxLSN()const {return _maxLSN;}
+         OSS_INLINE BOOLEAN hasValidLSNPair()const
+         {
+            return DPS_INVALID_LSN_OFFSET != _minLSN &&
+                   DPS_INVALID_LSN_OFFSET != _maxLSN;
+         }
+
+         void setLSN(const DPS_LSN_OFFSET &lsn);
+
+         void resetLSN();
+
+         OSS_INLINE const multiPageBufferContext &getBufferCtx()const
+         {
+            return _bufferCtx;
+         }
+         OSS_INLINE multiPageBufferContext &getBufferCtx()
+         {
+            return _bufferCtx;
+         }
+         OSS_INLINE UINT32 getPageSize()const
+         {
+            return _bufferCtx.getPageSize();
+         }
+
+      public:
+         OSS_INLINE UINT32 getRegisteredBufferSize()const
+         {
+            return _registeredBufferSize;
+         }
+         OSS_INLINE BOOLEAN isBufferSizeRegistered()const
+         {
+            return 0 < _registeredBufferSize;
+         }
+         OSS_INLINE void registerBufferSize()
+         {
+            _registeredBufferSize = _bufferCtx.getBufferSize();
+         }
+         OSS_INLINE void resetRegisteredBufferSize()
+         {
+            _registeredBufferSize = 0;
+         }
+
+      public:
+         void exportTasks(ossPoolVector<bufferFlushTask> &tasks)const;
+          
+      private:
+         globalLobChunkKey _key;
+         atomicBufferCtlBlock _ctl;
+
+         DPS_LSN_OFFSET _minLSN = DPS_INVALID_LSN_OFFSET;
+         DPS_LSN_OFFSET _maxLSN = DPS_INVALID_LSN_OFFSET;
+
+         multiPageBufferContext _bufferCtx;
+
+         UINT32 _registeredBufferSize = 0;
+
+   };//class lobChunkBuffer
+   typedef class std::shared_ptr<lobChunkBuffer> sharedLobChunkBuffer;
+   typedef class ossPoolList<sharedLobChunkBuffer> SHARED_LOBC_BUFFER_LIST;
+
 } // namespace vessel
 
 } // namespace engine

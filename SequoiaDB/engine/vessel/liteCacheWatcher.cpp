@@ -129,22 +129,21 @@ namespace vessel
       {
          if (_list.popOrWaitFor(millis, event))
          {
-            SDB_ASSERT(backgroundEvent::EVENT_TYPE_INVALID != event.getType(), "impossible");
+            SDB_ASSERT(event.isValid(), "impossible");
             if (event.isQuitEvent())
             {
                quit = TRUE;
             }
-            else if (backgroundEvent::EVENT_TYPE_CACHE_WATCHER_NOTIFY == event.getType())
+            else if (event.isResponse())
             {
-               //PD_LOG(PDDEBUG, "get notification from lite cache");
+               handleFinishedEvent(event);
                if (!quit)
                {
                   createJobIfNecessary();
                }
             }
-            else if (backgroundEvent::EVENT_TYPE_FINISHED == event.getType())
+            else if (BACKGROUND_EVENT_TYPE::DATA_BUF_POOL_NOTIFY == event.getType())
             {
-               handleFinishedEvent(event);
                if (!quit)
                {
                   createJobIfNecessary();
@@ -185,9 +184,7 @@ namespace vessel
    {
       SDB_ASSERT(_actived, "not actived yet");
       _attachEvent.reset();
-      backgroundEvent event;
-      event.setType(backgroundEvent::EVENT_TYPE_QUIT);
-      _list.push(event);
+      _list.push(backgroundEvent::createQuitEvent());
 
       do
       {
@@ -214,7 +211,7 @@ namespace vessel
       backgroundEvent event;
       while (_list.tryToPop(event))
       {
-         event.release();
+         event.reset();
       }
 
       for (UINT32 i = 0; i < (UINT32)_JOG_ID_COUNT; ++i)
@@ -347,15 +344,16 @@ namespace vessel
 
    void liteCacheWatcher::handleFinishedEvent(const backgroundEvent &event)
    {
-      SDB_ASSERT(backgroundEvent::EVENT_TYPE_FINISHED == event.getType(), "msut be finished");
-      const UINT32 *jobID = (const UINT32 *)(event.getEventMsg());
+      SDB_ASSERT(event.isResponseOf(BACKGROUND_EVENT_TYPE::DATA_BUF_TASK),
+                 "can not be others");
+      UINT32 jobId = event.getShortData<UINT32>();
       liteCache *cache = _env->cacheConsole.getCacheByPoolNo();
 
       for (UINT32 i = 0; i < (UINT32)_JOG_ID_COUNT; ++i)
       {
          _JOB_CONTEXT &jc = _jobs[(_JOB_ID)i];
          if (jc.job.isRunning() &&
-            jc.job.getJobID() == *jobID)
+            jc.job.getJobID() == jobId)
          {
             SDB_ASSERT(0 != jc.runningTask, "impossible");
             if (0 == --jc.runningTask)
@@ -413,9 +411,9 @@ namespace vessel
             break;
          }
 
-         event.setType(backgroundEvent::EVENT_TYPE_CACHE_TASK);
-         event.setEventMsg(sizeof(diskIOTask), &task);
-         event.setResponseList(&_list);
+         event.initAsRequest(BACKGROUND_EVENT_TYPE::DATA_BUF_TASK);
+         event.copyShortData<diskIOTask>(&task);
+         event.setResponser(&_list);
          _env->workers.pushEvent(event);
          ++jc.runningTask;
       } while (TRUE);
@@ -434,7 +432,7 @@ namespace vessel
       if (!_notifyFlag.test_and_set(std::memory_order_acquire))
       {
          backgroundEvent event;
-         event.setType(backgroundEvent::EVENT_TYPE_CACHE_WATCHER_NOTIFY);
+         event.initAsRequest(BACKGROUND_EVENT_TYPE::DATA_BUF_POOL_NOTIFY);
          _list.push(event);
       }
    }

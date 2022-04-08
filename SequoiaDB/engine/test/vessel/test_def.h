@@ -53,6 +53,7 @@
 #include "dummyTransLockConsole.h"
 #include "ixm_common.hpp"
 #include "vessel/indexDef.h"
+#include "vessel/vesselImpl.h"
 
 using namespace engine::vessel;
 using namespace engine;
@@ -186,6 +187,12 @@ static void worker_entry(test_executor *executor, void *obj)
    worker->activeEntry(executor);
 }
 
+static void lob_pool_watcher_entry(test_executor *executor, void *obj)
+{
+   ::engine::vessel::vesselImpl *impl = (::engine::vessel::vesselImpl *)obj;
+   impl->attachLobcWatcher(executor);
+}
+
 class test_session_mgr : public ::engine::IExecutorMgr
 {
    public:
@@ -231,6 +238,10 @@ class test_session_mgr : public ::engine::IExecutorMgr
          else if (type == EDU_TYPE_VESSEL_WORKER)
          {
             _threads.push_back(std::move(std::thread(worker_entry, executor, args)));
+         }
+         else if (type == EDU_TYPE_VESSEL_LOBC_BUFFER_POOL_WATCHER)
+         {
+            _threads.push_back(std::move(std::thread(lob_pool_watcher_entry, executor, args)));
          }
          else
          {

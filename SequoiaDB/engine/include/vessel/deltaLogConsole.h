@@ -44,7 +44,7 @@
 #include "vessel/deltaLogRecord.h"
 #include "vessel/memoryBlock.h"
 #include "vessel/storageFile.h"
-#include "vessel/storageFileManifest.h"
+#include "vessel/storageManifest.h"
 #include "vessel/storageFileTrashCan.h"
 
 namespace engine

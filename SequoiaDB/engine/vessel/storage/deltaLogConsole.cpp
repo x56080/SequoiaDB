@@ -167,6 +167,7 @@ namespace vessel
       o.createAsTmpFile = FALSE;
       o.replaceWhenCreate = TRUE;
       o.secretValue = _manifest.secretValue;
+      o.flags = storageFileCtlFlag::MMAP_DATA_SEGMENT;
 
       rc = sfm.createStorageFile(fn, o, *_workingFile);
       if (SDB_OK != rc)
@@ -233,7 +234,8 @@ namespace vessel
             goto error;
          }
 
-         rc = sfm.openStorageFile(fn, *_workingFile);
+         rc = sfm.openStorageFile(fn, storageFileCtlFlag::MMAP_DATA_SEGMENT,
+                                  *_workingFile);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to open delta log file[%s], rc:%d",

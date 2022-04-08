@@ -173,12 +173,11 @@ namespace vessel
    void backgroundWorkers::pushEvent(const backgroundEvent &event)
    {
       SDB_ASSERT(NULL != _env, "not inited");
-      SDB_ASSERT(backgroundEvent::EVENT_TYPE_INVALID != event.getType(),
-                 "can not be invalid");
+      SDB_ASSERT(event.isValid(), "can not be invalid");
       SDB_ASSERT(!event.isQuitEvent(), "can not be quit");
       SDB_ASSERT(!_cache._workers.empty(), "no worker attached");
       SDB_ASSERT(!_common._workers.empty(), "no worker attached");
-      if (backgroundEvent::EVENT_TYPE_CACHE_TASK == event.getType())
+      if (BACKGROUND_EVENT_TYPE::DATA_BUF_TASK == event.getType())
       {
          _cache._el.push(event);
       }
@@ -188,13 +187,20 @@ namespace vessel
       }
    }
 
+   void backgroundWorkers::pushBufferEvent(const backgroundEvent &event)
+   {
+      SDB_ASSERT(NULL != _env, "not inited");
+      SDB_ASSERT(event.isUserRequest(), "can not be invalid");
+      SDB_ASSERT(!_cache._workers.empty(), "no worker attached");
+      _cache._el.push(event);
+   }
+
    void backgroundWorkers::_deactive()
    {
       SDB_ASSERT(NULL != _env, "can not be null");
-      backgroundEvent event;
+      backgroundEvent event = backgroundEvent::createQuitEvent();
       autoEventList<backgroundEvent> finishList;
-      event.setType(backgroundEvent::EVENT_TYPE_QUIT);
-      event.setResponseList(&finishList);
+      event.setResponser(&finishList);
       UINT32 count = _cache._workers.size();
 
       for (UINT32 i = 0; i < _cache._workers.size(); ++i)
@@ -206,7 +212,7 @@ namespace vessel
       {
          backgroundEvent response;
          finishList.popOrWait(response);
-         SDB_ASSERT(backgroundEvent::EVENT_TYPE_FINISHED == response.getType(), "impossible");
+         SDB_ASSERT(response.isResponseOf(BACKGROUND_EVENT_TYPE::QUIT), "impossible");
       }
 
       PD_LOG(PDINFO, "[%d] cache cleaners detached", count);
@@ -222,7 +228,7 @@ namespace vessel
       {
          backgroundEvent response;
          finishList.popOrWait(response);
-         SDB_ASSERT(backgroundEvent::EVENT_TYPE_FINISHED == response.getType(), "impossible");
+         SDB_ASSERT(response.isResponseOf(BACKGROUND_EVENT_TYPE::QUIT), "impossible");
       }
 
       PD_LOG(PDINFO, "[%d] common workers detached", count);

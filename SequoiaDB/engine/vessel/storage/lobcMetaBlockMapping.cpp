@@ -1,0 +1,1106 @@
+/*******************************************************************************
+
+
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+   Source File Name = lobcMetaBlockMapping.cpp
+
+   Descriptive Name =
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          09/08/2020  WY  Initial Draft
+
+   Last Changed =
+
+******************************************************************************/
+
+#include "vessel/lobcMetaBlockMapping.h"
+#include "pdTrace.hpp"
+#include "ossLikely.hpp"
+#include "vessel/threadContext.h"
+#include "vessel/instanceEnv.h"
+#include "vessel/lobcMetaBlockPage.h"
+#include "vessel/lobMetaDataFile.h"
+#include "vessel/storageManifest.h"
+
+namespace engine
+{
+namespace vessel
+{
+   lobcMetaBlockMapping::lobcMetaBlockMapping(const storageUnitManifest *manifest,
+                                              PAGE_ID entryPid,
+                                              lobMetaDataFile *file):
+   _manifest(manifest),
+   _entryPid(entryPid),
+   _mfile(file)
+   {
+      SDB_ASSERT(nullptr != _manifest && _manifest->isValid(), "can not be invalid");
+      SDB_ASSERT(INVALID_PAGE_ID != _entryPid, "can not be invalid");
+      SDB_ASSERT(nullptr != _mfile && _mfile->isOpen(), "can not be invalid");
+      _regionCount = file->getCommonHeadInMem().pageSize / LOBC_BUCKET_REGION_BLOCK_SIZE;
+      SDB_ASSERT(0 < _regionCount, "can not be invalid");
+      SDB_ASSERT(ossIsPowerOf2(_regionCount), "must be power of 2");
+      _globalBucketCount = lobcBucketRegionBlock::BUCKET_COUNT * _regionCount;
+      SDB_ASSERT(ossIsPowerOf2(_globalBucketCount),
+                 "must be power of 2");
+   }
+
+   lobcMetaBlockMapping::~lobcMetaBlockMapping()
+   {
+
+   }
+
+   INT32 lobcMetaBlockMapping::find(const lobChunkSearchEntry &entry,
+                                    lobcExtentChain &chain)
+   {
+      INT32 rc = SDB_OK;
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      UINT32 regionId = 0;
+      ossSpinSLatchPOSIX *regionLock = nullptr;
+      lobcBucketRegionBlock *regionBlock = nullptr;
+      UINT32 bucketPos = 0;
+      lobcBucketRegion::bucketDesc bucket;
+      recordID rid;
+
+      chain.reset();
+
+      if (OSS_UNLIKELY(!entry.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      regionId = getBucketRegion(entry.hash(), bucketPos);
+      regionLock = tc->getEnv()->latchEnv.lobRegionLatchVec.mod(regionId);
+      SDB_ASSERT(nullptr != regionLock, "can not be null");
+      regionLock->get_shared();
+
+      regionBlock = getRegionBlock(regionId);
+      if (OSS_UNLIKELY(nullptr == regionBlock))
+      {
+         PD_LOG(PDERROR, "failed to get region block[%d]", regionId);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      bucket = lobcBucketRegion::searchBucket(bucketPos, regionBlock);
+      if (INVALID_PAGE_ID == bucket.pid)
+      {
+         rc = SDB_LOB_SEQUENCE_NOT_EXIST;
+         goto error;
+      }
+
+      rc = seek(entry, bucket.pid, rid);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      rc = fillChain(entry, rid, chain);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to fill chain:%d", rc);
+         goto error;
+      }
+   done:
+      if (nullptr != regionLock)
+      {
+         regionLock->release_shared();
+      }
+      return rc;
+   error:
+      chain.reset();
+      goto done;
+   }
+
+   INT32 lobcMetaBlockMapping::insert(const lobExtentMetaBlock *block)
+   {
+      INT32 rc = SDB_OK;
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      UINT32 regionId = 0;
+      ossSpinSLatchPOSIX *regionLock = nullptr;
+      lobcBucketRegionBlock *regionBlock = nullptr;
+      UINT32 beginBucket = 0;
+
+      if (OSS_UNLIKELY(nullptr == block ||
+                       !block->isValid() ||
+                       0 != block->chainPos ||
+                       !block->isChainTail()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      regionId = getBucketRegion(block->hash(), beginBucket);
+      regionLock = tc->getEnv()->latchEnv.lobRegionLatchVec.mod(regionId);
+      SDB_ASSERT(nullptr != regionLock, "can not be null");
+      regionLock->get();
+
+      regionBlock = getRegionBlock(regionId);
+      if (OSS_UNLIKELY(nullptr == regionBlock))
+      {
+         PD_LOG(PDERROR, "failed to get region block[%d]", regionId);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      else
+      {
+         lobcBucketRegion region(regionId, regionBlock);
+         rc = insertIntoRegion(block, beginBucket, region);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to insert into region[%d], rc:%d", regionId, rc);
+            goto error;
+         }
+      }
+      
+   done:
+      if (nullptr != regionLock)
+      {
+         regionLock->release();
+      }
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lobcMetaBlockMapping::remove(const lobChunkSearchEntry &entry,
+                                      lobcExtentChain *chainRemoved)
+   {
+      INT32 rc = SDB_OK;
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      UINT32 regionId = 0;
+      ossSpinSLatchPOSIX *regionLock = nullptr;
+      lobcBucketRegionBlock *regionBlock = nullptr;
+      lobcBucketRegion region;
+      UINT32 bucketPos = 0;
+      lobcBucketRegion::bucketDesc bucket;
+      recordID rid;
+      lobcExtentChain chain;
+      lobcExtentChain *chainPtr = nullptr == chainRemoved ?
+                                  &chain : chainRemoved;
+
+      chainPtr->reset();
+
+      if (OSS_UNLIKELY(!entry.isValid() || 0 != entry.getChainPos()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      chainPtr->init(_manifest->lobArgs.pageSize);
+      regionId = getBucketRegion(entry.hash(), bucketPos);
+      regionLock = tc->getEnv()->latchEnv.lobRegionLatchVec.mod(regionId);
+      SDB_ASSERT(nullptr != regionLock, "can not be null");
+      regionLock->get();
+
+      regionBlock = getRegionBlock(regionId);
+      if (OSS_UNLIKELY(nullptr == regionBlock))
+      {
+         PD_LOG(PDERROR, "failed to get region block[%d]", regionId);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      bucket = lobcBucketRegion::searchBucket(bucketPos, regionBlock);
+      if (INVALID_PAGE_ID == bucket.pid)
+      {
+         rc = SDB_LOB_SEQUENCE_NOT_EXIST;
+         goto error;
+      }
+
+      rc = seek(entry, bucket.pid, rid);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      rc = fillChain(entry, rid, chain);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to fill chain:%d", rc);
+         goto error;
+      }
+
+      region = lobcBucketRegion(regionId, regionBlock);
+      rc = removeChainFromRegion(entry, rid, chainPtr->getChainSize(),
+                                 bucket.pos, region);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to remove entry[%s], rc:%d",
+                  entry.getKey().toString().c_str(), rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      if (nullptr != chainRemoved)
+      {
+         chainRemoved->reset();
+      }
+      goto done;
+   }
+
+   INT32 lobcMetaBlockMapping::insertIntoRegion(const lobExtentMetaBlock *block,
+                                                UINT32 beginPos,
+                                                lobcBucketRegion &region)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(nullptr != block && block->isValid(), "can not be invalid");
+      SDB_ASSERT(region.isValid(), "can not be invalid");
+      
+      lobChunkSearchEntry searchEntry(block->oid, block->chunkId,
+                                      block->lclid, block->chainPos);
+
+      do
+      {
+         PAGE_ID candidate = INVALID_PAGE_ID;
+         BOOLEAN freeToInsert = FALSE;
+         lobcBucketRegion::bucketDesc bucket = region.searchBucket(beginPos);
+         if (INVALID_PAGE_ID == bucket.pid)
+         {
+            rc = ensureBucket(region, bucket.pos);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to ensure bucket[%d] in region, rc:%d",
+                     bucket.pos, rc);
+               goto error;
+            }
+
+            bucket.pid = region.getBucket(bucket.pos);
+         }
+         
+         rc = findPageToInsert(searchEntry, bucket.pid, candidate, freeToInsert);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to find page to insert:%d", rc);
+            goto error;
+         }
+         
+         if (freeToInsert)
+         {
+            lobcMetaBlockPageAccessor accessor(_mfile, candidate);
+            rc = accessor.insert(block, &searchEntry);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to insert block into page[%d]:%d", candidate, rc);
+               goto error;
+            }
+            break;
+         }
+         else
+         {
+            lobcBucketRegion::resizingStrategy strategy =
+                                     region.getResizingStrategy(bucket.pos);
+            if (strategy.isValid())
+            {
+               rc = resizeBucketsInRegion(strategy, bucket.pos, region);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to create new bucket[%d] from [%d] in region:%d, rc:%d",
+                        strategy.getTargetPos(), bucket.pos, region.getRegionId(), rc);
+                  goto error;
+               }
+
+               continue;
+            }
+            else
+            {
+               PAGE_ID newCandidate = INVALID_PAGE_ID;
+               rc = splitBlockPage(candidate);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to split page[%d], rc:%d", candidate, rc);
+                  goto error;
+               }
+
+               /// refind page from candidate.
+               rc = findPageToInsert(searchEntry, candidate, newCandidate, freeToInsert);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to find page to insert:%d", rc);
+                  goto error;
+               }
+
+               SDB_ASSERT(freeToInsert, "must be free to insert");
+               {
+                  lobcMetaBlockPageAccessor accessor(_mfile, newCandidate);
+                  rc = accessor.insert(block, &searchEntry);
+                  if (SDB_OK != rc)
+                  {
+                     PD_LOG(PDERROR, "failed to insert block into page[%d]:%d", candidate, rc);
+                     goto error;
+                  }
+               }
+
+               break;
+
+            }
+         }
+      } while (TRUE);
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lobcMetaBlockMapping::findPageToInsert(const lobChunkSearchEntry &entry,
+                                                PAGE_ID bucketEntry,
+                                                PAGE_ID &pid,
+                                                BOOLEAN &freeToInsert)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(entry.isValid(), "can not be invalid");
+      SDB_ASSERT(INVALID_PAGE_ID != bucketEntry, "can not be invalid");
+      pid = INVALID_PAGE_ID;
+
+      PAGE_ID bucketPid = bucketEntry;
+
+      do
+      {
+         INT32 cmp = 0;
+         lobcMetaBlockPageAccessor accessor(_mfile, bucketPid);
+         if (!accessor.isValid())
+         {
+            PD_LOG(PDERROR, "failed to access bucket page[%d]", bucketPid);
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+         else if (accessor.isEmpty())
+         {
+            SDB_ASSERT(bucketPid == bucketEntry, "must be the first page");
+            pid = bucketPid;
+            freeToInsert = TRUE;
+            break;
+         }
+         else if (!accessor.hasNextPid())
+         {
+            pid = bucketPid;
+            freeToInsert = accessor.isFreeToInsert(1);
+            break;
+         }
+
+         cmp = accessor.compareWithHighKey(entry);
+         if (0 <= cmp)
+         {
+            pid = bucketPid;
+            freeToInsert = accessor.isFreeToInsert(1);
+            break;
+         }
+
+         bucketPid = accessor.getNextPid();
+      } while (TRUE);
+      
+      SDB_ASSERT(INVALID_PAGE_ID != pid, "impossible");
+   done:
+      return rc;
+   error:
+      pid = INVALID_PAGE_ID;
+      goto done;
+   }
+
+   lobcBucketRegionBlock *lobcMetaBlockMapping::getRegionBlock(UINT32 regionId)
+   {
+      SDB_ASSERT(regionId < _regionCount, "out of bound");
+      lobcBucketRegionBlock *block = nullptr;
+      mmapPagePointer ptr;
+      strictBuffer buffer;
+      INT32 rc = _mfile->getPagePtr(_entryPid, ptr);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get page[%d] ptr, rc:%d", _entryPid, rc);
+         goto done;
+      }
+
+      buffer.makeWritable(_mfile->getPageSize(), ptr.getBuf());
+      block = buffer.getWritableObjPtr<lobcBucketRegionBlock>
+                          (regionId * LOBC_BUCKET_REGION_BLOCK_SIZE);
+   done:
+      return block;
+   }
+
+   UINT32 lobcMetaBlockMapping::getBucketRegion(UINT32 lobKeyHash, UINT32 &pos)const
+   {
+      UINT32 val = (lobKeyHash & (_globalBucketCount - 1));
+      pos = (val & (lobcBucketRegionBlock::BUCKET_COUNT - 1));
+      return (val >> lobcBucketRegionBlock::BUCKET_COUNT_SQUARE);
+   }
+
+   INT32 lobcMetaBlockMapping::fillChain(const lobChunkSearchEntry &entry,
+                                         const recordID &pos,
+                                         lobcExtentChain &chain)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(entry.isValid(), "can not be invalid");
+      SDB_ASSERT(pos.isValid(), "can not be invalid");
+
+      PAGE_ID toScan = pos.getPid();
+      INT32 slotPos = pos.getPos();
+      UINT16 chainPos = entry.getChainPos();
+      
+      chain.init(_manifest->lobArgs.pageSize);
+
+      do
+      {
+         BOOLEAN scanNextPage = TRUE;
+         lobcMetaBlockPageAccessor accessor(_mfile, toScan);
+         if (OSS_UNLIKELY(!accessor.isValid()))
+         {
+            PD_LOG(PDERROR, "failed to init accessor of pid[%d]", toScan);
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
+         while (slotPos < accessor.getItemCount())
+         {
+            const lobExtentMetaBlock *block = accessor.getExtentMetaBlock(slotPos);
+            SDB_ASSERT(nullptr != block && block->isValid(), "can not be invalid");
+            if (0 != block->compare(entry.getLogicalClId(),
+                                    entry.getKey(),
+                                    chainPos))
+            {
+               scanNextPage = FALSE;
+               break;
+            }
+
+            if (!validateExtentSize(block))
+            {
+               PD_LOG(PDERROR, "invalid block size[%d] found in block[%s]",
+                     block->size, block->toString().c_str());
+               rc = SDB_VESSEL_INTERNAL_ERR;
+               goto error;
+            }
+
+            rc = chain.pushBack(block->getExtentDesc());
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to push extent into chain:%d", rc);
+               goto error;
+            }
+
+            if (block->isChainTail())
+            {
+               goto done;
+            }
+
+            ++slotPos;
+            ++chainPos;
+         }
+
+         if (scanNextPage)
+         {
+            /// continue to scan the next page.
+            /// reset pos as zero.
+            /// all blocks should be saved in order even span mutliple pages.
+            toScan = accessor.getNextPid();
+            slotPos = 0;
+         }
+         else
+         {
+            break;
+         }
+      }while (INVALID_PAGE_ID != toScan);
+
+
+      PD_LOG(PDERROR, "chain tail of [%s] not found", entry.getKey().toString().c_str());
+      rc = SDB_VESSEL_KEY_NOT_FOUND;
+      goto error;
+
+      
+   done:
+      return rc;
+   error:
+      chain.reset();
+      goto done;
+   }
+
+   INT32 lobcMetaBlockMapping::seek(const lobChunkSearchEntry &entry,
+                                    PAGE_ID bucketEntry,
+                                    recordID &rid)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(entry.isValid(), "can not be invalid");
+      SDB_ASSERT(INVALID_PAGE_ID != bucketEntry, "can not be invalid");
+
+      PAGE_ID pidToScan = bucketEntry;
+      rid.reset();
+
+      do
+      {
+         lobcMetaBlockPageAccessor accessor(_mfile, pidToScan);
+         if (!accessor.isValid())
+         {
+            PD_LOG(PDERROR, "failed to init accessor of page[%d]", pidToScan);
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
+         if (accessor.isEmpty())
+         {
+            SDB_ASSERT(pidToScan == bucketEntry, "only the first page can be empty");
+            pidToScan = accessor.getNextPid();
+            continue;
+         }
+         else
+         {
+            INT32 cmp = accessor.testHashBound(entry.hash());
+            if (cmp < 0)
+            {
+               pidToScan = accessor.getNextPid();
+               continue;
+            }
+            else if (cmp > 0)
+            {
+               break;
+            }
+            else
+            {
+               INT32 slotPos = -1;
+               rc = accessor.seek(entry, slotPos);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to seek entry in page[%d], rc:%d",
+                         pidToScan, rc);
+                  goto error;
+               }
+
+               if (0 <= slotPos)
+               {
+                  rid.setPid(pidToScan);
+                  rid.setPos(static_cast<RECORD_SLOT_POS>(slotPos));
+                  break;
+               }
+               else
+               {
+                  pidToScan = accessor.getNextPid();
+                  continue;
+               }
+            }
+         }
+      } while (INVALID_PAGE_ID != pidToScan);
+
+      if (!rid.isValid())
+      {
+         rc = SDB_LOB_SEQUENCE_NOT_EXIST;
+         goto error;
+      }
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lobcMetaBlockMapping::ensureBucket(lobcBucketRegion &region,
+                                            UINT32 pos)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(region.isValid(), "can not be invalid");
+      SDB_ASSERT(pos < lobcBucketRegionBlock::BUCKET_COUNT, "out of bound");
+      SDB_ASSERT(nullptr != _mfile, "can not be invalid");
+      PAGE_ID pid = INVALID_PAGE_ID;
+      mmapPagePointer ptr;
+      lobcMetaBlockPageAccessor accessor;
+
+      if (INVALID_PAGE_ID != region.getBucket(pos))
+      {
+         goto done;
+      }
+
+      rc = _mfile->reservePage(pid, ptr);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to reserve new bucket page:%d", rc);
+         goto error;
+      }
+
+      accessor.init(_mfile->getPageSize(), ptr.getBuf());
+      accessor.initPage();
+      region.setBucketPid(pos, pid);
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lobcMetaBlockMapping::resizeBucketsInRegion(const lobcBucketRegion::resizingStrategy &strategy,
+                                                     UINT32 srcPos,
+                                                     lobcBucketRegion &region)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(strategy.isValid(), "can not be invalid");
+      SDB_ASSERT(region.isValid(), "can not be invalid");
+      SDB_ASSERT(INVALID_PAGE_ID == region.getBucket(strategy.getTargetPos()), "must be invalid");
+
+      PAGE_ID srcBucketPid = region.getBucket(srcPos);
+      SDB_ASSERT(INVALID_PAGE_ID != srcBucketPid, "can not be invalid");
+
+      ossPoolVector<PAGE_ID> newBucketPids;
+      lobcMetaBlockPageAccessor newBucketAccessor;
+      PAGE_ID firstNewBucketPid = INVALID_PAGE_ID;
+      mmapPagePointer ptr;
+      UINT32 rowCount = 0;
+
+      rc = _mfile->reservePage(firstNewBucketPid, ptr);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to reserve new page:%d", rc);
+         goto error;
+      }
+      newBucketAccessor.init(_mfile->getPageSize(), ptr.getBuf());
+      newBucketAccessor.initPage();
+      newBucketPids.push_back(firstNewBucketPid);
+
+      do
+      {
+         lobcMetaBlockPageAccessor src(_mfile, srcBucketPid);
+         if (!src.isValid())
+         {
+            PD_LOG(PDERROR, "failed to init accessor on page[%d]", srcBucketPid);
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
+         for (UINT32 i = 0; i < src.getItemCount(); ++i)
+         {
+            lobcMetaBlockPage::itemSlot slot = src.getSlot(i);
+            if (!strategy.targetOwned(slot.hash))
+            {
+               continue;
+            }
+
+            const lobExtentMetaBlock *mb = src.getExtentMetaBlock((INT32)i);
+            if (OSS_UNLIKELY(nullptr == mb))
+            {
+               PD_LOG(PDERROR, "failed to get block of[%d, %d]", srcBucketPid, i);
+               rc = SDB_VESSEL_INTERNAL_ERR;
+               goto error;
+            }
+
+            if (!newBucketAccessor.isFreeToInsert(1))
+            {
+               PAGE_ID preBucketPid = newBucketPids.back();
+               PAGE_ID newBucketPid = INVALID_PAGE_ID;
+               rc = _mfile->reservePage(newBucketPid, ptr);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to reserve new page:%d", rc);
+                  goto error;
+               }
+
+               newBucketAccessor.setNextPid(newBucketPid);
+               newBucketPids.push_back(newBucketPid);
+
+               rc = newBucketAccessor.init(_mfile, newBucketPid);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to init accessor on page[%d], rc:%d", newBucketPid, rc);
+                  goto error;
+               }
+
+               newBucketAccessor.initPage();
+               newBucketAccessor.setPrePid(preBucketPid);
+            }
+
+            rc = newBucketAccessor.pushBack(slot.hash, mb);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to push back meta block:%d", rc);
+               goto error;
+            }
+
+            ++rowCount;
+         }
+
+         srcBucketPid = src.getNextPid();
+      } while (INVALID_PAGE_ID != srcBucketPid);
+      
+      /// do not remove blocks in first loop 
+      /// to ensure the operation is atomic.
+      if (0 < rowCount)
+      {
+         removeTargetOwnedBlocks(strategy, srcPos, region);
+      }
+
+      region.setBucketPid(strategy.getTargetPos(), firstNewBucketPid);
+   done:
+      return rc;
+   error:
+      if (!newBucketPids.empty())
+      {
+         _mfile->freePages(newBucketPids.size(), newBucketPids.data());
+      }
+      goto done;
+   }
+
+   void lobcMetaBlockMapping::removeTargetOwnedBlocks(const lobcBucketRegion::resizingStrategy &strategy,
+                                                      UINT32 pos,
+                                                      lobcBucketRegion &region)
+   {
+      SDB_ASSERT(strategy.isValid(), "can not be invalid");
+
+      ossPoolVector<PAGE_ID> emptyPids;
+      PAGE_ID pid = region.getBucket(pos);
+      SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
+      while (INVALID_PAGE_ID != pid)
+      {
+         lobcMetaBlockPageAccessor accessor(_mfile, pid);
+         SDB_ASSERT(accessor.isValid(), "can not be invalid");
+         accessor.removeTargetOwnedBlocks(strategy);
+         PAGE_ID nextPid = accessor.getNextPid();
+
+         if (accessor.isEmpty() && !accessor.isTheOnlyPageInBucket())
+         {
+            removePageFromBucket(pid, pos, region);
+         }
+
+         pid = nextPid;
+      }       
+
+      return;
+   }
+
+   void lobcMetaBlockMapping::removePageFromBucket(PAGE_ID pid,
+                                                   UINT32 pos,
+                                                   lobcBucketRegion &region)
+   {
+      SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
+      SDB_ASSERT(INVALID_PAGE_ID != region.getBucket(pos), "can not be invalid");
+      lobcMetaBlockPageAccessor accessor(_mfile, pid);
+      SDB_ASSERT(accessor.isValid(), "can not be invalid");
+      SDB_ASSERT(!accessor.isTheOnlyPageInBucket(), "can not be the only one in bucket");
+
+      if (region.getBucket(pos) == pid)
+      {
+         lobcMetaBlockPageAccessor next(_mfile, accessor.getNextPid());
+         SDB_ASSERT(next.isValid(), "can not be invalid");
+         next.setPrePid(INVALID_PAGE_ID);
+         region.setBucketPid(pos, accessor.getNextPid());
+      }
+      else if (accessor.hasPrePid() && accessor.hasNextPid())
+      {
+         lobcMetaBlockPageAccessor pre(_mfile, accessor.getPrePid());
+         SDB_ASSERT(pre.isValid(), "can not be invalid");
+         lobcMetaBlockPageAccessor next(_mfile, accessor.getNextPid());
+         SDB_ASSERT(next.isValid(), "can not be invalid");
+         pre.setNextPid(accessor.getNextPid());
+         next.setPrePid(accessor.getPrePid());
+      }
+      else
+      {
+         SDB_ASSERT(accessor.hasPrePid() && !accessor.hasNextPid(), "must be the last one");
+         lobcMetaBlockPageAccessor pre(_mfile, accessor.getPrePid());
+         SDB_ASSERT(pre.isValid(), "can not be invalid");
+         pre.setNextPid(INVALID_PAGE_ID);
+      }
+
+      _mfile->freePage(pid);
+   }
+
+   INT32 lobcMetaBlockMapping::splitBlockPage(PAGE_ID pid)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
+
+      constexpr FLOAT32 _SPLIT_RATIO = 0.50f;
+      PAGE_ID targetPid = INVALID_PAGE_ID;
+      lobcMetaBlockPageAccessor targetAccessor;
+      mmapPagePointer ptr;
+      lobcMetaBlockPageAccessor accessor(_mfile, pid);
+      SDB_ASSERT(accessor.isValid(), "can not be invalid");
+      SDB_ASSERT(!accessor.isFreeToInsert(1), "must be full");
+      INT32 beginPos = -1;
+      
+      rc = _mfile->reservePage(targetPid, ptr);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to reserve new page:%d", rc);
+         goto error;
+      }
+
+      targetAccessor.init(_mfile->getPageSize(), ptr.getBuf());
+      targetAccessor.initPage();
+      beginPos = accessor.getItemCount() * _SPLIT_RATIO;
+
+      for (INT32 i = beginPos; i < (INT32)(accessor.getItemCount()); ++i)
+      {
+         lobcMetaBlockPage::itemSlot slot = accessor.getSlot(i);
+         const lobExtentMetaBlock *mb = accessor.getExtentMetaBlock(i);
+         if (OSS_UNLIKELY(nullptr == mb))
+         {
+            PD_LOG(PDERROR, "failed to get block[%d] ad pid[%d]", i, pid);
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
+         rc = targetAccessor.pushBack(slot.hash, mb);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to push block into new page:%d", rc);
+            goto error;
+         }
+      }
+
+      if (accessor.hasNextPid())
+      {
+         lobcMetaBlockPageAccessor next(_mfile, accessor.getNextPid());
+         SDB_ASSERT(next.isValid(), "can not be invalid");
+         next.setPrePid(targetPid);
+         targetAccessor.setNextPid(accessor.getNextPid());
+      }
+      targetAccessor.setPrePid(pid);
+      accessor.setNextPid(targetPid);
+      accessor.truncate(beginPos);
+   done:
+      return rc;
+   error:
+      if (INVALID_PAGE_ID != targetPid)
+      {
+         _mfile->freePage(targetPid);
+      }
+      goto done;
+   }
+
+   BOOLEAN lobcMetaBlockMapping::validateExtentSize(const lobExtentMetaBlock *block)
+   {
+      SDB_ASSERT(nullptr != block && block->isValid(), "can not be invalid");
+      SDB_ASSERT(nullptr != _manifest && _manifest->isValid(), "can not be invalid");
+      UINT32 blockSize = block->pcnt * _manifest->lobArgs.pageSize;
+      if (block->isChainTail())
+      {
+         return block->size <= blockSize;
+      }
+      else
+      {
+         return blockSize == block->size;
+      }
+   }
+
+   INT32 lobcMetaBlockMapping::removeChainFromRegion(const lobChunkSearchEntry &entry,
+                                                     const recordID &rid,
+                                                     UINT32 chainSize,
+                                                     UINT32 bucketPos,
+                                                     lobcBucketRegion &region)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(entry.isValid() && 0 == entry.getChainPos(), "can not be invalid");
+      SDB_ASSERT(rid.isValid(), "can not be invalid");
+      SDB_ASSERT(region.isValid(), "can not be invalid");
+      SDB_ASSERT(INVALID_PAGE_ID != region.getBucket(bucketPos), "can not be invalid");
+      SDB_ASSERT(0 < chainSize, "can not be zero");
+
+      PAGE_ID pid = rid.getPid();
+      UINT32 pos = rid.getPos();
+      UINT32 removed = 0;
+      PAGE_ID firstPidToRebalance = INVALID_PAGE_ID;
+
+      do
+      {
+         UINT32 count = 0;
+         UINT32 countToRemove = chainSize - removed;
+         PAGE_ID nextPid = INVALID_PAGE_ID;
+         lobcMetaBlockPageAccessor accessor(_mfile, pid);
+         if (!accessor.isValid())
+         {
+            PD_LOG(PDERROR, "failed to init accessor of pid[%d]", pid);
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+         else if (accessor.getItemCount() <= pos)
+         {
+            PD_LOG(PDERROR, "invalid pos[%d] to remove", pos);
+            rc = SDB_OUT_OF_BOUND;
+            goto error;
+         }
+
+         count = (pos + countToRemove) <= accessor.getItemCount() ?
+                 countToRemove : (accessor.getItemCount() - pos);
+         for (UINT32 i = pos; i < count; ++i)
+         {
+            const lobExtentMetaBlock *block = accessor.getExtentMetaBlock(i);
+            if (OSS_UNLIKELY(nullptr == block))
+            {
+               PD_LOG(PDERROR, "failed to get block[%d] ptr in page[%d]", i, pid);
+               rc = SDB_VESSEL_INTERNAL_ERR;
+               goto error;
+            }
+
+            if (0 != block->compare(entry.getLogicalClId(),
+                                    entry.getKey(),
+                                    removed + i))
+            {
+               PD_LOG(PDERROR, "failed to validate block to be removed");
+               rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+               goto error;
+            }
+         }
+
+         rc = accessor.remove(pos, count);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to remove blocks on page[%d], rc:%d", pid, rc);
+            goto error;
+         }
+
+         removed += count;
+         pos = 0;
+         nextPid = accessor.getNextPid();
+
+         if (accessor.isEmpty() && !accessor.isTheOnlyPageInBucket())
+         {
+            removePageFromBucket(pid, bucketPos, region);
+         }
+         else if (MAX_PAGE_FREE_PCT < accessor.getFreePct() &&
+                  INVALID_PAGE_ID == firstPidToRebalance)
+         {
+            firstPidToRebalance = pid;
+         }
+
+         pid = nextPid;
+
+      } while (removed < chainSize && INVALID_PAGE_ID != pid);
+
+      if (INVALID_PAGE_ID != firstPidToRebalance)
+      {
+         rebalancePagesInBucket(region, bucketPos, firstPidToRebalance);
+      }
+
+      if (removed != chainSize)
+      {
+         PD_LOG(PDERROR, "failed to remove whole chain of lobc[%s]",
+                entry.getKey().toString().c_str());
+      }
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lobcMetaBlockMapping::rebalancePagesInBucket(lobcBucketRegion &region,
+                                                      UINT32 bucketPos,
+                                                      PAGE_ID beginEntry)
+   {
+      SDB_ASSERT(region.isValid(), "can not be invalid");
+      SDB_ASSERT(INVALID_PAGE_ID != region.getBucket(bucketPos), "can not be invalid");
+      INT32 rc = SDB_OK;
+      PAGE_ID pid = INVALID_PAGE_ID == beginEntry ?
+                    region.getBucket(bucketPos) : beginEntry;
+
+      lobcMetaBlockPageAccessor accessor(_mfile, pid);
+      if (!accessor.isValid())
+      {
+         PD_LOG(PDERROR, "failed to init accessor of page[%d]", pid);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      while (accessor.hasNextPid())
+      {
+         lobcMetaBlockPageAccessor next(_mfile, accessor.getNextPid());
+         if (!next.isValid())
+         {
+            PD_LOG(PDERROR, "failed to init accessor of pid[%d]", accessor.getNextPid());
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+         else if (accessor.getFreePct() <= MAX_PAGE_FREE_PCT ||
+                  0 == accessor.getItemCountToFit(REBALANCED_PAGE_FREE_PCT))
+         {
+            accessor = next;
+            continue;
+         }
+         else
+         {
+            UINT32 moved = 0;
+            UINT32 count = accessor.getItemCountToFit(REBALANCED_PAGE_FREE_PCT);
+            if (next.getItemCount() < count)
+            {
+               count = next.getItemCount();
+            }
+
+            for (UINT32 i = 0; i < count; ++i)
+            {
+               lobcMetaBlockPage::itemSlot slot = next.getSlot(i);
+               const lobExtentMetaBlock *block = next.getExtentMetaBlock(i);
+               if (OSS_UNLIKELY(nullptr == block))
+               {
+                  PD_LOG(PDERROR, "failed to get block ptr[%d] on page[%d]",
+                         i, accessor.getNextPid());
+                  rc = SDB_VESSEL_INTERNAL_ERR;
+                  goto error;
+               }
+
+               rc = accessor.pushBack(slot.hash, block);
+               if (SDB_OK != rc)
+               {
+                  if (0 < moved)
+                  {
+                     next.remove(0, moved);
+                  }
+                  PD_LOG(PDERROR, "failed to push block into accessor:%d", rc);
+                  goto error;
+               }
+
+               ++moved;
+            }
+
+            SDB_ASSERT(0 < moved, "impossible");
+            next.remove(0, moved);
+            if (next.isEmpty())
+            {
+               next.reset();
+               removePageFromBucket(accessor.getNextPid(), bucketPos, region);
+               /// accessor.next updated
+               if (accessor.hasNextPid())
+               {
+                  PAGE_ID nextPid = accessor.getNextPid();
+                  rc = next.init(_mfile, nextPid);
+                  if (SDB_OK != rc)
+                  {
+                     PD_LOG(PDERROR, "failed to init accessor of page[%d], rc:%d",
+                            nextPid, rc);
+                     goto error;
+                  }
+               }
+               else
+               {
+                  break;
+               }
+            }
+            
+            accessor = next;
+         }
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;  
+   }
+} // namespace vessel
+
+} // namespace engine

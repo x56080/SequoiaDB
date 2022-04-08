@@ -54,6 +54,7 @@
 #include "vessel/shallowPointer.hpp"
 #include "vessel/dmlRequest.h"
 #include "vessel/objectIdentifier.h"
+#include "vessel/lobChunkKey.h"
 
 namespace engine
 {
@@ -171,6 +172,19 @@ namespace vessel
          INT32 remove(dmlContext *context,
                       const dmlRemoveRequest &request,
                       utilDeleteResult *res);
+
+      public:
+         INT32 insertLobChunk(requestContext *context,
+                              const lobChunkKey &key,
+                              UINT32 offset,
+                              const slice &data);
+
+         INT32 readLobChunk(requestContext *context,
+                            const lobChunkKey &key,
+                            UINT32 offset,
+                            UINT32 size,
+                            CHAR *data,
+                            UINT32 &readSize);
 
       private:
          INT32 _getMoreWhenIndexScan(indexScanContext *context,

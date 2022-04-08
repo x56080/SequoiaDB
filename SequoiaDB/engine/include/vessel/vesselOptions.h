@@ -38,8 +38,8 @@
 
 #include "vessel/storageFileDef.h"
 #include "utilCompression.hpp"
-#include "vessel/collectionSpaceOptions.h"
 #include "vessel/collectionOptions.h"
+#include "vessel/lobcBufferPoolOptions.h"
 
 namespace engine
 {
@@ -151,30 +151,27 @@ namespace vessel
       flushOptions flush;
    }; /// end of class liteCacheOptions
 
-   class storagePathOptions : public SDBObject
+   struct storagePathOptions : public SDBObject
    {
-      public:
-         std::string dataPath;
-         std::string indexPath;
-         std::string lobPath;
-         std::string lobMetaPath;
-         std::string lsmPath;
-         std::string snapshotPath;
-         
-         const std::string &autoGetIndexPath()const
-         {
-            return indexPath.empty() ? dataPath : indexPath;
-         }
-         const std::string &autoGetLobPath()const
-         {
-            return lobPath.empty() ? dataPath : lobPath;
-         }
+      std::string dataPath;
+      std::string indexPath;
+      std::string lobdPath;
+      std::string lobmPath;
+      std::string lsmPath;
+      std::string snapshotPath;
 
-         BOOLEAN hasExclusiveIndexPath()const
-         {
-            return !indexPath.empty() && indexPath != dataPath;
-         }
-         
+      const std::string &autoGetIndexPath()const
+      {
+         return indexPath.empty() ? dataPath : indexPath;
+      }         
+      const std::string &autoGetLobmPath()const
+      {
+         return lobmPath.empty() ? dataPath : lobmPath;
+      }
+      const std::string &autoGetLobdPath()const
+      {
+         return lobdPath.empty() ? dataPath : lobdPath;
+      }
    };// class storageOptions
 
    class openDBOptions : public SDBObject
@@ -187,7 +184,6 @@ namespace vessel
          storagePathOptions path;
          
          BOOLEAN fullDumpPageLog = FALSE;
-         BOOLEAN sparseExtendingFile = TRUE;
 
          liteCacheOptions cacheOptions;
 
@@ -201,7 +197,12 @@ namespace vessel
          UINT32 ridLatchMapLatchCount = 256;
 
          UINT32 indexLatchMapBucketCount = 4096;
-         UINT32 indexLatchMapLatchCount = 256;         
+         UINT32 indexLatchMapLatchCount = 256;
+
+         UINT32 lobcLatchBucketCount = 4096;
+         UINT32 lobcLatchMapLatchCount = 256;
+
+         lobcBufferPoolOptions lobcPoolOptions;
    }; /// end of class openDBOptions
 
    class closeDBOptions : public SDBObject

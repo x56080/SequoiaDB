@@ -36,118 +36,283 @@
 #ifndef VESSEL_BACKGROUND_EVENT_H_
 #define VESSEL_BACKGROUND_EVENT_H_
 
-#include "vessel/vesselIdDef.h"
-#include "vessel/vesselFileDef.h"
 #include "vessel/autoEventList.hpp"
 #include "ossEvent.hpp"
+#include "pdTrace.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   constexpr UINT32 BG_EVENT_MSG_BUFFER_SIZE = 16;
+   typedef INT16 BG_EVENT_TYPE_WORD;
+   struct BACKGROUND_EVENT_TYPE
+   {
+      static constexpr BG_EVENT_TYPE_WORD INVALID = 0;
+      static constexpr BG_EVENT_TYPE_WORD QUIT = 1;
+      static constexpr BG_EVENT_TYPE_WORD _USR_DEFINE = 1024;
 
+      static constexpr BG_EVENT_TYPE_WORD DATA_BUF_TASK = 1024;
+      static constexpr BG_EVENT_TYPE_WORD DATA_BUF_POOL_NOTIFY = 1025;
+      static constexpr BG_EVENT_TYPE_WORD LOB_BUF_TASK = 1026;
+      static constexpr BG_EVENT_TYPE_WORD FLUSH_LOB_BUF = 1027;
+
+      static constexpr BG_EVENT_TYPE_WORD FLUSH_SEG = 1028;
+      static constexpr BG_EVENT_TYPE_WORD LPS_CHECKPOINT = 1029;
+   };//struct BACKGROUND_TYPE
+
+   typedef UINT16 BG_EVENT_FLAG_WORD;
+   struct BACKGROUND_EVENT_FLAG
+   {
+      static constexpr BG_EVENT_FLAG_WORD PTR_DATA = 0x01;
+   };//struct BACKGROUND_FLAG
+
+#pragma pack(4)
    class backgroundEvent : public SDBObject
    {
       public:
          backgroundEvent(){}
          ~backgroundEvent(){}
+
          backgroundEvent(const backgroundEvent &o):
          _type(o._type),
-         _responseEvent(o._responseEvent),
-         _responseList(o._responseList)
+         _flags(o._flags),
+         _rc(o._rc),
+         _responser(o._responser)
          {
-            ossMemcpy(_msg, o._msg, BG_EVENT_MSG_BUFFER_SIZE);
+            for (UINT32 i = 0; i < _DATA_WORD_COUNT; ++i)
+            {
+               _data[i] = o._data[i];
+            }
          }
+
          backgroundEvent &operator=(const backgroundEvent &o)
          {
             _type = o._type;
-            ossMemcpy(_msg, o._msg, BG_EVENT_MSG_BUFFER_SIZE);
-            _responseEvent = o._responseEvent;
-            _responseList = o._responseList;
+            _flags = o._flags;
+            for (UINT32 i = 0; i < _DATA_WORD_COUNT; ++i)
+            {
+               _data[i] = o._data[i];
+            }
+            _rc = o._rc;
+            _responser = o._responser;
             return *this;
          }
 
       public:
-         enum EVENT_TYPE
+         static BOOLEAN isRequest(BG_EVENT_TYPE_WORD type)
          {
-            EVENT_TYPE_INVALID = 0,
-            EVENT_TYPE_QUIT = 1,
-            EVENT_TYPE_FINISHED = 2,
-            EVENT_TYPE_CACHE_TASK = 3,
-            EVENT_TYPE_SYNC_SEG = 4,
-            EVENT_TYPE_LPS_CHECKPOINT = 5,
-            EVENT_TYPE_CACHE_WATCHER_NOTIFY = 6,
-         };//enum EVENT_TYPE
+            return BACKGROUND_EVENT_TYPE::INVALID < type;
+         }
+         static BOOLEAN isSystemRequest(BG_EVENT_TYPE_WORD type)
+         {
+            return BACKGROUND_EVENT_TYPE::INVALID < type &&
+                   type < BACKGROUND_EVENT_TYPE::_USR_DEFINE;
+         }
+         static BOOLEAN isUserRequest(BG_EVENT_TYPE_WORD type)
+         {
+            return BACKGROUND_EVENT_TYPE::_USR_DEFINE <= type;
+         }
+         static BOOLEAN isResponse(BG_EVENT_TYPE_WORD type)
+         {
+            return type < BACKGROUND_EVENT_TYPE::INVALID;
+         }
+         static BG_EVENT_TYPE_WORD makeResponse(BG_EVENT_TYPE_WORD type)
+         {
+            SDB_ASSERT(isRequest(type), "must be request");
+            return 0 - type;
+         }
+         static BG_EVENT_TYPE_WORD getRequest(BG_EVENT_TYPE_WORD type)
+         {
+            SDB_ASSERT(isResponse(type), "must be request");
+            return 0 - type;
+         }
 
       public:
-         void release()
+         OSS_INLINE BOOLEAN isValid()const
          {
-            _type = EVENT_TYPE_INVALID;
-            ossMemset(_msg, 0, BG_EVENT_MSG_BUFFER_SIZE);
-            _responseEvent = NULL;
-            _responseList = NULL;
+            return BACKGROUND_EVENT_TYPE::INVALID != _type;
          }
-
+         OSS_INLINE BOOLEAN isSystemRequest()const
+         {
+            return isSystemRequest(_type);
+         }
          OSS_INLINE BOOLEAN isQuitEvent()const
          {
-            return EVENT_TYPE_QUIT == _type;
+            return BACKGROUND_EVENT_TYPE::QUIT == _type;
+         }
+         OSS_INLINE BOOLEAN isRequest()const
+         {
+            return isRequest(_type);
+         }
+         OSS_INLINE BOOLEAN isUserRequest()const
+         {
+            return isUserRequest(_type);
+         }
+         OSS_INLINE BOOLEAN isResponse()const
+         {
+            return isResponse(_type);
+         }
+         OSS_INLINE BOOLEAN isResponseOf(BG_EVENT_TYPE_WORD type)const
+         {
+            SDB_ASSERT(isRequest(type), "must be request");
+            return _type == makeResponse(type);
          }
 
-         OSS_INLINE void setType(EVENT_TYPE type)
+         void reset()
+         {
+            _type = BACKGROUND_EVENT_TYPE::INVALID;
+            _flags = 0;
+            for (UINT32 i = 0; i < _DATA_WORD_COUNT; ++i)
+            {
+               _data[i] = 0;
+            }
+            _rc = 0;
+            _responser = nullptr;
+         }
+         
+         void initAsRequest(BG_EVENT_TYPE_WORD type)
+         {
+            reset();
+            SDB_ASSERT(isRequest(type), "invalid type");
+            _type = type;
+         }
+
+         void initAsResponse(BG_EVENT_TYPE_WORD type)
+         {
+            reset();
+            SDB_ASSERT(isRequest(type), "invalid type");
+            _type = makeResponse(type);
+         }
+
+         void setType(BG_EVENT_TYPE_WORD type)
          {
             _type = type;
          }
-         OSS_INLINE EVENT_TYPE getType()const
+
+         BG_EVENT_TYPE_WORD getType()const
          {
             return _type;
          }
-         OSS_INLINE void setEventMsg(UINT32 size, const void *msg)
+
+         BOOLEAN isPtrData()const
          {
-            SDB_ASSERT(size <= BG_EVENT_MSG_BUFFER_SIZE, "out of bound");
-            SDB_ASSERT(NULL != msg, "can not be null");
-            ossMemcpy(_msg, msg, size);
+            return 0 != OSS_BIT_TEST(_flags, BACKGROUND_EVENT_FLAG::PTR_DATA);
          }
-         OSS_INLINE const CHAR *getEventMsg()const
+
+         template<class T>
+         T &getShortData()
          {
-            return _msg;
+            static_assert(sizeof(T) <= sizeof(_data), "out of size");
+            SDB_ASSERT(0 == OSS_BIT_TEST(_flags, BACKGROUND_EVENT_FLAG::PTR_DATA),
+                       "it is ptr data");
+            return *((T*)(_data));
          }
-         OSS_INLINE void setResponseList(autoEventList<backgroundEvent> *list)
+
+         template<class T>
+         const T &getShortData()const
          {
-            _responseList = list;
+            static_assert(sizeof(T) <= sizeof(_data), "out of size");
+            SDB_ASSERT(0 == OSS_BIT_TEST(_flags, BACKGROUND_EVENT_FLAG::PTR_DATA),
+                       "it is ptr data");
+            return *((const T*)(_data));
          }
-         OSS_INLINE autoEventList<backgroundEvent> *getReponseList()
+
+         template<class T>
+         void copyShortData(const T *data)
          {
-            return _responseList;
+            static_assert(sizeof(T) <= sizeof(_data), "out of size");
+            SDB_ASSERT(nullptr != data, "can not be invalid");
+            ossMemcpy(_data, data, sizeof(T));
+            OSS_BIT_CLEAR(_flags, BACKGROUND_EVENT_FLAG::PTR_DATA);
          }
-         OSS_INLINE BOOLEAN hasResponseList()const
+
+         void setShortData(UINT64 data)
          {
-            return NULL != _responseList;
+            _data[0] = data;
+            OSS_BIT_CLEAR(_flags, BACKGROUND_EVENT_FLAG::PTR_DATA);
          }
-         OSS_INLINE BOOLEAN hasResponseEvent()const
+
+         UINT64 getData()const
          {
-            return NULL != _responseEvent;
+            return _data[0];
          }
-         OSS_INLINE ossEvent *getResponseEvent()
+
+         template <class T>
+         T *getPtrData()
          {
-            return _responseEvent;
+            SDB_ASSERT(0 != OSS_BIT_TEST(_flags, BACKGROUND_EVENT_FLAG::PTR_DATA),
+                       "it is not ptr data");
+            return (T*)(_data[0]);
          }
-         OSS_INLINE void resetResponseEvent(ossEvent *e)
+
+         void setPtrData(void *ptr)
          {
-            if (NULL != e)
+            SDB_ASSERT(isValid(), "can not be invalid");
+            SDB_ASSERT(nullptr != ptr, "can not be invalid");
+            _data[0] = (UINT64)ptr;
+            OSS_BIT_SET(_flags, BACKGROUND_EVENT_FLAG::PTR_DATA);
+         }
+
+         backgroundEvent createSimpleResponse(INT32 rc=SDB_OK)const
+         {
+            SDB_ASSERT(isRequest(), "must be request");
+            backgroundEvent response;
+            response._type = 0 - _type;
+            if (isPtrData())
             {
-               e->reset();
+               OSS_BIT_SET(response._flags, BACKGROUND_EVENT_FLAG::PTR_DATA);
             }
-            _responseEvent = e;
-            return;
+            for (UINT32 i = 0; i < _DATA_WORD_COUNT; ++i)
+            {
+               response._data[i] = _data[i];
+            }
+            response._rc = rc;
+            return response;
+         }
+
+         INT32 getRC()const
+         {
+            return _rc;
+         }
+
+         void setRC(INT32 rc)
+         {
+            _rc = rc;
+         }
+
+         BOOLEAN hasResponser()const
+         {
+            return nullptr != _responser;
+         }
+
+         void setResponser(autoEventList<backgroundEvent> *responser)
+         {
+            _responser = responser;
+         }
+
+         autoEventList<backgroundEvent> *getResponser()
+         {
+            return _responser;
+         }
+      public:
+         static backgroundEvent createQuitEvent()
+         {
+            backgroundEvent e;
+            e._type = BACKGROUND_EVENT_TYPE::QUIT;
+            return e;
          }
 
       private:
-         EVENT_TYPE _type = EVENT_TYPE_INVALID;
-         CHAR _msg[BG_EVENT_MSG_BUFFER_SIZE] = {};
-         ossEvent *_responseEvent = NULL;
-         autoEventList<backgroundEvent> *_responseList = NULL;
+         static constexpr UINT32 _DATA_WORD_COUNT = 2;
+
+      private:
+         BG_EVENT_TYPE_WORD _type = BACKGROUND_EVENT_TYPE::INVALID;
+         BG_EVENT_FLAG_WORD _flags = 0;
+         UINT64 _data[_DATA_WORD_COUNT] = {};         
+         INT32 _rc = 0;
+         autoEventList<backgroundEvent> *_responser = nullptr; 
    };//class backgroundEvent
+#pragma pack()
 }//namespace vessel
 }//namespace engine
 

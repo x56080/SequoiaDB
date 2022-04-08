@@ -40,6 +40,8 @@
 #include "vessel/diskIOJob.h"
 #include "vessel/threadContext.h"
 #include "vessel/requestContext.h"
+#include "vessel/lobcFlushTaskBuilder.h"
+#include "vessel/lobChunkBufferPool.h"
 
 namespace engine
 {
@@ -76,7 +78,7 @@ namespace vessel
       do
       {
          _el->popOrWait(event);
-         SDB_ASSERT(backgroundEvent::EVENT_TYPE_INVALID != event.getType(), "impossible");
+         SDB_ASSERT(event.isValid(), "impossible");
          
 
          if (event.isQuitEvent())
@@ -92,19 +94,24 @@ namespace vessel
 
          switch (event.getType())
          {
-         case backgroundEvent::EVENT_TYPE_CACHE_TASK:
+         case BACKGROUND_EVENT_TYPE::DATA_BUF_TASK:
          {
             handleCacheEvent(executor, event);
             break;
          }
-         case backgroundEvent::EVENT_TYPE_SYNC_SEG:
+         case BACKGROUND_EVENT_TYPE::FLUSH_SEG:
          {
             handleLpsSegmentFlushing(executor, event);
             break;
          }
-         case backgroundEvent::EVENT_TYPE_LPS_CHECKPOINT:
+         case BACKGROUND_EVENT_TYPE::LPS_CHECKPOINT:
          {
             handleLpsCheckpointEvent(executor, event); 
+            break;
+         }
+         case BACKGROUND_EVENT_TYPE::LOB_BUF_TASK:
+         {
+            handleLobdBufferEvent(executor, event);
             break;
          }
          default:
@@ -116,22 +123,18 @@ namespace vessel
          {
             _workingCounter->fetch_sub(1, std::memory_order_relaxed);
          }
-         event.release();
+         event.reset();
 
          SDB_ASSERT(!tc->hasUnfreeBuffer(), "should be free at the end of loop");
       } while (TRUE);
 
    done:
       SDB_ASSERT(event.isQuitEvent(), "must be quit");
-      if (event.hasResponseEvent())
+      if (event.hasResponser())
       {
-         event.getResponseEvent()->signalAll();
-      }
-      else if (event.hasResponseList())
-      {
-         backgroundEvent quitEvent;
-         quitEvent.setType(backgroundEvent::EVENT_TYPE_FINISHED);
-         event.getReponseList()->push(quitEvent);
+         backgroundEvent quitRes;
+         quitRes.initAsResponse(BACKGROUND_EVENT_TYPE::QUIT);
+         event.getResponser()->push(quitRes);
       }
       return;
    }
@@ -140,11 +143,11 @@ namespace vessel
                                            backgroundEvent &event)
    {
       SDB_ASSERT(nullptr != executor, "can not be invalid");
-      SDB_ASSERT(backgroundEvent::EVENT_TYPE_CACHE_TASK == event.getType(),
+      SDB_ASSERT(BACKGROUND_EVENT_TYPE::DATA_BUF_TASK == event.getType(),
                  "can not be other type");
 
       liteCache *cache = _env->cacheConsole.getCacheByPoolNo();
-      diskIOTask task = *((const diskIOTask *)(event.getEventMsg()));
+      diskIOTask task = event.getShortData<diskIOTask>();
 
       UINT32 jobID = task.getJob()->getJobID();
 
@@ -154,16 +157,13 @@ namespace vessel
          PD_LOG(PDERROR, "failed to execute io task:%d", rc);
       }
 
-      if (event.hasResponseEvent())
-      {
-         event.getResponseEvent()->signalAll();
-      }
-      else if (event.hasResponseList())
+      if (event.hasResponser())
       {
          backgroundEvent res;
-         res.setType(backgroundEvent::EVENT_TYPE_FINISHED);
-         res.setEventMsg(sizeof(UINT32), &jobID);
-         event.getReponseList()->push(res);
+         res.initAsResponse(BACKGROUND_EVENT_TYPE::DATA_BUF_TASK);
+         res.setRC(rc);
+         res.setShortData(jobID);
+         event.getResponser()->push(res);
       }
 
       return;
@@ -174,24 +174,25 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != executor, "can not be invalid");
-      SDB_ASSERT(backgroundEvent::EVENT_TYPE_LPS_CHECKPOINT == event.getType(),
+      SDB_ASSERT(BACKGROUND_EVENT_TYPE::LPS_CHECKPOINT == event.getType(),
                  "can not be other type");
+      SDB_ASSERT(!event.hasResponser(), "impossible");
 
       logicalPageSpace *lps = nullptr;
-      const lpsCheckpointApplying *msg = (const lpsCheckpointApplying *)(event.getEventMsg());
+      const lpsCheckpointApplying &msg = event.getShortData<lpsCheckpointApplying>();
       requestContext context;
       
-      rc = context.lockSpaceID(msg->_sid, SHARED);
+      rc = context.lockSpaceID(msg._sid, SHARED);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to lock space[%d], rc:%d", msg->_sid, rc);
+         PD_LOG(PDERROR, "failed to lock space[%d], rc:%d", msg._sid, rc);
          goto done;
       }
 
-      rc = _env->dms.getLogicalPageSpace(msg->_sid, msg->_type, &lps);
+      rc = _env->dms.getLogicalPageSpace(msg._sid, msg._type, &lps);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get lps[%d,%d], rc:%d", msg->_sid, msg->_type, rc);
+         PD_LOG(PDERROR, "failed to get lps[%d,%d], rc:%d", msg._sid, msg._type, rc);
          goto done;
       }
 
@@ -199,22 +200,11 @@ namespace vessel
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create checkpoint on lps[%d,%d], rc:%d",
-                msg->_sid, msg->_type, rc);
+                msg._sid, msg._type, rc);
          goto done;
       }
    
    done:
-      context.close();
-      if (event.hasResponseEvent())
-      {
-         event.getResponseEvent()->signalAll();
-      }
-      else if (event.hasResponseList())
-      {
-         backgroundEvent res;
-         res.setType(backgroundEvent::EVENT_TYPE_FINISHED);
-         event.getReponseList()->push(res);
-      }
       return;
    }
 
@@ -223,10 +213,10 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != executor, "can not be invalid");
-      SDB_ASSERT(backgroundEvent::EVENT_TYPE_SYNC_SEG == event.getType(),
+      SDB_ASSERT(BACKGROUND_EVENT_TYPE::FLUSH_SEG == event.getType(),
                  "can not be other type");
       logicalPageSpace *lps = nullptr;
-      const lpsFlushingSegments *msg = (const lpsFlushingSegments *)(event.getEventMsg());
+      const lpsFlushingSegments *msg = &(event.getShortData<lpsFlushingSegments>());
       UINT32 count = msg->_count;
 
       //PD_LOG(PDDEBUG, "begin to sync segments[%d, %d]", msg->_segmentId, count);
@@ -259,15 +249,29 @@ namespace vessel
    
    done:
       context.close();
-      if (event.hasResponseEvent())
-      {
-         event.getResponseEvent()->signalAll();
-      }
-      else if (event.hasResponseList())
+      if (event.hasResponser())
       {
          backgroundEvent res;
-         res.setType(backgroundEvent::EVENT_TYPE_FINISHED);
-         event.getReponseList()->push(res);
+         res.initAsResponse(BACKGROUND_EVENT_TYPE::FLUSH_SEG);
+         res.setRC(rc);
+         res.setShortData(msg->_segmentId);
+         event.getResponser()->push(res);
+      }
+   }
+
+   void backgroundWorker::handleLobdBufferEvent(IExecutor *executor,
+                                                backgroundEvent &event)
+   {
+      SDB_ASSERT(nullptr != executor, "can not be invalid");
+      SDB_ASSERT(BACKGROUND_EVENT_TYPE::LOB_BUF_TASK == event.getType(),
+                 "can not be other type");
+      lobcFlushTaskBuilder::taskId taskId =
+             event.getShortData<lobcFlushTaskBuilder::taskId>();
+      lobChunkBufferPool &pool = _env->lobcBufferPool;
+      INT32 rc = pool.executeFlushTask(taskId);
+      if (event.hasResponser())
+      {
+         event.getResponser()->push(event.createSimpleResponse(rc));
       }
    }
 }//namespace vessel

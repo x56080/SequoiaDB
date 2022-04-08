@@ -47,7 +47,6 @@
 #include "vessel/lazyArray.hpp"
 #include "vessel/inMemBitmap.h"
 #include "vessel/collectionObjHolder.h"
-#include "vessel/collectionSpaceOptions.h"
 #include "vessel/collectionOptions.h"
 #include "vessel/objectIdentifier.h"
 #include "vessel/shallowPointer.hpp"
@@ -122,7 +121,7 @@ namespace vessel
                       utilCSUniqueID uniqueId,
                       UINT32 logicalID,
                       storageUnit *su,
-                      const createCSOptions &options);
+                      const dmsCreateCSOptions &options);
 
          INT32 open(requestContext *context,
                     storageUnit *su);

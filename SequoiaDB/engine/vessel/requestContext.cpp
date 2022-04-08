@@ -301,6 +301,11 @@ namespace vessel
       }
    }
 
+   UINT32 requestContext::getLogicalClId()const
+   {
+      return isMbContextAttached() ? _rmc->getGlobalId().getCLLid() : DMS_INVALID_LOGICCLID;
+   }
+
    INT32 requestContext::lockLpid(SPACE_TYPE type,
                                   PAGE_ID lpid,
                                   const ossSharedLatchMode &mode)
@@ -329,7 +334,7 @@ namespace vessel
 
       key = logicalPidLatchKey(_sid, type, lpid);
 
-      rc = lh.lock(getEnv()->lpidLatchMap, _lpidLatchContext, key, mode);
+      rc = lh.lock(getEnv()->latchEnv.lpidLatchMap, _lpidLatchContext, key, mode);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", lpid, rc);
@@ -372,7 +377,7 @@ namespace vessel
 
       key = logicalPidLatchKey(_sid, type, lpid);
 
-      rc = lh.tryLock(getEnv()->lpidLatchMap, _lpidLatchContext,
+      rc = lh.tryLock(getEnv()->latchEnv.lpidLatchMap, _lpidLatchContext,
                       key, mode, locked);
       if (SDB_OK != rc)
       {
@@ -409,7 +414,7 @@ namespace vessel
       }
 
       key = logicalPidLatchKey(_sid, type, lpid);
-      lh.autoUnlock(getEnv()->lpidLatchMap, _lpidLatchContext, key);
+      lh.autoUnlock(getEnv()->latchEnv.lpidLatchMap, _lpidLatchContext, key);
    done:
       return;
    }
@@ -612,7 +617,7 @@ namespace vessel
       }
 
       key = recordIdLatchKey(_sid, _mbID, rid);
-      rc = lh.lock(getEnv()->ridLatchMap, _rmc->getRidLatchContext(), key, mode);
+      rc = lh.lock(getEnv()->latchEnv.ridLatchMap, _rmc->getRidLatchContext(), key, mode);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock rid[%s], rc:%d", key.toString().c_str(), rc);
@@ -645,7 +650,7 @@ namespace vessel
       }
 
       key = recordIdLatchKey(_sid, _mbID, rid);
-      rc = lh.tryLock(getEnv()->ridLatchMap,
+      rc = lh.tryLock(getEnv()->latchEnv.ridLatchMap,
                       _rmc->getRidLatchContext(),
                       key, mode, locked);
       if (SDB_OK != rc)
@@ -666,7 +671,7 @@ namespace vessel
       SDB_ASSERT(isMbContextAttached(), "must be attached");
       objectLatchHelper<recordIdLatchKey> lh;
       recordIdLatchKey key(_sid, _mbID, rid);
-      lh.autoUnlock(getEnv()->ridLatchMap, _rmc->getRidLatchContext(), key);
+      lh.autoUnlock(getEnv()->latchEnv.ridLatchMap, _rmc->getRidLatchContext(), key);
    }
 
    void requestContext::unlockRids()
@@ -674,7 +679,7 @@ namespace vessel
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(isMbContextAttached(), "must be attached");
       objectLatchHelper<recordIdLatchKey> lh;
-      lh.releaseAll(getEnv()->ridLatchMap, _rmc->getRidLatchContext());
+      lh.releaseAll(getEnv()->latchEnv.ridLatchMap, _rmc->getRidLatchContext());
    }
 
    BOOLEAN requestContext::testRidLocked(const recordID &rid,
@@ -697,7 +702,7 @@ namespace vessel
 #if defined (_DEBUG)
       SDB_ASSERT(!_rmc->getRidLatchContext().test(key, nullptr), "invalid waiting");
 #endif//_DEBUT
-      lh.testNotExistsOrWait(getEnv()->ridLatchMap, key, mode);
+      lh.testNotExistsOrWait(getEnv()->latchEnv.ridLatchMap, key, mode);
    }
 
    void requestContext::_unlockAll()
@@ -716,7 +721,7 @@ namespace vessel
 
       if (!_lpidLatchContext.isEmpty())
       {
-         objectLatchHelper<logicalPidLatchKey>().releaseAll(getEnv()->lpidLatchMap,
+         objectLatchHelper<logicalPidLatchKey>().releaseAll(getEnv()->latchEnv.lpidLatchMap,
                                                             _lpidLatchContext);
          SDB_ASSERT(_lpidLatchContext.isEmpty(), "must be empty");
       }

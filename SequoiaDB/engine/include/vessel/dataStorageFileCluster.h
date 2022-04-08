@@ -65,6 +65,8 @@ namespace vessel
 
          virtual void destroy()override;
 
+      public:
+
          virtual INT32 allocatePages(UINT32 count,
                                      PAGE_ID *pids)override;
 
@@ -85,12 +87,23 @@ namespace vessel
 
          virtual INT32 getDataPagePtr(PAGE_ID pid, mmapPagePointer &ptr)const override; 
 
+      public:
+
          virtual FILE_TYPE getDataFileType()const override
          {
             return FILE_TYPE_DATA_STORAGE;
          }
 
          virtual UINT32 getTotalSegmentCount() override;
+
+      public:
+         virtual INT32 readPages(PAGE_ID pid,
+                                 UINT32 pcnt,
+                                 CHAR *data) override;
+
+         virtual INT32 writePages(PAGE_ID pid,
+                                  UINT32 pcnt,
+                                  const CHAR *data) override;
 
       private:
          INT32 openFiles(const storageFileLoader *loader);

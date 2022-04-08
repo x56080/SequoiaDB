@@ -67,6 +67,7 @@
 #include "vessel/clIndexMetaBlockPage.h"
 #include "vessel/clIndexMbpAccessor.h"
 
+
 namespace engine
 {
 namespace vessel
@@ -5584,6 +5585,121 @@ namespace vessel
       _totalLvl0Count = 0;
 
    done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::insertLobChunk(requestContext *context,
+                                    const lobChunkKey &key,
+                                    UINT32 offset,
+                                    const slice &data)
+   {
+      INT32 rc = SDB_OK;
+      ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
+      runtimeMbContext mbContext;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(nullptr == context ||
+                           !context->isMbLocked() ||
+                           context->getMBID() != getMBID() ||
+                           !key.isValid() ||
+                           !data.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      SDB_ASSERT(!context->isMbContextAttached(), "can not be attached");
+      guard.autoLock();
+      mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
+      context->attachMbContext(&mbContext);
+
+      {
+         largeObjectSpace &los = _collectionSpace->getSU()->getLobSpace();
+         if (OSS_UNLIKELY(!los.isOpen()))
+         {
+            rc = los.ensureCreated();
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to create lob space:%d", rc);
+               goto error;
+            }
+         }
+
+         rc = los.insertLobChunk(context, key, offset, data);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to insert lob chunk:%d", rc);
+            goto error;
+         }
+      }
+   done:
+      if (NULL != context)
+      {
+         context->detachMbContext();
+      }
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::readLobChunk(requestContext *context,
+                                  const lobChunkKey &key,
+                                  UINT32 offset,
+                                  UINT32 size,
+                                  CHAR *data,
+                                  UINT32 &readSize)
+   {
+      INT32 rc = SDB_OK;
+      ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
+      runtimeMbContext mbContext;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(nullptr == context ||
+                           !context->isMbLocked() ||
+                           context->getMBID() != getMBID() ||
+                           !key.isValid() ||
+                           nullptr == data))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      SDB_ASSERT(!context->isMbContextAttached(), "can not be attached");
+      guard.autoLock();
+      mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
+      context->attachMbContext(&mbContext);
+
+      {
+         largeObjectSpace &los = _collectionSpace->getSU()->getLobSpace();
+         if (OSS_UNLIKELY(!los.isOpen()))
+         {
+            rc = SDB_LOB_SEQUENCE_NOT_EXIST;
+            goto error;
+         }
+
+         rc = los.readLobChunk(context, key, offset, size,
+                               data, readSize);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to read lob chunk:%d", rc);
+            goto error;
+         }
+      }
+   done:
+      if (NULL != context)
+      {
+         context->detachMbContext();
+      }
       return rc;
    error:
       goto done;

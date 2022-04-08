@@ -49,7 +49,7 @@ namespace vessel
    constexpr UINT32 MAX_SPACE_DIR_LEN = 15;
 
    constexpr CHAR * const FILE_MAGICAL_CHARS = "SDBV";
-   constexpr UINT32 FILE_MAGICSAL_CHARS_LEN = 4;
+   constexpr UINT32 FILE_MAGICSAL_CHARS_LEN = ossStrlen(FILE_MAGICAL_CHARS);
 
    constexpr CHAR * const DIR_NAME_PREFIX = "_cs_";
    constexpr UINT32 DIR_NAME_PREFIX_LEN = 4;
@@ -59,36 +59,7 @@ namespace vessel
    constexpr UINT16 INVALID_FILE_SHADOW_SUFFIX = 0xFFFF;
    constexpr UINT16 FILE_SHADOW_SUFFIX_TMP = 0;
    constexpr UINT16 FILE_SHADOW_SUFFIX_READY = 1;
-   
 
-   class VESSEL_FILE_GLOBAL_OPTIONS : public SDBObject
-   {
-      public:
-         VESSEL_FILE_GLOBAL_OPTIONS(){}
-         ~VESSEL_FILE_GLOBAL_OPTIONS()=delete;
-      
-      public:
-         static void setSparseExtending(BOOLEAN allowed)
-         {
-            if (allowed)
-            {
-               OSS_BIT_CLEAR(_flags, FLAG_NOT_SPARSE_EXTENDING);
-            }
-            else
-            {
-               OSS_BIT_SET(_flags, FLAG_NOT_SPARSE_EXTENDING);
-            }
-         }
-         static BOOLEAN isSparseExtending()
-         {
-            return 0 == OSS_BIT_TEST(_flags, FLAG_NOT_SPARSE_EXTENDING);
-         }
-
-      private:
-         static constexpr UINT32 FLAG_NOT_SPARSE_EXTENDING = 0x01;
-
-         static UINT32 _flags;
-   };//class VESSEL_FILE_GLOBAL_OPTIONS
 
    class fileTypeDescriptor
    {
@@ -170,6 +141,7 @@ namespace vessel
    constexpr FILE_TYPE FILE_TYPE_DATA_STORAGE = 1;
    constexpr FILE_TYPE FILE_TYPE_FSM = 2;
    constexpr FILE_TYPE FILE_TYPE_DELTA_LOG = 3;
+   constexpr FILE_TYPE FILE_TYPE_LOBM = 4;
 
    BOOLEAN parseFileType(const CHAR *typeSuffix,
                          FILE_TYPE &type,

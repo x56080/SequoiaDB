@@ -200,6 +200,36 @@ namespace vessel
       return r;
    }
 
+   void bitmapScanner::extend(UINT32 deltaCapacity, BOOLEAN zeroed)
+   {
+      SDB_ASSERT(isReady(), "must be ready");
+      SDB_ASSERT(ossIsAligned64(deltaCapacity), "must be aligned");
+      if (0 < deltaCapacity)
+      {
+         UINT32 deltaSize = (deltaCapacity >> 6);
+         if (zeroed)
+         {
+            for (UINT32 i = 0; i < deltaSize; ++i)
+            {
+               UINT64 *bits = _bitmap + _size + i;
+               *bits = 0;
+            }
+         }
+         else
+         {
+            for (UINT32 i = 0; i < deltaSize; ++i)
+            {
+               UINT64 *bits = _bitmap + _size + i;
+               *bits = OSS_UINT64_MAX;
+            }
+            _nonzeroed += deltaCapacity;
+         }
+
+         _size += deltaSize;
+      }
+      return;
+   }
+
 } // namespace vessel
 
 } // namespace engine

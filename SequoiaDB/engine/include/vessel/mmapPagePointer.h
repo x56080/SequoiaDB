@@ -67,6 +67,10 @@ namespace vessel
          {
             return _ptr;
          }
+         OSS_INLINE CHAR *getBuf()const
+         {
+            return (CHAR *)_ptr;
+         }
          OSS_INLINE void reset(ossValuePtr ptr = 0)
          {
             _ptr = ptr;

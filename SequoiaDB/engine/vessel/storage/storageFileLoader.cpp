@@ -181,16 +181,16 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageFileLoader::append(const strSlice &dir, SPACE_TYPE type)
+   INT32 storageFileLoader::append(const strSlice &dir, SPACE_TYPE filter)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(dir.empty() || INVALID_SPACE_TYPE == type))
+      if (OSS_UNLIKELY(dir.empty()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = _load(dir, type);
+      rc = _load(dir, filter);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append files under[%s], rc:%d",

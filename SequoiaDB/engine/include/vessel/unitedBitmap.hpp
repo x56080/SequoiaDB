@@ -89,7 +89,7 @@ namespace vessel
 
       public:
          UINT32 getTotalBitNum()const {return UNIT_SIZE * _units.size();}
-         BOOLEAN isFreeToAlloc()const {return !_indexTree.none();}
+         BOOLEAN none()const {return _indexTree.none();}
          UINT32 getUnitCount()const {return _units.size();}
          constexpr UINT32 getUnitSize()const {return UNIT_SIZE;}
 

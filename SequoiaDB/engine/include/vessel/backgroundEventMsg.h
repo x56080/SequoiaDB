@@ -45,36 +45,26 @@ namespace engine
 namespace vessel
 { 
 #pragma pack(4)
-   class lpsCheckpointApplying : public SDBObject
+   struct lpsCheckpointApplying : public SDBObject
    {
-      public:
-         lpsCheckpointApplying(){}
-         ~lpsCheckpointApplying(){}
-         lpsCheckpointApplying(const lpsCheckpointApplying &) = delete;
-         lpsCheckpointApplying &operator=(const lpsCheckpointApplying &) = delete;
-
-      
-      public:
-         SPACE_ID _sid = INVALID_SPACE_ID;
-         SPACE_TYPE _type = INVALID_SPACE_TYPE;
+      lpsCheckpointApplying(){}
+      ~lpsCheckpointApplying(){}
+   
+      SPACE_ID _sid = INVALID_SPACE_ID;
+      SPACE_TYPE _type = INVALID_SPACE_TYPE;
    };//class lpsCheckpointApplying
-   static_assert(sizeof(lpsCheckpointApplying) < BG_EVENT_MSG_BUFFER_SIZE, "out of size");
-
-   class lpsFlushingSegments
+   
+   struct lpsFlushingSegments
    {
-      public:
-         lpsFlushingSegments(){}
-         ~lpsFlushingSegments(){}
-         lpsFlushingSegments(const lpsFlushingSegments &) = delete;
-         lpsFlushingSegments &operator=(const lpsFlushingSegments &) = delete;
-      
-      public:
-         SPACE_ID _sid = INVALID_SPACE_ID;
-         SPACE_TYPE _type = INVALID_SPACE_TYPE;
-         UINT8 _count = 0;
-         UINT32 _segmentId = 0;
+      lpsFlushingSegments(){}
+      ~lpsFlushingSegments(){}
+
+      SPACE_ID _sid = INVALID_SPACE_ID;
+      SPACE_TYPE _type = INVALID_SPACE_TYPE;
+      UINT8 _count = 0;
+      UINT32 _segmentId = 0;
    };//class lpsFlushingSegments
-   static_assert(sizeof(lpsFlushingSegments) < BG_EVENT_MSG_BUFFER_SIZE, "out of size");
+
 #pragma pack()
 } // namespace vessel
 

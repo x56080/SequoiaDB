@@ -172,11 +172,15 @@ namespace vessel
 
       slice userDefinedHeader;
 
-      /// file will be auto extended when creating.
-      /// must be aligned by page size.
-      UINT32 reservedAreaSize = 0;
+      UINT32 flags = 0;
 
    }; // struct createStorageFileOptions
+
+
+   struct storageFileCtlFlag
+   {
+      static constexpr UINT32 MMAP_DATA_SEGMENT = 0x01; 
+   };//struct storageFileCtlFlag
 
 
    /// common head

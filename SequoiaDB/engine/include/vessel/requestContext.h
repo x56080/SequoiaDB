@@ -156,6 +156,8 @@ namespace vessel
             return _rmc;
          }
 
+         UINT32 getLogicalClId()const;
+
       public:
          /// no timeout. no recursive locking.
          INT32 lockLpid(SPACE_TYPE type,

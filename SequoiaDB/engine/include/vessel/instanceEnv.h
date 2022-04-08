@@ -42,11 +42,12 @@
 #include "vessel/checkpointController.h"
 #include "vessel/dataManagementService.h"
 #include "vessel/liteCacheConsole.h"
-#include "vessel/objectLatchMap.hpp"
 #include "vessel/lsm/lsmDB.hpp"
 #include "vessel/backgroundWorkers.h"
 #include "vessel/liteCacheWatcher.h"
 #include "vessel/outerResource.h"
+#include "vessel/sharedObjLatchEnv.h"
+#include "vessel/lobChunkBufferPool.h"
 
 namespace engine
 {
@@ -68,13 +69,13 @@ namespace vessel
          spaceIDLocker spaceLocker;
          dataManagementService dms;
          liteCacheConsole cacheConsole;
-         LOGICAL_PID_LATCH_MAP lpidLatchMap;
-         RECORD_ID_LATCH_MAP ridLatchMap;
-         UNIQUE_INDEX_LATCH_MAP uniqueIndexLathMap;
-         lsmDB *lsm = NULL;
+         lobChunkBufferPool lobcBufferPool;
+         sharedObjLatchEnv latchEnv;
+         lsmDB *lsm = nullptr;
+
+         ///TODO: move cache watcher into lite cache
          liteCacheWatcher cacheWatcher;
          backgroundWorkers workers;
-
          outerResource resource;
 
    }; /// end of class instanceEnv

@@ -36,14 +36,16 @@
 #ifndef VESSEL_LOB_CHUNK_KEY_H_
 #define VESSEL_LOB_CHUNK_KEY_H_
 
-#include "vessel/lobDef.h"
+#include "vessel/vesselIdDef.h"
 #include "ossUtil.hpp"
 #include "../../bson/oid.h"
+#include "vessel/objectIdentifier.h"
 
 namespace engine
 {
 namespace vessel
 {
+#pragma pack(4)
    class lobChunkKey : public SDBObject
    {
       public:
@@ -52,6 +54,10 @@ namespace vessel
          lobChunkKey(const lobChunkKey &o):
          _oid(o._oid),
          _chunkId(o._chunkId){}
+         explicit lobChunkKey(const bson::OID &oid,
+                              UINT32 chunkId):
+         _oid(oid),
+         _chunkId(chunkId){}
          lobChunkKey &operator=(const lobChunkKey &o)
          {
             _oid = o._oid;
@@ -65,14 +71,40 @@ namespace vessel
                    _oid == o._oid;
          }
 
+         BOOLEAN operator<(const lobChunkKey &o)const
+         {
+            return compare(o) < 0;
+         }
+
+         INT32 compare(const lobChunkKey &o)const
+         {
+            INT32 oidCmp = _oid.compare(o._oid);
+            if (0 != oidCmp)
+            {
+               return oidCmp;
+            }
+            else if (_chunkId > o._chunkId)
+            {
+               return 1;
+            }
+            else if (_chunkId < o._chunkId)
+            {
+               return -1;
+            }
+            else
+            {
+               return 0;
+            }
+         }
+
+
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return INVALID_LOB_CHUNK_ID != _chunkId &&
-                   _oid.isSet();
+            return _oid.isSet();
          }
          OSS_INLINE void set(const bson::OID &oid,
-                             LOB_CHUNK_ID chunkId)
+                             UINT32 chunkId)
          {
             _oid = oid;
             _chunkId = chunkId;
@@ -82,11 +114,11 @@ namespace vessel
          OSS_INLINE void reset()
          {
             _oid.clear();
-            _chunkId = INVALID_LOB_CHUNK_ID;
+            _chunkId = 0;
          }
 
          OSS_INLINE const bson::OID &getOid()const {return _oid;}
-         OSS_INLINE LOB_CHUNK_ID getChunkId()const {return _chunkId;}
+         OSS_INLINE UINT32 getChunkId()const {return _chunkId;}
 
          OSS_INLINE UINT32 hash()const
          {
@@ -94,10 +126,106 @@ namespace vessel
                            (const BYTE *)(&_chunkId), sizeof(_chunkId));
          }
 
+         ossPoolString toString()const
+         {
+            ossPoolString str;
+            str.reserve(32);
+            str.append(_oid.toString().c_str());
+            str.append(":");
+            CHAR buf[12] = {};
+            ossItoa(_chunkId, buf, 12);
+            str.append(buf);
+            return std::move(str);
+         }
+
       private:
          bson::OID _oid;
-         LOB_CHUNK_ID _chunkId = INVALID_LOB_CHUNK_ID;
+         UINT32 _chunkId = 0;
    };//class lobChunkKey
+
+   class globalLobChunkKey : public SDBObject
+   {
+      public:
+         globalLobChunkKey(){}
+         globalLobChunkKey(const globalLobChunkKey &o):
+         _sid(o._sid),
+         _mbid(o._mbid),
+         _key(o._key){}
+         ~globalLobChunkKey(){}
+
+         globalLobChunkKey &operator=(const globalLobChunkKey &o)
+         {
+            _sid = o._sid;
+            _mbid = o._mbid;
+            _key = o._key;
+            return *this;
+         }
+
+         BOOLEAN operator==(const globalLobChunkKey &o)const
+         {
+            return _sid == o._sid &&
+                   _mbid == o._mbid &&
+                   _key == o._key;
+         }
+
+      public:
+         OSS_INLINE void set(SPACE_ID sid, CL_MB_ID mbid, const lobChunkKey &key)
+         {
+            _sid = sid;
+            _mbid = mbid;
+            _key = key;
+         }
+         OSS_INLINE void reset()
+         {
+            _sid = INVALID_SPACE_ID;
+            _mbid = INVALID_CL_MB_ID;
+            _key.reset();
+         }
+         OSS_INLINE BOOLEAN isValid()const
+         {
+            return INVALID_SPACE_ID != _sid &&
+                   INVALID_CL_MB_ID != _mbid &&
+                   _key.isValid();
+         }
+
+         OSS_INLINE SPACE_ID getSpaceId()const {return _sid;}
+         OSS_INLINE CL_MB_ID getMbId()const {return _mbid;}
+         OSS_INLINE const lobChunkKey &getKey()const {return _key;}
+
+         OSS_INLINE UINT32 hash()const
+         {
+            return _key.hash();
+         }
+
+         ossPoolString toString()const
+         {
+            static const UINT32 _BUF_SIZE = 16;
+            CHAR buf[_BUF_SIZE] = {};
+            ossPoolString str;
+            str.reserve(96);
+            str.append("{sid:");
+            ossItoa(_sid, buf, _BUF_SIZE);
+            str.append(buf);
+            str.append(", mbid:");
+            ossItoa(_mbid, buf, _BUF_SIZE);
+            str.append(buf);
+            str.append(", chunkid:");
+            ossItoa(_key.getChunkId(), buf, _BUF_SIZE);
+            str.append(buf);
+            str.append(", oid:");
+            str.append(_key.getOid().str().c_str());
+            str.append("}");
+            return std::move(str);
+         }
+
+      private:
+         SPACE_ID _sid = INVALID_SPACE_ID;
+         CL_MB_ID _mbid = INVALID_CL_MB_ID;
+         lobChunkKey _key;
+
+   };//class globalLobChunkKey
+
+#pragma pack()
 } // namespace vessel
 
 } // namespace engine

@@ -51,5 +51,6 @@
 #include "vessel/testIndexHandler.h"
 #include "vessel/removeCLHandler.h"
 #include "vessel/truncateCLHandler.h"
+#include "vessel/lobChunkHandler.h"
 
 #endif//VESSEL_HANDLERS_H_

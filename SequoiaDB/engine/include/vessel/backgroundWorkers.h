@@ -73,6 +73,8 @@ namespace vessel
 
          void pushEvent(const backgroundEvent &event);
 
+         void pushBufferEvent(const backgroundEvent &event);
+
          OSS_INLINE BOOLEAN isReady()const
          {
             return NULL != _env;

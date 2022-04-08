@@ -42,6 +42,7 @@
 #include "vessel/vesselIdDef.h"
 #include "vessel/storageFileName.h"
 #include "vessel/slice.h"
+#include "vessel/mmapPagePointer.h"
 
 namespace engine
 {
@@ -55,6 +56,7 @@ namespace vessel
 
          storageFile(const storageFile &o) = delete;
          storageFile &operator=(const storageFile &o) = delete;
+
       public:
          OSS_INLINE BOOLEAN isOpen()const
          {
@@ -70,32 +72,13 @@ namespace vessel
                       const createStorageFileOptions &options);
 
          INT32 open(const strSlice &dir,
-                    const storageFileName &fn);
+                    const storageFileName &fn,
+                    UINT32 flags);
 
          void destroy();
          void close();
 
          const CHAR *getFullPath()const;
-
-      public:
-         INT32 allocateNewSegment(ossValuePtr *out=NULL);
-
-         INT32 ensureSegmentCount(UINT32 count);
-
-         INT32 getSegmentPtr(UINT32 seg, ossValuePtr &ptr)const;
-
-         INT32 getPagePtr(PAGE_ID pid, ossValuePtr &ptr)const;
-
-         INT32 fsyncPage(PAGE_ID pid, BOOLEAN sync=TRUE)const;
-
-         INT32 fsyncSegment(UINT32 segmentId, BOOLEAN sync=TRUE)const;
-
-         /// always begin from the first page in segment.
-         INT32 fsyncPagesInSeg(UINT32 segmentId, UINT32 pageCount)const;
-
-         INT32 fsyncFileHead(BOOLEAN sync=TRUE)const;
-
-         INT32 fsync()const;
 
          OSS_INLINE const storageFileHead &getCommonHeadInMem()const
          {
@@ -126,22 +109,78 @@ namespace vessel
          {
             return _headInMem.pageSize;
          }
+         OSS_INLINE BOOLEAN isSegmentMmaped()const
+         {
+            return 0 != OSS_BIT_TEST(_ctl, storageFileCtlFlag::MMAP_DATA_SEGMENT);
+         }
 
+      public:
+         INT32 allocateNewSegment();
+
+         INT32 ensureSegmentCount(UINT32 count);
+
+         
          INT32 removeShadowSuffix();
    
          /// will auto update checksum in common header.
          /// file may not be reopen when crashed.
          INT32 updateUserDefinedHead(const slice &h);
 
+         INT32 fsyncFileHead(BOOLEAN sync=TRUE)const;
+
+         INT32 fsync()const;
+
+         INT32 readDataFromPage(PAGE_ID pid,
+                                UINT32 offset,
+                                UINT32 size,
+                                CHAR *data);
+
+         INT32 writeDataToPage(PAGE_ID pid,
+                               UINT32 offset,
+                               UINT32 size,
+                               const CHAR *data);
+
+         INT32 readPages(PAGE_ID pid,
+                         UINT32 pcnt,
+                         CHAR *data);
+
+         INT32 writePages(PAGE_ID pid,
+                          UINT32 pcnt,
+                          const CHAR *data);
+
+         /// reserved area not inclusive
+         INT32 readData(UINT64 offset, UINT64 size, CHAR *buf);
+                  
+         ossValuePtr getReservedAreaPtr()const;
+      public:/// mmap file only
+
+         INT32 getSegmentPtr(UINT32 seg, ossValuePtr &ptr)const;
+
+         INT32 getPagePtr(PAGE_ID pid, ossValuePtr &ptr)const;
+
+         INT32 getPagePtr(PAGE_ID, mmapPagePointer &ptr)const;
+
+         INT32 fsyncPage(PAGE_ID pid, BOOLEAN sync=TRUE)const;
+
+         INT32 fsyncSegment(UINT32 segmentId, BOOLEAN sync=TRUE)const;
+
+         /// always begin from the first page in segment.
+         INT32 fsyncPagesInSeg(UINT32 segmentId, UINT32 pageCount)const;
+
       protected:
          ossValuePtr getCommonHeaderPtr()const;
          ossValuePtr getUserDefinedHeaderPtr()const;
-         ossValuePtr getReservedAreaPtr()const;
          
       private:
          virtual void _close() {return;}
          virtual INT32 _open(BOOLEAN isCreating) {return SDB_OK;}
          virtual void _onHeaderUpdated(const slice &hs) {return;}
+
+         /// the area will not managed by data segment.
+         /// file will be auto extended when creating.
+         /// must be aligned by page size.
+         virtual UINT32 _getReservedAreaSize()const {return 0;}
+
       private:
          INT32 createFileAndInit(const strSlice &dir,
                                  const storageFileName &fn,
@@ -157,7 +196,8 @@ namespace vessel
          INT32 initCommonHead(const storageFileName &fn,
                               const createStorageFileOptions &options,
                               CHAR *headBuf);
-         INT32 extendFileAndMMap(UINT32 len, ossValuePtr *ptr);
+         INT32 extendFileAndMmap(UINT32 len, ossValuePtr *ptr);
+         INT32 extendFile(UINT32 len);
 
          INT32 validateHead(const void *head, const storageFileName &fn)const;
          UINT32 createChecksum(ossValuePtr headPtr)const;
@@ -189,6 +229,7 @@ namespace vessel
          }
 
       private:
+         UINT32 _ctl = 0;
          storageFileHead _headInMem;
          FILE_TYPE _fileType = INVALID_FILE_TYPE;
          SPACE_TYPE _spaceType = INVALID_SPACE_TYPE;

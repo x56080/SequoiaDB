@@ -38,6 +38,8 @@
 
 #include "vessel/storageFileName.h"
 #include "ossMemPool.hpp"
+#include "vessel/storageManifest.h"
+#include "../bson/bson.hpp"
 
 namespace engine
 {
@@ -71,6 +73,11 @@ namespace vessel
 
    BOOLEAN buildSpaceDirName(SPACE_ID sid, UINT32 bufLen, CHAR *buf);
    BOOLEAN parseSpaceDirName(const strSlice &dirName, SPACE_ID *sid);
+
+   bson::BSONObj buildSuManifestObj(const storageUnitManifest &manifest);
+
+   BOOLEAN parseSuManifestObj(const bson::BSONObj &obj,
+                              storageUnitManifest &manifest);
 
 }//namespace vessel
 }//namespace engine

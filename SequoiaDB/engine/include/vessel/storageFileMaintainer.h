@@ -66,6 +66,7 @@ namespace vessel
                                  const createStorageFileOptions &o,
                                  storageFile &file)const;
          INT32 openStorageFile(const storageFileName &fn,
+                               UINT32 flags,
                                storageFile &file)const;
          INT32 removeStorageFile(const storageFileName &fn)const;
 
@@ -74,10 +75,13 @@ namespace vessel
 
          INT32 load(storageFileLoader &loader)const;
          INT32 testBeforeOpenning()const;
-         INT32 testBeforeCreating()const;
-         BOOLEAN buildFullDir(SPACE_TYPE type, ossPoolString &path)const;
-         
 
+         ///always build lobd dir when type is lob
+         BOOLEAN buildFullDir(SPACE_TYPE type,
+                              ossPoolString &path)const;
+         
+      private:
+         ossPoolString _build(const CHAR *l, const CHAR *r)const;
       private:
          const storagePathOptions *_path = nullptr;
          SPACE_ID _sid = INVALID_SPACE_ID;

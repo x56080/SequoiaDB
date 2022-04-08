@@ -38,7 +38,6 @@
 
 #include "vessel/logicalPageSpace.h"
 #include "vessel/dataStorageFileCluster.h"
-#include "vessel/collectionSpaceOptions.h"
 #include "vessel/csMetaBlockPage.h"
 
 namespace engine

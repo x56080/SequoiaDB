@@ -42,15 +42,14 @@
 namespace engine
 {
 namespace vessel
-{ 
-   UINT32 VESSEL_FILE_GLOBAL_OPTIONS::_flags = 0;
-   
+{    
    static const fileTypeDescriptor VFD_ARRAY[] =
    {
       {"idmap"},
       {"ds"},
       {"fsm"},
       {"delta"},
+      {"lobm"},
    };
 
    static const spaceTypeDescriptor VSTD_ARRAY [] = 

@@ -50,6 +50,8 @@ namespace vessel
    typedef UINT64 LONG_PAGE_ID;
    constexpr LONG_PAGE_ID INVALID_LONG_PAGE_ID = OSS_UINT64_MAX;
 
+#pragma pack(4)
+
    class mappedLogicalPageId : public SDBObject
    {
       public:
@@ -175,6 +177,8 @@ namespace vessel
       private:
          PAGE_ID _pid = INVALID_PAGE_ID;
    };
+
+#pragma pack()
 }//namespace vessel
 }//namespace engine
 

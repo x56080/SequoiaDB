@@ -75,6 +75,7 @@ TEST_F(fsm_test, diskmap_0)
    options.args.pageSize = FSM_FILE_PAGE_SIZE;
    options.args.maxPageCountPerSeg = FSM_FILE_PAGE_COUNT_PER_SEG;
    options.args.maxSegmentCountPerFile = FSM_FILE_MAX_SEG_COUNT;
+   options.flags = storageFileCtlFlag::MMAP_DATA_SEGMENT;
    v::storageFileName fn;
    UINT32 count = 8;
 
@@ -134,6 +135,7 @@ TEST_F(fsm_test, diskmap_1)
    options.args.pageSize = FSM_FILE_PAGE_SIZE;
    options.args.maxPageCountPerSeg = FSM_FILE_PAGE_COUNT_PER_SEG;
    options.args.maxSegmentCountPerFile = FSM_FILE_MAX_SEG_COUNT;
+   options.flags = storageFileCtlFlag::MMAP_DATA_SEGMENT;
    v::storageFileName fn;
    UINT32 count = 65536 * 10 + 1;
    strSlice dirSlice(DATA_PATH);
@@ -193,6 +195,7 @@ TEST_F(fsm_test, diskmap_2)
    options.args.pageSize = FSM_FILE_PAGE_SIZE;
    options.args.maxPageCountPerSeg = FSM_FILE_PAGE_COUNT_PER_SEG;
    options.args.maxSegmentCountPerFile = FSM_FILE_MAX_SEG_COUNT;
+   options.flags = storageFileCtlFlag::MMAP_DATA_SEGMENT;
    v::storageFileName fn;
    UINT32 count = 65536 * 100 + 1;
    strSlice dirSlice(DATA_PATH);

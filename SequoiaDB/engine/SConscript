@@ -921,6 +921,14 @@ vesselFiles = [
       "vessel/cache/liteCacheTuple.cpp",
       "vessel/cache/lcCacheChunk.cpp",
       "vessel/cache/liteCacheConsole.cpp",
+      "vessel/cache/bufferControlBlock.cpp",
+      "vessel/cache/dirtyLobcBufferList.cpp",
+      "vessel/cache/lobChunkBuffer.cpp",
+      "vessel/cache/lobChunkBufferPool.cpp",
+      "vessel/cache/lobcBufferPoolEnv.cpp",
+      "vessel/cache/lobcBufferPoolWatcherEnv.cpp",
+      "vessel/cache/lobcFlushTaskBuilder.cpp",
+      "vessel/cache/multiPageBufferContext.cpp",
       "vessel/storage/storageFile.cpp",
       "vessel/storage/storageFileMaintainer.cpp",
       "vessel/storage/idMapFile.cpp",
@@ -955,6 +963,14 @@ vesselFiles = [
       "vessel/storage/deltaLogFileDef.cpp",
       "vessel/storage/storageFileTrashCan.cpp",
       "vessel/storage/storageFileName.cpp",
+      "vessel/storage/largeObjectSpace.cpp",
+      "vessel/storage/lobMetaDataFile.cpp",
+      "vessel/storage/lobcBucketRegion.cpp",
+      "vessel/storage/lobcExtentChain.cpp",
+      "vessel/storage/lobcMetaBlockMapping.cpp",
+      "vessel/storage/lobcMetaBlockPage.cpp",
+      "vessel/storage/storageFileCluster.cpp",
+      "vessel/storage/storageManifest.cpp",
       "vessel/handlers/createCSHandler.cpp",
       "vessel/handlers/createCLHandler.cpp",
       "vessel/handlers/requestHandler.cpp",
@@ -971,6 +987,7 @@ vesselFiles = [
       "vessel/handlers/testIndexHandler.cpp",
       "vessel/handlers/removeCLHandler.cpp",
       "vessel/handlers/truncateCLHandler.cpp",
+      "vessel/handlers/lobChunkHandler.cpp",
       "vessel/api/collectionHandler.cpp",
       "vessel/api/vesselFactroy.cpp",
       "vessel/index/indexConsole.cpp",
@@ -1018,6 +1035,14 @@ vesselFiles = [
       "vessel/utils/simpleBufferAllocator.cpp",
       "vessel/utils/elasticBlockRowBatch.cpp",
       "vessel/utils/fixedSizeDataPad.cpp",
+      "vessel/lsm/lsmDB.cpp",
+      "vessel/lsm/lsmIdxKey.cpp",
+      "vessel/lsm/lsmIndex.cpp",
+      "vessel/lsm/lsmOwnedRecord.cpp",
+      "vessel/lsm/lsmInsertBatch.cpp",
+      "vessel/lsm/lsmIndexIterator.cpp",
+      "vessel/lsm/lsmScanEntryParser.cpp",
+      "vessel/lsm/lsmCompactionFilter.cpp",
       "vessel/cursorKernal.cpp",
       "vessel/diskIOJob.cpp",
       "vessel/diskIOTask.cpp",
@@ -1036,7 +1061,6 @@ vesselFiles = [
       "vessel/runtimePageBuffer.cpp",
       "vessel/atomicOperationList.cpp",
       "vessel/collectionOptions.cpp",
-      "vessel/collectionSpaceOptions.cpp",
       "vessel/listCollectionsDef.cpp",
       "vessel/listCollectionSpaceDef.cpp",
       "vessel/rdpIniter.cpp",
@@ -1062,14 +1086,8 @@ vesselFiles = [
       "vessel/runtimeMbContext.cpp",
       "vessel/pidBatchList.cpp",
       "vessel/blockBasedMemPool.cpp",
-      "vessel/lsm/lsmDB.cpp",
-      "vessel/lsm/lsmIdxKey.cpp",
-      "vessel/lsm/lsmIndex.cpp",
-      "vessel/lsm/lsmOwnedRecord.cpp",
-      "vessel/lsm/lsmInsertBatch.cpp",
-      "vessel/lsm/lsmIndexIterator.cpp",
-      "vessel/lsm/lsmScanEntryParser.cpp",
-      "vessel/lsm/lsmCompactionFilter.cpp"
+      "vessel/variableExtentAllocator.cpp",
+      "vessel/lobcLatchHelper.cpp"
 ]
 #vesselend
 
@@ -1096,7 +1114,9 @@ vesselTestFiles = [
       "test/vessel/index_ddl_test.cpp",
       "test/vessel/misc_test.cpp",
       "test/vessel/lpid_hash_table_test.cpp",
-      "test/vessel/bitmap_misc_test.cpp"
+      "test/vessel/bitmap_misc_test.cpp",
+      "test/vessel/extent_allocator_test.cpp",
+      "test/vessel/lobc_test.cpp"
 ]
 
 vesselUnitTestCommonFiles = [

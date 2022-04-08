@@ -544,7 +544,7 @@ namespace vessel
                        (DPS_INVALID_LSN_OFFSET != minFileLsn &&
                         DPS_INVALID_LSN_OFFSET != lsn &&
                         lsn < minFileLsn);
-      RECORD_ID_LATCH_MAP &globalRidLatchMap = _context->getEnv()->ridLatchMap;
+      RECORD_ID_LATCH_MAP &globalRidLatchMap = _context->getEnv()->latchEnv.ridLatchMap;
       UINT8 recordType = RDP_RECORD_HEAD_TYPE_INVALID;
 
       clearDataCached();

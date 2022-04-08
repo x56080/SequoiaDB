@@ -45,6 +45,7 @@
 #include "xxHashInc.h"
 #include "ossMemPool.hpp"
 #include "xxHashInc.h"
+#include "vessel/lobChunkKey.h"
 
 namespace engine
 {
@@ -269,6 +270,7 @@ namespace vessel
    ///WARNING: UNIQUE_INDEX_LATCH_MAP's object is x latch, do not use objectSharedLatchContext.
    typedef class sharedObjectMap<uniqueIndexLatchKey, ossSpinXLatch> UNIQUE_INDEX_LATCH_MAP;
 
+
    template <class KEY, class LATCH=ossSharedLatch>
    class objectSharedLatchContext : public SDBObject
    {
@@ -423,6 +425,9 @@ namespace vessel
 
    typedef objectSharedLatchContext<recordIdLatchKey, ossSpinSLatchPOSIX> RID_LATCH_CONTEXT;
    typedef objectSharedLatchContext<logicalPidLatchKey> LPID_LATCH_CONTEXT;
+
+   typedef class globalLobChunkKey LOB_CHUNK_LATCH_KEY;
+   typedef class sharedObjectMap<LOB_CHUNK_LATCH_KEY, ossSpinSLatchPOSIX> LOBC_LATCH_MAP;
 }//namespace vessel
 }//namespace engine
 

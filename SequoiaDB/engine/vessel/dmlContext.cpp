@@ -125,7 +125,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(_uniqueKeyContext.empty(), "must be empty");      
-      UNIQUE_INDEX_LATCH_MAP &latchMap = requestContext::getEnv()->uniqueIndexLathMap;
+      UNIQUE_INDEX_LATCH_MAP &latchMap = requestContext::getEnv()->latchEnv.uniqueIndexLathMap;
 
       if (_uniqueKeyHash.empty())
       {
@@ -213,7 +213,7 @@ namespace vessel
    void dmlContext::unlockUniqueKeys()
    {
       SDB_ASSERT(isOpen(), "can not be invalid");
-      UNIQUE_INDEX_LATCH_MAP &latchMap = requestContext::getEnv()->uniqueIndexLathMap;
+      UNIQUE_INDEX_LATCH_MAP &latchMap = requestContext::getEnv()->latchEnv.uniqueIndexLathMap;
       for (_UNIQUE_KEY_CONTEXT::iterator itr = _uniqueKeyContext.begin();
            itr != _uniqueKeyContext.end(); ++itr)
       {

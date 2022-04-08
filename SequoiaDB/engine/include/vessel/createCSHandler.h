@@ -61,7 +61,7 @@ namespace vessel
 
       private:
          INT32 validateOptions(const strSlice &name,
-                               const createCSOptions &options);
+                               const dmsCreateCSOptions &options);
 
    };//class createCSHandler
 }//namespace vessel

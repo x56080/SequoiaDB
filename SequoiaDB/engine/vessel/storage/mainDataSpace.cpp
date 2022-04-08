@@ -282,6 +282,7 @@ namespace vessel
       const storageFileName *fn = nullptr;
       const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
       storageFileMaintainer sfm(&po, getSpaceID());
+      UINT32 fileCtlFlags = storageFileCtlFlag::MMAP_DATA_SEGMENT;
 
       const STORAGE_FILE_NAME_LIST *fl = loader.getFileList(SPACE_TYPE_MAIN_DATA,
                                                             FILE_TYPE_FSM);
@@ -307,7 +308,7 @@ namespace vessel
          goto error;
       }
 
-      rc = sfm.openStorageFile(*fn, *file);
+      rc = sfm.openStorageFile(*fn, fileCtlFlags, *file);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open file[%s], rc:%d",
@@ -347,6 +348,7 @@ namespace vessel
       o.args = args;
       o.createAsTmpFile = TRUE;
       o.replaceWhenCreate = TRUE;
+      o.flags = storageFileCtlFlag::MMAP_DATA_SEGMENT;
       storageFileName fn;
       const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
       storageFileMaintainer sfm(&po, getSpaceID());
