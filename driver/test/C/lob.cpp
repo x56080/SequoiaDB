@@ -726,7 +726,7 @@ TEST(lob,lob_readAndWrite_mode_test)
 
    rc = sdbOpenLob( cl , &oid, mode, &lob1) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   UINT32 writelen1 = 5;
+   const UINT32 writelen1 = 5;
    char writeBuf1[writelen1] = { 0 };
 
    for(int i = 0; i < writelen1; i++)
@@ -743,7 +743,8 @@ TEST(lob,lob_readAndWrite_mode_test)
    SINT64 lobLen1;
    rc = sdbGetLobSize( lob1, &lobLen1);
    ASSERT_EQ( SDB_OK, rc ) ;
-   char readBuf1[lobLen1] = { 0 };
+   char readBuf1[lobLen1] ;
+   memset( readBuf1, 0, lobLen1 ) ;
 
    UINT32 readLen;
    rc = sdbReadLob( lob1, lobLen1, readBuf1, &readLen);
@@ -769,13 +770,13 @@ TEST(lob,lob_readAndWrite_mode_test)
    rc = sdbOpenLob( cl , &oid, mode, &lob2) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   UINT32 lobLen2 = 3;
+   const UINT32 lobLen2 = 3;
    char readBuf2[lobLen2] = { 0 };
 
    rc = sdbReadLob( lob2, lobLen2, readBuf2, &readLen);
    ASSERT_EQ( SDB_OK, rc ) ;
    
-   UINT32 writelen2 = 5;
+   const UINT32 writelen2 = 5;
    char writeBuf2[writelen2] = { 0 };
    for(int i = 0; i < writelen2; i++)
    {
@@ -792,8 +793,10 @@ TEST(lob,lob_readAndWrite_mode_test)
    rc = sdbGetLobSize( lob2, &lobSize);
    ASSERT_EQ( SDB_OK, rc ) ;
    
-   char data[lobSize] = { 0 };
-   char expectData[lobSize] = { 0 };
+   char data[lobSize] ;
+   char expectData[lobSize] ;
+   memset( data, 0, lobSize ) ;
+   memset( expectData, 0, lobSize ) ;
 
    for(int i = 0; i < lobSize; i++)
    {
@@ -885,7 +888,7 @@ void * readAndWriteLob( void * arg )
    struct tArg *data = (struct tArg *) arg;
    
    INT32 rc = SDB_OK ;
-   INT32 bufLen = 2;
+   const INT32 bufLen = 2;
    sdbLobHandle lob = 0;
    char readBuf[bufLen] = { 0 };
    UINT32 readCount = 0;
@@ -997,9 +1000,11 @@ TEST(lob,lob_ReadAndWirte_concurrent_test)
    sdbGetLobSize(newLob, &lobLen);
 
    UINT32 readCount = 0;
-   char actData[lobLen] = { 0 };
+   char actData[lobLen] ;
+   memset( actData, 0, lobLen ) ;
    INT32 expLen = tCount * 2;
-   char expData[expLen] = { 0 };
+   char expData[expLen] ;
+   memset( expData, 0, expLen ) ;
 
    int n = 0;
    for( int i=0,j=0; i<expLen;)
