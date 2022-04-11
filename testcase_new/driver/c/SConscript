@@ -112,6 +112,7 @@ testFiles = [
    [ "./crud/specialDecimal_14004.cpp" ],
    [ "./crud/snapshotPlan14515.cpp" ],
    [ "./crud/pop14506.cpp" ],
+   [ "./crud/insert26324.cpp" ],
    [ "./paraVerify/domain22020.cpp" ],
    [ "./paraVerify/lobFunc14388.cpp" ],
    [ "./paraVerify/sdbFunc14277.cpp" ],
