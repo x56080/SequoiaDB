@@ -57,6 +57,7 @@ namespace engine
       _catRecycleReturnInfo implement
     */
    _catRecycleReturnInfo::_catRecycleReturnInfo()
+   : _isOnSite( FALSE )
    {
    }
 

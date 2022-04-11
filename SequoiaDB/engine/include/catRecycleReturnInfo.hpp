@@ -285,6 +285,23 @@ namespace engine
       _catRecycleReturnInfo() ;
       ~_catRecycleReturnInfo() ;
 
+      BOOLEAN isOnSiteReturn() const
+      {
+         return _isOnSite ;
+      }
+
+      void setOnSiteReturn( BOOLEAN isOnSite )
+      {
+         _isOnSite = isOnSite ;
+      }
+
+      BOOLEAN hasConflicts() const
+      {
+         return ( ( !( _conflictCSSet.empty() ) ) &&
+                  ( !( _conflictNameCL.empty() ) ) &&
+                  ( !( _conflictUIDCL.empty() ) ) ) ;
+      }
+
       INT32 checkReturnCLToCS( const CHAR *clName,
                                utilCLUniqueID clUniqueID,
                                BOOLEAN allowRename,
@@ -412,6 +429,10 @@ namespace engine
                           const CHAR *subCLName ) const ;
 
    protected:
+      // indicates return in the origin place
+      // e.g. for truncated collection without version and data changes
+      BOOLEAN              _isOnSite ;
+
       // return info for collection spaces
       _CAT_UID_CS_SET      _checkCSSet ;
 

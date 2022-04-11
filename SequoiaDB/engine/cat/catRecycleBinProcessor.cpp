@@ -2278,9 +2278,9 @@ namespace engine
       PD_TRACE_ENTRY( SDB__CATRTRNPROCESS__SAVEOBJ ) ;
 
       const CHAR *returnCollection = catGetRecycleBinMetaCL( _type ) ;
-
-      rc = rtnInsert( returnCollection, returnObject, 1,
-                      FLG_INSERT_REPLACEONDUP, cb, _dmsCB, _dpsCB, w ) ;
+      INT32 flags = _info.isOnSiteReturn() ? FLG_INSERT_REPLACEONDUP : 0 ;
+      rc = rtnInsert( returnCollection, returnObject, 1, flags, cb, _dmsCB,
+                      _dpsCB, w ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to insert object to collection [%s], "
                    "rc: %d", returnCollection, rc ) ;
 

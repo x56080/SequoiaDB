@@ -360,6 +360,14 @@ namespace engine
                    "collection [%s], rc: %d", recycleItem.getOriginName(),
                    rc ) ;
 
+      // returning truncated collection, and no conflicts, we can use
+      // on site return, to return the collection in the origin place
+      if ( ( UTIL_RECYCLE_OP_TRUNCATE == recycleItem.getOpType() ) &&
+           ( !( _returnInfo.hasConflicts() ) ) )
+      {
+         _returnInfo.setOnSiteReturn( TRUE ) ;
+      }
+
    done:
       PD_TRACE_EXITRC( SDB_CATCTXRTRNRECYBIN__CHECK_RTRNCL, rc ) ;
       return rc ;
