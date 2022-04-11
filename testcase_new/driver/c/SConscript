@@ -115,6 +115,7 @@ testFiles = [
    [ "./crud/snapshotPlan14515.cpp" ],
    [ "./crud/closeAllCursors20122.cpp" ],
    [ "./crud/pop14506.cpp" ],
+   [ "./crud/insert26324.cpp" ],
    [ "./crud/delete25407.cpp" ],
    [ "./crud/update25408.cpp" ],
    [ "./crud/upsert25409.cpp" ],
