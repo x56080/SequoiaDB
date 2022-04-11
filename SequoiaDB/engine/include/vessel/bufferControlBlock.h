@@ -71,6 +71,23 @@ namespace vessel
             _flags = o._flags;
             return *this;
          }
+
+         bufferControlBlock(bufferControlBlock &&o):
+         _statusAndRefCnt(o._statusAndRefCnt),
+         _flags(o._flags)
+         {
+            o._statusAndRefCnt = 0;
+            o._flags = 0;
+         }
+
+         bufferControlBlock &operator=(bufferControlBlock &&o)
+         {
+            _statusAndRefCnt = o._statusAndRefCnt;
+            _flags = o._flags;
+            o._statusAndRefCnt = 0;
+            o._flags = 0;
+            return *this;
+         }
       
       public:
          OSS_INLINE BOOLEAN isPinned()const
