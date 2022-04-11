@@ -40,7 +40,7 @@ When the exception happens, use [getLastErrMsg()](reference/Sequoiadb_command/Gl
 
 ##VERSION##
 
-v3.0 and above
+v3.2 and above
 
 ##EXAMPLES##
 

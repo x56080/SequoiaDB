@@ -45,7 +45,7 @@ getLastError() to get the error code.
 For more details, refer to Troubleshooting.
 .SH VERSION
 .PP
-v3.0 and above
+v3.2 and above
 .SH EXAMPLES
 .PP
 Specify a LOB whose oid is "5435e7b69487faa663000897" and truncate its length to
