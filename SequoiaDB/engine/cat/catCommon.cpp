@@ -1098,32 +1098,88 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY ( SDB_CAATADDCL2CS ) ;
-      BSONObj boMatcher = BSON( CAT_COLLECTION_SPACE_NAME << csName ) ;
 
-      BSONObjBuilder updateBuild ;
-      BSONObjBuilder sub( updateBuild.subobjStart("$addtoset") ) ;
+      SDB_ASSERT( NULL != csName, "collection space name is invalid" ) ;
+      SDB_ASSERT( NULL != clName, "collection name is invalid" ) ;
+      SDB_ASSERT( UTIL_UNIQUEID_NULL != clUniqueID, "unique ID is invalid" ) ;
 
-      BSONObj newCLObj = BSON( CAT_COLLECTION_NAME << clName <<
-                               CAT_CL_UNIQUEID << (INT64)clUniqueID ) ;
-      BSONObjBuilder sub1( sub.subarrayStart( CAT_COLLECTION ) ) ;
-      sub1.append( "0", newCLObj ) ;
-      sub1.done() ;
+      BSONObj matcher, updator, dummy, boSpace ;
+      BSONObjBuilder updateBuilder ;
 
-      sub.done() ;
+      PD_CHECK( UTIL_UNIQUEID_NULL != clUniqueID,
+                SDB_INVALIDARG, error, PDERROR,
+                "Failed to add collection [%s] into collection space [%s], "
+                "no unique ID is given", clName, csName ) ;
 
-      BSONObj uniqueIDObj = BSON( CAT_CS_CLUNIQUEHWM << (INT64)clUniqueID );
-      updateBuild.appendObject( "$set", uniqueIDObj.objdata() ) ;
+      try
+      {
+         matcher = BSON( CAT_COLLECTION_SPACE_NAME << csName ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
 
-      BSONObj updator = updateBuild.obj() ;
-      BSONObj hint ;
+      // fetch latest object of collection space
+      rc = catGetOneObj( CAT_COLLECTION_SPACE_COLLECTION, dummy, matcher,
+                         dummy, cb, boSpace ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         // not found, modify the return code
+         rc = SDB_DMS_CS_NOTEXIST ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to get collection space [%s] from "
+                   "collection [%s], rc: %d", csName,
+                   CAT_COLLECTION_SPACE_COLLECTION, rc ) ;
 
-      rc = rtnUpdate( CAT_COLLECTION_SPACE_COLLECTION, boMatcher, updator,
-                      hint, 0, cb, dmsCB, dpsCB, w ) ;
+      try
+      {
+         // if unique ID is given, we need to move forward the high water
+         // mark of collection unique ID
+         utilCLUniqueID curCLUniqueID = UTIL_UNIQUEID_NULL ;
+         BSONElement element = boSpace.getField( CAT_CS_CLUNIQUEHWM ) ;
+         if ( element.isNumber() )
+         {
+            curCLUniqueID = (utilCLUniqueID)( element.numberLong() ) ;
+         }
+         if ( UTIL_UNIQUEID_NULL == curCLUniqueID ||
+              curCLUniqueID < clUniqueID )
+         {
+            updateBuilder.append( "$set", BSON( CAT_CS_CLUNIQUEHWM <<
+                                                (INT64)clUniqueID ) ) ;
+         }
 
+         // update array of collections
+         {
+            BSONObjBuilder sub( updateBuilder.subobjStart( "$addtoset" ) ) ;
+            BSONObjBuilder sub1( sub.subarrayStart( CAT_COLLECTION ) ) ;
+            BSONObjBuilder clBuilder( sub1.subobjStart( "0" ) ) ;
+            clBuilder.append( CAT_COLLECTION_NAME, clName ) ;
+            clBuilder.append( CAT_CL_UNIQUEID, (INT64)clUniqueID ) ;
+            clBuilder.doneFast() ;
+            sub1.doneFast() ;
+            sub.doneFast() ;
+         }
+
+         updator = updateBuilder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build updator, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = rtnUpdate( CAT_COLLECTION_SPACE_COLLECTION, matcher, updator,
+                      dummy, 0, cb, dmsCB, dpsCB, w ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to update collection: %s, match: %s, "
                    "updator: %s, rc: %d", CAT_COLLECTION_SPACE_COLLECTION,
-                   boMatcher.toString().c_str(),
-                   updator.toString().c_str(), rc ) ;
+                   matcher.toString().c_str(), updator.toString().c_str(),
+                   rc ) ;
 
    done:
       PD_TRACE_EXITRC ( SDB_CAATADDCL2CS, rc ) ;
