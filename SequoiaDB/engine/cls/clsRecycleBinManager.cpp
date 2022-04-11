@@ -1387,8 +1387,7 @@ namespace engine
          su = NULL ;
 
          // try drop empty collection space
-         tmpRC = rtnDropCollectionSpaceCommand( szSpace, cb, _dmsCB,
-                                                _dpsCB, FALSE, TRUE ) ;
+         tmpRC = _dmsCB->dropEmptyCollectionSpace( szSpace, cb, _dpsCB ) ;
          if ( SDB_OK == tmpRC &&
               0 == ossStrncmp( szSpace,
                                UTIL_RECYCLE_PREFIX,
