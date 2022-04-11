@@ -313,8 +313,9 @@ namespace vessel
 
       if (entry.end() == itr)
       {
-         bufferControlBlock block(BUFFER_STATUS::NORMAL, 1,
-                                  LOBC_BUFFER_CTL_FLAGS::BUSY);
+         bufferControlBlock block;
+         block.init(BUFFER_STATUS::NORMAL, 1,
+                    LOBC_BUFFER_CTL_FLAGS::BUSY);
          sharedLobChunkBuffer newBuffer =
                    makeSharedPtrFromPool<lobChunkBuffer>(key, block, pageSize, &_env);
          if (!newBuffer)
@@ -334,8 +335,9 @@ namespace vessel
          BUFFER_CTL_FLAG_WORD condition = LOBC_BUFFER_CTL_FLAGS::PENDING_FLUSH;
          if (!buffer->ctl().setFlagsIfNot(condition, flags))
          {
-            bufferControlBlock block(BUFFER_STATUS::NORMAL, 1,
-                                     LOBC_BUFFER_CTL_FLAGS::BUSY);
+            bufferControlBlock block;
+            block.init(BUFFER_STATUS::NORMAL, 1,
+                       LOBC_BUFFER_CTL_FLAGS::BUSY);
             sharedLobChunkBuffer newBuffer =
                     makeSharedPtrFromPool<lobChunkBuffer>(key, block, pageSize, &_env);
             if (!newBuffer)

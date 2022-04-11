@@ -46,49 +46,9 @@ namespace engine
 namespace vessel
 {
 #pragma pack(4)
-   class bufferControlBlock : public SDBObject
+   class bufferControlBlock
    {
-      public:
-         bufferControlBlock()noexcept{}
-         ~bufferControlBlock(){}
-         bufferControlBlock(const bufferControlBlock &o):
-         _statusAndRefCnt(o._statusAndRefCnt),
-         _flags(o._flags){}
-         explicit bufferControlBlock(BUFFER_STATUS s,
-                                     UINT32 refCnt,
-                                     BUFFER_CTL_FLAG_WORD flags):
-         _statusAndRefCnt(0),
-         _flags(flags)
-         {
-            UINT32 v = (static_cast<UINT32>(s) << 24);
-            v |= (refCnt & _REF_COUNT_MASK);
-            _statusAndRefCnt = v;
-         }
-
-         bufferControlBlock &operator=(const bufferControlBlock &o)
-         {
-            _statusAndRefCnt = o._statusAndRefCnt;
-            _flags = o._flags;
-            return *this;
-         }
-
-         bufferControlBlock(bufferControlBlock &&o):
-         _statusAndRefCnt(o._statusAndRefCnt),
-         _flags(o._flags)
-         {
-            o._statusAndRefCnt = 0;
-            o._flags = 0;
-         }
-
-         bufferControlBlock &operator=(bufferControlBlock &&o)
-         {
-            _statusAndRefCnt = o._statusAndRefCnt;
-            _flags = o._flags;
-            o._statusAndRefCnt = 0;
-            o._flags = 0;
-            return *this;
-         }
-      
+      /// it must be trivially copyable.
       public:
          OSS_INLINE BOOLEAN isPinned()const
          {
@@ -96,6 +56,17 @@ namespace vessel
          }
 
       public:
+         OSS_INLINE void init(BUFFER_STATUS s, 
+                              UINT32 refCnt,
+                              BUFFER_CTL_FLAG_WORD flags)
+         {
+            UINT32 v = (static_cast<UINT32>(s) << 24);
+            v |= (refCnt & _REF_COUNT_MASK);
+            _statusAndRefCnt = v;
+            _flags = flags;
+            return;
+         }
+
          OSS_INLINE void setStatus(BUFFER_STATUS s)
          {
             _statusAndRefCnt = ((static_cast<UINT32>(s) << 24) | getRefCount());

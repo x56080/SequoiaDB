@@ -89,15 +89,17 @@ namespace vessel
    BOOLEAN atomicBufferCtlBlock::setRecyclingFromNormal(UINT32 refCntContdition,
                                                         BUFFER_CTL_FLAG_WORD flagCondition)
    {
-      bufferControlBlock expectedVal(BUFFER_STATUS::NORMAL, refCntContdition, flagCondition);
-      bufferControlBlock val(BUFFER_STATUS::RECYCLING, 0, 0);
+      bufferControlBlock expectedVal, val;
+      expectedVal.init(BUFFER_STATUS::NORMAL, refCntContdition, flagCondition);
+      val.init(BUFFER_STATUS::RECYCLING, 0, 0);
       return _val.compare_exchange_strong(expectedVal, val);
    }
 
    BOOLEAN atomicBufferCtlBlock::setDiscardedFromRecycling()
    {
-      bufferControlBlock expectedVal(BUFFER_STATUS::RECYCLING, 0, 0);
-      bufferControlBlock val(BUFFER_STATUS::DISCARDED, 0, 0);
+      bufferControlBlock expectedVal, val;
+      expectedVal.init(BUFFER_STATUS::RECYCLING, 0, 0);
+      val.init(BUFFER_STATUS::DISCARDED, 0, 0);
       return _val.compare_exchange_strong(expectedVal, val);
    }
 
