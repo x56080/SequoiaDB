@@ -99,6 +99,7 @@ namespace vessel
       if (OSS_UNLIKELY(nullptr == fileBuf))
       {
          rc = SDB_OOM;
+         PD_LOG(PDERROR, "out of memory");
          goto error;
       }
 
@@ -111,10 +112,10 @@ namespace vessel
          goto error;
       }
 
-      (*headPtr).magicCode = getMagicCode();
-      (*headPtr).headVersion = CONTROL_FILE_HEAD_VERSION;
-      (*headPtr).creationTime = ossGetCurrentMilliseconds();
-      (*headPtr).contentLen = bufSize;
+      headPtr->magicCode = getMagicCode();
+      headPtr->headVersion = CONTROL_FILE_HEAD_VERSION;
+      headPtr->creationTime = ossGetCurrentMilliseconds();
+      headPtr->contentLen = bufSize;
       rc = buffer.write(sizeof(controlFileHead), bufSize, buf);
       if (SDB_OK != rc)
       {
@@ -122,7 +123,7 @@ namespace vessel
          goto error;
       }
 
-      (*headPtr).checksum = utilCRC32(buffer.getReadablePtr(8, fileSize - 8), fileSize - 8);
+      headPtr->checksum = utilCRC32(buffer.getReadablePtr(8, fileSize - 8), fileSize - 8);
 
       rc = ossWriteN(&file, buffer.getReadablePtr(0, fileSize), fileSize);
       if (SDB_OK != rc)
@@ -209,7 +210,7 @@ namespace vessel
       if (OSS_UNLIKELY(fileSize <= (INT64)sizeof(controlFileHead) ||
                        fileSize > (INT64)MAX_CONTROL_FILE_LEN))
       {
-         rc = SDB_VESSEL_CRASHED_WHEN_CREATING;
+         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
          PD_LOG(PDERROR, "invalid file size, rc:%d", rc);
          goto error;
       }
@@ -308,7 +309,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != buf, "can not be null");
       SDB_ASSERT(sizeof(controlFileHead) < size, "invalid file size");
-      SDB_ASSERT(MAX_CONTROL_FILE_LEN > size, "invalid file size");
+      SDB_ASSERT(MAX_CONTROL_FILE_LEN >= size, "invalid file size");
       strictBuffer buffer;
       UINT32 checkSize = 0;
 
