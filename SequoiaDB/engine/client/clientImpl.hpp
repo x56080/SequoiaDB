@@ -47,16 +47,63 @@ namespace sdbclient
    class _sdbImpl ;
 
    /*
+      CLIENT_CLASS_TYPE define
+   */
+   enum CLIENT_CLASS_TYPE
+   {
+      CLIENT_CLASS_SDB         = 0,
+      CLIENT_CLASS_CS          = 1,
+      CLIENT_CLASS_CL          = 2,
+      CLIENT_CLASS_CURSOR      = 3,
+      CLIENT_CLASS_RG          = 4,
+      CLIENT_CLASS_NODE        = 5,
+      CLIENT_CLASS_LOB         = 6,
+      CLIENT_CLASS_DOMAIN      = 7,
+      CLIENT_CLASS_DC          = 8,  // data center
+      CLIENT_CLASS_SQ          = 9,  // sequeue
+      CLIENT_CLASS_DS          = 10  // datasource
+   } ;
+
+   /*
+      _sdbBase define
+   */
+   class _sdbBase
+   {
+   public :
+      _sdbBase(CLIENT_CLASS_TYPE type) ;
+      virtual ~_sdbBase() {}
+
+   public :
+      virtual INT32    _setConnection( _sdbImpl *connection ) = 0 ;
+      virtual void     _dropConnection() = 0 ;
+
+   protected :
+      /**
+       * set connection handle to current object
+       * and register current object to connection
+       */
+      INT32            _regHandle( _sdbImpl *connection,
+                                   ossValuePtr ptr ) ;
+      /**
+       * when the connection is destroyed, the current object will be
+       * unregister from the connection, and the connection handle
+       * in current object will set to NULL
+       */
+      void             _unregHandle( ossValuePtr ptr ) ;
+
+   protected :
+      CLIENT_CLASS_TYPE     _type ;
+      _sdbImpl             *_connection ;
+   } ;
+
+   /*
       _sdbCursorImpl
    */
-   class _sdbCursorImpl : public _sdbCursor
+   class _sdbCursorImpl : public _sdbCursor, public _sdbBase
    {
    private :
       _sdbCursorImpl ( const _sdbCursorImpl& other ) ;
       _sdbCursorImpl& operator=( const _sdbCursorImpl& ) ;
-
-      _sdbImpl             *_connection ;
-      _sdbCollectionImpl   *_collection ;
 
       CHAR                 *_pSendBuffer ;
       INT32                _sendBufferSize ;
@@ -70,12 +117,18 @@ namespace sdbclient
       INT32                _offset ;
 
    private:
+      virtual INT32 _setConnection( _sdbImpl *connection )
+      {
+         return _regHandle( connection, (ossValuePtr)this ) ;
+      }
+      virtual void _dropConnection()
+      {
+         _unregHandle( (ossValuePtr)this ) ;
+      }
+
+   private:
       INT32    _killCursor () ;
       INT32    _readNextBuffer () ;
-      void     _attachConnection ( _sdbImpl *connection ) ;
-      void     _attachCollection ( _sdbCollectionImpl *collection ) ;
-      void     _detachConnection() ;
-      void     _detachCollection() ;
       void     _close() ;
 
       friend class _sdbCollectionImpl ;
@@ -97,7 +150,7 @@ namespace sdbclient
    /*
       _sdbCollectionImpl
    */
-   class _sdbCollectionImpl : public _sdbCollection
+   class _sdbCollectionImpl : public _sdbCollection, public _sdbBase
    {
    private :
       _sdbCollectionImpl ( const _sdbCollectionImpl& other ) ;
@@ -106,14 +159,12 @@ namespace sdbclient
 #if defined CLIENT_THREAD_SAFE
       ossSpinSLatch            _mutex ;
 #endif
-      _sdbImpl                *_connection ;
       CHAR                    *_pSendBuffer ;
       INT32                    _sendBufferSize ;
       CHAR                    *_pReceiveBuffer ;
       INT32                    _receiveBufferSize ;
       CHAR                    *_pAppendOIDBuffer ;
       INT32                    _appendOIDBufferSize ;
-      std::set<ossValuePtr>   _cursors ;
       INT32                   _version ;
 
       CHAR _collectionSpaceName [ CLIENT_CS_NAMESZ+1 ] ;
@@ -121,12 +172,18 @@ namespace sdbclient
       CHAR _collectionFullName  [ CLIENT_CL_FULLNAME_SZ + 1 ] ;
 
    private:
+      virtual INT32 _setConnection( _sdbImpl *connection )
+      {
+         return _regHandle( connection, (ossValuePtr)this ) ;
+      }
+      virtual void _dropConnection()
+      {
+         _unregHandle( (ossValuePtr)this ) ;
+      }
+
+   private:
       INT32    _setName ( const CHAR *pCollectionFullName ) ;
-      void     _setConnection ( _sdb *connection ) ;
       void*    _getConnection () ;
-      void     _dropConnection() ;
-      void     _regCursor ( _sdbCursorImpl *cursor ) ;
-      void     _unregCursor ( _sdbCursorImpl * cursor ) ;
 
       INT32    _queryAndModify( _sdbCursor **cursor,
                                 const BSONObj &condition,
@@ -632,7 +689,7 @@ namespace sdbclient
    */
    #define SDB_NODE_INVALID_NODEID     -1
 
-   class _sdbNodeImpl : public _sdbNode
+   class _sdbNodeImpl : public _sdbNode, public _sdbBase
    {
    private :
       _sdbNodeImpl ( const _sdbNodeImpl& other ) ;
@@ -642,17 +699,24 @@ namespace sdbclient
       ossSpinSLatch _mutex ;
 #endif
 
-      _sdbImpl                *_connection ;
       CHAR                     _hostName [ OSS_MAX_HOSTNAME + 1 ] ;
       CHAR                     _serviceName [ OSS_MAX_SERVICENAME + 1 ] ;
       CHAR                     _nodeName [ OSS_MAX_HOSTNAME +
                                            OSS_MAX_SERVICENAME + 2 ] ;
       INT32                    _replicaGroupID ;
       INT32                    _nodeID ;
-      void _dropConnection()
+
+   private:
+      virtual INT32 _setConnection( _sdbImpl *connection )
       {
-         _connection = NULL ;
+         return _regHandle( connection, (ossValuePtr)this ) ;
       }
+      virtual void _dropConnection()
+      {
+         _unregHandle( (ossValuePtr)this ) ;
+      }
+
+   private:
       INT32 _stopStart ( BOOLEAN start ) ;
 
       friend class _sdbReplicaGroupImpl ;
@@ -708,7 +772,7 @@ namespace sdbclient
    /*
       _sdbReplicaGroupImpl
    */
-   class _sdbReplicaGroupImpl : public _sdbReplicaGroup
+   class _sdbReplicaGroupImpl : public _sdbReplicaGroup, public _sdbBase
    {
    private :
       _sdbReplicaGroupImpl ( const _sdbReplicaGroupImpl& other ) ;
@@ -718,14 +782,21 @@ namespace sdbclient
       ossSpinSLatch _mutex ;
 #endif
 
-      _sdbImpl                *_connection ;
       BOOLEAN                 _isCatalog ;
       INT32                   _replicaGroupID ;
       CHAR                    _replicaGroupName [ CLIENT_REPLICAGROUP_NAMESZ+1 ] ;
-      void _dropConnection()
+
+   private:
+      virtual INT32 _setConnection( _sdbImpl *connection )
       {
-         _connection = NULL ;
+         return _regHandle( connection, (ossValuePtr)this ) ;
       }
+      virtual void _dropConnection()
+      {
+         _unregHandle( (ossValuePtr)this ) ;
+      }
+
+   private:
       INT32 _stopStart ( BOOLEAN start ) ;
       INT32 _extractNode ( _sdbNode **node,
                            const CHAR *primaryData ) ;
@@ -826,7 +897,7 @@ namespace sdbclient
    /*
       _sdbCollectionSpaceImpl
    */
-   class _sdbCollectionSpaceImpl : public _sdbCollectionSpace
+   class _sdbCollectionSpaceImpl : public _sdbCollectionSpace, public _sdbBase
    {
    private :
       _sdbCollectionSpaceImpl ( const _sdbCollectionSpaceImpl& other ) ;
@@ -836,21 +907,25 @@ namespace sdbclient
       ossSpinSLatch _mutex ;
 #endif
 
-      _sdbImpl                *_connection ;
       CHAR                    *_pSendBuffer ;
       INT32                    _sendBufferSize ;
       CHAR                    *_pReceiveBuffer ;
       INT32                    _receiveBufferSize ;
       CHAR _collectionSpaceName [ CLIENT_CS_NAMESZ+1 ] ;
-      void _setConnection ( _sdb *connection ) ;
-      INT32 _setName ( const CHAR *pCollectionSpaceName ) ;
-      void _dropConnection()
+
+   private:
+      virtual INT32 _setConnection( _sdbImpl *connection )
       {
-         _connection = NULL ;
+         return _regHandle( connection, (ossValuePtr)this ) ;
+      }
+      virtual void _dropConnection()
+      {
+         _unregHandle( (ossValuePtr)this ) ;
       }
 
+   private:
+      INT32 _setName ( const CHAR *pCollectionSpaceName ) ;
       INT32 _getRetVersion () ;
-
       INT32 _runCommand ( const CHAR *pString,
                           const BSONObj *arg1 = NULL,
                           const BSONObj *arg2 = NULL,
@@ -952,7 +1027,7 @@ namespace sdbclient
    /*
       _sdbDomainImpl
    */
-   class _sdbDomainImpl : public _sdbDomain
+   class _sdbDomainImpl : public _sdbDomain, public _sdbBase
    {
    private :
       _sdbDomainImpl ( const _sdbDomainImpl& other ) ;
@@ -962,18 +1037,22 @@ namespace sdbclient
       ossSpinSLatch           _mutex ;
 #endif
 
-      _sdbImpl                *_connection ;
       CHAR                    *_pSendBuffer ;
       INT32                   _sendBufferSize ;
       CHAR                    *_pReceiveBuffer ;
       INT32                   _receiveBufferSize ;
       CHAR _domainName[ CLIENT_DOMAIN_NAMESZ+1 ] ;
 
-      void _setConnection ( _sdb *connection ) ;
-      void _dropConnection()
+    private:
+      virtual INT32 _setConnection( _sdbImpl *connection )
       {
-         _connection = NULL ;
+         return _regHandle( connection, (ossValuePtr)this ) ;
       }
+      virtual void _dropConnection()
+      {
+         _unregHandle( (ossValuePtr)this ) ;
+      }
+   private:
       INT32 _setName ( const CHAR *pDomainName ) ;
 
       friend class _sdbImpl ;
@@ -1033,7 +1112,7 @@ namespace sdbclient
    /*
       _sdbDataCenterImpl
    */
-   class _sdbDataCenterImpl : public _sdbDataCenter
+   class _sdbDataCenterImpl : public _sdbDataCenter, public _sdbBase
    {
       friend class _sdbImpl ;
 
@@ -1045,7 +1124,6 @@ namespace sdbclient
       ossSpinSLatch           _mutex ;
 #endif
 
-      _sdbImpl                *_connection ;
       CHAR                    *_pSendBuffer ;
       INT32                   _sendBufferSize ;
       CHAR                    *_pReceiveBuffer ;
@@ -1053,13 +1131,18 @@ namespace sdbclient
       CHAR _dcName[ CLIENT_DC_NAMESZ+1 ] ;
 
    private:
+      virtual INT32 _setConnection( _sdbImpl *connection )
+      {
+         return _regHandle( connection, (ossValuePtr)this ) ;
+      }
+      virtual void _dropConnection()
+      {
+         _unregHandle( (ossValuePtr)this ) ;
+      }
+
+   private:
       INT32 _setName ( const CHAR *pClusterName,
                        const CHAR *pBusinessName ) ;
-      void _setConnection ( _sdb *connection ) ;
-      void _dropConnection()
-      {
-         _connection = NULL ;
-      }
 
    public :
       _sdbDataCenterImpl () ;
@@ -1091,7 +1174,7 @@ namespace sdbclient
    /*
       _sdbLobImpl
    */
-   class _sdbLobImpl : public _sdbLob
+   class _sdbLobImpl : public _sdbLob, public _sdbBase
    {
    private :
       _sdbLobImpl ( const _sdbLobImpl& other ) ;
@@ -1101,8 +1184,6 @@ namespace sdbclient
       ossSpinSLatch           _mutex ;
 #endif
 
-      _sdbImpl                *_connection ;
-      _sdbCollectionImpl      *_collection ;
       CHAR                    *_pSendBuffer ;
       INT32                   _sendBufferSize ;
       CHAR                    *_pReceiveBuffer ;
@@ -1124,10 +1205,17 @@ namespace sdbclient
       bson::BSONArray         _piecesInfo ;
       const CHAR              *_dataCache ;
 
-      void _attachConnection( _sdb *pConnection ) ;
-      void _attachCollection( _sdbCollectionImpl *pCollection ) ;
-      void _detachConnection() ;
-      void _detachCollection() ;
+   private:
+      virtual INT32 _setConnection( _sdbImpl *connection )
+      {
+         return _regHandle( connection, (ossValuePtr)this ) ;
+      }
+      virtual void _dropConnection()
+      {
+         _unregHandle( (ossValuePtr)this ) ;
+      }
+
+   private :
       void _close () ;
       BOOLEAN _dataCached() ;
       void _readInCache( void *buf, UINT32 len, UINT32 *read ) ;
@@ -1185,7 +1273,7 @@ namespace sdbclient
    /*
       _sdbSequenceImpl
    */
-   class _sdbSequenceImpl : public _sdbSequence
+   class _sdbSequenceImpl : public _sdbSequence, public _sdbBase
    {
       friend class _sdbImpl ;
 
@@ -1193,15 +1281,18 @@ namespace sdbclient
       _sdbSequenceImpl ( const _sdbSequenceImpl &other ) ;
       _sdbSequenceImpl& operator=( const _sdbSequenceImpl& ) ;
 
-      void _setConnection ( _sdb *connection ) ;
-
-      INT32 _setName ( const CHAR *pSequenceName ) ;
-
-      void _dropConnection()
+   private:
+      virtual INT32 _setConnection( _sdbImpl *connection )
       {
-         _connection = NULL ;
+         return _regHandle( connection, (ossValuePtr)this ) ;
+      }
+      virtual void _dropConnection()
+      {
+         _unregHandle( (ossValuePtr)this ) ;
       }
 
+   private:
+      INT32 _setName ( const CHAR *pSequenceName ) ;
       INT32 _alterInternal ( const CHAR *actionName,
                              const bson::BSONObj &arguments ) ;
 
@@ -1209,7 +1300,7 @@ namespace sdbclient
 #if defined CLIENT_THREAD_SAFE
       ossSpinSLatch           _mutex ;
 #endif
-      _sdbImpl                *_connection ;
+
       CHAR                    *_pSequenceName ;
 
    public :
@@ -1231,7 +1322,7 @@ namespace sdbclient
    } ;
    typedef class _sdbSequenceImpl sdbSequenceImpl ;
 
-   class _sdbDataSourceImpl : public _sdbDataSource
+   class _sdbDataSourceImpl : public _sdbDataSource, public _sdbBase
    {
    private:
       _sdbDataSourceImpl( const _sdbDataSourceImpl& other ) ;
@@ -1241,21 +1332,24 @@ namespace sdbclient
       ossSpinSLatch            _mutex ;
 #endif
 
-      _sdbImpl          *_connection ;
       CHAR              *_pSendBuffer ;
       INT32              _sendBufferSize ;
       CHAR              *_pReceiveBuffer ;
       INT32              _receiveBufferSize ;
       CHAR               _dataSourceName[ CLIENT_DATASOURCE_NAMESZ + 1 ] ;
 
-      void _setConnection( _sdb *connection ) ;
-      void _dropConnection()
+   private:
+      virtual INT32 _setConnection( _sdbImpl *connection )
       {
-         _connection = NULL ;
+         return _regHandle( connection, (ossValuePtr)this ) ;
+      }
+      virtual void _dropConnection()
+      {
+         _unregHandle( (ossValuePtr)this ) ;
       }
 
+   private:
       INT32 _setName( const CHAR *pDataSourceName ) ;
-
       INT32 _appendOptions( BSONObjBuilder &builder, const BSONObj &options ) ;
 
       friend class _sdbImpl ;
@@ -1329,6 +1423,7 @@ namespace sdbclient
       BOOLEAN                  _isOldVersionLobServer ;
 
       void _disconnect () ;
+      void _removeObjects() ;
       void _setErrorBuffer( const CHAR *pBuf, INT32 bufSize ) ;
       void _setResultBuffer( const CHAR *pBuf, INT32 bufSize ) ;
       INT32 _send ( CHAR *pBuffer ) ;
@@ -1369,26 +1464,11 @@ namespace sdbclient
 
       INT32 _buildEmptyCursor( _sdbCursor **ppCursor ) ;
       INT32 _requestSysInfo () ;
-      void _regCursor ( _sdbCursorImpl *cursor ) ;
-      void _regCollection ( _sdbCollectionImpl *collection ) ;
-      void _regCollectionSpace ( _sdbCollectionSpaceImpl *collectionspace ) ;
-      void _regNode ( _sdbNodeImpl *node ) ;
-      void _regReplicaGroup ( _sdbReplicaGroupImpl *replicaGroup ) ;
-      void _regDomain ( _sdbDomainImpl *domain ) ;
-      void _regDataCenter ( _sdbDataCenterImpl *dc ) ;
-      void _regLob ( _sdbLobImpl *lob ) ;
-      void _regSequence ( _sdbSequenceImpl *sequence ) ;
-      void _regDataSource( _sdbDataSourceImpl *dataSource ) ;
-      void _unregCursor ( _sdbCursorImpl *cursor ) ;
-      void _unregCollection ( _sdbCollectionImpl *collection ) ;
-      void _unregCollectionSpace ( _sdbCollectionSpaceImpl *collectionspace ) ;
-      void _unregNode ( _sdbNodeImpl *node ) ;
-      void _unregReplicaGroup ( _sdbReplicaGroupImpl *replicaGroup ) ;
-      void _unregDomain ( _sdbDomainImpl *domain ) ;
-      void _unregDataCenter ( _sdbDataCenterImpl *dc ) ;
-      void _unregLob ( _sdbLobImpl *lob ) ;
-      void _unregSequence ( _sdbSequenceImpl *sequence ) ;
-      void _unregDataSource( _sdbDataSourceImpl *dataSource ) ;
+      INT32 _regAndUnregHandle ( CLIENT_CLASS_TYPE type,
+                                 ossValuePtr handle,
+                                 BOOLEAN isRegister ) ;
+      INT32 _registerHandle ( CLIENT_CLASS_TYPE type, ossValuePtr handle ) ;
+      INT32 _unregisterHandle ( CLIENT_CLASS_TYPE type, ossValuePtr handle ) ;
 
       hashTable* _getCachedContainer() const ;
 
@@ -1420,6 +1500,7 @@ namespace sdbclient
                     const string &combineNonceBase64,
                     const string &clientProofBase64 ) ;
 
+      friend class _sdbBase ;
       friend class _sdbCollectionSpaceImpl ;
       friend class _sdbCollectionImpl ;
       friend class _sdbCursorImpl ;
