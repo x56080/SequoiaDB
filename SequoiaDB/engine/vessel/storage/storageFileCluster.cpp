@@ -54,7 +54,7 @@ namespace vessel
    }
 
    INT32 storageFileCluster::open(const storageFileManifest &manifest,
-                                  const options &o,
+                                  UINT32 ctlFlags,
                                   const storageFileLoader *loader)
    {
       INT32 rc = SDB_OK;
@@ -67,7 +67,7 @@ namespace vessel
          goto error;
       }
 
-      _o = o;
+      _ctl = ctlFlags;
       _manifest = manifest;
       rc = _files.init(_DEFAULT_FILE_ARRAY_CAPACITY);
       if (SDB_OK != rc)
@@ -94,7 +94,7 @@ namespace vessel
 
    void storageFileCluster::close()
    {
-      _o = options();
+      _ctl = 0;
       _manifest.reset();
       for (UINT32 i = 0; i < _files.getSize(); ++i)
       {
@@ -112,7 +112,7 @@ namespace vessel
 
    void storageFileCluster::destroy()
    {
-      _o = options();
+      _ctl = 0;
       _manifest.reset();
       for (UINT32 i = 0; i < _files.getSize(); ++i)
       {
@@ -136,7 +136,6 @@ namespace vessel
 
       constexpr UINT32 MAX_FILE_SEQUENCE = 1048575;
 
-      UINT32 flags = 0;
       const storageCoreArgs &args = _manifest.args;
       storageFile *file = nullptr;
       const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
@@ -146,11 +145,6 @@ namespace vessel
       if (nullptr == fileList)
       {
          goto done;
-      }
-
-      if (_o.mmap)
-      {
-         OSS_BIT_SET(flags, storageFileCtlFlag::MMAP_DATA_SEGMENT);
       }
 
       for (STORAGE_FILE_NAME_LIST::const_iterator itr = fileList->begin();
@@ -197,7 +191,7 @@ namespace vessel
             goto error;
          }
 
-         rc = sfm.openStorageFile(fn, flags, *file);
+         rc = sfm.openStorageFile(fn, _ctl, *file);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to open file:%s, rc:%d", fn.getFileName(), rc);
@@ -660,10 +654,7 @@ namespace vessel
       o.createAsTmpFile = TRUE;
       o.replaceWhenCreate = TRUE;
       o.secretValue = _manifest.secretValue;
-      if (_o.mmap)
-      {
-         OSS_BIT_SET(o.flags, storageFileCtlFlag::MMAP_DATA_SEGMENT);
-      }
+      o.flags = _ctl;
 
       rc = sfm.createStorageFile(fn, o, *file);
       if (SDB_OK != rc)
@@ -726,11 +717,6 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(!_o.mmap))
-      {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-         goto error;
-      }
       else if (OSS_UNLIKELY(INVALID_PAGE_ID == pid))
       {
          rc = SDB_INVALIDARG;
@@ -781,11 +767,6 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(!_o.mmap))
-      {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-         goto error;
-      }
 
       fileId = globalSegmentId / args.maxSegmentCountPerFile;
       if (_files.getSize() <= fileId)
@@ -832,11 +813,6 @@ namespace vessel
       else if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!_o.mmap))
-      {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
 

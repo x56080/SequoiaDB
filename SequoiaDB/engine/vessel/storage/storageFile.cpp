@@ -788,6 +788,7 @@ namespace vessel
           0 != _getReservedAreaSize() % options.args.pageSize)
       {
          PD_LOG(PDERROR, "reserved area size must be aligned by page size");
+         goto done;
       }
 
       r = TRUE;
@@ -995,7 +996,7 @@ namespace vessel
       checksum = createChecksum((ossValuePtr)head);
       if (suHead->headChecksum != checksum)
       {
-         PD_LOG(PDERROR, "invalid checksum, in file:%d, current:%d",
+         PD_LOG(PDERROR, "invalid checksum, in file:%u, current:%u",
                 suHead->headChecksum, checksum);
          rc = SDB_VESSEL_FILE_HEAD_CRASHED;
          goto error;
@@ -1187,7 +1188,7 @@ namespace vessel
          goto error;
       }
 
-      seekOffset = static_cast<INT64>(STORAGE_FILE_COMMON_HEAD_SIZE) +
+      seekOffset = static_cast<INT64>(SOTRAGE_FILE_TOTAL_HEAD_SIZE) +
                    _headInMem.reservedAreaSize;
       seekOffset += static_cast<INT64>(_headInMem.pageSize) * pid;
       do
@@ -1243,7 +1244,7 @@ namespace vessel
          goto error;
       }
 
-      seekOffset = static_cast<INT64>(STORAGE_FILE_COMMON_HEAD_SIZE) +
+      seekOffset = static_cast<INT64>(SOTRAGE_FILE_TOTAL_HEAD_SIZE) +
                    _headInMem.reservedAreaSize;
       seekOffset += static_cast<INT64>(_headInMem.pageSize) * pid;
       do
@@ -1300,7 +1301,7 @@ namespace vessel
       }
 
       totalSize = static_cast<INT64>(_headInMem.pageSize) * pcnt;
-      seekOffset = static_cast<INT64>(STORAGE_FILE_COMMON_HEAD_SIZE) +
+      seekOffset = static_cast<INT64>(SOTRAGE_FILE_TOTAL_HEAD_SIZE) +
                    _headInMem.reservedAreaSize;
       seekOffset += static_cast<INT64>(_headInMem.pageSize) * pid;
       do
@@ -1358,7 +1359,7 @@ namespace vessel
       }
 
       totalSize = static_cast<INT64>(_headInMem.pageSize) * pcnt;
-      seekOffset = static_cast<INT64>(STORAGE_FILE_COMMON_HEAD_SIZE) +
+      seekOffset = static_cast<INT64>(SOTRAGE_FILE_TOTAL_HEAD_SIZE) +
                    _headInMem.reservedAreaSize;
       seekOffset += static_cast<INT64>(_headInMem.pageSize) * pid;
       do
@@ -1412,7 +1413,7 @@ namespace vessel
          goto error;
       }
 
-      readOffset = static_cast<INT64>(STORAGE_FILE_COMMON_HEAD_SIZE) +
+      readOffset = static_cast<INT64>(SOTRAGE_FILE_TOTAL_HEAD_SIZE) +
                    _headInMem.reservedAreaSize;
 
       do

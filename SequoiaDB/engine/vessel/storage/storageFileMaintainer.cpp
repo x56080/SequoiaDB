@@ -123,7 +123,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageFileMaintainer::createSpaceDir()const
+   INT32 storageFileMaintainer::createSpaceDirs()const
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "must be valid");
@@ -199,7 +199,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageFileMaintainer::removeSpaceDir()const
+   INT32 storageFileMaintainer::removeSpaceDirs()const
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "must be valid");
@@ -215,10 +215,18 @@ namespace vessel
       {
          fullPath = _build(p.c_str(), _subDir);
          rc = ossDelete(fullPath.c_str());
-         if (SDB_OK != rc)
+         if (SDB_FNE == rc)
+         {
+            PD_LOG(PDWARNING, "dir[%s] does not exist", fullPath.c_str());
+         }
+         else if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to remove dir[%s], rc:%d", fullPath.c_str(), rc);
             goto error;
+         }
+         else
+         {
+            PD_LOG(PDINFO, "dir[%s] removed", fullPath.c_str());
          }
       }
 

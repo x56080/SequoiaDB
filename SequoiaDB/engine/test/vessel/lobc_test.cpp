@@ -114,10 +114,10 @@ TEST_F(lobc_test, base_test1)
    rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCL(&session, "foo.bar1", 1, dmsCreateCLOptions(), bson::BSONObj());
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCL(&session, "foo.bar1", dmsOpenCLOptions(), handler);
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < LOBC_COUNT; ++i)
@@ -139,6 +139,26 @@ TEST_F(lobc_test, base_test1)
       INT32 cmp = ossMemcmp(buf, readBuf, LOBC_SIZE);
       ASSERT_EQ(0, cmp);
    }   
+
+   rc = db.close(&executor, closeDBOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (auto const &oid : oids)
+   {
+      UINT32 readSize = 0;
+      CHAR readBuf[LOBC_SIZE] = {};
+      rc = handler->readLobChunk(&executor, oid, 0, 0, LOBC_SIZE, readBuf, readSize);
+      ASSERT_EQ(SDB_OK, rc);
+      ASSERT_EQ(LOBC_SIZE, readSize);
+      INT32 cmp = ossMemcmp(buf, readBuf, LOBC_SIZE);
+      ASSERT_EQ(0, cmp);
+   } 
 
    rc = db.close(&executor, closeDBOptions());
    ASSERT_EQ(SDB_OK, rc);
@@ -172,10 +192,10 @@ TEST_F(lobc_test, base_test2)
    rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCL(&session, "foo.bar1", 1, dmsCreateCLOptions(), bson::BSONObj());
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.openCL(&session, "foo.bar1", dmsOpenCLOptions(), handler);
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < LOBC_COUNT; ++i)
@@ -204,6 +224,29 @@ TEST_F(lobc_test, base_test2)
       INT32 cmp = ossMemcmp(buffer.getRPtr(), mb.getBuffer(), LOBC_SIZE);
       ASSERT_EQ(0, cmp);
    }   
+
+   rc = db.close(&executor, closeDBOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (UINT32 i = 0; i < oids.size(); ++i)
+   {
+      const bson::OID &oid = oids.at(i);
+      UINT32 readSize = 0;
+      strictBuffer buffer;
+      buffer.makeWritable(readBuffer.getSize(), readBuffer.getBuffer());
+      buffer.setBuffer(0x0);
+      rc = handler->readLobChunk(&executor, oid, 0, 0, LOBC_SIZE, buffer.getWPtr(), readSize);
+      ASSERT_EQ(SDB_OK, rc);
+      ASSERT_EQ(LOBC_SIZE, readSize);
+      INT32 cmp = ossMemcmp(buffer.getRPtr(), mb.getBuffer(), LOBC_SIZE);
+      ASSERT_EQ(0, cmp);
+   } 
 
    rc = db.close(&executor, closeDBOptions());
    ASSERT_EQ(SDB_OK, rc);

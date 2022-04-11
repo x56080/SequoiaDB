@@ -473,7 +473,7 @@ namespace vessel
             goto error;
          }
 
-         while (slotPos < accessor.getItemCount())
+         while ((UINT32)slotPos < accessor.getItemCount())
          {
             const lobExtentMetaBlock *block = accessor.getExtentMetaBlock(slotPos);
             SDB_ASSERT(nullptr != block && block->isValid(), "can not be invalid");

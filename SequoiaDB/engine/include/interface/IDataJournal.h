@@ -38,6 +38,7 @@
 
 #include "sdbInterface.hpp"
 #include "dpsDef.hpp"
+#include "dpsLogDef.hpp"
 
 namespace engine
 {
@@ -48,6 +49,13 @@ namespace engine
          virtual ~IDataJournal(){}
          IDataJournal(const IDataJournal &) = delete;
          IDataJournal &operator=(const IDataJournal &) = delete;
+
+      public:
+         virtual DPS_LSN getMinFileLSN() = 0;
+         virtual DPS_LSN getMinBufLSN() = 0;
+         virtual DPS_LSN getCurrentLSN() = 0;
+         virtual DPS_LSN getNextLSN() = 0;
+         virtual DPS_LSN getMinUncommitedLSN() = 0;
 
       public:
          virtual void abortToCommit(IExecutor *executor,

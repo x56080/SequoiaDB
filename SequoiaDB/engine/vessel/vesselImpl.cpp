@@ -546,7 +546,7 @@ namespace vessel
       }
       else if (OSS_UNLIKELY(!isOpen()))
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
@@ -1315,6 +1315,38 @@ namespace vessel
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to read lob chunk:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 vesselImpl::removeLobChunk(IExecutor *executor,
+                                    const globalCollectionId &gcid,
+                                    const bson::OID &oid,
+                                    UINT32 chunkId)
+   {
+      INT32 rc = SDB_OK;
+      lobChunkHandler handler;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
+
+      if (OSS_UNLIKELY(nullptr == executor))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = handler.remove(gcid, oid, chunkId);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to remove lob chunk:%d", rc);
          goto error;
       }
    done:

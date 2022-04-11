@@ -34,6 +34,7 @@
 ******************************************************************************/
 #include "utilCRC.hpp"
 #include "pd.hpp"
+#include <boost/crc.hpp>
 
 namespace engine
 {

@@ -51,6 +51,7 @@ namespace engine
 namespace vessel
 {
    class requestContext;
+   class storageFileLoader;
    
    class largeObjectSpace : public SDBObject
    {
@@ -62,12 +63,14 @@ namespace vessel
          largeObjectSpace &operator=(const largeObjectSpace &) = delete;
 
       public:
-         BOOLEAN isOpen()const {return _uberBlock.isValid();}
+         BOOLEAN isOpen()const {return _metaFile.isOpen();}
 
          INT32 ensureCreated();
 
          void close();
          void destroy();
+
+         INT32 open(const storageFileLoader *loader);
 
          storageFileCluster *getFileCluster() {return &_fcluster;}
 
@@ -94,16 +97,24 @@ namespace vessel
          
 
       private:
+         void _close();
          INT32 _create();
          INT32 _createLobmFile(SPACE_ID sid,
                                UINT32 secretValue);
+
+         INT32 _openLobmFile(const storageFileLoader *loader);
          INT32 _initUberBlock();
          INT32 _loadUberBlock(lobmUberBlock &block)const;
+         INT32 _saveUberBlock(const lobmUberBlock &block);
          INT32 reserveExtent(UINT32 size, lextentDescriptor &desc);
 
-      private:/// must be under _mutex
+      private:
+         /// must be under _mutex
          INT32 extendNewLobdSegment(strictBuffer &smeBuffer);
+
          INT32 ensureLobdSme(UINT32 segmentId, strictBuffer &buffer);
+
+         INT32 getLobdSme(UINT32 segmentId, strictBuffer &buffer);
 
       private:
          const storageUnitManifest *_manifest = nullptr;

@@ -490,5 +490,32 @@ namespace vessel
    error:
       goto done;
    }
+
+   INT32 collectionHandler::removeLobChunk(IExecutor *executor,
+                                           const bson::OID &oid,
+                                           UINT32 chunkId)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == executor))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = _db->removeLobChunk(executor, _gcid, oid, chunkId);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 }//namespace vessel
 }//namespace engine

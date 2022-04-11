@@ -107,6 +107,14 @@ namespace vessel
                                   mmapPagePointer &ptr)const;
 
       private:
+         INT32 createManifestFile(const CHAR *fullPath,
+                                  const storageUnitManifest &manifest);
+
+         INT32 loadManifestFile(const CHAR *fullPath,
+                                storageUnitManifest &manifest);
+
+         void ensureManifestFileRemoved(const CHAR *fullPath);
+\
          INT32 createMainDataSpace();
 
          INT32 createIndexSpace();

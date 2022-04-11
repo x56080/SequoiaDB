@@ -64,6 +64,10 @@ namespace vessel
                     CHAR *data,
                     UINT32 &readSize);
 
+         INT32 remove(const globalCollectionId &gcid,
+                      const bson::OID &oid,
+                      UINT32 chunkId);
+
    };//class lobChunkHandler
 } // namespace vessel
 

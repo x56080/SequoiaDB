@@ -125,6 +125,37 @@ namespace vessel
          goto error;
       }
    done:
+      context.close();
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lobChunkHandler::remove(const globalCollectionId &gcid,
+                                 const bson::OID &oid,
+                                 UINT32 chunkId)
+   {
+      INT32 rc = SDB_OK;
+      COLLECTION_PTR cl;
+      requestContext context;
+      lobChunkKey key;
+
+      if (OSS_UNLIKELY(!gcid.isValid() ||
+                       !oid.isSet()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = getCollectionObject(&context, gcid, SHARED, cl);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      key.set(oid, chunkId);
+   done:
+      context.close();
       return rc;
    error:
       goto done;

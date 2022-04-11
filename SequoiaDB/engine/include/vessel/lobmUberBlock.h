@@ -36,8 +36,7 @@
 #ifndef VESSEL_LOBM_UBER_BLOCK_H_
 #define VESSEL_LOBM_UBER_BLOCK_H_
 
-#include "core.hpp"
-#include "oss.hpp"
+#include "vessel/pageIdentifier.h"
 
 namespace engine
 {
@@ -59,7 +58,9 @@ namespace vessel
 
       OSS_INLINE BOOLEAN isValid()const
       {
-         return LOBM_UBER_BLOCK_VERSION == version;
+         return LOBM_UBER_BLOCK_VERSION == version &&
+                INVALID_PAGE_ID != lobdSmeEntryPid &&
+                INVALID_PAGE_ID != bucketEntryPid;
       }
 
       void reset()

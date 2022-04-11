@@ -146,6 +146,10 @@ namespace vessel
                                     UINT32 size,
                                     CHAR *data,
                                     UINT32 &readSize) override;
+
+         virtual INT32 removeLobChunk(IExecutor *executor,
+                                      const bson::OID &oid,
+                                      UINT32 chunkId) override;
           
       private:
          globalCollectionId _gcid;

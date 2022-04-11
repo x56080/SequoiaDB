@@ -196,6 +196,11 @@ namespace vessel
                             CHAR *data,
                             UINT32 &readSize);
 
+         INT32 removeLobChunk(IExecutor *executor,
+                              const globalCollectionId &gcid,
+                              const bson::OID &oid,
+                              UINT32 chunkId);
+
       public:
          INT32 pushMoreToCursor(IExecutor *executor,
                                  cursorKernal *cursor);   

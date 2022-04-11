@@ -60,8 +60,8 @@ namespace vessel
          INT32 init(const storagePathOptions *path,
                     SPACE_ID sid);
          void reset();
-         INT32 createSpaceDir()const;
-         INT32 removeSpaceDir()const;
+         INT32 createSpaceDirs()const;
+         INT32 removeSpaceDirs()const;
          INT32 createStorageFile(const storageFileName &fn,
                                  const createStorageFileOptions &o,
                                  storageFile &file)const;

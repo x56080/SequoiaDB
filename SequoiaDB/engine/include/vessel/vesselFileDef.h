@@ -55,6 +55,7 @@ namespace vessel
    constexpr UINT32 DIR_NAME_PREFIX_LEN = 4;
 
    constexpr CHAR * const CSNAME_FILE_NAME = "CSNAME";
+   constexpr CHAR * const MANIFEST_FILE_NAME = "MANIFEST";
 
    constexpr UINT16 INVALID_FILE_SHADOW_SUFFIX = 0xFFFF;
    constexpr UINT16 FILE_SHADOW_SUFFIX_TMP = 0;
@@ -88,11 +89,11 @@ namespace vessel
          }
          OSS_INLINE BOOLEAN isValid()const
          {
-            return NULL != _fileTypeName;
+            return nullptr != _fileTypeName;
          }
 
       private:
-         const CHAR * _fileTypeName = NULL;
+         const CHAR * _fileTypeName = nullptr;
    };//class fileDescriptor
 
    class spaceTypeDescriptor
@@ -121,11 +122,11 @@ namespace vessel
 
          OSS_INLINE BOOLEAN isValid()const
          {
-            return NULL != _spaceTypeName;
+            return nullptr != _spaceTypeName;
          }
 
       private:
-         const CHAR *_spaceTypeName = NULL;
+         const CHAR *_spaceTypeName = nullptr;
    };//class spaceTypeDescriptor
 
    typedef UINT8 SPACE_TYPE;

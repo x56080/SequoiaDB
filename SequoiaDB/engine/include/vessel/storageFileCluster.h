@@ -57,19 +57,13 @@ namespace vessel
          storageFileCluster &operator=(const storageFileCluster &) = delete;
 
       public:
-         struct options : public SDBObject
-         {
-            BOOLEAN mmap = TRUE;
-         };//struct options
-
-      public:
          OSS_INLINE BOOLEAN isOpen()const {return _manifest.isValid();}
          OSS_INLINE const storageFileManifest &getManifest()const {return _manifest;}
          OSS_INLINE const storageCoreArgs &getCoreArgs()const {return _manifest.args;}
          OSS_INLINE SPACE_ID getSid()const {return _manifest.sid;}
 
          INT32 open(const storageFileManifest &manifest,
-                    const options &o,
+                    UINT32 ctlFlags,
                     const storageFileLoader *loader);
 
          void close();
@@ -117,7 +111,7 @@ namespace vessel
          storageFile *createFilePtr();
          void releaseFilePtr(storageFile *ptr);
       private:
-         options _o;
+         UINT32 _ctl = 0;
          storageFileManifest _manifest;
          keepHistoryPointerArray _files;
    };//class storageFileCluster

@@ -42,6 +42,7 @@
 #include "vessel/storageFileLoader.h"
 #include "vessel/storageUtils.h"
 #include "vessel/storageFileMaintainer.h"
+#include "vessel/controlFile.h"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -90,7 +91,7 @@ namespace vessel
       _is.destroy();
       _los.destroy();
 
-      sfm.removeSpaceDir();
+      sfm.removeSpaceDirs();
       _manifest.reset();
    done:
       return rc;
@@ -110,6 +111,7 @@ namespace vessel
       SDB_ASSERT(nullptr != tc, "can not be invalid");
       const storagePathOptions &po = tc->getEnv()->options.path;
       storageFileMaintainer sfm;
+      ossPoolString manifestPath;
 
       if (OSS_UNLIKELY(INVALID_SPACE_ID == sid ||
                        !options.isValid()))
@@ -118,21 +120,37 @@ namespace vessel
          goto error;
       }
       
+      sfm.init(&po, sid);
+
+      manifestPath = sfm.buildFullPath(SPACE_TYPE_MAIN_DATA,
+                                       MANIFEST_FILE_NAME);
+      if (OSS_UNLIKELY(manifestPath.empty()))
+      {
+         PD_LOG(PDERROR, "failed to build manifest path");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
       _manifest.sid = sid;
       _manifest.secretValue = ossRand();
       _manifest.dataArgs = options.dataArgs;
       _manifest.idxArgs = options.indexArgs;
       _manifest.lobArgs = options.lobArgs;
 
-      sfm.init(&po, sid);
-
-      rc = sfm.createSpaceDir();
+      rc = sfm.createSpaceDirs();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create space[%d] dir, rc:%d", sid, rc);
          goto error;
       }
       dirCreated = TRUE;
+
+      rc = createManifestFile(manifestPath.c_str(), _manifest);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create manifest file:%d", rc);
+         goto error;
+      }
 
       rc = createMainDataSpace();
       if (SDB_OK != rc)
@@ -145,7 +163,6 @@ namespace vessel
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create index space:%d", rc);
-         _mds.destroy();
          goto error;
       }
 
@@ -153,9 +170,22 @@ namespace vessel
    done:
       return rc;
    error:
+      if (_is.isOpen())
+      {
+         _is.destroy();
+      }
+      if (_mds.isOpen())
+      {
+         _mds.destroy();
+      }
       if (dirCreated)
       {
-         sfm.removeSpaceDir();
+         ensureManifestFileRemoved(manifestPath.c_str());
+         INT32 tmprc = sfm.removeSpaceDirs();
+         if (SDB_OK != tmprc)
+         {
+            PD_LOG(PDSEVERE, "failed to rollback space dirs:%d", tmprc);
+         }
       }
       
       _manifest.reset();
@@ -170,6 +200,7 @@ namespace vessel
       storageFileLoader loader;
       storageFileMaintainer sfm;
       const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path; 
+      ossPoolString manifestPath;
 
       if (OSS_UNLIKELY(isOpen()))
       {
@@ -181,9 +212,6 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-
-      /// TODO: init manifest from MANIFEST file
-      _manifest.sid = sid;
       
       sfm.init(&po, sid);
 
@@ -191,6 +219,29 @@ namespace vessel
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to test space[%d] dir, rc:%d", sid, rc);
+         goto error;
+      }
+
+      manifestPath = sfm.buildFullPath(SPACE_TYPE_MAIN_DATA, MANIFEST_FILE_NAME);
+      if (OSS_UNLIKELY(manifestPath.empty()))
+      {
+         PD_LOG(PDERROR, "failed to build manifest path");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = loadManifestFile(manifestPath.c_str(), _manifest);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open mainifest file:%d", rc);
+         goto error;
+      }
+
+      if (_manifest.sid != sid)
+      {
+         PD_LOG(PDERROR, "unexpected sid[%d] saved in manifest",
+                _manifest.sid);
+         rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
@@ -215,8 +266,12 @@ namespace vessel
          goto error;
       }
 
-      _manifest.dataArgs = _mds.getStorageCoreArgs();
-      _manifest.idxArgs = _is.getStorageCoreArgs();
+      rc = _los.open(&loader);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open lob space:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:
@@ -309,6 +364,116 @@ namespace vessel
       return rc;
    error:
       goto done;
+   }
+
+   INT32 storageUnit::createManifestFile(const CHAR *fullPath,
+                                         const storageUnitManifest &manifest)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(manifest.isValid(), "can not be invalid");
+      strSlice pathSlice(fullPath);
+      SDB_ASSERT(!pathSlice.empty(), "can not be empty");
+
+      bson::BSONObj manifestObj = buildSuManifestObj(manifest);
+      if (manifestObj.isEmpty())
+      {
+         PD_LOG(PDERROR, "failed to build manifest obj");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = controlFile::create(pathSlice,
+                               manifestObj.objdata(),
+                               manifestObj.objsize());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create manifest file:%s, rc:%d",
+                fullPath, rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 storageUnit::loadManifestFile(const CHAR *fullPath,
+                                       storageUnitManifest &manifest)
+   {
+      INT32 rc = SDB_OK;
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      CHAR *buffer = nullptr;
+      strSlice path(fullPath);
+      SDB_ASSERT(!path.empty(), "can not be invalid");
+      controlFile file;
+      UINT32 contentLen = 0;
+      manifest.reset();
+
+      rc = file.openToRead(path);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open manifest file[%s], rc:%d",
+                fullPath, rc);
+         goto error;
+      }
+
+      contentLen = file.getContentLen();
+      buffer = tc->allocateBuffer(contentLen);
+      if (nullptr == buffer)
+      {
+         PD_LOG(PDERROR, "failed to allocate mem.");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      rc = file.read(buffer, contentLen);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to read manifest file:%d", rc);
+         goto error;
+      }
+
+      try
+      {
+         bson::BSONObj obj(buffer);
+         if (!parseSuManifestObj(obj, manifest))
+         {
+            PD_LOG(PDERROR, "failed to parse manifest obj");
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+      }
+      catch(const std::exception& e)
+      {
+         PD_LOG(PDERROR, "unexpected error:%s", e.what());
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      
+   done:
+      if (nullptr != buffer)
+      {
+         tc->releaseBuffer(buffer);
+      }
+      file.close();
+      return rc;
+   error:
+
+      goto done;
+   }
+
+   void storageUnit::ensureManifestFileRemoved(const CHAR *fullPath)
+   {
+      SDB_ASSERT(nullptr != fullPath && fullPath[0] != '\0', "can not be invalid");
+      INT32 rc = ossDelete(fullPath);
+      if (SDB_OK != rc && SDB_FNE != rc)
+      {
+         PD_LOG(PDSEVERE, "failed to remvoe manifest file:%s, rc:%d",
+                fullPath, rc);
+      }
+      return;
    }
 }//namespace vessel
 }//namespace engine

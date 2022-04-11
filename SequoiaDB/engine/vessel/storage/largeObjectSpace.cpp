@@ -45,6 +45,7 @@
 #include "vessel/runtimeMbContext.h"
 #include "vessel/lobcMetaBlockMapping.h"
 #include "vessel/lobcLatchHelper.h"
+#include "vessel/storageFileLoader.h"
 
 namespace engine
 {
@@ -60,7 +61,7 @@ namespace vessel
 
    largeObjectSpace::~largeObjectSpace()
    {
-
+      _close();
    }
 
    INT32 largeObjectSpace::ensureCreated()
@@ -85,19 +86,130 @@ namespace vessel
 
    void largeObjectSpace::close()
    {
+      if (_allocator.isValid() &&
+          _uberBlock.isValid() &&
+          _allocator.peekSegmentCount() != _uberBlock.totalLobdSegments)
+      {
+         mmapPagePointer ptr;
+         INT32 rc = _metaFile.getPagePtr(UBER_BLOCK_PID, ptr);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get block page:%d", rc);
+         }
+         else
+         {
+            strictBuffer buffer;
+            buffer.makeWritable(_metaFile.getPageSize(), ptr.getBuf());
+            buffer.getWritableObjPtr<lobmUberBlock>(0)->totalLobdSegments =
+                                            _allocator.peekSegmentCount();
+            _metaFile.fsync();
+         }
+      }
+      _close();
+   }
+
+   void largeObjectSpace::_close()
+   {
       _fcluster.close();
       _allocator.clear();
-      _metaFile.fsync();
       _metaFile.close();
       _uberBlock.reset();
    }
 
    void largeObjectSpace::destroy()
    {
-      _fcluster.destroy();
-      _allocator.clear();
-      _metaFile.destroy();
-      _uberBlock.reset();
+      if (isOpen())
+      {
+         _fcluster.destroy();
+         _allocator.clear();
+         _metaFile.destroy();
+         _uberBlock.reset();
+      }
+   }
+
+   INT32 largeObjectSpace::open(const storageFileLoader *loader)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(!isOpen(), "can not be open");
+      storageFileManifest fileManifest;
+
+      if (OSS_UNLIKELY(nullptr == loader))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (nullptr == _manifest || !_manifest->isValid())
+      {
+         SDB_ASSERT(FALSE, "init manifest first");
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = _openLobmFile(loader);
+      if (SDB_FNE == rc)
+      {
+         /// lob space may not be created yet.
+         rc = SDB_OK;
+         goto done;
+      }
+      else if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open meta file:%d", rc);
+         goto error;
+      }
+
+      rc = _loadUberBlock(_uberBlock);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to load uber block:%d", rc);
+         goto error;
+      }
+
+      fileManifest.sid = _manifest->sid;
+      fileManifest.stype = SPACE_TYPE_LOB;
+      fileManifest.ftype = FILE_TYPE_DATA_STORAGE;
+      fileManifest.secretValue = _manifest->secretValue;
+      fileManifest.args = _manifest->lobArgs;
+
+      rc = _fcluster.open(fileManifest, 0, loader);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open file cluster:%d", rc);
+         goto error;
+      }
+
+      if (_fcluster.getTotalSegmentCount() < _uberBlock.totalLobdSegments)
+      {
+         PD_LOG(PDERROR, "segment count in uber block[%d] does not match cluster[%d]",
+                _uberBlock.totalLobdSegments, _fcluster.getTotalSegmentCount());
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      _allocator.init(_manifest->lobArgs.maxPageCountPerSeg,
+                      MAX_LOB_CHUNK_SIZE / _manifest->lobArgs.pageSize);
+      for (UINT32 i = 0; i < _uberBlock.totalLobdSegments; ++i)
+      {
+         strictBuffer smeBuffer;
+         rc = getLobdSme(i, smeBuffer);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get sme of segment[%d], rc:%d", i, rc);
+            goto error;
+         }
+
+         rc = _allocator.depositWithSme((UINT64 *)(smeBuffer.getWPtr()), FALSE);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to deposit segment[%d], rc:%d", i, rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      _close();
+      goto done;
    }
 
    INT32 largeObjectSpace::insertLobChunk(requestContext *context,
@@ -197,8 +309,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       storageFileManifest fileManifest;
-      storageFileCluster::options o;
-      o.mmap = FALSE;
 
       std::unique_lock<std::mutex> guard(_mutex);
       if (isOpen())
@@ -233,7 +343,7 @@ namespace vessel
       fileManifest.ftype = FILE_TYPE_DATA_STORAGE;
       fileManifest.secretValue = _manifest->secretValue;
       fileManifest.args = _manifest->lobArgs;
-      rc = _fcluster.open(fileManifest, o, nullptr);
+      rc = _fcluster.open(fileManifest, 0, nullptr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open file cluster:%d", rc);
@@ -333,9 +443,16 @@ namespace vessel
 
       buffer.reset(_metaFile.getPageSize(), ptr.getBuf());
       block = *(buffer.getReadableObjPtr<lobmUberBlock>(0));
+      if (!block.isValid())
+      {
+         PD_LOG(PDERROR, "invalid uber block");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
    done:
       return rc;
    error:
+      block.reset();
       goto done;
    }
 
@@ -387,6 +504,47 @@ namespace vessel
       {
          _metaFile.destroy();
       }
+      goto done;
+   }
+
+   INT32 largeObjectSpace::_openLobmFile(const storageFileLoader *loader)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(nullptr != _manifest && INVALID_SPACE_ID != _manifest->sid,
+                "can not be invalid");
+      SDB_ASSERT(!_metaFile.isOpen(), "already been open");
+      SDB_ASSERT(nullptr != loader, "can not be null");
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be invalid");
+      const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
+      storageFileMaintainer sfm(&po, _manifest->sid);
+      UINT32 fileCtlFlags = storageFileCtlFlag::MMAP_DATA_SEGMENT;
+
+      const STORAGE_FILE_NAME_LIST *fl = loader->getFileList(SPACE_TYPE_LOB,
+                                                             FILE_TYPE_LOBM);
+      if (nullptr == fl || fl->empty())
+      {
+         rc = SDB_FNE;
+         goto error;
+      }
+      else
+      {
+         const storageFileName &fn = fl->front();
+         SDB_ASSERT(fn.isValid(), "can not be invalid");
+         SDB_ASSERT(SPACE_TYPE_LOB == fn.getSpaceType(), "must be lob");
+         SDB_ASSERT(FILE_TYPE_LOBM == fn.getFileType(), "must be lobm file");
+         SDB_ASSERT(!fn.hasShadowSuffix(), "impossible");
+
+         rc = sfm.openStorageFile(fn, fileCtlFlags, _metaFile);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to open lobm file:%d", rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
       goto done;
    }
 
@@ -570,6 +728,65 @@ namespace vessel
    done:
       return rc;
    error:
+      goto done;
+   }
+
+   INT32 largeObjectSpace::getLobdSme(UINT32 segmentId, strictBuffer &buffer)
+   {
+      INT32 rc = SDB_OK;
+      mmapPagePointer ptr;
+      UINT32 capacity = getLobdSmePageCapacity();
+      UINT32 pidPos = segmentId / capacity;
+      UINT32 offset = (segmentId % capacity) * getLobdSmeSize();
+      strictBuffer pageBuffer;
+      const PAGE_ID *pidPtr = nullptr;
+
+      buffer.reset();
+
+      rc = _metaFile.getPagePtr(_uberBlock.lobdSmeEntryPid, ptr);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to get lobm page[%d] ptr:%d",
+                _uberBlock.lobdSmeEntryPid);
+         goto error;
+      }
+
+      pageBuffer.makeWritable(_metaFile.getPageSize(), ptr.getBuf());
+      pidPtr = pageBuffer.getReadableObjPtr<PAGE_ID>(sizeof(PAGE_ID) * pidPos);
+      if (OSS_UNLIKELY(nullptr == pidPtr))
+      {
+         PD_LOG(PDERROR, "failed to get pid ptr:%d", pidPos);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      else if (INVALID_PAGE_ID == *pidPtr)
+      {
+         PD_LOG(PDERROR, "invalid pid of segment[%d]", segmentId);
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      /// reuse ptr and pageBuffer.
+      rc = _metaFile.getPagePtr(*pidPtr, ptr);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to get lobm page[%d] ptr, rc:%d", *pidPtr, rc);
+         goto error;
+      }
+
+      pageBuffer.makeWritable(_metaFile.getPageSize(), ptr.getBuf());
+      buffer = pageBuffer.getWritableBuffer(getLobdSmeSize(), offset);
+      if (OSS_UNLIKELY(!buffer.isWritable()))
+      {
+         PD_LOG(PDERROR, "failed to get writable buffer");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      buffer.reset();
       goto done;
    }
 

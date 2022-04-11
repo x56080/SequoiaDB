@@ -41,7 +41,6 @@
 
 #include "core.hpp"
 #include "oss.hpp"
-#include <boost/crc.hpp>
 
 namespace engine
 {

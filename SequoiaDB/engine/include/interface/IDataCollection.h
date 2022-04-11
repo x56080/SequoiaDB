@@ -47,6 +47,7 @@
 #include "rtnPredicate.hpp"
 #include "interface/IDataCursor.h"
 #include "utilUniqueID.hpp"
+#include "dmsLobDef.hpp"
 
 #include <memory> // c++ 11
 
@@ -113,6 +114,46 @@ namespace engine
 
          virtual INT32 getRecordCount(IExecutor *executor,
                                       UINT64 &count) = 0;
+
+      public: /// lob
+         virtual INT32 insertLobChunk(IExecutor *executor,
+                                      const bson::OID &oid,
+                                      UINT32 chunkId,
+                                      UINT32 offset,
+                                      UINT32 size,
+                                      const CHAR *data) = 0;
+
+         virtual INT32 readLobChunk(IExecutor *executor,
+                                    const bson::OID &oid,
+                                    UINT32 chunkId,
+                                    UINT32 offset,
+                                    UINT32 size,
+                                    CHAR *data,
+                                    UINT32 &readSize) = 0;
+
+         virtual INT32 removeLobChunk(IExecutor *executor,
+                                      const bson::OID &oid,
+                                      UINT32 chunkId) = 0;
+
+/*
+         virtual INT32 updateLobChunk(IExecutor *executor,
+                                      const bson::OID &oid,
+                                      UINT32 chunkId,
+                                      UINT32 offset,
+                                      UINT32 size,
+                                      const CHAR *data,
+                                      BOOLEAN createIfNotExists) = 0;
+
+         virtual INT32 truncateLobChunk(IExecutor *executor,
+                                        const bson::OID &oid,
+                                        UINT32 chunkId,
+                                        UINT32 newSize) = 0;
+
+         virtual INT32 testLobChunk(IExecutor *executor,
+                                    const bson::OID &oid,
+                                    UINT32 chunkId,
+                                    lobChunkProfile *profile) = 0;
+*/
 
    };//class IDataCollection
 
