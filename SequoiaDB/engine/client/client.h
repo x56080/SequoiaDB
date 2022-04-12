@@ -1906,7 +1906,7 @@ SDB_EXPORT INT32 sdbUpsert ( sdbCollectionHandle cHandle,
                     using index "ageIndex" to scan data(index scan);
                     {"":null} means table scan. when hint is null,
                     database automatically match the optimal index to scan data
-    \param [in] setOnInsert The setOnInsert assigns the specified values to the fileds when insert
+    \param [in] setOnInsert The setOnInsert assigns the specified values to the fields when insert
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
     \note It won't work to upsert the "ShardingKey" field, but the other fields take effect
@@ -1931,7 +1931,7 @@ SDB_EXPORT INT32 sdbUpsert1 ( sdbCollectionHandle cHandle,
                     using index "ageIndex" to scan data(index scan);
                     {"":null} means table scan. when hint is null,
                     database automatically match the optimal index to scan data
-    \param [in] setOnInsert The setOnInsert assigns the specified values to the fileds when insert
+    \param [in] setOnInsert The setOnInsert assigns the specified values to the fields when insert
     \param [in] flag The update flag, default to be 0. Please see the definition of follow flags for more detail.
     \code
         UPDATE_KEEP_SHARDINGKEY
