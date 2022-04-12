@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Random;
 
+import com.sequoiadb.base.DBCursor;
+import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
 import org.testng.SkipException;
@@ -75,6 +77,7 @@ public class IndexConsistent23939 extends SdbTestBase {
         Assert.assertFalse( cs.isCollectionExist( clName ) );
         IndexUtils.checkNoTask( sdb, SdbTestBase.csName, clName,
                 "Create index" );
+        checkNoSnapshotTask( sdb, "Create index", SdbTestBase.csName, clName );
         runSuccess = true;
     }
 
@@ -138,5 +141,24 @@ public class IndexConsistent23939 extends SdbTestBase {
                 cs.dropCollection( clName );
             }
         }
+    }
+
+    private void checkNoSnapshotTask( Sequoiadb db, String taskTypeDesc,
+            String csName, String clName ) {
+        BSONObject matcher = new BasicBSONObject();
+        matcher.put( "Name", csName + '.' + clName );
+        matcher.put( "TaskTypeDesc", taskTypeDesc );
+        DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_TASKS, matcher,
+                null, null );
+        int taskNum = 0;
+        BSONObject taskInfo = null;
+        while ( cursor.hasNext() ) {
+            taskInfo = cursor.getNext();
+            taskNum++;
+        }
+        cursor.close();
+        Assert.assertEquals( taskNum, 0,
+                "check snapshot task should be no exist! act task ="
+                        + taskInfo );
     }
 }
