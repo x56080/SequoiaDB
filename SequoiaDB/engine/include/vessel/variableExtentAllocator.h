@@ -156,7 +156,7 @@ namespace vessel
                const UINT16 _capacity = 0;
                UINT16 _freeCount = 0;
 
-               /// we only update _maxExtentSize in time
+               /// we only update _maxExtentSize
                /// when failed to reserve or release extent.
                UINT16 _maxExtentSize = 0;
                UINT16 _flags = 0;

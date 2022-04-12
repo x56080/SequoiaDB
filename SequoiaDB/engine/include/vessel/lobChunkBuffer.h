@@ -68,6 +68,11 @@ namespace vessel
 
          OSS_INLINE const atomicBufferCtlBlock &ctl()const {return _ctl;}
          OSS_INLINE atomicBufferCtlBlock &ctl() {return _ctl;}
+         OSS_INLINE BOOLEAN isInDirtyList()const
+         {
+            return 0 != OSS_BIT_TEST(_ctl.load().getFlags(),
+                                     LOBC_BUFFER_CTL_FLAGS::IN_DIRTY_LIST);
+         }
 
          OSS_INLINE DPS_LSN_OFFSET getMinLSN()const {return _minLSN;}
          OSS_INLINE DPS_LSN_OFFSET getMaxLSN()const {return _maxLSN;}
@@ -95,24 +100,23 @@ namespace vessel
          }
 
       public:
-         OSS_INLINE UINT32 getRegisteredBufferSize()const
+         OSS_INLINE BOOLEAN hasMetaDataToCommint()const
          {
-            return _registeredBufferSize;
-         }
-         OSS_INLINE BOOLEAN isBufferSizeRegistered()const
-         {
-            return 0 < _registeredBufferSize;
-         }
-         OSS_INLINE void registerBufferSize()
-         {
-            _registeredBufferSize = _bufferCtx.getBufferSize();
-         }
-         OSS_INLINE void resetRegisteredBufferSize()
-         {
-            _registeredBufferSize = 0;
+            return _hasMetaDataToCommit;
          }
 
+         OSS_INLINE void clearMetaData()
+         {
+            _hasMetaDataToCommit = FALSE;
+         }
+
+         OSS_INLINE void setMetaDataToCommit()
+         {
+            _hasMetaDataToCommit = TRUE;
+         }
       public:
+         OSS_INLINE BOOLEAN isTrash()const {return _isTrash;}
+         OSS_INLINE void setAsTrash() {_isTrash = TRUE;}
          void exportTasks(ossPoolVector<bufferFlushTask> &tasks)const;
           
       private:
@@ -124,8 +128,8 @@ namespace vessel
 
          multiPageBufferContext _bufferCtx;
 
-         UINT32 _registeredBufferSize = 0;
-
+         BOOLEAN _hasMetaDataToCommit = FALSE; /// tmp code.
+         BOOLEAN _isTrash = FALSE;
    };//class lobChunkBuffer
    typedef class std::shared_ptr<lobChunkBuffer> sharedLobChunkBuffer;
    typedef class ossPoolList<sharedLobChunkBuffer> SHARED_LOBC_BUFFER_LIST;

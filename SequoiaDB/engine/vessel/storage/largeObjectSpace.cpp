@@ -873,6 +873,81 @@ namespace vessel
    error:
       goto done;
    }
+
+   INT32 largeObjectSpace::removeLobChunk(requestContext *context,
+                                          const lobChunkKey &key)
+   {
+      INT32 rc = SDB_OK;
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      LOBC_LATCH_MAP::object locker;
+      lobcLatchHelper lh;
+      globalLobChunkKey glckey;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+
+      if (OSS_UNLIKELY(nullptr == context ||
+                       !context->isMbContextAttached() ||
+                       !key.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      SDB_ASSERT(context->getSpaceID() == _manifest->sid, "must be same");
+      glckey.set(_manifest->sid, context->getMBID(), key);
+      rc = lh.lock(glckey, mode, locker);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock lobc[%s], rc:%d",
+                glckey.toString().c_str(), rc);
+         goto error;
+      }
+
+      {
+         lobChunkBufferPool &pool = tc->getEnv()->lobcBufferPool;
+         lobChunkSearchEntry entry(key, context->getLogicalClId());
+         lobcExtentChain chain;
+         lobcMetaBlockMapping mapping(_manifest, _uberBlock.bucketEntryPid, &_metaFile);
+
+         rc = mapping.remove(entry, &chain);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+         SDB_ASSERT(!chain.isEmpty(), "can not be empty");
+
+         rc = pool.remove(glckey);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDSEVERE, "failed to remove lobc[%s] from buffer pool:%d",
+                   glckey.toString().c_str(), rc);
+            ossPanic();
+            goto error;
+         }
+
+         /// actually, we are not sure if these pages are being flushed.
+         /// but it does not matter, new writing will overwrite these pages
+         /// at next flush job.
+         for (UINT32 i = 0; i < chain.getChainSize(); ++i)
+         {
+            const lextentDescriptor &desc = chain.getChainItem(i);
+            _allocator.release(desc.pid, desc.pcnt);
+         }
+      }
+   done:
+      if (locker.isValid())
+      {
+         lh.unlock(mode, locker);
+      }
+      return rc;
+   error:
+      goto done;
+   }
 } // namespace vessel
 
 } // namespace engine

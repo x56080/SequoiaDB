@@ -50,12 +50,6 @@ namespace vessel
    {
       /// it must be trivially copyable.
       public:
-         OSS_INLINE BOOLEAN isPinned()const
-         {
-            return isReferenced() || 0 != _flags;
-         }
-
-      public:
          OSS_INLINE void init(BUFFER_STATUS s, 
                               UINT32 refCnt,
                               BUFFER_CTL_FLAG_WORD flags)
@@ -154,8 +148,8 @@ namespace vessel
 
       public:
          BOOLEAN incRefCntIfNormal(bufferControlBlock *old=nullptr);
-         void decRefCnt(bufferControlBlock *old=nullptr);
-
+         void decRefCnt(BUFFER_CTL_FLAG_WORD flagToClear = 0,
+                        bufferControlBlock *old=nullptr);
          
          BOOLEAN setRecyclingFromNormal(UINT32 refCntContdition=0,
                                         BUFFER_CTL_FLAG_WORD flagCondition=0);

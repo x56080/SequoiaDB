@@ -87,6 +87,9 @@ namespace vessel
                             CHAR *buffer,
                             UINT32 &readSize);
 
+         INT32 removeLobChunk(requestContext *context,
+                              const lobChunkKey &key);
+
       private:
          UINT32 getLobdPageSize()const;
 

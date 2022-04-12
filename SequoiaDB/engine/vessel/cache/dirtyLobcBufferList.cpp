@@ -43,28 +43,24 @@ namespace vessel
    void dirtyLobcBufferList::clear()
    {
       std::unique_lock<std::mutex> guard(_mutex);
-      _totalBufferSize = 0;
       _minFlushLSN = DPS_INVALID_LSN_OFFSET;
       _minListLSN = DPS_INVALID_LSN_OFFSET;
       _list.clear();
       return;
    }
 
-   void dirtyLobcBufferList::upsert(sharedLobChunkBuffer &buffer)
+   void dirtyLobcBufferList::insert(sharedLobChunkBuffer &buffer)
    {
       SDB_ASSERT(buffer && buffer->isValid(), "can not be invalid");
+      SDB_ASSERT(buffer->hasMetaDataToCommint() ||
+                 buffer->getBufferCtx().hasDirtyBuffer(), "nothing to flush");
 
-      if (!buffer->isBufferSizeRegistered())
+      if (!buffer->isInDirtyList())
       {
+         buffer->ctl().setFlags(LOBC_BUFFER_CTL_FLAGS::IN_DIRTY_LIST);
          std::unique_lock<std::mutex> guard(_mutex);
          _pushBackToList(buffer);
       }
-      
-      INT64 delta = static_cast<INT64>(buffer->getBufferCtx().getBufferSize()) -
-                    static_cast<INT64>(buffer->getRegisteredBufferSize());
-      SDB_ASSERT(0 <= delta, "impossible");
-      _totalBufferSize.fetch_add(delta, std::memory_order_relaxed);
-      buffer->registerBufferSize();
    }
 
    void dirtyLobcBufferList::makeFlushList(UINT64 bufferSizeLimit,
@@ -76,8 +72,7 @@ namespace vessel
       std::unique_lock<std::mutex> guard(_mutex);
 
       BUFFER_CTL_FLAG_WORD flags = LOBC_BUFFER_CTL_FLAGS::PENDING_FLUSH;
-      BUFFER_CTL_FLAG_WORD condition = LOBC_BUFFER_CTL_FLAGS::BUSY |
-                                       LOBC_BUFFER_CTL_FLAGS::TRASH;
+      BUFFER_CTL_FLAG_WORD condition = LOBC_BUFFER_CTL_FLAGS::BUSY;
       SHARED_LOBC_BUFFER_LIST::iterator left = _list.begin();
       SHARED_LOBC_BUFFER_LIST::iterator right = _list.begin();
 
@@ -92,18 +87,8 @@ namespace vessel
                fl._list.splice(fl._list.end(), _list, left, right);
             }
 
-            SDB_ASSERT(0 == OSS_BIT_TEST(oldVal, LOBC_BUFFER_CTL_FLAGS::PENDING_FLUSH), "impossible");
-            SDB_ASSERT(0 != OSS_BIT_TEST(oldVal, LOBC_BUFFER_CTL_FLAGS::DIRTY), "impossible");
-            if (0 != OSS_BIT_TEST(oldVal, LOBC_BUFFER_CTL_FLAGS::TRASH))
-            {
-               right = _list.erase(right);
-               left = right;
-            }
-            else
-            {
-               SDB_ASSERT(0 != OSS_BIT_TEST(oldVal, LOBC_BUFFER_CTL_FLAGS::BUSY), "impossible");
-               left = ++right;
-            }
+            SDB_ASSERT(0 != OSS_BIT_TEST(oldVal, LOBC_BUFFER_CTL_FLAGS::BUSY), "impossible");
+            left = ++right;
          }
          else
          {
@@ -112,10 +97,23 @@ namespace vessel
             {
                fl._maxDirtyLSN = buffer->getMaxLSN();
             }
+
             fl._totalBufferSize += buffer->getBufferCtx().getBufferSize();
             fl._dirtyPageCount += buffer->getBufferCtx().getDirtyBufferCount();
-            
-            ++right;
+
+            if (buffer->isTrash())
+            {
+               if (left != right)
+               {
+                  fl._list.splice(fl._list.end(), _list, left, right);
+               }
+               right = _list.erase(right);
+               left = right;
+            }
+            else
+            {
+               ++right;
+            }
             
             if ((0 < bufferSizeLimit) && (bufferSizeLimit <= fl._totalBufferSize))
             {
@@ -141,10 +139,7 @@ namespace vessel
       if (!fl.isEmpty())
       {
          _minFlushLSN = fl._list.front()->getMinLSN();
-      }
-
-      guard.unlock();
-      _totalBufferSize.fetch_sub(fl._totalBufferSize, std::memory_order_relaxed);
+      }      
    
    /* splice whole list first, and repush back busy ones.
       if (!_list.empty())

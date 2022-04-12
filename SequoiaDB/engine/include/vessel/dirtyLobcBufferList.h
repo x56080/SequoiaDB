@@ -58,12 +58,8 @@ namespace vessel
 
       public:
          void clear();
-         void upsert(sharedLobChunkBuffer &buffer);
+         void insert(sharedLobChunkBuffer &buffer);
          DPS_LSN_OFFSET peekMinDirtyLSN()const;
-         INT64 getTotalBufferSize()const
-         {
-            return _totalBufferSize.load(std::memory_order_relaxed);
-         }
 
       public:///WARNING: only for pool watcher !!!
 
@@ -79,8 +75,6 @@ namespace vessel
          std::mutex _mutex;
          DPS_LSN_OFFSET _minFlushLSN = DPS_INVALID_LSN_OFFSET;
          DPS_LSN_OFFSET _minListLSN = DPS_INVALID_LSN_OFFSET;
-
-         std::atomic_llong _totalBufferSize = {0};
 
          /// buffer sorted by min dirty lsn in list.
          SHARED_LOBC_BUFFER_LIST _list;

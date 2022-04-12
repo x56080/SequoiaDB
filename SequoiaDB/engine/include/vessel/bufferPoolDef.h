@@ -55,10 +55,9 @@ namespace vessel
 
    struct LOBC_BUFFER_CTL_FLAGS
    {
-      static constexpr BUFFER_CTL_FLAG_WORD PENDING_FLUSH = 0x01;
-      static constexpr BUFFER_CTL_FLAG_WORD BUSY = 0x02;
-      static constexpr BUFFER_CTL_FLAG_WORD DIRTY = 0x04;
-      static constexpr BUFFER_CTL_FLAG_WORD TRASH = 0x08;
+      static constexpr BUFFER_CTL_FLAG_WORD BUSY = 0x01;
+      static constexpr BUFFER_CTL_FLAG_WORD IN_DIRTY_LIST = 0x02;
+      static constexpr BUFFER_CTL_FLAG_WORD PENDING_FLUSH = 0x04;
    };//struct BUFFER_CTL_FLAGS
 
 } // namespace vessel

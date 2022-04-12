@@ -87,6 +87,9 @@ namespace vessel
                     UINT32 size,
                     CHAR *buf);
 
+         /// get x lock of key outside first
+         INT32 remove(const globalLobChunkKey &key);
+
       public:
          BOOLEAN isWatcherAttached()const;
          
@@ -159,6 +162,10 @@ namespace vessel
                                     UINT32 pageSize,
                                     sharedLobChunkBuffer &out);
 
+         INT32 _getBufferToRemove(const globalLobChunkKey &key,
+                                  UINT32 pageSize,
+                                  sharedLobChunkBuffer &out);
+
          INT32 _write(_accessingContext &context,
                       const writeOptions &o,
                       storageFileCluster *fcluster);
@@ -184,6 +191,7 @@ namespace vessel
          BOOLEAN betterToFlush(UINT64 &flushSize)const;
          BOOLEAN isFlushing()const;
          void handleFlushTaskRes(const backgroundEvent &event);
+         void finishFlush();
 
       private:
          lobcBufferPoolOptions _o;

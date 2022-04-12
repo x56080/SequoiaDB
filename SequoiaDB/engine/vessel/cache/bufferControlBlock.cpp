@@ -63,7 +63,8 @@ namespace vessel
       return r;
    }
 
-   void atomicBufferCtlBlock::decRefCnt(bufferControlBlock *old)
+   void atomicBufferCtlBlock::decRefCnt(BUFFER_CTL_FLAG_WORD flagToClear,
+                                        bufferControlBlock *old)
    {
       BOOLEAN r = FALSE;
       bufferControlBlock oldVal = _val.load(std::memory_order_relaxed);
@@ -71,6 +72,10 @@ namespace vessel
       {
          bufferControlBlock newVal(oldVal);
          newVal.decRefCnt();
+         if (0 != flagToClear)
+         {
+            newVal.clearFlag(flagToClear);
+         }
          if (_val.compare_exchange_weak(oldVal, newVal))
          {
             r = TRUE;

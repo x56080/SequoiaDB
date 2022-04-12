@@ -151,7 +151,7 @@ namespace vessel
       return buffer;
    }
 
-   void multiPageBufferContext::shallowCopyBuffers(const multiPageBufferContext &o)
+   void multiPageBufferContext::copyBuffers(const multiPageBufferContext &o)
    {
       SDB_ASSERT(_pageSize == o._pageSize, "must be same");
       SDB_ASSERT(_pool == o._pool, "must be same");

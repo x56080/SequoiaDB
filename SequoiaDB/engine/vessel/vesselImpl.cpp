@@ -1314,7 +1314,10 @@ namespace vessel
                         size, data, readSize);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to read lob chunk:%d", rc);
+         if (SDB_LOB_SEQUENCE_NOT_EXIST != rc)
+         {
+            PD_LOG(PDERROR, "failed to read lob chunk:%d", rc);
+         }
          goto error;
       }
    done:

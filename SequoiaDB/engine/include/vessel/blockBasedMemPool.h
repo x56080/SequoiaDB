@@ -44,6 +44,7 @@
 ///c++11
 #include <mutex>
 #include <condition_variable>
+#include <atomic>
 
 namespace engine
 {
@@ -168,6 +169,14 @@ namespace vessel
          {
             return static_cast<UINT64>(_blockSize) * getTotalBlockNum();
          }
+         OSS_INLINE UINT32 getBlockAllocated()const
+         {
+            return _blockAllocated.load(std::memory_order_relaxed);
+         }
+         OSS_INLINE UINT64 getTotalSizeAllocated()const
+         {
+            return _blockSize * _blockAllocated.load(std::memory_order_relaxed);
+         }
          
          INT32 init(UINT32 maxChunk, UINT32 blockSize=65536);
          void fini();
@@ -202,6 +211,7 @@ namespace vessel
          UINT32 _blockSize = 0;
          unitedBitmap<_CHUNK_CAPACITY> _allocator;
          _CHUNK_VEC _chunks;
+         std::atomic_uint _blockAllocated = {0};
    };//class blockBasedMemPool
 } // namespace vessel
 

@@ -45,6 +45,8 @@ namespace engine
 {
 namespace vessel
 {
+   static std::atomic_ullong _DUMMY_LSN = {0};
+
    lobChunkBufferPool::lobChunkBufferPool()
    {
 
@@ -157,7 +159,6 @@ namespace vessel
       THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
       SDB_ASSERT(nullptr != tc, "can not be null");
       storageFileCluster *fcluster = nullptr;
-      BUFFER_CTL_FLAG_WORD flags = 0;
                
       if (OSS_UNLIKELY(!key.isValid() ||
                        !data.isValid() ||
@@ -218,22 +219,60 @@ namespace vessel
          goto error;
       }
 
-      flags = buffer->ctl().load().getFlags();
-      if (OSS_BIT_TEST(flags, LOBC_BUFFER_CTL_FLAGS::DIRTY))
-      {
-         buffer->ctl().clearFlags(LOBC_BUFFER_CTL_FLAGS::BUSY);
-      }
-      else
-      {
-         buffer->ctl().updateFlags(LOBC_BUFFER_CTL_FLAGS::DIRTY,
-                                   LOBC_BUFFER_CTL_FLAGS::BUSY);
-      }
-
-      _env.getDirtyList().upsert(buffer);
+      _env.getDirtyList().insert(buffer);
    done:
       if (buffer)
       {
-         buffer->ctl().decRefCnt();
+         buffer->ctl().decRefCnt(LOBC_BUFFER_CTL_FLAGS::BUSY);
+      }
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lobChunkBufferPool::remove(const globalLobChunkKey &key)
+   {
+      INT32 rc = SDB_OK;
+      sharedLobChunkBuffer buffer;
+      _accessingContext context;
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      storageFileCluster *fcluster = nullptr;
+
+      if (OSS_UNLIKELY(!key.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      fcluster = tc->getEnv()->dms.getLobdFileCluster(key.getSpaceId());
+      if (OSS_UNLIKELY(nullptr == fcluster))
+      {
+         PD_LOG(PDERROR, "failed to get lobd file cluster if sid[%d]",
+                context.key->getSpaceId());
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = _getBufferToRemove(key, fcluster->getCoreArgs().pageSize, buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to ensure buffer to write, rc:%d", rc);
+         goto error;
+      }
+
+      buffer->setLSN(_DUMMY_LSN.fetch_add(1, std::memory_order_relaxed));
+      buffer->setMetaDataToCommit();
+      _env.getDirtyList().insert(buffer);
+   done:
+      if (buffer)
+      {
+         buffer->ctl().decRefCnt(LOBC_BUFFER_CTL_FLAGS::BUSY);
       }
       return rc;
    error:
@@ -347,17 +386,106 @@ namespace vessel
                goto error;
             }
 
-            newBuffer->getBufferCtx().shallowCopyBuffers(buffer->getBufferCtx());
+            newBuffer->getBufferCtx().copyBuffers(buffer->getBufferCtx());
             out = newBuffer;
             *itr = std::move(newBuffer);
             /// we do not decrease the ref count of old buffer obj to avoid recycling.
-            /// shared_ptr will be destroyed when no longer be referenced.
+            /// old buffer ptr will be destroyed when no longer be referenced.
          }
          else
          {
-            out = *itr;
+            out = buffer;
          }
       }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lobChunkBufferPool::_getBufferToRemove(const globalLobChunkKey &key,
+                                                UINT32 pageSize,
+                                                sharedLobChunkBuffer &out)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(key.isValid(), "can not be invalid");
+      UINT32 hash = key.hash();
+      SHARED_LOBC_BUFFER_LIST &entry = _env.getEntry(hash);
+
+      std::mutex &mutex = _env.getEntryMutex(hash);
+      std::unique_lock<std::mutex> guard(mutex);
+
+      SHARED_LOBC_BUFFER_LIST::iterator itr = entry.begin();
+      while (entry.end() != itr)
+      {
+         sharedLobChunkBuffer &buffer = (*itr);
+         bufferControlBlock block = buffer->ctl().load();
+         if (block.isDiscarded())
+         {
+            itr = entry.erase(itr);
+            continue;
+         }
+         else if (block.isNormal() &&
+                  key == buffer->getKey() &&
+                  buffer->ctl().incRefCntIfNormal())
+         {
+            break;
+         }
+
+         ++itr;
+         continue;
+      }
+
+      if (entry.end() == itr)
+      {
+         bufferControlBlock block;
+         block.init(BUFFER_STATUS::NORMAL, 1,
+                    LOBC_BUFFER_CTL_FLAGS::BUSY);
+         sharedLobChunkBuffer newBuffer =
+                   makeSharedPtrFromPool<lobChunkBuffer>(key, block, pageSize, &_env);
+         if (!newBuffer)
+         {
+            PD_LOG(PDERROR, "failed to allocate mem.");
+            rc = SDB_OOM;
+            goto error;
+         }
+
+         out = newBuffer;
+         /// no need to insert buffer into bucket when removing.
+         /// we can also release bucket latch first actually.
+      }
+      else
+      {
+         sharedLobChunkBuffer &buffer = *itr;
+         BUFFER_CTL_FLAG_WORD flags = LOBC_BUFFER_CTL_FLAGS::BUSY;
+         BUFFER_CTL_FLAG_WORD condition = LOBC_BUFFER_CTL_FLAGS::PENDING_FLUSH;
+         if (!buffer->ctl().setFlagsIfNot(condition, flags))
+         {
+            bufferControlBlock block;
+            block.init(BUFFER_STATUS::NORMAL, 1,
+                       LOBC_BUFFER_CTL_FLAGS::BUSY);
+            sharedLobChunkBuffer newBuffer =
+                    makeSharedPtrFromPool<lobChunkBuffer>(key, block, pageSize, &_env);
+            if (!newBuffer)
+            {
+               PD_LOG(PDERROR, "failed to allocate mem.");
+               rc = SDB_OOM;
+               goto error;
+            }
+
+            out = newBuffer;
+         }
+         else
+         {
+            /// no need to hold buffer context,
+            /// we do not access any page when remove it.
+            buffer->getBufferCtx().clear();
+            out = buffer;
+         }
+
+         entry.erase(itr);
+      }
+
    done:
       return rc;
    error:
@@ -488,7 +616,6 @@ namespace vessel
                                                   context.offset,
                                                   context.requestBuffer.getSize());
                                           
-      static std::atomic_ullong _DUMMY_LSN = {0};
       context.chunkBuffer->setLSN(_DUMMY_LSN.fetch_add(1));
       
       if (0 < sizeToOverwrite)
@@ -730,9 +857,9 @@ namespace vessel
                else
                {
                   flushDirtyList(OSS_UINT64_MAX);
-                  if (0 == _watcherEnv._taskBuilder.getTotalTaskNum())
+                  if (!isFlushing())
                   {
-                     /// no dirty buffers, just response.
+                     /// no dirty buffers or just finished.
                      if (event.hasResponser())
                      {
                         event.getResponser()->push(event.createSimpleResponse());
@@ -764,7 +891,7 @@ namespace vessel
                      flushEventRecved.reset();
 
                      flushDirtyList(OSS_UINT64_MAX);
-                     if (0 == _watcherEnv._taskBuilder.getTotalTaskNum())
+                     if (!isFlushing())
                      {
                         if (runningFlushEvent.hasResponser())
                         {
@@ -870,6 +997,12 @@ namespace vessel
              _watcherEnv._taskBuilder.getTotalTaskNum(),
              _watcherEnv._taskBuilder.getDispatchedTasks());
 
+      /// finish at once if no task dispatched.
+      if (0 == _watcherEnv._taskBuilder.getDispatchedTasks())
+      {
+         finishFlush();
+      }
+
       return;
    }
 
@@ -883,28 +1016,25 @@ namespace vessel
       constexpr UINT64 MIN_FLUSH_SIZE = (UINT64)128 << 20;
 
       flushSize = 0;
-      INT64 dirtyBufferSize = _env.getDirtyList().getTotalBufferSize();
-      if (dirtyBufferSize < 0)
-      {
-         dirtyBufferSize = 0;
-      }
-      UINT64 totalBufferSize = _env.getMemPool()->getMaxMemCapacity();
-      FLOAT32 memUsedRatio = static_cast<FLOAT64>(dirtyBufferSize) /
-                             totalBufferSize;
 
-      if (FLUSH_BUFFER_SIZE_THRESHOLD <= (UINT64)dirtyBufferSize ||
+      UINT64 bufferSizeAllocated = _env.getMemPool()->getTotalSizeAllocated();
+      UINT64 maxBufferSize = _env.getMemPool()->getMaxMemCapacity();
+      FLOAT32 memUsedRatio = static_cast<FLOAT64>(bufferSizeAllocated) /
+                             maxBufferSize;
+
+      if (FLUSH_BUFFER_SIZE_THRESHOLD <= bufferSizeAllocated ||
           FLUSH_WATER_MARK <= memUsedRatio)
       {
-         flushSize = std::max(MIN_FLUSH_SIZE, (UINT64)dirtyBufferSize >> 1);
+         flushSize = std::max(MIN_FLUSH_SIZE, bufferSizeAllocated >> 1);
          if (MAX_FLUSH_BUFFER_SIZE < flushSize)
          {
             flushSize = MAX_FLUSH_BUFFER_SIZE;
          }
       }
-      else if (0 < dirtyBufferSize &&
+      else if (0 < bufferSizeAllocated &&
                FLUSH_TIMEOUT <= _watcherEnv.getTimeSpanFromLastFlush())
       {
-         flushSize = dirtyBufferSize;
+         flushSize = MAX_FLUSH_BUFFER_SIZE;
       }
       
       return 0 < flushSize;
@@ -934,31 +1064,7 @@ namespace vessel
       if (++_watcherEnv._completedTaskNum ==
           _watcherEnv._taskBuilder.getDispatchedTasks())
       {
-         BUFFER_CTL_FLAG_WORD flags = LOBC_BUFFER_CTL_FLAGS::PENDING_FLUSH |
-                                      LOBC_BUFFER_CTL_FLAGS::DIRTY;
-         SHARED_LOBC_BUFFER_LIST &list = _watcherEnv._flushList._list;
-         SDB_ASSERT(!list.empty(), "impossible");
-         do
-         {
-            sharedLobChunkBuffer &buffer = list.front();
-            buffer->resetRegisteredBufferSize();
-            buffer->resetLSN();
-
-            BUFFER_CTL_FLAG_WORD oldVal = buffer->ctl().clearFlags(flags);
-            SDB_ASSERT(oldVal == flags, "must be same");
-
-            if (buffer->ctl().setRecyclingFromNormal())
-            {
-               buffer->getBufferCtx().clear();
-               BOOLEAN r = buffer->ctl().setDiscardedFromRecycling();
-               SDB_ASSERT(r, "can not be failed");
-            }
-
-            list.pop_front();
-         } while (!list.empty());
-
-         _watcherEnv.flushDone();
-         _env.getDirtyList().resetFlushLSN();
+         finishFlush();
       }
 
       return;
@@ -1038,6 +1144,41 @@ namespace vessel
       return rc;
    error:
       goto done;
+   }
+
+   void lobChunkBufferPool::finishFlush()
+   {
+      BUFFER_CTL_FLAG_WORD flags = LOBC_BUFFER_CTL_FLAGS::PENDING_FLUSH |
+                                   LOBC_BUFFER_CTL_FLAGS::IN_DIRTY_LIST;
+      SHARED_LOBC_BUFFER_LIST &list = _watcherEnv._flushList._list;
+
+      while (!list.empty())
+      {
+         sharedLobChunkBuffer &buffer = list.front();
+
+         if (buffer->hasMetaDataToCommint())
+         {
+            ///TODO
+            buffer->clearMetaData();
+         }
+
+         buffer->resetLSN();
+
+         BUFFER_CTL_FLAG_WORD oldVal = buffer->ctl().clearFlags(flags);
+         SDB_ASSERT(oldVal == flags, "must be same");
+
+         if (buffer->ctl().setRecyclingFromNormal())
+         {
+            buffer->getBufferCtx().clear();
+            BOOLEAN r = buffer->ctl().setDiscardedFromRecycling();
+            SDB_ASSERT(r, "can not be failed");
+         }
+
+         list.pop_front();
+      }
+
+      _watcherEnv.flushDone();
+      _env.getDirtyList().resetFlushLSN();
    }
 } // namespace vesel
 

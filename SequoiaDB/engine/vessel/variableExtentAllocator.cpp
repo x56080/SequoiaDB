@@ -294,8 +294,6 @@ namespace vessel
          {
             if (testBitIsNonzero(bitsCount, _sme, i))
             {
-               ++_freeCount;
-
                if (offset < 0)
                {
                   offset = i;

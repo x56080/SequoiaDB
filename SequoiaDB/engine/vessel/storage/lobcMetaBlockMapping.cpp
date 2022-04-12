@@ -236,7 +236,7 @@ namespace vessel
          goto error;
       }
 
-      rc = fillChain(entry, rid, chain);
+      rc = fillChain(entry, rid, *chainPtr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to fill chain:%d", rc);
@@ -253,6 +253,10 @@ namespace vessel
          goto error;
       }
    done:
+      if (nullptr != regionLock)
+      {
+         regionLock->release();
+      }
       return rc;
    error:
       if (nullptr != chainRemoved)

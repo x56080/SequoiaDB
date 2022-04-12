@@ -88,6 +88,7 @@ class lobc_test : public testing::Test
    }
 };
 
+/// small chunk
 TEST_F(lobc_test, base_test1)
 {
    INT32 rc = SDB_OK;
@@ -164,6 +165,8 @@ TEST_F(lobc_test, base_test1)
    ASSERT_EQ(SDB_OK, rc);
 }
 
+
+/// max  chunk
 TEST_F(lobc_test, base_test2)
 {
    INT32 rc = SDB_OK;
@@ -247,6 +250,118 @@ TEST_F(lobc_test, base_test2)
       INT32 cmp = ossMemcmp(buffer.getRPtr(), mb.getBuffer(), LOBC_SIZE);
       ASSERT_EQ(0, cmp);
    } 
+
+   rc = db.close(&executor, closeDBOptions());
+   ASSERT_EQ(SDB_OK, rc);
+}
+
+/// remove
+TEST_F(lobc_test, base_test3)
+{
+   INT32 rc = SDB_OK;
+
+   vesselImpl db;
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
+   openDBOptions options;
+   options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+   test_executor executor;
+
+   constexpr UINT32 LOBC_SIZE = 1024;
+   CHAR buf[LOBC_SIZE];
+   ossMemset(buf, 0xFF, LOBC_SIZE);
+   DATA_COLLECTION_PTR handler;
+   std::vector<bson::OID> oids;
+   constexpr UINT32 LOBC_COUNT = 1024;
+
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (UINT32 i = 0; i < LOBC_COUNT; ++i)
+   {
+      bson::OID oid;
+      oid.init();
+      rc = handler->insertLobChunk(&executor, oid, 0, 0, LOBC_SIZE, buf);
+      ASSERT_EQ(SDB_OK, rc);
+      oids.push_back(oid);
+   }
+
+   for (auto const &oid : oids)
+   {
+      UINT32 readSize = 0;
+      CHAR readBuf[LOBC_SIZE] = {};
+      rc = handler->readLobChunk(&executor, oid, 0, 0, LOBC_SIZE, readBuf, readSize);
+      ASSERT_EQ(SDB_OK, rc);
+      ASSERT_EQ(LOBC_SIZE, readSize);
+      INT32 cmp = ossMemcmp(buf, readBuf, LOBC_SIZE);
+      ASSERT_EQ(0, cmp);
+   }  
+
+   for (auto const &oid : oids)
+   {
+      rc = handler->removeLobChunk(&executor, oid, 0);
+      ASSERT_EQ(SDB_OK, rc);
+   }  
+
+   for (auto const &oid : oids)
+   {
+      UINT32 readSize = 0;
+      CHAR readBuf[LOBC_SIZE] = {};
+      rc = handler->readLobChunk(&executor, oid, 0, 0, LOBC_SIZE, readBuf, readSize);
+      ASSERT_EQ(SDB_LOB_SEQUENCE_NOT_EXIST, rc);
+   }  
+
+   ossMemset(buf, 0xAA, LOBC_SIZE);
+   for (auto const &oid : oids)
+   {
+      rc = handler->insertLobChunk(&executor, oid, 0, 0, LOBC_SIZE, buf);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+
+   for (auto const &oid : oids)
+   {
+      UINT32 readSize = 0;
+      CHAR readBuf[LOBC_SIZE] = {};
+      rc = handler->readLobChunk(&executor, oid, 0, 0, LOBC_SIZE, readBuf, readSize);
+      ASSERT_EQ(SDB_OK, rc);
+      ASSERT_EQ(LOBC_SIZE, readSize);
+      INT32 cmp = ossMemcmp(buf, readBuf, LOBC_SIZE);
+      ASSERT_EQ(0, cmp);
+   }  
+
+   rc = db.close(&executor, closeDBOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (auto const &oid : oids)
+   {
+      rc = handler->removeLobChunk(&executor, oid, 0);
+      ASSERT_EQ(SDB_OK, rc);
+   }  
+
+   for (auto const &oid : oids)
+   {
+      UINT32 readSize = 0;
+      CHAR readBuf[LOBC_SIZE] = {};
+      rc = handler->readLobChunk(&executor, oid, 0, 0, LOBC_SIZE, readBuf, readSize);
+      ASSERT_EQ(SDB_LOB_SEQUENCE_NOT_EXIST, rc);
+   }  
 
    rc = db.close(&executor, closeDBOptions());
    ASSERT_EQ(SDB_OK, rc);

@@ -186,6 +186,9 @@ namespace vessel
                             CHAR *data,
                             UINT32 &readSize);
 
+         INT32 removeLobChunk(requestContext *context,
+                              const lobChunkKey &key);
+
       private:
          INT32 _getMoreWhenIndexScan(indexScanContext *context,
                                      indexObject *obj);

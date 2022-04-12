@@ -154,6 +154,11 @@ namespace vessel
       }
 
       key.set(oid, chunkId);
+      rc = cl->removeLobChunk(&context, key);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
    done:
       context.close();
       return rc;

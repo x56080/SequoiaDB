@@ -125,7 +125,10 @@ namespace vessel
          {
             return _dirtyPids.size();
          }
-
+         OSS_INLINE BOOLEAN hasDirtyBuffer()const
+         {
+            return 0 < _dirtyPids.size();
+         }
          OSS_INLINE UINT32 getBufferSize()const
          {
             return (_pageSize * _buffers.size()) +
@@ -144,7 +147,7 @@ namespace vessel
          /// make it writable first.
          strictBuffer getWritableBuffer(PAGE_ID pid);
 
-         void shallowCopyBuffers(const multiPageBufferContext &o); 
+         void copyBuffers(const multiPageBufferContext &o); 
 
       private:
          CHAR *allocatePageBuffer();

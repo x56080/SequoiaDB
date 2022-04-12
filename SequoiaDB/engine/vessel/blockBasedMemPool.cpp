@@ -127,6 +127,7 @@ namespace vessel
       _blockSize = 0;
       _allocator.fini();
       _chunks.clear();
+      _blockAllocated.store(0, std::memory_order_relaxed);
       return;
    }
 
@@ -273,6 +274,11 @@ namespace vessel
          _allocator.set(blocks[i].getBlockId());
          blocks[i].reset();
       }
+      if (0 < allocated)
+      {
+         _blockAllocated.fetch_sub(allocated,
+                                   std::memory_order_relaxed);
+      }
       goto done;
    }
 
@@ -309,6 +315,9 @@ namespace vessel
          ++allocated;
       }
 
+      SDB_ASSERT(0 < allocated, "impossible");
+      _blockAllocated.fetch_add(allocated,
+                                std::memory_order_relaxed);
    done:
       return rc;
    error:
@@ -345,6 +354,7 @@ namespace vessel
       SDB_ASSERT(0 < blockNum && nullptr != blocks, "can not be invalid");
       SDB_ASSERT(isValid(), "can not be invalid");
 
+      UINT32 released = 0;
       std::unique_lock<std::mutex> guard(_mutex);
 
       for (UINT32 i = 0; i < blockNum; ++i)
@@ -355,10 +365,22 @@ namespace vessel
          {
             BOOLEAN oldValue = FALSE;
             _allocator.set(block.getBlockId(), &oldValue);
-            SDB_ASSERT(!oldValue, "nonzero bit to be released");
+            if (OSS_LIKELY(!oldValue))
+            {
+               ++released;
+            }
+            else
+            {
+               SDB_ASSERT(FALSE, "nonzero bit to be released");
+            }
          }
 
          block.reset();
+      }
+
+      if (0 < released)
+      {
+         _blockAllocated.fetch_sub(released, std::memory_order_relaxed);
       }
 
       if (!_wl.empty())

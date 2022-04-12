@@ -5691,7 +5691,60 @@ namespace vessel
                                data, readSize);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to read lob chunk:%d", rc);
+            if (SDB_LOB_SEQUENCE_NOT_EXIST != rc)
+            {
+               PD_LOG(PDERROR, "failed to read lob chunk:%d", rc);
+            }
+            goto error;
+         }
+      }
+   done:
+      if (NULL != context)
+      {
+         context->detachMbContext();
+      }
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::removeLobChunk(requestContext *context,
+                                    const lobChunkKey &key)
+   {
+      INT32 rc = SDB_OK;
+      ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
+      runtimeMbContext mbContext;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(nullptr == context ||
+                           !context->isMbLocked() ||
+                           context->getMBID() != getMBID() ||
+                           !key.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      SDB_ASSERT(!context->isMbContextAttached(), "can not be attached");
+      guard.autoLock();
+      mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
+      context->attachMbContext(&mbContext);
+
+      {
+         largeObjectSpace &los = _collectionSpace->getSU()->getLobSpace();
+         if (OSS_UNLIKELY(!los.isOpen()))
+         {
+            rc = SDB_LOB_SEQUENCE_NOT_EXIST;
+            goto error;
+         }
+
+         rc = los.removeLobChunk(context, key);
+         if (SDB_OK != rc)
+         {
             goto error;
          }
       }
