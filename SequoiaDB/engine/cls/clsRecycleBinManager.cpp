@@ -133,7 +133,7 @@ namespace engine
             // recycle item still exists, can not job
             goto done ;
          }
-         else if ( SDB_RECYCLE_ITEMNOTEXISTS == rc )
+         else if ( SDB_RECYCLE_ITEM_NOTEXIST == rc )
          {
             rc = SDB_OK ;
          }
@@ -1599,7 +1599,7 @@ namespace engine
       {
          PD_LOG( PDINFO, "Failed to get recycle item [%s], it does not exist",
                  recycleName ) ;
-         rc = SDB_RECYCLE_ITEMNOTEXISTS ;
+         rc = SDB_RECYCLE_ITEM_NOTEXIST ;
          goto error ;
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to get recycle item [%s], rc: %d",

@@ -1362,7 +1362,7 @@ namespace engine
          {
             BSONObj recycleObject ;
             rc = _getItemObject( tempItem.getRecycleName(), cb, recycleObject ) ;
-            if ( SDB_RECYCLE_ITEMNOTEXISTS == rc )
+            if ( SDB_RECYCLE_ITEM_NOTEXIST == rc )
             {
                rc = SDB_OK ;
                _resetOldestItem( tempItem ) ;

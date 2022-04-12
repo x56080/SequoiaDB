@@ -39,7 +39,7 @@ SdbRecycleBin
 
 | 错误码 | 错误类型 | 可能发生的原因 | 解决办法 |
 | ------ | ------ | --- | ------ |
-| -384 | SDB_RECYCLE_ITEMNOTEXISTS | 回收站项目不存在 | 通过 [SdbRecycleBin.list()][list] 检查回收站项目是否存在 |
+| -384 | SDB_RECYCLE_ITEM_NOTEXIST | 回收站项目不存在 | 通过 [SdbRecycleBin.list()][list] 检查回收站项目是否存在 |
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
 

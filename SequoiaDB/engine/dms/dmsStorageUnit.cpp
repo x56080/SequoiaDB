@@ -4216,7 +4216,7 @@ namespace engine
             dmsStorageData::COLNAME_MAP_IT it =
                   _pDataSu->_collectionNameMap.find( item.getRecycleName() ) ;
             PD_CHECK( it != _pDataSu->_collectionNameMap.end(),
-                      SDB_RECYCLE_ITEMNOTEXISTS, error, PDWARNING,
+                      SDB_RECYCLE_ITEM_NOTEXIST, error, PDWARNING,
                       "Failed to find recycle item [%s]",
                       item.getRecycleName() ) ;
             mbID = it->second ;

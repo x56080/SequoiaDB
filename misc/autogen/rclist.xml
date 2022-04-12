@@ -3075,7 +3075,7 @@
       </code>
 
       <code>
-         <name>SDB_RECYCLE_ITEMNOTEXISTS</name>
+         <name>SDB_RECYCLE_ITEM_NOTEXIST</name>
          <description>
             <en>Recycle bin item does not exist</en>
             <cn>回收站项目不存在</cn>

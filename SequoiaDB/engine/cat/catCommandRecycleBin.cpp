@@ -607,7 +607,7 @@ namespace engine
       utilRecycleItem csItem ;
 
       rc = _recycleBinMgr->getItem( csUniqueID, cb, csItem ) ;
-      if ( SDB_RECYCLE_ITEMNOTEXISTS == rc )
+      if ( SDB_RECYCLE_ITEM_NOTEXIST == rc )
       {
          rc = SDB_OK ;
          goto done ;

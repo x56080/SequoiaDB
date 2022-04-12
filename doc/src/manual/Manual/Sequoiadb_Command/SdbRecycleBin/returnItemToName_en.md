@@ -37,7 +37,7 @@ When the function fails, an exception will be thrown and an error message will b
 
 | Error Code | Error Type | Description | Solution |
 | ------ | ------ | --- | ------ |
-| -384 | SDB_RECYCLE_ITEMNOTEXISTS | The recycle bin item does not exist. | Check whether the item exists or not. |
+| -384 | SDB_RECYCLE_ITEM_NOTEXIST | The recycle bin item does not exist. | Check whether the item exists or not. |
 
 When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the error code. For more details, refer to [Troubleshooting][faq].
 

@@ -1149,7 +1149,7 @@ namespace engine
       utilRecycleItem remoteItem ;
 
       rc = pShdMgr->rGetRecycleItem( cb, recycleID, remoteItem ) ;
-      if ( SDB_RECYCLE_ITEMNOTEXISTS == rc )
+      if ( SDB_RECYCLE_ITEM_NOTEXIST == rc )
       {
          isExist = FALSE ;
          rc = SDB_OK ;
@@ -1180,7 +1180,7 @@ namespace engine
       utilRecycleItem localItem ;
 
       rc = _recycleBinMgr->getItem( recycleName, cb, localItem ) ;
-      if ( SDB_RECYCLE_ITEMNOTEXISTS == rc )
+      if ( SDB_RECYCLE_ITEM_NOTEXIST == rc )
       {
          isExist = FALSE ;
          rc = SDB_OK ;

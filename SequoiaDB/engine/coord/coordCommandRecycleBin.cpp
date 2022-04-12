@@ -169,7 +169,7 @@ namespace engine
                    "rc: %d", getName(), rc ) ;
 
       rc = executeOnCataGroup( pMsg, cb, &groupList, NULL, TRUE, NULL, buf ) ;
-      if ( SDB_RECYCLE_ITEMNOTEXISTS == rc )
+      if ( SDB_RECYCLE_ITEM_NOTEXIST == rc )
       {
          // recycle bin item does not exist in CATALOG, send to all groups
          // to drop remaining items in DATA nodes
@@ -189,7 +189,7 @@ namespace engine
 
       rc = executeOnDataGroup( pMsg, cb, groupList, TRUE, NULL, &sucGroupList,
                                NULL, buf ) ;
-      if ( SDB_RECYCLE_ITEMNOTEXISTS == rc && sucGroupList.size() > 0 )
+      if ( SDB_RECYCLE_ITEM_NOTEXIST == rc && sucGroupList.size() > 0 )
       {
          // at least one group found the item, we can ignore the error
          rc = SDB_OK ;

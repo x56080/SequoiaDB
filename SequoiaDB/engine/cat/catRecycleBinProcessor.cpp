@@ -145,7 +145,7 @@ namespace engine
 
       // check if has a recycled collection space
       rc = _recyBinMgr->getItem( (utilRecycleID)csUniqueID, cb, csItem ) ;
-      if ( SDB_RECYCLE_ITEMNOTEXISTS == rc )
+      if ( SDB_RECYCLE_ITEM_NOTEXIST == rc )
       {
          // if not found, it is safe to drop
          // save to checked list to avoid duplicated checks

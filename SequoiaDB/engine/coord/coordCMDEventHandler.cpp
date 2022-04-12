@@ -1052,7 +1052,7 @@ namespace engine
                    "request [%s], rc: %d", recycleName, rc ) ;
 
       rc = command.execute( (MsgHeader *)pMsg, cb, contextID, &contextBuff ) ;
-      if ( ignoreIfNotExists && SDB_RECYCLE_ITEMNOTEXISTS == rc )
+      if ( ignoreIfNotExists && SDB_RECYCLE_ITEM_NOTEXIST == rc )
       {
          rc = SDB_OK ;
       }

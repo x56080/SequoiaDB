@@ -470,7 +470,7 @@ namespace engine
       {
          if ( SDB_DMS_EOC == rc )
          {
-            rc = SDB_RECYCLE_ITEMNOTEXISTS ;
+            rc = SDB_RECYCLE_ITEM_NOTEXIST ;
          }
          contextID = -1 ;
          PD_RC_CHECK( rc, PDWARNING, "Failed to get recycle item from context, "
@@ -657,7 +657,7 @@ namespace engine
                    item.getRecycleName(), rc ) ;
 
       PD_CHECK( ignoreNotExists || deletedCount > 0,
-                SDB_RECYCLE_ITEMNOTEXISTS, error, PDWARNING,
+                SDB_RECYCLE_ITEM_NOTEXIST, error, PDWARNING,
                 "Failed to delete recycle item [origin %s, recycle %s], "
                 "it does not exist any more", item.getOriginName(),
                 item.getRecycleName() ) ;
@@ -1001,7 +1001,7 @@ namespace engine
          result = UTIL_LJOB_DO_CONT ;
          goto error ;
       }
-      else if ( SDB_RECYCLE_ITEMNOTEXISTS == rc )
+      else if ( SDB_RECYCLE_ITEM_NOTEXIST == rc )
       {
          // recycle item does not exist, retry later
          result = UTIL_LJOB_DO_CONT ;

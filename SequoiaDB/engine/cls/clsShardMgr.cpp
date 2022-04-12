@@ -2793,7 +2793,7 @@ namespace engine
          }
       }
 
-      PD_CHECK( 0 < objList.size(), SDB_RECYCLE_ITEMNOTEXISTS, error, PDWARNING,
+      PD_CHECK( 0 < objList.size(), SDB_RECYCLE_ITEM_NOTEXIST, error, PDWARNING,
                 "Failed to get recycle item [%llu], it is not found",
                 recycleID ) ;
       PD_CHECK( 1 == objList.size(), SDB_RECYCLE_CONFLICT, error, PDWARNING,

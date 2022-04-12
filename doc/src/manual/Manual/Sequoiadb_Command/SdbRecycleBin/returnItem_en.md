@@ -42,7 +42,7 @@ The common expretions of `returnItem()` function are as follows:
 
 | Error Code | Error Type | Description | Solution |
 | ------ | ------ | --- | ------ |
-| -384 | SDB_RECYCLE_ITEMNOTEXISTS | The recycle bin item does not exist. | Check whether the item exists or not. |
+| -384 | SDB_RECYCLE_ITEM_NOTEXIST | The recycle bin item does not exist. | Check whether the item exists or not. |
 | -385 | SDB_RECYCLE_CONFLICT | The recycle bin item has conflicts. | Rename the item that needs to be restored by [returnItemToName()][returnItemToName], or specify the parameter "Enforced" as true. |
 
 When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the error code. For more details, refer to [Troubleshooting][faq].

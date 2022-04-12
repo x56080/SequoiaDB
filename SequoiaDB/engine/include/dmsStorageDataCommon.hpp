@@ -741,7 +741,7 @@ namespace engine
          else if ( (UINT32)DMS_INVALID_CLID == _startLID )
          {
             // recycle collection is returned
-            return SDB_RECYCLE_ITEMNOTEXISTS ;
+            return SDB_RECYCLE_ITEM_NOTEXIST ;
          }
          return SDB_DMS_NOTEXIST ;
       }
@@ -803,7 +803,7 @@ namespace engine
          {
             // recycle collection is returned
             ossUnlatch( _latch, (OSS_LATCH_MODE)lockType ) ;
-            return SDB_RECYCLE_ITEMNOTEXISTS ;
+            return SDB_RECYCLE_ITEM_NOTEXIST ;
          }
          ossUnlatch( _latch, (OSS_LATCH_MODE)lockType ) ;
          return SDB_DMS_NOTEXIST ;

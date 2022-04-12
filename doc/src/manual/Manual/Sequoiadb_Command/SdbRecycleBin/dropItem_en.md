@@ -44,7 +44,7 @@ The common expretions of `dropItem()` function are as follows:
 
 | Error Code | Error Type | Description | Solution |
 | ------ | ------ | --- | ------ |
-| -384 | SDB_RECYCLE_ITEMNOTEXISTS | The recycle bin item does not exist. | Check whether the item exists or not. |
+| -384 | SDB_RECYCLE_ITEM_NOTEXIST | The recycle bin item does not exist. | Check whether the item exists or not. |
 | -385 | SDB_RECYCLE_CONFLICT | The recycle bin item has conflicts. | If the operation is to "drop the recycle bin item of the collection space type", users need to specify the parameter "recursive" as true. |
 
 When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the error code. For more details, refer to [Troubleshooting][faq].
