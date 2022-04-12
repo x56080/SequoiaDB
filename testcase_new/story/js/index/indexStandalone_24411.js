@@ -2,12 +2,12 @@
  * @Description   : seqDB-24411:备节点创建本地索引，创建/删除相同一致性索引    
  * @Author        : wu yan
  * @CreateTime    : 2021.09.26
- * @LastEditTime  : 2022.03.04
- * @LastEditors   : Wu Yan
+ * @LastEditTime  : 2022.04.12
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.useSrcGroup = true;
-testConf.skipOneDuplicatePerGroup = true
+testConf.skipExistOneNodeGroup = true;
 testConf.clName = COMMCLNAME + "_standaloneIndex_24411";
 testConf.clOpt = { ShardingKey: { no: 1 }, ShardingType: 'range', ReplSize: 0 };
 

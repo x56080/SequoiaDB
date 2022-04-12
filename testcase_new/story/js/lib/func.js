@@ -2080,42 +2080,47 @@ function commCheckIndexConsistent ( db, csname, clname, idxname, isExist )
             var seqdb = new Sdb( nodes[i].HostName + ":" + nodes[i].svcname );
             try
             {
-               var dbcl = seqdb.getCS( csname ).getCL( clname );
-            } catch( e )
-            {
-               if( e != SDB_DMS_NOTEXIST && e != SDB_DMS_CS_NOTEXIST )
+               try
                {
-                  throw new Error( e );
-               }
-               break;
-            }
-            try
-            {
-               var actIndex = dbcl.getIndex( idxname );
-               sucNodes++;
-            } catch( e )
-            {
-               if( e != SDB_IXM_NOTEXIST )
+                  var dbcl = seqdb.getCS( csname ).getCL( clname );
+               } catch( e )
                {
-                  throw new Error( e );
+                  if( e != SDB_DMS_NOTEXIST && e != SDB_DMS_CS_NOTEXIST )
+                  {
+                     throw new Error( e );
+                  }
+                  break;
                }
-               break;
-            }
-            if( expIndex == null )
+               try
+               {
+                  var actIndex = dbcl.getIndex( idxname );
+                  sucNodes++;
+               } catch( e )
+               {
+                  if( e != SDB_IXM_NOTEXIST )
+                  {
+                     throw new Error( e );
+                  }
+                  break;
+               }
+               if( expIndex == null )
+               {
+                  expIndex = actIndex;
+               }
+               else
+               {
+                  var expDef = expIndex.toObj().IndexDef;
+                  var actDef = actIndex.toObj().IndexDef;
+                  delete expDef.CreateTime;
+                  delete expDef.RebuildTime;
+                  delete actDef.CreateTime;
+                  delete actDef.RebuildTime;
+                  assert.equal( expDef, actDef );
+               }
+            } finally
             {
-               expIndex = actIndex;
+               seqdb.close();
             }
-            else
-            {
-               var expDef = expIndex.toObj().IndexDef;
-               var actDef = actIndex.toObj().IndexDef;
-               delete expDef.CreateTime;
-               delete expDef.RebuildTime;
-               delete actDef.CreateTime;
-               delete actDef.RebuildTime;
-               assert.equal( expDef, actDef );
-            }
-            seqdb.close();
          }
          sleep( 200 );
          doTime += 200;
@@ -2137,31 +2142,36 @@ function commCheckIndexConsistent ( db, csname, clname, idxname, isExist )
             var seqdb = new Sdb( nodes[i].HostName + ":" + nodes[i].svcname );
             try
             {
-               var dbcl = seqdb.getCS( csname ).getCL( clname );
-            }
-            catch( e )
-            {
-               if( e != SDB_DMS_NOTEXIST && e != SDB_DMS_CS_NOTEXIST )
+               try
                {
-                  throw new Error( e );
+                  var dbcl = seqdb.getCS( csname ).getCL( clname );
                }
-               break;
-            }
+               catch( e )
+               {
+                  if( e != SDB_DMS_NOTEXIST && e != SDB_DMS_CS_NOTEXIST )
+                  {
+                     throw new Error( e );
+                  }
+                  break;
+               }
 
-            try
-            {
-               indexDef = dbcl.getIndex( idxname );
-               break;
-            }
-            catch( e )
-            {
-               if( e != SDB_IXM_NOTEXIST )
+               try
                {
-                  throw new Error( e );
+                  indexDef = dbcl.getIndex( idxname );
+                  break;
                }
-               sucNodes++;
+               catch( e )
+               {
+                  if( e != SDB_IXM_NOTEXIST )
+                  {
+                     throw new Error( e );
+                  }
+                  sucNodes++;
+               }
+            } finally
+            {
+               seqdb.close();
             }
-            seqdb.close();
          }
          sleep( 200 );
          doTime += 200;

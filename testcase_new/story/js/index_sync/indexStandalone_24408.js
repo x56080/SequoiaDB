@@ -2,13 +2,13 @@
  * @Description   : seqDB-24408:创建本地索引createIndex接口参数校验
  * @Author        : liuli
  * @CreateTime    : 2021.09.27
- * @LastEditTime  : 2022.01.21
+ * @LastEditTime  : 2022.04.12
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.clName = COMMCLNAME + "_24408";
 testConf.useSrcGroup = true;
-testConf.skipOneDuplicatePerGroup = true;
+testConf.skipExistOneNodeGroup = true;
 
 main( test );
 function test ( args )

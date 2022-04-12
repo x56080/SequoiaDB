@@ -2,7 +2,7 @@
  * @Description   : seqDB-24364:指定全部控制参数创建本地索引
  * @Author        : liuli
  * @CreateTime    : 2021.09.29
- * @LastEditTime  : 2022.01.21
+ * @LastEditTime  : 2022.04.12
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -18,7 +18,7 @@ function test ( args )
 
    // 获取CL所在的节点
    var nodes = commGetGroupNodes( db, srcGroup );
-   if( nodes < 3 )
+   if( nodes.length < 3 )
    {
       return;
    }

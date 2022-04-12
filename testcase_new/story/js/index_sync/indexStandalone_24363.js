@@ -2,11 +2,11 @@
  * @Description   : seqDB-24363:指定多个InstanceID创建本地索引 
  * @Author        : liuli
  * @CreateTime    : 2021.09.29
- * @LastEditTime  : 2021.09.29
+ * @LastEditTime  : 2022.04.12
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
-testConf.skipOneDuplicatePerGroup = true;
+testConf.skipExistOneNodeGroup = true;
 testConf.clName = COMMCLNAME + "_24363";
 testConf.useSrcGroup = true;
 
