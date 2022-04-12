@@ -1,231 +1,130 @@
-
-Java 驱动的连接池给提供用户一个快速获取连接实例的途径。
+Java 驱动连接池用于创建和管理连接。通过连接复用以减少创建连接的资源消耗、提升获取连接的效率。对于需要频繁创建连接的场景，建议使用连接池。
 
 ##连接池用法##
 
-使用类 SequoiadbDatasource 的 getConnection 方法从连接池中获取一个连接，使用 releaseConnection 方法把取出的连接放回连接池。当连接池使用的连接数到达连接上限时，下一个请求连接的操作将会等待一段时间（默认超时时间为 5s），若在规定的时间内无空闲的连接可用，将抛出异常。
+连接池的使用步骤主要如下：
 
-类 ConfigOptions 可以设置建立连接的各项参数，类 DatasourceOptions 可以设置连接池的各种参数，详情可查看相关 [Java API][api] 介绍。
+1. 创建 SequoiadbDatasource 对象
+2. 调用其 getConnection/releaseConnection 方法获取/释放连接
+3. 关闭连接池
+
+详情可查看 [Java API][api]。完整的连接池使用示例请参考 SequoiaDB 安装目录下的 samples/Java/com/sequoiadb/samples/Datasource.java
+
+###创建连接池对象###
+
+指定 SequoiaDB 集群的 coord 地址、鉴权信息，以及设置连接池配置参数，之后创建连接池对象。
+
+ ```lang-java
+ ArrayList<String> addrs = new ArrayList<String>();
+ addrs.add("sdbserver1:11810");  // SequoiaDB 集群的协调节点地址
+ addrs.add("sdbserver2:11810");
+ addrs.add("sdbserver3:11810");
+ 
+ String userName = "admin";
+ String password = "admin";
+ 
+ // 连接池参数配置
+ DatasourceOptions dsOpt = new DatasourceOptions();
+ dsOpt.setMaxCount( 500 );
+ dsOpt.setMaxIdleCount( 50 );
+ dsOpt.setMinIdleCount( 20 );
+
+ // 连接参数配置
+ ConfigOptions nwOpt = new ConfigOptions();
+ nwOpt.setConnectTimeout( 200 );
+ nwOpt.setMaxAutoConnectRetryTime( 0 );
+ 
+ SequoiadbDatasource ds = new SequoiadbDatasource(addrs, userName, password, nwOpt, dsOpt);
+ ```
 
 > **Note:**
 >
-> 所有使用连接池的客户机器都需要在本地配置服务端协调节点的主机名/IP地址映射关系。
+> * 在执行上述程序的机器上，需要配置 Sequoiadb 集群协调节点的主机名/IP地址映射关系。否则上述代码执行时将无法识别 sdbserver1、sdbserver2、sdbserver3。
+>
+> * 如果某一协调节点不可用，如  sdbserver3:11810 ，那么连接池将不会使用其创建新连接。
 
-##示例##
+###使用连接池###
 
-```lang-java
-package com.sequoiadb.samples;
+使用连接池获取、归还连接。
 
-import java.util.ArrayList;
-import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
-import com.sequoiadb.base.CollectionSpace;
-import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.base.SequoiadbDatasource;
-import com.sequoiadb.datasource.ConnectStrategy;
-import com.sequoiadb.datasource.DatasourceOptions;
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.net.ConfigOptions;
-
-public class Datasource {
-    public static void main(String[] args) throws InterruptedException {
-        ArrayList<String> addrs = new ArrayList<String>();
-        String user = "";
-        String password = "";
-        ConfigOptions nwOpt = new ConfigOptions();
-        DatasourceOptions dsOpt = new DatasourceOptions();
-        SequoiadbDatasource ds = null;
-        // 提供coord节点地址	
-        addrs.add("192.168.20.165:11810");
-        addrs.add("192.168.20.166:11810");
-        addrs.add("ubuntu1504:11810");
-
-        // 设置网络参数
-        nwOpt.setConnectTimeout(500);                      // 建连超时时间为 500ms
-        nwOpt.setMaxAutoConnectRetryTime(0);               // 建连失败后重试时间为 0ms
-
-        // 设置连接池参数
-        dsOpt.setMaxCount(500);                            // 连接池最多能提供 500 个连接
-        dsOpt.setDeltaIncCount(20);                        // 每次增加 20 个连接
-        dsOpt.setMaxIdleCount(20);                         // 连接池空闲时，保留 20 个连接 
-
-        dsOpt.setKeepAliveTimeout(0);                      // 池中空闲连接存活时间，单位:毫秒 
-                                                           // 0 表示不关心连接隔多长时间没有收发消息
+ ```lang-java
+ Sequoiadb db = null;
+ try {
+     // 获取连接
+     db = ds.getConnection();
  
-        dsOpt.setCheckInterval(60 * 1000);                 // 每隔 60s 将连接池中多于 MaxIdleCount 限定的
-                                                           // 空闲连接关闭，并将存活时间过长（连接已停止收
-                                                           // 发超过 keepAliveTimeout 时间）的连接关闭
-                                                           
-        dsOpt.setSyncCoordInterval(0);                     // 向 catalog 同步 coord 地址的周期，单位:毫秒 
-                                                           // 0 表示不同步 
+     // 使用连接 db...
+ } catch (BaseException | InterruptedException e) {
+     // 异常处理
+ } finally {
+     // 归还连接
+     if ( db != null ) {
+         ds.releaseConnection( db );
+     }
+ }
+ ```
 
-        dsOpt.setValidateConnection(false);                // 连接出池时，是否检测连接的可用性，默认不检测
-        dsOpt.setConnectStrategy(ConnectStrategy.BALANCE); // 默认使用 coord 地址负载均衡的策略获取连接
-        
-        // 建立连接池
-        ds = new SequoiadbDatasource(addrs, user, password, nwOpt, dsOpt);
-        
-        // 使用连接池运行任务
-        runTask(ds);
-        
-        // 任务结束后，关闭连接池
-        ds.close();
-    }
-    
-    static void runTask(SequoiadbDatasource ds) throws InterruptedException {
-        String clFullName = "mycs.mycl";
-        // 准备任务
-        Thread createCLTask = new Thread(new CreateCLTask(ds, clFullName));
-        Thread insertTask = new Thread(new InsertTask(ds, clFullName));
-        Thread queryTask = new Thread(new QueryTask(ds, clFullName));
-        
-        // 创建集合
-        createCLTask.start();
-        createCLTask.join();
-        
-        // 往集合插记录
-        insertTask.start();
-        Thread.sleep(3000);
-        
-        // 从集合中查记录
-        queryTask.start();
-        
-        // 等待任务结束
-        insertTask.join();
-        queryTask.join();
-    }
-}
+###关闭连接池###
 
-class CreateCLTask implements Runnable {
-    private SequoiadbDatasource ds;
-    private String csName;
-    private String clName;
-    
-    public CreateCLTask(SequoiadbDatasource ds, String clFullName) {
-        this.ds = ds;
-        this.csName = clFullName.split("\\.")[0];
-        this.clName = clFullName.split("\\.")[1];
-    }
-    
-    @Override
-    public void run() {
-        Sequoiadb db = null;
-        CollectionSpace cs = null;
-        DBCollection cl = null;
-        // 从连接池获取连接池
-        try {
-            db = ds.getConnection();
-        } catch (BaseException e) {
-            e.printStackTrace();
-            System.exit(1);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-            System.exit(1);
-        }
-        // 使用连接创建集合
-        if (db.isCollectionSpaceExist(csName))
-            db.dropCollectionSpace(csName);
-        cs = db.createCollectionSpace(csName);
-        cl = cs.createCollection(clName);
-        // 将连接归还连接池
-        ds.releaseConnection(db);
-        System.out.println("Suceess to create collection " + csName + "." + clName);
-    }
-}
+ ```lang-java
+ ds.close();
+ ```
 
-class InsertTask implements Runnable {
-    private SequoiadbDatasource ds;
-    private String csName;
-    private String clName;
-    
-    public InsertTask(SequoiadbDatasource ds, String clFullName) {
-        this.ds = ds;
-        this.csName = clFullName.split("\\.")[0];
-        this.clName = clFullName.split("\\.")[1];
-    }
-    
-    @Override
-    public void run() {
-        Sequoiadb db = null;
-        CollectionSpace cs = null;
-        DBCollection cl = null;
-        BSONObject record = null;
-        // 从连接池获取连接
-        try {
-            db = ds.getConnection();
-        } catch (BaseException e) {
-            e.printStackTrace();
-            System.exit(1);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-            System.exit(1);
-        }
-        
-        // 使用连接获取集合对象
-        cs = db.getCollectionSpace(csName);
-        cl = cs.getCollection(clName);
-        // 使用集合对象插入记录
-        record = genRecord();
-        cl.insert(record);
-        // 将连接归还连接池
-        ds.releaseConnection(db);
-        System.out.println("Suceess to insert record: " + record.toString());
-    }
-	
-    private BSONObject genRecord() {
-        BSONObject obj = new BasicBSONObject();
-        obj.put("name", "James");
-        obj.put("age", 30);
-        return obj;
-    }
-}
+##连接池配置##
 
-class QueryTask implements Runnable {
-    private SequoiadbDatasource ds;
-    private String csName;
-    private String clName;
-    
-    public QueryTask(SequoiadbDatasource ds, String clFullName) {
-        this.ds = ds;
-        this.csName = clFullName.split("\\.")[0];
-        this.clName = clFullName.split("\\.")[1];
-    }
-    
-    @Override
-    public void run() {
-        Sequoiadb db = null;
-        CollectionSpace cs = null;
-        DBCollection cl = null;
-        DBCursor cursor = null;
-        // 从连接池获取连接
-        try {
-            db = ds.getConnection();
-        } catch (BaseException e) {
-            e.printStackTrace();
-            System.exit(1);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-            System.exit(1);
-        }
-        // 使用连接获取集合对象
-        cs = db.getCollectionSpace(csName);
-        cl = cs.getCollection(clName);
-        // 使用集合对象查询
-        cursor = cl.query();
-        try {
-            while(cursor.hasNext()) {
-            System.out.println("The inserted record is: " + cursor.getNext());
-            }
-        } finally {
-           cursor.close();
-        }
-        // 将连接对象归还连接池
-        ds.releaseConnection(db);
-    }
-}
-```
+连接池需要使用如下两种参数配置：
+
+* DatasourceOptions：连接池参数配置
+
+* ConfigOptions：连接参数配置
+
+###连接池参数配置###
+
+用于控制连接池的运行。常用配置如下：
+
+* 设置连接池可管理的最大连接数量，默认值为 500。当连接数量达到上限时，连接池将不再创建新连接。
+ ```lang-java
+ dsOpt.setMaxCount(500);
+ ```
+
+* 设置连接池中闲置连接（可直接使用的连接）数量。连接池将动态维持池中的闲置连接数量在 [MinIdleCount, MaxIdleCount] 范围中。
+ ```lang-java
+ dsOpt.setMaxIdleCount(50);
+ dsOpt.setMinIdleCount(20);
+ ```
+
+* 设置每次创建新连接的数量，默认值为 10。当连接池闲置连接数量小于 MinIdleCount 时，连接池就会触发连接创建任务，每次最多创建 DeltaIncCount 数量的新连接。
+ ```lang-java
+ dsOpt.setDeltaIncCount(10);
+ ```
+
+* 设置连接池内闲置连接的最大闲置时间，默认值为 0（表示最大闲置时间为无穷大），单位：毫秒。连接池会定期检查池内的闲置连接，并销毁闲置时间超时的连接。
+ ```lang-java
+ dsOpt.setKeepAliveTimeout(0);
+ ```
+
+* 设置闲置连接检查任务的执行周期，默认值为 60000（1 分钟），单位：毫秒。该任务会定期检查闲置连接的数量，以及它们的闲置时间是否超时。
+ ```lang-java
+ dsOpt.setCheckInterval(60 * 1000);
+ ```
+
+###连接参数配置###
+
+连接池创建新连接时使用的网络参数，常用配置如下：
+
+* 设置连接超时时间，单位：毫秒。
+ ```lang-java
+ nwOpt.setConnectTimeout(200);
+ ```
+
+* 设置连接失败的重试时间，单位：毫秒。建议设置为 0，表示不重试。
+ ```lang-java
+ nwOpt.setMaxAutoConnectRetryTime(0);
+ ```
+
+> **Note:**
+>
+> 连接池参数配置、连接参数配置的其他配置项详情可查看 [Java API][api]。
 
 
 [^_^]:
