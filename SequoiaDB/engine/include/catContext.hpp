@@ -85,6 +85,7 @@ namespace engine
       virtual ~_catContextBase () ;
 
    public:
+      virtual BOOLEAN isWrite() const { return TRUE ; }
       // Override functions
       virtual _dmsStorageUnit* getSU () { return NULL ; }
 
