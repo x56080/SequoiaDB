@@ -373,5 +373,51 @@ namespace engine
       return fullName.substr( fullName.find( '.' ) + 1 ) ;
    }
 
+   INT32 dmsRenameInvalidFile( const CHAR* pSrcPath, const CHAR* pDesPath )
+   {
+      INT32 rc = SDB_OK ;
+      CHAR tmpDesPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+
+      if ( NULL == pSrcPath )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "File path can't be NULL, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      if ( NULL == pDesPath )
+      {
+         ossSnprintf( tmpDesPath, OSS_MAX_PATHSIZE, "%s.err.%u",
+                      pSrcPath, ossGetCurrentProcessID() ) ;
+      }
+      else
+      {
+         ossSnprintf( tmpDesPath, OSS_MAX_PATHSIZE, "%s", pDesPath ) ;
+      }
+
+      if ( SDB_OK == ossAccess( tmpDesPath, 0 ) )
+      {
+         rc = ossDelete( tmpDesPath ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Remove file[%s] failed, rc: %d",
+                    tmpDesPath, rc ) ;
+            goto error ;
+         }
+      }
+      /// rename the file
+      rc = ossRenamePath( pSrcPath, tmpDesPath ) ;
+      PD_RC_CHECK( rc, PDERROR, "Rename file[%s] to [%s] failed, rc: %d",
+                   pSrcPath, tmpDesPath, rc ) ;
+
+      PD_LOG( PDEVENT, "Rename file[%s] to [%s] succeed",
+              pSrcPath, tmpDesPath ) ;
+
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
 }
 
