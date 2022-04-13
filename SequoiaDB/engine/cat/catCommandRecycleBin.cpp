@@ -672,7 +672,10 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to drop recycle item [%s], "
                    "rc: %d", _recycleItemName, rc ) ;
 
-      rc = sdbGetCatalogueCB()->makeGroupsObj( retObjBuilder, _groupIDSet, TRUE ) ;
+      // ignore error in case that group had been removed
+      rc = sdbGetCatalogueCB()->makeGroupsObj( retObjBuilder,
+                                               _groupIDSet,
+                                               TRUE, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to make group object, rc: %d", rc ) ;
 
       try

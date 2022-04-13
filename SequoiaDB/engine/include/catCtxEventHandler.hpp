@@ -153,6 +153,11 @@ namespace engine
          return _groupIDSet.empty() ;
       }
 
+      void setIgnoreNonExist( BOOLEAN ignoreNonExist )
+      {
+         _ignoreNonExist = ignoreNonExist ;
+      }
+
       INT32 addGroup( UINT32 groupID ) ;
       INT32 addGroups( const bson::BSONObj &boCollection ) ;
       INT32 addGroups( const CAT_GROUP_SET &groupIDSet ) ;
@@ -161,6 +166,8 @@ namespace engine
       INT32 addGroupsInRecycleBin( utilCSUniqueID csUniqueID ) ;
 
       virtual INT32 onCheckEvent( SDB_EVENT_OCCUR_TYPE type,
+                                  const CHAR *targetName,
+                                  const bson::BSONObj &boTarget,
                                   _pmdEDUCB *cb,
                                   INT16 w ) ;
 
@@ -168,6 +175,7 @@ namespace engine
 
    protected:
       CAT_GROUP_SET _groupIDSet ;
+      BOOLEAN       _ignoreNonExist ;
    } ;
 
    typedef class _catCtxGroupHandler catCtxGroupHandler ;

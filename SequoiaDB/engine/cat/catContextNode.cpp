@@ -485,16 +485,6 @@ namespace engine
                    SDB_CAT_RM_GRP_FORBIDDEN, error, PDERROR,
                    "Can not remove a group with data in it" ) ;
 
-         /// confirm that there is no recycled collections in this group.
-         rc = _countNodes( CAT_SYSRECYCLEBIN_CL_COLLECTION, matcher, count, cb ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to count collection: %s, match: %s, rc: %d",
-                      CAT_SYSRECYCLEBIN_CL_COLLECTION,
-                      matcher.toString().c_str(), rc ) ;
-         PD_CHECK( count == 0,
-                   SDB_CAT_RM_GRP_FORBIDDEN, error, PDERROR,
-                   "Can not remove a group with data in it" ) ;
-
          /// confirm that there is no task in this group.
          matcher = BSON( FIELD_NAME_TARGETID << _groupID ) ;
          rc = _countNodes( CAT_TASK_INFO_COLLECTION, matcher, count, cb ) ;

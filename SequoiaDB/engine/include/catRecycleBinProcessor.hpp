@@ -395,6 +395,9 @@ namespace engine
                                 _pmdEDUCB *cb ) ;
       INT32 _lockCollectionSpace( const utilReturnNameInfo &nameInfo,
                                   BOOLEAN isConflict ) ;
+      INT32 _checkDomain( const bson::BSONObj &object,
+                          _pmdEDUCB *cb ) ;
+      INT32 _checkGroups() ;
    } ;
 
    typedef class _catReturnCSChecker catReturnCSChecker ;
@@ -436,6 +439,8 @@ namespace engine
                               const bson::BSONObj &object,
                               clsCatalogSet &catSet,
                               pmdEDUCB *cb ) ;
+      INT32 _checkDomain( clsCatalogSet &catSet,
+                          pmdEDUCB *cb ) ;
 
       INT32 _checkConflictCLByName( const utilRecycleItem &item,
                                     const utilReturnNameInfo &nameInfo,

@@ -102,6 +102,7 @@ namespace engine
          void     releaseNodeID( UINT16 nodeID ) ;
          UINT16   allocSystemNodeID() ;
          BOOLEAN  checkGroupActived( const CHAR *gpName, BOOLEAN &gpExist  ) ;
+         BOOLEAN  checkGroupActived( UINT32 groupID, BOOLEAN &gpExist ) ;
 
          void        clearInfo() ;
          GRP_ID_MAP* getGroupMap( BOOLEAN isActive = TRUE ) ;
@@ -114,13 +115,16 @@ namespace engine
 
          INT32       makeGroupsObj( BSONObjBuilder &builder,
                                     vector< string > &groups,
-                                    BOOLEAN ignoreErr = FALSE ) ;
+                                    BOOLEAN ignoreErr = FALSE,
+                                    BOOLEAN ignoreNonExist = FALSE ) ;
          INT32       makeGroupsObj( BSONObjBuilder &builder,
                                     vector< UINT32 > &groups,
-                                    BOOLEAN ignoreErr = FALSE ) ;
+                                    BOOLEAN ignoreErr = FALSE,
+                                    BOOLEAN ignoreNonExist = FALSE ) ;
          INT32       makeGroupsObj( BSONObjBuilder &builder,
                                     const CAT_GROUP_SET &groups,
-                                    BOOLEAN ignoreErr = FALSE ) ;
+                                    BOOLEAN ignoreErr = FALSE,
+                                    BOOLEAN ignoreNonExist = FALSE ) ;
 
          INT16    majoritySize( BOOLEAN needWaitSync = FALSE ) ;
          INT32    primaryCheck( _pmdEDUCB *cb, BOOLEAN canDelay,

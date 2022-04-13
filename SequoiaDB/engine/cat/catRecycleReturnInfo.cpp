@@ -1418,4 +1418,291 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRECYRTRNINFO_CHKDOMAIN, "_catRecycleReturnInfo::checkCSDomain" )
+   INT32 _catRecycleReturnInfo::checkCSDomain( utilCSUniqueID csUniqueID,
+                                               const BSONObj &boSpace,
+                                               pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATRECYRTRNINFO_CHKDOMAIN ) ;
+
+      try
+      {
+         const CHAR *domainName = NULL ;
+         CAT_GROUP_LIST groupIDs ;
+
+         // check if has domain name
+         BSONElement ele = boSpace.getField( CAT_DOMAIN_NAME ) ;
+         if ( EOO != ele.type() )
+         {
+            PD_CHECK( String == ele.type(), SDB_CAT_CORRUPTION, error, PDERROR,
+                      "Failed to get field [%s], it is not a string",
+                      CAT_DOMAIN_NAME ) ;
+            domainName = ele.valuestr() ;
+         }
+
+         if ( NULL != domainName )
+         {
+            BOOLEAN isDomainExists = FALSE ;
+            BSONObj boDomain ;
+
+            rc = catCheckDomainExist( domainName, isDomainExists, boDomain,
+                                      cb ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Failed to get info of domain [%s], "
+                         "rc: %d", domainName, rc ) ;
+
+            if ( isDomainExists )
+            {
+               rc = catGetDomainGroups( boDomain, groupIDs ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get groups of domain [%s], "
+                            "rc: %d", domainName, rc ) ;
+            }
+            else
+            {
+               // domain had been dropped, mark it missing,
+               // we can ignore it later in the return phase
+               PD_LOG( PDWARNING, "Domain [%s] is missing", domainName ) ;
+
+               rc = addMissingDomain( domainName ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to add missing domain [%s], "
+                            "rc: %d", domainName, rc ) ;
+
+               // use the system domain
+               domainName = "" ;
+            }
+         }
+         else
+         {
+            // use the system domain
+            domainName = "" ;
+         }
+
+         rc = setDomainGroups( csUniqueID, domainName, groupIDs ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to add domain groups for "
+                      "collection space [%u], rc: %d", csUniqueID, rc ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to check check domain, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATRECYRTRNINFO_CHKDOMAIN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRECYRTRNINFO_ADDMISSINGDOMAIN, "_catRecycleReturnInfo::addMissingDomain" )
+   INT32 _catRecycleReturnInfo::addMissingDomain( const CHAR *domainName )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATRECYRTRNINFO_ADDMISSINGDOMAIN ) ;
+
+      try
+      {
+         _missingDomains.insert( domainName ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to add missing domain, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATRECYRTRNINFO_ADDMISSINGDOMAIN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRECYRTRNINFO_ISMISSINGDOMAIN, "_catRecycleReturnInfo::isMissingDomain" )
+   BOOLEAN _catRecycleReturnInfo::isMissingDomain( const CHAR *domainName )
+   {
+      BOOLEAN isFound = FALSE ;
+
+      PD_TRACE_ENTRY( SDB_CATRECYRTRNINFO_ISMISSINGDOMAIN ) ;
+
+      SDB_ASSERT( NULL != domainName, "domain name is invalid" ) ;
+
+      try
+      {
+         isFound = _missingDomains.count( domainName ) > 0 ? TRUE : FALSE ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDWARNING, "Failed to find missing domain, "
+                 "occur exception %s", e.what() ) ;
+         for ( UTIL_RETURN_NAME_SET_IT iter = _missingDomains.begin() ;
+               iter != _missingDomains.end() ;
+               ++ iter )
+         {
+            if ( 0 == ossStrcmp( iter->c_str(), domainName ) )
+            {
+               isFound = TRUE ;
+               break ;
+            }
+         }
+      }
+
+      PD_TRACE_EXIT( SDB_CATRECYRTRNINFO_ISMISSINGDOMAIN ) ;
+
+      return isFound ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRECYRTRNINFO_SETDOMAINGRPS_LIST, "_catRecycleReturnInfo::setDomainGroups" )
+   INT32 _catRecycleReturnInfo::setDomainGroups( utilCSUniqueID csUniqueID,
+                                                 const CHAR *domainName,
+                                                 const CAT_GROUP_LIST &groups )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATRECYRTRNINFO_SETDOMAINGRPS_LIST ) ;
+
+      try
+      {
+         _CAT_CS_GROUP_SET::iterator iter = _csDomainGroups.find( csUniqueID ) ;
+         if ( iter != _csDomainGroups.end() )
+         {
+            _CAT_DOMAIN_GROUPS &domainGroups = iter->second ;
+            PD_LOG( PDWARNING, "Already found domain [%s] for collection "
+                    "space [%u]", domainGroups.first.c_str(), csUniqueID ) ;
+         }
+         else
+         {
+            _CAT_DOMAIN_GROUPS &domainGroups = _csDomainGroups[ csUniqueID ] ;
+            domainGroups.first.assign( domainName ) ;
+            domainGroups.second.insert( groups.begin(), groups.end() ) ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to set domain groups, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATRECYRTRNINFO_SETDOMAINGRPS_LIST, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRECYRTRNINFO_CHKDOMAINGRP, "_catRecycleReturnInfo::checkDomainGroup" )
+   INT32 _catRecycleReturnInfo::checkDomainGroup( utilCSUniqueID csUniqueID,
+                                                  UINT32 groupID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATRECYRTRNINFO_CHKDOMAINGRP ) ;
+
+      sdbCatalogueCB *catCB = sdbGetCatalogueCB() ;
+      const CHAR *groupName = NULL ;
+      _CAT_CS_GROUP_SET::iterator iter ;
+
+      // check if group exists and is activated
+      BOOLEAN isActived = FALSE, isExist = FALSE ;
+      isActived = catCB->checkGroupActived( groupID, isExist ) ;
+      PD_LOG_MSG_CHECK( isExist, SDB_CLS_GRP_NOT_EXIST, error, PDERROR,
+                        "Failed to check group [%u], "
+                        "it does not exist", groupID ) ;
+      groupName = catCB->groupID2Name( groupID ) ;
+      PD_LOG_MSG_CHECK( isActived,
+                        SDB_REPL_GROUP_NOT_ACTIVE, error, PDERROR,
+                        "Failed to check group [ID: %u, name: %s], "
+                        "it is not activated", groupID, groupName ) ;
+
+      // check if group in domain of collection space
+      iter = _csDomainGroups.find( csUniqueID ) ;
+      if ( iter != _csDomainGroups.end() )
+      {
+         _CAT_DOMAIN_GROUPS &domainGroups = iter->second ;
+         // NOTE: "" means system domain, for system domain, only check if
+         // group exists and is activated, we already done earlier
+         if ( !domainGroups.first.empty() )
+         {
+            PD_LOG_MSG_CHECK( domainGroups.second.count( groupID ),
+                              SDB_CAT_GROUP_NOT_IN_DOMAIN, error, PDERROR,
+                              "Failed to check group [ID: %u, name: %s], "
+                              "it is not in domain [%s]", groupID, groupName,
+                              domainGroups.first.c_str() ) ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATRECYRTRNINFO_CHKDOMAINGRP, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRECYRTRNINFO_ISCSDOMAINCHKED, "_catRecycleReturnInfo::isCSDomainChecked" )
+   BOOLEAN _catRecycleReturnInfo::isCSDomainChecked( utilCSUniqueID csUniqueID )
+   {
+      BOOLEAN isChecked = FALSE ;
+
+      PD_TRACE_ENTRY( SDB_CATRECYRTRNINFO_ISCSDOMAINCHKED ) ;
+
+      isChecked = _csDomainGroups.count( csUniqueID ) > 0 ? TRUE : FALSE ;
+
+      PD_TRACE_EXIT( SDB_CATRECYRTRNINFO_ISCSDOMAINCHKED ) ;
+
+      return isChecked ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRECYRTRNINFO_LOCKDOMAINS, "_catRecycleReturnInfo::lockDomains" )
+   INT32 _catRecycleReturnInfo::lockDomains( catCtxLockMgr &lockMgr )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATRECYRTRNINFO_LOCKDOMAINS ) ;
+
+      try
+      {
+         UTIL_RETURN_NAME_SET lockedDomains ;
+
+         for ( _CAT_CS_GROUP_SET::iterator iter = _csDomainGroups.begin() ;
+               iter != _csDomainGroups.end() ;
+               ++ iter )
+         {
+            const ossPoolString &domainName = iter->second.first ;
+            if ( ( !domainName.empty() ) &&
+                 ( !lockedDomains.count( domainName ) ) )
+            {
+               PD_CHECK( lockMgr.tryLockDomain( domainName.c_str(), SHARED ),
+                         SDB_LOCK_FAILED, error, PDERROR,
+                         "Failed to lock domain [%s]", domainName.c_str() ) ;
+               lockedDomains.insert( domainName ) ;
+            }
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to lock domains, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATRECYRTRNINFO_LOCKDOMAINS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 }

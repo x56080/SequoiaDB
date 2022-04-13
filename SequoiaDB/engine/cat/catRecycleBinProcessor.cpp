@@ -952,11 +952,21 @@ namespace engine
                            nameInfo.getReturnName() ) ;
       }
 
+      // check domain
+      rc = _checkDomain( object, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check domain to return "
+                   "collection space [%s], rc: %d", csName, rc ) ;
+
       // check collections in returning collection space
       rc = _checkReturnCLInCS( _item, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to check recycled collections in "
                    "collection space [%s], rc: %d", _item.getOriginName(),
                    rc ) ;
+
+      // check groups
+      rc = _checkGroups() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check groups to return "
+                   "collection space [%s], rc: %d", csName, rc ) ;
 
       // lock collection space
       rc = _lockCollectionSpace( nameInfo, isConflict ) ;
@@ -1126,6 +1136,64 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRTRNCSCHK__CHKDOMAIN, "_catReturnCSChecker::_checkDomain" )
+   INT32 _catReturnCSChecker::_checkDomain( const BSONObj &object,
+                                            _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATRTRNCSCHK__CHKDOMAIN ) ;
+
+      utilCSUniqueID csUniqueID = (utilCSUniqueID)( _item.getOriginID() ) ;
+
+      rc = _info.checkCSDomain( csUniqueID, object, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check domain for "
+                   "collection space [%u], rc: %d", csUniqueID, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATRTRNCSCHK__CHKDOMAIN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRTRNCSCHK__CHKGRPS, "_catReturnCSChecker::_checkGroups" )
+   INT32 _catReturnCSChecker::_checkGroups()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATRTRNCSCHK__CHKGRPS ) ;
+
+      utilCSUniqueID csUniqueID = (utilCSUniqueID)( _item.getOriginID() ) ;
+      const CAT_GROUP_SET &groupIDSet = _groupHandler.getGroupIDSet() ;
+
+      // domain should be checked
+      PD_CHECK( _info.isCSDomainChecked( csUniqueID ),
+                SDB_SYS, error, PDERROR,
+                "Failed to check groups, the collection space [%u] is not "
+                "checked with domain", csUniqueID ) ;
+
+      // check if groups occupied are in the domain
+      for ( CAT_GROUP_SET::iterator iter = groupIDSet.begin() ;
+            iter != groupIDSet.end() ;
+            ++ iter )
+      {
+         UINT32 groupID = *iter ;
+         rc = _info.checkDomainGroup( csUniqueID, groupID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check group [%u] to return "
+                      "collection space [%u], rc: %d", groupID, csUniqueID,
+                      rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATRTRNCSCHK__CHKGRPS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    /*
       _catReturnCLChecker implement
     */
@@ -1283,6 +1351,9 @@ namespace engine
       }
       else
       {
+         rc = _checkDomain( catSet, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check domain of "
+                      "collection [%s], rc: %d", origCLName, rc ) ;
          rc = _groupHandler.addGroups( *( catSet.getAllGroupID() ) ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to save groups for "
                       "sub-collection [%s], rc: %d", origCLName, rc ) ;
@@ -1294,6 +1365,51 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB_CATRTRNCLCHK__CHKCL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRTRNCLCHK__CHKCDOMAIN, "_catReturnCLChecker::_checkDomain" )
+   INT32 _catReturnCLChecker::_checkDomain( clsCatalogSet &catSet,
+                                            pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATRTRNCLCHK__CHKCDOMAIN ) ;
+
+      SDB_ASSERT( NULL != catSet.getAllGroupID(), "groups should be valid" ) ;
+
+      utilCSUniqueID csUniqueID = utilGetCSUniqueID( catSet.clUniqueID() ) ;
+
+      if ( !_info.isCSDomainChecked( csUniqueID ) )
+      {
+         BSONObj boSpace ;
+         const CHAR *csName = NULL ;
+         rc = catGetAndLockCollectionSpace( csUniqueID, boSpace, csName, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get collection space [%u], "
+                      "rc: %d", rc ) ;
+
+         rc = _info.checkCSDomain( csUniqueID, boSpace, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check domain for "
+                      "collection space [%u], rc: %d", csUniqueID, rc ) ;
+      }
+
+      for ( VEC_GROUP_ID::iterator iter = catSet.getAllGroupID()->begin() ;
+            iter != catSet.getAllGroupID()->end() ;
+            ++ iter )
+      {
+         UINT32 groupID = *iter ;
+         rc = _info.checkDomainGroup( csUniqueID, groupID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check group [%u] to return "
+                      "collection [%s], rc: %d", groupID, catSet.name(),
+                      rc ) ;
+      }
+
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATRTRNCLCHK__CHKCDOMAIN, rc ) ;
       return rc ;
 
    error:
@@ -2054,6 +2170,10 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to check conflict unique ID "
                    "collection [%s], rc: %d", clName, rc ) ;
 
+      rc = _checkDomain( catSet, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check domain of "
+                   "collection [%s], rc: %d", clName, rc ) ;
+
       rc = _groupHandler.addGroups( *( catSet.getAllGroupID() ) ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to save groups for "
                    "sub-collection [%s], rc: %d", clName, rc ) ;
@@ -2366,6 +2486,22 @@ namespace engine
                // ignore data source object
                needProcess = FALSE ;
                break ;
+            }
+            else if ( 0 == ossStrcmp( CAT_DOMAIN_NAME, fieldName ) )
+            {
+               const CHAR *domainName = NULL ;
+               PD_CHECK( String == element.type(),
+                         SDB_CAT_CORRUPTION, error, PDERROR,
+                         "Failed to get field [%s], it is not a string",
+                         CAT_DOMAIN_NAME ) ;
+               domainName = element.valuestr() ;
+
+               // check is domain does still exist, if still exists, return
+               // collection space with the domain name, otherwise, ignore it
+               if ( !_info.isMissingDomain( domainName ) )
+               {
+                  builder.append( element ) ;
+               }
             }
             else
             {

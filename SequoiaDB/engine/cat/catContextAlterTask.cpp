@@ -3314,7 +3314,8 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get groups of domain [%s], "
                    "rc: %d", domain, rc ) ;
 
-      rc = catGetCSGroups( uniqueID, cb, TRUE, FALSE, occupiedGroups ) ;
+      // check domain groups without recycle bin
+      rc = catGetCSGroups( uniqueID, cb, FALSE, FALSE, occupiedGroups ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get group list of collection "
                    "space [%s], rc: %d", collectionSpace, rc ) ;
 
@@ -3329,10 +3330,6 @@ namespace engine
                    SDB_CAT_GROUP_NOT_IN_DOMAIN, error, PDERROR,
                    "Failed to check group [%s]: it is not in domain [%s]",
                    groupName, domain ) ;
-         PD_CHECK( lockMgr.tryLockGroup( groupName, SHARED ),
-                   SDB_LOCK_FAILED, error, PDWARNING,
-                   "Failed to lock group [%s]",
-                   groupName ) ;
          try
          {
             _groups.push_back( groupID ) ;
@@ -3361,8 +3358,6 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB_CATCTXALTERCSTASK__CHKGROUPS ) ;
-
-      sdbCatalogueCB * catCB = pmdGetKRCB()->getCATLOGUECB() ;
 
       BSONElement element ;
       BSONObj boCollections ;
@@ -3409,18 +3404,6 @@ namespace engine
 
             catGetCollectionGroupSet( boCollection, _groups ) ;
          }
-      }
-
-      for ( CAT_GROUP_LIST::iterator iterGroup = _groups.begin() ;
-            iterGroup != _groups.end() ;
-            iterGroup ++ )
-      {
-         UINT32 groupID = ( *iterGroup ) ;
-         const CHAR * groupName = catCB->groupID2Name( groupID ) ;
-         PD_CHECK( lockMgr.tryLockGroup( groupName, SHARED ),
-                   SDB_LOCK_FAILED, error, PDWARNING,
-                   "Failed to lock group [%s]",
-                   groupName ) ;
       }
 
    done :
@@ -3972,7 +3955,7 @@ namespace engine
       {
          ossPoolList< utilCSUniqueID > collectionSpaces ;
          ossPoolList< utilCSUniqueID > recycledCSs ;
-         ossPoolSet< UINT32 > occupiedGroups, recyOccupiedGroups ;
+         ossPoolSet< UINT32 > occupiedGroups ;
 
          /// Get collection spaces for domain
          rc = catGetDomainCSs( _dataName.c_str(), cb, collectionSpaces ) ;
@@ -3990,23 +3973,7 @@ namespace engine
             /// 3. Get groups from recycled collections
             utilCSUniqueID csUniqueID = *itCS ;
 
-            rc = catGetCSGroups( csUniqueID, cb, TRUE, TRUE, occupiedGroups ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to get group list of collection "
-                         "space [%u], rc: %d", csUniqueID, rc ) ;
-         }
-
-         // check recycled collection spaces
-         rc = catGetDomainRecycleCSs( _dataName.c_str(), cb, recycledCSs ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get recycled collections for "
-                      "domain [%s], rc: %d", _dataName.c_str(), rc ) ;
-
-         for ( ossPoolList< utilCSUniqueID >::iterator itRecyCS =
-                                                         recycledCSs.begin() ;
-               itRecyCS != recycledCSs.end() ;
-               ++ itRecyCS )
-         {
-            utilCSUniqueID csUniqueID = *itRecyCS ;
-            rc = catGetRecyCSGroups( csUniqueID, cb, recyOccupiedGroups ) ;
+            rc = catGetCSGroups( csUniqueID, cb, FALSE, TRUE, occupiedGroups ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get group list of collection "
                          "space [%u], rc: %d", csUniqueID, rc ) ;
          }
@@ -4025,15 +3992,6 @@ namespace engine
                      "Failed to checkout removing groups from domain [%s]: "
                      "clear data (of this domain) before remove it "
                      "from domain. groups to be removed [%s]",
-                     _dataName.c_str(), groupName ) ;
-
-            // The group should not be occupied by recycle items
-            PD_LOG_MSG_CHECK(
-                     recyOccupiedGroups.end() == recyOccupiedGroups.find( groupID ),
-                     SDB_DOMAIN_IS_OCCUPIED, error, PDERROR,
-                     "Failed to checkout removing groups from domain [%s]: "
-                     "clear recycle bin items (of this domain) before "
-                     "remove it from domain. groups to be removed [%s]",
                      _dataName.c_str(), groupName ) ;
 
             _groupMap.erase( groupName ) ;

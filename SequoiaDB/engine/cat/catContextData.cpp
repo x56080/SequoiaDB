@@ -818,6 +818,9 @@ namespace engine
    {
       _executeOnP1 = FALSE ;
       _needRollback = FALSE ;
+
+      // may have recycled collections on dropped groups
+      _groupHandler.setIgnoreNonExist( TRUE ) ;
    }
 
    _catCtxRenameCS::~_catCtxRenameCS ()
@@ -1034,6 +1037,8 @@ namespace engine
    _catCtxAlterCS::_catCtxAlterCS ( INT64 contextID, UINT64 eduID )
    : _catCtxDataMultiTaskBase( contextID, eduID )
    {
+      // may have recycled collections on dropped groups
+      _groupHandler.setIgnoreNonExist( TRUE ) ;
    }
 
    _catCtxAlterCS::~_catCtxAlterCS ()
@@ -1875,7 +1880,7 @@ namespace engine
                       "collection space [%s], rc: %d",
                       csObj.toPoolString().c_str(), rc ) ;
 
-         rc = catGetCSGroups( (utilCSUniqueID)uniqueID, cb, TRUE, FALSE,
+         rc = catGetCSGroups( (utilCSUniqueID)uniqueID, cb, FALSE, FALSE,
                               candidateGroupList ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get collection space [%s]"
                       " groups, rc: %d", csObj.toString().c_str(), rc ) ;

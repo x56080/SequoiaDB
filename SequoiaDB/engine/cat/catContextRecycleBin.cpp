@@ -274,6 +274,9 @@ namespace engine
          rc = _returnInfo.lockReplaceCL( _lockMgr ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to lock conflict collections, "
                       "rc: %d", rc ) ;
+
+         rc = _returnInfo.lockDomains( _lockMgr ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to lock domains, rc: %d", rc ) ;
       }
       catch ( exception &e )
       {

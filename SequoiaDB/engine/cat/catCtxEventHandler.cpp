@@ -53,7 +53,8 @@ namespace engine
       _catCtxGroupHandler implement
     */
    _catCtxGroupHandler::_catCtxGroupHandler( catCtxLockMgr &lockMgr )
-   : _catCtxEventHandler( lockMgr )
+   : _catCtxEventHandler( lockMgr ),
+     _ignoreNonExist( FALSE )
    {
    }
 
@@ -212,6 +213,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXGRPHANDLER_ONCHECKEVENT, "_catCtxGroupHandler::onCheckEvent" )
    INT32 _catCtxGroupHandler::onCheckEvent( SDB_EVENT_OCCUR_TYPE type,
+                                            const CHAR *targetName,
+                                            const bson::BSONObj &boTarget,
                                             _pmdEDUCB *cb,
                                             INT16 w )
    {
@@ -243,7 +246,8 @@ namespace engine
 
       // return group list to COORD, so COORD can send command to
       // specified groups
-      rc = sdbGetCatalogueCB()->makeGroupsObj( builder, _groupIDSet, TRUE ) ;
+      rc = sdbGetCatalogueCB()->makeGroupsObj( builder, _groupIDSet, TRUE,
+                                               _ignoreNonExist ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to make group object, rc: %d", rc ) ;
 
    done:

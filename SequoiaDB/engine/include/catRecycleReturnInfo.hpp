@@ -396,6 +396,20 @@ namespace engine
                                  INT16 w,
                                  ossPoolSet< UINT64 > &taskList ) ;
 
+      INT32 checkCSDomain( utilCSUniqueID csUniqueID,
+                           const bson::BSONObj &boSpace,
+                           pmdEDUCB *cb ) ;
+      INT32 addMissingDomain( const CHAR *domainName ) ;
+      BOOLEAN isMissingDomain( const CHAR *domainName ) ;
+      INT32 setDomainGroups( utilCSUniqueID csUniqueID,
+                             const CHAR *domainName,
+                             const CAT_GROUP_LIST &groups ) ;
+
+      INT32 checkDomainGroup( utilCSUniqueID csUniqueID,
+                              UINT32 groupID ) ;
+      BOOLEAN isCSDomainChecked( utilCSUniqueID csUniqueID ) ;
+      INT32 lockDomains( catCtxLockMgr &lockMgr ) ;
+
    protected:
       typedef ossPoolSet< utilCSUniqueID > _CAT_UID_CS_SET ;
       typedef ossPoolMap< ossPoolString, catCheckCLInfo > _CAT_NAME_CL_MAP ;
@@ -405,6 +419,8 @@ namespace engine
       typedef ossPoolMultiMap< utilCLUniqueID, catCheckSeqInfo > _CAT_CL_SEQ_MAP ;
       typedef ossPoolSet< UTIL_DS_UID > _CAT_DS_UID_SET ;
       typedef ossPoolMultiMap< ossPoolString, bson::BSONObj > _CAT_IDX_MAP ;
+      typedef std::pair< ossPoolString, CAT_GROUP_SET > _CAT_DOMAIN_GROUPS ;
+      typedef ossPoolMap< utilCSUniqueID, _CAT_DOMAIN_GROUPS > _CAT_CS_GROUP_SET ;
 
       INT32 _checkConflictCS( const utilRecycleItem &item,
                               BOOLEAN isEnforced,
@@ -462,6 +478,12 @@ namespace engine
       _CAT_DS_UID_SET      _missingDSSet ;
 
       _CAT_IDX_MAP         _rebuildIndexMap ;
+
+      // collection space unique ID -> ( domain name, domain groups )
+      // Note: "" for system domain
+      _CAT_CS_GROUP_SET    _csDomainGroups ;
+      // domain is missing
+      UTIL_RETURN_NAME_SET _missingDomains ;
    } ;
 
    typedef class _catRecycleReturnInfo catRecycleReturnInfo ;

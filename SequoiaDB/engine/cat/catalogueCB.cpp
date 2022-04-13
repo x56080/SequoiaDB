@@ -716,20 +716,29 @@ namespace engine
 
    INT32 sdbCatalogueCB::makeGroupsObj( BSONObjBuilder &builder,
                                         vector < UINT32 > &groups,
-                                        BOOLEAN ignoreErr )
+                                        BOOLEAN ignoreErr,
+                                        BOOLEAN ignoreNonExist )
    {
       INT32 rc = SDB_OK ;
-      string groupName ;
       BSONArrayBuilder sub( builder.subarrayStart( CAT_GROUP_NAME ) ) ;
       for ( UINT32 i = 0 ; i < groups.size() ; ++i )
       {
-         groupName = groupID2Name( groups[ i ] ) ;
-         SDB_ASSERT( !groupName.empty(), "Group name can't be empty" ) ;
-         if ( !ignoreErr && groupName.empty() )
+         UINT32 groupID = groups[ i ] ;
+         const CHAR *groupName = groupID2Name( groupID ) ;
+         if ( NULL == groupName || 0 == groupName[ 0 ] )
          {
-            rc = SDB_CLS_GRP_NOT_EXIST ;
-            goto error ;
+            if ( ignoreNonExist )
+            {
+               continue ;
+            }
+            else if ( !ignoreErr )
+            {
+               rc = SDB_CLS_GRP_NOT_EXIST ;
+               goto error ;
+            }
          }
+         SDB_ASSERT( NULL != groupName && 0 != groupName[ 0 ],
+                     "Group name can't be empty" ) ;
          sub.append( BSON( CAT_GROUPID_NAME << groups[ i ] <<
                            CAT_GROUPNAME_NAME << groupName ) ) ;
       }
@@ -742,13 +751,13 @@ namespace engine
 
    INT32 sdbCatalogueCB::makeGroupsObj( BSONObjBuilder &builder,
                                         const CAT_GROUP_SET &groups,
-                                        BOOLEAN ignoreErr )
+                                        BOOLEAN ignoreErr,
+                                        BOOLEAN ignoreNonExist )
    {
       INT32 rc = SDB_OK ;
 
       try
       {
-         string groupName ;
          BSONArrayBuilder sub( builder.subarrayStart( CAT_GROUP_NAME ) ) ;
          for ( CAT_GROUP_SET_IT iter = groups.begin() ;
                iter != groups.end() ;
@@ -756,13 +765,20 @@ namespace engine
          {
             UINT32 groupID = *iter ;
             const CHAR *groupName = groupID2Name( groupID ) ;
+            if ( NULL == groupName || 0 == groupName[ 0 ] )
+            {
+               if ( ignoreNonExist )
+               {
+                  continue ;
+               }
+               else if ( !ignoreErr )
+               {
+                  rc = SDB_CLS_GRP_NOT_EXIST ;
+                  goto error ;
+               }
+            }
             SDB_ASSERT( NULL != groupName && 0 != groupName[ 0 ],
                         "Group name can't be empty" ) ;
-            if ( !ignoreErr && ( NULL == groupName || 0 == groupName[ 0 ] ) )
-            {
-               rc = SDB_CLS_GRP_NOT_EXIST ;
-               goto error ;
-            }
             sub.append( BSON( CAT_GROUPID_NAME << groupID <<
                               CAT_GROUPNAME_NAME << groupName ) ) ;
          }
@@ -784,7 +800,8 @@ namespace engine
 
    INT32 sdbCatalogueCB::makeGroupsObj( BSONObjBuilder &builder,
                                         vector < string > &groups,
-                                        BOOLEAN ignoreErr )
+                                        BOOLEAN ignoreErr,
+                                        BOOLEAN ignoreNonExist )
    {
       INT32 rc = SDB_OK ;
       UINT32 groupID = 0 ;
@@ -792,13 +809,21 @@ namespace engine
       for ( UINT32 i = 0 ; i < groups.size() ; ++i )
       {
          groupID = groupName2ID( groups[ i ] ) ;
+
+         if ( CAT_INVALID_GROUPID == groupID )
+         {
+            if ( ignoreNonExist )
+            {
+               continue ;
+            }
+            else if ( !ignoreErr )
+            {
+               rc = SDB_CLS_GRP_NOT_EXIST ;
+               goto error ;
+            }
+         }
          SDB_ASSERT( CAT_INVALID_GROUPID != groupID,
                      "Group ID can't be invalid" ) ;
-         if ( !ignoreErr && CAT_INVALID_GROUPID == groupID )
-         {
-            rc = SDB_CLS_GRP_NOT_EXIST ;
-            goto error ;
-         }
          sub.append( BSON( CAT_GROUPID_NAME << groupID <<
                            CAT_GROUPNAME_NAME << groups[ i ] ) ) ;
       }
@@ -895,7 +920,7 @@ namespace engine
          {
             actived = TRUE ;
             gpExist = TRUE ;
-            break ;
+            goto done ;
          }
       }
 
@@ -909,7 +934,38 @@ namespace engine
          }
       }
 
+   done:
       PD_TRACE_EXIT( SDB_CATALOGCB_CHECKGROUPACTIVED ) ;
+      return actived ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGCB_CHECKGROUPACTIVED_ID, "sdbCatalogueCB::checkGroupActived" )
+   BOOLEAN sdbCatalogueCB::checkGroupActived( UINT32 groupID,
+                                              BOOLEAN &gpExist )
+   {
+      BOOLEAN actived = FALSE ;
+      gpExist = FALSE ;
+
+      PD_TRACE_ENTRY( SDB_CATALOGCB_CHECKGROUPACTIVED_ID ) ;
+
+      GRP_ID_MAP::iterator it = _grpIdMap.find( groupID ) ;
+      if ( it != _grpIdMap.end() )
+      {
+         actived = TRUE ;
+         gpExist = TRUE ;
+         goto done ;
+      }
+
+      it = _deactiveGrpIdMap.find( groupID ) ;
+      if ( it != _deactiveGrpIdMap.end() )
+      {
+         gpExist = TRUE ;
+         goto done ;
+      }
+
+   done:
+      PD_TRACE_EXIT( SDB_CATALOGCB_CHECKGROUPACTIVED_ID ) ;
+
       return actived ;
    }
 
