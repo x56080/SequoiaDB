@@ -71,6 +71,10 @@ namespace vessel
          INT32 readMetaBlockWhenOpen(requestContext *context,
                                      csMetaBlock &block);
 
+         INT32 updateCSMetaBlock(requestContext *context,
+                                 const csMetaBlock &block,
+                                 UINT64 updateMask);
+
          fsmFile *getFsmFile()
          {
             return _fsm;
