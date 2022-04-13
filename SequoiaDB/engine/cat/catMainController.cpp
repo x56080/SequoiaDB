@@ -847,59 +847,88 @@ namespace engine
       MsgOpReply reply ;
       MsgOpReply *pReply     = NULL ;
 
-      // send the reply whether successful or not
-      rc = rtnGetMore( pGetMore->contextID, pGetMore->numToReturn,
-                       buffObj, _pEDUCB, _pRtnCB ) ;
+      rtnContextPtr pContext ;
+      BOOLEAN bIsDelay = FALSE ;
+      BOOLEAN rtnDel = FALSE ;
+
+      rc = _pRtnCB->contextFind ( pGetMore->contextID, pContext, _pEDUCB ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Context %lld does not exist, rc: %d",
+                  pGetMore->contextID, rc ) ;
+         goto error ;
+      }
+
+      if ( pContext->isWrite() )
+      {
+         rc = _pCatCB->primaryCheck( _pEDUCB, FALSE, bIsDelay ) ;
+         if ( rc )
+         {
+            rtnDel = TRUE ;
+            PD_LOG( PDERROR, "Failed to check primary, rc: %d", rc );
+            goto error ;
+         }
+      }
+
+      rc = rtnGetMore( pContext, pGetMore->numToReturn, buffObj,
+                       _pEDUCB, _pRtnCB ) ;
       if ( rc )
       {
          if ( SDB_DMS_EOC != rc )
          {
             PD_LOG ( PDERROR, "Failed to get more, rc: %d", rc ) ;
          }
-         delContextByID( pGetMore->contextID, FALSE );
-      }
-      msgLen =  sizeof(MsgOpReply) + buffObj.size() ;
-
-      // free by end of function
-      pReply = (MsgOpReply *)SDB_THREAD_ALLOC( msgLen ) ;
-      if ( NULL == pReply )
-      {
-         PD_LOG ( PDERROR, "Malloc error( size = %d )", msgLen ) ;
-         rc = SDB_OOM ;
-         pReply = &reply ;
-         msgLen = sizeof( reply ) ;
-         buffObj.release() ;
+         goto error ;
       }
 
-      pReply->header.messageLength = msgLen ;
-      pReply->header.opCode        = MSG_BS_GETMORE_RES ;
-      pReply->header.TID           = pGetMore->header.TID ;
-      pReply->header.routeID.value = 0 ;
-      pReply->header.requestID     = pGetMore->header.requestID ;
-      pReply->contextID            = pGetMore->contextID ;
-      pReply->startFrom            = (INT32)buffObj.getStartFrom() ;
-      pReply->numReturned          = buffObj.recordNum() ;
-      pReply->flags                = rc ;
-      /// copy data
-      if ( buffObj.size() > 0 )
+   done:
       {
-         ossMemcpy( (CHAR *)pReply + sizeof(MsgOpReply), buffObj.data(),
-                    buffObj.size() ) ;
-      }
+         msgLen =  sizeof(MsgOpReply) + buffObj.size() ;
 
-      /// send result
-      rc = _pCatCB->sendReply( handle, pReply, rc ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to syncSend, rc = %d", rc ) ;
-      }
+         // free by end of function
+         pReply = (MsgOpReply *)SDB_THREAD_ALLOC( msgLen ) ;
+         if ( NULL == pReply )
+         {
+            PD_LOG ( PDERROR, "Malloc error( size = %d )", msgLen ) ;
+            rc = SDB_OOM ;
+            pReply = &reply ;
+            msgLen = sizeof( reply ) ;
+            buffObj.release() ;
+         }
 
-      if ( pReply && pReply != &reply )
-      {
-         SDB_THREAD_FREE( pReply ) ;
+         pReply->header.messageLength = msgLen ;
+         pReply->header.opCode        = MSG_BS_GETMORE_RES ;
+         pReply->header.TID           = pGetMore->header.TID ;
+         pReply->header.routeID.value = 0 ;
+         pReply->header.requestID     = pGetMore->header.requestID ;
+         pReply->contextID            = pGetMore->contextID ;
+         pReply->startFrom            = (INT32)buffObj.getStartFrom() ;
+         pReply->numReturned          = buffObj.recordNum() ;
+         pReply->flags                = rc ;
+         /// copy data
+         if ( buffObj.size() > 0 )
+         {
+            ossMemcpy( (CHAR *)pReply + sizeof(MsgOpReply), buffObj.data(),
+                       buffObj.size() ) ;
+         }
+
+         /// send result
+         rc = _pCatCB->sendReply( handle, pReply, rc ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to syncSend, rc = %d", rc ) ;
+         }
+
+         if ( pReply && pReply != &reply )
+         {
+            SDB_THREAD_FREE( pReply ) ;
+         }
       }
       PD_TRACE_EXITRC ( SDB_CATMAINCT_GETMOREMSG, rc ) ;
       return rc ;
+   error:
+      delContextByID( pGetMore->contextID, rtnDel ) ;
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATMAINCT_ADVANCEMSG, "catMainController::_processAdvanceMsg" )
