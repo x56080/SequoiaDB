@@ -457,16 +457,16 @@ namespace engine
          {
             if ( curIdxCB.isSameDef( index, TRUE ) )
             {
-               PD_LOG_MSG ( PDERROR, 
+               PD_LOG_MSG ( PDERROR,
                             "The same index '%s' has been defined already",
                             curIdxCB.getName() ) ;
                rc = SDB_IXM_REDEF ;
             }
             else
             {
-               PD_LOG_MSG ( PDERROR, 
+               PD_LOG_MSG ( PDERROR,
                             "The existing index '%s' has the same name "\
-                            "but with a different definition", 
+                            "but with a different definition",
                             curIdxCB.getName() ) ;
                rc = SDB_IXM_EXIST;
             }
@@ -474,7 +474,7 @@ namespace engine
          }
          else if ( curIdxCB.isSameDef( index ) )
          {
-            PD_LOG_MSG ( PDERROR, 
+            PD_LOG_MSG ( PDERROR,
                          "The scene of index '%s' is covered by "\
                          "the existing index '%s'",
                          index.getStringField( IXM_FIELD_NAME_NAME ),
@@ -701,6 +701,9 @@ namespace engine
       rc = context->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
+      try
+      {
+
       if ( !dmsAccessAndFlagCompatiblity ( context->mb()->_flag,
                                            DMS_ACCESS_TYPE_DROP_INDEX ) )
       {
@@ -757,6 +760,13 @@ namespace engine
       {
          rc = SDB_IXM_NOTEXIST ;
          goto error ;
+      }
+
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception drop index: %s", e.what() ) ;
       }
 
    done :
@@ -894,6 +904,9 @@ namespace engine
       BSONObj indexDef ;
       IDmsExtDataHandler *extDataHandler = NULL ;
 
+      try
+      {
+
       dmsTransLockCallback callback( pmdGetKRCB()->getTransCB(),
                                      cb ) ;
 
@@ -971,7 +984,15 @@ namespace engine
          // reserved log-size
          if ( dpscb )
          {
-            indexDef = indexCB.getDef().getOwned() ;
+            try
+            {
+               indexDef = indexCB.getDef().getOwned() ;
+            }
+            catch( std::exception &e )
+            {
+               rc = ossException2RC( &e ) ;
+               PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+            }
 
             rc = dpsIXDel2Record( fullName, indexDef, record ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to build record, rc: %d", rc ) ;
@@ -1103,6 +1124,13 @@ namespace engine
          context->mbStat()->updateLastLSNWithComp( cb->getEndLsn(),
                                                    DMS_FILE_IDX,
                                                    cb->isDoRollback() ) ;
+      }
+
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception drop index: %s", e.what() ) ;
       }
 
    done :
