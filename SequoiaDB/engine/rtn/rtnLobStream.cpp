@@ -73,7 +73,7 @@ using namespace bson ;
 namespace engine
 {
 
-   static OSS_INLINE CHAR* _rtnLobOpName( SDB_LOB_MODE mode )
+   const CHAR* rtnLobOpName( INT32 mode )
    {
       switch( mode )
       {
@@ -157,7 +157,7 @@ namespace engine
       {
          rc = _open4Read( cb ) ;
          /// AUDIT
-         PD_AUDIT_OP_WITHNAME( AUDIT_DQL, "LOB READ", AUDIT_OBJ_CL,
+         PD_AUDIT_OP_WITHNAME( AUDIT_DQL, rtnLobOpName(mode), AUDIT_OBJ_CL,
                                getFullName(), rc,
                                "OID:%s, Length:%llu, CreateTime:%llu, ModificationTime:%llu",
                                getOID().toString().c_str(),
@@ -1388,7 +1388,7 @@ namespace engine
 
       rc = _completeLob( tuple, cb ) ;
       PD_AUDIT_OP_WITHNAME( AUDIT_DML,
-                            _rtnLobOpName( (SDB_LOB_MODE)_mode ),
+                            rtnLobOpName(_mode),
                             AUDIT_OBJ_CL,
                             getFullName(), rc, "OID:%s, Length:%llu",
                             getOID().toString().c_str(),

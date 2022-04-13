@@ -134,7 +134,9 @@ namespace engine
 
       virtual const CHAR *     getProcessName() const
       {
-         return _options.getCLFullName() ;
+         return ( NULL != _options.getCLFullName() ) ?
+                ( _options.getCLFullName() ) :
+                ( "" ) ;
       }
 
    protected:

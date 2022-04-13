@@ -3053,6 +3053,16 @@ namespace engine
                return FALSE ;
             }
 
+            // to avoid conflicts with main-collecton LOB contexts
+            rc = checker.enableCtxCheck( eduCB() ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDWARNING, "Session[%s]: Failed to enable context "
+                       "check for collection [%s], rc: %d", sessionName(),
+                       _curCollecitonName.c_str(), rc ) ;
+               return FALSE ;
+            }
+
             // get white list of transactions, who had already acquired write
             // locks on the same collection, they must be finished before split
             // NOTE: use S lock to exclusive X, IX, Z locks
@@ -3080,6 +3090,12 @@ namespace engine
                {
                   PD_LOG( PDINFO, "Session[%s] operator ID [%llu] : "
                           "Waiting for other transactions to finish",
+                          sessionName(), _ntyOverTime ) ;
+               }
+               else if ( CLS_FREEZING_CHECKER_CTX == checker.getStep() )
+               {
+                  PD_LOG( PDINFO, "Session[%s] operator ID [%llu] : "
+                          "Waiting for other contexts to finish",
                           sessionName(), _ntyOverTime ) ;
                }
                else

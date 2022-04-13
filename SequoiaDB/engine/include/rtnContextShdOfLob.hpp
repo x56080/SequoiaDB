@@ -61,9 +61,19 @@ namespace engine
 
       virtual BOOLEAN isWrite() const ;
 
+      virtual const CHAR *getProcessName() const
+      {
+         return getFullName() ;
+      }
+
       virtual UINT32 getSULogicalID() const
       {
          return _suLogicalID ;
+      }
+
+      const CHAR *getSubCLName() const
+      {
+         return _subCLName.empty() ? NULL : _subCLName.c_str() ;
       }
 
    public:

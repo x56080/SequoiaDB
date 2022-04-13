@@ -210,6 +210,9 @@ namespace engine
          PD_LOG( PDEVENT, "Reopened main shard" ) ;
       }
 
+      PD_LOG( PDDEBUG, "Open SHARD_LOB context on [%s/%s], mode [%d/%s]",
+              getFullName(), _getRealCLName(), _mode, rtnLobOpName( _mode ) ) ;
+
    done:
       /// write down
       if ( writeDMS )

@@ -334,6 +334,10 @@ namespace engine
                                 BOOLEAN isWrite,
                                 BOOLEAN isAllowEmptyList ) ;
 
+         // check sub-collection ( write operators, version, etc )
+         INT32 _checkSubCL( const CHAR *mainCLName,
+                            const CHAR *subCLName ) ;
+
          // get sub-collection list
          INT32 _getSubCLList( const CHAR *pCollectionName,
                               CLS_SUBCL_LIST &subCLList,

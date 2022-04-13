@@ -83,6 +83,12 @@ namespace engine
              ( FALSE ) ;
    }
 
+   const CHAR *_rtnContextLob::getProcessName() const
+   {
+      return ( NULL != _stream && NULL != _stream->getFullName() ) ?
+             ( _stream->getFullName() ) : ( "" ) ;
+   }
+
    INT32 _rtnContextLob::_createLobID( bson::OID &oid )
    {
       INT32 rc = SDB_OK ;
