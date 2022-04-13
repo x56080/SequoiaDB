@@ -1027,6 +1027,9 @@ namespace engine
       rc = context->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
+      try
+      {
+
       if ( !dmsAccessAndFlagCompatiblity ( context->mb()->_flag,
                                            DMS_ACCESS_TYPE_DROP_INDEX ) )
       {
@@ -1092,6 +1095,13 @@ namespace engine
       {
          rc = SDB_IXM_NOTEXIST ;
          goto error ;
+      }
+
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception drop index: %s", e.what() ) ;
       }
 
    done :
@@ -1244,6 +1254,9 @@ namespace engine
       IDmsExtDataHandler *extDataHandler = NULL ;
       BSONObj option ;
 
+      try
+      {
+
       dmsTransLockCallback callback( pmdGetKRCB()->getTransCB(),
                                      cb ) ;
 
@@ -1329,7 +1342,15 @@ namespace engine
          // reserved log-size
          if ( dpscb )
          {
-            indexDef = indexCB.getDef().getOwned() ;
+            try
+            {
+               indexDef = indexCB.getDef().getOwned() ;
+            }
+            catch( std::exception &e )
+            {
+               rc = ossException2RC( &e ) ;
+               PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+            }
             buildOption( option, pIdxStatus ) ;
 
             rc = dpsIXDel2Record( fullName, indexDef, option, record ) ;
@@ -1464,6 +1485,13 @@ namespace engine
          context->mbStat()->updateLastLSNWithComp( cb->getEndLsn(),
                                                    DMS_FILE_IDX,
                                                    cb->isDoRollback() ) ;
+      }
+
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception drop index: %s", e.what() ) ;
       }
 
    done :
