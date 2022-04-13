@@ -267,6 +267,17 @@ namespace engine
          return ((UINT64)logicalFileId) * getLogFileSz () ;
       }
 
+      DPS_LSN_OFFSET getFirstLSNOfFile( UINT32 fileId )
+      {
+         DPS_LSN_OFFSET offset = DPS_INVALID_LSN_OFFSET ;
+         dpsLogFile* file = getLogFile( fileId ) ;
+         if ( file )
+         {
+            offset = file->getFirstLSN( FALSE ).offset ;
+         }
+         return offset ;
+      }
+
       DPS_LSN_OFFSET readOldestBeginLsnOffset() const ;
 
       UINT32 getLoggerLogicalWork ()

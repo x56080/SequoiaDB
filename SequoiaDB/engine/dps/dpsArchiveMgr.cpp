@@ -406,7 +406,7 @@ namespace engine
          if ( diff <= unsafeOffset )
          {
             // LSNs are not in the same physical log file, so it's safe
-            if ( _logMgr->calcFileID( endOffset ) != 
+            if ( _logMgr->calcFileID( endOffset ) !=
                  _logMgr->calcFileID( nextOffset ) )
             {
                goto done ;
@@ -571,7 +571,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSARCHIVEMGR__GENERATEARCHIVEEVENT, "dpsArchiveMgr::_generateArchiveEvent" )
-   INT32 dpsArchiveMgr::_generateArchiveEvent( const DPS_LSN& startLSN, 
+   INT32 dpsArchiveMgr::_generateArchiveEvent( const DPS_LSN& startLSN,
                                                const DPS_LSN& endLSN,
                                                BOOLEAN allowPartial )
    {
@@ -714,7 +714,7 @@ namespace engine
          break ;
       case DPS_ARCHIVE_EVENT_SWITCH_FILE:
          {
-            dpsArchiveEventSwitchFile* switchEvent = 
+            dpsArchiveEventSwitchFile* switchEvent =
                dynamic_cast<dpsArchiveEventSwitchFile*>( event ) ;
             DPS_LSN expectLSN = _logMgr->tryExpectLsn();
             PD_LOG( PDDEBUG, "Log archive received switch file event, " \
@@ -735,7 +735,7 @@ namespace engine
          break ;
       case DPS_ARCHIVE_EVENT_GENERATE_ARCHIVE:
          {
-            dpsArchiveEventGenerateArchive* generateEvent = 
+            dpsArchiveEventGenerateArchive* generateEvent =
                dynamic_cast<dpsArchiveEventGenerateArchive*>( event ) ;
             DPS_LSN expectLSN = _logMgr->tryExpectLsn();
             PD_LOG( PDDEBUG, "Log archive received generate archive event, " \
@@ -1041,7 +1041,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSARCHIVEMGR__ARCHIVEPARTIAL, "dpsArchiveMgr::_archivePartial" )
-   INT32 dpsArchiveMgr::_archivePartial( UINT32 logicalFileId, 
+   INT32 dpsArchiveMgr::_archivePartial( UINT32 logicalFileId,
                                          DPS_LSN_OFFSET startOffset,
                                          DPS_LSN_OFFSET endOffset )
    {
@@ -1366,17 +1366,18 @@ namespace engine
       SDB_ASSERT( !_isArchiving, "is archiveing?" ) ;
 
       result = startLSN.compareOffset( moveOffset ) ;
-      UINT32 moveFileId = _logMgr->calcLogicalFileID( moveOffset ) ;
+      UINT32 moveLFileId = _logMgr->calcLogicalFileID( moveOffset ) ;
+      UINT32 moveFileId = _logMgr->calcFileID( moveOffset ) ;
       UINT32 curFileId = _logMgr->calcLogicalFileID( startLSN.offset ) ;
 
       if ( result > 0 ) // backward
       {
-         SDB_ASSERT( moveFileId <= curFileId, "invalid move file id" ) ;
+         SDB_ASSERT( moveLFileId <= curFileId, "invalid move file id" ) ;
          PD_LOG( PDEVENT, "Move backward to LSN %lld, next archived LSN is %lld",
                  moveOffset, startLSN.offset ) ;
 
          for ( UINT32 fileId = curFileId ;
-               fileId >= moveFileId && DPS_INVALID_LOG_FILE_ID != fileId ;
+               fileId >= moveLFileId && DPS_INVALID_LOG_FILE_ID != fileId ;
                fileId-- )
          {
             rc = _fileMgr.moveArchiveFile( fileId ) ;
@@ -1393,7 +1394,14 @@ namespace engine
          // we should archive logs before the moveLSN in the file again.
          if ( !_logMgr->isFirstPhysicalLSNOfFile( moveOffset ) )
          {
-            moveOffset = _logMgr->calcFirstPhysicalLSNOfFile( moveFileId ) ;
+            moveOffset = _logMgr->getFirstLSNOfFile( moveFileId ) ;
+            if ( DPS_INVALID_LSN_OFFSET == moveOffset )
+            {
+               rc = SDB_SYS ;
+               PD_LOG( PDERROR, "Failed get file[%u]'s first lsn, rc: %d",
+                       moveFileId, rc ) ;
+               goto error ;
+            }
          }
       }
       else if ( result < 0 ) // forward
@@ -1401,7 +1409,7 @@ namespace engine
          PD_LOG( PDEVENT, "Move forward to LSN %lld, next archived LSN is %lld",
                  moveOffset, startLSN.offset ) ;
 
-         if ( moveFileId == curFileId )
+         if ( moveLFileId == curFileId )
          {
             // if move in the same log file,
             // there will be a gap between moved LSN and current start LSN
@@ -1418,7 +1426,14 @@ namespace engine
             // we should archive logs before the moveLSN in the file again.
             if ( !_logMgr->isFirstPhysicalLSNOfFile( moveOffset ) )
             {
-               moveOffset = _logMgr->calcFirstPhysicalLSNOfFile( moveFileId ) ;
+               moveOffset = _logMgr->getFirstLSNOfFile( moveFileId ) ;
+               if ( DPS_INVALID_LSN_OFFSET == moveOffset )
+               {
+                  rc = SDB_SYS ;
+                  PD_LOG( PDERROR, "Failed get file[%u]'s first lsn, rc: %d",
+                          moveFileId, rc ) ;
+                  goto error ;
+               }
             }
          }
       }
@@ -1740,12 +1755,12 @@ namespace engine
    {
       _enabled = FALSE ;
    }
-   
+
    void dpsArchiveMgr::afterFS( const DPS_LSN_OFFSET &offset,
                                 const DPS_LSN_VER &version )
    {
       DPS_LSN lsn ;
-      
+
       lsn.set( offset, version ) ;
       _enabled = TRUE ;
       _move( lsn ) ;
