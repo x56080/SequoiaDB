@@ -49,6 +49,11 @@ namespace vessel
    constexpr UINT32 CS_META_BLOCK_VERSION_1 = 1;
    constexpr PAGE_ID CS_META_BLOCK_PAGE_LPID = 0;
 
+   enum CS_META_BLOCK_UPDATE_MASK
+   {
+      MAX_CL_LOGICAL_ID = 0x01
+   };
+
 #pragma pack(4)
    struct csMetaBlock
    {
@@ -59,6 +64,7 @@ namespace vessel
       UINT32 uniqueID = UTIL_UNIQUEID_NULL;
       UINT32 logicalID = DMS_INVALID_LOGICCSID;
       CHAR name[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {};
+      UINT32 maxCLLogicalID = DMS_INVALID_LOGICCLID;
 
       csMetaBlock &operator=(const csMetaBlock &o)
       {
@@ -69,6 +75,7 @@ namespace vessel
          uniqueID = o.uniqueID;
          logicalID = o.logicalID;
          ossMemcpy(name, o.name, sizeof(name));
+         maxCLLogicalID = o.maxCLLogicalID;
          return *this;
       }
    
@@ -92,6 +99,7 @@ namespace vessel
          uniqueID = UTIL_UNIQUEID_NULL;
          logicalID = DMS_INVALID_LOGICCSID;
          ossMemset(name, 0, sizeof(name));
+         maxCLLogicalID = DMS_INVALID_LOGICCLID;
       }
    };//struct csMetaBlock
    const UINT32 CS_META_BLOCK_LEN = sizeof(csMetaBlock);

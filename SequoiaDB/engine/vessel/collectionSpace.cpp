@@ -102,7 +102,6 @@ namespace vessel
 
       _isOpen = TRUE;
       _su = su;
-      _nextCLLogicalId = 0;
 
       rc = initInMemStructures();
       if (SDB_OK != rc)
@@ -196,7 +195,6 @@ namespace vessel
       _blockInMem.reset();
       _allocator.fini();
       _collections.fini();
-      _nextCLLogicalId = 0;
       _clNameIndex.clear();
       _innerIdIndex.clear();
       _unformalNameIndex.clear();
@@ -231,7 +229,7 @@ namespace vessel
          goto error;
       }
 
-      rc = precreateCL(clName, clInnerId, mbID, logicalID);
+      rc = precreateCL(context, clName, clInnerId, mbID, logicalID);
       if (SDB_OK != rc)
       {
          goto error;
@@ -292,7 +290,7 @@ namespace vessel
       }
       if (INVALID_CL_MB_ID != mbID)
       {
-         rollbackPrecreating(clName, clInnerId, mbID, logicalID);
+         rollbackPrecreating(clName, clInnerId, mbID);
       }
       goto done;
    }
@@ -836,6 +834,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != _su, "can not be null");
+
       UINT32 clmbpCapacity = 0;
       const storageCoreArgs &args = _su->getMainDataSpace().getStorageCoreArgs();
       mainDataSpace *mds = &(_su->getMainDataSpace());
@@ -922,7 +921,6 @@ namespace vessel
    error:
       _clNameIndex.clear();
       _innerIdIndex.clear();
-      _nextCLLogicalId = 0;
       goto done;
    }
 
@@ -975,11 +973,6 @@ namespace vessel
          goto error;
       }
 
-      if (_nextCLLogicalId <= block->logicalCLID)
-      {
-         _nextCLLogicalId = block->logicalCLID + 1;
-      }
-      
    done:
       context->unlockMB();
       return rc;
@@ -1168,21 +1161,28 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionSpace::precreateCL(const strSlice &clName,
+   INT32 collectionSpace::precreateCL(requestContext *context,
+                                      const strSlice &clName,
                                       utilCLInnerID innerID,
                                       CL_MB_ID &mbID,
                                       UINT32 &logicalID)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(nullptr != context, "can not be null");
       SDB_ASSERT(!clName.empty(), "can not be empty");
+      SDB_ASSERT(nullptr != _su, "can not be null");
       UINT32 m = INVALID_CL_MB_ID;
-      
+      UINT32 oldCLLid = DMS_INVALID_LOGICCLID;
+      BOOLEAN lidChanged = FALSE;
+      logicalID = DMS_INVALID_LOGICCLID;
+
       ossSLatchGuard guard(&_latch, EXCLUSIVE);
-      if (_nextCLLogicalId == DMS_INVALID_LOGICCLID)
+      if (_blockInMem.maxCLLogicalID != DMS_INVALID_LOGICCLID &&
+          (_blockInMem.maxCLLogicalID + 1) == DMS_INVALID_LOGICCLID)
       {
          PD_LOG(PDERROR, "logical id hits the max value");
-         rc = SDB_VESSEL_OUT_OF_RESOURCE;
+         rc = SDB_DMS_NOSPC;
          goto error;
       }
       
@@ -1230,24 +1230,45 @@ namespace vessel
          _unformalInnerIdIndex.insert(innerID);
       }
 
+      oldCLLid = _blockInMem.maxCLLogicalID;
+      if (DMS_INVALID_LOGICCLID == _blockInMem.maxCLLogicalID)
+      {
+         _blockInMem.maxCLLogicalID = 0;
+      }
+      else
+      {
+         ++_blockInMem.maxCLLogicalID;
+      }
+      lidChanged = TRUE;
+
+      rc = _su->getMainDataSpace().updateCSMetaBlock(context, _blockInMem, 
+                                                     MAX_CL_LOGICAL_ID);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to set max cl logical id on cs meta block, rc:%d", rc);
+         goto error;
+      }
+
       SDB_ASSERT(m < MAX_CL_MB_COUNT, "impossible");
       mbID = m;
-      logicalID = _nextCLLogicalId++;
+      logicalID = _blockInMem.maxCLLogicalID;
 
    done:
       return rc;
    error:
+      if (lidChanged)
+      {
+         _blockInMem.maxCLLogicalID = oldCLLid;
+      }
       goto done;
    }
 
    void collectionSpace::rollbackPrecreating(const strSlice &clName,
                                              utilCLInnerID innerID,
-                                             CL_MB_ID mbID,
-                                             UINT32 logicalID)
+                                             CL_MB_ID mbID)
    {
       SDB_ASSERT(!clName.empty(), "can not be empty");
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
-      SDB_ASSERT(DMS_INVALID_LOGICCLID != logicalID, "can not be invalid");
 
       ossSLatchGuard guard(&_latch, EXCLUSIVE);
       _unformalNameIndex.erase(clName.str());
@@ -1256,10 +1277,6 @@ namespace vessel
          _unformalInnerIdIndex.erase(innerID);
       }
       _allocator.release(mbID);
-      if (logicalID + 1 == _nextCLLogicalId)
-      {
-         --_nextCLLogicalId;
-      }
       return;
    }
 

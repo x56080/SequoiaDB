@@ -198,7 +198,8 @@ namespace vessel
          INT32 ensureCLIndexMetaBlockPage(requestContext *context,
                                           CL_MB_ID mbID);
 
-         INT32 precreateCL(const strSlice &clName,
+         INT32 precreateCL(requestContext *context,
+                           const strSlice &clName,
                            utilCLInnerID innerID,
                            CL_MB_ID &mbID,
                            UINT32 &logicalID);
@@ -206,8 +207,7 @@ namespace vessel
 
          void rollbackPrecreating(const strSlice &clName,
                                   utilCLInnerID innerID,
-                                  CL_MB_ID mbID,
-                                  UINT32 logicalID);
+                                  CL_MB_ID mbID);
 
          void endCreatingCL(collection *obj);
 
@@ -254,7 +254,6 @@ namespace vessel
 
          inMemBitmap _allocator;
          lazyArray<collectionObjHolderGroup> _collections;
-         UINT32 _nextCLLogicalId = 0;
 
          ///formal indexes
          NAME_INDEX _clNameIndex;

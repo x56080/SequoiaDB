@@ -55,7 +55,24 @@ namespace vessel
          INT32 read(requestContext *context,
                     const logicalPageBuffer *lpb,
                     csMetaBlock &cmb);
-      
+
+         INT32 update(requestContext *context,
+                      logicalPageBuffer *lpb,
+                      const csMetaBlock &block,
+                      UINT64 mask);
+
+   private:
+         INT32 prepareUpdateLog(requestContext *context,
+                                const runtimePageBuffer *rpb,
+                                logRecordContext *lrc);
+
+         INT32 commitUpdateLog(requestContext *context,
+                               const GLOBAL_PAGE_ID &gpid,
+                               const csMetaBlock &oldBlock,
+                               const csMetaBlock &block,
+                               UINT64 mask,
+                               logRecordContext *lrc);
+
    };//class csMetaBlockPageAccessor
 }//class vessel
 }//class engine

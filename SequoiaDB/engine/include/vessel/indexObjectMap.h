@@ -56,19 +56,13 @@ namespace vessel
          {
             return _maxIndexLid;
          }
-         OSS_INLINE UINT32 getNextIndexLid()const
-         {
-            return _maxIndexLid + 1;
-         }
+         UINT32 getNextIndexLid();
+
          OSS_INLINE BOOLEAN isEmpty()const
          {
             return _objects.empty();
          }
-         OSS_INLINE BOOLEAN isAllowedToCreateMore()const
-         {
-            return INVALID_LOGICAL_INDEX_ID != (_maxIndexLid + 1) &&
-                   0 != _freeIndexSlots;
-         }
+         BOOLEAN isAllowedToCreateMore()const;
 
       public:
          void fini();
@@ -110,7 +104,7 @@ namespace vessel
          ITERATOR begin() {return _objects.begin();}
          ITERATOR end() {return _objects.end();}
       private:
-         UINT32 _maxIndexLid = 0;
+         UINT32 _maxIndexLid = INVALID_LOGICAL_INDEX_ID;
          UINT64 _freeIndexSlots = OSS_UINT64_MAX;
 
          _OBJECT_MAP _objects;

@@ -274,6 +274,48 @@ namespace vessel
       goto done;
    }
 
+   INT32 mainDataSpace::updateCSMetaBlock(requestContext *context,
+                                          const csMetaBlock &block,
+                                          UINT64 updateMask)
+   {
+      INT32 rc = SDB_OK;
+      csMetaBlockPageAccessor accessor;
+      logicalPageBuffer lpb;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+
+      if (OSS_UNLIKELY(nullptr == context ||
+                       !block.isValid() ||
+                       0 == updateMask))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = getLogicalPageBuffer(context, CS_META_BLOCK_PAGE_LPID, mode, lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get logical page buffer[%d]", CS_META_BLOCK_PAGE_LPID);
+         goto error;
+      }
+
+      rc = accessor.update(context, &lpb, block, updateMask);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to update cs meta block, rc:%d", rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 mainDataSpace::_open(const storageFileLoader &loader)
    {
       INT32 rc = SDB_OK;

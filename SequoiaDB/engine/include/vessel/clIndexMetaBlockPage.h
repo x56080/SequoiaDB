@@ -86,7 +86,7 @@ namespace vessel
 
       UINT32 version = CL_INVALID_INDEX_META_BLOCK_VERSION;
       UINT32 clLogicalId = DMS_INVALID_LOGICCLID;
-      UINT32 maxIndexLid = 0;
+      UINT32 maxIndexLid = INVALID_LOGICAL_INDEX_ID;
       PAGE_ID entryPageLpids[MAX_INDEX_COUNT_PER_CL];
    };
    constexpr UINT32 CL_INDEX_META_BLOCK_LEN = sizeof(clIndexMetaBlock);

@@ -60,12 +60,40 @@ namespace vessel
       return;
    }
 
+   BOOLEAN indexObjectMap::isAllowedToCreateMore()const
+   {
+      BOOLEAN res = FALSE;
+      if (0 != _freeIndexSlots)
+      {
+         if (INVALID_LOGICAL_INDEX_ID != (_maxIndexLid + 1))
+         {
+            res = TRUE;
+         }
+      }
+      return res;
+   }
+
    void indexObjectMap::setMaxIndexLid(UINT32 indexLid)
    {
       if (indexLid > _maxIndexLid)
       {
          _maxIndexLid = indexLid;  
       }
+   }
+
+   UINT32 indexObjectMap::getNextIndexLid()
+   {
+      UINT32 res = INVALID_LOGICAL_INDEX_ID;
+      if (INVALID_LOGICAL_INDEX_ID == _maxIndexLid)
+      {
+         _maxIndexLid = 0;
+         res = 0;
+      }
+      else
+      {
+         res = _maxIndexLid + 1;
+      }
+      return res;
    }
 
    INT32 indexObjectMap::insert(INT32 indexSlot,
