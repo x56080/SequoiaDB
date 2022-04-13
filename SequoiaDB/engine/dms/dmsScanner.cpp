@@ -138,9 +138,8 @@ namespace engine
       stpLogicalTimeUS txBeginTm = cb->getTransBeginTime() ;
       UINT64 globTransAvailTime =
                         _context->mbStat()->_globTransAvailTime.peek() ;
-      PD_CHECK( 0 == globTransAvailTime ||
-                globTransAvailTime + STP_MAX_TIME_ERROR_US <=
-                                                       txBeginTm.getTime(),
+      PD_CHECK( ( ( 0 == globTransAvailTime ) ||
+                  ( globTransAvailTime < txBeginTm.getTime() ) ),
                 SDB_GLOB_TRANS_NOT_AVAILABLE, error, PDERROR,
                 "Failed to check global transaction, available "
                 "timestamp on collection [%s] is [%llu], "
@@ -728,7 +727,7 @@ namespace engine
                if ( !needWaitForLock() )
                {
                   // check visibility before testing transaction lock
-                  rc = _callback.checkRecordVisible() ;
+                  rc = _callback.checkRecordVisible( _context ) ;
                   PD_RC_CHECK( rc, PDERROR, "Failed to check visibility "
                                "of record [%d, %d], rc: %d", _curRID._extent,
                                _curRID._offset, rc ) ;
@@ -2146,7 +2145,7 @@ namespace engine
             if ( !needWaitForLock() )
             {
                // check visibility before testing transaction lock
-               rc = _callback.checkRecordVisible() ;
+               rc = _callback.checkRecordVisible( _context ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to check visibility "
                             "of record [%d, %d], rc: %d", _curRID._extent,
                             _curRID._offset, rc ) ;

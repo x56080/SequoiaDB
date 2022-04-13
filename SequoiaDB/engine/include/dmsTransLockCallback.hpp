@@ -137,7 +137,7 @@ namespace engine
       }
 
    public:
-      INT32 checkRecordVisible() ;
+      INT32 checkRecordVisible( dmsMBContext *context ) ;
 
       /// Interface
       virtual void afterLockAcquire( const dpsTransLockId &lockId,

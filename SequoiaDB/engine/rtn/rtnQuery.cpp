@@ -788,9 +788,8 @@ namespace engine
          UINT64 globTransAvailTime =
                mbContext->mbStat()->_globTransAvailTime.peek() ;
          stpLogicalTimeUS txBeginTm = cb->getTransBeginTime() ;
-         PD_CHECK( 0 == globTransAvailTime ||
-                   globTransAvailTime + STP_MAX_TIME_ERROR_US <=
-                                                          txBeginTm.getTime(),
+         PD_CHECK( ( ( 0 == globTransAvailTime ) ||
+                     ( globTransAvailTime < txBeginTm.getTime() ) ),
                    SDB_GLOB_TRANS_NOT_AVAILABLE, error, PDERROR,
                    "Failed to check global transaction, available "
                    "timestamp on collection [%s] is [%llu], "

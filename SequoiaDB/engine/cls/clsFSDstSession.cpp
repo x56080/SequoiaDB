@@ -3399,7 +3399,7 @@ namespace engine
                   if ( SDB_OK == su->data()->getMBContext( &pContext, pCLShort,
                                                            SHARED ) )
                   {
-                     UINT64 tm = finishTime.getTime() ;
+                     UINT64 tm = finishTime.getTime() + STP_MAX_TIME_ERROR_US ;
                      // update global transaction available timestamp
                      // split won't fetch old versions from source
                      pContext->mbStat()

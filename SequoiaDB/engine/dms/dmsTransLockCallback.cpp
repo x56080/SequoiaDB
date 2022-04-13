@@ -1341,7 +1341,7 @@ namespace engine
    //   protected by mblatch latch to make sure no one can update/change
    //   the record it is going to read.
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSTRANSLOCKCALLBACK_CHKRECVISIBLE, "dmsTransLockCallback::checkRecordVisible" )
-   INT32 dmsTransLockCallback::checkRecordVisible()
+   INT32 dmsTransLockCallback::checkRecordVisible( dmsMBContext *context )
    {
       INT32        rc      = SDB_OK ;
 
@@ -1383,19 +1383,47 @@ namespace engine
             goto done ;
          }
          DPS_TRANS_ID recTransID = record->getGlobTransID() ;
+         stpLogicalTimeUS visibleTime( DPS_MAX_TRANS_TIME,
+                                       STP_MAX_TIME_ERROR ) ;
          rc = _transCB->isVersionVisible( _eduCB,
                                           recTransID,
                                           transID,
                                           _eduCB->getTransBeginTime(),
                                           TRANS_ISOLATION_RR,
                                           FALSE,
-                                          visible ) ;
+                                          visible,
+                                          &visibleTime ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to check visibility for "
                       "read transaction [%s] against record"
                       "transaction [%s], rc: %d",
                       dpsTransIDToString( transID ).c_str(),
                       dpsTransIDToString( recTransID ).c_str(), rc ) ;
+
+         if ( !visible )
+         {
+            // it is invisible, need to check older versions
+            // check with global transaction available time on collection
+            SDB_ASSERT( recTransID.isGlobTrans(),
+                        "should be global transaction of record" ) ;
+            UINT64 globTransAvailTime =
+                  context->mbStat()->_globTransAvailTime.peek() ;
+            PD_CHECK( ( 0 == globTransAvailTime ) ||
+                      ( DPS_MAX_TRANS_TIME == visibleTime.getTime() ) ||
+                      ( visibleTime.getTime() > globTransAvailTime ),
+                      SDB_GLOB_TRANS_NOT_AVAILABLE, error, PDERROR,
+                      "Failed to check global transaction, available "
+                      "timestamp on collection [%s] is [%llu], "
+                      "current transaction [%s] is start from [%llu],"
+                      "invisible record from transaction [%s] "
+                      "will be visible on [%llu]",
+                      context->mb()->_collectionName,
+                      globTransAvailTime,
+                      dpsTransIDToString( transID ).c_str(),
+                      transID.getGlobSN(),
+                      dpsTransIDToString( recTransID ).c_str(),
+                      visibleTime ) ;
+         }
 
          _recordOnDiskVisible = visible ;
          _diskRecordTransID = recTransID ;
