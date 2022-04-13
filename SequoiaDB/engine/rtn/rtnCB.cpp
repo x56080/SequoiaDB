@@ -534,7 +534,7 @@ namespace engine
               pContext->isWrite() )
          {
             if ( PMD_INVALID_EDUID != filterEDUID &&
-                 pContext->eduID() != filterEDUID )
+                 pContext->eduID() == filterEDUID )
             {
                continue ;
             }
@@ -701,8 +701,10 @@ namespace engine
          context->disableTimeout() ;
       }
 
-      PD_LOG ( PDDEBUG, "Create new context(contextID=%lld, type: %d[%s])",
-               contextID, type, getContextTypeDesp(type) ) ;
+      PD_LOG ( PDDEBUG, "Create new context(contextID=%lld, type: %d[%s], "
+               "writing ID %llu)",
+               contextID, type, getContextTypeDesp(type),
+               context->getOpID() ) ;
 
       return SDB_OK ;
    }

@@ -309,6 +309,10 @@ namespace engine
       BOOLEAN              _truncated ;
    } ;
    typedef class _rtnLobStream rtnLobStream ;
+
+   // helper functions
+   const CHAR* rtnLobOpName( INT32 mode ) ;
+
 }
 
 #endif

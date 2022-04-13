@@ -408,7 +408,7 @@ namespace engine
          // name of processing object ( collection space or collection )
          virtual const CHAR *getProcessName() const
          {
-            return NULL ;
+            return "" ;
          }
 
          BOOLEAN needTimeout() const

@@ -60,6 +60,8 @@ namespace engine
       virtual _dmsStorageUnit*   getSU () ;
       virtual BOOLEAN            isWrite() const ;
 
+      virtual const CHAR *getProcessName() const ;
+
       virtual UINT32 getSULogicalID() const
       {
          return _suLogicalID ;
