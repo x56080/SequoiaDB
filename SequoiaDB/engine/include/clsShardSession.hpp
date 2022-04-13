@@ -247,12 +247,12 @@ namespace engine
          const string&              getSource() const ;
 
       protected:
-         enum CL_OP_TYPE {
-            CL_OP_UNKNOWN = 0,
-            CL_OP_WRITE,
-            CL_OP_READ_ON_ANY,
-            CL_OP_READ_ON_PRY,
-            CL_OP_READ_ON_SND
+         enum CLS_CL_OP_TYPE {
+            CLS_CL_OP_UNKNOWN = 0,
+            CLS_CL_OP_WRITE,
+            CLS_CL_OP_READ_ON_ANY,
+            CLS_CL_OP_READ_ON_PRY,
+            CLS_CL_OP_READ_ON_SND
          } ;
 
          INT32 _checkWriteStatus() ;
@@ -262,7 +262,7 @@ namespace engine
          /// do multi things to reduce times of getting lock
          INT32 _checkCLStatusAndGetSth( const CHAR *name,
                                         INT32 version,
-                                        CL_OP_TYPE opType,
+                                        CLS_CL_OP_TYPE opType,
                                         INT16 *w = NULL,
                                         utilCLUniqueID *clUniqueID = NULL,
                                         BOOLEAN *repairCheck = NULL ) ;
