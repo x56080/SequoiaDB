@@ -274,6 +274,13 @@ namespace engine
                        dmsMBContext *mbContext,
                        BOOLEAN pageFilled ) ;
 
+      INT32 _renameMetaOrDataFile( const CHAR* metaFilePath,
+                                   const CHAR* dataFilePath ) ;
+
+      INT32 _checkIfMetaOrDataFileExist( const CHAR* metaFilePath,
+                                         const CHAR* dataFilePath,
+                                         BOOLEAN &exist ) ;
+
    private:
       dmsBucketsManagementExtent    *_dmsBME ;
       _dmsStorageData               *_dmsData ;
