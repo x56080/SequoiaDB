@@ -1193,30 +1193,10 @@ namespace engine
       if ( SDB_DMS_INVALID_SU == cause &&
            _fullPathName[0] != '\0' )
       {
-         CHAR tmpFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-         ossSnprintf( tmpFile, OSS_MAX_PATHSIZE, "%s.err.%u",
-                      _fullPathName, ossGetCurrentProcessID() ) ;
-         if ( SDB_OK == ossAccess( tmpFile, 0 ) )
-         {
-            rc = ossDelete( tmpFile ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Remove file[%s] failed, rc: %d",
-                       tmpFile, rc ) ;
-               goto error ;
-            }
-         }
-         /// rename the file
-         rc = ossRenamePath( _fullPathName, tmpFile ) ;
+         rc = dmsRenameInvalidFile( _fullPathName ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "Rename file[%s] to [%s] failed, rc: %d",
-                    _fullPathName, tmpFile, rc ) ;
-         }
-         else
-         {
-            PD_LOG( PDEVENT, "Rename file[%s] to [%s] succeed",
-                    _fullPathName, tmpFile ) ;
+            goto error ;
          }
       }
 

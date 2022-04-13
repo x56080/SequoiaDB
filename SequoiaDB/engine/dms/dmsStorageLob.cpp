@@ -114,6 +114,121 @@ namespace engine
       }
    }
 
+   INT32 _dmsStorageLob::_renameMetaOrDataFile( const CHAR* metaFilePath,
+                                                const CHAR* dataFilePath )
+   {
+      INT32 rc = SDB_OK ;
+      CHAR fullPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+
+      if ( NULL == metaFilePath || NULL == dataFilePath )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "metaFilePath or dataFilePath can't be NULL, "
+                 "rc: %d", rc ) ;
+         goto error ;
+      }
+
+      // rename lob meta file
+      rc = utilBuildFullPath( metaFilePath, _suFileName, OSS_MAX_PATHSIZE,
+                              fullPath ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "File path are too long: %s/%s, rc: %d",
+                  metaFilePath, _suFileName, rc ) ;
+         goto error ;
+      }
+
+      if ( SDB_OK == ossAccess( fullPath ) )
+      {
+         rc = dmsRenameInvalidFile( fullPath ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+
+      ossMemset( fullPath, 0 ,sizeof( fullPath ) ) ;
+
+      // rename lob data file
+      rc = utilBuildFullPath( dataFilePath, _data.getFileName(),
+                              OSS_MAX_PATHSIZE, fullPath ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "File path are too long: %s/%s, rc: %d",
+                  dataFilePath, _data.getFileName(), rc ) ;
+         goto error ;
+      }
+
+      if ( SDB_OK == ossAccess( fullPath ) )
+      {
+         rc = dmsRenameInvalidFile( fullPath ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _dmsStorageLob::_checkIfMetaOrDataFileExist( const CHAR* metaFilePath,
+                                                      const CHAR* dataFilePath,
+                                                      BOOLEAN &exist )
+   {
+      INT32 rc = SDB_OK ;
+      CHAR fileFullPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+
+      exist = FALSE ;
+
+      if ( NULL == metaFilePath || NULL == dataFilePath )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "metaFilePath or dataFilePath can't be NULL, "
+                 "rc: %d", rc ) ;
+         goto error ;
+      }
+
+      rc = utilBuildFullPath( metaFilePath, _suFileName,
+                              OSS_MAX_PATHSIZE, fileFullPath ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "File path are too long: %s/%s, rc: %d",
+                  metaFilePath, _suFileName, rc ) ;
+         goto error ;
+      }
+
+      if ( SDB_OK == ossAccess( fileFullPath ) )
+      {
+         exist = TRUE ;
+         goto done ;
+      }
+
+      ossMemset( fileFullPath, 0, sizeof( fileFullPath ) ) ;
+
+      rc = utilBuildFullPath( dataFilePath, _data.getFileName(),
+                              OSS_MAX_PATHSIZE, fileFullPath ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "File path are too long: %s/%s, rc: %d",
+                  metaFilePath, _suFileName, rc ) ;
+         goto error ;
+      }
+
+      if ( SDB_OK == ossAccess( fileFullPath ) )
+      {
+         exist = TRUE ;
+         goto done ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB_OPEN, "_dmsStorageLob::open" )
    INT32 _dmsStorageLob::open( const CHAR *path,
                                const CHAR *metaPath,
@@ -122,6 +237,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB_OPEN ) ;
+      BOOLEAN exist = FALSE ;
 
       // copy path
       ossStrncpy( _path, path, OSS_MAX_PATHSIZE ) ;
@@ -131,6 +247,26 @@ namespace engine
       // if not create lobs
       if ( 0 == _dmsData->getHeader()->_createLobs )
       {
+         rc = _checkIfMetaOrDataFileExist( metaPath, path, exist ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+
+         if ( exist )
+         {
+            PD_LOG( PDERROR, "Invalid meta or data file. "
+                    "They must not exist" ) ;
+
+            rc = _renameMetaOrDataFile( metaPath, path ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+
+            rc = SDB_DMS_INVALID_SU ;
+            goto error ;
+         }
          _needDelayOpen = TRUE ;
       }
       else
@@ -144,8 +280,11 @@ namespace engine
          }
       }
 
+   done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGELOB_OPEN, rc ) ;
       return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB_RENAME, "_dmsStorageLob::rename" )

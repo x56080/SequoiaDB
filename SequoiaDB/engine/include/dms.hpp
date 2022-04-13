@@ -445,6 +445,8 @@ namespace engine
 
    std::string dmsGetCLShortNameFromFullName( const std::string &fullName ) ;
 
+   INT32 dmsRenameInvalidFile( const CHAR* pSrcPath,
+                               const CHAR* pDesPath = NULL ) ;
 }
 
 #endif /* DMS_HPP_ */
