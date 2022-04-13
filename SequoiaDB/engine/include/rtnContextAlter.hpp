@@ -76,9 +76,10 @@ namespace engine
 
          virtual const CHAR *getProcessName() const
          {
-            return ( NULL != _alterJob ) ?
+            return ( NULL != _alterJob &&
+                     NULL != _alterJob->getObjectName() ) ?
                    ( _alterJob->getObjectName() ) :
-                   ( NULL ) ;
+                   ( "" ) ;
          }
 
       protected :

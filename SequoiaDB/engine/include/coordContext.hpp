@@ -146,7 +146,9 @@ namespace engine
          virtual BOOLEAN   needRollback() const { return _isModify ; }
          virtual const CHAR *getProcessName() const
          {
-            return _options.getCLFullName() ;
+            return ( NULL != _options.getCLFullName() ) ?
+                   ( _options.getCLFullName() ) :
+                   ( "" ) ;
          }
 
       public:

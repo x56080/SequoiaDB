@@ -61,6 +61,16 @@ namespace engine
 
       virtual BOOLEAN isWrite() const ;
 
+      virtual const CHAR *getProcessName() const
+      {
+         return getFullName() ;
+      }
+
+      const CHAR *getSubCLName() const
+      {
+         return _subCLName.empty() ? NULL : _subCLName.c_str() ;
+      }
+
    public:
       INT32 open( const bson::BSONObj &lob,
                   SINT32 flag,

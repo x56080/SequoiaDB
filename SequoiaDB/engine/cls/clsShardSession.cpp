@@ -3841,6 +3841,31 @@ namespace engine
       goto done ;
    }
 
+   INT32 _clsShdSession::_checkSubCL( const CHAR *mainCLName,
+                                      const CHAR *subCLName )
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = _pFreezingWindow->waitForOpr( subCLName,
+                                         _pEDUCB,
+                                         _pEDUCB->isWritingDB() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Wait freezing window for "
+                   "sub-collection(%s) failed, rc: %d",
+                   subCLName, rc ) ;
+
+      // need recheck version of main-collection
+      rc = _checkCLVersion( mainCLName, _clVersion ) ;
+      PD_RC_CHECK( rc, PDDEBUG, "Failed to check message version [%d] of "
+                   "collection [%s], rc: %d", _clVersion, mainCLName,
+                   rc ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    INT32 _clsShdSession::_getSubCLList( const CHAR *pCollectionName,
                                         CLS_SUBCL_LIST &subCLList,
                                         CLS_SUBCL_SORT_TYPE sortType )
@@ -4662,8 +4687,9 @@ namespace engine
       INT32 rc = SDB_OK ;
       const MsgOpLob *header = NULL ;
       BSONObj lob ;
-      BSONElement fullName ;
-      BSONElement mode ;
+      const CHAR *fullName = NULL ;
+      const CHAR *subCLName = NULL ;
+      INT32 mode = 0 ;
       INT16 w = 0 ;
       INT16 replSize = 0 ;
       const CHAR *pData = NULL ;
@@ -4677,22 +4703,54 @@ namespace engine
          PD_LOG( PDERROR, "failed to extract open msg:%d", rc ) ;
          goto error ;
       }
-      fullName = lob.getField( FIELD_NAME_COLLECTION ) ;
-      if ( String != fullName.type() )
-      {
-         PD_LOG( PDERROR, "invalid lob obj:%s",
-                 lob.toString( FALSE, TRUE ).c_str() ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      _setCollectionName( fullName.valuestr() ) ;
 
-      mode = lob.getField( FIELD_NAME_LOB_OPEN_MODE ) ;
-      if ( NumberInt != mode.type() )
+      try
       {
-         PD_LOG( PDERROR, "invalid lob obj:%s",
-                 lob.toString( FALSE, TRUE ).c_str() ) ;
-         rc = SDB_INVALIDARG ;
+         BSONElement ele = lob.getField( FIELD_NAME_COLLECTION ) ;
+         if ( String != ele.type() )
+         {
+            PD_LOG( PDERROR, "Failed to parse invalid lob obj:%s, "
+                    "[%s] is not a string",
+                    lob.toString( FALSE, TRUE ).c_str(),
+                    FIELD_NAME_COLLECTION ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         fullName = ele.valuestr() ;
+         _setCollectionName( fullName ) ;
+
+         ele = lob.getField( FIELD_NAME_SUBCLNAME ) ;
+         if ( EOO != ele.type() )
+         {
+            if ( String != ele.type() )
+            {
+               PD_LOG( PDERROR, "Failed to parse invalid lob obj:%s, "
+                       "[%s] is not a string",
+                       lob.toString( FALSE, TRUE ).c_str(),
+                       FIELD_NAME_SUBCLNAME ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+            subCLName = ele.valuestr() ;
+         }
+
+         ele = lob.getField( FIELD_NAME_LOB_OPEN_MODE ) ;
+         if ( NumberInt != ele.type() )
+         {
+            PD_LOG( PDERROR, "Failed to parse invalid lob obj:%s, "
+                    "[%s] is not an integer",
+                    lob.toString( FALSE, TRUE ).c_str(),
+                    FIELD_NAME_LOB_OPEN_MODE ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         mode = ele.Int() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse lob options, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -4700,7 +4758,7 @@ namespace engine
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "Option:%s", lob.toPoolString().c_str() ) ;
 
-      if ( !SDB_IS_LOBREADONLY_MODE( mode.Int() ) )
+      if ( !SDB_IS_LOBREADONLY_MODE( mode ) )
       {
          rc = _checkWriteStatus() ;
          if ( SDB_OK != rc )
@@ -4731,7 +4789,7 @@ namespace engine
          }
       }
 
-      rc = _checkCLStatusAndGetSth( fullName.valuestr(),
+      rc = _checkCLStatusAndGetSth( fullName,
                                     header->version,
                                     &replSize ) ;
 
@@ -4740,7 +4798,18 @@ namespace engine
          goto error ;
       }
 
-      if ( !SDB_IS_LOBREADONLY_MODE( mode.Int() ) )
+      if ( NULL != subCLName )
+      {
+         // switch to sub-collection
+         _pEDUCB->switchToSubCL( subCLName ) ;
+
+         rc = _checkSubCL( fullName, subCLName ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check sub-collection [%s] in "
+                      "main-collection [%s], rc: %d", subCLName, fullName,
+                      rc ) ;
+      }
+
+      if ( !SDB_IS_LOBREADONLY_MODE( mode ) )
       {
          rc = _calculateW( &replSize, &( header->w ), w ) ;
          if ( SDB_OK != rc )
@@ -4851,6 +4920,19 @@ namespace engine
       if ( SDB_OK != rc )
       {
          goto error ;
+      }
+
+      if ( NULL != lobContext->getSubCLName() )
+      {
+         // switch to sub-collection
+         _pEDUCB->switchToSubCL( lobContext->getSubCLName() ) ;
+
+         rc = _checkSubCL( lobContext->getFullName(),
+                           lobContext->getSubCLName() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check sub-collection [%s] in "
+                      "main-collection [%s], rc: %d",
+                      lobContext->getSubCLName(), lobContext->getFullName(),
+                      rc ) ;
       }
 
       rc = _calculateW( &wWhenOpen, NULL, w ) ;
@@ -5010,15 +5092,18 @@ namespace engine
          goto error ;
       }
 
-      /// do not check version coz we will not
-      ///  change any thing except close the context.
-      lobContext = ( rtnContextShdOfLob * )context ;
+      if ( NULL != lobContext->getSubCLName() )
+      {
+         // switch to sub-collection
+         _pEDUCB->switchToSubCL( lobContext->getSubCLName() ) ;
 
-      // add last op info
-      MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
-                          "ContextID:%lld, Collection:%s",
-                          header->contextID,
-                          lobContext->getFullName() ) ;
+         rc = _checkSubCL( lobContext->getFullName(),
+                           lobContext->getSubCLName() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check sub-collection [%s] in "
+                      "main-collection [%s], rc: %d",
+                      lobContext->getSubCLName(), lobContext->getFullName(),
+                      rc ) ;
+      }
 
       rc = lobContext->lock( _pEDUCB, offset, length ) ;
       if ( SDB_OK != rc )
@@ -5082,6 +5167,12 @@ namespace engine
       /// do not check version coz we will not
       ///  change any thing except close the context.
       lobContext = ( rtnContextShdOfLob * )context ;
+
+      eduCB()->setCurProcessName( lobContext->getFullName() ) ;
+      if ( NULL != lobContext->getSubCLName() )
+      {
+         eduCB()->switchToSubCL( lobContext->getSubCLName() ) ;
+      }
 
       // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
@@ -5185,6 +5276,19 @@ namespace engine
          goto error ;
       }
 
+      if ( NULL != lobContext->getSubCLName() )
+      {
+         // switch to sub-collection
+         _pEDUCB->switchToSubCL( lobContext->getSubCLName() ) ;
+
+         rc = _checkSubCL( lobContext->getFullName(),
+                           lobContext->getSubCLName() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check sub-collection [%s] in "
+                      "main-collection [%s], rc: %d",
+                      lobContext->getSubCLName(), lobContext->getFullName(),
+                      rc ) ;
+      }
+
       rc = lobContext->readv( tuple, tuplesSize / sizeof( MsgLobTuple ),
                               _pEDUCB, &data, read ) ;
       if ( SDB_OK != rc )
@@ -5275,6 +5379,19 @@ namespace engine
       if ( SDB_OK != rc )
       {
          goto error ;
+      }
+
+      if ( NULL != lobContext->getSubCLName() )
+      {
+         // switch to sub-collection
+         _pEDUCB->switchToSubCL( lobContext->getSubCLName() ) ;
+
+         rc = _checkSubCL( lobContext->getFullName(),
+                           lobContext->getSubCLName() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check sub-collection [%s] in "
+                      "main-collection [%s], rc: %d",
+                      lobContext->getSubCLName(), lobContext->getFullName(),
+                      rc ) ;
       }
 
       rc = _calculateW( &wWhenOpen, NULL, w ) ;
@@ -5401,6 +5518,19 @@ namespace engine
       if ( SDB_OK != rc )
       {
          goto error ;
+      }
+
+      if ( NULL != lobContext->getSubCLName() )
+      {
+         // switch to sub-collection
+         _pEDUCB->switchToSubCL( lobContext->getSubCLName() ) ;
+
+         rc = _checkSubCL( lobContext->getFullName(),
+                           lobContext->getSubCLName() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check sub-collection [%s] in "
+                      "main-collection [%s], rc: %d",
+                      lobContext->getSubCLName(), lobContext->getFullName(),
+                      rc ) ;
       }
 
       rc = _calculateW( &wWhenOpen, NULL, w ) ;
@@ -5534,6 +5664,19 @@ namespace engine
       if ( SDB_OK != rc )
       {
          goto error ;
+      }
+
+      if ( NULL != lobContext->getSubCLName() )
+      {
+         // switch to sub-collection
+         _pEDUCB->switchToSubCL( lobContext->getSubCLName() ) ;
+
+         rc = _checkSubCL( lobContext->getFullName(),
+                           lobContext->getSubCLName() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check sub-collection [%s] in "
+                      "main-collection [%s], rc: %d",
+                      lobContext->getSubCLName(), lobContext->getFullName(),
+                      rc ) ;
       }
 
       rc = lobContext->getLobRTDetail( _pEDUCB, detail ) ;

@@ -390,8 +390,6 @@ namespace engine
          goto error ;
       }
 
-      cb->setCurProcessName( lobContext->getProcessName() ) ;
-
       if ( lobOffset < -1 )
       {
          rc = SDB_INVALIDARG ;
@@ -400,6 +398,8 @@ namespace engine
       }
 
       lobContext = ( rtnContextLob * )context ;
+      cb->setCurProcessName( lobContext->getProcessName() ) ;
+
       rc = lobContext->write( len, buf, lobOffset, cb ) ;
       if ( SDB_OK != rc )
       {
@@ -450,8 +450,6 @@ namespace engine
          goto error ;
       }
 
-      cb->setCurProcessName( lobContext->getProcessName() ) ;
-
       if ( offset < 0 || length < -1 )
       {
          rc = SDB_INVALIDARG ;
@@ -461,6 +459,8 @@ namespace engine
       }
 
       lobContext = ( rtnContextLob * )context ;
+      cb->setCurProcessName( lobContext->getProcessName() ) ;
+
       rc = lobContext->lock( cb, offset, length ) ;
       if ( SDB_OK != rc )
       {

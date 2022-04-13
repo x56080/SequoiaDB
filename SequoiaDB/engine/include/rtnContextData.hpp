@@ -112,9 +112,10 @@ namespace engine
          virtual BOOLEAN          needRollback() const ;
          virtual const CHAR *     getProcessName() const
          {
-            return ( NULL != _planRuntime.getPlan() ) ?
+            return ( NULL != _planRuntime.getPlan() &&
+                     NULL != _planRuntime.getPlan()->getCLFullName() ) ?
                    ( _planRuntime.getPlan()->getCLFullName() ) :
-                   ( NULL ) ;
+                   ( "" ) ;
          }
 
          virtual void setResultSetFilter( rtnResultSetFilter *rsFilter,

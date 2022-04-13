@@ -60,6 +60,8 @@ namespace engine
       virtual _dmsStorageUnit*   getSU () ;
       virtual BOOLEAN            isWrite() const ;
 
+      virtual const CHAR *getProcessName() const ;
+
    public:
       /*
          Note: The pStream will be takeover in cases both failed and succed
