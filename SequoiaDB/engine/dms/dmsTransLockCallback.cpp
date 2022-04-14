@@ -1422,7 +1422,7 @@ namespace engine
                       dpsTransIDToString( transID ).c_str(),
                       transID.getGlobSN(),
                       dpsTransIDToString( recTransID ).c_str(),
-                      visibleTime ) ;
+                      visibleTime.getTime() ) ;
          }
 
          _recordOnDiskVisible = visible ;
