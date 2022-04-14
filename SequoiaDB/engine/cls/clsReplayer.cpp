@@ -3204,6 +3204,8 @@ namespace engine
       {
          PD_LOG ( PDERROR, "Index job[%s] init failed, rc = %d",
                   indexJob->name(), rc ) ;
+         SDB_OSS_DEL indexJob ;
+         indexJob = NULL ;
          goto error ;
       }
 

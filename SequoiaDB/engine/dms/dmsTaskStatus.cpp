@@ -749,6 +749,8 @@ namespace engine
          if ( it == _mapStatus.end() )
          {
             statusPtr = dmsIdxTaskStatusPtr( pItem ) ;
+            // shared_ptr takes over pItem's memory
+            pItem = NULL ;
             _mapStatus[taskID] = statusPtr ;
          }
          else
@@ -756,6 +758,7 @@ namespace engine
             statusPtr = boost::dynamic_pointer_cast<dmsIdxTaskStatus>(it->second) ;
             statusPtr->setLocationID( locationID ) ;
             SDB_OSS_DEL pItem ;
+            pItem = NULL ;
          }
       }
       catch( std::exception &e )
