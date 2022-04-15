@@ -2257,7 +2257,13 @@ namespace engine
       CHAR *message = NULL ;
       IMsgConvertor *convertor = NULL ;
       BOOLEAN isNotSysInfoMsg =
-         ( (INT32)MSG_SYSTEM_INFO_LEN != pMsg->messageLength );
+         ( (INT32)MSG_SYSTEM_INFO_LEN != pMsg->messageLength ) ;
+
+      // Heartbeat and heartbeat response should be handled in the network frame
+      // itself. Only when it's not the sysinfo message can we check the opCode.
+      BOOLEAN handleByme = isNotSysInfoMsg &&
+            ( MSG_HEARTBEAT == pMsg->opCode ||
+              MSG_HEARTBEAT_RES == pMsg->opCode )  ;
 
       if ( isNotSysInfoMsg && ( MSG_COMM_EYE_DEFAULT != pMsg->eye ) )
       {
@@ -2286,13 +2292,16 @@ namespace engine
          }
       }
 
-      if ( MSG_HEARTBEAT == pMsg->opCode )
+      if ( handleByme )
       {
-         _handleHeartBeat( eh, pMsg ) ;
-      }
-      else if ( MSG_HEARTBEAT_RES == pMsg->opCode )
-      {
-         _handleHeartBeatRes( eh, pMsg ) ;
+         if ( MSG_HEARTBEAT == pMsg->opCode )
+         {
+            _handleHeartBeat( eh, pMsg ) ;
+         }
+         else // MSG_HEARTBEAT_RES
+         {
+            _handleHeartBeatRes( eh, pMsg ) ;
+         }
       }
       else
       {

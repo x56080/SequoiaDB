@@ -179,7 +179,7 @@ namespace engine
       INT32 res = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__NETEVNHND_SETOPT );
 
-_isConnected = TRUE ;
+      _isConnected = TRUE ;
       _isNew = FALSE ;
 
       INT32 keepAlive = 1 ;
