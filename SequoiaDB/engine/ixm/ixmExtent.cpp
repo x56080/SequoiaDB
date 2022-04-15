@@ -411,7 +411,7 @@ namespace engine
          // before reorg let's get the child extent id for pos
          dmsExtentID ch = getChildExtentID ( pos ) ;
          // note _reorg may change pos
-         rc = _reorg ( order, pos ) ;
+         rc = _reorg ( order, pos, TRUE ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "index extent reorg failed with rc : %d", rc ) ;
@@ -637,18 +637,24 @@ namespace engine
             // remove unused keys from original extent, which may change newPos
             rc = insertHere ( newPos, rid, key, order, lchild, rchild,
                               indexCB ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to insert into splitted left page, rc = %d",
+                        rc ) ;
+               goto error ;
+            }
          }
          else
          {
             // otherwise the insert will be performed in new page
             rc = newExtent.insertHere ( pos-splitPos-1, rid, key, order, lchild,
                                         rchild, indexCB ) ;
-         }
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to insert into splitted page, rc = %d",
-                     rc ) ;
-            goto error ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to insert into splitted right page, rc = %d",
+                        rc ) ;
+               goto error ;
+            }
          }
       }
    done :
@@ -683,7 +689,10 @@ namespace engine
          ixmExtentHead *pExtent = _extRW.writePtr<ixmExtentHead>() ;
          pExtent->_totalKeyNodeNum = totalNodes ;
          unsetCompact() ;
-         return _reorg( order, newPos ) ;
+
+         // we should not delete the new inserting position
+         // we still need to match the left tree on that position
+         return _reorg( order, newPos, FALSE ) ;
       }
       return SDB_OK ;
    }
@@ -1031,12 +1040,14 @@ namespace engine
    INT32 _ixmExtent::_reorg (const Ordering &order)
    {
       UINT16 dummy = 0xFFFF ;
-      return _reorg ( order, dummy ) ;
+      return _reorg ( order, dummy, TRUE ) ;
    }
    // inline reorg an index page, newPos represent the input/output for a key
    // after reorg happened
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__REORG, "_ixmExtent::_reorg" )
-   INT32 _ixmExtent::_reorg (const Ordering &order, UINT16 &newPos)
+   INT32 _ixmExtent::_reorg (const Ordering &order,
+                             UINT16 &newPos,
+                             BOOLEAN canDelNewPos )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__REORG );
@@ -1059,11 +1070,13 @@ namespace engine
       {
          ixmKeyNode *kn = writeKeyNode(i) ;
          INT32 keyDataSize = 0 ;
+         BOOLEAN foundNewPos = FALSE ;
          // if the slot doesn't same as previous, and that is what we are
          // looking for, then let's set newPos to the new position after reorg
          if ( newPos == i )
          {
             newPos = totalKeyNodeNum ;
+            foundNewPos = TRUE ;
          }
          // if there is no child and it's unused, let's skip it ( that means it
          // will not be copied and count, so it's actually deleted)
@@ -1071,8 +1084,11 @@ namespace engine
          {
             /// When all node is unused, should keep the one node.
             /// Otherwise the page will has no key node
-            if ( totalKeyNodeNum > 0 ||
-                 i < pHeader->_totalKeyNodeNum - 1 )
+            // if given position is not allowed to delete, we should not
+            // delete it, the caller still needs this position
+            if ( ( canDelNewPos || !foundNewPos ) &&
+                 ( ( totalKeyNodeNum > 0 ) ||
+                   ( i < pHeader->_totalKeyNodeNum - 1 ) ) )
             {
                continue ;
             }
