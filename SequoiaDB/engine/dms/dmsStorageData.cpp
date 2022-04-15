@@ -228,7 +228,9 @@ namespace engine
          pRecord = recordRW.readPtr<dmsRecord>() ;
          if ( !pRecord->isDeleting() )
          {
-            SDB_ASSERT( FALSE, "Record is not deleting" ) ;
+            SDB_ASSERT( cb->getTransExecutor()->isLockEscalated(
+                                                      LOCKMGR_TRANS_LOCK ),
+                        "should be lock escalated" ) ;
             markInsert = FALSE ;
          }
          /// 2. check the value is the same
@@ -236,12 +238,16 @@ namespace engine
          {
             if ( SDB_OK != extractData( context, recordRW, cb, recordData ) )
             {
-               SDB_ASSERT( FALSE, "Extract data failed" ) ;
+               SDB_ASSERT( cb->getTransExecutor()->isLockEscalated(
+                                                      LOCKMGR_TRANS_LOCK ),
+                           "should be lock escalated" ) ;
                markInsert = FALSE ;
             }
             else if ( 0 != insertObj.woCompare(BSONObj(recordData.data())) )
             {
-               SDB_ASSERT( FALSE, "Data is not the same" ) ;
+               SDB_ASSERT( cb->getTransExecutor()->isLockEscalated(
+                                                      LOCKMGR_TRANS_LOCK ),
+                           "should be lock escalated" ) ;
                markInsert = FALSE ;
             }
          }
