@@ -151,7 +151,9 @@ namespace engine
       dmsExtRW             _extRW ;
 
       // reorganize the extent
-      INT32 _reorg (const Ordering &order, UINT16 &newPos) ;
+      INT32 _reorg ( const Ordering &order,
+                     UINT16 &newPos,
+                     BOOLEAN canDelNewPos ) ;
       INT32 _reorg (const Ordering &order) ;
       INT32 _alloc ( INT32 requestSpace, UINT16 &beginOffset ) ;
 
