@@ -3367,7 +3367,7 @@ namespace engine
                    "collection [%s], rc: %d", oldName, rc ) ;
 
       // not create id index, will copy index later
-      OSS_BIT_CLEAR( attributes, DMS_MB_ATTR_NOIDINDEX ) ;
+      OSS_BIT_SET( attributes, DMS_MB_ATTR_NOIDINDEX ) ;
 
       rc = addCollection( newName, &newMBID, newCLUniqueID, attributes, cb,
                           NULL, 0, FALSE, compressorType, &newCLLID,
