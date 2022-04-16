@@ -1,7 +1,7 @@
  [^_^]:
     FlinkSQL 连接器-连接
 
-Flink 集群启动成功后，用户可通过 FlinkSQL 客户端访问 SequoiaDB 巨杉数据库。 
+Flink 集群启动成功后，用户可通过 FlinkSQL 客户端访问 SequoiaDB 巨杉数据库。
 
 ##配置读取并发度##
 
@@ -86,6 +86,30 @@ WITH(
 | group                   | string  | insert into select 创建集合时指定创建在某个复制组<br>所指定的复制组必须存在于集合空间所属的域中                                                         | 否   |
 |  parallelism            | int32   | Sink 并发度，默认值为 1，取值应小于当前 Flink 集群的总 Slot 数量 <br> 建议取值为 SequoiaDB 集群中协调节点数量的倍数                           | 否   |  
 | transactionon           | boolean | Sink 是否开启事务，默认值为 false，表示不开启事务 <br> 建议取值如下： <br> 1）在批量写入的场景下，建议取值为 false，以提高写入效率  <br>  2）在实时写入的场景下，建议取值为 true，以保证数据一致性  <br> 3）在实时写入但不要求数据保持一致性的场景下，建议取值为 false， 以提高写入效率                                                              | 否   |
+
+##保证精确一次性##
+
+FlinkSQL 连接器通过 Checkpoint 机制保证数据写出的精确一次性。当用户将表配置 transactionon 设置为 true 时，需根据实际场景配置 Flink 集群中与 StateBackend 有关的参数，以保证数据处理的精确一次。
+
+下述以使用 RocksDB 增量存储 Checkpoint 为例，演示部分参数的配置方式，用户需根据实际情况调整配置。
+
+1. 配置 Checkpoint 间隔，以启用 Checkpoint 机制
+
+    ```lang-ini
+    execution.checkpointing.inteval: 5 min
+    ```
+
+2. 配置 StateBackend 相关参数
+
+    ```lang-ini
+    state.backend: rocksdb
+    state.backend.incremental: true
+    state.checkpoints.dir: hdfs:///flink-checkpoint        # location to store checkpoints
+    ···
+    ```
+
+3. 确保已正确配置 RocksDB 中的相关参数
+
 
 
 
