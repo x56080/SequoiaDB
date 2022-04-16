@@ -1209,26 +1209,6 @@ namespace engine
          indexDef = indexCB.getDef().getOwned() ;
          indexCB.getIndexID( indexOID ) ;
 
-         // create old version index tree if needed
-         // NOTE: alter command will not pass dpsCB to write DPS log, so we can
-         //       not simply check dpsCB here
-         if ( ( _pDataSu->isTransSupport() ) &&
-              ( NULL != dpscb || forceTransCallback ) )
-         {
-            // invoke callback function
-            pOprHandler = &callback ;
-            callback.setIDInfo( _pDataSu->CSID(), context->mbID(),
-                                _pDataSu->logicalID(),
-                                context->clLID() ) ;
-            rc = callback.onCreateIndex( context, &indexCB, cb ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Create index failed to invoke callback, "
-                       "rc = %d", rc ) ;
-               goto error ;
-            }
-         }
-
          // calc the reserve size
          if ( dpscb )
          {
@@ -1249,6 +1229,26 @@ namespace engine
                PD_LOG( PDERROR, "Failed to reserved log space(length=%u)",
                        logRecSize ) ;
                logRecSize = 0 ;
+               goto error ;
+            }
+         }
+
+         // create old version index tree if needed
+         // NOTE: alter command will not pass dpsCB to write DPS log, so we can
+         //       not simply check dpsCB here
+         if ( ( _pDataSu->isTransSupport() ) &&
+              ( NULL != dpscb || forceTransCallback ) )
+         {
+            // invoke callback function
+            pOprHandler = &callback ;
+            callback.setIDInfo( _pDataSu->CSID(), context->mbID(),
+                                _pDataSu->logicalID(),
+                                context->clLID() ) ;
+            rc = callback.onCreateIndex( context, &indexCB, cb ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Create index failed to invoke callback, "
+                       "rc = %d", rc ) ;
                goto error ;
             }
          }
