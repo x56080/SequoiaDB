@@ -2,7 +2,7 @@
  * @Description   : seqDB-26374:存在一致性索引/本地索引，重复创建相同本地索引   
  * @Author        : wu yan
  * @CreateTime    : 2021.04.14
- * @LastEditTime  : 2022.04.14
+ * @LastEditTime  : 2022.04.15
  * @LastEditors   : Wu Yan
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -29,7 +29,7 @@ function test ( testPara )
    //再次创建相同索引报错
    assert.tryThrow( SDB_IXM_REDEF, function()
    {
-      dbcl.createIndex( indexName, { no: 1 } );
+      dbcl.createIndex( indexName, { no: 1 }, { Standalone: true }, { NodeName: masteNode } );
    } );
    assert.tryThrow( SDB_IXM_REDEF, function()
    {
