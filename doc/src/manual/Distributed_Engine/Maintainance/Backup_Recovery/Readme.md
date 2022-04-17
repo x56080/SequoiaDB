@@ -10,18 +10,19 @@
 * 所有副本节点的磁盘数据损坏，并且无法恢复
 * 用户误操作，导致删除或者修改了关键数据
 
-SequoiaDB 巨杉数据库支持多种备份方法，其中包括：
+通过本章文档，用户可以了解 SequoiaDB 巨杉数据库备份恢复的原理及使用。主要内容如下：
 
-* [全量备份][regular_bar_all]
-* [增量备份][regular_bar_in]
+* [备份恢复原理][intro]
+* [数据备份][data_backup]
 * [日志归档][log_archive]
-
-用户可以通过后续章节获取详细的说明。
+* [数据恢复][data_restore]
 
 
 
 [^_^]:
     本文使用到的所有链接及引用。
-[regular_bar_all]:manual/Distributed_Engine/Maintainance/Backup_Recovery/data_backup.md#全量备份
-[regular_bar_in]:manual/Distributed_Engine/Maintainance/Backup_Recovery/data_backup.md#增量备份
+[intro]:manual/Distributed_Engine/Maintainance/Backup_Recovery/intro.md
+[data_backup]:manual/Distributed_Engine/Maintainance/Backup_Recovery/data_backup.md
 [log_archive]:manual/Distributed_Engine/Maintainance/Backup_Recovery/log_archive.md
+[data_restore]:manual/Distributed_Engine/Maintainance/Backup_Recovery/data_restore.md
+
