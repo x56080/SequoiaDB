@@ -225,7 +225,8 @@ namespace engine
       if ( SDB_EVT_OCCUR_AFTER == type )
       {
          // Lock groups in shared
-         rc = catLockGroups( _groupIDSet, cb, _lockMgr, SHARED ) ;
+         rc = catLockGroups( _groupIDSet, cb, _lockMgr, SHARED,
+                             _ignoreNonExist ) ;
          PD_RC_CHECK( rc, PDWARNING, "Failed to lock groups, rc: %d", rc ) ;
       }
 

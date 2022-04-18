@@ -450,7 +450,8 @@ namespace engine
    INT32 catLockGroups( const CAT_GROUP_SET &groupIDSet,
                         _pmdEDUCB *cb,
                         catCtxLockMgr &lockMgr,
-                        OSS_LATCH_MODE mode ) ;
+                        OSS_LATCH_MODE mode,
+                        BOOLEAN ignoreNonExist ) ;
 
    /* Check available of groups */
    INT32 catCheckGroupsByID ( std::vector<UINT32> &groupIDList ) ;

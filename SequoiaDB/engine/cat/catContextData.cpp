@@ -269,6 +269,9 @@ namespace engine
       _executeOnP1 = FALSE ;
       _needRollback = FALSE ;
       _ensureEmpty = FALSE ;
+
+      // may have recycled collections on dropped groups
+      _groupHandler.setIgnoreNonExist( TRUE ) ;
    }
 
    _catCtxDropCS::~_catCtxDropCS ()
