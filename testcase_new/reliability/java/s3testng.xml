@@ -22,13 +22,13 @@
     <!--s3服务端管理员用户-->
     <parameter name="S3USERNAME"    value="administrator" />
     <!--远程机器用户-->
-    <parameter name="REMOTEUSER"    value="root"/>
+    <parameter name="REMOTEUSER"    value="${REMOTEUSER}"/>
     <!--远程机器用户名密码-->
-    <parameter name="REMOTEPASSWD"  value="jenkins"/>
+    <parameter name="REMOTEPASSWD"  value="${REMOTEPASSWD}"/>
     <!--访问s3服务端秘钥-->
     <parameter name="S3ACCESSKEYID" value="ABCDEFGHIJKLMNOPQRST" />
     <!--远程机器root用户密码-->
-    <parameter name="ROOTPASSWD" value="jenkins"/>
+    <parameter name="ROOTPASSWD" value="${ROOTPASSWD}"/>
     <!--可靠性shell脚本位置-->
     <parameter name="SCRIPTDIR" value="${SCRIPTDIR}"/>
 

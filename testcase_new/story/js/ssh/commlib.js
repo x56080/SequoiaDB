@@ -5,8 +5,8 @@ import( "../lib/basic_operation/commlib.js" );
 *@Description : common parameters
 *@auhor       : Liang XueWang
 ******************************************************************************/
-var user = "sdbadmin";
-var password = SDBADMINPWD ;
+var user = REMOTEUSER;
+var password = REMOTEPASSWD;
 var port = 22;
 
 /******************************************************************************
