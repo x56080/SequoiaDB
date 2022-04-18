@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = cursorDef.h
+   Source File Name = listLobChunkCursor.cpp
 
    Descriptive Name =
 
@@ -33,26 +33,39 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_CURSOR_DEF_H_
-#define VESSEL_CURSOR_DEF_H_
-
-#include "core.hpp"
-#include "oss.hpp"
+#include "vessel/listLobChunkCursor.h"
+#include "pdTrace.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   enum CURSOR_TYPE
+   INT32 listLobChunkCursor::getBucketPosToScan()const
    {
-      CURSOR_TYPE_INVALID = 0,
-      CURSOR_TYPE_LIST_COLLECTION_SPACE = 1,
-      CURSOR_TYPE_LIST_COLLECTION = 2,
-      CURSOR_TYPE_SCAN_COLLECTION = 3,
-      CURSOR_TYPE_INDEX_SCAN = 4,
-      CURSOR_TYPE_LIST_LOBC = 5,
-   };
-}//namespace vessel
-}//namespace engine
+      return _bucketToScan.findFirst();
+   }
 
-#endif//VESSEL_CURSOR_DEF_H_
+   void listLobChunkCursor::endToScanBucket(UINT32 pos)
+   {
+      SDB_ASSERT(pos < lobcBucketRegionBlock::BUCKET_COUNT, "out of bound");
+      BOOLEAN old = FALSE;
+      _bucketToScan.clear(pos, &old);
+      SDB_ASSERT(old, "invalid pos");
+   }
+
+   void listLobChunkCursor::setRegionToScan(UINT32 regionId,
+                                            const lobcBucketRegionBlock &regionBlock)
+   {
+      _regionId = regionId;
+      _bucketToScan.clearAll();
+      for (UINT32 i = 0; i < lobcBucketRegionBlock::BUCKET_COUNT; ++i)
+      {
+         if (regionBlock.buckets[i] != INVALID_PAGE_ID)
+         {
+            _bucketToScan.set(i);
+         }
+      }
+   }
+} // namespace vessel
+
+} // namespace engine

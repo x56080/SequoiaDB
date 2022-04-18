@@ -163,10 +163,6 @@ namespace vessel
       end = first + _header->totalItemCount;
 
       slot = std::lower_bound(first, end, target);
-      if (slot == end)
-      {
-         goto done;
-      }
 
       while (slot != end)
       {
@@ -291,7 +287,23 @@ namespace vessel
       if (0 <= pos && (UINT32)pos < _header->totalItemCount)
       {
          const lobcMetaBlockPage::itemSlot *slot = getSlotPtr(pos);
-         if (nullptr != slot)
+         if (nullptr != slot && slot->isValid())
+         {
+            block = _getExtentMetaBlock(slot->offset);
+         }
+      }
+
+      return block;
+   }
+
+   lobExtentMetaBlock *lobcMetaBlockPageAccessor::getExtentMetaBlock(INT32 pos)
+   {
+      SDB_ASSERT(0 <= pos && (UINT32)pos < _header->totalItemCount, "out of bound");
+      lobExtentMetaBlock *block = nullptr;
+      if (0 <= pos && (UINT32)pos < _header->totalItemCount)
+      {
+         const lobcMetaBlockPage::itemSlot *slot = getSlotPtr(pos);
+         if (nullptr != slot && slot->isValid())
          {
             block = _getExtentMetaBlock(slot->offset);
          }
@@ -379,7 +391,6 @@ namespace vessel
       BOOLEAN compaction = FALSE;
       UINT32 slotPos = 0;
       strictBuffer buffer;
-      lobcMetaBlockPage::itemSlot *slotPtr = nullptr;
 
       if (OSS_UNLIKELY(nullptr == block || !block->isValid()))
       {
@@ -431,24 +442,8 @@ namespace vessel
       }
 
       SDB_ASSERT(slotPos <= _header->totalItemCount, "impossible");
-      
-      if (slotPos < _header->totalItemCount)
-      {
-         UINT32 moveSize = (_header->totalItemCount - slotPos) *
-                           sizeof(lobcMetaBlockPage::itemSlot);
-         lobcMetaBlockPage::itemSlot *mvPtr = getSlotPtr(slotPos);
-         ossMemmove(mvPtr + 1, mvPtr, moveSize);
-      }
 
-      /// add slot count first and then we can access slot ptr.
-      ++_header->totalItemCount;
-      _header->totalFreeSize -= getItemAndSlotSize();
-      _header->backOffset -= LOB_EXTENT_META_BLOCK_SIZE;
-      buffer.makeWritable(_pageSize, _header);
-      buffer.write(_header->backOffset, LOB_EXTENT_META_BLOCK_SIZE, block);
-      slotPtr = getSlotPtr(slotPos);
-      slotPtr->hash = entryPtr->hash();
-      slotPtr->offset = _header->backOffset;
+      _insertToPos(slotPos, entryPtr->hash(), block);
    done:
       return rc;
    error:
@@ -507,11 +502,18 @@ namespace vessel
             rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
             goto error;
          }
-         else if (0 <= highBlock->compare(*block))
+         else if (highSlot->hash == hash)
+         {  
+            if (0 <= highBlock->compare(*block))
+            {
+               PD_LOG(PDERROR, "invalid block[%s] to push back", block->toString().c_str());
+               rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+               goto error;
+            }
+         }
+         else
          {
-            PD_LOG(PDERROR, "invalid block[%s] to push back", block->toString().c_str());
-            rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-            goto error;
+            ///highSlot->hash < hash, do nothing.
          }
       }
 
@@ -543,6 +545,7 @@ namespace vessel
       }
       else if (_header->totalItemCount < (pos + count))
       {
+         PD_LOG(PDERROR, "items to be removed out of bound[%d, %d]", pos, count);
          rc = SDB_OUT_OF_BOUND;
          goto error;
       }
@@ -682,6 +685,7 @@ namespace vessel
       }
 
       compacter.init(_pageSize, compactionBuffer);
+      compacter.initPage();
       for (UINT32 i = 0; i < _header->totalItemCount; ++i)
       {
          const lobExtentMetaBlock *block = nullptr;
@@ -711,13 +715,11 @@ namespace vessel
 
       SDB_ASSERT(_header->totalFreeSize == compacter._header->totalFreeSize, "must be same");
       buffer.makeWritable(_pageSize, _header);
-      buffer.write(lobcMetaBlockPage::HEAD_SIZE,
-                   compacter._header->totalItemCount * sizeof(lobcMetaBlockPage::itemSlot),
-                   compactionBuffer + lobcMetaBlockPage::HEAD_SIZE);
+      buffer.write(0, compacter.getFrontOffset(), compactionBuffer);
       buffer.write(compacter._header->backOffset,
                    _pageSize - compacter._header->backOffset,
                    compactionBuffer + compacter._header->backOffset);
-      _header->backOffset = compacter._header->backOffset;
+
    done:
       if (nullptr != compactionBuffer)
       {
@@ -794,6 +796,153 @@ namespace vessel
          count = (_pageSize * (getFreePct() - freePct)) / getItemAndSlotSize();
       }
       return count;
+   }
+
+   INT32 lobcMetaBlockPageAccessor::addNewTailToChain(UINT32 oldTailPos,
+                                                      UINT32 lobdPageSize,
+                                                      const lobExtentMetaBlock *block)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isValid(), "can not be invalid");
+      lobExtentMetaBlock *oldTailBlock = nullptr;
+      const lobcMetaBlockPage::itemSlot *oldTailSlot = nullptr;
+      BOOLEAN compaction = FALSE;
+
+      if (OSS_UNLIKELY(_header->totalItemCount <= oldTailPos))
+      {
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(nullptr == block ||
+                            !block->isValid() ||
+                            0 == block->chainPos ||
+                            !block->isChainTail() ||
+                            !isValidPageSize(lobdPageSize)))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (!isFreeToInsert(1, &compaction))
+      {
+         rc = SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE;
+         goto error;
+      }
+      else if (compaction)
+      {
+         rc = compact();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to compact page:%d", rc);
+            goto error;
+         }
+      }
+
+      oldTailSlot = getSlotPtr(oldTailPos);
+      SDB_ASSERT(nullptr != oldTailSlot && oldTailSlot->isValid(), "impossible");
+      oldTailBlock = _getExtentMetaBlock(oldTailSlot->offset);
+      if (OSS_UNLIKELY(nullptr == oldTailBlock || !oldTailBlock->isValid()))
+      {
+         PD_LOG(PDERROR, "invalid block[%d] found", oldTailPos);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      if (!oldTailBlock->isChainTail() ||
+          block->lclid != oldTailBlock->lclid ||
+          block->oid != oldTailBlock->oid ||
+          block->chunkId != oldTailBlock->chunkId ||
+          block->chainPos != (oldTailBlock->chainPos + 1))
+      {
+         PD_LOG(PDERROR, "invalid old tail[%d] located", oldTailPos);
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+
+      oldTailBlock->size = (oldTailBlock->pcnt * lobdPageSize);
+      OSS_BIT_CLEAR(oldTailBlock->flags, lobExtentMetaBlock::FLAG_CHAIN_TAIL);
+      _insertToPos(oldTailPos + 1, oldTailSlot->hash, block);
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void lobcMetaBlockPageAccessor::_insertToPos(UINT32 pos,
+                                                UINT32 hash,
+                                                const lobExtentMetaBlock *block)
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(pos <= _header->totalItemCount, "out of bound");
+      SDB_ASSERT(nullptr != block && block->isValid(), "can not be invalid");
+      SDB_ASSERT((getFrontOffset() + getItemAndSlotSize()) <= _header->backOffset,
+                 "out of space");
+
+      if (pos < _header->totalItemCount)
+      {
+         UINT32 moveSize = (_header->totalItemCount - pos) *
+                           sizeof(lobcMetaBlockPage::itemSlot);
+         lobcMetaBlockPage::itemSlot *mvPtr = getSlotPtr(pos);
+         ossMemmove(mvPtr + 1, mvPtr, moveSize);
+      }
+
+      /// add slot count first and then we can access slot ptr.
+      ++_header->totalItemCount;
+      _header->totalFreeSize -= getItemAndSlotSize();
+      _header->backOffset -= LOB_EXTENT_META_BLOCK_SIZE;
+      strictBuffer buffer;
+      buffer.makeWritable(_pageSize, _header);
+      buffer.write(_header->backOffset, LOB_EXTENT_META_BLOCK_SIZE, block);
+      lobcMetaBlockPage::itemSlot *slotPtr = getSlotPtr(pos);
+      slotPtr->hash = hash;
+      slotPtr->offset = _header->backOffset;
+
+      return;
+   }
+
+   INT32 lobcMetaBlockPageAccessor::extendBlockSize(UINT32 pos,
+                                                    UINT32 lobdPageSize,
+                                                    UINT32 deltaSize)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isValidPageSize(lobdPageSize), "can not be invalid");
+      lobExtentMetaBlock *block = nullptr;
+      const lobcMetaBlockPage::itemSlot *slot = nullptr;
+
+      if (_header->totalItemCount <= pos)
+      {
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+
+      slot = getSlotPtr(pos);
+      if (OSS_UNLIKELY(nullptr == slot || !slot->isValid()))
+      {
+         PD_LOG(PDERROR, "invalid slot found at pos[%d]", pos);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      block = _getExtentMetaBlock(slot->offset);
+      if (OSS_UNLIKELY(nullptr == block || !block->isValid()))
+      {
+         PD_LOG(PDERROR, "invalid block found at pos[%d, %d]", pos, slot->offset);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      if ((block->pcnt * lobdPageSize) < (block->size + deltaSize))
+      {
+         PD_LOG(PDERROR, "extended size[%d] out of block capacity[%d]",
+                block->size + deltaSize, block->pcnt * lobdPageSize);
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+
+      block->size += deltaSize;
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
 } // namespace vessel

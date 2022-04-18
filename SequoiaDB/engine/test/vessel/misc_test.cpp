@@ -235,7 +235,7 @@ TEST_F(misc_test, base_openCL_test3)
    rc = handler->scan(&session, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    rc = reader.fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
    const bson::BSONObj &r = reader.getRecord();

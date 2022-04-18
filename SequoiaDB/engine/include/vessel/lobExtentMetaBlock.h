@@ -113,6 +113,40 @@ namespace vessel
          return res;
       }
 
+      INT32 compare(UINT32 lclid,
+                    const lobChunkKey &key)const
+      {
+         SDB_ASSERT(DMS_INVALID_LOGICCLID != lclid, "can not be invalid");
+         SDB_ASSERT(key.isValid(), "can not be invalid");
+         SDB_ASSERT(isValid(), "can not be invalid");
+         INT32 res = 0;
+         if (this->lclid < lclid)
+         {
+            res = -1;
+         }
+         else if (this->lclid > lclid)
+         {
+            res = 1;
+         }
+         else
+         {
+            res = oid.compare(key.getOid());
+            if (0 == res)
+            {
+               if (chunkId < key.getChunkId())
+               {
+                  res = -1;
+               }
+               else if (chunkId > key.getChunkId())
+               {
+                  res = 1;
+               }
+            }
+         }
+
+         return res;
+      }
+
       INT32 compare(const lobExtentMetaBlock &o)const
       {
          SDB_ASSERT(isValid() && o.isValid(), "can not be invalid");
@@ -195,6 +229,16 @@ namespace vessel
          oid = key.getOid();
          this->chunkId = key.getChunkId();
          ossMemset(reserved, 0x00, sizeof(reserved));
+      }
+
+      OSS_INLINE void setAsTail()
+      {
+         OSS_BIT_SET(flags, FLAG_CHAIN_TAIL);
+      }
+
+      OSS_INLINE void clearTail()
+      {
+         OSS_BIT_CLEAR(flags, FLAG_CHAIN_TAIL);
       }
 
       ossPoolString toString()const

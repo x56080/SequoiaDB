@@ -135,7 +135,7 @@ namespace engine
                                       const bson::OID &oid,
                                       UINT32 chunkId) = 0;
 
-/*
+
          virtual INT32 updateLobChunk(IExecutor *executor,
                                       const bson::OID &oid,
                                       UINT32 chunkId,
@@ -147,13 +147,22 @@ namespace engine
          virtual INT32 truncateLobChunk(IExecutor *executor,
                                         const bson::OID &oid,
                                         UINT32 chunkId,
-                                        UINT32 newSize) = 0;
+                                        UINT32 size,
+                                        UINT32 &tsize) = 0;
 
-         virtual INT32 testLobChunk(IExecutor *executor,
-                                    const bson::OID &oid,
-                                    UINT32 chunkId,
-                                    lobChunkProfile *profile) = 0;
-*/
+         virtual INT32 listLobChunks(IExecutor *executor,
+                                     const dmsListLobChunkOptions &o,
+                                     DATA_CURSOR_PTR &cursor) = 0;
+                              
+
+         
+         // virtual INT32 testLobChunk(IExecutor *executor,
+         //                            const bson::OID &oid,
+         //                            UINT32 chunkId,
+         //                            lobChunkProfile *profile) = 0;
+
+         
+
 
    };//class IDataCollection
 

@@ -184,6 +184,7 @@ namespace vessel
             ossItoa(_pid, buf, 16);
             str.append("[");
             str.append(buf);
+            str.append(":");
             ossItoa(_pos, buf, 16);
             str.append(buf);
             str.append("]");

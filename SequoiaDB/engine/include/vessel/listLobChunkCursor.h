@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = listCLCursor.h
+   Source File Name = listLobChunkCursor.h
 
    Descriptive Name =
 
@@ -33,28 +33,32 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_LIST_CL_CURSOR_H_
-#define VESSEL_LIST_CL_CURSOR_H_
+#ifndef VESSEL_LIST_LOB_CHUNK_CURSOR_H_
+#define VESSEL_LIST_LOB_CHUNK_CURSOR_H_
 
 #include "vessel/cursorKernal.h"
-#include "ossMemPool.hpp"
-#include "dms.hpp"
+#include "vessel/lobcBucketRegion.h"
+#include "dmsEngineOptions.hpp"
 #include "vessel/objectIdentifier.h"
+#include "vessel/fixedBitset.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class listCLCursor : public cursorKernal
+   class listLobChunkCursor : public cursorKernal
    {
       public:
-         listCLCursor(){}
-         virtual ~listCLCursor(){}
+         listLobChunkCursor(const globalCollectionId &gcid,
+                            const dmsListLobChunkOptions &o):
+         _gcid(gcid),
+         _o(o){}
+         virtual ~listLobChunkCursor(){}
 
       public:
          virtual const CHAR *getName()const override
          {
-            return "vessel.listCLCursor";
+            return "vessel.listLobChunkCursor";
          }
          virtual slice getDataSlice()const override
          {
@@ -64,45 +68,32 @@ namespace vessel
       public:
          virtual CURSOR_TYPE getType()const
          {
-            return CURSOR_TYPE_LIST_COLLECTION;
-         }
+            return CURSOR_TYPE_LIST_LOBC;
+         } 
+   
+      public:
+         OSS_INLINE const globalCollectionId &getCollectionId()const {return _gcid;}
+         OSS_INLINE const dmsListLobChunkOptions &getOptions()const {return _o;}
 
-         OSS_INLINE void setCollectionSpace(const collectionSpaceId &id)
-         {
-            _id = id;
-         }
 
-         OSS_INLINE const collectionSpaceId &getIdentifier()const
-         {
-            return _id;
-         }
+         INT32 getBucketPosToScan()const;
 
-         OSS_INLINE void setCLName(const CHAR *name)
-         {
-            ossStrcpy(_clName, name);
-         }
+         INT32 getRegionId()const {return _regionId;}
 
-         OSS_INLINE const CHAR *getCLName()const
-         {
-            return _clName;
-         }
+         void endToScanBucket(UINT32 pos);
 
-         OSS_INLINE void markLIdPushed(UINT32 lid)
-         {
-            _pushedLIds.insert(lid);
-         }
-
-         OSS_INLINE BOOLEAN isPushed(UINT32 lid)const
-         {
-            return 0 < _pushedLIds.count(lid);
-         }
+         void setRegionToScan(UINT32 regionId,
+                              const lobcBucketRegionBlock &regionBlock);
 
       private:
-         collectionSpaceId _id;
-         CHAR _clName[DMS_COLLECTION_NAME_SZ + 1] = {};
-         ossPoolSet<UINT32> _pushedLIds;
-   };//class listCLCursor
-}//namespace vessel
-}//namespace engine
+         const globalCollectionId _gcid;
+         dmsListLobChunkOptions _o;
+         INT32 _regionId = -1;
+         fixedBitset<lobcBucketRegionBlock::BUCKET_COUNT> _bucketToScan;
+   };//class listLobChunkCursor
+} // namespace vessel
 
-#endif//VESSEL_LIST_CL_CURSOR_H_
+} // namespace engine
+
+
+#endif//VESSEL_LIST_LOB_CHUNK_CURSOR_H_

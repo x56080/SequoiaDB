@@ -218,7 +218,6 @@ namespace vessel
                                           const slice &data)
    {
       INT32 rc = SDB_OK;
-      lextentDescriptor desc;
       THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
       SDB_ASSERT(nullptr != tc, "can not be null");
       LOBC_LATCH_MAP::object locker;
@@ -251,45 +250,11 @@ namespace vessel
          goto error;
       }
 
-      rc = reserveExtent(offset + data.getSize(), desc);
+      rc = _insertLobc(context, key, offset, data);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to reserve extent:%d", rc);
+         PD_LOG(PDERROR, "failed to insert lobc[%s], rc:%d", key.toString().c_str(), rc);
          goto error;
-      }
-      else
-      {
-         lobChunkBufferPool &pool = tc->getEnv()->lobcBufferPool;
-         lobChunkBufferPool::writeOptions wopts;
-         wopts.commitMetaData = TRUE;
-         lobcExtentChain chain;
-         lobExtentMetaBlock block;
-         block.init(context->getLogicalClId(),
-                    context->getMBID(),
-                    key, desc, 0, TRUE);
-         lobcMetaBlockMapping mapping(_manifest, _uberBlock.bucketEntryPid, &_metaFile);
-         rc = mapping.insert(&block);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-
-         chain.init(_manifest->lobArgs.pageSize);
-         chain.pushBack(desc);
-         rc = pool.write(glckey, chain, offset, data, wopts);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to write buffer pool:%d", rc);
-            lobChunkSearchEntry entry(key, context->getLogicalClId(), 0);
-            INT32 tmp = mapping.remove(entry, nullptr);
-            if (SDB_OK != tmp)
-            {
-               PD_LOG(PDSEVERE, "failed to rollback entry[%s], rc:%d",
-                      glckey.toString().c_str(), rc);
-               desc.reset();/// failed to rollback meta data, just leave it there.
-            }
-            goto error;
-         }
       }
    done:
       if (locker.isValid())
@@ -298,10 +263,6 @@ namespace vessel
       }
       return rc;
    error:
-      if (desc.isValid())
-      {
-         _allocator.release(desc.pid, desc.pcnt);
-      }
       goto done;
    }
 
@@ -944,6 +905,386 @@ namespace vessel
       {
          lh.unlock(mode, locker);
       }
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 largeObjectSpace::removeLobChunksInCL(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+
+      if (OSS_UNLIKELY(nullptr == context ||
+                       !context->isMbContextAttached()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      SDB_ASSERT(context->getSpaceID() == _manifest->sid, "must be same");
+      {
+         tc->getEnv()->lobcBufferPool.discard(context->getSpaceID(), context->getMBID());
+         lobcMetaBlockMapping mapping(_manifest, _uberBlock.bucketEntryPid, &_metaFile);
+         mapping.truncate(context->getLogicalClId(), &_allocator);
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 largeObjectSpace::updateLobChunk(requestContext *context,
+                                          const lobChunkKey &key,
+                                          UINT32 offset,
+                                          const slice &data,
+                                          BOOLEAN createIfNotExists)
+   {
+      INT32 rc = SDB_OK;
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      LOBC_LATCH_MAP::object locker;
+      lobcLatchHelper lh;
+      globalLobChunkKey glckey;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+
+      if (OSS_UNLIKELY(nullptr == context ||
+                       !context->isMbContextAttached() ||
+                       !key.isValid() ||
+                       !data.isValid() ||
+                       MAX_LOB_CHUNK_SIZE < (offset + data.getSize())))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      SDB_ASSERT(context->getSpaceID() == _manifest->sid, "must be same");
+      glckey.set(_manifest->sid, context->getMBID(), key);
+      rc = lh.lock(glckey, mode, locker);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock lobc[%s], rc:%d",
+                glckey.toString().c_str(), rc);
+         goto error;
+      }
+
+      {
+         lobChunkSearchEntry entry(key, context->getLogicalClId());
+         lobcMetaBlockMapping mapping(_manifest, _uberBlock.bucketEntryPid, &_metaFile);
+         lobcExtentChain chain;
+         rc = mapping.find(entry, chain);
+         if (SDB_OK == rc)
+         {
+            rc = _updateLobc(context, entry, chain, offset ,data);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to update lobc[%s], rc:%d",
+                      key.toString().c_str(), rc);
+               goto error;
+            }
+         }
+         else if (SDB_LOB_SEQUENCE_NOT_EXIST == rc)
+         {
+            if (!createIfNotExists)
+            {
+               goto error;
+            }
+            else
+            {
+               rc = _insertLobc(context, key, offset, data);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to upsert lobc[%s], rc:%d",
+                         key.toString().c_str(), rc);
+                  goto error;
+               }
+            }
+         }
+         else
+         {
+            PD_LOG(PDERROR, "failed to find lobc[%s], rc:%d",
+                   key.toString().c_str(), rc);
+            goto error;
+         }
+      }
+   done:
+      if (locker.isValid())
+      {
+         lh.unlock(mode, locker);
+      }
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 largeObjectSpace::truncateLobChunk(requestContext *context,
+                                            const lobChunkKey &key,
+                                            UINT32 size,
+                                            UINT32 &tsize)
+   {
+      INT32 rc = SDB_OK;
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      LOBC_LATCH_MAP::object locker;
+      lobcLatchHelper lh;
+      globalLobChunkKey glckey;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+
+      if (OSS_UNLIKELY(nullptr == context ||
+                       !context->isMbContextAttached() ||
+                       !key.isValid() ||
+                       0 == size))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      SDB_ASSERT(context->getSpaceID() == _manifest->sid, "must be same");
+      glckey.set(_manifest->sid, context->getMBID(), key);
+      rc = lh.lock(glckey, mode, locker);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock lobc[%s], rc:%d",
+                glckey.toString().c_str(), rc);
+         goto error;
+      }
+
+      rc = _truncateLobc(context, key, size, tsize);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to truncate lob chunk:%d", rc);
+         goto error;
+      }
+   done:
+      if (locker.isValid())
+      {
+         lh.unlock(mode, locker);
+      }
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 largeObjectSpace::_insertLobc(requestContext *context,
+                                       const lobChunkKey &key,
+                                       UINT32 offset,
+                                       const slice &data)
+   {
+      INT32 rc = SDB_OK;
+      lextentDescriptor desc;
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      lobChunkBufferPool &pool = tc->getEnv()->lobcBufferPool;
+      lobChunkBufferPool::writeOptions wopts;
+      globalLobChunkKey glckey;
+      glckey.set(_manifest->sid, context->getMBID(), key);
+      SDB_ASSERT(glckey.isValid(), "can not be invalid");
+      lobcExtentChain chain;
+      lobExtentMetaBlock block;
+      lobcMetaBlockMapping mapping(_manifest, _uberBlock.bucketEntryPid, &_metaFile);
+
+      rc = reserveExtent(offset + data.getSize(), desc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to reserve extent:%d", rc);
+         goto error;
+      }
+
+      block.init(context->getLogicalClId(),
+                  context->getMBID(),
+                  key, desc, 0, TRUE);
+      SDB_ASSERT(block.isValid(), "can not be invalid");
+      
+      rc = mapping.insert(&block);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      chain.init(_manifest->lobArgs.pageSize);
+      chain.pushBack(desc);
+      rc = pool.write(glckey, chain, offset, data, wopts);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to write buffer pool:%d", rc);
+         lobChunkSearchEntry entry(key, context->getLogicalClId(), 0);
+         INT32 tmp = mapping.remove(entry, nullptr);
+         if (SDB_OK != tmp)
+         {
+            PD_LOG(PDSEVERE, "failed to rollback entry[%s], rc:%d",
+                     glckey.toString().c_str(), rc);
+            desc.reset();/// failed to rollback meta data, just leave it there.
+         }
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      if (desc.isValid())
+      {
+         _allocator.release(desc.pid, desc.pcnt);
+      }
+      goto done;
+   }
+
+
+   INT32 largeObjectSpace::_updateLobc(requestContext *context,
+                                       const lobChunkSearchEntry &entry,
+                                       lobcExtentChain &chain,
+                                       UINT32 offset,
+                                       const slice &data)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(nullptr != context, "can not be invalid");
+      SDB_ASSERT(entry.isValid(), "can not be invalid");
+      SDB_ASSERT(!chain.isEmpty(), "can not be invalid");
+      SDB_ASSERT(data.isValid(), "can not be invalid");
+
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      lobChunkBufferPool &pool = tc->getEnv()->lobcBufferPool;
+      lobChunkBufferPool::writeOptions wopts;
+      globalLobChunkKey glckey(context->getSpaceID(),
+                               context->getMBID(),
+                               entry.getKey());
+      SDB_ASSERT(glckey.isValid(), "can not be invalid");
+      wopts.originalChunkSize = chain.getChainSize();
+      
+      if (chain.getChunkSize() < (offset + data.getSize()))
+      {
+         lobcMetaBlockMapping mapping(_manifest, _uberBlock.bucketEntryPid, &_metaFile);
+         UINT32 totalDeltaSize = (offset + data.getSize() - chain.getChunkSize());
+         UINT32 extendedSize = chain.extendLastExtent(totalDeltaSize);
+         lextentDescriptor newDesc;
+         
+         if (extendedSize < totalDeltaSize)
+         {
+            lobExtentMetaBlock newBlock;
+            rc = reserveExtent(totalDeltaSize - extendedSize, newDesc);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to reserve new extent:%d", rc);
+               goto error;
+            }
+
+            newBlock.init(context->getLogicalClId(), context->getMBID(),
+                          entry.getKey(), newDesc, chain.getChainSize(), TRUE);
+            rc = mapping.appendBlockToChain(&newBlock);
+            if (SDB_OK != rc)
+            {
+               _allocator.release(newDesc.pid, newDesc.pcnt);
+               PD_LOG(PDERROR, "failed to append new tail to chain:%d", rc);
+               goto error;
+            }
+
+            chain.pushBack(newDesc);
+         }
+         else
+         {
+            rc = mapping.extendLastBlockSize(entry, extendedSize);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to extend the last block:%d", rc);
+               goto error;
+            }
+         }
+
+      }
+
+      rc = pool.write(glckey, chain, offset, data, wopts);
+      if (SDB_OK != rc)
+      {
+         /// should panic here?
+         PD_LOG(PDERROR, "failed to write buffer pool:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 largeObjectSpace::_truncateLobc(requestContext *context,
+                                         const lobChunkKey &key,
+                                         UINT32 size,
+                                         UINT32 &tsize)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(0 < size, "can not be invalid");
+
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      lobChunkBufferPool &pool = tc->getEnv()->lobcBufferPool;
+      lobcMetaBlockMapping mapping(_manifest, _uberBlock.bucketEntryPid, &_metaFile);
+      lobChunkSearchEntry entry(key, context->getLogicalClId());
+      lobcExtentChain chain;
+      ossPoolList<lextentDescriptor> discarded;
+
+      rc = mapping.truncate(entry, size, tsize, chain, discarded);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to truncate lobc:%d", rc);
+         goto error;
+      }
+
+      if (0 < tsize)
+      {
+         globalLobChunkKey glckey(context->getSpaceID(),
+                                  context->getMBID(),
+                                  entry.getKey());
+         pool.truncate(glckey, chain);
+      }
+
+      for (auto itr = discarded.cbegin(); itr != discarded.cend(); ++itr)
+      {
+         _allocator.release(itr->pid, itr->pcnt);
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 largeObjectSpace::list(listLobChunkCursor *cursor)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(nullptr == cursor ||
+                       cursor->isClosed()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      {
+         lobcMetaBlockMapping mapping(_manifest, _uberBlock.bucketEntryPid, &_metaFile);
+         rc = mapping.list(cursor);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+      }
+   done:
       return rc;
    error:
       goto done;

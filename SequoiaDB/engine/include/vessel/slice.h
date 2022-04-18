@@ -94,6 +94,16 @@ namespace vessel
             _data = (const CHAR *)data;
             return;
          }
+
+         OSS_INLINE slice getSlice(UINT32 offset, UINT32 size)const
+         {
+            slice s;
+            if ((offset + size) <= _size)
+            {
+               s.reset(size, _data + offset);
+            }
+            return s;
+         }
       private:
          UINT32 _size = 0;
          const CHAR *_data = NULL;

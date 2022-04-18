@@ -1120,7 +1120,7 @@ TEST_F(index_ddl_test, advanced_create_index_test3)
    rc = db.listCL(&session, "foo", cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor, TRUE);
+   reader.init(cursor);
    for (UINT32 i = 0; i < clCount; ++i)
    {
       rc = reader.fetchNext(&session);
@@ -1252,7 +1252,7 @@ TEST_F(index_ddl_test, DISABLED_death_create_index_test1)
    rc = db.listCL(&session, "foo", cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor, TRUE);
+   reader.init(cursor);
    for (UINT32 i = 0; i < clCount; ++i)
    {
       rc = reader.fetchNext(&session);

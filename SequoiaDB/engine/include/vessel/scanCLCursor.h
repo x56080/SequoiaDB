@@ -52,9 +52,26 @@ namespace vessel
          virtual ~scanCLCursor(){}
 
       public:
+         virtual const CHAR *getName()const override
+         {
+            return "vessel.scanCLCursor";
+         }
+
+      public:
          virtual CURSOR_TYPE getType()const
          {
             return CURSOR_TYPE_SCAN_COLLECTION;
+         }
+         virtual slice getDataSlice()const override
+         {
+            constexpr UINT32 _SIZE = sizeof(dmsRecordID) + sizeof(DPS_TRANS_ID);
+            slice s;
+            slice raw = cursorKernal::getRawData();
+            if (_SIZE < raw.getSize())
+            {
+               s = raw.getSlice(_SIZE, raw.getSize() - _SIZE);
+            }
+            return s;
          }
 
          void resetToScan(const globalCollectionId &gcid,

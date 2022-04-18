@@ -136,7 +136,7 @@ namespace vessel
       goto done;
    }
 
-   slice cursorKernal::getFetchedData()const
+   slice cursorKernal::getRawData()const
    {
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(_pos < (INT32)_batch.getRowCount(), "out of bound");

@@ -52,6 +52,16 @@ namespace vessel
          virtual ~listCSCursor(){}
 
       public:
+         virtual const CHAR *getName()const override
+         {
+            return "vessel.listCSCursor";
+         }
+         virtual slice getDataSlice()const override
+         {
+            return getRawData();
+         }
+
+      public:
          virtual CURSOR_TYPE getType()const
          {
             return CURSOR_TYPE_LIST_COLLECTION_SPACE;

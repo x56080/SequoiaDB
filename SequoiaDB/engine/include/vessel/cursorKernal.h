@@ -57,10 +57,10 @@ namespace vessel
          virtual ~cursorKernal();
 
       public:
-         virtual BOOLEAN isClosed()const;
-         virtual void close();
-         virtual INT32 fetchNext(IExecutor *executor);
-         virtual slice getFetchedData()const;
+         virtual BOOLEAN isClosed()const override;
+         virtual void close() override;
+         virtual INT32 fetchNext(IExecutor *executor) override;
+         virtual slice getRawData()const override;
 
       public:
          virtual CURSOR_TYPE getType()const = 0;

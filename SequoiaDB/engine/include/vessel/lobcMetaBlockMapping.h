@@ -42,6 +42,7 @@
 #include "vessel/lobcBucketRegion.h"
 #include "vessel/lobChunkSearchEntry.h"
 #include "vessel/recordID.h"
+#include "vessel/listLobChunkCursor.h"
 
 namespace engine
 {
@@ -50,6 +51,7 @@ namespace vessel
    class lobMetaDataFile;
    class storageUnitManifest;
    struct lobExtentMetaBlock;
+   class variableExtentAllocator;
 
    class lobcMetaBlockMapping : public SDBObject
    {
@@ -73,9 +75,29 @@ namespace vessel
          INT32 remove(const lobChunkSearchEntry &entry,
                       lobcExtentChain *chainRemoved);
 
+         INT32 truncate(const lobChunkSearchEntry &entry,
+                        UINT32 size,
+                        UINT32 &tsize,
+                        lobcExtentChain &chain,
+                        ossPoolList<lextentDescriptor> &discarded);
+
+         /// deltaSize can not be over the free size of current tail extent.
+         INT32 extendLastBlockSize(const lobChunkSearchEntry &entry,
+                                   UINT32 deltaSize);
+
+         /// current tail extent will be resized to clear whole.
+         /// chain pos of new tail block must be set correctly.
+         INT32 appendBlockToChain(const lobExtentMetaBlock *block);
+
+         void truncate(UINT32 lclid, variableExtentAllocator *allocator);
+
+         INT32 list(listLobChunkCursor *cursor);
+
       private:
          /// return region id and position in region.
          UINT32 getBucketRegion(UINT32 lobKeyHash, UINT32 &pos)const;
+
+         UINT32 getTotalRegionCount()const;
 
          lobcBucketRegionBlock *getRegionBlock(UINT32 regionId);
 
@@ -86,7 +108,8 @@ namespace vessel
 
          INT32 fillChain(const lobChunkSearchEntry &entry,
                          const recordID &pos,
-                         lobcExtentChain &chain);
+                         lobcExtentChain &chain,
+                         recordID *tailRid=nullptr);
 
          INT32 insertIntoRegion(const lobExtentMetaBlock *block,
                                 UINT32 beginPos,
@@ -125,6 +148,30 @@ namespace vessel
          INT32 rebalancePagesInBucket(lobcBucketRegion &region,
                                       UINT32 bucketPos,
                                       PAGE_ID beginEntry=INVALID_PAGE_ID);
+
+         void _truncate(lobcBucketRegion &region,
+                        UINT32 lclid,
+                        variableExtentAllocator *allocator);
+
+         INT32 _appendBlockToChain(const recordID &currentTailRid,
+                                   const lobExtentMetaBlock *block);
+
+         INT32 _extendBlockSize(const recordID &rid,
+                                UINT32 deltaSize);
+
+         INT32 _truncateLobc(const lobChunkSearchEntry &entry,
+                             UINT32 size,
+                             UINT32 bucketPos,
+                             lobcBucketRegion &region,
+                             UINT32 &tsize,
+                             lobcExtentChain &chain,
+                             ossPoolList<lextentDescriptor> &discarded);
+
+         void _initRegionToList(UINT32 regionId, listLobChunkCursor *cursor);
+         INT32 _listInRegion(listLobChunkCursor *cursor, UINT32 &count);
+         INT32 _listInBucket(PAGE_ID entryPid,
+                             listLobChunkCursor *cursor,
+                             UINT32 &count);
 
       private:
          static constexpr FLOAT32 MAX_PAGE_FREE_PCT = 0.75f;

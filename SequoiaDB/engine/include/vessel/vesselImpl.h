@@ -201,6 +201,21 @@ namespace vessel
                               const bson::OID &oid,
                               UINT32 chunkId);
 
+         INT32 updateLobChunk(IExecutor *executor,
+                              const globalCollectionId &gcid,
+                              const bson::OID &oid,
+                              UINT32 chunkId,
+                              UINT32 offset,
+                              UINT32 size,
+                              const CHAR *data,
+                              BOOLEAN createIfNotExists);
+
+         INT32 truncateLobChunk(IExecutor *executor,
+                                const globalCollectionId &gcid,
+                                const bson::OID &oid,
+                                UINT32 chunkId,
+                                UINT32 size,
+                                UINT32 &tsize);
       public:
          INT32 pushMoreToCursor(IExecutor *executor,
                                  cursorKernal *cursor);   

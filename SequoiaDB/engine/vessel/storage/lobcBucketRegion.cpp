@@ -114,6 +114,7 @@ namespace vessel
          goto done;
       }
 
+      strategy._range = lobcBucketRegionBlock::BUCKET_COUNT;
       strategy._targetPos = pos + 1;
       
       nextPos = pos + step;
@@ -131,9 +132,6 @@ namespace vessel
             nextPos = pos + step;
          }
       }
-
-      strategy._mask = ~(OSS_UINT32_MAX << (step >> 1));
-      SDB_ASSERT(0 < strategy._mask, "impossible");
 
    done:
       return strategy;

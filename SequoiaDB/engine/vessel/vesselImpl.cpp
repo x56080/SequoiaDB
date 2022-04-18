@@ -729,8 +729,19 @@ namespace vessel
          }
          break;
       }
+      case CURSOR_TYPE_LIST_LOBC:
+      {
+         lobChunkHandler handler;
+         rc = handler.list(static_cast<listLobChunkCursor *>(cursor));
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+         break;
+      }
       default:
          rc = SDB_INVALIDARG;
+         PD_LOG(PDERROR, "unknown cursor type:%d", cursor->getType());
          goto error;
       }
    done:
@@ -1350,6 +1361,77 @@ namespace vessel
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to remove lob chunk:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 vesselImpl::updateLobChunk(IExecutor *executor,
+                                    const globalCollectionId &gcid,
+                                    const bson::OID &oid,
+                                    UINT32 chunkId,
+                                    UINT32 offset,
+                                    UINT32 size,
+                                    const CHAR *data,
+                                    BOOLEAN createIfNotExists)
+   {
+      INT32 rc = SDB_OK;
+      lobChunkHandler handler;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
+
+      if (OSS_UNLIKELY(nullptr == executor))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = handler.update(gcid, oid, chunkId, offset,
+                          size, data, createIfNotExists);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to update lob chunk:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 vesselImpl::truncateLobChunk(IExecutor *executor,
+                                      const globalCollectionId &gcid,
+                                      const bson::OID &oid,
+                                      UINT32 chunkId,
+                                      UINT32 size,
+                                      UINT32 &tsize)
+   {
+      INT32 rc = SDB_OK;
+      lobChunkHandler handler;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
+
+      if (OSS_UNLIKELY(nullptr == executor))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = handler.truncate(gcid, oid, chunkId, size, tsize);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to truncate lob chunk:%d", rc);
          goto error;
       }
    done:

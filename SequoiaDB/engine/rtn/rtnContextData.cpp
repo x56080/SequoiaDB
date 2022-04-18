@@ -1680,7 +1680,7 @@ namespace engine
       mthMatchRuntime *matchRuntime = _planRuntime.getMatchRuntime( TRUE ) ;
       _mthMatchTreeContext mthContext;
       dmsBsonCursorReader reader;
-      reader.init(_cursor, FALSE);
+      reader.init(_cursor);
       UINT32 pushed = 0;
 
       while (0 != _numToReturn && pushed < _BUFFER_LIMIT)

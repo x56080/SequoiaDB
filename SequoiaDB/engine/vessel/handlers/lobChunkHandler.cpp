@@ -39,6 +39,7 @@
 #include "dmsLobDef.hpp"
 #include "vessel/requestContext.h"
 #include "vessel/lobChunkKey.h"
+#include "vessel/listLobChunkCursor.h"
 
 namespace engine
 {
@@ -155,6 +156,118 @@ namespace vessel
 
       key.set(oid, chunkId);
       rc = cl->removeLobChunk(&context, key);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      context.close();
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lobChunkHandler::update(const globalCollectionId &gcid,
+                                 const bson::OID &oid,
+                                 UINT32 chunkId,
+                                 UINT32 offset,
+                                 UINT32 size,
+                                 const CHAR *data,
+                                 BOOLEAN createIfNotExists)
+   {
+      INT32 rc = SDB_OK;
+      COLLECTION_PTR cl;
+      requestContext context;
+      lobChunkKey key;
+      slice ds(size, data);
+
+      if (OSS_UNLIKELY(!gcid.isValid() ||
+                       !oid.isSet() ||
+                       !ds.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = getCollectionObject(&context, gcid, SHARED, cl);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      key.set(oid, chunkId);
+      rc = cl->updateLobChunk(&context, key, offset, ds, createIfNotExists);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to update lob chunk[%s], rc:%d",
+                key.toString().c_str(), rc);
+         goto error;
+      }
+   done:
+      context.close();
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lobChunkHandler::truncate(const globalCollectionId &gcid,
+                                   const bson::OID &oid,
+                                   UINT32 chunkId,
+                                   UINT32 size,
+                                   UINT32 &tsize)
+   {
+      INT32 rc = SDB_OK;
+      COLLECTION_PTR cl;
+      requestContext context;
+      lobChunkKey key;
+
+      if (OSS_UNLIKELY(!gcid.isValid() ||
+                       !oid.isSet()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = getCollectionObject(&context, gcid, SHARED, cl);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      key.set(oid, chunkId);
+      rc = cl->truncateLobChunk(&context, key, size, tsize);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to update lob chunk[%s], rc:%d",
+                key.toString().c_str(), rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lobChunkHandler::list(listLobChunkCursor *cursor)
+   {
+      INT32 rc = SDB_OK;
+      COLLECTION_PTR cl;
+      requestContext context;
+
+      if (OSS_UNLIKELY(nullptr == cursor ||
+                       !cursor->getCollectionId().isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = getCollectionObject(&context, cursor->getCollectionId(), SHARED, cl);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      rc = cl->listLobChunks(&context, cursor);
       if (SDB_OK != rc)
       {
          goto error;

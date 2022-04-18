@@ -39,6 +39,7 @@
 #include "sdbInterface.hpp"
 #include "utilPooledObject.hpp"
 #include "vessel/slice.h"
+#include "dms.hpp"
 
 #include <memory> // c++ 11
 
@@ -53,10 +54,30 @@ namespace engine
          IDataCursor &operator=(const IDataCursor &) = delete;
 
       public:
+         virtual const CHAR *getName()const = 0;
+         
+      public:
          virtual BOOLEAN isClosed()const = 0;
          virtual void close() = 0;
          virtual INT32 fetchNext(IExecutor *executor) = 0;
-         virtual vessel::slice getFetchedData()const = 0;
+
+      public:/// fetchNext first
+         virtual vessel::slice getRawData()const = 0;
+         virtual dmsRecordID getRid()const {return dmsRecordID();}
+         virtual DPS_TRANS_ID getTransId()const {return DPS_TRANS_ID();}
+         virtual vessel::slice getDataSlice()const = 0; /// record data slice
+
+         template<class T>
+         const T *getDataObjPtr()const
+         {
+            const T *ptr = nullptr;
+            vessel::slice s = getDataSlice();
+            if (sizeof(T) <= s.getSize())
+            {
+               ptr = (const T *)(s.data());
+            }
+            return ptr;
+         }
 
    };//class IDataCursor
 

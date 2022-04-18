@@ -170,6 +170,12 @@ namespace engine
       public:
 
    };//class dmsCreateDataSnapshotOptions
+
+   class dmsListLobChunkOptions : public SDBObject
+   {
+      public:
+         INT32 chunkId = -1;
+   };//class dmsListLobChunkOptions
 } // namespace engine
 
 

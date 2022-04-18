@@ -62,7 +62,6 @@ namespace vessel
          struct writeOptions : public SDBObject
          {
             UINT32 originalChunkSize = 0;
-            BOOLEAN commitMetaData = FALSE;
          };//struct writeOptions
 
       public:
@@ -89,6 +88,12 @@ namespace vessel
 
          /// get x lock of key outside first
          INT32 remove(const globalLobChunkKey &key);
+
+         INT32 truncate(const globalLobChunkKey &key,
+                        const lobcExtentChain &chain);
+
+         /// ensure no one can access the collection to be discarded.
+         void discard(SPACE_ID sid, CL_MB_ID mbid);
 
       public:
          BOOLEAN isWatcherAttached()const;
@@ -166,6 +171,10 @@ namespace vessel
                                   UINT32 pageSize,
                                   sharedLobChunkBuffer &out);
 
+         void _discard(SPACE_ID sid,
+                       CL_MB_ID mbid,
+                       UINT32 bucketId);
+
          INT32 _write(_accessingContext &context,
                       const writeOptions &o,
                       storageFileCluster *fcluster);
@@ -183,6 +192,7 @@ namespace vessel
          void _endToRead(lobChunkBuffer *buffer);
 
          UINT32 getSizeToOverwrite(UINT32 originalSize,
+                                   UINT32 pageSize,
                                    UINT32 offset,
                                    UINT32 size)const;
 

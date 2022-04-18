@@ -219,6 +219,11 @@ namespace vessel
          goto error;
       }
 
+      if (o.originalChunkSize != chain.getChunkSize())
+      {
+         buffer->setMetaDataToCommit();
+      }
+
       _env.getDirtyList().insert(buffer);
    done:
       if (buffer)
@@ -279,14 +284,117 @@ namespace vessel
       goto done;
    }
 
+   INT32 lobChunkBufferPool::truncate(const globalLobChunkKey &key,
+                                      const lobcExtentChain &chain)
+   {
+      INT32 rc = SDB_OK;
+      sharedLobChunkBuffer buffer;
+
+      if (OSS_UNLIKELY(!key.isValid() || !chain.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = _ensureBufferToWrite(key, chain.getPageSize(), buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to ensure buffer to write, rc:%d", rc);
+         goto error;
+      }
+
+      /// it is unnecessary to truncate dirty page buffers here.
+      /// new writing request will overwrite pages.
+      /// however, truncate dirty buffers will reduce disk io. 
+      buffer->setMetaDataToCommit();
+      buffer->setLSN(_DUMMY_LSN.fetch_add(1, std::memory_order_relaxed));
+      _env.getDirtyList().insert(buffer);
+
+   done:
+      if (buffer)
+      {
+         buffer->ctl().decRefCnt(LOBC_BUFFER_CTL_FLAGS::BUSY);
+      }
+      return rc;
+   error:
+      goto done;
+   }
+
+   void lobChunkBufferPool::discard(SPACE_ID sid, CL_MB_ID mbid)
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
+      SDB_ASSERT(INVALID_CL_MB_ID != mbid, "can not be invalid");
+
+      for (UINT32 i = 0; i < _o.bucketCount; ++i)
+      {
+         _discard(sid, mbid, i);
+      }
+      return;
+   }
+
+   void lobChunkBufferPool::_discard(SPACE_ID sid,
+                                     CL_MB_ID mbid,
+                                     UINT32 bucketId)
+   {
+      SHARED_LOBC_BUFFER_LIST &entry = _env.getBucketEntry(bucketId);
+      std::mutex &mutex = _env.getEntryMutex(bucketId);
+      std::unique_lock<std::mutex> guard(mutex);
+
+      BUFFER_CTL_FLAG_WORD flags = LOBC_BUFFER_CTL_FLAGS::BUSY;
+      BUFFER_CTL_FLAG_WORD condition = LOBC_BUFFER_CTL_FLAGS::PENDING_FLUSH;
+      SHARED_LOBC_BUFFER_LIST::iterator itr = entry.begin();
+
+      while (itr != entry.end())
+      {
+         sharedLobChunkBuffer &buffer = (*itr);
+         bufferControlBlock block = buffer->ctl().load();
+         if (block.isDiscarded())
+         {
+            itr = entry.erase(itr);
+            continue;
+         }
+         else if (block.isNormal() &&
+                  buffer->getKey().getSpaceId() == sid &&
+                  buffer->getKey().getMbId() == mbid &&
+                  buffer->ctl().incRefCntIfNormal())
+         {
+            sharedLobChunkBuffer &buffer = *itr;
+            if (buffer->ctl().setFlagsIfNot(condition, flags))
+            {
+               buffer->setAsTrash();
+               buffer->getBufferCtx().clear();
+               buffer->ctl().decRefCnt(flags);
+            }
+
+            /// it is unnecessary to dec ref count here.
+            /// page buffers will be released when shared_ptr destructed.
+
+            itr = entry.erase(itr);
+         }
+         else
+         {
+            ++itr;
+         }
+      }
+
+      return;
+   }
+
    BOOLEAN lobChunkBufferPool::_findBufferToRead(const globalLobChunkKey &key,
                                                  sharedLobChunkBuffer &out)
    {
       SDB_ASSERT(key.isValid(), "can not be invalid");
       BOOLEAN r = FALSE;
       UINT32 hash = key.hash();
-      SHARED_LOBC_BUFFER_LIST &entry = _env.getEntry(hash);
-      std::mutex &mutex = _env.getEntryMutex(hash);
+      UINT32 bucketId = 0;
+      SHARED_LOBC_BUFFER_LIST &entry = _env.searchBucketEntry(hash, bucketId);
+      std::mutex &mutex = _env.getEntryMutex(bucketId);
 
       std::unique_lock<std::mutex> guard(mutex);
 
@@ -324,9 +432,9 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(key.isValid(), "can not be invalid");
       UINT32 hash = key.hash();
-      SHARED_LOBC_BUFFER_LIST &entry = _env.getEntry(hash);
-
-      std::mutex &mutex = _env.getEntryMutex(hash);
+      UINT32 bucketId = 0;
+      SHARED_LOBC_BUFFER_LIST &entry = _env.searchBucketEntry(hash, bucketId);
+      std::mutex &mutex = _env.getEntryMutex(bucketId);
       std::unique_lock<std::mutex> guard(mutex);
 
       SHARED_LOBC_BUFFER_LIST::iterator itr = entry.begin();
@@ -410,9 +518,10 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(key.isValid(), "can not be invalid");
       UINT32 hash = key.hash();
-      SHARED_LOBC_BUFFER_LIST &entry = _env.getEntry(hash);
+      UINT32 bucketId = 0;
+      SHARED_LOBC_BUFFER_LIST &entry = _env.searchBucketEntry(hash, bucketId);
+      std::mutex &mutex = _env.getEntryMutex(bucketId);
 
-      std::mutex &mutex = _env.getEntryMutex(hash);
       std::unique_lock<std::mutex> guard(mutex);
 
       SHARED_LOBC_BUFFER_LIST::iterator itr = entry.begin();
@@ -519,59 +628,60 @@ namespace vessel
       UINT32 size = reqBuffer.getSize();
       UINT32 read = 0;
 
-      do
+      ossPoolList<lobcExtentChain::extentRoadmap> roadmaps;
+      rc = context.chain->createExtentRoadmaps(offset, size, roadmaps);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create accessing roadmaps from chain:%d", rc);
+         goto error;
+      }
+
+      for (auto itr = roadmaps.cbegin(); itr != roadmaps.cend(); ++itr)
       {
          UINT64 readFileOffset = 0;
          UINT64 readFileSize = 0;
-         lobcExtentChain::extentRoadmap roadmap;
-         rc = context.chain->createExtentRoadmap(offset + read, size - read, roadmap);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to create accessing roadmap from chain:%d", rc);
-            goto error;
-         }
 
+         const lobcExtentChain::extentRoadmap &roadmap = *itr;
          for (UINT32 i = 0; i < roadmap.getPcnt(); ++i)
          {
             PAGE_ID pid = roadmap.getPid(i);
-            if (nullptr != context.chunkBuffer)
+            if (nullptr != context.chunkBuffer &&
+                context.chunkBuffer->getBufferCtx().contains(pid))
             {
                strictBuffer pageBuffer =
                    context.chunkBuffer->getBufferCtx().getReadbleBuffer(pid);
-               if (pageBuffer.isValid())
+               SDB_ASSERT(pageBuffer.isValid(), "can not be invalid");
+               if (0 < readFileSize)
                {
-                  if (0 < readFileSize)
+                  CHAR *buf = reqBuffer.getWritablePtr(read, readFileSize);
+                  rc = fcluster->read(readFileOffset, readFileSize, buf);
+                  if (SDB_OK != rc)
                   {
-                     CHAR *buf = reqBuffer.getWritablePtr(read, readFileSize);
-                     rc = fcluster->read(readFileOffset, readFileSize, buf);
-                     if (SDB_OK != rc)
-                     {
-                        PD_LOG(PDERROR, "failed to read data from file cluster:%d", rc);
-                        goto error;
-                     }
-
-                     read += readFileSize;
-                     readFileOffset = 0;
-                     readFileSize = 0;
-                  }
-                  
-                  /// not else.
-                  {
-                     slice ds = pageBuffer.getSlice(roadmap.getOffset(i),
-                                                    roadmap.getSize(i));
-                     rc = reqBuffer.write(read, ds.getSize(), ds.data());
-                     if (SDB_OK != rc)
-                     {
-                        PD_LOG(PDERROR, "failed to copy data from buffer:%d", rc);
-                        goto error;
-                     }
-
-                     read += ds.getSize();
+                     PD_LOG(PDERROR, "failed to read data from file cluster:%d", rc);
+                     goto error;
                   }
 
-                  continue;
-               }//pageBuffer.isValid()
-            }// nullptr != context.chunkBuffer
+                  read += readFileSize;
+                  readFileOffset = 0;
+                  readFileSize = 0;
+               }
+               
+               /// not else.
+               {
+                  slice ds = pageBuffer.getSlice(roadmap.getOffset(i),
+                                                 roadmap.getSize(i));
+                  rc = reqBuffer.write(read, ds.getSize(), ds.data());
+                  if (SDB_OK != rc)
+                  {
+                     PD_LOG(PDERROR, "failed to copy data from buffer:%d", rc);
+                     goto error;
+                  }
+
+                  read += ds.getSize();
+               }
+
+               continue;
+            }
 
             /// context has no chunkBuffer or page not found in buffer context.
             /// we merge it into file request.
@@ -596,7 +706,9 @@ namespace vessel
 
             read += readFileSize;
          }
-      } while (read < size);
+      }//for (auto itr = roadmaps.cbegin(); itr != roadmaps.cend(); ++itr)
+
+      SDB_ASSERT(read == size, "must be same");
       
    done:
       return rc;
@@ -613,6 +725,7 @@ namespace vessel
       SDB_ASSERT(context.isReadyToWrite(), "must be ready");
       UINT32 newDataSize = 0;
       UINT32 sizeToOverwrite = getSizeToOverwrite(o.originalChunkSize,
+                                                  fcluster->getCoreArgs().pageSize,
                                                   context.offset,
                                                   context.requestBuffer.getSize());
                                           
@@ -660,6 +773,7 @@ namespace vessel
       UINT32 offset = context.offset;
       multiPageBufferContext &bufferCtx = context.chunkBuffer->getBufferCtx();
       UINT32 sizeToOverwrite = getSizeToOverwrite(originalChunkSize,
+                                                  fcluster->getCoreArgs().pageSize,
                                                   context.offset,
                                                   context.requestBuffer.getSize());
 
@@ -692,7 +806,7 @@ namespace vessel
                                      0 != poffset ||
                                      (
                                         fcluster->getCoreArgs().pageSize != psize &&
-                                        (offset + written + psize) != originalChunkSize
+                                        (offset + written + psize) < originalChunkSize
                                      )
                                   );
 
@@ -758,9 +872,9 @@ namespace vessel
          {
             PAGE_ID pid = roadmap.getPid(i);
             UINT32 psize = roadmap.getSize(i);
-            UINT32 poffet = roadmap.getOffset(i);
+            UINT32 poffset = roadmap.getOffset(i);
             strictBuffer pageBuffer;
-            slice pageData = reqBuffer.getSlice(offset + written, psize);
+            slice pageData = reqBuffer.getSlice(written, psize);
             SDB_ASSERT(pageData.isValid(), "can not be invalid");
 
             rc = bufferCtx.makeBufferWritable(pid);
@@ -773,7 +887,7 @@ namespace vessel
             pageBuffer = bufferCtx.getWritableBuffer(pid);
             SDB_ASSERT(pageBuffer.isWritable(), "must be writable");
 
-            rc = pageBuffer.write(poffet, psize, pageData.data());
+            rc = pageBuffer.write(poffset, psize, pageData.data());
             if (OSS_UNLIKELY(SDB_OK != rc))
             {
                PD_LOG(PDERROR, "failed to write page buffer:%d", rc);
@@ -792,16 +906,21 @@ namespace vessel
    }
 
    UINT32 lobChunkBufferPool::getSizeToOverwrite(UINT32 originalSize,
+                                                 UINT32 pageSize,
                                                  UINT32 offset,
                                                  UINT32 size)const
    {
       UINT32 result = 0;
-      if (offset < originalSize)
+      SDB_ASSERT(isValidPageSize(pageSize), "can not be invalid");
+      if (0 < originalSize)
       {
-         result = (offset + size) < originalSize ?
-                  size : (originalSize - offset);
+         UINT32 capacity = ossAlignX(originalSize, pageSize);
+         if (offset < capacity)
+         {
+            result = (offset + size) < capacity ?
+                     size : (capacity - offset);
+         }
       }
-
       return result;
    }
 

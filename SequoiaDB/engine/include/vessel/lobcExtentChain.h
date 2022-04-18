@@ -83,19 +83,22 @@ namespace vessel
             return;
          }
 
+         UINT32 getCurrentCapacity()const;
+
       public:
          void init(UINT32 pageSize);
          INT32 pushBack(const lextentDescriptor &desc);
          BOOLEAN isValidAccessing(UINT32 offset, UINT32 size)const;
 
+         /// return real size extended.
+         UINT32 extendLastExtent(UINT32 deltaSize);
+
+         UINT32 getFreeSizeInLastExtent()const;
+
       public:
          class extentRoadmap : public SDBObject
          {
             friend class lobcExtentChain;
-
-            public:
-               extentRoadmap(){}
-               ~extentRoadmap(){}
             public:
                OSS_INLINE BOOLEAN isValid()const
                {
@@ -126,7 +129,7 @@ namespace vessel
                      }
                      else if ((pos + 1) == _pcnt)
                      {
-                        UINT32 mod = _eoffset % _pcnt;
+                        UINT32 mod = _eoffset % _pageSize;
                         return 0 == mod ? _pageSize : mod;
                      }
                      else
@@ -159,6 +162,14 @@ namespace vessel
          };//struct extentRoadmap
 
          INT32 createExtentRoadmap(UINT32 offset, UINT32 size, extentRoadmap &roadmap)const;
+         INT32 createExtentRoadmaps(UINT32 offset, UINT32 size,
+                                    ossPoolList<extentRoadmap> &roadmaps)const;
+
+      private:
+         INT32 _createExtentRoadmap(UINT32 offset,
+                                    UINT32 size,
+                                    UINT32 chainPos,
+                                    extentRoadmap &roadmap);
       private:
          UINT32 _pageSize = 0;
          UINT32 _size = 0;

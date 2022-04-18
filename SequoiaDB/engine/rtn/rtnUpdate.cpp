@@ -185,7 +185,7 @@ namespace engine
          goto error;
       }
 
-      reader.init(cursor, FALSE);
+      reader.init(cursor);
       do
       {
          rc = reader.fetchNext(cb);

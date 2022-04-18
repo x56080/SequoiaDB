@@ -100,9 +100,7 @@ namespace vessel
          OSS_INLINE UINT32 getLogicalClId()const {return _lclid;}
          OSS_INLINE UINT32 hash()const {return _hash;}
          OSS_INLINE UINT16 getChainPos()const {return _chainPos;}
-         OSS_INLINE void incChainPos() {++_chainPos;}
-         OSS_INLINE void resetChainPos(UINT16 chainPos=0){_chainPos = chainPos;}
-
+         
          void set(const bson::OID &oid,
                   UINT32 chunkId,
                   UINT32 lclid,

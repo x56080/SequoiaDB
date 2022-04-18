@@ -60,13 +60,18 @@ namespace vessel
       public:
          OSS_INLINE blockBasedMemPool *getMemPool() {return &_pool;}
          OSS_INLINE const blockBasedMemPool *getMemPool()const {return &_pool;}
-         OSS_INLINE SHARED_LOBC_BUFFER_LIST &getEntry(UINT32 hash)
+         OSS_INLINE SHARED_LOBC_BUFFER_LIST &searchBucketEntry(UINT32 hash, UINT32 &entryId)
          {
-            return _entries.at((_entries.size() - 1) & hash);
+            entryId = ((_entries.size() - 1) & hash);
+            return _entries.at(entryId);
          }
-         OSS_INLINE std::mutex &getEntryMutex(UINT32 hash)
+         OSS_INLINE SHARED_LOBC_BUFFER_LIST &getBucketEntry(UINT32 pos)
          {
-            return *(_mutexes.at((_mutexes.size() - 1) & hash));
+            return _entries.at(pos);
+         }
+         OSS_INLINE std::mutex &getEntryMutex(UINT32 entryId)
+         {
+            return *(_mutexes.at((_mutexes.size() - 1) & entryId));
          }
 
          OSS_INLINE dirtyLobcBufferList &getDirtyList() {return _dirtyList;}

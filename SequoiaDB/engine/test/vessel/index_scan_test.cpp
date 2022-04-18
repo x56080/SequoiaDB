@@ -191,7 +191,7 @@ void test1(INDEX_TYPE type)
       rc = handler->scanIndex(&session, indexName, predicates, o, cursor);
       ASSERT_EQ(SDB_OK, rc);
 
-      reader.init(cursor, FALSE);
+      reader.init(cursor);
       rc = reader.fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
       ASSERT_EQ(i, reader.getRecord().getIntField("a"));
@@ -228,7 +228,7 @@ void test1(INDEX_TYPE type)
       rc = handler->scanIndex(&session, indexName, predicates, o, cursor);
       ASSERT_EQ(SDB_OK, rc);
 
-      reader.init(cursor, FALSE);
+      reader.init(cursor);
       rc = reader.fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
       ASSERT_EQ(i, reader.getRecord().getIntField("a"));
@@ -324,7 +324,7 @@ void test2(INDEX_TYPE type)
                               predicates, o, cursor);
       ASSERT_EQ(SDB_OK, rc);
 
-      reader.init(cursor, FALSE);
+      reader.init(cursor);
       rc = reader.fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
       ASSERT_EQ(i, reader.getRecord().getIntField("a"));
@@ -424,7 +424,7 @@ void test3(INDEX_TYPE type)
                               predicates, o, cursor);
       ASSERT_EQ(SDB_OK, rc);
 
-      reader.init(cursor, FALSE);
+      reader.init(cursor);
       rc = reader.fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
       ASSERT_EQ(i, reader.getRecord().getIntField("a"));
@@ -528,7 +528,7 @@ void test4(INDEX_TYPE type)
                               predicates, o, cursor);
       ASSERT_EQ(SDB_OK, rc);
 
-      reader.init(cursor, FALSE);
+      reader.init(cursor);
       for (INT32 i = count - 1; i >= 0; --i)
       {
          rc = reader.fetchNext(&session);
@@ -627,7 +627,7 @@ void test5(INDEX_TYPE type)
                               predicates, o, cursor);
       ASSERT_EQ(SDB_OK, rc);
 
-      reader.init(cursor, FALSE);
+      reader.init(cursor);
       rc = reader.fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
       ASSERT_EQ(i, reader.getRecord().getIntField("a"));
@@ -726,7 +726,7 @@ void multi_index_scan_test(INDEX_TYPE type)
                               dmsIndexScanOptions(), cursor);
       ASSERT_EQ(SDB_OK, rc);
       dmsBsonCursorReader reader;
-      reader.init(cursor, FALSE);
+      reader.init(cursor);
       for (INT32 j = 0; j < count; ++j)
       {
          rc = reader.fetchNext(&session);

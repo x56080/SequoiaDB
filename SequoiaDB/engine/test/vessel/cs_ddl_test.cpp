@@ -147,7 +147,7 @@ TEST_F(cs_ddl_test, base_createCS_1)
    rc = db.listCS(&session, cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor, TRUE);
+   reader.init(cursor);
    // test the collection space's name and unique_id
    rc = reader.fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
@@ -216,7 +216,7 @@ TEST_F(cs_ddl_test, base_createCS_2)
    rc = db.listCS(&session, cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor, TRUE);
+   reader.init(cursor);
    // test the collection space's name and unique_id
    rc = reader.fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
@@ -279,7 +279,7 @@ TEST_F(cs_ddl_test, base_createCS_3)
    rc = db.listCS(&session, cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor, TRUE);
+   reader.init(cursor);
    rc = reader.fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(0, ossStrcmp("foo1", 
@@ -312,7 +312,7 @@ TEST_F(cs_ddl_test, base_createCS_3)
    rc = db.listCS(&session, cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor, TRUE);
+   reader.init(cursor);
    rc = reader.fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(0, ossStrcmp("foo1", 
@@ -473,7 +473,7 @@ TEST_F(cs_ddl_test, base_listCS_1)
    rc = db.listCS(&session, cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor, TRUE);
+   reader.init(cursor);
    rc = reader.fetchNext(&session);
    ASSERT_EQ(SDB_DMS_EOC, rc);
 
@@ -489,7 +489,7 @@ TEST_F(cs_ddl_test, base_listCS_1)
    rc = db.listCS(&session, cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor, TRUE);
+   reader.init(cursor);
    rc = reader.fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(0, ossStrcmp("foo1", reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));

@@ -66,6 +66,23 @@ namespace vessel
          virtual ~indexScanCursor();
 
       public:
+         virtual const CHAR *getName()const override
+         {
+            return "vessel.indexScanCursor";
+         }
+         virtual slice getDataSlice()const override
+         {
+            constexpr UINT32 _SIZE = sizeof(dmsRecordID) + sizeof(DPS_TRANS_ID);
+            slice s;
+            slice raw = cursorKernal::getRawData();
+            if (_SIZE < raw.getSize())
+            {
+               s = raw.getSlice(_SIZE, raw.getSize() - _SIZE);
+            }
+            return s;
+         }
+
+      public:
          virtual CURSOR_TYPE getType()const
          {
             return CURSOR_TYPE_INDEX_SCAN;

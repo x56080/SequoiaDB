@@ -116,7 +116,7 @@ TEST_F(cl_ddl_test, test1)
    rc = db.listCL(&executor, "foo", cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor, TRUE);
+   reader.init(cursor);
    rc = reader.fetchNext(&executor);
    ASSERT_EQ(SDB_OK, rc);
 

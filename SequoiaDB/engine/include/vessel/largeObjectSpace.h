@@ -43,6 +43,8 @@
 #include "vessel/lobcExtentChain.h"
 #include "vessel/lobChunkKey.h"
 #include "vessel/strictBuffer.h"
+#include "vessel/lobChunkSearchEntry.h"
+#include "vessel/listLobChunkCursor.h"
 
 #include <mutex> //c++11
 
@@ -90,6 +92,24 @@ namespace vessel
          INT32 removeLobChunk(requestContext *context,
                               const lobChunkKey &key);
 
+         INT32 updateLobChunk(requestContext *context,
+                              const lobChunkKey &key,
+                              UINT32 offset,
+                              const slice &data,
+                              BOOLEAN createIfNotExists);
+
+         /// size can not be zero.
+         /// truncate lobc only current size is greater than size.
+         INT32 truncateLobChunk(requestContext *context,
+                                const lobChunkKey &key,
+                                UINT32 size,
+                                UINT32 &tsize);
+
+         INT32 removeLobChunksInCL(requestContext *context);
+
+
+         INT32 list(listLobChunkCursor *cursor);
+
       private:
          UINT32 getLobdPageSize()const;
 
@@ -110,6 +130,24 @@ namespace vessel
          INT32 _loadUberBlock(lobmUberBlock &block)const;
          INT32 _saveUberBlock(const lobmUberBlock &block);
          INT32 reserveExtent(UINT32 size, lextentDescriptor &desc);
+
+      private:/// lock lobc key first
+         INT32 _insertLobc(requestContext *context,
+                           const lobChunkKey &key,
+                           UINT32 offset,
+                           const slice &data);
+                           
+         INT32 _updateLobc(requestContext *context,
+                           const lobChunkSearchEntry &entry,
+                           lobcExtentChain &chain,
+                           UINT32 offset,
+                           const slice &data);
+
+         INT32 _truncateLobc(requestContext *context,
+                             const lobChunkKey &key,
+                             UINT32 size,
+                             UINT32 &tsize);
+                               
 
       private:
          /// must be under _mutex

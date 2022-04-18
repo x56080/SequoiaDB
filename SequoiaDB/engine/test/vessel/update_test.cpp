@@ -161,7 +161,7 @@ TEST_F(update_test, base_update_test1)
    ASSERT_EQ(SDB_OK, rc);
 
    dmsBsonCursorReader reader;
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    for (UINT32 i = 0; i < count; ++i)
    {
       rc = reader.fetchNext(&executor);
@@ -182,7 +182,7 @@ TEST_F(update_test, base_update_test1)
    rc = handler->scan(&executor, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    for (UINT32 i = 0; i < count; ++i)
    {
       rc = reader.fetchNext(&executor);
@@ -265,7 +265,7 @@ TEST_F(update_test, base_update_test2)
    ASSERT_EQ(SDB_OK, rc);
 
    dmsBsonCursorReader reader;
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    for (UINT32 i = 0; i < count; ++i)
    {
       rc = reader.fetchNext(&executor);
@@ -287,7 +287,7 @@ TEST_F(update_test, base_update_test2)
    rc = handler->scan(&executor, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    for (UINT32 i = 0; i < count; ++i)
    {
       rc = reader.fetchNext(&executor);
@@ -370,7 +370,7 @@ TEST_F(update_test, base_update_test3)
    ASSERT_EQ(SDB_OK, rc);
 
    dmsBsonCursorReader reader;
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    rc = reader.fetchNext(&executor);
    ASSERT_EQ(SDB_OK, rc);
    const bson::BSONObj  &r = reader.getRecord();
@@ -456,7 +456,7 @@ TEST_F(update_test, base_update_test4)
    ASSERT_EQ(SDB_OK, rc);
 
    dmsBsonCursorReader reader;
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    rc = reader.fetchNext(&executor);
    ASSERT_EQ(SDB_OK, rc);
    const bson::BSONObj &r = reader.getRecord();
@@ -560,7 +560,7 @@ TEST_F(update_test, base_update_test5)
    ASSERT_EQ(SDB_OK, rc);
 
    dmsBsonCursorReader reader;
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    rc = reader.fetchNext(&executor);
    ASSERT_EQ(SDB_OK, rc);
    const bson::BSONObj &r = reader.getRecord();
@@ -646,7 +646,7 @@ TEST_F(update_test, base_update_test6)
    ASSERT_EQ(SDB_OK, rc);
 
    dmsBsonCursorReader reader;
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    rc = reader.fetchNext(&executor);
    ASSERT_EQ(SDB_OK, rc);
    const bson::BSONObj &r = reader.getRecord();
@@ -751,7 +751,7 @@ TEST_F(update_test, base_update_test7)
    ASSERT_EQ(SDB_OK, rc);
 
    dmsBsonCursorReader reader;
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    rc = reader.fetchNext(&executor);
    ASSERT_EQ(SDB_OK, rc);
    const bson::BSONObj &r = reader.getRecord();
@@ -856,7 +856,7 @@ TEST_F(update_test, base_update_test8)
    ASSERT_EQ(SDB_OK, rc);
 
    dmsBsonCursorReader reader;
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    rc = reader.fetchNext(&executor);
    ASSERT_EQ(SDB_OK, rc);
    const bson::BSONObj &r = reader.getRecord();
@@ -962,7 +962,7 @@ TEST_F(update_test, base_update_test9)
    ASSERT_EQ(SDB_OK, rc);
 
    dmsBsonCursorReader reader;
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    rc = reader.fetchNext(&executor);
    ASSERT_EQ(SDB_OK, rc);
    const bson::BSONObj &r = reader.getRecord();
@@ -1067,7 +1067,7 @@ TEST_F(update_test, base_update_test10)
    ASSERT_EQ(SDB_OK, rc);
 
    dmsBsonCursorReader reader;
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    rc = reader.fetchNext(&executor);
    ASSERT_EQ(SDB_OK, rc);
    const bson::BSONObj &r = reader.getRecord();
@@ -1159,7 +1159,7 @@ TEST_F(update_test, base_update_test11)
    ASSERT_EQ(SDB_OK, rc);
 
    dmsBsonCursorReader reader;
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    for (UINT32 i = 0; i < count; ++i)
    {
       rc = reader.fetchNext(&executor);
@@ -1247,7 +1247,7 @@ TEST_F(update_test, base_update_test12)
    ASSERT_EQ(SDB_OK, rc);
 
    dmsBsonCursorReader reader;
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    for (UINT32 i = 0; i < count; ++i)
    {
       rc = reader.fetchNext(&executor);
@@ -1335,7 +1335,7 @@ TEST_F(update_test, base_update_test13)
    ASSERT_EQ(SDB_OK, rc);
 
    dmsBsonCursorReader reader;
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    for (UINT32 i = 0; i < count; ++i)
    {
       rc = reader.fetchNext(&executor);
@@ -1437,7 +1437,7 @@ TEST_F(update_test, base_update_test14)
    ASSERT_EQ(SDB_OK, rc);
 
    dmsBsonCursorReader reader;
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    rc = reader.fetchNext(&executor);
    ASSERT_EQ(SDB_OK, rc);
    const bson::BSONObj &r = reader.getRecord();

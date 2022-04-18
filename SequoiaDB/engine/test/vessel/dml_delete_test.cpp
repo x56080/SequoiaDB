@@ -261,7 +261,7 @@ TEST_F(dml_delete_test, base_delete_test2)
    ASSERT_EQ(SDB_OK, rc);
 
    dmsBsonCursorReader reader;
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    rc = reader.fetchNext(&executor);
    ASSERT_EQ(SDB_OK, rc);
    const bson::BSONObj &r = reader.getRecord();
@@ -286,7 +286,7 @@ TEST_F(dml_delete_test, base_delete_test2)
 
    rc = handler->scan(&executor, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    for (UINT64 i = 0; i < currentCount; ++i)
    {
       rc = reader.fetchNext(&executor);

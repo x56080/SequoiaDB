@@ -47,13 +47,12 @@ namespace engine
    {
       public:
          _dmsBsonCursorReader(){}
-         ~_dmsBsonCursorReader();
+         ~_dmsBsonCursorReader(){}
          _dmsBsonCursorReader(const _dmsBsonCursorReader &) = delete;
          _dmsBsonCursorReader &operator=(const _dmsBsonCursorReader &) = delete;
 
       public:
-         OSS_INLINE BOOLEAN isValid()const {return !(!_ptr);}
-         void init(const DATA_CURSOR_PTR &dcp, BOOLEAN onlyRecord);
+         void init(const DATA_CURSOR_PTR &cursor);
          void fini(BOOLEAN closeCursor=TRUE);
          INT32 fetchNext(IExecutor *executor);
 
@@ -65,8 +64,7 @@ namespace engine
          void clearDataFetched();
 
       private:
-         BOOLEAN _onlyRecord = TRUE;
-         DATA_CURSOR_PTR _ptr;
+         DATA_CURSOR_PTR _cursor;
          bson::BSONObj _record;
          dmsRecordID _rid;
          DPS_TRANS_ID _transID;

@@ -41,32 +41,23 @@ namespace engine
 {
    constexpr UINT32 _RID_AND_TRANSID_SIZE = sizeof(dmsRecordID) + sizeof(DPS_TRANS_ID);
 
-   _dmsBsonCursorReader::~_dmsBsonCursorReader()
+   void _dmsBsonCursorReader::init(const DATA_CURSOR_PTR &cursor)
    {
-      _record = bson::BSONObj();
-      _ptr.reset();
-   }
-
-   void _dmsBsonCursorReader::init(const DATA_CURSOR_PTR &dcp,
-                                   BOOLEAN onlyRecord)
-   {
-      SDB_ASSERT(dcp && !dcp->isClosed(), "can not be invalid");
-      SDB_ASSERT(!isValid(), "do not reinit");
-      _onlyRecord = onlyRecord;
-      _ptr = dcp;
+      SDB_ASSERT(cursor && !cursor->isClosed(), "invalid cursor");
+      fini(TRUE);
+      _cursor = cursor;
    }
 
    void _dmsBsonCursorReader::fini(BOOLEAN closeCursor)
    {
-      if (isValid())
+      clearDataFetched();
+      if (_cursor)
       {
-         _onlyRecord = TRUE;
-         clearDataFetched();
          if (closeCursor)
          {
-            _ptr->close();
+            _cursor->close();
          }
-         _ptr.reset();
+         _cursor.reset();
       }
       return;
    }
@@ -74,43 +65,36 @@ namespace engine
    INT32 _dmsBsonCursorReader::fetchNext(IExecutor *executor)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isValid(), "can not be closed");
-      SDB_ASSERT(NULL != executor, "can not be null");
+      vessel::slice s;
 
-      vessel::slice data;
-      const CHAR *recordBuf = NULL;
+      if (!_cursor)
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
       clearDataFetched();
 
-      rc = _ptr->fetchNext(executor);
+      rc = _cursor->fetchNext(executor);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      data = _ptr->getFetchedData();
-      if (_onlyRecord)
-      {
-         recordBuf = data.data();
-      }
-      else
-      {
-         if (data.getSize() <= _RID_AND_TRANSID_SIZE)
-         {
-            PD_LOG(PDERROR, "invalid data size[%d] fetched", data.getSize());
-            rc = SDB_DMS_RECORD_INVALID;
-            goto error;
-         }
+      _rid = _cursor->getRid();
+      _transID = _cursor->getTransId();
+      s = _cursor->getDataSlice();
 
-         recordBuf = data.data() + _RID_AND_TRANSID_SIZE;
-         _rid = *((const dmsRecordID *)data.data());
-         _transID = *((const DPS_TRANS_ID *)(data.data() + sizeof(dmsRecordID)));
-
-         SDB_ASSERT(_rid.isValid(), "can not be invalid");
+      if (s.getSize() <= sizeof(UINT32))
+      {
+         PD_LOG(PDERROR, "invalid slice size:%d", s.getSize());
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
       }
 
       try
       {
-         _record = bson::BSONObj(recordBuf);
+         _record = bson::BSONObj(s.data());
       }
       catch(const std::exception& e)
       {
@@ -118,8 +102,7 @@ namespace engine
          rc = SDB_DMS_RECORD_INVALID;
          goto error;
       }
-      
-      
+   
    done:
       return rc;
    error:

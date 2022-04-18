@@ -42,6 +42,8 @@ namespace engine
 {
 namespace vessel
 {
+   class listLobChunkCursor;
+
    class lobChunkHandler : public requestHandler
    {
       public:
@@ -68,6 +70,21 @@ namespace vessel
                       const bson::OID &oid,
                       UINT32 chunkId);
 
+         INT32 update(const globalCollectionId &gcid,
+                      const bson::OID &oid,
+                      UINT32 chunkId,
+                      UINT32 offset,
+                      UINT32 size,
+                      const CHAR *data,
+                      BOOLEAN createIfNotExists);
+
+         INT32 truncate(const globalCollectionId &gcid,
+                        const bson::OID &oid,
+                        UINT32 chunkId,
+                        UINT32 size,
+                        UINT32 &tsize);
+
+         INT32 list(listLobChunkCursor *cursor);
    };//class lobChunkHandler
 } // namespace vessel
 

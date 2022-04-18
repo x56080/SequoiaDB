@@ -1087,7 +1087,8 @@ vesselFiles = [
       "vessel/pidBatchList.cpp",
       "vessel/blockBasedMemPool.cpp",
       "vessel/variableExtentAllocator.cpp",
-      "vessel/lobcLatchHelper.cpp"
+      "vessel/lobcLatchHelper.cpp",
+      "vessel/listLobChunkCursor.cpp"
 ]
 #vesselend
 

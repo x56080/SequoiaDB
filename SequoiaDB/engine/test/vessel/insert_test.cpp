@@ -148,7 +148,7 @@ TEST_F(insert_test, test1)
    rc = handler->scan(&session, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    for (UINT32 i = 0; i < count; ++i)
    {
       rc = reader.fetchNext(&session);
@@ -213,7 +213,7 @@ TEST_F(insert_test, test2)
    rc = cl->scan(&session, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    for (UINT32 i = 0; i < count; ++i)
    {
       rc = reader.fetchNext(&session);
@@ -240,7 +240,7 @@ TEST_F(insert_test, test2)
    rc = cl->scan(&session, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    for (UINT32 i = 0; i < count; ++i)
    {
       rc = reader.fetchNext(&session);
@@ -418,7 +418,7 @@ TEST_F(insert_test, test4)
    rc = handler->scan(&session, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    for (UINT32 i = 0; i < count; ++i)
    {
       rc = reader.fetchNext(&session);
@@ -445,7 +445,7 @@ TEST_F(insert_test, test4)
    rc = handler->scan(&session, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    for (UINT32 i = 0; i < count; ++i)
    {
       rc = reader.fetchNext(&session);
@@ -1236,7 +1236,7 @@ TEST_F(insert_test, base_insert_test9)
    ASSERT_EQ(SDB_OK, rc);
 
    dmsBsonCursorReader reader;
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    for (UINT32 i = 0; i < count; ++i)
    {
       rc = reader.fetchNext(&executor);
@@ -1328,7 +1328,7 @@ TEST_F(insert_test, advanced_insert_test1)
    ASSERT_EQ(SDB_OK, rc);
 
    dmsBsonCursorReader reader;
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    for (UINT32 i = 0; i < count; ++i)
    {
       rc = reader.fetchNext(&executor);

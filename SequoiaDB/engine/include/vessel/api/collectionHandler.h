@@ -150,6 +150,24 @@ namespace vessel
          virtual INT32 removeLobChunk(IExecutor *executor,
                                       const bson::OID &oid,
                                       UINT32 chunkId) override;
+
+         virtual INT32 updateLobChunk(IExecutor *executor,
+                                      const bson::OID &oid,
+                                      UINT32 chunkId,
+                                      UINT32 offset,
+                                      UINT32 size,
+                                      const CHAR *data,
+                                      BOOLEAN createIfNotExists) override;
+
+         virtual INT32 truncateLobChunk(IExecutor *executor,
+                                        const bson::OID &oid,
+                                        UINT32 chunkId,
+                                        UINT32 size,
+                                        UINT32 &tsize) override;
+
+         virtual INT32 listLobChunks(IExecutor *executor,
+                                     const dmsListLobChunkOptions &o,
+                                     DATA_CURSOR_PTR &cursor) override;
           
       private:
          globalCollectionId _gcid;

@@ -55,6 +55,7 @@
 #include "vessel/dmlRequest.h"
 #include "vessel/objectIdentifier.h"
 #include "vessel/lobChunkKey.h"
+#include "vessel/listLobChunkCursor.h"
 
 namespace engine
 {
@@ -188,6 +189,20 @@ namespace vessel
 
          INT32 removeLobChunk(requestContext *context,
                               const lobChunkKey &key);
+
+         INT32 updateLobChunk(requestContext *context,
+                              const lobChunkKey &key,
+                              UINT32 offset,
+                              const slice &data,
+                              BOOLEAN createIfNotExists);
+
+         INT32 truncateLobChunk(requestContext *context,
+                                const lobChunkKey &key,
+                                UINT32 size,
+                                UINT32 &tsize);
+
+         INT32 listLobChunks(requestContext *context,
+                             listLobChunkCursor *cursor);
 
       private:
          INT32 _getMoreWhenIndexScan(indexScanContext *context,

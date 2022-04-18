@@ -288,7 +288,7 @@ void delete_test2(INDEX_TYPE type)
       rc = handler->scanIndex(&session, "index", predicates, o, cursor);
       ASSERT_EQ(SDB_OK, rc);
 
-      reader.init(cursor, FALSE);
+      reader.init(cursor);
       rc = reader.fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
       ASSERT_EQ(i, reader.getRecord().getIntField("a"));
@@ -349,7 +349,7 @@ void delete_test2(INDEX_TYPE type)
    rc = handler->scanIndex(&session, "index", predicates, o, cursor);
    ASSERT_EQ(SDB_OK, rc);
    dmsBsonCursorReader reader;
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    for (INT32 i = 0; i < count; ++i)
    {
       rc = reader.fetchNext(&session);
@@ -483,7 +483,7 @@ void partial_delete(INDEX_TYPE type)
    rc = handler->scanIndex(&session, indexName, predicates, o, cursor);
    ASSERT_EQ(SDB_OK, rc);
    dmsBsonCursorReader reader;
-   reader.init(cursor, FALSE);
+   reader.init(cursor);
    for (UINT32 i = 1; i < count; i+=2)
    {
       rc = reader.fetchNext(&session);
@@ -621,7 +621,7 @@ void backward_delete(INDEX_TYPE type)
       ASSERT_EQ(SDB_OK, rc);
 
       dmsBsonCursorReader reader;
-      reader.init(cursor, FALSE);
+      reader.init(cursor);
 
       for (INT32 i = count / 2 - 1; i >= 0; --i)
       {

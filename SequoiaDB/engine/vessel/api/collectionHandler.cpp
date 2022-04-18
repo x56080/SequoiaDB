@@ -39,6 +39,7 @@
 #include "vessel/scanCLCursor.h"
 #include "vessel/indexScanCursor.h"
 #include "utilSharedPtrMaker.hpp"
+#include "vessel/listLobChunkCursor.h"
 
 namespace engine
 {
@@ -98,8 +99,8 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == executor ||
-                            NULL == indexName))
+      else if (OSS_UNLIKELY(nullptr == executor ||
+                            nullptr == indexName))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -129,7 +130,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == executor ||
+      else if (OSS_UNLIKELY(nullptr == executor ||
                             !record.isValid()))
       {
          rc = SDB_INVALIDARG;
@@ -164,7 +165,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == executor ||
+      else if (OSS_UNLIKELY(nullptr == executor ||
                             batch.empty()))
       {
          rc = SDB_INVALIDARG;
@@ -211,9 +212,9 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == executor ||
+      else if (OSS_UNLIKELY(nullptr == executor ||
                             !rid.isValid() ||
-                            NULL == updater))
+                            nullptr == updater))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -246,7 +247,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == executor ||
+      else if (OSS_UNLIKELY(nullptr == executor ||
                             !rid.isValid()))
       {
          rc = SDB_INVALIDARG;
@@ -273,7 +274,7 @@ namespace vessel
       INT32 rc = SDB_OK;
 
       cursorOptions co;
-      scanCLCursor *impl = NULL;
+      scanCLCursor *impl = nullptr;
 
       cursor.reset();
 
@@ -282,7 +283,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == executor))
+      else if (OSS_UNLIKELY(nullptr == executor))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -323,7 +324,7 @@ namespace vessel
       INT32 rc = SDB_OK;
 
       cursorOptions co;
-      indexScanCursor *impl = NULL;
+      indexScanCursor *impl = nullptr;
       strSlice indexNameSlice(indexName);
       indexIdentifier indexId;
 
@@ -334,7 +335,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == executor ||
+      else if (OSS_UNLIKELY(nullptr == executor ||
                             indexNameSlice.empty()))
       {
          rc = SDB_INVALIDARG;
@@ -382,7 +383,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == executor))
+      else if (OSS_UNLIKELY(nullptr == executor))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -409,7 +410,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == executor))
+      else if (OSS_UNLIKELY(nullptr == executor))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -439,7 +440,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == executor))
+      else if (OSS_UNLIKELY(nullptr == executor))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -472,7 +473,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == executor))
+      else if (OSS_UNLIKELY(nullptr == executor))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -501,7 +502,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == executor))
+      else if (OSS_UNLIKELY(nullptr == executor))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -512,6 +513,111 @@ namespace vessel
       {
          goto error;
       }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collectionHandler::updateLobChunk(IExecutor *executor,
+                                           const bson::OID &oid,
+                                           UINT32 chunkId,
+                                           UINT32 offset,
+                                           UINT32 size,
+                                           const CHAR *data,
+                                           BOOLEAN createIfNotExists) 
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(nullptr == executor))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = _db->updateLobChunk(executor, _gcid, oid, chunkId,
+                               offset, size, data, createIfNotExists);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collectionHandler::truncateLobChunk(IExecutor *executor,
+                                             const bson::OID &oid,
+                                             UINT32 chunkId,
+                                             UINT32 size,
+                                             UINT32 &tsize)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(nullptr == executor))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = _db->truncateLobChunk(executor, _gcid, oid, chunkId, size, tsize);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collectionHandler::listLobChunks(IExecutor *executor,
+                                          const dmsListLobChunkOptions &o,
+                                          DATA_CURSOR_PTR &cursor)
+   {
+      INT32 rc = SDB_OK;
+      listLobChunkCursor *impl = nullptr;
+      cursorOptions co;
+      cursor.reset();
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(nullptr == executor))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      co.defaultBufferSize = 128 << 10;
+      co.bufferSizeLimit = OSS_UINT32_MAX;
+      co.stepSize = OSS_UINT32_MAX;
+
+      cursor = makeSharedPtrFromPool<listLobChunkCursor>(_gcid, o);
+      if (!cursor)
+      {
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      impl = static_cast<listLobChunkCursor *>(cursor.get());
+      rc = impl->open(_db, &co);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
    done:
       return rc;
    error:

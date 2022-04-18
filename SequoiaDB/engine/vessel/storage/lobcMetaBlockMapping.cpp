@@ -41,6 +41,8 @@
 #include "vessel/lobcMetaBlockPage.h"
 #include "vessel/lobMetaDataFile.h"
 #include "vessel/storageManifest.h"
+#include "vessel/variableExtentAllocator.h"
+#include "dmsLobDef.hpp"
 
 namespace engine
 {
@@ -67,6 +69,30 @@ namespace vessel
    lobcMetaBlockMapping::~lobcMetaBlockMapping()
    {
 
+   }
+
+   void lobcMetaBlockMapping::truncate(UINT32 lclid, variableExtentAllocator *allocator)
+   {
+      SDB_ASSERT(DMS_INVALID_LOGICCLID != lclid, "can not be invalid");
+      SDB_ASSERT(nullptr != allocator, "can not be invalid");
+      
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      FIXED_POSIX_S_LATCH_ARRAY &latches = tc->getEnv()->latchEnv.lobRegionLatchVec;
+
+      for (UINT32 i = 0; i < getTotalRegionCount(); ++i)
+      {
+         ossSpinSLatchPOSIX *regionLock = latches.mod(i);
+         regionLock->get();
+
+         lobcBucketRegionBlock *regionBlock = getRegionBlock(i);
+         lobcBucketRegion region(i, regionBlock);
+         _truncate(region, lclid, allocator);
+         
+         regionLock->release();
+      }
+   
+      return;
    }
 
    INT32 lobcMetaBlockMapping::find(const lobChunkSearchEntry &entry,
@@ -266,6 +292,72 @@ namespace vessel
       goto done;
    }
 
+   INT32 lobcMetaBlockMapping::truncate(const lobChunkSearchEntry &entry,
+                                        UINT32 size,
+                                        UINT32 &tsize,
+                                        lobcExtentChain &chain,
+                                        ossPoolList<lextentDescriptor> &discarded)
+   {
+      INT32 rc = SDB_OK;
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      UINT32 regionId = 0;
+      ossSpinSLatchPOSIX *regionLock = nullptr;
+      lobcBucketRegionBlock *regionBlock = nullptr;
+      lobcBucketRegion region;
+      UINT32 bucketPos = 0;
+      lobcBucketRegion::bucketDesc bucket;
+
+      tsize = 0;
+      chain.reset();
+      discarded.clear();
+
+      if (OSS_UNLIKELY(!entry.isValid() ||
+                       0 != entry.getChainPos()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      chain.init(_manifest->lobArgs.pageSize);
+      regionId = getBucketRegion(entry.hash(), bucketPos);
+      regionLock = tc->getEnv()->latchEnv.lobRegionLatchVec.mod(regionId);
+      SDB_ASSERT(nullptr != regionLock, "can not be null");
+      regionLock->get();
+
+      regionBlock = getRegionBlock(regionId);
+      if (OSS_UNLIKELY(nullptr == regionBlock))
+      {
+         PD_LOG(PDERROR, "failed to get region block[%d]", regionId);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      bucket = lobcBucketRegion::searchBucket(bucketPos, regionBlock);
+      if (INVALID_PAGE_ID == bucket.pid)
+      {
+         rc = SDB_LOB_SEQUENCE_NOT_EXIST;
+         goto error;
+      }
+
+      region = lobcBucketRegion(regionId, regionBlock);
+      rc = _truncateLobc(entry, size, bucket.pos, region,
+                         tsize, chain, discarded);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to truncate lobc:%d", rc);
+         goto error;
+      }
+   done:
+      if (nullptr != regionLock)
+      {
+         regionLock->release();
+      }
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 lobcMetaBlockMapping::insertIntoRegion(const lobExtentMetaBlock *block,
                                                 UINT32 beginPos,
                                                 lobcBucketRegion &region)
@@ -452,9 +544,15 @@ namespace vessel
       return (val >> lobcBucketRegionBlock::BUCKET_COUNT_SQUARE);
    }
 
+   UINT32 lobcMetaBlockMapping::getTotalRegionCount()const
+   {
+      return _globalBucketCount >> lobcBucketRegionBlock::BUCKET_COUNT_SQUARE;
+   }
+
    INT32 lobcMetaBlockMapping::fillChain(const lobChunkSearchEntry &entry,
                                          const recordID &pos,
-                                         lobcExtentChain &chain)
+                                         lobcExtentChain &chain,
+                                         recordID *tailRid)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(entry.isValid(), "can not be invalid");
@@ -506,6 +604,11 @@ namespace vessel
 
             if (block->isChainTail())
             {
+               if (nullptr != tailRid)
+               {
+                  tailRid->setPid(toScan);
+                  tailRid->setPos(slotPos);
+               }
                goto done;
             }
 
@@ -537,6 +640,10 @@ namespace vessel
       return rc;
    error:
       chain.reset();
+      if (nullptr != tailRid)
+      {
+         tailRid->reset();
+      }
       goto done;
    }
 
@@ -1104,6 +1211,710 @@ namespace vessel
       return rc;
    error:
       goto done;  
+   }
+
+   void lobcMetaBlockMapping::_truncate(lobcBucketRegion &region,
+                                        UINT32 lclid,
+                                        variableExtentAllocator *allocator)
+   {
+      SDB_ASSERT(region.isValid(), "can not be invalid");
+      SDB_ASSERT(DMS_INVALID_LOGICCLID != lclid, "can not be invalid");
+      SDB_ASSERT(nullptr != allocator, "can not be invalid");
+
+      for (UINT32 bucketPos = 0; bucketPos < lobcBucketRegionBlock::BUCKET_COUNT; ++bucketPos)
+      {
+         PAGE_ID pid = region.getBucket(bucketPos);
+         while (INVALID_PAGE_ID != pid)
+         {
+            PAGE_ID nextPid = INVALID_PAGE_ID;
+            lobcMetaBlockPageAccessor accessor(_mfile, pid);
+            if (!accessor.isValid())
+            {
+               PD_LOG(PDERROR, "failed to init accessor of pid[%d]", pid);
+               goto done;
+            }
+
+            nextPid = accessor.getNextPid();
+
+            for (UINT32 pos = 0; pos < accessor.getItemCount();)
+            {
+               const lobExtentMetaBlock *block = accessor.getExtentMetaBlock(pos);
+               if (OSS_UNLIKELY(nullptr == block || !block->isValid()))
+               {
+                  PD_LOG(PDERROR, "failed to get block[%d] at page[%d]", pos, pid);
+                  ++pos;
+               }
+               else if (block->lclid == lclid)
+               {
+                  lextentDescriptor desc = block->getExtentDesc();
+                  INT32 rc = accessor.remove(pos, 1);
+                  if (OSS_UNLIKELY(SDB_OK != rc))
+                  {
+                     PD_LOG(PDERROR, "failed to remove item[%d] at page[%d], rc:%d",
+                            pos, pid, rc);
+                     ++pos;
+                  }
+
+                  allocator->release(desc.pid, desc.pcnt);
+               }
+               else
+               {
+                  ++pos;
+               }
+            }//for (UINT32 pos = 0; pos < accessor.getItemCount();)
+
+            if (accessor.isEmpty() && !accessor.isTheOnlyPageInBucket())
+            {
+               removePageFromBucket(pid, bucketPos, region);
+            }
+
+            pid = nextPid;
+         }//while (INVALID_PAGE_ID != pid)
+      }
+
+   done:
+      return;
+   }
+
+   INT32 lobcMetaBlockMapping::appendBlockToChain(const lobExtentMetaBlock *block)
+   {
+      INT32 rc = SDB_OK;
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      UINT32 regionId = 0;
+      ossSpinSLatchPOSIX *regionLock = nullptr;
+      lobcBucketRegionBlock *regionBlock = nullptr;
+      UINT32 beginBucket = 0;
+      lobcBucketRegion::bucketDesc bucket;
+      lobChunkSearchEntry entry;
+      recordID rid, tailRid;
+      lobcExtentChain chain;
+
+      if (OSS_UNLIKELY(nullptr == block ||
+                       !block->isValid() ||
+                       0 == block->chainPos || /// impossible to be zero.
+                       !block->isChainTail()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      regionId = getBucketRegion(block->hash(), beginBucket);
+      regionLock = tc->getEnv()->latchEnv.lobRegionLatchVec.mod(regionId);
+      SDB_ASSERT(nullptr != regionLock, "can not be null");
+      regionLock->get();
+
+      regionBlock = getRegionBlock(regionId);
+      if (OSS_UNLIKELY(nullptr == regionBlock))
+      {
+         PD_LOG(PDERROR, "failed to get region block[%d]", regionId);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      bucket = lobcBucketRegion::searchBucket(beginBucket, regionBlock);
+      if (INVALID_PAGE_ID == bucket.pid)
+      {
+         rc = SDB_LOB_SEQUENCE_NOT_EXIST;
+         goto error;
+      }
+
+      entry.set(block->oid, block->chunkId, block->lclid);
+      rc = seek(entry, bucket.pid, rid);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      rc = fillChain(entry, rid, chain, &tailRid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to fill extent chain:%d", rc);
+         goto error;
+      }
+
+      if (chain.getChainSize() != block->chainPos)
+      {
+         PD_LOG(PDERROR, "invalid block with chain pos[%d] to append", block->chainPos);
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+      else if (MAX_LOB_CHUNK_SIZE < (block->size + chain.getCurrentCapacity()))
+      {
+         PD_LOG(PDERROR, "out of lob chunk size");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+
+      rc = _appendBlockToChain(tailRid, block);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append new tail block:%d", rc);
+         goto error;
+      }
+   done:
+      if (nullptr != regionLock)
+      {
+         regionLock->release();
+      }
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lobcMetaBlockMapping::_appendBlockToChain(const recordID &currentTailRid,
+                                                   const lobExtentMetaBlock *block)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(currentTailRid.isValid(), "can not be invalid");
+      SDB_ASSERT(nullptr != block && block->isValid(), "can not be invalid");
+
+      UINT32 tailPos = currentTailRid.getPos();
+      PAGE_ID pid = currentTailRid.getPid();
+      lobcMetaBlockPageAccessor accessor(_mfile, pid);
+      if (OSS_UNLIKELY(!accessor.isValid()))
+      {
+         PD_LOG(PDERROR, "failed to init accessor of page[%d]", pid);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      if (!accessor.isFreeToInsert(1))
+      {
+         rc = splitBlockPage(pid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to split block page[%d], rc:%d", pid, rc);
+            goto error;
+         }
+
+         if (accessor.getItemCount() <= tailPos)
+         {
+            tailPos -= accessor.getItemCount();
+            pid = accessor.getNextPid();
+            accessor.init(_mfile, pid);
+            SDB_ASSERT(accessor.isValid(), "impossible to be invalid");
+         }
+      }
+
+      rc = accessor.addNewTailToChain(tailPos, _manifest->lobArgs.pageSize, block);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append new tail to chain at page[%d], rc:%d",
+                pid, rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lobcMetaBlockMapping::extendLastBlockSize(const lobChunkSearchEntry &entry,
+                                                   UINT32 deltaSize)
+   {
+      INT32 rc = SDB_OK;
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      UINT32 regionId = 0;
+      ossSpinSLatchPOSIX *regionLock = nullptr;
+      lobcBucketRegionBlock *regionBlock = nullptr;
+      UINT32 beginBucket = 0;
+      lobcBucketRegion::bucketDesc bucket;
+      recordID rid, tailRid;
+      lobcExtentChain chain;
+      
+      if (OSS_UNLIKELY(!entry.isValid() ||
+                       0 == deltaSize))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      regionId = getBucketRegion(entry.hash(), beginBucket);
+      regionLock = tc->getEnv()->latchEnv.lobRegionLatchVec.mod(regionId);
+      SDB_ASSERT(nullptr != regionLock, "can not be null");
+
+      /// should we get_shared() here?
+      regionLock->get();
+
+      regionBlock = getRegionBlock(regionId);
+      if (OSS_UNLIKELY(nullptr == regionBlock))
+      {
+         PD_LOG(PDERROR, "failed to get region block[%d]", regionId);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      bucket = lobcBucketRegion::searchBucket(beginBucket, regionBlock);
+      if (INVALID_PAGE_ID == bucket.pid)
+      {
+         rc = SDB_LOB_SEQUENCE_NOT_EXIST;
+         goto error;
+      }
+
+      rc = seek(entry, bucket.pid, rid);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      rc = fillChain(entry, rid, chain, &tailRid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to fill extent chain:%d", rc);
+         goto error;
+      }
+
+      if (chain.getFreeSizeInLastExtent() < deltaSize)
+      {
+         PD_LOG(PDERROR, "delta size[%d] is out of extent space", deltaSize);
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+
+      rc = _extendBlockSize(tailRid, deltaSize);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to extend the tail extent:%d", rc);
+         goto error;
+      }
+   done:
+      if (nullptr != regionLock)
+      {
+         regionLock->release();
+      }
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lobcMetaBlockMapping::_extendBlockSize(const recordID &rid,
+                                                UINT32 deltaSize)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(rid.isValid(), "can not be invalid");
+      lobcMetaBlockPageAccessor accessor(_mfile, rid.getPid());
+      if (!accessor.isValid())
+      {
+         PD_LOG(PDERROR, "failed to init accessor of page[%d]", rid.getPid());
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = accessor.extendBlockSize(rid.getPos(), _manifest->lobArgs.pageSize, deltaSize);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to extend block size at[%s], rc:%d",
+                rid.toString().c_str(), rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lobcMetaBlockMapping::_truncateLobc(const lobChunkSearchEntry &entry,
+                                             UINT32 size,
+                                             UINT32 bucketPos,
+                                             lobcBucketRegion &region,
+                                             UINT32 &tsize,
+                                             lobcExtentChain &chain,
+                                             ossPoolList<lextentDescriptor> &discarded)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(discarded.empty(), "must be empty");
+      recordID rid;
+      PAGE_ID entryPid = region.getBucket(bucketPos);
+      PAGE_ID pid = INVALID_PAGE_ID;
+      BOOLEAN truncated = FALSE;
+      INT32 removingPos = -1;
+      PAGE_ID removingPid = INVALID_PAGE_ID;
+      tsize = 0;
+
+      chain.init(_manifest->lobArgs.pageSize);
+
+      rc = seek(entry, entryPid, rid);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      pid = rid.getPid();
+      do
+      {
+         BOOLEAN isChainTail = FALSE;
+         lobcMetaBlockPageAccessor accessor(_mfile, pid);
+         if (OSS_UNLIKELY(!accessor.isValid()))
+         {
+            PD_LOG(PDERROR, "failed to init accessor of page[%d]", pid);
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
+         for (INT32 i = rid.getPos(); i < (INT32)accessor.getItemCount(); ++i)
+         {
+            lobExtentMetaBlock *block = accessor.getExtentMetaBlock(i);
+            if (nullptr == block || !block->isValid())
+            {
+               PD_LOG(PDERROR, "failed to get block at[%d, %d]", pid, i);
+               rc = SDB_VESSEL_INTERNAL_ERR;
+               goto error;
+            }
+
+            if (0 != block->compare(entry.getLogicalClId(), entry.getKey()))
+            {
+               PD_LOG(PDERROR, "unexpected block found at [%d, %d]", pid, i);
+               rc = SDB_VESSEL_INTERNAL_ERR;
+               goto error;
+            }
+
+            isChainTail = block->isChainTail();
+            
+            if ((chain.getChunkSize() + block->size) <= size)
+            {
+               rc = chain.pushBack(block->getExtentDesc());
+               if (OSS_UNLIKELY(SDB_OK != rc))
+               {
+                  PD_LOG(PDERROR, "failed to push desc into chain:%d", rc);
+                  goto error;
+               }
+
+               if (size == chain.getChunkSize())
+               {
+                  if (block->isChainTail())
+                  {
+                     /// nothing changed.
+                     goto done;
+                  }
+                  else
+                  {
+                     truncated = TRUE;
+                     removingPos = i + 1;
+                     removingPid = pid;
+                     block->setAsTail();
+                     break;
+                  }
+               }
+            }
+            else
+            {
+               truncated = TRUE;
+
+               /// tsize may be increased when removing.
+               tsize = chain.getChunkSize() + block->size - size;
+               block->size -= tsize;
+               if (!block->isChainTail())
+               {
+                  removingPos = i + 1;
+                  removingPid = pid;
+                  block->setAsTail();
+               }
+
+               rc = chain.pushBack(block->getExtentDesc());
+               if (OSS_UNLIKELY(SDB_OK != rc))
+               {
+                  block->size += tsize;
+                  if (!isChainTail)
+                  {
+                     block->clearTail();
+                  }
+                  PD_LOG(PDERROR, "failed to push desc into chain:%d", rc);
+                  goto error;
+               }
+
+               break;
+            }
+
+            if (isChainTail)
+            {
+               break;
+            }
+         }//for (INT32 i = rid.getPos(); i < (INT32)accessor.getItemCount(); ++i)
+
+         pid = truncated ? INVALID_PAGE_ID : accessor.getNextPid();
+      } while (INVALID_PAGE_ID != pid);
+
+      /// clear discarded blocks, do not goto error from here.
+      while (INVALID_PAGE_ID != removingPid)
+      {
+         PAGE_ID nextPid = INVALID_PAGE_ID;
+         BOOLEAN hitRemovingTail = FALSE;
+         UINT32 count = 0;
+         lobcMetaBlockPageAccessor accessor(_mfile, removingPid);
+         if (OSS_UNLIKELY(!accessor.isValid()))
+         {
+            PD_LOG(PDSEVERE, "failed to init accessor of page[%d]", removingPid);
+            ///WARNING: invalid blocks remained.
+            goto done;
+         }
+
+         for (UINT32 i = (UINT32)removingPos; i < accessor.getItemCount(); ++i)
+         {
+            const lobExtentMetaBlock *block = accessor.getExtentMetaBlock(i);
+            if (nullptr == block || !block->isValid())
+            {
+               PD_LOG(PDERROR, "failed to get block at[%d, %d]", pid, i);
+               goto done;
+            }
+
+            if (0 != block->compare(entry.getLogicalClId(), entry.getKey()))
+            {
+               PD_LOG(PDSEVERE, "unexpected block found at [%d, %d]", removingPid, i);
+               goto done;
+            }
+
+            discarded.push_back(block->getExtentDesc());
+            ++count;
+            tsize += block->size;
+            if (block->isChainTail())
+            {
+               hitRemovingTail = TRUE;
+               break;
+            }
+         }//for (UINT32 i = (UINT32)removingPos; i < accessor.getItemCount(); ++i)
+
+         SDB_ASSERT(0 < count, "should not be zero");
+         accessor.remove(removingPos, count);
+
+         nextPid = hitRemovingTail ? INVALID_PAGE_ID : accessor.getNextPid();
+
+         if (accessor.isEmpty() && !accessor.isTheOnlyPageInBucket())
+         {
+            removePageFromBucket(removingPid, bucketPos, region);
+         }
+
+         removingPid = nextPid;
+         removingPos = 0;
+      }
+   done:
+      return rc;
+   error:
+      tsize = 0;
+      chain.reset();
+      discarded.clear();
+      goto done;
+   }
+
+   INT32 lobcMetaBlockMapping::list(listLobChunkCursor *cursor)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(nullptr != cursor && !cursor->isClosed(), "can not be invalid");
+      UINT32 count = 0;
+
+      if (cursor->getRegionId() < 0)
+      {
+         _initRegionToList(0, cursor);
+      }
+
+      do
+      {
+         rc = _listInRegion(cursor, count);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to list chunks in region:%d, rc:%d",
+                   cursor->getRegionId(), rc);
+            goto error;
+         }
+
+         if (0 < count || 
+             ((cursor->getRegionId() + 1) == (INT32)_regionCount))
+         {
+            break;
+         }
+         else
+         {
+            _initRegionToList(cursor->getRegionId() + 1, cursor);
+         }
+      } while (TRUE);
+
+      if (0 == count)
+      {
+         cursor->setEOC();
+      }
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void lobcMetaBlockMapping::_initRegionToList(UINT32 regionId,
+                                                listLobChunkCursor *cursor)
+   {
+      SDB_ASSERT(regionId < _regionCount, "out of bound");
+      SDB_ASSERT(nullptr != cursor && !cursor->isClosed(), "can not be invalid");
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      ossSpinSLatchPOSIX *regionLock = tc->getEnv()->latchEnv.lobRegionLatchVec.mod(regionId);
+      SDB_ASSERT(nullptr != regionLock, "can not be null");
+      regionLock->get_shared();
+      lobcBucketRegionBlock *regionBlock = getRegionBlock(regionId);
+      cursor->setRegionToScan(regionId, *regionBlock);
+      regionLock->release_shared();
+      return;
+   }
+
+   INT32 lobcMetaBlockMapping::_listInRegion(listLobChunkCursor *cursor, UINT32 &count)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(nullptr != cursor, "can not be invalid");
+      INT32 regionId = cursor->getRegionId();
+      SDB_ASSERT(0 <= regionId, "invalid region id");
+      count = 0;
+
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      ossSpinSLatchPOSIX *regionLock = tc->getEnv()->latchEnv.lobRegionLatchVec.mod(regionId);
+      SDB_ASSERT(nullptr != regionLock, "can not be null");
+      ossSLatchGuard guard(regionLock, SHARED);
+
+      lobcBucketRegionBlock *regionBlock = getRegionBlock(regionId);
+
+      do
+      {
+         INT32 bucketToScan = cursor->getBucketPosToScan();
+         if (bucketToScan < 0)
+         {
+            break;
+         }
+         else if (INVALID_PAGE_ID == regionBlock->buckets[bucketToScan])
+         {
+            SDB_ASSERT(FALSE, "impossible to get invalid pos");
+            cursor->endToScanBucket(bucketToScan);
+            continue;
+         }
+         else
+         {
+            _listInBucket(regionBlock->buckets[bucketToScan], cursor, count);
+            cursor->endToScanBucket(bucketToScan);
+            if (0 < count)
+            {
+               break;
+            }
+            else
+            {
+               guard.unlock();
+               guard.lock();
+               continue;
+            }
+         }
+      } while (TRUE);
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lobcMetaBlockMapping::_listInBucket(PAGE_ID entryPid,
+                                             listLobChunkCursor *cursor,
+                                             UINT32 &count)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 lclid = cursor->getCollectionId().getCLLid();
+      SDB_ASSERT(DMS_INVALID_LOGICCLID != lclid, "can not be invalid");
+      INT32 chunkId = cursor->getOptions().chunkId;
+      PAGE_ID pid = entryPid;
+      dmsLobChunkInfo info;
+      count = 0;
+
+      while (INVALID_PAGE_ID != pid)
+      {
+         lobcMetaBlockPageAccessor accessor(_mfile, pid);
+         if (OSS_UNLIKELY(!accessor.isValid()))
+         {
+            PD_LOG(PDERROR, "failed to init accessor of page[%d]", pid);
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto done;
+         }
+
+         for (UINT32 i = 0; i < accessor.getItemCount(); ++i)
+         {
+            const lobExtentMetaBlock *block = accessor.getExtentMetaBlock(i);
+            if (nullptr == block || !block->isValid())
+            {
+               PD_LOG(PDERROR, "invalid block found at[%d, %d]", pid, i);
+               rc = SDB_VESSEL_INTERNAL_ERR;
+               goto error;
+            }
+
+            if (info.oid.isSet())
+            {
+               if (block->oid != info.oid ||
+                   block->chunkId != info.chunkId ||
+                   block->chainPos != info.profile.chainSize)
+               {
+                  PD_LOG(PDERROR, "abnormal chain(tail missed) found at[%d, %d]", pid, i);
+                  info.profile.setAbnormal();
+                  rc = cursor->pushData(sizeof(dmsLobChunkInfo), (const CHAR *)(&info));
+                  if (SDB_OK != rc)
+                  {
+                     PD_LOG(PDERROR, "failed to push data into cursor:%d", rc);
+                     goto error;
+                  }
+                  info = dmsLobChunkInfo();
+                  ++count;
+               }
+               else
+               {
+                  info.profile.chunkSize += block->size;
+                  ++info.profile.chainSize;
+               }
+            }
+
+            /// not else if
+            if (!info.oid.isSet())
+            {
+               if (block->lclid != lclid ||
+                   (0 <= chunkId && static_cast<UINT32>(chunkId) != block->chunkId))
+               {
+                  continue;
+               }
+
+               info.oid = block->oid;
+               info.chunkId = block->chunkId;
+               info.profile.chunkSize = block->size;
+               info.profile.chainSize = 1;
+
+               if (0 != block->chainPos)
+               {
+                  info.profile.setAbnormal();
+                  PD_LOG(PDERROR, "abnormal chain(header missed) found at[%d, %d]", pid, i);
+               }
+            }
+
+            if (block->isChainTail())
+            {
+               rc = cursor->pushData(sizeof(dmsLobChunkInfo), (const CHAR *)(&info));
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to push data into cursor:%d", rc);
+                  goto error;
+               }
+               info = dmsLobChunkInfo();
+               ++count;
+            }
+         } //for (UINT32 i = 0; i < accessor.getItemCount(); ++i)
+
+         pid = accessor.getNextPid();
+      } //while (INVALID_PAGE_ID != pid)
+
+      if (info.oid.isSet())
+      {
+         info.profile.setAbnormal();
+         rc = cursor->pushData(sizeof(dmsLobChunkInfo), (const CHAR *)(&info));
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to push data into cursor:%d", rc);
+            goto error;
+         }
+         ++count;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
    }
 } // namespace vessel
 

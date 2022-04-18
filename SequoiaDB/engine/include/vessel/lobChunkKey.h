@@ -50,7 +50,6 @@ namespace vessel
    {
       public:
          lobChunkKey(){}
-         ~lobChunkKey(){}
          lobChunkKey(const lobChunkKey &o):
          _oid(o._oid),
          _chunkId(o._chunkId){}
@@ -151,7 +150,12 @@ namespace vessel
          _sid(o._sid),
          _mbid(o._mbid),
          _key(o._key){}
-         ~globalLobChunkKey(){}
+         explicit globalLobChunkKey(SPACE_ID sid,
+                                    CL_MB_ID mbid,
+                                    const lobChunkKey &key):
+         _sid(sid),
+         _mbid(mbid),
+         _key(key){}
 
          globalLobChunkKey &operator=(const globalLobChunkKey &o)
          {

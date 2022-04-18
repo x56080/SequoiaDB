@@ -43,6 +43,7 @@
 #include "vessel/lobExtentMetaBlock.h"
 #include "vessel/lobChunkSearchEntry.h"
 #include "vessel/lobcBucketRegion.h"
+#include "dmsLobDef.hpp"
 
 namespace engine
 {
@@ -91,18 +92,11 @@ namespace vessel
    {
       public:
          lobcMetaBlockPageAccessor(){}
-         lobcMetaBlockPageAccessor(const lobcMetaBlockPageAccessor &o):
-         _pageSize(o._pageSize),
-         _header(o._header){}
+         lobcMetaBlockPageAccessor(const lobcMetaBlockPageAccessor &o) = default;
          lobcMetaBlockPageAccessor(UINT32 pageSize, void *pageBuf);
          lobcMetaBlockPageAccessor(lobMetaDataFile *mfile, PAGE_ID pid);
          ~lobcMetaBlockPageAccessor();
-         lobcMetaBlockPageAccessor &operator=(const lobcMetaBlockPageAccessor &o)
-         {
-            _pageSize = o._pageSize;
-            _header = o._header;
-            return *this;
-         }
+         lobcMetaBlockPageAccessor &operator=(const lobcMetaBlockPageAccessor &o) = default;
 
       public:
          
@@ -166,6 +160,7 @@ namespace vessel
                     INT32 &pos)const;
 
          const lobExtentMetaBlock *getExtentMetaBlock(INT32 pos)const;
+         lobExtentMetaBlock *getExtentMetaBlock(INT32 pos);
 
 
          /// return -1 if page is empty.
@@ -192,6 +187,12 @@ namespace vessel
 
          UINT32 getItemCountToFit(FLOAT32 freePct)const;
 
+         INT32 addNewTailToChain(UINT32 oldTailPos,
+                                 UINT32 lobdPageSize,
+                                 const lobExtentMetaBlock *block);
+
+         INT32 extendBlockSize(UINT32 pos, UINT32 lobdPageSize, UINT32 deltaSize);
+
       private:
 
          lobcMetaBlockPage::itemSlot *getSlotPtr(UINT32 pos);
@@ -205,6 +206,10 @@ namespace vessel
                                    UINT32 &slotPos)const;
 
          INT32 compact();
+
+         void _insertToPos(UINT32 pos,
+                           UINT32 hash,
+                           const lobExtentMetaBlock *block);
 
       private:
          UINT32 _pageSize = 0;

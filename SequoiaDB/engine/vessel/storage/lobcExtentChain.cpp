@@ -106,7 +106,8 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isValidAccessing(offset, size)))
+      else if (OSS_UNLIKELY(!isValidAccessing(offset, size) ||
+                            0 == size))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -115,6 +116,8 @@ namespace vessel
       for (UINT32 i = 0; i < _chain.size(); ++i)
       {
          const lextentDescriptor &desc = _chain.at(i);
+
+         /// ignore extents not to read
          if ((desc.size + seek) <= offset)
          {
             seek += desc.size;
@@ -122,30 +125,134 @@ namespace vessel
          else
          {
             UINT32 offsetInExtent = offset - seek;
-            UINT32 pos = 0;
-            UINT32 seekInExtent = 0;
-            UINT32 sizeInExtent = desc.size;
+            UINT32 readingSize = (desc.size - offsetInExtent) < size ?
+                                 (desc.size - offsetInExtent) : size;
+            UINT32 pageCountToSkip = offsetInExtent / _pageSize;
 
-            while ((seekInExtent + _pageSize) <= offsetInExtent)
-            {
-               ++pos;
-               seekInExtent += _pageSize;
-               SDB_ASSERT(_pageSize < sizeInExtent, "impossible");
-               sizeInExtent -= _pageSize;
-            }
-
-            sizeInExtent = std::min(sizeInExtent, size);
             roadmap._pageSize = _pageSize;
-            roadmap._pid = desc.pid + pos;
-            roadmap._boffset = offsetInExtent - seekInExtent;
-            roadmap._eoffset = roadmap._boffset + sizeInExtent;
+            roadmap._pid = desc.pid + pageCountToSkip;
+            roadmap._boffset = offsetInExtent - (pageCountToSkip * _pageSize);
+            roadmap._eoffset = roadmap._boffset + readingSize;
             roadmap._pcnt = ossAlignX(roadmap._eoffset, _pageSize) / _pageSize;
+
+            break;
          }
       }
    done:
       return rc;
    error:
       goto done;
+   }
+
+   INT32 lobcExtentChain::createExtentRoadmaps(UINT32 offset, UINT32 size,
+                                               ossPoolList<extentRoadmap> &roadmaps)const
+   {
+      INT32 rc = SDB_OK;
+      UINT32 seek = 0;
+      UINT32 createdSize = 0;
+      UINT32 chainPos = 0;
+      UINT32 offsetInExtent = 0;
+      roadmaps.clear();
+
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isValidAccessing(offset, size) ||
+                            0 == size))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      for (; chainPos < _chain.size(); ++chainPos)
+      {
+         const lextentDescriptor &desc = _chain.at(chainPos);
+         /// ignore extents not to read
+         if ((desc.size + seek) <= offset)
+         {
+            seek += desc.size;
+         }
+         else
+         {
+            offsetInExtent = offset - seek;
+            break;
+         }
+      }
+
+      while (createdSize < size)
+      {
+         SDB_ASSERT(chainPos < _chain.size(), "out of bound");
+         const lextentDescriptor &desc = _chain.at(chainPos);
+   
+         UINT32 readingSize = (desc.size - offsetInExtent) < size ?
+                              (desc.size - offsetInExtent) : size;
+         UINT32 pageCountToSkip = offsetInExtent / _pageSize;
+
+         extentRoadmap roadmap;
+         roadmap._pageSize = _pageSize;
+         roadmap._pid = desc.pid + pageCountToSkip;
+         roadmap._boffset = offsetInExtent - (pageCountToSkip * _pageSize);
+         roadmap._eoffset = roadmap._boffset + readingSize;
+         roadmap._pcnt = ossAlignX(roadmap._eoffset, _pageSize) / _pageSize;
+
+         roadmaps.push_back(roadmap);
+
+         seek += readingSize;
+         createdSize += readingSize;
+         ++chainPos;
+         offsetInExtent = 0;
+      }
+         
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   UINT32 lobcExtentChain::getCurrentCapacity()const
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      UINT32 totalPcnt = 0;
+      for (UINT32 i = 0; i < _chain.size(); ++i)
+      {
+         totalPcnt += _chain.at(i).pcnt;
+      }
+
+      return _pageSize * totalPcnt;
+   }
+
+   UINT32 lobcExtentChain::extendLastExtent(UINT32 deltaSize)
+   {
+      SDB_ASSERT(!isEmpty(), "can not be invalid");
+      UINT32 extendedSize = 0;
+      lextentDescriptor &desc = _chain.back();
+      UINT32 freeSize = desc.getCapacity(_pageSize) - desc.size;
+      if (freeSize <= deltaSize)
+      {
+         _size += freeSize;
+         extendedSize = freeSize;
+      }
+      else
+      {
+         _size += deltaSize;
+         extendedSize = deltaSize;
+      }
+
+      desc.size += extendedSize;
+      return extendedSize;
+   }
+
+   UINT32 lobcExtentChain::getFreeSizeInLastExtent()const
+   {
+      UINT32 freeSize = 0;
+      if (!isEmpty())
+      {
+         const lextentDescriptor &desc = _chain.back();
+         freeSize = desc.getCapacity(_pageSize) - desc.size;
+      }
+      return freeSize;
    }
 } // namespace vessel
 

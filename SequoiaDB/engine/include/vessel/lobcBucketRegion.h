@@ -37,6 +37,7 @@
 #define VESSEL_LOBC_BUCKET_REGION_H_
 
 #include "vessel/pageIdentifier.h"
+#include "pdTrace.hpp"
 
 namespace engine
 {
@@ -84,29 +85,25 @@ namespace vessel
          {
             friend class lobcBucketRegion;
             public:
-               resizingStrategy(){}
-               ~resizingStrategy(){}
-            public:
-               OSS_INLINE UINT32 getMask()const {return _mask;}
                OSS_INLINE UINT32 getTargetPos()const {return _targetPos;}
                OSS_INLINE void reset()
                {
-                  _mask = 0;
+                  _range = 0;
                   _targetPos = 0;
                }
                OSS_INLINE BOOLEAN isValid()const
                {
-                  return 0 < _mask;
+                  return 0 < _range;
                }
 
                BOOLEAN targetOwned(UINT32 hash)const
                {
-                  UINT32 val = hash & _mask;
-                  return ((_mask + 1) >> 1) <= val;
+                  SDB_ASSERT(isValid(), "can not be invalid");
+                  return _targetPos <= (hash & (_range - 1));
                } 
 
             private:
-               UINT32 _mask = 0;
+               UINT32 _range = 0;
                UINT32 _targetPos = 0;
          };// class resizingStrategy
 
