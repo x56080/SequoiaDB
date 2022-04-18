@@ -34,7 +34,7 @@ create <[temporary] table| temporary view> <tableName> [(schema)] using com.sequ
 |samplingwithid|boolean|FALSE|schema 采样时是否带 _id 字段，取值为 true 或 false  |否|
 |samplingsingle|boolean|TRUE|schema 采样时使用一个分区，取值为 true 或 false |否|
 |bulksize|int32|500|向 SequoiaDB 集合插入数据时批插的数据量，取值大于 0 |否|
-|partitionmode|string|auto|分区模式，取值可以是"single"、"sharding"、"datablock"、"auto"；设为"auto"时根据情况自动选择"sharding"或"datablock" |否|
+|partitionmode|string|auto|分区模式，默认值为"auto"，取值如下：<br>"auto"：自动选择模式 <br>"sharding"：以分区为单位进行并发读取 <br> "datablock"：以集合为单位进行并发读取 <br> 该参数取值为"auto"时，如果查询使用了索引则自动选择"sharding"模式，未使用索引则选择"datablock"模式  |否|
 |partitionblocknum|int32|4|每个分区的数据块数，在按 datablock 分区时有效，取值大于 0 |否|
 |partitionmaxnum|int32|1000|最大分区数量，在按 datablock 分区时有效，取值大于等于 0，等于 0 时表示不限制分区最大数量<br>由于 partitionMaxNum 的限制，每个分区的数据块数可能与 partitionBlockNum 不同 |否|
 |preferredinstance|string|"A"|指定分区优先选择的节点实例，取值可参考 [preferredinstance][parameter]|否|
