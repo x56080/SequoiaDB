@@ -128,7 +128,7 @@ SequoiaDB 包含的非事务性操作如下：
 [totime]:manual/Manual/Sequoiadb_Command/Sdb/restoreToTime.md
 [prepare]:manual/Manual/Sequoiadb_Command/Sdb/restorePrepare.md
 [stp]:manual/Distributed_Engine/Architecture/Stp/Readme.md
-[configuration]:manual/Manual/Database_Configuration/configuration_parameters.md
+[configuration]:manual/Distributed_Engine/Maintainance/Database_Configuration/parameter_instructions.md
 [analyze]:manual/Manual/Sequoiadb_Command/Sdb/analyze.md
 [dropCS]:manual/Manual/Sequoiadb_Command/Sdb/dropCS.md
 [renameCS]:manual/Manual/Sequoiadb_Command/Sdb/renameCS.md

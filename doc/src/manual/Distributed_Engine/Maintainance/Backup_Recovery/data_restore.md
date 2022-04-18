@@ -193,6 +193,6 @@ auditpath=/opt/sequoiadb/database/data/11820/diaglog/
 
 [^_^]:
     本文使用的所有引用及链接
-[configuration]:manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md
+[configuration]:manual/Distributed_Engine/Maintainance/Database_Configuration/parameter_instructions.md
 [pit]:manual/Distributed_Engine/Maintainance/Backup_Recovery/point_in_time_restore.md
 [listBackup]:manual/Manual/Sequoiadb_Command/Sdb/listBackup.md
