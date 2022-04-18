@@ -802,16 +802,17 @@ namespace engine
    BOOLEAN _dmsCacheHolder::checkCacheUnit ( utilSUCacheUnit *pCacheUnit )
    {
       BOOLEAN exists = FALSE ;
-
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSCACHEHOLDER_CHKUNIT ) ;
 
       switch ( pCacheUnit->getUnitType() )
       {
          case UTIL_SU_CACHE_UNIT_CLSTAT :
          {
-            if ( SDB_OK != _checkCollectionStat( (dmsCollectionStat *)pCacheUnit ) )
+            rc = _checkCollectionStat( (dmsCollectionStat *)pCacheUnit ) ;
+            if ( SDB_OK != rc )
             {
-               PD_LOG( PDWARNING, "Failed to check collection statistics" ) ;
+               PD_LOG( PDWARNING, "Failed to check collection statistics, rc:%d", rc ) ;
                goto error ;
             }
             exists = TRUE ;
@@ -819,9 +820,10 @@ namespace engine
          }
          case UTIL_SU_CACHE_UNIT_IXSTAT :
          {
-            if ( SDB_OK != _checkIndexStat( (dmsIndexStat *)pCacheUnit , NULL ) )
+            rc = _checkIndexStat( (dmsIndexStat *)pCacheUnit , NULL ) ;
+            if ( SDB_OK != rc )
             {
-               PD_LOG( PDWARNING, "Failed to check index statistics" ) ;
+               PD_LOG( PDWARNING, "Failed to check index statistics, rc:%d", rc ) ;
                goto error ;
             }
             exists = TRUE ;
@@ -1265,7 +1267,7 @@ namespace engine
          if ( rcTmp )
          {
             PD_LOG( PDWARNING, "Failed to remove cs data file[%s] in "
-                    "rollback, rc: %d", _pDataSu->getSuFileName(), rc ) ;
+                    "rollback, rc: %d", _pDataSu->getSuFileName(), rcTmp ) ;
          }
       }
       goto done ;
@@ -1275,7 +1277,7 @@ namespace engine
          if ( rcTmp )
          {
             PD_LOG( PDWARNING, "Failed to remove cs idnex file[%s] in "
-                    "rollback, rc: %d", _pIndexSu->getSuFileName(), rc ) ;
+                    "rollback, rc: %d", _pIndexSu->getSuFileName(), rcTmp ) ;
          }
       }
       goto rmdata ;
@@ -1365,7 +1367,7 @@ namespace engine
       if ( !_pDataSu || !_pIndexSu || !_pLobSu || !_pCacheUnit )
       {
          rc = SDB_OOM ;
-         PD_LOG( PDERROR, "Alloc memory failed" ) ;
+         PD_LOG( PDERROR, "Alloc memory failed, rc:%d", rc ) ;
          goto error ;
       }
 
