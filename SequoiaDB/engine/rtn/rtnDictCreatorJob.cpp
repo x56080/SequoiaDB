@@ -292,32 +292,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTN_DICTCREATORJOB__TRANSFERDICT, "_rtnDictCreatorJob::_transferDict" )
-   INT32 _rtnDictCreatorJob::_transferDict( dmsStorageDataCommon *sd,
-                                            dmsMBContext *context,
-                                            CHAR *dictStream,
-                                            UINT32 dictSize )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTN_DICTCREATORJOB__TRANSFERDICT ) ;
-      CHAR fullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
-
-      SDB_ASSERT( FALSE == context->isMBLock(),
-                  "mb should not have been locked" ) ;
-
-      ossSnprintf( fullName, sizeof( fullName ), "%s.%s",
-                   sd->getSuName(), context->mb()->_collectionName ) ;
-      rc = rtnLoadCollectionDict( fullName, dictStream, dictSize ) ;
-      PD_RC_CHECK( rc, PDERROR, "Load compression dictionary for collection[%s]"
-                   " failed: %d", context->mb()->_collectionName, rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__RTN_DICTCREATORJOB__TRANSFERDICT, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTN_DICTCREATORJOB__CHECKANDCREATEDICTFORCL, "_rtnDictCreatorJob::_checkAndCreateDictForCL" )
    INT32 _rtnDictCreatorJob::_checkAndCreateDictForCL( const dmsDictJob &job,
                                                        BOOLEAN &retry )
@@ -440,9 +414,9 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to finalize dictionary, rc: %d", rc ) ;
 
-      rc = _transferDict( su->data(), mbContext, dictBuf, dictBufLen ) ;
+      rc = rtnLoadCollectionDict( su->data(), mbContext, dictBuf, dictBufLen ) ;
       PD_RC_CHECK( rc, PDERROR,
-                   "Failed to pass dictionary to dms, rc: %d", rc ) ;
+                   "Failed to load dictionary, rc: %d", rc ) ;
       ossGetCurrentTime( end ) ;
 
       PD_LOG( PDEVENT, "Compression dictionary created succesfully for "
