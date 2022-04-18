@@ -2714,5 +2714,38 @@ namespace engine
    error:
       goto done ;
    }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNLOADCOLLECTIONDICT1, "rtnLoadCollectionDict" )
+   INT32 rtnLoadCollectionDict( dmsStorageDataCommon *dataSu,
+                                dmsMBContext *context,
+                                const CHAR *dictionary,
+                                UINT32 dictSize, BOOLEAN force )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_RTNLOADCOLLECTIONDICT1 ) ;
+
+      SDB_ASSERT( FALSE == context->isMBLock(),
+                  "mb should not have been locked" ) ;
+
+      rc = context->mbLock( EXCLUSIVE ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Lock collection[%s.%s] failed[%d]",
+                   dataSu->getSuName(), context->mb()->_collectionName, rc ) ;
+
+      rc = dataSu->loadDictionary( context, dictionary, dictSize, force ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Load dictionary for collection[%s.%s] failed[%d]",
+                   dataSu->getSuName(), context->mb()->_collectionName, rc ) ;
+
+   done:
+      if ( context )
+      {
+         context->mbUnlock() ;
+      }
+      PD_TRACE_EXITRC( SDB_RTNLOADCOLLECTIONDICT1, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
 }
 

@@ -61,8 +61,6 @@ namespace engine
                                UINT16 mbID ) ;
       INT32 _createDict( dmsStorageDataCommon *sd, dmsMBContext *context,
                          utilLZWDictCreator *creator ) ;
-      INT32 _transferDict( dmsStorageDataCommon *sd, dmsMBContext *context,
-                           CHAR *dictStream, UINT32 dictSize ) ;
    private:
       UINT32 _scanInterval ;
    } ;
