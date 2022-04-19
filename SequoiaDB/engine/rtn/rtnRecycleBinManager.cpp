@@ -970,7 +970,14 @@ namespace engine
       sleepTime = RTN_RECYCLE_RETRY_INTERVAL ;
       result = UTIL_LJOB_DO_CONT ;
 
-      if ( PMD_IS_DB_DOWN() || pExe->isInterrupted() || pExe->isForced() )
+      if ( PMD_IS_DB_DOWN() )
+      {
+         PD_LOG( PDDEBUG, "DB is down, stop to drop expired items" ) ;
+         result = UTIL_LJOB_DO_FINISH ;
+         rc = SDB_APP_INTERRUPT ;
+         goto error ;
+      }
+      else if ( pExe->isInterrupted() || pExe->isForced() )
       {
          PD_LOG( PDWARNING, "Failed to check EDU, it is interrupted" ) ;
          result = UTIL_LJOB_DO_FINISH ;
