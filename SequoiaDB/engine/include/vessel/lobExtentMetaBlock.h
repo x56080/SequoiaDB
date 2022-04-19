@@ -262,15 +262,15 @@ namespace vessel
 
       UINT8 version = 0;
       UINT8 flags = 0;
+      UINT16 mbid = INVALID_CL_MB_ID;
+      UINT32 lclid = DMS_INVALID_LOGICCLID;
+      bson::OID oid;
+      UINT32 chunkId = 0;
+      UINT16 chainPos = 0;
       UINT16 pcnt = 0;
       UINT32 pid = INVALID_PAGE_ID;
       UINT32 psv = INVALID_PAGE_SNAPSHOT_VERSION;
       UINT32 size = 0;
-      UINT32 lclid = DMS_INVALID_LOGICCLID;
-      UINT16 mbid = INVALID_CL_MB_ID;
-      UINT16 chainPos = 0;
-      bson::OID oid;
-      UINT32 chunkId = 0;
       CHAR reserved[24] = {};
    };//class lobExtentMetaBlock
    constexpr UINT32 LOB_EXTENT_META_BLOCK_SIZE = sizeof(lobExtentMetaBlock);
