@@ -6205,8 +6205,39 @@ namespace engine
                                  data, _pEDUCB, orUpdate ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to write lob:%d", rc ) ;
-            goto error ;
+            if ( SDB_LOB_SEQUENCE_EXISTS == rc &&
+                 SDB_LOB_MODE_CREATEONLY == lobContext->getMode() )
+            {
+               PD_LOG( PDWARNING, "The lob[oid:%s] has residual data. We will "
+                       "remove and rewrite lob piece[sequence:%d, "
+                       "offset:%lld, len:%d]",
+                       lobContext->getOID().str().c_str(),
+                       curTuple->columns.sequence,
+                       curTuple->columns.offset,
+                       curTuple->columns.len ) ;
+
+               rc = lobContext->remove( curTuple->columns.sequence, _pEDUCB ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Failed to remove lob piece, rc: %d", rc ) ;
+                  goto error ;
+               }
+
+               rc = lobContext->write( curTuple->columns.sequence,
+                                       curTuple->columns.offset,
+                                       curTuple->columns.len,
+                                       data, _pEDUCB ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Failed to write lob piece, rc: %d", rc ) ;
+                  goto error ;
+               }
+            }
+            else
+            {
+               PD_LOG( PDERROR, "Failed to write lob, rc: %d", rc ) ;
+               goto error ;
+            }
          }
 
          ++tupleNum ;
