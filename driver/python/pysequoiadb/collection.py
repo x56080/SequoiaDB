@@ -302,7 +302,7 @@ class collection(object):
             - DuplicatedNum  : The number of records ignored or replaced due to duplicate key conflicts.
             - LastGenerateID : The max value of all auto-increments that the first record inserted contains. The
                                result will include this field if current collection has auto-increments.
-            - _id            : ObecjtId of the inserted record. The result will include field "_id" if
+            - _id            : ObjectId of the inserted record. The result will include field "_id" if
                                FLG_INSERT_RETURN_OID is used.
         Exceptions:
            pysequoiadb.error.SDBBaseError
@@ -365,7 +365,7 @@ class collection(object):
             - DuplicatedNum  : The number of records ignored or replaced due to duplicate key conflicts.
             - LastGenerateID : The max value of all auto-increments that the inserted record contains. The result
                                will include this field if current collection has auto-increments.
-            - _id            : ObecjtId of the inserted record. The result will include field "_id" if
+            - _id            : ObjectId of the inserted record. The result will include field "_id" if
                                FLG_INSERT_RETURN_OID is used.
          Exceptions:
             pysequoiadb.error.SDBBaseError
