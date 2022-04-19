@@ -1,16 +1,10 @@
 /******************************************************************************
- * @Description   : 
- * @Author        : XiaoNi Huang
- * @CreateTime    : 2022.03.29
+ * @Description   : seqDB-14408: 异常启动DB备节点不影响全文索引功能
+ * @Author        : liuxiaoxuan
+ * @CreateTime    : 2019.08.21
  * @LastEditTime  : 2022.04.19
  * @LastEditors   : XiaoNi Huang
  ******************************************************************************/
-/************************************
-*@Description: 异常启动DB备节点不影响全文索引功能
-*@author:      liuxiaoxuan
-*@createdate:  2019.08.21
-*@testlinkCase: seqDB-14408
-**************************************/
 testConf.skipStandAlone = true;
 testConf.skipOneDuplicatePerGroup = true;
 
