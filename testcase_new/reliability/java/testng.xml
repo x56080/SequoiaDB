@@ -29,11 +29,11 @@
     <!--用例临时文件存放路径 -->
     <parameter name="WORKDIR"         value="/tmp/ci_reliability" />
     <!--远程机器root用户密码-->
-    <parameter name="ROOTPASSWD"      value="jenkins" />
+    <parameter name="ROOTPASSWD"      value="${ROOTPASSWD}" />
     <!--远程机器用户名-->
-    <parameter name="REMOTEUSER"      value="sdbadmin" />
+    <parameter name="REMOTEUSER"      value="${REMOTEUSER}" />
     <!--远程机器用户密码-->
-    <parameter name="REMOTEPASSWD"    value="Admin@1024" />
+    <parameter name="REMOTEPASSWD"    value="${REMOTEPASSWD}" />
     <!--可靠性shell脚本位置-->
     <parameter name="SCRIPTDIR"       value="${SCRIPTDIR}" />
     <!-- 适配器配置文件的父目录，默认是/opt/sequoiadb/conf/sdbseadapter -->

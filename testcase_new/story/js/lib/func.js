@@ -80,9 +80,10 @@ if( typeof ( CLEANFORFAIL ) == "undefined" ) { var CLEANFORFAIL = false; }
 if( typeof ( DSHOSTNAME ) == "undefined" ) { DSHOSTNAME = 'localhost'; }
 //数据源端端口号，CI默认传入11810
 if( typeof ( DSSVCNAME ) == "undefined" ) { DSSVCNAME = '11810'; }
-
-if( typeof ( SDBADMINPWD ) == "undefined" ) { SDBADMINPWD = "Admin@1024"; }
-
+//远程机器用户名
+if( typeof ( REMOTEUSER ) == "undefined" ) { REMOTEUSER = "sdbadmin"; }
+//远程机器用户密码
+if( typeof ( REMOTEPASSWD ) == "undefined" ) { REMOTEPASSWD = "Admin@1024"; }
 // CHANGEDPREFIX = local_test
 
 var cmd = new Cmd();
@@ -153,13 +154,13 @@ function commIsArmArchitecture ()
    try
    {
       var arch = cmd.run( 'uname -m' );
-      if ( arch == "aarch64\n" || arch == "aarch32\n"  )
+      if( arch == "aarch64\n" || arch == "aarch32\n" )
       {
-          return true;
+         return true;
       }
       else
       {
-          return false;
+         return false;
       }
    }
    catch( e )
