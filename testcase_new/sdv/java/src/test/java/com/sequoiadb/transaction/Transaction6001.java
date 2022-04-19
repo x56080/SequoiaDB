@@ -139,7 +139,8 @@ public class Transaction6001 extends SdbTestBase {
         long expCount = insertNum;
         long actCount = cl.getCount();
         Assert.assertEquals( actCount, expCount );
-        DBCursor cursor = cl.query();
+        DBCursor cursor = cl.query( null, null, new BasicBSONObject( "a", 1 ),
+                null );
         while ( cursor.hasNext() ) {
             Assert.assertEquals( cursor.getNext().get( "a" ).toString(),
                     String.valueOf( startValue ) );
