@@ -6464,10 +6464,17 @@ INT32 resolveArgument ( po::options_description &desc,
    }
    else
    {
-      usrName = NULLSTRING ;
-      password = ((vm.count( OPTION_PASSWORD))?
-                   vm[OPTION_PASSWORD].as<string>() :
-                   NULLSTRING);
+      if ( vm.count( OPTION_PASSWORD ) )
+      {
+         rc = SDB_INVALIDARG ;
+         std::cerr << "Missing user name" << std::endl ;
+         goto error ;
+      }
+      else
+      {
+         usrName = NULLSTRING ;
+         password = NULLSTRING ;
+      }
    }
 
 #ifdef SDB_SSL
