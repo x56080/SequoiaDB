@@ -3072,8 +3072,7 @@ namespace engine
          }
 
          {
-            BOOLEAN isPassed = FALSE ;
-
+            clsFreezingCheckResult result ;
             clsFreezingCLChecker checker( _pFreezingWindow,
                                           _ntyOverTime,
                                           _curCollecitonName.c_str(),
@@ -3111,7 +3110,7 @@ namespace engine
                return FALSE ;
             }
 
-            rc = checker.check( eduCB(), isPassed ) ;
+            rc = checker.check( eduCB(), result ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDWARNING, "Session[%s]: Failed to check freezing "
@@ -3119,25 +3118,32 @@ namespace engine
                        _curCollecitonName.c_str(), rc ) ;
                return FALSE ;
             }
-            else if ( !isPassed )
+            else if ( !( result._isPassed ) )
             {
-               if ( CLS_FREEZING_CHECKER_TRANS == checker.getStep() )
+               if ( CLS_FREEZING_CHECKER_TRANS == result._step )
                {
                   PD_LOG( PDINFO, "Session[%s] operator ID [%llu] : "
-                          "Waiting for other transactions to finish",
-                          sessionName(), _ntyOverTime ) ;
+                          "Waiting for other [%u] transactions to finish, "
+                          "e.g. [%s]", sessionName(), _ntyOverTime,
+                          result._blockTransNum,
+                          dpsTransIDToString( result._blockTransID ).c_str() ) ;
                }
-               else if ( CLS_FREEZING_CHECKER_CTX == checker.getStep() )
+               else if ( CLS_FREEZING_CHECKER_CTX == result._step )
                {
                   PD_LOG( PDINFO, "Session[%s] operator ID [%llu] : "
-                          "Waiting for other contexts to finish",
-                          sessionName(), _ntyOverTime ) ;
+                          "Waiting for other [%u] contexts to finish, "
+                          "e.g. context [%lld] with op ID [%llu]",
+                          sessionName(), _ntyOverTime,
+                          result._blockCtxNum, result._blockCtxID,
+                          result._blockID ) ;
                }
                else
                {
                   PD_LOG( PDINFO, "Session[%s] operator ID [%llu] : "
-                          "Waiting for other operations to finish",
-                          sessionName(), _ntyOverTime ) ;
+                          "Waiting for other operations to finish, "
+                          "e.g. EDU [%llu] with op ID [%llu], ",
+                          sessionName(), _ntyOverTime, result._blockEDUID,
+                          result._blockID ) ;
                }
                return FALSE ;
             }

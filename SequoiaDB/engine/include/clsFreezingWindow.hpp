@@ -220,7 +220,7 @@ namespace engine
    typedef _clsFreezingWindow clsFreezingWindow ;
 
    /*
-      _clsFreezingChecker
+      freezing window checker define
     */
    #define CLS_FREEZING_CHECKER_MASK_EDU     ( 0x01 )
    #define CLS_FREEZING_CHECKER_MASK_CTX     ( 0x02 )
@@ -233,6 +233,45 @@ namespace engine
       CLS_FREEZING_CHECKER_TRANS,
       CLS_FREEZING_CHECKER_DONE
    } ;
+
+   /*
+      _clsFreezingCheckResult define
+    */
+   class _clsFreezingCheckResult : public SDBObject
+   {
+   public:
+      _clsFreezingCheckResult()
+      : _isPassed( FALSE ),
+        _step( CLS_FREEZING_CHECKER_EDU ),
+        _blockID( 0 ),
+        _blockEDUID( PMD_INVALID_EDUID ),
+        _blockCtxID( -1 ),
+        _blockCtxNum( 0 ),
+        _blockTransID(),
+        _blockTransNum( 0 )
+      {
+      }
+
+      ~_clsFreezingCheckResult()
+      {
+      }
+
+   public:
+      BOOLEAN                    _isPassed ;
+      CLS_FREEZING_CHECKER_STEP  _step ;
+      UINT64                     _blockID ;
+      EDUID                      _blockEDUID ;
+      INT64                      _blockCtxID ;
+      UINT32                     _blockCtxNum ;
+      DPS_TRANS_ID               _blockTransID ;
+      UINT32                     _blockTransNum ;
+   } ;
+
+   typedef class _clsFreezingCheckResult clsFreezingCheckResult ;
+
+   /*
+      _clsFreezingChecker
+    */
 
    class _clsFreezingChecker : public SDBObject
    {
@@ -251,8 +290,11 @@ namespace engine
                               DPS_TRANSLOCK_TYPE transLockType,
                               BOOLEAN canSelfIncomp ) ;
 
-      INT32 check( pmdEDUCB *cb, BOOLEAN &passed ) ;
-      INT32 loopCheck( pmdEDUCB *cb, UINT32 maxTimes = CLS_BLOCKWRITE_TIMES ) ;
+      INT32 check( pmdEDUCB *cb,
+                   clsFreezingCheckResult &result ) ;
+      INT32 loopCheck( pmdEDUCB *cb,
+                       UINT32 maxTimes = CLS_BLOCKWRITE_TIMES,
+                       IContext *context = NULL ) ;
 
       CLS_FREEZING_CHECKER_STEP getStep() const
       {
@@ -260,12 +302,17 @@ namespace engine
       }
 
    protected:
-      INT32 _checkEDUs( pmdEDUCB *cb, BOOLEAN &passed ) ;
-      INT32 _checkContexts( pmdEDUCB *cb, BOOLEAN &passed ) ;
-      INT32 _checkTransactions( pmdEDUCB *cb, BOOLEAN &passed ) ;
+      INT32 _checkEDUs( pmdEDUCB *cb,
+                        clsFreezingCheckResult &result ) ;
+      INT32 _checkContexts( pmdEDUCB *cb,
+                            clsFreezingCheckResult &result ) ;
+      INT32 _checkTransactions( pmdEDUCB *cb,
+                                clsFreezingCheckResult &result ) ;
 
-      INT32 _getCtxBlockList( pmdEDUCB *cb, RTN_CTX_ID_SET &blockList ) ;
-      INT32 _getTransBlockList( pmdEDUCB *cb, DPS_TRANS_ID_SET &blockList ) ;
+      INT32 _getCtxBlockList( pmdEDUCB *cb,
+                              clsFreezingCheckResult *result ) ;
+      INT32 _getTransBlockList( pmdEDUCB *cb,
+                                clsFreezingCheckResult *result ) ;
 
       virtual INT32 _isRelated( pmdEDUCB *cb,
                                 const CHAR *objName,

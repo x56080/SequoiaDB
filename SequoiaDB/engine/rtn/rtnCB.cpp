@@ -554,14 +554,12 @@ namespace engine
                {
                   try
                   {
-                     INT64 contextID = pContext->contextID() ;
-                     contextProcessList.push_back(
-                           make_pair( contextID, processName ) ) ;
-
-                     PD_LOG( PDDEBUG, "Got writing context [%lld] with "
-                             "writing ID [%llu] on [%s] edu [%llu]",
-                             contextID, pContext->getOpID(), processName,
-                             pContext->eduID() ) ;
+                     rtnCtxProcessInfo info ;
+                     info._opID = pContext->getOpID() ;
+                     info._ctxID = pContext->contextID() ;
+                     info._eduID = pContext->eduID() ;
+                     info._processName.assign( processName ) ;
+                     contextProcessList.push_back( info ) ;
                   }
                   catch ( exception &e )
                   {

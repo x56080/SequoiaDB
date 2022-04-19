@@ -645,7 +645,22 @@ namespace engine
    typedef utilThreadLocalPtr< rtnContext > rtnContextPtr ;
 
    typedef ossPoolSet< INT64 > RTN_CTX_ID_SET ;
-   typedef ossPoolVector< std::pair< UINT64, ossPoolString > > RTN_CTX_PROCESS_LIST ;
+
+   typedef struct _rtnCtxProcessInfo
+   {
+      _rtnCtxProcessInfo()
+      {
+         _opID = 0 ;
+         _ctxID = -1 ;
+         _eduID = PMD_INVALID_EDUID ;
+      }
+
+      UINT64         _opID ;
+      INT64          _ctxID ;
+      EDUID          _eduID ;
+      ossPoolString  _processName ;
+   } rtnCtxProcessInfo ;
+   typedef ossPoolVector< rtnCtxProcessInfo > RTN_CTX_PROCESS_LIST ;
 
    /*
       _rtnContextBase OSS_INLINE functions

@@ -291,6 +291,19 @@ namespace engine
          _gotTransLock = TRUE ;
       }
 
+      // lock the SU again, call on check event of handler
+      rc = _pDmsCB->idToSUAndLock( _eventItem._csUniqueID, suID, &su ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to lock storage unit [%s], rc: %d",
+                   pCollectionSpaceName, rc ) ;
+
+      if ( _eventItem.isValid() && su->getEventHolder() )
+      {
+         rc = su->getEventHolder()->onCheckDropCS(
+                     DMS_EVENT_MASK_ALL, _eventItem, &_options, cb, _pDpsCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to call check drop collection "
+                      "space events, rc: %d", rc ) ;
+      }
+
    done:
       if ( suID != DMS_INVALID_CS )
       {
@@ -316,6 +329,31 @@ namespace engine
    void _rtnContextDelCS::_clean( _pmdEDUCB *cb )
    {
       INT32 rcTmp = SDB_OK ;
+
+      // if the SU still exists, lock the SU again, call on clean event of
+      // handler ( if the SU still exists, it is probably recycled
+      if ( _eventItem.isValid() )
+      {
+         dmsStorageUnit *su = NULL ;
+         dmsStorageUnitID suID = DMS_INVALID_CS ;
+
+         if ( SDB_OK == _pDmsCB->idToSUAndLock( _eventItem._csUniqueID,
+                                                suID, &su ) )
+         {
+            if ( NULL != su->getEventHolder() )
+            {
+               rcTmp = su->getEventHolder()->onCleanDropCS(
+                     DMS_EVENT_MASK_ALL, _eventItem, &_options, cb, _pDpsCB ) ;
+               if ( SDB_OK != rcTmp )
+               {
+                  PD_LOG( PDWARNING, "Failed to call clean drop "
+                          "collection space events, rc: %d", rcTmp ) ;
+               }
+            }
+
+            _pDmsCB->suUnlock( suID ) ;
+         }
+      }
 
       rcTmp = _releaseLock( cb ) ;
       if ( rcTmp )

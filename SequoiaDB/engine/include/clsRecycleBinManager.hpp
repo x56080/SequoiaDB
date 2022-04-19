@@ -232,6 +232,7 @@ namespace engine
 
       INT32 _regBlockCL( const CHAR *originName,
                          const CHAR *recycleName,
+                         const dmsEventCLItem &clItem,
                          UINT64 &opID,
                          pmdEDUCB *cb ) ;
       void _unregBlockCL( const CHAR *originName,
@@ -240,6 +241,7 @@ namespace engine
 
       INT32 _regBlockCS( const CHAR *originName,
                          const CHAR *recycleName,
+                         const dmsEventSUItem &suItem,
                          UINT64 &opID,
                          pmdEDUCB *cb ) ;
       void _unregBlockCS( const CHAR *originName,

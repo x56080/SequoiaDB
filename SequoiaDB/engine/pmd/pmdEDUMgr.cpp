@@ -1070,11 +1070,11 @@ namespace engine
 
                try
                {
-                  writingEDUList.push_back( make_pair( opID, processName ) ) ;
-
-                  PD_LOG ( PDDEBUG, "Session [%lld] TID [%u] name [%s] "
-                           "writing ID [%llu] is writing",
-                           cb->getID(), cb->getTID(), processName, opID ) ;
+                  pmdEDUProcessInfo info ;
+                  info._opID = opID ;
+                  info._eduID = cb->getID() ;
+                  info._processName.assign( processName ) ;
+                  writingEDUList.push_back( info ) ;
                }
                catch ( exception &e )
                {

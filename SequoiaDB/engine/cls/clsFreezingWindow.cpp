@@ -925,19 +925,11 @@ namespace engine
 
       if ( !OSS_BIT_TEST( _checkMask, CLS_FREEZING_CHECKER_MASK_CTX ) )
       {
-         RTN_CTX_ID_SET blockList ;
-
          _selfEDUID = cb->getID() ;
 
-         rc = _getCtxBlockList( cb, blockList ) ;
+         rc = _getCtxBlockList( cb, NULL ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get context block list, "
                       "rc: %d", rc ) ;
-
-         if ( blockList.size() > 0 )
-         {
-            PD_LOG( PDDEBUG, "Freezing checker [%s]: got [%u] blocking "
-                    "contexts", _objName, blockList.size() ) ;
-         }
 
          OSS_BIT_SET( _checkMask, CLS_FREEZING_CHECKER_MASK_CTX ) ;
       }
@@ -963,21 +955,13 @@ namespace engine
 
       if ( !OSS_BIT_TEST( _checkMask, CLS_FREEZING_CHECKER_MASK_TRANS ) )
       {
-         DPS_TRANS_ID_SET blockList ;
-
          _transLockID = dpsTransLockId( logicalCSID, collectionID, NULL ) ;
          _transLockType = transLockType ;
          _canSelfIncomp = canSelfIncomp ;
 
-         rc = _getTransBlockList( cb, blockList ) ;
+         rc = _getTransBlockList( cb, NULL ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get transaction block list, "
                       "rc: %d", rc ) ;
-
-         if ( blockList.size() > 0 )
-         {
-            PD_LOG( PDDEBUG, "Freezing checker [%s]: got [%u] blocking "
-                    "transactions", _objName, blockList.size() ) ;
-         }
 
          OSS_BIT_SET( _checkMask, CLS_FREEZING_CHECKER_MASK_TRANS ) ;
       }
@@ -991,13 +975,13 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFREEZCHK_CHK, "_clsFreezingChecker::check" )
-   INT32 _clsFreezingChecker::check( pmdEDUCB *cb, BOOLEAN &passed )
+   INT32 _clsFreezingChecker::check( pmdEDUCB *cb, clsFreezingCheckResult &result )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__CLSFREEZCHK_CHK ) ;
 
-      passed = FALSE ;
+      result._isPassed = FALSE ;
 
       // Step 1. check writing EDU with blocking ID, if no smaller
       //         operation ID than blocking ID on the same collection,
@@ -1007,11 +991,10 @@ namespace engine
       {
          if ( OSS_BIT_TEST( _checkMask, CLS_FREEZING_CHECKER_MASK_EDU ) )
          {
-            BOOLEAN eduPassed = FALSE ;
-            rc = _checkEDUs( cb, eduPassed ) ;
+            rc = _checkEDUs( cb, result ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to check EDUs, "
                          "rc: %d", rc ) ;
-            if ( !eduPassed )
+            if ( !( result._isPassed ) )
             {
                goto done ;
             }
@@ -1026,11 +1009,10 @@ namespace engine
       {
          if ( OSS_BIT_TEST( _checkMask, CLS_FREEZING_CHECKER_MASK_CTX ) )
          {
-            BOOLEAN ctxPassed = FALSE ;
-            rc = _checkContexts( cb, ctxPassed ) ;
+            rc = _checkContexts( cb, result ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to check contexts, "
                          "rc: %d", rc ) ;
-            if ( !ctxPassed )
+            if ( !( result._isPassed ) )
             {
                goto done ;
             }
@@ -1047,11 +1029,10 @@ namespace engine
       {
          if ( OSS_BIT_TEST( _checkMask, CLS_FREEZING_CHECKER_MASK_TRANS ) )
          {
-            BOOLEAN transPassed = FALSE ;
-            rc = _checkTransactions( cb, transPassed ) ;
+            rc = _checkTransactions( cb, result ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to check transactions, "
                          "rc: %d", rc ) ;
-            if ( !transPassed )
+            if ( !( result._isPassed ) )
             {
                goto done ;
             }
@@ -1059,7 +1040,7 @@ namespace engine
          _step = CLS_FREEZING_CHECKER_DONE ;
       }
 
-      passed = TRUE ;
+      result._isPassed = TRUE ;
 
    done:
       PD_TRACE_EXITRC( SDB__CLSFREEZCHK_CHK, rc ) ;
@@ -1070,23 +1051,33 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFREEZCHK_LOOPCHK, "_clsFreezingChecker::loopCheck" )
-   INT32 _clsFreezingChecker::loopCheck( pmdEDUCB *cb, UINT32 maxTimes )
+   INT32 _clsFreezingChecker::loopCheck( pmdEDUCB *cb,
+                                         UINT32 maxTimes,
+                                         IContext *context )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__CLSFREEZCHK_LOOPCHK ) ;
 
       UINT32 retryCount = 0 ;
+
+      if ( NULL != context )
+      {
+         rc = context->pause() ;
+         PD_RC_CHECK( rc, PDERROR, "Freezing checker [%s]: failed to pause "
+                      "context, rc: %d", _objName, rc ) ;
+      }
+
       while ( TRUE )
       {
-         BOOLEAN isPassed = FALSE ;
+         clsFreezingCheckResult result ;
 
          ++ retryCount ;
 
-         rc = check( cb, isPassed ) ;
+         rc = check( cb, result ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check freezing window, "
                       "rc: %d", rc ) ;
-         if ( !isPassed )
+         if ( !( result._isPassed ) )
          {
             if ( cb->isInterrupted() )
             {
@@ -1099,27 +1090,51 @@ namespace engine
                ossSleep( OSS_ONE_SEC ) ;
                continue ;
             }
-            else if ( CLS_FREEZING_CHECKER_TRANS == getStep() )
+            if ( CLS_FREEZING_CHECKER_EDU == result._step )
+            {
+               rc = SDB_LOCK_FAILED ;
+               PD_LOG_MSG( PDERROR, "Failed to wait for other write EDUs "
+                           "to finish, [%s] blocked by EDU [%u] "
+                           "block ID [%llu]", _objName, result._blockEDUID,
+                           result._blockID ) ;
+            }
+            else if ( CLS_FREEZING_CHECKER_CTX == result._step )
+            {
+               rc = SDB_LOCK_FAILED ;
+               PD_LOG_MSG( PDERROR, "Failed to wait for other write contexts "
+                           "to finish, [%s] blocked by context [%lld] "
+                           "block ID [%llu], total %u blocking context",
+                           _objName, result._blockCtxID, result._blockID,
+                           result._blockCtxNum ) ;
+            }
+            else if ( CLS_FREEZING_CHECKER_TRANS == result._step )
             {
                // timeout to wait for transaction
                rc = SDB_DPS_TRANS_LOCK_INCOMPATIBLE ;
                PD_LOG_MSG( PDERROR, "Failed to wait for other write "
-                           "transactions to finish" ) ;
+                           "transactions to finish, [%s] blocked by "
+                           "transaction [%s], total %u blocking transactions",
+                           _objName,
+                           dpsTransIDToString( result._blockTransID ).c_str(),
+                           result._blockTransNum ) ;
             }
             else
             {
-               // timeout to wait for writing operations
+               SDB_ASSERT( FALSE, "check step is invalid" ) ;
                rc = SDB_LOCK_FAILED ;
-               PD_LOG_MSG( PDERROR, "Failed to wait for other write "
-                           "[%s] to finish",
-                           ( CLS_FREEZING_CHECKER_CTX == getStep() ?
-                                                         "context" : "EDU" ) ) ;
             }
             goto error ;
          }
 
          // passed check
          break ;
+      }
+
+      if ( NULL != context )
+      {
+         rc = context->resume() ;
+         PD_RC_CHECK( rc, PDERROR, "Freezing checker [%s]: failed to resume "
+                      "context, rc: %d", _objName, rc ) ;
       }
 
    done:
@@ -1131,7 +1146,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFREEZCHK__CHKEDU, "_clsFreezingChecker::_checkEDUs" )
-   INT32 _clsFreezingChecker::_checkEDUs( pmdEDUCB *cb, BOOLEAN &passed )
+   INT32 _clsFreezingChecker::_checkEDUs( pmdEDUCB *cb,
+                                          clsFreezingCheckResult &result )
    {
       INT32 rc = SDB_OK ;
 
@@ -1141,7 +1157,7 @@ namespace engine
       PMD_EDU_PROCESS_LIST writingEDUList ;
       BOOLEAN hasWriting = FALSE ;
 
-      passed = FALSE ;
+      result._isPassed = FALSE ;
 
       rc = pEDUMgr->getWritingEDUs( -1, _blockID, _excludeBlockType,
                                     writingEDUList ) ;
@@ -1151,8 +1167,8 @@ namespace engine
             iter != writingEDUList.end() ;
             ++ iter )
       {
-         UINT64 opID = iter->first ;
-         const CHAR *processName = iter->second.c_str() ;
+         UINT64 opID = iter->_opID ;
+         const CHAR *processName = iter->_processName.c_str() ;
          BOOLEAN isRelated = FALSE ;
 
          // check if EDU is related
@@ -1160,23 +1176,21 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to check related process "
                       "object [%s], rc: %d", processName, rc ) ;
 
-         if ( !isRelated )
+         if ( isRelated )
          {
-            PD_LOG( PDDEBUG, "Freezing checker [%s]: got not related EDU "
-                    "on operator [%llu] for [%s]", _objName, opID,
-                    processName ) ;
-         }
-         else
-         {
-            PD_LOG( PDDEBUG, "Freezing checker [%s]: got related EDU "
-                    "on operator [%llu] for [%s]", _objName, opID,
-                    processName ) ;
+            result._blockID = opID ;
+            result._blockEDUID = iter->_eduID ;
+            result._step = CLS_FREEZING_CHECKER_EDU ;
+            result._isPassed = FALSE ;
             hasWriting = TRUE ;
             break ;
          }
       }
 
-      passed = !hasWriting ;
+      if ( !hasWriting )
+      {
+         result._isPassed = TRUE ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__CLSFREEZCHK__CHKEDU, rc ) ;
@@ -1187,7 +1201,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFREEZCHK__CHKCTX, "_clsFreezingChecker::_checkContexts" )
-   INT32 _clsFreezingChecker::_checkContexts( pmdEDUCB *cb, BOOLEAN &passed )
+   INT32 _clsFreezingChecker::_checkContexts( pmdEDUCB *cb,
+                                              clsFreezingCheckResult &result )
    {
       INT32 rc = SDB_OK ;
 
@@ -1195,21 +1210,20 @@ namespace engine
 
       RTN_CTX_ID_SET blockList ;
 
-      passed = FALSE ;
+      result._isPassed = FALSE ;
 
-      rc = _getCtxBlockList( cb, blockList ) ;
+      rc = _getCtxBlockList( cb, &result ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get context block list, rc: %d",
                    rc ) ;
 
-      if ( blockList.size() > 0 )
+      if ( result._blockCtxNum > 0 )
       {
-         PD_LOG( PDDEBUG, "Freezing checker [%s]: got [%u] blocking "
-                 "contexts", _objName, blockList.size() ) ;
-         passed = FALSE ;
+         result._isPassed = FALSE ;
+         result._step = CLS_FREEZING_CHECKER_CTX ;
       }
       else
       {
-         passed = TRUE ;
+         result._isPassed = TRUE ;
       }
 
    done:
@@ -1221,29 +1235,27 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFREEZCHK__CHKTRANS, "_clsFreezingChecker::_checkTransactions" )
-   INT32 _clsFreezingChecker::_checkTransactions( pmdEDUCB *cb, BOOLEAN &passed )
+   INT32 _clsFreezingChecker::_checkTransactions( pmdEDUCB *cb,
+                                                  clsFreezingCheckResult &result )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__CLSFREEZCHK__CHKTRANS ) ;
 
-      DPS_TRANS_ID_SET blockList ;
+      result._isPassed = FALSE ;
 
-      passed = FALSE ;
-
-      rc = _getTransBlockList( cb, blockList ) ;
+      rc = _getTransBlockList( cb, &result ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get transaction block list, rc: %d",
                    rc ) ;
 
-      if ( blockList.size() > 0 )
+      if ( result._blockTransNum > 0 )
       {
-         PD_LOG( PDDEBUG, "Freezing checker [%s]: got [%u] blocking "
-                 "transactions", _objName, blockList.size() ) ;
-         passed = FALSE ;
+         result._isPassed = FALSE ;
+         result._step = CLS_FREEZING_CHECKER_TRANS ;
       }
       else
       {
-         passed = TRUE ;
+         result._isPassed = TRUE ;
       }
 
    done:
@@ -1256,12 +1268,13 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFREEZCHK__GETCTXBLOCKLIST, "_clsFreezingChecker::_getCtxBlockList" )
    INT32 _clsFreezingChecker::_getCtxBlockList( pmdEDUCB *cb,
-                                                RTN_CTX_ID_SET &blockList )
+                                                clsFreezingCheckResult *result )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__CLSFREEZCHK__GETCTXBLOCKLIST ) ;
 
+      RTN_CTX_ID_SET blockList ;
       SDB_RTNCB *rtnCB = sdbGetRTNCB() ;
 
       // get writing context before blocking ID
@@ -1278,8 +1291,8 @@ namespace engine
       {
          BOOLEAN isRelated = FALSE ;
 
-         INT64 contextID = iter->first ;
-         const CHAR *processName = iter->second.c_str() ;
+         INT64 contextID = iter->_ctxID ;
+         const CHAR *processName = iter->_processName.c_str() ;
 
          rc = _isRelated( cb, processName, isRelated ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check related processing "
@@ -1288,6 +1301,17 @@ namespace engine
          // if related, we need to wait for them to finish
          if ( isRelated )
          {
+            if ( NULL != result )
+            {
+               if ( 0 == result->_blockCtxNum )
+               {
+                  result->_blockID = iter->_opID ;
+                  result->_blockCtxID = iter->_ctxID ;
+                  result->_blockEDUID = iter->_eduID ;
+               }
+               ++ ( result->_blockCtxNum ) ;
+            }
+
             try
             {
                blockList.insert( contextID ) ;
@@ -1300,17 +1324,10 @@ namespace engine
                goto error ;
             }
          }
-         else
-         {
-            PD_LOG( PDDEBUG, "Freezing checker [%s]: got not related context "
-                    "[%lld] for [%s]", _objName, contextID, processName ) ;
-         }
       }
 
       if ( blockList.size() > 0 )
       {
-         PD_LOG( PDDEBUG, "Freezing checker [%s]: got [%u] blocking "
-                 "contexts", _objName, blockList.size() ) ;
          // add related contexts to white list, so they can finish
          rc = _updateCtxWhiteList( blockList ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to add context white list "
@@ -1327,12 +1344,13 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFREEZCHK__GETTRANSBLOCKLIST, "_clsFreezingChecker::_getTransBlockList" )
    INT32 _clsFreezingChecker::_getTransBlockList( pmdEDUCB *cb,
-                                                  DPS_TRANS_ID_SET &blockList )
+                                                  clsFreezingCheckResult *result )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__CLSFREEZCHK__GETTRANSBLOCKLIST ) ;
 
+      DPS_TRANS_ID_SET blockList ;
       dpsTransCB *transCB = sdbGetTransCB() ;
 
       // get incompatible transactions by lock again
@@ -1346,6 +1364,12 @@ namespace engine
 
       if ( blockList.size() > 0 )
       {
+         if ( NULL != result )
+         {
+            result->_blockTransNum = blockList.size() ;
+            result->_blockTransID = *( blockList.begin() ) ;
+         }
+
          // still have incompatible transactions, update the white list
          rc = _updateTransWhiteList( blockList ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to add transaction white list "

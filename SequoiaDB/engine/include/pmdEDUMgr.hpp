@@ -71,7 +71,20 @@ namespace engine
    #define PMD_STOP_TIMEOUT               ( 600000 )  /// 10 mins
    #define PMD_STOP_DEADCHECK_TIMEOUT     ( PMD_STOP_TIMEOUT + 60000 )
 
-   typedef ossPoolVector< std::pair< UINT64, ossPoolString > > PMD_EDU_PROCESS_LIST ;
+   typedef struct _pmdEDUProcessInfo
+   {
+      _pmdEDUProcessInfo()
+      {
+         _opID = 0 ;
+         _eduID = PMD_INVALID_EDUID ;
+      }
+
+      UINT64         _opID ;
+      EDUID          _eduID ;
+      ossPoolString  _processName ;
+   } pmdEDUProcessInfo ;
+
+   typedef ossPoolVector< pmdEDUProcessInfo > PMD_EDU_PROCESS_LIST ;
 
    /*
       _pmdEDUMgr define

@@ -48,6 +48,89 @@ namespace engine
    #define CLS_QUERY_RECYCLE_ITEM_STEP ( 1000 )
 
    /*
+      _clsBlockDropCSContext define
+    */
+   class _clsBlockDropCSContext : public IContext
+   {
+   public:
+      _clsBlockDropCSContext( const CHAR *csName,
+                              UINT32 suLogicalID,
+                              pmdEDUCB *cb ) ;
+      virtual ~_clsBlockDropCSContext() ;
+
+      virtual INT32 pause() ;
+      virtual INT32 resume() ;
+
+   protected:
+      const CHAR * _csName ;
+      UINT32       _suLogicalID ;
+      pmdEDUCB *   _cb ;
+   } ;
+
+   typedef class _clsBlockDropCSContext clsBlockDropCSContext ;
+
+   _clsBlockDropCSContext::_clsBlockDropCSContext( const CHAR *csName,
+                                                   UINT32 suLogicalID,
+                                                   pmdEDUCB *cb )
+
+   : _csName( csName ),
+     _suLogicalID( suLogicalID ),
+     _cb( cb )
+   {
+   }
+
+   _clsBlockDropCSContext::~_clsBlockDropCSContext()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSBLOCKDROPCSCTX_PAUSE, "_clsBlockDropCSContext::pause" )
+   INT32 _clsBlockDropCSContext::pause()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSBLOCKDROPCSCTX_PAUSE ) ;
+
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      dpsTransCB *transCB = pmdGetKRCB()->getTransCB() ;
+
+      // delete contexts of self
+      if ( NULL != _cb )
+      {
+         rtnDelContextForCollectionSpace( _csName, _suLogicalID, _cb ) ;
+      }
+
+      // notify others to delete contexts of the same collection space
+      rtnCB->preDelContext( _csName, _suLogicalID ) ;
+
+      // notify others to give up wait locks
+      if ( NULL != _cb && _cb->getTransExecutor()->useTransLock() )
+      {
+         transCB->transLockKillWaiters( _suLogicalID,
+                                        DMS_INVALID_MBID,
+                                        NULL,
+                                        SDB_DPS_TRANS_LOCK_INCOMPATIBLE ) ;
+      }
+
+      PD_TRACE_EXITRC( SDB__CLSBLOCKDROPCSCTX_PAUSE, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSBLOCKDROPCSCTX_RESUME, "_clsBlockDropCSContext::resume" )
+   INT32 _clsBlockDropCSContext::resume()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSBLOCKDROPCSCTX_RESUME ) ;
+
+      // do nothing
+
+      PD_TRACE_EXITRC( SDB__CLSBLOCKDROPCSCTX_RESUME, rc ) ;
+
+      return rc ;
+   }
+
+   /*
       _clsRecycleBinManager implement
     */
    _clsRecycleBinManager::_clsRecycleBinManager()
@@ -260,6 +343,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR__REGBLOCKCL, "_clsRecycleBinManager::_regBlockCL" )
    INT32 _clsRecycleBinManager::_regBlockCL( const CHAR *originName,
                                              const CHAR *recycleName,
+                                             const dmsEventCLItem &clItem,
                                              UINT64 &opID,
                                              pmdEDUCB *cb )
    {
@@ -267,55 +351,62 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__CLSRECYBINMGR__REGBLOCKCL ) ;
 
-      UINT64 origOpID = 0, recyOpID = 0 ;
+      UINT64 blockID = 0 ;
 
       if ( NULL != _freezingWindow )
       {
-         rc = _freezingWindow->registerCL( originName, origOpID ) ;
+         rc = _freezingWindow->registerCL( originName, blockID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to register origin name [%s], "
                       "rc: %d", originName, rc ) ;
 
-         recyOpID = origOpID ;
-         rc = _freezingWindow->registerCL( recycleName, recyOpID ) ;
+         PD_LOG( PDDEBUG, "Start to block collection [%s] block ID [%llu]",
+                 originName, blockID ) ;
+
+         rc = _freezingWindow->registerCL( recycleName, blockID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to register recycle name [%s], "
                       "rc: %d", recycleName, rc ) ;
 
+         PD_LOG( PDDEBUG, "Start to block collection [%s] block ID [%llu]",
+                 recycleName, blockID ) ;
+
          {
             const CHAR *mainCLName = cb->getCurMainCLName() ;
-            clsFreezingCLChecker checker( _freezingWindow, origOpID,
+            clsFreezingCLChecker checker( _freezingWindow, blockID,
                                           originName, mainCLName ) ;
             // already lock Z, so no need to wait transaction
             rc = checker.enableEDUCheck( cb, EDU_BLOCK_FREEZING_WND ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to enable EDU check, rc: %d",
-                         rc ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to enable EDU check for "
+                         "collection [%s], rc: %d", originName, rc ) ;
 
             rc = checker.enableCtxCheck( cb ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to enable context check, rc: %d",
-                         rc ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to enable context check for "
+                         "collection [%s], rc: %d", originName, rc ) ;
 
+            // pass the meta data block context to checker,
+            // pause the meta data block to allow blocking operations
+            // contexts to finish
             cb->setBlock( EDU_BLOCK_RENAMECHK,
-                          "Waiting for writing operations check in recycle" ) ;
-            rc = checker.loopCheck( cb ) ;
+                          "Waiting for writing operations check in "
+                          "recycle" ) ;
+            rc = checker.loopCheck( cb,
+                                    CLS_BLOCKWRITE_TIMES,
+                                    clItem._mbContext ) ;
             cb->unsetBlock() ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to check freezing window, "
-                         "rc: %d", rc ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to check freezing window for "
+                         "collection [%s], rc: %d", originName, rc ) ;
          }
       }
 
-      opID = origOpID ;
+      opID = blockID ;
 
    done:
       PD_TRACE_EXITRC( SDB__CLSRECYBINMGR__REGBLOCKCL, rc ) ;
       return rc ;
 
    error:
-      if ( 0 != origOpID )
+      if ( 0 != blockID )
       {
-         _freezingWindow->unregisterCL( originName, origOpID ) ;
-      }
-      if ( 0 != recyOpID )
-      {
-         _freezingWindow->unregisterCL( recycleName, recyOpID ) ;
+         _unregBlockCL( originName, recycleName, blockID ) ;
       }
       goto done ;
    }
@@ -330,7 +421,11 @@ namespace engine
       if ( NULL != _freezingWindow )
       {
          _freezingWindow->unregisterCL( originName, opID ) ;
+         PD_LOG( PDDEBUG, "End to block collection [%s] block ID [%llu]",
+                 originName, opID ) ;
          _freezingWindow->unregisterCL( recycleName, opID ) ;
+         PD_LOG( PDDEBUG, "End to block collection [%s] block ID [%llu]",
+                 recycleName, opID ) ;
       }
 
       PD_TRACE_EXIT( SDB__CLSRECYBINMGR__UNREGBLOCKCL ) ;
@@ -339,6 +434,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYBINMGR__REGBLOCKCS, "_clsRecycleBinManager::_regBlockCS" )
    INT32 _clsRecycleBinManager::_regBlockCS( const CHAR *originName,
                                              const CHAR *recycleName,
+                                             const dmsEventSUItem &suItem,
                                              UINT64 &opID,
                                              pmdEDUCB *cb )
    {
@@ -346,55 +442,61 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__CLSRECYBINMGR__REGBLOCKCS ) ;
 
-      UINT64 origOpID = 0, recyOpID = 0 ;
+      UINT64 blockID = 0 ;
 
       if ( NULL != _freezingWindow )
       {
          // already lock Z, so no need to wait
-         rc = _freezingWindow->registerCS( originName, origOpID ) ;
+         rc = _freezingWindow->registerCS( originName, blockID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to register origin name [%s], "
                       "rc: %d", originName, rc ) ;
 
-         recyOpID = origOpID ;
-         rc = _freezingWindow->registerCS( recycleName, recyOpID ) ;
+         PD_LOG( PDDEBUG, "Start to block collection space [%s] block ID [%llu]",
+                 originName, blockID ) ;
+
+         rc = _freezingWindow->registerCS( recycleName, blockID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to register recycle name [%s], "
                       "rc: %d", recycleName, rc ) ;
 
+         PD_LOG( PDDEBUG, "Start to block collection space [%s] block ID [%llu]",
+                 recycleName, blockID ) ;
+
          {
-            clsFreezingCSChecker checker( _freezingWindow, origOpID,
+            clsFreezingCSChecker checker( _freezingWindow, blockID,
                                           originName ) ;
+
+            clsBlockDropCSContext context( originName,
+                                           suItem._suLID,
+                                           cb ) ;
+
             // already lock Z, so no need to wait transaction
             rc = checker.enableEDUCheck( cb, EDU_BLOCK_FREEZING_WND ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to enable EDU check, rc: %d",
-                         rc ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to enable EDU check for "
+                         "collection space [%s], rc: %d", originName, rc ) ;
 
             rc = checker.enableCtxCheck( cb ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to enable context check, rc: %d",
-                         rc ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to enable context check for "
+                         "collection space [%s], rc: %d", originName, rc ) ;
 
             cb->setBlock( EDU_BLOCK_RENAMECHK,
                           "Waiting for writing operations check in recycle" ) ;
-            rc = checker.loopCheck( cb ) ;
+            rc = checker.loopCheck( cb, CLS_BLOCKWRITE_TIMES, &context ) ;
             cb->unsetBlock() ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to check freezing window, "
-                         "rc: %d", rc ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to check freezing window for "
+                         "collection space [%s], rc: %d", originName, rc ) ;
          }
       }
 
-      opID = origOpID ;
+      opID = blockID ;
 
    done:
       PD_TRACE_EXITRC( SDB__CLSRECYBINMGR__REGBLOCKCS, rc ) ;
       return rc ;
 
    error:
-      if ( 0 != origOpID )
+      if ( 0 != blockID )
       {
-         _freezingWindow->unregisterCS( originName, origOpID ) ;
-      }
-      if ( 0 != recyOpID )
-      {
-         _freezingWindow->unregisterCS( recycleName, recyOpID ) ;
+         _unregBlockCS( originName, recycleName, blockID ) ;
       }
       goto done ;
    }
@@ -409,7 +511,11 @@ namespace engine
       if ( NULL != _freezingWindow )
       {
          _freezingWindow->unregisterCS( originName, opID ) ;
+         PD_LOG( PDDEBUG, "End to block collection space [%s] block ID [%llu]",
+                 originName, opID ) ;
          _freezingWindow->unregisterCS( recycleName, opID ) ;
+         PD_LOG( PDDEBUG, "End to block collection space [%s] block ID [%llu]",
+                 recycleName, opID ) ;
       }
 
       PD_TRACE_EXIT( SDB__CLSRECYBINMGR__UNREGBLOCKCS ) ;
@@ -557,7 +663,7 @@ namespace engine
          ossSnprintf( recyFullName, DMS_COLLECTION_FULL_NAME_SZ, "%s.%s",
                       pEventHolder->getCSName(), item.getRecycleName() ) ;
 
-         rc = _regBlockCL( origFullName, recyFullName, opID, cb ) ;
+         rc = _regBlockCL( origFullName, recyFullName, clItem, opID, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to register block ID, rc: %d",
                       rc ) ;
 
@@ -770,7 +876,7 @@ namespace engine
          ossSnprintf( recyFullName, DMS_COLLECTION_FULL_NAME_SZ, "%s.%s",
                       pEventHolder->getCSName(), item.getRecycleName() ) ;
 
-         rc = _regBlockCL( origFullName, recyFullName, opID, cb ) ;
+         rc = _regBlockCL( origFullName, recyFullName, clItem, opID, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to register block ID, rc: %d",
                       rc ) ;
 
@@ -978,7 +1084,7 @@ namespace engine
          const CHAR *originName = item.getOriginName() ;
          const CHAR *recycleName = item.getRecycleName() ;
 
-         rc = _regBlockCS( originName, recycleName, opID, cb ) ;
+         rc = _regBlockCS( originName, recycleName, suItem, opID, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to register block ID, rc: %d",
                       rc ) ;
 
