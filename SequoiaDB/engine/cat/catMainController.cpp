@@ -1590,8 +1590,45 @@ namespace engine
       while( pos < pMsg->messageLength )
       {
          pTmpMsg = ( MsgHeader* )( ( CHAR*)pMsg + pos ) ;
+
+         // copy route ID
+         pTmpMsg->routeID.value = pMsg->routeID.value ;
+
          pos += pTmpMsg->messageLength ;
          reply.header.opCode = MAKE_REPLY_TYPE(pTmpMsg->opCode) ;
+
+         // for GTS message in packet message, post it to GTS manager
+         if ( ( MSG_GTS_BEGIN < pTmpMsg->opCode ) &&
+              ( pTmpMsg->opCode < MSG_GTS_END ) )
+         {
+            if ( pos >= pMsg->messageLength )
+            {
+               // post the message to GTS manager
+               rc = _pCatCB->getCatGTSMgr()->handleMsg( handle, pTmpMsg ) ;
+               if ( SDB_OK != rc )
+               {
+                  // failed to post the message, don't decrease the packet level,
+                  // let us send the error message back
+                  PD_LOG( PDERROR, "Failed to post GTS message, "
+                          "rc: %d", rc ) ;
+               }
+               else
+               {
+                  // processed by GTS manager, no need to send the reply
+                  _pCatCB->decPacketLevel() ;
+                  hasDec = TRUE ;
+               }
+            }
+            else
+            {
+               // if the GTS message is in the middle, return unknown message
+               // to peer, peer node will break the packet itself and retry
+               PD_LOG( PDWARNING, "Failed to handle packet message with GTS "
+                       "message in the middle" ) ;
+               rc = SDB_UNKNOWN_MESSAGE ;
+            }
+            break ;
+         }
 
          /// Is the last
          if ( pos >= pMsg->messageLength )
