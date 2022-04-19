@@ -17,7 +17,25 @@
    </taskdef>
    
    <target name="main_target">
+      <if>
+         <isset property="remoteuser"/>
+         <else>
+            <var name="remoteuser" value="sdbadmin" />
+         </else>
+      </if>
+      <if>
+         <isset property="remotepwd"/>
+         <else>
+            <var name="remotepwd" value="Admin@1024" />
+         </else>
+      </if>
 
+       <if>
+         <isset property="rootpwd"/>
+         <else>
+            <var name="rootpwd" value="jenkins" />
+         </else>
+      </if>
       <switch value="${TESTCASE_TYPE}">
          <case value="driver_java">             
             <property name="testcase_dir" value="${basedir}/../../testcase_new/driver/java"/>
@@ -115,7 +133,7 @@
                   <generatexml filename="${xmlfile}"/>
                </else>
             </if>
-            <execsynctest xmlfile="${xmlfile}" hostname="${hostname}" svcname="${svcname}" sdbdriver="${sdbdriver}" sdbdriverdir="${sdbdriverDir}" eshostname="${eshostname}" essvcname="${essvcname}" dshostname="${dshostname}" dssvcname="${dssvcname}"/>
+            <execsynctest xmlfile="${xmlfile}" hostname="${hostname}" svcname="${svcname}" sdbdriver="${sdbdriver}" sdbdriverdir="${sdbdriverDir}" eshostname="${eshostname}" essvcname="${essvcname}" dshostname="${dshostname}" dssvcname="${dssvcname}" remoteuser="${remoteuser}" remotepwd="${remotepwd}"/>
          </case>
          <case value="RELIABILITYTEST">
             <delete file="${casedir}/proxyxml.xml"/>
@@ -157,7 +175,7 @@
                   </for>
                </else>
             </if>
-            <execreliabilitytest xmlfile="${xmlfile}" serialnumber="${serial_number}" hostname="${hostname}" svcname="${svcname}" sdbdriver="${sdbdriver}" sdbdriverdir="${sdbdriverDir}" eshostname="${eshostname}" essvcname="${essvcname}" dshostname="${dshostname}" dssvcname="${dssvcname}"/>
+            <execreliabilitytest xmlfile="${xmlfile}" serialnumber="${serial_number}" hostname="${hostname}" svcname="${svcname}" sdbdriver="${sdbdriver}" sdbdriverdir="${sdbdriverDir}" eshostname="${eshostname}" essvcname="${essvcname}" dshostname="${dshostname}" dssvcname="${dssvcname}" remoteuser="${remoteuser}" remotepwd="${remotepwd}" rootpwd="${rootpwd}"/>
          </case>
          <default>
             <delete file="${casedir}/proxyxml.xml"/>
@@ -193,7 +211,7 @@
                   <execmongojavatest xmlfile="${xmlfile}" mongodriver="${mongoversion}"/>
                </then>
                <else>
-                  <execnormalandlargedatatest xmlfile="${xmlfile}" hostname="${hostname}" svcname="${svcname}" sdbdriver="${sdbdriver}" sdbdriverdir="${sdbdriverDir}" s3client="${s3client}" s3clientdir="${s3clientDir}" eshostname="${eshostname}" essvcname="${essvcname}" dshostname="${dshostname}" dssvcname="${dssvcname}"/>
+                  <execnormalandlargedatatest xmlfile="${xmlfile}" hostname="${hostname}" svcname="${svcname}" sdbdriver="${sdbdriver}" sdbdriverdir="${sdbdriverDir}" s3client="${s3client}" s3clientdir="${s3clientDir}" eshostname="${eshostname}" essvcname="${essvcname}" dshostname="${dshostname}" dssvcname="${dssvcname}" remoteuser="${remoteuser}" remotepwd="${remotepwd}"/>
                </else>
             </if>
          </default>
@@ -217,6 +235,9 @@
       <attribute name="essvcname"/>
       <attribute name="dshostname"/>
       <attribute name="dssvcname"/>
+      <attribute name="remoteuser"/>
+      <attribute name="remotepwd"/>
+      <attribute name="rootpwd"/>
       <sequential>
          <!--serialnumber=2: only install and deploy once release db,the testng will exec twice, the first report will not be collected to WORKSPACE, so report_detect_dir is not the same-->
          <var name="report_detect_dir" value="${WORKSPACE}/report/reliability"/>
@@ -260,7 +281,7 @@
                      <equals arg1="${error_num}" arg2="0"/>
                   </and>
                   <then>
-                     <var name="cmd" value="surefire-report:report -DxmlFileName=@{xmlname} -Dsdbdriver=@{sdbdriver} -DthreadexecutorDir=${CI_WORK_DIR}/testcase/tools -DsdbdriverDir=@{sdbdriverdir}  -DreportDir=${tmp_report_dir} -DS3HOSTNAME=@{hostname} -DHOSTNAME=@{hostname} -DSVCNAME=@{svcname} -DSCRIPTDIR=${CI_WORK_DIR}/testcase/reliability/java/script -DESHOSTNAME=@{eshostname} -DESSVCNAME=@{essvcname} -DFULLTEXTPREFIX=${IDXPREFIX} -DDSHOSTNAME=@{dshostname} -DDSSVCNAME=@{dssvcname}"/>
+                     <var name="cmd" value="surefire-report:report -DxmlFileName=@{xmlname} -Dsdbdriver=@{sdbdriver} -DthreadexecutorDir=${CI_WORK_DIR}/testcase/tools -DsdbdriverDir=@{sdbdriverdir}  -DreportDir=${tmp_report_dir} -DS3HOSTNAME=@{hostname} -DHOSTNAME=@{hostname} -DSVCNAME=@{svcname} -DSCRIPTDIR=${CI_WORK_DIR}/testcase/reliability/java/script -DESHOSTNAME=@{eshostname} -DESSVCNAME=@{essvcname} -DFULLTEXTPREFIX=${IDXPREFIX} -DDSHOSTNAME=@{dshostname} -DDSSVCNAME=@{dssvcname} -DREMOTEUSER=@{remoteuser} -DREMOTEPASSWD=@{remotepwd} -DROOTPASSWD=@{rootpwd}"/>
                      <echo message="cmd : ${cmd} in dir ${casedir}"/>
                      <exec executable="mvn" dir="${casedir}" failonerror="true" logError="true">
                         <arg line="${cmd}" />
@@ -284,9 +305,11 @@
       <attribute name="s3clientdir"/>
       <attribute name="dshostname"/>
       <attribute name="dssvcname"/>
+      <attribute name="remoteuser"/>
+      <attribute name="remotepwd"/>
       <sequential>
          <hostinfo prefix="host" />
-         <var name="cmd" value="surefire-report:report -DxmlFileName=@{xmlfile} -Dsdbdriver=@{sdbdriver} -DthreadexecutorDir=${CI_WORK_DIR}/testcase/tools -DsdbdriverDir=@{sdbdriverdir}  -DreportDir=${tmp_report_dir} -DHOSTNAME=@{hostname} -DSVCNAME=@{svcname} -DS3HOSTNAME=${host.ADDR4} -DS3SVCNAME=${s3svcname} -Ds3client=@{s3client} -Ds3clientDir=@{s3clientdir} -DESHOSTNAME=@{eshostname} -DESSVCNAME=@{essvcname} -DFULLTEXTPREFIX=${IDXPREFIX} -DDSHOSTNAME=@{dshostname} -DDSSVCNAME=@{dssvcname}"/>
+         <var name="cmd" value="surefire-report:report -DxmlFileName=@{xmlfile} -Dsdbdriver=@{sdbdriver} -DthreadexecutorDir=${CI_WORK_DIR}/testcase/tools -DsdbdriverDir=@{sdbdriverdir}  -DreportDir=${tmp_report_dir} -DHOSTNAME=@{hostname} -DSVCNAME=@{svcname} -DS3HOSTNAME=${host.ADDR4} -DS3SVCNAME=${s3svcname} -Ds3client=@{s3client} -Ds3clientDir=@{s3clientdir} -DESHOSTNAME=@{eshostname} -DESSVCNAME=@{essvcname} -DFULLTEXTPREFIX=${IDXPREFIX} -DDSHOSTNAME=@{dshostname} -DDSSVCNAME=@{dssvcname} -DREMOTEUSER=@{remoteuser} -DREMOTEPASSWD=@{remotepwd}"/>
          <echo message="cmd : mvn ${cmd} in dir ${casedir}"/>
          <exec executable="mvn" dir="${casedir}" failonerror="true" logError="true">
             <arg line="${cmd}" />
@@ -319,8 +342,10 @@
       <attribute name="essvcname"/>
       <attribute name="dshostname"/>
       <attribute name="dssvcname"/>
+      <attribute name="remoteuser"/>
+      <attribute name="remotepwd"/>
       <sequential>
-         <var name="cmd" value="surefire-report:report -DxmlFileName=@{xmlfile} -Dsdbdriver=@{sdbdriver} -DthreadexecutorDir=${CI_WORK_DIR}/testcase/tools -DsdbdriverDir=@{sdbdriverdir}  -DreportDir=${tmp_report_dir} -DHOSTNAME=@{hostname} -DSVCNAME=@{svcname} -DESHOSTNAME=@{eshostname} -DESSVCNAME=@{essvcname}  -DFULLTEXTPREFIX=${IDXPREFIX}  -DDSHOSTNAME=@{dshostname} -DDSSVCNAME=@{dssvcname}"/>
+         <var name="cmd" value="surefire-report:report -DxmlFileName=@{xmlfile} -Dsdbdriver=@{sdbdriver} -DthreadexecutorDir=${CI_WORK_DIR}/testcase/tools -DsdbdriverDir=@{sdbdriverdir}  -DreportDir=${tmp_report_dir} -DHOSTNAME=@{hostname} -DSVCNAME=@{svcname} -DESHOSTNAME=@{eshostname} -DESSVCNAME=@{essvcname}  -DFULLTEXTPREFIX=${IDXPREFIX}  -DDSHOSTNAME=@{dshostname} -DDSSVCNAME=@{dssvcname} -DREMOTEUSER=@{remoteuser} -DREMOTEPASSWD=@{remotepwd}"/>
          <echo message="cmd : ${cmd} in dir ${casedir}"/>
          <exec executable="mvn" dir="${casedir}" failonerror="true" logError="true" >
             <arg line="${cmd}" />
