@@ -3771,26 +3771,26 @@ namespace engine
       PD_TRACE_EXITRC( SDB__DMSSU__CREATESTORAGEOBJS, rc ) ;
       return rc ;
    error:
-      if ( _pDataSu )
+      if ( _pLobSu )
       {
-         SDB_OSS_DEL _pDataSu ;
-         _pDataSu = NULL ;
-      }
-      if ( _pIndexSu )
-      {
-         SDB_OSS_DEL _pIndexSu ;
-         _pIndexSu = NULL ;
+         SDB_OSS_DEL _pLobSu ;
+         _pLobSu = NULL ;
       }
       if ( _pCacheUnit )
       {
          SDB_OSS_DEL _pCacheUnit ;
          _pCacheUnit = NULL ;
       }
-      if ( _pLobSu )
+      if ( _pIndexSu )
       {
-         SDB_OSS_DEL _pLobSu ;
-         _pLobSu = NULL ;
+         SDB_OSS_DEL _pIndexSu ;
+         _pIndexSu = NULL ;
       }
+      if ( _pDataSu )
+      {
+         SDB_OSS_DEL _pDataSu ;
+         _pDataSu = NULL ;
+      }	  
       goto done ;
    }
 
