@@ -1,3 +1,10 @@
+/******************************************************************************
+ * @Description   : 
+ * @Author        : XiaoNi Huang
+ * @CreateTime    : 2022.03.29
+ * @LastEditTime  : 2022.04.19
+ * @LastEditors   : XiaoNi Huang
+ ******************************************************************************/
 /************************************
 *@Description: 异常启动DB备节点不影响全文索引功能
 *@author:      liuxiaoxuan
@@ -25,7 +32,7 @@ function test ()
    var clName = COMMCLNAME + "_ES_14408";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName, ReplSize: 0 } );
 
    // 创建全文索引，插入数据
    var textIndexName = "textIndex_14408";
