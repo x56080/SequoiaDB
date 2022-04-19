@@ -44,7 +44,7 @@ namespace CSharp.Crud.Lob
             lob.Close();
             long createTime = lob.GetCreateTime();
             long initModTime = lob.GetModificationTime();
-            Assert.IsTrue(createTime < initModTime);
+            Assert.IsTrue((createTime < initModTime) || (createTime == initModTime));
 
             // modify lob
             ObjectId id = lob.GetID();
