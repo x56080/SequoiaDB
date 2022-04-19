@@ -25,13 +25,13 @@ public class SdbTestBase {
     protected static String password;
 
     @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN",
-            "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "USERNAME", "PASSWORD",
+            "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "REMOTEUSER", "REMOTEPASSWD",
             "DSHOSTNAME", "DSSVCNAME" })
     @BeforeSuite
     public static void initSuite( String HOSTNAME, String SVCNAME,
             String COMMCSNAME, int RSRVPORTBEGIN, int RSRVPORTEND,
-            String RSRVNODEDIR, String WORKDIR, String USERNAME,
-            String PASSWORD, @Optional("localhost") String DSHOSTNAME,
+            String RSRVNODEDIR, String WORKDIR, String REMOTEUSER,
+            String REMOTEPASSWD, @Optional("localhost") String DSHOSTNAME,
             @Optional("11810") String DSSVCNAME ) {
         hostName = HOSTNAME;
         serviceName = SVCNAME;
@@ -40,8 +40,8 @@ public class SdbTestBase {
         reservedPortEnd = RSRVPORTEND;
         reservedDir = RSRVNODEDIR;
         workDir = WORKDIR;
-        username = USERNAME;
-        password = PASSWORD;
+        username = REMOTEUSER;
+        password = REMOTEPASSWD;
         coordUrl = HOSTNAME + ":" + SVCNAME;
         dsHostName = DSHOSTNAME;
         dsServiceName = DSSVCNAME;

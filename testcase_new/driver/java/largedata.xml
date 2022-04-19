@@ -19,9 +19,9 @@
     <!--用例存放临时文件的目录-->
     <parameter name="WORKDIR"       value="/tmp/javatest" />
     <!--用例远程机器用户名-->
-    <parameter name="USERNAME"     value="sdbadmin" />
+    <parameter name="REMOTEUSER"     value="${REMOTEUSER}" />
     <!--用例远程机器用户密码-->
-    <parameter name="PASSWORD"     value="Admin@1024" />
+    <parameter name="REMOTEPASSWD"   value="${REMOTEPASSWD}" />
     
     <listeners>
         <listener class-name="com.sequoiadb.testcommon.TimePrinterListener" />
