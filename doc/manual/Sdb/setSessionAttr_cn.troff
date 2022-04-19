@@ -138,7 +138,7 @@ TransTimeout（ \f[I]number\f[]
 .RE
 .IP \[bu] 2
 TransLockWait（ \f[I]boolean\f[] ）：会话事务在 RC
-隔离级别下是否需要等锁，默认值为 true，表示等待记录锁。
+隔离级别下是否需要等锁，默认值为 false，表示无需等待记录锁。
 .RS 2
 .PP
 格式：\f[C]TransLockWait: true\f[]
