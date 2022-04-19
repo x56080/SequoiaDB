@@ -368,8 +368,7 @@ namespace engine
                             const std::string &nodeName,
                             OSS_LATCH_MODE mode ) ;
 
-      BOOLEAN tryLockRecycleItem( const std::string &originName,
-                                  UTIL_RECYCLE_TYPE recyleType,
+      BOOLEAN tryLockRecycleItem( const utilRecycleItem &recycleItem,
                                   OSS_LATCH_MODE mode ) ;
 
       void unlockObjects () ;

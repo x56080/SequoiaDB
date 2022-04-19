@@ -179,9 +179,9 @@ namespace engine
                            utilGlobalID originID,
                            const utilRecycleBinConf &conf,
                            pmdEDUCB *cb ) ;
-      INT32 _tryLockItems( const utilRecycleItem &item,
-                           const UTIL_RECY_ITEM_LIST &droppingItems,
-                           catCtxLockMgr &lockMgr ) ;
+      INT32 _tryLockItems( const UTIL_RECY_ITEM_LIST &droppingItems,
+                           catCtxLockMgr &lockMgr,
+                           pmdEDUCB *cb ) ;
       INT32 _saveItem( utilRecycleItem &item,
                        pmdEDUCB *cb,
                        INT16 w ) ;

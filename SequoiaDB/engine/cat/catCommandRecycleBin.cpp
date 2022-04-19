@@ -543,11 +543,33 @@ namespace engine
          goto error ;
       }
 
-      PD_CHECK( localLockMgr.tryLockRecycleItem( _recycleItem.getOriginName(),
-                                                 _recycleItem.getType(),
-                                                 EXCLUSIVE ),
+      if ( _recycleItem.isCSRecycled() )
+      {
+         // try lock collection space item as well
+         utilCSUniqueID origCSUniqueID =
+               utilGetCSUniqueID( (utilCLUniqueID)( _recycleItem.getOriginID() ) ) ;
+         utilRecycleItem tmpItem ;
+         INT32 tmpRC = _recycleBinMgr->getItem( origCSUniqueID, cb, tmpItem ) ;
+         if ( SDB_OK == tmpRC )
+         {
+            PD_CHECK( localLockMgr.tryLockRecycleItem( tmpItem, SHARED ),
+                      SDB_LOCK_FAILED, error, PDERROR,
+                      "Failed to lock recycle item [origin: %s, recycle: %s]",
+                      tmpItem.getOriginName(), tmpItem.getRecycleName() ) ;
+         }
+         else
+         {
+            // we can ignore error
+            PD_LOG( PDWARNING, "Failed to get recycle item by "
+                    "collection space unique ID [%u], rc: %d",
+                    origCSUniqueID, tmpRC ) ;
+         }
+      }
+
+      PD_CHECK( localLockMgr.tryLockRecycleItem( _recycleItem, EXCLUSIVE ),
                 SDB_LOCK_FAILED, error, PDERROR,
-                "Failed to lock recycle item [%s]", _recycleItemName ) ;
+                "Failed to lock recycle item [origin: %s, recycle: %s]",
+                _recycleItem.getOriginName(), _recycleItem.getRecycleName() ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__CATCMDDROPRECYCLEBINITEM__CHECK, rc ) ;

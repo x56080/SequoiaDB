@@ -1096,7 +1096,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_CATRTRNCSCHK__LOCKCS ) ;
 
-      const CHAR *originName = nameInfo.getOriginName() ;
       const CHAR *returnName = nameInfo.getReturnName() ;
 
       if ( !isConflict )
@@ -1107,25 +1106,6 @@ namespace engine
                    SDB_LOCK_FAILED, error, PDERROR,
                    "Failed to lock origin collection space [%s]",
                    returnName ) ;
-      }
-
-      // lock return name in recycle bin
-      PD_CHECK( _lockMgr.tryLockRecycleItem( returnName,
-                                             UTIL_RECYCLE_CS,
-                                             EXCLUSIVE ),
-                SDB_LOCK_FAILED, error, PDERROR,
-                "Failed to lock recycle collection space [%s]", returnName ) ;
-
-      // lock origin name if needed
-      if ( nameInfo.isRenamed() &&
-           0 != ossStrcmp( originName, returnName ) )
-      {
-         PD_CHECK( _lockMgr.tryLockRecycleItem( originName,
-                                                UTIL_RECYCLE_CS,
-                                                EXCLUSIVE ),
-                   SDB_LOCK_FAILED, error, PDERROR,
-                   "Failed to lock recycle collection space [%s]",
-                   originName ) ;
       }
 
    done:
@@ -1800,7 +1780,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_CATRTRNCLCHK__LOCKCL ) ;
 
-      const CHAR *originName = nameInfo.getOriginName() ;
       const CHAR *returnName = nameInfo.getReturnName() ;
 
       if ( !isConflict )
@@ -1809,24 +1788,6 @@ namespace engine
          PD_CHECK( _lockMgr.tryLockCollection( returnName, EXCLUSIVE ),
                    SDB_LOCK_FAILED, error, PDERROR,
                    "Failed to lock collection [%s]", returnName ) ;
-      }
-
-      // lock return name in recycle bin
-      PD_CHECK( _lockMgr.tryLockRecycleItem( returnName,
-                                             UTIL_RECYCLE_CL,
-                                             EXCLUSIVE ),
-                SDB_LOCK_FAILED, error, PDERROR,
-                "Failed to lock recycle collection [%s]", returnName ) ;
-
-      // lock origin name if needed
-      if ( nameInfo.isRenamed() &&
-           0 != ossStrcmp( originName, returnName ) )
-      {
-         PD_CHECK( _lockMgr.tryLockRecycleItem( originName,
-                                                UTIL_RECYCLE_CL,
-                                                EXCLUSIVE ),
-                   SDB_LOCK_FAILED, error, PDERROR,
-                   "Failed to lock recycle collection [%s]", originName ) ;
       }
 
    done:

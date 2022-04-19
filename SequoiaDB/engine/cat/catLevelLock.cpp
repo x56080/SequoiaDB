@@ -675,30 +675,12 @@ namespace engine
       return _tryLockObject ( CAT_LOCK_NODE, groupName, nodeName, mode ) ;
    }
 
-   BOOLEAN _catCtxLockMgr::tryLockRecycleItem( const std::string &originName,
-                                               UTIL_RECYCLE_TYPE recycleType,
+   BOOLEAN _catCtxLockMgr::tryLockRecycleItem( const utilRecycleItem &recycleItem,
                                                OSS_LATCH_MODE mode )
    {
-      if ( UTIL_RECYCLE_CL == recycleType )
-      {
-         CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
-
-         // Resolve collection space from collection full name
-         if ( SDB_OK != rtnResolveCollectionSpaceName(
-                                    originName.c_str(), originName.size(),
-                                    csName, DMS_COLLECTION_SPACE_NAME_SZ ) )
-         {
-            return FALSE ;
-         }
-
-         return _tryLockObject( CAT_LOCK_RECYCLEBIN, csName, originName, mode ) ;
-      }
-      else if ( UTIL_RECYCLE_CS == recycleType )
-      {
-         return _tryLockObject( CAT_LOCK_RECYCLEBIN, originName, mode ) ;
-      }
-      // unknown type
-      return FALSE ;
+      return _tryLockObject( CAT_LOCK_RECYCLEBIN,
+                             recycleItem.getRecycleName(),
+                             mode ) ;
    }
 
    BOOLEAN _catCtxLockMgr::_tryLockObject ( CAT_LOCK_TYPE type,
