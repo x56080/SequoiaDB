@@ -188,8 +188,8 @@ Format: \f[C]TransTimeout: 10\f[]
 .RE
 .IP \[bu] 2
 TransLockWait ( \f[I]boolean\f[] ): Whether the session transaction need to wait
-for locks under and the RC isolation level, the default value is true, wait for
-record lock.
+for locks under and the RC isolation level, the default value is false, no need
+to wait for record lock.
 .RS 2
 .PP
 Format: \f[C]TransLockWait: true\f[]

@@ -100,7 +100,7 @@ The attributes of the session can be set through the parameter "options":
 
     Format: `TransTimeout: 10`
 
-- TransLockWait ( *boolean* ): Whether the session transaction need to wait for locks under and the RC isolation level, the default value is true, wait for record lock.
+- TransLockWait ( *boolean* ): Whether the session transaction need to wait for locks under and the RC isolation level, the default value is false, no need to wait for record lock.
 
     Format: `TransLockWait: true`
 

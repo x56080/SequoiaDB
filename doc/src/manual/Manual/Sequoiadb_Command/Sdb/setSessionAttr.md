@@ -100,7 +100,7 @@ options（ *object，必填* ）
 
     格式：`TransTimeout: 10`
 
-- TransLockWait（ *boolean* ）：会话事务在 RC 隔离级别下是否需要等锁，默认值为 true，表示等待记录锁。
+- TransLockWait（ *boolean* ）：会话事务在 RC 隔离级别下是否需要等锁，默认值为 false，表示无需等待记录锁。
 
     格式：`TransLockWait: true`
 
