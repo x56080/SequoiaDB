@@ -209,7 +209,7 @@
                   <execmongojavatest xmlfile="${xmlfile}" mongodriver="${mongoversion}"/>
                </then>
                <else>
-                  <execnormalandlargedatatest xmlfile="${xmlfile}" hostname="${hostname}" svcname="${svcname}" sdbdriver="${sdbdriver}" sdbdriverdir="${sdbdriverDir}" s3client="${s3client}" s3clientdir="${s3clientDir}" eshostname="${eshostname}" essvcname="${essvcname}" dshostname="${dshostname}" dssvcname="${dssvcname}" sdbadminpwd="${sdbadminpwd}"/>
+                  <execnormalandlargedatatest xmlfile="${xmlfile}" hostname="${hostname}" svcname="${svcname}" sdbdriver="${sdbdriver}" sdbdriverdir="${sdbdriverDir}" s3client="${s3client}" s3clientdir="${s3clientDir}" eshostname="${eshostname}" essvcname="${essvcname}" dshostname="${dshostname}" dssvcname="${dssvcname}" remoteuser="${remoteuser}" remotepwd="${remotepwd}"/>
                </else>
             </if>
          </default>
