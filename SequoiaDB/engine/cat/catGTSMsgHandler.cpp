@@ -293,7 +293,7 @@ namespace engine
       reply.header.messageLength = sizeof( MsgOpReply ) + buf.size() ;
       reply.header.opCode = MAKE_REPLY_TYPE( msg->opCode ) ;
       reply.header.requestID = msg->requestID ;
-      reply.header.routeID.value = msg->routeID.value ;
+      reply.header.routeID.value = 0 ;
       reply.header.TID = msg->TID ;
       reply.flags = rc ;
       reply.contextID = -1 ;
@@ -326,7 +326,7 @@ namespace engine
          reply.header.messageLength = sizeof( MsgOpReply ) ;
          reply.header.opCode = MAKE_REPLY_TYPE( msg->opCode ) ;
          reply.header.requestID = msg->requestID ;
-         reply.header.routeID.value = msg->routeID.value ;
+         reply.header.routeID.value = 0 ;
          reply.header.TID = msg->TID ;
          reply.flags = rc ;
          reply.contextID = -1 ;
