@@ -8,26 +8,24 @@
 limit \- 控制查询返回的记录条数
 .SH 语法
 .PP
-\f[B]query.limit( <num> )\f[]
+\f[B]query.limit(<num>)\f[]
 .SH 类别
 .PP
 SdbQuery
 .SH 描述
 .PP
-控制查询返回的记录条数。
+该函数用于控制查询返回的记录条数。
 .SH 参数
 .PP
 .TS
 tab(@);
-l l l l l l.
+l l l l l.
 T{
 0
 T}@T{
 参数名
 T}@T{
-参数类型
-T}@T{
-默认值
+类型
 T}@T{
 描述
 T}@T{
@@ -39,9 +37,7 @@ T{
 T}@T{
 num
 T}@T{
-int
-T}@T{
-\-\-\-
+number
 T}@T{
 自定义返回结果
 T}@T{
@@ -51,54 +47,35 @@ T{
 T}@T{
 T}@T{
 T}@T{
-T}@T{
 集的记录条数
 T}@T{
 T}
 .TE
-.RS
-.PP
-\f[B]Note:\f[]
-.RE
-.RS
-.PP
-query.limit() 方法的定义格式包含 num 参数，它是 int 类型。如果不设定 num
-的内容，相当于返回所有的结果集记录。如果结果集的记录数小于
-num，按实际的记录数返回，如果结果集的记录数大于 num，则只返回前 num 条记录。
-.RE
 .SH 返回值
 .PP
-返回结果集的游标。
+函数执行成功时，将返回一个 SdbQuery 类型的对象。
+.PP
+函数执行失败时，将抛异常并输出错误信息。
 .SH 错误
 .PP
-如果出错则抛异常，并输出错误信息，可以通过getLastErrMsg()获取错误信息或通过getLastError()获取错误码。
-关于错误处理可以参考常见错误处理指南。
-.PP
-常见错误可参考错误码。
+当异常抛出时，可以通过 getLastErrMsg() 获取错误信息或通过 getLastError()
+获取错误码。更多错误处理可以参考常见错误处理指南。
 .SH 版本
 .PP
-v2.0 及以上版本。
+v2.0 及以上版本
 .SH 示例
 .PP
-选择集合 employee 下 age 字段值大于10的记录（如使用 $gt
-查询），并只返回前面2条记录。
+获取集合 sample.employee 中字段 age 最大的记录
 .IP
 .nf
 \f[C]
-> db.sample.employee.find( { age: { $gt: 10 } } ).limit( 2 )
+> db.sample.employee.find().sort({age: \-1}).limit(1)
 {
   "_id": {
     "$oid": "5813035cc842af52b6000009"
   },
   "name": "Tom",
-  "age": 11
-}
-{
-  "_id": {
-    "$oid": "58130372c842af52b600000a"
-  },
-  "name": "Jack",
-  "age": 12
+  "age": 22
 }
 \f[]
 .fi

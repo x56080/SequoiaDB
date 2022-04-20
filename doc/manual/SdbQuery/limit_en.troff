@@ -5,29 +5,27 @@
 .hy
 .SH NAME
 .PP
-limit \- Control the number of records returned by the query.
+limit \- controls the number of records returned by the query
 .SH SYNOPSIS
 .PP
-\f[B]\f[I]query.limit( <num> )\f[]\f[]
+\f[B]query.limit(<num>)\f[]
 .SH CATEGORY
 .PP
 SdbQuery
 .SH DESCRIPTION
 .PP
-Control the number of records returned by the query.
+This function is used to control the number of records returned by the query.
 .SH PARAMETERS
 .PP
 .TS
 tab(@);
-l l l l l l.
+l l l l l.
 T{
 0
 T}@T{
 Name
 T}@T{
 Type
-T}@T{
-Default
 T}@T{
 Description
 T}@T{
@@ -39,65 +37,55 @@ T{
 T}@T{
 num
 T}@T{
-int
+number
 T}@T{
-defualt to display all
+Customize the number of
 T}@T{
-the number of records
-T}@T{
-yes
+required
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-records
+records to return to
 T}@T{
-returned
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+the result set.
 T}@T{
 T}
 .TE
-.RS
-.PP
-\f[B]Note:\f[]
-.RE
-.RS
-.PP
-If the number of records in the result set is less than num, it is returned
-according to the actual number of records.
-Otherwise return only the first "num" records.
-.RE
 .SH RETURN VALUE
 .PP
-On success, returns the cursor of the query result set.
+When the function executes successfully, it will return an object of type
+SdbQuery.
 .PP
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will
+be printed.
 .SH ERRORS
 .PP
-When exception happens, use getLastError() to get the error code and use
-getLastErrMsg() to get error message.
+When the exception happens, use getLastErrMsg() to get the error message or use
+getLastError() to get the error code.
 For more details, refer to Troubleshooting.
+.SH VERSION
+.PP
+v2.0 and above
 .SH EXAMPLES
-.IP \[bu] 2
-Select the record that the age field value greater than (with using $gt) 10
-under the collection, employee, and return only the first two records.
+.PP
+Get the record with the largest field "age" in the collection "sample.employee".
 .IP
 .nf
 \f[C]
-> db.sample.employee.find( { age: { $gt: 10 } } ).limit( 2 )
+> db.sample.employee.find().sort({age: \-1}).limit(1)
 {
   "_id": {
-    "$oid": "5cf8aef75e72aea111e82b38"
+    "$oid": "5813035cc842af52b6000009"
   },
-  "name": "tom",
-  "age": 20
-}
-{
-  "_id": {
-    "$oid": "5cf8aefe5e72aea111e82b39"
-  },
-  "name": "ben",
-  "age": 21
+  "name": "Tom",
+  "age": 22
 }
 \f[]
 .fi
