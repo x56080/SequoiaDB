@@ -3394,8 +3394,6 @@ namespace engine
            newGroupInfo.resultCode == it->second.resultCode )
       {
          // 'finish + ok' can convert to 'finish + -243'
-         PD_LOG( PDWARNING, "Group[%s] in task[%llu] has already finished",
-                 newGroupInfo.groupName.c_str(), _taskID ) ;
          goto done ;
       }
 
@@ -3950,6 +3948,11 @@ namespace engine
                {
                   cntNotExistIdx++ ;
                }
+               else if ( SDB_DMS_CS_NOTEXIST == localGroup.resultCode ||
+                         SDB_DMS_NOTEXIST    == localGroup.resultCode )
+               {
+                  cntIgnoreError++ ;
+               }
                else
                {
                   // When one group failed, other groups will be rolled back
@@ -3966,7 +3969,7 @@ namespace engine
          }
       }
 
-      cntIgnoreError = cntRedefineIdx + cntNotExistIdx ;
+      cntIgnoreError += ( cntRedefineIdx + cntNotExistIdx ) ;
 
       // set first resultCode
       if ( cntTotalGroup != 0 )
@@ -4016,7 +4019,7 @@ namespace engine
          }
          else if ( cntSucGroup + cntIgnoreError == cntTotalGroup )
          {
-            // all groups succeed( may include -247/-47 )
+            // all groups succeed( may include -247/-47/-23/-34 )
             setFinish() ;
          }
          else if ( CLS_TASK_DROP_IDX == _taskType )

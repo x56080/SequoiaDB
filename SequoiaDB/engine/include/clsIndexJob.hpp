@@ -84,8 +84,8 @@ namespace engine
                                      const CHAR* indexName ) ;
          INT32 _startCatalogTask( UINT64 taskID ) ;
          INT32 _checkAndFixCLNameByID( BOOLEAN& isOk ) ;
-         INT32 _buildTaskStatus( BOOLEAN setFinish = FALSE,
-                                 INT32 resultCode = SDB_OK) ;
+         INT32 _buildTaskStatus() ;
+         BOOLEAN _isCLNameExist() ;
 
       private:
          _pmdDummySession      _session ;
