@@ -1129,6 +1129,12 @@ namespace engine
 
             goto error ;
          }
+         else if ( CLS_TASK_STATUS_FINISH == _status )
+         {
+            // already finish, no need to update
+            rc = SDB_TASK_ALREADY_FINISHED ;
+            goto error ;
+         }
       }
       catch( std::exception &e )
       {
