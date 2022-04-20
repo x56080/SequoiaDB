@@ -76,6 +76,7 @@ namespace engine
 
       INT32 prepareItem( utilRecycleItem &item,
                          UTIL_RECY_ITEM_LIST &droppingItems,
+                         ossPoolSet< ossPoolString > &lockedItems,
                          catCtxLockMgr &lockMgr,
                          pmdEDUCB *cb,
                          INT16 w ) ;
@@ -104,6 +105,10 @@ namespace engine
       INT32 dropItemsInCS( utilCSUniqueID csUniqueID,
                            pmdEDUCB *cb,
                            INT16 w ) ;
+      INT32 lockItemsInCS( utilCSUniqueID csUniqueID,
+                           ossPoolSet< ossPoolString > &lockedItems,
+                           catCtxLockMgr &lockMgr,
+                           pmdEDUCB *cb ) ;
 
       INT32 returnItem( utilRecycleItem &item,
                         catRecycleReturnInfo &info,
@@ -180,6 +185,7 @@ namespace engine
                            const utilRecycleBinConf &conf,
                            pmdEDUCB *cb ) ;
       INT32 _tryLockItems( const UTIL_RECY_ITEM_LIST &droppingItems,
+                           ossPoolSet< ossPoolString > &lockedItems,
                            catCtxLockMgr &lockMgr,
                            pmdEDUCB *cb ) ;
       INT32 _saveItem( utilRecycleItem &item,

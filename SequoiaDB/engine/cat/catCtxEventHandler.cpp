@@ -681,6 +681,15 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Failed to parse unique ID from [%s], "
                          "rc: %d", boTarget.toPoolString().c_str(), rc ) ;
             _recycleItem.setOriginID( originID ) ;
+
+            // we need to drop recycle items inside this collection space
+            // if we don't use recycle bin, or marked it recycled in
+            // this collection space if we use recycle bin,
+            // so need to lock them
+            rc = _recycleBinMgr->lockItemsInCS( originID, _lockedItems,
+                                                _lockMgr, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle items in "
+                         "collection space [%s], rc: %d", targetName, rc ) ;
          }
          else if ( UTIL_RECYCLE_CL == _recycleItem.getType() )
          {
@@ -753,7 +762,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB_CATCTXRECYHANDLER__CHECKRECYCLE ) ;
 
       rc = _recycleBinMgr->prepareItem( _recycleItem, _droppingItems,
-                                        _lockMgr, cb, w ) ;
+                                        _lockedItems, _lockMgr, cb, w ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to prepare dropping items, "
                    "rc: %d", rc ) ;
 

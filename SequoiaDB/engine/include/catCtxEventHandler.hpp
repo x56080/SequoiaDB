@@ -351,6 +351,7 @@ namespace engine
       BOOLEAN              _isUseRecycleBin ;
       BOOLEAN              _isReservedItem ;
       UTIL_RECY_ITEM_LIST  _droppingItems ;
+      ossPoolSet< ossPoolString > _lockedItems ;
    } ;
 
    typedef class _catCtxRecycleHandler catCtxRecycleHandler ;

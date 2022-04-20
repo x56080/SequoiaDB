@@ -462,9 +462,39 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR_LOCKITEMSINCS, "_catRecycleBinManager::lockItemsInCS" )
+   INT32 _catRecycleBinManager::lockItemsInCS( utilCSUniqueID csUniqueID,
+                                               ossPoolSet< ossPoolString > &lockedItems,
+                                               catCtxLockMgr &lockMgr,
+                                               pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR_LOCKITEMSINCS ) ;
+
+      UTIL_RECY_ITEM_LIST relatedItems ;
+
+      rc = _getItemsInCS( csUniqueID, cb, relatedItems ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get related collection "
+                   "recycle items in collection space [%u], rc: %d",
+                   csUniqueID, rc ) ;
+
+      rc = _tryLockItems( relatedItems, lockedItems, lockMgr, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle items in collection "
+                   "space [%u], rc: %d", csUniqueID, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR_LOCKITEMSINCS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR_PREPAREITEM, "_catRecycleBinManager::prepareItem" )
    INT32 _catRecycleBinManager::prepareItem( utilRecycleItem &item,
                                              UTIL_RECY_ITEM_LIST &droppingItems,
+                                             ossPoolSet< ossPoolString > &lockedItems,
                                              catCtxLockMgr &lockMgr,
                                              pmdEDUCB *cb,
                                              INT16 w )
@@ -543,7 +573,7 @@ namespace engine
          goto done ;
       }
 
-      rc = _tryLockItems( droppingItems, lockMgr, cb ) ;
+      rc = _tryLockItems( droppingItems, lockedItems, lockMgr, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle items, "
                    "rc: %d", rc ) ;
 
@@ -1212,6 +1242,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__TRYLOCKITEMS, "_catRecycleBinManager::_tryLockItems" )
    INT32 _catRecycleBinManager::_tryLockItems( const UTIL_RECY_ITEM_LIST &droppingItems,
+                                               ossPoolSet< ossPoolString > &lockedItems,
                                                catCtxLockMgr &lockMgr,
                                                pmdEDUCB *cb )
    {
@@ -1221,8 +1252,6 @@ namespace engine
 
       try
       {
-         ossPoolSet< ossPoolString > lockedItems ;
-
          // round 1: lock for collection spaces
          for ( UTIL_RECY_ITEM_LIST_CIT iter = droppingItems.begin() ;
                iter != droppingItems.end() ;
