@@ -598,9 +598,8 @@ namespace engine
       rc = _pResource->init( netRouteAgent, optCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Init resource failed, rc: %d", rc ) ;
 
-      // set userOwnQueen = TRUE to avoid bug like SEQUOIADBMAINSTREAM-4631
-      // _pSitePropMgr = SDB_OSS_NEW _coordSessionPropMgr( TRUE ) ;
-      _pSitePropMgr = SDB_OSS_NEW _coordSessionPropMgr() ;
+      // set userOwnQueue = TRUE to avoid messages posted to EDU directly
+      _pSitePropMgr = SDB_OSS_NEW _coordSessionPropMgr( TRUE ) ;
       PD_CHECK( NULL != _pSitePropMgr, SDB_OOM, error, PDERROR,
                 "Failed to malloc _coordSessionPropMgr, rc: %d", rc ) ;
 
