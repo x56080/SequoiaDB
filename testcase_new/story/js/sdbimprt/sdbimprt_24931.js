@@ -2,8 +2,8 @@
  * @Description   : seqDB-24931:参数中出现大量hosts时，能正确对每个hostname进行比较和排序
  * @Author        : 钟子明
  * @CreateTime    : 2022.01.12
- * @LastEditTime  : 2022.01.18
- * @LastEditors   : 钟子明
+ * @LastEditTime  : 2022.04.20
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.clName = COMMCLNAME + "_24931";
 
@@ -47,8 +47,7 @@ function prepareImportFile ()
 
 function importAndCheck ( cl, importFile, hosts )
 {
-   var command = installDir + "bin/sdbimprt --user sdbadmin --password " + SDBADMINPWD +
-      " --hosts=" + hosts + COORDHOSTNAME + ":" + COORDSVCNAME +
+   var command = installDir + "bin/sdbimprt " + " --hosts=" + hosts + COORDHOSTNAME + ":" + COORDSVCNAME +
       " -c " + COMMCSNAME + " -l " + testConf.clName + " --file " + importFile + " --fields 'str1,str2,str3' ";
    // 执行导入
    cmd.run( command );
