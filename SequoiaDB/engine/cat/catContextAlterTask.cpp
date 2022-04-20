@@ -3062,7 +3062,7 @@ namespace engine
             // get groups of cs : _groups
             utilCSUniqueID uniqueID = UTIL_UNIQUEID_NULL ;
 
-            rc = catParseUniqueID( _boData, (utilGlobalID &)uniqueID ) ;
+            rc = catParseCSUniqueID( _boData, uniqueID ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get unique ID of "
                          "collection space [%s], rc: %d",
                          _dataName.c_str(), rc ) ;
@@ -3297,7 +3297,7 @@ namespace engine
 
       utilCSUniqueID uniqueID = UTIL_UNIQUEID_NULL ;
 
-      rc = catParseUniqueID( _boData, (utilGlobalID &)uniqueID ) ;
+      rc = catParseCSUniqueID( _boData, uniqueID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get unique ID of "
                    "collection space [%s], rc: %d",
                    _dataName.c_str(), rc ) ;

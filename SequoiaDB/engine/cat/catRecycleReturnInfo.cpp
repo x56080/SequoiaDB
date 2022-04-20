@@ -787,8 +787,7 @@ namespace engine
 
       try
       {
-         _changeUIDSeq.insert( make_pair( (utilGlobalID)origSeqUID,
-                                          (utilGlobalID)rtrnSeqUID ) ) ;
+         _changeUIDSeq.insert( make_pair( origSeqUID, rtrnSeqUID ) ) ;
       }
       catch ( exception &e )
       {
@@ -814,9 +813,13 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_CATRECYRTRNINFO_GETCHGUIDSEQ ) ;
 
-      result = _getChangeUID( _changeUIDSeq,
-                              (utilGlobalID)origSeqUID,
-                              (utilGlobalID &)rtrnSeqUID ) ;
+      _CAT_RETURN_SEQ_MAP::const_iterator iter =
+                                             _changeUIDSeq.find( origSeqUID ) ;
+      if ( iter != _changeUIDSeq.end() )
+      {
+         rtrnSeqUID = iter->second ;
+         result = TRUE ;
+      }
 
       PD_TRACE_EXIT( SDB_CATRECYRTRNINFO_GETCHGUIDSEQ ) ;
 

@@ -127,15 +127,15 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_CATDROPITEMSUBCLCHK_PROCESSOBJ ) ;
 
-      utilGlobalID uniqueID = UTIL_GLOBAL_NULL ;
+      utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
       utilCSUniqueID csUniqueID = UTIL_UNIQUEID_NULL ;
       utilRecycleItem csItem ;
       const CHAR *subCLName = NULL ;
 
-      rc = catParseUniqueID( object, uniqueID ) ;
+      rc = catParseCLUniqueID( object, clUniqueID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get unique ID from object, "
                    "rc: %d", rc ) ;
-      csUniqueID = utilGetCSUniqueID( (utilCLUniqueID)uniqueID ) ;
+      csUniqueID = utilGetCSUniqueID( clUniqueID ) ;
 
       if ( _isChecked( csUniqueID ) )
       {
@@ -616,7 +616,7 @@ namespace engine
             utilRecycleItem subItem ;
             subItem.inherit( _item,
                              collectionName,
-                             (utilGlobalID)( originSet.clUniqueID() ) ) ;
+                             originSet.clUniqueID() ) ;
 
             catRecycleSeqProcessor seqProcessor( _recyBinMgr, subItem ) ;
 

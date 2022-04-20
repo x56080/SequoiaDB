@@ -423,7 +423,7 @@ namespace engine
       {
          utilCSUniqueID csUniqueID = UTIL_UNIQUEID_NULL ;
 
-         rc = catParseUniqueID( _boTarget, (utilGlobalID &)csUniqueID ) ;
+         rc = catParseCSUniqueID( _boTarget, csUniqueID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get unique ID of collection "
                       "space [%s], rc: %d", _targetName.c_str(), rc ) ;
 
@@ -919,7 +919,7 @@ namespace engine
             goto error ;
          }
 
-         rc = catParseUniqueID( _boTarget, (utilGlobalID &)uniqueID ) ;
+         rc = catParseCSUniqueID( _boTarget, uniqueID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get unique ID of "
                       "collection space [%s], rc: %d",
                       _targetName.c_str(), rc ) ;
@@ -1327,7 +1327,7 @@ namespace engine
       CHAR szSpace[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = {0} ;
       CHAR szCollection[ DMS_COLLECTION_NAME_SZ + 1 ] = {0} ;
       BSONObj boSpace, boDomain, boDummy ;
-      utilGlobalID csUniqueID = UTIL_GLOBAL_NULL ;
+      utilCSUniqueID csUniqueID = UTIL_UNIQUEID_NULL ;
       UTIL_DS_UID dsUID = UTIL_INVALID_DS_UID ;
       CAT_GROUP_LIST groupList ;
 
@@ -1375,11 +1375,11 @@ namespace engine
 
       // here we do not care what the values are
       // we care how many records in the specified collection space
-      rc = catParseUniqueID( boSpace, csUniqueID ) ;
+      rc = catParseCSUniqueID( boSpace, csUniqueID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get unique ID of "
                    "collection space [%s], rc: %d",
                    szSpace, rc ) ;
-      rc = catCheckCSCapacity( (utilCSUniqueID)csUniqueID, 1, cb ) ;
+      rc = catCheckCSCapacity( csUniqueID, 1, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to check capacity for "
                    "collection space [%s], rc: %d", szSpace, rc ) ;
 
@@ -1878,13 +1878,12 @@ namespace engine
       {
          utilCSUniqueID uniqueID = UTIL_UNIQUEID_NULL ;
 
-         rc = catParseUniqueID( csObj, (utilGlobalID &)uniqueID ) ;
+         rc = catParseCSUniqueID( csObj, uniqueID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get unique ID of "
                       "collection space [%s], rc: %d",
                       csObj.toPoolString().c_str(), rc ) ;
 
-         rc = catGetCSGroups( (utilCSUniqueID)uniqueID, cb, FALSE, FALSE,
-                              candidateGroupList ) ;
+         rc = catGetCSGroups( uniqueID, cb, FALSE, FALSE, candidateGroupList ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get collection space [%s]"
                       " groups, rc: %d", csObj.toString().c_str(), rc ) ;
       }

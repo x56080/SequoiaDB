@@ -65,7 +65,7 @@ namespace engine
    typedef ossPoolMap< ossPoolString, ossPoolString > UTIL_RETURN_NAME_MAP ;
    typedef UTIL_RETURN_NAME_MAP::iterator UTIL_RETURN_NAME_MAP_IT ;
    typedef UTIL_RETURN_NAME_MAP::const_iterator UTIL_RETURN_NAME_MAP_CIT ;
-   typedef ossPoolMap< utilGlobalID, utilGlobalID > UTIL_RETURN_UID_MAP ;
+   typedef ossPoolMap< utilCLUniqueID, utilCLUniqueID > UTIL_RETURN_UID_MAP ;
    typedef UTIL_RETURN_UID_MAP::iterator UTIL_RETURN_UID_MAP_IT ;
    typedef UTIL_RETURN_UID_MAP::const_iterator UTIL_RETURN_UID_MAP_CIT ;
 
@@ -189,13 +189,13 @@ namespace engine
    {
    public:
       _utilReturnUIDInfo()
-      : _origUID( UTIL_GLOBAL_NULL ),
-        _rtrnUID( UTIL_GLOBAL_NULL ),
+      : _origUID( UTIL_UNIQUEID_NULL ),
+        _rtrnUID( UTIL_UNIQUEID_NULL ),
         _isChanged( FALSE )
       {
       }
 
-      _utilReturnUIDInfo( utilGlobalID origUID )
+      _utilReturnUIDInfo( utilCLUniqueID origUID )
       : _origUID( origUID ),
         _rtrnUID( origUID ),
         _isChanged( FALSE )
@@ -206,25 +206,25 @@ namespace engine
       {
       }
 
-      void init( utilGlobalID origUID )
+      void init( utilCLUniqueID origUID )
       {
          _origUID = origUID ;
          _rtrnUID = origUID ;
          _isChanged = FALSE ;
       }
 
-      void setReturnUID( utilGlobalID rtrnUID )
+      void setReturnUID( utilCLUniqueID rtrnUID )
       {
          _rtrnUID = rtrnUID ;
          _isChanged = TRUE ;
       }
 
-      utilGlobalID getOriginUID() const
+      utilCLUniqueID getOriginUID() const
       {
          return _origUID ;
       }
 
-      utilGlobalID getReturnUID() const
+      utilCLUniqueID getReturnUID() const
       {
          return _rtrnUID ;
       }
@@ -235,8 +235,8 @@ namespace engine
       }
 
    protected:
-      utilGlobalID   _origUID ;
-      utilGlobalID   _rtrnUID ;
+      utilCLUniqueID _origUID ;
+      utilCLUniqueID _rtrnUID ;
       BOOLEAN        _isChanged ;
    } ;
 
@@ -343,8 +343,8 @@ namespace engine
                                  const CHAR *origName,
                                  const CHAR *&returnName ) ;
       static BOOLEAN _getChangeUID( const UTIL_RETURN_UID_MAP &uidMap,
-                                    utilGlobalID origUID,
-                                    utilGlobalID &returnUID ) ;
+                                    utilCLUniqueID origUID,
+                                    utilCLUniqueID &returnUID ) ;
 
    protected:
       // collection spaces to be replaced

@@ -421,6 +421,7 @@ namespace engine
       typedef ossPoolMultiMap< ossPoolString, bson::BSONObj > _CAT_IDX_MAP ;
       typedef std::pair< ossPoolString, CAT_GROUP_SET > _CAT_DOMAIN_GROUPS ;
       typedef ossPoolMap< utilCSUniqueID, _CAT_DOMAIN_GROUPS > _CAT_CS_GROUP_SET ;
+      typedef ossPoolMap< utilSequenceID, utilSequenceID > _CAT_RETURN_SEQ_MAP ;
 
       INT32 _checkConflictCS( const utilRecycleItem &item,
                               BOOLEAN isEnforced,
@@ -472,7 +473,7 @@ namespace engine
       // sequences need to rename
       UTIL_RETURN_NAME_MAP _renameSeq ;
       // sequences need to change unique ID
-      UTIL_RETURN_UID_MAP  _changeUIDSeq ;
+      _CAT_RETURN_SEQ_MAP  _changeUIDSeq ;
 
       _CAT_DS_UID_SET      _existDSSet ;
       _CAT_DS_UID_SET      _missingDSSet ;

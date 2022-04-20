@@ -123,7 +123,7 @@ namespace engine
                      pmdEDUCB *cb,
                      utilRecycleItem &item ) ;
       // get recycle item by origin ID
-      INT32 getItem( utilGlobalID originID,
+      INT32 getItem( utilCLUniqueID originID,
                      pmdEDUCB *cb,
                      utilRecycleItem &item ) ;
       // get recycle items by given matcher and order
@@ -207,7 +207,7 @@ namespace engine
                             pmdEDUCB *cb,
                             bson::BSONObj &object ) ;
       // get recycle item in BSON by origin ID
-      INT32 _getItemObject( utilGlobalID originID,
+      INT32 _getItemObject( utilCLUniqueID originID,
                             pmdEDUCB *cb,
                             bson::BSONObj &object ) ;
       // get recycle item in BSON by matcher

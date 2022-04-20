@@ -126,7 +126,7 @@ namespace engine
 
       void inherit( const _utilRecycleItem &item,
                     const CHAR *originName,
-                    utilGlobalID originID ) ;
+                    utilCLUniqueID originID ) ;
       void init( utilRecycleID recycleID ) ;
       void reset() ;
 
@@ -156,12 +156,12 @@ namespace engine
          _recycleName[ UTIL_RECYCLE_NAME_SZ ] = '\0' ;
       }
 
-      OSS_INLINE void setOriginID( utilGlobalID originID )
+      OSS_INLINE void setOriginID( utilCLUniqueID originID )
       {
          _originID = originID ;
       }
 
-      OSS_INLINE utilGlobalID getOriginID() const
+      OSS_INLINE utilCLUniqueID getOriginID() const
       {
          return _originID ;
       }
@@ -250,7 +250,7 @@ namespace engine
       BOOLEAN operator ==( const _utilRecycleItem &item ) const ;
 
    protected:
-      void _setRecycleName( utilRecycleID recycleID, utilGlobalID originID ) ;
+      void _setRecycleName( utilRecycleID recycleID, utilCLUniqueID originID ) ;
 
    protected:
       // unique ID of recycle item
@@ -258,7 +258,7 @@ namespace engine
       // name of recycle item
       CHAR                 _recycleName[ UTIL_RECYCLE_NAME_SZ + 1 ] ;
       // origin unique ID of recycle item
-      utilGlobalID         _originID ;
+      utilCLUniqueID       _originID ;
       // origin name of recycle item
       CHAR                 _originName[ UTIL_ORIGIN_NAME_SZ + 1 ] ;
       // type of recycle item

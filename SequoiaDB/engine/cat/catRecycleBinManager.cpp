@@ -476,7 +476,7 @@ namespace engine
       utilRecycleID recycleID = UTIL_RECYCLEID_NULL ;
       BOOLEAN isAvailable = FALSE, isLimitedByVersion = FALSE ;
       const CHAR *originName = item.getOriginName() ;
-      utilGlobalID originID = item.getOriginID() ;
+      utilCLUniqueID originID = item.getOriginID() ;
 
       utilRecycleBinConf conf = getConf() ;
 
@@ -592,7 +592,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__CHECKAVAILABLE, "_catRecycleBinManager::_checkAvailable" )
    INT32 _catRecycleBinManager::_checkAvailable( const CHAR *originName,
-                                                 utilGlobalID originID,
+                                                 utilCLUniqueID originID,
                                                  const utilRecycleBinConf &conf,
                                                  pmdEDUCB *cb,
                                                  BOOLEAN &isAvailable,
@@ -1128,7 +1128,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__CHKVERSION, "_catRecycleBinManager::_checkVersion" )
    INT32 _catRecycleBinManager::_checkVersion( const CHAR *originName,
-                                               utilGlobalID originID,
+                                               utilCLUniqueID originID,
                                                const utilRecycleBinConf &conf,
                                                pmdEDUCB *cb )
    {
@@ -1385,7 +1385,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__TRYFINDOLDESTITEM_VER, "_catRecycleBinManager::_tryFindOldestItem" )
    INT32 _catRecycleBinManager::_tryFindOldestItem( const CHAR *originName,
-                                                    utilGlobalID originID,
+                                                    utilCLUniqueID originID,
                                                     pmdEDUCB *cb,
                                                     utilRecycleItem &oldestItem )
    {
@@ -1436,7 +1436,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__GETOLDITEM_UID, "_catRecycleBinManager::_getOldestItem" )
-   INT32 _catRecycleBinManager::_getOldestItem( utilGlobalID originID,
+   INT32 _catRecycleBinManager::_getOldestItem( utilCLUniqueID originID,
                                                 pmdEDUCB *cb,
                                                 utilRecycleItem &item )
    {
@@ -1446,7 +1446,7 @@ namespace engine
 
       BSONObj matcher ;
 
-      SDB_ASSERT( UTIL_GLOBAL_NULL != originID, "origin ID is invalid" ) ;
+      SDB_ASSERT( UTIL_UNIQUEID_NULL != originID, "origin ID is invalid" ) ;
 
       try
       {

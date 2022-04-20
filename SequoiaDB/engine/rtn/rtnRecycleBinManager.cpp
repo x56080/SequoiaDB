@@ -161,7 +161,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR_GETITEM_ORIGID, "_rtnRecycleBinManager::getItem" )
-   INT32 _rtnRecycleBinManager::getItem( utilGlobalID originID,
+   INT32 _rtnRecycleBinManager::getItem( utilCLUniqueID originID,
                                          pmdEDUCB *cb,
                                          utilRecycleItem &item )
    {
@@ -414,7 +414,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR__GETITEMOBJ_ORIGID, "_rtnRecycleBinManager::_getItemObject" )
-   INT32 _rtnRecycleBinManager::_getItemObject( utilGlobalID originID,
+   INT32 _rtnRecycleBinManager::_getItemObject( utilCLUniqueID originID,
                                                 pmdEDUCB *cb,
                                                 BSONObj &object )
    {

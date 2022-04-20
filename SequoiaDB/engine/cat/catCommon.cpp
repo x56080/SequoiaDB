@@ -8632,14 +8632,14 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATPARSEUNIQUEID, "catParseUniqueID" )
-   INT32 catParseUniqueID( const bson::BSONObj &object,
-                           utilGlobalID &uniqueID,
-                           const CHAR *fieldName )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATPARSECLUNIQUEID, "catParseCLUniqueID" )
+   INT32 catParseCLUniqueID( const bson::BSONObj &object,
+                             utilCLUniqueID &uniqueID,
+                             const CHAR *fieldName )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB_CATPARSEUNIQUEID ) ;
+      PD_TRACE_ENTRY( SDB_CATPARSECLUNIQUEID ) ;
 
       try
       {
@@ -8648,7 +8648,7 @@ namespace engine
                    "Failed to get field [%s] from object [%s], "
                    "it is not a number", fieldName,
                    object.toPoolString().c_str() ) ;
-         uniqueID = (utilGlobalID)( element.numberLong() ) ;
+         uniqueID = (utilCLUniqueID)( element.numberLong() ) ;
       }
       catch ( exception &e )
       {
@@ -8659,7 +8659,41 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC( SDB_CATPARSEUNIQUEID, rc ) ;
+      PD_TRACE_EXITRC( SDB_CATPARSECLUNIQUEID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATPARSECSUNIQUEID, "catParseCSUniqueID" )
+   INT32 catParseCSUniqueID( const bson::BSONObj &object,
+                             utilCSUniqueID &uniqueID,
+                             const CHAR *fieldName )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATPARSECSUNIQUEID ) ;
+
+      try
+      {
+         BSONElement element = object.getFieldDotted( fieldName ) ;
+         PD_CHECK( element.isNumber(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s] from object [%s], "
+                   "it is not a number", fieldName,
+                   object.toPoolString().c_str() ) ;
+         uniqueID = (utilCSUniqueID)( element.numberInt() ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to get unique ID from object, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATPARSECSUNIQUEID, rc ) ;
       return rc ;
 
    error:

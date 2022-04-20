@@ -193,8 +193,8 @@ namespace engine
       {
          if ( origCLUniqueID != returnCLUniqueID )
          {
-            _changeUIDCL.insert( make_pair( (utilGlobalID)origCLUniqueID,
-                                            (utilGlobalID)returnCLUniqueID ) ) ;
+            _changeUIDCL.insert( make_pair( origCLUniqueID,
+                                            returnCLUniqueID ) ) ;
             PD_LOG( PDEVENT, "Return collection [%llu] to [%llu]",
                     origCLUniqueID, returnCLUniqueID ) ;
          }
@@ -294,9 +294,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_UTILRECYRTRNINFO__GETCHGUIDCL ) ;
 
-      result = _getChangeUID( _changeUIDCL,
-                              (utilGlobalID)origCLUID,
-                              (utilGlobalID &)returnCLUID ) ;
+      result = _getChangeUID( _changeUIDCL, origCLUID, returnCLUID ) ;
 
       PD_TRACE_EXIT( SDB_UTILRECYRTRNINFO__GETCHGUIDCL ) ;
 
@@ -305,8 +303,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_UTILRECYRTRNINFO__GETCHGUID, "_utilRecycleReturnInfo::_getChangeUID" )
    BOOLEAN _utilRecycleReturnInfo::_getChangeUID( const UTIL_RETURN_UID_MAP &uidMap,
-                                                  utilGlobalID origUID,
-                                                  utilGlobalID &returnUID)
+                                                  utilCLUniqueID origUID,
+                                                  utilCLUniqueID &returnUID )
    {
       BOOLEAN result = FALSE ;
 
@@ -427,13 +425,13 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_UTILRECYRTRNINFO_GETRTRNCLUID ) ;
 
-      utilCLUniqueID origCLUID = (utilCLUniqueID)( info.getOriginUID() ) ;
+      utilCLUniqueID origCLUID = info.getOriginUID() ;
       utilCLUniqueID rtrnCLUID = UTIL_UNIQUEID_NULL ;
 
       if ( hasChangeUIDCL() &&
            _getChangeUIDCL( origCLUID, rtrnCLUID ) )
       {
-         info.setReturnUID( (utilGlobalID)rtrnCLUID ) ;
+         info.setReturnUID( rtrnCLUID ) ;
       }
 
       PD_TRACE_EXITRC( SDB_UTILRECYRTRNINFO_GETRTRNCLUID, rc ) ;

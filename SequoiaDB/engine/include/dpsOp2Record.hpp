@@ -172,51 +172,6 @@ namespace engine
 
    typedef class _dpsUnqIdxHashArray dpsUnqIdxHashArray ;
 
-   /*
-      _dpsRecycleInfo define
-    */
-   typedef struct _dpsRecycleInfo
-   {
-   public:
-      _dpsRecycleInfo()
-      {
-         _originName = NULL ;
-         _originID = 0 ;
-         _recycleName = NULL ;
-         _recycleID = 0 ;
-         _type = 0 ;
-         _opType = 0 ;
-      }
-
-      _dpsRecycleInfo( const utilRecycleItem &item )
-      {
-         _originName = item.getOriginName() ;
-         _originID = item.getOriginID() ;
-         _recycleName = item.getRecycleName() ;
-         _recycleID = item.getRecycleID() ;
-         _type = (UINT8)( item.getType() ) ;
-         _opType = (UINT8)( item.getOpType() ) ;
-      }
-
-      void toRecycleItem( utilRecycleItem &item )
-      {
-         item.setOriginName( _originName ) ;
-         item.setOriginID( _originID ) ;
-         item.setRecycleName( _recycleName ) ;
-         item.setRecycleID( _recycleID ) ;
-         item.setType( (UTIL_RECYCLE_TYPE)_type ) ;
-         item.setOpType( (UTIL_RECYCLE_OPTYPE)_opType ) ;
-      }
-
-   public:
-      const CHAR * _originName ;
-      UINT64       _originID ;
-      const CHAR * _recycleName ;
-      UINT64       _recycleID ;
-      UINT8        _type ;
-      UINT8        _opType ;
-   } dpsRecycleInfo ;
-
    /// warning: any value can not be value-passed. and, the value's life scope
    /// must be held until dpsLogRecord really copied
    /// (the copy behavior is in _dmsStorageDataCommon::_logDPS)

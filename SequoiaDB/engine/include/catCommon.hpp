@@ -645,9 +645,12 @@ namespace engine
                                      CAT_GROUP_SET &groupIDSet ) ;
    INT32 catSaveToGroupIDList( SET_UINT32 &groupIDSet,
                                std::vector<UINT32> &groupIDList ) ;
-   INT32 catParseUniqueID( const bson::BSONObj &object,
-                           utilGlobalID &globalID,
-                           const CHAR *fieldName = FIELD_NAME_UNIQUEID ) ;
+   INT32 catParseCLUniqueID( const bson::BSONObj &object,
+                             utilCLUniqueID &uniqueID,
+                             const CHAR *fieldName = FIELD_NAME_UNIQUEID ) ;
+   INT32 catParseCSUniqueID( const bson::BSONObj &object,
+                             utilCSUniqueID &uniqueID,
+                             const CHAR *fieldName = FIELD_NAME_UNIQUEID ) ;
    INT32 catIncAndFetchRecycleID( utilRecycleID &recycleID,
                                   pmdEDUCB *cb,
                                   INT16 w ) ;

@@ -670,17 +670,26 @@ namespace engine
 
       if ( SDB_EVT_OCCUR_AFTER == type )
       {
-         utilGlobalID originID = UTIL_GLOBAL_NULL ;
-
          PD_CHECK( NULL != targetName, SDB_SYS, error, PDERROR,
                    "Failed to check target name, it is invalid" ) ;
-
-         rc = catParseUniqueID( boTarget, originID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to parse unique ID from [%s], "
-                      "rc: %d", boTarget.toPoolString().c_str(), rc ) ;
-
          _recycleItem.setOriginName( targetName ) ;
-         _recycleItem.setOriginID( originID ) ;
+
+         if ( UTIL_RECYCLE_CS == _recycleItem.getType() )
+         {
+            utilCSUniqueID originID = UTIL_UNIQUEID_NULL ;
+            rc = catParseCSUniqueID( boTarget, originID ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse unique ID from [%s], "
+                         "rc: %d", boTarget.toPoolString().c_str(), rc ) ;
+            _recycleItem.setOriginID( originID ) ;
+         }
+         else if ( UTIL_RECYCLE_CL == _recycleItem.getType() )
+         {
+            utilCLUniqueID originID = UTIL_UNIQUEID_NULL ;
+            rc = catParseCLUniqueID( boTarget, originID ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse unique ID from [%s], "
+                         "rc: %d", boTarget.toPoolString().c_str(), rc ) ;
+            _recycleItem.setOriginID( originID ) ;
+         }
 
          try
          {
@@ -837,7 +846,7 @@ namespace engine
       // the collection space
       if ( UTIL_RECYCLE_CS == _recycleItem.getType() &&
            UTIL_RECYCLE_OP_DROP == _recycleItem.getOpType() &&
-           UTIL_GLOBAL_NULL != _recycleItem.getOriginID() )
+           UTIL_UNIQUEID_NULL != _recycleItem.getOriginID() )
       {
          utilCSUniqueID csUniqueID =
                (utilCSUniqueID)( _recycleItem.getOriginID() ) ;

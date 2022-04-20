@@ -173,7 +173,7 @@ namespace engine
     */
    _utilRecycleItem::_utilRecycleItem()
    : _recycleID( UTIL_RECYCLEID_NULL ),
-     _originID( UTIL_GLOBAL_NULL ),
+     _originID( UTIL_UNIQUEID_NULL ),
      _type( UTIL_RECYCLE_UNKNOWN ),
      _opType( UTIL_RECYCLE_OP_UNKNOWN ),
      _recycleTime( 0 ),
@@ -200,7 +200,7 @@ namespace engine
    _utilRecycleItem::_utilRecycleItem( UTIL_RECYCLE_TYPE type,
                                        UTIL_RECYCLE_OPTYPE opType )
    : _recycleID( UTIL_RECYCLEID_NULL ),
-     _originID( UTIL_GLOBAL_NULL ),
+     _originID( UTIL_UNIQUEID_NULL ),
      _type( type ),
      _opType( opType ),
      _recycleTime( 0 ),
@@ -218,7 +218,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_UTILRECYCLEITEM_INHERIT, "_utilRecycleItem::inherit")
    void _utilRecycleItem::inherit( const _utilRecycleItem &item,
                                    const CHAR *originName,
-                                   utilGlobalID originID )
+                                   utilCLUniqueID originID )
    {
       PD_TRACE_ENTRY( SDB_UTILRECYCLEITEM_INHERIT ) ;
 
@@ -243,7 +243,7 @@ namespace engine
 
       SDB_ASSERT( NULL != _originName, "origin name is invalid" ) ;
       SDB_ASSERT( UTIL_RECYCLEID_NULL != recycleID, "recycle ID is invalid" ) ;
-      SDB_ASSERT( UTIL_GLOBAL_NULL != _originID, "origin ID is invalid" ) ;
+      SDB_ASSERT( UTIL_UNIQUEID_NULL != _originID, "origin ID is invalid" ) ;
 
       setRecycleID( recycleID ) ;
       _setRecycleName( recycleID, _originID ) ;
@@ -259,7 +259,7 @@ namespace engine
 
       _recycleID = UTIL_RECYCLEID_NULL ;
       _recycleName[ 0 ] = '\0' ;
-      _originID = UTIL_GLOBAL_NULL ;
+      _originID = UTIL_UNIQUEID_NULL ;
       _originName[ 0 ] = '\0' ;
       _type = UTIL_RECYCLE_UNKNOWN ;
       _opType = UTIL_RECYCLE_OP_UNKNOWN ;
@@ -531,7 +531,7 @@ namespace engine
 
       SDB_ASSERT( NULL != recycleName, "recycle name is invalid" ) ;
 
-      utilGlobalID originID = UTIL_GLOBAL_NULL ;
+      utilCLUniqueID originID = UTIL_UNIQUEID_NULL ;
       utilRecycleID recycleID = UTIL_RECYCLEID_NULL ;
       INT32 parsedNum = 0 ;
 
@@ -592,7 +592,7 @@ namespace engine
    }
 
    void _utilRecycleItem::_setRecycleName( utilRecycleID recycleID,
-                                           utilGlobalID originID )
+                                           utilCLUniqueID originID )
    {
       ossSnprintf( _recycleName, UTIL_RECYCLE_NAME_SZ, UTIL_RECYCLE_FORMAT,
                    recycleID, originID ) ;

@@ -164,7 +164,7 @@ namespace engine
                                INT16 w ) ;
 
       INT32 _checkAvailable( const CHAR *originName,
-                             utilGlobalID originID,
+                             utilCLUniqueID originID,
                              const utilRecycleBinConf &conf,
                              pmdEDUCB *cb,
                              BOOLEAN &isAvailable,
@@ -176,7 +176,7 @@ namespace engine
       INT32 _checkCapacity( const utilRecycleBinConf &conf,
                             pmdEDUCB *cb ) ;
       INT32 _checkVersion( const CHAR *originName,
-                           utilGlobalID originID,
+                           utilCLUniqueID originID,
                            const utilRecycleBinConf &conf,
                            pmdEDUCB *cb ) ;
       INT32 _tryLockItems( const UTIL_RECY_ITEM_LIST &droppingItems,
@@ -217,13 +217,13 @@ namespace engine
       INT32 _tryFindOldestItem( pmdEDUCB *cb,
                                 utilRecycleItem &oldestItem ) ;
       INT32 _tryFindOldestItem( const CHAR *originName,
-                                utilGlobalID originID,
+                                utilCLUniqueID originID,
                                 pmdEDUCB *cb,
                                 utilRecycleItem &oldestItem ) ;
       INT32 _getOldestItem( const CHAR *originName,
                             pmdEDUCB *cb,
                             utilRecycleItem &oldestItem ) ;
-      INT32 _getOldestItem( utilGlobalID originID,
+      INT32 _getOldestItem( utilCLUniqueID originID,
                             pmdEDUCB *cb,
                             utilRecycleItem &oldestItem ) ;
       INT32 _getOldestItem( const bson::BSONObj &matcher,
