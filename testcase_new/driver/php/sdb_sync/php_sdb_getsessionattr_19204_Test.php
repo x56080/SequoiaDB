@@ -21,8 +21,13 @@ class GetSessionAttr19204 extends PHPUnit_Framework_TestCase
       $this -> assertEquals( 0, self::$db -> getError()['errno'] );
 
       self::$defaultAttr = array( "PreferedInstance" => "M",
+                                  "PreferredInstance" => "M",
                                   "PreferedInstanceMode" => "random",
+                                  "PreferredInstanceMode" => "random",
                                   "PreferedStrict" => false,
+                                  "PreferredStrict" => false,
+                                  "PreferedPeriod" => 60,
+                                  "PreferredPeriod" => 60,
                                   "Timeout" => new SequoiaINT64('-1'),
                                   "TransIsolation" => 0,
                                   "TransTimeout" => 60,
@@ -31,8 +36,7 @@ class GetSessionAttr19204 extends PHPUnit_Framework_TestCase
                                   "TransAutoCommit" => false,
                                   "TransAutoRollback" => true,
                                   "TransRCCount" => true,
-                                  "Source" => "",
-                                  "PreferedPeriod" => 60);
+                                  "Source" => "");
    }
    
    function test()
