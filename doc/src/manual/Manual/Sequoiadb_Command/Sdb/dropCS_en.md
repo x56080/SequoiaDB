@@ -4,7 +4,7 @@ dropCS - Delete a specified collection space.
 
 ##SYNOPSIS##
 
-***db.dropCS(\<name\>,[options])***
+**db.dropCS(\<name\>, [options])**
 
 ##CATEGORY##
 
@@ -77,7 +77,7 @@ Since v1.0.
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
-[recycle_bin]:doc/src/manual/Distributed_Engine/Maintainance/recycle_bin.md
+[recycle_bin]:manual/Distributed_Engine/Maintainance/recycle_bin.md
 [dropItem]:manual/Manual/Sequoiadb_Command/SdbRecycleBin/dropItem.md
 [dropAll]:manual/Manual/Sequoiadb_Command/SdbRecycleBin/dropAll.md
 [getDetail]:manual/Manual/Sequoiadb_Command/SdbRecycleBin/getDetail.md

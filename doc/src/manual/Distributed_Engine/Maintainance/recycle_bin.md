@@ -182,7 +182,7 @@ SequoiaDB 巨杉数据库提供回收站机制，可以有效防止因误删集�
 [dropCL]:manual/Manual/Sequoiadb_Command/SdbCS/dropCL.md
 [truncate]:manual/Manual/Sequoiadb_Command/SdbCollection/truncate.md
 [getDetail]:manual/Manual/Sequoiadb_Command/SdbRecycleBin/getDetail.md
-[getRecycleBin]:doc/src/manual/Manual/Sequoiadb_Command/Sdb/getRecycleBin.md
+[getRecycleBin]:manual/Manual/Sequoiadb_Command/Sdb/getRecycleBin.md
 [enable]:manual/Manual/Sequoiadb_Command/SdbRecycleBin/enable.md
 [disable]:manual/Manual/Sequoiadb_Command/SdbRecycleBin/disable.md
 [count]:manual/Manual/Sequoiadb_Command/SdbRecycleBin/count.md

@@ -72,7 +72,7 @@ SDB_SNAP_RECYCLEBIN
        "$timestamp": "2022-01-24-12.04.12.000000"
      },
      "NodeName": "sdbserver:20000",
-     "GroupName": "db1",
+     "GroupName": "group1",
      "PageSize": 65536,
      "LobPageSize": 262144,
      "TotalRecords": 0,
@@ -107,7 +107,7 @@ SDB_SNAP_RECYCLEBIN
      "TotalIndexSize": 131072,
      "TotalLobSize": 0,
      "Group": [
-       "db1"
+       "group1"
      ]
    }
    ```
@@ -115,4 +115,4 @@ SDB_SNAP_RECYCLEBIN
 
 [^_^]:
     本文使用的所有引用及链接
-[recycle_bin]:doc/src/manual/Distributed_Engine/Maintainance/recycle_bin.md
+[recycle_bin]:manual/Distributed_Engine/Maintainance/recycle_bin.md

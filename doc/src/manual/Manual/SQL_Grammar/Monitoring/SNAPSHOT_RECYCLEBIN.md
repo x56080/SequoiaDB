@@ -63,4 +63,4 @@ $SNAPSHOT_RECYCLEBIN
 
 [^_^]:
     本文使用的所有引用及链接
-[recycle_bin]:doc/src/manual/Distributed_Engine/Maintainance/recycle_bin.md
+[recycle_bin]:manual/Distributed_Engine/Maintainance/recycle_bin.md

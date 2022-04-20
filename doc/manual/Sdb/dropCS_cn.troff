@@ -8,7 +8,7 @@
 dropCS \- 删除一个已存在的集合空间。
 .SH 语法
 .PP
-\f[B]\f[I]db.dropCS(<name>,[options])\f[]\f[]
+\f[B]db.dropCS(<name>, [options])\f[]
 .SH 类别
 .PP
 Sdb

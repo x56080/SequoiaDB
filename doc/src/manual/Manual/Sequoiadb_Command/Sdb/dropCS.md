@@ -4,7 +4,7 @@ dropCS - 删除一个已存在的集合空间。
 
 ##语法##
 
-***db.dropCS(\<name\>,[options])***
+**db.dropCS(\<name\>, [options])**
 
 ##类别##
 
@@ -76,7 +76,7 @@ v1.0及以上版本。
 [error_code]:manual/Manual/Sequoiadb_error_code.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [faq]:manual/FAQ/faq_sdb.md
-[recycle_bin]:doc/src/manual/Distributed_Engine/Maintainance/recycle_bin.md
+[recycle_bin]:manual/Distributed_Engine/Maintainance/recycle_bin.md
 [dropItem]:manual/Manual/Sequoiadb_Command/SdbRecycleBin/dropItem.md
 [dropAll]:manual/Manual/Sequoiadb_Command/SdbRecycleBin/dropAll.md
 [getDetail]:manual/Manual/Sequoiadb_Command/SdbRecycleBin/getDetail.md
