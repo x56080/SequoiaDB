@@ -46,6 +46,8 @@ namespace engine
 {
    #define LOB_BUFFER_LEN  (2*1024*1024)
    #define SPT_CL_NAME  "SdbCollection"
+   #define SPT_OID_STR_LENGTH 24
+
    JS_CONSTRUCT_FUNC_DEFINE( _sptDBCL, construct )
    JS_DESTRUCT_FUNC_DEFINE( _sptDBCL, destruct )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, rawFind )
@@ -1619,6 +1621,14 @@ namespace engine
       }
       else
       {
+         if( SPT_OID_STR_LENGTH != oidStr.size() )
+         {
+            stringstream ss ;
+            ss << "The length of oid str must be " << SPT_OID_STR_LENGTH ;
+            rc = SDB_INVALIDARG ;
+            detail = BSON( SPT_ERR << ss.str() ) ;
+            goto error ;
+         }
          if ( !utilIsValidOID( oidStr.c_str() ) )
          {
             rc = SDB_INVALIDARG ;
@@ -1720,6 +1730,14 @@ namespace engine
       else if( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Oid must be string" ) ;
+         goto error ;
+      }
+      if( SPT_OID_STR_LENGTH != oidStr.size() )
+      {
+         stringstream ss ;
+         ss << "The length of oid str must be " << SPT_OID_STR_LENGTH ;
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << ss.str() ) ;
          goto error ;
       }
       if ( !utilIsValidOID( oidStr.c_str() ) )
@@ -1843,6 +1861,14 @@ namespace engine
       else if( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Oid must be string" ) ;
+         goto error ;
+      }
+      if( SPT_OID_STR_LENGTH != oidStr.size() )
+      {
+         stringstream ss ;
+         ss << "The length of oid str must be " << SPT_OID_STR_LENGTH ;
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << ss.str() ) ;
          goto error ;
       }
       if ( !utilIsValidOID( oidStr.c_str() ) )
