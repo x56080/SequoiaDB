@@ -1258,6 +1258,10 @@ namespace engine
                ++ iter )
          {
             const utilRecycleItem &item = *iter ;
+            if ( lockedItems.count( item.getRecycleName() ) )
+            {
+               continue ;
+            }
             if ( UTIL_RECYCLE_CS == item.getType() )
             {
                PD_CHECK( lockMgr.tryLockRecycleItem( item, EXCLUSIVE ),
@@ -1275,6 +1279,10 @@ namespace engine
          {
             const utilRecycleItem &item = *iter ;
             if ( UTIL_RECYCLE_CS == item.getType() )
+            {
+               continue ;
+            }
+            else if ( lockedItems.count( item.getRecycleName() ) )
             {
                continue ;
             }
@@ -1311,6 +1319,7 @@ namespace engine
                       SDB_LOCK_FAILED, error, PDERROR,
                       "Failed to lock recycle item [origin: %s, recycle: %s]",
                       item.getOriginName(), item.getRecycleName() ) ;
+            lockedItems.insert( item.getRecycleName() ) ;
          }
       }
       catch ( exception &e )
