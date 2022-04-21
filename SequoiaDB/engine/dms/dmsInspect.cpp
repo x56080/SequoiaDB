@@ -726,8 +726,11 @@ namespace engine
             }
          }
 
-         if ( mb->_attributes & ~(DMS_MB_ATTR_COMPRESSED|DMS_MB_ATTR_NOIDINDEX
-                                  |DMS_MB_ATTR_CAPPED) )
+         if ( mb->_attributes & ~( DMS_MB_ATTR_COMPRESSED |
+                                   DMS_MB_ATTR_NOIDINDEX |
+                                   DMS_MB_ATTR_CAPPED |
+                                   DMS_MB_ATTR_STRICTDATAMODE |
+                                   DMS_MB_ATTR_NOTRANS ) )
          {
             mbAttr2String ( mb->_attributes, tmpStr, DMS_COLLECTION_STATUS_LEN ) ;
             len += ossSnprintf ( outBuf + len, outSize - len,

@@ -469,7 +469,7 @@ namespace engine
       }
 
       /// When not support trans
-      if ( !_pSu->isTransSupport() )
+      if ( !_pSu->isTransSupport( _context ) )
       {
          _recordLock = DPS_TRANSLOCK_MAX ;
       }
@@ -1903,7 +1903,7 @@ namespace engine
       }
 
       /// when not support transaction
-      if ( !_pSu->isTransSupport() )
+      if ( !_pSu->isTransSupport( _context ) )
       {
          _recordLock = DPS_TRANSLOCK_MAX ;
       }

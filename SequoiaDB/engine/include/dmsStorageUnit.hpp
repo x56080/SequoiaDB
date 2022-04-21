@@ -618,6 +618,11 @@ namespace engine
                                            BOOLEAN noIDIndex,
                                            dmsMBContext * context = NULL ) ;
 
+         INT32    setCollectionNoTrans ( const CHAR * pName,
+                                         BOOLEAN noTrans,
+                                         dmsMBContext * context,
+                                         pmdEDUCB *cb ) ;
+
          INT32    canSetCollectionCompressor ( dmsMBContext * context ) ;
          INT32    setCollectionCompressor ( const CHAR * pName,
                                             UTIL_COMPRESSOR_TYPE compressType,

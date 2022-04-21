@@ -61,6 +61,10 @@ namespace engine
    #define RTN_ALTER_TASK_FLAG_SHARDLOCK     ( 0x00000020 )
    // The alter command needs alter sequences
    #define RTN_ALTER_TASK_FLAG_SEQUENCE      ( 0x00000040 )
+   // The alter command needs transaction lock
+   #define RTN_ALTER_TASK_TRANS_LOCK         ( 0x00000080 )
+
+
    enum RTN_ALTER_OBJECT_TYPE
    {
       RTN_ALTER_INVALID_OBJECT = 0,
@@ -862,6 +866,11 @@ namespace engine
             return _strictDataMode ;
          }
 
+         OSS_INLINE BOOLEAN isNoTrans() const
+         {
+            return _noTrans ;
+         }
+
          OSS_INLINE utilIdxUniqueID getIdIdxUniqueID () const
          {
             return _idIdxUniqID ;
@@ -882,6 +891,7 @@ namespace engine
          utilIdxUniqueID _idIdxUniqID ;
          INT32           _replSize ;
          BOOLEAN         _strictDataMode ;
+         BOOLEAN         _noTrans ;
    } ;
 
    typedef class _rtnCLSetAttributeTask rtnCLSetAttributeTask ;

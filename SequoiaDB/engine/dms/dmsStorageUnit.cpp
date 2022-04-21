@@ -3017,6 +3017,69 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_SETCLNOTRANS, "_dmsStorageUnit::setCollectionNoTrans" )
+   INT32 _dmsStorageUnit::setCollectionNoTrans ( const CHAR * pName,
+                                                 BOOLEAN noTrans,
+                                                 dmsMBContext * context,
+                                                 pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSU_SETCLNOTRANS ) ;
+
+      BOOLEAN hasCLLocked = FALSE ;
+      dpsTransCB *transCB = sdbGetTransCB() ;
+
+      SDB_ASSERT( NULL != context, "context should be valid" ) ;
+
+      // NOTE: if the context is no-trans now, it can ignore transaction lock
+      if ( data()->isTransSupport( context ) &&
+           NULL != cb &&
+           cb->getTransExecutor()->useTransLock() )
+      {
+         dpsTransRetInfo lockConflict ;
+         // need to get S lock of collection to avoid transactions have
+         // inserted/updated/deleted records on the same collection,
+         // including this session itself if it is in transaction
+         rc = transCB->transLockTrySAgainstWrite( cb,
+                                                  LogicalCSID(),
+                                                  context->mbID(),
+                                                  NULL,
+                                                  &lockConflict ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to lock the collection, rc: %d"OSS_NEWLINE
+                      "Conflict( representative ):"OSS_NEWLINE
+                      "   EDUID:  %llu"OSS_NEWLINE
+                      "   TID:    %u"OSS_NEWLINE
+                      "   LockId: %s"OSS_NEWLINE
+                      "   Mode:   %s"OSS_NEWLINE,
+                      rc,
+                      lockConflict._eduID,
+                      lockConflict._tid,
+                      lockConflict._lockID.toString().c_str(),
+                      lockModeToString( lockConflict._lockType ) ) ;
+
+         hasCLLocked = TRUE ;
+      }
+
+      rc = setCollectionAttribute( pName, DMS_MB_ATTR_NOTRANS,
+                                   noTrans, context ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to set collection attribute, rc: %d",
+                   rc ) ;
+
+   done:
+      if ( hasCLLocked )
+      {
+         transCB->transLockRelease( cb, _pDataSu->logicalID(),
+                                    context->mbID(), NULL, NULL ) ;
+      }
+      PD_TRACE_EXITRC( SDB__DMSSU_SETCLNOTRANS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_CANSETCLCOMPRESS, "_dmsStorageUnit::canSetCollectionCompressor" )
    INT32 _dmsStorageUnit::canSetCollectionCompressor ( dmsMBContext * context )
    {

@@ -80,6 +80,7 @@ namespace engine
       BOOLEAN     _autoSplit ;
       BOOLEAN     _autoRebalance ;
       BOOLEAN     _strictDataMode ;
+      BOOLEAN     _noTrans ;
       const CHAR * _gpSpecified ;
       INT32       _version ;
       INT32       _assignType ;
@@ -114,6 +115,7 @@ namespace engine
          _autoSplit           = FALSE ;
          _autoRebalance       = FALSE ;
          _strictDataMode      = FALSE ;
+         _noTrans             = FALSE ;
          _gpSpecified         = NULL ;
          _version             = 0 ;
          _assignType          = ASSIGN_RANDOM ;

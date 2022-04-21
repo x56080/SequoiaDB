@@ -561,6 +561,7 @@ namespace engine
       BOOLEAN hasCompressed = TRUE ;
       BOOLEAN hasCompressType = TRUE ;
       BOOLEAN strictDataMode = FALSE ;
+      BOOLEAN noTrans = FALSE ;
       BOOLEAN autoIndexId = TRUE ;
       BOOLEAN capped = FALSE ;
       const CHAR *compressionType = NULL ;
@@ -683,11 +684,17 @@ namespace engine
       }
 
       // check strictDataMode
-      rtnGetBooleanElement ( matcher, FIELD_NAME_STRICTDATAMODE,
-                             strictDataMode ) ;
-      if ( strictDataMode )
+      rc = rtnGetBooleanElement ( matcher, FIELD_NAME_STRICTDATAMODE,
+                                  strictDataMode ) ;
+      if ( SDB_OK == rc && strictDataMode )
       {
          _attributes |= DMS_MB_ATTR_STRICTDATAMODE ;
+      }
+
+      rc = rtnGetBooleanElement( matcher, FIELD_NAME_NOTRANS, noTrans ) ;
+      if ( SDB_OK == rc && noTrans )
+      {
+         _attributes |= DMS_MB_ATTR_NOTRANS ;
       }
 
       /// auto index id

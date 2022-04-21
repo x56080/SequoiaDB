@@ -808,7 +808,7 @@ namespace engine
                // and got sufficient size for us
                if( pRead->isDeleted() && pRead->getSize() >= requiredSize )
                {
-                  if ( !isTransSupport() ||
+                  if ( !isTransSupport( context ) ||
                        SDB_OK == pTransCB->transLockTestX( cb, _logicalCSID,
                                                            context->mbID(),
                                                            &foundDeletedID,

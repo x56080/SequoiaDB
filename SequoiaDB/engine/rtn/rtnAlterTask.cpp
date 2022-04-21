@@ -1043,6 +1043,7 @@ namespace engine
    {
       SDB_ASSERT( RTN_ALTER_CL_DROP_ID_INDEX == schema.getActionType(),
                   "schema is invalid" ) ;
+      setFlags( RTN_ALTER_TASK_TRANS_LOCK ) ;
    }
 
    _rtnCLDropIDIndexTask::~_rtnCLDropIDIndexTask ()
@@ -1572,7 +1573,8 @@ namespace engine
      _autoIndexID( TRUE ),
      _idIdxUniqID( UTIL_UNIQUEID_NULL ),
      _replSize( 1 ),
-     _strictDataMode( 1 )
+     _strictDataMode( TRUE ),
+     _noTrans( FALSE )
    {
       SDB_ASSERT( RTN_ALTER_CL_SET_ATTRIBUTES == schema.getActionType(),
                   "schema is invalid" ) ;
@@ -1728,6 +1730,10 @@ namespace engine
                    "Failed to get field [%s]", FIELD_NAME_AUTO_INDEX_ID ) ;
          _autoIndexID = argElement.boolean() ;
          parsedArgumentMask( UTIL_CL_AUTOIDXID_FIELD ) ;
+         if ( !_autoIndexID )
+         {
+            setFlags( RTN_ALTER_TASK_TRANS_LOCK ) ;
+         }
       }
 
       if ( _argument.hasField( FIELD_NAME_W ) )
@@ -1757,6 +1763,17 @@ namespace engine
          _strictDataMode = argElement.boolean() ;
          parsedArgumentMask( UTIL_CL_STRICTDATAMODE_FIELD ) ;
          setFlags( RTN_ALTER_TASK_FLAG_3PHASE ) ;
+      }
+
+      if ( _argument.hasField( FIELD_NAME_NOTRANS ) )
+      {
+         argElement = _argument.getField( FIELD_NAME_NOTRANS ) ;
+         PD_CHECK( Bool == argElement.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to get field [%s]", FIELD_NAME_NOTRANS ) ;
+         _noTrans = argElement.boolean() ;
+         parsedArgumentMask( UTIL_CL_NOTRANS_FIELD ) ;
+         setFlags( RTN_ALTER_TASK_FLAG_3PHASE |
+                   RTN_ALTER_TASK_TRANS_LOCK ) ;
       }
 
       // Special non supported cases
@@ -1791,13 +1808,15 @@ namespace engine
         goto error ;
       }
 
-      // ReplSize, ShardingKey, Compressed, CompressType, StrictDataMode is
-      // allowed in main-collection
+      // ReplSize, ShardingKey, Compressed, CompressType, StrictDataMode,
+      // NoTrans is allowed in main-collection, or checked by the altering
+      // field itself
       if ( !testArgumentMask( ~( UTIL_CL_REPLSIZE_FIELD |
                                  UTIL_CL_SHDKEY_FIELD |
                                  UTIL_CL_COMPRESSED_FIELD |
                                  UTIL_CL_COMPRESSTYPE_FIELD |
-                                 UTIL_CL_STRICTDATAMODE_FIELD ) ) )
+                                 UTIL_CL_STRICTDATAMODE_FIELD |
+                                 UTIL_CL_NOTRANS_FIELD ) ) )
       {
          setFlags( RTN_ALTER_TASK_FLAG_MAINCLALLOW ) ;
       }
