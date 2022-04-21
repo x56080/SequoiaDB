@@ -117,8 +117,9 @@ public class SDBDynamicTableFactory implements DynamicTableSourceFactory, Dynami
         sdboptions.computeIdempotentWriteOptimization(pk);
                 
         if (sdboptions.getTransactionOn() && !sdboptions.getIdempotent()
-            && ((RowType) producedDataType.getLogicalType()).getFieldNames().contains(SDB_BSON_OID)) {
-            throw new SDBException("Table Schema Contains _id, when transaction on is set and no unique index");
+            // && ((RowType) producedDataType.getLogicalType()).getFieldNames().contains(SDB_BSON_OID)
+            ) {
+            throw new SDBException("Can not perform idempotent write without primary key/unique key");
         }
         return new SDBDynamicTableSink(sdboptions, producedDataType);
     }
