@@ -73,6 +73,6 @@ public class SDBOptions implements Serializable {
     public static final ConfigOption<Long> MAX_BULK_FILL_TIME =
             ConfigOptions.key("maxbulkfilltime").longType().defaultValue(300L);
     public static final ConfigOption<Boolean> TRANSACTION_ON =
-            ConfigOptions.key("transactionon").booleanType().defaultValue(false);
+            ConfigOptions.key("idempotentwrite").booleanType().defaultValue(false);
 
 }
