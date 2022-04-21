@@ -85,11 +85,11 @@ WITH(
 | autosplit               | boolean | insert into select 创建集合时指定是否自动切分，默认值为 false，表示不自动切分 <br> 该参数必须配合散列分区和域使用，且不能与 group 同时使用              | 否   |
 | group                   | string  | insert into select 创建集合时指定创建在某个复制组<br>所指定的复制组必须存在于集合空间所属的域中                                                         | 否   |
 |  parallelism            | int32   | Sink 并发度，默认值为 1，取值应小于当前 Flink 集群的总 Slot 数量 <br> 建议取值为 SequoiaDB 集群中协调节点数量的倍数                           | 否   |  
-| transactionon           | boolean | Sink 是否开启事务，默认值为 false，表示不开启事务 <br> 建议取值如下： <br> 1）在批量写入的场景下，建议取值为 false，以提高写入效率  <br>  2）在实时写入的场景下，建议取值为 true，以保证数据一致性  <br> 3）在实时写入但不要求数据保持一致性的场景下，建议取值为 false， 以提高写入效率                                                              | 否   |
+| idempotentwrite           | boolean | Sink 是否开启可幂等写，默认值为 false，表示不开启 <br> 建议取值如下： <br> 1）在批量写入的场景下，建议取值为 false，以提高写入效率  <br>  2）在实时写入的场景下，建议取值为 true，以保证数据一致性  <br> 3）在实时写入但不要求数据保持一致性的场景下，建议取值为 false， 以提高写入效率                                                              | 否   |
 
 ##保证精确一次性##
 
-FlinkSQL 连接器通过 Checkpoint 机制保证数据写出的精确一次性。当用户将表配置 transactionon 设置为 true 时，需根据实际场景配置 Flink 集群中与 StateBackend 有关的参数，以保证数据处理的精确一次。
+FlinkSQL 连接器通过 Checkpoint 机制保证数据写出的精确一次性。当用户将表配置 idempotentwrite 设置为 true 时，需根据实际场景配置 Flink 集群中与 StateBackend 有关的参数，以保证数据处理的精确一次。
 
 下述以使用 RocksDB 增量存储 Checkpoint 为例，演示部分参数的配置方式，用户需根据实际情况调整配置。
 
