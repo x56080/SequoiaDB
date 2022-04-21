@@ -37,9 +37,14 @@
 #include "ossRWMutex.hpp"
 #include "utilCircularQueue.hpp"
 #include "pd.hpp"
+#include "msg.h"
+#include "common.h"
 
 namespace import
 {
+
+   INT32 reallocBuffer ( CHAR **ppBuffer, INT32 *bufferSize, INT32 newSize ) ;
+
    class _impBufferBlock : public SDBObject
    {
    public:
@@ -362,6 +367,30 @@ namespace import
       BsonPageBuffer       _pageQueue ;
    } ;
    typedef _BsonPageQueue BsonPageQueue ;
+
+   class _sdbMsgConvertor
+   {
+   public:
+      _sdbMsgConvertor() ;
+      ~_sdbMsgConvertor() ;
+
+   public:
+      INT32 downgradeRequest( const CHAR *pRequestHeader,
+                              INT32 requestHeaderLength,
+                              CHAR *&outputData,
+                              INT32 &outputDataLength ) ;
+      INT32 upgradeReply( const CHAR *replyMsg,
+                          CHAR *&outputData,
+                          INT32 &outputDataLength ) ;
+
+   private:
+      INT32 _ensureBuff( INT32 size ) ;
+
+   private:
+      CHAR*       _buff ;
+      INT32       _buffSize ;
+   } ;
+   typedef class _sdbMsgConvertor sdbMsgConvertor ;
 }
 
 #endif /* IMP_RECORD_QUEUE_HPP__ */
