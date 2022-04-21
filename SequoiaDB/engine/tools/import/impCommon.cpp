@@ -34,6 +34,36 @@
 
 namespace import
 {
+
+   INT32 reallocBuffer ( CHAR **ppBuffer, INT32 *bufferSize, INT32 newSize )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( newSize > *bufferSize )
+      {
+         CHAR *newBuff = (CHAR *)SDB_OSS_REALLOC ( *ppBuffer, newSize ) ;
+         if ( !newBuff )
+         {
+            rc = SDB_OOM ;
+            goto error ;
+         }
+         *ppBuffer   = newBuff ;
+         *bufferSize = newSize ;
+      }
+
+      // SEQUOIADBMAINSTREAM-1916
+      if ( NULL == *ppBuffer )
+      {
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
    _impBufferBlock::_impBufferBlock() : _inited( FALSE ),
                                         _bufferSize( 0 ),
                                         _buffer( NULL ),
@@ -452,5 +482,85 @@ namespace import
       return rc ;
    error:
       goto done ;
+   }
+
+   _sdbMsgConvertor::_sdbMsgConvertor() : _buff( NULL ),
+                                          _buffSize( 0 )
+   {
+   }
+
+   _sdbMsgConvertor::~_sdbMsgConvertor()
+   {
+      if ( _buff )
+      {
+         SDB_OSS_FREE( _buff ) ;
+      }
+      _buff     = NULL ;
+      _buffSize = 0 ;
+   }
+
+   INT32 _sdbMsgConvertor::downgradeRequest( const CHAR *pRequestHeader,
+                                             INT32 requestHeaderLength,
+                                             CHAR *&outputData,
+                                             INT32 &outputDataLength )
+   {
+      INT32 rc          = SDB_OK ;
+      MsgHeader *header = (MsgHeader *)pRequestHeader ;
+      MsgHeaderV1 newHeader ;
+
+      clientMsgHeaderDowngrade( header, &newHeader ) ;
+      // we don't calculate the exact buffer size, just make sure the buffer is
+      // large enough, and that is ok
+      rc = _ensureBuff( requestHeaderLength ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      // build a request header by using MsgHeader
+      ossMemcpy( _buff, &newHeader, sizeof(MsgHeaderV1) ) ;
+      ossMemcpy( _buff + sizeof(MsgHeaderV1), (CHAR *)header + sizeof(MsgHeader),
+                 requestHeaderLength - sizeof(MsgHeader) ) ;
+      // output the result
+      outputData       = _buff ;
+      outputDataLength =
+         requestHeaderLength - ( sizeof(MsgHeader) - sizeof(MsgHeaderV1) ) ;
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbMsgConvertor::upgradeReply( const CHAR *replyMsg,
+                                         CHAR *&outputData,
+                                         INT32 &outputDataLength )
+   {
+      INT32 rc            = SDB_OK ;
+      MsgOpReplyV1 *reply = (MsgOpReplyV1 *)replyMsg ;
+      MsgOpReply newReply ;
+
+      clientMsgReplyHeaderUpgrade( reply, &newReply ) ;
+      rc = _ensureBuff( newReply.header.messageLength ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      // build a reply by using MsgOpReplyV1
+      ossMemcpy( _buff, &newReply, sizeof(MsgOpReply) ) ;
+      ossMemcpy( _buff + sizeof(MsgOpReply),
+                (CHAR *)reply + sizeof(MsgOpReplyV1),
+                reply->header.messageLength - sizeof(MsgOpReplyV1) ) ;
+      // output the result
+      outputData       = _buff ;
+      outputDataLength = newReply.header.messageLength ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbMsgConvertor::_ensureBuff( INT32 size )
+   {
+      return reallocBuffer( &_buff, &_buffSize, size ) ;
    }
 }

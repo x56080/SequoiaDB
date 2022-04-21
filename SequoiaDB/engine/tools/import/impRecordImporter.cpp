@@ -84,7 +84,9 @@ namespace import
            _user( user ),
            _password( password ),
            _csname( csname ),
-           _clname( clname )
+           _clname( clname ),
+           _msgConvertor( NULL ),
+           _peerProtocolVersion( SDB_PROTOCOL_VER_INVALID )
    {
 
    }
@@ -95,6 +97,12 @@ namespace import
 
       SAFE_OSS_FREE( _insertBuffer ) ;
       SAFE_OSS_FREE( _recvBuffer ) ;
+
+      if ( _msgConvertor )
+      {
+         delete _msgConvertor ;
+         _msgConvertor = NULL ;
+      }
    }
 
    INT32 RecordImporter::connect()
@@ -149,6 +157,17 @@ namespace import
 
       connection = (sdbConnectionStruct*)_connection ;
       _endianConvert = connection->_endianConvert ;
+      _peerProtocolVersion = connection->_peerProtocolVersion ;
+      if ( SDB_PROTOCOL_VER_1 == _peerProtocolVersion )
+      {
+         _msgConvertor = new(std::nothrow)sdbMsgConvertor() ;
+         if ( !_msgConvertor )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Failed to alloc msg convertor, rc = %d", rc ) ;
+            goto error ;
+         }
+      }
 
       rc = sdbGetCollectionSpace( _connection, _csname.c_str(),
                                   &_collectionSpace ) ;
@@ -378,7 +397,7 @@ namespace import
       pages = pageInfo->pages ;
       while( pages )
       {
-         rc = _send( pages->getBuffer(), pages->getRecordsSize() ) ;
+         rc = _send( pages->getBuffer(), pages->getRecordsSize(), FALSE ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to send bson buffer, rc=%d", rc ) ;
@@ -408,13 +427,14 @@ namespace import
       goto done ;
    }
 
-   INT32 RecordImporter::_send( const CHAR *pMsg, INT32 len )
+   INT32 RecordImporter::_send( const CHAR *pMsg, INT32 len, BOOLEAN isHeader )
    {
-      INT32 rc = SDB_OK ;
-      INT32 sentSize = 0 ;
-      INT32 totalSentSize = 0 ;
+      INT32 rc                 = SDB_OK ;
+      INT32 sentSize           = 0 ;
+      INT32 totalSentSize      = 0 ;
       sdbCollectionStruct *cls = (sdbCollectionStruct*)_collection ;
-      Socket* sock = cls->_sock ;
+      Socket* sock             = cls->_sock ;
+      CHAR *pBuffer            = (CHAR*)pMsg ;
 
       if ( NULL == sock )
       {
@@ -422,9 +442,19 @@ namespace import
          goto error ;
       }
 
+      if ( isHeader && _msgConvertor )
+      {
+         // the output 'len' will be changed
+         rc = _msgConvertor->downgradeRequest( pMsg, len, pBuffer, len ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+
       while( len > totalSentSize )
       {
-         rc = clientSend( sock, pMsg + totalSentSize, len - totalSentSize,
+         rc = clientSend( sock, pBuffer + totalSentSize, len - totalSentSize,
                           &sentSize, IMP_DEFAULT_NETWORK_TIMEOUT ) ;
          totalSentSize += sentSize ;
          if ( SDB_TIMEOUT == rc )
@@ -445,13 +475,17 @@ namespace import
 
    INT32 RecordImporter::_recv()
    {
-      INT32 rc        = SDB_OK ;
-      INT32 len       = 0 ;
-      INT32 realLen   = 0 ;
-      INT32 receivedLen = 0 ;
-      INT32 totalReceivedLen = 0 ;
+      INT32 rc                 = SDB_OK ;
+      INT32 len                = 0 ;
+      INT32 realLen            = 0 ;
+      INT32 receivedLen        = 0 ;
+      INT32 totalReceivedLen   = 0 ;
+      _recvBufferSize          = 0 ;
       sdbCollectionStruct *cls = (sdbCollectionStruct*)_collection ;
-      Socket* sock = cls->_sock ;
+      Socket* sock             = cls->_sock ;
+      INT32 minReplySize       = ( SDB_PROTOCOL_VER_1 == _peerProtocolVersion ) ?
+                                 sizeof(MsgOpReplyV1) : sizeof(MsgOpReply) ;
+      CHAR **ppBuffer          = &_recvBuffer ;
 
       if ( NULL == sock )
       {
@@ -491,6 +525,12 @@ namespace import
       }
 
       ossEndianConvertIf4 ( len, realLen, _endianConvert ) ;
+
+      if ( realLen < minReplySize )
+      {
+         rc = SDB_NET_BROKEN_MSG ;
+         goto error ;
+      }
 
       if ( _recvBufferSize < realLen )
       {
@@ -532,6 +572,30 @@ namespace import
             break ;
          }
       }
+      // upgrade the reply
+      if ( _msgConvertor )
+      {
+         INT32 tmpLen = 0 ;
+         CHAR *tmpPtr = NULL ;
+         rc = _msgConvertor->upgradeReply( *ppBuffer, tmpPtr, tmpLen ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+
+         SDB_ASSERT( tmpLen == *(INT32 *)tmpPtr,
+                     "Converted message length is not as expected" ) ;
+         // copy the result back to the received buffer
+         if ( tmpLen > realLen )
+         {
+            rc = reallocBuffer( ppBuffer, &_recvBufferSize, tmpLen ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+         }
+         ossMemcpy( *ppBuffer, tmpPtr, tmpLen ) ;
+      }
 
    done:
       return rc ;
@@ -562,4 +626,5 @@ namespace import
    error :
       goto done ;
    }
-}
+
+} // namespace
