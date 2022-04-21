@@ -153,56 +153,43 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETRT_ROUTE_UDP, "_netRoute::route" )
    INT32 _netRoute::route( const MsgRouteID &routeID,
-                           netUDPEndPoint &endPoint,
-                           BOOLEAN needCache )
+                           netUDPEndPoint &endPoint )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__NETRT_ROUTE_UDP ) ;
 
+      UINT16 serviceID = routeID.columns.serviceID ;
+      MsgRouteID tmpID = routeID ;
+      tmpID.columns.serviceID = 0 ;
+
       ossScopedLock scopedLock( &_mtx, SHARED ) ;
 
-      NET_UDP_EP_MAP::const_iterator udpIter = _udpRoute.find( routeID.value ) ;
-      if ( udpIter != _udpRoute.end() )
-      {
-         endPoint = udpIter->second ;
-      }
-      else
-      {
-         UINT16 serviceID = routeID.columns.serviceID ;
-         MsgRouteID tmpID = routeID ;
-         tmpID.columns.serviceID = 0 ;
-         NET_ROUTE_MAP::const_iterator routeIter = _route.find( tmpID.value ) ;
-         PD_CHECK( routeIter != _route.end(), SDB_NET_ROUTE_NOT_FOUND, error,
-                   PDWARNING, "Failed to find route for [ group: %u, node: %u, "
-                   "service: %u ]", routeID.columns.groupID,
-                   routeID.columns.nodeID, routeID.columns.serviceID ) ;
-         PD_CHECK( '\0' != routeIter->second._host[ 0 ],
-                   SDB_NET_ROUTE_NOT_FOUND, error, PDWARNING,
-                   "Failed to find route for [ group: %u, node: %u, "
-                   "service: %u ]: host is not found", routeID.columns.groupID,
-                   routeID.columns.nodeID, routeID.columns.serviceID ) ;
-         PD_CHECK( !( routeIter->second._service[ serviceID ].empty() ),
-                   SDB_NET_ROUTE_NOT_FOUND, error, PDWARNING,
-                   "Failed to find route for [ group: %u, node: %u, "
-                   "service: %u ]: service is not found",
-                   routeID.columns.groupID, routeID.columns.nodeID,
-                   routeID.columns.serviceID ) ;
-         rc = getUDPEndPoint( routeIter->second._host,
-                              routeIter->second._service[ serviceID ].c_str(),
-                              endPoint ) ;
-         PD_RC_CHECK( rc, PDWARNING, "Failed to get UDP end point for "
-                      "[ group: %u, node: %u, service: %u ]: address %s:%s "
-                      "could not be resolved, rc: %d", routeID.columns.groupID,
-                      routeID.columns.nodeID,routeID.columns.serviceID,
-                      routeIter->second._host,
-                      routeIter->second._service[ serviceID ].c_str(), rc ) ;
-
-         if ( needCache )
-         {
-            _udpRoute.insert( make_pair( routeID.value, endPoint ) ) ;
-         }
-      }
+      NET_ROUTE_MAP::const_iterator routeIter = _route.find( tmpID.value ) ;
+      PD_CHECK( routeIter != _route.end(), SDB_NET_ROUTE_NOT_FOUND, error,
+                PDWARNING, "Failed to find route for [ group: %u, node: %u, "
+                "service: %u ]", routeID.columns.groupID,
+                routeID.columns.nodeID, routeID.columns.serviceID ) ;
+      PD_CHECK( '\0' != routeIter->second._host[ 0 ],
+                SDB_NET_ROUTE_NOT_FOUND, error, PDWARNING,
+                "Failed to find route for [ group: %u, node: %u, "
+                "service: %u ]: host is not found", routeID.columns.groupID,
+                routeID.columns.nodeID, routeID.columns.serviceID ) ;
+      PD_CHECK( !( routeIter->second._service[ serviceID ].empty() ),
+                SDB_NET_ROUTE_NOT_FOUND, error, PDWARNING,
+                "Failed to find route for [ group: %u, node: %u, "
+                "service: %u ]: service is not found",
+                routeID.columns.groupID, routeID.columns.nodeID,
+                routeID.columns.serviceID ) ;
+      rc = getUDPEndPoint( routeIter->second._host,
+                           routeIter->second._service[ serviceID ].c_str(),
+                           endPoint ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get UDP end point for "
+                   "[ group: %u, node: %u, service: %u ]: address %s:%s "
+                   "could not be resolved, rc: %d", routeID.columns.groupID,
+                   routeID.columns.nodeID,routeID.columns.serviceID,
+                   routeIter->second._host,
+                   routeIter->second._service[ serviceID ].c_str(), rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__NETRT_ROUTE_UDP, rc ) ;
@@ -262,7 +249,6 @@ namespace engine
          (node._service)[id.columns.serviceID] = string( service ) ;
          rc = SDB_OK ;
       }
-      _clearUDPRoute( id, FALSE ) ;
       _mtx.release() ;
 
       PD_TRACE_EXITRC ( SDB__NETRT_UPDATE, rc ) ;
@@ -296,8 +282,6 @@ namespace engine
          _route[newTmp.value] = it->second ;
          _route.erase ( oldTmp.value ) ;
       }
-
-      _clearUDPRoute( oldID, TRUE ) ;
 
    done :
       _mtx.release () ;
@@ -351,8 +335,6 @@ namespace engine
          }
       }
 
-      _clearUDPRoute( id, TRUE ) ;
-
       _mtx.release() ;
       PD_TRACE_EXITRC ( SDB__NETRT_UPDATE3, rc );
       return rc ;
@@ -364,7 +346,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__NETRT_CLEAR );
       _mtx.get() ;
       _route.clear() ;
-      _udpRoute.clear() ;
       _mtx.release() ;
       PD_TRACE_EXIT ( SDB__NETRT_CLEAR );
    }
@@ -451,31 +432,6 @@ namespace engine
 
    error:
       goto done ;
-   }
-
-   void _netRoute::clearUDPRoute( const MsgRouteID &routeID,
-                                  BOOLEAN allServices )
-   {
-      ossScopedLock( &_mtx, EXCLUSIVE ) ;
-      _clearUDPRoute( routeID, allServices ) ;
-   }
-
-   void _netRoute::_clearUDPRoute( const MsgRouteID &routeID,
-                                   BOOLEAN allServices )
-   {
-      if ( allServices )
-      {
-         MsgRouteID tmpID = routeID ;
-         for ( UINT32 i = 0 ; i < MSG_ROUTE_SERVICE_TYPE_MAX ; ++ i )
-         {
-            tmpID.columns.serviceID = (UINT16)i ;
-            _udpRoute.erase( tmpID.value ) ;
-         }
-      }
-      else
-      {
-         _udpRoute.erase( routeID.value ) ;
-      }
    }
 
 }

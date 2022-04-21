@@ -99,7 +99,6 @@ namespace engine
 
    typedef boost::asio::ip::tcp::endpoint netTCPEndPoint ;
    typedef boost::asio::ip::udp::endpoint netUDPEndPoint ;
-   typedef ossPoolMap< UINT64, netUDPEndPoint > NET_UDP_EP_MAP ;
 
    /*
       _netRouteNode define

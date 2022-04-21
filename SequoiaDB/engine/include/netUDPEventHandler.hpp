@@ -92,6 +92,11 @@ namespace engine
       void readCallback( MsgHeader *message ) ;
       void setRouteID( const MsgRouteID &routeID ) ;
 
+      OSS_INLINE const netUDPEndPoint &getRemoteEndPoint() const
+      {
+         return _remoteEndPoint ;
+      }
+
    protected:
       OSS_INLINE NET_UDP_EH _getShared()
       {

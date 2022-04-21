@@ -108,13 +108,15 @@ namespace engine
       INT32 getEH( const netUDPEndPoint &endPoint,
                    const MsgRouteID &routeID,
                    NET_EH &eh ) ;
+      INT32 getEH( const MsgRouteID &routeID,
+                   NET_EH &eh ) ;
       void  removeEH( const netUDPEndPoint &endPoint ) ;
       void  removeEH( const MsgRouteID &routeID ) ;
       void  removeAllEH() ;
 
    protected:
       typedef ossPoolMap< netUDPEndPoint, NET_EH > NET_UDP_EP2EH_MAP ;
-      typedef ossPoolList< NET_EH >                NET_UDP_EH_LIST ;
+      typedef ossPoolMap< UINT64, NET_EH >         NET_UDP_ID2EH_MAP ;
 
    protected:
       OSS_INLINE NET_UDP_EV_SUIT _getShared()
@@ -127,6 +129,7 @@ namespace engine
                          const MsgRouteID &routeID,
                          NET_EH &eh ) ;
       NET_EH  _getEH( const netUDPEndPoint &endPoint ) ;
+      NET_EH  _getEH( const MsgRouteID &routeID ) ;
       INT32   _allocateBuffer( UINT32 bufferSize ) ;
 
    protected:
@@ -140,6 +143,7 @@ namespace engine
       netUDPEndPoint                _localEndPoint ;
       ossSpinSLatch                 _mtx ;
       NET_UDP_EP2EH_MAP             _ep2ehMap ;
+      NET_UDP_ID2EH_MAP             _id2ehMap ;
    } ;
 
 }
