@@ -19,6 +19,12 @@ package com.sequoiadb.message.request;
 import org.bson.BSONObject;
 
 public class AdminRequest extends QueryRequest {
+
+    public AdminRequest(String command, BSONObject matcher, BSONObject selector, BSONObject orderBy, BSONObject hint,
+                        long skipNum, long returnedNum, int flag) {
+        super(command, matcher, selector, orderBy, hint, skipNum, returnedNum, flag);
+    }
+
     public AdminRequest(String command, BSONObject matcher, BSONObject selector, BSONObject orderBy, BSONObject hint,
                         long skipNum, long returnedNum) {
         super(command, matcher, selector, orderBy, hint, skipNum, returnedNum, 0);

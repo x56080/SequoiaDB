@@ -1262,7 +1262,7 @@ public class Sequoiadb implements Closeable {
                             BSONObject hint, long skipRows, long returnRows) throws BaseException {
         String command = getListCommand(listType);
         AdminRequest request = new AdminRequest(command, query, selector, orderBy, hint, skipRows,
-                returnRows);
+                returnRows, DBQuery.FLG_QUERY_WITH_RETURNDATA);
         SdbReply response = requestAndResponse(request);
 
         int flags = response.getFlag();
@@ -1547,19 +1547,16 @@ public class Sequoiadb implements Closeable {
         String command = getSnapshotCommand(snapType);
 
         QueryRequest request = new QueryRequest(command, matcher, selector, orderBy, hint, skipRows,
-                returnRows, 0);
+                returnRows, DBQuery.FLG_QUERY_WITH_RETURNDATA);
         SdbReply response = requestAndResponse(request);
 
-        int flag = response.getFlag();
-        if (flag != 0) {
-            if (flag == SDBError.SDB_DMS_EOC.getErrorCode()) {
-                return null;
-            } else {
-                String msg = "matcher = " + matcher + ", selector = " + selector + ", orderBy = "
-                        + orderBy + ", hint = " + hint + ", skipRows = " + skipRows
-                        + ", returnRows = " + returnRows;
-                throwIfError(response, msg);
-            }
+        if (response.getFlag() == SDBError.SDB_DMS_EOC.getErrorCode()) {
+            return null;
+        } else if (response.getFlag() != 0) {
+            String msg = "matcher = " + matcher + ", selector = " + selector + ", orderBy = "
+                    + orderBy + ", hint = " + hint + ", skipRows = " + skipRows
+                    + ", returnRows = " + returnRows;
+            throwIfError(response, msg);
         }
 
         return new DBCursor(response, this);
@@ -1845,22 +1842,18 @@ public class Sequoiadb implements Closeable {
     public DBCursor listBackup(BSONObject options, BSONObject matcher, BSONObject selector,
                                BSONObject orderBy) throws BaseException {
         AdminRequest request = new AdminRequest(AdminCommand.LIST_BACKUP, matcher, selector,
-                orderBy, options);
+                orderBy, options, 0, -1, DBQuery.FLG_QUERY_WITH_RETURNDATA);
         SdbReply response = requestAndResponse(request);
 
-        int flags = response.getFlag();
-        if (flags != 0) {
-            if (flags == SDBError.SDB_DMS_EOC.getErrorCode()) {
-                return null;
-            } else {
-                String msg = "matcher = " + matcher + ", selector = " + selector + ", orderBy = "
-                        + orderBy + ", options = " + options;
-                throwIfError(response, msg);
-            }
+        if (response.getFlag() == SDBError.SDB_DMS_EOC.getErrorCode()) {
+            return null;
+        } else if (response.getFlag() != 0) {
+            String msg = "matcher = " + matcher + ", selector = " + selector + ", orderBy = "
+                    + orderBy + ", options = " + options;
+            throwIfError(response, msg);
         }
 
-        DBCursor cursor = new DBCursor(response, this);
-        return cursor;
+        return new DBCursor(response, this);
     }
 
     /**

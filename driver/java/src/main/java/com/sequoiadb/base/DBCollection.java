@@ -1294,9 +1294,7 @@ public class DBCollection {
         }
 
         sequoiadb.upsertCache(collectionFullName);
-
-        DBCursor cursor = new DBCursor(response, sequoiadb);
-        return cursor;
+        return new DBCursor(response, sequoiadb);
     }
 
     /**
@@ -1351,22 +1349,17 @@ public class DBCollection {
         BSONObject obj = new BasicBSONObject();
         obj.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
 
-        AdminRequest request = new AdminRequest(AdminCommand.GET_INDEXES, null, obj);
+        AdminRequest request = new AdminRequest(AdminCommand.GET_INDEXES, null, null,
+                null, obj, 0, -1, DBQuery.FLG_QUERY_WITH_RETURNDATA);
         SdbReply response = sequoiadb.requestAndResponse(request);
 
-        int flags = response.getFlag();
-        if (flags != 0) {
-            if (flags == SDBError.SDB_DMS_EOC.getErrorCode()) {
-                return null;
-            } else {
-                sequoiadb.throwIfError(response);
-            }
+        if (response.getFlag() == SDBError.SDB_DMS_EOC.getErrorCode()) {
+            return null;
         }
-
+        sequoiadb.throwIfError(response);
         sequoiadb.upsertCache(collectionFullName);
+        return new DBCursor(response, sequoiadb);
 
-        DBCursor cursor = new DBCursor(response, sequoiadb);
-        return cursor;
     }
 
     private DBCursor _queryAndModify(BSONObject matcher, BSONObject selector, BSONObject orderBy,
@@ -1482,19 +1475,17 @@ public class DBCollection {
         BSONObject obj = new BasicBSONObject();
         obj.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
 
-        AdminRequest request = new AdminRequest(AdminCommand.GET_INDEXES, condition, obj);
+        AdminRequest request = new AdminRequest(AdminCommand.GET_INDEXES, condition, null,
+                null, obj, 0, -1, DBQuery.FLG_QUERY_WITH_RETURNDATA);
         SdbReply response = sequoiadb.requestAndResponse(request);
 
-        int flags = response.getFlag();
-        if (flags != 0) {
-            if (flags == SDBError.SDB_DMS_EOC.getErrorCode()) {
-                return null;
-            } else {
-                sequoiadb.throwIfError(response);
-            }
+        if (response.getFlag() == SDBError.SDB_DMS_EOC.getErrorCode()) {
+            return null;
         }
+        sequoiadb.throwIfError(response);
         sequoiadb.upsertCache(collectionFullName);
         return new DBCursor(response, sequoiadb);
+
     }
 
     /**
@@ -1516,11 +1507,10 @@ public class DBCollection {
         BSONObject obj = new BasicBSONObject();
         obj.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
 
-        AdminRequest request = new AdminRequest(AdminCommand.GET_INDEXES, condition, obj);
+        AdminRequest request = new AdminRequest(AdminCommand.GET_INDEXES, condition, null,
+                null, obj, 0, -1, DBQuery.FLG_QUERY_WITH_RETURNDATA);
         SdbReply response = sequoiadb.requestAndResponse(request);
-        if (response.getFlag() != 0) {
-            sequoiadb.throwIfError(response);
-        }
+        sequoiadb.throwIfError(response);
         sequoiadb.upsertCache(collectionFullName);
         DBCursor cursor = new DBCursor(response, sequoiadb);
         try {
@@ -1775,7 +1765,7 @@ public class DBCollection {
         }
 
         QueryRequest request = new QueryRequest(AdminCommand.GET_COUNT,
-                matcher, null, null, newHint, -1, -1,
+                matcher, null, null, newHint, 0, -1,
                 DBQuery.FLG_QUERY_WITH_RETURNDATA );
         SdbReply response = sequoiadb.requestAndResponse(request);
 
@@ -1908,7 +1898,8 @@ public class DBCollection {
             obj.put(SdbConstants.FIELD_NAME_SPLITENDQUERY, splitEndCondition);
         }
 
-        AdminRequest request = new AdminRequest(AdminCommand.SPLIT, obj);
+        AdminRequest request = new AdminRequest(AdminCommand.SPLIT, obj, null, null,
+                null, 0, -1, DBQuery.FLG_QUERY_WITH_RETURNDATA);
         SdbReply response = sequoiadb.requestAndResponse(request);
 
         if (response.getFlag() != 0) {
@@ -1927,14 +1918,12 @@ public class DBCollection {
         } finally {
             cursor.close();
         }
-        boolean flag = result.containsField(SdbConstants.FIELD_NAME_TASKID);
-        if (!flag) {
+        if (!result.containsField(SdbConstants.FIELD_NAME_TASKID)) {
             throw new BaseException(SDBError.SDB_CAT_TASK_NOTFOUND);
         }
 
         sequoiadb.upsertCache(collectionFullName);
-        long taskid = (Long) result.get(SdbConstants.FIELD_NAME_TASKID);
-        return taskid;
+        return (Long) result.get(SdbConstants.FIELD_NAME_TASKID);
     }
 
     /**
@@ -1962,7 +1951,8 @@ public class DBCollection {
         obj.put(SdbConstants.FIELD_NAME_TARGET, destGroupName);
         obj.put(SdbConstants.FIELD_NAME_SPLITPERCENT, percent);
 
-        AdminRequest request = new AdminRequest(AdminCommand.SPLIT, obj);
+        AdminRequest request = new AdminRequest(AdminCommand.SPLIT, obj, null, null,
+                null, 0, -1, DBQuery.FLG_QUERY_WITH_RETURNDATA);
         SdbReply response = sequoiadb.requestAndResponse(request);
 
         if (response.getFlag() != 0) {
@@ -1980,15 +1970,12 @@ public class DBCollection {
         } finally {
             cursor.close();
         }
-        boolean flag = result.containsField(SdbConstants.FIELD_NAME_TASKID);
-        if (!flag) {
+        if (!result.containsField(SdbConstants.FIELD_NAME_TASKID)) {
             throw new BaseException(SDBError.SDB_CAT_TASK_NOTFOUND);
         }
 
         sequoiadb.upsertCache(collectionFullName);
-
-        long taskid = (Long) result.get(SdbConstants.FIELD_NAME_TASKID);
-        return taskid;
+        return (Long) result.get(SdbConstants.FIELD_NAME_TASKID);
     }
 
     /**
@@ -2002,22 +1989,16 @@ public class DBCollection {
             throw new BaseException(SDBError.SDB_INVALIDARG);
         }
 
-        AggregateRequest request = new AggregateRequest(collectionFullName, objs);
+        AggregateRequest request = new AggregateRequest(collectionFullName, objs,
+                DBQuery.FLG_QUERY_WITH_RETURNDATA);
         SdbReply response = sequoiadb.requestAndResponse(request);
 
-        int flags = response.getFlag();
-        if (flags != 0) {
-            if (flags == SDBError.SDB_DMS_EOC.getErrorCode()) {
-                return null;
-            } else {
-                sequoiadb.throwIfError(response, objs);
-            }
+        if (response.getFlag() == SDBError.SDB_DMS_EOC.getErrorCode()) {
+            return null;
         }
-
+        sequoiadb.throwIfError(response);
         sequoiadb.upsertCache(collectionFullName);
-
-        DBCursor cursor = new DBCursor(response, sequoiadb);
-        return cursor;
+        return new DBCursor(response, sequoiadb);
     }
 
     /**
@@ -2047,25 +2028,21 @@ public class DBCollection {
             newHint.put("Hint", hint);
         }
 
+        flag |= DBQuery.FLG_QUERY_WITH_RETURNDATA;
         QueryRequest request = new QueryRequest(AdminCommand.GET_QUERYMETA, matcher, null, orderBy,
                 newHint, skipRows, returnRows, flag);
         SdbReply response = sequoiadb.requestAndResponse(request);
 
-        int flags = response.getFlag();
-        if (flags != 0) {
-            if (flags == SDBError.SDB_DMS_EOC.getErrorCode()) {
-                return null;
-            } else {
-                String msg = "query = " + matcher + ", hint = " + hint + ", orderBy = " + orderBy
-                        + ", skipRows = " + skipRows + ", returnRows = " + returnRows;
-                sequoiadb.throwIfError(response, msg);
-            }
+        if (response.getFlag() == SDBError.SDB_DMS_EOC.getErrorCode()) {
+            return null;
+        } else if (response.getFlag() != 0) {
+            String msg = "query = " + matcher + ", hint = " + hint + ", orderBy = " + orderBy
+                    + ", skipRows = " + skipRows + ", returnRows = " + returnRows;
+            sequoiadb.throwIfError(response, msg);
         }
 
         sequoiadb.upsertCache(collectionFullName);
-
-        DBCursor cursor = new DBCursor(response, sequoiadb);
-        return cursor;
+        return new DBCursor(response, sequoiadb);
     }
 
     /**
@@ -2417,9 +2394,7 @@ public class DBCollection {
             BaseException savedError = null;
             try {
                 isOldLobServer = false;
-                DBCursor cursor = _listLobs(matcher, selector, orderBy, newHint, skipRows,
-                        returnRows);
-                return cursor;
+                return _listLobs(matcher, selector, orderBy, newHint, skipRows, returnRows);
             } catch (BaseException e) {
                 if (!isOldLobServer) {
                     throw e;
@@ -2463,18 +2438,15 @@ public class DBCollection {
     private DBCursor _listLobs(BSONObject matcher, BSONObject selector, BSONObject orderBy,
                                BSONObject hint, long skipRows, long returnRows) throws BaseException {
         AdminRequest request = new AdminRequest(AdminCommand.LIST_LOBS, matcher, selector, orderBy,
-                hint, skipRows, returnRows);
+                hint, skipRows, returnRows, DBQuery.FLG_QUERY_WITH_RETURNDATA);
         SdbReply response = sequoiadb.requestAndResponse(request);
-        int flag = response.getFlag();
-        if (flag == SDBError.SDB_INVALIDARG.getErrorCode()) {
+        if (response.getFlag() == SDBError.SDB_INVALIDARG.getErrorCode()) {
             isOldLobServer = true;
         }
 
         sequoiadb.throwIfError(response);
-
         sequoiadb.upsertCache(collectionFullName);
-        DBCursor cursor = new DBCursor(response, sequoiadb);
-        return cursor;
+        return new DBCursor(response, sequoiadb);
     }
 
     /**
