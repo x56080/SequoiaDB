@@ -1748,6 +1748,18 @@ namespace engine
          }
       }
 
+      if ( localTask->testArgumentMask( UTIL_CL_NOTRANS_FIELD ) )
+      {
+         if ( localTask->isNoTrans() )
+         {
+            OSS_BIT_SET( attribute, DMS_MB_ATTR_NOTRANS ) ;
+         }
+         else
+         {
+            OSS_BIT_CLEAR( attribute, DMS_MB_ATTR_NOTRANS ) ;
+         }
+      }
+
       if ( localTask->testArgumentMask( UTIL_CL_AUTOREBALANCE_FIELD ) )
       {
          setBuilder.appendBool( CAT_DOMAIN_AUTO_REBALANCE,
