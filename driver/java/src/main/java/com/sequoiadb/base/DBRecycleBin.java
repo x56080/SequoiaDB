@@ -203,8 +203,10 @@ public class DBRecycleBin {
      */
     public BSONObject getDetail() throws BaseException {
        BSONObject retObj;
-       AdminRequest request =
-                       new AdminRequest(AdminCommand.GET_RECYCLEBIN_DETAIL);
+       int flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
+       flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
+       AdminRequest request = new AdminRequest(AdminCommand.GET_RECYCLEBIN_DETAIL, null, null,
+               null, null, 0, -1, flag);
        SdbReply response = sequoiadb.requestAndResponse(request);
        sequoiadb.throwIfError(response);
        DBCursor cursor = new DBCursor(response, sequoiadb);
@@ -229,9 +231,10 @@ public class DBRecycleBin {
      * @throws BaseException If error happens.
      */
     public long getCount(BSONObject matcher) throws BaseException {
-        AdminRequest request =
-                        new AdminRequest(AdminCommand.GET_RECYCLEBIN_COUNT,
-                                         matcher);
+        int flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
+        flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
+        AdminRequest request = new AdminRequest(AdminCommand.GET_RECYCLEBIN_COUNT, matcher, null,
+                null, null, 0, -1, flag);
         SdbReply response = sequoiadb.requestAndResponse(request);
         sequoiadb.throwIfError(response, matcher);
 
@@ -253,8 +256,7 @@ public class DBRecycleBin {
      * @return The return result
      * @throws BaseException If error happens.
      */
-    public BSONObject returnItem(String name,
-                                 BSONObject options) throws BaseException {
+    public BSONObject returnItem(String name, BSONObject options) throws BaseException {
         BSONObject retObj;
         if (name == null || name.isEmpty()) {
             throw new BaseException(
@@ -266,9 +268,10 @@ public class DBRecycleBin {
         if (options != null) {
             rebuildOptions.putAll(options);
         }
-        AdminRequest request =
-                        new AdminRequest(AdminCommand.RETURN_RECYCLEBIN_ITEM,
-                                         rebuildOptions);
+        int flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
+        flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
+        AdminRequest request = new AdminRequest(AdminCommand.RETURN_RECYCLEBIN_ITEM, rebuildOptions,
+                null, null, null, 0, -1, flag);
         SdbReply response = sequoiadb.requestAndResponse(request);
         sequoiadb.throwIfError(response, rebuildOptions);
         DBCursor cursor = new DBCursor(response, sequoiadb);
@@ -314,9 +317,10 @@ public class DBRecycleBin {
         if (options != null) {
             rebuildOptions.putAll(options);
         }
-        AdminRequest request =
-                        new AdminRequest(AdminCommand.RETURN_RECYCLEBIN_ITEM_TO_NAME,
-                                         rebuildOptions);
+        int flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
+        flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
+        AdminRequest request = new AdminRequest(AdminCommand.RETURN_RECYCLEBIN_ITEM_TO_NAME,
+                rebuildOptions, null, null, null, 0, -1, flag);
         SdbReply response = sequoiadb.requestAndResponse(request);
         sequoiadb.throwIfError(response, rebuildOptions);
         DBCursor cursor = new DBCursor(response, sequoiadb);
