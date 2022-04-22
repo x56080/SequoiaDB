@@ -55,7 +55,6 @@ create <[temporary] table| temporary view> <tableName> [(schema)] using com.sequ
 |strictdatamode|boolean|FALSE|create table as select 创建集合时指定对该集合的操作是否开启严格数据模式 <br>开启严格数据模式后对数值操作将存在以下限制：<br>1）运算过程不改数据类型<br>2）数值运算出现溢出时直接报错|否|
 |autoincrement|json|-|create table as select 创建集合时指定集合使用的自增字段<br>自增字段相关说明可参考 [autoincrement][autoincrement] |否|
 
-
 ##示例##
 
 1. 假设集合名为 test.data ，协调节点在 sdbserver1 和 sdbserver2 上，通过 spark-sql 创建一个表来对应 SequoiaDB 的集合

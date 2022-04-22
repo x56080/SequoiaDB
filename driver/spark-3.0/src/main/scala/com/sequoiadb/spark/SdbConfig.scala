@@ -335,6 +335,9 @@ class SdbConfig(val properties: Map[String, String]) extends Serializable {
     val strictDataMode: Boolean = properties.get(SdbConfig.StrictDataMode)
         .map(_.toBoolean).getOrElse(SdbConfig.DefaultStrictDataMode)
 
+    val retryInstanceTimes: Int = SdbConfig.DefaultRetryInstanceTimes
+
+    val retryInstanceInitDuration: Int = SdbConfig.DefaultRetryInstanceInitDuration
 }
 
 object SdbConfig {
@@ -516,6 +519,10 @@ object SdbConfig {
     val DefaultStrictDataMode = false
 
     val DefaultConfigPath = ""
+
+    // parameters for retry the selected node
+    val DefaultRetryInstanceTimes = 3
+    val DefaultRetryInstanceInitDuration = 75
 
     def apply(parameters: Map[String, String]): SdbConfig = {
         val configPath = parameters.getOrElse(SdbConfig.ConfigPath, "")
