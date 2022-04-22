@@ -1665,16 +1665,11 @@ namespace engine
       netUDPEndPoint endPoint ;
       NET_EH eh ;
 
-      rc = _pRoute->route( id, endPoint, TRUE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to route [ group: %d, node: %d, "
-                   "service: %d ], rc: %d", id.columns.groupID,
-                   id.columns.nodeID, id.columns.serviceID, rc ) ;
-
       PD_CHECK( NULL != _udpMainSuit.get() && _udpMainSuit->isOpened(),
                 SDB_NET_INVALID_HANDLE, error, PDERROR,
                 "Failed to send UDP message, UDP handle is invalid" ) ;
 
-      rc = _udpMainSuit->getEH( endPoint, id, eh ) ;
+      rc = _udpMainSuit->getEH( id, eh ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get event handler, rc: %d", rc ) ;
 
       PD_CHECK( NULL != eh.get() &&

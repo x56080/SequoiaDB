@@ -67,8 +67,7 @@ namespace engine
                       _MsgRouteID &id ) ;
 
          INT32 route( const MsgRouteID &routeID,
-                      netUDPEndPoint &endPoint,
-                      BOOLEAN needCache = TRUE ) ;
+                      netUDPEndPoint &endPoint ) ;
 
          /// return err when update an existing node.
          INT32 update( const _MsgRouteID &id,
@@ -102,17 +101,8 @@ namespace engine
                                       const CHAR *serviceName,
                                       netTCPEndPoint &endPoint ) ;
 
-         void clearUDPRoute ( const MsgRouteID &routeID,
-                              BOOLEAN allServices ) ;
-
-      protected :
-         // in-lock
-         void _clearUDPRoute( const MsgRouteID &routeID,
-                              BOOLEAN allServices ) ;
-
       protected :
          NET_ROUTE_MAP     _route ;
-         NET_UDP_EP_MAP    _udpRoute ;
          MsgRouteID        _local ;
          ossSpinSLatch     _mtx ;
    } ;
