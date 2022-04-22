@@ -1261,7 +1261,7 @@ namespace engine
 
    #define MAX_DATABLOCK_A_RECORD_NUM  (500)
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MONDUMPDATABLOCKS, "monDumpDatablocks" )
-   INT32 monDumpDatablocks( std::vector<dmsExtentID> &datablocks,
+   INT32 monDumpDatablocks( ossPoolVector<dmsExtentID> &datablocks,
                             rtnContextDump *context )
    {
       INT32 rc = SDB_OK ;
@@ -1284,7 +1284,7 @@ namespace engine
 
             builder.append( FIELD_NAME_SCANTYPE, VALUE_NAME_TBSCAN ) ;
             // add datablocks
-            std::vector<dmsExtentID>::iterator it = datablocks.begin() ;
+            ossPoolVector<dmsExtentID>::iterator it = datablocks.begin() ;
             while ( it != datablocks.end() &&
                     datablockNum < MAX_DATABLOCK_A_RECORD_NUM )
             {

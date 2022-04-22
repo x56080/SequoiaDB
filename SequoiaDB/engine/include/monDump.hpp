@@ -94,7 +94,7 @@ namespace engine
 
    INT32 monDumpTraceStatus ( rtnContextDump *context ) ;
 
-   INT32 monDumpDatablocks( std::vector<dmsExtentID> &datablocks,
+   INT32 monDumpDatablocks( ossPoolVector<dmsExtentID> &datablocks,
                             rtnContextDump *context ) ;
 
    INT32 monDumpIndexblocks( std::vector< BSONObj > &idxBlocks,
@@ -501,10 +501,10 @@ namespace engine
          INT32       _fetchNext( BSONObj &obj ) ;
 
       private:
-         UINT32                  _addInfoMask ;
+         UINT32                         _addInfoMask ;
 
-         UINT32                  _pos ;
-         vector<dmsExtentID>     _vecBlock ;
+         UINT32                         _pos ;
+         ossPoolVector<dmsExtentID>     _vecBlock ;
    } ;
    typedef _monCLBlockFetch monCLBlockFetch ;
 

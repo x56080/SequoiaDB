@@ -4505,7 +4505,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_LOADDICTIONARY, "_dmsStorageDataCommon::loadDictionary" )
    INT32 _dmsStorageDataCommon::loadDictionary( dmsMBContext *context,
                                                 const CHAR *dictionary,
-                                                UINT32 dictLen, BOOLEAN force )
+                                                UINT32 dictLen )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON_LOADDICTIONARY ) ;
@@ -4556,7 +4556,7 @@ namespace engine
          goto error ;
       }
 
-      if ( DMS_INVALID_EXTENT != mb->_dictExtentID && !force )
+      if ( DMS_INVALID_EXTENT != mb->_dictExtentID )
       {
          PD_LOG( PDERROR, "Collection[%s] has valid compression dictionary and "
                  "force load is false", mb->_collectionName ) ;
@@ -4594,18 +4594,6 @@ namespace engine
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to flush dictionary. It will be "
                    "created and flushed again next time" ) ;
-
-      // Release the old dictionary in force mode.
-      if ( DMS_INVALID_EXTENT != mb->_dictExtentID )
-      {
-         dmsExtRW oldDictRW ;
-         dmsDictExtent *dictExt = NULL ;
-         // Remove the current compressor and release the dictionary.
-         _rmCompressor( context ) ;
-         oldDictRW = extent2RW( mb->_dictExtentID, context->mbID() ) ;
-         dictExt = oldDictRW.writePtr<dmsDictExtent>() ;
-         _releaseSpace( mb->_dictExtentID, dictExt->_blockSize ) ;
-      }
 
       // Set the dictionary extent id in mb only after the dictionary has been
       // successfully flushed to disk.

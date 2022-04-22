@@ -872,7 +872,7 @@ retry:
          else if ( indexName && ( IXSCAN != planRuntime->getScanType() ||
                    indexLID != planRuntime->getIndexLID() ) )
          {
-            PD_LOG( PDERROR, "Scan type[%d] error or indexLID[%d] is the "
+            PD_LOG( PDERROR, "Scan type[%d] error or indexLID[%d] is not the "
                     "same with [%d]", planRuntime->getScanType(),
                     planRuntime->getIndexLID(), indexLID ) ;
             rc = SDB_IXM_NOTEXIST ;

@@ -512,9 +512,30 @@ namespace engine
 
       if ( blockObj )
       {
+         SEGMENT_VEC segExtents ;
          rc = _parseSegments( *blockObj, _segments ) ;
          PD_RC_CHECK( rc, PDERROR, "Parse segments[%s] failed, rc: %d",
                       blockObj->toString().c_str(), rc ) ;
+
+         // Check once again if the block ids given by the user are still valid.
+         rc = su->getSegExtents( mbContext->mb()->_collectionName,
+                                 segExtents, mbContext ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get segment extents of collection %s "
+                      "failed, rc: %d", mbContext->mb()->_collectionName, rc ) ;
+
+         for ( SEGMENT_VEC_CITR cItr = _segments.begin();
+               cItr != _segments.end(); ++cItr )
+         {
+            if ( segExtents.end() ==
+                 std::find( segExtents.begin(), segExtents.end(), *cItr ) )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "The specified datablock [%d] does not "
+                           "belong to collection %s, rc: %d",
+                           *cItr, mbContext->mb()->_collectionName, rc ) ;
+               goto error ;
+            }
+         }
 
          _segmentScan = TRUE ;
          _extentID = _segments.size() > 0 ? *_segments.begin() :
@@ -1385,7 +1406,7 @@ namespace engine
    }
 
    INT32 _rtnContextData::_parseSegments( const BSONObj &obj,
-                                          vector< dmsExtentID > &segments )
+                                          SEGMENT_VEC &segments )
    {
       INT32 rc = SDB_OK ;
       BSONElement ele ;

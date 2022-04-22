@@ -1071,7 +1071,7 @@ namespace engine
                        BOOLEAN dataOwned = FALSE ) ;
 
          INT32 loadDictionary( dmsMBContext *context, const CHAR *dictionary,
-                               UINT32 dictLen, BOOLEAN force ) ;
+                               UINT32 dictLen ) ;
 
          BOOLEAN getDictionary( dmsMBContext *context, const CHAR *&dictionary,
                                 UINT32 &dictLen ) ;

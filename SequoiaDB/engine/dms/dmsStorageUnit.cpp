@@ -2528,7 +2528,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_GETSEGEXTENTS, "_dmsStorageUnit::getSegExtents" )
    INT32 _dmsStorageUnit::getSegExtents( const CHAR *pName,
-                                         vector < dmsExtentID > &segExtents,
+                                         ossPoolVector< dmsExtentID > &segExtents,
                                          dmsMBContext *context )
    {
       INT32 rc                     = SDB_OK ;
