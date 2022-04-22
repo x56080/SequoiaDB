@@ -153,36 +153,54 @@ INT32 ossEnumFiles( const string &dirPath,
                     const CHAR *filter,
                     UINT32 deep )
 {
+   INT32 rc = SDB_OK ;
+
    string newFilter ;
    OSS_MATCH_TYPE type = OSS_MATCH_NULL ;
 
-   if ( !filter || filter[0] == 0 || 0 == ossStrcmp( filter, "*" ) )
+   try
    {
-      type = OSS_MATCH_NULL ;
+      if ( !filter || filter[0] == 0 || 0 == ossStrcmp( filter, "*" ) )
+      {
+         type = OSS_MATCH_NULL ;
+      }
+      else if ( filter[0] != '*' && filter[ ossStrlen( filter ) - 1 ] != '*' )
+      {
+         type = OSS_MATCH_ALL ;
+         newFilter = filter ;
+      }
+      else if ( filter[0] == '*' && filter[ ossStrlen( filter ) - 1 ] == '*' )
+      {
+         type = OSS_MATCH_MID ;
+         newFilter.assign( &filter[1], ossStrlen( filter ) - 2 ) ;
+      }
+      else if ( filter[0] == '*' )
+      {
+         type = OSS_MATCH_RIGHT ;
+         newFilter.assign( &filter[1], ossStrlen( filter ) - 1 ) ;
+      }
+      else
+      {
+         type = OSS_MATCH_LEFT ;
+         newFilter.assign( filter, ossStrlen( filter ) -1 ) ;
+      }
    }
-   else if ( filter[0] != '*' && filter[ ossStrlen( filter ) - 1 ] != '*' )
+   catch ( exception &e )
    {
-      type = OSS_MATCH_ALL ;
-      newFilter = filter ;
-   }
-   else if ( filter[0] == '*' && filter[ ossStrlen( filter ) - 1 ] == '*' )
-   {
-      type = OSS_MATCH_MID ;
-      newFilter.assign( &filter[1], ossStrlen( filter ) - 2 ) ;
-   }
-   else if ( filter[0] == '*' )
-   {
-      type = OSS_MATCH_RIGHT ;
-      newFilter.assign( &filter[1], ossStrlen( filter ) - 1 ) ;
-   }
-   else
-   {
-      type = OSS_MATCH_LEFT ;
-      newFilter.assign( filter, ossStrlen( filter ) -1 ) ;
+      PD_LOG( PDWARNING, "Failed to build file filter, occur exception: %s",
+              e.what() ) ;
+      rc = ossException2RC( &e ) ;
+      goto error ;
    }
 
-   return _ossEnumFiles( dirPath, mapFiles, newFilter.c_str(),
-                         newFilter.length(), type, deep ) ;
+   rc = _ossEnumFiles( dirPath, mapFiles, newFilter.c_str(),
+                       newFilter.length(), type, deep ) ;
+
+done:
+   return rc ;
+
+error:
+   goto error ;
 }
 
 INT32 ossEnumFiles2( const string &dirPath,
