@@ -115,6 +115,10 @@ namespace engine
    class _rtnContextData : public _rtnContextBase
    {
       DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextData )
+
+      typedef std::vector< dmsExtentID >        SEGMENT_VEC ;
+      typedef SEGMENT_VEC::const_iterator       SEGMENT_VEC_CITR ;
+
       public:
          _rtnContextData ( INT64 contextID, UINT64 eduID ) ;
          virtual ~_rtnContextData () ;
@@ -286,7 +290,7 @@ namespace engine
          dmsExtentID                _lastExtentID ;
          dmsExtentID                _lastExtLID ;
          BOOLEAN                    _segmentScan ;
-         std::vector< dmsExtentID > _segments ;
+         SEGMENT_VEC                _segments ;
          // Index scan
          _rtnIXScanner              *_scanner ;
          std::vector< BSONObj >     _indexBlocks ;

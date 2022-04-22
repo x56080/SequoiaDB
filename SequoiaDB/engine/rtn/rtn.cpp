@@ -2674,8 +2674,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNLOADCOLLECTIONDICT, "rtnLoadCollectionDict" )
    INT32 rtnLoadCollectionDict( const CHAR *pCollectionName,
-                                const CHAR *dictionary,
-                                UINT32 dictSize, BOOLEAN force )
+                                const CHAR *dictionary, UINT32 dictSize )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNLOADCOLLECTIONDICT ) ;
@@ -2696,7 +2695,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Get mb context for collection[%s] failed: %d",
                    pCollectionName, rc ) ;
 
-      rc = data->loadDictionary( context, dictionary, dictSize, force ) ;
+      rc = data->loadDictionary( context, dictionary, dictSize ) ;
       PD_RC_CHECK( rc, PDERROR, "Load dictionary for collection[%s] failed[%d]",
                    pCollectionName, rc ) ;
 
@@ -2719,7 +2718,7 @@ namespace engine
    INT32 rtnLoadCollectionDict( dmsStorageDataCommon *dataSu,
                                 dmsMBContext *context,
                                 const CHAR *dictionary,
-                                UINT32 dictSize, BOOLEAN force )
+                                UINT32 dictSize )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNLOADCOLLECTIONDICT1 ) ;
@@ -2732,7 +2731,7 @@ namespace engine
                    "Lock collection[%s.%s] failed[%d]",
                    dataSu->getSuName(), context->mb()->_collectionName, rc ) ;
 
-      rc = dataSu->loadDictionary( context, dictionary, dictSize, force ) ;
+      rc = dataSu->loadDictionary( context, dictionary, dictSize ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Load dictionary for collection[%s.%s] failed[%d]",
                    dataSu->getSuName(), context->mb()->_collectionName, rc ) ;

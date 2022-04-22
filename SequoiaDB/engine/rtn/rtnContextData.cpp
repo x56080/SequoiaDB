@@ -53,10 +53,10 @@ using namespace bson ;
 
 namespace engine
 {
-   
+
    INT32 _rtnCmpSection::woNCompare( const BSONObj &l,
-                                  const BSONObj &r, UINT32 keyNum, 
-                                  const BSONObj &keyPattern ) const
+                                     const BSONObj &r, UINT32 keyNum,
+                                     const BSONObj &keyPattern ) const
    {
       BSONObjIterator itrL( l ) ;
       BSONObjIterator itrR( r ) ;
@@ -200,7 +200,7 @@ namespace engine
       _appendRIDFilter = appendMode ;
    }
 
-   INT32 _rtnContextData::_getAdvanceOrderby( BSONObj &orderby, 
+   INT32 _rtnContextData::_getAdvanceOrderby( BSONObj &orderby,
                                               BOOLEAN isRange ) const
    {
       INT32 rc = SDB_OK ;
@@ -239,13 +239,13 @@ namespace engine
 
       rtnAdvanceSection sec ;
       INT32 type = MSG_ADVANCE_TO_FIRST_IN_VALUE ;
-      
+
       if ( _nextAdvanceSecIt == _advanceSectionList.end() )
       {
          _hitEnd = TRUE ;
          if ( isEmpty() )
          {
-            rc = SDB_DMS_EOC ;  
+            rc = SDB_DMS_EOC ;
          }
          goto done ;
       }
@@ -253,7 +253,7 @@ namespace engine
       sec = *_nextAdvanceSecIt ;
       if ( !sec.startIncluded )
       {
-         type = MSG_ADVANCE_TO_NEXT_OUT_VALUE ; 
+         type = MSG_ADVANCE_TO_NEXT_OUT_VALUE ;
       }
 
       rc = _doAdvance( type, sec.prefixNum, sec.startKey, _orderBy,
@@ -272,7 +272,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCTXDATA__EXTRACTALLEQUALSEC, "_rtnContextData::_extractAllEqualSec" )
    INT32 _rtnContextData::_extractAllEqualSec( INT32 indexFieldNum,
-                                               const BSONElement &eNum, 
+                                               const BSONElement &eNum,
                                                const BSONElement &eVal )
    {
       INT32 rc = SDB_OK ;
@@ -305,7 +305,7 @@ namespace engine
             PD_LOG_MSG( PDERROR, "Field[%s] is invalid",
                         FIELD_NAME_PREFIX_NUM ) ;
             rc = SDB_INVALIDARG ;
-            goto error ;  
+            goto error ;
          }
          else if ( prefixNum > indexFieldNum )
          {
@@ -317,7 +317,7 @@ namespace engine
          indexValue = eVal.embeddedObject() ;
          indexIt = BSONObjIterator( indexValue ) ;
 
-         while ( indexIt.more() ) 
+         while ( indexIt.more() )
          {
             BSONObj keyObj ;
             BSONObjBuilder startBuilder ;
@@ -327,7 +327,7 @@ namespace engine
             BSONObjIterator keyObjIt ;
             BSONElement elem = indexIt.next() ;
 
-            if ( Object != elem.type() ) 
+            if ( Object != elem.type() )
             {
                PD_LOG_MSG( PDERROR, "The section of Field[%s] must be Array",
                            FIELD_NAME_INDEXVALUE ) ;
@@ -339,9 +339,9 @@ namespace engine
             keyObjIt = BSONObjIterator ( keyObj ) ;
             for ( INT32 i = 0 ; i < prefixNum && orderIt.more() ; ++ i )
             {
-               
+
                BSONElement eField = orderIt.next() ;
-               if ( keyObjIt.more() ) 
+               if ( keyObjIt.more() )
                {
                   BSONElement eVal = keyObjIt.next() ;
                   startBuilder.appendAs ( eVal, "" ) ;
@@ -351,13 +351,13 @@ namespace engine
                {
                   if ( eField.numberInt() > 0 )
                   {
-                     startBuilder.appendMinKey( "" ) ; 
-                     endBuilder.appendMaxKey( "" ) ; 
+                     startBuilder.appendMinKey( "" ) ;
+                     endBuilder.appendMaxKey( "" ) ;
                   }
                   else
                   {
-                     startBuilder.appendMaxKey( "" ) ; 
-                     endBuilder.appendMinKey( "" ) ; 
+                     startBuilder.appendMaxKey( "" ) ;
+                     endBuilder.appendMinKey( "" ) ;
                   }
                }
             }
@@ -382,7 +382,7 @@ namespace engine
       PD_TRACE_EXITRC( SDB__RTNCTXDATA__EXTRACTALLEQUALSEC, rc ) ;
       return rc ;
    error:
-      goto done ; 
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCTXDATA__EXTRACTRANGESEC, "_rtnContextData::_extractRangeSec" )
@@ -446,12 +446,12 @@ namespace engine
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         
+
          objValueIt = BSONObjIterator( objValue ) ;
          objValueIncIt = BSONObjIterator( objValueInc ) ;
          objPrefixNumIt = BSONObjIterator( objPrefixNum ) ;
 
-         while ( objValueIt.more() ) 
+         while ( objValueIt.more() )
          {
             INT32 prefixNum ;
             BOOLEAN start = TRUE ;
@@ -465,14 +465,14 @@ namespace engine
             BSONElement eValueInc = objValueIncIt.next() ;
             BSONElement ePrefixNum = objPrefixNumIt.next() ;
 
-            if ( eValue.type() != Array ) 
+            if ( eValue.type() != Array )
             {
-               PD_LOG_MSG( PDERROR, "The section of Field[%s] must be Array", 
+               PD_LOG_MSG( PDERROR, "The section of Field[%s] must be Array",
                            FIELD_NAME_INDEXVALUE ) ;
                rc = SDB_INVALIDARG ;
                goto error ;
             }
-            else if ( eValueInc.type() != Array ) 
+            else if ( eValueInc.type() != Array )
             {
                PD_LOG_MSG( PDERROR, "The section of Field[%s] must be Array",
                            FIELD_NAME_INDEXVALUE_INCLUDED ) ;
@@ -493,7 +493,7 @@ namespace engine
                PD_LOG_MSG( PDERROR, "Field[%s] is invalid",
                            FIELD_NAME_PREFIX_NUM ) ;
                rc = SDB_INVALIDARG ;
-               goto error ;  
+               goto error ;
             }
             else if ( prefixNum > indexFieldNum )
             {
@@ -507,7 +507,7 @@ namespace engine
             indexValueIt = BSONObjIterator( indexValue ) ;
             indexValueIncIt = BSONObjIterator( indexValueInc ) ;
 
-            while ( indexValueIt.more() ) 
+            while ( indexValueIt.more() )
             {
                BSONObj keyObj ;
                BSONObjBuilder builder ;
@@ -516,7 +516,7 @@ namespace engine
                BSONElement eIndexValue = indexValueIt.next() ;
                BSONElement eIndexValueInc = indexValueIncIt.next() ;
 
-               if ( eIndexValue.type() != Object ) 
+               if ( eIndexValue.type() != Object )
                {
                   PD_LOG_MSG( PDERROR, "The single index value of "
                               "section '%s' of Field[%s] must be Object",
@@ -525,7 +525,7 @@ namespace engine
                   rc = SDB_INVALIDARG ;
                   goto error ;
                }
-               else if ( eIndexValueInc.type() != Bool ) 
+               else if ( eIndexValueInc.type() != Bool )
                {
                   PD_LOG_MSG( PDERROR, "The single index include value of "
                               "section '%s' of Field[%s] must be Bool",
@@ -540,7 +540,7 @@ namespace engine
                for ( INT32 i = 0 ; i < prefixNum && orderIt.more() ; ++i )
                {
                   BSONElement eField = orderIt.next() ;
-                  if ( keyObjIt.more() ) 
+                  if ( keyObjIt.more() )
                   {
                      builder.appendAs( keyObjIt.next(), "" ) ;
                   }
@@ -549,17 +549,17 @@ namespace engine
                      BOOLEAN isPositive = eField.numberInt() > 0 ;
                      if ( isPositive == start )
                      {
-                        builder.appendMinKey( "" ) ; 
+                        builder.appendMinKey( "" ) ;
                      }
                      else
                      {
-                        builder.appendMaxKey( "" ) ; 
+                        builder.appendMaxKey( "" ) ;
                      }
                   }
                }
                keyVal = builder.obj() ;
 
-               if ( start ) 
+               if ( start )
                {
                   start = FALSE;
                   section.prefixNum = prefixNum ;
@@ -579,13 +579,13 @@ namespace engine
                   {
                      rc = SDB_INVALIDARG ;
                      PD_LOG_MSG( PDERROR, "The start and end values of section "
-                                 "[%s, %s] don't meet the index scan order", 
+                                 "[%s, %s] don't meet the index scan order",
                                  section.startKey.toString().c_str(),
                                  section.endKey.toString().c_str() ) ;
-                     goto error ;     
+                     goto error ;
                   }
                   _advanceSectionList.push_back ( section ) ;
-                  break ;  
+                  break ;
                }
             }
          }
@@ -597,7 +597,7 @@ namespace engine
                  "Occur exception: %s", rc, e.what() ) ;
          goto error ;
       }
-   
+
    done:
       PD_TRACE_EXITRC ( SDB__RTNCTXDATA__EXTRACTRANGESEC, rc ) ;
       return rc ;
@@ -652,7 +652,7 @@ namespace engine
       {
          rc = SDB_DMS_INVALID_INDEXCB ;
          goto done ;
-      }      
+      }
 
       try
       {
@@ -677,15 +677,15 @@ namespace engine
             rc = _extractAllEqualSec (indexFieldNum, eNum, eVal ) ;
             if ( rc )
             {
-               goto error ;  
+               goto error ;
             }
          }
-         else 
+         else
          {
             rc = _extractRangeSec(indexFieldNum, eNum, eVal, eValueInc) ;
             if ( rc )
             {
-               goto error ;  
+               goto error ;
             }
          }
 
@@ -707,7 +707,7 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXDATA_VALIDATE, "_rtnContextData::validate" ) 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXDATA_VALIDATE, "_rtnContextData::validate" )
    INT32 _rtnContextData::validate ( const BSONObj &record )
    {
       INT32 rc = SDB_OK ;
@@ -718,11 +718,11 @@ namespace engine
       BSONObj curKeyObj ;
       rtnAdvanceSection sec ;
       INT32 prefixNum = -1 ;
-      
-      if ( _advanceSectionList.empty() || 
+
+      if ( _advanceSectionList.empty() ||
            _nextAdvanceSecIt == _advanceSectionList.end() )
       {
-         goto done ; 
+         goto done ;
       }
 
       sec = *_nextAdvanceSecIt ;
@@ -782,7 +782,7 @@ namespace engine
                }
 
             }
-            else 
+            else
             {
                cmp = _woNCompare( sec.startKey, curKeyObj,
                                   FALSE, prefixNum, _orderBy ) ;
@@ -1204,9 +1204,30 @@ namespace engine
 
       if ( blockObj )
       {
+         vector< dmsExtentID > segExtents ;
          rc = _parseSegments( *blockObj, _segments ) ;
          PD_RC_CHECK( rc, PDERROR, "Parse segments[%s] failed, rc: %d",
                       blockObj->toString().c_str(), rc ) ;
+
+         // Check once again if the block ids given by the user are still valid.
+         rc = su->getSegExtents( mbContext->mb()->_collectionName,
+                                 segExtents, mbContext ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get segment extents of collection %s "
+                      "failed, rc: %d", mbContext->mb()->_collectionName, rc ) ;
+
+         for ( SEGMENT_VEC_CITR cItr = _segments.begin();
+               cItr != _segments.end(); ++cItr )
+         {
+            if ( segExtents.end() ==
+                 std::find( segExtents.begin(), segExtents.end(), *cItr ) )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "The specified datablock [%d] does not "
+                           "belong to collection %s, rc: %d",
+                           *cItr, mbContext->mb()->_collectionName, rc ) ;
+               goto error ;
+            }
+         }
 
          _segmentScan = TRUE ;
          _extentID = _segments.size() > 0 ? *_segments.begin() :
@@ -1637,7 +1658,7 @@ namespace engine
       rc = append( selObj, &obj ) ;
       if ( SDB_IXM_ADVANCE_EOC == rc )
       {
-         goto done ;  
+         goto done ;
       }
       PD_RC_CHECK( rc, PDERROR, "Append obj[%s] failed, rc: %d",
                    selObj.toString().c_str(), rc ) ;
@@ -1663,7 +1684,7 @@ namespace engine
          rc = _selectAndAppend( selector, record ) ;
          if ( SDB_IXM_ADVANCE_EOC == rc )
          {
-            goto done ;  
+            goto done ;
          }
          PD_RC_CHECK( rc, PDERROR, "selectAndAppend failed:rc=%d", rc ) ;
       }
@@ -1993,7 +2014,7 @@ namespace engine
                   if ( SDB_IXM_ADVANCE_EOC == rc )
                   {
                      secScanner.stop () ;
-                     goto done ;  
+                     goto done ;
                   }
 
                   PD_RC_CHECK( rc, PDERROR, "innerAppend failed:rc=%d", rc ) ;
