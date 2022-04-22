@@ -2,6 +2,7 @@ package com.sequoiadb.metadataconsistency.data;
 
 import java.util.Random;
 
+import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
@@ -19,7 +20,7 @@ import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
- * TestLink: seqDB-10187: concurrency[attachCL, drop mainCL]
+ * TestLink: seqDB-10187:attachCL过程中删除主表
  * 
  * @author xiaoni huang init
  * @Date 2016.10.11
@@ -89,10 +90,8 @@ public class SubCL10187 extends SdbTestBase {
     private class AttachCL extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
                 BSONObject options = new BasicBSONObject();
                 BSONObject lowBoundObj = new BasicBSONObject();
                 BSONObject upBoundObj = new BasicBSONObject();
@@ -109,11 +108,13 @@ public class SubCL10187 extends SdbTestBase {
                 }
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if ( eCode != -23 && eCode != -34 ) {
+                if ( eCode != SDBError.SDB_DMS_NOTEXIST.getErrorCode()
+                        && eCode != SDBError.SDB_DMS_CS_NOTEXIST.getErrorCode()
+                        && eCode != SDBError.SDB_LOCK_FAILED.getErrorCode()
+                        && eCode != SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
+                                .getErrorCode() ) {
                     throw e;
                 }
-            } finally {
-                db.close();
             }
         }
     }
@@ -121,52 +122,43 @@ public class SubCL10187 extends SdbTestBase {
     private class DropMainCL extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
                 CollectionSpace csDB = db.getCollectionSpace( csName );
 
                 csDB.dropCollection( mCLName );
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if ( eCode != -147 && eCode != -190 ) {
+                if ( eCode != SDBError.SDB_LOCK_FAILED.getErrorCode()
+                        && eCode != SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
+                                .getErrorCode() ) {
                     throw e;
                 }
-            } finally {
-                db.close();
             }
         }
     }
 
     public void createMainCL( Sequoiadb sdb ) {
-        try {
-            CollectionSpace csDB = sdb.getCollectionSpace( csName );
+        CollectionSpace csDB = sdb.getCollectionSpace( csName );
 
-            BSONObject mOpt = new BasicBSONObject();
-            BSONObject mSubObj = new BasicBSONObject();
-            mSubObj.put( "a", 1 );
-            mOpt.put( "ShardingKey", mSubObj );
-            mOpt.put( "ReplSize", 0 );
-            mOpt.put( "IsMainCL", true );
-            csDB.createCollection( mCLName, mOpt );
-        } catch ( BaseException e ) {
-            throw e;
-        }
+        BSONObject mOpt = new BasicBSONObject();
+        BSONObject mSubObj = new BasicBSONObject();
+        mSubObj.put( "a", 1 );
+        mOpt.put( "ShardingKey", mSubObj );
+        mOpt.put( "ReplSize", 0 );
+        mOpt.put( "IsMainCL", true );
+        csDB.createCollection( mCLName, mOpt );
     }
 
     public void createSubCL( Sequoiadb sdb ) {
-        try {
-            CollectionSpace csDB = sdb.getCollectionSpace( csName );
+        CollectionSpace csDB = sdb.getCollectionSpace( csName );
 
-            BSONObject sOpt = new BasicBSONObject();
-            BSONObject sSubObj = new BasicBSONObject();
-            sSubObj.put( "a", 1 );
-            sOpt.put( "ShardingKey", sSubObj );
-            sOpt.put( "ReplSize", 0 );
-            csDB.createCollection( sCLName, sOpt );
-        } catch ( BaseException e ) {
-            throw e;
-        }
+        BSONObject sOpt = new BasicBSONObject();
+        BSONObject sSubObj = new BasicBSONObject();
+        sSubObj.put( "a", 1 );
+        sOpt.put( "ShardingKey", sSubObj );
+        sOpt.put( "ReplSize", 0 );
+        csDB.createCollection( sCLName, sOpt );
     }
 
 }
