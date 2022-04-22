@@ -2530,21 +2530,43 @@ namespace engine
       if ( bCreate )
       {
          pEventInfo = SDB_OSS_NEW _clsEventItem ;
-         pEventInfo->name = pCollectionName ;
-         pEventInfo->clUniqueID = clUniqueID ;
-         if ( UTIL_IS_VALID_CLUNIQUEID( clUniqueID) )
+         if ( !pEventInfo )
          {
-            _mapSyncCLIDEvent[ clUniqueID ] = pEventInfo ;
+            PD_LOG( PDERROR, "Allocate memory[size: %d] for event item "
+                    "failed[%d]", sizeof(_clsEventItem), SDB_OOM ) ;
+            goto error ;
          }
-         else
+
+         try
          {
-            _mapSyncCatEvent[ pCollectionName ] = pEventInfo ;
+            pEventInfo->name = pCollectionName ;
+            pEventInfo->clUniqueID = clUniqueID ;
+            if ( UTIL_IS_VALID_CLUNIQUEID( clUniqueID) )
+            {
+               _mapSyncCLIDEvent[ clUniqueID ] = pEventInfo ;
+            }
+            else
+            {
+               _mapSyncCatEvent[ pCollectionName ] = pEventInfo ;
+            }
+         }
+         catch ( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s, rc: %d", e.what(),
+                    ossException2RC( &e ) ) ;
+            goto error ;
          }
       }
 
    done:
       PD_TRACE_EXIT ( SDB__CLSSHDMGR__FNDCATSYNCEV );
       return pEventInfo ;
+   error:
+      if ( bCreate )
+      {
+         SAFE_OSS_DELETE( pEventInfo ) ;
+      }
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__FNDCATSYNCEVN, "_clsShardMgr::_findCatSyncEvent" )
@@ -2603,13 +2625,35 @@ namespace engine
 
       //create new event info
       pEventInfo = SDB_OSS_NEW _clsEventItem ;
+      if ( !pEventInfo )
+      {
+         PD_LOG( PDERROR, "Allocate memory[size: %d] for event item failed[%d]",
+                 sizeof(_clsEventItem), SDB_OOM ) ;
+         goto error ;
+      }
+
       pEventInfo->groupID = groupID ;
       //add to map
-      _mapSyncNMEvent[groupID] = pEventInfo ;
+      try
+      {
+         _mapSyncNMEvent[groupID] = pEventInfo ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s, rc: %d", e.what(),
+                 ossException2RC( &e ) ) ;
+         goto error ;
+      }
 
    done:
       PD_TRACE_EXIT ( SDB__CLSSHDMGR__FNDNMSYNCEV );
       return pEventInfo ;
+   error:
+      if ( bCreate )
+      {
+         SAFE_OSS_DELETE( pEventInfo ) ;
+      }
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__FNDNMSYNCEVN, "_clsShardMgr::_findNMSyncEvent" )
@@ -2829,12 +2873,20 @@ namespace engine
          PD_LOG( PDERROR, "Alloc memory failed" ) ;
          goto error ;
       }
-      item->csName = csName ;
 
-      _catLatch.get() ;
-      requestID = ++_requestID ;
-      _mapSyncCSEvent[ requestID ] = item ;
-      _catLatch.release() ;
+      try
+      {
+         item->csName = csName ;
+         ossScopedLock lock( &_catLatch ) ;
+         requestID = ++_requestID ;
+         _mapSyncCSEvent[ requestID ] = item ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occurr exception: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
 
    retry:
       ++retryTimes ;
