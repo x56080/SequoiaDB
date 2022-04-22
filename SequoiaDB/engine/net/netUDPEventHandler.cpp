@@ -185,6 +185,13 @@ namespace engine
             rc = SDB_NET_SEND_ERR ;
             goto error ;
          }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "UDP connection send message failed: %s",
+                    e.what() ) ;
+            rc = SDB_NET_SEND_ERR ;
+            goto error ;
+         }
 
          PD_CHECK( send == len, SDB_NET_SEND_ERR, error, PDERROR,
                    "UDP connection send message failed, length is not "
