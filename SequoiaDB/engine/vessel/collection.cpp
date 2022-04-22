@@ -66,7 +66,7 @@
 #include "ixm_common.hpp"
 #include "vessel/clIndexMetaBlockPage.h"
 #include "vessel/clIndexMbpAccessor.h"
-
+#include "dmsLobDef.hpp"
 
 namespace engine
 {
@@ -5881,6 +5881,59 @@ namespace vessel
          else
          {
             rc = los.truncateLobChunk(context, key, size, tsize);
+            if (SDB_OK != rc)
+            {
+               goto error;
+            }
+         }
+      }
+   done:
+      if (nullptr != context)
+      {
+         context->detachMbContext();
+      }
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::testLobChunk(requestContext *context,
+                                  const lobChunkKey &key,
+                                  dmsLobChunkProfile *profile)
+   {
+      INT32 rc = SDB_OK;
+      ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
+      runtimeMbContext mbContext;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(nullptr == context ||
+                           !context->isMbLocked() ||
+                           context->getMBID() != getMBID() ||
+                           !key.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      SDB_ASSERT(!context->isMbContextAttached(), "can not be attached");
+      guard.autoLock();
+      mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
+      context->attachMbContext(&mbContext);
+
+      {
+         largeObjectSpace &los = _collectionSpace->getSU()->getLobSpace();
+         if (!los.isOpen())
+         {
+            rc = SDB_LOB_SEQUENCE_NOT_EXIST;
+            goto error;
+         }
+         else
+         {
+            rc = los.testLobChunk(context, key, profile);
             if (SDB_OK != rc)
             {
                goto error;

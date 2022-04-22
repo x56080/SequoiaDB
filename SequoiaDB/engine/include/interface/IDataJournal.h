@@ -39,6 +39,7 @@
 #include "sdbInterface.hpp"
 #include "dpsDef.hpp"
 #include "dpsLogDef.hpp"
+#include "dpsJournalPad.hpp"
 
 namespace engine
 {
@@ -51,6 +52,12 @@ namespace engine
          IDataJournal &operator=(const IDataJournal &) = delete;
 
       public:
+         struct writeOptions : public SDBObject
+         {
+            BOOLEAN flushImmediately = FALSE;
+         };//struct writeOptions
+
+      public:
          virtual DPS_LSN getMinFileLSN() = 0;
          virtual DPS_LSN getMinBufLSN() = 0;
          virtual DPS_LSN getCurrentLSN() = 0;
@@ -58,8 +65,8 @@ namespace engine
          virtual DPS_LSN getMinUncommitedLSN() = 0;
 
       public:
-         virtual void abortToCommit(IExecutor *executor,
-                                    const DPS_LSN_OFFSET &lsn) = 0;
+         INT32 write(IExecutor *executor,
+                     );
 
    };//class IDataJournal
 } // namespace engine

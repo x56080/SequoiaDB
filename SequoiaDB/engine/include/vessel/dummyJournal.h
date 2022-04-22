@@ -77,11 +77,6 @@ namespace vessel
             SDB_ASSERT(!context->prepared(), "impossible");
             UINT64 t = _lsn.add(context->getHead()._length);
             context->getHead()._lsn = t;
-            if (0 != OSS_BIT_TEST(context->getHead()._flags,
-                                  DPS_VESSEL_LOG_FLAG_OPL_HEAD))
-            {
-               context->getHead()._opListLSN = t;
-            }
             
             return SDB_OK;
          }

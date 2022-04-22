@@ -80,12 +80,8 @@
 typedef UINT64 DPS_LSN_OFFSET ;
 typedef UINT32 DPS_LSN_VER ;
 
-#define DPS_VESSEL_LOG_FLAG_FROM_VESSEL           (0x01)
-#define DPS_VESSEL_LOG_FLAG_DDL                   (0x02)
-#define DPS_VESSEL_LOG_FLAG_OPL_HEAD              (0x04)
-#define DPS_VESSEL_LOG_FLAG_OPL_TAIL              (0x08)
-#define DPS_VESSEL_LOG_FLAG_OPL_ROLLBACK          (0x10)
-#define DPS_VESSEL_LOG_FLAG_RESET_PAGE            (0x20)
+constexpr UINT16 DPS_LOG_FLAG_OPL_HEAD = 0x01;
+constexpr UINT16 DPS_LOG_FLAG_OPL_TAIL = 0x02;
 
 #define DPS_LOG_WRITE_MOD_INCREMENT 0
 #define DPS_LOG_WRITE_MOD_FULL      1

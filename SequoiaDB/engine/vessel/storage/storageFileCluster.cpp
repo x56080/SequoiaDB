@@ -754,6 +754,43 @@ namespace vessel
       goto done;
    }
 
+   ossValuePtr storageFileCluster::getPageMmapPtr(PAGE_ID pid)const
+   {
+      UINT32 fileId = 0;
+      storageFile *file = nullptr;
+      PAGE_ID pidInFile = INVALID_PAGE_ID;
+      ossValuePtr p = 0;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         goto error;
+      }
+      else if (OSS_UNLIKELY(INVALID_PAGE_ID == pid))
+      {
+         goto error;
+      }
+
+      fileId = getFileId(pid, &pidInFile);
+      if (_files.getSize() <= fileId)
+      {
+         SDB_ASSERT(FALSE, "out of bound");
+         goto error;
+      }
+
+      file = _files.get<storageFile>(fileId);
+      if (nullptr == file)
+      {
+         PD_LOG(PDERROR, "file[%d] does not exist", fileId);
+         goto error;
+      }
+
+      file->getPagePtr(pidInFile, p);
+   done:
+      return p;
+   error:
+      goto done;
+   }
+
    INT32 storageFileCluster::fsyncSegment(UINT32 globalSegmentId)const
    {
       INT32 rc = SDB_OK;

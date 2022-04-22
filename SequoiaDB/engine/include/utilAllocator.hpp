@@ -85,7 +85,7 @@ namespace engine
       protected :
          char _mem[ stackSize ] ;
          INT32 _offset ;
-   } ;
+   } ;//class _utilAllocator
 }
 
 #endif // UTIL_ALLOCATOR_HPP_

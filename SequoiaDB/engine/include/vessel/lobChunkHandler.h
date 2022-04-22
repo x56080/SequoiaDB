@@ -37,6 +37,7 @@
 #define VESSEL_LOB_CHUNK_HANDLER_H_
 
 #include "vessel/requestHandler.h"
+#include "dmsLobDef.hpp"
 
 namespace engine
 {
@@ -85,6 +86,11 @@ namespace vessel
                         UINT32 &tsize);
 
          INT32 list(listLobChunkCursor *cursor);
+
+         INT32 test(const globalCollectionId &gcid,
+                    const bson::OID &oid,
+                    UINT32 chunkId,
+                    dmsLobChunkProfile *profile);
    };//class lobChunkHandler
 } // namespace vessel
 

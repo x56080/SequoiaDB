@@ -623,5 +623,33 @@ namespace vessel
    error:
       goto done;
    }
+
+   INT32 collectionHandler::testLobChunk(IExecutor *executor,
+                                         const bson::OID &oid,
+                                         UINT32 chunkId,
+                                         dmsLobChunkProfile *profile)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(nullptr == executor))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = _db->testLobChunk(executor, _gcid, oid, chunkId, profile);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 }//namespace vessel
 }//namespace engine

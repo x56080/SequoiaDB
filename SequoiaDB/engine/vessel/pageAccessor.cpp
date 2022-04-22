@@ -93,25 +93,7 @@ namespace vessel
          }
       }
 
-      
-      if (context->isInProcessingOplist())
-      {
-         atomicOperationList *oplist = context->getOplist();
-         if (oplist->isWatingHead())
-         {
-            lrc->setOplistHead();
-         }
-         else
-         {
-            lrc->setOplist(oplist->getOplistLsn());
-         }
-
-         /// not else if
-         if (oplist->isWaitingTail())
-         {
-            lrc->setOplistTail();
-         }
-      }
+   
    done:
       return rc;
    error:
@@ -211,25 +193,7 @@ namespace vessel
          goto error;
       }
 
-      if (context->isInProcessingOplist())
-      {
-         atomicOperationList *oplist = context->getOplist();
-         if (oplist->isWatingHead())
-         {
-            SDB_ASSERT(0 != OSS_BIT_TEST(lrc->getHead()._flags,
-                                         DPS_VESSEL_LOG_FLAG_OPL_HEAD), "impossible");
-         }
-         else if (oplist->isWaitingTail())
-         {
-            SDB_ASSERT(0 != OSS_BIT_TEST(lrc->getHead()._flags,
-                                         DPS_VESSEL_LOG_FLAG_OPL_TAIL), "impossible");
-         }
-         else
-         {
-            SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lrc->getHead()._opListLSN, "impossible");
-         }
-         oplist->push(lrc->getLsn());
-      }
+   
    done:
       return rc;
    error:

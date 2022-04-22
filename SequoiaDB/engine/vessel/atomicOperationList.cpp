@@ -120,7 +120,7 @@ namespace vessel
 
    void atomicOperationList::setWaitingTail()
    {
-      SDB_ASSERT(!isWatingHead(), "impossible");
+      //SDB_ASSERT(!isWatingHead(), "impossible");
       SDB_ASSERT(!isReadonly(), "impossible");
       _waitingTail = TRUE;
       return;

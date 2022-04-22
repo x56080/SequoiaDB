@@ -1440,6 +1440,39 @@ namespace vessel
       goto done;
    }
 
+   INT32 vesselImpl::testLobChunk(IExecutor *executor,
+                                  const globalCollectionId &gcid,
+                                  const bson::OID &oid,
+                                  UINT32 chunkId,
+                                  dmsLobChunkProfile *profile)
+   {
+      INT32 rc = SDB_OK;
+      lobChunkHandler handler;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
+
+      if (OSS_UNLIKELY(nullptr == executor))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = handler.test(gcid, oid, chunkId, profile);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 vesselImpl::activeBackgroundThreads(const openDBOptions &options)
    {
       INT32 rc = SDB_OK;

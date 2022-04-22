@@ -729,6 +729,14 @@ TEST_F(lobc_test, base_truncate_2)
       oids.push_back(oid);
    }
 
+   for (auto const &oid : oids)
+   {
+      dmsLobChunkProfile profile;
+      rc = handler->testLobChunk(&executor, oid, 0, &profile);
+      ASSERT_EQ(SDB_OK, rc);
+      ASSERT_EQ(profile.chunkSize, LOBC_SIZE);
+   }
+
    UINT32 size0 = LOBC_SIZE / 2;
    for (auto const &oid : oids)
    {

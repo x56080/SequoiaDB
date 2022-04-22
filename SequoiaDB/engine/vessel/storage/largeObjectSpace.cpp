@@ -1028,6 +1028,68 @@ namespace vessel
       goto done;
    }
 
+   INT32 largeObjectSpace::testLobChunk(requestContext *context,
+                                        const lobChunkKey &key,
+                                        dmsLobChunkProfile *profile)
+   {
+      INT32 rc = SDB_OK;
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      LOBC_LATCH_MAP::object locker;
+      lobcLatchHelper lh;
+      globalLobChunkKey glckey;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
+
+      if (OSS_UNLIKELY(nullptr == context ||
+                       !context->isMbContextAttached() ||
+                       !key.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      SDB_ASSERT(context->getSpaceID() == _manifest->sid, "must be same");
+      glckey.set(_manifest->sid, context->getMBID(), key);
+      rc = lh.lock(glckey, mode, locker);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock lobc[%s], rc:%d",
+                glckey.toString().c_str(), rc);
+         goto error;
+      }
+
+      {
+         lobcExtentChain chain;
+         lobChunkSearchEntry entry(key, context->getLogicalClId());
+         lobcMetaBlockMapping mapping(_manifest, _uberBlock.bucketEntryPid, &_metaFile);
+         rc = mapping.find(entry, chain);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+
+         if (nullptr != profile)
+         {
+            profile->flags = 0;
+            profile->chainSize = chain.getChainSize();
+            profile->chunkSize = chain.getChunkSize();
+         }
+      }
+   done:
+      if (locker.isValid())
+      {
+         lh.unlock(mode, locker);
+      }
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 largeObjectSpace::truncateLobChunk(requestContext *context,
                                             const lobChunkKey &key,
                                             UINT32 size,

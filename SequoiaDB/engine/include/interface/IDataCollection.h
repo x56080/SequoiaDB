@@ -156,10 +156,10 @@ namespace engine
                               
 
          
-         // virtual INT32 testLobChunk(IExecutor *executor,
-         //                            const bson::OID &oid,
-         //                            UINT32 chunkId,
-         //                            lobChunkProfile *profile) = 0;
+         virtual INT32 testLobChunk(IExecutor *executor,
+                                    const bson::OID &oid,
+                                    UINT32 chunkId,
+                                    dmsLobChunkProfile *profile) = 0;
 
          
 

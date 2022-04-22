@@ -54,7 +54,6 @@ namespace vessel
    {
       close();
       _head._type = type;
-      OSS_BIT_SET(_head._flags, DPS_VESSEL_LOG_FLAG_FROM_VESSEL);
       return;
    }
 
@@ -141,48 +140,35 @@ namespace vessel
    void logRecordContext::setOplistHead()
    {
       SDB_ASSERT(!prepared(), "can not be prepared");
-      SDB_ASSERT(DPS_INVALID_LSN_OFFSET == _head._opListLSN, "impossible");
-      OSS_BIT_SET(_head._flags, DPS_VESSEL_LOG_FLAG_OPL_HEAD);
       return;
    }
 
    void logRecordContext::setOplistTail()
    {
       SDB_ASSERT(!prepared(), "can not be prepared");
-      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != _head._opListLSN, "impossible");
-      OSS_BIT_SET(_head._flags, DPS_VESSEL_LOG_FLAG_OPL_TAIL);
    }
 
    void logRecordContext::setOplist(DPS_LSN_OFFSET lsn)
    {
       SDB_ASSERT(!prepared(), "can not be prepared");
       SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
-      SDB_ASSERT(DPS_INVALID_LSN_OFFSET == _head._opListLSN, "impossible");
-      _head._opListLSN = lsn;
       return;
    }
 
    void logRecordContext::setResetPage()
    {
-      OSS_BIT_SET(_head._flags, DPS_VESSEL_LOG_FLAG_RESET_PAGE);
+      
    }
 
    BOOLEAN logRecordContext::isResetPage()const
    {
-      return 0 != OSS_BIT_TEST(_head._flags, DPS_VESSEL_LOG_FLAG_RESET_PAGE);
+      
    }
 
    void logRecordContext::prepushDone()
    {
       SDB_ASSERT(!prepared(), "can not be prepared");
-      if (0 != OSS_BIT_TEST(_head._flags, DPS_VESSEL_LOG_FLAG_OPL_HEAD))
-      {
-         SDB_ASSERT(DPS_INVALID_LSN_OFFSET == _head._opListLSN, "impossible");
-      }
-      if (0 != OSS_BIT_TEST(_head._flags, DPS_VESSEL_LOG_FLAG_OPL_TAIL))
-      {
-         SDB_ASSERT(DPS_INVALID_LSN_OFFSET != _head._opListLSN, "impossible");
-      }
+      
       _head._length = ossAlign4((UINT32)sizeof(dpsLogRecordHeader) + _originalLen);
       return;
    }
@@ -190,7 +176,7 @@ namespace vessel
    void logRecordContext::setDDL()
    {
       SDB_ASSERT(!prepared(), "can not be prepared");
-      OSS_BIT_SET(_head._flags, DPS_VESSEL_LOG_FLAG_DDL);
+
       return;
    }
 }//namespace vessel

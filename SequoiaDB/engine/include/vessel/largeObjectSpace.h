@@ -45,6 +45,7 @@
 #include "vessel/strictBuffer.h"
 #include "vessel/lobChunkSearchEntry.h"
 #include "vessel/listLobChunkCursor.h"
+#include "dmsLobDef.hpp"
 
 #include <mutex> //c++11
 
@@ -106,6 +107,10 @@ namespace vessel
                                 UINT32 &tsize);
 
          INT32 removeLobChunksInCL(requestContext *context);
+
+         INT32 testLobChunk(requestContext *context,
+                            const lobChunkKey &key,
+                            dmsLobChunkProfile *profile);
 
 
          INT32 list(listLobChunkCursor *cursor);

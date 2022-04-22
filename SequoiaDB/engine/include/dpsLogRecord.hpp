@@ -58,8 +58,7 @@ namespace engine
        _version( DPS_INVALID_LSN_VERSION ),
        _type( LOG_TYPE_DUMMY ),
        _flags(0),
-       _opListLSN(DPS_INVALID_LSN_OFFSET),
-       _pad( 0 )
+       _reserved( 0 )
       {
 
       }
@@ -71,8 +70,7 @@ namespace engine
        _version( header._version ),
        _type( header._type ),
        _flags( header._flags),
-       _opListLSN( header._opListLSN),
-       _pad(header._pad)
+      _reserved(header._reserved)
       {
 
       }
@@ -87,7 +85,7 @@ namespace engine
          _version = header._version ;
          _type = header._type ;
          _flags = header._flags ;
-         _opListLSN = header._opListLSN ;
+         _reserved = header._reserved ;
          return *this ;
       }
 
@@ -99,8 +97,7 @@ namespace engine
          _version = DPS_INVALID_LSN_VERSION ;
          _type = LOG_TYPE_DUMMY ;
          _flags = 0 ;
-         _opListLSN = DPS_INVALID_LSN_OFFSET;
-         _pad = 0;
+         _reserved = 0;
       }
 
    public:
@@ -116,12 +113,11 @@ namespace engine
       UINT16 _type;
       // 0x1A - 0x1B
       UINT16 _flags;
-      // 0x1C - 0x24
-      DPS_LSN_OFFSET _opListLSN;
-      // 0x25 - 0x28
-      UINT32 _pad;
+      // 0x1C - 0x1F
+      UINT32 _reserved;
    } ;
    typedef class _dpsLogRecordHeader dpsLogRecordHeader ;
+   constexpr UINT32 DPS_LOG_HEAD_SIZE = sizeof(_dpsLogRecordHeader);
 
 #pragma pack(1)
    class _dpsRecordEle

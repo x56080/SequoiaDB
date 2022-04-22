@@ -168,6 +168,11 @@ namespace vessel
          virtual INT32 listLobChunks(IExecutor *executor,
                                      const dmsListLobChunkOptions &o,
                                      DATA_CURSOR_PTR &cursor) override;
+
+         virtual INT32 testLobChunk(IExecutor *executor,
+                                    const bson::OID &oid,
+                                    UINT32 chunkId,
+                                    dmsLobChunkProfile *profile) override;
           
       private:
          globalCollectionId _gcid;

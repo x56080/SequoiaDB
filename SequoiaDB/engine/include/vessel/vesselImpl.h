@@ -216,6 +216,12 @@ namespace vessel
                                 UINT32 chunkId,
                                 UINT32 size,
                                 UINT32 &tsize);
+
+         INT32 testLobChunk(IExecutor *executor,
+                            const globalCollectionId &gcid,
+                            const bson::OID &oid,
+                            UINT32 chunkId,
+                            dmsLobChunkProfile *profile);
       public:
          INT32 pushMoreToCursor(IExecutor *executor,
                                  cursorKernal *cursor);   

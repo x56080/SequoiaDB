@@ -95,6 +95,7 @@ namespace vessel
 
       public:/// mmap only
          INT32 getPageMmapPtr(PAGE_ID pid, mmapPagePointer &ptr)const;
+         ossValuePtr getPageMmapPtr(PAGE_ID pid)const;
          INT32 fsyncSegment(UINT32 globalSegmentId)const;
          INT32 fysncPage(PAGE_ID pid)const;
 

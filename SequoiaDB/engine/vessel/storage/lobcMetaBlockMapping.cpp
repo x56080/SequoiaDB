@@ -936,6 +936,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
 
+      ///TODO: it may be a bad idea to always do half split.
       constexpr FLOAT32 _SPLIT_RATIO = 0.50f;
       PAGE_ID targetPid = INVALID_PAGE_ID;
       lobcMetaBlockPageAccessor targetAccessor;
@@ -1528,7 +1529,7 @@ namespace vessel
       recordID rid;
       PAGE_ID entryPid = region.getBucket(bucketPos);
       PAGE_ID pid = INVALID_PAGE_ID;
-      BOOLEAN truncated = FALSE;
+      INT32 pos = 0;
       INT32 removingPos = -1;
       PAGE_ID removingPid = INVALID_PAGE_ID;
       tsize = 0;
@@ -1542,9 +1543,10 @@ namespace vessel
       }
 
       pid = rid.getPid();
+      pos = rid.getPos();
       do
       {
-         BOOLEAN isChainTail = FALSE;
+         BOOLEAN truncated = FALSE;
          lobcMetaBlockPageAccessor accessor(_mfile, pid);
          if (OSS_UNLIKELY(!accessor.isValid()))
          {
@@ -1553,8 +1555,9 @@ namespace vessel
             goto error;
          }
 
-         for (INT32 i = rid.getPos(); i < (INT32)accessor.getItemCount(); ++i)
+         for (INT32 i = pos; i < (INT32)accessor.getItemCount(); ++i)
          {
+            BOOLEAN isChainTail = FALSE;
             lobExtentMetaBlock *block = accessor.getExtentMetaBlock(i);
             if (nullptr == block || !block->isValid())
             {
@@ -1571,6 +1574,9 @@ namespace vessel
             }
 
             isChainTail = block->isChainTail();
+            SDB_ASSERT(isChainTail ||
+                       (_manifest->lobArgs.pageSize * block->pcnt == block->size),
+                       "invalid block size");
             
             if ((chain.getChunkSize() + block->size) <= size)
             {
@@ -1591,9 +1597,9 @@ namespace vessel
                   else
                   {
                      truncated = TRUE;
+                     block->setAsTail();
                      removingPos = i + 1;
                      removingPid = pid;
-                     block->setAsTail();
                      break;
                   }
                }
@@ -1602,10 +1608,10 @@ namespace vessel
             {
                truncated = TRUE;
 
-               /// tsize may be increased when removing.
+               /// tsize also may be increased when removing.
                tsize = chain.getChunkSize() + block->size - size;
                block->size -= tsize;
-               if (!block->isChainTail())
+               if (!isChainTail)
                {
                   removingPos = i + 1;
                   removingPid = pid;
@@ -1633,7 +1639,23 @@ namespace vessel
             }
          }//for (INT32 i = rid.getPos(); i < (INT32)accessor.getItemCount(); ++i)
 
-         pid = truncated ? INVALID_PAGE_ID : accessor.getNextPid();
+         if (truncated)
+         {
+            if (INVALID_PAGE_ID != removingPid &&
+                removingPos == (INT32)accessor.getItemCount())
+            {
+               /// reset removing pos to next page.
+               removingPos = 0;
+               removingPid = accessor.getNextPid();
+               SDB_ASSERT(INVALID_PAGE_ID != removingPid, "block tail missed"); 
+            }
+            break;
+         }
+         else
+         {
+            pid = accessor.getNextPid();
+            pos = 0;
+         }
       } while (INVALID_PAGE_ID != pid);
 
       /// clear discarded blocks, do not goto error from here.
@@ -1656,12 +1678,14 @@ namespace vessel
             if (nullptr == block || !block->isValid())
             {
                PD_LOG(PDERROR, "failed to get block at[%d, %d]", pid, i);
+               SDB_ASSERT(FALSE, "invalid block");
                goto done;
             }
 
             if (0 != block->compare(entry.getLogicalClId(), entry.getKey()))
             {
                PD_LOG(PDSEVERE, "unexpected block found at [%d, %d]", removingPid, i);
+               SDB_ASSERT(FALSE, "invalid block");
                goto done;
             }
 

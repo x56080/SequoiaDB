@@ -545,6 +545,38 @@ namespace vessel
       goto done;
    }
 
+   ossValuePtr storageFile::getPagePtr(PAGE_ID pid)const
+   {
+      INT32 rc = SDB_OK;
+      UINT32 segID = 0;
+      ossValuePtr segPtr = 0;
+      ossValuePtr pagePtr = 0;
+      if (OSS_UNLIKELY(INVALID_PAGE_ID == pid))
+      {
+         goto done;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         goto done;
+      }
+      else if (OSS_UNLIKELY(!isSegmentMmaped()))
+      {
+         SDB_ASSERT(FALSE, "not a mmap file");
+         goto done;
+      }
+
+      segID = getSegmentIDFromPageID(pid);
+      rc = getSegmentPtr(segID, segPtr);
+      if (SDB_OK != rc)
+      {
+         goto done;
+      }
+
+      pagePtr = segPtr + ((pid % _headInMem.maxPageCountPerSeg) * _headInMem.pageSize);
+   done:
+      return pagePtr;
+   }
+
    INT32 storageFile::getPagePtr(PAGE_ID pid, mmapPagePointer &ptr)const
    {
       INT32 rc = SDB_OK;

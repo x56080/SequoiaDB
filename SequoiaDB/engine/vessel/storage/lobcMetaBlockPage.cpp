@@ -714,12 +714,15 @@ namespace vessel
       }
 
       SDB_ASSERT(_header->totalFreeSize == compacter._header->totalFreeSize, "must be same");
+      SDB_ASSERT(_header->totalItemCount == compacter._header->totalItemCount, "msut be same");
       buffer.makeWritable(_pageSize, _header);
-      buffer.write(0, compacter.getFrontOffset(), compactionBuffer);
+      buffer.write(lobcMetaBlockPage::HEAD_SIZE,
+                   compacter.getFrontOffset() - lobcMetaBlockPage::HEAD_SIZE,
+                   compactionBuffer + lobcMetaBlockPage::HEAD_SIZE);
       buffer.write(compacter._header->backOffset,
                    _pageSize - compacter._header->backOffset,
                    compactionBuffer + compacter._header->backOffset);
-
+      _header->backOffset = compacter._header->backOffset;
    done:
       if (nullptr != compactionBuffer)
       {

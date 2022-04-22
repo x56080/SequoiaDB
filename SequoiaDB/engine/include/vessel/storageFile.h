@@ -158,6 +158,8 @@ namespace vessel
 
          INT32 getPagePtr(PAGE_ID pid, ossValuePtr &ptr)const;
 
+         ossValuePtr getPagePtr(PAGE_ID pid)const;
+
          INT32 getPagePtr(PAGE_ID, mmapPagePointer &ptr)const;
 
          INT32 fsyncPage(PAGE_ID pid, BOOLEAN sync=TRUE)const;

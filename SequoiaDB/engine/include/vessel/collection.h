@@ -61,6 +61,7 @@ namespace engine
 {
    class _dpsLogRecord;
    class IRecordUpdater;
+   class dmsLobChunkProfile;
 
 namespace vessel
 {
@@ -73,7 +74,7 @@ namespace vessel
    class indexScanContext;
    class indexScanCursor;
    class bigRecordStream;
-
+   
    class collection: public SDBObject
    {
       public:
@@ -203,6 +204,10 @@ namespace vessel
 
          INT32 listLobChunks(requestContext *context,
                              listLobChunkCursor *cursor);
+
+         INT32 testLobChunk(requestContext *context,
+                            const lobChunkKey &key,
+                            dmsLobChunkProfile *profile);
 
       private:
          INT32 _getMoreWhenIndexScan(indexScanContext *context,
