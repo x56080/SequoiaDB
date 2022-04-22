@@ -740,14 +740,19 @@ namespace engine
          }
 
          tmpRC = _deleteCollectionStat( boMatcher, cb, NULL ) ;
-         PD_LOG( PDWARNING,
-                 "Failed to drop collection statistics when dropping "
-                 "collection space [%s], rc: %d", pCSName, tmpRC ) ;
-
+         if ( tmpRC )
+         {
+            PD_LOG( PDWARNING,
+                    "Failed to drop collection statistics when dropping "
+                    "collection space [%s], rc: %d", pCSName, tmpRC ) ;
+         }
          tmpRC = _deleteIndexStat( boMatcher, cb, NULL ) ;
-         PD_LOG( PDWARNING,
-                 "Failed to delete index statistics when dropping "
-                 "collection space [%s], rc: %d", pCSName, tmpRC ) ;
+         if ( tmpRC )
+         {
+            PD_LOG( PDWARNING,
+                    "Failed to delete index statistics when dropping "
+                    "collection space [%s], rc: %d", pCSName, tmpRC ) ;
+         }
       }
 
    done :
