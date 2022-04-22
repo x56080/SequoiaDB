@@ -56,6 +56,7 @@ create <[temporary] table| temporary view> <tableName> [(schema)] using com.sequ
 |autoincrement|json|-|create table as select 创建集合时指定集合使用的自增字段<br>自增字段相关说明可参考 [autoincrement][autoincrement] |否|
 
 
+
 ##示例##
 
 1. 假设集合名为 test.data ，协调节点在 sdbserver1 和 sdbserver2 上，通过 spark-sql 创建一个表来对应 SequoiaDB 的集合

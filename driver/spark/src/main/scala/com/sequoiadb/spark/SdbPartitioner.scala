@@ -307,6 +307,73 @@ private object SdbPartitioner extends Logging {
         shardingList.toList
     }
 
+    def getQueryMeta(nodeInfos: List[NodeInfo], nodeSelector: NodeSelector, sharding: ShardingInfo,
+                     config: SdbConfig)
+    : List[QueryMeta] = {
+        var nodeInfo: NodeInfo = null
+        var queryMeta: List[QueryMeta] = null
+        var isSuccess = false
+        var retryTimes = 0
+        var duration = config.retryInstanceInitDuration
+
+        // calculate url, if the sharding aren't associated with replica group, just return node name.
+        val url: String = if (sharding.groupName == "") {
+            sharding.nodeName
+        } else {
+            nodeInfo = nodeSelector.selectNode(nodeInfos, config)
+            nodeInfo.url
+        }
+
+        val exceptionMessages = ArrayBuffer[String]()
+        // retry current node, handle the problem that new node just created are not sync cs/cl in time.
+        while (retryTimes <= config.retryInstanceTimes && !isSuccess) {
+            try {
+                queryMeta = getQueryMeta(url, sharding.csName, sharding.clName, config)
+                isSuccess = true
+            } catch {
+                case e @ (_ : SdbException | _ : BaseException) =>
+                    exceptionMessages += e.getMessage
+                    retryTimes += 1
+
+                    if (retryTimes <= config.retryInstanceTimes) {
+                        logInfo(s"${e.getMessage}, nodeName: $url, retry $retryTimes time(s), duration: ${duration}ms.")
+                        Thread.sleep(duration)
+                        duration = duration * 2
+                    }
+            }
+        }
+
+        var groupNodeInfos = nodeInfos.filter(node => node != nodeInfo)
+
+        // still failed to get metadata after few retries on the same node, maybe some problems (like disk error) with the node
+        // retry to get from other nodes in the same replica group.
+        while (!isSuccess && groupNodeInfos.nonEmpty) {
+            // it will select different node based on [preferredinstarnce, preferredinstancemode]
+            nodeInfo = nodeSelector.selectNode(groupNodeInfos, config)
+            try {
+                queryMeta = getQueryMeta(nodeInfo.url, sharding.csName, sharding.clName, config)
+                isSuccess = true
+            } catch {
+                case e @ (_ : SdbException | _ : BaseException) =>
+                    exceptionMessages += e.getMessage
+                    logInfo(s"${e.getMessage}, nodeName: ${nodeInfo.url}, retry to get query meta from other node.")
+
+                    // exclude abnormal node
+                    groupNodeInfos = groupNodeInfos.filter(node => node != nodeInfo)
+            }
+        }
+
+        // sharding.groupName equals to "" or groupNodeInfos.isEmpty means no other nodes for retry.
+        if (!isSuccess &&
+            (sharding.groupName == "" || groupNodeInfos.isEmpty)) {
+            throw new SdbException(s"failed to get query meta, group ${sharding.groupName} has no normal nodes. " +
+                s"please check replica group's health status.\n exceptions on each retry:\n" +
+                s"${String.join("\n", exceptionMessages)}")
+        }
+
+        queryMeta
+    }
+
     def getQueryMeta(url: String, csName: String, clName: String, config: SdbConfig): List[QueryMeta] = {
         val queryMetas = ArrayBuffer[QueryMeta]()
 
@@ -908,19 +975,10 @@ private[spark] class SdbDatablockPartitioner(config: SdbConfig, filter: SdbFilte
         val nodeSelector = new NodeSelector
 
         for (sharding <- shardings) {
-            var url: String = null
-            if (sharding.groupName == "") {
-                url = sharding.nodeName
-            } else {
-                val groupNodeInfos = groups(sharding.groupName)
-                if (groupNodeInfos.isEmpty) {
-                    throw new SdbException(s"Group ${sharding.groupName} has no normal node")
-                }
-                val nodeInfo = nodeSelector.selectNode(groupNodeInfos, config)
-                url = nodeInfo.url
-            }
+            val groupNodeInfos = groups(sharding.groupName)
 
-            val metas = SdbPartitioner.getQueryMeta(url, sharding.csName, sharding.clName, config)
+            // get query meta (will retry when it failed)
+            val metas = SdbPartitioner.getQueryMeta(groupNodeInfos, nodeSelector, sharding, config)
             queryMetas ++= metas
         }
 
