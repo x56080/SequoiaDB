@@ -200,7 +200,7 @@ done:
    return rc ;
 
 error:
-   goto error ;
+   goto done ;
 }
 
 INT32 ossEnumFiles2( const string &dirPath,
