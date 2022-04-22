@@ -1204,7 +1204,7 @@ namespace engine
 
       if ( blockObj )
       {
-         vector< dmsExtentID > segExtents ;
+         SEGMENT_VEC segExtents ;
          rc = _parseSegments( *blockObj, _segments ) ;
          PD_RC_CHECK( rc, PDERROR, "Parse segments[%s] failed, rc: %d",
                       blockObj->toString().c_str(), rc ) ;
@@ -2117,7 +2117,7 @@ namespace engine
    }
 
    INT32 _rtnContextData::_parseSegments( const BSONObj &obj,
-                                          vector< dmsExtentID > &segments )
+                                          SEGMENT_VEC &segments )
    {
       INT32 rc = SDB_OK ;
       BSONElement ele ;

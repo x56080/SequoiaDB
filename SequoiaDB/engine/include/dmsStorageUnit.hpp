@@ -430,7 +430,7 @@ namespace engine
                                monCollection &info ) ;
 
          INT32    getSegExtents ( const CHAR *pName,
-                                  vector< dmsExtentID > &segExtents,
+                                  ossPoolVector< dmsExtentID > &segExtents,
                                   dmsMBContext *context = NULL ) ;
 
          INT32    getIndexes ( dmsMBContext *context,

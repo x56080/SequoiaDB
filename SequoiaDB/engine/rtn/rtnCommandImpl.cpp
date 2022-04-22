@@ -329,7 +329,7 @@ namespace engine
                                    const CHAR *pCLShortName )
    {
       INT32 rc = SDB_OK ;
-      std::vector< dmsExtentID > extentList ;
+      ossPoolVector< dmsExtentID > extentList ;
 
       rc = su->getSegExtents( pCLShortName, extentList, mbContext ) ;
       PD_RC_CHECK( rc, PDERROR, "Get collection[%s] segment extents failed, "

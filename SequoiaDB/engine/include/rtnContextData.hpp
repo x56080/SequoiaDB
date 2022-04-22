@@ -116,7 +116,7 @@ namespace engine
    {
       DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextData )
 
-      typedef std::vector< dmsExtentID >        SEGMENT_VEC ;
+      typedef ossPoolVector< dmsExtentID >      SEGMENT_VEC ;
       typedef SEGMENT_VEC::const_iterator       SEGMENT_VEC_CITR ;
 
       public:
@@ -228,7 +228,7 @@ namespace engine
                                     vector<INT64>* dollarList ) ;
 
          INT32    _parseSegments( const BSONObj &obj,
-                                  std::vector< dmsExtentID > &segments ) ;
+                                  SEGMENT_VEC &segments ) ;
          INT32    _parseIndexBlocks( const BSONObj &obj,
                                     std::vector< BSONObj > &indexBlocks,
                                     std::vector< dmsRecordID > &indexRIDs ) ;
