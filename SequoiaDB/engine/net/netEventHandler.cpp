@@ -497,6 +497,17 @@ namespace engine
             rc = SDB_NET_SEND_ERR ;
             goto error ;
          }
+         catch ( exception &e )
+         {
+            CHAR routeIDBuffer[ MSG_ROUTEID_STRING_MAX_SIZE + 1 ] = { 0 } ;
+            PD_LOG( PDERROR, "Connection[Handle:%d, Node:%s] send message "
+                    "failed: %s", _handle,
+                    routeID2String( _id, routeIDBuffer,
+                                    MSG_ROUTEID_STRING_MAX_SIZE ),
+                    e.what() ) ;
+            rc = SDB_NET_SEND_ERR ;
+            goto error ;
+         }
       }
 
    done:
@@ -665,7 +676,7 @@ namespace engine
                                                     quickack( TRUE ) ;
             _sock.set_option( quickack ) ;
          }
-         catch ( boost::system::system_error &e )
+         catch ( exception &e )
          {
             PD_LOG ( PDERROR, "Connection[Handle:%d] quick ack failed: %s",
                      _handle, e.what() ) ;
