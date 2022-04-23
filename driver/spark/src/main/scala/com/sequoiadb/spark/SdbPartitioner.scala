@@ -368,7 +368,7 @@ private object SdbPartitioner extends Logging {
             (sharding.groupName == "" || groupNodeInfos.isEmpty)) {
             throw new SdbException(s"failed to get query meta, group ${sharding.groupName} has no normal nodes. " +
                 s"please check replica group's health status.\n exceptions on each retry:\n" +
-                s"${String.join("\n", exceptionMessages)}")
+                s"${exceptionMessages.mkString("\n")}")
         }
 
         queryMeta
