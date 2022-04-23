@@ -190,20 +190,25 @@ namespace engine
 
          if ( pFromDot && pToDot )
          {
+            UINT32 fromSize = pFromDot - _from ;
+            UINT32 toSize = pToDot - _to ;
+            const CHAR *otherFrom = pOtherRename->getFrom() ;
+            const CHAR *otherTo = pOtherRename->getTo() ;
+
             /*
                From  <->  From
                To    <->  To
                From  <->  To
                To    <->  From
             */
-            if ( 0 == ossStrncmp( _from, pOtherRename->getFrom(),
-                                  pFromDot - _from ) ||
-                 0 == ossStrncmp( _to, pOtherRename->getTo(),
-                                  pToDot - _to ) ||
-                 0 == ossStrncmp( _from, pOtherRename->getTo(),
-                                  pFromDot - _from ) ||
-                 0 == ossStrncmp( _to, pOtherRename->getFrom(),
-                                  pToDot - _to ) )
+            if ( ( 0 == ossStrncmp( _from, otherFrom, fromSize ) &&
+                   0 == otherFrom[ fromSize ] ) ||
+                 ( 0 == ossStrncmp( _to, otherTo, toSize ) &&
+                   0 == otherTo[ toSize ] ) ||
+                 ( 0 == ossStrncmp( _from, otherTo, fromSize ) &&
+                   0 == otherTo[ fromSize ] ) ||
+                 ( 0 == ossStrncmp( _to, otherFrom, toSize ) &&
+                   0 == otherFrom[ toSize ] ) )
             {
                muted = TRUE ;
             }
