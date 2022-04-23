@@ -226,18 +226,18 @@ namespace engine
                 "background job" ) ;
       lockedRecycleBin = TRUE ;
 
-      // lock recycle item
-      PD_CHECK( _lockMgr.tryLockRecycleItem( _recycleItem, EXCLUSIVE ),
-                SDB_LOCK_FAILED, error, PDERROR,
-                "Failed to lock recycle item [origin: %s, recycle: %s]",
-                _recycleItem.getOriginName(), _recycleItem.getRecycleName() ) ;
-
       // wrap in try-catch to avoid leak of drop latch
       try
       {
          rc = _recycleBinMgr->getItem( _targetName.c_str(), cb, _recycleItem ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get recycle item [%s], "
                       "rc: %d", _targetName.c_str(), rc ) ;
+
+         // lock recycle item
+         PD_CHECK( _lockMgr.tryLockRecycleItem( _recycleItem, EXCLUSIVE ),
+                   SDB_LOCK_FAILED, error, PDERROR,
+                   "Failed to lock recycle item [origin: %s, recycle: %s]",
+                   _recycleItem.getOriginName(), _recycleItem.getRecycleName() ) ;
 
          if ( UTIL_RECYCLE_CL == _recycleItem.getType() )
          {
