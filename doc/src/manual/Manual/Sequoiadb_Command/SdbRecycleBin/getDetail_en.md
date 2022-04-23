@@ -27,7 +27,7 @@ When the function executes successfully, it will return an object of type BSONOb
 | ---- | ---- | ---- |
 | Enable | boolean | Whether to enable the recycle bin mechanism. The default value is true, which means the recycle bin mechanism is enabled. |
 | ExpireTime | number | The expiration time of the recycle bin item, the default value is 4320 minutes (that is, three days). Expired recycle bin items will be dropped.|
-| MaxItemNum | number | The maximum number of items that can be stored in the recycle bin, the default value is 1000. |
+| MaxItemNum | number | The maximum number of items that can be stored in the recycle bin, the default value is 100. |
 | MaxVersionNum | number | The maximum number of duplicate items that can be stored in the recycle bin, the default value is 2. <br> When multiple items have the same field "originName" or "OriginID", these items are considered duplicates. |
 | AutoDrop | boolean | Whether to automatically clean up when the number of items stored in the recycle bin exceeds the limit. The default value is false, which means no automatic cleanup.<br>Automatic cleaning is divided into the following situations:<br>1) When the number of items exceeds the limit of the field "MaxItemNum", the earliest generated item will be automatically dropped.<br>2) When the number of duplicate items exceeds the limit of the field "MaxVersionNum", the earliest version of the duplicate item will be automatically dropped. |
 
@@ -55,7 +55,7 @@ The output is as follows:
 {
   "Enable": true,
   "ExpireTime": 4320,
-  "MaxItemNum": 1000,
+  "MaxItemNum": 100,
   "MaxVersionNum": 2,
   "AutoDrop": false
 }

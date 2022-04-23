@@ -42,13 +42,13 @@ namespace engine
 {
 
    // default value for Enable field
-   #define UTIL_RECYCLEBIN_DFT_ENABLE        ( FALSE )
+   #define UTIL_RECYCLEBIN_DFT_ENABLE        ( TRUE )
    // default value for AutoDrop field
    #define UTIL_RECYCLEBIN_DFT_AUTODROP      ( FALSE )
    // default value for ExpireTime field, in minutes
    #define UTIL_RECYCLEBIN_DFT_EXPIRETIME    ( 4320 )
    // default value for MaxItemNum
-   #define UTIL_RECYCLEBIN_DFT_MAXITEMNUM    ( 1000 )
+   #define UTIL_RECYCLEBIN_DFT_MAXITEMNUM    ( 100 )
    // default value for MaxVersionNum
    #define UTIL_RECYCLEBIN_DFT_MAXVERNUM     ( 2 )
 

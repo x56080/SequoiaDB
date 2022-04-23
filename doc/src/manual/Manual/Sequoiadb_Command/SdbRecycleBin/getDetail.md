@@ -26,7 +26,7 @@ SdbRecycleBin
 | ---- | ---- | ---- |
 | Enable | boolean | 是否启用回收站机制，默认值为 true，表示回收站机制已启用 |
 | ExpireTime | number | 回收站项目的过期时间，默认值为 4320 分钟（即三天）<br> 过期的回收站项目将被删除|
-| MaxItemNum | number | 回收站中最多可存放的项目个数，默认值为 1000 |
+| MaxItemNum | number | 回收站中最多可存放的项目个数，默认值为 100 |
 | MaxVersionNum | number | 回收站中最多可存放的重复项目个数，默认值为 2 <br> 当多个项目的字段 OriginName 或 OriginID 相同时，这些项目被认为是重复项目 |
 | AutoDrop | boolean | 回收站存放的项目个数超过限制时是否自动清理，默认值为 false，表示不自动清理<br>自动清理分为如下情况：<br> 1）项目个数超过字段 MaxItemNum 的限制时，将自动删除最早生成的项目<br>2）重复项目个数超过字段 MaxVersionNum 的限制时，将自动删除该重复项目的最早版本 |
 
@@ -54,7 +54,7 @@ v5.0.3 及以上版本
 {
   "Enable": true,
   "ExpireTime": 4320,
-  "MaxItemNum": 1000,
+  "MaxItemNum": 100,
   "MaxVersionNum": 2,
   "AutoDrop": false
 }

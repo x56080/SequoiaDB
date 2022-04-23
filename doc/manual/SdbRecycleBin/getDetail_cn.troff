@@ -121,7 +121,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-默认值为 1000
+默认值为 100
 T}
 T{
 4
@@ -306,7 +306,7 @@ v5.0.3 及以上版本
 {
   "Enable": true,
   "ExpireTime": 4320,
-  "MaxItemNum": 1000,
+  "MaxItemNum": 100,
   "MaxVersionNum": 2,
   "AutoDrop": false
 }

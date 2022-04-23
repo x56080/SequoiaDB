@@ -154,7 +154,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-is 1000.
+is 100.
 T}
 T{
 4
@@ -409,7 +409,7 @@ The output is as follows:
 {
   "Enable": true,
   "ExpireTime": 4320,
-  "MaxItemNum": 1000,
+  "MaxItemNum": 100,
   "MaxVersionNum": 2,
   "AutoDrop": false
 }
