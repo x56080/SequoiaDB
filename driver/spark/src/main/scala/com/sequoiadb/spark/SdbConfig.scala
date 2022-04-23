@@ -339,6 +339,8 @@ class SdbConfig(val properties: Map[String, String]) extends Serializable {
 
     val retryInstanceInitDuration: Int = SdbConfig.DefaultRetryInstanceInitDuration
 
+    val connectTimeout: Int = properties.get(SdbConfig.ConnectTimeout)
+        .map(_.toInt).getOrElse(SdbConfig.DefaultConnectTimeout)
 }
 
 object SdbConfig {
@@ -388,6 +390,9 @@ object SdbConfig {
     val StrictDataMode = "strictdatamode"
 
     val ConfigPath = "configpath"
+
+    // sdb connection configurations
+    val ConnectTimeout = "connecttimeout"
 
     // compatible with old edition option
     val ScanType = "scantype" // auto/ixscan/tbscan
@@ -468,7 +473,8 @@ object SdbConfig {
         AutoIndexId,
         AutoIncrement,
         StrictDataMode,
-        ConfigPath)
+        ConfigPath,
+        ConnectTimeout)
 
     val RequiredProperties = List(
         Host,
@@ -525,6 +531,8 @@ object SdbConfig {
     val DefaultRetryInstanceTimes = 3
     val DefaultRetryInstanceInitDuration = 75
 
+    val DefaultConnectTimeout = 1000
+
     def apply(parameters: Map[String, String]): SdbConfig = {
         val configPath = parameters.getOrElse(SdbConfig.ConfigPath, "")
         var newParameters: Map[String, String] = parameters
@@ -549,16 +557,17 @@ object SdbConfig {
         }
 
         // 4. use new parameters to generate SdbConfig, it can be from file or CLI
-        new SdbConfig(newParameters)
+        val config = new SdbConfig(newParameters)
+
+        // setup network configurations
+        SdbConnectionOptions.setConnectTimeout(config.connectTimeout)
+        SdbConnectionOptions.setSocketKeepAlive(true)
+        SdbConnectionOptions.setMaxAutoConnectRetryTime(0)
+
+        config
     }
 
-    private[spark] val SdbConnectionOptions: ConfigOptions = {
-        val opt = new ConfigOptions()
-        opt.setConnectTimeout(3000)
-        opt.setMaxAutoConnectRetryTime(0)
-        opt.setSocketKeepAlive(true)
-        opt
-    }
+    private[spark] val SdbConnectionOptions: ConfigOptions = new ConfigOptions
 }
 
 class SdbPreferredInstance(val instances: Array[String], val mode: PreferredInstanceMode, val strict: Boolean) extends Serializable {

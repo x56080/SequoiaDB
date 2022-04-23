@@ -22,12 +22,13 @@ create <[temporary] table| temporary view> <tableName> [(schema)] using com.sequ
 
 | 名称     | 类型      | 默认值  | 描述 | 是否必填|
 | ---------| --------- | -------- |-------|--------|
-|host|string|-|SequoiaDB 协调节点/独立节点地址，多个地址以","分隔，例如："server1:11810,server2:11810"|是|
+|host|string|-|SequoiaDB 协调节点地址，多个地址以","分隔，例如："server1:11810,server2:11810"|是|
 |collectionspace|string|-|集合空间名称|是|
 |collection|string|-|集合名称（不包含集合空间名称）|是|
 |username|string|""|用户名|否|
 |passwordtype|string|"cleartext"|密码类型，取值如下：<br>"cleartext"：表示参数 password 为明文密码<br>"file"：表示参数 password 为密码文件路径|否|
 |password|string|""|用户名对应的密码|否|
+|connecttimeout|int32|1000|连接 SequoiaDB 节点超时时间（单位：ms） |否|
 |samplingratio|double|1|schema 采样率，取值范围为(0, 1.0]|否|
 |samplingnum|int64|1000|schema 采样数量（每个分区），取值大于 0|否|
 |samplingwithid|boolean|FALSE|schema 采样时是否带 _id 字段，取值为 true 或 false  |否|
@@ -54,6 +55,7 @@ create <[temporary] table| temporary view> <tableName> [(schema)] using com.sequ
 |autoindexid|boolean|TRUE|create table as select 创建集合时指定是否自动使用字段 _id 创建名字为"$id"的唯一索引 |否|
 |strictdatamode|boolean|FALSE|create table as select 创建集合时指定对该集合的操作是否开启严格数据模式 <br>开启严格数据模式后对数值操作将存在以下限制：<br>1）运算过程不改数据类型<br>2）数值运算出现溢出时直接报错|否|
 |autoincrement|json|-|create table as select 创建集合时指定集合使用的自增字段<br>自增字段相关说明可参考 [autoincrement][autoincrement] |否|
+
 
 ##示例##
 

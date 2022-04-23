@@ -123,7 +123,7 @@ class SdbRelation(@transient val sqlContext: SQLContext,
         logInfo(s"insert into ${config.collectionSpace}.${config.collection}")
 
         if (overwrite) {
-            val sdb = new Sequoiadb(config.host, config.username, config.password, null)
+            val sdb = new Sequoiadb(config.host, config.username, config.password, SdbConfig.SdbConnectionOptions)
             try {
                 val cs = if (sdb.isCollectionSpaceExist(config.collectionSpace)) {
                     sdb.getCollectionSpace(config.collectionSpace)
