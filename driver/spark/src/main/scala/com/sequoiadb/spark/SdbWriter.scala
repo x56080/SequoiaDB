@@ -24,7 +24,7 @@ private[spark] class SdbWriter(config: SdbConfig) extends Serializable with Logg
       * @param it Iterator of SequoiaDB objects.
       */
     private def write[T](it: Iterator[T], convert: T => BSONObject): Unit = {
-        val sdb = new Sequoiadb(config.host, config.username, config.password, null)
+        val sdb = new Sequoiadb(config.host, config.username, config.password, SdbConfig.SdbConnectionOptions)
 
         try {
             val cs = if (sdb.isCollectionSpaceExist(config.collectionSpace)) {
