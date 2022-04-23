@@ -198,6 +198,12 @@
                                  "en": "Instance management tool"
                               },
                               {
+                                 "id": 1648718137,
+                                 "file": "metadata_mapping_management",
+                                 "cn": "元数据映射",
+                                 "en": "Metadata mapping management tool"
+                              },
+                              {
                                  "id": 1556198260,
                                  "file": "upgrade",
                                  "cn": "升级",
@@ -351,6 +357,12 @@
                                  "file": "sdb_maria_ctl",
                                  "cn": "实例管理",
                                  "en": "Instance management tool"
+                              },
+                              {
+                                 "id": 1648718184,
+                                 "file": "metadata_mapping_management",
+                                 "cn": "元数据映射",
+                                 "en": "Metadata mapping management tool"
                               },
                               {
                                  "id": 1575355422,

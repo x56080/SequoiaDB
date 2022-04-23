@@ -276,6 +276,39 @@
 >
 > 事务模式下，所有操作均在主节点进行。因此上述配置需在无事务模式下修改，否则无效。
 
+###配置元数据映射功能###
+
+**sequoiadb_enable_mapping**
+
+该参数可以配置 MariaDB 实例是否开启[元数据映射功能][metadata_mapping_management]。
+
++ 类型：boolean
++ 默认值：OFF
++ 作用范围：Global
++ 是否支持在线修改生效：否
+
+**sequoiadb_mapping_unit_count**
+
+该参数可以配置 MariaDB 表所映射的集合空间数量。
+
++ 类型：int32
++ 默认值：10
++ 取值范围：[10,50]
++ 块大小：10
++ 作用范围：Global
++ 是否支持在线修改生效：否
+
+**sequoiadb_mapping_unit_size**
+
+该参数可以配置单个集合空间支持创建的集合数量。
+
++ 类型：int32
++ 默认值：1024
++ 取值范围：[1024,2048]
++ 块大小：512
++ 作用范围：Global
++ 是否支持在线修改生效：否
+
 ###其它配置###
 
 **sequoiadb_alter_table_overhead_threshold**
@@ -363,3 +396,4 @@
 [optimizer_switch]:https://mariadb.com/kb/en/library/optimizer_switch/
 [Block_based_join_algorithms]:https://mariadb.com/kb/en/library/block-based-join-algorithms/
 [trans_isolation]:https://mariadb.com/kb/en/server-system-variables/#tx_isolation
+[metadata_mapping_management]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Maintainance/metadata_mapping_management.md

@@ -59,7 +59,7 @@ mysql> USE company;
 用户在 MySQL 上创建表时，可以在表选项 COMMENT 中指定关键词"sequoiadb"，并在其后添加一个 json 对象用于传入自定义的表配置参数。格式如下：
 
 ```lang-ini
-COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}, auto_partition:<true|false>] }"
+COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}, auto_partition:<true|false>, mapping: <string>] }"
 ```
 
 **具体配置参数**
@@ -70,6 +70,7 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
 | table_options | json | 创建集合的相关参数，详细参数可参考 [SequoiaDB 创建集合选项][createCL]| 否 |
 | partition_options | json | 分区的属性，用于指定 RANGE/LIST [分区表][partition]的分区属性，详细参数可参考 [SequoiaDB 创建集合选项][createCL]| 否 |
 | auto_partition | boolean | 是否创建分区表，取值为 false 则显式创建非分区表| 否 |
+| mapping | string | 指定表与集合的[元数据映射][metadata_mapping_management]关系，格式为 `mapping: "<集合空间>.<集合>"`| 否 |
 
 >**Note：**
 >
@@ -177,3 +178,4 @@ mysql> DROP DATABASE company;
 [createCL]:manual/Manual/Sequoiadb_Command/SdbCS/createCL.md
 [partition]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/partition.md
 [sdbpasswd]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdbpasswd.md#引擎配置
+[metadata_mapping_management]:Database_Instance/Relational_Instance/MySQL_Instance/Maintainance/metadata_mapping_management.md
