@@ -551,6 +551,47 @@
                             "en": "Data Type"
                         }
                      ]
+                  },
+                  {
+                     "id": 1641263173,
+                     "dir": "FlinkSQL_Connector",
+                     "cn": "FlinkSQL 连接器",
+                     "en": "FlinkSQL Connector",
+                     "top": true,
+                     "contents": [
+                        {
+                            "id": 1641263180,
+                            "file": "setup",
+                            "cn": "安装部署",
+                            "en": "Installation and Deployment"
+                        },
+                        {
+                           "id": 1641263185,
+                           "dir": "Operation",
+                           "cn": "操作",
+                           "en": "Operation",
+                           "contents": [
+                              {
+                                 "id": 1641263190,
+                                 "file": "connection",
+                                 "cn": "连接",
+                                 "en": "Connection"
+                              },
+                              {
+                                 "id": 1641263195,
+                                 "file": "usage",
+                                 "cn": "使用",
+                                 "en": "usage"  
+                              }
+                           ]
+                        },
+                        {
+                            "id": 1641263213,
+                            "file": "data_type",
+                            "cn": "数据类型映射表",
+                            "en": "Data Type Convert table"
+                        }
+                     ]
                   }
                ]
             },
