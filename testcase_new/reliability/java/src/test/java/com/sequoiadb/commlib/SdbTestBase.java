@@ -127,7 +127,7 @@ public class SdbTestBase {
             boolean ret = createCommonCS( db );
             Assert.assertTrue( ret );
             createWorkDir();
-            createReserveDir();
+            //createReserveDir();
         } catch ( BaseException e ) {
             Assert.fail( "connect " + coordUrl + ": " + e.getErrorCode() );
         }
