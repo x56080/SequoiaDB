@@ -162,4 +162,7 @@ void getDataPath ( CHAR *buffer, INT32 len, const CHAR *dp1, const CHAR *dp2 ) ;
 
 BOOLEAN isCluster( sdb &db ) ;
 
+CHAR* allocMemory( INT32 size ) ;
+void freeMemory( CHAR *p ) ;
+
 #endif

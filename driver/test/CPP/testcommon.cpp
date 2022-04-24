@@ -670,3 +670,25 @@ BOOLEAN isCluster( sdb &db )
    }
    return FALSE ;
 }
+
+CHAR* allocMemory( INT32 size )
+{
+   CHAR *p = NULL ;
+   if ( 0 < size )
+   {
+      p = (CHAR *)malloc( size ) ;
+   }
+   if ( p )
+   {
+      memset( p, 0, size ) ;
+   }
+   return p ;
+}
+
+void freeMemory( CHAR *p )
+{
+   if ( p )
+   {
+      free( p ) ;
+   }
+}
