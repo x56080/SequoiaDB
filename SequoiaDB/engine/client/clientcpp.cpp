@@ -282,6 +282,7 @@ do                                                            \
       // had been destroyed or not
       if ( _connection )
       {
+         _onUnregHandleInConn() ;
          _connection->_unregisterHandle( _type, ptr ) ;
          _connection = NULL ;
       }
@@ -325,6 +326,29 @@ do                                                            \
       if ( _pReceiveBuffer )
       {
          SDB_OSS_FREE ( _pReceiveBuffer ) ;
+      }
+   }
+
+   void _sdbCursorImpl::_onUnregHandleInConn()
+   {
+      if ( !_connection )
+      {
+         return ;
+      }
+      const CHAR *pErrorBuf  = _connection->_pErrorBuf ;
+      const CHAR *pResultBuf = _connection->_pResultBuf ;
+
+      if ( pErrorBuf &&
+           ( pErrorBuf >= _pReceiveBuffer &&
+             pErrorBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
+      {
+         _connection->_setErrorBuffer( NULL, 0 ) ;
+      }
+      if ( pResultBuf &&
+           ( pResultBuf >= _pReceiveBuffer &&
+             pResultBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
+      {
+         _connection->_setResultBuffer( NULL, 0 ) ;
       }
    }
 
@@ -830,6 +854,29 @@ do                                                            \
       if ( _pAppendOIDBuffer )
       {
          SDB_OSS_FREE ( _pAppendOIDBuffer ) ;
+      }
+   }
+
+   void _sdbCollectionImpl::_onUnregHandleInConn()
+   {
+      if ( !_connection )
+      {
+         return ;
+      }
+      const CHAR *pErrorBuf  = _connection->_pErrorBuf ;
+      const CHAR *pResultBuf = _connection->_pResultBuf ;
+
+      if ( pErrorBuf &&
+           ( pErrorBuf >= _pReceiveBuffer &&
+             pErrorBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
+      {
+         _connection->_setErrorBuffer( NULL, 0 ) ;
+      }
+      if ( pResultBuf &&
+           ( pResultBuf >= _pReceiveBuffer &&
+             pResultBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
+      {
+         _connection->_setResultBuffer( NULL, 0 ) ;
       }
    }
 
@@ -5114,6 +5161,29 @@ do                                                            \
       }
    }
 
+   void _sdbCollectionSpaceImpl::_onUnregHandleInConn()
+   {
+      if ( !_connection )
+      {
+         return ;
+      }
+      const CHAR *pErrorBuf  = _connection->_pErrorBuf ;
+      const CHAR *pResultBuf = _connection->_pResultBuf ;
+
+      if ( pErrorBuf &&
+           ( pErrorBuf >= _pReceiveBuffer &&
+             pErrorBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
+      {
+         _connection->_setErrorBuffer( NULL, 0 ) ;
+      }
+      if ( pResultBuf &&
+           ( pResultBuf >= _pReceiveBuffer &&
+             pResultBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
+      {
+         _connection->_setResultBuffer( NULL, 0 ) ;
+      }
+   }
+
    INT32 _sdbCollectionSpaceImpl::getCollection ( const CHAR *pCollectionName,
                                                   _sdbCollection **collection,
                                                   BOOLEAN checkExist )
@@ -5721,6 +5791,29 @@ do                                                            \
       }
    }
 
+   void _sdbDomainImpl::_onUnregHandleInConn()
+   {
+      if ( !_connection )
+      {
+         return ;
+      }
+      const CHAR *pErrorBuf  = _connection->_pErrorBuf ;
+      const CHAR *pResultBuf = _connection->_pResultBuf ;
+
+      if ( pErrorBuf &&
+           ( pErrorBuf >= _pReceiveBuffer &&
+             pErrorBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
+      {
+         _connection->_setErrorBuffer( NULL, 0 ) ;
+      }
+      if ( pResultBuf &&
+           ( pResultBuf >= _pReceiveBuffer &&
+             pResultBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
+      {
+         _connection->_setResultBuffer( NULL, 0 ) ;
+      }
+   }
+
    INT32 _sdbDomainImpl::_setName ( const CHAR *pDomainName )
    {
       INT32 rc = SDB_OK ;
@@ -6074,6 +6167,29 @@ do                                                            \
       }
    }
 
+   void _sdbDataCenterImpl::_onUnregHandleInConn()
+   {
+      if ( !_connection )
+      {
+         return ;
+      }
+      const CHAR *pErrorBuf  = _connection->_pErrorBuf ;
+      const CHAR *pResultBuf = _connection->_pResultBuf ;
+
+      if ( pErrorBuf &&
+           ( pErrorBuf >= _pReceiveBuffer &&
+             pErrorBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
+      {
+         _connection->_setErrorBuffer( NULL, 0 ) ;
+      }
+      if ( pResultBuf &&
+           ( pResultBuf >= _pReceiveBuffer &&
+             pResultBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
+      {
+         _connection->_setResultBuffer( NULL, 0 ) ;
+      }
+   }
+
    INT32 _sdbDataCenterImpl::_setName ( const CHAR *pClusterName,
                                         const CHAR *pBusinessName )
    {
@@ -6305,6 +6421,29 @@ do                                                            \
       {
          SAFE_OSS_FREE ( _pReceiveBuffer ) ;
          _receiveBufferSize = 0 ;
+      }
+   }
+
+   void _sdbLobImpl::_onUnregHandleInConn()
+   {
+      if ( !_connection )
+      {
+         return ;
+      }
+      const CHAR *pErrorBuf  = _connection->_pErrorBuf ;
+      const CHAR *pResultBuf = _connection->_pResultBuf ;
+
+      if ( pErrorBuf &&
+           ( pErrorBuf >= _pReceiveBuffer &&
+             pErrorBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
+      {
+         _connection->_setErrorBuffer( NULL, 0 ) ;
+      }
+      if ( pResultBuf &&
+           ( pResultBuf >= _pReceiveBuffer &&
+             pResultBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
+      {
+         _connection->_setResultBuffer( NULL, 0 ) ;
       }
    }
 
@@ -7021,6 +7160,29 @@ do                                                            \
       if ( _pReceiveBuffer )
       {
          SDB_OSS_FREE( _pReceiveBuffer ) ;
+      }
+   }
+
+   void _sdbDataSourceImpl::_onUnregHandleInConn()
+   {
+      if ( !_connection )
+      {
+         return ;
+      }
+      const CHAR *pErrorBuf  = _connection->_pErrorBuf ;
+      const CHAR *pResultBuf = _connection->_pResultBuf ;
+
+      if ( pErrorBuf &&
+           ( pErrorBuf >= _pReceiveBuffer &&
+             pErrorBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
+      {
+         _connection->_setErrorBuffer( NULL, 0 ) ;
+      }
+      if ( pResultBuf &&
+           ( pResultBuf >= _pReceiveBuffer &&
+             pResultBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
+      {
+         _connection->_setResultBuffer( NULL, 0 ) ;
       }
    }
 

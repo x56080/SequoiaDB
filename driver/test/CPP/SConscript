@@ -70,6 +70,9 @@ testFiles15 = [
 testFiles16 = [
          "connectionPool.cpp"
 ]
+testFiles18 = [
+         "jira.cpp"
+]
 
 # compile common lib
 gtestall = env.StaticLibrary('gtest', gtestFiles)
@@ -92,6 +95,7 @@ rg = dllBuildEnv.Program("rg", [testFiles13, gtestMainObj, testCommonFiles])
 datasource = dllBuildEnv.Program("datasource", [testFiles14, gtestMainObj, testCommonFiles])
 indexCover = dllBuildEnv.Program("indexCover", [testFiles15, gtestMainObj, testCommonFiles])
 connectionPool = dllBuildEnv.Program("connectionPool", [testFiles16, gtestMainObj, testCommonFiles])
+jira = dllBuildEnv.Program("jira", [testFiles18, gtestMainObj, testCommonFiles])
 
 # static compile
 # dll compile
@@ -111,6 +115,7 @@ rg.static = staticBuildEnv.Program("rg.static", [testFiles13, gtestMainObj, test
 datasource.static = staticBuildEnv.Program("datasource.static", [testFiles14, gtestMainObj, testCommonFiles])
 indexCover.static = staticBuildEnv.Program("indexCover.static", [testFiles15, gtestMainObj, testCommonFiles])
 connectionPool.static = staticBuildEnv.Program("connectionPool.static", [testFiles16, gtestMainObj, testCommonFiles])
+jira.static = staticBuildEnv.Program("jira.static", [testFiles18, gtestMainObj, testCommonFiles])
 
 #env.Install( '#/build_test',[collection,collectionspace,cursor,query,
 #                             sdb,cppbson, debug, domain, lob, selectQuery, procedure, rg, dc ] )
@@ -122,11 +127,11 @@ connectionPool.static = staticBuildEnv.Program("connectionPool.static", [testFil
 # dll compile, "rg, dc" don't run in ci
 env.Install( '#/build_test',[collection,collectionspace,cursor,query,
                              sdb,cppbson, debug, domain, lob, selectQuery, procedure, datasource,
-                             indexCover, connectionPool ] )
+                             indexCover, connectionPool, jira ] )
 
 # static compile, "rg, dc" don't run in ci
 env.Install( '#/build_test',[collection.static, collectionspace.static, cursor.static, query.static,
                              sdb.static, cppbson.static, debug.static, domain.static, lob.static,
                              selectQuery.static, procedure.static, datasource.static, indexCover.static,
-                             connectionPool.static ] )
+                             connectionPool.static, jira.static ] )
 
