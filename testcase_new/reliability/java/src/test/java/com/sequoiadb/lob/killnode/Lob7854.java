@@ -137,8 +137,8 @@ public class Lob7854 extends SdbTestBase {
             }
         }
 
-        LobUtil.checkLobMD5( cl, lobIds, lobBuff );
         checkLobNums( cl, lobIds );
+        LobUtil.checkLobMD5( cl, lobIds, lobBuff );
         // 再次创建lob，读取lob信息正确
         ObjectId lobId = putLob( cl );
         List< ObjectId > lobIds2 = new ArrayList<>();
@@ -146,7 +146,8 @@ public class Lob7854 extends SdbTestBase {
         LobUtil.checkLobMD5( cl, lobIds2, lobBuff );
     }
 
-    private void checkLobNums( DBCollection dbcl, List< ObjectId > lobOids ) {
+    private void checkLobNums( DBCollection dbcl,
+            List< ObjectId > explobOids ) {
         List< ObjectId > actLobIds = new ArrayList<>();
         try ( DBCursor listLob = dbcl.listLobs()) {
             while ( listLob.hasNext() ) {
@@ -158,9 +159,16 @@ public class Lob7854 extends SdbTestBase {
                 actLobIds.add( existOid );
             }
         }
-        Collections.sort( actLobIds );
-        Collections.sort( lobOids );
-        Assert.assertEquals( actLobIds, lobOids, "actLobOid is :"
-                + actLobIds.toString() + "\n expLobIds:" + lobOids.toString() );
+        // 验证lobId数量，实际数量比预期多且小于lobNums，则返回实际的lobId
+        if ( actLobIds.size() >= explobOids.size()
+                && actLobIds.size() <= lobNums ) {
+            Assert.assertTrue( actLobIds.containsAll( explobOids ),
+                    "actLobOid is :" + actLobIds.toString() + "\n expLobIds:"
+                            + explobOids.toString() );
+            lobIds = actLobIds;
+        } else if ( actLobIds.size() > lobNums ) {
+            Assert.fail(
+                    "actual lobnum more than lobNums, lobId = " + actLobIds );
+        }
     }
 }
