@@ -1778,7 +1778,7 @@ TEST( collection, alter_collection )
    ASSERT_EQ( 1, n_value ) << "after alter cl, the sharding key is not what we want" ;
 
    ele = record.getField( "ShardingType" ) ;
-   pValue = ele.String().c_str() ;
+   pValue = ele.valuestr() ;
    ASSERT_EQ( SDB_OK, strcmp( pValue, "hash") ) << "after alter cl, the sharding type is not what we want" ;
    ele = record.getField( "Partition" ) ;
    n_value = ele.Int() ;

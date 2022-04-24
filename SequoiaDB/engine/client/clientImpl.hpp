@@ -93,6 +93,8 @@ namespace sdbclient
        */
       void             _unregHandle( ossValuePtr ptr ) ;
 
+      virtual void     _onUnregHandleInConn() {}
+
    protected :
       CLIENT_CLASS_TYPE     _type ;
       _sdbImpl             *_connection ;
@@ -127,6 +129,7 @@ namespace sdbclient
       {
          _unregHandle( (ossValuePtr)this ) ;
       }
+      virtual void _onUnregHandleInConn() ;
 
    private:
       INT32    _killCursor () ;
@@ -182,6 +185,7 @@ namespace sdbclient
       {
          _unregHandle( (ossValuePtr)this ) ;
       }
+      virtual void _onUnregHandleInConn() ;
 
    private:
       INT32    _setName ( const CHAR *pCollectionFullName ) ;
@@ -950,6 +954,7 @@ namespace sdbclient
       {
          _unregHandle( (ossValuePtr)this ) ;
       }
+      virtual void _onUnregHandleInConn() ;
 
    private:
       INT32 _setName ( const CHAR *pCollectionSpaceName ) ;
@@ -1082,6 +1087,7 @@ namespace sdbclient
       {
          _unregHandle( (ossValuePtr)this ) ;
       }
+      virtual void _onUnregHandleInConn() ;
    private:
       INT32 _setName ( const CHAR *pDomainName ) ;
 
@@ -1169,6 +1175,7 @@ namespace sdbclient
       {
          _unregHandle( (ossValuePtr)this ) ;
       }
+      virtual void _onUnregHandleInConn() ;
 
    private:
       INT32 _setName ( const CHAR *pClusterName,
@@ -1348,6 +1355,7 @@ namespace sdbclient
       {
          _unregHandle( (ossValuePtr)this ) ;
       }
+      virtual void _onUnregHandleInConn() ;
 
    private :
       void _close () ;
@@ -1481,6 +1489,7 @@ namespace sdbclient
       {
          _unregHandle( (ossValuePtr)this ) ;
       }
+      virtual void _onUnregHandleInConn() ;
 
    private:
       INT32 _setName( const CHAR *pDataSourceName ) ;

@@ -42,3 +42,5 @@ $INSTALL_DIR/build/dd/selectQuery
 $INSTALL_DIR/build/dd/selectQuery.static
 $INSTALL_DIR/build/dd/turnon_cache
 $INSTALL_DIR/build/dd/turnon_cache.static
+$INSTALL_DIR/build/dd/jira
+$INSTALL_DIR/build/dd/jira.static
