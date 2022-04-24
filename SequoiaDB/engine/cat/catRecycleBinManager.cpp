@@ -1217,7 +1217,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _countItems( matcher, _hintName, cb, (INT64 &)recycleCountName ) ;
+      rc = _countItems( matcher, _hintOrigName, cb, (INT64 &)recycleCountName ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get recycle count, rc: %d", rc ) ;
 
       PD_CHECK( recycleCountName + recycleCountUID <
@@ -1535,7 +1535,7 @@ namespace engine
          return rc ;
       }
 
-      rc = _getOldestItem( matcher, _hintName, cb, item ) ;
+      rc = _getOldestItem( matcher, _hintOrigName, cb, item ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get the oldest recycle item, "
                    "rc: %d", rc ) ;
 

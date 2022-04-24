@@ -781,6 +781,14 @@ namespace engine
                    UTIL_RECYCLEBIN_ITEM_NAME_INDEX,
                    CAT_SYSRECYCLEBIN_ITEM_COLLECTION, rc ) ;
 
+      // index for origin name
+      rc = _createSysIndex( CAT_SYSRECYCLEBIN_ITEM_COLLECTION,
+                            UTIL_RECYCLEBIN_ORIGNAME_INDEX, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create system index [%s] "
+                   "on system collection [%s], rc: %d",
+                   UTIL_RECYCLEBIN_ORIGNAME_INDEX,
+                   CAT_SYSRECYCLEBIN_ITEM_COLLECTION, rc ) ;
+
       // index for recycle ID
       rc = _createSysIndex( CAT_SYSRECYCLEBIN_ITEM_COLLECTION,
                             UTIL_RECYCLEBIN_RECYID_INDEX, cb ) ;

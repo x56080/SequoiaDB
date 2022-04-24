@@ -292,6 +292,12 @@ namespace engine
                "key : { \""FIELD_NAME_RECYCLE_NAME"\" : 1 }, " \
                "unique : true, enforced : true }"
 
+   // index for origin name
+   #define UTIL_RECYCLEBIN_ORIGNAME_INDEX_NAME  "SYSRECYBINORIGNAMEIDX"
+   #define UTIL_RECYCLEBIN_ORIGNAME_INDEX \
+               "{ name : \""UTIL_RECYCLEBIN_ORIGNAME_INDEX_NAME"\", " \
+               "key : { \""FIELD_NAME_ORIGIN_NAME"\" : 1 } }"
+
    // index for origin ID
    // NOTE: truncate will create duplicated items with the same origin ID,
    //       so should not have unique

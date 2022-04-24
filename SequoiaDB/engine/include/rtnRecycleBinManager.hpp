@@ -319,6 +319,7 @@ namespace engine
       bson::BSONObj        _hintRecyID ;
       bson::BSONObj        _hintOrigID ;
       bson::BSONObj        _hintName ;
+      bson::BSONObj        _hintOrigName ;
    } ;
 
    typedef class _rtnRecycleBinManager rtnRecycleBinManager ;

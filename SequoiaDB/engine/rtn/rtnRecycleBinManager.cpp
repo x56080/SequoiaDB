@@ -79,6 +79,7 @@ namespace engine
          _hintRecyID = BSON( "" << UTIL_RECYCLEBIN_RECYID_INDEX_NAME ) ;
          _hintOrigID = BSON( "" << UTIL_RECYCLEBIN_ORIGID_INDEX_NAME ) ;
          _hintName = BSON( "" << UTIL_RECYCLEBIN_NAME_INDEX_NAME ) ;
+         _hintOrigName = BSON( "" << UTIL_RECYCLEBIN_ORIGNAME_INDEX_NAME ) ;
       }
       catch ( exception &e )
       {
@@ -104,6 +105,7 @@ namespace engine
       _hintRecyID = BSONObj() ;
       _hintOrigID = BSONObj() ;
       _hintName = BSONObj() ;
+      _hintOrigName = BSONObj() ;
 
       PD_TRACE_EXIT( SDB__RTNRECYBINMGR_FINI ) ;
    }
