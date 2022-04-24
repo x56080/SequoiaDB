@@ -16,11 +16,14 @@
 
 package com.sequoiadb.flink.config;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.flink.client.SDBSinkClient;
 
 import org.apache.flink.configuration.ReadableConfig;
@@ -40,9 +43,9 @@ public class SDBSinkOptions extends SDBClientOptions {
     private final String group;
     private final long maxBulkFillTime;
     private final Boolean overwrite;
-
     private Boolean idempotent;
-
+    private HashSet<String> primaryKey = null;
+    
     public SDBSinkOptions(ReadableConfig options) {
         super(options);
 
@@ -108,6 +111,10 @@ public class SDBSinkOptions extends SDBClientOptions {
         return overwrite;
     }
 
+    public  HashSet<String> getPrimaryKeys() {
+        return primaryKey;
+    }
+
     @Override
     public String toString() {
         return "SDBSinkOptions [" 
@@ -135,14 +142,23 @@ public class SDBSinkOptions extends SDBClientOptions {
 
         if (primarykey.isPresent()){
             HashSet<String> pks = new HashSet<>(primarykey.get().getColumns());
-
-            List<HashSet<String>> unique_indexes = SDBSinkClient.checkUniqueIndex(
-                super.getHosts(), 
-                super.getCollectionSpace(),
-                super.getCollection(), 
-                super.getUsername(), 
-                super.getPassword());
-
+            List<HashSet<String>> unique_indexes = new ArrayList<>();
+            try {
+                unique_indexes = SDBSinkClient.checkUniqueIndex(
+                    super.getHosts(), 
+                    super.getCollectionSpace(),
+                    super.getCollection(), 
+                    super.getUsername(), 
+                    super.getPassword());
+            } catch (BaseException e) {
+                if (e.getErrorCode() == SDBError.SDB_DMS_CS_NOTEXIST.getErrorCode() 
+                 || e.getErrorCode() == SDBError.SDB_DMS_NOTEXIST.getErrorCode()) {
+                    primaryKey = pks;
+                } else {
+                    throw e;
+                }
+            }
+            
             boolean hasIndex = false;
             for (HashSet<String> uniquekeyset : unique_indexes){
                 if (uniquekeyset.equals(pks)) {
@@ -151,7 +167,7 @@ public class SDBSinkOptions extends SDBClientOptions {
                 }
             }
 
-            this.idempotent = !unique_indexes.isEmpty() && hasIndex;
+            this.idempotent = !unique_indexes.isEmpty() && hasIndex || primarykey != null;
         } else {
             this.idempotent = false;
         }

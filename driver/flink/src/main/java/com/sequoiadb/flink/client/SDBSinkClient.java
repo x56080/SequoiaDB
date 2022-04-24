@@ -54,7 +54,7 @@ public class SDBSinkClient implements SDBClient {
     private DBCollection cl;
 
     private static final Logger LOG = LoggerFactory.getLogger(SDBSinkClient.class);
-
+    private final String PRIMARY_KEY = "primarykey";
 
     private SDBSinkClient(
         List<String> hosts,
@@ -150,6 +150,7 @@ public class SDBSinkClient implements SDBClient {
             }
             db.getCollectionSpace(collectionSpace).getCollection(collection).createIdIndex(null);
         } catch (BaseException e) {
+            throw e;
         } finally {
             db.close();
         }
@@ -224,7 +225,7 @@ public class SDBSinkClient implements SDBClient {
                 cl = getCS().getCollection(collection);
             } catch (BaseException e) {
                 if (e.getErrorCode() == SDBError.SDB_DMS_NOTEXIST.getErrorCode()) {
-                    cl = ensureCollectionWithOptions(collection);
+                    cl = ensureCollectionWithOptions(collection, sdboptions.getPrimaryKeys());
                 } else {
                     throw e;
                 }
@@ -264,7 +265,7 @@ public class SDBSinkClient implements SDBClient {
      * @param collection        name of collection
      * @return DBCollection
      */
-    private DBCollection ensureCollectionWithOptions(String collection) {
+    private DBCollection ensureCollectionWithOptions(String collection,  HashSet<String> pks) {
         BSONObject options = new BasicBSONObject();
         String ShardingKey = sdboptions.getShardingKey();
         if (ShardingKey != null){
@@ -278,7 +279,15 @@ public class SDBSinkClient implements SDBClient {
         if (Group != null) {
             options.put(SDBConstant.GROUP, Group);
         }
-        return getCS().createCollection(collection, options);
+        DBCollection cl = getCS().createCollection(collection, options);
+        if (pks != null) {
+            BSONObject uniqueIndexes = new BasicBSONObject();
+            for (String key : pks){
+                uniqueIndexes.put(key, 1);
+            }
+            cl.createIndex(PRIMARY_KEY, uniqueIndexes, true, false);
+        }
+        return cl;
     }
 
     @Override
