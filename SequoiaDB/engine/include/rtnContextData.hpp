@@ -59,7 +59,7 @@ namespace engine
       BSONObj endKey ;
    } rtnAdvanceSection ;
 
-   class _rtnCmpSection 
+   class _rtnCmpSection
    {
    public:
       _rtnCmpSection( const BSONObj &order ) : _orderBy( order ) { }
@@ -67,14 +67,14 @@ namespace engine
       {
          INT32 cmpStart = 0 ;
          INT32 cmpEnd   = 0 ;
-         INT32 maxNum   = l.prefixNum > r.prefixNum ? 
+         INT32 maxNum   = l.prefixNum > r.prefixNum ?
                                         l.prefixNum : r.prefixNum ;
 
          cmpStart = woNCompare( l.startKey, r.startKey, maxNum, _orderBy ) ;
 
          if ( cmpStart < 0 )
          {
-            return TRUE ;  
+            return TRUE ;
          }
          else if ( 0 == cmpStart )
          {
@@ -87,20 +87,20 @@ namespace engine
                cmpEnd = woNCompare( l.endKey, r.endKey, maxNum, _orderBy ) ;
                if ( cmpEnd > 0 )
                {
-                  return TRUE ;  
-               }  
+                  return TRUE ;
+               }
                else if ( 0 == cmpEnd )
                {
                   if( l.endIncluded && !r.endIncluded )
                   {
-                     return TRUE ;  
-                  }  
+                     return TRUE ;
+                  }
                }
-            }  
+            }
          }
          return FALSE ;
       }
-     
+
       INT32 woNCompare( const BSONObj &l, const BSONObj &r,
                         UINT32 keyNum, const BSONObj &orderBy) const ;
 
@@ -172,10 +172,8 @@ namespace engine
          virtual BOOLEAN          needRollback() const ;
          virtual const CHAR *     getProcessName() const
          {
-            return ( NULL != _planRuntime.getPlan() &&
-                     NULL != _planRuntime.getPlan()->getCLFullName() ) ?
-                   ( _planRuntime.getPlan()->getCLFullName() ) :
-                   ( "" ) ;
+            return _planRuntime.getCLFullName() ?
+                   _planRuntime.getCLFullName() : "" ;
          }
 
          virtual UINT32 getSULogicalID() const
@@ -213,7 +211,7 @@ namespace engine
                                        BOOLEAN isLocate,
                                        _pmdEDUCB *cb ) ;
 
-         virtual INT32     _getAdvanceOrderby( BSONObj &orderby, 
+         virtual INT32     _getAdvanceOrderby( BSONObj &orderby,
                                        BOOLEAN isRange = FALSE ) const ;
 
          virtual INT32     _prepareDoAdvance ( _pmdEDUCB *cb ) ;
@@ -262,7 +260,7 @@ namespace engine
                                      UINT32 prefixNum ) const ;
 
          INT32    _extractAllEqualSec( INT32 indexFieldNum,
-                                       const BSONElement &eNum, 
+                                       const BSONElement &eNum,
                                        const BSONElement &eVal );
 
          INT32    _extractRangeSec( INT32 indexFieldNum,
