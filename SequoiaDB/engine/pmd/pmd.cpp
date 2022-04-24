@@ -507,7 +507,9 @@ namespace engine
       // destroy trace
       sdbGetPDTraceCB()->destroy() ;
 
-      INT64 shutdownWaitTimeout = _optioncb.shutdownWaitTimeout() ;
+      // add 60 seconds buffer
+      INT64 shutdownWaitTimeout = _optioncb.shutdownWaitTimeout() * OSS_ONE_SEC +
+                                  60 * OSS_ONE_SEC ;
       if ( shutdownWaitTimeout < PMD_STOP_DEADCHECK_TIMEOUT )
       {
          shutdownWaitTimeout = PMD_STOP_DEADCHECK_TIMEOUT ;

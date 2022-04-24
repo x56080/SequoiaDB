@@ -206,13 +206,12 @@ namespace engine
       if ( _srcSessionNum > 0 )
       {
          UINT32 index = 0 ;
-         _vecLatch.lock_r () ;
+         ossScopedRWLock lock( &_vecLatch, SHARED ) ;
          while ( index < _srcSessionNum )
          {
             _vecSrcSessions[index]->notifyLSN ( suLID, clLID, extLID, offset ) ;
             ++index ;
          }
-         _vecLatch.release_r () ;
       }
       _ntyProcessedOffset = offset ;
 
@@ -225,10 +224,19 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSREPSET_REGSN );
       SDB_ASSERT ( pSession, "Session can't be null" ) ;
 
-      _vecLatch.lock_w () ;
-      _srcSessionNum++ ;
-      _vecSrcSessions.push_back ( pSession ) ;
-      _vecLatch.release_w () ;
+      try
+      {
+         ossScopedRWLock lock( &_vecLatch, EXCLUSIVE ) ;
+         _vecSrcSessions.push_back ( pSession ) ;
+         _srcSessionNum++ ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to register session, "
+                 "occur exception %s", e.what() ) ;
+         // unable to handle the exception, throw it
+         throw e ;
+      }
       PD_TRACE_EXIT ( SDB__CLSREPSET_REGSN );
    }
 
@@ -238,7 +246,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSREPSET_UNREGSN );
       SDB_ASSERT ( pSession, "Session can't be null" ) ;
 
-      _vecLatch.lock_w () ;
+      ossScopedRWLock lock( &_vecLatch, EXCLUSIVE ) ;
       std::vector<_clsDataSrcBaseSession*>::iterator it =
          _vecSrcSessions.begin() ;
       while ( it != _vecSrcSessions.end() )
@@ -251,7 +259,6 @@ namespace engine
          }
          ++it ;
       }
-      _vecLatch.release_w () ;
       PD_TRACE_EXIT ( SDB__CLSREPSET_UNREGSN );
    }
 
