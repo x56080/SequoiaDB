@@ -108,10 +108,8 @@ namespace engine
          virtual BOOLEAN          needRollback() const ;
          virtual const CHAR *     getProcessName() const
          {
-            return ( NULL != _planRuntime.getPlan() &&
-                     NULL != _planRuntime.getPlan()->getCLFullName() ) ?
-                   ( _planRuntime.getPlan()->getCLFullName() ) :
-                   ( "" ) ;
+            return _planRuntime.getCLFullName() ?
+                   _planRuntime.getCLFullName() : "" ;
          }
 
          virtual UINT32 getSULogicalID() const
