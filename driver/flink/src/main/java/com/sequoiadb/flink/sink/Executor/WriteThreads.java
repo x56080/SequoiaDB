@@ -52,7 +52,7 @@ public class WriteThreads implements Runnable {
             for (SDBBulk bulk : bulks) {
                 if (bulk.size() > 0) {
                     client.getClient().beginTransaction();
-                    client.getCL().insert(bulk.getBsonObjects(), DBCollection.FLG_INSERT_CONTONDUP);
+                    client.getCL().insert(bulk.getBsonObjects(), DBCollection.FLG_INSERT_REPLACEONDUP);
                     client.getClient().commit();    
                 }
             }

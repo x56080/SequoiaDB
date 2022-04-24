@@ -33,7 +33,6 @@ import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.factories.DynamicTableSinkFactory;
 import org.apache.flink.table.factories.DynamicTableSourceFactory;
 import org.apache.flink.table.factories.FactoryUtil;
-import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.table.types.DataType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +40,6 @@ import org.slf4j.LoggerFactory;
 public class SDBDynamicTableFactory implements DynamicTableSourceFactory, DynamicTableSinkFactory {
 
     public static final String IDENTIFIER = "sequoiadb";
-    private final String SDB_BSON_OID = "_id";
 
     private final static Logger LOG = LoggerFactory.getLogger(SDBDynamicTableFactory.class);
 
@@ -87,7 +85,7 @@ public class SDBDynamicTableFactory implements DynamicTableSourceFactory, Dynami
         optionalOptions.add(SDBOptions.GROUP);
         optionalOptions.add(SDBOptions.FORMAT);
         optionalOptions.add(SDBOptions.SINK_PARALLELISM);
-        optionalOptions.add(SDBOptions.TRANSACTION_ON);
+        optionalOptions.add(SDBOptions.OVERWRITE);
         optionalOptions.add(SDBOptions.MAX_BULK_FILL_TIME);
         return optionalOptions;
     }
@@ -116,7 +114,7 @@ public class SDBDynamicTableFactory implements DynamicTableSourceFactory, Dynami
         
         sdboptions.computeIdempotentWriteOptimization(pk);
                 
-        if (sdboptions.getTransactionOn() && !sdboptions.getIdempotent()
+        if (sdboptions.getOverwrite() && !sdboptions.getIdempotent()
             // && ((RowType) producedDataType.getLogicalType()).getFieldNames().contains(SDB_BSON_OID)
             ) {
             throw new SDBException("Can not perform idempotent write without primary key/unique key");

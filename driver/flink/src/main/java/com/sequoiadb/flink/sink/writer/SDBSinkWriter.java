@@ -54,7 +54,7 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
     private long currentBulkSpawnTime;
     
     private boolean ignoreNullField = false;
-    private final Boolean transactionOn;
+    private final Boolean overwrite;
     private final Boolean idempotent;
     
     private final int THREAD_NUMBER;
@@ -92,7 +92,7 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
         this.currentBulkSpawnTime = getCurrentTimeSeconds();
         this.currentBulkTTL = sdbSinkOptions.getMaxBulkFillTime();
         this.THREAD_NUMBER = sdbSinkOptions.getHosts().size();
-        this.transactionOn = sdbSinkOptions.getTransactionOn();
+        this.overwrite = sdbSinkOptions.getOverwrite();
         this.idempotent = sdbSinkOptions.getIdempotent();
 
         // select one coord node for this writer to use, when write transaction with unique index or nontransaction
@@ -107,13 +107,13 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
         // create thread pool for write out, when it is transaction and don't have unique index
         executorService = Executors.newFixedThreadPool(THREAD_NUMBER); 
         
-        if (transactionOn && !idempotent) {
+        if (overwrite && !idempotent) {
             method = SDBSinkWriteMethod.CHECK_POINT_TRANSACTION;
         } // For transaction and have unique index 
-        else if (transactionOn && idempotent){
+        else if (overwrite && idempotent){
             method = SDBSinkWriteMethod.IDEMPOTENT_WRITE;
         } // For non transaction when error, it requres user to stop and clear tables from sdb and restart flink task
-        else if (!transactionOn) {
+        else if (!overwrite) {
             method = SDBSinkWriteMethod.NO_TRANSACTION;
         }
 
@@ -165,10 +165,10 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
             pushToPendingBulks();
         } // For transaction and have unique index 
         else if (method == SDBSinkWriteMethod.IDEMPOTENT_WRITE && pushCondition){
-            dataInsert(transactionOn);
+            dataInsert(overwrite);
         } // For non transaction when error, it requres user to stop and clear tables from sdb and restart flink task
         else if (method == SDBSinkWriteMethod.NO_TRANSACTION && pushCondition) {
-            dataInsert(transactionOn);
+            dataInsert(overwrite);
         }
 
         currentBulk.add(bsonObject);
@@ -217,13 +217,13 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
         } // when non transaction, this is to ensure lingering data get flushed at least every checkpoint.
         else if (method == SDBSinkWriteMethod.NO_TRANSACTION && (flush || checkPushToPendingCondition())){
             if (currentBulk.size() > 0) {
-                dataInsert(transactionOn);
+                dataInsert(overwrite);
             }
         } // when transaction with unique index, same reason as before, 
           // this will ensure lingering data get flushed as lease every checkpoint
         else if (method == SDBSinkWriteMethod.IDEMPOTENT_WRITE && (flush || checkPushToPendingCondition())) {
             if (currentBulk.size() > 0) {
-                dataInsert(transactionOn);
+                dataInsert(overwrite);
             }
         } 
         // otherwise, just a normal checkpoint
@@ -239,7 +239,7 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
     private void dataInsert(boolean transaction){
         try{
             if (transaction){
-                client.getCL().insert(currentBulk.getBsonObjects(), DBCollection.FLG_INSERT_CONTONDUP);
+                client.getCL().insert(currentBulk.getBsonObjects(), DBCollection.FLG_INSERT_REPLACEONDUP);
             } else {
                 client.getCL().insert(currentBulk.getBsonObjects());
             }

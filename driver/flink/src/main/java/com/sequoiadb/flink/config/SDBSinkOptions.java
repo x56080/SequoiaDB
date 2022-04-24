@@ -39,11 +39,9 @@ public class SDBSinkOptions extends SDBClientOptions {
     private final Boolean autoSplit;
     private final String group;
     private final long maxBulkFillTime;
-    private final Boolean transactionOn;
+    private final Boolean overwrite;
 
     private Boolean idempotent;
-    // private Boolean primarykey;
-    private List<HashSet<String>> unique_indexes;
 
     public SDBSinkOptions(ReadableConfig options) {
         super(options);
@@ -60,7 +58,7 @@ public class SDBSinkOptions extends SDBClientOptions {
         this.autoSplit = options.get(SDBOptions.AUTO_SPLIT);
         this.group = options.get(SDBOptions.GROUP);
         this.maxBulkFillTime = options.get(SDBOptions.MAX_BULK_FILL_TIME);
-        this.transactionOn = options.get(SDBOptions.TRANSACTION_ON);
+        this.overwrite = options.get(SDBOptions.OVERWRITE);
 
       
     }
@@ -106,8 +104,8 @@ public class SDBSinkOptions extends SDBClientOptions {
         return maxBulkFillTime;
     }
 
-    public Boolean getTransactionOn() {
-        return transactionOn;
+    public Boolean getOverwrite() {
+        return overwrite;
     }
 
     @Override
@@ -130,7 +128,7 @@ public class SDBSinkOptions extends SDBClientOptions {
         + ", shardingKey=" + shardingKey 
         + ", shardingType=" + shardingType
         + ", sinkParallelism=" + sinkParallelism 
-        + ", transactionOn=" + transactionOn + "]";
+        + ", overwrite=" + overwrite + "]";
     }
 
     public void computeIdempotentWriteOptimization(Optional<UniqueConstraint> primarykey) {
