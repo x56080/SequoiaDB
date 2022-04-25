@@ -1750,7 +1750,7 @@
          <name>SDB_CLS_SHARDING_NOT_HASH</name>
          <description>
             <en>Sharding type is not hash</en>
-            <cn>分区类型不为哈稀</cn>
+            <cn>分区类型不为哈希</cn>
          </description>
       </code>
 
