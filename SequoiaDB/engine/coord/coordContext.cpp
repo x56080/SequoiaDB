@@ -615,8 +615,10 @@ namespace engine
          {
             PD_LOG( PDDEBUG, "Context %lld closed by node "
                     "[ groupID=%u, nodeID=%u, serviceID=%u ]",
+                    pSubContext->contextID(),
                     pReply->header.routeID.columns.groupID,
-                    pReply->header.routeID.columns.nodeID ) ;
+                    pReply->header.routeID.columns.nodeID,
+                    pReply->header.routeID.columns.serviceID ) ;
             pSubContext->setContextID( pReply->contextID ) ;
          }
          else
@@ -636,7 +638,8 @@ namespace engine
 
       rc = _processSubContext( pSubContext, skipData ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to process sub-context"
-                   "[ groupID=%u, nodeID=%u, serviceID=%u, contextID=%lld ]",
+                   "[ groupID=%u, nodeID=%u, serviceID=%u, contextID=%lld ], "
+                   "rc: %d",
                    pReply->header.routeID.columns.groupID,
                    pReply->header.routeID.columns.nodeID,
                    pReply->header.routeID.columns.serviceID,
