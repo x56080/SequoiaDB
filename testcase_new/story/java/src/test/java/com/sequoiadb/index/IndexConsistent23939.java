@@ -2,6 +2,7 @@ package com.sequoiadb.index;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Random;
 
 import com.sequoiadb.base.DBCursor;
@@ -148,17 +149,36 @@ public class IndexConsistent23939 extends SdbTestBase {
         BSONObject matcher = new BasicBSONObject();
         matcher.put( "Name", csName + '.' + clName );
         matcher.put( "TaskTypeDesc", taskTypeDesc );
-        DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_TASKS, matcher,
-                null, null );
-        int taskNum = 0;
-        BSONObject taskInfo = null;
-        while ( cursor.hasNext() ) {
-            taskInfo = cursor.getNext();
-            taskNum++;
+
+        int times = 0;
+        int sleepTime = 100;
+        int maxWaitTimes = 20000;
+        while ( true ) {
+            DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_TASKS, matcher,
+                    null, null );
+            BSONObject taskInfo = null;
+            List< BSONObject > taskInfos = new ArrayList<>();
+            int taskNum = 0;
+            while ( cursor.hasNext() ) {
+                taskInfo = cursor.getNext();
+                taskInfos.add( taskInfo );
+                taskNum++;
+            }
+            cursor.close();
+
+            if ( taskNum == 0 ) {
+                break;
+            } else if ( times * sleepTime > maxWaitTimes ) {
+                throw new Error( "waiting task time out! waitTimes="
+                        + times * sleepTime + "\ntask=" + taskInfos );
+            }
+            try {
+                Thread.sleep( sleepTime );
+            } catch ( InterruptedException e ) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            times++;
         }
-        cursor.close();
-        Assert.assertEquals( taskNum, 0,
-                "check snapshot task should be no exist! act task ="
-                        + taskInfo );
     }
 }
