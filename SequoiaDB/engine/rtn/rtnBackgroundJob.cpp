@@ -608,26 +608,28 @@ namespace engine
    {
       BOOLEAN needRetry = FALSE ;
 
+      // if the collection is truncated when creating index, we can retry
+      if ( SDB_DMS_TRUNCATED == rc )
+      {
+         needRetry = TRUE ;
+         goto done ;
+      }
+
       // Primary node should throw error immediately, so that user can intervene
-      // as soon as possible.
-      if ( NULL == _dpsCB )
+      // as soon as possible. During split, target group's primary node will
+      // replay source group's dps log.
+      if ( _lsn != DPS_INVALID_LSN_OFFSET )
       {
          if ( SDB_OOM == rc ||
               SDB_NOSPC == rc ||
               SDB_TOO_MANY_OPEN_FD == rc )
          {
             needRetry = TRUE ;
-         }
-      }
-      else
-      {
-         // if the collection is truncated when creating index, we can retry
-         if ( SDB_DMS_TRUNCATED == rc )
-         {
-            needRetry = TRUE ;
+            goto done ;
          }
       }
 
+   done:
       if ( needRetry )
       {
          if ( _taskStatusPtr.get() )
@@ -638,7 +640,6 @@ namespace engine
          PD_LOG ( PDWARNING, "Retry index job[%s] when failed[rc: %d]",
                   name(), rc ) ;
       }
-
       return needRetry ;
    }
 
