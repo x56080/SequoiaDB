@@ -188,6 +188,9 @@ public class Sequoiadb implements Closeable {
      */
     public final static int SDB_LIST_DATASOURCES = 22;
     //public final static int SDB_LIST_RESERVED7 = 24 ;
+    /**
+     * List of recycle bin
+     */
     public final static int SDB_LIST_RECYCLEBIN = 27;
     // reserved
     public final static int SDB_LIST_CL_IN_DOMAIN = 129;
@@ -293,6 +296,9 @@ public class Sequoiadb implements Closeable {
      * Snapshot of transaction deadlock
      */
     public final static int SDB_SNAP_TRANSDEADLOCK = 26;
+    /**
+     * Snapshot of recycle bin
+     */
     public final static int SDB_SNAP_RECYCLEBIN = 27;
 
     public final static int FMP_FUNC_TYPE_INVALID = -1;

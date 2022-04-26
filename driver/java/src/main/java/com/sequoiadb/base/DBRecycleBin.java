@@ -24,7 +24,7 @@ import org.bson.BasicBSONObject;
 import org.bson.BSONObject;
 
 /**
- * Collection space of SequoiaDB.
+ * Recycle bin of SequoiaDB.
  */
 public class DBRecycleBin {
     private Sequoiadb sequoiadb;
@@ -251,9 +251,13 @@ public class DBRecycleBin {
     /**
      * Return item from recycle bin.
      *
-     * @param name      The name of item to be returned
-     * @param options   Reserved argument
-     * @return The return result
+     * @param name    The name of item to be returned
+     * @param options The options are as below:
+     *                  <ul>
+     *                  <li>Enforced : Whether to drop  the conflicting collection or collection space,
+     *                  default is false.
+     *                  </ul>
+     * @return The return item information
      * @throws BaseException If error happens.
      */
     public BSONObject returnItem(String name, BSONObject options) throws BaseException {
@@ -294,7 +298,7 @@ public class DBRecycleBin {
      * @param name         The name of item to be returned.
      * @param returnName   The name of collection or collection space to be returned to.
      * @param options      Reserved argument.
-     * @return The return result
+     * @return The return item information
      * @throws BaseException If error happens.
      */
     public BSONObject returnItemToName(String name,
@@ -340,8 +344,11 @@ public class DBRecycleBin {
     /**
      * Drop item from recycle bin permanently.
      *
-     * @param name      The name of item to be cleared.
-     * @param options   Reserved argument
+     * @param name    The name of item to be cleared.
+     * @param options The options are as below:
+     *                  <ul>
+     *                  <li>Async : Asynchronous drop or not, default is false.
+     *                  </ul>
      * @throws BaseException If error happens.
      */
     public void dropItem(String name,
@@ -366,7 +373,10 @@ public class DBRecycleBin {
     /**
      * Drop all items from recycle bin permanently.
      *
-     * @param options   Reserved argument
+     * @param options The options are as below:
+     *                  <ul>
+     *                  <li>Async : Asynchronous drop or not, default is false.
+     *                  </ul>
      * @throws BaseException If error happens.
      */
     public void dropAll(BSONObject options) throws BaseException {
