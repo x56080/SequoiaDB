@@ -1,14 +1,25 @@
+##名称##
+
+updateConf - 更新节点配置
+
 ##语法##
-***db.updateConf( \<config\>, [options] )***
 
-更新节点配置，并进行配置动态生效。重启生效的配置需重启后生效，禁止修改的配置则不允许修改。
+**db.updateConf(\<config\>, [options])**
 
-##参数描述##
+##类别##
 
-| 参数名 | 参数类型 | 描述 | 是否必填 |
+Sdb
+
+##描述##
+
+该函数用于更新节点配置，并进行配置动态生效。重启生效的配置需重启后生效，禁止修改的配置则不允许修改。
+
+##参数##
+
+| 参数名 | 类型 | 描述 | 是否必填 |
 | ------ | ------ | ------ | ------ |
-| config | Json对象 |配置参数，包含配置名和配置值，例如：{ preferredinstance:'A', diaglevel:3 } | 是 |
-| options| Json对象 | **[命令位置参数](reference/Sequoiadb_command/location.md)** | 否 |
+| config | object |配置参数，包含配置名和配置值，例如：{ preferredinstance:'A', diaglevel:3 } | 是 |
+| options| object | **[命令位置参数](reference/Sequoiadb_command/location.md)** | 否 |
 
 > **Note:**
 >
@@ -21,11 +32,17 @@
 
 ##返回值##
 
-无返回值，出错抛异常，并输出错误信息。可以通过 [getLastErrObj()](reference/Sequoiadb_command/Global/getLastErrObj.md)  或 [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) 获取错误信息 或 通过 [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) 获取错误码。
-更多错误可以参考[常见错误处理指南](troubleshooting/general/general_guide.md) 。
+函数执行成功时，无返回值。
 
-##版本信息##
-2.9及以上版本
+函数执行失败时，将抛异常并输出错误信息。
+
+##错误##
+
+当异常抛出时，可以通过 [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrObj.md) 获取错误信息或通过 [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) 获取[错误码](reference/Sequoiadb_error_code.md)。更多错误处理可以参考[常见错误处理指南](troubleshooting/general/general_guide.md)。
+
+##版本##
+
+v2.9 及以上版本
 
 ##示例##
 
@@ -74,5 +91,4 @@
 		}
 		]
 	}
-Takes 0.004652s.
  ```

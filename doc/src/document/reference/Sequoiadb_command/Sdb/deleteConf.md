@@ -21,7 +21,6 @@ Sdb
 | config | object |[节点配置参数](database_management/database_configuration/parameters_instructions.md)，包含配置名和占位符<br>例如：{preferedinstance: 1, diaglevel: 1}，其中 1 没有特殊含义，仅作为占位符出现| 是 |
 | options| object |[命令位置参数](reference/Sequoiadb_command/location.md)<br>如果不指定该参数，删除操作默认对所有节点生效| 否 |
 
-
 ##返回值##
 
 函数执行成功时，无返回值。

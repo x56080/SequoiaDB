@@ -21,7 +21,6 @@ This function is used to delete the specified node configuration from the config
 | config | object |[Node configuration parameters](database_management/database_configuration/parameters_instructions.md), contains configuration names and placeholders.<br>For example: {preferedinstance: 1, diaglevel: 1}, where 1 has no special meaning and only appears as a placeholder.| required  |
 | options| object |[Command positional parameters](reference/Sequoiadb_command/location.md)<br>If this parameter is not specified, the delete operation will take effect on all nodes by default.| not |
 
-
 ##RETURN VALUE##
 
 When the function executes successfully, there is no return value.
