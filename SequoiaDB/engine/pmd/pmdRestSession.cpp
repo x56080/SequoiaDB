@@ -231,6 +231,10 @@ namespace engine
 
       pEDUMgr = _pEDUCB->getEDUMgr() ;
 
+      // Rest request is not affacted by the common message formant change. So
+      // we always think it's in the 'new' format.
+      _client.setClientVersion( SDB_PROTOCOL_VER_2 ) ;
+
       while ( !_pEDUCB->isDisconnected() && !_socket.isClosed() )
       {
          restRequest request( _pEDUCB ) ;

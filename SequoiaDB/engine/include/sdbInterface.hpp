@@ -293,6 +293,8 @@ namespace engine
          virtual const MsgHeader *getInMsg() const = 0 ;
          virtual void registerInMsg( const MsgHeader *msg ) = 0 ;
          virtual void unregisterInMsg() = 0 ;
+         virtual void setClientVersion( SDB_PROTOCOL_VERSION version ) = 0 ;
+         virtual SDB_PROTOCOL_VERSION getClientVersion() const = 0 ;
    } ;
    typedef _IClient IClient ;
 

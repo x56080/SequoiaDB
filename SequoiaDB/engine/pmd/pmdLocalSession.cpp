@@ -54,7 +54,6 @@ namespace engine
    */
    _pmdLocalSession::_pmdLocalSession( SOCKET fd )
    : pmdSession( fd ),
-     _clientVer( SDB_PROTOCOL_VER_INVALID ),
      _inMsgConvertor( NULL ),
      _outMsgConvertor( NULL )
    {
@@ -344,7 +343,7 @@ namespace engine
 
    BOOLEAN _pmdLocalSession::_clientVersionMatch() const
    {
-      return ( SDB_PROTOCOL_VER_2 == _clientVer ) ;
+      return ( SDB_PROTOCOL_VER_2 == _client.getClientVersion() ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDLOCALSN__PREPROCESSMSG, "_pmdLocalSession::_preprocessMsg" )
@@ -359,10 +358,11 @@ namespace engine
 
       // If the version of peer is unknown, we can determine it by the first
       // common message.
-      if ( SDB_PROTOCOL_VER_INVALID == _clientVer )
+      if ( SDB_PROTOCOL_VER_INVALID == _client.getClientVersion() )
       {
-         _clientVer = ( MSG_COMM_EYE_DEFAULT == msg->eye ) ?
-                      msg->version : SDB_PROTOCOL_VER_1 ;
+         _client.setClientVersion(
+               ( MSG_COMM_EYE_DEFAULT == msg->eye ) ?
+               (SDB_PROTOCOL_VERSION)msg->version : SDB_PROTOCOL_VER_1 ) ;
       }
 
       if ( !_clientVersionMatch() )

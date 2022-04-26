@@ -104,7 +104,17 @@ namespace engine
             _inMsg = NULL ;
          }
 
-      public:
+         virtual void setClientVersion( SDB_PROTOCOL_VERSION version )
+         {
+            _protocolVer = version ;
+         }
+
+         virtual SDB_PROTOCOL_VERSION getClientVersion() const
+         {
+            return _protocolVer ;
+         }
+
+   public:
          ossSocket*           getSocket() { return _pSocket ; }
 
       protected:
@@ -131,6 +141,7 @@ namespace engine
          CHAR                 _peerIP[ PMD_IPADDR_LEN + 1 ] ;
          CHAR                 _fromIP[ PMD_IPADDR_LEN + 1 ] ;
          CHAR                 _clientName[ PMD_CLIENTNAME_LEN + 1 ] ;
+         SDB_PROTOCOL_VERSION _protocolVer ;
 
          const MsgHeader *    _inMsg ;
    } ;

@@ -107,8 +107,20 @@ namespace engine
             _inMsg = NULL ;
          }
 
-      public:
-         _netRouteAgent*      getNetAgent() { return _pRTAgent ; }
+         virtual void setClientVersion( SDB_PROTOCOL_VERSION version )
+         {
+            // do nothing
+         }
+
+         virtual SDB_PROTOCOL_VERSION getClientVersion() const
+         {
+            // For internal communication, the version is stored in the net
+            // event handler.
+            return SDB_PROTOCOL_VER_INVALID ;
+         }
+
+   public:
+      _netRouteAgent*      getNetAgent() { return _pRTAgent ; }
 
       protected:
          void                 _makeName() ;

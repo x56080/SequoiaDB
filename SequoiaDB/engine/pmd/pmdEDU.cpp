@@ -677,10 +677,23 @@ namespace engine
          {
             INT32 receivedLen ;
             MsgHeader header ;
-            INT32 rc = _pClientSock->recv( (CHAR*)&header , sizeof(header),
+            INT32 opCode = 0 ;
+            INT32 headerLen = 0 ;
+            SDB_PROTOCOL_VERSION version =
+                  _pSession->getClient()->getClientVersion() ;
+            headerLen = ( SDB_PROTOCOL_VER_1 == version ) ?
+                  sizeof(MsgHeaderV1) : sizeof(MsgHeader) ;
+
+            INT32 rc = _pClientSock->recv( (CHAR*)&header , headerLen,
                                            receivedLen, 0, MSG_PEEK, TRUE, TRUE ) ;
-            if ( ( rc >= (INT32)sizeof(header) &&
-                   MSG_BS_DISCONNECT == header.opCode ) ||
+            if ( rc >= headerLen )
+            {
+               opCode = ( SDB_PROTOCOL_VER_1 == version ) ?
+                        ( (MsgHeaderV1 *)(&header) )->opCode : header.opCode ;
+            }
+
+            if ( ( rc >= headerLen &&
+                   MSG_BS_DISCONNECT == opCode ) ||
                  SDB_NETWORK_CLOSE == rc ||
                  SDB_NETWORK == rc )
             {
@@ -688,12 +701,12 @@ namespace engine
                _isInterruptSelf = FALSE ;
                ret = TRUE ;
             }
-            else if ( rc >= (INT32)sizeof(header) &&
-                      ( MSG_BS_INTERRUPTE == header.opCode ||
-                        MSG_BS_INTERRUPTE_SELF == header.opCode ) )
+            else if ( rc >= headerLen &&
+                      ( MSG_BS_INTERRUPTE == opCode ||
+                        MSG_BS_INTERRUPTE_SELF == opCode ) )
             {
                _ctrlFlag |= EDU_CTRL_INTERRUPTED ;
-               _isInterruptSelf = MSG_BS_INTERRUPTE_SELF == header.opCode ?
+               _isInterruptSelf = MSG_BS_INTERRUPTE_SELF == opCode ?
                                   TRUE : FALSE ;
                ret = TRUE ;
             }

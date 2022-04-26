@@ -95,10 +95,6 @@ namespace engine
 
          BSONObj              _errorInfo ;
 
-         // Client protocol version of this session. If it's different from
-         // local version, message conversion should be done. It will be set
-         // when the first message is received.
-         UINT16               _clientVer ;
          IMsgConvertor        *_inMsgConvertor ;   // For request from client.
          IMsgConvertor        *_outMsgConvertor ;  // For reply to client.
    } ;
