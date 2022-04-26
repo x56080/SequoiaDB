@@ -1043,6 +1043,8 @@ vesselFiles = [
       "vessel/lsm/lsmIndexIterator.cpp",
       "vessel/lsm/lsmScanEntryParser.cpp",
       "vessel/lsm/lsmCompactionFilter.cpp",
+      "vessel/lsm/lsmLobChunkKey.cpp",
+      "vessel/lsm/lsmLobChunkValue.cpp",
       "vessel/cursorKernal.cpp",
       "vessel/diskIOJob.cpp",
       "vessel/diskIOTask.cpp",
