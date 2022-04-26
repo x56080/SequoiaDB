@@ -63,5 +63,5 @@ ln -s /usr/local/s3cmd/s3cmd /usr/bin/s3cmd
 [^_^]:
     相关连接
 
-[download_java]:http://central.maven.org/maven2/com/amazonaws/aws-java-sdk-s3/1.11.415/aws-java-sdk-s3-1.11.415.jar
+[download_java]:https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-s3/1.11.343/aws-java-sdk-s3-1.11.343.jar
 [download_cpp]:https://github.com/aws/aws-sdk-cpp/archive/1.7.114.zip

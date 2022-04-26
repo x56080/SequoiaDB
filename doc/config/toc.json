@@ -938,26 +938,26 @@
                              {
                                 "id": 1606703906,
                                 "file": "engine_download",
-                                "cn": "S3驱动下载",
+                                "cn": "下载 S3 开发工具包",
                                 "en": "S3 Engine Download"
-                             },
-                             {
-                                "id": 1606703915,
-                                "file": "connection",
-                                "cn": "通过s3cmd进行连接",
-                                "en": "Connection"
                              },
                              {
                                 "id": 1606703922,
                                 "file": "java_sample",
-                                "cn": "Java程序样例",
+                                "cn": "Java 程序样例",
                                 "en": "Java Sample"
                              },
                              {
                                 "id": 1606703928,
                                 "file": "C++_sample",
-                                "cn": "C++程序样例",
+                                "cn": "C++ 程序样例",
                                 "en": "C++ Sample"
+                             },
+                             {
+                                "id": 1606703915,
+                                "file": "connection",
+                                "cn": "通过 s3cmd 进行连接",
+                                "en": "Connection"
                              }
                           ]
                        }
