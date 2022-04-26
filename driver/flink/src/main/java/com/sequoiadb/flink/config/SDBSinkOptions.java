@@ -138,10 +138,10 @@ public class SDBSinkOptions extends SDBClientOptions {
         + ", overwrite=" + overwrite + "]";
     }
 
-    public void computeIdempotentWriteOptimization(Optional<UniqueConstraint> primarykey) {
+    public void computeIdempotentWriteOptimization(Optional<UniqueConstraint> flinkPrimaryKey) {
 
-        if (primarykey.isPresent()){
-            HashSet<String> pks = new HashSet<>(primarykey.get().getColumns());
+        if (flinkPrimaryKey.isPresent()){
+            HashSet<String> pks = new HashSet<>(flinkPrimaryKey.get().getColumns());
             List<HashSet<String>> unique_indexes = new ArrayList<>();
             try {
                 unique_indexes = SDBSinkClient.checkUniqueIndex(
@@ -167,7 +167,7 @@ public class SDBSinkOptions extends SDBClientOptions {
                 }
             }
 
-            this.idempotent = !unique_indexes.isEmpty() && hasIndex || primarykey != null;
+            this.idempotent = !unique_indexes.isEmpty() && hasIndex || primaryKey != null;
         } else {
             this.idempotent = false;
         }
