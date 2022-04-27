@@ -78,7 +78,15 @@ __METHOD_DECLARE(cs_create_collection) ;
 __METHOD_DECLARE(cs_create_collection_use_opt) ;
 __METHOD_DECLARE(cs_drop_collection) ;
 __METHOD_DECLARE(cs_rename_collection);
+__METHOD_DECLARE(cs_get_collection_names);
 __METHOD_DECLARE(cs_get_collection_space_name) ;
+__METHOD_DECLARE(cs_alter) ;
+__METHOD_DECLARE(cs_set_domain) ;
+__METHOD_DECLARE(cs_remove_domain) ;
+__METHOD_DECLARE(cs_get_domain_name) ;
+__METHOD_DECLARE(cs_enable_capped) ;
+__METHOD_DECLARE(cs_disable_capped) ;
+__METHOD_DECLARE(cs_set_attributes) ;
 
 ///< collection
 __METHOD_DECLARE(create_cl) ;

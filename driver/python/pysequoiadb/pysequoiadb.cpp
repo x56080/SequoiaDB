@@ -6,6 +6,8 @@
 ///< implement client
 using namespace sdbclient;
 
+#define CLIENT_DOMAIN_NAMESZ 127
+
 static ossOnce errorCallbackOnce = OSS_ONCE_INIT ;
 static OSS_THREAD_LOCAL CHAR* errorBuf = NULL ;
 static OSS_THREAD_LOCAL INT32 errorBufSize = 0 ;
@@ -2042,6 +2044,33 @@ done:
    return MAKE_RETURN_INT( rc ) ;
 }
 
+__METHOD_IMP(cs_get_collection_names)
+{
+   INT32 rc                = 0 ;
+   PYOBJECT *obj           = NULL ;
+   PYOBJECT *cursor_object = NULL ;
+   sdbCollectionSpace *cs  = NULL ;
+   sdbCursor *cursor       = NULL ;
+
+   if ( !PARSE_PYTHON_ARGS( args, "OO", &obj, &cursor_object ) )
+   {
+      rc = SDB_INVALIDARGS ;
+      goto done ;
+   }
+
+   CAST_PYOBJECT_TO_COBJECT( obj, sdbCollectionSpace, cs ) ;
+   CAST_PYOBJECT_TO_COBJECT( cursor_object, sdbCursor, cursor ) ;
+
+   rc = cs->listCollections( *cursor ) ;
+   if ( rc )
+   {
+      goto done ;
+   }
+
+done:
+   return MAKE_RETURN_INT( rc ) ;
+}
+
 __METHOD_IMP(cs_get_collection_space_name)
 {
    INT32 rc               = 0 ;
@@ -2139,6 +2168,31 @@ __METHOD_IMP(cs_remove_domain)
 
 done:
    return MAKE_RETURN_INT( rc ) ;
+}
+
+__METHOD_IMP(cs_get_domain_name)
+{
+   INT32 rc                = 0 ;
+   PYOBJECT *obj           = NULL ;
+   sdbCollectionSpace *cs  = NULL ;
+   CHAR domain_name[ CLIENT_DOMAIN_NAMESZ + 1 ] = { '\0' } ;
+
+   if ( !PARSE_PYTHON_ARGS( args, "O", &obj ) )
+   {
+      rc = SDB_INVALIDARGS ;
+      goto done ;
+   }
+
+   CAST_PYOBJECT_TO_COBJECT( obj, sdbCollectionSpace, cs ) ;
+
+   rc = cs->getDomainName( domain_name, CLIENT_DOMAIN_NAMESZ) ;
+   if ( SDB_OK != rc )
+   {
+      goto done ;
+   }
+
+done:
+   return MAKE_RETURN_INT_PYSTRING( rc, domain_name ) ;
 }
 
 __METHOD_IMP(cs_enable_capped)
@@ -5589,10 +5643,12 @@ static PyMethodDef sequoiadb_methods[] = {
    {"cs_create_collection_use_opt",    cs_create_collection_use_opt,    METH_VARARGS},
    {"cs_drop_collection",              cs_drop_collection,              METH_VARARGS},
    {"cs_rename_collection",            cs_rename_collection,            METH_VARARGS},
+   {"cs_get_collection_names",         cs_get_collection_names,         METH_VARARGS},
    {"cs_get_collection_space_name",    cs_get_collection_space_name,    METH_VARARGS},
    {"cs_alter",                        cs_alter,                        METH_VARARGS},
    {"cs_set_domain",                   cs_set_domain,                   METH_VARARGS},
    {"cs_remove_domain",                cs_remove_domain,                METH_VARARGS},
+   {"cs_get_domain_name",              cs_get_domain_name,              METH_VARARGS},
    {"cs_enable_capped",                cs_enable_capped,                METH_VARARGS},
    {"cs_disable_capped",               cs_disable_capped,               METH_VARARGS},
    {"cs_set_attributes",               cs_set_attributes,               METH_VARARGS},
@@ -5607,7 +5663,7 @@ static PyMethodDef sequoiadb_methods[] = {
    {"cl_split_async_by_percent",       cl_split_async_by_percent,       METH_VARARGS},
    {"cl_bulk_insert",                  cl_bulk_insert,                  METH_VARARGS},
    {"cl_insert",                       cl_insert,                       METH_VARARGS},
-   {"cl_insert_with_flag",            cl_insert_with_flag,            METH_VARARGS},
+   {"cl_insert_with_flag",             cl_insert_with_flag,             METH_VARARGS},
    {"cl_update",                       cl_update,                       METH_VARARGS},
    {"cl_upsert",                       cl_upsert,                       METH_VARARGS},
    {"cl_delete",                       cl_del,                          METH_VARARGS},
