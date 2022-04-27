@@ -172,7 +172,7 @@ public class IndexConsistent23947 extends SdbTestBase {
         DBCollection dbcl = db.getCollectionSpace( csName )
                 .getCollection( clName );
         dbcl.createIndex( indexName, "{testa:1}", false, false );
-        IndexUtils.checkIndexTask( db, "Create index", csName, clName,
+        IndexUtils.checkIndexTaskResult( db, "Create index", csName, clName,
                 indexName, 0 );
         IndexUtils.checkIndexConsistent( db, csName, clName, indexName, true );
         IndexUtils.checkRecords( dbcl, insertRecords, "",

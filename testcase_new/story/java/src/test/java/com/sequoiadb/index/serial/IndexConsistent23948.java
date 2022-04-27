@@ -168,12 +168,12 @@ public class IndexConsistent23948 extends SdbTestBase {
         DBCollection dbcl = db.getCollectionSpace( csName )
                 .getCollection( mainclName );
         dbcl.createIndex( indexName, "{testa:1}", false, false );
-        IndexUtils.checkIndexTask( db, "Create index", csName, mainclName,
-                indexName );
-        IndexUtils.checkIndexTask( db, "Create index", csName, subclName1,
-                indexName );
-        IndexUtils.checkIndexTask( db, "Create index", csName, subclName2,
-                indexName );
+        IndexUtils.checkIndexTaskResult( db, "Create index", csName, mainclName,
+                indexName, 0 );
+        IndexUtils.checkIndexTaskResult( db, "Create index", csName, subclName1,
+                indexName, 0 );
+        IndexUtils.checkIndexTaskResult( db, "Create index", csName, subclName2,
+                indexName, 0 );
         IndexUtils.checkIndexConsistent( db, csName, subclName1, indexName,
                 true );
         IndexUtils.checkIndexConsistent( db, csName, subclName2, indexName,

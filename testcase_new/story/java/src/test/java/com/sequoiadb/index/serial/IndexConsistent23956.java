@@ -226,12 +226,12 @@ public class IndexConsistent23956 extends SdbTestBase {
         DBCollection dbcl = db.getCollectionSpace( csName )
                 .getCollection( clName );
         dbcl.dropIndex( indexName );
-        IndexUtils.checkIndexTask( db, "Drop index", csName, clName,
-                indexName );
-        IndexUtils.checkIndexTask( db, "Drop index", csName, subclName1,
-                indexName );
-        IndexUtils.checkIndexTask( db, "Drop index", csName, subclName2,
-                indexName );
+        IndexUtils.checkIndexTaskResult( db, "Drop index", csName, clName,
+                indexName, 0 );
+        IndexUtils.checkIndexTaskResult( db, "Drop index", csName, subclName1,
+                indexName, 0 );
+        IndexUtils.checkIndexTaskResult( db, "Drop index", csName, subclName2,
+                indexName, 0 );
         IndexUtils.checkIndexConsistent( db, csName, subclName1, indexName,
                 false );
         IndexUtils.checkIndexConsistent( db, csName, subclName2, indexName,
