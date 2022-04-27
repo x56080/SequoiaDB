@@ -37,9 +37,7 @@
 #define VESSEL_TEST_TEST_DEF_H_
 
 #include "ossTypes.hpp"
-#include "vessel/IRedoLogger.h"
 #include "dpsLogRecord.hpp"
-#include "vessel/logRecordContext.h"
 #include "vessel/indexKeyGenerator.h"
 #include "vessel/outerResource.h"
 #include "pd.hpp"
@@ -141,7 +139,7 @@ class test_executor : public IExecutor
       */
       /// for read
       virtual UINT64    getBeginLsn () const {return 0;}
-      virtual UINT64    getEndLsn() const {return dummyJournal::instance()->_lsn.fetch();}
+      virtual UINT64    getEndLsn() const {return dummyDataJournal::instance()->getCurrentLSN();}
       virtual UINT32    getLsnCount () const {return 0;}
       virtual BOOLEAN   isDoRollback () const {return FALSE;}
 
@@ -285,7 +283,7 @@ class test_outer_resource
          setPDLevel(PDDEBUG);
          ::engine::vessel::outerResource r;
          r.indexKeyGen = ::engine::vessel::indexKeyGenForBsonRecord;
-         r.logger = ::engine::vessel::dummyJournal::instance();
+         r.journal = ::engine::vessel::dummyDataJournal::instance();
          r.executorPool = test_session_mgr::instance();
          r.transLockConsole = dummyTransLockConsole::instance();
          test_session_mgr::instance()->clear();

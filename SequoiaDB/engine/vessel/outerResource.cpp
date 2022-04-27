@@ -35,7 +35,6 @@
 
 #include "vessel/outerResource.h"
 #include "dpsDef.hpp"
-#include "vessel/IRedoLogger.h"
 
 namespace engine
 {
@@ -44,9 +43,7 @@ namespace vessel
    UINT64 outerResource::getMinUncompletedLSN()
    {
       SDB_ASSERT(isValid(), "can not be invalid");
-      UINT64 uncommitedLSN = logger->getMinUncommitedLSN();
-      UINT64 minRunningLSN = executorPool->getMinRunningLSN();
-      return OSS_MIN(uncommitedLSN, minRunningLSN);
+      return executorPool->getMinRunningLSN();
    }
 } // namespace vessel
 

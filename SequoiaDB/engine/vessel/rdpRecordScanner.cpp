@@ -37,7 +37,6 @@
 #include "vessel/requestContext.h"
 #include "vessel/instanceEnv.h"
 #include "vessel/outerResource.h"
-#include "vessel/IRedoLogger.h"
 
 namespace engine
 {
@@ -538,7 +537,7 @@ namespace vessel
       SDB_ASSERT(isOpen(), "can not be invalid");
       SDB_ASSERT(isValidRecordSlotPosition(pos), "can not be invalid");
       
-      DPS_LSN_OFFSET minFileLsn = _context->getOuterResource()->logger->getMinFileLSN();
+      DPS_LSN_OFFSET minFileLsn = _context->getOuterResource()->journal->getMinFileLSN();
       DPS_LSN_OFFSET lsn = _lpb.getRuntimeBuffer().getPageHead()->lsn;
       BOOLEAN nolock = _o.nolockWhenScanForNone ||
                        (DPS_INVALID_LSN_OFFSET != minFileLsn &&

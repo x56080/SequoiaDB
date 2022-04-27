@@ -76,8 +76,8 @@ namespace vessel
 #pragma pack(4)
    struct pageHead
    {
-      OSS_INLINE pageHead(){}
-      OSS_INLINE ~pageHead(){}
+      pageHead() = default;
+      ~pageHead() = default;
 
       OSS_INLINE pageHead(const pageHead &o):
       version(o.version),
@@ -86,8 +86,8 @@ namespace vessel
       size(o.size),
       pid(o.pid),
       lpid(o.lpid),
-      lsn(o.lsn),
       psv(o.psv),
+      lsn(o.lsn),
       pad0(o.pad0),
       pad1(o.pad1)
       {
@@ -105,8 +105,8 @@ namespace vessel
          size = o.size;
          pid = o.pid;
          lpid = o.lpid;
-         lsn = o.lsn;
          psv = o.psv;
+         lsn = o.lsn;
          pad0 = o.pad0;
          pad1 = o.pad1;
          return *this;
@@ -145,8 +145,8 @@ namespace vessel
       UINT32 size = 0;
       UINT32 pid = INVALID_PAGE_ID;
       UINT32 lpid = INVALID_PAGE_ID;
-      UINT64 lsn = DPS_INVALID_LSN_OFFSET;
       UINT32 psv = INVALID_PAGE_SNAPSHOT_VERSION;
+      UINT64 lsn = DPS_INVALID_LSN_OFFSET;
       UINT32 pad0 = 0;
       UINT64 pad1 = 0;
    };// struct pageHead

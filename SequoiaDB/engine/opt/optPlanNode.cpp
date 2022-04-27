@@ -149,7 +149,7 @@ namespace engine
       {
          void *beginAddr = (void *)( (CHAR *)p - OPT_MEM_TYPE_SIZE ) ;
          // Only release memory allocted by SDB_THREAD_ALLOC().
-         // Objects allocated by instances of _utilAllocator(allocator is not
+         // Objects allocated by instances of _utilStackOnlyAllocator(allocator is not
          // NULL in new) will not be released seperately, as they are allocated
          // in a stack. They space is released when the allocator is destroyed.
          if ( OPT_MEM_BY_DFT_ALLOCATOR == *(INT32 *)beginAddr )

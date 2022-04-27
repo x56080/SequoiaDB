@@ -1055,7 +1055,6 @@ vesselFiles = [
       "vessel/fsmCandidate.cpp",
       "vessel/vesselFileDef.cpp",
       "vessel/vesselOptions.cpp",
-      "vessel/logRecordContext.cpp",
       "vessel/memoryBlock.cpp",
       "vessel/lpsCheckpointBlocker.cpp",
       "vessel/fsmBitmapPageObject.cpp",

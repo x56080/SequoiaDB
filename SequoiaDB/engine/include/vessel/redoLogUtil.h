@@ -39,7 +39,6 @@
 #include "dpsLogRecord.hpp"
 #include "vessel/vesselIdDef.h"
 #include "vessel/strSlice.h"
-#include "logRecordContext.h"
 #include "vessel/deltaLogRecord.h"
 #include "vessel/slice.h"
 
@@ -47,7 +46,6 @@ namespace engine
 {
 namespace vessel
 {
-   class IRedoLogger;
    class requestContext;
 
    UINT32 packSidAndType(SPACE_ID sid,
@@ -72,11 +70,6 @@ namespace vessel
                                  INT32 indexSlot,
                                  INT32 result);
 
-   BOOLEAN buildFullName(UINT32 bufferSize,
-                         CHAR *buffer,
-                         const strSlice &csName,
-                         const strSlice &clName);
-
    INT32 commitReleasingPagesLog(requestContext *context,
                                  const ossPoolVector<PAGE_ID> &lpids,
                                  const bson::BSONObj &adjunct);
@@ -88,19 +81,12 @@ namespace vessel
          ~lpsLogUtil() = delete;
 
       public:
-         static INT32 prepare(requestContext *context,
-                              const deltaLogRecord &dlr,
-                              logRecordContext &lrc);
-
          static INT32 commit(requestContext *context,
-                             logRecordContext &lrc,
                              SPACE_ID sid,
                              SPACE_TYPE spaceType,
                              FILE_TYPE fileType,
-                             const deltaLogRecord &dlr);
-
-         static INT32 abort(requestContext *context,
-                            logRecordContext &lrc);
+                             const deltaLogRecord &dlr,
+                             DPS_LSN_OFFSET &lsn);
    };//class lpsLogUtil
 
 }//namespace vessel

@@ -202,14 +202,16 @@ namespace engine
          virtual void onPrepareLog( UINT32 csLID, UINT32 clLID,
                                     INT32 extLID, DPS_LSN_OFFSET offset ) ;
 
-         virtual INT32 canAssignLogPage( UINT32 reqLen, pmdEDUCB *cb ) ;
+         virtual INT32 canAssignLogPage( UINT32 reqLen, IExecutor *executor ) ;
 
-         virtual INT32 onCompleteOpr( _pmdEDUCB *cb, INT32 w )
+         virtual INT32 onCompleteOpr( IExecutor *executor, INT32 w )
          {
             INT32 rc = SDB_OK ;
             UINT32 timeout = 0 ;
             UINT32 onceTimeout = 0 ;
             BOOLEAN replCheckRC = SDB_OK ;
+            pmdEDUCB *cb = dynamic_cast<pmdEDUCB *>(executor);
+            SDB_ASSERT(NULL != cb, "invalid executor");
 
             while ( TRUE )
             {

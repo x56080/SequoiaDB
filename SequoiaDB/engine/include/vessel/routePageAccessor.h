@@ -43,7 +43,6 @@ namespace engine
 {
 namespace vessel
 {
-   class logRecordContext;
    class logicalPageBuffer;
 
    class routePageAccessor : public pageAccessor
@@ -80,18 +79,12 @@ namespace vessel
                             INT32 targetLvl,
                             const logicalPageBuffer *lpb);
 
-         INT32 prepareAppendLog(requestContext *context,
-                                const runtimePageBuffer *rpb,
-                                UINT32 count,
-                                logRecordContext *lrc);
-
-         INT32 commitAppendLog(requestContext *context,
-                               const GLOBAL_PAGE_ID &gpid,
-                               PAGE_ID lpid,
-                               UINT16 oldCount,
-                               UINT16 size,
-                               const PAGE_ID *lpids,
-                               logRecordContext *lrc);
+         INT32 writeJournal(requestContext *context,
+                            const GLOBAL_PAGE_ID &gpid,
+                            UINT16 oldSize,
+                            UINT16 size,
+                            const PAGE_ID *lpids,
+                            DPS_LSN_OFFSET &lsn);
 
    };//class routePageAccessor
 }//namespace vessel

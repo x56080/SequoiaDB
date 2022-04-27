@@ -92,8 +92,8 @@ namespace vessel
          pool = &_dynamic;
       }
 
-      for (ossPoolVector<_bufferAllocated>::reverse_iterator itr = pool->rbegin();
-           itr != pool->rend(); ++itr)
+      for (ossPoolVector<_bufferAllocated>::iterator itr = pool->begin();
+           itr != pool->end(); ++itr)
       {
          if (itr->buffer == buffer)
          {
@@ -103,23 +103,12 @@ namespace vessel
                SDB_THREAD_FREE(itr->buffer);
             }
             itr->reset();
+            pool->erase(itr);
             break;
          }
       }
 
       SDB_ASSERT(found, "invalid buffer to free");
-      while (!pool->empty())
-      {
-         if (!pool->back().isValid())
-         {
-            pool->pop_back();
-         }
-         else
-         {
-            break;
-         }
-      }
-
       return;
    }
 

@@ -387,7 +387,7 @@ namespace engine
    #define MTH_MEM_BY_DFT_ALLOCATOR     1
 
    // Allocator for _mthMatchNode
-   typedef _utilAllocator<MTH_ALLOCATOR_SIZE> _mthNodeAllocator ;
+   typedef _utilStackOnlyAllocator<MTH_ALLOCATOR_SIZE> _mthNodeAllocator ;
 
    // Configure arguments for _mthMatchNode
    typedef struct _mthNodeConfig

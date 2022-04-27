@@ -39,101 +39,72 @@
 #ifndef VESSEL_DUMMY_JOURNAL_H_
 #define VESSEL_DUMMY_JOURNAL_H_
 
-#include "vessel/IRedoLogger.h"
-#include "ossAtomic.hpp"
-#include "vessel/logRecordContext.h"
+#include "interface/IDataJournal.h"
+#include <atomic>
 
 namespace engine
 {
 namespace vessel
 {
-   class dummyJournal : public IRedoLogger
+   class dummyDataJournal : public IDataJournal
    {
       public:
-         dummyJournal():
-         _lsn(0)
+         static dummyDataJournal *instance()
          {
-
-         }
-         virtual ~dummyJournal(){}
-
-      public:
-         virtual INT32 log(IExecutor *executor,
-                           const _dpsLogRecord *record,
-                           DPS_LSN_OFFSET *lsn)
-         {
-            UINT64 t = _lsn.add(record->alignedLen());
-            if (NULL != lsn)
-            {
-               *lsn = t;
-            }
-            return SDB_OK;
-         }
-
-         /// allocate lsn and log buffer.
-         virtual INT32 prepare(IExecutor *executor,
-                               logRecordContext *context)
-         {
-            SDB_ASSERT(!context->prepared(), "impossible");
-            UINT64 t = _lsn.add(context->getHead()._length);
-            context->getHead()._lsn = t;
-            
-            return SDB_OK;
-         }
-
-         virtual INT32 pushLogRecordElement(IExecutor *executor,
-                                            logRecordContext *context,
-                                            DPS_TAG tag,
-                                            UINT32 len,
-                                            const void *value)
-         {
-            SDB_ASSERT(context->prepared(), "impossible");
-            return SDB_OK;
-         }
-
-         virtual INT32 commit(IExecutor *executor,
-                              logRecordContext *context)
-         {
-            SDB_ASSERT(context->prepared(), "impossible");
-            return SDB_OK;
-         }
-
-         /// do not abort log after committing.
-         virtual INT32 abort(IExecutor *executor,
-                             logRecordContext *context)
-         {
-            SDB_ASSERT(context->prepared(), "impossible");
-            return SDB_OK;
-         }
-
-         virtual INT32 pushMaxFileLSN(IExecutor *executor,
-                                      DPS_LSN_OFFSET lsn) {return SDB_OK;}
-
-         /// 
-         virtual INT32 abortOplist(IExecutor *executor,
-                                   DPS_LSN_OFFSET lsn) {return SDB_OK;}
-
-         virtual DPS_LSN_OFFSET getMinFileLSN() {return _lsn.fetch();}
-
-         virtual DPS_LSN_OFFSET getMinUncommitedLSN()
-         {
-            return _lsn.fetch();
-         }
-
-         virtual DPS_LSN_OFFSET getCurrentLSN()
-         {
-            return _lsn.fetch();
-         }
-
-         static dummyJournal *instance()
-         {
-            static dummyJournal journal;
+            static dummyDataJournal journal;
             return &journal;
          }
 
       public:
-         ossAtomic64 _lsn;
-   };
+         virtual DPS_LSN_OFFSET getMinFileLSN() {return _lsn.load(std::memory_order_relaxed);}
+         virtual DPS_LSN_OFFSET getMinBufLSN() {return _lsn.load(std::memory_order_relaxed);}
+         virtual DPS_LSN_OFFSET getCurrentLSN() {return _lsn.load(std::memory_order_relaxed);}
+         virtual DPS_LSN_OFFSET getExpectedLSN() {return _lsn.load(std::memory_order_relaxed);}
+         virtual DPS_LSN_OFFSET getMinDirtyLSN() {return _lsn.load(std::memory_order_relaxed);}
+
+      public:
+         virtual void registerEventHandler(dpsEventHandler *handler){}
+         virtual void unregisterEventHandler(dpsEventHandler *handler){}
+
+      public:
+         virtual INT32 write(const dpsPackedRequest &request,
+                             const dpsWriteOptions &o,
+                             dpsLogRecordHeader *result)
+         {
+            UINT32 size = sizeof(dpsLogRecordHeader) + request.getPackedElementsSize();
+            UINT64 lsn = _lsn.fetch_add(ossAlign4(size), std::memory_order_relaxed);
+            if (nullptr != result)
+            {
+               result->clear();
+               result->_lsn = lsn;
+               result->_preLsn = 0 == lsn ? DPS_INVALID_LSN_OFFSET : lsn - size;
+               result->_length = size;
+               result->_version = 1;
+               result->_type = request.getType();
+               result->_flags = request.getFlags();
+            }
+
+            return SDB_OK;
+         }
+
+         virtual INT32 search(const DPS_LSN &lsn,
+                              const dpsSearchOptions &o,
+                              dpsMessageBlock &block)
+         {
+            return SDB_OK;
+         }
+
+         virtual INT32 replicate(const CHAR *rawdata, UINT32 size)
+         {
+            return SDB_OK;
+         }
+
+         virtual INT32 flushAll() {return SDB_OK;}
+         virtual INT32 flush(DPS_LSN_OFFSET lsn) {return SDB_OK;}
+         virtual INT32 truncate(DPS_LSN_OFFSET lsn) {return SDB_OK;}
+      private:
+         std::atomic_ullong _lsn = {};
+   };//class dummyDataJournal
 } // namespace vessel
 
 } // namespace engine

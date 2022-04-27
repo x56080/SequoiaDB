@@ -47,7 +47,6 @@
 #include "vessel/lcBuckets.h"
 #include "vessel/requestContext.h"
 #include "vessel/outerResource.h"
-#include "vessel/IRedoLogger.h"
 #include "vessel/diskIOTask.h"
 #include "vessel/instanceEnv.h"
 #include "vessel/logicalPageSpace.h"
@@ -632,7 +631,7 @@ namespace vessel
    INT32 liteCache::executeIOTask(diskIOTask *task)
    {
       INT32 rc = SDB_OK;
-      IRedoLogger *logger = nullptr;
+      IDataJournal *journal = nullptr;
       lcPageTagHolder holder;
       BOOLEAN fsync = FALSE;
       THREAD_CONTEXT *context = GET_THREAD_CONTEXT();
@@ -650,8 +649,8 @@ namespace vessel
       }
 
       fsync = task->getJob()->isDirtyListJob();
-      logger = context->getEnv()->resource.logger;
-      SDB_ASSERT(nullptr != logger, "can not be null");
+      journal = context->getEnv()->resource.journal;
+      SDB_ASSERT(nullptr != journal, "can not be null");
 
       for (UINT32 i = 0; i < task->getSize(); ++i)
       {
@@ -668,8 +667,7 @@ namespace vessel
          /// page in dirty list job may not be dirty
          if (tag->isMemPageDirty())
          {
-            INT32 tmpRC = logger->pushMaxFileLSN(context->getExecutor(),
-                                                 tag->getMaxMemDirtyLSN());
+            INT32 tmpRC = journal->flush(tag->getMaxMemDirtyLSN());
             if (OSS_UNLIKELY(SDB_OK != tmpRC))
             {
                PD_LOG(PDSEVERE, "failed to push max file lsn:%lld, rc:%d",

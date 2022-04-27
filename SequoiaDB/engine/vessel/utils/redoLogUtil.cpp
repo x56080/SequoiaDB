@@ -38,12 +38,12 @@
 #include "ossLikely.hpp"
 #include "dpsLogRecordDef.hpp"
 #include "vessel/vesselOptions.h"
-#include "vessel/logRecordContext.h"
-#include "vessel/IRedoLogger.h"
 #include "vessel/strSlice.h"
 #include "vessel/requestContext.h"
 #include "vessel/outerResource.h"
 #include "vessel/atomicOperationList.h"
+#include "dpsJournalPad.hpp"
+#include "vessel/instanceEnv.h"
 
 namespace engine
 {
@@ -77,8 +77,10 @@ namespace vessel
                               const slice &indexDef)
    {
       INT32 rc = SDB_OK;
-      IRedoLogger *logger = NULL;
-      logRecordContext lrc;
+
+      IDataJournal *journal = nullptr;
+      dpsStackJournalPad jpad;
+      dpsPackedRequest jrequest;
 
       if (NULL == context ||
           fullName.empty() ||
@@ -88,77 +90,39 @@ namespace vessel
          goto error;
       }
 
-      logger = context->getOuterResource()->logger;
-
-      lrc.open(LOG_TYPE_IX_CRT);
-      lrc.setDDL();
-      lrc.prepush(fullName.strLen() + 1);
-      lrc.prepush(sizeof(INT32));
-      lrc.prepush(sizeof(UINT32));
-      lrc.prepush(indexDef.getSize());
-      lrc.prepushDone();
-
-      rc = logger->prepare(context->getExecutor(), &lrc);
+      journal = context->getEnv()->resource.journal;
+      jpad.setType(LOG_TYPE_IX_CRT);
+      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
+      rc = jpad.append(DPS_LOG_PUBLIC_FULLNAME,
+                       fullName.strLen() + 1,
+                       fullName.str());
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare dps log:%d", rc);
+         PD_LOG(PDERROR, "failed to append full name:%d", rc);
          goto error;
       }
 
-      rc = logger->pushLogRecordElement(context->getExecutor(), &lrc,
-                                        DPS_LOG_PUBLIC_FULLNAME,
-                                        fullName.strLen() + 1,
-                                        fullName.str());
+      rc = jpad.append(DPS_LOG_IXCRT_IX_DEF_OBJ,
+                       indexDef.getSize(),
+                       indexDef.getData());
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to push element fullname:%d", rc);
+         PD_LOG(PDERROR, "failed to append index def:%d", rc);
          goto error;
       }
 
-      rc = logger->pushLogRecordElement(context->getExecutor(), &lrc,
-                                        DPS_LOG_IXCRT_IX_SLOT,
-                                        sizeof(INT32),
-                                        &indexSlot);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to push element index slot:%d", rc);
-         goto error;
-      }
+      jrequest = jpad.done();
 
-      rc = logger->pushLogRecordElement(context->getExecutor(), &lrc,
-                                        DPS_LOG_IXCRT_IX_INDEX_ID,
-                                        sizeof(UINT32),
-                                        &indexId);
+      rc = journal->write(jrequest, dpsWriteOptions(), nullptr);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to push element index slot:%d", rc);
-         goto error;
-      }
-
-      rc = logger->pushLogRecordElement(context->getExecutor(), &lrc,
-                                        DPS_LOG_IXCRT_IX_DEF_OBJ,
-                                        indexDef.getSize(),
-                                        indexDef.getData());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to push element index def:%d", rc);
-         goto error;
-      }
-
-      rc = logger->commit(context->getExecutor(), &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
 
    done:
       return rc;
    error:
-      if (lrc.prepared())
-      {
-         logger->abort(context->getExecutor(), &lrc);
-      }
       goto done;
    }
 
@@ -170,8 +134,9 @@ namespace vessel
                                  INT32 result)
    {
       INT32 rc = SDB_OK;
-      IRedoLogger *logger = NULL;
-      logRecordContext lrc;
+      IDataJournal *journal = nullptr;
+      dpsStackJournalPad jpad;
+      dpsPackedRequest jrequest;
 
       if (NULL == context ||
           fullName.empty() ||
@@ -181,110 +146,23 @@ namespace vessel
          goto error;
       }
 
-      logger = context->getOuterResource()->logger;
+      journal = context->getEnv()->resource.journal;
 
-      lrc.open(LOG_TYPE_IX_CRT_END);
-      lrc.setDDL();
+      jpad.setType(LOG_TYPE_IX_CRT);
+      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
 
-      lrc.prepush(fullName.strLen() + 1);
-      lrc.prepush(sizeof(INT32));
-      lrc.prepush(sizeof(UINT32));
-      lrc.prepush(indexName.strLen() + 1);
-      lrc.prepush(sizeof(INT32));
-      lrc.prepushDone();
-
-      rc = logger->prepare(context->getExecutor(), &lrc);
+      jrequest = jpad.done();
+      rc = journal->write(jrequest, dpsWriteOptions(), nullptr);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare dps log:%d", rc);
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
 
-      rc = logger->pushLogRecordElement(context->getExecutor(), &lrc,
-                                        DPS_LOG_PUBLIC_FULLNAME,
-                                        fullName.strLen() + 1,
-                                        fullName.str());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to push element fullname:%d", rc);
-         goto error;
-      }
-
-      rc = logger->pushLogRecordElement(context->getExecutor(), &lrc,
-                                        DPS_LOG_IXCRT_END_IX_SLOT,
-                                        sizeof(INT32),
-                                        &indexSlot);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to push element index slot:%d", rc);
-         goto error;
-      }
-
-      rc = logger->pushLogRecordElement(context->getExecutor(), &lrc,
-                                        DPS_LOG_IXCRT_END_IX_INDEX_ID,
-                                        sizeof(UINT32),
-                                        &indexId);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to push element index slot:%d", rc);
-         goto error;
-      }
-
-      rc = logger->pushLogRecordElement(context->getExecutor(), &lrc,
-                                        DPS_LOG_IXCRT_END_IX_NAME,
-                                        indexName.strLen() + 1,
-                                        indexName.str());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to push element indexname:%d", rc);
-         goto error;
-      }
-
-      rc = logger->pushLogRecordElement(context->getExecutor(), &lrc,
-                                        DPS_LOG_IXCRT_END_RC,
-                                        sizeof(INT32),
-                                        &result);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to push element index slot:%d", rc);
-         goto error;
-      }
-
-      rc = logger->commit(context->getExecutor(), &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
-         goto error;
-      }
    done:
       return rc;
    error:
-      if (lrc.prepared())
-      {
-         logger->abort(context->getExecutor(), &lrc);
-      }
       goto done;
-   }
-
-   BOOLEAN buildFullName(UINT32 bufferSize,
-                         CHAR *buffer,
-                         const strSlice &csName,
-                         const strSlice &clName)
-   {
-      SDB_ASSERT(NULL != buffer, "can not be null");
-      SDB_ASSERT(!csName.empty(), "can not be empty");
-      SDB_ASSERT(!clName.empty(), "can not be empty");
-      BOOLEAN r = FALSE;
-      UINT32 nameSize = csName.strLen() + clName.strLen() + 2;
-      if (nameSize <= bufferSize)
-      {
-         ossMemcpy(buffer, csName.str(), csName.strLen());
-         buffer[csName.strLen()] = '.';
-         ossMemcpy(buffer + csName.strLen() + 1, clName.str(), clName.strLen());
-         buffer[nameSize] = '\0';
-         r = TRUE;
-      }
-      return r;
    }
 
    INT32 commitReleasingPagesLog(requestContext *context,
@@ -292,21 +170,17 @@ namespace vessel
                                  const bson::BSONObj &adjunct)
    {
       INT32 rc = SDB_OK;
-      IRedoLogger *logger = context->getOuterResource()->logger;
-      logRecordContext lrc;
+      IDataJournal *journal = context->getEnv()->resource.journal;
+      dpsStackJournalPad jpad;
+      dpsPackedRequest jrequest;
 
-      lrc.open(LOG_TYPE_VESSEL_ROUTE_PAGE_UPDATE);
-      lrc.prepushDone();
-      rc = logger->prepare(context->getExecutor(), &lrc);
+      jpad.setType(LOG_TYPE_VESSEL_ROUTE_PAGE_UPDATE);
+      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
+      jrequest = jpad.done();
+      rc = journal->write(jrequest, dpsWriteOptions(), nullptr);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare log, rc:%d",  rc);
-         goto error;
-      }
-      rc = logger->commit(context->getExecutor(), &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
    done:
@@ -316,134 +190,49 @@ namespace vessel
    }
 
 /////////////logicalPageSapceLogUtil begin
-   INT32 lpsLogUtil::prepare(requestContext *context,
-                              const deltaLogRecord &dlr,
-                              logRecordContext &lrc)
-   {
-      INT32 rc = SDB_OK;
-      IRedoLogger *logger = NULL;
-
-      if (OSS_UNLIKELY(NULL == context ||
-                       !dlr.isValid() ||
-                       lrc.prepared()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      logger = context->getOuterResource()->logger;
-
-      lrc.open(LOG_TYPE_VESSEL_LPS_PAGE_MANAGEMENT);
-
-      if (context->isInProcessingOplist())
-      {
-         atomicOperationList *oplist = context->getOplist();
-         if (oplist->isWatingHead())
-         {
-            lrc.setOplistHead();
-         }
-         else
-         {
-            lrc.setOplist(oplist->getOplistLsn());
-         }
-
-         if (oplist->isWaitingTail())
-         {
-            lrc.setOplistTail();
-         }
-      }
-
-      lrc.prepush(sizeof(UINT32));
-      lrc.prepush(dlr.getLogHead()->_size);
-      lrc.prepushDone();
-
-      rc = logger->prepare(context->getExecutor(), &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed prepare log record:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
    INT32 lpsLogUtil::commit(requestContext *context,
-                            logRecordContext &lrc,
-                            SPACE_ID sid,
-                            SPACE_TYPE spaceType,
-                            FILE_TYPE fileType,
-                            const deltaLogRecord &dlr)
+                             SPACE_ID sid,
+                             SPACE_TYPE spaceType,
+                             FILE_TYPE fileType,
+                             const deltaLogRecord &dlr,
+                             DPS_LSN_OFFSET &lsn)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(lrc.prepared(), "must be prepared");
-      SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
-      SDB_ASSERT(INVALID_SPACE_TYPE != spaceType, "can not be invalid");
-      SDB_ASSERT(INVALID_FILE_TYPE != fileType, "can not be invalid");
+      SDB_ASSERT(nullptr != context && context->isOpen(), "can not be invalid");
       SDB_ASSERT(dlr.isValid(), "can not be invalid");
+      IDataJournal *journal = context->getEnv()->resource.journal;
+      dpsStackJournalPad jpad;
+      dpsPackedRequest jrequest;
+      dpsLogRecordHeader jres;
+      UINT32 packedValue = packSidAndType(sid, spaceType, fileType);
 
-      IRedoLogger *logger = NULL;
-      UINT32 packedSidAndType = packSidAndType(sid, spaceType, fileType);
-      logger = context->getOuterResource()->logger;
-
-      rc = logger->pushLogRecordElement(context->getExecutor(), &lrc,
-                                        DPS_LOG_VESSEL_LPS_PM_SID_AND_TYPE,
-                                        sizeof(UINT32), &packedSidAndType);
+      jpad.setType(LOG_TYPE_VESSEL_LPS_PAGE_MANAGEMENT);
+      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
+      rc = jpad.appendInt32(DPS_LOG_VESSEL_LPS_PM_SID_AND_TYPE, packedValue);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to push packed sid:%d", rc);
+         PD_LOG(PDERROR, "failed to append sid and type:%d", rc);
          goto error;
       }
 
-      rc = logger->pushLogRecordElement(context->getExecutor(), &lrc,
-                                        DPS_LOG_VESSEL_LPS_PM_DELTA_LOG,
-                                        dlr.getLogHead()->_size,
-                                        dlr.getLogHead());
+      rc = jpad.append(DPS_LOG_VESSEL_LPS_PM_DELTA_LOG,
+                       dlr.getLogHead()->_size,
+                       dlr.getLogHead());
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to push delta log:%d", rc);
+         PD_LOG(PDERROR, "failed to append delta log:%d", rc);
          goto error;
       }
 
-      rc = logger->commit(context->getExecutor(), &lrc);
+      jrequest = jpad.done();
+      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to commit log[%lld]:%d", lrc.getLsn(), rc);
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
 
-      if (context->isInProcessingOplist())
-      {
-         context->getOplist()->push(lrc.getLsn());
-      }
-      
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 lpsLogUtil::abort(requestContext *context,
-                           logRecordContext &lrc)
-   {
-      INT32 rc = SDB_OK;
-      IRedoLogger *logger = NULL;
-
-      if (OSS_UNLIKELY(NULL == context ||
-                       !lrc.prepared()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      logger = context->getOuterResource()->logger;
-      rc = logger->abort(context->getExecutor(), &lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
+      lsn = jres._lsn;
    done:
       return rc;
    error:

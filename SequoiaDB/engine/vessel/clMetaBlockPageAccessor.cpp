@@ -36,13 +36,11 @@
 #include "vessel/clMetaBlockPageAccessor.h"
 #include "vessel/clMetaBlockPage.h"
 #include "pdTrace.hpp"
-#include "vessel/IRedoLogger.h"
-#include "vessel/logRecordContext.h"
 #include "vessel/requestContext.h"
 #include "vessel/outerResource.h"
-#include "vessel/redoLogUtil.h"
 #include "dpsLogRecordDef.hpp"
 #include "vessel/logicalPageBuffer.h"
+#include "dpsJournalPad.hpp"
 
 namespace engine
 {
@@ -61,7 +59,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       UINT32 slot = 0;
-      logRecordContext lrc;
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       clMetaBlockOnDisk *blockPtr = NULL;
       UINT32 capacity;
@@ -105,13 +102,7 @@ namespace vessel
       buffer = lpb->getWritableBodyBuffer();
       obj = options.toBson();
 
-      rc = prepareCreateCLLog(context, obj.objsize(),
-                              &(lpb->getRuntimeBuffer()), &lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      lsn = lrc.getLsn();
+      
 
       blockPtr = buffer.getWritableObjPtr<clMetaBlockOnDisk>
                  (CL_DISK_META_BLOCK_LEN * slot);
@@ -122,28 +113,21 @@ namespace vessel
          goto error;
       }
 
-      ossMemset(blockPtr, 0, CL_DISK_META_BLOCK_LEN);
-      blockPtr->block = block;
-
-      rc = commitCreateCLLog(context, lpb->getRuntimeBuffer().getGlobalPid(),
-                             block, slice(obj.objsize(), obj.objdata()), &lrc);
+      rc = writeCreateCLJournal(context, lpb->getGlobalPid(),
+                                block, slice(obj.objsize(), obj.objdata()), lsn);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDSEVERE, "failed to commit log[%lld], rc:%d", lsn, rc);
-         ossMemset(blockPtr, 0, CL_DISK_META_BLOCK_LEN);
-         ossPanic();
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
 
+      ossMemset(blockPtr, 0, CL_DISK_META_BLOCK_LEN);
+      blockPtr->block = block;
       lpb->commit(lsn);
 
    done:
       return rc;
    error:
-      if (lrc.prepared())
-      {
-         pageAccessor::abortLog(context, &lrc);
-      }
       goto done;
    }
 
@@ -152,7 +136,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       UINT32 slot = 0;
-      logRecordContext lrc;
       UINT32 capacity;
       strictBuffer buffer;
       clMetaBlockOnDisk *blockPtr = NULL;
@@ -201,15 +184,15 @@ namespace vessel
          goto error;
       }
 
-      ossMemset(blockPtr, 0, CL_DISK_META_BLOCK_LEN);
-      blockPtr->block.reset();
-
-      rc = commitRemoveLog(context, &(lpb->getRuntimeBuffer()), lsn);
+      rc = writeRemoveJournal(context, lpb->getGlobalPid(), lsn);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to commit remove log:%d", rc);
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
+
+      ossMemset(blockPtr, 0, CL_DISK_META_BLOCK_LEN);
+      blockPtr->block.reset();
 
       lpb->commit(lsn);
    done:
@@ -224,11 +207,11 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       UINT32 slot = 0;
-      logRecordContext lrc;
       clMetaBlockOnDisk *wptr = NULL;
       clMetaBlock oldBlock;
       UINT32 capacity = 0;
       strictBuffer buffer;
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       
       if (OSS_UNLIKELY(NULL == context ||
                        !block.isValid() ||
@@ -283,10 +266,13 @@ namespace vessel
       }
 
       oldBlock = wptr->block;
-      rc = prepareUpdateLog(context, &(lpb->getRuntimeBuffer()), &lrc);
+
+      rc = writeUpdateJournal(context, lpb->getGlobalPid(),
+                              COLLECTION_UPDATE_MASK_ROUTE_PAGES,
+                              oldBlock, block, lsn);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare dps log:%d", rc);
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
 
@@ -295,30 +281,10 @@ namespace vessel
          wptr->block.routePages[i] = block.routePages[i];
       }
 
-      rc = commitUpdateLog(context, &lrc, lpb->getRuntimeBuffer().getGlobalPid(),
-                           lpb->getLogicalPid(),
-                           COLLECTION_UPDATE_MASK_ROUTE_PAGES,
-                           oldBlock, wptr->block);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDSEVERE, "failed to commit log[%lld], rc:%d",
-                lrc.getLsn(), rc);
-         ossPanic();
-         for (UINT32 i = 0; i < COLLECTION_ROUTE_PAGE_SLOT_COUNT; ++i)
-         {
-            wptr->block.routePages[i] = oldBlock.routePages[i];
-         }
-         goto error;
-      }
-
-      lpb->commit(lrc.getLsn());
+      lpb->commit(lsn);
    done:
       return rc;
    error:
-      if (lrc.prepared())
-      {
-         pageAccessor::abortLog(context, &lrc);
-      }
       goto done;
    }
 
@@ -327,11 +293,12 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       UINT32 slot = 0;
-      logRecordContext lrc;
       clMetaBlockOnDisk *wptr = NULL;
       clMetaBlock oldBlock;
       UINT32 capacity = 0;
       strictBuffer buffer;
+      PAGE_ID backup[COLLECTION_ROUTE_PAGE_SLOT_COUNT];
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       
       if (OSS_UNLIKELY(NULL == context ||
                        INVALID_CL_MB_ID == context->getMBID() ||
@@ -386,163 +353,29 @@ namespace vessel
       }
 
       oldBlock = wptr->block;
-      rc = prepareUpdateLog(context, &(lpb->getRuntimeBuffer()), &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to prepare dps log:%d", rc);
-         goto error;
-      }
+      ossMemcpy(backup, oldBlock.routePages, sizeof(backup));
 
       for (UINT32 i = 0; i < COLLECTION_ROUTE_PAGE_SLOT_COUNT; ++i)
       {
          wptr->block.routePages[i] = INVALID_PAGE_ID;
       }
 
-      rc = commitUpdateLog(context, &lrc, lpb->getRuntimeBuffer().getGlobalPid(),
-                           lpb->getLogicalPid(),
-                           COLLECTION_UPDATE_MASK_ROUTE_PAGES,
-                           oldBlock, wptr->block);
+      rc = writeUpdateJournal(context, lpb->getGlobalPid(),
+                              COLLECTION_UPDATE_MASK_ROUTE_PAGES,
+                              oldBlock, wptr->block, lsn);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDSEVERE, "failed to commit log[%lld], rc:%d",
-                lrc.getLsn(), rc);
-         ossPanic();
-         for (UINT32 i = 0; i < COLLECTION_ROUTE_PAGE_SLOT_COUNT; ++i)
-         {
-            wptr->block.routePages[i] = oldBlock.routePages[i];
-         }
+         ossMemcpy(wptr->block.routePages, backup, sizeof(backup));
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
 
-      lpb->commit(lrc.getLsn());
+      lpb->commit(lsn);
    done:
       return rc;
    error:
-      if (lrc.prepared())
-      {
-         pageAccessor::abortLog(context, &lrc);
-      }
       goto done;
    }
-
-/*
-   INT32 crpAccessor::updateIndexInfo(requestContext *context,
-                                      CL_MB_ID mbID,
-                                      UINT64 uniqueIndexes,
-                                      UINT64 nonuniqueIndexes,
-                                      logicalPageBuffer *lpb)
-      {
-      INT32 rc = SDB_OK;
-      runtimePageBuffer *rpb = NULL;
-      UINT32 capacity = 0;
-      const collectionRecordOnDisk *readblePtr = NULL;
-      logRecordContext lrc;
-      collectionRecordOnDisk *wptr = NULL;
-      collectionRecord oldRecord;
-      UINT64 mask = COLLECTION_UPDATE_MASK_INDEX_INFO;
-
-      if (OSS_UNLIKELY(NULL == context ||
-                       INVALID_CL_MB_ID == mbID ||
-                       NULL == lpb ||
-                       !lpb->isValid()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rpb = &(lpb->getRuntimeBuffer());
-      rc = lpb->validatePage(PAGE_TYPE_CL_META);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
-                lpb->getRuntimeBuffer().getGlobalPid().toString().c_str(), rc);
-         goto error;
-      }
-
-      rc = getCapacityOfCLRecordPage(rpb->getPageSize(), capacity);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get crp capacity:%d", rc);
-         goto error;
-      }
-
-      readblePtr = getReadableDiskRecordPtr(rpb, mbID % capacity);
-      if (NULL == readblePtr)
-      {
-         PD_LOG(PDERROR, "failed to get readble record ptr");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-      if (!readblePtr->record.isValid())
-      {
-         PD_LOG(PDERROR, "record at pos[%d] is invalid", mbID % capacity);
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      if (readblePtr->record.mbID != mbID)
-      {
-         PD_LOG(PDERROR, "mbid[%d] does not match the one on disk[%d]",
-                mbID, readblePtr->record.mbID);
-         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
-         goto error;
-      }
-
-      rc = rpb->prepareToWrite(context);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get buffer ready to write:%d", rc);
-         goto error;
-      }
-      readblePtr = NULL;
-
-      rc = prepareUpdateLog(context, rpb, &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to prepare create index log record:%d", rc);
-         goto error;
-      }
-
-      wptr = getWritableDiskRecordPtr(rpb, mbID % capacity);
-      if (NULL == wptr)
-      {
-         PD_LOG(PDERROR, "failed to get writable ptr");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      oldRecord = wptr->record;
-      wptr->record.uniqueIndexes = uniqueIndexes;
-      wptr->record.nonUniqueIndexes = nonuniqueIndexes;
-
-      rc = commitUpdateLog(context, &lrc, rpb->getGlobalPid(),
-                           lpb->getLogicalPid(),
-                           mask, oldRecord, wptr->record);
-      if (SDB_OK != rc)
-      {
-         wptr->record.uniqueIndexes = oldRecord.uniqueIndexes;
-         wptr->record.nonUniqueIndexes = oldRecord.nonUniqueIndexes;
-         PD_LOG(PDERROR, "failed to commit dps log[%lld], rc:%d",
-                lrc.getLsn(), rc);
-         ossPanic();
-         goto error;
-      }
-
-      rpb->commit(lrc.getLsn());
-   done:
-      return rc;
-   error:
-      if (lrc.prepared())
-      {
-         pageAccessor::abortLog(context, &lrc);
-      }
-      if (NULL != rpb && rpb->isWritingPrepared())
-      {
-         rpb->abort();
-      }
-      goto done;
-   }
-   */
 
    const clMetaBlockOnDisk *clMetaBlockPageAccessor::getReadableDiskBlockPtr(const runtimePageBuffer *rpb,
                                                                              UINT32 i)
@@ -552,217 +385,111 @@ namespace vessel
       return rpb->getReadableBodyBuffer().getReadableObjPtr<clMetaBlockOnDisk>(offset);
    }
 
-   INT32 clMetaBlockPageAccessor::prepareCreateCLLog(requestContext *context,
-                                                     UINT32 adjunctSize,
-                                                     const runtimePageBuffer *rpb,
-                                                     logRecordContext *lrc)
+   INT32 clMetaBlockPageAccessor::writeCreateCLJournal(requestContext *context,
+                                                       const GLOBAL_PAGE_ID &gpid,
+                                                       const clMetaBlock &block,
+                                                       const slice &adjunct,
+                                                       DPS_LSN_OFFSET &lsn)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(0 != adjunctSize, "can not be zero");
-      SDB_ASSERT(NULL != rpb, "can not be null");
-      SDB_ASSERT(NULL != lrc, "can not be null");
-      SDB_ASSERT(!lrc->prepared(), "can not be prepared");
+      SDB_ASSERT(nullptr != context, "can not be null");
+      IDataJournal *journal = context->getOuterResource()->journal;
+      dpsStackJournalPad jpad;
+      dpsPackedRequest jrequest;
+      dpsLogRecordHeader jres;
 
-      rc = pageAccessor::prepareLog(context, rpb,
-                                    LOG_TYPE_CL_CRT,
-                                    FALSE, lrc);
+      jpad.setType(LOG_TYPE_CL_CRT);
+      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
+
+      rc = jpad.append(DPS_LOG_PUBLIC_VESSEL_GPID,
+                       GLOBAL_PAGE_ID_SIZE,
+                       &gpid);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
+         PD_LOG(PDERROR, "failedt append gpid:%d", rc);
          goto error;
       }
 
-      lrc->setDDL();
-
-      lrc->prepush(sizeof(GLOBAL_PAGE_ID));
-      lrc->prepush(sizeof(CL_MB_ID));
-      lrc->prepush(sizeof(UINT32));
-      lrc->prepush(sizeof(UINT32));
-      lrc->prepush(adjunctSize);
-
-      rc = pageAccessor::prepareLogDone(context, lrc);
+      jrequest = jpad.done();
+      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare log done:%d", rc);
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
+      lsn = jres._lsn;
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 clMetaBlockPageAccessor::commitCreateCLLog(requestContext *context,
-                                                    const GLOBAL_PAGE_ID &gpid,
-                                                    const clMetaBlock &block,
-                                                    const slice &adjunct,
-                                                    logRecordContext *lrc)
+   INT32 clMetaBlockPageAccessor::writeUpdateJournal(requestContext *context,
+                                                      const GLOBAL_PAGE_ID &gpid,
+                                                      UINT64 mask,
+                                                      const clMetaBlock &oldBlock,
+                                                      const clMetaBlock &newBlock,
+                                                      DPS_LSN_OFFSET &lsn)
    {
       INT32 rc = SDB_OK;
-      rc = pageAccessor::pushElement(context, DPS_LOG_PUBLIC_VESSEL_GPID,
-                                     sizeof(GLOBAL_PAGE_ID), &gpid, lrc);
+      SDB_ASSERT(nullptr != context, "can not be null");
+      IDataJournal *journal = context->getOuterResource()->journal;
+      dpsStackJournalPad jpad;
+      dpsPackedRequest jrequest;
+      dpsLogRecordHeader jres;
+
+      jpad.setType(LOG_TYPE_VESSEL_CRP_UPDATE);
+      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
+
+      rc = jpad.append(DPS_LOG_PUBLIC_VESSEL_GPID,
+                       GLOBAL_PAGE_ID_SIZE,
+                       &gpid);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failedt append gpid:%d", rc);
          goto error;
       }
-      rc = pageAccessor::pushElement(context, DPS_LOG_CLCRT_VESSEL_MBID,
-                                     sizeof(CL_MB_ID), &(block.mbID), lrc);
+
+      jrequest = jpad.done();
+      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
-      rc = pageAccessor::pushElement(context, DPS_LOG_CLCRT_VESSEL_MBID,
-                                     sizeof(UINT32), &(block.innerID), lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      rc = pageAccessor::pushElement(context, DPS_LOG_CLCRT_VESSEL_LOGICAL_ID,
-                                     sizeof(UINT32), &(block.logicalCLID), lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      rc = pageAccessor::pushElement(context, DPS_LOG_CLCRT_VESSEL_ADJUNCT,
-                                     adjunct.getSize(), adjunct.data(), lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      rc = pageAccessor::commitLog(context, lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc->getLsn(), rc);
-         goto error;
-      }
+      lsn = jres._lsn;
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 clMetaBlockPageAccessor::prepareUpdateLog(requestContext *context,
-                                                   const runtimePageBuffer *rpb,
-                                                   logRecordContext *lrc)
+   INT32 clMetaBlockPageAccessor::writeRemoveJournal(requestContext *context,
+                                                      const GLOBAL_PAGE_ID &gpid,
+                                                      DPS_LSN_OFFSET &lsn)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(nullptr != context, "can not be null");
+      IDataJournal *journal = context->getOuterResource()->journal;
+      dpsStackJournalPad jpad;
+      dpsPackedRequest jrequest;
+      dpsLogRecordHeader jres;
 
-      rc = pageAccessor::prepareLog(context, rpb,
-                                    LOG_TYPE_VESSEL_CRP_UPDATE,
-                                    FALSE, lrc);
+      jpad.setType(LOG_TYPE_CL_DELETE);
+      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
+
+      jrequest = jpad.done();
+      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
-      
-      lrc->prepush(sizeof(GLOBAL_PAGE_ID));
-      lrc->prepush(sizeof(UINT32));
-      lrc->prepush(sizeof(UINT64));
-      lrc->prepush(CL_META_BLOCK_LEN);
-      lrc->prepush(CL_META_BLOCK_LEN);
-
-      rc = pageAccessor::prepareLogDone(context, lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to prepare done log:%d", rc);
-         goto error;
-      }
+      lsn = jres._lsn;
    done:
       return rc;
    error:
       goto done;
    }
-
-   INT32 clMetaBlockPageAccessor::commitUpdateLog(requestContext *context,
-                                                  logRecordContext *lrc,
-                                                  const GLOBAL_PAGE_ID &gpid,
-                                                  PAGE_ID lpid,
-                                                  UINT64 mask,
-                                                  const clMetaBlock &oldBlock,
-                                                  const clMetaBlock &newBlock)
-   {
-      INT32 rc = SDB_OK;
-      rc = pageAccessor::pushElement(context, DPS_LOG_PUBLIC_VESSEL_GPID,
-                                     sizeof(GLOBAL_PAGE_ID), &gpid, lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_CL_RECORD_UPDATE_LPID,
-                                     sizeof(UINT32), &lpid, lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_CL_RECORD_UPDATE_MASK,
-                                     sizeof(UINT64), &mask, lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_CL_RECORD_UPDATE_OLD,
-                                     CL_META_BLOCK_LEN, &oldBlock, lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_CL_RECORD_UPDATE_NEW,
-                                     CL_META_BLOCK_LEN, &oldBlock, lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      rc = pageAccessor::commitLog(context, lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc->getLsn(), rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 clMetaBlockPageAccessor::commitRemoveLog(requestContext *context,
-                                                  const runtimePageBuffer *rpb,
-                                                  DPS_LSN_OFFSET &lsn)
-   {
-      INT32 rc = SDB_OK;
-      logRecordContext lrc;
-      rc = pageAccessor::prepareLog(context, rpb,
-                                    LOG_TYPE_CL_DELETE,
-                                    FALSE, &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
-         goto error;
-      }
-
-      lrc.setDDL();
-
-      rc = pageAccessor::prepareLogDone(context, &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to prepare log done:%d", rc);
-         goto error;
-      }
-
-      rc = pageAccessor::commitLog(context, &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
-         goto error;
-      }
-
-      lsn = lrc.getLsn();
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
 }//namespace vessel
 }//namespace engine

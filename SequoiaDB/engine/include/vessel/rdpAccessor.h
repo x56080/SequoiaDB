@@ -208,26 +208,14 @@ namespace vessel
          INT32 validatePage(requestContext *context,
                             logicalPageBuffer *lpb)const;
 
-         INT32 prepareInsertLog(dmlContext *context,
-                                UINT32 recordHeadAndBodySize,
-                                const runtimePageBuffer *rpb,
-                                logRecordContext *lrc);
+         INT32 writeInsertJournal(dmlContext *context,
+                                  DPS_LSN_OFFSET &lsn);
 
-         INT32 commitInsertLog(dmlContext *context,
-                               const recordID &rid,
-                               const recordSlot &slot,
-                               const void *record,
-                               const recordDataPageHead *oldHead,
-                               const recordDataPageHead *newHead,
-                               const runtimePageBuffer *rpb,
-                               logRecordContext *lrc);
+         INT32 writeInplaceUpdateJournal(dmlContext *context,
+                                         DPS_LSN_OFFSET &lsn);
 
-         INT32 prepareInplaceUpdateLog(dmlContext *context,
-                                       const runtimePageBuffer *rpb,
-                                       logRecordContext *lrc);
-         INT32 prepareDeleteLog(dmlContext *context,
-                                const runtimePageBuffer *rpb,
-                                logRecordContext *lrc);
+         INT32 writeRemoveJournal(dmlContext *context,
+                                  DPS_LSN_OFFSET &lsn);
 
       private:
          logicalPageBuffer *_lpb = NULL;

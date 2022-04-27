@@ -53,7 +53,6 @@
 #include "vessel/deltaLogRecord.h"
 #include "vessel/requestContext.h"
 #include "vessel/outerResource.h"
-#include "vessel/IRedoLogger.h"
 #include "vessel/backgroundEventMsg.h"
 #include "vessel/deltaLogFileDef.h"
 #include "vessel/memoryBlock.h"
@@ -399,7 +398,7 @@ namespace vessel
       logicalPageSpaceCheckpoint checkpoint;
       BOOLEAN locked = FALSE;
       BOOLEAN abortCheckpoint = FALSE;
-      IRedoLogger *logger = context->getOuterResource()->logger;
+      IDataJournal *journal = context->getOuterResource()->journal;
       ossPoolSet<UINT32> segments;
       DPS_LSN_OFFSET pushLSN = DPS_INVALID_LSN_OFFSET;
       DPS_LSN_OFFSET minDirtyLSN = DPS_INVALID_LSN_OFFSET;
@@ -430,7 +429,7 @@ namespace vessel
 
       minDirtyLSN = _checkpointContext.getMinDirtyLsn();
       maxDirtyLSN = _checkpointContext.getMaxDirtyLsn();
-      pushLSN = isCopyOnWrite() ? logger->getCurrentLSN() : maxDirtyLSN;
+      pushLSN = isCopyOnWrite() ? journal->getCurrentLSN() : maxDirtyLSN;
       
       rc = _logConsole.reserveCheckpoint();
       if (SDB_OK != rc)
@@ -439,7 +438,7 @@ namespace vessel
          goto error;
       }
 
-      lsn._lsn = logger->getCurrentLSN();
+      lsn._lsn = journal->getCurrentLSN();
       lsn._minDirtyLSN = minDirtyLSN;
       rc = getMinUncompletedLSN(context, lsn._minUncompletedLSN);
       if (SDB_OK != rc)
@@ -472,7 +471,7 @@ namespace vessel
          }
       }
 
-      logger->pushMaxFileLSN(context->getExecutor(), pushLSN);
+      journal->flush(pushLSN);
 
       checkpoint.init(0, lsn, _checkpointContext.getCheckpoint().sequence + 1,
                       ossGetCurrentMilliseconds());
@@ -524,7 +523,7 @@ namespace vessel
       LPS_CHECKPOINT checkpoint;
       BOOLEAN locked = FALSE;
       BOOLEAN abortCheckpoint = FALSE;
-      IRedoLogger *logger = context->getOuterResource()->logger;
+      IDataJournal *journal = context->getOuterResource()->journal;
       ossPoolSet<UINT32> segments;
       DPS_LSN_OFFSET pushLSN = DPS_INVALID_LSN_OFFSET;
       DPS_LSN_OFFSET minDirtyLSN = DPS_INVALID_LSN_OFFSET;
@@ -556,9 +555,9 @@ namespace vessel
 
       minDirtyLSN = _checkpointContext.getMaxDirtyLsn();
       maxDirtyLSN = _checkpointContext.getMaxDirtyLsn();
-      pushLSN = isCopyOnWrite() ? logger->getCurrentLSN() : maxDirtyLSN;
+      pushLSN = isCopyOnWrite() ? journal->getCurrentLSN() : maxDirtyLSN;
 
-      lsn._lsn = logger->getCurrentLSN();
+      lsn._lsn = journal->getCurrentLSN();
       lsn._minDirtyLSN = minDirtyLSN;
       rc = getMinUncompletedLSN(context, lsn._minUncompletedLSN);
       if (SDB_OK != rc)
@@ -593,7 +592,7 @@ namespace vessel
          }
       }
 
-      logger->pushMaxFileLSN(context->getExecutor(), pushLSN);
+      journal->flush(pushLSN);
 
       checkpoint.init(LPS_CHECKPOINT::FLAG_FULL_CHECKPOINT, lsn,
                       _checkpointContext.getCheckpoint().sequence + 1,
@@ -2934,8 +2933,6 @@ namespace vessel
                                                 DPS_LSN_OFFSET &lsn)
    {
       SDB_ASSERT(NULL != context, "can not be null");
-      IRedoLogger *logger = context->getOuterResource()->logger;
-      lsn = logger->getMinUncommitedLSN();
       return SDB_OK;
    }
 }//namespace vessel

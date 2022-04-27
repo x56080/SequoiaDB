@@ -43,15 +43,14 @@ namespace engine
 {
 namespace vessel
 {
-   class logRecordContext;
    class runtimePageBuffer;
    class requestContext;
 
    class pageAccessor : public SDBObject
    {
       public:
-         OSS_INLINE pageAccessor(){}
-         virtual ~pageAccessor(){}
+         pageAccessor() = default;
+         virtual ~pageAccessor() = default;
 
       public:
          pageAccessor(const pageAccessor &) = delete;
@@ -59,28 +58,6 @@ namespace vessel
 
       public:
          //virtual PAGE_TYPE getPageType()const = 0;
-
-      protected:
-         virtual INT32 prepareLog(requestContext *context,
-                                  const runtimePageBuffer *rpb,
-                                  UINT16 logType,
-                                  BOOLEAN resetPage,
-                                  logRecordContext *lrc);
-
-         INT32 prepareLogDone(requestContext *context,
-                              logRecordContext *lrc);
-
-         INT32 pushElement(requestContext *context,
-                           UINT8 tag,
-                           UINT32 size,
-                           const void *data,
-                           logRecordContext *lrc);
-
-         INT32 commitLog(requestContext *context,
-                         logRecordContext *lrc);
-
-         void abortLog(requestContext *context,
-                       logRecordContext *lrc);
    
    };//class pageAccessor
 }//namespace vessel

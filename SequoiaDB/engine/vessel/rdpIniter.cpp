@@ -35,7 +35,6 @@
 
 #include "vessel/rdpIniter.h"
 #include "vessel/runtimePageBuffer.h"
-#include "vessel/logRecordContext.h"
 #include "vessel/recordDataPage.h"
 
 namespace engine
@@ -57,9 +56,9 @@ namespace vessel
                                 runtimePageBuffer *rpb)
    {
       INT32 rc = SDB_OK;
-      logRecordContext lrc;
       UINT64 lidAndSeq = 0;
       slice adjunct;
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
 
       if (OSS_UNLIKELY(NULL == context ||
                       INVALID_PAGE_ID == lpid ||
@@ -83,14 +82,6 @@ namespace vessel
          goto error;
       }
 
-      rc = pageInitializer::prepareInitLog(context, sizeof(UINT64),
-                                           rpb, &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
-         goto error;
-      }
-
       if (!initRecordDataPage(rpb->getPageSize(),
                               rpb->getGlobalPid().page(),
                               lpid, psv, _logicalId,
@@ -103,17 +94,16 @@ namespace vessel
 
       lidAndSeq = pack(_logicalId, _sequence + i);
       adjunct.reset(sizeof(UINT64), (const CHAR *)(&lidAndSeq));
-      rc = pageInitializer::commitInitLog(context, rpb->getGlobalPid(),
-                                          lpid, psv, PAGE_TYPE_RECORD,
-                                          adjunct, &lrc);
+
+      rc = pageInitializer::writeJournal(context, rpb->getGlobalPid(),
+                                         PAGE_TYPE_RECORD, adjunct, lsn);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
-         ossPanic();
+         PD_LOG(PDERROR, "failed to write journal, rc:%d", rc);
          goto error;
       }
 
-      rpb->commit(lrc.getLsn());
+      rpb->commit(lsn);
    done:
       return rc;
    error:

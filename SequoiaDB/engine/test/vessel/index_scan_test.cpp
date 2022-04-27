@@ -38,8 +38,6 @@
 #include "vessel/requestContext.h"
 #include <gtest/gtest.h>
 #include "ossUtil.hpp"
-#include "vessel/IRedoLogger.h"
-#include "vessel/logRecordContext.h"
 #include "dpsLogRecord.hpp"
 #include "../bson/bson.hpp"
 #include "pd.hpp"

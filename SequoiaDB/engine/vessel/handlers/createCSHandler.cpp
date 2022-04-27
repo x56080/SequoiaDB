@@ -39,7 +39,6 @@
 #include "vessel/requestContext.h"
 #include "vessel/instanceEnv.h"
 #include "vessel/collectionSpace.h"
-#include "vessel/IRedoLogger.h"
 #include "vessel/outerResource.h"
 #include "vessel/redoLogUtil.h"
 

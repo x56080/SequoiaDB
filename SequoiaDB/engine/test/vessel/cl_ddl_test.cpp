@@ -38,11 +38,9 @@
 #include "vessel/requestContext.h"
 #include <gtest/gtest.h>
 #include "ossUtil.hpp"
-#include "vessel/IRedoLogger.h"
 #include "dpsLogRecord.hpp"
 #include "vessel/listCollectionSpaceDef.h"
 #include "vessel/listCollectionsDef.h"
-#include "vessel/logRecordContext.h"
 #include "dpsLogRecord.hpp"
 #include "dmsCursorReader.hpp"
 #include <thread> // c++11

@@ -360,7 +360,7 @@ namespace engine
 
    // ensure log file can't be wrapped
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSARCHIVEMGR_CANASSIGNLOGPAGE, "dpsArchiveMgr::canAssignLogPage" )
-   INT32 dpsArchiveMgr::canAssignLogPage( UINT32 reqLen, _pmdEDUCB *cb )
+   INT32 dpsArchiveMgr::canAssignLogPage( UINT32 reqLen, IExecutor *executor )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_DPSARCHIVEMGR_CANASSIGNLOGPAGE ) ;
@@ -368,6 +368,8 @@ namespace engine
       DPS_LSN_OFFSET safeOffset ;
       DPS_LSN_OFFSET unsafeOffset ;
       UINT32 logFileSize = _logMgr->getLogFileSz() ;
+      pmdEDUCB *cb = dynamic_cast<pmdEDUCB *>(executor);
+      SDB_ASSERT(NULL != cb, "invalid executor");
 
       // log file can't be wrapped if diff <= safeOffset
       safeOffset = ( _logMgr->getLogFileNum() - 1 ) * logFileSize ;

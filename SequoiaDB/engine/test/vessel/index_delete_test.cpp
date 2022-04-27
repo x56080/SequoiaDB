@@ -38,7 +38,6 @@
 #include "vessel/requestContext.h"
 #include <gtest/gtest.h>
 #include "ossUtil.hpp"
-#include "vessel/IRedoLogger.h"
 #include "../bson/bson.hpp"
 #include "pd.hpp"
 #include "vessel/collectionOptions.h"

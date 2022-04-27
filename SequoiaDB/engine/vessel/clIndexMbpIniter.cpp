@@ -34,7 +34,6 @@
 ******************************************************************************/
 
 #include "vessel/clIndexMbpIniter.h"
-#include "vessel/logRecordContext.h"
 #include "vessel/runtimePageBuffer.h"
 #include "vessel/clIndexMetaBlockPage.h"
 

@@ -37,7 +37,6 @@
 #include "vessel/requestContext.h"
 #include "vessel/outerResource.h"
 #include "ossLikely.hpp"
-#include "vessel/IRedoLogger.h"
 
 namespace engine
 {
@@ -70,8 +69,7 @@ namespace vessel
       DPS_LSN_OFFSET lsn = getOplistLsn();
       if (DPS_INVALID_LSN_OFFSET != lsn)
       {
-         IRedoLogger *logger = context->getOuterResource()->logger;
-         logger->abortOplist(context->getExecutor(), lsn);
+         context->getOuterResource()->journal->abortOpl(lsn);
       }
       fini();
       return;

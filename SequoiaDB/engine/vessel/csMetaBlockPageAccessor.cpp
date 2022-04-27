@@ -36,21 +36,16 @@
 #include "vessel/csMetaBlockPageAccessor.h"
 #include "pdTrace.hpp"
 #include "vessel/logicalPageBuffer.h"
-#include "vessel/logRecordContext.h"
 #include "dpsLogRecordDef.hpp"
+#include "dpsJournalPad.hpp"
+#include "interface/IDataJournal.h"
+#include "vessel/outerResource.h"
+#include "vessel/requestContext.h"
 
 namespace engine
 {
 namespace vessel
 {
-   static const UINT32 UPDATE_CS_META_TYPE_LID = 0;
-
-   csMetaBlockPageAccessor::csMetaBlockPageAccessor()
-   {}
-
-   csMetaBlockPageAccessor::~csMetaBlockPageAccessor()
-   {}
-
    INT32 csMetaBlockPageAccessor::read(requestContext *context,
                                        const logicalPageBuffer *lpb,
                                        csMetaBlock &cmb)
@@ -109,7 +104,7 @@ namespace vessel
       csMetaBlock *blockPtr = nullptr;
       csMetaBlock oldBlock;
       strictBuffer buffer;
-      logRecordContext lrc;
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
 
       if (OSS_UNLIKELY(nullptr == context ||
                        nullptr == lpb ||
@@ -154,25 +149,18 @@ namespace vessel
       blockPtr = buffer.getWritableObjPtr<csMetaBlock>(0);
       oldBlock = *blockPtr;
 
-      rc = prepareUpdateLog(context, &(lpb->getRuntimeBuffer()), &lrc);
+      rc = writeJournal(context, lpb->getGlobalPid(),
+                        oldBlock, block, mask, lsn);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare dps log, rc:%d", rc);
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
 
       *blockPtr = block;
-      rc = commitUpdateLog(context, lpb->getRuntimeBuffer().getGlobalPid(),
-                           oldBlock, *blockPtr, 
-                           mask, &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to commit dps log, rc:%d");
-         *blockPtr = oldBlock;
-         goto error;
-      }
 
-      lpb->commit(lrc.getLsn());
+
+      lpb->commit(lsn);
 
    done:
       return rc;
@@ -180,92 +168,64 @@ namespace vessel
       goto done;
    }
 
-   INT32 csMetaBlockPageAccessor::prepareUpdateLog(requestContext *context,
-                                                   const runtimePageBuffer *rpb,
-                                                   logRecordContext *lrc)
+   INT32 csMetaBlockPageAccessor::writeJournal(requestContext *context,
+                                               const GLOBAL_PAGE_ID &gpid,
+                                               const csMetaBlock &oldBlock,
+                                               const csMetaBlock &block,
+                                               UINT64 mask,
+                                               DPS_LSN_OFFSET &lsn)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(nullptr != context, "can not be null");
-      SDB_ASSERT(nullptr != rpb, "can not be null");
-      SDB_ASSERT(nullptr != lrc, "can not be null");
-      SDB_ASSERT(!lrc->prepared(), "can not be prepared");
+      dpsStackJournalPad jpad;
+      dpsPackedRequest jrequest;
+      dpsLogRecordHeader jres;
+      IDataJournal *journal = context->getOuterResource()->journal;
 
-      rc = pageAccessor::prepareLog(context, rpb,
-                                    LOG_TYPE_VESSEL_CSMB_UPDATE,
-                                    FALSE, lrc);
+      jpad.setType(LOG_TYPE_VESSEL_CSMB_UPDATE);
+      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
+
+      rc = jpad.append(DPS_LOG_PUBLIC_VESSEL_GPID,
+                       sizeof(GLOBAL_PAGE_ID), &gpid);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
+         PD_LOG(PDERROR, "failed to append gpid:%d", rc);
          goto error;
       }
 
-      lrc->prepush(sizeof(GLOBAL_PAGE_ID));
-      lrc->prepush(sizeof(UINT64));
-      lrc->prepush(sizeof(CS_META_BLOCK_LEN));
-      lrc->prepush(sizeof(CS_META_BLOCK_LEN));
-
-      rc = pageAccessor::prepareLogDone(context, lrc);
+      rc = jpad.appendInt64(DPS_LOG_VESSEL_CSMB_UPDATE_MASK, mask);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare log done:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 csMetaBlockPageAccessor::commitUpdateLog(requestContext *context,
-                                                  const GLOBAL_PAGE_ID &gpid,
-                                                  const csMetaBlock &oldBlock,
-                                                  const csMetaBlock &block,
-                                                  UINT64 mask,
-                                                  logRecordContext *lrc)
-   {                   
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(nullptr != context, "can not be null");
-      SDB_ASSERT(gpid.isValid(), "can not be invalid");
-      SDB_ASSERT(oldBlock.isValid(), "can not be invalid");
-      SDB_ASSERT(block.isValid(), "can not be invalid");
-      SDB_ASSERT(0 != mask, "can not be zero");
-      SDB_ASSERT(nullptr != lrc, "can not be null");
-      SDB_ASSERT(lrc->prepared(), "must be prepared");
-
-      rc = pageAccessor::pushElement(context, DPS_LOG_PUBLIC_VESSEL_GPID,
-                                     sizeof(GLOBAL_PAGE_ID), &gpid, lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      
-      rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_CSMB_UPDATE_MASK,
-                                     sizeof(UINT64), &mask, lrc);
-      if (SDB_OK != rc)
-      {
+         PD_LOG(PDERROR, "failed to append mask:%d", rc);
          goto error;
       }
 
-      rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_CSMB_UPDATE_OLD,
-                                     sizeof(CS_META_BLOCK_LEN), &oldBlock, lrc);
+      rc = jpad.append(DPS_LOG_VESSEL_CSMB_UPDATE_OLD,
+                       sizeof(csMetaBlock), &oldBlock);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to append old block:%d", rc);
          goto error;
       }
 
-      rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_CSMB_UPDATE_NEW,
-                                     sizeof(CS_META_BLOCK_LEN), &block, lrc);
+      rc = jpad.append(DPS_LOG_VESSEL_CSMB_UPDATE_NEW,
+                       sizeof(csMetaBlock), &block);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to append new block:%d", rc);
          goto error;
       }
 
-      rc = pageAccessor::commitLog(context, lrc);
+      jrequest = jpad.done();
+
+      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc->getLsn(), rc);
+         PD_LOG(PDERROR, "failedd to write journal:%d", rc);
          goto error;
       }
+
+      lsn = jres._lsn;
+
    done:
       return rc;
    error:

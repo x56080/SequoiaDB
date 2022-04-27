@@ -35,15 +35,14 @@
 
 #include "vessel/rdpAccessor.h"
 #include "vessel/logicalPageBuffer.h"
-#include "vessel/logRecordContext.h"
 #include "dpsLogRecordDef.hpp"
-#include "vessel/fsmCandidate.h"
-#include "vessel/redoLogUtil.h"
 #include "vessel/requestContext.h"
 #include "vessel/modifyRecordContext.h"
 #include "vessel/runtimeMbContext.h"
 #include "vessel/dmlContext.h"
 #include "vessel/rdpCompactor.h"
+#include "dpsJournalPad.hpp"
+#include "vessel/outerResource.h"
 
 namespace engine
 {
@@ -54,10 +53,10 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
 
-      _lpb = NULL;
-      if (OSS_UNLIKELY(NULL == context ||
+      _lpb = nullptr;
+      if (OSS_UNLIKELY(nullptr == context ||
                        !context->isMbContextAttached() ||
-                       NULL == lpb ||
+                       nullptr == lpb ||
                        !lpb->isValid()))
       {
          rc = SDB_INVALIDARG;
@@ -81,21 +80,21 @@ namespace vessel
                                          const slice &record)
    {
       INT32 rc = SDB_OK;
-      const recordDataPageHead *head = NULL;
+      const recordDataPageHead *head = nullptr;
       RECORD_SLOT_POS pos = INVALID_RECORD_SLOT_POS;
       UINT16 offset = 0;
       recordID rid;
       BOOLEAN ridLocked = FALSE;
-      const runtimeMbContext *mbContext = NULL;
+      const runtimeMbContext *mbContext = nullptr;
 
-      if (OSS_UNLIKELY(NULL == context ||
+      if (OSS_UNLIKELY(nullptr == context ||
                        !context->isMbContextAttached() ||
                        !record.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == _lpb))
+      else if (OSS_UNLIKELY(nullptr == _lpb))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -112,7 +111,7 @@ namespace vessel
       }
 
       head = _lpb->getReadableBodyBuffer().getReadableObjPtr<recordDataPageHead>(0);
-      if (NULL == head)
+      if (nullptr == head)
       {
          PD_LOG(PDERROR, "failed to get readble record page head");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -154,7 +153,7 @@ namespace vessel
       }
       
       /// do not access old page ptr any more.
-      head = NULL;
+      head = nullptr;
 
       rc = insertNormalRecordToPos(context, record, pos, offset);
       if (SDB_OK != rc)
@@ -179,20 +178,19 @@ namespace vessel
                                               UINT16 offset)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != _lpb, "can not be invalid");
-      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(nullptr != _lpb, "can not be invalid");
+      SDB_ASSERT(nullptr != context, "can not be null");
       SDB_ASSERT(record.isValid(), "can not be invalid");
       SDB_ASSERT(isValidRecordSlotPosition(pos), "can not be invalid");
       SDB_ASSERT(0 < offset, "can not be invalid");
 
       recordDataPageHead oldHead;
-      recordDataPageHead *head = NULL;
-      recordSlot *slotPtr = NULL;
-
-      logRecordContext lrc;
+      recordDataPageHead *head = nullptr;
+      recordSlot *slotPtr = nullptr;
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       recordID rid;
       strictBuffer buffer;
-      CHAR *recordPtr = NULL;
+      CHAR *recordPtr = nullptr;
       normalRecordHead rh;
       recordSlot rs;
       DPS_TRANS_ID transID = context->getOrigTransId();
@@ -215,16 +213,9 @@ namespace vessel
       rs.init(RDP_RECORD_HEAD_TYPE_NORMAL, reserved, offset, size);
       rh.setTransID(transID);
 
-      rc = prepareInsertLog(context, size, &(_lpb->getRuntimeBuffer()), &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
-         goto error;
-      }
-
       slotPtr = buffer.getWritableObjPtr<recordSlot>(RECORD_PAGE_HEAD_SIZE +
                                                      (pos * RDP_RSLOT_SIZE));
-      if (NULL == slotPtr)
+      if (nullptr == slotPtr)
       {
          PD_LOG(PDERROR, "failed to get writable slot ptr[%d]", pos);
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -232,11 +223,18 @@ namespace vessel
       }
 
       recordPtr = buffer.getWritablePtr(offset, head->backOffset - offset);
-      if (NULL == recordPtr)
+      if (nullptr == recordPtr)
       {
          PD_LOG(PDERROR, "failed to get writable record ptr[%d,%d]",
                 offset, head->backOffset - offset);
          rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = writeInsertJournal(context, lsn);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
 
@@ -254,29 +252,14 @@ namespace vessel
 
       rid.setPid(_lpb->getLogicalPid());
       rid.setPos(pos);
-      rc = commitInsertLog(context, rid, rs,
-                           recordPtr,&oldHead, head,
-                           &(_lpb->getRuntimeBuffer()), &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to commit log:%d", rc);
-         *head = oldHead;
-         *slotPtr = recordSlot();
-         ossMemset((void *)recordPtr, 0, rs.size + rs.reserved);
-         goto error;
-      }
 
-      context->setDmlLSN(lrc.getLsn());
+      context->setDmlLSN(lsn);
       context->setDmlRecordInfo(head->pageSeq, rid);
-      _lpb->commit(lrc.getLsn());
+      _lpb->commit(lsn);
 
    done:
       return rc;
    error:
-      if (lrc.prepared())
-      {
-         pageAccessor::abortLog(context, &lrc);
-      }
       goto done;
    }
 
@@ -286,7 +269,7 @@ namespace vessel
                                              UINT16 &offset)const
    {
       BOOLEAN r = FALSE;
-      SDB_ASSERT(NULL != _lpb && _lpb->isValid(), "can not be invalid");
+      SDB_ASSERT(nullptr != _lpb && _lpb->isValid(), "can not be invalid");
       SDB_ASSERT(0.0f <= minFreePercent && minFreePercent <= 50.0f, "out of range");
       SDB_ASSERT(0 < recordSize, "can not be zero");
 
@@ -346,7 +329,7 @@ namespace vessel
                                               const DPS_TRANS_ID &transID,
                                               const dmsStripingId &striping)
    {
-      SDB_ASSERT(NULL != _lpb && _lpb->isWritable(), "can not be null");
+      SDB_ASSERT(nullptr != _lpb && _lpb->isWritable(), "can not be null");
       SDB_ASSERT(isValidRecordSlotPosition(pos), "can not be invalid");
       SDB_ASSERT(slot.isValid(), "must be valid");
 
@@ -394,7 +377,7 @@ namespace vessel
    void rdpAccessor::updateMaxTransSN(recordDataPageHead *head,
                                       UINT64 transSN)
    {
-      SDB_ASSERT(NULL != head, "can not be null");
+      SDB_ASSERT(nullptr != head, "can not be null");
       if (DPS_INVALID_TRANSID_SN != transSN)
       {
          if (DPS_INVALID_TRANSID_SN == head->transSN ||
@@ -408,7 +391,7 @@ namespace vessel
    void rdpAccessor::updateStripingInfo(recordDataPageHead *head,
                                         const dmsStripingId &striping)
    {
-      SDB_ASSERT(NULL != head, "can not be null");
+      SDB_ASSERT(nullptr != head, "can not be null");
 
       if (striping.isValid())
       {
@@ -426,223 +409,18 @@ namespace vessel
       }
    }
 
-   INT32 rdpAccessor::prepareInsertLog(dmlContext *context,
-                                       UINT32 recordHeadAndBodySize,
-                                       const runtimePageBuffer *rpb,
-                                       logRecordContext *lrc)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(0 < recordHeadAndBodySize, "can not be zero");
-      DPS_TRANS_ID transID = context->getOrigTransId();
-      rc = pageAccessor::prepareLog(context, rpb,
-                                    LOG_TYPE_VESSEL_RDP_INSERT,
-                                    FALSE, lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to prepare dps log:%d", rc);
-         goto error;
-      }
-
-      if (transID.isValid())
-      {
-         lrc->prepush(sizeof(DPS_TRANS_ID));
-      }
-      if (0 < context->getUniqueKeyHashSize())
-      {
-         lrc->prepush(context->getUniqueKeyHashSize() << 2);
-      }
-      lrc->prepush(sizeof(GLOBAL_PAGE_ID));
-      lrc->prepush(sizeof(recordID));
-      lrc->prepush(RECORD_PAGE_HEAD_SIZE);
-      lrc->prepush(RECORD_PAGE_HEAD_SIZE);
-      lrc->prepush(RDP_RSLOT_SIZE);
-      lrc->prepush(recordHeadAndBodySize);
-
-      rc = pageAccessor::prepareLogDone(context, lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to prepare log done:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 rdpAccessor::prepareInplaceUpdateLog(dmlContext *context,
-                                              const runtimePageBuffer *rpb,
-                                              logRecordContext *lrc)
-   {
-      INT32 rc = SDB_OK;
-      rc = pageAccessor::prepareLog(context, rpb,
-                                    LOG_TYPE_DATA_UPDATE,
-                                    FALSE, lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to prepare dps log:%d", rc);
-         goto error;
-      }
-
-      if (0 < context->getUniqueKeyHashSize())
-      {
-         lrc->prepush(context->getUniqueKeyHashSize() << 2);
-      }
-
-
-      rc = pageAccessor::prepareLogDone(context, lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to prepare log done:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 rdpAccessor::prepareDeleteLog(dmlContext *context,
-                                       const runtimePageBuffer *rpb,
-                                       logRecordContext *lrc)
-   {
-      INT32 rc = SDB_OK;
-      rc = pageAccessor::prepareLog(context, rpb,
-                                    LOG_TYPE_DATA_DELETE,
-                                    FALSE, lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to prepare dps log:%d", rc);
-         goto error;
-      }
-
-      rc = pageAccessor::prepareLogDone(context, lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to prepare log done:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 rdpAccessor::commitInsertLog(dmlContext *context,
-                                       const recordID &rid,
-                                       const recordSlot &slot,
-                                       const void *record,
-                                       const recordDataPageHead *oldHead,
-                                       const recordDataPageHead *newHead,
-                                       const runtimePageBuffer *rpb,
-                                       logRecordContext *lrc)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(rid.isValid(), "must be valid");
-      SDB_ASSERT(slot.isValid(), "must be valid");
-      SDB_ASSERT(NULL != record, "can not be null");
-      SDB_ASSERT(NULL != oldHead, "can not be null");
-      SDB_ASSERT(NULL != newHead, "can not be null");
-      SDB_ASSERT(NULL != lrc, "can not be null");
-      SDB_ASSERT(lrc->prepared(), "must be prepared");
-      
-      DPS_TRANS_ID transID = context->getOrigTransId();
-
-      if (transID.isValid())
-      {
-         rc = pageAccessor::pushElement(context, DPS_LOG_PUBLIC_TRANSID,
-                                        sizeof(DPS_TRANS_ID),
-                                        &transID, lrc);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-      }
-      if (0 < context->getUniqueKeyHashSize())
-      {
-         const UINT32 *hash = context->getUniqueKeyHashes();
-         SDB_ASSERT(NULL != hash, "impossible");
-         rc = pageAccessor::pushElement(context, DPS_LOG_PUBLIC_NEW_UNQIDX_HASH,
-                                        (context->getUniqueKeyHashSize() << 2),
-                                        hash, lrc);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-      }
-
-      rc = pageAccessor::pushElement(context, DPS_LOG_PUBLIC_VESSEL_GPID,
-                                     sizeof(GLOBAL_PAGE_ID),
-                                     &(rpb->getGlobalPid()), lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_RDP_INSERT_RID,
-                                     sizeof(recordID),
-                                     &rid, lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_RDP_INSERT_PAGE_HEAD,
-                                     RECORD_PAGE_HEAD_SIZE,
-                                     newHead, lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_RDP_INSERT_OLD_PAGE_HEAD,
-                                     RECORD_PAGE_HEAD_SIZE,
-                                     oldHead, lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_RDP_INSERT_SLOT,
-                                     RDP_RSLOT_SIZE,
-                                     &slot, lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_RDP_INSERT_RECORD_AND_HEAD,
-                                     slot.size,
-                                     record, lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = pageAccessor::commitLog(context, lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc->getLsn(), rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
    INT32 rdpAccessor::updateNormalRecord(dmlContext *context,
                                          RECORD_SLOT_POS pos,
                                          const slice &newRowData,
                                          BOOLEAN &outOfSpace)
    {
       INT32 rc = SDB_OK;
-      const recordDataPageHead *head = NULL;
-      const recordSlot *rs = NULL;
+      const recordDataPageHead *head = nullptr;
+      const recordSlot *rs = nullptr;
       recordID rid;
 
       outOfSpace = FALSE;
-      if (OSS_UNLIKELY(NULL == context ||
+      if (OSS_UNLIKELY(nullptr == context ||
                        !context->isMbContextAttached() ||
                        !isValidRecordSlotPosition(pos) ||
                        !newRowData.isValid()))
@@ -650,7 +428,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == _lpb))
+      else if (OSS_UNLIKELY(nullptr == _lpb))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -677,7 +455,7 @@ namespace vessel
       }
 
       rs = getReadableSlot(pos);
-      if (OSS_UNLIKELY(NULL == rs))
+      if (OSS_UNLIKELY(nullptr == rs))
       {
          PD_LOG(PDERROR, "failed to get slot ptr[%d]", pos);
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -737,20 +515,20 @@ namespace vessel
                                                   recordID &rid)
    {
       INT32 rc = SDB_OK;
-      const recordDataPageHead *head = NULL;
+      const recordDataPageHead *head = nullptr;
       RECORD_SLOT_POS pos = INVALID_RECORD_SLOT_POS;
       UINT16 offset = 0;
-      const runtimeMbContext *mbContext = NULL;
+      const runtimeMbContext *mbContext = nullptr;
 
       rid.reset();
-      if (OSS_UNLIKELY(NULL == context ||
+      if (OSS_UNLIKELY(nullptr == context ||
                        !context->isMbContextAttached() ||
                        !record.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == _lpb))
+      else if (OSS_UNLIKELY(nullptr == _lpb))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -768,7 +546,7 @@ namespace vessel
       }
 
       head = _lpb->getReadableBodyBuffer().getReadableObjPtr<recordDataPageHead>(0);
-      if (NULL == head)
+      if (nullptr == head)
       {
          PD_LOG(PDERROR, "failed to get readble record page head");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -788,7 +566,7 @@ namespace vessel
       }
 
       /// do not access old page ptr any more.
-      head = NULL;
+      head = nullptr;
 
       rc = insertInvisibleNormalRecordToPos(context, record, pos, offset);
       if (SDB_OK != rc)
@@ -811,26 +589,27 @@ namespace vessel
                                                        UINT16 offset)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(NULL != _lpb, "can not be invlaid");
+      SDB_ASSERT(nullptr != context, "can not be null");
+      SDB_ASSERT(nullptr != _lpb, "can not be invlaid");
       SDB_ASSERT(row.isValid(), "can not be invalid");
       SDB_ASSERT(isValidRecordSlotPosition(pos), "can not be invalid");
 
       strictBuffer buffer;
-      recordDataPageHead *head = NULL;
+      recordDataPageHead *head = nullptr;
       overflowedRecord orh;
-      logRecordContext lrc;
       DPS_TRANS_ID transID = context->getOrigTransId();
       recordID rid;
 
       recordDataPageHead oldHead;
       strictBuffer slotBuffer;
       strictBuffer recordBuffer;
-      const CHAR *recordPtr = NULL;
+      const CHAR *recordPtr = nullptr;
       recordSlot rs;
       normalRecordHead rh;
       UINT32 size = row.getSize() + NORMAL_RECORD_HEAD_SIZE;
       UINT32 reserved = 0;
+
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
 
       rc = _lpb->prepareToWrite();
       if (SDB_OK != rc)
@@ -868,6 +647,13 @@ namespace vessel
          goto error;
       }
 
+      rc = writeInsertJournal(context, lsn);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
+         goto error;
+      }
+
       oldHead = *head;
       rc = slotBuffer.write(0, RDP_RSLOT_SIZE, &rs);
       if (SDB_OK != rc)
@@ -897,46 +683,18 @@ namespace vessel
       
       rid.setPid(_lpb->getLogicalPid());
       rid.setPos(pos);
-      // dummy log
-      rc = prepareInsertLog(context, size, &(_lpb->getRuntimeBuffer()), &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
-         goto error;
-      }
 
       recordPtr = recordBuffer.getReadablePtr(0, rs.getMaxSpaceSize());
-      if (OSS_UNLIKELY(NULL == recordPtr))
+      if (OSS_UNLIKELY(nullptr == recordPtr))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get readable record, rc:%d", rc);
       }
 
-      rc = commitInsertLog(context, rid, rs,
-                           recordPtr, &oldHead, head,
-                           &(_lpb->getRuntimeBuffer()), &lrc);
-      if (SDB_OK != rc)
-      {
-         recordSlot slot;
-         PD_LOG(PDERROR, "failed to commit log:%d", rc);
-         *head = oldHead;
-         rc = slotBuffer.write(0, RDP_RSLOT_SIZE, &slot);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to write slot, rc:%d", rc);
-            goto error;
-         }
-         recordBuffer.setBuffer(0, rs.getMaxSpaceSize(), 0);
-         goto error;
-      }
-      _lpb->commit(lrc.getLsn());
+      _lpb->commit(lsn);
    done:
       return rc;
    error:
-      if (lrc.prepared())
-      {
-         pageAccessor::abortLog(context, &lrc);
-      }
       goto done;
    }
 
@@ -945,20 +703,20 @@ namespace vessel
                                              BOOLEAN isBigRecord)
    {
       INT32 rc = SDB_OK;
-      const recordDataPageHead *head = NULL;
+      const recordDataPageHead *head = nullptr;
       RECORD_SLOT_POS pos = INVALID_RECORD_SLOT_POS;
       UINT16 offset = 0;
       recordID rid;
       BOOLEAN ridLocked = FALSE;
-      const runtimeMbContext *mbContext = NULL;
+      const runtimeMbContext *mbContext = nullptr;
 
-      if (OSS_UNLIKELY(NULL == context ||
+      if (OSS_UNLIKELY(nullptr == context ||
                        !overflowAddr.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == _lpb))
+      else if (OSS_UNLIKELY(nullptr == _lpb))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
@@ -970,7 +728,7 @@ namespace vessel
       }
 
       head = _lpb->getReadableBodyBuffer().getReadableObjPtr<recordDataPageHead>(0);
-      if (NULL == head)
+      if (nullptr == head)
       {
          PD_LOG(PDERROR, "failed to get readble record page head");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -1012,7 +770,7 @@ namespace vessel
       }
       
       /// do not access old page ptr any more.
-      head = NULL;
+      head = nullptr;
       rc = insertOverflowedRecordToPos(context, overflowAddr, isBigRecord, pos, offset);
       if (SDB_OK != rc)
       {
@@ -1038,8 +796,8 @@ namespace vessel
                                                   UINT16 offset)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != _lpb, "can not be invalid");
-      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(nullptr != _lpb, "can not be invalid");
+      SDB_ASSERT(nullptr != context, "can not be null");
       SDB_ASSERT(overflowAddr.isValid(), "can not be invalid");
       SDB_ASSERT(isValidRecordSlotPosition(pos), "can not be invalid");
       SDB_ASSERT(0 < offset, "can not be invalid");
@@ -1047,14 +805,14 @@ namespace vessel
       strictBuffer buffer;
       strictBuffer slotBuffer;
       strictBuffer recordBuffer;
-      recordDataPageHead *head = NULL;
+      recordDataPageHead *head = nullptr;
       recordDataPageHead oldHead;
-      const CHAR *recordPtr = NULL;
+      const CHAR *recordPtr = nullptr;
       recordSlot rs;
       overflowedRecord ofr;
       DPS_TRANS_ID transID = context->getOrigTransId();
       recordID rid;
-      logRecordContext lrc;
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
 
       rc = _lpb->autoGetWritableBodyBuffer(buffer);
       if (SDB_OK != rc)
@@ -1064,7 +822,7 @@ namespace vessel
       }
 
       head = buffer.getWritableObjPtr<recordDataPageHead>(0);
-      if (OSS_UNLIKELY(NULL == head))
+      if (OSS_UNLIKELY(nullptr == head))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get readable head, rc:%d", rc);
@@ -1117,50 +875,28 @@ namespace vessel
       rid.setPid(_lpb->getLogicalPid());
       rid.setPos(pos);
 
-      // dummy log
-      rc = prepareInsertLog(context, OVERFLOWED_RECORD_SIZE, &(_lpb->getRuntimeBuffer()), &lrc);
+      rc = writeInsertJournal(context, lsn);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
 
       recordPtr = recordBuffer.getReadablePtr(0, rs.getMaxSpaceSize());
-      if (OSS_UNLIKELY(NULL == recordPtr))
+      if (OSS_UNLIKELY(nullptr == recordPtr))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get readable record, rc:%d", rc);
       }
 
-      rc = commitInsertLog(context, rid, rs,
-                           recordPtr, &oldHead, head,
-                           &(_lpb->getRuntimeBuffer()), &lrc);
-      if (SDB_OK != rc)
-      {
-         recordSlot slot;
-         PD_LOG(PDERROR, "failed to commit log:%d", rc);
-         *head = oldHead;
-         rc = slotBuffer.write(0, RDP_RSLOT_SIZE, &slot);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to write slot, rc:%d", rc);
-            goto error;
-         }
-         recordBuffer.setBuffer(0, rs.getMaxSpaceSize(), 0);
-         goto error;
-      }
-      _lpb->commit(lrc.getLsn());
+      _lpb->commit(lsn);
 
-      context->setDmlLSN(lrc.getLsn());
+      context->setDmlLSN(lsn);
       context->setDmlRecordInfo(head->pageSeq, rid);
    
    done:
       return rc;
    error:
-      if (lrc.prepared())
-      {
-         pageAccessor::abortLog(context, &lrc);
-      }
       goto done;
    } 
 
@@ -1171,17 +907,17 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       strictBuffer buffer;
-      const recordDataPageHead *rhead = NULL;
-      recordDataPageHead *whead = NULL;
-      const recordSlot *rrs = NULL;
-      recordSlot *wrs = NULL;
+      const recordDataPageHead *rhead = nullptr;
+      recordDataPageHead *whead = nullptr;
+      const recordSlot *rrs = nullptr;
+      recordSlot *wrs = nullptr;
       overflowedRecord ofr;
       strictBuffer oldRecordBuf;
       UINT32 deltaSize = 0;
-      logRecordContext lrc;
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       DPS_TRANS_ID transID = context->getOrigTransId();
 
-      if (OSS_UNLIKELY(NULL == context ||
+      if (OSS_UNLIKELY(nullptr == context ||
                        !isValidRecordSlotPosition(pos) ||
                        !overflowAddr.isValid()))
       {
@@ -1190,7 +926,7 @@ namespace vessel
       }
 
       rhead = getReadablePageHead();
-      if (OSS_UNLIKELY(NULL == rhead))
+      if (OSS_UNLIKELY(nullptr == rhead))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get readable page head, rc:%d", rc);
@@ -1204,7 +940,7 @@ namespace vessel
       }
 
       rrs = getReadableSlot(pos);
-      if (OSS_UNLIKELY(NULL == rrs))
+      if (OSS_UNLIKELY(nullptr == rrs))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get readable slot[%d], rc:%d", pos, rc);
@@ -1233,7 +969,7 @@ namespace vessel
       }
 
       whead = buffer.getWritableObjPtr<recordDataPageHead>(0);
-      if (OSS_UNLIKELY(NULL == whead))
+      if (OSS_UNLIKELY(nullptr == whead))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get writable page head");
@@ -1241,7 +977,7 @@ namespace vessel
       }
 
       wrs = getWritableSlot(buffer, pos);
-      if (OSS_UNLIKELY(NULL == wrs))
+      if (OSS_UNLIKELY(nullptr == wrs))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get writable page head");
@@ -1282,31 +1018,19 @@ namespace vessel
       updateStripingInfo(whead, context->getStripingId());
       updateMaxTransSN(whead, transID.getSN());
 
-      // dummy log
-      rc = prepareInplaceUpdateLog(context, &(_lpb->getRuntimeBuffer()), &lrc);
+      rc = writeInplaceUpdateJournal(context, lsn);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare redo log:%d", rc);
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
 
-      rc = pageAccessor::commitLog(context, &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
-         goto error;
-      }
-
-      _lpb->commit(lrc.getLsn());
-      context->setDmlLSN(lrc.getLsn());
+      _lpb->commit(lsn);
+      context->setDmlLSN(lsn);
 
    done:
       return rc;
    error:
-      if (lrc.prepared())
-      {
-         pageAccessor::abortLog(context, &lrc);
-      }
       goto done;
 
    }
@@ -1315,15 +1039,15 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       UINT32 realEntrySize = 0;
-      const recordDataPageHead *head = NULL;
+      const recordDataPageHead *head = nullptr;
 
-      if (OSS_UNLIKELY(NULL == context) ||
+      if (OSS_UNLIKELY(nullptr == context) ||
           !recordStream.isValid())
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == _lpb))
+      else if (OSS_UNLIKELY(nullptr == _lpb))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -1338,7 +1062,7 @@ namespace vessel
                       RDP_RSLOT_SIZE + BIG_RECORD_ENTRY_SIZE;
 
       head = getReadablePageHead();
-      if (OSS_UNLIKELY(NULL == head))
+      if (OSS_UNLIKELY(nullptr == head))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get readable head, rc:%d", rc);
@@ -1379,8 +1103,8 @@ namespace vessel
                                                 bigRecordStream &recordStream)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(NULL != _lpb, "can not be null");
+      SDB_ASSERT(nullptr != context, "can not be null");
+      SDB_ASSERT(nullptr != _lpb, "can not be null");
       SDB_ASSERT(recordStream.isValid(), "can not be invalid");
 
       RECORD_SLOT_POS pos = INVALID_RECORD_SLOT_POS;
@@ -1393,19 +1117,20 @@ namespace vessel
       strictBuffer buffer;
       strictBuffer slotBuf;
       strictBuffer dataBuf;
-      recordDataPageHead *head = NULL;
+      recordDataPageHead *head = nullptr;
       recordDataPageHead oldHead;
       bigRecordEntrySlice sliceHead;
       recordID lastRid = recordStream.getLastSliceAddr();
       DPS_TRANS_ID transID = context->getOrigTransId();
 
-      logRecordContext lrc;
       recordID rid;
-      const CHAR *slicePtr = NULL;
-      const CHAR *dataPtr = NULL;
+      const CHAR *slicePtr = nullptr;
+      const CHAR *dataPtr = nullptr;
+
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
 
       slicePtr = recordStream.reserveSlice(sliceSize);
-      if (OSS_UNLIKELY(NULL == slicePtr))
+      if (OSS_UNLIKELY(nullptr == slicePtr))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get slice ptr, rc:%d", rc);
@@ -1420,7 +1145,7 @@ namespace vessel
       }
 
       head = buffer.getWritableObjPtr<recordDataPageHead>(0);
-      if (OSS_UNLIKELY(NULL == head))
+      if (OSS_UNLIKELY(nullptr == head))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get record page head, rc:%d", rc);
@@ -1511,49 +1236,27 @@ namespace vessel
       updatePageHeadWhenInsert(pos, rs, transID, context->getStripingId());
 
       // dummy log
-      rc = prepareInsertLog(context, sliceSize, &(_lpb->getRuntimeBuffer()), &lrc);
+      rc = writeInsertJournal(context, lsn);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
 
       dataPtr = dataBuf.getReadablePtr(0, rs.getMaxSpaceSize());
-      if (OSS_UNLIKELY(NULL == dataPtr))
+      if (OSS_UNLIKELY(nullptr == dataPtr))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get readable record, rc:%d", rc);
          goto error;
       }
 
-      rc = commitInsertLog(context, rid, rs,
-                           dataPtr, &oldHead, head,
-                           &(_lpb->getRuntimeBuffer()), &lrc);
-      if (SDB_OK != rc)
-      {
-         recordSlot slot;
-         PD_LOG(PDERROR, "failed to commit log:%d", rc);
-         *head = oldHead;
-         rc = slotBuf.write(0, RDP_RSLOT_SIZE, &slot);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to write slot, rc:%d", rc);
-            goto error;
-         }
-         dataBuf.setBuffer(0, rs.getMaxSpaceSize(), 0);
-         goto error;
-      }
-
       recordStream.fillLastSlice(rid);
-      _lpb->commit(lrc.getLsn());
+      _lpb->commit(lsn);
 
    done:
       return rc;
    error:
-      if (lrc.prepared())
-      {
-         pageAccessor::abortLog(context, &lrc);
-      }
       if (ridLocked)
       {
          context->unlockRid(rid);
@@ -1565,8 +1268,8 @@ namespace vessel
                                                bigRecordStream &recordStream)
       {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(NULL != _lpb, "can not be null");
+      SDB_ASSERT(nullptr != context, "can not be null");
+      SDB_ASSERT(nullptr != _lpb, "can not be null");
       SDB_ASSERT(recordStream.isValid(), "can not be invalid");
 
       RECORD_SLOT_POS pos = INVALID_RECORD_SLOT_POS;
@@ -1578,18 +1281,18 @@ namespace vessel
       strictBuffer buffer;
       strictBuffer slotBuf;
       strictBuffer dataBuf;
-      recordDataPageHead *head = NULL;
+      recordDataPageHead *head = nullptr;
       recordDataPageHead oldHead;
       bigRecordBodySlice sliceHead;
       recordID lastRid = recordStream.getLastSliceAddr();
 
-      logRecordContext lrc;
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       recordID rid;
-      const CHAR *slicePtr = NULL;
-      const CHAR *dataPtr = NULL;
+      const CHAR *slicePtr = nullptr;
+      const CHAR *dataPtr = nullptr;
 
       slicePtr = recordStream.reserveSlice(sliceSize);
-      if (OSS_UNLIKELY(NULL == slicePtr))
+      if (OSS_UNLIKELY(nullptr == slicePtr))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get slice ptr, rc:%d", rc);
@@ -1604,7 +1307,7 @@ namespace vessel
       }
 
       head = buffer.getWritableObjPtr<recordDataPageHead>(0);
-      if (OSS_UNLIKELY(NULL == head))
+      if (OSS_UNLIKELY(nullptr == head))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get record page head, rc:%d", rc);
@@ -1670,50 +1373,27 @@ namespace vessel
       rid.setPid(_lpb->getLogicalPid());
       rid.setPos(pos);
 
-      // dummy log
-      rc = prepareInsertLog(context, sliceSize, &(_lpb->getRuntimeBuffer()), &lrc);
+      rc = writeInsertJournal(context, lsn);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
 
       dataPtr = dataBuf.getReadablePtr(0, rs.getMaxSpaceSize());
-      if (OSS_UNLIKELY(NULL == dataPtr))
+      if (OSS_UNLIKELY(nullptr == dataPtr))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get readable record, rc:%d", rc);
          goto error;
       }
 
-      rc = commitInsertLog(context, rid, rs,
-                           dataPtr, &oldHead, head,
-                           &(_lpb->getRuntimeBuffer()), &lrc);
-      if (SDB_OK != rc)
-      {
-         recordSlot slot;
-         PD_LOG(PDERROR, "failed to commit log:%d", rc);
-         *head = oldHead;
-         rc = slotBuf.write(0, RDP_RSLOT_SIZE, &slot);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to write slot, rc:%d", rc);
-            goto error;
-         }
-         dataBuf.setBuffer(0, rs.getMaxSpaceSize(), 0);
-         goto error;
-      }
-
       recordStream.fillLastSlice(rid);
-      _lpb->commit(lrc.getLsn());
+      _lpb->commit(lsn);
 
    done:
       return rc;
    error:
-      if (lrc.prepared())
-      {
-         pageAccessor::abortLog(context, &lrc);
-      }
       goto done;
    }
 
@@ -1724,13 +1404,13 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       strictBuffer buffer;
-      const recordDataPageHead *rhead = NULL;
-      recordDataPageHead *whead = NULL;
-      const recordSlot *rs = NULL;
-      overflowedRecord *ofr = NULL;
-      logRecordContext lrc;
+      const recordDataPageHead *rhead = nullptr;
+      recordDataPageHead *whead = nullptr;
+      const recordSlot *rs = nullptr;
+      overflowedRecord *ofr = nullptr;
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
 
-      if (OSS_UNLIKELY(NULL == context ||
+      if (OSS_UNLIKELY(nullptr == context ||
                        !isValidRecordSlotPosition(pos) ||
                        !overflowAddr.isValid()))
       {
@@ -1739,7 +1419,7 @@ namespace vessel
       }
 
       rhead = getReadablePageHead();
-      if (OSS_UNLIKELY(NULL == rhead))
+      if (OSS_UNLIKELY(nullptr == rhead))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get readable page head, rc:%d", rc);
@@ -1753,7 +1433,7 @@ namespace vessel
       }
 
       rs = getReadableSlot(pos);
-      if (OSS_UNLIKELY(NULL == rs))
+      if (OSS_UNLIKELY(nullptr == rs))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get readable slot[%d], rc:%d", pos, rc);
@@ -1775,7 +1455,7 @@ namespace vessel
       }
 
       whead = buffer.getWritableObjPtr<recordDataPageHead>(0);
-      if (OSS_UNLIKELY(NULL == whead))
+      if (OSS_UNLIKELY(nullptr == whead))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get writable page head, rc:%d", rc);
@@ -1795,30 +1475,19 @@ namespace vessel
       }
       
       // dummy log
-      rc = prepareInplaceUpdateLog(context, &(_lpb->getRuntimeBuffer()), &lrc);
+      rc = writeInplaceUpdateJournal(context, lsn);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare redo log:%d", rc);
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
 
-      rc = pageAccessor::commitLog(context, &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
-         goto error;
-      }
-
-      _lpb->commit(lrc.getLsn());
-      context->setDmlLSN(lrc.getLsn());
+      _lpb->commit(lsn);
+      context->setDmlLSN(lsn);
 
    done:
       return rc;
    error:
-      if (lrc.prepared())
-      {
-         pageAccessor::abortLog(context, &lrc);
-      }
       goto done;
 
    }
@@ -1829,15 +1498,15 @@ namespace vessel
       INT32 rc = SDB_OK;
       strictBuffer buffer;
       strictBuffer recordBuf;
-      logRecordContext lrc;
-      const recordDataPageHead *rhead = NULL;
-      recordDataPageHead *whead = NULL;
-      const recordSlot *rrs = NULL;
-      recordSlot *wrs = NULL;
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
+      const recordDataPageHead *rhead = nullptr;
+      recordDataPageHead *whead = nullptr;
+      const recordSlot *rrs = nullptr;
+      recordSlot *wrs = nullptr;
       UINT32 deltaSize = 0;
       BOOLEAN isOverflowed = FALSE;
 
-      if (OSS_UNLIKELY(NULL == context ||
+      if (OSS_UNLIKELY(nullptr == context ||
                        !isValidRecordSlotPosition(pos)))
       {
          rc = SDB_INVALIDARG;
@@ -1845,7 +1514,7 @@ namespace vessel
       }
 
       rhead = getReadablePageHead();
-      if (OSS_UNLIKELY(NULL == rhead))
+      if (OSS_UNLIKELY(nullptr == rhead))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get readable page head, rc:%d", rc);
@@ -1859,7 +1528,7 @@ namespace vessel
       }
 
       rrs = getReadableSlot(pos);
-      if (OSS_UNLIKELY(NULL == rrs))
+      if (OSS_UNLIKELY(nullptr == rrs))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get readable slot");
@@ -1881,7 +1550,7 @@ namespace vessel
       }
 
       whead = buffer.getWritableObjPtr<recordDataPageHead>(0);
-      if (OSS_UNLIKELY(NULL == whead))
+      if (OSS_UNLIKELY(nullptr == whead))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get writable page head, rc:%d", rc);
@@ -1889,7 +1558,7 @@ namespace vessel
       }
 
       wrs = getWritableSlot(buffer, pos);
-      if (OSS_UNLIKELY(NULL == wrs))
+      if (OSS_UNLIKELY(nullptr == wrs))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get writable slot[%d], rc:%d", pos, rc);
@@ -1921,28 +1590,17 @@ namespace vessel
       }
 
       // dummy log
-      rc = prepareInplaceUpdateLog(context, &(_lpb->getRuntimeBuffer()), &lrc);
+      rc = writeRemoveJournal(context, lsn);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare redo log:%d", rc);
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
-
-      rc = pageAccessor::commitLog(context, &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
-         goto error;
-      }
-      _lpb->commit(lrc.getLsn());
-      context->setDmlLSN(lrc.getLsn());
+      _lpb->commit(lsn);
+      context->setDmlLSN(lsn);
    done:
       return rc;
    error:
-      if (lrc.prepared())
-      {
-         pageAccessor::abortLog(context, &lrc);
-      }
       goto done;
 
    }
@@ -1953,16 +1611,16 @@ namespace vessel
                                     const slice &row)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(nullptr != context, "can not be null");
       SDB_ASSERT(isValidRecordSlotPosition(pos), "can not be invalid");
       SDB_ASSERT(row.isValid(), "can not be invalid");
 
       strictBuffer buffer;
-      recordSlot *rs = NULL;
-      normalRecordHead *rh = NULL;
+      recordSlot *rs = nullptr;
+      normalRecordHead *rh = nullptr;
       strictBuffer recordBuffer;
-      recordDataPageHead *head = NULL;
-      logRecordContext lrc;
+      recordDataPageHead *head = nullptr;
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       DPS_TRANS_ID transID = context->getOrigTransId();
       UINT32 totalSize = row.getSize() + NORMAL_RECORD_HEAD_SIZE;
 
@@ -1981,7 +1639,7 @@ namespace vessel
       }
 
       rs = getWritableSlot(buffer, pos);
-      if (OSS_UNLIKELY(NULL == rs))
+      if (OSS_UNLIKELY(nullptr == rs))
       {
          PD_LOG(PDERROR, "failed to get writable slot[%d]", pos);
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -2000,7 +1658,7 @@ namespace vessel
 
       recordBuffer = buffer.getWritableBuffer(rs->getMaxSpaceSize(), rs->offset);
       rh = recordBuffer.getWritableObjPtr<normalRecordHead>(0);
-      if (OSS_UNLIKELY(NULL == rh))
+      if (OSS_UNLIKELY(nullptr == rh))
       {
          PD_LOG(PDERROR, "failed to get writable record header");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -2033,29 +1691,17 @@ namespace vessel
       }
 
       ///dummy log
-      rc = prepareInplaceUpdateLog(context, &(_lpb->getRuntimeBuffer()), &lrc);
+      rc = writeInplaceUpdateJournal(context, lsn);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare redo log:%d", rc);
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
-
-      rc = pageAccessor::commitLog(context, &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
-         goto error;
-      }
-
-      _lpb->commit(lrc.getLsn());
-      context->setDmlLSN(lrc.getLsn());
+      _lpb->commit(lsn);
+      context->setDmlLSN(lsn);
    done:
       return rc;
    error:
-      if (lrc.prepared())
-      {
-         pageAccessor::abortLog(context, &lrc);
-      }
       goto done;
    }
 
@@ -2065,20 +1711,20 @@ namespace vessel
                                        const slice &row)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(nullptr != context, "can not be null");
       SDB_ASSERT(isValidRecordSlotPosition(pos), "can not be invalid");
       SDB_ASSERT(row.isValid(), "can not be invalid");
 
       strictBuffer buffer;
-      CHAR* oldRecordPtr = NULL;
+      CHAR* oldRecordPtr = nullptr;
       strictBuffer newRecordBuffer;
-      recordSlot *rs = NULL;
+      recordSlot *rs = nullptr;
       normalRecordHead rh;
-      recordDataPageHead *head = NULL;
+      recordDataPageHead *head = nullptr;
       UINT16 offset = 0;
       UINT16 deltaSize = 0;
 
-      logRecordContext lrc;
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       DPS_TRANS_ID transID = context->getOrigTransId();
       UINT32 totalSize = row.getSize() + NORMAL_RECORD_HEAD_SIZE;
       SDB_ASSERT(totalSize <= getFreeSpaceAfterLastSlot(), "not enough free space");
@@ -2091,7 +1737,7 @@ namespace vessel
       }
 
       head = buffer.getWritableObjPtr<recordDataPageHead>(0);
-      if (OSS_UNLIKELY(NULL == head))
+      if (OSS_UNLIKELY(nullptr == head))
       {
          PD_LOG(PDERROR, "failed to get page head");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -2099,7 +1745,7 @@ namespace vessel
       }
 
       rs = getWritableSlot(buffer, pos);
-      if (OSS_UNLIKELY(NULL == rs))
+      if (OSS_UNLIKELY(nullptr == rs))
       {
          PD_LOG(PDERROR, "failed to get writable slot[%d]", pos);
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -2110,7 +1756,7 @@ namespace vessel
       rh = *(buffer.getReadableObjPtr<normalRecordHead>(rs->offset));
       // reset old record
       oldRecordPtr = buffer.getWritablePtr(rs->offset, rs->getMaxSpaceSize());
-      if (OSS_UNLIKELY(NULL == oldRecordPtr))
+      if (OSS_UNLIKELY(nullptr == oldRecordPtr))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get writable old record");
@@ -2149,30 +1795,19 @@ namespace vessel
       }
 
       ///dummy log
-      rc = prepareInplaceUpdateLog(context, &(_lpb->getRuntimeBuffer()), &lrc);
+      rc = writeInplaceUpdateJournal(context, lsn);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare redo log:%d", rc);
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
 
-      rc = pageAccessor::commitLog(context, &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
-         goto error;
-      }
-
-      _lpb->commit(lrc.getLsn());
-      context->setDmlLSN(lrc.getLsn());
+      _lpb->commit(lsn);
+      context->setDmlLSN(lsn);
 
    done:
       return rc;
    error:
-      if (lrc.prepared())
-      {
-         pageAccessor::abortLog(context, &lrc);
-      }
       goto done;
    }
 
@@ -2182,17 +1817,17 @@ namespace vessel
                                          const slice &row)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(nullptr != context, "can not be null");
       SDB_ASSERT(isValidRecordSlotPosition(pos), "can not be invalid");
       SDB_ASSERT(row.isValid(), "can not be invalid");
 
       strictBuffer buffer; 
-      const recordDataPageHead *rhead = NULL;
-      recordDataPageHead *whead = NULL;
-      const recordSlot *rs = NULL;
+      const recordDataPageHead *rhead = nullptr;
+      recordDataPageHead *whead = nullptr;
+      const recordSlot *rs = nullptr;
       normalRecordHead rh;
 
-      logRecordContext lrc;
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       DPS_TRANS_ID transID = context->getOrigTransId();
       rdpCompactor compactor;
       BOOLEAN isInvisible = FALSE;
@@ -2201,7 +1836,7 @@ namespace vessel
       UINT32 compactBufSize = getPageBodySize(_lpb->getPageSize())
                               - RECORD_PAGE_HEAD_SIZE;
       CHAR *compactBuf = context->allocateBuffer(compactBufSize);
-      if (OSS_UNLIKELY(NULL == compactBuf))
+      if (OSS_UNLIKELY(nullptr == compactBuf))
       {
          rc = SDB_OOM;
          PD_LOG(PDERROR, "failed to allocate compact buffer, rc:%d", rc);
@@ -2211,7 +1846,7 @@ namespace vessel
 
       buffer = _lpb->getReadableBodyBuffer();
       rhead = buffer.getReadableObjPtr<recordDataPageHead>(0);
-      if (OSS_UNLIKELY(NULL == rhead))
+      if (OSS_UNLIKELY(nullptr == rhead))
       {
          PD_LOG(PDERROR, "failed to get page head");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -2219,7 +1854,7 @@ namespace vessel
       }
 
       rs = getReadableSlot(pos);
-      if (OSS_UNLIKELY(NULL == rs))
+      if (OSS_UNLIKELY(nullptr == rs))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get readable slot");
@@ -2234,7 +1869,7 @@ namespace vessel
       for (UINT16 i = 0; i < rhead->totalSlotCount; ++i)
       {
          const recordSlot *tmpRS = getReadableSlot(i);
-         if (OSS_UNLIKELY(NULL == tmpRS))
+         if (OSS_UNLIKELY(nullptr == tmpRS))
          {
             rc = SDB_VESSEL_INTERNAL_ERR;
             PD_LOG(PDERROR, "failed to get readable slot[%d]", i);
@@ -2281,7 +1916,7 @@ namespace vessel
          goto error;
       }
       whead = buffer.getWritableObjPtr<recordDataPageHead>(0);
-      if (OSS_UNLIKELY(NULL == whead))
+      if (OSS_UNLIKELY(nullptr == whead))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get writable page head");
@@ -2309,34 +1944,23 @@ namespace vessel
       }
 
       ///dummy log
-      rc = prepareInplaceUpdateLog(context, &(_lpb->getRuntimeBuffer()), &lrc);
+      rc = writeInplaceUpdateJournal(context, lsn);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare redo log:%d", rc);
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
 
-      rc = pageAccessor::commitLog(context, &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
-         goto error;
-      }
-
-      _lpb->commit(lrc.getLsn());
-      context->setDmlLSN(lrc.getLsn());
+      _lpb->commit(lsn);
+      context->setDmlLSN(lsn);
 
    done:
-      if (NULL != compactBuf)
+      if (nullptr != compactBuf)
       {
          context->releaseBuffer(compactBuf);
       }
       return rc;
    error:
-      if (lrc.prepared())
-      {
-         pageAccessor::abortLog(context, &lrc);
-      }
       goto done;
 
    }
@@ -2344,9 +1968,9 @@ namespace vessel
    INT32 rdpAccessor::validatePage(requestContext *context,
                                    logicalPageBuffer *lpb)const
    {
-      SDB_ASSERT(NULL != context && context->isMbContextAttached(), "can not be invalid");
-      SDB_ASSERT(NULL != lpb && lpb->isValid(), "can not be invalid");
-      const recordDataPageHead *head = NULL;
+      SDB_ASSERT(nullptr != context && context->isMbContextAttached(), "can not be invalid");
+      SDB_ASSERT(nullptr != lpb && lpb->isValid(), "can not be invalid");
+      const recordDataPageHead *head = nullptr;
       UINT32 lid = context->getMbContext()->getGlobalId().getCLLid();
       INT32 rc = lpb->validatePage(PAGE_TYPE_RECORD);
       if (SDB_OK != rc)
@@ -2357,7 +1981,7 @@ namespace vessel
       }
 
       head = lpb->getReadableBodyBuffer().getReadableObjPtr<recordDataPageHead>(0);
-      if (NULL == head)
+      if (nullptr == head)
       {
          PD_LOG(PDERROR, "failed to get readble record page head");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -2387,7 +2011,7 @@ namespace vessel
 
    const recordSlot *rdpAccessor::getReadableSlot(RECORD_SLOT_POS pos)const
    {
-      SDB_ASSERT(NULL != _lpb && _lpb->isValid(), "can not be invalid");
+      SDB_ASSERT(nullptr != _lpb && _lpb->isValid(), "can not be invalid");
       SDB_ASSERT(isValidRecordSlotPosition(pos), "can not be invalid");
       SDB_ASSERT((UINT32)pos < getTotalSlotCount(), "out of bound");
       strictBuffer buffer = _lpb->getReadableBodyBuffer();
@@ -2397,13 +2021,13 @@ namespace vessel
 
    const recordDataPageHead *rdpAccessor::getReadablePageHead()const
    {
-      SDB_ASSERT(NULL != _lpb && _lpb->isValid(), "can not be invalid");
+      SDB_ASSERT(nullptr != _lpb && _lpb->isValid(), "can not be invalid");
       return _lpb->getReadableBodyBuffer().getReadableObjPtr<recordDataPageHead>(0);
    }
 
    UINT32 rdpAccessor::getFrontOffset(const recordDataPageHead *head)const
    {
-      SDB_ASSERT(NULL != head, "can not be null");
+      SDB_ASSERT(nullptr != head, "can not be null");
       return RECORD_PAGE_HEAD_SIZE + (head->totalSlotCount * RDP_RSLOT_SIZE);
    }
 
@@ -2422,17 +2046,17 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
 
-      const recordDataPageHead *head = NULL;
+      const recordDataPageHead *head = nullptr;
       count = 0;
 
-      if (OSS_UNLIKELY(NULL == _lpb))
+      if (OSS_UNLIKELY(nullptr == _lpb))
       {
          rc = SDB_VESSEL_RECORD_NOT_FOUND;
          goto error;
       }
 
       head = getReadablePageHead();
-      if (OSS_UNLIKELY(NULL == head))
+      if (OSS_UNLIKELY(nullptr == head))
       {
          PD_LOG(PDERROR, "failed to get readable page header");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -2470,7 +2094,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == _lpb))
+      else if (OSS_UNLIKELY(nullptr == _lpb))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -2496,7 +2120,7 @@ namespace vessel
       recordSlot rs;
       strictBuffer buffer;
       strictBuffer recordBuffer;
-      const normalRecordHead *header = NULL;
+      const normalRecordHead *header = nullptr;
 
       rh = normalRecordHead();
       data.reset();
@@ -2506,7 +2130,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == _lpb))
+      else if (OSS_UNLIKELY(nullptr == _lpb))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -2535,7 +2159,7 @@ namespace vessel
       }
 
       header = recordBuffer.getReadableObjPtr<normalRecordHead>(0);
-      if (OSS_UNLIKELY(NULL == header))
+      if (OSS_UNLIKELY(nullptr == header))
       {
          PD_LOG(PDERROR, "failed to get record header[%d,%d]", rs.offset, rs.size);
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -2559,7 +2183,7 @@ namespace vessel
       recordSlot rs;
       strictBuffer buffer;
       strictBuffer recordBuffer;
-      const overflowedRecord *recordPtr = NULL;
+      const overflowedRecord *recordPtr = nullptr;
 
       ofr = overflowedRecord();
       if (OSS_UNLIKELY(INVALID_RECORD_SLOT_POS == pos))
@@ -2567,7 +2191,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == _lpb))
+      else if (OSS_UNLIKELY(nullptr == _lpb))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -2604,7 +2228,7 @@ namespace vessel
       }
 
       recordPtr = recordBuffer.getReadableObjPtr<overflowedRecord>(0);
-      if (OSS_UNLIKELY(NULL == recordPtr))
+      if (OSS_UNLIKELY(nullptr == recordPtr))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get record header[%d,%d]", rs.offset, rs.size);
@@ -2627,8 +2251,8 @@ namespace vessel
       recordSlot rs;
       strictBuffer buffer;
       strictBuffer sliceBuffer;
-      const bigRecordEntrySlice *entryPtr = NULL;
-      const CHAR *dataPtr = NULL;
+      const bigRecordEntrySlice *entryPtr = nullptr;
+      const CHAR *dataPtr = nullptr;
 
       entry = bigRecordEntrySlice();
       data.reset();
@@ -2637,7 +2261,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == _lpb))
+      else if (OSS_UNLIKELY(nullptr == _lpb))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -2674,7 +2298,7 @@ namespace vessel
       }
 
       entryPtr = sliceBuffer.getReadableObjPtr<bigRecordEntrySlice>(0);
-      if (OSS_UNLIKELY(NULL == entryPtr))
+      if (OSS_UNLIKELY(nullptr == entryPtr))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get big record entry head, rc:%d", rc);
@@ -2683,7 +2307,7 @@ namespace vessel
 
       dataPtr = sliceBuffer.getReadablePtr(BIG_RECORD_ENTRY_SIZE, 
                                            rs.size - BIG_RECORD_ENTRY_SIZE);
-      if (OSS_UNLIKELY(NULL == dataPtr))
+      if (OSS_UNLIKELY(nullptr == dataPtr))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get big record entry data, rc:%d", rc);
@@ -2707,8 +2331,8 @@ namespace vessel
       recordSlot rs;
       strictBuffer buffer;
       strictBuffer sliceBuffer;
-      const bigRecordBodySlice *bodyPtr = NULL;
-      const CHAR *dataPtr = NULL;
+      const bigRecordBodySlice *bodyPtr = nullptr;
+      const CHAR *dataPtr = nullptr;
 
       body = bigRecordBodySlice();
       data.reset();
@@ -2717,7 +2341,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == _lpb))
+      else if (OSS_UNLIKELY(nullptr == _lpb))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -2753,7 +2377,7 @@ namespace vessel
       }
 
       bodyPtr = sliceBuffer.getReadableObjPtr<bigRecordBodySlice>(0);
-      if (OSS_UNLIKELY(NULL == bodyPtr))
+      if (OSS_UNLIKELY(nullptr == bodyPtr))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get big record body head, rc:%d", rc);
@@ -2762,7 +2386,7 @@ namespace vessel
 
       dataPtr = sliceBuffer.getReadablePtr(BIG_RECORD_BODY_SIZE, 
                                            rs.size - BIG_RECORD_BODY_SIZE);
-      if (OSS_UNLIKELY(NULL == dataPtr))
+      if (OSS_UNLIKELY(nullptr == dataPtr))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get big record body data, rc:%d", rc);
@@ -2791,7 +2415,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == _lpb))
+      else if (OSS_UNLIKELY(nullptr == _lpb))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -2822,7 +2446,7 @@ namespace vessel
       {
          const bigRecordEntrySlice *entry = 
                buffer.getReadableObjPtr<bigRecordEntrySlice>(rs.offset);
-         if (OSS_UNLIKELY(NULL == entry))
+         if (OSS_UNLIKELY(nullptr == entry))
          {
             rc = SDB_VESSEL_INTERNAL_ERR;
             PD_LOG(PDERROR, "failed to get readable entry slice, rc:%d", rc);
@@ -2835,7 +2459,7 @@ namespace vessel
       {
          const bigRecordBodySlice *body = 
                buffer.getReadableObjPtr<bigRecordBodySlice>(rs.offset);
-         if (OSS_UNLIKELY(NULL == body))
+         if (OSS_UNLIKELY(nullptr == body))
          {
             rc = SDB_VESSEL_INTERNAL_ERR;
             PD_LOG(PDERROR, "failed to get readable entry slice, rc:%d", rc);
@@ -2872,14 +2496,14 @@ namespace vessel
       INT32 rc = SDB_OK;
       recordSlot rs;
 
-      if (OSS_UNLIKELY(NULL == context ||
+      if (OSS_UNLIKELY(nullptr == context ||
                        !context->isMbContextAttached() ||
                        INVALID_RECORD_SLOT_POS == pos))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == _lpb))
+      else if (OSS_UNLIKELY(nullptr == _lpb))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -2921,14 +2545,14 @@ namespace vessel
                                       RECORD_SLOT_POS pos)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(NULL != _lpb, "can not be null");
+      SDB_ASSERT(nullptr != context, "can not be null");
+      SDB_ASSERT(nullptr != _lpb, "can not be null");
 
       strictBuffer buffer, recordBuffer;
-      recordSlot *rs = NULL;
-      recordDataPageHead *head = NULL;
-      tombstoneRecord *tr = NULL;
-      logRecordContext lrc;
+      recordSlot *rs = nullptr;
+      recordDataPageHead *head = nullptr;
+      tombstoneRecord *tr = nullptr;
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       DPS_TRANS_ID transID = context->getOrigTransId();
       UINT32 size = 0;
       
@@ -2947,7 +2571,7 @@ namespace vessel
       }
 
       rs = getWritableSlot(buffer, pos);
-      if (OSS_UNLIKELY(NULL == rs))
+      if (OSS_UNLIKELY(nullptr == rs))
       {
          PD_LOG(PDERROR, "failed to get writable slot[%d]", pos);
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -2966,7 +2590,7 @@ namespace vessel
       }
 
       tr = recordBuffer.getWritableObjPtr<tombstoneRecord>(0);
-      if (OSS_UNLIKELY(NULL == tr))
+      if (OSS_UNLIKELY(nullptr == tr))
       {
          PD_LOG(PDERROR, "failed to get writable record header");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -2983,31 +2607,101 @@ namespace vessel
       head->totalFreeSpace += size;
       updateMaxTransSN(head, transID.getSN());
 
-      rc = prepareDeleteLog(context, &(_lpb->getRuntimeBuffer()), &lrc);
+      rc = writeRemoveJournal(context, lsn);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
 
-      rc = pageAccessor::commitLog(context, &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
-         goto error;
-      }
-
-      _lpb->commit(lrc.getLsn());
-      context->setDmlLSN(lrc.getLsn());
+      _lpb->commit(lsn);
+      context->setDmlLSN(lsn);
       context->setDmlRecordInfo(head->pageSeq, recordID(_lpb->getLogicalPid(), pos));
       
    done:
       return rc;
    error:
-      if (lrc.prepared())
+      goto done;
+   }
+
+   INT32 rdpAccessor::writeInsertJournal(dmlContext *context,
+                                         DPS_LSN_OFFSET &lsn)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(nullptr != context, "can not be null");
+      IDataJournal *journal = context->getOuterResource()->journal;
+      dpsStackJournalPad jpad;
+      dpsPackedRequest jrequest;
+      dpsLogRecordHeader jres;
+
+      jpad.setType(LOG_TYPE_VESSEL_RDP_INSERT);
+      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
+
+      jrequest = jpad.done();
+      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
+      if (SDB_OK != rc)
       {
-         pageAccessor::abortLog(context, &lrc);
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
+         goto error;
       }
+      lsn = jres._lsn;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 rdpAccessor::writeInplaceUpdateJournal(dmlContext *context,
+                                                DPS_LSN_OFFSET &lsn)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(nullptr != context, "can not be null");
+      IDataJournal *journal = context->getOuterResource()->journal;
+      dpsStackJournalPad jpad;
+      dpsPackedRequest jrequest;
+      dpsLogRecordHeader jres;
+
+      jpad.setType(LOG_TYPE_DATA_UPDATE);
+      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
+
+      jrequest = jpad.done();
+      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
+         goto error;
+      }
+      lsn = jres._lsn;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 rdpAccessor::writeRemoveJournal(dmlContext *context,
+                                         DPS_LSN_OFFSET &lsn)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(nullptr != context, "can not be null");
+      IDataJournal *journal = context->getOuterResource()->journal;
+      dpsStackJournalPad jpad;
+      dpsPackedRequest jrequest;
+      dpsLogRecordHeader jres;
+
+      jpad.setType(LOG_TYPE_DATA_DELETE);
+      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
+
+      jrequest = jpad.done();
+      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
+         goto error;
+      }
+      lsn = jres._lsn;
+   done:
+      return rc;
+   error:
       goto done;
    }
 }//namespace vessel

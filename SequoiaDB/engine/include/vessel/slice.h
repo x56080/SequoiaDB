@@ -46,27 +46,21 @@ namespace vessel
    class slice : public SDBObject
    {
       public:
-         OSS_INLINE slice(){}
-         OSS_INLINE explicit slice(UINT32 size, const void *data):
-                             _size(size),
-                             _data((const CHAR *)data){}
-         OSS_INLINE slice(const slice &r):
-                    _size(r._size),
-                    _data(r._data){}
+         slice() = default;
+         explicit slice(UINT32 size, const void *data):
+                        _size(size),
+                        _data((const CHAR *)data){}
+         slice(const slice &r) = default;
 
-         OSS_INLINE ~slice(){}
+         ~slice() = default;
 
-         OSS_INLINE slice &operator=(const slice &r)
-         {
-            _size = r._size;
-            _data = r._data;
-            return *this;
-         }
+         slice &operator=(const slice &r) = default;
+
 
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return NULL != _data && 0 < _size;
+            return nullptr != _data && 0 < _size;
          }
          OSS_INLINE UINT32 getSize()const
          {
@@ -84,7 +78,7 @@ namespace vessel
          OSS_INLINE void reset()
          {
             _size = 0;
-            _data = NULL;
+            _data = nullptr;
             return;
          }
 
@@ -106,7 +100,7 @@ namespace vessel
          }
       private:
          UINT32 _size = 0;
-         const CHAR *_data = NULL;
+         const CHAR *_data = nullptr;
    };//class slice
 
 } // namespace vessel

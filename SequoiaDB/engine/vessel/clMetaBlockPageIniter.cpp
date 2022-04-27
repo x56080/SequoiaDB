@@ -36,9 +36,7 @@
 #include "vessel/clMetaBlockPageIniter.h"
 #include "vessel/runtimePageBuffer.h"
 #include "vessel/clMetaBlockPage.h"
-#include "vessel/logRecordContext.h"
 #include "vessel/outerResource.h"
-#include "vessel/IRedoLogger.h"
 #include "vessel/requestContext.h"
 #include "dpsLogRecordDef.hpp"
 
@@ -52,7 +50,7 @@ namespace vessel
                                          runtimePageBuffer *rpb)
    {
       INT32 rc = SDB_OK;
-      logRecordContext lrc;
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
 
       if (OSS_UNLIKELY(NULL == context ||
                        INVALID_PAGE_ID == lpid ||
@@ -71,13 +69,6 @@ namespace vessel
          goto error;
       }
 
-      rc = pageInitializer::prepareInitLog(context, 0, rpb, &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
-         goto error;
-      }
-
       if (!initCLMetaBlockPage(rpb->getPageSize(),
                                rpb->getGlobalPid().page(),
                                lpid, psv, rpb->getWritableBuffer().getWPtr()))
@@ -87,16 +78,15 @@ namespace vessel
          goto error;
       }
 
-      rc = pageInitializer::commitInitLog(context, rpb->getGlobalPid(),
-                                          lpid, psv, PAGE_TYPE_CL_META,
-                                          slice(), &lrc);
+      rc = pageInitializer::writeJournal(context, rpb->getGlobalPid(),
+                                         PAGE_TYPE_CL_META, slice(), lsn);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
-
-      rpb->commit(lrc.getLsn());
+   
+      rpb->commit(lsn);
    done:
       return rc;
    error:

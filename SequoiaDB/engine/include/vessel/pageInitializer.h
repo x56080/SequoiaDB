@@ -74,18 +74,11 @@ namespace vessel
          }
 
       protected:
-         INT32 prepareInitLog(requestContext *context,
-                              UINT32 adjunctSize,
-                              const runtimePageBuffer *rpb,
-                              logRecordContext *lrc);
-
-         INT32 commitInitLog(requestContext *context,
-                             const GLOBAL_PAGE_ID &gpid,
-                             PAGE_ID lpid,
-                             PAGE_SNAPSHOT_VERION psv,
-                             PAGE_TYPE type,
-                             const slice &adjunct,
-                             logRecordContext *lrc);
+         INT32 writeJournal(requestContext *context,
+                            const GLOBAL_PAGE_ID &gpid,
+                            PAGE_TYPE type,
+                            const slice &adjunct,
+                            DPS_LSN_OFFSET &lsn);
    };//class pageInitializer
 }//class vessel
 }//class engine

@@ -724,7 +724,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET__CANASSIGNLOGPAGE, "_clsReplicateSet::canAssignLogPage" )
-   INT32 _clsReplicateSet::canAssignLogPage( UINT32 reqLen, pmdEDUCB *cb )
+   INT32 _clsReplicateSet::canAssignLogPage( UINT32 reqLen, IExecutor *executor )
    {
       PD_TRACE_ENTRY ( SDB__CLSREPSET__CANASSIGNLOGPAGE );
       INT32 rc = SDB_OK ;
@@ -734,6 +734,8 @@ namespace engine
       DPS_LSN_OFFSET offset = DPS_INVALID_LSN_OFFSET ;
       DPS_LSN expectLSN ;
       BOOLEAN hasBlock = FALSE ;
+      pmdEDUCB *cb = dynamic_cast<pmdEDUCB *>(executor);
+      SDB_ASSERT(NULL != cb, "invalid executor");
 
       while ( SDB_OK == rc && PMD_IS_DB_AVAILABLE() )
       {

@@ -43,7 +43,6 @@
 #include "dpsLogRecord.hpp"
 #include "vessel/collection.h"
 #include "vessel/listCLCursor.h"
-#include "vessel/IRedoLogger.h"
 #include "vessel/clMetaBlockPageIniter.h"
 #include "vessel/csMetaBlockPageAccessor.h"
 #include "vessel/storageFileMaintainer.h"

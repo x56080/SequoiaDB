@@ -76,32 +76,22 @@ namespace vessel
                                                           UINT32 i);
 
       private:
-         INT32 prepareCreateCLLog(requestContext *context,
-                                  UINT32 adjunctSize,
-                                  const runtimePageBuffer *rpb,
-                                  logRecordContext *lrc);
+         INT32 writeCreateCLJournal(requestContext *context,
+                                    const GLOBAL_PAGE_ID &gpid,
+                                    const clMetaBlock &block,
+                                    const slice &adjunct,
+                                    DPS_LSN_OFFSET &lsn);
 
-         INT32 commitCreateCLLog(requestContext *context,
-                                 const GLOBAL_PAGE_ID &gpid,
-                                 const clMetaBlock &block,
-                                 const slice &adjunct,
-                                 logRecordContext *lrc);
-                                  
-         INT32 prepareUpdateLog(requestContext *context,
-                                const runtimePageBuffer *rpb,
-                                logRecordContext *lrc);
+         INT32 writeUpdateJournal(requestContext *context,
+                                  const GLOBAL_PAGE_ID &gpid,
+                                  UINT64 mask,
+                                  const clMetaBlock &oldBlock,
+                                  const clMetaBlock &newBlock,
+                                  DPS_LSN_OFFSET &lsn);
 
-         INT32 commitUpdateLog(requestContext *context,
-                               logRecordContext *lrc,
-                               const GLOBAL_PAGE_ID &gpid,
-                               PAGE_ID lpid,
-                               UINT64 mask,
-                               const clMetaBlock &oldBlock,
-                               const clMetaBlock &newBlock);
-
-         INT32 commitRemoveLog(requestContext *context,
-                               const runtimePageBuffer *rpb,
-                               DPS_LSN_OFFSET &lsn);
+         INT32 writeRemoveJournal(requestContext *context,
+                                  const GLOBAL_PAGE_ID &gpid,
+                                  DPS_LSN_OFFSET &lsn);
 
    };//class clMetaBlockPageAccessor
 }//namespace vessel

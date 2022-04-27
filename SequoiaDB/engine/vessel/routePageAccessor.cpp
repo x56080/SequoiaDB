@@ -36,12 +36,13 @@
 #include "vessel/routePageAccessor.h"
 #include "ossLikely.hpp"
 #include "vessel/routePage.h"
-#include "vessel/logRecordContext.h"
 #include "dpsLogRecordDef.hpp"
 #include "vessel/outerResource.h"
 #include "vessel/logicalPageBuffer.h"
 #include "vessel/requestContext.h"
 #include "vessel/runtimeMbContext.h"
+#include "dpsJournalPad.hpp"
+#include "vessel/outerResource.h"
 
 namespace engine
 {
@@ -53,19 +54,19 @@ namespace vessel
                                     logicalPageBuffer *lpb)
    {
       INT32 rc = SDB_OK;
-      logRecordContext lrc;
       UINT32 capacity = 0;
-      const routePageHead *readableHead = NULL;
-      routePageHead *writableHead = NULL;
+      const routePageHead *readableHead = nullptr;
+      routePageHead *writableHead = nullptr;
       UINT32 oldCount = 0;
       UINT32 lid = DMS_INVALID_LOGICCLID;
       strictBuffer buffer;
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
 
-      if (OSS_UNLIKELY(NULL == context ||
+      if (OSS_UNLIKELY(nullptr == context ||
                        !context->isMbContextAttached() ||
                        0 == count ||
-                       NULL == lpids ||
-                       NULL == lpb ||
+                       nullptr == lpids ||
+                       nullptr == lpb ||
                        !lpb->isValid()))
       {
          rc = SDB_INVALIDARG;
@@ -101,7 +102,7 @@ namespace vessel
 
       buffer = lpb->getReadableBodyBuffer();
       readableHead = buffer.getReadableObjPtr<routePageHead>(0);
-      if (NULL == readableHead)
+      if (nullptr == readableHead)
       {
          PD_LOG(PDERROR, "failed to get readable page head");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -130,17 +131,10 @@ namespace vessel
          goto error;
       }
 
-      rc = prepareAppendLog(context, &(lpb->getRuntimeBuffer()), count, &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
-         goto error;
-      }
-
       buffer = lpb->getWritableBodyBuffer();
 
       writableHead = buffer.getWritableObjPtr<routePageHead>(0);
-      if (NULL == readableHead)
+      if (nullptr == readableHead)
       {
          PD_LOG(PDERROR, "failed to get writable page head");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -148,50 +142,28 @@ namespace vessel
       }
 
       oldCount = writableHead->size;
+
+      rc = writeJournal(context, lpb->getGlobalPid(),
+                        oldCount, count, lpids, lsn);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
+         goto error;
+      }
+
       for (UINT32 i = 0; i < count; ++i)
       {
          UINT32 offset = ROUTE_PAGE_HEAD_SIZE + ((writableHead->size + i) << 2);
          PAGE_ID *tmp = buffer.getWritableObjPtr<PAGE_ID>(offset);
-         if (NULL == tmp)
-         {
-            PD_LOG(PDERROR, "failed to get writable ptr");
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            goto error;
-         }
+         SDB_ASSERT(nullptr != tmp, "impossible");
          *tmp = lpids[i];
       }
       writableHead->size += count;
 
-      rc = commitAppendLog(context, lpb->getGlobalPid(),
-                           lpb->getLogicalPid(), oldCount,
-                           count, lpids, &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to commit log:%d", rc);
-         writableHead->size -= count;
-         for (UINT32 i = 0; i < count; ++i)
-         {
-            UINT32 offset = ROUTE_PAGE_HEAD_SIZE + ((writableHead->size + i) << 2);
-            PAGE_ID *tmp = buffer.getWritableObjPtr<PAGE_ID>(offset);
-            if (NULL == tmp)
-            {
-               PD_LOG(PDERROR, "failed to get writable ptr");
-            }
-            *tmp = INVALID_PAGE_ID;
-         }
-         ossPanic();
-         goto error;
-      }
-
-      lpb->commit(lrc.getLsn());
-      lrc.close();
+      lpb->commit(lsn);
    done:
       return rc;
    error:
-      if (lrc.prepared())
-      {
-         pageAccessor::abortLog(context, &lrc);
-      }
       goto done;
    }
 
@@ -202,18 +174,18 @@ namespace vessel
                                            PAGE_ID &last)const
    {
       INT32 rc = SDB_OK;
-      const routePageHead *readableHead = NULL;
+      const routePageHead *readableHead = nullptr;
       UINT32 offset = 0;
-      const PAGE_ID *ptr = NULL;
+      const PAGE_ID *ptr = nullptr;
       size = 0;
       last = INVALID_PAGE_ID;
       strictBuffer buffer;
       UINT32 clid = DMS_INVALID_LOGICCLID;
 
-      if (OSS_UNLIKELY(NULL == context ||
+      if (OSS_UNLIKELY(nullptr == context ||
                        !isValidRoutePageLvl(targetLvl) ||
                        !context->isMbContextAttached() ||
-                       NULL == lpb ||
+                       nullptr == lpb ||
                        !lpb->isValid()))
       {
          rc = SDB_INVALIDARG;
@@ -231,7 +203,7 @@ namespace vessel
       buffer = lpb->getReadableBodyBuffer();
 
       readableHead = buffer.getReadableObjPtr<routePageHead>(0);
-      if (NULL == readableHead)
+      if (nullptr == readableHead)
       {
          PD_LOG(PDERROR, "failed to get readable head");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -259,7 +231,7 @@ namespace vessel
       {
          offset = ROUTE_PAGE_HEAD_SIZE + ((UINT32)(readableHead->size - 1) << 2);
          ptr = buffer.getReadableObjPtr<PAGE_ID>(offset);
-         if (NULL == ptr)
+         if (nullptr == ptr)
          {
             PD_LOG(PDERROR, "failed to get lpid ptr");
             rc = SDB_VESSEL_INTERNAL_ERR;
@@ -281,14 +253,14 @@ namespace vessel
                                 PAGE_ID &lpid)const
    {
       INT32 rc = SDB_OK;
-      const routePageHead *readableHead = NULL;
+      const routePageHead *readableHead = nullptr;
       UINT32 offset = 0;
-      const PAGE_ID *ptr = NULL;
+      const PAGE_ID *ptr = nullptr;
       strictBuffer buffer;
 
-      if (OSS_UNLIKELY(NULL == context ||
+      if (OSS_UNLIKELY(nullptr == context ||
                        !context->isMbContextAttached() ||
-                       NULL == lpb ||
+                       nullptr == lpb ||
                        !lpb->isValid()))
       {
          rc = SDB_INVALIDARG;
@@ -305,7 +277,7 @@ namespace vessel
 
       buffer = lpb->getReadableBodyBuffer();
       readableHead = buffer.getReadableObjPtr<routePageHead>(0);
-      if (NULL == readableHead)
+      if (nullptr == readableHead)
       {
          PD_LOG(PDERROR, "failed to get readable head");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -330,7 +302,7 @@ namespace vessel
       
       offset = ROUTE_PAGE_HEAD_SIZE + (pos << 2);
       ptr = buffer.getReadableObjPtr<PAGE_ID>(offset);
-      if (NULL == ptr)
+      if (nullptr == ptr)
       {
          PD_LOG(PDERROR, "failed to get lpid ptr");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -349,89 +321,48 @@ namespace vessel
       goto done;
    }
 
-   INT32 routePageAccessor::prepareAppendLog(requestContext *context,
-                                             const runtimePageBuffer *rpb,
-                                             UINT32 count,
-                                             logRecordContext *lrc)
+   INT32 routePageAccessor::writeJournal(requestContext *context,
+                                          const GLOBAL_PAGE_ID &gpid,
+                                          UINT16 oldSize,
+                                          UINT16 size,
+                                          const PAGE_ID *lpids,
+                                          DPS_LSN_OFFSET &lsn)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(0 != count, "can not be zero");
-      SDB_ASSERT(NULL != rpb, "can not be null");
-      SDB_ASSERT(NULL != lrc, "can not be null");
-      SDB_ASSERT(!lrc->prepared(), "can not be prepared");
-      
-      rc = pageAccessor::prepareLog(context, rpb,
-                                    LOG_TYPE_VESSEL_ROUTE_PAGE_UPDATE,
-                                    FALSE, lrc);
+      SDB_ASSERT(nullptr != context, "can not be null");
+      IDataJournal *journal = context->getOuterResource()->journal;
+      dpsStackJournalPad jpad;
+      dpsPackedRequest jrequest;
+      dpsLogRecordHeader jres;
+
+      jpad.setType(LOG_TYPE_VESSEL_ROUTE_PAGE_UPDATE);
+      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
+
+      rc = jpad.append(DPS_LOG_PUBLIC_VESSEL_GPID,
+                       GLOBAL_PAGE_ID_SIZE,
+                       &gpid);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare dps log:%d", rc);
+         PD_LOG(PDERROR, "failedt append gpid:%d", rc);
          goto error;
       }
 
-      lrc->prepush(sizeof(GLOBAL_PAGE_ID));
-      lrc->prepush(sizeof(PAGE_ID));
-      lrc->prepush(sizeof(UINT16));
-      lrc->prepush(sizeof(UINT16));
-      lrc->prepush(count << 2);
-      rc = pageAccessor::prepareLogDone(context, lrc);
+      rc = jpad.append(DPS_LOG_VESSEL_ROUTE_PAGE_INSERT_PAGES,
+                       size << 2, lpids);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare log done:%d", rc);
+         PD_LOG(PDERROR, "failed to append lpids:%d", rc);
          goto error;
       }
 
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 routePageAccessor::commitAppendLog(requestContext *context,
-                                             const GLOBAL_PAGE_ID &gpid,
-                                             PAGE_ID lpid,
-                                             UINT16 oldCount,
-                                             UINT16 size,
-                                             const PAGE_ID *lpids,
-                                             logRecordContext *lrc)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      rc = pageAccessor::pushElement(context, DPS_LOG_PUBLIC_VESSEL_GPID,
-                                     sizeof(GLOBAL_PAGE_ID), &gpid, lrc);
+      jrequest = jpad.done();
+      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
-
-      rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_ROUTE_PAGE_INSERT_LPID,
-                                     sizeof(UINT32), &lpid, lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_ROUTE_PAGE_INSERT_OLD_CNT,
-                                     sizeof(UINT16), &oldCount, lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_ROUTE_PAGE_INSERT_PAGES,
-                                     ((UINT32)size << 2), lpids, lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = pageAccessor::commitLog(context, lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc->getLsn(), rc);
-         goto error;
-      }
+      lsn = jres._lsn;
    done:
       return rc;
    error:
@@ -443,10 +374,10 @@ namespace vessel
                                          const logicalPageBuffer *lpb)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context && context->isMbContextAttached(), "can not be invalid");
+      SDB_ASSERT(nullptr != context && context->isMbContextAttached(), "can not be invalid");
       SDB_ASSERT(isValidRoutePageLvl(targetLvl), "can not be invalid");
-      SDB_ASSERT(NULL != lpb && lpb->isValid(), "can not be invalid");
-      const routePageHead *header = NULL;
+      SDB_ASSERT(nullptr != lpb && lpb->isValid(), "can not be invalid");
+      const routePageHead *header = nullptr;
 
       rc = lpb->validatePage(PAGE_TYPE_ROUTE);
       if (SDB_OK != rc)
@@ -485,13 +416,13 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
 
-      const routePageHead *header = NULL;
+      const routePageHead *header = nullptr;
       UINT32 oldSize = lpids.size();
 
-      if (OSS_UNLIKELY(NULL == context ||
+      if (OSS_UNLIKELY(nullptr == context ||
                        !context->isMbContextAttached() ||
                        !isValidRoutePageLvl(targetLvl) ||
-                       NULL == lpb || !lpb->isValid()))
+                       nullptr == lpb || !lpb->isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -516,7 +447,7 @@ namespace vessel
       {
          UINT32 offset = ROUTE_PAGE_HEAD_SIZE + (i << 2);
          const PAGE_ID *ptr = lpb->getReadableBodyBuffer().getReadableObjPtr<PAGE_ID>(offset);
-         if (OSS_UNLIKELY(NULL == ptr))
+         if (OSS_UNLIKELY(nullptr == ptr))
          {
             PD_LOG(PDERROR, "failed to get lpid ptr of pos[%d]", i);
             rc = SDB_VESSEL_INTERNAL_ERR;

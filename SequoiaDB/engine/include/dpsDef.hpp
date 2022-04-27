@@ -43,6 +43,7 @@
 #include "ossTypes.h"
 #include "dpsTransID.hpp"
 #include "ossAtomic.hpp"
+#include "sdbInterface.hpp"
 
 #if defined (_WINDOWS)
 #define DPS_INVALID_LSN_OFFSET   0xFFFFFFFFFFFFFFFFLL
@@ -80,8 +81,9 @@
 typedef UINT64 DPS_LSN_OFFSET ;
 typedef UINT32 DPS_LSN_VER ;
 
-constexpr UINT16 DPS_LOG_FLAG_OPL_HEAD = 0x01;
-constexpr UINT16 DPS_LOG_FLAG_OPL_TAIL = 0x02;
+constexpr UINT16 DPS_LOG_FLAG_VESSEL = 0x01;
+constexpr UINT16 DPS_LOG_FLAG_OPL = 0x02;
+constexpr UINT16 DPS_LOG_FLAG_OPL_TAIL = 0x04;
 
 #define DPS_LOG_WRITE_MOD_INCREMENT 0
 #define DPS_LOG_WRITE_MOD_FULL      1
@@ -145,14 +147,14 @@ namespace engine
          _dpsEventHandler () {}
          virtual ~_dpsEventHandler () {}
 
-         virtual INT32 canAssignLogPage( UINT32 reqLen, _pmdEDUCB *cb ) = 0 ;
+         virtual INT32 canAssignLogPage( UINT32 reqLen, IExecutor *executor ) = 0 ;
 
          virtual void  onPrepareLog( UINT32 csLID, UINT32 clLID,
                                      INT32 extLID, DPS_LSN_OFFSET offset ) = 0 ;
 
          virtual void  onWriteLog( DPS_LSN_OFFSET offset ) = 0 ;
 
-         virtual INT32 onCompleteOpr( _pmdEDUCB *cb, INT32 w ) = 0 ;
+         virtual INT32 onCompleteOpr( IExecutor *executor, INT32 w ) = 0 ;
 
          virtual void  onSwitchLogFile( UINT32 preLogicalFileId,
                                         UINT32 preFileId,

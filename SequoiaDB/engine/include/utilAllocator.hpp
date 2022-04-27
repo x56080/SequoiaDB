@@ -42,20 +42,20 @@
 
 using namespace std ;
 
-#define UTIL_ALLOCATOR_SIZE   265
+#define UTIL_ALLOCATOR_SIZE   256
 
 namespace engine
 {
    template < UINT32 stackSize = UTIL_ALLOCATOR_SIZE >
-   class _utilAllocator
+   class _utilStackOnlyAllocator
    {
       public :
-         _utilAllocator()
+         _utilStackOnlyAllocator()
          {
             _offset = 0 ;
          }
 
-         virtual ~_utilAllocator()
+         virtual ~_utilStackOnlyAllocator()
          {
             _offset = 0 ;
          }
@@ -85,7 +85,99 @@ namespace engine
       protected :
          char _mem[ stackSize ] ;
          INT32 _offset ;
-   } ;//class _utilAllocator
+   } ;//class _utilStackOnlyAllocator
+
+   class utilPoolAllocator : public SDBObject
+   {
+      public:
+         void *malloc(size_t size)
+         {
+            return SDB_THREAD_ALLOC(size);
+         }
+         void *realloc(void *p, size_t size)
+         {
+            void *ptr = nullptr;
+            if (nullptr == p)
+            {
+               ptr = this->malloc(size);
+            }
+            else
+            {
+               ptr = SDB_THREAD_REALLOC(p, size);
+            }
+            return ptr;
+         }
+         void free(void *p)
+         {
+            SDB_THREAD_FREE(p);
+         }
+   };//utilPoolAllocator
+
+   template<UINT32 STACK_SIZE=512>
+   class utilStackAllocator : public SDBObject
+   {
+      public:
+         void *malloc(size_t size)
+         {
+            void *buf = nullptr;
+            if (size <= STACK_SIZE)
+            {
+               buf = _statckBuf;
+            }
+            else
+            {
+               buf = _pallocator.malloc(size);
+            }
+            return buf;
+         }
+
+         void *realloc(void *p, size_t size)
+         {
+            void *buf = nullptr;
+            if (p == _statckBuf)
+            {
+               if (size <= STACK_SIZE)
+               {
+                  buf = _statckBuf;
+               }
+               else
+               {
+                  buf = _pallocator.malloc(size);
+                  if (nullptr != buf)
+                  {
+                     ossMemcpy(buf, _statckBuf, STACK_SIZE);
+                  }
+               }
+            }
+            else if (nullptr == p)
+            {
+               buf = this->malloc(size);
+            }
+            else
+            {
+               buf = _pallocator.realloc(p, size);
+            }
+            return buf;
+         }
+
+         void free(void *p)
+         {
+            if (p != _statckBuf && nullptr != p)
+            {
+               _pallocator.free(p);
+            }
+            return;
+         }
+
+         BOOLEAN isStackBuffer(const void *p)
+         {
+            return _statckBuf == (const CHAR *)p;
+         }
+      
+      private:
+         CHAR _statckBuf[STACK_SIZE];
+         utilPoolAllocator _pallocator;
+   };//
 }
 
 #endif // UTIL_ALLOCATOR_HPP_

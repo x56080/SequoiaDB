@@ -41,18 +41,16 @@
 #include "vessel/requestContext.h"
 #include "vessel/instanceEnv.h"
 #include "vessel/outerResource.h"
-#include "vessel/logRecordContext.h"
 #include "dpsDef.hpp"
-#include "vessel/IRedoLogger.h"
 #include "vessel/deltaLogRecordBuilder.h"
 #include "dpsLogRecordDef.hpp"
 #include "utilStr.hpp"
 #include "vessel/fsmFile.h"
 #include "vessel/freeSpaceMapDef.h"
 #include "vessel/storageUtils.h"
-#include "vessel/logRecordContext.h"
 #include "vessel/idMapFile.h"
 #include "vessel/storageFileMaintainer.h"
+#include "dpsJournalPad.hpp"
 
 namespace engine
 {
@@ -75,15 +73,15 @@ namespace vessel
       PAGE_ID lpid = CS_META_BLOCK_PAGE_LPID;
       PAGE_ID pid = 0;
       PAGE_SNAPSHOT_VERION psv = INVALID_PAGE_SNAPSHOT_VERSION;
-      IExecutor *executor = nullptr;
-      IRedoLogger *logger = nullptr;
+      IDataJournal *journal = nullptr;
       csMetaBlock *blockOnDisk = nullptr;
-      logRecordContext lrc;
       SPACE_ID sid = INVALID_SPACE_ID;
       deltaLogRecordBuilder builder;
       mappedLogicalPageId mid(lpid, pid);
       lpageDescriptor desc;
-
+      dpsStackJournalPad jpad;
+      dpsLogRecordHeader jres;
+      dpsPackedRequest jrequest;
 
       if (OSS_UNLIKELY(nullptr == context ||
                        !block.isValid()))
@@ -98,8 +96,7 @@ namespace vessel
       }
 
       sid = logicalPageSpace::getSpaceID();
-      executor = context->getExecutor();
-      logger = context->getOuterResource()->logger;
+      journal = context->getOuterResource()->journal;
 
       psv = context->getEnv()->dms.getOnlinePageSnapshotVersion();
 
@@ -139,25 +136,34 @@ namespace vessel
       blockOnDisk = (csMetaBlock *)(ptr.get() + PAGE_HEAD_SIZE);
       *blockOnDisk = block;
 
-      /// prepare dps log
-      lrc.open(LOG_TYPE_CS_CRT);
-      lrc.setDDL();
-      lrc.setResetPage();
-      lrc.prepush(sizeof(SPACE_ID));
-      lrc.prepush(CS_META_BLOCK_LEN);
-      lrc.prepush(options.getSize());
-      lrc.prepushDone();
-      rc = logger->prepare(executor, &lrc);
+      jpad.setType(LOG_TYPE_CS_CRT);
+      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
+      rc = jpad.appendInt32(DPS_LOG_CSCRT_VESSEL_SID, sid);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to append sid into pad:%d", rc);
+         goto error;
+      }
+
+      rc = jpad.append(DPS_LOG_CSCRT_VESSEL_META, CS_META_BLOCK_LEN, &block);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to append meta block into pad:%d", rc);
+         goto error;
+      }
+
+      jrequest = jpad.done();
+
+      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
 
       /// update page lsn
-      if (!updatePageLsn(ptr.get(), lrc.getLsn()))
+      if (!updatePageLsn(ptr.get(), jres._lsn))
       {
-         logger->abort(executor, &lrc);
          PD_LOG(PDERROR, "failed to update page lsn:%d", rc);
          goto error;
       }
@@ -169,41 +175,9 @@ namespace vessel
          goto error;
       }
 
-      /// commit dps log
-      rc = logger->pushLogRecordElement(executor, &lrc, DPS_LOG_CSCRT_VESSEL_SID,
-                                        sizeof(SPACE_ID), &sid);
-      if (SDB_OK != rc)
-      {
-         logger->abort(executor, &lrc);
-         PD_LOG(PDERROR, "failed to push ele[%d], rc:%d",
-                DPS_LOG_CSCRT_VESSEL_SID, rc);
-         goto error;
-      }
-
-      rc = logger->pushLogRecordElement(executor, &lrc, DPS_LOG_CSCRT_VESSEL_META,
-                                        CS_META_BLOCK_LEN, &block);
-      if (SDB_OK != rc)
-      {
-         logger->abort(executor, &lrc);
-         PD_LOG(PDERROR, "failed to push ele[%d], rc:%d",
-                DPS_LOG_CSCRT_VESSEL_META, rc);
-         goto error;
-      }
-
-      rc = logger->pushLogRecordElement(executor, &lrc, DPS_LOG_CSCRT_VESSEL_OPTIONS,
-                                        options.getSize(), options.getData());
-      if (SDB_OK != rc)
-      {
-         logger->abort(executor, &lrc);
-         PD_LOG(PDERROR, "failed to push ele[%d], rc:%d",
-                DPS_LOG_CSCRT_VESSEL_OPTIONS, rc);
-         goto error;
-      }
-
       rc = logicalPageSpace::getLogConsole().append(builder.getDeltaLogRecord());
       if (SDB_OK != rc)
       {
-         logger->abort(executor, &lrc);
          PD_LOG(PDERROR, "failed to append delta log:%d", rc);
          goto error;
       }
@@ -214,25 +188,16 @@ namespace vessel
       rc = logicalPageSpace::getMapping().set(lpid, desc);
       if (SDB_OK != rc)
       {
-         logger->abort(executor, &lrc);
          PD_LOG(PDERROR, "failed to put mapping into cache:%d", rc);
-         ossPanic();
-         goto error;
-      }
-
-      rc = logger->commit(executor, &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to commit dps log[%lld], rc:%d",
-                lrc.getLsn(), rc);
          goto error;
       }
 
       /// update space's dirty lsn
-      logicalPageSpace::getCheckpointContext().updateDirtyLsn(lrc.getLsn());
+      logicalPageSpace::getCheckpointContext().updateDirtyLsn(jres._lsn);
    done:
       return rc;
    error:
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != jres._lsn, "to do: rollback");
       goto done;
    }
 
@@ -590,9 +555,13 @@ namespace vessel
       GLOBAL_PAGE_ID gpid;
       UINT32 pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
       CHAR *buffer = nullptr;
-      logRecordContext lrc;
       slice rs;
       liteCache *lc = nullptr;
+
+      dpsPoolJournalPad jpad;
+      dpsLogRecordHeader jres;
+      dpsPackedRequest jrequest;
+      IDataJournal *journal = context->getEnv()->resource.journal;
 
       if (OSS_UNLIKELY(nullptr == context ||
                        INVALID_PAGE_SNAPSHOT_VERSION == psv ||
@@ -631,10 +600,22 @@ namespace vessel
          goto error;
       }
 
-      rc = prepareCopyLog(context, pageSize, &lrc);
+      jpad.setType(LOG_TYPE_VESSEL_COPY_PAGE);
+      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
+      rc = jpad.append(DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP,
+                       pageSize,
+                       reinterpret_cast<const void *>(tuple.getReadableBuffer()));
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
+         PD_LOG(PDERROR, "failed to append page buffer into pad:%d", rc);
+         goto error;
+      }
+
+      jrequest = jpad.done();
+      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
 
@@ -643,21 +624,9 @@ namespace vessel
                  pageSize);
       ((pageHead *)(tuple.getWritableBuffer()))->pid = newPid;
       ((pageHead *)(tuple.getWritableBuffer()))->psv = psv;
-      updatePageLsn((ossValuePtr)(tuple.getWritableBuffer()), lrc.getLsn());
-
-      rc = commit(context, pageSize,
-                  (const void *)(tuple.getReadableBuffer()),
-                  gpid,
-                  ((const pageHead *)(tuple.getReadableBuffer()))->lpid,
-                  &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to commit log[%lld]:%d", lrc.getLsn(), rc);
-         ossPanic();
-         goto error;
-      }
+      updatePageLsn((ossValuePtr)(tuple.getWritableBuffer()), jres._lsn);
       
-      tuple.commit(lrc.getLsn());
+      tuple.commit(jres._lsn);
       rpb.fini();
 
       rc = initer.initWithCache(gpid, pageSize, tuple, rpb);
@@ -684,91 +653,7 @@ namespace vessel
       }
       return rc;
    error:
-      goto done;
-   }
-
-   INT32 mainDataSpace::prepareCopyLog(requestContext *context,
-                                       UINT32 pageSize,
-                                       logRecordContext *lrc)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(nullptr != context, "can not be null");
-      SDB_ASSERT(isValidPageSize(pageSize), "can not be invalid");
-      SDB_ASSERT(nullptr != lrc, "can not be null");
-      IRedoLogger *logger = context->getOuterResource()->logger;
-      lrc->open(LOG_TYPE_VESSEL_COPY_PAGE);
-      lrc->setResetPage();
-      lrc->prepush(sizeof(GLOBAL_PAGE_ID));
-      lrc->prepush(pageSize);
-      lrc->prepush(sizeof(PAGE_ID));
-      lrc->prepushDone();
-      rc = logger->prepare(context->getExecutor(), lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 mainDataSpace::commit(requestContext *context,
-                               UINT32 pageSize,
-                               const void *pageBuffer,
-                               const GLOBAL_PAGE_ID &gpid,
-                               PAGE_ID lpid,
-                               logRecordContext *lrc)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(nullptr != context, "can not be null");
-      SDB_ASSERT(isValidPageSize(pageSize), "can not be invalid");
-      SDB_ASSERT(nullptr != pageBuffer, "can not be null");
-      SDB_ASSERT(gpid.isValid(), "can not be invalid");
-      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-      SDB_ASSERT(nullptr != lrc, "can not be null");
-      SDB_ASSERT(lrc->prepared(), "must be prepared");
-
-      IRedoLogger *logger = context->getOuterResource()->logger;
-
-      rc = logger->pushLogRecordElement(context->getExecutor(), lrc,
-                                        DPS_LOG_PUBLIC_VESSEL_GPID,
-                                        sizeof(gpid),
-                                        &gpid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to push gpid:%d", rc);
-         goto error;
-      }
-
-      rc = logger->pushLogRecordElement(context->getExecutor(), lrc,
-                                        DPS_LOG_VESSEL_COPY_PAGE_LPID,
-                                        sizeof(PAGE_ID), &lpid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to push page lpid:%d", rc);
-         goto error;
-      }
-
-      rc = logger->pushLogRecordElement(context->getExecutor(), lrc,
-                                        DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP,
-                                        pageSize, pageBuffer);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to push page buffer:%d", rc);
-         goto error;
-      }
-
-      rc = logger->commit(context->getExecutor(), lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to commit:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != jres._lsn, "to do: rollback");
       goto done;
    }
 

@@ -35,7 +35,6 @@
 
 #include "vessel/routePageIniter.h"
 #include "vessel/runtimePageBuffer.h"
-#include "vessel/logRecordContext.h"
 #include "vessel/routePage.h"
 
 namespace engine
@@ -48,8 +47,8 @@ namespace vessel
                                    runtimePageBuffer *rpb)
    {
       INT32 rc = SDB_OK;
-      logRecordContext lrc;
       const routePageHead *head = NULL;
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
 
       if (OSS_UNLIKELY(NULL == context ||
                        INVALID_PAGE_ID == lpid ||
@@ -71,13 +70,6 @@ namespace vessel
          goto error;
       }
 
-      rc = prepareInitLog(context, ROUTE_PAGE_HEAD_SIZE, rpb, &lrc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
-         goto error;
-      }
-
       if (!initRoutePage(rpb->getPageSize(), rpb->getGlobalPid().page(),
                          lpid, psv, _logicalId, _lvl, rpb->getWritableBuffer().getWPtr()))
       {
@@ -88,18 +80,17 @@ namespace vessel
 
       head = rpb->getReadableBuffer().getReadableObjPtr<routePageHead>(0);
 
-      rc = commitInitLog(context, rpb->getGlobalPid(), lpid,
-                         psv, PAGE_TYPE_ROUTE,
-                         slice(ROUTE_PAGE_HEAD_SIZE, head),
-                         &lrc);
+      rc = pageInitializer::writeJournal(context, rpb->getGlobalPid(),
+                                         PAGE_TYPE_ROUTE,
+                                         slice(ROUTE_PAGE_HEAD_SIZE, head),
+                                         lsn);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
-         ossPanic();
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
 
-      rpb->commit(lrc.getLsn());
+      rpb->commit(lsn);
    done:
       return rc;
    error:

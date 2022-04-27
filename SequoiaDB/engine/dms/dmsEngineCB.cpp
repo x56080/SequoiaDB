@@ -95,7 +95,7 @@ namespace engine
       vessel::IVessel *instance = static_cast<vessel::IVessel *>(_engine);
       vessel::outerResource resource;
       resource.executorPool = pmdGetKRCB()->getExecutorMgr();
-      resource.logger = vessel::dummyJournal::instance();
+      resource.journal = vessel::dummyDataJournal::instance();
       resource.transLockConsole = pmdGetKRCB()->getTransCB()->getLockMgrHandle();
 
       vessel::openDBOptions o;

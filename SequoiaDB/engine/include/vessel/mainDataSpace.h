@@ -110,18 +110,6 @@ namespace vessel
                                                runtimePageBuffer &rpb) override;
 
       private:
-         INT32 prepareCopyLog(requestContext *context,
-                              UINT32 pageSize,
-                              logRecordContext *lrc);
-
-         INT32 commit(requestContext *context,
-                        UINT32 pageSize,
-                        const void *pageBuffer,
-                        const GLOBAL_PAGE_ID &gpid,
-                        PAGE_ID lpid,
-                        logRecordContext *lrc);
-
-      private:
          dataStorageFileCluster _storage;
          fsmFile *_fsm = NULL;
    };//class mainDataSpace

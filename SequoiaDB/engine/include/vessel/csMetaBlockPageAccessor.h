@@ -48,8 +48,8 @@ namespace vessel
    class csMetaBlockPageAccessor : public pageAccessor
    {
       public:
-         csMetaBlockPageAccessor();
-         virtual ~csMetaBlockPageAccessor();
+         csMetaBlockPageAccessor() = default;
+         virtual ~csMetaBlockPageAccessor() = default;
 
       public:
          INT32 read(requestContext *context,
@@ -62,16 +62,12 @@ namespace vessel
                       UINT64 mask);
 
    private:
-         INT32 prepareUpdateLog(requestContext *context,
-                                const runtimePageBuffer *rpb,
-                                logRecordContext *lrc);
-
-         INT32 commitUpdateLog(requestContext *context,
-                               const GLOBAL_PAGE_ID &gpid,
-                               const csMetaBlock &oldBlock,
-                               const csMetaBlock &block,
-                               UINT64 mask,
-                               logRecordContext *lrc);
+         INT32 writeJournal(requestContext *context,
+                            const GLOBAL_PAGE_ID &gpid,
+                            const csMetaBlock &oldBlock,
+                            const csMetaBlock &block,
+                            UINT64 mask,
+                            DPS_LSN_OFFSET &lsn);
 
    };//class csMetaBlockPageAccessor
 }//class vessel

@@ -37,17 +37,17 @@
 #define SDB_I_DATA_JOURNAL_H_
 
 #include "sdbInterface.hpp"
-#include "dpsDef.hpp"
-#include "dpsLogDef.hpp"
-#include "dpsJournalPad.hpp"
+#include "dpsRequest.hpp"
+#include "dpsLogRecord.hpp"
+#include "dpsMessageBlock.hpp"
 
 namespace engine
 {
    class IDataJournal : public SDBObject
    {
       public:
-         IDataJournal(){}
-         virtual ~IDataJournal(){}
+         IDataJournal() = default;
+         virtual ~IDataJournal() = default;
          IDataJournal(const IDataJournal &) = delete;
          IDataJournal &operator=(const IDataJournal &) = delete;
 
@@ -58,15 +58,34 @@ namespace engine
          };//struct writeOptions
 
       public:
-         virtual DPS_LSN getMinFileLSN() = 0;
-         virtual DPS_LSN getMinBufLSN() = 0;
-         virtual DPS_LSN getCurrentLSN() = 0;
-         virtual DPS_LSN getNextLSN() = 0;
-         virtual DPS_LSN getMinUncommitedLSN() = 0;
+         virtual DPS_LSN_OFFSET getMinFileLSN() = 0;
+         virtual DPS_LSN_OFFSET getMinBufLSN() = 0;
+         virtual DPS_LSN_OFFSET getCurrentLSN() = 0;
+         virtual DPS_LSN_OFFSET getExpectedLSN() = 0;
+         virtual DPS_LSN_OFFSET getMinDirtyLSN() = 0;
 
       public:
-         INT32 write(IExecutor *executor,
-                     );
+         virtual void registerEventHandler(dpsEventHandler *handler) = 0;
+         virtual void unregisterEventHandler(dpsEventHandler *handler) = 0;
+
+      public:
+         virtual INT32 write(const dpsPackedRequest &request,
+                             const dpsWriteOptions &o,
+                             dpsLogRecordHeader *result) = 0;
+
+         virtual INT32 search(const DPS_LSN &lsn,
+                              const dpsSearchOptions &o,
+                              dpsMessageBlock &block) = 0;
+
+         virtual INT32 replicate(const CHAR *rawdata, UINT32 size) = 0;
+
+         virtual INT32 flushAll() = 0;
+
+         virtual INT32 flush(DPS_LSN_OFFSET lsn) = 0;
+
+         virtual INT32 truncate(DPS_LSN_OFFSET lsn) = 0;
+
+         virtual INT32 abortOpl(DPS_LSN_OFFSET lsn){return SDB_OK;}
 
    };//class IDataJournal
 } // namespace engine

@@ -61,6 +61,9 @@ namespace engine
          version = DPS_INVALID_LSN_VERSION ;
       }
 
+      explicit DPS_LSN(DPS_LSN_OFFSET o, DPS_LSN_VER v):
+      offset(o), version(v){}
+
       DPS_LSN( const DPS_LSN &lsn )
       {
          offset = lsn.offset ;

@@ -102,7 +102,7 @@ namespace engine
    typedef class _pmdEDUCB pmdEDUCB ;
 
    // Allocator of
-   typedef _utilAllocator< OPT_NODE_ALLOCATOR_SIZE > optPlanAllocator ;
+   typedef _utilStackOnlyAllocator< OPT_NODE_ALLOCATOR_SIZE > optPlanAllocator ;
 
    // Store explain results of sub-contexts
    typedef ossPoolList< BSONObj > optExplainResultList ;

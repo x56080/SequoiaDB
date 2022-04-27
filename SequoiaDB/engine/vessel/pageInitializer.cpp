@@ -34,104 +34,66 @@
 ******************************************************************************/
 
 #include "vessel/pageInitializer.h"
-#include "vessel/logRecordContext.h"
 #include "dpsLogRecordDef.hpp"
+#include "dpsJournalPad.hpp"
+#include "vessel/outerResource.h"
+#include "vessel/requestContext.h"
 
 namespace engine
 {
 namespace vessel
 {
-   INT32 pageInitializer::prepareInitLog(requestContext *context,
-                                          UINT32 adjunctSize,
-                                          const runtimePageBuffer *rpb,
-                                          logRecordContext *lrc)
+   INT32 pageInitializer::writeJournal(requestContext *context,
+                                       const GLOBAL_PAGE_ID &gpid,
+                                       PAGE_TYPE type,
+                                       const slice &adjunct,
+                                       DPS_LSN_OFFSET &lsn)
    {
       INT32 rc = SDB_OK;
-      rc = pageAccessor::prepareLog(context, rpb, LOG_TYPE_VESSEL_PAGE_INIT,
-                                    TRUE, lrc);
+      IDataJournal *journal = context->getOuterResource()->journal;
+      dpsStackJournalPad jpad;
+      dpsPackedRequest jrequest;
+      dpsLogRecordHeader jres;
+
+      jpad.setType(LOG_TYPE_VESSEL_PAGE_INIT);
+      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
+
+      rc = jpad.append(DPS_LOG_PUBLIC_VESSEL_GPID,
+                       GLOBAL_PAGE_ID_SIZE,
+                       &gpid);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failedt append gpid:%d", rc);
          goto error;
       }
 
-      lrc->prepush(sizeof(GLOBAL_PAGE_ID));
-      lrc->prepush(sizeof(PAGE_ID));
-      lrc->prepush(sizeof(PAGE_SNAPSHOT_VERION));
-      lrc->prepush(sizeof(PAGE_TYPE));
-      if (0 < adjunctSize)
-      {
-         lrc->prepush(adjunctSize);
-      }
-
-      rc = pageAccessor::prepareLogDone(context, lrc);
+      rc = jpad.appendInt32(DPS_LOG_VESSEL_PAGE_INIT_PAGE_TYPE, type);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare done log:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 pageInitializer::commitInitLog(requestContext *context,
-                                        const GLOBAL_PAGE_ID &gpid,
-                                        PAGE_ID lpid,
-                                        PAGE_SNAPSHOT_VERION psv,
-                                        PAGE_TYPE type,
-                                        const slice &adjunct,
-                                        logRecordContext *lrc)
-   {
-      INT32 rc = SDB_OK;
-      rc = pageAccessor::pushElement(context, DPS_LOG_PUBLIC_VESSEL_GPID,
-                                     sizeof(GLOBAL_PAGE_ID),
-                                     &gpid, lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_PAGE_INIT_LPID,
-                                     sizeof(PAGE_ID),
-                                     &lpid, lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_PAGE_INIT_PSV,
-                                     sizeof(PAGE_SNAPSHOT_VERION),
-                                     &psv, lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_PAGE_INIT_PAGE_TYPE,
-                                     sizeof(PAGE_TYPE),
-                                     &type, lrc);
-      if (SDB_OK != rc)
-      {
+         PD_LOG(PDERROR, "failed to append page type:%d", rc);
          goto error;
       }
 
       if (0 < adjunct.getSize())
       {
-         rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_PAGE_INIT_ADJUNCT,
-                                        adjunct.getSize(), adjunct.data(), lrc);
+         rc = jpad.append(DPS_LOG_VESSEL_PAGE_INIT_ADJUNCT,
+                          adjunct.getSize(), adjunct.data());
          if (SDB_OK != rc)
          {
+            PD_LOG(PDERROR, "failed to append adjunct:%d", rc);
             goto error;
          }
       }
 
-      rc = pageAccessor::commitLog(context, lrc);
+      jrequest = jpad.done();
+      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc->getLsn(), rc);
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
+
+      lsn = jres._lsn;
    done:
       return rc;
    error:

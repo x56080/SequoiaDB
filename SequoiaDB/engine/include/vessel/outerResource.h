@@ -41,48 +41,28 @@
 #include "vessel/indexKeyGenerator.h"
 #include "sdbInterface.hpp"
 #include "interface/ITransLockConsole.h"
+#include "interface/IDataJournal.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class IRedoLogger;
-   class ISessionManager;
-   class IIndexKeyGenerator;
-
    class outerResource : public SDBObject
    {
       public:
-         outerResource(){}
-         ~outerResource(){}
-         outerResource(const outerResource &o):
-         logger(o.logger),
-         executorPool(o.executorPool),
-         indexKeyGen(o.indexKeyGen),
-         transLockConsole(o.transLockConsole){}
-         outerResource &operator=(const outerResource &o)
-         {
-            logger = o.logger;
-            executorPool = o.executorPool;
-            indexKeyGen = o.indexKeyGen;
-            transLockConsole = o.transLockConsole;
-            return *this;
-         }
-
-      public:
          BOOLEAN isValid()const
          {
-            return NULL != logger &&
-                   NULL != executorPool &&
+            return nullptr != journal &&
+                   nullptr != executorPool &&
                    !(!indexKeyGen) &&
-                   NULL != transLockConsole;
+                   nullptr != transLockConsole;
          }
          void reset()
          {
-            logger = NULL;
-            executorPool = NULL;
+            journal = nullptr;
+            executorPool = nullptr;
             indexKeyGen = indexKeyGenForBsonRecord;
-            transLockConsole = NULL;
+            transLockConsole = nullptr;
          }
 
          /// expensive operation.
@@ -90,10 +70,10 @@ namespace vessel
          UINT64 getMinUncompletedLSN();
 
       public:
-         IRedoLogger *logger = NULL;
-         IExecutorMgr *executorPool = NULL;
+         IDataJournal *journal = nullptr;
+         IExecutorMgr *executorPool = nullptr;
          INDEX_KEY_GENERATOR indexKeyGen = indexKeyGenForBsonRecord;
-         ITransLockConsole *transLockConsole = NULL;
+         ITransLockConsole *transLockConsole = nullptr;
    };//class outerResource
 }//namespace vessel
 }//namespace engine
