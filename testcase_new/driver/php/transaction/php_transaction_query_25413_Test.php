@@ -6,7 +6,7 @@
  */
 <?php
 include_once dirname(__FILE__).'/../global.php';
-class listTransactionTest13635 extends PHPUnit_Framework_TestCase
+class listTransactionTest25413 extends PHPUnit_Framework_TestCase
 {
    protected static $db; 
    protected static $clDB;
