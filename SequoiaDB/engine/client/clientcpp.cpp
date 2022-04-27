@@ -57,6 +57,7 @@ using namespace bson ;
 
 #define SDB_MD5_VALUE_BUF_LEN  (SDB_MD5_DIGEST_LENGTH * 2 + 1)
 #define LOB_ALIGNED_LEN 524288
+#define CLIENT_SQL_MAX_LEN 127
 
 namespace sdbclient
 {
@@ -5992,7 +5993,7 @@ do                                                            \
                                                   INT32 resultLen )
    {
       INT32 rc = SDB_OK ;
-      CHAR sql[ CLIENT_CS_NAMESZ + 50 ] = { '\0' } ;
+      CHAR sql[ CLIENT_SQL_MAX_LEN + CLIENT_CS_NAMESZ + 1 ] = { 0 } ;
       sdbCursor cursor ;
       BSONObj   tempObj ;
 
@@ -6007,8 +6008,9 @@ do                                                            \
          goto error ;
       }
 
+      ossMemset( result, 0, resultLen ) ;
       // build sql
-      ossSnprintf( sql, CLIENT_CS_NAMESZ + 50, 
+      ossSnprintf( sql, CLIENT_SQL_MAX_LEN + CLIENT_CS_NAMESZ, 
                    "select Domain from $LIST_CS where Name = '%s'", 
                    _collectionSpaceName ) ;
 
@@ -6035,7 +6037,7 @@ do                                                            \
       {
          ossStrncpy( result, 
                      tempObj.getStringField( "Domain" ),
-                     resultLen ) ;
+                     resultLen - 1 ) ;
       }
       else
       {

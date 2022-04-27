@@ -214,6 +214,7 @@ if ( handle )                        \
         } while ( FALSE )
 
 #define LOB_ALIGNED_LEN 524288
+#define CLIENT_SQL_MAX_LEN 127
 
 static BOOLEAN _sdbIsSrand = FALSE ;
 static ERROR_ON_REPLY_FUNC _sdbErrorOnReplyCallback = NULL ;
@@ -5254,6 +5255,69 @@ SDB_EXPORT INT32 sdbCSSetDomain ( sdbCSHandle cHandle,
    return _sdbAlterCollectionSpaceInternal( cHandle, SDB_ALTER_CS_SET_DOMAIN, options, FALSE ) ;
 }
 
+SDB_EXPORT INT32 sdbCSGetDomainName ( sdbCSHandle cHandle,
+                                      CHAR *pResult, INT32 size )
+{
+   INT32 rc                                              = SDB_OK ;
+   sdbCSStruct *cs                                       = ( sdbCSStruct* )cHandle ;
+   CHAR sql[ CLIENT_SQL_MAX_LEN + CLIENT_CS_NAMESZ + 1 ] = { 0 } ;
+   sdbCursorHandle cursor                                = SDB_INVALID_HANDLE ;
+   bson_type type                                        = SDB_DMS_EOC ;
+   bson tempObj ;
+   bson_iterator iter ; 
+
+   bson_init( &tempObj ) ;
+   if ( !cs->_connection || '\0' == cs->_CSName[0] || 0 >= size  || NULL == pResult )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+   ossMemset( pResult, 0, size ) ;
+   HANDLE_CHECK( cHandle, cs, SDB_HANDLE_TYPE_CS ) ;
+   // build sql
+   ossSnprintf( sql, CLIENT_SQL_MAX_LEN + CLIENT_CS_NAMESZ,
+                "select Domain from $LIST_CS where Name = '%s'",
+                cs->_CSName ) ;
+   rc = sdbExec ( cs->_connection, sql, &cursor ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+   rc = sdbNext ( cursor, &tempObj ) ;
+   if ( SDB_OK != rc )
+   {
+      // SDB_DMS_EOC will return because the collectionspace was deleted
+      // and this error code doesn't need to be exposed.
+      // SDB_DMS_CS_NOTEXIST is better.
+      if ( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_DMS_CS_NOTEXIST ;
+      }
+      goto error ;
+   }
+   //if domain exists, server retruns { "Domain": "xxx" }
+   //if domain does not exist, server returns { "Domain": null }     
+   type = bson_find ( &iter, &tempObj, "Domain" ) ;
+   if ( BSON_NULL != type )
+   {
+      ossStrncpy( pResult, bson_iterator_string( &iter ), size - 1 ) ;
+   }
+   else
+   {
+      pResult[0] = '\0' ;
+   }
+
+done :
+   bson_destroy( &tempObj ) ;
+   if ( SDB_INVALID_HANDLE != cursor )
+   {
+      sdbReleaseCursor( cursor ) ;
+   }
+   return rc ;
+error :
+   goto done ;
+}
+
 SDB_EXPORT INT32 sdbCSRemoveDomain ( sdbCSHandle cHandle )
 {
    return _sdbAlterCollectionSpaceInternal( cHandle, SDB_ALTER_CS_REMOVE_DOMAIN, NULL, TRUE ) ;
@@ -5273,6 +5337,51 @@ SDB_EXPORT INT32 sdbCSSetAttributes ( sdbCSHandle cHandle,
                                       bson * options )
 {
    return _sdbAlterCollectionSpaceInternal( cHandle, SDB_ALTER_CS_SET_ATTR, options, FALSE ) ;
+}
+
+SDB_EXPORT INT32 sdbCSListCollections ( sdbCSHandle cHandle,
+                                        sdbCursorHandle *handle )
+{
+   INT32 rc                                  = SDB_OK ;
+   sdbCSStruct *cs                           = ( sdbCSStruct* ) cHandle ;
+   BOOLEAN bsoninit                          = FALSE ;
+   CHAR lowBound[ CLIENT_CS_NAMESZ + 1 + 1 ] = { 0 } ;
+   CHAR upBound[ CLIENT_CS_NAMESZ + 1 + 1 ]  = { 0 } ;
+   bson condition ;
+   bson subObj ;
+   
+   HANDLE_CHECK( cHandle, cs, SDB_HANDLE_TYPE_CS ) ;
+   if ( !cs->_connection || '\0' == cs->_CSName[0] || !handle )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+   ossStrncpy( lowBound, cs->_CSName, CLIENT_CS_NAMESZ ) ;
+   ossStrncat( lowBound, ".", 1 ) ;
+   ossStrncpy( upBound, cs->_CSName, CLIENT_CS_NAMESZ ) ;
+   ossStrncat( upBound, "/", 1 ) ;
+   BSON_INIT( condition ) ;
+   BSON_INIT( subObj ) ;
+   //build condition bson
+   BSON_APPEND( subObj, "$gt", lowBound, string ) ;
+   BSON_APPEND( subObj, "$lt", upBound, string ) ;
+   BSON_FINISH( subObj ) ;
+   BSON_APPEND( condition, FIELD_NAME_NAME, &subObj, bson ) ;   
+   BSON_FINISH( condition ) ;   
+   rc = sdbGetList ( cs->_connection, SDB_LIST_COLLECTIONS, &condition, 
+                     NULL, NULL, handle ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
+done:
+   BSON_DESTROY( subObj ) ; 
+   BSON_DESTROY( condition ) ;
+   return rc ;
+error:
+   SET_INVALID_HANDLE( handle ) ;
+   goto done ;
 }
 
 SDB_EXPORT INT32 sdbGetCLName ( sdbCollectionHandle cHandle,
