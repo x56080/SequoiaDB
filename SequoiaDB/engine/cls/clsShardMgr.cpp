@@ -2857,6 +2857,11 @@ namespace engine
                    "from BSON, rc: %d", recycleID, rc ) ;
 
    done:
+      if ( -1 != contextID )
+      {
+         rtnKillContexts( 1, &contextID, cb, rtnCB ) ;
+         contextID = -1 ;
+      }
       if ( attachedDummySession )
       {
          session.detachCB() ;

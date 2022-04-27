@@ -493,7 +493,7 @@ namespace engine
       }
 
    done:
-      if ( -1 == contextID )
+      if ( -1 != contextID )
       {
          _rtnCB->contextDelete( contextID, cb ) ;
       }

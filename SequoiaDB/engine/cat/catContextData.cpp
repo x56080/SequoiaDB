@@ -3859,7 +3859,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB_CATCTXTRUNCCL__CHKINT ) ;
 
       rc = catGetAndLockCollection( _targetName, _boTarget, cb, &_lockMgr,
-                                    SHARED ) ;
+                                    EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get the collection [%s], rc: %d",
                    _targetName.c_str(), rc ) ;
 
