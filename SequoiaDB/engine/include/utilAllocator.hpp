@@ -87,14 +87,27 @@ namespace engine
          INT32 _offset ;
    } ;//class _utilStackOnlyAllocator
 
-   class utilPoolAllocator : public SDBObject
+   class utilAllocatorBase : public SDBObject
    {
       public:
-         void *malloc(size_t size)
+         utilAllocatorBase() = default;
+         virtual ~utilAllocatorBase() = default;
+         utilAllocatorBase(const utilAllocatorBase &) = delete;
+         utilAllocatorBase &operator=(const utilAllocatorBase &) = delete;
+      public:
+         virtual void *malloc(size_t size) = 0;
+         virtual void free(void *p) = 0;
+         virtual void *realloc(void *p, size_t size) = 0;
+   };//class utilAllocatorBase
+
+   class utilPoolAllocator : public utilAllocatorBase
+   {
+      public:
+         virtual void *malloc(size_t size) override
          {
             return SDB_THREAD_ALLOC(size);
          }
-         void *realloc(void *p, size_t size)
+         virtual void *realloc(void *p, size_t size) override
          {
             void *ptr = nullptr;
             if (nullptr == p)
@@ -107,17 +120,17 @@ namespace engine
             }
             return ptr;
          }
-         void free(void *p)
+         virtual void free(void *p) override
          {
             SDB_THREAD_FREE(p);
          }
    };//utilPoolAllocator
 
    template<UINT32 STACK_SIZE=512>
-   class utilStackAllocator : public SDBObject
+   class utilStackAllocator : public utilAllocatorBase
    {
       public:
-         void *malloc(size_t size)
+         virtual void *malloc(size_t size) override
          {
             void *buf = nullptr;
             if (size <= STACK_SIZE)
@@ -131,7 +144,7 @@ namespace engine
             return buf;
          }
 
-         void *realloc(void *p, size_t size)
+         virtual void *realloc(void *p, size_t size) override
          {
             void *buf = nullptr;
             if (p == _statckBuf)
@@ -160,7 +173,7 @@ namespace engine
             return buf;
          }
 
-         void free(void *p)
+         virtual void free(void *p) override
          {
             if (p != _statckBuf && nullptr != p)
             {

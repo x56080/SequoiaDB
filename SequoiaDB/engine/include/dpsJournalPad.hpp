@@ -43,8 +43,6 @@
 #include "utilAllocator.hpp"
 #include "dpsRequest.hpp"
 
-#include <array>
-
 namespace engine
 {
    template<class Allocator>
