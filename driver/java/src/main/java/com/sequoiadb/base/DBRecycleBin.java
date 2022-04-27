@@ -347,7 +347,10 @@ public class DBRecycleBin {
      * @param name    The name of item to be cleared.
      * @param options The options are as below:
      *                  <ul>
-     *                  <li>Async : Asynchronous drop or not, default is false.
+     *                  <li>Async     : Asynchronous drop or not, default is false.
+     *                  <li>Recursive : Whether to drop the recycle bin item of the collection type
+     *                  associated with the collection space when dropping the recycle bin item of
+     *                  the collection space type. The default is false.
      *                  </ul>
      * @throws BaseException If error happens.
      */
