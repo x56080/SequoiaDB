@@ -95,7 +95,7 @@ public class Fulltext15879 extends FullTestBase {
             Assert.assertEquals( actRgNum, 2 );
             // 切分后源组和目标组均有全文索引
             esIndexNames = FullTextDBUtils.getESIndexNames( cl, IDX_NAME );
-        } else if ( threadSplit.getRetCode() != 0 ) {
+        } else {
             Assert.assertEquals( actRgNum, 1 );
         }
     }
@@ -124,7 +124,6 @@ public class Fulltext15879 extends FullTestBase {
                 if ( e.getErrorCode() != -190 && e.getErrorCode() != -147 ) {
                     throw e;
                 }
-                saveResult( -1, e );
             }
         }
     }
@@ -142,10 +141,9 @@ public class Fulltext15879 extends FullTestBase {
                 System.out.println( new Date() + " end   "
                         + this.getClass().getName().toString() );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -321 ) {
+                if ( e.getErrorCode() != -321 && e.getErrorCode() != -243 ) {
                     throw e;
                 }
-                saveResult( -1, e );
             }
         }
     }
