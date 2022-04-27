@@ -28,7 +28,8 @@ import com.sequoiadb.transaction.TransUtils;
 public class Transaction17147 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private Sequoiadb db2 = null;
-    private String clName = "cl17147";
+    private String csName = "cs_17147";
+    private String clName = "cl_17147";
     private CollectionSpace cs;
     private DBCollection cl = null;
     private DBCollection cl2 = null;
@@ -39,8 +40,11 @@ public class Transaction17147 extends SdbTestBase {
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        cs = sdb.getCollectionSpace( csName );
-        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
+        if ( sdb.isCollectionSpaceExist( csName ) ) {
+            sdb.dropCollectionSpace( csName );
+        }
+        cs = sdb.createCollectionSpace( csName );
+        cl = cs.createCollection( clName );
         cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
         BSONObject record = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
         cl.insert( record );
@@ -52,9 +56,8 @@ public class Transaction17147 extends SdbTestBase {
     public void tearDown() {
         sdb.commit();
         db2.commit();
-        CollectionSpace cs = sdb.getCollectionSpace( csName );
-        if ( cs.isCollectionExist( clName ) ) {
-            cs.dropCollection( clName );
+        if ( sdb.isCollectionSpaceExist( csName ) ) {
+            sdb.dropCollectionSpace( csName );
         }
         if ( !sdb.isClosed() ) {
             sdb.close();
