@@ -9,7 +9,7 @@ FlinkSQL 连接器组件的环境需求如下：
 
 - Flink 版本： 1.12.0+
 - JDK 版本：1.8+
-- SequoiaDB 版本：3.6+
+- SequoiaDB 版本：3.4.5+
 
 ##部署 Flink 集群##
 
