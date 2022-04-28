@@ -1,7 +1,6 @@
 package com.sequoiadb.split;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Random;
 
@@ -19,9 +18,13 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.fulltext.utils.FullTextDBUtils;
+import com.sequoiadb.fulltext.utils.FullTextUtils;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
+import com.sequoiadb.threadexecutor.ResultStore;
+import com.sequoiadb.threadexecutor.ThreadExecutor;
+import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 
 /**
  * @FileName:SEQDB-10533 切分过程中执行truncate :1、向cl中插入数据记录 2、执行split，设置切分条件
@@ -33,11 +36,13 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 
 public class Split10533 extends SdbTestBase {
+    private DBCollection cl = null;
     private String clName = "testcaseCL10533";
     private String srcGroupName;
     private String destGroupName;
     private Sequoiadb commSdb = null;
     private List< BSONObject > insertedData = new ArrayList< BSONObject >();
+    private int recsNum = 1000;
 
     @BeforeClass()
     public void setUp() {
@@ -59,10 +64,9 @@ public class Split10533 extends SdbTestBase {
             destGroupName = groupsName.get( 1 );
 
             CollectionSpace customCS = commSdb.getCollectionSpace( csName );
-            DBCollection cl = customCS.createCollection( clName,
-                    ( BSONObject ) JSON.parse(
-                            "{ShardingKey:{'sk':1},Partition:4096,ShardingType:'hash',Group:'"
-                                    + srcGroupName + "'}" ) );
+            cl = customCS.createCollection( clName, ( BSONObject ) JSON.parse(
+                    "{ShardingKey:{'sk':1},Partition:4096,ShardingType:'hash',Group:'"
+                            + srcGroupName + "'}" ) );
             insertData( cl );// 写入待切分的记录（500）
         } catch ( BaseException e ) {
             if ( commSdb != null ) {
@@ -75,49 +79,45 @@ public class Split10533 extends SdbTestBase {
     }
 
     public void insertData( DBCollection cl ) {
-        try {
-            for ( int i = 0; i < 1000; i++ ) {
-                BSONObject obj = ( BSONObject ) JSON.parse( "{sk:" + i + "}" );
-                cl.insert( obj );
-                insertedData.add( obj );
-            }
-        } catch ( BaseException e ) {
-            throw e;
+        for ( int i = 0; i < 1000; i++ ) {
+            BSONObject obj = ( BSONObject ) JSON.parse( "{sk:" + i + "}" );
+            cl.insert( obj );
+            insertedData.add( obj );
         }
     }
 
     @Test
-    public void testTruncateCL() {
-        Sequoiadb db = null;
-        Split splitThread = null;
-        try {
-            // 启动切分线程
-            splitThread = new Split();
-            TruncateCL truncateCLThread = new TruncateCL();
-            splitThread.start();
-            truncateCLThread.start();
+    public void testTruncateCL() throws Exception {
+        ThreadExecutor es = new ThreadExecutor( FullTextUtils.THREAD_TIMEOUT );
+        ThreadTruncate threadTruncate = new ThreadTruncate();
+        ThreadSplit threadSplit = new ThreadSplit();
+        es.addWorker( threadTruncate );
+        es.addWorker( threadSplit );
+        es.run();
 
-            // 等待切分结束，检查编目
-            Assert.assertEquals( splitThread.isSuccess(), true,
-                    splitThread.getErrorMsg() );
-            Assert.assertEquals( truncateCLThread.isSuccess(), true,
-                    truncateCLThread.getErrorMsg() );
-            // 检验结果
-            db = new Sequoiadb( coordUrl, "", "" );
-            DBCollection cl = db.getCollectionSpace( csName )
-                    .getCollection( clName );
-            Assert.assertEquals( cl.getCount(), 0,
-                    "cl not empty :" + cl.getCount() );
-            checkCatalog( db );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() + "\r\n"
-                    + SplitUtils.getKeyStack( e, this ) );
-        } finally {
-            if ( db != null ) {
-                db.disconnect();
+        // 检验结果
+        if ( threadTruncate.getRetCode() == 0 ) {
+            Assert.assertEquals( cl.getCount(), 0 );
+        } else {
+            if ( threadTruncate.getRetCode() != -321
+                    && threadTruncate.getRetCode() != -243 ) {
+                Assert.fail(
+                        "truncate fail, e: " + threadTruncate.getRetCode() );
+            } else {
+                Assert.assertEquals( cl.getCount(), recsNum );
             }
-            if ( splitThread != null ) {
-                splitThread.join();
+        }
+
+        int actRgNum = FullTextDBUtils.getCLGroups( cl ).size();
+        if ( threadSplit.getRetCode() == 0 ) {
+            Assert.assertEquals( actRgNum, 2 );
+            checkCatalog( commSdb );
+        } else {
+            if ( threadSplit.getRetCode() != -190
+                    && threadSplit.getRetCode() != -147 ) {
+                Assert.fail( "split fail, e: " + threadSplit.getRetCode() );
+            } else {
+                Assert.assertEquals( actRgNum, 1 );
             }
         }
     }
@@ -145,23 +145,25 @@ public class Split10533 extends SdbTestBase {
             BasicBSONList list = null;
             if ( dbc.hasNext() ) {
                 list = ( BasicBSONList ) dbc.getNext().get( "CataInfo" );
-            } else {
-                Assert.fail( clName + " collection catalog not found" );
             }
+
             BSONObject destExpectLowBound = ( BSONObject ) JSON
                     .parse( "{\"\":2048}" );
             BSONObject destExpectUpBound = ( BSONObject ) JSON
                     .parse( "{\"\":4096}" );
+
             BSONObject srcExpectLowBound = ( BSONObject ) JSON
                     .parse( "{\"\":0}" );
             BSONObject srcExpectUpBound = ( BSONObject ) JSON
                     .parse( "{\"\":2048}" );
+
             boolean srcCheckFlag = false;
             boolean destCheckFlag = false;
             for ( int i = 0; i < list.size(); i++ ) {
                 String groupName = ( String ) ( ( BSONObject ) list.get( i ) )
                         .get( "GroupName" );
-                if ( groupName.equals( destGroupName ) ) {// 目标组编目信息检查
+                // 目标组编目信息检查
+                if ( groupName.equals( destGroupName ) ) {
                     BSONObject actualLowBound = ( BSONObject ) ( ( BSONObject ) list
                             .get( i ) ).get( "LowBound" );
                     BSONObject actualUpBound = ( BSONObject ) ( ( BSONObject ) list
@@ -173,7 +175,8 @@ public class Split10533 extends SdbTestBase {
                         Assert.fail( "check catalog fail" );
                     }
                 }
-                if ( groupName.equals( srcGroupName ) ) {// 源组编目信息检查
+                // 源组编目信息检查
+                if ( groupName.equals( srcGroupName ) ) {
                     BSONObject actualLowBound = ( BSONObject ) ( ( BSONObject ) list
                             .get( i ) ).get( "LowBound" );
                     BSONObject actualUpBound = ( BSONObject ) ( ( BSONObject ) list
@@ -187,13 +190,8 @@ public class Split10533 extends SdbTestBase {
                 }
             }
             // 检查源和目标组编目信息的校验是否均通过
-            Assert.assertEquals( srcCheckFlag && destCheckFlag, true,
-                    "srcCheckFalg:" + srcCheckFlag + " destCheckFlag:"
-                            + destCheckFlag );
-
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() + "\r\n"
-                    + SplitUtils.getKeyStack( e, this ) );
+            Assert.assertTrue( srcCheckFlag && destCheckFlag, "srcCheckFalg:"
+                    + srcCheckFlag + " destCheckFlag:" + destCheckFlag );
         } finally {
             if ( dbc != null ) {
                 dbc.close();
@@ -201,10 +199,9 @@ public class Split10533 extends SdbTestBase {
         }
     }
 
-    class TruncateCL extends SdbThreadBase {
-
-        @Override
-        public void exec() throws Exception {
+    class ThreadTruncate extends ResultStore {
+        @ExecuteOrder(step = 1)
+        public void truncateCL() throws InterruptedException {
             Sequoiadb db = null;
             try {
                 db = new Sequoiadb( coordUrl, "", "" );
@@ -214,7 +211,7 @@ public class Split10533 extends SdbTestBase {
                 Thread.sleep( random.nextInt( 5 ) * 1000 );
                 cl.truncate();
             } catch ( BaseException e ) {
-                throw e;
+                saveResult( e.getErrorCode(), e );
             } finally {
                 if ( db != null ) {
                     db.disconnect();
@@ -223,10 +220,9 @@ public class Split10533 extends SdbTestBase {
         }
     }
 
-    class Split extends SdbThreadBase {
-
-        @Override
-        public void exec() throws Exception {
+    class ThreadSplit extends ResultStore {
+        @ExecuteOrder(step = 1)
+        public void split() {
             Sequoiadb sdb = null;
             try {
                 sdb = new Sequoiadb( coordUrl, "", "" );
@@ -234,7 +230,7 @@ public class Split10533 extends SdbTestBase {
                 DBCollection cl = cs.getCollection( clName );
                 cl.split( srcGroupName, destGroupName, 50 );
             } catch ( BaseException e ) {
-                throw e;
+                saveResult( e.getErrorCode(), e );
             } finally {
                 if ( sdb != null ) {
                     sdb.disconnect();
