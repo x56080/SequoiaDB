@@ -68,6 +68,7 @@ public class IndexConsistent23952 extends SdbTestBase {
         maincl.attachCollection( csName + "." + subCLName2, option2 );
         int recordNum = 20000;
         IndexUtils.insertData( maincl, recordNum );
+        maincl.createIndex( idxName, "{testa:1}", false,false );
     }
 
     @Test
