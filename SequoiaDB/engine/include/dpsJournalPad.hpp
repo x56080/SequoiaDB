@@ -65,7 +65,7 @@ namespace engine
          UINT16 getFlags()const {return _flags;}
          void setFlag(UINT16 flag) {OSS_BIT_SET(_flags, flag);}
 
-         /// appening new element may cause buffer reallocated.
+         /// appending new element may cause buffer reallocated.
          /// if user get packed request first and append more elements,
          /// the request may hold wild pointer.
          /// here we force user to make pad done first. 

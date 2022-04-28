@@ -39,6 +39,7 @@
 #include "vessel/vesselIdDef.h"
 #include "ossUtil.hpp"
 #include "../../bson/oid.h"
+#include "../../bson/util/builder.h"
 #include "vessel/objectIdentifier.h"
 
 namespace engine
@@ -127,14 +128,9 @@ namespace vessel
 
          ossPoolString toString()const
          {
-            ossPoolString str;
-            str.reserve(32);
-            str.append(_oid.toString().c_str());
-            str.append(":");
-            CHAR buf[12] = {};
-            ossItoa(_chunkId, buf, 12);
-            str.append(buf);
-            return std::move(str);
+            bson::StringBuilder str(32);
+            str << _oid.toString() << ':' << _chunkId;
+            return std::move(str.poolStr());
          }
 
       private:

@@ -39,8 +39,8 @@
 #include "vessel/vesselIdDef.h"
 #include "vessel/pageDef.h"
 #include "vessel/vesselFileDef.h"
-#include "ossMemPool.hpp"
 #include "xxHashInc.h"
+#include "../../bson/util/builder.h"
 
 namespace engine
 {
@@ -200,24 +200,10 @@ class globalPageID
 
       ossPoolString toString()const
       {
-         static const UINT32 _BUF_SIZE = 16;
-         CHAR buf[_BUF_SIZE] = {};
-         ossPoolString str;
-         str.reserve(64);
-         str.append("{sid:");
-         ossItoa(_sid, buf, _BUF_SIZE);
-         str.append(buf);
-         str.append(", stype:");
-         ossItoa(_spaceType, buf, _BUF_SIZE);
-         str.append(buf);
-         str.append(", ftype:");
-         ossItoa(_fileType, buf, _BUF_SIZE);
-         str.append(buf);
-         str.append(", pid:");
-         ossItoa(_pid, buf, _BUF_SIZE);
-         str.append(buf);
-         str.append("}");
-         return str;
+         bson::StringBuilder builder(64);
+         builder << '[' << _sid << ',' << _spaceType
+                 << ',' << _fileType << ',' << _pid << ']';
+         return std::move(builder.poolStr());
       }
 
    public:

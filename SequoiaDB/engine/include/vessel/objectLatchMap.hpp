@@ -46,6 +46,7 @@
 #include "ossMemPool.hpp"
 #include "xxHashInc.h"
 #include "vessel/lobChunkKey.h"
+#include "../../bson/util/builder.h"
 
 namespace engine
 {
@@ -99,21 +100,9 @@ namespace vessel
 
          ossPoolString toString()const
          {
-            static const UINT32 _BUF_SIZE = 16;
-            CHAR buf[_BUF_SIZE] = {};
-            ossPoolString str;
-            str.reserve(64);
-            str.append("{sid");
-            ossItoa(_sid, buf, _BUF_SIZE);
-            str.append(buf);
-            str.append(", type:");
-            ossItoa(_type, buf, _BUF_SIZE);
-            str.append(buf);
-            str.append(", lpid:");
-            ossItoa(_lpid, buf, _BUF_SIZE);
-            str.append(buf);
-            str.append("}");
-            return std::move(str);
+            bson::StringBuilder str(64);
+            str << "{lpidlatch:" << _sid << ',' << _type << ',' << _lpid << '}';
+            return std::move(str.poolStr());
          }
       public:
          UINT16 _sid = INVALID_SPACE_ID;
@@ -170,24 +159,13 @@ namespace vessel
 
          ossPoolString toString()const
          {
-            static const UINT32 _BUF_SIZE = 16;
-            CHAR buf[_BUF_SIZE] = {};
-            ossPoolString str;
-            str.reserve(64);
-            str.append("{sid:");
-            ossItoa(_sid, buf, _BUF_SIZE);
-            str.append(buf);
-            str.append(", mbid:");
-            ossItoa(_mbID, buf, _BUF_SIZE);
-            str.append(buf);
-            str.append(", lpid:");
-            ossItoa(_rid.getPid(), buf, _BUF_SIZE);
-            str.append(buf);
-            str.append(", slot:");
-            ossItoa(_rid.getPos(), buf, _BUF_SIZE);
-            str.append(buf);
-            str.append("}");
-            return std::move(str);
+            bson::StringBuilder str(64);
+            str << "{ridlatch:" << _sid
+                << ',' << _mbID
+                << ',' << _rid.getPid()
+                << ',' << _rid.getPos()
+                << '}';
+            return std::move(str.poolStr());
          }
 
       public:
@@ -244,21 +222,10 @@ namespace vessel
 
          ossPoolString toString()const
          {
-            static const UINT32 _BUF_SIZE = 16;
-            CHAR buf[_BUF_SIZE] = {};
-            ossPoolString str;
-            str.reserve(64);
-            str.append("{sid:");
-            ossItoa(_sid, buf, _BUF_SIZE);
-            str.append(buf);
-            str.append(", mbid:");
-            ossItoa(_mbID, buf, _BUF_SIZE);
-            str.append(buf);
-            str.append(", hash:");
-            ossItoa(_hash, buf, _BUF_SIZE);
-            str.append(buf);
-            str.append("}");
-            return std::move(str);
+            bson::StringBuilder str(64);
+            str << "{uhashlatch:" << _sid
+                << ',' << _mbID << ',' << _hash << '}';
+            return std::move(str.poolStr());
          }
 
       private:

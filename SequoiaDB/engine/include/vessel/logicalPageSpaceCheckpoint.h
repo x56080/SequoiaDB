@@ -38,7 +38,7 @@
 
 #include "vessel/checkpointLSN.h"
 #include "pdTrace.hpp"
-#include <sstream>
+#include "../../bson/util/builder.h"
 
 namespace engine
 {
@@ -82,18 +82,18 @@ namespace vessel
          return;
       }
 
-      std::string toString()const
+      ossPoolString toString()const
       {
-         std::stringstream ss;
-         ss << "{version:" << version
-            << ", flags:" << flags
-            << ", lsn:" << lsn._lsn
-            << ", minDirtyLsn:" << lsn._minDirtyLSN
-            << ", minUncompletedLsn:" << lsn._minUncompletedLSN
-            << ", sequence:" << sequence
-            << ", time:" << time
-            << "}";
-         return ss.str();
+         bson::StringBuilder builder;
+         builder << "{version:" << version
+                 << ",flags:" << flags
+                 << ",lsn:" << lsn._lsn
+                 << ",minDirtyLsn:" << lsn._minDirtyLSN
+                 << ",minUncompletedLsn:" << lsn._minUncompletedLSN
+                 << ",sequence:" << sequence
+                 << ",time:" << time
+                 << "}";
+         return std::move(builder.poolStr());
       }
 
       static const UINT32 FLAG_FULL_CHECKPOINT = 0x01;
@@ -101,7 +101,7 @@ namespace vessel
       UINT32 version = 0;
       UINT32 flags = 0;
       checkpointLSN lsn;
-      UINT64 sequence = 0;
+   UINT64 sequence = 0;
       UINT64 time = 0;
    };//struct logicalPageSpaceCheckpoint
 

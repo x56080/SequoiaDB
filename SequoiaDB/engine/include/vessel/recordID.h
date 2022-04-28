@@ -41,6 +41,7 @@
 #include "xxHashInc.h"
 #include "ossMemPool.hpp"
 #include "pdTrace.hpp"
+#include "../bson/util/builder.h"
 
 namespace engine
 {
@@ -178,17 +179,9 @@ namespace vessel
 
          ossPoolString toString()const
          {
-            ossPoolString str;
-            str.reserve(32);
-            CHAR buf[16] = {};
-            ossItoa(_pid, buf, 16);
-            str.append("[");
-            str.append(buf);
-            str.append(":");
-            ossItoa(_pos, buf, 16);
-            str.append(buf);
-            str.append("]");
-            return std::move(str);
+            bson::StringBuilder str(32);
+            str << '[' << _pid << ',' << _pos << ']';
+            return std::move(str.poolStr());
          }
 
          static recordID createMinRid()

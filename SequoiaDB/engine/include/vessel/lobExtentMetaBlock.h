@@ -41,6 +41,7 @@
 #include "dms.hpp"
 #include "pdTrace.hpp"
 #include "vessel/lextentDescriptor.h"
+#include "../../bson/util/builder.h"
 
 namespace engine
 {
@@ -243,21 +244,10 @@ namespace vessel
 
       ossPoolString toString()const
       {
-         constexpr UINT32 BUF_SIZE = 12;
-         CHAR buf[BUF_SIZE] = {};
-         ossPoolString str;
-         str.reserve(64);
-         ossItoa(lclid, buf, BUF_SIZE);
-         str.append(buf);
-         str.append(":");
-         str.append(oid.toString().c_str());
-         str.append(":");
-         ossItoa(chunkId, buf, BUF_SIZE);
-         str.append(buf);
-         str.append(":");
-         ossItoa(chainPos, buf, BUF_SIZE);
-         str.append(buf);
-         return std::move(str);
+         bson::StringBuilder str(64);
+         str << lclid << ':' << oid.toString()
+             << ':' << chunkId << ':' << chainPos;
+         return std::move(str.poolStr());
       }
 
       UINT8 version = 0;
