@@ -50,17 +50,16 @@ namespace vessel
       getPageEyeCatcher(eyecacher[0], eyecacher[1]);
 
       return head->eyeCatcher[0] != eyecacher[0] ||
-          head->eyeCatcher[1] != eyecacher[1] ||
-          head->version != PAGE_VERSION_1 ||
-          head->size != pageSize ||
-          head->type == INVALID_PAGE_TYPE ||
-          head->pid == INVALID_PAGE_ID ||
-          head->lpid == INVALID_PAGE_ID ||
-          head->lsn != *tail ||
-          head->psv == INVALID_PAGE_SNAPSHOT_VERSION ||
-          head->pad0 != 0 ||
-          head->pad1 != 0 ||
-          !head->inUsed();
+             head->eyeCatcher[1] != eyecacher[1] ||
+             head->version != PAGE_VERSION_1 ||
+             head->size != pageSize ||
+             head->checksum != 0 ||
+             head->type == INVALID_PAGE_TYPE ||
+             head->pid == INVALID_PAGE_ID ||
+             head->lpid == INVALID_PAGE_ID ||
+             head->lsn != *tail ||
+             head->psv == INVALID_PAGE_SNAPSHOT_VERSION ||
+             head->reserved != 0;
    }
 
    INT32 validatePage(ossValuePtr ptr,
@@ -90,8 +89,6 @@ namespace vessel
          goto error;
       }
       else if (type != head->type ||
-               !head->inUsed() ||
-               pageSize != head->size ||
                pid != head->pid ||
                lpid != head->lpid ||
                psv != head->psv)
@@ -188,16 +185,14 @@ namespace vessel
       }
 
       ossMemset(buf, 0, pageSize);
+      head->reset();
       getPageEyeCatcher(head->eyeCatcher[0], head->eyeCatcher[1]);
       head->version = PAGE_VERSION_1;
       head->type = pageType;
-      head->flags = 0;
       head->size = pageSize;
       head->pid = pid;
       head->lpid = lpid;
-      head->lsn = DPS_INVALID_LSN_OFFSET;
       head->psv = psv;
-      head->setInUsed();
       tail = (UINT64 *)((CHAR *)buf + pageSize - PAGE_TAIL_SIZE);
       *tail = DPS_INVALID_LSN_OFFSET;
 

@@ -471,7 +471,7 @@ namespace vessel
             goto error;
          }
          else if (!rs.isValidAndVisible() ||
-                  rs.isTombstoneRecord())
+                  rs.isTombstone())
          {
             ++pos;
             continue;
@@ -561,7 +561,7 @@ namespace vessel
             goto error;
          }
          else if (!rs.isValidAndVisible() ||
-                  rs.isTombstoneRecord())
+                  rs.isTombstone())
          {
             ++pos;
             continue;

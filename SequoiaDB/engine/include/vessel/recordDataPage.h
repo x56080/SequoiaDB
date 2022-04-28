@@ -48,79 +48,59 @@ namespace engine
 {
 namespace vessel
 {
-   constexpr UINT32 INVALID_RDP_VERSION = 0;
-   constexpr UINT32 RDP_VERSION_1 = 1;
-   constexpr UINT32 RDP_VERSION = RDP_VERSION_1;
+   constexpr UINT16 INVALID_RDP_VERSION = 0;
+   constexpr UINT16 RDP_VERSION_1 = 1;
+   constexpr UINT16 RDP_VERSION = RDP_VERSION_1;
 
 #pragma pack(4)
    struct recordDataPageHead
    {
-      recordDataPageHead(){}
-
-      ~recordDataPageHead(){}
-
-      recordDataPageHead &operator=(const recordDataPageHead &o)
-      {
-         ossMemcpy(this, &o, sizeof(recordDataPageHead));
-         return *this;
-      }
-
       OSS_INLINE BOOLEAN hasValidStripingRange()const
       {
          return dmsStripingRange(minStriping, maxStriping).isValid();
       }
 
-      UINT32 version = INVALID_RDP_VERSION;
-      UINT32 flags = 0;
+      UINT16 version = INVALID_RDP_VERSION;
+      UINT16 flags = 0;
       UINT32 clLogcalID = DMS_INVALID_LOGICCLID;
       UINT32 pageSeq = INVALID_CL_PAGE_SEQ;
-      UINT16 totalSlotCount = 0;
       UINT16 totalFreeSpace = 0;
       UINT16 backOffset = 0;
-      INT16 firstFreeSlot = INVALID_RECORD_SLOT_POS;
+      UINT16 totalSlotCount = 0;
+      INT16 firstFreeSlot = -1;
+     
       INT32 minStriping = DMS_INVALID_STRIPING_ID;
       INT32 maxStriping = DMS_INVALID_STRIPING_ID;
       UINT64 transSN = DPS_INVALID_TRANSID_SN;
-      UINT16 overflowedRecordCount = 0;
-      CHAR pad[22] = {};
+
+      UINT16 dicSize = 0;
+      UINT16 dicOffset = 0;
+      UINT8 compressor = UTIL_COMPRESSOR_INVALID;
+      UINT8 _pad = 0;
+      UINT16 _reserved0 = 0;
+      UINT64 _reserved1 = 0;
    };//struct recordDataPageHead
    constexpr UINT32 RECORD_PAGE_HEAD_SIZE = sizeof(recordDataPageHead);
-
-   constexpr UINT16 RDP_SLOT_FLAG_IN_USED = 0x01;
-   constexpr UINT16 RDP_SLOT_FLAG_INVISIBLE = 0x02;
 
    constexpr UINT8 RDP_RECORD_HEAD_TYPE_INVALID = 0;
    constexpr UINT8 RDP_RECORD_HEAD_TYPE_NORMAL = 1;
    constexpr UINT8 RDP_RECORD_HEAD_OVERFLOW = 2;
-   constexpr UINT8 RDP_RECORD_HEAD_TOMBSTONE = 3;
+   //constexpr UINT8 RDP_RECORD_HEAD_TOMBSTONE = 3;
    constexpr UINT8 RDP_RECORD_HEAD_BIG_RECORD_ENTRY = 4;
    constexpr UINT8 RDP_RECORD_HEAD_BIG_RECORD_BODY = 5;
 
    struct recordSlot
    {
-      OSS_INLINE recordSlot(){}
-      OSS_INLINE ~recordSlot(){}
-
-      OSS_INLINE recordSlot(const recordSlot &o):
-      flags(o.flags),
-      type(o.type),
-      reserved(o.reserved),
-      offset(o.offset),
-      size(o.size)
-      {}
-
-      OSS_INLINE recordSlot &operator=(const recordSlot &o)
+      enum FLAG : UINT16
       {
-         flags = o.flags;
-         type = o.type;
-         reserved = o.reserved;
-         offset = o.offset;
-         size = o.size;
-         return *this;
-      }
+         IN_USED = 0x01,
+         INVISIBLE = 0x02,
+         TOMBSTONE = 0x04,
+      };
 
       OSS_INLINE void reset()
       {
+         static_assert(sizeof(UINT64) == sizeof(recordSlot), "invalid size");
          *((UINT64 *)this) = 0;
          return;
       }
@@ -130,8 +110,7 @@ namespace vessel
                            UINT16 offset,
                            UINT16 size)
       {
-         reset();
-         OSS_BIT_SET(flags, RDP_SLOT_FLAG_IN_USED);
+         this->flags = IN_USED;
          this->type = type;
          this->reserved = reserved;
          this->offset = offset;
@@ -141,7 +120,7 @@ namespace vessel
 
       OSS_INLINE BOOLEAN isValid()const
       {
-         return 0 != OSS_BIT_TEST(flags, RDP_SLOT_FLAG_IN_USED) &&
+         return 0 != OSS_BIT_TEST(flags, IN_USED) &&
                 RDP_RECORD_HEAD_TYPE_INVALID != type &&
                 0 != offset &&
                 0 != size;
@@ -152,19 +131,23 @@ namespace vessel
       }
       OSS_INLINE BOOLEAN isInvisible()const
       {
-         return 0 != OSS_BIT_TEST(flags, RDP_SLOT_FLAG_INVISIBLE);
+         return 0 != OSS_BIT_TEST(flags, INVISIBLE);
       }
       OSS_INLINE void setInvisible()
       {
-         OSS_BIT_SET(flags, RDP_SLOT_FLAG_INVISIBLE);
+         OSS_BIT_SET(flags, INVISIBLE);
       }
       OSS_INLINE BOOLEAN isNormalRecord()const
       {
          return type == RDP_RECORD_HEAD_TYPE_NORMAL;
       }
-      OSS_INLINE BOOLEAN isTombstoneRecord()const
+      OSS_INLINE void setTombstone()
       {
-         return type == RDP_RECORD_HEAD_TOMBSTONE;
+         OSS_BIT_SET(flags, TOMBSTONE);
+      }
+      OSS_INLINE BOOLEAN isTombstone()const
+      {
+         return 0 != OSS_BIT_TEST(flags, TOMBSTONE);
       }
       OSS_INLINE BOOLEAN isOverflowedRecord()const
       {
@@ -197,25 +180,13 @@ namespace vessel
          UINT16 size = 0;
    };//struct recordSlot
    constexpr UINT32 RDP_RSLOT_SIZE = sizeof(recordSlot);
-   static_assert(sizeof(UINT64) == RDP_RSLOT_SIZE, "invalid size");
 
    struct normalRecordHead
    {
-      normalRecordHead(){}
-      ~normalRecordHead(){}
-      normalRecordHead(const normalRecordHead &o):
-      flags(o.flags),
-      compressionType(o.compressionType),
-      transNode(o.transNode),
-      transSN(o.transSN){}
-      normalRecordHead &operator=(const normalRecordHead &o)
+      enum FLAG : UINT16
       {
-         flags = o.flags;
-         compressionType = o.compressionType;
-         transNode = o.transNode;
-         transSN = o.transSN;
-         return *this;
-      }
+         COMPRESSED = 0x01,
+      };
 
       OSS_INLINE void setTransID(const DPS_TRANS_ID &transID)
       {
@@ -223,13 +194,16 @@ namespace vessel
          transSN = transID.getSN();
          return;
       }
+      OSS_INLINE void setCompressed()
+      {
+         OSS_BIT_SET(flags, COMPRESSED);
+      }
       OSS_INLINE BOOLEAN isCompressed()const
       {
-         return UTIL_COMPRESSOR_INVALID != compressionType;
+         return 0 != OSS_BIT_TEST(flags, COMPRESSED);
       }
 
-      UINT8 flags = 0;
-      UINT8 compressionType = UTIL_COMPRESSOR_INVALID;
+      UINT16 flags = 0;
       UINT16 transNode = DPS_INVALID_TRANSID_NODEID;
       UINT64 transSN = DPS_INVALID_TRANSID_SN;
    };//struct normalRecordHead
@@ -238,24 +212,6 @@ namespace vessel
 
    struct overflowedRecord
    {
-      overflowedRecord(){}
-      ~overflowedRecord(){}
-
-      overflowedRecord(const overflowedRecord &o):
-      flags(o.flags),
-      pos(o.pos),
-      lpid(o.lpid),
-      pad(o.pad){}
-
-      overflowedRecord &operator=(const overflowedRecord &o)
-      {
-         flags = o.flags;
-         pos = o.pos;
-         lpid = o.lpid;
-         pad = o.pad;
-         return *this;
-      }
-
       private:
       static constexpr UINT16 FLAG_BIG_RECORD = 0x01;
 
@@ -281,6 +237,7 @@ namespace vessel
    constexpr UINT32 OVERFLOWED_RECORD_SIZE = sizeof(overflowedRecord);
    static_assert(OVERFLOWED_RECORD_SIZE == NORMAL_RECORD_HEAD_SIZE, "invalid size");
 
+/*
    struct tombstoneRecord
    {
       tombstoneRecord(){}
@@ -311,6 +268,7 @@ namespace vessel
    };//struct tombstoneRecord
    constexpr UINT32 TOMBSTONE_RECORD_SIZE = sizeof(tombstoneRecord);
    static_assert(TOMBSTONE_RECORD_SIZE == NORMAL_RECORD_HEAD_SIZE, "invalid size");
+*/
 
    struct bigRecordEntrySlice
    {
@@ -348,6 +306,7 @@ namespace vessel
          UINT8  pad = 0;
    };
    constexpr UINT32 BIG_RECORD_ENTRY_SIZE = sizeof(bigRecordEntrySlice);
+   static_assert(BIG_RECORD_ENTRY_SIZE >= NORMAL_RECORD_HEAD_SIZE, "can not be lower");
 
    struct bigRecordBodySlice
    {
@@ -376,8 +335,10 @@ namespace vessel
          UINT16 flags = 0;
          INT16  nextPos = INVALID_RECORD_SLOT_POS;
          UINT32 nextPage = INVALID_PAGE_ID;
+         UINT32 pad = 0;
    };
-   constexpr UINT32 BIG_RECORD_BODY_SIZE = sizeof(bigRecordBodySlice);
+   constexpr UINT32 BIG_RECORD_BODY_SLICE_SIZE = sizeof(bigRecordBodySlice);
+   static_assert(BIG_RECORD_BODY_SLICE_SIZE >= NORMAL_RECORD_HEAD_SIZE, "can not be lower");
    
 #pragma pack()
 

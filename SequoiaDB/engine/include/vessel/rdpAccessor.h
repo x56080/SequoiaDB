@@ -95,6 +95,7 @@ namespace vessel
                                     const recordID &overflowAddr,
                                     BOOLEAN isBigRecord);
 
+         /// must be visible record
          INT32 deleteRecord(dmlContext *context,
                             RECORD_SLOT_POS  pos);
 

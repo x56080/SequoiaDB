@@ -71,8 +71,6 @@ namespace vessel
       return;
    }
 
-   static const UINT16 PAGE_FLAG_IN_USED = 0x01;
-
 #pragma pack(4)
    struct pageHead
    {
@@ -81,6 +79,7 @@ namespace vessel
 
       OSS_INLINE pageHead(const pageHead &o):
       version(o.version),
+      checksum(o.checksum),
       type(o.type),
       flags(o.flags),
       size(o.size),
@@ -88,8 +87,7 @@ namespace vessel
       lpid(o.lpid),
       psv(o.psv),
       lsn(o.lsn),
-      pad0(o.pad0),
-      pad1(o.pad1)
+      reserved(o.reserved)
       {
          eyeCatcher[0] = o.eyeCatcher[0];
          eyeCatcher[1] = o.eyeCatcher[1];
@@ -100,6 +98,7 @@ namespace vessel
          eyeCatcher[0] = o.eyeCatcher[0];
          eyeCatcher[1] = o.eyeCatcher[1];
          version = o.version;
+         checksum = o.checksum;
          type = o.type;
          flags = o.flags;
          size = o.size;
@@ -107,18 +106,8 @@ namespace vessel
          lpid = o.lpid;
          psv = o.psv;
          lsn = o.lsn;
-         pad0 = o.pad0;
-         pad1 = o.pad1;
+         reserved = o.reserved;
          return *this;
-      }
-
-      OSS_INLINE BOOLEAN inUsed()const
-      {
-         return 0 != OSS_BIT_TEST(flags, PAGE_FLAG_IN_USED);
-      }
-      OSS_INLINE void setInUsed()
-      {
-         OSS_BIT_SET(flags, PAGE_FLAG_IN_USED);
       }
 
       OSS_INLINE void reset()
@@ -126,6 +115,7 @@ namespace vessel
          eyeCatcher[0] = 0;
          eyeCatcher[1] = 0;
          version = INVALID_PAGE_VERSION;
+         checksum = 0;
          type = INVALID_PAGE_TYPE;
          flags = 0;
          size = 0;
@@ -133,13 +123,13 @@ namespace vessel
          lpid = INVALID_PAGE_ID;
          lsn = DPS_INVALID_LSN_OFFSET;
          psv = INVALID_PAGE_SNAPSHOT_VERSION;
-         pad0 = 0;
-         pad1 = 0;
+         reserved = 0;
          return;
       }
 
       CHAR eyeCatcher[2] = {};
       UINT16 version = 0;
+      UINT32 checksum = 0;
       UINT16 type = INVALID_PAGE_TYPE;
       UINT16 flags = 0;
       UINT32 size = 0;
@@ -147,8 +137,7 @@ namespace vessel
       UINT32 lpid = INVALID_PAGE_ID;
       UINT32 psv = INVALID_PAGE_SNAPSHOT_VERSION;
       UINT64 lsn = DPS_INVALID_LSN_OFFSET;
-      UINT32 pad0 = 0;
-      UINT64 pad1 = 0;
+      UINT64 reserved = 0;
    };// struct pageHead
 #pragma pack()
    static const UINT32 PAGE_HEAD_SIZE = sizeof(pageHead);

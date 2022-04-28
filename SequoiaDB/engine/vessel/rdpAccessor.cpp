@@ -365,10 +365,6 @@ namespace vessel
       SDB_ASSERT(size <= head->totalFreeSpace, "impossible");
       head->totalFreeSpace -= size;
       head->backOffset = slot.offset;
-      if (RDP_RECORD_HEAD_OVERFLOW == slot.type)
-      {
-         ++head->overflowedRecordCount;
-      }
 
       updateStripingInfo(head, striping);
       updateMaxTransSN(head, transID.getSN());
@@ -1014,7 +1010,6 @@ namespace vessel
       wrs->reserved = 0;
 
       whead->totalFreeSpace += deltaSize;
-      ++whead->overflowedRecordCount;
       updateStripingInfo(whead, context->getStripingId());
       updateMaxTransSN(whead, transID.getSN());
 
@@ -1069,7 +1064,7 @@ namespace vessel
          goto error;         
       }
       
-      SDB_ASSERT(head->totalFreeSpace > (RDP_RSLOT_SIZE + BIG_RECORD_BODY_SIZE), 
+      SDB_ASSERT(head->totalFreeSpace > (RDP_RSLOT_SIZE + BIG_RECORD_BODY_SLICE_SIZE), 
                  "impossible");
       if (getFreeSpaceAfterLastSlot() >= realEntrySize)
       {
@@ -1275,7 +1270,7 @@ namespace vessel
       RECORD_SLOT_POS pos = INVALID_RECORD_SLOT_POS;
       UINT16 offset = 0;
       UINT32 dataSize = getFreeSpaceAfterLastSlot() - RDP_RSLOT_SIZE;
-      UINT32 sliceSize = dataSize - BIG_RECORD_BODY_SIZE;
+      UINT32 sliceSize = dataSize - BIG_RECORD_BODY_SLICE_SIZE;
 
       recordSlot rs;
       strictBuffer buffer;
@@ -1351,7 +1346,7 @@ namespace vessel
 
       // write body head
       sliceHead.setRid(lastRid);
-      rc = dataBuf.write(0, BIG_RECORD_BODY_SIZE, &sliceHead);
+      rc = dataBuf.write(0, BIG_RECORD_BODY_SLICE_SIZE, &sliceHead);
       if (SDB_OK != rc)
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -1360,7 +1355,7 @@ namespace vessel
       }
 
       // write slice
-      rc = dataBuf.write(BIG_RECORD_BODY_SIZE, sliceSize, slicePtr);
+      rc = dataBuf.write(BIG_RECORD_BODY_SLICE_SIZE, sliceSize, slicePtr);
       if (SDB_OK != rc)
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -1582,11 +1577,6 @@ namespace vessel
           pos < whead->firstFreeSlot)
       {
          whead->firstFreeSlot = pos;
-      }
-      if (isOverflowed)
-      {
-         SDB_ASSERT(0 < whead->overflowedRecordCount, "impossible");
-         --whead->overflowedRecordCount;
       }
 
       // dummy log
@@ -2066,7 +2056,7 @@ namespace vessel
       for (RECORD_SLOT_POS i = 0; i < head->totalSlotCount; ++i)
       {
          const recordSlot *slot = getReadableSlot(i);
-         if (slot->isValidAndVisible() && !slot->isTombstoneRecord())
+         if (slot->isValidAndVisible() && !slot->isTombstone())
          {
             ++count;
          }
@@ -2384,8 +2374,8 @@ namespace vessel
          goto error;
       }
 
-      dataPtr = sliceBuffer.getReadablePtr(BIG_RECORD_BODY_SIZE, 
-                                           rs.size - BIG_RECORD_BODY_SIZE);
+      dataPtr = sliceBuffer.getReadablePtr(BIG_RECORD_BODY_SLICE_SIZE, 
+                                           rs.size - BIG_RECORD_BODY_SLICE_SIZE);
       if (OSS_UNLIKELY(nullptr == dataPtr))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -2394,7 +2384,7 @@ namespace vessel
       }
 
       body = *bodyPtr;
-      data.reset(rs.size - BIG_RECORD_BODY_SIZE, dataPtr);
+      data.reset(rs.size - BIG_RECORD_BODY_SLICE_SIZE, dataPtr);
 
    done:
       return rc;
@@ -2517,12 +2507,12 @@ namespace vessel
       rc = getSlot(pos, rs);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get slot ptr[%d]", pos);
+         PD_LOG(PDERROR, "failed to get slot[%d]", pos);
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      if (!rs.isValid())
+      if (!rs.isValidAndVisible())
       {
          PD_LOG(PDERROR, "pos[%d] not valid to be delete", pos);
          rc = SDB_VESSEL_RECORD_NOT_FOUND;
@@ -2551,10 +2541,10 @@ namespace vessel
       strictBuffer buffer, recordBuffer;
       recordSlot *rs = nullptr;
       recordDataPageHead *head = nullptr;
-      tombstoneRecord *tr = nullptr;
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       DPS_TRANS_ID transID = context->getOrigTransId();
       UINT32 size = 0;
+      normalRecordHead *rh = nullptr;
       
       rc = _lpb->autoGetWritableBodyBuffer(buffer);
       if (SDB_OK != rc)
@@ -2589,20 +2579,15 @@ namespace vessel
          goto error;
       }
 
-      tr = recordBuffer.getWritableObjPtr<tombstoneRecord>(0);
-      if (OSS_UNLIKELY(nullptr == tr))
-      {
-         PD_LOG(PDERROR, "failed to get writable record header");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
+      rh = recordBuffer.getWritableObjPtr<normalRecordHead>(0);
+      rh->flags = 0;
+      rh->setTransID(transID);
 
-      size = rs->size - TOMBSTONE_RECORD_SIZE;
-      *tr = tombstoneRecord();
-      tr->setTransID(transID);
-      rs->size = TOMBSTONE_RECORD_SIZE;
+      size = rs->size - NORMAL_RECORD_HEAD_SIZE;
+      rs->setTombstone();
+      rs->size = NORMAL_RECORD_HEAD_SIZE;
       rs->reserved = 0;
-      rs->type = RDP_RECORD_HEAD_TOMBSTONE;
+      rs->type = RDP_RECORD_HEAD_TYPE_NORMAL;
 
       head->totalFreeSpace += size;
       updateMaxTransSN(head, transID.getSN());
