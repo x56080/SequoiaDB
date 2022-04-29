@@ -2,7 +2,7 @@
  * @Description   : seqDB-24887:maxsessioncontextnum配置参数校验
  * @Author        : Zhang Yanan
  * @CreateTime    : 2021.12.31
- * @LastEditTime  : 2022.01.07
+ * @LastEditTime  : 2022.04.29
  * @LastEditors   : Zhang Yanan
  ******************************************************************************/
 testConf.clName = COMMCLNAME + "_context_24887";
@@ -58,14 +58,18 @@ function test ( testPara )
       db.updateConf( config );
       checkConf( db, minConfig );
 
-      maxSessionContextnum = 2147483648;
+      maxSessionContextnum = -10;
       config = { "maxsessioncontextnum": maxSessionContextnum };
       db.updateConf( config );
       checkConf( db, maxConfig );
 
-      maxSessionContextnum = -10;
+      maxSessionContextnum = 2147483648;
       config = { "maxsessioncontextnum": maxSessionContextnum };
       db.updateConf( config );
+      if( commIsArmArchitecture() == true )
+      {
+         maxConfig = { "maxsessioncontextnum": 2147483647 };
+      }
       checkConf( db, maxConfig );
    }
    finally 
