@@ -180,13 +180,13 @@ namespace engine
                                      strictDataMode,
                                      logWriteMod,
                                      TRUE ) ;
-         PD_RC_CHECK( rc, PDERROR, "Invalid pattern is detected for updator: "
-                      "%s", updator.toString().c_str() ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Invalid pattern is detected for updator" ) ;
       }
       catch ( std::exception &e )
       {
-         PD_LOG ( PDERROR, "Invalid pattern is detected for update: %s: %s",
-                  updator.toString().c_str(), e.what() ) ;
+         PD_LOG ( PDERROR, "Invalid pattern is detected for update: %s",
+                  e.what() ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
@@ -336,9 +336,10 @@ retry:
                         rc ) ;
                goto error ;
             }
+#ifdef _DEBUG
             PD_LOG ( PDDEBUG, "modified equality query object: %s",
                      target.toString().c_str() ) ;
-
+#endif
             BSONElement setOnInsert =
                        options.getHint().getField( FIELD_NAME_SET_ON_INSERT ) ;
             if ( !setOnInsert.eoo() )
@@ -352,9 +353,8 @@ retry:
                                            TRUE, TRUE, -1, pResult ) ;
             if ( rc )
             {
-               PD_LOG ( PDERROR, "Failed to insert record %s\ninto "
-                        "collection: %s", target.toString().c_str(),
-                        pCollectionShortName ) ;
+               PD_LOG ( PDERROR, "Failed to insert record into "
+                        "collection: %s", pCollectionShortName ) ;
                goto error ;
             }
 
@@ -422,8 +422,8 @@ retry:
 
          mthModifier setModifier ;
          rc = setModifier.loadPattern( setObj ) ;
-         PD_RC_CHECK( rc, PDERROR, "Invalid pattern is detected: { %s }, "
-                      "rc: %d", setOnInsert.toString().c_str(), rc ) ;
+         PD_RC_CHECK( rc, PDERROR, "Invalid pattern is detected, "
+                      "rc: %d", rc ) ;
          rc = setModifier.modify( target, newTarget ) ;
          PD_RC_CHECK( rc, PDERROR, "failed to generate upsertor "
                       "record(rc=%d) by " FIELD_NAME_SET_ON_INSERT, rc ) ;
@@ -432,8 +432,8 @@ retry:
       }
       catch ( std::exception &e )
       {
-         PD_LOG ( PDERROR, "failed to generate upsertor on { %s }, %s",
-                  setOnInsert.toString().c_str(), e.what() ) ;
+         PD_LOG ( PDERROR, "failed to generate upsertor, %s",
+                  e.what() ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
@@ -455,15 +455,13 @@ retry:
          rc = modifier.loadPattern( updator ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "Load pattern[%s] failed, rc: %d",
-                    updator.toString().c_str(), rc ) ;
+            PD_LOG( PDERROR, "Load pattern by updator failed, rc: %d", rc ) ;
             goto done ;
          }
          rc = modifier.modify( source, obj ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "Make modify[%s] failed, rc: %d",
-                    updator.toString().c_str(), rc ) ;
+            PD_LOG( PDERROR, "Make modify by updator failed, rc: %d", rc ) ;
             goto done ;
          }
       }

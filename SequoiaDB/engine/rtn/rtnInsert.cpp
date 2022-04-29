@@ -127,10 +127,9 @@ namespace engine
             {
                insertResult->setErrInfo( &upResult ) ;
 
-               PD_LOG( PDERROR, "Failed to update record[%s] in "
-                       "collection[%s] when insert exists duplicate key, "
-                       "rc: %d", record.toString().c_str(), clFullName,
-                       rc ) ;
+               PD_LOG( PDERROR, "Failed to update record in collection[%s] "
+                       "when insert exists duplicate key, rc: %d",
+                       clFullName, rc ) ;
                goto error ;
             }
             else
@@ -142,9 +141,8 @@ namespace engine
          }
          else
          {
-            PD_LOG ( PDERROR, "Failed to insert record %s into "
-                     "collection: %s, rc: %d",
-                     record.toPoolString().c_str(),
+            PD_LOG ( PDERROR,
+                     "Failed to insert record into collection: %s, rc: %d",
                      clFullName, rc ) ;
             goto error ;
          }
