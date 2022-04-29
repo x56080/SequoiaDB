@@ -51,7 +51,7 @@ WaitLock 和 GetLocks 字段中锁对象的信息如下：
 | Offset       | int32  | 锁对象所在记录的偏移量   |
 | Mode         | string | 锁的类型，取值如下：<br>IS：意向共享锁<br>IX：意向排他锁<br>S：共享锁<br>U：升级锁<br>X：排他锁 |
 | Count        | int32  | 锁计数器（只在 GetLocks 中存在） |
-| Duration     | int32  | 锁的持有或等待时间，单位为毫秒 |
+| Duration     | int64  | 锁的持有或等待时间，单位为毫秒 |
 
 ###锁对象的描述###
 
