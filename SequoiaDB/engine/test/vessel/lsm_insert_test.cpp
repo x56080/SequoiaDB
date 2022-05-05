@@ -154,3 +154,95 @@ TEST_F(lsm_insert_test, DISABLED_test1)
    status = db.closeLsmDB(FALSE, TRUE);
    ASSERT_TRUE(status.ok());
 }
+
+TEST_F(lsm_insert_test, base_insert_without_compression)
+{
+    rocksdb::DB* db;
+    rocksdb::Options options;
+    options.create_if_missing = true;
+    options.compression = kNoCompression;
+    options.db_log_dir = LSM_PATH;
+    rocksdb::Status s = rocksdb::DB::Open(options, LSM_PATH, &db);
+    ASSERT_TRUE(s.ok());
+    std::string returnVal;
+    std::vector<string> keys={"name","age","tel","height","email"};
+    std::vector<string> values={"John","18","13399997777","180","John@example.com"};
+    for(UINT32 i = 0; i < keys.size(); ++i)
+    {
+       s = db->Put(rocksdb::WriteOptions(),keys[i] ,values[i]);
+       ASSERT_TRUE(s.ok());
+    }
+    s=db->Close();
+    ASSERT_TRUE(s.ok());
+    delete db;
+}
+
+TEST_F(lsm_insert_test, base_insert_with_zstd)
+{
+    rocksdb::DB* db;
+    rocksdb::Options options;
+    options.create_if_missing = true;
+    options.compression = rocksdb::kZSTD;
+    options.db_log_dir = LSM_PATH;
+    rocksdb::Status s;
+    s = rocksdb::DB::Open(options, LSM_PATH, &db);
+    ASSERT_TRUE(s.ok());
+    std::string returnVal;
+    std::vector<string> keys={"name","age","tel","height","email"};
+    std::vector<string> values={"John","18","13399997777","180","John@example.com"};
+    for(UINT32 i = 0; i < keys.size(); ++i)
+    {
+       s = db->Put(rocksdb::WriteOptions(),keys[i] ,values[i]);
+       ASSERT_TRUE(s.ok());
+    }
+    s=db->Close();
+    ASSERT_TRUE(s.ok());
+    delete db;
+}
+
+TEST_F(lsm_insert_test, base_insert_with_snappy)
+{
+    rocksdb::DB* db;
+    rocksdb::Options options;
+    options.create_if_missing = true;
+    options.compression = rocksdb::kSnappyCompression;
+    options.db_log_dir = LSM_PATH;
+    rocksdb::Status s;
+    s = rocksdb::DB::Open(options, LSM_PATH, &db);
+    ASSERT_TRUE(s.ok());
+    std::string returnVal;
+    std::vector<string> keys={"name","age","tel","height","email"};
+    std::vector<string> values={"John","18","13399997777","180","John@example.com"};
+    for(UINT32 i = 0; i < keys.size(); ++i)
+    {
+       s = db->Put(rocksdb::WriteOptions(),keys[i] ,values[i]);
+       ASSERT_TRUE(s.ok());
+    }
+    s=db->Close();
+    ASSERT_TRUE(s.ok());
+    delete db;
+}
+
+
+TEST_F(lsm_insert_test, base_insert_with_lz4)
+{
+    rocksdb::DB* db;
+    rocksdb::Options options;
+    options.create_if_missing = true;
+    options.compression = rocksdb::kLZ4Compression;
+    options.db_log_dir = LSM_PATH;
+    rocksdb::Status s;
+    s = rocksdb::DB::Open(options, LSM_PATH, &db);
+    ASSERT_TRUE(s.ok());
+    std::string returnVal;
+    std::vector<string> keys={"name","age","tel","height","email"};
+    std::vector<string> values={"John","18","13399997777","180","John@example.com"};
+    for(UINT32 i = 0; i < keys.size(); ++i)
+    {
+       s = db->Put(rocksdb::WriteOptions(),keys[i] ,values[i]);
+       ASSERT_TRUE(s.ok());
+    }
+    s=db->Close();
+    ASSERT_TRUE(s.ok());
+    delete db;
+}
