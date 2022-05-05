@@ -1163,6 +1163,13 @@ namespace engine
                                             _pmdEDUCB *cb,
                                             BOOLEAN isInsert = TRUE ) = 0 ;
 
+         virtual void _postInsertRecord( dmsMBContext *context,
+                                         dmsExtRW &extRW,
+                                         dmsRecordRW &recordRW,
+                                         const dmsRecordData &recordData,
+                                         UINT32 recordSize,
+                                         _pmdEDUCB *cb ) = 0 ;
+
          virtual INT32 _operationPermChk( DMS_ACCESS_TYPE accessType ) = 0 ;
 
          virtual INT32 _extentUpdatedRecord( dmsMBContext *context,
