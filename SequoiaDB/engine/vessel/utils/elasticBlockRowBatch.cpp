@@ -181,8 +181,6 @@ namespace vessel
       SDB_ASSERT(0 < newRowSize, "can not be invalid");
       fixedSizeDataPad pad;
       memoryBlock block;
-      UINT32 deafultBlockSize = 0 == _defaultBlockSize ?
-                                _DEFAULT_BLOCK_SIZE : _defaultBlockSize;
       UINT32 blockSize = (0 == _block.getCapacity()) ?
                          _defaultBlockSize : (_block.getCapacity() << 1);
       UINT32 minSize = _pad.getUnfreeSize() + fixedSizeDataPad::getSavingSize(newRowSize);
