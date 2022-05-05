@@ -42,7 +42,7 @@
 #include "vessel/strictBuffer.h"
 #include "vessel/lextentDescriptor.h"
 #include "vessel/lobcExtentChain.h"
-#include "vessel/lobcBufferPoolOptions.h"
+#include "vessel/bufferPoolOptions.h"
 
 namespace engine
 {

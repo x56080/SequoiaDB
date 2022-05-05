@@ -74,8 +74,8 @@ namespace vessel
                                      LOBC_BUFFER_CTL_FLAGS::IN_DIRTY_LIST);
          }
 
-         OSS_INLINE DPS_LSN_OFFSET getMinLSN()const {return _minLSN;}
-         OSS_INLINE DPS_LSN_OFFSET getMaxLSN()const {return _maxLSN;}
+         OSS_INLINE DPS_LSN_OFFSET getMinDirtyLSN()const {return _minLSN;}
+         OSS_INLINE DPS_LSN_OFFSET getMaxDirtyLSN()const {return _maxLSN;}
          OSS_INLINE BOOLEAN hasValidLSNPair()const
          {
             return DPS_INVALID_LSN_OFFSET != _minLSN &&

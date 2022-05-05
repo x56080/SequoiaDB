@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = lobcBufferPoolOptions.h
+   Source File Name = bufferPoolOptions.h
 
    Descriptive Name =
 
@@ -33,8 +33,8 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_LOBC_BUFFER_POOL_OPTIONS_H
-#define VESSEL_LOBC_BUFFER_POOL_OPTIONS_H
+#ifndef VESSEL_BUFFER_POOL_OPTIONS_H_
+#define VESSEL_BUFFER_POOL_OPTIONS_H_
 
 #include "ossUtil.hpp"
 
@@ -57,9 +57,25 @@ namespace vessel
       UINT32 bucketLatchCount = 512;
 
    };//struct lobcBufferPoolOptions
+
+   struct liteBufferPoolOptions : public SDBObject
+   {
+      /// memory pool options
+      UINT32 maxMemChunk = 128; /// default memory chunk is 32MB
+      
+      /// bucket options
+      UINT32 buckets = 8192;
+      UINT32 bucketLatches = 512;
+
+      /// flush options
+      FLOAT32 minFreeMemPct = 0.70f; /// valid range (0.10, 1.0)
+      UINT64 minFreeMemSize = (UINT64)1 << 30; /// can not be higher than max memory size
+      UINT32 flushDirtyListMillis = 30000;
+      UINT64 flushBatchSize = (UINT64)1 << 30;
+   };//class bufferPoolOptions
 } // namespace vessel
 
 } // namespace engine
 
 
-#endif//VESSEL_LOBC_BUFFER_POOL_OPTIONS_H
+#endif//VESSEL_BUFFER_POOL_OPTIONS_H_

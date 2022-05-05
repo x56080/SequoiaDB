@@ -40,15 +40,6 @@ namespace engine
 {
 namespace vessel
 {
-   void dirtyLobcBufferList::clear()
-   {
-      std::unique_lock<std::mutex> guard(_mutex);
-      _minFlushLSN = DPS_INVALID_LSN_OFFSET;
-      _minListLSN = DPS_INVALID_LSN_OFFSET;
-      _list.clear();
-      return;
-   }
-
    void dirtyLobcBufferList::insert(sharedLobChunkBuffer &buffer)
    {
       SDB_ASSERT(buffer && buffer->isValid(), "can not be invalid");
@@ -59,7 +50,7 @@ namespace vessel
       {
          buffer->ctl().setFlags(LOBC_BUFFER_CTL_FLAGS::IN_DIRTY_LIST);
          std::unique_lock<std::mutex> guard(_mutex);
-         _pushBackToList(buffer);
+         pushBackToList(buffer);
       }
    }
 
@@ -73,10 +64,10 @@ namespace vessel
 
       BUFFER_CTL_FLAG_WORD flags = LOBC_BUFFER_CTL_FLAGS::PENDING_FLUSH;
       BUFFER_CTL_FLAG_WORD condition = LOBC_BUFFER_CTL_FLAGS::BUSY;
-      SHARED_LOBC_BUFFER_LIST::iterator left = _list.begin();
-      SHARED_LOBC_BUFFER_LIST::iterator right = _list.begin();
+      SHARED_LOBC_BUFFER_LIST::iterator left = _l.begin();
+      SHARED_LOBC_BUFFER_LIST::iterator right = _l.begin();
 
-      while (_list.end() != right)
+      while (_l.end() != right)
       {
          BUFFER_CTL_FLAG_WORD oldVal = 0;
          sharedLobChunkBuffer &buffer = *right;
@@ -84,7 +75,7 @@ namespace vessel
          {
             if (left != right)
             {
-               fl._list.splice(fl._list.end(), _list, left, right);
+               fl._list.splice(fl._list.end(), _l, left, right);
             }
 
             SDB_ASSERT(0 != OSS_BIT_TEST(oldVal, LOBC_BUFFER_CTL_FLAGS::BUSY), "impossible");
@@ -93,9 +84,9 @@ namespace vessel
          else
          {
             if (DPS_INVALID_LSN_OFFSET == fl._maxDirtyLSN ||
-                fl._maxDirtyLSN < buffer->getMaxLSN())
+                fl._maxDirtyLSN < buffer->getMaxDirtyLSN())
             {
-               fl._maxDirtyLSN = buffer->getMaxLSN();
+               fl._maxDirtyLSN = buffer->getMaxDirtyLSN();
             }
 
             fl._totalBufferSize += buffer->getBufferCtx().getBufferSize();
@@ -105,9 +96,9 @@ namespace vessel
             {
                if (left != right)
                {
-                  fl._list.splice(fl._list.end(), _list, left, right);
+                  fl._list.splice(fl._list.end(), _l, left, right);
                }
-               right = _list.erase(right);
+               right = _l.erase(right);
                left = right;
             }
             else
@@ -124,12 +115,12 @@ namespace vessel
 
       if (left != right)
       {
-         fl._list.splice(fl._list.end(), _list, left, right);
+         fl._list.splice(fl._list.end(), _l, left, right);
       }
 
-      if (!_list.empty())
+      if (!_l.empty())
       {
-         _minListLSN = _list.front()->getMinLSN();
+         _minListLSN = _l.front()->getMinDirtyLSN();
       }
       else
       {
@@ -138,7 +129,7 @@ namespace vessel
       
       if (!fl.isEmpty())
       {
-         _minFlushLSN = fl._list.front()->getMinLSN();
+         _minFlushLSN = fl._list.front()->getMinDirtyLSN();
       }      
    
    /* splice whole list first, and repush back busy ones.
@@ -174,82 +165,6 @@ namespace vessel
          }
       }
       */
-      return;
-   }
-
-   void dirtyLobcBufferList::resetFlushLSN()
-   {
-      _minFlushLSN = DPS_INVALID_LSN_OFFSET;
-      return;
-   }
-
-   DPS_LSN_OFFSET dirtyLobcBufferList::peekMinDirtyLSN()const
-   {
-      return (DPS_INVALID_LSN_OFFSET == _minFlushLSN) ?
-              _minListLSN : std::min(_minFlushLSN, _minListLSN);
-   }
-
-   void dirtyLobcBufferList::_pushBackToList(sharedLobChunkBuffer &buffer)
-   {
-      SDB_ASSERT(buffer->hasValidLSNPair(), "can not be invalid");
-
-      DPS_LSN_OFFSET lsn = buffer->getMinLSN();
-
-      if (!_list.empty())
-      {
-         SHARED_LOBC_BUFFER_LIST::iterator pos = _list.end();
-         SHARED_LOBC_BUFFER_LIST::iterator itr = _list.end();
-         do
-         {
-            --itr;
-            if (lsn < (*itr)->getMinLSN())
-            {
-               pos = itr;
-            }
-            else
-            {
-               break;
-            }
-         } while (itr != _list.begin());
-         
-         _list.insert(pos, buffer);
-      }
-      else
-      {
-         _list.push_back(buffer);
-      }
-
-      if (DPS_INVALID_LSN_OFFSET == _minListLSN ||
-          lsn < _minListLSN)
-      {
-         _minListLSN = lsn;
-      }
-
-      return;
-   }
-
-   void dirtyLobcBufferList::_pushFrontToList(sharedLobChunkBuffer &buffer)
-   {
-      SDB_ASSERT(buffer->hasValidLSNPair(), "can not be invalid");
-      DPS_LSN_OFFSET lsn = buffer->getMinLSN();
-
-      SHARED_LOBC_BUFFER_LIST::iterator pos = _list.begin();
-      for (; pos != _list.end(); ++pos)
-      {
-         if (lsn < (*pos)->getMinLSN())
-         {
-            break;
-         }
-      }
-
-      _list.insert(pos, buffer);
-
-      if (DPS_INVALID_LSN_OFFSET == _minListLSN ||
-          lsn < _minListLSN)
-      {
-         _minListLSN = lsn;
-      }
-
       return;
    }
 

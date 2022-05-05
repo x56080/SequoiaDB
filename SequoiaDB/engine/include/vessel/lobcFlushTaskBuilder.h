@@ -46,8 +46,8 @@ namespace vessel
    class lobcFlushTaskBuilder : public SDBObject
    {
       public:
-         lobcFlushTaskBuilder();
-         ~lobcFlushTaskBuilder();
+         lobcFlushTaskBuilder() = default;
+         ~lobcFlushTaskBuilder() = default;
          lobcFlushTaskBuilder(const lobcFlushTaskBuilder &) = delete;
          lobcFlushTaskBuilder &operator=(const lobcFlushTaskBuilder &) = delete;
 

@@ -37,47 +37,31 @@
 #define VESSEL_DIRTY_LOBC_BUFFER_LIST_H_
 
 #include "vessel/lobChunkBuffer.h"
+#include "vessel/dirtyBufferList.hpp"
 #include "ossMemPool.hpp"
 #include "dpsDef.hpp"
 #include "vessel/lobcFlushList.h"
 
-#include <atomic>  //c++11
 #include <mutex>   //c++11
 
 namespace engine
 {
 namespace vessel
 {
-   class dirtyLobcBufferList : public SDBObject
+   class dirtyLobcBufferList : public dirtyBufferList<sharedLobChunkBuffer>
    {
       public:
-         dirtyLobcBufferList(){}
-         ~dirtyLobcBufferList(){}
-         dirtyLobcBufferList(const dirtyLobcBufferList &) = delete;
-         dirtyLobcBufferList &operator=(const dirtyLobcBufferList &) = delete;
+         dirtyLobcBufferList() = default;
+         virtual ~dirtyLobcBufferList() = default;
 
       public:
-         void clear();
          void insert(sharedLobChunkBuffer &buffer);
-         DPS_LSN_OFFSET peekMinDirtyLSN()const;
 
-      public:///WARNING: only for pool watcher !!!
-
+      public:
+         ///WARNING: only for pool watcher !!!
          void makeFlushList(UINT64 bufferSizeLimit,
                             lobcFlushList &fl);
-         void resetFlushLSN();
-      
-      private:
-         void _pushBackToList(sharedLobChunkBuffer &buffer);
-         void _pushFrontToList(sharedLobChunkBuffer &buffer);
-
-      private:
-         std::mutex _mutex;
-         DPS_LSN_OFFSET _minFlushLSN = DPS_INVALID_LSN_OFFSET;
-         DPS_LSN_OFFSET _minListLSN = DPS_INVALID_LSN_OFFSET;
-
-         /// buffer sorted by min dirty lsn in list.
-         SHARED_LOBC_BUFFER_LIST _list;
+   
    };//class dirtyLobcBufferList
 } // namespace vessel
 

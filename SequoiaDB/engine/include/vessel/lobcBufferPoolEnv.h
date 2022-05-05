@@ -40,7 +40,7 @@
 #include "vessel/blockBasedMemPool.h"
 #include "vessel/lobChunkBuffer.h"
 #include "vessel/dirtyLobcBufferList.h"
-#include "vessel/lobcBufferPoolOptions.h"
+#include "vessel/bufferPoolOptions.h"
 
 #include <mutex> //c++11
 

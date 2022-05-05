@@ -43,16 +43,6 @@ namespace engine
 {
 namespace vessel
 {
-   lobcFlushTaskBuilder::lobcFlushTaskBuilder()
-   {
-
-   }
-
-   lobcFlushTaskBuilder::~lobcFlushTaskBuilder()
-   {
-
-   }
-
    void lobcFlushTaskBuilder::build(const lobcFlushList &fl)
    {
       clear();

@@ -39,7 +39,7 @@
 #include "vessel/storageFileDef.h"
 #include "utilCompression.hpp"
 #include "vessel/collectionOptions.h"
-#include "vessel/lobcBufferPoolOptions.h"
+#include "vessel/bufferPoolOptions.h"
 
 namespace engine
 {
