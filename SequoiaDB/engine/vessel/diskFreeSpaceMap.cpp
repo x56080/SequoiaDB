@@ -380,8 +380,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (INVALID_CL_PAGE_SEQ == seq || 
-               !isValidFsmLvL(lvl))
+      else if (!isValidFsmLvL(lvl))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -432,8 +431,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (INVALID_CL_PAGE_SEQ == seq || 
-               !isValidFsmLvL(lvl))
+      else if (!isValidFsmLvL(lvl))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -810,7 +808,7 @@ namespace vessel
       do
       {
          found = FALSE;
-         seq = INVALID_CL_PAGE_SEQ;
+         seq = 0;
          lvl = FSM_INVALID_SPACE_LVL;
 
          if (0 == _totalDataPageCount ||

@@ -69,7 +69,7 @@ namespace vessel
 
       private:
          UINT32 _logicalId = DMS_INVALID_LOGICCLID;
-         UINT32 _sequence = INVALID_CL_PAGE_SEQ;
+         UINT32 _sequence = 0;
          UINT32 _batchCount = 0;
    };//class rdpIniter
 }//namespace vessel

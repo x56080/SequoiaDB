@@ -114,8 +114,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(INVALID_CL_PAGE_SEQ == seq ||
-                            NULL == sptr.get() ||
+      else if (OSS_UNLIKELY(NULL == sptr.get() ||
                             !isValidFsmLvL(sptr->_lvl)))
       {
          rc = SDB_INVALIDARG;
@@ -174,8 +173,8 @@ namespace vessel
                                   fsmCandidate &candidate)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(!candidate.isValid(), "can not be valid");
       UINT32 seed = 0;
+      candidate.reset();
 
       if (OSS_UNLIKELY(!isOpen()))
       {

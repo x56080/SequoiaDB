@@ -1988,7 +1988,7 @@ namespace vessel
       SDB_ASSERT(nullptr != context, "can not be null");
       SDB_ASSERT(isValidFsmLvL(lvl), "can not be invalid");
       PAGE_ID lpids[PAGE_COUNT_IN_EXTENT];
-      UINT32 firstSeq = INVALID_CL_PAGE_SEQ;
+      UINT32 firstSeq = 0;
       candidate.reset();
 
       do
@@ -2044,7 +2044,7 @@ namespace vessel
       SDB_ASSERT(nullptr != context, "can not be null");
       SDB_ASSERT(isValidFsmLvL(lvl), "can not be invalid");
       PAGE_ID lpids[PAGE_COUNT_IN_EXTENT];
-      UINT32 firstSeq = INVALID_CL_PAGE_SEQ;
+      UINT32 firstSeq = 0;
       candidate.reset();
 
       do
@@ -2430,7 +2430,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != context, "can not be null");
-      SDB_ASSERT(INVALID_CL_PAGE_SEQ != sequence, "can not be invalid");
       SDB_ASSERT(nullptr != _collectionSpace, "can not be null");
 
       UINT32 capacity = 0;

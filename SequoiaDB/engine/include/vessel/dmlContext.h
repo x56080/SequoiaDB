@@ -78,7 +78,7 @@ namespace vessel
          }
          OSS_INLINE BOOLEAN isDmlPositionSet()const
          {
-            return _rid.isValid() && INVALID_CL_PAGE_SEQ != _seq;
+            return _rid.isValid();
          }
          OSS_INLINE scanEntry getScanEntry()const
          {
@@ -131,7 +131,7 @@ namespace vessel
          _UNIQUE_KEY_CONTEXT _uniqueKeyContext;
 
          UINT32 _indexReqCount = 0;
-         UINT32 _seq = INVALID_CL_PAGE_SEQ;
+         UINT32 _seq = 0;
          DPS_LSN_OFFSET _lsn = DPS_INVALID_LSN_OFFSET;
          recordID _rid;
          modifyRecordContext _mrc;

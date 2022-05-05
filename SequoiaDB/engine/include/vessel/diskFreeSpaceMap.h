@@ -119,7 +119,6 @@ namespace vessel
 
          OSS_INLINE UINT32 getBitmapPageNo(UINT32 seq)const
          {
-            SDB_ASSERT(INVALID_CL_PAGE_SEQ != seq, "impossible");
             return seq / FSM_BITMAP_PAGE_CAPACITY;
          }
          OSS_INLINE UINT32 getOwnerPageNo(UINT32 bitmapPageNo)const

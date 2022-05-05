@@ -70,7 +70,6 @@ namespace vessel
          goto error;
       }
       else if (DMS_INVALID_LOGICCLID == _logicalId ||
-               INVALID_CL_PAGE_SEQ == _sequence ||
                0 == _batchCount)
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;

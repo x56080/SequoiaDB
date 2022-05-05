@@ -325,8 +325,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(INVALID_CL_PAGE_SEQ == firstSeq ||
-                            0 == count ||
+      else if (OSS_UNLIKELY( 0 == count ||
                             NULL == lpids))
       {
          rc = SDB_INVALIDARG;
@@ -356,8 +355,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(INVALID_CL_PAGE_SEQ == seq ||
-                            !isValidFsmLvL(lvl)))
+      else if (OSS_UNLIKELY(!isValidFsmLvL(lvl)))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -384,8 +382,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(INVALID_CL_PAGE_SEQ == seq ||
-                            !isValidFsmLvL(lvl)))
+      else if (OSS_UNLIKELY(!isValidFsmLvL(lvl)))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -408,11 +405,11 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValidFsmLvL(lvl), "can not be invalid");
-      SDB_ASSERT(!candidate.isValid(), "can not be valid");
       
-      UINT32 seq = INVALID_CL_PAGE_SEQ;
+      UINT32 seq = 0;
       BOOLEAN found = FALSE;
       INT32 realLvl = FSM_INVALID_SPACE_LVL;
+      candidate.reset();
 
       rc = _dfsm.find(lvl, found, seq, realLvl);
       if (SDB_OK != rc)
@@ -436,7 +433,7 @@ namespace vessel
    done:
       return rc;
    error:
-      if (INVALID_CL_PAGE_SEQ != seq)
+      if (FSM_INVALID_SPACE_LVL != realLvl)
       {
          INT32 trc = _dfsm.upgradePageSpaceLvl(seq, realLvl);
          if (SDB_OK != trc)
@@ -561,7 +558,7 @@ namespace vessel
    done:
       return rc;
    error:
-      if (tuple.isValid())
+      if (FSM_INVALID_SPACE_LVL != tuple.getSpaceLvl())
       {
          if (SDB_OK != _newPagePool.pushForward(tuple))
          {
@@ -595,7 +592,7 @@ namespace vessel
    done:
       return rc;
    error:
-      if (tuple.isValid())
+      if (FSM_INVALID_SPACE_LVL != tuple.getSpaceLvl())
       {
          if (SDB_OK != _newPagePool.pushForward(tuple))
          {
@@ -699,7 +696,6 @@ namespace vessel
                                         const PAGE_ID *lpids)
    {
       SDB_ASSERT(0 < count, "impossible");
-      SDB_ASSERT(INVALID_CL_PAGE_SEQ != firstSeq, "can not be invalid");
       SDB_ASSERT(NULL != lpids, "can not be null");
 
       /// pool is first in last out

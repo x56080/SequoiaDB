@@ -95,7 +95,7 @@ TEST_F(fsm_test, diskmap_0)
 
    INT32 targetLvl = FSM_MIN_SPACE_LVL;
    INT32 lvl = FSM_INVALID_SPACE_LVL;
-   UINT32 seq = INVALID_CL_PAGE_SEQ;
+   UINT32 seq = 0;
    BOOLEAN found = FALSE;
    rc = dfsm.find(targetLvl, found, seq, lvl);
    ASSERT_EQ(SDB_OK, rc);
@@ -154,7 +154,7 @@ TEST_F(fsm_test, diskmap_1)
 
    INT32 targetLvl = FSM_MIN_SPACE_LVL;
    INT32 lvl = FSM_INVALID_SPACE_LVL;
-   UINT32 seq = INVALID_CL_PAGE_SEQ;
+   UINT32 seq = 0;
    BOOLEAN found = FALSE;
    rc = dfsm.find(targetLvl, found, seq, lvl);
    ASSERT_EQ(SDB_OK, rc);
@@ -213,7 +213,7 @@ TEST_F(fsm_test, diskmap_2)
 
    INT32 targetLvl = FSM_MIN_SPACE_LVL;
    INT32 lvl = FSM_INVALID_SPACE_LVL;
-   UINT32 seq = INVALID_CL_PAGE_SEQ;
+   UINT32 seq = 0;
    BOOLEAN found = FALSE;
    rc = dfsm.find(targetLvl, found, seq, lvl);
    ASSERT_EQ(SDB_OK, rc);

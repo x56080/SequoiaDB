@@ -48,7 +48,6 @@ namespace vessel
                               void *buf)
    {
       SDB_ASSERT(DMS_INVALID_LOGICCLID != logicalID, "can not be invalid");
-      SDB_ASSERT(INVALID_CL_PAGE_SEQ != pageSeq, "can not be invalid");
 
       recordDataPageHead *head = NULL;
       CHAR *ptr = (CHAR *)buf;

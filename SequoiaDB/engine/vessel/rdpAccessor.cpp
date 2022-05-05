@@ -1499,7 +1499,6 @@ namespace vessel
       const recordSlot *rrs = nullptr;
       recordSlot *wrs = nullptr;
       UINT32 deltaSize = 0;
-      BOOLEAN isOverflowed = FALSE;
 
       if (OSS_UNLIKELY(nullptr == context ||
                        !isValidRecordSlotPosition(pos)))
@@ -1535,7 +1534,6 @@ namespace vessel
          PD_LOG(PDERROR, "invalid slot[%d], rc:%d", pos, rc);
          goto error;
       }
-      isOverflowed = rrs->isOverflowedRecord();
 
       rc = _lpb->autoGetWritableBodyBuffer(buffer);
       if (SDB_OK != rc)

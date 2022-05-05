@@ -63,7 +63,7 @@ namespace vessel
       UINT16 version = INVALID_RDP_VERSION;
       UINT16 flags = 0;
       UINT32 clLogcalID = DMS_INVALID_LOGICCLID;
-      UINT32 pageSeq = INVALID_CL_PAGE_SEQ;
+      UINT32 pageSeq = 0;
       UINT16 totalFreeSpace = 0;
       UINT16 backOffset = 0;
       UINT16 totalSlotCount = 0;

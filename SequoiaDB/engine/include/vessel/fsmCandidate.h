@@ -88,13 +88,12 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return INVALID_CL_PAGE_SEQ != _seq;
-                    
+            return nullptr != _sptr.get();
          }
 
          OSS_INLINE void reset()
          {
-            _seq = INVALID_CL_PAGE_SEQ;
+            _seq = 0;
             _sptr.reset();
             return;
          }
@@ -114,14 +113,14 @@ namespace vessel
 
          OSS_INLINE PAGE_ID getLpid()const
          {
-            return (NULL == _sptr.get()) ?
+            return (nullptr == _sptr.get()) ?
                    INVALID_PAGE_ID :
                    _sptr->_lpid;
          }
 
          OSS_INLINE INT32 getSpaceLvl()const
          {
-            return (NULL == _sptr.get()) ?
+            return (nullptr == _sptr.get()) ?
                    FSM_INVALID_SPACE_LVL :
                    _sptr->_lvl;
          }
@@ -129,7 +128,7 @@ namespace vessel
          OSS_INLINE BOOLEAN setLpid(PAGE_ID lpid)
          {
             BOOLEAN r = FALSE;
-            if (NULL != _sptr.get())
+            if (nullptr != _sptr.get())
             {
                _sptr->_lpid = lpid;
                r = TRUE;
@@ -140,7 +139,7 @@ namespace vessel
          OSS_INLINE BOOLEAN setSpaceLvl(INT32 lvl)
          {
             BOOLEAN r = FALSE;
-            if (NULL != _sptr.get() &&
+            if (nullptr != _sptr.get() &&
                 (isValidFsmLvL(lvl) ||
                  FSM_INVALID_SPACE_LVL == lvl))
             {
@@ -160,7 +159,7 @@ namespace vessel
          }
 
       private:
-         UINT32 _seq = INVALID_CL_PAGE_SEQ;
+         UINT32 _seq = 0;
          SHARED_INFO_PTR _sptr;
    };//class fsmCandidate
 

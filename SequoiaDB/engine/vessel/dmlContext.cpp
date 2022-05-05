@@ -235,7 +235,7 @@ namespace vessel
             requestContext::detachMbContext();
          }
          unlockUniqueKeys();
-         _seq = INVALID_CL_PAGE_SEQ;
+         _seq = 0;
          _rid = recordID();
          _lsn = DPS_INVALID_LSN_OFFSET;
          _indexReqCount = 0;
@@ -253,7 +253,6 @@ namespace vessel
                                      const recordID &rid)
    {
       SDB_ASSERT(isOpen(), "can not be invalid");
-      SDB_ASSERT(INVALID_CL_PAGE_SEQ != seq, "can not be invalid");
       SDB_ASSERT(rid.isValid(), "can not be invalid");
       _seq = seq;
       _rid = rid;

@@ -44,18 +44,16 @@ namespace engine
 namespace vessel
 {
    typedef UINT16 SPACE_ID;
-   const SPACE_ID INVALID_SPACE_ID = 65535;
-   const SPACE_ID MAX_SPACE_ID = 16383;
-   const SPACE_ID MAX_SU_COUNT = MAX_SPACE_ID + 1;
+   constexpr SPACE_ID INVALID_SPACE_ID = 65535;
+   constexpr SPACE_ID MAX_SPACE_ID = 16383;
+   constexpr SPACE_ID MAX_SU_COUNT = MAX_SPACE_ID + 1;
 
    typedef UINT32 PAGE_SNAPSHOT_VERION;
-   const PAGE_SNAPSHOT_VERION INVALID_PAGE_SNAPSHOT_VERSION = 0;
+   constexpr PAGE_SNAPSHOT_VERION INVALID_PAGE_SNAPSHOT_VERSION = 0;
 
    typedef UINT16 CL_MB_ID;
-   const CL_MB_ID INVALID_CL_MB_ID = 65535;
-   const CL_MB_ID MAX_CL_MB_COUNT = 65535;
-
-   static const UINT32 INVALID_CL_PAGE_SEQ = 0xFFFFFFFF;
+   constexpr CL_MB_ID INVALID_CL_MB_ID = 65535;
+   constexpr CL_MB_ID MAX_CL_MB_COUNT = 65535;
 
 } /// end of namespace vessel
 } /// end of namespace engine

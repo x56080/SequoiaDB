@@ -90,7 +90,7 @@ namespace vessel
 
                OSS_INLINE void reset()
                {
-                  _seq = INVALID_CL_PAGE_SEQ;
+                  _seq = 0;
                   _sptr.reset();
                   _failureCnt = 0;
                   return;
@@ -112,8 +112,7 @@ namespace vessel
 
                OSS_INLINE BOOLEAN isValid()const
                {
-                  return INVALID_CL_PAGE_SEQ != _seq &&
-                         NULL != _sptr.get();
+                  return nullptr != _sptr.get();
                }
 
                OSS_INLINE UINT32 getSeq()const
@@ -130,7 +129,7 @@ namespace vessel
                }
 
             private:
-               UINT32 _seq = INVALID_CL_PAGE_SEQ;
+               UINT32 _seq = 0;
                fsmCandidate::SHARED_INFO_PTR _sptr;
                UINT32 _failureCnt = 0;
          };//struct _bucketCandidate
@@ -139,7 +138,7 @@ namespace vessel
          UINT32 _capacity = 0;
          UINT32 _size = 0;
          /// we should always keep searching done in few cpu cache lines.
-         _bucketCandidate *_candidates = NULL;
+         _bucketCandidate *_candidates = nullptr;
          UINT64 _reqCnt = 0;
    };//class fsmCandidateBucket
 

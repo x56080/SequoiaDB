@@ -47,8 +47,10 @@ namespace vessel
    class freeSpaceTuple
    {
       public:
-         freeSpaceTuple(){}
-         ~freeSpaceTuple(){}
+         freeSpaceTuple() = default;
+         ~freeSpaceTuple() = default;
+         freeSpaceTuple(const freeSpaceTuple &) = default;
+         freeSpaceTuple &operator=(const freeSpaceTuple &) = default;
          explicit freeSpaceTuple(UINT32 seq,
                                  PAGE_ID lpid,
                                  INT32 lvl):
@@ -56,25 +58,8 @@ namespace vessel
                   _lpid(lpid),
                   _lvl(lvl){}
 
-         freeSpaceTuple(const freeSpaceTuple &o):
-         _seq(o._seq),
-         _lpid(o._lpid),
-         _lvl(o._lvl){}
-
-         freeSpaceTuple &operator=(const freeSpaceTuple &o)
-         {
-            _seq = o._seq;
-            _lpid = o._lpid;
-            _lvl = o._lvl;
-            return *this;
-         }
-
       public:
-         OSS_INLINE BOOLEAN isValid()const
-         {
-            return INVALID_CL_PAGE_SEQ != _seq;
-         }
-         OSS_INLINE void reset(UINT32 seq = INVALID_CL_PAGE_SEQ,
+         OSS_INLINE void reset(UINT32 seq = 0,
                                PAGE_ID lpid = INVALID_PAGE_ID,
                                INT32 lvl = FSM_INVALID_SPACE_LVL)
          {
@@ -108,7 +93,7 @@ namespace vessel
          }
 
       private:
-         UINT32 _seq = INVALID_CL_PAGE_SEQ;
+         UINT32 _seq = 0;
          PAGE_ID _lpid = INVALID_PAGE_ID;
          INT32 _lvl = FSM_INVALID_SPACE_LVL;
    };//class freeSpaceTuple
