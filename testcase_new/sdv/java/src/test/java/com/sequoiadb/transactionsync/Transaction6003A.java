@@ -161,7 +161,7 @@ public class Transaction6003A extends SdbTestBase {
         while ( cursor.hasNext() ) {
             Assert.assertEquals( cursor.getNext().get( "a" ).toString(), "1" );
         }
-        if ( timeoutMillis > 1000 ) {
+        if ( timeoutMillis > 5000 ) {
             Assert.fail( "when transactiontimeout is 0(s), the actual time is "
                     + timeoutMillis + "(ms)." );
         }
