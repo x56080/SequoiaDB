@@ -80,7 +80,10 @@ INT32 main ( INT32 argc, CHAR **argv )
    // define local variables
    // initialize them before use
    BSONObj obj ;
-   BSONObj rule ;
+   BSONObj modifier ;
+   BSONObj matcher ;
+   BSONObj hint ;
+   BSONObj result ;
 
    INT32 rc = SDB_OK ;
 
@@ -129,19 +132,15 @@ INT32 main ( INT32 argc, CHAR **argv )
    }
 
    // update the record
-   // let's set the rule and query condition first
-   // here,we make the condition to be NULL
-   // so all the records will be update
-   rule = BSON ( "$set" << BSON ( "age" << 19 ) ) ;
-   cout<<"The update rule is: "<<endl ;
-   cout << rule.toString() << endl ;
-   rc = collection.update( rule ) ;
+   modifier = BSON ( "$set" << BSON ( "age" << 19 ) ) ;
+   cout<<"The update rule is: " << modifier.toString() <<endl ;
+   rc = collection.update( modifier, matcher, hint, 0, &result ) ;
    if( rc!=SDB_OK )
    {
       cout<<"Failede to update the record, rc = "<<rc<<endl ;
       goto error ;
    }
-   cout<<"Success to update!"<<endl ;
+   cout<< "Update result: " << result.toString() <<endl ;
 
    // drop the specified collection
    rc = collectionspace.dropCollection( COLLECTION_NAME ) ;
