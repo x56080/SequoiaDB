@@ -305,7 +305,6 @@ namespace engine
       return SDB_OPERATION_INCOMPATIBLE ;
    }
 
-
    INT32 _dmsStorageData::_setRecordGlobTransID( dmsMBContext *context,
                                                  dmsRecordRW  &recordRW,
                                                  _pmdEDUCB    *cb,
@@ -377,6 +376,44 @@ namespace engine
       return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__POSTINSERTRECORD, "_dmsStorageData::_postInsertRecord" )
+   void _dmsStorageData::_postInsertRecord( dmsMBContext *context,
+                                            dmsExtRW &extRW,
+                                            dmsRecordRW &recordRW,
+                                            const dmsRecordData &recordData,
+                                            UINT32 recordSize,
+                                            _pmdEDUCB *cb )
+   {
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__POSTINSERTRECORD ) ;
+
+      // and then need to check if we need to split deleted record
+      dmsRecord* pRecord = recordRW.writePtr( recordSize ) ;
+      dmsOffset  myOffset = pRecord->getMyOffset() ;
+
+      if ( pRecord->getSize() - recordSize > DMS_MIN_RECORD_SZ )
+      {
+         // original offset+new size = new delete offset
+         dmsOffset newOffset = myOffset + recordSize ;
+         // original size - new size = new delete size
+         INT32 newSize = pRecord->getSize() - recordSize ;
+         dmsRecordID newRid = recordRW.getRecordID() ;
+         newRid._offset = newOffset ;
+         INT32 rc = _saveDeletedRecord( context->mb(), newRid, newSize ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDWARNING, "Failed to save deleted record, rc: %d", rc ) ;
+         }
+         else
+         {
+            // set the original place with new dmsrecordSize
+            pRecord->setSize( recordSize ) ;
+         }
+      }
+      // if the leftover space is not good enough for a min_record, then we
+      // don't change the record size
+
+      PD_TRACE_EXIT( SDB__DMSSTORAGEDATA__POSTINSERTRECORD ) ;
+   }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__EXTENTUPDATERECORD, "_dmsStorageData::_extentUpdatedRecord" )
    INT32 _dmsStorageData::_extentUpdatedRecord( dmsMBContext *context,
@@ -656,8 +693,10 @@ namespace engine
                PD_LOG ( PDERROR, "Failed to append record due to %d", rc ) ;
                goto error ;
             }
-            // set the create LSN to the ovf record create lsn
-            // pNewRecord->setLSNOffset( pRecord->getLSNOffset() ) ;
+
+            _postInsertRecord( context, newExtRW, newRecordRW, newRecordData,
+                               dmsRecordSize, cb ) ;
+
             // set remote record as overflowed to
             pNewRecord->setOvt() ;
             if ( ovfRID.isValid() )
@@ -1122,27 +1161,6 @@ namespace engine
          // set or restore transID in record header
          _setRecordGlobTransID( context, recordRW, cb, FALSE ) ;
       }
-
-      // and then need to check if we need to split deleted record
-      if ( pRecord->getSize() - needRecordSize > DMS_MIN_RECORD_SZ )
-      {
-         // original offset+new size = new delete offset
-         dmsOffset newOffset = myOffset + needRecordSize ;
-         // original size - new size = new delete size
-         INT32 newSize = pRecord->getSize() - needRecordSize ;
-         dmsRecordID newRid = recordRW.getRecordID() ;
-         newRid._offset = newOffset ;
-         rc = _saveDeletedRecord( context->mb(), newRid, newSize ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to save deleted record, rc: %d", rc ) ;
-            goto error ;
-         }
-         // set the original place with new dmsrecordSize
-         pRecord->setSize( needRecordSize ) ;
-      }
-      // if the leftover space is not good enough for a min_record, then we
-      // don't change the record size
 
       // then for the original location we set new record header and copy data
       pRecord->setData( recordData ) ;

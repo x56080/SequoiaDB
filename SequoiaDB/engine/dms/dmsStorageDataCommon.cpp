@@ -4312,6 +4312,12 @@ namespace engine
                               foundRID, cb, dpscb ? &callback : NULL,
                               insertResult, pUnqIdxHashArray ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert indexes, rc: %d", rc ) ;
+
+         if ( !markInsert )
+         {
+            _postInsertRecord( context, extRW, recordRW, recordData,
+                               dmsRecordSize, cb ) ;
+         }
       }
       catch( std::exception &e )
       {

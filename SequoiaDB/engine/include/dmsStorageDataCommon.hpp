@@ -1256,6 +1256,13 @@ namespace engine
                                             BOOLEAN isInsert = TRUE,
                                             const dmsTransRecordInfo *recordInfo = NULL ) = 0 ;
 
+         virtual void _postInsertRecord( dmsMBContext *context,
+                                         dmsExtRW &extRW,
+                                         dmsRecordRW &recordRW,
+                                         const dmsRecordData &recordData,
+                                         UINT32 recordSize,
+                                         _pmdEDUCB *cb ) = 0 ;
+
          virtual INT32 _operationPermChk( DMS_ACCESS_TYPE accessType ) = 0 ;
 
          virtual INT32 _extentUpdatedRecord( dmsMBContext *context,
