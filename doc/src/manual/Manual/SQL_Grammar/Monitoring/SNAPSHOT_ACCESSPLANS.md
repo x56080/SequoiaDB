@@ -1,7 +1,5 @@
 
-##描述##
-
-访问计划缓存快照 $SNAPSHOT_ACCESSPLANS 列出数据库中缓存的访问计划的信息。
+访问计划缓存快照可以列出数据库中缓存的访问计划的信息。
 
 >**Note:**
 >
@@ -47,7 +45,7 @@ $SNAPSHOT_ACCESSPLANS
 | MaxTimeSpentQuery    | bson      | 该访问计划执行时间最慢的一次查询信息           |
 | MinTimeSpentQuery    | bson      | 该访问计划执行时间最快的一次查询信息           |
 
-### MaxTimeSpentQuery 和 MinTimeSpentQuery 对象的信息 ###
+###MaxTimeSpentQuery 和 MinTimeSpentQuery 对象的信息###
 
 | 字段名               | 类型      | 描述                                           |
 | -------------------- | --------- | ---------------------------------------------- |
