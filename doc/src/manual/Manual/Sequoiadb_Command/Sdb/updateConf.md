@@ -1,10 +1,10 @@
 ##名称##
 
-updateConf - 更新节点配置
+updateConf - 更新指定的节点配置
 
 ##语法##
 
-**db.updateConf( \<config\>, [options] )**
+**db.updateConf(\<config\>, [options])**
 
 ##类别##
 
@@ -12,23 +12,14 @@ Sdb
 
 ##描述##
 
-该函数用于更新节点配置，并进行配置动态生效。重启生效的配置需重启后生效，禁止修改的配置则不允许修改。
+该函数用于更新指定的节点配置。生效类型为“在线生效”的配置，更新后立即生效；生效类型为“重启生效”的配置，需重启节点后生效。各配置的生效类型可参考[参数说明][parameter]。
 
 ##参数##
 
-| 参数名 | 参数类型 | 描述 | 是否必填 |
-| ------ | ------ | ------ | ------ |
-| config | Json对象 |配置参数，包含配置名和配置值，例如：{ preferredinstance:'A', diaglevel:3 } | 是 |
-| options| Json对象 | **[命令位置参数](manual/Manual/Sequoiadb_Command/location.md)** | 否 |
-
-> **Note:**
->
-> * 参照[数据库配置](manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md)页面获取配置的动态生效、重启生效和禁止修改信息。
-> * 动态生效和重启生效的配置都会写入配置文件中，成为固定的配置。
-> * 重启生效和禁止修改配置的详细信息会通过错误信息返回值通知。
-> * 若配置的值和数据库当前值相同，则重启生效和禁止修改配置不会报错。
-> * 无命令位置参数时，缺省对所有节点生效，即使用 {Global:true} 的命令位置参数。
-> * 可以通过 [snapshot](manual/Manual/Snapshot/SDB_SNAP_CONFIGS.md) 获取指定节点的当前配置。
+| 参数名 | 类型 | 描述 | 是否必填 |
+| ------ | ---- | ---- | -------- |
+| config | object | [节点配置参数][parameter] | 是 |
+| options| object | [命令位置参数][location]<br>如果不指定该参数，更新操作默认对所有节点生效 | 否 |
 
 ##返回值##
 
@@ -38,7 +29,7 @@ Sdb
 
 ##错误##
 
-当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
 
 ##版本##
 
@@ -46,57 +37,31 @@ v2.9 及以上版本
 
 ##示例##
 
-* 配置数据节点 20000 上的 diaglevel 参数。
+- 更新“在线生效”类型的配置 diaglevel，并指定生效节点为 11820
 
     ```lang-javascript
-    // 连接协调节点
-    > db = new Sdb( "localhost", 11810 )
-    > db.updateConf( { diaglevel:3 }, { GroupName:"db1", ServiceName:"20000" } )
+    > db.updateConf({diaglevel: 3}, {ServiceName: "11820"})
     ```
 
-* 配置数据组 db2 上所有数据节点的 preferredinstance 和 diaglevel 参数。
+- 更新“重启生效”类型的配置 numpreload，并指定生效节点为 11820
 
     ```lang-javascript
-    // 连接协调节点
-    > db = new Sdb( "localhost", 11810 )
-    > db.updateConf( { preferredinstance:'A', diaglevel:3 }, { GroupName:"db2" } )
+    > db.updateConf({numpreload: 10}, {ServiceName: "11820"})
     ```
-
-* 报错时获取详细错误信息。
+    
+    如果返回如下信息，需重启节点
 
     ```lang-javascript
-    // 连接协调节点
-    > db = new Sdb( "localhost", 11810 )
-    // 进行参数配置，报错
-    > db.updateConf( { transactionon:'true' }, { ServiceName:"20000" } )
-      (nofile):0 uncaught exception: -264
-      One or more nodes did not complete successfully
-      Takes 0.009322s.
-    // 获取详细报错信息，了解到 transactionon 参数需要重启生效
-    > getLastErrObj()
-       {
-           "errno": -264,
-           "description": "One or more nodes did not complete successfully",
-           "detail": "",
-           "ErrNodes": [
-           {
-               "NodeName": "ubuntu-zwb:20000",
-               "GroupName": "db1",
-               "Flag": -322,
-               "ErrInfo": {
-               "errno": -322,
-               "description": "Some configuration changes didn't take effect",
-               "detail": "Config 'transactionon' require(s) restart to take effect."
-               }
-           }
-           ]
-       }
+    (shell):1 uncaught exception: -322
+    Some configuration changes didn't take effect:
+    Config 'numpreload' require(s) restart to take effect.
     ```
 
 [^_^]:
      本文使用的所有引用及链接
-
-[list_info]:manual/Manual/List/list.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[error_guide]:manual/FAQ/faq_sdb.md
+[faq]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md
+[parameter]:manual/Distributed_Engine/Maintainance/Database_Configuration/parameter_instructions.md
+[location]:manual/Manual/Sequoiadb_Command/location.md
