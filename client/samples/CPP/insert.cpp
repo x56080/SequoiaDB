@@ -72,6 +72,7 @@ INT32 main ( INT32 argc, CHAR **argv )
    // define local variables
    // initialize them before use
    BSONObj obj ;
+   BSONObj result ;
 
    INT32 rc = SDB_OK ;
 
@@ -105,14 +106,16 @@ INT32 main ( INT32 argc, CHAR **argv )
    obj = BSON ( "name" << "tom" << "age" << 24 ) ;
    cout<<"The inserted record is: "<<endl ;
    cout<<obj.toString()<<endl ;
+
    // then,insert to the specified collection
-   rc = collection.insert ( obj ) ;
+   rc = collection.insert( obj, FLG_INSERT_RETURN_OID, &result ) ;
    if ( rc!=SDB_OK )
    {
       cout<<"Failed to insert record, rc = "<<rc<<endl ;
       goto error ;
    }
-   cout<<"Success to insert record!"<<endl ;
+   cout<< "Insert result: " << result.toString() <<endl ;
+
    // drop the specified collection
    rc = collectionspace.dropCollection( COLLECTION_NAME ) ;
    if( rc!=SDB_OK )
