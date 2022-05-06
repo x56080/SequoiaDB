@@ -68,7 +68,8 @@ namespace engine
    public:
       INT32 sync( _clsSyncSession &session,
                   const UINT32 &w,
-                  INT64 timeout = -1 ) ;
+                  INT64 timeout = -1,
+                  BOOLEAN isFTWhole = FALSE ) ;
 
       void  updateNodeStatus( const MsgRouteID &id, BOOLEAN valid ) ;
       void  notifyFullSync( const MsgRouteID &id ) ;

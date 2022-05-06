@@ -231,7 +231,9 @@ namespace engine
                w = CLS_REPLSET_MAX_NODE_SIZE ;
             }
 
-            return _sync.sync( session, w, timeout ) ;
+            return _sync.sync( session, w, timeout,
+                               FT_LEVEL_WHOLE == _pFTMgr->getFTLevel() ?
+                                                             TRUE : FALSE ) ;
          }
 
          OSS_INLINE UINT32 getNtySessionNum ()
