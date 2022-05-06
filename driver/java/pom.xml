@@ -4,7 +4,7 @@
 
     <groupId>com.sequoiadb</groupId>
     <artifactId>sequoiadb-driver</artifactId>
-    <version>3.4.4-SNAPSHOT</version>
+    <version>3.4.5.jre8-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>SequoiaDB Java Driver</name>
@@ -36,7 +36,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
-        <java.version>1.7</java.version>
+        <java.version>1.8</java.version>
     </properties>
 
     <dependencies>

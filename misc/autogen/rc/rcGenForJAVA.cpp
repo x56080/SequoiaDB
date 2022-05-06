@@ -2,29 +2,29 @@
 
 #if defined (GENERAL_RC_JAVA_FILE)
 IMPLEMENT_GENERATOR_AUTO_REGISTER( rcGenForJAVA, GENERAL_RC_JAVA_FILE ) ;
+IMPLEMENT_GENERATOR_AUTO_REGISTER( rcGenForJAVA7, GENERAL_RC_JAVA_FILE ) ;
 #endif
 
-rcGenForJAVA::rcGenForJAVA() : _isFinish( false )
+
+rcGenForJAVABase::rcGenForJAVABase() : _isFinish( false )
 {
 }
 
-rcGenForJAVA::~rcGenForJAVA()
+rcGenForJAVABase::~rcGenForJAVABase()
 {
 }
 
-bool rcGenForJAVA::hasNext()
+bool rcGenForJAVABase::hasNext()
 {
    return !_isFinish ;
 }
 
-int rcGenForJAVA::outputFile( int id, fileOutStream &fout, string &outputPath )
+int rcGenForJAVABase::_outStream( int id, fileOutStream &fout )
 {
-   int rc = 0 ;
+   int rc = 0;
    int i  = 0 ;
    int listSize = (int)_rcInfoList.size() ;
    string headerDesc ;
-
-   outputPath = RC_JAVA_FILE_PATH ;
 
    rc = _buildStatement( 1, headerDesc ) ;
    if ( rc )
@@ -99,6 +99,58 @@ int rcGenForJAVA::outputFile( int id, fileOutStream &fout, string &outputPath )
 
 done:
    _isFinish = true ;
+   return rc ;
+error:
+   goto done ;
+}
+
+rcGenForJAVA::rcGenForJAVA()
+{
+}
+
+rcGenForJAVA::~rcGenForJAVA()
+{
+}
+
+int rcGenForJAVA::outputFile( int id, fileOutStream &fout, string &outputPath )
+{
+   int rc = 0 ;
+   outputPath = RC_JAVA_FILE_PATH ;
+   rc = _outStream( id, fout ) ;
+   if ( rc )
+   {
+      printLog( PD_ERROR ) << "failed to build file out stream" << endl ;
+      rc = 1 ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+rcGenForJAVA7::rcGenForJAVA7()
+{
+}
+
+rcGenForJAVA7::~rcGenForJAVA7()
+{
+}
+
+int rcGenForJAVA7::outputFile( int id, fileOutStream &fout, string &outputPath )
+{
+   int rc = 0 ;
+   outputPath = RC_JAVA_7_FILE_PATH ;
+   rc = _outStream( id, fout ) ;
+   if ( rc )
+   {
+      printLog( PD_ERROR ) << "failed to build file out stream" << endl ;
+      rc = 1 ;
+      goto error ;
+   }
+
+done:
    return rc ;
 error:
    goto done ;
