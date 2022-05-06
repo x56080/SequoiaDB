@@ -428,7 +428,7 @@ retry:
             }
             rc = scanner->relocateRID ( key, rid ) ;
             PD_RC_CHECK ( rc, PDERROR, "Failed to relocate key to the specified "
-                          "location, rc: %d", rc ) ;
+                          "location: %s, rc: %d", key.toString().c_str(), rc ) ;
          }
 
          // delete

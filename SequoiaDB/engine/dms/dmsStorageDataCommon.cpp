@@ -3169,7 +3169,8 @@ namespace engine
          rc = _checkMarkInsert( context, transID, insertObj, cb, position,
                                 markInsert, foundRID, recordData, recordRW ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check mark insert "
-                      "[position %lld], rc: %d", position, rc ) ;
+                      "[position %lld, obj %s], rc: %d",
+                      position, insertObj.toPoolString().c_str(), rc ) ;
 
          if ( !markInsert )
          {
@@ -3754,8 +3755,9 @@ namespace engine
                                                     cb ) ;
                      if ( rc )
                      {
-                        PD_LOG( PDERROR, "Process delete record in "
-                                "handler failed, rc: %d", rc ) ;
+                        PD_LOG( PDERROR, "Process delete record(%s) in "
+                                "handler failed, rc: %d",
+                                delObject.toString().c_str(), rc ) ;
                         goto error ;
                      }
                   }
@@ -4102,8 +4104,11 @@ namespace engine
                                                  recordID, &recordRW, cb ) ;
                   if ( rc )
                   {
-                     PD_LOG( PDERROR, "Process update record "
-                             "in handler failed, rc: %d", rc ) ;
+                     PD_LOG( PDERROR, "Process update record[%s] to [%s] "
+                             "in handler failed, rc: %d",
+                             obj.toString().c_str(),
+                             newobj.toString().c_str(),
+                             rc ) ;
                      goto error ;
                   }
                }
@@ -4240,7 +4245,9 @@ namespace engine
                   }
                }
 
-               PD_LOG ( PDERROR, "Failed to update record, rc: %d", rc ) ;
+               PD_LOG ( PDERROR, "Failed to update record from (%s) to (%s), "
+                        "rc: %d", obj.toString().c_str(),
+                        newobj.toString().c_str(), rc ) ;
                goto error ;
             }
 
@@ -4270,13 +4277,12 @@ namespace engine
       // log update information
       if ( dpscb )
       {
-#ifdef _DEBUG
          PD_LOG ( PDDEBUG, "oldChange: %s,%s\nnewChange: %s,%s",
                   oldMatch.toString().c_str(),
                   oldChg.toString().c_str(),
                   newMatch.toString().c_str(),
                   newChg.toString().c_str() ) ;
-#endif
+
          PD_AUDIT_OP_WITHNAME( AUDIT_UPDATE, "UPDATE", AUDIT_OBJ_CL,
                                fullName, rc, "OldMatch:%s, OldChange:%s, "
                                "NewMatch:%s, NewChange:%s",
