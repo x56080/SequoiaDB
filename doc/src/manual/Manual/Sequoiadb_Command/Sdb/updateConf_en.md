@@ -1,141 +1,67 @@
-
 ##NAME##
 
-updateConf - update node configuration.
+updateConf - update the specified node configuration
 
 ##SYNOPSIS##
-**db.updateConf(\<config\>,[options])**
+
+**db.updateConf(\<config\>, [options])**
 
 ##CATEGORY##
+
 Sdb
 
 ##DESCRIPTION##
-Update node configuration and reload all configurations. Some configurations require restart to take effect, some are not allowed to be changed.
+
+This function is used to update the specified node configuration. The configuration with the effective type of "online effective" will take effect immediately after the update; the configuration with the effective type of "restart effective" will take effect after restarting the node. For the effective type of each configuration can refer to [parameter description][parameter].
 
 ##PARAMETERS##
 
-* `configs` ( json object , *Required* )
-
-	The specific configurations to update. Including configuration name and value,  	format: { preferredinstance:'A', diaglevel:3 }
-
-* `options` ( json object )
-
-	Specify location params, such as NodeID, HostName, ServiceName, etc.
-
-	It only takes effect on coordinate nodes. The global nodes in default.
-
-1. Global
-
-	Specify the command's location which is local or global.
-
-	* Global:false  : run on local
-	* Global:true   : run on global nodes
-
-2. GroupID
-
-	Specify the command's location by group ID.
-
-	* GroupID:1000
-	* GroupID:[1000, 1001, ...]
-
-3. GroupName
-
-	Specify the command's location by group name.
-
-	* GroupName:"db1"
-	* GroupName:["db1", "db2", ...]
-
-4. NodeID
-
-	Specify the command's location by node ID.
-
-	* NodeID:1000
-	* NodeID:[1000, 1001, ...]
-
-5. HostName
-
-	Specify the command's location by node name.
-
-	* The param should be used with 'ServiceName'.
-	* HostName:"host-01"
-	* HostName:[ "centos-01", "ubuntu-02", ... ]
-
-6. ServiceName
-
-	Specify the command's location by ServiceName.
-
-	* The param should be used with 'HostName'.
-	* ServiceName:"11820"
-	* ServiceName:[ "11780", "11810", ... ]
-
-7. NodeSelect
-
-	Specify the command's node select type for a group
-
-	* without the node information. Value is "all",
-	* "master", "any" or "secondary".
-	* NodeSelect:"all"
-
-**Note:**
-
-* Both configurations that take effect immediately and require restart will be written into config file and become permanent.
-* Configurations that require restart or that is not allowed to change will provide more detailed information through error message return value.
-* If the default value equals the current value of a certain configuration, then error message will not be reported.
-* If no location parameter is provided, the default value will be {Global:true}, i.e., effective on all nodes.
-* You can use **Snapshot(SDB_SNAP_CONFIG)** to aquire current configurations of a specific node.
+| Name | Type| Description | Required or not |
+| ---- | --- | ----------- | --------------- |
+| config | object | [Node Configuration Parameters][parameter] | required |
+| options| object | [Command location parameter] [location]<br>If this parameter is not specified, the update operation takes effect on all nodes by default. | not |
 
 ##RETURN VALUE##
 
-No return value, when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md)  and use [getLastErrMsg()](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md) to get [error message](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md). For more detial, please  reference to [Troubleshooting](manual/FAQ/faq_sdb.md). 
+When the function executes successfully, there is no return value.
 
-##HISTORY##
-Since v2.9.
+When the function fails, an exception will be thrown and an error message will be printed.
+
+##ERRORS##
+
+When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
+
+##VERSION##
+
+v2.9 and above
 
 ##EXAMPLES##
-1. Set configuration 'diaglevel' on data node 20000.
 
-	```lang-javascript
-	// connect to coord
-	> db = new Sdb( "localhost", 11810 )
-	> db.updateConf( { diaglevel:3 }, { GroupName:"db1", ServiceName:"20000" } )
- 	```
+- Update the parameter "diaglevel" of the "online effective" type, and specify the updated node as 11820.
 
-2. Set configuration 'preferredinstance' and 'diaglevel' on all nodes of group db2.
+    ```lang-javascript
+    > db.updateConf({diaglevel: 3}, {ServiceName: "11820"})
+    ```
 
-	```lang-javascript
-	// connect to coord
-	> db = new Sdb( "localhost", 11810 )
-	> db.updateConf( { preferredinstance:'A', diaglevel:3 }, { GroupName:"db2" } )
-	```
+- Update the parameter "numpreload" of the "restart effective" type, and specify the updated node as 11820.
 
-3. Get more specific informantion on error.
+    ```lang-javascript
+    > db.updateConf({numpreload: 10}, {ServiceName: "11820"})
+    ```
 
-	```lang-javascript
-	// connect to coord
-	> db = new Sdb( "localhost", 11810 )
-	// set configurations, get error message.
-	> db.updateConf( { transactionon:'true' }, { ServiceName:"20000" } )
-	(nofile):0 uncaught exception: -264
-	One or more nodes did not complete successfully
-	Takes 0.009322s.
-	// get detailed information that config 'transactionon' requires a restart.
-	> getLastErrObj()
-	{
-		"errno": -264,
-		"description": "One or more nodes did not complete successfully",
-		"detail": "",
-		"ErrNodes": [
-		{
-			"NodeName": "ubuntu-zwb:20000",
-			"GroupName": "db1",
-			"Flag": -322,
-			"ErrInfo": {
-			"errno": -322,
-			"description": "Some configuration changes didn't take effect",
-			"detail": "Config 'transactionon' require(s) restart to take effect."
-			}
-		}
-		]
-	}
-	Takes 0.004652s.
-	```
+    If the following information is returned, the node needs to be restarted.
+
+    ```lang-javascript
+    (shell):1 uncaught exception: -322
+    Some configuration changes didn't take effect:
+    Config 'numpreload' require(s) restart to take effect.
+    ```
+
+[^_^]:
+     Links
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[faq]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md
+[parameter]:manual/Distributed_Engine/Maintainance/Database_Configuration/parameter_instructions.md
+[location]:manual/Manual/Sequoiadb_Command/location.md
