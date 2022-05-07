@@ -99,6 +99,7 @@ testFiles = [
    [ "./cbsonTest/cbson22070.cpp" ],
    [ "./cls/collection.cpp" ],
    [ "./meta/collectionspace.cpp" ],
+   [ "./meta/getDomainName25084.cpp" ],
    [ "./concurrent/concurrentInsert11187.cpp" ],
    [ "./meta/domain10401.cpp" ],
    [ "./concurrent/mutex22071.cpp" ],
