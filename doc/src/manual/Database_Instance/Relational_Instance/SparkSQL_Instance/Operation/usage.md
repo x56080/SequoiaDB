@@ -28,7 +28,7 @@ create <[temporary] table| temporary view> <tableName> [(schema)] using com.sequ
 |username|string|""|用户名|否|
 |passwordtype|string|"cleartext"|密码类型，取值如下：<br>"cleartext"：表示参数 password 为明文密码<br>"file"：表示参数 password 为密码文件路径|否|
 |password|string|""|用户名对应的密码|否|
-|connecttimeout|int32|1000|连接 SequoiaDB 节点超时时间（单位：ms） |否|
+|connecttimeout|int32|1000|连接 SequoiaDB 节点的超时时间（单位：ms）<br>取值为 0 表示不进行超时检测 |否|
 |samplingratio|double|1|schema 采样率，取值范围为(0, 1.0]|否|
 |samplingnum|int64|1000|schema 采样数量（每个分区），取值大于 0|否|
 |samplingwithid|boolean|FALSE|schema 采样时是否带 _id 字段，取值为 true 或 false  |否|
