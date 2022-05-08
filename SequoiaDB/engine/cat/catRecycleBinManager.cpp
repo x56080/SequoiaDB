@@ -50,7 +50,7 @@ namespace engine
 {
 
    // maximum retry count for dropping oldest recycle item
-   #define CAT_RECYCLE_MAX_RETRY ( 3 )
+   #define CAT_RECYCLE_MAX_RETRY ( 5 )
 
    /*
       _catRecycleBinManager implement
@@ -1413,6 +1413,70 @@ namespace engine
          break ;
       }
 
+      if ( oldestItem.isValid() )
+      {
+         // check if item has been locked, if so, try later items
+         catCtxLockMgr lockMgr ;
+         if ( !lockMgr.tryLockRecycleItem( oldestItem, EXCLUSIVE ) )
+         {
+            BSONObj matcher, orderBy ;
+            UTIL_RECY_ITEM_LIST candItemList ;
+            BOOLEAN foundCandidate = FALSE ;
+
+            PD_LOG( PDDEBUG, "Failed to lock oldest item "
+                    "[origin %s, recycle %s], try move on later "
+                    "available one", oldestItem.getOriginName(),
+                    oldestItem.getRecycleName() ) ;
+
+            try
+            {
+               matcher =
+                     BSON( FIELD_NAME_RECYCLE_ID <<
+                           BSON( "$gt" <<
+                                 (INT64)( oldestItem.getRecycleID() ) ) ) ;
+               // the recycle ID is increased with time
+               orderBy = BSON( FIELD_NAME_RECYCLE_ID << 1 ) ;
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to build recycle item matcher, "
+                       "occur exception %s", e.what() ) ;
+               rc = ossException2RC( &e ) ;
+               goto error ;
+            }
+
+            rc = _getItems( matcher, orderBy, _hintRecyID,
+                            CAT_RECYCLE_MAX_RETRY, cb, candItemList ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get oldest items after "
+                         "item [origin %s, recycle %s], rc: %d",
+                         oldestItem.getOriginName(),
+                         oldestItem.getRecycleName(), rc ) ;
+
+            for ( UTIL_RECY_ITEM_LIST_IT iter = candItemList.begin() ;
+                  iter != candItemList.end() ;
+                  ++ iter )
+            {
+               utilRecycleItem &tmpItem = *iter ;
+
+               if ( lockMgr.tryLockRecycleItem( tmpItem, EXCLUSIVE ) )
+               {
+                  // found candidate
+                  PD_LOG( PDDEBUG, "Found later available item "
+                          "[origin %s, recycle %s]", tmpItem.getOriginName(),
+                          tmpItem.getRecycleName() ) ;
+                  oldestItem = tmpItem ;
+                  foundCandidate = TRUE ;
+                  break ;
+               }
+            }
+
+            PD_CHECK( foundCandidate, SDB_LOCK_FAILED, error, PDERROR,
+                      "Failed to lock dropping item [origin %s, recycle %s]",
+                      oldestItem.getOriginName(),
+                      oldestItem.getRecycleName() ) ;
+         }
+      }
+
    done:
       PD_TRACE_EXITRC( SDB__CATRECYBINMGR__TRYFINDOLDESTITEM, rc ) ;
       return rc ;
@@ -1464,6 +1528,123 @@ namespace engine
       }
 
       oldestItem = tempItem ;
+
+      if ( oldestItem.isValid() )
+      {
+         // check if item has been locked, if so, try later items
+         catCtxLockMgr lockMgr ;
+         if ( !lockMgr.tryLockRecycleItem( oldestItem, EXCLUSIVE ) )
+         {
+            UINT32 retryCount = 0 ;
+            BSONObj matcherName, matcherUID, orderBy ;
+            UTIL_RECY_ITEM_LIST candNameItemList,
+                                candUIDItemList ;
+            UTIL_RECY_ITEM_LIST_IT iterName, iterUID ;
+            BOOLEAN foundCandidate = FALSE ;
+
+            PD_LOG( PDDEBUG, "Failed to lock oldest item "
+                    "[origin %s, recycle %s], try move on later "
+                    "available one", oldestItem.getOriginName(),
+                    oldestItem.getRecycleName() ) ;
+
+            try
+            {
+               matcherName =
+                     BSON( FIELD_NAME_ORIGIN_NAME << originName <<
+                           FIELD_NAME_RECYCLE_ID <<
+                           BSON( "$gt" <<
+                                 (INT64)( oldestItem.getRecycleID() ) ) ) ;
+               matcherUID =
+                     BSON( FIELD_NAME_ORIGIN_ID << (INT64)originID <<
+                           FIELD_NAME_RECYCLE_ID <<
+                           BSON( "$gt" <<
+                                 (INT64)( oldestItem.getRecycleID() ) ) ) ;
+
+               // the recycle ID is increased with time
+               orderBy = BSON( FIELD_NAME_RECYCLE_ID << 1 ) ;
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to build recycle item matcher, "
+                       "occur exception %s", e.what() ) ;
+               rc = ossException2RC( &e ) ;
+               goto error ;
+            }
+
+            // get oldest versions by name
+            rc = _getItems( matcherName, orderBy, _hintOrigName,
+                            CAT_RECYCLE_MAX_RETRY, cb, candNameItemList ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get oldest items by name [%s] "
+                         "after item [origin %s, recycle %s], rc: %d",
+                         originName, oldestItem.getOriginName(),
+                         oldestItem.getRecycleName(), rc ) ;
+
+            // get oldest versions by unique ID
+            rc = _getItems( matcherUID, orderBy, _hintOrigID,
+                            CAT_RECYCLE_MAX_RETRY, cb, candUIDItemList ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get oldest items by "
+                         "origin ID [%llu] after item [origin %s, recycle %s], "
+                         "rc: %d", originID, oldestItem.getOriginName(),
+                         oldestItem.getRecycleName(), rc ) ;
+
+            iterName = candNameItemList.begin() ;
+            iterUID = candUIDItemList.begin() ;
+
+            // merge 2 lists to find a candidate
+            while ( retryCount < CAT_RECYCLE_MAX_RETRY )
+            {
+               utilRecycleItem tempItem ;
+               if ( iterName != candNameItemList.end() )
+               {
+                  tempItem = *iterName ;
+               }
+               if ( iterUID != candUIDItemList.end() )
+               {
+                  if ( ( !tempItem.isValid() ) ||
+                       ( tempItem.getRecycleID() > iterUID->getRecycleID() ) )
+                  {
+                     tempItem = *iterUID ;
+                  }
+               }
+               if ( !tempItem.isValid() )
+               {
+                  // end loop
+                  break ;
+               }
+               if ( lockMgr.tryLockRecycleItem( tempItem, EXCLUSIVE ) )
+               {
+                  // found candidate
+                  PD_LOG( PDDEBUG, "Found later available item "
+                          "[origin %s, recycle %s]",
+                          tempItem.getOriginName(),
+                          tempItem.getRecycleName() ) ;
+                  oldestItem = tempItem ;
+                  foundCandidate = TRUE ;
+                  break ;
+               }
+               else
+               {
+                  // still failed to lock, look for the next one
+                  if ( ( iterName != candNameItemList.end() ) &&
+                       ( tempItem.getRecycleID() == iterName->getRecycleID() ) )
+                  {
+                     ++ iterName ;
+                  }
+                  if ( ( iterUID != candUIDItemList.end() ) &&
+                       ( tempItem.getRecycleID() == iterUID->getRecycleID() ) )
+                  {
+                     ++ iterUID ;
+                  }
+                  ++ retryCount ;
+               }
+            }
+
+            PD_CHECK( foundCandidate, SDB_LOCK_FAILED, error, PDERROR,
+                      "Failed to lock dropping item [origin %s, recycle %s]",
+                      oldestItem.getOriginName(),
+                      oldestItem.getRecycleName() ) ;
+         }
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__CATRECYBINMGR__TRYFINDOLDESTITEM_VER, rc ) ;
