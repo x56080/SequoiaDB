@@ -26,6 +26,7 @@ import java.util.Random;
 import java.util.Set;
 
 import com.sequoiadb.util.Helper;
+import org.bson.BSON;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -74,8 +75,8 @@ public class Sequoiadb implements Closeable {
 
     // cache cs/cl name
     private Map<String, Long> nameCache = new HashMap<String, Long>();
-    private static boolean enableCache = true;
-    private static long cacheInterval = 300 * 1000;
+    private static ClientOptions globalClientConf = new ClientOptions();
+
     private BSONObject attributeCache = null;
 
     private final static String DEFAULT_HOST = "127.0.0.1";
@@ -303,7 +304,7 @@ public class Sequoiadb implements Closeable {
         if (name == null) {
             return;
         }
-        if (enableCache) {
+        if (globalClientConf.getEnableCache()) {
             long current = System.currentTimeMillis();
             nameCache.put(name, current);
             String[] arr = name.split("\\.");
@@ -358,10 +359,10 @@ public class Sequoiadb implements Closeable {
     }
 
     boolean fetchCache(String name) {
-        if (enableCache) {
+        if (globalClientConf.getEnableCache()) {
             if (nameCache.containsKey(name)) {
                 long lastUpdatedTime = nameCache.get(name);
-                if ((System.currentTimeMillis() - lastUpdatedTime) >= cacheInterval) {
+                if ((System.currentTimeMillis() - lastUpdatedTime) >= globalClientConf.getCacheInterval()) {
                     nameCache.remove(name);
                     return false;
                 } else {
@@ -376,15 +377,13 @@ public class Sequoiadb implements Closeable {
     }
 
     /**
-     * Initialize the configuration options for client.
+     * Initialize the global configuration of SequoiaDB driver.
      *
-     * @param options the configuration options for client
+     * @param options The global configuration of SequoiaDB driver
      */
     public static void initClient(ClientOptions options) {
-        enableCache = (options != null) ? options.getEnableCache() : true;
-        cacheInterval = (options != null && options.getCacheInterval() >= 0)
-                ? options.getCacheInterval()
-                : 300 * 1000;
+        globalClientConf = options != null ? options : new ClientOptions();
+        BSON.setExactlyDate( globalClientConf.getExactlyDate() );
     }
 
     /**
