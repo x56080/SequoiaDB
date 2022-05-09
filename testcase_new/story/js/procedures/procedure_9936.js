@@ -4,6 +4,8 @@
          
 ***************************************************************************** */
 testConf.skipStandAlone = true;
+var csName = CHANGEDPREFIX + "_9936";
+var clName = CHANGEDPREFIX + "_9936";
 main( test );
 
 function test ()
@@ -132,11 +134,11 @@ function test ()
    db.listProcedures( { name: procName[0] } );
    // run create index procedure
    index = 1; // createIndex
-   db.eval( procName[index] + "(\"" + COMMCSNAME + "\", \"" + COMMCLNAME + "\", \"" + idxName + "\", \"" + idxKey + "\")" );
+   db.eval( procName[index] + "(\"" + csName + "\", \"" + clName + "\", \"" + idxName + "\", \"" + idxKey + "\")" );
 
    index = 2; // get index
-   db.eval( procName[index] + "(\"" + COMMCSNAME + "\",\"" + COMMCLNAME + "\",\"" + idxName + "\", \"" + idxKey + "\")" );
-   commDropCL( db, COMMCSNAME, COMMCLNAME, false, false );
+   db.eval( procName[index] + "(\"" + csName + "\",\"" + clName + "\",\"" + idxName + "\", \"" + idxKey + "\")" );
+   commDropCL( db, csName, clName, false, false );
 
    index = 2; // get index
    db.removeProcedure( procName[index] );
