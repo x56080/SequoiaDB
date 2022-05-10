@@ -108,7 +108,7 @@ namespace vessel
             }
 #else
             boost::dynamic_bitset<>::size_type t = _bs.find_first();
-            pos = (t == boost::dynamic_bitset<>::nops) ?
+            pos = (t == boost::dynamic_bitset<>::npos) ?
                   -1 : static_cast<INT32>(t);
 #endif
             return pos;
@@ -125,7 +125,7 @@ namespace vessel
             }
 #else
             boost::dynamic_bitset<>::size_type t = _bs.find_next(prev);
-            pos = (t == boost::dynamic_bitset<>::nops) ?
+            pos = (t == boost::dynamic_bitset<>::npos) ?
                   -1 : static_cast<INT32>(t);
 #endif
             return pos;
