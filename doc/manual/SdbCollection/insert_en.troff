@@ -5,85 +5,415 @@
 .hy
 .SH NAME
 .PP
-insert \- Insert record or records into the current collection.
+insert \- insert record into the current collection
 .SH SYNOPSIS
 .PP
-\f[B]db.collectionspace.collection.insert(<doc|docs>,[flag])\f[]
+\f[B]db.collectionspace.collection.insert(<doc|docs>, [flag])\f[]
 .PP
-\f[B]db.collectionspace.collection.insert(<doc|docs>,[options])\f[]
+\f[B]db.collectionspace.collection.insert(<doc|docs>, [options])\f[]
 .SH CATEGORY
 .PP
-Collection
+SdbCollection
 .SH DESCRIPTION
 .PP
-Insert record or records into the current collection.
-If the current collection does not exist, please create it first.
+This function is used to insert single or multiple records into the current
+collection.
 .SH PARAMETERS
 .IP \[bu] 2
-\f[C]doc/docs\f[] ( \f[I]Object/Array of Object\f[]， \f[I]Required\f[] )
+doc|docs ( \f[I]object/array, required\f[] )
 .RS 2
 .PP
-Record or records to be inserted.
-Can not be null.
+Single or multiple records
 .RE
 .IP \[bu] 2
-\f[C]flag\f[] ( \f[I]Int32\f[]， \f[I]Optional\f[] )
+flag ( \f[I]number, optional\f[] )
 .RS 2
 .PP
-Insert flag, use to control the behavior and result of inserting.
-Can be the follow value:
+Flag bit, used to control the behavior and result of insert operation.
+If this parameter is not specified, the insert operation will not return the
+content of the field "_id" by default, and an error will be reported when an
+index key conflict occurs.
+.PP
+the value is as follows:
 .IP \[bu] 2
-0, default value.
+SDB_INSERT_RETURN_ID: After successful insertion, return the content of the
+field "_id" in the record.
 .IP \[bu] 2
-SDB_INSERT_RETURN_ID, means return the value of "_id" field of the record.
+SDB_INSERT_CONTONDUP: When an index key conflict occurs, skip this record and
+continue to insert other records.
 .IP \[bu] 2
-SDB_INSERT_CONTONDUP, means continue inserting (no errors were reported) when
-hitting index key duplicate error.
+SDB_INSERT_REPLACEONDUP: When an index key conflict occurs, the new record will
+overwrite the original record and continue to insert other records.
+.RS
+.PP
+\f[B]Note：\f[]
 .IP \[bu] 2
-SDB_INSERT_REPLACEONDUP, means replace the exist value to the inserting value
-when hitting index key duplicate error, and continue the left records (no errors
-were reported).
+If users need to specify multiple values, users can use "|" to separate them.
+.IP \[bu] 2
+"SDB_INSERT_CONTONDUP" and "SDB_INSERT_REPLACEONDUP" cannot be specified at the
+same time.
+.RE
 .RE
 .IP \[bu] 2
-\f[C]options\f[] ( \f[I]Object\f[]， \f[I]Optional\f[] )
+options ( \f[I]object\f[] )
 .RS 2
-Insert options, use to control the behavior and result of inserting.
-So far, its role is consistent with the argument \f[C]flag\f[], and it can be
-the follow value:
+.PP
+The behavior and result of the insert operation can be controlled through the
+parameter "options":
 .IP \[bu] 2
-\f[C]ReturnOID\f[] ( \f[I]Bool\f[], \f[I]Optional\f[] ): the same with
-"SDB_INSERT_RETURN_ID" in argument \f[C]flag\f[].
-.IP \[bu] 2
-\f[C]ContOnDup\f[] ( \f[I]Bool\f[], \f[I]Optional\f[] ): the same with
-"SDB_INSERT_CONTONDUP" in argument \f[C]flag\f[].
-.IP \[bu] 2
-\f[C]ReplaceOnDup\f[] ( \f[I]Bool\f[], \f[I]Optional\f[] ): the same with
-"SDB_INSERT_REPLACEONDUP" in argument \f[C]flag\f[].
+ReturnOID ( \f[I]boolean\f[] ): Consistent with the behavior of
+"SDB_INSERT_RETURN_ID" in the parameter "flag".
+.RS 2
+.PP
+Format: \f[C]ReturnOID: true\f[]
 .RE
+.IP \[bu] 2
+ContOnDup ( \f[I]boolean\f[] ): Consistent with the behavior of
+"SDB_INSERT_CONTONDUP" in the parameter "flag".
+.RS 2
+.PP
+Format: \f[C]ContOnDup: true\f[]
+.RE
+.IP \[bu] 2
+ReplaceOnDup ( \f[I]boolean\f[] ): Consistent with the behavior of
+"SDB_INSERT_REPLACEONDUP" in the parameter "flag".
+.RS 2
+.PP
+Format: \f[C]ReplaceOnDup: true\f[]
+.RE
+.RS
 .PP
 \f[B]Note:\f[]
 .IP \[bu] 2
-When the provided record does not have an "_id" field, the database will add one
-for it.
+If the parameter "options" is not specified, the insert operation will not
+return the content of the field "_id" by default, and an error will be reported
+when an index key conflict occurs.
 .IP \[bu] 2
-In argument \f[C]flag\f[], SDB_INSERT_CONTONDUP and SDB_INSERT_REPLACEONDUP can
-not be use at the same time.
-In argument \f[C]options\f[], that is the same.
+The parameters "ContOnDup" and "ReplaceOnDup" cannot be specified at the same
+time.
+.RE
+.RE
 .SH RETURN VALUE
-.IP \[bu] 2
-On success, the follow result will be returned:
 .PP
-\f[C]{         InsertedNum    : <INT32>  Number of records successfully inserted, including replaced and ignored records,         DuplicatedNum  : <INT32>  Number of records ignored or replaced due to duplicate key conflicts  }\f[]
+When the function executes successfully, it will return an object of type
+BSONObj.
+Users can get information about the number of successfully inserted records
+through this object, field descriptions are as follows:
 .PP
-When using "SDB_INSERT_RETURN_ID" in flag or "ReturnOID" in options, the result
-also include field "_id", as follows: * for single inserting: return the value
-of field "_id".
-* for bulk inseting: return the value of field "_id" by array.
+.TS
+tab(@);
+l l l l.
+T{
+0
+T}@T{
+Name
+T}@T{
+Type
+T}@T{
+Description
+T}
+_
+T{
+1
+T}@T{
+InsertedNum
+T}@T{
+int64
+T}@T{
+The number of records
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+successfully inserted.(
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+not including records
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+that were overwritten)
+T}
+T{
+2
+T}@T{
+DuplicatedNum
+T}@T{
+int64
+T}@T{
+The number of records
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+covered due to index
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+key conflicts.
+T}
+T{
+3
+T}@T{
+LastGenerateID
+T}@T{
+int64
+T}@T{
+The value of the auto\-
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+increment field (only
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+displayed when the
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+collection contains
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+auto\-increment), the
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+return situation is as
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+follows: \- When
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+inserting a single
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+record, return the auto
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+\-incremented field
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+value corresponding to
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+the record.\- When
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+inserting multiple
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+records, only return
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+the increment field
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+value corresponding to
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+the first record.\-
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+When there are multiple
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+auto\-increment fields,
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+insert a single record
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+and only return the
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+maximum value of all
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+auto\-increment fields.
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+ \- When there are
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+multiple auto\-increment
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+fields, insert
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+multiple records and
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+only return the largest
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+auto\-increment field
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+value corresponding to
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+the first record.
+T}
+T{
+4
+T}@T{
+_id
+T}@T{
+oid
+T}@T{
+Return the content
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+contained in the field
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+"_id" in the inserted
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+record.(only displayed
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+when the parameter "
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+flag" is "SDB_INSERT_
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+RETURN_ID" or the
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+parameter "ReturnOID"
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+is true)
+T}
+.TE
 .PP
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will
+be printed.
 .SH ERRORS
 .PP
-the exceptions of \f[C]insert()\f[] are as below:
+The common exceptions of \f[C]insert()\f[] function are as follows:
 .PP
 .TS
 tab(@);
@@ -91,9 +421,9 @@ l l l l l.
 T{
 0
 T}@T{
-Error code
+Error Code
 T}@T{
-Error type
+Error Type
 T}@T{
 Description
 T}@T{
@@ -107,7 +437,7 @@ T}@T{
 T}@T{
 SDB_INVALIDARG
 T}@T{
-Invalid Argument.
+Parameter error
 T}@T{
 Check whether the
 T}
@@ -116,14 +446,14 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-argument is invalid or
+parameters are filled
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
-not.
+in correctly.
 T}
 T{
 2
@@ -134,7 +464,7 @@ SDB_DMS_NOTEXIST
 T}@T{
 Collection does not
 T}@T{
-heck whether the
+Check whether the
 T}
 T{
 T}@T{
@@ -142,7 +472,7 @@ T}@T{
 T}@T{
 exist.
 T}@T{
-collection exist or not.
+collection exists.
 T}
 T{
 3
@@ -161,14 +491,7 @@ T}@T{
 T}@T{
 not exist.
 T}@T{
-collection space exist
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-T}@T{
-or not.
+collection space exists.
 T}
 T{
 4
@@ -177,91 +500,83 @@ T}@T{
 T}@T{
 SDB_IXM_DUP_KEY
 T}@T{
-The same unique index
+Index key already
 T}@T{
-Check the record to
+Check whether the index
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-value conflicts with
+exists.
 T}@T{
-make sure no duplicate
+key of the inserted
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-this record.
 T}@T{
-index key is offered.
+record exists.
 T}
 .TE
 .PP
-when exception happen, use getLastError() to get the error code and use
-getLastErrMsg() to get error message.
-For more detial, please reference to Troubleshooting.
-.SH HISTORY
+When the exception happens, use getLastErrMsg() to get the error message or use
+getLastError() to get the error code.
+For more details, refer to Troubleshooting.
+.SH VERSION
 .PP
-Since v1.0.
+v3.4 and above
 .SH EXAMPLES
-.IP "1." 3
-Insert a record.
-.nf
-\f[C]
-> db.sample.employee.insert( { name: "Tom", age: 20 } )
-\f[]
-.fi
-.RE
-.IP "2." 3
-Insert some records.
-.nf
-\f[C]
-> db.sample.employee.insert( [ { _id: 20, name: "Mike", age: 15 }, { name: "John", age: 25, phone: 123 } ] )
-\f[]
-.fi
-.RE
-.IP "3." 3
-Insert records with duplicate index keys.
-.nf
-\f[C]
-> db.sample.employee.insert( [ { _id: 1, a: 1 }, { _id: 1, b:2 }, { _id: 3, c: 3 } ],  SDB_INSERT_CONTONDUP )
-\f[]
-.fi
+.IP \[bu] 2
+Insert a record in the collection "sample.employee".
+.RS 2
 .IP
 .nf
 \f[C]
+> db.sample.employee.insert({name: "Tom", age: 20})
+\f[]
+.fi
+.RE
+.IP \[bu] 2
+Insert multiple records in the collection "sample.employee".
+.RS 2
+.IP
+.nf
+\f[C]
+> db.sample.employee.insert([{_id: 20, name: "Mike", age: 15}, {name: "John", age: 25, phone: 123}])
+\f[]
+.fi
+.RE
+.IP \[bu] 2
+Insert multiple records with duplicate _id keys in the collection
+"sample.employee", and specify the parameter "flag" as "SDB_INSERT_CONTONDUP".
+.RS 2
+.IP
+.nf
+\f[C]
+
+> db.sample.employee.insert([{_id: 1, a: 1}, {_id: 1, b: 2}, {_id: 3, c: 3}], SDB_INSERT_CONTONDUP)
 > db.sample.employee.find()
 {
-    "_id": 1,
-    "a": 1,
+  "_id": 1,
+  "a": 1,
 }
 {
-    "_id": 3,
-    "c": 3
+  "_id": 3,
+  "c": 3
 }
 \f[]
 .fi
 .RE
-.IP "4." 3
-Insert record, and return Json object.
-.nf
-\f[C]
-> db.sample.employee.insert({a:1}, {ReturnOID:true, ContOnDup:true})
-{
-    "_id": {
-        "$oid": "5becec3d6404b9295a63caca"
-    }
-    "InsertedNum": 1,
-    "DuplicatedNum": 0
-}
-\f[]
-.fi
+.IP \[bu] 2
+Insert multiple records in the collection "sample.employee", and specify the
+parameter "ReturnOID" as true.
+.RS 2
 .IP
 .nf
 \f[C]
-> db.sample.employee.insert([{a:1}, {b:1}], {ReturnOID:true, ContOnDup:true})
+> db.sample.employee.insert([{a: 1}, {b: 1}], {ReturnOID: true})
 {
     "_id": [
         {
@@ -273,6 +588,23 @@ Insert record, and return Json object.
     ]
     "InsertedNum": 2,
     "DuplicatedNum": 0
+}
+\f[]
+.fi
+.RE
+.IP \[bu] 2
+Create an auto\-increment field in the collection "sample.employee" and insert a
+record.
+.RS 2
+.IP
+.nf
+\f[C]
+> db.sample.employee.createAutoIncrement({Field: "ID"})
+> db.sample.employee.insert({a: 1})
+{
+    "InsertedNum": 1,
+    "DuplicatedNum": 0,
+    "LastGenerateID": 1
 }
 \f[]
 .fi

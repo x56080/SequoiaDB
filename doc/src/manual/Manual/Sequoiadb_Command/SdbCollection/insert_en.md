@@ -1,144 +1,157 @@
-
 ##NAME##
 
-insert - Insert record or records into the current collection.
+insert - insert record into the current collection
 
 ##SYNOPSIS##
 
-**db.collectionspace.collection.insert(\<doc|docs\>,[flag])**
+**db.collectionspace.collection.insert(\<doc|docs\>, [flag])**
 
-**db.collectionspace.collection.insert(\<doc|docs\>,[options])**
+**db.collectionspace.collection.insert(\<doc|docs\>, [options])**
 
 ##CATEGORY##
 
-Collection
+SdbCollection
 
 ##DESCRIPTION##
 
-Insert record or records into the current collection. If the current collection does not exist, please create it first.
+This function is used to insert single or multiple records into the current collection.
 
 ##PARAMETERS##
 
-* `doc/docs` ( *Object/Array of Object*， *Required* )
+- doc|docs ( *object/array, required* )
 
-	Record or records to be inserted. Can not be null.
+    Single or multiple records
 
-* `flag` ( *Int32*， *Optional* )
+- flag ( *number, optional* )
 
-	Insert flag, use to control the behavior and result of inserting. Can be the follow value:
+    Flag bit, used to control the behavior and result of insert operation. If this parameter is not specified, the insert operation will not return the content of the field "_id" by default, and an error will be reported when an index key conflict occurs.
 
-	* 0, default value.
-	* SDB_INSERT_RETURN_ID, means return the value of "_id" field of the record.
-	* SDB_INSERT_CONTONDUP, means continue inserting (no errors were reported) when hitting index key duplicate error.
-    * SDB_INSERT_REPLACEONDUP, means replace the exist value to the inserting value when hitting index key duplicate error, and continue the left records (no errors were reported).
+    the value is as follows:
+	
+    - SDB_INSERT_RETURN_ID: After successful insertion, return the content of the field "_id" in the record.
+    - SDB_INSERT_CONTONDUP: When an index key conflict occurs, skip this record and continue to insert other records.
+    - SDB_INSERT_REPLACEONDUP: When an index key conflict occurs, the new record will overwrite the original record and continue to insert other records.
 
-* `options` ( *Object*， *Optional* )
+    >**Note：**
+    >
+    > - If users need to specify multiple values, users can use "|" to separate them.
+    > - "SDB_INSERT_CONTONDUP" and "SDB_INSERT_REPLACEONDUP" cannot be specified at the same time.
 
-	Insert options, use to control the behavior and result of inserting. So far, its role is consistent with the argument `flag`, and it can be the follow value:
-	* `ReturnOID` ( *Bool*, *Optional* ): the same with "SDB_INSERT_RETURN_ID" in argument `flag`.
-	* `ContOnDup` ( *Bool*, *Optional* ): the same with "SDB_INSERT_CONTONDUP" in argument `flag`.
-	* `ReplaceOnDup` ( *Bool*, *Optional* ): the same with "SDB_INSERT_REPLACEONDUP" in argument `flag`.
+- options ( *object* )
 
-**Note:**
+    The behavior and result of the insert operation can be controlled through the parameter "options":
+ 
+    - ReturnOID ( *boolean* ): Consistent with the behavior of "SDB_INSERT_RETURN_ID" in the parameter "flag".
 
-* When the provided record does not have an "_id" field, the database will add one for it.
+        Format: `ReturnOID: true`
 
-* In argument `flag`, SDB_INSERT_CONTONDUP and SDB_INSERT_REPLACEONDUP can not be use at the same time. In argument `options`, that is the same.
+    - ContOnDup ( *boolean* ): Consistent with the behavior of "SDB_INSERT_CONTONDUP" in the parameter "flag".
+
+        Format: `ContOnDup: true`
+
+    - ReplaceOnDup ( *boolean* ): Consistent with the behavior of "SDB_INSERT_REPLACEONDUP" in the parameter "flag".
+
+        Format: `ReplaceOnDup: true`
+
+    >**Note:**
+    >
+    > - If the parameter "options" is not specified, the insert operation will not return the content of the field "_id" by default, and an error will be reported when an index key conflict occurs.
+    > - The parameters "ContOnDup" and "ReplaceOnDup" cannot be specified at the same time.
 
 ##RETURN VALUE##
 
-* On success, the follow result will be returned:
+When the function executes successfully, it will return an object of type BSONObj. Users can get information about the number of successfully inserted records through this object, field descriptions are as follows:
 
- ```
- {
-		InsertedNum    : <INT32>  Number of records successfully inserted, including replaced and ignored records,
-		DuplicatedNum  : <INT32>  Number of records ignored or replaced due to duplicate key conflicts
- }
- ```
+|  Name  | Type | Description |
+|--------|------|-------------|
+| InsertedNum | int64 | The number of records successfully inserted.(not including records that were overwritten) |
+| DuplicatedNum | int64 | The number of records covered due to index key conflicts. |
+| LastGenerateID | int64 | The value of the auto-increment field (only displayed when the collection contains [auto-increment][auto-increment]), the return situation is as follows:<br> - When inserting a single record, return the auto-incremented field value corresponding to the record.<br>- When inserting multiple records, only return the increment field value corresponding to the first record.<br>- When there are multiple auto-increment fields, insert a single record and only return the maximum value of all auto-increment fields. <br> - When there are multiple auto-increment fields, insert multiple records and only return the largest auto-increment field value corresponding to the first record. |
+| _id | oid | Return the content contained in the field "_id" in the inserted record.(only displayed when the parameter "flag" is "SDB_INSERT_RETURN_ID" or the parameter "ReturnOID" is true)|
 
-  When using "SDB_INSERT_RETURN_ID" in flag or "ReturnOID" in options, the result also include field "_id", as follows:
-	* for single inserting: return the value of field "_id".
-	* for bulk inseting: return the value of field "_id" by array.
-
-
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will be printed.
 
 ##ERRORS##
 
-the exceptions of `insert()` are as below:
+The common exceptions of `insert()` function are as follows:
 
-| Error code | Error type | Description | Solution |
-| ------ | ------ | --- | ------ |
-| -6 | SDB_INVALIDARG | Invalid Argument. | Check whether the argument is invalid or not. |
-| -23 | SDB_DMS_NOTEXIST| Collection does not exist. | heck whether the collection exist or not. |
-| -34 | SDB_DMS_CS_NOTEXIST | Collection space does not exist. | Check whether the collection space exist or not. |
-| -38 | SDB_IXM_DUP_KEY | The same unique index value conflicts with this record. | Check the record to make sure no duplicate  index key is offered. |
+| Error Code | Error Type | Description | Solution |
+| ---------- | ---------- | ----------- | -------- |
+| -6 | SDB_INVALIDARG | Parameter error | Check whether the parameters are filled in correctly. |
+| -23 | SDB_DMS_NOTEXIST| Collection does not exist. | Check whether the collection exists. |
+| -34 | SDB_DMS_CS_NOTEXIST | Collection space does not exist. | Check whether the collection space exists. |
+| -38 | SDB_IXM_DUP_KEY | Index key already exists. | Check whether the index key of the inserted record exists. |
 
-when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md)  and use [getLastErrMsg()](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md) to get [error message](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md). For more detial, please  reference to [Troubleshooting](manual/FAQ/faq_sdb.md).
+When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
 
-##HISTORY##
+##VERSION##
 
-Since v1.0.
+v3.4 and above
 
 ##EXAMPLES##
 
-1. Insert a record.
+- Insert a record in the collection "sample.employee".
 
-	```lang-javascript
- 	> db.sample.employee.insert( { name: "Tom", age: 20 } )
- 	```
+    ```lang-javascript
+    > db.sample.employee.insert({name: "Tom", age: 20})
+    ```
 
-2. Insert some records. 
-
- 	```lang-javascript
- 	> db.sample.employee.insert( [ { _id: 20, name: "Mike", age: 15 }, { name: "John", age: 25, phone: 123 } ] )
- 	```
-
-3. Insert records with duplicate index keys.
-
-	```lang-javascript
- 	> db.sample.employee.insert( [ { _id: 1, a: 1 }, { _id: 1, b:2 }, { _id: 3, c: 3 } ],  SDB_INSERT_CONTONDUP )
- 	```
+- Insert multiple records in the collection "sample.employee".
 
  	```lang-javascript
- 	> db.sample.employee.find()
- 	{
-      	"_id": 1,
-      	"a": 1,
- 	}
- 	{
-      	"_id": 3,
-      	"c": 3
- 	}
+ 	> db.sample.employee.insert([{_id: 20, name: "Mike", age: 15}, {name: "John", age: 25, phone: 123}])
  	```
 
-4. Insert record, and return Json object.
+- Insert multiple records with duplicate _id keys in the collection "sample.employee", and specify the parameter "flag" as "SDB_INSERT_CONTONDUP".
 
-	```lang-javascript
- 	> db.sample.employee.insert({a:1}, {ReturnOID:true, ContOnDup:true})
- 	{
-   		"_id": {
-     		"$oid": "5becec3d6404b9295a63caca"
-   		}
-		"InsertedNum": 1,
-  		"DuplicatedNum": 0
- 	}
+    ```lang-javascript
+    
+    > db.sample.employee.insert([{_id: 1, a: 1}, {_id: 1, b: 2}, {_id: 3, c: 3}], SDB_INSERT_CONTONDUP)
+    > db.sample.employee.find()
+    {
+      "_id": 1,
+      "a": 1,
+    }
+    {
+      "_id": 3,
+      "c": 3
+    }
+    ```
 
-	```
+- Insert multiple records in the collection "sample.employee", and specify the parameter "ReturnOID" as true.
 
-	
-	```lang-javascript
- 	> db.sample.employee.insert([{a:1}, {b:1}], {ReturnOID:true, ContOnDup:true})
- 	{
-   		"_id": [
-     		{
-       			"$oid": "5bececdf6404b9295a63cacb"
-     		},
-     		{
-       			"$oid": "5bececdf6404b9295a63cacc"
-     		}
-   		]
-		"InsertedNum": 2,
-		"DuplicatedNum": 0
- 	}
- 	```
+    ```lang-javascript
+    > db.sample.employee.insert([{a: 1}, {b: 1}], {ReturnOID: true})
+    {
+        "_id": [
+            {
+                "$oid": "5bececdf6404b9295a63cacb"
+            },
+            {
+                "$oid": "5bececdf6404b9295a63cacc"
+            }
+        ]
+        "InsertedNum": 2,
+        "DuplicatedNum": 0
+    }
+    ```
+
+- Create an auto-increment field in the collection "sample.employee" and insert a record.
+
+    ```lang-javascript
+    > db.sample.employee.createAutoIncrement({Field: "ID"})
+    > db.sample.employee.insert({a: 1})
+    {
+        "InsertedNum": 1,
+        "DuplicatedNum": 0,
+        "LastGenerateID": 1
+    }
+    ```
+ 
+[^_^]:
+     Links
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[faq]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md
+[auto-increment]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md
