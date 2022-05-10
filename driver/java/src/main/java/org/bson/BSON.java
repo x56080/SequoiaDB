@@ -18,7 +18,6 @@
 
 package org.bson;
 
-import com.sequoiadb.base.ClientOptions;
 import org.bson.types.*;
 import org.bson.util.ClassMap;
 

@@ -70,7 +70,7 @@ public class DBClientCache {
         ClientOptions result1 = new ClientOptions();
         Assert.assertTrue( result1.getEnableCache() );
         Assert.assertEquals( result1.getCacheInterval(), 300 * 1000 );
-        Assert.assertTrue( result1.getExactlyDate() );
+        Assert.assertFalse( result1.getExactlyDate() );
     }
 
     @Test

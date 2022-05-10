@@ -360,7 +360,11 @@ public class BasicBSONEncoder implements BSONEncoder {
 
 	protected void putDate(String name, Date d) {
 		_put(DATE, name);
-		_buf.writeLong(DateInterceptUtil.getYMDTime(d));
+		if (BSON.getExactlyDate()) {
+			_buf.writeLong(DateInterceptUtil.getYMDTime(d));
+		}else {
+			_buf.writeLong(d.getTime());
+		}
 	}
 
 	protected void putNumber(String name, Number n) {

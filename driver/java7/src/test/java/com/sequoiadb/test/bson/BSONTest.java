@@ -1,10 +1,7 @@
 package com.sequoiadb.test.bson;
 
 
-import com.sequoiadb.base.CollectionSpace;
-import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.base.*;
 import com.sequoiadb.test.common.Constants;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
@@ -176,6 +173,9 @@ public class BSONTest {
 
     @Test
     public void BSONDateTest() {
+        ClientOptions options = new ClientOptions();
+        options.setExactlyDate( true );
+        Sequoiadb.initClient( options );
         // 带有年月日时分秒的 date 用例
         Date dateCase1 = new Date();
         DateTest("a", dateCase1 );
@@ -196,6 +196,8 @@ public class BSONTest {
         Date dateCase5 = DateInterceptUtil.interceptDate(new Date(),"MM");
         DateTest("a", dateCase5);
 
+        options.setExactlyDate( false );
+        Sequoiadb.initClient( options );
     }
     private void DateTest(String key,Date value){
         BSONObject bsonObject = new BasicBSONObject();

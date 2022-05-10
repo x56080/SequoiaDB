@@ -14,6 +14,7 @@ import org.bson.BasicBSONObject;
 import org.bson.types.BSONTimestamp;
 import org.bson.types.BasicBSONList;
 import org.bson.types.Binary;
+import org.bson.util.DateInterceptUtil;
 import org.bson.util.JSON;
 import org.junit.*;
 
@@ -160,9 +161,9 @@ public class DBCollectionTest {
             BSONObject obj = cursor.getNext();
             if (obj != null) {
                 assertEquals(
-                    ((BSONObject) obj.get(Constants.IXM_INDEXDEF))
-                        .get(Constants.IXM_NAME),
-                    Constants.TEST_INDEX_NAME);
+                        ((BSONObject) obj.get(Constants.IXM_INDEXDEF))
+                                .get(Constants.IXM_NAME),
+                        Constants.TEST_INDEX_NAME);
             } else
                 assertTrue(false);
         }
@@ -228,7 +229,7 @@ public class DBCollectionTest {
         int i = 9;
         while (cursor.hasNext()) {
             if (!((cursor.getNext().get("Id").toString()).equals(Integer
-                .toString(i)))) {
+                    .toString(i)))) {
                 assertTrue(false);
                 break;
             }
@@ -295,12 +296,12 @@ public class DBCollectionTest {
         getTotalFromSnapShot(cur2, "TotalIndexRead", "TotalDataRead", values2);
 
         System.out.println("insert record num = " + NUM + ", totalIndexRead1 = "
-            + values1.totalIndexRead + ", totalIndexRead2 = "
-            + values2.totalIndexRead);
+                + values1.totalIndexRead + ", totalIndexRead2 = "
+                + values2.totalIndexRead);
         assertTrue(NUM == values2.totalIndexRead - values1.totalIndexRead);
 
         System.out.println("totalDataRead1 = " + values1.totalDataRead +
-            ", totalDataRead2 = " + values2.totalDataRead);
+                ", totalDataRead2 = " + values2.totalDataRead);
         assertTrue(0 == values2.totalDataRead - values1.totalDataRead);
     }
 
@@ -376,11 +377,11 @@ public class DBCollectionTest {
         ConstantsInsert.insertRecords(cl, NUM);
         // test
         BSONObject idx = cl.getIndex(Constants.TEST_INDEX_NAME)
-            .getNext();
+                .getNext();
         BSONObject def = (BSONObject) idx
-            .get(Constants.IXM_INDEXDEF);
+                .get(Constants.IXM_INDEXDEF);
         assertEquals(def.get(Constants.IXM_NAME),
-            Constants.TEST_INDEX_NAME);
+                Constants.TEST_INDEX_NAME);
     }
 
     @Test
@@ -539,7 +540,7 @@ public class DBCollectionTest {
         cl.dropIndex(Constants.TEST_INDEX_NAME);
         SDBTestHelper.waitIndexDropFinish(cl, Constants.TEST_INDEX_NAME, 100);
         BSONObject idx = cl.getIndex(Constants.TEST_INDEX_NAME)
-            .getNext();
+                .getNext();
         assertNull(idx);
     }
 
@@ -561,7 +562,7 @@ public class DBCollectionTest {
         String srcGroup = Constants.TEST_RG_NAME_SRC;
         String destGroup = Constants.TEST_RG_NAME_DEST;
         String node2 = Constants.TEST_RN_HOSTNAME_SPLIT + ":"
-            + Constants.TEST_RN_PORT_SPLIT;
+                + Constants.TEST_RN_PORT_SPLIT;
         String csName = "SplitCS";
         String clName = "SplitCL";
         CollectionSpace cs1;
@@ -595,7 +596,7 @@ public class DBCollectionTest {
         cl1.split(srcGroup, destGroup, 50.0);
 
         Sequoiadb sdb2 = sdb.getReplicaGroup(destGroup).getNode(node2)
-            .connect();
+                .connect();
         CollectionSpace cs2 = sdb2.getCollectionSpace(csName);
         DBCollection cl2 = cs2.getCollection(clName);
         assertEquals(cl2.getCount(condition), 10);
@@ -764,7 +765,7 @@ public class DBCollectionTest {
     }
 
     @Test
-	@Ignore
+    @Ignore
     public void jira_() {
         String csName = "testfoo_cs";
         String clName = "testbar_cs";
@@ -831,6 +832,44 @@ public class DBCollectionTest {
     }
 
     @Test
+    public void testExactlyDate() {
+        String utilStr = "utilDate";
+        String sqlStr = "utilDate";
+        BSONObject obj = new BasicBSONObject();
+        Date date = new Date();
+        java.sql.Date sqlDate = new java.sql.Date( date.getTime() );
+        ClientOptions options = new ClientOptions();
+
+        // case 1: exactlyDate is true
+        options.setExactlyDate( true );
+        Sequoiadb.initClient( options );
+        obj.put( utilStr, date );
+        obj.put( sqlStr, sqlDate );
+        cl.truncate();
+        cl.insertRecord( obj );
+
+        BSONObject result1 = cl.queryOne();
+        Date actualUtilDate1 = (Date) result1.get( utilStr );
+        Date actualSqlDate1 = (Date) result1.get( sqlStr );
+        Assert.assertEquals( DateInterceptUtil.getYMDTime( date ), (Long)actualUtilDate1.getTime() );
+        Assert.assertEquals( DateInterceptUtil.getYMDTime( sqlDate ), (Long)actualSqlDate1.getTime() );
+
+        // case 2: exactlyDate is false
+        options.setExactlyDate( false );
+        Sequoiadb.initClient( options );
+        obj.put( utilStr, date );
+        obj.put( sqlStr, sqlDate );
+        cl.truncate();
+        cl.insertRecord( obj );
+
+        BSONObject result2 = cl.queryOne();
+        Date actualUtilDate2 = (Date) result2.get( utilStr );
+        Date actualSqlDate2 = (Date) result2.get( sqlStr );
+        Assert.assertEquals( date.getTime(), actualUtilDate2.getTime() );
+        Assert.assertEquals( sqlDate.getTime(), actualSqlDate2.getTime() );
+    }
+
+    @Test
     public void testBSONTimestamp() {
         BSONTimestamp ts1 = new BSONTimestamp(10000, 1000000);
         Assert.assertEquals(10001, ts1.getTime());
@@ -882,13 +921,13 @@ public class DBCollectionTest {
         BSONObject result = cl.queryOne();
         System.out.println("result is: " + result);
     }
-    
+
     @Test
     public void testCreateDropAutoIncrement() {
         if (!Constants.isCluster()) {
             return;
         }
-        
+
         final String autoIncName1 = "ID1";
         final String autoIncName2 = "ID2";
         final String autoIncName3 = "ID3";
