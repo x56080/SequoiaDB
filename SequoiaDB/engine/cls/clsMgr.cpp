@@ -952,7 +952,7 @@ namespace engine
 
       if ( CLS_INVALID_TIMERID == _oneSecTimerID )
       {
-         PD_LOG ( PDERROR, "Register repl/shard/one seccond timer failed" ) ;
+         PD_LOG ( PDERROR, "Register one seccond timer failed" ) ;
          rc = SDB_SYS ;
          goto error ;
       }

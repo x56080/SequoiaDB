@@ -1265,6 +1265,7 @@ namespace engine
                // this error only returned when dupAllowed == FALSE
                // this error represent duplicate key is not allowed and
                // duplicate key is detected
+               rc = pdError( SDB_IXM_DUP_KEY ) ;
 #ifdef _DEBUG
                PD_LOG ( PDWARNING, "Duplicate key is detected with rid(%d, %d), "
                         "page:%d, keynode:%d, insert rid:(%d, %d)",
@@ -1281,7 +1282,6 @@ namespace engine
                   pResult->setCurRID( rid ) ;
                   pResult->setPeerRID( kn->_rid ) ;
                }
-               rc = SDB_IXM_DUP_KEY ;
                goto error ;
             }
             // NOTE: there is an issue in earlier versions
@@ -1314,6 +1314,7 @@ namespace engine
                   }
                   else
                   {
+                     rc = pdError( SDB_IXM_DUP_KEY ) ;
 #ifdef _DEBUG
                      PD_LOG ( PDWARNING, "Duplicate key is detected with "
                               "rid(%d, %d), page:%d, keynode:%d, "
@@ -1332,7 +1333,6 @@ namespace engine
                         pResult->setCurRID( rid ) ;
                         pResult->setPeerRID( tmpRID ) ;
                      }
-                     rc = SDB_IXM_DUP_KEY ;
                   }
                   goto error ;
                }

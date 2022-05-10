@@ -49,6 +49,11 @@ void pdSetLastError( INT32 err )
    s_errno = err ;
 }
 
+void pdClearLastError()
+{
+   s_errno = SDB_OK ;
+}
+
 /*
    _pdGeneralException implement
 */
