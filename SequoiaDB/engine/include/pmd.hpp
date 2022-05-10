@@ -245,6 +245,7 @@ namespace engine
       pmdFTMgr          *_pFTMgr ;
       UINT32            _timeCounter ;    /// ms
       UINT32            _monTimeCounter ; /// ms
+      UINT32            _logTimeCounter ; /// ms
 
       // RESERVED FOR NOW, can be used to jump out sleep in the future
       BOOLEAN        _keepSleep ;

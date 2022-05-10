@@ -239,6 +239,7 @@ namespace engine
          _pEDUCB->resetInterrupt() ;
          _pEDUCB->resetInfo( EDU_INFO_ERROR ) ;
          _pEDUCB->resetLsn() ;
+         pdClearLastError() ;
 
          rc = request.init() ;
          if ( rc )

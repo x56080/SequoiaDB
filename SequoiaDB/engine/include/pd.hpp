@@ -76,7 +76,7 @@
 
 #define PD_LOG(level, fmt, ...) \
    do { \
-      if ( getPDLevel() >= level ) \
+      if ( getPDLevel() >= level && !pdIsShieldLog() ) \
       { \
          pdLog(level, __FUNC__, __FILE__, __LINE__, fmt, ##__VA_ARGS__); \
       } \
@@ -171,6 +171,26 @@ void pdcheck( const CHAR* string, const CHAR* func,
 #define pdassert(str1,str2,str3,str4)
 #define pdcheck(str1,str2,str3,str4)
 #endif
+
+#define LOG_MASK_IXM_DUP_KEY 0x0000000000000001
+
+void pdEnableShieldLogMask( UINT64 mask ) ;
+void pdDisableShieldLogMask( UINT64 mask ) ;
+BOOLEAN pdTestShieldLogMask( UINT64 mask ) ;
+BOOLEAN pdIsShieldLog() ;
+void pdPrintShieldInfo() ;
+INT32 pdError( INT32 rc ) ;
+
+class pdLogShield
+{
+public:
+   pdLogShield() ;
+   ~pdLogShield() ;
+   void addRC( INT32 rc ) ;
+   void clearRC() ;
+private:
+   UINT64 _addRCMask ;
+} ;
 
 /*
    pdLog function define

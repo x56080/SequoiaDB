@@ -527,6 +527,150 @@ done:
    return ;
 }
 
+#define PD_MAX_SHIELD_RC_COUNT 64
+
+static OSS_THREAD_LOCAL UINT64 s_shieldLogMask = 0 ;
+static OSS_THREAD_LOCAL UINT64 s_hasIncCntMask = 0 ;
+static UINT32 s_shieldLogCnt[PD_MAX_SHIELD_RC_COUNT] = { 0 } ;
+
+struct _pdRCMaskItem
+{
+   INT32  _rc ;
+   UINT64 _mask ;
+} ;
+
+static _pdRCMaskItem s_rcMaskMap[] =
+{
+   { SDB_IXM_DUP_KEY, LOG_MASK_IXM_DUP_KEY }
+} ;
+
+static UINT64 _pdRC2Mask( INT32 rc )
+{
+   INT32 mSize = sizeof( s_rcMaskMap ) ;
+   for ( INT32 i = 0 ; i < mSize ; i++ )
+   {
+      _pdRCMaskItem& item = s_rcMaskMap[i] ;
+      if ( item._rc == rc )
+      {
+         return item._mask ;
+      }
+   }
+   return 0 ;
+}
+
+static void _pdIncShieldLogCntByRC( INT32 rc )
+{
+   INT32 mSize = sizeof( s_rcMaskMap ) ;
+   for ( INT32 i = 0 ; i < mSize ; i++ )
+   {
+      _pdRCMaskItem& item = s_rcMaskMap[i] ;
+      if ( item._rc == rc )
+      {
+         if ( !OSS_BIT_TEST( s_hasIncCntMask, item._mask ) )
+         {
+            if ( i < PD_MAX_SHIELD_RC_COUNT )
+            {
+               s_shieldLogCnt[i]++ ;
+            }
+            OSS_BIT_SET( s_hasIncCntMask, item._mask ) ;
+         }
+         break ;
+      }
+   }
+}
+
+void pdEnableShieldLogMask( UINT64 mask )
+{
+   OSS_BIT_SET( s_shieldLogMask, mask ) ;
+}
+
+void pdDisableShieldLogMask( UINT64 mask )
+{
+   OSS_BIT_CLEAR( s_shieldLogMask, mask ) ;
+   OSS_BIT_CLEAR( s_hasIncCntMask, mask ) ;
+}
+
+BOOLEAN pdTestShieldLogMask( UINT64 mask )
+{
+   if ( OSS_BIT_TEST( s_shieldLogMask, mask ) )
+   {
+      return TRUE ;
+   }
+   return FALSE ;
+}
+
+BOOLEAN pdHasShieldLogMask()
+{
+   if ( s_shieldLogMask != 0 )
+   {
+      return TRUE ;
+   }
+   return FALSE ;
+}
+
+BOOLEAN pdIsShieldLog()
+{
+   if ( pdHasShieldLogMask() )
+   {
+      INT32 rc = pdGetLastError() ;
+      if ( rc != SDB_OK )
+      {
+         UINT64 rcMask = _pdRC2Mask( rc ) ;
+         if ( pdTestShieldLogMask( rcMask ) )
+         {
+            _pdIncShieldLogCntByRC( rc ) ;
+            return TRUE ;
+         }
+      }
+   }
+   return FALSE ;
+}
+
+void pdPrintShieldInfo()
+{
+   UINT32 i = 0 ;
+   while ( i < PD_MAX_SHIELD_RC_COUNT && i < sizeof( s_rcMaskMap ) )
+   {
+      if ( s_shieldLogCnt[i] > 0 )
+      {
+         PD_LOG( PDWARNING, "Shield log[rc: %d] printing %u times",
+                 s_rcMaskMap[i]._rc , s_shieldLogCnt[i] ) ;
+         s_shieldLogCnt[i] = 0 ;
+      }
+      i++ ;
+   }
+}
+
+INT32 pdError( INT32 rc )
+{
+   pdSetLastError( rc ) ;
+   return rc ;
+}
+
+pdLogShield::pdLogShield() : _addRCMask( 0 )
+{
+}
+
+pdLogShield::~pdLogShield()
+{
+   clearRC() ;
+}
+
+void pdLogShield::clearRC()
+{
+   pdDisableShieldLogMask( _addRCMask ) ;
+}
+
+void pdLogShield::addRC( INT32 rc )
+{
+   UINT64 mask = _pdRC2Mask( rc ) ;
+   if ( mask != 0 && !pdTestShieldLogMask( mask ) )
+   {
+      pdEnableShieldLogMask( mask ) ;
+      OSS_BIT_SET( _addRCMask, mask ) ;
+   }
+}
+
 #ifdef _DEBUG
 
 void pdassert(const CHAR* string, const CHAR* func, const CHAR* file, UINT32 line)
