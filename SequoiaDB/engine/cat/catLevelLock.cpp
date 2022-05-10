@@ -678,9 +678,58 @@ namespace engine
    BOOLEAN _catCtxLockMgr::tryLockRecycleItem( const utilRecycleItem &recycleItem,
                                                OSS_LATCH_MODE mode )
    {
-      return _tryLockObject( CAT_LOCK_RECYCLEBIN,
-                             recycleItem.getRecycleName(),
-                             mode ) ;
+      if ( UTIL_RECYCLE_CS == recycleItem.getType() )
+      {
+         string levelOneName ;
+
+         try
+         {
+            StringBuilder levelOneBuilder ;
+            levelOneBuilder << recycleItem.getOriginID() ;
+            levelOneName = levelOneBuilder.str() ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to build lock name for "
+                    "recycle item, occur exception %s", e.what() ) ;
+            return FALSE ;
+         }
+
+         return _tryLockObject( CAT_LOCK_RECYCLEBIN,
+                                levelOneName,
+                                mode ) ;
+      }
+      else
+      {
+         SDB_ASSERT( UTIL_RECYCLE_CL == recycleItem.getType(),
+                     "Should be collection recycle item" ) ;
+
+         string levelOneName, levelTwoName ;
+
+         try
+         {
+            StringBuilder levelOneBuilder, levelTwoBuilder ;
+            utilCSUniqueID csUniqueID =
+                  utilGetCSUniqueID( recycleItem.getOriginID() ) ;
+
+            levelOneBuilder << csUniqueID ;
+            levelTwoBuilder << csUniqueID << "." << recycleItem.getRecycleID() ;
+
+            levelOneName = levelOneBuilder.str() ;
+            levelTwoName = levelTwoBuilder.str() ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to build lock name for "
+                    "recycle item, occur exception %s", e.what() ) ;
+            return FALSE ;
+         }
+
+         return _tryLockObject( CAT_LOCK_RECYCLEBIN,
+                                levelOneName,
+                                levelTwoName,
+                                mode ) ;
+      }
    }
 
    BOOLEAN _catCtxLockMgr::_tryLockObject ( CAT_LOCK_TYPE type,
