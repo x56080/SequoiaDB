@@ -341,6 +341,8 @@ class SdbConfig(val properties: Map[String, String]) extends Serializable {
 
     val connectTimeout: Int = properties.get(SdbConfig.ConnectTimeout)
         .map(_.toInt).getOrElse(SdbConfig.DefaultConnectTimeout)
+
+    var java8APIEnabled: Boolean = SdbConfig.DefaultJava8APIEnabled
 }
 
 object SdbConfig {
@@ -532,6 +534,7 @@ object SdbConfig {
     val DefaultRetryInstanceInitDuration = 75
 
     val DefaultConnectTimeout = 1000
+    val DefaultJava8APIEnabled = false
 
     def apply(parameters: Map[String, String]): SdbConfig = {
         val configPath = parameters.getOrElse(SdbConfig.ConfigPath, "")

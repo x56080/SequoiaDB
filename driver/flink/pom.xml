@@ -11,6 +11,8 @@
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
+
+        <sequoiadb.driver.version>3.6</sequoiadb.driver.version>
     </properties>
 
     <dependencies>
@@ -101,7 +103,8 @@
         <dependency>
             <groupId>com.sequoiadb</groupId>
             <artifactId>sequoiadb-driver</artifactId>
-            <version>5.0.2</version>
+            <version>${sequoiadb.driver.version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
