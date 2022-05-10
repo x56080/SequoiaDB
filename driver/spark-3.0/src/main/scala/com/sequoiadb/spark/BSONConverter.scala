@@ -16,25 +16,29 @@
 
 package com.sequoiadb.spark
 
+import org.apache.spark.sql.Row
+import org.apache.spark.sql.catalyst.analysis.{DecimalPrecision, TypeCoercion}
+import org.apache.spark.sql.catalyst.expressions.GenericRow
+import org.apache.spark.sql.types._
+import org.bson.types._
+import org.bson.{BSONObject, BasicBSONObject}
+
 import java.lang.reflect.Field
 import java.math.BigInteger
 import java.sql.{Date, Timestamp}
 import java.text.SimpleDateFormat
+import java.time.format.DateTimeFormatter
+import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
 import java.util.UUID
-
-import org.apache.spark.sql.Row
-import org.apache.spark.sql.catalyst.analysis.{DecimalPrecision, TypeCoercion}
-import org.apache.spark.sql.catalyst.expressions.GenericRow
-import org.apache.spark.sql.types.{DataType, _}
-import org.bson.types._
-import org.bson.{BSONObject, BasicBSONObject}
-
 import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.math.min
 
 private[spark] object BSONConverter {
+
+    val EPOCH_DATE: LocalDate = LocalDate.of(1970, 1, 1)
+    val DATETIME_FORMAT_PATTERN: String = "yyyy-MM-dd.HH:mm:ss"
 
     /**
       * Convert Row to BSONObject by schema
@@ -81,10 +85,13 @@ private[spark] object BSONConverter {
                     new BSONDecimal(value.toJavaBigDecimal)
                 case (_: TimestampType, value: Timestamp) =>
                     new BSONTimestamp((value.getTime / 1000).toInt, value.getNanos / 1000)
+                case (_: TimestampType, value: Instant) =>
+                    new BSONTimestamp(value.getEpochSecond.toInt, value.getNano / 1000)
                 case (_: ByteType, value: Byte) => value.toInt
                 case (_: ShortType, value: Short) => value.toInt
                 case (_: BinaryType, value: Array[Byte]) => new Binary(value)
                 case (_: CalendarIntervalType, _) => null
+                case (_: DateType, value: java.time.LocalDate) => BSONDate.valueOf(value)
                 case _ => v
             }
         }.orNull
@@ -97,10 +104,10 @@ private[spark] object BSONConverter {
       * @param schema the schema of Row
       * @return Row
       */
-    def bsonToRow(obj: BSONObject, schema: StructType): Row = {
+    def bsonToRow(obj: BSONObject, schema: StructType, java8Enabled: Boolean): Row = {
         val values: Seq[Any] = schema.fields.map {
             case StructField(name, dataType, _, _) =>
-                Option(obj.get(name)).map(toRowField(_, dataType)).orNull
+                Option(obj.get(name)).map(toRowField(_, dataType, java8Enabled)).orNull
         }
         Row.fromSeq(values)
     }
@@ -135,18 +142,19 @@ private[spark] object BSONConverter {
     */
 
     // convert BSONObject field to Row field
-    private def toRowField(value: Any, desiredType: DataType): Any = {
+    private def toRowField(value: Any, desiredType: DataType, java8APIEnabled: Boolean): Any = {
         try {
             desiredType match {
                 case obj: StructType =>
-                    bsonToRow(value.asInstanceOf[BSONObject], obj)
+                    bsonToRow(value.asInstanceOf[BSONObject], obj, java8APIEnabled)
                 case ArrayType(elementType, _) =>
-                    value.asInstanceOf[BasicBSONList].map(toRowField(_, elementType))
+                    value.asInstanceOf[BasicBSONList].map(toRowField(_, elementType, java8APIEnabled))
                 case BinaryType => toBinary(value)
                 case BooleanType => toBoolean(value)
                 case ByteType => toByte(value)
                 //case CalendarIntervalType => toCalendarInterval(value)
-                case DateType => toDate(value)
+                case DateType =>
+                    if (java8APIEnabled) toLocalDate(value) else toDate(value)
                 case DecimalType() => toDecimal(value)
                 case DoubleType => toDouble(value)
                 case FloatType => toFloat(value)
@@ -157,13 +165,14 @@ private[spark] object BSONConverter {
                     val map = new mutable.HashMap[String, Any]
                     obj.keySet().foreach { key =>
                         val value = obj.get(key)
-                        map += (key -> toRowField(value, valueType))
+                        map += (key -> toRowField(value, valueType, java8APIEnabled))
                     }
                     map
                 case NullType => null
                 case ShortType => toShort(value)
                 case StringType => toString(value)
-                case TimestampType => toTimestamp(value)
+                case TimestampType =>
+                    if (java8APIEnabled) toInstant(value) else toTimestamp(value)
                 case _ =>
                     throw new SdbException(s"Unsupported data type conversion [${value.getClass}}, $desiredType]")
             }
@@ -282,7 +291,7 @@ private[spark] object BSONConverter {
             case value: BSONTimestamp => new Date(value.getTime.toLong * 1000 + value.getInc / 1000)
             case value: java.util.Date => new Date(value.getTime)
             case value: String =>
-                new Date(new SimpleDateFormat("yyyy-MM-dd.HH:mm:ss").parse(value).getTime)
+                new Date(new SimpleDateFormat(DATETIME_FORMAT_PATTERN).parse(value).getTime)
             //case value: Binary
             //case value: UUID
             //case value: ObjectId
@@ -296,6 +305,47 @@ private[spark] object BSONConverter {
             //case value: Symbol
             case _ => new Date(0)
         }
+    }
+
+    private def toLocalDate(value: Any): java.time.LocalDate = {
+        value match {
+            //case value: java.lang.Boolean
+            //case value: java.lang.Float
+            //case value: java.lang.Double
+            //case value: java.lang.Byte
+            //case value: java.lang.Short
+            case value: java.lang.Integer => convertEpochMillsToLocalDate(value.toLong)
+            case value: java.lang.Long => convertEpochMillsToLocalDate(value)
+            case value: java.math.BigInteger => convertEpochMillsToLocalDate(value.longValue())
+            case value: java.math.BigDecimal => convertEpochMillsToLocalDate(value.longValue())
+            case value: BSONDecimal => convertEpochMillsToLocalDate(value.toBigDecimal.longValue())
+            case value: BSONTimestamp =>
+                val millsSeconds = value.getTime.toLong * 1000 + value.getInc / 1000
+                convertEpochMillsToLocalDate(millsSeconds)
+            case value: java.util.Date =>
+                value.toInstant.atZone(ZoneId.systemDefault()).toLocalDate
+            case value: String =>
+                val formatter = DateTimeFormatter.ofPattern(DATETIME_FORMAT_PATTERN)
+                LocalDate.parse(value, formatter)
+            //case value: Binary
+            //case value: UUID
+            //case value: ObjectId
+            //case value: BasicBSONList
+            //case value: BSONObject
+            //case value: Pattern
+            //case value: MaxKey
+            //case value: MinKey
+            //case value: Code
+            //case value: CodeWScope
+            //case value: Symbol
+            case _ => EPOCH_DATE
+        }
+    }
+
+    private def convertEpochMillsToLocalDate(millsSeconds: Long): LocalDate = {
+        Instant.ofEpochMilli(millsSeconds)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate
     }
 
     private def toDecimal(value: Any): Decimal = {
@@ -529,7 +579,7 @@ private[spark] object BSONConverter {
                 ts
             case value: java.util.Date => new Timestamp(value.getTime)
             case value: String =>
-                new Timestamp(new SimpleDateFormat("yyyy-MM-dd.HH:mm:ss").parse(value).getTime)
+                new Timestamp(new SimpleDateFormat(DATETIME_FORMAT_PATTERN).parse(value).getTime)
             //case value: Binary
             //case value: UUID
             //case value: ObjectId
@@ -542,6 +592,40 @@ private[spark] object BSONConverter {
             //case value: CodeWScope
             //case value: Symbol
             case _ => new Timestamp(0)
+        }
+    }
+
+    private def toInstant(value: Any): java.time.Instant = {
+        value match {
+            //case value: java.lang.Boolean
+            //case value: java.lang.Float
+            //case value: java.lang.Double
+            //case value: java.lang.Byte
+            //case value: java.lang.Short
+            case value: java.lang.Integer => toTimestamp(value).toInstant
+            case value: java.lang.Long => toTimestamp(value).toInstant
+            case value: java.math.BigInteger => toTimestamp(value).toInstant
+            case value: java.math.BigDecimal => toTimestamp(value).toInstant
+            case value: BSONDecimal => toTimestamp(value).toInstant
+            case value: BSONTimestamp => toTimestamp(value).toInstant
+            case value: java.util.Date => value.toInstant
+            case value: String =>
+                val formatter = DateTimeFormatter.ofPattern(DATETIME_FORMAT_PATTERN)
+                LocalDateTime.parse(value, formatter)
+                    .atZone(ZoneId.systemDefault())
+                    .toInstant
+            //case value: Binary
+            //case value: UUID
+            //case value: ObjectId
+            //case value: BasicBSONList
+            //case value: BSONObject
+            //case value: Pattern
+            //case value: MaxKey
+            //case value: MinKey
+            //case value: Code
+            //case value: CodeWScope
+            //case value: Symbol
+            case _ => Instant.EPOCH
         }
     }
 

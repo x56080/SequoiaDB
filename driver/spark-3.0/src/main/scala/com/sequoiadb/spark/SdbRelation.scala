@@ -93,8 +93,14 @@ class SdbRelation(@transient val sqlContext: SQLContext,
         }
     }
 
+    private def refreshConf(): Unit = {
+        config.java8APIEnabled = sqlContext.getConf("spark.sql.datetime.java8API.enabled").toBoolean
+    }
+
     override def buildScan(): RDD[Row] = {
         logInfo(s"select * from ${config.collectionSpace}.${config.collection}")
+
+        refreshConf()
         SdbRowRDD(sqlContext.sparkContext, config, schema)
     }
 
@@ -102,6 +108,8 @@ class SdbRelation(@transient val sqlContext: SQLContext,
         logInfo(s"select ${requiredColumns.mkString(", ")} " +
             s"from ${config.collectionSpace}.${config.collection}")
         val prunedSchema = SdbRelation.pruneSchema(schema, requiredColumns)
+
+        refreshConf()
         SdbRowRDD(sqlContext.sparkContext, config,
             prunedSchema, realColumns(prunedSchema, requiredColumns))
     }
@@ -111,6 +119,8 @@ class SdbRelation(@transient val sqlContext: SQLContext,
             s"from ${config.collectionSpace}.${config.collection} " +
             s"where ${filters.mkString(", ")}")
         val prunedSchema = SdbRelation.pruneSchema(schema, requiredColumns)
+
+        refreshConf()
         SdbRowRDD(sqlContext.sparkContext, config,
             prunedSchema, realColumns(prunedSchema, requiredColumns), filters)
     }
@@ -121,6 +131,7 @@ class SdbRelation(@transient val sqlContext: SQLContext,
 
     override def insert(data: DataFrame, overwrite: Boolean): Unit = {
         logInfo(s"insert into ${config.collectionSpace}.${config.collection}")
+        refreshConf()
 
         if (overwrite) {
             val sdb = new Sequoiadb(config.host, config.username, config.password, SdbConfig.SdbConnectionOptions)

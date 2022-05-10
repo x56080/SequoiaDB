@@ -421,7 +421,7 @@ public class TestBSONConverter {
 
         StructType schema = (StructType) BSONConverter.typeOfData(obj);
 
-        Row row = BSONConverter.bsonToRow(obj, schema);
+        Row row = BSONConverter.bsonToRow(obj, schema, false);
 
         assertEquals(expectedRow, row);
 
@@ -474,7 +474,7 @@ public class TestBSONConverter {
             ))
         );
 
-        Row row = BSONConverter.bsonToRow(obj, schema);
+        Row row = BSONConverter.bsonToRow(obj, schema, false);
 
         assertEquals(expectedRow, row);
 

@@ -26,27 +26,25 @@ import org.apache.flink.table.types.logical.LogicalTypeRoot;
 import org.apache.flink.table.types.logical.RowType;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.bson.types.BSONDecimal;
-import org.bson.types.BSONTimestamp;
-import org.bson.types.Binary;
-import org.bson.types.ObjectId;
+import org.bson.types.*;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
-import java.sql.Timestamp;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Date;
 import java.util.List;
 
 public class SDBDataConverter implements Serializable {
 
     private static final String AUTO_INDEX_ID_NAME = "_id";
+    private static final String DATETIME_FORMAT_PATTERN = "yyyy-MM-dd.HH:mm:ss";
 
     private final SDBDeserializationConverter[] toInternalConverters;
     private final SDBSerializationConverter[] toExternalConverters;
@@ -317,44 +315,55 @@ public class SDBDataConverter implements Serializable {
             return 0.0f;
     }
 
-    private static int toDate(Object v) {
-        if (v instanceof Integer)
-            return (int) v;
-        else if (v instanceof Long)
-            return ((Long) v).intValue();
-        else if (v instanceof Date)
-            return (int) ((Date) v).toInstant().atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay();
-        else if (v instanceof BSONTimestamp)
-            return (int) ((BSONTimestamp) v).toTimestamp().toLocalDateTime().toLocalDate().toEpochDay();
-        else if (v instanceof String) {
-            int epoch = 0;
+    private static int toDate(Object value) {
+        int result = 0;
+
+        if (value instanceof Integer) {
+            result = (Integer) value;
+        } else if (value instanceof Long) {
+            result = ((Long) value).intValue();
+        } else if (value instanceof Date) {
+            Date date = (Date) value;
+            result = (int) date.toInstant().atZone(ZoneId.systemDefault())
+                    .toLocalDate().toEpochDay();
+        } else if (value instanceof BSONTimestamp) {
+            BSONTimestamp timestamp = (BSONTimestamp) value;
+            result = (int) timestamp.toTimestamp().toLocalDateTime()
+                    .toLocalDate().toEpochDay();
+        } else if (value instanceof String) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATETIME_FORMAT_PATTERN);
             try {
-                epoch = (int) new SimpleDateFormat("yyyy-MM-dd.HH:mm:ss").parse((String) v).toInstant()
-                        .atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay();
-            } catch (ParseException ignored) {
-            }
-            return epoch;
-        } else
-            return 0;
+                result = (int) LocalDate.parse(value.toString(), formatter)
+                        .toEpochDay();
+            } catch (DateTimeParseException ignored) {}
+        }
+
+        return result;
     }
 
-    private static TimestampData toTimestamp(Object v) {
-        if (v instanceof Integer)
-            return TimestampData.fromInstant(Instant.ofEpochMilli(((Integer) v).longValue()));
-        else if (v instanceof Long)
-            return TimestampData.fromInstant(Instant.ofEpochMilli((long) v));
-        else if (v instanceof Date)
-            return TimestampData.fromInstant(Instant.ofEpochMilli(((Date) v).getTime()));
-        else if (v instanceof BSONTimestamp)
-            return TimestampData.fromInstant(((BSONTimestamp) v).toTimestamp().toInstant());
-        else if (v instanceof String) {
-            Timestamp ts = null;
+    private static TimestampData toTimestamp(Object value) {
+        TimestampData result = null;
+        if (value instanceof Integer) {
+            result = TimestampData.fromInstant(Instant.ofEpochMilli(((Integer) value).longValue()));
+        } else if (value instanceof Long) {
+            result = TimestampData.fromInstant(Instant.ofEpochMilli((long) value));
+        } else if (value instanceof Date) {
+            result = TimestampData.fromInstant(Instant.ofEpochMilli(((Date) value).getTime()));
+        } else if (value instanceof BSONTimestamp) {
+            result = TimestampData.fromInstant(((BSONTimestamp) value).toTimestamp().toInstant());
+        } else if (value instanceof String) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATETIME_FORMAT_PATTERN);
             try {
-                ts = new Timestamp(new SimpleDateFormat("yyyy-MM-dd.HH:mm:ss").parse((String) v).getTime());
-            } catch (ParseException ignored) {}
-            return TimestampData.fromInstant(ts != null ? ts.toInstant() : Instant.ofEpochMilli(0));
-        } else
-            return TimestampData.fromInstant(Instant.ofEpochMilli(0));
+                Instant instant = LocalDateTime.parse(value.toString(), formatter)
+                        .atZone(ZoneId.systemDefault())
+                        .toInstant();
+                result = TimestampData.fromInstant(instant);
+            } catch (DateTimeParseException ignored) {}
+        }
+
+        return result == null ?
+                TimestampData.fromInstant(Instant.ofEpochMilli(0)) :
+                result;
     }
 
     private static boolean toBoolean(Object v) {
@@ -472,15 +481,24 @@ public class SDBDataConverter implements Serializable {
             case DECIMAL:
                 return (v -> v != null ? new BSONDecimal(((DecimalData) v).toBigDecimal()) : null);
 
+            // using BSONDate
             case DATE:
                 return (v -> v != null ?
-                        new Date(java.sql.Date.valueOf(LocalDate.ofEpochDay((int) v)).getTime()) :
+                        BSONDate.valueOf(LocalDate.ofEpochDay(((Integer) v).longValue())) :
                         null);
 
             case TIMESTAMP_WITHOUT_TIME_ZONE:
             case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
             case TIMESTAMP_WITH_TIME_ZONE:
-                return (v -> v != null ? new BSONTimestamp(((TimestampData) v).toTimestamp()) : null);
+                return (v -> {
+                    TimestampData ts = (TimestampData) v;
+                    BSONTimestamp result = null;
+                    if (ts != null) {
+                        Instant instant = ts.toInstant();
+                        result = new BSONTimestamp((int) instant.getEpochSecond(), instant.getNano() / 1000);
+                    }
+                    return result;
+                });
 
             case CHAR:
             case VARCHAR:

@@ -166,7 +166,7 @@ class SdbRowRDDIterator(sdbConfig: SdbConfig,
 
     override def next(): Row = {
         val obj = sdbCursor.next()
-        BSONConverter.bsonToRow(obj, schema)
+        BSONConverter.bsonToRow(obj, schema, sdbConfig.java8APIEnabled)
     }
 }
 
