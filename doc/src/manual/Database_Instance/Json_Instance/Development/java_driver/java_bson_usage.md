@@ -125,14 +125,16 @@
   ```lang-java
   // Java BSON 构造日期类型
   BSONObject obj = new BasicBSONObject();
-  Date now = new Date();
-  obj.put("date", now);
+
+  LocalDate localDate = LocalDate.of( 2022, 1, 1 );
+  obj.put( "localDate", BSONDate.valueOf( localDate ) );
   ```
 
   >**Note:**
   >
-  >sequoiaDB 对应的日期只精确到年月日，而在 java 中日期类型 java.util.Date
-的精度包含了时分秒，所以 java 驱动在处理 java.util.Date 类型时只会截取其年月日对应的数据传给引擎端。
+  > * java.util.Date 的国际化处理不够完善，推荐使用 LocalDate 替代 java.util.Date。
+  >
+  > * 当日期带时间信息时，推荐使用的类型是 BSONTimestamp 类型，而不是 BSONDate 类型。
 
 * 二进制
 
