@@ -42,16 +42,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import org.bson.types.BSONDecimal;
-import org.bson.types.BSONTimestamp;
-import org.bson.types.BasicBSONList;
-import org.bson.types.Binary;
-import org.bson.types.Code;
-import org.bson.types.CodeWScope;
-import org.bson.types.MaxKey;
-import org.bson.types.MinKey;
-import org.bson.types.ObjectId;
-import org.bson.types.Symbol;
+import org.bson.types.*;
 import org.bson.util.JSON;
 
 // Java
@@ -641,6 +632,8 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 			method.invoke(object, (String) value);
 		} else if (Date.class.isAssignableFrom(paramType)) {
 			method.invoke(object, (Date) value);
+		} else if (BSONDate.class.isAssignableFrom(paramType)) {
+			method.invoke(object, (BSONDate) value);
 		} else if (Integer.class.isAssignableFrom(paramType)) {
 			method.invoke(object, new Integer(((Number) value).intValue()));
 		} else if (Long.class.isAssignableFrom(paramType)) {

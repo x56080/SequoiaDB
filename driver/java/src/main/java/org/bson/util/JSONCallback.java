@@ -33,12 +33,7 @@ import java.util.regex.Pattern;
 import org.bson.BSON;
 import org.bson.BSONObject;
 import org.bson.BasicBSONCallback;
-import org.bson.types.BSONDecimal;
-import org.bson.types.BSONTimestamp;
-import org.bson.types.Binary;
-import org.bson.types.MaxKey;
-import org.bson.types.MinKey;
-import org.bson.types.ObjectId;
+import org.bson.types.*;
 
 import sun.misc.BASE64Decoder;
 
@@ -108,10 +103,11 @@ public class JSONCallback extends BasicBSONCallback {
 						o = format.parse(dateValue.toString(), new ParsePosition(0));
 					}
 				}
+				BSONDate date = new BSONDate(((Date) o).getTime());
 				if (!isStackEmpty()) {
-					cur().put(name, o);
+					cur().put(name, date);
 				} else {
-					setRoot(o);
+					setRoot(date);
 				}
 			} else if (b.containsField("$timestamp")) {
 				Object timeStamp = b.get("$timestamp");

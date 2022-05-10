@@ -474,6 +474,8 @@ public class BSON {
             return true;
         else if (obj.getClass().isPrimitive())
             return true;
+        else if (obj instanceof BSONDate)
+            return true;
         else if (obj instanceof Date)
             return true;
         else if (obj instanceof Number)

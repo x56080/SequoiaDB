@@ -60,15 +60,7 @@ import java.util.regex.Pattern;
 
 import org.bson.io.BasicOutputBuffer;
 import org.bson.io.OutputBuffer;
-import org.bson.types.BSONDecimal;
-import org.bson.types.BSONTimestamp;
-import org.bson.types.Binary;
-import org.bson.types.Code;
-import org.bson.types.CodeWScope;
-import org.bson.types.MaxKey;
-import org.bson.types.MinKey;
-import org.bson.types.ObjectId;
-import org.bson.types.Symbol;
+import org.bson.types.*;
 import org.bson.util.DateInterceptUtil;
 
 /**
@@ -211,6 +203,8 @@ public class BasicBSONEncoder implements BSONEncoder {
 			putNull(name);
 		else if (val instanceof Timestamp)
 			putTimestamp(name, new BSONTimestamp((Timestamp) val));
+		else if (val instanceof BSONDate )
+			putBSONDate(name, (BSONDate) val);
 		else if (val instanceof Date)
 			putDate(name, (Date) val);
 		else if (val instanceof Number)
@@ -356,6 +350,11 @@ public class BasicBSONEncoder implements BSONEncoder {
 	protected void putBoolean(String name, Boolean b) {
 		_put(BOOLEAN, name);
 		_buf.write(b ? (byte) 0x1 : (byte) 0x0);
+	}
+
+	protected void putBSONDate(String name, BSONDate d) {
+		_put(DATE, name);
+		_buf.writeLong(d.getTime());
 	}
 
 	protected void putDate(String name, Date d) {
