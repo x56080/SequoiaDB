@@ -1408,6 +1408,24 @@ namespace engine
                         "should be global transaction of record" ) ;
             UINT64 globTransAvailTime =
                   context->mbStat()->_globTransAvailTime.peek() ;
+            if ( DPS_MAX_TRANS_TIME == globTransAvailTime )
+            {
+               stpAgent timeAgent ;
+               stpLogicalTimeUS curTime ;
+               // get global logical time
+               PD_LOG( PDDEBUG, "Global transaction time is unvailable. "
+                                "Try to get STP logical time" ) ;
+               rc = timeAgent.getLogicalTimeUS( curTime,
+                                                OSS_ONE_SEC,
+                                                FALSE ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get STP logical time, rc:%d",
+                            rc ) ;
+               context->mbStat()
+                      ->_globTransAvailTime.compareAndSwap( DPS_MAX_TRANS_TIME,
+                                                            curTime.getTime() ) ;
+               globTransAvailTime =
+                     context->mbStat()->_globTransAvailTime.peek() ;
+            }
             PD_CHECK( ( 0 == globTransAvailTime ) ||
                       ( DPS_MAX_TRANS_TIME == visibleTime.getTime() ) ||
                       ( visibleTime.getTime() > globTransAvailTime ),

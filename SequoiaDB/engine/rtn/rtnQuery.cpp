@@ -788,6 +788,24 @@ namespace engine
          UINT64 globTransAvailTime =
                mbContext->mbStat()->_globTransAvailTime.peek() ;
          stpLogicalTimeUS txBeginTm = cb->getTransBeginTime() ;
+         if ( DPS_MAX_TRANS_TIME == globTransAvailTime )
+         {
+            stpAgent timeAgent ;
+            stpLogicalTimeUS curTime ;
+            // get global logical time
+            PD_LOG( PDDEBUG, "Global transaction time is unvailable. "
+                             "Try to get STP logical time" ) ;
+            rc = timeAgent.getLogicalTimeUS( curTime,
+                                             OSS_ONE_SEC,
+                                             FALSE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get STP logical time, rc:%d",
+                         rc ) ;
+            mbContext->mbStat()
+                     ->_globTransAvailTime.compareAndSwap( DPS_MAX_TRANS_TIME,
+                                                           curTime.getTime() ) ;
+            globTransAvailTime =
+                  mbContext->mbStat()->_globTransAvailTime.peek() ;
+         }
          PD_CHECK( ( ( 0 == globTransAvailTime ) ||
                      ( globTransAvailTime < txBeginTm.getTime() ) ),
                    SDB_GLOB_TRANS_NOT_AVAILABLE, error, PDERROR,
