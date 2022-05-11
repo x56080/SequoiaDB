@@ -60,16 +60,15 @@
 | Mode    |  string  | [配置快照][SNAP_CONFIGS] | 指定返回配置的模式，默认为"run"，取值如下：<br>"run"：显示当前运行时配置信息 <br>"local"：显示配置文件中配置信息<br>如{"Mode":"local"}  | 否 |
 | Expand  |  boolean/string  | [配置快照][SNAP_CONFIGS]  | 是否扩展显示用户未配置的配置项，默认为 true，如 {"Expand":false} | 否 |
 | ShowError | string | ALL | 指定是否返回错误信息，默认为"show"，取值如下： <br>"show"：显示错误信息 <br>"only"：只显示错误信息，不显示其他快照信息 <br>"ignore"：不显示错误信息 <br>如 { "ShowError: "only" }  | 否 |
-| ShowErrorMode | string | ALL | 指定返回错误信息的格式,默认为"aggr"，取值如下： <br>"aggr"：错误信息聚合为一条记录显示<br>"flat"：一个错误节点对应一条记录显示 <br>如 {"ShowErrorMode":"flat"}  | 否 |
+| ShowErrorMode | string | ALL | 指定返回错误信息的格式，默认为"aggr"，取值如下： <br>"aggr"：错误信息聚合为一条记录显示<br>"flat"：一个错误节点对应一条记录显示 <br>如 {"ShowErrorMode":"flat"}  | 否 |
 | viewHistory | boolean/string | [查询快照][SNAP_QUERIES]、[锁等待快照][SNAP_LOCKWAITS]、[闩锁等待快照][SNAP_LATCHWAITS]  | 显示快照中保留的慢查询相关的历史信息，默认为 false<br>当前暂时只支持显示查询快照、锁等待快照和闩锁等待快照的历史信息，如 { "viewHistory": true }   | 否 |
 
 
 > **Note：**
-
-> * ShowError 参数和 ShowErrorMode 参数只在协调节点执行快照生效。
-> * ShowError 参数和 ShowErrorMode 参数仅支持会返回错误信息的快照。
-> * 当 ShowError 参数为"ignore"的情况下，ShowErrorMode 参数不起作用。
-> * 特别地，当 ShowErrorMode 参数为"flat"的情况下，对[系统快照][SNAP_SYSTEM]和[数据库快照][SNAP_DATABASE]不起作用  。
+>
+> - 参数 ShowError 和 ShowErrorMode 仅当用户在协调节点执行快照时生效。
+> - 当参数 ShowError 取值为"ignore"时，参数 ShowErrorMode 不生效。
+> - 参数 ShowErrorMode 对[操作系统快照][SNAP_SYSTEM]和[数据库快照][SNAP_DATABASE]不生效，快照返回的错误信息均聚合为一条记录。
 
 ###skip(\<skipNum\>)###
 
