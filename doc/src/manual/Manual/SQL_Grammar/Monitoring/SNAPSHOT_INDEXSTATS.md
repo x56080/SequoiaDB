@@ -1,6 +1,5 @@
-##描述##
 
-[索引统计信息][statistics]快照 $SNAPSHOT_INDEXSTATS 列出当前数据库节点中所有的索引统计信息。
+[索引统计信息][statistics]快照可以列出当前数据库节点中所有的索引统计信息。
 
 >**Note:**
 >
