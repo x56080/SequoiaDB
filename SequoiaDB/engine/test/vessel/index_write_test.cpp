@@ -125,7 +125,6 @@ static void insert_test_nonunique_index(INDEX_TYPE type)
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
-   options.cacheOptions.flush.flushDirtyListThreshold = 0.8;
    DATA_COLLECTION_PTR handler;
    UINT32 count = 10000000;
    static const UINT32 threadCount = 4;

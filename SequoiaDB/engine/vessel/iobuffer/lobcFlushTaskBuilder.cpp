@@ -68,13 +68,12 @@ namespace vessel
       _dispatched = 0;
    }
 
-   lobcFlushTaskBuilder::taskId lobcFlushTaskBuilder::getNextTask()
+   bufferFlushTaskId lobcFlushTaskBuilder::getNextTask()
    {
       THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
       SDB_ASSERT(nullptr != tc, "can not be null");
       dataManagementService &dms = tc->getEnv()->dms;
-      storageFileCluster *fcluster = nullptr;
-      taskId tid;
+      bufferFlushTaskId tid;
 
       if (hasMore())
       {
@@ -85,20 +84,18 @@ namespace vessel
       if (hasMore())
       {
          const globalPageID &gpid = _tasks[_next - 1].gpid();
-         fcluster = dms.getLobdFileCluster(gpid.space());
-         SDB_ASSERT(nullptr != fcluster, "can not be null");
+         const storageUnit *su = dms.getStorageUnit(gpid.getSpaceId());
+         SDB_ASSERT(nullptr != su, "can not be null");
+         UINT32 pcnt = su->getManifest().lobArgs.getMaxPageCountInFile();
+         UINT32 fd = gpid.getPageId() / pcnt;
 
          do
          {
             const globalPageID &next = _tasks[_next].gpid();
-            const globalPageID &current = _tasks[_next - 1].gpid();
-            if (current.space() == next.space())
+            if (gpid.getSpaceId() == next.getSpaceId())
             {
-               INT32 currentFd = fcluster->getFileSpaceId(current.page());
-               SDB_ASSERT(0 <= currentFd, "impossible");
-               INT32 nextFd = fcluster->getFileSpaceId(next.page());
-               SDB_ASSERT(0 <= nextFd, "impossible");
-               if (currentFd == nextFd)
+               UINT32 nextFd = next.getPageId() / pcnt;
+               if (fd == nextFd)
                {
                   ++tid.size;
                   ++_next;

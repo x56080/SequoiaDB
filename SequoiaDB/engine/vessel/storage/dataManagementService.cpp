@@ -56,9 +56,6 @@ namespace engine
 {
 namespace vessel
 {
-   constexpr UINT32 ALLOCATOR_PAGE_CAPACITY_BITWISE = 9;
-   constexpr UINT32 ALLOCATOR_PAGE_CAPACITY = ((UINT32)1 << ALLOCATOR_PAGE_CAPACITY_BITWISE);
-
    dataManagementService::dataManagementService()
    {
 
@@ -73,7 +70,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!isOpen(), "do not reinit");
-      inMemBitmap::options o;
       ossPoolList<SPACE_ID> list;
 
       if (NULL == context)
@@ -83,20 +79,10 @@ namespace vessel
 
       _isOpen = TRUE;
 
-      rc = _sus.init(MAX_SU_COUNT, ALLOCATOR_PAGE_CAPACITY);
+      rc = _sus.init(MAX_SU_COUNT, 128);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init su array:%d", rc);
-         goto error;
-      }
-
-      o.bitmapBeginPage = 0;
-      o.maxBitmapPageCount = MAX_SU_COUNT / ALLOCATOR_PAGE_CAPACITY;
-
-      rc = _suAllocator.initWithNoLatch(ALLOCATOR_PAGE_CAPACITY, o);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init allocator:%d", rc);
          goto error;
       }
 
@@ -130,7 +116,7 @@ namespace vessel
       _nameIndex.clear();
       _uidIndex.clear();
       _nextLogicalID = 0;
-      _suAllocator.fini();
+      _suAllocator.clear();
 
       for (_SPACE_ID_INDEX::const_iterator itr = _mainIndex.begin();
            itr != _mainIndex.end(); ++itr)
@@ -146,47 +132,6 @@ namespace vessel
       _isOpen = FALSE;
    done:
       return;
-   }
-
-   INT32 dataManagementService::getPageSize(SPACE_ID sid,
-                                            SPACE_TYPE spaceType,
-                                            FILE_TYPE fileType,
-                                            UINT32 &pageSize)const
-   {
-      INT32 rc = SDB_OK;
-      logicalPageSpace *lps = NULL;
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (INVALID_SPACE_ID == sid ||
-               INVALID_SPACE_TYPE == spaceType ||
-               INVALID_FILE_TYPE == fileType)
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = getLogicalPageSpace(sid, spaceType, &lps);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      if (fileType == lps->getStorageFileType())
-      {
-         pageSize = lps->getStorageCoreArgs().pageSize;
-      }
-      else
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
    }
 
    INT32 dataManagementService::getLogicalPageSpace(SPACE_ID sid,
@@ -1368,22 +1313,20 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
       SDB_ASSERT(sid < MAX_SU_COUNT, "can not be invalid");
-      SDB_ASSERT(_suAllocator.isInitialized(), "must be inited");
 
-      UINT32 minPageCount = (sid >> ALLOCATOR_PAGE_CAPACITY_BITWISE) + 1;
-      rc = _suAllocator.ensureBitmapPageCount(minPageCount);
-      if (SDB_OK != rc)
+      if (_suAllocator.size() <= sid)
       {
-         PD_LOG(PDERROR, "failed to ensure allocator's page count:%d", rc);
+         _suAllocator.resize(sid + 1, TRUE);
+      }
+
+      if (!_suAllocator.test(sid))
+      {
+         PD_LOG(PDERROR, "sid[%d] already been occupied");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
 
-      rc = _suAllocator.occupy(sid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to occupy sid[%d], rc:%d", sid, rc);
-         goto error;
-      }
+      _suAllocator.reset(sid);
    done:
       return rc;
    error:
@@ -1400,6 +1343,8 @@ namespace vessel
       UINT32 newSpaceId = 0;
       ossPoolString name;
       name.assign(csName.str(), csName.strLen());
+      boost::dynamic_bitset<>::size_type t = boost::dynamic_bitset<>::npos;
+
       ossScopedRWLock guard(&_latch, EXCLUSIVE);
 
       if (_nextLogicalID == DMS_INVALID_LOGICCSID)
@@ -1425,28 +1370,36 @@ namespace vessel
          }
       }
 
-      rc = _suAllocator.allocateBits(1, &newSpaceId, 1);
-      if (SDB_VESSEL_OUT_OF_RESOURCE == rc)
+      do
       {
-         rc = SDB_DMS_SU_OUTRANGE;
-         goto error;
-      }
-      else if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to allocate space id:%d", rc);
-         goto error;
-      }
-      else
-      {
-         SDB_ASSERT(newSpaceId <= MAX_SPACE_ID, "impossible");
-         if (UTIL_IS_VALID_CSUNIQUEID(uniqueID))
+         t = _suAllocator.find_first();
+         if (t != boost::dynamic_bitset<>::npos)
          {
-            _unformalUidIndex.insert(uniqueID);
+            newSpaceId = t;
+            _suAllocator.reset(t);
+            break;
          }
-         _unformalNameIndex.insert(std::move(name));
-         logicalID = _nextLogicalID++;
-         sid = newSpaceId;
+         else if (_suAllocator.size() == MAX_SU_COUNT)
+         {
+            PD_LOG(PDERROR, "hit the max count of available space");
+            rc = SDB_VESSEL_OUT_OF_RESOURCE;
+            goto error;
+         }
+         else
+         {
+            boost::dynamic_bitset<>::block_type block(0);
+            _suAllocator.append(~block);
+         }
+      } while (TRUE);
+      
+      SDB_ASSERT(newSpaceId <= MAX_SPACE_ID, "impossible");
+      if (UTIL_IS_VALID_CSUNIQUEID(uniqueID))
+      {
+         _unformalUidIndex.insert(uniqueID);
       }
+      _unformalNameIndex.insert(std::move(name));
+      logicalID = _nextLogicalID++;
+      sid = newSpaceId;
 
    done:
       return rc;
@@ -1485,13 +1438,14 @@ namespace vessel
    {
       SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
       ossScopedRWLock guard(&_latch, EXCLUSIVE);
+      SDB_ASSERT(sid < _suAllocator.size(), "out of bound");
 
       _unformalNameIndex.erase(csName.str());
       if (UTIL_IS_VALID_CSUNIQUEID(uniqueID))
       {
          _unformalUidIndex.erase(uniqueID);
       }
-      _suAllocator.release(sid);
+      _suAllocator.set(sid);
       if (DMS_INVALID_LOGICCSID != logicalID &&
           _nextLogicalID == (logicalID + 1))
       {
@@ -1583,10 +1537,12 @@ namespace vessel
    }
 
    INT32 dataManagementService::getMmapPagePtr(const GLOBAL_PAGE_ID &gpid,
-                                               mmapPagePointer &ptr)const
+                                               mmapPagePointer &ptr,
+                                               const UINT32 *pageSize)const
    {
       INT32 rc = SDB_OK;
       storageUnit *su = NULL;
+      ptr.reset();
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -1599,11 +1555,23 @@ namespace vessel
          goto error;
       }
 
-      rc = _sus.get(gpid.space(), &su);
+      rc = _sus.get(gpid.getSpaceId(), &su);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get storage unit[%d], rc:%d", gpid.space(), rc);
          goto error;
+      }
+
+      if (nullptr != pageSize)
+      {
+         UINT32 psz = su->getStoragePageSize(gpid.getSpaceType());
+         if (psz != *pageSize)
+         {
+            PD_LOG(PDERROR, "page size[%d] does not match storage page size[%d",
+                   *pageSize, psz);
+            rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+            goto error;
+         }
       }
 
       rc = su->getMmapPagePointer(gpid.getSpaceType(),
@@ -1684,6 +1652,24 @@ namespace vessel
       }
 
       return fcluster;
+   }
+
+   storageFileCluster *dataManagementService::getStorageFileClsuter(SPACE_ID sid, SPACE_TYPE stype)
+   {
+      SDB_ASSERT(INVALID_SPACE_ID != sid, "can nto be invalid");
+      SDB_ASSERT(SPACE_TYPE_MAIN_DATA == stype || SPACE_TYPE_IDX == stype, "can not be invalid");
+      SDB_ASSERT(isOpen(), "can not be invalid");
+
+      storageFileCluster *dpc = nullptr;
+      storageUnit *su = getStorageUnit(sid);
+      if (OSS_LIKELY(nullptr != su))
+      {
+         dpc = SPACE_TYPE_MAIN_DATA == stype ?
+               su->getMainDataSpace().getFileCluster() :
+               su->getIndexSpace().getFileCluster();
+      }
+
+      return dpc;
    }
 
    storageUnit *dataManagementService::getStorageUnit(SPACE_ID sid)

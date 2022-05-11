@@ -74,6 +74,18 @@ namespace vessel
          }
          ~fixedBitset(){}
 
+         fixedBitset(const fixedBitset &o):
+         _bs(o._bs)
+         {
+
+         }
+
+         fixedBitset &operator=(const fixedBitset &o)
+         {
+            _bs = o._bs;
+            return *this;
+         }
+
       public:
          constexpr UINT32 getSize()const {return SET_SIZE;}
          UINT32 getNonzeroBitCount()const

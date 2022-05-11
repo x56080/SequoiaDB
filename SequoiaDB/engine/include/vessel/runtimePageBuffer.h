@@ -36,11 +36,11 @@
 #ifndef VESSEL_RUNTIME_PAGE_BUFFER_H_
 #define VESSEL_RUNTIME_PAGE_BUFFER_H_
 
-#include "vessel/liteCacheTuple.h"
 #include "vessel/mmapPagePointer.h"
 #include "vessel/globalPageID.h"
 #include "vessel/slice.h"
 #include "vessel/strictBuffer.h"
+#include "vessel/liteIOBuffer.h"
 
 namespace engine
 {
@@ -75,19 +75,18 @@ namespace vessel
          ///WARNING: Should always check isValid first.
          OSS_INLINE BOOLEAN isCacheBuffer()const
          {
-            return _tuple.isValid();
+            return _iob.isValid();
          }
 
       private:/// for logicalPageSpace
-         /// init with mmap
-         INT32 init(const GLOBAL_PAGE_ID &gpid,
-                    UINT32 pageSize,
-                    const mmapPagePointer &ptr);
+         void initWithMmap(const GLOBAL_PAGE_ID &gpid,
+                           UINT32 pageSize,
+                           const mmapPagePointer &ptr);
 
-         /// init with cache tuple
-         INT32 init(const GLOBAL_PAGE_ID &gpid,
-                    UINT32 pageSize,
-                    liteCacheTuple &tuple);
+         /// iob will be reset
+         void initWithBuffer(const GLOBAL_PAGE_ID &gpid,
+                             UINT32 pageSize,
+                             liteIOBuffer &iob);
 
       public:
          void commit(DPS_LSN_OFFSET lsn);
@@ -117,7 +116,7 @@ namespace vessel
          GLOBAL_PAGE_ID _gpid;
          UINT32 _pageSize = 0;
          UINT32 _flags = 0;
-         liteCacheTuple _tuple;
+         liteIOBuffer _iob;
          ossValuePtr _buffer = 0;
          DPS_LSN_OFFSET _commitedLsn = DPS_INVALID_LSN_OFFSET;
    };//class runtimePageBuffer

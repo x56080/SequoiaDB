@@ -45,112 +45,6 @@ namespace engine
 {
 namespace vessel
 {
-   class liteCacheOptions : public SDBObject
-   {
-      public:
-      class lruOptions : public SDBObject
-      {
-         public:
-            lruOptions(){}
-
-            lruOptions(const lruOptions &) = delete;
-            lruOptions &operator=(const lruOptions &o)
-            {
-               ossMemcpy(this, &o, sizeof(lruOptions));
-               return *this;
-            }
-            
-                     
-         public:
-            UINT32 lruHotTouchCnt = 2;
-            FLOAT32 lruColdPercent = 0.5;
-            UINT32 lruMinSplitSize = 512;
-            UINT32 lruScanDepth = 128; /// default scan depth when evicting
-            FLOAT32 lruMaxScanPercent = 0.6; /// max scan depth when evicting
-            INT32 lruFlushWaitLockTimeout = -1;
-            UINT32 _lruColdMistakeTolerance = 10;
-            UINT32 _lruTouchCountFrozenTime = 100;
-      };// class lruOptions
-
-      class freeListOptions : public SDBObject
-      {
-         public:
-            freeListOptions(){}
-            freeListOptions(const freeListOptions &) = delete;
-            freeListOptions &operator=(const freeListOptions &o)
-            {
-               maxChunkCount = o.maxChunkCount;
-               pageCountInChunk = o.pageCountInChunk;
-               return *this;
-            }
-
-            std::string toString()const
-            {
-               return "";
-            }
-
-            UINT32 maxChunkCount = 128;
-            UINT32 pageCountInChunk = 1024;
-      };//class freeListOptions
-
-      class bucketOptions : public SDBObject
-      {
-         public:
-            bucketOptions(){}
-            bucketOptions(const bucketOptions &) = delete;
-            bucketOptions &operator=(const bucketOptions &o)
-            {
-               bucketCount = o.bucketCount;
-               bucketLatchCount = o.bucketLatchCount;
-               return *this;
-            }
-
-            UINT32 bucketCount = 16384;
-            UINT32 bucketLatchCount = 512;
-      };//class bucketOptions
-
-      class flushOptions : public SDBObject
-      {
-         public:
-            flushOptions(){}
-            ~flushOptions(){}
-            flushOptions(const flushOptions &) = delete;
-            flushOptions &operator=(const flushOptions &o)
-            {
-               flushDirtyListThreshold = o.flushDirtyListThreshold;
-               flushDirtyListTimeout = o.flushDirtyListTimeout;
-               flushLruListThreshold = o.flushLruListThreshold;
-               minTrimLRUDepth = o.minTrimLRUDepth;
-               return *this;
-            }
-
-         public:
-            FLOAT32 flushDirtyListThreshold = 1.2;
-            UINT32 flushDirtyListTimeout = 300; /// seconds
-            FLOAT32 flushLruListThreshold = 0.8;
-            UINT32 minTrimLRUDepth = 128;
-         
-      };//class flushOptions
-
-      public:
-      liteCacheOptions(){}
-      liteCacheOptions(const liteCacheOptions &) = delete;
-      liteCacheOptions &operator=(const liteCacheOptions &o)
-      {
-         bucket = o.bucket;
-         freelist = o.freelist;
-         lru = o.lru;
-         flush = o.flush;
-         return *this;
-      }
-      
-      
-      bucketOptions bucket;
-      freeListOptions freelist;
-      lruOptions lru;
-      flushOptions flush;
-   }; /// end of class liteCacheOptions
-
    struct storagePathOptions : public SDBObject
    {
       std::string dataPath;
@@ -185,7 +79,7 @@ namespace vessel
          
          BOOLEAN fullDumpPageLog = FALSE;
 
-         liteCacheOptions cacheOptions;
+         liteBufferPoolOptions bufferPoolOptions;
 
          UINT32 cacheCleanerCount = 8;
          UINT32 commonBackgroundWorkers = 16;

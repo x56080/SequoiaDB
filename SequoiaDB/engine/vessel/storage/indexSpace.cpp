@@ -53,13 +53,13 @@ namespace vessel
    }
 
    INT32 indexSpace::getRuntimePageBuffer(requestContext *context,
-                                              PAGE_ID pid,
-                                              const ossSharedLatchMode &mode,
-                                              runtimePageBuffer &rpb)
+                                          PAGE_ID pid,
+                                          const ossSharedLatchMode &mode,
+                                          runtimePageBuffer &rpb)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!rpb.isValid(), "can not be valid");
-      dataPageCluster *dpc = NULL;
+      storageFileCluster *fcluster = nullptr;
       logicalPageSpace::_runtimePageBufferIniter initer;
       GLOBAL_PAGE_ID gpid;
       UINT32 pageSize = 0;
@@ -73,10 +73,10 @@ namespace vessel
          goto error;
       }
 
-      dpc = getDataStorageObj();
-      SDB_ASSERT(NULL != dpc, "can not be null");
+      fcluster = getFileCluster();
+      SDB_ASSERT(nullptr != fcluster, "can not be null");
 
-      rc = dpc->getDataPagePtr(pid, ptr);
+      rc = fcluster->getPageMmapPtr(pid, ptr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get page[%d], rc:%d", pid, rc);
@@ -85,16 +85,11 @@ namespace vessel
 
       gpid.reset(logicalPageSpace::getSpaceID(),
                  getSpaceType(),
-                 getStorageFileType(),
+                 FILE_TYPE_DATA_STORAGE,
                  pid);
-      pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
+      pageSize = getFileCluster()->getCoreArgs().pageSize;
 
-      rc = initer.initWithMmap(gpid, pageSize, ptr, rpb);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init rpb:%d", rc);
-         goto error;
-      }
+      initer.initWithMmap(gpid, pageSize, ptr, rpb);
    done:
       return rc;
    error:
@@ -135,7 +130,7 @@ namespace vessel
                                                  runtimePageBuffer &rpb)
    {
       INT32 rc = SDB_OK;
-      UINT32 pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
+      UINT32 pageSize = getFileCluster()->getCoreArgs().pageSize;
       mmapPagePointer ptr;
       GLOBAL_PAGE_ID gpid;
       logicalPageSpace::_runtimePageBufferIniter initer;
@@ -159,7 +154,7 @@ namespace vessel
          goto error;
       }
 
-      rc = getDataStorageObj()->getDataPagePtr(newPid, ptr);
+      rc = getFileCluster()->getPageMmapPtr(newPid, ptr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "faield to get new page[%d] ptr:%d", newPid, rc);
@@ -172,48 +167,16 @@ namespace vessel
 
       rpb.fini();
 
-      gpid.reset(logicalPageSpace::getSpaceID(),
+      gpid.reset(getSpaceID(),
                  getSpaceType(),
-                 getStorageFileType(),
+                 FILE_TYPE_DATA_STORAGE,
                  newPid);
 
-      rc = initer.initWithMmap(gpid, pageSize, ptr, rpb);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init rpb:%d", rc);
-         goto error;
-      }
+      initer.initWithMmap(gpid, pageSize, ptr, rpb);
    done:
       return rc;
    error:
       goto done;
-   }
-
-   INT32 indexSpace::_create()
-   {
-      return SDB_OK;
-   }
-
-   INT32 indexSpace::_open(const storageFileLoader &loader)
-   {
-      return SDB_OK;
-   }
-   
-   void indexSpace::_close()
-   {
-      _storage.close();
-   }
-   
-   void indexSpace::_destroy()
-   {
-      _storage.destroy();
-   }
-
-   dataPageCluster::options indexSpace::getStorageOptions()const
-   {
-      dataPageCluster::options o;
-      o.segmentReusedMinFreePercent = 0.2f;
-      return o;
    }
 }//namespace vessel
 }//namespace engine

@@ -192,7 +192,7 @@ namespace vessel
       _isOpen = FALSE;
       _su = NULL;
       _blockInMem.reset();
-      _allocator.fini();
+      _allocator.clearAll();
       _collections.fini();
       _clNameIndex.clear();
       _innerIdIndex.clear();
@@ -228,30 +228,19 @@ namespace vessel
          goto error;
       }
 
-      rc = precreateCL(context, clName, clInnerId, mbID, logicalID);
+      rc = reserveCL(context, clName, clInnerId, mbID, logicalID);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = ensureCollectionHolder(mbID, &holder);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to ensure cl obj[%d] holder:%d", mbID, rc);
-         goto error;
-      }
+      getCollectionHolder(mbID, &holder);
+      SDB_ASSERT(nullptr != holder && !holder->isFree(), "impossible");
 
       context->lockMB(mbID, &(holder->getLatch()), EXCLUSIVE);
       locked = TRUE;
-
-      SDB_ASSERT(holder->isFree(), "must be free");
-      obj = holder->ensureObj();
-      if (NULL == obj)
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
+      obj = holder->getObj();
+      SDB_ASSERT(nullptr != obj, "impossible");
 
       rc = ensureCLMetaBlockPage(context, mbID);
       if (SDB_OK != rc)
@@ -289,7 +278,7 @@ namespace vessel
       }
       if (INVALID_CL_MB_ID != mbID)
       {
-         rollbackPrecreating(clName, clInnerId, mbID);
+         releaseCL(clName, clInnerId, mbID);
       }
       goto done;
    }
@@ -300,7 +289,9 @@ namespace vessel
       INT32 rc = SDB_OK;
       collection *cl = NULL;
       ossPoolString clName;
+      strSlice clNameSlice;
       utilCLInnerID innerId = UTIL_UNIQUEID_NULL;
+      CL_MB_ID mbID = INVALID_CL_MB_ID;
       BOOLEAN locked = FALSE;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -326,7 +317,9 @@ namespace vessel
       locked = TRUE;
 
       clName.assign(cl->getName());
+      clNameSlice.reset(clName.c_str(), clName.size());
       innerId = cl->getInnerID();
+      mbID = context->getMBID();
 
       prepareToRemoveCL(clName, innerId);
 
@@ -334,13 +327,11 @@ namespace vessel
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to remove cl[%s], rc:%d", clName.c_str(), rc);
-         ossPanic();
          goto error;
       }
       cl = NULL;
-      releaseCollectionObject(context->getMBID());
 
-      endToRemoveCL(clName, innerId, context->getMBID());
+      releaseCL(clNameSlice, innerId, mbID);
    done:
       if (locked)
       {
@@ -491,8 +482,8 @@ namespace vessel
                                    getUniqueID(),
                                    getLogicalID(),
                                    getStatus(),
-                                   _su->getMainDataSpace().getStorageCoreArgs().pageSize,
-                                   _su->getMainDataSpace().getStorageCoreArgs().getSegmentSize(),
+                                   _su->getManifest().dataArgs.pageSize,
+                                   _su->getManifest().dataArgs.getSegmentSize(),
                                    0,0,0,0);
    done:
       return rc;
@@ -835,7 +826,7 @@ namespace vessel
       SDB_ASSERT(NULL != _su, "can not be null");
 
       UINT32 clmbpCapacity = 0;
-      const storageCoreArgs &args = _su->getMainDataSpace().getStorageCoreArgs();
+      const storageCoreArgs &args = _su->getManifest().dataArgs;
       mainDataSpace *mds = &(_su->getMainDataSpace());
       clMetaBlock block;
       UINT32 totalCLmbpCount = 0;
@@ -899,13 +890,6 @@ namespace vessel
                continue;
             }
 
-            rc = _allocator.ensureBitmapPageCount(tmp / ALLOCATOR_PAGE_CAPAITY + 1);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to ensure bitmap page count:%d", rc);
-               goto error;
-            }
-
             rc = initCollection(context, &block);
             if (SDB_OK != rc)
             {
@@ -927,37 +911,23 @@ namespace vessel
                                          const clMetaBlock *block)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != block, "can not be null");
+      SDB_ASSERT(nullptr != block, "can not be null");
       SDB_ASSERT(block->isValid(), "can not be invalid");
       SDB_ASSERT(!context->isMbLocked(), "can not be locked");
 
-      collectionObjHolder *holder = NULL;
-      collection *cl = NULL;
+      collectionObjHolder *holder = nullptr;
+      collection *cl = nullptr;
 
-      rc = _allocator.occupy(block->mbID);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to occupy mbid[%d], rc:%d", block->mbID, rc);
-         goto error;
-      }
-
-      rc = ensureCollectionHolder(block->mbID, &holder);
+      rc = ensureCLObj(block->mbID, &holder);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to ensure collection holder:%d", rc);
          goto error;
       }
 
-      SDB_ASSERT(holder->isFree(), "impossible be free");
-      cl = holder->ensureObj();
-      if (NULL == cl)
-      {
-         PD_LOG(PDERROR, "failed to ensure cl obj[%d]", block->mbID);
-         rc = SDB_OOM;
-         goto error;
-      }
-
       context->lockMB(block->mbID, &holder->getLatch(), EXCLUSIVE);
+      cl = holder->getObj();
+      SDB_ASSERT(nullptr != cl, "impossible");
       rc = cl->initWhenOpen(context, *block, this);
       if (SDB_OK != rc)
       {
@@ -979,16 +949,22 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionSpace::ensureCollectionHolder(CL_MB_ID mbID,
-                                                 collectionObjHolder **holder)
+   INT32 collectionSpace::ensureCLObj(CL_MB_ID mbID,
+                                      collectionObjHolder **holder)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
-      SDB_ASSERT(NULL != holder, "can not be null");
       SDB_ASSERT(_collections.isInitialized(), "must be inited");
 
-      collectionObjHolderGroup *group = NULL;
+      collectionObjHolderGroup *group = nullptr;
       UINT32 i = mbID / collectionObjHolderGroup::CAPACITY;
+      INT32 pos = mbID % collectionObjHolderGroup::CAPACITY;
+      collectionObjHolder *h = nullptr;
+
+      if (nullptr != holder)
+      {
+         *holder = nullptr;
+      }
 
       rc = _collections.ensure(i, &group);
       if (SDB_OK != rc)
@@ -996,7 +972,23 @@ namespace vessel
          goto error;
       }
 
-      *holder = &(group->holders[mbID & (collectionObjHolderGroup::CAPACITY - 1)]);
+      h = group->get(pos);
+      if (nullptr == h->ensureObj())
+      {
+         PD_LOG(PDERROR, "failed to ensure cl obj:%d", rc);
+         goto error;
+      }
+
+      group->clear(pos);
+      if (0 == group->bits)
+      {
+         _allocator.clear(i);
+      }
+
+      if (nullptr != holder)
+      {
+         *holder = h;
+      }
       
    done:
       return rc;
@@ -1034,29 +1026,6 @@ namespace vessel
       goto done;
    }
 
-   void collectionSpace::releaseCollectionObject(CL_MB_ID mbID)
-   {
-      SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
-      SDB_ASSERT(_collections.isInitialized(), "must be inited");
-      collectionObjHolderGroup *group = NULL;
-      UINT32 i = mbID / collectionObjHolderGroup::CAPACITY;
-      collectionObjHolder *holder = NULL;
-
-      INT32 rc = _collections.get(i, &group);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get collection holder[%d], rc:%d", mbID, rc);
-         SDB_ASSERT(FALSE, "can not be failed");
-         goto done;
-      }
-
-      holder = &(group->holders[mbID & (collectionObjHolderGroup::CAPACITY - 1)]);
-      holder->releaseObj();
-
-   done:
-      return;
-   }
-
    INT32 collectionSpace::ensureCLMetaBlockPage(requestContext *context,
                                                 CL_MB_ID mbID)
    {
@@ -1070,7 +1039,7 @@ namespace vessel
       clMetaBlockPageIniter initer;
       BOOLEAN locked = FALSE;
       mainDataSpace &mds = _su->getMainDataSpace();
-      UINT32 pageSize = mds.getStorageCoreArgs().pageSize;
+      UINT32 pageSize = _su->getManifest().dataArgs.pageSize;
       PAGE_ID lpid = getMbpLpidOfCollection(pageSize, mbID);
       if (INVALID_PAGE_ID == lpid)
       {
@@ -1121,7 +1090,7 @@ namespace vessel
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
 
       indexSpace &is = _su->getIndexSpace();
-      UINT32 pageSize = is.getStorageCoreArgs().pageSize;
+      UINT32 pageSize = _su->getManifest().idxArgs.pageSize;
       clIndexMbpIniter initer;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
       BOOLEAN locked = FALSE;
@@ -1160,25 +1129,23 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionSpace::precreateCL(requestContext *context,
-                                      const strSlice &clName,
-                                      utilCLInnerID innerID,
-                                      CL_MB_ID &mbID,
-                                      UINT32 &logicalID)
+   INT32 collectionSpace::reserveCL(requestContext *context,
+                                    const strSlice &clName,
+                                    utilCLInnerID innerID,
+                                    CL_MB_ID &mbID,
+                                    UINT32 &logicalID)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "must be open");
       SDB_ASSERT(nullptr != context, "can not be null");
       SDB_ASSERT(!clName.empty(), "can not be empty");
       SDB_ASSERT(nullptr != _su, "can not be null");
-      UINT32 m = INVALID_CL_MB_ID;
-      UINT32 oldCLLid = DMS_INVALID_LOGICCLID;
-      BOOLEAN lidChanged = FALSE;
+
       logicalID = DMS_INVALID_LOGICCLID;
+      mbID = INVALID_CL_MB_ID;
 
       ossSLatchGuard guard(&_latch, EXCLUSIVE);
-      if (_blockInMem.maxCLLogicalID != DMS_INVALID_LOGICCLID &&
-          (_blockInMem.maxCLLogicalID + 1) == DMS_INVALID_LOGICCLID)
+      if ((_blockInMem.maxCLLogicalID + 1) == DMS_INVALID_LOGICCLID)
       {
          PD_LOG(PDERROR, "logical id hits the max value");
          rc = SDB_DMS_NOSPC;
@@ -1200,71 +1167,46 @@ namespace vessel
          goto error;
       }
 
-      do
+      rc = reserveCLObj(mbID);
+      if (SDB_OK != rc)
       {
-         rc = _allocator.allocateBits(1, &m, 1);
-         if (SDB_VESSEL_OUT_OF_RESOURCE == rc)
-         {
-            PD_LOG(PDERROR, "no free mb id any more");
-            rc = SDB_VESSEL_OUT_OF_MBID_RESOURCE;
-            goto error;
-         }
-         else if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to find free mb id in allocator:%d", rc);
-            goto error;
-         }
-         else if (MAX_CL_MB_COUNT <= m)
-         {
-            m = INVALID_CL_MB_ID;
-            continue;
-         }
+         PD_LOG(PDERROR, "failed to reserve cl obj:%d", rc);
+         goto error;
+      }
+      SDB_ASSERT(INVALID_CL_MB_ID != mbID, "impossible");
+      
+      ++_blockInMem.maxCLLogicalID;
+      rc = _su->getMainDataSpace().updateCSMetaBlock(context, _blockInMem, 
+                                                     MAX_CL_LOGICAL_ID);
+      if (SDB_OK != rc)
+      {
+         --_blockInMem.maxCLLogicalID;
+         PD_LOG(PDERROR, "failed to set max cl logical id on cs meta block, rc:%d", rc);
+         goto error;
+      }
+      logicalID = _blockInMem.maxCLLogicalID;
 
-         break;
-      } while(TRUE);
-
+      ///WARNING: do not goto error from here.
       _unformalNameIndex.insert(clName.str());
       if (UTIL_IS_VALID_CL_INNERID(innerID))
       {
          _unformalInnerIdIndex.insert(innerID);
       }
 
-      oldCLLid = _blockInMem.maxCLLogicalID;
-      if (DMS_INVALID_LOGICCLID == _blockInMem.maxCLLogicalID)
-      {
-         _blockInMem.maxCLLogicalID = 0;
-      }
-      else
-      {
-         ++_blockInMem.maxCLLogicalID;
-      }
-      lidChanged = TRUE;
-
-      rc = _su->getMainDataSpace().updateCSMetaBlock(context, _blockInMem, 
-                                                     MAX_CL_LOGICAL_ID);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to set max cl logical id on cs meta block, rc:%d", rc);
-         goto error;
-      }
-
-      SDB_ASSERT(m < MAX_CL_MB_COUNT, "impossible");
-      mbID = m;
-      logicalID = _blockInMem.maxCLLogicalID;
-
    done:
       return rc;
    error:
-      if (lidChanged)
+      if (INVALID_CL_MB_ID != mbID)
       {
-         _blockInMem.maxCLLogicalID = oldCLLid;
+         releaseCLObj(mbID);
+         mbID = INVALID_CL_MB_ID;
       }
       goto done;
    }
 
-   void collectionSpace::rollbackPrecreating(const strSlice &clName,
-                                             utilCLInnerID innerID,
-                                             CL_MB_ID mbID)
+   void collectionSpace::releaseCL(const strSlice &clName,
+                                   utilCLInnerID innerID,
+                                   CL_MB_ID mbID)
    {
       SDB_ASSERT(!clName.empty(), "can not be empty");
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
@@ -1275,7 +1217,7 @@ namespace vessel
       {
          _unformalInnerIdIndex.erase(innerID);
       }
-      _allocator.release(mbID);
+      releaseCLObj(mbID);
       return;
    }
 
@@ -1306,21 +1248,12 @@ namespace vessel
    INT32 collectionSpace::initInMemStructures()
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(65535 == MAX_CL_MB_COUNT, "must be 65535");
-      inMemBitmap::options o;
+      static_assert(65535 == MAX_CL_MB_COUNT, "must be 65535");
 
       static constexpr UINT32 CHUNK_SIZE = 16;
       static constexpr UINT32 CAPACITY = (MAX_CL_MB_COUNT +1) / collectionObjHolderGroup::CAPACITY;
 
-      o.bitmapBeginPage = 0;
-      o.maxBitmapPageCount = (MAX_CL_MB_COUNT + 1) / ALLOCATOR_PAGE_CAPAITY;
-      rc = _allocator.initWithNoLatch(ALLOCATOR_PAGE_CAPAITY, o);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init allocator:%d", rc);
-         goto error;
-      }
-
+      _allocator.setAll();
       rc = _collections.init(CAPACITY, CHUNK_SIZE);
       if (SDB_OK != rc)
       {
@@ -1556,19 +1489,106 @@ namespace vessel
       }
    }
 
-   void collectionSpace::endToRemoveCL(const ossPoolString &clName,
-                                       utilCLInnerID innerId,
-                                       CL_MB_ID mbID)
+   INT32 collectionSpace::reserveCLObj(CL_MB_ID &mbID)
    {
-      SDB_ASSERT(!clName.empty(), "can not be empty");
-      SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
-      ossSLatchGuard guard(&_latch, EXCLUSIVE);
-      _unformalNameIndex.erase(clName);
-      if (UTIL_IS_VALID_CL_INNERID(innerId))
+      INT32 rc = SDB_OK;
+      INT32 groupId = -1;
+      collectionObjHolderGroup *group = nullptr;
+      INT32 pos = -1;
+      collectionObjHolder *holder = nullptr;
+      mbID = INVALID_CL_MB_ID;
+
+      do
       {
-         _unformalInnerIdIndex.erase(innerId);
+         groupId = _allocator.findFirst();
+         if (groupId < 0)
+         {
+            PD_LOG(PDERROR, "no free mb id any more");
+            rc = SDB_VESSEL_OUT_OF_MBID_RESOURCE;
+            goto error;
+         }
+         else
+         {
+            rc = _collections.ensure(groupId, &group);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to ensure holder group:%d", rc);
+               goto error;
+            }
+
+            pos = group->findFirst();
+            if (pos < 0)
+            {
+               _allocator.clear(groupId);
+               group = nullptr;
+               groupId = -1;
+               continue;
+            }
+            else if (static_cast<UINT32>(groupId + 1)== _allocator.getSize() &&
+                     static_cast<UINT32>(pos + 1) == collectionObjHolderGroup::CAPACITY)
+            {
+               /// the last holder can not be reserved.
+               /// it is out of valid mb id space(65535)
+               _allocator.clear(groupId);
+               PD_LOG(PDERROR, "no free mb id any more");
+               rc = SDB_VESSEL_OUT_OF_MBID_RESOURCE;
+               goto error;
+            }
+            else
+            {
+               holder = group->get(pos);
+               if (nullptr == holder->ensureObj())
+               {
+                  PD_LOG(PDERROR, "failed to allocate mem.");
+                  rc = SDB_OOM;
+                  goto error;
+               }
+
+               group->clear(pos);
+               if (0 == group->bits)
+               {
+                  _allocator.clear(groupId);
+               }
+               break;
+            }
+         }
+      } while (TRUE);
+
+      SDB_ASSERT(0 <= pos && 0 <= groupId, "can not be invalid");
+      mbID = (groupId * collectionObjHolderGroup::CAPACITY) + pos;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void collectionSpace::releaseCLObj(CL_MB_ID mbID)
+   {
+      if (OSS_LIKELY(INVALID_CL_MB_ID != mbID))
+      {
+         INT32 groupId = mbID / collectionObjHolderGroup::CAPACITY;
+         INT32 pos = mbID % collectionObjHolderGroup::CAPACITY;
+         collectionObjHolderGroup *group = nullptr;
+         INT32 rc = _collections.get(groupId, &group);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get holder group[%d], rc:%d", groupId, rc);
+            goto done;
+         }
+
+         if (!_allocator.test(groupId))
+         {
+            _allocator.set(groupId);
+         }
+         group->get(pos)->releaseObj();
+         group->set(pos);
       }
-      _allocator.release(mbID);
+      else
+      {
+         SDB_ASSERT(FALSE, "invalid mb id");
+      }
+
+   done:
       return;
    }
 }//namespace vessel

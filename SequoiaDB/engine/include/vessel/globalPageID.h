@@ -182,6 +182,10 @@ class globalPageID
       {
          return _sid;
       }
+      OSS_INLINE SPACE_ID getSpaceId()const
+      {
+         return _sid;
+      }
 
       OSS_INLINE FILE_TYPE getFileType() const
       {
@@ -193,6 +197,10 @@ class globalPageID
          return _pid;
       }
 
+      OSS_INLINE PAGE_ID getPageId()const
+      {
+         return _pid;
+      }
       OSS_INLINE SPACE_TYPE getSpaceType()const
       {
          return _spaceType;
@@ -200,9 +208,9 @@ class globalPageID
 
       ossPoolString toString()const
       {
-         bson::StringBuilder builder(64);
-         builder << '[' << _sid << ',' << _spaceType
-                 << ',' << _fileType << ',' << _pid << ']';
+         bson::StringBuilder builder(128);
+         builder << "{sid:" << _sid << ",stype:" << _spaceType
+                 << ",ftype:" << _fileType << ",pid:" << _pid << '}';
          return std::move(builder.poolStr());
       }
 

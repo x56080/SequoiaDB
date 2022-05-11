@@ -42,7 +42,6 @@
 #include "interface/IRecordFilter.h"
 #include "vessel/listCSCursor.h"
 #include "vessel/listCLCursor.h"
-#include "vessel/diskIOJob.h"
 #include "vessel/cursorKernal.h"
 #include "vessel/scanCLCursor.h"
 #include "vessel/collectionSpace.h"
@@ -123,9 +122,10 @@ namespace vessel
 
       _env.latchEnv.lobRegionLatchVec.init(1024);
 
-      rc = _env.cacheConsole.init(options.cacheOptions);
+      rc = _env.ioBufferPool.init(DMS_PAGE_SIZE32K, options.bufferPoolOptions);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to init lite buffer pool:%d", rc);
          goto error;
       }
 
@@ -172,17 +172,15 @@ namespace vessel
          requestContext context;
 
          _env.lobcBufferPool.flushAllDirtyBuffers();
-
-         _env.cacheWatcher.fini();
-         _env.workers.fini();
+         _env.ioBufferPool.flushAll();
 
          if (nullptr != _env.lsm)
          {
             _env.lsm->closeLsmDB(TRUE, FALSE);
          }
 
+         _env.workers.fini();
          ///TODO: flush db by workers.
-         flushWholeDirtyList(&context);
          _env.dms.createCheckpointBeforeClosing(&context); 
       }
    done:
@@ -1086,82 +1084,15 @@ namespace vessel
       goto done;
    }
 
-   INT32 vesselImpl::flushWholeDirtyList(requestContext *context)
-   {
-      INT32 rc = SDB_OK;
-      
-      UINT32 scanDepth = 128;
-      diskIOJob job;
-
-      if (!isOpen())
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-
-      do
-      {
-         /// we'd better dispath tasks to workers.
-         rc = _env.cacheConsole.getCacheByPoolNo()->createDirtyListIOJob(scanDepth,
-                                                                        DPS_INVALID_LSN_OFFSET,
-                                                                        &job);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to create io job of dirty list:%d", rc);
-            goto error;
-         }
-
-         if (0 == job.getTagCount())
-         {
-            break;
-         }
-
-         job.prepareForDispatching();
-
-         do
-         {
-            diskIOTask task;
-            BOOLEAN hitTheEnd = FALSE;
-            rc = job.getNextTask(hitTheEnd, task);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to get io task:%d", rc);
-               goto error;
-            }
-
-            if (hitTheEnd)
-            {
-               break;
-            }
-
-            rc = _env.cacheConsole.getCacheByPoolNo()->executeIOTask(&task);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to execute io task:%d", rc);
-               goto error;
-            }
-
-         } while (TRUE);
-
-         job.reset();
-      }while(TRUE);
-   done:
-      return rc;
-   error:
-      job.abortUndispatchedTasks();
-      goto done;
-   }
-
    void vesselImpl::fini()
    {
       if (_open)
       {
          _open = FALSE;
          _env.lobcBufferPool.fini();
-         _env.cacheWatcher.fini();
+         _env.ioBufferPool.fini();
          _env.workers.fini();  
          _env.checkpointer.fini();
-         _env.cacheConsole.fini();
          _env.dms.close();
          _env.latchEnv.lpidLatchMap.fini();
          _env.latchEnv.ridLatchMap.fini();
@@ -1487,12 +1418,14 @@ namespace vessel
          goto error;
       }
 
-      rc = _env.cacheWatcher.init(&_env);
+      rc = _env.resource.executorPool->startEDU(EDU_TYPE_VESSEL_LITE_BUFFER_POOL_WATCHER,
+                                                this);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to init cache watcher:%d", rc);
+         PD_LOG(PDERROR, "failed to active lite buffer pool watcher:%d", rc);
          goto error;
       }
+      _env.ioBufferPool.waitUntilWatcherAttached();
 
       rc = _env.resource.executorPool->startEDU(EDU_TYPE_VESSEL_LOBC_BUFFER_POOL_WATCHER,
                                                 this);
@@ -1516,6 +1449,14 @@ namespace vessel
       THREAD_CONTEXT_OWNER tco(executor, &_env);
 
       _env.lobcBufferPool.attachWatcher();
+   }
+
+   void vesselImpl::attachLiteBufferPoolWatcher(IExecutor *executor)
+   {
+      SDB_ASSERT(nullptr != executor, "can not be invalid");
+      SDB_ASSERT(_env.ioBufferPool.isValid(), "can not be invalid");
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
+      _env.ioBufferPool.watcherAttach();
    }
 } // namespace vessel
 } // namespace engine

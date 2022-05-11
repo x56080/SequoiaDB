@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = lcBucketInnerIndex.h
+   Source File Name = baseMetaDataFile.h
 
    Descriptive Name =
 
@@ -33,21 +33,44 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_LC_BUCKET_INNER_INDEX_H_
-#define VESSEL_LC_BUCKET_INNER_INDEX_H_
+#ifndef VESSEL_BASE_META_DATA_FILE_H_
+#define VESSEL_BASE_META_DATA_FILE_H_
 
-#include "ossMemPool.hpp"
-#include "vessel/globalPageID.h"
+#include "vessel/storageFile.h"
+#include "vessel/bitmapScanner.h"
+
+#include <mutex>//c++11
 
 namespace engine
 {
 namespace vessel
 {
-   class liteCachePageTag;
-   typedef ossPoolMultiMap<GLOBAL_PAGE_ID, liteCachePageTag *> LC_BUCKET_INNER_INDEX;
-   typedef LC_BUCKET_INNER_INDEX::iterator LC_BUCKET_INNER_INDEX_ITERATOR;
-   typedef LC_BUCKET_INNER_INDEX::const_iterator LC_BUCKET_INNER_INDEX_CONST_ITERATOR;
-}//namespace vessel
-}//namespace engine
+   class baseMetaDataFile : public storageFile
+   {
+      public:
+         baseMetaDataFile() = default;
+         virtual ~baseMetaDataFile() = default;
 
-#endif//VESSEL_LC_BUCKET_INNER_INDEX_H_
+      public:
+         INT32 reservePid(PAGE_ID &pid, mmapPagePointer *ptr=nullptr);
+         void freePid(PAGE_ID pid);
+         void freePids(UINT32 size, const PAGE_ID *pids);
+
+      private:
+         virtual void _close() override;
+         virtual INT32 _open(BOOLEAN isCreating) override;
+
+      private:
+         void _loadSme();
+         INT32 _initSme();
+
+      private:
+         std::mutex _mutex;
+         bitmapScanner _scanner;
+   };//class baseMetaDataFile
+} // namespace vessel
+
+} // namespace engine
+
+
+#endif//VESSEL_BASE_META_DATA_FILE_H_

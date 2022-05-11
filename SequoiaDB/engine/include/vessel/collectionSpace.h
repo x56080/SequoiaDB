@@ -45,11 +45,11 @@
 #include "vessel/storageUnit.h"
 #include "ossRWMutex.hpp"
 #include "vessel/lazyArray.hpp"
-#include "vessel/inMemBitmap.h"
 #include "vessel/collectionObjHolder.h"
 #include "vessel/collectionOptions.h"
 #include "vessel/objectIdentifier.h"
 #include "vessel/shallowPointer.hpp"
+#include "vessel/fixedBitset.hpp"
 
 namespace engine
 {
@@ -186,11 +186,7 @@ namespace vessel
          INT32 initCollection(requestContext *context,
                               const clMetaBlock *block);
 
-         INT32 ensureCollectionHolder(CL_MB_ID mbID, collectionObjHolder **holder);
-
          INT32 getCollectionHolder(CL_MB_ID mbID, collectionObjHolder **holder);
-
-         void releaseCollectionObject(CL_MB_ID mbID);
 
          INT32 ensureCLMetaBlockPage(requestContext *context,
                                      CL_MB_ID mbID);
@@ -198,25 +194,24 @@ namespace vessel
          INT32 ensureCLIndexMetaBlockPage(requestContext *context,
                                           CL_MB_ID mbID);
 
-         INT32 precreateCL(requestContext *context,
-                           const strSlice &clName,
-                           utilCLInnerID innerID,
-                           CL_MB_ID &mbID,
-                           UINT32 &logicalID);
+         INT32 reserveCL(requestContext *context,
+                         const strSlice &clName,
+                         utilCLInnerID innerID,
+                         CL_MB_ID &mbID,
+                         UINT32 &logicalID);
 
-
-         void rollbackPrecreating(const strSlice &clName,
-                                  utilCLInnerID innerID,
-                                  CL_MB_ID mbID);
+         void releaseCL(const strSlice &clName,
+                        utilCLInnerID innerID,
+                        CL_MB_ID mbID);
 
          void endCreatingCL(collection *obj);
 
          void prepareToRemoveCL(const ossPoolString &clName,
                                 utilCLInnerID innerId);
 
-         void endToRemoveCL(const ossPoolString &clName,
-                            utilCLInnerID innerId,
-                            CL_MB_ID mbID);
+         INT32 reserveCLObj(CL_MB_ID &mbID);
+         INT32 ensureCLObj(CL_MB_ID mbID, collectionObjHolder **holder);
+         void releaseCLObj(CL_MB_ID mbID);
 
       private:
          BOOLEAN upperBoundCLName(const strSlice &clName,
@@ -252,7 +247,10 @@ namespace vessel
          ossSpinSLatchPOSIX _latch;
          csMetaBlock _blockInMem;
 
-         inMemBitmap _allocator;
+
+         static_assert(65535 == MAX_CL_MB_COUNT, "must be 65535");
+         static_assert(0 == 65536 % collectionObjHolderGroup::CAPACITY, "must be aligned");
+         fixedBitset<65536/collectionObjHolderGroup::CAPACITY> _allocator;
          lazyArray<collectionObjHolderGroup> _collections;
 
          ///formal indexes

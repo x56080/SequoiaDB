@@ -131,15 +131,6 @@ namespace vessel
          class options : public SDBObject
          {
             public:
-               options &operator=(const options &o)
-               {
-                  bitmapBeginPage = o.bitmapBeginPage;
-                  maxBitmapPageCount = o.maxBitmapPageCount;
-                  keepEmptyPageInMem = o.keepEmptyPageInMem;
-                  percentFreeReused = o.percentFreeReused;
-                  return *this;
-               }
-            public:
                /// capacity * bitmapBeginPage bits will not managed by bitmap.
                UINT32 bitmapBeginPage = 0;
 

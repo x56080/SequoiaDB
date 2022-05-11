@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexMappingPageIniter.h
+   Source File Name = ioBufferControlBlock.cpp
 
    Descriptive Name =
 
@@ -33,28 +33,47 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INDEX_MAPPING_PAGE_INITER_H_
-#define VESSEL_INDEX_MAPPING_PAGE_INITER_H_
-
-#include "vessel/pageInitializer.h"
+#include "vessel/ioBufferControlBlock.h"
+#include "pdTrace.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class indexMappingPageIniter : public pageInitializer
+   ioBufferControlBlock::ioBufferControlBlock(const globalPageID &gpid,
+                                              const bufferControlBlock &ctl,
+                                              const mmapPagePointer &ptr):
+   _gpid(gpid),
+   _ctl(ctl),
+   _mptr(ptr)
    {
-      public:
-         indexMappingPageIniter(){}
-         virtual ~indexMappingPageIniter(){}
+      SDB_ASSERT(_gpid.isValid(), "can not be invalid");
+      SDB_ASSERT(ctl.isNormal(), "must be normal");
+      SDB_ASSERT(_mptr.isValid(), "can not be invalid");
+   }
 
-      public:
-         virtual INT32 initPage(requestContext *context,
-                                PAGE_ID lpid,
-                                PAGE_SNAPSHOT_VERION psv,
-                                runtimePageBuffer *rpb);
-   };//class indexMappingPageIniter 
-}//namespace vessel
-}//namespace engine
+   void ioBufferControlBlock::updateLSN(DPS_LSN_OFFSET lsn)
+   {
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
+      if (DPS_INVALID_LSN_OFFSET == _minDirtyLSN ||
+          lsn < _minDirtyLSN)
+      {
+         _minDirtyLSN = lsn;
+      }
+      if (DPS_INVALID_LSN_OFFSET == _maxDirtyLSN ||
+          _maxDirtyLSN < lsn)
+      {
+         _maxDirtyLSN = lsn;
+      }
+      return;
+   }
 
-#endif//VESSEL_INDEX_MAPPING_PAGE_INITER_H_
+   void ioBufferControlBlock::resetLSNPair()
+   {
+      _minDirtyLSN = DPS_INVALID_LSN_OFFSET;
+      _maxDirtyLSN = DPS_INVALID_LSN_OFFSET;
+      return;
+   }
+} // namespace vessel
+
+} // namespace engine

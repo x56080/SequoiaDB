@@ -38,6 +38,7 @@
 
 #include "ossRWMutex.hpp"
 #include "vessel/collection.h"
+#include "pdTrace.hpp"
 
 namespace engine
 {
@@ -96,6 +97,33 @@ namespace vessel
          static constexpr UINT32 CAPACITY = 64;
 
       public:
+         void clear(UINT32 pos)
+         {
+            SDB_ASSERT(pos < CAPACITY, "out of bound");
+            UINT64 v = (UINT64)1 << pos;
+            OSS_BIT_CLEAR(bits, v);
+         }
+
+         void set(UINT32 pos)
+         {
+            SDB_ASSERT(pos < CAPACITY, "out of bound");
+            UINT64 v = (UINT64)1 << pos;
+            OSS_BIT_SET(bits, v);
+         }
+
+         INT32 findFirst()const
+         {
+            return ossGetLowestBit1From64Bits(bits);
+         }
+
+         collectionObjHolder *get(UINT32 pos)
+         {
+            SDB_ASSERT(pos < CAPACITY, "out of bound");
+            return holders + pos;
+         }
+
+      public:
+         UINT64 bits = ~0;
          collectionObjHolder holders[CAPACITY];
    };//class collectionObjHolderGroup
 }//namespace vessel

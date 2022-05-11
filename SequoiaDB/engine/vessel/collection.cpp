@@ -131,7 +131,7 @@ namespace vessel
          goto error;
       }
 
-      indexPageSize = cs->getSU()->getIndexSpace().getStorageCoreArgs().pageSize;
+      indexPageSize = cs->getSU()->getManifest().idxArgs.pageSize;
       mbpLpid = getIndexMetaBlockPageLpid(indexPageSize, block.mbID);
       if (OSS_UNLIKELY(INVALID_PAGE_ID == mbpLpid))
       {
@@ -2253,8 +2253,7 @@ namespace vessel
       UINT32 rdpCount = 0;
       PAGE_ID lastRdp = INVALID_PAGE_ID;
 
-      UINT32 pageSize = _collectionSpace->getSU()->getMainDataSpace().
-                        getStorageCoreArgs().pageSize;
+      UINT32 pageSize = _collectionSpace->getSU()->getManifest().dataArgs.pageSize;
       UINT32 capacity = getCapacityOfRoutePage(pageSize);
       if (0 == capacity)
       {
@@ -2336,8 +2335,7 @@ namespace vessel
       UINT32 rdpCount = 0;
       PAGE_ID lastRdp = INVALID_PAGE_ID;
 
-      UINT32 pageSize = _collectionSpace->getSU()->getMainDataSpace().
-                        getStorageCoreArgs().pageSize;
+      UINT32 pageSize = _collectionSpace->getSU()->getManifest().dataArgs.pageSize;
       UINT32 capacity = getCapacityOfRoutePage(pageSize);
       if (0 == capacity)
       {
@@ -3016,7 +3014,7 @@ namespace vessel
    UINT32 collection::getDataPageSize()const
    {
       SDB_ASSERT(isOpen(), "must be open");
-      return _collectionSpace->getSU()->getMainDataSpace().getStorageCoreArgs().pageSize;
+      return _collectionSpace->getSU()->getManifest().dataArgs.pageSize;
    }
 
    UINT32 collection::getMaxLvL0RoutePageCountLteRoot(UINT32 capacity,

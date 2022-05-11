@@ -46,19 +46,6 @@ namespace vessel
    class mmapPagePointer : public SDBObject
    {
       public:
-         OSS_INLINE mmapPagePointer(){}
-         OSS_INLINE ~mmapPagePointer(){}
-         OSS_INLINE mmapPagePointer(const mmapPagePointer &o):
-         _ptr(o._ptr)
-         {}
-
-         OSS_INLINE mmapPagePointer &operator=(const mmapPagePointer &o)
-         {
-            _ptr = o._ptr;
-            return *this;
-         }
-
-      public:
          OSS_INLINE BOOLEAN isValid()const
          {
             return 0 != _ptr;

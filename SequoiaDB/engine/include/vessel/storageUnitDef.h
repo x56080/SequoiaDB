@@ -63,20 +63,6 @@ namespace vessel
       storageCoreArgs lobArgs;
    };//struct createSUOptions
 
-   struct createLpsOptions
-   {
-      OSS_INLINE createLpsOptions(){}
-      OSS_INLINE ~createLpsOptions(){}
-
-      BOOLEAN isValid()const
-      {
-         return dataArgs.isValid(); 
-      }
-
-      UINT32 secretValue = 0;
-      storageCoreArgs dataArgs;
-   };//struct createLpsOptions
-
 }//namespace vessel
 }//namespace engine
 

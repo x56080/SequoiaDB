@@ -1039,7 +1039,7 @@ namespace vessel
          else
          {
             UINT64 bufferSize = 0;
-            if (!isFlushing() && betterToFlush(bufferSize))
+            if (!quitEvent.isValid() && !isFlushing() && betterToFlush(bufferSize))
             {
                flushDirtyList(bufferSize);
             }
@@ -1106,9 +1106,9 @@ namespace vessel
 
       while(_watcherEnv._taskBuilder.hasMore())
       {
-         lobcFlushTaskBuilder::taskId task = _watcherEnv._taskBuilder.getNextTask();
-         event.getShortData<lobcFlushTaskBuilder::taskId>().offset = task.offset;
-         event.getShortData<lobcFlushTaskBuilder::taskId>().size = task.size;
+         bufferFlushTaskId task = _watcherEnv._taskBuilder.getNextTask();
+         event.getShortData<bufferFlushTaskId>().offset = task.offset;
+         event.getShortData<bufferFlushTaskId>().size = task.size;
          workers.pushBufferEvent(event);
       }
 
@@ -1166,9 +1166,9 @@ namespace vessel
 
    void lobChunkBufferPool::handleFlushTaskRes(const backgroundEvent &event)
    {
-      lobcFlushTaskBuilder::taskId task;
+      bufferFlushTaskId task;
       SDB_ASSERT(event.isResponseOf(BACKGROUND_EVENT_TYPE::LOB_BUF_TASK), "can not be others");
-      task = event.getShortData<lobcFlushTaskBuilder::taskId>();
+      task = event.getShortData<bufferFlushTaskId>();
       SDB_ASSERT(task.isValid() && task.offset < _watcherEnv._taskBuilder.getTotalTaskNum(),
                  "can not be invalid");
       SDB_ASSERT(_watcherEnv._completedTaskNum < _watcherEnv._taskBuilder.getDispatchedTasks(),
@@ -1189,7 +1189,7 @@ namespace vessel
       return;
    }
 
-   INT32 lobChunkBufferPool::executeFlushTask(const lobcFlushTaskBuilder::taskId &task)
+   INT32 lobChunkBufferPool::executeFlushTask(const bufferFlushTaskId &task)
    {
       INT32 rc = SDB_OK;
       THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();

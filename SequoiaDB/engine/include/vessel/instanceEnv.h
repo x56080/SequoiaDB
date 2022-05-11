@@ -37,17 +37,15 @@
 #define VESSEL_INSTANCE_ENV_H_
 
 #include "vessel/spaceIDLocker.h"
-#include "vessel/liteCache.h"
 #include "vessel/vesselOptions.h"
 #include "vessel/checkpointController.h"
 #include "vessel/dataManagementService.h"
-#include "vessel/liteCacheConsole.h"
 #include "vessel/lsm/lsmDB.hpp"
 #include "vessel/backgroundWorkers.h"
-#include "vessel/liteCacheWatcher.h"
 #include "vessel/outerResource.h"
 #include "vessel/sharedObjLatchEnv.h"
 #include "vessel/lobChunkBufferPool.h"
+#include "vessel/liteIOBufferPool.h"
 
 namespace engine
 {
@@ -68,13 +66,10 @@ namespace vessel
          checkpointController checkpointer;
          spaceIDLocker spaceLocker;
          dataManagementService dms;
-         liteCacheConsole cacheConsole;
+         liteIOBufferPool ioBufferPool;
          lobChunkBufferPool lobcBufferPool;
          sharedObjLatchEnv latchEnv;
          lsmDB *lsm = nullptr;
-
-         ///TODO: move cache watcher into lite cache
-         liteCacheWatcher cacheWatcher;
          backgroundWorkers workers;
          outerResource resource;
 

@@ -39,7 +39,6 @@
 #include "pmdTrace.hpp"
 #include "pmdEDUMgr.hpp"
 
-#include "vessel/liteCacheWatcher.h"
 #include "vessel/backgroundWorker.h"
 #include "vessel/vesselImpl.h"
 
@@ -64,10 +63,10 @@ namespace engine
       goto done;
    }
 
-   INT32 pmdVesselWatcherEntryPoint(pmdEDUCB *cb, void *pData)
+   INT32 pmdVesselLitePoolWatcherEntryPoint(pmdEDUCB *cb, void *pData)
    {
       INT32 rc = SDB_OK;
-      vessel::liteCacheWatcher *watcher = NULL;
+      vessel::vesselImpl *impl = nullptr;
       rc = cb->getEDUMgr()->activateEDU(cb);
       if ( SDB_OK != rc )
       {
@@ -75,8 +74,8 @@ namespace engine
          goto error ;
       }
 
-      watcher = (vessel::liteCacheWatcher *)pData;
-      watcher->attach(cb);
+      impl = (vessel::vesselImpl *)pData;
+      impl->attachLiteBufferPoolWatcher(cb);
 
    done:
       return rc;
@@ -108,7 +107,11 @@ namespace engine
                          pmdVesselWorkerEntryPoint,
                          "vesselWorker");
 
-   PMD_DEFINE_ENTRYPOINT(EDU_TYPE_VESSEL_CACHE_WATCHER, FALSE,
-                         pmdVesselWatcherEntryPoint,
-                         "vesselCacheWatcher");
+   PMD_DEFINE_ENTRYPOINT(EDU_TYPE_VESSEL_LITE_BUFFER_POOL_WATCHER, FALSE,
+                         pmdVesselLitePoolWatcherEntryPoint,
+                         "vesselLiteBufferPoolWatcher");
+
+   PMD_DEFINE_ENTRYPOINT(EDU_TYPE_VESSEL_LOBC_BUFFER_POOL_WATCHER, FALSE,
+                         pmdVesselLobcWatcherEntryPoint,
+                         "vesselLobcBufferPoolWatcher");
 } // namespace engine

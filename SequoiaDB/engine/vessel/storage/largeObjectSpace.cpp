@@ -178,10 +178,10 @@ namespace vessel
          goto error;
       }
 
-      if (_fcluster.getTotalSegmentCount() < _uberBlock.totalLobdSegments)
+      if (_fcluster.getMaxSegmentCount() < _uberBlock.totalLobdSegments)
       {
          PD_LOG(PDERROR, "segment count in uber block[%d] does not match cluster[%d]",
-                _uberBlock.totalLobdSegments, _fcluster.getTotalSegmentCount());
+                _uberBlock.totalLobdSegments, _fcluster.getMaxSegmentCount());
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
@@ -327,7 +327,7 @@ namespace vessel
          strictBuffer buffer;
          PAGE_ID pid = INVALID_PAGE_ID;
          mmapPagePointer ptr;
-         rc = _metaFile.reservePage(pid, ptr);
+         rc = _metaFile.reservePid(pid, &ptr);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to reserve uber block page:%d", rc);
@@ -350,7 +350,7 @@ namespace vessel
          strictBuffer buffer;
          PAGE_ID pid = INVALID_PAGE_ID;
          mmapPagePointer ptr;
-         rc = _metaFile.reservePage(pid, ptr);
+         rc = _metaFile.reservePid(pid, &ptr);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to reserve uber block page:%d", rc);
@@ -367,7 +367,7 @@ namespace vessel
          strictBuffer buffer;
          PAGE_ID pid = INVALID_PAGE_ID;
          mmapPagePointer ptr;
-         rc = _metaFile.reservePage(pid, ptr);
+         rc = _metaFile.reservePid(pid, &ptr);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to reserve uber block page:%d", rc);
@@ -538,7 +538,7 @@ namespace vessel
             {
                continue;
             }
-            else if (_allocator.peekSegmentCount() < _fcluster.getTotalSegmentCount())
+            else if (_allocator.peekSegmentCount() < _fcluster.getMaxSegmentCount())
             {
                rc = ensureLobdSme(_allocator.peekSegmentCount(), smeBuffer);
                if (SDB_OK != rc)
@@ -550,7 +550,7 @@ namespace vessel
             }
             else
             {
-               SDB_ASSERT(_allocator.peekSegmentCount() == _fcluster.getTotalSegmentCount(), "impossible");
+               SDB_ASSERT(_allocator.peekSegmentCount() == _fcluster.getMaxSegmentCount(), "impossible");
                rc = extendNewLobdSegment(smeBuffer);
                if (SDB_OK != rc)
                {
@@ -603,14 +603,14 @@ namespace vessel
    INT32 largeObjectSpace::extendNewLobdSegment(strictBuffer &smeBuffer)
    {
       INT32 rc = SDB_OK;
-      rc = ensureLobdSme(_fcluster.getTotalSegmentCount(), smeBuffer);
+      rc = ensureLobdSme(_fcluster.getMaxSegmentCount(), smeBuffer);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to ensure lobd sme:%d", rc);
          goto error;
       }
 
-      rc = _fcluster.ensureSegmentCount(_fcluster.getTotalSegmentCount() + 1);
+      rc = _fcluster.allocateNewSegment(1);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to extend file cluster:%d", rc);
@@ -656,7 +656,7 @@ namespace vessel
       if (INVALID_PAGE_ID == *pidPtr)
       {
          mmapPagePointer newPtr;
-         rc = _metaFile.reservePage(newPid, newPtr);
+         rc = _metaFile.reservePid(newPid, &newPtr);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to reserve new pid from mfile:%d", rc);

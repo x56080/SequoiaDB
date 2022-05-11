@@ -71,13 +71,15 @@ namespace vessel
          void destroy();
 
       public:
-         UINT32 getTotalSegmentCount()const;
+         UINT32 getMaxSegmentCount()const;
 
          BOOLEAN isOutOfSpace(PAGE_ID pid)const;
 
          INT32 getFileSpaceId(PAGE_ID pid)const;
 
          INT32 ensureSegmentCount(UINT32 minSegmentCount);
+
+         INT32 allocateNewSegment(UINT32 count);
 
          INT32 ensurePage(PAGE_ID pid);
 

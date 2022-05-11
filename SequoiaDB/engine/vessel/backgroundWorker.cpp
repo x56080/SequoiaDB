@@ -36,12 +36,9 @@
 #include "vessel/backgroundWorker.h"
 #include "pdTrace.hpp"
 #include "vessel/instanceEnv.h"
-#include "vessel/diskIOTask.h"
-#include "vessel/diskIOJob.h"
 #include "vessel/threadContext.h"
 #include "vessel/requestContext.h"
-#include "vessel/lobcFlushTaskBuilder.h"
-#include "vessel/lobChunkBufferPool.h"
+#include "vessel/bufferFlushDef.h"
 
 namespace engine
 {
@@ -145,27 +142,14 @@ namespace vessel
       SDB_ASSERT(nullptr != executor, "can not be invalid");
       SDB_ASSERT(BACKGROUND_EVENT_TYPE::DATA_BUF_TASK == event.getType(),
                  "can not be other type");
-
-      liteCache *cache = _env->cacheConsole.getCacheByPoolNo();
-      diskIOTask task = event.getShortData<diskIOTask>();
-
-      UINT32 jobID = task.getJob()->getJobID();
-
-      INT32 rc = cache->executeIOTask(&task);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to execute io task:%d", rc);
-      }
-
+      bufferFlushTaskId taskId =
+             event.getShortData<bufferFlushTaskId>();
+      liteIOBufferPool &pool = _env->ioBufferPool;
+      INT32 rc = pool.executeFlushTask(taskId);
       if (event.hasResponser())
       {
-         backgroundEvent res;
-         res.initAsResponse(BACKGROUND_EVENT_TYPE::DATA_BUF_TASK);
-         res.setRC(rc);
-         res.setShortData(jobID);
-         event.getResponser()->push(res);
+         event.getResponser()->push(event.createSimpleResponse(rc));
       }
-
       return;
    }
 
@@ -215,30 +199,21 @@ namespace vessel
       SDB_ASSERT(nullptr != executor, "can not be invalid");
       SDB_ASSERT(BACKGROUND_EVENT_TYPE::FLUSH_SEG == event.getType(),
                  "can not be other type");
-      logicalPageSpace *lps = nullptr;
       const lpsFlushingSegments *msg = &(event.getShortData<lpsFlushingSegments>());
       UINT32 count = msg->_count;
 
       //PD_LOG(PDDEBUG, "begin to sync segments[%d, %d]", msg->_segmentId, count);
-      requestContext context;
 
-      rc = context.lockSpaceID(msg->_sid, SHARED);
-      if (SDB_OK != rc)
+      storageFileCluster *fcluster = _env->dms.getStorageFileClsuter(msg->_sid, msg->_type);
+      if (nullptr == fcluster)
       {
-         PD_LOG(PDERROR, "failed to lock space[%d], rc:%d", msg->_sid, rc);
-         goto done;
-      }
-
-      rc = _env->dms.getLogicalPageSpace(msg->_sid, msg->_type, &lps);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get lps[%d,%d], rc:%d", msg->_sid, msg->_type, rc);
+         PD_LOG(PDERROR, "failed to get su[%d,%d], rc:%d", msg->_sid, msg->_type, rc);
          goto done;
       }
 
       for (UINT32 i = 0; i < count; ++i)
       {
-         rc = lps->fsyncSegment(msg->_segmentId + i);
+         rc = fcluster->fsyncSegment(msg->_segmentId + i);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to flush segment[%d] on lps[%d,%d], rc:%d",
@@ -248,7 +223,6 @@ namespace vessel
       }
    
    done:
-      context.close();
       if (event.hasResponser())
       {
          backgroundEvent res;
@@ -265,8 +239,8 @@ namespace vessel
       SDB_ASSERT(nullptr != executor, "can not be invalid");
       SDB_ASSERT(BACKGROUND_EVENT_TYPE::LOB_BUF_TASK == event.getType(),
                  "can not be other type");
-      lobcFlushTaskBuilder::taskId taskId =
-             event.getShortData<lobcFlushTaskBuilder::taskId>();
+      bufferFlushTaskId taskId =
+             event.getShortData<bufferFlushTaskId>();
       lobChunkBufferPool &pool = _env->lobcBufferPool;
       INT32 rc = pool.executeFlushTask(taskId);
       if (event.hasResponser())

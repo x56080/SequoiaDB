@@ -89,6 +89,7 @@ namespace vessel
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
       PAGE_ID mbpLpid = INVALID_PAGE_ID;
       INT32 blockPos = -1;
+      UINT32 pageSize = 0;
 
       if (OSS_UNLIKELY(nullptr == context))
       {
@@ -101,16 +102,15 @@ namespace vessel
          goto error;
       }
 
-      mbpLpid = getIndexMetaBlockPageLpid(_is->getStorageCoreArgs().pageSize,
-                                          _mbID);
+      pageSize = _is->getFileCluster()->getCoreArgs().pageSize;
+      mbpLpid = getIndexMetaBlockPageLpid(pageSize, _mbID);
       if (OSS_UNLIKELY(INVALID_PAGE_ID == mbpLpid))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "failed to get index meta block page lpid, rc:%d");
          goto error;
       }
-      blockPos = getIndexMetaBlockPos(_is->getStorageCoreArgs().pageSize,
-                                      _mbID);
+      blockPos = getIndexMetaBlockPos(pageSize, _mbID);
       if (OSS_UNLIKELY(0 > blockPos))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -156,6 +156,7 @@ namespace vessel
       INT32 blockPos = 0;
       PAGE_ID mbpLpid = INVALID_PAGE_ID;
       clIndexMetaBlock block;
+      UINT32 pageSize = 0;
       
       if (OSS_UNLIKELY(nullptr == context))
       {
@@ -168,6 +169,7 @@ namespace vessel
          goto error;
       }
 
+      pageSize = _is->getFileCluster()->getCoreArgs().pageSize;
       rc = _is->blockCheckpoint(context);
       if (SDB_OK != rc)
       {
@@ -176,7 +178,7 @@ namespace vessel
       }
       blocked = TRUE;
 
-      mbpLpid = getIndexMetaBlockPageLpid(_is->getStorageCoreArgs().pageSize, _mbID);
+      mbpLpid = getIndexMetaBlockPageLpid(pageSize, _mbID);
       if (OSS_UNLIKELY(INVALID_PAGE_ID == mbpLpid))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -185,7 +187,7 @@ namespace vessel
          goto error;
       }
 
-      blockPos = getIndexMetaBlockPos(_is->getStorageCoreArgs().pageSize, _mbID);
+      blockPos = getIndexMetaBlockPos(pageSize, _mbID);
       if (OSS_UNLIKELY(0 > blockPos))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -267,6 +269,7 @@ namespace vessel
       PAGE_ID mbpLpid = INVALID_PAGE_ID;
       BOOLEAN mbpLocked = FALSE;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+      UINT32 pageSize = 0;
 
       lpid = INVALID_PAGE_ID;
 
@@ -284,7 +287,8 @@ namespace vessel
          goto error;
       }
 
-      mbpLpid = getIndexMetaBlockPageLpid(_is->getStorageCoreArgs().pageSize, _mbID);
+      pageSize = _is->getFileCluster()->getCoreArgs().pageSize;
+      mbpLpid = getIndexMetaBlockPageLpid(pageSize, _mbID);
       if (OSS_UNLIKELY(INVALID_PAGE_ID == mbpLpid))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -292,7 +296,7 @@ namespace vessel
          goto error;
       }
 
-      blockPos = getIndexMetaBlockPos(_is->getStorageCoreArgs().pageSize, _mbID);
+      blockPos = getIndexMetaBlockPos(pageSize, _mbID);
       if (OSS_UNLIKELY(0 > blockPos))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -399,6 +403,7 @@ namespace vessel
       INT32 blockPos = 0;
       PAGE_ID mbpLpid = INVALID_PAGE_ID;
       clIndexMetaBlock block;
+      UINT32 pageSize = 0;
       
       if (OSS_UNLIKELY(NULL == context ||
                        !isValidIndexSlot(indexSlot)))
@@ -420,7 +425,8 @@ namespace vessel
       }
       blocked = TRUE;
 
-      mbpLpid = getIndexMetaBlockPageLpid(_is->getStorageCoreArgs().pageSize, _mbID);
+      pageSize = _is->getFileCluster()->getCoreArgs().pageSize;
+      mbpLpid = getIndexMetaBlockPageLpid(pageSize, _mbID);
       if (OSS_UNLIKELY(INVALID_PAGE_ID == mbpLpid))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -429,7 +435,7 @@ namespace vessel
          goto error;
       }
 
-      blockPos = getIndexMetaBlockPos(_is->getStorageCoreArgs().pageSize, _mbID);
+      blockPos = getIndexMetaBlockPos(pageSize, _mbID);
       if (OSS_UNLIKELY(0 > blockPos))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -708,6 +714,7 @@ namespace vessel
       BOOLEAN mapped = FALSE;
       INT32 blockPos = 0;
       clIndexMetaBlock block;
+      UINT32 pageSize = 0;
 
       if (OSS_UNLIKELY(!isInitialized()))
       {
@@ -723,7 +730,8 @@ namespace vessel
 
       indexes->fini();
 
-      mbpLpid = getIndexMetaBlockPageLpid(_is->getStorageCoreArgs().pageSize, _mbID);
+      pageSize = _is->getFileCluster()->getCoreArgs().pageSize;
+      mbpLpid = getIndexMetaBlockPageLpid(pageSize, _mbID);
       if ((OSS_UNLIKELY(INVALID_PAGE_ID == mbpLpid)))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -731,7 +739,7 @@ namespace vessel
          goto error;
       }
 
-      blockPos = getIndexMetaBlockPos(_is->getStorageCoreArgs().pageSize, _mbID);
+      blockPos = getIndexMetaBlockPos(pageSize, _mbID);
       if (OSS_UNLIKELY(0 > blockPos))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;

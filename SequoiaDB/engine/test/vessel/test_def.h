@@ -45,7 +45,6 @@
 #include <atomic>
 #include "ossThread.h"
 #include "pmdDef.hpp"
-#include "vessel/liteCacheWatcher.h"
 #include "vessel/backgroundWorker.h"
 #include "vessel/dummyJournal.h"
 #include "dummyTransLockConsole.h"
@@ -173,10 +172,10 @@ class test_executor : public IExecutor
       ossPoolMap<_dpsTransLockId, ossSharedLatchMode> _locked;
 };//
 
-static void cache_watcher_entry(test_executor *executor, void *obj)
+static void lite_buffer_pool_watcher_entry(test_executor *executor, void *obj)
 {
-   ::engine::vessel::liteCacheWatcher *watcher = (::engine::vessel::liteCacheWatcher *)obj;
-   watcher->attach(executor);
+   ::engine::vessel::vesselImpl *impl = (::engine::vessel::vesselImpl *)obj;
+   impl->attachLiteBufferPoolWatcher(executor);
 }
 
 static void worker_entry(test_executor *executor, void *obj)
@@ -229,9 +228,9 @@ class test_session_mgr : public ::engine::IExecutorMgr
 
          executor->_id = _executors.size();
 
-         if (type == EDU_TYPE_VESSEL_CACHE_WATCHER)
+         if (type == EDU_TYPE_VESSEL_LITE_BUFFER_POOL_WATCHER)
          {
-            _threads.push_back(std::move(std::thread(cache_watcher_entry, executor, args)));
+            _threads.push_back(std::move(std::thread(lite_buffer_pool_watcher_entry, executor, args)));
          }
          else if (type == EDU_TYPE_VESSEL_WORKER)
          {

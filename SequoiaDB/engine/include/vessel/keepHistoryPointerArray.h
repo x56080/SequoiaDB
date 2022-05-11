@@ -131,6 +131,34 @@ namespace vessel
             return ptr;
          }
 
+         template<typename T>
+         const T *getFront()const
+         {
+            return 0 < _size ?
+                   reinterpret_cast<const T*>(_current[0]) : nullptr;
+         }
+
+         template<typename T>
+         T *getFront()
+         {
+            return 0 < _size ?
+                   reinterpret_cast<T*>(_current[0]) : nullptr;
+         }
+
+         template<typename T>
+         const T *getBack()const
+         {
+            return 0 < _size ?
+                   reinterpret_cast<const T*>(_current[_size - 1]) : nullptr;
+         }
+
+         template<typename T>
+         T *getBack()
+         {
+            return 0 < _size ?
+                   reinterpret_cast<T*>(_current[_size - 1]) : nullptr;
+         }
+
       private:
          INT32 ensureCapacity(UINT32 capacity);
 

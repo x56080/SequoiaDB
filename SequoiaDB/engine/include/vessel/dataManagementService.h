@@ -47,6 +47,8 @@
 #include "vessel/objectIdentifier.h"
 #include "dmsEngineOptions.hpp"
 
+#include <boost/dynamic_bitset.hpp>
+
 namespace engine
 {
 namespace vessel
@@ -139,13 +141,10 @@ namespace vessel
       public:/// storage
          ///WARNING: User must be sure that space exists and will
          /// not be released during accessing.
+         /// validate page size if pageSize is not null
          INT32 getMmapPagePtr(const GLOBAL_PAGE_ID &gpid,
-                              mmapPagePointer &ptr)const;
-
-         INT32 getPageSize(SPACE_ID sid,
-                           SPACE_TYPE spaceType,
-                           FILE_TYPE fileType,
-                           UINT32 &pageSize)const;
+                              mmapPagePointer &ptr,
+                              const UINT32 *pageSize=nullptr)const;
 
          INT32 getLogicalPageSpace(SPACE_ID sid,
                                    SPACE_TYPE type,
@@ -158,6 +157,8 @@ namespace vessel
          storageUnit *getStorageUnit(SPACE_ID sid);
 
          storageFileCluster *getLobdFileCluster(SPACE_ID sid);
+
+         storageFileCluster *getStorageFileClsuter(SPACE_ID sid, SPACE_TYPE type);
 
       public:
          INT32 createCheckpointBeforeClosing(requestContext *context);
@@ -262,7 +263,7 @@ namespace vessel
          _NAME_SET _unformalNameIndex;
          _UID_SET _unformalUidIndex;
 
-         inMemBitmap _suAllocator;
+         boost::dynamic_bitset<> _suAllocator;
          lazyArray<storageUnit> _sus;
    };//class dataManagementService
 }//namespace vessel

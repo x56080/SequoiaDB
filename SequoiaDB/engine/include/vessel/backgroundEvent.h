@@ -52,7 +52,7 @@ namespace vessel
       static constexpr BG_EVENT_TYPE_WORD _USR_DEFINE = 1024;
 
       static constexpr BG_EVENT_TYPE_WORD DATA_BUF_TASK = 1024;
-      static constexpr BG_EVENT_TYPE_WORD DATA_BUF_POOL_NOTIFY = 1025;
+      static constexpr BG_EVENT_TYPE_WORD FLUSH_LITE_BUF_POOL = 1025;
       static constexpr BG_EVENT_TYPE_WORD LOB_BUF_TASK = 1026;
       static constexpr BG_EVENT_TYPE_WORD FLUSH_LOB_BUF = 1027;
 

@@ -52,6 +52,8 @@ namespace engine
 namespace vessel
 {
    storageUnit::storageUnit():
+   _mds(&_manifest),
+   _is(&_manifest),
    _los(&_manifest)
    {
 
@@ -252,14 +254,14 @@ namespace vessel
          goto error;
       }
 
-      rc = _mds.open(sid, loader);
+      rc = _mds.open(loader);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open main data space:%d", rc);
          goto error;
       }
 
-      rc = _is.open(sid, loader);
+      rc = _is.open(loader);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open index space:%d", rc);
@@ -283,11 +285,8 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(_manifest.isValid(), "can not be invalid");
-      createLpsOptions o;
-      o.dataArgs = _manifest.dataArgs;
-      o.secretValue = _manifest.secretValue;
 
-      rc = _mds.create(_manifest.sid, o);
+      rc = _mds.create();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create main data space:%d", rc);
@@ -303,11 +302,8 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(_manifest.isValid(), "can not be invalid");
-      createLpsOptions o;
-      o.dataArgs = _manifest.idxArgs;
-      o.secretValue = _manifest.secretValue;
 
-      rc = _is.create(_manifest.sid, o);
+      rc = _is.create();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create main data space:%d", rc);
@@ -338,19 +334,22 @@ namespace vessel
          goto error;
       }
 
-      if (SPACE_TYPE_MAIN_DATA == spaceType)
+      if (SPACE_TYPE_MAIN_DATA == spaceType &&
+          FILE_TYPE_DATA_STORAGE == fileType)
       {
-         rc = _mds.getPagePtr(fileType, pid, ptr);
+         rc = _mds.getFileCluster()->getPageMmapPtr(pid, ptr);
          if (SDB_OK != rc)
          {
             goto error;
          }
       }
-      else if (SPACE_TYPE_IDX == spaceType)
+      else if (SPACE_TYPE_IDX == spaceType &&
+               FILE_TYPE_DATA_STORAGE == fileType)
       {
          SDB_ASSERT(FALSE, "todo");
       }
-      else if (SPACE_TYPE_LOB == spaceType)
+      else if (SPACE_TYPE_LOB == spaceType &&
+               FILE_TYPE_DATA_STORAGE == fileType)
       {
          SDB_ASSERT(FALSE, "todo");
       }
@@ -364,6 +363,29 @@ namespace vessel
       return rc;
    error:
       goto done;
+   }
+
+   UINT32 storageUnit::getStoragePageSize(SPACE_TYPE spaceType)const
+   {
+      UINT32 psz = 0;
+      if (SPACE_TYPE_MAIN_DATA == spaceType)
+      {
+         psz = _manifest.dataArgs.pageSize;
+      }
+      else if (SPACE_TYPE_IDX == spaceType)
+      {
+         psz = _manifest.idxArgs.pageSize;
+      }
+      else if (SPACE_TYPE_LOB == spaceType)
+      {
+         psz = _manifest.lobArgs.pageSize;
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "impossible");
+      }
+      
+      return psz;
    }
 
    INT32 storageUnit::createManifestFile(const CHAR *fullPath,

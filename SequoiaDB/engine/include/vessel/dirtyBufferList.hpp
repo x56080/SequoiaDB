@@ -40,6 +40,8 @@
 #include "dpsDef.hpp"
 #include "ossMemPool.hpp"
 
+#include <mutex>//c++11
+
 namespace engine
 {
 namespace vessel
@@ -55,7 +57,13 @@ namespace vessel
 
       public:
          void clear();
+
+         /// it is thread-safe but read without mutex
          DPS_LSN_OFFSET peekMinDirtyLSN()const;
+
+         /// lock mutex and read
+         DPS_LSN_OFFSET getMinDirtyLSN();
+
          void resetFlushLSN() {_minFlushLSN = DPS_INVALID_LSN_OFFSET;}
 
       protected:
@@ -63,6 +71,8 @@ namespace vessel
          void pushBackToList(T &buffer);
          /// hold mutex outside
          void pushFrontToList(T &buffer);
+
+         void resetMinListLSN(BOOLEAN lock);
       
       protected:
          std::mutex _mutex;
@@ -90,6 +100,13 @@ namespace vessel
               _minListLSN : OSS_MIN(_minFlushLSN, _minListLSN);
    }
    
+   template<class T>
+   DPS_LSN_OFFSET  dirtyBufferList<T>::getMinDirtyLSN()
+   {
+      std::unique_lock<std::mutex> guard(_mutex);
+      return peekMinDirtyLSN();
+   }
+
    template<class T>
    void dirtyBufferList<T>::pushBackToList(T &buffer)
    {
@@ -154,6 +171,21 @@ namespace vessel
          _minListLSN = minLSN;
       }
 
+      return;
+   }
+
+   template<class T>
+   void dirtyBufferList<T>::resetMinListLSN(BOOLEAN lock)
+   {
+      std::unique_lock<std::mutex> guard(_mutex, std::defer_lock);
+      if (lock)
+      {
+         guard.lock();
+      }
+
+      _minListLSN = _l.empty() ?
+                    DPS_INVALID_LSN_OFFSET :
+                    _l.front()->getMinDirtyLSN();
       return;
    }
 } // namespace vessel

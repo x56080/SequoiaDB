@@ -263,25 +263,23 @@ namespace vessel
       goto done;
    }
 
-   UINT32 storageFileCluster::getTotalSegmentCount()const
+   UINT32 storageFileCluster::getMaxSegmentCount()const
    {
-      if (0 == _files.getSize())
+      UINT32 count = 0;
+      if (0 < _files.getSize())
       {
-         return 0;
+         count = (_files.getSize() - 1) * _manifest.args.maxSegmentCountPerFile;
+         count += _files.getBack<storageFile>()->getSegmentCount();
       }
-      else
-      {
-         UINT32 count = (_files.getSize() - 1) * _manifest.args.maxSegmentCountPerFile;
-         count += _files.get<storageFile>(_files.getSize() - 1)->getSegmentCount();
-         return count;
-      }
+      
+      return count;
    }
 
    BOOLEAN storageFileCluster::isOutOfSpace(PAGE_ID pid)const
    {
       SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
       SDB_ASSERT(isOpen(), "can not be invalid");
-      UINT32 totalPageCount = getCoreArgs().maxPageCountPerSeg * getTotalSegmentCount();
+      UINT32 totalPageCount = getCoreArgs().maxPageCountPerSeg * getMaxSegmentCount();
       return totalPageCount <= pid;
    }
 
@@ -317,7 +315,7 @@ namespace vessel
          goto error;
       }
       
-      maxSize = getCoreArgs().getSegmentSize() * getTotalSegmentCount();
+      maxSize = getCoreArgs().getSegmentSize() * getMaxSegmentCount();
       if (maxSize < (offset + size))
       {
          rc = SDB_OUT_OF_BOUND;
@@ -384,7 +382,7 @@ namespace vessel
          goto error;
       }
 
-      totalSegments = getTotalSegmentCount();
+      totalSegments = getMaxSegmentCount();
       maxSegment = (pid + pcnt - 1) / getCoreArgs().maxPageCountPerSeg;
       if (totalSegments <= maxSegment)
       {
@@ -460,7 +458,7 @@ namespace vessel
          goto error;
       }
 
-      totalSegments = getTotalSegmentCount();
+      totalSegments = getMaxSegmentCount();
       maxSegment = (pid + pcnt - 1) / getCoreArgs().maxPageCountPerSeg;
       if (totalSegments <= maxSegment)
       {
@@ -522,7 +520,7 @@ namespace vessel
          goto error;
       }
 
-      while (getTotalSegmentCount() < minSegmentCount)
+      while (getMaxSegmentCount() < minSegmentCount)
       {
          rc = extendNewSegment();
          if (SDB_OK != rc)
@@ -531,6 +529,31 @@ namespace vessel
             goto error;
          }
       }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 storageFileCluster::allocateNewSegment(UINT32 count)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      for (UINT32 i = 0; i < count; ++i)
+      {
+         rc = extendNewSegment();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to create new segment:%d", rc);
+            goto error;
+         }
+      }
+
    done:
       return rc;
    error:

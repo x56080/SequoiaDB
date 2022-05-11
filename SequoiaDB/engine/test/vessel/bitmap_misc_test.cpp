@@ -87,24 +87,24 @@ TEST(bitmapMiscTest, united_bitmap_test2)
    constexpr UINT32 _SIZE = 512;
    unitedBitmap<_SIZE> bitmap;
    unitedBitmap<_SIZE>::options o;
-   o.percentFreeReused = 0.1f;
+   o.minFreeReused = _SIZE * 0.1f;
    bitmap.setOptions(o);
 
    UINT32 unitCount = 128;
    INT32 rc = bitmap.extendUnitNum(unitCount, FALSE);
    ASSERT_EQ(SDB_OK, rc);
 
-   for (UINT32 i = 0; i < (_SIZE * o.percentFreeReused - 1); ++i)
+   for (UINT32 i = 0; i < (o.minFreeReused - 1); ++i)
    {
       bitmap.set(i);
       ASSERT_EQ(-1, bitmap.pop());
       ASSERT_TRUE(bitmap.none());
    }
 
-   bitmap.set(_SIZE * o.percentFreeReused);
+   bitmap.set(o.minFreeReused - 1);
    ASSERT_FALSE(bitmap.none());
 
-   for (UINT32 i = 0; i < (_SIZE * o.percentFreeReused); ++i)
+   for (UINT32 i = 0; i < o.minFreeReused; ++i)
    {
       ASSERT_EQ(i, bitmap.pop());
    }

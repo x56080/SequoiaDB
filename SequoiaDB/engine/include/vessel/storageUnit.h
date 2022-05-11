@@ -89,6 +89,7 @@ namespace vessel
          {
             return _los;
          }
+         OSS_INLINE const storageUnitManifest &getManifest()const {return _manifest;}
 
       public:
          INT32 create(SPACE_ID sid,
@@ -106,6 +107,8 @@ namespace vessel
                                   PAGE_ID pid,
                                   mmapPagePointer &ptr)const;
 
+         UINT32 getStoragePageSize(SPACE_TYPE spaceType)const;
+
       private:
          INT32 createManifestFile(const CHAR *fullPath,
                                   const storageUnitManifest &manifest);
@@ -114,7 +117,7 @@ namespace vessel
                                 storageUnitManifest &manifest);
 
          void ensureManifestFileRemoved(const CHAR *fullPath);
-\
+
          INT32 createMainDataSpace();
 
          INT32 createIndexSpace();

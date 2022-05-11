@@ -56,7 +56,8 @@ namespace engine
 {
 namespace vessel
 {
-   mainDataSpace::mainDataSpace()
+   mainDataSpace::mainDataSpace(const storageUnitManifest *manifest):
+   logicalPageSpace(manifest)
    {}
 
    mainDataSpace::~mainDataSpace()
@@ -102,30 +103,24 @@ namespace vessel
 
       builder.buildMappingLog(psv, 1, &mid);
 
-      SDB_ASSERT(0 == _storage.getTotalSegmentCount(), "must be empty");
-      rc = _storage.ensureSegmentCount(1);
+      rc = getFileCluster()->ensureSegmentCount(1);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to extend storage:%d", rc);
          goto error;
       }
 
-      rc = _storage.occupyPage(pid);
+      rc = _reserveClusterPids(1, &pid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to occupy meta page pid:%d", rc);
          goto error;
       }
 
-      rc = _storage.getDataPagePtr(pid, ptr);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get page[%d] ptr:%d", pid, rc);
-         goto error;
-      }
+      rc = getFileCluster()->getPageMmapPtr(pid, ptr);
 
       /// init page
-      if (!initCSMetaBlockPage(_storage.getCoreArgs().pageSize,
+      if (!initCSMetaBlockPage(getFileCluster()->getCoreArgs().pageSize,
                                pid, lpid, psv, (void *)(ptr.get())))
       {
          PD_LOG(PDERROR, "faield to init gmp");
@@ -168,7 +163,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _storage.fysncPage(pid);
+      rc = getFileCluster()->fysncPage(pid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to fsync page:%d", rc);
@@ -197,7 +192,7 @@ namespace vessel
    done:
       return rc;
    error:
-      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != jres._lsn, "to do: rollback");
+      //SDB_ASSERT(DPS_INVALID_LSN_OFFSET != jres._lsn, "to do: rollback");
       goto done;
    }
 
@@ -215,7 +210,7 @@ namespace vessel
          goto error;
       }
 
-      pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
+      pageSize = getFileCluster()->getCoreArgs().pageSize;
       SDB_ASSERT(isValidPageSize(pageSize), "must be valid");
 
       rc = getLogicalPageBuffer(context, CS_META_BLOCK_PAGE_LPID,
@@ -359,7 +354,7 @@ namespace vessel
       storageFileName fn;
       const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
       storageFileMaintainer sfm(&po, getSpaceID());
-      o.secretValue = logicalPageSpace::getSecretValue();
+      o.secretValue = getManifest()->secretValue;
                            
       fsmFile *file = SDB_OSS_NEW fsmFile();
       if (nullptr == file)
@@ -421,7 +416,6 @@ namespace vessel
          _fsm->close();
          SDB_OSS_DEL _fsm;
          _fsm = nullptr;
-         _storage.close();
       }
       return;
    }
@@ -434,7 +428,6 @@ namespace vessel
          SDB_OSS_DEL _fsm;
          _fsm = nullptr;
       }
-      _storage.destroy();
       return;
    }
 
@@ -446,12 +439,11 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(!rpb.isValid(), "can not be valid");
       logicalPageSpace::_runtimePageBufferIniter initer;
-      liteCacheAllocateOptions options;
-      options.lockMode = mode;
-      liteCacheTuple tuple;
       GLOBAL_PAGE_ID gpid;
       UINT32 pageSize = 0;
-      liteCache *lc = nullptr;
+      liteIOBufferPool::allocateOptions o;
+      o.mode = mode;
+      liteIOBuffer buffer;
 
       if (OSS_UNLIKELY(nullptr == context ||
                       INVALID_PAGE_ID == pid ||
@@ -463,29 +455,20 @@ namespace vessel
 
       gpid.reset(logicalPageSpace::getSpaceID(),
                  getSpaceType(),
-                 getStorageFileType(),
+                 FILE_TYPE_DATA_STORAGE,
                  pid);
 
-      pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
-      lc = context->getEnv()->cacheConsole.getCache(pageSize);
-      SDB_ASSERT(nullptr != lc, "page size did not match pool");
-      rc = lc->allocate(gpid, options, tuple);
+      pageSize = getFileCluster()->getCoreArgs().pageSize;
+      rc = context->getEnv()->ioBufferPool.allocate(gpid, o, buffer);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to allocate cache tuple of page[%s], rc:%d",
+         PD_LOG(PDERROR, "failed to allocate io buffer of page[%s], rc:%d",
                 gpid.toString().c_str(), rc);
          goto error;
       }
 
-      rc = initer.initWithCache(gpid, pageSize, tuple, rpb);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init rpb[%s] with cache tuple:%d",
-                gpid.toString().c_str(), rc);
-         goto error;
-      }
+      initer.initWithBuffer(gpid, pageSize, buffer, rpb);
    done:
-      tuple.release();
       return rc;
    error:
       goto done;
@@ -497,13 +480,12 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       logicalPageSpace::_runtimePageBufferIniter initer;
-      liteCacheTuple tuple;
       GLOBAL_PAGE_ID gpid(logicalPageSpace::getSpaceID(),
                           getSpaceType(),
-                          getStorageFileType(),
+                          FILE_TYPE_DATA_STORAGE,
                           pid);
-      UINT32 pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
-      liteCache *lc = nullptr;
+      UINT32 pageSize = getFileCluster()->getCoreArgs().pageSize;
+      liteIOBuffer buffer;
       
       if (OSS_UNLIKELY(nullptr == context ||
                        INVALID_PAGE_ID == pid))
@@ -512,23 +494,15 @@ namespace vessel
          goto error;
       }
 
-      lc = context->getEnv()->cacheConsole.getCache(pageSize);
-      SDB_ASSERT(nullptr != lc, "page size did not match pool");
-      rc = lc->allocateToReset(gpid, tuple);
+      rc = context->getEnv()->ioBufferPool.allocateToReset(gpid, buffer);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to allocate cache tuple of page[%s], rc:%d",
+         PD_LOG(PDERROR, "failed to allocate io buffer of page[%s], rc:%d",
                 gpid.toString().c_str(), rc);
          goto error;
       }
 
-      rc = initer.initWithCache(gpid, pageSize, tuple, rpb);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init rpb[%s] with cache tuple:%d",
-                gpid.toString().c_str(), rc);
-         goto error;
-      }
+      initer.initWithBuffer(gpid, pageSize, buffer, rpb);
 
       rc = rpb.prepareToWrite(context);
       if (SDB_OK != rc)
@@ -537,10 +511,9 @@ namespace vessel
          goto error;
       }
    done:
-      tuple.release();
       return rc;
    error:
-      rpb.fini();
+      buffer.reset();
       goto done;
    }
 
@@ -551,12 +524,11 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       logicalPageSpace::_runtimePageBufferIniter initer;
-      liteCacheTuple tuple;
       GLOBAL_PAGE_ID gpid;
-      UINT32 pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
+      UINT32 pageSize = getFileCluster()->getCoreArgs().pageSize;
       CHAR *buffer = nullptr;
       slice rs;
-      liteCache *lc = nullptr;
+      liteIOBuffer iobuffer;
 
       dpsPoolJournalPad jpad;
       dpsLogRecordHeader jres;
@@ -587,15 +559,13 @@ namespace vessel
 
       gpid.reset(logicalPageSpace::getSpaceID(),
                  getSpaceType(),
-                 getStorageFileType(),
+                 FILE_TYPE_DATA_STORAGE,
                  newPid);
-      lc = context->getEnv()->cacheConsole.getCache(pageSize);
-      SDB_ASSERT(nullptr != lc, "page size did not match pool");
 
-      rc = lc->allocateToReset(gpid, tuple);
+      rc = context->getEnv()->ioBufferPool.allocateToReset(gpid, iobuffer);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to allocate cache tuple of page[%s], rc:%d",
+         PD_LOG(PDERROR, "failed to allocate io buffer of page[%s], rc:%d",
                 gpid.toString().c_str(), rc);
          goto error;
       }
@@ -604,7 +574,7 @@ namespace vessel
       jpad.setFlag(DPS_LOG_FLAG_VESSEL);
       rc = jpad.append(DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP,
                        pageSize,
-                       reinterpret_cast<const void *>(tuple.getReadableBuffer()));
+                       reinterpret_cast<const void *>(iobuffer.getBufferPtr()));
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append page buffer into pad:%d", rc);
@@ -619,23 +589,17 @@ namespace vessel
          goto error;
       }
 
-      ossMemcpy((void *)(tuple.getWritableBuffer()),
+      ossMemcpy(iobuffer.getBufferPtr(),
                  rs.data(),
                  pageSize);
-      ((pageHead *)(tuple.getWritableBuffer()))->pid = newPid;
-      ((pageHead *)(tuple.getWritableBuffer()))->psv = psv;
-      updatePageLsn((ossValuePtr)(tuple.getWritableBuffer()), jres._lsn);
+      ((pageHead *)(iobuffer.getBufferPtr()))->pid = newPid;
+      ((pageHead *)(iobuffer.getBufferPtr()))->psv = psv;
+      updatePageLsn((ossValuePtr)(iobuffer.getBufferPtr()), jres._lsn);
       
-      tuple.commit(jres._lsn);
+      iobuffer.commit(jres._lsn);
       rpb.fini();
 
-      rc = initer.initWithCache(gpid, pageSize, tuple, rpb);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to reinit rpb:%d", rc);
-         ossPanic();
-         goto error;
-      }
+      initer.initWithBuffer(gpid, pageSize, iobuffer, rpb);
 
       rc = rpb.prepareToWrite(context);
       if (SDB_OK != rc)
@@ -646,7 +610,6 @@ namespace vessel
          goto error;
       }
    done:
-      tuple.release();
       if (nullptr != buffer)
       {
          context->releaseBuffer(buffer);

@@ -38,6 +38,7 @@
 
 #include "vessel/lobcFlushList.h"
 #include "vessel/bufferFlushTask.h"
+#include "vessel/bufferFlushDef.h"
 
 namespace engine
 {
@@ -52,18 +53,10 @@ namespace vessel
          lobcFlushTaskBuilder &operator=(const lobcFlushTaskBuilder &) = delete;
 
       public:
-         struct taskId
-         {
-            OSS_INLINE BOOLEAN isValid()const {return 0 < size;}
-            UINT32 offset = 0;
-            UINT32 size = 0;
-         };
-
-      public:
 
          void build(const lobcFlushList &fl);
          BOOLEAN hasMore()const {return _next < _tasks.size();}
-         taskId getNextTask();
+         bufferFlushTaskId getNextTask();
          void clear();
          const bufferFlushTask &get(UINT32 pos)const
          {

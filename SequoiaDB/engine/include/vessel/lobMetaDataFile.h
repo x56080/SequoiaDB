@@ -36,21 +36,17 @@
 #ifndef VESSEL_LOB_META_DATA_FILE_H_
 #define VESSEL_LOB_META_DATA_FILE_H_
 
-#include "vessel/storageFile.h"
-#include "vessel/bitmapScanner.h"
-#include "vessel/mmapPagePointer.h"
-
-#include <mutex> //c++11
+#include "vessel/baseMetaDataFile.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class lobMetaDataFile : public storageFile
+   class lobMetaDataFile : public baseMetaDataFile
    {
       public:
-         lobMetaDataFile(){}
-         virtual ~lobMetaDataFile(){}
+         lobMetaDataFile() = default;
+         virtual ~lobMetaDataFile() = default;
 
       public:
          static constexpr UINT32 PAGE_SIZE = 65536;
@@ -60,26 +56,11 @@ namespace vessel
          static constexpr UINT32 MAX_SEG_COUNT = MAX_PAGE_COUNT / PAGE_COUNT_PER_SEG;
          static constexpr UINT32 SME_SIZE = MAX_PAGE_COUNT / 8;
 
-      public:
-         INT32 reservePage(PAGE_ID &pid, mmapPagePointer &ptr);
-         void freePage(PAGE_ID pid);
-         void freePages(UINT32 size, const PAGE_ID *pids);
-
       private:
          virtual UINT32 _getReservedAreaSize()const override
          {
             return SME_SIZE;
          }
-         virtual void _close() override;
-         virtual INT32 _open(BOOLEAN isCreating) override;
-
-      private:
-         INT32 _create();
-         INT32 _open();
-
-      private:
-         std::mutex _mutex;
-         bitmapScanner _scanner;
    };//class lobMetaDataFile
 } // namespace vessel
 

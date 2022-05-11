@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = deltaLogFileDef.cpp
+   Source File Name = dirtyLiteBufferList.h
 
    Descriptive Name =
 
@@ -32,26 +32,37 @@
    Last Changed =
 
 ******************************************************************************/
-#include "vessel/deltaLogFileDef.h"
+
+#ifndef VESSEL_DIRTY_LITE_BUFFER_LIST_H_
+#define VESSEL_DIRTY_LITE_BUFFER_LIST_H_
+
+#include "vessel/dirtyBufferList.hpp"
+#include "vessel/ioBufferControlBlock.h"
 
 namespace engine
 {
 namespace vessel
 {
-   void deltaLogFile::getDeltaFileHead(deltaLogFileHead &h)const
+   class dirtyLiteBufferList : public dirtyBufferList<SHARED_IO_BUFFER_CB>
    {
-      SDB_ASSERT(isOpen(), "can not be invalid");
-      ossValuePtr ptr = 0;
-      getUserDefinedHeadPtr(ptr);
-      SDB_ASSERT(0 != ptr, "can not be invalid");
-      h = *((const deltaLogFileHead *)ptr);
-   }
+      public:
+         dirtyLiteBufferList() = default;
+         virtual ~dirtyLiteBufferList() = default;
 
-   BOOLEAN deltaLogFile::validateUserDefinedHead(const void *head)const
-   {
-      SDB_ASSERT(NULL != head, "can not be null");
-      return ((const deltaLogFileHead *)head)->version != 0;
-   }
+      public:
+         void insert(SHARED_IO_BUFFER_CB &bcb);
+
+         ///WARNING: only for pool watcher !!!
+         /// flush all buffers if maxBufferCount is zero.
+         void makeFlushList(UINT32 maxBufferCount,
+                            SHARED_IO_BUFFER_CB_LIST &fl,
+                            UINT64 &maxLSN);
+
+         void discard(SPACE_ID sid, SHARED_IO_BUFFER_CB_LIST &discarded);
+   };//class dirtyLiteBufferList
 } // namespace vessel
 
 } // namespace engine
+
+
+#endif//VESSEL_DIRTY_LITE_BUFFER_LIST_H_

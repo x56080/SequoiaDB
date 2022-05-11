@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = idMapFile.h
+   Source File Name = liteIOBuffer.h
 
    Descriptive Name =
 
@@ -33,55 +33,55 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_ID_MAP_FILE_H_
-#define VESSEL_ID_MAP_FILE_H_
+#ifndef VESSEL_LITE_IO_BUFFER_H_
+#define VESSEL_LITE_IO_BUFFER_H_
 
-#include "vessel/storageFile.h"
-#include "vessel/logicalPageSpaceCheckpoint.h"
+#include "ossSharedLatch.hpp"
+#include "vessel/ioBufferControlBlock.h"
 
 namespace engine
 {
 namespace vessel
 {
-   constexpr UINT32 ID_MAP_FILE_HEAD_VERSION = 1;
+   class liteIOBufferPool;
 
-#pragma pack(4)
-   struct idMapFileHead
+   class liteIOBuffer : public SDBObject
    {
-      OSS_INLINE BOOLEAN isValid()const
-      {
-         return ID_MAP_FILE_HEAD_VERSION == version;
-      }
-      
-      UINT32 version = 0;
-      UINT32 flags = 0;
-      /// mutable fields
-      UINT32 totalPageCount = 0;
-      ///checkpoint
-      LPS_CHECKPOINT checkpoint;
-
-   };//struct idMapFileHead
-
-#pragma pack()
-
-   class idMapFile : public storageFile
-   {
+      friend class liteIOBufferPool;
       public:
-         idMapFile(){}
-         virtual ~idMapFile(){}
+         liteIOBuffer() = default;
+         ~liteIOBuffer();
+         liteIOBuffer(const liteIOBuffer &) = delete;
+         liteIOBuffer &operator=(const liteIOBuffer &) = delete;
+         liteIOBuffer(liteIOBuffer &&);
+         liteIOBuffer &operator=(liteIOBuffer &&);
 
       public:
-         INT32 getIdMapFileHead(idMapFileHead &h)const;
-         UINT32 getTotalPageCount()const {return _pageCount;}
+         OSS_INLINE BOOLEAN isValid()const{return nullptr != _pool;}
+         OSS_INLINE ossSharedLatchMode getMode()const {return _mode;}
+         
+      public:
+         BOOLEAN isWritable()const;
+         void commit(UINT64 lsn);
+         void reset();
+         INT32 makeWritable();
+
+         UINT32 getBufferSize()const;
+         CHAR *getBufferPtr();
+         const CHAR *getBufferPtr()const;
 
       private:
-         virtual void _close() override;
-         virtual INT32 _open(BOOLEAN isCreating) override;
-         virtual void _onHeaderUpdated(const slice &hs) override;
+         void init(liteIOBufferPool *pool,
+                   SHARED_IO_BUFFER_CB &&bcb,
+                   ossSharedLatchMode mode);
       private:
-         UINT32 _pageCount = 0;
-   }; // class idMapFile
+         liteIOBufferPool *_pool = nullptr;
+         SHARED_IO_BUFFER_CB _bcb;
+         ossSharedLatchMode _mode;
+   };//class liteIOBuffer
 } // namespace vessel
+
 } // namespace engine
 
-#endif // VESSEL_ID_MAP_FILE_H_
+
+#endif//VESSEL_LITE_IO_BUFFER_H_

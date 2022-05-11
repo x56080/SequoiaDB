@@ -122,8 +122,6 @@ namespace vessel
 
          UINT32 getLobdSmeSize()const;
 
-         
-
       private:
          void _close();
          INT32 _create();

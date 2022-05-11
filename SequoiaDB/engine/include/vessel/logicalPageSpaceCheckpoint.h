@@ -48,20 +48,6 @@ namespace vessel
 #pragma pack(4)
    struct logicalPageSpaceCheckpoint
    {
-      OSS_INLINE logicalPageSpaceCheckpoint(){}
-      OSS_INLINE ~logicalPageSpaceCheckpoint(){}
-      OSS_INLINE logicalPageSpaceCheckpoint(const logicalPageSpaceCheckpoint &o) = delete;
-
-      OSS_INLINE logicalPageSpaceCheckpoint &operator=(const logicalPageSpaceCheckpoint &o)
-      {
-         version = o.version;
-         flags = o.flags;
-         lsn = o.lsn;
-         sequence = o.sequence;
-         time = o.time;
-         return *this;
-      }
-
       OSS_INLINE BOOLEAN isValid()const
       {
          return LPS_CHECKPOINT_VERSION == version &&
@@ -101,7 +87,7 @@ namespace vessel
       UINT32 version = 0;
       UINT32 flags = 0;
       checkpointLSN lsn;
-   UINT64 sequence = 0;
+      UINT64 sequence = 0;
       UINT64 time = 0;
    };//struct logicalPageSpaceCheckpoint
 

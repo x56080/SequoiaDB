@@ -51,13 +51,15 @@
 #include "vessel/logicalPageBuffer.h"
 #include "vessel/sortedStorageFileList.h"
 #include "vessel/shallowPointer.hpp"
-#include "vessel/dataPageCluster.h"
 #include "vessel/containerUtils.h"
 #include "vessel/pidBatchList.h"
 #include "vessel/lpageMapping.h"
 #include "ossMemPool.hpp"
 #include "vessel/idMapPage.h"
 #include "vessel/storageFileTrashCan.h"
+#include "vessel/liteIOBuffer.h"
+#include "vessel/storageManifest.h"
+#include "vessel/storageFileCluster.h"
 
 namespace engine
 {
@@ -71,21 +73,15 @@ namespace vessel
    class logicalPageSpace : public SDBObject
    {
       public:
-         logicalPageSpace(){}
+         logicalPageSpace(const storageUnitManifest *manifest);
          virtual ~logicalPageSpace();
          logicalPageSpace(const logicalPageSpace &) = delete;
          logicalPageSpace &operator=(const logicalPageSpace &) = delete;
 
       public:
-         OSS_INLINE BOOLEAN isOpen()const
-         {
-            return INVALID_SPACE_ID != _sid;
-         }
-         OSS_INLINE SPACE_ID getSpaceID()const
-         {
-            return _sid;
-         }
-
+         OSS_INLINE BOOLEAN isOpen()const {return nullptr != _baseMap;}
+         OSS_INLINE const storageUnitManifest *getManifest()const {return _manifest;}
+         OSS_INLINE SPACE_ID getSpaceID()const {return _manifest->sid;}
          static constexpr UINT32 MAX_LPID_COUNT = ID_MAP_PAGE_CAPACITY * ID_MAP_FILE_MAX_PAGE_COUNT;
       public:
          virtual SPACE_TYPE getSpaceType()const = 0;
@@ -96,10 +92,9 @@ namespace vessel
 
          void destroy();
 
-         INT32 create(SPACE_ID sid,
-                      const createLpsOptions &o);
+         INT32 create();
 
-         INT32 open(SPACE_ID sid, const storageFileLoader &loader);
+         INT32 open(const storageFileLoader &loader);
 
          INT32 getLogicalPageBuffer(requestContext *context,
                                     PAGE_ID lpid,
@@ -159,14 +154,8 @@ namespace vessel
                                           mmapPagePointer &ptr);*/
 
       public:
-         FILE_TYPE getStorageFileType()const;
-         const storageCoreArgs &getStorageCoreArgs()const;
-
-         INT32 fsyncSegment(UINT32 segment)const;
-
-         virtual INT32 getPagePtr(FILE_TYPE type,
-                                  PAGE_ID pid,
-                                  mmapPagePointer &ptr)const;
+         storageFileCluster *getFileCluster() {return &_fcluster;}
+         const storageFileCluster *getFileCluster()const {return &_fcluster;}
       public:
          INT32 createCheckpoint(requestContext *context,
                                 BOOLEAN forceFullCheckpoint);
@@ -202,8 +191,9 @@ namespace vessel
 
          BOOLEAN isReservedLpid(PAGE_ID lpid)const;
 
-      protected:
-         UINT32 getSecretValue()const;
+         INT32 _reserveClusterPids(UINT32 count, PAGE_ID *pids);
+
+         void _releaseClusterPids(UINT32 count, const PAGE_ID *pids);
          
       protected:
          class _runtimePageBufferIniter : public SDBObject
@@ -213,27 +203,20 @@ namespace vessel
                ~_runtimePageBufferIniter(){}
             
             public:
-               ///WARNING: tuple will be invalid after init.
-               INT32 initWithCache(const GLOBAL_PAGE_ID &gpid,
+               ///WARNING: iob will be invalid after init.
+               void initWithBuffer(const GLOBAL_PAGE_ID &gpid,
                                    UINT32 pageSize,
-                                   liteCacheTuple &tuple,
+                                   liteIOBuffer &iob,
                                    runtimePageBuffer &rpb);
 
-               INT32 initWithMmap(const GLOBAL_PAGE_ID &gpid,
-                                  UINT32 pageSize,
-                                  const mmapPagePointer &ptr,
-                                  runtimePageBuffer &rpb);
+               void initWithMmap(const GLOBAL_PAGE_ID &gpid,
+                                 UINT32 pageSize,
+                                 const mmapPagePointer &ptr,
+                                 runtimePageBuffer &rpb);
          };//class _runtimePageBufferIniter
-
-      protected:
-         virtual dataPageCluster *getDataStorageObj() = 0;
 
       private:
          virtual UINT32 getReservedImpCount()const {return 0;}
-         virtual dataPageCluster::options getStorageOptions()const
-         {
-            return dataPageCluster::options();
-         }
 
       protected:/// page management
          INT32 map(requestContext *context,
@@ -268,14 +251,19 @@ namespace vessel
                                                runtimePageBuffer &rpb) = 0;
 
       private:/// for openning/creating
-         virtual INT32 _create() = 0;
-         virtual INT32 _open(const storageFileLoader &loader) = 0;
-         virtual void _close() = 0;
-         virtual void _destroy() = 0;
+         virtual UINT32 _getStorageFileCtlFlags()const
+         {
+            return storageFileCtlFlag::MMAP_DATA_SEGMENT;
+         }
+         virtual inMemBitmap::options _getFAllocatorOptions()const;
+         virtual INT32 _create() {return SDB_OK;}
+         virtual INT32 _open(const storageFileLoader &loader) {return SDB_OK;}
+         virtual void _close() {}
+         virtual void _destroy() {}
 
       private:
          void fini();
-         INT32 createFirstIdMapFile(const createLpsOptions &o);
+         INT32 createFirstIdMapFile();
          INT32 openIdMapFiles(const storageFileLoader &loader);
 
          INT32 restoreAllocatorByBaseFile(const idMapFile *base);
@@ -326,6 +314,8 @@ namespace vessel
                                pageInitializer *initer,
                                const LPID_MAPPING_ARRAY &mapping);
 
+         INT32 _openFileCluster(const storageFileLoader *loader);
+
       private:
          INT32 replayDeltaLog();
          INT32 replayMappingDeltaLog(const deltaLogRecord &dlr);
@@ -338,13 +328,17 @@ namespace vessel
          void freePidsInReadyList();
 
       private:
-         SPACE_ID _sid = INVALID_SPACE_ID;
-         idMapFile *_baseMap = NULL;
+         const storageUnitManifest *_manifest = nullptr;
+         idMapFile *_baseMap = nullptr;
          inMemBitmap _allocator;
          ossSpinXLatch _mappingLatch;
          deltaLogConsole _logConsole;
          lpageMapping _lpm;
-         dataPageCluster *_dpc = NULL;
+
+         std::mutex _fclusterMutex;
+         storageFileCluster _fcluster;
+         inMemBitmap _fallocator;
+
          lpsCheckpointContext _checkpointContext;
          ossPoolSet<UINT32> _dirtySegments;
 

@@ -37,7 +37,6 @@
 #define VESSEL_INDEX_SPACE_H_
 
 #include "vessel/logicalPageSpace.h"
-#include "vessel/dataStorageFileCluster.h"
 
 namespace engine
 {
@@ -46,7 +45,8 @@ namespace vessel
    class indexSpace : public logicalPageSpace
    {
       public:
-         indexSpace(){}
+         indexSpace(const storageUnitManifest *manifest):
+         logicalPageSpace(manifest){}
          virtual ~indexSpace(){}
 
       public:
@@ -59,12 +59,9 @@ namespace vessel
             return TRUE;
          }
 
-      protected:
-         virtual dataPageCluster *getDataStorageObj() override {return &_storage;}
 
       private:
          virtual UINT32 getReservedImpCount()const override {return 1;};
-         virtual dataPageCluster::options getStorageOptions()const override;
 
       private:
          virtual INT32 getRuntimePageBuffer(requestContext *context,
@@ -84,17 +81,8 @@ namespace vessel
                                                runtimePageBuffer &rpb) override;
 
       private:
-         virtual INT32 _create() override;
-         virtual INT32 _open(const storageFileLoader &loader) override;
-         virtual void _close() override;
-         virtual void _destroy() override;
-
-      private:
          virtual INT32 getMinUncompletedLSN(requestContext *context,
                                             DPS_LSN_OFFSET &lsn) override;
-
-      private:
-         dataStorageFileCluster _storage;
    };//class indexSpace
 }//namespace vessel
 }//namespace engine

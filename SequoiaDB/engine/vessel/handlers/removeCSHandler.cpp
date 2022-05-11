@@ -62,7 +62,7 @@ namespace vessel
 
       cs->waitIfCheckpointCreating(&context);
       cs = nullptr;
-      context.getEnv()->cacheConsole.getCacheByPoolNo()->discardSpace(cs->getSpaceId());
+      context.getEnv()->ioBufferPool.discard(context.getSpaceID());
       context.getEnv()->dms.removeCS(&context);
       if (SDB_OK != rc)
       {

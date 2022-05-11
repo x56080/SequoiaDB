@@ -228,12 +228,12 @@ namespace vessel
 
       public:
          void attachLobcWatcher(IExecutor *executor);
+         void attachLiteBufferPoolWatcher(IExecutor *executor);
          
       private:
 
          void fini();
          INT32 initLsmDB(const openDBOptions &options);
-         INT32 flushWholeDirtyList(requestContext *context);
          INT32 activeBackgroundThreads(const openDBOptions &options);
 
       private:

@@ -60,6 +60,11 @@ namespace vessel
       static constexpr BUFFER_CTL_FLAG_WORD PENDING_FLUSH = 0x04;
    };//struct BUFFER_CTL_FLAGS
 
+   struct LITE_IO_BUFFER_CTL_FLAGS
+   {
+      static constexpr BUFFER_CTL_FLAG_WORD IN_DIRTY_LIST = 0x01;
+   };
+
 } // namespace vessel
 
 } // namespace engine

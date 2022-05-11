@@ -740,7 +740,7 @@ namespace vessel
          goto done;
       }
 
-      rc = _mfile->reservePage(pid, ptr);
+      rc = _mfile->reservePid(pid, &ptr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to reserve new bucket page:%d", rc);
@@ -775,7 +775,7 @@ namespace vessel
       mmapPagePointer ptr;
       UINT32 rowCount = 0;
 
-      rc = _mfile->reservePage(firstNewBucketPid, ptr);
+      rc = _mfile->reservePid(firstNewBucketPid, &ptr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to reserve new page:%d", rc);
@@ -815,7 +815,7 @@ namespace vessel
             {
                PAGE_ID preBucketPid = newBucketPids.back();
                PAGE_ID newBucketPid = INVALID_PAGE_ID;
-               rc = _mfile->reservePage(newBucketPid, ptr);
+               rc = _mfile->reservePid(newBucketPid, &ptr);
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to reserve new page:%d", rc);
@@ -862,7 +862,7 @@ namespace vessel
    error:
       if (!newBucketPids.empty())
       {
-         _mfile->freePages(newBucketPids.size(), newBucketPids.data());
+         _mfile->freePids(newBucketPids.size(), newBucketPids.data());
       }
       goto done;
    }
@@ -928,7 +928,7 @@ namespace vessel
          pre.setNextPid(INVALID_PAGE_ID);
       }
 
-      _mfile->freePage(pid);
+      _mfile->freePid(pid);
    }
 
    INT32 lobcMetaBlockMapping::splitBlockPage(PAGE_ID pid)
@@ -946,7 +946,7 @@ namespace vessel
       SDB_ASSERT(!accessor.isFreeToInsert(1), "must be full");
       INT32 beginPos = -1;
       
-      rc = _mfile->reservePage(targetPid, ptr);
+      rc = _mfile->reservePid(targetPid, &ptr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to reserve new page:%d", rc);
@@ -991,7 +991,7 @@ namespace vessel
    error:
       if (INVALID_PAGE_ID != targetPid)
       {
-         _mfile->freePage(targetPid);
+         _mfile->freePid(targetPid);
       }
       goto done;
    }

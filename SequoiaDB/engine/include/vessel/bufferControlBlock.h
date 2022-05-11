@@ -61,6 +61,11 @@ namespace vessel
             return;
          }
 
+         OSS_INLINE BOOLEAN isPinned()const
+         {
+            return 0 < getRefCount() || 0 != _flags;
+         }
+
          OSS_INLINE void setStatus(BUFFER_STATUS s)
          {
             _statusAndRefCnt = ((static_cast<UINT32>(s) << 24) | getRefCount());
@@ -137,6 +142,11 @@ namespace vessel
                                             std::memory_order_relaxed)const
          {
             return _val.load(mo);
+         }
+
+         OSS_INLINE void store(const bufferControlBlock &val)
+         {
+            _val.store(val, std::memory_order_relaxed);
          }
 
          /// WARNING: do not use this api unless you

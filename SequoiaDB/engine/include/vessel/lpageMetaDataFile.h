@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexMappingPage.h
+   Source File Name = lpageMetaDataFile.h
 
    Descriptive Name =
 
@@ -33,17 +33,31 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INDEX_MAPPING_PAGE_H_
-#define VESSEL_INDEX_MAPPING_PAGE_H_
+#ifndef VESSEL_LPAGE_META_DATA_FILE_H_
+#define VESSEL_LPAGE_META_DATA_FILE_H_
 
-#include "vessel/pageDef.h"
+#include "vessel/baseMetaDataFile.h"
 
 namespace engine
 {
 namespace vessel
 {
-   UINT32 getIndexMappingPageCapacity(UINT32 pageSize);
-}//namespace vessel
-}//namespace engine
+   class lpageMetaDataFile : public baseMetaDataFile
+   {
+      public:
+         static constexpr UINT32 PAGE_SIZE = 65536;
+         static constexpr UINT32 PAGE_COUNT_PER_SEG = 64; /// 4MB per segment
+         static constexpr UINT64 MAX_FILE_SIZE = (UINT64)8 << 30; /// 8GB
+         static constexpr UINT32 MAX_PAGE_COUNT = MAX_FILE_SIZE / PAGE_SIZE;
+         static constexpr UINT32 MAX_SEG_COUNT = MAX_PAGE_COUNT / PAGE_COUNT_PER_SEG;
+         static constexpr UINT32 SME_SIZE = MAX_PAGE_COUNT / 8;
 
-#endif//VESSEL_INDEX_DEF_MAPPING_PAGE_H_
+      public:
+         virtual UINT32 _getReservedAreaSize()const override {return SME_SIZE;}
+   };//class lpageMetaDataFile
+} // namespace vessel
+
+} // namespace engine
+
+
+#endif//VESSEL_LPAGE_META_DATA_FILE_H_

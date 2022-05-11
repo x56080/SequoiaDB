@@ -37,7 +37,6 @@
 #define VESSEL_MAIN_DATA_SPACE_H_
 
 #include "vessel/logicalPageSpace.h"
-#include "vessel/dataStorageFileCluster.h"
 #include "vessel/csMetaBlockPage.h"
 
 namespace engine
@@ -50,7 +49,7 @@ namespace vessel
    class mainDataSpace : public logicalPageSpace
    {
       public:
-         mainDataSpace();
+         mainDataSpace(const storageUnitManifest *manifest);
          virtual ~mainDataSpace();
 
       public:
@@ -84,10 +83,6 @@ namespace vessel
          {
             return 1;
          }
-         virtual dataPageCluster *getDataStorageObj() override
-         {
-            return &_storage;
-         }
 
          virtual INT32 _create() override;
          virtual INT32 _open(const storageFileLoader &loader) override;
@@ -110,7 +105,6 @@ namespace vessel
                                                runtimePageBuffer &rpb) override;
 
       private:
-         dataStorageFileCluster _storage;
          fsmFile *_fsm = NULL;
    };//class mainDataSpace
 }//namespace vessel

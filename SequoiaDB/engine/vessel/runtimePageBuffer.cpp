@@ -60,7 +60,7 @@ namespace vessel
          o._pageSize = 0;
          _flags = o._flags;
          o._flags = 0;
-         _tuple = std::move(o._tuple);
+         _iob = std::move(o._iob);
          _buffer = o._buffer;
          o._buffer = 0;
          _commitedLsn = o._commitedLsn;
@@ -79,7 +79,7 @@ namespace vessel
          o._pageSize = 0;
          _flags = o._flags;
          o._flags = 0;
-         _tuple = std::move(o._tuple);
+         _iob = std::move(o._iob);
          _buffer = o._buffer;
          o._buffer = 0;
          _commitedLsn = o._commitedLsn;
@@ -90,9 +90,9 @@ namespace vessel
 
    void runtimePageBuffer::fini()
    {
-      if (_tuple.isValid())
+      if (_iob.isValid())
       {
-         _tuple.release();
+         _iob.reset();
       }
       _gpid.reset();
       _pageSize = 0;
@@ -102,52 +102,36 @@ namespace vessel
       return;
    }
 
-   INT32 runtimePageBuffer::init(const GLOBAL_PAGE_ID &gpid,
-                                 UINT32 pageSize,
-                                 const mmapPagePointer &ptr)
+   void runtimePageBuffer::initWithMmap(const GLOBAL_PAGE_ID &gpid,
+                                        UINT32 pageSize,
+                                        const mmapPagePointer &ptr)
    {
-      INT32 rc = SDB_OK;
       fini();
-      if (OSS_UNLIKELY(!gpid.isValid() ||
-                       !isValidPageSize(pageSize) ||
-                       !ptr.isValid()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-   
+      SDB_ASSERT(gpid.isValid(), "can not be invalid");
+      SDB_ASSERT(isValidPageSize(pageSize), "can not be invalid");
+      SDB_ASSERT(ptr.isValid(), "can not be invalid");
+      
       _gpid = gpid;
       _pageSize = pageSize;
       _buffer = ptr.get();
-   done:
-      return rc;
-   error:
-      goto done;
+
+      return;
    }
 
-   INT32 runtimePageBuffer::init(const GLOBAL_PAGE_ID &gpid,
-                                 UINT32 pageSize,
-                                 liteCacheTuple &tuple)
+   void runtimePageBuffer::initWithBuffer(const GLOBAL_PAGE_ID &gpid,
+                                          UINT32 pageSize,
+                                          liteIOBuffer &iob)
    {
-      INT32 rc = SDB_OK;
-
       fini();
-      if (OSS_UNLIKELY(!gpid.isValid() ||
-                       !isValidPageSize(pageSize)||
-                       !tuple.isValid()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-   
+      SDB_ASSERT(gpid.isValid(), "can not be invalid");
+      SDB_ASSERT(isValidPageSize(pageSize), "can not be invalid");
+      SDB_ASSERT(iob.isValid(), "can not be invalid");
+      SDB_ASSERT(iob.getBufferSize() == pageSize, "must be same");
+      
       _gpid = gpid;
       _pageSize = pageSize;
-      _tuple = std::move(tuple);
-      _buffer = _tuple.getReadableBuffer();
-   done:
-      return rc;
-   error:
-      goto done;
+      _iob = std::move(iob);
+      _buffer = (ossValuePtr)_iob.getBufferPtr();
    }
 
    void runtimePageBuffer::commit(DPS_LSN_OFFSET lsn)
@@ -174,9 +158,9 @@ namespace vessel
             goto done;
          }
 
-         if (_tuple.isValid())
+         if (_iob.isValid())
          {
-            _tuple.commit(lsn);
+            _iob.commit(lsn);
          }
 
          _commitedLsn = lsn;
@@ -224,13 +208,13 @@ namespace vessel
       }
       else if (isCacheBuffer())
       {
-         rc = _tuple.prepareToWrite();
+         rc = _iob.makeWritable();
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to get tuple writing prepared:%d", rc);
+            PD_LOG(PDERROR, "failed to get buffer writable:%d", rc);
             goto error;
          }
-         _buffer = _tuple.getWritableBuffer();
+         _buffer = (ossValuePtr)_iob.getBufferPtr();
       }
 
       setWritingPrepared();

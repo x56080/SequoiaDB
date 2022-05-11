@@ -73,22 +73,10 @@ namespace vessel
 
    struct storageCoreArgs
    {
-      OSS_INLINE storageCoreArgs():
-      pageSize(0),
-      maxPageCountPerSeg(0),
-      maxSegmentCountPerFile(0){}
-
-      OSS_INLINE ~storageCoreArgs(){}
-
-      OSS_INLINE storageCoreArgs(const storageCoreArgs &o):
-      pageSize(o.pageSize),
-      maxPageCountPerSeg(o.maxPageCountPerSeg),
-      maxSegmentCountPerFile(o.maxSegmentCountPerFile)
-      {}
-
-      OSS_INLINE storageCoreArgs(UINT32 pageSize,
-                                 UINT32 pgeCountPerSeg,
-                                 UINT32 maxSegCount):
+      storageCoreArgs() = default;
+      explicit storageCoreArgs(UINT32 pageSize,
+                               UINT32 pgeCountPerSeg,
+                               UINT32 maxSegCount):
       pageSize(pageSize),
       maxPageCountPerSeg(pgeCountPerSeg),
       maxSegmentCountPerFile(maxSegCount)
@@ -139,9 +127,9 @@ namespace vessel
          return (UINT64)pageSize * maxPageCountPerSeg;
       }
 
-      UINT32 pageSize;
-      UINT32 maxPageCountPerSeg; /// define max mmap size
-      UINT32 maxSegmentCountPerFile; /// define max file size
+      UINT32 pageSize = 0;
+      UINT32 maxPageCountPerSeg = 0; /// define max mmap size
+      UINT32 maxSegmentCountPerFile = 0; /// define max file size
    };//struct storageCoreArgs
 
    struct createStorageFileOptions

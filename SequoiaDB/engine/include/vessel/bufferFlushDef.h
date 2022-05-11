@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexMappingPage.cpp
+   Source File Name = bufferFlushDef.h
 
    Descriptive Name =
 
@@ -33,15 +33,30 @@
 
 ******************************************************************************/
 
-#include "vessel/indexMappingPage.h"
+#ifndef VESSEL_BUFFER_FLUSH_DEF_H_
+#define VESSEL_BUFFER_FLUSH_DEF_H_
+
+#include "core.hpp"
+#include "oss.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   UINT32 getIndexMappingPageCapacity(UINT32 pageSize)
+   struct bufferFlushTaskId : public SDBObject
    {
-      return getPageBodySize(pageSize) >> 2;
-   }
-}//namespace vessel
-}//namespace engine
+      OSS_INLINE BOOLEAN isValid()const {return 0 < size;}
+      OSS_INLINE void reset()
+      {
+         offset = 0;
+         size = 0;
+      }
+      UINT32 offset = 0;
+      UINT32 size = 0;
+   };//struct bufferFlushTaskId
+} // namespace vessel
+
+} // namespace engine
+
+
+#endif//VESSEL_BUFFER_FLUSH_DEF_H_

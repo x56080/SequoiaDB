@@ -43,8 +43,6 @@
 #include "vessel/atomicOperationList.h"
 #include "vessel/storageUtils.h"
 #include "vessel/pageInitializer.h"
-#include "vessel/dataPageCluster.h"
-#include "vessel/dataStorageFileCluster.h"
 #include "vessel/storageFileLoader.h"
 #include "vessel/deltaLogRecordReader.h"
 #include "vessel/deltaLogRecordBuilder.h"
@@ -67,30 +65,36 @@ namespace vessel
    constexpr UINT64 CHECKPOINT_TRIGGER_DIRTY_PAGE_SIZE = 1024ull * 1024 * 1024; // 1GB
 
 ///////////////logicalPageSpace::_runtimePageBufferIniter begin
-   INT32 logicalPageSpace::
+   void logicalPageSpace::
          _runtimePageBufferIniter::
-         initWithCache(const GLOBAL_PAGE_ID &gpid,
-                       UINT32 pageSize,
-                       liteCacheTuple &tuple,
-                       runtimePageBuffer &rpb)
+         initWithBuffer(const GLOBAL_PAGE_ID &gpid,
+                                   UINT32 pageSize,
+                                   liteIOBuffer &iob,
+                                   runtimePageBuffer &rpb)
    {
-      return rpb.init(gpid, pageSize, tuple);
+      rpb.initWithBuffer(gpid, pageSize, iob);
    }
 
-   INT32 logicalPageSpace::
+   void logicalPageSpace::
          _runtimePageBufferIniter::
          initWithMmap(const GLOBAL_PAGE_ID &gpid,
                       UINT32 pageSize,
                       const mmapPagePointer &ptr,
                       runtimePageBuffer &rpb)
    {
-      return rpb.init(gpid, pageSize, ptr);
+      rpb.initWithMmap(gpid, pageSize, ptr);
    }
 
 
 ///////////////logicalPageSpace::_runtimePageBufferIniter end
 
 //////////////logicalPageSpace
+   logicalPageSpace::logicalPageSpace(const storageUnitManifest *manifest):
+   _manifest(manifest)
+   {
+      SDB_ASSERT(nullptr != _manifest, "can not be invalid");
+   }
+
    logicalPageSpace::~logicalPageSpace()
    {
       fini();
@@ -105,7 +109,7 @@ namespace vessel
 
    void logicalPageSpace::fini()
    {
-      _sid = INVALID_SPACE_ID;
+      _manifest = nullptr;
       _lpm.fini();
       if (NULL != _baseMap)
       {
@@ -115,7 +119,8 @@ namespace vessel
       }
       _allocator.fini();
       _logConsole.fini();
-      _dpc = NULL;
+      _fallocator.fini();
+      _fcluster.close();
       _checkpointContext.fini();
       _dirtySegments.clear();
       _waitingToFree.clear();
@@ -137,41 +142,34 @@ namespace vessel
          SDB_OSS_DEL _baseMap;
          _baseMap = NULL;
       }
+      _fcluster.destroy();
       fini();
       return;
    }
 
-   INT32 logicalPageSpace::create(SPACE_ID sid,
-                                  const createLpsOptions &o)
+   INT32 logicalPageSpace::create()
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(!isOpen(), "do not reinit");
-      
       inMemBitmap::options bitmapOptions;
 
       if (OSS_UNLIKELY(isOpen()))
       {
+         SDB_ASSERT(!isOpen(), "do not reinit");
          close();
       }
-
-      if (OSS_UNLIKELY(INVALID_SPACE_ID == sid ||
-                       !o.isValid()))
+      else if (OSS_UNLIKELY(!_manifest->isValid()))
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-
-      _sid = sid;
    
       /// 1. create id map file
-      rc = createFirstIdMapFile(o);
+      rc = createFirstIdMapFile();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create id map file:%d", rc);
          goto error;
       }
-
-      SDB_ASSERT(NULL != _baseMap, "can not be null");
 
       /// 2. init lpid allocator.
       bitmapOptions.bitmapBeginPage = getReservedImpCount();
@@ -184,7 +182,8 @@ namespace vessel
       }
 
       /// 3. init delta log
-      rc = _logConsole.init(_sid, getSpaceType(), o.secretValue, 0, nullptr);
+      rc = _logConsole.init(_manifest->sid, getSpaceType(),
+                            _manifest->secretValue, 0, nullptr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init cached args:%d", rc);
@@ -194,23 +193,19 @@ namespace vessel
       /// 4. init cache
       _lpm.rebase(_baseMap);
 
-      /// 5. init page stoarge
-      /// TODO: move to sub class
-      _dpc = getDataStorageObj();
-      if (NULL == _dpc)
+      /// 5. init stoarge
+      rc = _openFileCluster(nullptr);
+      if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get storage object");
-         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to open file cluster:%d", rc);
          goto error;
       }
 
-      rc = _dpc->open(_sid, getSpaceType(),
-                      _baseMap->getCommonHeadInMem().secretValue,
-                      NULL, o.dataArgs,
-                      getStorageOptions());
+      rc = _fallocator.initWithNoLatch(_fcluster.getCoreArgs().maxPageCountPerSeg,
+                                        _getFAllocatorOptions());
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to init page storage:%d", rc);
+         PD_LOG(PDERROR, "failed to init fallocator:%d", rc);
          goto error;
       }
 
@@ -228,27 +223,21 @@ namespace vessel
       goto done;
    }
 
-   INT32 logicalPageSpace::open(SPACE_ID sid,
-                                const storageFileLoader &loader)
+   INT32 logicalPageSpace::open(const storageFileLoader &loader)
    {
       INT32 rc = SDB_OK;
       inMemBitmap::options o;
-      idMapFileHead baseHead;
-      storageCoreArgs dataArgs;
 
       if (OSS_UNLIKELY(isOpen()))
       {
          SDB_ASSERT(FALSE, "do not reinit");
          close();
       }
-
-      if (OSS_UNLIKELY(INVALID_SPACE_ID == sid))
+      else if (OSS_UNLIKELY(!_manifest->isValid()))
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-
-      _sid = sid;
 
       /// Open id map files
       rc = openIdMapFiles(loader);
@@ -259,22 +248,6 @@ namespace vessel
       }
 
       SDB_ASSERT(NULL != _baseMap, "can not be null");
-
-      rc = _baseMap->getIdMapFileHead(baseHead);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get imf head:%d", rc);
-         goto error;
-      }
-      dataArgs.pageSize = baseHead.dataPageSize;
-      dataArgs.maxPageCountPerSeg = baseHead.dataPageCountInSeg;
-      dataArgs.maxSegmentCountPerFile = baseHead.dataSegCountInFile;
-      if (!dataArgs.isValid())
-      {
-         PD_LOG(PDERROR, "invalid data args");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
       
       /// init allocator.
       o.bitmapBeginPage = getReservedImpCount();
@@ -286,29 +259,25 @@ namespace vessel
          goto error;
       }
 
-      /// init page storage
-      /// TODO: move to sub class
-      _dpc = getDataStorageObj();
-      if (NULL == _dpc)
+      /// init storage
+      rc = _openFileCluster(&loader);
+      if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to allocate page storage object");
-         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to open file cluster:%d", rc);
          goto error;
       }
 
-      rc = _dpc->open(_sid, getSpaceType(),
-                      _baseMap->getCommonHeadInMem().secretValue,
-                      &loader, dataArgs,
-                      getStorageOptions());
+      rc = _fallocator.initWithNoLatch(_fcluster.getCoreArgs().maxPageCountPerSeg,
+                                       _getFAllocatorOptions());
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to init page storage:%d", rc);
+         PD_LOG(PDERROR, "failed to init fallocator:%d", rc);
          goto error;
       }
 
       /// open delta log files
-      rc = _logConsole.init(_sid, getSpaceType(),
-                            _baseMap->getCommonHeadInMem().secretValue,
+      rc = _logConsole.init(_manifest->sid, getSpaceType(),
+                            _manifest->secretValue,
                             _baseMap->getSequence(), &loader);
       if (SDB_OK != rc)
       {
@@ -1059,10 +1028,10 @@ namespace vessel
       }
 
       /// lpid unmapped
-      rc = _dpc->allocatePage(pid);
+      rc = _reserveClusterPids(1, &pid);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to allocate page from page cluster:%d", rc);
+         PD_LOG(PDERROR, "failed to allocate page from file cluster:%d", rc);
          goto error;
       }
 
@@ -1070,7 +1039,7 @@ namespace vessel
       rc = initAndMapPages(context, initer, LPID_MAPPING_ARRAY(&mpid, 1));
       if (SDB_OK != rc)
       {
-         _dpc->releasePage(pid);
+         _releaseClusterPids(1, &pid);
          PD_LOG(PDERROR, "failed to init page:%d", rc);
          goto error;
       }
@@ -1155,7 +1124,7 @@ namespace vessel
       mappedLogicalPageId mpid;
 
       /// 1. allocate new pid
-      rc = _dpc->allocatePage(pid);
+      rc = _reserveClusterPids(1, &pid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to allocate data page:%d", rc);
@@ -1194,7 +1163,7 @@ namespace vessel
    error:
       if (INVALID_PAGE_ID != pid)
       {
-         _dpc->releasePage(pid);
+         _releaseClusterPids(1, &pid);
       }
       goto done;
    }
@@ -1371,9 +1340,8 @@ namespace vessel
    INT32 logicalPageSpace::openIdMapFiles(const storageFileLoader &loader)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(INVALID_SPACE_ID != _sid, "can not be invalid");
       const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
-      storageFileMaintainer sfm(&po, _sid);
+      storageFileMaintainer sfm(&po, getSpaceID());
       idMapFile *file = NULL;
       storageFileTrashCan trashCan;
       UINT32 fileCtlFlags = storageFileCtlFlag::MMAP_DATA_SEGMENT;
@@ -1494,66 +1462,6 @@ namespace vessel
       goto done;
    }
 
-   FILE_TYPE logicalPageSpace::getStorageFileType()const
-   {
-      SDB_ASSERT(isOpen(), "can not be closed");
-      FILE_TYPE type = INVALID_FILE_TYPE;
-      if (OSS_UNLIKELY(NULL != _dpc))
-      {
-         type = _dpc->getDataFileType();
-      }
-      return type;
-   }
-
-   const storageCoreArgs &logicalPageSpace::getStorageCoreArgs()const
-   {
-      SDB_ASSERT(isOpen(), "can not be closed");
-      return _dpc->getCoreArgs();
-   }
-
-   INT32 logicalPageSpace::fsyncSegment(UINT32 segment)const
-   {
-      INT32 rc = SDB_OK;
-      if (!isOpen())
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-
-      rc = _dpc->fsyncSegment(segment);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to fsync segment[%d], rc:%d", segment, rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 logicalPageSpace::getPagePtr(FILE_TYPE type,
-                                      PAGE_ID pid,
-                                      mmapPagePointer &ptr)const
-   {
-      INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-
-      rc = _dpc->getPagePtr(type, pid, ptr);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
    INT32 logicalPageSpace::reservePagesInMem(requestContext *context,
                                              LPID_MAPPING_ARRAY pages)
    {
@@ -1589,7 +1497,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _dpc->allocatePages(pids.getSize(), pids.data());
+      rc = _reserveClusterPids(pids.getSize(), pids.data());
       if (SDB_OK != rc)
       {
          freeLpidsInMem(context, lpids);
@@ -1626,9 +1534,10 @@ namespace vessel
       if (1 == pages.getSize())
       {
          PAGE_ID lpid = pages[0].getLpid();
+         PAGE_ID pid = pages[0].getPid();
          SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not invalid");
          freeLpidInMem(context, lpid);
-         _dpc->releasePage(pages[0].getPid());
+         _releaseClusterPids(1, &pid);
       }
       else
       {
@@ -1649,7 +1558,7 @@ namespace vessel
          {
             array[i] = pages[i].getPid();
          }
-         _dpc->releasePages(array.getSize(), array.data());
+         _releaseClusterPids(array.getSize(), array.data());
       }
    done:
       if (array.isValid())
@@ -1722,15 +1631,13 @@ namespace vessel
       return;
    }
 
-   INT32 logicalPageSpace::createFirstIdMapFile(const createLpsOptions &o)
+   INT32 logicalPageSpace::createFirstIdMapFile()
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(INVALID_SPACE_ID != _sid, "can not be invalid");
-      SDB_ASSERT(o.isValid(), "can not be invalid");
       SDB_ASSERT(NULL == _baseMap, "must be null");
 
       const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
-      storageFileMaintainer sfm(&po, _sid);
+      storageFileMaintainer sfm(&po, _manifest->sid);
       storageFileName fn;
       createStorageFileOptions options;
       idMapFile *file = NULL;
@@ -1741,9 +1648,6 @@ namespace vessel
       idMapFileHead imfHead;
       imfHead.version = ID_MAP_FILE_HEAD_VERSION;
       imfHead.flags = 0;
-      imfHead.dataPageSize = o.dataArgs.pageSize;
-      imfHead.dataPageCountInSeg = o.dataArgs.maxPageCountPerSeg;
-      imfHead.dataSegCountInFile = o.dataArgs.maxSegmentCountPerFile;
 
       slice hs(sizeof(idMapFileHead), &imfHead);
 
@@ -1762,7 +1666,7 @@ namespace vessel
          goto error;
       }
 
-      options.secretValue = o.secretValue;
+      options.secretValue = _manifest->secretValue;
       options.args = args;
       options.createAsTmpFile = TRUE;
       options.replaceWhenCreate = TRUE;
@@ -1826,9 +1730,6 @@ namespace vessel
       idMapFileHead imfHead;
       imfHead.version = ID_MAP_FILE_HEAD_VERSION;
       imfHead.flags = 0;
-      imfHead.dataPageSize = getStorageCoreArgs().pageSize;
-      imfHead.dataPageCountInSeg = getStorageCoreArgs().maxPageCountPerSeg;
-      imfHead.dataSegCountInFile = getStorageCoreArgs().maxSegmentCountPerFile;
       imfHead.totalPageCount = oldPageCount; /// will be reset soon
       imfHead.checkpoint = checkpoint;
       slice hs(sizeof(idMapFileHead), &imfHead);
@@ -1843,7 +1744,7 @@ namespace vessel
 
       storageFileName fn;
       const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
-      storageFileMaintainer sfm(&po, _sid);
+      storageFileMaintainer sfm(&po, getSpaceID());
 
       newBaseMap = SDB_OSS_NEW idMapFile();
       if (OSS_UNLIKELY(NULL == newBaseMap))
@@ -2075,12 +1976,11 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(_lpm.isReady(), "can not be invalid");
       SDB_ASSERT(_logConsole.getLastCheckpoint().isValid(), "can not be invalid");
-      dataPageCluster *dpc = getDataStorageObj();
-      SDB_ASSERT(NULL != dpc && dpc->isOpen(), "can not be invalid");
       const storageFile *delta = _logConsole.getWorkingFile();
       SDB_ASSERT(NULL != delta && delta->isOpen(), "can not be closed");
       PAGE_ID maxPid = _logConsole.getLastCheckpointPid();
       SDB_ASSERT(INVALID_PAGE_ID != maxPid, "can not be invalid");
+      SDB_ASSERT(_fallocator.isInitialized(), "can not be invalid");
 
       for (PAGE_ID i = 0; i <= maxPid; ++i)
       {
@@ -2145,8 +2045,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_PAGE_ID != impPid, "can not be invalid");
       SDB_ASSERT(_allocator.isInitialized(), "can not be invalid");
-      dataPageCluster *dpc = getDataStorageObj();
-      SDB_ASSERT(NULL != dpc, "can not be invalid");
+      SDB_ASSERT(_fcluster.isOpen(), "can not be invalid");
       UINT32 baseLpid = impPid * ID_MAP_PAGE_CAPACITY;
 
       BOOLEAN isImpReserved = impPid < getReservedImpCount();
@@ -2170,14 +2069,21 @@ namespace vessel
             }
          }
 
-         rc = _dpc->ensurePidSpace(slot.pid);
+         rc = _fcluster.ensurePage(slot.pid);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to ensure pid[%d] space:%d", slot.pid, rc);
             goto error;
          }
 
-         rc = _dpc->occupyPage(slot.pid);
+         rc = _fallocator.ensureBitmapPageCount(_fcluster.getMaxSegmentCount());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to extend cluster allocator:%d", rc);
+            goto error;
+         }
+
+         rc = _fallocator.occupy(slot.pid);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to occupy pid[%d] in storage, rc:%d",
@@ -2220,12 +2126,6 @@ namespace vessel
       return lpid < (getReservedImpCount() * ID_MAP_PAGE_CAPACITY);
    }
 
-   UINT32 logicalPageSpace::getSecretValue()const
-   {
-      SDB_ASSERT(NULL != _baseMap, "can not be invalid");
-      return _baseMap->getCommonHeadInMem().secretValue;
-   }
-
    INT32 logicalPageSpace::validateLpidBeforeGet(PAGE_ID lpid)const
    {
       INT32 rc = SDB_OK;
@@ -2257,8 +2157,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(NULL != _dpc, "can not be null");
-      SDB_ASSERT(_dpc->isOpen(), "can not be closed");
+      SDB_ASSERT(_fcluster.isOpen(), "can not be invalid");
       SDB_ASSERT(isCopyOnWrite(), "impossible");
 
       autoEventList<backgroundEvent> rl;
@@ -2286,7 +2185,7 @@ namespace vessel
          }
          else
          {
-            rc = _dpc->fsyncSegment(*itr);
+            rc = _fcluster.fsyncSegment(*itr);
             if (SDB_OK != rc)
             {
                PD_LOG(PDSEVERE, "failed to flush global segment[%d, %d, %d], rc:%d",
@@ -2321,7 +2220,7 @@ namespace vessel
       SDB_ASSERT(isOpen(), "can not be invalid");
       SDB_ASSERT(NULL != context && context->isOpen(), "can not be invalid");
 
-      UINT64 dirtySize = (UINT64)(getStorageCoreArgs().pageSize) *
+      UINT64 dirtySize = (UINT64)(_fcluster.getCoreArgs().pageSize) *
                          _lpm.peekDeltaPageCount();
       if (CHECKPOINT_TRIGGER_DIRTY_PAGE_SIZE <= dirtySize)
       {
@@ -2402,7 +2301,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(_lpm.isReady(), "can not be invalid");
       SDB_ASSERT(dlr.getLogType() == DELTA_LOG_TYPE_MAPPING, "must be mapping log");
-      SDB_ASSERT(NULL != _dpc && _dpc->isOpen(), "can not be invalid");
+      SDB_ASSERT(_fcluster.isOpen(), "can not be invalid");
       SDB_ASSERT(_allocator.isInitialized(), "can not be invalid");
 
       UINT8 count = 0;
@@ -2447,14 +2346,21 @@ namespace vessel
             }
          }
 
-         rc = _dpc->ensurePidSpace(mid.getPid());
+         rc = _fcluster.ensurePage(mid.getPid());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to ensure pid[%d] space:%d", mid.getPid(), rc);
             goto error;
          }
 
-         rc = _dpc->occupyPage(mid.getPid());
+         rc = _fallocator.ensureBitmapPageCount(_fcluster.getMaxSegmentCount());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to extend cluster allocator:%d", rc);
+            goto error;
+         }
+
+         rc = _fallocator.occupy(mid.getPid());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to occupy page[%d] in storage:%d", mid.getPid(), rc);
@@ -2484,7 +2390,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(_lpm.isReady(), "can not be invalid");
       SDB_ASSERT(dlr.getLogType() == DELTA_LOG_TYPE_UNMAPPING, "must be mapping log");
-      SDB_ASSERT(NULL != _dpc && _dpc->isOpen(), "can not be invalid");
+      SDB_ASSERT(_fallocator.isInitialized(), "can not be invalid");
       SDB_ASSERT(_allocator.isInitialized(), "can not be invalid");
 
       UINT8 count = 0;
@@ -2520,7 +2426,7 @@ namespace vessel
 
          if (releasePid)
          {
-            _dpc->releasePage(mid.getPid());
+            _fallocator.release(mid.getPid());
          }
 
          rc = _lpm.set(mid.getLpid(), lpageDescriptor());
@@ -2541,7 +2447,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(_lpm.isReady(), "can not be invalid");
       SDB_ASSERT(dlr.getLogType() == DELTA_LOG_TYPE_REMAPPING, "must be mapping log");
-      SDB_ASSERT(NULL != _dpc && _dpc->isOpen(), "can not be invalid");
+      SDB_ASSERT(_fcluster.isOpen(), "can not be invalid");
       SDB_ASSERT(_allocator.isInitialized(), "can not be invalid");
 
       UINT8 count = 0;
@@ -2572,14 +2478,21 @@ namespace vessel
             goto error;
          }
 
-         rc = _dpc->ensurePidSpace(mid.getPid());
+         rc = _fcluster.ensurePage(mid.getPid());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to ensure pid[%d] in storage:%d", mid.getPid(), rc);
             goto error;
          }
 
-         rc = _dpc->occupyPage(mid.getPid());
+         rc = _fallocator.ensureBitmapPageCount(_fcluster.getMaxSegmentCount());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to extend cluster allocator:%d", rc);
+            goto error;
+         }
+
+         rc = _fallocator.occupy(mid.getPid());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to occupy pid[%d] in storeage:%d", mid.getPid(), rc);
@@ -2588,7 +2501,7 @@ namespace vessel
 
          if (releasePid)
          {
-            _dpc->releasePage(oldPid);
+            _fallocator.release(oldPid);
          }
 
          desc.pid = mid.getPid();
@@ -2658,7 +2571,7 @@ namespace vessel
             for (UINT32 i = 0; i < mapping.getSize(); ++i)
             {
                UINT32 segment = mapping[i].getPid() /
-                                _dpc->getCoreArgs().maxPageCountPerSeg;
+                                _fcluster.getCoreArgs().maxPageCountPerSeg;
                _dirtySegments.insert(segment);
             }
          }
@@ -2748,7 +2661,7 @@ namespace vessel
             for (UINT32 i = 0; i < mapping.getSize(); ++i)
             {
                UINT32 segment = mapping[i].getPid() /
-                                _dpc->getCoreArgs().maxPageCountPerSeg;
+                                _fcluster.getCoreArgs().maxPageCountPerSeg;
                _dirtySegments.insert(segment);
             }
          }
@@ -2922,7 +2835,7 @@ namespace vessel
       for (pidBatchList::BATCH_LIST::const_iterator itr = bl.begin();
            itr != bl.end(); ++itr)
       {
-         getDataStorageObj()->releasePages(itr->size(), itr->data());
+         _fallocator.releaseBits(itr->size(), itr->data());
       }
 
       bl.clear();
@@ -2934,6 +2847,100 @@ namespace vessel
    {
       SDB_ASSERT(NULL != context, "can not be null");
       return SDB_OK;
+   }
+
+   INT32 logicalPageSpace::_openFileCluster(const storageFileLoader *loader)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(!_fcluster.isOpen(), "do not reopen");
+      storageFileManifest m;
+      m.sid = _manifest->sid;
+      m.stype = getSpaceType();
+      m.ftype = FILE_TYPE_DATA_STORAGE;
+      m.secretValue = _manifest->secretValue;
+      if (SPACE_TYPE_MAIN_DATA == getSpaceType())
+      {
+         m.args = _manifest->dataArgs;
+      }
+      else if (SPACE_TYPE_IDX == getSpaceType())
+      {
+         m.args = _manifest->idxArgs;
+      }
+      else
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = _fcluster.open(m, _getStorageFileCtlFlags(), loader);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open file cluster:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   inMemBitmap::options logicalPageSpace::_getFAllocatorOptions()const
+   {
+      inMemBitmap::options o;
+      o.percentFreeReused = 0.05;
+      return o;
+   }
+
+   INT32 logicalPageSpace::_reserveClusterPids(UINT32 count, PAGE_ID *pids)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(0 < count && nullptr != pids, "can not be invalid");
+      std::unique_lock<std::mutex> guard(_fclusterMutex);
+
+      do
+      {
+         rc = _fallocator.allocateBits(count, pids, 0);
+         if (SDB_OK == rc)
+         {
+            break;
+         }
+         else if (SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE == rc)
+         {
+            if (_fallocator.getCustomizedPageCount() ==
+               _fcluster.getMaxSegmentCount())
+            {
+               rc = _fcluster.allocateNewSegment(1);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to allocate new data segment:%d", rc);
+                  goto error;
+               }
+            }
+
+            rc = _fallocator.allocateNewBitmapPages(1);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to allocate new bitmap page:%d", rc);
+               goto error;
+            }
+         }
+         else
+         {
+            PD_LOG(PDERROR, "failed to reserve resource from allocator:%d", rc);
+            goto error;
+         }
+      } while (TRUE);
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void logicalPageSpace::_releaseClusterPids(UINT32 count, const PAGE_ID *pids)
+   {
+      SDB_ASSERT(0 < count && nullptr != pids, "can not be invalid");
+      std::unique_lock<std::mutex> guard(_fclusterMutex);
+      _fallocator.releaseBits(count, pids);
    }
 }//namespace vessel
 }//namespace engine

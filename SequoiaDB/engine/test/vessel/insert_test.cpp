@@ -287,15 +287,13 @@ TEST_F(insert_test, test3_1)
 
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
-   options.cacheOptions.flush.flushDirtyListThreshold = 0.8;
-   options.cacheOptions.freelist.maxChunkCount = 1024;
+   options.bufferPoolOptions.minFreeMemPct = 0.1f;
    UINT32 count = 6000000;
    static const UINT32 threadCount = 6;
    std::thread threads[threadCount];
    UINT32 countPerThread = count / threadCount;
 
    closeDBOptions co;
-   co.closeMode = closeDBOptions::CLOSE_MODE_IMMDIETE;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
@@ -331,7 +329,7 @@ TEST_F(insert_test, test3_2)
 
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
-   options.cacheOptions.freelist.maxChunkCount = 64;
+   options.bufferPoolOptions.maxMemChunk = 64;
    UINT32 count = 6000000;
    static const UINT32 threadCount = 6;
    std::thread threads[threadCount];
@@ -375,7 +373,7 @@ TEST_F(insert_test, test4)
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
-   options.cacheOptions.freelist.maxChunkCount = 32;
+   options.bufferPoolOptions.maxMemChunk = 32;
    UINT32 count = 4000000;
    static const UINT32 threadCount = 4;
    std::thread threads[threadCount];
@@ -697,8 +695,6 @@ void insert_test_nonunique_index(INDEX_TYPE type)
 
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
-   options.cacheOptions.flush.flushDirtyListThreshold = 0.8;
-   options.cacheOptions.freelist.maxChunkCount = 1024;
 
    UINT32 count = 6000000;
    static const UINT32 threadCount = 6;
@@ -763,8 +759,6 @@ void insert_test_unique_index(INDEX_TYPE type)
 
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
-   options.cacheOptions.flush.flushDirtyListThreshold = 0.8;
-   options.cacheOptions.freelist.maxChunkCount = 1024;
 
    UINT32 count = 6000000;
    static const UINT32 threadCount = 6;

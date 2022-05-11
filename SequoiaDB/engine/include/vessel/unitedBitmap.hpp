@@ -56,11 +56,18 @@ namespace vessel
          unitedBitmap()
          {
             static_assert(0 != UNIT_SIZE, "invalid size");
-            static_assert(UNIT_SIZE <= 8192, "should not be too large");
+            static_assert(UNIT_SIZE <= 16384, "should not be too large");
          }
          ~unitedBitmap()
          {
-            
+            for (UINT32 i = 0; i < _units.size(); ++i)
+            {
+               _bitmapUnit *unit = _units[i];
+               if (nullptr != unit)
+               {
+                  SDB_OSS_DEL unit;
+               }
+            }
          }
          unitedBitmap(const unitedBitmap &) = delete;
          unitedBitmap &operator=(const unitedBitmap &) = delete;
@@ -69,7 +76,7 @@ namespace vessel
          class options : public SDBObject
          {
             public:
-               FLOAT32 percentFreeReused = 0.0f;
+               UINT32 minFreeReused = 1;
          };//class options
 
 
@@ -119,7 +126,7 @@ namespace vessel
             UINT32 current = _units.size();
 
             if (OSS_UNLIKELY(_indexTree.getMaxBitCount() <
-                             (current + _indexTree.getTotalBitCount())))
+                             (num + current)))
             {
                rc = SDB_VESSEL_OUT_OF_RESOURCE;
                goto error;
@@ -153,7 +160,6 @@ namespace vessel
             {
                _indexTree.pushBack(unzero);
             }
-
             
          done:
             return rc;
@@ -167,6 +173,36 @@ namespace vessel
                }
             }
             _units.resize(current);
+            goto done;
+         }
+
+         INT32 appendUnit(const fixedBitset<UNIT_SIZE> &bs)
+         {
+            INT32 rc = SDB_OK;
+            _bitmapUnit *unit = nullptr;
+
+            if (OSS_UNLIKELY(_indexTree.getMaxBitCount() <
+                             (_units.size() + 1)))
+            {
+               rc = SDB_VESSEL_OUT_OF_RESOURCE;
+               goto error;
+            }
+
+            unit = SDB_OSS_NEW _bitmapUnit();
+            if (OSS_UNLIKELY(nullptr == unit))
+            {
+               rc = SDB_OOM;
+               goto error;
+            }
+
+            unit->bs = bs;
+            unit->nonzeroBits = unit->bs.getNonzeroBitCount();
+            _units.push_back(unit);
+            _indexTree.pushBack(_o.minFreeReused <= unit->nonzeroBits);
+
+         done:
+            return rc;
+         error:
             goto done;
          }
 
@@ -229,13 +265,10 @@ namespace vessel
             {
                unit->bs.set(bitInUnit);
                ++unit->nonzeroBits;
-               if (!_indexTree.test(unitId))
+               if (_o.minFreeReused <= unit->nonzeroBits &&
+                   !_indexTree.test(unitId))
                {
-                  FLOAT32 freePct = (FLOAT32)(unit->nonzeroBits) / UNIT_SIZE;
-                  if (_o.percentFreeReused <= freePct)
-                  {
-                     _indexTree.set(unitId);
-                  }
+                  _indexTree.set(unitId);
                }
             }
 
@@ -269,7 +302,7 @@ namespace vessel
             return;
          }
 
-         BOOLEAN test(UINT32 pos, BOOLEAN *freeToAlloc)const
+         BOOLEAN test(UINT32 pos, BOOLEAN *freeToAlloc=nullptr)const
          {
             SDB_ASSERT(pos < getTotalBitNum(), "out of bound");
             UINT32 unitId = getUnitId(pos);

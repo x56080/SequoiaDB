@@ -107,7 +107,7 @@ namespace vessel
          void flushAllDirtyBuffers();
 
          /// only for background workers!
-         INT32 executeFlushTask(const lobcFlushTaskBuilder::taskId &task);
+         INT32 executeFlushTask(const bufferFlushTaskId &task);
 
       private:
          struct _accessingContext : public SDBObject

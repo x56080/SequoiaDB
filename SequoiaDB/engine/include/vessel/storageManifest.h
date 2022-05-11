@@ -45,28 +45,6 @@ namespace vessel
 #pragma pack(4)
    struct storageUnitManifest : public SDBObject
    {
-      storageUnitManifest(){}
-      ~storageUnitManifest(){}
-
-      storageUnitManifest(const storageUnitManifest &o):
-      sid(o.sid),
-      flags(o.flags),
-      secretValue(o.secretValue),
-      dataArgs(o.dataArgs),
-      idxArgs(o.idxArgs),
-      lobArgs(o.lobArgs){}
-
-      storageUnitManifest &operator=(const storageUnitManifest &o)
-      {
-         sid = o.sid;
-         flags = o.flags;
-         secretValue = o.secretValue;
-         dataArgs = o.dataArgs;
-         idxArgs = o.idxArgs;
-         lobArgs = o.lobArgs;
-         return *this;
-      }
-
       BOOLEAN isValid()const;
       void reset()
       {
@@ -90,19 +68,6 @@ namespace vessel
 
    struct storageFileManifest : public SDBObject
    {
-      storageFileManifest(){}
-      ~storageFileManifest(){}
-      
-      storageFileManifest &operator=(const storageFileManifest &o)
-      {
-         sid = o.sid;
-         stype = o.stype;
-         ftype = o.ftype;
-         secretValue = o.secretValue;
-         args = o.args;
-         return *this;
-      }
-
       OSS_INLINE BOOLEAN isValid()const
       {
          return INVALID_SPACE_ID != sid &&
