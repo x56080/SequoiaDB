@@ -277,6 +277,41 @@ namespace engine
 
 #pragma pack()
 
+   // minimum space slot is 2^5 = 32 byte
+   #define DMS_MIN_SPACE_SLOT_SQUQRE_ROOT ( 5 )
+
+   // to avoid small deleted record which can not be reused by average
+   // size of records in the same collection, we only split the record if
+   // the remain size can at least save the record with average size,
+   // or current record ( scale down to 0.8x )
+   #define DMS_REMAIN_SIZE_RATIO          ( 0.8 )
+
+   // get space slot to store the record with given size
+   OSS_INLINE UINT8 dmsMBGetSpaceSlot( UINT32 recSize )
+   {
+      UINT8 freeSlot = 0 ;
+
+      // divide by 32 (2^5) first since our first slot is for <32 bytes
+      // while loop, divide by 2 every time, find the closest delete slot
+      // for example, for a given size 3000, we should go _4k (which is
+      // _deleteList[7], using 3000>>5=93
+      // then in a loop, first round we have 46, type=1
+      // then 23, type=2
+      // then 11, type=3
+      // then 5, type=4
+      // then 2, type=5
+      // then 1, type=6
+      // finally 0, type=7
+      recSize = ( recSize - 1 ) >> DMS_MIN_SPACE_SLOT_SQUQRE_ROOT ;
+      while ( recSize != 0 )
+      {
+         ++ freeSlot ;
+         recSize >>= 1 ;
+      }
+
+      return freeSlot ;
+   }
+
    /*
       Type to String functions
    */
@@ -388,15 +423,14 @@ namespace engine
       ossAtomic64 _lobLastLSN ;
       UINT64      _lobLastWriteTick ;
       BOOLEAN     _lobIsCrash ;
+      // how many operators need to block index creating
+      UINT32      _blockIndexCreatingCount ;
 
       // total record count for transaction RC count
       ossAtomic64 _rcTotalRecords ;
 
       // runtime CRUD statistics monitor
       monCRUDCB _crudCB ;
-
-      // how many operators need to block index creating
-      UINT32      _blockIndexCreatingCount ;
 
       // bitmap to indicate index fields
       ixmIdxHashBitmap _clIdxHashBitmap ;
@@ -592,6 +626,19 @@ namespace engine
          }
          // for indexes after first 8 ones, always not ready
          return FALSE ;
+      }
+
+      UINT32 getAvgDataSize() const
+      {
+         if ( 0 != _totalRecords )
+         {
+            // calculate from total data length and total records
+            UINT64 avgSize = _totalDataLen / _totalRecords ;
+            avgSize = OSS_MAX( DMS_MIN_RECORD_SZ, avgSize ) ;
+            avgSize = OSS_MIN( DMS_RECORD_USER_MAX_SZ, avgSize ) ;
+            return (UINT32)( avgSize ) ;
+         }
+         return 0 ;
       }
 
       _dmsMBStatInfo ()

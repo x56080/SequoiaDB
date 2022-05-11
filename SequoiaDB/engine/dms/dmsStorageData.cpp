@@ -47,6 +47,7 @@
 
 namespace engine
 {
+
    _dmsStorageData::_dmsStorageData( const CHAR *pSuFileName,
                                      dmsStorageInfo *pInfo,
                                      _IDmsEventHolder *pEventHolder )
@@ -311,24 +312,39 @@ namespace engine
       // and then need to check if we need to split deleted record
       dmsRecord* pRecord = recordRW.writePtr( recordSize ) ;
       dmsOffset  myOffset = pRecord->getMyOffset() ;
+      SDB_ASSERT( pRecord->getSize() >= recordSize, "invalid record size" ) ;
+      UINT32 remainSize = pRecord->getSize() - recordSize ;
 
-      if ( pRecord->getSize() - recordSize > DMS_MIN_RECORD_SZ )
+      if ( remainSize > DMS_MIN_RECORD_SZ )
       {
-         // original offset+new size = new delete offset
-         dmsOffset newOffset = myOffset + recordSize ;
-         // original size - new size = new delete size
-         INT32 newSize = pRecord->getSize() - recordSize ;
-         dmsRecordID newRid = recordRW.getRecordID() ;
-         newRid._offset = newOffset ;
-         INT32 rc = _saveDeletedRecord( context->mb(), newRid, newSize ) ;
-         if ( SDB_OK != rc )
+         // to avoid small deleted record which can not be reused by average
+         // size of records in the same collection, we only split the record if
+         // the remain size can at least save the record with average size,
+         // or current record ( scale down to 0.8x )
+         UINT32 avgDataSize = context->mbStat()->getAvgDataSize() ;
+         UINT32 minRemainSize = ( 0 == avgDataSize ) ?
+                                ( recordSize ) :
+                                ( OSS_MIN( recordSize, avgDataSize ) ) ;
+         // scale down to 0.8
+         minRemainSize = (UINT32)( (FLOAT64)( minRemainSize ) *
+                                   DMS_REMAIN_SIZE_RATIO ) ;
+         if ( remainSize > minRemainSize )
          {
-            PD_LOG( PDWARNING, "Failed to save deleted record, rc: %d", rc ) ;
-         }
-         else
-         {
-            // set the original place with new dmsrecordSize
-            pRecord->setSize( recordSize ) ;
+            // original offset+new size = new delete offset
+            dmsOffset remainOffset = myOffset + recordSize ;
+            // original size - new size = new delete size
+            dmsRecordID remainRID = recordRW.getRecordID() ;
+            remainRID._offset = remainOffset ;
+            INT32 rc = _saveDeletedRecord( context->mb(), remainRID, remainSize ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDWARNING, "Failed to save deleted record, rc: %d", rc ) ;
+            }
+            else
+            {
+               // set the original place with new dmsrecordSize
+               pRecord->setSize( recordSize ) ;
+            }
          }
       }
       // if the leftover space is not good enough for a min_record, then we
@@ -631,7 +647,6 @@ namespace engine
                                                   pmdEDUCB * cb )
    {
       INT32 rc                      = SDB_OK ;
-      UINT32 dmsRecordSizeTemp      = 0 ;
       UINT8  deleteRecordSlot       = 0 ;
       const static INT32 s_maxSearch = 3 ;
 
@@ -649,16 +664,7 @@ namespace engine
       rc = context->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
-   retry:
-      // let's count which delete slots it fits
-      // divide by 32 first since our first slot is for <32 bytes
-      dmsRecordSizeTemp = ( requiredSize-1 ) >> 5 ;
-      deleteRecordSlot  = 0 ;
-      while ( dmsRecordSizeTemp != 0 )
-      {
-         deleteRecordSlot ++ ;
-         dmsRecordSizeTemp = dmsRecordSizeTemp >> 1 ;
-      }
+      deleteRecordSlot = dmsMBGetSpaceSlot( requiredSize ) ;
       SDB_ASSERT( deleteRecordSlot < dmsMB::_max, "Invalid record size" ) ;
 
       if ( deleteRecordSlot >= dmsMB::_max )
@@ -668,6 +674,7 @@ namespace engine
          goto error ;
       }
 
+   retry:
       rc = SDB_DMS_NOSPC ;
       try
       {
@@ -675,7 +682,7 @@ namespace engine
          {
             dmsRecordRW preRW ;
             // get the first delete record from delete list
-            foundDeletedID = _dmsMME->_mbList[context->mbID()]._deleteList[j] ;
+            foundDeletedID = context->mb()->_deleteList[j] ;
             for ( i = 0 ; i < s_maxSearch ; ++i )
             {
                // if we don't get a valid record id, we break to get next slot
@@ -826,25 +833,7 @@ namespace engine
       _mbStatInfo[mb->_blockID]._totalDataFreeSpace += recordSize ;
 
       // let's count which delete slots it fits
-      // divide by 32 first since our first slot is for <32 bytes
-      recordSize = ( recordSize - 1 ) >> 5 ;
-      // while loop, divde by 2 everytime, find the closest delete slot
-      // for example, for a given size 3000, we should go _4k (which is
-      // _deleteList[7], using 3000>>5=93
-      // then in a loop, first round we have 46, type=1
-      // then 23, type=2
-      // then 11, type=3
-      // then 5, type=4
-      // then 2, type=5
-      // then 1, type=6
-      // finally 0, type=7
-
-      while ( (recordSize) != 0 )
-      {
-         deleteRecordSlot ++ ;
-         recordSize = ( recordSize >> 1 ) ;
-      }
-
+      deleteRecordSlot = dmsMBGetSpaceSlot( recordSize ) ;
       // make sure we don't mis calculated it
       SDB_ASSERT ( deleteRecordSlot < dmsMB::_max, "Invalid record size" ) ;
 
