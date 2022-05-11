@@ -24,15 +24,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import org.bson.types.BSONDecimal;
-import org.bson.types.BSONTimestamp;
-import org.bson.types.BasicBSONList;
-import org.bson.types.Binary;
-import org.bson.types.Code;
-import org.bson.types.CodeWScope;
-import org.bson.types.MaxKey;
-import org.bson.types.MinKey;
-import org.bson.types.ObjectId;
+import org.bson.types.*;
 
 public class BasicBSONCallback implements BSONCallback {
 	private Object _root;
@@ -149,7 +141,12 @@ public class BasicBSONCallback implements BSONCallback {
 	public void gotLong(final String name, final long v) {
 		_put(name, v);
 	}
-	
+
+	//@Override
+	public void gotBSONDate(String name, long millis) {
+		_put(name, new BSONDate(millis));
+	}
+
 	//@Override
 	public void gotDate(String name, long millis) {
 		_put(name, new Date(millis));
@@ -179,7 +176,7 @@ public class BasicBSONCallback implements BSONCallback {
 	public void gotDecimal(String name, BSONDecimal decimal) {
 		_put(name, decimal);
 	}
-	
+
 	//@Override
 	public void gotObjectId(String name, ObjectId id) {
 		_put(name, id);
@@ -198,7 +195,7 @@ public class BasicBSONCallback implements BSONCallback {
 
 	//@Override
 	public void gotBinary(String name, byte type, byte[] data) {
-	    _put(name, new Binary(type, data));
+		_put(name, new Binary(type, data));
 //		if (type == BSON.B_GENERAL || type == BSON.B_BINARY)
 //			_put(name, data);
 //		else
@@ -219,7 +216,7 @@ public class BasicBSONCallback implements BSONCallback {
 	public void gotCodeWScope(String name, String code, Object scope) {
 		_put(name, new CodeWScope(code, (BSONObject) scope));
 	}
-	
+
 	protected void _put(final String name, final Object o) {
 		cur().put(name, !BSON.hasDecodeHooks() ? o : BSON.applyDecodingHooks(o));
 	}

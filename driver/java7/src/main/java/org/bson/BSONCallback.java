@@ -18,11 +18,12 @@
 
 package org.bson;
 
+import org.bson.types.BSONDate;
 import org.bson.types.BSONDecimal;
 import org.bson.types.ObjectId;
 
 public interface BSONCallback {
-    
+
     void objectStart();
     void objectStart(String name);
     void objectStart(boolean array);
@@ -35,18 +36,19 @@ public interface BSONCallback {
     void arrayStart();
     void arrayStart(String name);
     Object arrayDone();
-    
+
     void gotNull( String name );
     void gotUndefined( String name );
     void gotMinKey( String name );
     void gotMaxKey( String name );
-    
+
     void gotBoolean( String name , boolean v );
     void gotDouble( String name , double v );
     void gotInt( String name , int v );
     void gotLong( String name , long v );
-	void gotDecimal(String name, BSONDecimal decimal);
-    
+    void gotBSONDate(String name, long millis);
+    void gotDecimal(String name, BSONDecimal decimal);
+
     void gotDate( String name , long millis );
     void gotString( String name , String v );
     void gotSymbol( String name , String v );
@@ -55,9 +57,9 @@ public interface BSONCallback {
     void gotTimestamp( String name , int time , int inc );
     void gotObjectId( String name , ObjectId id );
     void gotDBRef( String name , String ns , ObjectId id );
-    
+
     /**
-     * 
+     *
      */
     @Deprecated
     void gotBinaryArray( String name , byte[] data );

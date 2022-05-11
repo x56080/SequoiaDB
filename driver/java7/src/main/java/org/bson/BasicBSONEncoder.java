@@ -60,15 +60,7 @@ import java.util.regex.Pattern;
 
 import org.bson.io.BasicOutputBuffer;
 import org.bson.io.OutputBuffer;
-import org.bson.types.BSONDecimal;
-import org.bson.types.BSONTimestamp;
-import org.bson.types.Binary;
-import org.bson.types.Code;
-import org.bson.types.CodeWScope;
-import org.bson.types.MaxKey;
-import org.bson.types.MinKey;
-import org.bson.types.ObjectId;
-import org.bson.types.Symbol;
+import org.bson.types.*;
 import org.bson.util.DateInterceptUtil;
 
 /**
@@ -79,7 +71,7 @@ import org.bson.util.DateInterceptUtil;
 public class BasicBSONEncoder implements BSONEncoder {
 
 	static final boolean DEBUG = false;
-	
+
 	public BasicBSONEncoder() {
 
 	}
@@ -118,7 +110,7 @@ public class BasicBSONEncoder implements BSONEncoder {
 
 	/**
 	 * Encodes a <code>BSONObject</code>. This is for the higher level api calls
-	 * 
+	 *
 	 * @param o
 	 *            the object to encode
 	 * @return the number of characters in the encoding
@@ -211,6 +203,8 @@ public class BasicBSONEncoder implements BSONEncoder {
 			putNull(name);
 		else if (val instanceof Timestamp)
 			putTimestamp(name, new BSONTimestamp((Timestamp) val));
+		else if (val instanceof BSONDate )
+			putBSONDate(name, (BSONDate) val);
 		else if (val instanceof Date)
 			putDate(name, (Date) val);
 		else if (val instanceof Number)
@@ -313,8 +307,8 @@ public class BasicBSONEncoder implements BSONEncoder {
 		_put(TIMESTAMP, name);
 		_buf.writeInt(ts.getInc());
 		_buf.writeInt(ts.getTime());
-	} 
-	
+	}
+
 	protected void putDecimal(String name, BSONDecimal decimal) {
 		int size = decimal.getSize();
 		int typemod = decimal.getTypemod();
@@ -324,10 +318,10 @@ public class BasicBSONEncoder implements BSONEncoder {
 
 		// decimal is kept in bson in follow format:
 		// type+name+size+typemod+dscale+weight+digits
-		
+
 		// put type+name
 		_put(NUMBER_DECIMAL, name);
-		
+
 		// size+typemod+dscale+weight+data
 		_buf.writeInt(size);
 		_buf.writeInt(typemod);
@@ -337,7 +331,7 @@ public class BasicBSONEncoder implements BSONEncoder {
 			_buf.writeShort(digits[i]);
 		}
 	}
-	
+
 	protected void putCodeWScope(String name, CodeWScope code) {
 		_put(CODE_W_SCOPE, name);
 		int temp = _buf.getPosition();
@@ -356,6 +350,11 @@ public class BasicBSONEncoder implements BSONEncoder {
 	protected void putBoolean(String name, Boolean b) {
 		_put(BOOLEAN, name);
 		_buf.write(b ? (byte) 0x1 : (byte) 0x0);
+	}
+
+	protected void putBSONDate(String name, BSONDate d) {
+		_put(DATE, name);
+		_buf.writeLong(d.getTime());
 	}
 
 	protected void putDate(String name, Date d) {
@@ -455,7 +454,7 @@ public class BasicBSONEncoder implements BSONEncoder {
 
 	/**
 	 * Encodes the type and key.
-	 * 
+	 *
 	 */
 	protected void _put(byte type, String name) {
 		_buf.write(type);
