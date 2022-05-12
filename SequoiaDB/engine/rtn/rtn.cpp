@@ -592,8 +592,11 @@ namespace engine
       {
          fileType = SDB_FILE_STARTUP_HST ;
       }
-      else if ( 0 == ossStrcmp( pFileName, UTIL_RENAME_LOG_FILENAME ) )
+      else if ( 0 == ossStrncmp( pFileName,
+                                 UTIL_RENAME_LOG_FILENAME,
+                                 ossStrlen( UTIL_RENAME_LOG_FILENAME ) ) )
       {
+         // ".SEQUOIADB_RENAME_INFO" is prefix of rename log file
          fileType = SDB_FILE_RENAME_INFO ;
       }
       else
