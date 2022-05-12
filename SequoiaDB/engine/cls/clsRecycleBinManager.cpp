@@ -1124,6 +1124,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__CLSRECYBINMGR__RECYDROPCS ) ;
 
       const CHAR *newName = item.getRecycleName() ;
+      utilRenameLogger logger ;
 
       // the storage unit is now in deleting list (temp list), need
       // to be restored to do the rename
@@ -1131,9 +1132,25 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to restore collection space "
                    "[%s] from deleting, rc: %d", csName, rc ) ;
 
+      /// log to .SEQUOIADB_RENAME_INFO
+      {
+         utilRenameLog aLog( csName, newName ) ;
+
+         rc = logger.init() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to init rename logger, "
+                      "rc: %d", rc );
+
+         rc = logger.log( aLog ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to log rename info to file, "
+                      "rc: %d", rc ) ;
+      }
+
       rc = _dmsCB->renameCollectionSpaceP2( csName, newName, cb, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to recycle collection space from "
                    "[%s] to [%s], rc: %d", csName, newName, rc ) ;
+
+      rc = logger.clear() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to clear rename info, rc: %d", rc ) ;
 
       rc = su->recycleCollectionSpace( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to recycle collection space [%s], "
@@ -1150,6 +1167,13 @@ namespace engine
       return rc ;
 
    error:
+      {
+         INT32 tmpRC = logger.clear() ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDERROR, "Failed to clear rename info, rc: %d", tmpRC ) ;
+         }
+      }
       goto done ;
    }
 
