@@ -222,6 +222,32 @@ TEST_F( autoIncrement_16648, case16650 )
    ASSERT_EQ( SDB_OK, rc ) << "fail to dropAutoIncrement " << "studentID" ;
 }
 
+long long getCLUniqueID( sdbclient::sdb &db, const std::string &clName)
+{
+   INT32 rc = SDB_OK ; 
+   long uniqueID = -1;
+   bson::BSONObj cond = BSON("Name" <<  clName ) ;
+   bson::BSONObj ret ;
+   sdbCursor cursor ;
+   rc = db.getSnapshot( cursor, SDB_SNAP_CATALOG,  cond);
+   if ( rc != SDB_OK )
+   {
+      cout <<  "getSnapshot(" << SDB_SNAP_CATALOG<<"," << cond.toString() <<") failed: "  << rc;
+      return uniqueID ;
+   }
+   
+   while( (rc = cursor.next( ret )) == SDB_OK ) 
+   {
+      if (ret.hasField("UniqueID") )
+      {
+         uniqueID = ret.getField("UniqueID").Long();
+         break;
+      }
+   }
+   cursor.close() ;
+   return uniqueID ;
+}
+
 TEST_F( autoIncrement_16648, case16653 )
 {
    INT32 rc = SDB_OK ;
@@ -240,8 +266,14 @@ TEST_F( autoIncrement_16648, case16653 )
    rc = cs.createCollection( clName, opt, cl2  ) ;
    ASSERT_EQ( SDB_OK, rc ) << "createCollection(" << clName <<") failed" ;
    
+
+   long long CLUniqueID = getCLUniqueID( db, cl2.getFullName());
+   char szName[32] = {0};
+   snprintf(szName, sizeof(szName),"SYS_%lld_%s_SEQ", CLUniqueID, "id");
+   bson::BSONObj cond = BSON("Name" << szName  ) ;
+   
    sdbCursor cursor ; 
-   rc = db.getSnapshot( cursor, SDB_SNAP_SEQUENCES );
+   rc = db.getSnapshot( cursor, SDB_SNAP_SEQUENCES, cond);
    ASSERT_EQ( SDB_OK, rc ) << "getSnapshot(" << SDB_SNAP_SEQUENCES << ") failed" ;
    while( (rc = cursor.next( ret )) == SDB_OK ) 
    {
@@ -257,7 +289,7 @@ TEST_F( autoIncrement_16648, case16653 )
    bson::BSONObj opts = BSON("AutoIncrement" << BSON( "CurrentValue" << 10 << "Field" << "id")  ) ;
    rc = cl2.alterCollection( opts );
    ASSERT_EQ( SDB_OK, rc ) << "alterCollection" << opts.toString() ;
-   rc = db.getSnapshot( cursor, SDB_SNAP_SEQUENCES );
+   rc = db.getSnapshot( cursor, SDB_SNAP_SEQUENCES , cond );
    ASSERT_EQ( SDB_OK, rc ) << "getSnapshot(" << SDB_SNAP_SEQUENCES << ") failed" ;
    while( (rc = cursor.next( ret )) == SDB_OK ) 
    {
