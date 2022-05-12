@@ -66,6 +66,7 @@ public class JSON {
 	 *            the string to parse
 	 * @return the object
 	 */
+	@Deprecated
 	public static Object parse(String s) {
 		return parse(s, null);
 	}
@@ -78,6 +79,7 @@ public class JSON {
 	 * @param c the callback for building bson.
 	 * @return the object
 	 */
+	@Deprecated
 	public static Object parse(String s, BSONCallback c) {
 		if (s == null || (s = s.trim()).equals("")) { return null; }
 
