@@ -19,14 +19,11 @@
 package org.bson.util;
 
 import java.io.IOException;
-import java.text.ParseException;
-import java.text.ParsePosition;
-import java.text.SimpleDateFormat;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.LinkedList;
-import java.util.SimpleTimeZone;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -81,29 +78,31 @@ public class JSONCallback extends BasicBSONCallback {
 				}
 			} else if (b.containsField("$date")) {
 				Object dateValue = b.get("$date");
+				BSONDate date = null;
 				if (dateValue instanceof Number) {
-					o = new Date(((Number) dateValue).longValue());
+					date = new BSONDate( ((Number) dateValue).longValue() );
 				} else {
-					SimpleDateFormat format = new SimpleDateFormat(_msDateFormat);
-					format.setCalendar(new GregorianCalendar(
-							new SimpleTimeZone(0, "GMT")));
-					o = format.parse(dateValue.toString(), new ParsePosition(0));
-
-					if (o == null) {
-						// try older format with no ms
-						format = new SimpleDateFormat(_secDateFormat);
-						format.setCalendar(new GregorianCalendar(
-								new SimpleTimeZone(0, "GMT")));
-						o = format.parse(dateValue.toString(), new ParsePosition(0));
+					// case 1: string to UTC time, format:
+					// yyyy-MM-dd'T'HH:mm:ss.SSS'Z'
+					// yyyy-MM-dd'T'HH:mm:ss'Z'
+					try {
+						Instant instant = Instant.parse( dateValue.toString() );
+						date = BSONDate.from( instant );
+					} catch ( DateTimeParseException e ) {
+						// ignore
 					}
 
-					if (o == null) {
-						// try older format with day
-						format = new SimpleDateFormat(_dayDateFormat);
-						o = format.parse(dateValue.toString(), new ParsePosition(0));
+					// case 2: string to local time, format: yyyy-MM-dd
+					try {
+						if ( date == null ) {
+							DateTimeFormatter formatter = DateTimeFormatter.ofPattern( "yyyy-MM-dd" );
+							LocalDate localDate = LocalDate.parse( dateValue.toString(), formatter );
+							date = BSONDate.valueOf( localDate );
+						}
+					} catch ( DateTimeParseException e ) {
+						throw new JSONParseException( "Invalid date format: " + dateValue.toString(), 0, e );
 					}
 				}
-				BSONDate date = new BSONDate(((Date) o).getTime());
 				if (!isStackEmpty()) {
 					cur().put(name, date);
 				} else {
@@ -118,18 +117,17 @@ public class JSONCallback extends BasicBSONCallback {
 					String incStr = strTimeStamp.substring(strTimeStamp
 							.lastIndexOf('.') + 1);
 
-					SimpleDateFormat format = new SimpleDateFormat(_secTSFormat);
-					// Convert to GMT
-					// format.setCalendar(new GregorianCalendar(new
-					// SimpleTimeZone(0, "GMT")));
-					Date date = null;
+					Instant instant = null;
 					try {
-						date = format.parse(dateStr);
-					} catch (ParseException e) {
+						DateTimeFormatter formatter = DateTimeFormatter.ofPattern( "yyyy-MM-dd-HH.mm.ss" );
+						LocalDateTime localDateTime = LocalDateTime.parse( dateStr, formatter );
+						instant = localDateTime.atZone( ZoneId.systemDefault() ).toInstant();
+					} catch ( DateTimeParseException e ) {
 						throw new JSONParseException(dateStr, dateStr.length() - 1, e);
 					}
-					o = new BSONTimestamp((int) (date.getTime() / 1000),
+					o = new BSONTimestamp((int) (instant.getEpochSecond()),
 							Integer.parseInt(incStr));
+
 					if (!isStackEmpty()) {
 						cur().put(name, o);
 					} else {
@@ -243,10 +241,4 @@ public class JSONCallback extends BasicBSONCallback {
 	// we should note that, when we use the inherited "objectStart" and "objectDone", we
 	// should handle this stack
 	private final LinkedList<Boolean> _stackIsArrayType = new LinkedList<Boolean>();
-
-	public static final String _msDateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
-	public static final String _secDateFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'";
-	public static final String _dayDateFormat = "yyyy-MM-dd";
-
-	public static final String _secTSFormat = "yyyy-MM-dd-HH.mm.ss";
 }

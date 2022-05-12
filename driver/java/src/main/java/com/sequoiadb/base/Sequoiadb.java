@@ -787,7 +787,7 @@ public class Sequoiadb implements Closeable {
      *
      * @param options The connection options
      * @throws BaseException If error happens.
-     * @deprecated Create a new Sequoiadb instance instead..
+     * @deprecated Create a new Sequoiadb instance instead.
      */
     @Deprecated
     public void changeConnectionOptions(ConfigOptions options) throws BaseException {
@@ -1496,7 +1496,9 @@ public class Sequoiadb implements Closeable {
      * @param orderBy  the ordered rule, never sort if null
      * @return the DBCursor of the result
      * @throws BaseException If error happens.
+     * @deprecated Use {@link Sequoiadb#getSnapshot(int, BSONObject, BSONObject, BSONObject)} instead.
      */
+    @Deprecated
     public DBCursor getSnapshot(int snapType, String matcher, String selector, String orderBy)
             throws BaseException {
         BSONObject ma = null;

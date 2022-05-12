@@ -1189,7 +1189,9 @@ public class DBCollection {
      *                 </ul>
      * @return a DBCursor instance of the result or null if no any matched document
      * @throws BaseException If error happens.
+     * @deprecated Use {@link DBCollection#query(BSONObject, BSONObject, BSONObject, BSONObject, int)} instead.
      */
+    @Deprecated
     public DBCursor query(String matcher, String selector, String orderBy, String hint, int flag)
             throws BaseException {
         BSONObject ma = null;
@@ -1225,7 +1227,9 @@ public class DBCollection {
      *                   when returnRows is -1, return all the documents
      * @return a DBCursor instance of the result or null if no any matched document
      * @throws BaseException If error happens.
+     * @deprecated Use {@link DBCollection#query(BSONObject, BSONObject, BSONObject, BSONObject, long, long)} instead.
      */
+    @Deprecated
     public DBCursor query(String matcher, String selector, String orderBy, String hint,
                           long skipRows, long returnRows) throws BaseException {
         BSONObject ma = null;
@@ -2011,7 +2015,9 @@ public class DBCollection {
      * @param matcher the matching rule
      * @return the amount of matching documents
      * @throws BaseException If error happens.
+     * @deprecated Use {@link DBCollection#getCount(BSONObject)} instead.
      */
+    @Deprecated
     public long getCount(String matcher) throws BaseException {
         BSONObject con = null;
         if (matcher != null) {

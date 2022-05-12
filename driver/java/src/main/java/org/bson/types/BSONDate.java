@@ -131,4 +131,9 @@ public class BSONDate extends Date {
         Instant instant = toInstant();
         return LocalDateTime.ofInstant( instant, ZoneId.systemDefault() );
     }
+
+    @Override
+    public String toString() {
+        return toLocalDateTime().toString();
+    }
 }
