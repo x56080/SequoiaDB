@@ -287,7 +287,7 @@ TEST_F(insert_test, test3_1)
 
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
-   options.bufferPoolOptions.minFreeMemPct = 0.1f;
+   options.bufferPoolOptions.hDirtyListThreshold = 0.9f;
    UINT32 count = 6000000;
    static const UINT32 threadCount = 6;
    std::thread threads[threadCount];
@@ -824,6 +824,7 @@ void death_thread_insert(vesselImpl *db,
    session._id = i;
    CHAR pad[1024] = {0};
    bson::BSONObjBuilder builder;
+   bson::StringBuilder b;
 
    DATA_COLLECTION_PTR handler;
    INT32 rc = db->openCL(&session, fullName, dmsOpenCLOptions(), handler);
@@ -831,8 +832,10 @@ void death_thread_insert(vesselImpl *db,
 
    for (UINT32 i = 0; i < count; ++i)
    {
-      builder.append("a", ossRand());
-      builder.append("b", 2);
+      UINT32 r = ossRand();
+      b << r << "aaaaaaaaaaaaaaaaaaaaaaaa";
+      builder.append("a", b.poolStr());
+      builder.append("b", i);
       builder.append("c", pad, 1024);
       bson::BSONObj obj = builder.done();
       utilInsertResult res;
@@ -840,6 +843,7 @@ void death_thread_insert(vesselImpl *db,
       ASSERT_EQ(SDB_OK, rc);
       counter->fetch_add(1, std::memory_order_relaxed);
       builder.reset();
+      b.reset();
    }
    handler->close();
    cout << "thread quit:" << i << endl;
