@@ -52,7 +52,7 @@ namespace vessel
       SDB_ASSERT(_mptr.isValid(), "can not be invalid");
    }
 
-   void ioBufferControlBlock::updateLSN(DPS_LSN_OFFSET lsn)
+   void ioBufferControlBlock::updateLSNPair(DPS_LSN_OFFSET lsn)
    {
       SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
       if (DPS_INVALID_LSN_OFFSET == _minDirtyLSN ||
