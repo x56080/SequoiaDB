@@ -74,6 +74,15 @@ namespace vessel
       _maxDirtyLSN = DPS_INVALID_LSN_OFFSET;
       return;
    }
+
+   void ioBufferControlBlock::releaseMemoryBlock(blockBasedMemPool &pool)
+   {
+      if (_mb.isValid())
+      {
+         pool.release(_mb);
+         _mb.reset();
+      }
+   }
 } // namespace vessel
 
 } // namespace engine

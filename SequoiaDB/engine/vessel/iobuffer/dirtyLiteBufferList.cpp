@@ -75,7 +75,6 @@ namespace vessel
             maxLSN = (*right)->getMaxDirtyLSN();
          }
 
-         (*right)->ctl().setFlags(LITE_IO_BUFFER_CTL_FLAGS::PENDDING_FLUSH);
          ++right;
       }
 
@@ -87,6 +86,11 @@ namespace vessel
 
       resetMinListLSN(FALSE);
 
+      guard.unlock();
+      for (auto itr = fl.begin(); itr != fl.end(); ++itr)
+      {
+         (*itr)->ctl().setFlags(LITE_IO_BUFFER_CTL_FLAGS::PENDDING_FLUSH);
+      }
       return;
    }
 

@@ -63,20 +63,6 @@ namespace vessel
          {
             friend class blockBasedMemPool;
             public:
-               memBlock(){}
-               ~memBlock(){}
-               memBlock(const memBlock &o):
-               _blockId(o._blockId),
-               _buf(o._buf)
-               {}
-               memBlock &operator=(const memBlock &o)
-               {
-                  _blockId = o._blockId;
-                  _buf = o._buf;
-                  return *this;
-               }
-
-            public:
                OSS_INLINE BOOLEAN isValid()const
                {
                   return 0 <= _blockId &&
@@ -108,7 +94,7 @@ namespace vessel
          {
             friend class blockBasedMemPool;
             public:
-               sharedMemBlock(){}
+               sharedMemBlock() = default;
                explicit sharedMemBlock(blockBasedMemPool *pool,
                                        const memBlock &b);
                ~sharedMemBlock();
@@ -186,15 +172,15 @@ namespace vessel
 
          INT32 allocateSharedBlock(sharedMemBlockPtr &out);
 
-         void release(memBlock &mb);
-         void release(UINT32 blockNum, memBlock *blocks);
+         void release(const memBlock &mb);
+         void release(UINT32 blockNum, const memBlock *blocks);
 
       private:
          INT32 ensureMemChunk(INT32 chunkId);
 
          INT32 _allocate(UINT32 blockNum, memBlock *blocks);
 
-         void _release(UINT32 blockNum, memBlock *blocks);
+         void _release(UINT32 blockNum, const memBlock *blocks);
 
       private:
          INT32 _tryToAllocate(UINT32 blockNum,

@@ -270,8 +270,7 @@ namespace vessel
          {
             if (buffer._bcb->hasMemoryBlock())
             {
-               _memPool.release(1, &(buffer._bcb->getMemoryBlock()));
-               SDB_ASSERT(!buffer._bcb->hasMemoryBlock(), "impossible");
+               buffer._bcb->releaseMemoryBlock(_memPool);
             }
             BOOLEAN r = buffer._bcb->ctl().setDiscardedFromRecycling();
             SDB_ASSERT(r, "must be true");
@@ -452,7 +451,7 @@ namespace vessel
          SDB_ASSERT(bcb->hasMemoryBlock(), "impossible");
          if (OSS_LIKELY(bcb->ctl().setRecyclingFromNormal()))
          {
-            _memPool.release(1, &(bcb->getMemoryBlock()));
+            bcb->releaseMemoryBlock(_memPool);
             BOOLEAN r = bcb->ctl().setDiscardedFromRecycling();
             SDB_ASSERT(r, "impossible");
             l.pop_front();
@@ -792,6 +791,8 @@ namespace vessel
       THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
       IDataJournal *journal = tc->getEnv()->resource.journal;
       dataManagementService &dms = tc->getEnv()->dms;
+      std::array<blockBasedMemPool::memBlock, 16> batch;
+      UINT32 size = 0;
 
       if (OSS_UNLIKELY(!taskId.isValid()))
       {
@@ -852,12 +853,23 @@ namespace vessel
             ioBufferFlushTask task = _job.get(taskId.offset + i);
             ioBufferControlBlock *bcb = task.bcb;
             if (bcb->ctl().setRecyclingFromNormal())
-            {
-               _memPool.release(1, &(bcb->getMemoryBlock()));
-               SDB_ASSERT(!bcb->hasMemoryBlock(), "impossible");
+            {  
+               batch[size++] = bcb->getMemoryBlock();
+               bcb->reserMemoryBlock();/// reset, not release
                BOOLEAN r = bcb->ctl().setDiscardedFromRecycling();
                SDB_ASSERT(r, "must be true");
+
+               if (batch.max_size() == size)
+               {
+                  _memPool.release(size, batch.data());
+                  size = 0;
+               }
             }
+         }
+
+         if (0 < size)
+         {
+            _memPool.release(size, batch.data());
          }
 
          rc = fcluster->fsyncFile(fd);

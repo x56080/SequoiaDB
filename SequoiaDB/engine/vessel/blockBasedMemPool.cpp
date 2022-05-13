@@ -330,7 +330,7 @@ namespace vessel
       goto done;
    }
 
-   void blockBasedMemPool::release(memBlock &mb)
+   void blockBasedMemPool::release(const memBlock &mb)
    {
       if (isValid())
       {
@@ -339,7 +339,7 @@ namespace vessel
       return;
    }
 
-   void blockBasedMemPool::release(UINT32 blockNum, memBlock *blocks)
+   void blockBasedMemPool::release(UINT32 blockNum, const memBlock *blocks)
    {
       if (OSS_LIKELY(isValid() && 0 < blockNum && nullptr != blocks))
       {
@@ -349,7 +349,7 @@ namespace vessel
       return;
    }
 
-   void blockBasedMemPool::_release(UINT32 blockNum, memBlock *blocks)
+   void blockBasedMemPool::_release(UINT32 blockNum, const memBlock *blocks)
    {
       SDB_ASSERT(0 < blockNum && nullptr != blocks, "can not be invalid");
       SDB_ASSERT(isValid(), "can not be invalid");
@@ -359,7 +359,7 @@ namespace vessel
 
       for (UINT32 i = 0; i < blockNum; ++i)
       {
-         memBlock &block = blocks[i];
+         const memBlock &block = blocks[i];
          if (block.isValid() &&
              block.getBlockId() < (INT32)getTotalBlockNum())
          {
@@ -374,8 +374,6 @@ namespace vessel
                SDB_ASSERT(FALSE, "nonzero bit to be released");
             }
          }
-
-         block.reset();
       }
 
       if (0 < released)
