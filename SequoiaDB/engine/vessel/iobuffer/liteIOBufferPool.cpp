@@ -452,6 +452,7 @@ namespace vessel
       {
          SHARED_IO_BUFFER_CB &bcb = l.front();
          SDB_ASSERT(bcb->hasMemoryBlock(), "impossible");
+         bcb->ctl().setFlags(0);
          if (OSS_LIKELY(bcb->ctl().setRecyclingFromNormal()))
          {
             bcb->releaseMemoryBlock(_memPool);
@@ -812,7 +813,6 @@ namespace vessel
       dataManagementService &dms = tc->getEnv()->dms;
       std::array<blockBasedMemPool::memBlock, 16> batch;
       UINT32 size = 0;
-      UINT32 busyCount = 0;
 
       if (OSS_UNLIKELY(!taskId.isValid()))
       {
@@ -885,10 +885,6 @@ namespace vessel
                   size = 0;
                }
             }
-            else
-            {
-               ++busyCount;
-            }
          }
 
          if (0 < size)
@@ -901,11 +897,6 @@ namespace vessel
          {
             PD_LOG(PDSEVERE, "failed to fsync file:%d, rc:%d", fd, rc);
             goto error;
-         }
-
-         if (0 < busyCount)
-         {
-            PD_LOG(PDDEBUG, "busy buffer count:%d", busyCount);
          }
       }
    done:

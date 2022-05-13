@@ -99,24 +99,33 @@ namespace vessel
       SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
       std::unique_lock<std::mutex> guard(_mutex);
 
-      SHARED_IO_BUFFER_CB_LIST::iterator itr = _l.begin();
-      while (itr != _l.end())
+      SHARED_IO_BUFFER_CB_LIST::iterator left = _l.begin();
+      SHARED_IO_BUFFER_CB_LIST::iterator right = _l.begin();
+      while (_l.end() != right)
       {
-         if ((*itr)->getGlobalPid().getSpaceId() == sid)
+         if ((*right)->getGlobalPid().getSpaceId() == sid)
          {
-            SHARED_IO_BUFFER_CB &bcb = *itr;
-            bcb->ctl().setFlags(0);
-            SHARED_IO_BUFFER_CB_LIST::iterator pos = itr++;
-            discarded.splice(discarded.end(), _l, pos, itr);
+            ++right;
+         }
+         else if (left != right)
+         {
+            discarded.splice(discarded.end(), _l, left, right);
+            ++right;
+            left = right;
          }
          else
          {
-            ++itr;
+            ++left;
+            ++right;
          }
       }
 
-      resetMinListLSN(FALSE);
+      if (left != right)
+      {
+         discarded.splice(discarded.end(), _l, left, right);
+      }
 
+      resetMinListLSN(FALSE);
       return;
    }
 } // namespace vessel

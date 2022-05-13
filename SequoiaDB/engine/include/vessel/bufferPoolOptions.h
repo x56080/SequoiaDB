@@ -61,7 +61,7 @@ namespace vessel
    struct liteBufferPoolOptions : public SDBObject
    {
       /// memory pool options
-      UINT32 maxMemChunk = 128; /// default memory chunk is 32MB
+      UINT32 maxMemChunk = 256; /// 512 blocks per chunk
       
       /// bucket options
       UINT32 buckets = 8192;
@@ -70,7 +70,7 @@ namespace vessel
       /// flush options
       FLOAT32 minFreeMemPct = 0.30f; /// valid range (0.00, 1.0)
       UINT32 flushDirtyListMillis = 30000;
-      UINT64 flushBatchSize = (UINT64)1 << 30;
+      UINT64 flushBatchSize = (UINT64)1 << 28;
    };//class bufferPoolOptions
 } // namespace vessel
 
