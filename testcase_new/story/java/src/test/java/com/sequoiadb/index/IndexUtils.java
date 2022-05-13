@@ -208,43 +208,75 @@ public class IndexUtils {
             String clName, String idxName, boolean isexist ) throws Exception {
         List< String > groupNames = getCLGroupNames( sdb, csName, clName );
         // 校验lsn是否一致
-        for ( int i = 0; i < groupNames.size(); i++ ) {
-            Assert.assertTrue( isLSNConsistency( sdb, groupNames.get( i ) ) );
+        for ( String groupName : groupNames ) {
+            Assert.assertTrue( isLSNConsistency( sdb, groupName ) );
         }
 
+        int sleepTime = 1000;
+        int timeOut = 300000;
+        int doTime = 0;
+        int sucNodes = 0;
         // 校验主备节点索引信息一致
+        List< String > clNodes = getClNodes( sdb, csName, clName );
         if ( isexist ) {
-            List< String > clNodes = getClNodes( sdb, csName, clName );
-            BSONObject expIndexDef = null;
-            for ( int i = 0; i < clNodes.size(); i++ ) {
-                try ( Sequoiadb sequoiadb = new Sequoiadb( clNodes.get( i ), "",
-                        "" )) {
-                    BSONObject index = sequoiadb.getCollectionSpace( csName )
-                            .getCollection( clName ).getIndexInfo( idxName );
-                    BSONObject indexDef = ( BSONObject ) index
-                            .get( "IndexDef" );
-                    if ( expIndexDef == null ) {
-                        expIndexDef = indexDef;
-                    } else {
-                        indexDef.removeField("CreateTime");
-                        indexDef.removeField("RebuildTime");
-                        expIndexDef.removeField("CreateTime");
-                        expIndexDef.removeField("RebuildTime");
-                        Assert.assertEquals( indexDef, expIndexDef );
+            while ( doTime <= timeOut && sucNodes < clNodes.size() ) {
+                BSONObject expIndexDef = null;
+                sucNodes = 0;
+                for ( String clNode : clNodes ) {
+                    try ( Sequoiadb sequoiadb = new Sequoiadb( clNode, "",
+                            "" )) {
+                        BSONObject index = sequoiadb
+                                .getCollectionSpace( csName )
+                                .getCollection( clName )
+                                .getIndexInfo( idxName );
+                        BSONObject indexDef = ( BSONObject ) index
+                                .get( "IndexDef" );
+                        String indexFlag = ( String ) index.get( "IndexFlag" );
+                        if ( !indexFlag.equals( "Normal" ) ) {
+                            break;
+                        }
+                        if ( expIndexDef == null ) {
+                            expIndexDef = indexDef;
+                            sucNodes++;
+                        } else {
+                            indexDef.removeField("CreateTime");
+                            indexDef.removeField("RebuildTime");
+                            expIndexDef.removeField("CreateTime");
+                            expIndexDef.removeField("RebuildTime");
+                            Assert.assertEquals( indexDef, expIndexDef );
+                            sucNodes++;
+                        }
                     }
                 }
+                Thread.sleep( sleepTime );
+                doTime += sleepTime;
+            }
+            if ( doTime > timeOut ) {
+                Assert.fail(
+                        "create index not consistent, timeout " + clNodes );
             }
         } else {
-            List< String > clNodes = getClNodes( sdb, csName, clName );
-            for ( int i = 0; i < clNodes.size(); i++ ) {
-                try ( Sequoiadb sequoiadb = new Sequoiadb( clNodes.get( i ), "",
-                        "" ) ;) {
-                    Boolean indexExist = sequoiadb.getCollectionSpace( csName )
-                            .getCollection( clName ).isIndexExist( idxName );
-                    Assert.assertFalse( indexExist,
-                            "check index nodes:" + clNodes.get( i ) );
+            while ( doTime <= timeOut && sucNodes < clNodes.size() ) {
+                sucNodes = 0;
+                for ( String clNode : clNodes ) {
+                    try ( Sequoiadb sequoiadb = new Sequoiadb( clNode, "",
+                            "" ) ;) {
+                        boolean indexExist = sequoiadb
+                                .getCollectionSpace( csName )
+                                .getCollection( clName )
+                                .isIndexExist( idxName );
+                        if ( !indexExist ) {
+                            sucNodes++;
+                        } else {
+                            break;
+                        }
+                    }
                 }
-
+                Thread.sleep( sleepTime );
+                doTime += sleepTime;
+            }
+            if ( doTime > timeOut ) {
+                Assert.fail( "drop index not consistent, timeout " + clNodes );
             }
         }
     }
