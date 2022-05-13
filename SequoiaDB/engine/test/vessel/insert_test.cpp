@@ -287,7 +287,7 @@ TEST_F(insert_test, test3_1)
 
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
-   options.bufferPoolOptions.hDirtyListThreshold = 0.9f;
+   options.bufferPoolOptions.flushDirtyListThreshold = 0.9f;
    UINT32 count = 6000000;
    static const UINT32 threadCount = 6;
    std::thread threads[threadCount];
