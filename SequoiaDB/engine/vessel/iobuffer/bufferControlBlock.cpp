@@ -91,11 +91,10 @@ namespace vessel
       return;
    }
 
-   BOOLEAN atomicBufferCtlBlock::setRecyclingFromNormal(UINT32 refCntContdition,
-                                                        BUFFER_CTL_FLAG_WORD flagCondition)
+   BOOLEAN atomicBufferCtlBlock::setRecyclingFromNormal()
    {
       bufferControlBlock expectedVal, val;
-      expectedVal.init(BUFFER_STATUS::NORMAL, refCntContdition, flagCondition);
+      expectedVal.init(BUFFER_STATUS::NORMAL, 0, 0);
       val.init(BUFFER_STATUS::RECYCLING, 0, 0);
       return _val.compare_exchange_strong(expectedVal, val);
    }

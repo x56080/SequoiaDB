@@ -241,8 +241,8 @@ namespace vessel
 
       if (_manifest.sid != sid)
       {
-         PD_LOG(PDERROR, "unexpected sid[%d] saved in manifest",
-                _manifest.sid);
+         PD_LOG(PDERROR, "unexpected sid[%d] saved in manifest when open cs[%d]",
+                _manifest.sid, sid);
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }

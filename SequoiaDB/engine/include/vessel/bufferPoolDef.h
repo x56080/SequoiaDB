@@ -62,7 +62,8 @@ namespace vessel
 
    struct LITE_IO_BUFFER_CTL_FLAGS
    {
-      static constexpr BUFFER_CTL_FLAG_WORD IN_DIRTY_LIST = 0x01;
+      static constexpr BUFFER_CTL_FLAG_WORD DIRTY = 0x01;
+      static constexpr BUFFER_CTL_FLAG_WORD PENDDING_FLUSH = 0x02;
    };
 
 } // namespace vessel

@@ -42,12 +42,13 @@ namespace vessel
 {
    void dirtyLiteBufferList::insert(SHARED_IO_BUFFER_CB &bcb)
    {
-      SDB_ASSERT(!!bcb, "can not be invalid");
-      SDB_ASSERT(bcb->isDirty(), "must be dirty");
+      SDB_ASSERT(!!bcb && bcb->hasDirtyLSN(), "can not be invalid");
 
-      if (!bcb->isInDirtyList())
+      /// it may be still pending flush now, bu does not matter.
+      /// cleaner will reset it soon.
+      if (!bcb->hasDirtyFlag())
       {
-         bcb->ctl().setFlags(LITE_IO_BUFFER_CTL_FLAGS::IN_DIRTY_LIST);
+         bcb->ctl().setFlags(LITE_IO_BUFFER_CTL_FLAGS::DIRTY);
          pushBackToList(bcb);
       }
    }
@@ -74,6 +75,7 @@ namespace vessel
             maxLSN = (*right)->getMaxDirtyLSN();
          }
 
+         (*right)->ctl().setFlags(LITE_IO_BUFFER_CTL_FLAGS::PENDDING_FLUSH);
          ++right;
       }
 

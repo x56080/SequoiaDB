@@ -85,19 +85,15 @@ namespace vessel
 
          OSS_INLINE DPS_LSN_OFFSET getMinDirtyLSN()const {return _minDirtyLSN;}
          OSS_INLINE DPS_LSN_OFFSET getMaxDirtyLSN()const {return _maxDirtyLSN;}
-         OSS_INLINE BOOLEAN isDirty()const {return DPS_INVALID_LSN_OFFSET != _minDirtyLSN;}
-         void updateLSN(DPS_LSN_OFFSET lsn);
+         OSS_INLINE BOOLEAN hasDirtyLSN()const {return DPS_INVALID_LSN_OFFSET != _minDirtyLSN;}
+          
+         void updateLSNPair(DPS_LSN_OFFSET lsn);
          void resetLSNPair();
-         OSS_INLINE BOOLEAN hasValidLSNPair()const
-         {
-            return DPS_INVALID_LSN_OFFSET != _minDirtyLSN &&
-                   DPS_INVALID_LSN_OFFSET != _maxDirtyLSN;
-         }
 
-         OSS_INLINE BOOLEAN isInDirtyList()const
+         OSS_INLINE BOOLEAN hasDirtyFlag()const
          {
             return 0 != OSS_BIT_TEST(_ctl.load().getFlags(),
-                                     LITE_IO_BUFFER_CTL_FLAGS::IN_DIRTY_LIST);               
+                                     LITE_IO_BUFFER_CTL_FLAGS::DIRTY);               
          }
 
          // OSS_INLINE UINT64 getAccessTick()const {return _accessTick;}

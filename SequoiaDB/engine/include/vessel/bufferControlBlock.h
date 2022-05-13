@@ -161,8 +161,8 @@ namespace vessel
          void decRefCnt(BUFFER_CTL_FLAG_WORD flagToClear = 0,
                         bufferControlBlock *old=nullptr);
          
-         BOOLEAN setRecyclingFromNormal(UINT32 refCntContdition=0,
-                                        BUFFER_CTL_FLAG_WORD flagCondition=0);
+         /// buffer can not be pinned
+         BOOLEAN setRecyclingFromNormal();
 
          BOOLEAN setDiscardedFromRecycling();
 

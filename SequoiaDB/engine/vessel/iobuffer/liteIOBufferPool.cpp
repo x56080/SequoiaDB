@@ -245,7 +245,7 @@ namespace vessel
 
       if (OSS_LIKELY(buffer.isWritable() && DPS_INVALID_LSN_OFFSET != lsn))
       {
-         buffer._bcb->updateLSN(lsn);
+         buffer._bcb->updateLSNPair(lsn);
          _dl.insert(buffer._bcb);
       }
       else
@@ -835,17 +835,17 @@ namespace vessel
             strictBuffer buffer;
             buffer.makeWritable(_bufferSize, bcb->getMPtr().getBuf());
             buffer.write(0, _bufferSize, bcb->getMemoryBlock().getBuffer());
-            bcb->resetLSNPair();
-            bcb->getMutex().unlockShared();
-            bcb->ctl().clearFlags(LITE_IO_BUFFER_CTL_FLAGS::IN_DIRTY_LIST);
-         }//for (UINT32 i = 0; i < taskId.size; ++i)
+            bcb->resetLSNPair();///WARNING: not under x lock
 
-         rc = fcluster->fsyncFile(fd);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to fsync file:%d, rc:%d", fd, rc);
-            /// do not goto error, we have to recycle buffers.
-         }
+            /// we must clear dirty flag before unlock.
+            /// writer may waiting x lock now.
+            /// flag must be reset before reinsert into dirty list.
+            bcb->ctl().clearFlags(LITE_IO_BUFFER_CTL_FLAGS::DIRTY);
+            bcb->getMutex().unlockShared();
+            bcb->ctl().clearFlags(LITE_IO_BUFFER_CTL_FLAGS::PENDDING_FLUSH);
+            
+            /// flush all buffers asap
+         }//for (UINT32 i = 0; i < taskId.size; ++i)
 
          for (UINT32 i = 0; i < taskId.size; ++i)
          {
@@ -858,6 +858,13 @@ namespace vessel
                BOOLEAN r = bcb->ctl().setDiscardedFromRecycling();
                SDB_ASSERT(r, "must be true");
             }
+         }
+
+         rc = fcluster->fsyncFile(fd);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDSEVERE, "failed to fsync file:%d, rc:%d", fd, rc);
+            goto error;
          }
       }
    done:

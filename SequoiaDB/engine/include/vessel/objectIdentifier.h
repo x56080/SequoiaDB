@@ -49,20 +49,15 @@ namespace vessel
    class collectionSpaceId : public SDBObject
    {
       public:
-         collectionSpaceId(){}
-         ~collectionSpaceId(){}
-         collectionSpaceId(const collectionSpaceId &o):
-         _lid(o._lid), _uniqueId(o._uniqueId),
-         _sid(o._sid), _pad(o._pad){}
+         collectionSpaceId() = default;
+         ~collectionSpaceId() = default;
          explicit collectionSpaceId(UINT32 lid, UINT32 uniqueId, SPACE_ID sid):
          _lid(lid), _uniqueId(uniqueId), _sid(sid), _pad(0){}
-         collectionSpaceId &operator=(const collectionSpaceId &o)
+         OSS_INLINE BOOLEAN operator==(const collectionSpaceId &o)const
          {
-            _lid = o._lid;
-            _uniqueId = o._uniqueId;
-            _sid = o._sid;
-            _pad = o._pad;
-            return *this;
+            return _lid == o._lid &&
+                   _uniqueId == o._uniqueId &&
+                   _sid == o._sid;
          }
 
       public:
@@ -85,57 +80,36 @@ namespace vessel
    class collectionId : public SDBObject
    {
       public:
-         collectionId(){}
-         ~collectionId(){}
-         collectionId(const collectionId &o):
-         _lid(o._lid), _innerId(o._innerId),
-         _mdId(o._mdId), _pad(o._pad){}
+         collectionId() = default;
+         ~collectionId() = default;
          explicit collectionId(UINT32 lid, UINT32 innerId, CL_MB_ID mbId):
-         _lid(lid), _innerId(innerId), _mdId(mbId), _pad(0){}
-         collectionId &operator=(const collectionId &o)
+         _lid(lid), _innerId(innerId), _mbId(mbId), _pad(0){}
+         OSS_INLINE BOOLEAN operator==(const collectionId &o)const
          {
-            _lid = o._lid;
-            _innerId = o._innerId;
-            _mdId = o._mdId;
-            _pad = o._pad;
-            return *this;
+            return _lid == o._lid &&
+                   _innerId == o._innerId &&
+                   _mbId == o._mbId;
          }
 
       public:
          OSS_INLINE UINT32 getLid()const {return _lid;}
          OSS_INLINE UINT32 getInnerId()const {return _innerId;}
-         OSS_INLINE UINT16 getMbId()const {return _mdId;}
+         OSS_INLINE UINT16 getMbId()const {return _mbId;}
          OSS_INLINE BOOLEAN isValid()const
          {
             return DMS_INVALID_LOGICCLID !=_lid &&
-                   INVALID_CL_MB_ID != _mdId &&
+                   INVALID_CL_MB_ID != _mbId &&
                    0 == _pad;   
          }
       private:
          UINT32 _lid = DMS_INVALID_LOGICCLID;
          UINT32 _innerId = UTIL_UNIQUEID_NULL;
-         UINT16 _mdId = INVALID_CL_MB_ID;
+         UINT16 _mbId = INVALID_CL_MB_ID;
          UINT16 _pad = 0;
    };//class collectionSpaceId
 
    class globalCollectionId : public SDBObject
    {
-      public:
-         globalCollectionId(){}
-         ~globalCollectionId(){}
-         globalCollectionId(const globalCollectionId &o):
-         _csLid(o._csLid), _clLid(o._clLid), _uniqueId(o._uniqueId),
-         _sid(o._sid), _mbId(o._mbId){}
-         globalCollectionId &operator=(const globalCollectionId &o)
-         {
-            _csLid = o._csLid;
-            _clLid = o._clLid;
-            _uniqueId = o._uniqueId;
-            _sid = o._sid;
-            _mbId = o._mbId;
-            return *this;
-         }
-
       public:
          OSS_INLINE UINT16 getSpaceId()const {return _sid;}
          OSS_INLINE UINT16 getMbId()const {return _mbId;}
@@ -149,6 +123,15 @@ namespace vessel
                    DMS_INVALID_LOGICCLID != _clLid &&
                    INVALID_SPACE_ID != _sid &&
                    INVALID_CL_MB_ID != _mbId;
+         }
+
+         OSS_INLINE BOOLEAN operator==(const globalCollectionId &o)const
+         {
+            return _csLid == o._csLid &&
+                   _clLid == o._clLid &&
+                   _uniqueId == o._uniqueId &&
+                   _sid == o._sid &&
+                   _mbId == o._mbId;
          }
 
          OSS_INLINE void reset(UINT32 csLid, UINT32 clLid,
@@ -204,22 +187,10 @@ namespace vessel
    class indexIdentifier : public SDBObject
    {
       public:
-         indexIdentifier(){}
+         indexIdentifier() = default;
          explicit indexIdentifier(INT32 slot, UINT32 lid, utilIdxInnerID innerID):
          _indexSlot(slot), _indexLid(lid), _indexInnerID(innerID){}
-         ~indexIdentifier(){}
-
-         indexIdentifier(const indexIdentifier &o):
-         _indexSlot(o._indexSlot),
-         _indexLid(o._indexLid),
-         _indexInnerID(o._indexInnerID){}
-         indexIdentifier &operator=(const indexIdentifier &o)
-         {
-            _indexSlot = o._indexSlot;
-            _indexLid = o._indexLid;
-            _indexInnerID = o._indexInnerID;
-            return *this;
-         }
+         ~indexIdentifier() = default;
 
          BOOLEAN operator==(const indexIdentifier &o)const
          {

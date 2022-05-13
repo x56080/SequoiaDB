@@ -69,7 +69,6 @@ namespace vessel
 
       /// flush options
       FLOAT32 minFreeMemPct = 0.30f; /// valid range (0.00, 1.0)
-      //UINT64 minFreeMemSize = (UINT64)1 << 30; /// can not be higher than max memory size
       UINT32 flushDirtyListMillis = 30000;
       UINT64 flushBatchSize = (UINT64)1 << 30;
    };//class bufferPoolOptions
