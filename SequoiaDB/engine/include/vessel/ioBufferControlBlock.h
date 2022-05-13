@@ -71,7 +71,7 @@ namespace vessel
          OSS_INLINE BOOLEAN hasMemoryBlock()const {return _mb.isValid();}
          OSS_INLINE const blockBasedMemPool::memBlock &getMemoryBlock()const {return _mb;}
          OSS_INLINE blockBasedMemPool::memBlock &getMemoryBlock() {return _mb;}
-         OSS_INLINE void reserMemoryBlock() {_mb.reset();}
+         OSS_INLINE void resetMemoryBlock() {_mb.reset();}
          void releaseMemoryBlock(blockBasedMemPool &pool);
 
          OSS_INLINE const CHAR *autoGetBufferPtr()const

@@ -444,6 +444,9 @@ namespace vessel
       SDB_ASSERT(isValid(), "can not be invalid");
       SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
       SHARED_IO_BUFFER_CB_LIST l;
+      std::array<blockBasedMemPool::memBlock, 16> batch;
+      UINT32 size = 0;
+      
       _dl.discard(sid, l);
       while (!l.empty())
       {
@@ -452,14 +455,28 @@ namespace vessel
          if (OSS_LIKELY(bcb->ctl().setRecyclingFromNormal()))
          {
             bcb->releaseMemoryBlock(_memPool);
+            batch[size++] = bcb->getMemoryBlock();
+            bcb->resetMemoryBlock();
             BOOLEAN r = bcb->ctl().setDiscardedFromRecycling();
             SDB_ASSERT(r, "impossible");
             l.pop_front();
+
+            if (batch.max_size() == size)
+            {
+               _memPool.release(size, batch.data());
+               size = 0;
+            }
          }
          else
          {
             SDB_ASSERT(FALSE, "should not be failed");
          }
+      }
+
+      if (batch.max_size() == size)
+      {
+         _memPool.release(size, batch.data());
+         size = 0;
       }
 
       for (UINT32 i = 0; i < _buckets.size(); ++i)
@@ -469,12 +486,14 @@ namespace vessel
          _discardBuffersInBucket(sid, bucket, l);
       }
 
+      /// some buffers may be flushing now.
       while (!l.empty())
       {
          SHARED_IO_BUFFER_CB_LIST::iterator itr = l.begin();
          while (itr != l.end())
          {
             SHARED_IO_BUFFER_CB &bcb = *itr;
+            SDB_ASSERT(!bcb->hasMemoryBlock(), "impossible");
             bufferControlBlock ctlSnapshot = bcb->ctl().load();
             if (ctlSnapshot.isDiscarded())
             {
@@ -793,6 +812,7 @@ namespace vessel
       dataManagementService &dms = tc->getEnv()->dms;
       std::array<blockBasedMemPool::memBlock, 16> batch;
       UINT32 size = 0;
+      UINT32 busyCount = 0;
 
       if (OSS_UNLIKELY(!taskId.isValid()))
       {
@@ -855,7 +875,7 @@ namespace vessel
             if (bcb->ctl().setRecyclingFromNormal())
             {  
                batch[size++] = bcb->getMemoryBlock();
-               bcb->reserMemoryBlock();/// reset, not release
+               bcb->resetMemoryBlock();/// reset, not release
                BOOLEAN r = bcb->ctl().setDiscardedFromRecycling();
                SDB_ASSERT(r, "must be true");
 
@@ -864,6 +884,10 @@ namespace vessel
                   _memPool.release(size, batch.data());
                   size = 0;
                }
+            }
+            else
+            {
+               ++busyCount;
             }
          }
 
@@ -877,6 +901,11 @@ namespace vessel
          {
             PD_LOG(PDSEVERE, "failed to fsync file:%d, rc:%d", fd, rc);
             goto error;
+         }
+
+         if (0 < busyCount)
+         {
+            PD_LOG(PDDEBUG, "busy buffer count:%d", busyCount);
          }
       }
    done:
