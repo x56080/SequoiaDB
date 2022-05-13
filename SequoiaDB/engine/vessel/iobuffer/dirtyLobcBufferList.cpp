@@ -118,53 +118,13 @@ namespace vessel
          fl._list.splice(fl._list.end(), _l, left, right);
       }
 
-      if (!_l.empty())
-      {
-         _minListLSN = _l.front()->getMinDirtyLSN();
-      }
-      else
-      {
-         _minListLSN = DPS_INVALID_LSN_OFFSET;
-      }
+      resetMinListLSNAndSize(FALSE);
       
       if (!fl.isEmpty())
       {
          _minFlushLSN = fl._list.front()->getMinDirtyLSN();
       }      
    
-   /* splice whole list first, and repush back busy ones.
-      if (!_list.empty())
-      {
-         _minFlushLSN = _minListLSN;
-         _minListLSN = DPS_INVALID_LSN_OFFSET;
-         flushList.splice(flushList.end(), _list);
-         _totalBufferSize = 0;
-
-         guard.unlock();
-
-         /// push back busy buffers. it should not be too many.
-         BUFFER_CTL_FLAG_WORD flags = LOBC_BUFFER_CTL_FLAGS::PENDING_FLUSH;
-         BUFFER_CTL_FLAG_WORD condition = LOBC_BUFFER_CTL_FLAGS::BUSY;
-         SHARED_LOBC_BUFFER_LIST::iterator itr = flushList.begin();
-         while (itr != flushList.end())
-         {
-            sharedLobChunkBuffer &buffer = *itr;
-            if (!buffer->ctl().setFlagsIfNot(condition, flags))
-            {
-               guard.lock();
-               _pushFrontToList(buffer);
-               _totalBufferSize += buffer->getRegisteredBufferSize();
-               guard.unlock();
-               itr = flushList.erase(itr);
-               continue;
-            }
-            else
-            {
-               ++itr;
-            }
-         }
-      }
-      */
       return;
    }
 

@@ -161,7 +161,13 @@ namespace vessel
          }
          OSS_INLINE UINT64 getTotalSizeAllocated()const
          {
-            return _blockSize * _blockAllocated.load(std::memory_order_relaxed);
+            return static_cast<UINT64>(_blockSize) *
+                   _blockAllocated.load(std::memory_order_relaxed);
+         }
+
+         OSS_INLINE FLOAT32 getFreePct()const
+         {
+            return 1.0f - (static_cast<FLOAT32>(getBlockAllocated()) / getTotalBlockNum());
          }
          
          INT32 init(UINT32 maxChunk, UINT32 blockSize=65536);

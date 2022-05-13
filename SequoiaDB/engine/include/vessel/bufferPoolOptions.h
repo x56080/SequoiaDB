@@ -68,7 +68,7 @@ namespace vessel
       UINT32 bucketLatches = 512;
 
       /// flush options
-      FLOAT32 minFreeMemPct = 0.30f; /// valid range (0.00, 1.0)
+      FLOAT32 flushDirtyListThreshold = 0.70f; /// valid range (0.00, 1.0)
       UINT32 flushDirtyListMillis = 30000;
       UINT64 flushBatchSize = (UINT64)1 << 28;
    };//class bufferPoolOptions

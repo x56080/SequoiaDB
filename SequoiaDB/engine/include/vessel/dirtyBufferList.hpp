@@ -41,6 +41,7 @@
 #include "ossMemPool.hpp"
 
 #include <mutex>//c++11
+#include <atomic>//c++11
 
 namespace engine
 {
@@ -66,13 +67,15 @@ namespace vessel
 
          void resetFlushLSN() {_minFlushLSN = DPS_INVALID_LSN_OFFSET;}
 
+         UINT32 getSize()const {return _size.load(std::memory_order_relaxed);}
+
       protected:
          /// hold mutex outside
          void pushBackToList(T &buffer);
          /// hold mutex outside
          void pushFrontToList(T &buffer);
 
-         void resetMinListLSN(BOOLEAN lock);
+         void resetMinListLSNAndSize(BOOLEAN lock);
       
       protected:
          std::mutex _mutex;
@@ -81,6 +84,8 @@ namespace vessel
 
          typedef ossPoolList<T> _BUFFER_LIST;
          _BUFFER_LIST _l;
+         std::atomic_uint _size = {0};
+
    };//class dirtyBufferList
 
    template<class T>
@@ -90,6 +95,7 @@ namespace vessel
       _minFlushLSN = DPS_INVALID_LSN_OFFSET;
       _minListLSN = DPS_INVALID_LSN_OFFSET;
       _l.clear();
+      _size.store(0, std::memory_order_relaxed);
       return;
    }
 
@@ -144,6 +150,8 @@ namespace vessel
          _minListLSN = minLSN;
       }
 
+      _size.fetch_add(1, std::memory_order_relaxed);
+
       return;
    }
 
@@ -171,11 +179,13 @@ namespace vessel
          _minListLSN = minLSN;
       }
 
+      _size.fetch_add(1, std::memory_order_relaxed);
+
       return;
    }
 
    template<class T>
-   void dirtyBufferList<T>::resetMinListLSN(BOOLEAN lock)
+   void dirtyBufferList<T>::resetMinListLSNAndSize(BOOLEAN lock)
    {
       std::unique_lock<std::mutex> guard(_mutex, std::defer_lock);
       if (lock)
@@ -186,6 +196,7 @@ namespace vessel
       _minListLSN = _l.empty() ?
                     DPS_INVALID_LSN_OFFSET :
                     _l.front()->getMinDirtyLSN();
+      _size.store(_l.size(), std::memory_order_relaxed);
       return;
    }
 } // namespace vessel

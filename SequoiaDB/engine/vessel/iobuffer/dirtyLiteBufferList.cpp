@@ -84,7 +84,7 @@ namespace vessel
          _minFlushLSN = fl.front()->getMinDirtyLSN();
       }
 
-      resetMinListLSN(FALSE);
+      resetMinListLSNAndSize(FALSE);
 
       guard.unlock();
       for (auto itr = fl.begin(); itr != fl.end(); ++itr)
@@ -125,7 +125,7 @@ namespace vessel
          discarded.splice(discarded.end(), _l, left, right);
       }
 
-      resetMinListLSN(FALSE);
+      resetMinListLSNAndSize(FALSE);
       return;
    }
 } // namespace vessel

@@ -665,13 +665,13 @@ namespace vessel
          o.bucketLatches = o.buckets;
       }
 
-      if (o.minFreeMemPct <= 0.0f)
+      if (o.flushDirtyListThreshold <= 0.0f)
       {
-         o.minFreeMemPct = 0.3f;
+         o.flushDirtyListThreshold = 0.7f;
       }
-      else if (1.0f <= o.minFreeMemPct)
+      else if (1.0f <= o.flushDirtyListThreshold)
       {
-         o.minFreeMemPct = 0.3f;
+         o.flushDirtyListThreshold = 0.7f;
       }
 
       if (0 == o.flushDirtyListMillis)
@@ -719,17 +719,15 @@ namespace vessel
    BOOLEAN liteIOBufferPool::_betterToFlush()const
    {
       BOOLEAN r = FALSE;
-      UINT64 bufferSizeAllocated = _memPool.getTotalSizeAllocated();
-      UINT64 maxBufferSize = _memPool.getMaxMemCapacity();
-      UINT64 freeBufferSize = maxBufferSize - bufferSizeAllocated;
-      FLOAT32 freeRaito = static_cast<FLOAT64>(freeBufferSize) /
-                          maxBufferSize;
+      UINT32 dirtyListSize = _dl.getSize();
+      FLOAT32 dirtyPct = static_cast<FLOAT32>(dirtyListSize) /
+                         _memPool.getTotalBlockNum();
 
-      if (freeRaito < _o.minFreeMemPct)
+      if (_o.flushDirtyListThreshold <= dirtyPct)
       {
          r = TRUE;
       }
-      else if (0 < bufferSizeAllocated &&
+      else if (0 < dirtyListSize &&
                _o.flushDirtyListMillis <= _getTimeSpanFromLastFlush())
       {
          r = TRUE;
