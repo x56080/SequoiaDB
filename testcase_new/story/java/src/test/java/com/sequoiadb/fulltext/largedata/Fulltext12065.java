@@ -7,7 +7,6 @@ import org.testng.annotations.Test;
 
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.fulltext.utils.FullTextDBUtils;
 import com.sequoiadb.fulltext.utils.FullTextUtils;
 import com.sequoiadb.testcommon.FullTestBase;
@@ -32,7 +31,6 @@ public class Fulltext12065 extends FullTestBase {
         caseProp.setProperty( CLNAME, clName );
     }
 
-    // SEQUOIADBMAINSTREAM-850修改引入问题
     @Test
     public void test() throws Exception {
         // 在集合上创建1个全文索引，并插入包含索引字段的数据
@@ -52,23 +50,11 @@ public class Fulltext12065 extends FullTestBase {
 
         // 多次执行删除集合空间的操作
         if ( cappedCL.getCount() > 2 ) {
-            for ( int i = 0; i < 3; i++ ) {
-                try {
-                    sdb.dropCollectionSpace( csName );
-                    Assert.fail( "drop cs need to return -147!" );
-                } catch ( BaseException e ) {
-                    Assert.assertEquals( e.getErrorCode(), -147,
-                            e.getMessage() );
-                }
-            }
+            sdb.dropCollectionSpace( csName );
         }
 
-        // 关闭打开的游标
-        if ( cursor != null ) {
-            cursor.close();
-        }
-
-        // 关闭步骤2中打开的游标后，再次删除集合空间
+        // 检查结果
+        Assert.assertFalse( cursor.hasNext() );
         cappedName = FullTextDBUtils.getCappedName( cl, fullIndexName );
         esIndexName = FullTextDBUtils.getESIndexName( cl, fullIndexName );
         FullTextDBUtils.dropCollectionSpace( sdb, csName );
