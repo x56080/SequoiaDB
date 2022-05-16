@@ -98,27 +98,22 @@ public class Split10533 extends SdbTestBase {
         // 检验结果
         if ( threadTruncate.getRetCode() == 0 ) {
             Assert.assertEquals( cl.getCount(), 0 );
+        } else if ( threadTruncate.getRetCode() != -190
+                && threadTruncate.getRetCode() != -147 ) {
+            Assert.fail( "truncate fail, e: " + threadTruncate.getRetCode() );
         } else {
-            if ( threadTruncate.getRetCode() != -321
-                    && threadTruncate.getRetCode() != -243 ) {
-                Assert.fail(
-                        "truncate fail, e: " + threadTruncate.getRetCode() );
-            } else {
-                Assert.assertEquals( cl.getCount(), recsNum );
-            }
+            Assert.assertEquals( cl.getCount(), recsNum );
         }
 
         int actRgNum = FullTextDBUtils.getCLGroups( cl ).size();
         if ( threadSplit.getRetCode() == 0 ) {
             Assert.assertEquals( actRgNum, 2 );
             checkCatalog( commSdb );
+        } else if ( threadSplit.getRetCode() != -321
+                && threadSplit.getRetCode() != -243 ) {
+            Assert.fail( "split fail, e: " + threadSplit.getRetCode() );
         } else {
-            if ( threadSplit.getRetCode() != -190
-                    && threadSplit.getRetCode() != -147 ) {
-                Assert.fail( "split fail, e: " + threadSplit.getRetCode() );
-            } else {
-                Assert.assertEquals( actRgNum, 1 );
-            }
+            Assert.assertEquals( actRgNum, 1 );
         }
     }
 
