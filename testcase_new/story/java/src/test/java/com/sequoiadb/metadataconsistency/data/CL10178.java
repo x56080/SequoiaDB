@@ -1,11 +1,12 @@
 package com.sequoiadb.metadataconsistency.data;
 
 import java.util.ArrayList;
-import java.util.Random;
 
+import com.sequoiadb.threadexecutor.ResultStore;
+import com.sequoiadb.threadexecutor.ThreadExecutor;
+import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -32,35 +33,28 @@ public class CL10178 extends SdbTestBase {
     private String domainName = "dm10178";
     private String csName = "cs10178";
     private String clName = "cl10178";
-    private Random random = new Random();
-    private int msec = 100;
 
     @BeforeClass
     public void setUp() {
         // start time
-        try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            // judge the mode or group number or node number
-            if ( CommLib.isStandAlone( sdb ) || CommLib.OneGroupMode( sdb )
-                    || MetaDataUtils.oneCataNode( sdb )
-                    || MetaDataUtils.oneDataNode( sdb ) ) {
-                throw new SkipException(
-                        "The mode is standlone or only one group or one node, "
-                                + "skip the testCase." );
-            }
-            MetaDataUtils.clearCS( sdb, csName );
-            MetaDataUtils.clearDomain( sdb, domainName );
-
-            dataGroups = MetaDataUtils.getDataGroupNames( sdb );
-
-            createDomain();
-            createCS();
-            createCL();
-            MetaDataUtils.insertData( sdb, csName, clName );
-        } catch ( BaseException e ) {
-            sdb.close();
-            Assert.fail( e.getMessage() );
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        // judge the mode or group number or node number
+        if ( CommLib.isStandAlone( sdb ) || CommLib.OneGroupMode( sdb )
+                || MetaDataUtils.oneCataNode( sdb )
+                || MetaDataUtils.oneDataNode( sdb ) ) {
+            throw new SkipException(
+                    "The mode is standlone or only one group or one node, "
+                            + "skip the testCase." );
         }
+        MetaDataUtils.clearCS( sdb, csName );
+        MetaDataUtils.clearDomain( sdb, domainName );
+
+        dataGroups = MetaDataUtils.getDataGroupNames( sdb );
+
+        createDomain();
+        createCS();
+        createCL();
+        MetaDataUtils.insertData( sdb, csName, clName );
     }
 
     @AfterClass
@@ -68,32 +62,29 @@ public class CL10178 extends SdbTestBase {
         try {
             MetaDataUtils.clearCS( sdb, csName );
             MetaDataUtils.clearDomain( sdb, domainName );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
         } finally {
-            sdb.close();
+            if ( sdb != null ) {
+                sdb.close();
+            }
         }
     }
 
-    @Test(invocationCount = 10, threadPoolSize = 10)
-    public void test() {
-        AlterCL alterCL = new AlterCL();
-        alterCL.start();
-
-        DropCL dropCL = new DropCL();
-        MetaDataUtils.sleep( random.nextInt( msec ) );
-        dropCL.start();
-
-        if ( !( alterCL.isSuccess() || dropCL.isSuccess() ) ) {
-            Assert.fail( alterCL.getErrorMsg() + dropCL.getErrorMsg() );
+    @Test
+    public void test() throws Exception {
+        ThreadExecutor te = new ThreadExecutor();
+        for ( int i = 0; i < 10; i++ ) {
+            te.addWorker( new AlterCL() );
+            te.addWorker( new DropCL() );
         }
+        te.run();
 
         // check results
         MetaDataUtils.checkCLResult( csName, clName );
     }
 
-    private class AlterCL extends SdbThreadBase {
-        @Override
+    private class AlterCL extends ResultStore {
+
+        @ExecuteOrder(step = 1)
         public void exec() throws BaseException {
             try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
@@ -115,8 +106,9 @@ public class CL10178 extends SdbTestBase {
         }
     }
 
-    private class DropCL extends SdbThreadBase {
-        @Override
+    private class DropCL extends ResultStore {
+
+        @ExecuteOrder(step = 1)
         public void exec() throws BaseException {
             try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
@@ -125,7 +117,7 @@ public class CL10178 extends SdbTestBase {
                 csDB.dropCollection( clName );
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if ( eCode != -147 && eCode != -190 ) {
+                if ( eCode != -147 && eCode != -190 && eCode != -23 ) {
                     throw e;
                 }
             }
