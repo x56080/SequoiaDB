@@ -16,6 +16,10 @@
     <parameter name="ESHOSTNAME"      value="${ESHOSTNAME}" />
     <!--全文索引ES端端口号，CI默认传入9200-->
     <parameter name="ESSVCNAME"       value="${ESSVCNAME}" />
+    <!--stp环境主机名，CI默认传入localhost-->
+    <parameter name="STPHOSTNAME"     value="${STPHOSTNAME}" />
+    <!--stp环境端口号，CI默认传入9622-->
+    <parameter name="STPSVCNAME"      value="${STPSVCNAME}" />
     <!--全文索引前缀，CI传入与工程名相关，例如NORMALTESTG3D3-->
     <parameter name="FULLTEXTPREFIX"  value="${FULLTEXTPREFIX}" />
     <!--公共CS名-->
