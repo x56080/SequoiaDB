@@ -1785,7 +1785,7 @@ namespace engine
          INT32 rcTmp = _pIndexSu->removeStorage() ;
          if ( rcTmp )
          {
-            PD_LOG( PDWARNING, "Failed to remove cs idnex file[%s] in "
+            PD_LOG( PDWARNING, "Failed to remove cs index file[%s] in "
                     "rollback, rc: %d", _pIndexSu->getSuFileName(), rcTmp ) ;
          }
       }
