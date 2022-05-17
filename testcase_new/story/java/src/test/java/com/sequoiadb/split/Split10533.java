@@ -110,7 +110,9 @@ public class Split10533 extends SdbTestBase {
             Assert.assertEquals( actRgNum, 2 );
             checkCatalog( commSdb );
         } else if ( threadSplit.getRetCode() != -321
-                && threadSplit.getRetCode() != -243 ) {
+                && threadSplit.getRetCode() != -243
+                && threadSplit.getRetCode() != -147
+                && threadSplit.getRetCode() != -190 ) {
             Assert.fail( "split fail, e: " + threadSplit.getRetCode() );
         } else {
             Assert.assertEquals( actRgNum, 1 );
