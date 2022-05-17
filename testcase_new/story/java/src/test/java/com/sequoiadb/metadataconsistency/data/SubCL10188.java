@@ -34,8 +34,6 @@ public class SubCL10188 extends SdbTestBase {
     private String clName = "cl10188";
     private String mCLName = clName + "_m";
     private String sCLName = clName + "_s";
-    private Random random = new Random();
-    private int msec = 100;
 
     @BeforeClass
     public void setUp() {

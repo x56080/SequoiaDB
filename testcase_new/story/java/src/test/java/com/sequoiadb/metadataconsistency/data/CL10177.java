@@ -3,9 +3,11 @@ package com.sequoiadb.metadataconsistency.data;
 import java.util.Date;
 import java.util.Random;
 
+import com.sequoiadb.threadexecutor.ResultStore;
+import com.sequoiadb.threadexecutor.ThreadExecutor;
+import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -16,7 +18,6 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
  * TestLink: seqDB-10171: concurrency[createCL, alterCL, dropCL]
@@ -31,49 +32,40 @@ public class CL10177 extends SdbTestBase {
     private String clName = "cl10177";
     private Random random = new Random();
     private int number = 20;
-    private int msec = 100;
 
     @BeforeClass
     public void setUp() {
-        try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            // judge the mode or node number
-            if ( CommLib.isStandAlone( sdb ) || MetaDataUtils.oneCataNode( sdb )
-                    || MetaDataUtils.oneDataNode( sdb ) ) {
-                throw new SkipException(
-                        "The mode is standlone or one node, skip the testCase." );
-            }
-            MetaDataUtils.clearCS( sdb, csName );
-
-            sdb.createCollectionSpace( csName );
-            createCL();
-        } catch ( BaseException e ) {
-            sdb.close();
-            Assert.fail( e.getMessage() );
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        // judge the mode or node number
+        if ( CommLib.isStandAlone( sdb ) || MetaDataUtils.oneCataNode( sdb )
+                || MetaDataUtils.oneDataNode( sdb ) ) {
+            throw new SkipException(
+                    "The mode is standlone or one node, skip the testCase." );
         }
+        MetaDataUtils.clearCS( sdb, csName );
+
+        sdb.createCollectionSpace( csName );
+        createCL();
     }
 
     @AfterClass
     public void tearDown() {
         try {
             MetaDataUtils.clearCS( sdb, csName );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
         } finally {
-            sdb.close();
+            if ( sdb != null ) {
+                sdb.close();
+            }
         }
     }
 
-    @Test(invocationCount = 3, threadPoolSize = 3)
-    public void test() {
-
-        AlterCL alterCL = new AlterCL();
-        MetaDataUtils.sleep( random.nextInt( msec ) );
-        alterCL.start();
-
-        if ( !alterCL.isSuccess() ) {
-            Assert.fail( alterCL.getErrorMsg() );
+    @Test
+    public void test() throws Exception {
+        ThreadExecutor te = new ThreadExecutor();
+        for ( int i = 0; i < 3; i++ ) {
+            te.addWorker( new AlterCL() );
         }
+        te.run();
 
         // check results
         System.out.println( new Date() + " " + this.getClass().getName()
@@ -83,13 +75,13 @@ public class CL10177 extends SdbTestBase {
                 + " end check results " );
     }
 
-    private class AlterCL extends SdbThreadBase {
-        @Override
+    private class AlterCL extends ResultStore {
+
+        @ExecuteOrder(step = 1)
         public void exec() throws BaseException {
-            Sequoiadb db = null;
             int rep = random.nextInt( 7 );
-            try {
-                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
                 CollectionSpace csDB = db.getCollectionSpace( csName );
 
                 BSONObject opt = new BasicBSONObject();
@@ -102,30 +94,24 @@ public class CL10177 extends SdbTestBase {
                     System.out.println( "ReplSize:" + rep );
                     throw e;
                 }
-            } finally {
-                db.close();
             }
         }
     }
 
     public void createCL() {
-        try {
-            CollectionSpace csDB = sdb.getCollectionSpace( csName );
+        CollectionSpace csDB = sdb.getCollectionSpace( csName );
 
-            BSONObject opt = new BasicBSONObject();
-            BSONObject subObj = new BasicBSONObject();
-            subObj.put( "a", 1 );
-            opt.put( "ShardingType", "hash" );
-            opt.put( "ShardingKey", subObj );
-            opt.put( "ReplSize", 0 );
-            opt.put( "AutoSplit", true );
-            for ( int i = 0; i < number; i++ ) {
-                String tmpCLName = clName + "_" + i;
-                csDB.createCollection( tmpCLName, opt );
-                MetaDataUtils.insertData( sdb, csName, tmpCLName );
-            }
-        } catch ( BaseException e ) {
-            throw e;
+        BSONObject opt = new BasicBSONObject();
+        BSONObject subObj = new BasicBSONObject();
+        subObj.put( "a", 1 );
+        opt.put( "ShardingType", "hash" );
+        opt.put( "ShardingKey", subObj );
+        opt.put( "ReplSize", 0 );
+        opt.put( "AutoSplit", true );
+        for ( int i = 0; i < number; i++ ) {
+            String tmpCLName = clName + "_" + i;
+            csDB.createCollection( tmpCLName, opt );
+            MetaDataUtils.insertData( sdb, csName, tmpCLName );
         }
     }
 

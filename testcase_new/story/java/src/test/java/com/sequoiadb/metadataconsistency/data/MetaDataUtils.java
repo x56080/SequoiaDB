@@ -463,7 +463,7 @@ public class MetaDataUtils extends SdbTestBase {
                     Sequoiadb cataDB = sdb.getReplicaGroup( "SYSCatalogGroup" )
                             .getMaster().connect();
                     BSONObject matcher = new BasicBSONObject();
-                    matcher.put( "Name", csName + "." + tmpCLName );
+                    matcher.put( "Name", tmpCLName );
                     DBCursor cur = cataDB.getCollectionSpace( "SYSCAT" )
                             .getCollection( "SYSCOLLECTIONS" )
                             .query( matcher, null, null, null );
