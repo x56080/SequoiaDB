@@ -4092,7 +4092,7 @@ namespace engine
          info._dataCommitLSN = mb->_commitLSN ;
          info._idxCommitLSN = mb->_idxCommitLSN ;
          info._lobCommitLSN = mb->_lobCommitLSN ;
-         info._maxGlobTransID = mbStat->_maxGlobTransID.peek() ;
+         info._maxGlobTransID = mbStat->_maxGlobTransID ;
          info._dataIsValid = mbStat->_commitFlag.peek() ? TRUE : FALSE ;
          info._idxIsValid = mbStat->_idxCommitFlag.peek() ? TRUE : FALSE ;
          info._lobIsValid = mbStat->_lobCommitFlag.peek() ? TRUE : FALSE ;

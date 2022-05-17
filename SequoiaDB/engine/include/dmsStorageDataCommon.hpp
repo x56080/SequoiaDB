@@ -411,7 +411,7 @@ namespace engine
 
       ossAtomic32 _commitFlag ;
       ossAtomic64 _lastLSN ;
-      ossAtomic64 _maxGlobTransID ;
+      UINT64      _maxGlobTransID ;
       UINT64      _lastWriteTick ;
       BOOLEAN     _isCrash ;
 
@@ -431,7 +431,7 @@ namespace engine
       ossAtomic64 _rcTotalRecords ;
 
       // runtime CRUD statistics monitor
-      monCRUDCB _crudCB ;
+      monCRUDCB   _crudCB ;
 
       // bitmap to indicate index fields
       ixmIdxHashBitmap _clIdxHashBitmap ;
@@ -466,7 +466,7 @@ namespace engine
          _isCrash                = FALSE ;
          _idxCommitFlag.init( 0 ) ;
          _idxLastLSN.init( ~0 ) ;
-         _maxGlobTransID.init( 0 ) ;
+         _maxGlobTransID         = 0 ;
          _idxLastWriteTick       = 0 ;
          _idxIsCrash             = FALSE ;
          _lobCommitFlag.init( 0 ) ;
@@ -552,15 +552,19 @@ namespace engine
       // Note: that we only compare serial number with global transaction tag
       //       here. When user use this maxGlobTranID, he may need to consider
       //       max error if needed.
-      void updateGlobTransIDWithComp( DPS_TRANS_ID transID )
+      void updateGlobTransIDWithComp( const DPS_TRANS_ID &transID )
       {
-         _maxGlobTransID.swapGreaterThan( transID.getGlobSN() ) ;
+         if ( transID.isGlobTrans() &&
+              _maxGlobTransID < transID.getGlobSN() )
+         {
+            _maxGlobTransID = transID.getGlobSN() ;
+         }
       }
 
       // get the max GlobTransID 
       UINT64 getMaxGlobTransID( )
       {
-         return _maxGlobTransID.peek() ;
+         return _maxGlobTransID ;
       }
 
       void setIdxHash( INT32 indexID, const CHAR *idxFieldName )
@@ -654,7 +658,6 @@ namespace engine
       _dmsMBStatInfo ()
       : _commitFlag( 0 ),
         _lastLSN( 0 ),
-        _maxGlobTransID( 0 ),
         _idxCommitFlag( 0 ),
         _idxLastLSN( 0 ),
         _lobCommitFlag( 0 ),

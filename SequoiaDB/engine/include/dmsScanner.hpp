@@ -423,7 +423,8 @@ namespace engine
          INT32 _checkTransLock( pmdEDUCB *cb,
                                 dmsRecordID &waitUnlockRID,
                                 dmsRecordData *recordData,
-                                BOOLEAN &skipRecord ) ;
+                                BOOLEAN &skipRecord,
+                                BOOLEAN *needData = NULL ) ;
 
          BOOLEAN _buildObj( ixmIndexNode *node,
                             IXM_ELE_RAWDATA_ARRAY& value,

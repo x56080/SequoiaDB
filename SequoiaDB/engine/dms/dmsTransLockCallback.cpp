@@ -1341,7 +1341,7 @@ namespace engine
    //   protected by mblatch latch to make sure no one can update/change
    //   the record it is going to read.
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSTRANSLOCKCALLBACK_CHKRECVISIBLE, "dmsTransLockCallback::checkRecordVisible" )
-   INT32 dmsTransLockCallback::checkRecordVisible( dmsMBContext *context )
+   INT32 dmsTransLockCallback::checkRecordVisible( dmsMBContext *context, BOOLEAN *needData )
    {
       INT32        rc      = SDB_OK ;
 
@@ -1372,6 +1372,26 @@ namespace engine
          // exist in LRBHdr. If we don't return the record, we could end up
          // skipping the record because _oldVer->idxLidExist() could be true.
          // We won't read partial page because we hold mbLatch in S.
+
+         if ( context->mbStat()->getMaxGlobTransID() <
+              _eduCB->getExpireTranCache() )
+         {
+            _recordOnDiskVisible = TRUE ;
+            goto done ;
+         }
+         else if ( context->mbStat()->getMaxGlobTransID() <
+                   _transCB->getExpiredVersion() )
+         {
+            _recordOnDiskVisible = TRUE ;
+            _eduCB->setExpireTranCache( _transCB->getExpiredVersion() ) ;
+            goto done ;            
+         }
+
+         if ( NULL != needData && _recordRW->isEmpty() )
+         {
+            *needData = TRUE ;
+            goto done ;
+         }
 
          const dmsRecord* record = _recordRW->readPtr( 0 ) ;
 
@@ -1445,6 +1465,13 @@ namespace engine
 
          _recordOnDiskVisible = visible ;
          _diskRecordTransID = recTransID ;
+      }
+      else
+      {
+         if ( NULL != needData && _recordRW->isEmpty() )
+         {
+            *needData = TRUE ;
+         }
       }
 
    done:
@@ -1710,6 +1737,7 @@ namespace engine
          _oldVer->setRecordNew( cb->getTID() ) ;
       }
       // mark insert by self
+      context->mbStat()->updateGlobTransIDWithComp( _eduCB->getTransID() ) ;
       _recordInfo._transInsert = TRUE ;
       return SDB_OK ;
    }
@@ -1742,6 +1770,7 @@ namespace engine
       {
          _recordInfo._transInsertDeleted = FALSE ;
       }
+      context->mbStat()->updateGlobTransIDWithComp( _eduCB->getTransID() ) ;
       return rc ;
    }
 
@@ -1752,6 +1781,7 @@ namespace engine
                                                const _dmsRecordRW *pRecordRW,
                                                _pmdEDUCB *cb )
    {
+      context->mbStat()->updateGlobTransIDWithComp( _eduCB->getTransID() ) ;
       return saveOldVersionRecord( pRecordRW, rid, context->clLID(),
                                    orignalObj, cb->getTID() ) ;
    }

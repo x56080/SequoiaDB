@@ -2113,7 +2113,8 @@ namespace engine
    INT32 _dmsIXSecScanner::_checkTransLock( pmdEDUCB *cb,
                                             dmsRecordID &waitUnlockRID,
                                             dmsRecordData *recordData,
-                                            BOOLEAN &skipRecord )
+                                            BOOLEAN &skipRecord,
+                                            BOOLEAN *needData )
    {
       INT32 rc = SDB_OK ;
 
@@ -2163,10 +2164,14 @@ namespace engine
             if ( !needWaitForLock() )
             {
                // check visibility before testing transaction lock
-               rc = _callback.checkRecordVisible( _context ) ;
+               rc = _callback.checkRecordVisible( _context, needData ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to check visibility "
                             "of record [%d, %d], rc: %d", _curRID._extent,
                             _curRID._offset, rc ) ;
+               if ( NULL != needData && *needData )
+               {
+                  goto done ;
+               }
 
                // for new RC/RR logic, we should first test on S lock instead
                // of directly wait on the record lock. Under the cover,
@@ -2575,13 +2580,25 @@ namespace engine
             }
             else if ( _countOnly )
             {
-               SDB_ASSERT( !cb->isTransRR(), "Should not be RR isolation" ) ;
-
                if ( cb->isTransaction() && !cb->isTransRU() )
                {
                   // no need to read record
                   // look for transaction lock
-                  rc = _checkTransLock( cb, waitUnlockRID, NULL, skipRecord ) ;
+                  if ( cb->isTransRR() )
+                  {
+                     BOOLEAN needData = FALSE ;
+                     _recordRW = dmsRecordRW() ;
+                     rc = _checkTransLock( cb, waitUnlockRID, NULL, skipRecord, &needData ) ;
+                     if ( SDB_OK == rc && needData )
+                     {
+                        _recordRW = _pSu->record2RW( _curRID, _context->mbID() );
+                        rc = _checkTransLock( cb, waitUnlockRID, &recordData, skipRecord ) ;
+                     }
+                  }
+                  else
+                  {
+                     rc = _checkTransLock( cb, waitUnlockRID, NULL, skipRecord ) ;
+                  }
                   PD_RC_CHECK( rc, PDERROR, "Failed to check transaction lock, "
                                "rc: %d", rc ) ;
                   if ( skipRecord )
@@ -2616,13 +2633,14 @@ namespace engine
 
          pRecord = NULL ;
 
-         if( _scanner->isIndexCover() &&
-             !_recordRW.isDirectMem() &&
-             DMS_IS_READ_OPR( _accessType ) &&
-             !cb->isTransRR() )
+         if ( _scanner->isIndexCover() &&
+              !_recordRW.isDirectMem() &&
+              DMS_IS_READ_OPR( _accessType ) &&
+              ( !cb->isTransRR() ||
+                _callback.isRecordOnDiskVisible() ) )
          {
             pRecord = _buildIndexRecord() ;
-            if( NULL != pRecord )
+            if ( NULL != pRecord )
             {
                _recordRW = dmsIndexRecordRW( _recordRW, pRecord ) ;
             }

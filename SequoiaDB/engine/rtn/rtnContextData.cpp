@@ -1962,7 +1962,7 @@ namespace engine
                                              _indexRIDs[1],
                                              _direction ) ;
          }
-         if ( isCountMode() && !cb->isTransRR() )
+         if ( isCountMode() )
          {
             secScanner.enableCountMode() ;
          }

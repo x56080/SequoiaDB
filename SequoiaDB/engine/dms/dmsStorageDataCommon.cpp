@@ -715,10 +715,10 @@ namespace engine
                   _mbStatInfo[i]._totalOrgDataLen ;
             }
             if ( _dmsMME->_mbList[i]._maxGlobTransID !=
-                 _mbStatInfo[i]._maxGlobTransID.peek() )
+                 _mbStatInfo[i]._maxGlobTransID )
             {
                _dmsMME->_mbList[i]._maxGlobTransID =
-                  _mbStatInfo[i]._maxGlobTransID.peek() ;
+                  _mbStatInfo[i]._maxGlobTransID ;
             }
             if ( _dmsMME->_mbList[i]._commitLSN !=
                  _mbStatInfo[i]._lastLSN.peek() )
@@ -1100,8 +1100,8 @@ namespace engine
                                       TRUE : FALSE ;
 
             // read the max GTID from disk
-            _mbStatInfo[i]._maxGlobTransID.init(
-                                  _dmsMME->_mbList[i]._maxGlobTransID ) ;
+            _mbStatInfo[i]._maxGlobTransID =
+                                  _dmsMME->_mbList[i]._maxGlobTransID ;
 
             /// lsn
             _mbStatInfo[i]._lastLSN.init( _dmsMME->_mbList[i]._commitLSN ) ;
