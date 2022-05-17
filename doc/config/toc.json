@@ -1567,6 +1567,12 @@
                            "file": "split_merge",
                            "cn": "容灾切换合并工具",
                            "en": "Split Merge Tool"
+                        },
+                        {
+                           "id": 1599730477,
+                           "file": "sdbsecuretool",
+                           "cn": "数据安全处理工具",
+                           "en": "Secure Tool"
                         }
                      ]
                   },
