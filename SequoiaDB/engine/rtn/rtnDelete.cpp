@@ -47,6 +47,7 @@
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
 #include "dmsScanner.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson ;
 
@@ -437,7 +438,7 @@ retry:
             }
             rc = scanner->relocateRID ( key, rid ) ;
             PD_RC_CHECK ( rc, PDERROR, "Failed to relocate key to the specified "
-                          "location: %s, rc: %d", key.toString().c_str(), rc ) ;
+                          "location: %s, rc: %d", PD_SECURE_OBJ( key ), rc ) ;
          }
 
          // delete

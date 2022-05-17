@@ -63,6 +63,7 @@
 #include "clsResourceContainer.hpp"
 #include "ossMemPool.hpp"
 #include "utilStr.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson ;
 
@@ -575,9 +576,8 @@ namespace engine
 
          PD_LOG ( PDDEBUG, "Session[%s] Update:\nMatcher: %s\nUpdator: %s\n"
                   "hint: %s\nFlag: 0x%08x(%u)", getSession()->sessionName(),
-                  selector.toPoolString().c_str(),
-                  updator.toPoolString().c_str(), hint.toPoolString().c_str(),
-                  flags, flags ) ;
+                  PD_SECURE_OBJ( selector ), PD_SECURE_OBJ( updator ),
+                  hint.toPoolString().c_str(), flags, flags ) ;
 
          rc = rtnUpdate( pCollectionName, selector, updator, hint,
                          flags, eduCB(), _pDMSCB, dpsCB, 1, &upResult ) ;
@@ -693,7 +693,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Session[%s] insert objs[%s, count:%d, "
                       "collection: %s] failed, rc: %d",
                       getSession()->sessionName(),
-                      insertor.toPoolString().c_str(),
+                      PD_SECURE_OBJ( insertor ),
                       count, pCollectionName, rc ) ;
       }
       catch( std::exception &e )

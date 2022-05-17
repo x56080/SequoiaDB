@@ -45,6 +45,7 @@
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
 #include "utilInsertResult.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson;
 
@@ -138,8 +139,7 @@ namespace engine
 
                PD_LOG( PDERROR, "Failed to update record[%s] in "
                        "collection[%s] when insert exists duplicate key, "
-                       "rc: %d", record.toString().c_str(), clFullName,
-                       rc ) ;
+                       "rc: %d", PD_SECURE_OBJ( record ), clFullName, rc ) ;
                goto error ;
             }
             else
@@ -153,8 +153,7 @@ namespace engine
          {
             PD_LOG ( PDERROR, "Failed to insert record %s into "
                      "collection: %s, rc: %d",
-                     record.toPoolString().c_str(),
-                     clFullName, rc ) ;
+                     PD_SECURE_OBJ( record ), clFullName, rc ) ;
             goto error ;
          }
       }

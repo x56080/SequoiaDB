@@ -45,6 +45,7 @@
 #include "dmsDump.hpp"
 #include "pdTrace.hpp"
 #include "ixmTrace.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson ;
 
@@ -450,7 +451,7 @@ namespace engine
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to allocate %d bytes in index",
-                     key.dataSize()) ;
+                     key.dataSize() ) ;
             goto error ;
          }
          // copy the data into the position
@@ -639,7 +640,8 @@ namespace engine
                               indexCB ) ;
             if ( rc )
             {
-               PD_LOG ( PDERROR, "Failed to insert into splitted left page, rc = %d",
+               PD_LOG ( PDERROR,
+                        "Failed to insert into splitted left page, rc = %d",
                         rc ) ;
                goto error ;
             }
@@ -651,7 +653,8 @@ namespace engine
                                         rchild, indexCB ) ;
             if ( rc )
             {
-               PD_LOG ( PDERROR, "Failed to insert into splitted right page, rc = %d",
+               PD_LOG ( PDERROR,
+                        "Failed to insert into splitted right page, rc = %d",
                         rc ) ;
                goto error ;
             }
@@ -878,7 +881,7 @@ namespace engine
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to allocate %d bytes in index",
-                  key.dataSize()) ;
+                  key.dataSize() ) ;
          goto error ;
       }
       ossMemcpy ( ((CHAR*)pHeader)+kn->_keyOffset,
@@ -1302,8 +1305,8 @@ namespace engine
                rc = root.exists( key, order, indexCB, tmpFound, tmpIdxRID,
                                  tmpRID ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to locate key %s to find "
-                            "duplicated keys, rc: %d", key.toString().c_str(),
-                            rc ) ;
+                            "duplicated keys, rc: %d",
+                            PD_SECURE_STR( key.toString() ), rc ) ;
                if ( tmpFound )
                {
                   if ( tmpRID == rid )

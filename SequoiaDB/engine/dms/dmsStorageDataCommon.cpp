@@ -53,6 +53,7 @@
 #include "dmsLightJob.hpp"
 #include "utilInsertResult.hpp"
 #include "dpsUtil.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson ;
 
@@ -579,7 +580,7 @@ namespace engine
       std::stringstream ss ;
       ss << "RecordRW(" << _rw.getCollectionID()
          << "," << _rid._extent << "," << _rid._offset << ");\n" ;
-      if ( _pData ) 
+      if ( _pData )
       {
          ss << "su(" << _pData->getSuFileName() << ")" ;
       }
@@ -1478,7 +1479,7 @@ namespace engine
       lsn = info.getMergeBlock().record().head()._lsn ;
       context->mbStat()->updateLastLSN( lsn, type ) ;
 /*
-      // Before latch is released, put the lsn back into record as the 
+      // Before latch is released, put the lsn back into record as the
       // life lsn of the record
       if ( NULL != pRecord )
       {
@@ -3962,7 +3963,7 @@ namespace engine
       // needed, like during space allocation, write extent and write index.
       // By doing so, we allow better concurrency for space allocation and
       // actual record/index IO, we also hold the latch for shorter duration.
-      // Potential drawback is we may acquire the latch more times. 
+      // Potential drawback is we may acquire the latch more times.
       if ( !dpscb && !isTransSupport( context ) )
       {
          highConcurrentMode = TRUE ;
@@ -3975,7 +3976,7 @@ namespace engine
                                 recordData, recordRW ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check mark insert "
                       "[position %lld, obj %s], rc: %d",
-                      position, insertObj.toPoolString().c_str(), rc ) ;
+                      position, PD_SECURE_OBJ( insertObj ), rc ) ;
 
          if ( !markInsert )
          {
@@ -4410,7 +4411,7 @@ namespace engine
    //    corresponding log records and delete related indexes.
    // Input:
    //    pInfo:
-   //   
+   //
    // Dependency:
    //    Record lock should be held in X. MBlatch should be held.
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_DELETERECORD, "_dmsStorageDataCommon::deleteRecord" )
@@ -4611,7 +4612,7 @@ namespace engine
                      }
                   }
                   // first to reserve dps
-                  if ( NULL != dpscb ) 
+                  if ( NULL != dpscb )
                   {
                      if ( pHandler )
                      {
@@ -4748,7 +4749,7 @@ namespace engine
                     "isDeleting(%d), flag(%x), "
                     "hastransid(%d), lowtran(%s), expireTran(%s), "
                     "recordtransid(%s), pTransCB(%x)",
-                    recordID._extent, recordID._offset, isDeleting, 
+                    recordID._extent, recordID._offset, isDeleting,
                     pRecord->getFlag(),
                     pRecord->hasGlobTransID(),
                     dpsTransIDToString( lowTran ).c_str(),
@@ -4784,7 +4785,7 @@ namespace engine
             if( _mvccSupport && !pRecord->hasGlobTransID() )
             {
                // migrate to V1 record header before we can set transID
-               PD_LOG ( PDDEBUG, 
+               PD_LOG ( PDDEBUG,
                         "In-flight migration of record during delet object(%s) ",
                         recordRW.toString().c_str() ) ;
 
@@ -4802,7 +4803,7 @@ namespace engine
                // transaction ID for visiability check. We should handle this
                // case by doing a dummy update first, causing an overflow,
                // then we can try the delete again.
-               PD_LOG ( PDINFO, 
+               PD_LOG ( PDINFO,
                         "In-flight migration of record failed during delet"
                         " object(%s) because out of space in the record on disk",
                         recordRW.toString().c_str() ) ;
@@ -4816,7 +4817,7 @@ namespace engine
                             pRecord->toString().c_str() );
                   rc = _dummyUpdateRecord( context, recordID,
                                            deletedDataPtr, cb ) ;
-                  PD_RC_CHECK( rc, PDERROR, 
+                  PD_RC_CHECK( rc, PDERROR,
                                "Dummy update record for migration failed, "
                                "rc: %d", rc ) ;
                   retry = TRUE ;
@@ -5054,9 +5055,7 @@ namespace engine
                   {
                      PD_LOG( PDERROR, "Process update record[%s] to [%s] "
                              "in handler failed, rc: %d",
-                             obj.toString().c_str(),
-                             newobj.toString().c_str(),
-                             rc ) ;
+                             PD_SECURE_OBJ( obj ), PD_SECURE_OBJ( newobj ), rc ) ;
                      goto error ;
                   }
                }
@@ -5192,9 +5191,9 @@ namespace engine
                   }
                }
 
-               PD_LOG ( PDERROR, "Failed to update record from (%s) to (%s), "
-                        "rc: %d", obj.toString().c_str(),
-                        newobj.toString().c_str(), rc ) ;
+               PD_LOG ( PDERROR,
+                        "Failed to update record from (%s) to (%s), rc: %d",
+                        PD_SECURE_OBJ( obj ), PD_SECURE_OBJ( newobj ), rc ) ;
                goto error ;
             }
 
@@ -5228,10 +5227,8 @@ namespace engine
       if ( dpscb )
       {
          PD_LOG ( PDDEBUG, "oldChange: %s,%s\nnewChange: %s,%s",
-                  oldMatch.toString().c_str(),
-                  oldChg.toString().c_str(),
-                  newMatch.toString().c_str(),
-                  newChg.toString().c_str() ) ;
+                  PD_SECURE_OBJ( oldMatch ), PD_SECURE_OBJ( oldChg ),
+                  PD_SECURE_OBJ( newMatch ), PD_SECURE_OBJ( newChg ) ) ;
 
          PD_AUDIT_OP_WITHNAME( AUDIT_UPDATE, "UPDATE", AUDIT_OBJ_CL,
                                fullName, rc, "OldMatch:%s, OldChange:%s, "
@@ -5631,7 +5628,7 @@ namespace engine
          dmsRecordRW ovfRW = record2RW( ovfRID, -1 ) ;
          pRecord = ovfRW.readPtr() ;
       }
-      
+
       return pRecord->getDataLength() ;
    }
 

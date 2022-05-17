@@ -243,7 +243,9 @@ utilFiles = [
       "util/utilIniParserEx.cpp",
       "util/utilAuthSCRAMSHA.cpp",
       "util/utilRecycleItem.cpp",
-      "util/utilUniqueID.cpp"
+      "util/utilUniqueID.cpp",
+      "util/base64.cpp",
+      "util/utilSecure.cpp"
       ]
 
 dpsFiles = [
@@ -723,6 +725,9 @@ sequoiaMCSFiles = [
 sdbPasswdFiles = [
       "tools/passwd/sdbPasswd.cpp"
     ]
+sdbSecureFiles = [
+      "tools/securetool/sdbSecureTool.cpp"
+    ]
 
 monFiles = [
       "mon/monLatch.cpp"
@@ -828,6 +833,11 @@ sdblobtool = toolEnv.Program("sdblobtool", sdbLobToolMain,
 sdbpasswd = toolEnv.Program("sdbpasswd", sdbPasswdFiles,
          LIBDEPS=["pd","oss", "bson", "util", "miglob","clientcpp","mon"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
+         
+sdbsecuretool = toolEnv.Program("sdbsecuretool", sdbSecureFiles,
+         LIBDEPS=["pd","oss", "bson", "util"],
+         _LIBDEPS='$_LIBDEPS_OBJS' )
+         
 if linux:
    sdbtop = toolEnv.Program("sdbtop", sdbtopMain,
             LIBDEPS=["mig","oss","pd","bson","util","client","clientcpp","ncurses","mon"],
@@ -885,6 +895,7 @@ toolEnv.Install( '#/bin', sdbcmart )
 toolEnv.Install( '#/bin', sdbcmtop )
 toolEnv.Install( '#/bin', sdblobtool )
 toolEnv.Install( '#/bin', sdbpasswd )
+toolEnv.Install( '#/bin', sdbsecuretool )
 if linux:
    toolEnv.Install( '#/bin', sdbtop )
 toolEnv.Install( '#/tools', sdbload2 )
