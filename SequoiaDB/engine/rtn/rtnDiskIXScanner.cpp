@@ -41,6 +41,7 @@
 #include "dmsStorageUnit.hpp"
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson;
 
@@ -108,7 +109,7 @@ namespace engine
    }
 
    // change the scanner's current location to a given key and rid
-   // User can indicate if they want to reset _savedObj/_savedRID using 
+   // User can indicate if they want to reset _savedObj/_savedRID using
    // selected index RID position (_curIndexRID)
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDISKIXSCAN_RELORID1, "_rtnDiskIXScanner::_relocateRID" )
    INT32 _rtnDiskIXScanner::_relocateRID( const BSONObj &keyObj,
@@ -468,7 +469,7 @@ namespace engine
          rid.reset() ;
 
          PD_LOG( PDDEBUG, "Hit end with last obj(%s)",
-                 _curKeyObj.toString().c_str() ) ;
+                 PD_SECURE_OBJ( _curKeyObj ) ) ;
       }
       PD_TRACE_EXITRC( SDB__RTNDISKIXSCAN_ADVANCE, rc ) ;
       return rc ;

@@ -52,6 +52,7 @@
 #include "dmsTransLockCallback.hpp"
 #include "dmsLightJob.hpp"
 #include "dpsUtil.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson ;
 
@@ -3170,7 +3171,7 @@ namespace engine
                                 markInsert, foundRID, recordData, recordRW ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check mark insert "
                       "[position %lld, obj %s], rc: %d",
-                      position, insertObj.toPoolString().c_str(), rc ) ;
+                      position, PD_SECURE_OBJ( insertObj ), rc ) ;
 
          if ( !markInsert )
          {
@@ -3757,7 +3758,7 @@ namespace engine
                      {
                         PD_LOG( PDERROR, "Process delete record(%s) in "
                                 "handler failed, rc: %d",
-                                delObject.toString().c_str(), rc ) ;
+                                PD_SECURE_OBJ( delObject ), rc ) ;
                         goto error ;
                      }
                   }
@@ -4106,9 +4107,7 @@ namespace engine
                   {
                      PD_LOG( PDERROR, "Process update record[%s] to [%s] "
                              "in handler failed, rc: %d",
-                             obj.toString().c_str(),
-                             newobj.toString().c_str(),
-                             rc ) ;
+                             PD_SECURE_OBJ( obj ), PD_SECURE_OBJ( newobj ), rc ) ;
                      goto error ;
                   }
                }
@@ -4245,9 +4244,9 @@ namespace engine
                   }
                }
 
-               PD_LOG ( PDERROR, "Failed to update record from (%s) to (%s), "
-                        "rc: %d", obj.toString().c_str(),
-                        newobj.toString().c_str(), rc ) ;
+               PD_LOG ( PDERROR,
+                        "Failed to update record from (%s) to (%s), rc: %d",
+                        PD_SECURE_OBJ( obj ), PD_SECURE_OBJ( newobj ), rc ) ;
                goto error ;
             }
 
@@ -4278,10 +4277,8 @@ namespace engine
       if ( dpscb )
       {
          PD_LOG ( PDDEBUG, "oldChange: %s,%s\nnewChange: %s,%s",
-                  oldMatch.toString().c_str(),
-                  oldChg.toString().c_str(),
-                  newMatch.toString().c_str(),
-                  newChg.toString().c_str() ) ;
+                  PD_SECURE_OBJ( oldMatch ), PD_SECURE_OBJ( oldChg ),
+                  PD_SECURE_OBJ( newMatch ), PD_SECURE_OBJ( newChg ) ) ;
 
          PD_AUDIT_OP_WITHNAME( AUDIT_UPDATE, "UPDATE", AUDIT_OBJ_CL,
                                fullName, rc, "OldMatch:%s, OldChange:%s, "
