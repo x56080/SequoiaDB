@@ -1,8 +1,10 @@
 package com.sequoiadb.metadataconsistency.data;
 
+import com.sequoiadb.threadexecutor.ResultStore;
+import com.sequoiadb.threadexecutor.ThreadExecutor;
+import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -14,7 +16,6 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
  * TestLink: seqDB-10207: concurrency[createIdIndex, drop CS]
@@ -32,62 +33,51 @@ public class IdIndex10207 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         // start time
-        try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            // judge the mode or group number or node number
-            if ( CommLib.isStandAlone( sdb ) || CommLib.OneGroupMode( sdb )
-                    || MetaDataUtils.oneCataNode( sdb )
-                    || MetaDataUtils.oneDataNode( sdb ) ) {
-                throw new SkipException(
-                        "The mode is standlone or only one group or one node, "
-                                + "skip the testCase." );
-            }
-            MetaDataUtils.clearCS( sdb, csName );
-
-            sdb.createCollectionSpace( csName );
-            createCL( csName );
-            MetaDataUtils.insertData( sdb, csName, clName );
-        } catch ( BaseException e ) {
-            sdb.close();
-            Assert.fail( e.getMessage() );
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        // judge the mode or group number or node number
+        if ( CommLib.isStandAlone( sdb ) || CommLib.OneGroupMode( sdb )
+                || MetaDataUtils.oneCataNode( sdb )
+                || MetaDataUtils.oneDataNode( sdb ) ) {
+            throw new SkipException(
+                    "The mode is standlone or only one group or one node, "
+                            + "skip the testCase." );
         }
+        MetaDataUtils.clearCS( sdb, csName );
+
+        sdb.createCollectionSpace( csName );
+        createCL( csName );
+        MetaDataUtils.insertData( sdb, csName, clName );
     }
 
     @AfterClass
     public void tearDown() {
         try {
             MetaDataUtils.clearCS( sdb, csName );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
         } finally {
-            sdb.close();
+            if ( sdb != null ) {
+                sdb.close();
+            }
         }
     }
 
     @Test
-    public void test() throws InterruptedException {
-        CreadeIdIndex creadeIdIndex = new CreadeIdIndex();
-        creadeIdIndex.start();
-
-        DropCS dropCS = new DropCS();
-        dropCS.start();
-
-        if ( !( creadeIdIndex.isSuccess() && dropCS.isSuccess() ) ) {
-            Assert.fail( creadeIdIndex.getErrorMsg() + dropCS.getErrorMsg() );
-        }
+    public void test() throws Exception {
+        ThreadExecutor te = new ThreadExecutor();
+        te.addWorker( new CreadeIdIndex() );
+        te.addWorker( new DropCS() );
+        te.run();
 
         // check results
         MetaDataUtils.checkIndex( csName, clName );
         MetaDataUtils.checkCSOfCatalog( csName );
     }
 
-    private class CreadeIdIndex extends SdbThreadBase {
-        @Override
-        public void exec() throws BaseException {
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+    private class CreadeIdIndex extends ResultStore {
 
+        @ExecuteOrder(step = 1)
+        public void exec() throws BaseException {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
                 CollectionSpace csDB = db.getCollectionSpace( csName );
                 if ( csDB != null ) {
                     DBCollection clDB = csDB.getCollection( clName );
@@ -104,38 +94,30 @@ public class IdIndex10207 extends SdbTestBase {
                         && eCode != -248 && eCode != -190 ) {
                     throw e;
                 }
-            } finally {
-                db.close();
             }
         }
     }
 
-    private class DropCS extends SdbThreadBase {
-        @Override
+    private class DropCS extends ResultStore {
+
+        @ExecuteOrder(step = 1)
         public void exec() throws BaseException {
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
                 db.dropCollectionSpace( csName );
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
                 if ( eCode != -147 && eCode != -190 ) {
                     throw e;
                 }
-            } finally {
-                db.close();
             }
         }
     }
 
     public void createCL( String csName ) {
-        try {
-            BSONObject opt = new BasicBSONObject();
-            opt.put( "AutoIndexId", false );
-            sdb.getCollectionSpace( csName ).createCollection( clName, opt );
-        } catch ( BaseException e ) {
-            throw e;
-        }
+        BSONObject opt = new BasicBSONObject();
+        opt.put( "AutoIndexId", false );
+        sdb.getCollectionSpace( csName ).createCollection( clName, opt );
     }
 
 }

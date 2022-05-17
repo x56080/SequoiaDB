@@ -9,6 +9,9 @@ import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
+import com.sequoiadb.threadexecutor.ResultStore;
+import com.sequoiadb.threadexecutor.ThreadExecutor;
+import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
@@ -36,26 +39,21 @@ public class CS11418 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         // start time
-        try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            // judge the mode or node number
-            if ( CommLib.isStandAlone( sdb ) || MetaDataUtils.oneCataNode( sdb )
-                    || MetaDataUtils.oneDataNode( sdb ) ) {
-                throw new SkipException(
-                        "The mode is standlone or one node, skip the testCase." );
-            }
-            MetaDataUtils.clearCS( sdb, csName );
-
-            sdb.createCollectionSpace( mCSName );
-            sdb.createCollectionSpace( sCSName );
-            createMainCL( sdb );
-            createSubCL( sdb );
-            attachCL( sdb );
-            MetaDataUtils.insertData( sdb, mCSName, mCLName );
-        } catch ( BaseException e ) {
-            sdb.close();
-            Assert.fail( e.getMessage() );
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        // judge the mode or node number
+        if ( CommLib.isStandAlone( sdb ) || MetaDataUtils.oneCataNode( sdb )
+                || MetaDataUtils.oneDataNode( sdb ) ) {
+            throw new SkipException(
+                    "The mode is standlone or one node, skip the testCase." );
         }
+        MetaDataUtils.clearCS( sdb, csName );
+
+        sdb.createCollectionSpace( mCSName );
+        sdb.createCollectionSpace( sCSName );
+        createMainCL( sdb );
+        createSubCL( sdb );
+        attachCL( sdb );
+        MetaDataUtils.insertData( sdb, mCSName, mCLName );
     }
 
     @AfterClass
@@ -69,25 +67,22 @@ public class CS11418 extends SdbTestBase {
         }
     }
 
-    @Test(invocationCount = 10, threadPoolSize = 10)
-    public void test() {
-
-        DropMainCS dropMainCS = new DropMainCS();
-        dropMainCS.start();
-
-        DropSubCS dropSubCS = new DropSubCS();
-        dropMainCS.start();
-
-        if ( !( dropMainCS.isSuccess() && dropSubCS.isSuccess() ) ) {
-            Assert.fail( dropMainCS.getErrorMsg() + dropSubCS.getErrorMsg() );
+    @Test
+    public void test() throws Exception {
+        ThreadExecutor te = new ThreadExecutor();
+        for ( int i = 0; i < 10; i++ ) {
+            te.addWorker( new DropMainCS() );
+            te.addWorker( new DropSubCS() );
         }
+        te.run();
 
         // check results
         MetaDataUtils.checkCLResult( csName, clName );
     }
 
-    private class DropMainCS extends SdbThreadBase {
-        @Override
+    private class DropMainCS extends ResultStore {
+
+        @ExecuteOrder(step = 1)
         public void exec() throws BaseException {
             try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
@@ -106,8 +101,9 @@ public class CS11418 extends SdbTestBase {
         }
     }
 
-    private class DropSubCS extends SdbThreadBase {
-        @Override
+    private class DropSubCS extends ResultStore {
+
+        @ExecuteOrder(step = 1)
         public void exec() throws BaseException {
             try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
