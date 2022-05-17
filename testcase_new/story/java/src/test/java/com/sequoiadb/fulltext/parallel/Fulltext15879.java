@@ -101,7 +101,9 @@ public class Fulltext15879 extends FullTestBase {
             Assert.assertEquals( actRgNum, 2 );
             esIndexNames = FullTextDBUtils.getESIndexNames( cl, IDX_NAME );
         } else if ( threadSplit.getRetCode() != -321
-                && threadSplit.getRetCode() != -243 ) {
+                && threadSplit.getRetCode() != -243
+                && threadSplit.getRetCode() != -147
+                && threadSplit.getRetCode() != -190 ) {
             Assert.fail( "split fail, e: " + threadSplit.getRetCode() );
         } else {
             Assert.assertEquals( actRgNum, 1 );
