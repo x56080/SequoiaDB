@@ -40,6 +40,8 @@ public class Fulltext12065 extends FullTestBase {
         FullTextDBUtils.insertData( cl, FullTextUtils.INSERT_NUMS );
         Assert.assertTrue( FullTextUtils.isIndexCreated( cl, fullIndexName,
                 FullTextUtils.INSERT_NUMS ) );
+        cappedName = FullTextDBUtils.getCappedName( cl, fullIndexName );
+        esIndexName = FullTextDBUtils.getESIndexName( cl, fullIndexName );
 
         // 直连集合所在的数据节点主节点，使用游标的方式获取对应的固定集合中的一条记录
         List< DBCollection > cappedCLs = FullTextDBUtils.getCappedCLs( cl,
@@ -48,16 +50,13 @@ public class Fulltext12065 extends FullTestBase {
         DBCursor cursor = cappedCL.query();
         cursor.getNext();
 
-        // 多次执行删除集合空间的操作
+        // 删除集合空间
         if ( cappedCL.getCount() > 2 ) {
             sdb.dropCollectionSpace( csName );
         }
 
         // 检查结果
-        Assert.assertFalse( cursor.hasNext() );
-        cappedName = FullTextDBUtils.getCappedName( cl, fullIndexName );
-        esIndexName = FullTextDBUtils.getESIndexName( cl, fullIndexName );
-        FullTextDBUtils.dropCollectionSpace( sdb, csName );
+        Assert.assertFalse( sdb.isCollectionSpaceExist( csName ) );
         Assert.assertTrue(
                 FullTextUtils.isIndexDeleted( sdb, esIndexName, cappedName ) );
     }
