@@ -562,10 +562,10 @@ public class BSON {
         return _compatible;
     }
 
-    // Whether to use exactly date, default is true.
+    // Whether to use exactly date, default is false.
     // True:  only the year, month and day parts of java.util.Date are retained in BSON.encode()
     // False: java.util.Date remains intact in BSON.encode()
-    private static boolean exactlyDate = true;
+    private static boolean exactlyDate = false;
 
     public static void setExactlyDate( boolean value) {
         exactlyDate = value;
