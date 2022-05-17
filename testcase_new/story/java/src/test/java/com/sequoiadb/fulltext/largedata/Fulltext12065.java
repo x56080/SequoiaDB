@@ -7,7 +7,6 @@ import org.testng.annotations.Test;
 
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.fulltext.utils.FullTextDBUtils;
 import com.sequoiadb.fulltext.utils.FullTextUtils;
 import com.sequoiadb.testcommon.FullTestBase;
@@ -41,6 +40,8 @@ public class Fulltext12065 extends FullTestBase {
         FullTextDBUtils.insertData( cl, FullTextUtils.INSERT_NUMS );
         Assert.assertTrue( FullTextUtils.isIndexCreated( cl, fullIndexName,
                 FullTextUtils.INSERT_NUMS ) );
+        cappedName = FullTextDBUtils.getCappedName( cl, fullIndexName );
+        esIndexName = FullTextDBUtils.getESIndexName( cl, fullIndexName );
 
         // 直连集合所在的数据节点主节点，使用游标的方式获取对应的固定集合中的一条记录
         List< DBCollection > cappedCLs = FullTextDBUtils.getCappedCLs( cl,
@@ -49,28 +50,13 @@ public class Fulltext12065 extends FullTestBase {
         DBCursor cursor = cappedCL.query();
         cursor.getNext();
 
-        // 多次执行删除集合空间的操作
+        // 删除集合空间
         if ( cappedCL.getCount() > 2 ) {
-            for ( int i = 0; i < 3; i++ ) {
-                try {
-                    sdb.dropCollectionSpace( csName );
-                    Assert.fail( "drop cs need to return -147!" );
-                } catch ( BaseException e ) {
-                    Assert.assertEquals( e.getErrorCode(), -147,
-                            e.getMessage() );
-                }
-            }
+            sdb.dropCollectionSpace( csName );
         }
 
-        // 关闭打开的游标
-        if ( cursor != null ) {
-            cursor.close();
-        }
-
-        // 关闭步骤2中打开的游标后，再次删除集合空间
-        cappedName = FullTextDBUtils.getCappedName( cl, fullIndexName );
-        esIndexName = FullTextDBUtils.getESIndexName( cl, fullIndexName );
-        FullTextDBUtils.dropCollectionSpace( sdb, csName );
+        // 检查结果
+        Assert.assertFalse( sdb.isCollectionSpaceExist( csName ) );
         Assert.assertTrue(
                 FullTextUtils.isIndexDeleted( sdb, esIndexName, cappedName ) );
     }
