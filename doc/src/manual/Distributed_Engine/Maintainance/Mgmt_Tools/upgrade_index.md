@@ -21,19 +21,19 @@ sdbupgradeidx [ options ] ...
 
     获取版本信息
 
-- **--hostname, -s <coord hostname>**  
+- **--hostname, -s \<coord hostname\>**  
 
     指定协调节点所在的主机名
   
-- **--svcname, -p <coord port>**  
+- **--svcname, -p \<coord port\>**  
   
     指定协调节点的端口号
   
-- **--output, -o <output file>**  
+- **--output, -o \<output file\>**  
 
     指定输出报告的文件路径，默认输出在当前路径下的 `sdbupgradeidx.log` 文件中
   
-- **--action <action>**  
+- **--action \<action\>**  
 
     指定操作，取值如下：
  
