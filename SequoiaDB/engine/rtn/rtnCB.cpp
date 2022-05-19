@@ -234,14 +234,6 @@ namespace engine
          }
       }
 
-      // This assert is to ensure that the same edu resumes a previous context
-#ifdef _DEBUG
-      if ( pContext && pContext->getMonQueryCB() && cb)
-      {
-         SDB_ASSERT( cb->getMonQueryCB() == pContext->getMonQueryCB(), "Mismatch monQuery" ) ;
-      }
-#endif
-
       return pContext ;
    }
 
@@ -277,6 +269,25 @@ namespace engine
               pContext->getW() > 1 )
          {
             pContext->getDPSCB()->completeOpr( cb, pContext->getW() ) ;
+         }
+
+         monClassQuery *monQueryCB = pContext->getMonQueryCB() ;
+         if ( NULL != monQueryCB )
+         {
+            monQueryCB->anchorToContext = FALSE ;
+            // Usuaully the monQuery will get removed/archived
+            // at the point when pmd processMsg ends with data
+            // collected at that time.
+            // But if this context is cleaned and pmd currently
+            // is not processing the query this context belongs to.
+            // Which also means the original query this context
+            // belongs to ends unexpectedly.
+            // We need to clean the monQuery.
+            if ( cb->getMonQueryCB() != monQueryCB )
+            {
+               pmdGetKRCB()->getMonMgr()->removeMonitorObject( monQueryCB ) ;
+            }
+            pContext->setMonQueryCB( NULL ) ;
          }
 
          sdbGetRTNContextBuilder()->release( pContext ) ;
