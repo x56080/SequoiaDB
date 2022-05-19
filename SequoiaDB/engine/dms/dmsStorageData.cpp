@@ -809,9 +809,6 @@ namespace engine
 
       INT32  j                      = 0 ;
       INT32  i                      = 0 ;
-      dmsRecordID foundDeletedID  ;
-      dmsRecordRW delRecordRW ;
-      const dmsDeletedRecord* pRead = NULL ;
       dpsTransCB *pTransCB          = pmdGetKRCB()->getTransCB() ;
       dpsTransRetInfo retInfo ;
 
@@ -837,16 +834,83 @@ namespace engine
       {
          for ( j = deleteRecordSlot ; j < dmsMB::_max ; ++j )
          {
+            dmsRecordID foundDeletedID  ;
             dmsRecordRW preRW ;
-            // get the first delete record from delete list
-            foundDeletedID = context->mb()->_deleteList[j] ;
+            BOOLEAN startFromHead = FALSE ;
+
+            // if searching the slot of the last search position,
+            // we can try to start from last search position
+            if ( j == context->mbStat()->_lastSearchSlot )
+            {
+               if ( j == deleteRecordSlot )
+               {
+                  // it is the first loop, we can use last search position
+                  dmsRecordID lastRID = context->mbStat()->_lastSearchRID ;
+                  if ( lastRID.isValid() )
+                  {
+                     dmsRecordRW lastRW = record2RW( lastRID, context->mbID() ) ;
+                     const dmsDeletedRecord *pLast =
+                                             lastRW.readPtr<dmsDeletedRecord>() ;
+                     SDB_ASSERT( pLast->isDeleted(),
+                                 "last search position should be deleted" ) ;
+                     if ( pLast->isDeleted() )
+                     {
+                        foundDeletedID = pLast->getNextRID() ;
+                        if ( foundDeletedID.isValid() )
+                        {
+                           preRW = lastRW ;
+                        }
+                     }
+                     else
+                     {
+                        // the last search position is not deleted any more,
+                        // just clear last search info
+                        context->mbStat()->_lastSearchSlot = dmsMB::_max ;
+                        context->mbStat()->_lastSearchRID.reset() ;
+                     }
+                  }
+               }
+               else
+               {
+                  // not the first loop, if we start from the search position,
+                  // the header record of this slot may never be touched, so we
+                  // clear the last search position, and start from the header
+                  context->mbStat()->_lastSearchSlot = dmsMB::_max ;
+                  context->mbStat()->_lastSearchRID.reset() ;
+               }
+            }
+
+            if ( foundDeletedID.isNull() )
+            {
+               // get the first delete record from delete list
+               foundDeletedID = context->mb()->_deleteList[j] ;
+               // mark start from head
+               startFromHead = TRUE ;
+            }
+
             for ( i = 0 ; i < s_maxSearch ; ++i )
             {
-               // if we don't get a valid record id, we break to get next slot
+               dmsRecordRW delRecordRW ;
+               const dmsDeletedRecord* pRead = NULL ;
+
                if ( foundDeletedID.isNull() )
                {
-                  break ;
+                  // if we don't get a valid record id
+                  if ( startFromHead )
+                  {
+                     // we already started from head, break to get next slot
+                     break ;
+                  }
+                  else
+                  {
+                     // we started from middle, try restart
+                     foundDeletedID = context->mb()->_deleteList[j] ;
+                     preRW = dmsRecordRW() ;
+                     // mark start from head ( we only restart once )
+                     startFromHead = TRUE ;
+                  }
                }
+
                delRecordRW = record2RW( foundDeletedID, context->mbID() ) ;
                pRead = delRecordRW.readPtr<dmsDeletedRecord>() ;
 
@@ -866,6 +930,12 @@ namespace engine
                      {
                         // it's just the first one from delete list, let's get it
                         context->mb()->_deleteList[j] = pRead->getNextRID() ;
+                        // save the last search position
+                        if ( j == deleteRecordSlot )
+                        {
+                           context->mbStat()->_lastSearchSlot = deleteRecordSlot ;
+                           context->mbStat()->_lastSearchRID.reset() ;
+                        }
                      }
                      else
                      {
@@ -873,6 +943,12 @@ namespace engine
                            preRW.writePtr<dmsDeletedRecord>() ;
                         // we need to link the previous delete record to the next
                         preWrite->setNextRID( pRead->getNextRID() ) ;
+                        // save the last search position
+                        if ( j == deleteRecordSlot )
+                        {
+                           context->mbStat()->_lastSearchSlot = deleteRecordSlot ;
+                           context->mbStat()->_lastSearchRID = preRW.getRecordID() ;
+                        }
                      }
 
                      // change extent free space
@@ -896,6 +972,27 @@ namespace engine
                //for some reason this slot can't be reused, let's get to the next
                preRW = delRecordRW ;
                foundDeletedID = pRead->getNextRID() ;
+            }
+
+            // save the last search position
+            if ( j == deleteRecordSlot )
+            {
+               if ( preRW.isEmpty() )
+               {
+                  // has no previous record, we start the next search from
+                  // the header of delete list anywat
+                  // so no need to save the last search position
+                  context->mbStat()->_lastSearchSlot = dmsMB::_max ;
+                  context->mbStat()->_lastSearchRID.reset() ;
+               }
+               else
+               {
+                  // has previous record, we can start the next search from
+                  // this previous record
+                  // so save the last search position with previous record
+                  context->mbStat()->_lastSearchSlot = deleteRecordSlot ;
+                  context->mbStat()->_lastSearchRID = preRW.getRecordID() ;
+               }
             }
          }
       }
@@ -943,9 +1040,13 @@ namespace engine
                                               const dmsRecordID &rid,
                                               INT32 recordSize,
                                               dmsExtent *extAddr,
-                                              dmsDeletedRecord *pRecord )
+                                              dmsDeletedRecord *pRecord,
+                                              BOOLEAN isRecycle )
    {
       UINT8 deleteRecordSlot = 0 ;
+      BOOLEAN isSaved = FALSE ;
+      UINT16 mbID = mb->_blockID ;
+      dmsMBStatInfo &mbStatInfo = _mbStatInfo[ mbID ] ;
 
       SDB_ASSERT( extAddr && pRecord, "NULL Pointer" ) ;
 
@@ -972,18 +1073,42 @@ namespace engine
 
       // change free space
       extAddr->_freeSpace += recordSize ;
-      _mbStatInfo[mb->_blockID]._totalDataFreeSpace += recordSize ;
+      mbStatInfo._totalDataFreeSpace += recordSize ;
 
       // let's count which delete slots it fits
       deleteRecordSlot = dmsMBGetSpaceSlot( recordSize ) ;
       // make sure we don't mis calculated it
       SDB_ASSERT ( deleteRecordSlot < dmsMB::_max, "Invalid record size" ) ;
 
-      // set the first matching delete slot to the
-      // next rid for the deleted record
-      pRecord->setNextRID( mb->_deleteList [ deleteRecordSlot ] ) ;
-      // Then assign MB delete slot to the extent and offset
-      mb->_deleteList[ deleteRecordSlot ] = rid ;
+      if ( isRecycle &&
+           mbStatInfo._lastSearchSlot == deleteRecordSlot &&
+           mbStatInfo._lastSearchRID.isValid() )
+      {
+         // insert the current record to the last search position,
+         // so the next search can check from this position
+         dmsRecordRW lastRecordRW = record2RW( mbStatInfo._lastSearchRID,
+                                               mbID ) ;
+         dmsDeletedRecord* lastRecord =
+                                 lastRecordRW.writePtr<dmsDeletedRecord>() ;
+         SDB_ASSERT( lastRecord->isDeleted(),
+                     "last search position should be deleted" ) ;
+         if ( lastRecord->isDeleted() )
+         {
+            pRecord->setNextRID( lastRecord->getNextRID() ) ;
+            lastRecord->setNextRID( rid ) ;
+            isSaved = TRUE ;
+         }
+      }
+
+      if ( !isSaved )
+      {
+         // set the first matching delete slot to the
+         // next rid for the deleted record
+         pRecord->setNextRID( mb->_deleteList [ deleteRecordSlot ] ) ;
+         // Then assign MB delete slot to the extent and offset
+         mb->_deleteList[ deleteRecordSlot ] = rid ;
+      }
+
       PD_TRACE_EXIT ( SDB__DMSSTORAGEDATA__SAVEDELETEDRECORD ) ;
       return SDB_OK ;
    }
@@ -1015,7 +1140,7 @@ namespace engine
          dmsExtent *pExtent = rw.writePtr<dmsExtent>() ;
          dmsDeletedRecord* pRecord = recordRW.writePtr<dmsDeletedRecord>() ;
          rc = _saveDeletedRecord ( mb, recordID, recordSize,
-                                   pExtent, pRecord ) ;
+                                   pExtent, pRecord, TRUE ) ;
       }
       catch( std::exception &e )
       {
@@ -1074,7 +1199,8 @@ namespace engine
          dmsRecordID rid( extentID, recordOffset ) ;
          dmsRecordRW rRW = record2RW( rid, mb->_blockID ) ;
          _saveDeletedRecord( mb, rid, deleteRecordSize,
-                             extAddr, rRW.writePtr<dmsDeletedRecord>() ) ;
+                             extAddr, rRW.writePtr<dmsDeletedRecord>(),
+                             FALSE ) ;
          curUseableSpace -= deleteRecordSize ;
          recordOffset += deleteRecordSize ;
       }
@@ -1084,7 +1210,8 @@ namespace engine
          dmsRecordID rid( extentID, recordOffset ) ;
          dmsRecordRW rRW = record2RW( rid, mb->_blockID ) ;
          _saveDeletedRecord( mb, rid, DMS_PAGE_SIZE4K,
-                             extAddr, rRW.writePtr<dmsDeletedRecord>() ) ;
+                             extAddr, rRW.writePtr<dmsDeletedRecord>(),
+                             FALSE ) ;
          curUseableSpace -= DMS_PAGE_SIZE4K ;
          recordOffset += DMS_PAGE_SIZE4K ;
       }
@@ -1094,7 +1221,8 @@ namespace engine
          dmsRecordID rid( extentID, recordOffset ) ;
          dmsRecordRW rRW = record2RW( rid, mb->_blockID ) ;
          _saveDeletedRecord( mb, rid, curUseableSpace,
-                             extAddr, rRW.writePtr<dmsDeletedRecord>() ) ;
+                             extAddr, rRW.writePtr<dmsDeletedRecord>(),
+                             FALSE ) ;
       }
 
       // correct check

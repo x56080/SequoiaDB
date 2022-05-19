@@ -443,6 +443,11 @@ namespace engine
       // - updated after commit of transaction with lock escalated
       ossAtomic64 _globTransAvailTime ;
 
+      // the last search slot of delete list
+      UINT8       _lastSearchSlot ;
+      // the last search position of delete list
+      dmsRecordID _lastSearchRID ;
+
       void reset()
       {
          _totalRecords           = 0 ;
@@ -482,6 +487,8 @@ namespace engine
             _idxHashFields[ i ].reset() ;
          }
          _globTransAvailTime.init( 0 ) ;
+         _lastSearchSlot = dmsMB::_max ;
+         _lastSearchRID.reset() ;
       }
 
       void updateLastLSN( UINT64 lsn, DMS_FILE_TYPE type )
