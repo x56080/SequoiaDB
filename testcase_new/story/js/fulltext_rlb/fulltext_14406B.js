@@ -1,9 +1,10 @@
-/************************************
-*@Description: 异常启动DB主节点不影响全文索引功能，且重启后新主为新主节点
-*@author:      liuxiaoxuan
-*@createdate:  2019.08.21
-*@testlinkCase: seqDB-14406
-**************************************/
+/******************************************************************************
+ * @Description   : seqDB-14406：异常启动DB主节点不影响全文索引功能，且重启后新主为新主节点
+ * @Author        : XiaoNi Huang
+ * @CreateTime    : 2022.03.29
+ * @LastEditTime  : 2022.05.19
+ * @LastEditors   : XiaoNi Huang
+ ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.skipOneDuplicatePerGroup = true;
 //SEQUOIADBMAINSTREAM-6439
@@ -46,7 +47,14 @@ function test ()
    var doTimes = 1;
    for( ; doTimes <= 50; doTimes++ )
    {
-      cmd.run( "ps -ef | grep sequoiadb | grep -v grep | grep " + preMaster.getServiceName() + " | awk '{print $2}' | xargs kill -9" );
+      try
+      {
+         cmd.run( "ps -ef | grep sequoiadb | grep -v grep | grep " + preMaster.getServiceName() + " | awk '{print $2}' | xargs kill -9" );
+      }
+      catch( e )
+      {
+         //忽略异常
+      }
       // 等待2min，检查数据组所有节点LSN是否一致
       checkGroupBusiness( 120, COMMCSNAME, clName );
       var curMaster = db.getRG( groupName ).getMaster();
