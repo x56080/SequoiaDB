@@ -133,7 +133,7 @@ namespace vessel
    {
       SDB_ASSERT(isValid(), "can not be invalid");
       strictBuffer buffer;
-      if (isValidAccessing(offset, size))
+      if (isWritable() && isValidAccessing(offset, size))
       {
          buffer.makeWritable(size, _wptr + offset);
       }
