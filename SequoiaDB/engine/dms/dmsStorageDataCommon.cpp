@@ -1696,6 +1696,8 @@ namespace engine
       context->mbStat()->_totalDataLen = 0 ;
       context->mbStat()->_totalOrgDataLen = 0 ;
       context->mbStat()->_blockIndexCreatingCount = 0 ;
+      context->mbStat()->_lastSearchSlot = dmsMB::_max ;
+      context->mbStat()->_lastSearchRID.reset() ;
 
       {
          dmsTransLockCallback callback( pmdGetKRCB()->getTransCB(), NULL ) ;

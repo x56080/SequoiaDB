@@ -436,6 +436,11 @@ namespace engine
       ixmIdxHashBitmap _clIdxHashBitmap ;
       ixmIdxHashArray  _idxHashFields[ IXM_IDX_HASH_MAX_INDEX_NUM ] ;
 
+      // the last search slot of delete list
+      UINT8       _lastSearchSlot ;
+      // the last search position of delete list
+      dmsRecordID _lastSearchRID ;
+
       void reset()
       {
          _totalRecords           = 0 ;
@@ -474,6 +479,8 @@ namespace engine
          {
             _idxHashFields[ i ].reset() ;
          }
+         _lastSearchSlot = dmsMB::_max ;
+         _lastSearchRID.reset() ;
       }
 
       void updateLastLSN( UINT64 lsn, DMS_FILE_TYPE type )
