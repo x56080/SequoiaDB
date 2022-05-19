@@ -34,6 +34,8 @@ public class CollectionSpace {
     private String name;
     private Sequoiadb sequoiadb;
 
+    private static final String FIELD_NAME_DOMAIN = "Domain";
+
     /**
      * Return the name of current collection space.
      *
@@ -297,17 +299,21 @@ public class CollectionSpace {
      * @throws BaseException If error happens.
      */
     public String getDomainName(){
-        String result= null;
+        String result = null;
         String cmd = "select Domain from $LIST_CS where Name = '" + this.name + "'";
         DBCursor cursor = sequoiadb.exec(cmd);
-        if (cursor.hasNext()) {
-            BSONObject obj = cursor.getNext();
-            result = (String) obj.get("Domain");
+        try
+        {
+            if (cursor.hasNext()) {
+                BSONObject obj = cursor.getNext();
+                result = (String) obj.get(FIELD_NAME_DOMAIN);
+            }
+            return result == null ? "" : result;
         }
-        if (result == null){
-            result = "";
+        finally
+        {
+            cursor.close();
         }
-        return result;
     }
 
     /**
