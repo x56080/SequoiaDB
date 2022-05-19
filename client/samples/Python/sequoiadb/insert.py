@@ -1,48 +1,39 @@
 #! /usr/bin/python
 
-import pysequoiadb
-from pysequoiadb import client
-from pysequoiadb.error import (SDBTypeError,
-                               SDBBaseError,
-                               SDBEndOfCursor)
-
-from bson.objectid import ObjectId
+from pysequoiadb import *
 
 if __name__ == "__main__":
 
+   host = "localhost"
+   port = 11810
+   cs_name = 'sample'
+   cl_name = 'employee'
+
+   db = client(host, port)
    try:
-      # connect to local db, using default args value.
-      # host= '192.168.20.48', port= 11810, user= '', password= ''
-      db = client("192.168.20.48", 11810)
-
-      cs_name = "gymnasium"
       cs = db.create_collection_space(cs_name)
+      cl = cs.create_collection(cl_name)
 
-      cl_name = "sports"
-      cl = cs.create_collection(cl_name, {"ReplSize":0})
+      record1 = {"name": "Tom", "age": 24}
+      record2 = {"name": "Jack", "age": 22}
+      docs = [record1, record2]
 
-      # insert single record
-      basketball = {"Item":"basketball", "id":0}
-      oid = cl.insert(basketball)
+      # case 1: insert
+      result1 = cl.insert(record1)
+      print(result1)
 
-      # insert records
-      records = []
-      for idx in range(2, 10):
-         sport = {"sport id":idx}
-         records.append(sport)
-      cl.bulk_insert(1, records)
+      # case 2: insert_with_flag
+      result2 = cl.insert_with_flag(record2)
+      print(result2)
 
-      # drop collection
-      cs.drop_collection( cl_name )
-      del cl
-      # drop collection space
+      # case 3: bulk_insert
+      result3 = cl.bulk_insert(collection.INSERT_FLG_REPLACEONDUP, docs)
+      print(result3)
+
+      # clear
+      cs.drop_collection(cl_name)
       db.drop_collection_space(cs_name)
-      del cs
-
-      db.disconnect()
-      del db
-
-      print("Success")
-
-   except (SDBTypeError, SDBBaseError) as e:
+   except SDBBaseError as e:
       print(e)
+   finally:
+      db.disconnect()
