@@ -2071,8 +2071,18 @@ namespace engine
 
                if ( NULL != mainPlan )
                {
-                  // cache main-collection plan
-                  _cacheAccessPlan( mainPlan ) ;
+                  // we won't cache the main-collection plan in below cases
+                  // - the hint is failed, which means some indexes may not exist
+                  //   in current sub-collection
+                  // - the plan is table scan, which means the current
+                  //   sub-collection does not have matched index, but this does
+                  //   not mean other sub-collections do not have
+                  if ( ( !mainPlan->isHintFailed() ) &&
+                       ( IXSCAN == mainPlan->getScanType() ) )
+                  {
+                     // cache main-collection plan
+                     _cacheAccessPlan( mainPlan ) ;
+                  }
                   // release main-collection plan, since we will use the
                   // sub-collection plan for the this time
                   mainPlan->release() ;
