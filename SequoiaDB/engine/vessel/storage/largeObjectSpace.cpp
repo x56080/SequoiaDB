@@ -86,9 +86,8 @@ namespace vessel
 
    void largeObjectSpace::close()
    {
-      if (_allocator.isValid() &&
-          _uberBlock.isValid() &&
-          _allocator.peekSegmentCount() != _uberBlock.totalLobdSegments)
+      if (_uberBlock.isValid() &&
+          _allocator.peekSegmentCount() != _uberBlock.sub.totalSegments)
       {
          mmapPagePointer ptr;
          INT32 rc = _metaFile.getPagePtr(UBER_BLOCK_PID, ptr);
@@ -100,7 +99,7 @@ namespace vessel
          {
             strictBuffer buffer;
             buffer.makeWritable(_metaFile.getPageSize(), ptr.getBuf());
-            buffer.getWritableObjPtr<lobmUberBlock>(0)->totalLobdSegments =
+            buffer.getWritableObjPtr<lobmUberBlock>(0)->sub.totalSegments =
                                             _allocator.peekSegmentCount();
             _metaFile.fsync();
          }
@@ -111,7 +110,7 @@ namespace vessel
    void largeObjectSpace::_close()
    {
       _fcluster.close();
-      _allocator.clear();
+      _allocator.reset();
       _metaFile.close();
       _uberBlock.reset();
    }
@@ -121,7 +120,7 @@ namespace vessel
       if (isOpen())
       {
          _fcluster.destroy();
-         _allocator.clear();
+         _allocator.reset();
          _metaFile.destroy();
          _uberBlock.reset();
       }
@@ -132,6 +131,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(!isOpen(), "can not be open");
       storageFileManifest fileManifest;
+      variableExtentAllocator::options o;
 
       if (OSS_UNLIKELY(nullptr == loader))
       {
@@ -178,17 +178,19 @@ namespace vessel
          goto error;
       }
 
-      if (_fcluster.getMaxSegmentCount() < _uberBlock.totalLobdSegments)
+      if (_fcluster.getTotalSegmentCount() < _uberBlock.sub.totalSegments)
       {
          PD_LOG(PDERROR, "segment count in uber block[%d] does not match cluster[%d]",
-                _uberBlock.totalLobdSegments, _fcluster.getMaxSegmentCount());
+                _uberBlock.sub.totalSegments, _fcluster.getTotalSegmentCount());
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      _allocator.init(_manifest->lobArgs.maxPageCountPerSeg,
-                      MAX_LOB_CHUNK_SIZE / _manifest->lobArgs.pageSize);
-      for (UINT32 i = 0; i < _uberBlock.totalLobdSegments; ++i)
+      o.maxPageCountPerSegment = _manifest->lobArgs.maxPageCountPerSeg;
+      o.maxSegmentCountPerFile - _manifest->lobArgs.maxSegmentCountPerFile;
+      o.minSegFreeCntReused = 8;
+      _allocator.init(o);
+      for (UINT32 i = 0; i < _uberBlock.sub.totalSegments; ++i)
       {
          strictBuffer smeBuffer;
          rc = getLobdSme(i, smeBuffer);
@@ -198,7 +200,7 @@ namespace vessel
             goto error;
          }
 
-         rc = _allocator.depositWithSme((UINT64 *)(smeBuffer.getWPtr()), FALSE);
+         rc = _allocator.deposit((UINT64 *)(smeBuffer.getWPtr()), TRUE);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to deposit segment[%d], rc:%d", i, rc);
@@ -270,6 +272,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       storageFileManifest fileManifest;
+      variableExtentAllocator::options o;
 
       std::unique_lock<std::mutex> guard(_mutex);
       if (isOpen())
@@ -289,8 +292,10 @@ namespace vessel
          goto error;
       }
 
-      _allocator.init(_manifest->lobArgs.maxPageCountPerSeg,
-                      MAX_LOB_CHUNK_SIZE / _manifest->lobArgs.pageSize);
+      o.maxPageCountPerSegment = _manifest->lobArgs.maxPageCountPerSeg;
+      o.maxSegmentCountPerFile - _manifest->lobArgs.maxSegmentCountPerFile;
+      o.minSegFreeCntReused = 8;
+      _allocator.init(o);
 
       rc = _initUberBlock();
       if (SDB_OK != rc)
@@ -358,8 +363,8 @@ namespace vessel
          }
          buffer.makeWritable(_metaFile.getPageSize(), ptr.getBuf());
          buffer.setBuffer(0xFF);
-         uberBlock->lobdSmeEntryPid = pid;
-         uberBlock->totalLobdSegments = 0;
+         uberBlock->sub.entryPid = pid;
+         uberBlock->sub.totalSegments = 0;
       }
 
       /// bucket entry
@@ -378,7 +383,7 @@ namespace vessel
          uberBlock->bucketEntryPid = pid;
       }
 
-      uberBlock->version = LOBM_UBER_BLOCK_VERSION;
+      uberBlock->version = lobmUberBlock::VERSION;
       _uberBlock = *uberBlock;
 
    done:
@@ -525,8 +530,8 @@ namespace vessel
       do
       {
          UINT32 segmentCount = 0;
-         pid = _allocator.reserve(pcnt, &segmentCount);
-         if (INVALID_PAGE_ID != pid)
+         rc = _allocator.reserveExtent(pcnt, segmentCount, pid);
+         if (SDB_OK == rc)
          {
             break;
          }
@@ -538,7 +543,7 @@ namespace vessel
             {
                continue;
             }
-            else if (_allocator.peekSegmentCount() < _fcluster.getMaxSegmentCount())
+            else if (_allocator.peekSegmentCount() < _fcluster.getTotalSegmentCount())
             {
                rc = ensureLobdSme(_allocator.peekSegmentCount(), smeBuffer);
                if (SDB_OK != rc)
@@ -550,7 +555,8 @@ namespace vessel
             }
             else
             {
-               SDB_ASSERT(_allocator.peekSegmentCount() == _fcluster.getMaxSegmentCount(), "impossible");
+               SDB_ASSERT(_allocator.peekSegmentCount() == _fcluster.getTotalSegmentCount(),
+                          "impossible");
                rc = extendNewLobdSegment(smeBuffer);
                if (SDB_OK != rc)
                {
@@ -561,7 +567,7 @@ namespace vessel
 
             SDB_ASSERT(smeBuffer.isWritable(), "must be writable");
             smeBuffer.setBuffer(0xFF);
-            rc = _allocator.depositWithSme(smeBuffer.getWritableObjPtr<UINT64>(0), TRUE);
+            rc = _allocator.deposit(smeBuffer.getWritableObjPtr<UINT64>(0), FALSE);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to deposit segment:%d", rc);
@@ -603,7 +609,7 @@ namespace vessel
    INT32 largeObjectSpace::extendNewLobdSegment(strictBuffer &smeBuffer)
    {
       INT32 rc = SDB_OK;
-      rc = ensureLobdSme(_fcluster.getMaxSegmentCount(), smeBuffer);
+      rc = ensureLobdSme(_fcluster.getTotalSegmentCount(), smeBuffer);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to ensure lobd sme:%d", rc);
@@ -636,11 +642,11 @@ namespace vessel
       PAGE_ID newPid = INVALID_PAGE_ID;
       buffer.reset();
 
-      rc = _metaFile.getPagePtr(_uberBlock.lobdSmeEntryPid, ptr);
+      rc = _metaFile.getPagePtr(_uberBlock.sub.entryPid, ptr);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          PD_LOG(PDERROR, "failed to get lobm page[%d] ptr:%d",
-                _uberBlock.lobdSmeEntryPid);
+                _uberBlock.sub.entryPid);
          goto error;
       }
 
@@ -704,11 +710,11 @@ namespace vessel
 
       buffer.reset();
 
-      rc = _metaFile.getPagePtr(_uberBlock.lobdSmeEntryPid, ptr);
+      rc = _metaFile.getPagePtr(_uberBlock.sub.entryPid, ptr);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          PD_LOG(PDERROR, "failed to get lobm page[%d] ptr:%d",
-                _uberBlock.lobdSmeEntryPid);
+                _uberBlock.sub.entryPid);
          goto error;
       }
 
@@ -897,7 +903,7 @@ namespace vessel
          for (UINT32 i = 0; i < chain.getChainSize(); ++i)
          {
             const lextentDescriptor &desc = chain.getChainItem(i);
-            _allocator.release(desc.pid, desc.pcnt);
+            _allocator.freeExtent(desc.pid, desc.pcnt);
          }
       }
    done:
@@ -1200,7 +1206,7 @@ namespace vessel
    error:
       if (desc.isValid())
       {
-         _allocator.release(desc.pid, desc.pcnt);
+         _allocator.freeExtent(desc.pid, desc.pcnt);
       }
       goto done;
    }
@@ -1250,7 +1256,7 @@ namespace vessel
             rc = mapping.appendBlockToChain(&newBlock);
             if (SDB_OK != rc)
             {
-               _allocator.release(newDesc.pid, newDesc.pcnt);
+               _allocator.freeExtent(newDesc.pid, newDesc.pcnt);
                PD_LOG(PDERROR, "failed to append new tail to chain:%d", rc);
                goto error;
             }
@@ -1315,7 +1321,7 @@ namespace vessel
 
       for (auto itr = discarded.cbegin(); itr != discarded.cend(); ++itr)
       {
-         _allocator.release(itr->pid, itr->pcnt);
+         _allocator.freeExtent(itr->pid, itr->pcnt);
       }
    done:
       return rc;
