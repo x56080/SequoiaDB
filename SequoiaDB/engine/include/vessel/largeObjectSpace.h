@@ -38,7 +38,7 @@
 
 #include "vessel/lobMetaDataFile.h"
 #include "vessel/storageFileCluster.h"
-#include "vessel/lobmUberBlock.h"
+#include "vessel/metaDataUberBlock.h"
 #include "vessel/variableExtentAllocator.h"
 #include "vessel/lobcExtentChain.h"
 #include "vessel/lobChunkKey.h"
