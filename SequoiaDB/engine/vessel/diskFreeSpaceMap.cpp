@@ -49,7 +49,6 @@ namespace vessel
 
    diskFreeSpaceMap::diskFreeSpaceMap()
    {
-      SDB_ASSERT(ossIsPowerOf2(FSM_ENTRY_SLOT_COUNT), "must be power of 2");
    }
 
    diskFreeSpaceMap::~diskFreeSpaceMap()
@@ -487,8 +486,8 @@ namespace vessel
             goto error;
          }
 
-         ownerPageNo = (bitmapNo - 1) / FSM_BITMAP_OWNER_PAGE_CAPAITY;
-         pos = (bitmapNo - 1) % FSM_BITMAP_OWNER_PAGE_CAPAITY;
+         ownerPageNo = (bitmapNo - 1) / FSM_BITMAP_OWNER_PAGE_CAPACITY;
+         pos = (bitmapNo - 1) % FSM_BITMAP_OWNER_PAGE_CAPACITY;
 
          rc = ensureOwnerPage(ownerPageNo + 1);
          if (SDB_OK != rc)
@@ -904,22 +903,9 @@ namespace vessel
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
       SDB_ASSERT(DMS_INVALID_LOGICCLID != logicalID, "can not be invalid");
       SDB_ASSERT(NULL != _fsmFile, "can not be null");
-
-      PAGE_ID pid = INVALID_PAGE_ID;
-      ossValuePtr ptr = 0;
-      const fsmCLEntry *slot = NULL; 
-
-      pid = getEntryPid(mbID);
-      rc = _fsmFile->getPagePtr(pid, ptr);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get page[%d] from fsm file, rc:%d", pid, rc);
-         goto error;
-      }
-
-      slot = getEntryFromPagePtr(ptr, mbID);
+      
+      fsmCLEntry *slot = _fsmFile->getEntrySlotPtr(mbID);
       SDB_ASSERT(NULL != slot, "can not be null");
-
       if (!isValidFsmEntry(*slot) || logicalID != slot->logicalID)
       {
          PD_LOG(PDERROR, "entry slot of [%d] is broken", mbID);
@@ -965,7 +951,7 @@ namespace vessel
       ownerPid = head->next;
       while (INVALID_PAGE_ID != ownerPid)
       {
-         UINT32 bitmapPageNo = _bitmapOwners.size() * FSM_BITMAP_OWNER_PAGE_CAPAITY + 1;
+         UINT32 bitmapPageNo = _bitmapOwners.size() * FSM_BITMAP_OWNER_PAGE_CAPACITY + 1;
          fsmBitmapOwnerPage *owner = NULL;
          _bitmapOwners.push_back(ownerPid);
 
@@ -977,7 +963,7 @@ namespace vessel
          }
 
          owner = (fsmBitmapOwnerPage *)head;
-         for (UINT32 i = 0; i < FSM_BITMAP_OWNER_PAGE_CAPAITY; ++i)
+         for (UINT32 i = 0; i < FSM_BITMAP_OWNER_PAGE_CAPACITY; ++i)
          {
             fsmPageHead *bitmapPageHead = NULL;
             pageCountInBitmap = totalCount < FSM_BITMAP_PAGE_CAPACITY ?
@@ -1048,23 +1034,10 @@ namespace vessel
       SDB_ASSERT(isValidFsmEntry(entry), "must be valid");
       SDB_ASSERT(NULL != _fsmFile, "can not be null");
 
-      ossValuePtr ptr = 0;
-      PAGE_ID pid = INVALID_PAGE_ID;
-      fsmCLEntry *slot = NULL;
-
-      pid = getEntryPid(mbID);
-      rc = _fsmFile->getPagePtr(pid, ptr);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get page[%d] from fsm file, rc:%d", pid, rc);
-         goto error;
-      }
-
-      slot = getEntryFromPagePtr(ptr, mbID);
+      fsmCLEntry *slot = _fsmFile->getEntrySlotPtr(mbID);
       SDB_ASSERT(NULL != slot, "can not be null");
       *slot = entry;
-
-      rc = _fsmFile->fsyncPage(pid, TRUE);
+      rc = _fsmFile->fsyncEntry(mbID);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to fsync entry slot:%d", rc);
@@ -1080,24 +1053,11 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
-      ossValuePtr ptr = 0;
-      PAGE_ID pid = INVALID_PAGE_ID;
-      fsmCLEntry *slot = NULL;
-
-      pid = getEntryPid(mbID);
-      rc = _fsmFile->getPagePtr(pid, ptr);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get page[%d] from fsm file, rc:%d", pid, rc);
-         goto error;
-      }
-
-      slot = getEntryFromPagePtr(ptr, mbID);
+      fsmCLEntry *slot = _fsmFile->getEntrySlotPtr(mbID);
       SDB_ASSERT(NULL != slot, "can not be null");
       slot->logicalID = DMS_INVALID_LOGICCLID;
       slot->root = INVALID_PAGE_ID;
-
-      rc = _fsmFile->fsyncPage(pid, TRUE);
+      rc = _fsmFile->fsyncEntry(mbID);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to fsync entry slot:%d", rc);
@@ -1107,22 +1067,6 @@ namespace vessel
       return rc;
    error:
       goto done;
-   }
-
-   PAGE_ID diskFreeSpaceMap::getEntryPid(CL_MB_ID mbID)
-   {
-      SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
-      /// +1 for smp
-      return ((UINT32)mbID / FSM_ENTRY_SLOT_COUNT) + 1;
-   }
-
-   fsmCLEntry *diskFreeSpaceMap::getEntryFromPagePtr(ossValuePtr ptr,
-                                                     CL_MB_ID mbID)
-   {
-      SDB_ASSERT(0 != ptr, "can not be null");
-      SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
-      fsmCLEntry *slot = (fsmCLEntry *)ptr;
-      return slot + (mbID & (FSM_ENTRY_SLOT_COUNT - 1));/// mod 4096
    }
 
    INT32 diskFreeSpaceMap::getFsmPageHead(PAGE_ID pid, UINT16 type,

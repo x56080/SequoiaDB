@@ -51,10 +51,10 @@ namespace vessel
    /// size range of lvl1: (x, 2x]
    /// ...
    /// size range of lvl max: (n * x, page size]
-   static const UINT32 FSM_SPACE_LVL_COUNT = 4;
-   static const INT32 FSM_INVALID_SPACE_LVL = -1;
-   static const INT32 FSM_MIN_SPACE_LVL = 0;
-   static const INT32 FSM_MAX_SPACE_LVL = (FSM_MIN_SPACE_LVL + FSM_SPACE_LVL_COUNT - 1);
+   constexpr UINT32 FSM_SPACE_LVL_COUNT = 4;
+   constexpr INT32 FSM_INVALID_SPACE_LVL = -1;
+   constexpr INT32 FSM_MIN_SPACE_LVL = 0;
+   constexpr INT32 FSM_MAX_SPACE_LVL = (FSM_MIN_SPACE_LVL + FSM_SPACE_LVL_COUNT - 1);
    constexpr INT32 FSM_SPACE_LVL_2 = 2;
    OSS_INLINE BOOLEAN isValidFsmLvL(INT32 lvl)
    {
@@ -82,37 +82,35 @@ namespace vessel
       UINT32 next = INVALID_PAGE_ID;
       UINT64 pad = 0;
    };//struct fsmPageHead
-   const static UINT32 FSM_PAGE_HEAD_SIZE = sizeof(fsmPageHead);
-
+   constexpr UINT32 FSM_PAGE_HEAD_SIZE = sizeof(fsmPageHead);
+   
    /// free space map file
    constexpr UINT32 FSM_FILE_PAGE_SIZE = 65536;
-   static const UINT32 FSM_FILE_PAGE_COUNT_PER_SEG = 256;
-   static const UINT32 FSM_FILE_MAX_SEG_COUNT = 1024;
+   constexpr UINT32 FSM_FILE_PAGE_COUNT_PER_SEG = 256;
+   constexpr UINT32 FSM_FILE_MAX_SEG_COUNT = 1024;
+   
+   constexpr UINT32 FSM_FILE_PAGE_VERSION = 1;
 
-   static const UINT32 FSM_FILE_PAGE_VERSION = 1;
-
-   static const UINT32 FSM_FILE_PAGE_TYPE_BITMAP = 1;
-   static const UINT32 FSM_FILE_PAGE_TYPE_BITMAP_OWNER = 2;
-
-   static const UINT32 FSM_FILE_SMP_PID = 0;
+   constexpr UINT32 FSM_FILE_PAGE_TYPE_BITMAP = 1;
+   constexpr UINT32 FSM_FILE_PAGE_TYPE_BITMAP_OWNER = 2;
 
 
    
-   static const UINT32 FSM_BITMAP_BITS_COUNT = (FSM_FILE_PAGE_SIZE - FSM_PAGE_HEAD_SIZE) /
+   constexpr UINT32 FSM_BITMAP_BITS_COUNT = (FSM_FILE_PAGE_SIZE - FSM_PAGE_HEAD_SIZE) /
                                                sizeof(UINT64) / FSM_SPACE_LVL_COUNT;
 
    /// The count of data page can be managed by one bitmap page. 
-   static const UINT32 FSM_BITMAP_PAGE_CAPACITY = FSM_BITMAP_BITS_COUNT * 64;
+   constexpr UINT32 FSM_BITMAP_PAGE_CAPACITY = FSM_BITMAP_BITS_COUNT * 64;
 
    /// total slot count in pm page
-   static const UINT32 FSM_BITMAP_OWNER_PAGE_CAPAITY = (FSM_FILE_PAGE_SIZE - FSM_PAGE_HEAD_SIZE - sizeof(UINT32)) / 
+   constexpr UINT32 FSM_BITMAP_OWNER_PAGE_CAPACITY = (FSM_FILE_PAGE_SIZE - FSM_PAGE_HEAD_SIZE - sizeof(UINT32)) / 
                                                         sizeof(UINT32);
 
    struct fsmBitmapOwnerPage
    {
       fsmPageHead head;
       UINT32 flags = 0;
-      UINT32 pages[FSM_BITMAP_OWNER_PAGE_CAPAITY];
+      UINT32 pages[FSM_BITMAP_OWNER_PAGE_CAPACITY];
    };//struct fsmPMapPage
    constexpr UINT32 FSM_BITMAP_OWNER_PAGE_SIZE = sizeof(fsmBitmapOwnerPage);
    static_assert(FSM_BITMAP_OWNER_PAGE_SIZE == FSM_FILE_PAGE_SIZE, "invalid page size");
@@ -144,29 +142,28 @@ namespace vessel
       UINT32 root = INVALID_PAGE_ID;
       UINT32 logicalID = DMS_INVALID_LOGICCLID;
    };//struct fsmCLEntry
-   static const UINT32 FSM_CL_ENTRY_SIZE = sizeof(fsmCLEntry);
+   constexpr UINT32 FSM_CL_ENTRY_SIZE = sizeof(fsmCLEntry);
+
+   //reserved area
+   constexpr UINT32 FSM_FILE_SME_CAPACITY = FSM_FILE_PAGE_COUNT_PER_SEG * FSM_FILE_MAX_SEG_COUNT;  //256K
+   constexpr UINT32 FSM_FILE_SME_USED_SIZE = FSM_FILE_SME_CAPACITY >> 3;  //32KB
+   constexpr UINT32 FSM_FILE_SME_ALIGNED_SIZE = FSM_FILE_PAGE_SIZE * ((FSM_FILE_SME_USED_SIZE-1) / FSM_FILE_PAGE_SIZE + 1);  //64KB, reserved area size must be aligned to page size
+   constexpr UINT32 FSM_FILE_ENTRY_ARRAY_SIZE = 65536 * FSM_CL_ENTRY_SIZE;   //512KB
+   constexpr UINT32 FSM_FILE_RESERVED_AREA_SIZE = FSM_FILE_SME_ALIGNED_SIZE + FSM_FILE_ENTRY_ARRAY_SIZE;   //576KB
 
 #pragma pack()
-
-   static const UINT32 FSM_ENTRY_SLOT_COUNT = FSM_FILE_PAGE_SIZE / FSM_CL_ENTRY_SIZE;
-   static const UINT32 FSM_ENTRY_PAGE_COUNT = 65536 / FSM_ENTRY_SLOT_COUNT;
-   static const UINT32 FSM_FILE_RESERVED_PAGE_CNT = FSM_ENTRY_PAGE_COUNT + 1;
-
    OSS_INLINE BOOLEAN isValidFsmPageHead(const fsmPageHead &head)
    {
       return FSM_FILE_PAGE_VERSION == head.version &&
              DMS_INVALID_LOGICCLID != head.clLogicalId &&
              (FSM_FILE_PAGE_TYPE_BITMAP == head.type ||
               FSM_FILE_PAGE_TYPE_BITMAP_OWNER == head.type) &&
-             FSM_FILE_RESERVED_PAGE_CNT <= head.pre &&
-             FSM_FILE_RESERVED_PAGE_CNT <= head.next &&
              0 == head.pad;
    }
 
    OSS_INLINE BOOLEAN isValidFsmEntry(const fsmCLEntry &head)
    {
       return INVALID_PAGE_ID != head.root &&
-             FSM_FILE_RESERVED_PAGE_CNT <= head.root &&
              DMS_INVALID_LOGICCLID != head.logicalID;
    }
 ;

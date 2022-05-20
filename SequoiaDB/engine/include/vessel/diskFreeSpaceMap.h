@@ -112,8 +112,6 @@ namespace vessel
          void atomicUnsetSuperBitmap(INT32 lvl, UINT32 bitmapNo);
          void atomicUnsetSuperBitmapFromLvl(INT32 lvl, UINT32 bitmapNo);
       private:
-         PAGE_ID getEntryPid(CL_MB_ID mbID);
-         fsmCLEntry *getEntryFromPagePtr(ossValuePtr ptr, CL_MB_ID mbID);
          INT32 getFsmPageHead(PAGE_ID pid, UINT16 type,
                               fsmPageHead **head);
 
@@ -124,7 +122,7 @@ namespace vessel
          OSS_INLINE UINT32 getOwnerPageNo(UINT32 bitmapPageNo)const
          {
             SDB_ASSERT(0 < bitmapPageNo, "can not be root");
-            return (bitmapPageNo - 1) / FSM_BITMAP_OWNER_PAGE_CAPAITY;
+            return (bitmapPageNo - 1) / FSM_BITMAP_OWNER_PAGE_CAPACITY;
          }
 
       private:

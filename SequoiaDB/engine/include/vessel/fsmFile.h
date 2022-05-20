@@ -38,6 +38,9 @@
 
 #include "vessel/storageFile.h"
 #include "ossLatch.hpp"
+#include "vessel/bitmapScanner.h"
+#include "vessel/freeSpaceMapDef.h"
+#include <mutex>
 
 namespace engine
 {
@@ -58,21 +61,32 @@ namespace vessel
          ///releasing will not fsync file.
          INT32 releasePages(UINT32 count, const PAGE_ID *pids);
 
+         fsmCLEntry* getEntrySlotPtr(CL_MB_ID mbID);
+
+         INT32 fsyncEntry(CL_MB_ID mbID);
 
       private:
-         INT32 findFreePageFromSmp(PAGE_ID &pid);
+         INT32 _findFreePageFromSme(PAGE_ID &pid);
 
-         INT32 allocateFreePageFromSmp(PAGE_ID pid);
+         INT32 _allocateFreePageFromSme(PAGE_ID pid);
 
-         INT32 releasePagesFromSmp(UINT32 count, const PAGE_ID *pids);
+         INT32 _releasePagesFromSme(UINT32 count, const PAGE_ID *pids);
 
-         INT32 ensureSpace(PAGE_ID pid);
+         INT32 _ensureSpace(PAGE_ID pid);
 
-         INT32 initAfterCreation();
+         ossValuePtr _getSmePtr();
+
+         ossValuePtr _getEntryArrayPtr();
+
+         INT32 _fsyncSme();
+
+         virtual UINT32 _getReservedAreaSize() const override;
+
+         virtual INT32 _open(BOOLEAN isCreating) override;
 
       private:
-         ossSpinXLatch _latch;
-         INT32 _firstFree = -1;
+         std::mutex _latch;
+         bitmapScanner _smeScanner;
    };//class fsmFIle
 }//namespace vessel
 }//namespace engine

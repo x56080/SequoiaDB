@@ -37,7 +37,6 @@
 #include "pdTrace.hpp"
 #include "ossLikely.hpp"
 #include "vessel/bitmapUtils.h"
-#include "vessel/freeSpaceMapDef.h"
 #include "utilMemListPool.hpp"
 #include "vessel/requestContext.h"
 
@@ -51,125 +50,40 @@ namespace vessel
       SDB_ASSERT(FSM_BITMAP_PAGE_SIZE == FSM_FILE_PAGE_SIZE, "must be same");
    }
 
-   INT32 fsmFile::initAfterCreation()
+   INT32 fsmFile::_open(BOOLEAN isCreating)
    {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(isOpen(), "can not be closed");
-      const storageFileHead &head = getCommonHeadInMem();
-      SDB_ASSERT(FSM_FILE_PAGE_SIZE == head.pageSize, "must be same");
-      ossValuePtr ptr = 0;
-      UINT32 totalBitsCount = FSM_FILE_PAGE_SIZE >> 3; /// divided by 8
-
-      rc = ensureSegmentCount(1);
-      if (SDB_OK != rc)
+      if( isCreating )
       {
-         PD_LOG(PDERROR, "failed to allocate new segment:%d", rc);
-         goto error;
+         ossValuePtr ptr = _getSmePtr();
+         ossMemset( (void*)ptr, 0xFF, FSM_FILE_SME_USED_SIZE );
+         ossMemset( (void*)(ptr + FSM_FILE_SME_USED_SIZE), 0x00, FSM_FILE_SME_ALIGNED_SIZE - FSM_FILE_SME_USED_SIZE );
+         ptr = _getEntryArrayPtr();
+         ossMemset( (void*)ptr, 0xFF, FSM_FILE_ENTRY_ARRAY_SIZE );
       }
-
-      for (UINT32 i = 0; i < FSM_FILE_RESERVED_PAGE_CNT; ++i)
-      {
-         rc = getPagePtr(i, ptr);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get page[%d] ptr:%d", i, rc);
-            goto error;
-         }
-         ossMemset((void *)ptr, 0xFF, FSM_FILE_PAGE_SIZE);
-      }
-
-      rc = getPagePtr(FSM_FILE_SMP_PID, ptr);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get smp page ptr:%d", rc);
-         goto error;
-      }
-
-      /// smp and entry pages can not be allocated.
-      for (UINT32 i = 0; i < FSM_FILE_RESERVED_PAGE_CNT; ++i)
-      {
-         if (!clearBitIfNonzero(totalBitsCount, (UINT64 *)ptr, i))
-         {
-            PD_LOG(PDERROR, "failed to reserve page[%d]", i);
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            goto error;
-         }
-      }
-
-      rc = fsyncSegment(0, TRUE);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to fsync segment:%d", rc);
-         goto error;
-      }
-
-      _firstFree = 0;
-   done:
-      return rc;
-   error:
-      goto done;
+      return SDB_OK;
    }
 
    INT32 fsmFile::initToWork()
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(storageFile::isOpen(), "must be open");
-      ossValuePtr ptr = 0;
-      UINT32 totalBitsCount = FSM_FILE_PAGE_SIZE >> 3; /// divided by 8
-      UINT32 minFreePid = FSM_ENTRY_PAGE_COUNT + 1; /// 1 for smp
-      UINT32 nextFreePid = INVALID_PAGE_ID;
-      UINT32 currentSegCount = 0;
-      currentSegCount = getSegmentCount();
-
-      if (0 == currentSegCount)
-      {
-         rc = initAfterCreation();
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to init fsm file:%d", rc);
-            goto error;
-         }
-         goto done;
-      }
-
-      rc = getPagePtr(FSM_FILE_SMP_PID, ptr);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failed to get page ptr:%d", rc);
-         goto error;
-      }
-
-      if (findFirstNonzeroBit(totalBitsCount, 0, (const UINT64 *)ptr, nextFreePid))
-      {
-         if (nextFreePid < minFreePid)
-         {
-            PD_LOG(PDSEVERE, "invalid first free pid was found, smp may crashed");
-            rc = SDB_VESSEL_PAGE_CRASHED;
-            goto error;
-         }
-         else
-         {
-            _firstFree = nextFreePid >> 6; /// divided by 64
-         }
-      }
-   done:
+      ossValuePtr ptr = _getSmePtr();
+      _smeScanner.load((UINT64 *)ptr, FSM_FILE_SME_CAPACITY );
       return rc;
-   error:
-      _firstFree = -1;
-      goto done;
+
    }
 
    INT32 fsmFile::allocateNewPage(PAGE_ID &pid)
    {
       INT32 rc = SDB_OK;
-      ossScopedLock lock(&_latch);
+      std::unique_lock<std::mutex> lock(_latch);
       if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
-      rc = findFreePageFromSmp(pid);
+      rc = _findFreePageFromSme(pid);
       if (SDB_OK != rc)
       {
          goto error;
@@ -177,13 +91,13 @@ namespace vessel
 
       SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
 
-      rc = ensureSpace(pid);
+      rc = _ensureSpace(pid);
       if (SDB_OK != rc)
       {
          goto error;
       }
-
-      rc = allocateFreePageFromSmp(pid);
+      
+      rc = _allocateFreePageFromSme(pid);
       if (SDB_OK != rc)
       {
          goto error;
@@ -198,7 +112,7 @@ namespace vessel
    INT32 fsmFile::releasePages(UINT32 count, const PAGE_ID *pids)
    {
       INT32 rc = SDB_OK;
-      ossXLatchGuard guard(&_latch, FALSE);
+      std::unique_lock<std::mutex> lock(_latch);
       if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
@@ -209,12 +123,10 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-
-      guard.lock();
-      rc = releasePagesFromSmp(count, pids);
+      rc = _releasePagesFromSme(count, pids);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to release pids on smp:%d", rc);
+         PD_LOG(PDERROR, "failed to release pids on Sme:%d", rc);
          goto error;
       }
    done:
@@ -223,158 +135,81 @@ namespace vessel
       goto done;
    }
 
-   INT32 fsmFile::findFreePageFromSmp(PAGE_ID &pid)
+   INT32 fsmFile::_findFreePageFromSme(PAGE_ID &pid)
    {
       INT32 rc = SDB_OK;
-      UINT32 totalCount = FSM_FILE_PAGE_SIZE >> 3;// dividec by 8
-      PAGE_ID minFreePid = FSM_ENTRY_PAGE_COUNT + 1;/// 1 smp + all entry pages.
-
       pid = INVALID_PAGE_ID;
-      ossValuePtr ptr = 0;
-      UINT32 offset = 0;
-      if (_firstFree < 0)
+      INT32 nextFreePid = -1;
+      if( !_smeScanner.moveToNextUnzeroPos(nextFreePid) )
       {
          rc = SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE;
          goto error;
       }
-
-      rc = getPagePtr(FSM_FILE_SMP_PID, ptr);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failed to get smp ptr:%d", rc);
-         goto error;
-      }
-
-      if (!findFirstNonzeroBit(totalCount, (UINT32)_firstFree, (const UINT64 *)ptr, offset))
-      {
-         PD_LOG(PDERROR, "failed to find free page from fsm");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      if (OSS_UNLIKELY(offset < minFreePid))
-      {
-         PD_LOG(PDERROR, "smp pid or entry pids should not be found in fsm");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-      
-      pid = offset;
+      pid = nextFreePid;
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 fsmFile::allocateFreePageFromSmp(PAGE_ID pid)
+   INT32 fsmFile::_allocateFreePageFromSme(PAGE_ID pid)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
       const storageFileHead &head = getCommonHeadInMem();
       SDB_ASSERT(FSM_FILE_PAGE_SIZE == head.pageSize, "must be same");
-      SDB_ASSERT(0 <= _firstFree, "impossible");
-      UINT32 totalCount = FSM_FILE_PAGE_SIZE >> 3; /// divide by 8
-      ossValuePtr ptr = 0;
-      UINT32 nextFree = 0;
 
-      rc = getPagePtr(FSM_FILE_SMP_PID, ptr);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failed to get smp ptr:%d", rc);
-         goto error;
-      }
+      _smeScanner.clearBit(pid);
 
-      if (!clearBitIfNonzero(totalCount, (UINT64 *)ptr, pid))
-      {
-         PD_LOG(PDERROR, "failed to set pid[%d] non-free", pid);
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      rc = fsyncPage(FSM_FILE_SMP_PID, TRUE);
+      rc = _fsyncSme();
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to fsync smp:%d", rc);
+         PD_LOG(PDERROR, "failed to fsync Sme:%d", rc);
          goto error;
       }
 
-      if (findFirstNonzeroBit(totalCount, _firstFree, (const UINT64 *)ptr, nextFree))
-      {
-         _firstFree = nextFree >> 6; /// divided by 64
-      }
-      else
-      {
-         _firstFree = -1;
-      }
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 fsmFile::releasePagesFromSmp(UINT32 count, const PAGE_ID *pids)
+   INT32 fsmFile::_releasePagesFromSme(UINT32 count, const PAGE_ID *pids)
    {
+      
       INT32 rc = SDB_OK;
       SDB_ASSERT(0 < count && NULL != pids, "can not be invalid");
       const storageFileHead &head = getCommonHeadInMem();
       SDB_ASSERT(FSM_FILE_PAGE_SIZE == head.pageSize, "must be same");
-      UINT32 totalCount = FSM_FILE_PAGE_SIZE >> 3; /// divide by 8
-      ossValuePtr ptr = 0;
-      PAGE_ID minPid = INVALID_PAGE_ID;
-      UINT32 reserved = 1 + FSM_ENTRY_PAGE_COUNT;
-
-      rc = getPagePtr(FSM_FILE_SMP_PID, ptr);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failed to get smp ptr:%d", rc);
-         goto error;
-      }
-
+      
       for (UINT32 i = 0; i < count; ++i)
       {
          PAGE_ID pid = pids[i];
-         if (INVALID_PAGE_ID == pid)
+         if (INVALID_PAGE_ID == pid || pid < 0 || pid >= FSM_FILE_SME_CAPACITY)
          {
             PD_LOG(PDERROR, "invalid pid to released");
             continue;
          }
-         else if (pid < reserved)
-         {
-            PD_LOG(PDERROR, "reserved pid can not be released");
-            continue;
-         }
-
-         if (!setBitIfZeroed(totalCount, (UINT64 *)ptr, pid))
-         {
+         if(_smeScanner.testBit(pid)){
             PD_LOG(PDERROR, "pid[%d] is free in smp", pid);
             continue;
          }
-
-         if (INVALID_PAGE_ID == minPid)
-         {
-            minPid = pid;
-         }
-         else if (pid < minPid)
-         {
-            minPid = pid;
-         }
+         else _smeScanner.setBit(pid);
       }
-
-      if (INVALID_PAGE_ID != minPid)
+      rc = _fsyncSme();
+      if (SDB_OK != rc)
       {
-         INT32 minFree = minPid >> 6; /// divided by 64
-         if (-1 == _firstFree || minFree < _firstFree)
-         {
-            _firstFree = minFree;
-         }
+         PD_LOG(PDERROR, "failed to fsync Sme:%d", rc);
+         goto error;
       }
+
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 fsmFile::ensureSpace(PAGE_ID pid)
+   INT32 fsmFile::_ensureSpace(PAGE_ID pid)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
@@ -392,5 +227,63 @@ namespace vessel
    error:
       goto done;
    }
+
+   ossValuePtr fsmFile::_getSmePtr()
+   {
+      ossValuePtr ptr = getReservedAreaPtr();
+      SDB_ASSERT(ptr, "failed to get sme ptr, do not create reserved area");
+      return ptr;
+   }
+
+   ossValuePtr fsmFile::_getEntryArrayPtr(){
+      return _getSmePtr() + FSM_FILE_SME_ALIGNED_SIZE;
+   }
+
+   fsmCLEntry* fsmFile::getEntrySlotPtr(CL_MB_ID mbID)
+   {
+
+      return  reinterpret_cast<fsmCLEntry*>(_getEntryArrayPtr() + static_cast<UINT32>(mbID) * FSM_CL_ENTRY_SIZE);
+   }
+
+   UINT32 fsmFile::_getReservedAreaSize() const
+   {
+      return FSM_FILE_RESERVED_AREA_SIZE;
+   }
+
+   INT32 fsmFile::_fsyncSme()
+   {
+      INT32 rc = SDB_OK;
+      INT32 mmapSegmentID=getReservedAreaMmapSegmentID();
+      SDB_ASSERT( 0 < mmapSegmentID, "failed to get reserved area segment id when fsync sme");
+      rc = flushBlock(mmapSegmentID, 0, FSM_FILE_SME_USED_SIZE, TRUE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to fsync sme:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 fsmFile::fsyncEntry(CL_MB_ID mbID)
+   {
+      INT32 rc = SDB_OK;
+      INT32 mmapSegmentID=getReservedAreaMmapSegmentID();
+      SDB_ASSERT( 0 < mmapSegmentID, "failed to get reserved area segment id when fsync entry");
+      UINT32 offset = FSM_FILE_SME_ALIGNED_SIZE + mbID * FSM_CL_ENTRY_SIZE;
+      rc = flushBlock(mmapSegmentID, offset, FSM_CL_ENTRY_SIZE, TRUE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to fsync entry:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
 }//namespace vessel
 }//namespace engine

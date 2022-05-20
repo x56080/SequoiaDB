@@ -172,6 +172,7 @@ namespace vessel
       protected:
          ossValuePtr getCommonHeaderPtr()const;
          ossValuePtr getUserDefinedHeaderPtr()const;
+         INT32 getReservedAreaMmapSegmentID() const;
          
       private:
          virtual void _close() {return;}
