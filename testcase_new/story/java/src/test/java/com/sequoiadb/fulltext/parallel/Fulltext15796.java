@@ -151,8 +151,13 @@ public class Fulltext15796 extends FullTestBase {
                 DBCollection cl = db.getCollectionSpace( csName )
                         .getCollection( clName );
                 for ( int i = 0; i < insertNum * 2; i++ ) {
-                    cl.delete( "{id:" + i + "}", "{'':'id'}" );
-                    atomic.decrementAndGet();
+                    // 原始记录数insertNum，delete记录数insertNum*2，atomic可能会小于0（insert线程较慢时），atomic范围在[-insertNum,insertNum]
+                    // 当atomic=0时，不做删除（dropCL线程使用atomic作为预期记录数，如果=0继续删除，atomic小于0，实际记录数不可能小于0，对比实际跟预期记录数会失败）
+                    int tmpCount = atomic.get();
+                    if ( tmpCount > 0 ) {
+                        cl.delete( "{id:" + i + "}", "{'':'id'}" );
+                        atomic.decrementAndGet();
+                    }
                 }
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != -23 ) {
@@ -251,7 +256,7 @@ public class Fulltext15796 extends FullTestBase {
                     DBCollection cl = db.getCollectionSpace( csName )
                             .getCollection( clName );
                     Assert.assertTrue( FullTextUtils.isIndexCreated( cl,
-                            indexName, atomic.getAndIncrement() ) );
+                            indexName, atomic.get() ) );
                 } else {
                     // 主备节点上固定集合空间删除成功
                     Assert.assertTrue( FullTextUtils.isIndexDeleted( db,
