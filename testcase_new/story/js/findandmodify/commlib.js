@@ -87,27 +87,12 @@ function splittable ( db, cl, clname )
    {
       if( datagroups[i][0].GroupName != srcgroups[0] )
       {
-         cl.splitAsync( srcgroups[0], datagroups[i][0].GroupName, { _id: startid }, { _id: endid } );
+         var taskId = cl.splitAsync( srcgroups[0], datagroups[i][0].GroupName, { _id: startid }, { _id: endid } );
          startid = endid;
          endid += 5;
+         db.waitTasks( taskId );
       }
    }
-   sleep( 10 );
-   var isExistTask = false;
-   do
-   {
-      isExistTask = false;
-      var cursor = db.listTasks();
-      while( cursor.next() )
-      {
-         isExistTask = true;
-      }
-      if( !isExistTask )
-      {
-         sleep( 10 );
-      }
-   }
-   while( isExistTask );
    return datagroups.length;
 }
 
