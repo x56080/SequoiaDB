@@ -299,6 +299,13 @@ namespace vessel
       return ptr;
    }
 
+   INT32 storageFile::getReservedAreaMmapSegmentID() const
+   {
+      return (0 < _headInMem.reservedAreaSize &&
+             getExtraMmapSegCount() <= ossMmapFile::segmentSize()) ?
+             getHeadMMapSegmentCount() : -1;
+   }
+
    ossValuePtr storageFile::getReservedAreaPtr()const
    {
       return (0 < _headInMem.reservedAreaSize &&
