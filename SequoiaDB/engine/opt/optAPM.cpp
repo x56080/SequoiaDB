@@ -2032,7 +2032,17 @@ namespace engine
                PD_RC_CHECK( rc, PDERROR, "Failed to create main-collection "
                             "query, rc: %d", rc ) ;
 
-               _cacheAccessPlan( mainPlan ) ;
+               // we won't cache the main-collection plan in below cases
+               // - the hint is failed, which means some indexes may not exist
+               //   in current sub-collection
+               // - the plan is table scan, which means the current
+               //   sub-collection does not have matched index, but this does
+               //   not mean other sub-collections do not have
+               if ( ( !mainPlan->isHintFailed() ) &&
+                    ( IXSCAN == mainPlan->getScanType() ) )
+               {
+                  _cacheAccessPlan( mainPlan ) ;
+               }
 
                // Use the sub-collection plan for the this time
                mainPlan->release() ;
