@@ -158,6 +158,10 @@ namespace engine
 
       INT32 rebuildBME() ;
 
+   public:
+      /// get the segment pages of lobd
+     OSS_INLINE UINT32 dataSegmentPages() const ;
+
    protected:
       INT32  _openLob( const CHAR *path,
                        const CHAR *metaPath,
@@ -206,6 +210,8 @@ namespace engine
       virtual INT32  _onCreate( OSSFILE *file, UINT64 curOffSet ) ;
       virtual INT32  _onMapMeta( UINT64 curOffSet ) ;
       virtual UINT32 _getSegmentSize() const ;
+      virtual UINT32 _getMetaSizeOfDataSegment() const ;
+      virtual UINT32 _getDataSegmentPages() const ;
       virtual UINT32 _extendThreshold() const ;
       virtual UINT64 _dataOffset() ;
       virtual INT32  _extendSegments( UINT32 numSeg ) ;
@@ -217,6 +223,17 @@ namespace engine
       virtual void   _initHeaderPageSize( dmsStorageUnitHeader *pHeader,
                                           dmsStorageInfo *pInfo ) ;
       virtual INT32  _checkPageSize( dmsStorageUnitHeader *pHeader ) ;
+
+      virtual BOOLEAN _checkFileSizeValidBySegment( const UINT64 fileSize,
+                                                    UINT64 &rightSize ) ;
+
+      virtual BOOLEAN _checkFileSizeValid( const UINT64 fileSize,
+                                           UINT64 &rightSize ) ;
+
+      virtual void    _calcExtendInfo( const UINT64 fileSize,
+                                       UINT32 &numSeg,
+                                       UINT64 &incFileSize,
+                                       UINT32 &incPageNum ) ;
 
       /// flush callback:  SDB_OK: continue, no SDB_OK: stop
       virtual INT32  _onFlushDirty( BOOLEAN force, BOOLEAN sync ) ;
@@ -280,7 +297,6 @@ namespace engine
       INT32 _checkIfMetaOrDataFileExist( const CHAR* metaFilePath,
                                          const CHAR* dataFilePath,
                                          BOOLEAN &exist ) ;
-
    private:
       dmsBucketsManagementExtent    *_dmsBME ;
       _dmsStorageData               *_dmsData ;
@@ -296,9 +312,17 @@ namespace engine
       vector< ossSpinSLatch* >      _vecBucketLacth ;
 
       BOOLEAN                       _isRename ;
-
+      UINT32                        _dataSegmentSize ;
    } ;
    typedef class _dmsStorageLob dmsStorageLob ;
+
+   /*
+      _dmsStorageLob OSS_INLINE functions :
+   */
+   OSS_INLINE UINT32 _dmsStorageLob::dataSegmentPages() const
+   {
+      return _getDataSegmentPages() ;
+   }
 
    OSS_INLINE const CHAR* _dmsStorageLob::_clFullName( const CHAR *clName,
                                                        CHAR * clFullName,

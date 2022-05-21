@@ -510,7 +510,14 @@ namespace engine
          virtual void   _initHeaderPageSize( dmsStorageUnitHeader *pHeader,
                                              dmsStorageInfo *pInfo ) ;
          virtual INT32  _checkPageSize( dmsStorageUnitHeader *pHeader ) ;
-
+         virtual BOOLEAN _checkFileSizeValidBySegment( const UINT64 fileSize,
+                                                       UINT64 &rightSize ) ;
+         virtual BOOLEAN _checkFileSizeValid( const UINT64 fileSize,
+                                              UINT64 &rightSize ) ;
+         virtual void    _calcExtendInfo( const UINT64 fileSize,
+                                          UINT32 &numSeg,
+                                          UINT64 &incFileSize,
+                                          UINT32 &incPageNum ) ;
          /*
             For Persistence
          */

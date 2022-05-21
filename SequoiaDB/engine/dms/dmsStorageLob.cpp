@@ -42,7 +42,7 @@
 
 namespace engine
 {
-   /// define for lobm to chech its segment size
+   /// define for lobm to check its segment size
    #define DMS_SEGMENT_SZ16K      (16*1024)           /// 16KB
    #define DMS_SEGMENT_SZ32K      (32*1024)           /// 32KB
    #define DMS_SEGMENT_SZ64K      (64*1024)           /// 64KB
@@ -90,6 +90,7 @@ namespace engine
 
       _dmsData->_attachLob( this ) ;
       _isRename = FALSE ;
+      _dataSegmentSize = 0 ;
    }
 
    _dmsStorageLob::~_dmsStorageLob()
@@ -422,7 +423,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _data.open( path, createNew, _segmentSize, _pageSize,
+      rc = _data.open( path, createNew, _dataSegmentSize,
                        getHeader()->_pageNum, *_pStorageInfo,
                        pmdGetThreadEDUCB() ) ;
       if ( SDB_OK != rc )
@@ -1861,8 +1862,23 @@ namespace engine
 
    UINT32 _dmsStorageLob::_getSegmentSize() const
    {
-      SDB_ASSERT( 0 != _segmentSize, "not initialized" ) ;
+      SDB_ASSERT( 0 != _segmentSize, "Not initialized" ) ;
       return _segmentSize ;
+   }
+
+   UINT32 _dmsStorageLob::_getMetaSizeOfDataSegment() const
+   {
+      SDB_ASSERT( _dataSegmentSize > 0, "Not initialized" ) ;
+      SDB_ASSERT( _lobPageSize > 0, "Not initialized" ) ;
+      SDB_ASSERT( _pageSize > 0, "Not initialized" ) ;
+      return _dataSegmentSize / _lobPageSize * _pageSize ;
+   }
+
+   UINT32 _dmsStorageLob::_getDataSegmentPages() const
+   {
+      UINT32 dataSegmentPages = _data.segmentPages() ;
+      SDB_ASSERT( dataSegmentPages > 0, "Not initialized" ) ;
+      return dataSegmentPages ;
    }
 
    UINT32 _dmsStorageLob::_extendThreshold() const
@@ -2150,48 +2166,23 @@ namespace engine
    void _dmsStorageLob::_initHeaderPageSize( dmsStorageUnitHeader * pHeader,
                                              dmsStorageInfo * pInfo )
    {
-      INT64 sysPageSize      = pmdGetSysPageSize() ;
-      UINT32 lobdPageSize    = pInfo->_lobdPageSize ;
-      SDB_ASSERT( sysPageSize > 0 && 0 == ( sysPageSize % 4096 ),
-                  "System page size is invalid" ) ;
-      SDB_ASSERT( 0 != lobdPageSize,
-                  "Not initialized lobd page size" ) ;
-
+      SDB_ASSERT( pInfo->_lobdPageSize > 0, "Not initialized lobd page size" ) ;
       /// assign values to lobm header
       pHeader->_pageSize     = DMS_PAGE_SIZE64B ;
-      pHeader->_lobdPageSize = lobdPageSize ;
-
-      /// jira-4899
-      /// For we use mmap, we need to make sure the lobm segment size is aligned
-      /// with OS page size(most OS, system page is 4k/16k/64k).
-      /// When we use 128M lobd segment size, we can calculate the minimum lobm
-      /// segment size(in this case, lobPageSize is 512k) is
-      /// (128M / 512k * 64B) = 16K, which is aligned with the 4k/16k OS page
-      /// size. So when the OS page size is 4k/16k, we can use 128M as lobd
-      /// segment size safely.
-      /// However, when OS page size is 64k, and the lobPageSize is 256k/512k,
-      /// we get lobm segment size is 32k/16k, which is not aligned with OS page
-      /// size(64k). So in this case, we should use 256M/512M lobd segment
-      /// size, and then we can get lobm segment size is 64k.
-      if ( OSS_SYSTEM_PAGESIZE64K == sysPageSize &&
-           ( DMS_PAGE_SIZE256K == lobdPageSize ||
-             DMS_PAGE_SIZE512K == lobdPageSize ) )
-      {
-         /// since v3.4.3/v5.0.2, we flush the lobm segment size back to the
-         /// newly created lobm file header. But we will not change the file
-         /// header of the lobm which is created before v3.4.3/v5.0.2.
-         pHeader->_segmentSize = DMS_SEGMENT_SZ64K ;
-      }
-      else
-      {
-         pHeader->_segmentSize = DMS_SEGMENT_SZ / pHeader->_lobdPageSize *
-                                 pHeader->_pageSize ;
-      }
+      pHeader->_lobdPageSize = pInfo->_lobdPageSize ;
+      // set to 0 again since v3.4.5/v3.6.1/v5.0.4,
+      // for we hope the newly created lob can be
+      // compatible with the old version
+      pHeader->_segmentSize  = 0 ;
    }
 
    INT32 _dmsStorageLob::_checkPageSize( dmsStorageUnitHeader * pHeader )
    {
       INT32 rc = SDB_OK ;
+      // the size of lobm for the matched lobm segment.
+      // e.g. when lobd segment is 128M, lobd page is 256K,
+      // metaSizeOfDataSeg is 32k
+      UINT32 metaSizeOfDataSeg = 0 ;
 
       if ( pHeader->_pageSize != DMS_PAGE_SIZE64B &&
            pHeader->_pageSize != DMS_PAGE_SIZE256B )
@@ -2244,26 +2235,74 @@ namespace engine
          pHeader->_segmentSize = 0 ;
       }
 
-      /// now, pHeader is a pointer got from lobm's file header
+      /// now, pHeader is a pointer got from lobm's file header,
+      /// let's use it to calculate lobd _segmentSize and lobm
+      /// _segmentSize
       if ( 0 == pHeader->_segmentSize )
       {
-         /// we come here, we get a lob created before v3.4.3/v5.0.2,
-         /// its lobd segment size is 128M
-         _segmentSize = DMS_SEGMENT_SZ / pHeader->_lobdPageSize *
-                        pHeader->_pageSize ;
+         /// we come here, we get a lob which lobd segment size is 128M
+         _dataSegmentSize  = DMS_SEGMENT_SZ ;
+         metaSizeOfDataSeg = DMS_SEGMENT_SZ / pHeader->_lobdPageSize *
+                               pHeader->_pageSize ;
       }
       else
       {
-         /// we come here, we get a lob which version at least v3.4.3/v5.0.2.
-         /// since v3.4.3/v5.0.2, lobm segment size had been writed into
-         /// lobm file header
-         _segmentSize = pHeader->_segmentSize ;
+         /// we come here, we get a lob which is created in
+         /// v3.4.3/v3.4.4/v5.0.2/v5.0.3/v3.6
+         /// only in these 5 versions, lobm segment size was writed into lobm
+         /// file header
+         /// the lob created since v3.4.5/v3.6.1/v5.0.4 will set
+         /// pHeader->_segmentSize to 0 again
+         _dataSegmentSize  = pHeader->_segmentSize / pHeader->_pageSize *
+                             pHeader->_lobdPageSize ;
+         metaSizeOfDataSeg = pHeader->_segmentSize ;
       }
 
+      // since since v3.4.5/v3.6.1/v5.0.4, lobm segment size is aligned by 2MB,
+      // so it will be 2MB at most case. It will be 4MB/8MB only when
+      // logPageSize is 4k/8K and lobm page size is 256B
+      _segmentSize = ossRoundUpToMultipleX( metaSizeOfDataSeg,
+                                            DMS_SEGMENT_SZ2M ) ;
    done:
       return rc ;
    error:
       goto done ;
+   }
+
+   BOOLEAN _dmsStorageLob::_checkFileSizeValidBySegment( const UINT64 fileSize,
+                                                         UINT64 &rightSize )
+   {
+      if (  0 == ( fileSize - _dataOffset() ) % _getMetaSizeOfDataSegment() )
+      {
+         rightSize = fileSize ;
+         return TRUE ;
+      }
+      else
+      {
+         rightSize = ( ( fileSize - _dataOffset() ) /
+                       _getMetaSizeOfDataSegment() ) * _getMetaSizeOfDataSegment() +
+                       _dataOffset() ;
+         return FALSE ;
+      }
+   }
+
+   BOOLEAN _dmsStorageLob::_checkFileSizeValid( const UINT64 fileSize,
+                                                UINT64 &rightSize )
+   {
+      UINT64 rightSz = (UINT64)_dmsHeader->_storageUnitSize * pageSize() ;
+      UINT64 alignSz = ossRoundUpToMultipleX( ( rightSz - _dataOffset() ),
+                                              _getSegmentSize() ) +
+                                              _dataOffset() ;
+      if ( fileSize == alignSz )
+      {
+         rightSize = fileSize ;
+         return TRUE ;
+      }
+      else
+      {
+         rightSize = alignSz ;
+         return FALSE ;
+      }
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB_CALCCOUNT, "_dmsStorageLob::_calcCount" )
@@ -2894,6 +2933,36 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   void _dmsStorageLob::_calcExtendInfo( const UINT64 fileSize,
+                                         UINT32 &numSeg,
+                                         UINT64 &incFileSize,
+                                         UINT32 &incPageNum )
+   {
+      UINT32 totalSegNum    = 0 ;
+      UINT32 newTotalSegNum = 0 ;
+      UINT32 segmentPages   = this->segmentPages() ;
+      UINT64 rightSz   = (UINT64)_dmsHeader->_storageUnitSize * pageSize() ;
+      UINT64 newFileSz = ossRoundUpToMultipleX(
+            ( rightSz - _dataOffset() + _getMetaSizeOfDataSegment() * numSeg ),
+            _getSegmentSize() ) + _dataOffset() ;
+
+      incFileSize = ( newFileSz > fileSize ) ? ( newFileSz - fileSize ) : 0 ;
+      incPageNum  = _getDataSegmentPages() * numSeg ;
+      // we need to change numSeg to the actual number
+      // of increasing lobm segments
+      totalSegNum = _dmsHeader->_pageNum / segmentPages ;
+      if ( 0 != ( _dmsHeader->_pageNum % segmentPages ) )
+      {
+         totalSegNum += 1 ;
+      }
+      newTotalSegNum = ( _dmsHeader->_pageNum + incPageNum ) / segmentPages ;
+      if ( 0 != ( ( _dmsHeader->_pageNum + incPageNum ) % segmentPages ) )
+      {
+         newTotalSegNum += 1 ;
+      }
+      numSeg = newTotalSegNum - totalSegNum ;
    }
 
 }
