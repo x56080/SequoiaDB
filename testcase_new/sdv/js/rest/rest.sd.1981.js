@@ -4,11 +4,16 @@
 *@Author:  		TingYU  2015/10/29
 ************************************************************************/
 
-//因问题单SEQUOIADBMAINSTREAM-8004缺陷，暂时屏蔽该用例
-//main();
+//因问题单SEQUOIADBMAINSTREAM-8004缺陷，用例先跳过独立模式，待问题单修改后再进一步调整
+main();
 
 function main ()
 {
+   if( commIsStandalone( db ) )
+   {
+      return;
+   }
+
    var csName = COMMCSNAME + "_restsdv1981";
    var clName = COMMCLNAME + "_restsdv1981";
 

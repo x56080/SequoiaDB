@@ -3,12 +3,13 @@
  *                  seqDB-7557:rest_strict格式的边界值校验
  * @Author        : Ting YU
  * @CreateTime    : 2021.11.25
- * @LastEditTime  : 2022.01.28
- * @LastEditors   : Zhang Yanan
+ * @LastEditTime  : 2022.05.21
+ * @LastEditors   : liuli
  ******************************************************************************/
 
-//开发修改导致预期结果出错，屏蔽用例。问题单：SEQUOIADBMAINSTREAM-8004
-//main( test );
+// 开发修改导致预期结果出错，用例先跳过独立模式，待问题单修改后再做调整。SEQUOIADBMAINSTREAM-8004
+testConf.skipStandAlone = true;
+main( test );
 
 function test ()
 {
