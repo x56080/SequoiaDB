@@ -69,8 +69,7 @@ function test ( args )
    query( dbclSlave, findConf, null, null, insertSameNum + 1 );
 
    //检查访问计划快照
-   var tmp = [{ GroupName: srcGroupName, ScanType: "tbscan", IndexName: "" }];
-   var expAccessPlan = tmp.concat( tmp );
+   var expAccessPlan = [];
    var actAccessPlan = getMainclAccessPlans( db, { Collection: mainclFullName } );
    checkMainclAccessPlans( expAccessPlan, actAccessPlan );
 
@@ -85,8 +84,7 @@ function test ( args )
    checkStat( db, subcsName1, subclName1, "a1", true, true );
 
    //检查访问计划快照
-   var tmp = [{ GroupName: srcGroupName, ScanType: "tbscan", IndexName: "" }];
-   var expAccessPlan = tmp.concat( tmp );
+   var expAccessPlan = [];
    var actAccessPlan = getMainclAccessPlans( db, { Collection: mainclFullName } );
    checkMainclAccessPlans( expAccessPlan, actAccessPlan );
 
@@ -97,8 +95,7 @@ function test ( args )
    checkConsistency( db, null, null, [srcGroupName, desGroupName] );
 
    //检查访问计划快照
-   var tmp = [{ GroupName: srcGroupName, ScanType: "tbscan", IndexName: "" }];
-   var expAccessPlan = tmp.concat( tmp );
+   var expAccessPlan = [];
    var actAccessPlan = getMainclAccessPlans( db, { Collection: mainclFullName } );
    checkMainclAccessPlans( expAccessPlan, actAccessPlan );
 
@@ -108,9 +105,7 @@ function test ( args )
    query( dbclSlave, findConf, null, null, insertSameNum + 1 );
 
    //检查访问计划快照
-   var tmp = [{ GroupName: srcGroupName, ScanType: "tbscan", IndexName: "" },
-   { GroupName: desGroupName, ScanType: "ixscan", IndexName: "a1" }];
-   var expAccessPlan = tmp.concat( tmp );
+   var expAccessPlan = [];
    var actAccessPlan = getMainclAccessPlans( db, { Collection: mainclFullName } );
    checkMainclAccessPlans( expAccessPlan, actAccessPlan );
 
