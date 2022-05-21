@@ -6,7 +6,6 @@ import java.util.List;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.bson.types.BasicBSONList;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -15,7 +14,6 @@ import org.testng.annotations.Test;
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
@@ -47,7 +45,8 @@ public class RenameCL_16090_1 extends SdbTestBase {
             CommLib.clearCS( sdb, csName );
         }
         cs = sdb.createCollectionSpace( csName );
-        cl = cs.createCollection( clName );
+        cl = cs.createCollection( clName,
+                new BasicBSONObject( "ReplSize", 0 ) );
         for ( int i = 0; i < 10; i++ ) {
             cl.createIndex( indexNameA + "_" + i,
                     new BasicBSONObject( "a" + i, 1 ), false, false );
@@ -150,17 +149,17 @@ public class RenameCL_16090_1 extends SdbTestBase {
         Assert.assertEquals( indexAnum, 10, "check indexA num" );
 
         if ( success ) {
-            for ( int i = 0; i < indexNames.size(); i++ ) {
-                if ( indexNames.get( i ).indexOf( indexNameB ) != -1 ) {
+            for ( String indexName : indexNames ) {
+                if ( indexName.indexOf( indexNameB ) != -1 ) {
                     Assert.fail(
                             "drop all indexB success, indexB should not exist: "
-                                    + indexNames.get( i ) );
+                                    + indexName );
                 }
             }
         } else {
             int leftNum = 0;
-            for ( int i = 0; i < indexNames.size(); i++ ) {
-                if ( indexNames.get( i ).indexOf( indexNameB ) != -1 ) {
+            for ( String indexName : indexNames ) {
+                if ( indexName.indexOf( indexNameB ) != -1 ) {
                     leftNum++;
                 }
             }
@@ -181,13 +180,11 @@ public class RenameCL_16090_1 extends SdbTestBase {
         DBCollection cl = sdb.getCollectionSpace( csName )
                 .getCollection( newCLName );
         List< String > clGroups = CommLib.getCLGroups( cl );
-        for ( int i = 0; i < clGroups.size(); i++ ) {
-            String groupname = clGroups.get( i );
+        for ( String groupname : clGroups ) {
             int successNodeNum = 0;
             List< String > nodeAddrs = CommLib.getNodeAddress( sdb, groupname );
-            for ( int j = 0; j < nodeAddrs.size(); j++ ) {
-                try ( Sequoiadb dataDB = new Sequoiadb( nodeAddrs.get( j ), "",
-                        "" )) {
+            for ( String nodeAddr : nodeAddrs ) {
+                try ( Sequoiadb dataDB = new Sequoiadb( nodeAddr, "", "" )) {
                     CollectionSpace dataCl = dataDB
                             .getCollectionSpace( csName );
                     if ( dataCl.isCollectionExist( newCLName ) ) {
