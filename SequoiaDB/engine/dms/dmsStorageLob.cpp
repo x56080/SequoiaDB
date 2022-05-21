@@ -2950,7 +2950,9 @@ namespace engine
 
       incFileSize = ( newFileSz > fileSize ) ? ( newFileSz - fileSize ) : 0 ;
       incPageNum  = _getDataSegmentPages() * numSeg ;
-      // we need to change numSeg to the actual number
+      // currently, numSeg is the number of increasing lobd segments,
+      // for one lobm segment can hold many lobd segments,
+      // so we need to change numSeg to be the actual number
       // of increasing lobm segments
       totalSegNum = _dmsHeader->_pageNum / segmentPages ;
       if ( 0 != ( _dmsHeader->_pageNum % segmentPages ) )
