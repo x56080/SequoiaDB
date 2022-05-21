@@ -2,8 +2,8 @@
  * @Description   : seqDB-24411:备节点创建本地索引，创建/删除相同一致性索引    
  * @Author        : wu yan
  * @CreateTime    : 2021.09.26
- * @LastEditTime  : 2022.04.12
- * @LastEditors   : liuli
+ * @LastEditTime  : 2022.05.21
+ * @LastEditors   : Wu Yan
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.useSrcGroup = true;
@@ -32,6 +32,7 @@ function test ()
    //场景a：创建一致性索引，其中索引名和索引定义都相同
    dbcl.createIndex( indexNameA, { no: 1, b: 1 } );
    checkOneIndexTaskResult( "Create index", COMMCSNAME, testConf.clName, indexNameA );
+   commCheckLSN( db, groupName );
    checkExistIndexConsistent( db, COMMCSNAME, testConf.clName, indexNameA );
    dbcl.dropIndex( indexNameA );
    checkOneIndexTaskResult( "Drop index", COMMCSNAME, testConf.clName, indexNameA );
