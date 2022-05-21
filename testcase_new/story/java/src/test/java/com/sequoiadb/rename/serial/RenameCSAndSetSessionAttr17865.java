@@ -1,4 +1,4 @@
-package com.sequoiadb.rename;
+package com.sequoiadb.rename.serial;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
+import com.sequoiadb.rename.RenameUtil;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BSONDecimal;

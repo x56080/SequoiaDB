@@ -317,4 +317,18 @@ public class RenameUtil extends SdbTestBase {
         int num = rg.getNodeNum( NodeStatus.SDB_NODE_ALL );
         return num;
     }
+
+    public static void checkRecords( DBCollection dbcl,
+            List< BSONObject > expRecords, String orderBy ) {
+        DBCursor cursor = dbcl.query( "", "", orderBy, "" );
+        int count = 0;
+        while ( cursor.hasNext() ) {
+            BSONObject record = cursor.getNext();
+            BSONObject expRecord = expRecords.get( count++ );
+            Assert.assertEquals( record, expRecord );
+        }
+        cursor.close();
+        Assert.assertEquals( count, expRecords.size() );
+    }
+
 }
