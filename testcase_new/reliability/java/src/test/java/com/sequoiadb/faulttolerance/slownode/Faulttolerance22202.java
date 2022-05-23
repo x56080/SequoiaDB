@@ -1,11 +1,12 @@
 package com.sequoiadb.faulttolerance.slownode;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
+import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
@@ -27,10 +28,12 @@ import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
 
 /**
- * @Description seqDB-22202
- *              容错级别为半容错，只有1个副本状态正常，其他副本状态为:SLOWNODE，replSize=-1的集合下插入数据
- * @author luweikang
- * @date 2020年6月5日
+ * @Description seqDB-22202:容错级别为半容错，只有1个副本状态正常，其他副本状态为:SLOWNODE，replSize=-1的集合下插入数据
+ * @Author luweikang
+ * @Date 2020.06.05
+ * @UpdateAuthor liuli
+ * @UpdateDate 2021.11.30
+ * @version 1.10
  */
 public class Faulttolerance22202 extends SdbTestBase {
 
@@ -42,8 +45,9 @@ public class Faulttolerance22202 extends SdbTestBase {
     private String groupName = null;
     private List< String > slaveNodeNames = new ArrayList<>();
     private Sequoiadb sdb = null;
-    private CollectionSpace cs = null;
     private boolean shutoff = false;
+    private boolean runSuccess = false;
+    private boolean insertSuccess = false;
 
     @BeforeClass
     public void setUp() throws ReliabilityException {
@@ -62,12 +66,13 @@ public class Faulttolerance22202 extends SdbTestBase {
             sdb.dropCollectionSpace( csName );
         }
 
-        cs = sdb.createCollectionSpace( csName );
+        CollectionSpace cs = sdb.createCollectionSpace( csName );
         cs.createCollection( clName,
                 new BasicBSONObject( "Group", groupName ) );
 
-        cs.createCollection( testCLName, ( BSONObject ) JSON
-                .parse( "{'Group': '" + groupName + "', ReplSize: -1}" ) );
+        cs.createCollection( testCLName,
+                new BasicBSONObject( "Group", groupName ).append( "ReplSize",
+                        -1 ) );
 
         BSONObject config = new BasicBSONObject();
         config.put( "ftlevel", 2 );
@@ -86,7 +91,6 @@ public class Faulttolerance22202 extends SdbTestBase {
         for ( String nodeName : allNodeName ) {
             if ( !nodeName.equals( masterName ) ) {
                 slaveNodeNames.add( nodeName );
-
             }
         }
     }
@@ -106,27 +110,36 @@ public class Faulttolerance22202 extends SdbTestBase {
 
         Assert.assertTrue( mgr.isAllSuccess(), mgr.getErrorMsg() );
 
-        BSONObject config = new BasicBSONObject();
-        config.put( "ftlevel", 1 );
-        config.put( "ftmask", 1 );
-        config.put( "ftconfirmperiod", 1 );
-        config.put( "ftslownodethreshold", 1 );
-        config.put( "ftslownodeincrement", 1 );
-        sdb.deleteConfig( config, new BasicBSONObject() );
-        sdb.updateConfig( new BasicBSONObject( "ftfusingtimeout", 300 ) );
-
         Assert.assertTrue( groupMgr.checkBusinessWithLSN( 120 ) );
+        runSuccess = true;
+
+        if ( insertSuccess ) {
+            DBCollection dbcl = sdb.getCollectionSpace( csName )
+                    .getCollection( testCLName );
+            Assert.assertEquals( dbcl.getCount(), 1 );
+        }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            sdb.dropCollectionSpace( csName );
+            // 恢复配置
+            BSONObject config = new BasicBSONObject();
+            config.put( "ftlevel", 1 );
+            config.put( "ftmask", 1 );
+            config.put( "ftconfirmperiod", 1 );
+            config.put( "ftslownodethreshold", 1 );
+            config.put( "ftslownodeincrement", 1 );
+            sdb.deleteConfig( config, new BasicBSONObject() );
+            sdb.updateConfig( new BasicBSONObject( "ftfusingtimeout", 300 ) );
+
+            if ( runSuccess ) {
+                sdb.dropCollectionSpace( csName );
+            }
         } finally {
             if ( sdb != null ) {
                 sdb.close();
             }
-
         }
     }
 
@@ -138,28 +151,30 @@ public class Faulttolerance22202 extends SdbTestBase {
                     "" )) {
                 DBCollection cl = db.getCollectionSpace( csName )
                         .getCollection( clName );
-                for ( int i = 0; i < 1000; i++ ) {
-                    if ( shutoff ) {
-                        break;
-                    }
-                    ArrayList< BSONObject > records = new ArrayList<>();
-                    for ( int j = 0; j < 5000; j++ ) {
-                        BSONObject record = new BasicBSONObject();
-                        record.put( "a", j );
-                        record.put( "b", j );
-                        record.put( "order", j );
-                        record.put( "str",
-                                "fjsldkfjlksdjflsdljfhjdshfjksdhfsdfhsdjkfhjkdshfj"
-                                        + "kdshfkjdshfkjsdhfkjshafdkhasdikuhsdjfls"
-                                        + "hsdjkfhjskdhfkjsdhfjkdshfjkdshfkjhsdjkf"
-                                        + "hsdkjfhsdsafnweuhfuiwnqefiuokdjf" );
-                        records.add( record );
-                    }
-                    cl.insert( records );
+                // 构造插入数据
+                ArrayList< BSONObject > records = new ArrayList<>();
+                for ( int j = 0; j < 5000; j++ ) {
+                    BSONObject record = new BasicBSONObject();
+                    record.put( "a", j );
+                    record.put( "b", j );
+                    record.put( "order", j );
+                    record.put( "str",
+                            "fjsldkfjlksdjflsdljfhjdshfjksdhfssdljfhjdshfjksdhfsdfhsdjdfhsdjkfhjkdshfj"
+                                    + "kdshfkjdshfkjsdhfkjshafdsdljfhjdshfjksdhfsdfhsdjkhasdikuhsdjfls"
+                                    + "hsdjkfhjskdhfkjsdhfjkdssdljfhjdshfjksdhfsdfhsdjhfjkdshfkjhsdjkf"
+                                    + "hsdkjfhsdsafnweuhfuiwnqsdljfhjdshfjksdhfsdfhsdjefiuokdjf" );
+                    records.add( record );
                 }
-            } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -105 && e.getErrorCode() != -252 ) {
-                    throw e;
+                while ( !shutoff ) {
+                    // 当插入数据报错时不停止线程，只有shutoff为true时才停止线程
+                    try {
+                        cl.insert( records );
+                    } catch ( BaseException e ) {
+                        if ( e.getErrorCode() != SDBError.SDB_IXM_DUP_KEY
+                                .getErrorCode() ) {
+                            throw e;
+                        }
+                    }
                 }
             }
         }
@@ -173,18 +188,16 @@ public class Faulttolerance22202 extends SdbTestBase {
                     "" )) {
                 DBCollection cl = db.getCollectionSpace( csName )
                         .getCollection( clName );
-                for ( int i = 0; i < 1000; i++ ) {
+                for ( int i = 0; i < 5000; i++ ) {
                     if ( shutoff ) {
                         break;
                     }
-                    cl.update( null,
-                            "{$inc:{a:1, b:1}, $set:{'str':'update str times "
-                                    + i + "'}}",
-                            null );
-                }
-            } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -105 && e.getErrorCode() != -252 ) {
-                    throw e;
+                    BasicBSONObject modifier = new BasicBSONObject();
+                    modifier.put( "$inc",
+                            new BasicBSONObject( "a", 1 ).append( "b", 1 ) );
+                    modifier.put( "$set", new BasicBSONObject( "str",
+                            "update str times " + i ) );
+                    cl.update( null, modifier, null );
                 }
             }
         }
@@ -197,10 +210,7 @@ public class Faulttolerance22202 extends SdbTestBase {
                     "" )) {
                 DBCollection cl = db.getCollectionSpace( csName )
                         .getCollection( clName );
-                for ( int i = 0; i < 1000; i++ ) {
-                    if ( shutoff ) {
-                        break;
-                    }
+                while ( !shutoff ) {
                     DBLob lob = cl.createLob();
                     lob.write( lobBuff );
                     lob.close();
@@ -215,14 +225,21 @@ public class Faulttolerance22202 extends SdbTestBase {
         public void exec() throws Exception {
             try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( testCLName );
+                int slowNodeNum;
                 for ( int i = 0; i < 6000; i++ ) {
-                    boolean nodeSlow = true;
+                    boolean nodeSlow = false;
+                    slowNodeNum = 0;
                     for ( String nodeName : slaveNodeNames ) {
                         String ft = FaultToleranceUtils.getNodeFTStatus( db,
                                 nodeName );
-                        if ( !ft.equals( "SLOWNODE" )
-                                && !ft.equals( "SLOWNODE|DEADSYNC" ) ) {
-                            nodeSlow = false;
+                        if ( ft.equals( "SLOWNODE" )
+                                || ft.equals( "SLOWNODE|DEADSYNC" ) ) {
+                            slowNodeNum++;
+                        }
+                        if ( slowNodeNum == 2 ) {
+                            nodeSlow = true;
                             break;
                         }
                     }
@@ -239,21 +256,37 @@ public class Faulttolerance22202 extends SdbTestBase {
                     }
                 }
 
-                DBCollection cl = db.getCollectionSpace( csName )
-                        .getCollection( testCLName );
                 try {
+                    for ( String nodeName : slaveNodeNames ) {
+                        String ft = FaultToleranceUtils.getNodeFTStatus( db,
+                                nodeName );
+                        System.out.println( new Date() + " "
+                                + this.getClass().getName() + " begin insert "
+                                + nodeName + " ft is : " + ft );
+                        sdb.msg( "Faulttolerance22202 begin insert: " + nodeName
+                                + " ft is : " + ft );
+                    }
                     cl.insert( "{a:'testslow'}" );
-                    System.out.println(
-                            "ReplSize:-1 cl write data must be error when node slow" );
-                    Assert.fail(
-                            "ReplSize:-1 cl write data must be error when node slow" );
+                    for ( String nodeName : slaveNodeNames ) {
+                        String ft = FaultToleranceUtils.getNodeFTStatus( db,
+                                nodeName );
+                        System.out.println( new Date() + " "
+                                + this.getClass().getName() + " insert success "
+                                + nodeName + " ft is : " + ft );
+                        sdb.msg( "Faulttolerance22202 insert success: "
+                                + nodeName + " ft is : " + ft );
+                    }
+                    // 当节点状态恢复时会插入成功，插入成功后校验数据
+                    insertSuccess = true;
+                    // Assert.fail(
+                    // "ReplSize:-1 cl write data must be error when node slow"
+                    // );
                 } catch ( BaseException e ) {
                     if ( e.getErrorCode() != -105
                             && e.getErrorCode() != -252 ) {
                         throw e;
                     }
                 }
-
             } finally {
                 shutoff = true;
             }
