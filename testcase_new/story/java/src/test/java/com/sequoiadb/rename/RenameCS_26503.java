@@ -2,6 +2,8 @@ package com.sequoiadb.rename;
 
 import java.util.ArrayList;
 
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
@@ -134,6 +136,13 @@ public class RenameCS_26503 extends SdbTestBase {
                         .getCollection( mainCLName );
                 int insertNums = 20000;
                 insertRecord = insertDatas( maincl, insertNums );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_DMS_NOTEXIST
+                        .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_DMS_CS_NOTEXIST
+                                .getErrorCode() ) {
+                    throw e;
+                }
             }
         }
     }

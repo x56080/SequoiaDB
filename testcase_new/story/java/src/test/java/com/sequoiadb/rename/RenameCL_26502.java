@@ -1,6 +1,8 @@
 package com.sequoiadb.rename;
 
 import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.threadexecutor.ResultStore;
 import com.sequoiadb.threadexecutor.ThreadExecutor;
 import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
@@ -117,6 +119,11 @@ public class RenameCL_26502 extends SdbTestBase {
                         .getCollection( mainCLName );
                 int insertNums = 20000;
                 insertRecord = insertDatas( maincl, insertNums );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_DMS_NOTEXIST
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
         }
     }
