@@ -213,7 +213,7 @@ TEST(extent_allocator_test, base_test4)
       for (UINT32 j = 0; j < loop; ++j)
       {
          PAGE_ID pid = INVALID_PAGE_ID;
-         rc = allocator.reserveExtent(1, pid);
+         rc = allocator.reserveExtent(EXTENT_SIZE, pid);
          ASSERT_EQ(SDB_OK, rc);
          ASSERT_EQ(i * SEG_PCNT + (j * EXTENT_SIZE), pid);
       }

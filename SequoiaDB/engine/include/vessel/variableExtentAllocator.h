@@ -134,9 +134,10 @@ namespace vessel
          class _fileUnit : public SDBObject
          {
             public:
-               _fileUnit(PAGE_ID firstPid,
+               _fileUnit(UINT32 fileId,
+                         PAGE_ID firstPid,
                          const options *o,
-                         std::atomic_int *stats);
+                         std::atomic_ullong *fbits);
                ~_fileUnit();
                _fileUnit(const _fileUnit &) = delete;
                _fileUnit &operator=(const _fileUnit &) = delete;
@@ -155,16 +156,22 @@ namespace vessel
 
                PAGE_ID reserveExtent(UINT32 pcnt);
                void freeExtent(PAGE_ID pid, UINT32 pcnt);
+               void freePids(UINT32 size, const PAGE_ID *pids);
 
             private:
                INT32 _reserveSegment();
 
                void _resetMaxFreeExtentSize(UINT32 stopWhenFound=0);
 
+               void _setFileBit();
+               void _clearFileBit();
+
             private:
+               const UINT32 _fileId = 0;
                const PAGE_ID _firstPid = INVALID_PAGE_ID;
                const options *_o = nullptr;
-               std::atomic_int *_globalSegStats = nullptr;
+               UINT64 _fbit = 0;
+               std::atomic_ullong *_fbits = nullptr;
                std::mutex _mutex;
                std::vector<_segmentUnit *> _segments;
                boost::dynamic_bitset<> _freebits;
@@ -177,10 +184,6 @@ namespace vessel
          OSS_INLINE UINT32 peekSegmentCount()const
          {
             return _totalSegmentCount;
-         }
-         OSS_INLINE INT32 getFreeSegStats()const
-         {
-            return _freeSegments.load(std::memory_order_relaxed);
          }
       public:
          void reset();
@@ -197,6 +200,8 @@ namespace vessel
 
          void freeExtent(PAGE_ID pid, UINT32 pcnt);
 
+         void freePids(UINT32 size, const PAGE_ID *pids);
+
       private:
 
          INT32 _depositNewFileUnit();
@@ -207,8 +212,8 @@ namespace vessel
          ossSpinSLatchPOSIX _latch;
          options _o;
          UINT32 _totalSegmentCount = 0;
-         std::atomic_int _freeSegments = {0};
          std::vector<_fileUnit *> _funits;
+         std::vector<std::atomic_ullong *> _fbits;
          ///TODO: add atomic bitmap to speed up scan?
    };//class variableExtentAllocator
 

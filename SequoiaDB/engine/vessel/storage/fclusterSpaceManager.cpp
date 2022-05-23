@@ -166,15 +166,7 @@ namespace vessel
 
       if (isReady())
       {
-         for (UINT32 i = 0; i < size; ++i)
-         {
-            if (INVALID_PAGE_ID == pids[i])
-            {
-               continue;
-            }
-
-            releaseExtent(pids[i], 1);
-         }
+         _allocator.freePids(size, pids);
       }
 
       return;

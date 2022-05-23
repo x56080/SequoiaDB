@@ -1144,7 +1144,7 @@ namespace vessel
       if (FLUSH_BUFFER_SIZE_THRESHOLD <= bufferSizeAllocated ||
           FLUSH_WATER_MARK <= memUsedRatio)
       {
-         flushSize = std::max(MIN_FLUSH_SIZE, bufferSizeAllocated >> 1);
+         flushSize = std::max(MIN_FLUSH_SIZE, bufferSizeAllocated >> 2);
          if (MAX_FLUSH_BUFFER_SIZE < flushSize)
          {
             flushSize = MAX_FLUSH_BUFFER_SIZE;

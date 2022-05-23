@@ -70,7 +70,7 @@ namespace vessel
       /// flush options
       FLOAT32 flushDirtyListThreshold = 0.70f; /// valid range (0.00, 1.0)
       UINT32 flushDirtyListMillis = 30000;
-      UINT64 flushBatchSize = (UINT64)1 << 28;
+      UINT64 flushBatchSize = (UINT64)256 << 20;
    };//class bufferPoolOptions
 } // namespace vessel
 

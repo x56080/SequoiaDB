@@ -265,7 +265,7 @@ namespace vessel
          {
             bitset->reset(offset & BM_UTIL_BIT_AND_MOD_64);
             ++offset;
-         } while (offset < end);
+         } while (offset <= end);
       }
 
       return;
@@ -357,7 +357,7 @@ namespace vessel
                goto done;
             }
             ++offset;
-         } while (offset < end);
+         } while (offset <= end);
       }
 
       r = TRUE;
@@ -412,7 +412,7 @@ namespace vessel
                goto done;
             }
             ++offset;
-         } while (offset < end);
+         } while (offset <= end);
       }
 
       r = TRUE;

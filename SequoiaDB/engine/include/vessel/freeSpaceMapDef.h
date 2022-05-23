@@ -86,8 +86,8 @@ namespace vessel
    
    /// free space map file
    constexpr UINT32 FSM_FILE_PAGE_SIZE = 65536;
-   constexpr UINT32 FSM_FILE_PAGE_COUNT_PER_SEG = 256;
-   constexpr UINT32 FSM_FILE_MAX_SEG_COUNT = 1024;
+   constexpr UINT32 FSM_FILE_PAGE_COUNT_PER_SEG = 64;
+   constexpr UINT32 FSM_FILE_MAX_SEG_COUNT = 4096;
    
    constexpr UINT32 FSM_FILE_PAGE_VERSION = 1;
 

@@ -47,7 +47,6 @@
 #include "vessel/storageFileName.h"
 #include "vessel/storageFileLoader.h"
 #include "vessel/storageUtils.h"
-#include "vessel/lobcDef.h"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -289,6 +288,10 @@ namespace vessel
       SDB_ASSERT(context->isSpaceIdLocked(&lockingMode), "must holding lock");
       SDB_ASSERT(EXCLUSIVE == lockingMode, "must be exslusive");
 
+      SDB_ASSERT(DMS_PAGE_SIZE32K == options.dataPageSize, "must be 32KB");
+      SDB_ASSERT(DMS_PAGE_SIZE32K == options.idxPageSize, "must be 32KB");
+      SDB_ASSERT(DMS_PAGE_SIZE4K == options.lobdPageSize, "must be 4KB");
+
       SPACE_ID sid = context->getSpaceID();
       storageUnit *su = NULL;
       createSUOptions suOptions;
@@ -301,9 +304,9 @@ namespace vessel
       suOptions.indexArgs.maxPageCountPerSeg = STORAGE_FILE_SEGMENT_SIZE_32MB / options.idxPageSize;
       suOptions.indexArgs.maxSegmentCountPerFile = DATA_STORAGE_FILE_SIZE / STORAGE_FILE_SEGMENT_SIZE_32MB;
 
-      suOptions.lobArgs.pageSize = LOBD_PAGE_SIZE;
-      suOptions.lobArgs.maxPageCountPerSeg = LOBD_PAGE_COUNT_PER_SEG;
-      suOptions.lobArgs.maxSegmentCountPerFile = DATA_STORAGE_FILE_SIZE / LOBD_SEG_SIZE;
+      suOptions.lobArgs.pageSize = options.lobdPageSize;
+      suOptions.lobArgs.maxPageCountPerSeg = STORAGE_FILE_SEGMENT_SIZE_32MB / options.lobdPageSize;
+      suOptions.lobArgs.maxSegmentCountPerFile = DATA_STORAGE_FILE_SIZE / STORAGE_FILE_SEGMENT_SIZE_32MB;
 
       if (!suOptions.isValid())
       {

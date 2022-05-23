@@ -198,7 +198,7 @@ INT32 _ossMmapFile::map ( UINT64 offset, UINT32 length, void **pAddress )
    }
    // advise kernel to not copy the memory during fork
    // we don't care the return value anyway
-   madvise ( segment, length, MADV_DONTFORK|MADV_SEQUENTIAL ) ;
+   madvise ( segment, length, MADV_DONTFORK ) ;
 #elif defined (_WINDOWS)
    // make sure the requested offset is aligned with OS memory allocation
    // granularity. Otherwise MapViewOfFile will fail

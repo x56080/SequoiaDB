@@ -43,19 +43,19 @@ TEST(filename_test, base_build_test1)
 {
    storageFileName fn;
    ASSERT_TRUE(fn.build(FILE_TYPE_LPM, SPACE_TYPE_MAIN_DATA, 0));
-   ASSERT_EQ(0, ossStrcmp(fn.getFileName(), "data.idmap.000000"));
+   ASSERT_EQ(0, ossStrcmp(fn.getFileName(), "data.lpm.000000"));
    ASSERT_EQ(fn.getSequence(), 0);
    ASSERT_EQ(fn.getFileType(), FILE_TYPE_LPM);
    ASSERT_EQ(fn.getSpaceType(), SPACE_TYPE_MAIN_DATA);
 
    ASSERT_TRUE(fn.build(FILE_TYPE_LPM, SPACE_TYPE_MAIN_DATA, 1000000));
-   ASSERT_EQ(0, ossStrcmp(fn.getFileName(), "data.idmap.1000000"));
+   ASSERT_EQ(0, ossStrcmp(fn.getFileName(), "data.lpm.1000000"));
    ASSERT_EQ(fn.getSequence(), 1000000);
    ASSERT_EQ(fn.getFileType(), FILE_TYPE_LPM);
    ASSERT_EQ(fn.getSpaceType(), SPACE_TYPE_MAIN_DATA);
 
    ASSERT_TRUE(fn.build(FILE_TYPE_LPM, SPACE_TYPE_IDX, 101));
-   ASSERT_EQ(0, ossStrcmp(fn.getFileName(), "idx.idmap.000101"));
+   ASSERT_EQ(0, ossStrcmp(fn.getFileName(), "idx.lpm.000101"));
    ASSERT_EQ(fn.getSequence(), 101);
    ASSERT_EQ(fn.getFileType(), FILE_TYPE_LPM);
    ASSERT_EQ(fn.getSpaceType(), SPACE_TYPE_IDX);
@@ -74,17 +74,17 @@ TEST(filename_test, base_build_test1)
 TEST(filename_test, base_extract_test1)
 {
    storageFileName fn;
-   ASSERT_TRUE(fn.extract(strSlice("data.idmap.000000")));
+   ASSERT_TRUE(fn.extract(strSlice("data.lpm.000000")));
    ASSERT_EQ(fn.getSequence(), 0);
    ASSERT_EQ(fn.getFileType(), FILE_TYPE_LPM);
    ASSERT_EQ(fn.getSpaceType(), SPACE_TYPE_MAIN_DATA);
 
-   ASSERT_TRUE(fn.extract(strSlice("idx.idmap.000111")));
+   ASSERT_TRUE(fn.extract(strSlice("idx.lpm.000111")));
    ASSERT_EQ(fn.getSequence(), 111);
    ASSERT_EQ(fn.getFileType(), FILE_TYPE_LPM);
    ASSERT_EQ(fn.getSpaceType(), SPACE_TYPE_IDX);
 
-   ASSERT_TRUE(fn.extract(strSlice("lob.idmap.999999")));
+   ASSERT_TRUE(fn.extract(strSlice("lob.lpm.999999")));
    ASSERT_EQ(fn.getSequence(), 999999);
    ASSERT_EQ(fn.getFileType(), FILE_TYPE_LPM);
    ASSERT_EQ(fn.getSpaceType(), SPACE_TYPE_LOB);
@@ -148,7 +148,7 @@ TEST(filename_test, base_dir_test2)
 {
    storageFileName fn;
    CHAR buf[MAX_SPACE_DIR_LEN + 1] = {'\0'};
-   ASSERT_FALSE(buildSpaceDirName(1, MAX_SPACE_DIR_LEN, buf));
+   ASSERT_FALSE(buildSpaceDirName(1, MAX_SPACE_DIR_LEN, buf)); 
 }
 
 // parseDirName

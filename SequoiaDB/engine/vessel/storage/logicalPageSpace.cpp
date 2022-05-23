@@ -688,6 +688,7 @@ namespace vessel
          goto error;
       }
 
+      lpidsToFree.reserve(count);
       dms = &(context->getEnv()->dms);
       for (UINT32 i = 0; i < count; ++i)
       {
@@ -737,6 +738,12 @@ namespace vessel
 
       if (!pidsToFree.empty())
       {
+         /// sort pids first to avoid random IO(sme) and
+         /// reduce locking times.
+         if (1 < pidsToFree.size())
+         {
+            std::sort(pidsToFree.begin(), pidsToFree.end());
+         }
          _smgr.releaseBatch(pidsToFree.size(), pidsToFree.data());
       }
    done:

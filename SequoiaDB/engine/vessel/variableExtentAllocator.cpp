@@ -354,16 +354,19 @@ namespace vessel
 ///////////////////////////_segmentUnit end
 
 ///////////////////////////_fileUnit
-   variableExtentAllocator::_fileUnit::_fileUnit(PAGE_ID firstPid,
+   variableExtentAllocator::_fileUnit::_fileUnit(UINT32 fileId,
+                                                 PAGE_ID firstPid,
                                                  const options *o,
-                                                 std::atomic_int *stats):
+                                                 std::atomic_ullong *fbits):
+   _fileId(fileId),
    _firstPid(firstPid),
    _o(o),
-   _globalSegStats(stats)
+   _fbits(fbits)
    {
       SDB_ASSERT(INVALID_PAGE_ID != _firstPid, "can not be invalid");
       SDB_ASSERT(nullptr != _o, "can not be invalid");
-      SDB_ASSERT(nullptr != _globalSegStats, "can not be invalid");
+      SDB_ASSERT(nullptr != _fbits, "can not be invalid");
+      _fbit = (UINT64)1 << (_fileId % 64);
    }
 
    variableExtentAllocator::_fileUnit::~_fileUnit()
@@ -386,6 +389,9 @@ namespace vessel
             SDB_OSS_DEL _segments.at(i);
          }
       }
+
+      _fbit = 0;
+      _fbits = nullptr;
       _segments.clear();
       _segments.shrink_to_fit();
       _freebits.clear();
@@ -426,16 +432,19 @@ namespace vessel
       }
 
       segment->initFromSme(sme);
+      _segments.push_back(segment);
       if (_o->minSegFreeCntReused <= segment->getFreePidCount())
       {
-         _freebits.set(_segments.size());
+         _freebits.set(_segments.size() - 1);
          if (getMaxFreeExtentSize() < segment->getMaxFreeExtentSize())
          {
-            _maxFreeExtentSize.store(segment->getMaxFreeExtentSize(), std::memory_order_relaxed);
+            _maxFreeExtentSize.store(segment->getMaxFreeExtentSize(),
+                                     std::memory_order_relaxed);
          }
-         _globalSegStats->fetch_add(1, std::memory_order_relaxed);
+
+         _setFileBit();
       }
-      _segments.push_back(segment);
+      
       
    done:
       return rc;
@@ -470,13 +479,15 @@ namespace vessel
       }
 
       segment->init(allFree);
+      _segments.push_back(segment);
       if (allFree)
       {
-         _freebits.set(_segments.size());
-         _maxFreeExtentSize.store(segment->getMaxFreeExtentSize(), std::memory_order_relaxed);
-         _globalSegStats->fetch_add(1, std::memory_order_relaxed);
+         _freebits.set(_segments.size() - 1);
+         _maxFreeExtentSize.store(segment->getMaxFreeExtentSize(),
+                                  std::memory_order_relaxed);
+         _setFileBit();
       }
-      _segments.push_back(segment);
+      
    done:
       return rc;
    error:
@@ -488,6 +499,7 @@ namespace vessel
       SDB_ASSERT(0 < pcnt && pcnt <= _o->maxPageCountPerSegment, "can not be invalid");
       PAGE_ID pid = INVALID_PAGE_ID;
       BOOLEAN resetMaxFreeExtentSize = FALSE;
+      BOOLEAN segmentOutOfSpace = FALSE;
       std::unique_lock<std::mutex> guard(_mutex);
       std::size_t pos = 0;
 
@@ -510,7 +522,7 @@ namespace vessel
             if (0 == segment->getMaxFreeExtentSize())
             {
                _freebits.reset(pos);
-               _globalSegStats->fetch_sub(1, std::memory_order_relaxed);
+               segmentOutOfSpace = TRUE;
             }
             pid = _firstPid + poffset + (pos * _o->maxPageCountPerSegment);
             resetMaxFreeExtentSize = (oldMaxFreeExtentSize == maxExtentSize) &&
@@ -521,7 +533,12 @@ namespace vessel
          pos = _freebits.find_next(pos);
       }
 
-      if (resetMaxFreeExtentSize)
+      if (segmentOutOfSpace && _freebits.none())
+      {
+         _clearFileBit();
+         _maxFreeExtentSize.store(0, std::memory_order_relaxed);
+      }
+      else if (resetMaxFreeExtentSize)
       {
          _resetMaxFreeExtentSize(maxExtentSize);
       }
@@ -539,6 +556,8 @@ namespace vessel
       UINT32 segmentId = pidOffset / _o->maxPageCountPerSegment;
       UINT32 poffset = pidOffset % _o->maxPageCountPerSegment;
       _segmentUnit *segment = nullptr;
+      BOOLEAN segmentBit = FALSE;
+      BOOLEAN reused = FALSE;
 
       std::unique_lock<std::mutex> guard(_mutex);
       if (OSS_UNLIKELY(_segments.size() <= segmentId))
@@ -549,21 +568,70 @@ namespace vessel
       
       segment = _segments.at(segmentId);
       segment->freeExtent(poffset, pcnt);
-      if (!_freebits.test(segmentId) &&
+      segmentBit = _freebits.test(segmentId);
+
+      if (!segmentBit &&
            _o->minSegFreeCntReused <= segment->getFreePidCount())
       {
          _freebits.set(segmentId);
-         _globalSegStats->fetch_add(1, std::memory_order_relaxed);
+         segmentBit = TRUE;
+         reused = TRUE;
       }
 
-      if (_freebits.test(segmentId) &&
+      if (segmentBit &&
           getMaxFreeExtentSize() < segment->getMaxFreeExtentSize())
       {
          _maxFreeExtentSize.store(segment->getMaxFreeExtentSize(),
                                   std::memory_order_relaxed);
       }
 
+      if (reused)
+      {
+         _setFileBit();
+      }
+
    done:
+      return;
+   }
+
+   void variableExtentAllocator::_fileUnit::freePids(UINT32 size,
+                                                     const PAGE_ID *pids)
+   {
+      SDB_ASSERT(0 < size && nullptr != pids, "can not be invalid");
+      BOOLEAN reused = FALSE;
+      std::unique_lock<std::mutex> guard(_mutex);
+      for (UINT32 i = 0; i < size; ++i)
+      {
+         PAGE_ID pid = pids[i];
+         SDB_ASSERT(INVALID_PAGE_ID != pid && _firstPid <= pid, "can not be invalid");
+         UINT32 pidOffset = pid - _firstPid;
+         UINT32 segmentId = pidOffset / _o->maxPageCountPerSegment;
+         UINT32 poffset = pidOffset % _o->maxPageCountPerSegment;
+         _segmentUnit *segment = _segments.at(segmentId);
+         segment->freeExtent(poffset, 1);
+         BOOLEAN segmentBit = _freebits.test(segmentId);
+
+         if (!segmentBit &&
+             _o->minSegFreeCntReused <= segment->getFreePidCount())
+         {
+            _freebits.set(segmentId);
+            segmentBit = TRUE;
+            reused = TRUE;
+         }
+
+         if (segmentBit &&
+             getMaxFreeExtentSize() < segment->getMaxFreeExtentSize())
+         {
+            _maxFreeExtentSize.store(segment->getMaxFreeExtentSize(),
+                                     std::memory_order_relaxed);
+         }
+      }
+
+      if (reused)
+      {
+         _setFileBit();
+      }
+
       return;
    }
 
@@ -611,6 +679,36 @@ namespace vessel
       return;
    }
 
+   void variableExtentAllocator::_fileUnit::_setFileBit()
+   {
+      UINT64 oldVal = _fbits->load(std::memory_order_relaxed);
+      do
+      {
+         UINT64 newVal = oldVal;
+         OSS_BIT_SET(newVal, _fbit);
+         if (_fbits->compare_exchange_weak(oldVal, newVal))
+         {
+            break;
+         }
+      } while (TRUE);
+      return;
+   }
+
+   void variableExtentAllocator::_fileUnit::_clearFileBit()
+   {
+      UINT64 oldVal = _fbits->load(std::memory_order_relaxed);
+      do
+      {
+         UINT64 newVal = oldVal;
+         OSS_BIT_CLEAR(newVal, _fbit);
+         if (_fbits->compare_exchange_weak(oldVal, newVal))
+         {
+            break;
+         }
+      } while (TRUE);
+      return;
+   }
+
 ///////////////////////////_fileUnit end
 
    variableExtentAllocator::~variableExtentAllocator()
@@ -639,10 +737,19 @@ namespace vessel
             SDB_OSS_DEL _funits[i];
          }
       }
+      for (UINT32 i = 0; i < _fbits.size(); ++i)
+      {
+         if (nullptr != _fbits[i])
+         {
+            delete _fbits[i];
+         }
+      }
+
       _funits.clear();
       _funits.shrink_to_fit();
       _totalSegmentCount = 0;
-      _freeSegments.store(0, std::memory_order_relaxed);
+      _fbits.clear();
+      _fbits.shrink_to_fit();
       _o = options();
       return;
    }
@@ -744,24 +851,32 @@ namespace vessel
          goto error;
       }
 
-      if (getFreeSegStats() <= 0)
+      for (UINT32 bitsPos = 0; bitsPos < _fbits.size(); ++bitsPos)
       {
-         goto done;
-      }
+         UINT64 fbits = _fbits.at(bitsPos)->load(std::memory_order_relaxed);
 
-      for (auto ritr = _funits.rbegin(); ritr != _funits.rend(); ++ritr)
-      {
-         _fileUnit *funit = *ritr;
-         if (pcnt <= funit->getMaxFreeExtentSize())
+         while (0 != fbits)
          {
-            pid = funit->reserveExtent(pcnt);
-            if (INVALID_PAGE_ID != pid)
+            UINT64 mask = 1;
+            INT32 pos = ossGetLowestBit1From64Bits(fbits);
+            SDB_ASSERT(0 <= pos, "impossible");
+            UINT32 unitId = (bitsPos << 6) + pos;
+            SDB_ASSERT(unitId < _funits.size(), "out of bound");
+            _fileUnit *funit = _funits.at(unitId);
+            if (pcnt <= funit->getMaxFreeExtentSize())
             {
-               break;
+               pid = funit->reserveExtent(pcnt);
+               if (INVALID_PAGE_ID != pid)
+               {
+                  goto done;
+               }
             }
-         }
-      }
-      
+
+            mask <<= pos;
+            OSS_BIT_CLEAR(fbits, mask);
+         }//while (0 != fbits)
+      }//for (UINT32 bitsPos = 0; bitsPos < _fbits.size(); ++bitsPos)
+
    done:
       return rc;
    error:
@@ -786,22 +901,78 @@ namespace vessel
       return;
    }
 
+   void variableExtentAllocator::freePids(UINT32 size, const PAGE_ID *pids)
+   {
+      SDB_ASSERT(nullptr != pids, "can not be null");
+      UINT32 batchCount = 0;
+      const PAGE_ID *batch = nullptr;
+      UINT32 scanPos = 0;
+      UINT32 batchFd = 0;
+      UINT32 maxFilePcnt = _o.maxPageCountPerSegment * _o.maxSegmentCountPerFile;
+      ossSLatchGuard guard(&_latch, SHARED);
+   
+      while (scanPos < size)
+      {
+         UINT32 pos = scanPos++;
+         PAGE_ID pid = pids[pos];
+         UINT32 fd = pid / maxFilePcnt;
+         if (_isValidExtentToFree(pid, 1))
+         {
+            if (0 < batchCount && fd == batchFd)
+            {
+               ++batchCount;
+            }
+            else if (0 == batchCount)
+            {
+               batchCount = 1;
+               batch = pids + pos;
+               batchFd = fd;
+            }
+            else
+            {
+               _funits.at(batchFd)->freePids(batchCount, batch);
+               batchFd = fd;
+               batchCount = 1;
+               batch = pids + pos;
+            }
+         }
+         else
+         {
+            if (0 < batchCount)
+            {
+               _funits.at(batchFd)->freePids(batchCount, batch);
+               batchFd = 0;
+               batchCount = 0;
+               batch = nullptr;
+            }
+         }
+      }//while (scanPos < size)
+
+      if (0 < batchCount)
+      {
+         _funits.at(batchFd)->freePids(batchCount, batch);
+      }
+
+      return;
+   }
+
+
    INT32 variableExtentAllocator::_depositNewFileUnit()
    {
       INT32 rc = SDB_OK;
-      PAGE_ID firstPid = _funits.size() *
-                         _o.maxPageCountPerSegment * _o.maxSegmentCountPerFile;
-      _fileUnit *funit = SDB_OSS_NEW _fileUnit(firstPid, &_o, &_freeSegments);
-      if (OSS_UNLIKELY(nullptr == funit))
-      {
-         PD_LOG(PDERROR, "failed to allocate mem.");
-         rc = SDB_OOM;
-         goto error;
-      }
+      PAGE_ID firstPid = INVALID_PAGE_ID;
+      _fileUnit *funit = nullptr;
+      std::atomic_ullong *bits = nullptr;
+      std::atomic_ullong *bitsToRegister = nullptr;
+      UINT32 bitsPos = _funits.size() >> 6;
 
       try
       {
-         _funits.push_back(funit);
+         _funits.reserve(1);
+         if (bitsPos == _fbits.size())
+         {
+            _fbits.reserve(1);
+         }  
       }
       catch(const std::exception& e)
       {
@@ -809,11 +980,50 @@ namespace vessel
          rc = SDB_OOM;
          goto error;
       }
+
+      if (bitsPos == _fbits.size())
+      {
+         bits = new(std::nothrow) std::atomic_ullong(0);
+         if (nullptr == bits)
+         {
+            PD_LOG(PDERROR, "failed to allocate mem.");
+            rc = SDB_OOM;
+            goto error;
+         }
+
+         bitsToRegister = bits;
+      }
+      else
+      {
+         bitsToRegister = _fbits.at(bitsPos);
+      }
+      
+      SDB_ASSERT(nullptr != bitsToRegister, "impossible");
+      firstPid = _funits.size() *
+                 _o.maxPageCountPerSegment * _o.maxSegmentCountPerFile;
+      funit = SDB_OSS_NEW _fileUnit(_funits.size(), firstPid, &_o, bitsToRegister);
+      if (OSS_UNLIKELY(nullptr == funit))
+      {
+         PD_LOG(PDERROR, "failed to allocate mem.");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      /// do not goto error from here
+      _funits.push_back(funit);
+      if (nullptr != bits)
+      {
+         _fbits.push_back(bits);
+      }
       
    done:
       return rc;
    error:
       SAFE_OSS_DELETE(funit);
+      if (nullptr != bits)
+      {
+         delete bits;
+      }
       goto done;
    }
 
