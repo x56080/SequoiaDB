@@ -56,18 +56,12 @@ namespace vessel
 
    constexpr UINT32 INVALID_FILE_HEAD_VERSION = 0;
 
-   constexpr UINT64 STORAGE_FILE_SIZE = (UINT64(4) << 30); /// 4GB
+   constexpr UINT64 DATA_STORAGE_FILE_SIZE = (UINT64(4) << 30); /// 4GB
+   
+   constexpr UINT32 STORAGE_FILE_SEGMENT_SIZE_32MB = 32 << 20;
 
-   constexpr UINT32 STORAGE_FILE_SEGMENT_SIZE_4MB = ((UINT32)4 << 20);
-   constexpr UINT32 STORAGE_FILE_SEGMENT_SIZE_32MB = ((UINT32)32 << 20);
-   constexpr UINT32 STORAGE_FILE_SEGMENT_SIZE_64MB = ((UINT32)64 << 20);
-   constexpr UINT32 STORAGE_FILE_SEGMENT_SIZE_128MB = ((UINT32)128 << 20);
-   constexpr UINT32 STORAGE_FILE_SEGMENT_SIZE_256MB = ((UINT32)256 << 20);
-
-   constexpr UINT64 STORAGE_FILE_INVALID_SEQUENCE = OSS_UINT64_MAX;
-
-   /// Internal files like detalog may not follow segment sizes here.
-   BOOLEAN isValidSegmentSize(UINT32 size);
+   /// max page count per segment
+   constexpr UINT32 STORAGE_FILE_SEGMENT_MAX_PCNT = 32768;
 
 #pragma pack(4)
 
@@ -83,6 +77,9 @@ namespace vessel
       {
          
       }
+
+      storageCoreArgs(const storageCoreArgs &) = default;
+      storageCoreArgs &operator=(const storageCoreArgs &) = default;
 
       OSS_INLINE void reset()
       {
@@ -103,14 +100,6 @@ namespace vessel
       OSS_INLINE BOOLEAN operator!=(const storageCoreArgs &o)const
       {
          return !(*this == o);
-      }
-
-      OSS_INLINE storageCoreArgs &operator=(const storageCoreArgs &o)
-      {
-         pageSize = o.pageSize;
-         maxPageCountPerSeg = o.maxPageCountPerSeg;
-         maxSegmentCountPerFile = o.maxSegmentCountPerFile;
-         return *this;
       }
 
       OSS_INLINE UINT64 getMaxFileBodySize()const

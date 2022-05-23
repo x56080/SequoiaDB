@@ -43,21 +43,15 @@ namespace engine
 namespace vessel
 {
 #pragma pack(4)
-   struct smeUberBlock
-   {
-      UINT32 totalSegments = 0;
-      UINT32 entryPid = INVALID_PAGE_ID;
-   };//struct smeUberBlock
-
    struct lpmUberBlock
    {
       static constexpr UINT32 VERSION = 1;
-      static constexpr UINT32 MAPPING_ENTRY_SIZE = 8;
+      static constexpr UINT32 MAPPING_ENTRY_SIZE = 4;
 
       lpmUberBlock() {reset();}
       lpmUberBlock(const lpmUberBlock &o):
       version(o.version),
-      sub(o.sub)
+      smeEntryPid(o.smeEntryPid)
       {
          for (UINT32 i = 0; i < MAPPING_ENTRY_SIZE; ++i)
          {
@@ -68,7 +62,7 @@ namespace vessel
       lpmUberBlock &operator=(const lpmUberBlock &o)
       {
          version = o.version;
-         sub = o.sub;
+         smeEntryPid = o.smeEntryPid;
          for (UINT32 i = 0; i < MAPPING_ENTRY_SIZE; ++i)
          {
             mappingEntries[i] = o.mappingEntries[i];
@@ -84,7 +78,7 @@ namespace vessel
       OSS_INLINE void reset()
       {
          version = 0;
-         sub = smeUberBlock();
+         smeEntryPid = INVALID_PAGE_ID;
          for (UINT32 i = 0; i < MAPPING_ENTRY_SIZE; ++i)
          {
             mappingEntries[i] = INVALID_PAGE_ID;
@@ -92,7 +86,7 @@ namespace vessel
       }
 
       UINT32 version = 0;
-      smeUberBlock sub;
+      UINT32 smeEntryPid = INVALID_PAGE_ID;
       UINT32 mappingEntries[MAPPING_ENTRY_SIZE] = {};
    };//struct lpmUberBlock
    constexpr UINT32 LPM_UBER_BLOCK_SIZE = sizeof(lpmUberBlock);
@@ -109,12 +103,12 @@ namespace vessel
       void reset()
       {
          version = 0;
-         sub = smeUberBlock();
+         smeEntryPid = INVALID_PAGE_ID;
          bucketEntryPid = INVALID_PAGE_ID;
       }
 
       UINT32 version = 0;
-      smeUberBlock sub;
+      UINT32 smeEntryPid = INVALID_PAGE_ID;
       UINT32 bucketEntryPid = INVALID_PAGE_ID;
    };//struct lobmUberBlock
    constexpr UINT32 LOBM_UBER_BLOCK_SIZE = sizeof(lobmUberBlock);

@@ -263,7 +263,7 @@ namespace vessel
       goto done;
    }
 
-   UINT32 storageFileCluster::getMaxSegmentCount()const
+   UINT32 storageFileCluster::getTotalSegmentCount()const
    {
       UINT32 count = 0;
       if (0 < _files.getSize())
@@ -275,11 +275,16 @@ namespace vessel
       return count;
    }
 
+   UINT32 storageFileCluster::getFileCount()const
+   {
+      return _files.getSize();
+   }
+
    BOOLEAN storageFileCluster::isOutOfSpace(PAGE_ID pid)const
    {
       SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
       SDB_ASSERT(isOpen(), "can not be invalid");
-      UINT32 totalPageCount = getCoreArgs().maxPageCountPerSeg * getMaxSegmentCount();
+      UINT32 totalPageCount = getCoreArgs().maxPageCountPerSeg * getTotalSegmentCount();
       return totalPageCount <= pid;
    }
 
@@ -315,7 +320,7 @@ namespace vessel
          goto error;
       }
       
-      maxSize = getCoreArgs().getSegmentSize() * getMaxSegmentCount();
+      maxSize = getCoreArgs().getSegmentSize() * getTotalSegmentCount();
       if (maxSize < (offset + size))
       {
          rc = SDB_OUT_OF_BOUND;
@@ -382,7 +387,7 @@ namespace vessel
          goto error;
       }
 
-      totalSegments = getMaxSegmentCount();
+      totalSegments = getTotalSegmentCount();
       maxSegment = (pid + pcnt - 1) / getCoreArgs().maxPageCountPerSeg;
       if (totalSegments <= maxSegment)
       {
@@ -458,7 +463,7 @@ namespace vessel
          goto error;
       }
 
-      totalSegments = getMaxSegmentCount();
+      totalSegments = getTotalSegmentCount();
       maxSegment = (pid + pcnt - 1) / getCoreArgs().maxPageCountPerSeg;
       if (totalSegments <= maxSegment)
       {
@@ -520,7 +525,7 @@ namespace vessel
          goto error;
       }
 
-      while (getMaxSegmentCount() < minSegmentCount)
+      while (getTotalSegmentCount() < minSegmentCount)
       {
          rc = extendNewSegment();
          if (SDB_OK != rc)

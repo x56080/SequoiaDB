@@ -346,16 +346,15 @@ namespace vessel
       else if (SPACE_TYPE_IDX == spaceType &&
                FILE_TYPE_DATA_STORAGE == fileType)
       {
-         SDB_ASSERT(FALSE, "todo");
-      }
-      else if (SPACE_TYPE_LOB == spaceType &&
-               FILE_TYPE_DATA_STORAGE == fileType)
-      {
-         SDB_ASSERT(FALSE, "todo");
+         rc = _is.getFileCluster()->getPageMmapPtr(pid, ptr);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
       }
       else
       {
-         PD_LOG(PDERROR, "invalid space type[%d]", spaceType);
+         PD_LOG(PDERROR, "invalid ptr accessing[%d, %d]", spaceType, fileType);
          rc = SDB_INVALIDARG;
          goto error;
       }

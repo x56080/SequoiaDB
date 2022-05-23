@@ -72,8 +72,7 @@ namespace vessel
       INT32 rc = SDB_OK;
 
       if (OSS_UNLIKELY(NULL == env ||
-                       0 == o.cacheCleaner ||
-                       0 == o.commonWorker))
+                       0 == o.bufferCleaner))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -97,12 +96,10 @@ namespace vessel
    INT32 backgroundWorkers::_active(const options &o)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(0 != o.cacheCleaner, "can not be zero");
-      SDB_ASSERT(0 != o.commonWorker, "can not be zero");
-      SDB_ASSERT(_cache._workers.empty(), "must be empty");
-      SDB_ASSERT(_common._workers.empty(), "must be empty");
+      SDB_ASSERT(0 != o.bufferCleaner, "can not be zero");
+      SDB_ASSERT(_buffer._workers.empty(), "must be empty");
 
-      for (UINT32 i = 0; i < o.cacheCleaner; ++i)
+      for (UINT32 i = 0; i < o.bufferCleaner; ++i)
       {
          backgroundWorker *worker = SDB_OSS_NEW backgroundWorker();
          if (OSS_UNLIKELY(NULL == worker))
@@ -112,7 +109,7 @@ namespace vessel
             goto error;
          }
 
-         worker->init(_env, &_cache._el, &_cache._workingCounter);
+         worker->init(_env, &_buffer._el, &_buffer._workingCounter);
          rc = _env->resource.executorPool->startEDU(EDU_TYPE_VESSEL_WORKER,
                                                     worker);
          if (SDB_OK != rc)
@@ -122,35 +119,10 @@ namespace vessel
          }
 
          worker->waitAttaching();
-         _cache._workers.push_back(worker); 
+         _buffer._workers.push_back(worker); 
          
       }
-      PD_LOG(PDINFO, "[%d] cache cleaners attached", _cache._workers.size());
-
-      for (UINT32 i = 0; i < o.commonWorker; ++i)
-      {
-         backgroundWorker *worker = SDB_OSS_NEW backgroundWorker();
-         if (OSS_UNLIKELY(NULL == worker))
-         {
-            PD_LOG(PDERROR, "failed to allocate mem.");
-            rc = SDB_OOM;
-            goto error;
-         }
-
-         worker->init(_env, &_common._el, &_common._workingCounter);
-         rc = _env->resource.executorPool->startEDU(EDU_TYPE_VESSEL_WORKER,
-                                                    worker);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to start new worker:%d", rc);
-            goto error;
-         }
-
-         worker->waitAttaching();
-         _common._workers.push_back(worker); 
-         
-      }
-      PD_LOG(PDINFO, "[%d] common workers attached", _common._workers.size());
+      PD_LOG(PDINFO, "[%d] buffer cleaners attached", _buffer._workers.size());
    done:
       return rc;
    error:
@@ -163,8 +135,7 @@ namespace vessel
       if (NULL != _env)
       {
          _deactive();
-         SDB_ASSERT(_cache._el.isEmpty(), "must be empty");
-         SDB_ASSERT(_common._el.isEmpty(), "must be empty");
+         SDB_ASSERT(_buffer._el.isEmpty(), "must be empty");
          _env = NULL;
       }
       return;
@@ -175,15 +146,11 @@ namespace vessel
       SDB_ASSERT(NULL != _env, "not inited");
       SDB_ASSERT(event.isValid(), "can not be invalid");
       SDB_ASSERT(!event.isQuitEvent(), "can not be quit");
-      SDB_ASSERT(!_cache._workers.empty(), "no worker attached");
-      SDB_ASSERT(!_common._workers.empty(), "no worker attached");
+      SDB_ASSERT(!_buffer._workers.empty(), "no worker attached");
+
       if (BACKGROUND_EVENT_TYPE::DATA_BUF_TASK == event.getType())
       {
-         _cache._el.push(event);
-      }
-      else
-      {
-         _common._el.push(event);
+         _buffer._el.push(event);
       }
    }
 
@@ -191,8 +158,8 @@ namespace vessel
    {
       SDB_ASSERT(NULL != _env, "not inited");
       SDB_ASSERT(event.isUserRequest(), "can not be invalid");
-      SDB_ASSERT(!_cache._workers.empty(), "no worker attached");
-      _cache._el.push(event);
+      SDB_ASSERT(!_buffer._workers.empty(), "no worker attached");
+      _buffer._el.push(event);
    }
 
    void backgroundWorkers::_deactive()
@@ -201,39 +168,22 @@ namespace vessel
       backgroundEvent event = backgroundEvent::createQuitEvent();
       autoEventList<backgroundEvent> finishList;
       event.setResponser(&finishList);
-      UINT32 count = _cache._workers.size();
+      UINT32 count = _buffer._workers.size();
 
-      for (UINT32 i = 0; i < _cache._workers.size(); ++i)
+      for (UINT32 i = 0; i < _buffer._workers.size(); ++i)
       {
-         _cache._el.pushPriority(event);
+         _buffer._el.pushPriority(event);
       }
 
-      for (UINT32 i = 0; i < _cache._workers.size(); ++i)
-      {
-         backgroundEvent response;
-         finishList.popOrWait(response);
-         SDB_ASSERT(response.isResponseOf(BACKGROUND_EVENT_TYPE::QUIT), "impossible");
-      }
-
-      PD_LOG(PDINFO, "[%d] cache cleaners detached", count);
-
-      count = _common._workers.size();
-
-      for (UINT32 i = 0; i < _common._workers.size(); ++i)
-      {
-         _common._el.pushPriority(event);
-      }
-
-      for (UINT32 i = 0; i < _common._workers.size(); ++i)
+      for (UINT32 i = 0; i < _buffer._workers.size(); ++i)
       {
          backgroundEvent response;
          finishList.popOrWait(response);
          SDB_ASSERT(response.isResponseOf(BACKGROUND_EVENT_TYPE::QUIT), "impossible");
       }
 
-      PD_LOG(PDINFO, "[%d] common workers detached", count);
-      _cache.clear();
-      _common.clear();
+      _buffer.clear();
+      PD_LOG(PDINFO, "[%d] buffer cleaners detached", count);
       return;
    }
 }//namespace vessel

@@ -77,6 +77,7 @@ namespace vessel
          {
             public:
                UINT32 minFreeReused = 1;
+               UINT32 frozenPreUnits = 0;
          };//class options
 
 
@@ -100,9 +101,16 @@ namespace vessel
          UINT32 getUnitCount()const {return _units.size();}
          constexpr UINT32 getUnitSize()const {return UNIT_SIZE;}
 
-         void setOptions(const options &o)
+         void init(const options &o)
          {
+            fini();
             _o = o;
+            if (0 < _o.frozenPreUnits)
+            {
+               _units.resize(_o.frozenPreUnits, nullptr);
+               _indexTree.fastRefill(_o.frozenPreUnits, FALSE);
+            }
+            return;
          }
 
          void fini()
@@ -118,6 +126,7 @@ namespace vessel
                }
             }
             _units.clear();
+            _units.shrink_to_fit();
          }
 
          INT32 extendUnitNum(UINT32 num, BOOLEAN unzero=TRUE)
@@ -136,8 +145,16 @@ namespace vessel
                goto done;
             }
 
-            _units.reserve(num);
-
+            try
+            {
+               _units.reserve(num);
+            }
+            catch(const std::exception& e)
+            {
+               rc = SDB_OOM;
+               goto error;
+            }
+            
             for (UINT32 i = 0; i < num; ++i)
             {
                _bitmapUnit *unit = SDB_OSS_NEW _bitmapUnit();
@@ -185,6 +202,16 @@ namespace vessel
                              (_units.size() + 1)))
             {
                rc = SDB_VESSEL_OUT_OF_RESOURCE;
+               goto error;
+            }
+
+            try
+            {
+               _units.reserve(1);
+            }
+            catch(const std::exception& e)
+            {
+               rc = SDB_OOM;
                goto error;
             }
 
@@ -253,7 +280,9 @@ namespace vessel
             UINT32 unitId = getUnitId(pos);
             UINT32 bitInUnit = getBitInUnit(pos);
 
+            SDB_ASSERT(unitId < _units.size(), "out of bound");
             _bitmapUnit *unit = _units[unitId];
+            SDB_ASSERT(nullptr != unit, "unit may be frozen");
 
             BOOLEAN old = unit->bs.test(bitInUnit);
             if (nullptr != beforeSet)
@@ -281,7 +310,9 @@ namespace vessel
             UINT32 unitId = getUnitId(pos);
             UINT32 bitInUnit = getBitInUnit(pos);
 
+            SDB_ASSERT(unitId < _units.size(), "out of bound");
             _bitmapUnit *unit = _units[unitId];
+            SDB_ASSERT(nullptr != unit, "unit may be frozen");
 
             BOOLEAN old = unit->bs.test(bitInUnit);
             if (nullptr != beforeClear)
@@ -307,7 +338,9 @@ namespace vessel
             SDB_ASSERT(pos < getTotalBitNum(), "out of bound");
             UINT32 unitId = getUnitId(pos);
             UINT32 bitInUnit = getBitInUnit(pos);
+            SDB_ASSERT(unitId < _units.size(), "out of bound");
             _bitmapUnit *unit = _units[unitId];
+            SDB_ASSERT(nullptr != unit, "unit may be frozen");
             if (nullptr != freeToAlloc)
             {
                *freeToAlloc = _indexTree.test(unitId);

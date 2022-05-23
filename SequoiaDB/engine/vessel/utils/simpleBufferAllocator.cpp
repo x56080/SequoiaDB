@@ -63,16 +63,22 @@ namespace vessel
 
       if (staticBufSize < size)
       {
-         out = (CHAR *)SDB_THREAD_ALLOC(size);
-         if (OSS_UNLIKELY(NULL != out))
+         if (reserveArray(1, _dynamic))
          {
-            _dynamic.push_back(_bufferAllocated(out, size));
+            out = (CHAR *)SDB_THREAD_ALLOC(size);
+            if (OSS_UNLIKELY(NULL != out))
+            {
+               _dynamic.push_back(_bufferAllocated(out, size));
+            }
          }
       }
       else
       {
-         out = _buffer + (_bufferSize - staticBufSize);
-         _static.push_back(_bufferAllocated(out, size));
+         if (reserveArray(1, _static))
+         {
+            out = _buffer + (_bufferSize - staticBufSize);
+            _static.push_back(_bufferAllocated(out, size));
+         }
       }
 
       return out;
@@ -144,6 +150,23 @@ namespace vessel
          SDB_ASSERT(offset <= _bufferSize, "impossible");
          return _bufferSize - offset;
       }
+   }
+
+   BOOLEAN simpleBufferAllocator::reserveArray(UINT32 size, ossPoolVector<_bufferAllocated> &vec)
+   {
+      BOOLEAN r = FALSE;
+      SDB_ASSERT(0 < size, "can not be invalid");
+      try
+      {
+         vec.reserve(size);
+      }
+      catch(const std::exception& e)
+      {
+         PD_LOG(PDERROR, "failed to reserve space:%s", e.what());
+      }
+      
+      r = TRUE;
+      return r;
    }
 } // namespace vessel
 

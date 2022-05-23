@@ -73,12 +73,8 @@ namespace vessel
          void waitAttaching();
 
       private:
-         void handleCacheEvent(IExecutor *executor,
-                               backgroundEvent &event);
-         void handleLpsCheckpointEvent(IExecutor *executor,
-                                       backgroundEvent &event);
-         void handleLpsSegmentFlushing(IExecutor *executor,
-                                       backgroundEvent &event);
+         void handleDataBufferEvent(IExecutor *executor,
+                                    backgroundEvent &event);
          void handleLobdBufferEvent(IExecutor *executor,
                                     backgroundEvent &event);
       private:

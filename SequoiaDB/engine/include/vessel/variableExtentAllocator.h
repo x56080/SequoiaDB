@@ -39,7 +39,10 @@
 #include "ossMemPool.hpp"
 #include "vessel/pageIdentifier.h"
 #include "ossLatch.hpp"
+
 #include <mutex> //c++11
+#include <atomic> //c++11
+#include <boost/dynamic_bitset.hpp>
 
 namespace engine
 {
@@ -49,10 +52,18 @@ namespace vessel
    class variableExtentAllocator : public SDBObject
    {
       public:
-         variableExtentAllocator(){}
+         variableExtentAllocator() = default;
          ~variableExtentAllocator();
          variableExtentAllocator(const variableExtentAllocator &) = delete;
          variableExtentAllocator &operator=(const variableExtentAllocator &) = delete;
+
+      public:
+         struct options : public SDBObject
+         {
+            UINT32 maxPageCountPerSegment = 0;
+            UINT32 maxSegmentCountPerFile = 0;
+            UINT32 minSegFreeCntReused = 8;
+         };//struct options
 
       private:
          enum class CELL_CMP_RES : INT32
@@ -66,22 +77,15 @@ namespace vessel
 
          struct _extentCell : public SDBObject
          {
-            _extentCell(){}
+            _extentCell() = default;
             explicit _extentCell(UINT16 o, UINT16 s):
             offset(o),
             size(s){}
-            _extentCell(const _extentCell &o):
-            offset(o.offset),
-            size(o.size){}
-            ~_extentCell(){}
-            _extentCell &operator=(const _extentCell &o)
-            {
-               offset = o.offset;
-               size = o.size;
-               return *this;
-            }
+            ~_extentCell() = default;
+            _extentCell(const _extentCell &o) = default;
+            _extentCell &operator=(const _extentCell &o) = default;
 
-            OSS_INLINE UINT16 getHighBound()const
+            OSS_INLINE UINT16 getUpperBound()const
             {
                return offset + size;
             }
@@ -94,114 +98,118 @@ namespace vessel
 
          typedef class ossPoolList<_extentCell> _CELL_LIST;
 
-         typedef std::pair<UINT32, UINT32> _SEG_PROFILE;
-         struct _FREE_MAP_CMP
-         {
-            OSS_INLINE BOOLEAN operator()(const _SEG_PROFILE &l,
-                                          const _SEG_PROFILE &r)const
-            {
-               if (l.first < r.first)
-               {
-                  return TRUE;
-               }
-               else if (l.first > r.first)
-               {
-                  return FALSE;
-               }
-               else
-               {
-                  return l.second < r.second;
-               }
-            }
-         };//struct _FREE_MAP_CMP
-
-         typedef ossPoolSet<_SEG_PROFILE, _FREE_MAP_CMP> _FREE_MAP;
-
          class _segmentUnit : public SDBObject
          {
             public:
-               explicit _segmentUnit(PAGE_ID firstPid,
-                                     UINT32 capacity,
-                                     UINT64 *sme,
-                                     BOOLEAN loadSme);
+               explicit _segmentUnit(UINT32 capacity);
                ~_segmentUnit(){}
                _segmentUnit(const _segmentUnit &) = delete;
                _segmentUnit &operator=(const _segmentUnit &) = delete;
 
             public:
-               OSS_INLINE std::mutex &getMutex(){return _mutex;}
-               OSS_INLINE UINT32 getCapacity()const {return _capacity;}
-               OSS_INLINE PAGE_ID getFirstPid()const {return _firstPid;}
-               OSS_INLINE PAGE_ID getUpperBoundPid()const {return _firstPid + _capacity;}
-               OSS_INLINE UINT32 getMaxExtentSize()const {return _maxExtentSize;}
-               OSS_INLINE UINT32 getFreeCount()const {return _freeCount;}
-               
-               PAGE_ID reserve(UINT32 pcnt);
-               void release(PAGE_ID pid, UINT32 pcnt);
+               OSS_INLINE UINT16 getCapacity()const {return _capacity;}
+               OSS_INLINE UINT16 getMaxFreeExtentSize()const {return _maxExtentSize;}
+               OSS_INLINE UINT16 getFreePidCount()const {return _freePids;}
 
             public:
-               OSS_INLINE BOOLEAN isRegistered()const
-               {
-                  return _FREE_MAP::iterator() != pos;
-               }
+               void clear();
+               void initFromSme(UINT64 *sme);
 
-               _FREE_MAP::iterator pos;
+               void init(BOOLEAN allFree);
 
-            private:
-               void _loadSme();
+               INT32 reserveExtent(UINT32 pcnt);
+               void freeExtent(UINT32 poffset, UINT32 pcnt);
 
             private:
-               std::mutex _mutex;
-               const PAGE_ID _firstPid = INVALID_PAGE_ID;
+               void _resetMaxExtentSize(UINT32 stopWhenFound = 0);
+
+            private:
                const UINT16 _capacity = 0;
-               UINT16 _freeCount = 0;
-
-               /// we only update _maxExtentSize
-               /// when failed to reserve or release extent.
+               UINT16 _freePids = 0;
                UINT16 _maxExtentSize = 0;
-               UINT16 _flags = 0;
                _CELL_LIST _freeCellList;
                UINT64 *_sme = nullptr;
          };//class _segmentUnit
 
-         typedef std::vector<_segmentUnit *> _SEGMENT_VEC;
+         class _fileUnit : public SDBObject
+         {
+            public:
+               _fileUnit(PAGE_ID firstPid,
+                         const options *o,
+                         std::atomic_int *stats);
+               ~_fileUnit();
+               _fileUnit(const _fileUnit &) = delete;
+               _fileUnit &operator=(const _fileUnit &) = delete;
+
+            public:
+               OSS_INLINE UINT32 getMaxFreeExtentSize()const
+               {
+                  return _maxFreeExtentSize.load(std::memory_order_relaxed);
+               }
+
+            public:
+               void reset();
+
+               INT32 depositSegmentFromSme(UINT64 *sme);
+               INT32 depositSegment(BOOLEAN allFree);
+
+               PAGE_ID reserveExtent(UINT32 pcnt);
+               void freeExtent(PAGE_ID pid, UINT32 pcnt);
+
+            private:
+               INT32 _reserveSegment();
+
+               void _resetMaxFreeExtentSize(UINT32 stopWhenFound=0);
+
+            private:
+               const PAGE_ID _firstPid = INVALID_PAGE_ID;
+               const options *_o = nullptr;
+               std::atomic_int *_globalSegStats = nullptr;
+               std::mutex _mutex;
+               std::vector<_segmentUnit *> _segments;
+               boost::dynamic_bitset<> _freebits;
+               std::atomic_uint _maxFreeExtentSize = {0};
+               
+         };//class _fileUnit
 
 
       public:
          OSS_INLINE UINT32 peekSegmentCount()const
          {
-            return _units.size();
+            return _totalSegmentCount;
+         }
+         OSS_INLINE INT32 getFreeSegStats()const
+         {
+            return _freeSegments.load(std::memory_order_relaxed);
          }
       public:
-         OSS_INLINE BOOLEAN isValid()const {return 0 < _segmentPageCnt;}
-         void clear();
+         void reset();
+         void init(const options &o);
 
-         void init(UINT32 pageCntPerSeg, UINT32 maxExtentSize);
+         INT32 depositWithSme(UINT64 *sme);
 
-         INT32 depositWithSme(UINT64 *sme, BOOLEAN ensuredAllFree);
-         INT32 deposit();
+         INT32 deposit(BOOLEAN allFree=TRUE);
 
-         PAGE_ID reserve(UINT32 pcnt, UINT32 *currentSegCount=nullptr);
+         /// return ok but invalid pid when not found.
+         INT32 reserveExtent(UINT32 pcnt,
+                             PAGE_ID &pid,
+                             UINT32 *currentSegCount=nullptr);
 
-         void release(PAGE_ID pid, UINT32 pcnt);
-
-      private:
-         void _clear();
-         void _eraseFromMap(_segmentUnit *segment);
-         void _insertIntoMap(_segmentUnit *segment, UINT32 segmentId);
-         void _reinsertIntoMap(_segmentUnit *segment);
-         _segmentUnit *_findFromMap(UINT32 pcnt, UINT32 &segmentId);
+         void freeExtent(PAGE_ID pid, UINT32 pcnt);
 
       private:
-         static constexpr UINT32 MIN_FREE_COUNT_TO_REGISTER = 16; 
+
+         INT32 _depositNewFileUnit();
+         void _reset();
+         BOOLEAN _isValidExtentToFree(PAGE_ID pid, UINT32 pcnt)const;
 
       private:
          ossSpinSLatchPOSIX _latch;
-         UINT32 _segmentPageCnt = 0;
-         UINT32 _maxExtentSize = 0; /// max page count of extent
-         _SEGMENT_VEC _units;
-         ossSpinSLatchPOSIX _mapLatch;
-         _FREE_MAP _freeMap;
+         options _o;
+         UINT32 _totalSegmentCount = 0;
+         std::atomic_int _freeSegments = {0};
+         std::vector<_fileUnit *> _funits;
+         ///TODO: add atomic bitmap to speed up scan?
    };//class variableExtentAllocator
 
 #pragma pack()

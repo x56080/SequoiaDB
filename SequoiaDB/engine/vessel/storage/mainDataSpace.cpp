@@ -72,13 +72,10 @@ namespace vessel
       INT32 rc = SDB_OK;
       mmapPagePointer ptr;
       PAGE_ID lpid = CS_META_BLOCK_PAGE_LPID;
-      PAGE_ID pid = 0;
+      PAGE_ID pid = INVALID_SPACE_ID;
       PAGE_SNAPSHOT_VERION psv = INVALID_PAGE_SNAPSHOT_VERSION;
       IDataJournal *journal = nullptr;
       csMetaBlock *blockOnDisk = nullptr;
-      SPACE_ID sid = INVALID_SPACE_ID;
-      deltaLogRecordBuilder builder;
-      mappedLogicalPageId mid(lpid, pid);
       lpageDescriptor desc;
       dpsStackJournalPad jpad;
       dpsLogRecordHeader jres;
@@ -96,21 +93,11 @@ namespace vessel
          goto error;
       }
 
-      sid = logicalPageSpace::getSpaceID();
       journal = context->getOuterResource()->journal;
 
       psv = context->getEnv()->dms.getOnlinePageSnapshotVersion();
 
-      builder.buildMappingLog(psv, 1, &mid);
-
-      rc = getFileCluster()->ensureSegmentCount(1);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to extend storage:%d", rc);
-         goto error;
-      }
-
-      rc = _reserveClusterPids(1, &pid);
+      rc = _getSpaceMgr().reserve(pid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to occupy meta page pid:%d", rc);
@@ -133,7 +120,8 @@ namespace vessel
 
       jpad.setType(LOG_TYPE_CS_CRT);
       jpad.setFlag(DPS_LOG_FLAG_VESSEL);
-      rc = jpad.appendInt32(DPS_LOG_CSCRT_VESSEL_SID, sid);
+      rc = jpad.appendInt32(DPS_LOG_CSCRT_VESSEL_SID,
+                            logicalPageSpace::getSpaceID());
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          PD_LOG(PDERROR, "failed to append sid into pad:%d", rc);
@@ -170,25 +158,15 @@ namespace vessel
          goto error;
       }
 
-      rc = logicalPageSpace::getLogConsole().append(builder.getDeltaLogRecord());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to append delta log:%d", rc);
-         goto error;
-      }
-
       desc.pid = pid;
-      desc.birthTick = logicalPageSpace::getCheckpointContext().getCheckpointTick();
       desc.psv = psv;
-      rc = logicalPageSpace::getMapping().set(lpid, desc);
+      rc = _getPageMapping().set(lpid, desc);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to put mapping into cache:%d", rc);
+         PD_LOG(PDERROR, "failed to create lpage mapping:%d", rc);
          goto error;
       }
 
-      /// update space's dirty lsn
-      logicalPageSpace::getCheckpointContext().updateDirtyLsn(jres._lsn);
    done:
       return rc;
    error:
@@ -276,7 +254,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 mainDataSpace::_open(const storageFileLoader &loader)
+   INT32 mainDataSpace::_onOpenFinished(const storageFileLoader &loader)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr == _fsm, "must be null");
@@ -338,7 +316,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 mainDataSpace::_create()
+   INT32 mainDataSpace::_onCreationFinished()
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr == _fsm, "must be null");
@@ -408,7 +386,7 @@ namespace vessel
       goto done;
    }
 
-   void mainDataSpace::_close()
+   void mainDataSpace::_onClosingStarted()
    {
       if (nullptr != _fsm)
       {
@@ -420,7 +398,7 @@ namespace vessel
       return;
    }
 
-   void mainDataSpace::_destroy()
+   void mainDataSpace::_onDestroyStarted()
    {
       if (nullptr != _fsm)
       {
@@ -429,195 +407,6 @@ namespace vessel
          _fsm = nullptr;
       }
       return;
-   }
-
-   INT32 mainDataSpace::getRuntimePageBuffer(requestContext *context,
-                                             PAGE_ID pid,
-                                             const ossSharedLatchMode &mode,
-                                             runtimePageBuffer &rpb)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(!rpb.isValid(), "can not be valid");
-      logicalPageSpace::_runtimePageBufferIniter initer;
-      GLOBAL_PAGE_ID gpid;
-      UINT32 pageSize = 0;
-      liteIOBufferPool::allocateOptions o;
-      o.mode = mode;
-      liteIOBuffer buffer;
-
-      if (OSS_UNLIKELY(nullptr == context ||
-                      INVALID_PAGE_ID == pid ||
-                      mode.isNone()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      gpid.reset(logicalPageSpace::getSpaceID(),
-                 getSpaceType(),
-                 FILE_TYPE_DATA_STORAGE,
-                 pid);
-
-      pageSize = getFileCluster()->getCoreArgs().pageSize;
-      rc = context->getEnv()->ioBufferPool.allocate(gpid, o, buffer);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to allocate io buffer of page[%s], rc:%d",
-                gpid.toString().c_str(), rc);
-         goto error;
-      }
-
-      initer.initWithBuffer(gpid, pageSize, buffer, rpb);
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 mainDataSpace::getRuntimePageBufferToReset(requestContext *context,
-                                                    PAGE_ID pid,
-                                                    runtimePageBuffer &rpb)
-   {
-      INT32 rc = SDB_OK;
-      logicalPageSpace::_runtimePageBufferIniter initer;
-      GLOBAL_PAGE_ID gpid(logicalPageSpace::getSpaceID(),
-                          getSpaceType(),
-                          FILE_TYPE_DATA_STORAGE,
-                          pid);
-      UINT32 pageSize = getFileCluster()->getCoreArgs().pageSize;
-      liteIOBuffer buffer;
-      
-      if (OSS_UNLIKELY(nullptr == context ||
-                       INVALID_PAGE_ID == pid))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = context->getEnv()->ioBufferPool.allocateToReset(gpid, buffer);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to allocate io buffer of page[%s], rc:%d",
-                gpid.toString().c_str(), rc);
-         goto error;
-      }
-
-      initer.initWithBuffer(gpid, pageSize, buffer, rpb);
-
-      rc = rpb.prepareToWrite(context);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to prepare to write:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      buffer.reset();
-      goto done;
-   }
-
-   INT32 mainDataSpace::copyPageAndReinitBuffer(requestContext *context,
-                                                PAGE_SNAPSHOT_VERION psv,
-                                                PAGE_ID newPid,
-                                                runtimePageBuffer &rpb)
-   {
-      INT32 rc = SDB_OK;
-      logicalPageSpace::_runtimePageBufferIniter initer;
-      GLOBAL_PAGE_ID gpid;
-      UINT32 pageSize = getFileCluster()->getCoreArgs().pageSize;
-      CHAR *buffer = nullptr;
-      slice rs;
-      liteIOBuffer iobuffer;
-
-      dpsPoolJournalPad jpad;
-      dpsLogRecordHeader jres;
-      dpsPackedRequest jrequest;
-      IDataJournal *journal = context->getEnv()->resource.journal;
-
-      if (OSS_UNLIKELY(nullptr == context ||
-                       INVALID_PAGE_SNAPSHOT_VERSION == psv ||
-                       INVALID_PAGE_ID == newPid ||
-                       !rpb.isValid() ||
-                       !rpb.isCacheBuffer()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rs = rpb.getSlice();
-      if (isPageCrashed((ossValuePtr)rs.data(), pageSize))
-      {
-         PD_LOG(PDERROR, "page[%s] may be crashed", rpb.getGlobalPid().toString().c_str());
-         rc = SDB_VESSEL_PAGE_CRASHED;
-         goto error;
-      }
-
-      buffer = context->allocateBuffer(pageSize);
-      ossMemcpy(buffer, rs.data(), pageSize);
-      rpb.fini();
-
-      gpid.reset(logicalPageSpace::getSpaceID(),
-                 getSpaceType(),
-                 FILE_TYPE_DATA_STORAGE,
-                 newPid);
-
-      rc = context->getEnv()->ioBufferPool.allocateToReset(gpid, iobuffer);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to allocate io buffer of page[%s], rc:%d",
-                gpid.toString().c_str(), rc);
-         goto error;
-      }
-
-      jpad.setType(LOG_TYPE_VESSEL_COPY_PAGE);
-      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
-      rc = jpad.append(DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP,
-                       pageSize,
-                       reinterpret_cast<const void *>(iobuffer.getBufferPtr()));
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to append page buffer into pad:%d", rc);
-         goto error;
-      }
-
-      jrequest = jpad.done();
-      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to write journal:%d", rc);
-         goto error;
-      }
-
-      ossMemcpy(iobuffer.getBufferPtr(),
-                 rs.data(),
-                 pageSize);
-      ((pageHead *)(iobuffer.getBufferPtr()))->pid = newPid;
-      ((pageHead *)(iobuffer.getBufferPtr()))->psv = psv;
-      updatePageLsn((ossValuePtr)(iobuffer.getBufferPtr()), jres._lsn);
-      
-      iobuffer.commit(jres._lsn);
-      rpb.fini();
-
-      initer.initWithBuffer(gpid, pageSize, iobuffer, rpb);
-
-      rc = rpb.prepareToWrite(context);
-      if (SDB_OK != rc)
-      {
-         rpb.fini();
-         PD_LOG(PDERROR, "failed to prepare to write:%d", rc);
-         SDB_ASSERT(FALSE, "impossible");
-         goto error;
-      }
-   done:
-      if (nullptr != buffer)
-      {
-         context->releaseBuffer(buffer);
-      }
-      return rc;
-   error:
-      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != jres._lsn, "to do: rollback");
-      goto done;
    }
 
 }//namespace vessel

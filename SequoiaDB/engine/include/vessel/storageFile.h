@@ -43,6 +43,7 @@
 #include "vessel/storageFileName.h"
 #include "vessel/slice.h"
 #include "vessel/mmapPagePointer.h"
+#include "vessel/strictBuffer.h"
 
 namespace engine
 {
@@ -99,6 +100,11 @@ namespace vessel
          OSS_INLINE UINT32 getSegmentCount()const
          {
             return _dataSegmentCount;
+         }
+
+         OSS_INLINE UINT32 getPageCount()const
+         {
+            return _headInMem.maxPageCountPerSeg * _dataSegmentCount;
          }
 
          OSS_INLINE UINT32 getMaxPageCountPerSeg()const
@@ -161,6 +167,10 @@ namespace vessel
          ossValuePtr getPagePtr(PAGE_ID pid)const;
 
          INT32 getPagePtr(PAGE_ID, mmapPagePointer &ptr)const;
+
+         INT32 makeReadableBuffer(PAGE_ID pid, strictBuffer &buffer)const;
+
+         INT32 makeWritableBuffer(PAGE_ID pid, strictBuffer &buffer)const;
 
          INT32 fsyncPage(PAGE_ID pid, BOOLEAN sync=TRUE)const;
 

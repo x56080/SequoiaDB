@@ -93,17 +93,7 @@ namespace vessel
          {
          case BACKGROUND_EVENT_TYPE::DATA_BUF_TASK:
          {
-            handleCacheEvent(executor, event);
-            break;
-         }
-         case BACKGROUND_EVENT_TYPE::FLUSH_SEG:
-         {
-            handleLpsSegmentFlushing(executor, event);
-            break;
-         }
-         case BACKGROUND_EVENT_TYPE::LPS_CHECKPOINT:
-         {
-            handleLpsCheckpointEvent(executor, event); 
+            handleDataBufferEvent(executor, event);
             break;
          }
          case BACKGROUND_EVENT_TYPE::LOB_BUF_TASK:
@@ -136,7 +126,7 @@ namespace vessel
       return;
    }
 
-   void backgroundWorker::handleCacheEvent(IExecutor *executor,
+   void backgroundWorker::handleDataBufferEvent(IExecutor *executor,
                                            backgroundEvent &event)
    {
       SDB_ASSERT(nullptr != executor, "can not be invalid");
@@ -151,86 +141,6 @@ namespace vessel
          event.getResponser()->push(event.createSimpleResponse(rc));
       }
       return;
-   }
-
-   void backgroundWorker::handleLpsCheckpointEvent(IExecutor *executor,
-                                                   backgroundEvent &event)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(nullptr != executor, "can not be invalid");
-      SDB_ASSERT(BACKGROUND_EVENT_TYPE::LPS_CHECKPOINT == event.getType(),
-                 "can not be other type");
-      SDB_ASSERT(!event.hasResponser(), "impossible");
-
-      logicalPageSpace *lps = nullptr;
-      const lpsCheckpointApplying &msg = event.getShortData<lpsCheckpointApplying>();
-      requestContext context;
-      
-      rc = context.lockSpaceID(msg._sid, SHARED);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to lock space[%d], rc:%d", msg._sid, rc);
-         goto done;
-      }
-
-      rc = _env->dms.getLogicalPageSpace(msg._sid, msg._type, &lps);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get lps[%d,%d], rc:%d", msg._sid, msg._type, rc);
-         goto done;
-      }
-
-      rc = lps->createCheckpoint(&context, FALSE);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to create checkpoint on lps[%d,%d], rc:%d",
-                msg._sid, msg._type, rc);
-         goto done;
-      }
-   
-   done:
-      return;
-   }
-
-   void backgroundWorker::handleLpsSegmentFlushing(IExecutor *executor,
-                                                   backgroundEvent &event)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(nullptr != executor, "can not be invalid");
-      SDB_ASSERT(BACKGROUND_EVENT_TYPE::FLUSH_SEG == event.getType(),
-                 "can not be other type");
-      const lpsFlushingSegments *msg = &(event.getShortData<lpsFlushingSegments>());
-      UINT32 count = msg->_count;
-
-      //PD_LOG(PDDEBUG, "begin to sync segments[%d, %d]", msg->_segmentId, count);
-
-      storageFileCluster *fcluster = _env->dms.getStorageFileClsuter(msg->_sid, msg->_type);
-      if (nullptr == fcluster)
-      {
-         PD_LOG(PDERROR, "failed to get su[%d,%d], rc:%d", msg->_sid, msg->_type, rc);
-         goto done;
-      }
-
-      for (UINT32 i = 0; i < count; ++i)
-      {
-         rc = fcluster->fsyncSegment(msg->_segmentId + i);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to flush segment[%d] on lps[%d,%d], rc:%d",
-                  msg->_segmentId, msg->_sid, msg->_type, rc);
-            goto done;
-         }
-      }
-   
-   done:
-      if (event.hasResponser())
-      {
-         backgroundEvent res;
-         res.initAsResponse(BACKGROUND_EVENT_TYPE::FLUSH_SEG);
-         res.setRC(rc);
-         res.setShortData(msg->_segmentId);
-         event.getResponser()->push(res);
-      }
    }
 
    void backgroundWorker::handleLobdBufferEvent(IExecutor *executor,

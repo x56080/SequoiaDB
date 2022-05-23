@@ -41,7 +41,7 @@
 #include "vessel/lobcMetaBlockPage.h"
 #include "vessel/lobMetaDataFile.h"
 #include "vessel/storageManifest.h"
-#include "vessel/variableExtentAllocator.h"
+#include "vessel/fclusterSpaceManager.h"
 #include "dmsLobDef.hpp"
 
 namespace engine
@@ -71,10 +71,9 @@ namespace vessel
 
    }
 
-   void lobcMetaBlockMapping::truncate(UINT32 lclid, variableExtentAllocator *allocator)
+   void lobcMetaBlockMapping::truncate(UINT32 lclid, fclusterSpaceManager *smgr)
    {
       SDB_ASSERT(DMS_INVALID_LOGICCLID != lclid, "can not be invalid");
-      SDB_ASSERT(nullptr != allocator, "can not be invalid");
       
       THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
       SDB_ASSERT(nullptr != tc, "can not be null");
@@ -87,7 +86,7 @@ namespace vessel
 
          lobcBucketRegionBlock *regionBlock = getRegionBlock(i);
          lobcBucketRegion region(i, regionBlock);
-         _truncate(region, lclid, allocator);
+         _truncate(region, lclid, smgr);
          
          regionLock->release();
       }
@@ -1216,11 +1215,10 @@ namespace vessel
 
    void lobcMetaBlockMapping::_truncate(lobcBucketRegion &region,
                                         UINT32 lclid,
-                                        variableExtentAllocator *allocator)
+                                        fclusterSpaceManager *smgr)
    {
       SDB_ASSERT(region.isValid(), "can not be invalid");
       SDB_ASSERT(DMS_INVALID_LOGICCLID != lclid, "can not be invalid");
-      SDB_ASSERT(nullptr != allocator, "can not be invalid");
 
       for (UINT32 bucketPos = 0; bucketPos < lobcBucketRegionBlock::BUCKET_COUNT; ++bucketPos)
       {
@@ -1256,7 +1254,10 @@ namespace vessel
                      ++pos;
                   }
 
-                  allocator->release(desc.pid, desc.pcnt);
+                  if (nullptr != smgr)
+                  {
+                     smgr->releaseExtent(desc.pid, desc.pcnt);
+                  }
                }
                else
                {

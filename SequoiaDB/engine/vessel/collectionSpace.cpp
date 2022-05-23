@@ -764,62 +764,6 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionSpace::createCheckpoint(requestContext *context,
-                                           BOOLEAN forceFullCheckpoint)
-   {
-      INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (NULL == context)
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = _su->getMainDataSpace().createCheckpoint(context, forceFullCheckpoint);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to create checkpoint on mds:%d", rc);
-         goto error;
-      }
-
-      rc = _su->getIndexSpace().createCheckpoint(context, forceFullCheckpoint);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to create checkpoint on is:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 collectionSpace::waitIfCheckpointCreating(requestContext *context)
-   {
-      INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (NULL == context)
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      _su->getMainDataSpace().waitCheckpoint();
-      _su->getIndexSpace().waitCheckpoint();
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
    INT32 collectionSpace::initCollectionsFromDisk(requestContext *context)
    {
       INT32 rc = SDB_OK;
@@ -849,15 +793,15 @@ namespace vessel
       {
          PAGE_ID lpid = CL_META_BLOCK_PAGE_MIN_LPID + i;
          logicalPageBuffer lpb;
-         BOOLEAN mapped = FALSE;
+         lpageDescriptor desc;
 
-         rc = mds->isLogicalPageMapped(context, lpid, mapped);
+         rc = mds->testLogicalPageMapping(lpid, desc);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to test if lpid[%d] mapped:%d", lpid, rc);
             goto error;
          }
-         else if (!mapped)
+         else if (!desc.isValid())
          {
             continue;
          }

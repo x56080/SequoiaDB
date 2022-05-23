@@ -44,7 +44,7 @@ namespace engine
 namespace vessel
 {
    typedef UINT32 PAGE_ID;
-   constexpr PAGE_ID INVALID_PAGE_ID = UINT32(-1);
+   constexpr PAGE_ID INVALID_PAGE_ID = OSS_UINT32_MAX;
 
    /// long page id.
    typedef UINT64 LONG_PAGE_ID;
@@ -55,33 +55,19 @@ namespace vessel
    class mappedLogicalPageId : public SDBObject
    {
       public:
-         OSS_INLINE mappedLogicalPageId(){}
-         OSS_INLINE mappedLogicalPageId(const mappedLogicalPageId &o):
-         _lpid(o._lpid),
-         _pid(o._pid){}
-         OSS_INLINE explicit mappedLogicalPageId(PAGE_ID lpid, PAGE_ID pid):
+         mappedLogicalPageId() = default;
+         explicit mappedLogicalPageId(PAGE_ID lpid, PAGE_ID pid):
          _lpid(lpid),
          _pid(pid){}
-         OSS_INLINE explicit mappedLogicalPageId(UINT64 v)
+         explicit mappedLogicalPageId(UINT64 v)
          {
             _lpid = v;
             _pid = (v >> 32);
          }
+         mappedLogicalPageId(const mappedLogicalPageId &o) = default;
+         mappedLogicalPageId &operator=(const mappedLogicalPageId &) = default;
 
-         OSS_INLINE ~mappedLogicalPageId()
-         {
-            _lpid = INVALID_PAGE_ID;
-            _pid = INVALID_PAGE_ID;
-         }
-
-         OSS_INLINE mappedLogicalPageId &operator=(const mappedLogicalPageId &o)
-         {
-            _lpid = o._lpid;
-            _pid = o._pid;
-            return *this;
-         }
-
-         OSS_INLINE mappedLogicalPageId &operator=(UINT64 v)
+         mappedLogicalPageId &operator=(UINT64 v)
          {
             _lpid = v;
             _pid = (v >> 32);
@@ -122,22 +108,15 @@ namespace vessel
 
    class pageIdentifier : public SDBObject
    {
-      OSS_INLINE pageIdentifier(){}
-      OSS_INLINE ~pageIdentifier(){}
+      pageIdentifier() = default;
+      ~pageIdentifier() = default;
 
-      OSS_INLINE pageIdentifier(const pageIdentifier &o):
-      _pid(o._pid){}
-
-      OSS_INLINE explicit pageIdentifier(PAGE_ID pid):
+      explicit pageIdentifier(PAGE_ID pid):
       _pid(pid){}
 
-      OSS_INLINE pageIdentifier &operator=(const pageIdentifier &o)
-      {
-         _pid = o._pid;
-         return *this;
-      }
-
-      OSS_INLINE pageIdentifier &operator=(PAGE_ID pid)
+      pageIdentifier(const pageIdentifier &) = default;
+      pageIdentifier &operator=(const pageIdentifier &) = default;
+      pageIdentifier &operator=(PAGE_ID pid)
       {
          _pid = pid;
          return *this;

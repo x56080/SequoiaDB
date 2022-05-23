@@ -295,15 +295,15 @@ namespace vessel
 
       suOptions.dataArgs.pageSize = options.dataPageSize;
       suOptions.dataArgs.maxPageCountPerSeg = STORAGE_FILE_SEGMENT_SIZE_32MB / options.dataPageSize;
-      suOptions.dataArgs.maxSegmentCountPerFile = STORAGE_FILE_SIZE / STORAGE_FILE_SEGMENT_SIZE_32MB;
+      suOptions.dataArgs.maxSegmentCountPerFile = DATA_STORAGE_FILE_SIZE / STORAGE_FILE_SEGMENT_SIZE_32MB;
 
       suOptions.indexArgs.pageSize = options.idxPageSize;
       suOptions.indexArgs.maxPageCountPerSeg = STORAGE_FILE_SEGMENT_SIZE_32MB / options.idxPageSize;
-      suOptions.indexArgs.maxSegmentCountPerFile = STORAGE_FILE_SIZE / STORAGE_FILE_SEGMENT_SIZE_32MB;
+      suOptions.indexArgs.maxSegmentCountPerFile = DATA_STORAGE_FILE_SIZE / STORAGE_FILE_SEGMENT_SIZE_32MB;
 
       suOptions.lobArgs.pageSize = LOBD_PAGE_SIZE;
       suOptions.lobArgs.maxPageCountPerSeg = LOBD_PAGE_COUNT_PER_SEG;
-      suOptions.lobArgs.maxSegmentCountPerFile = STORAGE_FILE_SIZE / LOBD_SEG_SIZE;
+      suOptions.lobArgs.maxSegmentCountPerFile = DATA_STORAGE_FILE_SIZE / LOBD_SEG_SIZE;
 
       if (!suOptions.isValid())
       {
@@ -1582,58 +1582,6 @@ namespace vessel
       {
          goto error;
       }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 dataManagementService::createCheckpointBeforeClosing(requestContext *context)
-   {
-      INT32 rc = SDB_OK;
-      UINT32 count = 0;
-      spaceIDLockHelper lh(context);
-
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(NULL == context))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      for (_SPACE_ID_INDEX::const_iterator itr = _mainIndex.begin();
-           itr != _mainIndex.end(); ++itr)
-      {
-         rc = lh.lock(itr->first, SHARED);
-         if (SDB_OK != rc)
-         {
-            ++count;
-            PD_LOG(PDERROR, "failed to lock space[%d], rc:%d", itr->first, rc);
-            rc = SDB_OK;
-            continue;
-         }
-
-         rc = itr->second->createCheckpoint(context, FALSE);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "collection space[%d] failed to create checkpoint:%d",
-                   itr->first, rc);
-            ++count;
-            rc = SDB_OK;
-         }
-
-         lh.unlock();
-      }
-
-      if (0 != count)
-      {
-         PD_LOG(PDERROR, "total [%d] collection spaces failed to create checkpoint", count);
-      }
-
    done:
       return rc;
    error:

@@ -138,11 +138,10 @@ namespace vessel
 
    typedef UINT8 FILE_TYPE;
    constexpr FILE_TYPE INVALID_FILE_TYPE = 255;
-   constexpr FILE_TYPE FILE_TYPE_ID_MAP = 0;
+   constexpr FILE_TYPE FILE_TYPE_LPM = 0;
    constexpr FILE_TYPE FILE_TYPE_DATA_STORAGE = 1;
    constexpr FILE_TYPE FILE_TYPE_FSM = 2;
-   constexpr FILE_TYPE FILE_TYPE_DELTA_LOG = 3;
-   constexpr FILE_TYPE FILE_TYPE_LOBM = 4;
+   constexpr FILE_TYPE FILE_TYPE_LOBM = 3;
 
    BOOLEAN parseFileType(const CHAR *typeSuffix,
                          FILE_TYPE &type,

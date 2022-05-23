@@ -128,11 +128,6 @@ namespace vessel
 
          void close();
 
-         INT32 createCheckpoint(requestContext *context,
-                                BOOLEAN forceFullCheckpoint);
-
-         INT32 waitIfCheckpointCreating(requestContext *context);
-
       public:
          INT32 createCL(requestContext *context,
                         const strSlice &clName, 

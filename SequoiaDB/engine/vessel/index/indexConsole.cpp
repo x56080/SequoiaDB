@@ -711,10 +711,10 @@ namespace vessel
       indexEntryPageAccessor entryAccessor;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
       PAGE_ID mbpLpid = INVALID_PAGE_ID;
-      BOOLEAN mapped = FALSE;
       INT32 blockPos = 0;
       clIndexMetaBlock block;
       UINT32 pageSize = 0;
+      lpageDescriptor desc;
 
       if (OSS_UNLIKELY(!isInitialized()))
       {
@@ -747,14 +747,14 @@ namespace vessel
          goto error;
       }
       
-      rc = _is->isLogicalPageMapped(context, mbpLpid, mapped);
+      rc = _is->testLogicalPageMapping(mbpLpid, desc);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to test if lpid[%d] is mapped, rc:%d", mbpLpid, rc);
          goto error;
       }
       
-      if (!mapped)
+      if (!desc.isValid())
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "index meta block page[%d] is not mapped, rc:%d", mbpLpid, rc);

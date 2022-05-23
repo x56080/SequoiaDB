@@ -160,9 +160,6 @@ namespace vessel
 
          storageFileCluster *getStorageFileClsuter(SPACE_ID sid, SPACE_TYPE type);
 
-      public:
-         INT32 createCheckpointBeforeClosing(requestContext *context);
-
       private:
          INT32 loadStorageUnits(requestContext *context,
                                 ossPoolList<SPACE_ID> &sidList);

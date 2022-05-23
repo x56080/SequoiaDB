@@ -36,53 +36,111 @@
 #ifndef VESSEL_LPAGE_MAPPING_H_
 #define VESSEL_LPAGE_MAPPING_H_
 
-#include "ossRWMutex.hpp"
+#include "vessel/lpageMetaDataFile.h"
 #include "vessel/lpageDescriptor.h"
-#include "ossMemPool.hpp"
-#include "vessel/lpageHashTable.h"
-#include "vessel/deltaPageList.h"
-#include <atomic>
+#include "vessel/metaDataUberBlock.h"
+#include "vessel/unitedBitmap.hpp"
+
+#include <mutex>
 
 namespace engine
 {
 namespace vessel
 {
-   class idMapFile;
-
    class lpageMapping : public SDBObject
    {
       public:
          lpageMapping();
-         ~lpageMapping();
+         ~lpageMapping() = default;
          lpageMapping(const lpageMapping &) = delete;
          lpageMapping &operator=(const lpageMapping &) = delete;
 
       public:
-         OSS_INLINE BOOLEAN isReady()const {return nullptr != _base;}
-         OSS_INLINE UINT32 peekDeltaPageCount()const {return _counter.load(std::memory_order_relaxed);}
-         OSS_INLINE void resetCounter() {_counter.store(0, std::memory_order_relaxed);}
+         static constexpr UINT32 LPID_UNIT_SIZE =
+                         lpageMetaDataFile::PAGE_SIZE / LPAGE_DESC_SIZE;
+         static constexpr UINT32 MAPPING_ENTRY_CAPACITY =
+                       lpageMetaDataFile::PAGE_SIZE / sizeof(PAGE_ID);
+         static constexpr UINT32 MAX_UNIT_COUNT =
+                         lpmUberBlock::MAPPING_ENTRY_SIZE * MAPPING_ENTRY_CAPACITY;
+         static constexpr UINT32 MAX_LPID_COUNT = MAX_UNIT_COUNT * LPID_UNIT_SIZE;
 
-         void rebase(const idMapFile *base);
+      public:
+         OSS_INLINE BOOLEAN isValid()const {return nullptr != _mfile;}
+         OSS_INLINE BOOLEAN isOutOfMaxBound(PAGE_ID lpid)const
+         {
+            return MAX_LPID_COUNT <= lpid;
+         }
+
+      public:
+         INT32 init(lpageMetaDataFile *mfile,
+                    lpmUberBlock *ub);
          void fini();
-         INT32 set(PAGE_ID lpid, const lpageDescriptor &desc);
+
+         INT32 ensureUnitSpace(UINT32 unitId);
+
+         INT32 dumpUnitSme(UINT32 unitId,
+                           BOOLEAN &exists,
+                           fixedBitset<LPID_UNIT_SIZE> &bs);
+   
+
+      public:/// user should lock lpids outside first.
+             /// or guarantee these lpids invisible.
+         INT32 set(PAGE_ID lpid,
+                   const lpageDescriptor &desc,
+                   lpageDescriptor *oldVal=nullptr);
+
+         /// all or nothing.
+         INT32 setBatch(UINT32 size,
+                        PAGE_SNAPSHOT_VERION psv,
+                        const PAGE_ID *lpids,
+                        const PAGE_ID *pids,
+                        lpageDescriptor *oldVals=nullptr);
+
+         /// return ok but invalid desc if lpid not mapped.
          INT32 get(PAGE_ID lpid, lpageDescriptor &desc);
-         void archive();
-         void dumpArchivedTable(ossPoolMap<PAGE_ID, lpageDescriptor> &m);
-         void dumpArchivedTable(DELTA_PAGE_LIST &dpl);
-         UINT64 getWorkingTableBufferSize()const;
+         INT32 reset(PAGE_ID lpid, lpageDescriptor *oldVal=nullptr);
+         INT32 resetBatch(UINT32 size,
+                          const PAGE_ID *lpids,
+                          lpageDescriptor *oldVals=nullptr);
 
       private:
-         INT32 getFromBase(PAGE_ID lpid, lpageDescriptor &desc);
+         void _free(UINT32 size, const PAGE_ID *lpids);
+         INT32 _ensureDescriptorPage(UINT32 unitId, PAGE_ID &pid);
+         INT32 _getDescriptorPage(UINT32 unitId, PAGE_ID &pid);
+         INT32 _createEntry(UINT32 pos, PAGE_ID &pid);
+
+         void _reset(UINT32 size, lpageDescriptor *descriptors);
 
       private:
-         ossRWMutex _mutex;
-         const idMapFile *_base = nullptr;
-         UINT32 _basePageCount = 0;
-         lpageHashTable _workingTable;
-         lpageHashTable _archivedTable;
-         std::atomic_uint _counter = {0};
-   };//class lpageMapping
-} // namespace vesel
+
+         OSS_INLINE UINT32 _getEntryPosByLpid(PAGE_ID lpid, UINT32 &posInEntry)const
+         {
+            UINT32 unitId = lpid / LPID_UNIT_SIZE;
+            return _getEntryPosByUnitId(unitId, posInEntry);
+         }  
+
+         OSS_INLINE UINT32 _getEntryPosByUnitId(UINT32 unitId, UINT32 &posInEntry)const
+         {
+            posInEntry = unitId & (MAPPING_ENTRY_CAPACITY - 1);
+            return unitId / MAPPING_ENTRY_CAPACITY;
+         }
+
+         OSS_INLINE UINT32 _getDescPos(PAGE_ID lpid)const
+         {
+            return lpid & (LPID_UNIT_SIZE - 1);
+         }
+
+         OSS_INLINE UINT32 _getUnitId(PAGE_ID lpid)const
+         {
+            return lpid / LPID_UNIT_SIZE;
+         }
+      private:
+         std::mutex _mutex;
+         lpageMetaDataFile *_mfile = nullptr;
+         lpmUberBlock *_lub = nullptr;
+         PAGE_ID _entries[lpmUberBlock::MAPPING_ENTRY_SIZE];
+   };
+} // namespace vessel
 
 } // namespace engine
 

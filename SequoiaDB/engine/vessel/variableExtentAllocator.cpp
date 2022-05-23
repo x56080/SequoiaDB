@@ -47,8 +47,8 @@ namespace vessel
    variableExtentAllocator::CELL_CMP_RES
    variableExtentAllocator::_extentCell::compare(const _extentCell &o)const
    {
-      UINT16 oHigh = o.getHighBound();
-      UINT16 thisHigh = getHighBound();
+      UINT16 oHigh = o.getUpperBound();
+      UINT16 thisHigh = getUpperBound();
 
       if (thisHigh < o.offset)
       {
@@ -74,43 +74,105 @@ namespace vessel
 ///////////////////////////_extentCell end
 
 ///////////////////////////_segmentUnit
-   variableExtentAllocator:: _segmentUnit::_segmentUnit(PAGE_ID firstPid,
-                                                        UINT32 capacity,
-                                                        UINT64 *sme,
-                                                        BOOLEAN loadSme):
-   _firstPid(firstPid),
-   _capacity(capacity),
-   _sme(sme)
+   variableExtentAllocator:: _segmentUnit::_segmentUnit(UINT32 capacity):
+   _capacity(capacity)
    {
-      SDB_ASSERT(INVALID_PAGE_ID != firstPid, "can not be invalid");
       SDB_ASSERT(capacity < 65536, "out of size");
       SDB_ASSERT(ossIsAligned64(capacity), "must be 64 aligned");
-
-      if (!loadSme)
-      {
-#if defined (_DEBUG)
-         if (nullptr != _sme)
-         {
-            SDB_ASSERT(capacity == getNonzeroBitCount(capacity >> 6, sme),
-                       "must be all free");
-         }
-#endif//_DEBUG
-         _freeCount = _capacity;
-         _maxExtentSize = _capacity;
-         _freeCellList.push_back(_extentCell(0, _capacity));
-      }
-      else
-      {
-         _loadSme();
-      }
-
    }
 
-   PAGE_ID variableExtentAllocator::_segmentUnit::reserve(UINT32 pcnt)
+   void variableExtentAllocator::_segmentUnit::clear()
+   {
+      _freePids = 0;
+      _maxExtentSize = 0;
+      _freeCellList.clear();
+      _sme = nullptr;
+      return;
+   }
+
+   void variableExtentAllocator::_segmentUnit::init(BOOLEAN allFree)
+   {
+      clear();
+      if (allFree)
+      {
+         _freePids = _capacity;
+         _maxExtentSize = _capacity;
+         _freeCellList.emplace_back(0, _capacity);
+      }
+      return;
+   }
+
+   void variableExtentAllocator::_segmentUnit::initFromSme(UINT64 *sme)
+   {
+      SDB_ASSERT(nullptr != sme, "can not be invalid");
+      clear();
+
+      _sme = sme;
+      _freePids = getNonzeroBitCount(_capacity >> 6, _sme);
+      
+      if (_freePids == _capacity)
+      {
+         _maxExtentSize = _capacity;
+         _freeCellList.emplace_back(0, _capacity);
+      }
+      else if (0 < _freePids)
+      {
+         UINT16 maxExtentSize = 0;
+         UINT32 bits = _capacity >> 6;
+         UINT16 offset = 0;
+         UINT16 size = 0;
+
+         for (UINT16 i = 0; i < _capacity; ++i)
+         {
+            if (testBitIsNonzero(bits, _sme, i))
+            {
+               if (0 == size)
+               {
+                  offset = i;
+                  size = 1;
+               }
+               else
+               {
+                  ++size;
+               }
+            }
+            else if (0 < size)
+            {
+               _freeCellList.emplace_back(offset, size);
+               if (maxExtentSize < size)
+               {
+                  maxExtentSize = size;
+               }
+               offset = 0;
+               size = 0;
+            }
+            else
+            {
+               /// do nothing.
+            }
+         }//for (UINT16 i = 0; i < _capacity; ++i)
+
+         if (0 < size)
+         {
+            _freeCellList.emplace_back(offset, size);
+            if (maxExtentSize < size)
+            {
+               maxExtentSize = size;
+            }
+         }
+
+         _maxExtentSize = maxExtentSize;
+      }
+
+      return;
+   }
+
+   INT32 variableExtentAllocator::_segmentUnit::reserveExtent(UINT32 pcnt)
    {
       SDB_ASSERT(0 < pcnt && pcnt <= _capacity, "can not be invalid");
-      PAGE_ID pid = INVALID_PAGE_ID;
-      UINT16 maxExtentSize = 0;
+      
+      INT32 poffset = -1;
+      BOOLEAN resetMaxExtent = FALSE;
 
       if (_maxExtentSize < pcnt)
       {
@@ -124,67 +186,68 @@ namespace vessel
          if (pcnt <= cell.size)
          {
             UINT32 offset = cell.offset;
-            pid = _firstPid + cell.offset;
-            cell.offset += pcnt;
-            cell.size -= pcnt;
-            SDB_ASSERT(pcnt <= _freeCount, "impossible");
-            _freeCount -= pcnt;
-            if (0 == cell.size)
+            resetMaxExtent = (cell.size == _maxExtentSize);
+            poffset = cell.offset;
+            SDB_ASSERT(pcnt <= _freePids, "impossible");
+            _freePids -= pcnt;
+
+            if (pcnt < cell.size)
+            {
+               cell.offset += pcnt;
+               cell.size -= pcnt;
+            }
+            else
             {
                _freeCellList.erase(itr);
             }
+
             if (nullptr != _sme)
             {
                batchClearBits(getCapacity() >> 6, offset, offset + pcnt - 1, _sme);
+#if defined(_DEBUG)
+               BOOLEAN r = batchTestBitsAllZeroed(getCapacity() >> 6, poffset, poffset + pcnt - 1, _sme);
+               SDB_ASSERT(r, "error bit set");
+#endif//_DEBUG
             }
             break;
          }
-         else if (maxExtentSize < cell.size)
-         {
-            maxExtentSize = cell.size;
-         }
       }
 
-      /// no suitable extent exists
-      if (INVALID_PAGE_ID == pid)
+      if (resetMaxExtent)
       {
-         _maxExtentSize = maxExtentSize;
+         _resetMaxExtentSize(_maxExtentSize);
       }
 
    done:
-      return pid;
+      return poffset;
    }
 
-   void variableExtentAllocator::_segmentUnit::release(PAGE_ID pid,
-                                                       UINT32 pcnt)
+   void variableExtentAllocator::_segmentUnit::freeExtent(UINT32 poffset,
+                                                          UINT32 pcnt)
    {
-      SDB_ASSERT(INVALID_PAGE_ID != pid && 0 < pcnt, "can not be invalid");
-      _extentCell cell;
+      SDB_ASSERT(poffset < _capacity  && 0 < pcnt, "can not be invalid");
+      SDB_ASSERT((poffset + pcnt) <= _capacity, "out of bound");
+      SDB_ASSERT((_freePids + pcnt) <= _capacity, "out ouf bound");
+      
       _CELL_LIST::iterator itr = _freeCellList.begin();
       UINT16 mergedExtentSize = 0;
-      UINT32 offset = 0;
+      _extentCell cell(poffset, pcnt);
 
-      if (pid < _firstPid || getUpperBoundPid() < (pid + pcnt))
+      if (OSS_UNLIKELY(_capacity < (poffset + pcnt)))
       {
-         PD_LOG(PDERROR, "invalid extent");
+         PD_LOG(PDERROR, "extent[%d,%d] out of size", poffset, pcnt);
          goto done;
       }
 
-      offset = pid - _firstPid;
       if (nullptr != _sme)
       {
-         if (!batchTestBitsAllZeroed(getCapacity() >> 6, offset, offset + pcnt - 1, _sme))
+         if (!batchTestBitsAllZeroed(getCapacity() >> 6, poffset, poffset + pcnt - 1, _sme))
          {
-            PD_LOG(PDSEVERE, "invalid pids to be released[%d,%d]", pid, pcnt);
+            PD_LOG(PDSEVERE, "invalid pids to be released[%d,%d]", poffset, pcnt);
             SDB_ASSERT(FALSE, "invalid pids to be released");
             goto done;
          }
       }
-
-      SDB_ASSERT((_freeCount + pcnt) <= _capacity, "out of bound");
-
-      cell.offset = static_cast<UINT16>(offset);
-      cell.size = pcnt;
 
       for (; itr != _freeCellList.end(); ++itr)
       {
@@ -199,29 +262,21 @@ namespace vessel
          {
             c.size += cell.size;
             mergedExtentSize = c.size;
-            _freeCount += pcnt;
             /// try to merge right cells
             _CELL_LIST::iterator rightItr = itr;
             ++rightItr;
-            while (_freeCellList.end() != rightItr)
+            if (_freeCellList.end() != rightItr)
             {
                res = c.compare(*rightItr);
                if (CELL_CMP_RES::LOWER_WITH_NO_HOLE == res)
                {
-                  mergedExtentSize += rightItr->size;
                   c.size += rightItr->size;
-                  rightItr = _freeCellList.erase(rightItr);
-               }
-               else if (CELL_CMP_RES::LOWER_WITH_HOLE == res)
-               {
-                  break;
+                  mergedExtentSize = c.size;
+                  _freeCellList.erase(rightItr);
                }
                else
                {
-                  PD_LOG(PDSEVERE, "first pid:%d, merged cell[%d,%d], next cell[%d, %d]",
-                         _firstPid, c.offset, c.size, rightItr->offset, rightItr->size);
-                  SDB_ASSERT(FALSE, "invalid extent to be released");
-                  break;
+                  SDB_ASSERT(CELL_CMP_RES::LOWER_WITH_HOLE == res, "invalid right cell");
                }
             }
             break;
@@ -230,7 +285,6 @@ namespace vessel
          {
             _freeCellList.insert(itr, cell);
             mergedExtentSize = cell.size;
-            _freeCount += pcnt;
             break;
          }
          else if (CELL_CMP_RES::UPPER_WITH_NO_HOLE == res)
@@ -238,388 +292,552 @@ namespace vessel
             c.offset = cell.offset;
             c.size += cell.size;
             mergedExtentSize = c.size;
-            _freeCount += pcnt;
             break;
          }
          else
          {
             PD_LOG(PDSEVERE, "first pid:%d, current cell[%d,%d], cell to released[%d, %d]",
-                   _firstPid, c.offset, c.size, cell.offset, cell.size);
+                   poffset, c.offset, c.size, cell.offset, cell.size);
             SDB_ASSERT(FALSE, "invalid extent to be released");
             goto done;
          }
       }
 
       /// empty free list or greater than all extents in list.
-      if (_freeCellList.end() == itr)
+      if (0 == mergedExtentSize)
       {
+#if defined(_DEBUG)
+         SDB_ASSERT(_freeCellList.empty() ||
+                    _freeCellList.back().getUpperBound() < cell.offset, "impossible");
+#endif//_DEBUG
          _freeCellList.push_back(cell);
          mergedExtentSize = cell.size;
-         _freeCount += cell.size;
       }
 
+      _freePids += pcnt;
       if (_maxExtentSize < mergedExtentSize)
       {
          _maxExtentSize = mergedExtentSize;
       }
-
-      if (0 < mergedExtentSize && nullptr != _sme)
+      if (nullptr != _sme)
       {
-         batchSetBits(getCapacity() >> 6, offset, offset + pcnt - 1, _sme);
+         batchSetBits(getCapacity() >> 6, poffset, poffset + pcnt - 1, _sme);
+#if defined(_DEBUG)
+         BOOLEAN r = batchTestBitsNonZeroed(getCapacity() >> 6, poffset, poffset + pcnt - 1, _sme);
+         SDB_ASSERT(r, "error bit set");
+#endif//_DEBUG
       }
 
    done:
       return;
    }
 
-   void variableExtentAllocator::_segmentUnit::_loadSme()
+   void variableExtentAllocator::_segmentUnit::_resetMaxExtentSize(UINT32 stopWhenFound)
    {
-      SDB_ASSERT(nullptr != _sme, "can not be null");
-      _freeCount = 0;
-      _maxExtentSize = 0;
-      _freeCellList.clear();
-
-      _freeCount = getNonzeroBitCount(_capacity >> 6, _sme);
-      if (_capacity == _freeCount)
+      UINT16 maxExtentSize = 0;
+      for (auto itr = _freeCellList.cbegin(); itr != _freeCellList.cend(); ++itr)
       {
-         _maxExtentSize = _capacity;
-         _freeCellList.push_back(_extentCell(0, _capacity));
-      }
-      else if (0 < _freeCount)
-      {
-         UINT32 bitsCount = _capacity >> 6;
-         INT32 offset = -1;
-         UINT32 count = 0;
-         for (UINT32 i = 0; i < _capacity; ++i)
+         if (maxExtentSize < itr->size)
          {
-            if (testBitIsNonzero(bitsCount, _sme, i))
+            maxExtentSize = itr->size;
+            if (maxExtentSize == stopWhenFound)
             {
-               if (offset < 0)
-               {
-                  offset = i;
-                  count = 1;
-               }
-               else
-               {
-                  SDB_ASSERT((offset + count) == i, "must be the next one");
-                  ++count;
-               }
-            }
-            else if (0 <= offset)
-            {
-               _freeCellList.push_back(_extentCell(offset, count));
-               if (_maxExtentSize < count)
-               {
-                  _maxExtentSize = count;
-               }
-               offset = -1;
-               count = 0;
-            }
-            else
-            {
-               /// do nothing.
+               break;
             }
          }
+      }
 
-         if (0 <= offset)
+      _maxExtentSize = maxExtentSize;
+      return;
+   }  
+
+///////////////////////////_segmentUnit end
+
+///////////////////////////_fileUnit
+   variableExtentAllocator::_fileUnit::_fileUnit(PAGE_ID firstPid,
+                                                 const options *o,
+                                                 std::atomic_int *stats):
+   _firstPid(firstPid),
+   _o(o),
+   _globalSegStats(stats)
+   {
+      SDB_ASSERT(INVALID_PAGE_ID != _firstPid, "can not be invalid");
+      SDB_ASSERT(nullptr != _o, "can not be invalid");
+      SDB_ASSERT(nullptr != _globalSegStats, "can not be invalid");
+   }
+
+   variableExtentAllocator::_fileUnit::~_fileUnit()
+   {
+      for (UINT32 i = 0; i < _segments.size(); ++i)
+      {
+         if (nullptr != _segments.at(i))
          {
-            _freeCellList.push_back(_extentCell(offset, count));
-            if (_maxExtentSize < count)
-            {
-               _maxExtentSize = count;
-            }
+            SDB_OSS_DEL _segments.at(i);
          }
       }
    }
-///////////////////////////_segmentUnit end
+
+   void variableExtentAllocator::_fileUnit::reset()
+   {
+      for (UINT32 i = 0; i < _segments.size(); ++i)
+      {
+         if (nullptr != _segments.at(i))
+         {
+            SDB_OSS_DEL _segments.at(i);
+         }
+      }
+      _segments.clear();
+      _segments.shrink_to_fit();
+      _freebits.clear();
+      _maxFreeExtentSize.store(0, std::memory_order_relaxed);
+      return;
+   }
+
+   INT32 variableExtentAllocator::_fileUnit::depositSegmentFromSme(UINT64 *sme)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(nullptr != sme, "can not be null");
+      _segmentUnit *segment = nullptr;
+
+      std::unique_lock<std::mutex> guard(_mutex);
+      if (OSS_UNLIKELY(nullptr == sme))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(_segments.size() == _o->maxSegmentCountPerFile))
+      {
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+
+      rc = _reserveSegment();
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      segment = SDB_OSS_NEW _segmentUnit(_o->maxPageCountPerSegment);
+      if (OSS_UNLIKELY(nullptr == segment))
+      {
+         PD_LOG(PDERROR, "failed to allocate mem.");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      segment->initFromSme(sme);
+      if (_o->minSegFreeCntReused <= segment->getFreePidCount())
+      {
+         _freebits.set(_segments.size());
+         if (getMaxFreeExtentSize() < segment->getMaxFreeExtentSize())
+         {
+            _maxFreeExtentSize.store(segment->getMaxFreeExtentSize(), std::memory_order_relaxed);
+         }
+         _globalSegStats->fetch_add(1, std::memory_order_relaxed);
+      }
+      _segments.push_back(segment);
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 variableExtentAllocator::_fileUnit::depositSegment(BOOLEAN allFree)
+   {
+      INT32 rc = SDB_OK;
+      _segmentUnit *segment = nullptr;
+
+      std::unique_lock<std::mutex> guard(_mutex);
+      if (OSS_UNLIKELY(_segments.size() == _o->maxSegmentCountPerFile))
+      {
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+
+      rc = _reserveSegment();
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      segment = SDB_OSS_NEW _segmentUnit(_o->maxPageCountPerSegment);
+      if (OSS_UNLIKELY(nullptr == segment))
+      {
+         PD_LOG(PDERROR, "failed to allocate mem.");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      segment->init(allFree);
+      if (allFree)
+      {
+         _freebits.set(_segments.size());
+         _maxFreeExtentSize.store(segment->getMaxFreeExtentSize(), std::memory_order_relaxed);
+         _globalSegStats->fetch_add(1, std::memory_order_relaxed);
+      }
+      _segments.push_back(segment);
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   PAGE_ID variableExtentAllocator::_fileUnit::reserveExtent(UINT32 pcnt)
+   {
+      SDB_ASSERT(0 < pcnt && pcnt <= _o->maxPageCountPerSegment, "can not be invalid");
+      PAGE_ID pid = INVALID_PAGE_ID;
+      BOOLEAN resetMaxFreeExtentSize = FALSE;
+      std::unique_lock<std::mutex> guard(_mutex);
+      std::size_t pos = 0;
+
+      UINT32 maxExtentSize = getMaxFreeExtentSize();
+
+      if (maxExtentSize < pcnt)
+      {
+         goto done;
+      }
+
+      pos = _freebits.find_first();
+      while (boost::dynamic_bitset<>::npos != pos)
+      {
+         _segmentUnit *segment = _segments.at(pos);
+         if (pcnt <= segment->getMaxFreeExtentSize())
+         {
+            UINT32 oldMaxFreeExtentSize = segment->getMaxFreeExtentSize();
+            INT32 poffset = segment->reserveExtent(pcnt);
+            SDB_ASSERT(0 <= poffset, "impossible");
+            if (0 == segment->getMaxFreeExtentSize())
+            {
+               _freebits.reset(pos);
+               _globalSegStats->fetch_sub(1, std::memory_order_relaxed);
+            }
+            pid = _firstPid + poffset + (pos * _o->maxPageCountPerSegment);
+            resetMaxFreeExtentSize = (oldMaxFreeExtentSize == maxExtentSize) &&
+                                     (oldMaxFreeExtentSize != segment->getMaxFreeExtentSize());
+            break;
+         }
+
+         pos = _freebits.find_next(pos);
+      }
+
+      if (resetMaxFreeExtentSize)
+      {
+         _resetMaxFreeExtentSize(maxExtentSize);
+      }
+
+   done:
+      return pid;
+   }
+
+   void variableExtentAllocator::_fileUnit::freeExtent(PAGE_ID pid, UINT32 pcnt)
+   {
+      SDB_ASSERT(INVALID_PAGE_ID != pid && 0 < pcnt, "can not be invalid");
+      SDB_ASSERT(_firstPid <= pid && pcnt <= _o->maxPageCountPerSegment, "can not be invalid");
+
+      UINT32 pidOffset = pid - _firstPid;
+      UINT32 segmentId = pidOffset / _o->maxPageCountPerSegment;
+      UINT32 poffset = pidOffset % _o->maxPageCountPerSegment;
+      _segmentUnit *segment = nullptr;
+
+      std::unique_lock<std::mutex> guard(_mutex);
+      if (OSS_UNLIKELY(_segments.size() <= segmentId))
+      {
+         SDB_ASSERT(FALSE, "out of segment size");
+         goto done;
+      }
+      
+      segment = _segments.at(segmentId);
+      segment->freeExtent(poffset, pcnt);
+      if (!_freebits.test(segmentId) &&
+           _o->minSegFreeCntReused <= segment->getFreePidCount())
+      {
+         _freebits.set(segmentId);
+         _globalSegStats->fetch_add(1, std::memory_order_relaxed);
+      }
+
+      if (_freebits.test(segmentId) &&
+          getMaxFreeExtentSize() < segment->getMaxFreeExtentSize())
+      {
+         _maxFreeExtentSize.store(segment->getMaxFreeExtentSize(),
+                                  std::memory_order_relaxed);
+      }
+
+   done:
+      return;
+   }
+
+   INT32 variableExtentAllocator::_fileUnit::_reserveSegment()
+   {
+      INT32 rc = SDB_OK;
+      try
+      {
+         _segments.reserve(1);
+         _freebits.resize(_segments.size() + 1, FALSE);
+      }
+      catch(const std::exception& e)
+      {
+         PD_LOG(PDERROR, "failed to reserve element:%s", e.what());
+         rc = SDB_OOM;
+         goto error;
+      }
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void variableExtentAllocator::_fileUnit::_resetMaxFreeExtentSize(UINT32 stopWhenFound)
+   {
+      UINT32 maxExtentSize = 0;
+      std::size_t pos = _freebits.find_first();
+      while (boost::dynamic_bitset<>::npos != pos)
+      {
+         _segmentUnit *segment = _segments.at(pos);
+         if (maxExtentSize < segment->getMaxFreeExtentSize())
+         {
+            maxExtentSize = segment->getMaxFreeExtentSize();
+            if (maxExtentSize == stopWhenFound)
+            {
+               break;
+            }
+         }
+
+         pos = _freebits.find_next(pos);
+      }
+
+      _maxFreeExtentSize.store(maxExtentSize, std::memory_order_relaxed);
+      return;
+   }
+
+///////////////////////////_fileUnit end
 
    variableExtentAllocator::~variableExtentAllocator()
    {
-      _clear();
-   }
-
-   void variableExtentAllocator::clear()
-   {
-      ossSLatchGuard guard(&_latch, EXCLUSIVE);
-      _clear();
-   }
-
-   void variableExtentAllocator::_clear()
-   {
-      _freeMap.clear();
-      for (UINT32 i = 0; i < _units.size(); ++i)
+      for (UINT32 i = 0; i < _funits.size(); ++i)
       {
-         if (nullptr != _units[i])
+         if (nullptr != _funits[i])
          {
-            SDB_OSS_DEL _units[i];
+            SDB_OSS_DEL _funits[i];
          }
       }
-      _units.clear();
-      _segmentPageCnt = 0;
-      _maxExtentSize = 0;
    }
 
-   void variableExtentAllocator::init(UINT32 pageCntPerSeg, UINT32 maxExtentSize)
+   void variableExtentAllocator::reset()
    {
       ossSLatchGuard guard(&_latch, EXCLUSIVE);
-      _clear();
-      SDB_ASSERT(0 < pageCntPerSeg, "can not be invalid");
-      SDB_ASSERT(ossIsAligned64(pageCntPerSeg), "must be 64 aligned");
-      SDB_ASSERT(0 < maxExtentSize, "can not be invalid");
-      SDB_ASSERT(maxExtentSize <= pageCntPerSeg, "can not be invalid");
-      _segmentPageCnt = pageCntPerSeg;
-      _maxExtentSize = maxExtentSize;
+      _reset();
    }
 
-   INT32 variableExtentAllocator::depositWithSme(UINT64 *sme, BOOLEAN ensuredAllFree)
+   void variableExtentAllocator::_reset()
+   {
+      for (UINT32 i = 0; i < _funits.size(); ++i)
+      {
+         if (nullptr != _funits[i])
+         {
+            SDB_OSS_DEL _funits[i];
+         }
+      }
+      _funits.clear();
+      _funits.shrink_to_fit();
+      _totalSegmentCount = 0;
+      _freeSegments.store(0, std::memory_order_relaxed);
+      _o = options();
+      return;
+   }
+
+   void variableExtentAllocator::init(const options &o)
+   {
+      ossSLatchGuard guard(&_latch, EXCLUSIVE);
+      _reset();
+      SDB_ASSERT(0 < o.maxPageCountPerSegment, "can not be invalid");
+      SDB_ASSERT(0 < o.maxSegmentCountPerFile, "can not be invalid");
+      SDB_ASSERT(o.minSegFreeCntReused < o.maxPageCountPerSegment, "out of bound");
+
+      _o = o;
+   }
+
+   INT32 variableExtentAllocator::deposit(BOOLEAN allFree)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!isValid()))
+      SDB_ASSERT(0 < _o.maxSegmentCountPerFile, "can not be invalid");
+      ossSLatchGuard guard(&_latch, EXCLUSIVE);
+
+      if (0 == _totalSegmentCount % _o.maxSegmentCountPerFile)
       {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         rc = _depositNewFileUnit();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to deposit new file unit:%d", rc);
+            goto error;
+         }
+      }
+
+      rc = _funits.back()->depositSegment(allFree);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to deposit new segment:%d", rc);
          goto error;
       }
-      else if (OSS_UNLIKELY(nullptr == sme))
+
+      ++_totalSegmentCount;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 variableExtentAllocator::depositWithSme(UINT64 *sme)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(0 < _o.maxSegmentCountPerFile, "can not be invalid");
+      ossSLatchGuard guard(&_latch, EXCLUSIVE);
+      if (OSS_UNLIKELY(nullptr == sme))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
+      if (0 == _totalSegmentCount % _o.maxSegmentCountPerFile)
       {
-         ossSLatchGuard guard(&_latch, EXCLUSIVE);
-         PAGE_ID pid = _units.size() * _segmentPageCnt;
-         _segmentUnit *segment = SDB_OSS_NEW _segmentUnit(pid, _segmentPageCnt,
-                                                          sme, !ensuredAllFree);
-         if (OSS_UNLIKELY(nullptr == segment))
+         rc = _depositNewFileUnit();
+         if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to allocate mem.");
-            rc = SDB_OOM;
+            PD_LOG(PDERROR, "failed to deposit new file unit:%d", rc);
             goto error;
          }
-
-         if (MIN_FREE_COUNT_TO_REGISTER <= segment->getFreeCount())
-         {
-            _SEG_PROFILE profile = std::make_pair(segment->getMaxExtentSize(), _units.size());
-            std::pair<_FREE_MAP::iterator, BOOLEAN> res = _freeMap.insert(profile);
-            SDB_ASSERT(res.second, "impossible");
-            segment->pos = res.first;
-         }
-         _units.push_back(segment);
       }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
 
-   INT32 variableExtentAllocator::deposit()
-   {
-      INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!isValid()))
+      rc = _funits.back()->depositSegmentFromSme(sme);
+      if (SDB_OK != rc)
       {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         PD_LOG(PDERROR, "failed to deposit new segment:%d", rc);
          goto error;
       }
 
-      {
-         ossSLatchGuard guard(&_latch, EXCLUSIVE);
-         PAGE_ID pid = _units.size() * _segmentPageCnt;
-         _segmentUnit *segment = SDB_OSS_NEW _segmentUnit(pid, _segmentPageCnt,
-                                                          nullptr, FALSE);
-         if (OSS_UNLIKELY(nullptr == segment))
-         {
-            PD_LOG(PDERROR, "failed to allocate mem.");
-            rc = SDB_OOM;
-            goto error;
-         }
-
-         {
-            _SEG_PROFILE profile = std::make_pair(segment->getMaxExtentSize(), _units.size());
-            std::pair<_FREE_MAP::iterator, BOOLEAN> res = _freeMap.insert(profile);
-            SDB_ASSERT(res.second, "impossible");
-            segment->pos = res.first;
-         }
-         _units.push_back(segment);
-      }
+      ++_totalSegmentCount;
    done:
       return rc;
    error:
       goto done;
    }
 
-   PAGE_ID variableExtentAllocator::reserve(UINT32 pcnt, UINT32 *currentSegCount)
+   INT32 variableExtentAllocator::reserveExtent(UINT32 pcnt,
+                                                PAGE_ID &pid,
+                                                UINT32 *currentSegCount)
    {
-      PAGE_ID pid = INVALID_PAGE_ID;
-      SDB_ASSERT(isValid(), "can not be invalid");
-      constexpr UINT32 _MAX_LOOP = 32768;
-      UINT32 i = 0;
-      ossSLatchGuard guard(&_latch, SHARED, FALSE);
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(0 < pcnt && pcnt <= _o.maxPageCountPerSegment, "can not be invalid");
+      pid = INVALID_PAGE_ID;
+      ossSLatchGuard guard(&_latch, SHARED);
 
-      if (OSS_UNLIKELY(0 == pcnt || _segmentPageCnt < pcnt ||
-                       _maxExtentSize < pcnt))
+      if (nullptr != currentSegCount)
       {
-         SDB_ASSERT(FALSE, "invalid pcnt");
+         *currentSegCount = _totalSegmentCount;
+      }
+
+      if (OSS_UNLIKELY(0 == pcnt || _o.maxPageCountPerSegment < pcnt))
+      {
+         SDB_ASSERT(FALSE, "pcnt out of size");
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      if (getFreeSegStats() <= 0)
+      {
          goto done;
       }
 
-      guard.lock();
-
-      do
+      for (auto ritr = _funits.rbegin(); ritr != _funits.rend(); ++ritr)
       {
-         UINT32 segmentId = 0;
-         _segmentUnit *segment = _findFromMap(pcnt, segmentId);
-         if (nullptr == segment)
+         _fileUnit *funit = *ritr;
+         if (pcnt <= funit->getMaxFreeExtentSize())
          {
-            break;
-         }
-         else
-         {
-            std::unique_lock<std::mutex> segmentLock(segment->getMutex());
-            if (!segment->isRegistered())
-            {
-               continue;
-            }
-
-            pid = segment->reserve(pcnt);
+            pid = funit->reserveExtent(pcnt);
             if (INVALID_PAGE_ID != pid)
             {
                break;
             }
-            else if (0 == segment->getMaxExtentSize())
-            {
-               _eraseFromMap(segment);
-               continue;
-            }
-            else if (segment->getMaxExtentSize() < segment->pos->first)
-            {
-               _reinsertIntoMap(segment);
-               continue;
-            }
-            else
-            {
-               /// do no thing. it may be updated by pre-allocator.
-               continue;
-            }
          }
-         
-      } while (++i < _MAX_LOOP);
-
-      if (nullptr != currentSegCount)
-      {
-         *currentSegCount = _units.size();
       }
       
    done:
-      return pid;
+      return rc;
+   error:
+      goto done;
    }
 
-   void variableExtentAllocator::release(PAGE_ID pid, UINT32 pcnt)
+   void variableExtentAllocator::freeExtent(PAGE_ID pid, UINT32 pcnt)
    {
-      UINT32 count = 0;
-      ossSLatchGuard guard(&_latch, SHARED, FALSE);
+      UINT32 fileId = 0;
+      ossSLatchGuard guard(&_latch, SHARED);
       
-      if (OSS_UNLIKELY(INVALID_PAGE_ID == pid ||
-                       0 == pcnt))
+      if (!_isValidExtentToFree(pid, pcnt))
       {
-         SDB_ASSERT(FALSE, "invalid extent");
          goto done;
       }
 
-      guard.lock();
-      
-      if (_units.size() <= ((pid + pcnt - 1) / _segmentPageCnt))
-      {
-         PD_LOG(PDSEVERE, "pids to be released[%d,%d] out of max segment count:%d",
-                pid, pcnt, _units.size());
-         SDB_ASSERT(FALSE, "out of bound");
-         goto done;
-      }
-
-      do
-      {
-         UINT32 size = _segmentPageCnt - ((pid + count) % _segmentPageCnt);
-         size = std::min(size, pcnt - count);
-         UINT32 segmentId = (pid + count) / _segmentPageCnt;
-         _segmentUnit *segment = _units.at(segmentId);
-
-         std::unique_lock<std::mutex> segmentLock(segment->getMutex());
-         segment->release(pid + count, size);
-         if (!segment->isRegistered())
-         {
-            if (MIN_FREE_COUNT_TO_REGISTER <= segment->getFreeCount())
-            {
-               _insertIntoMap(segment, segmentId);
-            }
-         }
-         else if (segment->pos->first < segment->getMaxExtentSize() &&
-                  segment->pos->first < _maxExtentSize)
-         {
-            _reinsertIntoMap(segment);
-         }
-
-         segmentLock.unlock();
-         count += size;
-          
-      } while (count < pcnt);
+      fileId = pid / (_o.maxPageCountPerSegment * _o.maxSegmentCountPerFile);
+      SDB_ASSERT(fileId < _funits.size(), "impossible");
+      _funits.at(fileId)->freeExtent(pid, pcnt);
    
    done:
       return;
    }
 
-   void variableExtentAllocator::_eraseFromMap(_segmentUnit *segment)
+   INT32 variableExtentAllocator::_depositNewFileUnit()
    {
-      SDB_ASSERT(nullptr != segment, "can not be null");
+      INT32 rc = SDB_OK;
+      PAGE_ID firstPid = _funits.size() *
+                         _o.maxPageCountPerSegment * _o.maxSegmentCountPerFile;
+      _fileUnit *funit = SDB_OSS_NEW _fileUnit(firstPid, &_o, &_freeSegments);
+      if (OSS_UNLIKELY(nullptr == funit))
+      {
+         PD_LOG(PDERROR, "failed to allocate mem.");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      try
+      {
+         _funits.push_back(funit);
+      }
+      catch(const std::exception& e)
+      {
+         PD_LOG(PDERROR, "failed to reserve file:%s", e.what());
+         rc = SDB_OOM;
+         goto error;
+      }
       
-      if (_FREE_MAP::iterator() != segment->pos)
+   done:
+      return rc;
+   error:
+      SAFE_OSS_DELETE(funit);
+      goto done;
+   }
+
+   BOOLEAN variableExtentAllocator::_isValidExtentToFree(PAGE_ID pid, UINT32 pcnt)const
+   {
+      BOOLEAN r = FALSE;
+      if (INVALID_PAGE_ID != pid && 0 < pcnt)
       {
-         ossSLatchGuard guard(&_mapLatch, EXCLUSIVE);
-         _freeMap.erase(segment->pos);
-         segment->pos = _FREE_MAP::iterator();
+         /// make sure that extent not out of segment size
+         if (((pid % _o.maxPageCountPerSegment) + pcnt) <= _o.maxPageCountPerSegment)
+         {
+            /// make sure that not out of total segment count
+            if ((pid / _o.maxPageCountPerSegment) < _totalSegmentCount)
+            {
+               r = TRUE;
+            }
+         }
       }
-   }
 
-   void variableExtentAllocator::_insertIntoMap(_segmentUnit *segment, UINT32 segmentId)
-   {
-      SDB_ASSERT(nullptr != segment, "can not be null");
-      SDB_ASSERT(0 < segment->getMaxExtentSize(), "can not be zero");
-      SDB_ASSERT(!segment->isRegistered(), "already in map");
-      ossSLatchGuard guard(&_mapLatch, EXCLUSIVE);
-      _SEG_PROFILE profile = std::make_pair(segment->getMaxExtentSize(), segmentId);
-      std::pair<_FREE_MAP::iterator, BOOLEAN> res = _freeMap.insert(profile);
-      SDB_ASSERT(res.second, "impossible");
-      segment->pos = res.first;
-   }
-
-   variableExtentAllocator::_segmentUnit *
-   variableExtentAllocator::_findFromMap(UINT32 pcnt, UINT32 &segmentId)
-   {
-      SDB_ASSERT(0 < pcnt, "can not e zero");
-      _segmentUnit *segment = nullptr;
-      _SEG_PROFILE profile = std::make_pair(pcnt, 0);
-
-      ossSLatchGuard guard(&_mapLatch, SHARED);
-      _FREE_MAP::iterator itr = _freeMap.lower_bound(profile);
-      if (_freeMap.end() != itr)
+      if (!r)
       {
-         SDB_ASSERT(itr->second < _units.size(), "impossible");
-         segment = _units.at(itr->second);
-         segmentId = itr->second;
+         PD_LOG(PDERROR, "invalid extent[%d,%d] to free", pid, pcnt);
       }
-      return segment;
-   }
-
-   void variableExtentAllocator::_reinsertIntoMap(_segmentUnit *segment)
-   {
-      SDB_ASSERT(nullptr != segment, "can not be null");
-      SDB_ASSERT(0 < segment->getMaxExtentSize(), "can not be zero");
-      SDB_ASSERT(segment->isRegistered(), "already in map");
-      ossSLatchGuard guard(&_mapLatch, EXCLUSIVE);
-      UINT32 segmentId = segment->pos->second;
-      _freeMap.erase(segment->pos);
-      _SEG_PROFILE profile = std::make_pair(segment->getMaxExtentSize(), segmentId);
-      std::pair<_FREE_MAP::iterator, BOOLEAN> res = _freeMap.insert(profile);
-      SDB_ASSERT(res.second, "impossible");
-      segment->pos = res.first;
+      return r;
    }
 } // namespace vessel
 

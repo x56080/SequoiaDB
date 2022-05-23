@@ -43,19 +43,10 @@ namespace engine
 {
 namespace vessel
 {
-   INT32 indexSpace::getMinUncompletedLSN(requestContext *context,
-                                          DPS_LSN_OFFSET &lsn)
-   {
-      SDB_ASSERT(NULL != context, "can not be null");
-      /// getMinUncompletedLSN is very expensive.
-      lsn = context->getOuterResource()->getMinUncompletedLSN();
-      return SDB_OK;
-   }
-
-   INT32 indexSpace::getRuntimePageBuffer(requestContext *context,
-                                          PAGE_ID pid,
-                                          const ossSharedLatchMode &mode,
-                                          runtimePageBuffer &rpb)
+   INT32 indexSpace::_getRuntimePageBuffer(requestContext *context,
+                                           PAGE_ID pid,
+                                           const ossSharedLatchMode &mode,
+                                           runtimePageBuffer &rpb)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!rpb.isValid(), "can not be valid");
@@ -96,16 +87,16 @@ namespace vessel
       goto done;
    }
 
-   INT32 indexSpace::getRuntimePageBufferToReset(requestContext *context,
-                                                     PAGE_ID pid,
-                                                     runtimePageBuffer &rpb)
+   INT32 indexSpace::_getRuntimePageBufferToReset(requestContext *context,
+                                                  PAGE_ID pid,
+                                                  runtimePageBuffer &rpb)
    {
       INT32 rc = SDB_OK;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
-      rc = this->getRuntimePageBuffer(context, pid,
-                                      mode, /// usless actually
-                                      rpb);
+      rc = this->_getRuntimePageBuffer(context, pid,
+                                       mode, /// usless actually
+                                       rpb);
       if (SDB_OK != rc)
       {
          goto error;
@@ -124,10 +115,10 @@ namespace vessel
       goto done;
    }
 
-   INT32 indexSpace::copyPageAndReinitBuffer(requestContext *context,
-                                                 PAGE_SNAPSHOT_VERION psv,
-                                                 PAGE_ID newPid,
-                                                 runtimePageBuffer &rpb)
+   INT32 indexSpace::_copyPageAndReinitBuffer(requestContext *context,
+                                              PAGE_SNAPSHOT_VERION psv,
+                                              PAGE_ID newPid,
+                                              runtimePageBuffer &rpb)
    {
       INT32 rc = SDB_OK;
       UINT32 pageSize = getFileCluster()->getCoreArgs().pageSize;

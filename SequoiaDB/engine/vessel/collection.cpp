@@ -92,8 +92,8 @@ namespace vessel
       runtimeMbContext mbContext;
       
       PAGE_ID mbpLpid = INVALID_PAGE_ID;
-      BOOLEAN mapped = FALSE;
       UINT32 indexPageSize = 0;
+      lpageDescriptor desc;
 
       if (OSS_UNLIKELY(nullptr == context ||
                        !block.isValid() ||
@@ -140,14 +140,14 @@ namespace vessel
          goto error;
       }
 
-      rc = cs->getSU()->getIndexSpace().isLogicalPageMapped(context, mbpLpid, mapped);
+      rc = cs->getSU()->getIndexSpace().testLogicalPageMapping(mbpLpid, desc);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to test if lpid[%d] mapped:%d", mbpLpid, rc);
          goto error;
       }
 
-      if (mapped)
+      if (desc.isValid())
       {
          rc = initIndexesWhenOpen(context);
          if (SDB_OK != rc)
@@ -3850,10 +3850,8 @@ namespace vessel
       {
          SDB_ASSERT(FALSE, "TODO");
       }
-   done:
+
       return rc;
-   error:
-      goto done;
    }
 
 
@@ -3989,8 +3987,6 @@ namespace vessel
 
    done:
       return rc;
-   error:
-      goto done;
    }
 
    INT32 collection::initIndexesWhenOpen(requestContext *context)
@@ -4031,10 +4027,7 @@ namespace vessel
             SDB_ASSERT(FALSE, "TODO");
          }
       }
-   done:
       return rc;
-   error:
-      goto done;
    }
 
    INT32 collection::buildDmlIndexRequests(requestContext *context,
@@ -5479,10 +5472,8 @@ namespace vessel
 
       loopReleaseRdpsInLvl0(context);
       loopReleaseRoutePages(context);
-   done:
+   
       return rc;
-   error:
-      goto done;
    }
 
    INT32 collection::loopReleaseRdpsInLvl0(requestContext *context)

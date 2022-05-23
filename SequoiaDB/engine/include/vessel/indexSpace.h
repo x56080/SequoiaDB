@@ -54,35 +54,24 @@ namespace vessel
          {
             return SPACE_TYPE_IDX;
          }
-         virtual BOOLEAN isCopyOnWrite()const override
-         {
-            return TRUE;
-         }
 
+      protected:
+         virtual INT32 _getRuntimePageBuffer(requestContext *context,
+                                             PAGE_ID pid,
+                                             const ossSharedLatchMode &mode,
+                                             runtimePageBuffer &rpb);
 
+         virtual INT32 _getRuntimePageBufferToReset(requestContext *context,
+                                                    PAGE_ID pid,
+                                                    runtimePageBuffer &rpb);
+
+         virtual INT32 _copyPageAndReinitBuffer(requestContext *context,
+                                                PAGE_SNAPSHOT_VERION psv,
+                                                PAGE_ID newPid,
+                                                runtimePageBuffer &rpb);
+                                                
       private:
-         virtual UINT32 getReservedImpCount()const override {return 1;};
-
-      private:
-         virtual INT32 getRuntimePageBuffer(requestContext *context,
-                                            PAGE_ID pid,
-                                            const ossSharedLatchMode &mode,
-                                            runtimePageBuffer &rpb) override;
-
-         /// rpb must be writable at last
-         virtual INT32 getRuntimePageBufferToReset(requestContext *context,
-                                                   PAGE_ID pid,
-                                                   runtimePageBuffer &rpb) override;
-
-         /// rpb must be writable at last
-         virtual INT32 copyPageAndReinitBuffer(requestContext *context,
-                                               PAGE_SNAPSHOT_VERION psv,
-                                               PAGE_ID newPid,
-                                               runtimePageBuffer &rpb) override;
-
-      private:
-         virtual INT32 getMinUncompletedLSN(requestContext *context,
-                                            DPS_LSN_OFFSET &lsn) override;
+         virtual UINT32 _getReservedLpidUnits()const override {return 1;}
    };//class indexSpace
 }//namespace vessel
 }//namespace engine

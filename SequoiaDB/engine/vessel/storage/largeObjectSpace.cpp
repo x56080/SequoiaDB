@@ -86,31 +86,17 @@ namespace vessel
 
    void largeObjectSpace::close()
    {
-      if (_uberBlock.isValid() &&
-          _allocator.peekSegmentCount() != _uberBlock.sub.totalSegments)
+      if (_metaFile.isOpen())
       {
-         mmapPagePointer ptr;
-         INT32 rc = _metaFile.getPagePtr(UBER_BLOCK_PID, ptr);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get block page:%d", rc);
-         }
-         else
-         {
-            strictBuffer buffer;
-            buffer.makeWritable(_metaFile.getPageSize(), ptr.getBuf());
-            buffer.getWritableObjPtr<lobmUberBlock>(0)->sub.totalSegments =
-                                            _allocator.peekSegmentCount();
-            _metaFile.fsync();
-         }
+          _metaFile.fsync();
       }
       _close();
    }
 
    void largeObjectSpace::_close()
    {
+      _smgr.fini();
       _fcluster.close();
-      _allocator.reset();
       _metaFile.close();
       _uberBlock.reset();
    }
@@ -119,8 +105,8 @@ namespace vessel
    {
       if (isOpen())
       {
+         _smgr.fini();
          _fcluster.destroy();
-         _allocator.reset();
          _metaFile.destroy();
          _uberBlock.reset();
       }
@@ -131,7 +117,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(!isOpen(), "can not be open");
       storageFileManifest fileManifest;
-      variableExtentAllocator::options o;
 
       if (OSS_UNLIKELY(nullptr == loader))
       {
@@ -171,6 +156,7 @@ namespace vessel
       fileManifest.secretValue = _manifest->secretValue;
       fileManifest.args = _manifest->lobArgs;
 
+      /// do not mmap
       rc = _fcluster.open(fileManifest, 0, loader);
       if (SDB_OK != rc)
       {
@@ -178,35 +164,13 @@ namespace vessel
          goto error;
       }
 
-      if (_fcluster.getTotalSegmentCount() < _uberBlock.sub.totalSegments)
+      rc = _smgr.init(_uberBlock.smeEntryPid, &_metaFile, &_fcluster);
+      if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "segment count in uber block[%d] does not match cluster[%d]",
-                _uberBlock.sub.totalSegments, _fcluster.getTotalSegmentCount());
-         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to init space manager:%d", rc);
          goto error;
       }
 
-      o.maxPageCountPerSegment = _manifest->lobArgs.maxPageCountPerSeg;
-      o.maxSegmentCountPerFile - _manifest->lobArgs.maxSegmentCountPerFile;
-      o.minSegFreeCntReused = 8;
-      _allocator.init(o);
-      for (UINT32 i = 0; i < _uberBlock.sub.totalSegments; ++i)
-      {
-         strictBuffer smeBuffer;
-         rc = getLobdSme(i, smeBuffer);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get sme of segment[%d], rc:%d", i, rc);
-            goto error;
-         }
-
-         rc = _allocator.deposit((UINT64 *)(smeBuffer.getWPtr()), TRUE);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to deposit segment[%d], rc:%d", i, rc);
-            goto error;
-         }
-      }
    done:
       return rc;
    error:
@@ -272,7 +236,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       storageFileManifest fileManifest;
-      variableExtentAllocator::options o;
 
       std::unique_lock<std::mutex> guard(_mutex);
       if (isOpen())
@@ -292,11 +255,6 @@ namespace vessel
          goto error;
       }
 
-      o.maxPageCountPerSegment = _manifest->lobArgs.maxPageCountPerSeg;
-      o.maxSegmentCountPerFile - _manifest->lobArgs.maxSegmentCountPerFile;
-      o.minSegFreeCntReused = 8;
-      _allocator.init(o);
-
       rc = _initUberBlock();
       if (SDB_OK != rc)
       {
@@ -313,6 +271,13 @@ namespace vessel
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open file cluster:%d", rc);
+         goto error;
+      }
+
+      rc = _smgr.init(_uberBlock.smeEntryPid, &_metaFile, &_fcluster);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init space manager:%d", rc);
          goto error;
       }
    done:
@@ -363,8 +328,7 @@ namespace vessel
          }
          buffer.makeWritable(_metaFile.getPageSize(), ptr.getBuf());
          buffer.setBuffer(0xFF);
-         uberBlock->sub.entryPid = pid;
-         uberBlock->sub.totalSegments = 0;
+         uberBlock->smeEntryPid = pid;
       }
 
       /// bucket entry
@@ -526,57 +490,12 @@ namespace vessel
       SDB_ASSERT(nullptr != tc, "can not be invalid");
       PAGE_SNAPSHOT_VERION psv = tc->getEnv()->dms.getOnlinePageSnapshotVersion();
       desc.reset();
-
-      do
+      rc = _smgr.reserveExtent(pcnt, pid);
+      if (SDB_OK != rc)
       {
-         UINT32 segmentCount = 0;
-         rc = _allocator.reserveExtent(pcnt, segmentCount, pid);
-         if (SDB_OK == rc)
-         {
-            break;
-         }
-         else
-         {
-            strictBuffer smeBuffer;
-            std::unique_lock<std::mutex> extendingLock(_mutex);
-            if (segmentCount < _allocator.peekSegmentCount())
-            {
-               continue;
-            }
-            else if (_allocator.peekSegmentCount() < _fcluster.getTotalSegmentCount())
-            {
-               rc = ensureLobdSme(_allocator.peekSegmentCount(), smeBuffer);
-               if (SDB_OK != rc)
-               {
-                  PD_LOG(PDERROR, "failed to ensure lobd sme[%d]:%d",
-                         _allocator.peekSegmentCount(), rc);
-                  goto error;
-               }
-            }
-            else
-            {
-               SDB_ASSERT(_allocator.peekSegmentCount() == _fcluster.getTotalSegmentCount(),
-                          "impossible");
-               rc = extendNewLobdSegment(smeBuffer);
-               if (SDB_OK != rc)
-               {
-                  PD_LOG(PDERROR, "failed to extend new segment:%d", rc);
-                  goto error;
-               }
-            }
-
-            SDB_ASSERT(smeBuffer.isWritable(), "must be writable");
-            smeBuffer.setBuffer(0xFF);
-            rc = _allocator.deposit(smeBuffer.getWritableObjPtr<UINT64>(0), FALSE);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to deposit segment:%d", rc);
-               goto error;
-            }
-
-            continue;
-         }
-      } while (TRUE);
+         PD_LOG(PDERROR, "failed to reserve extent[%d]:%d", pcnt, rc);
+         goto error;
+      }
 
       SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
       desc.pcnt = pcnt;
@@ -642,11 +561,11 @@ namespace vessel
       PAGE_ID newPid = INVALID_PAGE_ID;
       buffer.reset();
 
-      rc = _metaFile.getPagePtr(_uberBlock.sub.entryPid, ptr);
+      rc = _metaFile.getPagePtr(_uberBlock.smeEntryPid, ptr);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          PD_LOG(PDERROR, "failed to get lobm page[%d] ptr:%d",
-                _uberBlock.sub.entryPid);
+                _uberBlock.smeEntryPid);
          goto error;
       }
 
@@ -710,11 +629,11 @@ namespace vessel
 
       buffer.reset();
 
-      rc = _metaFile.getPagePtr(_uberBlock.sub.entryPid, ptr);
+      rc = _metaFile.getPagePtr(_uberBlock.smeEntryPid, ptr);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          PD_LOG(PDERROR, "failed to get lobm page[%d] ptr:%d",
-                _uberBlock.sub.entryPid);
+               _uberBlock.smeEntryPid);
          goto error;
       }
 
@@ -903,7 +822,7 @@ namespace vessel
          for (UINT32 i = 0; i < chain.getChainSize(); ++i)
          {
             const lextentDescriptor &desc = chain.getChainItem(i);
-            _allocator.freeExtent(desc.pid, desc.pcnt);
+            _smgr.releaseExtent(desc.pid, desc.pcnt);
          }
       }
    done:
@@ -938,7 +857,7 @@ namespace vessel
       {
          tc->getEnv()->lobcBufferPool.discard(context->getSpaceID(), context->getMBID());
          lobcMetaBlockMapping mapping(_manifest, _uberBlock.bucketEntryPid, &_metaFile);
-         mapping.truncate(context->getLogicalClId(), &_allocator);
+         mapping.truncate(context->getLogicalClId(), &_smgr);
       }
    done:
       return rc;
@@ -1206,7 +1125,7 @@ namespace vessel
    error:
       if (desc.isValid())
       {
-         _allocator.freeExtent(desc.pid, desc.pcnt);
+         _smgr.releaseExtent(desc.pid, desc.pcnt);
       }
       goto done;
    }
@@ -1256,7 +1175,7 @@ namespace vessel
             rc = mapping.appendBlockToChain(&newBlock);
             if (SDB_OK != rc)
             {
-               _allocator.freeExtent(newDesc.pid, newDesc.pcnt);
+               _smgr.releaseExtent(newDesc.pid, newDesc.pcnt);
                PD_LOG(PDERROR, "failed to append new tail to chain:%d", rc);
                goto error;
             }
@@ -1321,7 +1240,7 @@ namespace vessel
 
       for (auto itr = discarded.cbegin(); itr != discarded.cend(); ++itr)
       {
-         _allocator.freeExtent(itr->pid, itr->pcnt);
+         _smgr.releaseExtent(itr->pid, itr->pcnt);
       }
    done:
       return rc;

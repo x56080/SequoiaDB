@@ -50,10 +50,13 @@ namespace vessel
          static constexpr UINT64 MAX_FILE_SIZE = (UINT64)8 << 30; /// 8GB
          static constexpr UINT32 MAX_PAGE_COUNT = MAX_FILE_SIZE / PAGE_SIZE;
          static constexpr UINT32 MAX_SEG_COUNT = MAX_PAGE_COUNT / PAGE_COUNT_PER_SEG;
-         static constexpr UINT32 SME_SIZE = MAX_PAGE_COUNT / 8;
+         static constexpr UINT32 SME_SIZE = MAX_PAGE_COUNT >> 3;
 
       public:
-         virtual UINT32 _getReservedAreaSize()const override {return SME_SIZE;}
+         virtual UINT32 _getReservedAreaSize()const override
+         {
+            return ossAlignX(SME_SIZE, DMS_PAGE_SIZE64K);
+         }
    };//class lpageMetaDataFile
 } // namespace vessel
 

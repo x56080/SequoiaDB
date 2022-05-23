@@ -270,10 +270,11 @@ namespace vessel
    INT32 fsmFile::fsyncEntry(CL_MB_ID mbID)
    {
       INT32 rc = SDB_OK;
-      INT32 mmapSegmentID=getReservedAreaMmapSegmentID();
+      INT32 mmapSegmentID = getReservedAreaMmapSegmentID();
       SDB_ASSERT( 0 < mmapSegmentID, "failed to get reserved area segment id when fsync entry");
-      UINT32 offset = FSM_FILE_SME_ALIGNED_SIZE + mbID * FSM_CL_ENTRY_SIZE;
-      rc = flushBlock(mmapSegmentID, offset, FSM_CL_ENTRY_SIZE, TRUE);
+      UINT32 blockId = (UINT32)mbID / FSM_FILE_ENTRY_BLOCK_CAPACITY;
+      UINT32 offset = FSM_FILE_SME_ALIGNED_SIZE + (blockId * FSM_FILE_ENTRY_BLOCK_SIZE);
+      rc = flushBlock(mmapSegmentID, offset, FSM_FILE_ENTRY_BLOCK_SIZE, TRUE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to fsync entry:%d", rc);

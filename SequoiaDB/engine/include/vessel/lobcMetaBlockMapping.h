@@ -51,7 +51,7 @@ namespace vessel
    class lobMetaDataFile;
    class storageUnitManifest;
    struct lobExtentMetaBlock;
-   class variableExtentAllocator;
+   class fclusterSpaceManager;
 
    class lobcMetaBlockMapping : public SDBObject
    {
@@ -89,7 +89,7 @@ namespace vessel
          /// chain pos of new tail block must be set correctly.
          INT32 appendBlockToChain(const lobExtentMetaBlock *block);
 
-         void truncate(UINT32 lclid, variableExtentAllocator *allocator);
+         void truncate(UINT32 lclid, fclusterSpaceManager *smgr=nullptr);
 
          INT32 list(listLobChunkCursor *cursor);
 
@@ -151,7 +151,7 @@ namespace vessel
 
          void _truncate(lobcBucketRegion &region,
                         UINT32 lclid,
-                        variableExtentAllocator *allocator);
+                        fclusterSpaceManager *smgr);
 
          INT32 _appendBlockToChain(const recordID &currentTailRid,
                                    const lobExtentMetaBlock *block);

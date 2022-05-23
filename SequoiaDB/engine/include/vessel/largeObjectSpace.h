@@ -46,6 +46,7 @@
 #include "vessel/lobChunkSearchEntry.h"
 #include "vessel/listLobChunkCursor.h"
 #include "dmsLobDef.hpp"
+#include "vessel/fclusterSpaceManager.h"
 
 #include <mutex> //c++11
 
@@ -165,9 +166,8 @@ namespace vessel
          std::mutex _mutex;
          lobmUberBlock _uberBlock;
          lobMetaDataFile _metaFile;
-         variableExtentAllocator _allocator;
          storageFileCluster _fcluster;
-
+         fclusterSpaceManager _smgr;
    };//class largeObjectSpace
 } // namespace vessel
 

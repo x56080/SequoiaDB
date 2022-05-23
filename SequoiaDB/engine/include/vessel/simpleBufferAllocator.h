@@ -93,6 +93,7 @@ namespace vessel
 
       private:
          UINT32 getAvailableStaticBufferSize()const;
+         BOOLEAN reserveArray(UINT32 size, ossPoolVector<_bufferAllocated> &vec);
          
       private:
          CHAR *_buffer = NULL;

@@ -88,7 +88,7 @@ TEST(bitmapMiscTest, united_bitmap_test2)
    unitedBitmap<_SIZE> bitmap;
    unitedBitmap<_SIZE>::options o;
    o.minFreeReused = _SIZE * 0.1f;
-   bitmap.setOptions(o);
+   bitmap.init(o);
 
    UINT32 unitCount = 128;
    INT32 rc = bitmap.extendUnitNum(unitCount, FALSE);

@@ -50,7 +50,8 @@ namespace vessel
       }
 
       if (!ossIsPowerOf2(maxPageCountPerSeg) &&
-          !ossIsAligned64(maxPageCountPerSeg))
+          !ossIsAligned64(maxPageCountPerSeg) &&
+          STORAGE_FILE_SEGMENT_MAX_PCNT < maxPageCountPerSeg)
       {
          goto done;
       }
@@ -63,32 +64,6 @@ namespace vessel
 
       r = TRUE;
    done:
-      return r;
-   }
-
-   BOOLEAN isValidSegmentSize(UINT32 size)
-   {
-      BOOLEAN r = FALSE;
-      switch (size)
-      {
-      case STORAGE_FILE_SEGMENT_SIZE_4MB:
-         r = TRUE;
-         break;
-      case STORAGE_FILE_SEGMENT_SIZE_32MB:
-         r = TRUE;
-         break;
-      case STORAGE_FILE_SEGMENT_SIZE_64MB:
-         r = TRUE;
-         break;
-      case STORAGE_FILE_SEGMENT_SIZE_128MB:
-         r = TRUE;
-         break;
-      case STORAGE_FILE_SEGMENT_SIZE_256MB:
-         r = TRUE;
-         break;
-      default:
-         break;
-      }
       return r;
    }
 

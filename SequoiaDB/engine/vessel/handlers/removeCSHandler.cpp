@@ -60,8 +60,6 @@ namespace vessel
          goto error;
       }
 
-      cs->waitIfCheckpointCreating(&context);
-      cs = nullptr;
       context.getEnv()->ioBufferPool.discard(context.getSpaceID());
       context.getEnv()->dms.removeCS(&context);
       if (SDB_OK != rc)

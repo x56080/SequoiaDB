@@ -44,7 +44,6 @@ namespace engine
 namespace vessel
 {
    class fsmFile;
-   class logRecordContext;
 
    class mainDataSpace : public logicalPageSpace
    {
@@ -56,10 +55,6 @@ namespace vessel
          virtual SPACE_TYPE getSpaceType()const override
          {
             return SPACE_TYPE_MAIN_DATA;
-         }
-         virtual BOOLEAN isCopyOnWrite()const override
-         {
-            return FALSE;
          }
 
       public:
@@ -79,30 +74,15 @@ namespace vessel
             return _fsm;
          }
       private:
-         virtual UINT32 getReservedImpCount()const override
+         virtual UINT32 _getReservedLpidUnits()const override
          {
             return 1;
          }
 
-         virtual INT32 _create() override;
-         virtual INT32 _open(const storageFileLoader &loader) override;
-         virtual void _close() override;
-         virtual void _destroy() override;
-
-      private:
-         virtual INT32 getRuntimePageBuffer(requestContext *context,
-                                            PAGE_ID pid,
-                                            const ossSharedLatchMode &mode,
-                                            runtimePageBuffer &rpb) override;
-
-         virtual INT32 getRuntimePageBufferToReset(requestContext *context,
-                                                   PAGE_ID pid,
-                                                   runtimePageBuffer &rpb) override;
-
-         virtual INT32 copyPageAndReinitBuffer(requestContext *context,
-                                               PAGE_SNAPSHOT_VERION psv,
-                                               PAGE_ID newPid,
-                                               runtimePageBuffer &rpb) override;
+         virtual INT32 _onCreationFinished() override;
+         virtual INT32 _onOpenFinished(const storageFileLoader &loader) override;
+         virtual void _onClosingStarted() override;
+         virtual void _onDestroyStarted() override;
 
       private:
          fsmFile *_fsm = NULL;

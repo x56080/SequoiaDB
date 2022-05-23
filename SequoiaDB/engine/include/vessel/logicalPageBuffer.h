@@ -38,6 +38,7 @@
 
 #include "vessel/runtimePageBuffer.h"
 #include "utilPooledObject.hpp"
+#include "vessel/lpageDescriptor.h"
 
 namespace engine
 {
@@ -66,10 +67,6 @@ namespace vessel
                    NULL != _context &&
                    NULL != _lps &&
                    _rpb.isValid();
-         }
-         OSS_INLINE INT32 getBirthTick()const
-         {
-            return _birthTick;
          }
          OSS_INLINE PAGE_SNAPSHOT_VERION getPsv()const
          {
@@ -135,7 +132,6 @@ namespace vessel
          requestContext *_context = NULL;
          logicalPageSpace *_lps = NULL;
          runtimePageBuffer _rpb;
-         INT32 _birthTick = 0;
          PAGE_SNAPSHOT_VERION _psv = INVALID_PAGE_SNAPSHOT_VERSION;
    };//class logicalPageBuffer
 }//namespace vessel

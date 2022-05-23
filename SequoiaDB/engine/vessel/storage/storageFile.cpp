@@ -452,7 +452,8 @@ namespace vessel
 
       if (0 < _getReservedAreaSize())
       {
-         rc = extendFileAndMmap(_getReservedAreaSize(), NULL);
+         ossValuePtr reservedAreaPtr = 0;
+         rc = extendFileAndMmap(_getReservedAreaSize(), &reservedAreaPtr);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to extend file:%d", rc);
@@ -596,6 +597,42 @@ namespace vessel
       }
 
       ptr.reset(p);
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 storageFile::makeReadableBuffer(PAGE_ID pid, strictBuffer &buffer)const
+   {
+      INT32 rc = SDB_OK;
+      buffer.reset();
+      ossValuePtr p = 0;
+      rc = getPagePtr(pid, p);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      buffer.reset(_headInMem.pageSize, (const void *)p);
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 storageFile::makeWritableBuffer(PAGE_ID pid, strictBuffer &buffer)const
+   {
+      INT32 rc = SDB_OK;
+      buffer.reset();
+      ossValuePtr p = 0;
+      rc = getPagePtr(pid, p);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      buffer.makeWritable(_headInMem.pageSize, (void *)p);
    done:
       return rc;
    error:
@@ -819,14 +856,15 @@ namespace vessel
 
       if (STORAGE_FILE_USER_DEFINED_HEAD_SIZE < options.userDefinedHeader.getSize())
       {
-         PD_LOG(PDERROR, "invalid user defined header size");
+         PD_LOG(PDERROR, "invalid user defined header size:%d",
+                options.userDefinedHeader.getSize());
          goto done;
       }
 
       if (0 != _getReservedAreaSize() &&
-          0 != _getReservedAreaSize() % options.args.pageSize)
+          0 != _getReservedAreaSize() % DMS_PAGE_SIZE64K)
       {
-         PD_LOG(PDERROR, "reserved area size must be aligned by page size");
+         PD_LOG(PDERROR, "reserved area size must be aligned by 64KB");
          goto done;
       }
 

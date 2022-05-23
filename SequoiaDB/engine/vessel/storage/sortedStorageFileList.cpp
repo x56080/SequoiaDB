@@ -161,7 +161,6 @@ namespace vessel
 
    void sortedStorageFileList::destroyIfLess(UINT64 sequence)
    {
-      SDB_ASSERT(STORAGE_FILE_INVALID_SEQUENCE != sequence, "can not be invalid");
       while (!_list.empty())
       {
          storageFile *file = _list.front();

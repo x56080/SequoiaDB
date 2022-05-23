@@ -180,8 +180,6 @@ namespace vessel
          }
 
          _env.workers.fini();
-         ///TODO: flush db by workers.
-         _env.dms.createCheckpointBeforeClosing(&context); 
       }
    done:
       fini();
@@ -1409,8 +1407,7 @@ namespace vessel
       INT32 rc = SDB_OK;
 
       backgroundWorkers::options o;
-      o.cacheCleaner = options.cacheCleanerCount;
-      o.commonWorker = options.commonBackgroundWorkers;
+      o.bufferCleaner = options.cacheCleanerCount;
       rc = _env.workers.init(&_env, o);
       if (SDB_OK != rc)
       {

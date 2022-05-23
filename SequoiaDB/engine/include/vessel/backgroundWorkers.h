@@ -62,8 +62,7 @@ namespace vessel
          class options : public SDBObject
          {
             public:
-               UINT32 cacheCleaner = 8;
-               UINT32 commonWorker = 16;
+               UINT32 bufferCleaner = 8;
          };//class options
 
       public:
@@ -78,12 +77,6 @@ namespace vessel
          OSS_INLINE BOOLEAN isReady()const
          {
             return NULL != _env;
-         }
-
-         OSS_INLINE BOOLEAN isCommonFamilyBusy()const
-         {
-            INT32 count = (INT32)(_common._workers.size()) * 0.8f;
-            return count <= _common._workingCounter.load(std::memory_order_relaxed);
          }
 
       private:
@@ -102,8 +95,7 @@ namespace vessel
 
       private:
          instanceEnv *_env = NULL;
-         _workerFamily _cache;
-         _workerFamily _common;
+         _workerFamily _buffer;
    };//class backgroundWorkers
 }//namespace vessel
 }//namespace engine

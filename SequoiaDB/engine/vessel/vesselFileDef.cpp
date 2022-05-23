@@ -45,10 +45,9 @@ namespace vessel
 {    
    static const fileTypeDescriptor VFD_ARRAY[] =
    {
-      {"idmap"},
+      {"lpm"},
       {"ds"},
       {"fsm"},
-      {"delta"},
       {"lobm"},
    };
 

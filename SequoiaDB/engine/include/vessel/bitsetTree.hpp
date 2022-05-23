@@ -141,6 +141,7 @@ namespace vessel
       for (INT32 i = 0; i <= _rootDepth; ++i)
       {
          _tree[i].clear();
+         _tree[i].shrink_to_fit();
       }
 
       _totalBitCount = 0;

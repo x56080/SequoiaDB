@@ -44,49 +44,33 @@ namespace engine
 namespace vessel
 {
 #pragma pack(4)
-   class lpageDescriptor
+   struct lpageDescriptor
    {
-      public:
-         lpageDescriptor(){}
-         lpageDescriptor(PAGE_ID pi,
-                         INT32 b,
-                         PAGE_SNAPSHOT_VERION pv)
-         :pid(pi),
-          birthTick(b),
-          psv(pv){}
-         ~lpageDescriptor(){}
-         lpageDescriptor(const lpageDescriptor &o):
-         pid(o.pid),
-         birthTick(o.birthTick),
-         psv(o.psv){}
-         lpageDescriptor &operator=(const lpageDescriptor &o)
-         {
-            pid = o.pid;
-            birthTick = o.birthTick;
-            psv = o.psv;
-            return *this;
-         }
-      
-      public:
-         OSS_INLINE BOOLEAN isValid()const
-         {
-            return INVALID_PAGE_ID != pid &&
-                   INVALID_PAGE_SNAPSHOT_VERSION != psv;
-         }
-         OSS_INLINE void reset(PAGE_ID pid=INVALID_PAGE_ID,
-                               UINT32 birthTick = -1,
-                               PAGE_SNAPSHOT_VERION psv=INVALID_PAGE_SNAPSHOT_VERSION)
-         {
-            this->pid = pid;
-            this->birthTick = birthTick;
-            this->psv = psv;
-            return;
-         }
+      lpageDescriptor() = default;
+      explicit lpageDescriptor(PAGE_ID pi,
+                               PAGE_SNAPSHOT_VERION pv):
+      pid(pi),
+      psv(pv){}
+      ~lpageDescriptor() = default;
+      lpageDescriptor(const lpageDescriptor &o) = default;
+      lpageDescriptor &operator=(const lpageDescriptor &o) = default;
+   
 
-      public:
-         PAGE_ID pid = INVALID_PAGE_ID;
-         INT32 birthTick = -1;
-         PAGE_SNAPSHOT_VERION psv = INVALID_PAGE_SNAPSHOT_VERSION;
+      OSS_INLINE BOOLEAN isValid()const
+      {
+         return INVALID_PAGE_SNAPSHOT_VERSION != psv &&
+                INVALID_PAGE_ID != pid;
+      }
+      OSS_INLINE void reset(PAGE_ID pid=INVALID_PAGE_ID,
+                            PAGE_SNAPSHOT_VERION psv=INVALID_PAGE_SNAPSHOT_VERSION)
+      {
+         this->pid = pid;
+         this->psv = psv;
+         return;
+      }
+
+      PAGE_ID pid = INVALID_PAGE_ID;
+      PAGE_SNAPSHOT_VERION psv = INVALID_PAGE_SNAPSHOT_VERSION;
    };//class lpageDescriptor
    constexpr UINT32 LPAGE_DESC_SIZE = sizeof(lpageDescriptor);
 #pragma pack()

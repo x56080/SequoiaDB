@@ -57,7 +57,6 @@ namespace vessel
       _mode.setNone();
       _context = NULL;
       _lps = NULL;
-      _birthTick = 0;
       _psv = INVALID_PAGE_SNAPSHOT_VERSION;
       return;
    }
@@ -209,20 +208,21 @@ namespace vessel
    void logicalPageBuffer::destroy()
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isValid(), "can not be invalid");
+      PAGE_ID lpid = INVALID_PAGE_ID;
+      logicalPageSpace *lps = nullptr;
       if (!isValid())
       {
          goto done;
       }
 
-      _rpb.fini();
-      rc = _lps->releasePage(_context, _lpid);
+      lpid = _lpid;
+      lps = _lps;
+      fini();
+      rc = lps->releasePage(_context, lpid);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to release lpid[%d], rc:%d", _lpid, rc);
+         PD_LOG(PDERROR, "failed to release lpid[%d], rc:%d", lpid, rc);
       }
-
-      fini();
    done:
       return;
    }

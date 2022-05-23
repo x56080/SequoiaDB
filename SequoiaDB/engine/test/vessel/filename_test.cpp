@@ -42,22 +42,22 @@ using namespace engine::vessel;
 TEST(filename_test, base_build_test1)
 {
    storageFileName fn;
-   ASSERT_TRUE(fn.build(FILE_TYPE_ID_MAP, SPACE_TYPE_MAIN_DATA, 0));
+   ASSERT_TRUE(fn.build(FILE_TYPE_LPM, SPACE_TYPE_MAIN_DATA, 0));
    ASSERT_EQ(0, ossStrcmp(fn.getFileName(), "data.idmap.000000"));
    ASSERT_EQ(fn.getSequence(), 0);
-   ASSERT_EQ(fn.getFileType(), FILE_TYPE_ID_MAP);
+   ASSERT_EQ(fn.getFileType(), FILE_TYPE_LPM);
    ASSERT_EQ(fn.getSpaceType(), SPACE_TYPE_MAIN_DATA);
 
-   ASSERT_TRUE(fn.build(FILE_TYPE_ID_MAP, SPACE_TYPE_MAIN_DATA, 1000000));
+   ASSERT_TRUE(fn.build(FILE_TYPE_LPM, SPACE_TYPE_MAIN_DATA, 1000000));
    ASSERT_EQ(0, ossStrcmp(fn.getFileName(), "data.idmap.1000000"));
    ASSERT_EQ(fn.getSequence(), 1000000);
-   ASSERT_EQ(fn.getFileType(), FILE_TYPE_ID_MAP);
+   ASSERT_EQ(fn.getFileType(), FILE_TYPE_LPM);
    ASSERT_EQ(fn.getSpaceType(), SPACE_TYPE_MAIN_DATA);
 
-   ASSERT_TRUE(fn.build(FILE_TYPE_ID_MAP, SPACE_TYPE_IDX, 101));
+   ASSERT_TRUE(fn.build(FILE_TYPE_LPM, SPACE_TYPE_IDX, 101));
    ASSERT_EQ(0, ossStrcmp(fn.getFileName(), "idx.idmap.000101"));
    ASSERT_EQ(fn.getSequence(), 101);
-   ASSERT_EQ(fn.getFileType(), FILE_TYPE_ID_MAP);
+   ASSERT_EQ(fn.getFileType(), FILE_TYPE_LPM);
    ASSERT_EQ(fn.getSpaceType(), SPACE_TYPE_IDX);
 
    ASSERT_TRUE(fn.build(FILE_TYPE_DATA_STORAGE, SPACE_TYPE_LOB, 361, FILE_SHADOW_SUFFIX_TMP));
@@ -68,7 +68,7 @@ TEST(filename_test, base_build_test1)
    ASSERT_EQ(fn.getShadowSuffix(), FILE_SHADOW_SUFFIX_TMP);
 
    ASSERT_FALSE(fn.build(INVALID_FILE_TYPE, SPACE_TYPE_MAIN_DATA, 0));
-   ASSERT_FALSE(fn.build(FILE_TYPE_ID_MAP, INVALID_SPACE_TYPE, 0));
+   ASSERT_FALSE(fn.build(FILE_TYPE_LPM, INVALID_SPACE_TYPE, 0));
 }
 
 TEST(filename_test, base_extract_test1)
@@ -76,17 +76,17 @@ TEST(filename_test, base_extract_test1)
    storageFileName fn;
    ASSERT_TRUE(fn.extract(strSlice("data.idmap.000000")));
    ASSERT_EQ(fn.getSequence(), 0);
-   ASSERT_EQ(fn.getFileType(), FILE_TYPE_ID_MAP);
+   ASSERT_EQ(fn.getFileType(), FILE_TYPE_LPM);
    ASSERT_EQ(fn.getSpaceType(), SPACE_TYPE_MAIN_DATA);
 
    ASSERT_TRUE(fn.extract(strSlice("idx.idmap.000111")));
    ASSERT_EQ(fn.getSequence(), 111);
-   ASSERT_EQ(fn.getFileType(), FILE_TYPE_ID_MAP);
+   ASSERT_EQ(fn.getFileType(), FILE_TYPE_LPM);
    ASSERT_EQ(fn.getSpaceType(), SPACE_TYPE_IDX);
 
    ASSERT_TRUE(fn.extract(strSlice("lob.idmap.999999")));
    ASSERT_EQ(fn.getSequence(), 999999);
-   ASSERT_EQ(fn.getFileType(), FILE_TYPE_ID_MAP);
+   ASSERT_EQ(fn.getFileType(), FILE_TYPE_LPM);
    ASSERT_EQ(fn.getSpaceType(), SPACE_TYPE_LOB);
 
    ASSERT_TRUE(fn.extract(strSlice("data.ds.1000000")));
