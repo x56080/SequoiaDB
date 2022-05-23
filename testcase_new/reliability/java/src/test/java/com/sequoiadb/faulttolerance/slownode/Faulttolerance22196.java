@@ -164,10 +164,7 @@ public class Faulttolerance22196 extends SdbTestBase {
                                     + "hsdkjfhsdsafnweuhfuiwjflsdljfhjdshfjksdhfsdfhsdjknqefiuokdjf" );
                     records.add( record );
                 }
-                for ( int i = 0; i < 5000; i++ ) {
-                    if ( shutoff ) {
-                        break;
-                    }
+                while ( !shutoff ) {
                     try {
                         cl2.insert( records );
                     } catch ( BaseException e ) {
@@ -211,10 +208,7 @@ public class Faulttolerance22196 extends SdbTestBase {
                     "" )) {
                 DBCollection cl = db.getCollectionSpace( csName )
                         .getCollection( clName2 );
-                for ( int i = 0; i < 5000; i++ ) {
-                    if ( shutoff ) {
-                        break;
-                    }
+                while ( !shutoff ) {
                     DBLob lob = cl.createLob();
                     lob.write( lobBuff );
                     lob.close();
