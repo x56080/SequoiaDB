@@ -222,8 +222,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSSTORAGELOBDATA_OPEN, "_dmsStorageLobData::open" )
    INT32 _dmsStorageLobData::open( const CHAR *path,
                                    BOOLEAN createNew,
-                                   UINT32 lobmSegmentSize,
-                                   UINT32 lobmPageSize,
+                                   UINT32 lobdSegmentSize,
                                    UINT32 totalDataPages,
                                    const dmsStorageInfo &info,
                                    _pmdEDUCB *cb )
@@ -236,18 +235,17 @@ namespace engine
       INT64 rightSize = 0 ;
       BOOLEAN reGetSize = FALSE ;
 
-      if ( 0 == lobmSegmentSize || 0 == lobmPageSize ||
-           0 == info._lobdPageSize )
+      if ( 0 == lobdSegmentSize || 0 == info._lobdPageSize )
       {
-         PD_LOG ( PDERROR, "Invalid lobm segment size[%d] or lobm page "
-                  "size[%d] or lobd page size[%d]",
-                  lobmSegmentSize, lobmPageSize, info._lobdPageSize ) ;
+         PD_LOG ( PDERROR, "Invalid lobd segment size[%d] or "
+                  "lobd page size[%d]",
+                  lobdSegmentSize, info._lobdPageSize ) ;
          rc = SDB_SYS ;
          goto error ;
       }
 
       _fileSz = 0 ;
-      _segmentSize = lobmSegmentSize / lobmPageSize * info._lobdPageSize ;
+      _segmentSize = lobdSegmentSize ;
 
       if ( createNew )
       {

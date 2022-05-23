@@ -71,6 +71,7 @@ namespace engine
       list<_dmsSegmentNode>   _freeSpaceList ;
       UINT16                  _maxNode ;
       dmsExtentID             _startExtent ;
+      UINT16                  _currentSize ;
       UINT16                  _totalSize ;
       UINT16                  _totalFree ;
 
@@ -81,7 +82,9 @@ namespace engine
       void  _resetMax () ;
 
    public :
-      explicit _dmsSegmentSpace ( dmsExtentID startExtent, UINT16 maxNode,
+      explicit _dmsSegmentSpace ( dmsExtentID startExtent,
+                                  UINT16 initSize,
+                                  UINT16 maxNode,
                                   _dmsSMEMgr *pSMEMgr ) ;
       ~_dmsSegmentSpace () ;
 
@@ -89,9 +92,13 @@ namespace engine
                            UINT32 pos, ossAtomic32 *pFreePos ) ;
       INT32 releasePages ( dmsExtentID start, UINT16 numPages,
                            BOOLEAN bitSet = TRUE ) ;
+      INT32 appendPages ( UINT16 numPages ) ;
 
       UINT16 totalFree() ;
 
+   private :
+      INT32 _releasePages ( dmsExtentID start, UINT16 numPages,
+                            BOOLEAN bitSet = TRUE ) ;
    } ;
    typedef class _dmsSegmentSpace dmsSegmentSpace ;
 
@@ -130,6 +137,14 @@ namespace engine
 
       // deposit free pages into manager, this is called only by _extendSegments
       INT32 depositASegment ( dmsExtentID start ) ;
+
+      // add free pages into manager. The pages is added to a new
+      // segment space.
+      INT32 depositPages ( dmsExtentID start, UINT16 numPages ) ;
+
+      // add free pages into manager. The pages is appended to the last
+      // segment space.
+      INT32 appendPages ( dmsExtentID start, UINT16 numPages ) ;
 
       UINT32 segmentNum () ;
       UINT32 totalFree () const ;

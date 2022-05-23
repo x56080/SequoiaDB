@@ -48,11 +48,14 @@ namespace engine
    /*
       _dmsSegmentSpace : implement
    */
-   _dmsSegmentSpace::_dmsSegmentSpace ( dmsExtentID startExtent, UINT16 maxNode,
+   _dmsSegmentSpace::_dmsSegmentSpace ( dmsExtentID startExtent,
+                                        UINT16 initSize,
+                                        UINT16 maxNode,
                                         _dmsSMEMgr *pSMEMgr )
    {
       _maxNode     = 0 ;
       _startExtent = startExtent ;
+      _currentSize = initSize ;
       _totalSize   = maxNode ;
       _totalFree   = 0 ;
       _pSMEMgr     = pSMEMgr ;
@@ -175,6 +178,13 @@ namespace engine
       goto done ;
    }
 
+   INT32 _dmsSegmentSpace::releasePages ( dmsExtentID start, UINT16 numPages,
+                                          BOOLEAN bitSet )
+   {
+      ossScopedLock lock( &_mutex ) ;
+      return _releasePages( start, numPages, bitSet ) ;
+   }
+
    // release numPages of pages, and merge the block with others
    // 1) sanity check to make sure we are in the right range
    // 2) if the free list is empty, simply insert and goto done
@@ -188,9 +198,9 @@ namespace engine
    // 7) otherwise it cannot be merged with next, goto 8
    // 8) after 4/5/6/7, we have to check whether able to merge the new node with
    //    previous node.
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMS_RLSPAGES, "_dmsSegmentSpace::releasePages" )
-   INT32 _dmsSegmentSpace::releasePages ( dmsExtentID start, UINT16 numPages,
-                                          BOOLEAN bitSet )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMS_RLSPAGES, "_dmsSegmentSpace::_releasePages" )
+   INT32 _dmsSegmentSpace::_releasePages ( dmsExtentID start, UINT16 numPages,
+                                           BOOLEAN bitSet )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSSMS_RLSPAGES );
@@ -201,8 +211,6 @@ namespace engine
       UINT16          newSize   = 0 ;
       BOOLEAN         prevExist = FALSE ;
       UINT16          relaStart = (UINT16)(start - _startExtent) ;
-
-      ossScopedLock lock( &_mutex ) ;
 
       // make sure we are trying to release within range
       if ( start < _startExtent ||
@@ -368,6 +376,52 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMS_APPENDPAGES, "_dmsSegmentSpace::appendPages" )
+   INT32 _dmsSegmentSpace::appendPages ( UINT16 numPages )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__DMSSMS_APPENDPAGES ) ;
+      UINT32 newCurSize = 0 ;
+      dmsExtentID start = 0 ;
+
+      ossScopedLock lock( &_mutex ) ;
+
+      if ( 0 == numPages )
+      {
+         goto done ;
+      }
+
+      // make sure append in the range
+      newCurSize = _currentSize + numPages ;
+      if ( newCurSize > _totalSize )
+      {
+         PD_LOG ( PDERROR, "Invalid append numPages[%d]. After append, "
+                           "current size[%d] will be out of range[%d]",
+                           numPages, newCurSize, _totalSize ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      // extend new pages
+      start = _startExtent + _currentSize ;
+      rc = _releasePages( start, numPages, FALSE ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to release pages to the last segment at "
+                  "start %d with numPages %d, rc = %d",
+                  start, numPages, rc ) ;
+         goto error ;
+      }
+      _currentSize = (UINT16)newCurSize ;
+      // when _releasePage() succeed, _totalFree will be update
+
+   done :
+      PD_TRACE_EXITRC ( SDB__DMSSMS_APPENDPAGES, rc );
+      return rc ;
+   error :
+      goto done ;
+   }
+
    UINT16 _dmsSegmentSpace::totalFree ()
    {
       ossScopedLock lock( &_mutex ) ;
@@ -407,14 +461,16 @@ namespace engine
       _pStorageBase     = pStorageBase ;
       _pSME             = pSME ;
 
-      UINT32 segmentPages = pStorageBase->segmentPages() ;
-      UINT32 segmentPagesSqure = pStorageBase->segmentPagesSquareRoot() ;
-      UINT32 releaseBegin  = 0 ;
-      BOOLEAN inUse        = FALSE ;
-      dmsSegmentSpace      *newspace = NULL ;
-      UINT32 i             = 0 ;
+      UINT32 segmentPages       = pStorageBase->segmentPages() ;
+      UINT32 segmentPagesSqure  = pStorageBase->segmentPagesSquareRoot() ;
+      UINT32 totalDataPages     = pStorageBase->pageNum() ;
+      UINT32 initPages          = 0 ;
+      UINT32 releaseBegin       = 0 ;
+      BOOLEAN inUse             = FALSE ;
+      dmsSegmentSpace *newspace = NULL ;
+      UINT32 i                  = 0 ;
 
-      for ( i = 0 ; i < pStorageBase->pageNum() ; ++i )
+      for ( i = 0 ; i < totalDataPages ; ++i )
       {
          // the same with: 0 == i % segmentPages
          if ( 0 == ( i & ( ( 1 << segmentPagesSqure ) - 1 ) ) )
@@ -433,7 +489,10 @@ namespace engine
             }
 
             /// the new space
-            newspace = SDB_OSS_NEW dmsSegmentSpace( i, segmentPages, this ) ;
+            initPages = ( ( totalDataPages - i ) >= segmentPages ) ?
+                           segmentPages : ( totalDataPages - i ) ;
+            newspace = SDB_OSS_NEW dmsSegmentSpace( i, initPages,
+                                                    segmentPages, this ) ;
             if ( NULL == newspace )
             {
                PD_LOG ( PDERROR, "Unable to allocate memory" ) ;
@@ -570,10 +629,15 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMEMGR_DEPOSIT, "_dmsSMEMgr::deposit" )
    INT32 _dmsSMEMgr::depositASegment ( dmsExtentID start )
    {
-      PD_TRACE_ENTRY ( SDB__DMSSMEMGR_DEPOSIT ) ;
+      return depositPages( start, (UINT16)_pStorageBase->segmentPages() ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMEMGR_DEPOSITPAGES, "_dmsSMEMgr::depositPages" )
+   INT32 _dmsSMEMgr::depositPages ( dmsExtentID start, UINT16 numPages )
+   {
+      PD_TRACE_ENTRY ( SDB__DMSSMEMGR_DEPOSITPAGES ) ;
 
       INT32 rc             = SDB_OK ;
       UINT16 segmentPages  = (UINT16)_pStorageBase->segmentPages() ;
@@ -587,16 +651,25 @@ namespace engine
 
       ossScopedRWLock lock( &_mutex, EXCLUSIVE ) ;
 
+      // the same with : 0 == start % segmentPages
+      SDB_ASSERT ( 0 == ( start & ( ( 1 << segmentPagesSqure ) - 1 ) ),
+                   "invalid start extent id" ) ;
       SDB_ASSERT ( segmentID < maxSegments, "extent is out of range" ) ;
+      SDB_ASSERT ( ( numPages > 0 ) && ( numPages <= segmentPages ),
+                   "invalid deposit size" ) ;
+
       if ( segmentID != (UINT32)_segments.size() )
       {
-         PD_LOG ( PDERROR, "Extent id %d is not valid", start ) ;
+         PD_LOG ( PDERROR, "Extent id %d is not valid, segmentID[%u] "
+                  "is not equal with segment num[%d]",
+                  start, segmentID, _segments.size() ) ;
          rc = SDB_SYS ;
          goto error ;
       }
 
       // memory is released in destructor
-      newspace = SDB_OSS_NEW dmsSegmentSpace ( start, segmentPages, this ) ;
+      newspace = SDB_OSS_NEW dmsSegmentSpace ( start, numPages,
+                                               segmentPages, this ) ;
       if ( !newspace )
       {
          PD_LOG ( PDERROR, "Unable to allocate memory" ) ;
@@ -604,17 +677,76 @@ namespace engine
          goto error ;
       }
       _segments.push_back ( newspace ) ;
-      rc = newspace->releasePages ( start, segmentPages, FALSE ) ;
+      rc = newspace->releasePages ( start, numPages, FALSE ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to release page for segment %d at "
                   "start %d, rc = %d", segmentID, start, rc ) ;
          goto error ;
       }
-      _totalFree.add( segmentPages ) ;
+      _totalFree.add( numPages ) ;
 
    done :
-      PD_TRACE_EXITRC ( SDB__DMSSMEMGR_DEPOSIT, rc );
+      PD_TRACE_EXITRC ( SDB__DMSSMEMGR_DEPOSITPAGES, rc );
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMEMGR_APPENDPAGES, "_dmsSMEMgr::appendPages" )
+   INT32 _dmsSMEMgr::appendPages ( dmsExtentID start, UINT16 numPages )
+   {
+      PD_TRACE_ENTRY ( SDB__DMSSMEMGR_APPENDPAGES ) ;
+
+      INT32 rc             = SDB_OK ;
+      UINT16 segmentPages  = (UINT16)_pStorageBase->segmentPages() ;
+      UINT32 segmentPagesSqure = _pStorageBase->segmentPagesSquareRoot() ;
+
+      // the same with: DMS_MAX_PG / segmentPages
+      UINT32 maxSegments   = DMS_MAX_PG >> segmentPagesSqure ;
+      // the same with: start / segmentPages
+      UINT32 segmentID     = start >> segmentPagesSqure ;
+      dmsSegmentSpace *newspace = NULL ;
+
+      ossScopedRWLock lock( &_mutex, EXCLUSIVE ) ;
+
+      // the same with : 0 != start % segmentPages
+      SDB_ASSERT ( 0 != ( start & ( ( 1 << segmentPagesSqure ) - 1 ) ),
+                   "invalid start extent id" ) ;
+      SDB_ASSERT ( segmentID < maxSegments, "extent is out of range" ) ;
+      SDB_ASSERT ( ( numPages > 0 ) && ( numPages <= segmentPages ),
+                   "invalid deposit size" ) ;
+
+      // make sure we are in the last segment
+      if ( _segments.size() == 0 )
+      {
+         PD_LOG ( PDERROR, "Invalid segment size" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+      if ( segmentID != ( (UINT32)_segments.size() - 1 ) )
+      {
+         PD_LOG ( PDERROR, "Extent id %d is not valid, segmentID[%u] "
+                  "is not equal with segment num[%d]",
+                  start, segmentID, (_segments.size() - 1) ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      // get the last segment space and extend new pages in it
+      newspace = _segments.back() ;
+      rc = newspace->appendPages( numPages ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to append page for segment %d at "
+                  "start %d with numPages %d, rc = %d",
+                  segmentID, start, numPages, rc ) ;
+         goto error ;
+      }
+      _totalFree.add( numPages ) ;
+
+   done :
+      PD_TRACE_EXITRC ( SDB__DMSSMEMGR_APPENDPAGES, rc );
       return rc ;
    error :
       goto done ;

@@ -146,8 +146,7 @@ namespace engine
 
       INT32 open( const CHAR *path,
                   BOOLEAN createNew,
-                  UINT32 lobmSegmentSize,
-                  UINT32 lobmPageSize,
+                  UINT32 lobdSegmentSize,
                   UINT32 totalDataPages,
                   const dmsStorageInfo &info,
                   _pmdEDUCB *cb ) ;
