@@ -89,7 +89,7 @@ public class SubCL10193 extends SdbTestBase {
                 }
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if ( eCode != -23 ) {
+                if ( eCode != -23 && eCode != -147 && eCode != -190 ) {
                     throw e;
                 }
             }
