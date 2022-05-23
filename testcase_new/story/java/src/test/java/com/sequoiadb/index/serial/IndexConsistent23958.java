@@ -80,6 +80,8 @@ public class IndexConsistent23958 extends SdbTestBase {
             if ( dropIndex.getRetCode() != SDBError.SDB_DMS_CS_NOTEXIST
                     .getErrorCode()
                     && dropIndex.getRetCode() != SDBError.SDB_DMS_NOTEXIST
+                            .getErrorCode()
+                    && dropIndex.getRetCode() != SDBError.SDB_LOCK_FAILED
                             .getErrorCode() ) {
                 Assert.fail( "---drop index fail!" + dropIndex.getRetCode() );
             }

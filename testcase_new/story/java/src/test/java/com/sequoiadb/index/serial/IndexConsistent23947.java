@@ -76,8 +76,15 @@ public class IndexConsistent23947 extends SdbTestBase {
         // check results
         if ( createIndex.getRetCode() != 0 ) {
             Assert.assertEquals( renameCL.getRetCode(), 0 );
-            Assert.assertEquals( createIndex.getRetCode(),
-                    SDBError.SDB_DMS_NOTEXIST.getErrorCode() );
+            if ( createIndex.getRetCode() != SDBError.SDB_DMS_NOTEXIST
+                    .getErrorCode()
+                    && createIndex.getRetCode() != SDBError.SDB_DMS_CS_NOTEXIST
+                            .getErrorCode()
+                    && createIndex.getRetCode() != SDBError.SDB_LOCK_FAILED
+                            .getErrorCode() ) {
+                Assert.fail( "---createIndex fail! the error code = "
+                        + createIndex.getRetCode() );
+            }
             Assert.assertFalse( cs.isCollectionExist( clName ) );
             reCreateIndexAndCheckResult( sdb, SdbTestBase.csName, newCLName,
                     indexName );

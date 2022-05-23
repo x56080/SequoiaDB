@@ -76,6 +76,8 @@ public class IndexConsistent23948 extends SdbTestBase {
             if ( createIndex.getRetCode() != SDBError.SDB_DMS_NOTEXIST
                     .getErrorCode()
                     && createIndex.getRetCode() != SDBError.SDB_DMS_CS_NOTEXIST
+                            .getErrorCode()
+                    && createIndex.getRetCode() != SDBError.SDB_LOCK_FAILED
                             .getErrorCode() ) {
                 Assert.fail( "---createIndex fail! the error code = "
                         + createIndex.getRetCode() );

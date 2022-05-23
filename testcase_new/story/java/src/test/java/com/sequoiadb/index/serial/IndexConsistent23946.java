@@ -80,6 +80,8 @@ public class IndexConsistent23946 extends SdbTestBase {
             if ( createIndex.getRetCode() != SDBError.SDB_DMS_NOTEXIST
                     .getErrorCode()
                     && createIndex.getRetCode() != SDBError.SDB_DMS_CS_NOTEXIST
+                            .getErrorCode()
+                    && createIndex.getRetCode() != SDBError.SDB_LOCK_FAILED
                             .getErrorCode() ) {
                 Assert.fail( "---createIndex fail! the error code = "
                         + createIndex.getRetCode() );
@@ -206,8 +208,8 @@ public class IndexConsistent23946 extends SdbTestBase {
     private void reCreateIndexAndCheckResult( Sequoiadb db, String csName,
             String mainclName, String subclName1, String subclName2,
             String indexName ) throws Exception {
-        //可能出现创建任务失败取消主任务场景，则任务回滚结束,待问题单http://jira.web:8080/browse/SEQUOIADBMAINSTREAM-8393修复后去掉该方法
-        waitCanceledTask( db, "Create index", newCSName, mainclName);
+        // 可能出现创建任务失败取消主任务场景，则任务回滚结束,待问题单http://jira.web:8080/browse/SEQUOIADBMAINSTREAM-8393修复后去掉该方法
+        waitCanceledTask( db, "Create index", newCSName, mainclName );
         DBCollection dbcl = db.getCollectionSpace( csName )
                 .getCollection( mainclName );
         dbcl.createIndex( indexName, "{testa:1}", false, false );
@@ -227,30 +229,31 @@ public class IndexConsistent23946 extends SdbTestBase {
     }
 
     private void waitCanceledTask( Sequoiadb db, String taskTypeDesc,
-                                   String csName, String clName ) {
+            String csName, String clName ) {
         BSONObject matcher = new BasicBSONObject();
         matcher.put( "Name", csName + '.' + clName );
         matcher.put( "TaskTypeDesc", taskTypeDesc );
         DBCursor cursor = db.listTasks( matcher, null, null, null );
         int taskNum = 0;
-        ArrayList<BSONObject> taskInfos = new ArrayList<>();
+        ArrayList< BSONObject > taskInfos = new ArrayList<>();
         BSONObject taskInfo;
-        long[] taskids = new long[5];
+        long[] taskids = new long[ 5 ];
         while ( cursor.hasNext() ) {
             taskInfo = cursor.getNext();
-            long taskid = (long) taskInfo.get("TaskID");
-            taskids[taskNum ] = taskid;
+            long taskid = ( long ) taskInfo.get( "TaskID" );
+            taskids[ taskNum ] = taskid;
             taskNum++;
-            taskInfos.add(taskInfo);
+            taskInfos.add( taskInfo );
         }
         cursor.close();
-        if( taskids.length !=0 ){
-            db.waitTasks(taskids);
+        if ( taskids.length != 0 ) {
+            db.waitTasks( taskids );
         }
 
-        //如果出现主任务取消情况，预期最多可以查询到两个主任务信息
-        if( taskNum > 2 ){
-            Assert.fail("check main task num fail! act taskinfo =" + taskInfos);
+        // 如果出现主任务取消情况，预期最多可以查询到两个主任务信息
+        if ( taskNum > 2 ) {
+            Assert.fail(
+                    "check main task num fail! act taskinfo =" + taskInfos );
         }
     }
 }
