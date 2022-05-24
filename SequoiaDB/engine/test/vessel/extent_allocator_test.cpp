@@ -44,16 +44,17 @@ TEST(extent_allocator_test, base_test1)
    variableExtentAllocator allocator;
    
    constexpr UINT32 SEG_PCNT = 32768;
-   constexpr UINT32 SEG_COUNT = 16384;
+   constexpr UINT32 SEG_COUNT_PERFILE = 128;
+   constexpr UINT32 TOTAL_SEG_COUNT = 16384;
    variableExtentAllocator::options o;
    o.maxPageCountPerSegment = SEG_PCNT;
-   o.maxSegmentCountPerFile = SEG_COUNT;
+   o.maxSegmentCountPerFile = SEG_COUNT_PERFILE;
    allocator.init(o);
 
    INT32 rc = SDB_OK;
    UINT32 currentSegCount = 0;
 
-   for (UINT32 i = 0; i < SEG_COUNT; ++i)
+   for (UINT32 i = 0; i < TOTAL_SEG_COUNT; ++i)
    {
       rc = allocator.deposit();
       ASSERT_EQ(SDB_OK, rc);
@@ -195,16 +196,17 @@ TEST(extent_allocator_test, base_test4)
 {
    variableExtentAllocator allocator;
    constexpr UINT32 SEG_PCNT = 32768;
-   constexpr UINT32 SEG_COUNT = 16384;
+   constexpr UINT32 SEG_COUNT_PERFILE = 8192;
+   constexpr UINT32 TOTAL_SEG_COUNT = 16384;
    constexpr UINT32 EXTENT_SIZE = 1024;
    variableExtentAllocator::options o;
    o.maxPageCountPerSegment = SEG_PCNT;
-   o.maxSegmentCountPerFile = SEG_COUNT;
+   o.maxSegmentCountPerFile = SEG_COUNT_PERFILE;
    allocator.init(o);
 
    INT32 rc = SDB_OK;
 
-   for (UINT32 i = 0; i < SEG_COUNT; ++i)
+   for (UINT32 i = 0; i < TOTAL_SEG_COUNT; ++i)
    {
       rc = allocator.deposit();
       ASSERT_EQ(SDB_OK, rc);
@@ -224,7 +226,7 @@ TEST(extent_allocator_test, base_test4)
       ASSERT_EQ(INVALID_PAGE_ID, pid);
    }
 
-   for (UINT32 i = 0; i < SEG_COUNT; ++i)
+   for (UINT32 i = 0; i < TOTAL_SEG_COUNT; ++i)
    {
       UINT32 loop = SEG_PCNT / EXTENT_SIZE;
       for (UINT32 j = 0; j < loop; ++j)
@@ -233,9 +235,9 @@ TEST(extent_allocator_test, base_test4)
       }
    }
 
-   for (UINT32 i = 0; i < SEG_COUNT; ++i)
+   for (UINT32 i = 0; i < TOTAL_SEG_COUNT; ++i)
    {
-      UINT32 loop = SEG_PCNT / EXTENT_SIZE;
+      UINT32 loop = SEG_PCNT;
       for (UINT32 j = 0; j < loop; ++j)
       {
          PAGE_ID pid = INVALID_PAGE_ID;
