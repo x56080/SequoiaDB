@@ -3,6 +3,7 @@ package com.sequoiadb.transaction.ru;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
@@ -76,14 +77,11 @@ public class Transaction16147 extends SdbTestBase {
     private class TruncateThread extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
                 DBCollection cl = db.getCollectionSpace( csName )
                         .getCollection( clName );
                 cl.truncate();
-            } finally {
-                db.close();
             }
         }
     }
@@ -91,19 +89,21 @@ public class Transaction16147 extends SdbTestBase {
     private class InsertThread extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
                 DBCollection cl = db.getCollectionSpace( csName )
                         .getCollection( clName );
                 insertData( cl );
             } catch ( BaseException e ) {
-                if ( -321 != e.getErrorCode() ) {
+                if ( e.getErrorCode() != SDBError.SDB_DMS_TRUNCATED
+                        .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_LOCK_FAILED
+                                .getErrorCode() ) {
                     e.printStackTrace();
                     throw e;
                 }
-            } finally {
-                db.close();
             }
         }
     }
