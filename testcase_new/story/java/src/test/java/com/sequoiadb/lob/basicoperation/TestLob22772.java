@@ -46,7 +46,7 @@ public class TestLob22772 extends SdbTestBase {
         lob.close();
     }
 
-    @Test()
+    @Test(enabled = false)
     public void test() {
         WriteLobThread write = new WriteLobThread();
         SyncThread sync = new SyncThread();
