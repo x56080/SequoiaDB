@@ -61,7 +61,7 @@ namespace vessel
    struct liteBufferPoolOptions : public SDBObject
    {
       /// memory pool options
-      UINT32 maxMemChunk = 256; /// 512 blocks per chunk
+      UINT64 maxMemSize = (UINT64)4 << 30;
       
       /// bucket options
       UINT32 buckets = 8192;

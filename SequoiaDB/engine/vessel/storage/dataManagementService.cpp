@@ -288,8 +288,8 @@ namespace vessel
       SDB_ASSERT(context->isSpaceIdLocked(&lockingMode), "must holding lock");
       SDB_ASSERT(EXCLUSIVE == lockingMode, "must be exslusive");
 
-      SDB_ASSERT(DMS_PAGE_SIZE32K == options.dataPageSize, "must be 32KB");
-      SDB_ASSERT(DMS_PAGE_SIZE32K == options.idxPageSize, "must be 32KB");
+      SDB_ASSERT(DMS_PAGE_SIZE64K == options.dataPageSize, "must be 64KB");
+      SDB_ASSERT(DMS_PAGE_SIZE64K == options.idxPageSize, "must be 64KB");
       SDB_ASSERT(DMS_PAGE_SIZE4K == options.lobdPageSize, "must be 4KB");
 
       SPACE_ID sid = context->getSpaceID();

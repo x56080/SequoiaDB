@@ -170,7 +170,7 @@ namespace vessel
             return 1.0f - (static_cast<FLOAT32>(getBlockAllocated()) / getTotalBlockNum());
          }
          
-         INT32 init(UINT32 maxChunk, UINT32 blockSize=65536);
+         INT32 init(UINT64 maxMemSize, UINT32 blockSize=65536);
          void fini();
 
          INT32 allocate(memBlock &mb);

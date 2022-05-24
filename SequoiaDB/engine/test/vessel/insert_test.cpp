@@ -329,7 +329,7 @@ TEST_F(insert_test, test3_2)
 
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
-   options.bufferPoolOptions.maxMemChunk = 64;
+   options.bufferPoolOptions.maxMemSize = (UINT64)2 << 30;
    UINT32 count = 6000000;
    static const UINT32 threadCount = 6;
    std::thread threads[threadCount];
@@ -373,7 +373,7 @@ TEST_F(insert_test, test4)
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
-   options.bufferPoolOptions.maxMemChunk = 32;
+   options.bufferPoolOptions.maxMemSize = (UINT64)1 << 30;
    UINT32 count = 4000000;
    static const UINT32 threadCount = 4;
    std::thread threads[threadCount];

@@ -421,7 +421,7 @@ TEST_F(cs_ddl_test, base_createCS_5)
    
    bson::BSONObj adjunct;
    dmsCreateCSOptions invalidOptions;
-   invalidOptions.dataPageSize = DMS_PAGE_SIZE32K + 1;
+   invalidOptions.dataPageSize = DMS_PAGE_SIZE64K + 1;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);

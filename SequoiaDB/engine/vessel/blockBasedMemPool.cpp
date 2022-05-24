@@ -44,6 +44,8 @@ namespace engine
 {
 namespace vessel
 {
+   const UINT32 _MAX_BLOCK_SIZE = 65536;
+
 /////////////////////////////blockBasedMemPool::memBlockGroup
    blockBasedMemPool::sharedMemBlock::sharedMemBlock(sharedMemBlock &&o):
    _pool(o._pool),
@@ -94,17 +96,27 @@ namespace vessel
       fini();
    }
 
-   INT32 blockBasedMemPool::init(UINT32 maxChunk, UINT32 blockSize)
+   INT32 blockBasedMemPool::init(UINT64 maxMemSize, UINT32 blockSize)
    {
       INT32 rc = SDB_OK;
+      UINT32 chunkNum = 0;
+      UINT64 chunkSize = 0;
+
       fini();
-      if (0 == blockSize || 0 == maxChunk)
+      if (0 == blockSize ||
+          !ossIsPowerOf2(blockSize) ||
+          _MAX_BLOCK_SIZE < blockSize ||
+          0 == maxMemSize)
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = _allocator.extendUnitNum(maxChunk);
+      chunkSize = blockSize * _CHUNK_CAPACITY;
+      maxMemSize = ossRoundUpToMultipleX(maxMemSize, chunkSize);
+      chunkNum = maxMemSize / chunkSize;
+
+      rc = _allocator.extendUnitNum(chunkNum);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init bitmap allocator:%d", rc);
@@ -112,7 +124,17 @@ namespace vessel
       }
 
       _blockSize = blockSize;
-      _chunks.resize(maxChunk);
+
+      try
+      {
+         _chunks.resize(chunkNum);
+      }
+      catch(const std::exception& e)
+      {
+         PD_LOG(PDERROR, "failed to resize chunk vec:%d", e.what());
+         rc = SDB_OOM;
+         goto error;
+      }
 
    done:
       return rc;

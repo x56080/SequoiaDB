@@ -64,7 +64,7 @@ namespace vessel
       _o = o;
       _correctIfNecessary(_o);
 
-      rc = _memPool.init(o.maxMemChunk, _bufferSize);
+      rc = _memPool.init(o.maxMemSize, _bufferSize);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init mem pool:%d", rc);
@@ -631,9 +631,9 @@ namespace vessel
 
    void liteIOBufferPool::_correctIfNecessary(liteBufferPoolOptions &o)
    {
-      if (0 == o.maxMemChunk)
+      if (0 == o.maxMemSize)
       {
-         o.maxMemChunk = 128;
+         o.maxMemSize = (UINT64)4 << 30;
       }
       
       if (!ossIsPowerOf2(o.buckets))

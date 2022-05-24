@@ -122,7 +122,7 @@ namespace vessel
 
       _env.latchEnv.lobRegionLatchVec.init(1024);
 
-      rc = _env.ioBufferPool.init(DMS_PAGE_SIZE32K, options.bufferPoolOptions);
+      rc = _env.ioBufferPool.init(DEFAULT_STORAGE_PAGE_SIZE, options.bufferPoolOptions);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init lite buffer pool:%d", rc);

@@ -63,6 +63,8 @@ namespace vessel
    /// max page count per segment
    constexpr UINT32 STORAGE_FILE_SEGMENT_MAX_PCNT = 32768;
 
+   constexpr UINT32 DEFAULT_STORAGE_PAGE_SIZE = 65536;
+
 #pragma pack(4)
 
    struct storageCoreArgs

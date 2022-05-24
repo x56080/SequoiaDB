@@ -318,7 +318,6 @@ TEST_F(dml_delete_test, base_delete_test3)
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
    dmsCreateCSOptions csOption;
-   csOption.dataPageSize = DMS_PAGE_SIZE32K;
 
    INT32 rc = SDB_OK;
    bson::BSONObjBuilder builder;

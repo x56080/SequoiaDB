@@ -65,7 +65,6 @@ namespace vessel
       static constexpr BUFFER_CTL_FLAG_WORD DIRTY = 0x01;
       static constexpr BUFFER_CTL_FLAG_WORD PENDDING_FLUSH = 0x02;
    };
-
 } // namespace vessel
 
 } // namespace engine

@@ -48,8 +48,8 @@ namespace engine
    class dmsCreateCSOptions : public SDBObject
    {
       public:
-         UINT32 dataPageSize = DMS_PAGE_SIZE32K;
-         UINT32 idxPageSize = DMS_PAGE_SIZE32K;
+         UINT32 dataPageSize = DMS_PAGE_SIZE64K;
+         UINT32 idxPageSize = DMS_PAGE_SIZE64K;
          UINT32 lobdPageSize = DMS_PAGE_SIZE4K;
          DMS_STORAGE_TYPE stype = DMS_STORAGE_NORMAL;
    };//class dmsCreateCSOptions
