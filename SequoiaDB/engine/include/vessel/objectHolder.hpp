@@ -37,7 +37,7 @@
 #define VESSEL_OBJECT_HOLDER_H_
 
 #include "ossRWMutex.hpp"
-#include "vessel/collection.h"
+#include "vessel/fixedBitset.hpp"
 
 namespace engine
 {
@@ -47,63 +47,91 @@ namespace vessel
    class objectHolder : public SDBObject
    {
       public:
-         objectHolder(){}
+         objectHolder() = default;
          ~objectHolder()
          {
-            releaseObj();
+            free();
          }
          objectHolder(const objectHolder &) = delete;
          objectHolder &operator=(const objectHolder &) = delete;
 
       public:
-         OSS_INLINE BOOLEAN isFree()const
+         BOOLEAN isFree()const
          {
             return nullptr == _obj;
          }
-         OSS_INLINE ossRWMutex &getLatch()
+         ossRWMutex &mutex()
          {
-            return _latch;
+            return _mutex;
          }
-         OSS_INLINE T *getObj()
+         T *get()
          {
             return _obj;
          }
 
-         T *ensureObj()
+         template<class ...Args>
+         T *ensure(Args &&... args)
          {
             if (isFree())
             {
-               _obj = SDB_OSS_NEW T();
+               _obj = SDB_OSS_NEW T(args...);
             }
             return _obj;
          }
-         void releaseObj()
+         void free()
          {
             SAFE_OSS_DELETE(_obj);
          }
       private:
-         ossRWMutex _latch;
+         ossRWMutex _mutex;
          T *_obj = nullptr;
    };//class objectHolder
 
-   class collection;
-   typedef class objectHolder<collection> collectionObjHolder;
-
-   class collectionSpace;
-   typedef class objectHolder<collectionSpace> collectionSpaceObjHolder;
-
-   class collectionObjHolderGroup : public SDBObject
+   template<class T, UINT32 GroupSize=64>
+   class objectHolderGroup : public SDBObject
    {
       public:
-         collectionObjHolderGroup(){}
-         ~collectionObjHolderGroup(){}
-         collectionObjHolderGroup(const collectionObjHolderGroup &) = delete;
-         collectionObjHolderGroup &operator=(const collectionObjHolderGroup &) = delete;
+         objectHolderGroup() {_bs.setAll();}
+         ~objectHolderGroup() = default;
+         objectHolderGroup(const objectHolderGroup &) = delete;
+         objectHolderGroup &operator=(const objectHolderGroup &) = delete;
 
       public:
-         static constexpr UINT32 CAPACITY = 64;
-      public:
-         collectionObjHolder holders[CAPACITY];
+         static constexpr UINT32 CAPACITY = GroupSize;
+
+         INT32 findFirst()const
+         {
+            return _bs.findFirst();
+         }
+         objectHolder<T> &get(UINT32 pos)
+         {
+            SDB_ASSERT(pos < CAPACITY, "out of bound");
+            return _holders[pos];
+         }
+         BOOLEAN test(UINT32 pos)const
+         {
+            SDB_ASSERT(pos < CAPACITY, "out of bound");
+            return _bs.test(pos);
+         }
+         void clear(UINT32 pos)
+         {
+            SDB_ASSERT(pos < CAPACITY, "out of bound");
+            _bs.clear(pos);
+         }
+         void set(UINT32 pos)
+         {
+            SDB_ASSERT(pos < CAPACITY, "out of bound");
+            _bs.set(pos);
+         }
+
+         BOOLEAN none()const {return _bs.none();}
+         BOOLEAN all()const {return _bs.all();}
+         BOOLEAN any()const {return _bs.any();}
+         UINT32 getFreeCnt()const {return _bs.getNonzeroBitCount();}
+
+      private:
+         fixedBitset<CAPACITY> _bs;
+         objectHolder<T> _holders[CAPACITY];
    };//class collectionObjHolderGroup
 }//namespace vessel
 }//namesapce engine
