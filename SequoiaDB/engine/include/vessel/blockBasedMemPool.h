@@ -153,7 +153,7 @@ namespace vessel
          OSS_INLINE UINT32 getBlockSize()const {return _blockSize;}
          OSS_INLINE UINT64 getMaxMemCapacity()const
          {
-            return static_cast<UINT64>(_blockSize) * getTotalBlockNum();
+            return static_cast<UINT64>(_blockSize) * getChunkMemSize();
          }
          OSS_INLINE UINT32 getBlockAllocated()const
          {

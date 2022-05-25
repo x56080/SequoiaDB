@@ -1136,10 +1136,12 @@ namespace vessel
 
       flushSize = 0;
 
-      UINT64 bufferSizeAllocated = _env.getMemPool()->getTotalSizeAllocated();
-      UINT64 maxBufferSize = _env.getMemPool()->getMaxMemCapacity();
-      FLOAT32 memUsedRatio = static_cast<FLOAT64>(bufferSizeAllocated) /
-                             maxBufferSize;
+      UINT32 bufferCountAllocated = _env.getMemPool()->getBlockAllocated();
+      UINT32 maxBufferCount = _env.getMemPool()->getTotalBlockNum();
+      UINT64 bufferSizeAllocated = static_cast<UINT64>(bufferCountAllocated) *
+                                   _env.getMemPool()->getBlockSize();
+      FLOAT32 memUsedRatio = static_cast<FLOAT32>(bufferCountAllocated) /
+                             maxBufferCount;
 
       if (FLUSH_BUFFER_SIZE_THRESHOLD <= bufferSizeAllocated ||
           FLUSH_WATER_MARK <= memUsedRatio)
