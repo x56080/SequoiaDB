@@ -15,7 +15,7 @@ MariaDB 实例组件支持部署单实例或实例组模式。用户在[安装 M
 
 - [安装部署][install_deploy]
 - [实例组][instance_group]
-- [元数据同步工具][ha]
+
 
 [^_^]:
      本文使用的所有引用及链接
@@ -23,4 +23,3 @@ MariaDB 实例组件支持部署单实例或实例组模式。用户在[安装 M
 [install_deploy2]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Installation/install_deploy.md#部署%20MariaDB%20实例组件
 [instance_group]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Installation/instance_group.md
 [install_deploy]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Installation/install_deploy.md
-[ha]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Installation/ha.md

@@ -132,12 +132,6 @@
                                  "file": "instance_group",
                                  "cn": "实例组",
                                  "en": "Instance Group"
-                              },
-                              {
-                                 "id": 1572505575,
-                                 "file": "ha",
-                                 "cn": "元数据同步工具",
-                                 "en": "High Availability"
                               }
                            ]
                         },
@@ -202,6 +196,12 @@
                                  "file": "metadata_mapping_management",
                                  "cn": "元数据映射",
                                  "en": "Metadata mapping management tool"
+                              },
+                              {
+                                 "id": 1572505575,
+                                 "file": "audit_log",
+                                 "cn": "审计日志",
+                                 "en": "Audit Log"
                               },
                               {
                                  "id": 1556198260,
@@ -287,12 +287,6 @@
                                  "file": "instance_group",
                                  "cn": "实例组",
                                  "en": "Instance Group"
-                              },
-                              {
-                                 "id": 1972505575,
-                                 "file": "ha",
-                                 "cn": "元数据同步工具",
-                                 "en": "High Availability"
                               }
                            ]
                         },
@@ -363,6 +357,12 @@
                                  "file": "metadata_mapping_management",
                                  "cn": "元数据映射",
                                  "en": "Metadata mapping management tool"
+                              },
+                              {
+                                 "id": 1972505575,
+                                 "file": "audit_log",
+                                 "cn": "审计日志",
+                                 "en": "Audit Log"
                               },
                               {
                                  "id": 1575355422,
