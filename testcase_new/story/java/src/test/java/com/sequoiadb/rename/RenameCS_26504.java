@@ -95,9 +95,14 @@ public class RenameCS_26504 extends SdbTestBase {
         } else {
             if ( insert.getRetCode() != SDBError.SDB_DMS_NOTEXIST.getErrorCode()
                     && insert.getRetCode() != SDBError.SDB_DMS_CS_NOTEXIST
-                            .getErrorCode() ) {
-                Assert.fail( "not expected error, renameCS.getRetCode() : "
-                        + renameCS.getRetCode() );
+                            .getErrorCode()
+                    && insert.getRetCode() != SDBError.SDB_LOCK_FAILED
+                            .getErrorCode()
+                    && insert
+                            .getRetCode() != SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
+                                    .getErrorCode() ) {
+                Assert.fail( "not expected error, insert.getRetCode() : "
+                        + insert.getRetCode() );
             }
             // 插入报错后数据可能的1w或者0，且无法确定具体数据
             if ( maincl.getCount() != 0 && maincl.getCount() != 10000 ) {

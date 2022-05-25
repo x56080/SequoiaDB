@@ -140,6 +140,10 @@ public class RenameCS_26503 extends SdbTestBase {
                 if ( e.getErrorCode() != SDBError.SDB_DMS_NOTEXIST
                         .getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_DMS_CS_NOTEXIST
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_LOCK_FAILED
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
                                 .getErrorCode() ) {
                     throw e;
                 }
