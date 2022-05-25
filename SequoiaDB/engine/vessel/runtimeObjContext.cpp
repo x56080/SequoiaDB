@@ -92,11 +92,11 @@ namespace vessel
    {
       if (_mode.isShared())
       {
-         _holder->getLatch().release_r();
+         _holder->mutex().release_r();
       }
       else if (_mode.isExclusive())
       {
-         _holder->getLatch().release_w();
+         _holder->mutex().release_w();
       }
       
       SDB_ASSERT(!_mode.isUpgrade(), "impossible to be upgrade");
@@ -131,11 +131,11 @@ namespace vessel
    {
       if (_mode.isShared())
       {
-         _holder->getLatch().release_r();
+         _holder->mutex().release_r();
       }
       else if (_mode.isExclusive())
       {
-         _holder->getLatch().release_w();
+         _holder->mutex().release_w();
       }
 
       SDB_ASSERT(!_mode.isUpgrade(), "impossible to be upgrade");

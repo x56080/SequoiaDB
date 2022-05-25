@@ -109,8 +109,6 @@ namespace vessel
          
       private:
 
-         void _correctIfNecessary(liteBufferPoolOptions &o);
-
          INT32 _ensureBufferCB(const globalPageID &gpid,
                                SHARED_IO_BUFFER_CB &bcb);
 

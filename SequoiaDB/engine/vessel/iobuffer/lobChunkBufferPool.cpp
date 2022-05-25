@@ -62,6 +62,7 @@ namespace vessel
       INT32 rc = SDB_OK;
 
       _o = o;
+      _o.correctIfNecessary();
       rc = _env.init(o);
       if (SDB_OK != rc)
       {
@@ -331,7 +332,7 @@ namespace vessel
       SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
       SDB_ASSERT(INVALID_CL_MB_ID != mbid, "can not be invalid");
 
-      for (UINT32 i = 0; i < _o.bucketCount; ++i)
+      for (UINT32 i = 0; i < _o.buckets; ++i)
       {
          _discard(sid, mbid, i);
       }
@@ -1128,34 +1129,17 @@ namespace vessel
    BOOLEAN lobChunkBufferPool::betterToFlush(UINT64 &flushSize)const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
-      constexpr FLOAT32 FLUSH_WATER_MARK = 0.5f;
-      constexpr UINT64 FLUSH_BUFFER_SIZE_THRESHOLD = (UINT64)2 << 30;
-      constexpr UINT64 MAX_FLUSH_BUFFER_SIZE = (UINT64)2 << 30;
-      constexpr UINT32 FLUSH_TIMEOUT = 30000; /// milliseconds
-      constexpr UINT64 MIN_FLUSH_SIZE = (UINT64)128 << 20;
-
       flushSize = 0;
+      FLOAT32 memUsedPct = _env.getMemPool()->getUsedPct();
 
-      UINT32 bufferCountAllocated = _env.getMemPool()->getBlockAllocated();
-      UINT32 maxBufferCount = _env.getMemPool()->getTotalBlockNum();
-      UINT64 bufferSizeAllocated = static_cast<UINT64>(bufferCountAllocated) *
-                                   _env.getMemPool()->getBlockSize();
-      FLOAT32 memUsedRatio = static_cast<FLOAT32>(bufferCountAllocated) /
-                             maxBufferCount;
-
-      if (FLUSH_BUFFER_SIZE_THRESHOLD <= bufferSizeAllocated ||
-          FLUSH_WATER_MARK <= memUsedRatio)
+      if (_o.flushDirtyListThreshold <= memUsedPct)
       {
-         flushSize = std::max(MIN_FLUSH_SIZE, bufferSizeAllocated >> 2);
-         if (MAX_FLUSH_BUFFER_SIZE < flushSize)
-         {
-            flushSize = MAX_FLUSH_BUFFER_SIZE;
-         }
+         flushSize = _o.flushBatchSize;
       }
-      else if (0 < bufferSizeAllocated &&
-               FLUSH_TIMEOUT <= _watcherEnv.getTimeSpanFromLastFlush())
+      else if (0 < _env.getMemPool()->getBlockAllocated() &&
+               _o.flushDirtyListMillis <= _watcherEnv.getTimeSpanFromLastFlush())
       {
-         flushSize = MAX_FLUSH_BUFFER_SIZE;
+         flushSize = _o.flushBatchSize;
       }
       
       return 0 < flushSize;

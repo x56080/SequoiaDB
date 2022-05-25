@@ -74,7 +74,7 @@ namespace vessel
          }
          OSS_INLINE collectionSpace *getCollectionSpace()
          {
-            return _holder->getObj();
+            return _holder->get();
          }
 
          OSS_INLINE ossSharedLatchMode getMode()const
@@ -116,7 +116,7 @@ namespace vessel
 
          OSS_INLINE collectionObject *getCollectionObj()
          {
-            return _holder->getObj();
+            return _holder->get();
          }
 
          OSS_INLINE ossSharedLatchMode getMode()const

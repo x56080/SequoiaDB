@@ -151,9 +151,9 @@ namespace vessel
             return _chunks.size() * _CHUNK_CAPACITY;
          }
          OSS_INLINE UINT32 getBlockSize()const {return _blockSize;}
-         OSS_INLINE UINT64 getMaxMemCapacity()const
+         OSS_INLINE UINT64 getMaxMemSize()const
          {
-            return static_cast<UINT64>(_blockSize) * getChunkMemSize();
+            return static_cast<UINT64>(_chunks.size()) * getChunkMemSize();
          }
          OSS_INLINE UINT32 getBlockAllocated()const
          {
@@ -167,7 +167,12 @@ namespace vessel
 
          OSS_INLINE FLOAT32 getFreePct()const
          {
-            return 1.0f - (static_cast<FLOAT32>(getBlockAllocated()) / getTotalBlockNum());
+            return 1.0f - getUsedPct();
+         }
+
+         OSS_INLINE FLOAT32 getUsedPct()const
+         {
+            return static_cast<FLOAT32>(getBlockAllocated()) / getTotalBlockNum();
          }
          
          INT32 init(UINT64 maxMemSize, UINT32 blockSize=65536);

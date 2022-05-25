@@ -62,7 +62,7 @@ namespace vessel
 
       _bufferSize = bufferSize;
       _o = o;
-      _correctIfNecessary(_o);
+      _o.correctIfNecessary();
 
       rc = _memPool.init(o.maxMemSize, _bufferSize);
       if (SDB_OK != rc)
@@ -627,62 +627,6 @@ namespace vessel
       }
 
       return r;
-   }
-
-   void liteIOBufferPool::_correctIfNecessary(liteBufferPoolOptions &o)
-   {
-      if (0 == o.maxMemSize)
-      {
-         o.maxMemSize = (UINT64)4 << 30;
-      }
-      
-      if (!ossIsPowerOf2(o.buckets))
-      {
-         if (0 == o.buckets)
-         {
-            o.buckets = 8192;
-         }
-         else
-         {
-            ossAlignX(o.buckets, 2);
-         }
-      }
-
-      if (!ossIsPowerOf2(o.bucketLatches))
-      {
-         if (0 == o.bucketLatches)
-         {
-            o.bucketLatches = 512;
-         }
-         else
-         {
-            ossAlignX(o.bucketLatches, 2);
-         }
-      }
-
-      if (o.buckets < o.bucketLatches)
-      {
-         o.bucketLatches = o.buckets;
-      }
-
-      if (o.flushDirtyListThreshold <= 0.0f)
-      {
-         o.flushDirtyListThreshold = 0.7f;
-      }
-      else if (1.0f <= o.flushDirtyListThreshold)
-      {
-         o.flushDirtyListThreshold = 0.7f;
-      }
-
-      if (0 == o.flushDirtyListMillis)
-      {
-         o.flushDirtyListMillis = 30000;
-      }
-
-      if (0 == o.flushBatchSize)
-      {
-         o.flushBatchSize = (UINT64)1 << 30;
-      }
    }
 
    INT32 liteIOBufferPool::_getMmmapPtr(const globalPageID &gpid,

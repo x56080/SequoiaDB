@@ -52,14 +52,14 @@ namespace vessel
       INT32 rc = SDB_OK;
       fini();
       
-      rc = _pool.init(o.maxMemChunkCount);
+      rc = _pool.init(o.maxMemSize);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init block-based mem pool:%d", rc);
          goto error;
       }
-      _entries.resize(o.bucketCount);
-      _mutexes.resize(o.bucketLatchCount, nullptr);
+      _entries.resize(o.buckets);
+      _mutexes.resize(o.bucketLatches, nullptr);
       for (UINT32 i = 0; i < _mutexes.size(); ++i)
       {
          std::mutex *m = new(std::nothrow) std::mutex();

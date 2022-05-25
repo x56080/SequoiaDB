@@ -42,24 +42,60 @@ namespace engine
 {
 namespace vessel
 {
-   struct lobcBufferPoolOptions : public SDBObject
+   struct bufferPoolOptions : public SDBObject
    {
-      BOOLEAN isValid()const
+      void correctIfNecessary()
       {
-         return 0 < maxMemChunkCount &&
-                ossIsPowerOf2(bucketCount) &&
-                ossIsPowerOf2(bucketLatchCount) &&
-                bucketLatchCount <= bucketCount;
+         if (0 == maxMemSize)
+         {
+            maxMemSize = (UINT64)4 << 30;
+         }
+
+         if (0 == buckets)
+         {
+            buckets = 8192;
+         }
+         else if (!ossIsPowerOf2(buckets))
+         {
+            ossAlignX(buckets, 2);
+         }
+
+         if (0 == bucketLatches)
+         {
+            bucketLatches = 512;
+         }
+         else if (!ossIsPowerOf2(bucketLatches))
+         {
+            ossAlignX(bucketLatches, 2);
+         }
+
+         if (buckets < bucketLatches)
+         {
+            bucketLatches = buckets;
+         }
+
+         if (flushDirtyListThreshold <= 0.0f)
+         {
+            flushDirtyListThreshold = 0.7f;
+         }
+         else if (1.0f <= flushDirtyListThreshold)
+         {
+            flushDirtyListThreshold = 0.7f;
+         }
+
+         if (0 == flushDirtyListMillis)
+         {
+            flushDirtyListMillis = 30000;
+         }
+
+         if (0 == flushBatchSize)
+         {
+            flushBatchSize = (UINT64)256 << 20;
+         }
+
+         return;
       }
 
-      UINT32 maxMemChunkCount = 128;
-      UINT32 bucketCount = 8192;
-      UINT32 bucketLatchCount = 512;
-
-   };//struct lobcBufferPoolOptions
-
-   struct liteBufferPoolOptions : public SDBObject
-   {
       /// memory pool options
       UINT64 maxMemSize = (UINT64)4 << 30;
       
@@ -72,6 +108,9 @@ namespace vessel
       UINT32 flushDirtyListMillis = 30000;
       UINT64 flushBatchSize = (UINT64)256 << 20;
    };//class bufferPoolOptions
+
+   typedef class bufferPoolOptions liteBufferPoolOptions;
+   typedef class bufferPoolOptions lobcBufferPoolOptions;
 } // namespace vessel
 
 } // namespace engine
