@@ -128,8 +128,8 @@ public class Split10527C extends SdbTestBase {
                         ( BSONObject ) JSON.parse( "{sk:" + endNo + "}" ) );
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != -34 && e.getErrorCode() != -23
-                        && e.getErrorCode() != -147
-                        && e.getErrorCode() != -190 ) {
+                        && e.getErrorCode() != -147 && e.getErrorCode() != -190
+                        && e.getErrorCode() != -243 ) {
                     throw e;
                 }
             } finally {

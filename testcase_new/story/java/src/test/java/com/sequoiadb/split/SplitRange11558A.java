@@ -149,7 +149,8 @@ public class SplitRange11558A extends SdbTestBase {
                 try {
                     cl.split( srcRg, dstRg, startCond, endCond );
                 } catch ( BaseException e ) {
-                    if ( -170 != e.getErrorCode() ) {
+                    if ( -170 != e.getErrorCode()
+                            && e.getErrorCode() != -243 ) {
                         throw e;
                     }
                 }

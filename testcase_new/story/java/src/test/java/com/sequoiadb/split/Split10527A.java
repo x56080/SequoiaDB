@@ -138,8 +138,8 @@ public class Split10527A extends SdbTestBase {
                 cl.split( srcGroupName, destGroupName, 90 );
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != -34 && e.getErrorCode() != -23
-                        && e.getErrorCode() != -147
-                        && e.getErrorCode() != -190 ) {
+                        && e.getErrorCode() != -147 && e.getErrorCode() != -190
+                        && e.getErrorCode() != -243 ) {
                     throw e;
                 }
             } finally {
