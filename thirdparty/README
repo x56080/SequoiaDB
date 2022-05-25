@@ -367,7 +367,7 @@ Linux64:
         CPPFLAGS=-DZSTD_MULTITHREAD make
         cp lib/libzstd.a ./lib/linux64/release/
 
-    rocksdb 6.14.6
+    rocksdb 6.29.5
         Website:    https://rocksdb.org
         Repository: https://github.com/facebook/rocksdb/
 
@@ -448,13 +448,33 @@ Linux64:
           # nor building the rocksdb built-in test programs, you will need
           # to update the Makefile by changine the line DEBUG_LEVEL=0 to
           # DEBUG_LEVEL?=0 in static_lib setting, like following:
-             ifeq ($(MAKECMDGOALS),static_lib)
-                 #DEBUG_LEVEL=0
-                 DEBUG_LEVEL?=0
-                 LIB_MODE=static
+             ifneq ($(filter static_lib install-static, $(MAKECMDGOALS)),)
+                #DEBUG_LEVEL=0
+	            DEBUG_LEVEL?=0
+	            LIB_MODE=static
              endif
           # then, making debuggable lib with DEBUG_LEVEL=2, for example
           DEBUG_LEVEL=2 make static_lib
+
+          # example compile with compression library steps on Linux
+            cd rocksdb
+            export CC=gcc ; export cc=gcc ; export CXX=g++ ; 
+            export CPATH=/usr/local/include:$CPATH ; export LIBRARY_PATH=/usr/local/lib:$LIBRARY_PATH ;
+            export CPATH=../snappy/include:$CPATH ; 
+            export CPATH=../zlib:$CPATH ; 
+            export CPATH=../bzip2:$CPATH ; 
+            export CPATH=../lz4/src:../lz4/include:$CPATH ; 
+            export CPATH=../zstd/lib/dictBuilder:../zstd/lib:$CPATH ; 
+
+            #modify rocksdb/build_tools/build_detect_platform
+            # for example, for rocksdb static library supported with zstd
+            # set line 393 and 397 as comments, like following:
+                #if [ "$?" = 0 ]; then
+                    COMMON_FLAGS="$COMMON_FLAGS -DZSTD"
+                    PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -lzstd"
+                    JAVA_LDFLAGS="$JAVA_LDFLAGS -lzstd"
+                #fi
+
         
 ARM64:
     Building Prerequisites:
