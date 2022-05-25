@@ -132,12 +132,6 @@
                                  "file": "instance_group",
                                  "cn": "实例组",
                                  "en": "Instance Group"
-                              },
-                              {
-                                 "id": 1572505575,
-                                 "file": "ha",
-                                 "cn": "元数据同步工具",
-                                 "en": "High Availability"
                               }
                            ]
                         },
@@ -196,6 +190,12 @@
                                  "file": "sdb_mysql_ctl",
                                  "cn": "实例管理",
                                  "en": "Instance management tool"
+                              },
+                              {
+                                 "id": 1572505575,
+                                 "file": "audit_log",
+                                 "cn": "审计日志",
+                                 "en": "Audit Log"
                               },
                               {
                                  "id": 1556198260,
@@ -281,12 +281,6 @@
                                  "file": "instance_group",
                                  "cn": "实例组",
                                  "en": "Instance Group"
-                              },
-                              {
-                                 "id": 1972505575,
-                                 "file": "ha",
-                                 "cn": "元数据同步工具",
-                                 "en": "High Availability"
                               }
                            ]
                         },
@@ -351,6 +345,12 @@
                                  "file": "sdb_maria_ctl",
                                  "cn": "实例管理",
                                  "en": "Instance management tool"
+                              },
+                              {
+                                 "id": 1972505575,
+                                 "file": "audit_log",
+                                 "cn": "审计日志",
+                                 "en": "Audit Log"
                               },
                               {
                                  "id": 1575355422,
