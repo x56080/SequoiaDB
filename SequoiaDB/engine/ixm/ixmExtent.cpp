@@ -496,7 +496,15 @@ namespace engine
       SDB_ASSERT ( indexCB, "index control block can't be NULL" ) ;
       dmsExtentID newRootExtentID = DMS_INVALID_EXTENT ;
       dmsExtentID newExtentID = DMS_INVALID_EXTENT ;
+      dmsExtentID origRightChildID = DMS_INVALID_EXTENT ;
       const ixmKeyNode *splitKey = NULL ;
+
+      BOOLEAN fixNewPageIfFailed = FALSE ;
+      BOOLEAN fixNewRootIfFailed = FALSE ;
+
+      // save origin right child
+      origRightChildID = _extentHead->_right ;
+
       // find the split position
       rc = _splitPos ( pos, splitPos ) ;
       if ( rc )
@@ -514,9 +522,12 @@ namespace engine
                   rc ) ;
          goto error ;
       }
+
       {
          // initialize the header for the new extent
          _ixmExtent newExtent( newExtentID, _extentHead->_mbID, _pIndexSu ) ;
+         fixNewPageIfFailed = TRUE ;
+
          // copy all keys from the split pos to new extent
          for ( UINT16 i = splitPos + 1 ; i < getNumKeyNode() ; i++ )
          {
@@ -531,6 +542,7 @@ namespace engine
                goto error ;
             }
          }
+
          // assign the right pointer
          newExtent._assignRight ( _extentHead->_right ) ;
 
@@ -554,7 +566,6 @@ namespace engine
          if ( DMS_INVALID_EXTENT == getParent() )
          {
             // if this is root page, let's allocate another page
-
             // allocate new extent
             rc = indexCB->allocExtent ( newRootExtentID ) ;
             if ( rc )
@@ -563,9 +574,12 @@ namespace engine
                         "rc = %d", rc ) ;
                goto error ;
             }
+
             // initialize the header for the new extent
             _ixmExtent rootExtent( newRootExtentID, _extentHead->_mbID,
                                    _pIndexSu ) ;
+            fixNewRootIfFailed = TRUE ;
+
             // promote the split key into parent, key._left point to the current
             // extent
             rc = rootExtent._pushBack ( splitKey->_rid,
@@ -663,11 +677,39 @@ namespace engine
    error :
       if ( DMS_INVALID_EXTENT != newRootExtentID )
       {
+         if ( fixNewRootIfFailed )
+         {
+            ixmExtent newRootExtent( newRootExtentID, _pIndexSu ) ;
+
+            // fix statistics
+            _pIndexSu->decStatFreeSpace( newRootExtent.getMBID(),
+                                         newRootExtent.getFreeSize() ) ;
+
+            // fix parent point
+            setParent( DMS_INVALID_EXTENT, TRUE ) ;
+         }
+
          indexCB->freeExtent( newRootExtentID ) ;
          newRootExtentID = DMS_INVALID_EXTENT ;
       }
       if ( DMS_INVALID_EXTENT != newExtentID )
       {
+         if ( fixNewPageIfFailed )
+         {
+            ixmExtent newPageExtent( newExtentID, _pIndexSu ) ;
+
+            // fix statistics
+            _pIndexSu->decStatFreeSpace( newPageExtent.getMBID(),
+                                         newPageExtent.getFreeSize() ) ;
+
+            // fix parent points for left children
+            _fixParentPtrs( splitPos + 1,
+                            splitPos + 1 + newPageExtent.getNumKeyNode() ) ;
+
+            // fix parent point of right child
+            _assignRight( origRightChildID ) ;
+         }
+
          indexCB->freeExtent( newExtentID ) ;
          newExtentID = DMS_INVALID_EXTENT ;
       }
