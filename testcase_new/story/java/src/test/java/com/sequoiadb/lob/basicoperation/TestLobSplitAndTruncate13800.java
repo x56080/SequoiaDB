@@ -1,5 +1,7 @@
 package com.sequoiadb.lob.basicoperation;
 
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
@@ -101,6 +103,11 @@ public class TestLobSplitAndTruncate13800 extends SdbTestBase {
                 String targetRGName = LobOprUtils
                         .getSplitGroupName( sourceRGName );
                 cl.split( sourceRGName, targetRGName, 50 );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_TASK_HAS_CANCELED
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
         }
     }
