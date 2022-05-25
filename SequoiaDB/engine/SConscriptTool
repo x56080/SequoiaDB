@@ -835,7 +835,7 @@ sdbpasswd = toolEnv.Program("sdbpasswd", sdbPasswdFiles,
          _LIBDEPS='$_LIBDEPS_OBJS' )
          
 sdbsecuretool = toolEnv.Program("sdbsecuretool", sdbSecureFiles,
-         LIBDEPS=["pd","oss", "bson", "util"],
+         LIBDEPS=["pd", "oss", "bson", "util"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
          
 if linux:

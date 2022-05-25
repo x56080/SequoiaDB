@@ -13,19 +13,17 @@ sdbsecuretool [ options ] ...
 
 ##参数说明##
 
-- **--help, -h**  
-
-    获取帮助信息
-
-- **--version, -v**  
-
-    获取版本信息
-
-- **--decrypt, -d \<data\>**  
-
-    指定要解密的数据
+| 参数名    | 缩写 | 描述 |
+| --------- | ---- | ---- |
+| --help    | -h   | 获取帮助信息 |
+| --version | -v   | 获取版本信息 |
+| --decrypt | -d   | 指定需要解密的数据 |
+| --source  | -s   | 指定需要解密的日志文件，取值可以是日志文件名或日志文件的存放目录<br>当指定为目录时，工具将对目录中的所有 diaglog 日志文件进行解密 |
+| --output  | -o   | 指定已解密文件的存放路径，默认为参数 --source 所指定文件的存放路径 |
 
 ##常见场景##
+
+###解密数据###
 
 1. 进行数据操作
 
@@ -65,6 +63,34 @@ sdbsecuretool [ options ] ...
 
     ```lang-text
     { "_id": { "$oid": "628352132b4113f393357357" }, "name": "Tom" }
+    ```
+
+###解密文件###
+
+- 解密指定的日志文件
+
+    ```lang-bash
+    $ ./bin/sdbsecuretool -s database/data/20000/diaglog/sdbdiag.log
+    ```
+
+    输出结果如下，显示已解密文件的存放路径：
+
+    ```lang-text
+    Generate decrypted file: /opt/sequoiadb/database/data/20000/diaglog/sdbdiag.log.decrypt
+    ```
+
+- 解密指定路径下的日志文件
+
+    ```lang-bash
+    $ ./bin/sdbsecuretool -s database/data/40000/diaglog
+    ```
+
+    输出结果如下：
+
+    ```lang-text
+    Generate decrypted file: /opt/sequoiadb/database/data/40000/diaglog/sdbdiag.log.decrypt
+    Generate decrypted file: /opt/sequoiadb/database/data/40000/diaglog/sdbdiag.log.2022-05-19-15:27:47.decrypt
+    Generate decrypted file: /opt/sequoiadb/database/data/40000/diaglog/sdbdiag.log.2022-05-19-15:28:29.decrypt
     ```
 
 [^_^]:

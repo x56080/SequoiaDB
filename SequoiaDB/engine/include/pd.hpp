@@ -174,6 +174,10 @@ void pdcheck( const CHAR* string, const CHAR* func,
 
 #define LOG_MASK_IXM_DUP_KEY 0x0000000000000001
 
+void pdEnableDiaglogSecure() ;
+void pdDisableDiaglogSecure() ;
+BOOLEAN pdIsDiaglogSecureEnabled() ;
+
 void pdEnableShieldLogMask( UINT64 mask ) ;
 void pdDisableShieldLogMask( UINT64 mask ) ;
 BOOLEAN pdTestShieldLogMask( UINT64 mask ) ;

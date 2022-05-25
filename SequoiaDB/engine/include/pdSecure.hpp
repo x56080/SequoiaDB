@@ -44,8 +44,9 @@
 
 namespace engine
 {
-   #define PD_SECURE_OBJ( obj ) utilSecureStr( (obj).toPoolString() ).c_str()
-   #define PD_SECURE_STR( str ) utilSecureStr( str ).c_str()
+   #define PD_SECURE_OBJ( obj ) PD_SECURE_STR( (obj).toPoolString() )
+   #define PD_SECURE_STR( str ) \
+      pdIsDiaglogSecureEnabled() ? utilSecureStr( str ).c_str() : str.c_str()
 }
 
 #endif
