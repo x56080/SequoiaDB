@@ -90,17 +90,25 @@ public class RenameCS_26504 extends SdbTestBase {
 
         DBCollection maincl = sdb.getCollectionSpace( newCSName )
                 .getCollection( mainCLName );
-        if ( renameCS.getRetCode() == 0 ) {
+        if ( insert.getRetCode() == 0 ) {
             RenameUtil.checkRecords( maincl, insertRecord, "{a:1}" );
         } else {
-            if ( renameCS.getRetCode() != SDBError.SDB_DMS_NOTEXIST
-                    .getErrorCode()
-                    && renameCS.getRetCode() != SDBError.SDB_DMS_CS_NOTEXIST
-                            .getErrorCode() ) {
-                Assert.fail( "not expected error, renameCS.getRetCode() : "
-                        + renameCS.getRetCode() );
+            if ( insert.getRetCode() != SDBError.SDB_DMS_NOTEXIST.getErrorCode()
+                    && insert.getRetCode() != SDBError.SDB_DMS_CS_NOTEXIST
+                            .getErrorCode()
+                    && insert.getRetCode() != SDBError.SDB_LOCK_FAILED
+                            .getErrorCode()
+                    && insert
+                            .getRetCode() != SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
+                                    .getErrorCode() ) {
+                Assert.fail( "not expected error, insert.getRetCode() : "
+                        + insert.getRetCode() );
             }
-            Assert.assertEquals( maincl.getCount(), 0 );
+            // 插入报错后数据可能的1w或者0，且无法确定具体数据
+            if ( maincl.getCount() != 0 && maincl.getCount() != 10000 ) {
+                Assert.fail( "maincl.getCount() is " + maincl.getCount()
+                        + " ,expect is 1w or 0" );
+            }
         }
     }
 
@@ -125,9 +133,9 @@ public class RenameCS_26504 extends SdbTestBase {
         private void renameCS() throws InterruptedException {
             try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
-                // 随机等待500ms后再renameCS，防止先renameCS再插入数据
+                // 随机等待100ms后再renameCS，防止先renameCS再插入数据
                 Random random = new Random();
-                Thread.sleep( random.nextInt( 500 ) );
+                Thread.sleep( random.nextInt( 100 ) );
                 db.renameCollectionSpace( csName, newCSName );
             }
         }

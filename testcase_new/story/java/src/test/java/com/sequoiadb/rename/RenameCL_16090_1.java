@@ -69,7 +69,7 @@ public class RenameCL_16090_1 extends SdbTestBase {
         Assert.assertTrue( rename, renameCLThread.getErrorMsg() );
 
         if ( !drop ) {
-            Integer[] errnos = { -23 };
+            Integer[] errnos = { -23, -147, -190 };
             BaseException error = ( BaseException ) dropThread.getExceptions()
                     .get( 0 );
             if ( !Arrays.asList( errnos ).contains( error.getErrorCode() ) ) {
