@@ -1161,6 +1161,7 @@ namespace engine
       {
          // can't cancel finish status
          if ( CLS_TASK_STATUS_META == _status ||
+              CLS_TASK_STATUS_CLEANUP == _status ||
               CLS_TASK_STATUS_FINISH == _status )
          {
             rc = SDB_TASK_ALREADY_FINISHED ;

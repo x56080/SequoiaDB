@@ -4715,9 +4715,7 @@ namespace engine
          {
             PD_LOG( PDWARNING, "Create operator[%s] failed, rc: %d",
                     CMD_NAME_WAITTASK, rc ) ;
-            /// ignored the error
-            rc = SDB_OK ;
-            goto done ;
+            goto error ;
          }
          rc = pOperator->init( _pResource, cb, getTimeout() ) ;
          if ( rc )
@@ -4732,9 +4730,7 @@ namespace engine
          {
             PD_LOG( PDWARNING, "Wait task[%lld] failed, rc: %d",
                     taskID, rc ) ;
-            /// ignored the error
-            rc = SDB_OK ;
-            goto done ;
+            goto error ;
          }
       }
       else // return taskid to client
