@@ -11,7 +11,7 @@ $SNAPSHOT_CONFIGS
 
 ##字段信息##
 
-字段信息详见[数据库配置][configuration_parameters]一节。
+字段信息可参考[参数说明][configuration_parameters]。
 
 ##快照参数##
 
@@ -161,4 +161,4 @@ $SNAPSHOT_CONFIGS
 
 [^_^]:
     本文使用的所有引用及链接
-[configuration_parameters]:manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md
+[configuration_parameters]:manual/Distributed_Engine/Maintainance/Database_Configuration/parameter_instructions.md
