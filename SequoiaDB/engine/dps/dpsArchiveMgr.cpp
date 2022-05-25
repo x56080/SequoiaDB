@@ -367,7 +367,7 @@ namespace engine
       UINT32 waitTime = 0 ;
       DPS_LSN_OFFSET safeOffset ;
       DPS_LSN_OFFSET unsafeOffset ;
-      UINT32 logFileSize = _logMgr->getLogFileSz() ;
+      UINT64 logFileSize = _logMgr->getLogFileSz() ;
 
       // log file can't be wrapped if diff <= safeOffset
       safeOffset = ( _logMgr->getLogFileNum() - 1 ) * logFileSize ;
