@@ -10,7 +10,7 @@ $SNAPSHOT_CONFIGS
 
 ###字段信息###
 
-字段信息详见[数据库配置](database_management/database_configuration/configuration_parameters.md)一节。
+字段信息可参考[参数说明](database_management/database_configuration/parameters_instructions.md)。
 
 ##快照参数##
 
