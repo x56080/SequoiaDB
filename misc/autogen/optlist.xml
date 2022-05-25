@@ -2719,5 +2719,27 @@
       <typeofweb>boolean</typeofweb>
       <hidden>true</hidden>
   </opt>
+  
+  <opt>
+      <name>PMD_OPTION_DIAG_SECURE_ON</name>
+      <long>diagsecureon</long>
+      <description>
+         <en>Turn on diaglog secure. Default is true</en>
+         <cn>开启诊断日志数据脱敏，默认为true</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+         <en>Turn on diaglog secure. Default is true, means turn on.<fig></fig>
+             When it is turned on, user performs data operations, database will encrypt the business data in diaglog to ensure data security</en>
+         <cn>开启[节点诊断日志](manual/Distributed_Engine/Maintainance/DiagLog/diaglog.md)的数据脱敏功能，默认值为 true，表示已开启。<fig></fig>
+             在开启该功能的情况下，当用户对数据进行操作后，数据库将对日志中所涉及的业务数据进行加密，以保证数据安全性。</cn>
+      </detail>
+      <default>true</default>
+      <typeofweb>boolean</typeofweb>
+      <hidden>false</hidden>
+  </opt>
 
 </optlist>

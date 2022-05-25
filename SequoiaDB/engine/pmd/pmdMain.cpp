@@ -218,6 +218,14 @@ namespace engine
       sdbEnablePD( pmdGetOptionCB()->getDiagLogPath(),
                    pmdGetOptionCB()->diagFileNum() ) ;
       setPDLevel( (PDLEVEL)( pmdGetOptionCB()->getDiagLevel() ) ) ;
+      if ( pmdGetOptionCB()->diagSecureOn() )
+      {
+         pdEnableDiaglogSecure() ;
+      }
+      else
+      {
+         pdDisableDiaglogSecure() ;
+      }
       // enalble pd audit
       sdbEnableAudit( pmdGetOptionCB()->getAuditLogPath(),
                       pmdGetOptionCB()->auditFileNum() ) ;

@@ -305,10 +305,18 @@ namespace engine
    void _pmdController::onConfigChange()
    {
       setPDLevel( (PDLEVEL)( pmdGetOptionCB()->getDiagLevel() ) ) ;
-
       setDiagFileNum( pmdGetOptionCB()->diagFileNum() ) ;
-      setAuditFileNum( pmdGetOptionCB()->auditFileNum() ) ;
 
+      if ( pmdGetOptionCB()->diagSecureOn() )
+      {
+         pdEnableDiaglogSecure() ;
+      }
+      else
+      {
+         pdDisableDiaglogSecure() ;
+      }
+
+      setAuditFileNum( pmdGetOptionCB()->auditFileNum() ) ;
       pdSetAuditMask( pmdGetOptionCB()->auditMask() ) ;
 
       pmdFTMgr *ftMgr = pmdGetKRCB()->getFTMgr() ;
