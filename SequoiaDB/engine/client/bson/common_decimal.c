@@ -3306,6 +3306,44 @@ error:
    goto done ;
 }
 
+int sdb_decimal_view_from_bsonvalue( const char *value,
+                                     bson_decimal *decimal )
+{
+#ifdef SDB_BIG_ENDIAN
+   return sdb_decimal_from_bsonvalue( value, decimal ) ;
+#else
+   int size     = 0 ;
+   int typemod  = 0 ;
+   short scale  = 0 ;
+   short weight = 0 ;
 
+   if ( NULL == decimal )
+   {
+      return -6 ;
+   }
 
+   //define in common_decimal.h __sdb_decimal
+   size = *(int *)value ;
+   value += 4 ;
 
+   typemod = *(int *)value ;
+   value += 4 ;
+
+   scale = *(short *)value ;
+   value += 2 ;
+
+   weight = *(short *)value ;
+   value += 2 ;
+
+   decimal->typemod = typemod ;
+   decimal->ndigits = ( size - SDB_DECIMAL_HEADER_SIZE ) / sizeof( short ) ;
+   decimal->sign    = scale & SDB_DECIMAL_SIGN_MASK ;
+   decimal->dscale  = scale & SDB_DECIMAL_DSCALE_MASK ;
+   decimal->weight  = weight ;
+   decimal->isOwn = 0 ;
+   decimal->buff = NULL ;
+   decimal->digits = (short *)value  ;
+
+   return 0 ;
+#endif
+}

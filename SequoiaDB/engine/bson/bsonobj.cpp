@@ -531,8 +531,9 @@ namespace bson {
                 ( L > LONG_UPPER_SAFE_BOUND ||
                   L < LONG_LOWER_SAFE_BOUND ) )
            {
-               return l.numberDecimal()
-                       .compare( r.numberDecimal() ) ;
+               BSONDecimalElement lEle( l ) ;
+               BSONDecimalElement rEle( r ) ;
+               return lEle.numberDecimal().compare( rEle.numberDecimal() ) ;
            }
        }
        else if ( l.type() == NumberLong )
@@ -546,8 +547,9 @@ namespace bson {
                 ( R > LONG_UPPER_SAFE_BOUND ||
                   R < LONG_LOWER_SAFE_BOUND ) )
            {
-               return l.numberDecimal()
-                       .compare( r.numberDecimal() ) ;
+               BSONDecimalElement lEle( l ) ;
+               BSONDecimalElement rEle( r ) ;
+               return lEle.numberDecimal().compare( rEle.numberDecimal() ) ;
            }
        }
 
@@ -592,8 +594,9 @@ namespace bson {
         int f;
         if ( l.type() == NumberDecimal || r.type() == NumberDecimal )
         {
-            return l.numberDecimal()
-                    .compare( r.numberDecimal() ) ;
+            BSONDecimalElement lEle( l ) ;
+            BSONDecimalElement rEle( r ) ;
+            return lEle.numberDecimal().compare( rEle.numberDecimal() ) ;
         }
 
         switch ( l.type() ) {

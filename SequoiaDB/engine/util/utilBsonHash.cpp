@@ -120,7 +120,8 @@ namespace engine
 
       case NumberDecimal:
       {
-         hashCode = hashDecimal( hashCode, e.numberDecimal() ) ;
+         BSONDecimalElement decEle( e ) ;
+         hashCode = hashDecimal( hashCode, decEle.numberDecimal() ) ;
          break ;
       }
 

@@ -493,18 +493,17 @@ namespace bson {
     inline ossPoolString BSONElement::_numberDecimalPoolStr() const
     {
         int rc = 0 ;
-        bsonDecimal decimal ;
         ossPoolString decStr ;
         if ( type() != NumberDecimal )
         {
             return "" ;
         }
 
-        rc = decimal.fromBsonValue( value() ) ;
-        uassert(rc, "Failed to parse decimal from bson value", SDB_OK == rc);
-
-        rc = decimal.toJsonStringChecked( decStr ) ;
-        uassert(rc, "Failed to parse decimal to json string", SDB_OK == rc);
+        {
+           BSONDecimalElement ele( *this ) ;
+           rc = ele.numberDecimal().toJsonStringChecked( decStr ) ;
+           uassert(rc, "Failed to parse decimal to json string", SDB_OK == rc);
+        }
 
         return decStr ;
     }
@@ -549,6 +548,105 @@ namespace bson {
             e.toString(s, !isArray, full );
         }
         s << ( isArray ? " ]" : " }" );
+    }
+
+
+    inline bool BSONElement::trueValue() const {
+        switch( type() ) {
+        case NumberLong:
+            return *reinterpret_cast< const long long* >( value() ) != 0;
+        case NumberDecimal:
+        {
+            BSONDecimalElement ele( *this ) ;
+            return !( ele.numberDecimal().isZero() ) ;
+        }
+        case NumberDouble:
+            return *reinterpret_cast< const double* >( value() ) != 0;
+        case NumberInt:
+            return *reinterpret_cast< const int* >( value() ) != 0;
+        case bson::Bool:
+            return boolean();
+        case EOO:
+        case jstNULL:
+        case Undefined:
+            return false;
+
+        default:
+            ;
+        }
+        return true;
+    }
+
+    inline double BSONElement::numberDouble() const {
+        switch( type() ) {
+        case NumberDouble:
+            return _numberDouble();
+        case NumberInt:
+            return *reinterpret_cast< const int* >( value() );
+        case NumberLong:
+            return (double) *reinterpret_cast< const long long* >( value() );
+        case NumberDecimal:
+            {
+               int rc = 0 ;
+               double tempValue = 0.0 ;
+               BSONDecimalElement ele( *this ) ;
+               rc = ele.numberDecimal().toDouble( &tempValue ) ;
+               uassert( rc, "Failed to parse decimal to double", 0 == rc ) ;
+               return tempValue ;
+            }
+        default:
+            return 0;
+        }
+    }
+
+    /** Retrieve int value for the element safely.  Zero returned if not a
+        number. Converted to int if another numeric type. */
+    inline int BSONElement::numberInt() const {
+        switch( type() ) {
+        case NumberDouble:
+            return (int) _numberDouble();
+        case NumberInt:
+            return _numberInt();
+        case NumberLong:
+            return (int) _numberLong();
+        case NumberDecimal:
+            {
+               int rc = 0 ;
+               int tempValue = 0 ;
+               BSONDecimalElement ele( *this ) ;
+               rc = ele.numberDecimal().toInt( &tempValue ) ;
+               uassert( rc, "Failed to parse decimal to int",
+                        0 == rc ) ;
+               return tempValue ;
+            }
+        default:
+            return 0;
+        }
+    }
+
+    /** Retrieve long value for the element safely.  Zero returned if not a
+        number. */
+    inline long long BSONElement::numberLong() const {
+        switch( type() ) {
+        case NumberDouble:
+            return (long long) _numberDouble();
+        case NumberInt:
+            return _numberInt();
+        case NumberLong:
+            return _numberLong();
+        case NumberDecimal:
+            {
+               int rc = 0 ;
+               long long tempValue = 0 ;
+               BSONDecimalElement ele( *this ) ;
+               rc = ele.numberDecimal().toLong( &tempValue ) ;
+               uassert( rc, "Failed to parse decimal to long",
+                        0 == rc) ;
+               return tempValue ;
+            }
+        default:
+            return 0;
+        }
     }
 
     inline void BSONElement::validate() const {
@@ -759,18 +857,17 @@ namespace bson {
     inline string BSONElement::_numberDecimalStr() const
     {
         int rc = 0 ;
-        bsonDecimal decimal ;
         string decStr ;
         if ( type() != NumberDecimal )
         {
             return "" ;
         }
 
-        rc = decimal.fromBsonValue( value() ) ;
-        uassert(rc, "Failed to parse decimal from bson value", SDB_OK == rc);
-
-        rc = decimal.toJsonStringChecked( decStr ) ;
-        uassert(rc, "Failed to parse decimal to json string", SDB_OK == rc);
+        {
+           BSONDecimalElement ele( *this ) ;
+           rc = ele.numberDecimal().toJsonStringChecked( decStr ) ;
+           uassert(rc, "Failed to parse decimal to json string", SDB_OK == rc);
+        }
 
         return decStr ;
     }
