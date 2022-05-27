@@ -220,6 +220,7 @@ INT32 _ossMmapFile::map ( UINT64 offset, UINT32 length, void **pAddress )
       DWORD err = ossGetLastError () ;
       PD_LOG ( PDERROR, "Failed to create file mapping, err: %d", err );
       close () ;
+      rc = SDB_SYS ;
       goto error ;
    }
 
@@ -298,6 +299,7 @@ INT32 _ossMmapFile::flush ( UINT32 segmentID, BOOLEAN sync )
    {
       err = ossGetLastError () ;
       PD_LOG ( PDERROR, "Failed to msync, err=%d", err ) ;
+      rc = SDB_SYS ;
       goto error ;
    }
 #elif defined (_WINDOWS)
@@ -306,12 +308,14 @@ INT32 _ossMmapFile::flush ( UINT32 segmentID, BOOLEAN sync )
    {
       err = ossGetLastError () ;
       PD_LOG ( PDERROR, "Failed to FlushViewOfFile, err=%d", err );
+      rc = SDB_SYS ;
       goto error ;
    }
    if ( !FlushFileBuffers(_file.hFile) )
    {
       err = ossGetLastError () ;
       PD_LOG ( PDERROR, "Failed to FlushFileBuffers, err=%d", err );
+      rc = SDB_SYS ;
       goto error ;
    }
 #endif
@@ -365,6 +369,7 @@ INT32 _ossMmapFile::flushBlock( UINT32 segmentID, UINT32 offset,
    {
       err = ossGetLastError () ;
       PD_LOG ( PDERROR, "Failed to msync, err=%d", err ) ;
+      rc = SDB_SYS ;
       goto error ;
    }
 #elif defined (_WINDOWS)
@@ -372,12 +377,14 @@ INT32 _ossMmapFile::flushBlock( UINT32 segmentID, UINT32 offset,
    {
       err = ossGetLastError() ;
       PD_LOG ( PDERROR, "Failed to FlushViewOfFile, err=%d", err );
+      rc = SDB_SYS ;
       goto error ;
    }
    if ( !FlushFileBuffers( _file.hFile ) )
    {
       err = ossGetLastError() ;
       PD_LOG ( PDERROR, "Failed to FlushFileBuffers, err=%d", err );
+      rc = SDB_SYS ;
       goto error ;
    }
 #endif
