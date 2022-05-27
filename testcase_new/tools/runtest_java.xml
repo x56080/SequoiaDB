@@ -42,6 +42,10 @@
             <property name="testcase_dir" value="${basedir}/../../testcase_new/driver/java"/>
             <property name="report_dir" value="${basedir}/../../testcase_new/driver/java"/>
          </case>
+         <case value="driver_java7">
+            <property name="testcase_dir" value="${basedir}/../../testcase_new/driver/java7"/>
+            <property name="report_dir" value="${basedir}/../../testcase_new/driver/java7"/>
+         </case>
          <case value="tdd_java">             
             <property name="testcase_dir" value="${basedir}/../../testcase_new/tdd/java"/>
             <property name="report_dir" value="${basedir}/../../testcase_new/tdd/java"/>
@@ -283,6 +287,7 @@
                      <echo message="cmd : ${cmd} in dir ${casedir}"/>
                      <exec executable="mvn" dir="${casedir}" failonerror="true" logError="true">
                         <arg line="${cmd}" />
+                        <env key="JAVA_HOME" path="/opt/jdk1.8.0_11/" />
                      </exec>
                   </then>
                </if>
@@ -311,6 +316,7 @@
          <echo message="cmd : mvn ${cmd} in dir ${casedir}"/>
          <exec executable="mvn" dir="${casedir}" failonerror="true" logError="true">
             <arg line="${cmd}" />
+            <env key="JAVA_HOME" path="/opt/jdk1.8.0_11/" />
          </exec>
 
       </sequential>
@@ -325,6 +331,7 @@
          <echo message="cmd : mvn ${cmd} in dir ${casedir}"/>
          <exec executable="mvn" dir="${casedir}" failonerror="true" logError="true">
             <arg line="${cmd}" />
+            <env key="JAVA_HOME" path="/opt/jdk1.8.0_11/" />
          </exec>
 
       </sequential>
@@ -347,6 +354,7 @@
          <echo message="cmd : ${cmd} in dir ${casedir}"/>
          <exec executable="mvn" dir="${casedir}" failonerror="true" logError="true" >
             <arg line="${cmd}" />
+            <env key="JAVA_HOME" path="/opt/jdk1.8.0_11/" />
          </exec>
       </sequential>
    </macrodef>
