@@ -173,17 +173,17 @@ namespace engine
          {
             if ( !orgObj )
             {
-               orgObj = &obj ;  
+               orgObj = &obj ;
             }
             rc = _contextValidator->validate( *orgObj ) ;
             if ( SDB_IXM_ADVANCE_EOC == rc )
             {
-               goto done ;  
+               goto done ;
             }
             else if ( rc )
             {
                PD_LOG ( PDERROR, "Failed to validate record, rc: %d", rc ) ;
-               goto error ; 
+               goto error ;
             }
          }
 
@@ -479,10 +479,10 @@ namespace engine
       }
    }
 
-   void _rtnContextStoreBuf::setContextValidator( 
+   void _rtnContextStoreBuf::setContextValidator(
                              _rtnContextValidator *contextValidator )
    {
-      _contextValidator = contextValidator ;   
+      _contextValidator = contextValidator ;
    }
 
    /*
@@ -656,7 +656,7 @@ namespace engine
       rc = _buffer.append( result, orgResult ) ;
       if ( SDB_IXM_ADVANCE_EOC == rc )
       {
-         goto done ; 
+         goto done ;
       }
       else if ( SDB_OK != rc )
       {
@@ -1010,20 +1010,20 @@ namespace engine
             }
 
             // For Data node: cl.query.sort(...).hint("$Range":{ ... })
-            if ( rc == SDB_IXM_ADVANCE_EOC ) 
+            if ( rc == SDB_IXM_ADVANCE_EOC )
             {
                rc = _prepareDoAdvance( cb ) ;
                if ( SDB_DMS_EOC == rc )
                {
-                  break ;  
+                  break ;
                }
-               else if ( rc ) 
+               else if ( rc )
                {
                   PD_LOG( PDERROR, "Prepare do advance failed, rc: %d", rc ) ;
                   goto error ;
                }
             }
-            else 
+            else
             {
                break;
             }
@@ -1211,6 +1211,20 @@ namespace engine
       }
       else
       {
+         BSONObj convertedIndexValue ;
+
+         try
+         {
+            convertedIndexValue = dotted2nested( objValue ) ;
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "An exception occurred when converting "
+                    "IndexValue: %s, rc: %d", e.what(), rc ) ;
+            goto error ;
+         }
+
          orderbyFieldNum = orderby.nFields() ;
          if ( prefixNum > orderbyFieldNum )
          {
@@ -1227,7 +1241,7 @@ namespace engine
             goto error ;
          }
 
-         rc = keyGen.getKeys( objValue, keyVal ) ;
+         rc = keyGen.getKeys( convertedIndexValue, keyVal ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Generate key value failed, rc: %d", rc ) ;
@@ -1393,7 +1407,7 @@ namespace engine
          {
             goto error ;
          }
-   
+
          rc = buffObj.nextObj( tmpObj ) ;
          if ( rc )
          {
