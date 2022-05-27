@@ -102,7 +102,7 @@ Spark 3.x 引入了 Java8 的新日期类型 java.time.LocalDate/java.time.Insta
     spark-sql> create table test(ts timestamp) using com.sequoiadb.spark options (host 'sdbserver:11810', collectionspace 'sample', collection 'employee', username 'sdbadmin', password 'sdbadmin');
     ```
 
-2. 数据查询会根据具体的 Session 时区将 SequoiaDB 中存储的 UTC 时间转换为对应时区的时间
+2. 数据查询会根据具体的 session 时区将 SequoiaDB 中存储的 UTC 时间转换为对应时区的时间
 
     ```sql-lang
     # 上海时区
@@ -121,7 +121,7 @@ Spark 3.x 引入了 Java8 的新日期类型 java.time.LocalDate/java.time.Insta
     1969-12-31 08:00:00.123456
     ```
 
-3. 数据写入会根据具体的 Session 时区将时间转换为不带时区的 UTC 时间
+3. 数据写入会根据具体的 session 时区将时间转换为不带时区的 UTC 时间
 
     ```sql-lang
     # 上海市区
