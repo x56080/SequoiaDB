@@ -1144,6 +1144,20 @@ namespace engine
       }
       else
       {
+         BSONObj convertedIndexValue ;
+
+         try
+         {
+            convertedIndexValue = dotted2nested( objValue ) ;
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "An exception occurred when converting "
+                    "IndexValue: %s, rc: %d", e.what(), rc ) ;
+            goto error ;
+         }
+
          orderbyFieldNum = orderby.nFields() ;
          if ( prefixNum > orderbyFieldNum )
          {
@@ -1159,7 +1173,7 @@ namespace engine
             goto error ;
          }
 
-         rc = keyGen.getKeys( objValue, keyVal ) ;
+         rc = keyGen.getKeys( convertedIndexValue, keyVal ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Generate key value failed, rc: %d", rc ) ;
@@ -1324,7 +1338,7 @@ namespace engine
          {
             goto error ;
          }
-   
+
          rc = buffObj.nextObj( tmpObj ) ;
          if ( rc )
          {
