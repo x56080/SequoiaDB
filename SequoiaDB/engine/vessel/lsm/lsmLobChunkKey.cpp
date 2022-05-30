@@ -40,6 +40,32 @@ namespace engine
 {
 namespace vessel
 {
+   void lsmLobChunkKey::setAsLowKey(UINT32 csid)
+   {
+      SDB_ASSERT(DMS_INVALID_LOGICCSID != csid, "can not be invalid");
+      set(csid, 0, bson::OID(), 0);
+   }
+
+   void lsmLobChunkKey::setAsLowKey(UINT32 csid, UINT32 clid)
+   {
+      SDB_ASSERT(DMS_INVALID_LOGICCSID != csid, "can not be invalid");
+      SDB_ASSERT(DMS_INVALID_LOGICCLID != clid, "can not be invalid");
+      set(csid, clid, bson::OID(), 0);
+   }
+
+   void lsmLobChunkKey::setAsUpKey(UINT32 csid)
+   {
+      SDB_ASSERT(DMS_INVALID_LOGICCSID != csid, "can not be invalid");
+      set(csid + 1, 0, bson::OID(), 0);
+   }
+
+   void lsmLobChunkKey::setAsUpKey(UINT32 csid, UINT32 clid)
+   {
+      SDB_ASSERT(DMS_INVALID_LOGICCSID != csid, "can not be invalid");
+      SDB_ASSERT(DMS_INVALID_LOGICCLID != clid, "can not be invalid");
+      set(csid, clid + 1, bson::OID(), 0);
+   }
+
    INT32 lsmLobChunkKey::compare(const lsmLobChunkKey &key)const
    {
       INT32 res = 0;
@@ -92,37 +118,6 @@ namespace vessel
 
    done:
       return res;
-   }
-
-   INT32 lsmLobcKeyComparatorImpl::Compare(const rocksdb::Slice &a,
-                                           const rocksdb::Slice &b)const
-   {
-      if (LSM_LOB_CHUNK_KEY_SIZE != a.size() ||
-          LSM_LOB_CHUNK_KEY_SIZE != b.size())
-      {
-         if (a.size() > b.size())
-         {
-            return 1;
-         }
-         else if (a.size() < b.size())
-         {
-            return -1;
-         }
-         else
-         {
-            return 0;
-         }
-      }
-
-      const lsmLobChunkKey *aKey = (const lsmLobChunkKey *)a.data();
-      const lsmLobChunkKey *bKey = (const lsmLobChunkKey *)b.data();
-      return aKey->compare(*bKey);
-   }
-
-   const rocksdb::Comparator* lsmLobcKeyComparator()
-   {
-      static lsmLobcKeyComparatorImpl _lsmLobcKeyComparator;
-      return &_lsmLobcKeyComparator;
    }
 
 } // namespace vessel

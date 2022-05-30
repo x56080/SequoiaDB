@@ -13,10 +13,10 @@ namespace vessel
 {
 
 // LSM Key rocksdb::Comparator implementation
-class LsmKeyComparatorImpl : public rocksdb::Comparator
+class LsmIdxKeyComparatorImpl : public rocksdb::Comparator
 {
 public:
-  LsmKeyComparatorImpl() {}
+  LsmIdxKeyComparatorImpl() {}
 
   // SDB LSM Tree Index is inspired by RocksDB key-value storage.
   // It serves as a LSM Tree type index manager with MVCC support.
@@ -262,7 +262,7 @@ public:
      }
   }
 
-  const char* Name() const override { return "sdb.LsmKeyComparator"; }
+  const char* Name() const override { return "sdb.LsmIdxKeyComparator"; }
 
   void FindShortestSeparator(std::string*,const rocksdb::Slice&)const override{}
   void FindShortSuccessor(std::string*) const override {}
@@ -270,10 +270,10 @@ public:
 } ; // class LsmKeyComparatorImpl
 
 
-const rocksdb::Comparator* lsmKeyComparator()
+const rocksdb::Comparator* lsmIdxKeyComparator()
 {
-  static LsmKeyComparatorImpl _lsmKeyComparator;
-  return & _lsmKeyComparator;
+  static LsmIdxKeyComparatorImpl _lsmIdxKeyComparator;
+  return & _lsmIdxKeyComparator;
 }
 
 

@@ -275,13 +275,13 @@ constexpr UINT32 LSM_LOW_BOUND_KEY_SIZE = lsmEntryTypeSz + lsmIdxIDSz;
 
 
 // Return SDB LSM key comparator
-extern const rocksdb::Comparator* lsmKeyComparator();
+extern const rocksdb::Comparator* lsmIdxKeyComparator();
 
 class lsmKeyEntry : public SDBObject
 {
 public:
    lsmKeyEntry(){}
-   virtual ~lsmKeyEntry() {}
+   ~lsmKeyEntry() {}
 
    lsmKeyEntry( const lsmKeyEntry & rhs ) = delete;
 

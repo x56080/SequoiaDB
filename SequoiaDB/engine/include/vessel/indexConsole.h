@@ -43,7 +43,7 @@
 #include "vessel/recordID.h"
 #include "vessel/indexSpace.h"
 #include "vessel/dmlIndexRequest.h"
-#include "vessel/lsm/lsmInsertBatch.h"
+#include "vessel/lsm/lsmIndexWriteBatch.h"
 #include "vessel/btreeIndexIterator.h"
 #include "vessel/lsm/lsmIndexIterator.h"
 
@@ -140,9 +140,8 @@ namespace vessel
          INT32 lsmTruncate(requestContext *context,
                            const indexObject *obj);
 
-         INT32 createLsmBatch(dmlContext *context,
-                              const dmlIndexRequestArray &ra,
-                              lsmInsertBatch &lsmBatch);
+         INT32 lsmCommit(dmlContext *context,
+                         const dmlIndexRequestArray &ra);
 
       private:
          

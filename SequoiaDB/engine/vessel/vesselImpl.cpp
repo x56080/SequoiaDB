@@ -47,7 +47,7 @@
 #include "vessel/collectionSpace.h"
 #include "vessel/spaceIDLockHelper.h"
 #include "vessel/indexScanCursor.h"
-#include "vessel/lsm/lsmDB.hpp"
+#include "vessel/lsm/lsmDB.h"
 #include "utilSharedPtrMaker.hpp"
 #include "vessel/api/collectionHandler.h"
 #include "dmsLobDef.hpp"
@@ -176,7 +176,7 @@ namespace vessel
 
          if (nullptr != _env.lsm)
          {
-            _env.lsm->closeLsmDB(TRUE, FALSE);
+            _env.lsm->close();
          }
 
          _env.workers.fini();
@@ -1101,9 +1101,9 @@ namespace vessel
          _env.options = openDBOptions();
          if (nullptr != _env.lsm)
          {
-            if (_env.lsm->isDBOpened())
+            if (_env.lsm->isOpen())
             {
-               _env.lsm->closeLsmDB(FALSE, TRUE);
+               _env.lsm->close();
             }
             SDB_OSS_DEL _env.lsm;
             _env.lsm = nullptr;
@@ -1151,8 +1151,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr == _env.lsm, "do not reinit");
       rocksdb::Status status;
-      LSMConfig conf;
-      conf.createDBIfMissing = TRUE;
+      rocksdb::Options opt;
       if (options.path.lsmPath.empty())
       {
          PD_LOG(PDERROR, "lsm db path is empty");
@@ -1160,7 +1159,6 @@ namespace vessel
          goto error;
       }
 
-      conf.dbPath = options.path.lsmPath;
       _env.lsm = SDB_OSS_NEW lsmDB();
       if (OSS_UNLIKELY(nullptr == _env.lsm))
       {
@@ -1169,14 +1167,11 @@ namespace vessel
          goto error;
       }
 
-      _env.lsm->initLsmDB(conf);
-
-      status = _env.lsm->openLsmDB();
-      if (!status.ok())
+      rc = _env.lsm->open(options.path.lsmPath.c_str());
+      if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to open lsm db under path[%s], info:[%s]",
-                conf.dbPath.c_str(), status.ToString().c_str());
-         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to open lsm db under path[%s]",
+                options.path.lsmPath.c_str());
          goto error;
       }
    done:

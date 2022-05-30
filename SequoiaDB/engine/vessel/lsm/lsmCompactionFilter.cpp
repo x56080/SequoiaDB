@@ -57,7 +57,7 @@ namespace vessel
          8. cache current key for next compare.
 
    */
-   bool lsmCompactionFilter::Filter(INT32 level,
+   bool lsmIdxCompactionFilter::Filter(INT32 level,
                                     const Slice& key,
                                     const Slice& existing_value,
                                     std::string* new_value,
@@ -149,10 +149,10 @@ namespace vessel
       return result;
    }
 
-   shared_ptr<CompactionFilterFactory> createCompactionFilterFactory()
+   shared_ptr<CompactionFilterFactory> createIdxCompactionFilterFactory()
    {
       return shared_ptr<CompactionFilterFactory>(
-                     new lsmCompactionFilterFactory());
+                     new lsmIdxCompactionFilterFactory());
    }
 }
 }

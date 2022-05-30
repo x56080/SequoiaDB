@@ -47,16 +47,16 @@ namespace engine
 {
 namespace vessel
 {
-class lsmCompactionFilter : public CompactionFilter
+class lsmIdxCompactionFilter : public CompactionFilter
 {
    public:
-      bool Filter(INT32 level,
-                  const Slice& key,
-                  const Slice& existing_value,
-                  std::string* new_value,
-                  bool* value_changed) const override;
+      virtual bool Filter(INT32 level,
+                          const Slice& key,
+                          const Slice& existing_value,
+                          std::string* new_value,
+                          bool* value_changed) const override;
 
-      const CHAR* Name() const override{return "sdb.LsmCompactionFilter";}
+      virtual const CHAR* Name() const override{return "sdb.lsmIdxCompactionFilter";}
    
    private:
       mutable bson::StackBufBuilder _cachedFullKeyBuilder;
@@ -64,23 +64,23 @@ class lsmCompactionFilter : public CompactionFilter
       mutable UINT32 _invalidCount = 0;
 };
 
-class lsmCompactionFilterFactory : public CompactionFilterFactory
+class lsmIdxCompactionFilterFactory : public CompactionFilterFactory
 {
    public:
-      unique_ptr<CompactionFilter> CreateCompactionFilter(
+      virtual unique_ptr<CompactionFilter> CreateCompactionFilter(
                      const CompactionFilter::Context& context) override
       {
-         return unique_ptr<CompactionFilter>(new lsmCompactionFilter());
+         return unique_ptr<CompactionFilter>(new lsmIdxCompactionFilter());
       }
 
       virtual const CHAR* Name() const override
       {
-         return "sdb.LsmCompactionFilterFactory";
+         return "sdb.lsmIdxCompactionFilterFactory";
       }
 
 };
 
-extern shared_ptr<CompactionFilterFactory> createCompactionFilterFactory();
+extern shared_ptr<CompactionFilterFactory> createIdxCompactionFilterFactory();
 
 }
 }

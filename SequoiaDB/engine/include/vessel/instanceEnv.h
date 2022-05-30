@@ -40,7 +40,6 @@
 #include "vessel/vesselOptions.h"
 #include "vessel/checkpointController.h"
 #include "vessel/dataManagementService.h"
-#include "vessel/lsm/lsmDB.hpp"
 #include "vessel/backgroundWorkers.h"
 #include "vessel/outerResource.h"
 #include "vessel/sharedObjLatchEnv.h"
