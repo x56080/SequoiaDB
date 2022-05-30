@@ -38,6 +38,7 @@
 #include "ixmKey.hpp"
 #include "vessel/instanceEnv.h"
 #include "vessel/indexUtils.h"
+#include "vessel/lsm/lsmDB.h"
 #include "vessel/lsm/lsmIndexValue.hpp"
 #include "vessel/lsm/lsmScanEntryParser.h"
 #include "vessel/runtimeMbContext.h"
@@ -59,7 +60,6 @@ namespace vessel
       _context = NULL;
       _obj = NULL;
       _globalId.reset();
-      _lsmDB = NULL;
       if (NULL != _itr)
       {
          delete _itr;
@@ -126,14 +126,12 @@ namespace vessel
 
       _forward = o.isForward();
       _globalId = indexId;
-      _lsmDB = context->getEnv()->lsm;
       _lowKey = rocksdb::Slice(_lowBoundKey, sizeof(_lowBoundKey));
       _upKey = rocksdb::Slice(_upperBoundKey, sizeof(_upperBoundKey));
-      opt = context->getEnv()->lsm->getReadOpt();
       opt.iterate_lower_bound = &_lowKey;
       opt.iterate_upper_bound = &_upKey;
       opt.auto_prefix_mode = TRUE;
-      _itr = _lsmDB->NewIterator(opt, LSM_CF_INDEX);
+      _itr = context->getEnv()->lsm->getIdxColumnFamily().newIterator(opt);
       if (NULL == _itr)
       {
          PD_LOG(PDERROR, "failed to allocate new itr");

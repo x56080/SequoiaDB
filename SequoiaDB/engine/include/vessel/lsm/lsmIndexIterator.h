@@ -48,8 +48,6 @@ namespace engine
 {
 namespace vessel
 {
-   class LSMDB;
-
    class lsmIndexIterator : public indexIterator
    {
       public:
@@ -135,7 +133,6 @@ namespace vessel
          requestContext *_context = NULL;
          indexObject *_obj = NULL;
          globalIndexID _globalId;
-         LSMDB *_lsmDB = NULL;
          rocksdb::Iterator *_itr = NULL;
          CHAR _lowBoundKey[LSM_LOW_BOUND_KEY_SIZE] = {};
          CHAR _upperBoundKey[LSM_LOW_BOUND_KEY_SIZE] = {};

@@ -39,7 +39,7 @@
 #include "rocksdb/compaction_filter.h"
 #include "vessel/vesselImpl.h"
 #include "vessel/lsm/lsmCompactionFilter.hpp"
-#include "vessel/lsm/lsmIndex.hpp"
+#include "vessel/lsm/lsmDB.h"
 #include <boost/filesystem.hpp>
 
 using namespace std;
@@ -92,9 +92,9 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test1)
 {
    INT32 rc = SDB_OK;
    lsmDB ldb;
-   LSMConfig conf;
-   conf.createDBIfMissing = TRUE;
-   conf.dbPath = LSM_PATH;
+   rocksdb::Options opt;
+   opt.create_if_missing = TRUE;
+   opt.create_missing_column_families = TRUE;
 
    CHAR fullKey[100] = {};
    CHAR indexValue[LSM_VALUE_SIZE] = {};
@@ -108,9 +108,8 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test1)
 
    lsmIndexValue vl;
 
-   ldb.initLsmDB(conf);
-   Status s = ldb.openLsmDB();
-   ASSERT_TRUE(s.ok());
+   rc = ldb.open(LSM_PATH, &opt);
+   ASSERT_EQ(SDB_OK, rc);
    
    // insert
    vl.reset(LSM_VALUE_TYPE_INSERT);
@@ -121,9 +120,10 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test1)
    ASSERT_EQ(SDB_OK, rc);
 
    ossMemcpy(indexValue, &vl, LSM_VALUE_SIZE);
-   s = ldb.Put(Slice(fullKey,sizeof(fullKey)), 
-               Slice(indexValue, LSM_VALUE_SIZE));
-   ASSERT_TRUE(s.ok());
+   rc = ldb.getIdxColumnFamily().put(Slice(fullKey,sizeof(fullKey)), 
+                                     Slice(indexValue, LSM_VALUE_SIZE),
+                                     rocksdb::WriteOptions());
+   ASSERT_EQ(SDB_OK, rc);
 
    // delete
    rc = lsmPackIndexFullKey(fullKey, sizeof(fullKey), 
@@ -133,8 +133,9 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test1)
    ASSERT_EQ(SDB_OK, rc);
    vl.reset(LSM_VALUE_TYPE_DELETE);
    ossMemcpy(indexValue, &vl, LSM_VALUE_SIZE);
-   ldb.Put(Slice(fullKey, sizeof(fullKey)), 
-           Slice(indexValue, LSM_VALUE_SIZE));
+   ldb.getIdxColumnFamily().put(Slice(fullKey, sizeof(fullKey)), 
+                                Slice(indexValue, LSM_VALUE_SIZE),
+                                rocksdb::WriteOptions());
 
    // re-insert
    vl.reset(LSM_VALUE_TYPE_INSERT);
@@ -145,11 +146,13 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test1)
    ASSERT_EQ(SDB_OK, rc);
 
    ossMemcpy(indexValue, &vl, LSM_VALUE_SIZE);
-   s = ldb.Put(Slice(fullKey,sizeof(fullKey)), 
-               Slice(indexValue, LSM_VALUE_SIZE));
-   ASSERT_TRUE(s.ok());
+   rc = ldb.getIdxColumnFamily().put(Slice(fullKey,sizeof(fullKey)), 
+                                     Slice(indexValue, LSM_VALUE_SIZE),
+                                     rocksdb::WriteOptions());
+   ASSERT_EQ(SDB_OK, rc);
 
-   Iterator *itr = ldb.NewIterator();
+   Iterator *itr = ldb.getIdxColumnFamily().newIterator(rocksdb::ReadOptions());
+   ASSERT_NE(nullptr, itr);
    for(itr->SeekToFirst(); itr->Valid(); itr->Next())
    {
       ++count;
@@ -157,11 +160,12 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test1)
    delete itr;
    ASSERT_EQ(3, count);
    
-   CompactRangeOptions options;
-   s = ldb.CompactRange(options, NULL, NULL);
-   ASSERT_TRUE(s.ok());
 
-   itr = ldb.NewIterator();
+   rc = ldb.getIdxColumnFamily().compact(nullptr, nullptr, rocksdb::CompactRangeOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   itr = ldb.getIdxColumnFamily().newIterator(rocksdb::ReadOptions());
+   ASSERT_NE(nullptr, itr);
    count = 0;
    for(itr->SeekToFirst(); itr->Valid(); itr->Next())
    {
@@ -172,8 +176,7 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test1)
    delete itr;
    ASSERT_EQ(1, count);
 
-   s = ldb.closeLsmDB();
-   ASSERT_TRUE(s.ok());
+   ldb.close();
 }
 
 
@@ -194,12 +197,11 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test2)
    INT32 rc = SDB_OK;
 
    lsmDB ldb;
-   LSMConfig conf;
-   conf.dbPath = LSM_PATH;
-   conf.createDBIfMissing = TRUE;
-   ldb.initLsmDB(conf);
-   Status s = ldb.openLsmDB();
-   ASSERT_TRUE(s.ok());
+   rocksdb::Options opt;
+   opt.create_if_missing = TRUE;
+   opt.create_missing_column_families = TRUE;
+   rc = ldb.open(LSM_PATH, &opt);
+   ASSERT_EQ(SDB_OK, rc);
 
    CHAR fullKey[100] = {};
    CHAR indexValue[LSM_VALUE_SIZE] = {};
@@ -228,9 +230,10 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test2)
       ASSERT_EQ(SDB_OK, rc);
 
       ossMemcpy(indexValue, &vl, LSM_VALUE_SIZE);
-      s = ldb.Put(Slice(fullKey, sizeof(fullKey)), 
-                  Slice(indexValue, LSM_VALUE_SIZE));
-      ASSERT_TRUE(s.ok());
+      rc = ldb.getIdxColumnFamily().put(Slice(fullKey, sizeof(fullKey)), 
+                                        Slice(indexValue, LSM_VALUE_SIZE),
+                                        rocksdb::WriteOptions());
+      ASSERT_EQ(SDB_OK, rc);
    }
 
    // delete
@@ -246,13 +249,14 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test2)
       ASSERT_EQ(SDB_OK, rc);
 
       ossMemcpy(indexValue, &vl, LSM_VALUE_SIZE);
-      s = ldb.Put(Slice(fullKey,sizeof(fullKey)), 
-                  Slice(indexValue, LSM_VALUE_SIZE));
-      ASSERT_TRUE(s.ok());
+      rc = ldb.getIdxColumnFamily().put(Slice(fullKey,sizeof(fullKey)), 
+                                        Slice(indexValue, LSM_VALUE_SIZE),
+                                        rocksdb::WriteOptions());
+      ASSERT_EQ(SDB_OK, rc);
    }
    
 
-   Iterator* itr = ldb.NewIterator();
+   Iterator* itr = ldb.getIdxColumnFamily().newIterator(rocksdb::ReadOptions());
    for (itr->SeekToFirst(); itr->Valid(); itr->Next())
    {
       ++count;
@@ -260,10 +264,10 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test2)
    delete itr;
    ASSERT_EQ(insertCount + insertCount/2, count);
 
-   CompactRangeOptions options;
-   ldb.CompactRange(options, NULL, NULL);
+   ldb.getIdxColumnFamily().compact(nullptr, nullptr, rocksdb::CompactRangeOptions());
 
-   itr =  ldb.NewIterator();
+   itr =  ldb.getIdxColumnFamily().newIterator(rocksdb::ReadOptions());
+   ASSERT_NE(nullptr, itr);
    count = 0;
    UINT32 i = insertCount / 2 + 1;
    lsmKeyEntry key;
@@ -284,8 +288,7 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test2)
    delete itr;
    ASSERT_EQ(insertCount/2, count);
 
-   s = ldb.closeLsmDB();
-   ASSERT_TRUE(s.ok());
+   ldb.close();
 }
 
 /*
@@ -305,12 +308,11 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test3)
    INT32 rc = SDB_OK;
 
    lsmDB ldb;
-   LSMConfig conf;
-   conf.dbPath = LSM_PATH;
-   conf.createDBIfMissing = TRUE;
-   ldb.initLsmDB(conf);
-   Status s = ldb.openLsmDB();
-   ASSERT_TRUE(s.ok());
+   rocksdb::Options opt;
+   opt.create_if_missing = TRUE;
+   opt.create_missing_column_families = TRUE;
+   rc = ldb.open(LSM_PATH, &opt);
+   ASSERT_EQ(SDB_OK, rc);
 
    CHAR fullKey[100] = {};
    CHAR indexValue[LSM_VALUE_SIZE] = {};
@@ -333,18 +335,20 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test3)
    ASSERT_EQ(SDB_OK, rc);
 
    ossMemcpy(indexValue, &vl, LSM_VALUE_SIZE);
-   s = ldb.Put(Slice(fullKey, sizeof(fullKey)), 
-               Slice(indexValue, LSM_VALUE_SIZE));
-   ASSERT_TRUE(s.ok());
+   rc = ldb.getIdxColumnFamily().put(Slice(fullKey, sizeof(fullKey)), 
+                                     Slice(indexValue, LSM_VALUE_SIZE),
+                                     rocksdb::WriteOptions());
+   ASSERT_EQ(SDB_OK, rc);
 
    rc = lsmPackIndexFullKey(fullKey, sizeof(fullKey), 
                            indexId, ordering, 
                            ixmKey(&keyData2), 
                            rid, 1, transId);
    ASSERT_EQ(SDB_OK, rc);
-   s = ldb.Put(Slice(fullKey, sizeof(fullKey)), 
-               Slice(indexValue, LSM_VALUE_SIZE));
-   ASSERT_TRUE(s.ok());
+   rc = ldb.getIdxColumnFamily().put(Slice(fullKey, sizeof(fullKey)), 
+                                     Slice(indexValue, LSM_VALUE_SIZE),
+                                     rocksdb::WriteOptions());
+   ASSERT_EQ(SDB_OK, rc);
 
    //delete
    vl.reset(LSM_VALUE_TYPE_DELETE);
@@ -355,23 +359,26 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test3)
    ASSERT_EQ(SDB_OK, rc);
 
    ossMemcpy(indexValue, &vl, LSM_VALUE_SIZE);
-   s = ldb.Put(Slice(fullKey, sizeof(fullKey)), 
-               Slice(indexValue, LSM_VALUE_SIZE));
-   ASSERT_TRUE(s.ok());
+   rc = ldb.getIdxColumnFamily().put(Slice(fullKey, sizeof(fullKey)), 
+                                     Slice(indexValue, LSM_VALUE_SIZE),
+                                     rocksdb::WriteOptions());
+   ASSERT_EQ(SDB_OK, rc);
 
-   Iterator* itr = ldb.NewIterator();
+   Iterator* itr = ldb.getIdxColumnFamily().newIterator(rocksdb::ReadOptions());
    for (itr->SeekToFirst(); itr->Valid(); itr->Next())
    {
       ++count;
    }
    delete itr;
-   ASSERT_EQ(3, count);
+   ASSERT_EQ((UINT32)3, count);
 
 
-   CompactRangeOptions options;
-   ldb.CompactRange(options, NULL, NULL);
+   rc = ldb.getIdxColumnFamily().compact(nullptr, nullptr,
+                                         rocksdb::CompactRangeOptions());
+   ASSERT_EQ(SDB_OK, rc);
 
-   itr = ldb.NewIterator();
+   itr = ldb.getIdxColumnFamily().newIterator(rocksdb::ReadOptions());
+   ASSERT_NE(nullptr, itr);
    count = 0;
    lsmKeyEntry key;
    for (itr->SeekToFirst(); itr->Valid(); itr->Next())
@@ -385,10 +392,9 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test3)
       ++count;
    }
    delete itr;
-   ASSERT_EQ(1, count);
+   ASSERT_EQ((UINT32)1, count);
 
-   s = ldb.closeLsmDB();
-   ASSERT_TRUE(s.ok());
+   ldb.close();
 
 }
 
@@ -407,9 +413,11 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test4)
 {
    INT32 rc = SDB_OK;
    lsmDB ldb;
-   LSMConfig conf;
-   conf.dbPath = LSM_PATH;
-   conf.createDBIfMissing = TRUE;
+   rocksdb::Options opt;
+   opt.create_if_missing = TRUE;
+   opt.create_missing_column_families = TRUE;
+   rc = ldb.open(LSM_PATH, &opt);
+   ASSERT_EQ(SDB_OK, rc);
    CHAR fullKey[100] = {};
    CHAR indexValue[LSM_VALUE_SIZE] = {};
 
@@ -421,9 +429,9 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test4)
 
    UINT32 count = 0;
 
-   ldb.initLsmDB(conf);
-   Status s = ldb.openLsmDB();
-   ASSERT_TRUE(s.ok());
+   rc = ldb.open(LSM_PATH, &opt);
+   ASSERT_EQ(SDB_OK, rc);
+
 
    lsmIndexValue vl;
 
@@ -436,9 +444,10 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test4)
                             rid, 1, transId);
    ASSERT_EQ(SDB_OK, rc);
    ossMemcpy(indexValue, &vl, LSM_VALUE_SIZE);
-   s = ldb.Put(Slice(fullKey, sizeof(fullKey)), 
-               Slice(indexValue, LSM_VALUE_SIZE));
-   ASSERT_TRUE(s.ok());
+   rc = ldb.getIdxColumnFamily().put(Slice(fullKey, sizeof(fullKey)), 
+                                     Slice(indexValue, LSM_VALUE_SIZE),
+                                     rocksdb::WriteOptions());
+   ASSERT_EQ(SDB_OK, rc);
 
 
    // insert
@@ -449,22 +458,25 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test4)
                            rid, 1, transId);
    ASSERT_EQ(SDB_OK, rc);
    ossMemcpy(indexValue, &vl, LSM_VALUE_SIZE);
-   s = ldb.Put(Slice(fullKey, sizeof(fullKey)), 
-               Slice(indexValue, LSM_VALUE_SIZE));
-   ASSERT_TRUE(s.ok());
+   rc = ldb.getIdxColumnFamily().put(Slice(fullKey, sizeof(fullKey)), 
+                                     Slice(indexValue, LSM_VALUE_SIZE),
+                                     rocksdb::WriteOptions());
+   ASSERT_EQ(SDB_OK, rc);
 
-   Iterator* itr = ldb.NewIterator();
+   Iterator* itr = ldb.getIdxColumnFamily().newIterator(rocksdb::ReadOptions());
+   ASSERT_NE(nullptr, itr);
    for (itr->SeekToFirst(); itr->Valid(); itr->Next())
    {
       ++count;
    }
    delete itr;
-   ASSERT_EQ(2, count);
+   ASSERT_EQ((UINT32)2, count);
 
-   CompactRangeOptions options;
-   ldb.CompactRange(options, NULL, NULL);
+   ldb.getIdxColumnFamily().compact(nullptr, nullptr,
+                                    rocksdb::CompactRangeOptions());
 
-   itr = ldb.NewIterator();
+   itr = ldb.getIdxColumnFamily().newIterator(rocksdb::ReadOptions());
+   ASSERT_NE(nullptr, itr);
    count = 0;
    for (itr->SeekToFirst(); itr->Valid(); itr->Next())
    {
@@ -472,5 +484,5 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test4)
    }
    delete itr;
    ASSERT_EQ(2, count);
-   ldb.closeLsmDB();
+   ldb.close();
 }

@@ -48,11 +48,11 @@ namespace vessel
    class lsmLobChunkKey : public SDBObject
    {
       public:
-         lsmLobChunkKey(){}
-         ~lsmLobChunkKey(){}
+         lsmLobChunkKey() = default;
+         ~lsmLobChunkKey() = default;
          lsmLobChunkKey(UINT32 csid,
                         UINT32 clid,
-                        bson::OID oid,
+                        const bson::OID &oid,
                         UINT32 chunkId):
          _csId(csid),
          _clId(clid),
@@ -77,6 +77,25 @@ namespace vessel
          }
       
       public:
+         OSS_INLINE void set(UINT32 csid,
+                             UINT32 clid,
+                             const bson::OID &oid,
+                             UINT32 chunkId)
+         {
+            _csId = csid;
+            _clId = clid;
+            _oid = oid;
+            _chunkId = chunkId;
+         }
+
+         OSS_INLINE void reset()
+         {
+            _csId = DMS_INVALID_LOGICCSID;
+            _clId = DMS_INVALID_LOGICCLID;
+            _oid.clear();
+            _chunkId = 0;
+         }
+
          OSS_INLINE BOOLEAN isValid()const
          {
             return _csId != DMS_INVALID_LOGICCSID &&
@@ -89,6 +108,11 @@ namespace vessel
             return rocksdb::Slice((const CHAR *)this, sizeof(lsmLobChunkKey));
          }
 
+         void setAsLowKey(UINT32 csid);
+         void setAsLowKey(UINT32 csid, UINT32 clid);
+         void setAsUpKey(UINT32 csid);
+         void setAsUpKey(UINT32 csid, UINT32 clid);
+
          INT32 compare(const lsmLobChunkKey &key)const;
 
       private:
@@ -99,19 +123,6 @@ namespace vessel
    }; // class lsmLobChunkKey
    static_assert(LSM_LOB_CHUNK_KEY_SIZE == sizeof(lsmLobChunkKey), "invalid size");
 #pragma pack()
-
-   class lsmLobcKeyComparatorImpl : public rocksdb::Comparator
-   {
-      public:
-         virtual INT32 Compare(const rocksdb::Slice &a, const rocksdb::Slice &b)const override;
-
-         virtual const CHAR* Name()const override{return "sdb.lsmLobcKeyComparator";}
-
-         virtual void FindShortestSeparator(std::string*, const rocksdb::Slice&)const override{}
-         virtual void FindShortSuccessor(std::string*)const override{}
-   };
-
-   const rocksdb::Comparator* lsmLobcKeyComparator();
 } // namespace vessel
 } // namespace engine
 

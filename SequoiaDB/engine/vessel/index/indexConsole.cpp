@@ -56,7 +56,7 @@
 #include "vessel/clIndexMetaBlockPage.h"
 
 #include "vessel/lsm/lsmIndexMeta.hpp"
-#include "vessel/lsm/lsmIndex.hpp"
+#include "vessel/lsm/lsmIndexExecutor.h"
 
 #include "vessel/btreeAccessor.h"
 
@@ -602,22 +602,16 @@ namespace vessel
                         gcid.getCLLid(),
                         obj->getIndexId().getLogicalIndexId());
       lsmIndexMeta lsmMeta(gid, obj->getDescription().getPattern().getOrdering());
-      lsmIndex lsm;
+      lsmIndexExecutor exec;
       lsmKeyEntry lsmEntry;
 
-      rc = lsm.init(context->getEnv()->lsm, lsmMeta);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init lsm index:%d", rc);
-         goto error;
-      }
+      exec.init(lsmMeta);
 
       lsmEntry.shallowCopy(key, rid, lsn, transID);
-
-      rc = lsm.keyInsert(lsmEntry);
+      rc = exec.put(lsmEntry);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to insert into lsm index:%d", rc);
+         PD_LOG(PDERROR, "put key into executor failed, rc:%d", rc);
          goto error;
       }
    done:
@@ -681,19 +675,14 @@ namespace vessel
                         gcid.getCLLid(),
                         obj->getIndexId().getLogicalIndexId());
       lsmIndexMeta meta(gid, obj->getDescription().getPattern().getOrdering());
-      lsmIndex lsm;
+      lsmIndexExecutor exec;
 
-      rc = lsm.init(context->getEnv()->lsm, meta);
+      exec.init(meta);
+
+      rc = exec.truncate();
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to init lsm index:%d", rc);
-         goto error;
-      }
-
-      rc = lsm.truncateIndex(context->getExecutor()->getEndLsn());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to truncate lsm index[%s]:%d",
+         PD_LOG(PDERROR, "truncate lsm index failed, index:[%s], rc:%d",
                 obj->getDescription().getName().c_str(), rc);
          goto error;
       }
@@ -861,7 +850,6 @@ namespace vessel
                                         const dmlIndexRequestArray &ra)
    {
       INT32 rc = SDB_OK;
-      lsmInsertBatch lsmBatch;
       rocksdb::Status status;
 
       if (OSS_UNLIKELY(!isInitialized()))
@@ -880,20 +868,6 @@ namespace vessel
          goto done;
       }
 
-      rc = createLsmBatch(context, ra, lsmBatch);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to create lsm batch:%d", rc);
-         goto error;
-      }
-
-      if (!lsmBatch.isEmpty() && NULL == context->getEnv()->lsm)
-      {
-         PD_LOG(PDERROR, "lsm index instance not inited yet");
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-
       rc = btreeCommit(context, ra);
       if (SDB_OK != rc)
       {
@@ -901,16 +875,13 @@ namespace vessel
          goto error;
       }
 
-      if (!lsmBatch.isEmpty())
+      rc = lsmCommit(context, ra);
+      if (SDB_OK != rc)
       {
-         status = context->getEnv()->lsm->Write(lsmBatch.getBatch());
-         if (!status.ok())
-         {
-            PD_LOG(PDERROR, "failed to write lsm batch:%s", status.getState());
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            goto error;
-         }
+         PD_LOG(PDERROR, "insert lsm index failed", rc);
+         goto error;
       }
+
    done:
       return rc;
    error:
@@ -918,9 +889,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 indexConsole::createLsmBatch(dmlContext *context,
-                                      const dmlIndexRequestArray &ra,
-                                      lsmInsertBatch &lsmBatch)
+   INT32 indexConsole::lsmCommit(dmlContext *context,
+                                 const dmlIndexRequestArray &ra)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context && context->isMbContextAttached(), "can not be null");
@@ -928,8 +898,9 @@ namespace vessel
       const globalCollectionId &gcid = context->getMbContext()->getGlobalId();
       SDB_ASSERT(gcid.isValid(), "can not be invalid");
 
-      lsmBatch.clear();
+      lsmIndexWriteBatch batch;
       UINT32 size = ra.getSize();
+      batch.open();
       for (UINT32 i = 0; i < size; ++i)
       {
          const dmlIndexRequest *ir = ra.get(i);
@@ -955,7 +926,7 @@ namespace vessel
             ke.shallowCopy(key, context->getRid(), context->getDmlLSN(),
                            context->getExecutor()->getTransID());
             vl.reset(LSM_VALUE_TYPE_INSERT);
-            rc = lsmBatch.put(meta, ke, &vl);
+            rc = batch.put(meta, ke, vl);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to push data into batch:%d", rc);
@@ -972,7 +943,7 @@ namespace vessel
             ke.shallowCopy(key, context->getRid(), context->getDmlLSN(),
                            context->getExecutor()->getTransID());
             vl.reset(LSM_VALUE_TYPE_DELETE);
-            rc = lsmBatch.put(meta, ke, &vl);
+            rc = batch.put(meta, ke, vl);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to push data into batch:%d", rc);
@@ -981,10 +952,19 @@ namespace vessel
          }
 
       }
+
+      if (!batch.isEmpty())
+      {
+         rc = batch.commit();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "write lsm index batch failed, rc:%d", rc);
+            goto error;
+         }
+      }
    done:
       return rc;
    error:
-      lsmBatch.clear();
       goto done;
    }
 

@@ -59,9 +59,7 @@ public:
      SDB_ASSERT( (idxId.isValid()), "Invalid IndexID" ) ;
   }
 
-  virtual ~lsmIndexMeta()
-  {
-  }
+  ~lsmIndexMeta() = default;
 
   lsmIndexMeta& operator= ( const lsmIndexMeta &rhs )
   {
