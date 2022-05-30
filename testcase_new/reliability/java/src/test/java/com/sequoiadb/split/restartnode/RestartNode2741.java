@@ -88,7 +88,7 @@ public class RestartNode2741 extends SdbTestBase {
     }
 
     @Test
-    public void test() throws Exception {
+    public void test() {
         try {
             // 获取源和目标组的GroupWrapper对象
             GroupWrapper srcGroup = groupMgr.getGroupByName( srcGroupName );

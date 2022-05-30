@@ -141,8 +141,6 @@ public class RestartNode2733 extends SdbTestBase {
             clearFlag = true;
         } catch ( ReliabilityException e ) {
             Assert.fail( e.getMessage() + "\r\n" + Utils.getStackString( e ) );
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
