@@ -685,14 +685,14 @@ namespace engine
                   sizeof(MsgHeaderV1) : sizeof(MsgHeader) ;
 
             INT32 rc = _pClientSock->recv( (CHAR*)&header , headerLen,
-                                           receivedLen, 0, MSG_PEEK, TRUE, TRUE ) ;
-            if ( rc >= headerLen )
+                                           receivedLen, 0, MSG_PEEK, TRUE, FALSE ) ;
+            if ( receivedLen >= headerLen )
             {
                opCode = ( SDB_PROTOCOL_VER_1 == version ) ?
                         ( (MsgHeaderV1 *)(&header) )->opCode : header.opCode ;
             }
 
-            if ( ( rc >= headerLen &&
+            if ( ( receivedLen >= headerLen &&
                    MSG_BS_DISCONNECT == opCode ) ||
                  SDB_NETWORK_CLOSE == rc ||
                  SDB_NETWORK == rc )
@@ -701,7 +701,7 @@ namespace engine
                _isInterruptSelf = FALSE ;
                ret = TRUE ;
             }
-            else if ( rc >= headerLen &&
+            else if ( receivedLen >= headerLen &&
                       ( MSG_BS_INTERRUPTE == opCode ||
                         MSG_BS_INTERRUPTE_SELF == opCode ) )
             {

@@ -371,55 +371,21 @@ INT32 _ossSocket::send ( const CHAR *pMsg, INT32 len,
 
    UINT32 retries = 0 ;
    sentLen = 0 ;
-   SOCKET maxFD = _fd ;
-   struct timeval maxSelectTime ;
-   fd_set fds ;
 
    PD_CHECK( _init, SDB_SYS, error, PDWARNING, "Socket is not init" ) ;
 
-   maxSelectTime.tv_sec = timeout / 1000 ;
-   maxSelectTime.tv_usec = ( timeout % 1000 ) * 1000 ;
    // if we don't expect to receive anything, no need to continue
    if ( 0 == len )
    {
       return SDB_OK ;
    }
 
-   // wait loop until the socket is ready
-   while ( TRUE )
+   rc = _selectForWrite( timeout ) ;
+   if ( SDB_OK != rc )
    {
-      FD_ZERO ( &fds ) ;
-      FD_SET ( _fd, &fds ) ;
-      rc = select ( maxFD + 1, NULL, &fds, NULL,
-                    timeout>=0?&maxSelectTime:NULL ) ;
-
-      // 0 means timeout
-      if ( 0 == rc )
-      {
-         rc = SDB_TIMEOUT ;
-         goto done ;
-      }
-      // if < 0, means something wrong
-      if ( 0 > rc )
-      {
-         rc = SOCKET_GETLASTERROR ;
-         // if we failed due to interrupt, let's continue
-         if ( SOCKET_EINTR == rc )
-         {
-            continue ;
-         }
-         PD_LOG ( PDERROR, "Failed to select from socket, errno: %d( %s )",
-                  rc, ossGetLastErrorMsg( rc ) ) ;
-         rc = SDB_NETWORK ;
-         goto error ;
-      }
-
-      // if the socket we interested is not receiving anything, let's continue
-      if ( FD_ISSET ( _fd, &fds ) )
-      {
-         break ;
-      }
+      goto error ;
    }
+
    while ( len > 0 )
    {
 #ifdef SDB_SSL
@@ -549,9 +515,6 @@ INT32 _ossSocket::recv ( CHAR *pMsg, INT32 len,
    PD_TRACE_ENTRY ( SDB_OSSSK_RECV );
    SDB_ASSERT ( pMsg, "message is NULL" ) ;
    UINT32 retries = 0 ;
-   SOCKET maxFD = _fd ;
-   struct timeval maxSelectTime ;
-   fd_set fds ;
    receivedLen = 0 ;
 
    PD_CHECK( _init, SDB_SYS, error, PDWARNING, "Socket is not init" ) ;
@@ -567,6 +530,17 @@ INT32 _ossSocket::recv ( CHAR *pMsg, INT32 len,
    {
       while ( len > 0 )
       {
+         // for SSL connection, has pending bytes means connect had been read
+         // for processing
+         // if no pending, we can call select to test the raw socket
+         if ( !ossSSLHasPending( _sslHandle ) )
+         {
+            rc = _selectForRead( timeout ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+         }
          if ( flags & MSG_PEEK )
          {
             rc = ossSSLPeek ( _sslHandle, pMsg, len ) ;
@@ -614,42 +588,12 @@ INT32 _ossSocket::recv ( CHAR *pMsg, INT32 len,
    }
 #endif /* SDB_SSL */
 
-   maxSelectTime.tv_sec = timeout / 1000 ;
-   maxSelectTime.tv_usec = ( timeout % 1000 ) * 1000 ;
-   // wait loop until either we timeout or get a message
-   while ( true )
+   rc = _selectForRead( timeout ) ;
+   if ( SDB_OK != rc )
    {
-      FD_ZERO ( &fds ) ;
-      FD_SET ( _fd, &fds ) ;
-      rc = select ( maxFD + 1, &fds, NULL, NULL,
-                    timeout>=0?&maxSelectTime:NULL ) ;
-
-      // 0 means timeout
-      if ( 0 == rc )
-      {
-         rc = SDB_TIMEOUT ;
-         goto done ;
-      }
-      // if < 0, means something wrong
-      if ( 0 > rc )
-      {
-         rc = SOCKET_GETLASTERROR ;
-         // if we failed due to interrupt, let's continue
-         if ( SOCKET_EINTR == rc )
-         {
-            continue ;
-         }
-         PD_LOG ( PDERROR, "Failed to select from socket, rc = %d", rc) ;
-         rc = SDB_NETWORK ;
-         goto error ;
-      }
-
-      // if the socket we interested is not receiving anything, let's continue
-      if ( FD_ISSET ( _fd, &fds ) )
-      {
-         break ;
-      }
+      goto error ;
    }
+
    // Once we start receiving message, there's no chance to timeout, in order to
    // prevent partial read
    while ( len > 0 )
@@ -664,13 +608,15 @@ INT32 _ossSocket::recv ( CHAR *pMsg, INT32 len,
 #endif
       if ( rc > 0 )
       {
+         receivedLen += rc ;
+         len -= rc ;
+         pMsg += rc ;
+         rc = SDB_OK ;
+
          if ( flags & MSG_PEEK )
          {
             goto done ;
          }
-         receivedLen += rc ;
-         len -= rc ;
-         pMsg += rc ;
 
          // non-block
          if ( !block )
@@ -1301,6 +1247,99 @@ INT32 _ossSocket::_complete( INT32 timeout )
 }
 
 #endif // (_LINUX) || defined (_AIX)
+
+INT32 _ossSocket::_select( BOOLEAN isRead, BOOLEAN isWrite, INT32 timeout )
+{
+   INT32 rc = SDB_OK ;
+
+   SOCKET maxFD = _fd ;
+   struct timeval maxSelectTime ;
+   fd_set readFDs, writeFDs ;
+
+   if ( !isRead && !isWrite )
+   {
+      // do nothing
+      goto done ;
+   }
+
+   maxSelectTime.tv_sec = timeout / 1000 ;
+   maxSelectTime.tv_usec = ( timeout % 1000 ) * 1000 ;
+
+   // wait loop until the socket is ready
+   while ( TRUE )
+   {
+      FD_ZERO( &readFDs ) ;
+      FD_ZERO( &writeFDs ) ;
+
+      if ( isRead )
+      {
+         FD_SET( _fd, &readFDs ) ;
+      }
+      if ( isWrite )
+      {
+         FD_SET( _fd, &writeFDs ) ;
+      }
+      rc = select ( maxFD + 1,
+                    isRead ? &readFDs : NULL,
+                    isWrite ? &writeFDs : NULL,
+                    NULL,
+                    timeout >= 0 ? &maxSelectTime : NULL ) ;
+
+      // 0 means timeout
+      if ( 0 == rc )
+      {
+         rc = SDB_TIMEOUT ;
+         goto done ;
+      }
+      // if < 0, means something wrong
+      if ( 0 > rc )
+      {
+         rc = SOCKET_GETLASTERROR ;
+         // if we failed due to interrupt, let's continue
+         if ( SOCKET_EINTR == rc )
+         {
+            continue ;
+         }
+         PD_LOG ( PDERROR, "Failed to select from socket, errno: %d( %s )",
+                  rc, ossGetLastErrorMsg( rc ) ) ;
+         rc = SDB_NETWORK ;
+         goto error ;
+      }
+
+      // if the socket we interested is not receiving anything, let's continue
+      if ( isRead && isWrite )
+      {
+         if ( ( FD_ISSET( _fd, &readFDs ) ) &&
+              ( FD_ISSET( _fd, &writeFDs ) ) )
+         {
+            rc = SDB_OK ;
+            break ;
+         }
+      }
+      else if ( isRead )
+      {
+         if ( FD_ISSET( _fd, &readFDs ) )
+         {
+            rc = SDB_OK ;
+            break ;
+         }
+      }
+      else if ( isWrite )
+      {
+         if ( FD_ISSET( _fd, &writeFDs ) )
+         {
+            rc = SDB_OK ;
+            break ;
+         }
+      }
+   }
+
+done:
+   return rc ;
+
+error:
+   goto done ;
+}
 
 // socket functions implement:
 

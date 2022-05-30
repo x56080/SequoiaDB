@@ -112,6 +112,17 @@ class _ossSocket : public SDBObject
       INT32    _getAddress ( sockaddr_in *addr, CHAR *pAddress,
                              UINT32 length ) ;
       INT32    _complete( INT32 timeout ) ;
+      INT32    _select( BOOLEAN isRead, BOOLEAN isWrite, INT32 timeout ) ;
+
+      INT32    _selectForRead( INT32 timeout )
+      {
+         return _select( TRUE, FALSE, timeout ) ;
+      }
+
+      INT32    _selectForWrite( INT32 timeout )
+      {
+         return _select( FALSE, TRUE, timeout ) ;
+      }
 
    public :
       INT32 setSocketLi ( INT32 lOnOff, INT32 linger ) ;
