@@ -1055,10 +1055,10 @@ if hasTestcase:
 #          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
 #          _LIBDEPS='$_LIBDEPS_OBJS' )
    clienttest = env.Program("clienttest", clientTestFiles,
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","pd","pmd","mig","util","rtn","ixm","msg","dms","mth","opt","bson","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel", "zstd", "bzip2"],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","pd","pmd","mig","util","rtn","ixm","msg","dms","mth","opt","bson","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel", lz4_lib, "zstd", "bzip2"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
    utilListTest = env.Program("utilListTest", utilListFiles,
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","pd","pmd","mig","util","rtn","ixm","msg","dms","mth","opt","bson","mon","net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel", "zstd", "bzip2"],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","pd","pmd","mig","util","rtn","ixm","msg","dms","mth","opt","bson","mon","net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel", lz4_lib, "zstd", "bzip2"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
 #   utilEnvCheckTest = env.Program("utilEnvCheckTest", utilEnvCheckTestFiles,
 #          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","pd","pmd","mig","util","rtn","ixm","msg","dms","mth","opt","bson","mon","net","sql","auth", "aggr", "spd", "omsvc"],
@@ -1103,34 +1103,34 @@ if hasTestcase:
 #          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth","aggr", "spd", "omsvc"],
 #          _LIBDEPS='$_LIBDEPS_OBJS' )
    clsTest = env.Program("clsTest", [ clsTestFiles, clstest],
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel","zstd","bzip2"],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel",lz4_lib, "zstd","bzip2"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
    ixmgenTest = env.Program("ixmgenTest", [ ixmgenTestFiles, ixmgentest ],
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel","zstd","bzip2"],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel",lz4_lib, "zstd","bzip2"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
    gtsTest = env.Program("gtsTest", [ gtsTestFiles, gtstest],
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel","zstd","bzip2"],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel",lz4_lib, "zstd","bzip2"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
    idxHashTest = env.Program("idxHashTest", [ idxHashTestFiles, ixmgentest ],
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel"],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel",lz4_lib, "zstd"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
    rtnContextTest = env.Program("rtnContextTest", [ rtnContextTestFiles, rtncontexttest ],
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel"],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel", lz4_lib, "zstd"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
    mthUpdateTest = env.Program("mthUpdateTest", [ mthUpdateTestFiles, mthtest ],
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel"],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel", lz4_lib, "zstd"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
    bsonBuilderTest = env.Program( "bsonBuilderTest", [ bsonBuilderTestFiles, bsonbuildertest ],
-          LIBDEPS=[ "qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient","rocksdb", "vessel" ],
+          LIBDEPS=[ "qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient","rocksdb", "vessel" , lz4_lib, "zstd"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
    sqlTest2 = env.Program("sqlTest2", [ sqlTest2Files, sqltest2],
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel","zstd","bzip2"],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel",lz4_lib, "zstd","bzip2"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
 #   sqlTest3 = env.Program("sqlTest3", [ sqlTest3Files, sqltest3],
 #          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","sql","auth", "aggr", "omsvc"],
 #          _LIBDEPS='$_LIBDEPS_OBJS' )
    construct = env.Program("construct", [ constructFiles],
-          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel","zstd","bzip2"],
+          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel",lz4_lib, "zstd","bzip2"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
 #   spdTest =  env.Program("spdTest", [ spdTestFiles, spdtest],
 #          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc"],
@@ -1145,18 +1145,18 @@ if hasTestcase:
 #          _LIBDEPS='$_LIBDEPS_OBJS' )
 
    selectorTest =  env.Program("selectorTest", [ selectorTestFiles, selectortest],
-          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel","zstd","bzip2"],
+          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel",lz4_lib, "zstd","bzip2"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
 
    utilBSONTest = env.Program("utilBSONTest", utilBSONTestFiles,
-          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel","zstd","bzip2"],
+          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel",lz4_lib, "zstd","bzip2"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
 
 
 # Tools
 if hasTool:
    sdbrestore = env.Program("sdbrestore", sdbrestoreFiles,
-          LIBDEPS=["qgm","bar","rest","cat","coord",snappy_lib,lz4_lib,zlib_lib,"cls","pcre","oss","pd","pmd","mig","rtn","msg","ixm","dms","bps","bson","mth","opt","util","mon","dps","net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel","zstd","bzip2"],
+          LIBDEPS=["qgm","bar","rest","cat","coord",snappy_lib,lz4_lib,zlib_lib,"cls","pcre","oss","pd","pmd","mig","rtn","msg","ixm","dms","bps","bson","mth","opt","util","mon","dps","net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel", "zstd","bzip2"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
 
    sdbdmsdump = env.Program("sdbdmsdump", sdbdmsdumpMain,
