@@ -1702,8 +1702,9 @@ public class DBCollection {
     public void createIndex(String indexName, BSONObject indexKeys, boolean isUnique, boolean enforced,
                             int sortBufferSize) throws BaseException {
         BSONObject options = new BasicBSONObject();
-        options.put(SdbConstants.IXM_UNIQUE, isUnique);
-        options.put(SdbConstants.IXM_ENFORCED, enforced);
+        // IXM_UNIQUE_LEGACY and IXM_ENFORCED_LEGACY are used for compatibility with 2.8 SequoiaDB engine.
+        options.put(SdbConstants.IXM_UNIQUE_LEGACY, isUnique);
+        options.put(SdbConstants.IXM_ENFORCED_LEGACY, enforced);
         options.put(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE, sortBufferSize);
         createIndex(indexName, indexKeys, options);
     }
