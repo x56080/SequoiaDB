@@ -253,6 +253,29 @@ namespace vessel
             goto done;
          }
 
+         T *get(UINT32 i)
+         {
+            T *out = nullptr;
+            if (OSS_UNLIKELY(!isInitialized()))
+            {
+               SDB_ASSERT(FALSE, "not inited");
+               goto done;
+            }
+            else if (OSS_UNLIKELY(_capacity <= i))
+            {
+               SDB_ASSERT(FALSE, "out of bound");
+               goto done;
+            }
+            else
+            {
+               UINT32 x = getX(i);
+               UINT32 y = getY(i);
+               out = get(x, y);
+            }
+         done:
+            return out;
+         }
+
          void release(UINT32 i)
          {
             if (OSS_LIKELY(isInitialized() && (i < _capacity)))
