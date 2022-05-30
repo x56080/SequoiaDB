@@ -126,6 +126,8 @@ final class SdbConstants {
     final static String IXM_KEY = "key";
     final static String IXM_UNIQUE = "Unique";
     final static String IXM_ENFORCED = "Enforced";
+    final static String IXM_UNIQUE_LEGACY = "unique";
+    final static String IXM_ENFORCED_LEGACY = "enforced";
     final static String IXM_NOTNULL = "NotNull";
     final static String IXM_INDEXDEF = "IndexDef";
     final static String IXM_FIELD_NAME_SORT_BUFFER_SIZE = "SortBufferSize";
