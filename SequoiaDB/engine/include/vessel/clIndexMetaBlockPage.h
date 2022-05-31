@@ -77,7 +77,7 @@ namespace vessel
       {
          version = CL_INVALID_INDEX_META_BLOCK_VERSION;
          clLogicalId = DMS_INVALID_LOGICCLID;
-         maxIndexLid = 0;
+         maxIndexLid = INVALID_LOGICAL_INDEX_ID;
          for (UINT32 i = 0; i < MAX_INDEX_COUNT_PER_CL; ++i)
          {
             entryPageLpids[i] = INVALID_PAGE_ID;

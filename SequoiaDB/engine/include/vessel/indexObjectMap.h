@@ -84,6 +84,8 @@ namespace vessel
 
          void setMaxIndexLid(UINT32 indexLid);
 
+         BOOLEAN isMetaBlockEverCreated()const;
+
       private:
          BOOLEAN isIndexSlotFree(INT32 indexSlot);
          void unfreeIndexSlot(INT32 indexSlot);

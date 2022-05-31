@@ -545,3 +545,49 @@ TEST_F(cl_ddl_test, base_truncate_cl_1)
    rc = db.close(&executor, closeDBOptions());
    ASSERT_EQ(SDB_OK, rc);
 }
+
+/*
+Name: base_idx_ds_file_creation_timing
+Description: 
+   集合空间的idx.ds文件创建时机
+   1. 创建单个cs,cs下创建单个cl
+   2. 验证idx.ds文件是否被创建
+Expected Result: 
+   idx.ds文件未被创建
+*/
+TEST_F(cl_ddl_test, base_idx_ds_file_creation_timing)
+{
+   vesselImpl db;
+   outerResource resource = test_outer_resource::getResource();
+
+   test_executor executor;
+   openDBOptions options;
+
+   options.path.dataPath = DATA_PATH;
+   options.path.indexPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+
+   INT32 rc = SDB_OK;
+
+   rc = db.open(&executor, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCS(&executor, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCL(&executor, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   fs::path DATA_FS_PATH(DATA_PATH);
+   const CHAR* csDir = "_cs_00000";
+   const CHAR* idxDsFileName = "idx.ds.000000";
+   fs::path IDX_DS_FS_PATH = DATA_FS_PATH/csDir/idxDsFileName;
+   BOOLEAN isExist = fs::exists(IDX_DS_FS_PATH);
+   ASSERT_EQ(FALSE, isExist);
+
+   rc = db.close(&executor, closeDBOptions());
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(FALSE, isExist);
+}

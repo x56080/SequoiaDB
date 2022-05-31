@@ -55,7 +55,7 @@ namespace vessel
       }
       _objects.clear();
 
-      _maxIndexLid = 0;
+      _maxIndexLid = INVALID_LOGICAL_INDEX_ID;
       _freeIndexSlots = OSS_UINT64_MAX;
       return;
    }
@@ -75,9 +75,13 @@ namespace vessel
 
    void indexObjectMap::setMaxIndexLid(UINT32 indexLid)
    {
-      if (indexLid > _maxIndexLid)
+      SDB_ASSERT(indexLid != INVALID_LOGICAL_INDEX_ID, "can not be invalid");
+      if (indexLid != INVALID_LOGICAL_INDEX_ID)
       {
-         _maxIndexLid = indexLid;  
+         if (_maxIndexLid == INVALID_LOGICAL_INDEX_ID || indexLid > _maxIndexLid)
+         {
+            _maxIndexLid = indexLid;  
+         }
       }
    }
 
@@ -254,6 +258,11 @@ namespace vessel
          }
       }
       return obj;
+   }
+
+   BOOLEAN indexObjectMap::isMetaBlockEverCreated()const
+   {
+      return _maxIndexLid != INVALID_LOGICAL_INDEX_ID;
    }
 
 }//namespace vessel

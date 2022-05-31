@@ -91,10 +91,6 @@ namespace vessel
       fsmFile *file = nullptr;
       runtimeMbContext mbContext;
       
-      PAGE_ID mbpLpid = INVALID_PAGE_ID;
-      UINT32 indexPageSize = 0;
-      lpageDescriptor desc;
-
       if (OSS_UNLIKELY(nullptr == context ||
                        !block.isValid() ||
                        nullptr == cs ||
@@ -131,37 +127,12 @@ namespace vessel
          goto error;
       }
 
-      indexPageSize = cs->getSU()->getManifest().idxArgs.pageSize;
-      mbpLpid = getIndexMetaBlockPageLpid(indexPageSize, block.mbID);
-      if (OSS_UNLIKELY(INVALID_PAGE_ID == mbpLpid))
-      {
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         PD_LOG(PDERROR, "failed to get index meta block page lpid, rc:%d", rc);
-         goto error;
-      }
-
-      rc = cs->getSU()->getIndexSpace().testLogicalPageMapping(mbpLpid, desc);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to test if lpid[%d] mapped:%d", mbpLpid, rc);
-         goto error;
-      }
-
-      if (desc.isValid())
-      {
          rc = initIndexesWhenOpen(context);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to init indexes, rc:%d", rc);
             goto error;
          }
-      }
-      else
-      {
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         PD_LOG(PDERROR, "index meta block page[%d] is not mapped, rc:%d", mbpLpid, rc);
-         goto error;
-      }
 
       context->detachMbContext();
    done:
@@ -199,8 +170,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       fsmFile *fsm = nullptr;
       runtimeMbContext mbContext;
-      indexConsole console;
-      BOOLEAN mbInited = FALSE;
 
       SDB_ASSERT(!isOpen(), "do not reinit");
 
@@ -245,15 +214,6 @@ namespace vessel
       mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
       context->attachMbContext(&mbContext);
       
-      console.init(_clMetaBlock.mbID, &(_collectionSpace->getSU()->getIndexSpace()));
-      rc = console.initIndexMetaBlock(context);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init index meta block, rc:%d", rc);
-         goto error;
-      }
-      mbInited = TRUE;
-
       rc = initCLMetaBlockOnDisk(context, options);
       if (SDB_OK != rc)
       {
@@ -268,10 +228,6 @@ namespace vessel
       }
       return rc;
    error:
-      if (mbInited && console.isInitialized())
-      {
-         console.removeIndexMetaBlock(context);
-      }
       fini();
       goto done;
    }
@@ -3070,6 +3026,16 @@ namespace vessel
 
       console.init(_clMetaBlock.mbID, &(_collectionSpace->getSU()->getIndexSpace()));
 
+      if (!_indexes.isMetaBlockEverCreated())
+      {
+         rc = console.initIndexMetaBlock(context);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init index meta block, rc:%d", rc);
+            goto error;
+         }
+      }
+
       if (!_indexes.isAllowedToCreateMore())
       {
          PD_LOG(PDINFO, "no more available logical index id or slot");
@@ -4450,29 +4416,31 @@ namespace vessel
       OSS_LATCH_MODE mode;
       SDB_ASSERT(context->isMbLocked(&mode) && EXCLUSIVE == mode, "must be locked");
       SDB_ASSERT(isOpen(), "can not be closed");
-      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
-      indexConsole console;
-      console.init(_clMetaBlock.mbID, &is);
-
-      indexObjectMap::ITERATOR itr = _indexes.begin();
-      for (; itr != _indexes.end(); ++itr)
+      if (_indexes.isMetaBlockEverCreated())
       {
-         indexObject *obj = itr->second;
-         SDB_ASSERT(nullptr != obj && obj->isNormal(), "can not be other status");
-         obj->updateStatus(INDEX_STATUS_REMOVING);
-         rc = console.updateIndexStatus(context, obj->getIndexId().getLogicalIndexId(),
-                                        obj->getEntryLpid(), INDEX_STATUS_REMOVING);
-         if (SDB_OK != rc)
+         indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
+         indexConsole console;
+         console.init(_clMetaBlock.mbID, &is);
+         
+         indexObjectMap::ITERATOR itr = _indexes.begin();
+         for (; itr != _indexes.end(); ++itr)
          {
-            PD_LOG(PDERROR, "failed to update index[%s] status, rc:%d",
-                   obj->getDescription().getName().c_str(), rc);
-            goto error;
+            indexObject *obj = itr->second;
+            SDB_ASSERT(nullptr != obj && obj->isNormal(), "can not be other status");
+            obj->updateStatus(INDEX_STATUS_REMOVING);
+            rc = console.updateIndexStatus(context, obj->getIndexId().getLogicalIndexId(),
+                                          obj->getEntryLpid(), INDEX_STATUS_REMOVING);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to update index[%s] status, rc:%d",
+                     obj->getDescription().getName().c_str(), rc);
+               goto error;
+            }
+            console.truncateIndex(context, obj);
          }
-         console.truncateIndex(context, obj);
+
+         console.resetIndexMetaBlock(context);
       }
-
-      console.removeIndexMetaBlock(context);
-
       _indexes.fini();
    done:
       return rc;
@@ -4869,7 +4837,7 @@ namespace vessel
       BOOLEAN outOfSpace = FALSE;
 
       // TODO:attach oplist
-      if(!bigRecord)
+      if (!bigRecord)
       {
          logicalPageBuffer lpb;
          rdpAccessor accessor;
@@ -5988,5 +5956,7 @@ namespace vessel
    error:
       goto done;
    }
+
+
 }//namespace vessel
 }//namespace engine
