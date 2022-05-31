@@ -42,6 +42,7 @@
 #include "vessel/lsm/lsmIndexValue.hpp"
 #include "vessel/lsm/lsmScanEntryParser.h"
 #include "vessel/runtimeMbContext.h"
+#include "vessel/lsm/lsmIndexKeyPacker.h"
 
 namespace engine
 {
@@ -229,10 +230,9 @@ namespace vessel
                                    const seekOptions &o)
    {
       INT32 rc = SDB_OK;
-      rocksdb::Slice fullKey;
       recordID rid;
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
-      bson::StackBufBuilder fullKeyBuilder;
+      lsmIndexKeyPacker packer;
 
       if (OSS_UNLIKELY(!key.isValid()))
       {
@@ -258,15 +258,16 @@ namespace vessel
                recordID::createMinRid();
       }
 
-      fullKey = packFullKey(key, rid,
-                            lsn, DPS_TRANS_ID(), fullKeyBuilder);
-      if (fullKey.empty())
+      rc = packer.packFullKey(key, _globalId,
+                              _obj->getDescription().getPattern().getOrdering(),
+                              rid, lsn, DPS_TRANS_ID());
+      if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to build full key:%d", rc);
+         PD_LOG(PDERROR, "pack full key by packer failed, rc:%d", rc);
          goto error;
       }
 
-      rc = seekFullKey(fullKey);
+      rc = seekFullKey(packer.getFullKeySlice());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to seek full key:%d", rc);
@@ -279,10 +280,9 @@ namespace vessel
          PD_LOG(PDERROR, "failed to ensure visible position:%d", rc);
          goto error;
       }
-      
-
 
    done:
+      packer.reset();
       return rc;
    error:
       close();
@@ -292,8 +292,7 @@ namespace vessel
    INT32 lsmIndexIterator::moveToTheNextOfEntry(const slice &entry)
    {
       INT32 rc = SDB_OK;
-      rocksdb::Slice fullKey;
-      StackBufBuilder builder;
+      lsmIndexKeyPacker packer;
       lsmScanEntryParser parser;
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
 
@@ -321,15 +320,16 @@ namespace vessel
          lsn = DPS_INVALID_LSN_OFFSET;
       }
 
-      fullKey = packFullKey(parser.getKey(), parser.getRid(),
-                            lsn, DPS_TRANS_ID(), builder);
-      if (fullKey.empty())
+      rc = packer.packFullKey(parser.getKey(), _globalId,
+                              _obj->getDescription().getPattern().getOrdering(),
+                              parser.getRid(), lsn, DPS_TRANS_ID());
+      if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to build full key:%d", rc);
+         PD_LOG(PDERROR, "pack index full key by packer failed, rc:%d", rc);
          goto error;
       }
 
-      rc = seekFullKey(fullKey);
+      rc = seekFullKey(packer.getFullKeySlice());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to seek full key:%d", rc);
@@ -344,6 +344,7 @@ namespace vessel
       }
 
    done:
+      packer.reset();
       return rc;
    error:
       close();
@@ -380,37 +381,6 @@ namespace vessel
       return rc;
    error:
       goto done;
-   }
-
-   rocksdb::Slice lsmIndexIterator::packFullKey(const ixmKey &key,
-                                                const recordID &rid,
-                                                DPS_LSN_OFFSET lsn,
-                                                const DPS_TRANS_ID &transID,
-                                                StackBufBuilder &builder)
-   {
-      INT32 rc = SDB_OK;
-      rocksdb::Slice fullKey;
-      UINT32 keySize = key.dataSize();
-      UINT32 bufSize = lsmCalFullDataKeyLen(keySize);
-      builder.reset();
-      builder.reserveBytes(bufSize);
-      orderingWrapper ow = _obj->getDescription().getPattern().getOrdering();
-
-      rc = lsmPackIndexFullKey(builder.buf(),
-                               bufSize,
-                               _globalId,
-                               ow, key, rid, lsn, transID);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to pack full key:%d", rc);
-         goto done;
-      }
-
-      fullKey = rocksdb::Slice(builder.buf(), bufSize);
-      builder.setlen(bufSize);
-      
-   done:
-      return fullKey;
    }
 
    BOOLEAN lsmIndexIterator::_isMarkedRemoved(rocksdb::Iterator *itr)const

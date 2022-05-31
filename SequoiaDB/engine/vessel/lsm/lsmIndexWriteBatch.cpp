@@ -36,6 +36,7 @@
 #include "vessel/threadContext.h"
 #include "vessel/instanceEnv.h"
 #include "vessel/lsm/lsmDB.h"
+#include "vessel/lsm/lsmIndexKeyPacker.h"
 
 namespace engine
 {
@@ -53,8 +54,7 @@ namespace vessel
                                  const lsmIndexValue &value)
    {
       INT32 rc = SDB_OK;
-      CHAR *keyBuf = nullptr;
-      UINT32 keySize = 0;
+      lsmIndexKeyPacker packer;
 
       if (!isOpen())
       {
@@ -67,30 +67,14 @@ namespace vessel
          goto error;
       }
 
-      keySize = lsmCalFullDataKeyLen(key.getKey().dataSize());
-      keyBuf = (CHAR*)SDB_THREAD_ALLOC(keySize);
-      if (nullptr == keyBuf)
-      {
-         rc = SDB_OOM;
-         PD_LOG(PDERROR, "out of memory");
-         goto error;
-      }
-
-      rc = lsmPackIndexFullKey(keyBuf, keySize,
-                               meta.getIdxId(),
-                               meta.getOrdering(),
-                               key.getKey(),
-                               key.getRid(),
-                               key.getDataLsn(),
-                               key.getTransID());
-
+      rc = packer.packFullKey(key, meta);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "pack index full key failed, rc:%d", rc);
+         PD_LOG(PDERROR, "pack full key by packer failed, rc:%d", rc);
          goto error;
       }
 
-      rc = lsmColumnFamily::writeBatch::put(rocksdb::Slice(keyBuf, keySize),
+      rc = lsmColumnFamily::writeBatch::put(packer.getFullKeySlice(),
                                             value.getSlice());
       if (SDB_OK != rc)
       {
@@ -99,10 +83,7 @@ namespace vessel
       }
 
    done:
-      if (nullptr == keyBuf)
-      {
-         SDB_THREAD_FREE(keyBuf);
-      }
+      packer.reset();
       return rc;
    error:
       goto done;
