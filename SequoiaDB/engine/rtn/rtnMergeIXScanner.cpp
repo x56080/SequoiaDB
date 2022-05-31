@@ -42,6 +42,7 @@
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
 #include "dpsTransCB.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson ;
 
@@ -441,14 +442,14 @@ namespace engine
          }
 
          PD_LOG( PDDEBUG, "Relocate right scanner to obj(%s) with rid(%d,%d)",
-                 _savedObj.toString().c_str(),
+                 PD_SECURE_OBJ( _savedObj ),
                  _savedRID._extent, _savedRID._offset ) ;
 
          rc = _rightIXScanner->relocateRID( _savedObj, _savedRID ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Relocate to obj(%s) and rid(%d,%d) faild in "
-                    "right scan, rc: %d", _savedObj.toString().c_str(),
+                    "right scan, rc: %d", PD_SECURE_OBJ( _savedObj ),
                     _savedRID._extent, _savedRID._offset, rc ) ;
             goto error ;
          }
@@ -466,14 +467,14 @@ namespace engine
          }
 
          PD_LOG( PDDEBUG, "Relocate left scanner to obj(%s) with rid(%d,%d)",
-                 _savedObj.toString().c_str(),
+                 PD_SECURE_OBJ( _savedObj ),
                  _savedRID._extent, _savedRID._offset ) ;
 
          rc = _leftIXScanner->relocateRID( _savedObj, _savedRID ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Relocate to obj(%s) and rid(%d,%d) faild in "
-                    "left scan, rc: %d", _savedObj.toString().c_str(),
+                    "left scan, rc: %d", PD_SECURE_OBJ( _savedObj ),
                     _savedRID._extent, _savedRID._offset, rc ) ;
             goto error ;
          }
@@ -492,7 +493,7 @@ namespace engine
             goto error ;
          }
          PD_LOG( PDDEBUG, "Left scanner advance to obj(%s) with rid(%d,%d)",
-                 _leftIXScanner->getCurKeyObj()->toString().c_str(),
+                 PD_SECURE_OBJ( *(_leftIXScanner->getCurKeyObj()) ),
                  _lrid._extent, _lrid._offset ) ;
          rc = SDB_OK ;
       }
@@ -508,7 +509,7 @@ namespace engine
             goto error ;
          }
          PD_LOG( PDDEBUG, "Right scanner advance to obj(%s) with rid(%d,%d)",
-                 _rightIXScanner->getCurKeyObj()->toString().c_str(),
+                 PD_SECURE_OBJ( *(_rightIXScanner->getCurKeyObj()) ),
                  _rrid._extent, _rrid._offset ) ;
          rc = SDB_OK ;
       }
@@ -555,7 +556,7 @@ namespace engine
          _savedObj = getSavedObjFromChild()->getOwned() ;
 
          PD_LOG( PDDEBUG, "Paused in obj(%s) with rid(%d,%d), From(%s)",
-                 _savedObj.toString().c_str(), _savedRID._extent,
+                 PD_SECURE_OBJ( _savedObj ), _savedRID._extent,
                  _savedRID._offset,
                  ( SCAN_LEFT == _fromDir ? "LEFT" : "RIGHT" ) ) ;
       }

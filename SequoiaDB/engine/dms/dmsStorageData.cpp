@@ -44,6 +44,7 @@
 #include "pmd.hpp"
 #include "mthModifier.hpp"
 #include "dpsOp2Record.hpp"
+#include "pdSecure.hpp"
 
 namespace engine
 {
@@ -482,7 +483,7 @@ namespace engine
             if ( rc )
             {
                PD_LOG ( PDWARNING, "Failed to update object(%s) index, rc: %d",
-                        newObj.toString().c_str(), rc ) ;
+                        PD_SECURE_OBJ( newObj ), rc ) ;
                goto error ;
             }
          }

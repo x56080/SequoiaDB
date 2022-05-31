@@ -123,7 +123,7 @@ namespace engine
    class preIdxTreeNodeKey : public SDBObject
    {
    // public interfaces:
-   public: 
+   public:
       // constructors:
       // use super class to construct key portion
       preIdxTreeNodeKey( const BSONObj* key,
@@ -194,12 +194,12 @@ namespace engine
          return false ;
       }
 
-      string toString() const ;
+      string toString( BOOLEAN encryptKey = TRUE ) const ;
 
       // private attributes:
    private:
       BSONObj           _keyObj ;
-      // Original rid. This is used to differ duplicated keys when index is 
+      // Original rid. This is used to differ duplicated keys when index is
       // not unique
       dmsRecordID       _rid ;
       // it's shared from the tree. Check clsCataOrder()
@@ -250,7 +250,7 @@ namespace engine
       BSONObj              getRecordObj() const ;
       UINT32               getOwnnerTID() const ;
 
-      string toString() const ;
+      string toString( BOOLEAN encryptObj = TRUE ) const ;
 
    // private member
    private:
@@ -270,10 +270,10 @@ namespace engine
    typedef INDEX_BINARY_TREE::const_reverse_iterator     INDEX_TREE_CRPOS ;
 
    /** definition of preIdxTree
-    *  preIdxTree is a red-black tree which holds all old key values of a 
+    *  preIdxTree is a red-black tree which holds all old key values of a
     *  specific index during runtime. Index scanner will merge this in-memory
     *  tree with the index on disk during runtime based on its isolation level.
-    *  The rule of thumb is: on-disk index contain latest value with could be 
+    *  The rule of thumb is: on-disk index contain latest value with could be
     *  uncommitted. in-memory preIdxTree holds the last committed value.
     **/
    class preIdxTree : public SDBObject
@@ -282,7 +282,7 @@ namespace engine
       friend class oldVersionContainer ;
 
    // public interfaces:
-   public: 
+   public:
       // constructors & destructors
       preIdxTree( const SINT32 idxID, const ixmIndexCB *indexCB ) ;
 
@@ -333,7 +333,7 @@ namespace engine
       const preIdxTreeNodeKey&   getNodeKey( INDEX_TREE_CPOS pos ) const ;
       const preIdxTreeNodeValue& getNodeData( INDEX_TREE_CPOS pos ) const ;
 
-      // Traverse the tree to see if the key exist, caller need to hold 
+      // Traverse the tree to see if the key exist, caller need to hold
       // the latch otherwise the iterator can change underneath
       BOOLEAN isKeyExist( const BSONObj &key,
                           preIdxTreeNodeValue &value ) const ;
@@ -398,7 +398,7 @@ namespace engine
       {
          return _latch.try_get_shared() ;
       }
- 
+
       BOOLEAN empty() const
       {
          return _tree.empty() ;
@@ -450,12 +450,12 @@ namespace engine
       // 1. preIdxTree latch must be held in X to insert/delete node in the tree
       //    oldVersionCB(_oldVersionCBLatch) need to be held in S before
       //    taking individual preIdxTree latch.
-      // 2. Should never request LRB hash bkt latch while holding preIdxTree 
+      // 2. Should never request LRB hash bkt latch while holding preIdxTree
       //    latch, reverse order is OK. Keep in mind we store the _lrbHdrIdx
       //    in the tree so that we have direct access to lrbHdr without need
       //    to go through lrbhash bkt.
 
-      ossSpinSLatch       _latch ;  // latch for concurrency control, 
+      ossSpinSLatch       _latch ;  // latch for concurrency control,
                                     // adding/removing node need latch in X
                                     // find/travers need latch in S
 
@@ -611,7 +611,7 @@ namespace engine
    typedef std::pair< UINT64, oldVersionUnitPtr>      MAP_OLDVERION_UNIT_PAIR ;
 
    /** definition of oldVersionCB
-    *  Control block holding all resources and structures for old version 
+    *  Control block holding all resources and structures for old version
     *  records and index keys. It's globally hanging of dpsTransCB
     **/
    class oldVersionCB : public SDBObject
@@ -692,13 +692,13 @@ namespace engine
 
    // private attributes
    private:
-      // latch to protect the fields. Should hold it in X to initialize and 
+      // latch to protect the fields. Should hold it in X to initialize and
       // destroy _memBlockPool, otherwise hold in S
       ossSpinSLatch       _oldVersionCBLatch ;
-      IDXID_TO_TREE_MAP   _idxTrees ;     // in memory trees holding older 
+      IDXID_TO_TREE_MAP   _idxTrees ;     // in memory trees holding older
                                           // version of indexes
       MAP_OLDVERION_UNIT  _mapOldVersionUnit ;
- 
+
    } ;
 
    /*
@@ -758,8 +758,8 @@ namespace engine
       BSONObj           _idxObj ; // BSON Object
    } ;
 
-   // Use set of idx lid to figure out if the first version of an index value 
-   // was already stored or not. 
+   // Use set of idx lid to figure out if the first version of an index value
+   // was already stored or not.
    typedef ossPoolMap< SINT32, preIdxTreePtr >     idxLidMap ;
    // use set of idxObj to store all index key values
    typedef ossPoolSet< dpsIdxObj >                 idxObjSet ;
@@ -775,7 +775,7 @@ namespace engine
    #define OLDVER_MASK_DISK_DELETING         0x00000008
  //#define OLDVER_MASK_HAS_COPED             0x00000010
 
-   // Class to store all information for old version record/indexes. This 
+   // Class to store all information for old version record/indexes. This
    // container is currently hanging off LRBHdr
    class oldVersionContainer : public _utilPooledObject
    {
@@ -874,7 +874,7 @@ namespace engine
       // We use this to figure out if the idx was already stored in the tree
       // Keep in mind that RC require us read the last committed version which
       // will be the version before first update in the transaction
-      idxLidMap         _oldIdxLid ; 
+      idxLidMap         _oldIdxLid ;
       // point to a set containing all key sets.
       idxObjSet         _oldIdx ;
       oldVersionContainer * _prev ;

@@ -141,7 +141,7 @@ namespace engine
          rc = root.locate ( keyObj, rid, _order, _curIndexRID,
                             found, direction, _indexCB ) ;
          PD_RC_CHECK ( rc, PDERROR, "Failed to locate from new keyobj(%s) "
-                       "and rid(%d,%d), rc: %d", keyObj.toString().c_str(),
+                       "and rid(%d,%d), rc: %d", PD_SECURE_OBJ( keyObj ),
                        rid._extent, rid._offset, rc ) ;
 
          _savedObj = keyObj.getOwned() ;
@@ -195,7 +195,7 @@ namespace engine
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to locate from saved obj(%s) and "
-                  "rid(%d,%d), rc: %d", _savedObj.toString().c_str(),
+                  "rid(%d,%d), rc: %d", PD_SECURE_OBJ( _savedObj ),
                   _savedRID._extent, _savedRID._offset, rc ) ;
          goto error ;
       }
@@ -523,7 +523,7 @@ namespace engine
          _savedRID = indexExtent.getRID( _curIndexRID._slot ) ;
 
          PD_LOG( PDDEBUG, "Paused in obj(%s) with rid(%d,%d)",
-                 _savedObj.toString().c_str(),
+                 PD_SECURE_OBJ( _savedObj ),
                  _savedRID._extent, _savedRID._offset ) ;
       }
 
@@ -619,7 +619,7 @@ namespace engine
          }
 
          PD_LOG( PDDEBUG, "Relocate in obj(%s) with rid(%d,%d), found(%d)",
-                 _savedObj.toString().c_str(), _savedRID._extent,
+                 PD_SECURE_OBJ( _savedObj ), _savedRID._extent,
                  _savedRID._offset, isSame ) ;
 
          if ( isSame )

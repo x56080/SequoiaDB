@@ -92,12 +92,14 @@ namespace engine
       qgmOptiTreeNode *extend = NULL ;
       const CHAR *trimedSql = NULL ;
 
+#ifdef _DEBUG
       PD_LOG( PDDEBUG, "sql[%s]", sql ) ;
+#endif
 
       rc = utilStrTrim( (CHAR *)sql, trimedSql ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to trim sql:%s", sql ) ;
+         PD_LOG( PDERROR, "failed to trim sql, rc: %d", rc ) ;
          goto error ;
       }
 

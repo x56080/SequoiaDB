@@ -43,6 +43,7 @@
 #include "pdTrace.hpp"
 #include "dpsTrace.hpp"
 #include "ixmExtent.hpp" // for _keyCmp
+#include "pdSecure.hpp"
 
 using namespace bson ;
 
@@ -77,17 +78,18 @@ namespace engine
 
    preIdxTreeNodeKey::~preIdxTreeNodeKey ()
    {
-      // We do not want to free the keyData in super class as we don't 
+      // We do not want to free the keyData in super class as we don't
       // own it, simply rid to invalid incase some one continue using it.
       // delete of the lock LRB does the clean up of the key space.
       _rid.reset() ;
    }
 
-   string preIdxTreeNodeKey::toString() const
+   string preIdxTreeNodeKey::toString( BOOLEAN encryptKey ) const
    {
       std::stringstream ss ;
       ss << "RID(" << _rid._extent << "," << _rid._offset
-         << ", Key:" << _keyObj.toString() ;
+         << ", Key:"
+         << ( encryptKey ? PD_SECURE_OBJ( _keyObj ) : _keyObj.toString() ) ;
       return ss.str() ;
    }
 
@@ -154,7 +156,7 @@ namespace engine
       return 0 ;
    }
 
-   string preIdxTreeNodeValue::toString() const
+   string preIdxTreeNodeValue::toString( BOOLEAN encryptObj ) const
    {
       dmsRecordID rid = getRecordID() ;
       BSONObj obj = getRecordObj() ;
@@ -165,7 +167,9 @@ namespace engine
       {
          ss << "(Deleted)" ;
       }
-      ss << "Object(" << obj.toString() << ")" ;
+      ss << "Object("
+         << ( encryptObj ? PD_SECURE_OBJ( obj ) : obj.toString() )
+         << ")" ;
 
       return ss.str() ;
    }
@@ -190,9 +194,9 @@ namespace engine
       _isValid = intree._isValid ;
       _order = SDB_OSS_NEW clsCataOrder( Ordering::make( _keyPattern ) ) ;
    }
-   
+
    // destructor
-   preIdxTree::~preIdxTree() 
+   preIdxTree::~preIdxTree()
    {
       if ( NULL != _order )
       {
@@ -341,7 +345,7 @@ namespace engine
    }
 
    // Create a node from key and rid, insert the node to map(tree)
-   // Dependency: 
+   // Dependency:
    //   Caller has to held the tree latch in X
    INT32 preIdxTree::insert ( const BSONObj *keyData,
                               const dmsRecordID &rid,
@@ -420,7 +424,7 @@ namespace engine
          goto error ;
       }
 
-   done : 
+   done :
       if ( isLocked )
       {
          unlockX() ;
@@ -474,7 +478,7 @@ namespace engine
       {
          if ( _isValid && !pOldVer )
          {
-            PD_LOG( PDWARNING, 
+            PD_LOG( PDWARNING,
                     "Did not find records in index tree(%d) with key[%s]",
                     _idxLID,
                     keyNode.toString().c_str() ) ;
@@ -636,19 +640,19 @@ namespace engine
    // Description:
    //   Locate the best matching key location based on the provided key value
    //   and search criteria. The key value is likely saved from the last cycle
-   //   before the pause. Since the tree structure can be changed due to 
+   //   before the pause. Since the tree structure can be changed due to
    //   insertion and deletion, we don't bother to try and verify the saved
    //   iterator. Directly use the key value to find the best match key and
    //   start the new round from there.
    // Input:
    //   prevKey: previous indexkey to start with the search
    //   keepFieldsNum & skipToNext:
-   //   keepFieldsNum is the number of fields from prevKey that should match 
+   //   keepFieldsNum is the number of fields from prevKey that should match
    //   the currentKey (for example if the prevKey is {c1:1, c2:1}, and
-   //   keepFieldsNum = 1, that means we want to match c1:1 key for the 
+   //   keepFieldsNum = 1, that means we want to match c1:1 key for the
    //   current location. Depends on if we have skipToNext set, if we do
    //   that it means we want to skip c1:1 and match whatever the next
-   //   (for example c1:1.1); otherwise we want to continue match the 
+   //   (for example c1:1.1); otherwise we want to continue match the
    //   elements from matchEle
    //   matchEle matchInclusive: push down matching criteria from access plan
    //   o: key order information
@@ -658,7 +662,7 @@ namespace engine
    // Return:
    //   SDB_IXM_EOC: end of index search
    //   Any error coming from the function
-   // Dependency: 
+   // Dependency:
    //   Caller must hold tree latch in S/X
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PREIDXTREE_KEYLOCATE, "preIdxTree::keyLocate" )
    INT32 preIdxTree::keyLocate( INDEX_TREE_CPOS &pos,
@@ -764,7 +768,7 @@ namespace engine
    //   direction: search direction
    // Output:
    //   iter: The iterator pointing to the best location.
-   //   prevKey: 
+   //   prevKey:
    // Return:
    //   SDB_IXM_EOC: end of index search
    //   Any error coming from the function
@@ -974,7 +978,7 @@ namespace engine
       {
          _pUnit->lockS() ;
          _locked = TRUE ;
-   
+
          if ( _lockOnChain )
          {
             _cur->unlockOnChain() ;

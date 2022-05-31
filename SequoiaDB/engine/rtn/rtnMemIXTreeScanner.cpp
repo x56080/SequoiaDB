@@ -42,6 +42,7 @@
 #include "pmd.hpp"
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson ;
 
@@ -612,7 +613,7 @@ namespace engine
             _savedObj = nodeKey.getKeyObj().getOwned() ;
 
             PD_LOG( PDDEBUG, "Paused in obj(%s) with rid(%d,%d)",
-                    _savedObj.toString().c_str(),
+                    PD_SECURE_OBJ( _savedObj ),
                     _savedRID._extent, _savedRID._offset ) ;
          }
          catch ( std::exception &e )

@@ -44,9 +44,18 @@
 
 namespace engine
 {
+   // input: BSONObj
    #define PD_SECURE_OBJ( obj ) PD_SECURE_STR( (obj).toPoolString() )
+
+   // input: ossPoolString or string
    #define PD_SECURE_STR( str ) \
-      pdIsDiaglogSecureEnabled() ? utilSecureStr( str ).c_str() : str.c_str()
+      ( ( pdIsDiaglogSecureEnabled() && pdLocalIsDiaglogSecureEnabled() ) ? \
+        utilSecureStr( str ).c_str() : str.c_str() )
+
+   // input: const CHAR*
+   #define PD_SECURE_STR1( data ) \
+      ( ( pdIsDiaglogSecureEnabled() && pdLocalIsDiaglogSecureEnabled() ) ? \
+        utilSecureStr( data, ossStrlen( data ) ).c_str() : data )
 }
 
 #endif

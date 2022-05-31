@@ -50,6 +50,7 @@
 #include "monClass.hpp"
 #include "msg.h"
 #include "omDef.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson ;
 
@@ -1393,7 +1394,7 @@ namespace engine
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s[or %s], "
                         "value=%s", FIELD_NAME_FILTER,
-                        REST_KEY_NAME_MATCHER, matchStr.c_str() ) ;
+                        REST_KEY_NAME_MATCHER, PD_SECURE_STR( matchStr ) ) ;
             goto error ;
          }
       }
@@ -1570,7 +1571,7 @@ namespace engine
             if ( SDB_OK != rc )
             {
                PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
-                           FIELD_NAME_OP_UPDATE, updateStr.c_str() ) ;
+                           FIELD_NAME_OP_UPDATE, PD_SECURE_STR( updateStr ) ) ;
                goto error ;
             }
 
@@ -1691,7 +1692,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, "field's format error:field=%s,value=%s",
-                     REST_KEY_NAME_INSERTOR, insertorStr.c_str() ) ;
+                     REST_KEY_NAME_INSERTOR, PD_SECURE_STR( insertorStr ) ) ;
          goto error ;
       }
 
@@ -1699,7 +1700,7 @@ namespace engine
       if ( !insertor.hasElement( DMS_ID_KEY_NAME ) )
       {
          PD_LOG( PDDEBUG, "Rest insert object [%s] has no _id",
-                 insertor.toPoolString().c_str() ) ;
+                 PD_SECURE_OBJ( insertor ) ) ;
          try
          {
             BSONObjBuilder builder ;
@@ -1802,7 +1803,7 @@ namespace engine
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s[or %s],"
                         "value=%s", FIELD_NAME_FILTER,
-                        REST_KEY_NAME_MATCHER, matchStr.c_str() ) ;
+                        REST_KEY_NAME_MATCHER, PD_SECURE_STR( matchStr ) ) ;
             goto error ;
          }
       }
@@ -1820,7 +1821,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, "field's format error:field=%s,value=%s",
-                     REST_KEY_NAME_UPDATOR, updatorStr.c_str() ) ;
+                     REST_KEY_NAME_UPDATOR, PD_SECURE_STR( updatorStr ) ) ;
          goto error ;
       }
 
@@ -1849,7 +1850,7 @@ namespace engine
             {
                PD_LOG_MSG( PDERROR, "field's format error:field=%s,value=%s",
                            REST_KEY_NAME_SET_ON_INSERT,
-                           setOnInsertStr.c_str() ) ;
+                           PD_SECURE_STR( setOnInsertStr ) ) ;
                goto error ;
             }
 
@@ -1944,7 +1945,7 @@ namespace engine
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s[or %s],"
                         "value=%s", REST_KEY_NAME_DELETOR,
-                        REST_KEY_NAME_MATCHER, deletorStr.c_str() ) ;
+                        REST_KEY_NAME_MATCHER, PD_SECURE_STR( deletorStr ) ) ;
             goto error ;
          }
       }

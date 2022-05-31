@@ -49,6 +49,7 @@
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
 #include "ossUtil.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson;
 
@@ -462,7 +463,7 @@ namespace engine
          if ( !target.hasElement( DMS_ID_KEY_NAME ) )
          {
             PD_LOG( PDDEBUG, "Upsert object [%s] has no _id",
-                    target.toPoolString().c_str() ) ;
+                    PD_SECURE_OBJ( target ) ) ;
             try
             {
                BSONObjBuilder builder ;
@@ -505,12 +506,12 @@ namespace engine
             {
                PD_LOG( PDWARNING, "Insert record[%s] failed because of "
                        "the record is already exist when upsert",
-                       target.toPoolString().c_str() ) ;
+                       PD_SECURE_OBJ( target ) ) ;
             }
             else
             {
                PD_LOG( PDERROR, "Insert record[%s] failed when upsert, rc: %d",
-                       target.toPoolString().c_str(), rc ) ;
+                       PD_SECURE_OBJ( target ), rc ) ;
             }
             goto error ;
          }
