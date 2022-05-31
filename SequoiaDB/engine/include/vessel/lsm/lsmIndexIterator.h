@@ -114,12 +114,6 @@ namespace vessel
 
 
       private:
-         rocksdb::Slice packFullKey(const ixmKey &key,
-                                    const recordID &rid,
-                                    DPS_LSN_OFFSET lsn,
-                                    const DPS_TRANS_ID &transID,
-                                    bson::StackBufBuilder &builder);
-
          void _close();
 
          BOOLEAN _isReadyToRead()const;
