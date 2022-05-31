@@ -416,19 +416,6 @@ Linux64:
         #       CMake 3.14.5+
         #
 
-        # example compile steps on Linux
-          cd rocksdb
-          export CC=gcc
-          export cc=gcc
-          export CPATH=/usr/local/include:$CPATH
-          export LIBRARY_PATH=/usr/local/lib:$LIBRARY_PATH
-          export DEBUG_LEVEL=0
-
-          # modify Makefile
-          # SDB requires compile flag, -fPIC, add following
-          # line after line CXXFLAGS += ${EXTRA_CXXFLAGS}
-          CXXFLAGS += $(PLATFORM_SHARED_CFLAGS)
-
           # clean up
           make clean
 
@@ -456,24 +443,95 @@ Linux64:
           # then, making debuggable lib with DEBUG_LEVEL=2, for example
           DEBUG_LEVEL=2 make static_lib
 
-          # example compile with compression library steps on Linux
-            cd rocksdb
-            export CC=gcc ; export cc=gcc ; export CXX=g++ ; 
-            export CPATH=/usr/local/include:$CPATH ; export LIBRARY_PATH=/usr/local/lib:$LIBRARY_PATH ;
-            export CPATH=../snappy/include:$CPATH ; 
-            export CPATH=../zlib:$CPATH ; 
-            export CPATH=../bzip2:$CPATH ; 
-            export CPATH=../lz4/src:../lz4/include:$CPATH ; 
-            export CPATH=../zstd/lib/dictBuilder:../zstd/lib:$CPATH ; 
+          # for making rocksdb link to compression library which locate in our project when compiling. 
+          # Now link to snappy, lz4, zstd
+            # In order to link to snappy, lz4, zstd, modify rocksdb/build_tools/build_detect_platform
+            # Remove conditon to force append compiling flag -DSNAPPY, change following:
+                if ! test $ROCKSDB_DISABLE_SNAPPY; then
+                    # Test whether Snappy library is installed
+                    # http://code.google.com/p/snappy/
+                    $CXX $PLATFORM_CXXFLAGS -x c++ - -o test.o 2>/dev/null  <<EOF
+                    #include <snappy.h>
+                    int main() {}
+            EOF
+                    if [ "$?" = 0 ]; then
+                        COMMON_FLAGS="$COMMON_FLAGS -DSNAPPY"
+                        PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -lsnappy"
+                        JAVA_LDFLAGS="$JAVA_LDFLAGS -lsnappy"
+                    fi
+                fi
+                # changed like following:
+                if ! test $ROCKSDB_DISABLE_SNAPPY; then
+                    # Test whether Snappy library is installed
+                    # http://code.google.com/p/snappy/
+                    $CXX $PLATFORM_CXXFLAGS -x c++ - -o test.o 2>/dev/null  <<EOF
+                    #include <snappy.h>
+                    int main() {}
+            EOF
+                    #if [ "$?" = 0 ]; then
+                        COMMON_FLAGS="$COMMON_FLAGS -DSNAPPY"
+                        PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -lsnappy"
+                        JAVA_LDFLAGS="$JAVA_LDFLAGS -lsnappy"
+                    #fi
+                fi
+            
+            # Remove conditon to force append compiling flag -DLZ4, change following:
+                if ! test $ROCKSDB_DISABLE_LZ4; then
+                    # Test whether lz4 library is installed
+                    $CXX $PLATFORM_CXXFLAGS $COMMON_FLAGS -x c++ - -o test.o 2>/dev/null  <<EOF
+                    #include <lz4.h>
+                    #include <lz4hc.h>
+                    int main() {}
+            EOF
+                    if [ "$?" = 0 ]; then
+                        COMMON_FLAGS="$COMMON_FLAGS -DLZ4"
+                        PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -llz4"
+                        JAVA_LDFLAGS="$JAVA_LDFLAGS -llz4"
+                    fi
+                fi          
+                # changed like following:
+                if ! test $ROCKSDB_DISABLE_LZ4; then
+                    # Test whether lz4 library is installed
+                    $CXX $PLATFORM_CXXFLAGS $COMMON_FLAGS -x c++ - -o test.o 2>/dev/null  <<EOF
+                    #include <lz4.h>
+                    #include <lz4hc.h>
+                    int main() {}
+            EOF
+                    #if [ "$?" = 0 ]; then
+                        COMMON_FLAGS="$COMMON_FLAGS -DLZ4"
+                        PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -llz4"
+                        JAVA_LDFLAGS="$JAVA_LDFLAGS -llz4"
+                    #fi
+                fi   
+            
+            # Remove conditon to force append compiling flag -DZSTD, change following:
+                if ! test $ROCKSDB_DISABLE_ZSTD; then
+                    # Test whether zstd library is installed
+                    $CXX $PLATFORM_CXXFLAGS $COMMON_FLAGS -x c++ - -o /dev/null 2>/dev/null  <<EOF
+                    #include <zstd.h>
+                    int main() {}
+            EOF
+                    if [ "$?" = 0 ]; then
+                        COMMON_FLAGS="$COMMON_FLAGS -DZSTD"
+                        PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -lzstd"
+                        JAVA_LDFLAGS="$JAVA_LDFLAGS -lzstd"
+                    fi
+                fi
+                # changed like following:
+                if ! test $ROCKSDB_DISABLE_ZSTD; then
+                    # Test whether zstd library is installed
+                    $CXX $PLATFORM_CXXFLAGS $COMMON_FLAGS -x c++ - -o /dev/null 2>/dev/null  <<EOF
+                    #include <zstd.h>
+                    int main() {}
+            EOF
+                    #if [ "$?" = 0 ]; then
+                        COMMON_FLAGS="$COMMON_FLAGS -DZSTD"
+                        PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -lzstd"
+                        JAVA_LDFLAGS="$JAVA_LDFLAGS -lzstd"
+                    #fi
+                fi
 
-            #modify rocksdb/build_tools/build_detect_platform
-            # for example, for rocksdb static library supported with zstd
-            # set line 393 and 397 as comments, like following:
-                #if [ "$?" = 0 ]; then
-                    COMMON_FLAGS="$COMMON_FLAGS -DZSTD"
-                    PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -lzstd"
-                    JAVA_LDFLAGS="$JAVA_LDFLAGS -lzstd"
-                #fi
+                
 
         
 ARM64:
