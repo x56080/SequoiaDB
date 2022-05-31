@@ -662,8 +662,8 @@ namespace engine
             INT32 receivedLen ;
             MsgHeader header ;
             INT32 rc = _pClientSock->recv( (CHAR*)&header , sizeof(header),
-                                           receivedLen, 0, MSG_PEEK, TRUE, TRUE ) ;
-            if ( ( rc >= (INT32)sizeof(header) &&
+                                           receivedLen, 0, MSG_PEEK, TRUE, FALSE ) ;
+            if ( ( receivedLen >= (INT32)sizeof(header) &&
                    MSG_BS_DISCONNECT == header.opCode ) ||
                  SDB_NETWORK_CLOSE == rc ||
                  SDB_NETWORK == rc )
@@ -672,7 +672,7 @@ namespace engine
                _isInterruptSelf = FALSE ;
                ret = TRUE ;
             }
-            else if ( rc >= (INT32)sizeof(header) &&
+            else if ( receivedLen >= (INT32)sizeof(header) &&
                       ( MSG_BS_INTERRUPTE == header.opCode ||
                         MSG_BS_INTERRUPTE_SELF == header.opCode ) )
             {

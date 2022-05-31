@@ -72,6 +72,7 @@ INT32 ossSSLConnect(SSLHandle* handle);
 INT32 ossSSLAccept(SSLHandle* handle);
 INT32 ossSSLRead(SSLHandle* handle, void* buf, INT32 num);
 INT32 ossSSLPeek(SSLHandle* handle, void* buf, INT32 num);
+BOOLEAN ossSSLHasPending( SSLHandle *handle ) ;
 INT32 ossSSLWrite(SSLHandle* handle, const void* buf, INT32 num);
 INT32 ossSSLShutdown(SSLHandle* handle);
 INT32 ossSSLGetError(SSLHandle* handle);
