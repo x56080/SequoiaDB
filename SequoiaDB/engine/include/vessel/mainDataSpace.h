@@ -58,17 +58,6 @@ namespace vessel
          }
 
       public:
-         INT32 initMetaPageWhenCreateCS(requestContext *context,
-                                        const csMetaBlock &block,
-                                        const slice &options);
-
-         INT32 readMetaBlockWhenOpen(requestContext *context,
-                                     csMetaBlock &block);
-
-         INT32 updateCSMetaBlock(requestContext *context,
-                                 const csMetaBlock &block,
-                                 UINT64 updateMask);
-
          fsmFile *getFsmFile()
          {
             return _fsm;

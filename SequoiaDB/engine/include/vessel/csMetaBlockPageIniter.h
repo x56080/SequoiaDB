@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = storageUnitManifest.cpp
+   Source File Name = csMetaBlockPageIniter.h
 
    Descriptive Name =
 
@@ -33,20 +33,33 @@
 
 ******************************************************************************/
 
-#include "vessel/storageManifest.h"
+#ifndef VESSEL_CS_META_BLOCK_PGAE_INITER_H_
+#define VESSEL_CS_META_BLOCK_PGAE_INITER_H_
+
+#include "vessel/pageInitializer.h"
 
 namespace engine
 {
 namespace vessel
 {
-   BOOLEAN storageUnitManifest::isValid()const
+   struct csMetaBlock;
+   
+   class csMetaBlockPageIniter : public pageInitializer
    {
-      return INVALID_SPACE_ID != sid &&
-             dataArgs.isValid() &&
-             idxArgs.isValid() &&
-             lobArgs.isValid();
-   }
+      public:
+         virtual INT32 initPage(requestContext *context,
+                                 PAGE_ID lpid,
+                                 PAGE_SNAPSHOT_VERION psv,
+                                 runtimePageBuffer *rpb)override;
 
+      public:
+         void set(const csMetaBlock *block) {_block = block;}
+      private:
+         const csMetaBlock *_block = nullptr;
+   };//class csMetaBlockPageIniter
 } // namespace vessel
 
 } // namespace engine
+
+
+#endif//VESSEL_CS_META_BLOCK_PGAE_INITER_H_

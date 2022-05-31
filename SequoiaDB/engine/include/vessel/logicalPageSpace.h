@@ -75,7 +75,7 @@ namespace vessel
          OSS_INLINE const storageUnitManifest *getManifest()const {return _manifest;}
          OSS_INLINE SPACE_ID getSpaceID()const
          {
-            return nullptr == _manifest ? INVALID_SPACE_ID : _manifest->sid;
+            return nullptr == _manifest ? INVALID_SPACE_ID : _manifest->id.getSpaceId();
          }
          OSS_INLINE const storageFileCluster *getFileCluster()const {return &_fcluster;}
          OSS_INLINE storageFileCluster *getFileCluster() {return &_fcluster;}

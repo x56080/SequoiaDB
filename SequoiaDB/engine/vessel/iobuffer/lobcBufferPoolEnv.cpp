@@ -52,7 +52,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       fini();
       
-      rc = _pool.init(o.maxMemSize);
+      rc = _pool.init(o.maxMemSize, DMS_PAGE_SIZE32K);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init block-based mem pool:%d", rc);

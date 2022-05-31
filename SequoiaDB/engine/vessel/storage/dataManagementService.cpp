@@ -47,6 +47,7 @@
 #include "vessel/storageFileName.h"
 #include "vessel/storageFileLoader.h"
 #include "vessel/storageUtils.h"
+#include "dpsJournalPad.hpp"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -210,7 +211,7 @@ namespace vessel
       spaceIDLockHelper lh(context);
       collectionSpace *obj = NULL;
 
-      identifier = collectionSpaceId();
+      identifier.reset();
 
       if (OSS_UNLIKELY(NULL == context ||
                        context->isSpaceIdLocked() ||
@@ -234,11 +235,10 @@ namespace vessel
       {
          goto error;
       }
-      SDB_ASSERT(DMS_INVALID_LOGICCSID != logicalID, "can not be invalid");
-      SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
+      
+      identifier = collectionSpaceId(logicalID, uniqueID, sid);
+      SDB_ASSERT(identifier.isValid(), "can not be invalid");
 
-      /// Must lock first.
-      /// "getCSByXX" may holding latch.
       rc = lh.lock(sid, EXCLUSIVE);
       if (SDB_OK != rc)
       {
@@ -246,7 +246,7 @@ namespace vessel
          goto error;
       }
 
-      rc = createCS(context, csName, uniqueID, logicalID, options, &obj);
+      rc = createCS(context, csName, identifier, options, &obj);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create cs obj[%s], rc:%d", csName.str(), rc);
@@ -258,9 +258,6 @@ namespace vessel
       /// 1. Drop name and uid from tmp idex.
       /// 2. Add obj to formal index.
       endToCreateCS(obj);
-      identifier = collectionSpaceId(obj->getLogicalID(),
-                                     obj->getUniqueID(),
-                                     obj->getSpaceId());
       lh.unlock();
 
       
@@ -273,27 +270,25 @@ namespace vessel
       {
          clearReservedCSInfo(csName, uniqueID, logicalID, sid);
       }
+      identifier.reset();
       goto done;
    }
    
 
    INT32 dataManagementService::createSU(requestContext *context,
+                                         const collectionSpaceId &id,
                                          const dmsCreateCSOptions &options,
-                                         storageUnit **out)
+                                         storageUnit *su)
    {
-      INT32 rc = SDB_OK;
-      OSS_LATCH_MODE lockingMode = SHARED;
+      INT32 rc = SDB_OK;   
       SDB_ASSERT(_sus.isInitialized(), "must be inited");
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(context->isSpaceIdLocked(&lockingMode), "must holding lock");
-      SDB_ASSERT(EXCLUSIVE == lockingMode, "must be exslusive");
-
+      SDB_ASSERT(id.isValid(), "can not be invalid");
+      SDB_ASSERT(nullptr != su, "can not be invalid");
+      
       SDB_ASSERT(DMS_PAGE_SIZE64K == options.dataPageSize, "must be 64KB");
       SDB_ASSERT(DMS_PAGE_SIZE64K == options.idxPageSize, "must be 64KB");
       SDB_ASSERT(DMS_PAGE_SIZE4K == options.lobdPageSize, "must be 4KB");
 
-      SPACE_ID sid = context->getSpaceID();
-      storageUnit *su = NULL;
       createSUOptions suOptions;
 
       suOptions.dataArgs.pageSize = options.dataPageSize;
@@ -315,52 +310,60 @@ namespace vessel
          goto error;
       }
 
-      rc = _sus.ensure(sid, &su);
+      rc = su->create(id, suOptions);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to allocate storage unit obj:%d", rc);
+         PD_LOG(PDERROR, "failed to create storage unit[%d], rc:%d", id.getSpaceId(), rc);
          goto error;
       }
 
-      rc = su->create(sid, suOptions);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to create storage unit[%d], rc:%d", sid, rc);
-         goto error;
-      }
-      
-      if (NULL != out)
-      {
-         *out = su;
-      }
    done:
       return rc;
    error:
-      if (NULL != su)
-      {
-         _sus.release(sid);
-      }
       goto done;
    }
 
    INT32 dataManagementService::createCS(requestContext *context,
                                          const strSlice &csName,
-                                         utilCSUniqueID uniqueId,
-                                         UINT32 logicalID,
+                                         const collectionSpaceId &id,
                                          const dmsCreateCSOptions &options,
                                          collectionSpace **out)
    {
       INT32 rc = SDB_OK;
-      OSS_LATCH_MODE lockingMode = SHARED;
+
       SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(context->isSpaceIdLocked(&lockingMode), "must holding lock");
-      SDB_ASSERT(EXCLUSIVE == lockingMode, "must be exslusive");
+      SDB_ASSERT(id.isValid(), "can not be invalid");
       SDB_ASSERT(NULL != out, "can not be null");
 
-      SPACE_ID sid = context->getSpaceID();
       collectionSpace *obj = NULL;
       storageUnit *su = NULL;
-      rc = createSU(context, options, &su);
+
+      IDataJournal *journal = context->getEnv()->resource.journal;
+      dpsStackJournalPad jpad;
+      dpsPackedRequest jrequest;
+      dpsLogRecordHeader jres;
+      dpsWriteOptions o;
+      o.flushAtOnce = TRUE;
+
+      /// dummy log
+      jpad.setType(LOG_TYPE_CS_CRT);
+      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
+      jrequest = jpad.done();
+      rc = journal->write(jrequest, o, &jres);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
+         goto error;
+      }
+
+      rc = _sus.ensure(id.getSpaceId(), &su);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to ensure su obj:%d", rc);
+         goto error;
+      }
+
+      rc = createSU(context, id, options, su);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create storage unit[%s], rc:%d",
@@ -376,7 +379,7 @@ namespace vessel
          goto error;
       }
 
-      rc = obj->create(context, csName, uniqueId, logicalID, su, options);
+      rc = obj->create(context, csName, su, jres._lsn);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create cs[%s], rc:%d",
@@ -394,7 +397,7 @@ namespace vessel
       if (NULL != su)
       {
          su->destroy();
-         _sus.release(sid);
+         _sus.release(id.getSpaceId());
       }
       goto done;
    }
@@ -1645,6 +1648,7 @@ namespace vessel
       SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
       
       ossPoolString name(csName.str());
+      ossScopedRWLock guard(&_latch, EXCLUSIVE);
       SDB_ASSERT(0 == _unformalNameIndex.count(name), "impossible");
       if (UTIL_IS_VALID_CSUNIQUEID(uniqueID))
       {

@@ -561,10 +561,6 @@ namespace vessel
    done:
       return rc;
    error:
-      if (INVALID_PAGE_ID != pid)
-      {
-         _smgr.release(pid);
-      }
       goto done;
    }
 
@@ -855,7 +851,7 @@ namespace vessel
       SDB_ASSERT(nullptr != _manifest && _manifest->isValid(), "can not be invalid");
       SDB_ASSERT(!_mfile.isOpen(), "can not be open");
       const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
-      storageFileMaintainer sfm(&po, _manifest->sid);
+      storageFileMaintainer sfm(&po, _manifest->id.getSpaceId());
       storageFileName fn;
       createStorageFileOptions options;
       storageCoreArgs args(lpageMetaDataFile::PAGE_SIZE,
@@ -913,7 +909,7 @@ namespace vessel
       SDB_ASSERT(nullptr != _manifest && _manifest->isValid(), "can not be invalid");
       SDB_ASSERT(!_mfile.isOpen(), "can not be open");
       const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
-      storageFileMaintainer sfm(&po, _manifest->sid);
+      storageFileMaintainer sfm(&po, _manifest->id.getSpaceId());
       storageFileName fn;
 
       if (!fn.build(FILE_TYPE_LPM, getSpaceType()))
@@ -940,7 +936,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       storageFileManifest manifest;
-      manifest.sid = _manifest->sid;
+      manifest.sid = _manifest->id.getSpaceId();
       manifest.stype = getSpaceType();
       manifest.ftype = FILE_TYPE_DATA_STORAGE;
       manifest.secretValue = _manifest->secretValue;

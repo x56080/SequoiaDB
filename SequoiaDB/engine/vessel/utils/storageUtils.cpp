@@ -48,6 +48,22 @@ namespace engine
 {
 namespace vessel
 {
+   struct manifestBsonProperties : public SDBObject
+   {
+      static constexpr CHAR *SPACE_ID = "SpaceId";
+      static constexpr CHAR *LOGICAL_ID = "LogicalId";
+      static constexpr CHAR *UNIQUE_ID = "UniqueId";
+      static constexpr CHAR *FLAGS = "Flags";
+      static constexpr CHAR *SECRET_VALUE = "SecretValue";
+      static constexpr CHAR *PAGE_SIZE = "PageSize";
+      static constexpr CHAR *PAGE_COUNT = "PageCount";
+      static constexpr CHAR *SEG_COUNT = "SegmentCount";
+
+      static constexpr CHAR *DATA_ARGS = "DataArgs";
+      static constexpr CHAR *IDX_ARGS = "IndexArgs";
+      static constexpr CHAR *LOB_ARGS = "LobArgs";
+   };
+
 
    INT32 renameFileShadowSuffix(const strSlice &dir,
                                 BOOLEAN replaceNewFile,
@@ -325,26 +341,28 @@ namespace vessel
    {
       SDB_ASSERT(manifest.isValid(), "can not be invalid");
       bson::BSONObjBuilder builder;
-      builder.append("SpaceId", manifest.sid);
-      builder.append("Flags", manifest.flags);
-      builder.append("SecretValue", manifest.secretValue);
+      builder.append(manifestBsonProperties::SPACE_ID, manifest.id.getSpaceId());
+      builder.append(manifestBsonProperties::LOGICAL_ID, manifest.id.getLid());
+      builder.append(manifestBsonProperties::UNIQUE_ID, manifest.id.getUniqueId());
+      builder.append(manifestBsonProperties::FLAGS, manifest.flags);
+      builder.append(manifestBsonProperties::SECRET_VALUE, manifest.secretValue);
 
-      bson::BSONObjBuilder data(builder.subobjStart("DataArgs"));
-      data.append("PageSize", manifest.dataArgs.pageSize);
-      data.append("PageCountPerSeg", manifest.dataArgs.maxPageCountPerSeg);
-      data.append("SegCountPerFile", manifest.dataArgs.maxSegmentCountPerFile);
+      bson::BSONObjBuilder data(builder.subobjStart(manifestBsonProperties::DATA_ARGS));
+      data.append(manifestBsonProperties::PAGE_SIZE, manifest.dataArgs.pageSize);
+      data.append(manifestBsonProperties::PAGE_COUNT, manifest.dataArgs.maxPageCountPerSeg);
+      data.append(manifestBsonProperties::SEG_COUNT, manifest.dataArgs.maxSegmentCountPerFile);
       data.done();
 
-      bson::BSONObjBuilder index(builder.subobjStart("IndexArgs"));
-      index.append("PageSize", manifest.idxArgs.pageSize);
-      index.append("PageCountPerSeg", manifest.idxArgs.maxPageCountPerSeg);
-      index.append("SegCountPerFile", manifest.idxArgs.maxSegmentCountPerFile);
+      bson::BSONObjBuilder index(builder.subobjStart(manifestBsonProperties::IDX_ARGS));
+      index.append(manifestBsonProperties::PAGE_SIZE, manifest.idxArgs.pageSize);
+      index.append(manifestBsonProperties::PAGE_COUNT, manifest.idxArgs.maxPageCountPerSeg);
+      index.append(manifestBsonProperties::SEG_COUNT, manifest.idxArgs.maxSegmentCountPerFile);
       index.done();
 
-      bson::BSONObjBuilder lob(builder.subobjStart("LobArgs"));
-      lob.append("PageSize", manifest.lobArgs.pageSize);
-      lob.append("PageCountPerSeg", manifest.lobArgs.maxPageCountPerSeg);
-      lob.append("SegCountPerFile", manifest.lobArgs.maxSegmentCountPerFile);
+      bson::BSONObjBuilder lob(builder.subobjStart(manifestBsonProperties::LOB_ARGS));
+      lob.append(manifestBsonProperties::PAGE_SIZE, manifest.lobArgs.pageSize);
+      lob.append(manifestBsonProperties::PAGE_COUNT, manifest.lobArgs.maxPageCountPerSeg);
+      lob.append(manifestBsonProperties::SEG_COUNT, manifest.lobArgs.maxSegmentCountPerFile);
       lob.done();
 
       return builder.obj();
@@ -354,33 +372,55 @@ namespace vessel
                               storageUnitManifest &manifest)
    {
       BOOLEAN r = FALSE;
+      SPACE_ID sid = INVALID_SPACE_ID;
+      UINT32 lid = DMS_INVALID_LOGICCLID;
+      utilCSUniqueID uniqueId = UTIL_UNIQUEID_NULL;
       bson::BSONElement e;
       manifest.reset();
 
-      e = obj.getField("SpaceId");
+      PD_LOG(PDDEBUG, "parsing manifest bson:%s",
+             obj.toPoolString(FALSE, TRUE, TRUE).c_str());
+
+      e = obj.getField(manifestBsonProperties::SPACE_ID);
       if (!e.isNumber() ||
           (INT32)MAX_SPACE_ID < e.numberInt() ||
           e.numberInt() < 0)
       {
          goto done;
       }
-      manifest.sid = e.numberInt();
+      sid = e.numberInt();
 
-      e = obj.getField("Flags");
+      e = obj.getField(manifestBsonProperties::LOGICAL_ID);
+      if (!e.isNumber())
+      {
+         goto done;
+      }
+      lid = e.numberInt();
+
+      e = obj.getField(manifestBsonProperties::UNIQUE_ID);
+      if (!e.isNumber())
+      {
+         goto done;
+      }
+      uniqueId = e.numberInt();
+
+      manifest.id = collectionSpaceId(lid, uniqueId, sid);
+
+      e = obj.getField(manifestBsonProperties::FLAGS);
       if (!e.isNumber())
       {
          goto done;
       }
       manifest.flags = e.numberInt();
 
-      e = obj.getField("SecretValue");
+      e = obj.getField(manifestBsonProperties::SECRET_VALUE);
       if (!e.isNumber())
       {
          goto done;
       }
       manifest.secretValue = e.numberInt();
 
-      e = obj.getField("DataArgs");
+      e = obj.getField(manifestBsonProperties::DATA_ARGS);
       if (!e.isABSONObj())
       {
          goto done;
@@ -388,21 +428,21 @@ namespace vessel
       else
       {
          bson::BSONObj args = e.embeddedObject();
-         e = args.getField("PageSize");
+         e = args.getField(manifestBsonProperties::PAGE_SIZE);
          if (!e.isNumber())
          {
             goto done;
          }
          manifest.dataArgs.pageSize = e.numberInt();
 
-         e = args.getField("PageCountPerSeg");
+         e = args.getField(manifestBsonProperties::PAGE_COUNT);
          if (!e.isNumber())
          {
             goto done;
          }
          manifest.dataArgs.maxPageCountPerSeg = e.numberInt();
 
-         e = args.getField("SegCountPerFile");
+         e = args.getField(manifestBsonProperties::SEG_COUNT);
          if (!e.isNumber())
          {
             goto done;
@@ -410,7 +450,7 @@ namespace vessel
          manifest.dataArgs.maxSegmentCountPerFile = e.numberInt();
       }
 
-      e = obj.getField("IndexArgs");
+      e = obj.getField(manifestBsonProperties::IDX_ARGS);
       if (!e.isABSONObj())
       {
          goto done;
@@ -418,21 +458,21 @@ namespace vessel
       else
       {
          bson::BSONObj args = e.embeddedObject();
-         e = args.getField("PageSize");
+         e = args.getField(manifestBsonProperties::PAGE_SIZE);
          if (!e.isNumber())
          {
             goto done;
          }
          manifest.idxArgs.pageSize = e.numberInt();
 
-         e = args.getField("PageCountPerSeg");
+         e = args.getField(manifestBsonProperties::PAGE_COUNT);
          if (!e.isNumber())
          {
             goto done;
          }
          manifest.idxArgs.maxPageCountPerSeg = e.numberInt();
 
-         e = args.getField("SegCountPerFile");
+         e = args.getField(manifestBsonProperties::SEG_COUNT);
          if (!e.isNumber())
          {
             goto done;
@@ -440,7 +480,7 @@ namespace vessel
          manifest.idxArgs.maxSegmentCountPerFile = e.numberInt();
       }
 
-      e = obj.getField("LobArgs");
+      e = obj.getField(manifestBsonProperties::LOB_ARGS);
       if (!e.isABSONObj())
       {
          goto done;
@@ -448,21 +488,21 @@ namespace vessel
       else
       {
          bson::BSONObj args = e.embeddedObject();
-         e = args.getField("PageSize");
+         e = args.getField(manifestBsonProperties::PAGE_SIZE);
          if (!e.isNumber())
          {
             goto done;
          }
          manifest.lobArgs.pageSize = e.numberInt();
 
-         e = args.getField("PageCountPerSeg");
+         e = args.getField(manifestBsonProperties::PAGE_COUNT);
          if (!e.isNumber())
          {
             goto done;
          }
          manifest.lobArgs.maxPageCountPerSeg = e.numberInt();
 
-         e = args.getField("SegCountPerFile");
+         e = args.getField(manifestBsonProperties::SEG_COUNT);
          if (!e.isNumber())
          {
             goto done;

@@ -187,13 +187,13 @@ namespace vessel
                               SPACE_ID sid);
 
          INT32 createSU(requestContext *context,
+                        const collectionSpaceId &id,
                         const dmsCreateCSOptions &options,
-                        storageUnit **out);
+                        storageUnit *su);
 
          INT32 createCS(requestContext *context,
                         const strSlice &csName,
-                        utilCSUniqueID uniqueId,
-                        UINT32 logicalID,
+                        const collectionSpaceId &id,
                         const dmsCreateCSOptions &options,
                         collectionSpace **out);
 
@@ -234,7 +234,7 @@ namespace vessel
          {
             BOOLEAN operator()(const CHAR *l, const CHAR *r)const
             {
-               return ossStrcmp(l, r) < 0;
+               return ossStrncmp(l, r, DMS_COLLECTION_SPACE_NAME_SZ) < 0;
             }
          };//struct _CS_NAME_LESS
          typedef ossPoolMap<const CHAR *, collectionSpace *, _NAME_LESS> _NAME_INDEX;

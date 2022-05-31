@@ -150,7 +150,7 @@ namespace vessel
          goto error;
       }
 
-      fileManifest.sid = _manifest->sid;
+      fileManifest.sid = _manifest->id.getSpaceId();
       fileManifest.stype = SPACE_TYPE_LOB;
       fileManifest.ftype = FILE_TYPE_DATA_STORAGE;
       fileManifest.secretValue = _manifest->secretValue;
@@ -206,8 +206,8 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(context->getSpaceID() == _manifest->sid, "must be same");
-      glckey.set(_manifest->sid, context->getMBID(), key);
+      SDB_ASSERT(context->getSpaceID() == _manifest->id.getSpaceId(), "must be same");
+      glckey.set(_manifest->id.getSpaceId(), context->getMBID(), key);
       rc = lh.lock(glckey, mode, locker);
       if (SDB_OK != rc)
       {
@@ -248,7 +248,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _createLobmFile(_manifest->sid, _manifest->secretValue);
+      rc = _createLobmFile(_manifest->id.getSpaceId(), _manifest->secretValue);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create lobm file:%d", rc);
@@ -262,7 +262,7 @@ namespace vessel
          goto error;
       }
 
-      fileManifest.sid = _manifest->sid;
+      fileManifest.sid = _manifest->id.getSpaceId();
       fileManifest.stype = SPACE_TYPE_LOB;
       fileManifest.ftype = FILE_TYPE_DATA_STORAGE;
       fileManifest.secretValue = _manifest->secretValue;
@@ -440,14 +440,14 @@ namespace vessel
    INT32 largeObjectSpace::_openLobmFile(const storageFileLoader *loader)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(nullptr != _manifest && INVALID_SPACE_ID != _manifest->sid,
+      SDB_ASSERT(nullptr != _manifest && INVALID_SPACE_ID != _manifest->id.getSpaceId(),
                 "can not be invalid");
       SDB_ASSERT(!_metaFile.isOpen(), "already been open");
       SDB_ASSERT(nullptr != loader, "can not be null");
       THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
       SDB_ASSERT(nullptr != tc, "can not be invalid");
       const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
-      storageFileMaintainer sfm(&po, _manifest->sid);
+      storageFileMaintainer sfm(&po, _manifest->id.getSpaceId());
       UINT32 fileCtlFlags = storageFileCtlFlag::MMAP_DATA_SEGMENT;
 
       const STORAGE_FILE_NAME_LIST *fl = loader->getFileList(SPACE_TYPE_LOB,
@@ -707,8 +707,8 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(context->getSpaceID() == _manifest->sid, "must be same");
-      glckey.set(_manifest->sid, context->getMBID(), key);
+      SDB_ASSERT(context->getSpaceID() == _manifest->id.getSpaceId(), "must be same");
+      glckey.set(_manifest->id.getSpaceId(), context->getMBID(), key);
       rc = lh.lock(glckey, mode, locker);
       if (SDB_OK != rc)
       {
@@ -784,8 +784,8 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(context->getSpaceID() == _manifest->sid, "must be same");
-      glckey.set(_manifest->sid, context->getMBID(), key);
+      SDB_ASSERT(context->getSpaceID() == _manifest->id.getSpaceId(), "must be same");
+      glckey.set(_manifest->id.getSpaceId(), context->getMBID(), key);
       rc = lh.lock(glckey, mode, locker);
       if (SDB_OK != rc)
       {
@@ -853,7 +853,7 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(context->getSpaceID() == _manifest->sid, "must be same");
+      SDB_ASSERT(context->getSpaceID() == _manifest->id.getSpaceId(), "must be same");
       {
          tc->getEnv()->lobcBufferPool.discard(context->getSpaceID(), context->getMBID());
          lobcMetaBlockMapping mapping(_manifest, _uberBlock.bucketEntryPid, &_metaFile);
@@ -894,8 +894,8 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(context->getSpaceID() == _manifest->sid, "must be same");
-      glckey.set(_manifest->sid, context->getMBID(), key);
+      SDB_ASSERT(context->getSpaceID() == _manifest->id.getSpaceId(), "must be same");
+      glckey.set(_manifest->id.getSpaceId(), context->getMBID(), key);
       rc = lh.lock(glckey, mode, locker);
       if (SDB_OK != rc)
       {
@@ -978,8 +978,8 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(context->getSpaceID() == _manifest->sid, "must be same");
-      glckey.set(_manifest->sid, context->getMBID(), key);
+      SDB_ASSERT(context->getSpaceID() == _manifest->id.getSpaceId(), "must be same");
+      glckey.set(_manifest->id.getSpaceId(), context->getMBID(), key);
       rc = lh.lock(glckey, mode, locker);
       if (SDB_OK != rc)
       {
@@ -1042,8 +1042,8 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(context->getSpaceID() == _manifest->sid, "must be same");
-      glckey.set(_manifest->sid, context->getMBID(), key);
+      SDB_ASSERT(context->getSpaceID() == _manifest->id.getSpaceId(), "must be same");
+      glckey.set(_manifest->id.getSpaceId(), context->getMBID(), key);
       rc = lh.lock(glckey, mode, locker);
       if (SDB_OK != rc)
       {
@@ -1080,7 +1080,7 @@ namespace vessel
       lobChunkBufferPool &pool = tc->getEnv()->lobcBufferPool;
       lobChunkBufferPool::writeOptions wopts;
       globalLobChunkKey glckey;
-      glckey.set(_manifest->sid, context->getMBID(), key);
+      glckey.set(_manifest->id.getSpaceId(), context->getMBID(), key);
       SDB_ASSERT(glckey.isValid(), "can not be invalid");
       lobcExtentChain chain;
       lobExtentMetaBlock block;

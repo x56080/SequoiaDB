@@ -45,11 +45,11 @@
 #include "vessel/storageUnit.h"
 #include "ossRWMutex.hpp"
 #include "vessel/lazyArray.hpp"
-#include "vessel/collectionObjHolder.h"
 #include "vessel/collectionOptions.h"
 #include "vessel/objectIdentifier.h"
 #include "vessel/shallowPointer.hpp"
 #include "vessel/fixedBitset.hpp"
+#include "vessel/objectHolder.hpp"
 
 namespace engine
 {
@@ -58,7 +58,6 @@ namespace vessel
    class collection;
    class requestContext;
    class listCLCursor;
-   class collectionRecord;
 
    class collectionSpace : public SDBObject
    {
@@ -87,7 +86,8 @@ namespace vessel
          }
          OSS_INLINE UINT32 getUniqueID()const
          {
-            return _blockInMem.uniqueID; 
+            return nullptr == _su ?
+                   UTIL_UNIQUEID_NULL : _su->getIdentifier().getUniqueId();
          }
 
          OSS_INLINE UINT32 getStatus()const
@@ -108,20 +108,23 @@ namespace vessel
          }
          OSS_INLINE UINT32 getLogicalID()const
          {
-            return _blockInMem.logicalID;
+            return nullptr == _su ?
+                   DMS_INVALID_LOGICCSID : _su->getIdentifier().getLid();
          }
          OSS_INLINE storageUnit *getSU()const
          {
             return _su;
          }
-         collectionSpaceId getIdentifier()const;
+         OSS_INLINE collectionSpaceId getIdentifier()const
+         {
+            return nullptr == _su ?
+                   collectionSpaceId() : _su->getIdentifier();
+         }
       public:
          INT32 create(requestContext *context,
                       const strSlice &name,
-                      utilCSUniqueID uniqueId,
-                      UINT32 logicalID,
                       storageUnit *su,
-                      const dmsCreateCSOptions &options);
+                      DPS_LSN_OFFSET lsn);
 
          INT32 open(requestContext *context,
                     storageUnit *su);
@@ -166,7 +169,25 @@ namespace vessel
                                         utilCLInnerID innerID,
                                         OSS_LATCH_MODE mode,
                                         collection **obj);
+      private:
+         struct _NAME_LESS
+         {
+            BOOLEAN operator()(const CHAR *l, const CHAR *r)const
+            {
+               return ossStrncmp(l, r, DMS_COLLECTION_NAME_SZ) < 0;
+            }
+         };//struct _CS_NAME_LESS
 
+         typedef ossPoolMap<const CHAR *, CL_MB_ID, _NAME_LESS> NAME_INDEX;
+         typedef ossPoolMap<utilCLInnerID, CL_MB_ID> ID_INDEX;
+         typedef ossPoolSet<ossPoolString> _NAME_SET;
+         typedef ossPoolSet<utilCLInnerID> _INNER_ID_SET; 
+
+         typedef objectHolder<collection> _CL_HOLDER;
+         typedef objectHolderGroup<collection, 64> _CL_HOLDER_GROUP;
+
+         static_assert(65535 == MAX_CL_MB_COUNT, "msut be 65535");
+         static constexpr UINT32 _ALLOCATOR_SIZE = 65536 / _CL_HOLDER_GROUP::CAPACITY;
       private:
          void fini();
          INT32 initInMemStructures();
@@ -175,13 +196,23 @@ namespace vessel
 
          INT32 removeCSNameFile()const;
 
+         INT32 _initMetaBlock(requestContext *context,
+                              const csMetaBlock &block,
+                              DPS_LSN_OFFSET lsn);
+         INT32 _updateMetaBlock(requestContext *context,
+                                const csMetaBlock &block,
+                                UINT64 mask);
+
+         INT32 _loadMetaBlock(requestContext *context,
+                              csMetaBlock &block);
+
       private:
 
          INT32 initCollectionsFromDisk(requestContext *context);
          INT32 initCollection(requestContext *context,
                               const clMetaBlock *block);
 
-         INT32 getCollectionHolder(CL_MB_ID mbID, collectionObjHolder **holder);
+         INT32 getCollectionHolder(CL_MB_ID mbID, _CL_HOLDER **holder);
 
          INT32 ensureCLMetaBlockPage(requestContext *context,
                                      CL_MB_ID mbID);
@@ -205,7 +236,7 @@ namespace vessel
                                 utilCLInnerID innerId);
 
          INT32 reserveCLObj(CL_MB_ID &mbID);
-         INT32 ensureCLObj(CL_MB_ID mbID, collectionObjHolder **holder);
+         INT32 ensureCLObj(CL_MB_ID mbID, _CL_HOLDER **holder);
          void releaseCLObj(CL_MB_ID mbID);
 
       private:
@@ -222,31 +253,15 @@ namespace vessel
                       CL_MB_ID &mbID)const;
          BOOLEAN find(utilCLInnerID innerID,
                       CL_MB_ID &mbID)const;
-
-      private:
-         struct _NAME_LESS
-         {
-            BOOLEAN operator()(const CHAR *l, const CHAR *r)const
-            {
-               return ossStrcmp(l, r) < 0;
-            }
-         };//struct _CS_NAME_LESS
-
-         typedef ossPoolMap<const CHAR *, CL_MB_ID, _NAME_LESS> NAME_INDEX;
-         typedef ossPoolMap<utilCLInnerID, CL_MB_ID> ID_INDEX;
-         typedef ossPoolSet<ossPoolString> _NAME_SET;
-         typedef ossPoolSet<utilCLInnerID> _INNER_ID_SET;         
+        
       private:
          BOOLEAN _isOpen = FALSE;
          storageUnit *_su = NULL;
          ossSpinSLatchPOSIX _latch;
          csMetaBlock _blockInMem;
 
-
-         static_assert(65535 == MAX_CL_MB_COUNT, "must be 65535");
-         static_assert(0 == 65536 % collectionObjHolderGroup::CAPACITY, "must be aligned");
-         fixedBitset<65536/collectionObjHolderGroup::CAPACITY> _allocator;
-         lazyArray<collectionObjHolderGroup> _collections;
+         fixedBitset<_ALLOCATOR_SIZE> _allocator;
+         lazyArray<_CL_HOLDER_GROUP> _collections;
 
          ///formal indexes
          NAME_INDEX _clNameIndex;

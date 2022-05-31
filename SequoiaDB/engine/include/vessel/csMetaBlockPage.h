@@ -61,8 +61,6 @@ namespace vessel
       UINT16 status = 0;
       UINT16 type = 0;
       UINT32 flags = 0;
-      UINT32 uniqueID = UTIL_UNIQUEID_NULL;
-      UINT32 logicalID = DMS_INVALID_LOGICCSID;
       CHAR name[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {};
       UINT32 maxCLLogicalID = DMS_INVALID_LOGICCLID;
 
@@ -72,8 +70,6 @@ namespace vessel
          status = o.status;
          type = o.type;
          flags = o.flags;
-         uniqueID = o.uniqueID;
-         logicalID = o.logicalID;
          ossMemcpy(name, o.name, sizeof(name));
          maxCLLogicalID = o.maxCLLogicalID;
          return *this;
@@ -96,8 +92,6 @@ namespace vessel
          status = 0;
          type = 0;
          flags = 0;
-         uniqueID = UTIL_UNIQUEID_NULL;
-         logicalID = DMS_INVALID_LOGICCSID;
          ossMemset(name, 0, sizeof(name));
          maxCLLogicalID = DMS_INVALID_LOGICCLID;
       }

@@ -87,7 +87,7 @@ namespace vessel
          goto done;
       }
 
-      sfm.init(&po, _manifest.sid);
+      sfm.init(&po, _manifest.id.getSpaceId());
 
       _mds.destroy();
       _is.destroy();
@@ -102,7 +102,7 @@ namespace vessel
    }
    
 
-   INT32 storageUnit::create(SPACE_ID sid,
+   INT32 storageUnit::create(const collectionSpaceId &id,
                              const createSUOptions &options)
    {
       INT32 rc = SDB_OK;
@@ -115,14 +115,14 @@ namespace vessel
       storageFileMaintainer sfm;
       ossPoolString manifestPath;
 
-      if (OSS_UNLIKELY(INVALID_SPACE_ID == sid ||
+      if (OSS_UNLIKELY(!id.isValid() ||
                        !options.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
       
-      sfm.init(&po, sid);
+      sfm.init(&po, id.getSpaceId());
 
       manifestPath = sfm.buildFullPath(SPACE_TYPE_MAIN_DATA,
                                        MANIFEST_FILE_NAME);
@@ -133,7 +133,8 @@ namespace vessel
          goto error;
       }
 
-      _manifest.sid = sid;
+      _manifest.id = id;
+      _manifest.flags = 0;
       _manifest.secretValue = ossRand();
       _manifest.dataArgs = options.dataArgs;
       _manifest.idxArgs = options.indexArgs;
@@ -142,7 +143,7 @@ namespace vessel
       rc = sfm.createSpaceDirs();
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to create space[%d] dir, rc:%d", sid, rc);
+         PD_LOG(PDERROR, "failed to create space[%d] dir, rc:%d", id.getSpaceId(), rc);
          goto error;
       }
       dirCreated = TRUE;
@@ -239,10 +240,10 @@ namespace vessel
          goto error;
       }
 
-      if (_manifest.sid != sid)
+      if (_manifest.id.getSpaceId() != sid)
       {
          PD_LOG(PDERROR, "unexpected sid[%d] saved in manifest when open cs[%d]",
-                _manifest.sid, sid);
+                _manifest.id.getSpaceId(), sid);
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }

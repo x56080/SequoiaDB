@@ -37,6 +37,7 @@
 #define VESSEL_STORAGE_UNIT_MANIFEST_H_
 
 #include "vessel/storageFileDef.h"
+#include "vessel/objectIdentifier.h"
 
 namespace engine
 {
@@ -45,20 +46,27 @@ namespace vessel
 #pragma pack(4)
    struct storageUnitManifest : public SDBObject
    {
-      BOOLEAN isValid()const;
+      OSS_INLINE BOOLEAN isValid()const
+      {
+         return id.isValid() &&
+                dataArgs.isValid() &&
+                idxArgs.isValid() &&
+                lobArgs.isValid();
+      }
+
       void reset()
       {
-         sid = INVALID_SPACE_ID;
+         id.reset();
          flags = 0;
          secretValue = 0;
          dataArgs.reset();
          idxArgs.reset();
          lobArgs.reset();
+         return;
       }
       
-
-      SPACE_ID sid = INVALID_SPACE_ID;
-      UINT16 flags = 0;
+      collectionSpaceId id;
+      UINT32 flags;
       UINT32 secretValue = 0;
 
       storageCoreArgs dataArgs;

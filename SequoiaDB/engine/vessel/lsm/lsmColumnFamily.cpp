@@ -217,7 +217,7 @@ namespace vessel
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "put key-value into batch failed, status info:[%s]",
-                s.ToString());
+                s.ToString().c_str());
          goto error;
       }
 
@@ -243,7 +243,7 @@ namespace vessel
       {
          rc = SDB_IO;
          PD_LOG(PDERROR, "write batch into rocksdb failed, status info:[%s]",
-                s.ToString());
+                s.ToString().c_str());
          goto error;
       }
    

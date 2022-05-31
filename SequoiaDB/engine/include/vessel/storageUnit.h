@@ -70,11 +70,11 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isOpen()const
          {
-            return INVALID_SPACE_ID != _manifest.sid;
+            return _manifest.id.isValid();
          }
          OSS_INLINE SPACE_ID getSpaceID()const
          {
-            return _manifest.sid;
+            return _manifest.id.getSpaceId();
          }
 
          OSS_INLINE mainDataSpace &getMainDataSpace()
@@ -90,9 +90,10 @@ namespace vessel
             return _los;
          }
          OSS_INLINE const storageUnitManifest &getManifest()const {return _manifest;}
+         OSS_INLINE const collectionSpaceId &getIdentifier()const {return _manifest.id;}
 
       public:
-         INT32 create(SPACE_ID sid,
+         INT32 create(const collectionSpaceId &id,
                       const createSUOptions &options);
 
          INT32 open(SPACE_ID sid);

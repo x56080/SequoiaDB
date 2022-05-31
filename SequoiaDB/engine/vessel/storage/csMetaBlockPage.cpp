@@ -54,10 +54,6 @@ namespace vessel
       {
          goto done;
       }
-      else if (DMS_INVALID_LOGICCSID == logicalID)
-      {
-         goto done;
-      }
       else if (0 == name[0] ||
                0 != name[DMS_COLLECTION_SPACE_NAME_SZ])
       {

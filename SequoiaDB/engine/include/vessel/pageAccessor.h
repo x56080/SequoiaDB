@@ -38,6 +38,7 @@
 
 #include "vessel/globalPageID.h"
 #include "vessel/pageDef.h"
+#include "dpsDef.hpp"
 
 namespace engine
 {
@@ -57,7 +58,10 @@ namespace vessel
          pageAccessor &operator=(const pageAccessor &) = delete;
 
       public:
-         //virtual PAGE_TYPE getPageType()const = 0;
+         void setLSN(DPS_LSN_OFFSET lsn) {_lsn = lsn;}
+         DPS_LSN_OFFSET getLSN()const {return _lsn;}
+      private:
+         DPS_LSN_OFFSET _lsn = DPS_INVALID_LSN_OFFSET;
    
    };//class pageAccessor
 }//namespace vessel

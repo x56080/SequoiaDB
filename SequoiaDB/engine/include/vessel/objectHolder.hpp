@@ -64,6 +64,10 @@ namespace vessel
          {
             return _mutex;
          }
+         ossRWMutex *getMutexPtr()
+         {
+            return &_mutex;
+         }
          T *get()
          {
             return _obj;
@@ -107,6 +111,11 @@ namespace vessel
          {
             SDB_ASSERT(pos < CAPACITY, "out of bound");
             return _holders[pos];
+         }
+         objectHolder<T> *getPtr(UINT32 pos)
+         {
+            SDB_ASSERT(pos < CAPACITY, "out of bound");
+            return _holders + pos;
          }
          BOOLEAN test(UINT32 pos)const
          {

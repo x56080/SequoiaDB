@@ -59,6 +59,10 @@ namespace vessel
                    _uniqueId == o._uniqueId &&
                    _sid == o._sid;
          }
+         OSS_INLINE BOOLEAN operator!=(const collectionSpaceId &o)const
+         {
+            return !(o == *this);
+         }
 
       public:
          OSS_INLINE UINT32 getLid()const {return _lid;}
@@ -69,6 +73,13 @@ namespace vessel
             return DMS_INVALID_LOGICCSID != _lid &&
                    INVALID_SPACE_ID != _sid &&
                    0 == _pad;   
+         }
+         OSS_INLINE void reset()
+         {
+            _lid = DMS_INVALID_LOGICCSID;
+            _uniqueId = UTIL_UNIQUEID_NULL;
+            _sid = INVALID_SPACE_ID;
+            _pad = 0;
          }
       private:
          UINT32 _lid = DMS_INVALID_LOGICCSID;

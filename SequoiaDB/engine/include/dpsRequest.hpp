@@ -80,7 +80,7 @@ namespace engine
       BOOLEAN notify = FALSE;
       BOOLEAN transEnabled = FALSE;
       BOOLEAN irrversible = FALSE;
-
+      BOOLEAN flushAtOnce = FALSE;
    };//struct dpsWriteOptions
 
    struct dpsSearchOptions : public SDBObject
