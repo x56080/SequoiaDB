@@ -79,7 +79,7 @@ namespace vessel
 
       slot.flags = slotFlags;
       slot.type = slotType;
-      slot.reserved = 0;
+      slot.reservedSpaceSize = 0;
       slot.offset = RECORD_PAGE_HEAD_SIZE + offset;
       slot.size = recordHeadAndData.getSize();
 
@@ -126,7 +126,7 @@ namespace vessel
 
       slot.flags = slotFlags;
       slot.type = slotType;
-      slot.reserved = 0;
+      slot.reservedSpaceSize = 0;
       slot.offset = RECORD_PAGE_HEAD_SIZE + offset;
       slot.size = recordHead.getSize() + recordData.getSize();
 

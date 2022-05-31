@@ -67,17 +67,20 @@ namespace vessel
       UINT16 totalFreeSpace = 0;
       UINT16 backOffset = 0;
       UINT16 totalSlotCount = 0;
-      INT16 firstFreeSlot = -1;
-     
-      INT32 minStriping = DMS_INVALID_STRIPING_ID;
-      INT32 maxStriping = DMS_INVALID_STRIPING_ID;
-      UINT64 transSN = DPS_INVALID_TRANSID_SN;
+      UINT16 freeSlotCount = 0;
+      /// visible and not tomestone but may be overflowed
+      UINT16 totalRecordCount = 0;
 
       UINT16 dicSize = 0;
       UINT16 dicOffset = 0;
       UINT8 compressor = UTIL_COMPRESSOR_INVALID;
       UINT8 _pad = 0;
-      UINT16 _reserved0 = 0;
+      
+      INT32 minStriping = DMS_INVALID_STRIPING_ID;
+      INT32 maxStriping = DMS_INVALID_STRIPING_ID;
+      UINT64 transSN = DPS_INVALID_TRANSID_SN;
+
+      UINT64 _reserved0 = 0;
       UINT64 _reserved1 = 0;
    };//struct recordDataPageHead
    constexpr UINT32 RECORD_PAGE_HEAD_SIZE = sizeof(recordDataPageHead);
@@ -106,13 +109,13 @@ namespace vessel
       }
 
       OSS_INLINE void init(UINT8 type,
-                           UINT8 reserved,
+                           UINT8 reservedSpaceSize,
                            UINT16 offset,
                            UINT16 size)
       {
          this->flags = IN_USED;
          this->type = type;
-         this->reserved = reserved;
+         this->reservedSpaceSize = reservedSpaceSize;
          this->offset = offset;
          this->size = size;
          return;
@@ -164,7 +167,7 @@ namespace vessel
 
       OSS_INLINE UINT32 getMaxSpaceSize()const
       {
-         return (UINT32)size + (UINT32)reserved;
+         return (UINT32)size + (UINT32)reservedSpaceSize;
       }
    
       static constexpr UINT32 getMaxReservedSize()
@@ -172,12 +175,11 @@ namespace vessel
          return 128;
       }
    
-      public:
-         UINT16 flags = 0;
-         UINT8 type = RDP_RECORD_HEAD_TYPE_INVALID;
-         UINT8 reserved = 0;
-         UINT16 offset = 0;
-         UINT16 size = 0;
+      UINT16 flags = 0;
+      UINT8 type = RDP_RECORD_HEAD_TYPE_INVALID;
+      UINT8 reservedSpaceSize = 0;
+      UINT16 offset = 0;
+      UINT16 size = 0;
    };//struct recordSlot
    constexpr UINT32 RDP_RSLOT_SIZE = sizeof(recordSlot);
 

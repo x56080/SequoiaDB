@@ -243,10 +243,10 @@ namespace vessel
       *((normalRecordHead *)recordPtr) = rh;
       ossMemcpy(recordPtr + NORMAL_RECORD_HEAD_SIZE,
                 record.getData(), record.getSize());
-      if (0 < rs.reserved)
+      if (0 < rs.reservedSpaceSize)
       {
          ossMemset((void *)(recordPtr + NORMAL_RECORD_HEAD_SIZE + record.getSize()),
-                   0, rs.reserved);
+                   0, rs.reservedSpaceSize);
       }
       updatePageHeadWhenInsert(pos, rs, transID, context->getStripingId());
 
@@ -294,7 +294,7 @@ namespace vessel
          reservedSize = recordSlot::getMaxReservedSize();
       }
 
-      UINT32 realSlotSize = (INVALID_RECORD_SLOT_POS == head->firstFreeSlot) ?
+      UINT32 realSlotSize = (0 == head->freeSlotCount) ?
                              RDP_RSLOT_SIZE : 0;
 
       UINT32 frontOffset = getFrontOffset(head);
@@ -315,8 +315,25 @@ namespace vessel
          }
       }
 
-      pos = (INVALID_RECORD_SLOT_POS == head->firstFreeSlot) ?
-            head->totalSlotCount : head->firstFreeSlot;
+      if (0 == head->freeSlotCount)
+      {
+         pos = head->totalSlotCount;
+      }
+      else
+      {
+         for (UINT16 i = 0; i < head->totalSlotCount; ++i)
+         {
+            const recordSlot *slot = getReadableSlot(i);
+            if (!slot->isValid())
+            {
+               pos = static_cast<RECORD_SLOT_POS>(i);
+               break;
+            }
+         }
+
+         SDB_ASSERT(INVALID_RECORD_SLOT_POS != pos, "impossible");
+      }
+
       offset = (UINT16)(backOffset - realDataSize - reservedSize);
       r = TRUE;
 
@@ -342,24 +359,15 @@ namespace vessel
          ++head->totalSlotCount;
          size += RDP_RSLOT_SIZE;
       }
-      else if (pos == head->firstFreeSlot)
-      {
-         head->firstFreeSlot = INVALID_RECORD_SLOT_POS;
-         for (INT32 i = pos + 1; i < (INT32)head->totalSlotCount; ++i)
-         {
-            const recordSlot *tmp = buffer.getReadableObjPtr<recordSlot>
-                                    (NORMAL_RECORD_HEAD_SIZE + (i * RDP_RSLOT_SIZE));
-            if (tmp->isValid())
-            {
-               continue;
-            }
-            head->firstFreeSlot = i;
-            break;
-         }
-      }
       else
       {
-         SDB_ASSERT(FALSE, "impossible");
+         SDB_ASSERT(0 < head->freeSlotCount, "impossible");
+         --head->freeSlotCount;
+      }
+
+      if (!slot.isInvisible() && !slot.isTombstone())
+      {
+         ++head->totalRecordCount;
       }
 
       SDB_ASSERT(size <= head->totalFreeSpace, "impossible");
@@ -669,9 +677,9 @@ namespace vessel
          PD_LOG(PDERROR, "failed to write record data, rc:%d", rc);
          goto error;
       }
-      if (0 < rs.reserved)
+      if (0 < rs.reservedSpaceSize)
       {
-         recordBuffer.setBuffer(rs.size, rs.reserved, 0);
+         recordBuffer.setBuffer(rs.size, rs.reservedSpaceSize, 0);
       }
 
       // no need to update transSN and stripingID
@@ -1007,7 +1015,7 @@ namespace vessel
 
       wrs->type = RDP_RECORD_HEAD_OVERFLOW;
       wrs->size = OVERFLOWED_RECORD_SIZE;
-      wrs->reserved = 0;
+      wrs->reservedSpaceSize = 0;
 
       whead->totalFreeSpace += deltaSize;
       updateStripingInfo(whead, context->getStripingId());
@@ -1557,6 +1565,7 @@ namespace vessel
          PD_LOG(PDERROR, "failed to get writable slot[%d], rc:%d", pos, rc);
          goto error;
       }
+      SDB_ASSERT(wrs->isValid(), "can not be invalid");
 
       deltaSize = wrs->size;
       recordBuf = buffer.getWritableBuffer(wrs->getMaxSpaceSize(), wrs->offset);
@@ -1566,21 +1575,23 @@ namespace vessel
          PD_LOG(PDERROR, "failed to get writable buffer, rc:%d", rc);
          goto error;
       }
+      
+      whead->totalFreeSpace += deltaSize;
+      ++whead->freeSlotCount;
+      if (!wrs->isInvisible() && !wrs->isTombstone())
+      {
+         SDB_ASSERT(0 < whead->totalRecordCount, "impossible");
+         --whead->totalRecordCount;
+      }
 
       recordBuf.setBuffer(0);
       wrs->reset();
-      
-      whead->totalFreeSpace += deltaSize;
-      if (INVALID_RECORD_SLOT_POS == whead->firstFreeSlot ||
-          pos < whead->firstFreeSlot)
-      {
-         whead->firstFreeSlot = pos;
-      }
 
       // dummy log
       rc = writeRemoveJournal(context, lsn);
       if (SDB_OK != rc)
       {
+         ///TODO: rollback
          PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
@@ -1658,17 +1669,17 @@ namespace vessel
       if (totalSize < (UINT32)(rs->size))
       {
          UINT32 deltaSize = (UINT32)(rs->size) - totalSize;
-         UINT32 reservedSize = (UINT32)(rs->reserved) + deltaSize;
+         UINT32 reservedSize = (UINT32)(rs->reservedSpaceSize) + deltaSize;
          rs->size -= deltaSize;
-         rs->reserved = (recordSlot::getMaxReservedSize() < reservedSize ) ?
-                         recordSlot::getMaxReservedSize() : reservedSize;
+         rs->reservedSpaceSize = (recordSlot::getMaxReservedSize() < reservedSize ) ?
+                                  recordSlot::getMaxReservedSize() : reservedSize;
          head->totalFreeSpace += deltaSize;
       }
       else if (totalSize > (UINT32)(rs->size))
       {
          UINT32 delta =  totalSize - (UINT32)(rs->size);
          rs->size += delta;
-         rs->reserved -= delta;
+         rs->reservedSpaceSize -= delta;
          head->totalFreeSpace -= delta;
       }
 
@@ -1770,7 +1781,7 @@ namespace vessel
       SDB_ASSERT(totalSize > rs->size, "impossible");
       deltaSize = (UINT16)(totalSize - rs->size);
       rs->offset = offset;
-      rs->reserved = 0;
+      rs->reservedSpaceSize = 0;
       rs->size = totalSize;
 
       SDB_ASSERT(deltaSize <= head->totalFreeSpace, "impossible");
@@ -2051,14 +2062,7 @@ namespace vessel
          goto error;
       }
 
-      for (RECORD_SLOT_POS i = 0; i < head->totalSlotCount; ++i)
-      {
-         const recordSlot *slot = getReadableSlot(i);
-         if (slot->isValidAndVisible() && !slot->isTombstone())
-         {
-            ++count;
-         }
-      }
+      count = head->totalRecordCount;
    done:
       return rc;
    error:
@@ -2516,6 +2520,12 @@ namespace vessel
          rc = SDB_VESSEL_RECORD_NOT_FOUND;
          goto error;
       }
+      else if (rs.isTombstone())
+      {
+         PD_LOG(PDERROR, "pos[%d] already been tombstone", pos);
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
 
       rc = createTombstone(context, pos);
       if (SDB_OK != rc)
@@ -2566,7 +2576,7 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(rs->isValid(), "impossible");
+      SDB_ASSERT(rs->isValidAndVisible() && !rs->isTombstone(), "impossible");
 
       recordBuffer = buffer.getWritableBuffer(rs->size, rs->offset);
       if (!recordBuffer.isWritable())
@@ -2584,15 +2594,18 @@ namespace vessel
       size = rs->size - NORMAL_RECORD_HEAD_SIZE;
       rs->setTombstone();
       rs->size = NORMAL_RECORD_HEAD_SIZE;
-      rs->reserved = 0;
+      rs->reservedSpaceSize = 0;
       rs->type = RDP_RECORD_HEAD_TYPE_NORMAL;
 
       head->totalFreeSpace += size;
+      SDB_ASSERT(0 < head->totalRecordCount, "impossible");
+      --head->totalRecordCount;
       updateMaxTransSN(head, transID.getSN());
 
       rc = writeRemoveJournal(context, lsn);
       if (SDB_OK != rc)
       {
+         ///TODO: rollback
          PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
