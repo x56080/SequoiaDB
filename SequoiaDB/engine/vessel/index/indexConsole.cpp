@@ -59,7 +59,7 @@
 #include "vessel/lsm/lsmIndexExecutor.h"
 
 #include "vessel/btreeAccessor.h"
-
+#include "vessel/clIndexMbpIniter.h"
 namespace engine
 {
 namespace vessel
@@ -118,6 +118,13 @@ namespace vessel
          goto error;
       }
 
+      rc = _ensureIndexMetaBlockPage(context, mbpLpid);
+      if( SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to ensure cl index meta block page, rc:%d", rc);
+         goto error;
+      }
+
       rc = _is->getLogicalPageBuffer(context, mbpLpid, mode, lpb);
       if (SDB_OK != rc)
       {
@@ -139,14 +146,14 @@ namespace vessel
          goto error;
       }
 
-   done:
+   done:   
       lpb.fini();
       return rc;
    error:
       goto done;
    }
 
-   INT32 indexConsole::removeIndexMetaBlock(requestContext *context)
+   INT32 indexConsole::resetIndexMetaBlock(requestContext *context)
    {
       INT32 rc = SDB_OK;
       BOOLEAN blocked = FALSE;
@@ -743,13 +750,7 @@ namespace vessel
          goto error;
       }
       
-      if (!desc.isValid())
-      {
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         PD_LOG(PDERROR, "index meta block page[%d] is not mapped, rc:%d", mbpLpid, rc);
-         goto error;
-      }
-      else
+      if (desc.isValid())
       {
          logicalPageBuffer lpb;
          rc = _is->getLogicalPageBuffer(context, mbpLpid, mode, lpb);
@@ -772,7 +773,17 @@ namespace vessel
             PD_LOG(PDERROR, "failed to get index meta block, rc:%d", rc);
             goto error;
          }
-
+         mbpAccessor.fini();
+         if (!block.isValid())
+         {
+            goto done;
+         }
+         if (block.clLogicalId != context->getLogicalClId())
+         {
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            PD_LOG(PDERROR, "cl logical ID does not match, expected:%d , actual:%d", context->getLogicalClId(), block.clLogicalId);
+            goto error;
+         }
          for (UINT32 i = 0; i < MAX_INDEX_COUNT_PER_CL; ++i)
          {
             PAGE_ID entryLpid = INVALID_PAGE_ID;
@@ -794,13 +805,7 @@ namespace vessel
             }
 
             rc = entryAccessor.getIndexDescription(context, &entryLpb, desc, &head);
-            if (SDB_IXM_NOTEXIST == rc)
-            {
-               PD_LOG(PDERROR, "index def page[%d] is not valid, rc:%d", entryLpid, rc);
-               rc = SDB_OK;
-               continue;
-            }
-            else if (SDB_OK != rc)
+            if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to get index description "
                       "and entry page head in page[%d], rc:%d", entryLpid, rc);
@@ -825,7 +830,6 @@ namespace vessel
          }
 
          indexes->setMaxIndexLid(block.maxIndexLid);
-         mbpAccessor.fini();
       }
 
       rc = cacheBtreeRootSplitTimes(context, indexes);
@@ -1207,6 +1211,39 @@ namespace vessel
          goto error;
       }
    done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 indexConsole::_ensureIndexMetaBlockPage(requestContext *context, PAGE_ID mbpLpid)
+   {
+      INT32 rc = SDB_OK;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+      clIndexMbpIniter initer;
+      BOOLEAN locked = FALSE;
+      
+      SDB_ASSERT(INVALID_PAGE_ID != mbpLpid, "index meta block page id can not be invalid");
+      rc = context->lockLpid(_is->getSpaceType(), mbpLpid, mode);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock index meta block page lpid, rc:%d", rc);
+         goto error;
+      }
+      locked = TRUE;
+
+      rc = _is->ensureReservedPageMapped(context, mbpLpid, &initer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to ensure index meta block page mapped, rc:%d", rc);
+         goto error;
+      }
+      
+   done:
+      if (locked)
+      {
+         context->unlockLpid(_is->getSpaceType(), mbpLpid);
+      }
       return rc;
    error:
       goto done;

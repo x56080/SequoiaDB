@@ -249,12 +249,6 @@ namespace vessel
          goto error;
       }
 
-      rc = ensureCLIndexMetaBlockPage(context, mbID);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to ensure cl index meta block page, rc:%d", rc);
-         goto error;
-      }
 
       rc = obj->create(context, clName, clInnerId,
                        logicalID, this, options);

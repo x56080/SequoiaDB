@@ -77,12 +77,12 @@ namespace vessel
       public:
          INT32 initIndexMetaBlock(requestContext *context);
 
-         // removeIndexMetaBlock() is an atomic operation.
+         // resetIndexMetaBlock() is an atomic operation.
          // When the function is invoked, two steps will be performed:
          // 1. reset cl index meta block on disk.
          // 2. release all index entry pages in this collection.
          // Note: We need to truncate all indexes in this collection before invoking this function.
-         INT32 removeIndexMetaBlock(requestContext *context);
+         INT32 resetIndexMetaBlock(requestContext *context);
 
          INT32 createIndex(requestContext *context,
                            INT32 indexSlot,
@@ -159,6 +159,9 @@ namespace vessel
       private:
          INT32 cacheBtreeRootSplitTimes(requestContext *context,
                                         indexObjectMap *indexes);
+         
+         INT32 _ensureIndexMetaBlockPage(requestContext *context,
+                                        PAGE_ID mbpLpid);
 
       private:
          CL_MB_ID _mbID = INVALID_CL_MB_ID;
