@@ -51,6 +51,7 @@
 #include "mthModifier.hpp"
 #include "utilBsonHash.hpp"
 #include "dpsUtil.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson ;
 
@@ -784,7 +785,8 @@ namespace engine
          }
          PD_LOG( PDERROR, "sync bucket: replay log [type:%d, lsn:%lld, "
                  "data: %s] failed, rc: %d", recordHeader->_type,
-                 recordHeader->_lsn, tmpBuff, rc ) ;
+                 recordHeader->_lsn,
+                 PD_SECURE_STR1( tmpBuff ), rc ) ;
       }
       PD_TRACE_EXITRC ( SDB__CLSREP_REPLYBUCKET, rc ) ;
       return rc ;
@@ -866,7 +868,7 @@ namespace engine
                         insertResult.isSameID() ) )
             {
                PD_LOG( PDINFO, "Record[%s] already exist when insert",
-                       obj.toPoolString().c_str() ) ;
+                       PD_SECURE_OBJ( obj ) ) ;
                rc = SDB_OK ;
             }
 
@@ -916,7 +918,7 @@ namespace engine
                {
                   PD_LOG( PDDEBUG, "LSN [%llu] matcher %s updated 0 record on "
                           "collection [%s]", recordHeader->_lsn,
-                          match.toPoolString().c_str(), fullname ) ;
+                          PD_SECURE_OBJ( match ), fullname ) ;
                }
             }
             // ignore duplicated key in REPLACE case
@@ -927,7 +929,7 @@ namespace engine
                       ( ignoreDupKey || upResult.isSameID() ) )
             {
                PD_LOG( PDINFO, "Record[%s] already exist when update",
-                       match.toPoolString().c_str() ) ;
+                       PD_SECURE_OBJ( match ) ) ;
                rc = SDB_OK ;
             }
             break ;
@@ -950,7 +952,7 @@ namespace engine
                if ( idEle.eoo() )
                {
                   PD_LOG( PDWARNING, "replay: failed to parse "
-                          "oid from bson:[%s]",obj.toString().c_str() ) ;
+                          "oid from bson:[%s]", PD_SECURE_OBJ( obj ) ) ;
                   rc = SDB_INVALIDARG ;
                   goto error ;
                }
@@ -980,7 +982,7 @@ namespace engine
                {
                   PD_LOG( PDDEBUG, "LSN [%llu] matcher %s deleted 0 record on "
                           "collection [%s]", recordHeader->_lsn,
-                          obj.toPoolString().c_str(), fullname ) ;
+                          PD_SECURE_OBJ( obj ), fullname ) ;
                }
             }
             break ;
@@ -1662,7 +1664,7 @@ namespace engine
          }
          PD_LOG( PDERROR, "sync: replay log [type:%d, lsn:%lld, data: %s] "
                  "failed, rc: %d", recordHeader->_type, recordHeader->_lsn,
-                 tmpBuff, rc ) ;
+                 PD_SECURE_STR1( tmpBuff ), rc ) ;
       }
       if ( !_dpsCB )
       {
@@ -1768,7 +1770,7 @@ namespace engine
                if ( idEle.eoo() )
                {
                   PD_LOG( PDWARNING, "replay: failed to parse"
-                          " oid from bson:[%s]",obj.toString().c_str() ) ;
+                          " oid from bson:[%s]", PD_SECURE_OBJ( obj ) ) ;
                   rc = SDB_INVALIDARG ;
                   goto error ;
                }
@@ -1960,7 +1962,7 @@ namespace engine
                                              eduCB, _dmsCB, _dpsCB, FALSE ) ;
             if ( SDB_OK != rc )
             {
-               PD_LOG( PDERROR, "failed to rename cs[%s] cl %s to %s, rc: %d",
+               PD_LOG( PDERROR, "Failed to rename cs[%s] cl %s to %s, rc: %d",
                        cs, oldCl, newCl, rc ) ;
                goto error ;
             }
@@ -1982,7 +1984,7 @@ namespace engine
                                                   FALSE ) ;
             if ( SDB_OK != rc )
             {
-               PD_LOG( PDERROR, "failed to rename %s to %s, rc: %d",
+               PD_LOG( PDERROR, "Failed to rename %s to %s, rc: %d",
                        oldName, newName, rc ) ;
                goto error ;
             }
@@ -2179,7 +2181,7 @@ namespace engine
          }
          PD_LOG( PDERROR, "sync: rollback log [type:%d, lsn:%lld, data: %s] "
                  "failed, rc: %d", recordHeader->_type, recordHeader->_lsn,
-                 tmpBuff, rc ) ;
+                 PD_SECURE_STR1( tmpBuff ), rc ) ;
       }
       if( !_dpsCB )
       {
@@ -2415,7 +2417,7 @@ namespace engine
          BSONElement idElement = insertObject.getField( DMS_ID_KEY_NAME ) ;
          PD_CHECK( EOO != idElement.type(), SDB_INVALIDARG, error, PDERROR,
                    "Failed to find OID from BSON [%s]",
-                   insertObject.toPoolString().c_str() ) ;
+                   PD_SECURE_OBJ( insertObject ) ) ;
          deleteSelector = BSON( DMS_ID_KEY_NAME << idElement ) ;
       }
 
@@ -2586,7 +2588,7 @@ namespace engine
             rc = _queryRecord( clFullName, newMatch, eduCB, currentObject ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to query object [%s] from "
                          "collection [%s], rc: %d",
-                         newMatch.toPoolString().c_str(), clFullName, rc ) ;
+                         PD_SECURE_OBJ( newMatch ), clFullName, rc ) ;
 
             rc = _replayUpdateModifier( oldObject, currentObject,
                                         rollbackObject, logWriteMod ) ;
@@ -2945,7 +2947,7 @@ namespace engine
          {
             PD_RC_CHECK( rc, PDERROR, "Failed to query object [%s] from "
                          "collection [%s], rc: %d",
-                         newMatch.toPoolString().c_str(), clFullName, rc ) ;
+                         PD_SECURE_OBJ( newMatch ), clFullName, rc ) ;
 
             rc = _replayUpdateModifier( oldObject, currentObject,
                                         rollbackObject, logWriteMod ) ;
@@ -2969,7 +2971,7 @@ namespace engine
       PD_CHECK( added, SDB_SYS, error, PDERROR,
                 "Failed to add pending key [ collection %s, key %s ]",
                 newPendingKey._collection.c_str(),
-                newPendingKey._obj.toPoolString().c_str() ) ;
+                PD_SECURE_OBJ( newPendingKey._obj ) ) ;
 
       // have pending object, set rollback pending flag
       eduCB->setTransRBPending() ;
@@ -3027,7 +3029,7 @@ namespace engine
       PD_CHECK( added, SDB_SYS, error, PDERROR,
                 "Failed to add pending key [ collection %s, key %s ]",
                 pendingKey._collection.c_str(),
-                pendingKey._obj.toPoolString().c_str() ) ;
+                PD_SECURE_OBJ( pendingKey._obj ) ) ;
 
       // have pending object, set rollback pending flag
       eduCB->setTransRBPending() ;
@@ -3054,12 +3056,12 @@ namespace engine
       rc = modifier.loadPattern( updater, NULL, TRUE, NULL, FALSE,
                                  logWriteMode ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to load modify pattern [%s], rc: %d",
-                   updater.toPoolString().c_str(), rc ) ;
+                   PD_SECURE_OBJ( updater ), rc ) ;
 
       rc = modifier.modify( oldObject, newObject ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to modify [%s] by [%s], rc: %d",
-                   oldObject.toPoolString().c_str(),
-                   updater.toPoolString().c_str(), rc ) ;
+                   PD_SECURE_OBJ( oldObject ),
+                   PD_SECURE_OBJ( updater ), rc ) ;
 
    done :
       PD_TRACE_EXITRC( SDB__CLSREP__REPLAYUPDATEMODIFIER, rc ) ;
@@ -3089,28 +3091,28 @@ namespace engine
                      s_replayHint, 0, eduCB, 0, 1, _dmsCB,
                      sdbGetRTNCB(), contextID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to query object [%s] from "
-                   "collection [%s], rc: %d", matcher.toPoolString().c_str(),
+                   "collection [%s], rc: %d", PD_SECURE_OBJ( matcher ),
                    collection, rc ) ;
 
       rc = rtnGetMore( contextID, 1, buffer, eduCB, sdbGetRTNCB() ) ;
       if ( SDB_DMS_EOC == rc )
       {
          PD_LOG( PDDEBUG, "Hit end of query object [%s] from collection [%s]",
-                 matcher.toPoolString().c_str(), collection ) ;
+                 PD_SECURE_OBJ( matcher ), collection ) ;
          goto done ;
       }
       else
       {
          PD_RC_CHECK( rc, PDERROR, "Failed to get object [%s] from "
                       "collection [%s], rc: %d",
-                      matcher.toPoolString().c_str(), collection, rc ) ;
+                      PD_SECURE_OBJ( matcher ), collection, rc ) ;
       }
 
       /// get object
       rc = buffer.nextObj( currentObject ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse object [%s] from "
                    "collection [%s], rc: %d",
-                   matcher.toPoolString().c_str(), collection, rc ) ;
+                   PD_SECURE_OBJ( matcher ), collection, rc ) ;
 
       object = currentObject.getOwned() ;
 

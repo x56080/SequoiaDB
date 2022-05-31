@@ -43,6 +43,7 @@
 #include "rtnTrace.hpp"
 #include "dpsTransCB.hpp"
 #include "optAccessPlanRuntime.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson ;
 
@@ -442,14 +443,14 @@ namespace engine
          }
 
          PD_LOG( PDDEBUG, "Relocate right scanner to obj(%s) with rid(%d,%d)",
-                 _savedObj.toString().c_str(),
+                 PD_SECURE_OBJ( _savedObj ),
                  _savedRID._extent, _savedRID._offset ) ;
 
          rc = _rightIXScanner->relocateRID( _savedObj, _savedRID ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Relocate to obj(%s) and rid(%d,%d) faild in "
-                    "right scan, rc: %d", _savedObj.toString().c_str(),
+                    "right scan, rc: %d", PD_SECURE_OBJ( _savedObj ),
                     _savedRID._extent, _savedRID._offset, rc ) ;
             goto error ;
          }
@@ -467,14 +468,14 @@ namespace engine
          }
 
          PD_LOG( PDDEBUG, "Relocate left scanner to obj(%s) with rid(%d,%d)",
-                 _savedObj.toString().c_str(),
+                 PD_SECURE_OBJ( _savedObj ),
                  _savedRID._extent, _savedRID._offset ) ;
 
          rc = _leftIXScanner->relocateRID( _savedObj, _savedRID ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Relocate to obj(%s) and rid(%d,%d) faild in "
-                    "left scan, rc: %d", _savedObj.toString().c_str(),
+                    "left scan, rc: %d", PD_SECURE_OBJ( _savedObj ),
                     _savedRID._extent, _savedRID._offset, rc ) ;
             goto error ;
          }
@@ -485,7 +486,7 @@ namespace engine
       if ( ( _rightEnabled && ( SCAN_RIGHT == _fromDir ) && !rIsSame ) ||
            ( _leftEnabled && ( SCAN_LEFT == _fromDir ) && !lIsSame ) )
       {
-         PD_LOG( PDDEBUG, 
+         PD_LOG( PDDEBUG,
                  "Resuming, was from %d side but cursor(%d,%d) changed:"
                  OSS_NEWLINE
                  "left side:"OSS_NEWLINE
@@ -494,7 +495,7 @@ namespace engine
                  "right side:"OSS_NEWLINE
                  "  savedObj(%s)  savedRID(%d, %d),"OSS_NEWLINE
                  "  curKeyObj(%s) with rid(%d, %d)",
-                 _fromDir, lIsSame, rIsSame, 
+                 _fromDir, lIsSame, rIsSame,
                  _leftIXScanner->getSavedObj()->toString().c_str(),
                  _leftIXScanner->getSavedRID()._extent,
                  _leftIXScanner->getSavedRID()._offset,
@@ -591,7 +592,7 @@ namespace engine
          _savedObj = getSavedObjFromChild()->getOwned() ;
 
          PD_LOG( PDDEBUG, "Paused in obj(%s) with rid(%d, %d), From(%s)",
-                 _savedObj.toString().c_str(), _savedRID._extent,
+                 PD_SECURE_OBJ( _savedObj ), _savedRID._extent,
                  _savedRID._offset,
                  ( SCAN_LEFT == _fromDir ? "LEFT" : "RIGHT" ) ) ;
       }
@@ -603,7 +604,7 @@ namespace engine
       goto done ;
    }
 
-   void _rtnMergeIXScanner::getOwnerTransID( DPS_TRANS_ID &transID ) 
+   void _rtnMergeIXScanner::getOwnerTransID( DPS_TRANS_ID &transID )
    {
       if ( SCAN_LEFT == _fromDir )
       {
@@ -618,7 +619,7 @@ namespace engine
    void _rtnMergeIXScanner::getRBSPositions( dmsRBSOffset & startPos,
                                              dmsRBSOffset & endPos,
                                              dmsRecordID  & rid,
-                                             preIdxTreePtr  memTree ) 
+                                             preIdxTreePtr  memTree )
    {
       if ( SCAN_LEFT == _fromDir )
       {
@@ -628,7 +629,7 @@ namespace engine
       else
       {
          _rightIXScanner->getRBSPositions( startPos, endPos, rid,
-                   memTree.get() ? memTree : 
+                   memTree.get() ? memTree :
                       ((_rtnMemIXTreeScanner*) _leftIXScanner)->getMemTree() ) ;
       }
    }

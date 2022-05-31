@@ -530,6 +530,7 @@ done:
 #define PD_MAX_SHIELD_RC_COUNT 64
 
 static volatile BOOLEAN s_diagSecureOn = TRUE ;
+static OSS_THREAD_LOCAL BOOLEAN s_localDiagSecureOn = TRUE ;
 static OSS_THREAD_LOCAL UINT64 s_shieldLogMask = 0 ;
 static OSS_THREAD_LOCAL UINT64 s_hasIncCntMask = 0 ;
 static UINT32 s_shieldLogCnt[PD_MAX_SHIELD_RC_COUNT] = { 0 } ;
@@ -593,6 +594,21 @@ void pdDisableDiaglogSecure()
 BOOLEAN pdIsDiaglogSecureEnabled()
 {
    return s_diagSecureOn ;
+}
+
+void pdLocalEnableDiaglogSecure()
+{
+   s_localDiagSecureOn = TRUE ;
+}
+
+void pdLocalDisableDiaglogSecure()
+{
+   s_localDiagSecureOn = FALSE ;
+}
+
+BOOLEAN pdLocalIsDiaglogSecureEnabled()
+{
+   return s_localDiagSecureOn ;
 }
 
 void pdEnableShieldLogMask( UINT64 mask )

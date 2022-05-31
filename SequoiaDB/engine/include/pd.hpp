@@ -89,10 +89,12 @@
          IExecutor *__cb = sdbGetThreadExecutor() ; \
          if ( __cb ) \
          { \
+            pdLocalDisableDiaglogSecure() ; \
             __cb->printInfo ( EDU_INFO_ERROR, fmt, ##__VA_ARGS__ ) ; \
+            pdLocalEnableDiaglogSecure() ; \
          } \
       } \
-      if ( getPDLevel() >= level ) \
+      if ( getPDLevel() >= level && !pdIsShieldLog() ) \
       { \
          pdLog(level, __FUNC__, __FILE__, __LINE__, fmt, ##__VA_ARGS__); \
       } \
@@ -177,6 +179,9 @@ void pdcheck( const CHAR* string, const CHAR* func,
 void pdEnableDiaglogSecure() ;
 void pdDisableDiaglogSecure() ;
 BOOLEAN pdIsDiaglogSecureEnabled() ;
+void pdLocalEnableDiaglogSecure() ;
+void pdLocalDisableDiaglogSecure() ;
+BOOLEAN pdLocalIsDiaglogSecureEnabled() ;
 
 void pdEnableShieldLogMask( UINT64 mask ) ;
 void pdDisableShieldLogMask( UINT64 mask ) ;

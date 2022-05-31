@@ -45,6 +45,7 @@
 #include "mthModifier.hpp"
 #include "dpsOp2Record.hpp"
 #include "dpsUtil.hpp"
+#include "pdSecure.hpp"
 
 namespace engine
 {
@@ -333,7 +334,7 @@ namespace engine
          transID = cb->getTransID() ;
          // update transID in original record header
          pRecord->setGlobTransID( transID ) ;
-         // update transID for ovf record when required 
+         // update transID for ovf record when required
          if ( bSetOvfRecord && pOvfRecord )
          {
             pOvfRecord->setGlobTransID( transID ) ;
@@ -560,7 +561,7 @@ namespace engine
             if ( rc )
             {
                PD_LOG ( PDWARNING, "Failed to update object(%s) index, rc: %d",
-                        newObj.toString().c_str(), rc ) ;
+                        PD_SECURE_OBJ( newObj ), rc ) ;
                goto error ;
             }
          }
@@ -586,7 +587,7 @@ namespace engine
             // we don't have versioning. instead, we check for attribute
             if ( _mvccSupport && !(pOvfRecord->hasGlobTransID()) )
             {
-               PD_LOG ( PDDEBUG, 
+               PD_LOG ( PDDEBUG,
                         "In-flight migration of OVF record during update "
                         "object(%s) ",
                         recordRW.toString().c_str() ) ;
@@ -596,8 +597,8 @@ namespace engine
             if ( _mvccSupport && !(pRecord->hasGlobTransID()) )
             {
                // We should not be here as we currently don't release the
-               // original space when a record becomes OV. 
-               PD_LOG ( PDERROR, 
+               // original space when a record becomes OV.
+               PD_LOG ( PDERROR,
                         "Update could not in-flight migrate on OVF record(%s)",
                         recordRW.toString().c_str() ) ;
                PD_LOG ( PDERROR,
@@ -606,7 +607,7 @@ namespace engine
                PD_LOG ( PDERROR,
                         "OVT Record: %s",
                         pOvfRecord->toString().c_str() );
-               SDB_ASSERT ( FALSE, 
+               SDB_ASSERT ( FALSE,
                             "Update failed to migrate existing OVF record." ) ;
                rc = SDB_SYS ;
                goto error ;
@@ -615,10 +616,10 @@ namespace engine
 
          // if the current space is big enough for the whole record,
          // let's put it here and return rightaway
-         // if the record does not have GlobTransID, it means we failed 
+         // if the record does not have GlobTransID, it means we failed
          // to migrate ealier due to not enough space, we need to allocate
          // overflow record for the case
-         if ( dmsRecordSize <= pRecord->getSize() && 
+         if ( dmsRecordSize <= pRecord->getSize() &&
               pRecord->hasGlobTransID() )
          {
             pRecord->setData( newRecordData ) ;

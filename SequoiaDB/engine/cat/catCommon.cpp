@@ -46,6 +46,7 @@
 #include "ixmUtil.hpp"
 #include "../bson/lib/md5.hpp"
 #include "catCMDBase.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson ;
 
@@ -7218,8 +7219,7 @@ namespace engine
       {
          rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR, "Failed to insert autoinc field "
-                 "options[%s], rc: %d",
-                 obj.toString(false,false).c_str(), rc ) ;
+                 "options[%s], rc: %d", PD_SECURE_OBJ( obj ), rc ) ;
          goto error ;
       }
 
