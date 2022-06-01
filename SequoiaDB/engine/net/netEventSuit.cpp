@@ -191,7 +191,7 @@ namespace engine
 
    void _netEventSuit::_asyncWait()
    {
-      _timer.expires_from_now( boost::chrono::milliseconds( NET_EV_INNER_TIMER_INTERVAL ) ) ;
+      _timer.expires_from_now( std::chrono::milliseconds( NET_EV_INNER_TIMER_INTERVAL ) ) ;
       _timer.async_wait( boost::bind( &_netEventSuit::_timeoutCallback,
                                       this,
                                       boost::asio::placeholders::error ) ) ;

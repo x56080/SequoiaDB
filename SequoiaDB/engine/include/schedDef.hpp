@@ -33,11 +33,11 @@
 #ifndef SCHED_DEF_HPP__
 #define SCHED_DEF_HPP__
 
-#include <string>
 #include "oss.hpp"
 #include "ossAtomic.hpp"
 #include "ossEvent.hpp"
 #include "../bson/bson.h"
+#include <string>
 
 using namespace std ;
 using namespace bson ;

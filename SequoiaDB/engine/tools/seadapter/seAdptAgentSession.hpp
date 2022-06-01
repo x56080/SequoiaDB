@@ -39,12 +39,12 @@
 #ifndef SEADPT_AGENT_SESSION_HPP_
 #define SEADPT_AGENT_SESSION_HPP_
 
-#include <map>
 #include "pmdAsyncSession.hpp"
 #include "utilCommObjBuff.hpp"
 #include "seAdptMgr.hpp"
 #include "utilESClt.hpp"
 #include "seAdptContext.hpp"
+#include <map>
 
 using namespace engine ;
 

@@ -20,8 +20,6 @@
 #ifndef RTN_ROLLBACK_MANAGER_HPP__
 #define RTN_ROLLBACK_MANAGER_HPP__
 
-#include <string>
-
 #include "clsReplayer.hpp"
 #include "dpsDef.hpp"
 #include "dpsLogRecord.hpp"
@@ -30,6 +28,8 @@
 #include "ossMemPool.hpp"
 #include "ossTypes.hpp"
 #include "stpLogicalTime.hpp"
+
+#include <string>
 
 namespace engine
 {

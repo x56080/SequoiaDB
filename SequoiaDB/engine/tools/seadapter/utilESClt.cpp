@@ -38,14 +38,14 @@
 *******************************************************************************/
 #include "utilESClt.hpp"
 
+#include "pd.hpp"
+#include "ossUtil.hpp"
+#include "../bson/bson.hpp"
+
 #include <iostream>
 #include <sstream>
 #include <cstring>
 #include <vector>
-
-#include "pd.hpp"
-#include "ossUtil.hpp"
-#include "../bson/bson.hpp"
 
 using namespace bson ;
 

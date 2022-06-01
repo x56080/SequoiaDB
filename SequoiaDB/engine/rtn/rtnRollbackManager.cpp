@@ -336,7 +336,7 @@ INT32 rtnPITRollbackManager::_processCommitRecord(const dpsLogRecord &record)
 
    try
    {
-      _undoTransMap.insert(std::make_pair<DPS_TRANS_ID, stpLogicalTimeUS>(
+      _undoTransMap.insert(std::pair<DPS_TRANS_ID, stpLogicalTimeUS>(
           _recordTransID, recordTransTime));
    }
    catch (std::exception &e)
