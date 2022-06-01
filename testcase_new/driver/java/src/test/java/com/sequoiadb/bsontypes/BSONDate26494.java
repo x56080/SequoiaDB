@@ -25,7 +25,7 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * @description seqDB-26493 :: java驱动以java.util.Date方式写日期数据，使用LocalDate方式读日期数据
+ * @description seqDB-26494:java驱动以java.util.Date方式写日期数据，使用LocalDateTime方式读日期数据
  * @author wuyan
  * @date 2021.5.13
  * @version 1.10
@@ -92,8 +92,8 @@ public class BSONDate26494 extends SdbTestBase {
             actQueryDate = time.toString();
         }
         cursor.close();
-        Assert.assertEquals( actQueryDate, expDate,
-                "---query reces = " + queryRecs );
+        Assert.assertEquals( actQueryDate, expDate, "---insert date = "
+                + date.toString() + "\n---query reces = " + queryRecs );
     }
 
     @AfterClass
