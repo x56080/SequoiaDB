@@ -186,8 +186,6 @@ public class Sequoiadb implements Closeable {
      * List of data source
      */
     public final static int SDB_LIST_DATASOURCES = 22;
-    //public final static int SDB_LIST_RESERVED6 = 23 ;
-    //public final static int SDB_LIST_RESERVED7 = 24 ;
     // reserved
     public final static int SDB_LIST_CL_IN_DOMAIN = 129;
     // reserved
@@ -276,14 +274,6 @@ public class Sequoiadb implements Closeable {
      */
     public final static int SDB_SNAP_INDEXSTATS = 21;
     //public final static int SDB_SNAP_RESERVED3 = 22;
-    /**
-     * Snapshot of tasks
-     */
-    public final static int SDB_SNAP_TASKS = 23;
-    /**
-     * Snapshot of indexes
-     */
-    public final static int SDB_SNAP_INDEXES = 24;
     /**
      * Snapshot of transaction waits
      */
@@ -1467,8 +1457,6 @@ public class Sequoiadb implements Closeable {
      *                  <li>{@link Sequoiadb#SDB_SNAP_LATCHWAITS}
      *                  <li>{@link Sequoiadb#SDB_SNAP_LOCKWAITS}
      *                  <li>{@link Sequoiadb#SDB_SNAP_INDEXSTATS}
-     *                  <li>{@link Sequoiadb#SDB_SNAP_TASKS}
-     *                  <li>{@link Sequoiadb#SDB_SNAP_INDEXES}
      *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSWAITS}
      *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSDEADLOCK}
      *                  </ul>
@@ -1523,8 +1511,6 @@ public class Sequoiadb implements Closeable {
      *                  <li>{@link Sequoiadb#SDB_SNAP_LATCHWAITS}
      *                  <li>{@link Sequoiadb#SDB_SNAP_LOCKWAITS}
      *                  <li>{@link Sequoiadb#SDB_SNAP_INDEXSTATS}
-     *                  <li>{@link Sequoiadb#SDB_SNAP_TASKS}
-     *                  <li>{@link Sequoiadb#SDB_SNAP_INDEXES}
      *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSWAITS}
      *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSDEADLOCK}
      *                  </ul>
@@ -1564,8 +1550,6 @@ public class Sequoiadb implements Closeable {
      *                  <li>{@link Sequoiadb#SDB_SNAP_LATCHWAITS}
      *                  <li>{@link Sequoiadb#SDB_SNAP_LOCKWAITS}
      *                  <li>{@link Sequoiadb#SDB_SNAP_INDEXSTATS}
-     *                  <li>{@link Sequoiadb#SDB_SNAP_TASKS}
-     *                  <li>{@link Sequoiadb#SDB_SNAP_INDEXES}
      *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSWAITS}
      *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSDEADLOCK}
      *                  </ul>
@@ -1646,10 +1630,6 @@ public class Sequoiadb implements Closeable {
                 return AdminCommand.SNAP_LOCKWAITS;
             case SDB_SNAP_INDEXSTATS:
                 return AdminCommand.SNAP_INDEXSTATS;
-            case SDB_SNAP_TASKS:
-                return AdminCommand.SNAP_TASKS;
-            case SDB_SNAP_INDEXES:
-                return AdminCommand.SNAP_INDEXES;
             case SDB_SNAP_TRANSWAITS:
                 return AdminCommand.SNAP_TRANSWAITS;
             case SDB_SNAP_TRANSDEADLOCK:
@@ -3095,24 +3075,6 @@ public class Sequoiadb implements Closeable {
             cleanRequestBuff();
             connection.close();
         }
-    }
-
-    protected Object getObjectFromResp(SdbReply response, String targetField){
-        BSONObject result;
-        DBCursor cursor = new DBCursor(response, this);
-        try {
-            if (!cursor.hasNext()) {
-                throw new BaseException(SDBError.SDB_UNEXPECTED_RESULT);
-            }
-            result = cursor.getNext();
-        } finally {
-            cursor.close();
-        }
-        boolean flag = result.containsField(targetField);
-        if (!flag) {
-            throw new BaseException(SDBError.SDB_UNEXPECTED_RESULT);
-        }
-        return result.get(targetField);
     }
 
     /**
