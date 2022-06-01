@@ -38,10 +38,10 @@
 #ifndef _SDB_FAP_MONGO_BASE_COMMAND_HPP_
 #define _SDB_FAP_MONGO_BASE_COMMAND_HPP_
 
-#include <map>
 #include "util.hpp"
 #include "mongodef.hpp"
 #include "parser.hpp"
+#include <map>
 
 class baseCommand : public SDBObject
 {

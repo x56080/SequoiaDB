@@ -240,7 +240,7 @@ void _timerPair::check_deadline()
       if ( _onTimer )
          _onTimer ( NULL, NULL, NULL ) ;
    }
-   _timer.expires_from_now ( boost::chrono::milliseconds (_timeoutMS)) ;
+   _timer.expires_from_now ( std::chrono::milliseconds (_timeoutMS)) ;
    _timer.async_wait ( boost::bind ( &_timerPair::check_deadline,
                        this ) ) ;
    PD_TRACE_EXIT ( SDB__TMPAIR_CHK_DLINE );
@@ -250,7 +250,7 @@ PD_TRACE_DECLARE_FUNCTION ( SDB__TMPAIR_RUN, "_timerPair::run" )
 void _timerPair::run ()
 {
    PD_TRACE_ENTRY ( SDB__TMPAIR_RUN );
-   _timer.expires_from_now ( boost::chrono::milliseconds (_timeoutMS)) ;
+   _timer.expires_from_now ( std::chrono::milliseconds (_timeoutMS)) ;
    if ( _onTimer )
          _onTimer ( NULL, NULL, NULL ) ;
    _timer.async_wait ( boost::bind (&_timerPair::check_deadline,

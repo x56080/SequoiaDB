@@ -44,15 +44,7 @@
 #define _XOPEN_SOURCE 500
 #endif
 
-#include<iostream>
-#include<fstream>
-#include<string>
-#include<vector>
-#include<libgen.h>
 #include "core.h"
-#include<fuse.h>
-#include<time.h>
-//#include<linux/stat.h>
 #include "fuse_lowlevel.h"
 #include "ossUtil.h"
 #include "ossProc.hpp"
@@ -61,22 +53,29 @@
 #include "utilParam.hpp"
 #include "ossIO.hpp"
 #include "pd.hpp"
-#include<arpa/inet.h>
-#include<sys/socket.h>
-#include<netdb.h>
-#include<ifaddrs.h>
-#include<net/if.h>
-
 #include "sdbConnectionPool.hpp"
 
 #include "sequoiaFSOptionMgr.hpp"
 #include "sequoiaFSCommon.hpp"
 #include "sequoiaFSDao.hpp"
-
 #include "sequoiaFSFileCreatingMgr.hpp"
 #include "sequoiaFSFileLobMgr.hpp"
 #include "sequoiaFSFileLob.hpp"
 #include "sequoiaFSMetaCache.hpp"
+
+#include<iostream>
+#include<fstream>
+#include<string>
+#include<vector>
+#include<libgen.h>
+#include<fuse.h>
+#include<time.h>
+//#include<linux/stat.h>
+#include<arpa/inet.h>
+#include<sys/socket.h>
+#include<netdb.h>
+#include<ifaddrs.h>
+#include<net/if.h>
 
 using std::string;
 using namespace sdbclient;

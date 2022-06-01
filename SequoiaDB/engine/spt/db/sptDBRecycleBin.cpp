@@ -30,11 +30,11 @@
 
 *******************************************************************************/
 
-#include <string>
 #include "sptDBRecycleBin.hpp"
 #include "sptDBSnapshotOption.hpp"
 #include "sptDBCursor.hpp"
 #include "msgDef.h"
+#include <string>
 
 using namespace std ;
 
