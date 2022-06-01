@@ -28,7 +28,33 @@ sdbupgradeidx [ options ] ...
 - **--svcname, -p \<coord port\>**  
   
     指定协调节点的端口号
-  
+    
+- **--username, -u \<user name\>**  
+
+    指定用户名，默认为空字符串
+
+- **--password, -w \<password\>**  
+
+    指定用户密码，默认为空字符串
+
+- **--cipher \<boolean\>**  
+
+    是否使用密文模式输入密码，默认为false，取值如下：
+
+    - "true": 使用密文模式输入密码，配合 --cipherfile --token 参数使用，关于密文模式的介绍可参考[密码管理][passwd]
+
+    - "false": 使用明文模式 --password 输入密码
+
+- **--cipherfile \<cipher file\>**  
+
+    指定密文文件路径，默认值为 ~/sequoiadb/passwd
+
+- **--token \<token\>**  
+
+    指定密文文件的加密令牌
+
+    如果创建密文文件时未指定 token，可忽略该参数
+
 - **--output, -o \<output file\>**  
 
     指定输出报告的文件路径，默认输出在当前路径下的 `sdbupgradeidx.log` 文件中
@@ -263,3 +289,4 @@ Succeed to Upgrade : 2
 [^_^]:
     本文使用的所有引用及链接
 [standalone]:manual/Distributed_Engine/Architecture/Data_Model/index.md#创建索引
+[passwd]:manual/Distributed_Engine/Maintainance/Security/system_security.md#密码管理

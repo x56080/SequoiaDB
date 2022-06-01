@@ -3,6 +3,10 @@
 
 @input:        hostname:   String, eg: "localhost", required
                svcname:    Number, eg: 11810, required
+               username:   String, required
+               password:   String, default: ""
+               cipherfile: String
+               token:      String
                checkonly:  Boolean, check only, don't do upgrade, required
 
 @example:
@@ -14,6 +18,10 @@
 
 var HOSTNAME = "" ;
 var SVCNAME = "" ;
+var USERNAME = "" ;
+var PASSWD = "" ;
+var CIPHER_FILE = "" ;
+var TOKEN = "" ;
 var CHECKONLY = "" ;
 
 // check parameter
@@ -36,6 +44,44 @@ else if( svcname.constructor !== Number )
    throw new Error( "Invalid para[svcname], should be Number" ) ;
 }
 SVCNAME = svcname ;
+
+if ( typeof( username ) === "undefined" )
+{
+   throw new Error( "no parameter [username] specified" ) ;
+}
+else if( username.constructor !== String )
+{
+   throw new Error( "Invalid para[username], should be String" ) ;
+}
+USERNAME = username ;
+
+if ( typeof( cipherfile ) !== "undefined" )
+{
+   if( cipherfile.constructor !== String )
+   {
+      throw new Error( "Invalid para[cipherfile], should be String" ) ;
+   }
+   CIPHER_FILE = cipherfile ;
+
+   if ( typeof( token ) !== "undefined" &&
+        token.constructor !== String )
+   {
+      throw new Error( "Invalid para[token], should be String" ) ;
+   }
+   TOKEN = token ;
+}
+else 
+{
+   if ( typeof( password ) === "undefined" )
+   {
+      throw new Error( "no parameter [password] specified" ) ;
+   }
+   else if( password.constructor !== String )
+   {
+      throw new Error( "Invalid para[password], should be String" ) ;
+   }
+   PASSWD = password ;
+}
 
 if ( typeof( checkonly ) === "undefined" )
 {
@@ -91,12 +137,27 @@ var UPGRADE_MAINCLUNIT_LIST = [] ;
 
 try
 {
-   var db = new Sdb( HOSTNAME, SVCNAME ) ;
+   if ( CIPHER_FILE == "" )
+   {
+      var db = new Sdb( HOSTNAME, SVCNAME, USERNAME, PASSWD ) ;
+   }
+   else
+   {
+      if ( CIPHER_FILE == "~/sequoiadb/passwd" )
+      {
+         var user = new CipherUser(USERNAME).token(TOKEN) ;
+      }
+      else
+      {
+         var user = new CipherUser(USERNAME).token(TOKEN).cipherFile(CIPHER_FILE) ;
+      }
+      var db = new Sdb( HOSTNAME, SVCNAME, user ) ;
+   }
 }
 catch( e )
 {
-   println( "Failed to connect coord[" + e + "], maybe coord[" +
-            HOSTNAME + ":" + SVCNAME + "] is invalid" ) ;
+   println( "Failed to connect coord[" + HOSTNAME + ":" + SVCNAME + 
+            "], username[" + USERNAME + "], error[" + e + "]" ) ;
    throw new Error() ;
 }
 try
