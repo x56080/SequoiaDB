@@ -375,7 +375,7 @@ if needCompileDb:
     env.CompileDb()
 
 if guess_os == "linux":
-    env.Append( CXXFLAGS=" -std=c++98 " )
+   env.Append( CXXFLAGS=" -std=c++11 " )
 
 libdeps.setup_environment( env )
 

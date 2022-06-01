@@ -39,11 +39,6 @@
 #ifndef UTIL_ESCLT_HPP_
 #define UTIL_ESCLT_HPP_
 
-#include <string>
-#include <sstream>
-#include <list>
-#include <vector>
-
 #include "oss.hpp"
 #include "utilHttp.hpp"
 #include "cJSON.h"
@@ -51,6 +46,11 @@
 #include "../util/fromjson.hpp"
 #include "utilESClt.hpp"
 #include "utilCommObjBuff.hpp"
+
+#include <string>
+#include <sstream>
+#include <list>
+#include <vector>
 
 #define UTIL_SE_MAX_URL_SIZE              2048
 #define UTIL_ES_DFT_SCROLL_SIZE           1000
