@@ -61,6 +61,7 @@ namespace vessel
       }
 
       context.getEnv()->ioBufferPool.discard(context.getSpaceID());
+      context.getEnv()->lobcBufferPool.discard(context.getSpaceID());
       context.getEnv()->dms.removeCS(&context);
       if (SDB_OK != rc)
       {

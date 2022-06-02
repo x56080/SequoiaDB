@@ -92,7 +92,11 @@ namespace vessel
          INT32 truncate(const globalLobChunkKey &key,
                         const lobcExtentChain &chain);
 
+         //discard all buffers of the collection space
+         void discard(SPACE_ID sid);
+
          /// ensure no one can access the collection to be discarded.
+         //discard all buffers of the collection
          void discard(SPACE_ID sid, CL_MB_ID mbid);
 
       public:
