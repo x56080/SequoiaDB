@@ -368,6 +368,9 @@ Linux64:
         cp lib/libzstd.a ./lib/linux64/release/
 
     rocksdb 6.29.5
+        Website:    https://rocksdb.org
+        Repository: https://github.com/facebook/rocksdb/
+
         Warning: For the needs of SequoiaDB project, need to make two changes. 
         First, modify rocksdb/Makefile
         # for making debug lib only, i.e., without installing gflags
