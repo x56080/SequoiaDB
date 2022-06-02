@@ -57,6 +57,8 @@
 #include "vessel/lobChunkKey.h"
 #include "vessel/listLobChunkCursor.h"
 
+#include <atomic>
+
 namespace engine
 {
    class _dpsLogRecord;
@@ -86,7 +88,7 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isOpen()const
          {
-            return NULL != _collectionSpace;
+            return nullptr != _collectionSpace;
          }
          OSS_INLINE const clMetaBlock &getRecord()const
          {
@@ -385,7 +387,7 @@ namespace vessel
          OSS_INLINE UINT32 getMaxLvl0Cnt(UINT32 capacity)const
          {
             return getMaxLvL0RoutePageCountLteRoot(capacity,
-                                                       COLLECTION_ROOT_LVL2);
+                                                   COLLECTION_ROOT_LVL2);
          }
 
          /// Return total lvl0 count 
@@ -495,14 +497,14 @@ namespace vessel
       private:
          //ossSpinSLatch _recordLatch;
          clMetaBlock _clMetaBlock;
-         collectionSpace *_collectionSpace = NULL;
-         UINT32 _totalLvl0Count = 0;
-         UINT32 _totalRdpCount = 0;
+         collectionSpace *_collectionSpace = nullptr;
+         atomic_uint _lvl0Count = {0};
+         atomic_uint _rdpCount = {0};
          freeSpaceMap _fsm;
 
          indexObjectMap _indexes;
 
-         ossRWMutex _ddlLatch;
+         ossRWMutex _oplock;
          ossSpinXLatch _extendingLatch;
    };//class collection
 

@@ -304,6 +304,11 @@ namespace vessel
          PD_LOG(PDERROR, "failed to find lpid[%d] in mapping:%d", lpid, rc);
          goto error;
       }
+      else if (!desc.isValid())
+      {
+         rc = SDB_VESSEL_LOGICAL_PAGE_UNMAPPED;
+         goto error;
+      }
 
       rc = _getRuntimePageBuffer(context, desc.pid,
                                  mode, lpb._rpb);
@@ -367,6 +372,11 @@ namespace vessel
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to find lpid[%d] in cache:%d", lpid, rc);
+         goto error;
+      }
+      else if (!desc.isValid())
+      {
+         rc = SDB_VESSEL_LOGICAL_PAGE_UNMAPPED;
          goto error;
       }
 

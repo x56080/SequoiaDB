@@ -48,7 +48,7 @@ namespace vessel
       /// cleaner will reset it soon.
       if (!bcb->hasDirtyFlag())
       {
-         bcb->ctl().setFlags(LITE_IO_BUFFER_CTL_FLAGS::DIRTY);
+         bcb->ctl().setFlag(LITE_IO_BUFFER_CTL_FLAGS::DIRTY);
          pushBackToList(bcb);
       }
    }
@@ -89,7 +89,7 @@ namespace vessel
       guard.unlock();
       for (auto itr = fl.begin(); itr != fl.end(); ++itr)
       {
-         (*itr)->ctl().setFlags(LITE_IO_BUFFER_CTL_FLAGS::PENDDING_FLUSH);
+         (*itr)->ctl().setFlag(LITE_IO_BUFFER_CTL_FLAGS::PENDDING_FLUSH);
       }
       return;
    }

@@ -120,7 +120,23 @@ namespace vessel
       return _val.compare_exchange_strong(expected, val);
    }
 
-   BUFFER_CTL_FLAG_WORD atomicBufferCtlBlock::clearFlags(BUFFER_CTL_FLAG_WORD flags)
+   BUFFER_CTL_FLAG_WORD atomicBufferCtlBlock::resetFlags()
+   {
+      bufferControlBlock oldVal = _val.load(std::memory_order_relaxed);
+      do
+      {
+         bufferControlBlock newVal(oldVal);
+         newVal.resetFlags();
+         if (_val.compare_exchange_weak(oldVal, newVal))
+         {
+            break;
+         }
+      } while (TRUE);
+      
+      return oldVal.getFlags();
+   }
+
+   BUFFER_CTL_FLAG_WORD atomicBufferCtlBlock::clearFlag(BUFFER_CTL_FLAG_WORD flags)
    {
       bufferControlBlock oldVal = _val.load(std::memory_order_relaxed);
       do
@@ -136,7 +152,7 @@ namespace vessel
       return oldVal.getFlags();
    }
 
-   BUFFER_CTL_FLAG_WORD atomicBufferCtlBlock::setFlags(BUFFER_CTL_FLAG_WORD flags)
+   BUFFER_CTL_FLAG_WORD atomicBufferCtlBlock::setFlag(BUFFER_CTL_FLAG_WORD flags)
    {
       bufferControlBlock oldVal = _val.load(std::memory_order_relaxed);
       do
@@ -152,8 +168,8 @@ namespace vessel
       return oldVal.getFlags();
    }
 
-   BUFFER_CTL_FLAG_WORD atomicBufferCtlBlock::updateFlags(BUFFER_CTL_FLAG_WORD toSet,
-                                                          BUFFER_CTL_FLAG_WORD toClear)
+   BUFFER_CTL_FLAG_WORD atomicBufferCtlBlock::updateFlag(BUFFER_CTL_FLAG_WORD toSet,
+                                                         BUFFER_CTL_FLAG_WORD toClear)
    {
       bufferControlBlock oldVal = _val.load(std::memory_order_relaxed);
       do
@@ -170,9 +186,9 @@ namespace vessel
       return oldVal.getFlags();
    }
 
-   BOOLEAN atomicBufferCtlBlock::setFlagsIfNot(BUFFER_CTL_FLAG_WORD condition,
-                                               BUFFER_CTL_FLAG_WORD flags,
-                                               BUFFER_CTL_FLAG_WORD *old)
+   BOOLEAN atomicBufferCtlBlock::setFlagIfNot(BUFFER_CTL_FLAG_WORD condition,
+                                              BUFFER_CTL_FLAG_WORD flags,
+                                              BUFFER_CTL_FLAG_WORD *old)
    {
       BOOLEAN r = FALSE;
       SDB_ASSERT(0 == OSS_BIT_TEST(condition, flags), "can not be inclusive");

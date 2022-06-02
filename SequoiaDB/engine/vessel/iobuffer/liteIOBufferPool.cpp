@@ -452,7 +452,7 @@ namespace vessel
       {
          SHARED_IO_BUFFER_CB &bcb = l.front();
          SDB_ASSERT(bcb->hasMemoryBlock(), "impossible");
-         bcb->ctl().setFlags(0);
+         bcb->ctl().resetFlags();
          if (OSS_LIKELY(bcb->ctl().setRecyclingFromNormal()))
          {
             bcb->releaseMemoryBlock(_memPool);
@@ -803,9 +803,9 @@ namespace vessel
             /// we must clear dirty flag before unlock.
             /// writer may waiting x lock now.
             /// flag must be reset before reinsert into dirty list.
-            bcb->ctl().clearFlags(LITE_IO_BUFFER_CTL_FLAGS::DIRTY);
+            bcb->ctl().clearFlag(LITE_IO_BUFFER_CTL_FLAGS::DIRTY);
             bcb->getMutex().unlockShared();
-            bcb->ctl().clearFlags(LITE_IO_BUFFER_CTL_FLAGS::PENDDING_FLUSH);
+            bcb->ctl().clearFlag(LITE_IO_BUFFER_CTL_FLAGS::PENDDING_FLUSH);
             
             /// flush all buffers asap
          }//for (UINT32 i = 0; i < taskId.size; ++i)

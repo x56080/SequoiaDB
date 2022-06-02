@@ -92,6 +92,7 @@ namespace vessel
          }
 
       public:
+         OSS_INLINE void resetFlags() {_flags = 0;}
          OSS_INLINE void overwriteFlags(BUFFER_CTL_FLAG_WORD flags) {_flags = flags;}
          OSS_INLINE BUFFER_CTL_FLAG_WORD getFlags()const {return _flags;}
          OSS_INLINE void setFlag(BUFFER_CTL_FLAG_WORD flag)
@@ -173,15 +174,16 @@ namespace vessel
                                            const bufferControlBlock &val);
 
       public:
-         BUFFER_CTL_FLAG_WORD clearFlags(BUFFER_CTL_FLAG_WORD flags);
-         BUFFER_CTL_FLAG_WORD setFlags(BUFFER_CTL_FLAG_WORD flags);
-         BUFFER_CTL_FLAG_WORD updateFlags(BUFFER_CTL_FLAG_WORD toSet,
-                                          BUFFER_CTL_FLAG_WORD toClear);
+         BUFFER_CTL_FLAG_WORD resetFlags();
+         BUFFER_CTL_FLAG_WORD clearFlag(BUFFER_CTL_FLAG_WORD flags);
+         BUFFER_CTL_FLAG_WORD setFlag(BUFFER_CTL_FLAG_WORD flags);
+         BUFFER_CTL_FLAG_WORD updateFlag(BUFFER_CTL_FLAG_WORD toSet,
+                                         BUFFER_CTL_FLAG_WORD toClear);
 
          /// condition must be exclusive from flags
-         BOOLEAN setFlagsIfNot(BUFFER_CTL_FLAG_WORD condition,
-                               BUFFER_CTL_FLAG_WORD flags,
-                               BUFFER_CTL_FLAG_WORD *old=nullptr);
+         BOOLEAN setFlagIfNot(BUFFER_CTL_FLAG_WORD condition,
+                              BUFFER_CTL_FLAG_WORD flags,
+                              BUFFER_CTL_FLAG_WORD *old=nullptr);
 
       protected:
          std::atomic<bufferControlBlock> _val;

@@ -366,7 +366,7 @@ namespace vessel
                   buffer->ctl().incRefCntIfNormal())
          {
             sharedLobChunkBuffer &buffer = *itr;
-            if (buffer->ctl().setFlagsIfNot(condition, flags))
+            if (buffer->ctl().setFlagIfNot(condition, flags))
             {
                buffer->setAsTrash();
                buffer->getBufferCtx().clear();
@@ -481,7 +481,7 @@ namespace vessel
          sharedLobChunkBuffer &buffer = *itr;
          BUFFER_CTL_FLAG_WORD flags = LOBC_BUFFER_CTL_FLAGS::BUSY;
          BUFFER_CTL_FLAG_WORD condition = LOBC_BUFFER_CTL_FLAGS::PENDING_FLUSH;
-         if (!buffer->ctl().setFlagsIfNot(condition, flags))
+         if (!buffer->ctl().setFlagIfNot(condition, flags))
          {
             bufferControlBlock block;
             block.init(BUFFER_STATUS::NORMAL, 1,
@@ -569,7 +569,7 @@ namespace vessel
          sharedLobChunkBuffer &buffer = *itr;
          BUFFER_CTL_FLAG_WORD flags = LOBC_BUFFER_CTL_FLAGS::BUSY;
          BUFFER_CTL_FLAG_WORD condition = LOBC_BUFFER_CTL_FLAGS::PENDING_FLUSH;
-         if (!buffer->ctl().setFlagsIfNot(condition, flags))
+         if (!buffer->ctl().setFlagIfNot(condition, flags))
          {
             bufferControlBlock block;
             block.init(BUFFER_STATUS::NORMAL, 1,
@@ -1269,7 +1269,7 @@ namespace vessel
 
          buffer->resetLSN();
 
-         BUFFER_CTL_FLAG_WORD oldVal = buffer->ctl().clearFlags(flags);
+         BUFFER_CTL_FLAG_WORD oldVal = buffer->ctl().clearFlag(flags);
          SDB_ASSERT(oldVal == flags, "must be same");
 
          if (buffer->ctl().setRecyclingFromNormal())

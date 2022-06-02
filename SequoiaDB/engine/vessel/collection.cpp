@@ -116,7 +116,7 @@ namespace vessel
       file = cs->getSU()->getMainDataSpace().getFsmFile();
       rc = _fsm.open(block.mbID,
                      block.logicalCLID,
-                     _totalRdpCount,
+                     _rdpCount.load(std::memory_order_relaxed),
                      file,
                      dmsStripingRange(block.minStriping,
                                       block.maxStriping));
@@ -236,8 +236,8 @@ namespace vessel
    {
       _clMetaBlock.reset();
       _collectionSpace = nullptr;
-      _totalLvl0Count = 0;
-      _totalRdpCount = 0;
+      _lvl0Count.store(0, std::memory_order_relaxed);
+      _rdpCount.store(0, std::memory_order_relaxed);
       _fsm.close();
       _indexes.fini();
       return;
@@ -424,7 +424,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       indexes.clear();
-      ossRWMutexGuard guard(&_ddlLatch, SHARED);
+      ossRWMutexGuard guard(&_oplock, SHARED);
 
       if (!isOpen())
       {
@@ -506,7 +506,7 @@ namespace vessel
                                      indexIdentifier &indexId)
    {
       INT32 rc = SDB_OK;
-      ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
+      ossRWMutexGuard guard(&_oplock, SHARED, FALSE);
       indexId.reset();
       if (!isOpen())
       {
@@ -694,7 +694,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       dmlIndexRequestArray ra;
-      ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
+      ossRWMutexGuard guard(&_oplock, SHARED, FALSE);
       runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -805,7 +805,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       dmlIndexRequestArray ra;
       runtimeMbContext mbContext;
-      ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
+      ossRWMutexGuard guard(&_oplock, SHARED, FALSE);
 
       recordID rid;
       indexConsole console;
@@ -932,7 +932,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       dmlIndexRequestArray ra;
       runtimeMbContext mbContext;
-      ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
+      ossRWMutexGuard guard(&_oplock, SHARED, FALSE);
 
       indexConsole console;
 
@@ -1034,6 +1034,7 @@ namespace vessel
       const static UINT32 _QUIT_CHECK = 7;
       runtimeMbContext mbContext;
 
+      ossRWMutexGuard guard(&_oplock, SHARED);
       count = 0;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -1045,7 +1046,7 @@ namespace vessel
       mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
       context->attachMbContext(&mbContext);
 
-      for (UINT32 i = 0; i < _totalRdpCount; ++i)
+      for (UINT32 i = 0; i < _rdpCount.load(std::memory_order_relaxed); ++i)
       {
          PAGE_ID lpid = INVALID_PAGE_ID;
          UINT32 countInRdp = 0;
@@ -1093,6 +1094,7 @@ namespace vessel
       SDB_ASSERT(cursor->isOpen(), "must be open");
       SDB_ASSERT(cursor->getCollectionId().getCLLid() == _clMetaBlock.logicalCLID,
                  "must be same");
+      ossRWMutexGuard guard(&_oplock, SHARED);
 
       runtimeMbContext mbContext;
       UINT32 pageStep = 2;
@@ -1124,7 +1126,8 @@ namespace vessel
          UINT32 readCount = 0;
          PAGE_ID lpid = cursor->getLpid();
 
-         if (_totalRdpCount <= cursor->getToScanEntry().getSeq())
+         if (_rdpCount.load(std::memory_order_relaxed) <=
+              cursor->getToScanEntry().getSeq())
          {
             cursor->setEOC();
             goto done;
@@ -1298,7 +1301,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       indexObject *obj = nullptr;
       indexIdentifier indexId;
-      ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
+      ossRWMutexGuard guard(&_oplock, SHARED, FALSE);
       runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -1949,7 +1952,7 @@ namespace vessel
 
       do
       {
-         UINT32 totalRdpCount = _totalRdpCount;
+         UINT32 totalRdpCount = _rdpCount.load(std::memory_order_relaxed);
          /// do not get latch here.
          ossXLatchGuard guard(&_extendingLatch, FALSE);
 
@@ -1966,7 +1969,7 @@ namespace vessel
          }
 
          guard.lock();
-         if (totalRdpCount < _totalRdpCount)
+         if (totalRdpCount < _rdpCount.load(std::memory_order_relaxed))
          {
             continue;
          }
@@ -2005,7 +2008,7 @@ namespace vessel
 
       do
       {
-         UINT32 totalRdpCount = _totalRdpCount;
+         UINT32 totalRdpCount = _rdpCount.load(std::memory_order_relaxed);
          /// do not get latch here.
          ossXLatchGuard guard(&_extendingLatch, FALSE);
 
@@ -2022,7 +2025,7 @@ namespace vessel
          }
 
          guard.lock();
-         if (totalRdpCount < _totalRdpCount)
+         if (totalRdpCount < _rdpCount.load(std::memory_order_relaxed))
          {
             continue;
          }
@@ -2063,6 +2066,8 @@ namespace vessel
       logicalPageBuffer lpb;
       rdpIniter initer;
       UINT32 lvl0No = 0;
+      UINT32 totalRdpCount = 0;
+      UINT32 totalLvl0Count = 0;
       PAGE_ID lvl0Lpid = INVALID_PAGE_ID;
       mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
       UINT32 capacity = 0;
@@ -2079,9 +2084,11 @@ namespace vessel
          goto error;
       }
 
-      lvl0No = _totalRdpCount / capacity;
-      SDB_ASSERT(lvl0No <= _totalLvl0Count, "impossible");
-      if (lvl0No == _totalLvl0Count)
+      totalRdpCount = _rdpCount.load(std::memory_order_relaxed);
+      totalLvl0Count = _lvl0Count.load(std::memory_order_relaxed);
+      lvl0No = totalRdpCount / capacity;
+      SDB_ASSERT(lvl0No <= totalLvl0Count, "impossible");
+      if (lvl0No == totalLvl0Count)
       {
          rc = extendRoutePageMap(context);
          if (SDB_OK != rc)
@@ -2091,7 +2098,7 @@ namespace vessel
          }
       }
       
-      initer.init(_clMetaBlock.logicalCLID, _totalRdpCount, count);
+      initer.init(_clMetaBlock.logicalCLID, totalRdpCount, count);
       context->swtichOplist(&oplist, &backup);
       switched = TRUE;
 
@@ -2125,8 +2132,9 @@ namespace vessel
          goto error;
       }
 
-      firstSeq = _totalRdpCount;
-      _totalRdpCount += count;
+      firstSeq = totalRdpCount;
+      _rdpCount.fetch_add(count, std::memory_order_relaxed);
+
    done:
       if (switched)
       {
@@ -2185,8 +2193,8 @@ namespace vessel
       }
       else
       {
-         _totalLvl0Count = 0;
-         _totalRdpCount = 0;
+         _lvl0Count.store(0, std::memory_order_relaxed);
+         _rdpCount.store(0, std::memory_order_relaxed);
       }
 
    done:
@@ -2209,6 +2217,9 @@ namespace vessel
       UINT32 rdpCount = 0;
       PAGE_ID lastRdp = INVALID_PAGE_ID;
 
+      UINT32 totalLvl0Count = 0;
+      UINT32 totalRdpCount = 0;
+
       UINT32 pageSize = _collectionSpace->getSU()->getManifest().dataArgs.pageSize;
       UINT32 capacity = getCapacityOfRoutePage(pageSize);
       if (0 == capacity)
@@ -2218,9 +2229,9 @@ namespace vessel
          goto error;
       }
 
-      _totalLvl0Count = getMaxLvL0RoutePageCountLteRoot(capacity,
-                                                            COLLECTION_SECOND_ROOT_LVL1);
-      _totalRdpCount = _totalLvl0Count * capacity;
+      totalLvl0Count = getMaxLvL0RoutePageCountLteRoot(capacity,
+                                                        COLLECTION_SECOND_ROOT_LVL1);
+      totalRdpCount = totalLvl0Count * capacity;
 
       rc = getCountAndLastEleInRoutePage(context,
                                          _clMetaBlock.routePages[COLLECTION_ROOT_LVL2],
@@ -2237,8 +2248,8 @@ namespace vessel
          goto done;
       }
 
-      _totalLvl0Count += ((lvl1Count - 1) * capacity);
-      _totalRdpCount = _totalLvl0Count * capacity;
+      totalLvl0Count += ((lvl1Count - 1) * capacity);
+      totalRdpCount = totalLvl0Count * capacity;
 
       rc = getCountAndLastEleInRoutePage(context,
                                          lastLvl1,
@@ -2255,8 +2266,8 @@ namespace vessel
          goto done;
       }
 
-      _totalLvl0Count += lvl0Count;
-      _totalRdpCount += ((lvl0Count - 1) * capacity);
+      totalLvl0Count += lvl0Count;
+      totalRdpCount += ((lvl0Count - 1) * capacity);
 
       rc = getCountAndLastEleInRoutePage(context,
                                          lastLvl0,
@@ -2268,12 +2279,15 @@ namespace vessel
          goto error;
       }
 
-      _totalRdpCount += rdpCount;
+      totalRdpCount += rdpCount;
+
+      _lvl0Count.store(totalLvl0Count, std::memory_order_relaxed);
+      _rdpCount.store(totalRdpCount, std::memory_order_relaxed);
    done:
       return rc;
    error:
-      _totalRdpCount = 0;
-      _totalLvl0Count = 0;
+      _lvl0Count.store(0, std::memory_order_relaxed);
+      _rdpCount.store(0, std::memory_order_relaxed);
       goto done;
    }
 
@@ -2291,6 +2305,9 @@ namespace vessel
       UINT32 rdpCount = 0;
       PAGE_ID lastRdp = INVALID_PAGE_ID;
 
+      UINT32 totalLvl0Count = 0;
+      UINT32 totalRdpCount = 0;
+
       UINT32 pageSize = _collectionSpace->getSU()->getManifest().dataArgs.pageSize;
       UINT32 capacity = getCapacityOfRoutePage(pageSize);
       if (0 == capacity)
@@ -2302,15 +2319,15 @@ namespace vessel
 
       if (0 == rootNo)
       {
-         _totalLvl0Count = getMaxLvL0RoutePageCountLteRoot(capacity,
-                                                               COLLECTION_ROOT_LVL0);
+         totalLvl0Count = getMaxLvL0RoutePageCountLteRoot(capacity,
+                                                          COLLECTION_ROOT_LVL0);
       }
       else
       {
-         _totalLvl0Count = getMaxLvL0RoutePageCountLteRoot(capacity,
-                                                               COLLECTION_FIRST_ROOT_LVL1);
+         totalLvl0Count = getMaxLvL0RoutePageCountLteRoot(capacity,
+                                                          COLLECTION_FIRST_ROOT_LVL1);
       }
-      _totalRdpCount = _totalLvl0Count * capacity;
+      totalRdpCount = totalLvl0Count * capacity;
 
       rc = getCountAndLastEleInRoutePage(context,
                                          lpid,
@@ -2327,8 +2344,8 @@ namespace vessel
          goto done;
       }
 
-      _totalLvl0Count += lvl0Count;
-      _totalRdpCount += ((lvl0Count - 1) * capacity);
+      totalLvl0Count += lvl0Count;
+      totalRdpCount += ((lvl0Count - 1) * capacity);
 
       rc = getCountAndLastEleInRoutePage(context,
                                          lastLvl0,
@@ -2340,12 +2357,15 @@ namespace vessel
          goto error;
       }
 
-      _totalRdpCount += rdpCount;
+      totalRdpCount += rdpCount;
+
+      _lvl0Count.store(totalLvl0Count, std::memory_order_relaxed);
+      _rdpCount.store(totalRdpCount, std::memory_order_relaxed);
    done:
       return rc;
    error:
-      _totalLvl0Count = 0;
-      _totalRdpCount = 0;
+      _lvl0Count.store(0, std::memory_order_relaxed);
+      _rdpCount.store(0, std::memory_order_relaxed);
       goto done;
    }
 
@@ -2368,13 +2388,13 @@ namespace vessel
          goto error;
       }
 
-      _totalLvl0Count = 1;
-      _totalRdpCount = rdpCount;
+      _lvl0Count.store(1, std::memory_order_relaxed);
+      _rdpCount.store(rdpCount, std::memory_order_relaxed);
    done:
       return rc;
    error:
-      _totalLvl0Count = 0;
-      _totalRdpCount = 0;
+      _lvl0Count.store(0, std::memory_order_relaxed);
+      _rdpCount.store(0, std::memory_order_relaxed);
       goto done;
    }
 
@@ -2389,13 +2409,14 @@ namespace vessel
       UINT32 capacity = 0;
       UINT32 lvl0Id = 0;
       PAGE_ID lvl0Lpid = INVALID_PAGE_ID;
+      UINT32 totalRdpCount = _rdpCount.load(std::memory_order_relaxed);
 
       lpid = INVALID_PAGE_ID;
 
-      if (_totalRdpCount <= sequence)
+      if (totalRdpCount <= sequence)
       {
          PD_LOG(PDERROR, "invalid page sequence[%d], current max page count[%d]",
-                sequence, _totalRdpCount);
+                sequence, totalRdpCount);
          rc = SDB_OUT_OF_BOUND;
          goto error;
       }
@@ -2485,7 +2506,7 @@ namespace vessel
 
       lpid = INVALID_PAGE_ID;
 
-      if (_totalLvl0Count <= lvl0No)
+      if (_lvl0Count.load(std::memory_order_relaxed) <= lvl0No)
       {
          rc = SDB_OUT_OF_BOUND;
          goto error;
@@ -2611,6 +2632,7 @@ namespace vessel
 
       PAGE_ID newLvl0 = INVALID_PAGE_ID;
       UINT32 maxLvl0COunt = 0;
+      UINT32 totalLvl0Count = _lvl0Count.load(std::memory_order_relaxed);
       PAGE_ID lvl1Lpid = INVALID_PAGE_ID;
       UINT32 capacity = getCapacityOfRoutePage(getDataPageSize());
       if (OSS_UNLIKELY(0 == capacity))
@@ -2622,35 +2644,36 @@ namespace vessel
 
       maxLvl0COunt = getMaxLvl0Cnt(capacity);
 
-      if (OSS_UNLIKELY(maxLvl0COunt < _totalLvl0Count))
+      if (OSS_UNLIKELY(maxLvl0COunt < totalLvl0Count))
       {
-         PD_LOG(PDERROR, "invalid _totalLvl0Count[%d]", _totalLvl0Count);
+         PD_LOG(PDERROR, "invalid totalLvl0Count[%d]", totalLvl0Count);
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      if (getMaxLvl0Cnt(capacity) == _totalLvl0Count)
+      if (getMaxLvl0Cnt(capacity) == totalLvl0Count)
       {
          PD_LOG(PDERROR, "can not create any more new lvl0 pages");
          rc = SDB_VESSEL_FS_UPPER_LIMIT;
          goto error;
       }
       
-      if (0 == _totalLvl0Count)
+      if (0 == totalLvl0Count)
       {
-         /// COLLECTION_ROOT_LVL0 impossible to be valid when _totalLvl0Count is zero.
+         /// COLLECTION_ROOT_LVL0 impossible to be valid when totalLvl0Count is zero.
          SDB_ASSERT(INVALID_PAGE_ID == _clMetaBlock.routePages[COLLECTION_ROOT_LVL0], "impossible");
          rc = ensureRootRoutePage(context, COLLECTION_ROOT_LVL0);
          if (SDB_OK != rc)
          {
             goto error;
          }
-         ++_totalLvl0Count;
+
+         _lvl0Count.fetch_add(1, std::memory_order_relaxed);
          goto done;
       }
-      else if (_totalLvl0Count <
+      else if (totalLvl0Count <
                getMaxLvL0RoutePageCountLteRoot(capacity,
-                                                COLLECTION_FIRST_ROOT_LVL1))
+                                               COLLECTION_FIRST_ROOT_LVL1))
       {
          rc = ensureRootRoutePage(context, COLLECTION_FIRST_ROOT_LVL1);
          if (SDB_OK != rc)
@@ -2659,9 +2682,9 @@ namespace vessel
          }
          lvl1Lpid = _clMetaBlock.routePages[COLLECTION_FIRST_ROOT_LVL1];
       }
-      else if (_totalLvl0Count <
+      else if (totalLvl0Count <
                getMaxLvL0RoutePageCountLteRoot(capacity,
-                                                   COLLECTION_SECOND_ROOT_LVL1))
+                                               COLLECTION_SECOND_ROOT_LVL1))
       {
          rc = ensureRootRoutePage(context, COLLECTION_SECOND_ROOT_LVL1);
          if (SDB_OK != rc)
@@ -2695,7 +2718,7 @@ namespace vessel
          goto error;
       }
 
-      ++_totalLvl0Count;
+      _lvl0Count.fetch_add(1, std::memory_order_relaxed);
    done:
       return rc;
    error:
@@ -2859,6 +2882,7 @@ namespace vessel
       UINT32 currentLvl1Count = 0;
       PAGE_ID lvl1 = INVALID_PAGE_ID;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
+      UINT32 totalLvl0Count = _lvl0Count.load(std::memory_order_relaxed);
 
       UINT32 capacity = getCapacityOfRoutePage(getDataPageSize());
       if (OSS_UNLIKELY(0 == capacity))
@@ -2869,21 +2893,21 @@ namespace vessel
       }
 
       minCount = getMaxLvL0RoutePageCountLteRoot(capacity,
-                                                     COLLECTION_SECOND_ROOT_LVL1);
-      if (_totalLvl0Count < minCount)
+                                                 COLLECTION_SECOND_ROOT_LVL1);
+      if (totalLvl0Count < minCount)
       {
-         PD_LOG(PDERROR, "invalid _totalLvl0Count[%d]", _totalLvl0Count);
+         PD_LOG(PDERROR, "invalid totalLvl0Count[%d]", totalLvl0Count);
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
-      else if (getMaxLvl0Cnt(capacity) < _totalLvl0Count)
+      else if (getMaxLvl0Cnt(capacity) < totalLvl0Count)
       {
-         PD_LOG(PDERROR, "unexpected _totalLvl0Count[%d]", _totalLvl0Count);
+         PD_LOG(PDERROR, "unexpected totalLvl0Count[%d]", totalLvl0Count);
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      targetCount = ((_totalLvl0Count - minCount) / capacity) + 1;
+      targetCount = ((totalLvl0Count - minCount) / capacity) + 1;
 
       rc = mds.getLogicalPageBuffer(context,
                                     _clMetaBlock.routePages[COLLECTION_ROOT_LVL2],
@@ -3022,7 +3046,7 @@ namespace vessel
       PAGE_ID lpid = INVALID_PAGE_ID;
 
       indexId.reset();
-      ossScopedRWLock guard(&_ddlLatch, EXCLUSIVE);
+      ossScopedRWLock guard(&_oplock, EXCLUSIVE);
 
       console.init(_clMetaBlock.mbID, &(_collectionSpace->getSU()->getIndexSpace()));
 
@@ -3142,7 +3166,7 @@ namespace vessel
       indexObject *obj = nullptr;
       indexConsole console;
       
-      ossRWMutexGuard guard(&_ddlLatch, EXCLUSIVE);
+      ossRWMutexGuard guard(&_oplock, EXCLUSIVE);
       indexObjectMap::ITERATOR itr = _indexes.begin();
       for (; itr != _indexes.end(); ++itr)
       {
@@ -3195,7 +3219,7 @@ namespace vessel
       indexObject *obj = nullptr;
       indexConsole console;
       console.init(_clMetaBlock.mbID, &(_collectionSpace->getSU()->getIndexSpace()));
-      ossRWMutexGuard guard(&_ddlLatch, EXCLUSIVE);
+      ossRWMutexGuard guard(&_oplock, EXCLUSIVE);
 
       /// ensure index object firsts
       obj = _indexes.find(indexId);
@@ -3587,7 +3611,7 @@ namespace vessel
          indexObject *obj = nullptr;
          buildingIndexContext *buildingContext = nullptr;
 
-         ossRWMutexGuard guard(&_ddlLatch, SHARED);
+         ossRWMutexGuard guard(&_oplock, SHARED);
 
          obj = _indexes.find(indexId, INDEX_STATUS_BUILDING);
          if (nullptr == obj)
@@ -3612,8 +3636,7 @@ namespace vessel
             goto error;
          }
 
-         /// _totalRdpCount is not protected by latch here.
-         currentRdpCount = _totalRdpCount;
+         currentRdpCount = _rdpCount.load(std::memory_order_relaxed);
 
          if (currentRdpCount <= (buildEntry.getSeq() + _SCAN_PAGE_COUNT_PER_LOOP))
          {
@@ -3631,9 +3654,10 @@ namespace vessel
       } while (TRUE);
 
       {
-         ossRWMutexGuard guard(&_ddlLatch, EXCLUSIVE);
+         ossRWMutexGuard guard(&_oplock, EXCLUSIVE);
          scanEntry buildEntry;
          buildingIndexContext *buildingContext = nullptr;
+         UINT32 rdpCount = _rdpCount.load(std::memory_order_relaxed);
          indexObject *obj = _indexes.find(indexId, INDEX_STATUS_BUILDING);
          if (nullptr == obj)
          {
@@ -3657,9 +3681,9 @@ namespace vessel
             goto error;
          }
 
-         if (buildEntry.getSeq() < _totalRdpCount)
+         if (buildEntry.getSeq() < rdpCount)
          {
-            rc = buildIndexAndUpdateContext(context, obj, _totalRdpCount);
+            rc = buildIndexAndUpdateContext(context, obj, rdpCount);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to build index[%s] and update context:%d",
@@ -3704,7 +3728,7 @@ namespace vessel
 
       do
       {
-         ossRWMutexGuard guard(&_ddlLatch, SHARED);
+         ossRWMutexGuard guard(&_oplock, SHARED);
          UINT32 currentRdpCount = 0;
          buildingIndexContext *buildingContext = nullptr;
          indexObject *obj = _indexes.find(indexId, INDEX_STATUS_BUILDING);
@@ -3730,8 +3754,7 @@ namespace vessel
             goto error;
          }
 
-         /// _totalRdpCount is not protected by latch here.
-         currentRdpCount = _totalRdpCount;
+         currentRdpCount = _rdpCount.load(std::memory_order_relaxed);;
 
          if (currentRdpCount <= (entry.getSeq() + _ENDING_LOOP_RDP_COUNT))
          {
@@ -3748,8 +3771,9 @@ namespace vessel
       } while (TRUE);
 
       {
-         ossRWMutexGuard guard(&_ddlLatch, EXCLUSIVE);
+         ossRWMutexGuard guard(&_oplock, EXCLUSIVE);
          buildingIndexContext *buildingContext = nullptr;
+         UINT32 rdpCount = _rdpCount.load(std::memory_order_relaxed);
          indexObject *obj = _indexes.find(indexId, INDEX_STATUS_BUILDING);
          if (nullptr == obj)
          {
@@ -3774,12 +3798,12 @@ namespace vessel
                rc = SDB_VESSEL_INTERNAL_ERR;
                goto error;
             }
-            else if (entry.getSeq() == _totalRdpCount)
+            else if (entry.getSeq() == rdpCount)
             {
                break;
             }
 
-            rc = buildIndexBySortingAndUpdateContext(context, obj, _totalRdpCount, mb);
+            rc = buildIndexBySortingAndUpdateContext(context, obj, rdpCount, mb);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to build index[%d], rc:%d", 
@@ -4338,7 +4362,7 @@ namespace vessel
       SDB_ASSERT(indexId.isValid(), "can not be invalid");
       indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
       indexConsole console;
-      ossRWMutexGuard guard(&_ddlLatch, EXCLUSIVE);
+      ossRWMutexGuard guard(&_oplock, EXCLUSIVE);
       console.init(_clMetaBlock.mbID, &is);
       indexObject *obj = _indexes.find(indexId);
       if (nullptr == obj)
@@ -4379,7 +4403,7 @@ namespace vessel
       SDB_ASSERT(indexId.isValid(), "can not be invalid");
       indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
       indexConsole console;
-      ossRWMutexGuard guard(&_ddlLatch, SHARED);
+      ossRWMutexGuard guard(&_oplock, SHARED);
       console.init(_clMetaBlock.mbID, &is);
       indexObject *obj = _indexes.find(indexId);
       if (nullptr == obj)
@@ -5456,9 +5480,10 @@ namespace vessel
       UINT32 capacity = getCapacityOfRoutePage(getDataPageSize());
       mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+      UINT32 totalLvl0Count = _lvl0Count.load(std::memory_order_relaxed);
 
 
-      for (INT32 i = (INT32)_totalLvl0Count - 1; i >= 0; --i)
+      for (INT32 i = (INT32)totalLvl0Count - 1; i >= 0; --i)
       {
          routePageAccessor accessor;
          PAGE_ID lpid = INVALID_PAGE_ID;
@@ -5490,7 +5515,7 @@ namespace vessel
          batch.clear();
       }
 
-      _totalRdpCount = 0;
+      _rdpCount.store(0, std::memory_order_relaxed);
 
    done:
       return rc;
@@ -5549,7 +5574,7 @@ namespace vessel
 
       commitReleasingPagesLog(context, batch, bson::BSONObj());
       mds.releasePages(context, batch.size(), batch.data());
-      _totalLvl0Count = 0;
+      _lvl0Count.store(0, std::memory_order_relaxed);
 
    done:
       return rc;
@@ -5563,7 +5588,7 @@ namespace vessel
                                     const slice &data)
    {
       INT32 rc = SDB_OK;
-      ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
+      ossRWMutexGuard guard(&_oplock, SHARED, FALSE);
       runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -5623,7 +5648,7 @@ namespace vessel
                                   UINT32 &readSize)
    {
       INT32 rc = SDB_OK;
-      ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
+      ossRWMutexGuard guard(&_oplock, SHARED, FALSE);
       runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -5679,7 +5704,7 @@ namespace vessel
                                     const lobChunkKey &key)
    {
       INT32 rc = SDB_OK;
-      ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
+      ossRWMutexGuard guard(&_oplock, SHARED, FALSE);
       runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -5732,7 +5757,7 @@ namespace vessel
                                     BOOLEAN createIfNotExists)
    {
       INT32 rc = SDB_OK;
-      ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
+      ossRWMutexGuard guard(&_oplock, SHARED, FALSE);
       runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -5805,7 +5830,7 @@ namespace vessel
                                       UINT32 &tsize)
    {
       INT32 rc = SDB_OK;
-      ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
+      ossRWMutexGuard guard(&_oplock, SHARED, FALSE);
       runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -5858,7 +5883,7 @@ namespace vessel
                                   dmsLobChunkProfile *profile)
    {
       INT32 rc = SDB_OK;
-      ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
+      ossRWMutexGuard guard(&_oplock, SHARED, FALSE);
       runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -5910,7 +5935,7 @@ namespace vessel
                                    listLobChunkCursor *cursor)
    {
       INT32 rc = SDB_OK;
-      ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
+      ossRWMutexGuard guard(&_oplock, SHARED, FALSE);
       runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))

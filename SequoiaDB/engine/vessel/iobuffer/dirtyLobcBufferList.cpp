@@ -48,7 +48,7 @@ namespace vessel
 
       if (!buffer->isInDirtyList())
       {
-         buffer->ctl().setFlags(LOBC_BUFFER_CTL_FLAGS::IN_DIRTY_LIST);
+         buffer->ctl().setFlag(LOBC_BUFFER_CTL_FLAGS::IN_DIRTY_LIST);
          std::unique_lock<std::mutex> guard(_mutex);
          pushBackToList(buffer);
       }
@@ -71,7 +71,7 @@ namespace vessel
       {
          BUFFER_CTL_FLAG_WORD oldVal = 0;
          sharedLobChunkBuffer &buffer = *right;
-         if (!buffer->ctl().setFlagsIfNot(condition, flags, &oldVal))
+         if (!buffer->ctl().setFlagIfNot(condition, flags, &oldVal))
          {
             if (left != right)
             {
