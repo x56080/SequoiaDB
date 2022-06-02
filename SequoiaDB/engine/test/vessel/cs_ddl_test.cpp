@@ -871,3 +871,197 @@ TEST_F(cs_ddl_test, DISABLED_death_createCS_2)
 
    db.close(&session, closeDBOptions());
 }
+
+/*
+Name: base_removeCS_1
+Description: 
+   多个CS的依次删除
+   1. 创建3个CS
+   2. 校验CS总数个数是否为3
+   3. 删除1个CS
+   4. 校验CS总数是否为2
+   5. 校验剩余CS名称是否符合预期
+   6. 删除剩余所有CS，校验CS总数是否为0
+Input: 无
+Output: 无
+Expected Result: 
+   成功创建CS后删除CS，且过程中CS符合预期
+*/
+TEST_F(cs_ddl_test, base_removeCS_1)
+{
+   INT32 rc = SDB_OK;
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
+   vesselImpl db;
+   openDBOptions options;
+
+   options.path.dataPath = DATA_PATH;
+   options.path.indexPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+
+   utilCSUniqueID uniqueId = UTIL_UNIQUEID_NULL;
+   bson::BSONObj adjunct;
+   UINT32 count = 0;
+   DATA_CURSOR_PTR cursor;
+   dmsBsonCursorReader reader;
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   std::vector<std::string> csNames{"foo1", "foo2", "foo3"};
+
+   for (UINT32 i = 0; i < csNames.size(); ++i)
+   {
+      rc = db.createCS(&session, csNames[i].c_str(), i + 1, dmsCreateCSOptions(), adjunct);
+      ASSERT_EQ(SDB_OK, rc);
+      rc = db.testCS(&session, csNames[i].c_str(), uniqueId);
+      ASSERT_EQ(SDB_OK, rc);
+      ASSERT_EQ(i + 1, uniqueId);
+   }
+
+   rc = db.removeCS(&session, "foo1");
+   ASSERT_EQ(SDB_OK, rc);
+   rc = db.getCSCount(&session, count);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(2, count);
+
+   rc = db.listCS(&session, cursor);
+   ASSERT_EQ(SDB_OK, rc);
+
+   reader.init(cursor);
+   rc = reader.fetchNext(&session);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(0, ossStrcmp("foo2", reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+
+   rc = reader.fetchNext(&session);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(0, ossStrcmp("foo3", reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+
+   rc = db.removeCS(&session, "foo2");
+   ASSERT_EQ(SDB_OK, rc);
+   rc = db.removeCS(&session, "foo3");
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.getCSCount(&session, count);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(0, count);
+}
+
+/*
+Name: base_removeCS_2
+Description:
+   创建CS、CL、插入记录后删除cs
+   1. 创建单个CS，CS上创建单个CL
+   2. 在CL上插入10000条记录
+   3. 删除CS
+Input: 无
+Output: 无
+Expected Result: 
+   成功创建CS、创建CL、CL中插入记录、删除CS
+*/
+TEST_F(cs_ddl_test, base_removeCS_2)
+{
+   INT32 rc = SDB_OK;
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
+   vesselImpl db;
+   openDBOptions options;
+
+   options.path.dataPath = DATA_PATH;
+   options.path.indexPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+
+   bson::BSONObj adjunct;
+   DATA_CURSOR_PTR cursor;
+   dmsBsonCursorReader reader;
+   DATA_COLLECTION_PTR handler;
+   UINT32 count = 10000;
+   bson::BSONObjBuilder builder;
+   utilInsertResult res;
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), adjunct);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+   
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      builder.reset();
+      builder.append("a", i);
+      bson::BSONObj obj = builder.obj();
+      rc = handler->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+
+   rc = db.removeCS(&session, "foo");
+   ASSERT_EQ(SDB_OK, rc);
+}
+
+/*
+Name: base_removeCS_3
+Description:
+   创建CS、CL、插入lob chunk后删除CS
+   1. 创建单个CS，CS上创建单个CL
+   2. 在CL上插入lob chunk
+   3. 删除CS
+Input: 无
+Output: 无
+Expected Result: 
+   成功创建CS、创建CL、CL中插入lob chunk、删除CS
+*/
+TEST_F(cs_ddl_test, base_removeCS_3)
+{
+   INT32 rc = SDB_OK;
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
+   vesselImpl db;
+   openDBOptions options;
+
+   options.path.dataPath = DATA_PATH;
+   options.path.indexPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+
+   bson::BSONObj adjunct;
+   DATA_CURSOR_PTR cursor;
+   dmsBsonCursorReader reader;
+   DATA_COLLECTION_PTR handler;
+   constexpr UINT32 count = 1024;
+   constexpr UINT32 LOBC_SIZE = 1024 * 1024;
+   CHAR buf[LOBC_SIZE];
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), adjunct);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+   
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      bson::OID oid;
+      oid.init();
+      rc = handler->insertLobChunk(&session, oid, 0, 0, LOBC_SIZE, buf);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+
+   rc = db.removeCS(&session, "foo");
+   ASSERT_EQ(SDB_OK, rc);
+}

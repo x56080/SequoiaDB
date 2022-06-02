@@ -326,6 +326,18 @@ namespace vessel
       goto done;
    }
 
+   void lobChunkBufferPool::discard(SPACE_ID sid)
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
+
+      for (UINT32 i = 0; i < _o.buckets; ++i)
+      {
+         _discard(sid, INVALID_CL_MB_ID, i);
+      }
+      return;
+   }
+
    void lobChunkBufferPool::discard(SPACE_ID sid, CL_MB_ID mbid)
    {
       SDB_ASSERT(isValid(), "can not be invalid");
@@ -362,7 +374,7 @@ namespace vessel
          }
          else if (block.isNormal() &&
                   buffer->getKey().getSpaceId() == sid &&
-                  buffer->getKey().getMbId() == mbid &&
+                  (INVALID_CL_MB_ID == mbid || buffer->getKey().getMbId() == mbid) &&
                   buffer->ctl().incRefCntIfNormal())
          {
             sharedLobChunkBuffer &buffer = *itr;
