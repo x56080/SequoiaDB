@@ -96,8 +96,8 @@ public class BSONDate26493 extends SdbTestBase {
             actQueryDate = actLocalDate.toString();
         }
         cursor.close();
-        Assert.assertEquals( actQueryDate, expDate,
-                "---query reces = " + queryRecs );
+        Assert.assertEquals( actQueryDate, expDate, "---insert date = "
+                + date.toString() + "\n---query reces = " + queryRecs );
     }
 
     @AfterClass

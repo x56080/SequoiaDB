@@ -31,7 +31,7 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @version 1.10
  */
 public class BSONDate26494 extends SdbTestBase {
-    private String clName = "baseDate_26494";
+    private String clName = "testDate_26494";
     private static Sequoiadb sdb = null;
     private CollectionSpace cs = null;
     private DBCollection cl;
@@ -50,22 +50,16 @@ public class BSONDate26494 extends SdbTestBase {
     @DataProvider(name = "generateDataProvider")
     public Object[][] generateDataProvider() {
         return new Object[][] {
-                // 1900-01-01之前存在时区问题的数据
-                { 1, "0001-01-01", "0000-12-30T00:05:43", "yyyy-MM-dd" },
-                { 2, "1581-12-31", "1582-01-10T00:05:43", "yyyy-MM-dd" },
-                { 3, "1582-01-31", "1582-02-10T00:05:43", "yyyy-MM-dd" },
-                { 4, "1899-12-31 23:59:59", "1900-01-01T00:05:42",
-                        "yyyy-MM-dd HH:mm:ss" },
                 // 1900-01-01之后不存在时区问题的数据
-                { 5, "1900-01-01 23:00:01", "1900-01-01T23:00:01",
+                { 1, "1900-01-01 23:00:01", "1900-01-01T23:00:01",
                         "yyyy-MM-dd HH:mm:ss" },
-                { 6, "1900-01-02", "1900-01-02T00:00", "yyyy-MM-dd" },
-                { 7, "1970-01-01 12:59:59", "1970-01-01T12:59:59",
+                { 2, "1900-01-02", "1900-01-02T00:00", "yyyy-MM-dd" },
+                { 3, "1970-01-01 12:59:59", "1970-01-01T12:59:59",
                         "yyyy-MM-dd HH:mm:ss" },
-                { 8, "2021-01-31", "2021-01-31T00:00", "yyyy-MM-dd" },
-                { 9, "2022-12-31 01:14:23", "2022-12-31T00:00", "yyyy-MM-dd" },
-                { 10, "2037-12-31", "2037-12-31T00:00", "yyyy-MM-dd" },
-                { 11, "9999-12-31", "9999-12-31T00:00", "yyyy-MM-dd" } };
+                { 4, "2021-01-31", "2021-01-31T00:00", "yyyy-MM-dd" },
+                { 5, "2022-12-31 01:14:23", "2022-12-31T00:00", "yyyy-MM-dd" },
+                { 6, "2037-12-31", "2037-12-31T00:00", "yyyy-MM-dd" },
+                { 7, "9999-12-31", "9999-12-31T00:00", "yyyy-MM-dd" } };
     }
 
     @Test(dataProvider = "generateDataProvider")
