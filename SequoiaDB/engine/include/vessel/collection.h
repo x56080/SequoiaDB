@@ -504,7 +504,7 @@ namespace vessel
 
          indexObjectMap _indexes;
 
-         ossRWMutex _oplock;
+         ossRWMutex _indexlock;
          ossSpinXLatch _extendingLatch;
    };//class collection
 

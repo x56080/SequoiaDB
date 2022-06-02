@@ -424,7 +424,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       indexes.clear();
-      ossRWMutexGuard guard(&_oplock, SHARED);
+      ossRWMutexGuard guard(&_indexlock, SHARED);
 
       if (!isOpen())
       {
@@ -506,7 +506,7 @@ namespace vessel
                                      indexIdentifier &indexId)
    {
       INT32 rc = SDB_OK;
-      ossRWMutexGuard guard(&_oplock, SHARED, FALSE);
+      ossRWMutexGuard guard(&_indexlock, SHARED, FALSE);
       indexId.reset();
       if (!isOpen())
       {
@@ -694,7 +694,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       dmlIndexRequestArray ra;
-      ossRWMutexGuard guard(&_oplock, SHARED, FALSE);
+      ossRWMutexGuard guard(&_indexlock, SHARED, FALSE);
       runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -805,7 +805,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       dmlIndexRequestArray ra;
       runtimeMbContext mbContext;
-      ossRWMutexGuard guard(&_oplock, SHARED, FALSE);
+      ossRWMutexGuard guard(&_indexlock, SHARED, FALSE);
 
       recordID rid;
       indexConsole console;
@@ -932,7 +932,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       dmlIndexRequestArray ra;
       runtimeMbContext mbContext;
-      ossRWMutexGuard guard(&_oplock, SHARED, FALSE);
+      ossRWMutexGuard guard(&_indexlock, SHARED, FALSE);
 
       indexConsole console;
 
@@ -1034,7 +1034,6 @@ namespace vessel
       const static UINT32 _QUIT_CHECK = 7;
       runtimeMbContext mbContext;
 
-      ossRWMutexGuard guard(&_oplock, SHARED);
       count = 0;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -1094,7 +1093,6 @@ namespace vessel
       SDB_ASSERT(cursor->isOpen(), "must be open");
       SDB_ASSERT(cursor->getCollectionId().getCLLid() == _clMetaBlock.logicalCLID,
                  "must be same");
-      ossRWMutexGuard guard(&_oplock, SHARED);
 
       runtimeMbContext mbContext;
       UINT32 pageStep = 2;
@@ -1301,7 +1299,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       indexObject *obj = nullptr;
       indexIdentifier indexId;
-      ossRWMutexGuard guard(&_oplock, SHARED, FALSE);
+      ossRWMutexGuard guard(&_indexlock, SHARED, FALSE);
       runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -3046,7 +3044,7 @@ namespace vessel
       PAGE_ID lpid = INVALID_PAGE_ID;
 
       indexId.reset();
-      ossScopedRWLock guard(&_oplock, EXCLUSIVE);
+      ossScopedRWLock guard(&_indexlock, EXCLUSIVE);
 
       console.init(_clMetaBlock.mbID, &(_collectionSpace->getSU()->getIndexSpace()));
 
@@ -3166,7 +3164,7 @@ namespace vessel
       indexObject *obj = nullptr;
       indexConsole console;
       
-      ossRWMutexGuard guard(&_oplock, EXCLUSIVE);
+      ossRWMutexGuard guard(&_indexlock, EXCLUSIVE);
       indexObjectMap::ITERATOR itr = _indexes.begin();
       for (; itr != _indexes.end(); ++itr)
       {
@@ -3219,7 +3217,7 @@ namespace vessel
       indexObject *obj = nullptr;
       indexConsole console;
       console.init(_clMetaBlock.mbID, &(_collectionSpace->getSU()->getIndexSpace()));
-      ossRWMutexGuard guard(&_oplock, EXCLUSIVE);
+      ossRWMutexGuard guard(&_indexlock, EXCLUSIVE);
 
       /// ensure index object firsts
       obj = _indexes.find(indexId);
@@ -3611,7 +3609,7 @@ namespace vessel
          indexObject *obj = nullptr;
          buildingIndexContext *buildingContext = nullptr;
 
-         ossRWMutexGuard guard(&_oplock, SHARED);
+         ossRWMutexGuard guard(&_indexlock, SHARED);
 
          obj = _indexes.find(indexId, INDEX_STATUS_BUILDING);
          if (nullptr == obj)
@@ -3654,7 +3652,7 @@ namespace vessel
       } while (TRUE);
 
       {
-         ossRWMutexGuard guard(&_oplock, EXCLUSIVE);
+         ossRWMutexGuard guard(&_indexlock, EXCLUSIVE);
          scanEntry buildEntry;
          buildingIndexContext *buildingContext = nullptr;
          UINT32 rdpCount = _rdpCount.load(std::memory_order_relaxed);
@@ -3728,7 +3726,7 @@ namespace vessel
 
       do
       {
-         ossRWMutexGuard guard(&_oplock, SHARED);
+         ossRWMutexGuard guard(&_indexlock, SHARED);
          UINT32 currentRdpCount = 0;
          buildingIndexContext *buildingContext = nullptr;
          indexObject *obj = _indexes.find(indexId, INDEX_STATUS_BUILDING);
@@ -3771,7 +3769,7 @@ namespace vessel
       } while (TRUE);
 
       {
-         ossRWMutexGuard guard(&_oplock, EXCLUSIVE);
+         ossRWMutexGuard guard(&_indexlock, EXCLUSIVE);
          buildingIndexContext *buildingContext = nullptr;
          UINT32 rdpCount = _rdpCount.load(std::memory_order_relaxed);
          indexObject *obj = _indexes.find(indexId, INDEX_STATUS_BUILDING);
@@ -4362,7 +4360,7 @@ namespace vessel
       SDB_ASSERT(indexId.isValid(), "can not be invalid");
       indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
       indexConsole console;
-      ossRWMutexGuard guard(&_oplock, EXCLUSIVE);
+      ossRWMutexGuard guard(&_indexlock, EXCLUSIVE);
       console.init(_clMetaBlock.mbID, &is);
       indexObject *obj = _indexes.find(indexId);
       if (nullptr == obj)
@@ -4403,7 +4401,7 @@ namespace vessel
       SDB_ASSERT(indexId.isValid(), "can not be invalid");
       indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
       indexConsole console;
-      ossRWMutexGuard guard(&_oplock, SHARED);
+      ossRWMutexGuard guard(&_indexlock, SHARED);
       console.init(_clMetaBlock.mbID, &is);
       indexObject *obj = _indexes.find(indexId);
       if (nullptr == obj)
@@ -5588,7 +5586,6 @@ namespace vessel
                                     const slice &data)
    {
       INT32 rc = SDB_OK;
-      ossRWMutexGuard guard(&_oplock, SHARED, FALSE);
       runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -5607,7 +5604,6 @@ namespace vessel
       }
 
       SDB_ASSERT(!context->isMbContextAttached(), "can not be attached");
-      guard.autoLock();
       mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
       context->attachMbContext(&mbContext);
 
@@ -5648,7 +5644,6 @@ namespace vessel
                                   UINT32 &readSize)
    {
       INT32 rc = SDB_OK;
-      ossRWMutexGuard guard(&_oplock, SHARED, FALSE);
       runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -5667,7 +5662,6 @@ namespace vessel
       }
 
       SDB_ASSERT(!context->isMbContextAttached(), "can not be attached");
-      guard.autoLock();
       mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
       context->attachMbContext(&mbContext);
 
@@ -5704,7 +5698,6 @@ namespace vessel
                                     const lobChunkKey &key)
    {
       INT32 rc = SDB_OK;
-      ossRWMutexGuard guard(&_oplock, SHARED, FALSE);
       runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -5722,7 +5715,6 @@ namespace vessel
       }
 
       SDB_ASSERT(!context->isMbContextAttached(), "can not be attached");
-      guard.autoLock();
       mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
       context->attachMbContext(&mbContext);
 
@@ -5757,7 +5749,6 @@ namespace vessel
                                     BOOLEAN createIfNotExists)
    {
       INT32 rc = SDB_OK;
-      ossRWMutexGuard guard(&_oplock, SHARED, FALSE);
       runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -5775,7 +5766,6 @@ namespace vessel
       }
 
       SDB_ASSERT(!context->isMbContextAttached(), "can not be attached");
-      guard.autoLock();
       mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
       context->attachMbContext(&mbContext);
 
@@ -5830,7 +5820,6 @@ namespace vessel
                                       UINT32 &tsize)
    {
       INT32 rc = SDB_OK;
-      ossRWMutexGuard guard(&_oplock, SHARED, FALSE);
       runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -5848,7 +5837,6 @@ namespace vessel
       }
 
       SDB_ASSERT(!context->isMbContextAttached(), "can not be attached");
-      guard.autoLock();
       mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
       context->attachMbContext(&mbContext);
 
@@ -5883,7 +5871,6 @@ namespace vessel
                                   dmsLobChunkProfile *profile)
    {
       INT32 rc = SDB_OK;
-      ossRWMutexGuard guard(&_oplock, SHARED, FALSE);
       runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -5901,7 +5888,6 @@ namespace vessel
       }
 
       SDB_ASSERT(!context->isMbContextAttached(), "can not be attached");
-      guard.autoLock();
       mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
       context->attachMbContext(&mbContext);
 
@@ -5935,7 +5921,6 @@ namespace vessel
                                    listLobChunkCursor *cursor)
    {
       INT32 rc = SDB_OK;
-      ossRWMutexGuard guard(&_oplock, SHARED, FALSE);
       runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -5952,7 +5937,6 @@ namespace vessel
       }
 
       SDB_ASSERT(!context->isMbContextAttached(), "can not be attached");
-      guard.autoLock();
       //mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
       //context->attachMbContext(&mbContext);
 
