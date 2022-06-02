@@ -522,9 +522,14 @@ INT32 ossSSLPeek(SSLHandle* handle, void* buf, INT32 num)
  */
 BOOLEAN ossSSLHasPending( SSLHandle *handle )
 {
+   // two level of buffers
+   // - SSL buffer for processed message
+   // - BIO buffer for raw message if has
    SSL_ASSERT(NULL != handle);
    SSL_ASSERT(NULL != handle->ssl);
-   return ( SSL_has_pending( handle->ssl ) > 0 ) ? TRUE : FALSE ;
+   return ( ( SSL_pending( handle->ssl ) > 0 ) ||
+            ( NULL != handle->bufferBIO &&
+              BIO_pending( handle->bufferBIO ) > 0 ) ) ? TRUE : FALSE ;
 }
 
 /* Return value:
