@@ -528,19 +528,19 @@ INT32 _ossSocket::recv ( CHAR *pMsg, INT32 len,
 #ifdef SDB_SSL
    if ( NULL != _sslHandle && !recvRawData )
    {
+      // for SSL connection, has pending bytes means connect had been read
+      // for processing
+      // if no pending, we can call select to test the raw socket
+      if ( !ossSSLHasPending( _sslHandle ) )
+      {
+         rc = _selectForRead( timeout ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+      }
       while ( len > 0 )
       {
-         // for SSL connection, has pending bytes means connect had been read
-         // for processing
-         // if no pending, we can call select to test the raw socket
-         if ( !ossSSLHasPending( _sslHandle ) )
-         {
-            rc = _selectForRead( timeout ) ;
-            if ( SDB_OK != rc )
-            {
-               goto error ;
-            }
-         }
          if ( flags & MSG_PEEK )
          {
             rc = ossSSLPeek ( _sslHandle, pMsg, len ) ;
