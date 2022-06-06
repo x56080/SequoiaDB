@@ -45,6 +45,7 @@
 INT32 main ( INT32 argc, CHAR **argv )
 {
    // initialize local variables
+   INT32 rc                          = SDB_OK ;
    CHAR *pHostName                   = NULL ;
    CHAR *pServiceName                = NULL ;
    CHAR *pUsr                        = NULL ;
@@ -55,14 +56,13 @@ INT32 main ( INT32 argc, CHAR **argv )
    sdbCSHandle collectionspace       = 0 ;
    // define a collection handle
    sdbCollectionHandle collection    = 0 ;
-   // define a cursor handle for query
-   sdbCursorHandle cursor            = 0 ;
 
    // define local variables
    // initialize them before use
    bson obj ;
-   bson_decimal decimal ;
-   INT32 rc = SDB_OK ;
+   bson result ;
+   bson_init( &obj ) ;
+   bson_init( &result ) ;
 
    // read argument
    pHostName    = (CHAR*)argv[1] ;
@@ -74,12 +74,13 @@ INT32 main ( INT32 argc, CHAR **argv )
    if ( 5 != argc )
    {
       displaySyntax ( (CHAR*)argv[0] ) ;
-      exit ( 0 ) ;
+      rc = SDB_INVALIDARG ;
+      goto error ;
    }
 
    // connect to database
    rc = sdbConnect ( pHostName, pServiceName, pUsr, pPasswd, &connection ) ;
-   if( rc!=SDB_OK )
+   if( SDB_OK != rc )
    {
       printf("Failed to connet to database, rc = %d" OSS_NEWLINE, rc ) ;
       goto error ;
@@ -88,7 +89,7 @@ INT32 main ( INT32 argc, CHAR **argv )
    // create collection space
    rc = sdbCreateCollectionSpace ( connection, COLLECTION_SPACE_NAME,
                                    SDB_PAGESIZE_4K, &collectionspace ) ;
-   if( rc!=SDB_OK )
+   if( SDB_OK != rc )
    {
       printf( "Failed to create collection space, rc = %d" OSS_NEWLINE, rc ) ;
       goto error ;
@@ -97,40 +98,40 @@ INT32 main ( INT32 argc, CHAR **argv )
    // create collection in a specified colletion space.
    // Here,we build it up in the new collection.
    rc = sdbCreateCollection ( collectionspace, COLLECTION_NAME, &collection ) ;
-   if( rc!=SDB_OK )
+   if( SDB_OK != rc )
    {
       printf( "Failed to create collection, rc = %d" OSS_NEWLINE, rc ) ;
       goto error ;
    }
 
-   // first,build up a bson obj for inserting
-   bson_init( &obj ) ;
+   // first, build up a bson obj for inserting
    bson_append_string( &obj, "name", "tom" ) ;
    bson_append_int( &obj, "age", 24 ) ;
-   decimal_init( &decimal ) ;
-   rc = decimal_from_str( "1.234", &decimal ) ;
-   CHECK_RC ( rc, "Failed to get decimal from str" ) ;
-   rc = bson_append_decimal( &obj, "score", &decimal ) ;
-   CHECK_RC ( rc, "Failed to append decimal" ) ;
-   decimal_free( &decimal ) ;
    rc = bson_finish( &obj ) ;
-   CHECK_RC ( rc, "Failed to build bson" ) ;
-
-   printf( "The inserted record is :" ) ;
-   bson_print( &obj ) ;
-
-   // then,insert to the specified collection
-   rc = sdbInsert ( collection, &obj ) ;
-   if ( rc )
+   if ( SDB_OK != rc )
    {
-      printf ( "Failed to insert record, rc = %d" OSS_NEWLINE, rc ) ;
+      rc = SDB_DRIVER_BSON_ERROR ;
+      printf( "Failed to create the inserting bson, rc = %d" OSS_NEWLINE, rc ) ;
       goto error ;
    }
-   printf( "Success to insert! " OSS_NEWLINE ) ;
+
+   printf( "The inserted record: " ) ;
+   bson_print( &obj ) ;
+
+   // then, insert to the specified collection
+   rc = sdbInsert2( collection, &obj, FLG_INSERT_RETURN_OID, &result ) ;
+   if ( SDB_OK != rc )
+   {
+      printf("Failed to insert, rc = %d", rc ) ;
+      goto error ;
+   }
+
+   printf("Insert result: ") ;
+   bson_print( &result ) ;
 
    // drop the specified collection
-   rc = sdbDropCollection( collectionspace,COLLECTION_NAME ) ;
-   if( rc!=SDB_OK )
+   rc = sdbDropCollection ( collectionspace, COLLECTION_NAME ) ;
+   if( SDB_OK != rc )
    {
       printf( "Failed to drop the specified collection, "
               "rc = %d" OSS_NEWLINE, rc ) ;
@@ -138,23 +139,35 @@ INT32 main ( INT32 argc, CHAR **argv )
    }
 
    // drop the specified collection space
-   rc = sdbDropCollectionSpace( connection,COLLECTION_SPACE_NAME ) ;
-   if( rc!=SDB_OK )
+   rc = sdbDropCollectionSpace( connection, COLLECTION_SPACE_NAME ) ;
+   if( SDB_OK != rc )
    {
-      printf( "Failed to drop the specified collection, "
+      printf( "Failed to drop the specified collection space, "
               "rc = %d" OSS_NEWLINE, rc ) ;
       goto error ;
    }
 
 done:
    bson_destroy( &obj ) ;
+   bson_destroy( &result ) ;
    // disconnect the connection
-   sdbDisconnect ( connection ) ;
+   if ( connection )
+   {
+      sdbDisconnect( connection ) ;
+   }
    // release the local variables
-   sdbReleaseCursor ( cursor ) ;
-   sdbReleaseCollection ( collection ) ;
-   sdbReleaseCS ( collectionspace ) ;
-   sdbReleaseConnection ( connection ) ;
+   if ( collection )
+   {
+      sdbReleaseCollection( collection ) ;
+   }
+   if ( collectionspace )
+   {
+      sdbReleaseCS( collectionspace ) ;
+   }
+   if ( connection )
+   {
+      sdbReleaseConnection( connection ) ;
+   }
    return 0;
 error:
    goto done ;

@@ -43,6 +43,7 @@
 INT32 main ( INT32 argc, CHAR **argv )
 {
    // initialize local variables
+   INT32 rc                          = SDB_OK ;
    CHAR *pHostName                   = NULL ;
    CHAR *pServiceName                = NULL ;
    CHAR *pUsr                        = NULL ;
@@ -53,14 +54,15 @@ INT32 main ( INT32 argc, CHAR **argv )
    sdbCSHandle collectionspace       = 0 ;
    // define a collection handle
    sdbCollectionHandle collection    = 0 ;
-   // define a cursor handle for query
-   sdbCursorHandle cursor            = 0 ;
 
    // define local variables
    // initialize them before use
    bson obj ;
-   bson rule ;
-   INT32 rc = SDB_OK ;
+   bson modifier ;
+   bson result ;
+   bson_init( &obj ) ;
+   bson_init( &modifier ) ;
+   bson_init( &result ) ;
 
    // read argument
    pHostName    = (CHAR*)argv[1] ;
@@ -72,7 +74,8 @@ INT32 main ( INT32 argc, CHAR **argv )
    if ( 5 != argc )
    {
       displaySyntax ( (CHAR*)argv[0] ) ;
-      exit ( 0 ) ;
+      rc = SDB_INVALIDARG ;
+      goto error ;
    }
 
    // connect to database
@@ -89,58 +92,71 @@ INT32 main ( INT32 argc, CHAR **argv )
    CHECK_RC ( rc, "Failed to create collection" ) ;
 
    // insert records to the collection
-   bson_init ( &obj ) ;
-   // build a English record
-   createEnglishRecord ( &obj  ) ;
+   bson_append_string( &obj, "name", "tom" ) ;
+   bson_append_int( &obj, "age", 24 ) ;
+   rc = bson_finish( &obj ) ;
+   if ( SDB_OK != rc )
+   {
+      rc = SDB_DRIVER_BSON_ERROR ;
+      printf( "Failed to create the inserting bson, rc = %d" OSS_NEWLINE, rc ) ;
+      goto error ;
+   }
 
-   // insert
    rc = sdbInsert ( collection, &obj ) ;
-   bson_destroy( &obj ) ;
    CHECK_RC ( rc, "Failed to insert record" ) ;
 
-   // query the records
-   // the result is in the cursor handle
-   rc = sdbQuery(collection, NULL, NULL,  NULL, NULL, 0, -1, &cursor ) ;
-   CHECK_RC ( rc, "Failed to query" ) ;
-
    // update the record
-   // let's set the rule and query condition first
-   // here,we make the condition to be NULL
-   // so all the records will be update
-   bson_init ( &rule ) ;
-   bson_append_start_object ( &rule, "$set" ) ;
-   bson_append_int ( &rule, "age", 19 ) ;
-   bson_append_finish_object ( &rule ) ;
-   bson_finish ( &rule ) ;
-   CHECK_RC ( rc, "Failed to build bson" ) ;
+   bson_append_start_object ( &modifier, "$set" ) ;
+   bson_append_int ( &modifier, "age", 19 ) ;
+   bson_append_finish_object ( &modifier ) ;
+   rc = bson_finish( &modifier ) ;
+   if ( SDB_OK != rc )
+   {
+      rc = SDB_DRIVER_BSON_ERROR ;
+      printf( "Failed to create the modifier bson, rc = %d" OSS_NEWLINE, rc ) ;
+      goto error ;
+   }
 
-   printf ( "The update rule is:" ) ;
-   bson_print( &rule ) ;
+   printf ( "The update rule is: " ) ;
+   bson_print( &modifier ) ;
 
    // update
-   rc = sdbUpdate ( collection, &rule, NULL, NULL ) ;
-   CHECK_RC ( rc, "Failed to update the record" ) ;
+   rc = sdbUpdate2( collection, &modifier, NULL, NULL, 0, &result ) ;
+   CHECK_RC ( rc, "Failed to update" ) ;
 
-   // free memory after finish using bson
-   bson_destroy ( &rule ) ;
-   printf ( "Success to update!" OSS_NEWLINE ) ;
+   printf("Update result: ") ;
+   bson_print( &result ) ;
 
    // drop the specified collection
-   rc = sdbDropCollection ( collectionspace,COLLECTION_NAME ) ;
+   rc = sdbDropCollection ( collectionspace, COLLECTION_NAME ) ;
    CHECK_RC ( rc, "Failed to drop the specified collection" ) ;
 
    // drop the specified collection space
-   rc = sdbDropCollectionSpace ( connection,COLLECTION_SPACE_NAME ) ;
-   CHECK_RC ( rc, "Failed to drop the specified collection" ) ;
+   rc = sdbDropCollectionSpace ( connection, COLLECTION_SPACE_NAME ) ;
+   CHECK_RC ( rc, "Failed to drop the specified collection space" ) ;
 
 done:
+   bson_destroy( &obj ) ;
+   bson_destroy ( &modifier ) ;
+   bson_destroy ( &result ) ;
    // disconnect the connection
-   sdbDisconnect ( connection ) ;
+   if ( connection )
+   {
+      sdbDisconnect( connection ) ;
+   }
    // release the local variables
-   sdbReleaseCursor ( cursor ) ;
-   sdbReleaseCollection ( collection ) ;
-   sdbReleaseCS ( collectionspace ) ;
-   sdbReleaseConnection ( connection ) ;
+   if ( collection )
+   {
+      sdbReleaseCollection( collection ) ;
+   }
+   if ( collectionspace )
+   {
+      sdbReleaseCS( collectionspace ) ;
+   }
+   if ( connection )
+   {
+      sdbReleaseConnection( connection ) ;
+   }
    return 0;
 error:
    goto done ;
