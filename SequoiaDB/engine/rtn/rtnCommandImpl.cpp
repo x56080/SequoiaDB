@@ -1931,6 +1931,7 @@ retry:
             i++ ;
          }
          PD_RC_CHECK( rc, PDERROR, "Block dms write failed, rc: %d", rc ) ;
+         PD_LOG( PDINFO, "Block write operation succeed" ) ;
       }
       else
       {
@@ -1971,6 +1972,7 @@ retry:
          if ( blockWrite )
          {
             dmsCB->unblockWrite( cb ) ;
+            PD_LOG( PDINFO, "Unblock write operation succeed" ) ;
          }
          else
          {
@@ -2109,6 +2111,7 @@ retry:
             i++ ;
          }
          PD_RC_CHECK( rc, PDERROR, "Block dms write failed, rc: %d", rc ) ;
+         PD_LOG( PDINFO, "Block write operation succeed" ) ;
       }
       else
       {
@@ -2143,6 +2146,7 @@ retry:
          if ( blockWrite )
          {
             dmsCB->unblockWrite( cb ) ;
+            PD_LOG( PDINFO, "Unblock write operation succeed" ) ;
          }
          else
          {
@@ -2448,6 +2452,7 @@ retry:
             i++ ;
          }
          PD_RC_CHECK( rc, PDERROR, "Block dms write failed, rc: %d", rc ) ;
+         PD_LOG( PDINFO, "Block write operation succeed" ) ;
       }
       else
       {
@@ -2492,6 +2497,7 @@ retry:
          if ( blockWrite )
          {
             dmsCB->unblockWrite( cb ) ;
+            PD_LOG( PDINFO, "Unblock write operation succeed" ) ;
          }
          else
          {

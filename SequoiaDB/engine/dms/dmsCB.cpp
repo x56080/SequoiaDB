@@ -1435,6 +1435,10 @@ namespace engine
       if ( offline )
       {
          rc = blockWrite( cb, SDB_DB_OFFLINE_BK ) ;
+         if ( SDB_OK == rc )
+         {
+            PD_LOG( PDINFO, "Block write operation succeed" ) ;
+         }
       }
       else
       {
@@ -1453,6 +1457,8 @@ namespace engine
          }
          else
          {
+            PD_LOG( PDINFO, "Change _dmsCBState from [%d] to [%d]",
+                    _dmsCBState, DMS_STATE_ONLINE_BACKUP ) ;
             _dmsCBState = DMS_STATE_ONLINE_BACKUP ;
          }
          _stateMtx.release () ;
@@ -1469,10 +1475,13 @@ namespace engine
       if ( DMS_LOCK_WHOLE == cb->getLockItem(SDB_LOCK_DMS)->getMode() )
       {
          unblockWrite( cb ) ;
+         PD_LOG( PDINFO, "Unblock write operation succeed" ) ;
       }
       else
       {
          _stateMtx.get() ;
+         PD_LOG( PDINFO, "Change _dmsCBState from [%d] to [%d]",
+                 _dmsCBState, DMS_STATE_NORMAL ) ;
          _dmsCBState = DMS_STATE_NORMAL ;
          _stateMtx.release() ;
       }
@@ -1481,12 +1490,19 @@ namespace engine
 
    INT32 _SDB_DMSCB::registerRebuild( _pmdEDUCB *cb )
    {
-      return blockWrite( cb, SDB_DB_REBUILDING ) ;
+      INT32 rc = SDB_OK ;
+      rc = blockWrite( cb, SDB_DB_REBUILDING ) ;
+      if ( SDB_OK == rc )
+      {
+         PD_LOG( PDINFO, "Block write operation succeed" ) ;
+      }
+      return rc ;
    }
 
    void _SDB_DMSCB::rebuildDown( _pmdEDUCB *cb )
    {
       unblockWrite( cb ) ;
+      PD_LOG( PDINFO, "Unblock write operation succeed" ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_REGRESTORE, "_SDB_DMSCB::registerRestore" )
