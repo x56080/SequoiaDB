@@ -1,18 +1,14 @@
 package com.sequoiadb.bsontypes;
 
-import java.sql.SQLOutput;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 
-import com.sun.scenario.effect.impl.sw.sse.SSEBlend_SRC_OUTPeer;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BSONDate;
-import org.bson.types.BSONTimestamp;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -24,8 +20,6 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.SdbTestBase;
-
-import javax.sound.midi.Soundbank;
 
 /**
  * @description seqDB-26493 :: java驱动以java.util.Date方式写日期数据，使用LocalDate方式读日期数据
