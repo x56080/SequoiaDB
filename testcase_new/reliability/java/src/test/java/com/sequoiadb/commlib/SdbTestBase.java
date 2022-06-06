@@ -134,7 +134,7 @@ public class SdbTestBase {
             boolean ret = createCommonCS( db );
             Assert.assertTrue( ret );
             createWorkDir();
-            // createReserveDir();
+            createReserveDir();
         } catch ( BaseException e ) {
             Assert.fail( "connect " + coordUrl + ": " + e.getErrorCode() );
         }
@@ -259,7 +259,7 @@ public class SdbTestBase {
                 Ssh ssh = new Ssh( host, "root", SdbTestBase.rootPwd );
                 try {
                     ssh.exec( "mkdir -p " + SdbTestBase.reservedDir );
-                    ssh.exec( "chown " + SdbTestBase.remoteUser + " "
+                    ssh.exec( "chown sdbadmin:sdbadmin_group "
                             + SdbTestBase.reservedDir );
                 } finally {
                     ssh.disconnect();
