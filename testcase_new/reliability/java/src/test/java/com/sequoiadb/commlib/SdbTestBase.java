@@ -228,7 +228,7 @@ public class SdbTestBase {
                 Ssh ssh = new Ssh( host, "root", SdbTestBase.rootPwd );
                 try {
                     ssh.exec( "mkdir -p " + SdbTestBase.reservedDir );
-                    ssh.exec( "chown " + SdbTestBase.remoteUser + " "
+                    ssh.exec( "chown sdbadmin:sdbadmin_group "
                             + SdbTestBase.reservedDir );
                 } finally {
                     ssh.disconnect();
