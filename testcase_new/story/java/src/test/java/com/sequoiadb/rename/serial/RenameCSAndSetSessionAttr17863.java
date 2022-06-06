@@ -92,8 +92,6 @@ public class RenameCSAndSetSessionAttr17863 extends SdbTestBase {
             Assert.assertTrue( insertThread.isSuccess(),
                     insertThread.getErrorMsg() );
         }
-        // query of old csname access slave node
-        String accessNodeBeforeRename = getAccessNode( sessionSdb, oldCSName );
 
         // the slave node has no synchronous rename CS, query of new csname must
         // be access master node
@@ -102,9 +100,6 @@ public class RenameCSAndSetSessionAttr17863 extends SdbTestBase {
 
         ReplicaGroup rg = sdb.getReplicaGroup( groupName );
         String masterNodeName = rg.getMaster().getNodeName();
-        Assert.assertNotEquals( accessNodeBeforeRename, masterNodeName,
-                "accessNode is " + accessNodeBeforeRename + "  masterNode is "
-                        + masterNodeName );
 
         // if has sysnchronous rename CL, check the count records from slave
         // node.
