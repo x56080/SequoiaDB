@@ -44,13 +44,11 @@ public class BSONDate26532 extends SdbTestBase {
     @DataProvider(name = "generateDataProvider")
     public Object[][] generateDataProvider() {
         return new Object[][] {
-                { 1, "1900-01-01 01:01:01.111", "1900-01-01T00:05:43",
-                        "yyyy-MM-dd HH:mm:ss.SSS" },
-                { 2, "1970-01-01 12:59:59", "1970-01-01T00:00",
+                { 1, "1970-01-01 12:59:59", "1970-01-01T00:00",
                         "yyyy-MM-dd HH:mm:ss" },
-                { 3, "2022-04-01 23:00:00.333", "2022-04-01T00:00",
+                { 2, "2022-04-01 23:00:00.333", "2022-04-01T00:00",
                         "yyyy-MM-dd HH:mm:ss.SSS" },
-                { 4, "2037-12-31 23:59:59.999", "2037-12-31T00:00",
+                { 3, "2037-12-31 23:59:59.999", "2037-12-31T00:00",
                         "yyyy-MM-dd HH:mm:ss.SSS" } };
     }
 
