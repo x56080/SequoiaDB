@@ -1,5 +1,6 @@
 package com.sequoiadb.bsontypes;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -132,9 +133,10 @@ public class BasicBsonListTest10362 extends SdbTestBase {
             // query the key is "test", then test the interface:toMap()
             BasicBSONList subResult1 = ( BasicBSONList ) actRecs.get( "test" );
             Map< String, Object > rmap = subResult1.toMap();
-            Assert.assertEquals( rmap.toString(), "{1=1, 0=test}",
-                    "actMap=" + map.toString() );
-
+            Map< String, Object > expected = new HashMap<>();
+            expected.put( "1", 1 );
+            expected.put( "0", "test" );
+            Assert.assertEquals( rmap, expected );
             Set< String > keySet = subResult1.keySet();
             System.out.println( "keySet=" + keySet.toString() );
 
