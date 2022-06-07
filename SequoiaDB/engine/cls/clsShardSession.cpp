@@ -2421,6 +2421,7 @@ namespace engine
                buffObj = pCommand->getBuff() ;
             }
             else if ( ( flags & FLG_QUERY_WITH_RETURNDATA ) &&
+                      0 == buffObj.recordNum() &&
                       ( -1 != contextID ) )
             {
                rtnContext *context = _pRtnCB->contextFind ( contextID, _pEDUCB ) ;
