@@ -51,8 +51,8 @@ namespace vessel
 
    void requestContext::_close()
    {
-      SDB_ASSERT(!_blocker.isBlocking(), "unblocking missed");
       SDB_ASSERT(_lpidLatchContext.isEmpty(), "unlocking missed");
+      SDB_ASSERT(_ridLatchContext.isEmpty(), "unlocking missed");
       SDB_ASSERT(nullptr == _oplist, "detaching missed");
 
       _unlockAll();
@@ -173,8 +173,8 @@ namespace vessel
 
    void requestContext::unlockSpaceID()
    {
-      SDB_ASSERT(!_blocker.isBlocking(), "unblocking missed");
       SDB_ASSERT(_lpidLatchContext.isEmpty(), "unlocking missed");
+      SDB_ASSERT(_ridLatchContext.isEmpty(), "unlocking missed");
       SDB_ASSERT(!isMbLocked(), "unlocking missing");
       _unlockAll();
       return;
@@ -281,15 +281,7 @@ namespace vessel
 
    void requestContext::detachMbContext()
    {
-      if (nullptr != _rmc)
-      {
-         if (!_rmc->getRidLatchContext().isEmpty())
-         {
-            unlockRids();
-         }
-
-         _rmc = nullptr;
-      }
+      _rmc = nullptr;
    }
 
    UINT32 requestContext::getLogicalClId()const
@@ -525,51 +517,20 @@ namespace vessel
    INT32 requestContext::blockCheckpoint(SPACE_TYPE type,
                                          ossRWMutex *mutex)
    {
-      INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!isSpaceIdLocked()))
-      {
-         SDB_ASSERT(FALSE, "lock space first");
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-
-      rc = _blocker.block(_sid, type, mutex);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
+      return SDB_OK;
    }
 
    INT32 requestContext::tryToBlockCheckpoint(SPACE_TYPE type,
                                               ossRWMutex *mutex,
                                               BOOLEAN &blocked)
    {
-      INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!isSpaceIdLocked()))
-      {
-         SDB_ASSERT(FALSE, "lock space first");
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-
-      rc = _blocker.tryToBlock(_sid, type, mutex, blocked);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
+      blocked = TRUE;
+      return SDB_OK;
    }
 
    void requestContext::unblockCheckpoint()
    {
-      _blocker.unblock();
+      return;
    }
 
    INT32 requestContext::lockRid(const recordID &rid,
@@ -592,7 +553,7 @@ namespace vessel
       }
 
       key = recordIdLatchKey(_sid, _mbID, rid);
-      rc = lh.lock(getEnv()->latchEnv.ridLatchMap, _rmc->getRidLatchContext(), key, mode);
+      rc = lh.lock(getEnv()->latchEnv.ridLatchMap, _ridLatchContext, key, mode);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock rid[%s], rc:%d", key.toString().c_str(), rc);
@@ -618,15 +579,10 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isMbContextAttached()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
 
       key = recordIdLatchKey(_sid, _mbID, rid);
       rc = lh.tryLock(getEnv()->latchEnv.ridLatchMap,
-                      _rmc->getRidLatchContext(),
+                      _ridLatchContext,
                       key, mode, locked);
       if (SDB_OK != rc)
       {
@@ -642,36 +598,32 @@ namespace vessel
    void requestContext::unlockRid(const recordID &rid)
    {
       SDB_ASSERT(rid.isValid(), "can not be invalid");
-      SDB_ASSERT(isMbContextAttached(), "must be attached");
       objectLatchHelper<recordIdLatchKey> lh;
       recordIdLatchKey key(_sid, _mbID, rid);
-      lh.autoUnlock(getEnv()->latchEnv.ridLatchMap, _rmc->getRidLatchContext(), key);
+      lh.autoUnlock(getEnv()->latchEnv.ridLatchMap, _ridLatchContext, key);
    }
 
    void requestContext::unlockRids()
    {
-      SDB_ASSERT(isMbContextAttached(), "must be attached");
       objectLatchHelper<recordIdLatchKey> lh;
-      lh.releaseAll(getEnv()->latchEnv.ridLatchMap, _rmc->getRidLatchContext());
+      lh.releaseAll(getEnv()->latchEnv.ridLatchMap, _ridLatchContext);
    }
 
    BOOLEAN requestContext::testRidLocked(const recordID &rid,
                                          ossSharedLatchMode *mode)
    {
-      SDB_ASSERT(isMbContextAttached(), "must be attached");
       recordIdLatchKey key(_sid, _mbID, rid);
-      return _rmc->getRidLatchContext().test(key, mode);
+      return _ridLatchContext.test(key, mode);
    }
 
    void requestContext::waitRid(const recordID &rid,
                                 const ossSharedLatchMode &mode)
    {
-      SDB_ASSERT(isMbContextAttached(), "must be attached");
       SDB_ASSERT(!mode.isNone(), "can not be none");
       recordIdLatchKey key(_sid, _mbID, rid);
       objectLatchHelper<recordIdLatchKey> lh;
 #if defined (_DEBUG)
-      SDB_ASSERT(!_rmc->getRidLatchContext().test(key, nullptr), "invalid waiting");
+      SDB_ASSERT(!_ridLatchContext.test(key, nullptr), "invalid waiting");
 #endif//_DEBUT
       lh.testNotExistsOrWait(getEnv()->latchEnv.ridLatchMap, key, mode);
    }
@@ -695,9 +647,11 @@ namespace vessel
          SDB_ASSERT(_lpidLatchContext.isEmpty(), "must be empty");
       }
 
-      if (_blocker.isBlocking())
+      if (!_ridLatchContext.isEmpty())
       {
-         _blocker.terminate();
+         objectLatchHelper<recordIdLatchKey>().releaseAll(getEnv()->latchEnv.ridLatchMap,
+                                                          _ridLatchContext);
+         SDB_ASSERT(_ridLatchContext.isEmpty(), "must be empty");
       }
 
       if (isSpaceIdLocked())

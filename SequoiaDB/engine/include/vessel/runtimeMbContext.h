@@ -38,7 +38,6 @@
 
 #include "vessel/strSlice.h"
 #include "vessel/objectIdentifier.h"
-#include "vessel/objectLatchMap.hpp"
 #include "vessel/clMetaBlockPage.h"
 
 namespace engine
@@ -48,8 +47,8 @@ namespace vessel
    class runtimeMbContext : public SDBObject
    {
       public:
-         runtimeMbContext(){}
-         ~runtimeMbContext();
+         runtimeMbContext() = default;
+         ~runtimeMbContext() = default;
          runtimeMbContext(const runtimeMbContext &) = delete;
          runtimeMbContext &operator=(const runtimeMbContext &) = delete;
 
@@ -83,22 +82,12 @@ namespace vessel
          {
             return _compressionType;
          }
-         OSS_INLINE RID_LATCH_CONTEXT &getRidLatchContext()
-         {
-            return _rlc;
-         }
-         OSS_INLINE const RID_LATCH_CONTEXT &getRidLatchContext()const
-         {
-            return _rlc;
-         }
 
       private:
          globalCollectionId _gcid;
          strSlice _name;
          UINT8 _minFreePercent = 0;
          UTIL_COMPRESSOR_TYPE _compressionType = UTIL_COMPRESSOR_INVALID;
-
-         RID_LATCH_CONTEXT _rlc;
    };//class runtimeMbContext
 } // namespace vessel
   

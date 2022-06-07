@@ -40,17 +40,11 @@ namespace engine
 {
 namespace vessel
 {
-   runtimeMbContext::~runtimeMbContext()
-   {
-      SDB_ASSERT(_rlc.isEmpty(), "unlocking missed");
-   }
-
    void runtimeMbContext::init(const clMetaBlock &cmb,
                                const collectionSpaceId &csIdentifer)
    {
       SDB_ASSERT(cmb.isValid(), "can not be invalid");
       SDB_ASSERT(csIdentifer.isValid(), "can not be invalid");
-      SDB_ASSERT(_rlc.isEmpty(), "do not reinit");
       _gcid.reset(csIdentifer,
                   collectionId(cmb.logicalCLID, cmb.innerID, cmb.mbID));
       _name.reset(cmb.name);
@@ -65,7 +59,6 @@ namespace vessel
       _name.reset();
       _minFreePercent = 0.0f;
       _compressionType = UTIL_COMPRESSOR_INVALID;
-      _rlc.fini();
    }
 } // namespace vessel
 

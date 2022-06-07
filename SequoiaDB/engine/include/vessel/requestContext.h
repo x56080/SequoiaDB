@@ -40,7 +40,6 @@
 #include "ossLatch.hpp"
 #include "ossLikely.hpp"
 #include "vessel/pageDef.h"
-#include "vessel/lpsCheckpointBlocker.h"
 #include "vessel/objectLatchMap.hpp"
 #include "dms.hpp"
 #include "sdbInterface.hpp"
@@ -255,7 +254,7 @@ namespace vessel
          runtimeMbContext *_rmc = nullptr;
 
          LPID_LATCH_CONTEXT _lpidLatchContext;
-         lpsCheckpointBlocker _blocker;
+         RID_LATCH_CONTEXT _ridLatchContext;
 
          atomicOperationList *_oplist = nullptr;
    };//class requestContext

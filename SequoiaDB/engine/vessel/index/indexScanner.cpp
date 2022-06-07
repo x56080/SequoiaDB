@@ -162,7 +162,6 @@ namespace vessel
       SDB_ASSERT(isOpen(), "must be open");
       SDB_ASSERT(NULL != _context, "can not be invalid");
       SDB_ASSERT(entryBatch.isEmpty(), "must be empty");
-      SDB_ASSERT(_context->getMbContext()->getRidLatchContext().isEmpty(), "must be empty");
       SDB_ASSERT(entryBatch.isFreeToPush(0), "should be free to push");
 
       rtnPredicateListIterator *predicate = _context->getCursor()->getPredicate();

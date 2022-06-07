@@ -791,7 +791,6 @@ namespace vessel
          context->clearHistroyAndDetachMb();
       }
 
-      SDB_ASSERT(mbContext.getRidLatchContext().isEmpty(), "must be empty");
       return rc;
    error:
       goto done;
@@ -918,8 +917,6 @@ namespace vessel
       {
          context->clearHistroyAndDetachMb();
       }
-
-      SDB_ASSERT(mbContext.getRidLatchContext().isEmpty(), "must be empty");
       return rc;
    error:
       goto done;
@@ -1018,7 +1015,6 @@ namespace vessel
          context->clearHistroyAndDetachMb();
       }
 
-      SDB_ASSERT(mbContext.getRidLatchContext().isEmpty(), "must be empty");
       return rc;
    error:
       goto done;
@@ -4519,8 +4515,7 @@ namespace vessel
       SDB_ASSERT(nullptr != context && context->isCursorAttached(), "can not be invalid");
       SDB_ASSERT(context->isMbContextAttached(), "must be attached");
       SDB_ASSERT(nullptr != obj && obj->isNormal(), "must be normal");
-      SDB_ASSERT(context->getMbContext()->getRidLatchContext().isEmpty(), "must be empty");
-
+      
       const dmsIndexScanOptions &o = context->getOptions();
       indexScanCursor *cursor = context->getCursor();
       indexScanner scanner;
