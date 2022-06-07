@@ -146,7 +146,7 @@ namespace vessel
 
          void _handleFlushTaskRes(const backgroundEvent &e);
 
-         BOOLEAN _betterToFlush()const;
+         BOOLEAN _betterToFlush(UINT64 &size)const;
 
          void _finishFlush();
 

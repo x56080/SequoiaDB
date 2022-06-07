@@ -62,8 +62,6 @@ namespace vessel
          virtual ~dmlContext();
 
       public:
-         virtual void close();
-
          OSS_INLINE UINT32 getUniqueKeyHashSize()const
          {
             return _uniqueKeyHash.size();
@@ -116,10 +114,14 @@ namespace vessel
       public:
          INT32 lockUniqueIndexKeys(const dmlIndexRequestArray &ra);
          void unlockUniqueKeys();
-         void clearHistroyAndDetachMb();
+         void reset();
 
       private:
+         virtual void _onClose()override;
 
+         void _reset();
+
+      private:
          INT32 _lockUniqueIndexKeys();
 
          void loopTryLock();

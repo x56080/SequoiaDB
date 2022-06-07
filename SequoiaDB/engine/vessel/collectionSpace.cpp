@@ -1276,7 +1276,6 @@ namespace vessel
          r = TRUE;
       }
 
-   done:
       return r;
    }
 
@@ -1291,7 +1290,6 @@ namespace vessel
          r = TRUE;
       }
 
-   done:
       return r;
    }
 

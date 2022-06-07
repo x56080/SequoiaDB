@@ -99,10 +99,6 @@ namespace vessel
          goto error;
       }
    done:
-      if (NULL != csObj)
-      {
-         context.unlockSpaceID();
-      }
       context.close();
       return rc;
    error:

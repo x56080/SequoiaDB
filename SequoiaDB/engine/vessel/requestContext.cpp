@@ -49,15 +49,52 @@ namespace vessel
       _close();
    }
 
+   void requestContext::close()
+   {
+      _onClose();
+      _close();
+   }
+
    void requestContext::_close()
    {
       SDB_ASSERT(_lpidLatchContext.isEmpty(), "unlocking missed");
       SDB_ASSERT(_ridLatchContext.isEmpty(), "unlocking missed");
       SDB_ASSERT(nullptr == _oplist, "detaching missed");
 
-      _unlockAll();
-
       _oplist = nullptr;
+
+      if (isMbContextAttached())
+      {
+         detachMbContext();
+      }
+
+      if (!_lpidLatchContext.isEmpty())
+      {
+         objectLatchHelper<logicalPidLatchKey>().releaseAll(getEnv()->latchEnv.lpidLatchMap,
+                                                            _lpidLatchContext);
+         SDB_ASSERT(_lpidLatchContext.isEmpty(), "must be empty");
+      }
+
+      if (!_ridLatchContext.isEmpty())
+      {
+         objectLatchHelper<recordIdLatchKey>().releaseAll(getEnv()->latchEnv.ridLatchMap,
+                                                          _ridLatchContext);
+         SDB_ASSERT(_ridLatchContext.isEmpty(), "must be empty");
+      }
+
+      if (isMbLocked())
+      {
+         unlockMB();
+      }
+
+      if (isSpaceIdLocked())
+      {
+         getEnv()->spaceLocker.unlock(_sid, _sidMode);
+         _sid = INVALID_SPACE_ID;
+         _sidMode = SHARED;
+      }
+
+      return;
    }
 
    IExecutor *requestContext::getExecutor()const
@@ -168,16 +205,6 @@ namespace vessel
       return rc;
    error:
       goto done;
-   }
-   
-
-   void requestContext::unlockSpaceID()
-   {
-      SDB_ASSERT(_lpidLatchContext.isEmpty(), "unlocking missed");
-      SDB_ASSERT(_ridLatchContext.isEmpty(), "unlocking missed");
-      SDB_ASSERT(!isMbLocked(), "unlocking missing");
-      _unlockAll();
-      return;
    }
 
    BOOLEAN requestContext::isSpaceIdLocked(OSS_LATCH_MODE *mode)const
@@ -626,41 +653,6 @@ namespace vessel
       SDB_ASSERT(!_ridLatchContext.test(key, nullptr), "invalid waiting");
 #endif//_DEBUT
       lh.testNotExistsOrWait(getEnv()->latchEnv.ridLatchMap, key, mode);
-   }
-
-   void requestContext::_unlockAll()
-   {
-      if (isMbContextAttached())
-      {
-         detachMbContext();
-      }
-
-      if (isMbLocked())
-      {
-         unlockMB();
-      }
-
-      if (!_lpidLatchContext.isEmpty())
-      {
-         objectLatchHelper<logicalPidLatchKey>().releaseAll(getEnv()->latchEnv.lpidLatchMap,
-                                                            _lpidLatchContext);
-         SDB_ASSERT(_lpidLatchContext.isEmpty(), "must be empty");
-      }
-
-      if (!_ridLatchContext.isEmpty())
-      {
-         objectLatchHelper<recordIdLatchKey>().releaseAll(getEnv()->latchEnv.ridLatchMap,
-                                                          _ridLatchContext);
-         SDB_ASSERT(_ridLatchContext.isEmpty(), "must be empty");
-      }
-
-      if (isSpaceIdLocked())
-      {
-         getEnv()->spaceLocker.unlock(_sid, _sidMode);
-         _sid = INVALID_SPACE_ID;
-         _sidMode = SHARED;
-      }
-      return;
    }
 
    INT32 requestContext::acquireTransLock(const recordID &rid,

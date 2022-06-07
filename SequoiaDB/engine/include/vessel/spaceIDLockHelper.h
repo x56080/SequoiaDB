@@ -97,7 +97,7 @@ namespace vessel
          {
             if (isLocked())
             {
-               _context->unlockSpaceID();
+               _context->close();
                _locked = FALSE;
             }
             return;

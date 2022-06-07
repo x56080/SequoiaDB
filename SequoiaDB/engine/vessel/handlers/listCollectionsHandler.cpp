@@ -82,10 +82,6 @@ namespace vessel
       }
       
    done:
-      if (nullptr != obj)
-      {
-         context.unlockSpaceID();
-      }
       context.close();
       return rc;
    error:

@@ -377,9 +377,10 @@ namespace vessel
                }
                else
                {
-                  if (!quitEvent.isValid() && _betterToFlush())
+                  UINT64 size = 0;
+                  if (!quitEvent.isValid() && _betterToFlush(size))
                   {
-                     _flushDirtyList(_o.flushBatchSize);
+                     _flushDirtyList(size);
                   }
                }
             }
@@ -391,11 +392,12 @@ namespace vessel
          }
          else /// if (_eventList.popOrWaitFor(millis, event))
          {
+            UINT64 size = 0;
             if (!quitEvent.isValid() &&
                 !isFlushing() &&
-                _betterToFlush())
+                _betterToFlush(size))
             {
-               _flushDirtyList(_o.flushBatchSize);
+               _flushDirtyList(size);
             }
          }
       } while (!quitEvent.isValid() || isFlushing());
@@ -660,21 +662,32 @@ namespace vessel
              (now - _lastFlushTime).count();
    }
 
-   BOOLEAN liteIOBufferPool::_betterToFlush()const
+   BOOLEAN liteIOBufferPool::_betterToFlush(UINT64 &size)const
    {
       BOOLEAN r = FALSE;
       UINT32 dirtyListSize = _dl.getSize();
       FLOAT32 dirtyPct = static_cast<FLOAT32>(dirtyListSize) /
                          _memPool.getTotalBlockNum();
+      constexpr UINT64 _MAX_TIMEOUT_FLUSH_SIZE = (UINT64)1 << 30;
 
       if (_o.flushDirtyListThreshold <= dirtyPct)
       {
          r = TRUE;
+         size = _o.flushBatchSize;
       }
       else if (0 < dirtyListSize &&
                _o.flushDirtyListMillis <= _getTimeSpanFromLastFlush())
       {
          r = TRUE;
+         size = (static_cast<UINT64>(_memPool.getBlockSize()) * dirtyListSize) >> 2;
+         if (_MAX_TIMEOUT_FLUSH_SIZE < size)
+         {
+            size = _MAX_TIMEOUT_FLUSH_SIZE;
+         }
+         else if (size < _o.flushBatchSize)
+         {
+            size = _o.flushBatchSize;
+         }
       }
 
       return r;

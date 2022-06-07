@@ -788,7 +788,8 @@ namespace vessel
    done:
       if (nullptr != context)
       {
-         context->clearHistroyAndDetachMb();
+         context->reset();
+         context->detachMbContext();
       }
 
       return rc;
@@ -915,7 +916,8 @@ namespace vessel
    done:
       if (nullptr != context)
       {
-         context->clearHistroyAndDetachMb();
+         context->reset();
+         context->detachMbContext();
       }
       return rc;
    error:
@@ -1012,7 +1014,8 @@ namespace vessel
    done:
       if (nullptr != context)
       {
-         context->clearHistroyAndDetachMb();
+         context->reset();
+         context->detachMbContext();
       }
 
       return rc;

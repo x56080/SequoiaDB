@@ -74,7 +74,9 @@ namespace vessel
          }
       public:
          void attachIndexScanCursor(indexScanCursor *cursor);
-         virtual void close();
+
+      private:
+         virtual void _onClose()override;
 
       private:
          indexScanCursor *_cursor = NULL;

@@ -42,10 +42,9 @@ namespace engine
 {
 namespace vessel
 {
-   void indexScanContext::close()
+   void indexScanContext::_onClose()
    {
       _cursor = NULL;
-      requestContext::close();
       return;
    }
 

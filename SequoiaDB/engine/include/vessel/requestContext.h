@@ -77,10 +77,7 @@ namespace vessel
          virtual ~requestContext();
 
       public:
-         virtual void close()
-         {
-            _close();
-         }
+         void close();
 
          IExecutor *getExecutor()const;
 
@@ -108,8 +105,6 @@ namespace vessel
          INT32 tryLockSpaceID(SPACE_ID sid,
                               OSS_LATCH_MODE mode,
                               BOOLEAN &locked);
-
-         void unlockSpaceID();
 
          BOOLEAN isSpaceIdLocked(OSS_LATCH_MODE *mode=nullptr)const;
 
@@ -240,9 +235,9 @@ namespace vessel
 
          void releaseAllTransLock();
       private:
-         void _close();
+         virtual void _onClose() {}
 
-         void _unlockAll();
+         void _close();
 
       private:
          SPACE_ID _sid = INVALID_SPACE_ID;

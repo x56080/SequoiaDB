@@ -51,10 +51,9 @@ namespace vessel
       SDB_ASSERT(!isMbContextAttached(), "must be detached");
    }
 
-   void dmlContext::close()
+   void dmlContext::_onClose()
    {
-      clearHistroyAndDetachMb();
-      requestContext::close();
+      _reset();
       return;
    }
 
@@ -223,13 +222,15 @@ namespace vessel
       _uniqueKeyContext.clear();
    }
 
-   void dmlContext::clearHistroyAndDetachMb()
+   void dmlContext::reset()
    {
-      if (isMbContextAttached())
-      {
-         requestContext::unlockRids();
-         requestContext::detachMbContext();
-      }
+      _reset();
+      requestContext::unlockRids();
+      return;
+   }
+
+   void dmlContext::_reset()
+   {
       unlockUniqueKeys();
       _seq = 0;
       _rid = recordID();

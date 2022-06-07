@@ -80,14 +80,6 @@ namespace vessel
          goto error;
       }
    done:
-      if (nullptr != cl)
-      {
-         context.unlockMB();
-      }
-      if (nullptr != cs)
-      {
-         context.unlockSpaceID();
-      }
       context.close();
       return rc;
    error:

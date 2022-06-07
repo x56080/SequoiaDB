@@ -77,7 +77,7 @@ namespace vessel
    error:
       if (nullptr != cs)
       {
-         context->unlockSpaceID();
+         context->close();
       }
       goto done;
    }

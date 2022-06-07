@@ -1177,6 +1177,7 @@ namespace vessel
       SDB_ASSERT(isValid(), "can not be invalid");
       flushSize = 0;
       FLOAT32 memUsedPct = _env.getMemPool()->getUsedPct();
+      constexpr UINT64 _MAX_TIMEOUT_FLUSH_SIZE = (UINT64)1 << 30;
 
       if (_o.flushDirtyListThreshold <= memUsedPct)
       {
@@ -1185,7 +1186,15 @@ namespace vessel
       else if (0 < _env.getMemPool()->getBlockAllocated() &&
                _o.flushDirtyListMillis <= _watcherEnv.getTimeSpanFromLastFlush())
       {
-         flushSize = _o.flushBatchSize;
+         flushSize = _env.getMemPool()->getTotalSizeAllocated() >> 2;
+         if (_MAX_TIMEOUT_FLUSH_SIZE < flushSize)
+         {
+            flushSize = _MAX_TIMEOUT_FLUSH_SIZE;
+         }
+         else if (flushSize < _o.flushBatchSize)
+         {
+            flushSize = _o.flushBatchSize;
+         }
       }
       
       return 0 < flushSize;

@@ -467,7 +467,7 @@ namespace vessel
             if (cursor->isPushed(obj->getLogicalID()))
             {
                cursor->setLastName(obj->getCSName());
-               context->unlockSpaceID();
+               context->close();
                continue;
             }
 
@@ -494,7 +494,7 @@ namespace vessel
                {
                   cursor->setLastName(obj->getCSName());
                   cursor->markLIdPushed(obj->getLogicalID());
-                  context->unlockSpaceID();
+                  context->close();
                   if (cursor->noMorePushThisLoop())
                   {
                      goto done;
@@ -512,7 +512,7 @@ namespace vessel
                PD_LOG(PDERROR, "failed to lock sid[%d], rc:%d", sid, rc);
                goto error;
             }
-            context->unlockSpaceID();
+            context->close();
             continue;
          }
             
@@ -520,7 +520,7 @@ namespace vessel
    done:
       if (context->isSpaceIdLocked())
       {
-         context->unlockSpaceID();
+         context->close();
       }
       if (locked)
       {
@@ -732,7 +732,7 @@ namespace vessel
    error:
       if (locked)
       {
-         context->unlockSpaceID();
+         context->close();
       }
       goto done;
    }
@@ -791,7 +791,7 @@ namespace vessel
    error:
       if (locked)
       {
-         context->unlockSpaceID();
+         context->close();
       }
       goto done;
    }
@@ -937,17 +937,17 @@ namespace vessel
                   *out = obj;
                   goto done;
                }
-               context->unlockSpaceID();
+               context->close();
             }
             else if (SDB_DMS_CS_NOTEXIST == rc)
             {
                rc = SDB_OK;
-               context->unlockSpaceID();
+               context->close();
                continue;
             }
             else
             {
-               context->unlockSpaceID();
+               context->close();
                PD_LOG(PDERROR, "failed to get cs obj:%d", rc);
                goto error;
             }
@@ -1051,17 +1051,17 @@ namespace vessel
                   *out = obj;
                   goto done;
                }
-               context->unlockSpaceID();
+               context->close();
             }
             else if (SDB_DMS_CS_NOTEXIST == rc)
             {
-               context->unlockSpaceID();
+               context->close();
                rc = SDB_OK;
                continue;
             }
             else
             {
-               context->unlockSpaceID();
+               context->close();
                PD_LOG(PDERROR, "failed to get cs obj:%d", rc);
                goto error;
             }
