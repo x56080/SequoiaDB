@@ -74,10 +74,6 @@ namespace vessel
          maxCLLogicalID = o.maxCLLogicalID;
          return *this;
       }
-   
-      OSS_INLINE csMetaBlock(){}
-
-      OSS_INLINE ~csMetaBlock(){}
 
       OSS_INLINE BOOLEAN isOnline()const
       {

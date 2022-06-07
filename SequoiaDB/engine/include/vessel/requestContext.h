@@ -72,7 +72,7 @@ namespace vessel
    class requestContext : public SDBObject
    {
       public:
-         requestContext();
+         requestContext() = default;
          requestContext(const requestContext &) = delete;
          requestContext &operator=(const requestContext &) = delete;
          virtual ~requestContext();
@@ -81,11 +81,6 @@ namespace vessel
          virtual void close()
          {
             _close();
-         }
-
-         OSS_INLINE BOOLEAN isOpen()const
-         {
-            return nullptr != _tc;
          }
 
          IExecutor *getExecutor()const;
@@ -103,7 +98,7 @@ namespace vessel
          template<class T>
          shallowArray<T> allocateArray(UINT32 size)
          {
-            return _tc->allocateArray<T>(size);
+            return GET_THREAD_CONTEXT()->allocateArray<T>(size);
          }
          
       public:
@@ -251,8 +246,6 @@ namespace vessel
          void _unlockAll();
 
       private:
-         THREAD_CONTEXT *_tc = nullptr;
-
          SPACE_ID _sid = INVALID_SPACE_ID;
          OSS_LATCH_MODE _sidMode = SHARED;
          

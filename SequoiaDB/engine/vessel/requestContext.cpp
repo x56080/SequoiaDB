@@ -44,13 +44,6 @@ namespace engine
 {
 namespace vessel
 {
-/////////////////////////requestContext
-   requestContext::requestContext():
-   _tc(GET_THREAD_CONTEXT())
-   {
-      SDB_ASSERT(nullptr != _tc, "can not be null");
-   }
-
    requestContext::~requestContext()
    {
       _close();
@@ -69,32 +62,44 @@ namespace vessel
 
    IExecutor *requestContext::getExecutor()const
    {
-      return _tc->getExecutor();
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      return tc->getExecutor();
    }
 
    instanceEnv *requestContext::getEnv()const
    {
-      return _tc->getEnv();
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      return tc->getEnv();
    }
 
    DPS_TRANS_ID requestContext::getOrigTransId()const
    {
-      return _tc->getExecutor()->getTransID().getOrigTransID();
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      return tc->getExecutor()->getTransID().getOrigTransID();
    }
 
    outerResource *requestContext::getOuterResource()const
    {
-      return &(_tc->getEnv()->resource);
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      return &(tc->getEnv()->resource);
    }
 
    CHAR *requestContext::allocateBuffer(UINT32 size)
    {
-      return _tc->allocateBuffer(size);
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      return tc->allocateBuffer(size);
    }
    
    void requestContext::releaseBuffer(void *buffer)
    {
-      _tc->releaseBuffer(buffer);
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      tc->releaseBuffer(buffer);
       return;
    }
 
@@ -102,12 +107,7 @@ namespace vessel
                                      OSS_LATCH_MODE mode)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(INVALID_SPACE_ID == sid))
+      if (OSS_UNLIKELY(INVALID_SPACE_ID == sid))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -141,12 +141,7 @@ namespace vessel
       INT32 rc = SDB_OK;
 
       locked = FALSE;
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(INVALID_SPACE_ID == sid))
+      if (OSS_UNLIKELY(INVALID_SPACE_ID == sid))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -199,7 +194,6 @@ namespace vessel
                                ossRWMutex *mutex,
                                OSS_LATCH_MODE mode)
    {
-      SDB_ASSERT(isOpen(), "must be open");
       SDB_ASSERT(isSpaceIdLocked(), "lock sid first");
       SDB_ASSERT(!isMbLocked(), "do not relock");
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
@@ -222,7 +216,6 @@ namespace vessel
                                      ossRWMutex *mutex,
                                      OSS_LATCH_MODE mode)
    {
-      SDB_ASSERT(isOpen(), "must be open");
       SDB_ASSERT(isSpaceIdLocked(), "lock sid first");
       SDB_ASSERT(!isMbLocked(), "do not relock");
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
@@ -259,7 +252,6 @@ namespace vessel
 
    void requestContext::unlockMB()
    {
-      SDB_ASSERT(isOpen(), "can not be closed");
       if (isMbLocked())
       {
          if (SHARED == _mbMode)
@@ -289,7 +281,6 @@ namespace vessel
 
    void requestContext::detachMbContext()
    {
-      SDB_ASSERT(isOpen(), "can not be closed");
       if (nullptr != _rmc)
       {
          if (!_rmc->getRidLatchContext().isEmpty())
@@ -314,14 +305,9 @@ namespace vessel
       logicalPidLatchKey key;
       objectLatchHelper<logicalPidLatchKey> lh;
 
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(INVALID_SPACE_TYPE == type ||
-                            INVALID_PAGE_ID == lpid ||
-                            mode.isNone()))
+      if (OSS_UNLIKELY(INVALID_SPACE_TYPE == type ||
+                       INVALID_PAGE_ID == lpid ||
+                       mode.isNone()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -357,14 +343,9 @@ namespace vessel
       objectLatchHelper<logicalPidLatchKey> lh;
       locked = FALSE;
 
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(INVALID_SPACE_TYPE == type ||
-                            INVALID_PAGE_ID == lpid ||
-                            mode.isNone()))
+      if (OSS_UNLIKELY(INVALID_SPACE_TYPE == type ||
+                       INVALID_PAGE_ID == lpid ||
+                       mode.isNone()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -396,13 +377,8 @@ namespace vessel
       logicalPidLatchKey key;
       objectLatchHelper<logicalPidLatchKey> lh;
 
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         SDB_ASSERT(FALSE, "not open");
-         goto done;
-      }
-      else if (OSS_UNLIKELY(INVALID_SPACE_TYPE == type ||
-                            INVALID_PAGE_ID == lpid))
+      if (OSS_UNLIKELY(INVALID_SPACE_TYPE == type ||
+                       INVALID_PAGE_ID == lpid))
       {
          SDB_ASSERT(FALSE, "invalid key");
          goto done;
@@ -423,7 +399,6 @@ namespace vessel
                                           PAGE_ID lpid,
                                           ossSharedLatchMode *mode)
    {
-      SDB_ASSERT(isOpen(), "must be open");
       SDB_ASSERT(isSpaceIdLocked(), "must be locking");
       SDB_ASSERT(INVALID_SPACE_TYPE != type, "can not be invalid");
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
@@ -435,7 +410,7 @@ namespace vessel
                                                     PAGE_ID lpid)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!isOpen() || !isSpaceIdLocked()))
+      if (OSS_UNLIKELY(!isSpaceIdLocked()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -470,7 +445,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       locked = FALSE;
-      if (OSS_UNLIKELY(!isOpen() || !isSpaceIdLocked()))
+      if (OSS_UNLIKELY(!isSpaceIdLocked()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -505,7 +480,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       locked = FALSE;
-      if (OSS_UNLIKELY(!isOpen() || !isSpaceIdLocked()))
+      if (OSS_UNLIKELY(!isSpaceIdLocked()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -666,7 +641,6 @@ namespace vessel
    
    void requestContext::unlockRid(const recordID &rid)
    {
-      SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(rid.isValid(), "can not be invalid");
       SDB_ASSERT(isMbContextAttached(), "must be attached");
       objectLatchHelper<recordIdLatchKey> lh;
@@ -676,7 +650,6 @@ namespace vessel
 
    void requestContext::unlockRids()
    {
-      SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(isMbContextAttached(), "must be attached");
       objectLatchHelper<recordIdLatchKey> lh;
       lh.releaseAll(getEnv()->latchEnv.ridLatchMap, _rmc->getRidLatchContext());
@@ -685,7 +658,6 @@ namespace vessel
    BOOLEAN requestContext::testRidLocked(const recordID &rid,
                                          ossSharedLatchMode *mode)
    {
-      SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(isMbContextAttached(), "must be attached");
       recordIdLatchKey key(_sid, _mbID, rid);
       return _rmc->getRidLatchContext().test(key, mode);
@@ -694,7 +666,6 @@ namespace vessel
    void requestContext::waitRid(const recordID &rid,
                                 const ossSharedLatchMode &mode)
    {
-      SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(isMbContextAttached(), "must be attached");
       SDB_ASSERT(!mode.isNone(), "can not be none");
       recordIdLatchKey key(_sid, _mbID, rid);
@@ -707,8 +678,6 @@ namespace vessel
 
    void requestContext::_unlockAll()
    {
-      SDB_ASSERT(isOpen(), "can not be closed");
-
       if (isMbContextAttached())
       {
          detachMbContext();
@@ -753,8 +722,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isOpen() ||
-                            !isMbContextAttached()))
+      else if (OSS_UNLIKELY(!isMbContextAttached()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -791,8 +759,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isOpen() ||
-                            !isMbContextAttached()))
+      else if (OSS_UNLIKELY(!isMbContextAttached()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -823,7 +790,6 @@ namespace vessel
 
    void requestContext::releaseTransLock(const recordID &rid)
    {
-      SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(rid.isValid(), "can not be closed");
       dpsTransLockId lockId;
       dmsRecordID dmsRid = rid.toDMSRid();
@@ -833,7 +799,6 @@ namespace vessel
 
    void requestContext::releaseAllTransLock()
    {
-      SDB_ASSERT(isOpen(), "can not be closed");
       getOuterResource()->transLockConsole->releaseAll(getExecutor(), nullptr);
    }
 }//namespace vessel

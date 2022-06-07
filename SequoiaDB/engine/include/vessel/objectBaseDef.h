@@ -40,19 +40,19 @@ namespace engine
 {
 namespace vessel
 {
-   enum CS_STATUS
+   enum CS_STATUS : UINT16
    {  
       CS_STATUS_INVALID = 0,
       CS_STATUS_ONLINE = 1,
    };//enum CS_STATUS
 
-   enum CS_TYPE
+   enum CS_TYPE : UINT16
    {
       CS_TYPE_INVALID = 0,
       CS_TYPE_NORMAL = 1,
    };//enum CS_TYPE
 
-   enum CL_TYPE
+   enum CL_TYPE : UINT16
    {
       CL_TYPE_INVALID = 0,
       CL_TYPE_NORMAL = 1,

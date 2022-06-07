@@ -61,8 +61,7 @@ namespace vessel
    INT32 dmlContext::lockUniqueIndexKeys(const dmlIndexRequestArray &ra)
    {
       INT32 rc = SDB_OK;
-      if (!requestContext::isOpen() ||
-          !requestContext::isMbContextAttached())
+      if (!requestContext::isMbContextAttached())
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -212,7 +211,6 @@ namespace vessel
 
    void dmlContext::unlockUniqueKeys()
    {
-      SDB_ASSERT(isOpen(), "can not be invalid");
       UNIQUE_INDEX_LATCH_MAP &latchMap = requestContext::getEnv()->latchEnv.uniqueIndexLathMap;
       for (_UNIQUE_KEY_CONTEXT::iterator itr = _uniqueKeyContext.begin();
            itr != _uniqueKeyContext.end(); ++itr)
@@ -227,32 +225,28 @@ namespace vessel
 
    void dmlContext::clearHistroyAndDetachMb()
    {
-      if (isOpen())
+      if (isMbContextAttached())
       {
-         if (isMbContextAttached())
-         {
-            requestContext::unlockRids();
-            requestContext::detachMbContext();
-         }
-         unlockUniqueKeys();
-         _seq = 0;
-         _rid = recordID();
-         _lsn = DPS_INVALID_LSN_OFFSET;
-         _indexReqCount = 0;
-         if (_mrc.getTargetRecord().isValid())
-         {
-            CHAR *ptr = (CHAR *)_mrc.getTargetRecord().getData();
-            releaseBuffer(ptr);
-         }
-         _mrc.clear();
+         requestContext::unlockRids();
+         requestContext::detachMbContext();
       }
+      unlockUniqueKeys();
+      _seq = 0;
+      _rid = recordID();
+      _lsn = DPS_INVALID_LSN_OFFSET;
+      _indexReqCount = 0;
+      if (_mrc.getTargetRecord().isValid())
+      {
+         CHAR *ptr = (CHAR *)_mrc.getTargetRecord().getData();
+         releaseBuffer(ptr);
+      }
+      _mrc.clear();
       return;
    }
 
    void dmlContext::setDmlRecordInfo(UINT32 seq,
                                      const recordID &rid)
    {
-      SDB_ASSERT(isOpen(), "can not be invalid");
       SDB_ASSERT(rid.isValid(), "can not be invalid");
       _seq = seq;
       _rid = rid;
@@ -261,7 +255,6 @@ namespace vessel
 
    void dmlContext::setDmlLSN(const DPS_LSN_OFFSET &lsn)
    {
-      SDB_ASSERT(isOpen(), "can not be invalid");
       SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
       _lsn = lsn;
       return;

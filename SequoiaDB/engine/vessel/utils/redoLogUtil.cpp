@@ -198,7 +198,7 @@ namespace vessel
                              DPS_LSN_OFFSET &lsn)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(nullptr != context && context->isOpen(), "can not be invalid");
+      SDB_ASSERT(nullptr != context, "can not be invalid");
       SDB_ASSERT(dlr.isValid(), "can not be invalid");
       IDataJournal *journal = context->getEnv()->resource.journal;
       dpsStackJournalPad jpad;
