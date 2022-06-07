@@ -120,9 +120,7 @@ function test ()
    query( dbclSlave, findConf, null, null, 1 );
 
    //检查访问计划快照
-   var tmp = [{ GroupName: desGroupName, ScanType: "tbscan", IndexName: "" },
-   { GroupName: srcGroupName, ScanType: "tbscan", IndexName: "" }];
-   var expAccessPlan = tmp.concat( tmp );
+   var expAccessPlan = [];
    var actAccessPlan = getMainclAccessPlans( db, { Collection: mainclFullName } );
    checkMainclAccessPlans( expAccessPlan, actAccessPlan );
 
@@ -131,9 +129,7 @@ function test ()
    commCreateIndex( subcl, "a1", { a1: 1 } );
 
    //检查访问计划快照
-   var tmp = [{ GroupName: desGroupName, ScanType: "tbscan", IndexName: "" },
-   { GroupName: srcGroupName, ScanType: "tbscan", IndexName: "" }];
-   var expAccessPlan = tmp.concat( tmp );
+   var expAccessPlan = [];
    var actAccessPlan = getMainclAccessPlans( db, { Collection: mainclFullName } );
    checkMainclAccessPlans( expAccessPlan, actAccessPlan );
 
@@ -141,9 +137,7 @@ function test ()
    commDropIndex( subcl, "a1" );
 
    //检查访问计划快照
-   var tmp = [{ GroupName: desGroupName, ScanType: "tbscan", IndexName: "" },
-   { GroupName: srcGroupName, ScanType: "tbscan", IndexName: "" }];
-   var expAccessPlan = tmp.concat( tmp );
+   var expAccessPlan = [];
    var actAccessPlan = getMainclAccessPlans( db, { Collection: mainclFullName } );
    checkMainclAccessPlans( expAccessPlan, actAccessPlan );
 
@@ -152,9 +146,7 @@ function test ()
    commCreateIndex( subcl, "a1", { a1: 1 } );
 
    //检查访问计划快照
-   var tmp = [{ GroupName: desGroupName, ScanType: "tbscan", IndexName: "" },
-   { GroupName: srcGroupName, ScanType: "tbscan", IndexName: "" }];
-   var expAccessPlan = tmp.concat( tmp );
+   var expAccessPlan = [];
    var actAccessPlan = getMainclAccessPlans( db, { Collection: mainclFullName } );
    checkMainclAccessPlans( expAccessPlan, actAccessPlan );
 
@@ -162,9 +154,7 @@ function test ()
    commDropIndex( subcl, "a1" );
 
    //检查访问计划快照
-   var tmp = [{ GroupName: desGroupName, ScanType: "tbscan", IndexName: "" },
-   { GroupName: srcGroupName, ScanType: "tbscan", IndexName: "" }];
-   var expAccessPlan = tmp.concat( tmp );
+   var expAccessPlan = [];
    var actAccessPlan = getMainclAccessPlans( db, { Collection: mainclFullName } );
    checkMainclAccessPlans( expAccessPlan, actAccessPlan );
 
