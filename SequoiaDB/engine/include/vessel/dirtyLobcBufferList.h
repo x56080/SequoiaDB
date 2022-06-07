@@ -36,11 +36,13 @@
 #ifndef VESSEL_DIRTY_LOBC_BUFFER_LIST_H_
 #define VESSEL_DIRTY_LOBC_BUFFER_LIST_H_
 
+#include "ossTypes.h"
 #include "vessel/lobChunkBuffer.h"
 #include "vessel/dirtyBufferList.hpp"
 #include "ossMemPool.hpp"
 #include "dpsDef.hpp"
 #include "vessel/lobcFlushList.h"
+#include "vessel/vesselIdDef.h"
 
 #include <mutex>   //c++11
 
@@ -56,6 +58,7 @@ namespace vessel
 
       public:
          void insert(sharedLobChunkBuffer &buffer);
+         void discard(SPACE_ID sid, CL_MB_ID mbid, SHARED_LOBC_BUFFER_LIST &l);
 
       public:
          ///WARNING: only for pool watcher !!!

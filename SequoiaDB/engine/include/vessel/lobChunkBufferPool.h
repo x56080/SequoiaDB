@@ -175,9 +175,11 @@ namespace vessel
                                   UINT32 pageSize,
                                   sharedLobChunkBuffer &out);
 
-         void _discard(SPACE_ID sid,
-                       CL_MB_ID mbid,
-                       UINT32 bucketId);
+         void _discardBuffersInDirtyList(SPACE_ID sid,
+                                         CL_MB_ID mbid);
+
+         void _discardBuffersInBuckets(SPACE_ID sid,
+                                      CL_MB_ID mbid);
 
          INT32 _write(_accessingContext &context,
                       const writeOptions &o,

@@ -35,6 +35,7 @@
 
 #include "vessel/lobChunkBufferPool.h"
 #include "ossLikely.hpp"
+#include "pd.hpp"
 #include "pdTrace.hpp"
 #include "utilSharedPtrMaker.hpp"
 #include "vessel/threadContext.h"
@@ -330,11 +331,10 @@ namespace vessel
    {
       SDB_ASSERT(isValid(), "can not be invalid");
       SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
+      
+      _discardBuffersInDirtyList(sid, INVALID_CL_MB_ID);
+      _discardBuffersInBuckets(sid, INVALID_CL_MB_ID);
 
-      for (UINT32 i = 0; i < _o.buckets; ++i)
-      {
-         _discard(sid, INVALID_CL_MB_ID, i);
-      }
       return;
    }
 
@@ -343,56 +343,90 @@ namespace vessel
       SDB_ASSERT(isValid(), "can not be invalid");
       SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
       SDB_ASSERT(INVALID_CL_MB_ID != mbid, "can not be invalid");
-
-      for (UINT32 i = 0; i < _o.buckets; ++i)
-      {
-         _discard(sid, mbid, i);
-      }
+      
+      _discardBuffersInDirtyList(sid, mbid);
+      _discardBuffersInBuckets(sid, mbid);
       return;
    }
 
-   void lobChunkBufferPool::_discard(SPACE_ID sid,
-                                     CL_MB_ID mbid,
-                                     UINT32 bucketId)
+   void lobChunkBufferPool::_discardBuffersInDirtyList(SPACE_ID sid,
+                                                       CL_MB_ID mbid)
    {
-      SHARED_LOBC_BUFFER_LIST &entry = _env.getBucketEntry(bucketId);
-      std::mutex &mutex = _env.getEntryMutex(bucketId);
-      std::unique_lock<std::mutex> guard(mutex);
-
-      BUFFER_CTL_FLAG_WORD flags = LOBC_BUFFER_CTL_FLAGS::BUSY;
-      BUFFER_CTL_FLAG_WORD condition = LOBC_BUFFER_CTL_FLAGS::PENDING_FLUSH;
-      SHARED_LOBC_BUFFER_LIST::iterator itr = entry.begin();
-
-      while (itr != entry.end())
+      dirtyLobcBufferList &dl = _env.getDirtyList();
+      SHARED_LOBC_BUFFER_LIST l;
+      dl.discard(sid, mbid, l);
+      while (!l.empty())
       {
-         sharedLobChunkBuffer &buffer = (*itr);
-         bufferControlBlock block = buffer->ctl().load();
-         if (block.isDiscarded())
+         atomicBufferCtlBlock &ctl = l.front()->ctl();
+         ctl.resetFlags();
+         if(OSS_LIKELY(ctl.setRecyclingFromNormal()))
          {
-            itr = entry.erase(itr);
-            continue;
-         }
-         else if (block.isNormal() &&
-                  buffer->getKey().getSpaceId() == sid &&
-                  (INVALID_CL_MB_ID == mbid || buffer->getKey().getMbId() == mbid) &&
-                  buffer->ctl().incRefCntIfNormal())
-         {
-            sharedLobChunkBuffer &buffer = *itr;
-            if (buffer->ctl().setFlagIfNot(condition, flags))
-            {
-               buffer->setAsTrash();
-               buffer->getBufferCtx().clear();
-               buffer->ctl().decRefCnt(flags);
-            }
-
-            /// it is unnecessary to dec ref count here.
-            /// page buffers will be released when shared_ptr destructed.
-
-            itr = entry.erase(itr);
+            l.front()->getBufferCtx().clear();
+            BOOLEAN r = ctl.setDiscardedFromRecycling();
+            SDB_ASSERT(r, "should not be failed");
+            l.pop_front();
          }
          else
          {
-            ++itr;
+            SDB_ASSERT(FALSE, "should not be failed");
+         }
+      }
+   }
+
+   void lobChunkBufferPool::_discardBuffersInBuckets(SPACE_ID sid,
+                                                    CL_MB_ID mbid)
+   {
+      SHARED_LOBC_BUFFER_LIST l;
+      for (UINT32 bucketId = 0; bucketId < _o.buckets; ++bucketId)
+      {
+         SHARED_LOBC_BUFFER_LIST &entry = _env.getBucketEntry(bucketId);
+         std::mutex &mutex = _env.getEntryMutex(bucketId);
+         std::unique_lock<std::mutex> guard(mutex);
+         SHARED_LOBC_BUFFER_LIST::iterator itr = entry.begin();
+         while (itr != entry.end())
+         {
+            atomicBufferCtlBlock &ctl = (*itr)->ctl();
+            bufferControlBlock ctlSnapshot = ctl.load();
+            if (ctlSnapshot.isDiscarded())
+            {
+               itr = entry.erase(itr);
+            }
+            else if ((*itr)->getKey().getSpaceId() == sid && 
+                     (INVALID_CL_MB_ID == mbid || (*itr)->getKey().getMbId() == mbid))
+            {
+               l.splice(l.end(), entry, itr++);
+            }
+            else
+            {
+               ++itr;
+            }
+         }
+      }
+      
+      while (!l.empty())
+      {
+         SHARED_LOBC_BUFFER_LIST::iterator itr = l.begin();
+         while (itr != l.end())
+         {
+            atomicBufferCtlBlock &ctl = (*itr)->ctl();
+            bufferControlBlock ctlSnapshot = ctl.load();
+            if (ctlSnapshot.isDiscarded())
+            {
+               itr = l.erase(itr);
+            }
+            else
+            {
+               ++itr;
+            }
+         }
+         if (l.empty())
+         {
+            break;
+         }
+         else
+         {
+            /// wait buffers flush done
+            ossSleepmillis(10);
          }
       }
 
