@@ -256,6 +256,7 @@ OSS_NEWLINE"File:%s"OSS_NEWLINE"Message:"OSS_NEWLINE"%s"OSS_NEWLINE OSS_NEWLINE;
 static void _pdRemoveOutOfDataFiles( pdCfgInfo &info )
 {
    multimap< string, string >  mapFiles ;
+   multimap< string, string >::iterator iter ;
    const CHAR *p = ossStrrchr( info._pdLogFile, OSS_FILE_SEP_CHAR ) ;
    if ( p )
    {
@@ -268,6 +269,19 @@ static void _pdRemoveOutOfDataFiles( pdCfgInfo &info )
    CHAR filter[ OSS_MAX_PATHSIZE + 1 ] = {0} ;
    ossSnprintf( filter, OSS_MAX_PATHSIZE, "%s.*", p ) ;
    ossEnumFiles( info._pdLogPath, mapFiles, filter, 1 ) ;
+
+   iter = mapFiles.begin() ;
+   while ( mapFiles.end() != iter )
+   {
+      if ( ossStrstr( iter->first.c_str(), PD_DFT_LOG_DECRYPT_SUFFIX ) )
+      {
+         mapFiles.erase( iter++ ) ;
+      }
+      else
+      {
+         ++iter ;
+      }
+   }
 
    while ( mapFiles.size() > 0 &&
            mapFiles.size() >= (UINT32)info._pdFileMaxNum )
