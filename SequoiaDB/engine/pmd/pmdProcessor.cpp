@@ -872,6 +872,7 @@ namespace engine
       }
 
       if ( ( flags & FLG_QUERY_WITH_RETURNDATA ) &&
+           0 == buffObj.recordNum() &&
            ( ( pContext ) ||
              ( -1 != contextID &&
                SDB_OK == _pRTNCB->contextFind( contextID, pContext ) ) ) )
@@ -2132,6 +2133,7 @@ namespace engine
 
       // query with return data
       if ( ( flag & FLG_QUERY_WITH_RETURNDATA ) &&
+           0 == buffObj.recordNum() &&
            -1 != contextID &&
            SDB_OK == _pRTNCB->contextFind( contextID, pContext ) )
       {
