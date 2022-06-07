@@ -3120,7 +3120,8 @@ namespace engine
                   {
                      context->enableCloseOnEOF() ;
                   }
-                  if ( flags & FLG_QUERY_WITH_RETURNDATA )
+                  if ( ( flags & FLG_QUERY_WITH_RETURNDATA ) &&
+                       0 == buffObj.recordNum() )
                   {
                      rc = context->getMore( -1, buffObj, _pEDUCB ) ;
                      if ( rc || context->eof() )

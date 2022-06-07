@@ -11896,8 +11896,6 @@ do                                                            \
       ob.appendCode ( FIELD_NAME_FUNC, code ) ;
       ob.appendIntOrLL ( FIELD_NAME_FUNCTYPE, FMP_FUNC_TYPE_JS ) ;
       newObj = ob.obj() ;
-      // CAN NOT add FLG_QUERY_WITH_RETURNDATA flag, for the return result
-      // is not the expected result
       rc = clientBuildQueryMsgCpp( &_pSendBuffer, &_sendBufferSize,
                                    CMD_ADMIN_PREFIX CMD_NAME_EVAL,
                                    0, 0, 0, -1, newObj.objdata(),
