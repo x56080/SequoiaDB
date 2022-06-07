@@ -36,6 +36,7 @@
 #include "test_def.h"
 #include "vessel/vesselImpl.h"
 #include "vessel/requestContext.h"
+#include <atomic>
 #include <gtest/gtest.h>
 #include "ossUtil.hpp"
 #include "dpsLogRecord.hpp"
@@ -45,6 +46,7 @@
 #include "dmsCursorReader.hpp"
 
 #include <boost/filesystem.hpp>
+#include <thread>
 namespace fs = boost::filesystem;
 
 class cs_ddl_test : public testing::Test
@@ -1064,4 +1066,97 @@ TEST_F(cs_ddl_test, base_removeCS_3)
 
    rc = db.removeCS(&session, "foo");
    ASSERT_EQ(SDB_OK, rc);
+}
+
+/*
+Name: base_removeCS_4
+Description:
+   创建CS、CL，启动一个线程插入lob chunk，启动另一个线程在中途删除CS
+   1. 创建单个CS，CS上创建单个CL
+   2. 启动一个线程插入4GB的lob chunk数据
+   3. 启动另一个线程在插入2GB时删除CS
+Input: 无
+Output: 无
+Expected Result: 
+   成功创建CS、创建CL、CL中成功插入2GB大小的lob chunk，删除CS，无法插入剩余的数据，得到预期报错，-34集合空间不存在
+*/
+void test4_insert_lob(vesselImpl* db, std::atomic<UINT32>* lobc_count)
+{
+   INT32 rc = SDB_OK;
+   test_executor session;
+   DATA_COLLECTION_PTR handler;
+   rc = db->openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+   constexpr UINT32 LOBC_SIZE = 1024 * 1024;
+   unique_ptr<CHAR[]> buf(new CHAR[LOBC_SIZE]);
+   while ((*lobc_count)++ < 4 * 1024)
+   {
+      bson::OID oid;
+      oid.init();
+      rc = handler->insertLobChunk(&session, oid, lobc_count->load(), 0, LOBC_SIZE, buf.get());
+      if (SDB_OK == rc)
+      {
+         continue;
+      }
+      else 
+      {
+         ASSERT_EQ(SDB_DMS_CS_NOTEXIST, rc);
+         break;
+      }
+   }
+}
+
+void test4_remove_cs(vesselImpl* db, std::atomic<UINT32>* lobc_count)
+{
+   INT32 rc = SDB_OK;
+   test_executor session;
+   while(true)
+   {
+      if((*lobc_count) > 2 * 1024)
+      {
+         rc = db->removeCS(&session, "foo");
+         ASSERT_EQ(SDB_OK, rc);
+         return;
+      }
+      ossSleepmillis(10);
+   }
+}
+
+TEST_F(cs_ddl_test, base_removeCS_4)
+{
+   INT32 rc = SDB_OK;
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
+   vesselImpl db;
+   openDBOptions options;
+
+   options.path.dataPath = DATA_PATH;
+   options.path.indexPath = DATA_PATH;
+   options.path.lobmPath = DATA_PATH;
+   options.path.lobdPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+
+   bson::BSONObj adjunct;
+   DATA_CURSOR_PTR cursor;
+   dmsBsonCursorReader reader;
+   DATA_COLLECTION_PTR handler;
+
+   
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), adjunct);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   std::atomic<UINT32> lobc_count{0};
+   std::thread th1(test4_insert_lob, &db, &lobc_count);
+   std::thread th2(test4_remove_cs, &db, &lobc_count);
+
+   th1.join();
+   th2.join();
+
+   db.close(&session, closeDBOptions());
 }

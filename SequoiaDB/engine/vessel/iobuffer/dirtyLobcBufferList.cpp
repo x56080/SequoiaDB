@@ -35,6 +35,7 @@
 
 #include "vessel/dirtyLobcBufferList.h"
 #include "pdTrace.hpp"
+#include "vessel/vesselIdDef.h"
 
 namespace engine
 {
@@ -91,21 +92,8 @@ namespace vessel
 
             fl._totalBufferSize += buffer->getBufferCtx().getBufferSize();
             fl._dirtyPageCount += buffer->getBufferCtx().getDirtyBufferCount();
+            ++right;
 
-            if (buffer->isTrash())
-            {
-               if (left != right)
-               {
-                  fl._list.splice(fl._list.end(), _l, left, right);
-               }
-               right = _l.erase(right);
-               left = right;
-            }
-            else
-            {
-               ++right;
-            }
-            
             if ((0 < bufferSizeLimit) && (bufferSizeLimit <= fl._totalBufferSize))
             {
                break;
@@ -125,6 +113,39 @@ namespace vessel
          _minFlushLSN = fl._list.front()->getMinDirtyLSN();
       }      
    
+      return;
+   }
+
+   void dirtyLobcBufferList::discard(SPACE_ID sid, CL_MB_ID mbid, SHARED_LOBC_BUFFER_LIST &l) 
+   {
+      std::unique_lock<std::mutex> guard(_mutex);
+      SHARED_LOBC_BUFFER_LIST::iterator left = _l.begin(), right = _l.begin();
+      while (_l.end() != right)
+      {
+         if ((*right)->getKey().getSpaceId() == sid &&
+             (INVALID_CL_MB_ID == mbid || (*right)->getKey().getMbId() == mbid))
+         {
+            ++right;
+         }
+         else if (left != right)
+         {
+            l.splice(l.end(), _l, left, right);
+            ++right;
+            left = right;
+         }
+         else
+         {
+            ++left;
+            ++right;
+         }
+      }
+
+      if (left != right)
+      {
+         l.splice(l.end(), _l, left, right);
+      }
+
+      resetMinListLSNAndSize(FALSE);
       return;
    }
 

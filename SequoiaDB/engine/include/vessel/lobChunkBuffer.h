@@ -115,8 +115,6 @@ namespace vessel
             _hasMetaDataToCommit = TRUE;
          }
       public:
-         OSS_INLINE BOOLEAN isTrash()const {return _isTrash;}
-         OSS_INLINE void setAsTrash() {_isTrash = TRUE;}
          void exportTasks(ossPoolVector<bufferFlushTask> &tasks)const;
           
       private:
@@ -129,7 +127,6 @@ namespace vessel
          multiPageBufferContext _bufferCtx;
 
          BOOLEAN _hasMetaDataToCommit = FALSE; /// tmp code.
-         BOOLEAN _isTrash = FALSE;
    };//class lobChunkBuffer
    typedef class std::shared_ptr<lobChunkBuffer> sharedLobChunkBuffer;
    typedef class ossPoolList<sharedLobChunkBuffer> SHARED_LOBC_BUFFER_LIST;
