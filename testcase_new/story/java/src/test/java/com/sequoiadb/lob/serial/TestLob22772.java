@@ -1,4 +1,4 @@
-package com.sequoiadb.lob.basicoperation;
+package com.sequoiadb.lob.serial;
 
 import org.bson.BasicBSONObject;
 import org.bson.types.ObjectId;
