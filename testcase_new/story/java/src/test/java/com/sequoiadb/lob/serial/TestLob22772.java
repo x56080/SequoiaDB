@@ -1,4 +1,4 @@
-package com.sequoiadb.lob.basicoperation;
+package com.sequoiadb.lob.serial;
 
 import org.bson.BasicBSONObject;
 import org.bson.types.ObjectId;
@@ -46,7 +46,7 @@ public class TestLob22772 extends SdbTestBase {
         lob.close();
     }
 
-    @Test(enabled = false)
+    @Test()
     public void test() {
         WriteLobThread write = new WriteLobThread();
         SyncThread sync = new SyncThread();
