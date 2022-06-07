@@ -64,7 +64,8 @@ public class IndexConsistent23946 extends SdbTestBase {
         insertRecords = IndexUtils.insertData( dbcl, recsNum );
     }
 
-    @Test
+    // http://jira.web:8080/browse/SEQUOIADBMAINSTREAM-8393
+    @Test(enabled = false)
     public void test() throws Exception {
         String indexName = "testindex23946";
         ThreadExecutor es = new ThreadExecutor();
