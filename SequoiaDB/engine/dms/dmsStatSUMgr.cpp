@@ -690,15 +690,16 @@ namespace engine
                                    pmdEDUCB *cb,
                                    SDB_DPSCB *dpsCB )
    {
-      INT32 rc = SDB_OK ;
-      BOOLEAN needDelete = FALSE ;
-
       PD_TRACE_ENTRY( SDB_DMSSTATSUMGR_ONDROPCS ) ;
 
+      BOOLEAN needDelete = FALSE ;
       SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
 
-      PD_CHECK( _initialized, SDB_INVALIDARG, error, PDWARNING,
-                "Statistics SU is not initialized" ) ;
+      if ( !_initialized )
+      {
+         PD_LOG( PDWARNING, "Statistics SU is not initialized" ) ;
+         goto done ;
+      }
 
       if ( pCacheHolder )
       {
@@ -712,26 +713,43 @@ namespace engine
 
       if ( needDelete && pEventHolder && SDB_DB_NORMAL == PMD_DB_STATUS() )
       {
+         INT32 tmpRC = SDB_OK ;
+
          const CHAR *pCSName = pEventHolder->getCSName() ;
 
-         BSONObj boMatcher( BSON( DMS_STAT_COLLECTION_SPACE << pCSName ) ) ;
+         BSONObj boMatcher ;
 
-         rc = _deleteCollectionStat( boMatcher, cb, NULL ) ;
-         PD_RC_CHECK( rc, PDWARNING,
-                      "Failed to drop collection statistics when dropping "
-                      "collection space [%s], rc: %d", pCSName, rc ) ;
+         try
+         {
+            boMatcher = BSON( DMS_STAT_COLLECTION_SPACE << pCSName ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDWARNING, "Failed to build matcher, occur exception %s",
+                    e.what() ) ;
+            goto done ;
+         }
 
-         rc = _deleteIndexStat( boMatcher, cb, NULL ) ;
-         PD_RC_CHECK( rc, PDWARNING,
-                      "Failed to delete index statistics when dropping "
-                      "collection space [%s], rc: %d", pCSName, rc ) ;
+         tmpRC = _deleteCollectionStat( boMatcher, cb, NULL ) ;
+         if ( SDB_OK != tmpRC )
+         {
+             PD_LOG( PDWARNING,
+                     "Failed to drop collection statistics when dropping "
+                     "collection space [%s], rc: %d", pCSName, tmpRC ) ;
+         }
+         tmpRC = _deleteIndexStat( boMatcher, cb, NULL ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDWARNING,
+                    "Failed to delete index statistics when dropping "
+                    "collection space [%s], rc: %d", pCSName, tmpRC ) ;
+         }
       }
 
    done :
-      PD_TRACE_EXITRC( SDB_DMSSTATSUMGR_ONDROPCS, rc ) ;
-      return rc ;
-   error :
-      goto done ;
+      PD_TRACE_EXIT( SDB_DMSSTATSUMGR_ONDROPCS ) ;
+      // ignore errors
+      return SDB_OK ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSSTATSUMGR_ONRENAMECL, "_dmsStatSUMgr::onRenameCL" )
