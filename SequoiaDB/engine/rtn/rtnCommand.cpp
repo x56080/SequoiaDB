@@ -56,7 +56,6 @@
 #include "utilBSON.hpp"
 #include "clsRecycleBinJob.hpp"
 
-
 #if defined (_DEBUG)
 // for qgmDebugQuery function
 #endif
@@ -1011,24 +1010,12 @@ namespace engine
                                            const CHAR * pOrderByBuff,
                                            const CHAR * pHintBuff)
    {
-      const CHAR *typeStr = NULL;
-      BOOLEAN capped = FALSE ;
       BSONObj matcher ( pMatcherBuff ) ;
-
-      INT32 rc = SDB_OK;
-
-      rc = rtnGetStringElement ( matcher, FIELD_NAME_NAME, &_spaceName ) ;
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = rtnGetIntElement ( matcher, FIELD_NAME_PAGE_SIZE,
-                             _pageSize ) ;
+      INT32 rc = rtnGetIntElement ( matcher, FIELD_NAME_PAGE_SIZE,
+                                    _pageSize ) ;
       if ( SDB_OK != rc )
       {
          _pageSize = DMS_PAGE_SIZE_DFT ;
-         rc = SDB_OK;
       }
 
       rc = rtnGetIntElement( matcher, FIELD_NAME_LOB_PAGE_SIZE,
@@ -1036,36 +1023,20 @@ namespace engine
       if ( SDB_OK != rc )
       {
          _lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ ;
-         rc = SDB_OK;
       }
 
-      rc = rtnGetStringElement(matcher, FIELD_NAME_ENGINE_TYPE, &typeStr);
-      if (SDB_OK == rc)
+      BOOLEAN capped = FALSE ;
+      rc = rtnGetBooleanElement( matcher, FIELD_NAME_CAPPED, capped ) ;
+      if ( SDB_OK == rc && capped  )
       {
-         if (0 != ossStrcmp(typeStr, FIELD_NAME_ENGINE_VESSEL))
-         {
-            rc = SDB_INVALIDARG;
-            goto error;
-         }
-         _storageType = DMS_STORAGE_VESSEL;
-      }   
+         _storageType = DMS_STORAGE_CAPPED ;
+      }
       else
       {
-         rc = rtnGetBooleanElement( matcher, FIELD_NAME_CAPPED, capped ) ;
-         if ( SDB_OK == rc && capped  )
-         {
-            _storageType = DMS_STORAGE_CAPPED ;
-         }
-         else
-         {
-            _storageType = DMS_STORAGE_NORMAL ;
-            rc = SDB_OK;
-         }
-      }   
-   done:
-      return rc;
-   error:
-      goto done;
+         _storageType = DMS_STORAGE_NORMAL ;
+      }
+
+      return rtnGetStringElement ( matcher, FIELD_NAME_NAME, &_spaceName ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCREATECS_DOIT, "_rtnCreateCollectionspace::doit" )
@@ -1077,8 +1048,8 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__RTNCREATECS_DOIT ) ;
 
       rc = rtnCreateCollectionSpaceCommand ( _spaceName, cb, dmsCB,
-                                                dpsCB, _csUniqueID, _pageSize,
-                                                _lobPageSize, _storageType ) ;
+                                             dpsCB, _csUniqueID, _pageSize,
+                                             _lobPageSize, _storageType ) ;
 
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {

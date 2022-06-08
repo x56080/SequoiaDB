@@ -44,7 +44,6 @@
 #include "vessel/collectionOptions.h"
 #include "mthMatchTree.hpp"
 #include <iostream>
-#include "dmsCursorReader.hpp"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -1046,7 +1045,6 @@ TEST_F(index_ddl_test, advanced_create_index_test3)
    openDBOptions options;
    DATA_COLLECTION_PTR handler;
    ossPoolVector<bson::BSONObj> indexes;
-   dmsBsonCursorReader reader;
 
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
@@ -1118,13 +1116,12 @@ TEST_F(index_ddl_test, advanced_create_index_test3)
    rc = db.listCL(&session, "foo", cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor);
    for (UINT32 i = 0; i < clCount; ++i)
    {
-      rc = reader.fetchNext(&session);
+      rc = cursor->fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
    }
-   rc = reader.fetchNext(&session);
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_DMS_EOC, rc);
    
 
@@ -1180,7 +1177,6 @@ TEST_F(index_ddl_test, DISABLED_death_create_index_test1)
    openDBOptions options;
    DATA_COLLECTION_PTR handler;
    ossPoolVector<bson::BSONObj> indexes;
-   dmsBsonCursorReader reader;
 
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
@@ -1250,13 +1246,12 @@ TEST_F(index_ddl_test, DISABLED_death_create_index_test1)
    rc = db.listCL(&session, "foo", cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor);
    for (UINT32 i = 0; i < clCount; ++i)
    {
-      rc = reader.fetchNext(&session);
+      rc = cursor->fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
    }
-   rc = reader.fetchNext(&session);
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_DMS_EOC, rc);
    
 

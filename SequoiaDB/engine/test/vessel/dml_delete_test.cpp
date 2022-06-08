@@ -42,7 +42,6 @@
 #include "pd.hpp"
 #include "vessel/collectionOptions.h"
 #include "vessel/builtinRecordUpdater.h"
-#include "dmsCursorReader.hpp"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -259,20 +258,16 @@ TEST_F(dml_delete_test, base_delete_test2)
    rc = handler->scan(&executor, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   dmsBsonCursorReader reader;
-   reader.init(cursor);
-   rc = reader.fetchNext(&executor);
+   rc = cursor->fetchNext(&executor);
    ASSERT_EQ(SDB_OK, rc);
-   const bson::BSONObj &r = reader.getRecord();
+   bson::BSONObj r = cursor->getBsonRecord();
    ASSERT_EQ(r.getStringField("a"), updateStr);
    for (UINT32 i = 0; i < count - 1; ++i)
    {
-      rc = reader.fetchNext(&executor);
+      rc = cursor->fetchNext(&executor);
       ASSERT_EQ(SDB_OK, rc);
-      const bson::BSONObj &r = reader.getRecord();
-      ASSERT_EQ(r.getStringField("a"), insertStr);
+      ASSERT_EQ(cursor->getBsonRecord().getStringField("a"), insertStr);
    }
-   reader.fini();
 
    utilDeleteResult deleteRes;
    rc = handler->deleteRecord(&executor, rids[0], dmsDeleteRecordOptions(), &deleteRes);
@@ -285,15 +280,14 @@ TEST_F(dml_delete_test, base_delete_test2)
 
    rc = handler->scan(&executor, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
-   reader.init(cursor);
+
    for (UINT64 i = 0; i < currentCount; ++i)
    {
-      rc = reader.fetchNext(&executor);
+      rc = cursor->fetchNext(&executor);
       ASSERT_EQ(SDB_OK, rc);
-      const bson::BSONObj &r = reader.getRecord();
-      ASSERT_EQ(r.getStringField("a"), insertStr);
+      ASSERT_EQ(cursor->getBsonRecord().getStringField("a"), insertStr);
    }
-   rc = reader.fetchNext(&executor);
+   rc = cursor->fetchNext(&executor);
    ASSERT_EQ(SDB_DMS_EOC, rc);
 
    db.close(&executor, closeDBOptions()); 

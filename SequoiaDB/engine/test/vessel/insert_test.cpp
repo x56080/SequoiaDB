@@ -44,7 +44,6 @@
 #include "dpsLogRecord.hpp"
 #include "../bson/bson.hpp"
 #include "pd.hpp"
-#include "dmsCursorReader.hpp"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -142,20 +141,20 @@ TEST_F(insert_test, test1)
    ASSERT_EQ(count, recordCount);
    
    DATA_CURSOR_PTR cursor;
-   dmsBsonCursorReader reader;
+   
    rc = handler->scan(&session, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor);
+   
    for (UINT32 i = 0; i < count; ++i)
    {
-      rc = reader.fetchNext(&session);
+      rc = cursor->fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
-      const bson::BSONObj &r = reader.getRecord();
+      bson::BSONObj r = cursor->getBsonRecord();
       ASSERT_EQ(1, r.getIntField("a"));
       ASSERT_EQ(2, r.getIntField("b"));
    }
-   rc = reader.fetchNext(&session);
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_DMS_EOC, rc);
 
    rc = db.close(&session, closeDBOptions());
@@ -183,7 +182,7 @@ TEST_F(insert_test, test2)
    UINT64 recordCount = 0;
 
    DATA_CURSOR_PTR cursor;
-   dmsBsonCursorReader reader;
+   
    DATA_COLLECTION_PTR cl;
 
    rc = db.open(&session, &resource, options);
@@ -211,15 +210,15 @@ TEST_F(insert_test, test2)
    rc = cl->scan(&session, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor);
+   
    for (UINT32 i = 0; i < count; ++i)
    {
-      rc = reader.fetchNext(&session);
-      const bson::BSONObj &r = reader.getRecord();
+      rc = cursor->fetchNext(&session);
+      bson::BSONObj r = cursor->getBsonRecord();
       ASSERT_EQ(1, r.getIntField("a"));
       ASSERT_EQ(2, r.getIntField("b"));
    }
-   rc = reader.fetchNext(&session);
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_DMS_EOC, rc);
 
    rc = db.close(&session, closeDBOptions());
@@ -238,15 +237,15 @@ TEST_F(insert_test, test2)
    rc = cl->scan(&session, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor);
+   
    for (UINT32 i = 0; i < count; ++i)
    {
-      rc = reader.fetchNext(&session);
-      const bson::BSONObj &r = reader.getRecord();
+      rc = cursor->fetchNext(&session);
+      bson::BSONObj r = cursor->getBsonRecord();
       ASSERT_EQ(1, r.getIntField("a"));
       ASSERT_EQ(2, r.getIntField("b"));
    }
-   rc = reader.fetchNext(&session);
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_DMS_EOC, rc);
 
    rc = db.close(&session, closeDBOptions());
@@ -382,7 +381,7 @@ TEST_F(insert_test, test4)
    UINT64 recordCount = 0;
    DATA_COLLECTION_PTR handler;
    DATA_CURSOR_PTR cursor;
-   dmsBsonCursorReader reader;
+   
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
@@ -414,14 +413,14 @@ TEST_F(insert_test, test4)
    rc = handler->scan(&session, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor);
+   
    for (UINT32 i = 0; i < count; ++i)
    {
-      rc = reader.fetchNext(&session);
-      ASSERT_EQ(1, reader.getRecord().getIntField("a"));
-      ASSERT_EQ(2, reader.getRecord().getIntField("b"));
+      rc = cursor->fetchNext(&session);
+      ASSERT_EQ(1, cursor->getBsonRecord().getIntField("a"));
+      ASSERT_EQ(2, cursor->getBsonRecord().getIntField("b"));
    }
-   rc = reader.fetchNext(&session);
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_DMS_EOC, rc);
 
    handler.reset();
@@ -441,14 +440,14 @@ TEST_F(insert_test, test4)
    rc = handler->scan(&session, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor);
+   
    for (UINT32 i = 0; i < count; ++i)
    {
-      rc = reader.fetchNext(&session);
-      ASSERT_EQ(1, reader.getRecord().getIntField("a"));
-      ASSERT_EQ(2, reader.getRecord().getIntField("b"));
+      rc = cursor->fetchNext(&session);
+      ASSERT_EQ(1, cursor->getBsonRecord().getIntField("a"));
+      ASSERT_EQ(2, cursor->getBsonRecord().getIntField("b"));
    }
-   rc = reader.fetchNext(&session);
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_DMS_EOC, rc);
 
    rc = db.close(&session, closeDBOptions());
@@ -1231,13 +1230,13 @@ TEST_F(insert_test, base_insert_test9)
    rc = handler->scan(&executor, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   dmsBsonCursorReader reader;
-   reader.init(cursor);
+   
+   
    for (UINT32 i = 0; i < count; ++i)
    {
-      rc = reader.fetchNext(&executor);
+      rc = cursor->fetchNext(&executor);
       ASSERT_EQ(SDB_OK, rc);
-      const bson::BSONObj &r = reader.getRecord();
+      bson::BSONObj r = cursor->getBsonRecord();
       ASSERT_EQ(r.getStringField("a"), insertStr);
    }
    
@@ -1323,13 +1322,13 @@ TEST_F(insert_test, advanced_insert_test1)
    rc = handler->scan(&executor, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   dmsBsonCursorReader reader;
-   reader.init(cursor);
+   
+   
    for (UINT32 i = 0; i < count; ++i)
    {
-      rc = reader.fetchNext(&executor);
+      rc = cursor->fetchNext(&executor);
       ASSERT_EQ(SDB_OK, rc);
-      const bson::BSONObj &r = reader.getRecord();
+      bson::BSONObj r = cursor->getBsonRecord();
       ASSERT_EQ(r.getStringField("a"), insertStr);
    }
 

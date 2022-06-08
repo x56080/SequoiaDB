@@ -3099,11 +3099,6 @@ namespace engine
             {
                csItem->type = DMS_STORAGE_CAPPED ;
             }
-            else if (ele.isNumber() &&
-                     (INT32)DMS_STORAGE_VESSEL == ele.numberInt())
-            {
-               csItem->type = DMS_STORAGE_VESSEL;
-            }
             else
             {
                csItem->type = DMS_STORAGE_NORMAL ;

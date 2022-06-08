@@ -44,7 +44,6 @@
 #include "vessel/collectionOptions.h"
 #include "mthMatchTree.hpp"
 #include <iostream>
-#include "dmsCursorReader.hpp"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -173,7 +172,7 @@ void test1(INDEX_TYPE type)
    
    for (UINT32 i = 0; i < count; ++i)
    {
-      dmsBsonCursorReader reader;
+      
       builder.reset();
       builder.append("a", i);
       rc = mt.loadPattern(builder.done(), FALSE);
@@ -189,12 +188,11 @@ void test1(INDEX_TYPE type)
       rc = handler->scanIndex(&session, indexName, predicates, o, cursor);
       ASSERT_EQ(SDB_OK, rc);
 
-      reader.init(cursor);
-      rc = reader.fetchNext(&session);
+      rc = cursor->fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
-      ASSERT_EQ(i, reader.getRecord().getIntField("a"));
+      ASSERT_EQ(i, cursor->getBsonRecord().getIntField("a"));
 
-      rc = reader.fetchNext(&session);
+      rc = cursor->fetchNext(&session);
       ASSERT_EQ(SDB_DMS_EOC, rc);
       mt.clear();
    }
@@ -210,7 +208,7 @@ void test1(INDEX_TYPE type)
 
    for (UINT32 i = 0; i < count; ++i)
    {
-      dmsBsonCursorReader reader;
+      
       builder.reset();
       builder.append("a", i);
       rc = mt.loadPattern(builder.done(), FALSE);
@@ -226,12 +224,12 @@ void test1(INDEX_TYPE type)
       rc = handler->scanIndex(&session, indexName, predicates, o, cursor);
       ASSERT_EQ(SDB_OK, rc);
 
-      reader.init(cursor);
-      rc = reader.fetchNext(&session);
+      
+      rc = cursor->fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
-      ASSERT_EQ(i, reader.getRecord().getIntField("a"));
+      ASSERT_EQ(i, cursor->getBsonRecord().getIntField("a"));
 
-      rc = reader.fetchNext(&session);
+      rc = cursor->fetchNext(&session);
       ASSERT_EQ(SDB_DMS_EOC, rc);
       mt.clear();
    }
@@ -305,7 +303,7 @@ void test2(INDEX_TYPE type)
    UINT64 begin = ossGetCurrentMilliseconds();
    for (UINT32 i = 0; i < count; ++i)
    {
-      dmsBsonCursorReader reader;
+      
       builder.reset();
       builder.append("a", i);
       rc = mt.loadPattern(builder.done(), FALSE);
@@ -322,11 +320,11 @@ void test2(INDEX_TYPE type)
                               predicates, o, cursor);
       ASSERT_EQ(SDB_OK, rc);
 
-      reader.init(cursor);
-      rc = reader.fetchNext(&session);
+      
+      rc = cursor->fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
-      ASSERT_EQ(i, reader.getRecord().getIntField("a"));
-      rc = reader.fetchNext(&session);
+      ASSERT_EQ(i, cursor->getBsonRecord().getIntField("a"));
+      rc = cursor->fetchNext(&session);
       ASSERT_EQ(SDB_DMS_EOC, rc);
       mt.clear();
    }
@@ -400,7 +398,7 @@ void test3(INDEX_TYPE type)
    /// {"a":{"$gte":i, "$lt":i + 2}}
    for (UINT32 i = 0; i < count; ++i)
    {
-      dmsBsonCursorReader reader;
+      
       builder.reset();
       bson::BSONObjBuilder subBuilder(builder.subobjStart("a"));
       subBuilder.append("$gte", i);
@@ -422,19 +420,19 @@ void test3(INDEX_TYPE type)
                               predicates, o, cursor);
       ASSERT_EQ(SDB_OK, rc);
 
-      reader.init(cursor);
-      rc = reader.fetchNext(&session);
+      
+      rc = cursor->fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
-      ASSERT_EQ(i, reader.getRecord().getIntField("a"));
+      ASSERT_EQ(i, cursor->getBsonRecord().getIntField("a"));
 
       if ((i + 1) < count)
       {
-         rc = reader.fetchNext(&session);
+         rc = cursor->fetchNext(&session);
          ASSERT_EQ(SDB_OK, rc);
-         ASSERT_EQ(i + 1, reader.getRecord().getIntField("a"));
+         ASSERT_EQ(i + 1, cursor->getBsonRecord().getIntField("a"));
       }
 
-      rc = reader.fetchNext(&session);
+      rc = cursor->fetchNext(&session);
       ASSERT_EQ(SDB_DMS_EOC, rc);
       mt.clear();
    }
@@ -505,7 +503,7 @@ void test4(INDEX_TYPE type)
    o.forward = FALSE;
 
    {
-      dmsBsonCursorReader reader;
+      
       builder.reset();
       bson::BSONObjBuilder subBuilder(builder.subobjStart("a"));
       subBuilder.append("$lt", count);
@@ -526,15 +524,15 @@ void test4(INDEX_TYPE type)
                               predicates, o, cursor);
       ASSERT_EQ(SDB_OK, rc);
 
-      reader.init(cursor);
+      
       for (INT32 i = count - 1; i >= 0; --i)
       {
-         rc = reader.fetchNext(&session);
+         rc = cursor->fetchNext(&session);
          ASSERT_EQ(SDB_OK, rc);
-         ASSERT_EQ(i, reader.getRecord().getIntField("a"));
+         ASSERT_EQ(i, cursor->getBsonRecord().getIntField("a"));
       }
 
-      rc = reader.fetchNext(&session);
+      rc = cursor->fetchNext(&session);
       ASSERT_EQ(SDB_DMS_EOC, rc);
       mt.clear();
    }
@@ -607,7 +605,7 @@ void test5(INDEX_TYPE type)
 
    for (UINT32 i = 0; i < count; ++i)
    {
-      dmsBsonCursorReader reader;
+      
       builder.reset();
       builder.append("a", i);
       rc = mt.loadPattern(builder.done(), FALSE);
@@ -625,12 +623,12 @@ void test5(INDEX_TYPE type)
                               predicates, o, cursor);
       ASSERT_EQ(SDB_OK, rc);
 
-      reader.init(cursor);
-      rc = reader.fetchNext(&session);
+      
+      rc = cursor->fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
-      ASSERT_EQ(i, reader.getRecord().getIntField("a"));
+      ASSERT_EQ(i, cursor->getBsonRecord().getIntField("a"));
 
-      rc = reader.fetchNext(&session);
+      rc = cursor->fetchNext(&session);
       ASSERT_EQ(SDB_DMS_EOC, rc);
       mt.clear();
    }
@@ -723,16 +721,16 @@ void multi_index_scan_test(INDEX_TYPE type)
       rc = handler->scanIndex(&session, fieldName, predicates,
                               dmsIndexScanOptions(), cursor);
       ASSERT_EQ(SDB_OK, rc);
-      dmsBsonCursorReader reader;
-      reader.init(cursor);
+      
+      
       for (INT32 j = 0; j < count; ++j)
       {
-         rc = reader.fetchNext(&session);
+         rc = cursor->fetchNext(&session);
          ASSERT_EQ(SDB_OK, rc);
-         ASSERT_EQ(j, reader.getRecord().getIntField(fieldName));
+         ASSERT_EQ(j, cursor->getBsonRecord().getIntField(fieldName));
       }
 
-      rc = reader.fetchNext(&session);
+      rc = cursor->fetchNext(&session);
       ASSERT_EQ(SDB_DMS_EOC, rc);
    }
 

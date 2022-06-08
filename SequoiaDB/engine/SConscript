@@ -363,8 +363,7 @@ dmsFiles = [
       "dms/dmsTransLockCallback.cpp",
       "dms/dmsSUCache.cpp",
       "dms/dmsLightJob.cpp",
-      "dms/dmsRBSGCJob.cpp",
-      "dms/dmsCursorReader.cpp",
+      "dms/dmsRBSGCJob.cpp"
       ]
 
 ixmFiles = [

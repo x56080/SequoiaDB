@@ -34,7 +34,6 @@
 ******************************************************************************/
 #include "test_def.h"
 #include "vessel/vesselImpl.h"
-#include "dmsCursorReader.hpp"
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
 
@@ -231,16 +230,14 @@ TEST_F(misc_test, base_openCL_test3)
    ASSERT_EQ(SDB_OK, rc);
 
    DATA_CURSOR_PTR cursor;
-   dmsBsonCursorReader reader;
    rc = handler->scan(&session, dmsScanOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor);
-   rc = reader.fetchNext(&session);
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
-   const bson::BSONObj &r = reader.getRecord();
+   const bson::BSONObj &r = cursor->getBsonRecord();
    ASSERT_EQ(1, r.getIntField("a"));
-   rc = reader.fetchNext(&session);
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_DMS_EOC, rc);
 
    rc = db.close(&session, closeDBOptions());

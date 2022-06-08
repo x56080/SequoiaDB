@@ -43,7 +43,6 @@
 #include "vessel/collectionOptions.h"
 #include "vessel/builtinRecordUpdater.h"
 #include "mthMatchTree.hpp"
-#include "dmsCursorReader.hpp"
 
 #include <boost/filesystem.hpp>
 
@@ -271,7 +270,7 @@ void delete_test2(INDEX_TYPE type)
    dmsIndexScanOptions o;
    for (INT32 i = 0; i < count; ++i)
    {
-      dmsBsonCursorReader reader;
+      
       builder.reset();
       builder.append("a", i);
       rc = mt.loadPattern(builder.done(), FALSE);
@@ -287,10 +286,11 @@ void delete_test2(INDEX_TYPE type)
       rc = handler->scanIndex(&session, "index", predicates, o, cursor);
       ASSERT_EQ(SDB_OK, rc);
 
-      reader.init(cursor);
-      rc = reader.fetchNext(&session);
+      
+      rc = cursor->fetchNext(&session);
+      
       ASSERT_EQ(SDB_OK, rc);
-      ASSERT_EQ(i, reader.getRecord().getIntField("a"));
+      ASSERT_EQ(i, cursor->getBsonRecord().getIntField("a"));
       
       cursor->close();
       mt.clear();
@@ -347,13 +347,13 @@ void delete_test2(INDEX_TYPE type)
    DATA_CURSOR_PTR cursor;
    rc = handler->scanIndex(&session, "index", predicates, o, cursor);
    ASSERT_EQ(SDB_OK, rc);
-   dmsBsonCursorReader reader;
-   reader.init(cursor);
+   
+   
    for (INT32 i = 0; i < count; ++i)
    {
-      rc = reader.fetchNext(&session);
+      rc = cursor->fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
-      ASSERT_EQ(i, reader.getRecord().getIntField("a"));
+      ASSERT_EQ(i, cursor->getBsonRecord().getIntField("a"));
    }
    cursor->close();
    mt.clear();
@@ -481,13 +481,13 @@ void partial_delete(INDEX_TYPE type)
    DATA_CURSOR_PTR cursor;
    rc = handler->scanIndex(&session, indexName, predicates, o, cursor);
    ASSERT_EQ(SDB_OK, rc);
-   dmsBsonCursorReader reader;
-   reader.init(cursor);
+   
+   
    for (UINT32 i = 1; i < count; i+=2)
    {
-      rc = reader.fetchNext(&session);
+      rc = cursor->fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
-      ASSERT_EQ(i, reader.getRecord().getIntField("a"));
+      ASSERT_EQ(i, cursor->getBsonRecord().getIntField("a"));
    }
    cursor->close();
    mt.clear();
@@ -619,16 +619,16 @@ void backward_delete(INDEX_TYPE type)
       rc = handler->scanIndex(&session, indexName, predicates, o, cursor);
       ASSERT_EQ(SDB_OK, rc);
 
-      dmsBsonCursorReader reader;
-      reader.init(cursor);
+      
+      
 
       for (INT32 i = count / 2 - 1; i >= 0; --i)
       {
-         rc = reader.fetchNext(&session);
+         rc = cursor->fetchNext(&session);
          ASSERT_EQ(SDB_OK, rc);
-         ASSERT_EQ(i, reader.getRecord().getIntField("a"));
+         ASSERT_EQ(i, cursor->getBsonRecord().getIntField("a"));
       }
-      rc = reader.fetchNext(&session);
+      rc = cursor->fetchNext(&session);
       ASSERT_EQ(SDB_DMS_EOC, rc);
    
       mt.clear();

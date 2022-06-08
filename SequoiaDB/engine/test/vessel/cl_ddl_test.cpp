@@ -42,7 +42,6 @@
 #include "vessel/listCollectionSpaceDef.h"
 #include "vessel/listCollectionsDef.h"
 #include "dpsLogRecord.hpp"
-#include "dmsCursorReader.hpp"
 #include <thread> // c++11
 
 
@@ -93,7 +92,6 @@ TEST_F(cl_ddl_test, test1)
    dmsCreateCSOptions csOptions;
    dmsCreateCLOptions clOptions;
    DATA_CURSOR_PTR cursor;
-   dmsBsonCursorReader reader;
    bson::BSONObj record;
 
    rc = db.open(&executor, &resource, options);
@@ -114,25 +112,23 @@ TEST_F(cl_ddl_test, test1)
    rc = db.listCL(&executor, "foo", cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor);
-   rc = reader.fetchNext(&executor);
+   rc = cursor->fetchNext(&executor);
    ASSERT_EQ(SDB_OK, rc);
-
-   record = reader.getRecord();
+   record = cursor->getBsonRecord();
    ASSERT_EQ(0, record.getIntField(CL_DUMP_RECORD_FIELD_MB_ID));
    ASSERT_EQ(1, record.getIntField(CL_DUMP_RECORD_FIELD_INNER_ID));
    ASSERT_EQ(0, record.getIntField(CL_DUMP_RECORD_FIELD_CL_LOGICAL_ID));
    ASSERT_EQ(0, ossStrcmp("bar1", record.getStringField(CL_DUMP_RECORD_FIELD_NAME)));
 
-   rc = reader.fetchNext(&executor);
+   rc = cursor->fetchNext(&executor);
    ASSERT_EQ(SDB_OK, rc);
-   record = reader.getRecord();
+   record = cursor->getBsonRecord();
    ASSERT_EQ(1, record.getIntField(CL_DUMP_RECORD_FIELD_MB_ID));
    ASSERT_EQ(2, record.getIntField(CL_DUMP_RECORD_FIELD_INNER_ID));
    ASSERT_EQ(1, record.getIntField(CL_DUMP_RECORD_FIELD_CL_LOGICAL_ID));
    ASSERT_EQ(0, ossStrcmp("bar2", record.getStringField(CL_DUMP_RECORD_FIELD_NAME)));
 
-   rc = reader.fetchNext(&executor);
+   rc = cursor->fetchNext(&executor);
    ASSERT_EQ(SDB_DMS_EOC, rc);
 
    db.close(&executor, closeDBOptions());

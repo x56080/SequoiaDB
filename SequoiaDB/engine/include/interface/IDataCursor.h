@@ -40,6 +40,8 @@
 #include "utilPooledObject.hpp"
 #include "vessel/slice.h"
 #include "dms.hpp"
+#include "../bson/bson.hpp"
+#include "pdTrace.hpp"
 
 #include <memory> // c++ 11
 
@@ -66,6 +68,30 @@ namespace engine
          virtual dmsRecordID getRid()const {return dmsRecordID();}
          virtual DPS_TRANS_ID getTransId()const {return DPS_TRANS_ID();}
          virtual vessel::slice getDataSlice()const = 0; /// record data slice
+
+      public:/// fetchNext first
+         bson::BSONObj getBsonRecord(BOOLEAN check=TRUE)const
+         {
+            bson::BSONObj obj;
+            vessel::slice s = getDataSlice();
+            if (s.getSize() <= sizeof(UINT32))
+            {
+               PD_LOG(PDERROR, "invalid slice size:%d", s.getSize());
+            }
+            else
+            {
+               try
+               {
+                  obj = bson::BSONObj(s.data(), check);
+               }
+               catch(const std::exception& e)
+               {
+                  PD_LOG(PDERROR, "failed to parse record data:%s", e.what());
+               }
+            }
+
+            return obj;
+         }
 
          template<class T>
          const T *getDataObjPtr()const

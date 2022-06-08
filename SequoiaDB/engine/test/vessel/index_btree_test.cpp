@@ -38,7 +38,6 @@
 #include "vessel/vesselImpl.h"
 #include <gtest/gtest.h>
 #include "ixm_common.hpp"
-#include "dmsCursorReader.hpp"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;

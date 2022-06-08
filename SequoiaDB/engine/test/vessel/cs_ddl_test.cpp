@@ -43,7 +43,6 @@
 #include "vessel/listCollectionSpaceDef.h"
 #include "vessel/listCollectionsDef.h"
 #include "dpsLogRecord.hpp"
-#include "dmsCursorReader.hpp"
 
 #include <boost/filesystem.hpp>
 #include <thread>
@@ -123,7 +122,7 @@ TEST_F(cs_ddl_test, base_createCS_1)
 
    utilCSUniqueID uniqueId = UTIL_UNIQUEID_NULL;
    bson::BSONObj adjunct;
-   dmsBsonCursorReader reader;
+   
    DATA_CURSOR_PTR cursor;
 
    UINT32 count = 0;
@@ -147,15 +146,14 @@ TEST_F(cs_ddl_test, base_createCS_1)
    rc = db.listCS(&session, cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor);
    // test the collection space's name and unique_id
-   rc = reader.fetchNext(&session);
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(0, ossStrcmp("foo", 
-                          reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
-   ASSERT_EQ(1, reader.getRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
+                          cursor->getBsonRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(1, cursor->getBsonRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
-   rc = reader.fetchNext(&session);
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_DMS_EOC, rc);
    db.close(&session, closeDBOptions());
 }
@@ -188,7 +186,7 @@ TEST_F(cs_ddl_test, base_createCS_2)
 
    utilCSUniqueID uniqueId = UTIL_UNIQUEID_NULL;
    bson::BSONObj adjunct;
-   dmsBsonCursorReader reader;
+   
    DATA_CURSOR_PTR cursor;
    UINT32 count = 0;
 
@@ -216,15 +214,14 @@ TEST_F(cs_ddl_test, base_createCS_2)
    rc = db.listCS(&session, cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor);
    // test the collection space's name and unique_id
-   rc = reader.fetchNext(&session);
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(0, ossStrcmp("foo", 
-                          reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
-   ASSERT_EQ(1, reader.getRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
+                          cursor->getBsonRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(1, cursor->getBsonRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
-   rc = reader.fetchNext(&session);
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_DMS_EOC, rc);
    db.close(&session, closeDBOptions());
 }
@@ -256,7 +253,7 @@ TEST_F(cs_ddl_test, base_createCS_3)
    options.path.lsmPath = LSM_PATH;
 
    bson::BSONObj adjunct;
-   dmsBsonCursorReader reader;
+   
    DATA_CURSOR_PTR cursor;
    UINT32 count = 0;
 
@@ -279,26 +276,25 @@ TEST_F(cs_ddl_test, base_createCS_3)
    rc = db.listCS(&session, cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor);
-   rc = reader.fetchNext(&session);
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(0, ossStrcmp("foo1", 
-                          reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
-   ASSERT_EQ(1, reader.getRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
+                          cursor->getBsonRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(1, cursor->getBsonRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
-   rc = reader.fetchNext(&session);
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(0, ossStrcmp("foo2", 
-                          reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
-   ASSERT_EQ(2, reader.getRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
+                          cursor->getBsonRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(2, cursor->getBsonRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
-   rc = reader.fetchNext(&session);
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(0, ossStrcmp("foo3", 
-                          reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
-   ASSERT_EQ(3, reader.getRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
+                          cursor->getBsonRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(3, cursor->getBsonRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
-   rc = reader.fetchNext(&session);
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_DMS_EOC, rc);
 
    db.close(&session, closeDBOptions());
@@ -312,26 +308,26 @@ TEST_F(cs_ddl_test, base_createCS_3)
    rc = db.listCS(&session, cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor);
-   rc = reader.fetchNext(&session);
+   
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(0, ossStrcmp("foo1", 
-                          reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
-   ASSERT_EQ(1, reader.getRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
+                          cursor->getBsonRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(1, cursor->getBsonRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
-   rc = reader.fetchNext(&session);
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(0, ossStrcmp("foo2", 
-                          reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
-   ASSERT_EQ(2, reader.getRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
+                          cursor->getBsonRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(2, cursor->getBsonRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
-   rc = reader.fetchNext(&session);
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(0, ossStrcmp("foo3", 
-                          reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
-   ASSERT_EQ(3, reader.getRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
+                          cursor->getBsonRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(3, cursor->getBsonRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
-   rc = reader.fetchNext(&session);
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_DMS_EOC, rc);
 
    db.close(&session, closeDBOptions());
@@ -464,7 +460,7 @@ TEST_F(cs_ddl_test, base_listCS_1)
    options.path.lsmPath = LSM_PATH;
 
    DATA_CURSOR_PTR cursor;
-   dmsBsonCursorReader reader;
+   
    bson::BSONObj adjunct;
 
    rc = db.open(&session, &resource, options);
@@ -473,8 +469,8 @@ TEST_F(cs_ddl_test, base_listCS_1)
    rc = db.listCS(&session, cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor);
-   rc = reader.fetchNext(&session);
+   
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_DMS_EOC, rc);
 
    rc = db.createCS(&session, "foo1", 1, dmsCreateCSOptions(), adjunct);
@@ -489,23 +485,23 @@ TEST_F(cs_ddl_test, base_listCS_1)
    rc = db.listCS(&session, cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor);
-   rc = reader.fetchNext(&session);
+   
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_EQ(0, ossStrcmp("foo1", reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
-   ASSERT_EQ(1, reader.getRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
+   ASSERT_EQ(0, ossStrcmp("foo1", cursor->getBsonRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(1, cursor->getBsonRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
-   rc = reader.fetchNext(&session);
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_EQ(0, ossStrcmp("foo2", reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
-   ASSERT_EQ(2, reader.getRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
+   ASSERT_EQ(0, ossStrcmp("foo2", cursor->getBsonRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(2, cursor->getBsonRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
-   rc = reader.fetchNext(&session);
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_EQ(0, ossStrcmp("foo3", reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
-   ASSERT_EQ(3, reader.getRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
+   ASSERT_EQ(0, ossStrcmp("foo3", cursor->getBsonRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(3, cursor->getBsonRecord().getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
-   rc = reader.fetchNext(&session);
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_DMS_EOC, rc);
    
    db.close(&session, closeDBOptions());
@@ -907,7 +903,7 @@ TEST_F(cs_ddl_test, base_removeCS_1)
    bson::BSONObj adjunct;
    UINT32 count = 0;
    DATA_CURSOR_PTR cursor;
-   dmsBsonCursorReader reader;
+   
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
@@ -932,14 +928,14 @@ TEST_F(cs_ddl_test, base_removeCS_1)
    rc = db.listCS(&session, cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   reader.init(cursor);
-   rc = reader.fetchNext(&session);
+   
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_EQ(0, ossStrcmp("foo2", reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(0, ossStrcmp("foo2", cursor->getBsonRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
 
-   rc = reader.fetchNext(&session);
+   rc = cursor->fetchNext(&session);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_EQ(0, ossStrcmp("foo3", reader.getRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(0, ossStrcmp("foo3", cursor->getBsonRecord().getStringField(CS_DUMP_RECORD_FIELD_NAME)));
 
    rc = db.removeCS(&session, "foo2");
    ASSERT_EQ(SDB_OK, rc);
@@ -979,7 +975,7 @@ TEST_F(cs_ddl_test, base_removeCS_2)
 
    bson::BSONObj adjunct;
    DATA_CURSOR_PTR cursor;
-   dmsBsonCursorReader reader;
+   
    DATA_COLLECTION_PTR handler;
    UINT32 count = 10000;
    bson::BSONObjBuilder builder;
@@ -1038,7 +1034,7 @@ TEST_F(cs_ddl_test, base_removeCS_3)
 
    bson::BSONObj adjunct;
    DATA_CURSOR_PTR cursor;
-   dmsBsonCursorReader reader;
+   
    DATA_COLLECTION_PTR handler;
    constexpr UINT32 count = 1024;
    constexpr UINT32 LOBC_SIZE = 1024 * 1024;
@@ -1138,7 +1134,7 @@ TEST_F(cs_ddl_test, base_removeCS_4)
 
    bson::BSONObj adjunct;
    DATA_CURSOR_PTR cursor;
-   dmsBsonCursorReader reader;
+   
    DATA_COLLECTION_PTR handler;
 
    
