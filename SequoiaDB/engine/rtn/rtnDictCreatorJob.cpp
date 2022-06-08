@@ -194,11 +194,11 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTN_DICTCREATORJOB__CONDITIONMATCH, "_rtnDictCreatorJob::_conditionMatch" )
    BOOLEAN _rtnDictCreatorJob::_conditionMatch( dmsStorageUnit *su,
                                                 dmsMBContext *context,
-                                                UINT16 mbID )
+                                                dmsDictJob &job )
    {
       PD_TRACE_ENTRY( SDB__RTN_DICTCREATORJOB__CONDITIONMATCH ) ;
       const dmsMBStatInfo *mbStatInfo = NULL ;
-      BOOLEAN rc = FALSE ;
+      BOOLEAN result = FALSE ;
 
       if ( DMS_INVALID_EXTENT == context->mb()->_firstExtentID ||
            DMS_INVALID_EXTENT == context->mb()->_lastExtentID )
@@ -207,15 +207,16 @@ namespace engine
       }
       else
       {
-         mbStatInfo = su->data()->getMBStatInfo( mbID ) ;
+         mbStatInfo = su->data()->getMBStatInfo( job._clID ) ;
          SDB_ASSERT( mbStatInfo, "mbStatInfo should never be null" ) ;
-         rc = (mbStatInfo->_totalRecords >= RTN_DICT_CREATE_REC_NUM_THRESHOLD &&
-               mbStatInfo->_totalOrgDataLen >= RTN_DICT_CREATE_REC_DATA_SIZE) ;
+         result = ( mbStatInfo->_totalRecords >= RTN_DICT_CREATE_REC_NUM_THRESHOLD &&
+                    mbStatInfo->_totalOrgDataLen >= RTN_DICT_CREATE_REC_DATA_SIZE &&
+                    mbStatInfo->_totalRecords > job._recordNum ) ;
       }
 
    done:
       PD_TRACE_EXIT( SDB__RTN_DICTCREATORJOB__CONDITIONMATCH ) ;
-      return rc ;
+      return result ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTN_DICTCREATORJOB__CREATEDICT, "_rtnDictCreatorJob::_createDict" )
@@ -293,7 +294,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTN_DICTCREATORJOB__CHECKANDCREATEDICTFORCL, "_rtnDictCreatorJob::_checkAndCreateDictForCL" )
-   INT32 _rtnDictCreatorJob::_checkAndCreateDictForCL( const dmsDictJob &job,
+   INT32 _rtnDictCreatorJob::_checkAndCreateDictForCL( dmsDictJob &job,
                                                        BOOLEAN &retry )
    {
       INT32 rc = SDB_OK ;
@@ -350,7 +351,7 @@ namespace engine
          goto done ;
       }
 
-      if ( !_conditionMatch( su, mbContext, job._clID ) )
+      if ( !_conditionMatch( su, mbContext, job ) )
       {
          mbContext->mbUnlock() ;
          retry = TRUE ;
@@ -376,7 +377,7 @@ namespace engine
       }
 
       // Double check of the condition after resuming the mb latch.
-      if ( !_conditionMatch( su, mbContext, job._clID ) )
+      if ( !_conditionMatch( su, mbContext, job ) )
       {
          mbContext->mbUnlock() ;
          retry = TRUE ;
@@ -397,6 +398,11 @@ namespace engine
          {
             // Data in the collection is not enough. Should not print any error.
             PD_LOG( PDERROR, "Failed to create dictionary, rc: %d", rc ) ;
+         }
+         else if ( SDB_DMS_EOC == rc )
+         {
+            const dmsMBStatInfo *mbStatInfo = su->data()->getMBStatInfo( job._clID ) ;
+            job._recordNum = mbStatInfo->_totalRecords ;
          }
          goto error ;
       }
