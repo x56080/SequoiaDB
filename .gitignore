@@ -267,3 +267,4 @@ hs_err_pid*
 
 thirdparty/rocksdb/make_config.mk
 thirdparty/rocksdb/util/build_version.cc
+.vscode
